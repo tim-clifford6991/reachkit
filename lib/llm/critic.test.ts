@@ -134,6 +134,24 @@ describe("runCritic — deterministic rule rejections", () => {
     expect(result.failedRules).toContain("effort");
   });
 
+  // Fix M1: NaN delta fails rule 4
+  test("M1: delta: NaN fails rule 4 (expected_outcome)", async () => {
+    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => true }));
+    vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
+      recordPipelineRun: vi.fn().mockResolvedValue(undefined),
+    }));
+
+    const { runCritic } = await import("./critic");
+    const ctx = await makeScanCtx();
+    const card = passingCard("content", {
+      expectedOutcome: { scoreComponent: "content", delta: NaN },
+    });
+
+    const result = await runCritic(ctx, card);
+    expect(result.pass).toBe(false);
+    expect(result.failedRules).toContain("expected_outcome");
+  });
+
   test("rule 5a: content card with null draft fails 'draft_missing'", async () => {
     vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => true }));
     vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
@@ -590,6 +608,89 @@ describe("criticGateCard — reject/revise loop", () => {
     expect(outcome).toBe("downgrade");
     expect(finalCard.basis).toBe("probability_based");
     expect(finalCard.confidence).toBeLessThanOrEqual(0.6);
+  });
+
+  // Fix C1: mixed specificity+evidence → dropped, NOT downgraded
+  test("C1: card failing [specificity, evidence] (LLM keeps specificity failing) → DROPPED not downgraded", async () => {
+    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
+    vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
+      recordPipelineRun: vi.fn().mockResolvedValue(undefined),
+    }));
+    vi.doMock("@/lib/llm/check-link", () => ({
+      checkLink: { name: "check_link", klass: "L", run: vi.fn().mockResolvedValue({ entails: true, reason: "ok" }) },
+    }));
+    // LLM always keeps specificity failing → specificity never resolves
+    vi.doMock("@/lib/llm/anthropic", () => ({
+      callModel: vi.fn().mockResolvedValue({
+        text: JSON.stringify({ specificityOk: false, draftCitesFact: true, audienceHonest: true }),
+        usage: { inputTokens: 500, outputTokens: 200 },
+      }),
+    }));
+
+    const { criticGateCard } = await import("./critic");
+    const ctx = await makeScanCtx();
+    // Card with only 1 evidence item → fails "evidence" deterministically
+    // LLM will fail "specificity" → mixed [evidence, specificity]
+    const card = passingCard("outreach", {
+      evidence: [
+        { excerpt: "only one item", source: "review_themes", sourceType: "app_store_rss" },
+      ],
+    });
+
+    const { outcome } = await criticGateCard(ctx, card, 3);
+    // specificity is not in DOWNGRADE_ELIGIBLE_RULES → must be DROPPED
+    expect(outcome).toBe("drop");
+  });
+
+  // Fix I1: card failing ONLY evidence → downgraded with no fabricated evidence
+  test("I1: card failing only [evidence] → DOWNGRADED, confidence ≤0.6, evidence array unchanged", async () => {
+    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => true })); // fixture → no LLM
+    vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
+      recordPipelineRun: vi.fn().mockResolvedValue(undefined),
+    }));
+
+    const { criticGateCard } = await import("./critic");
+    const ctx = await makeScanCtx();
+    // Only 1 evidence item → fails "evidence". All other rules pass.
+    const originalEvidence = [
+      { excerpt: "streak feature keeps me going", source: "review_themes", sourceType: "app_store_rss" },
+    ];
+    const card = passingCard("content", { evidence: [...originalEvidence] });
+
+    const { outcome, card: finalCard } = await criticGateCard(ctx, card, 3);
+    expect(outcome).toBe("downgrade");
+    expect(finalCard.basis).toBe("probability_based");
+    expect(finalCard.confidence).toBeLessThanOrEqual(0.6);
+    // Evidence must NOT have been fabricated — array length unchanged (no padding)
+    expect(finalCard.evidence).toHaveLength(originalEvidence.length);
+    expect(finalCard.evidence[0]?.excerpt).toBe(originalEvidence[0]?.excerpt);
+  });
+
+  // Fix I3: hard fail (effortMin=0) + fixable fail → dropped, early break (minimal LLM calls)
+  test("I3: card with hard fail (effortMin=0) → dropped with 0 LLM calls (early break)", async () => {
+    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
+    vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
+      recordPipelineRun: vi.fn().mockResolvedValue(undefined),
+    }));
+    vi.doMock("@/lib/llm/check-link", () => ({
+      checkLink: { name: "check_link", klass: "L", run: vi.fn().mockResolvedValue({ entails: true, reason: "ok" }) },
+    }));
+    const callModelMock = vi.fn().mockResolvedValue({
+      text: JSON.stringify({ specificityOk: false, draftCitesFact: true, audienceHonest: true }),
+      usage: { inputTokens: 500, outputTokens: 200 },
+    });
+    vi.doMock("@/lib/llm/anthropic", () => ({ callModel: callModelMock }));
+
+    const { criticGateCard } = await import("./critic");
+    const ctx = await makeScanCtx();
+    // effortMin=0 → fails "effort" (a hard fail: not in FIXABLE_RULES, not in DOWNGRADE_ELIGIBLE_RULES)
+    const card = passingCard("outreach", { effortMin: 0 });
+
+    const { outcome } = await criticGateCard(ctx, card, 3);
+    expect(outcome).toBe("drop");
+    // After the first runCritic sees the hard fail (effort), the loop breaks immediately.
+    // runCritic calls the LLM once in attempt 0, then breaks — so callModel is called exactly once.
+    expect(callModelMock).toHaveBeenCalledTimes(1);
   });
 });
 

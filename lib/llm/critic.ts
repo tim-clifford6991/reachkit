@@ -63,7 +63,7 @@ function checkDeterministic(card: ActionCard): string[] {
   }
 
   // Rule 4 — Expected outcome
-  if (!card.expectedOutcome.scoreComponent || typeof card.expectedOutcome.delta !== "number") {
+  if (!card.expectedOutcome.scoreComponent || !Number.isFinite(card.expectedOutcome.delta)) {
     failed.push("expected_outcome");
   }
 
@@ -188,14 +188,16 @@ export async function runCritic(ctx: ScanContext, card: ActionCard): Promise<Cri
     }
 
     // --- check_link (rule 7b) — spot-check up to 2 http(s) evidence items ---
-    const httpEvidence = card.evidence
+    // Use currentCard (the possibly-revised card) so entailment is checked against
+    // the revision's evidence + why (Fix I4)
+    const httpEvidence = currentCard.evidence
       .filter((e) => /^https?:\/\//i.test(e.source))
       .slice(0, 2);
 
     for (const ev of httpEvidence) {
       try {
         const toolCtx = { scanId: ctx.scanId, mode: ctx.mode, budget: ctx.budget };
-        const linkResult = await checkLink.run({ url: ev.source, claim: card.why }, toolCtx);
+        const linkResult = await checkLink.run({ url: ev.source, claim: currentCard.why }, toolCtx);
         if (!linkResult.entails) {
           if (!failedRules.includes("entailment")) {
             failedRules.push("entailment");
@@ -235,7 +237,8 @@ export async function criticGateCard(
   let current = card;
   let lastFailedRules: string[] = [];
 
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+  // Fix I2: exactly maxRetries (3) runCritic passes max
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
     const result = await runCritic(ctx, current);
     if (result.pass) {
       return { outcome: "pass", card: result.card, failedRules: [] };
@@ -245,43 +248,34 @@ export async function criticGateCard(
     // Use the (possibly LLM-revised) card for the next attempt
     current = result.card;
 
-    // If all failures are fixable and we have retries left, keep looping
-    const hasUnfixable = result.failedRules.some((r) => !FIXABLE_RULES.has(r));
-    if (hasUnfixable && attempt < maxRetries) {
-      // Can't fix non-LLM rules via revision — stop early unless downgrade applies later
-    }
+    // Fix I3: break early when there's a hard failure that is neither fixable
+    // nor downgrade-eligible — revision can't help and downgrade won't apply
+    const hasHardFail = result.failedRules.some(
+      (r) => !FIXABLE_RULES.has(r) && !DOWNGRADE_ELIGIBLE_RULES.has(r),
+    );
+    if (hasHardFail) break; // can't fix via revision and can't downgrade → will be dropped
   }
 
-  // Exhausted retries — decide: downgrade or drop
-  const onlyDowngradeable = lastFailedRules.every(
-    (r) => DOWNGRADE_ELIGIBLE_RULES.has(r) || FIXABLE_RULES.has(r),
-  );
+  // Exhausted retries (or early break) — decide: downgrade or drop
 
-  if (
-    onlyDowngradeable &&
-    lastFailedRules.some((r) => DOWNGRADE_ELIGIBLE_RULES.has(r))
-  ) {
-    // §9.1 fallback: downgrade to probability_based, cap confidence at 0.6, KEEP the card
+  // Fix C1: downgrade ONLY when EVERY remaining failed rule is in DOWNGRADE_ELIGIBLE_RULES
+  // (evidence / confidence_cap). Any other failure — including fixable rules that weren't
+  // resolved — causes a drop.
+  const onlyDowngradeable =
+    lastFailedRules.length > 0 &&
+    lastFailedRules.every((r) => DOWNGRADE_ELIGIBLE_RULES.has(r));
+
+  if (onlyDowngradeable) {
+    // §9.1 fallback: relabel basis + cap confidence — NO fabricated evidence (Fix I1)
     const downgraded: ActionCard = {
       ...current,
       basis: "probability_based",
       confidence: Math.min(current.confidence, 0.6),
-      // Ensure evidence invariant is met after downgrade (pad with a note item if still short)
-      evidence: current.evidence.length >= 2
-        ? current.evidence
-        : [
-            ...current.evidence,
-            ...Array.from({ length: Math.max(0, 2 - current.evidence.length) }, (_, i) => ({
-              excerpt: i === 0 ? current.why.slice(0, 120) : current.title,
-              source: "inferred",
-              sourceType: "probability_based",
-            })),
-          ],
     };
     return { outcome: "downgrade", card: downgraded, failedRules: lastFailedRules };
   }
 
-  // Drop: too many unfixable failures
+  // Drop: hard failures or mixed fixable+downgrade-eligible that couldn't be resolved
   return { outcome: "drop", card: current, failedRules: lastFailedRules };
 }
 
