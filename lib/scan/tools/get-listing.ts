@@ -6,6 +6,7 @@ import { fetchSiteListing } from "@/lib/scan/adapters/site-fetch";
 import { fetchDomainAgeYears } from "@/lib/scan/adapters/domain-age";
 import { upsertRawDocument } from "@/lib/db/raw-documents";
 import { recordPipelineRun } from "@/lib/telemetry/pipeline-runs";
+import { hostname } from "@/lib/scan/url";
 
 export interface GetListingArgs {
   storeUrl: string;
@@ -17,14 +18,6 @@ export interface GetListingResult {
   extras: FactsExtras;
 }
 
-function hostname(url: string): string {
-  try {
-    return new URL(url.includes("://") ? url : `https://${url}`).hostname.replace(/^www\./, "");
-  } catch {
-    return url;
-  }
-}
-
 export const getListing: ToolDefinition<GetListingArgs, GetListingResult> = {
   name: "get_listing",
   klass: "D",
@@ -34,20 +27,20 @@ export const getListing: ToolDefinition<GetListingArgs, GetListingResult> = {
     if (ctx.mode === "web") {
       ctx.budget.charge({ toolCalls: 2, cents: 0 });
 
-      const [siteResult, domainAgeYears] = await Promise.all([
+      const host = hostname(args.storeUrl);
+      const [siteSettled, ageSettled] = await Promise.allSettled([
         fetchSiteListing(args.storeUrl),
-        fetchDomainAgeYears(hostname(args.storeUrl)),
+        fetchDomainAgeYears(host),
       ]);
 
-      await Promise.all([
-        upsertRawDocument({
-          subjectType: "web",
-          subjectKey: args.subjectKey,
-          sourceType: "site_fetch",
-          url: args.storeUrl,
-          body: siteResult.raw,
-          mode: ctx.mode,
-        }),
+      const listing: ListingFacts =
+        siteSettled.status === "fulfilled"
+          ? siteSettled.value.listing
+          : { name: host, category: null, description: null };
+      const domainAgeYears: number | null =
+        ageSettled.status === "fulfilled" ? ageSettled.value : null;
+
+      const persistPromises: Promise<unknown>[] = [
         upsertRawDocument({
           subjectType: "web",
           subjectKey: args.subjectKey,
@@ -55,7 +48,20 @@ export const getListing: ToolDefinition<GetListingArgs, GetListingResult> = {
           body: { domainAgeYears },
           mode: ctx.mode,
         }),
-      ]);
+      ];
+      if (siteSettled.status === "fulfilled") {
+        persistPromises.push(
+          upsertRawDocument({
+            subjectType: "web",
+            subjectKey: args.subjectKey,
+            sourceType: "site_fetch",
+            url: args.storeUrl,
+            body: siteSettled.value.raw,
+            mode: ctx.mode,
+          }),
+        );
+      }
+      await Promise.all(persistPromises);
 
       await recordPipelineRun({
         scanId: ctx.scanId,
@@ -64,26 +70,34 @@ export const getListing: ToolDefinition<GetListingArgs, GetListingResult> = {
         durationMs: Date.now() - t0,
       });
 
-      return {
-        listing: siteResult.listing,
-        extras: { domainAgeYears },
-      };
+      return { listing, extras: { domainAgeYears } };
     }
 
     // app mode (ios / android)
     ctx.budget.charge({ toolCalls: 1, cents: 0 });
 
-    const appId = appIdFromUrl(args.storeUrl);
-    const result = await fetchItunesListing(appId);
+    let listing: ListingFacts;
+    let extras: FactsExtras;
 
-    await upsertRawDocument({
-      subjectType: "app",
-      subjectKey: args.subjectKey,
-      sourceType: "itunes",
-      url: args.storeUrl,
-      body: result.raw,
-      mode: ctx.mode,
-    });
+    try {
+      const appId = appIdFromUrl(args.storeUrl);
+      const result = await fetchItunesListing(appId);
+
+      await upsertRawDocument({
+        subjectType: "app",
+        subjectKey: args.subjectKey,
+        sourceType: "itunes",
+        url: args.storeUrl,
+        body: result.raw,
+        mode: ctx.mode,
+      });
+
+      listing = result.listing;
+      extras = { rating: result.rating, ratingCount: result.ratingCount };
+    } catch {
+      listing = { name: hostname(args.storeUrl), category: null, description: null };
+      extras = {};
+    }
 
     await recordPipelineRun({
       scanId: ctx.scanId,
@@ -92,9 +106,6 @@ export const getListing: ToolDefinition<GetListingArgs, GetListingResult> = {
       durationMs: Date.now() - t0,
     });
 
-    return {
-      listing: result.listing,
-      extras: { rating: result.rating, ratingCount: result.ratingCount },
-    };
+    return { listing, extras };
   },
 };

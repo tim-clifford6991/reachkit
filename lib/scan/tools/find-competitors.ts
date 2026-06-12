@@ -8,6 +8,7 @@ import { tavilyAlternatives } from "@/lib/scan/adapters/tavily";
 import { rankCompetitors } from "@/lib/scan/competitors";
 import { upsertRawDocument } from "@/lib/db/raw-documents";
 import { recordPipelineRun } from "@/lib/telemetry/pipeline-runs";
+import { hostname } from "@/lib/scan/url";
 
 export interface FindCompetitorsArgs {
   productName: string;
@@ -18,14 +19,6 @@ export interface FindCompetitorsArgs {
 export interface FindCompetitorsResult {
   competitors: Competitor[];
   extras: FactsExtras;
-}
-
-function hostname(url: string): string {
-  try {
-    return new URL(url.includes("://") ? url : `https://${url}`).hostname.replace(/^www\./, "");
-  } catch {
-    return url;
-  }
 }
 
 export const findCompetitors: ToolDefinition<FindCompetitorsArgs, FindCompetitorsResult> = {

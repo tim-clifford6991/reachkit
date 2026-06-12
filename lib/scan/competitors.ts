@@ -1,23 +1,16 @@
 import type { Competitor } from "@/lib/scan/types";
 import { serverDb } from "@/lib/db/client";
-
-function host(u: string): string {
-  try {
-    return new URL(u.includes("://") ? u : `https://${u}`).hostname.replace(/^www\./, "");
-  } catch {
-    return u.replace(/^www\./, "");
-  }
-}
+import { hostname } from "@/lib/scan/url";
 
 export function rankCompetitors(
   all: Competitor[],
   opts: { selfHost?: string; cap?: number } = {},
 ): Competitor[] {
   const cap = opts.cap ?? 5;
-  const self = opts.selfHost ? host(opts.selfHost) : null;
+  const self = opts.selfHost ? hostname(opts.selfHost) : null;
   const best = new Map<string, Competitor>();
   for (const c of all) {
-    const k = host(c.url);
+    const k = hostname(c.url);
     if (self && k === self) continue;                 // drop the product's own domain (web mode)
     const cur = best.get(k);
     if (!cur || c.rank < cur.rank) best.set(k, c);

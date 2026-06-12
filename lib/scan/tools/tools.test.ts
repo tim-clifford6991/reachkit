@@ -1,21 +1,22 @@
-import { expect, test, vi, beforeEach } from "vitest";
-import { ScanBudget } from "@/lib/tools/registry";
+import { expect, test, vi } from "vitest";
 
 // ---------------------------------------------------------------------------
 // getReviews
 // ---------------------------------------------------------------------------
 
 test("getReviews charges the budget once and returns reviews", async () => {
-  vi.mock("@/lib/scan/adapters/app-store-rss", () => ({
+  vi.resetModules();
+  vi.doMock("@/lib/scan/adapters/app-store-rss", () => ({
     fetchAppReviews: async () => [{ rating: 5, title: "", body: "great" }],
   }));
-  vi.mock("@/lib/db/raw-documents", () => ({
+  vi.doMock("@/lib/db/raw-documents", () => ({
     upsertRawDocument: async () => ({ id: 1, deduped: false }),
   }));
-  vi.mock("@/lib/telemetry/pipeline-runs", () => ({
+  vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
     recordPipelineRun: async () => {},
   }));
   const { getReviews } = await import("./get-reviews");
+  const { ScanBudget } = await import("@/lib/tools/registry");
   const budget = new ScanBudget({ maxToolCalls: 60, budgetCents: 150 });
   const out = await getReviews.run(
     { appId: "1", subjectKey: "sofa" },
@@ -36,6 +37,7 @@ test("getReviews persists raw payload to raw_documents", async () => {
     recordPipelineRun: async () => {},
   }));
   const { getReviews } = await import("./get-reviews");
+  const { ScanBudget } = await import("@/lib/tools/registry");
   const budget = new ScanBudget({ maxToolCalls: 60, budgetCents: 150 });
   await getReviews.run(
     { appId: "999", subjectKey: "myapp" },
@@ -268,6 +270,33 @@ test("getListing (web) charges 2 calls and returns domainAgeYears in extras", as
   expect(out.extras.domainAgeYears).toBe(3);
   expect(budget.callsMade).toBe(2);
   expect(budget.spentCents).toBe(0);
+});
+
+test("getListing (web) does NOT throw when site-fetch rejects; degrades gracefully", async () => {
+  vi.resetModules();
+  const recordPipelineRun = vi.fn(async () => {});
+  vi.doMock("@/lib/scan/adapters/site-fetch", () => ({
+    fetchSiteListing: async () => {
+      throw new Error("fetch failed");
+    },
+  }));
+  vi.doMock("@/lib/scan/adapters/domain-age", () => ({
+    fetchDomainAgeYears: async () => 5,
+  }));
+  vi.doMock("@/lib/db/raw-documents", () => ({
+    upsertRawDocument: async () => ({ id: 1, deduped: false }),
+  }));
+  vi.doMock("@/lib/telemetry/pipeline-runs", () => ({ recordPipelineRun }));
+  const { getListing } = await import("./get-listing");
+  const { ScanBudget } = await import("@/lib/tools/registry");
+  const budget = new ScanBudget({ maxToolCalls: 60, budgetCents: 150 });
+  const out = await getListing.run(
+    { storeUrl: "https://nudgi.app", subjectKey: "nudgi" },
+    { scanId: "s7", mode: "web", budget },
+  );
+  expect(out.listing.name).toBe("nudgi.app");
+  expect(out.extras.domainAgeYears).toBe(5);
+  expect(recordPipelineRun).toHaveBeenCalledOnce();
 });
 
 // ---------------------------------------------------------------------------
