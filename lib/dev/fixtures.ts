@@ -1,5 +1,5 @@
 import type { Competitor, KeywordRow } from "@/lib/scan/types";
-import type { ReviewThemesSheet, PositioningSheet, CompetitorGapSheet, KeywordSheet } from "@/lib/llm/types";
+import type { ReviewThemesSheet, PositioningSheet, CompetitorGapSheet, KeywordSheet, SynthResult } from "@/lib/llm/types";
 import type { FactSheetKind } from "@/lib/scan/fact-sheets";
 import { env } from "@/lib/config/env";
 
@@ -124,4 +124,59 @@ export function fixtureExtract(
     case "competitor_gap": return FIXTURE_COMPETITOR_GAP;
     case "keyword_data":   return FIXTURE_KEYWORD_SHEET;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Synth-stage fixture — a realistic SynthResult for demo/test without Anthropic key.
+// 3 findings, each with ≥1 evidence excerpt drawn from the extract fixtures above.
+// ---------------------------------------------------------------------------
+export function fixtureSynth(): SynthResult {
+  return {
+    positioningMirror: {
+      listingSays: "Build habits in 21 days with science-backed streaks, trusted by 500,000+ users",
+      reviewsValue: "Users prize the streak feature for maintaining consistency, but report crashes on older iOS and widget reliability issues",
+      gap: "The listing emphasises rapid habit formation (21 days) and social proof, but users actually value persistence tools (streaks, reminders) and reliable widgets — the stability issues undercut the premium promise",
+    },
+    findings: [
+      {
+        category: "content",
+        claim: "The listing's '21-day' headline claim is unsupported in user reviews — reviewers focus on streak consistency, not timeline outcomes. Reframing the description around long-term streak maintenance would better match demonstrated user value.",
+        basis: "evidence_based",
+        confidence: 0.85,
+        evidence: [
+          { excerpt: "the streak feature keeps me going", source: "review_themes" },
+          { excerpt: "Build habits in 21 days", source: "positioning" },
+          { excerpt: "Daily habit streaks with visual progress", source: "positioning" },
+        ],
+      },
+      {
+        category: "seo_aso",
+        claim: "The top-volume keyword cluster 'habit tracker' (8,100/mo + 5,400 'daily habit tracker') is not reflected in the current listing title or description — closing this gap is the single highest-ROI ASO action.",
+        basis: "evidence_based",
+        confidence: 0.92,
+        evidence: [
+          { excerpt: "habit tracker app", source: "keyword_data" },
+          { excerpt: "daily habit tracker", source: "keyword_data" },
+          { excerpt: "Minimalist, distraction-free interface", source: "positioning" },
+        ],
+      },
+      {
+        category: "outreach",
+        claim: "Habitify positions on analytics complexity; Streaks positions on Apple Watch. Neither owns 'simple habit building' — the app's stated differentiator. This gap creates a clear narrative for creator outreach targeting productivity audiences who've churned from data-heavy tools.",
+        basis: "evidence_based",
+        confidence: 0.78,
+        evidence: [
+          { excerpt: "Simpler onboarding and lower cognitive load for new users", source: "competitor_gap" },
+          { excerpt: "Data-rich habit analytics with beautiful charts", source: "competitor_gap" },
+          { excerpt: "incredibly easy to get started", source: "review_themes" },
+        ],
+      },
+    ],
+    sampleAction: {
+      category: "seo_aso",
+      title: "Inject 'habit tracker' keyword cluster into listing title + first description paragraph",
+      why: "8,100 monthly searches for 'habit tracker app' with no top competitor owning the phrase in title — a low-effort, high-visibility ASO win",
+      draft: "HabitKit — Daily Habit Tracker\n\nBuild lasting habits with HabitKit, the simplest habit tracker app for iOS. Track your daily routines, maintain streaks, and see real progress — no analytics overwhelm, just the tools you need to show up every day.",
+    },
+  };
 }

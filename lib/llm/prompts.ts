@@ -1,4 +1,5 @@
 // Extract-stage prompt builders for Haiku.
+// Synth-stage prompt builder for Sonnet (SYNTH_SYSTEM + buildSynthPrompt).
 // Shared system preamble + per-kind user prompts.
 // Return STRICT JSON only — no markdown fences, no prose.
 
@@ -98,4 +99,71 @@ Rules:
 - Each keyword belongs to exactly one cluster.
 - Sort clusters by total cluster volume descending.
 - If no keyword data, return { "clusters": [] }.`;
+}
+
+// ---------------------------------------------------------------------------
+// SYNTH stage — Sonnet reads FACT SHEETS ONLY (§13), never raw text.
+// ---------------------------------------------------------------------------
+
+export const SYNTH_SYSTEM = `You are a product-growth strategist. You read structured fact sheets extracted from app-store listings, user reviews, competitor data, and keyword research. Your job is to synthesise these facts into actionable findings for a B2B SaaS client.
+
+STRICT RULES:
+1. Output ONLY valid JSON — no markdown, no code fences, no prose.
+2. Every "claim" in a finding MUST be supported by at least one "evidence" excerpt drawn verbatim from the provided fact sheets.
+3. Produce EXACTLY 3 findings and EXACTLY 1 sampleAction.
+4. All findings use basis "evidence_based" — probability-based is reserved for when no supporting quote exists.
+5. confidence is a float 0.0–1.0.
+6. sampleAction.draft must be a realistic, ready-to-use copy snippet or outreach message that references real content from the fact sheets.`;
+
+export function buildSynthPrompt(sheets: {
+  reviewThemes: string;
+  positioning: string;
+  competitorGap: string;
+  keywordData: string;
+}): string {
+  return `Here are the fact sheets for this app. Synthesise them into a SynthResult.
+
+=== POSITIONING SHEET ===
+${sheets.positioning}
+
+=== REVIEW THEMES SHEET ===
+${sheets.reviewThemes}
+
+=== COMPETITOR GAP SHEET ===
+${sheets.competitorGap}
+
+=== KEYWORD DATA SHEET ===
+${sheets.keywordData}
+
+Return ONLY this JSON (no markdown, no code fences):
+{
+  "positioningMirror": {
+    "listingSays": "<1–2 sentences: what the listing claims or emphasises>",
+    "reviewsValue": "<1–2 sentences: what users actually praise or complain about in reviews>",
+    "gap": "<1 sentence: the key disconnect between listing claims and review reality>"
+  },
+  "findings": [
+    {
+      "category": "content" | "outreach" | "seo_aso",
+      "claim": "<1–2 sentence actionable finding>",
+      "basis": "evidence_based",
+      "confidence": <0.0–1.0>,
+      "evidence": [
+        { "excerpt": "<verbatim quote from a fact sheet>", "source": "review_themes" | "positioning" | "competitor_gap" | "keyword_data" }
+      ]
+    }
+  ],
+  "sampleAction": {
+    "category": "content" | "outreach" | "seo_aso",
+    "title": "<short action title>",
+    "why": "<1 sentence rationale citing a specific signal from the sheets>",
+    "draft": "<ready-to-use copy: App Store description snippet, outreach message, or keyword phrase>"
+  }
+}
+
+Rules:
+- findings: EXACTLY 3 items, one per growth category (content, outreach, seo_aso) where possible.
+- Each finding must have ≥1 evidence item with a verbatim excerpt from the fact sheets above.
+- sampleAction: EXACTLY 1 item, choose the highest-confidence category.
+- Do not invent data not present in the fact sheets.`;
 }
