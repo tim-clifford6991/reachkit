@@ -1,7 +1,39 @@
 // Extract-stage prompt builders for Haiku.
 // Synth-stage prompt builder for Sonnet (SYNTH_SYSTEM + buildSynthPrompt).
+// Critic-stage prompt builder for Haiku (ENTAIL_SYSTEM + buildEntailPrompt).
 // Shared system preamble + per-kind user prompts.
 // Return STRICT JSON only — no markdown fences, no prose.
+
+// ---------------------------------------------------------------------------
+// ENTAIL stage — Haiku judges whether a source text supports a given claim.
+// Used by check_link (§9.4 L-tool) in the Critic Gate.
+// ---------------------------------------------------------------------------
+
+export const ENTAIL_SYSTEM = `You are an entailment judge. Given a source text and a claim, decide whether the source text SUPPORTS the claim.
+
+STRICT OUTPUT RULES:
+1. Output ONLY valid JSON — no markdown, no code fences, no prose.
+2. The JSON must have exactly two fields: "entails" (boolean) and "reason" (string).
+3. "entails" must be true if and only if the source text clearly and directly supports the claim. Default to false when uncertain.
+4. "reason" must be a concise (≤2 sentence) explanation citing specific text from the source.`;
+
+export function buildEntailPrompt(sourceText: string, claim: string): string {
+  return `Determine whether the following source text supports the claim.
+
+=== SOURCE TEXT ===
+${sourceText}
+
+=== CLAIM ===
+${claim}
+
+Return ONLY this JSON (no markdown, no code fences):
+{ "entails": <boolean>, "reason": "<concise explanation citing the source>" }
+
+Rules:
+- entails: true only if the source text clearly and directly states or implies the claim.
+- entails: false if the claim is unsupported, contradicted, or the source text is too vague.
+- reason: cite specific wording from the source text when entails is true; explain the gap when false.`;
+}
 
 export const EXTRACT_SYSTEM = `You are a data-extraction assistant. Your job is to read raw app-store and web evidence and compress it into structured JSON facts. Be concise and accurate. Output ONLY valid JSON — no markdown, no code fences, no explanations.`;
 

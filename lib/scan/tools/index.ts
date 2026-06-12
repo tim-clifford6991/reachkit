@@ -6,6 +6,7 @@ import { searchWeb } from "./search-web";
 import { searchKeywords } from "./search-keywords";
 import { findCommunities } from "./find-communities";
 import { findCreators } from "./find-creators";
+import { checkLink } from "@/lib/llm/check-link";
 
 export type { FactsExtras } from "./types";
 
@@ -18,4 +19,7 @@ registry.set("search_keywords", searchKeywords);
 registry.set("find_communities", findCommunities);
 registry.set("find_creators", findCreators);
 
-export { getListing, getReviews, findCompetitors, searchWeb, searchKeywords, findCommunities, findCreators };
+// Register L-tools
+registry.set("check_link", checkLink);
+
+export { getListing, getReviews, findCompetitors, searchWeb, searchKeywords, findCommunities, findCreators, checkLink };
