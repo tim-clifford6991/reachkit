@@ -6,6 +6,8 @@ test.each([
   ["https://play.google.com/store/apps/details?id=com.x", "android"],
   ["https://nudgi.app/pricing", "web"],
   ["reachkit.app", "web"],
+  ["https://evilapps.apple.com/x", "web"],
+  ["https://apps.apple.com.attacker.com/x", "web"],
 ])("classifyUrl(%s) -> %s", (url, platform) => {
   expect(classifyUrl(url).platform).toBe(platform);
 });
