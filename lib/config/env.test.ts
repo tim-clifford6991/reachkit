@@ -14,7 +14,7 @@ test("parseEnv returns typed config when all keys supplied (fixtures off)", asyn
     SUPABASE_URL: "https://x.supabase.co", SUPABASE_ANON_KEY: "a", SUPABASE_SERVICE_ROLE_KEY: "s",
     ANTHROPIC_API_KEY: "k", DATAFORSEO_LOGIN: "l", DATAFORSEO_PASSWORD: "p",
     TAVILY_API_KEY: "t", RESEND_API_KEY: "r", POSTHOG_KEY: "ph", POSTHOG_HOST: "https://app.posthog.com",
-    SCAN_BUDGET_CENTS: "150", PRODUCT_HUNT_TOKEN: "ph",
+    SCAN_BUDGET_CENTS: "150", PRODUCT_HUNT_TOKEN: "ph", YOUTUBE_API_KEY: "yt",
   } as unknown as NodeJS.ProcessEnv);
   expect(cfg.scanBudgetCents).toBe(150);
   expect(cfg.anthropicApiKey).toBe("k");

@@ -1,4 +1,4 @@
-import type { Competitor, Community, KeywordRow } from "@/lib/scan/types";
+import type { Competitor, Community, Creator, KeywordRow } from "@/lib/scan/types";
 import type { ReviewThemesSheet, PositioningSheet, CompetitorGapSheet, KeywordSheet, SynthResult } from "@/lib/llm/types";
 import type { FactSheetKind } from "@/lib/scan/fact-sheets";
 import { env } from "@/lib/config/env";
@@ -61,6 +61,23 @@ export function fixtureCommunities(topic: string): Community[] {
       engagement: 63,
     },
   ];
+}
+
+export function fixtureCreators(competitors: string[]): Creator[] {
+  return competitors.flatMap((competitor) => [
+    {
+      name: `${competitor} Review Channel`,
+      url: `https://www.youtube.com/watch?v=fixture_${competitor.replace(/\s+/g, "_")}_1`,
+      audienceProxy: 0,
+      coveredCompetitor: competitor,
+    },
+    {
+      name: `Best ${competitor} Alternatives`,
+      url: `https://www.youtube.com/watch?v=fixture_${competitor.replace(/\s+/g, "_")}_2`,
+      audienceProxy: 0,
+      coveredCompetitor: competitor,
+    },
+  ]);
 }
 
 export function fixtureKeywords(seeds: string[]): { keywords: KeywordRow[]; raw: unknown } {
