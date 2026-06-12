@@ -514,6 +514,7 @@ export type Database = {
           app_id: string
           completed_at: string | null
           cost_cents: number
+          findings_payload: Json | null
           id: string
           preliminary_facts: Json | null
           score_breakdown: Json | null
@@ -526,6 +527,7 @@ export type Database = {
           app_id: string
           completed_at?: string | null
           cost_cents?: number
+          findings_payload?: Json | null
           id?: string
           preliminary_facts?: Json | null
           score_breakdown?: Json | null
@@ -538,6 +540,7 @@ export type Database = {
           app_id?: string
           completed_at?: string | null
           cost_cents?: number
+          findings_payload?: Json | null
           id?: string
           preliminary_facts?: Json | null
           score_breakdown?: Json | null

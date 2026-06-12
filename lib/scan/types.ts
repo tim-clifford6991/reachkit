@@ -16,5 +16,5 @@ export interface PreliminaryFacts {
   themes: ThemeCount[];
   sourcesUsed: string[];
 }
-export type ScanEventType = "artifact" | "facts" | "done" | "error";
+export type ScanEventType = "artifact" | "facts" | "findings" | "done" | "error";
 export interface ScanEvent { type: ScanEventType; payload: Record<string, unknown>; }
