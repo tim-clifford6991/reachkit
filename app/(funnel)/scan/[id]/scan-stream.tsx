@@ -1,6 +1,9 @@
 "use client";
+
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import type { PreliminaryFacts, ScanEvent } from "@/lib/scan/types";
+import type { FindingsPayload } from "./findings-reveal";
 import {
   Card,
   CardContent,
@@ -10,9 +13,26 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
+// Lazy-load the entire findings reveal (includes Motion + EmailGate + base-ui)
+// so none of it lands in the initial funnel chunk.
+const FindingsReveal = dynamic(
+  () =>
+    import("./findings-reveal").then((m) => m.FindingsReveal),
+  { ssr: false, loading: () => null }
+);
+
+// Lazy-load the Stagger animation for the working feed.
+const Stagger = dynamic(
+  () => import("@/components/motion/stagger").then((m) => m.Stagger),
+  { ssr: false, loading: () => null }
+);
+
 export function ScanStream({ id }: { id: string }) {
   const [artifacts, setArtifacts] = useState<string[]>([]);
   const [facts, setFacts] = useState<PreliminaryFacts | null>(null);
+  const [findingsData, setFindingsData] = useState<FindingsPayload | null>(
+    null
+  );
 
   useEffect(() => {
     const es = new EventSource(`/api/scan/${id}/stream`);
@@ -22,6 +42,8 @@ export function ScanStream({ id }: { id: string }) {
         setArtifacts((a) => [...a, String(e.payload["label"] ?? "working")]);
       } else if (e.type === "facts") {
         setFacts(e.payload as unknown as PreliminaryFacts);
+      } else if (e.type === "findings") {
+        setFindingsData(e.payload as unknown as FindingsPayload);
       } else if (e.type === "done" || e.type === "error") {
         es.close();
       }
@@ -30,14 +52,17 @@ export function ScanStream({ id }: { id: string }) {
     return () => es.close();
   }, [id]);
 
+  // ── Moment 1: loading feed ─────────────────────────────────────────────────
   if (!facts) {
     return (
       <ul className="space-y-2 font-mono text-sm text-muted-foreground">
-        {artifacts.length === 0 ? (
-          <li>Starting scan…</li>
-        ) : (
-          artifacts.map((a, i) => <li key={i}>✓ {a}</li>)
-        )}
+        <Stagger>
+          {artifacts.length === 0 ? (
+            <li>Starting scan…</li>
+          ) : (
+            artifacts.map((a, i) => <li key={i}>✓ {a}</li>)
+          )}
+        </Stagger>
       </ul>
     );
   }
@@ -50,6 +75,8 @@ export function ScanStream({ id }: { id: string }) {
 
   return (
     <div className="space-y-4">
+      {/* ── Moment 2: Facts ──────────────────────────────────────────────────── */}
+
       {/* Listing overview */}
       <Card>
         <CardHeader>
@@ -145,6 +172,22 @@ export function ScanStream({ id }: { id: string }) {
         <p className="text-xs text-muted-foreground">
           Sources: {facts.sourcesUsed.join(", ")}
         </p>
+      )}
+
+      {/* Working artifact feed */}
+      {artifacts.length > 0 && !findingsData && (
+        <ul className="space-y-1 font-mono text-xs text-muted-foreground/60">
+          <Stagger>
+            {artifacts.map((a, i) => (
+              <li key={i}>✓ {a}</li>
+            ))}
+          </Stagger>
+        </ul>
+      )}
+
+      {/* ── Moment 3+4: Findings reveal + email gate ──────────────────────── */}
+      {findingsData != null && (
+        <FindingsReveal scanId={id} data={findingsData} />
       )}
     </div>
   );
