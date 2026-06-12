@@ -18,6 +18,21 @@
 
 **Scope note vs decomposition §3.1:** Phase 1b implements the four D-tools the <10s facts path needs — `get_listing`, `get_reviews`, `find_competitors`, `search_web`. The remaining three (`search_keywords`, `find_communities`, `find_creators`) fetch data for the *full* collect that feeds LLM findings, so they move to Cycle 2 with the findings pipeline. (Decomposition §3.1 updated to match.)
 
+## Cycle 0 Learnings — apply throughout (verified building the foundation)
+
+These stack realities were discovered building Cycle 0 and **override any conflicting code in the tasks below**:
+
+1. **Inngest v4 `createFunction`** is the 2-arg form with triggers in the config: `inngest.createFunction({ id, retries, triggers: [{ event: "scan/requested" }] }, async ({ event, step }) => {…})`. The 3-arg `(config, trigger, handler)` form in Task 14 below is v3 — use v4.
+2. **Type the Inngest events** so `event.data.scanId` needs no cast. In `lib/inngest/client.ts`: `new Inngest({ id: "reachkit", schemas: new EventSchemas().fromRecord<{ "scan/requested": { data: { scanId: string } }; "scan/demo.requested": { data: { scanId?: string } } }>() })` (verify the exact `EventSchemas` API against the installed inngest types).
+3. **Next 16 `cacheComponents` forbids `export const dynamic`.** The SSE route (Task 15) must NOT set `export const dynamic = "force-dynamic"` (Turbopack rejects it). `export const maxDuration = 60` is fine; streaming + runtime data make the route dynamic on its own.
+4. **Dynamic route params are a Promise** — `async … { const { id } = await params }` with `params: Promise<{ id: string }>`. (Already written this way below — keep it; don't simplify to sync, which renders `undefined`.)
+5. **Migrations:** `supabase migration new <name>` (timestamped); apply with `supabase db reset`. Add an index for any new FK column.
+6. **Deps:** `pnpm add` works at the repo root (`.npmrc` has `ignore-workspace-root-check=true`). New runtime dep this cycle: `node-html-parser`.
+7. **Env + integration tests:** integration tests import code that reads the lazy `env` Proxy, so `.env.local` must hold a value for EVERY schema key. When Task 1 adds `PRODUCT_HUNT_TOKEN`/`DATAFORSEO_LOCATION_CODE`/`DATAFORSEO_LANGUAGE_CODE`, add stub values to `.env.local` and update the `env.test.ts` valid-config fixture.
+8. **Regenerate DB types after the migration:** `supabase gen types typescript --local > lib/db/types.ts` — the installed CLI v2.26.9 prepends/append a couple of diagnostic lines; strip them so the file starts at `export type Json`.
+9. **`ScanContext` already exists** (`{scanId, appId, mode, budget}`); Task 12 extends it (+`emit`, +`storeUrl`) — extend, don't redefine.
+10. **Test boundary:** mock external calls (vendor adapters / `inngest.send`) in CI unit tests; real Supabase local for integration; live-vendor tests local-only (not CI). The Inngest function is tested via `@inngest/test`'s `InngestTestEngine` (real execution, no dev server).
+
 ---
 
 ## File Structure (created/modified in this plan)
