@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { funnel } from "@/lib/analytics";
 
 interface EmailGateProps {
   scanId: string;
@@ -18,6 +19,11 @@ export function EmailGate({ scanId }: EmailGateProps) {
   const [gateState, setGateState] = useState<GateState>({ status: "idle" });
   const [email, setEmail] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Fire gate_viewed once on mount
+  useEffect(() => {
+    funnel.gateViewed({ scan_id: scanId });
+  }, [scanId]);
 
   async function submit(emailValue: string) {
     setGateState({ status: "loading" });
@@ -38,6 +44,7 @@ export function EmailGate({ scanId }: EmailGateProps) {
         return;
       }
       setGateState({ status: "sent", email: emailValue });
+      funnel.emailSubmitted({ scan_id: scanId });
     } catch {
       setGateState({
         status: "error",

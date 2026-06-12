@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import type { PreliminaryFacts, ScanEvent } from "@/lib/scan/types";
 import type { FindingsPayload } from "./findings-reveal";
+import { funnel } from "@/lib/analytics";
 import {
   Card,
   CardContent,
@@ -41,9 +42,13 @@ export function ScanStream({ id }: { id: string }) {
       if (e.type === "artifact") {
         setArtifacts((a) => [...a, String(e.payload["label"] ?? "working")]);
       } else if (e.type === "facts") {
-        setFacts(e.payload as unknown as PreliminaryFacts);
+        const factsPayload = e.payload as unknown as PreliminaryFacts;
+        setFacts(factsPayload);
+        funnel.factsShown({ scan_id: id, mode: factsPayload.mode });
       } else if (e.type === "findings") {
-        setFindingsData(e.payload as unknown as FindingsPayload);
+        const findingsPayload = e.payload as unknown as FindingsPayload;
+        setFindingsData(findingsPayload);
+        funnel.findingsShown({ scan_id: id, score: findingsPayload.score.total });
       } else if (e.type === "done" || e.type === "error") {
         es.close();
       }
