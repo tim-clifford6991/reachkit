@@ -102,6 +102,95 @@ Rules:
 }
 
 // ---------------------------------------------------------------------------
+// FORMAT stage — Haiku reads fact sheets + findings and over-generates action cards.
+// ---------------------------------------------------------------------------
+
+export const ACTIONS_SYSTEM = `You are a growth-action generator for independent app founders. Your job is to read structured fact sheets and synthesis findings, then produce a rich set of concrete, actionable cards that the founder can execute to improve their app's discoverability.
+
+STRICT OUTPUT RULES:
+1. Output ONLY a valid JSON array of action cards — no markdown, no code fences, no prose.
+2. Over-generate: produce 2–3× the minimum cards per module (Content / Outreach / SEO-ASO). Aim for at least 3 content cards, 3 outreach cards, and 3 seo_aso cards.
+3. Every card MUST name a specific surface (a real subreddit, creator channel, keyword phrase, app directory URL — NOT generic phrases like "post on Reddit" or "reach out to influencers").
+4. Every draft for content/outreach cards MUST reference ≥1 app-specific fact drawn verbatim or closely from the review themes or competitor gap provided.
+5. Drafts must be written in the founder's own voice (see founderVoice hint if provided; otherwise use plain, direct, non-salesy language — as if a real person wrote it, not marketing copy).
+6. draftRequiresEdit must always be true — never set it to false.
+7. evidenceIds must always be an empty array [] — evidence attachment happens in a later step.
+8. verification.state must always be "pending".
+9. effortMin is an integer estimate of person-minutes to complete the action.
+10. suggestedDeadline is an ISO date string (YYYY-MM-DD) approximately 1–4 weeks from today.
+11. confidence is a float 0.0–1.0.
+12. expectedOutcome.scoreComponent is one of: "content", "outreach", "seo".
+13. basis is "evidence_based" when the card is driven by a specific signal from the fact sheets; "probability_based" when it is a reasonable inference without a direct quote.`;
+
+export interface ActionsPromptInput {
+  reviewThemes: string;
+  positioning: string;
+  competitorGap: string;
+  keywordData: string;
+  findings: string;
+  founderVoice: string | null;
+  today: string; // ISO date YYYY-MM-DD
+}
+
+export function buildActionsPrompt(input: ActionsPromptInput): string {
+  const voiceSection = input.founderVoice
+    ? `=== FOUNDER VOICE HINT ===\n${input.founderVoice}\n`
+    : `=== FOUNDER VOICE HINT ===\n(none provided — use plain, direct, non-salesy language)\n`;
+
+  return `Here are the fact sheets and synthesis findings for this app. Generate a comprehensive set of action cards.
+
+${voiceSection}
+=== POSITIONING SHEET ===
+${input.positioning}
+
+=== REVIEW THEMES SHEET ===
+${input.reviewThemes}
+
+=== COMPETITOR GAP SHEET ===
+${input.competitorGap}
+
+=== KEYWORD DATA SHEET ===
+${input.keywordData}
+
+=== SYNTHESIS FINDINGS ===
+${input.findings}
+
+Today's date: ${input.today}
+
+Return ONLY a JSON array (no markdown, no code fences). Each element must match this shape exactly:
+[
+  {
+    "category": "content" | "outreach" | "seo_aso",
+    "title": "<short action title — name the specific surface>",
+    "why": "<1–2 sentences citing a specific signal from the sheets or findings>",
+    "evidenceIds": [],
+    "effortMin": <integer minutes>,
+    "suggestedDeadline": "<YYYY-MM-DD>",
+    "expectedOutcome": {
+      "scoreComponent": "content" | "outreach" | "seo",
+      "delta": <integer 1–15>,
+      "secondary": "<optional secondary benefit>"
+    },
+    "draft": "<ready-to-use copy referencing a real app fact — or null for pure seo_aso keyword/directory tasks>",
+    "draftRequiresEdit": true,
+    "verification": { "method": "url" | "self_report" | "rank_check", "state": "pending" },
+    "basis": "evidence_based" | "probability_based",
+    "confidence": <0.0–1.0>
+  }
+]
+
+Rules recap:
+- Produce ≥3 cards per category (content, outreach, seo_aso) — over-generate rather than under.
+- Each outreach card must name a real, specific community or creator (e.g. "r/habittracking", "Thomas Frank's YouTube channel") — not a generic placeholder.
+- Each content card must name a specific content surface or format (e.g. "App Store 'What's New' copy", "Product Hunt launch post", "HackerNews Show HN post").
+- Each seo_aso card must include a specific keyword phrase or directory URL.
+- Drafts for content/outreach must reference a real review theme quote or competitor gap from the sheets above.
+- draftRequiresEdit is always true.
+- evidenceIds is always [].
+- verification.state is always "pending".`;
+}
+
+// ---------------------------------------------------------------------------
 // SYNTH stage — Sonnet reads FACT SHEETS ONLY (§13), never raw text.
 // ---------------------------------------------------------------------------
 

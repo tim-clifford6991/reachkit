@@ -73,3 +73,22 @@ export const EMPTY_REVIEW_THEMES: ReviewThemesSheet = Object.freeze({ themes: []
 export const EMPTY_POSITIONING: PositioningSheet = Object.freeze({ category: "", claims: [] as string[], valueProps: [] as string[] });
 export const EMPTY_COMPETITOR_GAP: CompetitorGapSheet = Object.freeze({ competitors: [] as CompetitorGapSheet["competitors"] });
 export const EMPTY_KEYWORD_SHEET: KeywordSheet = Object.freeze({ clusters: [] as KeywordSheet["clusters"] });
+
+// ---------------------------------------------------------------------------
+// FORMAT stage output types (Task 6) — §10.2 action cards
+// ---------------------------------------------------------------------------
+
+export interface ActionCard {
+  category: "content" | "outreach" | "seo_aso";
+  title: string;
+  why: string;
+  evidenceIds: number[];                 // populated later by the Critic/evidence step; [] from generation
+  effortMin: number;
+  suggestedDeadline: string;             // ISO date
+  expectedOutcome: { scoreComponent: string; delta: number; secondary?: string };
+  draft: string | null;                  // present for content/outreach; null for some seo
+  draftRequiresEdit: boolean;            // §11: always true
+  verification: { method: "url" | "self_report" | "rank_check"; state: "pending" };
+  basis: "evidence_based" | "probability_based";
+  confidence: number;                    // 0..1
+}
