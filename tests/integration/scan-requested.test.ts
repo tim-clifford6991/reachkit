@@ -79,6 +79,17 @@ test(
 
     expect(scanFinal.status).toBe("done");
     expect(scanFinal.preliminary_facts).not.toBeNull();
+
+    // 5. Assert pipeline_runs has ≥1 row for this scan (proves "every external
+    //    call logs telemetry" claim is regression-protected)
+    const { data: pipelineRows, error: pipelineErr } = await db
+      .from("pipeline_runs")
+      .select("id")
+      .eq("scan_id", scanId);
+
+    expect(pipelineErr).toBeNull();
+    expect(pipelineRows).not.toBeNull();
+    expect((pipelineRows ?? []).length).toBeGreaterThanOrEqual(1);
   },
   120_000, // live network scan — give it 2 minutes
 );

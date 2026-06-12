@@ -7,7 +7,22 @@ import { emitScanEvent } from "@/lib/scan/progress";
 import type { Json } from "@/lib/db/types";
 
 export const scanRequested = inngest.createFunction(
-  { id: "scan-requested", retries: 2, triggers: [scanRequestedEvent] },
+  {
+    id: "scan-requested",
+    retries: 2,
+    triggers: [scanRequestedEvent],
+    onFailure: async ({ event, error }) => {
+      // event.data.event is the original scan/requested event that failed
+      const scanId = event.data.event.data.scanId;
+      const message = error instanceof Error ? error.message : String(error);
+      const db = serverDb();
+      await emitScanEvent(scanId, "error", { message });
+      await db
+        .from("scans")
+        .update({ status: "failed" })
+        .eq("id", scanId);
+    },
+  },
   async ({ event, step }) => {
     const { scanId } = event.data;
 

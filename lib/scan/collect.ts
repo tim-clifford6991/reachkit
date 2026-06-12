@@ -57,19 +57,23 @@ export async function collect(ctx: ScanContext): Promise<PreliminaryFacts> {
     });
 
   // --- Reviews (skip in web mode) ---
+  // appIdFromUrl is called INSIDE the promise chain so a malformed URL throws
+  // within the protected chain and the .catch backstop degrades gracefully.
   const reviewsPromise = (
     mode === "web"
       ? Promise.resolve({ reviews: [] as ReviewItem[] })
-      : getReviews
-          .run({ appId: appIdFromUrl(storeUrl), subjectKey }, toolCtx)
-          .catch((): { reviews: ReviewItem[] } => ({ reviews: [] }))
-  ).then(async (result) => {
-    await emitScanEvent(scanId, "artifact", {
-      label: "reviews fetched",
-      count: result.reviews.length,
+      : Promise.resolve().then(() =>
+          getReviews.run({ appId: appIdFromUrl(storeUrl), subjectKey }, toolCtx),
+        )
+  )
+    .catch((): { reviews: ReviewItem[] } => ({ reviews: [] }))
+    .then(async (result) => {
+      await emitScanEvent(scanId, "artifact", {
+        label: "reviews fetched",
+        count: result.reviews.length,
+      });
+      return result;
     });
-    return result;
-  });
 
   // --- Competitors ---
   const competitorsPromise = findCompetitors
