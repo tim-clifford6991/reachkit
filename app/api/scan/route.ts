@@ -17,6 +17,6 @@ export async function POST(req: NextRequest) {
   if (app.error) return NextResponse.json({ error: app.error.message }, { status: 500 });
   const scan = await db.from("scans").insert({ app_id: app.data.id, status: "queued" }).select("id").single();
   if (scan.error) return NextResponse.json({ error: scan.error.message }, { status: 500 });
-  await inngest.send({ name: "scan/demo.requested", data: { scanId: scan.data.id } });
+  await inngest.send({ name: "scan/requested", data: { scanId: scan.data.id } });
   return NextResponse.json({ scan_id: scan.data.id });
 }

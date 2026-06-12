@@ -1,11 +1,11 @@
-import { inngest } from "@/lib/inngest/client";
+import { inngest, scanDemoRequestedEvent } from "@/lib/inngest/client";
 import { recordPipelineRun } from "@/lib/telemetry/pipeline-runs";
 
 export const scanDemo = inngest.createFunction(
-  { id: "scan-demo", triggers: [{ event: "scan/demo.requested" }] },
+  { id: "scan-demo", triggers: [scanDemoRequestedEvent] },
   async ({ event, step }) => {
     await step.run("record-telemetry", async () => {
-      const scanId = (event.data as { scanId?: string } | undefined)?.scanId ?? null;
+      const scanId = event.data?.scanId ?? null;
       await recordPipelineRun({
         scanId,
         stage: "collect",

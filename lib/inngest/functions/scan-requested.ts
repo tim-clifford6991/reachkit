@@ -1,0 +1,82 @@
+import { inngest, scanRequestedEvent } from "@/lib/inngest/client";
+import { serverDb } from "@/lib/db/client";
+import { env } from "@/lib/config/env";
+import { ScanBudget } from "@/lib/tools/registry";
+import { runCollect } from "@/lib/scan/pipeline";
+import { emitScanEvent } from "@/lib/scan/progress";
+import type { Json } from "@/lib/db/types";
+
+export const scanRequested = inngest.createFunction(
+  { id: "scan-requested", retries: 2, triggers: [scanRequestedEvent] },
+  async ({ event, step }) => {
+    const { scanId } = event.data;
+
+    // Step 1: collect — load scan + app, run pipeline, persist facts
+    const facts = await step.run("collect", async () => {
+      const db = serverDb();
+
+      // Load the scan row and its app (join)
+      const { data: scanRow, error: scanErr } = await db
+        .from("scans")
+        .select("id, app_id, apps(store_url, platform)")
+        .eq("id", scanId)
+        .single();
+
+      if (scanErr) throw scanErr;
+      if (!scanRow) throw new Error(`scan ${scanId} not found`);
+
+      // apps is joined as an object; coerce after null check
+      const appsRaw = scanRow.apps;
+      if (!appsRaw) throw new Error(`scan ${scanId} has no linked app`);
+
+      const app = appsRaw as unknown as { store_url: string; platform: "ios" | "android" | "web" };
+
+      // Mark as collecting
+      const { error: updateErr } = await db
+        .from("scans")
+        .update({ status: "collecting", started_at: new Date().toISOString() })
+        .eq("id", scanId);
+      if (updateErr) throw updateErr;
+
+      // Build budget and run collect
+      const budget = new ScanBudget({
+        maxToolCalls: 60,
+        budgetCents: env.scanBudgetCents,
+      });
+
+      const collectedFacts = await runCollect({
+        scanId,
+        appId: scanRow.app_id,
+        mode: app.platform,
+        storeUrl: app.store_url,
+        budget,
+      });
+
+      // Persist facts to scans row
+      const { error: factsErr } = await db
+        .from("scans")
+        .update({ preliminary_facts: collectedFacts as unknown as Json })
+        .eq("id", scanId);
+      if (factsErr) throw factsErr;
+
+      // Emit the facts scan_event
+      await emitScanEvent(scanId, "facts", collectedFacts as unknown as Record<string, unknown>);
+
+      return collectedFacts;
+    });
+
+    // Step 2: done — emit done event and mark scan complete
+    await step.run("done", async () => {
+      await emitScanEvent(scanId, "done", { scanId });
+
+      const db = serverDb();
+      const { error } = await db
+        .from("scans")
+        .update({ status: "done", completed_at: new Date().toISOString() })
+        .eq("id", scanId);
+      if (error) throw error;
+    });
+
+    return { ok: true, factsMode: facts.mode };
+  },
+);
