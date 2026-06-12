@@ -93,9 +93,9 @@ export function discoverabilityScore(
   facts: PreliminaryFacts,
   keywords: KeywordSheet | null,
 ): ScoreResult {
-  const content = contentScore(facts);
-  const outreach = outreachScore(facts);
-  const seo = seoScore(facts, keywords);
+  const content = Math.round(contentScore(facts));
+  const outreach = Math.round(outreachScore(facts));
+  const seo = Math.round(seoScore(facts, keywords));
 
   const total = Math.round(
     Math.min(100, Math.max(0, 0.30 * content + 0.25 * outreach + 0.45 * seo)),

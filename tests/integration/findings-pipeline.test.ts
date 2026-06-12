@@ -439,3 +439,113 @@ test(
   },
   60_000,
 );
+
+// ---------------------------------------------------------------------------
+// Idempotency regression test: calling runFindings twice for the same scan
+// must leave exactly 3 findings rows (delete-before-insert ensures no duplicates).
+// ---------------------------------------------------------------------------
+test(
+  "runFindings idempotency: calling twice for the same scan leaves exactly 3 findings rows",
+  async () => {
+    const idempStoreUrl = `https://apps.apple.com/us/app/idemp/id${Date.now()}`;
+
+    // 1. Insert prerequisite rows
+    const { data: appRow, error: appErr } = await db
+      .from("apps")
+      .insert({ store_url: idempStoreUrl, platform: "ios" })
+      .select("id")
+      .single();
+    expect(appErr).toBeNull();
+    if (!appRow) throw new Error("No app row");
+
+    const { data: scanRow, error: scanErr } = await db
+      .from("scans")
+      .insert({ app_id: appRow.id, status: "queued" })
+      .select("id")
+      .single();
+    expect(scanErr).toBeNull();
+    if (!scanRow) throw new Error("No scan row");
+
+    const scanId = scanRow.id as string;
+
+    const rawDocs = [
+      {
+        subject_type: "app",
+        subject_key: idempStoreUrl,
+        source_type: "app_store_rss",
+        body: { reviews: [{ title: "Great", body: "love the streaks" }] },
+        content_hash: `idemp-rss-${Date.now()}`,
+        mode: "ios",
+      },
+      {
+        subject_type: "app",
+        subject_key: idempStoreUrl,
+        source_type: "itunes",
+        body: { name: "Idemp App", description: "Build habits", category: "Health & Fitness" },
+        content_hash: `idemp-itunes-${Date.now()}`,
+        mode: "ios",
+      },
+      {
+        subject_type: "app",
+        subject_key: idempStoreUrl,
+        source_type: "dataforseo_serp",
+        body: { results: [{ title: "Competitor X", url: "https://competitor-x.com" }] },
+        content_hash: `idemp-serp-${Date.now()}`,
+        mode: "ios",
+      },
+      {
+        subject_type: "app",
+        subject_key: idempStoreUrl,
+        source_type: "dataforseo_keywords",
+        body: { keywords: [{ keyword: "habit tracker", volume: 5000, cpc: 0.8, competition: 0.3 }] },
+        content_hash: `idemp-kw-${Date.now()}`,
+        mode: "ios",
+      },
+    ];
+
+    const { error: docsErr } = await db.from("raw_documents").insert(rawDocs);
+    expect(docsErr).toBeNull();
+
+    // 2. Build ctx + facts
+    vi.doMock("@/lib/llm/anthropic", () => ({ callModel: makeCallModelMock() }));
+    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
+
+    const { ScanBudget } = await import("@/lib/tools/registry");
+    const budget = new ScanBudget({ maxToolCalls: 60, budgetCents: 500 });
+
+    const ctx = {
+      scanId,
+      appId: appRow.id as string,
+      storeUrl: idempStoreUrl,
+      mode: "ios" as const,
+      budget,
+    };
+
+    const facts = {
+      mode: "ios" as const,
+      listing: { name: "Idemp App", category: "Health & Fitness", description: "Build habits" },
+      competitors: [{ name: "Competitor X", url: "https://competitor-x.com", source: "dataforseo_serp", rank: 1 }],
+      reviewVolume: 800,
+      ratingTrend: 4.2,
+      webProxy: null,
+      themes: [{ term: "streaks", count: 20 }],
+      sourcesUsed: ["app_store_rss", "itunes", "dataforseo_serp", "dataforseo_keywords"],
+    };
+
+    // 3. Run the pipeline TWICE for the same scan
+    const { runFindings } = await import("@/lib/scan/findings-pipeline");
+    await runFindings(ctx, facts);
+    await runFindings(ctx, facts);
+
+    // 4. Assert: exactly 3 findings rows remain (delete-before-insert idempotency)
+    const { data: findingRows, error: findingsErr } = await db
+      .from("findings")
+      .select("id")
+      .eq("scan_id", scanId);
+
+    expect(findingsErr).toBeNull();
+    expect(findingRows).not.toBeNull();
+    expect(findingRows!.length).toBe(3);
+  },
+  90_000,
+);
