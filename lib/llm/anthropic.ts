@@ -18,6 +18,7 @@ export async function callModel(args: {
 
   const res = await client.messages.create({
     model: args.model,
+    // Default suits Haiku extraction; synth/critic callers should pass a higher maxTokens.
     max_tokens: args.maxTokens ?? 2048,
     system: args.system,
     messages: [{ role: "user", content: args.prompt }],
@@ -31,6 +32,9 @@ export async function callModel(args: {
   const inputTokens = res.usage.input_tokens;
   const outputTokens = res.usage.output_tokens;
 
+  // Telemetry row written only on success: a thrown SDK error (network/rate-limit/auth)
+  // exits before this point, records no row, and is correct — Anthropic does not bill
+  // failed requests and there are no token counts to record.
   await recordPipelineRun({
     scanId: args.scanId,
     stage: args.stage,

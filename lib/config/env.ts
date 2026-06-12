@@ -26,7 +26,7 @@ export function parseEnv(src: NodeJS.ProcessEnv) {
     tavilyApiKey: p.TAVILY_API_KEY, resendApiKey: p.RESEND_API_KEY,
     posthogKey: p.POSTHOG_KEY, posthogHost: p.POSTHOG_HOST, scanBudgetCents: p.SCAN_BUDGET_CENTS,
     productHuntToken: p.PRODUCT_HUNT_TOKEN, dataforseoLocationCode: p.DATAFORSEO_LOCATION_CODE, dataforseoLanguageCode: p.DATAFORSEO_LANGUAGE_CODE,
-    useFixtures: p.REACHKIT_USE_FIXTURES ?? false,
+    useFixtures: p.REACHKIT_USE_FIXTURES,
   };
 }
 

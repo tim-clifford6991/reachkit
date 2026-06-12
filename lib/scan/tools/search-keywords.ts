@@ -25,7 +25,7 @@ export const searchKeywords: ToolDefinition<SearchKeywordsArgs, SearchKeywordsRe
     const { keywords, raw } = await keywordsData(args.seeds);
 
     await upsertRawDocument({
-      subjectType: "web",
+      subjectType: "app",
       subjectKey: args.subjectKey,
       sourceType: "dataforseo_keywords",
       body: raw,

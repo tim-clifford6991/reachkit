@@ -47,13 +47,14 @@ export async function getFreshFactSheet(
   kind: FactSheetKind,
 ): Promise<{ body: unknown } | null> {
   const db = serverDb();
-  const { data } = await db
+  const { data, error } = await db
     .from("fact_sheets")
     .select("body, expires_at")
     .eq("subject_type", subjectType)
     .eq("subject_key", subjectKey)
     .eq("kind", kind)
     .maybeSingle();
+  if (error) throw error;
   if (!data) return null;
   if (new Date(data.expires_at).getTime() < Date.now()) return null; // expired → treat as absent
   return { body: data.body };
