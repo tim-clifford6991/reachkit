@@ -6,6 +6,7 @@ import { persistCompetitors } from "@/lib/scan/competitors";
 import { emitScanEvent } from "@/lib/scan/progress";
 import { hostname } from "@/lib/scan/url";
 import { appIdFromUrl } from "@/lib/scan/adapters/itunes";
+import { assembleFacts } from "@/lib/scan/facts";
 
 // ---------------------------------------------------------------------------
 // productName derivation
@@ -100,53 +101,10 @@ export async function collect(ctx: ScanContext): Promise<PreliminaryFacts> {
     ...competitorsResult.extras,
   };
 
-  // TODO(Task 13): replace with assembleFacts from lib/scan/facts.ts
-  return assembleFactsTemp(ctx, {
+  return assembleFacts(ctx, {
     listing: listingResult.listing,
     reviews: reviewsResult.reviews,
     competitors: competitorsResult.competitors,
     extras: mergedExtras,
   });
-}
-
-// ---------------------------------------------------------------------------
-// TEMPORARY minimal inline assembler (Task 12 only).
-// Task 13 will delete this function and import the real assembleFacts from
-// lib/scan/facts.ts, which will apply theme extraction, web-proxy construction,
-// sourcesUsed tracking, and proper PreliminaryFacts population.
-//
-// Notes for Task 13:
-//  - mergedExtras carries: rating?, ratingCount?, serpResultCount?, phUpvotes?, domainAgeYears?
-//  - reviewVolume is reviews.length (app) or extras.ratingCount (web fallback)
-//  - ratingTrend = null in web mode; extras.rating ?? null in app mode
-//  - webProxy is always null here (Task 13 assembles it from serpResultCount/phUpvotes/domainAgeYears)
-//  - themes and sourcesUsed are empty stubs awaiting the L-tool chain (Tasks 13+)
-// ---------------------------------------------------------------------------
-function assembleFactsTemp(
-  ctx: ScanContext,
-  data: {
-    listing: ListingFacts;
-    reviews: ReviewItem[];
-    competitors: Competitor[];
-    extras: FactsExtras;
-  },
-): PreliminaryFacts {
-  const { mode } = ctx;
-  const { listing, reviews, competitors, extras } = data;
-
-  const reviewVolume =
-    reviews.length > 0 ? reviews.length : (extras.ratingCount ?? 0);
-
-  const ratingTrend = mode === "web" ? null : (extras.rating ?? null);
-
-  return {
-    mode,
-    listing,
-    competitors,
-    reviewVolume,
-    ratingTrend,
-    webProxy: null,
-    themes: [],
-    sourcesUsed: [],
-  };
 }

@@ -157,8 +157,9 @@ test(
     expect(facts.reviewVolume).toBeGreaterThanOrEqual(0);
     // ratingTrend is null in web mode
     expect(facts.ratingTrend).toBeNull();
-    // webProxy is null in Task 12 (assembled by Task 13)
-    expect(facts.webProxy).toBeNull();
+    // webProxy is assembled by Task 13 from serpResultCount / phUpvotes / domainAgeYears
+    expect(facts.webProxy).not.toBeNull();
+    expect(facts.webProxy!.score).toBeGreaterThan(0);
 
     // scan_events — artifact rows written for each source
     const { data: evtRows, error: evtErr } = await db
