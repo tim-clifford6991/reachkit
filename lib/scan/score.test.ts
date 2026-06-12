@@ -127,9 +127,9 @@ describe("discoverabilityScore — outreach subscore", () => {
     expect(high.breakdown.outreach).toBeGreaterThan(low.breakdown.outreach);
   });
 
-  test("outreach is conservative (≤50 for typical Cycle 2 signals)", () => {
+  test("outreach is conservative (≤40 for typical Cycle 2 signals)", () => {
     const result = discoverabilityScore({ ...BASE_FACTS, reviewVolume: 500 }, LARGE_KEYWORDS);
-    expect(result.breakdown.outreach).toBeLessThanOrEqual(50);
+    expect(result.breakdown.outreach).toBeLessThanOrEqual(40);
   });
 });
 

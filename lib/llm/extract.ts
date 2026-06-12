@@ -1,6 +1,6 @@
 import { serverDb } from "@/lib/db/client";
 import { callModel } from "@/lib/llm/anthropic";
-import { upsertFactSheet } from "@/lib/scan/fact-sheets";
+import { upsertFactSheet, factSheetSubjectType } from "@/lib/scan/fact-sheets";
 import { useFixtures, fixtureExtract } from "@/lib/dev/fixtures";
 import {
   reviewThemesPrompt,
@@ -27,10 +27,10 @@ import type { FactSheetKind } from "@/lib/scan/fact-sheets";
 const MODEL = "claude-haiku-4-5-20251001" as const;
 
 // Source type groupings
-const REVIEW_SOURCES = ["app_store_rss"] as const;
-const LISTING_SOURCES = ["itunes", "site_fetch"] as const;
-const COMPETITOR_SOURCES = ["dataforseo_serp", "itunes_search", "tavily", "product_hunt"] as const;
-const KEYWORD_SOURCES = ["dataforseo_keywords"] as const;
+const REVIEW_SOURCES = Object.freeze(["app_store_rss"] as const);
+const LISTING_SOURCES = Object.freeze(["itunes", "site_fetch"] as const);
+const COMPETITOR_SOURCES = Object.freeze(["dataforseo_serp", "itunes_search", "tavily", "product_hunt"] as const);
+const KEYWORD_SOURCES = Object.freeze(["dataforseo_keywords"] as const);
 
 type RawDocRow = {
   id: number;
@@ -56,12 +56,15 @@ function formatDocBodies(rows: RawDocRow[]): string {
 }
 
 export async function runExtract(ctx: ScanContext): Promise<void> {
-  // 1. Read raw_documents for this scan's subject_key
+  // 1. Read raw_documents for this scan's subject_key.
+  // Query by subject_key ONLY — do NOT filter by subject_type here, because
+  // collect tools write "app" for ios/android scans and "web" for web scans.
+  // The storeUrl is unique per scan so all docs for this scan are returned
+  // regardless of which subject_type collect wrote.
   const db = serverDb();
   const { data: rawDocs, error } = await db
     .from("raw_documents")
     .select("id, source_type, subject_key, body")
-    .eq("subject_type", "app")
     .eq("subject_key", ctx.storeUrl);
 
   if (error) throw error;
@@ -152,7 +155,7 @@ async function extractKind<T>(
   }
 
   await upsertFactSheet({
-    subjectType: "app",
+    subjectType: factSheetSubjectType(ctx.mode),
     subjectKey: ctx.storeUrl,
     kind,
     body,

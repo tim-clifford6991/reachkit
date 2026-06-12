@@ -10,7 +10,7 @@
 
 import { callModel } from "@/lib/llm/anthropic";
 import { SYNTH_SYSTEM, buildSynthPrompt } from "@/lib/llm/prompts";
-import { getFreshFactSheet } from "@/lib/scan/fact-sheets";
+import { getFreshFactSheet, factSheetSubjectType } from "@/lib/scan/fact-sheets";
 import { useFixtures, fixtureSynth } from "@/lib/dev/fixtures";
 import type { ScanContext } from "@/lib/scan/pipeline";
 import type {
@@ -67,6 +67,7 @@ function isValidFinding(f: unknown): f is Finding {
   return (
     typeof obj["claim"] === "string" &&
     Array.isArray(obj["evidence"]) &&
+    (obj["evidence"] as unknown[]).length > 0 &&
     typeof obj["category"] === "string" &&
     typeof obj["confidence"] === "number"
   );
@@ -109,7 +110,11 @@ function parseSynthResult(text: string): SynthResult | null {
     : DEGRADED_MIRROR;
 
   const rawFindings = Array.isArray(obj["findings"]) ? (obj["findings"] as unknown[]) : [];
-  const validFindings: Finding[] = rawFindings.filter(isValidFinding);
+  const validFindings: Finding[] = rawFindings.filter(isValidFinding).map((f) => ({
+    ...f,
+    // Clamp confidence to [0, 1] so values like 99 don't overflow numeric(3,2)
+    confidence: Math.max(0, Math.min(1, Number(f.confidence))),
+  }));
   const findings: Finding[] = validFindings.length > 0 ? validFindings : [DEGRADED_FINDING];
 
   const sampleAction: SampleAction = isValidSampleAction(obj["sampleAction"])
@@ -123,12 +128,13 @@ function parseSynthResult(text: string): SynthResult | null {
 // Fact-sheet helpers: read and serialise for prompt injection
 // ---------------------------------------------------------------------------
 async function readSheet<T>(
+  subjectType: string,
   subjectKey: string,
   kind: "review_themes" | "positioning" | "competitor_gap" | "keyword_data",
   fallback: T,
 ): Promise<T> {
   try {
-    const row = await getFreshFactSheet("app", subjectKey, kind);
+    const row = await getFreshFactSheet(subjectType, subjectKey, kind);
     if (row === null) return fallback;
     return row.body as T;
   } catch {
@@ -146,12 +152,14 @@ export async function runSynth(ctx: ScanContext): Promise<SynthResult> {
   }
 
   // Read the 4 fact sheets (degrade gracefully on missing/expired sheets)
+  // Use factSheetSubjectType so web-mode reads "web" sheets (matching extract's write).
+  const subjectType = factSheetSubjectType(ctx.mode);
   const [reviewThemesBody, positioningBody, competitorGapBody, keywordDataBody] =
     await Promise.all([
-      readSheet<ReviewThemesSheet>(ctx.storeUrl, "review_themes", { themes: [] }),
-      readSheet<PositioningSheet>(ctx.storeUrl, "positioning", { category: "", claims: [], valueProps: [] }),
-      readSheet<CompetitorGapSheet>(ctx.storeUrl, "competitor_gap", { competitors: [] }),
-      readSheet<KeywordSheet>(ctx.storeUrl, "keyword_data", { clusters: [] }),
+      readSheet<ReviewThemesSheet>(subjectType, ctx.storeUrl, "review_themes", { themes: [] }),
+      readSheet<PositioningSheet>(subjectType, ctx.storeUrl, "positioning", { category: "", claims: [], valueProps: [] }),
+      readSheet<CompetitorGapSheet>(subjectType, ctx.storeUrl, "competitor_gap", { competitors: [] }),
+      readSheet<KeywordSheet>(subjectType, ctx.storeUrl, "keyword_data", { clusters: [] }),
     ]);
 
   const prompt = buildSynthPrompt({

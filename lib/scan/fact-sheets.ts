@@ -3,6 +3,14 @@ import type { Json } from "@/lib/db/types";
 
 export type FactSheetKind = "review_themes" | "positioning" | "competitor_gap" | "keyword_data";
 
+/** Returns the subject_type string used in fact_sheets for a given scan mode.
+ *  Web-mode scans write/read "web"; all app modes use "app".
+ *  This ensures extract WRITE and synth/findings READ are always consistent.
+ */
+export function factSheetSubjectType(mode: "ios" | "android" | "web"): string {
+  return mode === "web" ? "web" : "app";
+}
+
 const DAY = 24 * 3600 * 1000;
 
 // §5.7 TTLs: keyword data 30d; competitor/positioning/review sheets 14d.

@@ -85,6 +85,14 @@ export const scanRequested = inngest.createFunction(
     await step.run("findings", async () => {
       const db = serverDb();
 
+      // Mark as synthesizing so the UI shows progress during the LLM stage
+      // (status was "collecting" after the collect step; it's updated to "done" in step 3).
+      const { error: synthStatusErr } = await db
+        .from("scans")
+        .update({ status: "synthesizing" })
+        .eq("id", scanId);
+      if (synthStatusErr) throw synthStatusErr;
+
       // Load the scan row and its app to reconstruct context (Inngest re-executes steps
       // on replay, so we cannot rely on closure variables from the collect step body).
       const { data: scanRow, error: scanErr } = await db

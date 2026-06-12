@@ -306,3 +306,136 @@ test(
   },
   60_000,
 );
+
+// ---------------------------------------------------------------------------
+// Regression test: WEB-mode runFindings produces non-empty findings
+// Regression for Fix 1: before the fix, extract queried subject_type="app" but
+// web-mode collect writes subject_type="web", so no raw_documents were found →
+// empty fact sheets → empty/degraded findings.
+// ---------------------------------------------------------------------------
+test(
+  "runFindings (web-mode): web raw_documents (subject_type=web) yield non-empty findings (mocked LLM)",
+  async () => {
+    // Unique store URL per test run
+    const webStoreUrl = `https://example-saas.com/product/${Date.now()}`;
+
+    // 1. Insert prerequisite rows: app (web) + scan + raw_documents (subject_type="web")
+    const { data: appRow, error: appErr } = await db
+      .from("apps")
+      .insert({ store_url: webStoreUrl, platform: "web" })
+      .select("id")
+      .single();
+    expect(appErr).toBeNull();
+    if (!appRow) throw new Error("No app row");
+
+    const { data: scanRow, error: scanErr } = await db
+      .from("scans")
+      .insert({ app_id: appRow.id, status: "queued" })
+      .select("id")
+      .single();
+    expect(scanErr).toBeNull();
+    if (!scanRow) throw new Error("No scan row");
+
+    const scanId = scanRow.id as string;
+
+    // Insert web-mode raw_documents (subject_type="web" as written by get-listing/find-competitors)
+    const webRawDocs = [
+      {
+        subject_type: "web",
+        subject_key: webStoreUrl,
+        source_type: "site_fetch",
+        body: { name: "Example SaaS", description: "The best SaaS for productivity" },
+        content_hash: `site-${Date.now()}`,
+        mode: "web",
+      },
+      {
+        subject_type: "web",
+        subject_key: webStoreUrl,
+        source_type: "dataforseo_serp",
+        body: { results: [{ title: "Competitor A", url: "https://competitor-a.com" }] },
+        content_hash: `serp-${Date.now()}`,
+        mode: "web",
+      },
+      {
+        subject_type: "web",
+        subject_key: webStoreUrl,
+        source_type: "product_hunt",
+        body: { upvotes: 250, name: "Example SaaS" },
+        content_hash: `ph-${Date.now()}`,
+        mode: "web",
+      },
+    ];
+
+    const { error: docsErr } = await db.from("raw_documents").insert(webRawDocs);
+    expect(docsErr).toBeNull();
+
+    // 2. Build ScanContext + PreliminaryFacts (web-mode)
+    vi.doMock("@/lib/llm/anthropic", () => ({ callModel: makeCallModelMock() }));
+    vi.doMock("@/lib/dev/fixtures", () => ({ useFixtures: () => false }));
+
+    const { ScanBudget } = await import("@/lib/tools/registry");
+    const budget = new ScanBudget({ maxToolCalls: 60, budgetCents: 500 });
+
+    const ctx = {
+      scanId,
+      appId: appRow.id as string,
+      storeUrl: webStoreUrl,
+      mode: "web" as const,
+      budget,
+    };
+
+    const facts = {
+      mode: "web" as const,
+      listing: { name: "Example SaaS", category: null, description: "The best SaaS for productivity" },
+      competitors: [
+        { name: "Competitor A", url: "https://competitor-a.com", source: "dataforseo_serp", rank: 1 },
+      ],
+      reviewVolume: 0,
+      ratingTrend: null,
+      webProxy: { score: 30, serpResultCount: 1, phUpvotes: 250, domainAgeYears: 3 },
+      themes: [],
+      sourcesUsed: ["site_fetch", "dataforseo_serp", "product_hunt"],
+    };
+
+    // 3. Run the pipeline
+    const { runFindings } = await import("@/lib/scan/findings-pipeline");
+    await runFindings(ctx, facts);
+
+    // 4. Assert: findings rows written (non-empty — web raw_docs were found)
+    const { data: findingRows, error: findingsErr } = await db
+      .from("findings")
+      .select("id, category, confidence, body")
+      .eq("scan_id", scanId);
+
+    expect(findingsErr).toBeNull();
+    expect(findingRows).not.toBeNull();
+    // The mocked LLM returns 3 valid findings — all should be persisted
+    expect(findingRows!.length).toBe(3);
+
+    // 5. Assert: fact_sheets written with subject_type="web" (not "app")
+    const { data: factSheets, error: fsErr } = await db
+      .from("fact_sheets")
+      .select("id, subject_type, kind")
+      .eq("subject_key", webStoreUrl);
+
+    expect(fsErr).toBeNull();
+    expect(factSheets).not.toBeNull();
+    // All sheets must be written as "web" subject_type
+    for (const sheet of factSheets ?? []) {
+      expect(sheet.subject_type).toBe("web");
+    }
+
+    // 6. Assert: scans.score_total is set
+    const { data: scanFinal, error: scanFinalErr } = await db
+      .from("scans")
+      .select("score_total, findings_payload")
+      .eq("id", scanId)
+      .single();
+
+    expect(scanFinalErr).toBeNull();
+    if (!scanFinal) throw new Error("No scan row found after web-mode pipeline");
+    expect(typeof scanFinal.score_total).toBe("number");
+    expect(scanFinal.findings_payload).not.toBeNull();
+  },
+  60_000,
+);

@@ -57,14 +57,13 @@ async function makeScanCtx() {
 }
 
 function makeDbMock(rows: typeof CANNED_RAW_DOCS) {
+  // The extract query uses a single .eq("subject_key", ...) — no subject_type filter.
   return () => ({
     from: () => ({
       select: () => ({
         eq: () => ({
-          eq: () => ({
-            data: rows,
-            error: null,
-          }),
+          data: rows,
+          error: null,
         }),
       }),
     }),
@@ -110,7 +109,7 @@ describe("runExtract — normal path", () => {
     const callModelMock = makeCallModelMock();
     vi.doMock("@/lib/llm/anthropic", () => ({ callModel: callModelMock }));
     const upsertMock = vi.fn().mockResolvedValue({ id: 1 });
-    vi.doMock("@/lib/scan/fact-sheets", () => ({ upsertFactSheet: upsertMock }));
+    vi.doMock("@/lib/scan/fact-sheets", () => ({ upsertFactSheet: upsertMock, factSheetSubjectType: (mode: string) => mode === "web" ? "web" : "app" }));
 
     const { runExtract } = await import("./extract");
     const ctx = await makeScanCtx();
@@ -146,7 +145,7 @@ describe("runExtract — normal path", () => {
     vi.doMock("@/lib/dev/fixtures", () => ({ useFixtures: () => false }));
     const callModelMock = makeCallModelMock();
     vi.doMock("@/lib/llm/anthropic", () => ({ callModel: callModelMock }));
-    vi.doMock("@/lib/scan/fact-sheets", () => ({ upsertFactSheet: vi.fn().mockResolvedValue({ id: 1 }) }));
+    vi.doMock("@/lib/scan/fact-sheets", () => ({ upsertFactSheet: vi.fn().mockResolvedValue({ id: 1 }), factSheetSubjectType: (mode: string) => mode === "web" ? "web" : "app" }));
 
     const { runExtract } = await import("./extract");
     const ctx = await makeScanCtx();
@@ -171,7 +170,7 @@ describe("runExtract — malformed JSON degrades to empty sheets (no throw)", ()
     // Return unparseable text for every call
     vi.doMock("@/lib/llm/anthropic", () => ({ callModel: makeCallModelMock("NOT JSON {{{{") }));
     const upsertMock = vi.fn().mockResolvedValue({ id: 1 });
-    vi.doMock("@/lib/scan/fact-sheets", () => ({ upsertFactSheet: upsertMock }));
+    vi.doMock("@/lib/scan/fact-sheets", () => ({ upsertFactSheet: upsertMock, factSheetSubjectType: (mode: string) => mode === "web" ? "web" : "app" }));
 
     const { runExtract } = await import("./extract");
     const ctx = await makeScanCtx();
@@ -202,7 +201,7 @@ describe("runExtract — missing source degrades to empty sheet", () => {
     const callModelMock = makeCallModelMock();
     vi.doMock("@/lib/llm/anthropic", () => ({ callModel: callModelMock }));
     const upsertMock = vi.fn().mockResolvedValue({ id: 1 });
-    vi.doMock("@/lib/scan/fact-sheets", () => ({ upsertFactSheet: upsertMock }));
+    vi.doMock("@/lib/scan/fact-sheets", () => ({ upsertFactSheet: upsertMock, factSheetSubjectType: (mode: string) => mode === "web" ? "web" : "app" }));
 
     const { runExtract } = await import("./extract");
     const ctx = await makeScanCtx();
@@ -241,7 +240,7 @@ describe("runExtract — fixture mode", () => {
     const callModelMock = vi.fn();
     vi.doMock("@/lib/llm/anthropic", () => ({ callModel: callModelMock }));
     const upsertMock = vi.fn().mockResolvedValue({ id: 1 });
-    vi.doMock("@/lib/scan/fact-sheets", () => ({ upsertFactSheet: upsertMock }));
+    vi.doMock("@/lib/scan/fact-sheets", () => ({ upsertFactSheet: upsertMock, factSheetSubjectType: (mode: string) => mode === "web" ? "web" : "app" }));
 
     const { runExtract } = await import("./extract");
     const ctx = await makeScanCtx();

@@ -68,7 +68,8 @@ export interface KeywordSheet {
 }
 
 // Empty (degrade) sheet shapes — used when source is absent or model output is unparseable.
-export const EMPTY_REVIEW_THEMES: ReviewThemesSheet = { themes: [] };
-export const EMPTY_POSITIONING: PositioningSheet = { category: "", claims: [], valueProps: [] };
-export const EMPTY_COMPETITOR_GAP: CompetitorGapSheet = { competitors: [] };
-export const EMPTY_KEYWORD_SHEET: KeywordSheet = { clusters: [] };
+// Frozen so callers cannot accidentally mutate the shared reference.
+export const EMPTY_REVIEW_THEMES: ReviewThemesSheet = Object.freeze({ themes: [] as ReviewThemesSheet["themes"] });
+export const EMPTY_POSITIONING: PositioningSheet = Object.freeze({ category: "", claims: [] as string[], valueProps: [] as string[] });
+export const EMPTY_COMPETITOR_GAP: CompetitorGapSheet = Object.freeze({ competitors: [] as CompetitorGapSheet["competitors"] });
+export const EMPTY_KEYWORD_SHEET: KeywordSheet = Object.freeze({ clusters: [] as KeywordSheet["clusters"] });

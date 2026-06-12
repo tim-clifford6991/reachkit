@@ -42,7 +42,7 @@ function contentScore(facts: PreliminaryFacts): number {
 // Outreach subscore (0–100)
 // CONSERVATIVE in Cycle 2 — no creator/community data yet.
 // Web mode: phUpvotes is the best proxy. App mode: review volume is the proxy.
-// Cap at 50 to signal that Cycle 2 data is incomplete.
+// Cap at 40 to signal that Cycle 2 data is incomplete.
 // ---------------------------------------------------------------------------
 function outreachScore(facts: PreliminaryFacts): number {
   let raw: number;

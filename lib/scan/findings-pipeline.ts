@@ -11,7 +11,7 @@ import { serverDb } from "@/lib/db/client";
 import { runExtract } from "@/lib/llm/extract";
 import { runSynth } from "@/lib/llm/synth";
 import { discoverabilityScore } from "@/lib/scan/score";
-import { getFreshFactSheet } from "@/lib/scan/fact-sheets";
+import { getFreshFactSheet, factSheetSubjectType } from "@/lib/scan/fact-sheets";
 import { emitScanEvent } from "@/lib/scan/progress";
 import type { ScanContext } from "@/lib/scan/pipeline";
 import type { PreliminaryFacts } from "@/lib/scan/types";
@@ -30,14 +30,22 @@ export async function runFindings(
     const synth = await runSynth(ctx);
 
     // 3. Score — uses preliminary facts + keyword fact sheet
-    const keywordRow = await getFreshFactSheet("app", ctx.storeUrl, "keyword_data");
+    const keywordRow = await getFreshFactSheet(factSheetSubjectType(ctx.mode), ctx.storeUrl, "keyword_data");
     const keywordSheet = (keywordRow?.body ?? null) as KeywordSheet | null;
     const score = discoverabilityScore(facts, keywordSheet);
 
     // 4. Persist
     const db = serverDb();
 
-    // 4a. Insert one findings row per finding
+    // 4a. Idempotent findings insert: delete any existing rows for this scan
+    // before inserting, so Inngest step retries produce exactly N rows (never duplicated).
+    const { error: deleteErr } = await db
+      .from("findings")
+      .delete()
+      .eq("scan_id", ctx.scanId);
+    if (deleteErr) throw deleteErr;
+
+    // Insert one findings row per finding
     const findingsInsert = synth.findings.map((f) => ({
       scan_id: ctx.scanId,
       category: f.category,
