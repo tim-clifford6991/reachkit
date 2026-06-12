@@ -15,6 +15,7 @@ const schema = z.object({
   PRODUCT_HUNT_TOKEN: z.string().min(1),
   DATAFORSEO_LOCATION_CODE: z.coerce.number().int().default(2840), // US
   DATAFORSEO_LANGUAGE_CODE: z.string().default("en"),
+  REACHKIT_USE_FIXTURES: z.string().optional().transform((v) => v === "true"),
 });
 
 export function parseEnv(src: NodeJS.ProcessEnv) {
@@ -25,6 +26,7 @@ export function parseEnv(src: NodeJS.ProcessEnv) {
     tavilyApiKey: p.TAVILY_API_KEY, resendApiKey: p.RESEND_API_KEY,
     posthogKey: p.POSTHOG_KEY, posthogHost: p.POSTHOG_HOST, scanBudgetCents: p.SCAN_BUDGET_CENTS,
     productHuntToken: p.PRODUCT_HUNT_TOKEN, dataforseoLocationCode: p.DATAFORSEO_LOCATION_CODE, dataforseoLanguageCode: p.DATAFORSEO_LANGUAGE_CODE,
+    useFixtures: p.REACHKIT_USE_FIXTURES ?? false,
   };
 }
 
