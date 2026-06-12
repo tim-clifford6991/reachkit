@@ -15,6 +15,7 @@ export async function fetchItunesListing(appId: string): Promise<{
   const res = await fetch(
     `https://itunes.apple.com/lookup?id=${appId}&country=us`
   );
+  if (!res.ok) throw new Error(`itunes lookup ${appId} failed: ${res.status}`);
   const json = (await res.json()) as {
     results?: Array<Record<string, unknown>>;
   };
@@ -25,7 +26,7 @@ export async function fetchItunesListing(appId: string): Promise<{
       category: (a.primaryGenreName as string) ?? null,
       description: (a.description as string) ?? null,
     },
-    rating: (a.averageUserRating as number) ?? null,
+    rating: (a.averageUserRating as number | undefined) ?? null,
     ratingCount: Number(a.userRatingCount ?? 0),
     raw: a,
   };
@@ -39,6 +40,7 @@ export async function fetchItunesCompetitors(
   const res = await fetch(
     `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=software&limit=8&country=us`
   );
+  if (!res.ok) throw new Error(`itunes search "${term}" failed: ${res.status}`);
   const json = (await res.json()) as {
     results?: Array<Record<string, unknown>>;
   };

@@ -3,10 +3,11 @@ import type { ReviewItem } from "@/lib/scan/types";
 type RssEntry = { "im:rating"?: { label: string }; title?: { label: string }; content?: { label: string } };
 
 export function parseRssPage(page: unknown): ReviewItem[] {
-  const entries = (page as { feed?: { entry?: RssEntry[] } }).feed?.entry ?? [];
+  const rawEntry = (page as { feed?: { entry?: RssEntry | RssEntry[] } }).feed?.entry;
+  const entries: RssEntry[] = rawEntry == null ? [] : Array.isArray(rawEntry) ? rawEntry : [rawEntry];
   return entries.flatMap((e) => {
     const label = e["im:rating"]?.label;
-    if (label == null) return [];                 // the leading feed-metadata entry has no rating
+    if (!label || Number.isNaN(Number(label))) return [];  // drop missing or malformed ratings
     return [{ rating: Number(label), title: e.title?.label ?? "", body: e.content?.label ?? "" }];
   });
 }
