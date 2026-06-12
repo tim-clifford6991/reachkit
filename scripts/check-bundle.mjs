@@ -18,20 +18,29 @@
  * Sizes are measured gzip-compressed to match the industry standard (and the
  * budgets in §20.4 of the spec). Next 16 + Turbopack does not print First Load
  * JS sizes in its build output, so this script computes them directly.
+ *
+ * Budget notes (all three values account for the ~182 KB Next 16 + Turbopack +
+ * React 19 framework baseline measured on the bare scaffold with no app code):
+ *   (marketing) 200 KB — should be re-tightened in Cycle 5 when marketing perf
+ *                         work lands (lazy-loaded animation JS, CSS hero).
+ *   (funnel)    200 KB — raised from 160 KB; the 160 KB budget is below the
+ *                         ~182 KB baseline so it would break CI the instant the
+ *                         funnel route shell is added (Task 15).
+ *   (app)       220 KB — highest allowance for the authenticated product shell.
  */
 
 import { readFileSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { gzipSync } from "node:zlib";
 
-// Budgets in KB of First Load JS (gzip) per route group (§20.4).
-// NOTE: The framework baseline for Next 16 + Turbopack + React 19 is ~182 KB gzip
-// (measured on the bare scaffold with no app code). The original spec value of 180 KB
-// assumed webpack-bundled Next; raised to 200 KB to give headroom for actual app code
-// while still being tighter than the (app) group budget.
-const BUDGETS = { "(marketing)": 200, "(funnel)": 160, "(app)": 220 };
+// Budgets in KB of First Load JS (gzip) per route group (§20.4). See file-header comment.
+const BUDGETS = { "(marketing)": 200, "(funnel)": 200, "(app)": 220 };
 
 const NEXT_DIR = ".next";
+
+// Set to true when measurement infrastructure exists but a specific read fails.
+// A budget guard that silently can't measure is worse than none — we exit 1.
+let hadMeasurementError = false;
 
 function readJson(relPath) {
   const full = join(NEXT_DIR, relPath);
@@ -41,10 +50,13 @@ function readJson(relPath) {
 
 function fileSizeGzipKb(relPath) {
   // relPath is relative to .next (e.g. "static/chunks/foo.js")
+  const fullPath = join(NEXT_DIR, relPath);
   try {
-    const buf = readFileSync(join(NEXT_DIR, relPath));
+    const buf = readFileSync(fullPath);
     return gzipSync(buf).length / 1024;
   } catch {
+    console.warn(`[check-bundle] could not read chunk: ${fullPath}`);
+    hadMeasurementError = true;
     return 0;
   }
 }
@@ -67,7 +79,22 @@ const sharedChunks = new Set([
 ]);
 
 const appPathRoutes = readJson("app-path-routes-manifest.json") ?? {};
-const appPathsManifest = readJson("server/app-paths-manifest.json") ?? {};
+const rawAppPathsManifest = readJson("server/app-paths-manifest.json");
+
+// If the manifest is missing/empty but there are budget-tracked routes in
+// app-path-routes-manifest, something is wrong — flag it loudly.
+const budgetedRoutes = Object.keys(appPathRoutes).filter((k) => {
+  const g = k.match(/\((\w+)\)/)?.[0];
+  return g && g in BUDGETS;
+});
+if (!rawAppPathsManifest && budgetedRoutes.length > 0) {
+  console.warn(
+    "[check-bundle] server/app-paths-manifest.json is missing but budgeted routes exist: " +
+      budgetedRoutes.join(", ")
+  );
+  hadMeasurementError = true;
+}
+const appPathsManifest = rawAppPathsManifest ?? {};
 
 let failed = false;
 let checkedAny = false;
@@ -104,8 +131,13 @@ for (const [routeKey] of Object.entries(appPathRoutes)) {
             if (f.endsWith(".js")) pageChunks.push(f);
           }
         }
-      } catch {
-        // fallback: no page-specific chunks accounted for
+      } catch (err) {
+        // The manifest file exists and the regex matched, so a parse failure
+        // means the entryJSFiles data is corrupt — flag it loudly.
+        console.warn(
+          `[check-bundle] failed to parse entryJSFiles for route ${routeKey}: ${err.message}`
+        );
+        hadMeasurementError = true;
       }
     }
   }
@@ -132,4 +164,4 @@ if (!checkedAny) {
   console.log("No routes matched budget groups — nothing to check yet.");
 }
 
-process.exit(failed ? 1 : 0);
+process.exit(failed || hadMeasurementError ? 1 : 0);
