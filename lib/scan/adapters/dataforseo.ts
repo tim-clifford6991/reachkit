@@ -5,13 +5,11 @@ export function serpAuthHeader(login: string, password: string): string {
   return `Basic ${Buffer.from(`${login}:${password}`).toString("base64")}`;
 }
 
-export function parseSerp(body: unknown, productName: string): { competitors: Competitor[]; serpResultCount: number } {
+export function parseSerp(body: unknown): { competitors: Competitor[]; serpResultCount: number } {
   const result = (body as { tasks?: Array<{ result?: Array<{ se_results_count?: number; items?: Array<Record<string, unknown>> }> }> })
     .tasks?.[0]?.result?.[0];
   const organic = (result?.items ?? []).filter((i) => i["type"] === "organic");
-  const self = productName.toLowerCase();
   const competitors = organic
-    .filter((i) => !String(i["domain"] ?? "").toLowerCase().includes(self))
     .map((i, idx) => ({ name: String(i["title"] ?? i["domain"] ?? ""), url: String(i["url"] ?? ""), source: "dataforseo_serp", rank: idx + 1 }));
   return { competitors, serpResultCount: Number(result?.se_results_count ?? 0) };
 }
@@ -25,5 +23,5 @@ export async function liveSerpAlternatives(productName: string): Promise<{ compe
   });
   if (!res.ok) throw new Error(`dataforseo serp "${productName}" failed: ${res.status}`);
   const body = await res.json() as unknown;
-  return { ...parseSerp(body, productName), raw: body };
+  return { ...parseSerp(body), raw: body };
 }
