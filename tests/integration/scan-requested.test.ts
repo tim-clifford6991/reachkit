@@ -139,7 +139,7 @@ test(
     vi.doMock("@/lib/llm/anthropic", () => ({ callModel: makeCallModelMock() }));
     // Ensure fixture mode is off so the mock callModel is actually used
     vi.doMock("@/lib/dev/fixtures", () => ({
-      useFixtures: () => false,
+      fixturesEnabled: () => false,
       fixtureExtract: () => { throw new Error("should not be called in test"); },
       fixtureSynth: () => { throw new Error("should not be called in test"); },
       fixtureSerp: () => { throw new Error("should not be called in test"); },

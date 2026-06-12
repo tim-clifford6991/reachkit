@@ -2,7 +2,7 @@
  * Adapter gating tests: when REACHKIT_USE_FIXTURES=true the paid adapters must
  * return the canned fixture data WITHOUT touching the network.
  *
- * Strategy: vi.doMock "@/lib/dev/fixtures" so useFixtures() returns true and
+ * Strategy: vi.doMock "@/lib/dev/fixtures" so fixturesEnabled() returns true and
  * the fixture providers return deterministic canned data, then dynamically
  * import the adapters so they pick up the mock.  fetch is NOT stubbed — if any
  * adapter called fetch it would throw/hang, so the test passing proves the
@@ -28,11 +28,11 @@ const PH_FIXTURE = {
   raw: { fixture: true },
 };
 
-describe("paid adapters short-circuit to fixtures when useFixtures()=true", () => {
+describe("paid adapters short-circuit to fixtures when fixturesEnabled()=true", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.doMock("@/lib/dev/fixtures", () => ({
-      useFixtures: () => true,
+      fixturesEnabled: () => true,
       fixtureSerp: () => SERP_FIXTURE,
       fixtureTavily: () => TAVILY_FIXTURE,
       fixturePh: () => PH_FIXTURE,

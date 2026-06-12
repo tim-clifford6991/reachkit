@@ -1,7 +1,7 @@
 /**
  * keywords adapter tests (TDD)
  * - parseKeywords maps fields from a DataForSEO keywords_data/google_ads/search_volume/live response
- * - keywordsData returns fixture data when useFixtures()=true (no network call)
+ * - keywordsData returns fixture data when fixturesEnabled()=true (no network call)
  */
 import { expect, test, describe, beforeEach, vi } from "vitest";
 
@@ -54,7 +54,7 @@ test("parseKeywords coerces missing numeric fields to 0 / empty string", async (
 // keywordsData — fixture gating test (no network call)
 // ---------------------------------------------------------------------------
 
-describe("keywordsData short-circuits to fixture when useFixtures()=true", () => {
+describe("keywordsData short-circuits to fixture when fixturesEnabled()=true", () => {
   const KEYWORDS_FIXTURE = {
     keywords: [
       { keyword: "habit tracker app", volume: 1200, cpc: 1.2, competition: 0.4 },
@@ -67,7 +67,7 @@ describe("keywordsData short-circuits to fixture when useFixtures()=true", () =>
   beforeEach(() => {
     vi.resetModules();
     vi.doMock("@/lib/dev/fixtures", () => ({
-      useFixtures: () => true,
+      fixturesEnabled: () => true,
       fixtureKeywords: (_seeds: string[]) => KEYWORDS_FIXTURE,
     }));
   });

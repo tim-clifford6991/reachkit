@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
-// We mock the env module so useFixtures() reflects what we set, not process.env.
+// We mock the env module so fixturesEnabled() reflects what we set, not process.env.
 vi.mock("@/lib/config/env", () => ({
   env: { useFixtures: false },
 }));
@@ -64,20 +64,20 @@ describe("fixture providers return valid Competitor shapes", async () => {
   });
 });
 
-describe("useFixtures() reflects the env flag", () => {
+describe("fixturesEnabled() reflects the env flag", () => {
   beforeEach(() => {
     vi.resetModules();
   });
 
   test("returns false when env.useFixtures is false", async () => {
     vi.doMock("@/lib/config/env", () => ({ env: { useFixtures: false } }));
-    const { useFixtures } = await import("./fixtures");
-    expect(useFixtures()).toBe(false);
+    const { fixturesEnabled } = await import("./fixtures");
+    expect(fixturesEnabled()).toBe(false);
   });
 
   test("returns true when env.useFixtures is true", async () => {
     vi.doMock("@/lib/config/env", () => ({ env: { useFixtures: true } }));
-    const { useFixtures } = await import("./fixtures");
-    expect(useFixtures()).toBe(true);
+    const { fixturesEnabled } = await import("./fixtures");
+    expect(fixturesEnabled()).toBe(true);
   });
 });

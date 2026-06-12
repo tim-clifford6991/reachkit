@@ -1,6 +1,6 @@
 import type { Competitor } from "@/lib/scan/types";
 import { env } from "@/lib/config/env";
-import { useFixtures, fixtureSerp } from "@/lib/dev/fixtures";
+import { fixturesEnabled, fixtureSerp } from "@/lib/dev/fixtures";
 
 export function serpAuthHeader(login: string, password: string): string {
   return `Basic ${Buffer.from(`${login}:${password}`).toString("base64")}`;
@@ -17,7 +17,7 @@ export function parseSerp(body: unknown): { competitors: Competitor[]; serpResul
 
 // Live SERP — used only for the 10s screen (Live is the costed exception; Standard queue is the default elsewhere).
 export async function liveSerpAlternatives(productName: string): Promise<{ competitors: Competitor[]; serpResultCount: number; raw: unknown }> {
-  if (useFixtures()) return fixtureSerp(productName);
+  if (fixturesEnabled()) return fixtureSerp(productName);
   const res = await fetch("https://api.dataforseo.com/v3/serp/google/organic/live/advanced", {
     method: "POST",
     headers: { Authorization: serpAuthHeader(env.dataforseoLogin, env.dataforseoPassword), "content-type": "application/json" },

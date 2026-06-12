@@ -1,6 +1,6 @@
 import type { Competitor } from "@/lib/scan/types";
 import { env } from "@/lib/config/env";
-import { useFixtures, fixturePh } from "@/lib/dev/fixtures";
+import { fixturesEnabled, fixturePh } from "@/lib/dev/fixtures";
 
 type PhNode = { name: string; votesCount: number; url: string; reviewsCount: number };
 
@@ -14,7 +14,7 @@ export function parsePhPosts(data: unknown, productName: string): { selfUpvotes:
 }
 
 export async function fetchPhByName(productName: string): Promise<{ selfUpvotes: number; neighbours: Competitor[]; raw: unknown }> {
-  if (useFixtures()) return fixturePh(productName);
+  if (fixturesEnabled()) return fixturePh(productName);
   const query = `query($q:String!){posts(first:8,order:VOTES,query:$q){edges{node{name votesCount url reviewsCount}}}}`;
   const res = await fetch("https://api.producthunt.com/v2/api/graphql", {
     method: "POST",

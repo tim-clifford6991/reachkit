@@ -209,7 +209,7 @@ test(
     // 2. Build ScanContext + PreliminaryFacts
     // -----------------------------------------------------------------------
     vi.doMock("@/lib/llm/anthropic", () => ({ callModel: makeCallModelMock() }));
-    vi.doMock("@/lib/dev/fixtures", () => ({ useFixtures: () => false }));
+    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
 
     const { ScanBudget } = await import("@/lib/tools/registry");
     const budget = new ScanBudget({ maxToolCalls: 60, budgetCents: 500 });
@@ -371,7 +371,7 @@ test(
 
     // 2. Build ScanContext + PreliminaryFacts (web-mode)
     vi.doMock("@/lib/llm/anthropic", () => ({ callModel: makeCallModelMock() }));
-    vi.doMock("@/lib/dev/fixtures", () => ({ useFixtures: () => false }));
+    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
 
     const { ScanBudget } = await import("@/lib/tools/registry");
     const budget = new ScanBudget({ maxToolCalls: 60, budgetCents: 500 });

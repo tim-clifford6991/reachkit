@@ -55,15 +55,15 @@ export function ScanStream({ id }: { id: string }) {
   // ── Moment 1: loading feed ─────────────────────────────────────────────────
   if (!facts) {
     return (
-      <ul className="space-y-2 font-mono text-sm text-muted-foreground">
+      <div className="space-y-2 font-mono text-sm text-muted-foreground">
         <Stagger>
           {artifacts.length === 0 ? (
-            <li>Starting scan…</li>
+            <div>Starting scan…</div>
           ) : (
-            artifacts.map((a, i) => <li key={i}>✓ {a}</li>)
+            artifacts.map((a, i) => <div key={i}>✓ {a}</div>)
           )}
         </Stagger>
-      </ul>
+      </div>
     );
   }
 
@@ -176,13 +176,13 @@ export function ScanStream({ id }: { id: string }) {
 
       {/* Working artifact feed */}
       {artifacts.length > 0 && !findingsData && (
-        <ul className="space-y-1 font-mono text-xs text-muted-foreground/60">
+        <div className="space-y-1 font-mono text-xs text-muted-foreground/60">
           <Stagger>
             {artifacts.map((a, i) => (
-              <li key={i}>✓ {a}</li>
+              <div key={i}>✓ {a}</div>
             ))}
           </Stagger>
-        </ul>
+        </div>
       )}
 
       {/* ── Moment 3+4: Findings reveal + email gate ──────────────────────── */}

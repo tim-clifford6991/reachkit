@@ -3,7 +3,7 @@ import type { ReviewThemesSheet, PositioningSheet, CompetitorGapSheet, KeywordSh
 import type { FactSheetKind } from "@/lib/scan/fact-sheets";
 import { env } from "@/lib/config/env";
 
-export function useFixtures(): boolean {
+export function fixturesEnabled(): boolean {
   return env.useFixtures;
 }
 
@@ -43,7 +43,7 @@ export function fixtureKeywords(seeds: string[]): { keywords: KeywordRow[]; raw:
 
 // ---------------------------------------------------------------------------
 // Extract-stage fixture providers — realistic bodies for the 4 fact-sheet kinds.
-// Used by runExtract() when useFixtures()=true so the findings flow works with no Anthropic key.
+// Used by runExtract() when fixturesEnabled()=true so the findings flow works with no Anthropic key.
 // ---------------------------------------------------------------------------
 const FIXTURE_REVIEW_THEMES: ReviewThemesSheet = {
   themes: [

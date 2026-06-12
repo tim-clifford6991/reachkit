@@ -1,7 +1,7 @@
 import type { ToolDefinition } from "@/lib/tools/registry";
 import type { KeywordRow } from "@/lib/scan/types";
 import { keywordsData } from "@/lib/scan/adapters/keywords";
-import { useFixtures } from "@/lib/dev/fixtures";
+import { fixturesEnabled } from "@/lib/dev/fixtures";
 import { upsertRawDocument } from "@/lib/db/raw-documents";
 import { recordPipelineRun } from "@/lib/telemetry/pipeline-runs";
 
@@ -19,7 +19,7 @@ export const searchKeywords: ToolDefinition<SearchKeywordsArgs, SearchKeywordsRe
   klass: "D",
   async run(args, ctx) {
     const t0 = Date.now();
-    const costCents = useFixtures() ? 0 : 1;
+    const costCents = fixturesEnabled() ? 0 : 1;
     ctx.budget.charge({ toolCalls: 1, cents: costCents });
 
     const { keywords, raw } = await keywordsData(args.seeds);

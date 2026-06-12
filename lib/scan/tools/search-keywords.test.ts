@@ -18,7 +18,7 @@ test("search_keywords charges budget 1 tool call and returns keywords", async ()
     keywordsData: async () => ({ keywords: mockKeywords, raw: { fixture: true } }),
   }));
   vi.doMock("@/lib/dev/fixtures", () => ({
-    useFixtures: () => true,
+    fixturesEnabled: () => true,
   }));
   vi.doMock("@/lib/db/raw-documents", () => ({
     upsertRawDocument: async () => ({ id: 1, deduped: false }),
@@ -47,7 +47,7 @@ test("search_keywords charges 0 cents in fixture mode", async () => {
     keywordsData: async () => ({ keywords: [], raw: {} }),
   }));
   vi.doMock("@/lib/dev/fixtures", () => ({
-    useFixtures: () => true,
+    fixturesEnabled: () => true,
   }));
   vi.doMock("@/lib/db/raw-documents", () => ({
     upsertRawDocument: async () => ({ id: 1, deduped: false }),
@@ -77,7 +77,7 @@ test("search_keywords persists raw doc with sourceType dataforseo_keywords", asy
     keywordsData: async () => ({ keywords: [], raw: { fixture: true } }),
   }));
   vi.doMock("@/lib/dev/fixtures", () => ({
-    useFixtures: () => true,
+    fixturesEnabled: () => true,
   }));
   vi.doMock("@/lib/db/raw-documents", () => ({ upsertRawDocument }));
   vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
@@ -111,7 +111,7 @@ test("search_keywords records a pipeline_run row", async () => {
     keywordsData: async () => ({ keywords: [], raw: {} }),
   }));
   vi.doMock("@/lib/dev/fixtures", () => ({
-    useFixtures: () => true,
+    fixturesEnabled: () => true,
   }));
   vi.doMock("@/lib/db/raw-documents", () => ({
     upsertRawDocument: async () => ({ id: 1, deduped: false }),

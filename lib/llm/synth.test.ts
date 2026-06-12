@@ -102,7 +102,7 @@ describe("runSynth — normal path", () => {
   });
 
   test("returns a SynthResult with exactly 3 findings when callModel returns valid JSON", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ useFixtures: () => false }));
+    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     const getFreshMock = makeGetFreshFactSheetMock();
     vi.doMock("@/lib/scan/fact-sheets", () => ({ getFreshFactSheet: getFreshMock, factSheetSubjectType: () => "app" }));
     const callModelMock = vi.fn().mockResolvedValue({
@@ -119,7 +119,7 @@ describe("runSynth — normal path", () => {
   });
 
   test("each finding has ≥1 evidence excerpt with a source", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ useFixtures: () => false }));
+    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/scan/fact-sheets", () => ({ getFreshFactSheet: makeGetFreshFactSheetMock(), factSheetSubjectType: () => "app" }));
     const callModelMock = vi.fn().mockResolvedValue({
       text: JSON.stringify(CANNED_SYNTH_RESULT),
@@ -143,7 +143,7 @@ describe("runSynth — normal path", () => {
   });
 
   test("callModel called with stage=synth, model=claude-sonnet-4-6, scanId from ctx, maxTokens=4096", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ useFixtures: () => false }));
+    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/scan/fact-sheets", () => ({ getFreshFactSheet: makeGetFreshFactSheetMock(), factSheetSubjectType: () => "app" }));
     const callModelMock = vi.fn().mockResolvedValue({
       text: JSON.stringify(CANNED_SYNTH_RESULT),
@@ -164,7 +164,7 @@ describe("runSynth — normal path", () => {
   });
 
   test("getFreshFactSheet called for all 4 kinds", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ useFixtures: () => false }));
+    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     const getFreshMock = makeGetFreshFactSheetMock();
     vi.doMock("@/lib/scan/fact-sheets", () => ({ getFreshFactSheet: getFreshMock, factSheetSubjectType: () => "app" }));
     const callModelMock = vi.fn().mockResolvedValue({
@@ -185,7 +185,7 @@ describe("runSynth — normal path", () => {
   });
 
   test("positioningMirror has listingSays, reviewsValue, gap all non-empty", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ useFixtures: () => false }));
+    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/scan/fact-sheets", () => ({ getFreshFactSheet: makeGetFreshFactSheetMock(), factSheetSubjectType: () => "app" }));
     const callModelMock = vi.fn().mockResolvedValue({
       text: JSON.stringify(CANNED_SYNTH_RESULT),
@@ -212,7 +212,7 @@ describe("runSynth — malformed JSON degrades without throwing", () => {
   });
 
   test("malformed callModel response returns minimal valid SynthResult (no throw)", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ useFixtures: () => false }));
+    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/scan/fact-sheets", () => ({ getFreshFactSheet: makeGetFreshFactSheetMock(), factSheetSubjectType: () => "app" }));
     vi.doMock("@/lib/llm/anthropic", () => ({
       callModel: vi.fn().mockResolvedValue({
@@ -228,7 +228,7 @@ describe("runSynth — malformed JSON degrades without throwing", () => {
   });
 
   test("malformed callModel returns result with ≥1 finding", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ useFixtures: () => false }));
+    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/scan/fact-sheets", () => ({ getFreshFactSheet: makeGetFreshFactSheetMock(), factSheetSubjectType: () => "app" }));
     vi.doMock("@/lib/llm/anthropic", () => ({
       callModel: vi.fn().mockResolvedValue({
@@ -248,7 +248,7 @@ describe("runSynth — malformed JSON degrades without throwing", () => {
   });
 
   test("callModel throwing rejects gracefully (returns minimal result, no throw)", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ useFixtures: () => false }));
+    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/scan/fact-sheets", () => ({ getFreshFactSheet: makeGetFreshFactSheetMock(), factSheetSubjectType: () => "app" }));
     vi.doMock("@/lib/llm/anthropic", () => ({
       callModel: vi.fn().mockRejectedValue(new Error("API error")),
@@ -263,7 +263,7 @@ describe("runSynth — malformed JSON degrades without throwing", () => {
   });
 
   test("partial JSON (missing findings) returns a degraded but valid result", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ useFixtures: () => false }));
+    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/scan/fact-sheets", () => ({ getFreshFactSheet: makeGetFreshFactSheetMock(), factSheetSubjectType: () => "app" }));
     vi.doMock("@/lib/llm/anthropic", () => ({
       callModel: vi.fn().mockResolvedValue({
@@ -290,7 +290,7 @@ describe("runSynth — evidence validation + confidence clamping", () => {
   });
 
   test("a finding with empty evidence array is dropped (replaced by degraded finding)", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ useFixtures: () => false }));
+    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/scan/fact-sheets", () => ({ getFreshFactSheet: makeGetFreshFactSheetMock(), factSheetSubjectType: () => "app" }));
     // Return a result where one finding has empty evidence — it should be filtered out
     const noEvidenceFinding = {
@@ -327,7 +327,7 @@ describe("runSynth — evidence validation + confidence clamping", () => {
   });
 
   test("a confidence value of 99 is clamped to 1", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ useFixtures: () => false }));
+    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/scan/fact-sheets", () => ({ getFreshFactSheet: makeGetFreshFactSheetMock(), factSheetSubjectType: () => "app" }));
     const overflowFinding = {
       category: "content",
@@ -358,7 +358,7 @@ describe("runSynth — evidence validation + confidence clamping", () => {
   });
 
   test("a confidence value of -5 is clamped to 0", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ useFixtures: () => false }));
+    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/scan/fact-sheets", () => ({ getFreshFactSheet: makeGetFreshFactSheetMock(), factSheetSubjectType: () => "app" }));
     const negFinding = {
       category: "content",
@@ -402,7 +402,7 @@ describe("runSynth — fixture mode", () => {
     const getFreshMock = vi.fn();
 
     vi.doMock("@/lib/dev/fixtures", () => ({
-      useFixtures: () => true,
+      fixturesEnabled: () => true,
       fixtureSynth: () => CANNED_SYNTH_RESULT,
     }));
     vi.doMock("@/lib/scan/fact-sheets", () => ({ getFreshFactSheet: getFreshMock, factSheetSubjectType: () => "app" }));
@@ -419,7 +419,7 @@ describe("runSynth — fixture mode", () => {
 
   test("fixture mode result has ≥1 finding with evidence", async () => {
     vi.doMock("@/lib/dev/fixtures", () => ({
-      useFixtures: () => true,
+      fixturesEnabled: () => true,
       fixtureSynth: () => CANNED_SYNTH_RESULT,
     }));
     vi.doMock("@/lib/scan/fact-sheets", () => ({ getFreshFactSheet: vi.fn(), factSheetSubjectType: () => "app" }));

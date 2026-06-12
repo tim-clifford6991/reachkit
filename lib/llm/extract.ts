@@ -1,7 +1,7 @@
 import { serverDb } from "@/lib/db/client";
 import { callModel } from "@/lib/llm/anthropic";
 import { upsertFactSheet, factSheetSubjectType } from "@/lib/scan/fact-sheets";
-import { useFixtures, fixtureExtract } from "@/lib/dev/fixtures";
+import { fixturesEnabled, fixtureExtract } from "@/lib/dev/fixtures";
 import {
   reviewThemesPrompt,
   positioningPrompt,
@@ -82,7 +82,7 @@ export async function runExtract(ctx: ScanContext): Promise<void> {
   const competitorRows = rows.filter((r) => (COMPETITOR_SOURCES as readonly string[]).includes(r.source_type));
   const keywordRows = rows.filter((r) => (KEYWORD_SOURCES as readonly string[]).includes(r.source_type));
 
-  const fixtures = useFixtures();
+  const fixtures = fixturesEnabled();
 
   // 3. For each kind: either use fixture or call model, then upsert
   await Promise.all([

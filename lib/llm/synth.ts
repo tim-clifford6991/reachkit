@@ -5,13 +5,13 @@
  *   - 1 SampleAction      (with a ready-to-use draft)
  *
  * §13: Sonnet reads FACT SHEETS ONLY, never raw text.
- * Fixture-aware: when useFixtures()=true, returns fixtureSynth() without any LLM call.
+ * Fixture-aware: when fixturesEnabled()=true, returns fixtureSynth() without any LLM call.
  */
 
 import { callModel } from "@/lib/llm/anthropic";
 import { SYNTH_SYSTEM, buildSynthPrompt } from "@/lib/llm/prompts";
 import { getFreshFactSheet, factSheetSubjectType } from "@/lib/scan/fact-sheets";
-import { useFixtures, fixtureSynth } from "@/lib/dev/fixtures";
+import { fixturesEnabled, fixtureSynth } from "@/lib/dev/fixtures";
 import type { ScanContext } from "@/lib/scan/pipeline";
 import type {
   SynthResult,
@@ -147,7 +147,7 @@ async function readSheet<T>(
 // ---------------------------------------------------------------------------
 export async function runSynth(ctx: ScanContext): Promise<SynthResult> {
   // Fixture path — no LLM call, no fact-sheet reads
-  if (useFixtures()) {
+  if (fixturesEnabled()) {
     return fixtureSynth();
   }
 
