@@ -81,3 +81,13 @@ create table monitors (
   last_run_at timestamptz,
   watermark jsonb not null default '{}'
 );
+
+-- Foreign-key indexes: Postgres does not auto-index FKs, and these are all hot
+-- parent-id lookups ("this app's scans/actions/competitors", "this scan's evidence/findings").
+create index on scans(app_id);
+create index on evidence(scan_id);
+create index on findings(scan_id);
+create index on actions(app_id);
+create index on score_snapshots(app_id);
+create index on competitors(app_id);
+create index on monitors(app_id);
