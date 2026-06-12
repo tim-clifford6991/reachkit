@@ -37,48 +37,69 @@ export type Database = {
       actions: {
         Row: {
           app_id: string
+          basis: string | null
           category: string
+          confidence: number | null
           created_at: string
           deadline: string | null
           draft: string | null
+          draft_requires_edit: boolean
           effort_min: number | null
+          evidence_ids: number[]
           expected_outcome: Json | null
           id: string
+          scan_id: string | null
           score_component: string | null
           status: string
           title: string
+          verification: Json | null
           verify_state: string
           verify_url: string | null
+          why: string | null
         }
         Insert: {
           app_id: string
+          basis?: string | null
           category: string
+          confidence?: number | null
           created_at?: string
           deadline?: string | null
           draft?: string | null
+          draft_requires_edit?: boolean
           effort_min?: number | null
+          evidence_ids?: number[]
           expected_outcome?: Json | null
           id?: string
+          scan_id?: string | null
           score_component?: string | null
           status?: string
           title: string
+          verification?: Json | null
           verify_state?: string
           verify_url?: string | null
+          why?: string | null
         }
         Update: {
           app_id?: string
+          basis?: string | null
           category?: string
+          confidence?: number | null
           created_at?: string
           deadline?: string | null
           draft?: string | null
+          draft_requires_edit?: boolean
           effort_min?: number | null
+          evidence_ids?: number[]
           expected_outcome?: Json | null
           id?: string
+          scan_id?: string | null
           score_component?: string | null
           status?: string
           title?: string
+          verification?: Json | null
           verify_state?: string
           verify_url?: string | null
+          why?: string | null
         }
         Relationships: [
           {
@@ -86,6 +107,13 @@ export type Database = {
             columns: ["app_id"]
             isOneToOne: false
             referencedRelation: "apps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "actions_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: false
+            referencedRelation: "scans"
             referencedColumns: ["id"]
           },
         ]
@@ -518,6 +546,7 @@ export type Database = {
           findings_payload: Json | null
           id: string
           preliminary_facts: Json | null
+          report_payload: Json | null
           score_breakdown: Json | null
           score_total: number | null
           started_at: string | null
@@ -532,6 +561,7 @@ export type Database = {
           findings_payload?: Json | null
           id?: string
           preliminary_facts?: Json | null
+          report_payload?: Json | null
           score_breakdown?: Json | null
           score_total?: number | null
           started_at?: string | null
@@ -546,6 +576,7 @@ export type Database = {
           findings_payload?: Json | null
           id?: string
           preliminary_facts?: Json | null
+          report_payload?: Json | null
           score_breakdown?: Json | null
           score_total?: number | null
           started_at?: string | null
@@ -693,8 +724,8 @@ export type Database = {
           query: string
         }
         Returns: {
-          content: string
           similarity: number
+          content: string
         }[]
       }
       sparsevec_out: {
