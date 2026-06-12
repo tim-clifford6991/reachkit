@@ -8,9 +8,6 @@ importers:
 
   .:
     dependencies:
-      babel-plugin-react-compiler:
-        specifier: ^1.0.0
-        version: 1.0.0
       geist:
         specifier: ^1.7.2
         version: 1.7.2(next@16.2.9(@babel/core@7.29.7)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))
@@ -36,6 +33,9 @@ importers:
       '@types/react-dom':
         specifier: ^19
         version: 19.2.3(@types/react@19.2.17)
+      babel-plugin-react-compiler:
+        specifier: ^1.0.0
+        version: 1.0.0
       eslint:
         specifier: ^9
         version: 9.39.4(jiti@2.7.0)
