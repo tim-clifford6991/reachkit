@@ -1,4 +1,4 @@
-import type { Competitor } from "@/lib/scan/types";
+import type { Competitor, KeywordRow } from "@/lib/scan/types";
 import { env } from "@/lib/config/env";
 
 export function useFixtures(): boolean {
@@ -28,6 +28,13 @@ export function fixturePh(_productName: string): { selfUpvotes: number; neighbou
   return {
     selfUpvotes: 312,
     neighbours: [{ name: "Habitify", url: "https://habitify.me", source: "product_hunt", rank: 1 }],
+    raw: { fixture: true },
+  };
+}
+
+export function fixtureKeywords(seeds: string[]): { keywords: KeywordRow[]; raw: unknown } {
+  return {
+    keywords: seeds.slice(0, 5).map((k, i) => ({ keyword: k, volume: 1200 - i * 100, cpc: 1.2, competition: 0.4 })),
     raw: { fixture: true },
   };
 }

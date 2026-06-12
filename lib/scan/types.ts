@@ -5,6 +5,7 @@ export interface ReviewItem { rating: number | null; title: string; body: string
 export interface ListingFacts { name: string; category: string | null; description: string | null; pricing?: string | null; }
 export interface ThemeCount { term: string; count: number; }
 export interface WebProxy { score: number; serpResultCount: number; phUpvotes: number; domainAgeYears: number | null; }
+export interface KeywordRow { keyword: string; volume: number; cpc: number; competition: number; }
 export interface PreliminaryFacts {
   mode: Platform;
   listing: ListingFacts;
