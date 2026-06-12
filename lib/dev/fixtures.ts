@@ -176,6 +176,23 @@ export function fixtureExtract(
 // Synth-stage fixture — a realistic SynthResult for demo/test without Anthropic key.
 // 3 findings, each with ≥1 evidence excerpt drawn from the extract fixtures above.
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Embedding fixture — deterministic normalized 1024-dim vectors.
+// Identical text → identical vector; different text → different vector.
+// Used by callEmbed() when fixturesEnabled()=true so no Voyage API key needed.
+// ---------------------------------------------------------------------------
+export function fixtureEmbed(texts: string[]): number[][] {
+  return texts.map((t) => {
+    const v = Array.from({ length: 1024 }, (_, i) => {
+      let h = (2166136261 ^ i) >>> 0;
+      for (let j = 0; j < t.length; j++) h = Math.imul(h ^ t.charCodeAt(j), 16777619) >>> 0;
+      return (h / 0xffffffff) - 0.5;
+    });
+    const norm = Math.sqrt(v.reduce((s, x) => s + x * x, 0)) || 1;
+    return v.map((x) => x / norm);
+  });
+}
+
 export function fixtureSynth(): SynthResult {
   return {
     positioningMirror: {

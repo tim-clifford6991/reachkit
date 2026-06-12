@@ -686,7 +686,12 @@ export type Database = {
         Returns: string
       }
       match_embeddings: {
-        Args: { query: string; match_count: number }
+        Args: {
+          p_app_id?: string
+          p_subject_type?: string
+          match_count: number
+          query: string
+        }
         Returns: {
           content: string
           similarity: number
