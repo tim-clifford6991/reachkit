@@ -512,6 +512,7 @@ export type Database = {
       scans: {
         Row: {
           app_id: string
+          claim_email: string | null
           completed_at: string | null
           cost_cents: number
           findings_payload: Json | null
@@ -525,6 +526,7 @@ export type Database = {
         }
         Insert: {
           app_id: string
+          claim_email?: string | null
           completed_at?: string | null
           cost_cents?: number
           findings_payload?: Json | null
@@ -538,6 +540,7 @@ export type Database = {
         }
         Update: {
           app_id?: string
+          claim_email?: string | null
           completed_at?: string | null
           cost_cents?: number
           findings_payload?: Json | null
