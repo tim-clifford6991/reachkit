@@ -52,6 +52,10 @@ function makeCard(
     title: `Test action for ${category}`,
     why: "A specific signal from the fact sheets supports this.",
     evidenceIds: [],
+    evidence: [
+      { excerpt: "the streak feature keeps me going", source: "review_themes", sourceType: "app_store_rss" },
+      { excerpt: "habit tracker app", source: "keyword_data", sourceType: "dataforseo_keywords" },
+    ],
     effortMin: 30,
     suggestedDeadline: "2026-07-01",
     expectedOutcome: { scoreComponent: "content", delta: 5 },

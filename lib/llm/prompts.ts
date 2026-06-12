@@ -152,7 +152,8 @@ STRICT OUTPUT RULES:
 10. suggestedDeadline is an ISO date string (YYYY-MM-DD) approximately 1–4 weeks from today.
 11. confidence is a float 0.0–1.0.
 12. expectedOutcome.scoreComponent is one of: "content", "outreach", "seo".
-13. basis is "evidence_based" when the card is driven by a specific signal from the fact sheets; "probability_based" when it is a reasonable inference without a direct quote.`;
+13. basis is "evidence_based" when the card is driven by a specific signal from the fact sheets; "probability_based" when it is a reasonable inference without a direct quote.
+14. evidence is an array of ≥2 items drawn from ≥2 distinct sourceTypes. Each item has: excerpt (verbatim quote from the fact sheets), source (the name of the fact sheet or URL if available), sourceType (one of: "app_store_rss", "dataforseo_serp", "communities", "youtube", "dataforseo_keywords", "review_themes", "positioning", "competitor_gap", "keyword_data"). You MUST include at least 2 evidence items from at least 2 different sourceTypes per card.`;
 
 export interface ActionsPromptInput {
   reviewThemes: string;
@@ -196,6 +197,10 @@ Return ONLY a JSON array (no markdown, no code fences). Each element must match 
     "title": "<short action title — name the specific surface>",
     "why": "<1–2 sentences citing a specific signal from the sheets or findings>",
     "evidenceIds": [],
+    "evidence": [
+      { "excerpt": "<verbatim quote from fact sheet>", "source": "<fact sheet name or URL>", "sourceType": "<one of: app_store_rss | dataforseo_serp | communities | youtube | dataforseo_keywords | review_themes | positioning | competitor_gap | keyword_data>" },
+      { "excerpt": "<verbatim quote from a DIFFERENT sourceType>", "source": "<fact sheet name or URL>", "sourceType": "<different sourceType from above>" }
+    ],
     "effortMin": <integer minutes>,
     "suggestedDeadline": "<YYYY-MM-DD>",
     "expectedOutcome": {
@@ -287,4 +292,55 @@ Rules:
 - Each finding must have ≥1 evidence item with a verbatim excerpt from the fact sheets above.
 - sampleAction: EXACTLY 1 item, choose the highest-confidence category.
 - Do not invent data not present in the fact sheets.`;
+}
+
+// ---------------------------------------------------------------------------
+// CRITIC stage — Sonnet reviews a single ActionCard for quality (§9.2)
+// ---------------------------------------------------------------------------
+
+export const CRITIC_SYSTEM = `You are a quality-control critic for indie-app growth action cards. Your job is to review a proposed action card and judge it on three LLM-checkable rules, then optionally revise it.
+
+STRICT OUTPUT RULES:
+1. Output ONLY valid JSON — no markdown, no code fences, no prose.
+2. The JSON must have exactly these fields:
+   - "specificityOk" (boolean): true if the card names a SPECIFIC, real surface (real subreddit like "r/habittracking", real creator name, exact keyword phrase, or exact directory URL) — false if it uses vague category-level language like "post on Reddit", "reach out to influencers", or "target productivity keywords".
+   - "draftCitesFact" (boolean): true if the draft (or the "why" field for null-draft cards) cites a concrete, app-specific fact — a real review theme quote, a specific competitor name/gap, or a specific keyword with volume. False if the draft is generic marketing copy with no concrete app-specific anchor.
+   - "audienceHonest" (boolean): true if the card is honest about audience dynamics — if the target community is newcomer-hostile (e.g. HN, indie communities where self-promotion is frowned upon), the card should use "participate first" / "share your learning" framing, NOT "post your app" / "promote your app". For communities that welcome app posts (e.g. Product Hunt, r/SideProject), true is fine for direct promotion. For creator outreach cards, true unless the pitch is purely transactional.
+   - "revised" (optional ActionCard): if ANY of the three checks is false AND the card is fixable, include a revised version of the full action card that addresses the failures. Omit "revised" if all checks pass OR if the card is not fixable (e.g. the core concept is fundamentally non-specific and can't be rescued with wording changes).
+
+3. When revising:
+   - Fix specificityOk by naming a real, specific surface drawn from the fact context provided.
+   - Fix draftCitesFact by adding a concrete app-specific fact (review quote, competitor name, keyword volume) to the draft.
+   - Fix audienceHonest by reframing promotional language to participatory language.
+   - Preserve all other fields (category, effortMin, evidenceIds, evidence, suggestedDeadline, expectedOutcome, draftRequiresEdit, verification, basis, confidence).
+   - draftRequiresEdit must always remain true.`;
+
+export interface CriticPromptInput {
+  card: unknown; // The ActionCard JSON (serialised)
+  factContext: string; // Relevant fact-sheet excerpts to ground revisions
+}
+
+export function buildCriticPrompt(input: CriticPromptInput): string {
+  return `Review this action card and return the critic JSON.
+
+=== ACTION CARD ===
+${JSON.stringify(input.card, null, 2)}
+
+=== FACT CONTEXT (use to ground any revisions) ===
+${input.factContext}
+
+Return ONLY this JSON (no markdown, no code fences):
+{
+  "specificityOk": <boolean>,
+  "draftCitesFact": <boolean>,
+  "audienceHonest": <boolean>,
+  "revised": <optional full ActionCard — include only if at least one check is false AND the card is fixable>
+}
+
+Rules:
+- specificityOk: true only if the card names a real, specific surface (not a category placeholder).
+- draftCitesFact: true only if the draft (or why for null-draft cards) contains a concrete app-specific anchor — a verbatim review quote, a specific competitor name, or a keyword with a number.
+- audienceHonest: true unless the card promotes in a community where self-promotion is unwelcome without prior participation.
+- revised: include only when needed (at least one check false AND fixable). Omit when all pass or when not fixable.
+- If you include revised, it must be a complete, valid ActionCard with draftRequiresEdit: true.`;
 }

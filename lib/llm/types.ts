@@ -78,11 +78,20 @@ export const EMPTY_KEYWORD_SHEET: KeywordSheet = Object.freeze({ clusters: [] as
 // FORMAT stage output types (Task 6) — §10.2 action cards
 // ---------------------------------------------------------------------------
 
+/** A single piece of supporting evidence attached to an ActionCard. */
+export interface ActionCardEvidence {
+  excerpt: string;
+  source: string;
+  sourceType: string; // e.g. "app_store_rss" | "dataforseo_serp" | "communities" | "youtube" | "dataforseo_keywords"
+}
+
 export interface ActionCard {
   category: "content" | "outreach" | "seo_aso";
   title: string;
   why: string;
   evidenceIds: number[];                 // populated later by the Critic/evidence step; [] from generation
+  /** Inline evidence items — Critic rules (1) and (7b) require ≥2 from ≥2 distinct sourceTypes. */
+  evidence: ActionCardEvidence[];
   effortMin: number;
   suggestedDeadline: string;             // ISO date
   expectedOutcome: { scoreComponent: string; delta: number; secondary?: string };

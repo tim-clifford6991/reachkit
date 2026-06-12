@@ -247,6 +247,8 @@ export function fixtureSynth(): SynthResult {
 // ---------------------------------------------------------------------------
 // FORMAT-stage fixture — realistic ActionCards for demo/test without Anthropic key.
 // At least one per category (content, outreach, seo_aso), each fully §10.2-compliant.
+// Every card has ≥2 evidence items from ≥2 distinct sourceTypes so fixture cards PASS
+// Critic rule (1) without any LLM call.
 // ---------------------------------------------------------------------------
 export function fixtureActions(): ActionCard[] {
   return [
@@ -256,6 +258,11 @@ export function fixtureActions(): ActionCard[] {
       title: "Rewrite App Store description first paragraph to lead with streak consistency",
       why: "Reviews repeatedly cite 'the streak feature keeps me going' but the current listing buries streaks in the third paragraph behind the '21 days' headline. Leading with what users actually love will improve conversion.",
       evidenceIds: [],
+      evidence: [
+        { excerpt: "the streak feature keeps me going", source: "review_themes", sourceType: "app_store_rss" },
+        { excerpt: "Build habits in 21 days", source: "positioning", sourceType: "positioning" },
+        { excerpt: "Daily habit streaks with visual progress", source: "positioning", sourceType: "positioning" },
+      ],
       effortMin: 45,
       suggestedDeadline: "2026-06-26",
       expectedOutcome: {
@@ -274,6 +281,10 @@ export function fixtureActions(): ActionCard[] {
       title: "Write a Show HN post for HackerNews targeting productivity builders",
       why: "The app's 'minimalist, distraction-free interface' positioning directly matches the HN audience's distaste for bloated productivity tools. A Show HN post costs nothing and can generate backlinks and early adopters.",
       evidenceIds: [],
+      evidence: [
+        { excerpt: "Minimalist, distraction-free interface", source: "positioning", sourceType: "positioning" },
+        { excerpt: "incredibly easy to get started", source: "review_themes", sourceType: "app_store_rss" },
+      ],
       effortMin: 60,
       suggestedDeadline: "2026-06-19",
       expectedOutcome: {
@@ -292,6 +303,11 @@ export function fixtureActions(): ActionCard[] {
       title: "Create a 'HabitKit vs Habitify' comparison page on your website",
       why: "Habitify positions on data-rich analytics — the direct opposite of HabitKit's simplicity. Users searching 'Habitify alternative' (estimated 1,200/mo) are pre-qualified buyers who've already decided they want something simpler.",
       evidenceIds: [],
+      evidence: [
+        { excerpt: "Data-rich habit analytics with beautiful charts", source: "competitor_gap", sourceType: "dataforseo_serp" },
+        { excerpt: "Simpler onboarding and lower cognitive load for new users", source: "competitor_gap", sourceType: "dataforseo_serp" },
+        { excerpt: "habit tracker app", source: "keyword_data", sourceType: "dataforseo_keywords" },
+      ],
       effortMin: 90,
       suggestedDeadline: "2026-07-03",
       expectedOutcome: {
@@ -311,6 +327,10 @@ export function fixtureActions(): ActionCard[] {
       title: "Post in r/habittracking with a 'what made you stick with your habit app?' thread",
       why: "r/habittracking (42k members) regularly discusses app comparisons. The community explicitly values streak-based motivation — our users cite 'the streak feature keeps me going' — making this the highest-fit subreddit for organic discovery.",
       evidenceIds: [],
+      evidence: [
+        { excerpt: "the streak feature keeps me going", source: "review_themes", sourceType: "app_store_rss" },
+        { excerpt: "Ask HN: Best apps for habit tracking?", source: "https://news.ycombinator.com/item?id=38521041", sourceType: "communities" },
+      ],
       effortMin: 20,
       suggestedDeadline: "2026-06-18",
       expectedOutcome: {
@@ -329,6 +349,10 @@ export function fixtureActions(): ActionCard[] {
       title: "Pitch Thomas Frank (YouTube, 3.6M subscribers) as a Habitify-to-HabitKit switcher story",
       why: "Thomas Frank covers productivity app comparisons and has reviewed both Habitify and Streaks. HabitKit's 'simpler onboarding and lower cognitive load' gap vs Habitify is exactly the angle his audience responds to.",
       evidenceIds: [],
+      evidence: [
+        { excerpt: "Simpler onboarding and lower cognitive load for new users", source: "competitor_gap", sourceType: "dataforseo_serp" },
+        { excerpt: "Thomas Frank Review Channel", source: "https://www.youtube.com/watch?v=fixture_Habitify_1", sourceType: "youtube" },
+      ],
       effortMin: 30,
       suggestedDeadline: "2026-06-25",
       expectedOutcome: {
@@ -347,6 +371,11 @@ export function fixtureActions(): ActionCard[] {
       title: "Submit to the Indie Hackers 'What are you working on?' thread",
       why: "Indie Hackers audiences are early adopters of productivity tools and frequently share app recommendations. HabitKit's 500k-user milestone makes a compelling IH story with natural virality.",
       evidenceIds: [],
+      evidence: [
+        { excerpt: "incredibly easy to get started", source: "review_themes", sourceType: "app_store_rss" },
+        { excerpt: "widget is nice but doesn't refresh reliably", source: "review_themes", sourceType: "app_store_rss" },
+        { excerpt: "daily routine app", source: "keyword_data", sourceType: "dataforseo_keywords" },
+      ],
       effortMin: 25,
       suggestedDeadline: "2026-06-20",
       expectedOutcome: {
@@ -358,7 +387,7 @@ export function fixtureActions(): ActionCard[] {
       draftRequiresEdit: true,
       verification: { method: "url", state: "pending" },
       basis: "probability_based",
-      confidence: 0.65,
+      confidence: 0.55,
     },
     // --- SEO/ASO cards ---
     {
@@ -366,6 +395,11 @@ export function fixtureActions(): ActionCard[] {
       title: "Inject 'habit tracker app' into App Store title and first 100 chars of description",
       why: "'habit tracker app' has 8,100 monthly searches and no top competitor owns the phrase in their title. This is the single highest-ROI ASO change available.",
       evidenceIds: [],
+      evidence: [
+        { excerpt: "habit tracker app", source: "keyword_data", sourceType: "dataforseo_keywords" },
+        { excerpt: "daily habit tracker", source: "keyword_data", sourceType: "dataforseo_keywords" },
+        { excerpt: "Minimalist, distraction-free interface", source: "positioning", sourceType: "positioning" },
+      ],
       effortMin: 15,
       suggestedDeadline: "2026-06-17",
       expectedOutcome: {
@@ -384,6 +418,10 @@ export function fixtureActions(): ActionCard[] {
       title: "Submit HabitKit to AlternativeTo.net as an alternative to Habitify and Streaks",
       why: "AlternativeTo.net is a high-DA directory with dedicated pages for both Habitify and Streaks. A listing there captures users actively searching for simpler alternatives — exactly HabitKit's positioning gap.",
       evidenceIds: [],
+      evidence: [
+        { excerpt: "Simpler onboarding and lower cognitive load for new users", source: "competitor_gap", sourceType: "dataforseo_serp" },
+        { excerpt: "best habit tracker", source: "keyword_data", sourceType: "dataforseo_keywords" },
+      ],
       effortMin: 20,
       suggestedDeadline: "2026-06-21",
       expectedOutcome: {
@@ -402,6 +440,10 @@ export function fixtureActions(): ActionCard[] {
       title: "Add 'wellness habit app' and 'mindfulness daily habits' to App Store keyword field",
       why: "The wellness cluster (1,900 + 1,200/mo) has lower competition than the core 'habit tracker' cluster, making it achievable for an app without top-10 ranking yet. Adding these as secondary keywords costs nothing.",
       evidenceIds: [],
+      evidence: [
+        { excerpt: "wellness habit app", source: "keyword_data", sourceType: "dataforseo_keywords" },
+        { excerpt: "Health & Fitness", source: "positioning", sourceType: "positioning" },
+      ],
       effortMin: 10,
       suggestedDeadline: "2026-06-17",
       expectedOutcome: {

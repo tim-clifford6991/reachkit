@@ -32,6 +32,7 @@ function buildDegradedActions(): ActionCard[] {
   const deadline = new Date(Date.now() + 14 * 24 * 3600 * 1000).toISOString().slice(0, 10);
   const base = {
     evidenceIds: [] as number[],
+    evidence: [] as import("@/lib/llm/types").ActionCardEvidence[],
     effortMin: 30,
     suggestedDeadline: deadline,
     draft: null,
@@ -102,11 +103,13 @@ function isValidActionCard(c: unknown): c is ActionCard {
     typeof vfObj["method"] !== "string" ||
     !["url", "self_report", "rank_check"].includes(vfObj["method"])
   ) return false;
+  // evidence — optional array; coerceCard defaults to [] if missing
+  if (obj["evidence"] !== undefined && !Array.isArray(obj["evidence"])) return false;
   return true;
 }
 
 // ---------------------------------------------------------------------------
-// Coerce a validated card: clamp confidence, force §11 invariants
+// Coerce a validated card: clamp confidence, force §11 invariants, default evidence
 // ---------------------------------------------------------------------------
 function coerceCard(raw: ActionCard): ActionCard {
   return {
@@ -114,6 +117,17 @@ function coerceCard(raw: ActionCard): ActionCard {
     confidence: Math.max(0, Math.min(1, Number(raw.confidence))),
     draftRequiresEdit: true, // §11 — always true regardless of model output
     evidenceIds: [], // always [] from generation; Critic step attaches real ids
+    // Default evidence to [] if missing or malformed; filter out bad items
+    evidence: Array.isArray(raw.evidence)
+      ? raw.evidence.filter((e): e is import("@/lib/llm/types").ActionCardEvidence => {
+          const obj = e as unknown as Record<string, unknown>;
+          return (
+            typeof obj["excerpt"] === "string" &&
+            typeof obj["source"] === "string" &&
+            typeof obj["sourceType"] === "string"
+          );
+        })
+      : [],
     verification: {
       method: raw.verification.method,
       state: "pending", // always pending from generation
