@@ -1,6 +1,7 @@
 import type { Platform } from "@/lib/scan/router";
 
 export interface Competitor { name: string; url: string; source: string; rank: number; }
+export interface Community { source: string; title: string; url: string; engagement: number; }
 export interface ReviewItem { rating: number | null; title: string; body: string; at?: string; }
 export interface ListingFacts { name: string; category: string | null; description: string | null; pricing?: string | null; }
 export interface ThemeCount { term: string; count: number; }

@@ -1,4 +1,4 @@
-import type { Competitor, KeywordRow } from "@/lib/scan/types";
+import type { Competitor, Community, KeywordRow } from "@/lib/scan/types";
 import type { ReviewThemesSheet, PositioningSheet, CompetitorGapSheet, KeywordSheet, SynthResult } from "@/lib/llm/types";
 import type { FactSheetKind } from "@/lib/scan/fact-sheets";
 import { env } from "@/lib/config/env";
@@ -32,6 +32,35 @@ export function fixturePh(_productName: string): { selfUpvotes: number; neighbou
     neighbours: [{ name: "Habitify", url: "https://habitify.me", source: "product_hunt", rank: 1 }],
     raw: { fixture: true },
   };
+}
+
+export function fixtureCommunities(topic: string): Community[] {
+  return [
+    {
+      source: "hn",
+      title: `Ask HN: Best apps for ${topic}?`,
+      url: "https://news.ycombinator.com/item?id=38521041",
+      engagement: 347,
+    },
+    {
+      source: "hn",
+      title: `Show HN: I built a ${topic} tool in a weekend`,
+      url: "https://news.ycombinator.com/item?id=38619203",
+      engagement: 214,
+    },
+    {
+      source: "bluesky",
+      title: `Anyone else using ${topic} daily? Game changer for my morning routine.`,
+      url: "https://bsky.app/profile/productivity.bsky.social/post/3k7qzxpvt2c2g",
+      engagement: 89,
+    },
+    {
+      source: "bluesky",
+      title: `The ${topic} space is getting crowded but most apps still miss the basics.`,
+      url: "https://bsky.app/profile/indiedev.bsky.social/post/3k8mrwabcd123",
+      engagement: 63,
+    },
+  ];
 }
 
 export function fixtureKeywords(seeds: string[]): { keywords: KeywordRow[]; raw: unknown } {
