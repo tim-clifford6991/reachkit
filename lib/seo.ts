@@ -8,7 +8,7 @@ export function buildMetadata(opts: { title: string; description?: string; path:
     title: `${opts.title} — ${SITE.name}`,
     description: opts.description,
     alternates: { canonical },
-    openGraph: { title: `${opts.title} — ${SITE.name}`, url: canonical, siteName: SITE.name },
+    openGraph: { type: "website", title: `${opts.title} — ${SITE.name}`, url: canonical, siteName: SITE.name },
   };
 }
 
