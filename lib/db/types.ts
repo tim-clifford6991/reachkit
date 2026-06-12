@@ -5,7 +5,6 @@ export type Json =
   | null
   | { [key: string]: Json | undefined }
   | Json[]
-
 export type Database = {
   graphql_public: {
     Tables: {
@@ -18,9 +17,9 @@ export type Database = {
       graphql: {
         Args: {
           operationName?: string
-          extensions?: Json
-          variables?: Json
           query?: string
+          variables?: Json
+          extensions?: Json
         }
         Returns: Json
       }
@@ -477,12 +476,45 @@ export type Database = {
         }
         Relationships: []
       }
+      scan_events: {
+        Row: {
+          created_at: string
+          id: number
+          payload: Json
+          scan_id: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          payload?: Json
+          scan_id: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          payload?: Json
+          scan_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scan_events_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: false
+            referencedRelation: "scans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scans: {
         Row: {
           app_id: string
           completed_at: string | null
           cost_cents: number
           id: string
+          preliminary_facts: Json | null
           score_breakdown: Json | null
           score_total: number | null
           started_at: string | null
@@ -494,6 +526,7 @@ export type Database = {
           completed_at?: string | null
           cost_cents?: number
           id?: string
+          preliminary_facts?: Json | null
           score_breakdown?: Json | null
           score_total?: number | null
           started_at?: string | null
@@ -505,6 +538,7 @@ export type Database = {
           completed_at?: string | null
           cost_cents?: number
           id?: string
+          preliminary_facts?: Json | null
           score_breakdown?: Json | null
           score_total?: number | null
           started_at?: string | null
@@ -645,10 +679,10 @@ export type Database = {
         Returns: string
       }
       match_embeddings: {
-        Args: { match_count: number; query: string }
+        Args: { query: string; match_count: number }
         Returns: {
-          similarity: number
           content: string
+          similarity: number
         }[]
       }
       sparsevec_out: {
@@ -696,9 +730,7 @@ export type Database = {
     }
   }
 }
-
 type DefaultSchema = Database[Extract<keyof Database, "public">]
-
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
@@ -725,7 +757,6 @@ export type Tables<
       ? R
       : never
     : never
-
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
@@ -748,7 +779,6 @@ export type TablesInsert<
       ? I
       : never
     : never
-
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
@@ -771,7 +801,6 @@ export type TablesUpdate<
       ? U
       : never
     : never
-
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
@@ -786,7 +815,6 @@ export type Enums<
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
-
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
@@ -801,7 +829,6 @@ export type CompositeTypes<
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
-
 export const Constants = {
   graphql_public: {
     Enums: {},

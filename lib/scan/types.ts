@@ -1,0 +1,19 @@
+import type { Platform } from "@/lib/scan/router";
+
+export interface Competitor { name: string; url: string; source: string; rank: number; }
+export interface ReviewItem { rating: number | null; title: string; body: string; at?: string; }
+export interface ListingFacts { name: string; category: string | null; description: string | null; pricing?: string | null; }
+export interface ThemeCount { term: string; count: number; }
+export interface WebProxy { score: number; serpResultCount: number; phUpvotes: number; domainAgeYears: number | null; }
+export interface PreliminaryFacts {
+  mode: Platform;
+  listing: ListingFacts;
+  competitors: Competitor[];
+  reviewVolume: number;
+  ratingTrend: number | null;     // app mode: avg rating; null in web mode
+  webProxy: WebProxy | null;      // web mode only
+  themes: ThemeCount[];
+  sourcesUsed: string[];
+}
+export type ScanEventType = "artifact" | "facts" | "done" | "error";
+export interface ScanEvent { type: ScanEventType; payload: Record<string, unknown>; }
