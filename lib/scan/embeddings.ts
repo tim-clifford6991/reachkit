@@ -11,11 +11,14 @@ export interface EmbeddingRow {
 }
 
 /**
- * Upsert a batch of embedding rows into the `embeddings` table.
+ * Insert a batch of embedding rows into the `embeddings` table.
  * The pgvector literal format `[a,b,c,...]` is used for the embedding column.
  * Throws on Supabase error.
+ *
+ * Note: uses `.insert()` — not an upsert. For idempotent population, call
+ * `deleteEmbeddingsForApp` first.
  */
-export async function upsertEmbeddings(rows: EmbeddingRow[]): Promise<void> {
+export async function insertEmbeddings(rows: EmbeddingRow[]): Promise<void> {
   if (rows.length === 0) return;
 
   const db = serverDb();
@@ -30,7 +33,24 @@ export async function upsertEmbeddings(rows: EmbeddingRow[]): Promise<void> {
   }));
 
   const { error } = await db.from("embeddings").insert(inserts);
-  if (error) throw new Error(`upsertEmbeddings failed: ${error.message}`);
+  if (error) throw new Error(`insertEmbeddings failed: ${error.message}`);
+}
+
+/**
+ * Delete all embedding rows for a given app + subjectType.
+ * Use before `insertEmbeddings` to make population idempotent (safe to retry).
+ */
+export async function deleteEmbeddingsForApp(
+  appId: string,
+  subjectType: string,
+): Promise<void> {
+  const db = serverDb();
+  const { error } = await db
+    .from("embeddings")
+    .delete()
+    .eq("app_id", appId)
+    .eq("subject_type", subjectType);
+  if (error) throw new Error(`deleteEmbeddingsForApp failed: ${error.message}`);
 }
 
 /**

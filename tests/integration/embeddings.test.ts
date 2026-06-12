@@ -16,12 +16,12 @@ vi.mock("@/lib/dev/fixtures", async (importOriginal) => {
 });
 
 import { callEmbed } from "@/lib/llm/embed";
-import { upsertEmbeddings, searchSimilar } from "@/lib/scan/embeddings";
+import { insertEmbeddings, searchSimilar } from "@/lib/scan/embeddings";
 
 // Unique subject_key prefix so parallel test runs don't cross-contaminate.
 const prefix = `embed-int-test-${Date.now()}`;
 
-test("upsertEmbeddings + searchSimilar returns near text as top match", async () => {
+test("insertEmbeddings + searchSimilar returns near text as top match", async () => {
   const texts = ["near text", "far text"];
   const [nearVec, farVec] = await callEmbed(texts);
 
@@ -29,7 +29,7 @@ test("upsertEmbeddings + searchSimilar returns near text as top match", async ()
   expect(nearVec).toHaveLength(1024);
   expect(farVec).toHaveLength(1024);
 
-  await upsertEmbeddings([
+  await insertEmbeddings([
     {
       subjectType: "test",
       subjectKey: `${prefix}-near`,
