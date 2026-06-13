@@ -27,6 +27,7 @@ import type { ScoreResult } from "@/lib/llm/types";
 import type { PreliminaryFacts } from "@/lib/scan/types";
 import type { Platform } from "@/lib/scan/router";
 import type { ScanContext } from "@/lib/scan/pipeline";
+import { serverDb } from "@/lib/db/client";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -139,6 +140,66 @@ function rawOutreachScore(outreachSurfaces: number): number {
 }
 
 // ---------------------------------------------------------------------------
+// Verified-outcomes counts (the moat — Cycle 4 Task 14)
+// ---------------------------------------------------------------------------
+
+/** Per-category counts of an app's verified outcomes. */
+interface VerifiedOutcomeCounts {
+  content: number;
+  outreach: number;
+  seoAso: number;
+}
+
+const NO_OUTCOMES: VerifiedOutcomeCounts = { content: 0, outreach: 0, seoAso: 0 };
+
+/**
+ * SEO/ASO surface increment per verified seo_aso action.
+ *
+ * A verified seo_aso action (a directory submission, a comparison page going
+ * live, a keyword now ranking) is a modest, conservative bump to the live-surface
+ * fractions — capped at 100 at the call site. 4 points per verified action means
+ * a founder must ship ~25 verified seo_aso surfaces to saturate either fraction.
+ */
+const SEO_OUTCOME_INCREMENT = 4;
+
+/**
+ * Count this app's VERIFIED outcomes grouped by the originating action's category.
+ *
+ * An outcome is "verified" iff it has a non-null verified_signal (runActionVerification
+ * only writes an outcomes row once an action actually verifies). We join through the
+ * action to read its category (content | outreach | seo_aso).
+ *
+ * NEVER throws and NEVER fabricates: any failure (no DB/env in a unit test, query
+ * error, malformed rows) returns {@link NO_OUTCOMES} so the zero-outcomes baseline
+ * is preserved EXACTLY. A fresh app with no verified outcomes therefore yields the
+ * same honest-low score as before this feature existed.
+ */
+async function countVerifiedOutcomes(appId: string): Promise<VerifiedOutcomeCounts> {
+  try {
+    const db = serverDb();
+    const { data, error } = await db
+      .from("outcomes")
+      .select("verified_signal, actions(category)")
+      .eq("app_id", appId)
+      .not("verified_signal", "is", null);
+    if (error || data === null) return NO_OUTCOMES;
+
+    const counts: VerifiedOutcomeCounts = { content: 0, outreach: 0, seoAso: 0 };
+    for (const row of data) {
+      // actions is a to-one join → coerce after null check.
+      const action = row.actions as unknown as { category?: string } | null;
+      const category = action?.category;
+      if (category === "content") counts.content += 1;
+      else if (category === "outreach") counts.outreach += 1;
+      else if (category === "seo_aso") counts.seoAso += 1;
+    }
+    return counts;
+  } catch {
+    return NO_OUTCOMES;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
@@ -199,9 +260,20 @@ export function verifiedScore(components: ScoreComponents, mode: Platform): Veri
  * Other §7.2 rules (freshness decay, duplicate discount, unverified source
  * penalty) are assumed applied at data-gather time by the tools that populate
  * PreliminaryFacts.
+ *
+ * Cycle 4 Task 14 — score MOVEMENT from the outcomes moat:
+ *   After computing the first-scan baseline above, this app's VERIFIED outcomes
+ *   are counted (joined to their action's category) and the relevant verified-
+ *   surface counts are bumped BEFORE verifiedScore runs:
+ *     - category "content"  → contentSurfaces  (each verified outcome = +1 surface)
+ *     - category "outreach" → outreachSurfaces (each verified outcome = +1 surface)
+ *     - category "seo_aso"  → directoriesLive + comparisonPagesLive (a modest
+ *                             per-action increment, each capped at 100)
+ *   With ZERO verified outcomes the bumps are all 0, so the baseline above is
+ *   preserved EXACTLY (countVerifiedOutcomes degrades to no-op on any failure).
  */
 export async function gatherScoreComponents(
-  _ctx: ScanContext,
+  ctx: ScanContext,
   facts: PreliminaryFacts,
 ): Promise<ScoreComponents> {
   const isWeb = facts.mode === "web";
@@ -221,12 +293,16 @@ export async function gatherScoreComponents(
     asoCoverage = Math.round(Math.min(30, themeProxy * 0.6 + ratingBonus * 0.4));
   }
 
+  // Verified-outcomes bump (the moat). Zero verified outcomes → no change.
+  const verified = await countVerifiedOutcomes(ctx.appId);
+  const seoBump = Math.min(100, verified.seoAso * SEO_OUTCOME_INCREMENT);
+
   return {
     keywordsRanking,
-    directoriesLive: 0,
-    comparisonPagesLive: 0,
+    directoriesLive: seoBump,
+    comparisonPagesLive: seoBump,
     asoCoverage,
-    contentSurfaces: 0,
-    outreachSurfaces: 0,
+    contentSurfaces: verified.content,
+    outreachSurfaces: verified.outreach,
   };
 }

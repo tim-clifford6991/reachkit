@@ -9,4 +9,9 @@ export const scanDemoRequestedEvent = eventType("scan/demo.requested", {
   schema: staticSchema<{ scanId?: string }>(),
 });
 
+// Cycle 4 Task 14: action completion → verification → outcomes moat + score move.
+export const actionVerifyRequestedEvent = eventType("action/verify", {
+  schema: staticSchema<{ actionId: string }>(),
+});
+
 export const inngest = new Inngest({ id: "reachkit" });
