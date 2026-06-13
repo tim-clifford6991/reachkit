@@ -64,6 +64,7 @@ function makeFacts(): PreliminaryFacts {
       { term: "widget", count: 12 },
     ],
     sourcesUsed: ["app_store_rss", "itunes", "dataforseo_serp"],
+    coldStart: false,
   };
 }
 

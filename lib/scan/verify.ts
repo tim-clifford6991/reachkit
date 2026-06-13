@@ -290,6 +290,7 @@ function coerceFacts(raw: Json | null, platform: Platform): PreliminaryFacts {
     webProxy: null,
     themes: [],
     sourcesUsed: [],
+    coldStart: true, // no footprint in this degraded placeholder; overridden by the persisted blob below
   };
   if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return empty;
   return { ...empty, ...(raw as Partial<PreliminaryFacts>), mode: platform };

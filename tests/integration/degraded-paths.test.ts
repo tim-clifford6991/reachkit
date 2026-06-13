@@ -127,6 +127,7 @@ function makeFacts(mode: "ios" | "web" = "ios"): PreliminaryFacts {
       { term: "streaks", count: 38 },
     ],
     sourcesUsed: ["app_store_rss", "itunes", "dataforseo_serp"],
+    coldStart: false,
   };
 }
 

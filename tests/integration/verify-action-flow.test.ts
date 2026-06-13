@@ -61,6 +61,7 @@ function makeFacts(): PreliminaryFacts {
       { term: "streaks", count: 30 },
     ],
     sourcesUsed: ["itunes"],
+    coldStart: false,
   };
 }
 

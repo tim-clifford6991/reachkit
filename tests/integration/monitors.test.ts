@@ -63,6 +63,7 @@ function makeFacts(): PreliminaryFacts {
     webProxy: null,
     themes: [{ term: "streaks", count: 38 }],
     sourcesUsed: ["app_store_rss", "itunes", "dataforseo_serp"],
+    coldStart: false,
   };
 }
 

@@ -15,6 +15,7 @@ const BASE_FACTS: PreliminaryFacts = {
   webProxy: null,
   themes: [],
   sourcesUsed: [],
+  coldStart: false,
 };
 
 const SMALL_KEYWORDS: KeywordSheet = {

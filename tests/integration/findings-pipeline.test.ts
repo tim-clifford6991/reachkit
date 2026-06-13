@@ -238,6 +238,7 @@ test(
         { term: "crashes", count: 12 },
       ],
       sourcesUsed: ["app_store_rss", "itunes", "dataforseo_serp", "dataforseo_keywords"],
+      coldStart: false,
     };
 
     // -----------------------------------------------------------------------
@@ -395,6 +396,7 @@ test(
       webProxy: { score: 30, serpResultCount: 1, phUpvotes: 250, domainAgeYears: 3 },
       themes: [],
       sourcesUsed: ["site_fetch", "dataforseo_serp", "product_hunt"],
+      coldStart: false,
     };
 
     // 3. Run the pipeline
@@ -530,6 +532,7 @@ test(
       webProxy: null,
       themes: [{ term: "streaks", count: 20 }],
       sourcesUsed: ["app_store_rss", "itunes", "dataforseo_serp", "dataforseo_keywords"],
+      coldStart: false,
     };
 
     // 3. Run the pipeline TWICE for the same scan

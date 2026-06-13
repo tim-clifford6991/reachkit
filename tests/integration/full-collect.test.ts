@@ -64,6 +64,7 @@ function makeFixtureFacts(overrides?: Partial<PreliminaryFacts>): PreliminaryFac
     webProxy: null,
     themes: [],
     sourcesUsed: [],
+    coldStart: false,
     ...overrides,
   };
 }

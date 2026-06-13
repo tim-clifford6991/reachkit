@@ -19,6 +19,10 @@ export interface PreliminaryFacts {
   webProxy: WebProxy | null;      // web mode only
   themes: ThemeCount[];
   sourcesUsed: string[];
+  // §4.3 Cold Start: true when the subject has little/no footprint (pre-revenue,
+  // pre-launch) — flips the full scan onto the validation-through-distribution queue.
+  // Computed by isColdStart() in lib/scan/cold-start.ts when facts are assembled.
+  coldStart: boolean;
 }
 export interface Creator { name: string; url: string; audienceProxy: number; coveredCompetitor: string; }
 

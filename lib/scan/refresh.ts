@@ -122,6 +122,7 @@ function minimalFacts(ctx: ScanContext): PreliminaryFacts {
     webProxy: null,
     themes: [],
     sourcesUsed: [],
+    coldStart: true, // no footprint in this degraded placeholder
   };
 }
 

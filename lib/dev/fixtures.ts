@@ -1,5 +1,5 @@
 import type { Competitor, Community, Creator, KeywordRow, ReviewItem, TimedCommunity } from "@/lib/scan/types";
-import type { ReviewThemesSheet, PositioningSheet, CompetitorGapSheet, KeywordSheet, SynthResult, ActionCard } from "@/lib/llm/types";
+import type { ReviewThemesSheet, PositioningSheet, CompetitorGapSheet, KeywordSheet, SynthResult, ActionCard, ActionCardEvidence } from "@/lib/llm/types";
 import type { FactSheetKind } from "@/lib/scan/fact-sheets";
 import { env } from "@/lib/config/env";
 
@@ -523,6 +523,203 @@ export function fixtureActions(): ActionCard[] {
       verification: { method: "rank_check", state: "pending" },
       basis: "evidence_based",
       confidence: 0.76,
+    },
+  ];
+}
+
+// ---------------------------------------------------------------------------
+// Cold Start fixture (§4.3) — the validation-through-distribution queue for a
+// subject with little/no footprint. Used by generateColdStartActions() when
+// fixturesEnabled()=true so the full scan runs keyless on the Cold Start branch.
+//
+// Every card: basis "probability_based", confidence ≤ 0.6, draftRequiresEdit
+// true, ≥2 evidence items from ≥2 distinct sourceTypes (passes Critic rule 1),
+// content/outreach cards carry a real draft (passes rule 5a). Evidence `source`
+// values are non-URL provenance labels so the §11 per-surface cadence cap never
+// collapses these cards. Dominant sourceTypes are spread so the Critic source-
+// diversity rule (6) keeps the whole set. A pivot-suggestion card is included.
+// ---------------------------------------------------------------------------
+export function fixtureColdStartActions(): ActionCard[] {
+  return coldStartActionsFrom({
+    productName: "Habits",
+    icp: "people trying to build a daily habit",
+    topKeyword: "habit tracker app",
+    secondKeyword: "daily habit tracker",
+    topCompetitor: "Habitify",
+    communityA: "r/getdisciplined",
+    communityB: "Indie Hackers",
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Shared Cold Start builder — pure + template-driven from a small set of derived
+// strings. Used by BOTH the fixture above and the live (degrade-safe) path in
+// lib/llm/cold-start-actions.ts, so the two never drift.
+// ---------------------------------------------------------------------------
+export interface ColdStartSeed {
+  productName: string;
+  icp: string;
+  topKeyword: string;
+  secondKeyword: string;
+  topCompetitor: string;
+  communityA: string;
+  communityB: string;
+}
+
+function isoPlusDays(days: number): string {
+  return new Date(Date.now() + days * 24 * 3600 * 1000).toISOString().slice(0, 10);
+}
+
+export function coldStartActionsFrom(seed: ColdStartSeed): ActionCard[] {
+  const { productName, icp, topKeyword, secondKeyword, topCompetitor, communityA, communityB } = seed;
+
+  // Non-URL provenance labels keep these off the §11 per-surface cadence cap.
+  const evPositioning = (excerpt: string): ActionCardEvidence => ({ excerpt, source: "positioning", sourceType: "positioning" });
+  const evKeyword = (excerpt: string): ActionCardEvidence => ({ excerpt, source: "keyword_data", sourceType: "dataforseo_keywords" });
+  const evSerp = (excerpt: string): ActionCardEvidence => ({ excerpt, source: "competitor_serp", sourceType: "dataforseo_serp" });
+  const evCommunity = (excerpt: string): ActionCardEvidence => ({ excerpt, source: "community_scan", sourceType: "communities" });
+
+  return [
+    // 1. Ship a waitlist / free-tool page targeting the hypothesised ICP.
+    {
+      category: "content",
+      title: `Ship a waitlist page for ${productName} targeting ${icp}`,
+      why: `${productName} has little public footprint yet, so the fastest way to validate demand is to put a focused waitlist page in front of ${icp} and measure sign-up conversion. The page doubles as the first real demand signal.`,
+      evidenceIds: [],
+      evidence: [
+        evPositioning(`Hypothesised ICP: ${icp}`),
+        evPositioning(`Core promise to test: helps ${icp} stay consistent`),
+        evKeyword(`Intent keyword to headline: ${topKeyword}`),
+      ],
+      effortMin: 90,
+      suggestedDeadline: isoPlusDays(7),
+      expectedOutcome: { scoreComponent: "content", delta: 6, secondary: "Waitlist sign-up conversion becomes the first demand signal" },
+      draft: `${productName} — for ${icp}.\n\nWe're building the simplest way for ${icp} to stay consistent. Drop your email to get early access and help shape it.\n\nWhat you get: first access, a say in the roadmap, and a founder who actually reads replies. No spam, just one short note when it's ready.`,
+      draftRequiresEdit: true,
+      verification: { method: "url", state: "pending" },
+      basis: "probability_based",
+      confidence: 0.55,
+    },
+    // 2. Post it in a scored community (demand test #1).
+    {
+      category: "outreach",
+      title: `Share the waitlist in ${communityA} as a genuine ask, not a pitch`,
+      why: `${communityA} is where ${icp} already gather, so a sincere "here's what I'm building, would this help you?" post tests whether the problem resonates. Replies and click-throughs are the demand signal — low engagement is itself useful data.`,
+      evidenceIds: [],
+      evidence: [
+        evCommunity(`${icp} actively discuss this problem in ${communityA}`),
+        evCommunity(`Comparison threads recur in communities like ${communityA}`),
+        evPositioning(`Angle to test: helps ${icp} stay consistent`),
+      ],
+      effortMin: 30,
+      suggestedDeadline: isoPlusDays(8),
+      expectedOutcome: { scoreComponent: "outreach", delta: 4, secondary: "Community reply rate and click-through gauge problem resonance" },
+      draft: `I'm building ${productName}, a simple tool for ${icp}. Before I go further I wanted to ask the people it's actually for: when you've tried to stay consistent, what got in the way? If a tool like this would help, the waitlist is in the comments — but honestly I'm here for the answers more than the sign-ups.`,
+      draftRequiresEdit: true,
+      verification: { method: "url", state: "pending" },
+      basis: "probability_based",
+      confidence: 0.5,
+    },
+    // 2b. Post it in a second scored community (demand test #2).
+    {
+      category: "content",
+      title: `Write a short build-in-public post for ${communityB}`,
+      why: `${communityB} rewards transparent early-stage stories. A post on why you're building ${productName} for ${icp} tests whether the narrative lands and seeds the first followers — engagement here is an early demand read before any spend.`,
+      evidenceIds: [],
+      evidence: [
+        evCommunity(`${communityB} engages with early-stage build-in-public posts`),
+        evCommunity(`${icp} surface in community discussions around this problem`),
+        evSerp(`Established alternatives such as ${topCompetitor} appear in SERP results`),
+      ],
+      effortMin: 45,
+      suggestedDeadline: isoPlusDays(9),
+      expectedOutcome: { scoreComponent: "content", delta: 4, secondary: "Post engagement is an early demand read pre-spend" },
+      draft: `Day 1 of building ${productName}: a no-frills tool for ${icp}. The big apps (${topCompetitor} and friends) feel heavy for what I actually need, so I'm starting from the smallest thing that helps me stay consistent. I'll share what works and what flops. If you're one of ${icp}, I'd love your take on what's missing.`,
+      draftRequiresEdit: true,
+      verification: { method: "url", state: "pending" },
+      basis: "probability_based",
+      confidence: 0.5,
+    },
+    // 3. Stand up one comparison / landing page on the top intent keyword.
+    {
+      category: "seo_aso",
+      title: `Stand up a "${productName} vs ${topCompetitor}" comparison page on "${topKeyword}"`,
+      why: `People searching "${topKeyword}" and "${topCompetitor} alternative" are pre-qualified. A single honest comparison page lets you measure search-driven conversion before committing to a content programme — the conversion rate tells you if the positioning holds.`,
+      evidenceIds: [],
+      evidence: [
+        evSerp(`${topCompetitor} ranks for the intent term and owns the comparison space`),
+        evSerp(`Alternative-seeking queries cluster around ${topCompetitor}`),
+        evKeyword(`Top intent keyword: ${topKeyword}`),
+      ],
+      effortMin: 120,
+      suggestedDeadline: isoPlusDays(12),
+      expectedOutcome: { scoreComponent: "seo", delta: 5, secondary: "Search-to-waitlist conversion validates the positioning" },
+      draft: null,
+      draftRequiresEdit: true,
+      verification: { method: "url", state: "pending" },
+      basis: "probability_based",
+      confidence: 0.5,
+    },
+    // 4. Optional fast-signal: a small ad test on the top intent keyword.
+    {
+      category: "seo_aso",
+      title: `Run a $50 search-ad test on "${topKeyword}" pointing at the waitlist`,
+      why: `A $50 ad test buys a fast, quantified read on intent for "${topKeyword}" without waiting for organic ranking. Click-through and waitlist conversion give you a kill/keep number within days — cheaper than guessing.`,
+      evidenceIds: [],
+      evidence: [
+        evKeyword(`Top intent keyword to bid on: ${topKeyword}`),
+        evKeyword(`Secondary keyword for ad groups: ${secondKeyword}`),
+        evSerp(`Paid competition is visible against ${topCompetitor} on the term`),
+      ],
+      effortMin: 60,
+      suggestedDeadline: isoPlusDays(10),
+      expectedOutcome: { scoreComponent: "seo", delta: 3, secondary: "Ad CTR + waitlist conversion give a fast kill/keep number" },
+      draft: null,
+      draftRequiresEdit: true,
+      verification: { method: "url", state: "pending" },
+      basis: "probability_based",
+      confidence: 0.45,
+    },
+    // 5. Optional (never mandatory) discovery-conversation script.
+    {
+      category: "outreach",
+      title: `Optional: a 5-question discovery script for 5 chats with ${icp}`,
+      why: `If the waitlist and ad signals are ambiguous, five short conversations with ${icp} explain the why behind the numbers. This is optional and runs in parallel — never a blocker to shipping the distribution tests above.`,
+      evidenceIds: [],
+      evidence: [
+        evPositioning(`Audience to talk to: ${icp}`),
+        evPositioning(`Hypothesis to probe: staying consistent is the core pain`),
+        evCommunity(`Recruit participants from ${communityA} respondents`),
+      ],
+      effortMin: 40,
+      suggestedDeadline: isoPlusDays(11),
+      expectedOutcome: { scoreComponent: "outreach", delta: 2, secondary: "Qualitative why behind the waitlist/ad numbers" },
+      draft: `Quick discovery script (keep it to 15 minutes):\n1. Last time you tried to stay consistent, what did you use?\n2. What made you stop or switch?\n3. What would have to be true for you to switch tools?\n4. If this existed tomorrow, what's the one thing it must do?\n5. Who else do you know who has this problem?\nListen more than you pitch — the goal is to understand ${icp}, not to sell.`,
+      draftRequiresEdit: true,
+      verification: { method: "self_report", state: "pending" },
+      basis: "probability_based",
+      confidence: 0.5,
+    },
+    // 6. Pivot-suggestion card — kill/pivot criteria from OBSERVED signals, framed
+    //    as the next action (not a lecture). Highest confidence so it always survives.
+    {
+      category: "content",
+      title: `Decide: keep, sharpen, or pivot ${productName} from the first signals`,
+      why: `Set the kill/pivot line before you read the results so it stays honest: if waitlist conversion is under ~10%, ad CTR under ~1%, and community posts get little engagement after two weeks, treat that as a signal to sharpen the ICP or pivot the angle — then re-run this same queue on the new hypothesis.`,
+      evidenceIds: [],
+      evidence: [
+        evKeyword(`Measure ad CTR + waitlist conversion on ${topKeyword}`),
+        evCommunity(`Weigh reply/engagement rate from ${communityA} and ${communityB}`),
+        evPositioning(`Re-test the ICP (${icp}) if signals stay weak`),
+      ],
+      effortMin: 30,
+      suggestedDeadline: isoPlusDays(14),
+      expectedOutcome: { scoreComponent: "content", delta: 3, secondary: "A pre-committed kill/pivot line keeps the read honest" },
+      draft: `Pivot checkpoint (fill in after two weeks):\n- Waitlist conversion: ____%  (weak if < ~10%)\n- Ad CTR on "${topKeyword}": ____%  (weak if < ~1%)\n- Community engagement in ${communityA} / ${communityB}: ____\n\nIf two or more are weak, don't push harder on the same plan — change the ICP or the angle and re-run this queue. If they're strong, double down and start the standard plan.`,
+      draftRequiresEdit: true,
+      verification: { method: "self_report", state: "pending" },
+      basis: "probability_based",
+      confidence: 0.6,
     },
   ];
 }

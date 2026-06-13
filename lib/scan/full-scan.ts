@@ -30,6 +30,7 @@ import { serverDb } from "@/lib/db/client";
 import { runFullCollect } from "@/lib/scan/full-collect";
 import { runExtract } from "@/lib/llm/extract";
 import { generateActions } from "@/lib/llm/actions";
+import { generateColdStartActions } from "@/lib/llm/cold-start-actions";
 import { runCriticGate } from "@/lib/llm/critic";
 import { algorithmSafety } from "@/lib/scan/algorithm-safety";
 import { gatherScoreComponents, verifiedScore } from "@/lib/scan/score-full";
@@ -218,8 +219,12 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
     // 3. Findings + positioning mirror from the Cycle 2 findings pipeline
     const { findings, positioningMirror } = await readFindingsPayload(ctx.scanId);
 
-    // 4. Over-generate action cards from the fact sheets + findings
-    const actions = await generateActions(ctx, findings);
+    // 4. Action cards. §4.3: Cold Start subjects (little/no footprint) get the
+    //    validation-through-distribution queue; everything else gets the standard
+    //    over-generated set. Both flow through the SAME Critic → §11 gate below.
+    const actions = facts.coldStart
+      ? await generateColdStartActions(ctx, facts)
+      : await generateActions(ctx, findings);
 
     // 5. Critic Gate v2 → §11 algorithm safety
     const { passed } = await runCriticGate(ctx, actions);

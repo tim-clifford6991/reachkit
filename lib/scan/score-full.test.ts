@@ -43,6 +43,7 @@ const BASE_FACTS: PreliminaryFacts = {
   webProxy: null,
   themes: [{ term: "speed", count: 5 }],
   sourcesUsed: ["itunes"],
+  coldStart: false,
 };
 
 function makeCtx(mode: "ios" | "android" | "web" = "ios"): ScanContext {

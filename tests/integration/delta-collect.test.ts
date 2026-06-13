@@ -38,6 +38,7 @@ function makeFacts(): PreliminaryFacts {
     webProxy: null,
     themes: [{ term: "streaks", count: 38 }, { term: "widget", count: 12 }],
     sourcesUsed: ["app_store_rss"],
+    coldStart: false,
   };
 }
 
