@@ -1,5 +1,8 @@
 import { buildMetadata } from "@/lib/seo";
 import { serverDb } from "@/lib/db/client";
+import { currentUser } from "@/lib/auth/server";
+import { isTier, type Tier } from "@/lib/billing/tiers";
+import { redactReportForTier } from "@/lib/billing/entitlements";
 import type { ReportPayload } from "@/lib/scan/report";
 import {
   Card,
@@ -294,7 +297,14 @@ export default async function ResultsPage({
     );
   }
 
-  const report = data.report_payload as unknown as ReportPayload;
+  const fullReport = data.report_payload as unknown as ReportPayload;
+
+  // Resolve the viewer's tier (anon or unknown → "free") and blur-lock the
+  // report accordingly. Paid viewers get the report unchanged.
+  const viewer = await currentUser();
+  const tier: Tier =
+    viewer && isTier(viewer.user.tier) ? viewer.user.tier : "free";
+  const report = redactReportForTier(fullReport, tier);
 
   return (
     <main className="mx-auto max-w-2xl space-y-4 p-8">
