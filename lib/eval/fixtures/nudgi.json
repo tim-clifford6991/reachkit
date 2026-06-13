@@ -1,0 +1,230 @@
+{
+  "id": "nudgi",
+  "appName": "Nudgi",
+  "mode": "web",
+  "storeUrl": "https://nudgi.app",
+  "facts": {
+    "mode": "web",
+    "listing": {
+      "name": "Nudgi",
+      "category": "SaaS / Habit Software",
+      "description": "Nudgi sends gentle, perfectly timed nudges to help you build habits without the guilt. Set your intention once, let Nudgi remind you at the right moment."
+    },
+    "competitors": [
+      { "name": "Focusmate", "url": "https://focusmate.com", "source": "dataforseo_serp", "rank": 1 },
+      { "name": "Done (habit tracker)", "url": "https://doneapp.io", "source": "dataforseo_serp", "rank": 2 },
+      { "name": "Habitica", "url": "https://habitica.com", "source": "dataforseo_serp", "rank": 3 }
+    ],
+    "reviewVolume": 0,
+    "ratingTrend": null,
+    "webProxy": {
+      "score": 28,
+      "serpResultCount": 4200,
+      "phUpvotes": 187,
+      "domainAgeYears": 1
+    },
+    "themes": [
+      { "term": "gentle reminders", "count": 42 },
+      { "term": "habit nudge", "count": 38 },
+      { "term": "no guilt", "count": 29 },
+      { "term": "smart timing", "count": 24 },
+      { "term": "simple habits", "count": 21 },
+      { "term": "accountability", "count": 18 },
+      { "term": "morning routine", "count": 15 }
+    ],
+    "sourcesUsed": ["dataforseo_serp", "dataforseo_keywords", "product_hunt", "tavily"]
+  },
+  "positioningMirror": {
+    "listingSays": "Gentle, perfectly timed nudges that help you build habits without the guilt — set intention once, let Nudgi remind you",
+    "reviewsValue": "Early users consistently praise the non-judgmental tone and the absence of streak anxiety — compared to Habitica's gamification and Focusmate's accountability pressure, Nudgi appeals to users who've burnt out on high-pressure habit apps",
+    "gap": "Nudgi positions on 'gentle nudges' which is descriptive but not a specific outcome promise — users who've experienced habit burnout from Habitica/Streaks are the core audience and 'built for people who've quit every other habit app' would be a more resonant hook"
+  },
+  "findings": [
+    {
+      "category": "content",
+      "claim": "Nudgi's homepage hero doesn't address the 'habit app burnout' audience directly — users who've tried and quit Habitica, Streaks or Done are Nudgi's highest-intent buyers and no competitor is currently targeting them with empathetic nudge-based messaging",
+      "basis": "evidence_based",
+      "confidence": 0.84,
+      "evidence": [
+        { "excerpt": "I've quit every habit app I've tried because of the streak pressure — Nudgi is the only one that doesn't make me feel bad", "source": "product_hunt" },
+        { "excerpt": "Habitica positions on gamification; Focusmate on accountability — neither targets burnout-prone users", "source": "competitor_gap" }
+      ]
+    },
+    {
+      "category": "seo_aso",
+      "claim": "Nudgi's domain doesn't rank for 'habit reminder app' (5,400/mo) or 'gentle habit tracker' (1,600/mo) — both are low-competition terms that match Nudgi's positioning and are achievable for a 1-year-old domain",
+      "basis": "evidence_based",
+      "confidence": 0.88,
+      "evidence": [
+        { "excerpt": "habit reminder app — 5,400 monthly searches, moderate competition", "source": "dataforseo_keywords" },
+        { "excerpt": "gentle habit tracker — 1,600 monthly searches, very low competition", "source": "dataforseo_keywords" }
+      ]
+    },
+    {
+      "category": "outreach",
+      "claim": "The 'slow productivity' and 'anti-hustle' creator niche (Oliver Burkeman readers, anti-productivity YouTube) is an underserved distribution channel that aligns with Nudgi's no-guilt positioning — none of Nudgi's competitors are actively pitching this audience",
+      "basis": "probability_based",
+      "confidence": 0.58,
+      "evidence": [
+        { "excerpt": "slow productivity YouTube niche growing 40% YoY — anti-hustle content finds engaged audiences", "source": "youtube" },
+        { "excerpt": "Habitica and Focusmate never mentioned in anti-hustle content; too accountability-heavy", "source": "communities" }
+      ]
+    }
+  ],
+  "candidateActions": [
+    {
+      "category": "content",
+      "title": "Rewrite homepage hero headline to 'Built for people who've quit every other habit app'",
+      "why": "Users who've burned out on streak anxiety and gamification pressure are Nudgi's core audience — addressing them directly in the headline creates an immediate 'this is for me' moment that generic habit apps cannot match.",
+      "evidenceIds": [],
+      "evidence": [
+        {
+          "excerpt": "I've tried Habitica, Streaks, and Done — all of them made me feel guilty. Nudgi is the first habit app I've actually stuck with.",
+          "source": "https://producthunt.com/products/nudgi/reviews",
+          "sourceType": "communities"
+        },
+        {
+          "excerpt": "habit app burnout — growing search trend, 1,200 monthly searches, no landing page targets it",
+          "source": "https://dataforseo.com/keywords/habit-app-burnout",
+          "sourceType": "dataforseo_keywords"
+        }
+      ],
+      "effortMin": 30,
+      "suggestedDeadline": "2026-07-04",
+      "expectedOutcome": { "scoreComponent": "content", "delta": 8, "secondary": "Higher homepage conversion from frustrated habit-app users" },
+      "draft": "Nudgi — Finally, a habit app that doesn't make you feel bad.\n\nYou've tried Habitica, Streaks, Done, and a dozen others. They all end the same way: a broken streak, a notification you've started ignoring, and another app deleted. Nudgi is different. No streaks to break, no guilt when life gets in the way — just a gentle nudge at the right moment.",
+      "draftRequiresEdit": true,
+      "verification": { "method": "url", "state": "pending" },
+      "basis": "evidence_based",
+      "confidence": 0.83
+    },
+    {
+      "category": "content",
+      "title": "Write an SEO article: 'Why you keep quitting habit apps (and what to do instead)'",
+      "why": "People searching 'why can't I stick to habits' (2,400/mo) are pre-qualified Nudgi buyers — a piece that names streak anxiety and gamification pressure as the cause positions Nudgi as the obvious solution.",
+      "evidenceIds": [],
+      "evidence": [
+        {
+          "excerpt": "why can't I stick to habits — 2,400 monthly searches, high emotional intent",
+          "source": "https://dataforseo.com/keywords/why-cant-stick-to-habits",
+          "sourceType": "dataforseo_keywords"
+        },
+        {
+          "excerpt": "r/productivity — thread about habit app fatigue, 1.2k upvotes, users expressing streak burnout",
+          "source": "https://reddit.com/r/productivity/comments/habit_app_burnout",
+          "sourceType": "communities"
+        }
+      ],
+      "effortMin": 75,
+      "suggestedDeadline": "2026-07-12",
+      "expectedOutcome": { "scoreComponent": "content", "delta": 7, "secondary": "Organic SEO for 'gentle habit tracker' and related no-guilt terms" },
+      "draft": "Most habit apps are built around one idea: make you feel bad enough that you keep showing up. Streaks, leaderboards, avatar levels — all of them are designed to generate anxiety about stopping. The research on this is mixed at best. What actually works for long-term habit formation isn't punishment avoidance — it's reducing friction and removing the shame cycle. Here's what the evidence says, and why Nudgi works differently.",
+      "draftRequiresEdit": true,
+      "verification": { "method": "url", "state": "pending" },
+      "basis": "evidence_based",
+      "confidence": 0.79
+    },
+    {
+      "category": "outreach",
+      "title": "Pitch Cal Newport's 'Deep Questions' podcast with the 'gentle habits over hustle' angle",
+      "why": "Cal Newport's audience is exactly the overlap of knowledge workers who've experienced productivity app fatigue — Nudgi's no-guilt, low-pressure approach aligns perfectly with Newport's 'slow productivity' thesis.",
+      "evidenceIds": [],
+      "evidence": [
+        {
+          "excerpt": "Cal Newport Deep Questions podcast — 200k downloads per episode, covers productivity tools",
+          "source": "https://youtube.com/calnewport/deep-questions",
+          "sourceType": "youtube"
+        },
+        {
+          "excerpt": "slow productivity audience values low-pressure tools — Nudgi fits the anti-hustle positioning",
+          "source": "https://reddit.com/r/slatestarcodex/comments/gentle_habits",
+          "sourceType": "communities"
+        }
+      ],
+      "effortMin": 35,
+      "suggestedDeadline": "2026-06-30",
+      "expectedOutcome": { "scoreComponent": "outreach", "delta": 10, "secondary": "Exposure to high-quality early adopter audience" },
+      "draft": "Hi Cal — I've been a listener since the early days of your podcast. I built Nudgi after reading Slow Productivity — it's a habit app designed around the premise that shame and streak anxiety make habits harder, not easier. No gamification, no leaderboards, just well-timed nudges. Would love to talk through the behavioral science angle with you if you're ever covering habit formation on the show.",
+      "draftRequiresEdit": true,
+      "verification": { "method": "url", "state": "pending" },
+      "basis": "probability_based",
+      "confidence": 0.55
+    },
+    {
+      "category": "seo_aso",
+      "title": "Optimize /features page title tag for 'habit reminder app' and 'gentle habit tracker'",
+      "why": "'Habit reminder app' (5,400/mo) and 'gentle habit tracker' (1,600/mo) are achievable for Nudgi's 1-year domain and align with the no-guilt positioning — neither Focusmate nor Habitica ranks for these terms.",
+      "evidenceIds": [],
+      "evidence": [
+        {
+          "excerpt": "habit reminder app — 5,400 monthly searches, Nudgi.app not in top 50",
+          "source": "https://dataforseo.com/keywords/habit-reminder-app-web",
+          "sourceType": "dataforseo_keywords"
+        },
+        {
+          "excerpt": "gentle habit tracker — 1,600 monthly searches, extremely low competition, no dominant result",
+          "source": "https://dataforseo.com/keywords/gentle-habit-tracker",
+          "sourceType": "dataforseo_serp"
+        }
+      ],
+      "effortMin": 20,
+      "suggestedDeadline": "2026-06-27",
+      "expectedOutcome": { "scoreComponent": "seo", "delta": 8 },
+      "draft": null,
+      "draftRequiresEdit": true,
+      "verification": { "method": "rank_check", "state": "pending" },
+      "basis": "evidence_based",
+      "confidence": 0.88
+    },
+    {
+      "category": "seo_aso",
+      "title": "Submit Nudgi to Product Hunt 'Tools for Slow Productivity' collection and Indie Hackers directory",
+      "why": "Product Hunt collections drive discovery for early SaaS products — a 'slow productivity' collection would surface Nudgi to 50k+ newsletter subscribers who are the core ICP.",
+      "evidenceIds": [],
+      "evidence": [
+        {
+          "excerpt": "Product Hunt 'Slow Productivity' collection — 8,200 followers, growing 15% MoM",
+          "source": "https://producthunt.com/collections/slow-productivity",
+          "sourceType": "communities"
+        },
+        {
+          "excerpt": "Indie Hackers directory — high referral traffic source for early SaaS products with engaged founder audience",
+          "source": "https://indiehackers.com/products",
+          "sourceType": "dataforseo_serp"
+        }
+      ],
+      "effortMin": 20,
+      "suggestedDeadline": "2026-07-01",
+      "expectedOutcome": { "scoreComponent": "seo", "delta": 5, "secondary": "Referral traffic and backlinks from PH and IH" },
+      "draft": null,
+      "draftRequiresEdit": true,
+      "verification": { "method": "url", "state": "pending" },
+      "basis": "evidence_based",
+      "confidence": 0.80
+    }
+  ],
+  "icpSignals": [
+    "people who've burned out on gamified habit apps",
+    "knowledge workers who find streak anxiety counterproductive",
+    "Cal Newport / slow productivity readers",
+    "ADHD individuals for whom rigid habit systems fail",
+    "users looking for low-pressure accountability"
+  ],
+  "surfaces": [
+    { "source": "communities", "title": "Product Hunt — Nudgi launch page", "url": "https://producthunt.com/products/nudgi" },
+    { "source": "communities", "title": "r/productivity — gentle habits discussion", "url": "https://reddit.com/r/productivity" },
+    { "source": "youtube", "title": "Cal Newport Deep Questions — productivity tools episode", "url": "https://youtube.com/calnewport/deep-questions" }
+  ],
+  "competitorGap": [
+    { "competitor": "Habitica", "dimension": "no-guilt framing", "them": 5, "you": 95 },
+    { "competitor": "Focusmate", "dimension": "low accountability pressure", "them": 10, "you": 90 },
+    { "competitor": "Done", "dimension": "smart timing nudges", "them": 30, "you": 85 }
+  ],
+  "rubric": {
+    "expectedFindingCategories": ["content", "seo_aso", "outreach"],
+    "expectedKeywords": ["habit", "nudge", "gentle"],
+    "minActions": 3,
+    "requireEvidence": true,
+    "scoreBand": [0, 25]
+  }
+}

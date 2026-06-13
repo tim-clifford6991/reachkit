@@ -1,0 +1,226 @@
+{
+  "id": "opal",
+  "appName": "Opal",
+  "mode": "ios",
+  "storeUrl": "https://apps.apple.com/us/app/opal-screen-time-for-focus/id1497465230",
+  "facts": {
+    "mode": "ios",
+    "listing": {
+      "name": "Opal",
+      "category": "Productivity",
+      "description": "Opal is the #1 screen time app for focus. Block distracting apps, schedule focus sessions, and build better phone habits. Stop doom-scrolling and get your time back."
+    },
+    "competitors": [
+      { "name": "Freedom", "url": "https://freedom.to", "source": "dataforseo_serp", "rank": 1 },
+      { "name": "Forest", "url": "https://forestapp.cc", "source": "dataforseo_serp", "rank": 2 },
+      { "name": "One Sec", "url": "https://one-sec.app", "source": "dataforseo_serp", "rank": 3 }
+    ],
+    "reviewVolume": 4200,
+    "ratingTrend": 4.5,
+    "webProxy": null,
+    "themes": [
+      { "term": "focus sessions", "count": 198 },
+      { "term": "app blocking", "count": 167 },
+      { "term": "screen time stats", "count": 124 },
+      { "term": "phone addiction", "count": 112 },
+      { "term": "deep work", "count": 89 },
+      { "term": "social media blocking", "count": 78 },
+      { "term": "schedule blocking", "count": 64 },
+      { "term": "widget", "count": 52 }
+    ],
+    "sourcesUsed": ["app_store_rss", "itunes", "dataforseo_serp", "dataforseo_keywords"]
+  },
+  "positioningMirror": {
+    "listingSays": "#1 screen time app for focus — blocks distracting apps, schedules focus sessions, helps build better phone habits",
+    "reviewsValue": "Users credit Opal with reducing doom-scrolling and improving deep work productivity; the hard-block feature that prevents override is called out as the key differentiator vs Freedom and Screen Time",
+    "gap": "The listing emphasises habit-building but users value the hard-block enforcement mechanism — competitors are positioned as gentle reminders while Opal's value is the inability to self-sabotage"
+  },
+  "findings": [
+    {
+      "category": "content",
+      "claim": "Opal's App Store listing does not mention 'hard block' or 'unbreakable' — the feature that reviewers most contrast with Freedom and Screen Time; adding this to the subtitle would directly address the top competitor objection",
+      "basis": "evidence_based",
+      "confidence": 0.89,
+      "evidence": [
+        { "excerpt": "Unlike Screen Time you can't just disable it when you're weak — that's the whole point", "source": "app_store_rss" },
+        { "excerpt": "Freedom blocks apps but you can turn it off mid-session", "source": "competitor_gap" }
+      ]
+    },
+    {
+      "category": "seo_aso",
+      "claim": "The keyword 'app blocker for iPhone' (8,100/mo) is absent from Opal's title and subtitle — Forest and Freedom both rank for it despite being weaker on the hard-block dimension",
+      "basis": "evidence_based",
+      "confidence": 0.93,
+      "evidence": [
+        { "excerpt": "app blocker for iPhone — 8,100 monthly searches", "source": "dataforseo_keywords" },
+        { "excerpt": "Forest ranks #4 for 'app blocker iPhone' despite no hard-block feature", "source": "dataforseo_serp" }
+      ]
+    },
+    {
+      "category": "outreach",
+      "claim": "The 'deep work' productivity creator niche (YouTubers like Matt D'Avella, Thomas Frank) regularly reviews focus tools and Opal's hard-block differentiator is a stronger hook than any competitor currently pitching to these creators",
+      "basis": "evidence_based",
+      "confidence": 0.77,
+      "evidence": [
+        { "excerpt": "deep work tools review — 320k views for Thomas Frank's focus setup video", "source": "youtube" },
+        { "excerpt": "phone addiction recovery tools — significant creator interest on YouTube", "source": "youtube" }
+      ]
+    }
+  ],
+  "candidateActions": [
+    {
+      "category": "content",
+      "title": "Update App Store subtitle to 'Hard-block distractions — focus without willpower'",
+      "why": "Reviews uniformly cite the hard-block (unbypassable) as Opal's key differentiator vs Freedom and iOS Screen Time — the current subtitle 'Block distracting apps' doesn't convey this and loses the buyer comparison moment.",
+      "evidenceIds": [],
+      "evidence": [
+        {
+          "excerpt": "The difference is you literally can't turn it off mid-session like Screen Time — I tried, it doesn't work",
+          "source": "https://apps.apple.com/us/app/opal-screen-time-for-focus/id1497465230",
+          "sourceType": "app_store_rss"
+        },
+        {
+          "excerpt": "app blocker for iPhone — 8,100 monthly searches, competitors rank without hard-block",
+          "source": "https://dataforseo.com/keywords/app-blocker-iphone",
+          "sourceType": "dataforseo_keywords"
+        }
+      ],
+      "effortMin": 20,
+      "suggestedDeadline": "2026-07-01",
+      "expectedOutcome": { "scoreComponent": "seo", "delta": 9, "secondary": "Higher App Store conversion from comparison-stage searchers" },
+      "draft": "Opal — Hard Focus App Blocker\n\nOpal's hard-block is the one app blocker you can't talk yourself out of. Unlike Screen Time or Freedom, there's no 'disable for 5 minutes' button — just uninterrupted focus. Schedule deep work sessions, block social media, and finally trust yourself to stay on task.",
+      "draftRequiresEdit": true,
+      "verification": { "method": "rank_check", "state": "pending" },
+      "basis": "evidence_based",
+      "confidence": 0.88
+    },
+    {
+      "category": "content",
+      "title": "Write a comparison article: 'Opal vs Freedom vs Screen Time — which actually works?'",
+      "why": "Comparison searches like 'Freedom vs Opal' (est. 900/mo) are conversion goldmines — users at this stage are already committed to buying a focus tool and are choosing between options.",
+      "evidenceIds": [],
+      "evidence": [
+        {
+          "excerpt": "freedom vs opal — comparison intent query, est. 900 monthly searches",
+          "source": "https://dataforseo.com/keywords/freedom-vs-opal",
+          "sourceType": "dataforseo_keywords"
+        },
+        {
+          "excerpt": "Freedom blocks apps but has a manual override — Opal doesn't",
+          "source": "https://freedom.to/blog/app-blocking-comparison",
+          "sourceType": "dataforseo_serp"
+        }
+      ],
+      "effortMin": 75,
+      "suggestedDeadline": "2026-07-10",
+      "expectedOutcome": { "scoreComponent": "content", "delta": 8, "secondary": "SEO for 'opal vs freedom' and 'screen time app comparison'" },
+      "draft": "There are three kinds of focus apps: apps that ask nicely (Screen Time), apps that block but let you override (Freedom), and apps that actually lock you out (Opal). If you've tried the first two and still find yourself Instagram-ing during deep work blocks, you're in the third camp. Here's an honest comparison of all three.",
+      "draftRequiresEdit": true,
+      "verification": { "method": "url", "state": "pending" },
+      "basis": "evidence_based",
+      "confidence": 0.82
+    },
+    {
+      "category": "outreach",
+      "title": "Pitch Matt D'Avella with a 'the psychology of self-blocking' story angle",
+      "why": "Matt D'Avella's 'digital minimalism' content (4.8M subscribers) covers exactly the phone addiction angle; Opal's hard-block mechanism is a stronger story than Forest's gamification — it's about removing willpower from the equation entirely.",
+      "evidenceIds": [],
+      "evidence": [
+        {
+          "excerpt": "Digital minimalism video — 2.3M views on Matt D'Avella's channel",
+          "source": "https://youtube.com/watch?v=dAvella_digital_min",
+          "sourceType": "youtube"
+        },
+        {
+          "excerpt": "Focus app reviews — Thomas Frank 320k views, high engagement from students and remote workers",
+          "source": "https://youtube.com/watch?v=thomas_frank_focus_tools",
+          "sourceType": "youtube"
+        }
+      ],
+      "effortMin": 35,
+      "suggestedDeadline": "2026-06-28",
+      "expectedOutcome": { "scoreComponent": "outreach", "delta": 12, "secondary": "YouTube backlink + potential App Store feature" },
+      "draft": "Hi Matt — loved your 'I tried living without a smartphone' video. I built Opal because I kept failing at apps that let me override my own blocks. Opal physically prevents that — there's no override. The research angle: when you remove the override option, self-sabotage drops by about 40% in our user data. Happy to share if you're exploring the 'removing willpower from focus' angle.",
+      "draftRequiresEdit": true,
+      "verification": { "method": "url", "state": "pending" },
+      "basis": "evidence_based",
+      "confidence": 0.71
+    },
+    {
+      "category": "seo_aso",
+      "title": "Add 'app blocker for iPhone' and 'focus timer' to App Store keyword field",
+      "why": "'app blocker for iPhone' has 8,100 monthly searches and Opal doesn't rank for it — the keyword field currently wastes 100 characters on generic terms like 'productivity' already covered by the category.",
+      "evidenceIds": [],
+      "evidence": [
+        {
+          "excerpt": "app blocker for iPhone — 8,100 monthly searches, CPC $2.10",
+          "source": "https://dataforseo.com/keywords/app-blocker-iphone-2",
+          "sourceType": "dataforseo_keywords"
+        },
+        {
+          "excerpt": "focus timer — 5,400 monthly searches; Forest ranks #1 but Opal's session timer is comparable",
+          "source": "https://dataforseo.com/keywords/focus-timer-app",
+          "sourceType": "dataforseo_serp"
+        }
+      ],
+      "effortMin": 15,
+      "suggestedDeadline": "2026-06-30",
+      "expectedOutcome": { "scoreComponent": "seo", "delta": 11 },
+      "draft": null,
+      "draftRequiresEdit": true,
+      "verification": { "method": "rank_check", "state": "pending" },
+      "basis": "evidence_based",
+      "confidence": 0.92
+    },
+    {
+      "category": "seo_aso",
+      "title": "Submit Opal to AlternativeTo as alternative to Freedom and Screen Time",
+      "why": "AlternativeTo pages for Freedom and Screen Time collectively attract users actively searching for alternatives — a listing captures high-intent comparison buyers and adds a DA-70 backlink.",
+      "evidenceIds": [],
+      "evidence": [
+        {
+          "excerpt": "AlternativeTo Freedom page — 18k monthly visitors searching for alternatives",
+          "source": "https://alternativeto.net/software/freedom",
+          "sourceType": "dataforseo_serp"
+        },
+        {
+          "excerpt": "Screen Time alternatives search — 2,200 monthly searches, high purchase intent",
+          "source": "https://dataforseo.com/keywords/screen-time-app-alternative",
+          "sourceType": "dataforseo_keywords"
+        }
+      ],
+      "effortMin": 20,
+      "suggestedDeadline": "2026-07-03",
+      "expectedOutcome": { "scoreComponent": "seo", "delta": 5, "secondary": "DA-70 backlink from alternativeto.net" },
+      "draft": null,
+      "draftRequiresEdit": true,
+      "verification": { "method": "url", "state": "pending" },
+      "basis": "evidence_based",
+      "confidence": 0.87
+    }
+  ],
+  "icpSignals": [
+    "knowledge workers losing hours to social media",
+    "students needing enforced deep-work blocks",
+    "people who've failed with gentle reminder apps",
+    "remote workers with WFH focus problems",
+    "digital minimalists reducing screen time"
+  ],
+  "surfaces": [
+    { "source": "communities", "title": "r/nosurf — app recommendations thread", "url": "https://reddit.com/r/nosurf" },
+    { "source": "youtube", "title": "Focus app comparison — Matt D'Avella 2.3M views", "url": "https://youtube.com/watch?v=dAvella_digital_min" },
+    { "source": "communities", "title": "ProductHunt — Opal launch discussion", "url": "https://producthunt.com/posts/opal" }
+  ],
+  "competitorGap": [
+    { "competitor": "Freedom", "dimension": "hard-block (no override)", "them": 20, "you": 95 },
+    { "competitor": "Forest", "dimension": "session scheduling", "them": 50, "you": 85 },
+    { "competitor": "One Sec", "dimension": "app coverage breadth", "them": 60, "you": 90 }
+  ],
+  "rubric": {
+    "expectedFindingCategories": ["content", "seo_aso", "outreach"],
+    "expectedKeywords": ["focus", "block", "screen time"],
+    "minActions": 3,
+    "requireEvidence": true,
+    "scoreBand": [0, 30]
+  }
+}

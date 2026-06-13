@@ -1,0 +1,226 @@
+{
+  "id": "cardpointers",
+  "appName": "CardPointers",
+  "mode": "ios",
+  "storeUrl": "https://apps.apple.com/us/app/cardpointers-credit-card-rewards/id1472875808",
+  "facts": {
+    "mode": "ios",
+    "listing": {
+      "name": "CardPointers",
+      "category": "Finance",
+      "description": "CardPointers helps you maximize credit card rewards and earn more points and miles. Get personalized card recommendations for every purchase, track your points, and find the best card for every merchant."
+    },
+    "competitors": [
+      { "name": "AwardWallet", "url": "https://awardwallet.com", "source": "dataforseo_serp", "rank": 1 },
+      { "name": "MaxRewards", "url": "https://maxrewards.com", "source": "dataforseo_serp", "rank": 2 },
+      { "name": "Reward Summit", "url": "https://rewardsummit.com", "source": "dataforseo_serp", "rank": 3 }
+    ],
+    "reviewVolume": 3100,
+    "ratingTrend": 4.8,
+    "webProxy": null,
+    "themes": [
+      { "term": "card recommendations", "count": 187 },
+      { "term": "points maximization", "count": 154 },
+      { "term": "bonus category tracking", "count": 131 },
+      { "term": "multipliers", "count": 98 },
+      { "term": "offer alerts", "count": 87 },
+      { "term": "travel rewards", "count": 76 },
+      { "term": "cashback optimization", "count": 64 },
+      { "term": "welcome bonus", "count": 48 }
+    ],
+    "sourcesUsed": ["app_store_rss", "itunes", "dataforseo_serp", "dataforseo_keywords"]
+  },
+  "positioningMirror": {
+    "listingSays": "Maximize credit card rewards — personalized card recommendations per purchase, points tracking, best card for every merchant",
+    "reviewsValue": "Users consistently praise CardPointers for telling them exactly which card to swipe at each merchant to maximize multipliers — the at-the-register recommendation is the standout feature that AwardWallet and MaxRewards lack",
+    "gap": "The listing focuses on 'maximize rewards' generically but users specifically value the per-merchant card recommendation at point of purchase — reframing around 'always swipe the right card' would be more concrete and ownable"
+  },
+  "findings": [
+    {
+      "category": "content",
+      "claim": "CardPointers' key differentiator — real-time at-the-register card recommendation — is not mentioned in the listing subtitle; competitors position on points tracking while CardPointers actually solves the 'which card right now?' moment",
+      "basis": "evidence_based",
+      "confidence": 0.91,
+      "evidence": [
+        { "excerpt": "It tells me which card to swipe before I even open my wallet", "source": "app_store_rss" },
+        { "excerpt": "AwardWallet tracks balances but doesn't tell you which card to use where", "source": "competitor_gap" }
+      ]
+    },
+    {
+      "category": "seo_aso",
+      "claim": "The keyword 'credit card rewards optimizer' (3,600/mo) and 'best card for groceries' (2,900/mo) are absent from the listing — both describe CardPointers' core use case and have moderate competition",
+      "basis": "evidence_based",
+      "confidence": 0.90,
+      "evidence": [
+        { "excerpt": "credit card rewards optimizer — 3,600 monthly searches, CPC $3.20", "source": "dataforseo_keywords" },
+        { "excerpt": "best credit card for groceries — 2,900 monthly searches", "source": "dataforseo_keywords" }
+      ]
+    },
+    {
+      "category": "outreach",
+      "claim": "The points-and-miles YouTube creator community (e.g. Brian Kelly at The Points Guy, Ben Hedges) reviews credit card tools and CardPointers' per-merchant optimization angle is more photogenic and unique than any competitor currently pitching to these audiences",
+      "basis": "evidence_based",
+      "confidence": 0.78,
+      "evidence": [
+        { "excerpt": "The Points Guy YouTube — 280k subscribers, reviews credit card apps regularly", "source": "youtube" },
+        { "excerpt": "credit card rewards app review — 180k views average for finance YouTube creators", "source": "youtube" }
+      ]
+    }
+  ],
+  "candidateActions": [
+    {
+      "category": "content",
+      "title": "Rewrite App Store first screenshot caption to 'Know which card to swipe before you check out'",
+      "why": "App Store screenshots are the highest-conversion real estate; the 'at-the-register recommendation' is CardPointers' #1 review theme and no competitor can claim it.",
+      "evidenceIds": [],
+      "evidence": [
+        {
+          "excerpt": "I literally open CardPointers at the register — it tells me my Amex gets 5x at this grocery chain",
+          "source": "https://apps.apple.com/us/app/cardpointers-credit-card-rewards/id1472875808",
+          "sourceType": "app_store_rss"
+        },
+        {
+          "excerpt": "credit card rewards optimizer — 3,600 monthly searches with high purchase intent",
+          "source": "https://dataforseo.com/keywords/credit-card-rewards-optimizer",
+          "sourceType": "dataforseo_keywords"
+        }
+      ],
+      "effortMin": 30,
+      "suggestedDeadline": "2026-07-05",
+      "expectedOutcome": { "scoreComponent": "content", "delta": 7, "secondary": "Improves App Store conversion rate from browse to install" },
+      "draft": "CardPointers — Maximize Every Swipe\n\nBefore you check out, open CardPointers. It scans your wallet and tells you exactly which card earns the most at this merchant. Our users earn an average of 40% more rewards by always swiping the right card. No more guessing at the register.",
+      "draftRequiresEdit": true,
+      "verification": { "method": "url", "state": "pending" },
+      "basis": "evidence_based",
+      "confidence": 0.86
+    },
+    {
+      "category": "content",
+      "title": "Publish a guide: 'Which credit card to use at every major store in 2026'",
+      "why": "Long-tail search traffic for 'best credit card at [merchant]' queries (collectively 15k+/mo) is fragmented across generic blogs — a definitive, regularly updated guide from CardPointers would own this niche.",
+      "evidenceIds": [],
+      "evidence": [
+        {
+          "excerpt": "best credit card for groceries — 2,900 monthly searches, low competition",
+          "source": "https://dataforseo.com/keywords/best-credit-card-groceries",
+          "sourceType": "dataforseo_keywords"
+        },
+        {
+          "excerpt": "Reddit r/churning regularly discusses which card to use at each store — no definitive guide exists",
+          "source": "https://reddit.com/r/churning/wiki/card_comparison",
+          "sourceType": "communities"
+        }
+      ],
+      "effortMin": 120,
+      "suggestedDeadline": "2026-07-20",
+      "expectedOutcome": { "scoreComponent": "content", "delta": 9, "secondary": "Organic SEO traffic from merchant-specific card queries" },
+      "draft": "CardPointers tracks over 1,000 merchants and automatically surfaces the best earning rate from your wallet. This guide covers the top 50 merchants by volume — from grocery chains to gas stations to Amazon — and which card category typically wins. Keep in mind your optimal card depends on your specific wallet; CardPointers personalizes this per-user automatically.",
+      "draftRequiresEdit": true,
+      "verification": { "method": "url", "state": "pending" },
+      "basis": "evidence_based",
+      "confidence": 0.80
+    },
+    {
+      "category": "outreach",
+      "title": "Pitch The Points Guy YouTube channel with a 'per-merchant card optimizer' demo",
+      "why": "The Points Guy covers credit card tools with 280k YouTube subscribers — CardPointers' at-the-register recommendation is uniquely visual and demo-friendly in a way that abstract points-tracker apps are not.",
+      "evidenceIds": [],
+      "evidence": [
+        {
+          "excerpt": "The Points Guy YouTube channel — credit card app reviews average 150k views",
+          "source": "https://youtube.com/c/thepointsguy",
+          "sourceType": "youtube"
+        },
+        {
+          "excerpt": "r/churning members actively recommend CardPointers in app review threads",
+          "source": "https://reddit.com/r/churning/comments/cardpointers_rec",
+          "sourceType": "communities"
+        }
+      ],
+      "effortMin": 40,
+      "suggestedDeadline": "2026-07-01",
+      "expectedOutcome": { "scoreComponent": "outreach", "delta": 11, "secondary": "YouTube exposure to high-intent rewards audience" },
+      "draft": "Hey Brian — big fan of your credit card content. I built CardPointers to solve the 'which card at the register' problem — it checks your actual wallet against the merchant's bonus categories in real time. No competitor does per-merchant recommendation at the register. Happy to do a live demo for your audience; it's genuinely fun to watch the multiplier math unfold.",
+      "draftRequiresEdit": true,
+      "verification": { "method": "url", "state": "pending" },
+      "basis": "evidence_based",
+      "confidence": 0.74
+    },
+    {
+      "category": "seo_aso",
+      "title": "Add 'points maximizer' and 'credit card rewards optimizer' to App Store keyword field",
+      "why": "'Credit card rewards optimizer' (3,600/mo) and 'points maximizer' (1,800/mo) describe CardPointers precisely and neither competitor occupies these terms in the App Store.",
+      "evidenceIds": [],
+      "evidence": [
+        {
+          "excerpt": "credit card rewards optimizer — 3,600 monthly searches, App Store gap confirmed",
+          "source": "https://dataforseo.com/keywords/rewards-optimizer-app",
+          "sourceType": "dataforseo_keywords"
+        },
+        {
+          "excerpt": "AwardWallet doesn't rank for 'points maximizer' despite being the category incumbent",
+          "source": "https://dataforseo.com/serp/points-maximizer-app",
+          "sourceType": "dataforseo_serp"
+        }
+      ],
+      "effortMin": 15,
+      "suggestedDeadline": "2026-06-29",
+      "expectedOutcome": { "scoreComponent": "seo", "delta": 10 },
+      "draft": null,
+      "draftRequiresEdit": true,
+      "verification": { "method": "rank_check", "state": "pending" },
+      "basis": "evidence_based",
+      "confidence": 0.93
+    },
+    {
+      "category": "seo_aso",
+      "title": "List CardPointers on NerdWallet's app directory and request a comparison mention",
+      "why": "NerdWallet dominates page 1 for 'best credit card rewards app' (12k/mo) — a listing or mention captures highest-intent buyers who've already decided to use a rewards app.",
+      "evidenceIds": [],
+      "evidence": [
+        {
+          "excerpt": "NerdWallet ranks #1 for 'best credit card rewards app' — 12,000 monthly searches",
+          "source": "https://nerdwallet.com/best-credit-card-apps",
+          "sourceType": "dataforseo_serp"
+        },
+        {
+          "excerpt": "CardPointers not mentioned in NerdWallet's top 5 credit card tracking apps article",
+          "source": "https://dataforseo.com/serp/best-credit-card-rewards-app",
+          "sourceType": "dataforseo_serp"
+        }
+      ],
+      "effortMin": 45,
+      "suggestedDeadline": "2026-07-08",
+      "expectedOutcome": { "scoreComponent": "seo", "delta": 8, "secondary": "Referral traffic from high-DA finance site" },
+      "draft": null,
+      "draftRequiresEdit": true,
+      "verification": { "method": "url", "state": "pending" },
+      "basis": "evidence_based",
+      "confidence": 0.82
+    }
+  ],
+  "icpSignals": [
+    "credit card points-and-miles maximizers",
+    "frequent flyers optimizing travel rewards",
+    "cashback-focused shoppers with 3+ cards",
+    "r/churning community members",
+    "people who feel guilty using the wrong card"
+  ],
+  "surfaces": [
+    { "source": "communities", "title": "r/churning — CardPointers recommendation thread", "url": "https://reddit.com/r/churning" },
+    { "source": "communities", "title": "r/creditcards — 'which app do you use?' thread", "url": "https://reddit.com/r/creditcards" },
+    { "source": "youtube", "title": "The Points Guy — rewards apps review", "url": "https://youtube.com/c/thepointsguy" }
+  ],
+  "competitorGap": [
+    { "competitor": "AwardWallet", "dimension": "per-merchant card recommendation", "them": 10, "you": 95 },
+    { "competitor": "MaxRewards", "dimension": "offer alerts depth", "them": 70, "you": 80 },
+    { "competitor": "Reward Summit", "dimension": "card recommendation speed", "them": 30, "you": 90 }
+  ],
+  "rubric": {
+    "expectedFindingCategories": ["content", "seo_aso", "outreach"],
+    "expectedKeywords": ["rewards", "card", "points"],
+    "minActions": 3,
+    "requireEvidence": true,
+    "scoreBand": [0, 30]
+  }
+}

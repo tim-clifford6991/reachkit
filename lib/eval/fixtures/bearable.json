@@ -1,0 +1,226 @@
+{
+  "id": "bearable",
+  "appName": "Bearable",
+  "mode": "ios",
+  "storeUrl": "https://apps.apple.com/us/app/bearable-health-symptom-diary/id1482980371",
+  "facts": {
+    "mode": "ios",
+    "listing": {
+      "name": "Bearable",
+      "category": "Health & Fitness",
+      "description": "Bearable is the most flexible health and symptom tracker app. Log symptoms, mood, energy, sleep, medications and more. Spot patterns with powerful correlation insights."
+    },
+    "competitors": [
+      { "name": "Cara Care", "url": "https://cara.care", "source": "dataforseo_serp", "rank": 1 },
+      { "name": "Symple Symptom Tracker", "url": "https://sympleapp.com", "source": "dataforseo_serp", "rank": 2 },
+      { "name": "Medisafe", "url": "https://medisafe.com", "source": "dataforseo_serp", "rank": 3 }
+    ],
+    "reviewVolume": 2800,
+    "ratingTrend": 4.7,
+    "webProxy": null,
+    "themes": [
+      { "term": "symptom correlation", "count": 142 },
+      { "term": "factor tracking", "count": 98 },
+      { "term": "energy levels", "count": 87 },
+      { "term": "mood tracking", "count": 73 },
+      { "term": "chronic illness", "count": 65 },
+      { "term": "data export", "count": 54 },
+      { "term": "custom factors", "count": 48 },
+      { "term": "medication tracking", "count": 41 }
+    ],
+    "sourcesUsed": ["app_store_rss", "itunes", "dataforseo_serp", "dataforseo_keywords"]
+  },
+  "positioningMirror": {
+    "listingSays": "Most flexible health and symptom tracker — logs symptoms, mood, energy, sleep, medications; powered by correlation insights",
+    "reviewsValue": "Users love the ability to correlate symptoms with factors like diet and sleep; the free tier limitation frustrates power users who want unlimited custom factors",
+    "gap": "The listing leads with flexibility and breadth but users most value the correlation engine — reframing around 'find what triggers your symptoms' better matches the core value proposition"
+  },
+  "findings": [
+    {
+      "category": "content",
+      "claim": "The listing headline 'most flexible' is generic; reviews consistently cite symptom correlation as Bearable's standout capability — rewriting the subtitle to lead with correlation would improve both App Store conversion and ASO for 'symptom tracker' (6,600/mo)",
+      "basis": "evidence_based",
+      "confidence": 0.88,
+      "evidence": [
+        { "excerpt": "symptom correlation — users love the correlation view", "source": "app_store_rss" },
+        { "excerpt": "most flexible health and symptom tracker", "source": "positioning" }
+      ]
+    },
+    {
+      "category": "seo_aso",
+      "claim": "The keyword 'chronic illness tracker' (2,400/mo) does not appear in the listing title or subtitle — chronic illness self-managers are Bearable's highest-intent audience and this gap is uncontested by direct competitors",
+      "basis": "evidence_based",
+      "confidence": 0.92,
+      "evidence": [
+        { "excerpt": "chronic illness tracker", "source": "dataforseo_keywords" },
+        { "excerpt": "chronic illness", "source": "app_store_rss" }
+      ]
+    },
+    {
+      "category": "outreach",
+      "claim": "The r/ChronicIllness subreddit (340k members) regularly asks for symptom tracking app recommendations — Bearable's correlation feature is uniquely well-positioned for this audience who need to identify triggers",
+      "basis": "evidence_based",
+      "confidence": 0.81,
+      "evidence": [
+        { "excerpt": "looking for an app to track flare-ups and correlate with diet", "source": "communities" },
+        { "excerpt": "Cara Care focuses on IBS/digestive only; no general correlation", "source": "competitor_gap" }
+      ]
+    }
+  ],
+  "candidateActions": [
+    {
+      "category": "content",
+      "title": "Rewrite App Store subtitle to lead with 'Find what triggers your symptoms'",
+      "why": "Reviews cite symptom correlation as Bearable's #1 value prop; the current subtitle 'most flexible' is unspecific and loses the high-intent searcher looking to identify triggers.",
+      "evidenceIds": [],
+      "evidence": [
+        {
+          "excerpt": "Finally found what's causing my flare-ups thanks to the correlation graphs",
+          "source": "https://apps.apple.com/us/app/bearable-health-symptom-diary/id1482980371",
+          "sourceType": "app_store_rss"
+        },
+        {
+          "excerpt": "symptom tracker for chronic illness — 6,600 monthly searches",
+          "source": "https://dataforseo.com/keywords/symptom-tracker",
+          "sourceType": "dataforseo_keywords"
+        }
+      ],
+      "effortMin": 20,
+      "suggestedDeadline": "2026-07-01",
+      "expectedOutcome": { "scoreComponent": "seo", "delta": 8, "secondary": "Improves App Store conversion for 'symptom tracker' keyword" },
+      "draft": "Bearable — Symptom & Health Diary\n\nFind what triggers your symptoms. Log symptoms, mood, energy, sleep and medications, then let Bearable's correlation engine reveal the patterns driving your health. Trusted by 100,000+ people managing chronic illness.",
+      "draftRequiresEdit": true,
+      "verification": { "method": "rank_check", "state": "pending" },
+      "basis": "evidence_based",
+      "confidence": 0.87
+    },
+    {
+      "category": "content",
+      "title": "Publish a blog post: 'How to use symptom tracking to identify your triggers'",
+      "why": "Organic search for 'how to track symptoms' (1,900/mo) is largely unclaimed by competitors — a detailed guide would capture health-curious users before they reach the App Store.",
+      "evidenceIds": [],
+      "evidence": [
+        {
+          "excerpt": "how to track symptoms for chronic illness — 1,900 monthly searches, low competition",
+          "source": "https://dataforseo.com/keywords/how-to-track-symptoms",
+          "sourceType": "dataforseo_keywords"
+        },
+        {
+          "excerpt": "I spent months trying to figure out my triggers before I found this app",
+          "source": "https://reddit.com/r/ChronicIllness/comments/bearable_review",
+          "sourceType": "communities"
+        }
+      ],
+      "effortMin": 90,
+      "suggestedDeadline": "2026-07-15",
+      "expectedOutcome": { "scoreComponent": "content", "delta": 7, "secondary": "Long-tail SEO for 'symptom tracking guide'" },
+      "draft": "Living with a chronic illness often means playing detective with your own body. Bearable's correlation tracking was built for exactly this: you log your daily symptoms, sleep, food and activities, and the app surfaces the statistical relationships you'd otherwise miss. Here's how to set up a tracking routine that actually tells you something useful.",
+      "draftRequiresEdit": true,
+      "verification": { "method": "url", "state": "pending" },
+      "basis": "evidence_based",
+      "confidence": 0.79
+    },
+    {
+      "category": "outreach",
+      "title": "Post in r/ChronicIllness with a 'what helps you identify your triggers?' discussion",
+      "why": "r/ChronicIllness (340k members) regularly discusses symptom management tools — Bearable's correlation engine is the exact solution these users are seeking.",
+      "evidenceIds": [],
+      "evidence": [
+        {
+          "excerpt": "Does anyone have an app recommendation for tracking what makes fibromyalgia worse?",
+          "source": "https://reddit.com/r/ChronicIllness/comments/trigger_tracking",
+          "sourceType": "communities"
+        },
+        {
+          "excerpt": "No competitor offers cross-factor correlation for general chronic illness management",
+          "source": "https://sympleapp.com/features",
+          "sourceType": "dataforseo_serp"
+        }
+      ],
+      "effortMin": 25,
+      "suggestedDeadline": "2026-06-25",
+      "expectedOutcome": { "scoreComponent": "outreach", "delta": 6, "secondary": "Drives organic App Store installs from chronic illness community" },
+      "draft": "Those of us with chronic conditions spend years playing symptom detective. I built Bearable after struggling to figure out whether it was stress, sleep or diet causing my flares. The app lets you log 80+ factors and shows you the correlations. What methods are you using to track your triggers — curious what's worked for people here.",
+      "draftRequiresEdit": true,
+      "verification": { "method": "url", "state": "pending" },
+      "basis": "evidence_based",
+      "confidence": 0.83
+    },
+    {
+      "category": "seo_aso",
+      "title": "Add 'chronic illness tracker' and 'health diary app' to App Store keyword field",
+      "why": "'chronic illness tracker' (2,400/mo) and 'health diary app' (1,800/mo) are high-intent, low-competition keywords that directly describe Bearable's use case and are absent from the current keyword field.",
+      "evidenceIds": [],
+      "evidence": [
+        {
+          "excerpt": "chronic illness tracker — 2,400 monthly searches, CPC $1.80",
+          "source": "https://dataforseo.com/keywords/chronic-illness-tracker",
+          "sourceType": "dataforseo_keywords"
+        },
+        {
+          "excerpt": "health diary app — 1,800 monthly searches, moderate competition",
+          "source": "https://dataforseo.com/keywords/health-diary-app",
+          "sourceType": "dataforseo_serp"
+        }
+      ],
+      "effortMin": 15,
+      "suggestedDeadline": "2026-06-28",
+      "expectedOutcome": { "scoreComponent": "seo", "delta": 9 },
+      "draft": null,
+      "draftRequiresEdit": true,
+      "verification": { "method": "rank_check", "state": "pending" },
+      "basis": "evidence_based",
+      "confidence": 0.91
+    },
+    {
+      "category": "seo_aso",
+      "title": "Submit Bearable to Capterra and G2 health app directories",
+      "why": "Capterra and G2 both rank on page 1 for 'symptom tracking software' — a free listing captures comparison-stage buyers and provides high-DA backlinks for the web presence.",
+      "evidenceIds": [],
+      "evidence": [
+        {
+          "excerpt": "Capterra ranks #3 for 'symptom tracking software' — 1,200 monthly searches",
+          "source": "https://dataforseo.com/serp/symptom-tracking-software",
+          "sourceType": "dataforseo_serp"
+        },
+        {
+          "excerpt": "G2 health tracking category has 45 products with Bearable not listed",
+          "source": "https://g2.com/categories/health-tracking",
+          "sourceType": "dataforseo_serp"
+        }
+      ],
+      "effortMin": 30,
+      "suggestedDeadline": "2026-07-05",
+      "expectedOutcome": { "scoreComponent": "seo", "delta": 6, "secondary": "Backlinks from DA 80+ review sites" },
+      "draft": null,
+      "draftRequiresEdit": true,
+      "verification": { "method": "url", "state": "pending" },
+      "basis": "evidence_based",
+      "confidence": 0.85
+    }
+  ],
+  "icpSignals": [
+    "chronic illness self-managers tracking triggers",
+    "people with fibromyalgia, lupus, ME/CFS",
+    "users who've tried generic health apps and need correlation",
+    "medication adherence trackers",
+    "health-data exporters (doctors, researchers)"
+  ],
+  "surfaces": [
+    { "source": "communities", "title": "r/ChronicIllness — symptom tracking megathread", "url": "https://reddit.com/r/ChronicIllness" },
+    { "source": "communities", "title": "r/Fibromyalgia — app recommendations thread", "url": "https://reddit.com/r/Fibromyalgia" },
+    { "source": "youtube", "title": "Chronic illness apps comparison — 48k views", "url": "https://youtube.com/watch?v=bearable_review_1" }
+  ],
+  "competitorGap": [
+    { "competitor": "Cara Care", "dimension": "breadth of trackable factors", "them": 30, "you": 85 },
+    { "competitor": "Symple", "dimension": "correlation analysis depth", "them": 40, "you": 90 },
+    { "competitor": "Medisafe", "dimension": "symptom tracking (vs medication-only)", "them": 20, "you": 95 }
+  ],
+  "rubric": {
+    "expectedFindingCategories": ["content", "seo_aso", "outreach"],
+    "expectedKeywords": ["symptom", "chronic", "correlation"],
+    "minActions": 3,
+    "requireEvidence": true,
+    "scoreBand": [0, 30]
+  }
+}

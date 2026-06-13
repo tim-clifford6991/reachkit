@@ -8,6 +8,6 @@ export default defineConfig({
   plugins: [tsconfigPaths()],
   test: {
     environment: "node",
-    include: ["tests/integration/**/*.test.ts"],
+    include: ["tests/integration/**/*.test.ts", "tests/eval/**/*.test.ts"],
   },
 });

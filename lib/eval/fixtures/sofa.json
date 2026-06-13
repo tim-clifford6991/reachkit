@@ -1,0 +1,226 @@
+{
+  "id": "sofa",
+  "appName": "Sofa",
+  "mode": "ios",
+  "storeUrl": "https://apps.apple.com/us/app/sofa-downtime-organizer/id1276554886",
+  "facts": {
+    "mode": "ios",
+    "listing": {
+      "name": "Sofa",
+      "category": "Entertainment",
+      "description": "Sofa is the best way to keep track of the movies, TV shows, books, podcasts, albums, games, and apps you want to watch, read, listen to, and play. Your personal downtime wishlist."
+    },
+    "competitors": [
+      { "name": "Letterboxd", "url": "https://letterboxd.com", "source": "dataforseo_serp", "rank": 1 },
+      { "name": "Goodreads", "url": "https://goodreads.com", "source": "dataforseo_serp", "rank": 2 },
+      { "name": "Trakt", "url": "https://trakt.tv", "source": "dataforseo_serp", "rank": 3 }
+    ],
+    "reviewVolume": 1900,
+    "ratingTrend": 4.9,
+    "webProxy": null,
+    "themes": [
+      { "term": "media tracking", "count": 164 },
+      { "term": "queue management", "count": 138 },
+      { "term": "cross-media lists", "count": 121 },
+      { "term": "design quality", "count": 108 },
+      { "term": "watchlist", "count": 94 },
+      { "term": "reading list", "count": 82 },
+      { "term": "podcast queue", "count": 67 },
+      { "term": "game backlog", "count": 54 }
+    ],
+    "sourcesUsed": ["app_store_rss", "itunes", "dataforseo_serp", "dataforseo_keywords"]
+  },
+  "positioningMirror": {
+    "listingSays": "Best way to track movies, TV, books, podcasts, albums and games — your personal downtime wishlist",
+    "reviewsValue": "Users specifically love that Sofa handles all media types in one beautiful app — they've replaced Letterboxd, Goodreads and Trakt with a single organised list; the design is frequently called out as 'the most beautiful app on my phone'",
+    "gap": "The listing positions on breadth ('all media types') but the emotional hook reviewers mention is the relief of having one organised place instead of five apps — leading with 'one home for everything you want to enjoy' would resonate more than the category list"
+  },
+  "findings": [
+    {
+      "category": "content",
+      "claim": "Sofa's listing leads with a media-type list but the emotional job-to-be-done — replacing multiple siloed apps with one beautiful list — is not communicated; reviewers describe replacing 4+ apps which is a stronger conversion message",
+      "basis": "evidence_based",
+      "confidence": 0.87,
+      "evidence": [
+        { "excerpt": "Replaced Letterboxd, Goodreads, Trakt and a podcast app with just this", "source": "app_store_rss" },
+        { "excerpt": "Your personal downtime wishlist", "source": "positioning" }
+      ]
+    },
+    {
+      "category": "seo_aso",
+      "claim": "The keyword 'media tracker app' (4,400/mo) and 'watchlist app' (3,200/mo) are not in Sofa's title or subtitle — Letterboxd and Trakt each rank for their single-media variant but no app owns the cross-media version",
+      "basis": "evidence_based",
+      "confidence": 0.89,
+      "evidence": [
+        { "excerpt": "media tracker app — 4,400 monthly searches, no cross-media app ranks #1", "source": "dataforseo_keywords" },
+        { "excerpt": "watchlist app iOS — 3,200 monthly searches, Sofa not in top 5", "source": "dataforseo_keywords" }
+      ]
+    },
+    {
+      "category": "outreach",
+      "claim": "Design-focused YouTube creators (MKBHD, MacStories) regularly cover 'best designed apps on iPhone' — Sofa's 4.9-star design rating and minimalist aesthetic is the strongest story in the cross-media tracking category",
+      "basis": "evidence_based",
+      "confidence": 0.76,
+      "evidence": [
+        { "excerpt": "MacStories covers beautifully designed productivity and media apps quarterly", "source": "communities" },
+        { "excerpt": "App design reviews on YouTube — 'most beautiful iPhone apps 2026' generates 200k+ views", "source": "youtube" }
+      ]
+    }
+  ],
+  "candidateActions": [
+    {
+      "category": "content",
+      "title": "Update App Store description first paragraph to 'One home for everything you want to enjoy'",
+      "why": "The 'replaced 4 apps' narrative appears in dozens of reviews — it's the strongest conversion message because it directly addresses app-switcher fatigue and Sofa's key differentiator vs single-category competitors.",
+      "evidenceIds": [],
+      "evidence": [
+        {
+          "excerpt": "Finally deleted Letterboxd, Goodreads and Trakt — Sofa does everything better and I only open one app",
+          "source": "https://apps.apple.com/us/app/sofa-downtime-organizer/id1276554886",
+          "sourceType": "app_store_rss"
+        },
+        {
+          "excerpt": "media tracker app — 4,400 monthly searches, cross-media niche unowned",
+          "source": "https://dataforseo.com/keywords/media-tracker-app",
+          "sourceType": "dataforseo_keywords"
+        }
+      ],
+      "effortMin": 25,
+      "suggestedDeadline": "2026-07-03",
+      "expectedOutcome": { "scoreComponent": "content", "delta": 7, "secondary": "Better App Store conversion from Letterboxd/Goodreads comparison searches" },
+      "draft": "Sofa — Your Downtime Organizer\n\nStop juggling five different apps for movies, books, games and podcasts. Sofa is the one beautifully designed home for everything you want to enjoy. Add anything to your queue, come back when you're ready, and never forget a recommendation again.",
+      "draftRequiresEdit": true,
+      "verification": { "method": "url", "state": "pending" },
+      "basis": "evidence_based",
+      "confidence": 0.85
+    },
+    {
+      "category": "content",
+      "title": "Write a piece: 'Why I deleted Letterboxd, Goodreads and Trakt for one app'",
+      "why": "Comparison-intent queries like 'Letterboxd alternative' (1,800/mo) and 'Goodreads alternatives' (3,400/mo) show high purchase intent — a first-person piece from a real Sofa user would capture these searchers.",
+      "evidenceIds": [],
+      "evidence": [
+        {
+          "excerpt": "Goodreads alternatives — 3,400 monthly searches, high dissatisfaction signal",
+          "source": "https://dataforseo.com/keywords/goodreads-alternatives",
+          "sourceType": "dataforseo_keywords"
+        },
+        {
+          "excerpt": "Sofa is what Letterboxd would be if it covered everything, not just films",
+          "source": "https://reddit.com/r/apple/comments/sofa_review",
+          "sourceType": "communities"
+        }
+      ],
+      "effortMin": 90,
+      "suggestedDeadline": "2026-07-15",
+      "expectedOutcome": { "scoreComponent": "content", "delta": 8, "secondary": "Organic search traffic from 'Letterboxd alternative' and 'Goodreads alternative'" },
+      "draft": "I was running Letterboxd for movies, Goodreads for books, Trakt for TV, and a notes app for games. Four apps for one habit: keeping track of things I want to enjoy. Sofa replaced all four and I haven't missed any of them. Here's what I gave up and what I gained — including why Sofa's design makes it the first app I actually enjoy opening.",
+      "draftRequiresEdit": true,
+      "verification": { "method": "url", "state": "pending" },
+      "basis": "evidence_based",
+      "confidence": 0.81
+    },
+    {
+      "category": "outreach",
+      "title": "Pitch MacStories for 'most beautifully designed iOS apps' roundup feature",
+      "why": "MacStories' quarterly app design roundups reach 400k Apple-centric readers — Sofa's 4.9-star rating and minimalist design make it a natural fit for a design-first editorial.",
+      "evidenceIds": [],
+      "evidence": [
+        {
+          "excerpt": "MacStories App Picks — quarterly roundups of best-designed iOS apps, 400k readers",
+          "source": "https://macstories.net/apps",
+          "sourceType": "dataforseo_serp"
+        },
+        {
+          "excerpt": "Most beautiful apps on iPhone 2026 — YouTube searches for design-focused app content",
+          "source": "https://youtube.com/search/beautiful-iphone-apps-2026",
+          "sourceType": "youtube"
+        }
+      ],
+      "effortMin": 30,
+      "suggestedDeadline": "2026-06-27",
+      "expectedOutcome": { "scoreComponent": "outreach", "delta": 9, "secondary": "High-DA backlink from macstories.net" },
+      "draft": "Hi Federico — I built Sofa to give people one beautiful place for all their media queues. It's the app I wanted but couldn't find: as good as Letterboxd but for books, games, podcasts and albums too. The design is the product — we believe downtime deserves beautiful tools. Would love to be considered for your next app picks roundup.",
+      "draftRequiresEdit": true,
+      "verification": { "method": "url", "state": "pending" },
+      "basis": "evidence_based",
+      "confidence": 0.72
+    },
+    {
+      "category": "seo_aso",
+      "title": "Add 'media tracker' and 'watchlist app' to App Store keyword field",
+      "why": "'Media tracker app' (4,400/mo) and 'watchlist app' (3,200/mo) describe Sofa's use case precisely — no cross-media app ranks for these and they're undefended by Letterboxd or Goodreads.",
+      "evidenceIds": [],
+      "evidence": [
+        {
+          "excerpt": "media tracker — 4,400 monthly searches, cross-media app category unranked",
+          "source": "https://dataforseo.com/keywords/media-tracker-ios",
+          "sourceType": "dataforseo_keywords"
+        },
+        {
+          "excerpt": "watchlist app — 3,200 monthly searches, no dominant app owns cross-media search",
+          "source": "https://dataforseo.com/keywords/watchlist-app-ios",
+          "sourceType": "dataforseo_serp"
+        }
+      ],
+      "effortMin": 15,
+      "suggestedDeadline": "2026-06-28",
+      "expectedOutcome": { "scoreComponent": "seo", "delta": 9 },
+      "draft": null,
+      "draftRequiresEdit": true,
+      "verification": { "method": "rank_check", "state": "pending" },
+      "basis": "evidence_based",
+      "confidence": 0.91
+    },
+    {
+      "category": "seo_aso",
+      "title": "Request a mention in The Sweet Setup's 'best media tracking apps for iPhone'",
+      "why": "The Sweet Setup (DA 72) ranks on page 1 for 'best podcast app', 'best reading app' and related terms — a cross-media tracker mention would capture their high-intent Apple audience.",
+      "evidenceIds": [],
+      "evidence": [
+        {
+          "excerpt": "The Sweet Setup ranks page 1 for 'best media apps iPhone' — high DA Apple niche site",
+          "source": "https://thesweetsetup.com/best-apps",
+          "sourceType": "dataforseo_serp"
+        },
+        {
+          "excerpt": "Sofa not mentioned in any Sweet Setup roundup despite 4.9 App Store rating",
+          "source": "https://dataforseo.com/serp/best-media-tracker-iphone",
+          "sourceType": "dataforseo_serp"
+        }
+      ],
+      "effortMin": 25,
+      "suggestedDeadline": "2026-07-06",
+      "expectedOutcome": { "scoreComponent": "seo", "delta": 6, "secondary": "DA-72 backlink + referral traffic from Apple niche audience" },
+      "draft": null,
+      "draftRequiresEdit": true,
+      "verification": { "method": "url", "state": "pending" },
+      "basis": "evidence_based",
+      "confidence": 0.83
+    }
+  ],
+  "icpSignals": [
+    "media-hobbyists tracking books, games, movies and podcasts",
+    "people overwhelmed by multiple single-category tracking apps",
+    "Apple-ecosystem enthusiasts who value design quality",
+    "gift-list makers keeping track of recommendations",
+    "podcast queue managers frustrated by app silos"
+  ],
+  "surfaces": [
+    { "source": "communities", "title": "r/apple — Sofa app showcase thread", "url": "https://reddit.com/r/apple" },
+    { "source": "communities", "title": "r/iosgaming — game backlog tracking thread", "url": "https://reddit.com/r/iosgaming" },
+    { "source": "dataforseo_serp", "title": "MacStories App Picks archive", "url": "https://macstories.net/apps" }
+  ],
+  "competitorGap": [
+    { "competitor": "Letterboxd", "dimension": "media type breadth", "them": 20, "you": 95 },
+    { "competitor": "Goodreads", "dimension": "design quality", "them": 30, "you": 95 },
+    { "competitor": "Trakt", "dimension": "mobile app quality", "them": 40, "you": 90 }
+  ],
+  "rubric": {
+    "expectedFindingCategories": ["content", "seo_aso", "outreach"],
+    "expectedKeywords": ["media", "watchlist", "track"],
+    "minActions": 3,
+    "requireEvidence": true,
+    "scoreBand": [0, 30]
+  }
+}
