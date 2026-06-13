@@ -8,6 +8,8 @@ import { WhatYouOfferSection } from "@/components/report/what-you-offer-section"
 import { WhoItsForSection } from "@/components/report/who-its-for-section";
 import { WhereTheyAreSection } from "@/components/report/where-they-are-section";
 import { ActionPlanSection } from "@/components/report/action-plan-section";
+import { SnapshotStrip } from "@/components/report/snapshot-strip";
+import { UpgradeCta } from "@/components/report/upgrade-cta";
 import { ScoreBlock } from "./score-block";
 import { ReportReveal } from "./report-reveal";
 
@@ -45,7 +47,7 @@ export default async function ResultsPage({
   const db = serverDb();
   const { data } = await db
     .from("scans")
-    .select("report_payload")
+    .select("report_payload, completed_at, started_at")
     .eq("id", id)
     .maybeSingle();
 
@@ -80,19 +82,22 @@ export default async function ResultsPage({
   const report = redactReportForTier(fullReport, tier);
   const isPaid = tier !== "free";
 
+  // Snapshot timestamp — prefer completed_at, fall back to started_at
+  const generatedAt = data.completed_at ?? data.started_at ?? new Date().toISOString();
+
   return (
     <main className="mx-auto max-w-2xl space-y-6 px-4 pb-16 pt-8">
+      {/* §23 moment 6 — stale-report strip. Honest, not nagging. */}
+      <SnapshotStrip generatedAt={generatedAt} isPaid={isPaid} />
+
       {/* ── Score — signature visual; lazy-loaded client component ────── */}
       {/* ScoreBlock lazy-loads DiscoverabilityScore + motion so that        */}
       {/* motion/react doesn't inflate the initial server chunk.             */}
       <ScoreBlock score={report.score} />
 
-      {/* ── ╔══════════════════════════════════════════════════════════╗ ── */}
-      {/* ── ║  TASK 21 / E4 INSERTION POINT — score badge + upgrade   ║ ── */}
-      {/* ── ║  Drop the OG image share card + Stripe upgrade CTA here. ║ ── */}
-      {/* ── ║  The slot is empty for now. Do not build it in Task 19.   ║ ── */}
-      {/* ── ╚══════════════════════════════════════════════════════════╝ ── */}
-      {/* {tier === "free" && <UpgradeCta scanId={id} />} */}
+      {/* §23 moment 7 — upgrade CTA at the E4 insertion point.             */}
+      {/* Paywall framed as activation — queue, deltas, verification.        */}
+      {!isPaid && <UpgradeCta scanId={id} />}
 
       {/* ── Four-question report sections — blur-to-sharp stagger ─────── */}
       {/* ReportReveal wraps each section in a motion div (blur-to-sharp). */}

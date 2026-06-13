@@ -287,7 +287,6 @@ export function AppSidebar({
       href: "/app/plays",
       label: "This week's plays",
       icon: <IconPlays />,
-      comingSoon: true,
     },
     {
       href: "/app/feed",
@@ -307,7 +306,6 @@ export function AppSidebar({
       href: "/app/billing",
       label: "Billing",
       icon: <IconBilling />,
-      comingSoon: true,
     },
   ];
 
