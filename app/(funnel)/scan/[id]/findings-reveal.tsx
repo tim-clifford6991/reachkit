@@ -7,26 +7,32 @@ import type {
   PositioningMirror,
   SampleAction,
 } from "@/lib/llm/types";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmailGate } from "./email-gate";
 
-// Lazy-load Motion so it's deferred until findings arrive
-const NumberTicker = dynamic(
+// ---------------------------------------------------------------------------
+// Lazy-load heavy components — keeps the initial funnel chunk lean
+// ---------------------------------------------------------------------------
+
+// DiscoverabilityScore: SVG-based, drives view-transition shared-element morph
+const DiscoverabilityScore = dynamic(
   () =>
-    import("@/components/motion/number-ticker").then((m) => m.NumberTicker),
-  { ssr: false, loading: () => <span>—</span> }
+    import("@/components/report/discoverability-score").then(
+      (m) => m.DiscoverabilityScore
+    ),
+  { ssr: false, loading: () => <ScoreRingSkeleton /> }
+);
+
+// Motion stagger for the findings list
+const Stagger = dynamic(
+  () => import("@/components/motion/stagger").then((m) => m.Stagger),
+  { ssr: false, loading: () => null }
 );
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
+
 export interface FindingsPayload {
   score: ScoreResult;
   positioningMirror: PositioningMirror;
@@ -35,136 +41,217 @@ export interface FindingsPayload {
 }
 
 // ---------------------------------------------------------------------------
-// Score ring — CSS-only conic-gradient, no heavy lib
+// Skeleton — shown while DiscoverabilityScore lazy-loads
 // ---------------------------------------------------------------------------
-function ScoreRing({ value, size = 120 }: { value: number; size?: number }) {
-  const pct = Math.max(0, Math.min(100, value));
-  const conicStyle = {
-    background: `conic-gradient(
-      oklch(0.6 0.18 255) ${pct}%,
-      oklch(1 0 0 / 10%) ${pct}%
-    )`,
-    width: size,
-    height: size,
-    borderRadius: "50%",
-  } satisfies React.CSSProperties;
 
-  const innerSize = size * 0.72;
-  const innerStyle = {
-    width: innerSize,
-    height: innerSize,
-    borderRadius: "50%",
-    background: "var(--card)",
-  } satisfies React.CSSProperties;
-
+function ScoreRingSkeleton() {
   return (
-    <div
-      className="relative flex shrink-0 items-center justify-center"
-      style={conicStyle}
-      aria-hidden
-    >
+    <div className="flex flex-col items-center gap-4">
       <div
-        className="absolute flex flex-col items-center justify-center"
-        style={innerStyle}
-      >
-        <NumberTicker
-          value={value}
-          className="text-2xl font-bold tabular-nums leading-none text-foreground"
-        />
-        <span className="text-xs text-muted-foreground">/100</span>
-      </div>
+        className="h-[140px] w-[140px] animate-pulse rounded-full"
+        style={{ background: "oklch(1 0 0 / 0.06)" }}
+        aria-hidden="true"
+      />
+      <div
+        className="h-3 w-20 animate-pulse rounded-lg"
+        style={{ background: "oklch(1 0 0 / 0.06)" }}
+        aria-hidden="true"
+      />
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Axis bars
+// Build a VerifiedScore-shaped object from the ScoreResult we have at this
+// stage. The partial-reveal score is "preliminary" (basis from facts), so we
+// annotate it with an empty radar to satisfy DiscoverabilityScore's type.
+// The real radar appears on the full results page after email unlock.
 // ---------------------------------------------------------------------------
-function AxisBar({ label, value }: { label: string; value: number }) {
-  const pct = Math.max(0, Math.min(100, value));
-  return (
-    <div className="space-y-1">
-      <div className="flex items-center justify-between text-xs">
-        <span className="capitalize text-muted-foreground">{label}</span>
-        <span className="tabular-nums text-foreground/80">{pct}</span>
-      </div>
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted/40">
-        <div
-          className="h-full rounded-full bg-primary transition-[width] duration-700 ease-out"
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-    </div>
-  );
+
+function buildPreviewScore(score: ScoreResult) {
+  return {
+    ...score,
+    radar: [] as Array<{ axis: string; value: number; active: boolean }>,
+    basis: "preliminary" as const,
+  };
 }
 
 // ---------------------------------------------------------------------------
-// Blurred / locked finding
+// First finding — shown IN FULL with evidence links (§23 moment 3)
 // ---------------------------------------------------------------------------
-function LockedFinding({ claim }: { claim: string }) {
-  return (
-    <div className="relative overflow-hidden rounded-xl ring-1 ring-foreground/10">
-      <div className="px-4 py-3">
-        <p className="text-sm font-medium text-foreground/90 blur-[3px] select-none">
-          {claim}
-        </p>
-        <p className="mt-1 text-xs text-muted-foreground blur-[3px] select-none">
-          evidence from multiple sources
-        </p>
-      </div>
-      <div className="absolute inset-0 flex items-center justify-center bg-background/40 backdrop-blur-[1px]">
-        <Badge variant="secondary" className="gap-1 text-xs">
-          <span>🔒</span>
-          <span>Unlock with your full report</span>
-        </Badge>
-      </div>
-    </div>
-  );
-}
 
-// ---------------------------------------------------------------------------
-// First finding — shown in full
-// ---------------------------------------------------------------------------
 function FullFinding({ finding }: { finding: Finding }) {
   const categoryLabel =
     finding.category === "seo_aso" ? "SEO / ASO" : finding.category;
+
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-start justify-between gap-3">
-          <CardTitle className="text-sm">{finding.claim}</CardTitle>
-          <Badge variant="outline" className="shrink-0 capitalize">
-            {categoryLabel}
-          </Badge>
-        </div>
-        <CardDescription className="text-xs">
-          {finding.basis === "evidence_based"
-            ? "Evidence-based"
-            : "Probability-based"}{" "}
-          · confidence {Math.round(finding.confidence * 100)}%
-        </CardDescription>
-      </CardHeader>
+    <div
+      className="space-y-3 rounded-xl border p-5"
+      style={{
+        borderColor: "oklch(1 0 0 / 0.09)",
+        background: "var(--color-surface)",
+      }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <p
+          className="text-sm font-medium leading-snug"
+          style={{ color: "var(--color-fg)" }}
+        >
+          {finding.claim}
+        </p>
+        <Badge variant="outline" className="shrink-0 capitalize">
+          {categoryLabel}
+        </Badge>
+      </div>
+
+      <p
+        className="font-mono text-xs"
+        style={{ color: "var(--color-muted)" }}
+      >
+        {finding.basis === "evidence_based" ? "Evidence-based" : "Probability-based"}
+        {" · "}confidence {Math.round(finding.confidence * 100)}%
+      </p>
+
       {finding.evidence.length > 0 && (
-        <CardContent>
-          <ul className="space-y-2">
-            {finding.evidence.map((ev, i) => (
-              <li key={i} className="rounded-lg bg-muted/30 px-3 py-2 text-xs">
-                <p className="text-foreground/90 italic">
-                  &ldquo;{ev.excerpt}&rdquo;
-                </p>
-                <p className="mt-1 text-muted-foreground">{ev.source}</p>
-              </li>
-            ))}
-          </ul>
-        </CardContent>
+        <ul className="space-y-2">
+          {finding.evidence.map((ev, i) => (
+            <li
+              key={i}
+              className="rounded-lg px-3 py-2.5"
+              style={{ background: "oklch(1 0 0 / 0.04)" }}
+            >
+              <p
+                className="text-xs italic leading-relaxed"
+                style={{ color: "oklch(0.90 0 0)" }}
+              >
+                &ldquo;{ev.excerpt}&rdquo;
+              </p>
+              <p
+                className="mt-1 font-mono text-[10px]"
+                style={{ color: "var(--color-muted)" }}
+              >
+                {ev.source}
+              </p>
+            </li>
+          ))}
+        </ul>
       )}
-    </Card>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Locked finding — REAL headline visible under blur (honest curiosity gap)
+// Never fake teasers — the actual claim is present, just visually locked.
+// ---------------------------------------------------------------------------
+
+function LockedFinding({ finding, index }: { finding: Finding; index: number }) {
+  const communityHint = finding.category === "outreach"
+    ? "communities where your users are talking about this"
+    : finding.category === "seo_aso"
+    ? "keyword + ranking opportunities"
+    : "content gaps identified";
+
+  const evidenceCount = finding.evidence.length;
+  const evidenceLabel = evidenceCount > 0
+    ? `${evidenceCount} source${evidenceCount === 1 ? "" : "s"}`
+    : "evidence from multiple sources";
+
+  return (
+    <div
+      className="relative overflow-hidden rounded-xl border"
+      style={{ borderColor: "oklch(1 0 0 / 0.09)" }}
+      aria-label={`Locked finding ${index + 1}: unlock to read`}
+    >
+      {/* Real headline + preview — blurred */}
+      <div
+        className="select-none px-5 py-4"
+        style={{ background: "var(--color-surface)" }}
+        aria-hidden="true"
+      >
+        <p
+          className="text-sm font-medium leading-snug blur-[4px]"
+          style={{ color: "var(--color-fg)" }}
+        >
+          {finding.claim}
+        </p>
+        <p
+          className="mt-1.5 font-mono text-xs blur-[3px]"
+          style={{ color: "var(--color-muted)" }}
+        >
+          {evidenceLabel} · {communityHint}
+        </p>
+      </div>
+
+      {/* Lock overlay */}
+      <div className="absolute inset-0 flex items-center justify-center backdrop-blur-[2px]">
+        <div
+          className="flex items-center gap-2 rounded-full border px-3 py-1.5"
+          style={{
+            borderColor: "oklch(1 0 0 / 0.12)",
+            background: "oklch(0.085 0 0 / 0.85)",
+          }}
+        >
+          <LockIcon />
+          <span
+            className="text-xs font-medium"
+            style={{ color: "var(--color-fg)" }}
+          >
+            Unlock with your report
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Category label helper
+// ---------------------------------------------------------------------------
+
+function categoryLabel(cat: string): string {
+  if (cat === "seo_aso") return "SEO / ASO";
+  return cat.charAt(0).toUpperCase() + cat.slice(1);
+}
+
+// ---------------------------------------------------------------------------
+// SVG lock icon — inline, no import
+// ---------------------------------------------------------------------------
+
+function LockIcon() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 12 12"
+      fill="none"
+      aria-hidden="true"
+    >
+      <rect
+        x="1.5"
+        y="5"
+        width="9"
+        height="6.5"
+        rx="1.5"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        style={{ color: "var(--color-muted)" }}
+      />
+      <path
+        d="M3.5 5V3.5a2.5 2.5 0 0 1 5 0V5"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        style={{ color: "var(--color-muted)" }}
+      />
+    </svg>
   );
 }
 
 // ---------------------------------------------------------------------------
 // FindingsReveal — exported (lazy-loaded from scan-stream)
 // ---------------------------------------------------------------------------
+
 export function FindingsReveal({
   scanId,
   data,
@@ -175,134 +262,215 @@ export function FindingsReveal({
   const { score, positioningMirror, findings, sampleAction } = data;
   const [firstFinding, ...restFindings] = findings;
 
+  // Build the preview score — uses the DiscoverabilityScore visual (signature moment)
+  const previewScore = buildPreviewScore(score);
+
   return (
-    <div className="space-y-5">
-      {/* Discoverability score */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Discoverability Score</CardTitle>
-          <CardDescription>
-            Preliminary score based on content, outreach, and SEO signals
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start">
-            <ScoreRing value={score.total} />
-            <div className="flex-1 w-full space-y-3">
-              <AxisBar label="content" value={score.breakdown.content} />
-              <AxisBar label="outreach" value={score.breakdown.outreach} />
-              <AxisBar label="SEO / ASO" value={score.breakdown.seo} />
-            </div>
+    <div className="space-y-6">
+      {/* ── Score reveal — THE signature moment (§23.3) ─────────────────── */}
+      <div
+        className="flex flex-col items-center rounded-xl border py-8"
+        style={{
+          borderColor: "var(--color-accent-900)",
+          background:
+            "linear-gradient(135deg, var(--color-surface) 0%, oklch(0.145 0.015 255) 100%)",
+        }}
+      >
+        <p
+          className="mb-6 font-mono text-xs uppercase tracking-widest"
+          style={{ color: "var(--color-muted)" }}
+        >
+          Your discoverability score
+        </p>
+
+        {/* DiscoverabilityScore — count-up NumberTicker + radial sweep */}
+        <DiscoverabilityScore
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          score={previewScore as any}
+          size="sm"
+        />
+
+        <p
+          className="mt-6 max-w-xs text-center text-xs leading-relaxed"
+          style={{ color: "var(--color-muted)" }}
+        >
+          Based on content signals, keyword coverage, and competitive gaps.
+          Your full report reveals exactly what to fix first.
+        </p>
+      </div>
+
+      {/* ── Positioning mirror ───────────────────────────────────────────── */}
+      <div
+        className="space-y-3 rounded-xl border p-5"
+        style={{
+          borderColor: "oklch(1 0 0 / 0.09)",
+          background: "var(--color-surface)",
+        }}
+      >
+        <h2
+          className="font-mono text-xs uppercase tracking-widest"
+          style={{ color: "var(--color-muted)" }}
+        >
+          Positioning mirror
+        </h2>
+
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <p
+              className="font-mono text-[10px] uppercase tracking-wider"
+              style={{ color: "var(--color-muted)" }}
+            >
+              Your listing says
+            </p>
+            <p className="text-sm" style={{ color: "var(--color-fg)" }}>
+              {positioningMirror.listingSays}
+            </p>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Positioning mirror */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Positioning Mirror</CardTitle>
-          <CardDescription>
-            Where your messaging and your audience diverge
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <dl className="space-y-3 text-sm">
-            <div className="space-y-1">
-              <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Your listing says
-              </dt>
-              <dd className="text-foreground/90">
-                {positioningMirror.listingSays}
-              </dd>
-            </div>
-            <div className="space-y-1">
-              <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Your reviews value
-              </dt>
-              <dd className="text-foreground/90">
-                {positioningMirror.reviewsValue}
-              </dd>
-            </div>
-            <div className="rounded-lg bg-destructive/10 px-3 py-2">
-              <dt className="text-xs font-medium uppercase tracking-wide text-destructive/80">
-                Gap
-              </dt>
-              <dd className="mt-0.5 text-sm text-foreground/80">
-                {positioningMirror.gap}
-              </dd>
-            </div>
-          </dl>
-        </CardContent>
-      </Card>
+          <div className="space-y-1">
+            <p
+              className="font-mono text-[10px] uppercase tracking-wider"
+              style={{ color: "var(--color-muted)" }}
+            >
+              Your reviews value
+            </p>
+            <p className="text-sm" style={{ color: "var(--color-fg)" }}>
+              {positioningMirror.reviewsValue}
+            </p>
+          </div>
 
-      {/* Findings */}
+          <div
+            className="rounded-lg px-3 py-2.5"
+            style={{ background: "var(--color-danger-subtle)" }}
+          >
+            <p
+              className="font-mono text-[10px] uppercase tracking-wider"
+              style={{ color: "oklch(0.70 0.20 22 / 0.8)" }}
+            >
+              Gap
+            </p>
+            <p
+              className="mt-0.5 text-sm"
+              style={{ color: "var(--color-fg)" }}
+            >
+              {positioningMirror.gap}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Findings — first one full, rest blur-locked ──────────────────── */}
       <div className="space-y-3">
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+        <h2
+          className="font-mono text-xs uppercase tracking-widest"
+          style={{ color: "var(--color-muted)" }}
+        >
           Findings
         </h2>
 
+        {/* First finding — shown IN FULL with evidence */}
         {firstFinding !== undefined && <FullFinding finding={firstFinding} />}
 
+        {/* Remaining findings — real headlines blur-locked */}
         {restFindings.length > 0 && (
           <div className="space-y-2">
-            {restFindings.map((f, i) => (
-              <LockedFinding key={i} claim={f.claim} />
-            ))}
+            <Stagger>
+              {restFindings.map((f, i) => (
+                <LockedFinding key={i} finding={f} index={i} />
+              ))}
+            </Stagger>
           </div>
         )}
       </div>
 
-      {/* Sample action — blurred/locked */}
-      <div className="relative overflow-hidden rounded-xl ring-1 ring-foreground/10">
-        <Card className="ring-0 rounded-xl">
-          <CardHeader>
-            <div className="flex items-start justify-between gap-3">
-              <CardTitle className="text-sm blur-[3px] select-none">
-                {sampleAction.title}
-              </CardTitle>
-              <Badge
-                variant="outline"
-                className="shrink-0 capitalize blur-[3px] select-none"
-              >
-                {sampleAction.category === "seo_aso"
-                  ? "SEO / ASO"
-                  : sampleAction.category}
-              </Badge>
-            </div>
-            <CardDescription className="blur-[3px] select-none">
-              {sampleAction.why}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="whitespace-pre-wrap text-xs text-muted-foreground blur-[3px] select-none line-clamp-3">
-              {sampleAction.draft}
+      {/* ── Sample action — blur-locked with real title visible ─────────── */}
+      <div
+        className="relative overflow-hidden rounded-xl border"
+        style={{ borderColor: "oklch(1 0 0 / 0.09)" }}
+      >
+        <div
+          className="select-none space-y-2 p-5"
+          style={{ background: "var(--color-surface)" }}
+          aria-hidden="true"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <p
+              className="text-sm font-medium leading-snug blur-[4px]"
+              style={{ color: "var(--color-fg)" }}
+            >
+              {sampleAction.title}
             </p>
-          </CardContent>
-        </Card>
-        <div className="absolute inset-0 flex items-center justify-center bg-background/40 backdrop-blur-[1px]">
-          <Badge variant="secondary" className="gap-1 text-xs">
-            <span>🔒</span>
-            <span>Unlock with your full report</span>
-          </Badge>
+            <span
+              className="rounded-full border px-2 py-0.5 font-mono text-xs blur-[3px]"
+              style={{
+                borderColor: "oklch(1 0 0 / 0.09)",
+                color: "var(--color-muted)",
+              }}
+            >
+              {categoryLabel(sampleAction.category)}
+            </span>
+          </div>
+          <p
+            className="text-xs leading-relaxed blur-[4px]"
+            style={{ color: "var(--color-muted)" }}
+          >
+            {sampleAction.why}
+          </p>
+          <p
+            className="mt-2 rounded-lg px-3 py-2 font-mono text-xs leading-relaxed blur-[4px] line-clamp-3"
+            style={{
+              background: "oklch(1 0 0 / 0.04)",
+              color: "var(--color-muted)",
+            }}
+          >
+            {sampleAction.draft}
+          </p>
+        </div>
+        <div className="absolute inset-0 flex items-center justify-center backdrop-blur-[2px]">
+          <div
+            className="flex items-center gap-2 rounded-full border px-3 py-1.5"
+            style={{
+              borderColor: "oklch(1 0 0 / 0.12)",
+              background: "oklch(0.085 0 0 / 0.85)",
+            }}
+          >
+            <LockIcon />
+            <span
+              className="text-xs font-medium"
+              style={{ color: "var(--color-fg)" }}
+            >
+              Unlock with your report
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Email gate — moment 4 */}
-      <Card className="border-primary/20 ring-primary/20">
-        <CardHeader>
-          <CardTitle>Get your full discoverability report</CardTitle>
-          <CardDescription>
-            Unlock all findings +{" "}
+      {/* ── Moment 4: Email gate ─────────────────────────────────────────── */}
+      <div
+        className="rounded-xl border p-6"
+        style={{
+          borderColor: "var(--color-accent-900)",
+          background:
+            "linear-gradient(135deg, var(--color-surface) 0%, oklch(0.145 0.02 255) 100%)",
+        }}
+      >
+        <div className="mb-5 space-y-1.5">
+          <h2
+            className="text-base font-semibold"
+            style={{ color: "var(--color-fg)" }}
+          >
+            Get your full discoverability report
+          </h2>
+          <p className="text-sm" style={{ color: "var(--color-muted)" }}>
+            Unlock all{" "}
             {restFindings.length > 0
-              ? `${restFindings.length} more`
-              : "personalised"}{" "}
-            action steps — no credit card, one click.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <EmailGate scanId={scanId} />
-        </CardContent>
-      </Card>
+              ? `${restFindings.length + 1} findings`
+              : "findings"}{" "}
+            + personalised action steps — one magic link, no password.
+          </p>
+        </div>
+        <EmailGate scanId={scanId} />
+      </div>
     </div>
   );
 }

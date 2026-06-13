@@ -11,7 +11,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  return buildMetadata({ title: `Scan ${id}`, path: `/scan/${id}` });
+  return buildMetadata({ title: `Scanning your product…`, path: `/scan/${id}` });
 }
 
 export default async function ScanPage({
@@ -21,7 +21,7 @@ export default async function ScanPage({
 }) {
   const { id } = await params;
   return (
-    <main className="mx-auto max-w-2xl p-8">
+    <main className="min-h-dvh" style={{ background: "var(--color-bg)" }}>
       {id === "_placeholder" ? null : <ScanStream id={id} />}
     </main>
   );

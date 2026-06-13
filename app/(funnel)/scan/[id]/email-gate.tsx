@@ -53,34 +53,72 @@ export function EmailGate({ scanId }: EmailGateProps) {
     }
   }
 
+  // ── Sent state — confirmation + resend / change email ──────────────────────
   if (gateState.status === "sent") {
     return (
-      <div className="space-y-3 text-center">
-        <p className="text-base font-medium text-foreground">
-          Check your email — we sent a magic link to{" "}
-          <span className="text-primary">{gateState.email}</span>
-        </p>
-        <p className="text-sm text-muted-foreground">
-          Click the link to unlock your full discoverability report.
-        </p>
-        <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
+      <div className="space-y-4">
+        {/* Success message */}
+        <div
+          className="flex items-start gap-3 rounded-xl border px-4 py-3"
+          style={{
+            borderColor: "var(--color-success-subtle)",
+            background: "var(--color-success-subtle)",
+          }}
+        >
+          <CheckIcon />
+          <div className="space-y-0.5">
+            <p
+              className="text-sm font-medium"
+              style={{ color: "var(--color-fg)" }}
+            >
+              Magic link sent
+            </p>
+            <p className="text-xs" style={{ color: "var(--color-muted)" }}>
+              Check{" "}
+              <span style={{ color: "var(--color-accent-400)" }}>
+                {gateState.email}
+              </span>{" "}
+              — click the link to unlock your full report.
+            </p>
+          </div>
+        </div>
+
+        {/* Resend + change email */}
+        <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
-            className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground transition-colors"
-            onClick={() => submit(gateState.email)}
+            className="text-xs underline underline-offset-4 transition-colors"
+            style={{ color: "var(--color-muted)" }}
+            onMouseEnter={(e) =>
+              ((e.currentTarget as HTMLButtonElement).style.color =
+                "var(--color-fg)")
+            }
+            onMouseLeave={(e) =>
+              ((e.currentTarget as HTMLButtonElement).style.color =
+                "var(--color-muted)")
+            }
+            onClick={() => void submit(gateState.email)}
           >
             Resend email
           </button>
-          <span className="text-muted-foreground/40" aria-hidden>
+          <span style={{ color: "oklch(1 0 0 / 0.2)" }} aria-hidden>
             ·
           </span>
           <button
             type="button"
-            className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground transition-colors"
+            className="text-xs underline underline-offset-4 transition-colors"
+            style={{ color: "var(--color-muted)" }}
+            onMouseEnter={(e) =>
+              ((e.currentTarget as HTMLButtonElement).style.color =
+                "var(--color-fg)")
+            }
+            onMouseLeave={(e) =>
+              ((e.currentTarget as HTMLButtonElement).style.color =
+                "var(--color-muted)")
+            }
             onClick={() => {
               setEmail("");
               setGateState({ status: "idle" });
-              // Defer so the input re-renders before we focus
               setTimeout(() => inputRef.current?.focus(), 0);
             }}
           >
@@ -91,6 +129,7 @@ export function EmailGate({ scanId }: EmailGateProps) {
     );
   }
 
+  // ── Default: ONE email field + send button ─────────────────────────────────
   return (
     <form
       className="flex flex-col gap-3 sm:flex-row sm:items-start"
@@ -99,7 +138,7 @@ export function EmailGate({ scanId }: EmailGateProps) {
         if (email.trim()) void submit(email.trim());
       }}
     >
-      <div className="flex-1 space-y-1">
+      <div className="flex-1 space-y-1.5">
         <Input
           ref={inputRef}
           type="email"
@@ -113,11 +152,17 @@ export function EmailGate({ scanId }: EmailGateProps) {
           }}
           aria-label="Your email address"
           aria-invalid={gateState.status === "error" || undefined}
+          aria-describedby={
+            gateState.status === "error" ? "email-gate-error" : undefined
+          }
           disabled={gateState.status === "loading"}
-          className="h-9 text-sm"
         />
         {gateState.status === "error" && (
-          <p className="text-xs text-destructive" role="alert">
+          <p
+            id="email-gate-error"
+            className="text-xs text-destructive"
+            role="alert"
+          >
             {gateState.message}
           </p>
         )}
@@ -128,8 +173,67 @@ export function EmailGate({ scanId }: EmailGateProps) {
         disabled={gateState.status === "loading" || !email.trim()}
         className="shrink-0"
       >
-        {gateState.status === "loading" ? "Sending…" : "Send my full report"}
+        {gateState.status === "loading" ? (
+          <span className="flex items-center gap-2">
+            <SpinnerIcon />
+            Sending…
+          </span>
+        ) : (
+          "Send my full report →"
+        )}
       </Button>
     </form>
+  );
+}
+
+// ── Inline SVG icons ──────────────────────────────────────────────────────────
+
+function CheckIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+      aria-hidden="true"
+      className="mt-0.5 shrink-0"
+    >
+      <circle cx="8" cy="8" r="7" fill="oklch(0.72 0.17 155 / 0.2)" />
+      <path
+        d="M5 8l2 2 4-4"
+        stroke="oklch(0.72 0.17 155)"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function SpinnerIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 14 14"
+      fill="none"
+      aria-hidden="true"
+      className="animate-spin"
+    >
+      <circle
+        cx="7"
+        cy="7"
+        r="5.5"
+        stroke="currentColor"
+        strokeOpacity="0.3"
+        strokeWidth="2"
+      />
+      <path
+        d="M12.5 7a5.5 5.5 0 0 0-5.5-5.5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
   );
 }

@@ -69,10 +69,9 @@ export function ScanInput() {
   return (
     <form
       onSubmit={(e) => void handleSubmit(e)}
-      className="flex w-full flex-col gap-3 sm:flex-row sm:items-start"
+      className="flex w-full flex-col gap-3"
     >
-      <div className="flex-1 space-y-1">
-        {/* Input styled to match shadcn Input via CSS custom properties */}
+      <div className="flex-1 space-y-1.5">
         <input
           ref={inputRef}
           type="url"
@@ -86,39 +85,87 @@ export function ScanInput() {
           }}
           aria-label="App Store URL or website"
           aria-invalid={state.status === "error" || undefined}
+          aria-describedby={state.status === "error" ? "scan-error" : undefined}
           disabled={isLoading}
           className={[
-            "h-11 w-full min-w-0 rounded-lg border border-input bg-input/30 px-3 py-2 text-base",
-            "text-foreground placeholder:text-muted-foreground outline-none transition-colors",
+            // Height + layout
+            "h-12 w-full min-w-0 rounded-xl border px-4 py-2 text-base",
+            // Colour
+            "bg-[oklch(1_0_0/0.04)] text-foreground placeholder:text-muted-foreground/60",
+            // Focus
+            "outline-none transition-colors duration-150",
             "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+            // States
             "disabled:pointer-events-none disabled:opacity-50",
             state.status === "error"
-              ? "border-destructive ring-3 ring-destructive/20"
-              : "",
+              ? "border-destructive/60 ring-3 ring-destructive/20"
+              : "border-[oklch(1_0_0/0.10)]",
           ]
             .filter(Boolean)
             .join(" ")}
         />
         {state.status === "error" && (
-          <p className="text-xs text-destructive" role="alert">
+          <p id="scan-error" className="text-xs text-destructive" role="alert">
             {state.message}
           </p>
         )}
       </div>
-      {/* Button styled to match shadcn Button (default variant, lg size) */}
+
+      {/* CTA — full-width on mobile, prominent */}
       <button
         type="submit"
         disabled={isLoading || !url.trim()}
         className={[
-          "h-11 shrink-0 rounded-lg border border-transparent bg-primary px-6 text-sm font-medium",
-          "text-primary-foreground outline-none transition-all select-none whitespace-nowrap",
-          "hover:bg-primary/80 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+          // Layout + shape
+          "h-12 w-full rounded-xl border border-transparent px-6 text-sm font-semibold",
+          // Colours — accent fill
+          "bg-primary text-primary-foreground outline-none",
+          // Motion
+          "transition-all duration-150 select-none",
+          "hover:bg-primary/85 active:scale-[0.98] active:translate-y-px",
+          "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+          // Disabled
           "disabled:pointer-events-none disabled:opacity-50",
-          "active:translate-y-px",
         ].join(" ")}
       >
-        {isLoading ? "Starting scan…" : "Scan my product"}
+        {isLoading ? (
+          <span className="flex items-center justify-center gap-2">
+            <LoadingSpinner />
+            Starting scan…
+          </span>
+        ) : (
+          "Scan my product →"
+        )}
       </button>
     </form>
+  );
+}
+
+// Inline SVG spinner — zero extra bytes, no import needed
+function LoadingSpinner() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 14 14"
+      fill="none"
+      aria-hidden="true"
+      className="animate-spin"
+    >
+      <circle
+        cx="7"
+        cy="7"
+        r="5.5"
+        stroke="currentColor"
+        strokeOpacity="0.3"
+        strokeWidth="2"
+      />
+      <path
+        d="M12.5 7a5.5 5.5 0 0 0-5.5-5.5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
   );
 }
