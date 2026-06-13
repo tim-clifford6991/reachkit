@@ -122,10 +122,8 @@
 - [ ] `weeklyStreak(appId): Promise<number>` (consecutive weeks with ≥3 verified actions, from `outcomes`/`actions`); `scoreHistory(appId): Promise<{ taken_at, total }[]>` (from `score_snapshots`); `installsHonestyNote(appId)` (§7.2 rule 5 — flag score-up-while-installs-flat). Pure-ish reads; TDD streak boundaries.
 - [ ] **Commit** `feat: weekly streak + score history + anti-vanity honesty note`.
 
-### Task 16: share badge + OG score-card (growth loop)
-**Files:** `app/report/[slug]/opengraph-image.tsx`, `lib/badge/score-card.ts` (+ test), modify `app/report/[slug]/page.tsx` (badge embed snippet).
-- [ ] Dynamic OG score-card via Next `ImageResponse` (score + radar summary + anti-vanity caption) as the `/report/[slug]` OG image — every social share is a landing page (§22 growth loop). Add a copy-paste "Add to your site/README" badge snippet on the public report that links back to `/report/[slug]`. Anti-vanity caption (no inflated claims). Test the score-card data builder (pure) + that the route renders.
-- [ ] **Commit** `feat: shareable score-card OG image + report badge embed (growth loop)`.
+### Task 16: share badge + OG score-card → **MOVED to Milestone E (Task 21)**
+> Per the "build the visual once, on the design system" decision (Tim), the shareable OG score-card (Next `ImageResponse`) + the report badge embed are a visual artifact → built in **Milestone E** after the §18 design foundation, so they match the final brand and are never restyled. The engagement DATA they render (score history, streak, honesty note) ships here in Task 15 (headless).
 
 ---
 
@@ -158,10 +156,10 @@
 - [ ] Persistent sidebar (four questions + Score + Feed + Settings + Billing), View-Transitions content swap, `<Activity>` tab-state preservation, and **one** polished `report-view` component shared free/paid (free blur-lock / paid unlock via `redactReportForTier`, Task 6) — one layout, the upgrade delta visible by construction. Auth-gated.
 - [ ] **Commit** `feat: polished app shell + four-question dashboard (§21.3, one free/paid report layout)`.
 
-### Task 21: Plays + billing + engagement UI + the upgrade moment (§23 moments 6–7)
-**Files:** `app/(app)/app/{plays,billing,feed}/*`, `app/(marketing)/pricing/*`, `components/report/*` (engagement + badge), modify the report paywall CTA.
-- [ ] Polished plays queue (tick-off → `/api/action/[id]/complete`), billing page (checkout/portal buttons), engagement surface (streak, score-history chart, share-badge embed), pricing page, and the §23 moment-7 upgrade flow (paywall "turn your report into an engine — $29/mo" → checkout → `/app` with the first week's plays pre-loaded).
-- [ ] **Commit** `feat: polished plays/billing/engagement UI + upgrade moment (§23 moments 6–7)`.
+### Task 21: Plays + billing + engagement UI + share badge + the upgrade moment (§23 moments 6–7)
+**Files:** `app/(app)/app/{plays,billing,feed}/*`, `app/(marketing)/pricing/*`, `components/report/*` (engagement), `app/report/[slug]/opengraph-image.tsx` + `lib/badge/score-card.ts` (the OG card, moved from Task 16), modify `app/report/[slug]/page.tsx` (badge embed) + the report paywall CTA.
+- [ ] Polished plays queue (tick-off → `/api/action/[id]/complete`), billing page (checkout/portal buttons), engagement surface (streak, score-history chart) rendering the Task-15 data, the §23 moment-7 upgrade flow (paywall "turn your report into an engine — $29/mo" → checkout → `/app` with the first week's plays pre-loaded), the pricing page, AND the **dynamic OG score-card** (Next `ImageResponse`: score + radar + anti-vanity caption) as the `/report/[slug]` OG image + a copy-paste "Add to your site/README" badge snippet (§22 growth loop) — styled to the §18 design system so it ships final.
+- [ ] **Commit** `feat: polished plays/billing/engagement UI + share badge + upgrade moment (§23 moments 6–7)`.
 
 ---
 
