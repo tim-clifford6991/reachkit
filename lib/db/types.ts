@@ -18,9 +18,9 @@ export type Database = {
       graphql: {
         Args: {
           operationName?: string
-          extensions?: Json
-          variables?: Json
           query?: string
+          variables?: Json
+          extensions?: Json
         }
         Returns: Json
       }
@@ -718,14 +718,14 @@ export type Database = {
       }
       match_embeddings: {
         Args: {
-          p_app_id?: string
-          p_subject_type?: string
-          match_count: number
           query: string
+          match_count: number
+          p_subject_type?: string
+          p_app_id?: string
         }
         Returns: {
-          similarity: number
           content: string
+          similarity: number
         }[]
       }
       sparsevec_out: {

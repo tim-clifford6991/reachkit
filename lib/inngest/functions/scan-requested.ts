@@ -4,6 +4,7 @@ import { env } from "@/lib/config/env";
 import { ScanBudget } from "@/lib/tools/registry";
 import { runCollect } from "@/lib/scan/pipeline";
 import { runFindings } from "@/lib/scan/findings-pipeline";
+import { runFullScan } from "@/lib/scan/full-scan";
 import { emitScanEvent } from "@/lib/scan/progress";
 import type { Json } from "@/lib/db/types";
 
@@ -126,7 +127,44 @@ export const scanRequested = inngest.createFunction(
       );
     });
 
-    // Step 3: done — emit done event and mark scan complete
+    // Step 3: full-scan — heavy collect + actions + Critic + verified score + report.
+    // Reconstructs the ScanContext from the DB (Inngest replays steps, so closures
+    // from earlier step bodies are not reliable); `facts` is the memoized collect result.
+    await step.run("full-scan", async () => {
+      const db = serverDb();
+
+      const { data: scanRow, error: scanErr } = await db
+        .from("scans")
+        .select("id, app_id, apps(store_url, platform)")
+        .eq("id", scanId)
+        .single();
+
+      if (scanErr) throw scanErr;
+      if (!scanRow) throw new Error(`scan ${scanId} not found`);
+
+      const appsRaw = scanRow.apps;
+      if (!appsRaw) throw new Error(`scan ${scanId} has no linked app`);
+
+      const app = appsRaw as unknown as { store_url: string; platform: "ios" | "android" | "web" };
+
+      const budget = new ScanBudget({
+        maxToolCalls: 60,
+        budgetCents: env.scanBudgetCents,
+      });
+
+      await runFullScan(
+        {
+          scanId,
+          appId: scanRow.app_id,
+          mode: app.platform,
+          storeUrl: app.store_url,
+          budget,
+        },
+        facts,
+      );
+    });
+
+    // Step 4: done — emit done event and mark scan complete
     await step.run("done", async () => {
       await emitScanEvent(scanId, "done", { scanId });
 

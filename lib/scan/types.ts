@@ -18,5 +18,5 @@ export interface PreliminaryFacts {
   sourcesUsed: string[];
 }
 export interface Creator { name: string; url: string; audienceProxy: number; coveredCompetitor: string; }
-export type ScanEventType = "artifact" | "facts" | "findings" | "done" | "error";
+export type ScanEventType = "artifact" | "facts" | "findings" | "report" | "done" | "error";
 export interface ScanEvent { type: ScanEventType; payload: Record<string, unknown>; }
