@@ -274,6 +274,59 @@ describe("algorithmSafety — per-surface dedup", () => {
     const outreachResult = result.filter((c) => c.category === "outreach");
     expect(outreachResult).toHaveLength(2);
   });
+
+  // Regression (whole-cycle review #1): the per-surface cap must key off REAL
+  // surface hosts (URLs) only. Two cards targeting DISTINCT real surfaces that
+  // merely share a non-URL provenance label (e.g. "review_themes") must BOTH
+  // survive — previously extractHost() treated the label as a host, collapsing
+  // them and silently dropping a whole action category.
+  test("two outreach actions with distinct URLs sharing a provenance label both survive", async () => {
+    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => true }));
+    vi.doMock("@/lib/llm/embed", () => ({
+      callEmbed: vi.fn().mockResolvedValue([]),
+    }));
+    vi.doMock("@/lib/scan/embeddings", () => ({
+      insertEmbeddings: vi.fn().mockResolvedValue(undefined),
+      deleteEmbeddingsForApp: vi.fn().mockResolvedValue(undefined),
+      searchSimilar: vi.fn().mockResolvedValue([]),
+    }));
+    vi.doMock("@/lib/llm/anthropic", () => ({
+      callModel: vi.fn(),
+    }));
+
+    const { algorithmSafety } = await import("./algorithm-safety");
+    const ctx = await makeScanCtx();
+
+    // Both cards cite "review_themes" (a fact-sheet provenance label, NOT a surface)
+    // but target distinct real surfaces (Reddit vs Hacker News).
+    const cardA = card({
+      category: "outreach",
+      title: "Reddit outreach",
+      confidence: 0.85,
+      draft: "Specific r/habittracking post about our streak retention numbers.",
+      evidence: [
+        { excerpt: "r/habittracking thread", source: "https://reddit.com/r/habittracking", sourceType: "communities" },
+        { excerpt: "the streak feature keeps me going", source: "review_themes", sourceType: "app_store_rss" },
+      ],
+    });
+    const cardB = card({
+      category: "outreach",
+      title: "HN outreach",
+      confidence: 0.75,
+      draft: "Specific Show HN post about the anti-dashboard angle.",
+      evidence: [
+        { excerpt: "Show HN thread", source: "https://news.ycombinator.com/item?id=789", sourceType: "communities" },
+        { excerpt: "the streak feature keeps me going", source: "review_themes", sourceType: "app_store_rss" },
+      ],
+    });
+
+    const result = await algorithmSafety(ctx, [cardA, cardB]);
+    const outreach = result.filter((c) => c.category === "outreach");
+    expect(outreach).toHaveLength(2);
+    const titles = outreach.map((c) => c.title);
+    expect(titles).toContain("Reddit outreach");
+    expect(titles).toContain("HN outreach");
+  });
 });
 
 // ---------------------------------------------------------------------------

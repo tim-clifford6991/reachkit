@@ -52,6 +52,36 @@ test("non-fixture: emails.send is called with correct from/to/subject/body", asy
 });
 
 // ---------------------------------------------------------------------------
+// Non-fixture mode: a malicious appName is HTML-escaped in the html body
+// ---------------------------------------------------------------------------
+
+test("non-fixture: appName is HTML-escaped in the html body (no injection)", async () => {
+  vi.resetModules();
+
+  const sendMock = vi.fn().mockResolvedValue({ data: { id: "msg_1" }, error: null });
+
+  vi.doMock("resend", () => {
+    class MockResend {
+      emails = { send: sendMock };
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      constructor(_key: string) {}
+    }
+    return { Resend: MockResend };
+  });
+  vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
+  vi.doMock("@/lib/config/env", () => ({
+    env: { resendApiKey: "test-resend-key", appUrl: "http://localhost:3000" },
+  }));
+
+  const { sendScanReadyEmail } = await import("./resend");
+  await sendScanReadyEmail({ ...OPTS, appName: '<img src=x onerror="alert(1)">' });
+
+  const payload = (sendMock.mock.calls[0] as [Record<string, string>] | undefined)?.[0];
+  expect(payload?.["html"]).not.toContain("<img src=x");
+  expect(payload?.["html"]).toContain("&lt;img src=x");
+});
+
+// ---------------------------------------------------------------------------
 // Non-fixture mode: returned error → rejects
 // ---------------------------------------------------------------------------
 

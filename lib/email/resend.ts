@@ -4,6 +4,17 @@ import { fixturesEnabled } from "@/lib/dev/fixtures";
 
 const FROM = "ReachKit <reports@reachkit.app>";
 
+/** Escape a string for safe interpolation into HTML (appName originates from a
+ *  scraped store listing, so it must never be trusted in the HTML body). */
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 export function resendClient() {
   return new Resend(env.resendApiKey);
 }
@@ -32,8 +43,9 @@ export async function sendScanReadyEmail({
     "",
     "— The ReachKit team",
   ].join("\n");
+  const safeAppName = escapeHtml(appName);
   const html = [
-    `<h2>Your ReachKit scan for ${appName} is ready</h2>`,
+    `<h2>Your ReachKit scan for ${safeAppName} is ready</h2>`,
     `<p>Your full scan report is available. Click the link below to view it.</p>`,
     `<p><a href="${reportUrl}">${reportUrl}</a></p>`,
     `<p>— The ReachKit team</p>`,

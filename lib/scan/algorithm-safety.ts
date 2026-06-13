@@ -300,12 +300,16 @@ function applyOutreachCap(cards: ActionCard[]): ActionCard[] {
 // (4) Cadence caps — 1 action per distinct evidence source host (outreach/content)
 // ---------------------------------------------------------------------------
 
-function extractHost(source: string): string {
+function extractHost(source: string): string | null {
   try {
     return new URL(source).hostname;
   } catch {
-    // Not a URL — use the source as-is (internal identifiers)
-    return source;
+    // Not a URL (e.g. a fact-sheet provenance label like "review_themes") — this is
+    // NOT a real outreach/content surface, so it must not participate in the §11
+    // per-surface cadence cap. Otherwise unrelated cards that merely cite the same
+    // provenance label collapse, silently dropping a whole action category. Treat
+    // as "no surface".
+    return null;
   }
 }
 
@@ -322,9 +326,15 @@ function applyPerSurfaceCap(cards: ActionCard[]): ActionCard[] {
       continue;
     }
 
-    // Collect all distinct hosts from this card's evidence
+    // Collect all distinct REAL surface hosts (URL hostnames) from this card's
+    // evidence. Non-URL provenance labels return null and are excluded — they are
+    // not surfaces and must not trigger the cadence cap.
     const cardHosts = Array.from(
-      new Set(card.evidence.map((ev) => extractHost(ev.source))),
+      new Set(
+        card.evidence
+          .map((ev) => extractHost(ev.source))
+          .filter((h): h is string => h !== null),
+      ),
     );
 
     // A card is allowed through only if NONE of its source hosts is already seen
