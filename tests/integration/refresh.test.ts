@@ -392,3 +392,129 @@ test(
   },
   60_000,
 );
+
+// ---------------------------------------------------------------------------
+// 4. Sonnet cost-brake — the load-bearing 90%-margin guarantee
+//
+// In NON-fixture mode (so the real novelty path runs), force a non-empty delta
+// (collectDeltas mocked) and control the novelty gate's similarity via a mocked
+// callEmbed + searchSimilar. The refresh's Sonnet synth is the ONLY callModel
+// site with stage:"synth", so we can prove escalation purely from the spy:
+//   - max similarity >= 0.85 (NON-novel) ⇒ NO stage:"synth" call (Haiku digest
+//     only; the brake holds).
+//   - max similarity <  0.85 (novel)     ⇒ exactly one stage:"synth" Sonnet call.
+// ---------------------------------------------------------------------------
+
+const SONNET_MODEL = "claude-sonnet-4-6";
+
+interface ModelCallArgs {
+  model: string;
+  stage: string;
+}
+
+/**
+ * Run runWeeklyRefresh in non-fixture mode with a forced non-empty review delta,
+ * the novelty search pinned to `simToExisting`, and callModel spied. Returns the
+ * spy so the caller can assert on the synth stage. Stubs the collectors and all
+ * model/embed calls so nothing hits a real API.
+ */
+async function runRefreshWithForcedNovelty(
+  simToExisting: number,
+): Promise<{ modelSpy: ReturnType<typeof vi.fn>; appId: string }> {
+  vi.resetModules();
+  // NON-fixtures so markNovelty/synthNovelFindings take the real (mocked-call)
+  // path rather than the fixture short-circuit.
+  vi.stubEnv("REACHKIT_USE_FIXTURES", "false");
+
+  // Force a non-empty delta regardless of the (real) adapters: collectDeltas is
+  // the cheap watermark-scoped collector; in non-fixture mode it would otherwise
+  // call live sources and almost certainly return empty (→ no-op, no escalation).
+  vi.doMock("@/lib/scan/delta-collect", () => ({
+    collectDeltas: vi.fn(async () => [
+      {
+        kind: "reviews",
+        items: [{ id: "rk-new-1", rating: 2, text: "crashes on launch after the latest update" }],
+        newWatermark: { lastReviewId: "rk-new-1" },
+      },
+    ]),
+  }));
+
+  // Deterministic embeddings (shape only matters; similarity is pinned below).
+  vi.doMock("@/lib/llm/embed", () => ({
+    callEmbed: vi.fn(async (texts: string[]) => texts.map(() => [0.1, 0.2, 0.3])),
+  }));
+
+  // Pin the novelty gate's comparison: searchSimilar returns a single match at the
+  // requested similarity. insertEmbeddings stays a no-op (no pgvector write needed).
+  vi.doMock("@/lib/scan/embeddings", () => ({
+    searchSimilar: vi.fn(async () => [{ content: "prior finding", similarity: simToExisting }]),
+    insertEmbeddings: vi.fn(async () => {}),
+    deleteEmbeddingsForApp: vi.fn(async () => {}),
+  }));
+
+  // Spy on every model call. The synth (Sonnet) call is the escalation under test;
+  // it returns one valid finding so the novel path is exercised end-to-end.
+  const modelSpy = vi.fn(async (args: ModelCallArgs) => {
+    if (args.stage === "synth") {
+      return {
+        text: JSON.stringify([
+          {
+            category: "content",
+            claim: "Address the post-update launch crash that new 2-star reviews call out.",
+            basis: "evidence_based",
+            confidence: 0.8,
+            evidence: [{ excerpt: "crashes on launch after the latest update", source: "reviews" }],
+          },
+        ]),
+        usage: { inputTokens: 1, outputTokens: 1 },
+      };
+    }
+    // Haiku digest / actions (format) and the Critic (critic) return harmless text.
+    return { text: "one new 2-star review reports a crash on launch.", usage: { inputTokens: 1, outputTokens: 1 } };
+  });
+  vi.doMock("@/lib/llm/anthropic", () => ({ callModel: modelSpy }));
+
+  const { runWeeklyRefresh } = await import("@/lib/scan/refresh");
+
+  const storeUrl = `https://apps.apple.com/us/app/habitkit/id${Date.now()}-brake-${Math.round(simToExisting * 100)}`;
+  const ctx = await seedAppAndScan(storeUrl, staleWatermarks());
+
+  await runWeeklyRefresh(ctx, { weekOf: "2026-06-08" });
+  return { modelSpy, appId: ctx.appId };
+}
+
+function synthCalls(spy: ReturnType<typeof vi.fn>): ModelCallArgs[] {
+  return spy.mock.calls
+    .map((c) => c[0] as ModelCallArgs)
+    .filter((a) => a.stage === "synth");
+}
+
+test(
+  "Sonnet cost-brake: a NON-novel delta (sim >= 0.85) does NOT invoke the Sonnet synth (Haiku digest only)",
+  async () => {
+    const { modelSpy } = await runRefreshWithForcedNovelty(0.9);
+
+    // The brake: no stage:"synth" escalation for a near-duplicate delta.
+    expect(synthCalls(modelSpy)).toHaveLength(0);
+    // But the Haiku "what changed" digest (stage:"format") still ran — the delta
+    // wasn't silently dropped, it just didn't escalate.
+    const formatCalls = modelSpy.mock.calls
+      .map((c) => c[0] as ModelCallArgs)
+      .filter((a) => a.stage === "format");
+    expect(formatCalls.length).toBeGreaterThanOrEqual(1);
+  },
+  60_000,
+);
+
+test(
+  "Sonnet cost-brake (inverse): a novel delta (sim < 0.85) DOES invoke the Sonnet synth exactly once",
+  async () => {
+    const { modelSpy } = await runRefreshWithForcedNovelty(0.4);
+
+    const synth = synthCalls(modelSpy);
+    expect(synth).toHaveLength(1);
+    // And it escalated to Sonnet specifically (not Haiku).
+    expect(synth[0]!.model).toBe(SONNET_MODEL);
+  },
+  60_000,
+);

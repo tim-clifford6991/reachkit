@@ -274,6 +274,7 @@ async function digestKind(ctx: ScanContext, delta: DeltaResult): Promise<string>
 // ---------------------------------------------------------------------------
 
 async function markNovelty(
+  ctx: ScanContext,
   changes: { kind: MonitorKind; summary: string }[],
 ): Promise<RefreshChange[]> {
   if (changes.length === 0) return [];
@@ -299,7 +300,15 @@ async function markNovelty(
 
     let maxSim = 0;
     try {
-      const matches = await searchSimilar(vec, { subjectType: "finding", k: 3 });
+      // Scope the search to THIS app's prior findings (p_app_id). Without the
+      // appId filter the novelty gate would compare against every app's finding
+      // embeddings, so another customer's similar finding could mark this app's
+      // delta as non-novel and wrongly suppress the Sonnet escalation (lost signal).
+      const matches = await searchSimilar(vec, {
+        subjectType: "finding",
+        appId: ctx.appId,
+        k: 3,
+      });
       for (const m of matches) if (m.similarity > maxSim) maxSim = m.similarity;
     } catch {
       // Search failed — no comparison set available → treat as novel.
@@ -649,8 +658,8 @@ export async function runWeeklyRefresh(
       nonEmpty.map(async (d) => ({ kind: d.kind, summary: await digestKind(ctx, d) })),
     );
 
-    // 4. Novelty gate (the Sonnet brake).
-    const changes = await markNovelty(digests);
+    // 4. Novelty gate (the Sonnet brake). Scoped to THIS app's prior findings.
+    const changes = await markNovelty(ctx, digests);
     const novel = changes.filter((c) => c.novel);
 
     // 5. Escalate to Sonnet ONLY for novel deltas.

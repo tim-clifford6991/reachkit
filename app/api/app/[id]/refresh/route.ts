@@ -5,6 +5,7 @@ import { serverDb } from "@/lib/db/client";
 import { env } from "@/lib/config/env";
 import { ScanBudget } from "@/lib/tools/registry";
 import { runWeeklyRefresh } from "@/lib/scan/refresh";
+import { isoWeekStart } from "@/lib/inngest/functions/weekly-refresh";
 import type { ScanContext } from "@/lib/scan/pipeline";
 
 type Platform = ScanContext["mode"];
@@ -71,6 +72,26 @@ export async function POST(
   }
   if (!app || !isPlatform(app.platform)) {
     return NextResponse.json({ error: "app not found" }, { status: 404 });
+  }
+
+  // 4a. Once-per-week guard (same as the cron): if a score_snapshots row already
+  // exists for this app within the current ISO week, the refresh already ran —
+  // skip WITHOUT calling runWeeklyRefresh so a paid owner hammering this endpoint
+  // can't re-spend Haiku/Sonnet or write duplicate snapshots. (The user still sees
+  // this week's data via the queue API.)
+  const weekStart = isoWeekStart(new Date());
+  const { data: snap, error: snapErr } = await db
+    .from("score_snapshots")
+    .select("id")
+    .eq("app_id", appId)
+    .gte("taken_at", weekStart)
+    .limit(1)
+    .maybeSingle();
+  if (snapErr) {
+    return NextResponse.json({ error: "failed to check refresh state" }, { status: 500 });
+  }
+  if (snap) {
+    return NextResponse.json({ skipped: true, reason: "already refreshed this week" });
   }
 
   const { data: scanRow, error: scanErr } = await db
