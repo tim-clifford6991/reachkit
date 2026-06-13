@@ -18,5 +18,16 @@ export interface PreliminaryFacts {
   sourcesUsed: string[];
 }
 export interface Creator { name: string; url: string; audienceProxy: number; coveredCompetitor: string; }
+
+// Monitors (Cycle 4 Task 7): one row per (app_id, kind); `watermark` (jsonb)
+// holds the per-kind marker the weekly delta refresh advances on each run.
+export type MonitorKind = "reviews" | "rank" | "threads" | "competitors";
+export interface WatermarkBody {
+  lastReviewId?: string | null;      // reviews monitor
+  topRanks?: Record<string, number>; // rank monitor: keyword -> position
+  lastThreadAt?: string | null;      // threads monitor (ISO)
+  knownCompetitors?: string[];       // competitors monitor (names)
+}
+
 export type ScanEventType = "artifact" | "facts" | "findings" | "report" | "done" | "error";
 export interface ScanEvent { type: ScanEventType; payload: Record<string, unknown>; }

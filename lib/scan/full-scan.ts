@@ -15,7 +15,8 @@
  *   8. persistReport    — scans.report_payload
  *   9. persist actions  — idempotent (delete by scan_id, then insert the safe set)
  *  10. update score     — scans.score_total / score_breakdown
- *  11. emit "report"     — scan_event with the score + action count
+ *  11. seedMonitors     — seed the 4 weekly monitors (best-effort, idempotent)
+ *  12. emit "report"     — scan_event with the score + action count
  *
  * On any failure: emit an "error" scan_event and rethrow (so Inngest retries /
  * marks the run failed via onFailure).
@@ -33,6 +34,7 @@ import { runCriticGate } from "@/lib/llm/critic";
 import { algorithmSafety } from "@/lib/scan/algorithm-safety";
 import { gatherScoreComponents, verifiedScore } from "@/lib/scan/score-full";
 import { assembleReport, persistReport } from "@/lib/scan/report";
+import { seedMonitors } from "@/lib/scan/monitors";
 import { getFreshFactSheet, factSheetSubjectType } from "@/lib/scan/fact-sheets";
 import { emitScanEvent } from "@/lib/scan/progress";
 import type { ScanContext } from "@/lib/scan/pipeline";
@@ -263,7 +265,11 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
       .eq("id", ctx.scanId);
     if (scoreErr) throw scoreErr;
 
-    // 11. Emit the report event
+    // 11. Seed the weekly monitors (Cycle 4 Task 7) — best-effort & idempotent
+    //     (upsert on app_id,kind), so it can't break the scan or duplicate rows.
+    await seedMonitors(ctx, facts);
+
+    // 12. Emit the report event
     await emitScanEvent(ctx.scanId, "report", {
       score: score as unknown as Json,
       actionCount: safe.length,
