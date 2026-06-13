@@ -1,20 +1,23 @@
 /**
  * Unit tests for lib/eval/score.ts — pure, no DB, no async.
  *
- * Tests:
- *   - perfect input → score 1.0
- *   - missing finding category → lower findingsCoverage
- *   - missing keyword → lower findingsCoverage
- *   - too few actions → lower actionScore
- *   - evidence requirement fails → lower evidenceScore
- *   - out-of-band score.total → scorePlausible = 0
+ * The scorer is now PIPELINE-DRIVEN: coverage is judged against the SURVIVING
+ * safe actions (post-Critic + post-§11), NOT the fixture's static findings.
+ * These tests prove the new dimensions have teeth:
+ *   - perfect surviving-action input → all sub-scores 1.0
+ *   - a whole missing action category → categoryCoverage penalized + floor FAIL
+ *   - a dropped action (fewer survivors) → actionScore penalized
+ *   - keyword carried only by a dropped action → categoryCoverage penalized
+ *   - evidence requirement, scoreBand bounds, metadata passthrough
  */
 
 import { describe, expect, test } from "vitest";
 import { scoreFixture } from "./score";
 import type { ReportPayload } from "@/lib/scan/report";
-import type { ActionCard, Finding } from "@/lib/llm/types";
+import type { ActionCard } from "@/lib/llm/types";
 import type { GoldenRubric } from "@/lib/eval/types";
+
+type Category = "content" | "outreach" | "seo_aso";
 
 // ---------------------------------------------------------------------------
 // Helpers — minimal valid shapes
@@ -23,12 +26,12 @@ import type { GoldenRubric } from "@/lib/eval/types";
 function makeAction(overrides: Partial<ActionCard> = {}): ActionCard {
   return {
     category: "content",
-    title: "Test action",
-    why: "Because evidence says so",
+    title: "Add symptom tracker keyword to listing",
+    why: "Reviews cite correlation as the standout for chronic illness self-managers",
     evidenceIds: [],
     evidence: [
-      { excerpt: "excerpt one", source: "https://example.com/a", sourceType: "app_store_rss" },
-      { excerpt: "excerpt two", source: "https://example.com/b", sourceType: "dataforseo_serp" },
+      { excerpt: "symptom tracker is what i searched for", source: "https://example.com/a", sourceType: "app_store_rss" },
+      { excerpt: "correlation between sleep and chronic flares", source: "https://example.com/b", sourceType: "dataforseo_serp" },
     ],
     effortMin: 30,
     suggestedDeadline: "2026-07-01",
@@ -42,15 +45,22 @@ function makeAction(overrides: Partial<ActionCard> = {}): ActionCard {
   };
 }
 
-function makeFinding(overrides: Partial<Finding> = {}): Finding {
-  return {
-    category: "content",
-    claim: "The app store listing lacks the keyword 'symptom tracker' which drives 4,400 monthly searches.",
-    basis: "evidence_based",
-    confidence: 0.85,
-    evidence: [{ excerpt: "symptom tracker", source: "keyword_data" }],
-    ...overrides,
-  };
+/** A surviving action set that covers all 3 categories + both base keywords. */
+function fullCoverageActions(): ActionCard[] {
+  return [
+    makeAction({ category: "content", title: "content card", evidence: [
+      { excerpt: "symptom tracker keyword", source: "https://example.com/c", sourceType: "app_store_rss" },
+      { excerpt: "second", source: "https://example.com/c2", sourceType: "dataforseo_keywords" },
+    ] }),
+    makeAction({ category: "seo_aso", title: "seo card", why: "correlation aso", evidence: [
+      { excerpt: "correlation aso opportunity", source: "https://example.com/d", sourceType: "dataforseo_keywords" },
+      { excerpt: "second", source: "https://example.com/d2", sourceType: "dataforseo_serp" },
+    ] }),
+    makeAction({ category: "outreach", title: "outreach card", why: "community", evidence: [
+      { excerpt: "reach the community", source: "https://example.com/e", sourceType: "communities" },
+      { excerpt: "second", source: "https://example.com/e2", sourceType: "dataforseo_serp" },
+    ] }),
+  ];
 }
 
 function makeReport(scoreTotal: number): ReportPayload {
@@ -95,7 +105,7 @@ function makeReport(scoreTotal: number): ReportPayload {
 }
 
 const BASE_RUBRIC: GoldenRubric = {
-  expectedFindingCategories: ["content", "seo_aso", "outreach"],
+  expectedActiveCategories: ["content", "seo_aso", "outreach"],
   expectedKeywords: ["symptom tracker", "correlation"],
   minActions: 3,
   requireEvidence: true,
@@ -105,161 +115,197 @@ const BASE_RUBRIC: GoldenRubric = {
 const META = { candidateCount: 5, fixtureId: "test", appName: "TestApp" };
 
 // ---------------------------------------------------------------------------
-// Perfect input → 1.0
+// Perfect (surviving-action) input → 1.0
 // ---------------------------------------------------------------------------
 
-describe("scoreFixture — perfect input", () => {
-  test("all sub-scores are 1.0 and mean is 1.0", () => {
-    const findings: Finding[] = [
-      makeFinding({ category: "content", claim: "symptom tracker keyword missing in listing" }),
-      makeFinding({ category: "seo_aso", claim: "correlation features need ASO keywords" }),
-      makeFinding({ category: "outreach", claim: "outreach to chronic illness communities" }),
-    ];
-    const safeActions: ActionCard[] = [makeAction(), makeAction(), makeAction()];
-    const report = makeReport(15);
+describe("scoreFixture — perfect surviving-action input", () => {
+  test("all sub-scores are 1.0 and mean is 1.0, floor met", () => {
+    const result = scoreFixture(makeReport(15), fullCoverageActions(), BASE_RUBRIC, META);
 
-    const result = scoreFixture(report, safeActions, findings, BASE_RUBRIC, META);
-
-    expect(result.findingsCoverage).toBe(1);
+    expect(result.categoryCoverage).toBe(1);
     expect(result.actionScore).toBe(1);
     expect(result.evidenceScore).toBe(1);
     expect(result.scorePlausible).toBe(1);
     expect(result.score).toBe(1);
+    expect(result.categoryFloorMet).toBe(true);
+    expect(result.missingCategories).toEqual([]);
     expect(result.notes).toHaveLength(0);
   });
 });
 
 // ---------------------------------------------------------------------------
-// Missing finding category → lower findingsCoverage
+// Per-category floor — the §11-cap-zeroes-a-category regression catcher
 // ---------------------------------------------------------------------------
 
-describe("scoreFixture — missing finding categories", () => {
-  test("missing 'outreach' category reduces findingsCoverage", () => {
-    const findings: Finding[] = [
-      makeFinding({ category: "content", claim: "symptom tracker keyword missing" }),
-      makeFinding({ category: "seo_aso", claim: "correlation aso opportunity" }),
-      // no outreach finding
+describe("scoreFixture — per-category action floor", () => {
+  test("a whole missing category (no surviving outreach) → floor FAIL + categoryCoverage penalized", () => {
+    // content + seo_aso survive; outreach was dropped entirely by §11
+    const surviving: ActionCard[] = [
+      makeAction({ category: "content", evidence: [
+        { excerpt: "symptom tracker", source: "https://example.com/a", sourceType: "app_store_rss" },
+        { excerpt: "x", source: "https://example.com/a2", sourceType: "dataforseo_keywords" },
+      ] }),
+      makeAction({ category: "seo_aso", evidence: [
+        { excerpt: "correlation", source: "https://example.com/b", sourceType: "dataforseo_keywords" },
+        { excerpt: "x", source: "https://example.com/b2", sourceType: "dataforseo_serp" },
+      ] }),
     ];
-    const safeActions: ActionCard[] = [makeAction(), makeAction(), makeAction()];
-    const report = makeReport(15);
 
-    const result = scoreFixture(report, safeActions, findings, BASE_RUBRIC, META);
+    const result = scoreFixture(makeReport(15), surviving, BASE_RUBRIC, META);
 
-    // catFraction = 2/3; kwFraction = 1 (both keywords present); mean = (2/3+1)/2 = 5/6
-    expect(result.findingsCoverage).toBeCloseTo(5 / 6);
+    // floor fraction = 2/3 (outreach missing); keywords still 1 → coverage = (2/3 + 1)/2 = 5/6
+    expect(result.categoryFloorMet).toBe(false);
+    expect(result.missingCategories).toEqual(["outreach"]);
+    expect(result.categoryCoverage).toBeCloseTo(5 / 6);
     expect(result.score).toBeLessThan(1);
     expect(result.notes.some((n) => n.includes("outreach"))).toBe(true);
   });
 
-  test("all categories missing → findingsCoverage near 0", () => {
-    const findings: Finding[] = [];
-    const safeActions: ActionCard[] = [makeAction(), makeAction(), makeAction()];
-    const report = makeReport(15);
+  test("two missing categories → floor fraction 1/3", () => {
+    // only content survives
+    const surviving: ActionCard[] = [
+      makeAction({ category: "content", evidence: [
+        { excerpt: "symptom tracker correlation", source: "https://example.com/a", sourceType: "app_store_rss" },
+        { excerpt: "x", source: "https://example.com/a2", sourceType: "dataforseo_keywords" },
+      ] }),
+    ];
 
-    const result = scoreFixture(report, safeActions, findings, BASE_RUBRIC, META);
+    const result = scoreFixture(makeReport(15), surviving, BASE_RUBRIC, META);
 
-    // catFraction = 0/3 = 0; kwFraction = 0/2 = 0; mean = 0
-    expect(result.findingsCoverage).toBe(0);
+    // floor fraction = 1/3 (seo_aso + outreach missing); keywords = 1 → coverage = (1/3 + 1)/2 = 2/3
+    expect(result.categoryFloorMet).toBe(false);
+    expect(result.missingCategories.sort()).toEqual(["outreach", "seo_aso"]);
+    expect(result.categoryCoverage).toBeCloseTo(2 / 3);
+  });
+
+  test("no surviving actions → floor fraction 0, all categories missing", () => {
+    const result = scoreFixture(makeReport(15), [], BASE_RUBRIC, META);
+
+    // floor fraction = 0; keyword coverage over empty text = 0 → coverage = 0
+    expect(result.categoryFloorMet).toBe(false);
+    expect(result.missingCategories.sort()).toEqual(["content", "outreach", "seo_aso"]);
+    expect(result.categoryCoverage).toBe(0);
+  });
+
+  test("empty expectedActiveCategories → floor trivially met", () => {
+    const rubric: GoldenRubric = { ...BASE_RUBRIC, expectedActiveCategories: [] as Category[] };
+    const result = scoreFixture(makeReport(15), fullCoverageActions(), rubric, META);
+
+    expect(result.categoryFloorMet).toBe(true);
+    expect(result.missingCategories).toEqual([]);
   });
 });
 
 // ---------------------------------------------------------------------------
-// Missing keyword → lower findingsCoverage
+// Keyword coverage — PIPELINE-DRIVEN (scored against surviving actions' text)
 // ---------------------------------------------------------------------------
 
-describe("scoreFixture — missing keywords", () => {
-  test("missing keyword reduces findingsCoverage", () => {
-    const findings: Finding[] = [
-      makeFinding({ category: "content", claim: "symptom tracker is important" }),
-      makeFinding({ category: "seo_aso", claim: "ASO opportunity" }),
-      makeFinding({ category: "outreach", claim: "community outreach" }),
-      // 'correlation' not in any claim
+describe("scoreFixture — keyword coverage over surviving actions", () => {
+  test("keyword carried only by a DROPPED action lowers categoryCoverage", () => {
+    // All 3 categories survive (floor met) but 'correlation' lived only on the
+    // dropped card; surviving cards mention only 'symptom tracker'.
+    const surviving: ActionCard[] = [
+      makeAction({ category: "content", why: "symptom tracker only", draft: "symptom tracker", evidence: [
+        { excerpt: "symptom tracker", source: "https://example.com/a", sourceType: "app_store_rss" },
+        { excerpt: "x", source: "https://example.com/a2", sourceType: "dataforseo_keywords" },
+      ] }),
+      makeAction({ category: "seo_aso", title: "aso", why: "aso work", draft: null, evidence: [
+        { excerpt: "keyword field", source: "https://example.com/b", sourceType: "dataforseo_keywords" },
+        { excerpt: "x", source: "https://example.com/b2", sourceType: "dataforseo_serp" },
+      ] }),
+      makeAction({ category: "outreach", title: "reach", why: "community", draft: "post it", evidence: [
+        { excerpt: "community thread", source: "https://example.com/c", sourceType: "communities" },
+        { excerpt: "x", source: "https://example.com/c2", sourceType: "dataforseo_serp" },
+      ] }),
     ];
-    const safeActions: ActionCard[] = [makeAction(), makeAction(), makeAction()];
-    const report = makeReport(15);
 
-    const result = scoreFixture(report, safeActions, findings, BASE_RUBRIC, META);
+    const result = scoreFixture(makeReport(15), surviving, BASE_RUBRIC, META);
 
-    // catFraction = 1; kwFraction = 1/2; mean = (1 + 0.5)/2 = 0.75
-    expect(result.findingsCoverage).toBeCloseTo(0.75);
+    // floor = 1 (all categories present); keyword 'correlation' missing → kwFraction = 1/2
+    // coverage = (1 + 0.5)/2 = 0.75
+    expect(result.categoryFloorMet).toBe(true);
+    expect(result.categoryCoverage).toBeCloseTo(0.75);
     expect(result.notes.some((n) => n.includes("correlation"))).toBe(true);
   });
 
-  test("keyword search is case-insensitive", () => {
-    const findings: Finding[] = [
-      makeFinding({ category: "content", claim: "SYMPTOM TRACKER keyword is missing" }),
-      makeFinding({ category: "seo_aso", claim: "CORRELATION features not highlighted" }),
-      makeFinding({ category: "outreach", claim: "outreach opportunity" }),
+  test("keyword match is case-insensitive across surviving action text", () => {
+    const surviving: ActionCard[] = [
+      makeAction({ category: "content", title: "SYMPTOM TRACKER focus", why: "x", evidence: [
+        { excerpt: "a", source: "https://example.com/a", sourceType: "app_store_rss" },
+        { excerpt: "b", source: "https://example.com/a2", sourceType: "dataforseo_keywords" },
+      ] }),
+      makeAction({ category: "seo_aso", title: "CORRELATION engine", why: "x", evidence: [
+        { excerpt: "a", source: "https://example.com/b", sourceType: "dataforseo_keywords" },
+        { excerpt: "b", source: "https://example.com/b2", sourceType: "dataforseo_serp" },
+      ] }),
+      makeAction({ category: "outreach", title: "reach", why: "x", evidence: [
+        { excerpt: "a", source: "https://example.com/c", sourceType: "communities" },
+        { excerpt: "b", source: "https://example.com/c2", sourceType: "dataforseo_serp" },
+      ] }),
     ];
-    const safeActions: ActionCard[] = [makeAction(), makeAction(), makeAction()];
-    const report = makeReport(15);
 
-    const result = scoreFixture(report, safeActions, findings, BASE_RUBRIC, META);
+    const result = scoreFixture(makeReport(15), surviving, BASE_RUBRIC, META);
+    expect(result.categoryCoverage).toBe(1);
+  });
 
-    expect(result.findingsCoverage).toBe(1);
+  test("keyword in evidence excerpt of a surviving action counts", () => {
+    const surviving: ActionCard[] = [
+      makeAction({ category: "content", title: "t", why: "w", draft: "d", evidence: [
+        { excerpt: "users searched symptom tracker and correlation", source: "https://example.com/a", sourceType: "app_store_rss" },
+        { excerpt: "second", source: "https://example.com/a2", sourceType: "dataforseo_keywords" },
+      ] }),
+      makeAction({ category: "seo_aso", title: "t", why: "w", draft: null, evidence: [
+        { excerpt: "a", source: "https://example.com/b", sourceType: "dataforseo_keywords" },
+        { excerpt: "b", source: "https://example.com/b2", sourceType: "dataforseo_serp" },
+      ] }),
+      makeAction({ category: "outreach", title: "t", why: "w", evidence: [
+        { excerpt: "a", source: "https://example.com/c", sourceType: "communities" },
+        { excerpt: "b", source: "https://example.com/c2", sourceType: "dataforseo_serp" },
+      ] }),
+    ];
+
+    const result = scoreFixture(makeReport(15), surviving, BASE_RUBRIC, META);
+    expect(result.categoryCoverage).toBe(1);
   });
 });
 
 // ---------------------------------------------------------------------------
-// Too few actions → lower actionScore
+// Dropped action → lower actionScore
 // ---------------------------------------------------------------------------
 
-describe("scoreFixture — action count", () => {
+describe("scoreFixture — action count (a dropped action is penalized)", () => {
   test("zero safe actions → actionScore = 0", () => {
-    const findings: Finding[] = [
-      makeFinding({ category: "content", claim: "symptom tracker keyword" }),
-      makeFinding({ category: "seo_aso", claim: "correlation keywords" }),
-      makeFinding({ category: "outreach", claim: "outreach" }),
-    ];
-    const report = makeReport(15);
-
-    const result = scoreFixture(report, [], findings, BASE_RUBRIC, META);
+    const result = scoreFixture(makeReport(15), [], BASE_RUBRIC, META);
 
     expect(result.actionScore).toBe(0);
     expect(result.notes.some((n) => n.includes("safe actions"))).toBe(true);
   });
 
   test("1 safe action when minActions=3 → actionScore = 1/3", () => {
-    const findings: Finding[] = [
-      makeFinding({ category: "content", claim: "symptom tracker" }),
-      makeFinding({ category: "seo_aso", claim: "correlation" }),
-      makeFinding({ category: "outreach", claim: "outreach" }),
-    ];
-    const safeActions: ActionCard[] = [makeAction()];
-    const report = makeReport(15);
-
-    const result = scoreFixture(report, safeActions, findings, BASE_RUBRIC, META);
+    const surviving: ActionCard[] = [makeAction()];
+    const result = scoreFixture(makeReport(15), surviving, BASE_RUBRIC, META);
 
     expect(result.actionScore).toBeCloseTo(1 / 3);
   });
 
+  test("dropping one of three survivors lowers actionScore below 1", () => {
+    const full = scoreFixture(makeReport(15), fullCoverageActions(), BASE_RUBRIC, META);
+    const dropped = scoreFixture(makeReport(15), fullCoverageActions().slice(0, 2), BASE_RUBRIC, META);
+
+    expect(full.actionScore).toBe(1);
+    expect(dropped.actionScore).toBeLessThan(full.actionScore);
+    expect(dropped.actionScore).toBeCloseTo(2 / 3);
+    expect(dropped.score).toBeLessThan(full.score);
+  });
+
   test("exactly minActions → actionScore = 1.0", () => {
-    const findings: Finding[] = [
-      makeFinding({ category: "content", claim: "symptom tracker" }),
-      makeFinding({ category: "seo_aso", claim: "correlation" }),
-      makeFinding({ category: "outreach", claim: "outreach" }),
-    ];
-    const safeActions: ActionCard[] = [makeAction(), makeAction(), makeAction()];
-    const report = makeReport(15);
-
-    const result = scoreFixture(report, safeActions, findings, BASE_RUBRIC, META);
-
+    const result = scoreFixture(makeReport(15), fullCoverageActions(), BASE_RUBRIC, META);
     expect(result.actionScore).toBe(1);
   });
 
   test("more than minActions → actionScore clamped to 1.0", () => {
-    const findings: Finding[] = [
-      makeFinding({ category: "content", claim: "symptom tracker" }),
-      makeFinding({ category: "seo_aso", claim: "correlation" }),
-      makeFinding({ category: "outreach", claim: "outreach" }),
-    ];
-    const safeActions: ActionCard[] = [
-      makeAction(), makeAction(), makeAction(), makeAction(), makeAction(),
-    ];
-    const report = makeReport(15);
-
-    const result = scoreFixture(report, safeActions, findings, BASE_RUBRIC, META);
-
+    const many = [...fullCoverageActions(), makeAction(), makeAction()];
+    const result = scoreFixture(makeReport(15), many, BASE_RUBRIC, META);
     expect(result.actionScore).toBe(1);
   });
 });
@@ -271,35 +317,30 @@ describe("scoreFixture — action count", () => {
 describe("scoreFixture — evidenceScore", () => {
   test("requireEvidence=false → evidenceScore always 1", () => {
     const rubric: GoldenRubric = { ...BASE_RUBRIC, requireEvidence: false };
-    const badAction = makeAction({ evidence: [] }); // no evidence
-    const findings: Finding[] = [
-      makeFinding({ category: "content", claim: "symptom tracker" }),
-      makeFinding({ category: "seo_aso", claim: "correlation" }),
-      makeFinding({ category: "outreach", claim: "outreach" }),
-    ];
-    const report = makeReport(15);
+    const noEvidence = fullCoverageActions().map((a) => ({ ...a, evidence: [] }));
 
-    const result = scoreFixture(report, [badAction, badAction, badAction], findings, rubric, META);
-
+    const result = scoreFixture(makeReport(15), noEvidence, rubric, META);
     expect(result.evidenceScore).toBe(1);
   });
 
-  test("requireEvidence=true + action with 0 evidence → reduced evidenceScore", () => {
-    const goodAction = makeAction(); // 2 evidence items
-    const badAction = makeAction({ evidence: [] }); // 0 items
-    const safeActions: ActionCard[] = [goodAction, badAction, goodAction];
-    const findings: Finding[] = [
-      makeFinding({ category: "content", claim: "symptom tracker" }),
-      makeFinding({ category: "seo_aso", claim: "correlation" }),
-      makeFinding({ category: "outreach", claim: "outreach" }),
+  test("requireEvidence=true + an action with 0 evidence → reduced evidenceScore", () => {
+    const actions = fullCoverageActions();
+    const withOneBad: ActionCard[] = [
+      actions[0]!,
+      { ...actions[1]!, evidence: [] },
+      actions[2]!,
     ];
-    const report = makeReport(15);
 
-    const result = scoreFixture(report, safeActions, findings, BASE_RUBRIC, META);
+    const result = scoreFixture(makeReport(15), withOneBad, BASE_RUBRIC, META);
 
-    // 2 out of 3 have ≥2 evidence
+    // 2 of 3 have ≥2 evidence
     expect(result.evidenceScore).toBeCloseTo(2 / 3);
     expect(result.notes.some((n) => n.includes("evidenceScore"))).toBe(true);
+  });
+
+  test("empty surviving set with requireEvidence=true → evidenceScore = 1 (vacuously, no actions to fault)", () => {
+    const result = scoreFixture(makeReport(15), [], BASE_RUBRIC, META);
+    expect(result.evidenceScore).toBe(1);
   });
 });
 
@@ -310,30 +351,13 @@ describe("scoreFixture — evidenceScore", () => {
 describe("scoreFixture — scorePlausible", () => {
   test("score within band → scorePlausible = 1", () => {
     const rubric: GoldenRubric = { ...BASE_RUBRIC, scoreBand: [5, 30] };
-    const findings: Finding[] = [
-      makeFinding({ category: "content", claim: "symptom tracker" }),
-      makeFinding({ category: "seo_aso", claim: "correlation" }),
-      makeFinding({ category: "outreach", claim: "outreach" }),
-    ];
-    const report = makeReport(15); // 15 is within [5,30]
-    const safeActions: ActionCard[] = [makeAction(), makeAction(), makeAction()];
-
-    const result = scoreFixture(report, safeActions, findings, rubric, META);
-
+    const result = scoreFixture(makeReport(15), fullCoverageActions(), rubric, META);
     expect(result.scorePlausible).toBe(1);
   });
 
   test("score below band → scorePlausible = 0", () => {
     const rubric: GoldenRubric = { ...BASE_RUBRIC, scoreBand: [20, 50] };
-    const findings: Finding[] = [
-      makeFinding({ category: "content", claim: "symptom tracker" }),
-      makeFinding({ category: "seo_aso", claim: "correlation" }),
-      makeFinding({ category: "outreach", claim: "outreach" }),
-    ];
-    const report = makeReport(10); // 10 is below [20,50]
-    const safeActions: ActionCard[] = [makeAction(), makeAction(), makeAction()];
-
-    const result = scoreFixture(report, safeActions, findings, rubric, META);
+    const result = scoreFixture(makeReport(10), fullCoverageActions(), rubric, META);
 
     expect(result.scorePlausible).toBe(0);
     expect(result.notes.some((n) => n.includes("scorePlausible"))).toBe(true);
@@ -341,32 +365,45 @@ describe("scoreFixture — scorePlausible", () => {
 
   test("score above band → scorePlausible = 0", () => {
     const rubric: GoldenRubric = { ...BASE_RUBRIC, scoreBand: [0, 10] };
-    const findings: Finding[] = [
-      makeFinding({ category: "content", claim: "symptom tracker" }),
-      makeFinding({ category: "seo_aso", claim: "correlation" }),
-      makeFinding({ category: "outreach", claim: "outreach" }),
-    ];
-    const report = makeReport(20); // 20 is above [0,10]
-    const safeActions: ActionCard[] = [makeAction(), makeAction(), makeAction()];
-
-    const result = scoreFixture(report, safeActions, findings, rubric, META);
-
+    const result = scoreFixture(makeReport(20), fullCoverageActions(), rubric, META);
     expect(result.scorePlausible).toBe(0);
   });
 
   test("exact boundary values are inclusive", () => {
     const rubric: GoldenRubric = { ...BASE_RUBRIC, scoreBand: [5, 15] };
-    const findings: Finding[] = [
-      makeFinding({ category: "content", claim: "symptom tracker" }),
-      makeFinding({ category: "seo_aso", claim: "correlation" }),
-      makeFinding({ category: "outreach", claim: "outreach" }),
-    ];
-    const safeActions: ActionCard[] = [makeAction(), makeAction(), makeAction()];
+    const actions = fullCoverageActions();
 
-    expect(scoreFixture(makeReport(5), safeActions, findings, rubric, META).scorePlausible).toBe(1);
-    expect(scoreFixture(makeReport(15), safeActions, findings, rubric, META).scorePlausible).toBe(1);
-    expect(scoreFixture(makeReport(4), safeActions, findings, rubric, META).scorePlausible).toBe(0);
-    expect(scoreFixture(makeReport(16), safeActions, findings, rubric, META).scorePlausible).toBe(0);
+    expect(scoreFixture(makeReport(5), actions, rubric, META).scorePlausible).toBe(1);
+    expect(scoreFixture(makeReport(15), actions, rubric, META).scorePlausible).toBe(1);
+    expect(scoreFixture(makeReport(4), actions, rubric, META).scorePlausible).toBe(0);
+    expect(scoreFixture(makeReport(16), actions, rubric, META).scorePlausible).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Combined regression: a §11 cap that zeroes a category AND drops a survivor
+// must tank multiple sub-scores at once (this is the exact Cycle-3 regression).
+// ---------------------------------------------------------------------------
+
+describe("scoreFixture — combined regression has teeth", () => {
+  test("dropping the only outreach card both fails the floor and lowers actionScore + mean", () => {
+    const good = scoreFixture(makeReport(15), fullCoverageActions(), BASE_RUBRIC, META);
+
+    // Simulate §11 zeroing outreach: keep content + seo_aso only (2 of 3 survive)
+    const regressed = scoreFixture(
+      makeReport(15),
+      fullCoverageActions().filter((a) => a.category !== "outreach"),
+      BASE_RUBRIC,
+      META,
+    );
+
+    expect(good.score).toBe(1);
+    expect(good.categoryFloorMet).toBe(true);
+
+    expect(regressed.categoryFloorMet).toBe(false);
+    expect(regressed.categoryCoverage).toBeLessThan(good.categoryCoverage);
+    expect(regressed.actionScore).toBeLessThan(good.actionScore);
+    expect(regressed.score).toBeLessThan(good.score);
   });
 });
 
@@ -375,16 +412,8 @@ describe("scoreFixture — scorePlausible", () => {
 // ---------------------------------------------------------------------------
 
 describe("scoreFixture — metadata", () => {
-  test("fixtureId and appName are passed through", () => {
-    const findings: Finding[] = [
-      makeFinding({ category: "content", claim: "symptom tracker" }),
-      makeFinding({ category: "seo_aso", claim: "correlation" }),
-      makeFinding({ category: "outreach", claim: "outreach" }),
-    ];
-    const safeActions: ActionCard[] = [makeAction(), makeAction(), makeAction()];
-    const report = makeReport(15);
-
-    const result = scoreFixture(report, safeActions, findings, BASE_RUBRIC, {
+  test("fixtureId and appName are passed through; safeCount reflects surviving set", () => {
+    const result = scoreFixture(makeReport(15), fullCoverageActions(), BASE_RUBRIC, {
       candidateCount: 7,
       fixtureId: "bearable",
       appName: "Bearable",

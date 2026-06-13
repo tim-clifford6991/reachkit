@@ -217,7 +217,7 @@
     { "competitor": "Reward Summit", "dimension": "card recommendation speed", "them": 30, "you": 90 }
   ],
   "rubric": {
-    "expectedFindingCategories": ["content", "seo_aso", "outreach"],
+    "expectedActiveCategories": ["content", "seo_aso", "outreach"],
     "expectedKeywords": ["rewards", "card", "points"],
     "minActions": 3,
     "requireEvidence": true,

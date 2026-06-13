@@ -217,7 +217,7 @@
     { "competitor": "One Sec", "dimension": "app coverage breadth", "them": 60, "you": 90 }
   ],
   "rubric": {
-    "expectedFindingCategories": ["content", "seo_aso", "outreach"],
+    "expectedActiveCategories": ["content", "seo_aso", "outreach"],
     "expectedKeywords": ["focus", "block", "screen time"],
     "minActions": 3,
     "requireEvidence": true,

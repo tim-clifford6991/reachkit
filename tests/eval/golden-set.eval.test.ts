@@ -21,7 +21,7 @@ import type { GoldenSetResult } from "@/lib/eval/types";
 vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
 
 test(
-  "golden-set: mean ≥ 0.7, 5 fixtures, each fixture ≥ minActions safe actions",
+  "golden-set: mean ≥ 0.7, 5 fixtures, each ≥ minActions safe actions AND ≥1 per expected category",
   async () => {
     // Dynamic import so the env stub is picked up before module-level reads
     const { runGoldenSet } = await import("@/lib/eval/golden-set");
@@ -35,25 +35,27 @@ test(
     console.log(
       [
         "Fixture".padEnd(16),
-        "FindCov".padEnd(9),
+        "CatCov".padEnd(9),
         "Actions".padEnd(9),
         "Evidence".padEnd(10),
         "ScorePlau".padEnd(11),
         "Score".padEnd(7),
+        "Floor".padEnd(7),
         "Cand→Safe",
       ].join(" | "),
     );
-    console.log("-".repeat(80));
+    console.log("-".repeat(88));
 
     for (const f of result.perFixture) {
       console.log(
         [
           f.fixtureId.padEnd(16),
-          f.findingsCoverage.toFixed(2).padEnd(9),
+          f.categoryCoverage.toFixed(2).padEnd(9),
           f.actionScore.toFixed(2).padEnd(9),
           f.evidenceScore.toFixed(2).padEnd(10),
           f.scorePlausible.toFixed(2).padEnd(11),
           f.score.toFixed(2).padEnd(7),
+          (f.categoryFloorMet ? "OK" : "FAIL").padEnd(7),
           `${f.candidateCount}→${f.safeCount}`,
         ].join(" | "),
       );
@@ -75,28 +77,39 @@ test(
     // Exactly 5 fixtures
     expect(result.perFixture.length).toBe(5);
 
-    // Each fixture must have ≥ minActions safe actions
-    // We load the fixture rubrics to get minActions per fixture
+    // Each fixture must have ≥ minActions safe actions AND ≥1 surviving safe
+    // action per expected active category. We load the fixture rubrics for both.
     const { default: bearableJson } = await import("@/lib/eval/fixtures/bearable.json", { with: { type: "json" } });
     const { default: opalJson } = await import("@/lib/eval/fixtures/opal.json", { with: { type: "json" } });
     const { default: cardpointersJson } = await import("@/lib/eval/fixtures/cardpointers.json", { with: { type: "json" } });
     const { default: sofaJson } = await import("@/lib/eval/fixtures/sofa.json", { with: { type: "json" } });
     const { default: nudgiJson } = await import("@/lib/eval/fixtures/nudgi.json", { with: { type: "json" } });
 
-    const fixtureRubrics: Record<string, number> = {
-      bearable: (bearableJson as { rubric: { minActions: number } }).rubric.minActions,
-      opal: (opalJson as { rubric: { minActions: number } }).rubric.minActions,
-      cardpointers: (cardpointersJson as { rubric: { minActions: number } }).rubric.minActions,
-      sofa: (sofaJson as { rubric: { minActions: number } }).rubric.minActions,
-      nudgi: (nudgiJson as { rubric: { minActions: number } }).rubric.minActions,
+    type RubricMeta = { minActions: number; expectedActiveCategories: string[] };
+    const fixtureRubrics: Record<string, RubricMeta> = {
+      bearable: (bearableJson as { rubric: RubricMeta }).rubric,
+      opal: (opalJson as { rubric: RubricMeta }).rubric,
+      cardpointers: (cardpointersJson as { rubric: RubricMeta }).rubric,
+      sofa: (sofaJson as { rubric: RubricMeta }).rubric,
+      nudgi: (nudgiJson as { rubric: RubricMeta }).rubric,
     };
 
     for (const f of result.perFixture) {
-      const minActions = fixtureRubrics[f.fixtureId] ?? 3;
+      const rubric = fixtureRubrics[f.fixtureId];
+      const minActions = rubric?.minActions ?? 3;
       expect(
         f.safeCount,
         `${f.fixtureId}: expected ≥${minActions} safe actions, got ${f.safeCount}`,
       ).toBeGreaterThanOrEqual(minActions);
+
+      // Per-category action floor: EVERY expected active category must have ≥1
+      // SURVIVING safe action. This is the §11-cap-zeroes-a-category regression
+      // the Cycle-3 review caught — a dropped category fails here, not silently.
+      expect(
+        f.categoryFloorMet,
+        `${f.fixtureId}: per-category floor failed — categories with no surviving safe action: ` +
+          `${f.missingCategories.join(", ")} (expected: ${(rubric?.expectedActiveCategories ?? []).join(", ")})`,
+      ).toBe(true);
     }
 
     // Mean ≥ 0.7 (R1 pass threshold)

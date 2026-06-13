@@ -217,7 +217,7 @@
     { "competitor": "Trakt", "dimension": "mobile app quality", "them": 40, "you": 90 }
   ],
   "rubric": {
-    "expectedFindingCategories": ["content", "seo_aso", "outreach"],
+    "expectedActiveCategories": ["content", "seo_aso", "outreach"],
     "expectedKeywords": ["media", "watchlist", "track"],
     "minActions": 3,
     "requireEvidence": true,

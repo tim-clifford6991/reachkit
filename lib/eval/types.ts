@@ -15,9 +15,22 @@ import type { PreliminaryFacts } from "@/lib/scan/types";
 // ---------------------------------------------------------------------------
 
 export interface GoldenRubric {
-  /** Finding categories that must appear in the output findings. */
-  expectedFindingCategories: Array<"content" | "outreach" | "seo_aso">;
-  /** Keywords (case-insensitive) that must appear in at least one finding claim. */
+  /**
+   * Categories that must each be represented by ≥1 SURVIVING safe action
+   * (post-Critic + post-§11). Doubles as the per-category action FLOOR: a
+   * pipeline regression that zeroes a whole category (e.g. the §11 cadence
+   * cap silently dropping every outreach card) fails the floor.
+   *
+   * Also the basis of the pipeline-driven `categoryCoverage` sub-score —
+   * NOT scored against the fixture's static `findings` (which would be
+   * tautological), but against the actions that actually survive the gates.
+   */
+  expectedActiveCategories: Array<"content" | "outreach" | "seo_aso">;
+  /**
+   * Keywords (case-insensitive) that must appear in the SURVIVING safe
+   * actions' text (title + why + draft + evidence excerpts). Pipeline-driven:
+   * if the gates drop the actions that carried a keyword, coverage falls.
+   */
   expectedKeywords: string[];
   /** Minimum number of actions that must survive the critic + safety gates. */
   minActions: number;
@@ -70,13 +83,27 @@ export interface FixtureScore {
   appName: string;
 
   // Sub-scores, each 0..1
-  findingsCoverage: number;
+  /**
+   * PIPELINE-DRIVEN coverage of the SURVIVING safe actions (post-Critic +
+   * post-§11) against the rubric: mean of (a) the per-category action floor
+   * fraction and (b) keyword coverage in the surviving actions' text. Replaces
+   * the old tautological findings-vs-rubric score.
+   */
+  categoryCoverage: number;
   actionScore: number;
   evidenceScore: number;
   scorePlausible: number;
 
   /** Mean of the four sub-scores. */
   score: number;
+
+  /**
+   * Hard per-category floor: true iff EVERY expectedActiveCategory has ≥1
+   * surviving safe action. The eval gate asserts this is true for all fixtures.
+   */
+  categoryFloorMet: boolean;
+  /** Categories from the rubric that have ZERO surviving safe actions. */
+  missingCategories: Array<"content" | "outreach" | "seo_aso">;
 
   /** Number of candidate actions provided to the critic gate. */
   candidateCount: number;

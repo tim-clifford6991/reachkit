@@ -221,7 +221,7 @@
     { "competitor": "Done", "dimension": "smart timing nudges", "them": 30, "you": 85 }
   ],
   "rubric": {
-    "expectedFindingCategories": ["content", "seo_aso", "outreach"],
+    "expectedActiveCategories": ["content", "seo_aso", "outreach"],
     "expectedKeywords": ["habit", "nudge", "gentle"],
     "minActions": 3,
     "requireEvidence": true,

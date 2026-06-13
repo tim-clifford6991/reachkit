@@ -217,7 +217,7 @@
     { "competitor": "Medisafe", "dimension": "symptom tracking (vs medication-only)", "them": 20, "you": 95 }
   ],
   "rubric": {
-    "expectedFindingCategories": ["content", "seo_aso", "outreach"],
+    "expectedActiveCategories": ["content", "seo_aso", "outreach"],
     "expectedKeywords": ["symptom", "chronic", "correlation"],
     "minActions": 3,
     "requireEvidence": true,

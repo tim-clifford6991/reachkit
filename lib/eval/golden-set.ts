@@ -121,8 +121,9 @@ async function runFixture(fixture: GoldenFixture): Promise<FixtureScore> {
     score,
   });
 
-  // 6. Score the assembled report against the rubric
-  return scoreFixture(report, safeActions, fixture.findings, fixture.rubric, {
+  // 6. Score the assembled report against the rubric. Coverage is judged
+  //    against `safeActions` (real pipeline output), NOT fixture.findings.
+  return scoreFixture(report, safeActions, fixture.rubric, {
     candidateCount,
     fixtureId: fixture.id,
     appName: fixture.appName,
