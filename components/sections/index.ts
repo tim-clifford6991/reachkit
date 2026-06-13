@@ -44,3 +44,5 @@ export type {
   FooterContent,
   FooterProps,
 } from "./footer";
+
+export { HowItWorksScroll } from "./how-it-works-scroll";
