@@ -30,7 +30,7 @@ export async function POST(
   const { error: otpError } = await anonClient.auth.signInWithOtp({
     email,
     options: {
-      emailRedirectTo: `${SITE.url}/scan/${id}/results`,
+      emailRedirectTo: `${SITE.url}/auth/callback?next=/scan/${id}/results`,
     },
   });
   if (otpError) {
