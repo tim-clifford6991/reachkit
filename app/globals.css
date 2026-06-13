@@ -140,8 +140,7 @@
 
 /* ── Tailwind v4: map @theme colour tokens to shadcn CSS variable slots ──── */
 @theme inline {
-  --font-heading:           var(--font-sans);
-  --font-sans:              var(--font-sans);
+  --font-heading:           var(--font-geist-sans);
 
   /* shadcn sidebar passthrough */
   --color-sidebar-ring:                var(--sidebar-ring);
