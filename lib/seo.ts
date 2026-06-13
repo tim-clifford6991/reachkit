@@ -43,3 +43,34 @@ export function articleLd(o: { headline: string; url: string; datePublished: str
     },
   } as const;
 }
+
+// ---------------------------------------------------------------------------
+// FAQPage JSON-LD — §21.1 FAQ section
+//
+// Used by components/sections/faq.tsx to auto-emit structured data
+// for Google's FAQ rich results, directly from the FAQ item props.
+// ---------------------------------------------------------------------------
+
+export interface FaqItem {
+  q: string;
+  a: string;
+}
+
+/**
+ * FAQPage JSON-LD. Pass the same `items` array you render to the FAQ
+ * section — this keeps structured data in sync with visible content.
+ */
+export function faqPageLd(items: readonly FaqItem[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: items.map((item) => ({
+      "@type": "Question",
+      name: item.q,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: item.a,
+      },
+    })),
+  } as const;
+}
