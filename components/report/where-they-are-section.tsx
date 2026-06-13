@@ -95,16 +95,7 @@ export function WhereTheyAreSection({
                       href={s.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex-1 leading-snug transition-colors"
-                      style={{ color: "var(--color-accent-400)" }}
-                      onMouseEnter={(e) =>
-                        ((e.currentTarget as HTMLAnchorElement).style.color =
-                          "var(--color-accent-300)")
-                      }
-                      onMouseLeave={(e) =>
-                        ((e.currentTarget as HTMLAnchorElement).style.color =
-                          "var(--color-accent-400)")
-                      }
+                      className="flex-1 leading-snug transition-colors text-accent-400 hover:text-accent-300"
                     >
                       {s.title}
                     </a>

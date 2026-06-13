@@ -1,27 +1,14 @@
-"use client";
-
 /**
- * ReportReveal — client wrapper for the four-question report sections.
+ * ReportReveal — staggered entrance for the four-question report sections.
  *
- * Applies blur-to-sharp stagger animation to each direct child as the page
- * mounts. Reduced-motion safe.
- *
- * Bundle note: AnimatedReveal (which imports motion/react) is lazy-loaded via
- * next/dynamic so it stays out of the initial results-page chunk. Children
- * render immediately in SSR; the animation layer only activates after
- * hydration.
+ * SERVER component: the sections are server-rendered (in the SSR HTML, visible
+ * immediately — important for the report content + SEO). The entrance is a
+ * pure-CSS animation (tw-animate-css `animate-in`), gated by `motion-safe` so
+ * reduced-motion users get the content with no animation. No client JS, no
+ * `ssr:false` — content is never gated behind hydration.
  */
 
 import { Children, isValidElement, type ReactNode } from "react";
-import dynamic from "next/dynamic";
-
-// Lazy-load AnimatedReveal — the only file that imports motion/react here.
-// No loading fallback needed: children are server-rendered and visible
-// immediately; the animation layer applies after the chunk loads.
-const AnimatedReveal = dynamic(
-  () => import("./animated-reveal").then((m) => m.AnimatedReveal),
-  { ssr: false }
-);
 
 interface ReportRevealProps {
   children: ReactNode;
@@ -29,15 +16,19 @@ interface ReportRevealProps {
 
 export function ReportReveal({ children }: ReportRevealProps) {
   return (
-    <>
+    <div className="space-y-4">
       {Children.map(children, (child, i) => {
         if (!isValidElement(child)) return child;
         return (
-          <AnimatedReveal key={i} index={i}>
+          <div
+            key={i}
+            className="motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-3 duration-500"
+            style={{ animationDelay: `${i * 90}ms`, animationFillMode: "backwards" }}
+          >
             {child}
-          </AnimatedReveal>
+          </div>
         );
       })}
-    </>
+    </div>
   );
 }

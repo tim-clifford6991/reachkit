@@ -31,6 +31,8 @@ import { ActionPlanSection } from "@/components/report/action-plan-section";
 import { SnapshotStrip } from "@/components/report/snapshot-strip";
 import { ScoreBlock } from "./score-block";
 import { BadgeEmbed } from "./badge-embed";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Suspense } from "react";
 
 // ---------------------------------------------------------------------------
 // Static params
@@ -115,6 +117,15 @@ export default async function ReportPage({
     return null;
   }
 
+  // Next 16 cacheComponents: the uncached scan fetch must live inside <Suspense>.
+  return (
+    <Suspense fallback={<ReportSkeleton />}>
+      <ReportContent slug={slug} />
+    </Suspense>
+  );
+}
+
+export async function ReportContent({ slug }: { slug: string }) {
   const db = serverDb();
   const { data } = await db
     .from("scans")
@@ -222,5 +233,36 @@ export default async function ReportPage({
         </p>
       </main>
     </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Loading skeleton (shown while the public report fetch resolves)
+// ---------------------------------------------------------------------------
+
+function ReportSkeleton() {
+  return (
+    <main className="mx-auto max-w-2xl space-y-6 px-4 pb-16 pt-8">
+      <div className="space-y-1">
+        <Skeleton className="h-3 w-28" />
+        <Skeleton className="h-6 w-56" />
+      </div>
+      <div
+        className="flex flex-col items-center rounded-xl border py-10"
+        style={{ borderColor: "oklch(1 0 0 / 0.09)", background: "var(--color-surface)" }}
+      >
+        <Skeleton className="size-[160px] rounded-full" />
+      </div>
+      {[1, 2, 3, 4].map((i) => (
+        <div
+          key={i}
+          className="rounded-xl border p-5"
+          style={{ borderColor: "oklch(1 0 0 / 0.09)", background: "var(--color-surface)" }}
+        >
+          <Skeleton className="mb-3 h-3 w-20" />
+          <Skeleton className="h-3 w-full" />
+        </div>
+      ))}
+    </main>
   );
 }
