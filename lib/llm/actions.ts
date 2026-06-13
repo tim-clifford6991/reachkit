@@ -179,9 +179,11 @@ async function readSheet<T>(
 }
 
 // ---------------------------------------------------------------------------
-// Read founder_voice for the app owner, or null if none / on error
+// Read founder_voice for the app owner, or null if none / on error.
+// Exported so the capture round-trip (settings → /api/app/voice → here → FORMAT
+// prompt) is directly testable (§11 rule 7).
 // ---------------------------------------------------------------------------
-async function readFounderVoice(appId: string): Promise<string | null> {
+export async function readFounderVoice(appId: string): Promise<string | null> {
   try {
     const db = serverDb();
     const { data, error } = await db

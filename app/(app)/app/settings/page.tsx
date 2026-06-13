@@ -12,6 +12,7 @@ import { currentUser } from "@/lib/auth/server";
 import { entitlementsFor } from "@/lib/billing/entitlements";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FounderVoiceForm } from "@/components/app/founder-voice-form";
 import { buildMetadata } from "@/lib/seo";
 import Link from "next/link";
 
@@ -32,6 +33,16 @@ async function SettingsContent() {
   const tierLabel =
     tier === "growth" ? "Growth" : tier === "solo" ? "Solo" : "Free";
   const tierIsPaid = tier !== "free";
+
+  // Mirror readFounderVoice's coercion so the textarea prefills with whatever is
+  // stored (capture stores a raw string; legacy/JSON values are stringified).
+  const fv = user.founder_voice;
+  const founderVoice =
+    fv === null || fv === undefined
+      ? ""
+      : typeof fv === "string"
+        ? fv
+        : JSON.stringify(fv);
 
   return (
     <div className="space-y-6">
@@ -114,7 +125,7 @@ async function SettingsContent() {
         </div>
       </section>
 
-      {/* Founder voice placeholder */}
+      {/* Founder voice */}
       <section
         aria-labelledby="founder-voice-heading"
         className="rounded-xl border"
@@ -124,31 +135,10 @@ async function SettingsContent() {
         }}
       >
         <div className="px-5 py-5">
-          <h2
-            id="founder-voice-heading"
-            className="mb-1 text-sm font-semibold"
-            style={{ color: "var(--color-fg)" }}
-          >
+          <h2 id="founder-voice-heading" className="sr-only">
             Your founder voice
           </h2>
-          <p className="text-xs leading-relaxed" style={{ color: "var(--color-muted)" }}>
-            Draft copy is tailored to your product&apos;s tone. Customise your
-            founder voice to make generated drafts sound more like you.
-          </p>
-          <div
-            className="mt-4 rounded-lg px-4 py-3 text-center"
-            style={{
-              background: "oklch(1 0 0 / 0.03)",
-              border: "1px solid oklch(1 0 0 / 0.07)",
-            }}
-          >
-            <p
-              className="font-mono text-xs uppercase tracking-widest"
-              style={{ color: "var(--color-muted)" }}
-            >
-              Coming in a future build
-            </p>
-          </div>
+          <FounderVoiceForm initialVoice={founderVoice} />
         </div>
       </section>
 
