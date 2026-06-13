@@ -17,10 +17,10 @@ export type Database = {
     Functions: {
       graphql: {
         Args: {
-          query?: string
           operationName?: string
           extensions?: Json
           variables?: Json
+          query?: string
         }
         Returns: Json
       }
@@ -543,8 +543,10 @@ export type Database = {
           claim_email: string | null
           completed_at: string | null
           cost_cents: number
+          created_at: string
           findings_payload: Json | null
           id: string
+          ip_hash: string | null
           preliminary_facts: Json | null
           report_payload: Json | null
           score_breakdown: Json | null
@@ -558,8 +560,10 @@ export type Database = {
           claim_email?: string | null
           completed_at?: string | null
           cost_cents?: number
+          created_at?: string
           findings_payload?: Json | null
           id?: string
+          ip_hash?: string | null
           preliminary_facts?: Json | null
           report_payload?: Json | null
           score_breakdown?: Json | null
@@ -573,8 +577,10 @@ export type Database = {
           claim_email?: string | null
           completed_at?: string | null
           cost_cents?: number
+          created_at?: string
           findings_payload?: Json | null
           id?: string
+          ip_hash?: string | null
           preliminary_facts?: Json | null
           report_payload?: Json | null
           score_breakdown?: Json | null
@@ -731,13 +737,13 @@ export type Database = {
       match_embeddings: {
         Args: {
           match_count: number
-          p_subject_type?: string
           p_app_id?: string
           query: string
+          p_subject_type?: string
         }
         Returns: {
-          content: string
           similarity: number
+          content: string
         }[]
       }
       sparsevec_out: {
