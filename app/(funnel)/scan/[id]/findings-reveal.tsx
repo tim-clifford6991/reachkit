@@ -8,7 +8,6 @@ import type {
   SampleAction,
 } from "@/lib/llm/types";
 import { Badge } from "@/components/ui/badge";
-import { EmailGate } from "./email-gate";
 
 // ---------------------------------------------------------------------------
 // Lazy-load heavy components — keeps the initial funnel chunk lean
@@ -26,6 +25,13 @@ const DiscoverabilityScore = dynamic(
 // Motion stagger for the findings list
 const Stagger = dynamic(
   () => import("@/components/motion/stagger").then((m) => m.Stagger),
+  { ssr: false, loading: () => null }
+);
+
+// Email gate — only shown after the scan completes, so defer its chunk to keep
+// the initial funnel bundle under the §20.4 budget.
+const EmailGate = dynamic(
+  () => import("./email-gate").then((m) => m.EmailGate),
   { ssr: false, loading: () => null }
 );
 
