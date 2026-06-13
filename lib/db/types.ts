@@ -17,10 +17,10 @@ export type Database = {
     Functions: {
       graphql: {
         Args: {
-          operationName?: string
-          query?: string
-          variables?: Json
           extensions?: Json
+          variables?: Json
+          query?: string
+          operationName?: string
         }
         Returns: Json
       }
@@ -632,25 +632,37 @@ export type Database = {
         Row: {
           app_ids: string[]
           created_at: string
+          current_period_end: string | null
           email: string
           founder_voice: Json | null
           id: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          subscription_status: string | null
           tier: string
         }
         Insert: {
           app_ids?: string[]
           created_at?: string
+          current_period_end?: string | null
           email: string
           founder_voice?: Json | null
           id?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
           tier?: string
         }
         Update: {
           app_ids?: string[]
           created_at?: string
+          current_period_end?: string | null
           email?: string
           founder_voice?: Json | null
           id?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
           tier?: string
         }
         Relationships: []
@@ -718,14 +730,14 @@ export type Database = {
       }
       match_embeddings: {
         Args: {
-          query: string
-          match_count: number
-          p_subject_type?: string
           p_app_id?: string
+          p_subject_type?: string
+          match_count: number
+          query: string
         }
         Returns: {
-          content: string
           similarity: number
+          content: string
         }[]
       }
       sparsevec_out: {
