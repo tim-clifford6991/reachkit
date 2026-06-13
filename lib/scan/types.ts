@@ -2,7 +2,10 @@ import type { Platform } from "@/lib/scan/router";
 
 export interface Competitor { name: string; url: string; source: string; rank: number; }
 export interface Community { source: string; title: string; url: string; engagement: number; }
-export interface ReviewItem { rating: number | null; title: string; body: string; at?: string; }
+// A Community carrying its publish timestamp (ISO) — used by the threads delta
+// collector to keep only threads newer than the monitor's lastThreadAt watermark.
+export interface TimedCommunity extends Community { at: string; }
+export interface ReviewItem { id?: string; rating: number | null; title: string; body: string; at?: string; }
 export interface ListingFacts { name: string; category: string | null; description: string | null; pricing?: string | null; }
 export interface ThemeCount { term: string; count: number; }
 export interface WebProxy { score: number; serpResultCount: number; phUpvotes: number; domainAgeYears: number | null; }

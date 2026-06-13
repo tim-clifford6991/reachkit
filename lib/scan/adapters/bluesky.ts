@@ -1,9 +1,10 @@
-import type { Community } from "@/lib/scan/types";
+import type { Community, TimedCommunity } from "@/lib/scan/types";
 
 type BskyPost = {
   uri?: string;
   author?: { did?: string; handle?: string };
-  record?: { text?: string };
+  record?: { text?: string; createdAt?: string };
+  indexedAt?: string;
   likeCount?: number;
   replyCount?: number;
 };
@@ -46,4 +47,26 @@ export async function blueskySearch(query: string): Promise<Community[]> {
   if (!res.ok) throw new Error(`bluesky "${query}" failed: ${res.status}`);
   const body = await res.json() as unknown;
   return parseBluesky(body);
+}
+
+// Timestamp-carrying variant for the threads delta collector. Drops posts with no
+// resolvable timestamp. Prefers record.createdAt, falls back to indexedAt.
+export function parseBlueskyTimed(body: unknown): TimedCommunity[] {
+  const posts = ((body as BskyBody).posts ?? []);
+  return parseBluesky(body).flatMap((community, i) => {
+    const post = posts[i];
+    const iso = post?.record?.createdAt ?? post?.indexedAt;
+    if (iso == null || iso === "") return [];
+    return [{ ...community, at: iso }];
+  });
+}
+
+export async function blueskySearchTimed(query: string): Promise<TimedCommunity[]> {
+  const enc = encodeURIComponent(query);
+  const res = await fetch(
+    `https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts?q=${enc}&limit=10`,
+  );
+  if (!res.ok) throw new Error(`bluesky "${query}" failed: ${res.status}`);
+  const body = await res.json() as unknown;
+  return parseBlueskyTimed(body);
 }

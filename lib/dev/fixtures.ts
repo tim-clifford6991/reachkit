@@ -1,4 +1,4 @@
-import type { Competitor, Community, Creator, KeywordRow } from "@/lib/scan/types";
+import type { Competitor, Community, Creator, KeywordRow, ReviewItem, TimedCommunity } from "@/lib/scan/types";
 import type { ReviewThemesSheet, PositioningSheet, CompetitorGapSheet, KeywordSheet, SynthResult, ActionCard } from "@/lib/llm/types";
 import type { FactSheetKind } from "@/lib/scan/fact-sheets";
 import { env } from "@/lib/config/env";
@@ -250,6 +250,74 @@ export function fixtureSynth(): SynthResult {
 // Every card has ≥2 evidence items from ≥2 distinct sourceTypes so fixture cards PASS
 // Critic rule (1) without any LLM call.
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Cycle 4 Task 8 — weekly DELTA refresh fixtures.
+// rankLookup's deterministic map + small NON-EMPTY canned deltas (1–2 new items
+// each) with advanced watermarks, so the refresh pipeline (Task 9) has something
+// to process with no API keys.
+// ---------------------------------------------------------------------------
+
+// Stable 32-bit FNV-1a hash → used to derive deterministic SERP positions so the
+// fixture rank map is identical run-to-run (same keyword/target → same position).
+function stableHash(s: string): number {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619) >>> 0;
+  return h >>> 0;
+}
+
+// Deterministic keyword → position in [1, 50]. Target folded in so different
+// targets get different positions for the same keyword.
+export function fixtureRankMap(keywords: string[], target: string): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const k of keywords) out[k] = (stableHash(`${k}|${target}`) % 50) + 1;
+  return out;
+}
+
+// reviews delta — two "new" reviews newer than any baseline, with stable ids.
+export function fixtureReviewDelta(): { items: ReviewItem[]; newestId: string } {
+  const items: ReviewItem[] = [
+    { id: "rk-fixture-review-002", rating: 5, title: "Widget finally refreshes", body: "The latest update fixed my home-screen widget — it updates instantly now.", at: "2026-06-10T09:15:00Z" },
+    { id: "rk-fixture-review-001", rating: 2, title: "Crash on iPhone 11", body: "Still crashes every morning when I open it on my iPhone 11.", at: "2026-06-09T22:40:00Z" },
+  ];
+  // newest-first ordering (matches sortby=mostrecent); newest id is the first.
+  return { items, newestId: "rk-fixture-review-002" };
+}
+
+// rank delta — a fresh full map plus the subset of keywords whose position moved.
+export function fixtureRankDelta(prev: Record<string, number>): {
+  changed: Array<{ keyword: string; from: number | null; to: number }>;
+  fresh: Record<string, number>;
+} {
+  const fresh: Record<string, number> = {
+    "habit tracker app": 4,
+    "daily habit tracker": 9,
+    "best habit tracker": 17,
+  };
+  const changed: Array<{ keyword: string; from: number | null; to: number }> = [];
+  for (const [keyword, to] of Object.entries(fresh)) {
+    const from = prev[keyword] ?? null;
+    if (from !== to) changed.push({ keyword, from, to });
+  }
+  return { changed, fresh };
+}
+
+// threads delta — two timestamped threads newer than any baseline marker.
+export function fixtureThreadDelta(): { items: TimedCommunity[]; newestAt: string } {
+  const items: TimedCommunity[] = [
+    { source: "hn", title: "Show HN: a minimalist habit tracker", url: "https://news.ycombinator.com/item?id=40000002", engagement: 188, at: "2026-06-10T14:05:00Z" },
+    { source: "bluesky", title: "Switched to a simpler habit app this week and my streak is alive again.", url: "https://bsky.app/profile/productivity.bsky.social/post/3kfixturepost01", engagement: 41, at: "2026-06-09T18:30:00Z" },
+  ];
+  return { items, newestAt: "2026-06-10T14:05:00Z" };
+}
+
+// competitors delta — one newly-discovered name not in the prior known set.
+export function fixtureCompetitorDelta(known: string[]): { newNames: string[]; found: string[] } {
+  const found = ["Habitify", "Streaks", "Finch"];
+  const knownSet = new Set(known);
+  const newNames = found.filter((n) => !knownSet.has(n));
+  return { newNames, found };
+}
+
 export function fixtureActions(): ActionCard[] {
   return [
     // --- CONTENT cards ---

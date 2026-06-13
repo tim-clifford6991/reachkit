@@ -1,6 +1,12 @@
 import type { ReviewItem } from "@/lib/scan/types";
 
-type RssEntry = { "im:rating"?: { label: string }; title?: { label: string }; content?: { label: string } };
+type RssEntry = {
+  "im:rating"?: { label: string };
+  title?: { label: string };
+  content?: { label: string };
+  id?: { label: string };       // stable review id (Apple review GUID)
+  updated?: { label: string };  // ISO timestamp of the review
+};
 
 export function parseRssPage(page: unknown): ReviewItem[] {
   const rawEntry = (page as { feed?: { entry?: RssEntry | RssEntry[] } }).feed?.entry;
@@ -8,7 +14,12 @@ export function parseRssPage(page: unknown): ReviewItem[] {
   return entries.flatMap((e) => {
     const label = e["im:rating"]?.label;
     if (!label || Number.isNaN(Number(label))) return [];  // drop missing or malformed ratings
-    return [{ rating: Number(label), title: e.title?.label ?? "", body: e.content?.label ?? "" }];
+    const item: ReviewItem = { rating: Number(label), title: e.title?.label ?? "", body: e.content?.label ?? "" };
+    const id = e.id?.label;
+    if (id != null && id !== "") item.id = id;        // carried for watermark-scoped delta collection
+    const at = e.updated?.label;
+    if (at != null && at !== "") item.at = at;
+    return [item];
   });
 }
 
