@@ -32,5 +32,5 @@ export interface WatermarkBody {
   knownCompetitors?: string[];       // competitors monitor (names)
 }
 
-export type ScanEventType = "artifact" | "facts" | "findings" | "report" | "done" | "error";
+export type ScanEventType = "artifact" | "facts" | "findings" | "report" | "refresh" | "done" | "error";
 export interface ScanEvent { type: ScanEventType; payload: Record<string, unknown>; }
