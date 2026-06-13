@@ -31,6 +31,11 @@ const schema = z.object({
   PRODUCT_HUNT_TOKEN: z.string().optional().default(""),
   YOUTUBE_API_KEY: z.string().optional().default(""),
   VOYAGE_API_KEY: z.string().optional().default(""),
+  // Stripe — fully optional (not in PAID_KEYS so keyless dev works)
+  STRIPE_SECRET_KEY: z.string().optional().default(""),
+  STRIPE_WEBHOOK_SECRET: z.string().optional().default(""),
+  STRIPE_PRICE_SOLO: z.string().optional().default(""),
+  STRIPE_PRICE_GROWTH: z.string().optional().default(""),
   // Analytics — fully optional
   POSTHOG_KEY: z.string().optional().default(""),
   POSTHOG_HOST: z.string().optional().default(""),
@@ -66,6 +71,10 @@ export function parseEnv(src: NodeJS.ProcessEnv) {
     dataforseoLocationCode: p.DATAFORSEO_LOCATION_CODE, dataforseoLanguageCode: p.DATAFORSEO_LANGUAGE_CODE,
     useFixtures: p.REACHKIT_USE_FIXTURES,
     appUrl: p.APP_URL,
+    stripeSecretKey: p.STRIPE_SECRET_KEY,
+    stripeWebhookSecret: p.STRIPE_WEBHOOK_SECRET,
+    stripePriceSolo: p.STRIPE_PRICE_SOLO,
+    stripePriceGrowth: p.STRIPE_PRICE_GROWTH,
   };
 }
 

@@ -1,0 +1,87 @@
+import { serverDb } from "@/lib/db/client";
+import { fixturesEnabled } from "@/lib/dev/fixtures";
+import { env } from "@/lib/config/env";
+import { assertStripeConfigured, stripeClient, priceMap } from "@/lib/billing/stripe";
+
+export async function createCheckout({
+  userId,
+  plan,
+}: {
+  userId: string;
+  plan: "solo" | "growth";
+}): Promise<{ url: string }> {
+  // ---------------------------------------------------------------------------
+  // Fixture path — no Stripe; directly upgrade the user row for demo/test.
+  // ---------------------------------------------------------------------------
+  if (fixturesEnabled()) {
+    const { error } = await serverDb()
+      .from("users")
+      .update({ tier: plan, subscription_status: "active" })
+      .eq("id", userId);
+
+    if (error) {
+      throw new Error(`fixture checkout: failed to update user tier — ${error.message}`);
+    }
+
+    return { url: `${env.appUrl}/app?billing=demo` };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Live Stripe path.
+  // ---------------------------------------------------------------------------
+  assertStripeConfigured();
+
+  const db = serverDb();
+
+  // Load user row.
+  const { data: user, error: userError } = await db
+    .from("users")
+    .select("id, email, stripe_customer_id")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (userError || !user) {
+    throw new Error(`checkout: user not found (id=${userId})`);
+  }
+
+  const stripe = stripeClient();
+
+  // Ensure Stripe customer exists.
+  let customerId = user.stripe_customer_id;
+  if (!customerId) {
+    const customer = await stripe.customers.create({
+      email: user.email,
+      metadata: { userId },
+    });
+    customerId = customer.id;
+
+    const { error: persistError } = await db
+      .from("users")
+      .update({ stripe_customer_id: customerId })
+      .eq("id", userId);
+
+    if (persistError) {
+      // Non-fatal: checkout can still proceed; customer id will be reconciled via webhook.
+      console.error("checkout: failed to persist stripe_customer_id", persistError.message);
+    }
+  }
+
+  const prices = priceMap();
+
+  const session = await stripe.checkout.sessions.create({
+    mode: "subscription",
+    line_items: [
+      {
+        price: plan === "growth" ? prices.growth : prices.solo,
+        quantity: 1,
+      },
+    ],
+    customer: customerId,
+    client_reference_id: userId,
+    metadata: { userId, plan },
+    success_url: `${env.appUrl}/app?upgraded=1`,
+    cancel_url: `${env.appUrl}/app/billing`,
+  });
+
+  return { url: session.url ?? `${env.appUrl}/app/billing` };
+}
