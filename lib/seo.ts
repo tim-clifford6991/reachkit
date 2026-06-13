@@ -30,6 +30,10 @@ export function softwareApplicationLd(o: { name: string; url: string; priceUsd: 
 /**
  * Organization JSON-LD. Emitted alongside SoftwareApplication on the homepage
  * to establish brand identity in the knowledge graph.
+ *
+ * E-E-A-T: includes a `founder` (Person) entity and `sameAs` profile links so
+ * search + AI crawlers can attribute the product and its editorial (teardowns)
+ * to a real, accountable author/organization.
  */
 export function organizationLd() {
   return {
@@ -39,7 +43,67 @@ export function organizationLd() {
     url: SITE.url,
     description:
       "The discoverability engine for solo founders. Scan your App Store listing or website and get a scored, ranked action plan in 90 seconds.",
-    sameAs: [] as string[],
+    founder: {
+      "@type": "Person",
+      name: "Tim Clifford",
+      url: SITE.url,
+    },
+    sameAs: ["https://x.com/reachkit"],
+  } as const;
+}
+
+// ---------------------------------------------------------------------------
+// Product + Offer JSON-LD — §22.2 /pricing
+// ---------------------------------------------------------------------------
+
+export interface OfferTier {
+  /** Tier name, e.g. "Solo" */
+  name: string;
+  /** Price in USD (0 for the free tier) */
+  priceUsd: number;
+  /** One-line tier description */
+  description: string;
+}
+
+/**
+ * Product JSON-LD with one Offer per pricing tier — Free / Solo $29 / Growth $99.
+ *
+ * Emitted on /pricing so search + AI crawlers can read the full price ladder
+ * (not just a single price point). Each Offer carries its USD price + a stable
+ * billing increment so the structured data mirrors the visible table.
+ */
+export function offerLd(o: { name: string; url: string; tiers: readonly OfferTier[] }) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: o.name,
+    url: o.url,
+    description:
+      "Discoverability analytics for solo founders: a scored report and a weekly, verified action plan for your App Store listing or website.",
+    brand: {
+      "@type": "Brand",
+      name: SITE.name,
+    },
+    offers: o.tiers.map((t) => ({
+      "@type": "Offer" as const,
+      name: t.name,
+      description: t.description,
+      price: String(t.priceUsd),
+      priceCurrency: "USD",
+      url: o.url,
+      availability: "https://schema.org/InStock",
+      ...(t.priceUsd > 0
+        ? {
+            priceSpecification: {
+              "@type": "UnitPriceSpecification" as const,
+              price: String(t.priceUsd),
+              priceCurrency: "USD",
+              billingIncrement: 1,
+              unitText: "MONTH",
+            },
+          }
+        : {}),
+    })),
   } as const;
 }
 

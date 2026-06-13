@@ -9,7 +9,7 @@
  */
 
 import Link from "next/link";
-import { buildMetadata, softwareApplicationLd, SITE } from "@/lib/seo";
+import { buildMetadata, softwareApplicationLd, offerLd, SITE } from "@/lib/seo";
 import { PricingTable } from "@/components/sections/pricing-table";
 import { Faq } from "@/components/sections/faq";
 import { PricingCheckoutLinks } from "./pricing-checkout-links";
@@ -120,10 +120,20 @@ const FAQ_CONTENT = {
 // ---------------------------------------------------------------------------
 
 export default function PricingPage() {
-  const ld = softwareApplicationLd({
+  const appLd = softwareApplicationLd({
     name: SITE.name,
     url: SITE.url,
     priceUsd: 29,
+  });
+  // Product + Offer ladder (Free / Solo $29 / Growth $99) — §22.2 GEO pricing.
+  const productLd = offerLd({
+    name: `${SITE.name} subscription`,
+    url: `${SITE.url}/pricing`,
+    tiers: [
+      { name: "Free", priceUsd: 0, description: "One scan, a full report, 3 sample actions." },
+      { name: "Solo", priceUsd: 29, description: "1 app, weekly queue, drafts, monitoring." },
+      { name: "Growth", priceUsd: 99, description: "3 apps, higher quotas, deeper rank tracking." },
+    ],
   });
 
   return (
@@ -131,10 +141,14 @@ export default function PricingPage() {
       className="relative min-h-dvh"
       style={{ background: "var(--color-bg)" }}
     >
-      {/* SoftwareApplication JSON-LD (FAQPage JSON-LD is emitted by <Faq />) */}
+      {/* SoftwareApplication + Product/Offer JSON-LD (FAQPage emitted by <Faq />) */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(appLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productLd) }}
       />
 
       {/* Ambient glow */}
