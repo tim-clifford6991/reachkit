@@ -4,8 +4,12 @@
  * §22 / §23 "moment 5" growth loop:
  *   - Fully public, no auth required
  *   - Slug = scan id (same convention as the funnel results page)
- *   - All four E2 section components rendered fully UNLOCKED (unlocked={true})
- *     — this is a shared public artifact, not the gated funnel view
+ *   - PUBLIC-SAFE TEASER: the payload is redacted to the "free" tier
+ *     (`redactReportForTier(payload, "free")`) so the paid action DRAFTS are
+ *     stripped server-side and the action set is capped — this is a shared
+ *     growth-loop artifact reachable by anyone with the scan UUID, so it must
+ *     NEVER expose the paid deliverable (else it's a paywall bypass + leak).
+ *     Sections render with unlocked={false}, exactly like the free funnel view.
  *   - OG image points to /report/[slug]/opengraph-image (the score card)
  *   - Article JSON-LD for indexability
  *   - Badge embed (§22 growth loop) at the bottom — copy-paste snippet
@@ -18,6 +22,7 @@ import { notFound } from "next/navigation";
 import { serverDb } from "@/lib/db/client";
 import { buildMetadata, articleLd, SITE } from "@/lib/seo";
 import type { ReportPayload } from "@/lib/scan/report";
+import { redactReportForTier } from "@/lib/billing/entitlements";
 import { buildScoreCard } from "@/lib/badge/score-card";
 import { WhatYouOfferSection } from "@/components/report/what-you-offer-section";
 import { WhoItsForSection } from "@/components/report/who-its-for-section";
@@ -125,6 +130,11 @@ export default async function ReportPage({
   const card = buildScoreCard(payload);
   const reportUrl = `${SITE.url}/report/${slug}`;
 
+  // PUBLIC-SAFE: strip paid drafts + cap the action preview server-side. The
+  // score/positioning/findings/surfaces stay (the teaser that drives others to
+  // scan); the paid action plan does NOT leak. Same redactor the funnel uses.
+  const report = redactReportForTier(payload, "free");
+
   // Article JSON-LD (injected via script tag — generateMetadata cannot emit ld+json)
   const ld = articleLd({
     headline: `Discoverability Score: ${card.total}/100`,
@@ -171,23 +181,25 @@ export default async function ReportPage({
         {/* ── Score visual (client component, lazy-loads motion/react) ── */}
         <ScoreBlock score={payload.score} caption={card.caption} />
 
-        {/* ── Four-question report sections — fully unlocked ───────────── */}
-        {/* Public share target: all content visible (no gating needed).    */}
+        {/* ── Four-question report sections — PUBLIC-SAFE TEASER ───────── */}
+        {/* Redacted to "free" (drafts stripped, actions capped) + rendered    */}
+        {/* unlocked={false}, identical to the free funnel view. The public    */}
+        {/* report must never expose the paid deliverable.                     */}
         <WhatYouOfferSection
-          whatYouOffer={payload.whatYouOffer}
-          unlocked={true}
+          whatYouOffer={report.whatYouOffer}
+          unlocked={false}
         />
         <WhoItsForSection
-          whoItsFor={payload.whoItsFor}
-          unlocked={true}
+          whoItsFor={report.whoItsFor}
+          unlocked={false}
         />
         <WhereTheyAreSection
-          whereTheyAre={payload.whereTheyAre}
-          unlocked={true}
+          whereTheyAre={report.whereTheyAre}
+          unlocked={false}
         />
         <ActionPlanSection
-          whatToDoThisWeek={payload.whatToDoThisWeek}
-          unlocked={true}
+          whatToDoThisWeek={report.whatToDoThisWeek}
+          unlocked={false}
         />
 
         {/* ── §22 Growth loop: badge embed ─────────────────────────────── */}
