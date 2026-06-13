@@ -22,3 +22,24 @@ export function softwareApplicationLd(o: { name: string; url: string; priceUsd: 
     offers: { "@type": "Offer", price: String(o.priceUsd), priceCurrency: "USD" },
   } as const;
 }
+
+/**
+ * Article JSON-LD for the public shareable report page.
+ *
+ * Used by app/report/[slug]/page.tsx to make the report indexable and
+ * social-sharable with structured data (headline, datePublished, url).
+ */
+export function articleLd(o: { headline: string; url: string; datePublished: string }) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: o.headline,
+    url: o.url,
+    datePublished: o.datePublished,
+    publisher: {
+      "@type": "Organization",
+      name: SITE.name,
+      url: SITE.url,
+    },
+  } as const;
+}
