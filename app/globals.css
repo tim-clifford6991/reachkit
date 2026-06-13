@@ -1,6 +1,5 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "shadcn/tailwind.css";
 
 /* Dark-first: the app is always dark; next-themes can toggle .dark class for
    components that need it, but the base palette is dark. */
