@@ -34,6 +34,7 @@ const schema = z.object({
   // Analytics — fully optional
   POSTHOG_KEY: z.string().optional().default(""),
   POSTHOG_HOST: z.string().optional().default(""),
+  APP_URL: z.string().optional().default("http://localhost:3000"),
   SCAN_BUDGET_CENTS: z.coerce.number().int().positive().default(150),
   DATAFORSEO_LOCATION_CODE: z.coerce.number().int().default(2840), // US
   DATAFORSEO_LANGUAGE_CODE: z.string().default("en"),
@@ -64,6 +65,7 @@ export function parseEnv(src: NodeJS.ProcessEnv) {
     voyageApiKey: p.VOYAGE_API_KEY,
     dataforseoLocationCode: p.DATAFORSEO_LOCATION_CODE, dataforseoLanguageCode: p.DATAFORSEO_LANGUAGE_CODE,
     useFixtures: p.REACHKIT_USE_FIXTURES,
+    appUrl: p.APP_URL,
   };
 }
 
