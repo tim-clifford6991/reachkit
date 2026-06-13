@@ -79,14 +79,32 @@ export function howToLd(opts: {
  *
  * Used by app/report/[slug]/page.tsx to make the report indexable and
  * social-sharable with structured data (headline, datePublished, url).
+ *
+ * Pass `author` for teardown pages to establish E-E-A-T (author + dateModified).
  */
-export function articleLd(o: { headline: string; url: string; datePublished: string }) {
+export function articleLd(o: {
+  headline: string;
+  url: string;
+  datePublished: string;
+  dateModified?: string;
+  author?: { name: string; url?: string };
+}) {
   return {
     "@context": "https://schema.org",
     "@type": "Article",
     headline: o.headline,
     url: o.url,
     datePublished: o.datePublished,
+    ...(o.dateModified !== undefined ? { dateModified: o.dateModified } : {}),
+    ...(o.author !== undefined
+      ? {
+          author: {
+            "@type": "Person" as const,
+            name: o.author.name,
+            ...(o.author.url !== undefined ? { url: o.author.url } : {}),
+          },
+        }
+      : {}),
     publisher: {
       "@type": "Organization",
       name: SITE.name,
