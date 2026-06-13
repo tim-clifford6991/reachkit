@@ -1,8 +1,8 @@
 import { buildMetadata } from "@/lib/seo";
 import { serverDb } from "@/lib/db/client";
 import { currentUser } from "@/lib/auth/server";
-import { isTier, type Tier } from "@/lib/billing/tiers";
-import { redactReportForTier } from "@/lib/billing/entitlements";
+import { type Tier } from "@/lib/billing/tiers";
+import { entitlementsFor, redactReportForTier } from "@/lib/billing/entitlements";
 import type { ReportPayload } from "@/lib/scan/report";
 import {
   Card,
@@ -299,11 +299,15 @@ export default async function ResultsPage({
 
   const fullReport = data.report_payload as unknown as ReportPayload;
 
-  // Resolve the viewer's tier (anon or unknown → "free") and blur-lock the
-  // report accordingly. Paid viewers get the report unchanged.
+  // Resolve the viewer's EFFECTIVE tier and blur-lock the report accordingly.
+  // Drafts unlock only for an ACTIVE subscription — a past_due/canceled paid
+  // account falls back to the free preview (anon/unknown → "free").
   const viewer = await currentUser();
-  const tier: Tier =
-    viewer && isTier(viewer.user.tier) ? viewer.user.tier : "free";
+  let tier: Tier = "free";
+  if (viewer) {
+    const ent = await entitlementsFor(viewer.user.id);
+    tier = ent.active ? ent.tier : "free";
+  }
   const report = redactReportForTier(fullReport, tier);
 
   return (
