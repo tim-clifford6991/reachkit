@@ -44,3 +44,19 @@ export async function scanCostCents(scanId: string): Promise<number> {
   const { data } = await db.from("pipeline_runs").select("cost_cents").eq("scan_id", scanId);
   return (data ?? []).reduce((n, r) => n + Number(r.cost_cents), 0);
 }
+
+// §13 cost-overrun alert: a scan whose total pipeline cost runs hot (spec target:
+// p95 > $1.50) emits a telemetry marker so we can spot per-scan cost regressions
+// in the logs. This does NOT throw — the §9.5 hard ceiling (ScanBudget) is what
+// actually stops a runaway scan; by the time the report is persisted the spend is
+// already incurred, so the alert is observe-only and must never break the scan.
+// Returns the scan's total cost in cents.
+export async function checkScanCostOverrun(scanId: string, thresholdCents = 150): Promise<number> {
+  const total = await scanCostCents(scanId);
+  if (total > thresholdCents) {
+    console.error(
+      `[cost-alert] scan ${scanId} exceeded budget: ${total}¢ > ${thresholdCents}¢`,
+    );
+  }
+  return total;
+}

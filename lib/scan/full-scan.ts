@@ -36,6 +36,7 @@ import { gatherScoreComponents, verifiedScore } from "@/lib/scan/score-full";
 import { assembleReport, persistReport } from "@/lib/scan/report";
 import { seedMonitors } from "@/lib/scan/monitors";
 import { getFreshFactSheet, factSheetSubjectType } from "@/lib/scan/fact-sheets";
+import { checkScanCostOverrun } from "@/lib/telemetry/pipeline-runs";
 import { emitScanEvent } from "@/lib/scan/progress";
 import type { ScanContext } from "@/lib/scan/pipeline";
 import type { PreliminaryFacts } from "@/lib/scan/types";
@@ -264,6 +265,14 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
       })
       .eq("id", ctx.scanId);
     if (scoreErr) throw scoreErr;
+
+    // 10b. §13 cost-overrun alert — best-effort telemetry marker. The report is
+    //      already persisted, so a hot scan is logged but never breaks the run.
+    try {
+      await checkScanCostOverrun(ctx.scanId);
+    } catch {
+      // observe-only: never let the cost check fail the scan
+    }
 
     // 11. Seed the weekly monitors (Cycle 4 Task 7) — best-effort & idempotent
     //     (upsert on app_id,kind), so it can't break the scan or duplicate rows.
