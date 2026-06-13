@@ -28,6 +28,13 @@
 - [ ] `lib/billing/tiers.ts` — the single source of truth: `type Tier = "free"|"solo"|"growth"`; `TIER_LIMITS: Record<Tier, { apps: number; refreshCadence: "none"|"weekly"; draftQuota: number; rankDepth: number }>` (free: 1/none/0/0 · solo: 1/weekly/20/20 · growth: 3/weekly/100/50); `tierForPriceId(priceId): Tier` (maps `env.stripePriceSolo|Growth`); `isPaid(tier)`. Pure + TDD.
 - [ ] **Commit** `feat: billing migration (users stripe/subscription state) + tier-limits contract`.
 
+### Task 1b: Server-auth foundation (@supabase/ssr cookie session) — *prerequisite for ALL authed surfaces (billing, queue, app shell)*
+**Files:** `lib/auth/server.ts`, `lib/auth/client.ts`, `app/auth/callback/route.ts`, modify `app/api/scan/[id]/claim/route.ts`; `pnpm add @supabase/ssr`.
+- [ ] **Gap found at build (2026-06-13):** Cycle 2 shipped only the magic-link *send* (`signInWithOtp`); there is no server session **read** (`serverDb()` is service-role only). Add `@supabase/ssr`: a cookie-based server client (`createServerClient` with the Next 16 `cookies()` adapter) + a browser client; an `/auth/callback` route that exchanges the magic-link `code` for a cookie session then redirects to `next` (default `/app`); repoint the claim route's `emailRedirectTo` at `/auth/callback?next=/scan/[id]/results`. Export `currentUser(): Promise<{ authId: string; user: UsersRow } | null>` (reads the cookie session via `auth.getUser()`, loads the `users` row by `id`) and `requireUser()` (throws an `AuthError` mapped to 401). The `users.id = auth.uid()` profile row already exists (the `auth_user_profile` trigger). Keyless: local dev uses Supabase local auth (Inbucket) — no extra keys. Follow the official `@supabase/ssr` Next App-Router pattern.
+- [ ] **Commit** `feat: server-auth foundation (@supabase/ssr cookie session, /auth/callback, currentUser/requireUser)`.
+
+> All auth-gated routes below (`/api/billing/*`, `/api/app/:id/*`, `/api/action/:id/*`, the `(app)` shell) resolve the caller via `requireUser()` from Task 1b.
+
 ### Task 2: Stripe client + env (test-mode, fixture-aware)
 **Files:** `lib/billing/stripe.ts`, modify `lib/config/env.ts` (+ test).
 - [ ] env: add `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_SOLO`, `STRIPE_PRICE_GROWTH` — all `z.string().optional().default("")`; **not** in the PAID_KEYS required set (keyless dev relies on fixture short-circuit). Map `stripeSecretKey`, `stripeWebhookSecret`, `stripePriceSolo`, `stripePriceGrowth`.
