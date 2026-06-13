@@ -190,6 +190,21 @@ async function applyDivergenceCheck(
     return cards;
   }
 
+  // Drop THIS app's own prior draft embeddings BEFORE the search loop. Without this,
+  // a re-scan/weekly-refresh re-embeds near-identical drafts that are still stored from
+  // the previous run, so each draft matches its own prior version above the threshold and
+  // the app self-flags as "divergent from another customer". Deleting first guarantees the
+  // searchSimilar set contains only OTHER apps' drafts (true cross-customer divergence);
+  // the same drafts are re-inserted at the end of this function (delete→insert = no dup,
+  // safe for retries).
+  if (!fixturesEnabled()) {
+    try {
+      await deleteEmbeddingsForApp(ctx.appId, "draft");
+    } catch {
+      // Delete failed — proceed; a stale self-match is preferable to aborting the check.
+    }
+  }
+
   // Check each draft against OTHER apps' draft embeddings
   const result = [...cards];
 
@@ -201,14 +216,13 @@ async function applyDivergenceCheck(
     let isDivergent = false;
 
     if (!fixturesEnabled()) {
-      // Search for similar drafts from OTHER apps (exclude current appId)
+      // Search for similar drafts from OTHER apps. This app's own drafts were just
+      // deleted above, so any match here is genuinely from a different customer.
       try {
         const matches = await searchSimilar(vec, {
           subjectType: "draft",
           k: 3,
         });
-        // Filter to other apps only: embeddings for this app won't be present yet
-        // (we delete+insert below), so any match here is from a different customer
         const nearDuplicate = matches.some((m) => m.similarity > DIVERGENCE_THRESHOLD);
         if (nearDuplicate) {
           isDivergent = true;
@@ -237,10 +251,15 @@ async function applyDivergenceCheck(
     }
   }
 
-  // Idempotent populate: delete this app's draft embeddings then re-insert
-  // (safe for retries — delete then insert = no duplicates)
+  // Idempotent populate: re-insert this app's (possibly-rewritten) drafts.
+  // In non-fixture mode the pre-loop deleteEmbeddingsForApp already cleared this
+  // app's "draft" rows, so we don't delete again here. In fixture mode we skipped
+  // that delete (to keep the divergence search a pure fixture no-op), so we delete
+  // now to stay idempotent across re-runs (delete then insert = no duplicates).
   try {
-    await deleteEmbeddingsForApp(ctx.appId, "draft");
+    if (fixturesEnabled()) {
+      await deleteEmbeddingsForApp(ctx.appId, "draft");
+    }
 
     // Re-collect drafts from result (may include rewritten ones)
     const toInsert = result

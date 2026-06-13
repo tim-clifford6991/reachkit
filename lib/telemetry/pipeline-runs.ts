@@ -19,7 +19,12 @@ export type PipelineRun = {
   // (§5.7 scheduled shared-cache refresh, cross-customer DataForSEO refresh) are telemetry-worthy yet
   // not tied to any single scan. Those log with scanId=null. Per-scan budget caps aggregate by scanId.
   scanId: string | null;
-  stage: "collect" | "extract" | "synth" | "critic" | "format" | "tool";
+  // "refresh" is the Cycle 4 weekly delta-refresh aggregate row (one per run): it
+  // rolls up the whole watermark→Haiku→novelty→Sonnet pass under a single stage so
+  // the cheap no-op weeks (costCents:0) and the rare escalation weeks are both
+  // visible in pipeline_runs without double-counting the per-call rows callModel
+  // already writes.
+  stage: "collect" | "extract" | "synth" | "critic" | "format" | "tool" | "refresh";
   model?: ModelId; tokensIn?: number; tokensOut?: number;
   costCents: number; criticRejections?: number; durationMs: number;
 };
