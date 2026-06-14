@@ -40,7 +40,7 @@ export const metadata = buildMetadata({ title: "Dashboard", path: "/app" });
 
 async function DashboardContent() {
   const viewer = await currentUser();
-  if (!viewer) redirect("/");
+  if (!viewer) redirect("/login?next=/app");
 
   const { user } = viewer;
   const primaryAppId = user.app_ids[0] ?? null;
@@ -137,8 +137,8 @@ function DashboardSkeleton() {
     <div className="space-y-8">
       {/* Score skeleton */}
       <div
-        className="flex flex-col items-center rounded-xl border py-10"
-        style={{ borderColor: "oklch(1 0 0 / 0.09)", background: "var(--color-surface)" }}
+        className="flex flex-col items-center rounded-2xl border py-10"
+        style={{ borderColor: "var(--hairline)", background: "var(--color-surface)" }}
       >
         <Skeleton className="mb-6 h-3 w-28" />
         <Skeleton className="size-[140px] rounded-full" />
@@ -148,8 +148,8 @@ function DashboardSkeleton() {
       {[1, 2, 3, 4].map((i) => (
         <div
           key={i}
-          className="rounded-xl border p-5"
-          style={{ borderColor: "oklch(1 0 0 / 0.09)", background: "var(--color-surface)" }}
+          className="rounded-2xl border p-7"
+          style={{ borderColor: "var(--hairline)", background: "var(--color-surface)" }}
         >
           <Skeleton className="mb-3 h-3 w-20" />
           <Skeleton className="mb-2 h-5 w-40" />
@@ -198,7 +198,7 @@ function NoAppEmptyState() {
       <div
         className="max-w-sm rounded-xl border p-8 text-center"
         style={{
-          borderColor: "oklch(1 0 0 / 0.09)",
+          borderColor: "var(--hairline)",
           background: "var(--color-surface)",
         }}
       >
@@ -235,7 +235,7 @@ function NoReportEmptyState() {
       <div
         className="max-w-sm rounded-xl border p-8 text-center"
         style={{
-          borderColor: "oklch(1 0 0 / 0.09)",
+          borderColor: "var(--hairline)",
           background: "var(--color-surface)",
         }}
       >

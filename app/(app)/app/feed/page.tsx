@@ -15,7 +15,7 @@ export default function FeedPage() {
       <div
         className="max-w-sm rounded-xl border px-8 py-10 text-center"
         style={{
-          borderColor: "oklch(1 0 0 / 0.09)",
+          borderColor: "var(--hairline)",
           background: "var(--color-surface)",
         }}
       >
@@ -23,7 +23,7 @@ export default function FeedPage() {
         <div
           className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full"
           style={{
-            background: "oklch(0.60 0.18 255 / 0.10)",
+            background: "oklch(0.70 0.13 66 / 0.12)",
             border: "1.5px solid var(--color-accent-900)",
           }}
           aria-hidden

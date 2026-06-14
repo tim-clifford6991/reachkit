@@ -34,7 +34,7 @@ export function Faq({ content }: FaqProps) {
 
   return (
     <section
-      className="flex flex-col items-center gap-10 px-[--spacing-content-x] py-[--spacing-section-y]"
+      className="flex flex-col items-center gap-14 px-(--spacing-content-x) py-(--spacing-section-y)"
       aria-label="Frequently asked questions"
     >
       {/* FAQPage JSON-LD */}
@@ -72,7 +72,7 @@ export function Faq({ content }: FaqProps) {
             key={item.q}
             role="listitem"
             className="faq-item group border-b"
-            style={{ borderColor: "oklch(1 0 0 / 0.08)" }}
+            style={{ borderColor: "var(--hairline)" }}
           >
             <summary
               className="flex cursor-pointer list-none items-start justify-between gap-4 py-4 text-sm font-medium"
@@ -108,7 +108,7 @@ export function Faq({ content }: FaqProps) {
 
             {/* First item: no top border (header acts as separator) */}
             {i === 0 && (
-              <style>{`details.faq-item:first-child { border-top: 1px solid oklch(1 0 0 / 0.08); }`}</style>
+              <style>{`details.faq-item:first-child { border-top: 1px solid var(--hairline); }`}</style>
             )}
           </details>
         ))}

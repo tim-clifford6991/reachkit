@@ -23,6 +23,7 @@
  * - Lenis + GSAP init in layout.tsx (marketing-only, never reaches app/funnel)
  */
 
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
@@ -41,32 +42,30 @@ import {
   SITE,
 } from "@/lib/seo";
 import { ScanInput } from "./scan-input";
-import {
-  SocialProofMarquee,
-  FeatureBento,
-  HowItWorksScroll,
-  TeardownGrid,
-  ComparisonTable,
-  PricingTable,
-  Faq,
-  FinalCta,
-  Footer,
-} from "@/components/sections";
-import type {
-  SocialProofMarqueeContent,
-  FeatureBentoContent,
-  TeardownGridContent,
-  ComparisonTableContent,
-  PricingTableContent,
-  FaqContent,
-  FinalCtaContent,
-  FooterContent,
-} from "@/components/sections";
+// Direct imports (not the barrel) so Turbopack can split each section cleanly
+// and below-the-fold sections don't all land in one eager first-load chunk.
+import { SocialProofMarquee } from "@/components/sections/social-proof-marquee";
+import { FeatureBento } from "@/components/sections/feature-bento";
+import { HowItWorksScroll } from "@/components/sections/how-it-works-scroll";
+import { TeardownGrid } from "@/components/sections/teardown-grid";
+import { ComparisonTable } from "@/components/sections/comparison-table";
+import { PricingTable } from "@/components/sections/pricing-table";
+import { Faq } from "@/components/sections/faq";
+import { FinalCta } from "@/components/sections/final-cta";
+import type { SocialProofMarqueeContent } from "@/components/sections/social-proof-marquee";
+import type { FeatureBentoContent } from "@/components/sections/feature-bento";
+import type { TeardownGridContent } from "@/components/sections/teardown-grid";
+import type { ComparisonTableContent } from "@/components/sections/comparison-table";
+import type { PricingTableContent } from "@/components/sections/pricing-table";
+import type { FaqContent } from "@/components/sections/faq";
+import type { FinalCtaContent } from "@/components/sections/final-cta";
 // GSAP set pieces live behind a client boundary with ssr:false dynamic imports
 import {
   LazyScanScrollSequence,
-  LazyHeroGsapWrapper,
+  LazyParallaxLayers,
 } from "@/components/motion/gsap/dynamic-wrappers";
+import { GradientMesh } from "@/components/motion/gradient-mesh";
+import { RecentScans } from "@/components/sections/recent-scans";
 
 // ---------------------------------------------------------------------------
 // Metadata
@@ -274,9 +273,9 @@ const PRICING_CONTENT: PricingTableContent = {
           href="/"
           className="block w-full rounded-lg border px-4 py-2.5 text-center text-sm font-medium transition-colors duration-150"
           style={{
-            borderColor: "oklch(1 0 0 / 0.12)",
+            borderColor: "var(--hairline-strong)",
             color: "var(--color-fg)",
-            background: "oklch(1 0 0 / 0.04)",
+            background: "var(--fill-subtle)",
           }}
         >
           Scan your product
@@ -301,9 +300,9 @@ const PRICING_CONTENT: PricingTableContent = {
       cta: (
         <Link
           href="/pricing"
-          className="block w-full rounded-lg border border-transparent px-4 py-2.5 text-center text-sm font-semibold transition-colors duration-150"
+          className="block w-full rounded-lg border border-transparent px-4 py-2.5 text-center text-sm font-semibold shadow-[var(--elevation-glow)] transition-[transform,filter] duration-200 ease-revolut hover:-translate-y-px hover:brightness-110 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
           style={{
-            background: "var(--color-accent-600)",
+            background: "var(--gradient-accent)",
             color: "var(--color-accent-fg)",
           }}
         >
@@ -328,9 +327,9 @@ const PRICING_CONTENT: PricingTableContent = {
           href="/pricing"
           className="block w-full rounded-lg border px-4 py-2.5 text-center text-sm font-medium transition-colors duration-150"
           style={{
-            borderColor: "oklch(1 0 0 / 0.12)",
+            borderColor: "var(--hairline-strong)",
             color: "var(--color-fg)",
-            background: "oklch(1 0 0 / 0.04)",
+            background: "var(--fill-subtle)",
           }}
         >
           Start Growth — $99/mo
@@ -378,36 +377,6 @@ const FINAL_CTA_CONTENT: FinalCtaContent = {
     "Paste your App Store URL or website. Get your Discoverability Score and a ranked action list in 90 seconds.",
 };
 
-const FOOTER_CONTENT: FooterContent = {
-  brand: "ReachKit",
-  tagline: "The distribution system for solo founders.",
-  columns: [
-    {
-      heading: "Product",
-      items: [
-        { label: "Pricing", href: "/pricing" },
-        { label: "Scan now", href: "/scan" },
-        { label: "Teardowns", href: "/teardowns" },
-      ],
-    },
-    {
-      heading: "Company",
-      items: [
-        { label: "Privacy policy", href: "/privacy" },
-        { label: "Terms of service", href: "/terms" },
-        { label: "Imprint", href: "/imprint" },
-      ],
-    },
-  ],
-  legal: [
-    { label: "Privacy", href: "/privacy" },
-    { label: "Terms", href: "/terms" },
-    { label: "Imprint", href: "/imprint" },
-  ],
-  copyright: `© ${new Date().getFullYear()} ReachKit`,
-  attribution: "Built for founders who ship",
-};
-
 // ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
@@ -436,36 +405,24 @@ export default function HomePage() {
       />
 
       {/* ── §23 Moment 1: Hero + ScanInput above the fold ──────────────── */}
-      {/* Static/CSS — no GSAP dependency on the LCP path.
-          LazyHeroGsapWrapper is dynamic(ssr:false) so it loads after hydration.
-          The headline HTML is SSR'd regardless (SEO + LCP). */}
-      <LazyHeroGsapWrapper>
-        <section
-          className="hero-section relative flex flex-col items-center gap-10 px-[--spacing-content-x] py-[--spacing-section-y] text-center"
+      {/* CSS-only entrance (no JS/GSAP dependency) so the headline is never
+          blank — calm and robust, fitting the Almanac direction. */}
+      <section
+          className="hero-section relative flex flex-col items-center gap-14 overflow-hidden px-(--spacing-content-x) pb-(--spacing-section-y) pt-16 text-center sm:pt-24"
           aria-label="Hero"
         >
-          {/* Ambient background glow — CSS only, zero JS */}
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 overflow-hidden"
-          >
-            <div
-              className="absolute -top-48 left-1/2 h-[640px] w-[900px] -translate-x-1/2 rounded-full"
-              style={{
-                background:
-                  "radial-gradient(ellipse at center, var(--color-accent) 0%, transparent 70%)",
-                opacity: 0.065,
-              }}
-            />
-          </div>
+          {/* Ambient animated gradient mesh — pure CSS, below the LCP path */}
+          <GradientMesh />
 
-          <div className="hero-content relative z-10 flex max-w-xl flex-col items-center gap-8">
-            {/* Eyebrow */}
+          <div className="hero-content relative z-10 flex max-w-2xl flex-col items-center gap-8">
+            {/* Eyebrow — glass pill */}
             <p
-              className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 font-mono text-xs uppercase tracking-wider"
+              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-mono text-xs uppercase tracking-wider backdrop-blur-[var(--glass-blur)]"
               style={{
-                borderColor: "var(--color-accent-subtle)",
-                background: "var(--color-accent-subtle)",
+                borderWidth: 1,
+                borderStyle: "solid",
+                borderColor: "var(--glass-border)",
+                background: "var(--glass-tint)",
                 color: "var(--color-accent-400)",
               }}
             >
@@ -480,14 +437,19 @@ export default function HomePage() {
             {/* Headline — SSR'd for SEO + LCP, GSAP enhances on hydrate */}
             <h1
               data-hero-headline
-              className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl"
+              className="text-[2.25rem] font-bold tracking-[var(--tracking-display)] sm:text-6xl lg:text-7xl"
               style={{ color: "var(--color-fg)", lineHeight: 1.05 }}
             >
               Find out exactly why
               <br />
               <span
                 data-hero-accent
-                style={{ color: "var(--color-accent)" }}
+                style={{
+                  background: "var(--gradient-accent)",
+                  WebkitBackgroundClip: "text",
+                  backgroundClip: "text",
+                  color: "transparent",
+                }}
               >
                 your product isn&apos;t
               </span>
@@ -524,16 +486,20 @@ export default function HomePage() {
             }
           `}</style>
         </section>
-      </LazyHeroGsapWrapper>
 
       {/* ── Social proof marquee ────────────────────────────────────────── */}
-      <SocialProofMarquee content={MARQUEE_CONTENT} />
+      <Suspense fallback={<SocialProofMarquee content={MARQUEE_CONTENT} />}>
+        <RecentScans fallback={MARQUEE_CONTENT.chips} />
+      </Suspense>
 
       {/* ── §20.3 Set piece 2: watch a scan happen (lazy, ssr:false) ───── */}
       <LazyScanScrollSequence />
 
-      {/* ── Feature bento ───────────────────────────────────────────────── */}
-      <FeatureBento content={FEATURE_CONTENT} />
+      {/* ── Feature bento (with scroll-linked parallax depth) ───────────── */}
+      <div className="relative overflow-hidden">
+        <LazyParallaxLayers />
+        <FeatureBento content={FEATURE_CONTENT} />
+      </div>
 
       {/* ── §20.3 Set piece 3: pinned how-it-works (lazy via client comp) ─ */}
       <HowItWorksScroll />
@@ -555,8 +521,6 @@ export default function HomePage() {
         <ScanInput />
       </FinalCta>
 
-      {/* ── Footer (legal: /privacy /terms /imprint) ────────────────────── */}
-      <Footer content={FOOTER_CONTENT} />
     </main>
   );
 }

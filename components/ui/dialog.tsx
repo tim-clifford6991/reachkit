@@ -25,7 +25,7 @@ function DialogBackdrop({ className, ...props }: DialogPrimitive.Backdrop.Props)
   return (
     <DialogPrimitive.Backdrop
       className={cn(
-        "fixed inset-0 z-40 bg-black/60 backdrop-blur-sm",
+        "fixed inset-0 z-40 bg-black/60 backdrop-blur-[var(--glass-blur-strong)]",
         "transition-opacity duration-[300ms]",
         "data-[starting-style]:opacity-0 data-[ending-style]:opacity-0",
         className
@@ -56,7 +56,7 @@ function DialogContent({
           // Size
           "w-full max-w-lg",
           // Surface
-          "rounded-xl bg-popover p-6 shadow-2xl ring-1 ring-border",
+          "rounded-2xl bg-popover p-6 shadow-[var(--elevation-xl),var(--edge-highlight)] ring-1 ring-border",
           // Animation: scale + fade from slightly below centre
           "transition-all duration-[250ms] ease-out",
           "data-[starting-style]:scale-95 data-[starting-style]:opacity-0 data-[starting-style]:translate-y-4",
@@ -69,7 +69,7 @@ function DialogContent({
         {showClose && (
           <DialogClose
             className={cn(
-              "absolute right-4 top-4 rounded-md p-1 text-muted-foreground",
+              "absolute right-4 top-4 rounded-lg p-1 text-muted-foreground",
               "transition-colors duration-[150ms] hover:text-foreground",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
             )}

@@ -37,7 +37,7 @@ export function EvidencePanel({
           <li
             key={i}
             className="rounded-lg px-3 py-2.5"
-            style={{ background: "oklch(1 0 0 / 0.04)" }}
+            style={{ background: "var(--fill-subtle)" }}
           >
             <p
               className="text-xs italic leading-relaxed"
@@ -51,7 +51,7 @@ export function EvidencePanel({
             >
               {ev.source}
               {"sourceType" in ev && ev.sourceType && (
-                <span style={{ color: "oklch(1 0 0 / 0.25)" }}>
+                <span style={{ color: "var(--hairline-strong)" }}>
                   {" "}· {ev.sourceType}
                 </span>
               )}

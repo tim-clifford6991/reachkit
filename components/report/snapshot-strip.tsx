@@ -26,8 +26,8 @@ export function SnapshotStrip({ generatedAt, isPaid }: SnapshotStripProps) {
     <div
       className="rounded-lg px-4 py-3"
       style={{
-        background: "oklch(1 0 0 / 0.025)",
-        border: "1px solid oklch(1 0 0 / 0.07)",
+        background: "var(--fill-subtle)",
+        border: "1px solid var(--hairline)",
       }}
       role="note"
       aria-label="Report snapshot information"

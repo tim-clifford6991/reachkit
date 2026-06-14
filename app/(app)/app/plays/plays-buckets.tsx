@@ -145,7 +145,7 @@ function ActionCard({ action }: { action: WeeklyPlanAction }) {
     <div
       className="space-y-3 rounded-lg px-4 py-3.5 transition-opacity"
       style={{
-        border: "1px solid oklch(1 0 0 / 0.08)",
+        border: "1px solid var(--hairline)",
         opacity: isDone ? 0.45 : 1,
       }}
       aria-disabled={isDone}
@@ -168,13 +168,13 @@ function ActionCard({ action }: { action: WeeklyPlanAction }) {
               ? "var(--color-success)"
               : isVerifying
               ? "var(--color-accent-500)"
-              : "oklch(1 0 0 / 0.20)",
+              : "var(--hairline-strong)",
             background: isDone
               ? "var(--color-success)"
               : isVerifying
-              ? "oklch(0.60 0.18 255 / 0.15)"
+              ? "var(--color-accent-subtle)"
               : "transparent",
-            color: isDone ? "oklch(0.10 0 0)" : "var(--color-accent-400)",
+            color: isDone ? "var(--color-elevated)" : "var(--color-accent-400)",
           }}
         >
           {isDone ? (
@@ -242,9 +242,9 @@ function ActionCard({ action }: { action: WeeklyPlanAction }) {
         <span
           className="rounded px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider"
           style={{
-            background: "oklch(1 0 0 / 0.04)",
+            background: "var(--fill-subtle)",
             color: "var(--color-muted)",
-            border: "1px solid oklch(1 0 0 / 0.07)",
+            border: "1px solid var(--hairline)",
           }}
         >
           {categoryLabel(action.category)}
@@ -252,7 +252,7 @@ function ActionCard({ action }: { action: WeeklyPlanAction }) {
         {action.deadline && (
           <span
             className="font-mono text-[10px]"
-            style={{ color: "oklch(1 0 0 / 0.30)" }}
+            style={{ color: "var(--hairline-strong)" }}
           >
             by {formatDeadline(action.deadline)}
           </span>
@@ -281,7 +281,7 @@ function ActionCard({ action }: { action: WeeklyPlanAction }) {
       {action.draft && (
         <div
           className="ml-8 rounded-lg px-3 py-2.5"
-          style={{ background: "oklch(1 0 0 / 0.04)" }}
+          style={{ background: "var(--fill-subtle)" }}
         >
           <p
             className="mb-1 font-mono text-[10px] uppercase tracking-wider"
@@ -318,7 +318,7 @@ function ActionCard({ action }: { action: WeeklyPlanAction }) {
               aria-label="URL to verify"
               className="h-8 flex-1 rounded-lg border bg-transparent px-3 text-xs outline-none transition-colors focus-visible:ring-2"
               style={{
-                borderColor: "oklch(1 0 0 / 0.12)",
+                borderColor: "var(--hairline-strong)",
                 color: "var(--color-fg)",
               }}
             />
@@ -338,7 +338,7 @@ function ActionCard({ action }: { action: WeeklyPlanAction }) {
               onClick={() => void handleSkipUrl()}
               className="h-8 shrink-0 rounded-lg border px-3 text-xs transition-colors"
               style={{
-                borderColor: "oklch(1 0 0 / 0.12)",
+                borderColor: "var(--hairline-strong)",
                 color: "var(--color-muted)",
               }}
             >
@@ -390,11 +390,11 @@ function Bucket({ label, sublabel, actions, accentColor }: BucketProps) {
       aria-labelledby={`bucket-${label.replace(/\s+/g, "-").toLowerCase()}`}
       className="rounded-xl border"
       style={{
-        borderColor: "oklch(1 0 0 / 0.09)",
+        borderColor: "var(--hairline)",
         background: "var(--color-surface)",
       }}
     >
-      <div className="px-5 pt-5">
+      <div className="px-7 pt-6">
         <div className="mb-4 flex items-baseline gap-2">
           <p
             id={`bucket-${label.replace(/\s+/g, "-").toLowerCase()}`}
@@ -417,7 +417,7 @@ function Bucket({ label, sublabel, actions, accentColor }: BucketProps) {
           </span>
         </div>
 
-        <div className="space-y-3 pb-5">
+        <div className="space-y-3 pb-6">
           {actions.map((action) => (
             <ActionCard key={action.id} action={action} />
           ))}

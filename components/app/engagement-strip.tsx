@@ -35,7 +35,7 @@ function Sparkline({ data, width = 120, height = 32 }: SparklineProps) {
           y1={y}
           x2={width}
           y2={y}
-          stroke="oklch(1 0 0 / 0.12)"
+          stroke="var(--hairline-strong)"
           strokeWidth={1.5}
           strokeLinecap="round"
         />
@@ -162,11 +162,11 @@ export function EngagementStrip({
       aria-label="Engagement summary"
       className="rounded-xl border"
       style={{
-        borderColor: "oklch(1 0 0 / 0.09)",
+        borderColor: "var(--hairline)",
         background: "var(--color-surface)",
       }}
     >
-      <div className="flex items-center gap-4 px-5 py-4">
+      <div className="flex items-center gap-4 px-7 py-4">
         {/* Streak */}
         {streak > 0 && <StreakDisplay streak={streak} />}
 
@@ -174,7 +174,7 @@ export function EngagementStrip({
         {streak > 0 && history.length > 0 && (
           <div
             className="h-8 w-px shrink-0"
-            style={{ background: "oklch(1 0 0 / 0.08)" }}
+            style={{ background: "var(--hairline)" }}
             aria-hidden
           />
         )}

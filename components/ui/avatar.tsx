@@ -41,7 +41,7 @@ function Avatar({ src, alt = "", initials, size = "md", className, ...props }: A
         sizeClasses[size],
         className
       )}
-      style={{ backgroundColor: "oklch(0.60 0.18 255 / 0.12)" }}
+      style={{ backgroundColor: "var(--color-accent-subtle)" }}
       {...props}
     >
       {!showFallback && (

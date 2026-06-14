@@ -17,31 +17,23 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
 
   const core: MetadataRoute.Sitemap = [
-    {
-      url: `${SITE.url}/`,
-      lastModified: now,
-      changeFrequency: "weekly",
-      priority: 1,
-    },
-    {
-      url: `${SITE.url}/scan`,
-      lastModified: now,
-      changeFrequency: "monthly",
-      priority: 0.9,
-    },
-    {
-      url: `${SITE.url}/pricing`,
-      lastModified: now,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${SITE.url}/teardowns`,
-      lastModified: now,
-      changeFrequency: "weekly",
-      priority: 0.7,
-    },
+    { url: `${SITE.url}/`, lastModified: now, changeFrequency: "weekly", priority: 1 },
+    { url: `${SITE.url}/scan`, lastModified: now, changeFrequency: "monthly", priority: 0.9 },
+    { url: `${SITE.url}/how-it-works`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${SITE.url}/pricing`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${SITE.url}/teardowns`, lastModified: now, changeFrequency: "weekly", priority: 0.7 },
+    { url: `${SITE.url}/tools`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${SITE.url}/about`, lastModified: now, changeFrequency: "yearly", priority: 0.5 },
+    { url: `${SITE.url}/contact`, lastModified: now, changeFrequency: "yearly", priority: 0.4 },
+    { url: `${SITE.url}/affiliates`, lastModified: now, changeFrequency: "monthly", priority: 0.4 },
   ];
+
+  const compare: MetadataRoute.Sitemap = ["sparktoro", "ahrefs", "chatgpt"].map((slug) => ({
+    url: `${SITE.url}/compare/${slug}`,
+    lastModified: now,
+    changeFrequency: "monthly",
+    priority: 0.6,
+  }));
 
   const teardowns: MetadataRoute.Sitemap = allTeardowns.map((t) => ({
     url: `${SITE.url}/teardowns/${t.slug}`,
@@ -50,26 +42,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.6,
   }));
 
+  // Note: /imprint is intentionally excluded — it's noindex until the full
+  // registered entity details are finalised.
   const legal: MetadataRoute.Sitemap = [
-    {
-      url: `${SITE.url}/privacy`,
-      lastModified: now,
-      changeFrequency: "yearly",
-      priority: 0.3,
-    },
-    {
-      url: `${SITE.url}/terms`,
-      lastModified: now,
-      changeFrequency: "yearly",
-      priority: 0.3,
-    },
-    {
-      url: `${SITE.url}/imprint`,
-      lastModified: now,
-      changeFrequency: "yearly",
-      priority: 0.3,
-    },
+    { url: `${SITE.url}/privacy`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
+    { url: `${SITE.url}/terms`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
   ];
 
-  return [...core, ...teardowns, ...legal];
+  return [...core, ...compare, ...teardowns, ...legal];
 }

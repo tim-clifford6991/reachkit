@@ -68,23 +68,34 @@ function BentoCardComponent({ card }: { card: BentoCard }) {
   return (
     <div
       className={[
-        "group relative flex flex-col gap-4 overflow-hidden rounded-xl border p-5",
-        "transition-all duration-200",
+        "group relative flex h-full flex-col gap-4 overflow-hidden rounded-2xl border p-7",
+        "shadow-[var(--elevation-md),var(--edge-highlight)]",
+        "transition-[transform,box-shadow] duration-300 ease-revolut",
+        "hover:-translate-y-1 hover:shadow-[var(--elevation-lg),var(--edge-highlight)]",
+        "motion-reduce:transition-none motion-reduce:hover:translate-y-0",
         card.wide ? "md:col-span-2" : "",
       ]
         .filter(Boolean)
         .join(" ")}
       style={{
-        borderColor: "oklch(1 0 0 / 0.08)",
-        background: "var(--color-surface)",
+        borderColor: "var(--hairline)",
+        background: "var(--gradient-surface)",
       }}
     >
-      {/* Subtle hover glow */}
+      {/* Hover glow — brightens & lifts on hover */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
         style={{
           background: `radial-gradient(ellipse at 30% 0%, ${subtle} 0%, transparent 70%)`,
+        }}
+      />
+      {/* Accent top hairline — picks up the card's semantic colour on hover */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 h-px opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+        style={{
+          background: `linear-gradient(to right, transparent, ${color}, transparent)`,
         }}
       />
 
@@ -124,7 +135,7 @@ export function FeatureBento({ content }: FeatureBentoProps) {
 
   return (
     <section
-      className="flex flex-col items-center gap-10 px-[--spacing-content-x] py-[--spacing-section-y]"
+      className="flex flex-col items-center gap-14 px-(--spacing-content-x) py-(--spacing-section-y)"
       aria-label="Features"
     >
       {/* Header */}
@@ -138,8 +149,8 @@ export function FeatureBento({ content }: FeatureBentoProps) {
           </p>
         )}
         <h2
-          className="text-2xl font-bold tracking-tight sm:text-3xl"
-          style={{ color: "var(--color-fg)", lineHeight: 1.15 }}
+          className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl"
+          style={{ color: "var(--color-fg)", lineHeight: 1.1 }}
         >
           {headline}
         </h2>

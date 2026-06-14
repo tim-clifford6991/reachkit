@@ -59,17 +59,17 @@ export function UpgradeCta({ scanId: _scanId }: UpgradeCtaProps) {
       style={{
         borderColor: "var(--color-accent-900)",
         background:
-          "linear-gradient(135deg, oklch(0.60 0.18 255 / 0.06) 0%, oklch(0.145 0 0) 60%)",
+          "linear-gradient(135deg, oklch(0.70 0.13 66 / 0.07) 0%, var(--color-surface) 60%)",
       }}
       role="region"
       aria-label="Upgrade to unlock your action queue"
     >
-      <div className="px-5 py-5">
+      <div className="px-7 py-6">
         {/* Icon row */}
         <div
           className="mb-4 flex size-10 items-center justify-center rounded-full"
           style={{
-            background: "oklch(0.60 0.18 255 / 0.12)",
+            background: "var(--color-accent-subtle)",
             border: "1.5px solid var(--color-accent-900)",
           }}
           aria-hidden

@@ -55,12 +55,12 @@ function ScoreRingSkeleton() {
     <div className="flex flex-col items-center gap-4">
       <div
         className="h-[140px] w-[140px] animate-pulse rounded-full"
-        style={{ background: "oklch(1 0 0 / 0.06)" }}
+        style={{ background: "var(--fill-subtle)" }}
         aria-hidden="true"
       />
       <div
         className="h-3 w-20 animate-pulse rounded-lg"
-        style={{ background: "oklch(1 0 0 / 0.06)" }}
+        style={{ background: "var(--fill-subtle)" }}
         aria-hidden="true"
       />
     </div>
@@ -92,9 +92,9 @@ function FullFinding({ finding }: { finding: Finding }) {
 
   return (
     <div
-      className="space-y-3 rounded-xl border p-5"
+      className="space-y-3 rounded-xl border p-7"
       style={{
-        borderColor: "oklch(1 0 0 / 0.09)",
+        borderColor: "var(--hairline)",
         background: "var(--color-surface)",
       }}
     >
@@ -124,7 +124,7 @@ function FullFinding({ finding }: { finding: Finding }) {
             <li
               key={i}
               className="rounded-lg px-3 py-2.5"
-              style={{ background: "oklch(1 0 0 / 0.04)" }}
+              style={{ background: "var(--fill-subtle)" }}
             >
               <p
                 className="text-xs italic leading-relaxed"
@@ -166,12 +166,12 @@ function LockedFinding({ finding, index }: { finding: Finding; index: number }) 
   return (
     <div
       className="relative overflow-hidden rounded-xl border"
-      style={{ borderColor: "oklch(1 0 0 / 0.09)" }}
+      style={{ borderColor: "var(--hairline)" }}
       aria-label={`Locked finding ${index + 1}: unlock to read`}
     >
       {/* Real headline + preview — blurred */}
       <div
-        className="select-none px-5 py-4"
+        className="select-none px-7 py-4"
         style={{ background: "var(--color-surface)" }}
         aria-hidden="true"
       >
@@ -194,14 +194,14 @@ function LockedFinding({ finding, index }: { finding: Finding; index: number }) 
         <div
           className="flex items-center gap-2 rounded-full border px-3 py-1.5"
           style={{
-            borderColor: "oklch(1 0 0 / 0.12)",
+            borderColor: "oklch(1 0 0 / 0.18)",
             background: "oklch(0.085 0 0 / 0.85)",
           }}
         >
           <LockIcon />
           <span
             className="text-xs font-medium"
-            style={{ color: "var(--color-fg)" }}
+            style={{ color: "oklch(0.96 0.006 85)" }}
           >
             Unlock with your report
           </span>
@@ -241,14 +241,14 @@ function LockIcon() {
         rx="1.5"
         stroke="currentColor"
         strokeWidth="1.2"
-        style={{ color: "var(--color-muted)" }}
+        style={{ color: "oklch(0.76 0 0)" }}
       />
       <path
         d="M3.5 5V3.5a2.5 2.5 0 0 1 5 0V5"
         stroke="currentColor"
         strokeWidth="1.2"
         strokeLinecap="round"
-        style={{ color: "var(--color-muted)" }}
+        style={{ color: "oklch(0.76 0 0)" }}
       />
     </svg>
   );
@@ -279,7 +279,7 @@ export function FindingsReveal({
         style={{
           borderColor: "var(--color-accent-900)",
           background:
-            "linear-gradient(135deg, var(--color-surface) 0%, oklch(0.145 0.015 255) 100%)",
+            "linear-gradient(135deg, var(--color-surface) 0%, var(--color-elevated) 100%)",
         }}
       >
         <p
@@ -307,9 +307,9 @@ export function FindingsReveal({
 
       {/* ── Positioning mirror ───────────────────────────────────────────── */}
       <div
-        className="space-y-3 rounded-xl border p-5"
+        className="space-y-3 rounded-xl border p-7"
         style={{
-          borderColor: "oklch(1 0 0 / 0.09)",
+          borderColor: "var(--hairline)",
           background: "var(--color-surface)",
         }}
       >
@@ -392,10 +392,10 @@ export function FindingsReveal({
       {/* ── Sample action — blur-locked with real title visible ─────────── */}
       <div
         className="relative overflow-hidden rounded-xl border"
-        style={{ borderColor: "oklch(1 0 0 / 0.09)" }}
+        style={{ borderColor: "var(--hairline)" }}
       >
         <div
-          className="select-none space-y-2 p-5"
+          className="select-none space-y-2 p-7"
           style={{ background: "var(--color-surface)" }}
           aria-hidden="true"
         >
@@ -409,7 +409,7 @@ export function FindingsReveal({
             <span
               className="rounded-full border px-2 py-0.5 font-mono text-xs blur-[3px]"
               style={{
-                borderColor: "oklch(1 0 0 / 0.09)",
+                borderColor: "var(--hairline)",
                 color: "var(--color-muted)",
               }}
             >
@@ -425,7 +425,7 @@ export function FindingsReveal({
           <p
             className="mt-2 rounded-lg px-3 py-2 font-mono text-xs leading-relaxed blur-[4px] line-clamp-3"
             style={{
-              background: "oklch(1 0 0 / 0.04)",
+              background: "var(--fill-subtle)",
               color: "var(--color-muted)",
             }}
           >
@@ -436,14 +436,14 @@ export function FindingsReveal({
           <div
             className="flex items-center gap-2 rounded-full border px-3 py-1.5"
             style={{
-              borderColor: "oklch(1 0 0 / 0.12)",
+              borderColor: "oklch(1 0 0 / 0.18)",
               background: "oklch(0.085 0 0 / 0.85)",
             }}
           >
             <LockIcon />
             <span
               className="text-xs font-medium"
-              style={{ color: "var(--color-fg)" }}
+              style={{ color: "oklch(0.96 0.006 85)" }}
             >
               Unlock with your report
             </span>
@@ -453,11 +453,11 @@ export function FindingsReveal({
 
       {/* ── Moment 4: Email gate ─────────────────────────────────────────── */}
       <div
-        className="rounded-xl border p-6"
+        className="rounded-xl border p-8"
         style={{
           borderColor: "var(--color-accent-900)",
           background:
-            "linear-gradient(135deg, var(--color-surface) 0%, oklch(0.145 0.02 255) 100%)",
+            "linear-gradient(135deg, var(--color-surface) 0%, var(--color-elevated) 100%)",
         }}
       >
         <div className="mb-5 space-y-1.5">

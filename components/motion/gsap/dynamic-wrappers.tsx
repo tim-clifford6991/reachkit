@@ -32,6 +32,12 @@ const HeroGsapWrapperLazy = dynamic(
   { ssr: false },
 );
 
+const ParallaxLayersLazy = dynamic(
+  () =>
+    import("./parallax-layers").then((m) => m.ParallaxLayers),
+  { ssr: false },
+);
+
 // ---------------------------------------------------------------------------
 // Public re-exports with stable names
 // ---------------------------------------------------------------------------
@@ -42,4 +48,8 @@ export function LazyScanScrollSequence() {
 
 export function LazyHeroGsapWrapper({ children }: { children: ReactNode }) {
   return <HeroGsapWrapperLazy>{children}</HeroGsapWrapperLazy>;
+}
+
+export function LazyParallaxLayers() {
+  return <ParallaxLayersLazy />;
 }

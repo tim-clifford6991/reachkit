@@ -1,20 +1,50 @@
 import * as React from "react"
+import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
+
+const cardVariants = cva(
+  "group/card relative flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl py-(--card-spacing) text-sm text-card-foreground [--card-spacing:--spacing(6)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(5)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
+  {
+    variants: {
+      // `default` reproduces the original look exactly. The premium variants
+      // layer depth/glass/gradient on top — opt in per call site.
+      variant: {
+        default: "bg-card ring-1 ring-foreground/10",
+        elevated:
+          "bg-card ring-1 ring-foreground/10 shadow-[var(--elevation-md),var(--edge-highlight)]",
+        glass:
+          "bg-[var(--glass-tint)] ring-1 ring-[var(--glass-border)] backdrop-blur-[var(--glass-blur)] shadow-[var(--elevation-lg),var(--edge-highlight)]",
+        gradient:
+          "bg-[image:var(--gradient-surface)] ring-1 ring-foreground/10 shadow-[var(--elevation-md),var(--edge-highlight)]",
+      },
+      // Hover lift + glow (scale-free to keep dense layouts stable). CSS-only,
+      // so safe in the app bundle. Always reduced-motion guarded.
+      interactive: {
+        true: "transition-[transform,box-shadow] duration-200 ease-revolut hover:-translate-y-0.5 hover:shadow-[var(--elevation-lg),var(--edge-highlight)] motion-reduce:transition-none motion-reduce:hover:translate-y-0",
+        false: "",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      interactive: false,
+    },
+  }
+)
 
 function Card({
   className,
   size = "default",
+  variant,
+  interactive,
   ...props
-}: React.ComponentProps<"div"> & { size?: "default" | "sm" }) {
+}: React.ComponentProps<"div"> &
+  VariantProps<typeof cardVariants> & { size?: "default" | "sm" }) {
   return (
     <div
       data-slot="card"
       data-size={size}
-      className={cn(
-        "group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl bg-card py-(--card-spacing) text-sm text-card-foreground ring-1 ring-foreground/10 [--card-spacing:--spacing(4)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
-        className
-      )}
+      className={cn(cardVariants({ variant, interactive }), className)}
       {...props}
     />
   )
@@ -100,4 +130,5 @@ export {
   CardAction,
   CardDescription,
   CardContent,
+  cardVariants,
 }

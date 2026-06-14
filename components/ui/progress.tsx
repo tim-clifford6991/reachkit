@@ -8,8 +8,10 @@ interface ProgressProps {
   value?: number
   max?: number
   className?: string
-  /** Visual variant — default uses accent; success uses green state colour */
-  variant?: "default" | "success" | "warning" | "danger"
+  /** Visual variant — default uses accent; success uses green state colour.
+   *  `gradient` is for marketing/onboarding only — report subscore bars stay
+   *  on the flat state-colour fills to preserve data credibility. */
+  variant?: "default" | "success" | "warning" | "danger" | "gradient"
 }
 
 const variantFill: Record<NonNullable<ProgressProps["variant"]>, string> = {
@@ -17,6 +19,7 @@ const variantFill: Record<NonNullable<ProgressProps["variant"]>, string> = {
   success: "bg-[oklch(0.72_0.17_155)]",
   warning: "bg-[oklch(0.78_0.18_70)]",
   danger:  "bg-[oklch(0.70_0.20_22)]",
+  gradient: "bg-[image:var(--gradient-accent)]",
 }
 
 /**

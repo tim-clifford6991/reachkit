@@ -14,6 +14,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Avatar } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 import type { Tier } from "@/lib/billing/tiers";
 
 // ---------------------------------------------------------------------------
@@ -132,10 +133,10 @@ function TierBadge({ tier }: { tier: Tier }) {
       className="rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider"
       style={{
         background: isPaid
-          ? "oklch(0.60 0.18 255 / 0.15)"
-          : "oklch(1 0 0 / 0.06)",
+          ? "var(--color-accent-subtle)"
+          : "var(--fill-subtle)",
         color: isPaid ? "var(--color-accent-400)" : "var(--color-muted)",
-        border: `1px solid ${isPaid ? "var(--color-accent-900)" : "oklch(1 0 0 / 0.08)"}`,
+        border: `1px solid ${isPaid ? "var(--color-accent-900)" : "var(--hairline)"}`,
       }}
     >
       {label}
@@ -152,7 +153,7 @@ function SidebarScore({ score }: { score: number }) {
     score >= 70
       ? "oklch(0.72 0.17 155)"
       : score >= 40
-      ? "oklch(0.60 0.18 255)"
+      ? "var(--color-accent)"
       : "oklch(0.78 0.18 70)";
 
   return (
@@ -192,28 +193,31 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
     <Link
       href={item.href}
       aria-current={active ? "page" : undefined}
-      className="group/nav relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2"
-      style={{
-        background: active ? "var(--color-elevated)" : "transparent",
-        color: active ? "var(--color-fg)" : "var(--color-muted)",
-        borderLeft: active
-          ? "2px solid var(--color-accent-500)"
-          : "2px solid transparent",
-      }}
-      onMouseEnter={(e) => {
-        if (!active)
-          (e.currentTarget as HTMLElement).style.color = "var(--color-fg)";
-      }}
-      onMouseLeave={(e) => {
-        if (!active)
-          (e.currentTarget as HTMLElement).style.color = "var(--color-muted)";
-      }}
+      data-active={active ? "" : undefined}
+      className={cn(
+        "group/nav relative flex items-center gap-3 overflow-hidden rounded-lg px-3 py-2 text-sm",
+        "text-(--color-muted) transition-[color,background,box-shadow] duration-200 ease-revolut",
+        "hover:bg-[var(--fill-subtle)] hover:text-(--color-fg)",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+        // Active: accent-fade gradient pill + hairline ring (premium, not flat).
+        "data-active:bg-[image:var(--gradient-accent-fade)] data-active:text-(--color-fg) data-active:ring-1 data-active:ring-[var(--color-accent-900)]"
+      )}
     >
+      {/* Active accent bar — slides in via opacity */}
       <span
-        className="shrink-0"
-        style={{
-          color: active ? "var(--color-accent-400)" : "currentColor",
-        }}
+        aria-hidden
+        className={cn(
+          "absolute left-0 top-1/2 h-5 w-[2px] -translate-y-1/2 rounded-full bg-(--color-accent-500) transition-opacity duration-200",
+          active ? "opacity-100" : "opacity-0"
+        )}
+      />
+      <span
+        className={cn(
+          "shrink-0 transition-colors",
+          active
+            ? "text-(--color-accent-400)"
+            : "text-current group-hover/nav:text-(--color-fg)"
+        )}
       >
         {item.icon}
       </span>
@@ -222,9 +226,9 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
         <span
           className="rounded px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest"
           style={{
-            background: "oklch(1 0 0 / 0.04)",
+            background: "var(--fill-subtle)",
             color: "var(--color-muted)",
-            border: "1px solid oklch(1 0 0 / 0.07)",
+            border: "1px solid var(--hairline)",
           }}
         >
           soon
@@ -328,11 +332,18 @@ export function AppSidebar({
       }}
       aria-label="App navigation"
     >
+      {/* Ambient accent wash at the top — subtle premium depth */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-40"
+        style={{ background: "var(--gradient-accent-fade)" }}
+      />
+
       {/* ── App header ──────────────────────────────────────────────────── */}
-      <div className="px-4 pb-3 pt-4">
+      <div className="relative z-10 px-4 pb-3 pt-4">
         <p
           className="font-mono text-[10px] uppercase tracking-widest"
-          style={{ color: "var(--color-muted)" }}
+          style={{ color: "var(--color-accent-400)" }}
         >
           ReachKit
         </p>
@@ -383,7 +394,7 @@ export function AppSidebar({
         ))}
       </div>
 
-      {/* ── User identity ────────────────────────────────────────────────── */}
+      {/* ── User identity + sign out ─────────────────────────────────────── */}
       <div
         className="flex items-center gap-2.5 border-t px-3 py-3"
         style={{ borderColor: "var(--sidebar-border)" }}
@@ -399,6 +410,19 @@ export function AppSidebar({
           </p>
           <TierBadge tier={tier} />
         </div>
+        <form action="/auth/signout" method="post" className="shrink-0">
+          <button
+            type="submit"
+            aria-label="Sign out"
+            title="Sign out"
+            className="grid size-8 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+              <path d="M6 14H3.5A1.5 1.5 0 0 1 2 12.5v-9A1.5 1.5 0 0 1 3.5 2H6" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
+              <path d="M10.5 11 14 8l-3.5-3M14 8H6.5" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </form>
       </div>
     </aside>
   );

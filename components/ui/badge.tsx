@@ -19,6 +19,10 @@ const badgeVariants = cva(
         ghost:
           "hover:bg-muted hover:text-muted-foreground dark:hover:bg-muted/50",
         link: "text-primary underline-offset-4 hover:underline",
+        // Marketing eyebrow pills — premium chrome, not status.
+        glass:
+          "border-[var(--glass-border)] bg-[var(--glass-tint)] text-foreground backdrop-blur-[var(--glass-blur)]",
+        gradient: "border-transparent bg-[image:var(--gradient-accent)] text-accent-fg",
       },
     },
     defaultVariants: {

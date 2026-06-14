@@ -14,12 +14,15 @@ import { imprint } from "@/content/legal/imprint";
 import { LegalLayout } from "../_legal-layout";
 
 export function generateMetadata(): Metadata {
-  return buildMetadata({
-    title: imprint.title,
-    description:
-      "Legal operator information (Impressum) for ReachKit pursuant to § 5 TMG.",
-    path: "/imprint",
-  });
+  return {
+    ...buildMetadata({
+      title: imprint.title,
+      description: "Legal operator information for ReachKit.",
+      path: "/imprint",
+    }),
+    // Keep out of the index until the full registered entity details are filled in.
+    robots: { index: false, follow: true },
+  };
 }
 
 export default function ImprintPage() {

@@ -32,13 +32,13 @@ export function WhoItsForSection({
   return (
     <section
       aria-labelledby="who-its-for-heading"
-      className="rounded-xl border"
+      className="rounded-2xl border shadow-[var(--elevation-sm),var(--edge-highlight)]"
       style={{
-        borderColor: "oklch(1 0 0 / 0.09)",
-        background: "var(--color-surface)",
+        borderColor: "var(--hairline)",
+        background: "var(--gradient-surface)",
       }}
     >
-      <div className="px-5 pb-5 pt-5">
+      <div className="px-7 pb-6 pt-6">
         <div className="mb-4">
           <p
             className="font-mono text-[10px] uppercase tracking-widest"
@@ -90,9 +90,9 @@ export function WhoItsForSection({
                   <span
                     className="rounded-full border px-2.5 py-1 font-mono text-xs"
                     style={{
-                      borderColor: "oklch(1 0 0 / 0.08)",
+                      borderColor: "var(--hairline)",
                       color: "var(--color-muted)",
-                      background: "oklch(1 0 0 / 0.02)",
+                      background: "var(--fill-subtle)",
                     }}
                     aria-label={`${hiddenCount} more signals in your full report`}
                   >

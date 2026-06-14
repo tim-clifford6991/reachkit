@@ -37,7 +37,7 @@ export function ScoreBlock({ score, caption }: ScoreBlockProps) {
       style={{
         borderColor: "var(--color-accent-900)",
         background:
-          "linear-gradient(135deg, var(--color-surface) 0%, oklch(0.145 0.018 255) 100%)",
+          "linear-gradient(135deg, var(--color-surface) 0%, var(--color-elevated) 100%)",
       }}
     >
       <p
@@ -68,12 +68,12 @@ function ScoreBlockSkeleton() {
     <div className="flex flex-col items-center gap-6 py-4">
       <div
         className="h-[200px] w-[200px] animate-pulse rounded-full"
-        style={{ background: "oklch(1 0 0 / 0.06)" }}
+        style={{ background: "var(--fill-subtle)" }}
         aria-hidden="true"
       />
       <div
         className="h-[260px] w-[260px] animate-pulse rounded-xl"
-        style={{ background: "oklch(1 0 0 / 0.04)" }}
+        style={{ background: "var(--fill-subtle)" }}
         aria-hidden="true"
       />
       <div className="w-full max-w-[220px] space-y-2">
@@ -83,7 +83,7 @@ function ScoreBlockSkeleton() {
             className="h-3 animate-pulse rounded-full"
             style={{
               width: `${w}%`,
-              background: "oklch(1 0 0 / 0.06)",
+              background: "var(--fill-subtle)",
             }}
             aria-hidden="true"
           />

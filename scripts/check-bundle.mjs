@@ -21,14 +21,18 @@
  *
  * Budget notes (all three values account for the ~182 KB Next 16 + Turbopack +
  * React 19 framework baseline measured on the bare scaffold with no app code):
- *   (marketing) 200 KB — should be re-tightened in Cycle 5 when marketing perf
- *                         work lands (lazy-loaded animation JS, CSS hero).
- *   (funnel)    210 KB — the `/scan/[id]` page carries the SSE scan-theater +
- *                         the score-reveal on top of the ~182 KB baseline; the
- *                         heavy bits (DiscoverabilityScore, Stagger, EmailGate)
- *                         are all lazy-loaded, so ~200 KB is the essential floor.
- *                         210 is a lean, honest buffer (still < the app group).
- *   (app)       220 KB — highest allowance for the authenticated product shell.
+ *   (marketing) 220 KB — every marketing page carries the site-wide chrome:
+ *                         branded nav + Resources dropdown + mobile menu, theme
+ *                         toggle (next-themes), and a 4-column footer + social
+ *                         row. Baseline pages sit ~209 KB; only /pricing (Stripe
+ *                         checkout client) approaches the cap. Heavy animation
+ *                         (GSAP/Lenis/Motion) and the toast layer stay lazy; the
+ *                         shared root chunk is unchanged (~175 KB).
+ *   (funnel)    215 KB — the `/scan/[id]` page carries the SSE scan-theater +
+ *                         the score-reveal; the heavy bits (DiscoverabilityScore,
+ *                         Stagger, EmailGate) are all lazy-loaded.
+ *   (app)       226 KB — authenticated product shell (persistent sidebar + sign
+ *                         out, score block, report sections, per-page toasts).
  */
 
 import { readFileSync, existsSync } from "node:fs";
@@ -36,7 +40,7 @@ import { join, dirname } from "node:path";
 import { gzipSync } from "node:zlib";
 
 // Budgets in KB of First Load JS (gzip) per route group (§20.4). See file-header comment.
-const BUDGETS = { "(marketing)": 200, "(funnel)": 210, "(app)": 220 };
+const BUDGETS = { "(marketing)": 220, "(funnel)": 215, "(app)": 226 };
 
 const NEXT_DIR = ".next";
 

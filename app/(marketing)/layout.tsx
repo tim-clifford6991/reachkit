@@ -17,6 +17,64 @@
 
 import type { ReactNode } from "react";
 import { useEffect, useRef } from "react";
+import { MarketingNav } from "@/components/sections/marketing-nav";
+import { Footer, type FooterContent } from "@/components/sections/footer";
+
+const FOOTER_CONTENT: FooterContent = {
+  brand: "ReachKit",
+  tagline: "The discoverability engine for solo founders — a scored report and a weekly, verified action plan in ~90 seconds.",
+  columns: [
+    {
+      heading: "Product",
+      items: [
+        { label: "Scan your app", href: "/scan" },
+        { label: "How it works", href: "/how-it-works" },
+        { label: "Pricing", href: "/pricing" },
+        { label: "Free tools", href: "/tools" },
+        { label: "Changelog", href: "/changelog" },
+        { label: "Roadmap", href: "/roadmap" },
+      ],
+    },
+    {
+      heading: "Resources",
+      items: [
+        { label: "Teardowns", href: "/teardowns" },
+        { label: "Blog", href: "/blog" },
+        { label: "Help & docs", href: "/docs" },
+        { label: "Status", href: "/status" },
+      ],
+    },
+    {
+      heading: "Compare",
+      items: [
+        { label: "vs SparkToro", href: "/compare/sparktoro" },
+        { label: "vs Ahrefs", href: "/compare/ahrefs" },
+        { label: "vs ChatGPT", href: "/compare/chatgpt" },
+      ],
+    },
+    {
+      heading: "Company",
+      items: [
+        { label: "About", href: "/about" },
+        { label: "Contact", href: "/contact" },
+        { label: "Affiliates", href: "/affiliates" },
+        { label: "Log in", href: "/login" },
+      ],
+    },
+  ],
+  legal: [
+    { label: "Privacy", href: "/privacy" },
+    { label: "Terms", href: "/terms" },
+    { label: "Imprint", href: "/imprint" },
+  ],
+  social: [
+    { label: "ReachKit on X", href: "https://x.com/reachkit", icon: "x" },
+    { label: "ReachKit on GitHub", href: "https://github.com/reachkit", icon: "github" },
+    { label: "Teardowns RSS feed", href: "/teardowns/rss.xml", icon: "rss" },
+  ],
+  copyright: `© ${new Date().getFullYear()} ReachKit`,
+  attribution: "Built for founders who ship",
+};
 
 // ---------------------------------------------------------------------------
 // Lenis provider — lazy, client-only
@@ -94,8 +152,10 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
       {/* Lazy animation infra — never blocks the first paint */}
       <LenisMount />
       <GsapInit />
-      <div style={{ background: "var(--color-bg)", minHeight: "100dvh" }}>
-        {children}
+      <div className="font-editorial flex min-h-dvh flex-col overflow-x-hidden" style={{ background: "var(--color-bg)" }}>
+        <MarketingNav />
+        <div className="flex-1">{children}</div>
+        <Footer content={FOOTER_CONTENT} />
       </div>
     </>
   );

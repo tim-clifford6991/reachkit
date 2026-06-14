@@ -71,9 +71,9 @@ async function ResultsContent({ id }: { id: string }) {
   if (!data?.report_payload) {
     return (
       <div
-        className="rounded-xl border p-6 text-center"
+        className="rounded-xl border p-8 text-center"
         style={{
-          borderColor: "oklch(1 0 0 / 0.09)",
+          borderColor: "var(--hairline)",
           background: "var(--color-surface)",
         }}
       >
@@ -131,7 +131,7 @@ function ResultsSkeleton() {
     <>
       <div
         className="flex flex-col items-center rounded-xl border py-10"
-        style={{ borderColor: "oklch(1 0 0 / 0.09)", background: "var(--color-surface)" }}
+        style={{ borderColor: "var(--hairline)", background: "var(--color-surface)" }}
       >
         <Skeleton className="mb-6 h-3 w-28" />
         <Skeleton className="size-[160px] rounded-full" />
@@ -140,8 +140,8 @@ function ResultsSkeleton() {
       {[1, 2, 3, 4].map((i) => (
         <div
           key={i}
-          className="rounded-xl border p-5"
-          style={{ borderColor: "oklch(1 0 0 / 0.09)", background: "var(--color-surface)" }}
+          className="rounded-xl border p-7"
+          style={{ borderColor: "var(--hairline)", background: "var(--color-surface)" }}
         >
           <Skeleton className="mb-3 h-3 w-20" />
           <Skeleton className="mb-2 h-5 w-40" />

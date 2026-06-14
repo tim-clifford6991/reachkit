@@ -33,13 +33,13 @@ export function ActionPlanSection({
   return (
     <section
       aria-labelledby="action-plan-heading"
-      className="rounded-xl border"
+      className="rounded-2xl border shadow-[var(--elevation-sm),var(--edge-highlight)]"
       style={{
-        borderColor: "oklch(1 0 0 / 0.09)",
-        background: "var(--color-surface)",
+        borderColor: "var(--hairline)",
+        background: "var(--gradient-surface)",
       }}
     >
-      <div className="px-5 pb-5 pt-5">
+      <div className="px-7 pb-6 pt-6">
         <div className="mb-4">
           <p
             className="font-mono text-[10px] uppercase tracking-widest"
@@ -158,7 +158,7 @@ function ActionCardRow({ action, unlocked, accentColor }: ActionCardRowProps) {
   return (
     <div
       className="space-y-2.5 rounded-lg px-4 py-3"
-      style={{ border: "1px solid oklch(1 0 0 / 0.08)" }}
+      style={{ border: "1px solid var(--hairline)" }}
     >
       {/* Header: title + effort badge + category */}
       <div className="flex items-start justify-between gap-3">
@@ -186,16 +186,16 @@ function ActionCardRow({ action, unlocked, accentColor }: ActionCardRowProps) {
         <span
           className="rounded px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider"
           style={{
-            background: "oklch(1 0 0 / 0.04)",
+            background: "var(--fill-subtle)",
             color: "var(--color-muted)",
-            border: "1px solid oklch(1 0 0 / 0.07)",
+            border: "1px solid var(--hairline)",
           }}
         >
           {categoryLabel(action.category)}
         </span>
         <span
           className="font-mono text-[10px]"
-          style={{ color: "oklch(1 0 0 / 0.25)" }}
+          style={{ color: "var(--hairline-strong)" }}
         >
           {action.basis === "evidence_based" ? "evidence-based" : "probability"}
         </span>
@@ -210,7 +210,7 @@ function ActionCardRow({ action, unlocked, accentColor }: ActionCardRowProps) {
       {unlocked && hasDraft && (
         <div
           className="rounded-lg px-3 py-2.5"
-          style={{ background: "oklch(1 0 0 / 0.04)" }}
+          style={{ background: "var(--fill-subtle)" }}
         >
           <p
             className="mb-1.5 font-mono text-[10px] uppercase tracking-wider"
@@ -238,7 +238,7 @@ function ActionCardRow({ action, unlocked, accentColor }: ActionCardRowProps) {
       {/* Expected outcome */}
       <div
         className="flex items-center gap-2 rounded-lg px-3 py-2"
-        style={{ background: "oklch(1 0 0 / 0.03)" }}
+        style={{ background: "var(--fill-subtle)" }}
       >
         <span
           className="font-mono text-[10px] uppercase tracking-wider"

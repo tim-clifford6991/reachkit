@@ -17,8 +17,8 @@
 import type { MetadataRoute } from "next";
 import { SITE } from "@/lib/seo";
 
-/** Paths no crawler should index — auth product shell + API. */
-const DISALLOW = ["/app/", "/api/"] as const;
+/** Paths no crawler should index — auth product shell, API, design samples. */
+const DISALLOW = ["/app/", "/api/", "/design/"] as const;
 
 /** AI crawlers we explicitly welcome onto the public site (§22.2). */
 const AI_CRAWLERS = [

@@ -77,7 +77,7 @@ export default function TeardownsPage() {
       <main>
         {/* Hero */}
         <section
-          className="flex flex-col items-center gap-6 px-[--spacing-content-x] pb-0 pt-16 text-center sm:pt-24"
+          className="flex flex-col items-center gap-6 px-(--spacing-content-x) pb-0 pt-16 text-center sm:pt-24"
           aria-label="Teardowns introduction"
         >
           <p
@@ -106,7 +106,7 @@ export default function TeardownsPage() {
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
             <Link
               href="/scan"
-              className="inline-flex items-center rounded-lg px-5 py-2.5 font-mono text-sm font-semibold transition-all duration-150"
+              className="inline-flex items-center rounded-lg px-7 py-2.5 font-mono text-sm font-semibold transition-all duration-150"
               style={{
                 background: "var(--color-accent-400)",
                 color: "var(--color-bg)",
@@ -116,9 +116,9 @@ export default function TeardownsPage() {
             </Link>
             <Link
               href="/"
-              className="inline-flex items-center rounded-lg border px-5 py-2.5 font-mono text-sm transition-all duration-150"
+              className="inline-flex items-center rounded-lg border px-7 py-2.5 font-mono text-sm transition-all duration-150"
               style={{
-                borderColor: "oklch(1 0 0 / 0.12)",
+                borderColor: "var(--hairline-strong)",
                 color: "var(--color-muted)",
               }}
             >
@@ -132,13 +132,13 @@ export default function TeardownsPage() {
 
         {/* Footer context */}
         <section
-          className="flex flex-col items-center gap-4 px-[--spacing-content-x] pb-20 text-center"
+          className="flex flex-col items-center gap-4 px-(--spacing-content-x) pb-20 text-center"
           aria-label="Teardown methodology note"
         >
           <div
-            className="max-w-lg rounded-xl border p-6"
+            className="max-w-lg rounded-xl border p-8"
             style={{
-              borderColor: "oklch(1 0 0 / 0.08)",
+              borderColor: "var(--hairline)",
               background: "var(--color-surface)",
             }}
           >

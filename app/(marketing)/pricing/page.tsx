@@ -49,9 +49,9 @@ const PRICING_CONTENT = {
           href="/"
           className="block w-full rounded-lg border px-4 py-2.5 text-center text-sm font-medium transition-colors duration-150"
           style={{
-            borderColor: "oklch(1 0 0 / 0.12)",
+            borderColor: "var(--hairline-strong)",
             color: "var(--color-fg)",
-            background: "oklch(1 0 0 / 0.04)",
+            background: "var(--fill-subtle)",
           }}
         >
           Scan your product
@@ -168,7 +168,7 @@ export default function PricingPage() {
 
       <div className="relative">
         {/* Back link */}
-        <div className="px-[--spacing-content-x] pt-8">
+        <div className="px-(--spacing-content-x) pt-8">
           <Link
             href="/"
             className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest transition-colors duration-150"

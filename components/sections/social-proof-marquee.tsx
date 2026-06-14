@@ -70,7 +70,7 @@ export function SocialProofMarquee({ content }: SocialProofMarqueeProps) {
         {/* Left/right fade masks */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16"
+          className="pointer-events-none absolute inset-y-0 left-0 z-10 w-24"
           style={{
             background:
               "linear-gradient(to right, var(--color-bg) 0%, transparent 100%)",
@@ -78,7 +78,7 @@ export function SocialProofMarquee({ content }: SocialProofMarqueeProps) {
         />
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16"
+          className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24"
           style={{
             background:
               "linear-gradient(to left, var(--color-bg) 0%, transparent 100%)",
@@ -97,8 +97,8 @@ export function SocialProofMarquee({ content }: SocialProofMarqueeProps) {
               role="listitem"
               className="inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 font-mono text-xs"
               style={{
-                borderColor: "oklch(1 0 0 / 0.08)",
-                background: "oklch(1 0 0 / 0.025)",
+                borderColor: "var(--hairline)",
+                background: "var(--fill-subtle)",
                 color: "var(--color-muted)",
               }}
             >

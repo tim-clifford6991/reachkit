@@ -101,7 +101,7 @@ export function EmailGate({ scanId }: EmailGateProps) {
           >
             Resend email
           </button>
-          <span style={{ color: "oklch(1 0 0 / 0.2)" }} aria-hidden>
+          <span style={{ color: "var(--hairline-strong)" }} aria-hidden>
             ·
           </span>
           <button

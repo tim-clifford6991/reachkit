@@ -43,7 +43,7 @@ function formatWeekOf(weekOf: string): string {
 
 async function PlaysContent() {
   const viewer = await currentUser();
-  if (!viewer) redirect("/");
+  if (!viewer) redirect("/login?next=/app");
 
   const { user } = viewer;
   const entitlements = await entitlementsFor(user.id);
@@ -75,9 +75,9 @@ async function PlaysContent() {
     <div className="space-y-6">
       {/* Week header */}
       <div
-        className="flex items-start justify-between gap-4 rounded-xl border px-5 py-4"
+        className="flex items-start justify-between gap-4 rounded-xl border px-7 py-4"
         style={{
-          borderColor: "oklch(1 0 0 / 0.09)",
+          borderColor: "var(--hairline)",
           background: "var(--color-surface)",
         }}
       >
@@ -192,14 +192,14 @@ function PlaysUpgradeWall() {
       className="flex flex-col items-center rounded-xl border px-8 py-12 text-center"
       style={{
         borderColor: "var(--color-accent-900)",
-        background: "oklch(0.60 0.18 255 / 0.04)",
+        background: "oklch(0.70 0.13 66 / 0.05)",
       }}
     >
       {/* Icon */}
       <div
         className="mb-5 flex size-14 items-center justify-center rounded-full"
         style={{
-          background: "oklch(0.60 0.18 255 / 0.12)",
+          background: "var(--color-accent-subtle)",
           border: "1.5px solid var(--color-accent-900)",
         }}
         aria-hidden
@@ -246,7 +246,7 @@ function PlaysUpgradeWall() {
       <div className="mt-6 flex flex-col items-center gap-2">
         <Link
           href="/app/billing"
-          className="inline-flex items-center justify-center rounded-lg px-5 py-2 text-sm font-semibold transition-all"
+          className="inline-flex items-center justify-center rounded-lg px-7 py-2 text-sm font-semibold transition-all"
           style={{
             background: "var(--color-accent-600)",
             color: "var(--color-accent-fg)",
@@ -274,7 +274,7 @@ function NoAppState() {
     <div
       className="rounded-xl border px-8 py-10 text-center"
       style={{
-        borderColor: "oklch(1 0 0 / 0.09)",
+        borderColor: "var(--hairline)",
         background: "var(--color-surface)",
       }}
     >
@@ -313,7 +313,7 @@ function EmptyQueueState({ weekOf }: { weekOf: string }) {
     <div
       className="rounded-xl border px-8 py-10 text-center"
       style={{
-        borderColor: "oklch(1 0 0 / 0.09)",
+        borderColor: "var(--hairline)",
         background: "var(--color-surface)",
       }}
     >
@@ -347,9 +347,9 @@ function PlaysSkeleton() {
   return (
     <div className="space-y-6">
       <div
-        className="rounded-xl border p-5"
+        className="rounded-xl border p-7"
         style={{
-          borderColor: "oklch(1 0 0 / 0.09)",
+          borderColor: "var(--hairline)",
           background: "var(--color-surface)",
         }}
       >
@@ -359,9 +359,9 @@ function PlaysSkeleton() {
       {[1, 2, 3].map((i) => (
         <div
           key={i}
-          className="rounded-xl border p-5"
+          className="rounded-xl border p-7"
           style={{
-            borderColor: "oklch(1 0 0 / 0.09)",
+            borderColor: "var(--hairline)",
             background: "var(--color-surface)",
           }}
         >
@@ -371,7 +371,7 @@ function PlaysSkeleton() {
               <div
                 key={j}
                 className="rounded-lg border px-4 py-3"
-                style={{ borderColor: "oklch(1 0 0 / 0.07)" }}
+                style={{ borderColor: "var(--hairline)" }}
               >
                 <Skeleton className="mb-2 h-4 w-full" />
                 <Skeleton className="h-3 w-3/4" />

@@ -67,6 +67,9 @@ export const DURATION = {
 export const EASE = {
   outSmooth: [0.25, 0, 0, 1] as [number, number, number, number],
   inOut: [0.4, 0, 0.2, 1] as [number, number, number, number],
+  /** Signature smooth-out — mirrors --ease-revolut in globals.css. Use for
+   *  reveals, parallax, and magnetic spring-backs for a premium glide. */
+  revolut: [0.22, 1, 0.36, 1] as [number, number, number, number],
 } as const;
 
 // ---------------------------------------------------------------------------

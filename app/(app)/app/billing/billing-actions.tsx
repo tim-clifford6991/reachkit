@@ -70,9 +70,9 @@ function UpgradeButton({
       style={{
         borderColor: highlighted
           ? "var(--color-accent-900)"
-          : "oklch(1 0 0 / 0.09)",
+          : "var(--hairline)",
         background: highlighted
-          ? "oklch(0.60 0.18 255 / 0.06)"
+          ? "oklch(0.70 0.13 66 / 0.07)"
           : "transparent",
       }}
     >
@@ -142,9 +142,9 @@ function ManageBillingButton() {
       onClick={() => void handleClick()}
       className="inline-flex items-center justify-center rounded-lg border px-4 py-2 text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2"
       style={{
-        borderColor: "oklch(1 0 0 / 0.12)",
+        borderColor: "var(--hairline-strong)",
         color: "var(--color-fg)",
-        background: "oklch(1 0 0 / 0.04)",
+        background: "var(--fill-subtle)",
       }}
     >
       {isLoading ? "Opening portal…" : "Manage billing"}
@@ -183,9 +183,9 @@ export function BillingActions({ tier, isActivePaid }: BillingActionsProps) {
   if (isActivePaid) {
     return (
       <div
-        className="rounded-xl border px-5 py-4"
+        className="rounded-xl border px-7 py-4"
         style={{
-          borderColor: "oklch(1 0 0 / 0.09)",
+          borderColor: "var(--hairline)",
           background: "var(--color-surface)",
         }}
       >
@@ -209,9 +209,9 @@ export function BillingActions({ tier, isActivePaid }: BillingActionsProps) {
 
   return (
     <div
-      className="rounded-xl border px-5 py-5"
+      className="rounded-xl border px-7 py-6"
       style={{
-        borderColor: "oklch(1 0 0 / 0.09)",
+        borderColor: "var(--hairline)",
         background: "var(--color-surface)",
       }}
     >

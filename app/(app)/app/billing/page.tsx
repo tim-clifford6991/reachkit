@@ -73,7 +73,7 @@ const TIER_DETAILS: Record<
 
 async function BillingContent() {
   const viewer = await currentUser();
-  if (!viewer) redirect("/");
+  if (!viewer) redirect("/login?next=/app");
 
   const entitlements = await entitlementsFor(viewer.user.id);
   const tier: Tier = entitlements.active ? entitlements.tier : "free";
@@ -91,14 +91,14 @@ async function BillingContent() {
           borderColor:
             tier !== "free"
               ? "var(--color-accent-900)"
-              : "oklch(1 0 0 / 0.09)",
+              : "var(--hairline)",
           background:
             tier !== "free"
-              ? "oklch(0.60 0.18 255 / 0.04)"
+              ? "oklch(0.70 0.13 66 / 0.05)"
               : "var(--color-surface)",
         }}
       >
-        <div className="px-5 py-5">
+        <div className="px-7 py-6">
           <div className="mb-4 flex items-start justify-between gap-4">
             <div>
               <p
@@ -256,11 +256,11 @@ function TierComparisonTable({ currentTier }: { currentTier: Tier }) {
       aria-labelledby="comparison-heading"
       className="rounded-xl border"
       style={{
-        borderColor: "oklch(1 0 0 / 0.09)",
+        borderColor: "var(--hairline)",
         background: "var(--color-surface)",
       }}
     >
-      <div className="px-5 py-5">
+      <div className="px-7 py-6">
         <h3
           id="comparison-heading"
           className="mb-4 text-sm font-semibold"
@@ -307,7 +307,7 @@ function TierComparisonTable({ currentTier }: { currentTier: Tier }) {
                     borderTop:
                       i === 0
                         ? undefined
-                        : "1px solid oklch(1 0 0 / 0.06)",
+                        : "1px solid var(--fill-subtle)",
                   }}
                 >
                   <td
@@ -323,7 +323,7 @@ function TierComparisonTable({ currentTier }: { currentTier: Tier }) {
                       style={{
                         color:
                           row[t] === "—"
-                            ? "oklch(1 0 0 / 0.20)"
+                            ? "var(--hairline-strong)"
                             : t === currentTier
                             ? "var(--color-fg)"
                             : "var(--color-muted)",
@@ -351,9 +351,9 @@ function BillingSkeleton() {
   return (
     <div className="space-y-8">
       <div
-        className="rounded-xl border p-5"
+        className="rounded-xl border p-7"
         style={{
-          borderColor: "oklch(1 0 0 / 0.09)",
+          borderColor: "var(--hairline)",
           background: "var(--color-surface)",
         }}
       >
@@ -365,7 +365,7 @@ function BillingSkeleton() {
       <div
         className="h-24 rounded-xl border"
         style={{
-          borderColor: "oklch(1 0 0 / 0.09)",
+          borderColor: "var(--hairline)",
           background: "var(--color-surface)",
         }}
       />

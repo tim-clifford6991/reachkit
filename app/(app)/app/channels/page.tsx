@@ -24,7 +24,7 @@ export const metadata = buildMetadata({ title: "Where they are", path: "/app/cha
 
 async function ChannelsContent() {
   const viewer = await currentUser();
-  if (!viewer) redirect("/");
+  if (!viewer) redirect("/login?next=/app");
 
   const { user } = viewer;
   const primaryAppId = user.app_ids[0] ?? null;
@@ -54,10 +54,10 @@ async function ChannelsContent() {
 
       {!userIsPaid && (
         <div
-          className="rounded-xl border px-5 py-5 text-center"
+          className="rounded-xl border px-7 py-6 text-center"
           style={{
             borderColor: "var(--color-accent-900)",
-            background: "oklch(0.60 0.18 255 / 0.06)",
+            background: "oklch(0.70 0.13 66 / 0.07)",
           }}
         >
           <p className="text-sm font-medium" style={{ color: "var(--color-fg)" }}>
@@ -114,8 +114,8 @@ export default function ChannelsPage() {
 function SectionSkeleton() {
   return (
     <div
-      className="rounded-xl border p-5"
-      style={{ borderColor: "oklch(1 0 0 / 0.09)", background: "var(--color-surface)" }}
+      className="rounded-xl border p-7"
+      style={{ borderColor: "var(--hairline)", background: "var(--color-surface)" }}
     >
       <Skeleton className="mb-3 h-3 w-20" />
       <Skeleton className="mb-4 h-5 w-36" />

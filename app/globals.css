@@ -1,148 +1,191 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-/* Dark-first: the app is always dark; next-themes can toggle .dark class for
-   components that need it, but the base palette is dark. */
+/* next-themes toggles `.dark` on <html>. Light is the DEFAULT (Almanac). */
 @custom-variant dark (&:is(.dark *));
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   ReachKit Design System — §20 Real Theme Tokens
+   ReachKit Design System — "Almanac" direction
 
-   Philosophy: Dark-first. Developer ICP. Mono-accented data evidence UI.
-   The accent (#5b8cff → refined blue-indigo scale) is the single source of
-   brand colour. Everything else is achromatic. Mono (`--font-mono`) is
-   reserved exclusively for numbers, scores, evidence excerpts, and data values
-   — never body copy.
+   Editorial + warm. Light-first cream paper, ink-brown text, a honey/amber
+   accent, ink serif display headlines. Calm, human, Stripe/Notion-clean.
+   Fully themed: light values live in @theme (the default); `.dark` overrides
+   them with the warm-dark palette.
 
-   Radius: Deliberate scale — tighter than stock shadcn for a more precise,
-   professional feel that signals "this is a tool, not a marketing page."
+   Token roles:
+     --color-fg / --color-muted        body + secondary text
+     --color-bg / --color-surface / --color-elevated   page / card / raised
+     --hairline / --hairline-strong    themed borders (replaces white-alpha)
+     --fill-subtle                     themed subtle washes
+     --color-accent* / --color-accent-fg   honey brand accent + text-on-accent
+     --font-display                    editorial serif (headlines only)
+     --font-mono                       numbers / scores / evidence only
    ═══════════════════════════════════════════════════════════════════════════ */
 
 @theme {
   /* ── Fonts ────────────────────────────────────────────────────────────── */
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  /* Mono is reserved for: scores, numbers, evidence excerpts, data values.
-     Use font-mono in components consuming VerifiedScore or ActionCard evidence. */
+  /* Editorial serif for oversized display headlines. System serif stack keeps
+     it dependency-free and matches the approved sample. */
+  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Hoefler Text", Georgia, Cambria, "Times New Roman", serif;
 
-  /* ── Brand accent scale (blue-indigo, derived from #5b8cff base) ─────── */
-  /* oklch: L C H  — hue 255 (perceptually neutral blue-indigo) */
-  --color-accent-50:  oklch(0.97 0.02 255);   /* near-white tint for bg */
-  --color-accent-100: oklch(0.93 0.05 255);
-  --color-accent-200: oklch(0.85 0.09 255);
-  --color-accent-300: oklch(0.74 0.13 255);
-  --color-accent-400: oklch(0.65 0.16 255);   /* lighter interactive */
-  --color-accent-500: oklch(0.60 0.18 255);   /* ≈ #5b8cff — base brand */
-  --color-accent-600: oklch(0.53 0.19 255);   /* default button fill */
-  --color-accent-700: oklch(0.46 0.19 255);   /* pressed state */
-  --color-accent-800: oklch(0.37 0.17 255);
-  --color-accent-900: oklch(0.26 0.12 255);   /* very dark, for borders */
+  /* ── Honey accent scale (static stops, mostly for utilities/decoration) ── */
+  --color-accent-50:  oklch(0.97 0.02 78);
+  --color-accent-100: oklch(0.93 0.04 74);
+  --color-accent-200: oklch(0.87 0.07 72);
+  --color-accent-300: oklch(0.80 0.10 70);
+  --color-accent-400: oklch(0.48 0.14 54);   /* accent TEXT on cream — clears WCAG AA (≈4.8:1). Overridden in .dark */
+  --color-accent-500: oklch(0.60 0.14 62);   /* fill / ring / decoration */
+  --color-accent-600: oklch(0.54 0.15 56);   /* button fill — deep enough for white text */
+  --color-accent-700: oklch(0.48 0.15 52);   /* pressed */
+  --color-accent-800: oklch(0.42 0.13 52);
+  --color-accent-900: oklch(0.76 0.10 68);   /* honey border on light. Overridden in .dark */
 
-  /* Semantic shorthand */
-  --color-accent:           var(--color-accent-500);
-  --color-accent-hover:     var(--color-accent-400);
-  --color-accent-active:    var(--color-accent-700);
-  --color-accent-subtle:    oklch(0.60 0.18 255 / 0.12); /* bg wash */
-  --color-accent-fg:        oklch(0.985 0 0);             /* text on accent */
+  --color-accent:           oklch(0.58 0.15 60);
+  --color-accent-hover:     oklch(0.60 0.14 62);
+  --color-accent-active:    oklch(0.52 0.14 58);
+  --color-accent-subtle:    oklch(0.66 0.13 66 / 0.14);
+  --color-accent-fg:        oklch(0.99 0.01 85);   /* near-white on honey fill */
+  --color-accent-glow:      oklch(0.72 0.13 68);
+  --color-accent-bright:    oklch(0.74 0.12 50);
 
-  /* ── Neutral scale (achromatic, slightly warm toward dark end) ────────── */
-  /* These are static; shadcn semantic vars below reference them. */
-  --color-neutral-0:   oklch(1 0 0);           /* pure white */
-  --color-neutral-50:  oklch(0.97 0 0);
-  --color-neutral-100: oklch(0.935 0 0);       /* ≈ #ededef (fg dark-mode) */
-  --color-neutral-200: oklch(0.87 0 0);
-  --color-neutral-300: oklch(0.76 0 0);
-  --color-neutral-400: oklch(0.63 0 0);
-  --color-neutral-500: oklch(0.56 0 0);
-  --color-neutral-600: oklch(0.46 0 0);        /* ≈ #9b9ba3 region */
-  --color-neutral-700: oklch(0.37 0 0);
-  --color-neutral-800: oklch(0.269 0 0);       /* secondary/muted surface */
-  --color-neutral-850: oklch(0.20 0 0);
-  --color-neutral-900: oklch(0.145 0 0);       /* card surface */
-  --color-neutral-950: oklch(0.085 0 0);       /* ≈ #0a0a0b (bg) */
+  /* ── Warm neutral scale ───────────────────────────────────────────────── */
+  --color-neutral-0:   oklch(1 0 0);
+  --color-neutral-50:  oklch(0.985 0.006 80);
+  --color-neutral-100: oklch(0.96 0.010 78);
+  --color-neutral-200: oklch(0.90 0.012 76);
+  --color-neutral-300: oklch(0.80 0.014 72);
+  --color-neutral-400: oklch(0.64 0.016 66);
+  --color-neutral-500: oklch(0.52 0.018 62);
+  --color-neutral-600: oklch(0.42 0.018 60);
+  --color-neutral-700: oklch(0.34 0.018 58);
+  --color-neutral-800: oklch(0.27 0.016 58);
+  --color-neutral-850: oklch(0.24 0.014 60);
+  --color-neutral-900: oklch(0.205 0.012 60);
+  --color-neutral-950: oklch(0.17 0.012 60);
 
-  /* ── State colours (semantic) ────────────────────────────────────────── */
-  /* Success: jade-green — distinct from accent, readable on dark bg */
-  --color-success:         oklch(0.72 0.17 155);
-  --color-success-subtle:  oklch(0.72 0.17 155 / 0.12);
-  --color-success-fg:      oklch(0.985 0 0);
+  /* ── State colours (LIGHT defaults; overridden in .dark) ──────────────── */
+  --color-success:         oklch(0.52 0.10 150);
+  --color-success-subtle:  oklch(0.52 0.10 150 / 0.14);
+  --color-success-fg:      oklch(0.99 0.01 150);
 
-  /* Warning: amber — warm, unmissable */
-  --color-warning:         oklch(0.78 0.18 70);
-  --color-warning-subtle:  oklch(0.78 0.18 70 / 0.12);
-  --color-warning-fg:      oklch(0.10 0 0);
+  --color-warning:         oklch(0.62 0.12 62);
+  --color-warning-subtle:  oklch(0.62 0.12 62 / 0.16);
+  --color-warning-fg:      oklch(0.22 0.02 60);
 
-  /* Danger: red-orange (distinct from shadcn destructive) */
-  --color-danger:         oklch(0.70 0.20 22);
-  --color-danger-subtle:  oklch(0.70 0.20 22 / 0.12);
-  --color-danger-fg:      oklch(0.985 0 0);
+  --color-danger:          oklch(0.55 0.18 25);
+  --color-danger-subtle:   oklch(0.55 0.18 25 / 0.14);
+  --color-danger-fg:       oklch(0.99 0.01 25);
 
-  /* ── Surface / layout colours ────────────────────────────────────────── */
-  /* These are the ReachKit-specific brand aliases consumed in layouts. */
-  --color-bg:       oklch(0.085 0 0);   /* = neutral-950, global body bg */
-  --color-fg:       oklch(0.935 0 0);   /* = neutral-100, global text */
-  --color-muted:    oklch(0.62 0 0);    /* mid-grey for secondary text */
-  --color-surface:  oklch(0.145 0 0);   /* = neutral-900, card/panel bg */
-  --color-elevated: oklch(0.20 0 0);    /* = neutral-850, elevated card */
+  /* ── Surface / text aliases (LIGHT defaults; overridden in .dark) ─────── */
+  --color-bg:       oklch(0.975 0.012 80);   /* warm cream paper */
+  --color-fg:       oklch(0.28 0.020 60);    /* warm ink */
+  --color-muted:    oklch(0.50 0.020 62);    /* secondary text */
+  --color-surface:  oklch(0.995 0.006 85);   /* card / panel (near-white warm) */
+  --color-elevated: oklch(0.955 0.014 78);   /* raised: chips, sidebar, hover */
 
-  /* ── Radius scale ────────────────────────────────────────────────────── */
-  /* Deliberate: tighter than stock shadcn (0.5rem base vs 0.625rem).
-     Signals precision-tooling, not consumer-app softness. */
+  /* Themed hairlines + washes — replace the old hardcoded white-alpha values */
+  --hairline:        oklch(0 0 0 / 0.10);
+  --hairline-strong: oklch(0 0 0 / 0.16);
+  --fill-subtle:     oklch(0 0 0 / 0.035);
+
+  --ambient-spot:   oklch(0.66 0.13 66 / 0.10);
+
+  /* ── Elevation (LIGHT: soft, warm; overridden darker in .dark) ────────── */
+  --elevation-xs:   0 1px 2px oklch(0.40 0.05 60 / 0.06);
+  --elevation-sm:   0 1px 2px oklch(0.40 0.05 60 / 0.06), 0 4px 12px -4px oklch(0.40 0.05 60 / 0.10);
+  --elevation-md:   0 4px 10px -4px oklch(0.40 0.05 60 / 0.10), 0 14px 32px -12px oklch(0.40 0.05 60 / 0.14);
+  --elevation-lg:   0 10px 24px -8px oklch(0.40 0.05 60 / 0.14), 0 28px 56px -18px oklch(0.40 0.05 60 / 0.18);
+  --elevation-xl:   0 18px 40px -12px oklch(0.40 0.05 60 / 0.18), 0 40px 80px -24px oklch(0.40 0.05 60 / 0.22);
+  --elevation-glow: 0 8px 24px -6px oklch(0.66 0.13 66 / 0.30);
+  --edge-highlight: inset 0 1px 0 oklch(1 0 0 / 0.70);
+
+  /* ── Glass (LIGHT; overridden in .dark) ───────────────────────────────── */
+  --glass-blur:        16px;
+  --glass-blur-strong: 28px;
+  --glass-tint:        oklch(0.99 0.01 82 / 0.72);
+  --glass-tint-accent: oklch(0.90 0.06 70 / 0.45);
+  --glass-border:      oklch(0 0 0 / 0.08);
+
+  /* ── Gradient / mesh (LIGHT; overridden in .dark) ─────────────────────── */
+  --gradient-accent:      linear-gradient(135deg, oklch(0.62 0.14 64) 0%, oklch(0.53 0.16 44) 100%);
+  --gradient-accent-fade: linear-gradient(180deg, oklch(0.66 0.13 66 / 0.12) 0%, transparent 100%);
+  --gradient-surface:     linear-gradient(165deg, oklch(0.99 0.012 82) 0%, var(--color-surface) 80%);
+  --gradient-shine:       linear-gradient(115deg, transparent 30%, oklch(1 0 0 / 0.50) 50%, transparent 70%);
+  --mesh-hero:
+    radial-gradient(55% 50% at 18% 12%, oklch(0.80 0.10 72 / 0.22) 0%, transparent 60%),
+    radial-gradient(50% 55% at 85% 18%, oklch(0.74 0.12 45 / 0.16) 0%, transparent 60%),
+    radial-gradient(70% 60% at 50% 102%, oklch(0.82 0.07 120 / 0.12) 0%, transparent 70%);
+
+  /* ── Rounding system ──────────────────────────────────────────────────── */
+  /* Each tier steps up by a consistent ~1.33× ratio. Role mapping (apply these
+     consistently — nothing should look square):
+       sm  → tiny chips / inline tags
+       md  → compact / icon buttons
+       lg  → inputs, buttons, selects, small controls
+       xl  → cards, panels
+       2xl → large + marketing cards, hero/CTA blocks
+       full→ pills, avatars, toggles
+     Nested rule (concentric corners): an element sitting inside a rounded
+     container uses the tier ONE STEP DOWN (inner ≈ outer − padding). */
   --radius-none:   0px;
-  --radius-xs:     0.25rem;   /* 4px  — tight chips / badges */
-  --radius-sm:     0.375rem;  /* 6px  — inputs, small controls */
-  --radius-md:     0.5rem;    /* 8px  — default buttons */
-  --radius-lg:     0.625rem;  /* 10px — cards */
-  --radius-xl:     0.875rem;  /* 14px — panels, modals */
-  --radius-2xl:    1.25rem;   /* 20px — score circle outer ring only */
-  --radius-full:   9999px;    /* pill */
-  /* Legacy alias matching the old --radius-card convention */
-  --radius-card:   var(--radius-lg);
+  --radius-xs:     0.375rem;  /* 6px  */
+  --radius-sm:     0.625rem;  /* 10px */
+  --radius-md:     0.875rem;  /* 14px */
+  --radius-lg:     1.125rem;  /* 18px — inputs / buttons / selects */
+  --radius-xl:     1.5rem;    /* 24px — cards / panels */
+  --radius-2xl:    2rem;      /* 32px — large / marketing cards */
+  --radius-3xl:    2.5rem;    /* 40px */
+  --radius-4xl:    3rem;      /* 48px */
+  --radius-full:   9999px;
+  --radius-card:   var(--radius-xl);
 
-  /* ── Spacing scale (4px grid) ────────────────────────────────────────── */
-  /* Tailwind v4 already provides the full spacing scale; we add named
-     semantic slots so layout components can reference intent over size. */
-  --spacing-content-x:   clamp(1rem, 4vw, 2rem);   /* page-level horizontal pad */
-  --spacing-content-max: 72rem;                       /* 1152px max-width */
-  --spacing-section-y:   clamp(3rem, 8vw, 6rem);    /* section vertical gap */
+  /* ── Spacing (generous, airy — Almanac breathes) ──────────────────────── */
+  --spacing-content-x:   clamp(1.5rem, 5vw, 3rem);
+  --spacing-content-max: 72rem;
+  /* Applied as py on each section, so adjacent sections get ~2× between them.
+     (Previously this never applied — the py-[--…] bracket form compiled to
+     invalid CSS; sections now use the py-(--…) var form.) */
+  --spacing-section-y:   clamp(3.5rem, 7vw, 6rem);
 
-  /* ── Typography scale ────────────────────────────────────────────────── */
-  /* Augmented 4ths scale with tighter line-heights for data-dense UI */
-  --text-2xs:   0.625rem;  /* 10px */
-  --text-xs:    0.75rem;   /* 12px */
-  --text-sm:    0.875rem;  /* 14px */
-  --text-base:  1rem;      /* 16px */
-  --text-lg:    1.125rem;  /* 18px */
-  --text-xl:    1.25rem;   /* 20px */
-  --text-2xl:   1.5rem;    /* 24px */
-  --text-3xl:   1.875rem;  /* 30px */
-  --text-4xl:   2.25rem;   /* 36px */
-  --text-5xl:   3rem;      /* 48px */
+  /* ── Typography scale ─────────────────────────────────────────────────── */
+  --text-2xs:   0.625rem;
+  --text-xs:    0.75rem;
+  --text-sm:    0.875rem;
+  --text-base:  1rem;
+  --text-lg:    1.125rem;
+  --text-xl:    1.25rem;
+  --text-2xl:   1.5rem;
+  --text-3xl:   1.875rem;
+  --text-4xl:   2.25rem;
+  --text-5xl:   3rem;
+  --text-6xl:   3.75rem;
+  --text-7xl:   4.5rem;
+  --text-display: clamp(2.5rem, 6vw, 4.5rem);
+  --tracking-display: -0.018em;   /* serif display sits looser than the old sans */
 
-  /* Score-display: the giant number at the centre of DiscoverabilityScore */
   --text-score:    3.5rem;
   --text-score-lg: 4.5rem;
 
-  /* ── Motion duration tokens (§20.3) ─────────────────────────────────── */
-  /* Rule: springs for interactive feedback; durations for state transitions.
-     Only opacity/position/scale are animated (no width/height/color). */
-  --duration-micro:       150ms;  /* button press, toggle flick */
-  --duration-fast:        200ms;  /* tooltip show/hide, badge pop */
-  --duration-transition:  400ms;  /* route transitions, panel open/close */
-  --duration-slow:        600ms;  /* score sweep, reveal animations */
-  --duration-crawl:       800ms;  /* stagger last child, chart draw */
+  /* ── Motion ───────────────────────────────────────────────────────────── */
+  --duration-micro:       150ms;
+  --duration-fast:        200ms;
+  --duration-transition:  400ms;
+  --duration-slow:        600ms;
+  --duration-crawl:       800ms;
+  --duration-page:        500ms;
 
-  /* Easing curves */
   --ease-out-smooth: cubic-bezier(0.25, 0, 0, 1);
-  --ease-spring:     cubic-bezier(0.34, 1.56, 0.64, 1); /* overshoot spring */
+  --ease-spring:     cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-in-out:     cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-revolut:    cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* ── Tailwind v4: map @theme colour tokens to shadcn CSS variable slots ──── */
+/* ── Tailwind v4: map @theme tokens to shadcn CSS variable slots ─────────── */
 @theme inline {
-  --font-heading:           var(--font-geist-sans);
+  --font-heading: var(--font-display);
 
-  /* shadcn sidebar passthrough */
   --color-sidebar-ring:                var(--sidebar-ring);
   --color-sidebar-border:              var(--sidebar-border);
   --color-sidebar-accent-foreground:   var(--sidebar-accent-foreground);
@@ -152,14 +195,12 @@
   --color-sidebar-foreground:          var(--sidebar-foreground);
   --color-sidebar:                     var(--sidebar);
 
-  /* shadcn chart passthrough */
   --color-chart-5:  var(--chart-5);
   --color-chart-4:  var(--chart-4);
   --color-chart-3:  var(--chart-3);
   --color-chart-2:  var(--chart-2);
   --color-chart-1:  var(--chart-1);
 
-  /* shadcn semantic passthrough */
   --color-ring:                var(--ring);
   --color-input:               var(--input);
   --color-border:              var(--border);
@@ -177,7 +218,6 @@
   --color-foreground:          var(--foreground);
   --color-background:          var(--background);
 
-  /* radius: override the calc-derived slots from shadcn with our custom scale */
   --radius-sm:   var(--radius-sm);
   --radius-md:   var(--radius-md);
   --radius-lg:   var(--radius-lg);
@@ -186,141 +226,143 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   Dark-first: :root carries the DARK palette (no class required).
-   .dark mirrors :root for next-themes compatibility.
-   .light opts into the light palette.
+   :root carries the LIGHT (Almanac) shadcn slots. `.dark` overrides both the
+   shadcn slots and every themed design token above.
    ═══════════════════════════════════════════════════════════════════════════ */
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 
-  /* Base */
-  --background:             oklch(0.085 0 0);    /* #0a0a0b */
-  --foreground:             oklch(0.935 0 0);    /* #ededef */
+  --background:             oklch(0.975 0.012 80);
+  --foreground:             oklch(0.28 0.020 60);
+  --card:                   oklch(0.995 0.006 85);
+  --card-foreground:        oklch(0.28 0.020 60);
+  --popover:                oklch(0.995 0.006 85);
+  --popover-foreground:     oklch(0.28 0.020 60);
 
-  /* Surfaces */
-  --card:                   oklch(0.145 0 0);
-  --card-foreground:        oklch(0.985 0 0);
-  --popover:                oklch(0.18 0 0);
-  --popover-foreground:     oklch(0.985 0 0);
+  --primary:                oklch(0.55 0.15 58);
+  --primary-foreground:     oklch(0.99 0.01 85);
 
-  /* Primary = brand accent */
-  --primary:                oklch(0.60 0.18 255);  /* #5b8cff */
-  --primary-foreground:     oklch(0.985 0 0);
+  --secondary:              oklch(0.955 0.014 78);
+  --secondary-foreground:   oklch(0.30 0.020 60);
 
-  /* Secondary = slightly elevated surface */
-  --secondary:              oklch(0.20 0 0);
-  --secondary-foreground:   oklch(0.935 0 0);
+  --muted:                  oklch(0.955 0.014 78);
+  --muted-foreground:       oklch(0.50 0.020 62);
 
-  /* Muted */
-  --muted:                  oklch(0.20 0 0);
-  --muted-foreground:       oklch(0.62 0 0);     /* #9b9ba3 region */
+  --accent:                 oklch(0.945 0.016 76);
+  --accent-foreground:      oklch(0.30 0.020 60);
 
-  /* Accent (shadcn interactive accent = hover bg etc.) */
-  --accent:                 oklch(0.60 0.18 255);
-  --accent-foreground:      oklch(0.985 0 0);
+  --destructive:            oklch(0.55 0.18 25);
 
-  /* Destructive */
-  --destructive:            oklch(0.70 0.20 22);
+  --border:                 oklch(0 0 0 / 0.10);
+  --input:                  oklch(0 0 0 / 0.12);
+  --ring:                   oklch(0.60 0.14 62);
 
-  /* Border / input */
-  --border:                 oklch(1 0 0 / 0.09);
-  --input:                  oklch(1 0 0 / 0.12);
-  --ring:                   oklch(0.60 0.18 255);  /* accent focus ring */
+  --radius: 1.125rem;
 
-  /* Radius base (shadcn derives its internal vars from this) */
-  --radius: 0.5rem;
+  --chart-1: oklch(0.66 0.13 66);
+  --chart-2: oklch(0.52 0.10 150);
+  --chart-3: oklch(0.62 0.12 62);
+  --chart-4: oklch(0.52 0.14 58);
+  --chart-5: oklch(0.72 0.012 70);
 
-  /* Charts: accent-anchored palette for data visualisation */
-  --chart-1: oklch(0.60 0.18 255);   /* accent blue */
-  --chart-2: oklch(0.72 0.17 155);   /* success green */
-  --chart-3: oklch(0.78 0.18 70);    /* warning amber */
-  --chart-4: oklch(0.46 0.19 255);   /* accent dark */
-  --chart-5: oklch(0.37 0 0);        /* grey for inactive/locked */
-
-  /* Sidebar */
-  --sidebar:                    oklch(0.11 0 0);
-  --sidebar-foreground:         oklch(0.935 0 0);
-  --sidebar-primary:            oklch(0.60 0.18 255);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent:             oklch(0.20 0 0);
-  --sidebar-accent-foreground:  oklch(0.935 0 0);
-  --sidebar-border:             oklch(1 0 0 / 0.08);
-  --sidebar-ring:               oklch(0.60 0.18 255);
+  --sidebar:                    oklch(0.955 0.014 78);
+  --sidebar-foreground:         oklch(0.30 0.020 60);
+  --sidebar-primary:            oklch(0.60 0.14 62);
+  --sidebar-primary-foreground: oklch(0.99 0.01 85);
+  --sidebar-accent:             oklch(0.93 0.016 76);
+  --sidebar-accent-foreground:  oklch(0.30 0.020 60);
+  --sidebar-border:             oklch(0 0 0 / 0.08);
+  --sidebar-ring:               oklch(0.60 0.14 62);
 }
 
-/* ── .dark mirrors :root for next-themes ─────────────────────────────────── */
+/* ── Dark (Almanac) — overrides shadcn slots AND every themed design token ── */
 .dark {
   color-scheme: dark;
 
-  --background:             oklch(0.085 0 0);
-  --foreground:             oklch(0.935 0 0);
-  --card:                   oklch(0.145 0 0);
-  --card-foreground:        oklch(0.985 0 0);
-  --popover:                oklch(0.18 0 0);
-  --popover-foreground:     oklch(0.985 0 0);
-  --primary:                oklch(0.60 0.18 255);
-  --primary-foreground:     oklch(0.985 0 0);
-  --secondary:              oklch(0.20 0 0);
-  --secondary-foreground:   oklch(0.935 0 0);
-  --muted:                  oklch(0.20 0 0);
-  --muted-foreground:       oklch(0.62 0 0);
-  --accent:                 oklch(0.60 0.18 255);
-  --accent-foreground:      oklch(0.985 0 0);
+  /* shadcn slots */
+  --background:             oklch(0.205 0.012 60);
+  --foreground:             oklch(0.93 0.012 75);
+  --card:                   oklch(0.235 0.012 60);
+  --card-foreground:        oklch(0.93 0.012 75);
+  --popover:                oklch(0.255 0.012 60);
+  --popover-foreground:     oklch(0.93 0.012 75);
+  --primary:                oklch(0.72 0.13 72);
+  --primary-foreground:     oklch(0.22 0.03 60);
+  --secondary:              oklch(0.265 0.012 60);
+  --secondary-foreground:   oklch(0.93 0.012 75);
+  --muted:                  oklch(0.265 0.012 60);
+  --muted-foreground:       oklch(0.70 0.015 72);
+  --accent:                 oklch(0.285 0.014 60);
+  --accent-foreground:      oklch(0.93 0.012 75);
   --destructive:            oklch(0.70 0.20 22);
-  --border:                 oklch(1 0 0 / 0.09);
+  --border:                 oklch(1 0 0 / 0.10);
   --input:                  oklch(1 0 0 / 0.12);
-  --ring:                   oklch(0.60 0.18 255);
-  --chart-1:  oklch(0.60 0.18 255);
-  --chart-2:  oklch(0.72 0.17 155);
-  --chart-3:  oklch(0.78 0.18 70);
-  --chart-4:  oklch(0.46 0.19 255);
-  --chart-5:  oklch(0.37 0 0);
-  --sidebar:                    oklch(0.11 0 0);
-  --sidebar-foreground:         oklch(0.935 0 0);
-  --sidebar-primary:            oklch(0.60 0.18 255);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent:             oklch(0.20 0 0);
-  --sidebar-accent-foreground:  oklch(0.935 0 0);
+  --ring:                   oklch(0.72 0.13 72);
+  --chart-1: oklch(0.76 0.12 75);
+  --chart-2: oklch(0.72 0.13 150);
+  --chart-3: oklch(0.78 0.16 70);
+  --chart-4: oklch(0.64 0.13 70);
+  --chart-5: oklch(0.55 0.012 70);
+  --sidebar:                    oklch(0.185 0.012 60);
+  --sidebar-foreground:         oklch(0.93 0.012 75);
+  --sidebar-primary:            oklch(0.72 0.13 72);
+  --sidebar-primary-foreground: oklch(0.22 0.03 60);
+  --sidebar-accent:             oklch(0.265 0.012 60);
+  --sidebar-accent-foreground:  oklch(0.93 0.012 75);
   --sidebar-border:             oklch(1 0 0 / 0.08);
-  --sidebar-ring:               oklch(0.60 0.18 255);
-}
+  --sidebar-ring:               oklch(0.72 0.13 72);
 
-/* ── Light palette (opt-in via .light / next-themes) ─────────────────────── */
-.light {
-  color-scheme: light;
+  /* themed design tokens */
+  --color-accent-400: oklch(0.80 0.12 78);
+  --color-accent-500: oklch(0.76 0.12 75);
+  --color-accent-600: oklch(0.70 0.13 72);
+  --color-accent-700: oklch(0.64 0.13 70);
+  --color-accent-900: oklch(0.46 0.11 70);
+  --color-accent:           oklch(0.76 0.12 75);
+  --color-accent-hover:     oklch(0.80 0.12 78);
+  --color-accent-active:    oklch(0.64 0.13 70);
+  --color-accent-subtle:    oklch(0.76 0.12 75 / 0.16);
+  --color-accent-fg:        oklch(0.22 0.03 60);
+  --color-accent-glow:      oklch(0.78 0.12 76);
 
-  --background:             oklch(0.985 0 0);
-  --foreground:             oklch(0.10 0 0);
-  --card:                   oklch(1 0 0);
-  --card-foreground:        oklch(0.10 0 0);
-  --popover:                oklch(1 0 0);
-  --popover-foreground:     oklch(0.10 0 0);
-  /* In light mode, primary stays brand-blue so the accent is consistent. */
-  --primary:                oklch(0.53 0.19 255);   /* darker for WCAG on white */
-  --primary-foreground:     oklch(0.985 0 0);
-  --secondary:              oklch(0.95 0 0);
-  --secondary-foreground:   oklch(0.20 0 0);
-  --muted:                  oklch(0.95 0 0);
-  --muted-foreground:       oklch(0.50 0 0);
-  --accent:                 oklch(0.53 0.19 255);
-  --accent-foreground:      oklch(0.985 0 0);
-  --destructive:            oklch(0.56 0.25 27);
-  --border:                 oklch(0.90 0 0);
-  --input:                  oklch(0.90 0 0);
-  --ring:                   oklch(0.53 0.19 255);
-  --chart-1:  oklch(0.53 0.19 255);
-  --chart-2:  oklch(0.58 0.17 155);
-  --chart-3:  oklch(0.62 0.18 70);
-  --chart-4:  oklch(0.40 0.19 255);
-  --chart-5:  oklch(0.60 0 0);
-  --sidebar:                    oklch(0.97 0 0);
-  --sidebar-foreground:         oklch(0.20 0 0);
-  --sidebar-primary:            oklch(0.53 0.19 255);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent:             oklch(0.92 0 0);
-  --sidebar-accent-foreground:  oklch(0.20 0 0);
-  --sidebar-border:             oklch(0.88 0 0);
-  --sidebar-ring:               oklch(0.53 0.19 255);
+  --color-success:         oklch(0.72 0.13 150);
+  --color-success-subtle:  oklch(0.72 0.13 150 / 0.16);
+  --color-warning:         oklch(0.78 0.16 70);
+  --color-warning-subtle:  oklch(0.78 0.16 70 / 0.16);
+  --color-danger:          oklch(0.70 0.20 22);
+  --color-danger-subtle:   oklch(0.70 0.20 22 / 0.16);
+
+  --color-bg:       oklch(0.205 0.012 60);
+  --color-fg:       oklch(0.93 0.012 75);
+  --color-muted:    oklch(0.70 0.015 72);
+  --color-surface:  oklch(0.235 0.012 60);
+  --color-elevated: oklch(0.265 0.012 60);
+
+  --hairline:        oklch(1 0 0 / 0.10);
+  --hairline-strong: oklch(1 0 0 / 0.18);
+  --fill-subtle:     oklch(1 0 0 / 0.04);
+  --ambient-spot:    oklch(0.76 0.12 75 / 0.10);
+
+  --elevation-xs:   0 1px 2px oklch(0 0 0 / 0.30);
+  --elevation-sm:   0 1px 2px oklch(0 0 0 / 0.30), 0 2px 6px oklch(0 0 0 / 0.22);
+  --elevation-md:   0 2px 4px oklch(0 0 0 / 0.30), 0 8px 20px oklch(0 0 0 / 0.30);
+  --elevation-lg:   0 4px 8px oklch(0 0 0 / 0.32), 0 16px 40px oklch(0 0 0 / 0.38);
+  --elevation-xl:   0 8px 16px oklch(0 0 0 / 0.34), 0 30px 70px oklch(0 0 0 / 0.45);
+  --elevation-glow: 0 6px 24px oklch(0.76 0.12 75 / 0.30);
+  --edge-highlight: inset 0 1px 0 oklch(1 0 0 / 0.06);
+
+  --glass-tint:        oklch(0.22 0.012 60 / 0.6);
+  --glass-tint-accent: oklch(0.30 0.05 70 / 0.45);
+  --glass-border:      oklch(1 0 0 / 0.10);
+
+  --gradient-accent:      linear-gradient(135deg, oklch(0.76 0.12 75) 0%, oklch(0.66 0.14 55) 100%);
+  --gradient-accent-fade: linear-gradient(180deg, oklch(0.76 0.12 75 / 0.12) 0%, transparent 100%);
+  --gradient-surface:     linear-gradient(165deg, oklch(0.255 0.014 62) 0%, var(--color-surface) 80%);
+  --gradient-shine:       linear-gradient(115deg, transparent 30%, oklch(1 0 0 / 0.14) 50%, transparent 70%);
+  --mesh-hero:
+    radial-gradient(55% 50% at 18% 12%, oklch(0.72 0.12 70 / 0.20) 0%, transparent 60%),
+    radial-gradient(50% 55% at 85% 18%, oklch(0.66 0.14 45 / 0.16) 0%, transparent 60%),
+    radial-gradient(70% 60% at 50% 102%, oklch(0.70 0.10 120 / 0.10) 0%, transparent 70%);
 }
 
 /* ── Global base layer ────────────────────────────────────────────────────── */
@@ -333,30 +375,47 @@
   }
   html {
     @apply font-sans;
-    /* View Transitions: smooth cross-route morphs (§20.5).
-       Reduced-motion guard is applied in layout.tsx via the provider. */
+    /* Guard against any single element forcing a horizontal scrollbar (and thus
+       widening every full-width section). `clip` keeps position:sticky working,
+       unlike `hidden`. */
+    overflow-x: clip;
     @media (prefers-reduced-motion: no-preference) {
-      view-transition-name: none; /* reset — named slots opt-in per component */
+      view-transition-name: none;
     }
   }
 }
 
+/* Editorial headlines: every h1/h2 inside the marketing surface renders in the
+   serif display face. Card titles (h3) and app/data headings stay sans. */
+.font-editorial :is(h1, h2) {
+  font-family: var(--font-display);
+  letter-spacing: var(--tracking-display);
+  font-weight: 600;
+}
+
+/* Lightweight reveal-on-scroll (IntersectionObserver toggles [data-shown]).
+   Zero JS library cost. Content is always in the DOM (SEO-safe). */
+@media (prefers-reduced-motion: no-preference) {
+  [data-reveal] {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.5s var(--ease-revolut), transform 0.5s var(--ease-revolut);
+  }
+  [data-reveal][data-shown] {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 /* ── View Transition defaults ─────────────────────────────────────────────── */
-/* Default cross-fade for all routes. Named elements override per-element. */
 @media (prefers-reduced-motion: no-preference) {
   ::view-transition-old(root) {
-    animation: 300ms ease-in both fade-out;
+    animation: var(--duration-fast) var(--ease-revolut) both page-exit;
   }
   ::view-transition-new(root) {
-    animation: 300ms ease-out both fade-in;
+    animation: var(--duration-page) var(--ease-revolut) both page-enter;
   }
 
-  /* Score circle: shared-element morph convention.
-     Usage: apply [view-transition-name:score-circle] to the DiscoverabilityScore
-     outer ring element. E2/E3 pages use the same name so the Score morphs
-     seamlessly from the scan-progress page to the full report.
-     Convention: this is the ONLY view-transition-name in the codebase.
-     Add others only in E3–E4 and document them here. */
   ::view-transition-old(score-circle) {
     animation: 350ms var(--ease-in-out) both scale-down-fade;
   }
@@ -364,13 +423,15 @@
     animation: 450ms var(--ease-out-smooth) both scale-up-fade;
   }
 
-  @keyframes fade-out {
-    from { opacity: 1; }
-    to   { opacity: 0; }
+  @keyframes fade-out { from { opacity: 1; } to { opacity: 0; } }
+  @keyframes fade-in  { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes page-exit {
+    from { opacity: 1; transform: translateY(0); }
+    to   { opacity: 0; transform: translateY(-8px); }
   }
-  @keyframes fade-in {
-    from { opacity: 0; }
-    to   { opacity: 1; }
+  @keyframes page-enter {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
   @keyframes scale-down-fade {
     from { opacity: 1; transform: scale(1); }
@@ -382,10 +443,17 @@
   }
 }
 
-/* Reduced-motion: disable all view transitions */
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-old(*),
   ::view-transition-new(*) {
     animation: none;
+  }
+}
+
+/* ── Ambient gradient-mesh drift (consumed by <GradientMesh />) ───────────── */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes mesh-drift-a {
+    0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+    50%      { transform: translate3d(2%, -3%, 0) scale(1.06); }
   }
 }

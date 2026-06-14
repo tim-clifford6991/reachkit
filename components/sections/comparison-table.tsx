@@ -88,7 +88,7 @@ function Cell({ value, isFirst }: { value: ComparisonCellValue; isFirst: boolean
             cx="8"
             cy="8"
             r="7"
-            stroke="oklch(1 0 0 / 0.2)"
+            stroke="var(--hairline-strong)"
             strokeWidth="1.25"
           />
           <path
@@ -135,7 +135,7 @@ export function ComparisonTable({ content }: ComparisonTableProps) {
 
   return (
     <section
-      className="flex flex-col items-center gap-10 px-[--spacing-content-x] py-[--spacing-section-y]"
+      className="flex flex-col items-center gap-14 px-(--spacing-content-x) py-(--spacing-section-y)"
       aria-label="Tool comparison"
     >
       {/* Header */}
@@ -149,8 +149,8 @@ export function ComparisonTable({ content }: ComparisonTableProps) {
           </p>
         )}
         <h2
-          className="text-2xl font-bold tracking-tight sm:text-3xl"
-          style={{ color: "var(--color-fg)", lineHeight: 1.15 }}
+          className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl"
+          style={{ color: "var(--color-fg)", lineHeight: 1.1 }}
         >
           {headline}
         </h2>
@@ -196,11 +196,11 @@ export function ComparisonTable({ content }: ComparisonTableProps) {
                 <td
                   className="border-t px-4 py-3 text-sm"
                   style={{
-                    borderColor: "oklch(1 0 0 / 0.07)",
+                    borderColor: "var(--hairline)",
                     color: "var(--color-fg)",
-                    borderLeft: "1px solid oklch(1 0 0 / 0.07)",
+                    borderLeft: "1px solid var(--hairline)",
                     background:
-                      ri % 2 === 0 ? "oklch(1 0 0 / 0.02)" : "transparent",
+                      ri % 2 === 0 ? "var(--fill-subtle)" : "transparent",
                     borderRadius: ri === 0 ? "0.5rem 0 0 0" : undefined,
                   }}
                 >
@@ -215,17 +215,17 @@ export function ComparisonTable({ content }: ComparisonTableProps) {
                       key={ci}
                       className="border-t px-4 py-3 text-center"
                       style={{
-                        borderColor: "oklch(1 0 0 / 0.07)",
+                        borderColor: "var(--hairline)",
                         background: isFirst
                           ? ri % 2 === 0
-                            ? "oklch(0.60 0.18 255 / 0.04)"
-                            : "oklch(0.60 0.18 255 / 0.025)"
+                            ? "oklch(0.70 0.13 66 / 0.05)"
+                            : "oklch(0.70 0.13 66 / 0.03)"
                           : ri % 2 === 0
-                          ? "oklch(1 0 0 / 0.02)"
+                          ? "var(--fill-subtle)"
                           : "transparent",
                         borderRight:
                           ci === row.cells.length - 1
-                            ? "1px solid oklch(1 0 0 / 0.07)"
+                            ? "1px solid var(--hairline)"
                             : undefined,
                       }}
                     >
@@ -240,15 +240,15 @@ export function ComparisonTable({ content }: ComparisonTableProps) {
             <tr aria-hidden="true">
               <td
                 className="h-0 border-t"
-                style={{ borderColor: "oklch(1 0 0 / 0.07)", borderLeft: "1px solid oklch(1 0 0 / 0.07)" }}
+                style={{ borderColor: "var(--hairline)", borderLeft: "1px solid var(--hairline)" }}
               />
               {tools.map((_, i) => (
                 <td
                   key={i}
                   className="h-0 border-t"
                   style={{
-                    borderColor: "oklch(1 0 0 / 0.07)",
-                    borderRight: i === tools.length - 1 ? "1px solid oklch(1 0 0 / 0.07)" : undefined,
+                    borderColor: "var(--hairline)",
+                    borderRight: i === tools.length - 1 ? "1px solid var(--hairline)" : undefined,
                   }}
                 />
               ))}

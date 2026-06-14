@@ -211,7 +211,7 @@ export function LegalLayout({ doc }: { doc: LegalDocument }) {
             gap: "1.25rem",
             marginTop: "4rem",
             paddingTop: "1.5rem",
-            borderTop: "1px solid oklch(1 0 0 / 0.09)",
+            borderTop: "1px solid var(--hairline)",
             fontFamily: "var(--font-mono)",
             fontSize: "0.6875rem",
             textTransform: "uppercase",

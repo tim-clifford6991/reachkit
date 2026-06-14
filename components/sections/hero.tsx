@@ -11,6 +11,8 @@
 
 import type { ReactNode } from "react";
 
+import { GradientMesh } from "@/components/motion/gradient-mesh";
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -44,31 +46,21 @@ export function Hero({ content, children }: HeroProps) {
 
   return (
     <section
-      className="hero-section relative flex flex-col items-center gap-10 px-[--spacing-content-x] py-[--spacing-section-y] text-center"
+      className="hero-section relative flex flex-col items-center gap-14 overflow-hidden px-(--spacing-content-x) py-(--spacing-section-y) text-center"
       aria-label="Hero"
     >
-      {/* Ambient glow — CSS only, no JS */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 overflow-hidden"
-      >
-        <div
-          className="absolute -top-48 left-1/2 h-[640px] w-[900px] -translate-x-1/2 rounded-full"
-          style={{
-            background:
-              "radial-gradient(ellipse at center, var(--color-accent) 0%, transparent 70%)",
-            opacity: 0.065,
-          }}
-        />
-      </div>
+      {/* Ambient animated gradient mesh — pure CSS */}
+      <GradientMesh />
 
-      <div className="hero-content relative z-10 flex max-w-xl flex-col items-center gap-6">
-        {/* Eyebrow */}
+      <div className="hero-content relative z-10 flex max-w-2xl flex-col items-center gap-6">
+        {/* Eyebrow — glass pill */}
         <p
-          className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 font-mono text-xs uppercase tracking-wider"
+          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-mono text-xs uppercase tracking-wider backdrop-blur-[var(--glass-blur)]"
           style={{
-            borderColor: "var(--color-accent-subtle)",
-            background: "var(--color-accent-subtle)",
+            borderWidth: 1,
+            borderStyle: "solid",
+            borderColor: "var(--glass-border)",
+            background: "var(--glass-tint)",
             color: "var(--color-accent-400)",
           }}
         >
@@ -82,12 +74,21 @@ export function Hero({ content, children }: HeroProps) {
 
         {/* Headline */}
         <h1
-          className="text-4xl font-bold tracking-tight sm:text-5xl"
-          style={{ color: "var(--color-fg)", lineHeight: 1.1 }}
+          className="text-5xl font-bold tracking-[var(--tracking-display)] sm:text-6xl lg:text-7xl"
+          style={{ color: "var(--color-fg)", lineHeight: 1.04 }}
         >
           {headlineBefore}
           {headlineBefore && <br />}
-          <span style={{ color: "var(--color-accent)" }}>{headlineAccent}</span>
+          <span
+            style={{
+              background: "var(--gradient-accent)",
+              WebkitBackgroundClip: "text",
+              backgroundClip: "text",
+              color: "transparent",
+            }}
+          >
+            {headlineAccent}
+          </span>
           {headlineAfter && (
             <>
               <br />

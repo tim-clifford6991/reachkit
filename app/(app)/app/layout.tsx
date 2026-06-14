@@ -32,7 +32,7 @@ export const metadata: Metadata = {
 
 async function SidebarData({ children }: { children: React.ReactNode }) {
   const viewer = await currentUser();
-  if (!viewer) redirect("/");
+  if (!viewer) redirect("/login?next=/app");
 
   const { user } = viewer;
   const entitlements = await entitlementsFor(user.id);

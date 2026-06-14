@@ -48,7 +48,7 @@ export function BadgeEmbed({ slug, total }: BadgeEmbedProps) {
     <div
       className="rounded-xl border"
       style={{
-        borderColor: "oklch(1 0 0 / 0.09)",
+        borderColor: "var(--hairline)",
         background: "var(--color-surface)",
       }}
     >
@@ -79,7 +79,7 @@ export function BadgeEmbed({ slug, total }: BadgeEmbedProps) {
         {/* Tab toggle */}
         <div
           className="mb-3 flex gap-1 rounded-lg p-1"
-          style={{ background: "oklch(1 0 0 / 0.04)" }}
+          style={{ background: "var(--fill-subtle)" }}
           role="tablist"
           aria-label="Snippet format"
         >
@@ -91,7 +91,7 @@ export function BadgeEmbed({ slug, total }: BadgeEmbedProps) {
               onClick={() => setActiveTab(tab)}
               className="flex-1 rounded-md px-3 py-1.5 font-mono text-xs transition-colors"
               style={{
-                background: activeTab === tab ? "oklch(1 0 0 / 0.08)" : "transparent",
+                background: activeTab === tab ? "var(--hairline)" : "transparent",
                 color: activeTab === tab ? "var(--color-fg)" : "var(--color-muted)",
                 border: "none",
                 cursor: "pointer",
@@ -107,7 +107,7 @@ export function BadgeEmbed({ slug, total }: BadgeEmbedProps) {
         {/* Code block */}
         <div
           className="relative rounded-lg"
-          style={{ background: "oklch(1 0 0 / 0.04)", border: "1px solid oklch(1 0 0 / 0.07)" }}
+          style={{ background: "var(--fill-subtle)", border: "1px solid var(--hairline)" }}
         >
           <pre
             className="overflow-x-auto p-4 font-mono text-xs leading-relaxed"
@@ -134,7 +134,7 @@ export function BadgeEmbed({ slug, total }: BadgeEmbedProps) {
           }}
           onMouseEnter={(e) => {
             (e.currentTarget as HTMLButtonElement).style.background =
-              "oklch(0.60 0.18 255 / 0.15)";
+              "var(--color-accent-subtle)";
           }}
           onMouseLeave={(e) => {
             (e.currentTarget as HTMLButtonElement).style.background =

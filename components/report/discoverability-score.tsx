@@ -81,7 +81,7 @@ function scoreLabel(total: number): string {
 /** Score → ring colour */
 function ringColour(total: number): string {
   if (total >= 70) return "oklch(0.72 0.17 155)"; // success green
-  if (total >= 40) return "oklch(0.60 0.18 255)"; // accent blue
+  if (total >= 40) return "var(--color-accent)"; // accent blue
   return "oklch(0.78 0.18 70)";                    // warning amber
 }
 
@@ -122,7 +122,7 @@ function RadialRing({
         cy={RING_CY}
         r={RING_R}
         fill="none"
-        stroke="oklch(1 0 0 / 0.08)"
+        stroke="var(--hairline)"
         strokeWidth={RING_STROKE}
       />
       {/* Filled ring */}
@@ -191,7 +191,7 @@ function RadarChart({ axes, animate }: { axes: RadarAxis[]; animate: boolean }) 
             key={level}
             points={toPoints(pts)}
             fill="none"
-            stroke="oklch(1 0 0 / 0.06)"
+            stroke="var(--fill-subtle)"
             strokeWidth={1}
           />
         );
@@ -205,7 +205,7 @@ function RadarChart({ axes, animate }: { axes: RadarAxis[]; animate: boolean }) 
           y1={RADAR_CY}
           x2={pt.x}
           y2={pt.y}
-          stroke="oklch(1 0 0 / 0.08)"
+          stroke="var(--hairline)"
           strokeWidth={1}
         />
       ))}
@@ -213,8 +213,8 @@ function RadarChart({ axes, animate }: { axes: RadarAxis[]; animate: boolean }) 
       {/* Locked axes grey fill (shows the "potential" the active axes don't fill) */}
       <polygon
         points={toPoints(fullPoints)}
-        fill="oklch(1 0 0 / 0.03)"
-        stroke="oklch(1 0 0 / 0.06)"
+        fill="var(--fill-subtle)"
+        stroke="var(--fill-subtle)"
         strokeWidth={1}
         strokeDasharray="3 3"
       />
@@ -223,8 +223,8 @@ function RadarChart({ axes, animate }: { axes: RadarAxis[]; animate: boolean }) 
       {animate ? (
         <motion.polygon
           points={toPoints(activePoints)}
-          fill="oklch(0.60 0.18 255 / 0.18)"
-          stroke="oklch(0.60 0.18 255)"
+          fill="oklch(0.70 0.13 66 / 0.20)"
+          stroke="var(--color-accent)"
           strokeWidth={1.5}
           initial={{ opacity: 0, scale: 0.6 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -234,8 +234,8 @@ function RadarChart({ axes, animate }: { axes: RadarAxis[]; animate: boolean }) 
       ) : (
         <polygon
           points={toPoints(activePoints)}
-          fill="oklch(0.60 0.18 255 / 0.18)"
-          stroke="oklch(0.60 0.18 255)"
+          fill="oklch(0.70 0.13 66 / 0.20)"
+          stroke="var(--color-accent)"
           strokeWidth={1.5}
         />
       )}
@@ -263,7 +263,7 @@ function RadarChart({ axes, animate }: { axes: RadarAxis[]; animate: boolean }) 
               cx={dot.x}
               cy={dot.y}
               r={2.5}
-              fill={ax.active ? "oklch(0.60 0.18 255)" : "oklch(0.37 0 0)"}
+              fill={ax.active ? "var(--color-accent)" : "var(--hairline-strong)"}
             />
             <text
               x={label.x}
@@ -272,7 +272,7 @@ function RadarChart({ axes, animate }: { axes: RadarAxis[]; animate: boolean }) 
               dominantBaseline="middle"
               fontSize={9}
               fontFamily="var(--font-mono)"
-              fill={ax.active ? "oklch(0.76 0 0)" : "oklch(0.46 0 0)"}
+              fill={ax.active ? "var(--color-fg)" : "var(--color-muted)"}
             >
               {ax.axis}
             </text>
@@ -299,7 +299,7 @@ function SubScoreRow({
     value >= 70
       ? "oklch(0.72 0.17 155)"
       : value >= 40
-      ? "oklch(0.60 0.18 255)"
+      ? "var(--color-accent)"
       : "oklch(0.78 0.18 70)";
 
   return (

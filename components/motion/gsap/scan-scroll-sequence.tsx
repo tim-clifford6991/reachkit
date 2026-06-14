@@ -71,10 +71,10 @@ function StageRow({
       <div
         className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full font-mono text-sm"
         style={{
-          background: active ? "var(--color-accent-subtle)" : "oklch(1 0 0 / 0.04)",
+          background: active ? "var(--color-accent-subtle)" : "var(--fill-subtle)",
           border: active
             ? "1px solid var(--color-accent-900)"
-            : "1px solid oklch(1 0 0 / 0.08)",
+            : "1px solid var(--hairline)",
           color: active ? "var(--color-accent-400)" : "var(--color-muted)",
           transition: "background 0.3s, color 0.3s, border-color 0.3s",
         }}
@@ -128,7 +128,7 @@ function ScoreDisplay({ score }: { score: number }) {
             cy="50"
             r="40"
             fill="none"
-            stroke="oklch(1 0 0 / 0.06)"
+            stroke="var(--fill-subtle)"
             strokeWidth="6"
           />
           {/* Progress */}
@@ -248,7 +248,7 @@ export function ScanScrollSequence() {
   return (
     <section
       ref={sectionRef}
-      className="flex flex-col items-center gap-12 px-[--spacing-content-x] py-[--spacing-section-y]"
+      className="flex flex-col items-center gap-12 px-(--spacing-content-x) py-(--spacing-section-y)"
       aria-label="How a scan works"
     >
       {/* Header */}

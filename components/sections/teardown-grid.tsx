@@ -63,10 +63,10 @@ function TeardownCardComponent({ card }: { card: TeardownCard }) {
 
   const inner = (
     <article
-      className="group flex h-full flex-col gap-4 rounded-xl border p-5 transition-all duration-200"
+      className="group flex h-full flex-col gap-4 rounded-2xl border p-7 shadow-[var(--elevation-sm),var(--edge-highlight)] transition-[transform,box-shadow] duration-300 ease-revolut hover:-translate-y-1 hover:shadow-[var(--elevation-lg),var(--edge-highlight)] motion-reduce:transition-none motion-reduce:hover:translate-y-0"
       style={{
-        borderColor: "oklch(1 0 0 / 0.08)",
-        background: "var(--color-surface)",
+        borderColor: "var(--hairline)",
+        background: "var(--gradient-surface)",
       }}
     >
       {/* Score + app */}
@@ -155,7 +155,7 @@ export function TeardownGrid({ content }: TeardownGridProps) {
 
   return (
     <section
-      className="flex flex-col items-center gap-10 px-[--spacing-content-x] py-[--spacing-section-y]"
+      className="flex flex-col items-center gap-14 px-(--spacing-content-x) py-(--spacing-section-y)"
       aria-label="Product teardowns"
     >
       {/* Header */}
@@ -169,8 +169,8 @@ export function TeardownGrid({ content }: TeardownGridProps) {
           </p>
         )}
         <h2
-          className="text-2xl font-bold tracking-tight sm:text-3xl"
-          style={{ color: "var(--color-fg)", lineHeight: 1.15 }}
+          className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl"
+          style={{ color: "var(--color-fg)", lineHeight: 1.1 }}
         >
           {headline}
         </h2>

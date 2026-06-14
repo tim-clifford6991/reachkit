@@ -42,13 +42,13 @@ export function WhereTheyAreSection({
   return (
     <section
       aria-labelledby="where-they-are-heading"
-      className="rounded-xl border"
+      className="rounded-2xl border shadow-[var(--elevation-sm),var(--edge-highlight)]"
       style={{
-        borderColor: "oklch(1 0 0 / 0.09)",
-        background: "var(--color-surface)",
+        borderColor: "var(--hairline)",
+        background: "var(--gradient-surface)",
       }}
     >
-      <div className="px-5 pb-5 pt-5">
+      <div className="px-7 pb-6 pt-6">
         <div className="mb-4">
           <p
             className="font-mono text-[10px] uppercase tracking-widest"
@@ -84,9 +84,9 @@ export function WhereTheyAreSection({
                     <span
                       className="mt-px rounded px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider shrink-0"
                       style={{
-                        background: "oklch(1 0 0 / 0.05)",
+                        background: "var(--fill-subtle)",
                         color: "var(--color-muted)",
-                        border: "1px solid oklch(1 0 0 / 0.08)",
+                        border: "1px solid var(--hairline)",
                       }}
                     >
                       {s.source}
@@ -128,7 +128,7 @@ export function WhereTheyAreSection({
                   <div
                     key={i}
                     className="rounded-lg px-4 py-3"
-                    style={{ background: "oklch(1 0 0 / 0.04)" }}
+                    style={{ background: "var(--fill-subtle)" }}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
@@ -192,7 +192,7 @@ function GapScorePair({ them, you }: { them: number; you: number }) {
       >
         {you}
       </span>
-      <span style={{ color: "oklch(1 0 0 / 0.2)" }} aria-hidden>
+      <span style={{ color: "var(--hairline-strong)" }} aria-hidden>
         vs
       </span>
       <span

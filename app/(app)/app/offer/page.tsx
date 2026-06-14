@@ -25,7 +25,7 @@ export const metadata = buildMetadata({ title: "What you offer", path: "/app/off
 
 async function OfferContent() {
   const viewer = await currentUser();
-  if (!viewer) redirect("/");
+  if (!viewer) redirect("/login?next=/app");
 
   const { user } = viewer;
   const primaryAppId = user.app_ids[0] ?? null;
@@ -56,9 +56,9 @@ async function OfferContent() {
       {userIsPaid && (
         <section
           aria-labelledby="offer-evidence-heading"
-          className="rounded-xl border px-5 py-5"
+          className="rounded-xl border px-7 py-6"
           style={{
-            borderColor: "oklch(1 0 0 / 0.09)",
+            borderColor: "var(--hairline)",
             background: "var(--color-surface)",
           }}
         >
@@ -115,8 +115,8 @@ export default function OfferPage() {
 function SectionSkeleton() {
   return (
     <div
-      className="rounded-xl border p-5"
-      style={{ borderColor: "oklch(1 0 0 / 0.09)", background: "var(--color-surface)" }}
+      className="rounded-xl border p-7"
+      style={{ borderColor: "var(--hairline)", background: "var(--color-surface)" }}
     >
       <Skeleton className="mb-3 h-3 w-20" />
       <Skeleton className="mb-4 h-5 w-36" />

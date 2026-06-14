@@ -7,12 +7,15 @@
  * JSON-LD: HowTo (3-step scan flow — how to use ReachKit).
  */
 
+import { Suspense } from "react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { buildMetadata, howToLd } from "@/lib/seo";
 import { ScanInput } from "@/app/(marketing)/scan-input";
-import { SocialProofMarquee } from "@/components/sections";
-import type { SocialProofMarqueeContent } from "@/components/sections";
+// Direct import (not the barrel) so this lean funnel page doesn't drag the
+// entire §21.1 section library — incl. GradientMesh — into its client graph.
+import { SocialProofMarquee } from "@/components/sections/social-proof-marquee";
+import type { SocialProofMarqueeContent } from "@/components/sections/social-proof-marquee";
+import { RecentScans } from "@/components/sections/recent-scans";
 
 // ---------------------------------------------------------------------------
 // Metadata
@@ -74,7 +77,7 @@ const PROOF_CHIPS: SocialProofMarqueeContent = {
 export default function ScanPage() {
   return (
     <main
-      className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden px-[--spacing-content-x] py-[--spacing-section-y]"
+      className="relative flex flex-col items-center overflow-hidden px-(--spacing-content-x) pb-(--spacing-section-y) pt-20 sm:pt-28"
       style={{ background: "var(--color-bg)" }}
       aria-label="Scan your product"
     >
@@ -99,16 +102,7 @@ export default function ScanPage() {
         />
       </div>
 
-      <div className="relative z-10 flex w-full max-w-xl flex-col items-center gap-10">
-        {/* Back link */}
-        <Link
-          href="/"
-          className="self-start font-mono text-[10px] uppercase tracking-widest transition-colors duration-150"
-          style={{ color: "var(--color-muted)" }}
-        >
-          ← ReachKit
-        </Link>
-
+      <div className="relative z-10 flex w-full max-w-xl flex-col items-center gap-14">
         {/* Hero block */}
         <div className="flex flex-col items-center gap-5 text-center">
           {/* Eyebrow */}
@@ -153,10 +147,10 @@ export default function ScanPage() {
 
         {/* Three-step reassurance */}
         <div
-          className="flex w-full flex-col gap-3 rounded-xl border p-5"
+          className="flex w-full flex-col gap-3 rounded-xl border p-7"
           style={{
-            borderColor: "oklch(1 0 0 / 0.07)",
-            background: "oklch(1 0 0 / 0.02)",
+            borderColor: "var(--hairline)",
+            background: "var(--fill-subtle)",
           }}
           aria-label="How it works"
         >
@@ -201,26 +195,10 @@ export default function ScanPage() {
 
         {/* Social proof marquee */}
         <div className="w-screen max-w-2xl">
-          <SocialProofMarquee content={PROOF_CHIPS} />
+          <Suspense fallback={<SocialProofMarquee content={PROOF_CHIPS} />}>
+            <RecentScans fallback={PROOF_CHIPS.chips} />
+          </Suspense>
         </div>
-
-        {/* Footer legal */}
-        <nav aria-label="Legal links" className="flex gap-5">
-          {[
-            { label: "Privacy", href: "/privacy" },
-            { label: "Terms", href: "/terms" },
-            { label: "Imprint", href: "/imprint" },
-          ].map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              className="font-mono text-[10px] uppercase tracking-wider transition-colors duration-150"
-              style={{ color: "var(--color-muted)" }}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
       </div>
     </main>
   );

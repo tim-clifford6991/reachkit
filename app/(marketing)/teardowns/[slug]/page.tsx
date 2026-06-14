@@ -77,9 +77,9 @@ function ScorePanel({ teardown }: { teardown: Teardown }) {
 
   return (
     <div
-      className="rounded-xl border p-6"
+      className="rounded-xl border p-8"
       style={{
-        borderColor: "oklch(1 0 0 / 0.08)",
+        borderColor: "var(--hairline)",
         background: "var(--color-surface)",
       }}
       aria-label={`Discoverability score: ${teardown.score.total} out of 100`}
@@ -119,7 +119,7 @@ function ScorePanel({ teardown }: { teardown: Teardown }) {
         <div
           className="shrink-0 rounded-md border px-2.5 py-1 font-mono text-[10px] uppercase tracking-widest"
           style={{
-            borderColor: "oklch(1 0 0 / 0.1)",
+            borderColor: "var(--hairline)",
             color: "var(--color-muted)",
           }}
         >
@@ -129,7 +129,7 @@ function ScorePanel({ teardown }: { teardown: Teardown }) {
 
       <div
         className="my-5 h-px"
-        style={{ background: "oklch(1 0 0 / 0.06)" }}
+        style={{ background: "var(--fill-subtle)" }}
         aria-hidden="true"
       />
 
@@ -153,7 +153,7 @@ function ScorePanel({ teardown }: { teardown: Teardown }) {
               </span>
               <div
                 className="relative h-1 flex-1 overflow-hidden rounded-full"
-                style={{ background: "oklch(1 0 0 / 0.06)" }}
+                style={{ background: "var(--fill-subtle)" }}
                 role="progressbar"
                 aria-valuenow={value}
                 aria-valuemin={0}
@@ -222,9 +222,9 @@ function TeardownSections({ teardown }: { teardown: Teardown }) {
 function TakeawaysPanel({ teardown }: { teardown: Teardown }) {
   return (
     <aside
-      className="rounded-xl border p-6"
+      className="rounded-xl border p-8"
       style={{
-        borderColor: "oklch(1 0 0 / 0.08)",
+        borderColor: "var(--hairline)",
         background: "var(--color-surface)",
       }}
       aria-label="Key takeaways"
@@ -294,7 +294,7 @@ export default async function TeardownSlugPage(props: {
       />
 
       <main
-        className="mx-auto max-w-[var(--spacing-content-max)] px-[--spacing-content-x] pb-24 pt-12 sm:pt-20"
+        className="mx-auto max-w-[var(--spacing-content-max)] px-(--spacing-content-x) pb-24 pt-12 sm:pt-20"
         aria-label={teardown.title}
       >
         {/* Breadcrumb */}
@@ -361,7 +361,7 @@ export default async function TeardownSlugPage(props: {
         </header>
 
         {/* Two-column layout on large screens: content + sidebar */}
-        <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1fr_300px]">
+        <div className="grid grid-cols-1 gap-14 lg:grid-cols-[1fr_300px]">
           {/* Main content */}
           <div className="min-w-0">
             <TeardownSections teardown={teardown} />
@@ -374,10 +374,10 @@ export default async function TeardownSlugPage(props: {
 
             {/* CTA */}
             <div
-              className="rounded-xl border p-6 text-center"
+              className="rounded-xl border p-8 text-center"
               style={{
-                borderColor: "oklch(0.60 0.18 255 / 0.25)",
-                background: "oklch(0.60 0.18 255 / 0.04)",
+                borderColor: "oklch(0.70 0.13 66 / 0.25)",
+                background: "oklch(0.70 0.13 66 / 0.05)",
               }}
             >
               <p
@@ -407,7 +407,7 @@ export default async function TeardownSlugPage(props: {
         </div>
 
         {/* Back link */}
-        <div className="mt-16 border-t pt-8" style={{ borderColor: "oklch(1 0 0 / 0.06)" }}>
+        <div className="mt-16 border-t pt-8" style={{ borderColor: "var(--fill-subtle)" }}>
           <Link
             href="/teardowns"
             className="font-mono text-sm transition-colors hover:opacity-80"

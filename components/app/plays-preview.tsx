@@ -50,13 +50,13 @@ export function PlaysPreview({
   return (
     <section
       aria-labelledby="plays-preview-heading"
-      className="rounded-xl border"
+      className="rounded-2xl border shadow-[var(--elevation-sm),var(--edge-highlight)]"
       style={{
-        borderColor: "oklch(1 0 0 / 0.09)",
-        background: "var(--color-surface)",
+        borderColor: "var(--hairline)",
+        background: "var(--gradient-surface)",
       }}
     >
-      <div className="px-5 py-5">
+      <div className="px-7 py-6">
         {/* Header */}
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
@@ -138,7 +138,7 @@ export function PlaysPreview({
           <div
             className="mt-4 rounded-lg px-4 py-3 text-center"
             style={{
-              background: "oklch(0.60 0.18 255 / 0.08)",
+              background: "oklch(0.70 0.13 66 / 0.09)",
               border: "1px solid var(--color-accent-900)",
             }}
           >
@@ -173,8 +173,8 @@ function PlayCard({
 
   return (
     <div
-      className="rounded-lg px-4 py-3 space-y-1.5"
-      style={{ border: "1px solid oklch(1 0 0 / 0.07)" }}
+      className="space-y-1.5 rounded-lg px-4 py-3 transition-[transform,box-shadow,border-color] duration-200 ease-revolut hover:-translate-y-0.5 hover:border-[var(--color-accent-900)] hover:shadow-[var(--elevation-md),var(--edge-highlight)] motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+      style={{ border: "1px solid var(--hairline)" }}
     >
       {/* Effort badge + title */}
       <div className="flex items-start gap-2">

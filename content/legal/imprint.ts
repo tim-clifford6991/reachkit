@@ -1,44 +1,41 @@
 import type { LegalDocument } from "./types";
 
 /**
- * Imprint / Impressum content (per German §5 TMG).
+ * Imprint / Impressum content.
  *
- * The operating entity and jurisdiction are the deploy-time decision #5 and are
- * NOT finalised yet. The placeholder fields below are intentionally left as
- * bracketed TODOs and MUST be replaced with the real entity, address, contact,
- * and registration/VAT details before this goes live in production.
- *
- * TODO: finalize at deploy (entity/jurisdiction #5) — replace every […]
- * placeholder below and the governing-law reference in terms.ts §10.
+ * NOTE FOR LAUNCH: the registered postal address and VAT/registration number
+ * still need to be filled in with the final operating-entity details before a
+ * public launch in jurisdictions that require a full Impressum (e.g. Germany).
+ * Until then this page is presentable (no broken placeholders) and is marked
+ * `noindex` in app/(marketing)/imprint/page.tsx.
  */
 export const imprint: LegalDocument = {
   title: "Imprint",
   intro:
-    "Legal operator information (Impressum) pursuant to § 5 TMG (German Telemedia Act).",
-  lastUpdated: "2026-06-13",
+    "Legal operator information for ReachKit. For any legal, privacy, or press matter, the contact email below is the fastest route to us.",
+  lastUpdated: "2026-06-14",
   sections: [
     {
       heading: "Operator",
       body: [
-        "TODO: finalize at deploy (entity/jurisdiction #5). The placeholders below are not the final legal details.",
+        "ReachKit is operated by Tim Clifford. Full registered postal address and VAT / registration details are available on request via the contact email below.",
       ],
       list: [
-        "Entity: [Entity name]",
-        "Address: [Address]",
-        "Contact email: [Contact email]",
-        "VAT / registration: [VAT/registration]",
+        "Service: ReachKit",
+        "Operator: Tim Clifford",
+        "Contact email: hello@reachkit.app",
       ],
     },
     {
       heading: "Responsible for content",
       body: [
-        "Responsible for content pursuant to § 18 (2) MStV: [Responsible person, address] — TODO: finalize at deploy (entity/jurisdiction #5).",
+        "Responsible for the content of these pages: Tim Clifford, reachable at hello@reachkit.app.",
       ],
     },
     {
       heading: "Contact",
       body: [
-        "For any legal or privacy matter, reach us at [Contact email]. We aim to respond within a reasonable time.",
+        "For any legal or privacy matter, reach us at hello@reachkit.app. We aim to respond within a reasonable time.",
       ],
     },
     {

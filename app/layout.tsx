@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { ThemeProvider } from "@/components/motion/theme-provider";
+import { LazyToaster } from "@/components/ui/lazy-toaster";
 import { SITE } from "@/lib/seo";
 import "./globals.css";
 
@@ -21,11 +22,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <ThemeProvider
           attribute="class"
-          defaultTheme="dark"
+          defaultTheme="light"
           enableSystem={false}
-          disableTransitionOnChange={false}
+          disableTransitionOnChange
         >
           {children}
+          <LazyToaster />
         </ThemeProvider>
       </body>
     </html>

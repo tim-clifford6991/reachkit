@@ -29,13 +29,13 @@ export function WhatYouOfferSection({
   return (
     <section
       aria-labelledby="what-you-offer-heading"
-      className="rounded-xl border"
+      className="rounded-2xl border shadow-[var(--elevation-sm),var(--edge-highlight)]"
       style={{
-        borderColor: "oklch(1 0 0 / 0.09)",
-        background: "var(--color-surface)",
+        borderColor: "var(--hairline)",
+        background: "var(--gradient-surface)",
       }}
     >
-      <div className="px-5 pb-5 pt-5">
+      <div className="px-7 pb-6 pt-6">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
             <p
@@ -87,10 +87,10 @@ export function WhatYouOfferSection({
             style={{
               background: unlocked
                 ? "var(--color-danger-subtle)"
-                : "oklch(1 0 0 / 0.03)",
+                : "var(--fill-subtle)",
               borderLeft: unlocked
                 ? "2px solid var(--color-danger)"
-                : "2px solid oklch(1 0 0 / 0.1)",
+                : "2px solid var(--hairline)",
             }}
           >
             <p

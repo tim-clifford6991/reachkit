@@ -31,7 +31,7 @@ export interface ScanInputSectionProps {
 export function ScanInputSection({ content }: ScanInputSectionProps) {
   return (
     <section
-      className="flex flex-col items-center gap-6 px-[--spacing-content-x] py-[--spacing-section-y]"
+      className="flex flex-col items-center gap-6 px-(--spacing-content-x) py-(--spacing-section-y)"
       aria-label="Scan your product"
     >
       {content?.label && (

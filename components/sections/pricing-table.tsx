@@ -76,17 +76,32 @@ function TierCard({ tier }: { tier: PricingTier }) {
 
   return (
     <article
-      className="relative flex flex-col rounded-xl p-6"
+      className={[
+        "relative flex h-full flex-col rounded-2xl p-8",
+        "transition-[transform,box-shadow] duration-300 ease-revolut",
+        "hover:-translate-y-1 motion-reduce:transition-none motion-reduce:hover:translate-y-0",
+        tier.highlighted
+          ? "shadow-[var(--elevation-lg),var(--edge-highlight)] lg:scale-[1.03]"
+          : "shadow-[var(--elevation-sm),var(--edge-highlight)]",
+      ].join(" ")}
       style={{
         border: tier.highlighted
-          ? "1px solid var(--color-accent-900)"
-          : "1px solid oklch(1 0 0 / 0.09)",
+          ? "1px solid var(--color-accent-700)"
+          : "1px solid var(--hairline)",
         background: tier.highlighted
-          ? "oklch(0.60 0.18 255 / 0.05)"
+          ? "var(--gradient-surface)"
           : "var(--color-surface)",
       }}
       aria-label={`${tier.name} plan — ${tier.price}${tier.period !== "forever" ? tier.period : " forever"}`}
     >
+      {/* Highlighted tier: accent glow halo */}
+      {tier.highlighted && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -inset-px -z-10 rounded-2xl opacity-60"
+          style={{ boxShadow: "var(--elevation-glow)" }}
+        />
+      )}
       {/* Badge */}
       {tier.badge && (
         <div
@@ -165,7 +180,7 @@ export function PricingTable({ content }: PricingTableProps) {
 
   return (
     <section
-      className="flex flex-col items-center gap-12 px-[--spacing-content-x] py-[--spacing-section-y]"
+      className="flex flex-col items-center gap-16 px-(--spacing-content-x) py-(--spacing-section-y)"
       aria-label="Pricing"
     >
       {/* Header */}
@@ -179,8 +194,8 @@ export function PricingTable({ content }: PricingTableProps) {
           </p>
         )}
         <h2
-          className="text-3xl font-bold tracking-tight sm:text-4xl"
-          style={{ color: "var(--color-fg)", lineHeight: 1.1 }}
+          className="whitespace-pre-line text-3xl font-bold tracking-[var(--tracking-display)] sm:text-4xl lg:text-5xl"
+          style={{ color: "var(--color-fg)", lineHeight: 1.05 }}
         >
           {headline}
         </h2>

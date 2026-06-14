@@ -14,6 +14,7 @@
 import dynamic from "next/dynamic";
 import type { VerifiedScore } from "@/lib/scan/score-full";
 import { Skeleton } from "@/components/ui/skeleton";
+import { GradientMesh } from "@/components/motion/gradient-mesh";
 
 const DiscoverabilityScore = dynamic(
   () =>
@@ -33,24 +34,29 @@ interface ScoreBlockDashboardProps {
 export function ScoreBlockDashboard({ score }: ScoreBlockDashboardProps) {
   return (
     <div
-      className="flex flex-col items-center rounded-xl border py-10"
+      className="relative flex flex-col items-center overflow-hidden rounded-2xl border py-10 shadow-[var(--elevation-md),var(--edge-highlight)]"
       style={{
         borderColor: "var(--color-accent-900)",
         background:
-          "linear-gradient(135deg, var(--color-surface) 0%, oklch(0.145 0.018 255) 100%)",
+          "linear-gradient(135deg, var(--color-surface) 0%, var(--color-elevated) 100%)",
       }}
     >
+      {/* Subtle ambient mesh behind the score */}
+      <GradientMesh variant="subtle" />
+
       <p
-        className="mb-6 font-mono text-xs uppercase tracking-widest"
+        className="relative z-10 mb-6 font-mono text-xs uppercase tracking-widest"
         style={{ color: "var(--color-muted)" }}
       >
         Discoverability score
       </p>
 
-      <DiscoverabilityScore score={score} size="lg" />
+      <div className="relative z-10">
+        <DiscoverabilityScore score={score} size="lg" />
+      </div>
 
       <p
-        className="mt-6 max-w-xs text-center text-xs leading-relaxed"
+        className="relative z-10 mt-6 max-w-xs text-center text-xs leading-relaxed"
         style={{ color: "var(--color-muted)" }}
       >
         Score based on verified content, outreach, and SEO signals.

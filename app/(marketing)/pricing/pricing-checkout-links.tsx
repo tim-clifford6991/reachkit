@@ -66,14 +66,14 @@ export function PricingCheckoutLinks({
         width: "100%",
         textAlign: "center",
         borderRadius: "0.5rem",
-        border: highlighted ? "none" : "1px solid oklch(1 0 0 / 0.12)",
+        border: highlighted ? "none" : "1px solid var(--hairline-strong)",
         padding: "0.5rem 1rem",
         fontSize: "0.875rem",
         fontWeight: highlighted ? 600 : 500,
         color: highlighted ? "var(--color-accent-fg)" : "var(--color-fg)",
         background: highlighted
           ? "var(--color-accent-600)"
-          : "oklch(1 0 0 / 0.04)",
+          : "var(--fill-subtle)",
         cursor: loading ? "not-allowed" : "pointer",
         opacity: loading ? 0.6 : 1,
         transition: "opacity 150ms",

@@ -24,7 +24,7 @@ export const metadata = buildMetadata({ title: "Settings", path: "/app/settings"
 
 async function SettingsContent() {
   const viewer = await currentUser();
-  if (!viewer) redirect("/");
+  if (!viewer) redirect("/login?next=/app");
 
   const { user } = viewer;
   const entitlements = await entitlementsFor(user.id);
@@ -51,11 +51,11 @@ async function SettingsContent() {
         aria-labelledby="account-heading"
         className="rounded-xl border"
         style={{
-          borderColor: "oklch(1 0 0 / 0.09)",
+          borderColor: "var(--hairline)",
           background: "var(--color-surface)",
         }}
       >
-        <div className="px-5 py-5">
+        <div className="px-7 py-6">
           <h2
             id="account-heading"
             className="mb-4 text-sm font-semibold"
@@ -113,7 +113,7 @@ async function SettingsContent() {
               style={{
                 borderColor: tierIsPaid
                   ? "var(--color-accent-900)"
-                  : "oklch(1 0 0 / 0.09)",
+                  : "var(--hairline)",
                 color: tierIsPaid
                   ? "var(--color-accent-400)"
                   : "var(--color-muted)",
@@ -130,11 +130,11 @@ async function SettingsContent() {
         aria-labelledby="founder-voice-heading"
         className="rounded-xl border"
         style={{
-          borderColor: "oklch(1 0 0 / 0.09)",
+          borderColor: "var(--hairline)",
           background: "var(--color-surface)",
         }}
       >
-        <div className="px-5 py-5">
+        <div className="px-7 py-6">
           <h2 id="founder-voice-heading" className="sr-only">
             Your founder voice
           </h2>
@@ -148,11 +148,11 @@ async function SettingsContent() {
           aria-labelledby="app-info-heading"
           className="rounded-xl border"
           style={{
-            borderColor: "oklch(1 0 0 / 0.09)",
+            borderColor: "var(--hairline)",
             background: "var(--color-surface)",
           }}
         >
-          <div className="px-5 py-5">
+          <div className="px-7 py-6">
             <h2
               id="app-info-heading"
               className="mb-3 text-sm font-semibold"
@@ -165,7 +165,7 @@ async function SettingsContent() {
                 <div
                   key={id}
                   className="flex items-center gap-2 rounded-lg px-3 py-2"
-                  style={{ background: "oklch(1 0 0 / 0.03)" }}
+                  style={{ background: "var(--fill-subtle)" }}
                 >
                   {i === 0 && (
                     <span
@@ -224,8 +224,8 @@ function SettingsSkeleton() {
       {[1, 2].map((i) => (
         <div
           key={i}
-          className="rounded-xl border p-5"
-          style={{ borderColor: "oklch(1 0 0 / 0.09)", background: "var(--color-surface)" }}
+          className="rounded-xl border p-7"
+          style={{ borderColor: "var(--hairline)", background: "var(--color-surface)" }}
         >
           <Skeleton className="mb-4 h-4 w-24" />
           <Skeleton className="mb-2 h-3 w-16" />

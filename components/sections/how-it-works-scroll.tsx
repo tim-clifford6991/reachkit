@@ -1,24 +1,50 @@
 "use client";
 
 /**
- * HowItWorksScroll — §20.3 set piece 3 (§21.1 section)
+ * HowItWorks — §21.1 section (Almanac).
  *
- * Pinned scroll-through of the 3 modules: Scan → Report → Engine.
- * ScrollTrigger pin keeps the left panel fixed while the right content
- * steps through each module as the user scrolls.
+ * Calm, non-pinned 3-step walkthrough: Scan → Report → Engine. A sticky CSS
+ * header on the left, three cards on the right that gently rise into view as
+ * they scroll past (Motion `whileInView`, once). NO GSAP pin/scrub — the old
+ * scroll-jacked version fought Lenis and felt jerky. This is smooth by default
+ * and fully reduced-motion safe (no animation, static cards).
  *
- * SSR: all three steps are in the HTML (accessible, indexable). GSAP enhances
- * on hydrate. prefers-reduced-motion → shows all steps stacked, no pin/scroll.
- *
- * GSAP/ScrollTrigger is lazy-imported via useGsap — never in the initial chunk.
+ * Content renders in the initial client paint, so it's in the SSR HTML.
  */
 
-import { useRef, useState, useEffect } from "react";
-import { useGsap } from "@/components/motion/gsap/use-gsap-ref";
+import { useEffect, useRef } from "react";
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
+/**
+ * Reveal-on-scroll via a tiny IntersectionObserver (no Motion/GSAP — keeps the
+ * marketing first-load lean). Adds [data-shown] to each [data-reveal] child as
+ * it enters the viewport; the transition lives in globals.css.
+ */
+function useRevealOnScroll() {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const root = ref.current;
+    if (!root) return;
+    const items = Array.from(root.querySelectorAll<HTMLElement>("[data-reveal]"));
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      items.forEach((el) => el.setAttribute("data-shown", ""));
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) {
+            e.target.setAttribute("data-shown", "");
+            io.unobserve(e.target);
+          }
+        }
+      },
+      { rootMargin: "0px 0px -12% 0px", threshold: 0.12 }
+    );
+    items.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, []);
+  return ref;
+}
 
 interface Step {
   number: string;
@@ -27,10 +53,6 @@ interface Step {
   description: string;
   detail: string;
 }
-
-// ---------------------------------------------------------------------------
-// Content
-// ---------------------------------------------------------------------------
 
 const STEPS: readonly Step[] = [
   {
@@ -62,57 +84,38 @@ const STEPS: readonly Step[] = [
   },
 ] as const;
 
-// ---------------------------------------------------------------------------
-// Step card (static content — renders server-side)
-// ---------------------------------------------------------------------------
-
-function StepCard({ step, active }: { step: Step; active: boolean }) {
+function StepCard({ step }: { step: Step }) {
   return (
     <div
-      className="how-step flex flex-col gap-4 rounded-xl border p-6 transition-all duration-300"
-      data-step-card
-      style={{
-        borderColor: active ? "var(--color-accent-900)" : "oklch(1 0 0 / 0.08)",
-        background: active ? "oklch(0.60 0.18 255 / 0.04)" : "var(--color-surface)",
-      }}
+      className="flex flex-col gap-4 rounded-2xl border p-8 shadow-[var(--elevation-sm),var(--edge-highlight)]"
+      style={{ borderColor: "var(--hairline)", background: "var(--gradient-surface)" }}
     >
-      {/* Number + eyebrow */}
       <div className="flex items-center gap-3">
         <span
           className="font-mono text-2xl font-bold tabular-nums"
-          style={{ color: "var(--color-accent-900)" }}
+          style={{ color: "var(--color-accent-400)" }}
         >
           {step.number}
         </span>
         <span
           className="font-mono text-[10px] uppercase tracking-widest"
-          style={{ color: active ? "var(--color-accent-400)" : "var(--color-muted)" }}
+          style={{ color: "var(--color-muted)" }}
         >
           {step.eyebrow}
         </span>
       </div>
 
-      {/* Title */}
-      <h3
-        className="text-lg font-bold leading-snug"
-        style={{ color: "var(--color-fg)" }}
-      >
+      <h3 className="text-lg font-semibold leading-snug" style={{ color: "var(--color-fg)" }}>
         {step.title}
       </h3>
 
-      {/* Description */}
       <p className="text-sm leading-relaxed" style={{ color: "var(--color-muted)" }}>
         {step.description}
       </p>
 
-      {/* Detail — mono, evidence-style */}
       <p
-        className="rounded-lg border p-3 font-mono text-xs leading-relaxed"
-        style={{
-          borderColor: "oklch(1 0 0 / 0.06)",
-          background: "oklch(1 0 0 / 0.02)",
-          color: "var(--color-muted)",
-        }}
+        className="rounded-xl p-3 font-mono text-xs leading-relaxed"
+        style={{ background: "var(--fill-subtle)", color: "var(--color-muted)" }}
       >
         {step.detail}
       </p>
@@ -120,158 +123,29 @@ function StepCard({ step, active }: { step: Step; active: boolean }) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Section
-// ---------------------------------------------------------------------------
-
 export function HowItWorksScroll() {
-  const sectionRef = useRef<HTMLDivElement>(null);
-  const [activeStep, setActiveStep] = useState(0);
-  // Initialise from matchMedia directly — no effect needed for a one-time read
-  const [reducedMotion] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  });
-
-  useGsap(({ gsap, ScrollTrigger }) => {
-    const section = sectionRef.current;
-    if (!section) return;
-
-    const stepCards = section.querySelectorAll<HTMLElement>("[data-step-card]");
-    const leftPanel = section.querySelector<HTMLElement>("[data-panel-left]");
-
-    if (!leftPanel || stepCards.length === 0) return;
-
-    // Create a timeline that scrubs through the 3 steps
-    const tl = gsap.timeline({
-      scrollTrigger: {
-        trigger: section,
-        start: "top top",
-        end: `+=${window.innerHeight * 2}`,
-        pin: true,
-        scrub: 0.6,
-        anticipatePin: 1,
-      },
-    });
-
-    // Step 1 → active on enter (already active by default)
-    // Step 2 → reveal at 33% scroll
-    tl.call(() => setActiveStep(1), undefined, 0.33);
-    // Step 3 → reveal at 66% scroll
-    tl.call(() => setActiveStep(2), undefined, 0.66);
-
-    // Animate step cards: inactive ones fade slightly
-    stepCards.forEach((card, i) => {
-      tl.to(
-        card,
-        {
-          opacity: i <= 0 ? 1 : 0.4,
-          duration: 0.01,
-        },
-        0,
-      );
-    });
-
-    // Dummy progress value to drive scrub callbacks
-    const proxy = { val: 0 };
-    tl.to(proxy, {
-      val: 1,
-      duration: 1,
-      onUpdate() {
-        const v = proxy.val;
-        if (v < 0.33) {
-          setActiveStep(0);
-          stepCards.forEach((c, i) => {
-            (c as HTMLElement).style.opacity = i === 0 ? "1" : "0.4";
-          });
-        } else if (v < 0.66) {
-          setActiveStep(1);
-          stepCards.forEach((c, i) => {
-            (c as HTMLElement).style.opacity = i === 1 ? "1" : "0.4";
-          });
-        } else {
-          setActiveStep(2);
-          stepCards.forEach((c, i) => {
-            (c as HTMLElement).style.opacity = i === 2 ? "1" : "0.4";
-          });
-        }
-      },
-    });
-
-    return () => {
-      ScrollTrigger.getAll().forEach((t) => {
-        if (t.trigger === section) t.kill();
-      });
-    };
-  }, []);
-
-  if (reducedMotion) {
-    // Reduced motion: static stacked layout
-    return (
-      <section
-        className="flex flex-col items-center gap-12 px-[--spacing-content-x] py-[--spacing-section-y]"
-        aria-label="How it works"
-      >
-        <SectionHeader />
-        <div className="flex w-full max-w-2xl flex-col gap-6">
-          {STEPS.map((step) => (
-            <StepCard key={step.number} step={step} active />
-          ))}
-        </div>
-      </section>
-    );
-  }
+  const ref = useRevealOnScroll();
 
   return (
     <section
-      ref={sectionRef}
-      className="flex flex-col items-center gap-0 px-[--spacing-content-x]"
+      className="px-(--spacing-content-x) py-(--spacing-section-y)"
       aria-label="How it works"
-      style={{ overflow: "hidden" }}
     >
       <div
-        className="flex w-full max-w-[var(--spacing-content-max)] flex-col gap-12 py-[--spacing-section-y] lg:flex-row lg:items-start lg:gap-20"
+        ref={ref}
+        className="mx-auto grid w-full max-w-[var(--spacing-content-max)] grid-cols-1 gap-16 lg:grid-cols-[20rem_1fr] lg:gap-20"
       >
-        {/* Left panel: fixed heading + step indicator */}
-        <div
-          data-panel-left
-          className="flex-shrink-0 lg:sticky lg:top-24 lg:w-64 lg:self-start"
-        >
+        {/* Left: sticky header (pure CSS — no scroll-jacking) */}
+        <div className="lg:sticky lg:top-28 lg:self-start">
           <SectionHeader />
-          {/* Step indicator dots */}
-          <div className="mt-8 hidden flex-col gap-3 lg:flex" aria-hidden="true">
-            {STEPS.map((step, i) => (
-              <div key={step.number} className="flex items-center gap-3">
-                <div
-                  className="h-2 w-2 rounded-full transition-all duration-300"
-                  style={{
-                    background:
-                      i === activeStep
-                        ? "var(--color-accent-500)"
-                        : "oklch(1 0 0 / 0.12)",
-                    transform: i === activeStep ? "scale(1.5)" : "scale(1)",
-                  }}
-                />
-                <span
-                  className="font-mono text-[10px] uppercase tracking-widest transition-colors duration-300"
-                  style={{
-                    color:
-                      i === activeStep
-                        ? "var(--color-accent-400)"
-                        : "var(--color-muted)",
-                  }}
-                >
-                  {step.eyebrow}
-                </span>
-              </div>
-            ))}
-          </div>
         </div>
 
-        {/* Right panel: step cards */}
-        <div className="flex flex-1 flex-col gap-5">
+        {/* Right: gently revealing step cards */}
+        <div className="flex flex-col gap-5">
           {STEPS.map((step, i) => (
-            <StepCard key={step.number} step={step} active={i === activeStep} />
+            <div key={step.number} data-reveal style={{ transitionDelay: `${i * 80}ms` }}>
+              <StepCard step={step} />
+            </div>
           ))}
         </div>
       </div>
@@ -288,14 +162,11 @@ function SectionHeader() {
       >
         How it works
       </p>
-      <h2
-        className="text-2xl font-bold tracking-tight sm:text-3xl"
-        style={{ color: "var(--color-fg)", lineHeight: 1.15 }}
-      >
+      <h2 className="text-3xl sm:text-4xl" style={{ color: "var(--color-fg)", lineHeight: 1.1 }}>
         Scan. Report. Engine.
       </h2>
-      <p className="text-sm leading-relaxed" style={{ color: "var(--color-muted)" }}>
-        Three modules. One flywheel. From URL to weekly action list.
+      <p className="text-base leading-relaxed" style={{ color: "var(--color-muted)" }}>
+        Three modules. One flywheel. From URL to a weekly action list.
       </p>
     </div>
   );
