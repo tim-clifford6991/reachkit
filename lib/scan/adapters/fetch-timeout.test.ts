@@ -37,4 +37,18 @@ describe("fetchWithTimeout", () => {
     await fetchWithTimeout("https://x.test", { signal: caller.signal }, 50);
     vi.unstubAllGlobals();
   });
+
+  it("aborts when the caller's signal is already aborted (caller-abort path)", async () => {
+    const caller = new AbortController();
+    caller.abort();
+    vi.stubGlobal("fetch", async (_url: string, init?: RequestInit) => {
+      // Real fetch rejects with AbortError when handed an already-aborted signal.
+      if (init?.signal?.aborted) throw Object.assign(new Error("aborted"), { name: "AbortError" });
+      return new Response("ok");
+    });
+    await expect(
+      fetchWithTimeout("https://x.test", { signal: caller.signal }, 50),
+    ).rejects.toBeInstanceOf(FetchTimeoutError);
+    vi.unstubAllGlobals();
+  });
 });

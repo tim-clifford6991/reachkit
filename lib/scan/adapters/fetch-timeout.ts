@@ -10,6 +10,8 @@ export class FetchTimeoutError extends Error {
   readonly timeoutMs: number;
   constructor(url: string, timeoutMs: number) {
     super(`fetch timed out after ${timeoutMs}ms: ${url}`);
+    // Preserve `instanceof` across all compile targets/bundlers (Error subclassing footgun).
+    Object.setPrototypeOf(this, FetchTimeoutError.prototype);
     this.name = "FetchTimeoutError";
     this.url = url;
     this.timeoutMs = timeoutMs;
@@ -23,9 +25,10 @@ export async function fetchWithTimeout(
 ): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const onCallerAbort = () => controller.abort();
   if (init.signal) {
     if (init.signal.aborted) controller.abort();
-    else init.signal.addEventListener("abort", () => controller.abort(), { once: true });
+    else init.signal.addEventListener("abort", onCallerAbort, { once: true });
   }
   try {
     return await fetch(url, { ...init, signal: controller.signal });
@@ -36,5 +39,6 @@ export async function fetchWithTimeout(
     throw err;
   } finally {
     clearTimeout(timer);
+    init.signal?.removeEventListener("abort", onCallerAbort);
   }
 }
