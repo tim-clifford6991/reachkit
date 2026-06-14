@@ -73,7 +73,7 @@ const PRICING_CONTENT = {
       ],
       highlighted: true,
       badge: "Most popular",
-      cta: <PricingCheckoutLinks plan="solo" label="Start Solo — $29/mo" highlighted />,
+      cta: <PricingCheckoutLinks plan="solo" label="Start 7-day free trial" highlighted />,
     },
     {
       name: "Growth",
@@ -87,7 +87,7 @@ const PRICING_CONTENT = {
         "50 keyword rank-depth",
         "Priority support",
       ],
-      cta: <PricingCheckoutLinks plan="growth" label="Start Growth — $99/mo" />,
+      cta: <PricingCheckoutLinks plan="growth" label="Start 7-day free trial" />,
     },
   ],
 } satisfies PricingTableContent;
@@ -102,7 +102,7 @@ const FAQ_CONTENT = {
     },
     {
       q: "Is there a free trial?",
-      a: "Your first scan is always free and gives you the full report — including score, positioning mirror, and 3 sample action cards. Upgrade when you want the queue.",
+      a: "Two ways in. Your first scan is always free and gives you the full report — including score, positioning mirror, and 3 sample action cards. And every paid plan starts with a 7-day free trial: full access to the queue, drafts, and verification before your first charge. Cancel any time during the trial and you won't be billed.",
     },
     {
       q: "Can I cancel?",

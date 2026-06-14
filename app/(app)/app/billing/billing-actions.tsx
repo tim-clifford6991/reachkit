@@ -248,7 +248,7 @@ export function BillingActions({ tier, isActivePaid }: BillingActionsProps) {
         className="mt-3 text-center font-mono text-[10px]"
         style={{ color: "var(--color-muted)" }}
       >
-        Cancel any time. No lock-in. Stripe-secured checkout.
+        7-day free trial. Cancel any time. No lock-in. Stripe-secured checkout.
       </p>
     </div>
   );

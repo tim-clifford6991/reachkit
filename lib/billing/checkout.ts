@@ -79,6 +79,10 @@ export async function createCheckout({
     customer: customerId,
     client_reference_id: userId,
     metadata: { userId, plan },
+    // 7-day free trial: subscription is created in `trialing` status (card
+    // collected now, first charge at trial end). entitlementsFor() already
+    // treats "trialing" as active, so trial users get full paid access.
+    subscription_data: { trial_period_days: 7 },
     success_url: `${env.appUrl}/app?upgraded=1`,
     cancel_url: `${env.appUrl}/app/billing`,
   });
