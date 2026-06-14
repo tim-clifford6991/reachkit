@@ -91,7 +91,10 @@ export const findCompetitors: ToolDefinition<FindCompetitorsArgs, FindCompetitor
         ...ph.neighbours,
         ...tavily.competitors,
       ];
-      const competitors = rankCompetitors(all, { selfHost: hostname(args.storeUrl) });
+      const competitors = rankCompetitors(all, {
+        selfHost: hostname(args.storeUrl),
+        subjectName: args.productName,
+      });
 
       await recordPipelineRun({
         scanId: ctx.scanId,
@@ -114,7 +117,7 @@ export const findCompetitors: ToolDefinition<FindCompetitorsArgs, FindCompetitor
 
     const appId = appIdFromUrl(args.storeUrl);
     const cands = await fetchItunesCompetitors(args.productName, appId);
-    const competitors = rankCompetitors(cands);
+    const competitors = rankCompetitors(cands, { subjectName: args.productName });
 
     await upsertRawDocument({
       subjectType: "app",

@@ -118,7 +118,9 @@ function parseCriticResponse(raw: string): CriticLlmResponse | null {
       specificityOk: obj["specificityOk"],
       draftCitesFact: obj["draftCitesFact"],
       audienceHonest: obj["audienceHonest"],
-      revised: obj["revised"] as ActionCard | undefined,
+      // The model may emit `"revised": null` to mean "no revision" — normalise
+      // null → undefined so downstream `.revised.evidence` access can't crash.
+      revised: obj["revised"] == null ? undefined : (obj["revised"] as ActionCard),
     };
   } catch {
     return null;
@@ -140,13 +142,15 @@ function buildFactContext(card: ActionCard): string {
 // ---------------------------------------------------------------------------
 // runCritic — the core single-card gate
 // ---------------------------------------------------------------------------
-export async function runCritic(ctx: ScanContext, card: ActionCard): Promise<CriticResult> {
+export async function runCritic(ctx: ScanContext, card: ActionCard, skipLlm = false): Promise<CriticResult> {
   const failedRules: string[] = checkDeterministic(card);
 
-  // --- LLM check (rules 2, 5b, 8) — skip in fixture mode ---
+  // --- LLM check (rules 2, 5b, 8) — skip in fixture mode OR when skipLlm is set
+  // (Cold Start: templated cards are §11-compliant by construction, so the
+  // deterministic checks suffice and we avoid ~3 Sonnet calls per card). ---
   let currentCard = card;
 
-  if (!fixturesEnabled()) {
+  if (!fixturesEnabled() && !skipLlm) {
     const factContext = buildFactContext(card);
     let llmResponse: CriticLlmResponse | null = null;
 
@@ -170,8 +174,14 @@ export async function runCritic(ctx: ScanContext, card: ActionCard): Promise<Cri
       if (!llmResponse.draftCitesFact) failedRules.push("draft_cites_fact");
       if (!llmResponse.audienceHonest) failedRules.push("audience_honest");
 
-      // Apply LLM revision if provided and there are failures
-      if (failedRules.length > 0 && llmResponse.revised !== undefined) {
+      // Apply LLM revision if provided and there are failures. Guard against a
+      // null / non-object `revised` (real models return `"revised": null`).
+      if (
+        failedRules.length > 0 &&
+        llmResponse.revised != null &&
+        typeof llmResponse.revised === "object" &&
+        !Array.isArray(llmResponse.revised)
+      ) {
         // Coerce the revised card to maintain §11 invariants
         currentCard = {
           ...llmResponse.revised,
@@ -233,13 +243,14 @@ export async function criticGateCard(
   ctx: ScanContext,
   card: ActionCard,
   maxRetries = 3,
+  skipLlm = false,
 ): Promise<{ outcome: "pass" | "drop" | "downgrade"; card: ActionCard; failedRules: string[] }> {
   let current = card;
   let lastFailedRules: string[] = [];
 
   // Fix I2: exactly maxRetries (3) runCritic passes max
   for (let attempt = 0; attempt < maxRetries; attempt++) {
-    const result = await runCritic(ctx, current);
+    const result = await runCritic(ctx, current, skipLlm);
     if (result.pass) {
       return { outcome: "pass", card: result.card, failedRules: [] };
     }
@@ -334,6 +345,7 @@ function enforceSourceDiversity(cards: ActionCard[]): ActionCard[] {
 export async function runCriticGate(
   ctx: ScanContext,
   actions: ActionCard[],
+  opts: { skipLlm?: boolean } = {},
 ): Promise<{
   passed: ActionCard[];
   rejected: Array<{ title: string; failedRules: string[] }>;
@@ -344,7 +356,7 @@ export async function runCriticGate(
   let totalRejections = 0;
 
   for (const card of actions) {
-    const { outcome, card: finalCard, failedRules } = await criticGateCard(ctx, card);
+    const { outcome, card: finalCard, failedRules } = await criticGateCard(ctx, card, 3, opts.skipLlm ?? false);
 
     if (outcome === "drop") {
       totalRejections++;

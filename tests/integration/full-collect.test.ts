@@ -51,9 +51,9 @@ function makeFixtureFacts(overrides?: Partial<PreliminaryFacts>): PreliminaryFac
   return {
     mode: "web",
     listing: {
-      name: "Nudgi",
+      name: "Acme",
       category: "Productivity",
-      description: "A gentle nudge app",
+      description: "An example habit-tracking app",
     },
     competitors: [
       { name: "Habitify", url: "https://habitify.me", source: "dataforseo_serp", rank: 1 },
@@ -83,7 +83,7 @@ test(
     // Dynamic import so the env stub is picked up by fixturesEnabled()
     const { runFullCollect } = await import("@/lib/scan/full-collect");
 
-    const storeUrl = `https://nudgi-fc-${Date.now()}.test`;
+    const storeUrl = `https://acme-fc-${Date.now()}.test`;
     const ctx = await seedAppAndScan(storeUrl, "web");
     const facts = makeFixtureFacts({ mode: "web" });
 
@@ -126,7 +126,7 @@ test(
 
     const { runFullCollect } = await import("@/lib/scan/full-collect");
 
-    const storeUrl = `https://nudgi-fc-fail-${Date.now()}.test`;
+    const storeUrl = `https://acme-fc-fail-${Date.now()}.test`;
     // No DB seed needed — tools are mocked so nothing is persisted
     const ctx: ScanContext = {
       scanId: "test-scan-id",
@@ -179,13 +179,13 @@ test(
     const ctx: ScanContext = {
       scanId: "s-derive",
       appId:  "a-derive",
-      storeUrl: "https://nudgi.app",
+      storeUrl: "https://acme.example",
       mode: "web",
       budget: new ScanBudget({ maxToolCalls: 60, budgetCents: 150 }),
     };
 
     const facts = makeFixtureFacts({
-      listing: { name: "Nudgi", category: "Productivity", description: null },
+      listing: { name: "Acme", category: "Productivity", description: null },
       competitors: [
         { name: "Habitify", url: "https://habitify.me", source: "dataforseo_serp", rank: 1 },
       ],
@@ -195,7 +195,7 @@ test(
 
     // seeds should start with the listing name
     const kwArgs = capturedArgs.find((a) => a.seeds !== undefined);
-    expect(kwArgs?.seeds?.[0]).toBe("Nudgi");
+    expect(kwArgs?.seeds?.[0]).toBe("Acme");
     expect(kwArgs?.seeds).toContain("Habitify");
 
     // topic should be the category

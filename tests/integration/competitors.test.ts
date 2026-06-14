@@ -6,7 +6,7 @@ test("persistCompetitors writes rows for an app", async () => {
   const db = serverDb();
   const app = await db
     .from("apps")
-    .insert({ store_url: "https://nudgi.app", platform: "web" })
+    .insert({ store_url: "https://acme.example", platform: "web" })
     .select("id")
     .single();
   await persistCompetitors(app.data!.id, [

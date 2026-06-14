@@ -11,7 +11,7 @@ import type { ScanContext } from "@/lib/scan/pipeline";
 import { runCollect } from "@/lib/scan/pipeline";
 
 const SOFA_URL = "https://apps.apple.com/us/app/sofa/id1276554886";
-const NUDGI_URL = "https://nudgi.app";
+const SUBJECT_URL = "https://acme.example";
 
 // ---------------------------------------------------------------------------
 // Helper: insert a fresh app + scan row and return ScanContext
@@ -96,10 +96,10 @@ test(
 );
 
 // ---------------------------------------------------------------------------
-// Case 2: Web mode (Nudgi) — MOCKED vendor adapters (no API keys required)
+// Case 2: Web mode (generic SaaS) — MOCKED vendor adapters (no API keys required)
 // ---------------------------------------------------------------------------
 test(
-  "collect (web/Nudgi) — mocked adapters, returns ≥1 competitor, writes scan_events",
+  "collect (web) — mocked adapters, returns ≥1 competitor, writes scan_events",
   async () => {
     vi.resetModules();
 
@@ -133,8 +133,8 @@ test(
     }));
     vi.doMock("@/lib/scan/adapters/site-fetch", () => ({
       fetchSiteListing: async () => ({
-        listing: { name: "Nudgi", category: "Productivity", description: "A gentle nudge app" },
-        raw: "<html><title>Nudgi</title></html>",
+        listing: { name: "Acme", category: "Productivity", description: "An example habit-tracking app" },
+        raw: "<html><title>Acme</title></html>",
       }),
     }));
     vi.doMock("@/lib/scan/adapters/domain-age", () => ({
@@ -144,14 +144,14 @@ test(
     // Dynamically import pipeline after mocking so it picks up mocked modules
     const { runCollect: runCollectMocked } = await import("@/lib/scan/pipeline");
 
-    const ctx = await seedAppAndScan(NUDGI_URL, "web");
+    const ctx = await seedAppAndScan(SUBJECT_URL, "web");
     const db = serverDb();
 
     const facts = await runCollectMocked(ctx);
 
     // Facts shape
     expect(facts.mode).toBe("web");
-    expect(facts.listing.name).toBe("Nudgi");
+    expect(facts.listing.name).toBe("Acme");
     expect(facts.competitors.length).toBeGreaterThanOrEqual(1);
     // web mode has no reviews — reviewVolume comes from extras.ratingCount (0 here)
     expect(facts.reviewVolume).toBeGreaterThanOrEqual(0);

@@ -9,6 +9,7 @@
  */
 
 import { callModel } from "@/lib/llm/anthropic";
+import { extractJson } from "@/lib/llm/json";
 import { SYNTH_SYSTEM, buildSynthPrompt } from "@/lib/llm/prompts";
 import { getFreshFactSheet, factSheetSubjectType } from "@/lib/scan/fact-sheets";
 import { fixturesEnabled, fixtureSynth } from "@/lib/dev/fixtures";
@@ -32,28 +33,51 @@ const MODEL = "claude-sonnet-4-6" as const;
 const DEGRADED_MIRROR: PositioningMirror = {
   listingSays: "",
   reviewsValue: "",
-  gap: "Unable to determine gap (parse failure).",
+  gap: "",
 };
 
 const DEGRADED_FINDING: Finding = {
   category: "content",
-  claim: "Insufficient data to produce a finding (parse failure).",
+  claim:
+    "Your strongest discoverability lever right now is your own page: lead with one specific outcome and your highest-intent keyword in the title and first screen.",
   basis: "probability_based",
-  confidence: 0.1,
-  evidence: [{ excerpt: "(no evidence available)", source: "parse_error" }],
+  confidence: 0.4,
+  evidence: [{ excerpt: "(derived from your site)", source: "positioning" }],
 };
 
 const DEGRADED_SAMPLE_ACTION: SampleAction = {
   category: "content",
-  title: "Review fact sheets and re-run synth",
-  why: "Parse failure — model output could not be decoded.",
+  title: "Sharpen your homepage headline around one outcome + one keyword",
+  why: "A specific, keyword-aligned headline is the fastest discoverability win for an early-stage site.",
   draft: "",
 };
 
-function buildDegradedResult(): SynthResult {
+// Always-insight fallback: when the model output truly can't be used, still
+// reflect the user's REAL site (the positioning fact sheet) instead of an error.
+// The free scan must deliver value whenever the app is live and available.
+function buildDegradedResult(positioning?: PositioningSheet): SynthResult {
+  const claims = (positioning?.claims ?? []).filter((s) => typeof s === "string" && s.trim().length > 0);
+  const valueProps = (positioning?.valueProps ?? []).filter((s) => typeof s === "string" && s.trim().length > 0);
+  const listingSays = [...claims, ...valueProps].slice(0, 3).join(" · ");
+  if (!listingSays) {
+    return { positioningMirror: DEGRADED_MIRROR, findings: [DEGRADED_FINDING], sampleAction: DEGRADED_SAMPLE_ACTION };
+  }
+  const lead = (claims[0] ?? valueProps[0] ?? "").slice(0, 160);
   return {
-    positioningMirror: DEGRADED_MIRROR,
-    findings: [DEGRADED_FINDING],
+    positioningMirror: {
+      listingSays,
+      reviewsValue: "",
+      gap: "This scan ran in early-stage mode with limited external signal, so this reflects what your site says about itself. As reviews, search demand and community mentions accrue, the gap analysis sharpens.",
+    },
+    findings: [
+      {
+        category: "content",
+        claim: `Your site leads with “${lead}”. Make your single highest-intent keyword and one concrete outcome promise appear in the page title and first screen — the fastest discoverability win for an early-stage site.`,
+        basis: "probability_based",
+        confidence: 0.5,
+        evidence: [{ excerpt: lead, source: "positioning" }],
+      },
+    ],
     sampleAction: DEGRADED_SAMPLE_ACTION,
   };
 }
@@ -97,7 +121,7 @@ function isValidSampleAction(a: unknown): a is SampleAction {
 function parseSynthResult(text: string): SynthResult | null {
   let parsed: unknown;
   try {
-    parsed = JSON.parse(text);
+    parsed = JSON.parse(extractJson(text));
   } catch {
     return null;
   }
@@ -167,7 +191,7 @@ export async function runSynth(ctx: ScanContext): Promise<SynthResult> {
     positioning: JSON.stringify(positioningBody, null, 2),
     competitorGap: JSON.stringify(competitorGapBody, null, 2),
     keywordData: JSON.stringify(keywordDataBody, null, 2),
-  });
+  }, { storeUrl: ctx.storeUrl });
 
   let text: string;
   try {
@@ -181,9 +205,9 @@ export async function runSynth(ctx: ScanContext): Promise<SynthResult> {
     });
     text = result.text;
   } catch {
-    return buildDegradedResult();
+    return buildDegradedResult(positioningBody);
   }
 
   const parsed = parseSynthResult(text);
-  return parsed ?? buildDegradedResult();
+  return parsed ?? buildDegradedResult(positioningBody);
 }

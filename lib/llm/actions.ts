@@ -227,6 +227,7 @@ export async function generateActions(
   const today = new Date().toISOString().slice(0, 10);
 
   const prompt = buildActionsPrompt({
+    storeUrl: ctx.storeUrl,
     reviewThemes: JSON.stringify(reviewThemesBody, null, 2),
     positioning: JSON.stringify(positioningBody, null, 2),
     competitorGap: JSON.stringify(competitorGapBody, null, 2),

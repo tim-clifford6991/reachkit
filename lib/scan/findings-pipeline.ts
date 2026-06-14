@@ -11,10 +11,12 @@ import { serverDb } from "@/lib/db/client";
 import { runExtract } from "@/lib/llm/extract";
 import { runSynth } from "@/lib/llm/synth";
 import { discoverabilityScore } from "@/lib/scan/score";
-import { getFreshFactSheet, factSheetSubjectType } from "@/lib/scan/fact-sheets";
+import { getFreshFactSheet, factSheetSubjectType, upsertFactSheet } from "@/lib/scan/fact-sheets";
+import type { FactSheetKind } from "@/lib/scan/fact-sheets";
 import { emitScanEvent } from "@/lib/scan/progress";
 import type { ScanContext } from "@/lib/scan/pipeline";
 import type { PreliminaryFacts } from "@/lib/scan/types";
+import { EMPTY_COMPETITOR_GAP, EMPTY_KEYWORD_SHEET } from "@/lib/llm/types";
 import type { KeywordSheet } from "@/lib/llm/types";
 import type { Json } from "@/lib/db/types";
 
@@ -23,8 +25,28 @@ export async function runFindings(
   facts: PreliminaryFacts,
 ): Promise<void> {
   try {
-    // 1. Extract — runs LLM on raw_documents and writes fact_sheets
-    await runExtract(ctx);
+    // 1. Extract — runs LLM on raw_documents and writes fact_sheets.
+    //    Brand-ambiguity hard rule: if competitor discovery found NO real rivals
+    //    (everything was a name-collision / aggregator → facts.competitors empty),
+    //    the SERP/keyword raw docs are about a same-named DIFFERENT product. Do
+    //    NOT let them contaminate the findings — ground the analysis in the site
+    //    itself (positioning + reviews) only.
+    const extractKinds: FactSheetKind[] | undefined =
+      facts.competitors.length > 0
+        ? undefined // trust the full external signal set
+        : ["review_themes", "positioning"];
+    await runExtract(ctx, extractKinds);
+
+    // When grounding in the site only, overwrite any STALE competitor_gap /
+    // keyword sheets (left over from prior scans of a same-named product) with
+    // empty ones, so synth can't read collision data we deliberately excluded.
+    if (extractKinds) {
+      const st = factSheetSubjectType(ctx.mode);
+      await Promise.all([
+        upsertFactSheet({ subjectType: st, subjectKey: ctx.storeUrl, kind: "competitor_gap", body: EMPTY_COMPETITOR_GAP, modelVersion: "grounded-site-only" }),
+        upsertFactSheet({ subjectType: st, subjectKey: ctx.storeUrl, kind: "keyword_data", body: EMPTY_KEYWORD_SHEET, modelVersion: "grounded-site-only" }),
+      ]);
+    }
 
     // 2. Synth — reads fact_sheets and produces SynthResult
     const synth = await runSynth(ctx);

@@ -1,5 +1,4 @@
 import type { Competitor } from "@/lib/scan/types";
-import { env } from "@/lib/config/env";
 import { fixturesEnabled, fixturePh } from "@/lib/dev/fixtures";
 
 type PhNode = { name: string; votesCount: number; url: string; reviewsCount: number };
@@ -15,13 +14,13 @@ export function parsePhPosts(data: unknown, productName: string): { selfUpvotes:
 
 export async function fetchPhByName(productName: string): Promise<{ selfUpvotes: number; neighbours: Competitor[]; raw: unknown }> {
   if (fixturesEnabled()) return fixturePh(productName);
-  const query = `query($q:String!){posts(first:8,order:VOTES,query:$q){edges{node{name votesCount url reviewsCount}}}}`;
-  const res = await fetch("https://api.producthunt.com/v2/api/graphql", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${env.productHuntToken}`, "content-type": "application/json" },
-    body: JSON.stringify({ query, variables: { q: productName } }),
-  });
-  if (!res.ok) throw new Error(`product hunt "${productName}" failed: ${res.status}`);
-  const body = await res.json() as unknown;
-  return { ...parsePhPosts(body, productName), raw: body };
+  // Product Hunt API v2's `posts` field has NO reliable free-text search — the
+  // old `query` argument made the API error outright ("Field 'posts' doesn't
+  // accept argument 'query'"). More importantly, looking a product up by name
+  // would risk matching a same-named DIFFERENT product (brand-ambiguity hard
+  // rule). Until a domain-anchored PH lookup exists (v1.5), return a best-effort
+  // EMPTY signal rather than guessing: never fabricate "neighbours" from
+  // unrelated top posts, and let PH upvotes simply not contribute to the web
+  // proxy. parsePhPosts is retained for that future domain-anchored path.
+  return { selfUpvotes: 0, neighbours: [], raw: { skipped: "ph_v2_no_text_search" } };
 }

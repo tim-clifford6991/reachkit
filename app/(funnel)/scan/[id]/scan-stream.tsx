@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import dynamic from "next/dynamic";
 import type { PreliminaryFacts, ScanEvent } from "@/lib/scan/types";
 import type { FindingsPayload } from "./findings-reveal";
@@ -73,9 +74,9 @@ function ScanTheater({ artifacts }: { artifacts: string[] }) {
 
       {/* Artifact feed — each line materialises as the SSE event lands */}
       <div
-        className="space-y-2 rounded-xl border p-5"
+        className="space-y-2 rounded-xl border p-7"
         style={{
-          borderColor: "oklch(1 0 0 / 0.07)",
+          borderColor: "var(--hairline)",
           background: "var(--color-surface)",
         }}
         role="log"
@@ -113,7 +114,7 @@ function ScanTheater({ artifacts }: { artifacts: string[] }) {
             className="h-4 animate-pulse rounded-lg"
             style={{
               width: `${w}%`,
-              background: "oklch(1 0 0 / 0.06)",
+              background: "var(--fill-subtle)",
             }}
             aria-hidden="true"
           />
@@ -143,9 +144,9 @@ function FactsView({ facts, artifacts, findingsData, scanId }: FactsViewProps) {
     <div className="mx-auto max-w-2xl space-y-5 p-8">
       {/* ── Product header ──────────────────────────────────────────────── */}
       <div
-        className="rounded-xl border p-5"
+        className="rounded-xl border p-7"
         style={{
-          borderColor: "oklch(1 0 0 / 0.09)",
+          borderColor: "var(--hairline)",
           background: "var(--color-surface)",
         }}
       >
@@ -185,8 +186,8 @@ function FactsView({ facts, artifacts, findingsData, scanId }: FactsViewProps) {
       <div
         className="grid grid-cols-2 gap-px rounded-xl border overflow-hidden sm:grid-cols-4"
         style={{
-          borderColor: "oklch(1 0 0 / 0.09)",
-          background: "oklch(1 0 0 / 0.09)",
+          borderColor: "var(--hairline)",
+          background: "var(--hairline)",
         }}
       >
         <MetricCell label="Reviews" value={String(facts.reviewVolume)} />
@@ -214,9 +215,9 @@ function FactsView({ facts, artifacts, findingsData, scanId }: FactsViewProps) {
       {/* ── Competitors ──────────────────────────────────────────────────── */}
       {facts.competitors.length > 0 && (
         <div
-          className="rounded-xl border p-5"
+          className="rounded-xl border p-7"
           style={{
-            borderColor: "oklch(1 0 0 / 0.09)",
+            borderColor: "var(--hairline)",
             background: "var(--color-surface)",
           }}
         >
@@ -256,9 +257,9 @@ function FactsView({ facts, artifacts, findingsData, scanId }: FactsViewProps) {
       {/* ── Theme chips ──────────────────────────────────────────────────── */}
       {facts.themes.length > 0 && (
         <div
-          className="rounded-xl border p-5"
+          className="rounded-xl border p-7"
           style={{
-            borderColor: "oklch(1 0 0 / 0.09)",
+            borderColor: "var(--hairline)",
             background: "var(--color-surface)",
           }}
         >
@@ -274,14 +275,14 @@ function FactsView({ facts, artifacts, findingsData, scanId }: FactsViewProps) {
                 key={i}
                 className="rounded-full border px-2.5 py-0.5 font-mono text-xs"
                 style={{
-                  borderColor: "oklch(1 0 0 / 0.09)",
+                  borderColor: "var(--hairline)",
                   color: "var(--color-muted)",
                 }}
               >
                 {t.term}
                 <span
                   className="ml-1.5 tabular-nums"
-                  style={{ color: "oklch(1 0 0 / 0.35)" }}
+                  style={{ color: "var(--hairline-strong)" }}
                 >
                   {t.count}
                 </span>
@@ -294,9 +295,9 @@ function FactsView({ facts, artifacts, findingsData, scanId }: FactsViewProps) {
       {/* ── Working artifact feed (still running) ────────────────────────── */}
       {artifacts.length > 0 && !findingsData && (
         <div
-          className="rounded-xl border p-5"
+          className="rounded-xl border p-7"
           style={{
-            borderColor: "oklch(1 0 0 / 0.07)",
+            borderColor: "var(--hairline)",
             background: "var(--color-surface)",
           }}
           role="log"
@@ -353,40 +354,202 @@ function MetricCell({ label, value }: { label: string; value: string }) {
   );
 }
 
+// ── Error state ───────────────────────────────────────────────────────────────
+
+function ScanError() {
+  return (
+    <div className="mx-auto flex max-w-md flex-col items-center gap-5 px-6 py-20 text-center">
+      <span
+        className="grid size-12 place-items-center rounded-full"
+        style={{ background: "var(--color-danger-subtle)", color: "var(--color-danger)" }}
+        aria-hidden
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M12 8v5M12 16.5v.5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" />
+        </svg>
+      </span>
+      <h2 className="text-2xl font-semibold" style={{ color: "var(--color-fg)" }}>
+        This scan didn&apos;t finish
+      </h2>
+      <p className="text-base leading-relaxed" style={{ color: "var(--color-muted)" }}>
+        Something went wrong while analysing your product, or it took too long. This is on us —
+        please try running the scan again.
+      </p>
+      <Link
+        href="/scan"
+        className="inline-flex h-11 items-center rounded-lg px-5 text-sm font-semibold shadow-[var(--elevation-glow)] transition-transform hover:-translate-y-px motion-reduce:transform-none"
+        style={{ background: "var(--color-accent)", color: "var(--color-accent-fg)" }}
+      >
+        Try another scan
+      </Link>
+    </div>
+  );
+}
+
+// ── Seed from server-persisted events (refresh-safe hydration) ────────────────
+// page.tsx reads scan_events server-side and passes them here, so a reload — or
+// returning to the link later — renders the correct state immediately instead of
+// re-animating from scratch (or, worse, falsely "failing" a scan that already
+// finished while the page was closed).
+
+type SeedEvent = { id: number; type: string; payload: Record<string, unknown> };
+
+function buildSeed(events: SeedEvent[]) {
+  const artifacts: string[] = [];
+  let facts: PreliminaryFacts | null = null;
+  let findings: FindingsPayload | null = null;
+  let done = false;
+  let errored = false;
+  let lastId = 0;
+  for (const e of events) {
+    if (typeof e.id === "number" && e.id > lastId) lastId = e.id;
+    if (e.type === "artifact") {
+      artifacts.push(String(e.payload?.["label"] ?? "working"));
+    } else if (e.type === "facts") {
+      facts = e.payload as unknown as PreliminaryFacts;
+    } else if (e.type === "findings") {
+      findings = e.payload as unknown as FindingsPayload;
+    } else if (e.type === "done") {
+      done = true;
+    } else if (e.type === "error") {
+      errored = true;
+    }
+  }
+  return { artifacts, facts, findings, done, errored, lastId };
+}
+
+// The scans.status values that mean the pipeline is STILL running. Any other
+// persisted status (done / degraded / failed) — or a terminal event already in
+// the seed — means the scan has finished and there is nothing left to stream.
+const ACTIVE_STATUSES = [
+  "queued",
+  "collecting",
+  "extracting",
+  "synthesizing",
+  "critiquing",
+  "formatting",
+];
+
 // ── Main export ───────────────────────────────────────────────────────────────
 
-export function ScanStream({ id }: { id: string }) {
-  const [artifacts, setArtifacts] = useState<string[]>([]);
-  const [facts, setFacts] = useState<PreliminaryFacts | null>(null);
+export function ScanStream({
+  id,
+  scanExists = true,
+  initialStatus = null,
+  initialEvents = [],
+}: {
+  id: string;
+  scanExists?: boolean;
+  initialStatus?: string | null;
+  initialEvents?: SeedEvent[];
+}) {
+  // Compute the seed exactly once (initialEvents is a stable SSR prop).
+  const seedRef = useRef<ReturnType<typeof buildSeed> | null>(null);
+  if (seedRef.current === null) seedRef.current = buildSeed(initialEvents);
+  const seed = seedRef.current;
+
+  const [artifacts, setArtifacts] = useState<string[]>(seed.artifacts);
+  const [facts, setFacts] = useState<PreliminaryFacts | null>(seed.facts);
   const [findingsData, setFindingsData] = useState<FindingsPayload | null>(
-    null
+    seed.findings
+  );
+  const [failed, setFailed] = useState<boolean>(
+    seed.errored || initialStatus === "failed"
   );
 
+  // Already finished (per the seed or the persisted status)? Nothing to stream.
+  const statusActive =
+    initialStatus != null && ACTIVE_STATUSES.includes(initialStatus);
+  const seededTerminal =
+    seed.done || seed.errored || (initialStatus != null && !statusActive);
+
   useEffect(() => {
-    const es = new EventSource(`/api/scan/${id}/stream`);
-    es.onmessage = (m) => {
-      const e = JSON.parse(m.data as string) as ScanEvent;
+    if (!scanExists || seededTerminal) return;
+
+    let cancelled = false;
+    let settled = seed.facts != null || seed.findings != null;
+    let lastId = seed.lastId;
+    let reconnects = 0;
+    let es: EventSource | null = null;
+    let watchdog: ReturnType<typeof setTimeout> | null = null;
+    const overallDeadline = Date.now() + 300_000;
+
+    const cleanup = () => {
+      cancelled = true;
+      if (watchdog) clearTimeout(watchdog);
+      es?.close();
+    };
+
+    // If NOTHING usable ever arrives, surface an error rather than spin forever.
+    watchdog = setTimeout(() => {
+      if (!settled && !cancelled) {
+        setFailed(true);
+        cleanup();
+      }
+    }, 180_000);
+
+    const handle = (e: ScanEvent) => {
       if (e.type === "artifact") {
         setArtifacts((a) => [...a, String(e.payload["label"] ?? "working")]);
       } else if (e.type === "facts") {
-        const factsPayload = e.payload as unknown as PreliminaryFacts;
-        setFacts(factsPayload);
-        funnel.factsShown({ scan_id: id, mode: factsPayload.mode });
+        settled = true;
+        const f = e.payload as unknown as PreliminaryFacts;
+        setFacts(f);
+        funnel.factsShown({ scan_id: id, mode: f.mode });
       } else if (e.type === "findings") {
-        const findingsPayload = e.payload as unknown as FindingsPayload;
-        setFindingsData(findingsPayload);
-        funnel.findingsShown({ scan_id: id, score: findingsPayload.score.total });
-      } else if (e.type === "done" || e.type === "error") {
-        es.close();
+        settled = true;
+        const fp = e.payload as unknown as FindingsPayload;
+        setFindingsData(fp);
+        funnel.findingsShown({ scan_id: id, score: fp.score.total });
+      } else if (e.type === "done") {
+        settled = true;
+        cleanup();
+      } else if (e.type === "error") {
+        if (!settled) setFailed(true);
+        cleanup();
       }
     };
-    es.onerror = () => es.close();
-    return () => es.close();
-  }, [id]);
 
-  if (!facts) {
-    return <ScanTheater artifacts={artifacts} />;
-  }
+    // Connect (and reconnect) tailing from the last seen event id. A dropped
+    // connection (server maxDuration, proxy, transient blip) is NOT a failure —
+    // we resume from the cursor; only an `error` event, the watchdog, or budget
+    // exhaustion surfaces a failure.
+    const connect = () => {
+      if (cancelled) return;
+      es = new EventSource(`/api/scan/${id}/stream?since=${lastId}`);
+      es.onmessage = (m) => {
+        const evId = Number(m.lastEventId);
+        if (Number.isFinite(evId) && evId > lastId) lastId = evId;
+        let parsed: ScanEvent | null = null;
+        try {
+          parsed = JSON.parse(m.data as string) as ScanEvent;
+        } catch {
+          return;
+        }
+        handle(parsed);
+      };
+      es.onerror = () => {
+        es?.close();
+        if (cancelled) return;
+        if (Date.now() > overallDeadline || reconnects > 200) {
+          if (!settled) setFailed(true);
+          return;
+        }
+        reconnects++;
+        setTimeout(connect, 1000);
+      };
+    };
+
+    connect();
+    return cleanup;
+    // seed/seededTerminal derive from stable SSR props; intentionally not deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, scanExists]);
+
+  if (!scanExists) return <ScanNotFound />;
+  if (failed && !facts) return <ScanError />;
+  if (!facts) return <ScanTheater artifacts={artifacts} />;
 
   return (
     <FactsView
@@ -395,5 +558,33 @@ export function ScanStream({ id }: { id: string }) {
       findingsData={findingsData}
       scanId={id}
     />
+  );
+}
+
+// ── Scan-not-found state — a bad/expired id never shows a hard 404 ─────────────
+function ScanNotFound() {
+  return (
+    <div className="mx-auto flex max-w-md flex-col items-center gap-5 px-6 py-20 text-center">
+      <h2
+        className="text-2xl font-semibold"
+        style={{ color: "var(--color-fg)" }}
+      >
+        We couldn&apos;t find that scan
+      </h2>
+      <p
+        className="text-base leading-relaxed"
+        style={{ color: "var(--color-muted)" }}
+      >
+        This scan link is invalid or has expired. Start a fresh scan and
+        we&apos;ll analyse your product from scratch.
+      </p>
+      <Link
+        href="/scan"
+        className="inline-flex h-11 items-center rounded-lg px-5 text-sm font-semibold shadow-[var(--elevation-glow)] transition-transform hover:-translate-y-px motion-reduce:transform-none"
+        style={{ background: "var(--color-accent)", color: "var(--color-accent-fg)" }}
+      >
+        Start a scan
+      </Link>
+    </div>
   );
 }

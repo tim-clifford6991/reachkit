@@ -18,6 +18,13 @@ import { fixturesEnabled } from "@/lib/dev/fixtures";
 /** Max scans permitted per IP within the rolling window (1 hour). */
 export const RATE_LIMIT = 10;
 
+/**
+ * How long an unfinished scan is considered still "in flight" for dedupe.
+ * Past this, a stuck `queued`/`collecting`/`synthesizing` row is treated as
+ * dead and no longer poisons re-scans of its url.
+ */
+const IN_FLIGHT_WINDOW_MS = 15 * 60 * 1000;
+
 /** SHA-256 hash of the literal string `"unknown"` — the fallback IP. */
 const UNKNOWN_IP_HASH = hashIp("unknown");
 
@@ -62,18 +69,46 @@ export async function findAppByUrl(storeUrl: string): Promise<string | null> {
   return data?.id ?? null;
 }
 
-/** Most-recent scan id for an app (created_at desc), or null if none exist. */
+/**
+ * A genuinely *reusable* scan id for an app, or null if a fresh scan is owed.
+ *
+ * Only two kinds of scan dedupe a new request; anything else (a `failed` row,
+ * or a stuck `queued`/`collecting`/`synthesizing` row older than the in-flight
+ * window) is dead and must NOT poison re-scans, so we fall through to null:
+ *   1. A FINISHED scan (`done`; `complete` accepted defensively) — reuse the
+ *      report. Checked first so a finished scan always wins over an in-flight one.
+ *   2. Else a still-RUNNING scan (`queued`/`collecting`/`synthesizing`) created
+ *      within the last 15 minutes — avoid kicking off a duplicate concurrent run.
+ * Most-recent-first within each category.
+ */
 export async function findExistingScanForApp(appId: string): Promise<string | null> {
   const db = serverDb();
-  const { data, error } = await db
+
+  // 1. A finished scan — reuse its report.
+  const finished = await db
     .from("scans")
     .select("id")
     .eq("app_id", appId)
+    .in("status", ["done", "complete"])
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (error) throw error;
-  return data?.id ?? null;
+  if (finished.error) throw finished.error;
+  if (finished.data) return finished.data.id;
+
+  // 2. Else a genuinely in-flight scan (running and still recent).
+  const since = new Date(Date.now() - IN_FLIGHT_WINDOW_MS).toISOString();
+  const inFlight = await db
+    .from("scans")
+    .select("id")
+    .eq("app_id", appId)
+    .in("status", ["queued", "collecting", "synthesizing"])
+    .gte("created_at", since)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (inFlight.error) throw inFlight.error;
+  return inFlight.data?.id ?? null;
 }
 
 /**

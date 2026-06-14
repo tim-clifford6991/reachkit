@@ -400,6 +400,40 @@ describe("runCritic — LLM checks (mocked callModel)", () => {
     expect(result.card.draftRequiresEdit).toBe(true);
     expect(result.card.verification.state).toBe("pending");
   });
+
+  test("LLM returns revised:null with failures — does NOT crash, keeps original card", async () => {
+    // Regression: real critic models emit `"revised": null` to mean "no revision".
+    // The old guard checked `!== undefined`, so null slipped through and
+    // `revised.evidence` threw — crashing runFullScan and forcing 45s Inngest
+    // retries that burned cost and never completed the scan.
+    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
+    vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
+      recordPipelineRun: vi.fn().mockResolvedValue(undefined),
+    }));
+    vi.doMock("@/lib/llm/check-link", () => ({
+      checkLink: { name: "check_link", klass: "L", run: vi.fn().mockResolvedValue({ entails: true, reason: "ok" }) },
+    }));
+    vi.doMock("@/lib/llm/anthropic", () => ({
+      callModel: vi.fn().mockResolvedValue({
+        text: JSON.stringify({
+          specificityOk: false,
+          draftCitesFact: true,
+          audienceHonest: true,
+          revised: null,
+        }),
+        usage: { inputTokens: 100, outputTokens: 50 },
+      }),
+    }));
+
+    const { runCritic } = await import("./critic");
+    const ctx = await makeScanCtx();
+    const original = passingCard("outreach", { title: "Original non-specific title" });
+
+    const result = await runCritic(ctx, original);
+    expect(result.failedRules).toContain("specificity");
+    // No crash; original card retained since no valid revision was supplied.
+    expect(result.card.title).toBe("Original non-specific title");
+  });
 });
 
 // ---------------------------------------------------------------------------

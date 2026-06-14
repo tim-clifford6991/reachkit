@@ -20,9 +20,10 @@
 
 import { fixturesEnabled, fixtureColdStartActions, coldStartActionsFrom } from "@/lib/dev/fixtures";
 import type { ColdStartSeed } from "@/lib/dev/fixtures";
+import { getFreshFactSheet, factSheetSubjectType } from "@/lib/scan/fact-sheets";
 import type { ScanContext } from "@/lib/scan/pipeline";
 import type { PreliminaryFacts } from "@/lib/scan/types";
-import type { ActionCard } from "@/lib/llm/types";
+import type { ActionCard, PositioningSheet } from "@/lib/llm/types";
 
 // ---------------------------------------------------------------------------
 // Seed derivation — pull the ICP, top intent keyword, top competitor and a
@@ -46,30 +47,39 @@ function topTheme(facts: PreliminaryFacts): string {
   return "";
 }
 
-/** A short category noun for the ICP / keyword (category → top theme → "product"). */
-function categoryNoun(facts: PreliminaryFacts): string {
-  const cat = cleanStr(facts.listing.category);
-  if (cat.length > 0) return cat.toLowerCase();
-  const theme = topTheme(facts);
-  if (theme.length > 0) return theme.toLowerCase();
-  return "product";
+/** Strip a trailing tagline/site suffix so "Nudgi — Walk Into Every Meeting…" → "Nudgi". */
+function cleanProductName(name: string): string {
+  const first = name.split(/\s+[|–—-]\s+|:\s+/)[0]?.trim();
+  return first || name.trim();
 }
 
-function deriveSeed(facts: PreliminaryFacts): ColdStartSeed {
-  const productName = cleanStr(facts.listing.name) || "your product";
+/**
+ * A real category phrase for the ICP / keyword. Prefers the LLM-extracted
+ * positioning category (e.g. "meeting preparation software"), then the listing
+ * category, then a top theme — so Cold Start cards are app-specific, not "product".
+ */
+function deriveCategory(facts: PreliminaryFacts, positioning?: PositioningSheet): string {
+  // Prefer the LLM positioning category (richest, most specific), then a review
+  // theme (specific), then the broad listing category, then a generic fallback.
+  return (
+    cleanStr(positioning?.category) ||
+    topTheme(facts) ||
+    cleanStr(facts.listing.category) ||
+    "product"
+  ).toLowerCase();
+}
 
-  const theme = topTheme(facts);
-  const noun = categoryNoun(facts);
+function deriveSeed(facts: PreliminaryFacts, positioning?: PositioningSheet): ColdStartSeed {
+  const productName = cleanProductName(cleanStr(facts.listing.name) || "your product");
+  const base = deriveCategory(facts, positioning);
 
-  // Top intent keyword: prefer "<theme> app" (e.g. "habit tracker app"); else "<category> app".
-  const base = theme.length > 0 ? theme.toLowerCase() : noun;
-  const topKeyword = `${base} app`;
-  const secondKeyword = theme.length > 0 ? `best ${base}` : `${noun} tools`;
+  // Don't append "tool" when the category already implies a product noun.
+  const hasNoun = /\b(app|tool|software|platform|service|crm|saas)\b/.test(base);
+  const topKeyword = hasNoun ? base : `${base} tool`;
+  const secondKeyword = `best ${base}`;
+  const icp = `people looking for ${base}`;
 
-  // ICP: "people looking for a <category/theme> tool".
-  const icp = `people looking for a ${base} tool`;
-
-  // Top competitor from the SERP-discovered set; fall back to a generic phrase.
+  // Top competitor from the discovered set; fall back to a generic phrase.
   const firstCompetitor = facts.competitors.find((c) => cleanStr(c.name).length > 0);
   const topCompetitor = firstCompetitor ? cleanStr(firstCompetitor.name) : "the leading alternative";
 
@@ -88,7 +98,7 @@ function deriveSeed(facts: PreliminaryFacts): ColdStartSeed {
 // Public API
 // ---------------------------------------------------------------------------
 export async function generateColdStartActions(
-  _ctx: ScanContext,
+  ctx: ScanContext,
   facts: PreliminaryFacts,
 ): Promise<ActionCard[]> {
   // Fixture path — deterministic, no derivation, no I/O.
@@ -96,9 +106,17 @@ export async function generateColdStartActions(
     return fixtureColdStartActions();
   }
 
-  // Live path — template-driven from facts. Degrade-safe: never throw.
+  // Live path — template-driven from facts + the real positioning sheet (for an
+  // app-specific category/keyword). Degrade-safe: never throw.
   try {
-    const seed = deriveSeed(facts);
+    let positioning: PositioningSheet | undefined;
+    try {
+      const row = await getFreshFactSheet(factSheetSubjectType(ctx.mode), ctx.storeUrl, "positioning");
+      if (row) positioning = row.body as PositioningSheet;
+    } catch {
+      /* positioning is optional — fall through to facts-only derivation */
+    }
+    const seed = deriveSeed(facts, positioning);
     return coldStartActionsFrom(seed);
   } catch {
     // Last-resort fallback: a sane generic Cold Start set so the scan never breaks.

@@ -135,7 +135,9 @@ describe("generateColdStartActions", () => {
     // Derived product name + competitor + intent keyword from facts.
     expect(cards.some((c) => c.title.includes("Nudgi"))).toBe(true);
     expect(cards.some((c) => c.title.includes("Habitify"))).toBe(true);
-    expect(cards.some((c) => /habit tracking app/i.test(JSON.stringify(c)))).toBe(true);
+    // The derived category/intent keyword flows into the cards (now category-based,
+    // e.g. "habit tracking tool" / "best habit tracking" — not a forced "… app").
+    expect(cards.some((c) => /habit tracking/i.test(JSON.stringify(c)))).toBe(true);
   });
 
   test("live path degrades safely on empty/degraded facts", async () => {

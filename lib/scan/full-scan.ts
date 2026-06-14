@@ -213,8 +213,10 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
     // 1. Heavy collect (keywords / communities / creators)
     await runFullCollect(ctx, facts);
 
-    // 2. Re-extract so the keyword_data sheet reflects the freshly-collected docs
-    await runExtract(ctx);
+    // 2. Re-extract ONLY the keyword_data sheet to reflect the freshly-collected
+    //    keyword docs — re-running positioning/review/competitor here would re-read
+    //    the (expensive) site HTML for no benefit (those sources didn't change).
+    await runExtract(ctx, ["keyword_data"]);
 
     // 3. Findings + positioning mirror from the Cycle 2 findings pipeline
     const { findings, positioningMirror } = await readFindingsPayload(ctx.scanId);
@@ -226,8 +228,10 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
       ? await generateColdStartActions(ctx, facts)
       : await generateActions(ctx, findings);
 
-    // 5. Critic Gate v2 → §11 algorithm safety
-    const { passed } = await runCriticGate(ctx, actions);
+    // 5. Critic Gate v2 → §11 algorithm safety. Cold Start cards are templated
+    //    and §11-compliant by construction, so we run the deterministic checks
+    //    only (skipLlm) — avoiding up to ~3 Sonnet critic calls per card.
+    const { passed } = await runCriticGate(ctx, actions, { skipLlm: facts.coldStart });
     const safe = await algorithmSafety(ctx, passed);
 
     // 6. Verified Discoverability Score + radar (§7)

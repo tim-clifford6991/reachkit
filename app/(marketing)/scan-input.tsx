@@ -74,10 +74,16 @@ export function ScanInput() {
       <div className="flex-1 space-y-1.5">
         <input
           ref={inputRef}
-          type="url"
+          // `type="text"` (not "url") so a bare domain like "apple.com" is accepted —
+          // the browser's native type="url" validation rejects scheme-less input.
+          // The server normalises it (lib/scan/router.ts prepends https://).
+          type="text"
+          inputMode="url"
           autoFocus
           autoComplete="url"
-          placeholder="Paste your App Store URL or website"
+          autoCapitalize="none"
+          spellCheck={false}
+          placeholder="Paste a link or type a domain — e.g. apple.com"
           value={url}
           onChange={(e) => {
             setUrl(e.target.value);
@@ -89,9 +95,9 @@ export function ScanInput() {
           disabled={isLoading}
           className={[
             // Height + layout
-            "h-12 w-full min-w-0 rounded-xl border px-4 py-2 text-base",
+            "h-12 w-full min-w-0 rounded-lg border px-4 py-2 text-base",
             // Colour
-            "bg-[oklch(1_0_0/0.04)] text-foreground placeholder:text-muted-foreground/60",
+            "bg-card text-foreground placeholder:text-muted-foreground/60",
             // Focus
             "outline-none transition-colors duration-150",
             "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
@@ -99,7 +105,7 @@ export function ScanInput() {
             "disabled:pointer-events-none disabled:opacity-50",
             state.status === "error"
               ? "border-destructive/60 ring-3 ring-destructive/20"
-              : "border-[oklch(1_0_0/0.10)]",
+              : "border-[var(--hairline)]",
           ]
             .filter(Boolean)
             .join(" ")}
@@ -117,7 +123,7 @@ export function ScanInput() {
         disabled={isLoading || !url.trim()}
         className={[
           // Layout + shape
-          "h-12 w-full rounded-xl border border-transparent px-6 text-sm font-semibold",
+          "h-12 w-full rounded-lg border border-transparent px-6 text-sm font-semibold",
           // Colours — accent fill
           "bg-primary text-primary-foreground outline-none",
           // Motion

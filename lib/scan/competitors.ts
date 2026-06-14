@@ -1,15 +1,24 @@
 import type { Competitor } from "@/lib/scan/types";
 import { serverDb } from "@/lib/db/client";
 import { hostname } from "@/lib/scan/url";
+import { filterRealCompetitors } from "@/lib/scan/competitor-filter";
 
 export function rankCompetitors(
   all: Competitor[],
-  opts: { selfHost?: string; cap?: number } = {},
+  opts: { selfHost?: string; cap?: number; subjectName?: string } = {},
 ): Competitor[] {
   const cap = opts.cap ?? 5;
   const self = opts.selfHost ? hostname(opts.selfHost) : null;
+  // Drop aggregator/listicle junk, name-collisions, and non-products BEFORE
+  // ranking, so every caller (collect, bounded loops, weekly refresh) is
+  // consistent. An empty result here is honest — it routes low-/no-presence
+  // subjects to Cold Start.
+  const real = filterRealCompetitors(all, {
+    selfHost: opts.selfHost,
+    subjectName: opts.subjectName,
+  });
   const best = new Map<string, Competitor>();
-  for (const c of all) {
+  for (const c of real) {
     const k = hostname(c.url);
     if (self && k === self) continue;                 // drop the product's own domain (web mode)
     const cur = best.get(k);

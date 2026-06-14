@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:inngest": "npx --yes inngest-cli@latest dev -u http://localhost:3000/api/inngest",
+    "dev:all": "concurrently -k -n next,inngest -c blue,magenta \"next dev\" \"npx --yes inngest-cli@latest dev -u http://localhost:3000/api/inngest\"",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -49,6 +51,7 @@
     "@types/react-dom": "^19",
     "@vitest/coverage-v8": "^4.1.8",
     "babel-plugin-react-compiler": "^1.0.0",
+    "concurrently": "^10.0.3",
     "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",

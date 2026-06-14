@@ -153,9 +153,11 @@ STRICT OUTPUT RULES:
 11. confidence is a float 0.0–1.0.
 12. expectedOutcome.scoreComponent is one of: "content", "outreach", "seo".
 13. basis is "evidence_based" when the card is driven by a specific signal from the fact sheets; "probability_based" when it is a reasonable inference without a direct quote.
-14. evidence is an array of ≥2 items drawn from ≥2 distinct sourceTypes. Each item has: excerpt (verbatim quote from the fact sheets), source (the name of the fact sheet or URL if available), sourceType (one of: "app_store_rss", "dataforseo_serp", "communities", "youtube", "dataforseo_keywords", "review_themes", "positioning", "competitor_gap", "keyword_data"). You MUST include at least 2 evidence items from at least 2 different sourceTypes per card.`;
+14. evidence is an array of ≥2 items drawn from ≥2 distinct sourceTypes. Each item has: excerpt (verbatim quote from the fact sheets), source (the name of the fact sheet or URL if available), sourceType (one of: "app_store_rss", "dataforseo_serp", "communities", "youtube", "dataforseo_keywords", "review_themes", "positioning", "competitor_gap", "keyword_data"). You MUST include at least 2 evidence items from at least 2 different sourceTypes per card.
+15. BRAND-AMBIGUITY HARD RULE: generate actions ONLY for the subject product identified in the prompt (by its URL) and described by the fact sheets. NEVER introduce competitors, facts, acquisitions, or claims from outside/training knowledge — especially about other products whose names merely resemble the subject's. If it is not in the fact sheets, do not use it.`;
 
 export interface ActionsPromptInput {
+  storeUrl: string;
   reviewThemes: string;
   positioning: string;
   competitorGap: string;
@@ -170,7 +172,9 @@ export function buildActionsPrompt(input: ActionsPromptInput): string {
     ? `=== FOUNDER VOICE HINT ===\n${input.founderVoice}\n`
     : `=== FOUNDER VOICE HINT ===\n(none provided — use plain, direct, non-salesy language)\n`;
 
-  return `Here are the fact sheets and synthesis findings for this app. Generate a comprehensive set of action cards.
+  return `SUBJECT — generate actions ONLY for this product, and ignore any same-/similar-named product you may know of: ${input.storeUrl}
+
+Here are the fact sheets and synthesis findings for this app. Generate a comprehensive set of action cards.
 
 ${voiceSection}
 === POSITIONING SHEET ===
@@ -239,15 +243,21 @@ STRICT RULES:
 3. Produce EXACTLY 3 findings and EXACTLY 1 sampleAction.
 4. All findings use basis "evidence_based" — probability-based is reserved for when no supporting quote exists.
 5. confidence is a float 0.0–1.0.
-6. sampleAction.draft must be a realistic, ready-to-use copy snippet or outreach message that references real content from the fact sheets.`;
+6. sampleAction.draft must be a realistic, ready-to-use copy snippet or outreach message that references real content from the fact sheets.
+7. BRAND-AMBIGUITY HARD RULE: analyse ONLY the subject product identified in the prompt (by its URL) and described by the fact sheets. NEVER introduce facts, competitors, acquisitions, funding, or claims from outside/training knowledge — especially about other products whose names merely resemble the subject's. If it is not in the fact sheets, it does not exist for this analysis.`;
 
-export function buildSynthPrompt(sheets: {
-  reviewThemes: string;
-  positioning: string;
-  competitorGap: string;
-  keywordData: string;
-}): string {
-  return `Here are the fact sheets for this app. Synthesise them into a SynthResult.
+export function buildSynthPrompt(
+  sheets: {
+    reviewThemes: string;
+    positioning: string;
+    competitorGap: string;
+    keywordData: string;
+  },
+  identity: { storeUrl: string },
+): string {
+  return `SUBJECT — analyse ONLY this product, and ignore any same-/similar-named product you may know of: ${identity.storeUrl}
+
+Here are the fact sheets for this app. Synthesise them into a SynthResult.
 
 === POSITIONING SHEET ===
 ${sheets.positioning}
