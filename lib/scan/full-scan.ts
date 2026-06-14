@@ -264,6 +264,7 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
     // 4. Action cards. §4.3: Cold Start subjects (little/no footprint) get the
     //    validation-through-distribution queue; everything else gets the standard
     //    over-generated set. Both flow through the SAME Critic → §11 gate below.
+    await emitScanEvent(ctx.scanId, "artifact", { label: "Drafting your action plan" });
     const actions = facts.coldStart
       ? await generateColdStartActions(ctx, facts)
       : await generateActions(ctx, findings);
@@ -271,6 +272,7 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
     // 5. Critic Gate v2 → §11 algorithm safety. Cold Start cards are templated
     //    and §11-compliant by construction, so we run the deterministic checks
     //    only (skipLlm) — avoiding up to ~3 Sonnet critic calls per card.
+    await emitScanEvent(ctx.scanId, "artifact", { label: "Pressure-testing each recommendation" });
     const { passed } = await runCriticGate(ctx, actions, { skipLlm: facts.coldStart });
     const safe = await algorithmSafety(ctx, passed);
 
@@ -286,6 +288,7 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
       readCompetitorGap(subjectType, ctx.storeUrl, facts),
     ]);
 
+    await emitScanEvent(ctx.scanId, "artifact", { label: "Finalising your report" });
     const payload = assembleReport({
       mode: ctx.mode,
       generatedAt: new Date().toISOString(),
