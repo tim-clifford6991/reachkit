@@ -7,6 +7,7 @@ import type { PreliminaryFacts, ScanEvent } from "@/lib/scan/types";
 import type { FindingsPayload } from "./findings-reveal";
 import { funnel } from "@/lib/analytics";
 import { Badge } from "@/components/ui/badge";
+import { competitorSourceLabel } from "@/lib/scan/source-labels";
 
 // Lazy-load the entire findings reveal (includes Motion + EmailGate + base-ui)
 // so none of it lands in the initial funnel chunk.
@@ -222,35 +223,48 @@ function FactsView({ facts, artifacts, findingsData, scanId }: FactsViewProps) {
           }}
         >
           <h2
-            className="mb-3 font-mono text-xs uppercase tracking-widest"
+            className="mb-1 font-mono text-xs uppercase tracking-widest"
             style={{ color: "var(--color-muted)" }}
           >
-            Competitors found
+            Your competitive landscape
           </h2>
-          <ol className="space-y-2">
+          <p className="mb-4 text-xs" style={{ color: "var(--color-muted)" }}>
+            Who shows up where your category buyers look:
+          </p>
+          <ul className="space-y-3">
             {facts.competitors.slice(0, 5).map((c, i) => (
-              <li
-                key={i}
-                className="flex items-center gap-3 text-sm"
-              >
+              <li key={i} className="flex items-start gap-3 text-sm">
                 <span
-                  className="w-5 shrink-0 text-right font-mono text-xs tabular-nums"
-                  style={{ color: "var(--color-muted)" }}
+                  className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full font-mono text-[10px] tabular-nums"
+                  style={{ background: "var(--fill-subtle)", color: "var(--color-muted)" }}
                 >
                   {c.rank}
                 </span>
-                <span
-                  className="flex-1 truncate font-medium"
-                  style={{ color: "var(--color-fg)" }}
-                >
-                  {c.name}
-                </span>
-                <Badge variant="outline" className="shrink-0 capitalize">
-                  {c.source}
-                </Badge>
+                <div className="min-w-0">
+                  <p
+                    className="truncate font-medium"
+                    style={{ color: "var(--color-fg)" }}
+                  >
+                    {c.name}
+                  </p>
+                  <p
+                    className="text-xs leading-snug"
+                    style={{ color: "var(--color-muted)" }}
+                  >
+                    {competitorSourceLabel(c.source)}
+                  </p>
+                </div>
               </li>
             ))}
-          </ol>
+          </ul>
+          {facts.competitors.length > 5 && (
+            <p
+              className="mt-3 font-mono text-xs"
+              style={{ color: "var(--color-muted)" }}
+            >
+              +{facts.competitors.length - 5} more mapped in your full report
+            </p>
+          )}
         </div>
       )}
 
@@ -264,11 +278,14 @@ function FactsView({ facts, artifacts, findingsData, scanId }: FactsViewProps) {
           }}
         >
           <h2
-            className="mb-3 font-mono text-xs uppercase tracking-widest"
+            className="mb-1 font-mono text-xs uppercase tracking-widest"
             style={{ color: "var(--color-muted)" }}
           >
-            Key themes
+            What buyers care about
           </h2>
+          <p className="mb-3 text-xs" style={{ color: "var(--color-muted)" }}>
+            From {facts.reviewVolume} reviews — the language your buyers use:
+          </p>
           <div className="flex flex-wrap gap-2">
             {facts.themes.slice(0, 10).map((t, i) => (
               <span

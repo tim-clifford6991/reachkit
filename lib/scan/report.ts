@@ -36,6 +36,10 @@ export interface ReportPayload {
       dimension: string;
       them: number;
       you: number;
+      /** How the competitor describes itself (from the competitor_gap sheet). */
+      positioning?: string;
+      /** The specific gap vs the subject (from the competitor_gap sheet). */
+      gap?: string;
     }>;
   };
   /** Q4 — What to do this week (bucketed by effort) */
@@ -112,6 +116,8 @@ export function assembleReport(input: {
     dimension: string;
     them: number;
     you: number;
+    positioning?: string;
+    gap?: string;
   }>;
   actions: ActionCard[];
   score: VerifiedScore;

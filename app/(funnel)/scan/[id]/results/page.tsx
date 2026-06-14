@@ -15,6 +15,18 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ScoreBlock } from "./score-block";
 import { ReportReveal } from "./report-reveal";
 
+/** Human-readable age of a snapshot timestamp (server-rendered; no hydration drift). */
+function relativeAge(iso: string): string {
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "recently";
+  const days = Math.floor((Date.now() - then) / 86_400_000);
+  if (days <= 0) return "today";
+  if (days === 1) return "yesterday";
+  if (days < 7) return `${days} days ago`;
+  const weeks = Math.floor(days / 7);
+  return weeks === 1 ? "a week ago" : `${weeks} weeks ago`;
+}
+
 export function generateStaticParams() {
   return [{ id: "_placeholder" }];
 }
@@ -99,6 +111,7 @@ async function ResultsContent({ id }: { id: string }) {
 
   // Snapshot timestamp — prefer completed_at, fall back to started_at
   const generatedAt = data.completed_at ?? data.started_at ?? report.generatedAt;
+  const snapshotAge = relativeAge(generatedAt);
 
   return (
     <>
@@ -109,13 +122,17 @@ async function ResultsContent({ id }: { id: string }) {
       <ScoreBlock score={report.score} />
 
       {/* §23 moment 7 — upgrade CTA at the E4 insertion point. */}
-      {!isPaid && <UpgradeCta scanId={id} />}
+      {!isPaid && <UpgradeCta scanId={id} snapshotAge={snapshotAge} />}
 
       {/* ── Four-question report sections — blur-to-sharp stagger ─────── */}
       <ReportReveal>
-        <WhatYouOfferSection whatYouOffer={report.whatYouOffer} unlocked={isPaid} />
-        <WhoItsForSection whoItsFor={report.whoItsFor} unlocked={isPaid} />
-        <WhereTheyAreSection whereTheyAre={report.whereTheyAre} unlocked={isPaid} />
+        {/* Analysis sections unlock at the EMAIL tier (any authenticated viewer):
+            the full positioning gap, the full competitor gap (with positioning +
+            gap strings), and all surfaces are the email-tier payoff. Anonymous
+            viewers see a preview. The action plan (drafts) stays paid-gated. */}
+        <WhatYouOfferSection whatYouOffer={report.whatYouOffer} unlocked={!!viewer} />
+        <WhoItsForSection whoItsFor={report.whoItsFor} unlocked={!!viewer} />
+        <WhereTheyAreSection whereTheyAre={report.whereTheyAre} unlocked={!!viewer} />
         <ActionPlanSection whatToDoThisWeek={report.whatToDoThisWeek} unlocked={isPaid} />
       </ReportReveal>
     </>

@@ -138,17 +138,39 @@ export function WhereTheyAreSection({
                         >
                           {gap.competitor}
                         </p>
-                        <p
-                          className="text-xs"
-                          style={{ color: "var(--color-muted)" }}
-                        >
-                          {gap.dimension}
-                        </p>
+                        {gap.positioning ? (
+                          <p
+                            className="mt-0.5 text-xs leading-snug"
+                            style={{ color: "var(--color-muted)" }}
+                          >
+                            {gap.positioning}
+                          </p>
+                        ) : null}
                       </div>
-                      <div className="shrink-0 text-right">
-                        <GapScorePair them={gap.them} you={gap.you} />
-                      </div>
+                      {/* Only show the comparison bars when there's a real signal
+                          (community-mention counts). Early-stage apps with 0/0
+                          show just the positioning + gap text instead. */}
+                      {gap.them > 0 || gap.you > 0 ? (
+                        <div className="shrink-0 text-right">
+                          <GapScorePair them={gap.them} you={gap.you} />
+                          <p
+                            className="mt-0.5 font-mono text-[9px] uppercase tracking-wider"
+                            style={{ color: "var(--color-muted)" }}
+                          >
+                            {gap.dimension}
+                          </p>
+                        </div>
+                      ) : null}
                     </div>
+                    {gap.gap ? (
+                      <p
+                        className="mt-2 text-xs leading-snug"
+                        style={{ color: "var(--color-fg)" }}
+                      >
+                        <span style={{ color: "var(--color-danger)" }}>Gap: </span>
+                        {gap.gap}
+                      </p>
+                    ) : null}
                   </div>
                 ))}
               </div>

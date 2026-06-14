@@ -39,6 +39,7 @@ import { seedMonitors } from "@/lib/scan/monitors";
 import { getFreshFactSheet, factSheetSubjectType } from "@/lib/scan/fact-sheets";
 import { checkScanCostOverrun } from "@/lib/telemetry/pipeline-runs";
 import { emitScanEvent } from "@/lib/scan/progress";
+import { countMentions } from "@/lib/scan/competitor-mentions";
 import type { ScanContext } from "@/lib/scan/pipeline";
 import type { PreliminaryFacts } from "@/lib/scan/types";
 import type { Finding, PositioningMirror, ActionCard } from "@/lib/llm/types";
@@ -48,7 +49,7 @@ import type { Json } from "@/lib/db/types";
 // Report-input shapes (subset of assembleReport's input)
 // ---------------------------------------------------------------------------
 type Surface = { source: string; title: string; url: string };
-type GapRow = { competitor: string; dimension: string; them: number; you: number };
+type GapRow = { competitor: string; dimension: string; them: number; you: number; positioning?: string; gap?: string };
 
 const EMPTY_MIRROR: PositioningMirror = { listingSays: "", reviewsValue: "", gap: "" };
 
@@ -141,17 +142,49 @@ async function readSurfaces(subjectKey: string): Promise<Surface[]> {
 }
 
 // ---------------------------------------------------------------------------
-// competitorGap — from the competitor_gap fact sheet, else derived from facts
+// Community raw_document bodies — used to count competitor mentions for a real
+// "them vs you" signal (replaces the old 1-vs-0 placeholder).
+// ---------------------------------------------------------------------------
+async function readCommunityBodies(subjectKey: string): Promise<unknown[]> {
+  try {
+    const db = serverDb();
+    const { data, error } = await db
+      .from("raw_documents")
+      .select("body")
+      .eq("subject_key", subjectKey)
+      .eq("source_type", "communities");
+    if (error || data === null) return [];
+    return data.map((r) => r.body);
+  } catch {
+    return [];
+  }
+}
+
+// competitorGap — from the competitor_gap fact sheet (carrying the real
+// positioning + gap strings), else derived from facts. `them`/`you` are real
+// community-mention counts, not a placeholder.
 // ---------------------------------------------------------------------------
 async function readCompetitorGap(
   subjectType: string,
   subjectKey: string,
   facts: PreliminaryFacts,
 ): Promise<GapRow[]> {
+  const communityBodies = await readCommunityBodies(subjectKey);
+  const youMentions = countMentions(facts.listing.name, communityBodies);
+
+  const rowFor = (name: string, positioning?: string, gap?: string): GapRow => ({
+    competitor: name,
+    dimension: "community presence",
+    them: countMentions(name, communityBodies),
+    you: youMentions,
+    ...(positioning ? { positioning } : {}),
+    ...(gap ? { gap } : {}),
+  });
+
   const fromFacts = (): GapRow[] =>
     facts.competitors
       .filter((c) => typeof c.name === "string" && c.name.length > 0)
-      .map((c) => ({ competitor: c.name, dimension: "presence", them: 1, you: 0 }));
+      .map((c) => rowFor(c.name));
 
   try {
     const sheet = await getFreshFactSheet(subjectType, subjectKey, "competitor_gap");
@@ -160,9 +193,16 @@ async function readCompetitorGap(
     const comps = Array.isArray(body.competitors) ? body.competitors : [];
     const gap: GapRow[] = [];
     for (const c of comps) {
-      const name = (c as Record<string, unknown>)["name"];
+      const obj = c as Record<string, unknown>;
+      const name = obj["name"];
       if (typeof name === "string" && name.length > 0) {
-        gap.push({ competitor: name, dimension: "presence", them: 1, you: 0 });
+        gap.push(
+          rowFor(
+            name,
+            typeof obj["positioning"] === "string" ? (obj["positioning"] as string) : undefined,
+            typeof obj["gap"] === "string" ? (obj["gap"] as string) : undefined,
+          ),
+        );
       }
     }
     return gap.length > 0 ? gap : fromFacts();

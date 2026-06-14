@@ -18,9 +18,11 @@ import { toast } from "sonner";
 interface UpgradeCtaProps {
   /** The scan id — kept for potential future analytics attribution. */
   scanId: string;
+  /** Human-readable age of the report snapshot (e.g. "3 days ago"). */
+  snapshotAge?: string;
 }
 
-export function UpgradeCta({ scanId: _scanId }: UpgradeCtaProps) {
+export function UpgradeCta({ scanId: _scanId, snapshotAge }: UpgradeCtaProps) {
   const [loading, setLoading] = useState(false);
 
   const handleUpgrade = useCallback(async () => {
@@ -100,9 +102,12 @@ export function UpgradeCta({ scanId: _scanId }: UpgradeCtaProps) {
           className="mb-4 text-sm leading-relaxed"
           style={{ color: "var(--color-muted)" }}
         >
-          Your report is a snapshot. Solo turns it into a weekly system —
-          prioritised actions with draft copy, score deltas every Monday, and
-          one-click verification when you ship.
+          {snapshotAge
+            ? `Your report is a snapshot from ${snapshotAge} — and your competitors don't stand still. `
+            : "Your report is a snapshot — and your competitors don't stand still. "}
+          Solo turns it into a weekly system: a fresh action queue with draft
+          copy, competitor moves detected automatically, and a score that moves
+          as you ship.
         </p>
 
         {/* Value proof points */}
@@ -111,10 +116,10 @@ export function UpgradeCta({ scanId: _scanId }: UpgradeCtaProps) {
           aria-label="Solo plan includes"
         >
           {[
-            "Weekly action queue with ranked priorities",
-            "Draft copy for every action — edit, then ship",
-            "Score delta each week so you see real progress",
-            "Verification engine — marks your live changes",
+            "Fresh action queue every Monday — ranked, with draft copy",
+            "New competitor moves detected automatically",
+            "Score that moves as you execute — verified, not self-reported",
+            "One-click verification when you ship a change",
           ].map((item) => (
             <li
               key={item}
