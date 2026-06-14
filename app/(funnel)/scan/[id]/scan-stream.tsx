@@ -338,6 +338,14 @@ export function ScanStream({
   const [failed, setFailed] = useState<boolean>(
     seed.errored || initialStatus === "failed"
   );
+  // Option A reveals only when the WHOLE scan has finished, so every checklist step
+  // visibly completes first. Seeded true for an already-finished (non-failed) scan.
+  const [done, setDone] = useState<boolean>(
+    seed.done ||
+      (initialStatus != null &&
+        initialStatus !== "failed" &&
+        !ACTIVE_STATUSES.includes(initialStatus))
+  );
 
   // Already finished (per the seed or the persisted status)? Nothing to stream.
   const statusActive =
@@ -385,6 +393,7 @@ export function ScanStream({
         funnel.findingsShown({ scan_id: id, score: fp.score.total });
       } else if (e.type === "done") {
         settled = true;
+        setDone(true);
         cleanup();
       } else if (e.type === "error") {
         if (!settled) setFailed(true);
@@ -431,10 +440,10 @@ export function ScanStream({
   if (!scanExists) return <ScanNotFound />;
   if (failed && !facts) return <ScanError />;
 
-  // Reveal (Option A): once findings are ready — or the scan failed after producing
+  // Reveal (Option A): once the whole scan is DONE — or it failed after producing
   // facts (show the partial result, not a spinner) — render the facts cards + the
   // findings reveal / email gate. The free competitor card lives here now.
-  if ((findingsData || failed) && facts) {
+  if ((done || failed) && facts) {
     return <FactsView facts={facts} findingsData={findingsData} scanId={id} />;
   }
 
