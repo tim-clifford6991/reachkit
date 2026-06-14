@@ -4,7 +4,7 @@ import { callModel } from "@/lib/llm/anthropic";
 import { extractJson } from "@/lib/llm/json";
 import { fixturesEnabled } from "@/lib/dev/fixtures";
 
-const HAIKU = "claude-haiku-4-5-20251001" as const; // matches MODEL in lib/llm/extract.ts
+const MODEL = "claude-haiku-4-5-20251001" as const;
 
 export interface CompetitorNameInput {
   subjectName: string;
@@ -44,11 +44,14 @@ export function parseCompetitorNames(raw: string): Competitor[] {
   } catch {
     return [];
   }
-  const list = (parsed as { competitors?: Array<{ name?: unknown }> }).competitors ?? [];
+  // Guard against a model that returns valid JSON with a non-array `competitors`
+  // (e.g. {"competitors": 42} or an object) — for...of on a non-iterable would throw.
+  const rawList = (parsed as { competitors?: unknown }).competitors;
+  const list: unknown[] = Array.isArray(rawList) ? rawList : [];
   const seen = new Set<string>();
   const out: Competitor[] = [];
   for (const c of list) {
-    const name = String(c?.name ?? "").trim();
+    const name = String((c as { name?: unknown } | null)?.name ?? "").trim();
     if (!name) continue;
     const key = name.toLowerCase();
     if (seen.has(key)) continue;
@@ -68,7 +71,7 @@ export async function extractCompetitorNames(
   if (fixturesEnabled()) return []; // fixtures already provide a clean competitor set
   try {
     const { text } = await callModel({
-      model: HAIKU,
+      model: MODEL,
       system: "You identify the real competitors of one specific product. Return only JSON, no prose.",
       prompt: buildCompetitorNamesPrompt(input),
       scanId: ctx.scanId,
