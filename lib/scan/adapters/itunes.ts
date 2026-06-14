@@ -1,4 +1,5 @@
 import type { ListingFacts, Competitor } from "@/lib/scan/types";
+import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
 
 export function appIdFromUrl(url: string): string {
   const id = url.match(/\/id(\d+)/)?.[1];
@@ -12,7 +13,7 @@ export async function fetchItunesListing(appId: string): Promise<{
   ratingCount: number;
   raw: unknown;
 }> {
-  const res = await fetch(
+  const res = await fetchWithTimeout(
     `https://itunes.apple.com/lookup?id=${appId}&country=us`
   );
   if (!res.ok) throw new Error(`itunes lookup ${appId} failed: ${res.status}`);
@@ -37,7 +38,7 @@ export async function fetchItunesCompetitors(
   term: string,
   excludeId: string
 ): Promise<Competitor[]> {
-  const res = await fetch(
+  const res = await fetchWithTimeout(
     `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=software&limit=8&country=us`
   );
   if (!res.ok) throw new Error(`itunes search "${term}" failed: ${res.status}`);

@@ -1,3 +1,5 @@
+import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
+
 export function ageYearsFromCdx(rows: string[][], now: Date): number | null {
   const first = rows[1]?.[0];                 // rows[0] is the CDX header
   if (!first) return null;
@@ -9,7 +11,7 @@ export function ageYearsFromCdx(rows: string[][], now: Date): number | null {
 export async function fetchDomainAgeYears(domain: string): Promise<number | null> {
   const url = `http://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(domain)}&output=json&limit=1&sort=ascending&fl=timestamp`;
   try {
-    const res = await fetch(url);
+    const res = await fetchWithTimeout(url);
     if (!res.ok) return null;                  // garnish source — degrade gracefully
     const rows = (await res.json()) as string[][];
     return ageYearsFromCdx(rows, new Date());

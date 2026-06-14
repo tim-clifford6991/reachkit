@@ -1,6 +1,7 @@
 import type { Competitor } from "@/lib/scan/types";
 import { env } from "@/lib/config/env";
 import { fixturesEnabled, fixtureTavily } from "@/lib/dev/fixtures";
+import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
 
 export function parseTavily(body: unknown): Competitor[] {
   return ((body as { results?: Array<{ title: string; url: string }> }).results ?? [])
@@ -9,7 +10,7 @@ export function parseTavily(body: unknown): Competitor[] {
 
 export async function tavilyAlternatives(productName: string): Promise<{ competitors: Competitor[]; raw: unknown }> {
   if (fixturesEnabled()) return fixtureTavily(productName);
-  const res = await fetch("https://api.tavily.com/search", {
+  const res = await fetchWithTimeout("https://api.tavily.com/search", {
     method: "POST", headers: { "content-type": "application/json" },
     body: JSON.stringify({ api_key: env.tavilyApiKey, query: `alternatives to ${productName}`, max_results: 5 }),
   });

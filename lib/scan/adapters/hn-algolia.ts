@@ -1,4 +1,5 @@
 import type { Community, TimedCommunity } from "@/lib/scan/types";
+import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
 
 type HnHit = {
   title?: string;
@@ -30,7 +31,7 @@ export function parseHnAlgolia(body: unknown): Community[] {
 
 export async function hnSearch(query: string): Promise<Community[]> {
   const enc = encodeURIComponent(query);
-  const res = await fetch(
+  const res = await fetchWithTimeout(
     `https://hn.algolia.com/api/v1/search?query=${enc}&tags=story`,
   );
   if (!res.ok) throw new Error(`hn-algolia "${query}" failed: ${res.status}`);
@@ -53,7 +54,7 @@ export function parseHnAlgoliaTimed(body: unknown): TimedCommunity[] {
 
 export async function hnSearchTimed(query: string): Promise<TimedCommunity[]> {
   const enc = encodeURIComponent(query);
-  const res = await fetch(
+  const res = await fetchWithTimeout(
     `https://hn.algolia.com/api/v1/search?query=${enc}&tags=story`,
   );
   if (!res.ok) throw new Error(`hn-algolia "${query}" failed: ${res.status}`);
