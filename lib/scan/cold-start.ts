@@ -20,11 +20,7 @@ import type { PreliminaryFacts } from "@/lib/scan/types";
 /** App/Play mode: fewer than this many ratings → too thin a footprint to validate against. */
 export const COLD_START_MIN_REVIEWS = 25;
 
-/** Web mode: a SERP footprint below this is treated as negligible (an established site has 100k+). */
-const COLD_START_MAX_SERP_RESULTS = 1_000;
-/** Web mode: Product Hunt upvotes below this are treated as no launch signal. */
-const COLD_START_MAX_PH_UPVOTES = 25;
-/** Web mode: a domain younger than this (years) is treated as brand-new. null age → treated as new. */
+/** Web mode: a domain at least this old (years) is an established site, never pre-launch. */
 const COLD_START_MAX_DOMAIN_AGE_YEARS = 1;
 
 // ---------------------------------------------------------------------------
@@ -41,34 +37,25 @@ function hasEffectivelyNoSignal(facts: PreliminaryFacts): boolean {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Web-mode negligible footprint: no webProxy at all, OR all three proxy signals
-// are weak (low SERP results AND low PH upvotes AND a brand-new / unknown domain).
-// ---------------------------------------------------------------------------
-function isWebFootprintNegligible(facts: PreliminaryFacts): boolean {
-  const proxy = facts.webProxy;
-  if (proxy === null) return true;
-  const age = proxy.domainAgeYears ?? 0; // unknown age → treat as brand-new
-  return (
-    proxy.serpResultCount < COLD_START_MAX_SERP_RESULTS &&
-    proxy.phUpvotes < COLD_START_MAX_PH_UPVOTES &&
-    age < COLD_START_MAX_DOMAIN_AGE_YEARS
-  );
-}
-
 /**
  * True when the subject has little/no footprint and the full scan should run the
  * §4.3 validation-through-distribution queue instead of the standard action set.
  */
 export function isColdStart(facts: PreliminaryFacts): boolean {
-  // Effectively no signal in any mode → Cold Start.
-  if (hasEffectivelyNoSignal(facts)) return true;
-
-  // App / Play store: judged on rating volume.
+  // App / Play store: judged on rating volume, with the all-degraded catch.
   if (facts.mode === "ios" || facts.mode === "android") {
+    if (hasEffectivelyNoSignal(facts)) return true;
     return facts.reviewVolume < COLD_START_MIN_REVIEWS;
   }
 
-  // Web: judged on the web proxy footprint.
-  return isWebFootprintNegligible(facts);
+  // Web: an established domain (≥1y, known) is never pre-launch — short-circuit.
+  // Otherwise judge purely on whether ANY competitive or review/theme footprint
+  // exists. We deliberately do NOT use the niche "alternatives to X" serpResultCount
+  // (it reflects that query, not brand presence) or the disabled-PH phUpvotes
+  // (always 0), and an UNKNOWN domain age is treated as unknown — never "brand-new".
+  const proxy = facts.webProxy;
+  if (proxy?.domainAgeYears != null && proxy.domainAgeYears >= COLD_START_MAX_DOMAIN_AGE_YEARS) {
+    return false;
+  }
+  return facts.competitors.length === 0 && facts.themes.length === 0;
 }
