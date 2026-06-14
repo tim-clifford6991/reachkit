@@ -153,20 +153,22 @@ export async function fetchWithTimeout(
   init: RequestInit = {},
   timeoutMs: number = DEFAULT_FETCH_TIMEOUT_MS,
 ): Promise<Response> {
-  const timer = AbortSignal.timeout(timeoutMs);
-  // Merge a caller-supplied signal with the timeout signal when present.
-  const signal =
-    init.signal && "any" in AbortSignal
-      ? // @ts-expect-error AbortSignal.any is available on the Node 24 runtime
-        AbortSignal.any([init.signal, timer])
-      : timer;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  // Forward a caller-supplied signal to our controller (future-proofing; no caller passes one today).
+  if (init.signal) {
+    if (init.signal.aborted) controller.abort();
+    else init.signal.addEventListener("abort", () => controller.abort(), { once: true });
+  }
   try {
-    return await fetch(url, { ...init, signal });
+    return await fetch(url, { ...init, signal: controller.signal });
   } catch (err) {
     if (err instanceof Error && (err.name === "AbortError" || err.name === "TimeoutError")) {
       throw new FetchTimeoutError(url, timeoutMs);
     }
     throw err;
+  } finally {
+    clearTimeout(timer);
   }
 }
 ```
@@ -743,37 +745,21 @@ git add lib/scan/competitor-filter.ts lib/scan/source-labels.ts lib/scan/competi
 git commit -m "fix(scan): collision filter no longer false-drops common-word rivals; admit llm_extracted"
 ```
 
-## Task 2.6: Remove the self-inflicted competitor_gap skip
+## Task 2.6: ~~Remove the competitor_gap skip~~ → RETAINED BY DESIGN (no change)
 
-**Files:**
-- Modify: `lib/scan/findings-pipeline.ts` (the `facts.competitors.length === 0` branch that drops `competitor_gap` from `extractKinds` and force-empties the sheet).
-
-- [ ] **Step 1: Restore the full extract set**
-
-Tier 2 now populates `facts.competitors` from content, and the brand anchor is enforced inside the prompts (`SYNTH_SYSTEM`/`ACTIONS_SYSTEM` + category filter in Task 2.3). The gate is no longer needed and was *causing* the empty gap sheet on acquire.com.
-
-```ts
-// lib/scan/findings-pipeline.ts — replace the conditional extractKinds with the full set:
-const extractKinds: FactSheetKind[] | undefined = undefined; // run all sheets (review_themes, positioning, competitor_gap, keyword_data)
-await emitScanEvent(ctx.scanId, "artifact", { label: "Reading your reviews & positioning" });
-await runExtract(ctx, extractKinds);
-```
-
-Delete the block that overwrote `competitor_gap`/`keyword` sheets with empty values when competitors were absent.
-
-> **Implementer note:** keep the brand-ambiguity protection intact — it now lives in (a) Task 2.3's category-anchored extraction, (b) the existing `SYNTH_SYSTEM`/`ACTIONS_SYSTEM` subject-anchor lines, and (c) `competitorGapPrompt` operating only on the subject's own raw docs. Verify on the nudgi.ai re-test (Task 4) that no "Nudge.ai" contamination returns; if the synth still needs the empty-competitors guard for a genuinely cold subject, gate it on `facts.coldStart` (post-Tier-3 recalibration) rather than on `competitors.length === 0`.
-
-- [ ] **Step 2: Typecheck + unit subset**
-
-Run: `pnpm typecheck && pnpm vitest run lib/scan`
-Expected: PASS.
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add lib/scan/findings-pipeline.ts
-git commit -m "fix(scan): stop skipping competitor_gap extract for content-derived competitors"
-```
+**Decision (controller, during Unit E):** the findings-pipeline gate
+(`facts.competitors.length > 0 ? run-all : ground-site-only` + stale-sheet clear)
+is **kept as-is**. The original plan proposed removing it, on the theory it was
+what zeroed acquire.com's gap sheet. Re-analysis with `collect.ts` in hand shows
+the true root cause was `facts.competitors` being empty — which **Unit E now fixes**
+by feeding category-anchored, content-extracted names into `facts.competitors`
+*before* findings runs. With that, the gate opens naturally for legitimate subjects
+(acquire.com → Flippa/Empire Flippers/MicroAcquire populate it → `competitor_gap`
+runs) and correctly stays closed for genuine brand-collisions / cold subjects
+(nudgi.ai → `extractCompetitorNames` returns `[]` in-category → ground site-only,
+no contamination). **Removing the gate would re-open the brand-ambiguity hole** the
+gate exists to close (the spec's hard rule). So this task is a deliberate no-op;
+the gate is the correct backstop and Unit E is the real fix. Verified end-to-end in Task 4.
 
 ---
 

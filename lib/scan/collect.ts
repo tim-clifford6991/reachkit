@@ -2,11 +2,15 @@ import type { ScanContext } from "@/lib/scan/pipeline";
 import type { PreliminaryFacts, ListingFacts, Competitor, ReviewItem } from "@/lib/scan/types";
 import type { FactsExtras } from "@/lib/scan/tools/types";
 import { getListing, getReviews, findCompetitors } from "@/lib/scan/tools/index";
-import { persistCompetitors } from "@/lib/scan/competitors";
+import { persistCompetitors, rankCompetitors } from "@/lib/scan/competitors";
 import { emitScanEvent } from "@/lib/scan/progress";
 import { hostname } from "@/lib/scan/url";
 import { appIdFromUrl } from "@/lib/scan/adapters/itunes";
 import { assembleFacts } from "@/lib/scan/facts";
+import { serverDb } from "@/lib/db/client";
+import { extractCompetitorNames } from "@/lib/llm/competitor-names";
+import { parseSerpContent } from "@/lib/scan/adapters/dataforseo";
+import { parseTavilyContent } from "@/lib/scan/adapters/tavily";
 
 // ---------------------------------------------------------------------------
 // productName derivation
@@ -104,7 +108,41 @@ export async function collect(ctx: ScanContext): Promise<PreliminaryFacts> {
     competitorsPromise,
   ]);
 
-  await persistCompetitors(appId, competitorsResult.competitors);
+  // Web mode: the URL-based competitor parse often yields only listicle / aggregator
+  // pages that get filtered out (→ empty set). Recover the REAL competitor names from
+  // the SERP/Tavily *content* — category-anchored to the subject so a same-named
+  // different product can't contaminate the set (brand-ambiguity hard rule) — and
+  // merge them in before facts + cold-start are computed.
+  let competitors = competitorsResult.competitors;
+  if (mode === "web") {
+    const { data: rawDocs } = await serverDb()
+      .from("raw_documents")
+      .select("source_type, body")
+      .eq("subject_key", subjectKey)
+      .in("source_type", ["dataforseo_serp", "tavily"]);
+    const content = (rawDocs ?? [])
+      .map((d) => (d.source_type === "tavily" ? parseTavilyContent(d.body) : parseSerpContent(d.body)))
+      .join("\n")
+      .trim();
+    const named = await extractCompetitorNames(ctx, {
+      subjectName: listingResult.listing.name,
+      subjectHost: hostname(storeUrl),
+      category: listingResult.listing.category ?? listingResult.listing.description ?? "",
+      content,
+    });
+    if (named.length > 0) {
+      competitors = rankCompetitors([...competitors, ...named], {
+        selfHost: hostname(storeUrl),
+        subjectName: listingResult.listing.name,
+      });
+      await emitScanEvent(scanId, "artifact", {
+        label: `Found ${competitors.length} competitors`,
+        count: competitors.length,
+      });
+    }
+  }
+
+  await persistCompetitors(appId, competitors);
 
   const mergedExtras: FactsExtras = {
     ...listingResult.extras,
@@ -114,7 +152,7 @@ export async function collect(ctx: ScanContext): Promise<PreliminaryFacts> {
   return assembleFacts(ctx, {
     listing: listingResult.listing,
     reviews: reviewsResult.reviews,
-    competitors: competitorsResult.competitors,
+    competitors,
     extras: mergedExtras,
   });
 }
