@@ -8,6 +8,7 @@ import type { FindingsPayload } from "./findings-reveal";
 import { funnel } from "@/lib/analytics";
 import { Badge } from "@/components/ui/badge";
 import { competitorSourceLabel } from "@/lib/scan/source-labels";
+import { ScanProgress } from "@/components/scan/scan-progress";
 
 // Lazy-load the entire findings reveal (includes Motion + EmailGate + base-ui)
 // so none of it lands in the initial funnel chunk.
@@ -16,125 +17,15 @@ const FindingsReveal = dynamic(
   { ssr: false, loading: () => null }
 );
 
-// Lazy-load the Stagger animation for the working feed.
-const Stagger = dynamic(
-  () => import("@/components/motion/stagger").then((m) => m.Stagger),
-  { ssr: false, loading: () => null }
-);
-
-// ── Pulse dot — CSS only, no JS ───────────────────────────────────────────────
-function PulseDot() {
-  return (
-    <span
-      className="relative mt-0.5 flex h-2 w-2 shrink-0"
-      aria-hidden="true"
-    >
-      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
-      <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
-    </span>
-  );
-}
-
-// ── Artifact line — materialises as SSE events arrive ─────────────────────────
-function ArtifactLine({ text, index }: { text: string; index: number }) {
-  // Stagger mounts each line — the Stagger wrapper handles the y + opacity animation.
-  // We just need the right visual here.
-  return (
-    <div
-      key={index}
-      className="flex items-start gap-2"
-      style={{ color: "var(--color-muted)" }}
-    >
-      {/* Check mark — accent colour when done */}
-      <span
-        className="mt-px font-mono text-xs"
-        style={{ color: "var(--color-accent-400)" }}
-        aria-hidden="true"
-      >
-        ✓
-      </span>
-      <span className="font-mono text-sm leading-snug">{text}</span>
-    </div>
-  );
-}
-
-// ── Loading theater — shown while facts haven't arrived yet ───────────────────
-function ScanTheater({ artifacts }: { artifacts: string[] }) {
-  return (
-    <div className="mx-auto max-w-2xl space-y-8 p-8">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <PulseDot />
-        <p
-          className="font-mono text-sm tracking-wide"
-          style={{ color: "var(--color-muted)" }}
-        >
-          Scanning your product…
-        </p>
-      </div>
-
-      {/* Artifact feed — each line materialises as the SSE event lands */}
-      <div
-        className="space-y-2 rounded-xl border p-7"
-        style={{
-          borderColor: "var(--hairline)",
-          background: "var(--color-surface)",
-        }}
-        role="log"
-        aria-live="polite"
-        aria-label="Scan progress"
-      >
-        {artifacts.length === 0 ? (
-          <div
-            className="flex items-start gap-2"
-            style={{ color: "var(--color-muted)" }}
-          >
-            <span
-              className="mt-px font-mono text-xs"
-              style={{ color: "var(--color-accent-400)" }}
-              aria-hidden="true"
-            >
-              →
-            </span>
-            <span className="font-mono text-sm">Starting scan…</span>
-          </div>
-        ) : (
-          <Stagger>
-            {artifacts.map((a, i) => (
-              <ArtifactLine key={i} text={a} index={i} />
-            ))}
-          </Stagger>
-        )}
-      </div>
-
-      {/* Skeleton cards — hint that content is coming */}
-      <div className="space-y-3 opacity-40">
-        {[80, 60, 40].map((w) => (
-          <div
-            key={w}
-            className="h-4 animate-pulse rounded-lg"
-            style={{
-              width: `${w}%`,
-              background: "var(--fill-subtle)",
-            }}
-            aria-hidden="true"
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ── Facts cards — shown after the `facts` SSE event ──────────────────────────
+// ── Facts cards — shown once findings are ready (the reveal) ──────────────────
 
 interface FactsViewProps {
   facts: PreliminaryFacts;
-  artifacts: string[];
   findingsData: FindingsPayload | null;
   scanId: string;
 }
 
-function FactsView({ facts, artifacts, findingsData, scanId }: FactsViewProps) {
+function FactsView({ facts, findingsData, scanId }: FactsViewProps) {
   const isApp = facts.mode === "ios" || facts.mode === "android";
   const ratingDisplay =
     facts.ratingTrend != null ? facts.ratingTrend.toFixed(1) : "—";
@@ -305,37 +196,6 @@ function FactsView({ facts, artifacts, findingsData, scanId }: FactsViewProps) {
                 </span>
               </span>
             ))}
-          </div>
-        </div>
-      )}
-
-      {/* ── Working artifact feed (still running) ────────────────────────── */}
-      {artifacts.length > 0 && !findingsData && (
-        <div
-          className="rounded-xl border p-7"
-          style={{
-            borderColor: "var(--hairline)",
-            background: "var(--color-surface)",
-          }}
-          role="log"
-          aria-live="polite"
-          aria-label="Scan progress"
-        >
-          <div className="mb-3 flex items-center gap-2">
-            <PulseDot />
-            <p
-              className="font-mono text-xs tracking-wide"
-              style={{ color: "var(--color-muted)" }}
-            >
-              Analysis in progress
-            </p>
-          </div>
-          <div className="space-y-1.5">
-            <Stagger>
-              {artifacts.map((a, i) => (
-                <ArtifactLine key={i} text={a} index={i} />
-              ))}
-            </Stagger>
           </div>
         </div>
       )}
@@ -570,14 +430,23 @@ export function ScanStream({
 
   if (!scanExists) return <ScanNotFound />;
   if (failed && !facts) return <ScanError />;
-  if (!facts) return <ScanTheater artifacts={artifacts} />;
 
+  // Reveal (Option A): once findings are ready — or the scan failed after producing
+  // facts (show the partial result, not a spinner) — render the facts cards + the
+  // findings reveal / email gate. The free competitor card lives here now.
+  if ((findingsData || failed) && facts) {
+    return <FactsView facts={facts} findingsData={findingsData} scanId={id} />;
+  }
+
+  // Otherwise we're actively scanning — the live "thinking" narrative + scan
+  // animation, continuously moving and synced to the real scan_events.
   return (
-    <FactsView
-      facts={facts}
+    <ScanProgress
       artifacts={artifacts}
-      findingsData={findingsData}
-      scanId={id}
+      productName={facts?.listing.name ?? null}
+      reviewCount={facts?.reviewVolume}
+      competitorCount={facts?.competitors.length}
+      finished={false}
     />
   );
 }
