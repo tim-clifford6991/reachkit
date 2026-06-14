@@ -21,7 +21,7 @@ import type { PreliminaryFacts } from "@/lib/scan/types";
 export const COLD_START_MIN_REVIEWS = 25;
 
 /** Web mode: a domain at least this old (years) is an established site, never pre-launch. */
-const COLD_START_MAX_DOMAIN_AGE_YEARS = 1;
+const COLD_START_MIN_ESTABLISHED_AGE_YEARS = 1;
 
 // ---------------------------------------------------------------------------
 // "Effectively no signal at all" — degraded/empty facts in ANY mode: no
@@ -54,7 +54,7 @@ export function isColdStart(facts: PreliminaryFacts): boolean {
   // (it reflects that query, not brand presence) or the disabled-PH phUpvotes
   // (always 0), and an UNKNOWN domain age is treated as unknown — never "brand-new".
   const proxy = facts.webProxy;
-  if (proxy?.domainAgeYears != null && proxy.domainAgeYears >= COLD_START_MAX_DOMAIN_AGE_YEARS) {
+  if (proxy?.domainAgeYears != null && proxy.domainAgeYears >= COLD_START_MIN_ESTABLISHED_AGE_YEARS) {
     return false;
   }
   return facts.competitors.length === 0 && facts.themes.length === 0;
