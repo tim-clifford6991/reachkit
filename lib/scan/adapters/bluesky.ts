@@ -1,4 +1,5 @@
 import type { Community, TimedCommunity } from "@/lib/scan/types";
+import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
 
 type BskyPost = {
   uri?: string;
@@ -41,7 +42,7 @@ export function parseBluesky(body: unknown): Community[] {
 
 export async function blueskySearch(query: string): Promise<Community[]> {
   const enc = encodeURIComponent(query);
-  const res = await fetch(
+  const res = await fetchWithTimeout(
     `https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts?q=${enc}&limit=10`,
   );
   if (!res.ok) throw new Error(`bluesky "${query}" failed: ${res.status}`);
@@ -63,7 +64,7 @@ export function parseBlueskyTimed(body: unknown): TimedCommunity[] {
 
 export async function blueskySearchTimed(query: string): Promise<TimedCommunity[]> {
   const enc = encodeURIComponent(query);
-  const res = await fetch(
+  const res = await fetchWithTimeout(
     `https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts?q=${enc}&limit=10`,
   );
   if (!res.ok) throw new Error(`bluesky "${query}" failed: ${res.status}`);

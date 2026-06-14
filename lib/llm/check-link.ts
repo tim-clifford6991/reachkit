@@ -13,6 +13,7 @@ import type { ToolDefinition } from "@/lib/tools/registry";
 import { callModel } from "@/lib/llm/anthropic";
 import { fixturesEnabled } from "@/lib/dev/fixtures";
 import { ENTAIL_SYSTEM, buildEntailPrompt } from "@/lib/llm/prompts";
+import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
 
 const MODEL = "claude-haiku-4-5-20251001" as const;
 const SOURCE_CHAR_LIMIT = 6000;
@@ -33,7 +34,7 @@ export interface CheckLinkResult {
 // ---------------------------------------------------------------------------
 export async function fetchSourceText(url: string): Promise<string> {
   try {
-    const res = await fetch(url, {
+    const res = await fetchWithTimeout(url, {
       headers: { "User-Agent": "ReachKitBot/1.0" },
     });
     if (!res.ok) return "";

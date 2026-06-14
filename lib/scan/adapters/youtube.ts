@@ -1,5 +1,6 @@
 import type { Creator } from "@/lib/scan/types";
 import { env } from "@/lib/config/env";
+import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
 
 type YtItem = {
   id?: { videoId?: string };
@@ -35,7 +36,7 @@ export function parseYouTube(body: unknown, coveredCompetitor: string): Creator[
  */
 export async function youtubeSearch(query: string, coveredCompetitor: string): Promise<Creator[]> {
   const enc = encodeURIComponent(query);
-  const res = await fetch(
+  const res = await fetchWithTimeout(
     `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=5&q=${enc}&key=${env.youtubeApiKey}`,
   );
   if (!res.ok) throw new Error(`youtube search "${query}" failed: ${res.status}`);

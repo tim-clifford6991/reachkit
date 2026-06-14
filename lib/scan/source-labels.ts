@@ -8,6 +8,7 @@ const LABELS: Record<string, string> = {
   dataforseo_serp: "appears when buyers search for alternatives",
   product_hunt: "launched in your Product Hunt category",
   tavily: "mentioned alongside you in search results",
+  llm_extracted: "named as a top alternative to you",
 };
 
 export function competitorSourceLabel(source: string): string {

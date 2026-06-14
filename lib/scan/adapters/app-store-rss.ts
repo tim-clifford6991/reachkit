@@ -1,4 +1,5 @@
 import type { ReviewItem } from "@/lib/scan/types";
+import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
 
 type RssEntry = {
   "im:rating"?: { label: string };
@@ -27,6 +28,6 @@ export function parseRssPage(page: unknown): ReviewItem[] {
 export async function fetchAppReviews(appId: string, pages = 10): Promise<ReviewItem[]> {
   const urls = Array.from({ length: pages }, (_, i) =>
     `https://itunes.apple.com/us/rss/customerreviews/page=${i + 1}/id=${appId}/sortby=mostrecent/json`);
-  const results = await Promise.allSettled(urls.map(async (u) => parseRssPage(await (await fetch(u)).json())));
+  const results = await Promise.allSettled(urls.map(async (u) => parseRssPage(await (await fetchWithTimeout(u)).json())));
   return results.flatMap((r) => (r.status === "fulfilled" ? r.value : []));
 }

@@ -19,7 +19,11 @@ export function rankCompetitors(
   });
   const best = new Map<string, Competitor>();
   for (const c of real) {
-    const k = hostname(c.url);
+    // Dedup by host when present; content-extracted names (llm_extracted) have no
+    // URL, so key them by normalised name — otherwise every empty-host entry
+    // collapses into a single competitor.
+    const host = hostname(c.url);
+    const k = host || `name:${c.name.trim().toLowerCase()}`;
     if (self && k === self) continue;                 // drop the product's own domain (web mode)
     const cur = best.get(k);
     if (!cur || c.rank < cur.rank) best.set(k, c);

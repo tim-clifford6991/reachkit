@@ -1,5 +1,6 @@
 import { parse } from "node-html-parser";
 import type { ListingFacts } from "@/lib/scan/types";
+import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
 
 export function parseListingHtml(html: string, url: string): ListingFacts {
   const root = parse(html);
@@ -13,7 +14,7 @@ export function parseListingHtml(html: string, url: string): ListingFacts {
 }
 
 export async function fetchSiteListing(url: string): Promise<{ listing: ListingFacts; raw: string }> {
-  const res = await fetch(url, { headers: { "user-agent": "ReachKitBot/1.0 (+https://reachkit.app)" } });
+  const res = await fetchWithTimeout(url, { headers: { "user-agent": "ReachKitBot/1.0 (+https://reachkit.app)" } });
   if (!res.ok) throw new Error(`site fetch ${url} failed: ${res.status}`);
   const html = await res.text();
   return { listing: parseListingHtml(html, url), raw: html.slice(0, 200_000) };

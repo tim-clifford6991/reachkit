@@ -2,11 +2,17 @@ import type { ScanContext } from "@/lib/scan/pipeline";
 import type { PreliminaryFacts, ListingFacts, Competitor, ReviewItem } from "@/lib/scan/types";
 import type { FactsExtras } from "@/lib/scan/tools/types";
 import { getListing, getReviews, findCompetitors } from "@/lib/scan/tools/index";
-import { persistCompetitors } from "@/lib/scan/competitors";
+import { persistCompetitors, rankCompetitors } from "@/lib/scan/competitors";
 import { emitScanEvent } from "@/lib/scan/progress";
 import { hostname } from "@/lib/scan/url";
 import { appIdFromUrl } from "@/lib/scan/adapters/itunes";
 import { assembleFacts } from "@/lib/scan/facts";
+import { serverDb } from "@/lib/db/client";
+import { upsertRawDocument } from "@/lib/db/raw-documents";
+import { extractCompetitorNames } from "@/lib/llm/competitor-names";
+import { parseSerpContent } from "@/lib/scan/adapters/dataforseo";
+import { parseTavilyContent } from "@/lib/scan/adapters/tavily";
+import { fetchWebReviews } from "@/lib/scan/adapters/web-reviews";
 
 // ---------------------------------------------------------------------------
 // productName derivation
@@ -61,7 +67,16 @@ export async function collect(ctx: ScanContext): Promise<PreliminaryFacts> {
   // within the protected chain and the .catch backstop degrades gracefully.
   const reviewsPromise = (
     mode === "web"
-      ? Promise.resolve({ reviews: [] as ReviewItem[] })
+      ? // Web mode has no first-party reviews — mine review-bearing snippets from a
+        // domain-anchored "{host} reviews" search so review_themes has signal.
+        fetchWebReviews(hostname(storeUrl)).then(async (r) => {
+          if (r.snippets.length > 0) {
+            await upsertRawDocument({ subjectType: "web", subjectKey, sourceType: "web_reviews", body: r.raw, mode });
+          }
+          return {
+            reviews: r.snippets.map((s, i) => ({ id: `web-${i}`, rating: null, title: "Web review", body: s })) as ReviewItem[],
+          };
+        })
       : Promise.resolve().then(() =>
           getReviews.run({ appId: appIdFromUrl(storeUrl), subjectKey }, toolCtx),
         )
@@ -79,6 +94,8 @@ export async function collect(ctx: ScanContext): Promise<PreliminaryFacts> {
     });
 
   // --- Competitors ---
+  // The competitor artifact event is emitted ONCE after the (web-mode) content
+  // refine below, so the feed shows the FINAL count rather than the pre-refine one.
   const competitorsPromise = findCompetitors
     .run({ productName, storeUrl, subjectKey }, toolCtx)
     .catch(
@@ -86,17 +103,7 @@ export async function collect(ctx: ScanContext): Promise<PreliminaryFacts> {
         competitors: [],
         extras: {},
       }),
-    )
-    .then(async (result) => {
-      await emitScanEvent(scanId, "artifact", {
-        label:
-          result.competitors.length > 0
-            ? `Found ${result.competitors.length} competitors`
-            : "Mapping your competitive landscape",
-        count: result.competitors.length,
-      });
-      return result;
-    });
+    );
 
   const [listingResult, reviewsResult, competitorsResult] = await Promise.all([
     listingPromise,
@@ -104,7 +111,44 @@ export async function collect(ctx: ScanContext): Promise<PreliminaryFacts> {
     competitorsPromise,
   ]);
 
-  await persistCompetitors(appId, competitorsResult.competitors);
+  // Web mode: the URL-based competitor parse often yields only listicle / aggregator
+  // pages that get filtered out (→ empty set). Recover the REAL competitor names from
+  // the SERP/Tavily *content* — category-anchored to the subject so a same-named
+  // different product can't contaminate the set (brand-ambiguity hard rule) — and
+  // merge them in before facts + cold-start are computed.
+  let competitors = competitorsResult.competitors;
+  if (mode === "web") {
+    const selfHost = hostname(storeUrl);
+    const { data: rawDocs } = await serverDb()
+      .from("raw_documents")
+      .select("source_type, body")
+      .eq("subject_key", subjectKey)
+      .in("source_type", ["dataforseo_serp", "tavily"]);
+    const content = (rawDocs ?? [])
+      .map((d) => (d.source_type === "tavily" ? parseTavilyContent(d.body) : parseSerpContent(d.body)))
+      .join("\n")
+      .trim();
+    const named = await extractCompetitorNames(ctx, {
+      subjectName: listingResult.listing.name,
+      subjectHost: selfHost,
+      category: listingResult.listing.category ?? listingResult.listing.description ?? "",
+      content,
+    });
+    if (named.length > 0) {
+      competitors = rankCompetitors([...competitors, ...named], {
+        selfHost,
+        subjectName: listingResult.listing.name,
+      });
+    }
+  }
+
+  // Single competitor artifact event with the final count (post content-refine).
+  await emitScanEvent(scanId, "artifact", {
+    label: competitors.length > 0 ? `Found ${competitors.length} competitors` : "Mapping your competitive landscape",
+    count: competitors.length,
+  });
+
+  await persistCompetitors(appId, competitors);
 
   const mergedExtras: FactsExtras = {
     ...listingResult.extras,
@@ -114,7 +158,7 @@ export async function collect(ctx: ScanContext): Promise<PreliminaryFacts> {
   return assembleFacts(ctx, {
     listing: listingResult.listing,
     reviews: reviewsResult.reviews,
-    competitors: competitorsResult.competitors,
+    competitors,
     extras: mergedExtras,
   });
 }

@@ -31,6 +31,7 @@ export async function runFindings(
     //    the SERP/keyword raw docs are about a same-named DIFFERENT product. Do
     //    NOT let them contaminate the findings — ground the analysis in the site
     //    itself (positioning + reviews) only.
+    await emitScanEvent(ctx.scanId, "artifact", { label: "Reading your reviews & positioning" });
     const extractKinds: FactSheetKind[] | undefined =
       facts.competitors.length > 0
         ? undefined // trust the full external signal set
@@ -49,9 +50,11 @@ export async function runFindings(
     }
 
     // 2. Synth — reads fact_sheets and produces SynthResult
+    await emitScanEvent(ctx.scanId, "artifact", { label: "Comparing you to your competitors" });
     const synth = await runSynth(ctx);
 
     // 3. Score — uses preliminary facts + keyword fact sheet
+    await emitScanEvent(ctx.scanId, "artifact", { label: "Scoring your discoverability" });
     const keywordRow = await getFreshFactSheet(factSheetSubjectType(ctx.mode), ctx.storeUrl, "keyword_data");
     const keywordSheet = (keywordRow?.body ?? null) as KeywordSheet | null;
     const score = discoverabilityScore(facts, keywordSheet);

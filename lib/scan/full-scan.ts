@@ -40,6 +40,7 @@ import { getFreshFactSheet, factSheetSubjectType } from "@/lib/scan/fact-sheets"
 import { checkScanCostOverrun } from "@/lib/telemetry/pipeline-runs";
 import { emitScanEvent } from "@/lib/scan/progress";
 import { countMentions } from "@/lib/scan/competitor-mentions";
+import { normalizeName } from "@/lib/scan/competitor-filter";
 import type { ScanContext } from "@/lib/scan/pipeline";
 import type { PreliminaryFacts } from "@/lib/scan/types";
 import type { Finding, PositioningMirror, ActionCard } from "@/lib/llm/types";
@@ -191,20 +192,31 @@ async function readCompetitorGap(
     if (sheet === null) return fromFacts();
     const body = sheet.body as { competitors?: unknown };
     const comps = Array.isArray(body.competitors) ? body.competitors : [];
-    const gap: GapRow[] = [];
+    // Index the sheet's positioning/gap strings by normalised competitor name.
+    const enrichByName = new Map<string, { positioning?: string; gap?: string }>();
     for (const c of comps) {
       const obj = c as Record<string, unknown>;
       const name = obj["name"];
       if (typeof name === "string" && name.length > 0) {
-        gap.push(
-          rowFor(
-            name,
-            typeof obj["positioning"] === "string" ? (obj["positioning"] as string) : undefined,
-            typeof obj["gap"] === "string" ? (obj["gap"] as string) : undefined,
-          ),
-        );
+        enrichByName.set(normalizeName(name), {
+          positioning: typeof obj["positioning"] === "string" ? (obj["positioning"] as string) : undefined,
+          gap: typeof obj["gap"] === "string" ? (obj["gap"] as string) : undefined,
+        });
       }
     }
+    // Brand-ambiguity hard rule: the gap report is built ONLY from the
+    // category-validated discovery set (facts.competitors, anchored by
+    // extractCompetitorNames). The competitor_gap extract reads raw "alternatives"
+    // content that can mix in a same-named DIFFERENT product's rivals
+    // (e.g. acquire.io live-chat's Zendesk/Crisp for acquire.com) — those must
+    // NEVER surface. We enrich each validated competitor with the sheet's
+    // positioning/gap strings when the names match.
+    const gap = facts.competitors
+      .filter((c) => typeof c.name === "string" && c.name.length > 0)
+      .map((c) => {
+        const enrich = enrichByName.get(normalizeName(c.name));
+        return rowFor(c.name, enrich?.positioning, enrich?.gap);
+      });
     return gap.length > 0 ? gap : fromFacts();
   } catch {
     return fromFacts();
@@ -264,6 +276,7 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
     // 4. Action cards. §4.3: Cold Start subjects (little/no footprint) get the
     //    validation-through-distribution queue; everything else gets the standard
     //    over-generated set. Both flow through the SAME Critic → §11 gate below.
+    await emitScanEvent(ctx.scanId, "artifact", { label: "Drafting your action plan" });
     const actions = facts.coldStart
       ? await generateColdStartActions(ctx, facts)
       : await generateActions(ctx, findings);
@@ -271,6 +284,7 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
     // 5. Critic Gate v2 → §11 algorithm safety. Cold Start cards are templated
     //    and §11-compliant by construction, so we run the deterministic checks
     //    only (skipLlm) — avoiding up to ~3 Sonnet critic calls per card.
+    await emitScanEvent(ctx.scanId, "artifact", { label: "Pressure-testing each recommendation" });
     const { passed } = await runCriticGate(ctx, actions, { skipLlm: facts.coldStart });
     const safe = await algorithmSafety(ctx, passed);
 
@@ -286,6 +300,7 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
       readCompetitorGap(subjectType, ctx.storeUrl, facts),
     ]);
 
+    await emitScanEvent(ctx.scanId, "artifact", { label: "Finalising your report" });
     const payload = assembleReport({
       mode: ctx.mode,
       generatedAt: new Date().toISOString(),

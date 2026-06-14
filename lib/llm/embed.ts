@@ -1,5 +1,6 @@
 import { env } from "@/lib/config/env";
 import { fixtureEmbed, fixturesEnabled } from "@/lib/dev/fixtures";
+import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
 
 /**
  * Embed a batch of texts into 1024-dim vectors.
@@ -14,7 +15,7 @@ export async function callEmbed(texts: string[]): Promise<number[][]> {
     return fixtureEmbed(texts);
   }
 
-  const res = await fetch("https://api.voyageai.com/v1/embeddings", {
+  const res = await fetchWithTimeout("https://api.voyageai.com/v1/embeddings", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

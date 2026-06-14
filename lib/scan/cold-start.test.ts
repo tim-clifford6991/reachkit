@@ -40,55 +40,51 @@ test("android mode uses the same review-volume threshold", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Web mode — judged on the web proxy footprint
+// Web mode — established-domain short-circuit, else competitive/theme footprint.
+// (the niche serpResultCount + disabled-PH upvotes are deliberately NOT used,
+// and an unknown domain age is never treated as "brand-new" on its own.)
 // ---------------------------------------------------------------------------
-test("web mode with a null webProxy is Cold Start", () => {
-  expect(isColdStart(facts({ mode: "web", reviewVolume: 0, webProxy: null }))).toBe(true);
+test("web: an established domain (age >= 1y) is NOT Cold Start, even with thin other signals", () => {
+  expect(isColdStart(facts({
+    mode: "web", competitors: [], themes: [], reviewVolume: 0,
+    webProxy: { score: 30, serpResultCount: 104, phUpvotes: 0, domainAgeYears: 8 },
+  }))).toBe(false);
 });
 
-test("a brand-new website (tiny SERP, no PH, <1y domain) is Cold Start", () => {
-  const newSite = facts({
-    mode: "web",
-    reviewVolume: 0,
-    webProxy: { score: 1, serpResultCount: 30, phUpvotes: 0, domainAgeYears: 0.2 },
-  });
-  expect(isColdStart(newSite)).toBe(true);
+test("web: acquire.com-style — competitors found → NOT Cold Start (domain age unknown)", () => {
+  expect(isColdStart(facts({
+    mode: "web", themes: [], reviewVolume: 0,
+    competitors: [{ name: "Flippa", url: "", source: "llm_extracted", rank: 1 }],
+    webProxy: { score: 9, serpResultCount: 104, phUpvotes: 0, domainAgeYears: null },
+  }))).toBe(false);
 });
 
-test("an established website (large SERP footprint) is NOT Cold Start", () => {
-  const established = facts({
-    mode: "web",
-    reviewVolume: 0,
-    webProxy: { score: 70, serpResultCount: 842_000, phUpvotes: 312, domainAgeYears: 4 },
-  });
-  expect(isColdStart(established)).toBe(false);
+test("web: nudgi.ai-style — no competitors, no themes, new/unknown domain → Cold Start", () => {
+  expect(isColdStart(facts({
+    mode: "web", competitors: [], themes: [], reviewVolume: 0,
+    webProxy: { score: 2, serpResultCount: 30, phUpvotes: 0, domainAgeYears: null },
+  }))).toBe(true);
 });
 
-test("a young domain that nonetheless ranks broadly is NOT Cold Start (any strong signal disqualifies)", () => {
-  // <1y domain but a real SERP footprint → has a footprint → not cold.
-  const youngButVisible = facts({
-    mode: "web",
-    reviewVolume: 0,
-    webProxy: { score: 40, serpResultCount: 50_000, phUpvotes: 5, domainAgeYears: 0.5 },
-  });
-  expect(isColdStart(youngButVisible)).toBe(false);
-
-  // brand-new domain with a viral PH launch → has a launch signal → not cold.
-  const phLaunch = facts({
-    mode: "web",
-    reviewVolume: 0,
-    webProxy: { score: 30, serpResultCount: 100, phUpvotes: 400, domainAgeYears: 0.1 },
-  });
-  expect(isColdStart(phLaunch)).toBe(false);
-});
-
-test("null domain age is treated as brand-new (Cold Start when other signals are weak)", () => {
-  const unknownAge = facts({
-    mode: "web",
-    reviewVolume: 0,
+test("web: null domain age is NOT treated as brand-new on its own — a theme footprint disqualifies", () => {
+  // themes present (from web-review snippets) → has a footprint → not cold, despite null age.
+  expect(isColdStart(facts({
+    mode: "web", competitors: [], reviewVolume: 3,
+    themes: [{ term: "fees", count: 4 }],
     webProxy: { score: 0, serpResultCount: 10, phUpvotes: 0, domainAgeYears: null },
-  });
-  expect(isColdStart(unknownAge)).toBe(true);
+  }))).toBe(false);
+});
+
+test("web: a young domain (<1y) with competitors is NOT Cold Start", () => {
+  expect(isColdStart(facts({
+    mode: "web", themes: [], reviewVolume: 0,
+    competitors: [{ name: "Rival", url: "https://rival.com", source: "dataforseo_serp", rank: 1 }],
+    webProxy: { score: 40, serpResultCount: 50_000, phUpvotes: 5, domainAgeYears: 0.5 },
+  }))).toBe(false);
+});
+
+test("web: null webProxy with no competitors and no themes → Cold Start", () => {
+  expect(isColdStart(facts({ mode: "web", competitors: [], themes: [], reviewVolume: 0, webProxy: null }))).toBe(true);
 });
 
 // ---------------------------------------------------------------------------

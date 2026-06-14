@@ -2,6 +2,7 @@ import { env } from "@/lib/config/env";
 import { fixturesEnabled } from "@/lib/dev/fixtures";
 import { serpAuthHeader } from "@/lib/scan/adapters/dataforseo";
 import { fixtureRankMap } from "@/lib/dev/fixtures";
+import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
 
 /**
  * Keyword → SERP position lookup for a single target (domain/app).
@@ -43,7 +44,7 @@ export async function rankLookup(keywords: string[], target: string): Promise<Re
 // doesn't appear in the fetched depth / on any error.
 async function rankOne(keyword: string, host: string): Promise<number | null> {
   try {
-    const res = await fetch("https://api.dataforseo.com/v3/serp/google/organic/live/advanced", {
+    const res = await fetchWithTimeout("https://api.dataforseo.com/v3/serp/google/organic/live/advanced", {
       method: "POST",
       headers: {
         Authorization: serpAuthHeader(env.dataforseoLogin, env.dataforseoPassword),
@@ -55,7 +56,7 @@ async function rankOne(keyword: string, host: string): Promise<number | null> {
         language_code: env.dataforseoLanguageCode,
         depth: 50,
       }]),
-    });
+    }, 15_000);
     if (!res.ok) return null;
     const body = (await res.json()) as unknown;
     return findPosition(body, host);

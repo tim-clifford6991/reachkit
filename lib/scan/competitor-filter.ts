@@ -135,13 +135,17 @@ export function filterRealCompetitors(
   const subject = opts.subjectName;
   const out: Competitor[] = [];
   for (const c of raw) {
-    const host = hostname(c.url);
-    if (!host) continue;
-    if (self && host === self) continue; // self by DOMAIN, never by name
-    if (isAggregatorHost(host)) continue;
+    const host = hostname(c.url); // "" for content-extracted (llm_extracted) names with no URL
+    // Host-based screens only apply when we have a host. Content-extracted names
+    // (no URL) skip these but still face the listicle + collision guards below.
+    if (host) {
+      if (self && host === self) continue; // self by DOMAIN, never by name
+      if (isAggregatorHost(host)) continue;
+    }
     if (looksLikeListicle(c.name)) continue;
     let name = cleanCompetitorName(c.name);
-    if (!name || looksLikeListicle(name)) name = brandFromHost(host);
+    if (!name || looksLikeListicle(name)) name = host ? brandFromHost(host) : "";
+    if (!name) continue; // nothing usable (empty name + no host to fall back to)
     // Brand-ambiguity hard rule: never accept a same-/similar-named DIFFERENT product.
     if (subject && hasAnyCollision(name, host, subject)) continue;
     out.push({ ...c, name });

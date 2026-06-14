@@ -140,6 +140,9 @@ test(
     vi.doMock("@/lib/scan/adapters/domain-age", () => ({
       fetchDomainAgeYears: async () => 2,
     }));
+    vi.doMock("@/lib/scan/adapters/web-reviews", () => ({
+      fetchWebReviews: async () => ({ snippets: [], raw: null }),
+    }));
 
     // Dynamically import pipeline after mocking so it picks up mocked modules
     const { runCollect: runCollectMocked } = await import("@/lib/scan/pipeline");
