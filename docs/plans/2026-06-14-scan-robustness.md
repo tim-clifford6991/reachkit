@@ -646,7 +646,24 @@ git add lib/scan/collect.ts
 git commit -m "feat(scan): promote LLM-extracted competitor names into the discovery set"
 ```
 
-## Task 2.5: Narrow the collision filter + admit `llm_extracted`
+## Task 2.5: Admit `llm_extracted` (empty-URL) + fix rankCompetitors dedup
+
+> **Revised during implementation (controller).** The original plan said to *remove*
+> the per-token collision scan in `hasAnyCollision`, on the theory it false-dropped
+> common-word rivals (e.g. `MicroAcquire` for "Acquire"). Reading the code disproved
+> that: `MicroAcquire` is a single token, so it never sub-collides with "Acquire", and
+> removing the scan would **regress** the existing "NUDGE Synonyms & Antonyms" test
+> (a non-aggregator reference page caught only by the token scan). So the token scan is
+> **kept** (correct brand-safety). The two changes actually needed were:
+> 1. **`filterRealCompetitors`** — `llm_extracted` names have `url: ""`; the `if (!host) continue`
+>    guard dropped them all. Host-based screens (self, aggregator) now apply only when a host
+>    exists; the listicle + collision guards still apply to URL-less names.
+> 2. **`rankCompetitors`** — it deduped by `hostname(c.url)`, so every empty-host `llm_extracted`
+>    entry collapsed to ONE. Now keyed by host when present, else by normalised name.
+> The original Task-2.5 test expectations (MicroAcquire kept, Acquire.io/Nudge.ai dropped,
+> llm_extracted admitted) all hold and were implemented, plus a rankCompetitors no-collapse test.
+>
+> _(original step text below retained for reference)_
 
 **Files:**
 - Modify: `lib/scan/competitor-filter.ts` (`hasAnyCollision`, aggregator-host gate)

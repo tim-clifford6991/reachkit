@@ -160,3 +160,49 @@ describe("rankCompetitors integration", () => {
     expect(out.map((c) => c.name)).toEqual(["Habitica", "Streaks"]);
   });
 });
+
+describe("filterRealCompetitors — content-extracted (llm_extracted) names", () => {
+  test("admits an llm_extracted competitor that carries no URL", () => {
+    const out = filterRealCompetitors(
+      [{ name: "Flippa", url: "", source: "llm_extracted", rank: 1 }],
+      { subjectName: "Acquire", selfHost: "acquire.com" },
+    );
+    expect(out.map((c) => c.name)).toEqual(["Flippa"]);
+  });
+
+  test("keeps a real rival whose name contains the subject's common word", () => {
+    // "Acquire" is a common word; MicroAcquire is a genuine marketplace rival, not a collision.
+    const out = filterRealCompetitors(
+      [{ name: "MicroAcquire", url: "", source: "llm_extracted", rank: 1 }],
+      { subjectName: "Acquire", selfHost: "acquire.com" },
+    );
+    expect(out.map((c) => c.name)).toContain("MicroAcquire");
+  });
+
+  test("still drops a same-brand different-TLD impostor (Acquire.io for Acquire)", () => {
+    const out = filterRealCompetitors(
+      [{ name: "Acquire.io", url: "https://acquire.io", source: "dataforseo_serp", rank: 1 }],
+      { subjectName: "Acquire", selfHost: "acquire.com" },
+    );
+    expect(out).toEqual([]);
+  });
+
+  test("drops an empty-name entry with no host to fall back to", () => {
+    const out = filterRealCompetitors([{ name: "", url: "", source: "llm_extracted", rank: 1 }]);
+    expect(out).toEqual([]);
+  });
+});
+
+describe("rankCompetitors — content-extracted names are not collapsed on empty host", () => {
+  test("keeps multiple distinct llm_extracted names (dedupe by name, not empty host)", () => {
+    const out = rankCompetitors(
+      [
+        { name: "Flippa", url: "", source: "llm_extracted", rank: 1 },
+        { name: "Empire Flippers", url: "", source: "llm_extracted", rank: 2 },
+        { name: "MicroAcquire", url: "", source: "llm_extracted", rank: 3 },
+      ],
+      { selfHost: "acquire.com", subjectName: "Acquire" },
+    );
+    expect(out.map((c) => c.name).sort()).toEqual(["Empire Flippers", "Flippa", "MicroAcquire"]);
+  });
+});
