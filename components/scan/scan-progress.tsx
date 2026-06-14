@@ -1,0 +1,58 @@
+"use client";
+
+import { useScanNarrative } from "./scan-narrative";
+import { ScanChecklist } from "./scan-checklist";
+import { ScanAnimation } from "./scan-animation";
+
+function PulseDot() {
+  return (
+    <span className="relative flex h-2 w-2 shrink-0" aria-hidden="true">
+      <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 motion-reduce:animate-none" style={{ background: "var(--color-accent)" }} />
+      <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: "var(--color-accent)" }} />
+    </span>
+  );
+}
+
+/**
+ * The live "thinking" view: a page-scan animation beside an accumulating ✓/active/
+ * pending checklist that stays in motion until the report is ready. Decoupled from
+ * the route's payload types — the caller derives these primitives from facts/events.
+ */
+export function ScanProgress({
+  artifacts,
+  productName,
+  reviewCount,
+  competitorCount,
+  ctaCount,
+  finished,
+}: {
+  artifacts: string[];
+  productName?: string | null;
+  reviewCount?: number;
+  competitorCount?: number;
+  ctaCount?: number;
+  finished: boolean;
+}) {
+  const confirmed = new Set<string>(artifacts);
+  if (finished) confirmed.add("__findings__");
+  const steps = useScanNarrative(
+    confirmed,
+    { reviewCount, competitorCount, ctaCount },
+    !finished,
+  );
+
+  return (
+    <div className="mx-auto grid max-w-4xl gap-8 p-8 md:grid-cols-2 md:items-start">
+      <ScanAnimation productName={productName} />
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <PulseDot />
+          <p className="font-mono text-sm tracking-wide" style={{ color: "var(--color-muted)" }}>
+            Scanning your product…
+          </p>
+        </div>
+        <ScanChecklist steps={steps} />
+      </div>
+    </div>
+  );
+}
