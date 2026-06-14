@@ -22,6 +22,19 @@ export function parseWebReviewSnippets(body: unknown): string[] {
   return out;
 }
 
+/**
+ * Brand-ambiguity hard rule for web reviews: a `"{host} reviews"` search can fuzzy-
+ * match a same-named DIFFERENT product (e.g. "nudgi.ai reviews" → "Nudge AI", a
+ * clinical-documentation tool). Keep only snippets that actually reference the
+ * subject's full host, so a different product's reviews can never pollute the
+ * subject's themes/insight. Errs toward dropping — brand-safety over coverage.
+ */
+export function filterSubjectSnippets(snippets: string[], subjectHost: string): string[] {
+  const needle = subjectHost.toLowerCase().replace(/^www\./, "");
+  if (!needle) return [];
+  return snippets.filter((s) => s.toLowerCase().includes(needle));
+}
+
 export async function fetchWebReviews(subject: string): Promise<{ snippets: string[]; raw: unknown }> {
   if (fixturesEnabled()) return { snippets: [], raw: { skipped: "fixtures" } };
   try {
@@ -32,7 +45,8 @@ export async function fetchWebReviews(subject: string): Promise<{ snippets: stri
     });
     if (!res.ok) return { snippets: [], raw: null };
     const body = await res.json();
-    return { snippets: parseWebReviewSnippets(body), raw: body };
+    // Only keep snippets that actually reference the subject host (brand-safety).
+    return { snippets: filterSubjectSnippets(parseWebReviewSnippets(body), subject), raw: body };
   } catch {
     return { snippets: [], raw: null };
   }
