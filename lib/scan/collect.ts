@@ -52,7 +52,7 @@ export async function collect(ctx: ScanContext): Promise<PreliminaryFacts> {
       }),
     )
     .then(async (result) => {
-      await emitScanEvent(scanId, "artifact", { label: "listing read" });
+      await emitScanEvent(scanId, "artifact", { label: "Read your product page" });
       return result;
     });
 
@@ -69,7 +69,10 @@ export async function collect(ctx: ScanContext): Promise<PreliminaryFacts> {
     .catch((): { reviews: ReviewItem[] } => ({ reviews: [] }))
     .then(async (result) => {
       await emitScanEvent(scanId, "artifact", {
-        label: "reviews fetched",
+        label:
+          result.reviews.length > 0
+            ? `Analysed ${result.reviews.length} reviews`
+            : "Checked for public reviews",
         count: result.reviews.length,
       });
       return result;
@@ -86,7 +89,10 @@ export async function collect(ctx: ScanContext): Promise<PreliminaryFacts> {
     )
     .then(async (result) => {
       await emitScanEvent(scanId, "artifact", {
-        label: "competitors found",
+        label:
+          result.competitors.length > 0
+            ? `Found ${result.competitors.length} competitors`
+            : "Mapping your competitive landscape",
         count: result.competitors.length,
       });
       return result;

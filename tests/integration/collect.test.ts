@@ -79,10 +79,10 @@ test(
     expect(evtRows).not.toBeNull();
     const artifactRows = (evtRows ?? []).filter((r) => r.type === "artifact");
     expect(artifactRows.length).toBeGreaterThanOrEqual(3);
-    const labels = artifactRows.map((r) => (r.payload as Record<string, unknown>).label);
-    expect(labels).toContain("listing read");
-    expect(labels).toContain("reviews fetched");
-    expect(labels).toContain("competitors found");
+    const labels = artifactRows.map((r) => String((r.payload as Record<string, unknown>).label));
+    expect(labels.some((l) => /product page/i.test(l))).toBe(true);
+    expect(labels.some((l) => /review/i.test(l))).toBe(true);
+    expect(labels.some((l) => /competit/i.test(l))).toBe(true);
 
     // competitors table — rows written by persistCompetitors
     const { data: compRows, error: compErr } = await db
@@ -170,10 +170,10 @@ test(
     expect(evtRows).not.toBeNull();
     const artifactRows = (evtRows ?? []).filter((r) => r.type === "artifact");
     expect(artifactRows.length).toBeGreaterThanOrEqual(3);
-    const labels = artifactRows.map((r) => (r.payload as Record<string, unknown>).label);
-    expect(labels).toContain("listing read");
-    expect(labels).toContain("reviews fetched");
-    expect(labels).toContain("competitors found");
+    const labels = artifactRows.map((r) => String((r.payload as Record<string, unknown>).label));
+    expect(labels.some((l) => /product page/i.test(l))).toBe(true);
+    expect(labels.some((l) => /review/i.test(l))).toBe(true);
+    expect(labels.some((l) => /competit/i.test(l))).toBe(true);
 
     // competitors table persisted
     const { data: compRows, error: compErr } = await db

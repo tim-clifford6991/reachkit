@@ -342,7 +342,11 @@ function FactsView({ facts, artifacts, findingsData, scanId }: FactsViewProps) {
 
       {/* ── Moments 3 + 4: Findings reveal + email gate ──────────────────── */}
       {findingsData != null && (
-        <FindingsReveal scanId={scanId} data={findingsData} />
+        <FindingsReveal
+          scanId={scanId}
+          data={findingsData}
+          competitorCount={facts.competitors.length}
+        />
       )}
     </div>
   );

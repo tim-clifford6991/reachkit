@@ -43,7 +43,7 @@ function makeReport(): ReportPayload {
     whereTheyAre: {
       surfaces: [{ source: "app_store", title: "Listing", url: "https://x" }],
       competitorGap: [
-        { competitor: "Acme", dimension: "reviews", them: 9, you: 4 },
+        { competitor: "Acme", dimension: "reviews", them: 9, you: 4, positioning: "all-in-one productivity suite", gap: "ranks for 40 category keywords you don't" },
       ],
     },
     whatToDoThisWeek: {
@@ -123,6 +123,9 @@ describe("redactReportForTier", () => {
     expect(out.whatYouOffer).toEqual(report.whatYouOffer);
     expect(out.whoItsFor).toEqual(report.whoItsFor);
     expect(out.whereTheyAre).toEqual(report.whereTheyAre);
+    // the new competitor positioning/gap strings survive free redaction
+    expect(out.whereTheyAre.competitorGap[0]?.positioning).toBe("all-in-one productivity suite");
+    expect(out.whereTheyAre.competitorGap[0]?.gap).toBe("ranks for 40 category keywords you don't");
     expect(out.score).toEqual(report.score);
     expect(out.mode).toBe(report.mode);
     expect(out.generatedAt).toBe(report.generatedAt);

@@ -224,6 +224,16 @@ function categoryLabel(cat: string): string {
 // SVG lock icon — inline, no import
 // ---------------------------------------------------------------------------
 
+function TeaserDot() {
+  return (
+    <span
+      className="mt-1.5 size-1.5 shrink-0 rounded-full"
+      style={{ background: "var(--color-accent-500)" }}
+      aria-hidden="true"
+    />
+  );
+}
+
 function LockIcon() {
   return (
     <svg
@@ -261,9 +271,11 @@ function LockIcon() {
 export function FindingsReveal({
   scanId,
   data,
+  competitorCount = 0,
 }: {
   scanId: string;
   data: FindingsPayload;
+  competitorCount?: number;
 }) {
   const { score, positioningMirror, findings, sampleAction } = data;
   const [firstFinding, ...restFindings] = findings;
@@ -451,6 +463,36 @@ export function FindingsReveal({
         </div>
       </div>
 
+      {/* ── What your report also contains (pre-gate teaser) ─────────────── */}
+      <div
+        className="rounded-xl border p-7"
+        style={{ borderColor: "var(--hairline)", background: "var(--color-surface)" }}
+      >
+        <p
+          className="mb-3 font-mono text-[10px] uppercase tracking-widest"
+          style={{ color: "var(--color-muted)" }}
+        >
+          What your report also contains
+        </p>
+        <ul className="space-y-2 text-sm" style={{ color: "var(--color-fg)" }}>
+          {competitorCount > 0 && (
+            <li className="flex items-start gap-2.5">
+              <TeaserDot />
+              {competitorCount} competitor{competitorCount === 1 ? "" : "s"} analysed — their
+              positioning and where they outrank you
+            </li>
+          )}
+          <li className="flex items-start gap-2.5">
+            <TeaserDot />
+            The communities where your buyers actually gather
+          </li>
+          <li className="flex items-start gap-2.5">
+            <TeaserDot />
+            A prioritized action plan across content, outreach &amp; SEO
+          </li>
+        </ul>
+      </div>
+
       {/* ── Moment 4: Email gate ─────────────────────────────────────────── */}
       <div
         className="rounded-xl border p-8"
@@ -465,7 +507,7 @@ export function FindingsReveal({
             className="text-base font-semibold"
             style={{ color: "var(--color-fg)" }}
           >
-            Get your full discoverability report
+            See who&apos;s ahead — and exactly what to do about it
           </h2>
           <p className="text-sm" style={{ color: "var(--color-muted)" }}>
             Unlock all{" "}
