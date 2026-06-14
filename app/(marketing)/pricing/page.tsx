@@ -10,16 +10,15 @@
 
 import Link from "next/link";
 import { buildMetadata, softwareApplicationLd, offerLd, SITE } from "@/lib/seo";
-import { PricingTable } from "@/components/sections/pricing-table";
 import { Faq } from "@/components/sections/faq";
-import { PricingCheckoutLinks } from "./pricing-checkout-links";
-import type { PricingTableContent } from "@/components/sections/pricing-table";
+import { PlansGrid } from "./pricing-plans";
+import { BillingToggle } from "./billing-toggle";
 import type { FaqContent } from "@/components/sections/faq";
 
 export const metadata = buildMetadata({
   title: "Pricing — ReachKit",
   description:
-    "Free to scan. $29/mo to turn your report into a weekly action engine. No lock-in.",
+    "Your first scan is free. From $59/mo to turn the report into a weekly action engine — or save two months with annual billing. No lock-in.",
   path: "/pricing",
 });
 
@@ -27,78 +26,17 @@ export const metadata = buildMetadata({
 // Content objects
 // ---------------------------------------------------------------------------
 
-const PRICING_CONTENT = {
-  eyebrow: "Transparent pricing",
-  headline: "Free to scan.\nPaid to act.",
-  subhead:
-    "Run your first scan for free. Upgrade when you're ready to turn the report into a weekly engine — queue, drafts, deltas, verification.",
-  tiers: [
-    {
-      name: "Free",
-      price: "$0",
-      period: "forever",
-      description: "One scan, a full report, 3 sample actions.",
-      features: [
-        "One discoverability scan",
-        "Full four-question report",
-        "3 sample action cards",
-        "Score out of 100",
-      ],
-      cta: (
-        <Link
-          href="/"
-          className="block w-full rounded-lg border px-4 py-2.5 text-center text-sm font-medium transition-colors duration-150"
-          style={{
-            borderColor: "var(--hairline-strong)",
-            color: "var(--color-fg)",
-            background: "var(--fill-subtle)",
-          }}
-        >
-          Scan your product
-        </Link>
-      ),
-    },
-    {
-      name: "Solo",
-      price: "$29",
-      period: "/ month",
-      description: "1 app, weekly queue, drafts, monitoring.",
-      features: [
-        "Everything in Free",
-        "Weekly action queue",
-        "Draft copy for every action",
-        "Score history & weekly deltas",
-        "Action verification",
-        "20 keyword rank-depth",
-      ],
-      highlighted: true,
-      badge: "Most popular",
-      cta: <PricingCheckoutLinks plan="solo" label="Start 7-day free trial" highlighted />,
-    },
-    {
-      name: "Growth",
-      price: "$99",
-      period: "/ month",
-      description: "3 apps, higher quotas, deeper rank tracking.",
-      features: [
-        "Everything in Solo",
-        "3 apps tracked",
-        "100 draft actions per refresh",
-        "50 keyword rank-depth",
-        "Priority support",
-      ],
-      cta: <PricingCheckoutLinks plan="growth" label="Start 7-day free trial" />,
-    },
-  ],
-} satisfies PricingTableContent;
-
 const FAQ_CONTENT = {
   eyebrow: "Common questions",
   headline: "Honest answers",
   items: [
     {
       q: "What counts as a scan?",
-      a: "One App Store URL or website URL analysed by the four-question engine. Free accounts get one scan; paid accounts can re-scan the same app weekly.",
+      a: "One App Store URL or website URL analysed by the four-question engine. Your first scan is always free; paid plans re-scan the same product weekly with fresh data.",
+    },
+    {
+      q: "Monthly or annual?",
+      a: "Both. Monthly is $59 for Solo and $129 for Growth. Annual bills once a year and gives you two months free — $590/yr for Solo (≈ $49/mo) and $1,290/yr for Growth (≈ $108/mo).",
     },
     {
       q: "Is there a free trial?",
@@ -123,16 +61,15 @@ export default function PricingPage() {
   const appLd = softwareApplicationLd({
     name: SITE.name,
     url: SITE.url,
-    priceUsd: 29,
+    priceUsd: 59,
   });
-  // Product + Offer ladder (Free / Solo $29 / Growth $99) — §22.2 GEO pricing.
+  // Product + Offer ladder (Solo $59 / Growth $129) — §22.2 GEO pricing.
   const productLd = offerLd({
     name: `${SITE.name} subscription`,
     url: `${SITE.url}/pricing`,
     tiers: [
-      { name: "Free", priceUsd: 0, description: "One scan, a full report, 3 sample actions." },
-      { name: "Solo", priceUsd: 29, description: "1 app, weekly queue, drafts, monitoring." },
-      { name: "Growth", priceUsd: 99, description: "3 apps, higher quotas, deeper rank tracking." },
+      { name: "Solo", priceUsd: 59, description: "1 product, weekly queue, drafts, monitoring." },
+      { name: "Growth", priceUsd: 129, description: "3 products, higher quotas, deeper rank tracking." },
     ],
   });
 
@@ -178,8 +115,37 @@ export default function PricingPage() {
           </Link>
         </div>
 
-        {/* Sections composed from the §21.1 section library */}
-        <PricingTable content={PRICING_CONTENT} />
+        {/* Pricing header + interactive plans (monthly/annual toggle) */}
+        <section
+          className="flex flex-col items-center gap-12 px-(--spacing-content-x) py-(--spacing-section-y)"
+          aria-label="Pricing"
+        >
+          <div className="flex max-w-lg flex-col items-center gap-4 text-center">
+            <p
+              className="font-mono text-[10px] uppercase tracking-widest"
+              style={{ color: "var(--color-accent-400)" }}
+            >
+              Transparent pricing
+            </p>
+            <h1
+              className="text-3xl font-bold tracking-[var(--tracking-display)] sm:text-4xl lg:text-5xl"
+              style={{ color: "var(--color-fg)", lineHeight: 1.05 }}
+            >
+              Scan free. Pay to act.
+            </h1>
+            <p className="text-base leading-relaxed" style={{ color: "var(--color-muted)" }}>
+              Your first scan is free. Upgrade when you&apos;re ready to turn the report into a
+              weekly engine — queue, drafts, deltas, verification. Save two months with annual
+              billing.
+            </p>
+          </div>
+
+          <BillingToggle
+            monthly={<PlansGrid interval="month" />}
+            annual={<PlansGrid interval="year" />}
+          />
+        </section>
+
         <Faq content={FAQ_CONTENT} />
       </div>
     </main>

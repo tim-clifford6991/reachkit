@@ -36,6 +36,10 @@ const schema = z.object({
   STRIPE_WEBHOOK_SECRET: z.string().optional().default(""),
   STRIPE_PRICE_SOLO: z.string().optional().default(""),
   STRIPE_PRICE_GROWTH: z.string().optional().default(""),
+  // Annual recurring prices (2-months-free yearly billing). Optional: when blank,
+  // the annual toggle still renders but checkout falls back to the monthly price.
+  STRIPE_PRICE_SOLO_ANNUAL: z.string().optional().default(""),
+  STRIPE_PRICE_GROWTH_ANNUAL: z.string().optional().default(""),
   // Analytics — fully optional
   POSTHOG_KEY: z.string().optional().default(""),
   POSTHOG_HOST: z.string().optional().default(""),
@@ -75,6 +79,8 @@ export function parseEnv(src: NodeJS.ProcessEnv) {
     stripeWebhookSecret: p.STRIPE_WEBHOOK_SECRET,
     stripePriceSolo: p.STRIPE_PRICE_SOLO,
     stripePriceGrowth: p.STRIPE_PRICE_GROWTH,
+    stripePriceSoloAnnual: p.STRIPE_PRICE_SOLO_ANNUAL,
+    stripePriceGrowthAnnual: p.STRIPE_PRICE_GROWTH_ANNUAL,
   };
 }
 

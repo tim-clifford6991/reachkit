@@ -94,7 +94,7 @@ What I'd genuinely love from you:
   is missing?
 
 It's free to scan and free to get the full report. There's a paid tier later
-($29/mo) that turns it into a weekly operating system — a fresh action queue,
+($59/mo) that turns it into a weekly operating system — a fresh action queue,
 monitoring, and verification that the things you did actually went live — but
 that's not what I'm asking you to look at today. I want to know if the free
 scan tells you something true and useful about your own product.

@@ -167,7 +167,7 @@ export function UpgradeCta({ scanId: _scanId, snapshotAge }: UpgradeCtaProps) {
         >
           {loading
             ? "Redirecting to checkout…"
-            : "Activate Solo — $29/mo"}
+            : "Activate Solo — $59/mo"}
         </button>
 
         <p

@@ -5,6 +5,7 @@ import { createCheckout } from "@/lib/billing/checkout";
 
 const Body = z.object({
   plan: z.enum(["solo", "growth"]),
+  interval: z.enum(["month", "year"]).optional().default("month"),
 });
 
 export async function POST(req: NextRequest) {
@@ -29,11 +30,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { plan } = parsed.data;
+  const { plan, interval } = parsed.data;
 
   // Create checkout session.
   try {
-    const { url } = await createCheckout({ userId, plan });
+    const { url } = await createCheckout({ userId, plan, interval });
     return NextResponse.json({ url });
   } catch (e) {
     console.error("billing/checkout POST error", e);

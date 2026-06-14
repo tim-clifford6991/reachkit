@@ -1,14 +1,21 @@
 import { serverDb } from "@/lib/db/client";
 import { fixturesEnabled } from "@/lib/dev/fixtures";
 import { env } from "@/lib/config/env";
-import { assertStripeConfigured, stripeClient, priceMap } from "@/lib/billing/stripe";
+import {
+  assertStripeConfigured,
+  stripeClient,
+  priceIdFor,
+  type BillingInterval,
+} from "@/lib/billing/stripe";
 
 export async function createCheckout({
   userId,
   plan,
+  interval = "month",
 }: {
   userId: string;
   plan: "solo" | "growth";
+  interval?: BillingInterval;
 }): Promise<{ url: string }> {
   // ---------------------------------------------------------------------------
   // Fixture path — no Stripe; directly upgrade the user row for demo/test.
@@ -66,19 +73,17 @@ export async function createCheckout({
     }
   }
 
-  const prices = priceMap();
-
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     line_items: [
       {
-        price: plan === "growth" ? prices.growth : prices.solo,
+        price: priceIdFor(plan, interval),
         quantity: 1,
       },
     ],
     customer: customerId,
     client_reference_id: userId,
-    metadata: { userId, plan },
+    metadata: { userId, plan, interval },
     // 7-day free trial: subscription is created in `trialing` status (card
     // collected now, first charge at trial end). entitlementsFor() already
     // treats "trialing" as active, so trial users get full paid access.

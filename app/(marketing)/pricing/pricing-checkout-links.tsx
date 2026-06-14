@@ -17,12 +17,15 @@ interface PricingCheckoutLinksProps {
   plan: "solo" | "growth";
   label: string;
   highlighted?: boolean;
+  /** Billing interval to check out with. Defaults to monthly. */
+  interval?: "month" | "year";
 }
 
 export function PricingCheckoutLinks({
   plan,
   label,
   highlighted,
+  interval = "month",
 }: PricingCheckoutLinksProps) {
   const [loading, setLoading] = useState(false);
 
@@ -32,7 +35,7 @@ export function PricingCheckoutLinks({
       const res = await fetch("/api/billing/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify({ plan, interval }),
       });
 
       if (res.status === 401) {
@@ -54,7 +57,7 @@ export function PricingCheckoutLinks({
       toast.error("Network error — please try again.");
       setLoading(false);
     }
-  }, [plan]);
+  }, [plan, interval]);
 
   return (
     <button

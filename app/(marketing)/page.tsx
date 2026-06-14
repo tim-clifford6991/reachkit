@@ -45,6 +45,8 @@ import { ScanInput } from "./scan-input";
 // Direct imports (not the barrel) so Turbopack can split each section cleanly
 // and below-the-fold sections don't all land in one eager first-load chunk.
 import { SocialProofMarquee } from "@/components/sections/social-proof-marquee";
+import { Empathy } from "@/components/sections/empathy";
+import { SocialProof } from "@/components/sections/social-proof";
 import { FeatureBento } from "@/components/sections/feature-bento";
 import { HowItWorksScroll } from "@/components/sections/how-it-works-scroll";
 import { TeardownGrid } from "@/components/sections/teardown-grid";
@@ -53,6 +55,8 @@ import { PricingTable } from "@/components/sections/pricing-table";
 import { Faq } from "@/components/sections/faq";
 import { FinalCta } from "@/components/sections/final-cta";
 import type { SocialProofMarqueeContent } from "@/components/sections/social-proof-marquee";
+import type { EmpathyContent } from "@/components/sections/empathy";
+import type { SocialProofContent } from "@/components/sections/social-proof";
 import type { FeatureBentoContent } from "@/components/sections/feature-bento";
 import type { TeardownGridContent } from "@/components/sections/teardown-grid";
 import type { ComparisonTableContent } from "@/components/sections/comparison-table";
@@ -98,16 +102,45 @@ const MARQUEE_CONTENT: SocialProofMarqueeContent = {
   ],
 };
 
+const EMPATHY_CONTENT: EmpathyContent = {
+  eyebrow: "Sound familiar?",
+  lead: "You shipped it. You posted once. Then… silence.",
+  turn: "Your product probably isn't bad — it's invisible. The people who'd love it are searching right now, and landing on someone else's listing instead of yours. ReachKit shows you exactly where, and what to fix first.",
+};
+
+const SOCIAL_PROOF_CONTENT: SocialProofContent = {
+  eyebrow: "Proof, not promises",
+  headline: "Built by a founder who hit the same wall",
+  founder: {
+    name: "Tim Clifford",
+    role: "Founder, ReachKit",
+    quote:
+      "I'm a developer. I can build anything — and I still watched good products die because nobody could find them. Distribution was a black box you either ignored or paid an agency a fortune to manage. ReachKit is the tool I wished existed: paste a URL, get a score and a ranked plan, do a little every week.",
+    initials: "TC",
+    // TODO(asset): drop a square headshot in /public (e.g. /founder.jpg) and set
+    // avatarSrc below; add a Loom/YouTube URL to render the 90-second video CTA.
+    // avatarSrc: "/founder.jpg",
+    // videoUrl: "https://www.loom.com/share/…",
+    videoLabel: "Watch the 90-second story",
+  },
+  proofPoints: [
+    { value: "18", label: "signals analysed per scan" },
+    { value: "Free", label: "first scan — see it before you trust it" },
+    { value: "Evidence", label: "every claim links to a real source" },
+  ],
+  // TODO(#29): wire real customer quotes here as they arrive — renders automatically.
+  testimonials: [],
+};
+
 const FEATURE_CONTENT: FeatureBentoContent = {
   eyebrow: "What you get",
-  headline: "Everything a solo founder needs to get found",
+  headline: "One score. One weekly plan to raise it.",
   cards: [
     {
       icon: <BarChart2 className="h-4 w-4" />,
       title: "Discoverability Score",
       blurb:
-        "A single number (0–100) built from 18 signals — keyword density, metadata completeness, category fit, backlink profile, and more.",
-      accent: "blue",
+        "A single number, 0–100, built from 18 signals — keyword density, metadata, category fit, backlink profile, and more. It's the one number that tells you how findable you are.",
       wide: true,
     },
     {
@@ -115,42 +148,36 @@ const FEATURE_CONTENT: FeatureBentoContent = {
       title: "Positioning Mirror",
       blurb:
         "Who your page actually targets vs. who you think it targets. The gap is usually the problem.",
-      accent: "amber",
     },
     {
       icon: <Search className="h-4 w-4" />,
       title: "Search Gap Analysis",
       blurb:
-        "The keywords your ideal customer types that your page is completely invisible for.",
-      accent: "green",
+        "An AI reads your live page the way a customer's search does — and surfaces the exact queries you're invisible for.",
     },
     {
       icon: <FileText className="h-4 w-4" />,
       title: "Ranked Action Steps",
       blurb:
         "Specific fixes, ordered by expected score impact. Not generic SEO advice — your actual gaps.",
-      accent: "blue",
     },
     {
       icon: <RefreshCw className="h-4 w-4" />,
       title: "Weekly Action Engine",
       blurb:
         "Paid plans refresh the queue weekly. Ship a fix, mark it done, watch your score move.",
-      accent: "amber",
     },
     {
       icon: <CheckCircle className="h-4 w-4" />,
       title: "Action Verification",
       blurb:
         "ReachKit checks the live URL when you mark something complete — no self-reporting without evidence.",
-      accent: "green",
     },
     {
       icon: <Zap className="h-4 w-4" />,
       title: "Draft Copy Included",
       blurb:
         "Every action comes with a draft — a rewritten title, a better description, a keyword insertion. Ready to paste.",
-      accent: "blue",
       wide: true,
     },
   ],
@@ -253,42 +280,16 @@ const COMPARISON_CONTENT: ComparisonTableContent = {
 
 const PRICING_CONTENT: PricingTableContent = {
   eyebrow: "Transparent pricing",
-  headline: "Free to scan.\nPaid to act.",
+  headline: "Scan free.\nPay to act.",
   subhead:
-    "Run your first scan free. Upgrade when you're ready to turn the report into a weekly engine.",
+    "Your first scan is free. Upgrade when you're ready to turn the report into a weekly engine. Save two months with annual billing.",
   tiers: [
     {
-      name: "Free",
-      price: "$0",
-      period: "forever",
-      description: "One scan, a full report, 3 sample actions.",
-      features: [
-        "One discoverability scan",
-        "Full four-question report",
-        "3 sample action cards",
-        "Score out of 100",
-      ],
-      cta: (
-        <Link
-          href="/"
-          className="block w-full rounded-lg border px-4 py-2.5 text-center text-sm font-medium transition-colors duration-150"
-          style={{
-            borderColor: "var(--hairline-strong)",
-            color: "var(--color-fg)",
-            background: "var(--fill-subtle)",
-          }}
-        >
-          Scan your product
-        </Link>
-      ),
-    },
-    {
       name: "Solo",
-      price: "$29",
+      price: "$59",
       period: "/ month",
-      description: "1 app, weekly queue, drafts, monitoring.",
+      description: "1 product, weekly queue, drafts, monitoring.",
       features: [
-        "Everything in Free",
         "Weekly action queue",
         "Draft copy for every action",
         "Score history & weekly deltas",
@@ -306,18 +307,18 @@ const PRICING_CONTENT: PricingTableContent = {
             color: "var(--color-accent-fg)",
           }}
         >
-          Start Solo — $29/mo
+          Start Solo — $59/mo
         </Link>
       ),
     },
     {
       name: "Growth",
-      price: "$99",
+      price: "$129",
       period: "/ month",
-      description: "3 apps, higher quotas, deeper rank tracking.",
+      description: "3 products, higher quotas, deeper rank tracking.",
       features: [
         "Everything in Solo",
-        "3 apps tracked",
+        "3 products tracked",
         "100 draft actions per refresh",
         "50 keyword rank-depth",
         "Priority support",
@@ -332,7 +333,7 @@ const PRICING_CONTENT: PricingTableContent = {
             background: "var(--fill-subtle)",
           }}
         >
-          Start Growth — $99/mo
+          Start Growth — $129/mo
         </Link>
       ),
     },
@@ -463,8 +464,10 @@ export default function HomePage() {
               className="mx-auto max-w-md text-base leading-relaxed sm:text-lg"
               style={{ color: "var(--color-muted)" }}
             >
-              Paste your App Store URL or website — get a Discoverability Score,
-              positioning gap, and ranked action steps in ~90 seconds.
+              Paste your App Store URL or website. An AI reads your live listing
+              the way a customer&apos;s search does — and hands back a
+              Discoverability Score, your positioning gap, and ranked fixes in ~90
+              seconds.
             </p>
 
             {/* ── Scan input — THE single action above the fold ── */}
@@ -495,6 +498,9 @@ export default function HomePage() {
       {/* ── §20.3 Set piece 2: watch a scan happen (lazy, ssr:false) ───── */}
       <LazyScanScrollSequence />
 
+      {/* ── Empathy beat — name the pain before pitching (#21) ──────────── */}
+      <Empathy content={EMPATHY_CONTENT} />
+
       {/* ── Feature bento (with scroll-linked parallax depth) ───────────── */}
       <div className="relative overflow-hidden">
         <LazyParallaxLayers />
@@ -509,6 +515,9 @@ export default function HomePage() {
 
       {/* ── Comparison table ────────────────────────────────────────────── */}
       <ComparisonTable content={COMPARISON_CONTENT} />
+
+      {/* ── Social proof — founder vouch + factual trust points (#15/#29) ─ */}
+      <SocialProof content={SOCIAL_PROOF_CONTENT} />
 
       {/* ── Pricing table ───────────────────────────────────────────────── */}
       <PricingTable content={PRICING_CONTENT} />

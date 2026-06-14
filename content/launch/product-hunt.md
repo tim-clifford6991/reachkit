@@ -72,9 +72,9 @@ competitor gap map, and a prioritized action plan across content, outreach, and
 SEO/ASO — every action backed by the evidence behind it, an effort estimate, and
 an editable draft.
 
-The paid tier ($29/mo Solo) turns it into a weekly operating system: a fresh
+The paid tier ($59/mo Solo) turns it into a weekly operating system: a fresh
 action queue every week, intent monitoring, and verification that the work you
-did actually went live and moved your score. ($99/mo Growth for more.) But the
+did actually went live and moved your score. ($129/mo Growth for more.) But the
 scan and the full report are free — start there.
 
 Built by a solo dev who kept stalling at the same wall: shipped the thing,

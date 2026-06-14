@@ -19,6 +19,7 @@ import type { ReactNode } from "react";
 import { useEffect, useRef } from "react";
 import { MarketingNav } from "@/components/sections/marketing-nav";
 import { Footer, type FooterContent } from "@/components/sections/footer";
+import { PreFooterShare } from "@/components/sections/pre-footer-share";
 
 const FOOTER_CONTENT: FooterContent = {
   brand: "ReachKit",
@@ -155,6 +156,7 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
       <div className="font-editorial flex min-h-dvh flex-col overflow-x-hidden" style={{ background: "var(--color-bg)" }}>
         <MarketingNav />
         <div className="flex-1">{children}</div>
+        <PreFooterShare />
         <Footer content={FOOTER_CONTENT} />
       </div>
     </>

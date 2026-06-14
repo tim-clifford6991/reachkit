@@ -18,9 +18,14 @@ export function isPaid(tier: Tier): boolean { return tier === "solo" || tier ===
 export function isTier(v: string): v is Tier { return v === "free" || v === "solo" || v === "growth"; }
 
 /** Map a Stripe price id → Tier. priceMap comes from env at the call site (kept out of this
- *  pure module so it stays trivially testable). Unknown/empty price ids → "free". */
-export function tierForPriceId(priceId: string, priceMap: { solo: string; growth: string }): Tier {
-  if (priceId.length > 0 && priceId === priceMap.growth) return "growth";
-  if (priceId.length > 0 && priceId === priceMap.solo) return "solo";
+ *  pure module so it stays trivially testable). Both the monthly and annual price id of a
+ *  tier resolve to the same Tier. Unknown/empty price ids → "free". */
+export function tierForPriceId(
+  priceId: string,
+  priceMap: { solo: string; growth: string; soloAnnual?: string; growthAnnual?: string },
+): Tier {
+  if (priceId.length === 0) return "free";
+  if (priceId === priceMap.growth || priceId === priceMap.growthAnnual) return "growth";
+  if (priceId === priceMap.solo || priceId === priceMap.soloAnnual) return "solo";
   return "free";
 }

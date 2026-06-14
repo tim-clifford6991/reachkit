@@ -252,7 +252,7 @@ function PlaysUpgradeWall() {
             color: "var(--color-accent-fg)",
           }}
         >
-          Upgrade to Solo — $29/mo
+          Upgrade to Solo — $59/mo
         </Link>
         <p
           className="font-mono text-[10px]"

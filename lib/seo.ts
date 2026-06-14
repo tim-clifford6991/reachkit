@@ -66,7 +66,7 @@ export interface OfferTier {
 }
 
 /**
- * Product JSON-LD with one Offer per pricing tier — Free / Solo $29 / Growth $99.
+ * Product JSON-LD with one Offer per pricing tier — Solo $59 / Growth $129.
  *
  * Emitted on /pricing so search + AI crawlers can read the full price ladder
  * (not just a single price point). Each Offer carries its USD price + a stable

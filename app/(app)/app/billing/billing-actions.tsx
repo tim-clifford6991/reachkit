@@ -233,14 +233,14 @@ export function BillingActions({ tier, isActivePaid }: BillingActionsProps) {
         <UpgradeButton
           plan="solo"
           label="Solo"
-          price="$29/mo"
+          price="$59/mo"
           highlighted={tier === "free"}
         />
         {tier === "free" && (
-          <UpgradeButton plan="growth" label="Growth" price="$99/mo" />
+          <UpgradeButton plan="growth" label="Growth" price="$129/mo" />
         )}
         {tier === "solo" && (
-          <UpgradeButton plan="growth" label="Growth" price="$99/mo" highlighted />
+          <UpgradeButton plan="growth" label="Growth" price="$129/mo" highlighted />
         )}
       </div>
 

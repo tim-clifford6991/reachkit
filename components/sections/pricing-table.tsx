@@ -1,7 +1,7 @@
 /**
  * PricingTable — §21.1 marketing section
  *
- * Reusable section wrapping the three tier cards (Free / Solo $29 / Growth $99).
+ * Reusable section wrapping the three tier cards (Solo $59 / Growth $129).
  * The existing /pricing page composes this section.
  *
  * CTA slots are passed as ReactNode per tier so the page can inject either
@@ -18,11 +18,13 @@ import type { ReactNode } from "react";
 
 export interface PricingTier {
   name: string;
-  /** Formatted price string: "$0", "$29", etc. */
+  /** Formatted price string: "$59", "$129", etc. */
   price: string;
   /** Period label: "forever", "/ month", etc. */
   period: string;
   description: string;
+  /** Optional small note under the price (e.g. annual savings) */
+  priceNote?: string;
   features: readonly string[];
   /** Whether to highlight this tier visually */
   highlighted?: boolean;
@@ -69,7 +71,7 @@ function CheckIcon({ color }: { color: string }) {
   );
 }
 
-function TierCard({ tier }: { tier: PricingTier }) {
+export function TierCard({ tier }: { tier: PricingTier }) {
   const checkColor = tier.highlighted
     ? "var(--color-accent-400)"
     : "var(--color-muted)";
@@ -143,6 +145,14 @@ function TierCard({ tier }: { tier: PricingTier }) {
         </span>
       </div>
 
+      {/* Price note (e.g. annual savings) — reserves a line so cards stay aligned */}
+      <p
+        className="mb-2 min-h-4 font-mono text-[11px]"
+        style={{ color: "var(--color-accent-400)" }}
+      >
+        {tier.priceNote ?? " "}
+      </p>
+
       {/* Description */}
       <p
         className="mb-5 text-sm leading-relaxed"
@@ -209,9 +219,12 @@ export function PricingTable({ content }: PricingTableProps) {
         )}
       </div>
 
-      {/* Tier cards */}
+      {/* Tier cards — grid adapts to tier count so 2 tiers stay centered */}
       <div
-        className="grid w-full max-w-4xl grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3"
+        className={[
+          "grid w-full grid-cols-1 gap-5 sm:grid-cols-2",
+          tiers.length >= 3 ? "max-w-4xl lg:grid-cols-3" : "max-w-3xl",
+        ].join(" ")}
         role="list"
         aria-label="Pricing tiers"
       >

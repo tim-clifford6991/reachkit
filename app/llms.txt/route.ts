@@ -30,8 +30,8 @@ function buildLlmsTxt(): string {
 
 ## Pricing
 - Free — $0 forever: one scan, the full four-question report, 3 sample action cards, score out of 100.
-- Solo — $29/month: 1 app, weekly action queue, draft copy per action, score history + weekly deltas, action verification, 20-keyword rank depth.
-- Growth — $99/month: 3 apps tracked, 100 draft actions per refresh, 50-keyword rank depth, priority support.
+- Solo — $59/month: 1 app, weekly action queue, draft copy per action, score history + weekly deltas, action verification, 20-keyword rank depth.
+- Growth — $129/month: 3 apps tracked, 100 draft actions per refresh, 50-keyword rank depth, priority support.
 - No lock-in; cancel anytime (ends at the close of the billing period).
 
 ## Key pages
