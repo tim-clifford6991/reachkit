@@ -16,6 +16,21 @@ export function parseSerp(body: unknown): { competitors: Competitor[]; serpResul
   return { competitors, serpResultCount: Number(result?.se_results_count ?? 0) };
 }
 
+/**
+ * Flatten organic results' title + description into one text block for LLM
+ * competitor-name extraction. The real competitor names ("Fin, Drift, Zendesk")
+ * live in the snippet/description, not in result titles/URLs (which are listicles).
+ */
+export function parseSerpContent(body: unknown): string {
+  const result = (body as { tasks?: Array<{ result?: Array<{ items?: Array<Record<string, unknown>> }> }> })
+    .tasks?.[0]?.result?.[0];
+  return (result?.items ?? [])
+    .filter((i) => i["type"] === "organic")
+    .map((i) => `${String(i["title"] ?? "")} — ${String(i["description"] ?? "")}`.trim())
+    .filter((s) => s.length > 2)
+    .join("\n");
+}
+
 // Live SERP — used only for the 10s screen (Live is the costed exception; Standard queue is the default elsewhere).
 export async function liveSerpAlternatives(productName: string): Promise<{ competitors: Competitor[]; serpResultCount: number; raw: unknown }> {
   if (fixturesEnabled()) return fixtureSerp(productName);
