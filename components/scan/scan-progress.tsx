@@ -42,15 +42,16 @@ export function ScanProgress({
   );
 
   return (
-    <div className="mx-auto grid max-w-4xl gap-8 p-8 md:grid-cols-2 md:items-start">
-      <ScanAnimation productName={productName} />
-      <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <PulseDot />
-          <p className="font-mono text-sm tracking-wide" style={{ color: "var(--color-muted)" }}>
-            Scanning your product…
-          </p>
-        </div>
+    <div className="mx-auto max-w-4xl space-y-6 p-8">
+      {/* Full-width status header — shows first on mobile (above the animation card). */}
+      <div className="flex items-center gap-3">
+        <PulseDot />
+        <p className="font-mono text-sm font-medium tracking-wide" style={{ color: "var(--color-fg)" }}>
+          Scanning your product…
+        </p>
+      </div>
+      <div className="grid gap-8 md:grid-cols-2 md:items-start">
+        <ScanAnimation productName={productName} />
         <ScanChecklist steps={steps} />
       </div>
     </div>

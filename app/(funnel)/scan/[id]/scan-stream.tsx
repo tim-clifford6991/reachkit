@@ -396,7 +396,11 @@ export function ScanStream({
         setDone(true);
         cleanup();
       } else if (e.type === "error") {
+        // Nothing usable yet → hard error. But if facts/findings already arrived,
+        // reveal the partial result instead of leaving the user stuck on the
+        // checklist forever (the reveal is gated on `done`).
         if (!settled) setFailed(true);
+        else setDone(true);
         cleanup();
       }
     };
@@ -423,7 +427,10 @@ export function ScanStream({
         es?.close();
         if (cancelled) return;
         if (Date.now() > overallDeadline || reconnects > 200) {
+          // Give up reconnecting: hard-fail only if nothing arrived; otherwise
+          // reveal the partial result we already have rather than spin forever.
           if (!settled) setFailed(true);
+          else setDone(true);
           return;
         }
         reconnects++;

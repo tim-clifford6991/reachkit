@@ -7,7 +7,7 @@ const BARS = [62, 92, 78, 40, 88, 54, 70];
 export function ScanAnimation({ productName }: { productName?: string | null }) {
   return (
     <div
-      className="relative overflow-hidden rounded-2xl border p-6"
+      className="relative overflow-hidden rounded-xl border p-6"
       style={{ borderColor: "var(--hairline)", background: "var(--color-surface)", minHeight: 300 }}
       aria-hidden="true"
     >
@@ -33,12 +33,14 @@ export function ScanAnimation({ productName }: { productName?: string | null }) 
         className="scan-sweep pointer-events-none absolute inset-x-0 top-0 h-16"
         style={{
           background:
-            "linear-gradient(180deg, transparent, color-mix(in srgb, var(--color-accent) 20%, transparent), transparent)",
+            "linear-gradient(180deg, transparent, color-mix(in oklch, var(--color-accent) 20%, transparent), transparent)",
         }}
       />
       <style>{`
-        @keyframes scanSweep { 0% { transform: translateY(-64px); } 100% { transform: translateY(300px); } }
-        .scan-sweep { animation: scanSweep 2.2s ease-in-out infinite; }
+        /* Overshoot the bottom (clipped by overflow-hidden) so the sweep never cuts
+           off short if the card grows taller than its min-height. */
+        @keyframes scanSweep { 0% { transform: translateY(-64px); } 100% { transform: translateY(440px); } }
+        .scan-sweep { animation: scanSweep 2.4s linear infinite; }
         @media (prefers-reduced-motion: reduce) { .scan-sweep { animation: none; opacity: 0; } }
       `}</style>
     </div>

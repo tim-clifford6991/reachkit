@@ -34,14 +34,14 @@ export const STEP_SCRIPT: Step[] = [
   { id: "homepage",    optimistic: true,  confirmBy: ["Read your product page"], label: () => "Loading your homepage" },
   { id: "hero",        optimistic: true,  confirmBy: ["Read your product page"], label: () => "Reading your hero & value prop" },
   { id: "ctas",        optimistic: true,  confirmBy: ["Read your product page"], label: (c) => (c.ctaCount != null ? `Counting your CTAs — found ${c.ctaCount}` : "Counting your CTAs") },
-  { id: "reviews",     optimistic: false, confirmBy: ["Analysed", "Checked for public reviews"], label: (c) => (c.reviewCount && c.reviewCount > 0 ? `Reading ${c.reviewCount} reviews` : "Checking for public reviews") },
-  { id: "competitors", optimistic: false, confirmBy: ["Found", "Mapping your competitive landscape"], label: (c) => (c.competitorCount && c.competitorCount > 0 ? `Sizing up ${c.competitorCount} rivals` : "Finding your competitors") },
-  { id: "positioning", optimistic: false, confirmBy: ["Reading your reviews & positioning"], label: () => "Reading your reviews & positioning" },
+  { id: "reviews",     optimistic: false, confirmBy: ["Analysed ", "Checked for public reviews"], label: (c) => (c.reviewCount && c.reviewCount > 0 ? `Reading ${c.reviewCount} reviews` : "Checking for public reviews") },
+  { id: "competitors", optimistic: false, confirmBy: ["Found ", "Mapping your competitive landscape"], label: (c) => (c.competitorCount && c.competitorCount > 0 ? `Sizing up ${c.competitorCount} rivals` : "Finding your competitors") },
+  { id: "positioning", optimistic: false, confirmBy: ["Reading your reviews & positioning"], label: () => "Mapping your positioning" },
   { id: "compare",     optimistic: false, confirmBy: ["Comparing you to your competitors"], label: () => "Comparing how you stack up" },
-  { id: "score",       optimistic: false, confirmBy: ["Scoring your discoverability"], label: () => "Scoring your visibility" },
+  { id: "score",       optimistic: false, confirmBy: ["Scoring your discoverability"], label: () => "Scoring your discoverability" },
   { id: "draft",       optimistic: false, confirmBy: ["Drafting your action plan"], label: () => "Drafting your action plan" },
   { id: "critique",    optimistic: false, confirmBy: ["Pressure-testing each recommendation"], label: () => "Pressure-testing each move" },
-  { id: "finalize",    optimistic: false, confirmBy: ["Finalising your report", "__findings__"], label: () => "Finalizing your report" },
+  { id: "finalize",    optimistic: false, confirmBy: ["Finalising your report", "__findings__"], label: () => "Finalising your report" },
 ];
 
 export function labelFor(id: StepId, ctx: NarrativeCtx): string {
