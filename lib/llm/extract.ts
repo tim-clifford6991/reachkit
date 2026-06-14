@@ -30,7 +30,7 @@ import type { FactSheetKind } from "@/lib/scan/fact-sheets";
 const MODEL = "claude-haiku-4-5-20251001" as const;
 
 // Source type groupings
-const REVIEW_SOURCES = Object.freeze(["app_store_rss"] as const);
+const REVIEW_SOURCES = Object.freeze(["app_store_rss", "web_reviews"] as const);
 const LISTING_SOURCES = Object.freeze(["itunes", "site_fetch"] as const);
 const COMPETITOR_SOURCES = Object.freeze(["dataforseo_serp", "itunes_search", "tavily", "product_hunt"] as const);
 const KEYWORD_SOURCES = Object.freeze(["dataforseo_keywords"] as const);

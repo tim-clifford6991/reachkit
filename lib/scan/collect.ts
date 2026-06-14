@@ -8,9 +8,11 @@ import { hostname } from "@/lib/scan/url";
 import { appIdFromUrl } from "@/lib/scan/adapters/itunes";
 import { assembleFacts } from "@/lib/scan/facts";
 import { serverDb } from "@/lib/db/client";
+import { upsertRawDocument } from "@/lib/db/raw-documents";
 import { extractCompetitorNames } from "@/lib/llm/competitor-names";
 import { parseSerpContent } from "@/lib/scan/adapters/dataforseo";
 import { parseTavilyContent } from "@/lib/scan/adapters/tavily";
+import { fetchWebReviews } from "@/lib/scan/adapters/web-reviews";
 
 // ---------------------------------------------------------------------------
 // productName derivation
@@ -65,7 +67,16 @@ export async function collect(ctx: ScanContext): Promise<PreliminaryFacts> {
   // within the protected chain and the .catch backstop degrades gracefully.
   const reviewsPromise = (
     mode === "web"
-      ? Promise.resolve({ reviews: [] as ReviewItem[] })
+      ? // Web mode has no first-party reviews — mine review-bearing snippets from a
+        // domain-anchored "{host} reviews" search so review_themes has signal.
+        fetchWebReviews(hostname(storeUrl)).then(async (r) => {
+          if (r.snippets.length > 0) {
+            await upsertRawDocument({ subjectType: "web", subjectKey, sourceType: "web_reviews", body: r.raw, mode });
+          }
+          return {
+            reviews: r.snippets.map((s, i) => ({ id: `web-${i}`, rating: null, title: "Web review", body: s })) as ReviewItem[],
+          };
+        })
       : Promise.resolve().then(() =>
           getReviews.run({ appId: appIdFromUrl(storeUrl), subjectKey }, toolCtx),
         )
