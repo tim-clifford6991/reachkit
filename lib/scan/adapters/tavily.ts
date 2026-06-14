@@ -13,7 +13,7 @@ export function parseTavily(body: unknown): Competitor[] {
  * The answer/snippets name real competitors that the result titles/URLs do not.
  */
 export function parseTavilyContent(body: unknown): string {
-  const b = body as { answer?: string; results?: Array<{ title?: string; content?: string }> };
+  const b = (body ?? {}) as { answer?: string; results?: Array<{ title?: string; content?: string }> };
   const parts: string[] = [];
   if (b.answer) parts.push(b.answer);
   for (const r of b.results ?? []) parts.push(`${r.title ?? ""} — ${r.content ?? ""}`.trim());

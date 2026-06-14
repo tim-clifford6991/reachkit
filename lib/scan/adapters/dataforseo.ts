@@ -22,7 +22,7 @@ export function parseSerp(body: unknown): { competitors: Competitor[]; serpResul
  * live in the snippet/description, not in result titles/URLs (which are listicles).
  */
 export function parseSerpContent(body: unknown): string {
-  const result = (body as { tasks?: Array<{ result?: Array<{ items?: Array<Record<string, unknown>> }> }> })
+  const result = ((body ?? {}) as { tasks?: Array<{ result?: Array<{ items?: Array<Record<string, unknown>> }> }> })
     .tasks?.[0]?.result?.[0];
   return (result?.items ?? [])
     .filter((i) => i["type"] === "organic")

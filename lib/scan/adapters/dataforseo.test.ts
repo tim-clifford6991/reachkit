@@ -29,3 +29,8 @@ test("parseSerpContent concatenates organic titles + descriptions for LLM extrac
   expect(text).toContain("Flippa");
   expect(text).not.toContain("people_also_ask");
 });
+
+test("parseSerpContent tolerates null/empty body (DB body can be null)", () => {
+  expect(parseSerpContent(null)).toBe("");
+  expect(parseSerpContent({})).toBe("");
+});

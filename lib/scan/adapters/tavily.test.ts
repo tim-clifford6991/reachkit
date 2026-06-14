@@ -20,3 +20,8 @@ test("parseTavilyContent prefers the synthesized answer, then result content", (
   expect(text).toContain("Flippa, Empire Flippers, and MicroAcquire");
   expect(text).toContain("buy/sell sites");
 });
+
+test("parseTavilyContent tolerates null/empty body (DB body can be null)", () => {
+  expect(parseTavilyContent(null)).toBe("");
+  expect(parseTavilyContent({})).toBe("");
+});
