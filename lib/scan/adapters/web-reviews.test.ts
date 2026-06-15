@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseWebReviewSnippets, filterSubjectSnippets } from "./web-reviews";
+import { parseWebReviewSnippets, filterSubjectSnippets, reviewCountFromSnippets } from "./web-reviews";
 
 describe("parseWebReviewSnippets", () => {
   it("extracts review-bearing snippets from a Tavily-style body (answer + results)", () => {
@@ -41,5 +41,29 @@ describe("filterSubjectSnippets (brand-ambiguity hard rule)", () => {
 
   it("returns [] when nothing references the subject", () => {
     expect(filterSubjectSnippets(["Some other product entirely."], "nudgi.ai")).toEqual([]);
+  });
+
+  it("keeps reviews that reference the brand name, not just the full host (Stripe)", () => {
+    const out = filterSubjectSnippets(
+      ["Stripe Reviews 2026 — verified pros & cons.", "My experience with Stripe has been positive."],
+      "stripe.com",
+    );
+    expect(out).toHaveLength(2); // was 0 before brand-token matching ("1 review for Stripe" bug)
+  });
+
+  it("falls back to the full host when the brand token is too short to be safe", () => {
+    // brand token "go" (<4 chars) → require the full host so it doesn't match everything
+    expect(filterSubjectSnippets(["Go is a programming language."], "go.com")).toEqual([]);
+  });
+});
+
+describe("reviewCountFromSnippets", () => {
+  it("returns the largest review/rating figure across snippets", () => {
+    expect(reviewCountFromSnippets(["4.2/5 from 380 reviews", "G2: 1,240 reviews"])).toBe(1240);
+    expect(reviewCountFromSnippets(["12,450 verified ratings on Capterra"])).toBe(12450);
+  });
+  it("returns 0 when no count is present (caller falls back to snippet count)", () => {
+    expect(reviewCountFromSnippets(["a reliable payment platform"])).toBe(0);
+    expect(reviewCountFromSnippets([])).toBe(0);
   });
 });

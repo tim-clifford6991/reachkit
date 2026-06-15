@@ -30,9 +30,34 @@ export function parseWebReviewSnippets(body: unknown): string[] {
  * subject's themes/insight. Errs toward dropping — brand-safety over coverage.
  */
 export function filterSubjectSnippets(snippets: string[], subjectHost: string): string[] {
-  const needle = subjectHost.toLowerCase().replace(/^www\./, "");
-  if (!needle) return [];
+  const host = subjectHost.toLowerCase().replace(/^www\./, "");
+  if (!host) return [];
+  // Match the distinctive BRAND token ("stripe", "nudgi") — that's how real reviews
+  // reference a product ("Stripe", not "stripe.com"). Requiring the full host dropped
+  // almost every genuine review (the "1 review for Stripe" bug). The token still
+  // blocks a same-named DIFFERENT product ("Nudge AI" lacks "nudgi"). Fall back to the
+  // full host when the token is too short to be safe (a 2–3 char token matches anything).
+  const brand = host.split(".")[0] ?? host;
+  const needle = brand.length >= 4 ? brand : host;
   return snippets.filter((s) => s.toLowerCase().includes(needle));
+}
+
+/**
+ * Largest "<n> reviews"/"<n> ratings" figure found across the snippets, else 0.
+ * Lets a web scan surface a real review count (Capterra/G2 page summaries embed
+ * "from 380 reviews") instead of the misleading snippet count. NEVER fabricates:
+ * 0 when nothing parseable, and the caller falls back to the snippet count.
+ */
+export function reviewCountFromSnippets(snippets: string[]): number {
+  let max = 0;
+  const re = /([\d][\d,]{1,})\s*(?:verified\s+)?(?:reviews|ratings)/gi;
+  for (const s of snippets) {
+    for (const m of s.matchAll(re)) {
+      const n = Number((m[1] ?? "").replace(/,/g, ""));
+      if (Number.isFinite(n) && n > max) max = n;
+    }
+  }
+  return max;
 }
 
 export async function fetchWebReviews(subject: string): Promise<{ snippets: string[]; raw: unknown }> {

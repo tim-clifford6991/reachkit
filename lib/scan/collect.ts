@@ -12,7 +12,7 @@ import { upsertRawDocument } from "@/lib/db/raw-documents";
 import { extractCompetitorNames } from "@/lib/llm/competitor-names";
 import { parseSerpContent } from "@/lib/scan/adapters/dataforseo";
 import { parseTavilyContent } from "@/lib/scan/adapters/tavily";
-import { fetchWebReviews } from "@/lib/scan/adapters/web-reviews";
+import { fetchWebReviews, reviewCountFromSnippets } from "@/lib/scan/adapters/web-reviews";
 
 // ---------------------------------------------------------------------------
 // productName derivation
@@ -154,6 +154,13 @@ export async function collect(ctx: ScanContext): Promise<PreliminaryFacts> {
     ...listingResult.extras,
     ...competitorsResult.extras,
   };
+  // Web mode: surface a REAL review count parsed from the review snippets
+  // ("from 380 reviews") rather than the misleading snippet count. Falls back to
+  // the snippet count (in facts.ts) when no figure is parseable.
+  if (mode === "web") {
+    const webReviewCount = reviewCountFromSnippets(reviewsResult.reviews.map((r) => r.body));
+    if (webReviewCount > 0) mergedExtras.ratingCount = webReviewCount;
+  }
 
   return assembleFacts(ctx, {
     listing: listingResult.listing,
