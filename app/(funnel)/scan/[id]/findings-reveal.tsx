@@ -189,24 +189,8 @@ function LockedFinding({ finding, index }: { finding: Finding; index: number }) 
         </p>
       </div>
 
-      {/* Lock overlay */}
-      <div className="absolute inset-0 flex items-center justify-center backdrop-blur-[2px]">
-        <div
-          className="flex items-center gap-2 rounded-full border px-3 py-1.5"
-          style={{
-            borderColor: "oklch(1 0 0 / 0.18)",
-            background: "oklch(0.085 0 0 / 0.85)",
-          }}
-        >
-          <LockIcon />
-          <span
-            className="text-xs font-medium"
-            style={{ color: "oklch(0.96 0.006 85)" }}
-          >
-            Unlock with your report
-          </span>
-        </div>
-      </div>
+      {/* Lock overlay — clickable: prompts the email gate */}
+      <LockBadge label={`Unlock finding ${index + 1} with your email`} />
     </div>
   );
 }
@@ -261,6 +245,42 @@ function LockIcon() {
         style={{ color: "oklch(0.76 0 0)" }}
       />
     </svg>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Unlock interaction — every locked element is an actionable CTA: clicking it
+// scrolls to the email gate and focuses the field, prompting the user to unlock.
+// ---------------------------------------------------------------------------
+
+function scrollToGate() {
+  if (typeof document === "undefined") return;
+  document
+    .getElementById("unlock-gate")
+    ?.scrollIntoView({ behavior: "smooth", block: "center" });
+  // Focus the email field once the smooth-scroll is underway.
+  setTimeout(() => document.getElementById("unlock-email")?.focus(), 350);
+}
+
+/** Clickable lock overlay — prompts the email gate on click. */
+function LockBadge({ label }: { label: string }) {
+  return (
+    <button
+      type="button"
+      onClick={scrollToGate}
+      className="absolute inset-0 flex cursor-pointer items-center justify-center backdrop-blur-[2px] transition-transform hover:scale-[1.02] motion-reduce:transform-none"
+      aria-label={label}
+    >
+      <div
+        className="flex items-center gap-2 rounded-full border px-3 py-1.5"
+        style={{ borderColor: "oklch(1 0 0 / 0.18)", background: "oklch(0.085 0 0 / 0.85)" }}
+      >
+        <LockIcon />
+        <span className="text-xs font-medium" style={{ color: "oklch(0.96 0.006 85)" }}>
+          Unlock with email
+        </span>
+      </div>
+    </button>
   );
 }
 
@@ -444,23 +464,7 @@ export function FindingsReveal({
             {sampleAction.draft}
           </p>
         </div>
-        <div className="absolute inset-0 flex items-center justify-center backdrop-blur-[2px]">
-          <div
-            className="flex items-center gap-2 rounded-full border px-3 py-1.5"
-            style={{
-              borderColor: "oklch(1 0 0 / 0.18)",
-              background: "oklch(0.085 0 0 / 0.85)",
-            }}
-          >
-            <LockIcon />
-            <span
-              className="text-xs font-medium"
-              style={{ color: "oklch(0.96 0.006 85)" }}
-            >
-              Unlock with your report
-            </span>
-          </div>
-        </div>
+        <LockBadge label="Unlock your action plan with your email" />
       </div>
 
       {/* ── What your report also contains (pre-gate teaser) ─────────────── */}
@@ -491,11 +495,20 @@ export function FindingsReveal({
             A prioritized action plan across content, outreach &amp; SEO
           </li>
         </ul>
+        <button
+          type="button"
+          onClick={scrollToGate}
+          className="mt-4 text-xs font-medium underline underline-offset-4 transition-colors"
+          style={{ color: "var(--color-accent-400)" }}
+        >
+          Unlock the full report with your email →
+        </button>
       </div>
 
-      {/* ── Moment 4: Email gate ─────────────────────────────────────────── */}
+      {/* ── Moment 4: Email gate (every locked CTA scrolls + focuses here) ── */}
       <div
-        className="rounded-xl border p-8"
+        id="unlock-gate"
+        className="scroll-mt-8 rounded-xl border p-8"
         style={{
           borderColor: "var(--color-accent-900)",
           background:

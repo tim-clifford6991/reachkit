@@ -141,6 +141,7 @@ export function EmailGate({ scanId }: EmailGateProps) {
       <div className="flex-1 space-y-1.5">
         <Input
           ref={inputRef}
+          id="unlock-email"
           type="email"
           autoComplete="email"
           placeholder="your@email.com"
