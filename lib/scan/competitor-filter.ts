@@ -29,6 +29,9 @@ const AGGREGATOR_HOSTS = [
   "sourceforge.net", "saashub.com", "crozdesk.com", "goodfirms.co", "financesonline.com",
   "tekpon.com", "selecthub.com", "toolify.ai", "futurepedia.io", "theresanaiforthat.com",
   "reddit.com", "quora.com", "medium.com", "substack.com", "wikipedia.org",
+  // forums / Q&A — a thread is never the rival product (the Stripe scan surfaced
+  // an "Ask HN" item from news.ycombinator.com).
+  "ycombinator.com", "news.ycombinator.com", "stackoverflow.com", "stackexchange.com",
   "youtube.com", "youtu.be", "linkedin.com", "twitter.com", "x.com", "facebook.com",
   "instagram.com", "tiktok.com", "pinterest.com", "forbes.com", "techcrunch.com",
   "zapier.com", "nerdwallet.com", "pcmag.com", "cnet.com",
@@ -44,6 +47,17 @@ export function isAggregatorHost(host: string): boolean {
   const h = host.replace(/^www\./, "").toLowerCase();
   return AGGREGATOR_HOSTS.some((a) => h === a || h.endsWith(`.${a}`));
 }
+
+/**
+ * Forum/aggregator artifact NAMES that are never real products — caught regardless
+ * of host (a SERP result titled "Ask HN" surfaced as a competitor). Shared with the
+ * LLM competitor extractor (lib/llm/competitor-names) so BOTH discovery paths drop them.
+ */
+export const NON_PRODUCT_NAMES = new Set<string>([
+  "ask hn", "show hn", "hacker news", "hackernews", "reddit", "quora",
+  "product hunt", "producthunt", "g2", "capterra", "getapp", "trustpilot",
+  "stack overflow", "stackoverflow",
+]);
 
 // A title that reads like a listicle / comparison article rather than a product.
 const LISTICLE_RE =
@@ -146,6 +160,7 @@ export function filterRealCompetitors(
     let name = cleanCompetitorName(c.name);
     if (!name || looksLikeListicle(name)) name = host ? brandFromHost(host) : "";
     if (!name) continue; // nothing usable (empty name + no host to fall back to)
+    if (NON_PRODUCT_NAMES.has(name.toLowerCase())) continue; // forum/aggregator artifact
     // Brand-ambiguity hard rule: never accept a same-/similar-named DIFFERENT product.
     if (subject && hasAnyCollision(name, host, subject)) continue;
     out.push({ ...c, name });

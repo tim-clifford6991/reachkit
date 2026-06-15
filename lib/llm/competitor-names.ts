@@ -3,16 +3,9 @@ import type { ScanContext } from "@/lib/scan/pipeline";
 import { callModel } from "@/lib/llm/anthropic";
 import { extractJson } from "@/lib/llm/json";
 import { fixturesEnabled } from "@/lib/dev/fixtures";
+import { NON_PRODUCT_NAMES } from "@/lib/scan/competitor-filter";
 
 const MODEL = "claude-haiku-4-5-20251001" as const;
-
-// Non-product artifacts the LLM sometimes pulls from forum/listicle content
-// ("Ask HN: Stripe alternatives?") — never real competitors. Defense-in-depth on
-// top of the prompt exclusion.
-const NON_PRODUCTS = new Set<string>([
-  "ask hn", "show hn", "hacker news", "hackernews", "reddit", "quora",
-  "product hunt", "producthunt", "g2", "capterra", "getapp", "trustpilot",
-]);
 
 export interface CompetitorNameInput {
   subjectName: string;
@@ -63,7 +56,7 @@ export function parseCompetitorNames(raw: string): Competitor[] {
     const name = String((c as { name?: unknown } | null)?.name ?? "").trim();
     if (!name) continue;
     const key = name.toLowerCase();
-    if (NON_PRODUCTS.has(key)) continue; // forum/listicle artifacts, never products
+    if (NON_PRODUCT_NAMES.has(key)) continue; // forum/listicle artifacts, never products
     if (seen.has(key)) continue;
     seen.add(key);
     out.push({ name, url: "", source: "llm_extracted", rank: out.length + 1 });
