@@ -53,8 +53,9 @@ export function ScoreBlock({ score }: ScoreBlockProps) {
         className="mt-6 max-w-xs text-center text-xs leading-relaxed"
         style={{ color: "var(--color-muted)" }}
       >
-        Score based on verified content, outreach, and SEO signals.
-        Fix the actions below to move it.
+        Discoverability we could verify in ~90 seconds. Content, outreach, ads,
+        PR &amp; partnerships aren&apos;t measured in the free scan — fix the actions
+        below to move what we can see.
       </p>
     </div>
   );

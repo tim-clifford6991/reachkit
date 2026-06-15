@@ -422,3 +422,38 @@ describe("gatherScoreComponents — first scan (Cycle 3)", () => {
     expect(typeof components.outreachSurfaces).toBe("number");
   });
 });
+
+// ---------------------------------------------------------------------------
+// M3: assessed axes — don't score un-measured surfaces as 0 (the "Stripe = 19" fix)
+// ---------------------------------------------------------------------------
+describe("verifiedScore — assessed axes (credible score)", () => {
+  test("first scan (no content/outreach surfaces): total === seo, those axes NOT assessed", () => {
+    // keywordsRanking 84 → web seo = 84*0.50 = 42. Old formula dragged this to ~19.
+    const result = verifiedScore({ ...ZERO_COMPONENTS, keywordsRanking: 84 }, "web");
+    expect(result.breakdown.seo).toBe(42);
+    expect(result.total).toBe(42); // assessed-only: not penalised by un-measured content/outreach
+    const byAxis = Object.fromEntries(result.radar.map((a) => [a.axis, a]));
+    expect(byAxis["SEO/ASO"]?.assessed).toBe(true);
+    expect(byAxis["Content"]?.assessed).toBe(false);
+    expect(byAxis["Outreach"]?.assessed).toBe(false);
+  });
+
+  test("with verified content + outreach surfaces: all assessed, total blends all three", () => {
+    const result = verifiedScore(
+      { ...ZERO_COMPONENTS, keywordsRanking: 80, contentSurfaces: 50, outreachSurfaces: 30 },
+      "web",
+    );
+    const byAxis = Object.fromEntries(result.radar.map((a) => [a.axis, a]));
+    expect(byAxis["Content"]?.assessed).toBe(true);
+    expect(byAxis["Outreach"]?.assessed).toBe(true);
+    const { content, outreach, seo } = result.breakdown;
+    expect(result.total).toBe(Math.round(0.3 * content + 0.25 * outreach + 0.45 * seo));
+  });
+
+  test("locked axes are never assessed", () => {
+    const result = verifiedScore(BASE_COMPONENTS, "ios");
+    for (const ax of result.radar.filter((a) => !a.active)) {
+      expect(ax.assessed).toBe(false);
+    }
+  });
+});
