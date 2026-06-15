@@ -1,17 +1,19 @@
 "use client";
 
 import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 /**
  * Shown when the results page is reached before the background full-scan has
  * persisted report_payload (a fast user beating the deferred action drafting).
- * Self-refreshes so the report appears without a manual reload.
+ * Soft-refreshes (RSC re-render, no hard reload/flicker) until the report lands.
  */
 export function ReportPending() {
+  const router = useRouter();
   useEffect(() => {
-    const t = setInterval(() => window.location.reload(), 4000);
+    const t = setInterval(() => router.refresh(), 4000);
     return () => clearInterval(t);
-  }, []);
+  }, [router]);
   return (
     <div
       className="rounded-xl border p-8 text-center"

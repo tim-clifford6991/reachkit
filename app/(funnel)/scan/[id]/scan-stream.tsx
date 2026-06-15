@@ -422,6 +422,7 @@ export function ScanStream({
           // Give up reconnecting → reveal whatever we have: failed gates the
           // (findingsData || failed) && facts reveal, or surfaces ScanError if no facts.
           setFailed(true);
+          cleanup(); // cancel the watchdog timer too
           return;
         }
         reconnects++;
