@@ -338,14 +338,6 @@ export function ScanStream({
   const [failed, setFailed] = useState<boolean>(
     seed.errored || initialStatus === "failed"
   );
-  // Option A reveals only when the WHOLE scan has finished, so every checklist step
-  // visibly completes first. Seeded true for an already-finished (non-failed) scan.
-  const [done, setDone] = useState<boolean>(
-    seed.done ||
-      (initialStatus != null &&
-        initialStatus !== "failed" &&
-        !ACTIVE_STATUSES.includes(initialStatus))
-  );
 
   // Already finished (per the seed or the persisted status)? Nothing to stream.
   const statusActive =
@@ -393,14 +385,12 @@ export function ScanStream({
         funnel.findingsShown({ scan_id: id, score: fp.score.total });
       } else if (e.type === "done") {
         settled = true;
-        setDone(true);
         cleanup();
       } else if (e.type === "error") {
-        // Nothing usable yet → hard error. But if facts/findings already arrived,
-        // reveal the partial result instead of leaving the user stuck on the
-        // checklist forever (the reveal is gated on `done`).
-        if (!settled) setFailed(true);
-        else setDone(true);
+        // Reveal whatever we have: the reveal is gated on (findingsData || failed) &&
+        // facts, so setting failed surfaces the partial result when facts arrived, or
+        // ScanError when nothing did.
+        setFailed(true);
         cleanup();
       }
     };
@@ -427,10 +417,9 @@ export function ScanStream({
         es?.close();
         if (cancelled) return;
         if (Date.now() > overallDeadline || reconnects > 200) {
-          // Give up reconnecting: hard-fail only if nothing arrived; otherwise
-          // reveal the partial result we already have rather than spin forever.
-          if (!settled) setFailed(true);
-          else setDone(true);
+          // Give up reconnecting → reveal whatever we have: failed gates the
+          // (findingsData || failed) && facts reveal, or surfaces ScanError if no facts.
+          setFailed(true);
           return;
         }
         reconnects++;
@@ -447,10 +436,12 @@ export function ScanStream({
   if (!scanExists) return <ScanNotFound />;
   if (failed && !facts) return <ScanError />;
 
-  // Reveal (Option A): once the whole scan is DONE — or it failed after producing
-  // facts (show the partial result, not a spinner) — render the facts cards + the
-  // findings reveal / email gate. The free competitor card lives here now.
-  if ((done || failed) && facts) {
+  // Reveal (speed-to-wow): the wow — competitor card + score + positioning — is
+  // fully carried by the facts + findings events (~40s). Reveal as soon as findings
+  // land; the heavy full-scan (action drafting) keeps running in the background for
+  // the post-email results page. `done` still closes the SSE loop but no longer
+  // gates the reveal. A failure after facts shows the partial result, not a spinner.
+  if ((findingsData || failed) && facts) {
     return <FactsView facts={facts} findingsData={findingsData} scanId={id} />;
   }
 
