@@ -83,13 +83,13 @@ export function ScanInput() {
           autoComplete="url"
           autoCapitalize="none"
           spellCheck={false}
-          placeholder="Paste a link or type a domain — e.g. apple.com"
+          placeholder="Paste a link or type a domain — e.g. yourproduct.com"
           value={url}
           onChange={(e) => {
             setUrl(e.target.value);
             if (state.status === "error") setState({ status: "idle" });
           }}
-          aria-label="App Store URL or website"
+          aria-label="Website or product link"
           aria-invalid={state.status === "error" || undefined}
           aria-describedby={state.status === "error" ? "scan-error" : undefined}
           disabled={isLoading}

@@ -3,22 +3,25 @@
  *
  * Composes the §21.1 section library + §20.3 GSAP set pieces.
  * Section order (§22.1 spec):
- *   Hero + ScanInput (above the fold, §23 moment 1)
+ *   Hero (2-col: ScanInput left, HeroScanDemo proof right) — §23 moment 1
  *   SocialProofMarquee
  *   ScanScrollSequence (GSAP set piece 2, lazy)
+ *   Empathy
  *   FeatureBento
  *   HowItWorksScroll (GSAP set piece 3, lazy)
  *   TeardownGrid
  *   ComparisonTable
+ *   SocialProof
  *   PricingTable
  *   Faq
- *   FinalCta
+ *   (closing scan CTA = site-wide PreFooterShare in layout)
  *   Footer
  *
  * JSON-LD: SoftwareApplication + Organization + FAQPage (Faq emits its own).
  *
  * LCP strategy:
- * - Hero + ScanInput are static/CSS — no GSAP blocking above the fold
+ * - Hero text + ScanInput are static/CSS; HeroScanDemo is server-rendered with
+ *   CSS-only animation (no client JS above the fold)
  * - GSAP set pieces are dynamically imported with ssr:false (below the fold)
  * - Lenis + GSAP init in layout.tsx (marketing-only, never reaches app/funnel)
  */
@@ -46,6 +49,7 @@ import { ScanInput } from "./scan-input";
 // and below-the-fold sections don't all land in one eager first-load chunk.
 import { SocialProofMarquee } from "@/components/sections/social-proof-marquee";
 import { Empathy } from "@/components/sections/empathy";
+import { HeroScanDemo } from "@/components/sections/hero-scan-demo";
 import { SocialProof } from "@/components/sections/social-proof";
 import { FeatureBento } from "@/components/sections/feature-bento";
 import { HowItWorksScroll } from "@/components/sections/how-it-works-scroll";
@@ -53,7 +57,6 @@ import { TeardownGrid } from "@/components/sections/teardown-grid";
 import { ComparisonTable } from "@/components/sections/comparison-table";
 import { PricingTable } from "@/components/sections/pricing-table";
 import { Faq } from "@/components/sections/faq";
-import { FinalCta } from "@/components/sections/final-cta";
 import type { SocialProofMarqueeContent } from "@/components/sections/social-proof-marquee";
 import type { EmpathyContent } from "@/components/sections/empathy";
 import type { SocialProofContent } from "@/components/sections/social-proof";
@@ -62,7 +65,6 @@ import type { TeardownGridContent } from "@/components/sections/teardown-grid";
 import type { ComparisonTableContent } from "@/components/sections/comparison-table";
 import type { PricingTableContent } from "@/components/sections/pricing-table";
 import type { FaqContent } from "@/components/sections/faq";
-import type { FinalCtaContent } from "@/components/sections/final-cta";
 // GSAP set pieces live behind a client boundary with ssr:false dynamic imports
 import {
   LazyScanScrollSequence,
@@ -78,7 +80,7 @@ import { RecentScans } from "@/components/sections/recent-scans";
 export const metadata: Metadata = buildMetadata({
   title: "The distribution system for solo founders",
   description:
-    "Paste your App Store URL or website and get a free discoverability report — SEO gaps, positioning blind spots, and ranked action steps in under two minutes.",
+    "Paste your website or product link and get a free discoverability report — SEO gaps, positioning blind spots, and ranked action steps in under two minutes.",
   path: "/",
 });
 
@@ -371,13 +373,6 @@ const FAQ_CONTENT: FaqContent = {
   ],
 };
 
-const FINAL_CTA_CONTENT: FinalCtaContent = {
-  eyebrow: "Free, no account needed",
-  headline: "Find out exactly why your product isn't getting found",
-  subhead:
-    "Paste your App Store URL or website. Get your Discoverability Score and a ranked action list in 90 seconds.",
-};
-
 // ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
@@ -409,70 +404,77 @@ export default function HomePage() {
       {/* CSS-only entrance (no JS/GSAP dependency) so the headline is never
           blank — calm and robust, fitting the Almanac direction. */}
       <section
-          className="hero-section relative flex flex-col items-center gap-14 overflow-hidden px-(--spacing-content-x) pb-(--spacing-section-y) pt-16 text-center sm:pt-24"
+          className="hero-section relative overflow-hidden px-(--spacing-content-x) pb-(--spacing-section-y) pt-16 sm:pt-24"
           aria-label="Hero"
         >
           {/* Ambient animated gradient mesh — pure CSS, below the LCP path */}
           <GradientMesh />
 
-          <div className="hero-content relative z-10 flex max-w-2xl flex-col items-center gap-8">
-            {/* Eyebrow — glass pill */}
-            <p
-              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-mono text-xs uppercase tracking-wider backdrop-blur-[var(--glass-blur)]"
-              style={{
-                borderWidth: 1,
-                borderStyle: "solid",
-                borderColor: "var(--glass-border)",
-                background: "var(--glass-tint)",
-                color: "var(--color-accent-400)",
-              }}
-            >
-              <span
-                className="h-1.5 w-1.5 animate-pulse rounded-full"
-                style={{ background: "var(--color-accent-400)" }}
-                aria-hidden="true"
-              />
-              Free · no account needed
-            </p>
-
-            {/* Headline — SSR'd for SEO + LCP, GSAP enhances on hydrate */}
-            <h1
-              data-hero-headline
-              className="text-[2.25rem] font-bold tracking-[var(--tracking-display)] sm:text-6xl lg:text-7xl"
-              style={{ color: "var(--color-fg)", lineHeight: 1.05 }}
-            >
-              Find out exactly why
-              <br />
-              <span
-                data-hero-accent
+          <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-2 lg:gap-10">
+            {/* ── Left: text + the single action ── */}
+            <div className="hero-content flex flex-col items-center gap-8 text-center lg:items-start lg:text-left">
+              {/* Eyebrow — glass pill */}
+              <p
+                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-mono text-xs uppercase tracking-wider backdrop-blur-[var(--glass-blur)]"
                 style={{
-                  background: "var(--gradient-accent)",
-                  WebkitBackgroundClip: "text",
-                  backgroundClip: "text",
-                  color: "transparent",
+                  borderWidth: 1,
+                  borderStyle: "solid",
+                  borderColor: "var(--glass-border)",
+                  background: "var(--glass-tint)",
+                  color: "var(--color-accent-400)",
                 }}
               >
-                your product isn&apos;t
-              </span>
-              <br />
-              getting found
-            </h1>
+                <span
+                  className="h-1.5 w-1.5 animate-pulse rounded-full"
+                  style={{ background: "var(--color-accent-400)" }}
+                  aria-hidden="true"
+                />
+                Free · no account needed
+              </p>
 
-            {/* Subhead */}
-            <p
-              data-hero-subhead
-              className="mx-auto max-w-md text-base leading-relaxed sm:text-lg"
-              style={{ color: "var(--color-muted)" }}
-            >
-              Paste your App Store URL or website. An AI reads your live listing
-              the way a customer&apos;s search does — and hands back a
-              Discoverability Score, your positioning gap, and ranked fixes in ~90
-              seconds.
-            </p>
+              {/* Headline — SSR'd for SEO + LCP, GSAP enhances on hydrate */}
+              <h1
+                data-hero-headline
+                className="text-[2.25rem] font-bold tracking-[var(--tracking-display)] sm:text-6xl lg:text-6xl"
+                style={{ color: "var(--color-fg)", lineHeight: 1.05 }}
+              >
+                Find out exactly why
+                <br />
+                <span
+                  data-hero-accent
+                  style={{
+                    background: "var(--gradient-accent)",
+                    WebkitBackgroundClip: "text",
+                    backgroundClip: "text",
+                    color: "transparent",
+                  }}
+                >
+                  your product isn&apos;t
+                </span>
+                <br />
+                getting found
+              </h1>
 
-            {/* ── Scan input — THE single action above the fold ── */}
-            <div className="w-full max-w-lg">
-              <ScanInput />
+              {/* Subhead — generalized (any website / product link) */}
+              <p
+                data-hero-subhead
+                className="max-w-md text-base leading-relaxed sm:text-lg"
+                style={{ color: "var(--color-muted)" }}
+              >
+                Paste your website or product link. An AI reads your live page the
+                way a customer&apos;s search does — and hands back a Discoverability
+                Score, your positioning gap, and ranked fixes in ~90 seconds.
+              </p>
+
+              {/* ── Scan input — THE single action above the fold ── */}
+              <div className="w-full max-w-lg">
+                <ScanInput />
+              </div>
+            </div>
+
+            {/* ── Right: live-style scan-result demo (proof) — desktop only ── */}
+            <div className="hero-demo hidden justify-center lg:flex">
+              <HeroScanDemo />
             </div>
           </div>
 
@@ -481,6 +483,9 @@ export default function HomePage() {
             @media (prefers-reduced-motion: no-preference) {
               .hero-content {
                 animation: hero-fade-up 0.6s cubic-bezier(0.25, 0, 0, 1) both;
+              }
+              .hero-demo {
+                animation: hero-fade-up 0.7s cubic-bezier(0.25, 0, 0, 1) 0.15s both;
               }
             }
             @keyframes hero-fade-up {
@@ -525,11 +530,8 @@ export default function HomePage() {
       {/* ── FAQ (emits FAQPage JSON-LD internally) ──────────────────────── */}
       <Faq content={FAQ_CONTENT} />
 
-      {/* ── Final CTA ───────────────────────────────────────────────────── */}
-      <FinalCta content={FINAL_CTA_CONTENT}>
-        <ScanInput />
-      </FinalCta>
-
+      {/* Closing scan CTA lives in the site-wide PreFooterShare band (layout),
+          so the homepage no longer carries a duplicate FinalCta here. */}
     </main>
   );
 }
