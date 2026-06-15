@@ -142,7 +142,6 @@ export function EmailGate({ scanId }: EmailGateProps) {
         <Input
           ref={inputRef}
           type="email"
-          autoFocus
           autoComplete="email"
           placeholder="your@email.com"
           value={email}

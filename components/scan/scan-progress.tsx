@@ -21,6 +21,7 @@ function PulseDot() {
 export function ScanProgress({
   artifacts,
   productName,
+  host,
   reviewCount,
   competitorCount,
   ctaCount,
@@ -28,6 +29,7 @@ export function ScanProgress({
 }: {
   artifacts: string[];
   productName?: string | null;
+  host?: string | null;
   reviewCount?: number;
   competitorCount?: number;
   ctaCount?: number;
@@ -51,7 +53,7 @@ export function ScanProgress({
         </p>
       </div>
       <div className="grid gap-8 md:grid-cols-2 md:items-start">
-        <ScanAnimation productName={productName} />
+        <ScanAnimation productName={productName} host={host} />
         <ScanChecklist steps={steps} />
       </div>
     </div>

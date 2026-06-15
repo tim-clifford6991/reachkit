@@ -319,11 +319,13 @@ export function ScanStream({
   scanExists = true,
   initialStatus = null,
   initialEvents = [],
+  host = null,
 }: {
   id: string;
   scanExists?: boolean;
   initialStatus?: string | null;
   initialEvents?: SeedEvent[];
+  host?: string | null;
 }) {
   // Compute the seed exactly once (initialEvents is a stable SSR prop).
   const seedRef = useRef<ReturnType<typeof buildSeed> | null>(null);
@@ -451,6 +453,7 @@ export function ScanStream({
     <ScanProgress
       artifacts={artifacts}
       productName={facts?.listing.name ?? null}
+      host={host}
       reviewCount={facts?.reviewVolume}
       competitorCount={facts?.competitors.length}
       finished={false}

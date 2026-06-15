@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { buildMetadata } from "@/lib/seo";
 import { serverDb } from "@/lib/db/client";
+import { hostname } from "@/lib/scan/url";
 import { ScanStream } from "./scan-stream";
 
 export function generateStaticParams() {
@@ -42,7 +43,7 @@ export default async function ScanPage({
 async function ScanHydrator({ id }: { id: string }) {
   const db = serverDb();
   const [scanRes, eventsRes] = await Promise.all([
-    db.from("scans").select("status").eq("id", id).maybeSingle(),
+    db.from("scans").select("status, apps(store_url)").eq("id", id).maybeSingle(),
     db
       .from("scan_events")
       .select("id, type, payload")
@@ -51,6 +52,9 @@ async function ScanHydrator({ id }: { id: string }) {
   ]);
 
   const initialStatus = (scanRes.data?.status as string | undefined) ?? null;
+  // The scanned site's host — shown as a reference in the scan animation from the start.
+  const storeUrl = (scanRes.data?.apps as unknown as { store_url?: string } | null)?.store_url;
+  const host = storeUrl ? hostname(storeUrl) : null;
   const initialEvents = (eventsRes.data ?? []).map((r) => ({
     id: r.id as number,
     type: r.type as string,
@@ -63,6 +67,7 @@ async function ScanHydrator({ id }: { id: string }) {
       scanExists={scanRes.data != null}
       initialStatus={initialStatus}
       initialEvents={initialEvents}
+      host={host}
     />
   );
 }
