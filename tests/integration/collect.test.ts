@@ -142,6 +142,7 @@ test(
     }));
     vi.doMock("@/lib/scan/adapters/web-reviews", () => ({
       fetchWebReviews: async () => ({ snippets: [], raw: null }),
+      reviewCountFromSnippets: () => 0,
     }));
 
     // Dynamically import pipeline after mocking so it picks up mocked modules
