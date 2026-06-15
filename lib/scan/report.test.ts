@@ -379,3 +379,73 @@ describe("assembleReport — whoItsFor edge cases", () => {
     expect(report.whoItsFor.signals).toEqual(sixSignals);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Deep sections (surfaced from already-computed data)
+// ---------------------------------------------------------------------------
+
+describe("assembleReport — deep sections", () => {
+  test("populates all four deep sections when provided, mapping findings→diagnostics", () => {
+    const report = assembleReport({
+      mode: "ios",
+      generatedAt: "2026-07-01T00:00:00Z",
+      positioningMirror: POSITIONING_MIRROR,
+      findings: [SAMPLE_FINDING],
+      icpSignals: [],
+      surfaces: [],
+      competitorGap: [],
+      actions: [],
+      score: SAMPLE_SCORE,
+      competitiveLandscape: [
+        { competitor: "Habitify", positioning: "analytics-heavy", gap: "too complex", communityMentions: 9, creators: [{ name: "Chan", url: "https://yt/1" }] },
+      ],
+      channelOpportunities: {
+        keywordClusters: [{ theme: "habit", keywords: [{ keyword: "habit tracker", volume: 8100, cpc: 1.2, competition: 0.4 }] }],
+        communitiesByEngagement: [{ source: "hn", title: "Ask HN", url: "https://h/1", engagement: 300 }],
+      },
+      creatorsToReach: [{ name: "Chan", url: "https://yt/1", coveredCompetitor: "Habitify", audienceProxy: 0 }],
+      reviewThemes: {
+        strengths: [{ theme: "streaks", quote: "keeps me going" }],
+        weaknesses: [{ theme: "crashes", quote: "crashes daily" }],
+        mixed: [{ theme: "widget", quote: "nice but flaky" }],
+      },
+    });
+
+    expect(report.competitiveLandscape).toHaveLength(1);
+    expect(report.competitiveLandscape?.[0]?.creators[0]?.name).toBe("Chan");
+    expect(report.channelOpportunities?.keywordClusters[0]?.keywords[0]?.cpc).toBe(1.2);
+    expect(report.channelOpportunities?.communitiesByEngagement[0]?.engagement).toBe(300);
+    expect(report.creatorsToReach).toHaveLength(1);
+    // strengths/weaknesses/mixed pass through; diagnostics derive from findings
+    expect(report.strengthsAndWeaknesses?.strengths[0]?.quote).toBe("keeps me going");
+    expect(report.strengthsAndWeaknesses?.weaknesses[0]?.theme).toBe("crashes");
+    expect(report.strengthsAndWeaknesses?.mixed[0]?.theme).toBe("widget");
+    expect(report.strengthsAndWeaknesses?.diagnostics).toEqual([
+      { category: "content", claim: SAMPLE_FINDING.claim, confidence: 0.85 },
+    ]);
+  });
+
+  test("degrades to empty deep sections when not provided (legacy callers)", () => {
+    const report = assembleReport({
+      mode: "web",
+      generatedAt: "2026-07-01T00:00:00Z",
+      positioningMirror: POSITIONING_MIRROR,
+      findings: [],
+      icpSignals: [],
+      surfaces: [],
+      competitorGap: [],
+      actions: [],
+      score: SAMPLE_SCORE,
+    });
+
+    expect(report.competitiveLandscape).toEqual([]);
+    expect(report.channelOpportunities).toEqual({ keywordClusters: [], communitiesByEngagement: [] });
+    expect(report.creatorsToReach).toEqual([]);
+    expect(report.strengthsAndWeaknesses).toEqual({
+      strengths: [],
+      weaknesses: [],
+      mixed: [],
+      diagnostics: [],
+    });
+  });
+});

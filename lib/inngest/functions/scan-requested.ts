@@ -6,7 +6,6 @@ import { runCollect } from "@/lib/scan/pipeline";
 import { runFindings } from "@/lib/scan/findings-pipeline";
 import { runFullScan } from "@/lib/scan/full-scan";
 import { emitScanEvent } from "@/lib/scan/progress";
-import { sendScanReadyEmail } from "@/lib/email/resend";
 import type { Json } from "@/lib/db/types";
 
 export const scanRequested = inngest.createFunction(
@@ -165,34 +164,7 @@ export const scanRequested = inngest.createFunction(
       );
     });
 
-    // Step 4: notify — send scan-ready email to the claimant (best-effort; never fails the run)
-    await step.run("notify", async () => {
-      const db = serverDb();
-
-      const { data: scanRow, error: scanErr } = await db
-        .from("scans")
-        .select("id, claim_email, apps(name, store_url)")
-        .eq("id", scanId)
-        .single();
-
-      if (scanErr) throw scanErr;
-      if (!scanRow) return;
-
-      const claimEmail = scanRow.claim_email;
-      if (!claimEmail) return;
-
-      const appsRaw = scanRow.apps as unknown as { name: string | null; store_url: string } | null;
-      const appName = appsRaw?.name ?? appsRaw?.store_url ?? scanId;
-      const reportUrl = `${env.appUrl}/scan/${scanId}/results`;
-
-      try {
-        await sendScanReadyEmail({ to: claimEmail, scanId, appName, reportUrl });
-      } catch (err) {
-        console.error("[notify] scan-ready email failed (best-effort):", err);
-      }
-    });
-
-    // Step 5: done — emit done event and mark scan complete
+    // Step 4: done — emit done event and mark scan complete
     await step.run("done", async () => {
       await emitScanEvent(scanId, "done", { scanId });
 

@@ -16,6 +16,63 @@ import { serverDb } from "@/lib/db/client";
 // Public types
 // ---------------------------------------------------------------------------
 
+/** A competitor row for the full competitive landscape (paid deep section). */
+export interface CompetitiveLandscapeRow {
+  competitor: string;
+  positioning: string | null;
+  gap: string | null;
+  /** Community-mention count (the "them" signal). */
+  communityMentions: number;
+  /** Creators/influencers that cover this competitor (outreach targets). */
+  creators: Array<{ name: string; url: string }>;
+}
+
+export interface KeywordOpportunity {
+  keyword: string;
+  volume: number;
+  cpc: number;
+  competition: number;
+}
+
+export interface KeywordCluster {
+  theme: string;
+  keywords: KeywordOpportunity[];
+}
+
+export interface EngagedCommunity {
+  source: string;
+  title: string;
+  url: string;
+  engagement: number;
+}
+
+/** Channel & keyword opportunities (paid deep section). */
+export interface ChannelOpportunities {
+  keywordClusters: KeywordCluster[];
+  communitiesByEngagement: EngagedCommunity[];
+}
+
+/** A creator/influencer to reach (paid deep section). */
+export interface CreatorReach {
+  name: string;
+  url: string;
+  coveredCompetitor: string;
+  audienceProxy: number;
+}
+
+export interface ReviewTheme {
+  theme: string;
+  quote: string;
+}
+
+/** What you do well vs poorly (paid deep section). */
+export interface StrengthsAndWeaknesses {
+  strengths: ReviewTheme[];
+  weaknesses: ReviewTheme[];
+  mixed: ReviewTheme[];
+  diagnostics: Array<{ category: string; claim: string; confidence: number }>;
+}
+
 export interface ReportPayload {
   mode: Platform;
   generatedAt: string;
@@ -52,6 +109,18 @@ export interface ReportPayload {
     longPlay: ActionCard[];
   };
   score: VerifiedScore;
+
+  // ── Deep sections — surfaced from already-computed data (paid; teaser-locked) ──
+  // Optional: reports persisted before this feature won't carry them, so every
+  // consumer must null-coalesce (`?? []`).
+  /** Full competitive landscape — all competitors with positioning + distribution. */
+  competitiveLandscape?: CompetitiveLandscapeRow[];
+  /** Channel & keyword opportunities — keyword clusters + communities by engagement. */
+  channelOpportunities?: ChannelOpportunities;
+  /** Influencers/creators to reach. */
+  creatorsToReach?: CreatorReach[];
+  /** What you do well vs poorly — review sentiment + diagnostic findings. */
+  strengthsAndWeaknesses?: StrengthsAndWeaknesses;
 }
 
 // ---------------------------------------------------------------------------
@@ -121,16 +190,27 @@ export function assembleReport(input: {
   }>;
   actions: ActionCard[];
   score: VerifiedScore;
+  // Deep sections (already-computed data, passed in by the caller). Optional so
+  // existing callers/tests that don't surface them still produce a valid report.
+  competitiveLandscape?: CompetitiveLandscapeRow[];
+  channelOpportunities?: ChannelOpportunities;
+  creatorsToReach?: CreatorReach[];
+  reviewThemes?: { strengths: ReviewTheme[]; weaknesses: ReviewTheme[]; mixed: ReviewTheme[] };
 }): ReportPayload {
   const {
     mode,
     generatedAt,
     positioningMirror,
+    findings,
     icpSignals,
     surfaces,
     competitorGap,
     actions,
     score,
+    competitiveLandscape = [],
+    channelOpportunities = { keywordClusters: [], communitiesByEngagement: [] },
+    creatorsToReach = [],
+    reviewThemes = { strengths: [], weaknesses: [], mixed: [] },
   } = input;
 
   return {
@@ -149,6 +229,21 @@ export function assembleReport(input: {
     },
     whatToDoThisWeek: bucketActions(actions),
     score,
+    competitiveLandscape,
+    channelOpportunities,
+    creatorsToReach,
+    strengthsAndWeaknesses: {
+      strengths: reviewThemes.strengths,
+      weaknesses: reviewThemes.weaknesses,
+      mixed: reviewThemes.mixed,
+      // The Cycle 2 findings were always passed in but never surfaced — they are
+      // the diagnostic "what we found" layer of this section.
+      diagnostics: findings.map((f) => ({
+        category: f.category,
+        claim: f.claim,
+        confidence: f.confidence,
+      })),
+    },
   };
 }
 

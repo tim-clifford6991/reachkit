@@ -639,9 +639,13 @@ export type Database = {
           app_ids: string[]
           created_at: string
           current_period_end: string | null
+          display_name: string | null
+          distribution_goal: string | null
           email: string
           founder_voice: Json | null
+          icp_confirmed: Json | null
           id: string
+          onboarded_at: string | null
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           subscription_status: string | null
@@ -651,9 +655,13 @@ export type Database = {
           app_ids?: string[]
           created_at?: string
           current_period_end?: string | null
+          display_name?: string | null
+          distribution_goal?: string | null
           email: string
           founder_voice?: Json | null
+          icp_confirmed?: Json | null
           id?: string
+          onboarded_at?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_status?: string | null
@@ -663,9 +671,13 @@ export type Database = {
           app_ids?: string[]
           created_at?: string
           current_period_end?: string | null
+          display_name?: string | null
+          distribution_goal?: string | null
           email?: string
           founder_voice?: Json | null
+          icp_confirmed?: Json | null
           id?: string
+          onboarded_at?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_status?: string | null

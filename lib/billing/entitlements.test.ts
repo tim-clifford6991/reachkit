@@ -166,3 +166,88 @@ describe("redactReportForTier", () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// Deep sections — teaser gating
+// ---------------------------------------------------------------------------
+
+function withDeepSections(report: ReportPayload): ReportPayload {
+  return {
+    ...report,
+    competitiveLandscape: [
+      { competitor: "Acme", positioning: "all-in-one", gap: "no offline", communityMentions: 9, creators: [{ name: "Chan", url: "https://yt/1" }] },
+      { competitor: "Bolt", positioning: "fast", gap: "no team plan", communityMentions: 3, creators: [] },
+    ],
+    channelOpportunities: {
+      keywordClusters: [
+        { theme: "notes", keywords: [{ keyword: "fast notes", volume: 1000, cpc: 1.5, competition: 0.4 }] },
+        { theme: "sync", keywords: [{ keyword: "note sync", volume: 800, cpc: 2.0, competition: 0.5 }] },
+      ],
+      communitiesByEngagement: [
+        { source: "hn", title: "a", url: "https://h/1", engagement: 300 },
+        { source: "hn", title: "b", url: "https://h/2", engagement: 200 },
+        { source: "bluesky", title: "c", url: "https://b/3", engagement: 50 },
+      ],
+    },
+    creatorsToReach: [
+      { name: "C1", url: "https://yt/1", coveredCompetitor: "Acme", audienceProxy: 0 },
+      { name: "C2", url: "https://yt/2", coveredCompetitor: "Bolt", audienceProxy: 0 },
+      { name: "C3", url: "https://yt/3", coveredCompetitor: "Acme", audienceProxy: 0 },
+    ],
+    strengthsAndWeaknesses: {
+      strengths: [{ theme: "speed", quote: "so fast" }, { theme: "ui", quote: "clean" }],
+      weaknesses: [{ theme: "crashes", quote: "crashes daily" }],
+      mixed: [{ theme: "price", quote: "bit pricey" }],
+      diagnostics: [{ category: "content", claim: "listing buries sync", confidence: 0.8 }],
+    },
+  };
+}
+
+describe("redactReportForTier — deep sections", () => {
+  it("paid keeps all deep sections in full (same reference)", () => {
+    const report = withDeepSections(makeReport());
+    const out = redactReportForTier(report, "solo");
+    expect(out).toBe(report);
+    expect(out.creatorsToReach).toHaveLength(3);
+    expect(out.channelOpportunities?.keywordClusters[0]?.keywords[0]?.cpc).toBe(1.5);
+  });
+
+  it("free keeps competitiveLandscape FULL (the teaser wow)", () => {
+    const report = withDeepSections(makeReport());
+    const out = redactReportForTier(report, "free");
+    expect(out.competitiveLandscape).toEqual(report.competitiveLandscape);
+    expect(out.competitiveLandscape).toHaveLength(2);
+  });
+
+  it("free truncates channels: 1 cluster, cpc/competition zeroed, 2 communities", () => {
+    const report = withDeepSections(makeReport());
+    const out = redactReportForTier(report, "free");
+    const ch = out.channelOpportunities!;
+    expect(ch.keywordClusters).toHaveLength(1);
+    expect(ch.keywordClusters[0]?.keywords[0]?.cpc).toBe(0);
+    expect(ch.keywordClusters[0]?.keywords[0]?.competition).toBe(0);
+    // volume (the teaser hook) survives
+    expect(ch.keywordClusters[0]?.keywords[0]?.volume).toBe(1000);
+    expect(ch.communitiesByEngagement).toHaveLength(2);
+  });
+
+  it("free truncates creators to 2 and strips strengths/weaknesses quotes + diagnostics", () => {
+    const report = withDeepSections(makeReport());
+    const out = redactReportForTier(report, "free");
+    expect(out.creatorsToReach).toHaveLength(2);
+    const sw = out.strengthsAndWeaknesses!;
+    expect(sw.strengths).toHaveLength(1);
+    expect(sw.strengths[0]?.quote).toBe("");
+    expect(sw.weaknesses).toHaveLength(1);
+    expect(sw.weaknesses[0]?.quote).toBe("");
+    expect(sw.mixed).toEqual([]);
+    expect(sw.diagnostics).toEqual([]);
+  });
+
+  it("does not mutate the input deep sections", () => {
+    const report = withDeepSections(makeReport());
+    const before = structuredClone(report);
+    redactReportForTier(report, "free");
+    expect(report).toEqual(before);
+  });
+});

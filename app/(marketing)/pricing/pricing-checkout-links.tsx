@@ -1,11 +1,11 @@
 "use client";
 
 /**
- * PricingCheckoutLinks — client CTA button for the pricing page (Task 21a).
+ * PricingCheckoutLinks — client CTA button for the pricing page (Path B).
  *
- * Calls POST /api/billing/checkout → redirect to Stripe.
- * If the user is not authenticated (401 response), redirects to / so they
- * scan first (which triggers auth), then can return to upgrade.
+ * Payment-first: POST /api/billing/trial → anonymous Stripe checkout (Stripe →
+ * Email → Magic Link). No prior scan or login needed — the account is created
+ * after payment and the user runs their first scan from the dashboard.
  *
  * Native HTML only — keeps (marketing) bundle under 200 KB gzip budget.
  */
@@ -32,17 +32,11 @@ export function PricingCheckoutLinks({
   const handleClick = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/billing/checkout", {
+      const res = await fetch("/api/billing/trial", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ plan, interval }),
       });
-
-      if (res.status === 401) {
-        // Not authed — send them to scan first (auth happens during scan claim)
-        window.location.href = "/";
-        return;
-      }
 
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as { error?: string };

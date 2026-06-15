@@ -9,6 +9,10 @@ import { WhatYouOfferSection } from "@/components/report/what-you-offer-section"
 import { WhoItsForSection } from "@/components/report/who-its-for-section";
 import { WhereTheyAreSection } from "@/components/report/where-they-are-section";
 import { ActionPlanSection } from "@/components/report/action-plan-section";
+import { CompetitiveLandscapeSection } from "@/components/report/competitive-landscape-section";
+import { ChannelOpportunitiesSection } from "@/components/report/channel-opportunities-section";
+import { CreatorsToReachSection } from "@/components/report/creators-to-reach-section";
+import { StrengthsWeaknessesSection } from "@/components/report/strengths-weaknesses-section";
 import { SnapshotStrip } from "@/components/report/snapshot-strip";
 import { UpgradeCta } from "@/components/report/upgrade-cta";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -112,18 +116,20 @@ async function ResultsContent({ id }: { id: string }) {
       {/* ── Score — signature visual; lazy-loaded client component ────── */}
       <ScoreBlock score={report.score} />
 
-      {/* §23 moment 7 — upgrade CTA at the E4 insertion point. */}
+      {/* ── The free-teaser WOW: full competitive landscape (always shown). ── */}
+      <CompetitiveLandscapeSection rows={report.competitiveLandscape} />
+
+      {/* Trial wall (§23 moment 7) + #unlock scroll target for locked sections. */}
       {!isPaid && <UpgradeCta scanId={id} snapshotAge={snapshotAge} />}
 
-      {/* ── Four-question report sections — blur-to-sharp stagger ─────── */}
+      {/* ── Report sections — binary gating: teaser (free) vs full (paid). ─── */}
       <ReportReveal>
-        {/* Analysis sections unlock at the EMAIL tier (any authenticated viewer):
-            the full positioning gap, the full competitor gap (with positioning +
-            gap strings), and all surfaces are the email-tier payoff. Anonymous
-            viewers see a preview. The action plan (drafts) stays paid-gated. */}
-        <WhatYouOfferSection whatYouOffer={report.whatYouOffer} unlocked={!!viewer} />
-        <WhoItsForSection whoItsFor={report.whoItsFor} unlocked={!!viewer} />
-        <WhereTheyAreSection whereTheyAre={report.whereTheyAre} unlocked={!!viewer} />
+        <WhatYouOfferSection whatYouOffer={report.whatYouOffer} unlocked={isPaid} />
+        <WhoItsForSection whoItsFor={report.whoItsFor} unlocked={isPaid} />
+        <WhereTheyAreSection whereTheyAre={report.whereTheyAre} unlocked={isPaid} />
+        <ChannelOpportunitiesSection data={report.channelOpportunities} unlocked={isPaid} />
+        <CreatorsToReachSection creators={report.creatorsToReach} unlocked={isPaid} />
+        <StrengthsWeaknessesSection data={report.strengthsAndWeaknesses} unlocked={isPaid} />
         <ActionPlanSection whatToDoThisWeek={report.whatToDoThisWeek} unlocked={isPaid} />
       </ReportReveal>
     </>

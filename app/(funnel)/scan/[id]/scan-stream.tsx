@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { competitorSourceLabel } from "@/lib/scan/source-labels";
 import { ScanProgress } from "@/components/scan/scan-progress";
 
-// Lazy-load the entire findings reveal (includes Motion + EmailGate + base-ui)
+// Lazy-load the entire findings reveal (includes Motion + TrialCta + base-ui)
 // so none of it lands in the initial funnel chunk.
 const FindingsReveal = dynamic(
   () => import("./findings-reveal").then((m) => m.FindingsReveal),

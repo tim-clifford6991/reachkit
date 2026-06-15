@@ -26,6 +26,10 @@ import { WhatYouOfferSection } from "@/components/report/what-you-offer-section"
 import { WhoItsForSection } from "@/components/report/who-its-for-section";
 import { WhereTheyAreSection } from "@/components/report/where-they-are-section";
 import { ActionPlanSection } from "@/components/report/action-plan-section";
+import { CompetitiveLandscapeSection } from "@/components/report/competitive-landscape-section";
+import { ChannelOpportunitiesSection } from "@/components/report/channel-opportunities-section";
+import { CreatorsToReachSection } from "@/components/report/creators-to-reach-section";
+import { StrengthsWeaknessesSection } from "@/components/report/strengths-weaknesses-section";
 import { ScoreBlockDashboard } from "@/components/app/score-block-dashboard";
 import { PlaysPreview } from "@/components/app/plays-preview";
 import { EngagementStrip } from "@/components/app/engagement-strip";
@@ -43,6 +47,11 @@ async function DashboardContent() {
   if (!viewer) redirect("/login?next=/app");
 
   const { user } = viewer;
+
+  // Onboarding gate (payment-first funnel): new users complete the backfill once
+  // before reaching the dashboard. `onboarded_at` null → incomplete.
+  if (!user.onboarded_at) redirect("/app/onboarding");
+
   const primaryAppId = user.app_ids[0] ?? null;
 
   if (!primaryAppId) {
@@ -122,6 +131,10 @@ async function DashboardContent() {
         <WhatYouOfferSection whatYouOffer={report.whatYouOffer} unlocked={userIsPaid} />
         <WhoItsForSection whoItsFor={report.whoItsFor} unlocked={userIsPaid} />
         <WhereTheyAreSection whereTheyAre={report.whereTheyAre} unlocked={userIsPaid} />
+        <CompetitiveLandscapeSection rows={report.competitiveLandscape} />
+        <ChannelOpportunitiesSection data={report.channelOpportunities} unlocked={userIsPaid} />
+        <CreatorsToReachSection creators={report.creatorsToReach} unlocked={userIsPaid} />
+        <StrengthsWeaknessesSection data={report.strengthsAndWeaknesses} unlocked={userIsPaid} />
         <ActionPlanSection whatToDoThisWeek={report.whatToDoThisWeek} unlocked={userIsPaid} />
       </div>
     </div>

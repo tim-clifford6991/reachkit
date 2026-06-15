@@ -28,10 +28,10 @@ const Stagger = dynamic(
   { ssr: false, loading: () => null }
 );
 
-// Email gate — only shown after the scan completes, so defer its chunk to keep
-// the initial funnel bundle under the §20.4 budget.
-const EmailGate = dynamic(
-  () => import("./email-gate").then((m) => m.EmailGate),
+// Trial CTA — the single trial wall (replaces the old email gate). Deferred to
+// keep the initial funnel bundle under the §20.4 budget.
+const TrialCta = dynamic(
+  () => import("@/components/report/trial-cta").then((m) => m.TrialCta),
   { ssr: false, loading: () => null }
 );
 
@@ -189,8 +189,8 @@ function LockedFinding({ finding, index }: { finding: Finding; index: number }) 
         </p>
       </div>
 
-      {/* Lock overlay — clickable: prompts the email gate */}
-      <LockBadge label={`Unlock finding ${index + 1} with your email`} />
+      {/* Lock overlay — clickable: prompts the trial CTA */}
+      <LockBadge label={`Unlock finding ${index + 1} with a free trial`} />
     </div>
   );
 }
@@ -250,7 +250,7 @@ function LockIcon() {
 
 // ---------------------------------------------------------------------------
 // Unlock interaction — every locked element is an actionable CTA: clicking it
-// scrolls to the email gate and focuses the field, prompting the user to unlock.
+// scrolls to the trial CTA, prompting the user to start their free trial.
 // ---------------------------------------------------------------------------
 
 function scrollToGate() {
@@ -258,11 +258,9 @@ function scrollToGate() {
   document
     .getElementById("unlock-gate")
     ?.scrollIntoView({ behavior: "smooth", block: "center" });
-  // Focus the email field once the smooth-scroll is underway.
-  setTimeout(() => document.getElementById("unlock-email")?.focus(), 350);
 }
 
-/** Clickable lock overlay — prompts the email gate on click. */
+/** Clickable lock overlay — prompts the trial CTA on click. */
 function LockBadge({ label }: { label: string }) {
   return (
     <button
@@ -277,7 +275,7 @@ function LockBadge({ label }: { label: string }) {
       >
         <LockIcon />
         <span className="text-xs font-medium" style={{ color: "oklch(0.96 0.006 85)" }}>
-          Unlock with email
+          Unlock with free trial
         </span>
       </div>
     </button>
@@ -464,7 +462,7 @@ export function FindingsReveal({
             {sampleAction.draft}
           </p>
         </div>
-        <LockBadge label="Unlock your action plan with your email" />
+        <LockBadge label="Unlock your action plan with a free trial" />
       </div>
 
       {/* ── What your report also contains (pre-gate teaser) ─────────────── */}
@@ -501,11 +499,11 @@ export function FindingsReveal({
           className="mt-4 text-xs font-medium underline underline-offset-4 transition-colors"
           style={{ color: "var(--color-accent-400)" }}
         >
-          Unlock the full report with your email →
+          Unlock the full report with a free trial →
         </button>
       </div>
 
-      {/* ── Moment 4: Email gate (every locked CTA scrolls + focuses here) ── */}
+      {/* ── Moment 4: Trial wall (every locked CTA scrolls here) ─────────── */}
       <div
         id="unlock-gate"
         className="scroll-mt-8 rounded-xl border p-8"
@@ -523,14 +521,15 @@ export function FindingsReveal({
             See who&apos;s ahead — and exactly what to do about it
           </h2>
           <p className="text-sm" style={{ color: "var(--color-muted)" }}>
-            Unlock all{" "}
+            Start your free trial to unlock all{" "}
             {restFindings.length > 0
               ? `${restFindings.length + 1} findings`
               : "findings"}{" "}
-            + personalised action steps — one magic link, no password.
+            + your full deep analysis: competitive landscape, channels, creators,
+            and a prioritised action plan.
           </p>
         </div>
-        <EmailGate scanId={scanId} />
+        <TrialCta scanId={scanId} />
       </div>
     </div>
   );

@@ -1,7 +1,8 @@
 import type Stripe from "stripe";
 import { serverDb } from "@/lib/db/client";
-import { priceMap } from "@/lib/billing/stripe";
+import { priceMap, stripeClient } from "@/lib/billing/stripe";
 import { tierForPriceId } from "@/lib/billing/tiers";
+import { ensureAuthUser, provisionCheckoutUser } from "@/lib/billing/provision";
 import type { Database } from "@/lib/db/types";
 
 type UsersUpdate = Database["public"]["Tables"]["users"]["Update"];
@@ -13,14 +14,17 @@ type UsersUpdate = Database["public"]["Tables"]["users"]["Update"];
  * object state, so redelivered/out-of-order events converge to the same row.
  *
  * Handled event types:
- *   - checkout.session.completed       → persist customer + subscription ids
+ *   - checkout.session.completed       → legacy: persist ids; payment-first:
+ *                                        create account from email, link scan,
+ *                                        send onboarding magic link
  *   - customer.subscription.created    → set status/period/tier/sub id
  *   - customer.subscription.updated    → set status/period/tier/sub id
  *   - customer.subscription.deleted    → tier=free, status=canceled
  * Any other event type is a no-op.
  *
- * If no user row resolves for a customer, we log and return (never throw) so
- * the webhook still 200s and Stripe stops retrying a non-actionable event.
+ * If no user row resolves for a customer (and the event isn't eligible for a
+ * defensive create), we log and return (never throw) so the webhook still 200s
+ * and Stripe stops retrying a non-actionable event.
  */
 export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
   switch (event.type) {
@@ -41,25 +45,50 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
-// checkout.session.completed → bind Stripe customer + subscription to the user.
-// Tier/status are intentionally NOT set here; the subscription.* event that
-// follows is the source of truth for those.
+// checkout.session.completed
+//
+// Two shapes:
+//   - Legacy in-app upgrade (metadata.userId present): the user already exists;
+//     just bind the Stripe ids. Tier/status come from the subscription.* event.
+//   - Payment-first funnel (anonymous; metadata.scanId or none): no user yet —
+//     create-or-find the account from the Stripe-collected email, bind ids, link
+//     the scanned app (if any), and send the onboarding magic link. Account
+//     creation MUST happen here so the following subscription.* event (which
+//     resolves the user by stripe_customer_id) can set tier/status.
 // ---------------------------------------------------------------------------
 async function onCheckoutCompleted(session: Stripe.Checkout.Session): Promise<void> {
-  const userId = session.metadata?.userId ?? session.client_reference_id;
-  if (!userId) {
-    console.warn("[stripe webhook] checkout.session.completed without userId — ignoring", {
+  const legacyUserId = session.metadata?.userId ?? null;
+  const customer = customerId(session.customer);
+  const subscription = subscriptionId(session.subscription);
+
+  // Legacy authenticated upgrade path — unchanged behaviour.
+  if (legacyUserId) {
+    await updateUserById(
+      legacyUserId,
+      { stripe_customer_id: customer, stripe_subscription_id: subscription },
+      "checkout.session.completed",
+    );
+    return;
+  }
+
+  // Payment-first funnel.
+  const scanId = session.metadata?.scanId ?? session.client_reference_id ?? null;
+  const email = session.customer_details?.email ?? session.customer_email ?? null;
+  if (!email) {
+    console.warn("[stripe webhook] checkout.session.completed without an email — ignoring", {
       sessionId: session.id,
     });
     return;
   }
 
-  const update: UsersUpdate = {
-    stripe_customer_id: customerId(session.customer),
-    stripe_subscription_id: subscriptionId(session.subscription),
-  };
-
-  await updateUserById(userId, update, "checkout.session.completed");
+  await provisionCheckoutUser({
+    email,
+    scanId,
+    stripeCustomerId: customer,
+    stripeSubscriptionId: subscription,
+    // Tier/status are set by the subscription.* event, not here.
+    sendMagicLink: true,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -89,7 +118,11 @@ async function onSubscriptionUpsert(
     stripe_subscription_id: sub.id,
   };
 
-  await updateUserByCustomer(customer, update, source);
+  // Defensive create: if the subscription.* event wins the race against
+  // checkout.session.completed, no user row exists for this customer yet. Rather
+  // than silently drop the tier, create-or-find the account from the Stripe
+  // customer email and bind the customer id before applying the update.
+  await updateUserByCustomer(customer, update, source, { createIfMissing: true });
 }
 
 // ---------------------------------------------------------------------------
@@ -154,6 +187,7 @@ async function updateUserByCustomer(
   customer: string,
   update: UsersUpdate,
   source: string,
+  opts: { createIfMissing?: boolean } = {},
 ): Promise<void> {
   const db = serverDb();
 
@@ -171,18 +205,51 @@ async function updateUserByCustomer(
     return;
   }
 
-  if (!user) {
+  let userId = user?.id ?? null;
+
+  // Defensive create: the subscription.* event raced ahead of checkout. Build
+  // the account from the Stripe customer email and bind the customer id.
+  if (!userId && opts.createIfMissing) {
+    userId = await resolveOrCreateUserForCustomer(customer, source);
+    if (userId) update.stripe_customer_id = customer;
+  }
+
+  if (!userId) {
     console.warn(
       `[stripe webhook] ${source}: no user for customer ${customer} — ignoring`,
     );
     return;
   }
 
-  const { error: updateError } = await db.from("users").update(update).eq("id", user.id);
+  const { error: updateError } = await db.from("users").update(update).eq("id", userId);
   if (updateError) {
     console.error(
-      `[stripe webhook] ${source}: failed to update user ${user.id}`,
+      `[stripe webhook] ${source}: failed to update user ${userId}`,
       updateError.message,
     );
+  }
+}
+
+/**
+ * Fetch the Stripe customer's email and create-or-find the matching account.
+ * Returns the userId, or null when the email can't be resolved. No magic link
+ * is sent here — the checkout.session.completed handler owns that.
+ */
+async function resolveOrCreateUserForCustomer(
+  customer: string,
+  source: string,
+): Promise<string | null> {
+  try {
+    const stripeCustomer = await stripeClient().customers.retrieve(customer);
+    if (stripeCustomer.deleted) return null;
+    const email = stripeCustomer.email;
+    if (!email) {
+      console.warn(`[stripe webhook] ${source}: customer ${customer} has no email — cannot create`);
+      return null;
+    }
+    return await ensureAuthUser(email);
+  } catch (e) {
+    console.error(`[stripe webhook] ${source}: defensive create failed for ${customer}`, e);
+    return null;
   }
 }

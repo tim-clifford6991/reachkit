@@ -35,8 +35,17 @@ import { runCriticGate } from "@/lib/llm/critic";
 import { algorithmSafety } from "@/lib/scan/algorithm-safety";
 import { gatherScoreComponents, verifiedScore } from "@/lib/scan/score-full";
 import { assembleReport, persistReport } from "@/lib/scan/report";
+import type {
+  CompetitiveLandscapeRow,
+  ChannelOpportunities,
+  CreatorReach,
+  KeywordCluster,
+  EngagedCommunity,
+  ReviewTheme,
+} from "@/lib/scan/report";
 import { seedMonitors } from "@/lib/scan/monitors";
 import { getFreshFactSheet, factSheetSubjectType } from "@/lib/scan/fact-sheets";
+import { parseKeywords } from "@/lib/scan/adapters/keywords";
 import { checkScanCostOverrun } from "@/lib/telemetry/pipeline-runs";
 import { emitScanEvent } from "@/lib/scan/progress";
 import { countMentions } from "@/lib/scan/competitor-mentions";
@@ -51,6 +60,9 @@ import type { Json } from "@/lib/db/types";
 // ---------------------------------------------------------------------------
 type Surface = { source: string; title: string; url: string };
 type GapRow = { competitor: string; dimension: string; them: number; you: number; positioning?: string; gap?: string };
+
+/** Max communities surfaced (by engagement) in the channel-opportunities section. */
+const TOP_COMMUNITIES = 12;
 
 const EMPTY_MIRROR: PositioningMirror = { listingSays: "", reviewsValue: "", gap: "" };
 
@@ -224,6 +236,206 @@ async function readCompetitorGap(
 }
 
 // ---------------------------------------------------------------------------
+// Deep sections — surfaced from already-persisted data (no new external calls).
+// Every reader degrades to empty so legacy / partial scans never throw.
+// ---------------------------------------------------------------------------
+
+/** Creators/influencers from the youtube raw_documents (deduped by url). */
+async function readCreatorDocs(subjectKey: string): Promise<CreatorReach[]> {
+  try {
+    const db = serverDb();
+    const { data, error } = await db
+      .from("raw_documents")
+      .select("body")
+      .eq("subject_key", subjectKey)
+      .eq("source_type", "youtube");
+    if (error || data === null) return [];
+
+    const seen = new Set<string>();
+    const out: CreatorReach[] = [];
+    for (const row of data) {
+      const items = Array.isArray(row.body) ? (row.body as unknown[]) : [];
+      for (const item of items) {
+        if (typeof item !== "object" || item === null) continue;
+        const o = item as Record<string, unknown>;
+        const url = typeof o["url"] === "string" ? o["url"] : "";
+        if (url.length === 0 || seen.has(url)) continue;
+        seen.add(url);
+        out.push({
+          name: typeof o["name"] === "string" && o["name"].length > 0 ? (o["name"] as string) : url,
+          url,
+          coveredCompetitor: typeof o["coveredCompetitor"] === "string" ? (o["coveredCompetitor"] as string) : "",
+          // audienceProxy is currently always 0 (the youtube adapter doesn't
+          // make the second videos.list call) — kept for forward-compat.
+          audienceProxy: typeof o["audienceProxy"] === "number" ? (o["audienceProxy"] as number) : 0,
+        });
+      }
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
+/** Communities sorted by engagement (the hidden Community.engagement signal). */
+async function readCommunitiesByEngagement(subjectKey: string): Promise<EngagedCommunity[]> {
+  try {
+    const db = serverDb();
+    const { data, error } = await db
+      .from("raw_documents")
+      .select("body")
+      .eq("subject_key", subjectKey)
+      .eq("source_type", "communities");
+    if (error || data === null) return [];
+
+    const seen = new Set<string>();
+    const out: EngagedCommunity[] = [];
+    for (const row of data) {
+      const items = Array.isArray(row.body) ? (row.body as unknown[]) : [];
+      for (const item of items) {
+        if (typeof item !== "object" || item === null) continue;
+        const o = item as Record<string, unknown>;
+        const url = typeof o["url"] === "string" ? o["url"] : "";
+        if (url.length === 0 || seen.has(url)) continue;
+        seen.add(url);
+        out.push({
+          source: typeof o["source"] === "string" ? (o["source"] as string) : "community",
+          title: typeof o["title"] === "string" ? (o["title"] as string) : url,
+          url,
+          engagement: typeof o["engagement"] === "number" ? (o["engagement"] as number) : 0,
+        });
+      }
+    }
+    out.sort((a, b) => b.engagement - a.engagement);
+    return out.slice(0, TOP_COMMUNITIES);
+  } catch {
+    return [];
+  }
+}
+
+/** cpc/competition per keyword from the raw dataforseo_keywords doc (the
+ *  keyword_data fact sheet drops these — only volume survives there). */
+async function readKeywordMetrics(
+  subjectKey: string,
+): Promise<Map<string, { cpc: number; competition: number }>> {
+  const map = new Map<string, { cpc: number; competition: number }>();
+  try {
+    const db = serverDb();
+    const { data, error } = await db
+      .from("raw_documents")
+      .select("body")
+      .eq("subject_key", subjectKey)
+      .eq("source_type", "dataforseo_keywords");
+    if (error || data === null) return map;
+    for (const row of data) {
+      for (const r of parseKeywords(row.body)) {
+        map.set(r.keyword.toLowerCase(), { cpc: r.cpc, competition: r.competition });
+      }
+    }
+  } catch {
+    /* ignore — degrade to volume-only */
+  }
+  return map;
+}
+
+/** Keyword clusters (from the keyword_data sheet) enriched with cpc/competition. */
+async function readKeywordClusters(subjectType: string, subjectKey: string): Promise<KeywordCluster[]> {
+  try {
+    const sheet = await getFreshFactSheet(subjectType, subjectKey, "keyword_data");
+    if (sheet === null) return [];
+    const body = sheet.body as { clusters?: unknown };
+    const clusters = Array.isArray(body.clusters) ? body.clusters : [];
+    const metrics = await readKeywordMetrics(subjectKey);
+
+    const out: KeywordCluster[] = [];
+    for (const c of clusters) {
+      const co = c as Record<string, unknown>;
+      const theme = typeof co["theme"] === "string" ? (co["theme"] as string) : "";
+      const kws = Array.isArray(co["keywords"]) ? (co["keywords"] as unknown[]) : [];
+      const keywords = kws
+        .map((k) => {
+          const ko = k as Record<string, unknown>;
+          const keyword = typeof ko["keyword"] === "string" ? (ko["keyword"] as string) : "";
+          const volume = typeof ko["volume"] === "number" ? (ko["volume"] as number) : 0;
+          const m = metrics.get(keyword.toLowerCase());
+          return { keyword, volume, cpc: m?.cpc ?? 0, competition: m?.competition ?? 0 };
+        })
+        .filter((k) => k.keyword.length > 0);
+      if (theme.length > 0 && keywords.length > 0) out.push({ theme, keywords });
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
+/** Channel & keyword opportunities — keyword clusters + communities by engagement. */
+async function readChannelOpportunities(
+  subjectType: string,
+  subjectKey: string,
+): Promise<ChannelOpportunities> {
+  const [keywordClusters, communitiesByEngagement] = await Promise.all([
+    readKeywordClusters(subjectType, subjectKey),
+    readCommunitiesByEngagement(subjectKey),
+  ]);
+  return { keywordClusters, communitiesByEngagement };
+}
+
+/** Review themes partitioned by sentiment (sentiment + quote are dropped by
+ *  readIcpSignals, which keeps only the theme string). */
+async function readReviewThemesFull(
+  subjectType: string,
+  subjectKey: string,
+): Promise<{ strengths: ReviewTheme[]; weaknesses: ReviewTheme[]; mixed: ReviewTheme[] }> {
+  const empty = { strengths: [] as ReviewTheme[], weaknesses: [] as ReviewTheme[], mixed: [] as ReviewTheme[] };
+  try {
+    const sheet = await getFreshFactSheet(subjectType, subjectKey, "review_themes");
+    if (sheet === null) return empty;
+    const body = sheet.body as { themes?: unknown };
+    const themes = Array.isArray(body.themes) ? body.themes : [];
+    const out = { strengths: [] as ReviewTheme[], weaknesses: [] as ReviewTheme[], mixed: [] as ReviewTheme[] };
+    for (const t of themes) {
+      const o = t as Record<string, unknown>;
+      const theme = typeof o["theme"] === "string" ? (o["theme"] as string) : "";
+      if (theme.length === 0) continue;
+      const quote = typeof o["quote"] === "string" ? (o["quote"] as string) : "";
+      const row: ReviewTheme = { theme, quote };
+      const sentiment = o["sentiment"];
+      if (sentiment === "positive") out.strengths.push(row);
+      else if (sentiment === "negative") out.weaknesses.push(row);
+      else out.mixed.push(row);
+    }
+    return out;
+  } catch {
+    return empty;
+  }
+}
+
+/** Compose the competitive landscape from the (brand-validated) gap rows + the
+ *  creators index — never resurrects collision data, since competitorGap is
+ *  already built only from facts.competitors. */
+function buildCompetitiveLandscape(
+  competitorGap: GapRow[],
+  creators: CreatorReach[],
+): CompetitiveLandscapeRow[] {
+  const byCompetitor = new Map<string, Array<{ name: string; url: string }>>();
+  for (const c of creators) {
+    if (c.coveredCompetitor.length === 0) continue;
+    const key = normalizeName(c.coveredCompetitor);
+    const list = byCompetitor.get(key) ?? [];
+    if (!list.some((x) => x.url === c.url)) list.push({ name: c.name, url: c.url });
+    byCompetitor.set(key, list);
+  }
+  return competitorGap.map((g) => ({
+    competitor: g.competitor,
+    positioning: g.positioning ?? null,
+    gap: g.gap ?? null,
+    communityMentions: g.them,
+    creators: byCompetitor.get(normalizeName(g.competitor)) ?? [],
+  }));
+}
+
+// ---------------------------------------------------------------------------
 // Persist the Critic-passed, algorithm-safe actions to the actions table.
 // Idempotent: delete existing rows for this scan first, then insert.
 // ---------------------------------------------------------------------------
@@ -292,13 +504,20 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
     const components = await gatherScoreComponents(ctx, facts);
     const score = verifiedScore(components, ctx.mode);
 
-    // 7. Gather the remaining report inputs + assemble the four-question report
+    // 7. Gather the remaining report inputs + assemble the four-question report.
+    //    Deep sections (competitive landscape / channels / creators / review
+    //    sentiment) are surfaced here from already-persisted data — no new calls.
     const subjectType = factSheetSubjectType(ctx.mode);
-    const [icpSignals, surfaces, competitorGap] = await Promise.all([
-      readIcpSignals(subjectType, ctx.storeUrl),
-      readSurfaces(ctx.storeUrl),
-      readCompetitorGap(subjectType, ctx.storeUrl, facts),
-    ]);
+    const [icpSignals, surfaces, competitorGap, creatorsToReach, channelOpportunities, reviewThemes] =
+      await Promise.all([
+        readIcpSignals(subjectType, ctx.storeUrl),
+        readSurfaces(ctx.storeUrl),
+        readCompetitorGap(subjectType, ctx.storeUrl, facts),
+        readCreatorDocs(ctx.storeUrl),
+        readChannelOpportunities(subjectType, ctx.storeUrl),
+        readReviewThemesFull(subjectType, ctx.storeUrl),
+      ]);
+    const competitiveLandscape = buildCompetitiveLandscape(competitorGap, creatorsToReach);
 
     await emitScanEvent(ctx.scanId, "artifact", { label: "Finalising your report" });
     const payload = assembleReport({
@@ -311,6 +530,10 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
       competitorGap,
       actions: safe,
       score,
+      competitiveLandscape,
+      channelOpportunities,
+      creatorsToReach,
+      reviewThemes,
     });
 
     // 8. Persist the report payload

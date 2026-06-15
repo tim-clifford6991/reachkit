@@ -1,12 +1,69 @@
 import { serverDb } from "@/lib/db/client";
 import { fixturesEnabled } from "@/lib/dev/fixtures";
 import { env } from "@/lib/config/env";
+import { provisionCheckoutUser } from "@/lib/billing/provision";
 import {
   assertStripeConfigured,
   stripeClient,
   priceIdFor,
   type BillingInterval,
 } from "@/lib/billing/stripe";
+
+/**
+ * Anonymous, payment-first checkout (the public funnel). No logged-in user — the
+ * account is created from the Stripe-collected email AFTER payment (by the
+ * webhook in live mode, inline here in fixtures mode).
+ *
+ * `scanId` is optional:
+ *   - Path A (scan-first): the scanned app is linked to the new user.
+ *   - Path B (trial-direct, e.g. pricing table): no scan; the user runs their
+ *     first scan from inside the dashboard.
+ */
+export async function createAnonymousCheckout({
+  scanId,
+  plan,
+  interval = "month",
+}: {
+  scanId?: string;
+  plan: "solo" | "growth";
+  interval?: BillingInterval;
+}): Promise<{ url: string }> {
+  const cancelUrl = scanId
+    ? `${env.appUrl}/scan/${scanId}/results`
+    : `${env.appUrl}/#pricing`;
+
+  // Fixtures path — no Stripe, no webhook. Provision the account inline so the
+  // funnel is demoable keyless, then drop the user at /welcome.
+  if (fixturesEnabled()) {
+    const email = `fixture+${scanId ?? "direct"}@reachkit.dev`;
+    await provisionCheckoutUser({
+      email,
+      scanId,
+      entitlement: { tier: plan, status: "active" },
+      sendMagicLink: true,
+    });
+    return { url: `${env.appUrl}/welcome?fixture=1` };
+  }
+
+  // Live Stripe path. Subscription mode always creates a customer and collects
+  // the email; the scanId rides in metadata for the webhook to consume.
+  assertStripeConfigured();
+  const stripe = stripeClient();
+
+  const session = await stripe.checkout.sessions.create({
+    mode: "subscription",
+    line_items: [{ price: priceIdFor(plan, interval), quantity: 1 }],
+    metadata: { plan, interval, ...(scanId ? { scanId } : {}) },
+    client_reference_id: scanId,
+    // 7-day free trial: subscription created in `trialing` (card now, charge at
+    // trial end). entitlementsFor() treats "trialing" as active.
+    subscription_data: { trial_period_days: 7 },
+    success_url: `${env.appUrl}/welcome?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: cancelUrl,
+  });
+
+  return { url: session.url ?? cancelUrl };
+}
 
 export async function createCheckout({
   userId,
