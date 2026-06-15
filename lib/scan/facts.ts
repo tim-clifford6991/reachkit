@@ -14,7 +14,9 @@ export function assembleFacts(
     mode: ctx.mode,
     listing: data.listing,
     competitors: data.competitors,
-    reviewVolume: isWeb ? data.reviews.length : (data.extras.ratingCount ?? data.reviews.length),
+    // Prefer a real review count (app: store ratingCount; web: count parsed from
+    // review snippets via collect) and fall back to the snippet/review count.
+    reviewVolume: data.extras.ratingCount ?? data.reviews.length,
     ratingTrend: isWeb ? null : (data.extras.rating ?? null),
     webProxy: isWeb
       ? webProxyScore({ serpResultCount: data.extras.serpResultCount ?? 0, phUpvotes: data.extras.phUpvotes ?? 0, domainAgeYears: data.extras.domainAgeYears ?? null })

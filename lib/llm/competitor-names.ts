@@ -3,6 +3,7 @@ import type { ScanContext } from "@/lib/scan/pipeline";
 import { callModel } from "@/lib/llm/anthropic";
 import { extractJson } from "@/lib/llm/json";
 import { fixturesEnabled } from "@/lib/dev/fixtures";
+import { NON_PRODUCT_NAMES } from "@/lib/scan/competitor-filter";
 
 const MODEL = "claude-haiku-4-5-20251001" as const;
 
@@ -34,6 +35,7 @@ Hard rules:
 - List up to 8 products that genuinely compete with ${i.subjectName} in the SAME category (${i.category || "the subject's category"}).
 - NEVER include a different product that merely shares part of the subject's name.
 - NEVER include ${i.subjectName} itself, ${i.subjectHost}, or generic listicle/review sites (g2, capterra, "top 10", "best …").
+- NEVER include forum/community artifacts or thread titles (e.g. "Ask HN", "Show HN", "Hacker News", "Reddit", "r/…", "Quora").
 - Names only — no URLs, no commentary. If nothing genuinely competes, return { "competitors": [] }.`;
 }
 
@@ -54,6 +56,7 @@ export function parseCompetitorNames(raw: string): Competitor[] {
     const name = String((c as { name?: unknown } | null)?.name ?? "").trim();
     if (!name) continue;
     const key = name.toLowerCase();
+    if (NON_PRODUCT_NAMES.has(key)) continue; // forum/listicle artifacts, never products
     if (seen.has(key)) continue;
     seen.add(key);
     out.push({ name, url: "", source: "llm_extracted", rank: out.length + 1 });

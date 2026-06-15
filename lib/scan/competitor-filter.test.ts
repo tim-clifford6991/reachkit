@@ -206,3 +206,24 @@ describe("rankCompetitors — content-extracted names are not collapsed on empty
     expect(out.map((c) => c.name).sort()).toEqual(["Empire Flippers", "Flippa", "MicroAcquire"]);
   });
 });
+
+describe("filterRealCompetitors — forum/aggregator artifacts (the Stripe 'Ask HN' bug)", () => {
+  test("drops an 'Ask HN' SERP result from news.ycombinator.com (host)", () => {
+    const out = filterRealCompetitors(
+      [
+        { name: "Ask HN", url: "https://news.ycombinator.com/item?id=36811026", source: "dataforseo_serp", rank: 1 },
+        { name: "PayPal", url: "https://paypal.com", source: "dataforseo_serp", rank: 2 },
+      ],
+      { subjectName: "Stripe", selfHost: "stripe.com" },
+    );
+    expect(out.map((c) => c.name)).toEqual(["PayPal"]);
+  });
+
+  test("drops a forum-artifact name even from a non-aggregator host (name denylist)", () => {
+    const out = filterRealCompetitors(
+      [{ name: "Ask HN", url: "https://example.com/post", source: "tavily", rank: 1 }],
+      { subjectName: "Stripe" },
+    );
+    expect(out).toEqual([]);
+  });
+});

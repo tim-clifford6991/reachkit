@@ -4,22 +4,40 @@
 
 const BARS = [62, 92, 78, 40, 88, 54, 70];
 
-export function ScanAnimation({ productName }: { productName?: string | null }) {
+export function ScanAnimation({ productName, host }: { productName?: string | null; host?: string | null }) {
   return (
     <div
       className="relative overflow-hidden rounded-xl border p-6"
       style={{ borderColor: "var(--hairline)", background: "var(--color-surface)", minHeight: 300 }}
       aria-hidden="true"
     >
-      {/* browser/window accent bar */}
-      <div className="mb-5 h-1.5 w-full rounded-full" style={{ background: "var(--color-accent)" }} />
+      {/* Browser chrome — the actual site being scanned (favicon + domain), so the
+          user has a live reference to what's being analysed. */}
+      <div className="mb-4 flex items-center gap-2">
+        {host ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`https://www.google.com/s2/favicons?domain=${host}&sz=64`}
+              alt=""
+              width={16}
+              height={16}
+              className="rounded-sm"
+            />
+            <span className="truncate font-mono text-xs" style={{ color: "var(--color-fg)" }}>
+              {host}
+            </span>
+          </>
+        ) : (
+          <div className="h-4 w-1/3 rounded" style={{ background: "var(--fill-subtle)" }} />
+        )}
+      </div>
+      <div className="mb-5 h-1 w-full rounded-full" style={{ background: "var(--color-accent)" }} />
 
-      {productName ? (
+      {productName && (
         <p className="mb-4 truncate font-mono text-sm" style={{ color: "var(--color-muted)" }}>
           {productName}
         </p>
-      ) : (
-        <div className="mb-4 h-4 w-1/3 rounded" style={{ background: "var(--fill-subtle)" }} />
       )}
 
       <div className="space-y-3.5">

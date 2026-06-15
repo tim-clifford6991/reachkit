@@ -61,7 +61,11 @@ export interface ScoreComponents {
 export interface RadarAxis {
   axis: string;
   value: number;
+  /** Part of the scored model (3 active axes) vs a locked/future axis. */
   active: boolean;
+  /** True when THIS scan gathered evidence for the axis. An un-assessed axis is
+   *  "not measured", NOT a zero — it must not drag the headline total down. */
+  assessed: boolean;
 }
 
 export type VerifiedScore = ScoreResult & { radar: RadarAxis[]; basis: "verified" };
@@ -228,18 +232,35 @@ export function verifiedScore(components: ScoreComponents, mode: Platform): Veri
   const outreach = Math.round(Math.min(100, Math.max(0, cappedOutreach)));
   const seo = Math.round(Math.min(100, Math.max(0, cappedSeo)));
 
-  // Weighted total
-  const total = Math.round(Math.min(100, Math.max(0, 0.30 * content + 0.25 * outreach + 0.45 * seo)));
+  // Which axes did THIS scan actually assess? SEO/ASO always (SERP runs). Content
+  // and Outreach are only measured once their surfaces are verified (the outcomes
+  // moat) — on a first scan they are NOT assessed, regardless of how big the company
+  // actually is. (This is why Stripe scored 19: content/outreach scored 0 and dragged
+  // the weighted total down. We don't measure them ≠ they're zero.)
+  const seoAssessed = true;
+  const contentAssessed = components.contentSurfaces > 0;
+  const outreachAssessed = components.outreachSurfaces > 0;
 
-  // 7-axis radar: 3 active (Content, Outreach, SEO/ASO) + 4 locked
+  // Headline total over ASSESSED axes only, re-normalising the weights so an
+  // un-measured axis can't penalise the score. A first scan → total === seo.
+  const parts: Array<{ w: number; v: number }> = [{ w: 0.45, v: seo }];
+  if (contentAssessed) parts.push({ w: 0.30, v: content });
+  if (outreachAssessed) parts.push({ w: 0.25, v: outreach });
+  const wsum = parts.reduce((a, p) => a + p.w, 0);
+  const total = Math.round(
+    Math.min(100, Math.max(0, parts.reduce((a, p) => a + p.w * p.v, 0) / wsum)),
+  );
+
+  // 7-axis radar: 3 active (Content, Outreach, SEO/ASO) + 4 locked. `assessed`
+  // tells the UI to render un-measured axes as "Not measured", not a 0 bar.
   const radar: RadarAxis[] = [
-    { axis: "Content", value: content, active: true },
-    { axis: "Outreach", value: outreach, active: true },
-    { axis: "SEO/ASO", value: seo, active: true },
-    { axis: "Ads", value: 0, active: false },
-    { axis: "Partnerships", value: 0, active: false },
-    { axis: "PR", value: 0, active: false },
-    { axis: "Positioning", value: 0, active: false },
+    { axis: "Content", value: content, active: true, assessed: contentAssessed },
+    { axis: "Outreach", value: outreach, active: true, assessed: outreachAssessed },
+    { axis: "SEO/ASO", value: seo, active: true, assessed: seoAssessed },
+    { axis: "Ads", value: 0, active: false, assessed: false },
+    { axis: "Partnerships", value: 0, active: false, assessed: false },
+    { axis: "PR", value: 0, active: false, assessed: false },
+    { axis: "Positioning", value: 0, active: false, assessed: false },
   ];
 
   return { total, breakdown: { content, outreach, seo }, radar, basis: "verified" };

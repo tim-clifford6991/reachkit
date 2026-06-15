@@ -39,16 +39,26 @@ describe("scan narrative", () => {
     expect(s.find((x) => x.id === "reviews")!.label).toMatch(/6 reviews/);
   });
 
-  it("the __findings__ marker confirms the final step", () => {
+  it("the __findings__ marker confirms the snapshot closer (all steps done)", () => {
     const all = new Set([
       "Read your product page", "Analysed 6 reviews", "Found 5 competitors",
       "Reading your reviews & positioning", "Comparing you to your competitors",
-      "Scoring your discoverability", "Drafting your action plan",
-      "Pressure-testing each recommendation", "__findings__",
+      "Scoring your discoverability", "__findings__",
     ]);
     const s = computeStepStates({ confirmedLabels: all, tick: 99, ctx: {} });
-    expect(s.find((x) => x.id === "finalize")!.state).toBe("done");
+    expect(s.find((x) => x.id === "snapshot")!.state).toBe("done");
     expect(s.every((x) => x.state === "done")).toBe(true);
+  });
+
+  it("snapshot is the active closer until findings land (after scoring)", () => {
+    const collectFindings = new Set([
+      "Read your product page", "Analysed 6 reviews", "Found 5 competitors",
+      "Reading your reviews & positioning", "Comparing you to your competitors",
+      "Scoring your discoverability",
+    ]);
+    const s = computeStepStates({ confirmedLabels: collectFindings, tick: 99, ctx: {} });
+    expect(s.find((x) => x.id === "score")!.state).toBe("done");
+    expect(s.find((x) => x.id === "snapshot")!.state).toBe("active"); // waits for __findings__
   });
 
   it("labelFor injects dynamic counts and falls back cleanly when unknown", () => {
@@ -59,17 +69,19 @@ describe("scan narrative", () => {
     expect(labelFor("ctas", {})).toBe("Counting your CTAs");
   });
 
-  it("STEP_SCRIPT covers every emitted heavy milestone label", () => {
+  it("STEP_SCRIPT covers every watched (collect→findings) milestone label", () => {
     const confirmable = STEP_SCRIPT.flatMap((s) => s.confirmBy);
     for (const lbl of [
       "Reading your reviews & positioning",
       "Comparing you to your competitors",
       "Scoring your discoverability",
-      "Drafting your action plan",
-      "Pressure-testing each recommendation",
-      "Finalising your report",
+      "__findings__",
     ]) {
       expect(confirmable).toContain(lbl);
+    }
+    // The full-scan labels are intentionally NOT watched (they run in the background).
+    for (const lbl of ["Drafting your action plan", "Pressure-testing each recommendation", "Finalising your report"]) {
+      expect(confirmable).not.toContain(lbl);
     }
   });
 });

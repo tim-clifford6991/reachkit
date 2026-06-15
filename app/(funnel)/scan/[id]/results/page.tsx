@@ -14,6 +14,7 @@ import { UpgradeCta } from "@/components/report/upgrade-cta";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScoreBlock } from "./score-block";
 import { ReportReveal } from "./report-reveal";
+import { ReportPending } from "./report-pending";
 
 /** Human-readable age of a snapshot timestamp (server-rendered; no hydration drift). */
 function relativeAge(iso: string): string {
@@ -81,19 +82,9 @@ async function ResultsContent({ id }: { id: string }) {
     .maybeSingle();
 
   if (!data?.report_payload) {
-    return (
-      <div
-        className="rounded-xl border p-8 text-center"
-        style={{
-          borderColor: "var(--hairline)",
-          background: "var(--color-surface)",
-        }}
-      >
-        <p className="text-sm" style={{ color: "var(--color-muted)" }}>
-          Report not ready yet. Check back in a few seconds.
-        </p>
-      </div>
-    );
+    // Speed-to-wow reveals the scan at findings while full-scan finishes in the
+    // background; a fast user can reach /results first. Auto-refresh until ready.
+    return <ReportPending />;
   }
 
   const fullReport = data.report_payload as unknown as ReportPayload;

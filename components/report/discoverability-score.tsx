@@ -163,9 +163,11 @@ function RadarChart({ axes, animate }: { axes: RadarAxis[]; animate: boolean }) 
     polar(RADAR_RADIUS, i * angleStep, RADAR_CX, RADAR_CY)
   );
 
-  // Active polygon (only axes where active=true, others treated as 0)
+  // Active polygon — only ASSESSED axes contribute. An active-but-unmeasured axis
+  // (content/outreach on a first scan) sits at 0 like the locked ones, so the
+  // polygon reflects what we actually verified rather than penalising un-measurement.
   const activePoints = axes.map((ax, i) => {
-    const r = ax.active ? (ax.value / 100) * RADAR_RADIUS : 0;
+    const r = ax.active && ax.assessed ? (ax.value / 100) * RADAR_RADIUS : 0;
     return polar(r, i * angleStep, RADAR_CX, RADAR_CY);
   });
 
@@ -263,7 +265,7 @@ function RadarChart({ axes, animate }: { axes: RadarAxis[]; animate: boolean }) 
               cx={dot.x}
               cy={dot.y}
               r={2.5}
-              fill={ax.active ? "var(--color-accent)" : "var(--hairline-strong)"}
+              fill={ax.assessed ? "var(--color-accent)" : "var(--hairline-strong)"}
             />
             <text
               x={label.x}
@@ -272,7 +274,7 @@ function RadarChart({ axes, animate }: { axes: RadarAxis[]; animate: boolean }) 
               dominantBaseline="middle"
               fontSize={9}
               fontFamily="var(--font-mono)"
-              fill={ax.active ? "var(--color-fg)" : "var(--color-muted)"}
+              fill={ax.assessed ? "var(--color-fg)" : "var(--color-muted)"}
             >
               {ax.axis}
             </text>
@@ -287,14 +289,30 @@ function RadarChart({ axes, animate }: { axes: RadarAxis[]; animate: boolean }) 
 function SubScoreRow({
   label,
   value,
+  assessed = true,
   animate,
   delay,
 }: {
   label: string;
   value: number;
+  assessed?: boolean;
   animate: boolean;
   delay: number;
 }) {
+  // An axis we didn't measure this scan reads as "not measured" — never a 0 bar
+  // (which would wrongly imply the surface is empty, e.g. Stripe's content/outreach).
+  if (!assessed) {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="w-16 shrink-0 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+          {label}
+        </span>
+        <span className="flex-1 font-mono text-[10px] italic text-muted-foreground/70">
+          not measured in free scan
+        </span>
+      </div>
+    );
+  }
   const colour =
     value >= 70
       ? "oklch(0.72 0.17 155)"
@@ -348,6 +366,8 @@ export function DiscoverabilityScore({
   const prefersReduced = useReducedMotion();
   const shouldAnimate  = !prefersReduced;
   const label = scoreLabel(score.total);
+  const assessedFor = (axis: string) =>
+    score.radar.find((a) => a.axis === axis)?.assessed ?? true;
 
   return (
     <div
@@ -404,18 +424,21 @@ export function DiscoverabilityScore({
         <SubScoreRow
           label="Content"
           value={score.breakdown.content}
+          assessed={assessedFor("Content")}
           animate={shouldAnimate}
           delay={0.3}
         />
         <SubScoreRow
           label="Outreach"
           value={score.breakdown.outreach}
+          assessed={assessedFor("Outreach")}
           animate={shouldAnimate}
           delay={0.5}
         />
         <SubScoreRow
           label="SEO"
           value={score.breakdown.seo}
+          assessed={assessedFor("SEO/ASO")}
           animate={shouldAnimate}
           delay={0.7}
         />

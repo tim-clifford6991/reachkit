@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from "react";
 
 export type StepId =
   | "homepage" | "hero" | "ctas" | "reviews" | "competitors"
-  | "positioning" | "compare" | "score" | "draft" | "critique" | "finalize";
+  | "positioning" | "compare" | "score" | "snapshot";
 
 export type StepState = "pending" | "active" | "done";
 
@@ -39,9 +39,10 @@ export const STEP_SCRIPT: Step[] = [
   { id: "positioning", optimistic: false, confirmBy: ["Reading your reviews & positioning"], label: () => "Mapping your positioning" },
   { id: "compare",     optimistic: false, confirmBy: ["Comparing you to your competitors"], label: () => "Comparing how you stack up" },
   { id: "score",       optimistic: false, confirmBy: ["Scoring your discoverability"], label: () => "Scoring your discoverability" },
-  { id: "draft",       optimistic: false, confirmBy: ["Drafting your action plan"], label: () => "Drafting your action plan" },
-  { id: "critique",    optimistic: false, confirmBy: ["Pressure-testing each recommendation"], label: () => "Pressure-testing each move" },
-  { id: "finalize",    optimistic: false, confirmBy: ["Finalising your report", "__findings__"], label: () => "Finalising your report" },
+  // Closer: the reveal fires on the findings event, so this stays the active
+  // "finishing" step until the page swaps to the result. Action drafting / critic
+  // run in the background (full-scan) and are NOT part of the watched free scan.
+  { id: "snapshot",    optimistic: false, confirmBy: ["__findings__"], label: () => "Building your snapshot" },
 ];
 
 export function labelFor(id: StepId, ctx: NarrativeCtx): string {

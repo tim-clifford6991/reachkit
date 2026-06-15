@@ -79,6 +79,7 @@ Return ONLY this JSON (no markdown):
 Rules:
 - claims: explicit marketing statements made in the listing (2–6 items).
 - valueProps: the functional benefits the app promises (2–6 items).
+- Always respond in English, translating if the listing is in another language.
 - If data is sparse, return short arrays; never invent content not supported by the text.`;
 }
 
