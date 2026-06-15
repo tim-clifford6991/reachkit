@@ -53,6 +53,16 @@ describe("competitor-names", () => {
     const out = parseCompetitorNames(JSON.stringify({ competitors: [null, 7, { name: "Flippa" }] }));
     expect(out.map((c) => c.name)).toEqual(["Flippa"]);
   });
+
+  it("drops forum/community artifacts like 'Ask HN' (the Stripe scan bug)", () => {
+    const out = parseCompetitorNames(JSON.stringify({ competitors: [{ name: "Ask HN" }, { name: "PayPal" }, { name: "Reddit" }] }));
+    expect(out.map((c) => c.name)).toEqual(["PayPal"]);
+  });
+
+  it("the prompt forbids forum artifacts", () => {
+    const p = buildCompetitorNamesPrompt({ subjectName: "Stripe", subjectHost: "stripe.com", category: "payments", content: "..." });
+    expect(p.toLowerCase()).toContain("ask hn");
+  });
 });
 
 describe("extractCompetitorNames (never-throws contract)", () => {
