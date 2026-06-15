@@ -14,18 +14,11 @@ import Link from "next/link";
 export function PreFooterShare() {
   return (
     <section
-      className="relative overflow-hidden border-t px-(--spacing-content-x) py-20 text-center"
-      style={{ borderColor: "var(--hairline)" }}
+      className="px-(--spacing-content-x) py-20 text-center"
+      style={{ background: "var(--fill-subtle)" }}
       aria-label="Share your score"
     >
-      {/* Accent wash rising from the divider */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-40"
-        style={{ background: "var(--gradient-accent-fade)" }}
-      />
-
-      <div className="relative z-10 mx-auto flex max-w-2xl flex-col items-center gap-5">
+      <div className="mx-auto flex max-w-2xl flex-col items-center gap-5">
         <p
           className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl"
           style={{ color: "var(--color-fg)", lineHeight: 1.15 }}

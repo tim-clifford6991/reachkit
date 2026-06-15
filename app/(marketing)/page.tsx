@@ -432,27 +432,29 @@ export default function HomePage() {
                 Free · no account needed
               </p>
 
-              {/* Headline — SSR'd for SEO + LCP, GSAP enhances on hydrate */}
+              {/* Headline — SSR'd for SEO + LCP. The highlighted phrase uses a
+                  marker-style background with box-decoration-break: clone, so
+                  each wrapped line gets its own highlight block (à la Paddle). */}
               <h1
                 data-hero-headline
                 className="text-[2.25rem] font-bold tracking-[var(--tracking-display)] sm:text-6xl lg:text-6xl"
-                style={{ color: "var(--color-fg)", lineHeight: 1.05 }}
+                style={{ color: "var(--color-fg)", lineHeight: 1.28 }}
               >
-                Find out exactly why
+                Find exactly why
                 <br />
                 <span
                   data-hero-accent
                   style={{
-                    background: "var(--gradient-accent)",
-                    WebkitBackgroundClip: "text",
-                    backgroundClip: "text",
-                    color: "transparent",
+                    background: "var(--color-accent-subtle)",
+                    color: "var(--color-fg)",
+                    borderRadius: "0.15em",
+                    padding: "0.06em 0.2em",
+                    boxDecorationBreak: "clone",
+                    WebkitBoxDecorationBreak: "clone",
                   }}
                 >
-                  your product isn&apos;t
+                  your product isn&apos;t found
                 </span>
-                <br />
-                getting found
               </h1>
 
               {/* Subhead — generalized (any website / product link) */}
