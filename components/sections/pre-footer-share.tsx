@@ -15,7 +15,6 @@ export function PreFooterShare() {
   return (
     <section
       className="px-(--spacing-content-x) py-20 text-center"
-      style={{ background: "var(--fill-subtle)" }}
       aria-label="Share your score"
     >
       <div className="mx-auto flex max-w-2xl flex-col items-center gap-5">
