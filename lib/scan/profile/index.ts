@@ -1,18 +1,13 @@
 /**
- * Deep domain profiling (M2) — orchestrator.
+ * Deep domain profiling (M2) — public surface.
  *
- * profileDomain(domain) → DistributionProfile: where the domain publishes
- * (content channels + recency cadence) + its SEO standing. Runs the crawl and
- * the SEO pull in parallel; each degrades independently. This is the per-company
- * unit that runs for the user AND each competitor, feeding the gap analysis.
+ * profileDomain → one domain's content channels (+ recency cadence) and SEO
+ * standing. profileDomainCached adds the shared cross-user cache. profileCohort
+ * fans out over the user + top-N competitors → the input to gap analysis.
  *
- * (Persistence + a shared cross-user cache land in the next increment; this is
- * the pure compute path.)
+ * (Pipeline/report wiring is the next increment; this is the compute + cache +
+ * fan-out core.)
  */
-
-import { crawlContentChannels } from "./crawl";
-import { fetchSeoPosture } from "./seo";
-import type { DistributionProfile } from "./types";
 
 export type {
   DistributionProfile,
@@ -21,24 +16,18 @@ export type {
   SeoPosture,
   Cadence,
 } from "./types";
+
+export { profileDomain } from "./profile-domain";
+export { profileDomainCached, getCachedProfile, upsertProfile, PROFILE_TTL_MS } from "./cache";
+export { profileCohort, type Cohort } from "./cohort";
+export {
+  discoverCompetitorDomains,
+  parseCompetitorsDomain,
+  rankCompetitorDomains,
+  COMPETITOR_BLOCKLIST,
+} from "./competitors";
+
 export { crawlContentChannels, toHost } from "./crawl";
 export { computeCadence } from "./cadence";
 export { detectChannels } from "./fingerprint";
 export { fetchSeoPosture, parseRankOverview, parseBacklinksSummary } from "./seo";
-
-export async function profileDomain(
-  domain: string,
-  opts: { nowMs?: number } = {},
-): Promise<DistributionProfile> {
-  const nowMs = opts.nowMs ?? Date.now();
-  const [channels, seo] = await Promise.all([
-    crawlContentChannels(domain, nowMs),
-    fetchSeoPosture(domain),
-  ]);
-  return {
-    domain: domain,
-    channels,
-    seo,
-    crawledAt: new Date(nowMs).toISOString(),
-  };
-}

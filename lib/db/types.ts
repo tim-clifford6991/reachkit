@@ -599,6 +599,24 @@ export type Database = {
           },
         ]
       }
+      distribution_profiles: {
+        Row: {
+          crawled_at: string
+          domain: string
+          profile: Json
+        }
+        Insert: {
+          crawled_at?: string
+          domain: string
+          profile: Json
+        }
+        Update: {
+          crawled_at?: string
+          domain?: string
+          profile?: Json
+        }
+        Relationships: []
+      }
       score_snapshots: {
         Row: {
           app_id: string
