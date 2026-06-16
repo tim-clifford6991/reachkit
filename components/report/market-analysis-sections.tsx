@@ -9,7 +9,9 @@ import type { MarketAnalysis } from "@/lib/scan/gap";
 import type { DistributionProfile, ContentChannel } from "@/lib/scan/profile";
 import type { DemandPocket } from "@/lib/scan/demand/types";
 import type { ChannelMatrixRow } from "@/lib/scan/gap";
+import { COACH_GUIDES } from "@/lib/scan/distribute/coach";
 import { DeepSection } from "./deep-section-shell";
+import { DistributeWidget } from "./distribute-widget";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -115,7 +117,17 @@ export function ChannelMatrixSection({ market }: { market: MarketAnalysis }) {
 
 // ── 3. Demand pockets ─────────────────────────────────────────────────────────
 
-function PocketCard({ p }: { p: DemandPocket }) {
+function PocketCard({
+  p,
+  productName,
+  productDescription,
+  productUrl,
+}: {
+  p: DemandPocket;
+  productName: string;
+  productDescription?: string;
+  productUrl?: string;
+}) {
   return (
     <div className="rounded-lg px-4 py-3" style={{ background: "var(--fill-subtle)" }}>
       <div className="flex items-baseline justify-between gap-3">
@@ -138,6 +150,15 @@ function PocketCard({ p }: { p: DemandPocket }) {
           </li>
         ))}
       </ul>
+      {/* One-click handoff: draft a value-first reply to engage this pocket. */}
+      <DistributeWidget
+        productName={productName}
+        productDescription={productDescription}
+        angle={`Engage in ${p.surface}: people are describing the problem you solve${p.topThreads[0]?.title ? ` (e.g. "${p.topThreads[0].title}")` : ""}`}
+        url={productUrl}
+        subreddit={p.subreddit ?? undefined}
+        platforms={p.subreddit ? ["reddit", "x"] : ["x", "linkedin"]}
+      />
     </div>
   );
 }
@@ -145,11 +166,44 @@ function PocketCard({ p }: { p: DemandPocket }) {
 export function DemandPocketsSection({ market }: { market: MarketAnalysis }) {
   const pockets = market.gap.demandPockets.slice(0, 6);
   if (pockets.length === 0) return null;
+  const productUrl = `https://${market.cohort.self.domain}`;
   return (
     <DeepSection eyebrow="Where your buyers are asking" title="Live conversations describing your problem">
       <div className="space-y-3">
         {pockets.map((p, i) => (
-          <PocketCard key={i} p={p} />
+          <PocketCard
+            key={i}
+            p={p}
+            productName={market.cohort.product.name}
+            productDescription={market.cohort.product.description}
+            productUrl={productUrl}
+          />
+        ))}
+      </div>
+    </DeepSection>
+  );
+}
+
+// ── 5. Coach — the platforms with no safe automation path ─────────────────────
+
+export function CoachSection() {
+  const guides = [COACH_GUIDES.hackernews, COACH_GUIDES.producthunt];
+  return (
+    <DeepSection eyebrow="Coached channels" title="High-reward, high-scrutiny — do these by hand">
+      <div className="space-y-4">
+        {guides.map((g) => (
+          <div key={g.label}>
+            <p className="text-sm font-medium" style={{ color: "var(--color-fg)" }}>{g.label}</p>
+            <p className="mt-0.5 text-xs" style={{ color: "var(--color-muted)" }}>{g.intro}</p>
+            <ul className="mt-1.5 space-y-1">
+              {g.steps.map((s, i) => (
+                <li key={i} className="flex gap-2 text-xs leading-snug" style={{ color: "var(--color-fg)" }}>
+                  <span style={{ color: "var(--color-accent-400)" }}>·</span>
+                  {s}
+                </li>
+              ))}
+            </ul>
+          </div>
         ))}
       </div>
     </DeepSection>
@@ -200,6 +254,7 @@ export function MarketAnalysisSections({ market }: { market: MarketAnalysis }) {
       <ChannelMatrixSection market={market} />
       <DemandPocketsSection market={market} />
       <DistributionPlanSection market={market} />
+      <CoachSection />
     </>
   );
 }
