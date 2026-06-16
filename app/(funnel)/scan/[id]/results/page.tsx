@@ -15,6 +15,7 @@ import { ChannelOpportunitiesSection } from "@/components/report/channel-opportu
 import { CreatorsToReachSection } from "@/components/report/creators-to-reach-section";
 import { StrengthsWeaknessesSection } from "@/components/report/strengths-weaknesses-section";
 import { SnapshotStrip } from "@/components/report/snapshot-strip";
+import { MarketAnalysisSections } from "@/components/report/market-analysis-sections";
 import { UpgradeCta } from "@/components/report/upgrade-cta";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScoreBlock } from "./score-block";
@@ -114,6 +115,9 @@ async function ResultsContent({ id }: { id: string }) {
   }
   const report = redactReportForTier(fullReport, tier);
   const isPaid = tier !== "free";
+  // M4: when the deep market analysis is present (paid, web), it supersedes the
+  // lighter competitive-landscape / channels / creators sections.
+  const hasMarket = !!report.market;
 
   // Named, loss-framed competitive hook from community-mention gaps (null on
   // cold-start scans with no credible gap → score block falls back to neutral).
@@ -135,9 +139,11 @@ async function ResultsContent({ id }: { id: string }) {
       {/* ── Score — signature visual; lazy-loaded client component ────── */}
       <ScoreBlock score={report.score} lossFrame={isPaid ? null : lossFrame} />
 
-      {/* ── Free-teaser proof: named rivals + mention counts above the wall;
-          their openings + creators are gated (tease the question). ── */}
-      <CompetitiveLandscapeSection rows={report.competitiveLandscape} unlocked={isPaid} />
+      {/* ── Free-teaser proof / paid landscape — superseded by the market
+          analysis when present. ── */}
+      {!hasMarket && (
+        <CompetitiveLandscapeSection rows={report.competitiveLandscape} unlocked={isPaid} />
+      )}
 
       {/* Trial wall (§23 moment 7) + #unlock scroll target for locked sections. */}
       {!isPaid && <UpgradeCta scanId={id} snapshotAge={snapshotAge} lossFrame={lossFrame} />}
@@ -147,16 +153,24 @@ async function ResultsContent({ id }: { id: string }) {
         <WhatYouOfferSection whatYouOffer={report.whatYouOffer} unlocked={isPaid} />
         <WhoItsForSection whoItsFor={report.whoItsFor} unlocked={isPaid} />
         <WhereTheyAreSection whereTheyAre={report.whereTheyAre} unlocked={isPaid} />
-        <ChannelOpportunitiesSection
-          data={report.channelOpportunities}
-          unlocked={isPaid}
-          lockLabel={lockCounts.channelsLabel}
-        />
-        <CreatorsToReachSection
-          creators={report.creatorsToReach}
-          unlocked={isPaid}
-          lockLabel={lockCounts.creatorsLabel}
-        />
+
+        {/* M4 market analysis supersedes the lighter channels/creators sections. */}
+        {hasMarket && report.market ? (
+          <MarketAnalysisSections market={report.market} />
+        ) : (
+          <>
+            <ChannelOpportunitiesSection
+              data={report.channelOpportunities}
+              unlocked={isPaid}
+              lockLabel={lockCounts.channelsLabel}
+            />
+            <CreatorsToReachSection
+              creators={report.creatorsToReach}
+              unlocked={isPaid}
+              lockLabel={lockCounts.creatorsLabel}
+            />
+          </>
+        )}
         <StrengthsWeaknessesSection
           data={report.strengthsAndWeaknesses}
           unlocked={isPaid}

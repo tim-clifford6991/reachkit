@@ -30,6 +30,7 @@ import { CompetitiveLandscapeSection } from "@/components/report/competitive-lan
 import { ChannelOpportunitiesSection } from "@/components/report/channel-opportunities-section";
 import { CreatorsToReachSection } from "@/components/report/creators-to-reach-section";
 import { StrengthsWeaknessesSection } from "@/components/report/strengths-weaknesses-section";
+import { MarketAnalysisSections } from "@/components/report/market-analysis-sections";
 import { ScoreBlockDashboard } from "@/components/app/score-block-dashboard";
 import { PlaysPreview } from "@/components/app/plays-preview";
 import { EngagementStrip } from "@/components/app/engagement-strip";
@@ -131,9 +132,15 @@ async function DashboardContent() {
         <WhatYouOfferSection whatYouOffer={report.whatYouOffer} unlocked={userIsPaid} />
         <WhoItsForSection whoItsFor={report.whoItsFor} unlocked={userIsPaid} />
         <WhereTheyAreSection whereTheyAre={report.whereTheyAre} unlocked={userIsPaid} />
-        <CompetitiveLandscapeSection rows={report.competitiveLandscape} unlocked={userIsPaid} />
-        <ChannelOpportunitiesSection data={report.channelOpportunities} unlocked={userIsPaid} />
-        <CreatorsToReachSection creators={report.creatorsToReach} unlocked={userIsPaid} />
+        {report.market ? (
+          <MarketAnalysisSections market={report.market} />
+        ) : (
+          <>
+            <CompetitiveLandscapeSection rows={report.competitiveLandscape} unlocked={userIsPaid} />
+            <ChannelOpportunitiesSection data={report.channelOpportunities} unlocked={userIsPaid} />
+            <CreatorsToReachSection creators={report.creatorsToReach} unlocked={userIsPaid} />
+          </>
+        )}
         <StrengthsWeaknessesSection data={report.strengthsAndWeaknesses} unlocked={userIsPaid} />
         <ActionPlanSection whatToDoThisWeek={report.whatToDoThisWeek} unlocked={userIsPaid} />
       </div>
