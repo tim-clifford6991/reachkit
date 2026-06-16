@@ -7,6 +7,7 @@
 
 export { analyzeGap } from "./analyze";
 export { buildPlan, type PlanItem, type DistributionPlan } from "./plan";
+export { runMarketAnalysis, type MarketAnalysis } from "./run";
 export type {
   GapAnalysis,
   ChannelMatrixRow,

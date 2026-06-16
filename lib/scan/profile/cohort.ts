@@ -33,6 +33,8 @@ export interface Cohort {
   self: DistributionProfile;
   competitors: DistributionProfile[];
   competitorDomains: string[];
+  /** The subject's name + description (drives discovery; reused for demand). */
+  product: ProductInfo;
 }
 
 export async function profileCohort(
@@ -50,5 +52,5 @@ export async function profileCohort(
     ),
   ]);
 
-  return { self: self!, competitors, competitorDomains };
+  return { self: self!, competitors, competitorDomains, product };
 }
