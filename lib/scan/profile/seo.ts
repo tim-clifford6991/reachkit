@@ -1,0 +1,79 @@
+/**
+ * Deep domain profiling (M2) — SEO posture (DataForSEO Labs + Backlinks).
+ *
+ * "Where they stand": organic keyword footprint + estimated traffic value (ETV)
+ * from Labs `domain_rank_overview`, and a domain-authority proxy + referring
+ * domains from Backlinks `summary`. Parsers are pure/defensive (unknown shapes →
+ * zeros, never throw); the fetch is fixtures-aware.
+ */
+
+import { env } from "@/lib/config/env";
+import { fixturesEnabled } from "@/lib/dev/fixtures";
+import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
+import { serpAuthHeader } from "@/lib/scan/adapters/dataforseo";
+import { toHost } from "./crawl";
+import type { SeoPosture } from "./types";
+
+const num = (v: unknown): number => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+};
+
+/** Pure: organic keyword count + ETV from Labs domain_rank_overview. */
+export function parseRankOverview(body: unknown): { organicKeywords: number; etv: number } {
+  const organic = ((body ?? {}) as {
+    tasks?: Array<{ result?: Array<{ items?: Array<{ metrics?: { organic?: Record<string, unknown> } }> }> }>;
+  }).tasks?.[0]?.result?.[0]?.items?.[0]?.metrics?.organic;
+  return { organicKeywords: num(organic?.["count"]), etv: num(organic?.["etv"]) };
+}
+
+/** Pure: authority (rank 0–1000) + referring domains from Backlinks summary. */
+export function parseBacklinksSummary(body: unknown): { authority: number; referringDomains: number } {
+  const r = ((body ?? {}) as {
+    tasks?: Array<{ result?: Array<Record<string, unknown>> }>;
+  }).tasks?.[0]?.result?.[0];
+  return { authority: num(r?.["rank"]), referringDomains: num(r?.["referring_domains"]) };
+}
+
+async function post(url: string, payload: unknown): Promise<unknown | null> {
+  try {
+    const res = await fetchWithTimeout(
+      url,
+      {
+        method: "POST",
+        headers: {
+          Authorization: serpAuthHeader(env.dataforseoLogin, env.dataforseoPassword),
+          "content-type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      },
+      15_000,
+    );
+    if (!res.ok) return null;
+    return (await res.json()) as unknown;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fetch a domain's SEO posture. Fixtures-mode (or total failure) returns null.
+ * Partial failures degrade to zeros for the missing half.
+ */
+export async function fetchSeoPosture(domain: string): Promise<SeoPosture | null> {
+  if (fixturesEnabled()) return null;
+  const target = toHost(domain);
+
+  const [overview, backlinks] = await Promise.all([
+    post("https://api.dataforseo.com/v3/dataforseo_labs/google/domain_rank_overview/live", [
+      { target, location_code: env.dataforseoLocationCode, language_code: env.dataforseoLanguageCode },
+    ]),
+    post("https://api.dataforseo.com/v3/backlinks/summary/live", [{ target }]),
+  ]);
+
+  if (!overview && !backlinks) return null;
+
+  const { organicKeywords, etv } = parseRankOverview(overview);
+  const { authority, referringDomains } = parseBacklinksSummary(backlinks);
+  return { organicKeywords, etv, authority, referringDomains };
+}
