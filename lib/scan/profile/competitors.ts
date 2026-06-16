@@ -96,22 +96,35 @@ export function rankCompetitorDomains(
 // cheap Haiku pass keeps only genuine product/service competitors.
 // ---------------------------------------------------------------------------
 
-export function buildCompetitorFilterPrompt(subjectDomain: string, domains: string[]): string {
-  return `The subject company is ${subjectDomain}.
+export interface CompetitorSubject {
+  domain: string;
+  /** What the subject actually does — critical for judging category closeness. */
+  description?: string;
+}
 
-From the list below, keep ONLY genuine product or service competitors — companies
-offering a similar product/service that a buyer evaluating ${subjectDomain} would
-consider as an alternative.
+export function buildCompetitorFilterPrompt(subject: CompetitorSubject, domains: string[]): string {
+  const ctx = subject.description
+    ? `${subject.domain} — ${subject.description}`
+    : subject.domain;
+  return `The subject company is:
+${ctx}
 
-DROP anything that merely ranks for the same topics but does not compete:
-news/magazine/media sites, reference/encyclopedia sites, review/comparison/listicle
-sites, blogs, marketplaces, app stores, directories, and social networks.
+From the list below, keep ONLY DIRECT competitors: a company offering a similar
+product/service in the SAME category that a buyer of ${subject.domain} would
+directly choose between.
+
+DROP, even if they rank for the same keywords:
+- news/media/reference/review/listicle sites, marketplaces, directories, social.
+- ADJACENT-BUT-DIFFERENT-category companies — e.g. broad data/analytics or
+  enterprise giants when the subject is a niche/SMB tool. If it isn't clearly the
+  SAME category and substitutable, DROP it.
 
 DOMAINS:
 ${domains.join("\n")}
 
 Return ONLY this JSON (no fences): { "keep": ["domain", ...] }
-— a subset of the domains above, real competitors only. If none compete, return { "keep": [] }.`;
+— a subset of the domains above. Be strict: a wrong competitor is worse than too
+few. If none are direct competitors, return { "keep": [] }.`;
 }
 
 /** Pure: parse the keep-list, intersecting with the input (model can't invent
@@ -133,7 +146,7 @@ export function parseKeepList(raw: string, domains: string[]): string[] {
  * the input unchanged; a valid model response is trusted even if it drops most.
  */
 export async function filterProductCompetitors(
-  subjectDomain: string,
+  subject: CompetitorSubject,
   domains: string[],
   opts: { scanId?: string | null } = {},
 ): Promise<string[]> {
@@ -142,8 +155,9 @@ export async function filterProductCompetitors(
   try {
     const { text } = await callModel({
       model: MODEL,
-      system: "You separate real product competitors from media/reference/marketplace sites. Return only JSON.",
-      prompt: buildCompetitorFilterPrompt(subjectDomain, domains),
+      system:
+        "You keep only DIRECT, same-category product competitors and drop media, marketplaces, and adjacent-category companies. Return only JSON.",
+      prompt: buildCompetitorFilterPrompt(subject, domains),
       scanId: opts.scanId ?? null,
       stage: "critic",
     });
@@ -155,15 +169,20 @@ export async function filterProductCompetitors(
 
 /**
  * The full Stage-0: discover keyword-overlap candidates (wider net), then keep
- * only genuine product competitors via the LLM filter, then take top-N.
+ * only DIRECT same-category competitors via the LLM filter (which needs the
+ * subject's description to judge closeness), then take top-N.
  */
 export async function discoverProductCompetitors(
   domain: string,
   topN = 5,
-  opts: { scanId?: string | null } = {},
+  opts: { scanId?: string | null; description?: string } = {},
 ): Promise<string[]> {
   const candidates = await discoverCompetitorDomains(domain, topN * 3);
-  const filtered = await filterProductCompetitors(domain, candidates, opts);
+  const filtered = await filterProductCompetitors(
+    { domain, description: opts.description },
+    candidates,
+    { scanId: opts.scanId },
+  );
   return filtered.slice(0, topN);
 }
 

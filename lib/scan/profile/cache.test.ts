@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { DistributionProfile } from "./types";
+import { PROFILE_CACHE_VERSION } from "./cache";
 
 const NOW = Date.UTC(2026, 5, 16);
 const profile = (domain: string, crawledAt: string): DistributionProfile => ({
@@ -9,6 +10,8 @@ const profile = (domain: string, crawledAt: string): DistributionProfile => ({
   seo: null,
   crawledAt,
 });
+/** A cached row's stored profile carries the cache version (as upsert writes it). */
+const versioned = (p: DistributionProfile, v: number = PROFILE_CACHE_VERSION) => ({ ...p, _v: v });
 
 // serverDb mock: .from("distribution_profiles").select().eq().maybeSingle() and .upsert()
 function makeDb(row: { profile: unknown; crawled_at: string } | null) {
@@ -25,7 +28,7 @@ beforeEach(() => vi.resetModules());
 describe("getCachedProfile", () => {
   it("returns a fresh cached profile", async () => {
     const fresh = profile("acme.com", new Date(NOW - 60_000).toISOString());
-    const db = makeDb({ profile: fresh, crawled_at: fresh.crawledAt });
+    const db = makeDb({ profile: versioned(fresh), crawled_at: fresh.crawledAt });
     vi.doMock("@/lib/db/client", () => ({ serverDb: db.serverDb }));
     const { getCachedProfile } = await import("./cache");
     expect(await getCachedProfile("acme.com", 7 * 86_400_000, NOW)).toEqual(fresh);
@@ -34,7 +37,7 @@ describe("getCachedProfile", () => {
 
   it("returns null when the cached profile is stale", async () => {
     const stale = profile("acme.com", new Date(NOW - 30 * 86_400_000).toISOString());
-    const db = makeDb({ profile: stale, crawled_at: stale.crawledAt });
+    const db = makeDb({ profile: versioned(stale), crawled_at: stale.crawledAt });
     vi.doMock("@/lib/db/client", () => ({ serverDb: db.serverDb }));
     const { getCachedProfile } = await import("./cache");
     expect(await getCachedProfile("acme.com", 7 * 86_400_000, NOW)).toBeNull();
@@ -46,12 +49,20 @@ describe("getCachedProfile", () => {
     const { getCachedProfile } = await import("./cache");
     expect(await getCachedProfile("acme.com", 7 * 86_400_000, NOW)).toBeNull();
   });
+
+  it("treats an older cache-schema version as a miss (recompute)", async () => {
+    const old = profile("acme.com", new Date(NOW - 60_000).toISOString());
+    const db = makeDb({ profile: versioned(old, PROFILE_CACHE_VERSION - 1), crawled_at: old.crawledAt });
+    vi.doMock("@/lib/db/client", () => ({ serverDb: db.serverDb }));
+    const { getCachedProfile } = await import("./cache");
+    expect(await getCachedProfile("acme.com", 7 * 86_400_000, NOW)).toBeNull();
+  });
 });
 
 describe("profileDomainCached", () => {
   it("serves the cache on a fresh hit without computing", async () => {
     const fresh = profile("acme.com", new Date(NOW - 60_000).toISOString());
-    const db = makeDb({ profile: fresh, crawled_at: fresh.crawledAt });
+    const db = makeDb({ profile: versioned(fresh), crawled_at: fresh.crawledAt });
     const compute = vi.fn();
     vi.doMock("@/lib/db/client", () => ({ serverDb: db.serverDb }));
     vi.doMock("./profile-domain", () => ({ profileDomain: compute }));

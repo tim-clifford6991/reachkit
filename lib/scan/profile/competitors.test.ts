@@ -3,6 +3,7 @@ import {
   parseCompetitorsDomain,
   rankCompetitorDomains,
   parseKeepList,
+  buildCompetitorFilterPrompt,
   COMPETITOR_BLOCKLIST,
 } from "./competitors";
 
@@ -91,5 +92,23 @@ describe("parseKeepList", () => {
 
   it("falls back to the full list on unparseable output", () => {
     expect(parseKeepList("garbage", domains)).toEqual(domains);
+  });
+});
+
+describe("buildCompetitorFilterPrompt", () => {
+  it("embeds the subject description and the adjacent-category drop rule", () => {
+    const p = buildCompetitorFilterPrompt(
+      { domain: "trustmrr.com", description: "verified MRR badges for indie SaaS founders" },
+      ["zoominfo.com", "wise.com"],
+    );
+    expect(p).toContain("verified MRR badges for indie SaaS founders");
+    expect(p).toContain("ADJACENT-BUT-DIFFERENT-category");
+    expect(p).toContain("zoominfo.com");
+  });
+
+  it("works without a description (domain only)", () => {
+    const p = buildCompetitorFilterPrompt({ domain: "acme.com" }, ["rival.com"]);
+    expect(p).toContain("acme.com");
+    expect(p).toContain("rival.com");
   });
 });

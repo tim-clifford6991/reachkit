@@ -9,7 +9,22 @@
 
 import { discoverProductCompetitors } from "./competitors";
 import { profileDomainCached } from "./cache";
+import { toHost } from "./crawl";
+import { fetchSiteListing } from "@/lib/scan/adapters/site-fetch";
 import type { DistributionProfile } from "./types";
+
+/** Best-effort one-line description of what the subject does (homepage title +
+ *  meta description) — gives the competitor filter the context to judge category
+ *  closeness. Returns undefined if the homepage can't be read. */
+async function subjectDescription(domain: string): Promise<string | undefined> {
+  try {
+    const { listing } = await fetchSiteListing(`https://${toHost(domain)}/`);
+    const desc = [listing.name, listing.description].filter(Boolean).join(" — ");
+    return desc || undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 export interface Cohort {
   self: DistributionProfile;
@@ -22,7 +37,8 @@ export async function profileCohort(
   opts: { topN?: number; nowMs?: number; maxAgeMs?: number } = {},
 ): Promise<Cohort> {
   const topN = opts.topN ?? 5;
-  const competitorDomains = await discoverProductCompetitors(domain, topN);
+  const description = await subjectDescription(domain);
+  const competitorDomains = await discoverProductCompetitors(domain, topN, { description });
 
   const [self, ...competitors] = await Promise.all([
     profileDomainCached(domain, { nowMs: opts.nowMs, maxAgeMs: opts.maxAgeMs }),

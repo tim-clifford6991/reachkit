@@ -104,8 +104,11 @@ export async function crawlContentChannels(
 
   const channels: ContentChannel[] = [];
 
-  // Blog cadence — prefer the richer of sitemap vs feed dates.
-  const blogDates = smDates.length >= fdDates.length ? smDates : fdDates;
+  // Blog cadence — PREFER the RSS feed (real published posts) over the sitemap.
+  // A sitemap's <lastmod> covers every URL including large programmatic page sets
+  // (e.g. one per tracked entity), which wildly inflates "posts". The feed is the
+  // accurate publishing signal; sitemap is only a fallback when there's no feed.
+  const blogDates = fdDates.length > 0 ? fdDates : smDates;
   if (blogDates.length > 0) {
     channels.push({
       kind: "blog",

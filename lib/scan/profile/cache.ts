@@ -16,6 +16,15 @@ import type { DistributionProfile } from "./types";
 /** Default freshness window for a cached profile. */
 export const PROFILE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
+/**
+ * Cache schema version — bump whenever the profile shape or how it's computed
+ * changes, so stale-shaped entries are treated as a miss and recomputed (rather
+ * than served for the whole TTL). Saves clearing the table on every iteration.
+ */
+export const PROFILE_CACHE_VERSION = 2;
+
+type Versioned = DistributionProfile & { _v?: number };
+
 /** Return a cached profile if present and newer than `maxAgeMs`, else null. */
 export async function getCachedProfile(
   domain: string,
@@ -29,18 +38,24 @@ export async function getCachedProfile(
     .eq("domain", host)
     .maybeSingle();
   if (error || !data) return null;
+  const cached = data.profile as unknown as Versioned;
+  // Shape/computation changed since this was written → recompute.
+  if (cached?._v !== PROFILE_CACHE_VERSION) return null;
   const age = nowMs - Date.parse(data.crawled_at);
   if (Number.isNaN(age) || age > maxAgeMs) return null;
-  return data.profile as unknown as DistributionProfile;
+  const { _v, ...profile } = cached;
+  void _v;
+  return profile;
 }
 
 /** Upsert a profile into the shared cache (keyed on its host). */
 export async function upsertProfile(profile: DistributionProfile): Promise<void> {
   const host = toHost(profile.domain);
+  const payload: Versioned = { ...profile, _v: PROFILE_CACHE_VERSION };
   const { error } = await serverDb()
     .from("distribution_profiles")
     .upsert(
-      { domain: host, profile: profile as unknown as Json, crawled_at: profile.crawledAt },
+      { domain: host, profile: payload as unknown as Json, crawled_at: profile.crawledAt },
       { onConflict: "domain" },
     );
   // A missing table (migration not yet applied) lands here — caching is simply

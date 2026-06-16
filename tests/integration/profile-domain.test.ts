@@ -39,7 +39,7 @@ function printProfile(p: DistributionProfile): void {
     console.log("Community presence:");
     for (const cp of p.communities) {
       console.log(
-        `  • ${cp.source}: ${cp.mentions} mentions · last ${cp.lastSeen?.slice(0, 10) ?? "?"} ` +
+        `  • ${cp.source}: ${cp.mentions} recent threads (sampled) · last ${cp.lastSeen?.slice(0, 10) ?? "?"} ` +
           `${cp.active ? "(active)" : "(quiet)"}`,
       );
     }
