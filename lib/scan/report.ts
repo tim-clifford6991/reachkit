@@ -10,6 +10,7 @@
 import type { PositioningMirror, Finding, ActionCard } from "@/lib/llm/types";
 import type { VerifiedScore } from "@/lib/scan/score-full";
 import type { Platform } from "@/lib/scan/router";
+import type { MarketAnalysis } from "@/lib/scan/gap";
 import { serverDb } from "@/lib/db/client";
 
 // ---------------------------------------------------------------------------
@@ -127,6 +128,11 @@ export interface ReportPayload {
   creatorsToReach?: CreatorReach[];
   /** What you do well vs poorly — review sentiment + diagnostic findings. */
   strengthsAndWeaknesses?: StrengthsAndWeaknesses;
+
+  // ── M4 market analysis — deep cohort (you + prominent rivals) + demand + gap +
+  // plan. Present only on paid deep scans (flag-gated). Supersedes the lighter
+  // competitiveLandscape/channelOpportunities/creators sections when present.
+  market?: MarketAnalysis;
 }
 
 // ---------------------------------------------------------------------------

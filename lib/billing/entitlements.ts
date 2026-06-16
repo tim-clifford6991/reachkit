@@ -135,6 +135,9 @@ export function redactReportForTier(
     channelOpportunities: redactChannels(payload.channelOpportunities),
     creatorsToReach: (payload.creatorsToReach ?? []).slice(0, FREE_PREVIEW_CREATORS),
     strengthsAndWeaknesses: redactStrengths(payload.strengthsAndWeaknesses),
+    // M4 market analysis is fully paid — the free funnel teaser names competitors
+    // via the cheap findings path, not this heavy blob.
+    market: undefined,
   };
 }
 

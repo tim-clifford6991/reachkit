@@ -48,6 +48,9 @@ import { getFreshFactSheet, factSheetSubjectType } from "@/lib/scan/fact-sheets"
 import { parseKeywords } from "@/lib/scan/adapters/keywords";
 import { checkScanCostOverrun } from "@/lib/telemetry/pipeline-runs";
 import { emitScanEvent } from "@/lib/scan/progress";
+import { env } from "@/lib/config/env";
+import { hostname } from "@/lib/scan/url";
+import { runMarketAnalysis } from "@/lib/scan/gap";
 import { countMentions } from "@/lib/scan/competitor-mentions";
 import { normalizeName } from "@/lib/scan/competitor-filter";
 import type { ScanContext } from "@/lib/scan/pipeline";
@@ -539,6 +542,16 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
     // 8. Persist the report payload
     await persistReport(ctx.scanId, payload);
 
+    // 8b. M4 market analysis (deep cohort + demand + gap + plan) — flag-gated and
+    //     web-only (domain-centric). Best-effort: the core report is already
+    //     persisted, so a market-analysis failure is logged but never breaks the
+    //     scan. Patches `report_payload.market` when it succeeds.
+    if (env.marketAnalysis && ctx.mode === "web") {
+      await attachMarketAnalysis(ctx.scanId, ctx.storeUrl).catch((e) =>
+        console.error("[full-scan] market analysis failed (best-effort)", e),
+      );
+    }
+
     // 9. Persist the safe actions (idempotent)
     await persistActions(ctx, safe);
 
@@ -575,4 +588,26 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
     await emitScanEvent(ctx.scanId, "error", { message });
     throw err;
   }
+}
+
+/**
+ * Run the M4 market analysis for a scan's domain and patch it into the persisted
+ * report payload. Best-effort: callers wrap this in `.catch`, so any failure is
+ * logged without affecting the (already-persisted) core report.
+ */
+async function attachMarketAnalysis(scanId: string, storeUrl: string): Promise<void> {
+  const market = await runMarketAnalysis(hostname(storeUrl), { scanId });
+
+  const db = serverDb();
+  const { data } = await db.from("scans").select("report_payload").eq("id", scanId).maybeSingle();
+  if (!data?.report_payload) return;
+
+  const payload = { ...(data.report_payload as Record<string, unknown>), market };
+  const { error } = await db
+    .from("scans")
+    .update({ report_payload: payload as unknown as Json })
+    .eq("id", scanId);
+  if (error) throw new Error(`attachMarketAnalysis: persist failed: ${error.message}`);
+
+  await emitScanEvent(scanId, "report", { market: true });
 }

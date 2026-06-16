@@ -269,4 +269,11 @@ describe("redactReportForTier — deep sections", () => {
     redactReportForTier(report, "free");
     expect(report).toEqual(before);
   });
+
+  it("strips the M4 market analysis for free, keeps it for paid", () => {
+    const market = { cohort: {}, demand: {}, gap: {}, plan: {} } as unknown as ReportPayload["market"];
+    const report = { ...makeReport(), market };
+    expect(redactReportForTier(report, "free").market).toBeUndefined();
+    expect(redactReportForTier(report, "growth").market).toBe(market);
+  });
 });

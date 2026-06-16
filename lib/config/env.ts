@@ -49,6 +49,9 @@ const schema = z.object({
   DATAFORSEO_LANGUAGE_CODE: z.string().default("en"),
   // Backlinks API is a separate DataForSEO subscription — off unless enabled.
   DATAFORSEO_BACKLINKS: z.string().optional().transform((v) => v === "true"),
+  // M4 market analysis (cohort + demand + gap + plan) in the paid deep scan — off
+  // until the report surfaces are validated.
+  REACHKIT_MARKET_ANALYSIS: z.string().optional().transform((v) => v === "true"),
   REACHKIT_USE_FIXTURES: z.string().optional().transform((v) => v === "true"),
 }).superRefine((val, ctx) => {
   // superRefine receives transformed values: val.REACHKIT_USE_FIXTURES is a boolean.
@@ -76,6 +79,7 @@ export function parseEnv(src: NodeJS.ProcessEnv) {
     voyageApiKey: p.VOYAGE_API_KEY,
     dataforseoLocationCode: p.DATAFORSEO_LOCATION_CODE, dataforseoLanguageCode: p.DATAFORSEO_LANGUAGE_CODE,
     dataforseoBacklinks: p.DATAFORSEO_BACKLINKS,
+    marketAnalysis: p.REACHKIT_MARKET_ANALYSIS,
     useFixtures: p.REACHKIT_USE_FIXTURES,
     appUrl: p.APP_URL,
     stripeSecretKey: p.STRIPE_SECRET_KEY,
