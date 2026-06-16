@@ -6,8 +6,9 @@
  * over the user + competitors, and `profileDomainCached` adds the shared cache.
  */
 
-import { crawlContentChannels } from "./crawl";
+import { crawlContentChannels, toHost } from "./crawl";
 import { fetchSeoPosture } from "./seo";
+import { gatherCommunityPresence } from "./community";
 import type { DistributionProfile } from "./types";
 
 export async function profileDomain(
@@ -15,13 +16,16 @@ export async function profileDomain(
   opts: { nowMs?: number } = {},
 ): Promise<DistributionProfile> {
   const nowMs = opts.nowMs ?? Date.now();
-  const [channels, seo] = await Promise.all([
+  const brand = toHost(domain).split(".")[0] ?? domain;
+  const [channels, seo, communities] = await Promise.all([
     crawlContentChannels(domain, nowMs),
     fetchSeoPosture(domain),
+    gatherCommunityPresence(brand, nowMs),
   ]);
   return {
     domain,
     channels,
+    communities,
     seo,
     crawledAt: new Date(nowMs).toISOString(),
   };

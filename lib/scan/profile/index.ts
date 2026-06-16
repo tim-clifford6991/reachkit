@@ -15,7 +15,16 @@ export type {
   ChannelKind,
   SeoPosture,
   Cadence,
+  CommunityPresence,
 } from "./types";
+
+export { gatherCommunityPresence, summarizePresence } from "./community";
+export {
+  youtubeChannelDates,
+  parseChannelRef,
+  parseUploadsPlaylist,
+  parsePlaylistDates,
+} from "./youtube-cadence";
 
 export { profileDomain } from "./profile-domain";
 export { profileDomainCached, getCachedProfile, upsertProfile, PROFILE_TTL_MS } from "./cache";

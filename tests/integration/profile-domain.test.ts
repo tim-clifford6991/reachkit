@@ -35,6 +35,15 @@ function printProfile(p: DistributionProfile): void {
       : "";
     console.log(`  • ${c.label}${c.url ? ` — ${c.url}` : ""}${cad}`);
   }
+  if (p.communities.length > 0) {
+    console.log("Community presence:");
+    for (const cp of p.communities) {
+      console.log(
+        `  • ${cp.source}: ${cp.mentions} mentions · last ${cp.lastSeen?.slice(0, 10) ?? "?"} ` +
+          `${cp.active ? "(active)" : "(quiet)"}`,
+      );
+    }
+  }
 }
 
 test.runIf(RUN && !COHORT)(

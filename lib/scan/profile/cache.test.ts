@@ -5,6 +5,7 @@ const NOW = Date.UTC(2026, 5, 16);
 const profile = (domain: string, crawledAt: string): DistributionProfile => ({
   domain,
   channels: [],
+  communities: [],
   seo: null,
   crawledAt,
 });

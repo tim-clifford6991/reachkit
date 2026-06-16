@@ -50,9 +50,23 @@ export interface SeoPosture {
   referringDomains: number | null;
 }
 
+/** Presence in a community/discussion surface (where the brand shows up). */
+export interface CommunityPresence {
+  source: "hacker_news" | "reddit";
+  /** Threads/mentions found. */
+  mentions: number;
+  /** Most recent mention (ISO), or null. */
+  lastSeen: string | null;
+  /** Mentioned in the last 90 days. */
+  active: boolean;
+  topThreads: Array<{ title: string; url: string; at: string | null }>;
+}
+
 export interface DistributionProfile {
   domain: string;
   channels: ContentChannel[];
+  /** Where the brand is discussed (HN, Reddit), recency-aware. */
+  communities: CommunityPresence[];
   seo: SeoPosture | null;
   /** ISO timestamp this profile was built (cache key). */
   crawledAt: string;

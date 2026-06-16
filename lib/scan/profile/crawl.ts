@@ -13,6 +13,7 @@ import { computeCadence } from "./cadence";
 import { sitemapsFromRobots, parseSitemap, defaultSitemapCandidates } from "./sitemap";
 import { feedUrlsFromHtml, parseFeedDates, defaultFeedCandidates } from "./feeds";
 import { detectChannels } from "./fingerprint";
+import { youtubeChannelDates } from "./youtube-cadence";
 import type { ContentChannel } from "./types";
 
 /** Normalize a domain or URL to a bare host. */
@@ -119,7 +120,16 @@ export async function crawlContentChannels(
   // YouTube widget) don't masquerade as the company's owned channels.
   if (homepage) {
     const brandToken = host.split(".")[0];
-    for (const c of detectChannels(homepage, brandToken)) {
+    const detected = detectChannels(homepage, brandToken);
+
+    // Enrich the YouTube channel with its upload cadence (how recently they post).
+    const yt = detected.find((c) => c.kind === "youtube");
+    if (yt?.url) {
+      const dates = await youtubeChannelDates(yt.url);
+      if (dates.length > 0) yt.cadence = computeCadence(dates, nowMs);
+    }
+
+    for (const c of detected) {
       if (!channels.some((x) => x.kind === c.kind)) channels.push(c);
     }
   }
