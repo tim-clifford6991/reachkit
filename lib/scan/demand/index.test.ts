@@ -3,7 +3,7 @@ import { dedupeHits } from "./index";
 import type { DemandHit } from "./types";
 
 function hit(url: string, query = "q"): DemandHit {
-  return { title: url, url, snippet: "", subreddit: null, query };
+  return { title: url, url, snippet: "", subreddit: null, query, publishedAt: null };
 }
 
 describe("dedupeHits", () => {
@@ -29,6 +29,7 @@ describe("discoverDemand (wiring)", () => {
           snippet: "",
           subreddit: "r/SaaS",
           query: "no users find my app",
+          publishedAt: null,
         },
       ]),
       parseDemandHits: vi.fn(),

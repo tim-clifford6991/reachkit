@@ -33,7 +33,8 @@ test.runIf(RUN)(
         `\n${p.surface}  (score ${p.score.toFixed(2)} · ${p.count} threads · intent ${p.intentSum.toFixed(1)})`,
       );
       for (const t of p.topThreads) {
-        console.log(`  • [${t.intent.toFixed(1)}] ${t.title}`);
+        const when = t.publishedAt ? t.publishedAt.slice(0, 10) : "date?";
+        console.log(`  • [intent ${t.intent.toFixed(1)} · ${when}] ${t.title}`);
         console.log(`      ${t.url}`);
       }
     }

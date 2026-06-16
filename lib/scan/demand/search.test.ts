@@ -1,11 +1,34 @@
 import { describe, it, expect } from "vitest";
-import { buildRedditDemandKeyword, subredditFromUrl, parseDemandHits } from "./search";
+import {
+  buildRedditDemandKeyword,
+  subredditFromUrl,
+  parseDemandHits,
+  parsePublishedAt,
+  recencySearchParam,
+} from "./search";
 
 describe("buildRedditDemandKeyword", () => {
   it("wraps the pain phrase in a site:reddit.com query", () => {
     expect(buildRedditDemandKeyword("no one downloads my app")).toBe(
       'site:reddit.com "no one downloads my app"',
     );
+  });
+});
+
+describe("recencySearchParam", () => {
+  it("maps recency windows to Google tbs=qdr filters", () => {
+    expect(recencySearchParam("month")).toBe("&tbs=qdr:m");
+    expect(recencySearchParam("year")).toBe("&tbs=qdr:y");
+    expect(recencySearchParam("any")).toBe("");
+  });
+});
+
+describe("parsePublishedAt", () => {
+  it("normalizes a parseable date to ISO, else null", () => {
+    expect(parsePublishedAt("Mar 14, 2026")).toBe(new Date("Mar 14, 2026").toISOString());
+    expect(parsePublishedAt("")).toBeNull();
+    expect(parsePublishedAt(undefined)).toBeNull();
+    expect(parsePublishedAt("not a date")).toBeNull();
   });
 });
 
@@ -30,6 +53,7 @@ describe("parseDemandHits", () => {
                 title: "How do I get my first users?",
                 url: "https://www.reddit.com/r/startups/comments/1/x",
                 description: "I launched but nobody is signing up...",
+                timestamp: "2026-03-01 00:00:00 +00:00",
               },
               {
                 type: "organic",
@@ -59,7 +83,9 @@ describe("parseDemandHits", () => {
       subreddit: "r/startups",
       query: "first users",
     });
+    expect(hits[0]?.publishedAt).toBe(new Date("2026-03-01 00:00:00 +00:00").toISOString());
     expect(hits[1]?.subreddit).toBeNull(); // indiehackers, not reddit
+    expect(hits[1]?.publishedAt).toBeNull(); // no timestamp on this item
   });
 
   it("returns [] for an empty/malformed body", () => {

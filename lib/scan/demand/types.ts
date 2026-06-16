@@ -26,6 +26,8 @@ export interface DemandHit {
   subreddit: string | null;
   /** The pain query that surfaced this hit. */
   query: string;
+  /** Publish date (ISO) when the SERP exposes one — drives recency weighting. */
+  publishedAt: string | null;
 }
 
 /** A hit after intent classification. */
@@ -44,10 +46,10 @@ export interface DemandPocket {
   count: number;
   /** Sum of buyer-intent across the pocket's hits. */
   intentSum: number;
-  /** Ranking score (intent density × reach). */
+  /** Ranking score (recency-weighted intent density × reach). */
   score: number;
-  /** A few representative threads to engage. */
-  topThreads: Array<{ title: string; url: string; intent: number }>;
+  /** A few representative threads to engage (freshest, highest-intent first). */
+  topThreads: Array<{ title: string; url: string; intent: number; publishedAt: string | null }>;
 }
 
 export interface DemandResult {

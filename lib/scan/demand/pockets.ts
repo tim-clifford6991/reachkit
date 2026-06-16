@@ -8,6 +8,8 @@
 
 import type { ClassifiedHit, DemandPocket } from "./types";
 
+const DAY_MS = 86_400_000;
+
 /** Group key for a hit: its subreddit, else the URL's host. */
 export function pocketKey(hit: ClassifiedHit): string {
   if (hit.subreddit) return hit.subreddit;
@@ -16,6 +18,24 @@ export function pocketKey(hit: ClassifiedHit): string {
   } catch {
     return "other";
   }
+}
+
+/**
+ * Recency multiplier for a hit (0..1). Fresh problem-talk is worth far more than
+ * a stale thread. Unknown dates get a mild penalty (could be old) rather than a
+ * zero, so dateless-but-relevant hits still surface. PURE.
+ */
+export function recencyWeight(publishedAt: string | null, nowMs: number): number {
+  if (!publishedAt) return 0.7;
+  const t = Date.parse(publishedAt);
+  if (Number.isNaN(t)) return 0.7;
+  const ageDays = (nowMs - t) / DAY_MS;
+  if (ageDays <= 30) return 1;
+  if (ageDays <= 90) return 0.9;
+  if (ageDays <= 180) return 0.75;
+  if (ageDays <= 365) return 0.55;
+  if (ageDays <= 730) return 0.35;
+  return 0.2;
 }
 
 /**
@@ -29,10 +49,15 @@ export function pocketScore(intentSum: number, count: number): number {
 
 /**
  * Cluster classified hits into ranked demand pockets. Only buyer-pain hits count
- * toward a pocket (discussion/noise is dropped). Pockets with no buyer-pain hits
- * are omitted. Returns pockets sorted by descending score.
+ * toward a pocket (discussion/noise is dropped). Each hit's intent is weighted by
+ * recency, so a pocket full of fresh threads outranks one of stale ones, and the
+ * freshest threads surface first. Pockets with no buyer-pain hits are omitted.
+ * `nowMs` is injectable for deterministic tests. Sorted by descending score.
  */
-export function clusterIntoPockets(classified: ClassifiedHit[]): DemandPocket[] {
+export function clusterIntoPockets(
+  classified: ClassifiedHit[],
+  nowMs: number = Date.now(),
+): DemandPocket[] {
   const groups = new Map<string, ClassifiedHit[]>();
   for (const hit of classified) {
     if (!hit.isBuyerPain) continue;
@@ -42,13 +67,15 @@ export function clusterIntoPockets(classified: ClassifiedHit[]): DemandPocket[] 
     else groups.set(key, [hit]);
   }
 
+  const eff = (h: ClassifiedHit) => h.intent * recencyWeight(h.publishedAt, nowMs);
+
   const pockets: DemandPocket[] = [];
   for (const [key, hits] of groups) {
-    const intentSum = hits.reduce((s, h) => s + h.intent, 0);
+    const intentSum = hits.reduce((s, h) => s + eff(h), 0);
     const topThreads = [...hits]
-      .sort((a, b) => b.intent - a.intent)
+      .sort((a, b) => eff(b) - eff(a))
       .slice(0, 5)
-      .map((h) => ({ title: h.title, url: h.url, intent: h.intent }));
+      .map((h) => ({ title: h.title, url: h.url, intent: h.intent, publishedAt: h.publishedAt }));
     pockets.push({
       surface: key,
       subreddit: hits[0]?.subreddit ?? null,

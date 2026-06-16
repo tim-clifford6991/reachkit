@@ -3,7 +3,7 @@ import { intentLabelToScore, parseClassifications, buildClassifyPrompt } from ".
 import type { DemandHit } from "./types";
 
 function hit(i: number): DemandHit {
-  return { title: `t${i}`, url: `https://x/${i}`, snippet: `s${i}`, subreddit: null, query: "q" };
+  return { title: `t${i}`, url: `https://x/${i}`, snippet: `s${i}`, subreddit: null, query: "q", publishedAt: null };
 }
 
 describe("intentLabelToScore", () => {
