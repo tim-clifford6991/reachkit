@@ -114,9 +114,12 @@ export async function crawlContentChannels(
     });
   }
 
-  // Fingerprinted channels (YouTube, newsletter, dev.to, GitHub, podcast).
+  // Fingerprinted channels (YouTube, newsletter, dev.to, GitHub, podcast) —
+  // brand-token filtered so third-party links (a Bootstrap github, an embedded
+  // YouTube widget) don't masquerade as the company's owned channels.
   if (homepage) {
-    for (const c of detectChannels(homepage)) {
+    const brandToken = host.split(".")[0];
+    for (const c of detectChannels(homepage, brandToken)) {
       if (!channels.some((x) => x.kind === c.kind)) channels.push(c);
     }
   }

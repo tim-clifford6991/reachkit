@@ -7,7 +7,7 @@
  * handful of domains, each cheap (~free crawl + ~$0.05 SEO).
  */
 
-import { discoverCompetitorDomains } from "./competitors";
+import { discoverProductCompetitors } from "./competitors";
 import { profileDomainCached } from "./cache";
 import type { DistributionProfile } from "./types";
 
@@ -22,7 +22,7 @@ export async function profileCohort(
   opts: { topN?: number; nowMs?: number; maxAgeMs?: number } = {},
 ): Promise<Cohort> {
   const topN = opts.topN ?? 5;
-  const competitorDomains = await discoverCompetitorDomains(domain, topN);
+  const competitorDomains = await discoverProductCompetitors(domain, topN);
 
   const [self, ...competitors] = await Promise.all([
     profileDomainCached(domain, { nowMs: opts.nowMs, maxAgeMs: opts.maxAgeMs }),

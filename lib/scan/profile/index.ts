@@ -22,8 +22,11 @@ export { profileDomainCached, getCachedProfile, upsertProfile, PROFILE_TTL_MS } 
 export { profileCohort, type Cohort } from "./cohort";
 export {
   discoverCompetitorDomains,
+  discoverProductCompetitors,
+  filterProductCompetitors,
   parseCompetitorsDomain,
   rankCompetitorDomains,
+  parseKeepList,
   COMPETITOR_BLOCKLIST,
 } from "./competitors";
 

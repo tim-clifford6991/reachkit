@@ -18,9 +18,11 @@ const DOMAIN = process.env.PROFILE_DOMAIN ?? "stripe.com";
 function printProfile(p: DistributionProfile): void {
   console.log(`\n=== ${p.domain} ===`);
   if (p.seo) {
+    const auth = p.seo.authority ?? "—";
+    const refd = p.seo.referringDomains ?? "—";
     console.log(
       `SEO: ${p.seo.organicKeywords} keywords · ETV ${p.seo.etv.toFixed(0)} · ` +
-        `authority ${p.seo.authority} · ${p.seo.referringDomains} referring domains`,
+        `authority ${auth} · ${refd} referring domains`,
     );
   } else {
     console.log("SEO: (no data)");

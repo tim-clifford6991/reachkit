@@ -27,12 +27,18 @@ export function parseRankOverview(body: unknown): { organicKeywords: number; etv
   return { organicKeywords: num(organic?.["count"]), etv: num(organic?.["etv"]) };
 }
 
-/** Pure: authority (rank 0–1000) + referring domains from Backlinks summary. */
-export function parseBacklinksSummary(body: unknown): { authority: number; referringDomains: number } {
+/** Pure: authority (rank) + referring domains from Backlinks summary. Returns
+ *  nulls when the response carries no result (e.g. Backlinks not subscribed) —
+ *  so "no data" is distinct from a genuine 0. */
+export function parseBacklinksSummary(body: unknown): {
+  authority: number | null;
+  referringDomains: number | null;
+} {
   const r = ((body ?? {}) as {
     tasks?: Array<{ result?: Array<Record<string, unknown>> }>;
   }).tasks?.[0]?.result?.[0];
-  return { authority: num(r?.["rank"]), referringDomains: num(r?.["referring_domains"]) };
+  if (!r) return { authority: null, referringDomains: null };
+  return { authority: num(r["rank"]), referringDomains: num(r["referring_domains"]) };
 }
 
 async function post(url: string, payload: unknown): Promise<unknown | null> {

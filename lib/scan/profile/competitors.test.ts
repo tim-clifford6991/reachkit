@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { parseCompetitorsDomain, rankCompetitorDomains } from "./competitors";
+import {
+  parseCompetitorsDomain,
+  rankCompetitorDomains,
+  parseKeepList,
+  COMPETITOR_BLOCKLIST,
+} from "./competitors";
 
 describe("parseCompetitorsDomain", () => {
   it("parses Labs items into {domain, intersections}", () => {
@@ -47,5 +52,44 @@ describe("rankCompetitorDomains", () => {
       { domain: "rival.com", intersections: 90 },
     ];
     expect(rankCompetitorDomains(rows, "acme.com", 5)).toEqual(["rival.com"]);
+  });
+
+  it("blocklists the finance-media class that keyword overlap surfaces", () => {
+    const rows = [
+      { domain: "forbes.com", intersections: 9999 },
+      { domain: "investopedia.com", intersections: 9000 },
+      { domain: "nerdwallet.com", intersections: 8000 },
+      { domain: "wise.com", intersections: 500 },
+    ];
+    expect(rankCompetitorDomains(rows, "stripe.com", 5)).toEqual(["wise.com"]);
+  });
+});
+
+describe("blocklist", () => {
+  it("includes the news/reference publishers that pollute keyword-overlap results", () => {
+    for (const d of ["forbes.com", "investopedia.com", "nerdwallet.com", "techcrunch.com"]) {
+      expect(COMPETITOR_BLOCKLIST.has(d)).toBe(true);
+    }
+  });
+});
+
+describe("parseKeepList", () => {
+  const domains = ["wise.com", "intuit.com", "forbes.com"];
+
+  it("keeps only the model's subset, preserving input order", () => {
+    const raw = '{"keep":["intuit.com","wise.com"]}';
+    expect(parseKeepList(raw, domains)).toEqual(["wise.com", "intuit.com"]);
+  });
+
+  it("ignores domains the model invents", () => {
+    expect(parseKeepList('{"keep":["made-up.com","wise.com"]}', domains)).toEqual(["wise.com"]);
+  });
+
+  it("honours an explicit empty keep-list", () => {
+    expect(parseKeepList('{"keep":[]}', domains)).toEqual([]);
+  });
+
+  it("falls back to the full list on unparseable output", () => {
+    expect(parseKeepList("garbage", domains)).toEqual(domains);
   });
 });

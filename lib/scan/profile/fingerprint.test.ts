@@ -27,4 +27,21 @@ describe("detectChannels", () => {
   it("returns [] when nothing matches", () => {
     expect(detectChannels("<p>no links</p>")).toEqual([]);
   });
+
+  it("with a brand token, keeps only brand-related handles (rejects third-party links)", () => {
+    const html = `
+      <a href="https://github.com/twbs">bootstrap</a>
+      <a href="https://www.youtube.com/@forbes">our channel</a>`;
+    const channels = detectChannels(html, "forbes");
+    // github.com/twbs is unrelated → dropped; the forbes YouTube → kept
+    expect(channels.map((c) => c.kind)).toEqual(["youtube"]);
+  });
+
+  it("picks the brand-matching link even when a third-party one appears first", () => {
+    const html = `
+      <a href="https://github.com/twbs">bootstrap</a>
+      <a href="https://github.com/stripe">us</a>`;
+    const channels = detectChannels(html, "stripe");
+    expect(channels[0]?.url).toBe("https://github.com/stripe");
+  });
 });

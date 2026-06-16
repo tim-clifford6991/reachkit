@@ -19,7 +19,12 @@ describe("parseBacklinksSummary", () => {
     const body = { tasks: [{ result: [{ rank: 412, referring_domains: 89, backlinks: 5000 }] }] };
     expect(parseBacklinksSummary(body)).toEqual({ authority: 412, referringDomains: 89 });
   });
-  it("returns zeros for an empty shape", () => {
-    expect(parseBacklinksSummary({})).toEqual({ authority: 0, referringDomains: 0 });
+  it("returns nulls (no data, not zero) for an empty shape", () => {
+    expect(parseBacklinksSummary({})).toEqual({ authority: null, referringDomains: null });
+    expect(parseBacklinksSummary(null)).toEqual({ authority: null, referringDomains: null });
+  });
+  it("returns numeric zeros when the result exists but counts are 0", () => {
+    const body = { tasks: [{ result: [{ rank: 0, referring_domains: 0 }] }] };
+    expect(parseBacklinksSummary(body)).toEqual({ authority: 0, referringDomains: 0 });
   });
 });

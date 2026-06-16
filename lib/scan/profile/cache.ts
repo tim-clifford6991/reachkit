@@ -43,7 +43,9 @@ export async function upsertProfile(profile: DistributionProfile): Promise<void>
       { domain: host, profile: profile as unknown as Json, crawled_at: profile.crawledAt },
       { onConflict: "domain" },
     );
-  if (error) console.error(`[profile cache] upsert failed for ${host}`, error.message);
+  // A missing table (migration not yet applied) lands here — caching is simply
+  // inert until then, so this is best-effort. Log the full error for clarity.
+  if (error) console.error(`[profile cache] upsert failed for ${host}:`, error.message ?? error.code ?? error);
 }
 
 /**

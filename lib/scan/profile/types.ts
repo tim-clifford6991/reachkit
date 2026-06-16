@@ -44,9 +44,10 @@ export interface SeoPosture {
   organicKeywords: number;
   /** Estimated traffic value (summed ETV). */
   etv: number;
-  /** Domain authority proxy (DataForSEO backlinks `rank`, 0–1000). */
-  authority: number;
-  referringDomains: number;
+  /** Domain authority proxy (DataForSEO backlinks `rank`). null when the
+   *  Backlinks API returned no data (e.g. not subscribed) — distinct from 0. */
+  authority: number | null;
+  referringDomains: number | null;
 }
 
 export interface DistributionProfile {
