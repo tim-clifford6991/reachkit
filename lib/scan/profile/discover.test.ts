@@ -4,6 +4,7 @@ import {
   parseProposed,
   isDisqualified,
   rankByCorroboration,
+  orderByProminence,
   buildProposePrompt,
 } from "./discover";
 
@@ -56,10 +57,38 @@ describe("rankByCorroboration", () => {
 });
 
 describe("buildProposePrompt", () => {
-  it("embeds the product description and forbids inventing domains", () => {
+  it("embeds the description, forbids inventing domains, and demands prominence order", () => {
     const p = buildProposePrompt({ name: "TrustMRR", description: "verified MRR badges for SaaS" }, 6);
     expect(p).toContain("verified MRR badges for SaaS");
     expect(p).toContain("Do NOT invent domains");
+    expect(p).toContain("MOST PROMINENT");
     expect(p).toContain("TrustMRR");
+  });
+});
+
+describe("orderByProminence", () => {
+  const proposed = [
+    { name: "Baremetrics", domain: "baremetrics.com" }, // most prominent (LLM order)
+    { name: "ChartMogul", domain: "chartmogul.com" },
+    { name: "Obscure", domain: "obscure.io" }, // not in candidate set (failed verify)
+  ];
+  const sources = new Map<string, Set<string>>([
+    ["baremetrics.com", new Set(["llm"])],
+    ["chartmogul.com", new Set(["llm", "alternatives"])],
+    ["openstartups.net", new Set(["alternatives", "overlap"])], // search-only
+  ]);
+
+  it("honors the LLM prominence order, then appends search-only by corroboration", () => {
+    const candidateSet = new Set(["baremetrics.com", "chartmogul.com", "openstartups.net"]);
+    expect(orderByProminence(proposed, candidateSet, sources)).toEqual([
+      "baremetrics.com", // 1st in LLM order
+      "chartmogul.com", // 2nd in LLM order
+      "openstartups.net", // search-only, appended
+    ]);
+  });
+
+  it("skips proposed domains that didn't survive verification", () => {
+    const candidateSet = new Set(["chartmogul.com"]);
+    expect(orderByProminence(proposed, candidateSet, sources)).toEqual(["chartmogul.com"]);
   });
 });

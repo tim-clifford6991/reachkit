@@ -47,6 +47,7 @@ export {
   domainFromUrl,
   isDisqualified,
   rankByCorroboration,
+  orderByProminence,
   type ProductInfo,
 } from "./discover";
 

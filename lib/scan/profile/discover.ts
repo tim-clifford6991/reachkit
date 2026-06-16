@@ -64,7 +64,12 @@ ${ctx}
 
 List up to ${count} DIRECT competitors — companies offering a similar product or
 service in the SAME category that a buyer of "${product.name}" would directly
-choose between. Prefer focused/comparable products over broad enterprise giants.
+choose between.
+
+ORDER THEM FROM MOST PROMINENT TO LEAST. Lead with the established, recognized
+MARKET LEADERS in this category — the names a founder would benchmark themselves
+against — not obscure or niche tools. The most prominent, well-known competitor
+must be first.
 
 For each, give its primary website domain if you are confident of it (else omit
 the domain). Do NOT invent domains.
@@ -222,14 +227,47 @@ export async function discoverCompetitorsSmart(
     )
   ).filter((h): h is string => !!h);
 
-  const candidates = [...corroborated, ...verifiedLlm];
+  const candidateSet = new Set([...corroborated, ...verifiedLlm]);
   debug("corroborated:", corroborated, "| llm-only verified:", verifiedLlm);
-  if (candidates.length === 0) return [];
+  if (candidateSet.size === 0) return [];
 
-  // Same-category filter (drops adjacent/media), then rank by corroboration.
-  const filtered = await filterProductCompetitors({ domain, description: product.description }, candidates, {
+  // Order by PROMINENCE: honor the LLM's most-prominent-first ordering (it knows
+  // the market leaders), then append any search-only domains by corroboration.
+  // We benchmark against the recognized leaders, not whatever surfaced first.
+  const ordered = orderByProminence(proposed, candidateSet, sources);
+  debug("prominence order:", ordered);
+
+  // Same-category filter (drops adjacent/media); parseKeepList preserves order,
+  // so prominence ranking survives. Take the top-N most prominent.
+  const filtered = await filterProductCompetitors({ domain, description: product.description }, ordered, {
     scanId: opts.scanId,
   });
   debug("after category filter:", filtered);
-  return rankByCorroboration(filtered, sources).slice(0, topN);
+  return filtered.slice(0, topN);
+}
+
+/**
+ * Prominence-first candidate order: the LLM's proposals in its (prominence)
+ * order first, then any remaining search-only domains by corroboration. PURE.
+ */
+export function orderByProminence(
+  proposed: Array<{ name: string; domain: string | null }>,
+  candidateSet: Set<string>,
+  sources: Map<string, Set<string>>,
+): string[] {
+  const ordered: string[] = [];
+  const seen = new Set<string>();
+  for (const p of proposed) {
+    if (!p.domain) continue;
+    const host = toHost(p.domain);
+    if (candidateSet.has(host) && !seen.has(host)) {
+      ordered.push(host);
+      seen.add(host);
+    }
+  }
+  const searchOnly = [...candidateSet]
+    .filter((h) => !seen.has(h))
+    .sort((a, b) => (sources.get(b)?.size ?? 0) - (sources.get(a)?.size ?? 0));
+  ordered.push(...searchOnly);
+  return ordered;
 }
