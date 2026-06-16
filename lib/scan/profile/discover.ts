@@ -28,8 +28,16 @@ import {
   filterProductCompetitors,
 } from "./competitors";
 
-const MODEL = "claude-haiku-4-5-20251001" as const;
+// The PROPOSE step leans on world knowledge of competitive landscapes (esp.
+// niche ones), so it uses Sonnet — Haiku is too weak here. Verification + the
+// category filter keep it honest.
+const PROPOSE_MODEL = "claude-sonnet-4-6" as const;
 const MAX_LLM_VERIFY = 8;
+
+const DEBUG = process.env.PROFILE_DEBUG === "1";
+function debug(...args: unknown[]): void {
+  if (DEBUG) console.log("[discover]", ...args);
+}
 
 export interface ProductInfo {
   name: string;
@@ -123,7 +131,7 @@ export async function proposeCompetitors(
   if (fixturesEnabled()) return [];
   try {
     const { text } = await callModel({
-      model: MODEL,
+      model: PROPOSE_MODEL,
       system: "You name direct, same-category product competitors and their domains. Return only JSON.",
       prompt: buildProposePrompt(product, opts.count ?? 8),
       scanId: opts.scanId ?? null,
@@ -184,6 +192,11 @@ export async function discoverCompetitorsSmart(
     discoverCompetitorDomains(domain, topN * 3),
   ]);
 
+  debug(`subject: ${product.name} — ${product.description ?? "(no description)"}`);
+  debug("LLM proposed:", proposed.map((p) => `${p.name}${p.domain ? ` (${p.domain})` : " (no domain)"}`));
+  debug("alternatives-to SERP:", altDomains);
+  debug("keyword-overlap:", overlapDomains);
+
   // Tag every candidate host with the signals that named it.
   const sources = new Map<string, Set<string>>();
   const tag = (raw: string, src: string) => {
@@ -210,11 +223,13 @@ export async function discoverCompetitorsSmart(
   ).filter((h): h is string => !!h);
 
   const candidates = [...corroborated, ...verifiedLlm];
+  debug("corroborated:", corroborated, "| llm-only verified:", verifiedLlm);
   if (candidates.length === 0) return [];
 
   // Same-category filter (drops adjacent/media), then rank by corroboration.
   const filtered = await filterProductCompetitors({ domain, description: product.description }, candidates, {
     scanId: opts.scanId,
   });
+  debug("after category filter:", filtered);
   return rankByCorroboration(filtered, sources).slice(0, topN);
 }
