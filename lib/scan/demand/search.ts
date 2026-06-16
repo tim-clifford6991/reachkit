@@ -11,6 +11,7 @@ import { env } from "@/lib/config/env";
 import { fixturesEnabled } from "@/lib/dev/fixtures";
 import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
 import { serpAuthHeader } from "@/lib/scan/adapters/dataforseo";
+import { searchCacheKey, getCachedSearch, putCachedSearch } from "@/lib/scan/search-cache";
 import type { DemandHit } from "./types";
 
 /** Recency windows → Google `tbs=qdr:` time filter. Recency is a core signal:
@@ -80,7 +81,14 @@ export async function searchDemand(
   const keyword = opts.redditOnly === false ? query : buildRedditDemandKeyword(query);
   // Recency-bias at the source: default to the past year so stale threads don't
   // dominate. `search_param` carries Google's tbs=qdr: time filter.
-  const searchParam = recencySearchParam(opts.recency ?? "year");
+  const recency = opts.recency ?? "year";
+  const searchParam = recencySearchParam(recency);
+
+  // Cache hit → skip the (paid) SERP call entirely.
+  const cacheKey = searchCacheKey("demand", keyword, recency, String(opts.depth ?? 10));
+  const cached = await getCachedSearch<DemandHit[]>(cacheKey);
+  if (cached) return cached;
+
   try {
     const res = await fetchWithTimeout(
       "https://api.dataforseo.com/v3/serp/google/organic/live/advanced",
@@ -104,7 +112,9 @@ export async function searchDemand(
     );
     if (!res.ok) return [];
     const body = (await res.json()) as unknown;
-    return parseDemandHits(body, query);
+    const hits = parseDemandHits(body, query);
+    await putCachedSearch(cacheKey, hits);
+    return hits;
   } catch {
     return [];
   }

@@ -47,6 +47,8 @@ const schema = z.object({
   SCAN_BUDGET_CENTS: z.coerce.number().int().positive().default(150),
   DATAFORSEO_LOCATION_CODE: z.coerce.number().int().default(2840), // US
   DATAFORSEO_LANGUAGE_CODE: z.string().default("en"),
+  // Backlinks API is a separate DataForSEO subscription — off unless enabled.
+  DATAFORSEO_BACKLINKS: z.string().optional().transform((v) => v === "true"),
   REACHKIT_USE_FIXTURES: z.string().optional().transform((v) => v === "true"),
 }).superRefine((val, ctx) => {
   // superRefine receives transformed values: val.REACHKIT_USE_FIXTURES is a boolean.
@@ -73,6 +75,7 @@ export function parseEnv(src: NodeJS.ProcessEnv) {
     productHuntToken: p.PRODUCT_HUNT_TOKEN, youtubeApiKey: p.YOUTUBE_API_KEY,
     voyageApiKey: p.VOYAGE_API_KEY,
     dataforseoLocationCode: p.DATAFORSEO_LOCATION_CODE, dataforseoLanguageCode: p.DATAFORSEO_LANGUAGE_CODE,
+    dataforseoBacklinks: p.DATAFORSEO_BACKLINKS,
     useFixtures: p.REACHKIT_USE_FIXTURES,
     appUrl: p.APP_URL,
     stripeSecretKey: p.STRIPE_SECRET_KEY,

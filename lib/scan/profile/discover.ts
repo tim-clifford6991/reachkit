@@ -21,6 +21,7 @@ import { extractJson } from "@/lib/llm/json";
 import { fixturesEnabled } from "@/lib/dev/fixtures";
 import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
 import { liveSerpAlternatives } from "@/lib/scan/adapters/dataforseo";
+import { searchCacheKey, cachedSearch } from "@/lib/scan/search-cache";
 import { toHost } from "./crawl";
 import {
   COMPETITOR_BLOCKLIST,
@@ -148,14 +149,16 @@ export async function proposeCompetitors(
   }
 }
 
-/** Domains from an "alternatives to {name}" SERP (a market signal). */
+/** Domains from an "alternatives to {name}" SERP (a market signal). Cached. */
 export async function alternativesDomains(name: string): Promise<string[]> {
   if (fixturesEnabled()) return [];
   try {
-    const { competitors } = await liveSerpAlternatives(name);
-    return competitors
-      .map((c) => (c.url ? domainFromUrl(c.url) : null))
-      .filter((d): d is string => !!d);
+    return await cachedSearch(searchCacheKey("alternatives", name.toLowerCase()), async () => {
+      const { competitors } = await liveSerpAlternatives(name);
+      return competitors
+        .map((c) => (c.url ? domainFromUrl(c.url) : null))
+        .filter((d): d is string => !!d);
+    });
   } catch {
     return [];
   }

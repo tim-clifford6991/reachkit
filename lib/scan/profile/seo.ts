@@ -63,8 +63,11 @@ async function post(url: string, payload: unknown): Promise<unknown | null> {
 }
 
 /**
- * Fetch a domain's SEO posture. Fixtures-mode (or total failure) returns null.
- * Partial failures degrade to zeros for the missing half.
+ * Fetch a domain's SEO posture. Fixtures-mode (or failure) returns null.
+ *
+ * The Backlinks API is a SEPARATE DataForSEO subscription and is off by default —
+ * calling it when unsubscribed just burns a request and returns nothing, so
+ * authority/referringDomains stay null unless `env.dataforseoBacklinks` is set.
  */
 export async function fetchSeoPosture(domain: string): Promise<SeoPosture | null> {
   if (fixturesEnabled()) return null;
@@ -74,7 +77,9 @@ export async function fetchSeoPosture(domain: string): Promise<SeoPosture | null
     post("https://api.dataforseo.com/v3/dataforseo_labs/google/domain_rank_overview/live", [
       { target, location_code: env.dataforseoLocationCode, language_code: env.dataforseoLanguageCode },
     ]),
-    post("https://api.dataforseo.com/v3/backlinks/summary/live", [{ target }]),
+    env.dataforseoBacklinks
+      ? post("https://api.dataforseo.com/v3/backlinks/summary/live", [{ target }])
+      : Promise.resolve(null),
   ]);
 
   if (!overview && !backlinks) return null;

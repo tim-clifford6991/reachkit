@@ -617,6 +617,24 @@ export type Database = {
         }
         Relationships: []
       }
+      search_cache: {
+        Row: {
+          created_at: string
+          key: string
+          response: Json
+        }
+        Insert: {
+          created_at?: string
+          key: string
+          response: Json
+        }
+        Update: {
+          created_at?: string
+          key?: string
+          response?: Json
+        }
+        Relationships: []
+      }
       score_snapshots: {
         Row: {
           app_id: string
