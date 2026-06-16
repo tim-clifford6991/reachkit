@@ -20,6 +20,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ScoreBlock } from "./score-block";
 import { ReportReveal } from "./report-reveal";
 import { ReportPending } from "./report-pending";
+import { FindingsReveal, type FindingsPayload } from "../findings-reveal";
+import type { PreliminaryFacts } from "@/lib/scan/types";
 
 /** Human-readable age of a snapshot timestamp (server-rendered; no hydration drift). */
 function relativeAge(iso: string): string {
@@ -82,13 +84,21 @@ async function ResultsContent({ id }: { id: string }) {
   const db = serverDb();
   const { data } = await db
     .from("scans")
-    .select("report_payload, completed_at, started_at")
+    .select("report_payload, findings_payload, preliminary_facts, tier, completed_at, started_at")
     .eq("id", id)
     .maybeSingle();
 
   if (!data?.report_payload) {
-    // Speed-to-wow reveals the scan at findings while full-scan finishes in the
-    // background; a fast user can reach /results first. Auto-refresh until ready.
+    // Two-track split: a free scan stops after findings and never gets a report
+    // until the user pays (which triggers the deep `scan/deepen` pass). Render the
+    // cheap teaser (the speed-to-wow FindingsReveal) instead of polling forever.
+    const findings = data?.findings_payload as unknown as FindingsPayload | null;
+    if (data?.tier === "free" && findings) {
+      const facts = data.preliminary_facts as unknown as PreliminaryFacts | null;
+      const competitorCount = facts?.competitors?.length ?? 0;
+      return <FindingsReveal scanId={id} data={findings} competitorCount={competitorCount} />;
+    }
+    // Paid scan still generating (or findings not yet ready) — auto-refresh.
     return <ReportPending />;
   }
 

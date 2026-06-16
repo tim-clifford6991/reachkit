@@ -14,6 +14,7 @@
 import { serverDb } from "@/lib/db/client";
 import { env } from "@/lib/config/env";
 import { linkScanToUser } from "@/lib/auth/profile";
+import { ensureDeepScan } from "@/lib/scan/deepen";
 import { sendMagicLinkEmail } from "@/lib/email/resend";
 import type { Database } from "@/lib/db/types";
 
@@ -88,8 +89,11 @@ export async function provisionCheckoutUser({
   if (scanId) {
     try {
       await linkScanToUser(scanId, userId);
+      // Two-track split: the scan ran the cheap free teaser. Now that the user
+      // has paid, deepen it (idempotent) to produce the full report.
+      await ensureDeepScan(scanId);
     } catch (e) {
-      console.error("[provision] linkScanToUser failed", e);
+      console.error("[provision] linkScanToUser/ensureDeepScan failed", e);
     }
   }
 

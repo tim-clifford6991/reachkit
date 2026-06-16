@@ -8,6 +8,14 @@ import { runFullScan } from "@/lib/scan/full-scan";
 import { emitScanEvent } from "@/lib/scan/progress";
 import type { Json } from "@/lib/db/types";
 
+/** Cheap free-track ceiling (collect + findings only). The deep pass uses the
+ *  full `env.scanBudgetCents`. */
+const FREE_SCAN_BUDGET_CENTS = 40;
+type ScanTier = "free" | "full";
+function budgetCentsForTier(tier: ScanTier): number {
+  return tier === "full" ? env.scanBudgetCents : FREE_SCAN_BUDGET_CENTS;
+}
+
 export const scanRequested = inngest.createFunction(
   {
     id: "scan-requested",
@@ -28,14 +36,16 @@ export const scanRequested = inngest.createFunction(
   async ({ event, step }) => {
     const { scanId } = event.data;
 
-    // Step 1: collect — load scan + app, run pipeline, persist facts
-    const facts = await step.run("collect", async () => {
+    // Step 1: collect — load scan + app, run pipeline, persist facts.
+    // Also reads `scans.tier`: the two-track split runs the heavy full-scan step
+    // only for 'full' (paid); 'free' stops after findings (the cheap teaser).
+    const { facts, tier } = await step.run("collect", async () => {
       const db = serverDb();
 
       // Load the scan row and its app (join)
       const { data: scanRow, error: scanErr } = await db
         .from("scans")
-        .select("id, app_id, apps(store_url, platform)")
+        .select("id, app_id, tier, apps(store_url, platform)")
         .eq("id", scanId)
         .single();
 
@@ -47,6 +57,7 @@ export const scanRequested = inngest.createFunction(
       if (!appsRaw) throw new Error(`scan ${scanId} has no linked app`);
 
       const app = appsRaw as unknown as { store_url: string; platform: "ios" | "android" | "web" };
+      const scanTier: ScanTier = scanRow.tier === "full" ? "full" : "free";
 
       // Mark as collecting
       const { error: updateErr } = await db
@@ -58,7 +69,7 @@ export const scanRequested = inngest.createFunction(
       // Build budget and run collect
       const budget = new ScanBudget({
         maxToolCalls: 60,
-        budgetCents: env.scanBudgetCents,
+        budgetCents: budgetCentsForTier(scanTier),
       });
 
       const collectedFacts = await runCollect({
@@ -79,7 +90,7 @@ export const scanRequested = inngest.createFunction(
       // Emit the facts scan_event
       await emitScanEvent(scanId, "facts", collectedFacts as unknown as Record<string, unknown>);
 
-      return collectedFacts;
+      return { facts: collectedFacts, tier: scanTier };
     });
 
     // Step 2: findings — run extract→synth→score, persist findings + score, emit findings event
@@ -112,7 +123,7 @@ export const scanRequested = inngest.createFunction(
 
       const budget = new ScanBudget({
         maxToolCalls: 60,
-        budgetCents: env.scanBudgetCents,
+        budgetCents: budgetCentsForTier(tier),
       });
 
       await runFindings(
@@ -128,41 +139,46 @@ export const scanRequested = inngest.createFunction(
     });
 
     // Step 3: full-scan — heavy collect + actions + Critic + verified score + report.
+    // Two-track split: only paid ('full') scans run the deep pass here. Free scans
+    // stop after findings (the cheap teaser); the deep pass runs later via
+    // `scan/deepen` once the viewer becomes paid.
     // Reconstructs the ScanContext from the DB (Inngest replays steps, so closures
     // from earlier step bodies are not reliable); `facts` is the memoized collect result.
-    await step.run("full-scan", async () => {
-      const db = serverDb();
+    if (tier === "full") {
+      await step.run("full-scan", async () => {
+        const db = serverDb();
 
-      const { data: scanRow, error: scanErr } = await db
-        .from("scans")
-        .select("id, app_id, apps(store_url, platform)")
-        .eq("id", scanId)
-        .single();
+        const { data: scanRow, error: scanErr } = await db
+          .from("scans")
+          .select("id, app_id, apps(store_url, platform)")
+          .eq("id", scanId)
+          .single();
 
-      if (scanErr) throw scanErr;
-      if (!scanRow) throw new Error(`scan ${scanId} not found`);
+        if (scanErr) throw scanErr;
+        if (!scanRow) throw new Error(`scan ${scanId} not found`);
 
-      const appsRaw = scanRow.apps;
-      if (!appsRaw) throw new Error(`scan ${scanId} has no linked app`);
+        const appsRaw = scanRow.apps;
+        if (!appsRaw) throw new Error(`scan ${scanId} has no linked app`);
 
-      const app = appsRaw as unknown as { store_url: string; platform: "ios" | "android" | "web" };
+        const app = appsRaw as unknown as { store_url: string; platform: "ios" | "android" | "web" };
 
-      const budget = new ScanBudget({
-        maxToolCalls: 60,
-        budgetCents: env.scanBudgetCents,
+        const budget = new ScanBudget({
+          maxToolCalls: 60,
+          budgetCents: env.scanBudgetCents,
+        });
+
+        await runFullScan(
+          {
+            scanId,
+            appId: scanRow.app_id,
+            mode: app.platform,
+            storeUrl: app.store_url,
+            budget,
+          },
+          facts,
+        );
       });
-
-      await runFullScan(
-        {
-          scanId,
-          appId: scanRow.app_id,
-          mode: app.platform,
-          storeUrl: app.store_url,
-          budget,
-        },
-        facts,
-      );
-    });
+    }
 
     // Step 4: done — emit done event and mark scan complete
     await step.run("done", async () => {

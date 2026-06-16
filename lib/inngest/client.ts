@@ -9,6 +9,14 @@ export const scanDemoRequestedEvent = eventType("scan/demo.requested", {
   schema: staticSchema<{ scanId?: string }>(),
 });
 
+// Two-track pipeline (M1): a free scan runs the cheap track (collect + findings)
+// and stops. When the viewer becomes paid (checkout, or a paid user re-opening a
+// previously-free scan), `scan/deepen` runs the heavy full-scan pass for that
+// existing scan to produce the deep report.
+export const scanDeepenEvent = eventType("scan/deepen", {
+  schema: staticSchema<{ scanId: string }>(),
+});
+
 // Cycle 4 Task 14: action completion → verification → outcomes moat + score move.
 export const actionVerifyRequestedEvent = eventType("action/verify", {
   schema: staticSchema<{ actionId: string }>(),

@@ -5,6 +5,8 @@ import { classifyUrl } from "@/lib/scan/router";
 import { inngest } from "@/lib/inngest/client";
 import { currentUser } from "@/lib/auth/server";
 import { linkScanToUser } from "@/lib/auth/profile";
+import { entitlementsFor } from "@/lib/billing/entitlements";
+import { ensureDeepScan } from "@/lib/scan/deepen";
 import {
   AbuseError,
   assertRateLimit,
@@ -35,7 +37,14 @@ export async function POST(req: NextRequest) {
 
   // A logged-in user (e.g. a trial-direct user running their first scan from the
   // dashboard) gets the scanned app linked to their account for continuity.
+  // Two-track split: a paid viewer's scan runs the deep ('full') pipeline; an
+  // anonymous/free viewer gets the cheap ('free') teaser track.
   const viewer = await currentUser();
+  let viewerIsPaid = false;
+  if (viewer) {
+    viewerIsPaid = (await entitlementsFor(viewer.user.id)).active;
+  }
+  const scanTier: "free" | "full" = viewerIsPaid ? "full" : "free";
 
   // Find-or-create the app by URL. One scan per app (dedupe): if a scan already
   // exists, return it instead of creating a duplicate or re-running the pipeline.
@@ -44,6 +53,8 @@ export async function POST(req: NextRequest) {
     const existingScanId = await findExistingScanForApp(appId);
     if (existingScanId) {
       if (viewer) await linkScanToUser(existingScanId, viewer.user.id);
+      // A paid viewer opening a previously-free scan gets it deepened (idempotent).
+      if (viewerIsPaid) await ensureDeepScan(existingScanId);
       return NextResponse.json({ scan_id: existingScanId, deduped: true });
     }
   } else {
@@ -52,7 +63,7 @@ export async function POST(req: NextRequest) {
     appId = app.data.id;
   }
 
-  const scan = await db.from("scans").insert({ app_id: appId, status: "queued", ip_hash: ipHash }).select("id").single();
+  const scan = await db.from("scans").insert({ app_id: appId, status: "queued", ip_hash: ipHash, tier: scanTier }).select("id").single();
   if (scan.error) return NextResponse.json({ error: scan.error.message }, { status: 500 });
   if (viewer) await linkScanToUser(scan.data.id, viewer.user.id);
   await inngest.send({ name: "scan/requested", data: { scanId: scan.data.id } });
