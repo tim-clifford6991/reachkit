@@ -99,7 +99,7 @@ export function TrialCta({ scanId, className }: TrialCtaProps) {
         {loading ? "Redirecting to checkout…" : "Start 7-day free trial"}
       </button>
       <p className="mt-2 text-center font-mono text-[10px]" style={{ color: "var(--color-muted)" }}>
-        Card collected now · first charge after 7 days · cancel any time
+        Card collected now · first charge after 7 days · cancel in one click before day 7
       </p>
     </div>
   );

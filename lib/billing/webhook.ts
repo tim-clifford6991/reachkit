@@ -3,6 +3,8 @@ import { serverDb } from "@/lib/db/client";
 import { priceMap, stripeClient } from "@/lib/billing/stripe";
 import { tierForPriceId } from "@/lib/billing/tiers";
 import { ensureAuthUser, provisionCheckoutUser } from "@/lib/billing/provision";
+import { sendTrialEndingEmail } from "@/lib/email/resend";
+import { env } from "@/lib/config/env";
 import type { Database } from "@/lib/db/types";
 
 type UsersUpdate = Database["public"]["Tables"]["users"]["Update"];
@@ -17,9 +19,10 @@ type UsersUpdate = Database["public"]["Tables"]["users"]["Update"];
  *   - checkout.session.completed       → legacy: persist ids; payment-first:
  *                                        create account from email, link scan,
  *                                        send onboarding magic link
- *   - customer.subscription.created    → set status/period/tier/sub id
- *   - customer.subscription.updated    → set status/period/tier/sub id
- *   - customer.subscription.deleted    → tier=free, status=canceled
+ *   - customer.subscription.created      → set status/period/tier/sub id
+ *   - customer.subscription.updated      → set status/period/tier/sub id
+ *   - customer.subscription.deleted      → tier=free, status=canceled
+ *   - customer.subscription.trial_will_end → send the pre-charge reminder email
  * Any other event type is a no-op.
  *
  * If no user row resolves for a customer (and the event isn't eligible for a
@@ -37,6 +40,9 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
       return;
     case "customer.subscription.deleted":
       await onSubscriptionDeleted(event.data.object);
+      return;
+    case "customer.subscription.trial_will_end":
+      await onTrialWillEnd(event.data.object);
       return;
     default:
       // Unhandled event type — no-op.
@@ -143,6 +149,52 @@ async function onSubscriptionDeleted(sub: Stripe.Subscription): Promise<void> {
   };
 
   await updateUserByCustomer(customer, update, "customer.subscription.deleted");
+}
+
+// ---------------------------------------------------------------------------
+// customer.subscription.trial_will_end → pre-charge reminder email.
+//
+// Stripe fires this ~3 days before the trial converts. We resolve the user's
+// email by stripe_customer_id and send a reminder linking to the billing page
+// (manage / cancel in one click). No users-table write. Never throws: a missing
+// user or a failed send is logged so the webhook still 200s.
+// ---------------------------------------------------------------------------
+async function onTrialWillEnd(sub: Stripe.Subscription): Promise<void> {
+  const customer = customerId(sub.customer);
+  if (!customer) {
+    console.warn("[stripe webhook] trial_will_end without a resolvable customer — ignoring", {
+      subscriptionId: sub.id,
+    });
+    return;
+  }
+
+  const { data: user, error } = await serverDb()
+    .from("users")
+    .select("email")
+    .eq("stripe_customer_id", customer)
+    .maybeSingle();
+
+  if (error) {
+    console.error(
+      `[stripe webhook] trial_will_end: lookup failed for customer ${customer}`,
+      error.message,
+    );
+    return;
+  }
+  if (!user?.email) {
+    console.warn(`[stripe webhook] trial_will_end: no user/email for customer ${customer} — ignoring`);
+    return;
+  }
+
+  try {
+    await sendTrialEndingEmail({
+      to: user.email,
+      trialEndsAt: periodEndIso(sub.trial_end ?? undefined),
+      manageUrl: `${env.appUrl}/app/billing`,
+    });
+  } catch (e) {
+    console.error(`[stripe webhook] trial_will_end: failed to send reminder to ${user.email}`, e);
+  }
 }
 
 // ---------------------------------------------------------------------------

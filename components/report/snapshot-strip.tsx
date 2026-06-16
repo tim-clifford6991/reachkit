@@ -46,7 +46,7 @@ export function SnapshotStrip({ generatedAt, isPaid }: SnapshotStripProps) {
           >
             {isPaid
               ? "Your score and action queue update each week as the web shifts."
-              : "This is a point-in-time analysis. Rankings, reviews, and positioning change weekly."}
+              : "A point-in-time snapshot. Paid plans re-scan weekly and alert you the moment a rival moves."}
           </p>
         </div>
 

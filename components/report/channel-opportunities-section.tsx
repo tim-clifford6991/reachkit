@@ -10,9 +10,12 @@ import { DeepSection, LockNote } from "./deep-section-shell";
 export function ChannelOpportunitiesSection({
   data,
   unlocked = true,
+  lockLabel,
 }: {
   data?: ChannelOpportunities;
   unlocked?: boolean;
+  /** Locked-state CTA label (defaults to a generic line when omitted). */
+  lockLabel?: string;
 }) {
   const clusters = data?.keywordClusters ?? [];
   const communities = data?.communitiesByEngagement ?? [];
@@ -93,7 +96,9 @@ export function ChannelOpportunitiesSection({
       </div>
 
       {!unlocked && (
-        <LockNote label="Unlock keyword CPC, competition & all communities with a free trial" />
+        <LockNote
+          label={lockLabel ?? "Unlock keyword CPC, competition & all communities with a free trial"}
+        />
       )}
     </DeepSection>
   );

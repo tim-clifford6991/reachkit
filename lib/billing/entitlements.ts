@@ -8,7 +8,7 @@
  */
 
 import { TIER_LIMITS, isPaid, isTier, type Tier, type TierLimit } from "@/lib/billing/tiers";
-import type { ReportPayload } from "@/lib/scan/report";
+import type { ReportPayload, CompetitiveLandscapeRow } from "@/lib/scan/report";
 import type { ActionCard } from "@/lib/llm/types";
 import { serverDb } from "@/lib/db/client";
 
@@ -127,14 +127,34 @@ export function redactReportForTier(
   return {
     ...payload,
     whatToDoThisWeek: { quickWins, medium, longPlay },
-    // Deep sections: competitiveLandscape stays FULL (the deliberate teaser wow —
-    // competitors + their distribution channels). The other three are truncated
-    // to a small locked preview so they never ship in full to a free viewer.
-    competitiveLandscape: payload.competitiveLandscape,
+    // Deep sections. The competitive landscape is "tease the question, gate the
+    // answer": free keeps WHICH rivals + their mention counts (the proof), but
+    // the exact opening text and the creators-to-reach are gated. The other
+    // three are truncated to a small locked preview.
+    competitiveLandscape: redactLandscape(payload.competitiveLandscape),
     channelOpportunities: redactChannels(payload.channelOpportunities),
     creatorsToReach: (payload.creatorsToReach ?? []).slice(0, FREE_PREVIEW_CREATORS),
     strengthsAndWeaknesses: redactStrengths(payload.strengthsAndWeaknesses),
   };
+}
+
+/**
+ * Free-tier competitive landscape: keep the provocation (competitor name,
+ * positioning, mention count), gate the answer — null the `gap` opening text
+ * and empty `creators`, preserving the creator count via `lockedCreatorCount`.
+ */
+function redactLandscape(
+  rows: CompetitiveLandscapeRow[] | undefined,
+): CompetitiveLandscapeRow[] | undefined {
+  if (!rows) return rows;
+  return rows.map((r) => ({
+    competitor: r.competitor,
+    positioning: r.positioning,
+    communityMentions: r.communityMentions,
+    gap: null,
+    creators: [],
+    lockedCreatorCount: r.creators.length,
+  }));
 }
 
 /** Free-tier preview of the channel section: 1 cluster with cpc/competition

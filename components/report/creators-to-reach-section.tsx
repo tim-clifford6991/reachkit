@@ -9,9 +9,12 @@ import { DeepSection, LockNote } from "./deep-section-shell";
 export function CreatorsToReachSection({
   creators,
   unlocked = true,
+  lockLabel,
 }: {
   creators?: CreatorReach[];
   unlocked?: boolean;
+  /** Locked-state CTA label (defaults to a generic line when omitted). */
+  lockLabel?: string;
 }) {
   const list = creators ?? [];
   if (list.length === 0) return null;
@@ -45,7 +48,9 @@ export function CreatorsToReachSection({
         ))}
       </ul>
 
-      {!unlocked && <LockNote label="Unlock every creator to reach with a free trial" />}
+      {!unlocked && (
+        <LockNote label={lockLabel ?? "Unlock every creator to reach with a free trial"} />
+      )}
     </DeepSection>
   );
 }

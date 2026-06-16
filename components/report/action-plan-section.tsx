@@ -15,16 +15,20 @@
 import type { ReportPayload } from "@/lib/scan/report";
 import type { ActionCard } from "@/lib/llm/types";
 import { EvidencePanel } from "./evidence-panel";
+import { LockNote } from "./deep-section-shell";
 
 interface ActionPlanSectionProps {
   whatToDoThisWeek: ReportPayload["whatToDoThisWeek"];
   /** When false, drafts are hidden and evidence is limited (free tier). */
   unlocked?: boolean;
+  /** Locked-state CTA label shown under the preview (free tier only). */
+  lockLabel?: string;
 }
 
 export function ActionPlanSection({
   whatToDoThisWeek,
   unlocked = true,
+  lockLabel,
 }: ActionPlanSectionProps) {
   const { quickWins, medium, longPlay } = whatToDoThisWeek;
   const hasAny =
@@ -85,6 +89,14 @@ export function ActionPlanSection({
             accentColor="var(--color-warning)"
           />
         </div>
+
+        {!unlocked && hasAny && (
+          <div className="mt-5">
+            <LockNote
+              label={lockLabel ?? "Unlock the full action queue with ready-to-send draft copy"}
+            />
+          </div>
+        )}
       </div>
     </section>
   );

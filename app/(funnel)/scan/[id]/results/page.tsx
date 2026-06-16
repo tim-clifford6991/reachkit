@@ -5,6 +5,7 @@ import { currentUser } from "@/lib/auth/server";
 import { type Tier } from "@/lib/billing/tiers";
 import { entitlementsFor, redactReportForTier } from "@/lib/billing/entitlements";
 import type { ReportPayload } from "@/lib/scan/report";
+import { buildLossFrame } from "@/lib/scan/competitive-framing";
 import { WhatYouOfferSection } from "@/components/report/what-you-offer-section";
 import { WhoItsForSection } from "@/components/report/who-its-for-section";
 import { WhereTheyAreSection } from "@/components/report/where-they-are-section";
@@ -104,6 +105,14 @@ async function ResultsContent({ id }: { id: string }) {
   const report = redactReportForTier(fullReport, tier);
   const isPaid = tier !== "free";
 
+  // Named, loss-framed competitive hook from community-mention gaps (null on
+  // cold-start scans with no credible gap → score block falls back to neutral).
+  const lossFrame = buildLossFrame(report.whereTheyAre.competitorGap);
+
+  // "Show the total, render a fraction": locked counts are read from the FULL
+  // (pre-redaction) payload so each gated section can name what it withholds.
+  const lockCounts = computeLockCounts(fullReport);
+
   // Snapshot timestamp — prefer completed_at, fall back to started_at
   const generatedAt = data.completed_at ?? data.started_at ?? report.generatedAt;
   const snapshotAge = relativeAge(generatedAt);
@@ -114,26 +123,85 @@ async function ResultsContent({ id }: { id: string }) {
       <SnapshotStrip generatedAt={generatedAt} isPaid={isPaid} />
 
       {/* ── Score — signature visual; lazy-loaded client component ────── */}
-      <ScoreBlock score={report.score} />
+      <ScoreBlock score={report.score} lossFrame={isPaid ? null : lossFrame} />
 
-      {/* ── The free-teaser WOW: full competitive landscape (always shown). ── */}
-      <CompetitiveLandscapeSection rows={report.competitiveLandscape} />
+      {/* ── Free-teaser proof: named rivals + mention counts above the wall;
+          their openings + creators are gated (tease the question). ── */}
+      <CompetitiveLandscapeSection rows={report.competitiveLandscape} unlocked={isPaid} />
 
       {/* Trial wall (§23 moment 7) + #unlock scroll target for locked sections. */}
-      {!isPaid && <UpgradeCta scanId={id} snapshotAge={snapshotAge} />}
+      {!isPaid && <UpgradeCta scanId={id} snapshotAge={snapshotAge} lossFrame={lossFrame} />}
 
       {/* ── Report sections — binary gating: teaser (free) vs full (paid). ─── */}
       <ReportReveal>
         <WhatYouOfferSection whatYouOffer={report.whatYouOffer} unlocked={isPaid} />
         <WhoItsForSection whoItsFor={report.whoItsFor} unlocked={isPaid} />
         <WhereTheyAreSection whereTheyAre={report.whereTheyAre} unlocked={isPaid} />
-        <ChannelOpportunitiesSection data={report.channelOpportunities} unlocked={isPaid} />
-        <CreatorsToReachSection creators={report.creatorsToReach} unlocked={isPaid} />
-        <StrengthsWeaknessesSection data={report.strengthsAndWeaknesses} unlocked={isPaid} />
-        <ActionPlanSection whatToDoThisWeek={report.whatToDoThisWeek} unlocked={isPaid} />
+        <ChannelOpportunitiesSection
+          data={report.channelOpportunities}
+          unlocked={isPaid}
+          lockLabel={lockCounts.channelsLabel}
+        />
+        <CreatorsToReachSection
+          creators={report.creatorsToReach}
+          unlocked={isPaid}
+          lockLabel={lockCounts.creatorsLabel}
+        />
+        <StrengthsWeaknessesSection
+          data={report.strengthsAndWeaknesses}
+          unlocked={isPaid}
+          lockLabel={lockCounts.strengthsLabel}
+        />
+        <ActionPlanSection
+          whatToDoThisWeek={report.whatToDoThisWeek}
+          unlocked={isPaid}
+          lockLabel={lockCounts.actionsLabel}
+        />
       </ReportReveal>
     </>
   );
+}
+
+// ---------------------------------------------------------------------------
+// Locked-count labels — "show the total, render a fraction". Pure, derived from
+// the full (pre-redaction) payload so each gated section names what it withholds.
+// ---------------------------------------------------------------------------
+
+function computeLockCounts(full: ReportPayload): {
+  channelsLabel?: string;
+  creatorsLabel?: string;
+  strengthsLabel?: string;
+  actionsLabel?: string;
+} {
+  const ch = full.channelOpportunities;
+  const clusters = ch?.keywordClusters.length ?? 0;
+  const communities = ch?.communitiesByEngagement.length ?? 0;
+  const creators = full.creatorsToReach?.length ?? 0;
+  const sw = full.strengthsAndWeaknesses;
+  const themes =
+    (sw?.strengths.length ?? 0) + (sw?.weaknesses.length ?? 0) + (sw?.mixed.length ?? 0);
+  const diagnostics = sw?.diagnostics.length ?? 0;
+  const w = full.whatToDoThisWeek;
+  const actions = w.quickWins.length + w.medium.length + w.longPlay.length;
+
+  return {
+    channelsLabel:
+      clusters > 0 || communities > 0
+        ? `Unlock all ${clusters} keyword cluster${clusters === 1 ? "" : "s"} (CPC & competition) + ${communities} communit${communities === 1 ? "y" : "ies"}`
+        : undefined,
+    creatorsLabel:
+      creators > 0
+        ? `See all ${creators} creator${creators === 1 ? "" : "s"} who reach your rivals' audiences`
+        : undefined,
+    strengthsLabel:
+      themes > 0 || diagnostics > 0
+        ? `Unlock ${themes} review theme${themes === 1 ? "" : "s"} with quotes + ${diagnostics} diagnostic${diagnostics === 1 ? "" : "s"}`
+        : undefined,
+    actionsLabel:
+      actions > 0
+        ? `Unlock all ${actions} action${actions === 1 ? "" : "s"} with ready-to-send draft copy`
+        : undefined,
+  };
 }
 
 // ---------------------------------------------------------------------------

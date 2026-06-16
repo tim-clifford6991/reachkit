@@ -25,6 +25,12 @@ export interface CompetitiveLandscapeRow {
   communityMentions: number;
   /** Creators/influencers that cover this competitor (outreach targets). */
   creators: Array<{ name: string; url: string }>;
+  /**
+   * On the free teaser, `creators` is emptied and this carries the original
+   * count so the section can render "{n} creators reach their audience — see
+   * all". Absent (undefined) on the full/paid payload.
+   */
+  lockedCreatorCount?: number;
 }
 
 export interface KeywordOpportunity {

@@ -212,11 +212,30 @@ describe("redactReportForTier — deep sections", () => {
     expect(out.channelOpportunities?.keywordClusters[0]?.keywords[0]?.cpc).toBe(1.5);
   });
 
-  it("free keeps competitiveLandscape FULL (the teaser wow)", () => {
+  it("free teases the landscape: keeps name/positioning/mentions, gates gap + creators", () => {
     const report = withDeepSections(makeReport());
     const out = redactReportForTier(report, "free");
+    const land = out.competitiveLandscape!;
+    // All rows survive (the proof), in order.
+    expect(land).toHaveLength(2);
+    expect(land.map((r) => r.competitor)).toEqual(["Acme", "Bolt"]);
+    // Provocation kept: positioning + mention count.
+    expect(land[0]?.positioning).toBe("all-in-one");
+    expect(land[0]?.communityMentions).toBe(9);
+    // Answer gated: opening text nulled, creators emptied, count preserved.
+    expect(land[0]?.gap).toBeNull();
+    expect(land[0]?.creators).toEqual([]);
+    expect(land[0]?.lockedCreatorCount).toBe(1);
+    // A competitor with no creators reports a 0 locked count.
+    expect(land[1]?.lockedCreatorCount).toBe(0);
+  });
+
+  it("paid keeps the landscape untouched (gap text + creators intact)", () => {
+    const report = withDeepSections(makeReport());
+    const out = redactReportForTier(report, "solo");
     expect(out.competitiveLandscape).toEqual(report.competitiveLandscape);
-    expect(out.competitiveLandscape).toHaveLength(2);
+    expect(out.competitiveLandscape?.[0]?.gap).toBe("no offline");
+    expect(out.competitiveLandscape?.[0]?.creators).toHaveLength(1);
   });
 
   it("free truncates channels: 1 cluster, cpc/competition zeroed, 2 communities", () => {

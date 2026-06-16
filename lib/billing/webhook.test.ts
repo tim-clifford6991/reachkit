@@ -187,6 +187,70 @@ test("handleStripeEvent: subscription event with no matching user is a no-op (no
 });
 
 // ---------------------------------------------------------------------------
+// customer.subscription.trial_will_end → reminder email, no users-table write.
+// ---------------------------------------------------------------------------
+test("handleStripeEvent: trial_will_end emails the resolved user a pre-charge reminder", async () => {
+  const db = makeServerDb({ id: "user-9", email: "founder@acme.com" } as unknown as { id: string });
+  const sendTrialEndingEmail = vi.fn().mockResolvedValue(undefined);
+
+  vi.doMock("@/lib/billing/stripe", () => ({ priceMap: () => PRICE_MAP }));
+  vi.doMock("@/lib/db/client", () => ({ serverDb: db.serverDb }));
+  vi.doMock("@/lib/email/resend", () => ({ sendTrialEndingEmail }));
+  vi.doMock("@/lib/config/env", () => ({ env: { appUrl: "https://reachkit.app" } }));
+
+  const { handleStripeEvent } = await import("./webhook");
+
+  const trialEndUnix = Math.floor(Date.UTC(2026, 5, 23) / 1000);
+  const event = {
+    type: "customer.subscription.trial_will_end",
+    data: {
+      object: {
+        id: "sub_trial",
+        customer: "cus_trial",
+        status: "trialing",
+        trial_end: trialEndUnix,
+        items: { data: [] },
+      },
+    },
+  } as unknown as Stripe.Event;
+
+  await handleStripeEvent(event);
+
+  // Looked the user up by customer; never wrote to the users table.
+  expect(db.spies.selectEq).toHaveBeenCalledWith("stripe_customer_id", "cus_trial");
+  expect(db.spies.update).not.toHaveBeenCalled();
+
+  // Sent to the resolved email with the billing manage URL + ISO trial end.
+  expect(sendTrialEndingEmail).toHaveBeenCalledWith({
+    to: "founder@acme.com",
+    trialEndsAt: new Date(trialEndUnix * 1000).toISOString(),
+    manageUrl: "https://reachkit.app/app/billing",
+  });
+});
+
+test("handleStripeEvent: trial_will_end with no matching user sends nothing (no throw)", async () => {
+  const db = makeServerDb(null);
+  const sendTrialEndingEmail = vi.fn().mockResolvedValue(undefined);
+
+  vi.doMock("@/lib/billing/stripe", () => ({ priceMap: () => PRICE_MAP }));
+  vi.doMock("@/lib/db/client", () => ({ serverDb: db.serverDb }));
+  vi.doMock("@/lib/email/resend", () => ({ sendTrialEndingEmail }));
+  vi.doMock("@/lib/config/env", () => ({ env: { appUrl: "https://reachkit.app" } }));
+
+  const { handleStripeEvent } = await import("./webhook");
+
+  const event = {
+    type: "customer.subscription.trial_will_end",
+    data: {
+      object: { id: "sub_x", customer: "cus_none", status: "trialing", trial_end: null, items: { data: [] } },
+    },
+  } as unknown as Stripe.Event;
+
+  await expect(handleStripeEvent(event)).resolves.toBeUndefined();
+  expect(sendTrialEndingEmail).not.toHaveBeenCalled();
+});
+
+// ---------------------------------------------------------------------------
 // Unhandled event type → no-op (no db access).
 // ---------------------------------------------------------------------------
 test("handleStripeEvent: unhandled event type is a no-op", async () => {

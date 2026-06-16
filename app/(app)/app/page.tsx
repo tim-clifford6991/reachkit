@@ -131,7 +131,7 @@ async function DashboardContent() {
         <WhatYouOfferSection whatYouOffer={report.whatYouOffer} unlocked={userIsPaid} />
         <WhoItsForSection whoItsFor={report.whoItsFor} unlocked={userIsPaid} />
         <WhereTheyAreSection whereTheyAre={report.whereTheyAre} unlocked={userIsPaid} />
-        <CompetitiveLandscapeSection rows={report.competitiveLandscape} />
+        <CompetitiveLandscapeSection rows={report.competitiveLandscape} unlocked={userIsPaid} />
         <ChannelOpportunitiesSection data={report.channelOpportunities} unlocked={userIsPaid} />
         <CreatorsToReachSection creators={report.creatorsToReach} unlocked={userIsPaid} />
         <StrengthsWeaknessesSection data={report.strengthsAndWeaknesses} unlocked={userIsPaid} />

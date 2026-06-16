@@ -8,15 +8,30 @@
  */
 
 import { TrialCta } from "./trial-cta";
+import type { LossFrame } from "@/lib/scan/competitive-framing";
 
 interface UpgradeCtaProps {
   /** The scan id — links the scanned app to the new account after checkout. */
   scanId: string;
   /** Human-readable age of the report snapshot (e.g. "3 days ago"). */
   snapshotAge?: string;
+  /** Named competitive gap — when present, the CTA leads with the diagnosis. */
+  lossFrame?: LossFrame | null;
 }
 
-export function UpgradeCta({ scanId, snapshotAge }: UpgradeCtaProps) {
+export function UpgradeCta({ scanId, snapshotAge, lossFrame }: UpgradeCtaProps) {
+  // Diagnosis → cure → treatment. Lead with the named loss when we have one.
+  const diagnosis = lossFrame
+    ? lossFrame.behindCount > 1
+      ? `${lossFrame.leaderName} and ${lossFrame.behindCount - 1} other rival${
+          lossFrame.behindCount - 1 === 1 ? "" : "s"
+        } are out-talking you where your buyers gather. `
+      : `${lossFrame.leaderName} is out-talking you where your buyers gather. `
+    : "Your competitors are winning attention you can't see yet. ";
+  const headline = lossFrame
+    ? `Take back the ground you're losing to ${lossFrame.leaderName}`
+    : "Turn this scan into an engine that wins your buyers back";
+
   return (
     <div
       id="unlock"
@@ -34,26 +49,26 @@ export function UpgradeCta({ scanId, snapshotAge }: UpgradeCtaProps) {
           className="mb-1 font-mono text-[10px] uppercase tracking-widest"
           style={{ color: "var(--color-accent-400)" }}
         >
-          Turn this into an engine
+          Fix the gap · then never fall behind
         </p>
         <h3 className="mb-2 text-base font-semibold" style={{ color: "var(--color-fg)" }}>
-          The full deep analysis — competitors, channels, creators, actions
+          {headline}
         </h3>
         <p className="mb-4 text-sm leading-relaxed" style={{ color: "var(--color-muted)" }}>
-          {snapshotAge
-            ? `Your report is a snapshot from ${snapshotAge} — and your competitors don't stand still. `
-            : "Your report is a snapshot — and your competitors don't stand still. "}
-          Start a free trial to unlock the full keyword & channel opportunities,
-          every creator to reach, your strengths vs weaknesses, and a weekly
-          action queue with draft copy — refreshed automatically.
+          {diagnosis}
+          Start a free trial to unlock your exact opening vs every rival, the
+          creators who already reach their buyers, and a weekly action queue with
+          draft copy. Then we re-scan
+          {snapshotAge ? ` this ${snapshotAge} snapshot` : ""} every week and alert
+          you the moment a competitor moves.
         </p>
 
         <ul className="mb-5 space-y-2" aria-label="What you unlock">
           {[
-            "Full keyword opportunities — volume, CPC & competition",
-            "Every community & creator to reach, ranked",
-            "What reviewers love vs hate — with the quotes",
-            "A fresh, ranked action queue every week with draft copy",
+            "A fresh, ranked action queue every week — drafts written, refreshed automatically",
+            "Alerts the moment a competitor's mentions or ranking shift",
+            "Your exact opening vs every rival + the creators who reach their buyers",
+            "Reviewers' love vs hate with the quotes, plus full keyword CPC & competition",
           ].map((item) => (
             <li
               key={item}

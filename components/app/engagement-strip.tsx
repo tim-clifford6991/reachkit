@@ -145,10 +145,57 @@ function StreakDisplay({ streak }: { streak: number }) {
 // Main component
 // ---------------------------------------------------------------------------
 
+/**
+ * Endowed-progress line — the retention hook. Leads with how far the score has
+ * come ("+12 points since you started") so the dashboard opens on forward
+ * momentum (Nunes & Drèze). Honest by design: flat and downward trends get their
+ * own true framing rather than fabricated positivity.
+ */
+function ProgressLine({
+  totalDelta,
+  latestScore,
+}: {
+  totalDelta: number | null;
+  latestScore: number | null;
+}) {
+  if (totalDelta === null) {
+    // Only one snapshot so far — forward-looking, no trend to claim yet.
+    return (
+      <p className="text-sm font-medium" style={{ color: "var(--color-fg)" }}>
+        {latestScore !== null
+          ? `Score ${latestScore} — your trend builds from here`
+          : "Tracking your score weekly"}
+      </p>
+    );
+  }
+  if (totalDelta > 0) {
+    return (
+      <p className="text-sm font-semibold tabular-nums" style={{ color: "var(--color-success)" }}>
+        +{totalDelta} point{totalDelta === 1 ? "" : "s"} since you started
+      </p>
+    );
+  }
+  if (totalDelta === 0) {
+    return (
+      <p className="text-sm font-medium" style={{ color: "var(--color-fg)" }}>
+        Holding steady — your next plays move it
+      </p>
+    );
+  }
+  return (
+    <p className="text-sm font-medium tabular-nums" style={{ color: "var(--color-fg)" }}>
+      <span style={{ color: "var(--color-danger)" }}>
+        {totalDelta} point{totalDelta === -1 ? "" : "s"}
+      </span>{" "}
+      — your next plays reverse it
+    </p>
+  );
+}
+
 export function EngagementStrip({
   streak,
   history,
-  honestyNote: _honestyNote,
+  honestyNote,
 }: EngagementStripProps) {
   const latestScore = history[history.length - 1]?.total ?? null;
   const firstScore = history[0]?.total ?? null;
@@ -156,6 +203,7 @@ export function EngagementStrip({
     latestScore !== null && firstScore !== null
       ? latestScore - firstScore
       : null;
+  const weeksTracked = history.length;
 
   return (
     <section
@@ -179,7 +227,7 @@ export function EngagementStrip({
           />
         )}
 
-        {/* Score trend */}
+        {/* Score progress — endowed-progress framing */}
         {history.length > 0 && (
           <div className="flex flex-1 items-center justify-between gap-4">
             <div>
@@ -187,37 +235,28 @@ export function EngagementStrip({
                 className="font-mono text-[10px] uppercase tracking-wider"
                 style={{ color: "var(--color-muted)" }}
               >
-                Score trend
+                Your progress
               </p>
-              {totalDelta !== null && totalDelta !== 0 && (
+              <ProgressLine totalDelta={totalDelta} latestScore={latestScore} />
+              {weeksTracked >= 2 && (
                 <p
-                  className="font-mono text-sm tabular-nums"
-                  style={{
-                    color:
-                      totalDelta > 0
-                        ? "var(--color-success)"
-                        : "var(--color-danger)",
-                  }}
-                >
-                  {totalDelta > 0 ? "+" : ""}
-                  {totalDelta} all time
-                </p>
-              )}
-              {totalDelta === 0 && (
-                <p
-                  className="font-mono text-sm"
+                  className="mt-0.5 font-mono text-[10px]"
                   style={{ color: "var(--color-muted)" }}
                 >
-                  Flat
+                  across {weeksTracked} weekly check-ins
+                </p>
+              )}
+              {honestyNote && (
+                <p
+                  className="mt-1 max-w-xs text-[11px] leading-snug"
+                  style={{ color: "var(--color-muted)" }}
+                >
+                  {honestyNote}
                 </p>
               )}
             </div>
 
-            <Sparkline
-              data={history}
-              width={120}
-              height={32}
-            />
+            <Sparkline data={history} width={120} height={32} />
           </div>
         )}
 

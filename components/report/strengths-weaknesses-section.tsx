@@ -44,9 +44,12 @@ function ThemeList({
 export function StrengthsWeaknessesSection({
   data,
   unlocked = true,
+  lockLabel,
 }: {
   data?: StrengthsAndWeaknesses;
   unlocked?: boolean;
+  /** Locked-state CTA label (defaults to a generic line when omitted). */
+  lockLabel?: string;
 }) {
   const strengths = data?.strengths ?? [];
   const weaknesses = data?.weaknesses ?? [];
@@ -84,7 +87,9 @@ export function StrengthsWeaknessesSection({
         )}
       </div>
 
-      {!unlocked && <LockNote label="Unlock quotes + full diagnostics with a free trial" />}
+      {!unlocked && (
+        <LockNote label={lockLabel ?? "Unlock quotes + full diagnostics with a free trial"} />
+      )}
     </DeepSection>
   );
 }

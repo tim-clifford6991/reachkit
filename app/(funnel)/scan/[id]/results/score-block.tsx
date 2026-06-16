@@ -13,6 +13,7 @@
 
 import dynamic from "next/dynamic";
 import type { VerifiedScore } from "@/lib/scan/score-full";
+import type { LossFrame } from "@/lib/scan/competitive-framing";
 
 // Lazy-load DiscoverabilityScore — contains motion/react (SVG + springs)
 const DiscoverabilityScore = dynamic(
@@ -28,9 +29,15 @@ const DiscoverabilityScore = dynamic(
 
 interface ScoreBlockProps {
   score: VerifiedScore;
+  /**
+   * Named, loss-framed competitive hook (from community-mention gaps). When
+   * present, it leads above the ring; when null (cold-start, no credible gap)
+   * the block falls back to the neutral caption only.
+   */
+  lossFrame?: LossFrame | null;
 }
 
-export function ScoreBlock({ score }: ScoreBlockProps) {
+export function ScoreBlock({ score, lossFrame }: ScoreBlockProps) {
   return (
     <div
       className="flex flex-col items-center rounded-xl border py-10"
@@ -46,6 +53,27 @@ export function ScoreBlock({ score }: ScoreBlockProps) {
       >
         Discoverability score
       </p>
+
+      {lossFrame ? (
+        <div className="mb-6 max-w-sm px-6 text-center">
+          <p className="text-sm font-semibold leading-snug" style={{ color: "var(--color-fg)" }}>
+            You&apos;re behind{" "}
+            <span style={{ color: "var(--color-danger)" }}>{lossFrame.leaderName}</span>
+            {lossFrame.behindCount > 1
+              ? ` and ${lossFrame.behindCount - 1} other rival${
+                  lossFrame.behindCount - 1 === 1 ? "" : "s"
+                }`
+              : ""}{" "}
+            where your buyers actually talk.
+          </p>
+          <p
+            className="mt-1.5 font-mono text-[11px] tabular-nums"
+            style={{ color: "var(--color-muted)" }}
+          >
+            {lossFrame.leaderName}: {lossFrame.leaderThem} mentions · you: {lossFrame.you}
+          </p>
+        </div>
+      ) : null}
 
       <DiscoverabilityScore score={score} size="lg" />
 
