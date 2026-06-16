@@ -7,22 +7,25 @@
  * handful of domains, each cheap (~free crawl + ~$0.05 SEO).
  */
 
-import { discoverProductCompetitors } from "./competitors";
+import { discoverCompetitorsSmart, type ProductInfo } from "./discover";
 import { profileDomainCached } from "./cache";
 import { toHost } from "./crawl";
 import { fetchSiteListing } from "@/lib/scan/adapters/site-fetch";
 import type { DistributionProfile } from "./types";
 
-/** Best-effort one-line description of what the subject does (homepage title +
- *  meta description) — gives the competitor filter the context to judge category
- *  closeness. Returns undefined if the homepage can't be read. */
-async function subjectDescription(domain: string): Promise<string | undefined> {
+/** Best-effort product info (name + what it does) from the subject's homepage —
+ *  the basis for category/market-first competitor discovery. Falls back to the
+ *  host as the name if the homepage can't be read. */
+async function subjectInfo(domain: string): Promise<ProductInfo> {
+  const host = toHost(domain);
   try {
-    const { listing } = await fetchSiteListing(`https://${toHost(domain)}/`);
-    const desc = [listing.name, listing.description].filter(Boolean).join(" — ");
-    return desc || undefined;
+    const { listing } = await fetchSiteListing(`https://${host}/`);
+    return {
+      name: listing.name || host,
+      description: listing.description || undefined,
+    };
   } catch {
-    return undefined;
+    return { name: host };
   }
 }
 
@@ -37,8 +40,8 @@ export async function profileCohort(
   opts: { topN?: number; nowMs?: number; maxAgeMs?: number } = {},
 ): Promise<Cohort> {
   const topN = opts.topN ?? 5;
-  const description = await subjectDescription(domain);
-  const competitorDomains = await discoverProductCompetitors(domain, topN, { description });
+  const product = await subjectInfo(domain);
+  const competitorDomains = await discoverCompetitorsSmart(domain, product, { topN });
 
   const [self, ...competitors] = await Promise.all([
     profileDomainCached(domain, { nowMs: opts.nowMs, maxAgeMs: opts.maxAgeMs }),

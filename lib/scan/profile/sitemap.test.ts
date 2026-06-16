@@ -1,5 +1,24 @@
 import { describe, it, expect } from "vitest";
-import { sitemapsFromRobots, parseSitemap, defaultSitemapCandidates } from "./sitemap";
+import {
+  sitemapsFromRobots,
+  parseSitemap,
+  defaultSitemapCandidates,
+  looksLikeBlogPost,
+} from "./sitemap";
+
+describe("looksLikeBlogPost", () => {
+  it("accepts post-shaped URLs", () => {
+    expect(looksLikeBlogPost("https://x.com/blog/how-we-grew")).toBe(true);
+    expect(looksLikeBlogPost("https://x.com/news/launch")).toBe(true);
+    expect(looksLikeBlogPost("https://x.com/2026/06/update")).toBe(true);
+    expect(looksLikeBlogPost("https://x.com/2026-06-16-release")).toBe(true);
+  });
+  it("rejects programmatic/entity pages (the inflation source)", () => {
+    expect(looksLikeBlogPost("https://trustmrr.com/company/acme-inc")).toBe(false);
+    expect(looksLikeBlogPost("https://x.com/pricing")).toBe(false);
+    expect(looksLikeBlogPost("https://x.com/")).toBe(false);
+  });
+});
 
 describe("sitemapsFromRobots", () => {
   it("extracts Sitemap: directives (case-insensitive)", () => {

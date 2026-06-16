@@ -39,6 +39,17 @@ export {
   COMPETITOR_BLOCKLIST,
 } from "./competitors";
 
+// Category/market-first discovery (the primary Stage-0 used by profileCohort).
+export {
+  discoverCompetitorsSmart,
+  proposeCompetitors,
+  parseProposed,
+  domainFromUrl,
+  isDisqualified,
+  rankByCorroboration,
+  type ProductInfo,
+} from "./discover";
+
 export { crawlContentChannels, toHost } from "./crawl";
 export { computeCadence } from "./cadence";
 export { detectChannels } from "./fingerprint";

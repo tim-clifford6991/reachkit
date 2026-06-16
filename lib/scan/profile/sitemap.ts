@@ -36,6 +36,27 @@ function tag(block: string, name: string): string | null {
   return m ? m[1]!.trim() : null;
 }
 
+/**
+ * Whether a URL looks like an actual blog/content POST rather than a programmatic
+ * page (one per tracked entity, product, profile, …). Sitemaps mix both, and the
+ * programmatic pages — often re-stamped with a recent <lastmod> — wildly inflate
+ * "posts". We only count clearly post-shaped URLs. PURE.
+ */
+export function looksLikeBlogPost(loc: string): boolean {
+  let path = loc;
+  try {
+    path = new URL(loc).pathname;
+  } catch {
+    /* treat the raw string as the path */
+  }
+  if (/\/(blog|posts?|articles?|news|insights|guides?|resources|stories|changelog)\//i.test(path)) {
+    return true;
+  }
+  if (/\/\d{4}\/\d{2}\//.test(path)) return true; // /2026/06/...
+  if (/\/\d{4}-\d{2}-\d{2}/.test(path)) return true; // /2026-06-16-slug
+  return false;
+}
+
 /** Parse sitemap XML into entries (urlset) or child sitemaps (sitemapindex). */
 export function parseSitemap(xml: string): ParsedSitemap {
   const childSitemaps: string[] = [];

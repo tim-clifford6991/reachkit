@@ -10,7 +10,7 @@
 import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
 import { fixturesEnabled } from "@/lib/dev/fixtures";
 import { computeCadence } from "./cadence";
-import { sitemapsFromRobots, parseSitemap, defaultSitemapCandidates } from "./sitemap";
+import { sitemapsFromRobots, parseSitemap, defaultSitemapCandidates, looksLikeBlogPost } from "./sitemap";
 import { feedUrlsFromHtml, parseFeedDates, defaultFeedCandidates } from "./feeds";
 import { detectChannels } from "./fingerprint";
 import { youtubeChannelDates } from "./youtube-cadence";
@@ -46,19 +46,29 @@ async function sitemapDates(host: string, robots: string | null): Promise<string
     ...(robots ? sitemapsFromRobots(robots) : []),
     ...defaultSitemapCandidates(host),
   ];
+  // Only count post-shaped URLs' lastmods — programmatic pages (one per entity)
+  // otherwise inflate the count to thousands.
+  const postDates = (entries: Array<{ loc: string; lastmod: string | null }>): string[] =>
+    entries
+      .filter((e) => looksLikeBlogPost(e.loc))
+      .map((e) => e.lastmod)
+      .filter((d): d is string => !!d);
+
   for (const url of candidates.slice(0, 3)) {
     const xml = await fetchText(url);
     if (!xml) continue;
     const { entries, childSitemaps } = parseSitemap(xml);
     if (entries.length > 0) {
-      return entries.map((e) => e.lastmod).filter((d): d is string => !!d);
+      const dates = postDates(entries);
+      if (dates.length > 0) return dates;
     }
-    // sitemapindex → fetch the first child (prefer one that looks post-ish)
+    // sitemapindex → fetch the first post-ish child
     const child = childSitemaps.find((c) => /post|blog|article|news/i.test(c)) ?? childSitemaps[0];
     if (child) {
       const childXml = await fetchText(child);
       if (childXml) {
-        return parseSitemap(childXml).entries.map((e) => e.lastmod).filter((d): d is string => !!d);
+        const dates = postDates(parseSitemap(childXml).entries);
+        if (dates.length > 0) return dates;
       }
     }
   }
