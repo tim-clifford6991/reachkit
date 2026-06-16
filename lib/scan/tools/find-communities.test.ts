@@ -1,8 +1,8 @@
 /**
  * find_communities tool tests (TDD)
  * - fixture mode: returns fixtureCommunities, never hits network
- * - live mode: merges HN + Bluesky results
- * - allSettled isolation: a dead source degrades, doesn't throw
+ * - live mode: returns HN results
+ * - a dead source degrades gracefully to an empty list, doesn't throw
  * - charges budget (1 toolCall, 0 cents)
  * - persists raw_document + records pipeline_run
  */
@@ -17,7 +17,7 @@ test("find_communities in fixture mode returns fixtureCommunities without networ
 
   const FIXTURE_COMMUNITIES = [
     { source: "hn", title: "Ask HN: habit apps?", url: "https://news.ycombinator.com/item?id=1", engagement: 200 },
-    { source: "bluesky", title: "Great habit tracker discussion", url: "https://bsky.app/profile/alice.bsky.social/post/abc", engagement: 55 },
+    { source: "hn", title: "Show HN: a habit tracker", url: "https://news.ycombinator.com/item?id=2", engagement: 55 },
   ];
 
   vi.doMock("@/lib/dev/fixtures", () => ({
@@ -26,9 +26,6 @@ test("find_communities in fixture mode returns fixtureCommunities without networ
   }));
   vi.doMock("@/lib/scan/adapters/hn-algolia", () => ({
     hnSearch: async () => { throw new Error("should not be called"); },
-  }));
-  vi.doMock("@/lib/scan/adapters/bluesky", () => ({
-    blueskySearch: async () => { throw new Error("should not be called"); },
   }));
   vi.doMock("@/lib/db/raw-documents", () => ({
     upsertRawDocument: async () => ({ id: 1, deduped: false }),
@@ -48,14 +45,14 @@ test("find_communities in fixture mode returns fixtureCommunities without networ
 
   expect(out.communities).toHaveLength(2);
   expect(out.communities[0]?.source).toBe("hn");
-  expect(out.communities[1]?.source).toBe("bluesky");
+  expect(out.communities[1]?.source).toBe("hn");
 });
 
 // ---------------------------------------------------------------------------
-// Live mode — merges both sources
+// Live mode — returns HN results
 // ---------------------------------------------------------------------------
 
-test("find_communities merges HN + Bluesky results", async () => {
+test("find_communities returns HN results in live mode", async () => {
   vi.resetModules();
 
   vi.doMock("@/lib/dev/fixtures", () => ({
@@ -64,11 +61,6 @@ test("find_communities merges HN + Bluesky results", async () => {
   vi.doMock("@/lib/scan/adapters/hn-algolia", () => ({
     hnSearch: async () => ([
       { source: "hn", title: "HN post", url: "https://hn.com/1", engagement: 100 },
-    ]),
-  }));
-  vi.doMock("@/lib/scan/adapters/bluesky", () => ({
-    blueskySearch: async () => ([
-      { source: "bluesky", title: "Bsky post", url: "https://bsky.app/p/1", engagement: 50 },
     ]),
   }));
   vi.doMock("@/lib/db/raw-documents", () => ({
@@ -87,28 +79,22 @@ test("find_communities merges HN + Bluesky results", async () => {
     { scanId: "s2", mode: "web", budget },
   );
 
-  expect(out.communities).toHaveLength(2);
-  expect(out.communities.map((c) => c.source)).toContain("hn");
-  expect(out.communities.map((c) => c.source)).toContain("bluesky");
+  expect(out.communities).toHaveLength(1);
+  expect(out.communities[0]?.source).toBe("hn");
 });
 
 // ---------------------------------------------------------------------------
-// allSettled isolation — a dead source degrades gracefully
+// Graceful degradation — a dead source returns an empty list, never throws
 // ---------------------------------------------------------------------------
 
-test("find_communities survives when Bluesky throws (allSettled isolation)", async () => {
+test("find_communities degrades to an empty list when HN throws", async () => {
   vi.resetModules();
 
   vi.doMock("@/lib/dev/fixtures", () => ({
     fixturesEnabled: () => false,
   }));
   vi.doMock("@/lib/scan/adapters/hn-algolia", () => ({
-    hnSearch: async () => ([
-      { source: "hn", title: "HN post", url: "https://hn.com/1", engagement: 200 },
-    ]),
-  }));
-  vi.doMock("@/lib/scan/adapters/bluesky", () => ({
-    blueskySearch: async () => { throw new Error("Bluesky 503"); },
+    hnSearch: async () => { throw new Error("HN 500"); },
   }));
   vi.doMock("@/lib/db/raw-documents", () => ({
     upsertRawDocument: async () => ({ id: 1, deduped: false }),
@@ -126,44 +112,7 @@ test("find_communities survives when Bluesky throws (allSettled isolation)", asy
     { scanId: "s3", mode: "web", budget },
   );
 
-  // HN results survive Bluesky failure
-  expect(out.communities).toHaveLength(1);
-  expect(out.communities[0]?.source).toBe("hn");
-});
-
-test("find_communities survives when HN throws (allSettled isolation)", async () => {
-  vi.resetModules();
-
-  vi.doMock("@/lib/dev/fixtures", () => ({
-    fixturesEnabled: () => false,
-  }));
-  vi.doMock("@/lib/scan/adapters/hn-algolia", () => ({
-    hnSearch: async () => { throw new Error("HN 500"); },
-  }));
-  vi.doMock("@/lib/scan/adapters/bluesky", () => ({
-    blueskySearch: async () => ([
-      { source: "bluesky", title: "Bsky post", url: "https://bsky.app/p/2", engagement: 77 },
-    ]),
-  }));
-  vi.doMock("@/lib/db/raw-documents", () => ({
-    upsertRawDocument: async () => ({ id: 1, deduped: false }),
-  }));
-  vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
-    recordPipelineRun: async () => {},
-  }));
-
-  const { findCommunities } = await import("./find-communities");
-  const { ScanBudget } = await import("@/lib/tools/registry");
-  const budget = new ScanBudget({ maxToolCalls: 60, budgetCents: 150 });
-
-  const out = await findCommunities.run(
-    { topic: "habit tracker", subjectKey: "nudgi" },
-    { scanId: "s4", mode: "web", budget },
-  );
-
-  // Bluesky results survive HN failure
-  expect(out.communities).toHaveLength(1);
-  expect(out.communities[0]?.source).toBe("bluesky");
+  expect(out.communities).toEqual([]);
 });
 
 // ---------------------------------------------------------------------------
@@ -178,9 +127,6 @@ test("find_communities charges 1 tool call and 0 cents", async () => {
   }));
   vi.doMock("@/lib/scan/adapters/hn-algolia", () => ({
     hnSearch: async () => [],
-  }));
-  vi.doMock("@/lib/scan/adapters/bluesky", () => ({
-    blueskySearch: async () => [],
   }));
   vi.doMock("@/lib/db/raw-documents", () => ({
     upsertRawDocument: async () => ({ id: 1, deduped: false }),
@@ -217,9 +163,6 @@ test("find_communities persists raw doc with sourceType=communities", async () =
   vi.doMock("@/lib/scan/adapters/hn-algolia", () => ({
     hnSearch: async () => [],
   }));
-  vi.doMock("@/lib/scan/adapters/bluesky", () => ({
-    blueskySearch: async () => [],
-  }));
   vi.doMock("@/lib/db/raw-documents", () => ({ upsertRawDocument }));
   vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
     recordPipelineRun: async () => {},
@@ -253,9 +196,6 @@ test("find_communities records a pipeline_run row with stage=tool", async () => 
   }));
   vi.doMock("@/lib/scan/adapters/hn-algolia", () => ({
     hnSearch: async () => [],
-  }));
-  vi.doMock("@/lib/scan/adapters/bluesky", () => ({
-    blueskySearch: async () => [],
   }));
   vi.doMock("@/lib/db/raw-documents", () => ({
     upsertRawDocument: async () => ({ id: 1, deduped: false }),
@@ -292,9 +232,6 @@ test("find_communities uses subjectType=app in app mode", async () => {
   }));
   vi.doMock("@/lib/scan/adapters/hn-algolia", () => ({
     hnSearch: async () => [],
-  }));
-  vi.doMock("@/lib/scan/adapters/bluesky", () => ({
-    blueskySearch: async () => [],
   }));
   vi.doMock("@/lib/db/raw-documents", () => ({ upsertRawDocument }));
   vi.doMock("@/lib/telemetry/pipeline-runs", () => ({

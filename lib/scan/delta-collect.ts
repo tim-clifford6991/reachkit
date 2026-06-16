@@ -46,7 +46,6 @@ import { fetchAppReviews } from "@/lib/scan/adapters/app-store-rss";
 import { appIdFromUrl, fetchItunesCompetitors } from "@/lib/scan/adapters/itunes";
 import { rankLookup } from "@/lib/scan/adapters/dataforseo-rank";
 import { hnSearchTimed } from "@/lib/scan/adapters/hn-algolia";
-import { blueskySearchTimed } from "@/lib/scan/adapters/bluesky";
 import { tavilyAlternatives } from "@/lib/scan/adapters/tavily";
 
 export interface DeltaResult {
@@ -174,7 +173,7 @@ function rankKeywords(facts: PreliminaryFacts): string[] {
 }
 
 // --- threads ----------------------------------------------------------------
-// HN + Bluesky; keep threads with timestamp > lastThreadAt; baseline → items:[]
+// HN; keep threads with timestamp > lastThreadAt; baseline → items:[]
 // with the marker set to the newest ts.
 async function collectThreads(ctx: ScanContext, watermark: WatermarkBody, facts: PreliminaryFacts): Promise<DeltaResult> {
   const lastThreadAt = watermark.lastThreadAt ?? null;
@@ -189,11 +188,7 @@ async function collectThreads(ctx: ScanContext, watermark: WatermarkBody, facts:
   }
 
   const topic = threadTopic(facts);
-  const [hn, bsky] = await Promise.allSettled([hnSearchTimed(topic), blueskySearchTimed(topic)]);
-  const all: TimedCommunity[] = [
-    ...(hn.status === "fulfilled" ? hn.value : []),
-    ...(bsky.status === "fulfilled" ? bsky.value : []),
-  ];
+  const all: TimedCommunity[] = await hnSearchTimed(topic).catch(() => []);
   // Dedupe by url, keeping the first occurrence.
   const seen = new Set<string>();
   const deduped = all.filter((t) => (seen.has(t.url) ? false : (seen.add(t.url), true)));

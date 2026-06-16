@@ -2,7 +2,6 @@ import type { ToolDefinition } from "@/lib/tools/registry";
 import type { Community } from "@/lib/scan/types";
 import { fixturesEnabled, fixtureCommunities } from "@/lib/dev/fixtures";
 import { hnSearch } from "@/lib/scan/adapters/hn-algolia";
-import { blueskySearch } from "@/lib/scan/adapters/bluesky";
 import { upsertRawDocument } from "@/lib/db/raw-documents";
 import { recordPipelineRun } from "@/lib/telemetry/pipeline-runs";
 
@@ -43,16 +42,8 @@ export const findCommunities: ToolDefinition<FindCommunitiesArgs, FindCommunitie
 
     ctx.budget.charge({ toolCalls: 1, cents: 0 });
 
-    // HN Algolia + Bluesky are both free/public — run in parallel, degrade gracefully
-    const [hnResult, bskyResult] = await Promise.allSettled([
-      hnSearch(args.topic),
-      blueskySearch(args.topic),
-    ]);
-
-    const communities: Community[] = [
-      ...(hnResult.status === "fulfilled" ? hnResult.value : []),
-      ...(bskyResult.status === "fulfilled" ? bskyResult.value : []),
-    ];
+    // HN Algolia is free/public — degrade gracefully to an empty list on failure.
+    const communities: Community[] = await hnSearch(args.topic).catch(() => []);
 
     await upsertRawDocument({
       subjectType: ctx.mode === "web" ? "web" : "app",

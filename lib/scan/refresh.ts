@@ -237,7 +237,7 @@ function fixtureDigest(kind: MonitorKind, count: number): string {
     case "rank":
       return `${count} keyword rank change(s): "habit tracker app" moved to #4, "best habit tracker" to #17.`;
     case "threads":
-      return `${count} new community thread(s): a Show HN for a minimalist habit tracker and a Bluesky post on switching to a simpler app.`;
+      return `${count} new community thread(s): a Show HN for a minimalist habit tracker and an Ask HN on switching to a simpler app.`;
     case "competitors":
       return `${count} newly-discovered competitor(s) entered the set.`;
   }

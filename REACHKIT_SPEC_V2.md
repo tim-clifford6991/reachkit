@@ -97,7 +97,6 @@ Business-model note: input mode (app vs web) is orthogonal to business model (B2
 | r/iOSProgramming, r/SideProject, r/indiehackers, r/SaaS, r/microsaas, r/androiddev, r/FlutterDev, r/reactnative | Community | Genuine participation; answer "how do I market my app/SaaS" threads; teardown posts |
 | Indie Hackers | Community | Build-in-public journal; milestone posts |
 | X #buildinpublic | Community | Daily dogfooding narrative |
-| Bluesky indie dev scene | Community | Same, earlier-adopter crowd |
 | Hacker News | Launch | Show HN: the free scan (not the paid product) |
 | Product Hunt | Launch | Free scan launch; later paid launch |
 | Sub Club (RevenueCat), Indie Bites, App Masters, Under the Radar | Podcasts | Pitch the dogfooding story after traction |
@@ -327,7 +326,7 @@ Internal taxonomy powering the queue and the Score (§5.6: not customer-facing n
 
 ### Module 1 — Post Content (organic) [MVP]
 
-- Sources: Reddit public JSON (garnish), HN Algolia, Indie Hackers pages via Tavily, Bluesky firehose/search, YouTube comments (Data API), Product Hunt discussions, Quora via SERP
+- Sources: Reddit public JSON (garnish), HN Algolia, Indie Hackers pages via Tavily, YouTube comments (Data API), Product Hunt discussions, Quora via SERP
 - Scoring: community ICP density × engagement norm × promo-tolerance × recency of similar posts
 - Task format: "Post this angle on {community} {day}. Why it fits: {evidence}. Draft below (edit before posting)."
 - Tracking: posts published (verify_url), engagement fetched where API allows, referral clicks (UTM)
@@ -336,7 +335,7 @@ Internal taxonomy powering the queue and the Score (§5.6: not customer-facing n
 
 ### Module 2 — Direct Outreach (1:1) [MVP]
 
-- Sources: YouTube Data API (creators who reviewed competitors — intelligence + named pitch targets w/ public view counts; weighted per-scan empirically, never "start a channel" advice in MVP), Substack/newsletter discovery via SERP, Hunter.io (email finding; GDPR-aware), Bluesky profiles. Apple Podcasts demoted to v1.5 PR module: RSS yields titles/cadence but no audience sizes — too thin to score outreach targets confidently.
+- Sources: YouTube Data API (creators who reviewed competitors — intelligence + named pitch targets w/ public view counts; weighted per-scan empirically, never "start a channel" advice in MVP), Substack/newsletter discovery via SERP, Hunter.io (email finding; GDPR-aware). Apple Podcasts demoted to v1.5 PR module: RSS yields titles/cadence but no audience sizes — too thin to score outreach targets confidently.
 - Scoring: audience size × audience-ICP overlap × competitor-mention recency × responsiveness proxy (posting frequency)
 - Task format: "Pitch {creator}. They covered {competitor} on {date} ({link}). 150-word personalized draft below. Max 5 drafts/day systemwide."
 - Tracking: sent (self-report) → response (self-report) → partnership (verified link)
@@ -424,7 +423,6 @@ Rule: **nothing critical sits on a gray-area source.** Every source tagged with 
 | HN Algolia API | Stories/comments search | Free, excellent |
 | Product Hunt GraphQL | Launches, discussions, reviews | Free key, rate-limited. Key web-mode review source |
 | YouTube Data API | Creator landscape + competitor-review comments (ICP language) + outreach target lists | 10K units/day; search=100 units → budget ~80 searches/day/project. Strong for consumer apps, moderate for web SaaS; weight set per-scan empirically |
-| Bluesky AT Protocol | Firehose, search, profiles | Open |
 | GitHub / Stack Exchange APIs | Dev-tool adjacency signals | Free |
 | Wayback Machine | Competitor site history | Free |
 | GDELT | News mentions | Free, noisy |
@@ -505,7 +503,7 @@ The engine is small named tools + bounded loops, not one big prompt. Cost class:
 | get_listing | Store page or website + pricing | iTunes Search / site fetch / Wayback | D |
 | search_keywords | Volumes, autocomplete, PAA | DataForSEO Keywords Data + SERP | D |
 | search_web | Open-ended research | Tavily | D |
-| find_communities | Where a topic is discussed | HN Algolia / Reddit JSON (garnish) / Bluesky / SERP | D |
+| find_communities | Where a topic is discussed | HN Algolia / Reddit JSON (garnish) / SERP | D |
 | find_creators | People who reviewed a competitor | YouTube Data API / SERP | D |
 | check_link | Does the source actually say what the claim says | fetch + Haiku entailment | L (cheap) |
 | track_rank | Keyword position check | DataForSEO rank endpoint | D |

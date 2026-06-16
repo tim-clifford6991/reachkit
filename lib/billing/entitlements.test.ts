@@ -186,7 +186,7 @@ function withDeepSections(report: ReportPayload): ReportPayload {
       communitiesByEngagement: [
         { source: "hn", title: "a", url: "https://h/1", engagement: 300 },
         { source: "hn", title: "b", url: "https://h/2", engagement: 200 },
-        { source: "bluesky", title: "c", url: "https://b/3", engagement: 50 },
+        { source: "hn", title: "c", url: "https://h/3", engagement: 50 },
       ],
     },
     creatorsToReach: [

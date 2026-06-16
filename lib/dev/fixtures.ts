@@ -49,15 +49,15 @@ export function fixtureCommunities(topic: string): Community[] {
       engagement: 214,
     },
     {
-      source: "bluesky",
-      title: `Anyone else using ${topic} daily? Game changer for my morning routine.`,
-      url: "https://bsky.app/profile/productivity.bsky.social/post/3k7qzxpvt2c2g",
+      source: "hn",
+      title: `Ask HN: Anyone else using ${topic} daily? Game changer for my morning routine.`,
+      url: "https://news.ycombinator.com/item?id=38702145",
       engagement: 89,
     },
     {
-      source: "bluesky",
+      source: "hn",
       title: `The ${topic} space is getting crowded but most apps still miss the basics.`,
-      url: "https://bsky.app/profile/indiedev.bsky.social/post/3k8mrwabcd123",
+      url: "https://news.ycombinator.com/item?id=38744982",
       engagement: 63,
     },
   ];
@@ -305,7 +305,7 @@ export function fixtureRankDelta(prev: Record<string, number>): {
 export function fixtureThreadDelta(): { items: TimedCommunity[]; newestAt: string } {
   const items: TimedCommunity[] = [
     { source: "hn", title: "Show HN: a minimalist habit tracker", url: "https://news.ycombinator.com/item?id=40000002", engagement: 188, at: "2026-06-10T14:05:00Z" },
-    { source: "bluesky", title: "Switched to a simpler habit app this week and my streak is alive again.", url: "https://bsky.app/profile/productivity.bsky.social/post/3kfixturepost01", engagement: 41, at: "2026-06-09T18:30:00Z" },
+    { source: "hn", title: "Ask HN: Switched to a simpler habit app this week and my streak is alive again.", url: "https://news.ycombinator.com/item?id=40000003", engagement: 41, at: "2026-06-09T18:30:00Z" },
   ];
   return { items, newestAt: "2026-06-10T14:05:00Z" };
 }
