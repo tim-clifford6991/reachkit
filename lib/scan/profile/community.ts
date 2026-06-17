@@ -55,10 +55,14 @@ export function summarizePresence(
 export async function gatherCommunityPresence(
   brand: string,
   nowMs: number = Date.now(),
+  opts: { reddit?: boolean } = {},
 ): Promise<CommunityPresence[]> {
+  // HN (Algolia) is free; Reddit goes through a paid DataForSEO SERP, so it's
+  // opt-in — we run it for the subject (where the founder cares most) but skip it
+  // for competitors to cut cost (they keep the free HN signal).
   const [hn, reddit] = await Promise.all([
     hnSearchTimed(brand).catch(() => []),
-    searchDemand(brand, { recency: "year" }).catch(() => []),
+    opts.reddit === false ? Promise.resolve([]) : searchDemand(brand, { recency: "year" }).catch(() => []),
   ]);
 
   const out: CommunityPresence[] = [];

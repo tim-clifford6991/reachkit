@@ -70,7 +70,7 @@ export async function upsertProfile(profile: DistributionProfile): Promise<void>
  */
 export async function profileDomainCached(
   domain: string,
-  opts: { maxAgeMs?: number; nowMs?: number } = {},
+  opts: { maxAgeMs?: number; nowMs?: number; reddit?: boolean } = {},
 ): Promise<DistributionProfile> {
   const nowMs = opts.nowMs ?? Date.now();
   const cached = await getCachedProfile(domain, opts.maxAgeMs ?? PROFILE_TTL_MS, nowMs).catch(
@@ -78,7 +78,7 @@ export async function profileDomainCached(
   );
   if (cached) return cached;
 
-  const profile = await profileDomain(domain, { nowMs });
+  const profile = await profileDomain(domain, { nowMs, reddit: opts.reddit });
   await upsertProfile(profile).catch(() => {});
   return profile;
 }

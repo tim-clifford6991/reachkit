@@ -596,7 +596,8 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
  * logged without affecting the (already-persisted) core report.
  */
 async function attachMarketAnalysis(scanId: string, storeUrl: string): Promise<void> {
-  const market = await runMarketAnalysis(hostname(storeUrl), { scanId });
+  // Cost-bounded: 5 pain queries (not 8) + Reddit community only for the subject.
+  const market = await runMarketAnalysis(hostname(storeUrl), { scanId, queryCap: 5 });
 
   const db = serverDb();
   const { data } = await db.from("scans").select("report_payload").eq("id", scanId).maybeSingle();

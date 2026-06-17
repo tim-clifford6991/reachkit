@@ -46,9 +46,10 @@ export async function profileCohort(
   const competitorDomains = await discoverCompetitorsSmart(domain, product, { topN });
 
   const [self, ...competitors] = await Promise.all([
-    profileDomainCached(domain, { nowMs: opts.nowMs, maxAgeMs: opts.maxAgeMs }),
+    // Reddit community (paid SERP) only for the subject; competitors keep free HN.
+    profileDomainCached(domain, { nowMs: opts.nowMs, maxAgeMs: opts.maxAgeMs, reddit: true }),
     ...competitorDomains.map((d) =>
-      profileDomainCached(d, { nowMs: opts.nowMs, maxAgeMs: opts.maxAgeMs }),
+      profileDomainCached(d, { nowMs: opts.nowMs, maxAgeMs: opts.maxAgeMs, reddit: false }),
     ),
   ]);
 
