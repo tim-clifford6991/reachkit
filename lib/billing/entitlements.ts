@@ -195,8 +195,9 @@ export function redactMarket(market: MarketAnalysis | undefined): MarketAnalysis
     },
     gap: {
       ...market.gap,
-      // channelGaps drive the paid playbook; the matrix + SOV stay as the proof.
+      // channelGaps + keywordGap drive the paid playbook; matrix + SOV stay as proof.
       channelGaps: [],
+      keywordGap: [],
       demandPockets: market.gap.demandPockets.slice(0, FREE_PREVIEW_POCKETS).map(redactPocket),
     },
     // The ranked distribution plan is the paid payoff.

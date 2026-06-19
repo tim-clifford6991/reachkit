@@ -11,6 +11,7 @@ import { env } from "@/lib/config/env";
 import { fixturesEnabled } from "@/lib/dev/fixtures";
 import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
 import { serpAuthHeader } from "@/lib/scan/adapters/dataforseo";
+import { fetchRankedKeywords, fetchRelevantPages } from "@/lib/scan/adapters/dataforseo-ranked-keywords";
 import { toHost } from "./crawl";
 import type { SeoPosture } from "./types";
 
@@ -81,18 +82,26 @@ export async function fetchSeoPosture(
   const target = toHost(domain);
   const wantBacklinks = env.dataforseoBacklinks && !opts.light;
 
-  const [overview, backlinks] = await Promise.all([
+  // Ranked keywords + top pages are the richer (paid) signals — full pass only.
+  const wantRanked = !opts.light;
+
+  const [overview, backlinks, rankedKeywords, topPages] = await Promise.all([
     post("https://api.dataforseo.com/v3/dataforseo_labs/google/domain_rank_overview/live", [
       { target, location_code: env.dataforseoLocationCode, language_code: env.dataforseoLanguageCode },
     ]),
     wantBacklinks
       ? post("https://api.dataforseo.com/v3/backlinks/summary/live", [{ target }])
       : Promise.resolve(null),
+    wantRanked ? fetchRankedKeywords(target) : Promise.resolve([]),
+    wantRanked ? fetchRelevantPages(target) : Promise.resolve([]),
   ]);
 
   if (!overview && !backlinks) return null;
 
   const { organicKeywords, etv } = parseRankOverview(overview);
   const { authority, referringDomains } = parseBacklinksSummary(backlinks);
-  return { organicKeywords, etv, authority, referringDomains };
+  const posture: SeoPosture = { organicKeywords, etv, authority, referringDomains };
+  if (rankedKeywords.length > 0) posture.rankedKeywords = rankedKeywords;
+  if (topPages.length > 0) posture.topPages = topPages;
+  return posture;
 }

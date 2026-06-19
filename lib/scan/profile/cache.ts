@@ -21,7 +21,7 @@ export const PROFILE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
  * changes, so stale-shaped entries are treated as a miss and recomputed (rather
  * than served for the whole TTL). Saves clearing the table on every iteration.
  */
-export const PROFILE_CACHE_VERSION = 3;
+export const PROFILE_CACHE_VERSION = 4;
 
 type Versioned = DistributionProfile & { _v?: number; _light?: boolean };
 

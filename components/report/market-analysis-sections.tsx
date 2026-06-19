@@ -7,6 +7,7 @@
 
 import type { MarketAnalysis } from "@/lib/scan/gap";
 import type { DistributionProfile, ContentChannel } from "@/lib/scan/profile";
+import { estimateTrafficMix } from "@/lib/scan/profile";
 import type { DemandPocket } from "@/lib/scan/demand/types";
 import type { ChannelMatrixRow } from "@/lib/scan/gap";
 import { COACH_GUIDES } from "@/lib/scan/distribute/coach";
@@ -64,6 +65,39 @@ function CompetitorCard({ p }: { p: DistributionProfile }) {
           {comms.join(", ")}
         </p>
       )}
+      <TrafficMixBar p={p} />
+    </div>
+  );
+}
+
+/** A slim estimated traffic-source split (organic / referral / social / direct).
+ *  Always labelled "est." — DataForSEO gives no real channel split (see
+ *  lib/scan/profile/traffic-mix.ts). */
+function TrafficMixBar({ p }: { p: DistributionProfile }) {
+  const mix = estimateTrafficMix(p);
+  if (!mix) return null;
+  const segs: Array<{ label: string; pct: number; color: string }> = [
+    { label: "Organic", pct: mix.organic, color: "var(--color-accent-400)" },
+    { label: "Referral", pct: mix.referral, color: "var(--color-success)" },
+    { label: "Social", pct: mix.social, color: "var(--color-warning)" },
+    { label: "Direct", pct: mix.direct, color: "var(--color-muted)" },
+  ];
+  return (
+    <div className="mt-2">
+      <div className="flex items-center gap-2">
+        <span className="font-mono uppercase tracking-wider text-[10px]" style={{ color: "var(--color-muted)" }}>
+          Traffic mix
+        </span>
+        <span className="font-mono text-[9px]" style={{ color: "var(--color-muted)" }}>est.</span>
+      </div>
+      <div className="mt-1 flex h-1.5 w-full overflow-hidden rounded-full" style={{ background: "var(--color-border)" }}>
+        {segs.map((s) => (
+          <div key={s.label} style={{ width: `${Math.round(s.pct * 100)}%`, background: s.color }} />
+        ))}
+      </div>
+      <p className="mt-1 font-mono text-[10px]" style={{ color: "var(--color-muted)" }}>
+        {segs.map((s) => `${s.label} ${Math.round(s.pct * 100)}%`).join(" · ")}
+      </p>
     </div>
   );
 }
@@ -337,6 +371,28 @@ export function MarketBenchmarkSection({ market }: { market: MarketAnalysis }) {
   );
 }
 
+// ── Keyword gap — keywords rivals rank for that you don't (paid) ──────────────
+
+export function KeywordGapSection({ market }: { market: MarketAnalysis }) {
+  const rows = market.gap.keywordGap;
+  if (rows.length === 0) return null;
+  return (
+    <DeepSection eyebrow="Keyword gap" title="What your rivals rank for that you don't">
+      <div className="space-y-2">
+        {rows.map((r) => (
+          <div key={r.keyword} className="flex items-center justify-between gap-3 rounded-lg px-4 py-2.5" style={{ background: "var(--fill-subtle)" }}>
+            <span className="min-w-0 truncate text-sm" style={{ color: "var(--color-fg)" }}>{r.keyword}</span>
+            <span className="flex shrink-0 items-center gap-3 font-mono text-[11px] tabular-nums" style={{ color: "var(--color-muted)" }}>
+              <span>{r.volume.toLocaleString()}/mo</span>
+              <span>{r.rivalsRanking} rival{r.rivalsRanking === 1 ? "" : "s"}</span>
+            </span>
+          </div>
+        ))}
+      </div>
+    </DeepSection>
+  );
+}
+
 /**
  * All market sections in order. `unlocked` (paid) renders the full deep view;
  * the free teaser keeps the proof (competitor profiles, benchmark + SOV, channel
@@ -355,6 +411,7 @@ export function MarketAnalysisSections({
       <CompetitorProfilesSection cohort={market.cohort} />
       <MarketBenchmarkSection market={market} />
       <ChannelMatrixSection market={market} />
+      {unlocked ? <KeywordGapSection market={market} /> : null}
       <DemandPocketsSection market={market} unlocked={unlocked} />
       <DistributionPlanSection market={market} />
       {unlocked ? <CoachSection /> : null}

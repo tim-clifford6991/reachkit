@@ -44,7 +44,7 @@
 
 import { serverDb } from "@/lib/db/client";
 import { env } from "@/lib/config/env";
-import { attachMarketAnalysis } from "@/lib/scan/market";
+import { attachMarketAnalysis, writeMarketSnapshot } from "@/lib/scan/market";
 import { callModel } from "@/lib/llm/anthropic";
 import { callEmbed } from "@/lib/llm/embed";
 import { searchSimilar, insertEmbeddings } from "@/lib/scan/embeddings";
@@ -687,9 +687,12 @@ export async function runWeeklyRefresh(
     //     the no-op cost discipline; shared 7-day profile cache keeps it cheap.
     //     Web-only + flag-gated + best-effort: never breaks the refresh.
     if (env.marketAnalysis && ctx.mode === "web") {
-      await attachMarketAnalysis(ctx.scanId, ctx.storeUrl).catch((e) =>
-        console.error("[refresh] market analysis failed (best-effort)", e),
-      );
+      await attachMarketAnalysis(ctx.scanId, ctx.storeUrl)
+        .then((market) => {
+          // Weekly market-history point for trends + benchmarking over time.
+          if (market) return writeMarketSnapshot(ctx.appId, market, now);
+        })
+        .catch((e) => console.error("[refresh] market analysis failed (best-effort)", e));
     }
 
     // 9. Advance watermarks + last_run_at; estimate + record the refresh cost.

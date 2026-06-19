@@ -60,6 +60,17 @@ export interface ShareOfVoice {
   totalMentions: number;
 }
 
+/** A keyword rivals rank for that you don't — a content/SEO opportunity. */
+export interface KeywordGapRow {
+  keyword: string;
+  /** Best (lowest) search volume seen across rivals ranking for it. */
+  volume: number;
+  /** How many rivals in the cohort rank for this keyword. */
+  rivalsRanking: number;
+  /** The best (lowest) absolute position any rival holds for it. */
+  bestRivalPosition: number;
+}
+
 export interface GapAnalysis {
   channelMatrix: ChannelMatrixRow[];
   /** Ranked: the channels to enter/revive first. */
@@ -68,6 +79,8 @@ export interface GapAnalysis {
   seo: SeoGap | null;
   /** Community mention share vs rivals (null when no mentions anywhere). */
   shareOfVoice: ShareOfVoice | null;
+  /** Keywords rivals rank for that you don't (full pass only; [] otherwise). */
+  keywordGap: KeywordGapRow[];
   /** Top demand pockets (where buyers are already asking), if a sweep ran. */
   demandPockets: DemandPocket[];
 }

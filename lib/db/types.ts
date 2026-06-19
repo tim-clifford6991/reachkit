@@ -635,6 +635,35 @@ export type Database = {
         }
         Relationships: []
       }
+      market_snapshots: {
+        Row: {
+          app_id: string
+          id: string
+          summary: Json
+          taken_at: string
+        }
+        Insert: {
+          app_id: string
+          id?: string
+          summary: Json
+          taken_at?: string
+        }
+        Update: {
+          app_id?: string
+          id?: string
+          summary?: Json
+          taken_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_snapshots_app_id_fkey"
+            columns: ["app_id"]
+            isOneToOne: false
+            referencedRelation: "apps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       score_snapshots: {
         Row: {
           app_id: string

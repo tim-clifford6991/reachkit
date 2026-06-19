@@ -1,6 +1,18 @@
 import { describe, it, expect } from "vitest";
-import { analyzeGap, shareOfVoice } from "./analyze";
+import { analyzeGap, shareOfVoice, keywordGap } from "./analyze";
 import type { DistributionProfile, ContentChannel, ChannelKind } from "@/lib/scan/profile/types";
+
+type RankedKw = NonNullable<NonNullable<DistributionProfile["seo"]>["rankedKeywords"]>[number];
+function withKeywords(domain: string, kws: RankedKw[]): DistributionProfile {
+  return {
+    domain,
+    channels: [],
+    communities: [],
+    seo: { organicKeywords: kws.length, etv: 0, authority: null, referringDomains: null, rankedKeywords: kws },
+    crawledAt: "2026-06-16T00:00:00Z",
+  };
+}
+const kw = (keyword: string, volume: number, position = 5): RankedKw => ({ keyword, volume, position, etv: 0 });
 
 function ch(kind: ChannelKind, active: boolean | null, postsPerMonth = 4): ContentChannel {
   const c: ContentChannel = { kind, label: kind, url: `https://x/${kind}` };
@@ -126,5 +138,24 @@ describe("shareOfVoice", () => {
     const self = profile("me.com", [], { communities: [{ source: "reddit", active: true }] });
     const gap = analyzeGap(self, [profile("a.com", [], { communities: [{ source: "reddit", active: true }] })]);
     expect(gap.shareOfVoice?.selfPct).toBeCloseTo(0.5, 5);
+  });
+});
+
+describe("keywordGap", () => {
+  it("returns keywords rivals rank for that self does not, ranked by rival count then volume", () => {
+    const self = withKeywords("me.com", [kw("mine", 100)]);
+    const a = withKeywords("a.com", [kw("shared", 500, 3), kw("mine", 100)]);
+    const b = withKeywords("b.com", [kw("shared", 800, 8), kw("solo", 2000)]);
+
+    const gap = keywordGap(self, [a, b]);
+    expect(gap.map((g) => g.keyword)).toEqual(["shared", "solo"]); // shared has 2 rivals → first
+    expect(gap[0]).toMatchObject({ keyword: "shared", rivalsRanking: 2, volume: 800, bestRivalPosition: 3 });
+    // "mine" is excluded (self already ranks for it).
+    expect(gap.find((g) => g.keyword === "mine")).toBeUndefined();
+  });
+
+  it("is empty when there is no ranked-keyword data (the light/free pass)", () => {
+    const bare = profile("me.com", []);
+    expect(keywordGap(bare, [profile("a.com", [])])).toEqual([]);
   });
 });

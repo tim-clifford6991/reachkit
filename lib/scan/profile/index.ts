@@ -55,3 +55,4 @@ export { crawlContentChannels, toHost } from "./crawl";
 export { computeCadence } from "./cadence";
 export { detectChannels } from "./fingerprint";
 export { fetchSeoPosture, parseRankOverview, parseBacklinksSummary } from "./seo";
+export { estimateTrafficMix, type TrafficMix } from "./traffic-mix";

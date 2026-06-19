@@ -48,6 +48,10 @@ export interface SeoPosture {
    *  Backlinks API returned no data (e.g. not subscribed) — distinct from 0. */
   authority: number | null;
   referringDomains: number | null;
+  /** Top ranked keywords (full/paid pass only; omitted on the light free pass). */
+  rankedKeywords?: Array<{ keyword: string; position: number; volume: number; etv: number }>;
+  /** Top organic pages + their keyword footprint (full/paid pass only). */
+  topPages?: Array<{ url: string; keywordCount: number; etv: number }>;
 }
 
 /** Presence in a community/discussion surface (where the brand shows up). */

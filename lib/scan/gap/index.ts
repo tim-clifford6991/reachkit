@@ -5,7 +5,7 @@
  * buildPlan(gap) → the ranked, grounded distribution plan.
  */
 
-export { analyzeGap, shareOfVoice } from "./analyze";
+export { analyzeGap, shareOfVoice, keywordGap } from "./analyze";
 export { buildPlan, type PlanItem, type DistributionPlan } from "./plan";
 export { runMarketAnalysis, type MarketAnalysis } from "./run";
 export type {
@@ -15,5 +15,6 @@ export type {
   CommunityGap,
   SeoGap,
   ShareOfVoice,
+  KeywordGapRow,
   GapState,
 } from "./types";

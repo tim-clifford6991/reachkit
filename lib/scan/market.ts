@@ -15,15 +15,17 @@
 
 import { serverDb } from "@/lib/db/client";
 import type { Json } from "@/lib/db/types";
-import { runMarketAnalysis } from "@/lib/scan/gap";
+import { runMarketAnalysis, type MarketAnalysis } from "@/lib/scan/gap";
 import { emitScanEvent } from "@/lib/scan/progress";
 import { hostname } from "@/lib/scan/url";
 
+/** Returns the computed analysis (so callers can snapshot it), or null when the
+ *  scan has no persisted report to patch. */
 export async function attachMarketAnalysis(
   scanId: string,
   storeUrl: string,
   opts: { light?: boolean } = {},
-): Promise<void> {
+): Promise<MarketAnalysis | null> {
   const light = opts.light ?? false;
   // Full pass: 5 pain queries (not 8). Light pass: runMarketAnalysis caps to 2.
   const market = await runMarketAnalysis(hostname(storeUrl), {
@@ -34,7 +36,7 @@ export async function attachMarketAnalysis(
 
   const db = serverDb();
   const { data } = await db.from("scans").select("report_payload").eq("id", scanId).maybeSingle();
-  if (!data?.report_payload) return;
+  if (!data?.report_payload) return null;
 
   const payload = { ...(data.report_payload as Record<string, unknown>), market };
   const { error } = await db
@@ -44,4 +46,45 @@ export async function attachMarketAnalysis(
   if (error) throw new Error(`attachMarketAnalysis: persist failed: ${error.message}`);
 
   await emitScanEvent(scanId, "report", { market: true });
+  return market;
+}
+
+// ---------------------------------------------------------------------------
+// Market history — weekly per-app snapshot (trends + benchmarking over time)
+// ---------------------------------------------------------------------------
+
+interface MarketSnapshotSummary {
+  self: { domain: string; organicKeywords: number | null; etv: number | null; referringDomains: number | null };
+  rivals: Array<{ domain: string; organicKeywords: number | null; etv: number | null; referringDomains: number | null }>;
+  selfSharePct: number | null;
+  demandPocketCount: number;
+}
+
+const seoSummary = (p: MarketAnalysis["cohort"]["self"]) => ({
+  domain: p.domain,
+  organicKeywords: p.seo?.organicKeywords ?? null,
+  etv: p.seo?.etv ?? null,
+  referringDomains: p.seo?.referringDomains ?? null,
+});
+
+/** Pure: distil a MarketAnalysis into the small row we persist for trends. */
+export function summarizeMarket(market: MarketAnalysis): MarketSnapshotSummary {
+  return {
+    self: seoSummary(market.cohort.self),
+    rivals: market.cohort.competitors.map(seoSummary),
+    selfSharePct: market.gap.shareOfVoice?.selfPct ?? null,
+    demandPocketCount: market.demand.pockets.length,
+  };
+}
+
+/** Persist one weekly market snapshot (best-effort; a missing table is inert). */
+export async function writeMarketSnapshot(
+  appId: string,
+  market: MarketAnalysis,
+  takenAt: string,
+): Promise<void> {
+  const { error } = await serverDb()
+    .from("market_snapshots")
+    .insert({ app_id: appId, taken_at: takenAt, summary: summarizeMarket(market) as unknown as Json });
+  if (error) console.error(`[market snapshot] insert failed for ${appId}:`, error.message ?? error);
 }

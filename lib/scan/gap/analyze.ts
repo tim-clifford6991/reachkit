@@ -17,6 +17,7 @@ import type {
   GapState,
   SeoGap,
   ShareOfVoice,
+  KeywordGapRow,
 } from "./types";
 
 const ALL_CHANNELS: ChannelKind[] = [
@@ -50,6 +51,44 @@ function median(nums: number[]): number {
 /** Sum of community mentions across a profile's surfaces. */
 function totalMentions(p: DistributionProfile): number {
   return p.communities.reduce((sum, c) => sum + (c.mentions ?? 0), 0);
+}
+
+/**
+ * Keyword gap: keywords rivals rank for that the subject doesn't. Aggregated
+ * across the cohort (more rivals ranking + higher volume = higher up), capped.
+ * Empty when no ranked-keyword data (the light/free pass omits it). PURE.
+ */
+export function keywordGap(
+  self: DistributionProfile,
+  competitors: DistributionProfile[],
+  cap = 15,
+): KeywordGapRow[] {
+  const selfKeywords = new Set((self.seo?.rankedKeywords ?? []).map((k) => k.keyword.toLowerCase()));
+  const agg = new Map<string, KeywordGapRow>();
+  for (const c of competitors) {
+    for (const k of c.seo?.rankedKeywords ?? []) {
+      const key = k.keyword.toLowerCase();
+      if (selfKeywords.has(key)) continue;
+      const existing = agg.get(key);
+      if (existing) {
+        existing.rivalsRanking += 1;
+        existing.volume = Math.max(existing.volume, k.volume);
+        existing.bestRivalPosition = Math.min(existing.bestRivalPosition, k.position || Infinity);
+      } else {
+        agg.set(key, {
+          keyword: k.keyword,
+          volume: k.volume,
+          rivalsRanking: 1,
+          bestRivalPosition: k.position || Infinity,
+        });
+      }
+    }
+  }
+  return [...agg.values()]
+    .map((r) => ({ ...r, bestRivalPosition: Number.isFinite(r.bestRivalPosition) ? r.bestRivalPosition : 0 }))
+    // Most-validated first (more rivals), then by volume.
+    .sort((a, b) => b.rivalsRanking - a.rivalsRanking || b.volume - a.volume)
+    .slice(0, cap);
 }
 
 /** Share-of-Voice: your community mentions vs each rival's, as a share of the
@@ -150,6 +189,7 @@ export function analyzeGap(
     communityGaps,
     seo,
     shareOfVoice: shareOfVoice(self, competitors),
+    keywordGap: keywordGap(self, competitors),
     demandPockets,
   };
 }

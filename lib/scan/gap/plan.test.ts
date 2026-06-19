@@ -14,6 +14,7 @@ const gap: GapAnalysis = {
   ],
   seo: { selfKeywords: 100, medianCompetitorKeywords: 1000, ratio: 0.1 },
   shareOfVoice: null,
+  keywordGap: [],
   demandPockets: [
     { surface: "r/SaaS", subreddit: "r/SaaS", count: 8, intentSum: 5, score: 6, topThreads: [] },
   ],
