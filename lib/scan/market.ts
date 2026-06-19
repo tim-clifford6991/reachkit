@@ -58,6 +58,7 @@ interface MarketSnapshotSummary {
   rivals: Array<{ domain: string; organicKeywords: number | null; etv: number | null; referringDomains: number | null }>;
   selfSharePct: number | null;
   demandPocketCount: number;
+  keywordGapCount: number;
 }
 
 const seoSummary = (p: MarketAnalysis["cohort"]["self"]) => ({
@@ -74,6 +75,7 @@ export function summarizeMarket(market: MarketAnalysis): MarketSnapshotSummary {
     rivals: market.cohort.competitors.map(seoSummary),
     selfSharePct: market.gap.shareOfVoice?.selfPct ?? null,
     demandPocketCount: market.demand.pockets.length,
+    keywordGapCount: market.gap.keywordGap.length,
   };
 }
 
@@ -87,4 +89,71 @@ export async function writeMarketSnapshot(
     .from("market_snapshots")
     .insert({ app_id: appId, taken_at: takenAt, summary: summarizeMarket(market) as unknown as Json });
   if (error) console.error(`[market snapshot] insert failed for ${appId}:`, error.message ?? error);
+}
+
+/** Most recent prior snapshot summary for an app (for week-over-week alerts). */
+export async function latestMarketSnapshot(appId: string): Promise<MarketSnapshotSummary | null> {
+  const { data, error } = await serverDb()
+    .from("market_snapshots")
+    .select("summary")
+    .eq("app_id", appId)
+    .order("taken_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error || !data?.summary) return null;
+  return data.summary as unknown as MarketSnapshotSummary;
+}
+
+// ---------------------------------------------------------------------------
+// Weekly market alerts (ChannelIntel Phase 4 — alert foundation)
+// ---------------------------------------------------------------------------
+
+export interface MarketAlert {
+  kind: "competitor_launch" | "mention_shift" | "keyword_opportunity";
+  message: string;
+}
+
+// Surface a share-of-voice move only when it crosses this absolute delta.
+const SOV_ALERT_DELTA = 0.05;
+
+/**
+ * Pure: week-over-week alerts from two market summaries. Returns [] when there's
+ * no prior snapshot (first run) or nothing notable changed.
+ *  - competitor_launch: a rival domain that wasn't in the cohort last week.
+ *  - mention_shift: your share-of-voice moved by ≥ SOV_ALERT_DELTA.
+ *  - keyword_opportunity: net-new keyword-gap opportunities appeared.
+ */
+export function computeMarketAlerts(
+  prev: MarketSnapshotSummary | null,
+  next: MarketSnapshotSummary,
+): MarketAlert[] {
+  if (!prev) return [];
+  const alerts: MarketAlert[] = [];
+
+  const prevRivals = new Set(prev.rivals.map((r) => r.domain));
+  for (const r of next.rivals) {
+    if (!prevRivals.has(r.domain)) {
+      alerts.push({ kind: "competitor_launch", message: `New competitor in your space: ${r.domain}` });
+    }
+  }
+
+  if (prev.selfSharePct != null && next.selfSharePct != null) {
+    const delta = next.selfSharePct - prev.selfSharePct;
+    if (Math.abs(delta) >= SOV_ALERT_DELTA) {
+      const dir = delta > 0 ? "up" : "down";
+      alerts.push({
+        kind: "mention_shift",
+        message: `Your share of voice moved ${dir} ${Math.abs(Math.round(delta * 100))} pts (now ${Math.round(next.selfSharePct * 100)}%).`,
+      });
+    }
+  }
+
+  if (next.keywordGapCount > prev.keywordGapCount) {
+    alerts.push({
+      kind: "keyword_opportunity",
+      message: `${next.keywordGapCount - prev.keywordGapCount} new keyword opportunit${next.keywordGapCount - prev.keywordGapCount === 1 ? "y" : "ies"} rivals rank for that you don't.`,
+    });
+  }
+
+  return alerts;
 }

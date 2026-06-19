@@ -21,20 +21,31 @@ const gap: GapAnalysis = {
 };
 
 describe("buildPlan", () => {
-  it("ranks by priority: validated channels → demand → community → seo", () => {
+  it("ranks by the Ease × Impact × Competition composite (easy, validated, uncontested first)", () => {
     const plan = buildPlan(gap);
+    // Composite favours easier + less-saturated channels: Reddit + blog beat the
+    // hard, rival-saturated YouTube; slow contested SEO sinks to the bottom.
     expect(plan.items.map((i) => `${i.kind}:${i.title}`)).toEqual([
-      "channel:Start a YouTube channel", // 140
-      "channel:Revive your blog", // 119
-      "demand:Show up in r/SaaS", // 96
-      "community:Get active on Reddit", // 75
-      "seo:Close the SEO gap", // 50
+      "community:Get active on Reddit",
+      "channel:Revive your blog",
+      "demand:Show up in r/SaaS",
+      "channel:Start a YouTube channel",
+      "seo:Close the SEO gap",
     ]);
+    // Every item carries the triad + a 0..1 composite, sorted descending.
+    for (const it of plan.items) {
+      expect(it.score).toBeGreaterThanOrEqual(0);
+      expect(it.score).toBeLessThanOrEqual(1);
+      expect(it.score).toBeCloseTo(it.impact * it.ease * (1 - it.competition), 6);
+    }
+    const scores = plan.items.map((i) => i.score);
+    expect([...scores].sort((a, b) => b - a)).toEqual(scores);
   });
 
   it("grounds the 'why' in rival counts", () => {
     const plan = buildPlan(gap);
-    expect(plan.items[0]?.why).toBe(
+    const youtube = plan.items.find((i) => i.title === "Start a YouTube channel");
+    expect(youtube?.why).toBe(
       "4 of 5 prominent rivals actively use this channel — you have none.",
     );
   });

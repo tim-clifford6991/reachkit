@@ -44,7 +44,14 @@
 
 import { serverDb } from "@/lib/db/client";
 import { env } from "@/lib/config/env";
-import { attachMarketAnalysis, writeMarketSnapshot } from "@/lib/scan/market";
+import {
+  attachMarketAnalysis,
+  writeMarketSnapshot,
+  latestMarketSnapshot,
+  summarizeMarket,
+  computeMarketAlerts,
+  type MarketAlert,
+} from "@/lib/scan/market";
 import { callModel } from "@/lib/llm/anthropic";
 import { callEmbed } from "@/lib/llm/embed";
 import { searchSimilar, insertEmbeddings } from "@/lib/scan/embeddings";
@@ -86,6 +93,8 @@ export interface RefreshResult {
   changes: RefreshChange[];
   newActions: number;
   costCents: number;
+  /** Week-over-week market alerts (competitor launches, SOV shifts, keyword opps). */
+  alerts: MarketAlert[];
 }
 
 // ---------------------------------------------------------------------------
@@ -652,7 +661,7 @@ export async function runWeeklyRefresh(
         costCents: 0,
         durationMs: Date.now() - started,
       });
-      return { weekOf, noOp: true, changes: [], newActions: 0, costCents: 0 };
+      return { weekOf, noOp: true, changes: [], newActions: 0, costCents: 0, alerts: [] };
     }
 
     // 3. Audit trail + one Haiku digest per non-empty kind.
@@ -686,13 +695,19 @@ export async function runWeeklyRefresh(
     //     (decision G2). Only on this signal path (not the cheap no-op) to preserve
     //     the no-op cost discipline; shared 7-day profile cache keeps it cheap.
     //     Web-only + flag-gated + best-effort: never breaks the refresh.
+    let alerts: MarketAlert[] = [];
     if (env.marketAnalysis && ctx.mode === "web") {
-      await attachMarketAnalysis(ctx.scanId, ctx.storeUrl)
-        .then((market) => {
-          // Weekly market-history point for trends + benchmarking over time.
-          if (market) return writeMarketSnapshot(ctx.appId, market, now);
-        })
-        .catch((e) => console.error("[refresh] market analysis failed (best-effort)", e));
+      try {
+        const market = await attachMarketAnalysis(ctx.scanId, ctx.storeUrl);
+        if (market) {
+          // Diff against last week BEFORE writing the new snapshot → alerts.
+          const prev = await latestMarketSnapshot(ctx.appId);
+          alerts = computeMarketAlerts(prev, summarizeMarket(market));
+          await writeMarketSnapshot(ctx.appId, market, now); // weekly history point
+        }
+      } catch (e) {
+        console.error("[refresh] market analysis failed (best-effort)", e);
+      }
     }
 
     // 9. Advance watermarks + last_run_at; estimate + record the refresh cost.
@@ -710,7 +725,7 @@ export async function runWeeklyRefresh(
     });
 
     // 10. Return.
-    return { weekOf, noOp: false, changes, newActions, costCents };
+    return { weekOf, noOp: false, changes, newActions, costCents, alerts };
   } catch (err) {
     // On failure: record an error marker refresh row, then rethrow so the cron's
     // onFailure handler takes over.

@@ -134,6 +134,7 @@ async function refreshOneApp(appId: string): Promise<AppRefreshSummary> {
     noOp: result.noOp,
     changes: result.changes,
     newActions: result.newActions,
+    alerts: result.alerts,
   });
 
   return {

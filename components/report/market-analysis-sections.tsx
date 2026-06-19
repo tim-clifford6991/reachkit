@@ -8,6 +8,7 @@
 import type { MarketAnalysis } from "@/lib/scan/gap";
 import type { DistributionProfile, ContentChannel } from "@/lib/scan/profile";
 import { estimateTrafficMix } from "@/lib/scan/profile";
+import { narrateShareOfVoice, narrateKeywordGap } from "@/lib/scan/gap/narrate";
 import type { DemandPocket } from "@/lib/scan/demand/types";
 import type { ChannelMatrixRow } from "@/lib/scan/gap";
 import { COACH_GUIDES } from "@/lib/scan/distribute/coach";
@@ -313,6 +314,11 @@ export function DistributionPlanSection({ market }: { market: MarketAnalysis }) 
                 </span>
               </div>
               <p className="mt-0.5 text-xs leading-snug" style={{ color: "var(--color-muted)" }}>{item.why}</p>
+              <div className="mt-1.5 flex items-center gap-3 font-mono text-[10px]" style={{ color: "var(--color-muted)" }}>
+                <span>Impact {Math.round(item.impact * 100)}</span>
+                <span>Ease {Math.round(item.ease * 100)}</span>
+                <span>Competition {Math.round(item.competition * 100)}</span>
+              </div>
             </div>
           </li>
         ))}
@@ -379,6 +385,7 @@ export function MarketBenchmarkSection({ market }: { market: MarketAnalysis }) {
             <p className="mt-1 font-mono text-[10px]" style={{ color: "var(--color-muted)" }}>
               {sov.selfMentions} of {sov.totalMentions} community mentions across you + {sov.rivals.length} rivals
             </p>
+            <p className="mt-1 text-xs leading-snug" style={{ color: "var(--color-muted)" }}>{narrateShareOfVoice(sov)}</p>
           </div>
         ) : null}
       </div>
@@ -418,6 +425,7 @@ export function KeywordGapSection({ market }: { market: MarketAnalysis }) {
   if (rows.length === 0) return null;
   return (
     <DeepSection eyebrow="Keyword gap" title="What your rivals rank for that you don't">
+      <p className="mb-2 text-xs leading-snug" style={{ color: "var(--color-muted)" }}>{narrateKeywordGap(rows)}</p>
       <div className="space-y-2">
         {rows.map((r) => (
           <div key={r.keyword} className="flex items-center justify-between gap-3 rounded-lg px-4 py-2.5" style={{ background: "var(--fill-subtle)" }}>

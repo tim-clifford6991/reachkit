@@ -58,7 +58,7 @@ const market: MarketAnalysis = {
       },
     ],
   },
-  plan: { items: [{ kind: "channel", title: "Start a YouTube channel", why: "1 of 1 prominent rivals actively use this channel — you have none.", priority: 140 }] },
+  plan: { items: [{ kind: "channel", title: "Start a YouTube channel", why: "1 of 1 prominent rivals actively use this channel — you have none.", priority: 14, ease: 0.3, impact: 0.9, competition: 0.56, score: 0.14 }] },
 };
 
 describe("MarketAnalysisSections", () => {
