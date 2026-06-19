@@ -156,8 +156,10 @@ export function redactReportForTier(
 /** Strip a profile's paid-only SEO detail (backlink authority + referring
  *  domains); keep the organic-keyword + traffic (ETV) numbers as the free proof. */
 function redactProfile(p: DistributionProfile): DistributionProfile {
+  const { marketplace, ...rest } = p;
+  void marketplace; // launch/marketplace presence is a paid signal
   return {
-    ...p,
+    ...rest,
     seo: p.seo
       ? { organicKeywords: p.seo.organicKeywords, etv: p.seo.etv, authority: null, referringDomains: null }
       : p.seo,
@@ -200,8 +202,9 @@ export function redactMarket(market: MarketAnalysis | undefined): MarketAnalysis
       keywordGap: [],
       demandPockets: market.gap.demandPockets.slice(0, FREE_PREVIEW_POCKETS).map(redactPocket),
     },
-    // The ranked distribution plan is the paid payoff.
+    // The ranked distribution plan + recent-buzz freshness are paid payoffs.
     plan: { items: [] },
+    recentBuzz: [],
   };
 }
 

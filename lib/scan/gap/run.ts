@@ -8,15 +8,25 @@
 
 import { profileCohort, type Cohort } from "@/lib/scan/profile";
 import { discoverDemand, type DemandResult } from "@/lib/scan/demand";
+import { tavilySearch } from "@/lib/scan/adapters/tavily";
 import { analyzeGap } from "./analyze";
 import { buildPlan, type DistributionPlan } from "./plan";
 import type { GapAnalysis } from "./types";
+
+/** A recent news/buzz hit about the product or its space (freshness signal). */
+export interface BuzzItem {
+  title: string;
+  url: string;
+  publishedDate: string | null;
+}
 
 export interface MarketAnalysis {
   cohort: Cohort;
   demand: DemandResult;
   gap: GapAnalysis;
   plan: DistributionPlan;
+  /** Recent news/buzz (full pass only; omitted on the light free pass). */
+  recentBuzz?: BuzzItem[];
 }
 
 export async function runMarketAnalysis(
@@ -45,5 +55,18 @@ export async function runMarketAnalysis(
   const gap = analyzeGap(cohort.self, cohort.competitors, demand.pockets);
   const plan = buildPlan(gap);
 
-  return { cohort, demand, gap, plan };
+  // Freshness/PR signal — full pass only (a Tavily news call). Best-effort.
+  let recentBuzz: BuzzItem[] | undefined;
+  if (!light) {
+    const news = await tavilySearch(cohort.product.name, {
+      topic: "news",
+      timeRange: "month",
+      maxResults: 5,
+    });
+    if (news.length > 0) {
+      recentBuzz = news.map((n) => ({ title: n.title, url: n.url, publishedDate: n.publishedDate }));
+    }
+  }
+
+  return { cohort, demand, gap, plan, recentBuzz };
 }

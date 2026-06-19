@@ -66,12 +66,21 @@ export interface CommunityPresence {
   topThreads: Array<{ title: string; url: string; at: string | null }>;
 }
 
+/** Launch/marketplace presence (Product Hunt, AppSumo, G2, …). Full pass only. */
+export interface MarketplacePresence {
+  source: "product_hunt" | "appsumo" | "betalist" | "g2" | "capterra" | "alternativeto";
+  present: boolean;
+  url: string | null;
+}
+
 export interface DistributionProfile {
   domain: string;
   channels: ContentChannel[];
   /** Where the brand is discussed (HN, Reddit), recency-aware. */
   communities: CommunityPresence[];
   seo: SeoPosture | null;
+  /** Launch/marketplace listings (full/paid pass only; omitted on light pass). */
+  marketplace?: MarketplacePresence[];
   /** ISO timestamp this profile was built (cache key). */
   crawledAt: string;
 }

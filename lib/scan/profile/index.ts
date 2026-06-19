@@ -16,6 +16,7 @@ export type {
   SeoPosture,
   Cadence,
   CommunityPresence,
+  MarketplacePresence,
 } from "./types";
 
 export { gatherCommunityPresence, summarizePresence } from "./community";
@@ -56,3 +57,4 @@ export { computeCadence } from "./cadence";
 export { detectChannels } from "./fingerprint";
 export { fetchSeoPosture, parseRankOverview, parseBacklinksSummary } from "./seo";
 export { estimateTrafficMix, type TrafficMix } from "./traffic-mix";
+export { gatherMarketplacePresence, bucketMarketplace, type MarketplaceSource } from "./marketplace";

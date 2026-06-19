@@ -65,10 +65,25 @@ function CompetitorCard({ p }: { p: DistributionProfile }) {
           {comms.join(", ")}
         </p>
       )}
+      {p.marketplace && p.marketplace.length > 0 && (
+        <p className="mt-1 text-xs" style={{ color: "var(--color-muted)" }}>
+          <span className="font-mono uppercase tracking-wider text-[10px]">Listed on </span>
+          {p.marketplace.map((m) => MARKETPLACE_LABEL[m.source] ?? m.source).join(", ")}
+        </p>
+      )}
       <TrafficMixBar p={p} />
     </div>
   );
 }
+
+const MARKETPLACE_LABEL: Record<string, string> = {
+  product_hunt: "Product Hunt",
+  appsumo: "AppSumo",
+  betalist: "BetaList",
+  g2: "G2",
+  capterra: "Capterra",
+  alternativeto: "AlternativeTo",
+};
 
 /** A slim estimated traffic-source split (organic / referral / social / direct).
  *  Always labelled "est." — DataForSEO gives no real channel split (see
@@ -371,6 +386,31 @@ export function MarketBenchmarkSection({ market }: { market: MarketAnalysis }) {
   );
 }
 
+// ── Recent buzz — news freshness/PR signal (paid) ─────────────────────────────
+
+export function RecentBuzzSection({ market }: { market: MarketAnalysis }) {
+  const buzz = market.recentBuzz ?? [];
+  if (buzz.length === 0) return null;
+  return (
+    <DeepSection eyebrow="Recent buzz" title="What's been said about your space lately">
+      <ul className="space-y-1.5">
+        {buzz.map((b, i) => (
+          <li key={i} className="text-xs leading-snug">
+            <a href={b.url} target="_blank" rel="noopener noreferrer" className="text-accent-400 hover:text-accent-300">
+              {b.title || b.url}
+            </a>
+            {b.publishedDate ? (
+              <span className="ml-1.5 font-mono text-[10px]" style={{ color: "var(--color-muted)" }}>
+                {b.publishedDate.slice(0, 10)}
+              </span>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </DeepSection>
+  );
+}
+
 // ── Keyword gap — keywords rivals rank for that you don't (paid) ──────────────
 
 export function KeywordGapSection({ market }: { market: MarketAnalysis }) {
@@ -413,6 +453,7 @@ export function MarketAnalysisSections({
       <ChannelMatrixSection market={market} />
       {unlocked ? <KeywordGapSection market={market} /> : null}
       <DemandPocketsSection market={market} unlocked={unlocked} />
+      {unlocked ? <RecentBuzzSection market={market} /> : null}
       <DistributionPlanSection market={market} />
       {unlocked ? <CoachSection /> : null}
     </>

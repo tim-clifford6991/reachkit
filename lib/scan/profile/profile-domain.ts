@@ -9,6 +9,7 @@
 import { crawlContentChannels, toHost } from "./crawl";
 import { fetchSeoPosture } from "./seo";
 import { gatherCommunityPresence } from "./community";
+import { gatherMarketplacePresence } from "./marketplace";
 import type { DistributionProfile } from "./types";
 
 export async function profileDomain(
@@ -17,16 +18,20 @@ export async function profileDomain(
 ): Promise<DistributionProfile> {
   const nowMs = opts.nowMs ?? Date.now();
   const brand = toHost(domain).split(".")[0] ?? domain;
-  const [channels, seo, communities] = await Promise.all([
+  // Marketplace presence costs a Tavily call — full/paid pass only.
+  const [channels, seo, communities, marketplace] = await Promise.all([
     crawlContentChannels(domain, nowMs),
     fetchSeoPosture(domain, { light: opts.light }),
     gatherCommunityPresence(brand, nowMs, { reddit: opts.reddit }),
+    opts.light ? Promise.resolve([]) : gatherMarketplacePresence(brand),
   ]);
-  return {
+  const profile: DistributionProfile = {
     domain,
     channels,
     communities,
     seo,
     crawledAt: new Date(nowMs).toISOString(),
   };
+  if (marketplace.length > 0) profile.marketplace = marketplace;
+  return profile;
 }
