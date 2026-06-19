@@ -156,7 +156,7 @@ async function ResultsContent({ id }: { id: string }) {
 
         {/* M4 market analysis supersedes the lighter channels/creators sections. */}
         {hasMarket && report.market ? (
-          <MarketAnalysisSections market={report.market} />
+          <MarketAnalysisSections market={report.market} unlocked={isPaid} />
         ) : (
           <>
             <ChannelOpportunitiesSection

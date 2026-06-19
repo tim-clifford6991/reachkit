@@ -16,6 +16,7 @@ import type {
   GapAnalysis,
   GapState,
   SeoGap,
+  ShareOfVoice,
 } from "./types";
 
 const ALL_CHANNELS: ChannelKind[] = [
@@ -44,6 +45,29 @@ function median(nums: number[]): number {
   const s = [...nums].sort((a, b) => a - b);
   const mid = Math.floor(s.length / 2);
   return s.length % 2 ? s[mid]! : (s[mid - 1]! + s[mid]!) / 2;
+}
+
+/** Sum of community mentions across a profile's surfaces. */
+function totalMentions(p: DistributionProfile): number {
+  return p.communities.reduce((sum, c) => sum + (c.mentions ?? 0), 0);
+}
+
+/** Share-of-Voice: your community mentions vs each rival's, as a share of the
+ *  cohort total. Returns null when nobody has any mentions (avoids 0/0). PURE. */
+export function shareOfVoice(
+  self: DistributionProfile,
+  competitors: DistributionProfile[],
+): ShareOfVoice | null {
+  const selfMentions = totalMentions(self);
+  const rivalCounts = competitors.map((c) => ({ domain: c.domain, mentions: totalMentions(c) }));
+  const total = selfMentions + rivalCounts.reduce((s, r) => s + r.mentions, 0);
+  if (total === 0) return null;
+  return {
+    selfPct: selfMentions / total,
+    rivals: rivalCounts.map((r) => ({ domain: r.domain, mentions: r.mentions, pct: r.mentions / total })),
+    selfMentions,
+    totalMentions: total,
+  };
 }
 
 /** Compute the full gap analysis. PURE. */
@@ -120,5 +144,12 @@ export function analyzeGap(
     seo = { selfKeywords: selfKw, medianCompetitorKeywords: med, ratio: med > 0 ? selfKw / med : 0 };
   }
 
-  return { channelMatrix, channelGaps, communityGaps, seo, demandPockets };
+  return {
+    channelMatrix,
+    channelGaps,
+    communityGaps,
+    seo,
+    shareOfVoice: shareOfVoice(self, competitors),
+    demandPockets,
+  };
 }

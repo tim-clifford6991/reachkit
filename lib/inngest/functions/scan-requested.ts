@@ -5,12 +5,14 @@ import { ScanBudget } from "@/lib/tools/registry";
 import { runCollect } from "@/lib/scan/pipeline";
 import { runFindings } from "@/lib/scan/findings-pipeline";
 import { runFullScan } from "@/lib/scan/full-scan";
+import { attachMarketAnalysis } from "@/lib/scan/market";
 import { emitScanEvent } from "@/lib/scan/progress";
 import type { Json } from "@/lib/db/types";
 
-/** Cheap free-track ceiling (collect + findings only). The deep pass uses the
- *  full `env.scanBudgetCents`. */
-const FREE_SCAN_BUDGET_CENTS = 40;
+/** Cheap free-track ceiling (collect + findings + a light market pass). The deep
+ *  paid pass uses the full `env.scanBudgetCents`. Kept low and cache-funded —
+ *  popular competitor domains are profiled once and shared across users. */
+const FREE_SCAN_BUDGET_CENTS = 20;
 type ScanTier = "free" | "full";
 function budgetCentsForTier(tier: ScanTier): number {
   return tier === "full" ? env.scanBudgetCents : FREE_SCAN_BUDGET_CENTS;
@@ -176,6 +178,26 @@ export const scanRequested = inngest.createFunction(
             budget,
           },
           facts,
+        );
+      });
+    }
+
+    // Step 3b: light market pass (free track only). Gives the free teaser its
+    // competitor channels + traffic + demand pockets within the ≤20¢ ceiling.
+    // Web-only (domain-centric) + flag-gated + best-effort: a failure never breaks
+    // the already-persisted findings teaser.
+    if (tier === "free" && env.marketAnalysis && facts.mode === "web") {
+      await step.run("light-market", async () => {
+        const db = serverDb();
+        const { data: scanRow } = await db
+          .from("scans")
+          .select("id, apps(store_url)")
+          .eq("id", scanId)
+          .single();
+        const storeUrl = (scanRow?.apps as unknown as { store_url?: string } | null)?.store_url;
+        if (!storeUrl) return;
+        await attachMarketAnalysis(scanId, storeUrl, { light: true }).catch((e) =>
+          console.error("[scan-requested] light market failed (best-effort)", e),
         );
       });
     }

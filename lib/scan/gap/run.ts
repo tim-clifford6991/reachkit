@@ -21,9 +21,15 @@ export interface MarketAnalysis {
 
 export async function runMarketAnalysis(
   domain: string,
-  opts: { topN?: number; queryCap?: number; scanId?: string | null } = {},
+  opts: { topN?: number; queryCap?: number; scanId?: string | null; light?: boolean } = {},
 ): Promise<MarketAnalysis> {
-  const cohort = await profileCohort(domain, { topN: opts.topN ?? 5 });
+  // Light (free-tier) pass: top-3 cohort, ETV-only profiles (no Backlinks), and a
+  // 2-query demand sweep — keeps the free scan inside its ≤20¢ ceiling.
+  const light = opts.light ?? false;
+  const cohort = await profileCohort(domain, {
+    topN: opts.topN ?? (light ? 3 : 5),
+    light,
+  });
 
   // Demand brief from what the crawl told us the product does.
   const demand = await discoverDemand(
@@ -33,7 +39,7 @@ export async function runMarketAnalysis(
       audience: "",
       valueProp: cohort.product.description ?? "",
     },
-    { queryCap: opts.queryCap ?? 8, scanId: opts.scanId },
+    { queryCap: opts.queryCap ?? (light ? 2 : 8), scanId: opts.scanId },
   );
 
   const gap = analyzeGap(cohort.self, cohort.competitors, demand.pockets);

@@ -47,6 +47,8 @@ function CompetitorCard({ p }: { p: DistributionProfile }) {
         {p.seo ? (
           <span className="font-mono text-[11px] tabular-nums" style={{ color: "var(--color-muted)" }}>
             {p.seo.organicKeywords.toLocaleString()} kw
+            {p.seo.referringDomains != null ? ` · ${p.seo.referringDomains.toLocaleString()} ref` : ""}
+            {p.seo.authority != null ? ` · DR ${p.seo.authority}` : ""}
           </span>
         ) : null}
       </div>
@@ -163,10 +165,34 @@ function PocketCard({
   );
 }
 
-export function DemandPocketsSection({ market }: { market: MarketAnalysis }) {
+export function DemandPocketsSection({
+  market,
+  unlocked = true,
+}: {
+  market: MarketAnalysis;
+  unlocked?: boolean;
+}) {
   const pockets = market.gap.demandPockets.slice(0, 6);
   if (pockets.length === 0) return null;
   const productUrl = `https://${market.cohort.self.domain}`;
+  // Free teaser: show the pocket headlines (surface + thread count) but not the
+  // one-click handoff (the paid execution layer).
+  if (!unlocked) {
+    return (
+      <DeepSection eyebrow="Where your buyers are asking" title="Live conversations describing your problem">
+        <div className="space-y-2">
+          {pockets.map((p, i) => (
+            <div key={i} className="flex items-baseline justify-between gap-3 rounded-lg px-4 py-2.5" style={{ background: "var(--fill-subtle)" }}>
+              <span className="text-sm" style={{ color: "var(--color-fg)" }}>{p.surface}</span>
+              <span className="font-mono text-[11px] tabular-nums" style={{ color: "var(--color-muted)" }}>
+                {p.count} thread{p.count === 1 ? "" : "s"}
+              </span>
+            </div>
+          ))}
+        </div>
+      </DeepSection>
+    );
+  }
   return (
     <DeepSection eyebrow="Where your buyers are asking" title="Live conversations describing your problem">
       <div className="space-y-3">
@@ -246,15 +272,92 @@ export function DistributionPlanSection({ market }: { market: MarketAnalysis }) 
   );
 }
 
-/** All four market sections in order — the paid deep view. */
-export function MarketAnalysisSections({ market }: { market: MarketAnalysis }) {
+// ── Benchmark — you vs rival median + share-of-voice ──────────────────────────
+
+function median(nums: number[]): number {
+  if (nums.length === 0) return 0;
+  const s = [...nums].sort((a, b) => a - b);
+  const mid = Math.floor(s.length / 2);
+  return s.length % 2 ? s[mid]! : (s[mid - 1]! + s[mid]!) / 2;
+}
+
+function BenchmarkRow({ label, you, rivalMedian }: { label: string; you: number; rivalMedian: number }) {
+  const ahead = you >= rivalMedian;
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-lg px-4 py-2.5" style={{ background: "var(--fill-subtle)" }}>
+      <span className="text-sm" style={{ color: "var(--color-fg)" }}>{label}</span>
+      <span className="flex items-center gap-4 font-mono text-xs tabular-nums">
+        <span style={{ color: ahead ? "var(--color-success)" : "var(--color-warning)" }}>
+          you: {you.toLocaleString()}
+        </span>
+        <span style={{ color: "var(--color-muted)" }}>rival median: {rivalMedian.toLocaleString()}</span>
+      </span>
+    </div>
+  );
+}
+
+export function MarketBenchmarkSection({ market }: { market: MarketAnalysis }) {
+  const { self, competitors } = market.cohort;
+  const sov = market.gap.shareOfVoice;
+
+  const rivalKw = competitors.map((c) => c.seo?.organicKeywords).filter((n): n is number => typeof n === "number");
+  const rivalRef = competitors.map((c) => c.seo?.referringDomains).filter((n): n is number => typeof n === "number");
+
+  const hasKw = self.seo != null && rivalKw.length > 0;
+  const hasRef = self.seo?.referringDomains != null && rivalRef.length > 0;
+  if (!hasKw && !hasRef && !sov) return null;
+
+  return (
+    <DeepSection eyebrow="How you stack up" title="You vs the rival median">
+      <div className="space-y-2">
+        {hasKw ? (
+          <BenchmarkRow label="Organic keywords" you={self.seo!.organicKeywords} rivalMedian={median(rivalKw)} />
+        ) : null}
+        {hasRef ? (
+          <BenchmarkRow label="Referring domains" you={self.seo!.referringDomains!} rivalMedian={median(rivalRef)} />
+        ) : null}
+        {sov ? (
+          <div className="rounded-lg px-4 py-2.5" style={{ background: "var(--fill-subtle)" }}>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm" style={{ color: "var(--color-fg)" }}>Share of voice</span>
+              <span className="font-mono text-xs tabular-nums" style={{ color: "var(--color-accent-400)" }}>
+                {Math.round(sov.selfPct * 100)}%
+              </span>
+            </div>
+            <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full" style={{ background: "var(--color-border)" }}>
+              <div className="h-full rounded-full" style={{ width: `${Math.round(sov.selfPct * 100)}%`, background: "var(--color-accent-400)" }} />
+            </div>
+            <p className="mt-1 font-mono text-[10px]" style={{ color: "var(--color-muted)" }}>
+              {sov.selfMentions} of {sov.totalMentions} community mentions across you + {sov.rivals.length} rivals
+            </p>
+          </div>
+        ) : null}
+      </div>
+    </DeepSection>
+  );
+}
+
+/**
+ * All market sections in order. `unlocked` (paid) renders the full deep view;
+ * the free teaser keeps the proof (competitor profiles, benchmark + SOV, channel
+ * matrix, demand-pocket headlines) and drops the execution layer + the ranked
+ * distribution plan (which the free payload has already emptied).
+ */
+export function MarketAnalysisSections({
+  market,
+  unlocked = true,
+}: {
+  market: MarketAnalysis;
+  unlocked?: boolean;
+}) {
   return (
     <>
       <CompetitorProfilesSection cohort={market.cohort} />
+      <MarketBenchmarkSection market={market} />
       <ChannelMatrixSection market={market} />
-      <DemandPocketsSection market={market} />
+      <DemandPocketsSection market={market} unlocked={unlocked} />
       <DistributionPlanSection market={market} />
-      <CoachSection />
+      {unlocked ? <CoachSection /> : null}
     </>
   );
 }

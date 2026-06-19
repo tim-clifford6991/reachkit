@@ -10,6 +10,9 @@
 import { TIER_LIMITS, isPaid, isTier, type Tier, type TierLimit } from "@/lib/billing/tiers";
 import type { ReportPayload, CompetitiveLandscapeRow } from "@/lib/scan/report";
 import type { ActionCard } from "@/lib/llm/types";
+import type { MarketAnalysis } from "@/lib/scan/gap";
+import type { DistributionProfile } from "@/lib/scan/profile";
+import type { DemandPocket } from "@/lib/scan/demand/types";
 import { serverDb } from "@/lib/db/client";
 
 export class EntitlementError extends Error {
@@ -32,6 +35,9 @@ const FREE_PREVIEW_KEYWORD_CLUSTERS = 1;
 const FREE_PREVIEW_COMMUNITIES = 2;
 const FREE_PREVIEW_CREATORS = 2;
 const FREE_PREVIEW_THEMES = 1;
+/** Market teaser slice sizes for the free report. */
+const FREE_PREVIEW_COMPETITORS = 3;
+const FREE_PREVIEW_POCKETS = 5;
 
 // ---------------------------------------------------------------------------
 // DB-backed entitlement resolution
@@ -135,9 +141,66 @@ export function redactReportForTier(
     channelOpportunities: redactChannels(payload.channelOpportunities),
     creatorsToReach: (payload.creatorsToReach ?? []).slice(0, FREE_PREVIEW_CREATORS),
     strengthsAndWeaknesses: redactStrengths(payload.strengthsAndWeaknesses),
-    // M4 market analysis is fully paid — the free funnel teaser names competitors
-    // via the cheap findings path, not this heavy blob.
-    market: undefined,
+    // M4 market analysis — free now gets a deliberate TEASER (the ChannelIntel
+    // free scan: top-3 competitors + channels + traffic + demand-pocket headlines
+    // + the channel matrix + share-of-voice), with the paid payoff gated
+    // (backlink detail, thread excerpts, the ranked distribution plan).
+    market: redactMarket(payload.market),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Market-analysis redaction (PURE)
+// ---------------------------------------------------------------------------
+
+/** Strip a profile's paid-only SEO detail (backlink authority + referring
+ *  domains); keep the organic-keyword + traffic (ETV) numbers as the free proof. */
+function redactProfile(p: DistributionProfile): DistributionProfile {
+  return {
+    ...p,
+    seo: p.seo
+      ? { organicKeywords: p.seo.organicKeywords, etv: p.seo.etv, authority: null, referringDomains: null }
+      : p.seo,
+  };
+}
+
+/** Strip a demand pocket's representative threads (the paid "sample posts"),
+ *  keeping its headline surface + counts as the teaser. */
+function redactPocket(pk: DemandPocket): DemandPocket {
+  return { ...pk, topThreads: [] };
+}
+
+/**
+ * Free-tier market teaser. Keeps the proof — top-{@link FREE_PREVIEW_COMPETITORS}
+ * competitors with their channels + traffic numbers, the you-vs-rivals channel
+ * matrix, share-of-voice, and demand-pocket headlines — and gates the answer:
+ * backlink detail, thread excerpts, channel gaps, and the ranked distribution
+ * plan (the paid payoff). PURE; never mutates the input. Undefined passes through.
+ */
+export function redactMarket(market: MarketAnalysis | undefined): MarketAnalysis | undefined {
+  if (!market) return market;
+  const competitors = market.cohort.competitors
+    .slice(0, FREE_PREVIEW_COMPETITORS)
+    .map(redactProfile);
+  return {
+    cohort: {
+      ...market.cohort,
+      self: redactProfile(market.cohort.self),
+      competitors,
+      competitorDomains: market.cohort.competitorDomains.slice(0, FREE_PREVIEW_COMPETITORS),
+    },
+    demand: {
+      ...market.demand,
+      pockets: market.demand.pockets.slice(0, FREE_PREVIEW_POCKETS).map(redactPocket),
+    },
+    gap: {
+      ...market.gap,
+      // channelGaps drive the paid playbook; the matrix + SOV stay as the proof.
+      channelGaps: [],
+      demandPockets: market.gap.demandPockets.slice(0, FREE_PREVIEW_POCKETS).map(redactPocket),
+    },
+    // The ranked distribution plan is the paid payoff.
+    plan: { items: [] },
   };
 }
 

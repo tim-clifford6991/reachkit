@@ -44,7 +44,10 @@ const schema = z.object({
   POSTHOG_KEY: z.string().optional().default(""),
   POSTHOG_HOST: z.string().optional().default(""),
   APP_URL: z.string().optional().default("http://localhost:3000"),
-  SCAN_BUDGET_CENTS: z.coerce.number().int().positive().default(150),
+  SCAN_BUDGET_CENTS: z.coerce.number().int().positive().default(250),
+  // Weekly delta-refresh ceiling — cheaper than a first scan; the refresh re-runs
+  // market analysis on the Standard queue.
+  WEEKLY_REFRESH_BUDGET_CENTS: z.coerce.number().int().positive().default(120),
   DATAFORSEO_LOCATION_CODE: z.coerce.number().int().default(2840), // US
   DATAFORSEO_LANGUAGE_CODE: z.string().default("en"),
   // Backlinks API is a separate DataForSEO subscription — off unless enabled.
@@ -75,6 +78,7 @@ export function parseEnv(src: NodeJS.ProcessEnv) {
     anthropicApiKey: p.ANTHROPIC_API_KEY, dataforseoLogin: p.DATAFORSEO_LOGIN, dataforseoPassword: p.DATAFORSEO_PASSWORD,
     tavilyApiKey: p.TAVILY_API_KEY, resendApiKey: p.RESEND_API_KEY,
     posthogKey: p.POSTHOG_KEY, posthogHost: p.POSTHOG_HOST, scanBudgetCents: p.SCAN_BUDGET_CENTS,
+    weeklyRefreshBudgetCents: p.WEEKLY_REFRESH_BUDGET_CENTS,
     productHuntToken: p.PRODUCT_HUNT_TOKEN, youtubeApiKey: p.YOUTUBE_API_KEY,
     voyageApiKey: p.VOYAGE_API_KEY,
     dataforseoLocationCode: p.DATAFORSEO_LOCATION_CODE, dataforseoLanguageCode: p.DATAFORSEO_LANGUAGE_CODE,

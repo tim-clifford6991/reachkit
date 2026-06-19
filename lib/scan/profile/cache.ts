@@ -23,13 +23,20 @@ export const PROFILE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
  */
 export const PROFILE_CACHE_VERSION = 3;
 
-type Versioned = DistributionProfile & { _v?: number };
+type Versioned = DistributionProfile & { _v?: number; _light?: boolean };
 
-/** Return a cached profile if present and newer than `maxAgeMs`, else null. */
+/**
+ * Return a cached profile if present and newer than `maxAgeMs`, else null.
+ *
+ * `wantFull` (the paid pass) rejects a cached *light* profile — a light entry
+ * was computed without Backlinks/etc, so serving it to a full scan would silently
+ * drop paid-tier data. A light request (`wantFull:false`) happily reuses either.
+ */
 export async function getCachedProfile(
   domain: string,
   maxAgeMs: number = PROFILE_TTL_MS,
   nowMs: number = Date.now(),
+  opts: { wantFull?: boolean } = {},
 ): Promise<DistributionProfile | null> {
   const host = toHost(domain);
   const { data, error } = await serverDb()
@@ -41,17 +48,23 @@ export async function getCachedProfile(
   const cached = data.profile as unknown as Versioned;
   // Shape/computation changed since this was written → recompute.
   if (cached?._v !== PROFILE_CACHE_VERSION) return null;
+  // A full pass cannot be satisfied by a reduced (light) cache entry.
+  if (opts.wantFull && cached._light) return null;
   const age = nowMs - Date.parse(data.crawled_at);
   if (Number.isNaN(age) || age > maxAgeMs) return null;
-  const { _v, ...profile } = cached;
+  const { _v, _light, ...profile } = cached;
   void _v;
+  void _light;
   return profile;
 }
 
 /** Upsert a profile into the shared cache (keyed on its host). */
-export async function upsertProfile(profile: DistributionProfile): Promise<void> {
+export async function upsertProfile(
+  profile: DistributionProfile,
+  opts: { light?: boolean } = {},
+): Promise<void> {
   const host = toHost(profile.domain);
-  const payload: Versioned = { ...profile, _v: PROFILE_CACHE_VERSION };
+  const payload: Versioned = { ...profile, _v: PROFILE_CACHE_VERSION, _light: opts.light };
   const { error } = await serverDb()
     .from("distribution_profiles")
     .upsert(
@@ -70,15 +83,15 @@ export async function upsertProfile(profile: DistributionProfile): Promise<void>
  */
 export async function profileDomainCached(
   domain: string,
-  opts: { maxAgeMs?: number; nowMs?: number; reddit?: boolean } = {},
+  opts: { maxAgeMs?: number; nowMs?: number; reddit?: boolean; light?: boolean } = {},
 ): Promise<DistributionProfile> {
   const nowMs = opts.nowMs ?? Date.now();
-  const cached = await getCachedProfile(domain, opts.maxAgeMs ?? PROFILE_TTL_MS, nowMs).catch(
-    () => null,
-  );
+  const cached = await getCachedProfile(domain, opts.maxAgeMs ?? PROFILE_TTL_MS, nowMs, {
+    wantFull: !opts.light,
+  }).catch(() => null);
   if (cached) return cached;
 
-  const profile = await profileDomain(domain, { nowMs, reddit: opts.reddit });
-  await upsertProfile(profile).catch(() => {});
+  const profile = await profileDomain(domain, { nowMs, reddit: opts.reddit, light: opts.light });
+  await upsertProfile(profile, { light: opts.light }).catch(() => {});
   return profile;
 }

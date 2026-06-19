@@ -45,6 +45,7 @@ const market: MarketAnalysis = {
     channelGaps: [],
     communityGaps: [],
     seo: null,
+    shareOfVoice: null,
     demandPockets: [
       {
         surface: "r/SEO",

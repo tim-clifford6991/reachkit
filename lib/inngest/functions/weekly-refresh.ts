@@ -123,7 +123,7 @@ async function refreshOneApp(appId: string): Promise<AppRefreshSummary> {
     appId,
     storeUrl: app.store_url,
     mode: app.platform,
-    budget: new ScanBudget({ maxToolCalls: 60, budgetCents: env.scanBudgetCents }),
+    budget: new ScanBudget({ maxToolCalls: 60, budgetCents: env.weeklyRefreshBudgetCents }),
   };
 
   const result = await runWeeklyRefresh(ctx);

@@ -270,10 +270,51 @@ describe("redactReportForTier — deep sections", () => {
     expect(report).toEqual(before);
   });
 
-  it("strips the M4 market analysis for free, keeps it for paid", () => {
+  it("keeps the full M4 market analysis for paid", () => {
     const market = { cohort: {}, demand: {}, gap: {}, plan: {} } as unknown as ReportPayload["market"];
     const report = { ...makeReport(), market };
-    expect(redactReportForTier(report, "free").market).toBeUndefined();
     expect(redactReportForTier(report, "growth").market).toBe(market);
+  });
+
+  it("teases the M4 market analysis for free: top-3 competitors, no plan, no thread excerpts", () => {
+    const prof = (domain: string) => ({
+      domain,
+      channels: [],
+      communities: [],
+      seo: { organicKeywords: 100, etv: 5, authority: 50, referringDomains: 200 },
+      crawledAt: "2026-06-01T00:00:00Z",
+    });
+    const pocket = (surface: string) => ({
+      surface,
+      subreddit: surface,
+      count: 3,
+      intentSum: 2,
+      score: 4,
+      topThreads: [{ title: "t", url: "u", intent: 1, publishedAt: null }],
+    });
+    const market = {
+      cohort: {
+        self: prof("me.com"),
+        competitors: [prof("a.com"), prof("b.com"), prof("c.com"), prof("d.com")],
+        competitorDomains: ["a.com", "b.com", "c.com", "d.com"],
+        product: { name: "Me" },
+      },
+      demand: { painQueries: [], pockets: [pocket("r/1"), pocket("r/2"), pocket("r/3"), pocket("r/4"), pocket("r/5"), pocket("r/6")], totalHits: 0, buyerPainHits: 0 },
+      gap: { channelMatrix: [], channelGaps: [{ kind: "blog" }], communityGaps: [], seo: null, shareOfVoice: { selfPct: 0.2, rivals: [], selfMentions: 1, totalMentions: 5 }, demandPockets: [pocket("r/1")] },
+      plan: { items: [{ kind: "channel", title: "x", why: "y", priority: 1 }] },
+    } as unknown as ReportPayload["market"];
+
+    const out = redactReportForTier({ ...makeReport(), market }, "free").market!;
+    // Top-3 competitors only, backlink detail stripped, traffic kept.
+    expect(out.cohort.competitors).toHaveLength(3);
+    expect(out.cohort.competitors[0]!.seo!.referringDomains).toBeNull();
+    expect(out.cohort.competitors[0]!.seo!.organicKeywords).toBe(100);
+    // Pockets capped + thread excerpts stripped.
+    expect(out.demand.pockets).toHaveLength(5);
+    expect(out.demand.pockets[0]!.topThreads).toEqual([]);
+    // The ranked plan + channel gaps (the paid payoff) are gated; SOV proof stays.
+    expect(out.plan.items).toEqual([]);
+    expect(out.gap.channelGaps).toEqual([]);
+    expect(out.gap.shareOfVoice).not.toBeNull();
   });
 });

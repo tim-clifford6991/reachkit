@@ -47,12 +47,27 @@ export interface SeoGap {
   ratio: number;
 }
 
+/** Community mention share — you vs each rival (the "are we even in the room?"
+ *  signal). Percentages are of total mentions across the cohort and sum to ~100. */
+export interface ShareOfVoice {
+  /** Your share of total community mentions, 0..1. */
+  selfPct: number;
+  /** Per-rival share, 0..1, keyed by competitor domain (cohort order). */
+  rivals: Array<{ domain: string; pct: number; mentions: number }>;
+  /** Your raw mention count (sum across communities). */
+  selfMentions: number;
+  /** Total mentions across the whole cohort (you + rivals). */
+  totalMentions: number;
+}
+
 export interface GapAnalysis {
   channelMatrix: ChannelMatrixRow[];
   /** Ranked: the channels to enter/revive first. */
   channelGaps: ChannelGap[];
   communityGaps: CommunityGap[];
   seo: SeoGap | null;
+  /** Community mention share vs rivals (null when no mentions anywhere). */
+  shareOfVoice: ShareOfVoice | null;
   /** Top demand pockets (where buyers are already asking), if a sweep ran. */
   demandPockets: DemandPocket[];
 }

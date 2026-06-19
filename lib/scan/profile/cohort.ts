@@ -39,7 +39,7 @@ export interface Cohort {
 
 export async function profileCohort(
   domain: string,
-  opts: { topN?: number; nowMs?: number; maxAgeMs?: number } = {},
+  opts: { topN?: number; nowMs?: number; maxAgeMs?: number; light?: boolean } = {},
 ): Promise<Cohort> {
   const topN = opts.topN ?? 5;
   const product = await subjectInfo(domain);
@@ -47,9 +47,9 @@ export async function profileCohort(
 
   const [self, ...competitors] = await Promise.all([
     // Reddit community (paid SERP) only for the subject; competitors keep free HN.
-    profileDomainCached(domain, { nowMs: opts.nowMs, maxAgeMs: opts.maxAgeMs, reddit: true }),
+    profileDomainCached(domain, { nowMs: opts.nowMs, maxAgeMs: opts.maxAgeMs, reddit: true, light: opts.light }),
     ...competitorDomains.map((d) =>
-      profileDomainCached(d, { nowMs: opts.nowMs, maxAgeMs: opts.maxAgeMs, reddit: false }),
+      profileDomainCached(d, { nowMs: opts.nowMs, maxAgeMs: opts.maxAgeMs, reddit: false, light: opts.light }),
     ),
   ]);
 

@@ -57,6 +57,16 @@ describe("getCachedProfile", () => {
     const { getCachedProfile } = await import("./cache");
     expect(await getCachedProfile("acme.com", 7 * 86_400_000, NOW)).toBeNull();
   });
+
+  it("rejects a cached LIGHT profile for a wantFull request (no silent data loss)", async () => {
+    const lite = profile("acme.com", new Date(NOW - 60_000).toISOString());
+    const db = makeDb({ profile: { ...versioned(lite), _light: true }, crawled_at: lite.crawledAt });
+    vi.doMock("@/lib/db/client", () => ({ serverDb: db.serverDb }));
+    const { getCachedProfile } = await import("./cache");
+    // A light request happily reuses it; a full request treats it as a miss.
+    expect(await getCachedProfile("acme.com", 7 * 86_400_000, NOW, { wantFull: false })).toEqual(lite);
+    expect(await getCachedProfile("acme.com", 7 * 86_400_000, NOW, { wantFull: true })).toBeNull();
+  });
 });
 
 describe("profileDomainCached", () => {

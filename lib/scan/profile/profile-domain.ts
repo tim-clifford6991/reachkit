@@ -13,13 +13,13 @@ import type { DistributionProfile } from "./types";
 
 export async function profileDomain(
   domain: string,
-  opts: { nowMs?: number; reddit?: boolean } = {},
+  opts: { nowMs?: number; reddit?: boolean; light?: boolean } = {},
 ): Promise<DistributionProfile> {
   const nowMs = opts.nowMs ?? Date.now();
   const brand = toHost(domain).split(".")[0] ?? domain;
   const [channels, seo, communities] = await Promise.all([
     crawlContentChannels(domain, nowMs),
-    fetchSeoPosture(domain),
+    fetchSeoPosture(domain, { light: opts.light }),
     gatherCommunityPresence(brand, nowMs, { reddit: opts.reddit }),
   ]);
   return {

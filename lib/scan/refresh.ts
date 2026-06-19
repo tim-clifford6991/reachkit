@@ -43,6 +43,8 @@
  */
 
 import { serverDb } from "@/lib/db/client";
+import { env } from "@/lib/config/env";
+import { attachMarketAnalysis } from "@/lib/scan/market";
 import { callModel } from "@/lib/llm/anthropic";
 import { callEmbed } from "@/lib/llm/embed";
 import { searchSimilar, insertEmbeddings } from "@/lib/scan/embeddings";
@@ -679,6 +681,16 @@ export async function runWeeklyRefresh(
 
     // 8. Weekly score-history point.
     await writeScoreSnapshot(ctx, enrichedFacts, now);
+
+    // 8b. Re-run the market analysis so the paid competitive data doesn't go stale
+    //     (decision G2). Only on this signal path (not the cheap no-op) to preserve
+    //     the no-op cost discipline; shared 7-day profile cache keeps it cheap.
+    //     Web-only + flag-gated + best-effort: never breaks the refresh.
+    if (env.marketAnalysis && ctx.mode === "web") {
+      await attachMarketAnalysis(ctx.scanId, ctx.storeUrl).catch((e) =>
+        console.error("[refresh] market analysis failed (best-effort)", e),
+      );
+    }
 
     // 9. Advance watermarks + last_run_at; estimate + record the refresh cost.
     await advanceMonitors(monitors, deltas, now);

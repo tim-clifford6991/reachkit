@@ -13,6 +13,7 @@ const gap: GapAnalysis = {
     { source: "hacker_news", competitorsActive: 0, total: 5, selfActive: false },
   ],
   seo: { selfKeywords: 100, medianCompetitorKeywords: 1000, ratio: 0.1 },
+  shareOfVoice: null,
   demandPockets: [
     { surface: "r/SaaS", subreddit: "r/SaaS", count: 8, intentSum: 5, score: 6, topThreads: [] },
   ],

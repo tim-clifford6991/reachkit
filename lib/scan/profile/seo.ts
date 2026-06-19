@@ -68,16 +68,24 @@ async function post(url: string, payload: unknown): Promise<unknown | null> {
  * The Backlinks API is a SEPARATE DataForSEO subscription and is off by default —
  * calling it when unsubscribed just burns a request and returns nothing, so
  * authority/referringDomains stay null unless `env.dataforseoBacklinks` is set.
+ *
+ * `light` (the free-tier pass) forces the cheapest path: ETV-only via the Labs
+ * domain_rank_overview call, skipping Backlinks even when subscribed — so the
+ * free scan fits its ≤20¢ ceiling while still showing organic-traffic standing.
  */
-export async function fetchSeoPosture(domain: string): Promise<SeoPosture | null> {
+export async function fetchSeoPosture(
+  domain: string,
+  opts: { light?: boolean } = {},
+): Promise<SeoPosture | null> {
   if (fixturesEnabled()) return null;
   const target = toHost(domain);
+  const wantBacklinks = env.dataforseoBacklinks && !opts.light;
 
   const [overview, backlinks] = await Promise.all([
     post("https://api.dataforseo.com/v3/dataforseo_labs/google/domain_rank_overview/live", [
       { target, location_code: env.dataforseoLocationCode, language_code: env.dataforseoLanguageCode },
     ]),
-    env.dataforseoBacklinks
+    wantBacklinks
       ? post("https://api.dataforseo.com/v3/backlinks/summary/live", [{ target }])
       : Promise.resolve(null),
   ]);

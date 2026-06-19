@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { analyzeGap } from "./analyze";
+import { analyzeGap, shareOfVoice } from "./analyze";
 import type { DistributionProfile, ContentChannel, ChannelKind } from "@/lib/scan/profile/types";
 
 function ch(kind: ChannelKind, active: boolean | null, postsPerMonth = 4): ContentChannel {
@@ -92,5 +92,39 @@ describe("analyzeGap", () => {
       "github",
       "podcast",
     ]);
+  });
+});
+
+describe("shareOfVoice", () => {
+  // The profile() helper sets mentions: 5 per community surface.
+  it("returns null when nobody has any community mentions", () => {
+    expect(shareOfVoice(profile("me.com", []), [profile("a.com", [])])).toBeNull();
+  });
+
+  it("computes self share as a fraction of total cohort mentions", () => {
+    // self: 1 surface (5), rival a: 2 surfaces (10), rival b: 1 surface (5) → total 20.
+    const self = profile("me.com", [], { communities: [{ source: "reddit", active: true }] });
+    const a = profile("a.com", [], {
+      communities: [
+        { source: "reddit", active: true },
+        { source: "hacker_news", active: true },
+      ],
+    });
+    const b = profile("b.com", [], { communities: [{ source: "hacker_news", active: false }] });
+
+    const sov = shareOfVoice(self, [a, b])!;
+    expect(sov.selfMentions).toBe(5);
+    expect(sov.totalMentions).toBe(20);
+    expect(sov.selfPct).toBeCloseTo(0.25, 5);
+    expect(sov.rivals).toEqual([
+      { domain: "a.com", mentions: 10, pct: 0.5 },
+      { domain: "b.com", mentions: 5, pct: 0.25 },
+    ]);
+  });
+
+  it("is wired into analyzeGap output", () => {
+    const self = profile("me.com", [], { communities: [{ source: "reddit", active: true }] });
+    const gap = analyzeGap(self, [profile("a.com", [], { communities: [{ source: "reddit", active: true }] })]);
+    expect(gap.shareOfVoice?.selfPct).toBeCloseTo(0.5, 5);
   });
 });
