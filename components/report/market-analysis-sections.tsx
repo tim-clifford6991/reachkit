@@ -8,7 +8,7 @@
 import type { MarketAnalysis } from "@/lib/scan/gap";
 import type { DistributionProfile, ContentChannel } from "@/lib/scan/profile";
 import { estimateTrafficMix } from "@/lib/scan/profile";
-import { narrateShareOfVoice, narrateKeywordGap } from "@/lib/scan/gap/narrate";
+import { narrateShareOfVoice, narrateKeywordGap, narrateTopPages } from "@/lib/scan/gap/narrate";
 import type { DemandPocket } from "@/lib/scan/demand/types";
 import type { ChannelMatrixRow } from "@/lib/scan/gap";
 import { COACH_GUIDES } from "@/lib/scan/distribute/coach";
@@ -121,7 +121,7 @@ function TrafficMixBar({ p }: { p: DistributionProfile }) {
 export function CompetitorProfilesSection({ cohort }: { cohort: MarketAnalysis["cohort"] }) {
   if (cohort.competitors.length === 0) return null;
   return (
-    <DeepSection eyebrow="Your closest competitors" title="Who you're up against — and how they distribute">
+    <DeepSection id="competitors" eyebrow="Your closest competitors" title="Who you're up against — and how they distribute">
       <div className="space-y-3">
         {cohort.competitors.map((c) => (
           <CompetitorCard key={c.domain} p={c} />
@@ -157,7 +157,7 @@ export function ChannelMatrixSection({ market }: { market: MarketAnalysis }) {
   const rows = market.gap.channelMatrix.filter((r) => r.self.present || r.competitorsActive > 0);
   if (rows.length === 0) return null;
   return (
-    <DeepSection eyebrow="You vs them" title="Where your rivals show up — and where you don't">
+    <DeepSection id="channels" eyebrow="You vs them" title="Where your rivals show up — and where you don't">
       <div className="space-y-2">
         {rows.map((r) => (
           <MatrixRow key={r.kind} row={r} />
@@ -229,7 +229,7 @@ export function DemandPocketsSection({
   // one-click handoff (the paid execution layer).
   if (!unlocked) {
     return (
-      <DeepSection eyebrow="Where your buyers are asking" title="Live conversations describing your problem">
+      <DeepSection id="demand" eyebrow="Where your buyers are asking" title="Live conversations describing your problem">
         <div className="space-y-2">
           {pockets.map((p, i) => (
             <div key={i} className="flex items-baseline justify-between gap-3 rounded-lg px-4 py-2.5" style={{ background: "var(--fill-subtle)" }}>
@@ -299,7 +299,7 @@ export function DistributionPlanSection({ market }: { market: MarketAnalysis }) 
   const items = market.plan.items;
   if (items.length === 0) return null;
   return (
-    <DeepSection eyebrow="Your distribution plan" title="What to do next — ranked, with the evidence">
+    <DeepSection id="playbook" eyebrow="Your distribution plan" title="What to do next — ranked, with the evidence">
       <ol className="space-y-3">
         {items.map((item, i) => (
           <li key={i} className="flex gap-3 rounded-lg px-4 py-3" style={{ background: "var(--fill-subtle)" }}>
@@ -363,7 +363,7 @@ export function MarketBenchmarkSection({ market }: { market: MarketAnalysis }) {
   if (!hasKw && !hasRef && !sov) return null;
 
   return (
-    <DeepSection eyebrow="How you stack up" title="You vs the rival median">
+    <DeepSection id="benchmark" eyebrow="How you stack up" title="You vs the rival median">
       <div className="space-y-2">
         {hasKw ? (
           <BenchmarkRow label="Organic keywords" you={self.seo!.organicKeywords} rivalMedian={median(rivalKw)} />
@@ -399,7 +399,7 @@ export function RecentBuzzSection({ market }: { market: MarketAnalysis }) {
   const buzz = market.recentBuzz ?? [];
   if (buzz.length === 0) return null;
   return (
-    <DeepSection eyebrow="Recent buzz" title="What's been said about your space lately">
+    <DeepSection id="buzz" eyebrow="Recent buzz" title="What's been said about your space lately">
       <ul className="space-y-1.5">
         {buzz.map((b, i) => (
           <li key={i} className="text-xs leading-snug">
@@ -424,7 +424,7 @@ export function KeywordGapSection({ market }: { market: MarketAnalysis }) {
   const rows = market.gap.keywordGap;
   if (rows.length === 0) return null;
   return (
-    <DeepSection eyebrow="Keyword gap" title="What your rivals rank for that you don't">
+    <DeepSection id="keyword-gap" eyebrow="Keyword gap" title="What your rivals rank for that you don't">
       <p className="mb-2 text-xs leading-snug" style={{ color: "var(--color-muted)" }}>{narrateKeywordGap(rows)}</p>
       <div className="space-y-2">
         {rows.map((r) => (
@@ -436,6 +436,39 @@ export function KeywordGapSection({ market }: { market: MarketAnalysis }) {
             </span>
           </div>
         ))}
+      </div>
+    </DeepSection>
+  );
+}
+
+// ── Top pages — your strongest organic pages (paid) ───────────────────────────
+
+export function TopPagesSection({ market }: { market: MarketAnalysis }) {
+  const pages = market.cohort.self.seo?.topPages ?? [];
+  if (pages.length === 0) return null;
+  return (
+    <DeepSection id="top-pages" eyebrow="Top pages" title="Your strongest organic pages">
+      <p className="mb-2 text-xs leading-snug" style={{ color: "var(--color-muted)" }}>{narrateTopPages(pages)}</p>
+      <div className="space-y-2">
+        {pages.map((p) => {
+          let path = p.url;
+          try {
+            path = new URL(p.url).pathname || "/";
+          } catch {
+            /* keep raw */
+          }
+          return (
+            <div key={p.url} className="flex items-center justify-between gap-3 rounded-lg px-4 py-2.5" style={{ background: "var(--fill-subtle)" }}>
+              <a href={p.url} target="_blank" rel="noopener noreferrer" className="min-w-0 truncate text-sm text-accent-400 hover:text-accent-300">
+                {path}
+              </a>
+              <span className="flex shrink-0 items-center gap-3 font-mono text-[11px] tabular-nums" style={{ color: "var(--color-muted)" }}>
+                <span>{p.keywordCount.toLocaleString()} kw</span>
+                <span>{Math.round(p.etv).toLocaleString()} etv</span>
+              </span>
+            </div>
+          );
+        })}
       </div>
     </DeepSection>
   );
@@ -460,6 +493,7 @@ export function MarketAnalysisSections({
       <MarketBenchmarkSection market={market} />
       <ChannelMatrixSection market={market} />
       {unlocked ? <KeywordGapSection market={market} /> : null}
+      {unlocked ? <TopPagesSection market={market} /> : null}
       <DemandPocketsSection market={market} unlocked={unlocked} />
       {unlocked ? <RecentBuzzSection market={market} /> : null}
       <DistributionPlanSection market={market} />

@@ -154,7 +154,10 @@ export function redactReportForTier(
 // ---------------------------------------------------------------------------
 
 /** Strip a profile's paid-only SEO detail (backlink authority + referring
- *  domains); keep the organic-keyword + traffic (ETV) numbers as the free proof. */
+ *  domains, plus the ranked-keywords + top-pages deep signals); keep the
+ *  organic-keyword + traffic (ETV) numbers as the free proof. The `seo` object is
+ *  rebuilt with only the four free fields, so `rankedKeywords`/`topPages` are
+ *  dropped by construction (they power the paid keyword-gap + top-pages sections). */
 function redactProfile(p: DistributionProfile): DistributionProfile {
   const { marketplace, ...rest } = p;
   void marketplace; // launch/marketplace presence is a paid signal

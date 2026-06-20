@@ -5,7 +5,10 @@ import { currentUser } from "@/lib/auth/server";
 import { type Tier } from "@/lib/billing/tiers";
 import { entitlementsFor, redactReportForTier } from "@/lib/billing/entitlements";
 import type { ReportPayload } from "@/lib/scan/report";
+import { buildExecutiveSummary } from "@/lib/scan/report";
 import { buildLossFrame } from "@/lib/scan/competitive-framing";
+import { ExecutiveSummary } from "@/components/report/executive-summary";
+import { SectionNav, buildSectionNavItems } from "@/components/report/section-nav";
 import { WhatYouOfferSection } from "@/components/report/what-you-offer-section";
 import { WhoItsForSection } from "@/components/report/who-its-for-section";
 import { WhereTheyAreSection } from "@/components/report/where-they-are-section";
@@ -138,6 +141,11 @@ async function ResultsContent({ id }: { id: string }) {
 
       {/* ── Score — signature visual; lazy-loaded client component ────── */}
       <ScoreBlock score={report.score} lossFrame={isPaid ? null : lossFrame} />
+
+      {/* ── Executive summary ("page 1") + jump nav. The summary doubles as
+          the strongest free teaser, so it sits above the upgrade wall. ── */}
+      <ExecutiveSummary summary={buildExecutiveSummary(report)} />
+      <SectionNav items={buildSectionNavItems(report, { unlocked: isPaid })} />
 
       {/* ── Free-teaser proof / paid landscape — superseded by the market
           analysis when present. ── */}

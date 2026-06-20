@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { narrateShareOfVoice, narrateBenchmark, narrateKeywordGap, narrateTrafficMix } from "./narrate";
+import { narrateShareOfVoice, narrateBenchmark, narrateKeywordGap, narrateTrafficMix, narrateTopPages } from "./narrate";
 import type { ShareOfVoice, KeywordGapRow } from "./types";
 
 const sov = (pct: number): ShareOfVoice => ({ selfPct: pct, rivals: [], selfMentions: 1, totalMentions: 10 });
@@ -34,5 +34,17 @@ describe("narrateTrafficMix", () => {
     const out = narrateTrafficMix({ organic: 0.6, referral: 0.1, social: 0.1, direct: 0.2, estimated: true });
     expect(out).toContain("organic search");
     expect(out).toContain("60%");
+  });
+});
+
+describe("narrateTopPages", () => {
+  it("is empty with no pages; names the strongest page's path + keyword count", () => {
+    expect(narrateTopPages([])).toBe("");
+    const out = narrateTopPages([
+      { url: "https://me.com/blog/habits", keywordCount: 1200, etv: 800 },
+      { url: "https://me.com/features", keywordCount: 40, etv: 30 },
+    ]);
+    expect(out).toContain("/blog/habits");
+    expect(out).toContain("1,200");
   });
 });

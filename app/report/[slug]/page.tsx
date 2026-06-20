@@ -22,8 +22,10 @@ import { notFound } from "next/navigation";
 import { serverDb } from "@/lib/db/client";
 import { buildMetadata, articleLd, SITE } from "@/lib/seo";
 import type { ReportPayload } from "@/lib/scan/report";
+import { buildExecutiveSummary } from "@/lib/scan/report";
 import { redactReportForTier } from "@/lib/billing/entitlements";
 import { buildScoreCard } from "@/lib/badge/score-card";
+import { ExecutiveSummary } from "@/components/report/executive-summary";
 import { WhatYouOfferSection } from "@/components/report/what-you-offer-section";
 import { WhoItsForSection } from "@/components/report/who-its-for-section";
 import { WhereTheyAreSection } from "@/components/report/where-they-are-section";
@@ -191,6 +193,11 @@ export async function ReportContent({ slug }: { slug: string }) {
 
         {/* ── Score visual (client component, lazy-loads motion/react) ── */}
         <ScoreBlock score={payload.score} caption={card.caption} />
+
+        {/* ── Executive summary — the viral "page 1" teaser. Built from the
+            free-redacted report, so no paid detail leaks. No section nav: the
+            public view renders only the four-question teaser (no anchors). ── */}
+        <ExecutiveSummary summary={buildExecutiveSummary(report)} />
 
         {/* ── Four-question report sections — PUBLIC-SAFE TEASER ───────── */}
         {/* Redacted to "free" (drafts stripped, actions capped) + rendered    */}

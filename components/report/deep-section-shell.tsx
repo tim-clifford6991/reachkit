@@ -10,14 +10,18 @@ export function DeepSection({
   eyebrow,
   title,
   children,
+  id,
 }: {
   eyebrow: string;
   title: string;
   children: ReactNode;
+  /** Optional anchor id so the section-nav jump links can target it. */
+  id?: string;
 }) {
   return (
     <section
-      className="rounded-2xl border shadow-[var(--elevation-sm),var(--edge-highlight)]"
+      id={id}
+      className="scroll-mt-8 rounded-2xl border shadow-[var(--elevation-sm),var(--edge-highlight)]"
       style={{ borderColor: "var(--hairline)", background: "var(--gradient-surface)" }}
     >
       <div className="px-7 pb-6 pt-6">

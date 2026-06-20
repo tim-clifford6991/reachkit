@@ -65,10 +65,11 @@ export function UpgradeCta({ scanId, snapshotAge, lossFrame }: UpgradeCtaProps) 
 
         <ul className="mb-5 space-y-2" aria-label="What you unlock">
           {[
-            "A fresh, ranked action queue every week — drafts written, refreshed automatically",
-            "Alerts the moment a competitor's mentions or ranking shift",
-            "Your exact opening vs every rival + the creators who reach their buyers",
-            "Reviewers' love vs hate with the quotes, plus full keyword CPC & competition",
+            "The full Ease×Impact×Competition playbook — ranked moves, each with its evidence",
+            "You vs every rival: benchmark, share-of-voice, channel matrix + the keyword gap",
+            "Your top organic pages, rivals' marketplace presence, and recent buzz in your space",
+            "Weekly alerts + market trends the moment a competitor moves — plus one-click CSV export",
+            "Every action with ready-to-send draft copy, refreshed automatically each week",
           ].map((item) => (
             <li
               key={item}

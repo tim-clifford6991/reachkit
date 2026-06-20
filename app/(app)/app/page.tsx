@@ -20,8 +20,13 @@ import { entitlementsFor, redactReportForTier } from "@/lib/billing/entitlements
 import { isPaid } from "@/lib/billing/tiers";
 import { serverDb } from "@/lib/db/client";
 import type { ReportPayload } from "@/lib/scan/report";
+import { buildExecutiveSummary } from "@/lib/scan/report";
+import { ExecutiveSummary } from "@/components/report/executive-summary";
+import { SectionNav, buildSectionNavItems } from "@/components/report/section-nav";
 import { assembleWeeklyPlan } from "@/lib/scan/weekly-plan";
 import { engagementSummary } from "@/lib/scan/engagement";
+import { latestRefreshDigest } from "@/lib/scan/digest";
+import { marketTrendSeries } from "@/lib/scan/market-trends";
 import { WhatYouOfferSection } from "@/components/report/what-you-offer-section";
 import { WhoItsForSection } from "@/components/report/who-its-for-section";
 import { WhereTheyAreSection } from "@/components/report/where-they-are-section";
@@ -34,6 +39,9 @@ import { MarketAnalysisSections } from "@/components/report/market-analysis-sect
 import { ScoreBlockDashboard } from "@/components/app/score-block-dashboard";
 import { PlaysPreview } from "@/components/app/plays-preview";
 import { EngagementStrip } from "@/components/app/engagement-strip";
+import { ExportButton } from "@/components/app/export-button";
+import { WhatsChanged } from "@/components/app/whats-changed";
+import { MarketTrends } from "@/components/app/market-trends";
 import { Skeleton } from "@/components/ui/skeleton";
 import { buildMetadata } from "@/lib/seo";
 
@@ -82,10 +90,13 @@ async function DashboardContent() {
   const fullReport = scanRow.report_payload as unknown as ReportPayload;
   const report = redactReportForTier(fullReport, tier);
 
-  // Parallel fetches
-  const [weeklyPlan, engagement] = await Promise.all([
+  // Parallel fetches. The refresh digest + market trends are paid-retention
+  // surfaces — skip the reads for free viewers.
+  const [weeklyPlan, engagement, digest, trend] = await Promise.all([
     assembleWeeklyPlan(primaryAppId),
     engagementSummary(primaryAppId),
+    userIsPaid ? latestRefreshDigest(primaryAppId) : Promise.resolve(null),
+    userIsPaid ? marketTrendSeries(primaryAppId) : Promise.resolve({ weeks: 0, metrics: [] }),
   ]);
 
   // Top 2–3 plays from the queue (quickWins first, then medium, then longPlay)
@@ -97,8 +108,21 @@ async function DashboardContent() {
 
   return (
     <div className="space-y-8">
+      {/* Export action — paid CSV of the latest report (competitors, keyword
+          gap, demand pockets, ranked playbook). */}
+      <div className="flex justify-end">
+        <ExportButton appId={primaryAppId} unlocked={userIsPaid} />
+      </div>
+
+      {/* What changed this week — the weekly retention hook (alerts + digest). */}
+      <WhatsChanged digest={digest} />
+
       {/* Score — the signature visual; morphs from /scan/[id]/results */}
       <ScoreBlockDashboard score={report.score} />
+
+      {/* Executive summary ("page 1") + jump nav */}
+      <ExecutiveSummary summary={buildExecutiveSummary(report)} />
+      <SectionNav items={buildSectionNavItems(report, { unlocked: userIsPaid })} />
 
       {/* Engagement strip */}
       {(engagement.streak > 0 || engagement.history.length > 0) && (
@@ -108,6 +132,9 @@ async function DashboardContent() {
           honestyNote={engagement.honestyNote}
         />
       )}
+
+      {/* Market trends — weekly snapshot sparklines (SOV, keywords, gaps). */}
+      <MarketTrends trend={trend} />
 
       {/* This week's plays preview */}
       {previewPlays.length > 0 && (

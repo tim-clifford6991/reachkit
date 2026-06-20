@@ -34,6 +34,21 @@ export function narrateKeywordGap(rows: KeywordGapRow[]): string {
   return `Rivals capture ${rows.length} keyword${rows.length === 1 ? "" : "s"} you don't — start with "${top.keyword}" (${top.volume.toLocaleString()}/mo).`;
 }
 
+/** Top-pages takeaway — your strongest organic pages (what's already working). */
+export function narrateTopPages(
+  pages: Array<{ url: string; keywordCount: number; etv: number }>,
+): string {
+  if (pages.length === 0) return "";
+  const top = pages[0]!;
+  let path = top.url;
+  try {
+    path = new URL(top.url).pathname || "/";
+  } catch {
+    // keep the raw url if it doesn't parse
+  }
+  return `Your strongest page is ${path} (ranks for ${top.keywordCount.toLocaleString()} keyword${top.keywordCount === 1 ? "" : "s"}) — double down on what's already pulling traffic.`;
+}
+
 /** Traffic-mix takeaway (which channel dominates the estimate). */
 export function narrateTrafficMix(mix: TrafficMix): string {
   const entries: Array<[string, number]> = [

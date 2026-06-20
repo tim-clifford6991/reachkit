@@ -317,4 +317,34 @@ describe("redactReportForTier — deep sections", () => {
     expect(out.gap.channelGaps).toEqual([]);
     expect(out.gap.shareOfVoice).not.toBeNull();
   });
+
+  it("strips the paid SEO deep signals (rankedKeywords, topPages, keywordGap) for free", () => {
+    const seo = {
+      organicKeywords: 100,
+      etv: 5,
+      authority: 50,
+      referringDomains: 200,
+      rankedKeywords: [{ keyword: "k", position: 3, volume: 500, etv: 40 }],
+      topPages: [{ url: "https://me.com/blog", keywordCount: 80, etv: 600 }],
+    };
+    const self = { domain: "me.com", channels: [], communities: [], seo, crawledAt: "" };
+    const market = {
+      cohort: { self, competitors: [self], competitorDomains: ["me.com"], product: { name: "Me" } },
+      demand: { painQueries: [], pockets: [], totalHits: 0, buyerPainHits: 0 },
+      gap: {
+        channelMatrix: [], channelGaps: [], communityGaps: [], seo: null, shareOfVoice: null,
+        keywordGap: [{ keyword: "k", volume: 500, rivalsRanking: 1, bestRivalPosition: 3 }],
+        demandPockets: [],
+      },
+      plan: { items: [] },
+    } as unknown as ReportPayload["market"];
+
+    const out = redactReportForTier({ ...makeReport(), market }, "free").market!;
+    // SEO deep signals (rankedKeywords + topPages) dropped on self + competitors.
+    expect(out.cohort.self.seo!.topPages).toBeUndefined();
+    expect(out.cohort.self.seo!.rankedKeywords).toBeUndefined();
+    expect(out.cohort.competitors[0]!.seo!.topPages).toBeUndefined();
+    // keyword gap (the paid payoff) is emptied.
+    expect(out.gap.keywordGap).toEqual([]);
+  });
 });

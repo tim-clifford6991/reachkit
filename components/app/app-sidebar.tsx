@@ -296,7 +296,6 @@ export function AppSidebar({
       href: "/app/feed",
       label: "Signal feed",
       icon: <IconFeed />,
-      comingSoon: true,
     },
   ];
 
