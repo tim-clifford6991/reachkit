@@ -14,6 +14,7 @@ import { COACH_GUIDES } from "@/lib/scan/distribute/coach";
 import { DeepSection } from "./deep-section-shell";
 import { DistributeWidget } from "./distribute-widget";
 import { KeywordGapList } from "./keyword-gap-list";
+import { TopPagesTable } from "./top-pages-table";
 import { EaseImpactScatter } from "@/components/charts/ease-impact-scatter";
 import { DonutChart, sovSegments } from "@/components/charts/donut-chart";
 import { BenchmarkBars, type BenchmarkRow as BenchmarkBarRow } from "@/components/charts/benchmark-bars";
@@ -408,27 +409,7 @@ export function TopPagesSection({ market }: { market: MarketAnalysis }) {
   return (
     <DeepSection id="top-pages" eyebrow="Top pages" title="Your strongest organic pages">
       <p className="mb-2 text-xs leading-snug" style={{ color: "var(--color-muted)" }}>{narrateTopPages(pages)}</p>
-      <div className="space-y-2">
-        {pages.map((p) => {
-          let path = p.url;
-          try {
-            path = new URL(p.url).pathname || "/";
-          } catch {
-            /* keep raw */
-          }
-          return (
-            <div key={p.url} className="flex items-center justify-between gap-3 rounded-lg px-4 py-2.5" style={{ background: "var(--fill-subtle)" }}>
-              <a href={p.url} target="_blank" rel="noopener noreferrer" className="min-w-0 truncate text-sm text-accent-400 hover:text-accent-300">
-                {path}
-              </a>
-              <span className="flex shrink-0 items-center gap-3 font-mono text-[11px] tabular-nums" style={{ color: "var(--color-muted)" }}>
-                <span>{p.keywordCount.toLocaleString()} kw</span>
-                <span>{Math.round(p.etv).toLocaleString()} etv</span>
-              </span>
-            </div>
-          );
-        })}
-      </div>
+      <TopPagesTable rows={pages} />
     </DeepSection>
   );
 }
