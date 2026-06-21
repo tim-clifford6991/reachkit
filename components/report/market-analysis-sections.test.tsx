@@ -67,7 +67,7 @@ describe("MarketAnalysisSections", () => {
     expect(html).toContain("Your closest competitors");
     expect(html).toContain("ahrefs.com");
     expect(html).toContain("You vs them"); // channel matrix
-    expect(html).toContain("rivals: 1/1");
+    expect(html).toContain("1/1"); // rivals-active intensity count in the heatmap
     expect(html).toContain("Where your buyers are asking"); // demand pockets
     expect(html).toContain("r/SEO");
     expect(html).toContain("Your distribution plan");

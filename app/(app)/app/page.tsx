@@ -22,7 +22,6 @@ import { serverDb } from "@/lib/db/client";
 import type { ReportPayload } from "@/lib/scan/report";
 import { buildExecutiveSummary } from "@/lib/scan/report";
 import { ExecutiveSummary } from "@/components/report/executive-summary";
-import { SectionNav, buildSectionNavItems } from "@/components/report/section-nav";
 import { assembleWeeklyPlan } from "@/lib/scan/weekly-plan";
 import { engagementSummary } from "@/lib/scan/engagement";
 import { latestRefreshDigest } from "@/lib/scan/digest";
@@ -31,11 +30,7 @@ import { WhatYouOfferSection } from "@/components/report/what-you-offer-section"
 import { WhoItsForSection } from "@/components/report/who-its-for-section";
 import { WhereTheyAreSection } from "@/components/report/where-they-are-section";
 import { ActionPlanSection } from "@/components/report/action-plan-section";
-import { CompetitiveLandscapeSection } from "@/components/report/competitive-landscape-section";
-import { ChannelOpportunitiesSection } from "@/components/report/channel-opportunities-section";
-import { CreatorsToReachSection } from "@/components/report/creators-to-reach-section";
 import { StrengthsWeaknessesSection } from "@/components/report/strengths-weaknesses-section";
-import { MarketAnalysisSections } from "@/components/report/market-analysis-sections";
 import { ScoreBlockDashboard } from "@/components/app/score-block-dashboard";
 import { PlaysPreview } from "@/components/app/plays-preview";
 import { EngagementStrip } from "@/components/app/engagement-strip";
@@ -107,7 +102,7 @@ async function DashboardContent() {
   ].slice(0, 3);
 
   const execSummary = buildExecutiveSummary(report);
-  const navItems = buildSectionNavItems(report, { unlocked: userIsPaid });
+  const hasMarket = !!report.market || (report.competitiveLandscape?.length ?? 0) > 0;
   const hasTrends = trend.metrics.length > 0;
   const hasEngagement = engagement.streak > 0 || engagement.history.length > 0;
   const engagementStrip = hasEngagement ? (
@@ -135,6 +130,22 @@ async function DashboardContent() {
         <ExecutiveSummary summary={execSummary} />
       </div>
 
+      {/* Deep market intel lives on its own page now — link, don't duplicate. */}
+      {hasMarket && (
+        <div className="flex justify-end">
+          <Link
+            href="/app/channels"
+            className="inline-flex items-center gap-1.5 text-sm font-medium transition-colors"
+            style={{ color: "var(--color-accent-400)" }}
+          >
+            View full market report
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
+              <path d="M5 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </Link>
+        </div>
+      )}
+
       {/* ── ACTION ── this week's plays. */}
       {previewPlays.length > 0 && (
         <PlaysPreview
@@ -160,29 +171,19 @@ async function DashboardContent() {
         </>
       )}
 
-      {/* ── DETAIL ── the full report at a readable column width, behind a
-          divider + sticky jump nav so it reads as the deep-dive layer. */}
+      {/* ── DETAIL ── your-product report at a readable column width. The
+          competitive/market deep-dive lives on the Market Report page. */}
       <div className="mx-auto w-full max-w-3xl space-y-4 pt-2">
         <div className="flex items-center gap-3">
           <span className="h-px flex-1" style={{ background: "var(--hairline)" }} aria-hidden />
           <p className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "var(--color-muted)" }}>
-            Full report
+            Your report
           </p>
           <span className="h-px flex-1" style={{ background: "var(--hairline)" }} aria-hidden />
         </div>
-        <SectionNav items={navItems} />
         <WhatYouOfferSection whatYouOffer={report.whatYouOffer} unlocked={userIsPaid} />
         <WhoItsForSection whoItsFor={report.whoItsFor} unlocked={userIsPaid} />
         <WhereTheyAreSection whereTheyAre={report.whereTheyAre} unlocked={userIsPaid} />
-        {report.market ? (
-          <MarketAnalysisSections market={report.market} />
-        ) : (
-          <>
-            <CompetitiveLandscapeSection rows={report.competitiveLandscape} unlocked={userIsPaid} />
-            <ChannelOpportunitiesSection data={report.channelOpportunities} unlocked={userIsPaid} />
-            <CreatorsToReachSection creators={report.creatorsToReach} unlocked={userIsPaid} />
-          </>
-        )}
         <StrengthsWeaknessesSection data={report.strengthsAndWeaknesses} unlocked={userIsPaid} />
         <ActionPlanSection whatToDoThisWeek={report.whatToDoThisWeek} unlocked={userIsPaid} />
       </div>

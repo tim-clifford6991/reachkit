@@ -1,8 +1,11 @@
 /**
- * Q3 — Where they are (full-bleed single-question view).
+ * Market Report — the dedicated competitive-intelligence page (ChannelIntel UX).
  *
- * Reuses WhereTheyAreSection from E2 components.
- * Data-fetching in Suspense per Next.js 16 cacheComponents requirement.
+ * Promoted from the legacy "Where they are" (Q3) view. This is the focused home
+ * for the market deep-dive (competitor profiles, benchmark + share-of-voice,
+ * channel matrix, keyword gap, top pages, demand pockets, the Ease×Impact
+ * playbook, recent buzz) so the dashboard can stay an overview. Route kept at
+ * /app/channels for back-compat; the sidebar labels it "Market Report".
  */
 
 import { Suspense } from "react";
@@ -12,19 +15,21 @@ import { entitlementsFor, redactReportForTier } from "@/lib/billing/entitlements
 import { isPaid } from "@/lib/billing/tiers";
 import { serverDb } from "@/lib/db/client";
 import type { ReportPayload } from "@/lib/scan/report";
-import { WhereTheyAreSection } from "@/components/report/where-they-are-section";
+import { buildExecutiveSummary } from "@/lib/scan/report";
+import { ExecutiveSummary } from "@/components/report/executive-summary";
+import { SectionNav, buildSectionNavItems } from "@/components/report/section-nav";
+import { MarketAnalysisSections } from "@/components/report/market-analysis-sections";
+import { CompetitiveLandscapeSection } from "@/components/report/competitive-landscape-section";
+import { ChannelOpportunitiesSection } from "@/components/report/channel-opportunities-section";
+import { CreatorsToReachSection } from "@/components/report/creators-to-reach-section";
 import { Skeleton } from "@/components/ui/skeleton";
 import { buildMetadata } from "@/lib/seo";
 
-export const metadata = buildMetadata({ title: "Where they are", path: "/app/channels" });
+export const metadata = buildMetadata({ title: "Market Report", path: "/app/channels" });
 
-// ---------------------------------------------------------------------------
-// Data-fetching component
-// ---------------------------------------------------------------------------
-
-async function ChannelsContent() {
+async function MarketReportContent() {
   const viewer = await currentUser();
-  if (!viewer) redirect("/login?next=/app");
+  if (!viewer) redirect("/login?next=/app/channels");
 
   const { user } = viewer;
   const primaryAppId = user.app_ids[0] ?? null;
@@ -45,88 +50,58 @@ async function ChannelsContent() {
 
   if (!scanRow?.report_payload) redirect("/app");
 
-  const fullReport = scanRow.report_payload as unknown as ReportPayload;
-  const report = redactReportForTier(fullReport, tier);
+  const report = redactReportForTier(scanRow.report_payload as unknown as ReportPayload, tier);
+  const navItems = buildSectionNavItems(report, { unlocked: userIsPaid });
 
   return (
-    <div className="space-y-6">
-      <WhereTheyAreSection whereTheyAre={report.whereTheyAre} unlocked={userIsPaid} />
-
-      {!userIsPaid && (
-        <div
-          className="rounded-xl border px-7 py-6 text-center"
-          style={{
-            borderColor: "var(--color-accent-900)",
-            background: "oklch(0.70 0.13 66 / 0.07)",
-          }}
-        >
-          <p className="text-sm font-medium" style={{ color: "var(--color-fg)" }}>
-            See all communities and competitor analysis
-          </p>
-          <p className="mt-1 text-xs" style={{ color: "var(--color-muted)" }}>
-            Upgrade to unlock the full surface list and competitor gap breakdown.
-          </p>
-          <a
-            href="/app/billing"
-            className="mt-3 inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium transition-colors"
-            style={{
-              background: "var(--color-accent-600)",
-              color: "var(--color-accent-fg)",
-            }}
-          >
-            Upgrade to Solo
-          </a>
-        </div>
+    <div className="space-y-4">
+      <ExecutiveSummary summary={buildExecutiveSummary(report)} />
+      <SectionNav items={navItems} />
+      {report.market ? (
+        <MarketAnalysisSections market={report.market} unlocked={userIsPaid} />
+      ) : (
+        <>
+          <CompetitiveLandscapeSection rows={report.competitiveLandscape} unlocked={userIsPaid} />
+          <ChannelOpportunitiesSection data={report.channelOpportunities} unlocked={userIsPaid} />
+          <CreatorsToReachSection creators={report.creatorsToReach} unlocked={userIsPaid} />
+        </>
       )}
     </div>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Page
-// ---------------------------------------------------------------------------
-
-export default function ChannelsPage() {
+export default function MarketReportPage() {
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-6 px-6 py-8">
+    <div className="mx-auto w-full max-w-3xl space-y-6 px-6 py-8">
       <div>
-        <p
-          className="font-mono text-[10px] uppercase tracking-widest"
-          style={{ color: "var(--color-muted)" }}
-        >
-          Question 3
+        <p className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "var(--color-muted)" }}>
+          Market Report
         </p>
         <h1 className="mt-0.5 text-xl font-semibold" style={{ color: "var(--color-fg)" }}>
-          Where they are
+          Who you&apos;re up against
         </h1>
         <p className="mt-1 text-sm" style={{ color: "var(--color-muted)" }}>
-          Where do your potential buyers gather, and where are competitors outranking you?
+          Your competitive position — benchmarks, channels, demand, and the ranked plays to close the gap.
         </p>
       </div>
-
-      <Suspense fallback={<SectionSkeleton />}>
-        <ChannelsContent />
+      <Suspense fallback={<MarketReportSkeleton />}>
+        <MarketReportContent />
       </Suspense>
     </div>
   );
 }
 
-function SectionSkeleton() {
+function MarketReportSkeleton() {
   return (
-    <div
-      className="rounded-xl border p-7"
-      style={{ borderColor: "var(--hairline)", background: "var(--color-surface)" }}
-    >
-      <Skeleton className="mb-3 h-3 w-20" />
-      <Skeleton className="mb-4 h-5 w-36" />
-      <div className="space-y-3">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="flex gap-3">
-            <Skeleton className="h-5 w-16 shrink-0 rounded" />
-            <Skeleton className="h-5 flex-1" />
-          </div>
-        ))}
-      </div>
+    <div className="space-y-4">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="rounded-2xl border p-7" style={{ borderColor: "var(--hairline)", background: "var(--color-surface)" }}>
+          <Skeleton className="mb-3 h-3 w-24" />
+          <Skeleton className="mb-4 h-5 w-48" />
+          <Skeleton className="h-3 w-full" />
+          <Skeleton className="mt-1.5 h-3 w-3/4" />
+        </div>
+      ))}
     </div>
   );
 }

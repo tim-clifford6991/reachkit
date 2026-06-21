@@ -46,26 +46,6 @@ interface NavItem {
 // Icons — inline SVG to avoid any extra icon bundle weight
 // ---------------------------------------------------------------------------
 
-function IconOffer() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-      <rect x="2" y="2" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.25" />
-      <rect x="9" y="2" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.25" />
-      <rect x="2" y="9" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.25" />
-      <path d="M11.5 9v6M8.5 12h6" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function IconAudience() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-      <circle cx="8" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.25" />
-      <path d="M2 13c0-2.761 2.686-5 6-5s6 2.239 6 5" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 function IconChannels() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
@@ -253,27 +233,6 @@ export function AppSidebar({
   const pathname = usePathname();
 
   // Build nav items
-  const questionItems: NavItem[] = [
-    {
-      href: "/app/offer",
-      label: "What you offer",
-      sublabel: "Q1",
-      icon: <IconOffer />,
-    },
-    {
-      href: "/app/audience",
-      label: "Who it's for",
-      sublabel: "Q2",
-      icon: <IconAudience />,
-    },
-    {
-      href: "/app/channels",
-      label: "Where they are",
-      sublabel: "Q3",
-      icon: <IconChannels />,
-    },
-  ];
-
   const primaryItems: NavItem[] = [
     {
       href: "/app",
@@ -286,6 +245,11 @@ export function AppSidebar({
           <rect x="9" y="9" width="5.5" height="5.5" rx="1" stroke="currentColor" strokeWidth="1.25" />
         </svg>
       ),
+    },
+    {
+      href: "/app/channels",
+      label: "Market Report",
+      icon: <IconChannels />,
     },
     {
       href: "/app/plays",
@@ -370,19 +334,6 @@ export function AppSidebar({
         {primaryItems.map((item) => (
           <NavLink key={item.href} item={item} active={isActive(item.href)} />
         ))}
-
-        {/* Questions sub-group */}
-        <div className="pb-1 pt-3">
-          <p
-            className="mb-1 px-3 font-mono text-[9px] uppercase tracking-widest"
-            style={{ color: "var(--color-muted)" }}
-          >
-            Four questions
-          </p>
-          {questionItems.map((item) => (
-            <NavLink key={item.href} item={item} active={isActive(item.href)} />
-          ))}
-        </div>
       </nav>
 
       {/* ── Utility nav ──────────────────────────────────────────────────── */}

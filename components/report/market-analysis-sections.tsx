@@ -10,11 +10,13 @@ import type { DistributionProfile, ContentChannel } from "@/lib/scan/profile";
 import { estimateTrafficMix } from "@/lib/scan/profile";
 import { narrateShareOfVoice, narrateKeywordGap, narrateTopPages } from "@/lib/scan/gap/narrate";
 import type { DemandPocket } from "@/lib/scan/demand/types";
-import type { ChannelMatrixRow } from "@/lib/scan/gap";
 import { COACH_GUIDES } from "@/lib/scan/distribute/coach";
 import { DeepSection } from "./deep-section-shell";
 import { DistributeWidget } from "./distribute-widget";
 import { EaseImpactScatter } from "@/components/charts/ease-impact-scatter";
+import { DonutChart, sovSegments } from "@/components/charts/donut-chart";
+import { BenchmarkBars, type BenchmarkRow as BenchmarkBarRow } from "@/components/charts/benchmark-bars";
+import { ChannelMatrixHeatmap, type ChannelMatrixCell } from "@/components/charts/channel-matrix";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -134,36 +136,19 @@ export function CompetitorProfilesSection({ cohort }: { cohort: MarketAnalysis["
 
 // ── 2. Channel-presence matrix ────────────────────────────────────────────────
 
-function MatrixRow({ row }: { row: ChannelMatrixRow }) {
-  const you = !row.self.present ? "—" : row.self.active ? "active" : "dormant";
-  const youColor = !row.self.present
-    ? "var(--color-danger)"
-    : row.self.active
-    ? "var(--color-success)"
-    : "var(--color-warning)";
-  return (
-    <div className="flex items-center justify-between gap-3 rounded-lg px-4 py-2.5" style={{ background: "var(--fill-subtle)" }}>
-      <span className="text-sm" style={{ color: "var(--color-fg)" }}>{CHANNEL_LABEL[row.kind] ?? row.kind}</span>
-      <span className="flex items-center gap-4 font-mono text-xs">
-        <span style={{ color: youColor }}>you: {you}</span>
-        <span className="tabular-nums" style={{ color: "var(--color-muted)" }}>
-          rivals: {row.competitorsActive}/{row.total}
-        </span>
-      </span>
-    </div>
-  );
-}
-
 export function ChannelMatrixSection({ market }: { market: MarketAnalysis }) {
   const rows = market.gap.channelMatrix.filter((r) => r.self.present || r.competitorsActive > 0);
   if (rows.length === 0) return null;
+  const cells: ChannelMatrixCell[] = rows.map((r) => ({
+    kind: r.kind,
+    label: CHANNEL_LABEL[r.kind] ?? r.kind,
+    you: !r.self.present ? "absent" : r.self.active ? "active" : "dormant",
+    rivalsActive: r.competitorsActive,
+    total: r.total,
+  }));
   return (
     <DeepSection id="channels" eyebrow="You vs them" title="Where your rivals show up — and where you don't">
-      <div className="space-y-2">
-        {rows.map((r) => (
-          <MatrixRow key={r.kind} row={r} />
-        ))}
-      </div>
+      <ChannelMatrixHeatmap rows={cells} />
     </DeepSection>
   );
 }
@@ -340,21 +325,6 @@ function median(nums: number[]): number {
   return s.length % 2 ? s[mid]! : (s[mid - 1]! + s[mid]!) / 2;
 }
 
-function BenchmarkRow({ label, you, rivalMedian }: { label: string; you: number; rivalMedian: number }) {
-  const ahead = you >= rivalMedian;
-  return (
-    <div className="flex items-center justify-between gap-3 rounded-lg px-4 py-2.5" style={{ background: "var(--fill-subtle)" }}>
-      <span className="text-sm" style={{ color: "var(--color-fg)" }}>{label}</span>
-      <span className="flex items-center gap-4 font-mono text-xs tabular-nums">
-        <span style={{ color: ahead ? "var(--color-success)" : "var(--color-warning)" }}>
-          you: {you.toLocaleString()}
-        </span>
-        <span style={{ color: "var(--color-muted)" }}>rival median: {rivalMedian.toLocaleString()}</span>
-      </span>
-    </div>
-  );
-}
-
 export function MarketBenchmarkSection({ market }: { market: MarketAnalysis }) {
   const { self, competitors } = market.cohort;
   const sov = market.gap.shareOfVoice;
@@ -366,33 +336,27 @@ export function MarketBenchmarkSection({ market }: { market: MarketAnalysis }) {
   const hasRef = self.seo?.referringDomains != null && rivalRef.length > 0;
   if (!hasKw && !hasRef && !sov) return null;
 
+  const rows: BenchmarkBarRow[] = [];
+  if (hasKw) rows.push({ label: "Organic keywords", you: self.seo!.organicKeywords, rivalMedian: median(rivalKw) });
+  if (hasRef) rows.push({ label: "Referring domains", you: self.seo!.referringDomains!, rivalMedian: median(rivalRef) });
+
   return (
     <DeepSection id="benchmark" eyebrow="How you stack up" title="You vs the rival median">
-      <div className="space-y-2">
-        {hasKw ? (
-          <BenchmarkRow label="Organic keywords" you={self.seo!.organicKeywords} rivalMedian={median(rivalKw)} />
-        ) : null}
-        {hasRef ? (
-          <BenchmarkRow label="Referring domains" you={self.seo!.referringDomains!} rivalMedian={median(rivalRef)} />
-        ) : null}
-        {sov ? (
-          <div className="rounded-lg px-4 py-2.5" style={{ background: "var(--fill-subtle)" }}>
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-sm" style={{ color: "var(--color-fg)" }}>Share of voice</span>
-              <span className="font-mono text-xs tabular-nums" style={{ color: "var(--color-accent-400)" }}>
-                {Math.round(sov.selfPct * 100)}%
-              </span>
-            </div>
-            <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full" style={{ background: "var(--color-border)" }}>
-              <div className="h-full rounded-full" style={{ width: `${Math.round(sov.selfPct * 100)}%`, background: "var(--color-accent-400)" }} />
-            </div>
-            <p className="mt-1 font-mono text-[10px]" style={{ color: "var(--color-muted)" }}>
-              {sov.selfMentions} of {sov.totalMentions} community mentions across you + {sov.rivals.length} rivals
-            </p>
-            <p className="mt-1 text-xs leading-snug" style={{ color: "var(--color-muted)" }}>{narrateShareOfVoice(sov)}</p>
-          </div>
-        ) : null}
-      </div>
+      {rows.length > 0 && <BenchmarkBars rows={rows} />}
+      {sov ? (
+        <div className={rows.length > 0 ? "mt-4 rounded-lg px-4 py-3.5" : "rounded-lg px-4 py-3.5"} style={{ background: "var(--fill-subtle)" }}>
+          <p className="mb-3 font-mono text-[10px] uppercase tracking-wider" style={{ color: "var(--color-muted)" }}>Share of voice</p>
+          <DonutChart
+            segments={sovSegments(sov.selfPct, sov.rivals)}
+            centerLabel={`${Math.round(sov.selfPct * 100)}%`}
+            centerSub="you"
+          />
+          <p className="mt-3 font-mono text-[10px]" style={{ color: "var(--color-muted)" }}>
+            {sov.selfMentions} of {sov.totalMentions} community mentions across you + {sov.rivals.length} rivals
+          </p>
+          <p className="mt-1 text-xs leading-snug" style={{ color: "var(--color-muted)" }}>{narrateShareOfVoice(sov)}</p>
+        </div>
+      ) : null}
     </DeepSection>
   );
 }
