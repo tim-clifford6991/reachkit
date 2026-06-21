@@ -64,9 +64,34 @@ export async function persistScanSignals(args: {
 
   const rawHtml = mode === "web" ? await readSubjectHtml(storeUrl) : null;
   const html = rawHtml ? extractHtmlSignals(rawHtml) : null;
-  const rows = computeScanSignals(mode, html, components, marketToSignalInputs(market));
+  const computed = computeScanSignals(mode, html, components, marketToSignalInputs(market));
 
   const db = serverDb();
+
+  // Preserve previously-measured values when this pass can't measure a signal
+  // (e.g. a weekly refresh that doesn't re-fetch the market) — never regress a
+  // measured signal to "unmeasured".
+  const { data: existing } = await db
+    .from("scan_signals")
+    .select("signal_key, raw_value, normalised, contribution, state")
+    .eq("scan_id", scanId);
+  const prev = new Map((existing ?? []).map((r) => [r.signal_key, r]));
+
+  const rows = computed.map((r) => {
+    if (r.state !== "unmeasured") return r;
+    const p = prev.get(r.signalKey);
+    if (p && p.state !== "unmeasured") {
+      return {
+        ...r,
+        rawValue: p.raw_value as number | null,
+        normalised: p.normalised as number | null,
+        contribution: p.contribution as number | null,
+        state: p.state as typeof r.state,
+      };
+    }
+    return r;
+  });
+
   await db.from("scan_signals").delete().eq("scan_id", scanId);
   await db.from("scan_signals").insert(
     rows.map((r) => ({

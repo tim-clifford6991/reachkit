@@ -59,8 +59,9 @@ import { collectDeltas } from "@/lib/scan/delta-collect";
 import { generateActions } from "@/lib/llm/actions";
 import { runCriticGate } from "@/lib/llm/critic";
 import { algorithmSafety } from "@/lib/scan/algorithm-safety";
-import { gatherScoreComponents, verifiedScore, CURRENT_SCORE_VERSION } from "@/lib/scan/score-full";
+import { gatherScoreComponents, verifiedScore } from "@/lib/scan/score-full";
 import { persistScanSignals } from "@/lib/scan/persist-signals";
+import { headlineFromRows, type RegistryScoreRow } from "@/lib/scan/registry-score";
 import { competitorDiscoveryLoop } from "@/lib/scan/loops";
 import { rankCompetitors } from "@/lib/scan/competitors";
 import { upsertRawDocument } from "@/lib/db/raw-documents";
@@ -618,22 +619,31 @@ async function writeScoreSnapshot(
   const components = await gatherScoreComponents(ctx, facts);
   const score = verifiedScore(components, ctx.mode);
   const db = serverDb();
-  const { error } = await db.from("score_snapshots").insert({
-    app_id: ctx.appId,
-    taken_at: now,
-    total: score.total,
-    breakdown: score.breakdown as unknown as Json,
-    score_version: CURRENT_SCORE_VERSION,
-    source: "weekly_refresh",
-  });
-  if (error) throw error;
 
-  // Keep the per-signal rows fresh for the anchor scan (best-effort).
+  // Keep the per-signal rows fresh, then resolve the headline (v2 for web) so the
+  // weekly history point matches the gauge.
+  let rows: RegistryScoreRow[] = [];
   try {
     await persistScanSignals({ scanId: ctx.scanId, mode: ctx.mode, storeUrl: ctx.storeUrl, components, market: null });
+    const { data } = await db
+      .from("scan_signals")
+      .select("pillar, weight, normalised, state")
+      .eq("scan_id", ctx.scanId);
+    rows = (data ?? []) as RegistryScoreRow[];
   } catch (e) {
     console.error("[refresh] persistScanSignals failed (best-effort)", e);
   }
+  const headline = headlineFromRows(ctx.mode, score, rows);
+
+  const { error } = await db.from("score_snapshots").insert({
+    app_id: ctx.appId,
+    taken_at: now,
+    total: headline.total,
+    breakdown: headline.breakdown as unknown as Json,
+    score_version: headline.version,
+    source: "weekly_refresh",
+  });
+  if (error) throw error;
 }
 
 // ---------------------------------------------------------------------------

@@ -33,8 +33,14 @@ import { generateActions } from "@/lib/llm/actions";
 import { generateColdStartActions } from "@/lib/llm/cold-start-actions";
 import { runCriticGate } from "@/lib/llm/critic";
 import { algorithmSafety } from "@/lib/scan/algorithm-safety";
-import { gatherScoreComponents, verifiedScore, CURRENT_SCORE_VERSION } from "@/lib/scan/score-full";
+import { gatherScoreComponents, verifiedScore } from "@/lib/scan/score-full";
 import { persistScanSignals } from "@/lib/scan/persist-signals";
+import {
+  registryScore,
+  applyRegistryScore,
+  headlineFromRows,
+  type RegistryScoreRow,
+} from "@/lib/scan/registry-score";
 import { assembleReport, persistReport, type ReportPayload } from "@/lib/scan/report";
 import type {
   CompetitiveLandscapeRow,
@@ -557,37 +563,51 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
     // 9. Persist the safe actions (idempotent)
     await persistActions(ctx, safe);
 
-    // 10. Update the verified score on the scan row
+    // 10. Update the verified score on the scan row (v1 first; the web headline
+    //     is flipped to the v2 registry score in 10a once signals are persisted).
     const db = serverDb();
     const { error: scoreErr } = await db
       .from("scans")
       .update({
         score_total: score.total,
         score_breakdown: score.breakdown as unknown as Json,
-        score_version: CURRENT_SCORE_VERSION,
+        score_version: 1,
       })
       .eq("id", ctx.scanId);
     if (scoreErr) throw scoreErr;
 
-    // 10a. Persist the 18-signal contributions for the explainability panel.
-    //      Best-effort: the headline score is already written, so a failure here
-    //      is logged but never breaks the scan. Reads the just-attached market.
+    // 10a. Persist the 18-signal contributions, then flip the WEB headline to the
+    //      v2 registry score (patches scans + report_payload.score so the gauge,
+    //      bars and radar agree). Best-effort: a failure leaves the v1 score intact.
     try {
       const { data: persisted } = await db
         .from("scans")
         .select("report_payload")
         .eq("id", ctx.scanId)
         .maybeSingle();
-      const market = (persisted?.report_payload as unknown as ReportPayload | null)?.market ?? null;
-      await persistScanSignals({
-        scanId: ctx.scanId,
-        mode: ctx.mode,
-        storeUrl: ctx.storeUrl,
-        components,
-        market,
-      });
+      const payload = persisted?.report_payload as unknown as ReportPayload | null;
+      const market = payload?.market ?? null;
+      await persistScanSignals({ scanId: ctx.scanId, mode: ctx.mode, storeUrl: ctx.storeUrl, components, market });
+
+      const { data: rows } = await db
+        .from("scan_signals")
+        .select("pillar, weight, normalised, state")
+        .eq("scan_id", ctx.scanId);
+      const headline = headlineFromRows(ctx.mode, score, (rows ?? []) as RegistryScoreRow[]);
+      if (headline.version === 2 && payload) {
+        await db
+          .from("scans")
+          .update({
+            score_total: headline.total,
+            score_breakdown: headline.breakdown as unknown as Json,
+            score_version: 2,
+          })
+          .eq("id", ctx.scanId);
+        const v2Score = applyRegistryScore(payload.score, registryScore((rows ?? []) as RegistryScoreRow[]));
+        await persistReport(ctx.scanId, { ...payload, score: v2Score });
+      }
     } catch (e) {
-      console.error("[full-scan] persistScanSignals failed (best-effort)", e);
+      console.error("[full-scan] signal persistence / score flip failed (best-effort)", e);
     }
 
     // 10b. §13 cost-overrun alert — best-effort telemetry marker. The report is
