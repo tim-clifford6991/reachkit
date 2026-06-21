@@ -35,6 +35,7 @@ import { ScoreBlock } from "./score-block";
 import { BadgeEmbed } from "./badge-embed";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Suspense } from "react";
+import { cacheLife, cacheTag } from "next/cache";
 
 // ---------------------------------------------------------------------------
 // Static params
@@ -127,19 +128,31 @@ export default async function ReportPage({
   );
 }
 
-export async function ReportContent({ slug }: { slug: string }) {
+/**
+ * Public report payload by slug. Cacheable (partial prerender): keyed only by the
+ * immutable, completed scan id and fetched with the service-role client (no
+ * cookies/request state), so it's safe to serve from cache. Tagged for targeted
+ * revalidation (`report:<slug>`) if the scan is ever refreshed.
+ */
+async function getCachedReportPayload(slug: string): Promise<ReportPayload | null> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(`report:${slug}`);
   const db = serverDb();
   const { data } = await db
     .from("scans")
     .select("report_payload")
     .eq("id", slug)
     .maybeSingle();
+  return (data?.report_payload as unknown as ReportPayload | undefined) ?? null;
+}
 
-  if (!data?.report_payload) {
+export async function ReportContent({ slug }: { slug: string }) {
+  const payload = await getCachedReportPayload(slug);
+
+  if (!payload) {
     notFound();
   }
-
-  const payload = data.report_payload as unknown as ReportPayload;
   const card = buildScoreCard(payload);
   const reportUrl = `${SITE.url}/report/${slug}`;
 
