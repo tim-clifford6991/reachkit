@@ -106,37 +106,36 @@ async function DashboardContent() {
     ...weeklyPlan.queue.longPlay,
   ].slice(0, 3);
 
+  const execSummary = buildExecutiveSummary(report);
+  const navItems = buildSectionNavItems(report, { unlocked: userIsPaid });
+  const hasTrends = trend.metrics.length > 0;
+  const hasEngagement = engagement.streak > 0 || engagement.history.length > 0;
+  const engagementStrip = hasEngagement ? (
+    <EngagementStrip
+      streak={engagement.streak}
+      history={engagement.history}
+      honestyNote={engagement.honestyNote}
+    />
+  ) : null;
+
   return (
-    <div className="space-y-8">
-      {/* Export action — paid CSV of the latest report (competitors, keyword
-          gap, demand pockets, ranked playbook). */}
+    <div className="space-y-6">
+      {/* Top bar — paid CSV export of the latest report. */}
       <div className="flex justify-end">
         <ExportButton appId={primaryAppId} unlocked={userIsPaid} />
       </div>
 
-      {/* What changed this week — the weekly retention hook (alerts + digest). */}
+      {/* Weekly retention hook — alerts + change digest (paid). */}
       <WhatsChanged digest={digest} />
 
-      {/* Score — the signature visual; morphs from /scan/[id]/results */}
-      <ScoreBlockDashboard score={report.score} />
+      {/* ── HERO ── score (radar + breakdown, morphs from results) beside the
+          executive snapshot. The dashboard's "how am I doing?" answer. */}
+      <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+        <ScoreBlockDashboard score={report.score} />
+        <ExecutiveSummary summary={execSummary} />
+      </div>
 
-      {/* Executive summary ("page 1") + jump nav */}
-      <ExecutiveSummary summary={buildExecutiveSummary(report)} />
-      <SectionNav items={buildSectionNavItems(report, { unlocked: userIsPaid })} />
-
-      {/* Engagement strip */}
-      {(engagement.streak > 0 || engagement.history.length > 0) && (
-        <EngagementStrip
-          streak={engagement.streak}
-          history={engagement.history}
-          honestyNote={engagement.honestyNote}
-        />
-      )}
-
-      {/* Market trends — weekly snapshot sparklines (SOV, keywords, gaps). */}
-      <MarketTrends trend={trend} />
-
-      {/* This week's plays preview */}
+      {/* ── ACTION ── this week's plays. */}
       {previewPlays.length > 0 && (
         <PlaysPreview
           plays={previewPlays}
@@ -148,14 +147,30 @@ async function DashboardContent() {
         />
       )}
 
-      {/* Four-question report sections */}
-      <div className="space-y-4">
-        <p
-          className="font-mono text-[10px] uppercase tracking-widest"
-          style={{ color: "var(--color-muted)" }}
-        >
-          Full report
-        </p>
+      {/* ── SIGNAL ── trends + engagement side-by-side when both exist. */}
+      {hasTrends && engagementStrip ? (
+        <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+          <MarketTrends trend={trend} />
+          {engagementStrip}
+        </div>
+      ) : (
+        <>
+          <MarketTrends trend={trend} />
+          {engagementStrip}
+        </>
+      )}
+
+      {/* ── DETAIL ── the full report at a readable column width, behind a
+          divider + sticky jump nav so it reads as the deep-dive layer. */}
+      <div className="mx-auto w-full max-w-3xl space-y-4 pt-2">
+        <div className="flex items-center gap-3">
+          <span className="h-px flex-1" style={{ background: "var(--hairline)" }} aria-hidden />
+          <p className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "var(--color-muted)" }}>
+            Full report
+          </p>
+          <span className="h-px flex-1" style={{ background: "var(--hairline)" }} aria-hidden />
+        </div>
+        <SectionNav items={navItems} />
         <WhatYouOfferSection whatYouOffer={report.whatYouOffer} unlocked={userIsPaid} />
         <WhoItsForSection whoItsFor={report.whoItsFor} unlocked={userIsPaid} />
         <WhereTheyAreSection whereTheyAre={report.whereTheyAre} unlocked={userIsPaid} />
@@ -214,7 +229,7 @@ function DashboardSkeleton() {
 
 export default function AppDashboardPage() {
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-8 px-6 py-8">
+    <div className="mx-auto w-full max-w-5xl space-y-8 px-6 py-8">
       {/* Page header */}
       <div>
         <p

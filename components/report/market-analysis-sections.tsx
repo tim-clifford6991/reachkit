@@ -14,6 +14,7 @@ import type { ChannelMatrixRow } from "@/lib/scan/gap";
 import { COACH_GUIDES } from "@/lib/scan/distribute/coach";
 import { DeepSection } from "./deep-section-shell";
 import { DistributeWidget } from "./distribute-widget";
+import { EaseImpactScatter } from "@/components/charts/ease-impact-scatter";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -300,6 +301,9 @@ export function DistributionPlanSection({ market }: { market: MarketAnalysis }) 
   if (items.length === 0) return null;
   return (
     <DeepSection id="playbook" eyebrow="Your distribution plan" title="What to do next — ranked, with the evidence">
+      {/* Ease × Impact map — the same ranked plays, plotted so the quick wins
+          (top-right) read at a glance before the detailed list. */}
+      <EaseImpactScatter items={items} />
       <ol className="space-y-3">
         {items.map((item, i) => (
           <li key={i} className="flex gap-3 rounded-lg px-4 py-3" style={{ background: "var(--fill-subtle)" }}>
