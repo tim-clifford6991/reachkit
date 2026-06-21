@@ -13,6 +13,8 @@ import { WhatYouOfferSection } from "@/components/report/what-you-offer-section"
 import { WhoItsForSection } from "@/components/report/who-its-for-section";
 import { WhereTheyAreSection } from "@/components/report/where-they-are-section";
 import { ActionPlanSection } from "@/components/report/action-plan-section";
+import { SignalBreakdownSection } from "@/components/report/signal-breakdown-section";
+import { readSignalBreakdown } from "@/lib/scan/signal-breakdown";
 import { CompetitiveLandscapeSection } from "@/components/report/competitive-landscape-section";
 import { ChannelOpportunitiesSection } from "@/components/report/channel-opportunities-section";
 import { CreatorsToReachSection } from "@/components/report/creators-to-reach-section";
@@ -134,6 +136,9 @@ async function ResultsContent({ id }: { id: string }) {
   const generatedAt = data.completed_at ?? data.started_at ?? report.generatedAt;
   const snapshotAge = relativeAge(generatedAt);
 
+  // 18-signal explainability (empty for pre-migration scans → panel degrades).
+  const signalBreakdown = await readSignalBreakdown(id);
+
   return (
     <>
       {/* §23 moment 6 — stale-report strip. Honest, not nagging. */}
@@ -189,6 +194,7 @@ async function ResultsContent({ id }: { id: string }) {
           unlocked={isPaid}
           lockLabel={lockCounts.actionsLabel}
         />
+        <SignalBreakdownSection groups={signalBreakdown} />
       </ReportReveal>
     </>
   );

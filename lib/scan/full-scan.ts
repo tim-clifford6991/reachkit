@@ -33,8 +33,9 @@ import { generateActions } from "@/lib/llm/actions";
 import { generateColdStartActions } from "@/lib/llm/cold-start-actions";
 import { runCriticGate } from "@/lib/llm/critic";
 import { algorithmSafety } from "@/lib/scan/algorithm-safety";
-import { gatherScoreComponents, verifiedScore } from "@/lib/scan/score-full";
-import { assembleReport, persistReport } from "@/lib/scan/report";
+import { gatherScoreComponents, verifiedScore, CURRENT_SCORE_VERSION } from "@/lib/scan/score-full";
+import { persistScanSignals } from "@/lib/scan/persist-signals";
+import { assembleReport, persistReport, type ReportPayload } from "@/lib/scan/report";
 import type {
   CompetitiveLandscapeRow,
   ChannelOpportunities,
@@ -563,9 +564,31 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
       .update({
         score_total: score.total,
         score_breakdown: score.breakdown as unknown as Json,
+        score_version: CURRENT_SCORE_VERSION,
       })
       .eq("id", ctx.scanId);
     if (scoreErr) throw scoreErr;
+
+    // 10a. Persist the 18-signal contributions for the explainability panel.
+    //      Best-effort: the headline score is already written, so a failure here
+    //      is logged but never breaks the scan. Reads the just-attached market.
+    try {
+      const { data: persisted } = await db
+        .from("scans")
+        .select("report_payload")
+        .eq("id", ctx.scanId)
+        .maybeSingle();
+      const market = (persisted?.report_payload as unknown as ReportPayload | null)?.market ?? null;
+      await persistScanSignals({
+        scanId: ctx.scanId,
+        mode: ctx.mode,
+        storeUrl: ctx.storeUrl,
+        components,
+        market,
+      });
+    } catch (e) {
+      console.error("[full-scan] persistScanSignals failed (best-effort)", e);
+    }
 
     // 10b. §13 cost-overrun alert — best-effort telemetry marker. The report is
     //      already persisted, so a hot scan is logged but never breaks the run.
