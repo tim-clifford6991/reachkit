@@ -50,6 +50,7 @@ export type Database = {
           id: string
           scan_id: string | null
           score_component: string | null
+          signal_keys: string[]
           status: string
           title: string
           verification: Json | null
@@ -72,6 +73,7 @@ export type Database = {
           id?: string
           scan_id?: string | null
           score_component?: string | null
+          signal_keys?: string[]
           status?: string
           title: string
           verification?: Json | null
@@ -94,6 +96,7 @@ export type Database = {
           id?: string
           scan_id?: string | null
           score_component?: string | null
+          signal_keys?: string[]
           status?: string
           title?: string
           verification?: Json | null
@@ -185,6 +188,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      distribution_profiles: {
+        Row: {
+          crawled_at: string
+          domain: string
+          profile: Json
+        }
+        Insert: {
+          crawled_at?: string
+          domain: string
+          profile: Json
+        }
+        Update: {
+          crawled_at?: string
+          domain?: string
+          profile?: Json
+        }
+        Relationships: []
       }
       embeddings: {
         Row: {
@@ -338,6 +359,35 @@ export type Database = {
             columns: ["scan_id"]
             isOneToOne: false
             referencedRelation: "scans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      market_snapshots: {
+        Row: {
+          app_id: string
+          id: string
+          summary: Json
+          taken_at: string
+        }
+        Insert: {
+          app_id: string
+          id?: string
+          summary: Json
+          taken_at?: string
+        }
+        Update: {
+          app_id?: string
+          id?: string
+          summary?: Json
+          taken_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_snapshots_app_id_fkey"
+            columns: ["app_id"]
+            isOneToOne: false
+            referencedRelation: "apps"
             referencedColumns: ["id"]
           },
         ]
@@ -537,6 +587,56 @@ export type Database = {
           },
         ]
       }
+      scan_signals: {
+        Row: {
+          contribution: number | null
+          created_at: string
+          id: number
+          normalised: number | null
+          pillar: string
+          platform: string | null
+          raw_value: number | null
+          scan_id: string
+          signal_key: string
+          state: string
+          weight: number
+        }
+        Insert: {
+          contribution?: number | null
+          created_at?: string
+          id?: never
+          normalised?: number | null
+          pillar: string
+          platform?: string | null
+          raw_value?: number | null
+          scan_id: string
+          signal_key: string
+          state: string
+          weight: number
+        }
+        Update: {
+          contribution?: number | null
+          created_at?: string
+          id?: never
+          normalised?: number | null
+          pillar?: string
+          platform?: string | null
+          raw_value?: number | null
+          scan_id?: string
+          signal_key?: string
+          state?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scan_signals_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: false
+            referencedRelation: "scans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scans: {
         Row: {
           app_id: string
@@ -548,9 +648,11 @@ export type Database = {
           id: string
           ip_hash: string | null
           preliminary_facts: Json | null
+          rank_data_fetched_at: string | null
           report_payload: Json | null
           score_breakdown: Json | null
           score_total: number | null
+          score_version: number
           started_at: string | null
           status: string
           tier: string
@@ -565,9 +667,11 @@ export type Database = {
           id?: string
           ip_hash?: string | null
           preliminary_facts?: Json | null
+          rank_data_fetched_at?: string | null
           report_payload?: Json | null
           score_breakdown?: Json | null
           score_total?: number | null
+          score_version?: number
           started_at?: string | null
           status?: string
           tier?: string
@@ -582,9 +686,11 @@ export type Database = {
           id?: string
           ip_hash?: string | null
           preliminary_facts?: Json | null
+          rank_data_fetched_at?: string | null
           report_payload?: Json | null
           score_breakdown?: Json | null
           score_total?: number | null
+          score_version?: number
           started_at?: string | null
           status?: string
           tier?: string
@@ -599,23 +705,66 @@ export type Database = {
           },
         ]
       }
-      distribution_profiles: {
+      score_snapshots: {
         Row: {
-          crawled_at: string
-          domain: string
-          profile: Json
+          action_id: string | null
+          app_id: string
+          breakdown: Json
+          id: string
+          installs_reported: number | null
+          scan_id: string | null
+          score_version: number
+          source: string | null
+          taken_at: string
+          total: number
         }
         Insert: {
-          crawled_at?: string
-          domain: string
-          profile: Json
+          action_id?: string | null
+          app_id: string
+          breakdown: Json
+          id?: string
+          installs_reported?: number | null
+          scan_id?: string | null
+          score_version?: number
+          source?: string | null
+          taken_at?: string
+          total: number
         }
         Update: {
-          crawled_at?: string
-          domain?: string
-          profile?: Json
+          action_id?: string | null
+          app_id?: string
+          breakdown?: Json
+          id?: string
+          installs_reported?: number | null
+          scan_id?: string | null
+          score_version?: number
+          source?: string | null
+          taken_at?: string
+          total?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "score_snapshots_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "score_snapshots_app_id_fkey"
+            columns: ["app_id"]
+            isOneToOne: false
+            referencedRelation: "apps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "score_snapshots_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: false
+            referencedRelation: "scans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       search_cache: {
         Row: {
@@ -634,70 +783,6 @@ export type Database = {
           response?: Json
         }
         Relationships: []
-      }
-      market_snapshots: {
-        Row: {
-          app_id: string
-          id: string
-          summary: Json
-          taken_at: string
-        }
-        Insert: {
-          app_id: string
-          id?: string
-          summary: Json
-          taken_at?: string
-        }
-        Update: {
-          app_id?: string
-          id?: string
-          summary?: Json
-          taken_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "market_snapshots_app_id_fkey"
-            columns: ["app_id"]
-            isOneToOne: false
-            referencedRelation: "apps"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      score_snapshots: {
-        Row: {
-          app_id: string
-          breakdown: Json
-          id: string
-          installs_reported: number | null
-          taken_at: string
-          total: number
-        }
-        Insert: {
-          app_id: string
-          breakdown: Json
-          id?: string
-          installs_reported?: number | null
-          taken_at?: string
-          total: number
-        }
-        Update: {
-          app_id?: string
-          breakdown?: Json
-          id?: string
-          installs_reported?: number | null
-          taken_at?: string
-          total?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "score_snapshots_app_id_fkey"
-            columns: ["app_id"]
-            isOneToOne: false
-            referencedRelation: "apps"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       users: {
         Row: {
