@@ -32,6 +32,7 @@ import { WhereTheyAreSection } from "@/components/report/where-they-are-section"
 import { ActionPlanSection } from "@/components/report/action-plan-section";
 import { StrengthsWeaknessesSection } from "@/components/report/strengths-weaknesses-section";
 import { ScoreBlockDashboard } from "@/components/app/score-block-dashboard";
+import { ScoreHistoryCard } from "@/components/app/score-history-card";
 import { PlaysPreview } from "@/components/app/plays-preview";
 import { EngagementStrip } from "@/components/app/engagement-strip";
 import { ExportButton } from "@/components/app/export-button";
@@ -102,6 +103,10 @@ async function DashboardContent() {
   ].slice(0, 3);
 
   const execSummary = buildExecutiveSummary(report);
+  // Δ vs previous scan from the score history (oldest-first); null = baseline.
+  const lastPoint = engagement.history.at(-1);
+  const prevPoint = engagement.history.at(-2);
+  const scoreDelta = lastPoint && prevPoint ? lastPoint.total - prevPoint.total : null;
   const hasMarket = !!report.market || (report.competitiveLandscape?.length ?? 0) > 0;
   const hasTrends = trend.metrics.length > 0;
   const hasEngagement = engagement.streak > 0 || engagement.history.length > 0;
@@ -123,12 +128,14 @@ async function DashboardContent() {
       {/* Weekly retention hook — alerts + change digest (paid). */}
       <WhatsChanged digest={digest} />
 
-      {/* ── HERO ── score (radar + breakdown, morphs from results) beside the
-          executive snapshot. The dashboard's "how am I doing?" answer. */}
+      {/* ── HERO ── score gauge (with Δ) beside the executive snapshot. */}
       <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
-        <ScoreBlockDashboard score={report.score} />
+        <ScoreBlockDashboard score={report.score} delta={scoreDelta} />
         <ExecutiveSummary summary={execSummary} />
       </div>
+
+      {/* Score history — the primary trend visual (band-zoned area chart). */}
+      <ScoreHistoryCard history={engagement.history} />
 
       {/* Deep market intel lives on its own page now — link, don't duplicate. */}
       {hasMarket && (

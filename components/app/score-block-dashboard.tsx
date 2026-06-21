@@ -29,9 +29,11 @@ const DiscoverabilityScore = dynamic(
 
 interface ScoreBlockDashboardProps {
   score: VerifiedScore;
+  /** Δ vs previous scan (number), `null` for baseline, omitted to hide. */
+  delta?: number | null;
 }
 
-export function ScoreBlockDashboard({ score }: ScoreBlockDashboardProps) {
+export function ScoreBlockDashboard({ score, delta }: ScoreBlockDashboardProps) {
   return (
     <div
       className="relative flex flex-col items-center overflow-hidden rounded-2xl border py-10 shadow-[var(--elevation-md),var(--edge-highlight)]"
@@ -52,7 +54,7 @@ export function ScoreBlockDashboard({ score }: ScoreBlockDashboardProps) {
       </p>
 
       <div className="relative z-10">
-        <DiscoverabilityScore score={score} size="lg" />
+        <DiscoverabilityScore score={score} size="lg" delta={delta} />
       </div>
 
       <p
