@@ -13,6 +13,7 @@ import type { DemandPocket } from "@/lib/scan/demand/types";
 import { COACH_GUIDES } from "@/lib/scan/distribute/coach";
 import { DeepSection } from "./deep-section-shell";
 import { DistributeWidget } from "./distribute-widget";
+import { KeywordGapList } from "./keyword-gap-list";
 import { EaseImpactScatter } from "@/components/charts/ease-impact-scatter";
 import { DonutChart, sovSegments } from "@/components/charts/donut-chart";
 import { BenchmarkBars, type BenchmarkRow as BenchmarkBarRow } from "@/components/charts/benchmark-bars";
@@ -394,17 +395,7 @@ export function KeywordGapSection({ market }: { market: MarketAnalysis }) {
   return (
     <DeepSection id="keyword-gap" eyebrow="Keyword gap" title="What your rivals rank for that you don't">
       <p className="mb-2 text-xs leading-snug" style={{ color: "var(--color-muted)" }}>{narrateKeywordGap(rows)}</p>
-      <div className="space-y-2">
-        {rows.map((r) => (
-          <div key={r.keyword} className="flex items-center justify-between gap-3 rounded-lg px-4 py-2.5" style={{ background: "var(--fill-subtle)" }}>
-            <span className="min-w-0 truncate text-sm" style={{ color: "var(--color-fg)" }}>{r.keyword}</span>
-            <span className="flex shrink-0 items-center gap-3 font-mono text-[11px] tabular-nums" style={{ color: "var(--color-muted)" }}>
-              <span>{r.volume.toLocaleString()}/mo</span>
-              <span>{r.rivalsRanking} rival{r.rivalsRanking === 1 ? "" : "s"}</span>
-            </span>
-          </div>
-        ))}
-      </div>
+      <KeywordGapList rows={rows} />
     </DeepSection>
   );
 }

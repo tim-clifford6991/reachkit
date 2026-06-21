@@ -17,20 +17,52 @@ function scoreColor(total: number): string {
   return "var(--color-warning)";
 }
 
-function StatCell({ label, children }: { label: string; children: React.ReactNode }) {
+function StatCell({
+  label,
+  children,
+  anchor,
+}: {
+  label: string;
+  children: React.ReactNode;
+  /** Optional drill-through to the detail section (full-report pages only). */
+  anchor?: { href: string; label: string };
+}) {
   return (
     <div className="rounded-lg px-4 py-3" style={{ background: "var(--fill-subtle)" }}>
-      <p className="font-mono text-[10px] uppercase tracking-wider" style={{ color: "var(--color-muted)" }}>
-        {label}
-      </p>
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="font-mono text-[10px] uppercase tracking-wider" style={{ color: "var(--color-muted)" }}>
+          {label}
+        </p>
+        {anchor && (
+          <a
+            href={anchor.href}
+            className="shrink-0 font-mono text-[10px] transition-colors hover:underline"
+            style={{ color: "var(--color-accent-400)" }}
+          >
+            {anchor.label} →
+          </a>
+        )}
+      </div>
       <div className="mt-1">{children}</div>
     </div>
   );
 }
 
-export function ExecutiveSummary({ summary }: { summary: ExecutiveSummaryData }) {
+export function ExecutiveSummary({
+  summary,
+  availableAnchors,
+}: {
+  summary: ExecutiveSummaryData;
+  /**
+   * Section ids that actually render on this page (from buildSectionNavItems).
+   * A stat cell only links into its detail section when that id is present, so
+   * we never produce a dead anchor (the public teaser passes nothing).
+   */
+  availableAnchors?: string[];
+}) {
   const { score, topCompetitors, traffic, biggestGap, quickWins } = summary;
   const color = scoreColor(score.total);
+  const hasAnchor = (id: string) => availableAnchors?.includes(id) ?? false;
 
   return (
     <section
@@ -62,7 +94,10 @@ export function ExecutiveSummary({ summary }: { summary: ExecutiveSummaryData })
         {/* Proof grid */}
         <div className="mt-4 grid gap-2 sm:grid-cols-2">
           {topCompetitors.length > 0 && (
-            <StatCell label="Top rivals">
+            <StatCell
+              label="Top rivals"
+              anchor={hasAnchor("competitors") ? { href: "#competitors", label: "View all" } : undefined}
+            >
               <ul className="space-y-0.5">
                 {topCompetitors.map((c) => (
                   <li key={c.domain} className="flex items-baseline justify-between gap-2 text-sm" style={{ color: "var(--color-fg)" }}>
@@ -90,7 +125,10 @@ export function ExecutiveSummary({ summary }: { summary: ExecutiveSummaryData })
           )}
 
           {biggestGap && (
-            <StatCell label="Biggest move">
+            <StatCell
+              label="Biggest move"
+              anchor={hasAnchor("playbook") ? { href: "#playbook", label: "See plan" } : undefined}
+            >
               <p className="text-sm" style={{ color: "var(--color-fg)" }}>{biggestGap}</p>
             </StatCell>
           )}

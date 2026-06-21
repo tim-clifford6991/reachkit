@@ -55,7 +55,10 @@ async function MarketReportContent() {
 
   return (
     <div className="space-y-4">
-      <ExecutiveSummary summary={buildExecutiveSummary(report)} />
+      <ExecutiveSummary
+        summary={buildExecutiveSummary(report)}
+        availableAnchors={navItems.map((i) => i.id)}
+      />
       <SectionNav items={navItems} />
       {report.market ? (
         <MarketAnalysisSections market={report.market} unlocked={userIsPaid} />
