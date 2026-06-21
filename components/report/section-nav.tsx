@@ -1,14 +1,16 @@
 /**
- * SectionNav — a sticky, horizontally-scrollable row of jump links to the
- * report's section anchors (ChannelIntel UX). Dependency-free: native anchor
- * scroll + `scroll-mt` on each `DeepSection`. Server-rendered.
+ * Report jump-nav data layer.
  *
  * `buildSectionNavItems` is PURE — it lists only the anchors that will actually
  * render for this report + tier, so a link never points at a missing section.
- * The nav hides itself when there are too few targets (the free light report).
+ * The interactive `SectionNav` (sticky pill row + IntersectionObserver
+ * scroll-spy) lives in ./section-nav-active and is re-exported here so existing
+ * import sites (`{ SectionNav, buildSectionNavItems }`) stay unchanged.
  */
 
 import type { ReportPayload } from "@/lib/scan/report";
+
+export { SectionNav } from "./section-nav-active";
 
 export interface SectionNavItem {
   id: string;
@@ -45,33 +47,4 @@ export function buildSectionNavItems(
   if (m.plan.items.length > 0) items.push({ id: "playbook", label: "Playbook" });
 
   return items;
-}
-
-export function SectionNav({ items }: { items: SectionNavItem[] }) {
-  // Nothing worth jumping between → render nothing (free light report).
-  if (items.length < 3) return null;
-  return (
-    <nav
-      aria-label="Report sections"
-      className="sticky top-2 z-20 -mx-1 overflow-x-auto rounded-full border px-1.5 py-1.5 backdrop-blur"
-      style={{
-        borderColor: "var(--hairline)",
-        background: "color-mix(in oklch, var(--color-surface) 80%, transparent)",
-      }}
-    >
-      <ul className="flex w-max items-center gap-1">
-        {items.map((it) => (
-          <li key={it.id}>
-            <a
-              href={`#${it.id}`}
-              className="inline-flex whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition-colors hover:bg-[var(--fill-subtle)]"
-              style={{ color: "var(--color-muted)" }}
-            >
-              {it.label}
-            </a>
-          </li>
-        ))}
-      </ul>
-    </nav>
-  );
 }

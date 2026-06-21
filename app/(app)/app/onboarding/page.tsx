@@ -15,6 +15,7 @@ import { serverDb } from "@/lib/db/client";
 import type { ReportPayload } from "@/lib/scan/report";
 import { buildMetadata } from "@/lib/seo";
 import { saveOnboarding } from "./actions";
+import { SubmitButton } from "./submit-button";
 
 export const metadata = buildMetadata({ title: "Get started", path: "/app/onboarding" });
 
@@ -136,12 +137,7 @@ async function OnboardingContent() {
           </div>
         )}
 
-        <button
-          type="submit"
-          className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-[image:var(--gradient-accent)] px-5 text-[0.9rem] font-semibold text-accent-fg shadow-[var(--elevation-glow)] transition-transform hover:-translate-y-px"
-        >
-          {hasApp ? "Open my dashboard" : "Continue to my first scan"}
-        </button>
+        <SubmitButton idleLabel={hasApp ? "Open my dashboard" : "Continue to my first scan"} />
       </form>
     </div>
   );

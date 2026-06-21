@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/server";
 import { serverDb } from "@/lib/db/client";
+import { parseOnboardingForm } from "./parse";
 
 /**
  * Persist the post-checkout onboarding backfill and mark onboarding complete.
@@ -11,16 +12,7 @@ import { serverDb } from "@/lib/db/client";
 export async function saveOnboarding(formData: FormData): Promise<void> {
   const { user } = await requireUser();
 
-  const displayName = String(formData.get("display_name") ?? "").trim().slice(0, 120);
-  const goal = String(formData.get("distribution_goal") ?? "").trim().slice(0, 200);
-  const icpRaw = String(formData.get("icp_confirmed") ?? "").trim();
-  const icp = icpRaw
-    ? icpRaw
-        .split("\n")
-        .map((s) => s.trim())
-        .filter(Boolean)
-        .slice(0, 12)
-    : [];
+  const { displayName, goal, icp } = parseOnboardingForm(formData);
 
   const { error } = await serverDb()
     .from("users")

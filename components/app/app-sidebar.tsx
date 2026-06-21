@@ -16,6 +16,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import type { Tier } from "@/lib/billing/tiers";
+import { APP_NAV, isNavActive } from "@/lib/app/nav";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -99,6 +100,27 @@ function IconBilling() {
     </svg>
   );
 }
+
+function IconDashboard() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <rect x="1.5" y="1.5" width="5.5" height="5.5" rx="1" stroke="currentColor" strokeWidth="1.25" />
+      <rect x="9" y="1.5" width="5.5" height="5.5" rx="1" stroke="currentColor" strokeWidth="1.25" />
+      <rect x="1.5" y="9" width="5.5" height="5.5" rx="1" stroke="currentColor" strokeWidth="1.25" />
+      <rect x="9" y="9" width="5.5" height="5.5" rx="1" stroke="currentColor" strokeWidth="1.25" />
+    </svg>
+  );
+}
+
+/** Resolves an APP_NAV `iconKey` to its inline SVG (no icon-bundle weight). */
+const NAV_ICONS: Record<string, React.ReactNode> = {
+  dashboard: <IconDashboard />,
+  channels: <IconChannels />,
+  plays: <IconPlays />,
+  feed: <IconFeed />,
+  settings: <IconSettings />,
+  billing: <IconBilling />,
+};
 
 // ---------------------------------------------------------------------------
 // Tier badge
@@ -232,54 +254,17 @@ export function AppSidebar({
 }: AppSidebarProps) {
   const pathname = usePathname();
 
-  // Build nav items
-  const primaryItems: NavItem[] = [
-    {
-      href: "/app",
-      label: "Dashboard",
-      icon: (
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-          <rect x="1.5" y="1.5" width="5.5" height="5.5" rx="1" stroke="currentColor" strokeWidth="1.25" />
-          <rect x="9" y="1.5" width="5.5" height="5.5" rx="1" stroke="currentColor" strokeWidth="1.25" />
-          <rect x="1.5" y="9" width="5.5" height="5.5" rx="1" stroke="currentColor" strokeWidth="1.25" />
-          <rect x="9" y="9" width="5.5" height="5.5" rx="1" stroke="currentColor" strokeWidth="1.25" />
-        </svg>
-      ),
-    },
-    {
-      href: "/app/channels",
-      label: "Market Report",
-      icon: <IconChannels />,
-    },
-    {
-      href: "/app/plays",
-      label: "This week's plays",
-      icon: <IconPlays />,
-    },
-    {
-      href: "/app/feed",
-      label: "Signal feed",
-      icon: <IconFeed />,
-    },
-  ];
+  // Route map is shared with the command palette + breadcrumbs (lib/app/nav.ts);
+  // the sidebar just attaches each item's inline icon by key.
+  const toNavItem = (item: (typeof APP_NAV)[number]): NavItem => ({
+    href: item.href,
+    label: item.label,
+    icon: NAV_ICONS[item.iconKey],
+  });
+  const primaryItems = APP_NAV.filter((i) => i.group === "primary").map(toNavItem);
+  const utilityItems = APP_NAV.filter((i) => i.group === "utility").map(toNavItem);
 
-  const utilityItems: NavItem[] = [
-    {
-      href: "/app/settings",
-      label: "Settings",
-      icon: <IconSettings />,
-    },
-    {
-      href: "/app/billing",
-      label: "Billing",
-      icon: <IconBilling />,
-    },
-  ];
-
-  const isActive = (href: string) => {
-    if (href === "/app") return pathname === "/app";
-    return pathname.startsWith(href);
-  };
+  const isActive = (href: string) => isNavActive(href, pathname);
 
   return (
     <aside
@@ -319,6 +304,29 @@ export function AppSidebar({
             {appName}
           </p>
         )}
+      </div>
+
+      {/* ── ⌘K palette trigger ──────────────────────────────────────────── */}
+      <div className="relative z-10 px-3 pb-2">
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new Event("command-palette:open"))}
+          aria-label="Open command palette"
+          className="flex w-full items-center gap-2 rounded-lg border px-3 py-1.5 text-left text-sm text-(--color-muted) transition-colors hover:bg-[var(--fill-subtle)] hover:text-(--color-fg) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          style={{ borderColor: "var(--hairline)" }}
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
+            <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.25" />
+            <path d="M13 13l-2.5-2.5" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
+          </svg>
+          <span className="flex-1">Search…</span>
+          <kbd
+            className="rounded border px-1.5 py-0.5 font-mono text-[10px] leading-none"
+            style={{ borderColor: "var(--hairline)", color: "var(--color-muted)" }}
+          >
+            ⌘K
+          </kbd>
+        </button>
       </div>
 
       {/* ── Score mini-display ────────────────────────────────────────────── */}

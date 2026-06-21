@@ -423,6 +423,17 @@
     animation: 450ms var(--ease-out-smooth) both scale-up-fade;
   }
 
+  /* Exec-summary headline score: soft cross-fade while the group interpolates
+     position/size across the four routes that render <ExecutiveSummary>. Kept
+     deliberately gentle (no scale) so it reads as continuity, not a second
+     score competing with the signature score-circle morph. */
+  ::view-transition-old(exec-summary-score) {
+    animation: var(--duration-fast) var(--ease-revolut) both fade-out;
+  }
+  ::view-transition-new(exec-summary-score) {
+    animation: var(--duration-page) var(--ease-revolut) both fade-in;
+  }
+
   @keyframes fade-out { from { opacity: 1; } to { opacity: 0; } }
   @keyframes fade-in  { from { opacity: 0; } to { opacity: 1; } }
   @keyframes page-exit {

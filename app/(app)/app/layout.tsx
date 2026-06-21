@@ -17,6 +17,8 @@ import { serverDb } from "@/lib/db/client";
 import type { ReportPayload } from "@/lib/scan/report";
 import type { Tier } from "@/lib/billing/tiers";
 import { AppSidebar } from "@/components/app/app-sidebar";
+import { CommandPalette } from "@/components/app/command-palette";
+import { AppBreadcrumbs } from "@/components/app/app-breadcrumbs";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -120,6 +122,8 @@ export default function AppLayout({
       className="flex min-h-screen"
       style={{ background: "var(--color-bg)" }}
     >
+      {/* ⌘K command palette — globally available across the app shell */}
+      <CommandPalette />
       <Suspense fallback={<SidebarSkeleton>{null}</SidebarSkeleton>}>
         <SidebarData>
           {/* ── Content area — View Transitions swap here ── */}
@@ -127,6 +131,7 @@ export default function AppLayout({
             className="flex min-h-screen flex-1 flex-col overflow-x-hidden"
             style={{ background: "var(--color-bg)" }}
           >
+            <AppBreadcrumbs />
             {children}
           </main>
         </SidebarData>

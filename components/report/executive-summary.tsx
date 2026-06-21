@@ -9,6 +9,7 @@
  */
 
 import type { ExecutiveSummary as ExecutiveSummaryData } from "@/lib/scan/report";
+import { NumberTicker } from "@/components/motion/number-ticker";
 
 function scoreColor(total: number): string {
   if (total >= 70) return "var(--color-success)";
@@ -45,8 +46,11 @@ export function ExecutiveSummary({ summary }: { summary: ExecutiveSummaryData })
 
         {/* Headline score + verdict */}
         <div className="mt-2 flex items-baseline gap-3">
-          <span className="font-mono text-3xl font-semibold tabular-nums leading-none" style={{ color }}>
-            {score.total}
+          <span
+            className="font-mono text-3xl font-semibold tabular-nums leading-none"
+            style={{ color, viewTransitionName: "exec-summary-score" } as React.CSSProperties}
+          >
+            <NumberTicker value={score.total} />
           </span>
           <span className="font-mono text-sm" style={{ color: "var(--color-muted)" }}>/100</span>
           <span className="text-sm font-medium" style={{ color: "var(--color-fg)" }}>{score.verdict}</span>
