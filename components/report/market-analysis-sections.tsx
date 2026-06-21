@@ -13,7 +13,7 @@ import type { DemandPocket } from "@/lib/scan/demand/types";
 import { COACH_GUIDES } from "@/lib/scan/distribute/coach";
 import { DeepSection } from "./deep-section-shell";
 import { DistributeWidget } from "./distribute-widget";
-import { KeywordGapList } from "./keyword-gap-list";
+import { KeywordGapTable } from "./keyword-gap-table";
 import { TopPagesTable } from "./top-pages-table";
 import { EaseImpactScatter } from "@/components/charts/ease-impact-scatter";
 import { DonutChart, sovSegments } from "@/components/charts/donut-chart";
@@ -396,7 +396,7 @@ export function KeywordGapSection({ market }: { market: MarketAnalysis }) {
   return (
     <DeepSection id="keyword-gap" eyebrow="Keyword gap" title="What your rivals rank for that you don't">
       <p className="mb-2 text-xs leading-snug" style={{ color: "var(--color-muted)" }}>{narrateKeywordGap(rows)}</p>
-      <KeywordGapList rows={rows} />
+      <KeywordGapTable rows={rows} />
     </DeepSection>
   );
 }

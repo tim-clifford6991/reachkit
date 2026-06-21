@@ -104,6 +104,7 @@ export function TopPagesTable({ rows }: { rows: TopPageRow[] }) {
         className="mb-2 h-8 w-full rounded-lg border bg-transparent px-3 text-xs outline-none transition-colors focus-visible:ring-2"
         style={{ borderColor: "var(--hairline-strong)", color: "var(--color-fg)" }}
       />
+      <div className="overflow-x-auto">
       <table className="w-full border-collapse text-sm">
         <thead>
           {table.getHeaderGroups().map((hg) => (
@@ -160,6 +161,7 @@ export function TopPagesTable({ rows }: { rows: TopPageRow[] }) {
           )}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

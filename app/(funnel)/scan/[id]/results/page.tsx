@@ -15,6 +15,7 @@ import { WhereTheyAreSection } from "@/components/report/where-they-are-section"
 import { ActionPlanSection } from "@/components/report/action-plan-section";
 import { SignalBreakdownSection } from "@/components/report/signal-breakdown-section";
 import { EvidenceFooter } from "@/components/report/evidence-footer";
+import { TopFixesPreview } from "@/components/report/top-fixes-preview";
 import { readSignalBreakdown } from "@/lib/scan/signal-breakdown";
 import { CompetitiveLandscapeSection } from "@/components/report/competitive-landscape-section";
 import { ChannelOpportunitiesSection } from "@/components/report/channel-opportunities-section";
@@ -139,9 +140,22 @@ async function ResultsContent({ id }: { id: string }) {
 
   // 18-signal explainability (empty for pre-migration scans → panel degrades).
   const signalBreakdown = await readSignalBreakdown(id);
+  const productName = (data.preliminary_facts as unknown as PreliminaryFacts | null)?.listing?.name ?? null;
 
   return (
     <>
+      {/* Hero header — the product this report is about. */}
+      {productName && (
+        <div className="text-center">
+          <p className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "var(--color-accent-400)" }}>
+            Discoverability report
+          </p>
+          <h1 className="mt-0.5 text-xl font-semibold" style={{ color: "var(--color-fg)" }}>
+            {productName}
+          </h1>
+        </div>
+      )}
+
       {/* §23 moment 6 — stale-report strip. Honest, not nagging. */}
       <SnapshotStrip generatedAt={generatedAt} isPaid={isPaid} />
 
@@ -151,6 +165,10 @@ async function ResultsContent({ id }: { id: string }) {
       {/* ── Executive summary ("page 1") + jump nav. The summary doubles as
           the strongest free teaser, so it sits above the upgrade wall. ── */}
       <ExecutiveSummary summary={buildExecutiveSummary(report)} />
+
+      {/* Top fixes — lead with impact, above the four-question sections. */}
+      <TopFixesPreview whatToDoThisWeek={report.whatToDoThisWeek} />
+
       <SectionNav items={buildSectionNavItems(report, { unlocked: isPaid })} />
 
       {/* ── Free-teaser proof / paid landscape — superseded by the market
