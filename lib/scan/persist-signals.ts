@@ -40,7 +40,7 @@ async function readSubjectHtml(subjectKey: string): Promise<string | null> {
     .eq("subject_type", "web")
     .eq("subject_key", subjectKey)
     .eq("source_type", "site_fetch")
-    .order("created_at", { ascending: false })
+    .order("fetched_at", { ascending: false })
     .limit(1)
     .maybeSingle();
   const body = data?.body as unknown;
