@@ -14,6 +14,7 @@ import { WhoItsForSection } from "@/components/report/who-its-for-section";
 import { WhereTheyAreSection } from "@/components/report/where-they-are-section";
 import { ActionPlanSection } from "@/components/report/action-plan-section";
 import { SignalBreakdownSection } from "@/components/report/signal-breakdown-section";
+import { EvidenceFooter } from "@/components/report/evidence-footer";
 import { readSignalBreakdown } from "@/lib/scan/signal-breakdown";
 import { CompetitiveLandscapeSection } from "@/components/report/competitive-landscape-section";
 import { ChannelOpportunitiesSection } from "@/components/report/channel-opportunities-section";
@@ -196,6 +197,7 @@ async function ResultsContent({ id }: { id: string }) {
         />
         <SignalBreakdownSection groups={signalBreakdown} />
       </ReportReveal>
+      <EvidenceFooter generatedAt={generatedAt} groups={signalBreakdown} />
     </>
   );
 }

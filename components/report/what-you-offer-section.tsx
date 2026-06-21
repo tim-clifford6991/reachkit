@@ -55,30 +55,33 @@ export function WhatYouOfferSection({
         </div>
 
         <div className="space-y-4">
-          {/* Listing says */}
-          <div className="space-y-1.5">
-            <p
-              className="font-mono text-[10px] uppercase tracking-wider"
-              style={{ color: "var(--color-muted)" }}
+          {/* Two-column diff: what you claim vs what buyers actually value */}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div
+              className="rounded-lg px-4 py-3"
+              style={{ background: "var(--fill-subtle)", border: "1px solid var(--hairline)" }}
             >
-              Your listing says
-            </p>
-            <p className="text-sm leading-relaxed" style={{ color: "var(--color-fg)" }}>
-              {pm.listingSays}
-            </p>
-          </div>
-
-          {/* Reviews value */}
-          <div className="space-y-1.5">
-            <p
-              className="font-mono text-[10px] uppercase tracking-wider"
-              style={{ color: "var(--color-muted)" }}
+              <p className="font-mono text-[10px] uppercase tracking-wider" style={{ color: "var(--color-muted)" }}>
+                Your listing says
+              </p>
+              <p className="mt-1.5 text-sm leading-relaxed" style={{ color: "var(--color-fg)" }}>
+                {pm.listingSays}
+              </p>
+            </div>
+            <div
+              className="rounded-lg px-4 py-3"
+              style={{
+                background: "color-mix(in oklch, var(--color-success) 8%, transparent)",
+                border: "1px solid color-mix(in oklch, var(--color-success) 25%, transparent)",
+              }}
             >
-              Your buyers value
-            </p>
-            <p className="text-sm leading-relaxed" style={{ color: "var(--color-fg)" }}>
-              {pm.reviewsValue}
-            </p>
+              <p className="font-mono text-[10px] uppercase tracking-wider" style={{ color: "var(--color-success)" }}>
+                Your buyers value
+              </p>
+              <p className="mt-1.5 text-sm leading-relaxed" style={{ color: "var(--color-fg)" }}>
+                {pm.reviewsValue}
+              </p>
+            </div>
           </div>
 
           {/* Positioning gap — the key insight */}
