@@ -59,7 +59,8 @@ import { collectDeltas } from "@/lib/scan/delta-collect";
 import { generateActions } from "@/lib/llm/actions";
 import { runCriticGate } from "@/lib/llm/critic";
 import { algorithmSafety } from "@/lib/scan/algorithm-safety";
-import { gatherScoreComponents, verifiedScore } from "@/lib/scan/score-full";
+import { gatherScoreComponents, verifiedScore, CURRENT_SCORE_VERSION } from "@/lib/scan/score-full";
+import { persistScanSignals } from "@/lib/scan/persist-signals";
 import { competitorDiscoveryLoop } from "@/lib/scan/loops";
 import { rankCompetitors } from "@/lib/scan/competitors";
 import { upsertRawDocument } from "@/lib/db/raw-documents";
@@ -622,8 +623,17 @@ async function writeScoreSnapshot(
     taken_at: now,
     total: score.total,
     breakdown: score.breakdown as unknown as Json,
+    score_version: CURRENT_SCORE_VERSION,
+    source: "weekly_refresh",
   });
   if (error) throw error;
+
+  // Keep the per-signal rows fresh for the anchor scan (best-effort).
+  try {
+    await persistScanSignals({ scanId: ctx.scanId, mode: ctx.mode, storeUrl: ctx.storeUrl, components, market: null });
+  } catch (e) {
+    console.error("[refresh] persistScanSignals failed (best-effort)", e);
+  }
 }
 
 // ---------------------------------------------------------------------------

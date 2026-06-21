@@ -26,7 +26,8 @@ import { env } from "@/lib/config/env";
 import { ScanBudget } from "@/lib/tools/registry";
 import { verifyAction } from "@/lib/scan/tools/verify-action";
 import { trackRank } from "@/lib/scan/tools/track-rank";
-import { gatherScoreComponents, verifiedScore } from "@/lib/scan/score-full";
+import { gatherScoreComponents, verifiedScore, CURRENT_SCORE_VERSION } from "@/lib/scan/score-full";
+import { persistScanSignals } from "@/lib/scan/persist-signals";
 import { hostname } from "@/lib/scan/url";
 import type { ScanContext } from "@/lib/scan/pipeline";
 import type { ToolContext } from "@/lib/tools/registry";
@@ -265,13 +266,27 @@ async function snapshotScore(action: LoadedAction): Promise<void> {
   const components = await gatherScoreComponents(ctx, facts);
   const score = verifiedScore(components, action.platform);
 
-  // History row so the score timeline shows the bump.
+  // History row so the score timeline shows the bump. action_id marks it as an
+  // action-completion marker on the score-history chart.
   const { error: snapErr } = await db.from("score_snapshots").insert({
     app_id: action.appId,
     total: score.total,
     breakdown: score.breakdown as unknown as Json,
+    score_version: CURRENT_SCORE_VERSION,
+    source: "action_verify",
+    scan_id: scanRow?.id ?? null,
+    action_id: action.id,
   });
   if (snapErr) throw snapErr;
+
+  // Refresh the per-signal rows for the anchor scan (best-effort).
+  if (scanRow?.id) {
+    try {
+      await persistScanSignals({ scanId: scanRow.id, mode: ctx.mode, storeUrl: ctx.storeUrl, components, market: null });
+    } catch (e) {
+      console.error("[verify] persistScanSignals failed (best-effort)", e);
+    }
+  }
 }
 
 /**
