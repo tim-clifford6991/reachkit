@@ -1,79 +1,12 @@
 /**
- * DiscoverabilityScore visual logic tests.
+ * DiscoverabilityScore integration tests.
  *
- * We test the pure helper functions (score label, ring colour, polar-to-cart
- * geometry) that back the SVG rendering — without a DOM or React renderer.
- * These run in vitest node environment.
+ * The band label + ring colour now come from lib/scan/score-bands (tested in
+ * score-bands.test.ts). This file keeps the VerifiedScore-shape integration.
  */
 
 import { describe, it, expect } from "vitest";
 import { verifiedScore } from "@/lib/scan/score-full";
-
-// ---------------------------------------------------------------------------
-// Helper duplication for testing (mirrors the private functions in the component)
-// ---------------------------------------------------------------------------
-
-function scoreLabel(total: number): string {
-  if (total >= 80) return "Excellent";
-  if (total >= 60) return "Good";
-  if (total >= 40) return "Fair";
-  if (total >= 20) return "Needs Work";
-  return "Critical";
-}
-
-function ringColour(total: number): string {
-  if (total >= 70) return "oklch(0.72 0.17 155)";
-  if (total >= 40) return "oklch(0.60 0.18 255)";
-  return "oklch(0.78 0.18 70)";
-}
-
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
-
-describe("scoreLabel", () => {
-  it("returns Excellent for score >= 80", () => {
-    expect(scoreLabel(80)).toBe("Excellent");
-    expect(scoreLabel(100)).toBe("Excellent");
-  });
-
-  it("returns Good for score 60–79", () => {
-    expect(scoreLabel(60)).toBe("Good");
-    expect(scoreLabel(79)).toBe("Good");
-  });
-
-  it("returns Fair for score 40–59", () => {
-    expect(scoreLabel(40)).toBe("Fair");
-    expect(scoreLabel(59)).toBe("Fair");
-  });
-
-  it("returns Needs Work for score 20–39", () => {
-    expect(scoreLabel(20)).toBe("Needs Work");
-    expect(scoreLabel(39)).toBe("Needs Work");
-  });
-
-  it("returns Critical for score < 20", () => {
-    expect(scoreLabel(0)).toBe("Critical");
-    expect(scoreLabel(19)).toBe("Critical");
-  });
-});
-
-describe("ringColour", () => {
-  it("returns success green for score >= 70", () => {
-    expect(ringColour(70)).toBe("oklch(0.72 0.17 155)");
-    expect(ringColour(100)).toBe("oklch(0.72 0.17 155)");
-  });
-
-  it("returns accent blue for score 40–69", () => {
-    expect(ringColour(40)).toBe("oklch(0.60 0.18 255)");
-    expect(ringColour(69)).toBe("oklch(0.60 0.18 255)");
-  });
-
-  it("returns warning amber for score < 40", () => {
-    expect(ringColour(0)).toBe("oklch(0.78 0.18 70)");
-    expect(ringColour(39)).toBe("oklch(0.78 0.18 70)");
-  });
-});
 
 describe("DiscoverabilityScore integration: VerifiedScore shape", () => {
   it("produces a 7-axis radar from verifiedScore()", () => {

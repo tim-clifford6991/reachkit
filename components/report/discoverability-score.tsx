@@ -4,6 +4,7 @@ import * as React from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { NumberTicker } from "@/components/motion/number-ticker";
 import type { VerifiedScore, RadarAxis } from "@/lib/scan/score-full";
+import { bandFor } from "@/lib/scan/score-bands";
 
 /*
  * ─────────────────────────────────────────────────────────────────────────────
@@ -69,21 +70,7 @@ function toPoints(pts: { x: number; y: number }[]): string {
   return pts.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ");
 }
 
-/** Score → descriptive label for screen-reader & tooltip */
-function scoreLabel(total: number): string {
-  if (total >= 80) return "Excellent";
-  if (total >= 60) return "Good";
-  if (total >= 40) return "Fair";
-  if (total >= 20) return "Needs Work";
-  return "Critical";
-}
-
-/** Score → ring colour */
-function ringColour(total: number): string {
-  if (total >= 70) return "oklch(0.72 0.17 155)"; // success green
-  if (total >= 40) return "var(--color-accent)"; // accent blue
-  return "oklch(0.78 0.18 70)";                    // warning amber
-}
+// Band label + ring colour now come from the canonical lib/scan/score-bands.
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -101,7 +88,7 @@ function RadialRing({
 }) {
   const fraction = total / 100;
   const offset   = RING_CIRC * (1 - fraction);
-  const colour   = ringColour(total);
+  const colour   = bandFor(total).color;
   const ringSize = size === "sm" ? 140 : 200;
 
   return (
@@ -356,16 +343,47 @@ export interface DiscoverabilityScoreProps {
   score: VerifiedScore;
   size?: "sm" | "lg";
   className?: string;
+  /**
+   * Score change vs the previous scan. `undefined` hides the row (callers that
+   * don't have history), `null` shows a "Baseline" tag (first scan), a number
+   * shows a direction-colored delta badge.
+   */
+  delta?: number | null;
+}
+
+function DeltaBadge({ delta }: { delta: number | null }) {
+  if (delta === null) {
+    return (
+      <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+        Baseline
+      </span>
+    );
+  }
+  if (delta === 0) {
+    return <span className="text-xs text-muted-foreground">No change since last scan</span>;
+  }
+  const up = delta > 0;
+  return (
+    <span
+      className="text-xs font-medium tabular-nums"
+      style={{ color: up ? "var(--color-success)" : "var(--color-danger)" }}
+    >
+      {up ? "▲ +" : "▼ −"}
+      {Math.abs(delta)} since last scan
+    </span>
+  );
 }
 
 export function DiscoverabilityScore({
   score,
   size = "lg",
   className,
+  delta,
 }: DiscoverabilityScoreProps) {
   const prefersReduced = useReducedMotion();
   const shouldAnimate  = !prefersReduced;
-  const label = scoreLabel(score.total);
+  const band = bandFor(score.total);
+  const label = band.label;
   const assessedFor = (axis: string) =>
     score.radar.find((a) => a.axis === axis)?.assessed ?? true;
 
@@ -391,7 +409,7 @@ export function DiscoverabilityScore({
             className="font-mono font-semibold leading-none tabular-nums"
             style={{
               fontSize: size === "sm" ? "1.75rem" : "2.5rem",
-              color: ringColour(score.total),
+              color: band.color,
             }}
           >
             <NumberTicker value={score.total} />
@@ -405,11 +423,12 @@ export function DiscoverabilityScore({
         </div>
       </div>
 
-      {/* Score label */}
-      <div className="text-center">
-        <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+      {/* Band label (plain English, band-colored) + delta */}
+      <div className="space-y-1 text-center">
+        <p className="text-sm font-medium" style={{ color: band.color }}>
           {label}
         </p>
+        {delta !== undefined && <DeltaBadge delta={delta} />}
       </div>
 
       {/* ── Radar chart (only in lg) ────────────────────────────────────── */}
