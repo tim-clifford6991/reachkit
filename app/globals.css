@@ -80,7 +80,7 @@
 
   /* ── Surface / text aliases (LIGHT defaults; overridden in .dark) ─────── */
   --color-bg:       oklch(0.975 0.012 80);   /* warm cream paper */
-  --color-app-canvas: oklch(0.955 0.007 75); /* app shell canvas — soft warm-grey so near-white cards pop */
+  --color-app-canvas: oklch(0.945 0.008 74); /* app shell canvas — soft warm-grey so near-white cards pop */
   --color-fg:       oklch(0.28 0.020 60);    /* warm ink */
   --color-muted:    oklch(0.50 0.020 62);    /* secondary text */
   --color-surface:  oklch(0.995 0.006 85);   /* card / panel (near-white warm) */
