@@ -17,11 +17,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth/server";
 import { entitlementsFor, redactReportForTier } from "@/lib/billing/entitlements";
-import { isPaid } from "@/lib/billing/tiers";
+import { isPaid, TIER_LIMITS } from "@/lib/billing/tiers";
 import { serverDb } from "@/lib/db/client";
 import type { ReportPayload } from "@/lib/scan/report";
-import { buildExecutiveSummary } from "@/lib/scan/report";
-import { ExecutiveSummary } from "@/components/report/executive-summary";
+import { readSignalBreakdown } from "@/lib/scan/signal-breakdown";
 import { assembleWeeklyPlan } from "@/lib/scan/weekly-plan";
 import { engagementSummary } from "@/lib/scan/engagement";
 import { latestRefreshDigest } from "@/lib/scan/digest";
@@ -31,8 +30,7 @@ import { WhoItsForSection } from "@/components/report/who-its-for-section";
 import { WhereTheyAreSection } from "@/components/report/where-they-are-section";
 import { ActionPlanSection } from "@/components/report/action-plan-section";
 import { StrengthsWeaknessesSection } from "@/components/report/strengths-weaknesses-section";
-import { ScoreBlockDashboard } from "@/components/app/score-block-dashboard";
-import { ScoreHistoryCard } from "@/components/app/score-history-card";
+import { DashboardAnalytics } from "@/components/app/dashboard-analytics";
 import { PlaysPreview } from "@/components/app/plays-preview";
 import { EngagementStrip } from "@/components/app/engagement-strip";
 import { ExportButton } from "@/components/app/export-button";
@@ -73,7 +71,7 @@ async function DashboardContent() {
   // Latest scan
   const { data: scanRow } = await db
     .from("scans")
-    .select("report_payload")
+    .select("id, report_payload")
     .eq("app_id", primaryAppId)
     .order("completed_at", { ascending: false })
     .limit(1)
@@ -85,6 +83,8 @@ async function DashboardContent() {
 
   const fullReport = scanRow.report_payload as unknown as ReportPayload;
   const report = redactReportForTier(fullReport, tier);
+  // 18-signal breakdown for the KPI scorecards + optimization-ideas card.
+  const breakdown = await readSignalBreakdown(scanRow.id as string);
 
   // Parallel fetches. The refresh digest + market trends are paid-retention
   // surfaces — skip the reads for free viewers.
@@ -102,7 +102,6 @@ async function DashboardContent() {
     ...weeklyPlan.queue.longPlay,
   ].slice(0, 3);
 
-  const execSummary = buildExecutiveSummary(report);
   // Δ vs previous scan from the score history (oldest-first); null = baseline.
   const lastPoint = engagement.history.at(-1);
   const prevPoint = engagement.history.at(-2);
@@ -128,14 +127,15 @@ async function DashboardContent() {
       {/* Weekly retention hook — alerts + change digest (paid). */}
       <WhatsChanged digest={digest} />
 
-      {/* ── HERO ── score gauge (with Δ) beside the executive snapshot. */}
-      <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
-        <ScoreBlockDashboard score={report.score} delta={scoreDelta} />
-        <ExecutiveSummary summary={execSummary} />
-      </div>
-
-      {/* Score history — the primary trend visual (band-zoned area chart). */}
-      <ScoreHistoryCard history={engagement.history} />
+      {/* ── ANALYTICS ── KPI scorecards → hero trend + right rail → keyword table. */}
+      <DashboardAnalytics
+        score={report.score}
+        scoreDelta={scoreDelta}
+        breakdown={breakdown}
+        market={report.market ?? null}
+        history={engagement.history}
+        rankDepth={TIER_LIMITS[tier].rankDepth}
+      />
 
       {/* Deep market intel lives on its own page now — link, don't duplicate. */}
       {hasMarket && (
