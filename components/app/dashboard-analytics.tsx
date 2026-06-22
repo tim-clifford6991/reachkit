@@ -15,6 +15,7 @@ import { bandFor } from "@/lib/scan/score-bands";
 import { ScoreHistoryCard } from "@/components/app/score-history-card";
 import { KeywordGapTable } from "@/components/report/keyword-gap-table";
 import { InfoTip } from "@/components/ui/info-tip";
+import { EmptyState } from "@/components/ui/empty-state";
 
 // ── KPI scorecards ──────────────────────────────────────────────────────────
 
@@ -221,12 +222,19 @@ export function DashboardAnalytics({
         </div>
       </div>
 
-      {/* Keyword gaps table */}
-      {hasMarket && market.gap.keywordGap.length > 0 && (
-        <Card title="Keyword gaps — rivals rank, you don't">
-          <KeywordGapTable rows={market.gap.keywordGap} rankDepth={rankDepth} dataAsOf={dataAsOf} />
-        </Card>
-      )}
+      {/* Keyword gaps table — positive empty when you're not being out-ranked */}
+      {hasMarket &&
+        (market.gap.keywordGap.length > 0 ? (
+          <Card title="Keyword gaps — rivals rank, you don't">
+            <KeywordGapTable rows={market.gap.keywordGap} rankDepth={rankDepth} dataAsOf={dataAsOf} />
+          </Card>
+        ) : (
+          <EmptyState
+            tone="positive"
+            title="No keyword gaps right now"
+            hint="You're matching or beating your rivals on the queries we checked. We'll flag new gaps as they appear."
+          />
+        ))}
     </div>
   );
 }
