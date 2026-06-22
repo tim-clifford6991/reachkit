@@ -16,6 +16,7 @@ import { ActionPlanSection } from "@/components/report/action-plan-section";
 import { SignalBreakdownSection } from "@/components/report/signal-breakdown-section";
 import { EvidenceFooter } from "@/components/report/evidence-footer";
 import { TopFixesPreview } from "@/components/report/top-fixes-preview";
+import { ShareScoreButton } from "@/components/report/share-score-button";
 import { readSignalBreakdown } from "@/lib/scan/signal-breakdown";
 import { CompetitiveLandscapeSection } from "@/components/report/competitive-landscape-section";
 import { ChannelOpportunitiesSection } from "@/components/report/channel-opportunities-section";
@@ -153,6 +154,9 @@ async function ResultsContent({ id }: { id: string }) {
           <h1 className="mt-0.5 text-xl font-semibold" style={{ color: "var(--color-fg)" }}>
             {productName}
           </h1>
+          <div className="mt-2 flex justify-center">
+            <ShareScoreButton slug={id} />
+          </div>
         </div>
       )}
 

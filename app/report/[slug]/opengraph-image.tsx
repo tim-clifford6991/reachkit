@@ -22,6 +22,7 @@ import { ImageResponse } from "next/og";
 import { serverDb } from "@/lib/db/client";
 import type { ReportPayload } from "@/lib/scan/report";
 import { buildScoreCard } from "@/lib/badge/score-card";
+import { bandFor } from "@/lib/scan/score-bands";
 
 export const runtime = "nodejs";
 
@@ -46,21 +47,24 @@ const BRAND = {
 } as const;
 
 // ---------------------------------------------------------------------------
-// Colour helpers (mirroring discoverability-score.tsx logic with hex)
+// Band helpers — canonical labels from lib/scan/score-bands, with a hex ramp
+// (Satori can't resolve the OKLCH tokens, so the colors are mirrored as hex).
 // ---------------------------------------------------------------------------
 
+const BAND_HEX: Record<string, string> = {
+  invisible: "#e5484d",
+  hard: "#e8853f",
+  fair: "#e0b341",
+  findable: "#46a758",
+  high: "#2f8a4a",
+};
+
 function scoreColour(total: number): string {
-  if (total >= 70) return BRAND.success;
-  if (total >= 40) return BRAND.accent;
-  return BRAND.warning;
+  return BAND_HEX[bandFor(total).key] ?? BRAND.accent;
 }
 
 function scoreLabel(total: number): string {
-  if (total >= 80) return "Excellent";
-  if (total >= 60) return "Good";
-  if (total >= 40) return "Fair";
-  if (total >= 20) return "Needs Work";
-  return "Critical";
+  return bandFor(total).label;
 }
 
 // ---------------------------------------------------------------------------

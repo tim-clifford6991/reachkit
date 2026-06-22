@@ -71,6 +71,9 @@ async function PlaysContent() {
     return <EmptyQueueState weekOf={plan.weekOf} />;
   }
 
+  // Weekly cadence: the queue refreshes Monday. Days until the next refresh.
+  const refreshDays = ((8 - new Date().getUTCDay()) % 7) || 7;
+
   return (
     <div className="space-y-6">
       {/* Week header */}
@@ -97,6 +100,14 @@ async function PlaysContent() {
         </div>
 
         <div className="flex shrink-0 items-center gap-3 text-right">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "var(--color-muted)" }}>
+              Refreshes in
+            </p>
+            <p className="mt-0.5 font-mono text-base font-semibold tabular-nums" style={{ color: "var(--color-accent-400)" }}>
+              {refreshDays}d
+            </p>
+          </div>
           {plan.scoreDeltaLastWeek !== 0 && (
             <div>
               <p
