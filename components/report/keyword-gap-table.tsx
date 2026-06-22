@@ -34,7 +34,7 @@ const OPP_STYLE: Record<Opportunity, { bg: string; fg: string }> = {
 
 const col = createColumnHelper<KeywordGapRow>();
 
-export function KeywordGapTable({ rows }: { rows: KeywordGapRow[] }) {
+export function KeywordGapTable({ rows, rankDepth = 0 }: { rows: KeywordGapRow[]; rankDepth?: number }) {
   const [sortParam, setSortParam] = useQueryState("kg", parseAsString.withDefault("volume:desc"));
   const [filter, setFilter] = useQueryState("kgq", parseAsString.withDefault(""));
   const parts = (sortParam || "volume:desc").split(":");
@@ -94,7 +94,10 @@ export function KeywordGapTable({ rows }: { rows: KeywordGapRow[] }) {
     getFilteredRowModel: getFilteredRowModel(),
   });
 
-  const filtered = table.getRowModel().rows;
+  const allFiltered = table.getRowModel().rows;
+  // Rank-depth metering: this tier shows the top `rankDepth` rows.
+  const capped = rankDepth > 0 && allFiltered.length > rankDepth;
+  const filtered = capped ? allFiltered.slice(0, rankDepth) : allFiltered;
 
   return (
     <div>
@@ -151,6 +154,15 @@ export function KeywordGapTable({ rows }: { rows: KeywordGapRow[] }) {
           </tbody>
         </table>
       </div>
+      {capped && (
+        <a
+          href="/app/billing"
+          className="mt-2 flex items-center justify-center gap-2 rounded-lg border border-dashed py-2 text-xs font-medium transition-colors hover:bg-[var(--fill-subtle)]"
+          style={{ borderColor: "var(--color-accent-900)", color: "var(--color-accent-400)" }}
+        >
+          Showing {rankDepth} of {allFiltered.length} · upgrade for full keyword depth →
+        </a>
+      )}
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { buildMetadata } from "@/lib/seo";
 import { serverDb } from "@/lib/db/client";
 import { currentUser } from "@/lib/auth/server";
-import { type Tier } from "@/lib/billing/tiers";
+import { type Tier, TIER_LIMITS } from "@/lib/billing/tiers";
 import { entitlementsFor, redactReportForTier } from "@/lib/billing/entitlements";
 import type { ReportPayload } from "@/lib/scan/report";
 import { buildExecutiveSummary } from "@/lib/scan/report";
@@ -192,7 +192,7 @@ async function ResultsContent({ id }: { id: string }) {
 
         {/* M4 market analysis supersedes the lighter channels/creators sections. */}
         {hasMarket && report.market ? (
-          <MarketAnalysisSections market={report.market} unlocked={isPaid} />
+          <MarketAnalysisSections market={report.market} unlocked={isPaid} rankDepth={TIER_LIMITS[tier].rankDepth} />
         ) : (
           <>
             <ChannelOpportunitiesSection

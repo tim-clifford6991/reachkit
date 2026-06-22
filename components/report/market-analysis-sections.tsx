@@ -390,13 +390,13 @@ export function RecentBuzzSection({ market }: { market: MarketAnalysis }) {
 
 // ── Keyword gap — keywords rivals rank for that you don't (paid) ──────────────
 
-export function KeywordGapSection({ market }: { market: MarketAnalysis }) {
+export function KeywordGapSection({ market, rankDepth }: { market: MarketAnalysis; rankDepth?: number }) {
   const rows = market.gap.keywordGap;
   if (rows.length === 0) return null;
   return (
     <DeepSection id="keyword-gap" eyebrow="Keyword gap" title="What your rivals rank for that you don't">
       <p className="mb-2 text-xs leading-snug" style={{ color: "var(--color-muted)" }}>{narrateKeywordGap(rows)}</p>
-      <KeywordGapTable rows={rows} />
+      <KeywordGapTable rows={rows} rankDepth={rankDepth} />
     </DeepSection>
   );
 }
@@ -423,16 +423,19 @@ export function TopPagesSection({ market }: { market: MarketAnalysis }) {
 export function MarketAnalysisSections({
   market,
   unlocked = true,
+  rankDepth,
 }: {
   market: MarketAnalysis;
   unlocked?: boolean;
+  /** This tier's keyword rank-tracking depth — meters the keyword-gap table. */
+  rankDepth?: number;
 }) {
   return (
     <>
       <CompetitorProfilesSection cohort={market.cohort} />
       <MarketBenchmarkSection market={market} />
       <ChannelMatrixSection market={market} />
-      {unlocked ? <KeywordGapSection market={market} /> : null}
+      {unlocked ? <KeywordGapSection market={market} rankDepth={rankDepth} /> : null}
       {unlocked ? <TopPagesSection market={market} /> : null}
       <DemandPocketsSection market={market} unlocked={unlocked} />
       {unlocked ? <RecentBuzzSection market={market} /> : null}

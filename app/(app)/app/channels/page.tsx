@@ -12,7 +12,7 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth/server";
 import { entitlementsFor, redactReportForTier } from "@/lib/billing/entitlements";
-import { isPaid } from "@/lib/billing/tiers";
+import { isPaid, TIER_LIMITS } from "@/lib/billing/tiers";
 import { serverDb } from "@/lib/db/client";
 import type { ReportPayload } from "@/lib/scan/report";
 import { buildExecutiveSummary } from "@/lib/scan/report";
@@ -61,7 +61,7 @@ async function MarketReportContent() {
       />
       <SectionNav items={navItems} />
       {report.market ? (
-        <MarketAnalysisSections market={report.market} unlocked={userIsPaid} />
+        <MarketAnalysisSections market={report.market} unlocked={userIsPaid} rankDepth={TIER_LIMITS[tier].rankDepth} />
       ) : (
         <>
           <CompetitiveLandscapeSection rows={report.competitiveLandscape} unlocked={userIsPaid} />
