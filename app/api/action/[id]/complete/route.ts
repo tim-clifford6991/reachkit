@@ -82,13 +82,15 @@ export async function POST(
     return NextResponse.json({ message: "unexpected entitlement error" }, { status: 500 });
   }
 
-  // 4. Persist verify_url (if provided) + flip verify_state to pending.
-  const update: { verify_state: string; verify_url?: string } = { verify_state: "pending" };
+  // 4. Persist verify_url (if provided) + flip verify_state to "verifying" — a
+  //    real intermediate state (async verification flips it to verified/failed),
+  //    so the action board can show an explicit "Verifying" group.
+  const update: { verify_state: string; verify_url?: string } = { verify_state: "verifying" };
   if (verifyUrl !== undefined) update.verify_url = verifyUrl;
 
   const { error: updErr } = await db.from("actions").update(update).eq("id", actionId);
   if (updErr) {
-    return NextResponse.json({ message: "failed to mark action pending" }, { status: 500 });
+    return NextResponse.json({ message: "failed to mark action verifying" }, { status: 500 });
   }
 
   // 5. Kick off async verification.

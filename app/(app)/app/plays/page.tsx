@@ -16,6 +16,8 @@ import type { WeeklyPlanAction } from "@/lib/scan/weekly-plan";
 import { Skeleton } from "@/components/ui/skeleton";
 import { buildMetadata } from "@/lib/seo";
 import { PlaysBuckets } from "./plays-buckets";
+import { ActionBoardSections } from "@/components/app/action-board-sections";
+import { actionBoard } from "@/lib/scan/action-board";
 import Link from "next/link";
 
 export const metadata = buildMetadata({
@@ -73,6 +75,9 @@ async function PlaysContent() {
 
   // Weekly cadence: the queue refreshes Monday. Days until the next refresh.
   const refreshDays = ((8 - new Date().getUTCDay()) % 7) || 7;
+
+  // In-flight + completed actions (the queue drops these) for the status board.
+  const board = await actionBoard(primaryAppId);
 
   return (
     <div className="space-y-6">
@@ -189,6 +194,9 @@ async function PlaysContent() {
         medium={plan.queue.medium}
         longPlay={plan.queue.longPlay}
       />
+
+      {/* Status board — verifying / done (predicted vs actual Δ) / needs-another-look */}
+      <ActionBoardSections board={board} />
     </div>
   );
 }
