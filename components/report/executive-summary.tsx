@@ -10,6 +10,7 @@
 
 import type { ExecutiveSummary as ExecutiveSummaryData } from "@/lib/scan/report";
 import { NumberTicker } from "@/components/motion/number-ticker";
+import { InfoTip } from "@/components/ui/info-tip";
 
 function scoreColor(total: number): string {
   if (total >= 70) return "var(--color-success)";
@@ -88,7 +89,7 @@ export function ExecutiveSummary({
           <span className="text-sm font-medium" style={{ color: "var(--color-fg)" }}>{score.verdict}</span>
         </div>
         <p className="mt-1.5 font-mono text-[11px] tabular-nums" style={{ color: "var(--color-muted)" }}>
-          Content {score.breakdown.content} · Outreach {score.breakdown.outreach} · SEO {score.breakdown.seo}
+          <InfoTip term="Content" /> {score.breakdown.content} · <InfoTip term="Outreach" /> {score.breakdown.outreach} · <InfoTip term="SEO" /> {score.breakdown.seo}
         </p>
 
         {/* Proof grid */}
