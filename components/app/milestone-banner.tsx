@@ -22,8 +22,8 @@ export function MilestoneBanner({ delta }: { delta: number | null }) {
       transition={{ type: "spring", stiffness: 300, damping: 24 }}
       className="inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5"
       style={{
-        borderColor: "color-mix(in oklch, var(--color-success) 40%, transparent)",
-        background: "color-mix(in oklch, var(--color-success) 8%, transparent)",
+        borderColor: "color-mix(in oklch, var(--color-accent) 40%, transparent)",
+        background: "color-mix(in oklch, var(--color-accent) 10%, transparent)",
       }}
     >
       <span className="text-sm" aria-hidden>

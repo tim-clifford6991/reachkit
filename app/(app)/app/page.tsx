@@ -125,7 +125,7 @@ async function DashboardContent() {
   const hasMarket = !!report.market || (report.competitiveLandscape?.length ?? 0) > 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Top bar — paid CSV export of the latest report. */}
       <div className="flex justify-end">
         <ExportButton appId={primaryAppId} unlocked={userIsPaid} />

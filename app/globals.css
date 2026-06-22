@@ -79,11 +79,11 @@
   --color-danger-fg:       oklch(0.99 0.01 25);
 
   /* ── Surface / text aliases (LIGHT defaults; overridden in .dark) ─────── */
-  --color-bg:       oklch(0.975 0.012 80);   /* warm cream paper */
-  --color-app-canvas: oklch(0.945 0.008 74); /* app shell canvas — soft warm-grey so near-white cards pop */
+  --color-bg:       oklch(0.965 0.014 80);   /* warm cream paper */
+  --color-app-canvas: oklch(0.930 0.016 74); /* app shell canvas — warm sand-grey so white cards pop */
   --color-fg:       oklch(0.28 0.020 60);    /* warm ink */
   --color-muted:    oklch(0.50 0.020 62);    /* secondary text */
-  --color-surface:  oklch(0.995 0.006 85);   /* card / panel (near-white warm) */
+  --color-surface:  oklch(1.000 0.004 82);   /* card / panel (warm white) */
   --color-elevated: oklch(0.955 0.014 78);   /* raised: chips, sidebar, hover */
 
   /* Themed hairlines + washes — replace the old hardcoded white-alpha values */
@@ -95,11 +95,11 @@
 
   /* ── Elevation (LIGHT: soft, warm; overridden darker in .dark) ────────── */
   --elevation-xs:   0 1px 2px oklch(0.40 0.05 60 / 0.06);
-  --elevation-sm:   0 1px 2px oklch(0.40 0.05 60 / 0.06), 0 4px 12px -4px oklch(0.40 0.05 60 / 0.10);
-  --elevation-md:   0 4px 10px -4px oklch(0.40 0.05 60 / 0.10), 0 14px 32px -12px oklch(0.40 0.05 60 / 0.14);
-  --elevation-lg:   0 10px 24px -8px oklch(0.40 0.05 60 / 0.14), 0 28px 56px -18px oklch(0.40 0.05 60 / 0.18);
+  --elevation-sm:   0 1px 3px oklch(0.38 0.06 60 / 0.09), 0 6px 16px -4px oklch(0.38 0.06 60 / 0.14);
+  --elevation-md:   0 2px 4px oklch(0.38 0.06 60 / 0.10), 0 12px 36px -8px oklch(0.38 0.06 60 / 0.20);
+  --elevation-lg:   0 4px 8px oklch(0.38 0.06 60 / 0.12), 0 20px 52px -12px oklch(0.38 0.06 60 / 0.22);
   --elevation-xl:   0 18px 40px -12px oklch(0.40 0.05 60 / 0.18), 0 40px 80px -24px oklch(0.40 0.05 60 / 0.22);
-  --elevation-glow: 0 8px 24px -6px oklch(0.66 0.13 66 / 0.30);
+  --elevation-glow: 0 8px 28px -6px oklch(0.66 0.13 66 / 0.32);
   --edge-highlight: inset 0 1px 0 oklch(1 0 0 / 0.70);
 
   /* ── Glass (LIGHT; overridden in .dark) ───────────────────────────────── */
@@ -112,7 +112,7 @@
   /* ── Gradient / mesh (LIGHT; overridden in .dark) ─────────────────────── */
   --gradient-accent:      linear-gradient(135deg, oklch(0.62 0.14 64) 0%, oklch(0.53 0.16 44) 100%);
   --gradient-accent-fade: linear-gradient(180deg, oklch(0.66 0.13 66 / 0.12) 0%, transparent 100%);
-  --gradient-surface:     linear-gradient(165deg, oklch(0.99 0.012 82) 0%, var(--color-surface) 80%);
+  --gradient-surface:     linear-gradient(165deg, oklch(1.00 0.006 82) 0%, var(--color-surface) 80%);
   --gradient-shine:       linear-gradient(115deg, transparent 30%, oklch(1 0 0 / 0.50) 50%, transparent 70%);
   --mesh-hero:
     radial-gradient(55% 50% at 18% 12%, oklch(0.80 0.10 72 / 0.22) 0%, transparent 60%),
@@ -233,11 +233,11 @@
 :root {
   color-scheme: light;
 
-  --background:             oklch(0.975 0.012 80);
+  --background:             oklch(0.965 0.014 80);
   --foreground:             oklch(0.28 0.020 60);
-  --card:                   oklch(0.995 0.006 85);
+  --card:                   oklch(1.000 0.004 82);
   --card-foreground:        oklch(0.28 0.020 60);
-  --popover:                oklch(0.995 0.006 85);
+  --popover:                oklch(1.000 0.004 82);
   --popover-foreground:     oklch(0.28 0.020 60);
 
   --primary:                oklch(0.55 0.15 58);
