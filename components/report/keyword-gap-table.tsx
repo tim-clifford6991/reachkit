@@ -34,7 +34,15 @@ const OPP_STYLE: Record<Opportunity, { bg: string; fg: string }> = {
 
 const col = createColumnHelper<KeywordGapRow>();
 
-export function KeywordGapTable({ rows, rankDepth = 0 }: { rows: KeywordGapRow[]; rankDepth?: number }) {
+export function KeywordGapTable({
+  rows,
+  rankDepth = 0,
+  dataAsOf,
+}: {
+  rows: KeywordGapRow[];
+  rankDepth?: number;
+  dataAsOf?: string;
+}) {
   const [sortParam, setSortParam] = useQueryState("kg", parseAsString.withDefault("volume:desc"));
   const [filter, setFilter] = useQueryState("kgq", parseAsString.withDefault(""));
   const parts = (sortParam || "volume:desc").split(":");
@@ -162,6 +170,12 @@ export function KeywordGapTable({ rows, rankDepth = 0 }: { rows: KeywordGapRow[]
         >
           Showing {rankDepth} of {allFiltered.length} · upgrade for full keyword depth →
         </a>
+      )}
+      {dataAsOf && (
+        <p className="mt-2 font-mono text-[10px]" style={{ color: "var(--color-muted)" }}>
+          Keyword data as of{" "}
+          {new Date(dataAsOf).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })}
+        </p>
       )}
     </div>
   );

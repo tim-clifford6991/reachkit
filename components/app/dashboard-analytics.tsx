@@ -185,6 +185,7 @@ export function DashboardAnalytics({
   markers,
   kpiDeltas,
   rankDepth,
+  dataAsOf,
 }: {
   score: VerifiedScore;
   scoreDelta: number | null;
@@ -194,6 +195,7 @@ export function DashboardAnalytics({
   markers?: HistoryMarker[];
   kpiDeltas?: KpiDeltas;
   rankDepth?: number;
+  dataAsOf?: string;
 }) {
   const kpis = buildKpis(score, scoreDelta, breakdown, market, kpiDeltas);
   const hasMarket = market != null;
@@ -222,7 +224,7 @@ export function DashboardAnalytics({
       {/* Keyword gaps table */}
       {hasMarket && market.gap.keywordGap.length > 0 && (
         <Card title="Keyword gaps — rivals rank, you don't">
-          <KeywordGapTable rows={market.gap.keywordGap} rankDepth={rankDepth} />
+          <KeywordGapTable rows={market.gap.keywordGap} rankDepth={rankDepth} dataAsOf={dataAsOf} />
         </Card>
       )}
     </div>

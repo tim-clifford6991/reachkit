@@ -571,6 +571,9 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
         score_total: score.total,
         score_breakdown: score.breakdown as unknown as Json,
         score_version: 1,
+        // Rank/keyword data is fetched during the web market pass above — stamp
+        // its freshness so reports can show "Keyword data as of …".
+        ...(ctx.mode === "web" ? { rank_data_fetched_at: new Date().toISOString() } : {}),
       })
       .eq("id", ctx.scanId);
     if (scoreErr) throw scoreErr;

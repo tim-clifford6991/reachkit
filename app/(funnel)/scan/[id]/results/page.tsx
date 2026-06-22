@@ -93,7 +93,7 @@ async function ResultsContent({ id }: { id: string }) {
   const db = serverDb();
   const { data } = await db
     .from("scans")
-    .select("report_payload, findings_payload, preliminary_facts, tier, completed_at, started_at")
+    .select("report_payload, findings_payload, preliminary_facts, tier, completed_at, started_at, rank_data_fetched_at")
     .eq("id", id)
     .maybeSingle();
 
@@ -192,7 +192,7 @@ async function ResultsContent({ id }: { id: string }) {
 
         {/* M4 market analysis supersedes the lighter channels/creators sections. */}
         {hasMarket && report.market ? (
-          <MarketAnalysisSections market={report.market} unlocked={isPaid} rankDepth={TIER_LIMITS[tier].rankDepth} />
+          <MarketAnalysisSections market={report.market} unlocked={isPaid} rankDepth={TIER_LIMITS[tier].rankDepth} dataAsOf={(data.rank_data_fetched_at as string | null) ?? data.completed_at ?? undefined} />
         ) : (
           <>
             <ChannelOpportunitiesSection

@@ -42,7 +42,7 @@ async function MarketReportContent() {
 
   const { data: scanRow } = await db
     .from("scans")
-    .select("report_payload")
+    .select("report_payload, rank_data_fetched_at, completed_at")
     .eq("app_id", primaryAppId)
     .order("completed_at", { ascending: false })
     .limit(1)
@@ -51,6 +51,8 @@ async function MarketReportContent() {
   if (!scanRow?.report_payload) redirect("/app");
 
   const report = redactReportForTier(scanRow.report_payload as unknown as ReportPayload, tier);
+  const dataAsOf =
+    (scanRow.rank_data_fetched_at as string | null) ?? (scanRow.completed_at as string | null) ?? undefined;
   const navItems = buildSectionNavItems(report, { unlocked: userIsPaid });
 
   return (
@@ -61,7 +63,7 @@ async function MarketReportContent() {
       />
       <SectionNav items={navItems} />
       {report.market ? (
-        <MarketAnalysisSections market={report.market} unlocked={userIsPaid} rankDepth={TIER_LIMITS[tier].rankDepth} />
+        <MarketAnalysisSections market={report.market} unlocked={userIsPaid} rankDepth={TIER_LIMITS[tier].rankDepth} dataAsOf={dataAsOf} />
       ) : (
         <>
           <CompetitiveLandscapeSection rows={report.competitiveLandscape} unlocked={userIsPaid} />

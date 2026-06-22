@@ -73,7 +73,7 @@ async function DashboardContent() {
   // Latest scan
   const { data: scanRow } = await db
     .from("scans")
-    .select("id, report_payload")
+    .select("id, report_payload, rank_data_fetched_at, completed_at")
     .eq("app_id", primaryAppId)
     .order("completed_at", { ascending: false })
     .limit(1)
@@ -89,6 +89,9 @@ async function DashboardContent() {
   const breakdown = await readSignalBreakdown(scanRow.id as string);
   // Action-completion markers for the score-history chart.
   const markers = await scoreHistoryMarkers(primaryAppId);
+  // Keyword-data freshness (falls back to scan date for pre-stamp scans).
+  const dataAsOf =
+    (scanRow.rank_data_fetched_at as string | null) ?? (scanRow.completed_at as string | null) ?? undefined;
 
   // Parallel fetches. The refresh digest + market trends are paid-retention
   // surfaces — skip the reads for free viewers.
@@ -155,6 +158,7 @@ async function DashboardContent() {
         markers={markers}
         kpiDeltas={kpiDeltas}
         rankDepth={TIER_LIMITS[tier].rankDepth}
+        dataAsOf={dataAsOf}
       />
 
       {/* Deep market intel lives on its own page now — link, don't duplicate. */}
