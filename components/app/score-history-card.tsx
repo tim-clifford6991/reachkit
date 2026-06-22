@@ -8,13 +8,20 @@
 import dynamic from "next/dynamic";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ScoreHistoryPoint } from "@/lib/scan/engagement";
+import type { HistoryMarker } from "@/lib/scan/score-history-markers";
 
 const ScoreHistoryChart = dynamic(
   () => import("@/components/charts/score-history-chart").then((m) => m.ScoreHistoryChart),
   { ssr: false, loading: () => <Skeleton className="h-[200px] w-full rounded-lg" /> },
 );
 
-export function ScoreHistoryCard({ history }: { history: ScoreHistoryPoint[] }) {
+export function ScoreHistoryCard({
+  history,
+  markers,
+}: {
+  history: ScoreHistoryPoint[];
+  markers?: HistoryMarker[];
+}) {
   return (
     <section
       className="rounded-2xl border p-5 shadow-[var(--elevation-sm),var(--edge-highlight)]"
@@ -27,7 +34,7 @@ export function ScoreHistoryCard({ history }: { history: ScoreHistoryPoint[] }) 
       >
         Score history
       </p>
-      <ScoreHistoryChart history={history} />
+      <ScoreHistoryChart history={history} markers={markers} />
     </section>
   );
 }

@@ -21,6 +21,7 @@ import { isPaid, TIER_LIMITS } from "@/lib/billing/tiers";
 import { serverDb } from "@/lib/db/client";
 import type { ReportPayload } from "@/lib/scan/report";
 import { readSignalBreakdown } from "@/lib/scan/signal-breakdown";
+import { scoreHistoryMarkers } from "@/lib/scan/score-history-markers";
 import { assembleWeeklyPlan } from "@/lib/scan/weekly-plan";
 import { engagementSummary } from "@/lib/scan/engagement";
 import { latestRefreshDigest } from "@/lib/scan/digest";
@@ -31,6 +32,7 @@ import { WhereTheyAreSection } from "@/components/report/where-they-are-section"
 import { ActionPlanSection } from "@/components/report/action-plan-section";
 import { StrengthsWeaknessesSection } from "@/components/report/strengths-weaknesses-section";
 import { DashboardAnalytics } from "@/components/app/dashboard-analytics";
+import { MilestoneBanner } from "@/components/app/milestone-banner";
 import { PlaysPreview } from "@/components/app/plays-preview";
 import { EngagementStrip } from "@/components/app/engagement-strip";
 import { ExportButton } from "@/components/app/export-button";
@@ -85,6 +87,8 @@ async function DashboardContent() {
   const report = redactReportForTier(fullReport, tier);
   // 18-signal breakdown for the KPI scorecards + optimization-ideas card.
   const breakdown = await readSignalBreakdown(scanRow.id as string);
+  // Action-completion markers for the score-history chart.
+  const markers = await scoreHistoryMarkers(primaryAppId);
 
   // Parallel fetches. The refresh digest + market trends are paid-retention
   // surfaces — skip the reads for free viewers.
@@ -106,6 +110,17 @@ async function DashboardContent() {
   const lastPoint = engagement.history.at(-1);
   const prevPoint = engagement.history.at(-2);
   const scoreDelta = lastPoint && prevPoint ? lastPoint.total - prevPoint.total : null;
+  // Week-over-week KPI deltas from the market-trend series (when ≥2 snapshots).
+  const trendDelta = (k: string): number | null => {
+    const m = trend.metrics.find((x) => x.key === k);
+    return m && m.current != null && m.previous != null ? m.current - m.previous : null;
+  };
+  const sovD = trendDelta("sov");
+  const kpiDeltas = {
+    organicKeywords: trendDelta("self_keywords"),
+    keywordGaps: trendDelta("keyword_gap"),
+    shareOfVoice: sovD != null ? Math.round(sovD * 100) : null,
+  };
   const hasMarket = !!report.market || (report.competitiveLandscape?.length ?? 0) > 0;
   const hasTrends = trend.metrics.length > 0;
   const hasEngagement = engagement.streak > 0 || engagement.history.length > 0;
@@ -124,6 +139,9 @@ async function DashboardContent() {
         <ExportButton appId={primaryAppId} unlocked={userIsPaid} />
       </div>
 
+      {/* Milestone moment — restrained celebration on a material score jump. */}
+      <MilestoneBanner delta={scoreDelta} />
+
       {/* Weekly retention hook — alerts + change digest (paid). */}
       <WhatsChanged digest={digest} />
 
@@ -134,6 +152,8 @@ async function DashboardContent() {
         breakdown={breakdown}
         market={report.market ?? null}
         history={engagement.history}
+        markers={markers}
+        kpiDeltas={kpiDeltas}
         rankDepth={TIER_LIMITS[tier].rankDepth}
       />
 

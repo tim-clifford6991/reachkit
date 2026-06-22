@@ -13,4 +13,8 @@ export const GLOSSARY: Record<string, string> = {
   "Share of voice": "Your slice of the community mentions in your space, versus competitors.",
   "Rank depth": "How far into search results we looked when checking your rankings.",
   Opportunity: "How worth-it a keyword is — high search volume with few rivals ranking is best.",
+  Discoverability: "Your 0–100 Discoverability Score — how findable your product is, from 18 verified signals.",
+  "Organic keywords": "How many distinct search queries your site already ranks for.",
+  "Keyword gaps": "Queries your rivals rank for that you don't — ready-made content targets.",
+  "Signals passing": "How many of the 18 measured discoverability signals are in good shape.",
 };

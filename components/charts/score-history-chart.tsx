@@ -13,6 +13,7 @@ import {
   Area,
   AreaChart,
   ReferenceArea,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -20,6 +21,7 @@ import {
 } from "recharts";
 import { SCORE_BANDS, bandFor } from "@/lib/scan/score-bands";
 import type { ScoreHistoryPoint } from "@/lib/scan/engagement";
+import type { HistoryMarker } from "@/lib/scan/score-history-markers";
 
 interface Row {
   label: string;
@@ -52,7 +54,13 @@ function TooltipBox({ active, payload }: { active?: boolean; payload?: Array<{ p
   );
 }
 
-export function ScoreHistoryChart({ history }: { history: ScoreHistoryPoint[] }) {
+export function ScoreHistoryChart({
+  history,
+  markers = [],
+}: {
+  history: ScoreHistoryPoint[];
+  markers?: HistoryMarker[];
+}) {
   if (history.length === 0) {
     return (
       <div
@@ -79,6 +87,16 @@ export function ScoreHistoryChart({ history }: { history: ScoreHistoryPoint[] })
                 fill={b.color}
                 fillOpacity={0.06}
                 stroke="none"
+              />
+            ))}
+            {markers.map((m, i) => (
+              <ReferenceLine
+                key={`m-${i}`}
+                x={fmtDate(m.takenAt)}
+                stroke="var(--color-success)"
+                strokeDasharray="3 3"
+                strokeOpacity={0.6}
+                label={{ value: "✓ fix", position: "top", fontSize: 9, fill: "var(--color-success)" }}
               />
             ))}
             <XAxis

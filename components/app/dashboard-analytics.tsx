@@ -9,10 +9,12 @@
 import type { VerifiedScore } from "@/lib/scan/score-full";
 import type { MarketAnalysis } from "@/lib/scan/gap";
 import type { ScoreHistoryPoint } from "@/lib/scan/engagement";
+import type { HistoryMarker } from "@/lib/scan/score-history-markers";
 import type { BreakdownGroup } from "@/lib/scan/signal-breakdown";
 import { bandFor } from "@/lib/scan/score-bands";
 import { ScoreHistoryCard } from "@/components/app/score-history-card";
 import { KeywordGapTable } from "@/components/report/keyword-gap-table";
+import { InfoTip } from "@/components/ui/info-tip";
 
 // ── KPI scorecards ──────────────────────────────────────────────────────────
 
@@ -31,7 +33,7 @@ function KpiTile({ kpi }: { kpi: Kpi }) {
     <div className="flex flex-col gap-1 pt-3" style={{ borderTop: `2px solid ${kpi.accent}` }}>
       <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider" style={{ color: "var(--color-muted)" }}>
         <span className="size-1.5 rounded-full" style={{ background: kpi.accent }} aria-hidden />
-        {kpi.label}
+        <InfoTip term={kpi.label} />
       </span>
       <span className="text-2xl font-semibold tabular-nums leading-none" style={{ color: "var(--color-fg)" }}>
         {kpi.value}
@@ -57,7 +59,19 @@ function KpiTile({ kpi }: { kpi: Kpi }) {
   );
 }
 
-function buildKpis(score: VerifiedScore, scoreDelta: number | null, breakdown: BreakdownGroup[], market: MarketAnalysis | null): Kpi[] {
+export interface KpiDeltas {
+  organicKeywords?: number | null;
+  keywordGaps?: number | null;
+  shareOfVoice?: number | null;
+}
+
+function buildKpis(
+  score: VerifiedScore,
+  scoreDelta: number | null,
+  breakdown: BreakdownGroup[],
+  market: MarketAnalysis | null,
+  deltas?: KpiDeltas,
+): Kpi[] {
   const band = bandFor(score.total);
   const allSignals = breakdown.flatMap((g) => g.signals);
   const measured = allSignals.filter((s) => s.state !== "unmeasured");
@@ -71,14 +85,14 @@ function buildKpis(score: VerifiedScore, scoreDelta: number | null, breakdown: B
   }
   const seo = market?.cohort.self.seo;
   if (seo?.organicKeywords != null) {
-    kpis.push({ label: "Organic keywords", value: seo.organicKeywords.toLocaleString(), accent: "var(--color-accent-400)" });
+    kpis.push({ label: "Organic keywords", value: seo.organicKeywords.toLocaleString(), accent: "var(--color-accent-400)", delta: deltas?.organicKeywords });
   }
   if (market && market.gap.keywordGap.length > 0) {
-    kpis.push({ label: "Keyword gaps", value: market.gap.keywordGap.length.toLocaleString(), accent: "var(--chart-2)" });
+    kpis.push({ label: "Keyword gaps", value: market.gap.keywordGap.length.toLocaleString(), accent: "var(--chart-2)", delta: deltas?.keywordGaps });
   }
   const sov = market?.gap.shareOfVoice?.selfPct;
   if (sov != null) {
-    kpis.push({ label: "Share of voice", value: `${Math.round(sov * 100)}%`, accent: "var(--chart-3)" });
+    kpis.push({ label: "Share of voice", value: `${Math.round(sov * 100)}%`, accent: "var(--chart-3)", delta: deltas?.shareOfVoice });
   }
   return kpis;
 }
@@ -168,6 +182,8 @@ export function DashboardAnalytics({
   breakdown,
   market,
   history,
+  markers,
+  kpiDeltas,
   rankDepth,
 }: {
   score: VerifiedScore;
@@ -175,9 +191,11 @@ export function DashboardAnalytics({
   breakdown: BreakdownGroup[];
   market: MarketAnalysis | null;
   history: ScoreHistoryPoint[];
+  markers?: HistoryMarker[];
+  kpiDeltas?: KpiDeltas;
   rankDepth?: number;
 }) {
-  const kpis = buildKpis(score, scoreDelta, breakdown, market);
+  const kpis = buildKpis(score, scoreDelta, breakdown, market, kpiDeltas);
   const hasMarket = market != null;
 
   return (
@@ -193,7 +211,7 @@ export function DashboardAnalytics({
       {/* Hero trend + right rail */}
       <div className="grid gap-5 lg:grid-cols-3 lg:items-start">
         <div className="lg:col-span-2">
-          <ScoreHistoryCard history={history} />
+          <ScoreHistoryCard history={history} markers={markers} />
         </div>
         <div className="space-y-5">
           <TopSourcesCard market={market} />
