@@ -16,6 +16,7 @@ import { ScoreHistoryCard } from "@/components/app/score-history-card";
 import { KeywordGapTable } from "@/components/report/keyword-gap-table";
 import { InfoTip } from "@/components/ui/info-tip";
 import { EmptyState } from "@/components/ui/empty-state";
+import { NumberTicker } from "@/components/motion/number-ticker";
 
 // ── KPI scorecards ──────────────────────────────────────────────────────────
 
@@ -25,6 +26,8 @@ interface Kpi {
   accent: string;
   delta?: number | null;
   sub?: string;
+  /** When set, the value animates 0→value on load (reduced-motion safe). */
+  ticker?: { value: number; suffix?: string };
 }
 
 function KpiTile({ kpi }: { kpi: Kpi }) {
@@ -37,7 +40,14 @@ function KpiTile({ kpi }: { kpi: Kpi }) {
         <InfoTip term={kpi.label} />
       </span>
       <span className="text-2xl font-semibold tabular-nums leading-none" style={{ color: "var(--color-fg)" }}>
-        {kpi.value}
+        {kpi.ticker ? (
+          <>
+            <NumberTicker value={kpi.ticker.value} />
+            {kpi.ticker.suffix ?? ""}
+          </>
+        ) : (
+          kpi.value
+        )}
       </span>
       <span className="flex items-center gap-2">
         {showDelta && (
@@ -79,7 +89,7 @@ function buildKpis(
   const passing = measured.filter((s) => s.state === "pass").length;
 
   const kpis: Kpi[] = [
-    { label: "Discoverability", value: `${score.total}`, accent: band.color, delta: scoreDelta, sub: band.label },
+    { label: "Discoverability", value: `${score.total}`, accent: band.color, delta: scoreDelta, sub: band.label, ticker: { value: score.total } },
   ];
   if (measured.length > 0) {
     kpis.push({ label: "Signals passing", value: `${passing}/${measured.length}`, accent: "var(--color-success)" });
@@ -89,11 +99,11 @@ function buildKpis(
     kpis.push({ label: "Organic keywords", value: seo.organicKeywords.toLocaleString(), accent: "var(--color-accent-400)", delta: deltas?.organicKeywords });
   }
   if (market && market.gap.keywordGap.length > 0) {
-    kpis.push({ label: "Keyword gaps", value: market.gap.keywordGap.length.toLocaleString(), accent: "var(--chart-2)", delta: deltas?.keywordGaps });
+    kpis.push({ label: "Keyword gaps", value: market.gap.keywordGap.length.toLocaleString(), accent: "var(--chart-2)", delta: deltas?.keywordGaps, ticker: { value: market.gap.keywordGap.length } });
   }
   const sov = market?.gap.shareOfVoice?.selfPct;
   if (sov != null) {
-    kpis.push({ label: "Share of voice", value: `${Math.round(sov * 100)}%`, accent: "var(--chart-3)", delta: deltas?.shareOfVoice });
+    kpis.push({ label: "Share of voice", value: `${Math.round(sov * 100)}%`, accent: "var(--chart-3)", delta: deltas?.shareOfVoice, ticker: { value: Math.round(sov * 100), suffix: "%" } });
   }
   return kpis;
 }
