@@ -131,7 +131,7 @@ function buildKpis(
 
 function Card({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl border p-5 shadow-[var(--elevation-sm),var(--edge-highlight)]" style={{ borderColor: "var(--hairline)", background: "var(--gradient-surface)" }}>
+    <section className="rounded-2xl border p-5 shadow-[var(--elevation-md),var(--edge-highlight)]" style={{ borderColor: "var(--hairline)", background: "var(--gradient-surface)" }}>
       <div className="mb-3 flex items-center justify-between">
         <p className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "var(--color-muted)" }}>{title}</p>
         {action}
@@ -262,7 +262,7 @@ export function DashboardAnalytics({
   return (
     <div className="space-y-5">
       {/* KPI scorecards — primary surface: stepped-up elevation + a faint mesh wash */}
-      <div className="grid gap-x-6 gap-y-5 rounded-2xl border p-5 shadow-[var(--elevation-md),var(--edge-highlight)] sm:grid-cols-2 lg:grid-cols-5"
+      <div className="grid gap-x-6 gap-y-5 rounded-2xl border p-5 shadow-[var(--elevation-lg),var(--edge-highlight)] sm:grid-cols-2 lg:grid-cols-5"
         style={{ borderColor: "var(--hairline)", background: "var(--mesh-hero), var(--gradient-surface)" }}>
         <KpiStagger>
           {kpis.map((k) => (

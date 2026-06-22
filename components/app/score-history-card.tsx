@@ -24,7 +24,7 @@ export function ScoreHistoryCard({
 }) {
   return (
     <section
-      className="rounded-2xl border p-5 shadow-[var(--elevation-sm),var(--edge-highlight)]"
+      className="rounded-2xl border p-5 shadow-[var(--elevation-md),var(--edge-highlight)]"
       style={{ borderColor: "var(--hairline)", background: "var(--gradient-surface)" }}
       aria-label="Score history"
     >
