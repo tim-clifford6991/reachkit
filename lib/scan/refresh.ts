@@ -723,6 +723,8 @@ export async function runWeeklyRefresh(
           const prev = await latestMarketSnapshot(ctx.appId);
           alerts = computeMarketAlerts(prev, summarizeMarket(market));
           await writeMarketSnapshot(ctx.appId, market, now); // weekly history point
+          // Ranks were just re-fetched — refresh the keyword-data freshness stamp.
+          await serverDb().from("scans").update({ rank_data_fetched_at: now }).eq("id", ctx.scanId);
         }
       } catch (e) {
         console.error("[refresh] market analysis failed (best-effort)", e);
