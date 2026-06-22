@@ -43,7 +43,6 @@
  */
 
 import { serverDb } from "@/lib/db/client";
-import { env } from "@/lib/config/env";
 import {
   attachMarketAnalysis,
   writeMarketSnapshot,
@@ -716,7 +715,7 @@ export async function runWeeklyRefresh(
     //     the no-op cost discipline; shared 7-day profile cache keeps it cheap.
     //     Web-only + flag-gated + best-effort: never breaks the refresh.
     let alerts: MarketAlert[] = [];
-    if (env.marketAnalysis && ctx.mode === "web") {
+    if (ctx.mode === "web") {
       try {
         const market = await attachMarketAnalysis(ctx.scanId, ctx.storeUrl);
         if (market) {

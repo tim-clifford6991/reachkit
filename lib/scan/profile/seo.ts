@@ -66,9 +66,9 @@ async function post(url: string, payload: unknown): Promise<unknown | null> {
 /**
  * Fetch a domain's SEO posture. Fixtures-mode (or failure) returns null.
  *
- * The Backlinks API is a SEPARATE DataForSEO subscription and is off by default —
- * calling it when unsubscribed just burns a request and returns nothing, so
- * authority/referringDomains stay null unless `env.dataforseoBacklinks` is set.
+ * The Backlinks API is a SEPARATE DataForSEO subscription we don't hold — calling
+ * it unsubscribed burns a request and returns nothing, so authority/referringDomains
+ * stay null. Re-enable here (wantBacklinks) once the subscription is active.
  *
  * `light` (the free-tier pass) forces the cheapest path: ETV-only via the Labs
  * domain_rank_overview call, skipping Backlinks even when subscribed — so the
@@ -80,7 +80,7 @@ export async function fetchSeoPosture(
 ): Promise<SeoPosture | null> {
   if (fixturesEnabled()) return null;
   const target = toHost(domain);
-  const wantBacklinks = env.dataforseoBacklinks && !opts.light;
+  const wantBacklinks = false; // Backlinks subscription not held — see note above.
 
   // Ranked keywords + top pages are the richer (paid) signals — full pass only.
   const wantRanked = !opts.light;

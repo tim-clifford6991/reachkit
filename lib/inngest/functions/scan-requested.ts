@@ -186,7 +186,7 @@ export const scanRequested = inngest.createFunction(
     // competitor channels + traffic + demand pockets within the ≤20¢ ceiling.
     // Web-only (domain-centric) + flag-gated + best-effort: a failure never breaks
     // the already-persisted findings teaser.
-    if (tier === "free" && env.marketAnalysis && facts.mode === "web") {
+    if (tier === "free" && facts.mode === "web") {
       await step.run("light-market", async () => {
         const db = serverDb();
         const { data: scanRow } = await db

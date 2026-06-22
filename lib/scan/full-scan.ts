@@ -55,7 +55,6 @@ import { getFreshFactSheet, factSheetSubjectType } from "@/lib/scan/fact-sheets"
 import { parseKeywords } from "@/lib/scan/adapters/keywords";
 import { checkScanCostOverrun } from "@/lib/telemetry/pipeline-runs";
 import { emitScanEvent } from "@/lib/scan/progress";
-import { env } from "@/lib/config/env";
 import { attachMarketAnalysis } from "@/lib/scan/market";
 import { countMentions } from "@/lib/scan/competitor-mentions";
 import { normalizeName } from "@/lib/scan/competitor-filter";
@@ -552,7 +551,7 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
     //     web-only (domain-centric). Best-effort: the core report is already
     //     persisted, so a market-analysis failure is logged but never breaks the
     //     scan. Patches `report_payload.market` when it succeeds.
-    if (env.marketAnalysis && ctx.mode === "web") {
+    if (ctx.mode === "web") {
       await attachMarketAnalysis(ctx.scanId, ctx.storeUrl).catch((e) =>
         console.error("[full-scan] market analysis failed (best-effort)", e),
       );

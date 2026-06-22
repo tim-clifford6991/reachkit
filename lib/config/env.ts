@@ -50,11 +50,7 @@ const schema = z.object({
   WEEKLY_REFRESH_BUDGET_CENTS: z.coerce.number().int().positive().default(120),
   DATAFORSEO_LOCATION_CODE: z.coerce.number().int().default(2840), // US
   DATAFORSEO_LANGUAGE_CODE: z.string().default("en"),
-  // Backlinks API is a separate DataForSEO subscription — off unless enabled.
-  DATAFORSEO_BACKLINKS: z.string().optional().transform((v) => v === "true"),
-  // M4 market analysis (cohort + demand + gap + plan) in the paid deep scan — off
-  // until the report surfaces are validated.
-  REACHKIT_MARKET_ANALYSIS: z.string().optional().transform((v) => v === "true"),
+  // The only feature flag: keyless fixtures mode for tests / local dev.
   REACHKIT_USE_FIXTURES: z.string().optional().transform((v) => v === "true"),
 }).superRefine((val, ctx) => {
   // superRefine receives transformed values: val.REACHKIT_USE_FIXTURES is a boolean.
@@ -82,8 +78,6 @@ export function parseEnv(src: NodeJS.ProcessEnv) {
     productHuntToken: p.PRODUCT_HUNT_TOKEN, youtubeApiKey: p.YOUTUBE_API_KEY,
     voyageApiKey: p.VOYAGE_API_KEY,
     dataforseoLocationCode: p.DATAFORSEO_LOCATION_CODE, dataforseoLanguageCode: p.DATAFORSEO_LANGUAGE_CODE,
-    dataforseoBacklinks: p.DATAFORSEO_BACKLINKS,
-    marketAnalysis: p.REACHKIT_MARKET_ANALYSIS,
     useFixtures: p.REACHKIT_USE_FIXTURES,
     appUrl: p.APP_URL,
     stripeSecretKey: p.STRIPE_SECRET_KEY,
