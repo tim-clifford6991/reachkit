@@ -17,6 +17,7 @@ import { KeywordGapTable } from "@/components/report/keyword-gap-table";
 import { InfoTip } from "@/components/ui/info-tip";
 import { EmptyState } from "@/components/ui/empty-state";
 import { NumberTicker } from "@/components/motion/number-ticker";
+import { KpiStagger } from "@/components/app/kpi-stagger";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 
 // ── KPI scorecards ──────────────────────────────────────────────────────────
@@ -263,9 +264,11 @@ export function DashboardAnalytics({
       {/* KPI scorecards — primary surface: stepped-up elevation + a faint mesh wash */}
       <div className="grid gap-x-6 gap-y-5 rounded-2xl border p-5 shadow-[var(--elevation-md),var(--edge-highlight)] sm:grid-cols-2 lg:grid-cols-5"
         style={{ borderColor: "var(--hairline)", background: "var(--mesh-hero), var(--gradient-surface)" }}>
-        {kpis.map((k) => (
-          <KpiTile key={k.label} kpi={k} />
-        ))}
+        <KpiStagger>
+          {kpis.map((k) => (
+            <KpiTile key={k.label} kpi={k} />
+          ))}
+        </KpiStagger>
       </div>
 
       {/* Hero trend + right rail */}

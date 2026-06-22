@@ -207,7 +207,7 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
         "hover:bg-[var(--fill-subtle)] hover:text-(--color-fg)",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
         // Active: accent-fade gradient pill + hairline ring (premium, not flat).
-        "data-active:bg-[image:var(--gradient-accent-fade)] data-active:text-(--color-fg) data-active:ring-1 data-active:ring-[var(--color-accent-900)]"
+        "data-active:bg-[image:var(--gradient-accent-fade)] data-active:text-(--color-fg) data-active:ring-1 data-active:ring-[var(--color-accent-900)] data-active:shadow-[var(--edge-highlight)]"
       )}
     >
       {/* Active accent bar — slides in via opacity */}
