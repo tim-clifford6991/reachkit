@@ -19,7 +19,7 @@ import type { Tier } from "@/lib/billing/tiers";
 import { AppSidebar } from "@/components/app/app-sidebar";
 import { activeAppId, userApps } from "@/lib/app/active-app";
 import { CommandPalette } from "@/components/app/command-palette";
-import { AppBreadcrumbs } from "@/components/app/app-breadcrumbs";
+import { PageHeader } from "@/components/app/page-header";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -135,7 +135,7 @@ export default function AppLayout({
             className="flex min-h-screen flex-1 flex-col overflow-x-hidden"
             style={{ background: "var(--color-bg)" }}
           >
-            <AppBreadcrumbs />
+            <PageHeader />
             {children}
           </main>
         </SidebarData>

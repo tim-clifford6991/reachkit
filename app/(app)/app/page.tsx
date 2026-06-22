@@ -269,20 +269,7 @@ function DashboardSkeleton() {
 
 export default function AppDashboardPage() {
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-8 px-6 py-8">
-      {/* Page header */}
-      <div>
-        <p
-          className="font-mono text-[10px] uppercase tracking-widest"
-          style={{ color: "var(--color-muted)" }}
-        >
-          Dashboard
-        </p>
-        <h1 className="mt-0.5 text-xl font-semibold" style={{ color: "var(--color-fg)" }}>
-          Four questions
-        </h1>
-      </div>
-
+    <div className="mx-auto w-full max-w-5xl space-y-8 px-6 py-6">
       <Suspense fallback={<DashboardSkeleton />}>
         <DashboardContent />
       </Suspense>
