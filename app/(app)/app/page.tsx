@@ -26,21 +26,14 @@ import { assembleWeeklyPlan } from "@/lib/scan/weekly-plan";
 import { engagementSummary } from "@/lib/scan/engagement";
 import { latestRefreshDigest } from "@/lib/scan/digest";
 import { marketTrendSeries } from "@/lib/scan/market-trends";
-import { WhatYouOfferSection } from "@/components/report/what-you-offer-section";
-import { WhoItsForSection } from "@/components/report/who-its-for-section";
-import { WhereTheyAreSection } from "@/components/report/where-they-are-section";
-import { ActionPlanSection } from "@/components/report/action-plan-section";
-import { StrengthsWeaknessesSection } from "@/components/report/strengths-weaknesses-section";
 import { DashboardAnalytics } from "@/components/app/dashboard-analytics";
 import { MilestoneBanner } from "@/components/app/milestone-banner";
 import { OnboardingChecklist } from "@/components/app/onboarding-checklist";
 import { onboardingChecklist } from "@/lib/scan/onboarding-checklist";
 import { activeAppId } from "@/lib/app/active-app";
 import { PlaysPreview } from "@/components/app/plays-preview";
-import { EngagementStrip } from "@/components/app/engagement-strip";
 import { ExportButton } from "@/components/app/export-button";
 import { WhatsChanged } from "@/components/app/whats-changed";
-import { MarketTrends } from "@/components/app/market-trends";
 import { Skeleton } from "@/components/ui/skeleton";
 import { buildMetadata } from "@/lib/seo";
 
@@ -130,15 +123,6 @@ async function DashboardContent() {
     shareOfVoice: sovD != null ? Math.round(sovD * 100) : null,
   };
   const hasMarket = !!report.market || (report.competitiveLandscape?.length ?? 0) > 0;
-  const hasTrends = trend.metrics.length > 0;
-  const hasEngagement = engagement.streak > 0 || engagement.history.length > 0;
-  const engagementStrip = hasEngagement ? (
-    <EngagementStrip
-      streak={engagement.streak}
-      history={engagement.history}
-      honestyNote={engagement.honestyNote}
-    />
-  ) : null;
 
   return (
     <div className="space-y-6">
@@ -197,35 +181,23 @@ async function DashboardContent() {
         />
       )}
 
-      {/* ── SIGNAL ── trends + engagement side-by-side when both exist. */}
-      {hasTrends && engagementStrip ? (
-        <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
-          <MarketTrends trend={trend} />
-          {engagementStrip}
-        </div>
-      ) : (
-        <>
-          <MarketTrends trend={trend} />
-          {engagementStrip}
-        </>
-      )}
-
-      {/* ── DETAIL ── your-product report at a readable column width. The
-          competitive/market deep-dive lives on the Market Report page. */}
-      <div className="mx-auto w-full max-w-3xl space-y-4 pt-2">
-        <div className="flex items-center gap-3">
-          <span className="h-px flex-1" style={{ background: "var(--hairline)" }} aria-hidden />
-          <p className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "var(--color-muted)" }}>
-            Your report
-          </p>
-          <span className="h-px flex-1" style={{ background: "var(--hairline)" }} aria-hidden />
-        </div>
-        <WhatYouOfferSection whatYouOffer={report.whatYouOffer} unlocked={userIsPaid} />
-        <WhoItsForSection whoItsFor={report.whoItsFor} unlocked={userIsPaid} />
-        <WhereTheyAreSection whereTheyAre={report.whereTheyAre} unlocked={userIsPaid} />
-        <StrengthsWeaknessesSection data={report.strengthsAndWeaknesses} unlocked={userIsPaid} />
-        <ActionPlanSection whatToDoThisWeek={report.whatToDoThisWeek} unlocked={userIsPaid} />
-      </div>
+      {/* ── DETAIL ── the full prose report (offer/audience/where/strengths/plan)
+          + trends + engagement now live on their own /app/report page. */}
+      <Link
+        href="/app/report"
+        className="flex items-center justify-between gap-3 rounded-2xl border p-5 shadow-[var(--elevation-sm),var(--edge-highlight)] transition-colors hover:bg-[var(--fill-subtle)]"
+        style={{ borderColor: "var(--hairline)", background: "var(--gradient-surface)" }}
+      >
+        <span>
+          <span className="block text-sm font-semibold" style={{ color: "var(--color-fg)" }}>Your full report</span>
+          <span className="mt-0.5 block text-xs" style={{ color: "var(--color-muted)" }}>
+            What you offer, who it&apos;s for, where to reach them, strengths &amp; weaknesses, and your action plan.
+          </span>
+        </span>
+        <svg width="16" height="16" viewBox="0 0 14 14" fill="none" aria-hidden style={{ color: "var(--color-accent-400)" }}>
+          <path d="M5 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </Link>
     </div>
   );
 }
