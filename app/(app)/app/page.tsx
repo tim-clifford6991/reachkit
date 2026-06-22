@@ -33,6 +33,8 @@ import { ActionPlanSection } from "@/components/report/action-plan-section";
 import { StrengthsWeaknessesSection } from "@/components/report/strengths-weaknesses-section";
 import { DashboardAnalytics } from "@/components/app/dashboard-analytics";
 import { MilestoneBanner } from "@/components/app/milestone-banner";
+import { OnboardingChecklist } from "@/components/app/onboarding-checklist";
+import { onboardingChecklist } from "@/lib/scan/onboarding-checklist";
 import { PlaysPreview } from "@/components/app/plays-preview";
 import { EngagementStrip } from "@/components/app/engagement-strip";
 import { ExportButton } from "@/components/app/export-button";
@@ -92,6 +94,8 @@ async function DashboardContent() {
   // Keyword-data freshness (falls back to scan date for pre-stamp scans).
   const dataAsOf =
     (scanRow.rank_data_fetched_at as string | null) ?? (scanRow.completed_at as string | null) ?? undefined;
+  // Activation checklist (self-hides once every step is done).
+  const checklist = await onboardingChecklist(primaryAppId);
 
   // Parallel fetches. The refresh digest + market trends are paid-retention
   // surfaces — skip the reads for free viewers.
@@ -141,6 +145,9 @@ async function DashboardContent() {
       <div className="flex justify-end">
         <ExportButton appId={primaryAppId} unlocked={userIsPaid} />
       </div>
+
+      {/* Activation checklist for new users — self-hides when complete. */}
+      <OnboardingChecklist steps={checklist} />
 
       {/* Milestone moment — restrained celebration on a material score jump. */}
       <MilestoneBanner delta={scoreDelta} />
