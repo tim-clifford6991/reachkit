@@ -19,6 +19,7 @@ import type { Tier } from "@/lib/billing/tiers";
 import { APP_NAV, isNavActive } from "@/lib/app/nav";
 import { AppSwitcher } from "@/components/app/app-switcher";
 import type { AppOption } from "@/lib/app/active-app";
+import { ReachKitLogo } from "@/components/ui/reachkit-logo";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -274,7 +275,7 @@ export function AppSidebar({
 
   return (
     <aside
-      className="flex w-60 shrink-0 flex-col border-r"
+      className="flex w-50 shrink-0 flex-col border-r"
       style={{
         background: "var(--sidebar)",
         borderColor: "var(--sidebar-border)",
@@ -295,12 +296,7 @@ export function AppSidebar({
 
       {/* ── App header ──────────────────────────────────────────────────── */}
       <div className="relative z-10 px-4 pb-3 pt-4">
-        <p
-          className="font-mono text-[10px] uppercase tracking-widest"
-          style={{ color: "var(--color-accent-400)" }}
-        >
-          ReachKit
-        </p>
+        <ReachKitLogo />
         {apps.length > 1 ? (
           <div className="mt-1.5">
             <AppSwitcher apps={apps} activeId={activeId} />
@@ -351,6 +347,9 @@ export function AppSidebar({
 
       {/* ── Primary nav ──────────────────────────────────────────────────── */}
       <nav className="flex-1 space-y-0.5 px-2 pt-2" aria-label="Primary navigation">
+        <p className="px-2 pb-1.5 font-mono text-[9px] uppercase tracking-widest" style={{ color: "var(--color-muted)" }}>
+          Menu
+        </p>
         {primaryItems.map((item) => (
           <NavLink key={item.href} item={item} active={isActive(item.href)} />
         ))}
@@ -358,7 +357,9 @@ export function AppSidebar({
 
       {/* ── Utility nav ──────────────────────────────────────────────────── */}
       <div className="space-y-0.5 px-2 pb-2">
-        <Separator className="mx-1 mb-2 w-auto" />
+        <p className="px-2 pb-1.5 pt-1 font-mono text-[9px] uppercase tracking-widest" style={{ color: "var(--color-muted)" }}>
+          Tools
+        </p>
         {utilityItems.map((item) => (
           <NavLink key={item.href} item={item} active={isActive(item.href)} />
         ))}

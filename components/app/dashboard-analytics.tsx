@@ -260,9 +260,9 @@ export function DashboardAnalytics({
 
   return (
     <div className="space-y-5">
-      {/* KPI scorecards */}
-      <div className="grid gap-x-6 gap-y-5 rounded-2xl border p-5 shadow-[var(--elevation-sm),var(--edge-highlight)] sm:grid-cols-2 lg:grid-cols-5"
-        style={{ borderColor: "var(--hairline)", background: "var(--gradient-surface)" }}>
+      {/* KPI scorecards — primary surface: stepped-up elevation + a faint mesh wash */}
+      <div className="grid gap-x-6 gap-y-5 rounded-2xl border p-5 shadow-[var(--elevation-md),var(--edge-highlight)] sm:grid-cols-2 lg:grid-cols-5"
+        style={{ borderColor: "var(--hairline)", background: "var(--mesh-hero), var(--gradient-surface)" }}>
         {kpis.map((k) => (
           <KpiTile key={k.label} kpi={k} />
         ))}

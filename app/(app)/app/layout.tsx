@@ -99,7 +99,7 @@ function SidebarSkeleton({ children }: { children: React.ReactNode }) {
     <>
       {/* Minimal sidebar placeholder while loading */}
       <aside
-        className="flex w-60 shrink-0 flex-col border-r"
+        className="flex w-50 shrink-0 flex-col border-r"
         style={{
           background: "var(--sidebar)",
           borderColor: "var(--sidebar-border)",
