@@ -410,22 +410,7 @@ function PlaysSkeleton() {
 
 export default function PlaysPage() {
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-6 px-6 py-8">
-      <div>
-        <p
-          className="font-mono text-[10px] uppercase tracking-widest"
-          style={{ color: "var(--color-muted)" }}
-        >
-          Action queue
-        </p>
-        <h1
-          className="mt-0.5 text-xl font-semibold"
-          style={{ color: "var(--color-fg)" }}
-        >
-          This week&apos;s plays
-        </h1>
-      </div>
-
+    <div className="mx-auto w-full max-w-2xl space-y-6 px-6 py-6">
       <Suspense fallback={<PlaysSkeleton />}>
         <PlaysContent />
       </Suspense>
