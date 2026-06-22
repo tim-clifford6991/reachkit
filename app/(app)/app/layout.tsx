@@ -124,7 +124,7 @@ export default function AppLayout({
   return (
     <div
       className="flex min-h-screen"
-      style={{ background: "var(--color-bg)" }}
+      style={{ background: "var(--color-app-canvas)" }}
     >
       {/* ⌘K command palette — globally available across the app shell */}
       <CommandPalette />
@@ -133,7 +133,7 @@ export default function AppLayout({
           {/* ── Content area — View Transitions swap here ── */}
           <main
             className="flex min-h-screen min-w-0 flex-1 flex-col overflow-x-hidden"
-            style={{ background: "var(--color-bg)" }}
+            style={{ background: "var(--color-app-canvas)" }}
           >
             <PageHeader />
             {children}
