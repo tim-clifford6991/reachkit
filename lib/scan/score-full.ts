@@ -33,14 +33,6 @@ import { serverDb } from "@/lib/db/client";
 // Public types
 // ---------------------------------------------------------------------------
 
-/**
- * Scoring-model version. The headline number is still the 3-pillar verified score
- * (v1); the 18-signal registry is persisted alongside for explainability. Bump
- * when the model that produces the headline number changes (and never retro-move
- * historical score_snapshots — annotate the history chart instead).
- */
-export const CURRENT_SCORE_VERSION = 1;
-
 export interface ScoreComponents {
   /** Normalised keyword/store ranking signal, 0–100. */
   keywordsRanking: number;
