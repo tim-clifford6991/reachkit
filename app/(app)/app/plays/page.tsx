@@ -10,6 +10,7 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth/server";
+import { activeAppId } from "@/lib/app/active-app";
 import { entitlementsFor } from "@/lib/billing/entitlements";
 import { assembleWeeklyPlan } from "@/lib/scan/weekly-plan";
 import type { WeeklyPlanAction } from "@/lib/scan/weekly-plan";
@@ -50,7 +51,7 @@ async function PlaysContent() {
   const { user } = viewer;
   const entitlements = await entitlementsFor(user.id);
   const isActivePaid = entitlements.active;
-  const primaryAppId = user.app_ids[0] ?? null;
+  const primaryAppId = await activeAppId(user);
 
   // Free wall — the queue is a paid surface
   if (!isActivePaid) {

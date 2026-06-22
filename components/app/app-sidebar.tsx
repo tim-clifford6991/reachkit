@@ -17,6 +17,8 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import type { Tier } from "@/lib/billing/tiers";
 import { APP_NAV, isNavActive } from "@/lib/app/nav";
+import { AppSwitcher } from "@/components/app/app-switcher";
+import type { AppOption } from "@/lib/app/active-app";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -29,6 +31,8 @@ interface AppSidebarProps {
   appName: string | null;
   appScore: number | null;
   hasApp: boolean;
+  apps: AppOption[];
+  activeId: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -251,6 +255,8 @@ export function AppSidebar({
   appName,
   appScore,
   hasApp: _hasApp,
+  apps,
+  activeId,
 }: AppSidebarProps) {
   const pathname = usePathname();
 
@@ -295,14 +301,20 @@ export function AppSidebar({
         >
           ReachKit
         </p>
-        {appName && (
-          <p
-            className="mt-0.5 truncate text-sm font-semibold"
-            style={{ color: "var(--color-fg)" }}
-            title={appName}
-          >
-            {appName}
-          </p>
+        {apps.length > 1 ? (
+          <div className="mt-1.5">
+            <AppSwitcher apps={apps} activeId={activeId} />
+          </div>
+        ) : (
+          appName && (
+            <p
+              className="mt-0.5 truncate text-sm font-semibold"
+              style={{ color: "var(--color-fg)" }}
+              title={appName}
+            >
+              {appName}
+            </p>
+          )
         )}
       </div>
 

@@ -12,6 +12,7 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth/server";
+import { activeAppId } from "@/lib/app/active-app";
 import { listRefreshDigests } from "@/lib/scan/digest";
 import { WhatsChanged } from "@/components/app/whats-changed";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -23,7 +24,7 @@ async function FeedContent() {
   const viewer = await currentUser();
   if (!viewer) redirect("/login?next=/app/feed");
 
-  const primaryAppId = viewer.user.app_ids[0] ?? null;
+  const primaryAppId = await activeAppId(viewer.user);
   const digests = primaryAppId ? await listRefreshDigests(primaryAppId) : [];
 
   // Quiet/no-op weeks have nothing to show — keep only weeks with signal.

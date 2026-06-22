@@ -17,6 +17,7 @@ import { serverDb } from "@/lib/db/client";
 import type { ReportPayload } from "@/lib/scan/report";
 import type { Tier } from "@/lib/billing/tiers";
 import { AppSidebar } from "@/components/app/app-sidebar";
+import { activeAppId, userApps } from "@/lib/app/active-app";
 import { CommandPalette } from "@/components/app/command-palette";
 import { AppBreadcrumbs } from "@/components/app/app-breadcrumbs";
 import type { Metadata } from "next";
@@ -39,7 +40,8 @@ async function SidebarData({ children }: { children: React.ReactNode }) {
   const { user } = viewer;
   const entitlements = await entitlementsFor(user.id);
   const tier: Tier = entitlements.active ? entitlements.tier : "free";
-  const primaryAppId = user.app_ids[0] ?? null;
+  const primaryAppId = await activeAppId(user);
+  const apps = await userApps(user.app_ids);
 
   let appName: string | null = null;
   let appScore: number | null = null;
@@ -80,6 +82,8 @@ async function SidebarData({ children }: { children: React.ReactNode }) {
         appName={appName}
         appScore={appScore}
         hasApp={primaryAppId !== null}
+        apps={apps}
+        activeId={primaryAppId}
       />
       {children}
     </>

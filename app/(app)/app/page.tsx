@@ -35,6 +35,7 @@ import { DashboardAnalytics } from "@/components/app/dashboard-analytics";
 import { MilestoneBanner } from "@/components/app/milestone-banner";
 import { OnboardingChecklist } from "@/components/app/onboarding-checklist";
 import { onboardingChecklist } from "@/lib/scan/onboarding-checklist";
+import { activeAppId } from "@/lib/app/active-app";
 import { PlaysPreview } from "@/components/app/plays-preview";
 import { EngagementStrip } from "@/components/app/engagement-strip";
 import { ExportButton } from "@/components/app/export-button";
@@ -59,7 +60,7 @@ async function DashboardContent() {
   // before reaching the dashboard. `onboarded_at` null → incomplete.
   if (!user.onboarded_at) redirect("/app/onboarding");
 
-  const primaryAppId = user.app_ids[0] ?? null;
+  const primaryAppId = await activeAppId(user);
 
   if (!primaryAppId) {
     return <NoAppEmptyState />;

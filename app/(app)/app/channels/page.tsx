@@ -11,6 +11,7 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth/server";
+import { activeAppId } from "@/lib/app/active-app";
 import { entitlementsFor, redactReportForTier } from "@/lib/billing/entitlements";
 import { isPaid, TIER_LIMITS } from "@/lib/billing/tiers";
 import { serverDb } from "@/lib/db/client";
@@ -32,7 +33,7 @@ async function MarketReportContent() {
   if (!viewer) redirect("/login?next=/app/channels");
 
   const { user } = viewer;
-  const primaryAppId = user.app_ids[0] ?? null;
+  const primaryAppId = await activeAppId(user);
   if (!primaryAppId) redirect("/app");
 
   const db = serverDb();
