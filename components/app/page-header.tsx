@@ -22,10 +22,11 @@ export function PageHeader() {
     <header
       className="sticky top-0 z-30 flex items-center gap-2.5 border-b px-6 py-3"
       style={{
-        background: "var(--glass-tint)",
-        backdropFilter: "blur(var(--glass-blur))",
-        WebkitBackdropFilter: "blur(var(--glass-blur))",
-        borderColor: "var(--glass-border)",
+        // Solid (not backdrop-blur): a blurred sticky bar re-composites the whole
+        // page behind it every scroll frame → froze the dashboard on real GPUs.
+        background: "var(--color-surface)",
+        borderColor: "var(--hairline)",
+        boxShadow: "var(--elevation-xs)",
       }}
     >
       {parents.length > 0 && (
