@@ -38,7 +38,9 @@ export function checklistComplete(steps: ChecklistStep[]): boolean {
 export async function onboardingChecklist(appId: string): Promise<ChecklistStep[]> {
   const db = serverDb();
   const [scan, started, verified, snaps] = await Promise.all([
-    db.from("scans").select("id").eq("app_id", appId).eq("status", "done").limit(1),
+    // A scan that produced a report = a completed scan (robust vs the status field,
+    // which can lag at 'queued' even when report_payload is written).
+    db.from("scans").select("id").eq("app_id", appId).not("report_payload", "is", null).limit(1),
     db.from("actions").select("id").eq("app_id", appId).in("verify_state", ["verifying", "verified", "failed"]).limit(1),
     db.from("actions").select("id").eq("app_id", appId).eq("verify_state", "verified").limit(1),
     db.from("score_snapshots").select("total").eq("app_id", appId).order("taken_at", { ascending: true }),
