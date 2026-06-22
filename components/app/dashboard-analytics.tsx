@@ -17,6 +17,7 @@ import { KeywordGapTable } from "@/components/report/keyword-gap-table";
 import { InfoTip } from "@/components/ui/info-tip";
 import { EmptyState } from "@/components/ui/empty-state";
 import { NumberTicker } from "@/components/motion/number-ticker";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 
 // ── KPI scorecards ──────────────────────────────────────────────────────────
 
@@ -28,6 +29,8 @@ interface Kpi {
   sub?: string;
   /** When set, the value animates 0→value on load (reduced-motion safe). */
   ticker?: { value: number; suffix?: string };
+  /** When set, the value becomes a click-to-drill popover revealing the evidence. */
+  evidence?: React.ReactNode;
 }
 
 function KpiTile({ kpi }: { kpi: Kpi }) {
@@ -39,16 +42,31 @@ function KpiTile({ kpi }: { kpi: Kpi }) {
         <span className="size-1.5 rounded-full" style={{ background: kpi.accent }} aria-hidden />
         <InfoTip term={kpi.label} />
       </span>
-      <span className="text-2xl font-semibold tabular-nums leading-none" style={{ color: "var(--color-fg)" }}>
-        {kpi.ticker ? (
-          <>
-            <NumberTicker value={kpi.ticker.value} />
-            {kpi.ticker.suffix ?? ""}
-          </>
-        ) : (
-          kpi.value
-        )}
-      </span>
+      {kpi.evidence ? (
+        <Popover>
+          <PopoverTrigger
+            render={
+              <button
+                type="button"
+                className="group flex items-center gap-1 text-left text-2xl font-semibold tabular-nums leading-none"
+                style={{ color: "var(--color-fg)" }}
+              >
+                {kpi.ticker ? (<><NumberTicker value={kpi.ticker.value} />{kpi.ticker.suffix ?? ""}</>) : kpi.value}
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden className="opacity-40 transition-opacity group-hover:opacity-90" style={{ color: "var(--color-muted)" }}>
+                  <circle cx="6" cy="6" r="5" stroke="currentColor" strokeWidth="1.1" />
+                  <path d="M6 5.4v2.2" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" />
+                  <circle cx="6" cy="3.7" r="0.6" fill="currentColor" />
+                </svg>
+              </button>
+            }
+          />
+          <PopoverContent>{kpi.evidence}</PopoverContent>
+        </Popover>
+      ) : (
+        <span className="text-2xl font-semibold tabular-nums leading-none" style={{ color: "var(--color-fg)" }}>
+          {kpi.ticker ? (<><NumberTicker value={kpi.ticker.value} />{kpi.ticker.suffix ?? ""}</>) : kpi.value}
+        </span>
+      )}
       <span className="flex items-center gap-2">
         {showDelta && (
           <span
@@ -124,6 +142,32 @@ function Card({ title, action, children }: { title: string; action?: React.React
 
 const PILLAR_COLOR: Record<string, string> = { seo: "var(--color-accent-400)", content: "var(--color-success)", outreach: "var(--chart-3)" };
 const STATE_COLOR: Record<string, string> = { pass: "var(--color-success)", warn: "var(--color-warning)", fail: "var(--color-danger)", unmeasured: "var(--color-muted)" };
+
+function ScoreEvidence({ breakdown }: { breakdown: BreakdownGroup[] }) {
+  const pillars = breakdown.map((g) => ({
+    pillar: g.pillar,
+    contribution: g.signals.reduce((a, s) => a + (s.contribution ?? 0), 0),
+  }));
+  const total = pillars.reduce((a, p) => a + p.contribution, 0) || 1;
+  return (
+    <div className="space-y-2">
+      <p className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "var(--color-muted)" }}>
+        What drives your score
+      </p>
+      {pillars.map((p) => (
+        <div key={p.pillar}>
+          <div className="flex items-center justify-between text-xs" style={{ color: "var(--color-fg)" }}>
+            <span className="capitalize">{p.pillar}</span>
+            <span className="font-mono tabular-nums" style={{ color: "var(--color-muted)" }}>{Math.round(p.contribution)} pts</span>
+          </div>
+          <div className="mt-1 h-1.5 overflow-hidden rounded-full" style={{ background: "var(--fill-subtle)" }}>
+            <div className="h-full rounded-full" style={{ width: `${(p.contribution / total) * 100}%`, background: PILLAR_COLOR[p.pillar] }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function OptimizationIdeasCard({ breakdown }: { breakdown: BreakdownGroup[] }) {
   // Segmented bar of pillar contribution + the top non-passing signals (the ideas).
@@ -209,6 +253,9 @@ export function DashboardAnalytics({
   dataAsOf?: string;
 }) {
   const kpis = buildKpis(score, scoreDelta, breakdown, market, kpiDeltas);
+  // Click-to-drill: the score reveals the pillar contributions that produced it.
+  const scoreKpi = kpis.find((k) => k.label === "Discoverability");
+  if (scoreKpi && breakdown.length > 0) scoreKpi.evidence = <ScoreEvidence breakdown={breakdown} />;
   const hasMarket = market != null;
 
   return (
