@@ -263,7 +263,7 @@ export function DashboardAnalytics({
     <div className="space-y-5">
       {/* KPI scorecards — primary surface: stepped-up elevation + a faint mesh wash */}
       <div className="grid gap-x-6 gap-y-5 rounded-2xl border p-5 shadow-[var(--elevation-lg),var(--edge-highlight)] sm:grid-cols-2 lg:grid-cols-5"
-        style={{ borderColor: "var(--hairline)", background: "var(--mesh-hero), var(--gradient-surface)" }}>
+        style={{ borderColor: "var(--hairline)", background: "var(--gradient-surface)" }}>
         <KpiStagger>
           {kpis.map((k) => (
             <KpiTile key={k.label} kpi={k} />

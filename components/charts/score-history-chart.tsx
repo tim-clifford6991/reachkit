@@ -76,7 +76,7 @@ export function ScoreHistoryChart({
 
   return (
     <div>
-      <div style={{ width: "100%", height: 240 }}>
+      <div style={{ width: "100%", height: 240, contain: "layout paint" }}>
         <ResponsiveContainer>
           <AreaChart data={data} margin={{ top: 8, right: 12, bottom: 4, left: 4 }}>
             {SCORE_BANDS.map((b) => (
