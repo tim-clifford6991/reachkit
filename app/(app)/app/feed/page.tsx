@@ -97,12 +97,9 @@ function FeedSkeleton() {
 
 export default function FeedPage() {
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-6 px-6 py-8">
+    <div className="mx-auto w-full max-w-3xl space-y-6 px-6 py-6">
       <div>
-        <p className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "var(--color-muted)" }}>
-          Signal feed
-        </p>
-        <h1 className="mt-0.5 text-xl font-semibold" style={{ color: "var(--color-fg)" }}>
+        <h1 className="text-xl font-semibold" style={{ color: "var(--color-fg)" }}>
           What moved, week by week
         </h1>
       </div>

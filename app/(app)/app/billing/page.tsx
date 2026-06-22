@@ -379,22 +379,7 @@ function BillingSkeleton() {
 
 export default function BillingPage() {
   return (
-    <div className="mx-auto w-full max-w-xl space-y-6 px-6 py-8">
-      <div>
-        <p
-          className="font-mono text-[10px] uppercase tracking-widest"
-          style={{ color: "var(--color-muted)" }}
-        >
-          Account
-        </p>
-        <h1
-          className="mt-0.5 text-xl font-semibold"
-          style={{ color: "var(--color-fg)" }}
-        >
-          Billing
-        </h1>
-      </div>
-
+    <div className="mx-auto w-full max-w-xl space-y-6 px-6 py-6">
       <Suspense fallback={<BillingSkeleton />}>
         <BillingContent />
       </Suspense>
