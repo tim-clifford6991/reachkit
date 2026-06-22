@@ -132,7 +132,7 @@ export default function AppLayout({
         <SidebarData>
           {/* ── Content area — View Transitions swap here ── */}
           <main
-            className="flex min-h-screen flex-1 flex-col overflow-x-hidden"
+            className="flex min-h-screen min-w-0 flex-1 flex-col overflow-x-hidden"
             style={{ background: "var(--color-bg)" }}
           >
             <PageHeader />

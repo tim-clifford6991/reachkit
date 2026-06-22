@@ -274,7 +274,7 @@ export function DashboardAnalytics({
       {/* Hero trend (2-wide) + a stacked buyers/ideas rail (heights match better
           than a bento here); the keyword table runs full-width below — no side gap. */}
       <div className="grid gap-5 lg:grid-cols-3 lg:items-start">
-        <div className="lg:col-span-2">
+        <div className="min-w-0 lg:col-span-2">
           <ScoreHistoryCard history={history} markers={markers} />
         </div>
         <div className="space-y-5">
