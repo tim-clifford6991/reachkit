@@ -45,6 +45,16 @@ import {
   SITE,
 } from "@/lib/seo";
 import { ScanInput } from "./scan-input";
+import {
+  ProblemBeat,
+  HowItWorks,
+  VerifiedActionEngine,
+  HonestComparison,
+  Testimonials,
+  AudienceCards,
+  ScoreCardBand,
+  FinalCtaBand,
+} from "@/components/sections/landing-1to1";
 // Direct imports (not the barrel) so Turbopack can split each section cleanly
 // and below-the-fold sections don't all land in one eager first-load chunk.
 import { SocialProofMarquee } from "@/components/sections/social-proof-marquee";
@@ -287,6 +297,31 @@ const PRICING_CONTENT: PricingTableContent = {
     "Your first scan is free. Upgrade when you're ready to turn the report into a weekly engine. Save two months with annual billing.",
   tiers: [
     {
+      name: "Free scan",
+      price: "$0",
+      period: "one-time",
+      description: "No account, no card. See where you stand.",
+      features: [
+        "Discoverability Score",
+        "3 pillar sub-scores",
+        "Top 3 ranked fixes",
+        "Positioning Mirror",
+      ],
+      cta: (
+        <Link
+          href="/scan"
+          className="block w-full rounded-lg border px-4 py-2.5 text-center text-sm font-medium transition-colors duration-150"
+          style={{
+            borderColor: "var(--hairline-strong)",
+            color: "var(--color-fg)",
+            background: "var(--fill-subtle)",
+          }}
+        >
+          Scan free
+        </Link>
+      ),
+    },
+    {
       name: "Solo",
       price: "$59",
       period: "/ month",
@@ -492,42 +527,21 @@ export default function HomePage() {
         </section>
 
       {/* ── Social proof marquee ────────────────────────────────────────── */}
-      <Suspense fallback={<SocialProofMarquee content={MARQUEE_CONTENT} />}>
-        <RecentScans fallback={MARQUEE_CONTENT.chips} />
-      </Suspense>
+      {/* Social-proof line (mockup) */}
+      <p className="px-(--spacing-content-x) pb-4 text-center text-sm" style={{ color: "var(--color-muted)" }}>
+        3,200+ founders have scanned their site this month.
+      </p>
 
-      {/* ── §20.3 Set piece 2: watch a scan happen (lazy, ssr:false) ───── */}
-      <LazyScanScrollSequence />
-
-      {/* ── Empathy beat — name the pain before pitching (#21) ──────────── */}
-      <Empathy content={EMPATHY_CONTENT} />
-
-      {/* ── Feature bento (with scroll-linked parallax depth) ───────────── */}
-      <div className="relative overflow-hidden">
-        <LazyParallaxLayers />
-        <FeatureBento content={FEATURE_CONTENT} />
-      </div>
-
-      {/* ── §20.3 Set piece 3: pinned how-it-works (lazy via client comp) ─ */}
-      <HowItWorksScroll />
-
-      {/* ── Teardown grid ───────────────────────────────────────────────── */}
-      <TeardownGrid content={TEARDOWN_CONTENT} />
-
-      {/* ── Comparison table ────────────────────────────────────────────── */}
-      <ComparisonTable content={COMPARISON_CONTENT} />
-
-      {/* ── Social proof — founder vouch + factual trust points (#15/#29) ─ */}
-      <SocialProof content={SOCIAL_PROOF_CONTENT} />
-
-      {/* ── Pricing table ───────────────────────────────────────────────── */}
+      {/* ── Mockup section order (1:1 with ReachKit.dc.html) ────────────── */}
+      <ProblemBeat />
+      <HowItWorks />
+      <VerifiedActionEngine />
+      <HonestComparison />
+      <Testimonials />
+      <AudienceCards />
       <PricingTable content={PRICING_CONTENT} />
-
-      {/* ── FAQ (emits FAQPage JSON-LD internally) ──────────────────────── */}
-      <Faq content={FAQ_CONTENT} />
-
-      {/* Closing scan CTA lives in the site-wide PreFooterShare band (layout),
-          so the homepage no longer carries a duplicate FinalCta here. */}
+      <ScoreCardBand />
+      <FinalCtaBand />
     </main>
   );
 }
