@@ -22,17 +22,11 @@ export function LogoMark({
       className={className}
       aria-hidden="true"
     >
-      <rect width="28" height="28" rx="8" fill="var(--color-accent)" />
-      <g
-        stroke="var(--color-accent-fg)"
-        strokeWidth="2"
-        strokeLinecap="round"
-        fill="none"
-      >
-        <path d="M14 19 A5 5 0 0 0 9 14" />
-        <path d="M18 19 A9 9 0 0 0 9 10" />
-      </g>
-      <circle cx="9" cy="19" r="1.7" fill="var(--color-accent-fg)" />
+      {/* 1:1 with the Claude Design mockup mark (ReachKit.dc.html). */}
+      <rect width="28" height="28" rx="9" fill="#6E56F7" />
+      <circle cx="14" cy="14" r="1.7" fill="#fff" />
+      <path d="M14 19 A5 5 0 1 1 19 14" stroke="#fff" strokeWidth="1.7" fill="none" strokeLinecap="round" />
+      <path d="M14 23 A9 9 0 1 1 23 14" stroke="#C3B2FF" strokeWidth="1.7" fill="none" strokeLinecap="round" />
     </svg>
   );
 }
