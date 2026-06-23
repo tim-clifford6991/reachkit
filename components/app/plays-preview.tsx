@@ -138,7 +138,7 @@ export function PlaysPreview({
           <div
             className="mt-4 rounded-lg px-4 py-3 text-center"
             style={{
-              background: "oklch(0.70 0.13 66 / 0.09)",
+              background: "var(--color-accent-subtle)",
               border: "1px solid var(--color-accent-900)",
             }}
           >

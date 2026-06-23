@@ -52,7 +52,7 @@ function FeedEmptyState() {
       >
         <div
           className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full"
-          style={{ background: "oklch(0.70 0.13 66 / 0.12)", border: "1.5px solid var(--color-accent-900)" }}
+          style={{ background: "var(--color-accent-subtle)", border: "1.5px solid var(--color-accent-900)" }}
           aria-hidden
         >
           <svg width="20" height="20" viewBox="0 0 16 16" fill="none">

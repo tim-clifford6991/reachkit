@@ -212,7 +212,7 @@ function PlaysUpgradeWall() {
       className="flex flex-col items-center rounded-xl border px-8 py-12 text-center"
       style={{
         borderColor: "var(--color-accent-900)",
-        background: "oklch(0.70 0.13 66 / 0.05)",
+        background: "oklch(0.56 0.205 285 / 0.05)",
       }}
     >
       {/* Icon */}

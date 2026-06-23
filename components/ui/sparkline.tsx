@@ -19,8 +19,8 @@ interface SparklineProps {
   color?: string;
 }
 
-const UP_COLOR = "oklch(0.72 0.17 155)";
-const DOWN_COLOR = "oklch(0.78 0.18 70)";
+const UP_COLOR = "oklch(0.62 0.13 153)";
+const DOWN_COLOR = "oklch(0.65 0.17 47)";
 
 export function Sparkline({ data, width = 120, height = 32, color }: SparklineProps) {
   if (data.length < 2) {

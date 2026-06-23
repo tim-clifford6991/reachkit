@@ -158,10 +158,10 @@ function TierBadge({ tier }: { tier: Tier }) {
 function SidebarScore({ score }: { score: number }) {
   const color =
     score >= 70
-      ? "oklch(0.72 0.17 155)"
+      ? "oklch(0.62 0.13 153)"
       : score >= 40
       ? "var(--color-accent)"
-      : "oklch(0.78 0.18 70)";
+      : "oklch(0.65 0.17 47)";
 
   return (
     <div className="flex items-center gap-2 px-3 py-2.5">

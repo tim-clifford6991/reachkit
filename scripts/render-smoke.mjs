@@ -364,7 +364,7 @@ function buildRoutes(scanId) {
   const routes = [
     { path: "/", markers: ["Scan my product", "getting found"] },
     { path: "/scan", markers: ["Get your score", "Paste a URL"] },
-    { path: "/pricing", markers: ["$29"] },
+    { path: "/pricing", markers: ["$59", "$129"] },
     { path: "/teardowns", markers: ["Teardown", "Bearable"] },
     { path: "/teardowns/bearable", markers: ["Bearable"] },
     { path: "/privacy", markers: ["Privacy"] },

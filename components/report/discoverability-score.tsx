@@ -43,8 +43,6 @@ const RING_SIZE = 200;
 const RING_CX   = RING_SIZE / 2;
 const RING_CY   = RING_SIZE / 2;
 const RING_R    = 78;
-const RING_STROKE = 6;
-const RING_CIRC = 2 * Math.PI * RING_R; // ≈ 490
 
 /** Radar polygon dimensions */
 const RADAR_SIZE   = 260;
@@ -70,6 +68,22 @@ function toPoints(pts: { x: number; y: number }[]): string {
   return pts.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ");
 }
 
+/**
+ * Build an SVG arc path from startDeg→endDeg (deg measured clockwise from top,
+ * matching `polar`). Used for the speedometer-style gauge.
+ */
+function arcPath(r: number, startDeg: number, endDeg: number, cx: number, cy: number) {
+  const start = polar(r, startDeg, cx, cy);
+  const end = polar(r, endDeg, cx, cy);
+  const largeArc = endDeg - startDeg > 180 ? 1 : 0;
+  // sweep-flag 1 = clockwise (increasing deg), matching `polar`'s orientation.
+  return `M ${start.x.toFixed(2)} ${start.y.toFixed(2)} A ${r} ${r} 0 ${largeArc} 1 ${end.x.toFixed(2)} ${end.y.toFixed(2)}`;
+}
+
+/** Gauge geometry: a 280° arc opening at the bottom (per ReachKit.dc.html). */
+const GAUGE_START = 220;
+const GAUGE_SWEEP = 280;
+
 // Band label + ring colour now come from the canonical lib/scan/score-bands.
 
 // ---------------------------------------------------------------------------
@@ -86,10 +100,11 @@ function RadialRing({
   animate: boolean;
   size?: "sm" | "lg";
 }) {
-  const fraction = total / 100;
-  const offset   = RING_CIRC * (1 - fraction);
+  const fraction = Math.max(0, Math.min(1, total / 100));
   const colour   = bandFor(total).color;
   const ringSize = size === "sm" ? 140 : 200;
+  const stroke   = size === "sm" ? 8 : 10;
+  const d = arcPath(RING_R, GAUGE_START, GAUGE_START + GAUGE_SWEEP, RING_CX, RING_CY);
 
   return (
     <svg
@@ -103,33 +118,30 @@ function RadialRing({
        */
       style={{ viewTransitionName: "score-circle" } as React.CSSProperties}
     >
-      {/* Track ring */}
-      <circle
-        cx={RING_CX}
-        cy={RING_CY}
-        r={RING_R}
+      {/* Track arc */}
+      <path
+        d={d}
         fill="none"
         stroke="var(--hairline)"
-        strokeWidth={RING_STROKE}
+        strokeWidth={stroke}
+        strokeLinecap="round"
       />
-      {/* Filled ring */}
-      <motion.circle
-        cx={RING_CX}
-        cy={RING_CY}
-        r={RING_R}
+      {/* Filled arc — reveals `fraction` of the 280° sweep from the start. */}
+      <motion.path
+        d={d}
         fill="none"
         stroke={colour}
-        strokeWidth={RING_STROKE}
+        strokeWidth={stroke}
         strokeLinecap="round"
-        strokeDasharray={RING_CIRC}
-        initial={{ strokeDashoffset: RING_CIRC }}
-        animate={{ strokeDashoffset: offset }}
+        pathLength={1}
+        strokeDasharray={1}
+        initial={{ strokeDashoffset: 1 }}
+        animate={{ strokeDashoffset: 1 - fraction }}
         transition={
           animate
             ? { duration: 1.2, ease: [0.25, 0, 0, 1], delay: 0.2 }
             : { duration: 0 }
         }
-        transform={`rotate(-90 ${RING_CX} ${RING_CY})`}
       />
     </svg>
   );
@@ -212,7 +224,7 @@ function RadarChart({ axes, animate }: { axes: RadarAxis[]; animate: boolean }) 
       {animate ? (
         <motion.polygon
           points={toPoints(activePoints)}
-          fill="oklch(0.70 0.13 66 / 0.20)"
+          fill="var(--color-accent-subtle)"
           stroke="var(--color-accent)"
           strokeWidth={1.5}
           initial={{ opacity: 0, scale: 0.6 }}
@@ -223,7 +235,7 @@ function RadarChart({ axes, animate }: { axes: RadarAxis[]; animate: boolean }) 
       ) : (
         <polygon
           points={toPoints(activePoints)}
-          fill="oklch(0.70 0.13 66 / 0.20)"
+          fill="var(--color-accent-subtle)"
           stroke="var(--color-accent)"
           strokeWidth={1.5}
         />
@@ -300,19 +312,15 @@ function SubScoreRow({
       </div>
     );
   }
-  const colour =
-    value >= 70
-      ? "oklch(0.72 0.17 155)"
-      : value >= 40
-      ? "var(--color-accent)"
-      : "oklch(0.78 0.18 70)";
+  // Tie each pillar bar to the same band ramp as the score itself.
+  const colour = bandFor(value).color;
 
   return (
     <div className="flex items-center gap-2">
       <span className="w-16 shrink-0 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
         {label}
       </span>
-      <div className="relative h-1 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
+      <div className="relative h-1 flex-1 overflow-hidden rounded-full bg-[var(--hairline)]">
         <motion.div
           className="h-full rounded-full"
           style={{ backgroundColor: colour }}
