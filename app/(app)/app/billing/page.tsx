@@ -94,7 +94,7 @@ async function BillingContent() {
               : "var(--hairline)",
           background:
             tier !== "free"
-              ? "oklch(0.70 0.13 66 / 0.05)"
+              ? "oklch(0.56 0.205 285 / 0.05)"
               : "var(--color-surface)",
         }}
       >

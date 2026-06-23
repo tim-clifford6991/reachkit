@@ -376,8 +376,8 @@ export default async function TeardownSlugPage(props: {
             <div
               className="rounded-xl border p-8 text-center"
               style={{
-                borderColor: "oklch(0.70 0.13 66 / 0.25)",
-                background: "oklch(0.70 0.13 66 / 0.05)",
+                borderColor: "oklch(0.56 0.205 285 / 0.25)",
+                background: "oklch(0.56 0.205 285 / 0.05)",
               }}
             >
               <p

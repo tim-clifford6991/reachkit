@@ -218,8 +218,8 @@ export function ComparisonTable({ content }: ComparisonTableProps) {
                         borderColor: "var(--hairline)",
                         background: isFirst
                           ? ri % 2 === 0
-                            ? "oklch(0.70 0.13 66 / 0.05)"
-                            : "oklch(0.70 0.13 66 / 0.03)"
+                            ? "oklch(0.56 0.205 285 / 0.05)"
+                            : "oklch(0.56 0.205 285 / 0.03)"
                           : ri % 2 === 0
                           ? "var(--fill-subtle)"
                           : "transparent",
