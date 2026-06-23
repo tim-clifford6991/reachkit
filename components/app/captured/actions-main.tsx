@@ -5,6 +5,8 @@
  * existing action flow — wired in a follow-up; the list + state are live.)
  */
 
+import { MarkDoneButton } from "./mark-done-button";
+
 const SG = "Space Grotesk", JM = "JetBrains Mono";
 
 function effortColors(effort: string) {
@@ -13,7 +15,7 @@ function effortColors(effort: string) {
   return { bg: "#FFF4E0", fg: "#C98A12" };
 }
 
-export interface OpenAction { rank: number; title: string; why: string; effort: string; pillar: string; pred: number }
+export interface OpenAction { id: string; rank: number; title: string; why: string; effort: string; pillar: string; pred: number }
 export interface ActionsMainProps {
   doneSummary: string;
   refreshLabel: string;
@@ -58,7 +60,7 @@ export function ActionsMain(p: ActionsMainProps) {
               <div style={{ textAlign: "right", flex: "0 0 auto" }}>
                 <div style={{ fontSize: 11, color: "#9A97A5", fontWeight: 600 }}>Predicted</div>
                 <div style={{ fontFamily: JM, fontWeight: 700, fontSize: 17, color: "#1F9D5B" }}>+{a.pred}</div>
-                <button style={{ marginTop: 8, fontFamily: "Plus Jakarta Sans", fontWeight: 600, fontSize: 12.5, color: "#fff", background: "#6E56F7", border: "none", borderRadius: 8, padding: "7px 14px", cursor: "pointer" }}>Mark done</button>
+                <MarkDoneButton actionId={a.id} />
               </div>
             </div>
           );

@@ -10,6 +10,7 @@ import { currentUser } from "@/lib/auth/server";
 import { activeAppId } from "@/lib/app/active-app";
 import { entitlementsFor } from "@/lib/billing/entitlements";
 import { serverDb } from "@/lib/db/client";
+import { assembleWeeklyPlan } from "@/lib/scan/weekly-plan";
 import type { ReportPayload } from "@/lib/scan/report";
 import { Skeleton } from "@/components/ui/skeleton";
 import { buildMetadata } from "@/lib/seo";
@@ -42,23 +43,29 @@ async function PlaysContent() {
   if (!scanRow?.report_payload) return <PlaysEmpty label="No report yet — your queue arrives with your first scan." />;
 
   const report = scanRow.report_payload as unknown as ReportPayload;
-  const all = [
-    ...report.whatToDoThisWeek.quickWins,
-    ...report.whatToDoThisWeek.medium,
-    ...report.whatToDoThisWeek.longPlay,
-  ]
-    .filter((a) => (a.expectedOutcome?.delta ?? 0) > 0)
-    .sort((x, y) => (y.expectedOutcome?.delta ?? 0) - (x.expectedOutcome?.delta ?? 0));
+  // Predicted-delta lookup (the weekly plan carries no delta; the report does).
+  const deltaByTitle = new Map<string, number>();
+  [...report.whatToDoThisWeek.quickWins, ...report.whatToDoThisWeek.medium, ...report.whatToDoThisWeek.longPlay].forEach(
+    (a) => deltaByTitle.set(a.title, a.expectedOutcome?.delta ?? 0),
+  );
 
-  const open: OpenAction[] = all.map((a, i) => ({
-    rank: i + 1,
-    title: a.title,
-    why: a.why,
-    effort: effLabel(a.effortMin),
-    pillar: CAT[a.category] ?? a.category,
-    pred: a.expectedOutcome?.delta ?? 0,
-  }));
-  const totalWorth = all.reduce((s, a) => s + (a.expectedOutcome?.delta ?? 0), 0);
+  // Open queue from the weekly plan — these carry the real action `id` for the
+  // Mark-done → /api/action/[id]/complete flow.
+  const plan = await assembleWeeklyPlan(primaryAppId);
+  const planActions = [...plan.queue.quickWins, ...plan.queue.medium, ...plan.queue.longPlay];
+  const open: OpenAction[] = planActions
+    .map((a) => ({ a, pred: deltaByTitle.get(a.title) ?? 0 }))
+    .sort((x, y) => y.pred - x.pred)
+    .map(({ a, pred }, i) => ({
+      id: a.id,
+      rank: i + 1,
+      title: a.title,
+      why: a.why ?? "",
+      effort: effLabel(a.effortMin ?? 30),
+      pillar: CAT[a.category] ?? a.category,
+      pred,
+    }));
+  const totalWorth = open.reduce((s, a) => s + a.pred, 0);
   const refreshDays = ((8 - new Date().getUTCDay()) % 7) || 7;
 
   return (
