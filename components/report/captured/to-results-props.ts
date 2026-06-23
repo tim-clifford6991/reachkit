@@ -45,8 +45,23 @@ export function toResultsProps(report: ReportPayload, siteLabel: string, totalAc
   const fullTotal = totalActions ?? allActions.length;
 
   const pm = report.whatYouOffer.positioningMirror;
-  const intendedTags = pm.listingSays ? [pm.listingSays] : [];
-  const actualTags = pm.reviewsValue ? [pm.reviewsValue] : [];
+
+  // Multi-tag audience derivation: split positioning prose into distinct chips
+  // (on commas / semicolons / "and" / "&" / "·"), trim, drop tiny fragments, and
+  // fold in the ICP signals as additional "intended" tags. Caps at 5 chips.
+  const splitTags = (text: string | null | undefined): string[] => {
+    if (!text) return [];
+    return text
+      .split(/[,;·]|\band\b|&|•/gi)
+      .map((t) => t.trim().replace(/^(for|to|the|a)\s+/i, "").replace(/[.\s]+$/, "").trim())
+      .filter((t) => t.length >= 3 && t.length <= 40);
+  };
+  const icpSignals = (report.whoItsFor?.signals ?? [])
+    .map((s) => (typeof s === "string" ? s : (s as { label?: string })?.label ?? ""))
+    .filter((s): s is string => !!s);
+
+  const intendedTags = Array.from(new Set([...splitTags(pm.listingSays), ...icpSignals.flatMap(splitTags)])).slice(0, 5);
+  const actualTags = Array.from(new Set(splitTags(pm.reviewsValue))).slice(0, 5);
 
   // Search-gap rows from market keyword-gap (present on deep/paid scans).
   const kg = report.market?.gap?.keywordGap ?? [];
