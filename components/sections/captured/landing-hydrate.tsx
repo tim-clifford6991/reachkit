@@ -20,10 +20,10 @@ const NAV: Record<string, string> = {
   "Log in": "/login",
 };
 
-export function LandingHydrate() {
+export function LandingHydrate({ rootId = "rk-landing" }: { rootId?: string }) {
   const router = useRouter();
   useEffect(() => {
-    const root = document.getElementById("rk-landing");
+    const root = document.getElementById(rootId);
     if (!root) return;
     const input = root.querySelector("input") as HTMLInputElement | null;
 
@@ -57,8 +57,11 @@ export function LandingHydrate() {
     const cleanups: Array<() => void> = [];
     root.querySelectorAll("button").forEach((b) => {
       const t = b.textContent?.trim() ?? "";
-      if (/analyze my site|scan (your )?(site|product)|start.*scan|see your score/i.test(t)) {
-        const h = () => void runScan();
+      if (/analyze my site|scan (your )?(site|product)|start.*scan|see your score|start solo|start growth|scan free|get started|unlock/i.test(t)) {
+        const h = () => {
+          if (/start solo|start growth|upgrade/i.test(t)) router.push("/login?next=/app/billing");
+          else void runScan();
+        };
         b.addEventListener("click", h);
         cleanups.push(() => b.removeEventListener("click", h));
       }

@@ -150,9 +150,9 @@ function GsapInit() {
 
 export default function MarketingLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  // The landing ("/") is the captured 1:1 page — it carries its own nav + footer,
-  // so the shared marketing chrome is suppressed there.
-  const isCaptured = pathname === "/";
+  // Captured 1:1 marketing pages carry their own nav + footer, so the shared
+  // marketing chrome is suppressed there.
+  const isCaptured = pathname === "/" || pathname === "/pricing";
 
   if (isCaptured) {
     return (
