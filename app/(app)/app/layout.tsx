@@ -45,6 +45,7 @@ async function SidebarData({ children }: { children: React.ReactNode }) {
 
   let appName: string | null = null;
   let appScore: number | null = null;
+  let nextScanAt: string | null = null;
 
   if (primaryAppId) {
     const db = serverDb();
@@ -58,7 +59,7 @@ async function SidebarData({ children }: { children: React.ReactNode }) {
 
     const { data: scanRow } = await db
       .from("scans")
-      .select("report_payload")
+      .select("report_payload, completed_at")
       .eq("app_id", primaryAppId)
       .order("completed_at", { ascending: false })
       .limit(1)
@@ -67,6 +68,13 @@ async function SidebarData({ children }: { children: React.ReactNode }) {
     if (scanRow?.report_payload) {
       const payload = scanRow.report_payload as unknown as ReportPayload;
       appScore = payload.score?.total ?? null;
+    }
+
+    // Paid plans get a weekly auto-scan — show the next one in the sidebar.
+    if (scanRow?.completed_at && tier !== "free") {
+      const next = new Date(scanRow.completed_at as string);
+      next.setUTCDate(next.getUTCDate() + 7);
+      nextScanAt = next.toISOString();
     }
   }
 
@@ -84,6 +92,7 @@ async function SidebarData({ children }: { children: React.ReactNode }) {
         hasApp={primaryAppId !== null}
         apps={apps}
         activeId={primaryAppId}
+        nextScanAt={nextScanAt}
       />
       {children}
     </>

@@ -155,7 +155,7 @@ async function ResultsContent({ id }: { id: string }) {
             {productName}
           </h1>
           <div className="mt-2 flex justify-center">
-            <ShareScoreButton slug={id} />
+            <ShareScoreButton slug={id} score={report.score.total} productName={productName} />
           </div>
         </div>
       )}
