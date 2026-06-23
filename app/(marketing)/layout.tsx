@@ -17,6 +17,7 @@
 
 import type { ReactNode } from "react";
 import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 import { MarketingNav } from "@/components/sections/marketing-nav";
 import { Footer, type FooterContent } from "@/components/sections/footer";
 import { PreFooterShare } from "@/components/sections/pre-footer-share";
@@ -148,6 +149,21 @@ function GsapInit() {
 // ---------------------------------------------------------------------------
 
 export default function MarketingLayout({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  // The landing ("/") is the captured 1:1 page — it carries its own nav + footer,
+  // so the shared marketing chrome is suppressed there.
+  const isCaptured = pathname === "/";
+
+  if (isCaptured) {
+    return (
+      <>
+        <LenisMount />
+        <GsapInit />
+        <div className="flex min-h-dvh flex-col overflow-x-hidden">{children}</div>
+      </>
+    );
+  }
+
   return (
     <>
       {/* Lazy animation infra — never blocks the first paint */}
