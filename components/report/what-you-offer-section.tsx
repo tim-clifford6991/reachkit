@@ -57,11 +57,15 @@ export function WhatYouOfferSection({
         <div className="space-y-4">
           {/* Two-column diff: what you claim vs what buyers actually value */}
           <div className="grid gap-3 sm:grid-cols-2">
+            {/* Positioning Mirror — intended (violet) vs actual (orange), per mockup */}
             <div
               className="rounded-lg px-4 py-3"
-              style={{ background: "var(--fill-subtle)", border: "1px solid var(--hairline)" }}
+              style={{
+                background: "var(--color-accent-subtle)",
+                border: "1px solid var(--color-accent-900)",
+              }}
             >
-              <p className="font-mono text-[10px] uppercase tracking-wider" style={{ color: "var(--color-muted)" }}>
+              <p className="font-mono text-[10px] uppercase tracking-wider" style={{ color: "var(--color-accent-400)" }}>
                 Your listing says
               </p>
               <p className="mt-1.5 text-sm leading-relaxed" style={{ color: "var(--color-fg)" }}>
@@ -71,12 +75,12 @@ export function WhatYouOfferSection({
             <div
               className="rounded-lg px-4 py-3"
               style={{
-                background: "color-mix(in oklch, var(--color-success) 8%, transparent)",
-                border: "1px solid color-mix(in oklch, var(--color-success) 25%, transparent)",
+                background: "oklch(0.66 0.16 50 / 0.08)",
+                border: "1px solid oklch(0.66 0.16 50 / 0.25)",
               }}
             >
-              <p className="font-mono text-[10px] uppercase tracking-wider" style={{ color: "var(--color-success)" }}>
-                Your buyers value
+              <p className="font-mono text-[10px] uppercase tracking-wider" style={{ color: "oklch(0.58 0.15 50)" }}>
+                Your page reads as
               </p>
               <p className="mt-1.5 text-sm leading-relaxed" style={{ color: "var(--color-fg)" }}>
                 {pm.reviewsValue}
