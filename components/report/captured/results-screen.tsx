@@ -89,7 +89,7 @@ export function ResultsScreen(p: ResultsScreenProps) {
         href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
       />
       <main style={{ background: "#FAFAFC", minHeight: "100vh", fontFamily: PJ, color: "#14131A" }}>
-        <div style={{ maxWidth: 880, margin: "0 auto", padding: "40px 24px 70px" }}>
+        <div style={{ maxWidth: "100%", margin: "0 auto", padding: "40px clamp(24px, 4vw, 56px) 70px" }}>
           {/* Header */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 9 }}>

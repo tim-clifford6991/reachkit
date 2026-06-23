@@ -16,7 +16,7 @@ import { entitlementsFor } from "@/lib/billing/entitlements";
 import { serverDb } from "@/lib/db/client";
 import type { ReportPayload } from "@/lib/scan/report";
 import type { Tier } from "@/lib/billing/tiers";
-import { activeAppId } from "@/lib/app/active-app";
+import { activeAppId, userApps } from "@/lib/app/active-app";
 import { CommandPalette } from "@/components/app/command-palette";
 import { AppShell } from "@/components/app/captured/app-shell";
 import type { Metadata } from "next";
@@ -76,20 +76,42 @@ async function SidebarData({ children }: { children: React.ReactNode }) {
   const email = user.email ?? "";
   const initials = email.slice(0, 2).toUpperCase();
   const userName = email ? email.split("@")[0]!.replace(/[._]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "Founder";
-  // Next auto-scan (paid weekly cadence): last scan + 7 days.
-  let nextScanLabel = "Re-scan anytime";
-  if (lastScannedIso && tier !== "free") {
-    const days = Math.max(0, Math.ceil((new Date(lastScannedIso).getTime() + 7 * 86_400_000 - Date.now()) / 86_400_000));
-    nextScanLabel = `Next auto-scan in ${days} day${days === 1 ? "" : "s"}`;
+
+  // App switcher: the user's apps + whether the plan has a free slot to add one.
+  const apps = (await userApps(user.app_ids)).map((a) => ({ id: a.id, name: a.name }));
+  const APP_LIMIT: Record<string, number> = { free: 1, solo: 1, growth: 3 };
+  const canAddApp = apps.length < (APP_LIMIT[tier] ?? 1);
+
+  // Side card: free-trial countdown, paid next-auto-scan, or nothing (free).
+  const status = (user.subscription_status as string | null) ?? null;
+  const periodEnd = (user.current_period_end as string | null) ?? null;
+  const daysUntil = (iso: string | null) => (iso ? Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000)) : 0);
+  let sideCard = null as null | { title: string; sub: string; cta?: { label: string; href: string }; tone: "trial" | "scan" };
+  if (status === "trialing" && periodEnd) {
+    const d = daysUntil(periodEnd);
+    sideCard = {
+      title: `Trial ends in ${d} day${d === 1 ? "" : "s"}`,
+      sub: "Upgrade to keep weekly tracking and the full report.",
+      cta: { label: "Upgrade", href: "/app/billing" },
+      tone: "trial",
+    };
+  } else if (entitlements.active && lastScannedIso) {
+    const d = Math.max(0, Math.ceil((new Date(lastScannedIso).getTime() + 7 * 86_400_000 - Date.now()) / 86_400_000));
+    sideCard = { title: `Next auto-scan in ${d} day${d === 1 ? "" : "s"}`, sub: "Weekly tracking keeps your score current.", tone: "scan" };
   }
+
+  void actionsCount;
 
   return (
     <AppShell
       appName={appName ?? "your site"}
       plan={PLAN_LABEL[tier] ?? "Free plan"}
       appInitial={(appName ?? "?").charAt(0).toUpperCase()}
-      actionsCount={actionsCount}
-      nextScanLabel={nextScanLabel}
+      actionsCount={0}
+      apps={apps}
+      activeAppId={primaryAppId}
+      canAddApp={canAddApp}
+      sideCard={sideCard}
       userName={userName}
       userRole="solo founder"
       userInitials={initials}

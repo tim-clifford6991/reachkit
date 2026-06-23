@@ -29,7 +29,7 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
 
 export function SettingsMain(p: SettingsMainProps) {
   return (
-    <div style={{ maxWidth: 680, display: "flex", flexDirection: "column", gap: 18 }}>
+    <div style={{ maxWidth: "100%", display: "flex", flexDirection: "column", gap: 18 }}>
       <Card title="Plan">
         <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px", background: "#FAF8FF", border: "1px solid #ECE7FB", borderRadius: 12 }}>
           <div style={{ flex: "1 1 0%" }}>

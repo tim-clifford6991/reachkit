@@ -9,6 +9,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { AppSwitcher, type SwitcherApp } from "./app-switcher-menu";
 
 const SG = "Space Grotesk", PJ = "Plus Jakarta Sans", JM = "JetBrains Mono";
 
@@ -35,12 +36,23 @@ const TITLES: Record<string, string> = {
   "/app/history": "History", "/app/settings": "Settings", "/app/billing": "Billing",
 };
 
+export interface SideCard {
+  title: string;
+  sub: string;
+  cta?: { label: string; href: string };
+  /** "trial" tints the card violet-accented; "scan" keeps the dark look. */
+  tone?: "trial" | "scan";
+}
+
 export interface AppShellProps {
   appName: string;
   plan: string;
   appInitial: string;
   actionsCount: number;
-  nextScanLabel: string;
+  sideCard: SideCard | null;
+  apps: SwitcherApp[];
+  activeAppId: string | null;
+  canAddApp: boolean;
   userName: string;
   userRole: string;
   userInitials: string;
@@ -64,17 +76,15 @@ export function AppShell(p: AppShellProps) {
             <svg width="26" height="26" viewBox="0 0 28 28"><rect width="28" height="28" rx="9" fill="#6E56F7" /><circle cx="14" cy="14" r="1.7" fill="#fff" /><path d="M14 19 A5 5 0 1 1 19 14" stroke="#fff" strokeWidth="1.7" fill="none" strokeLinecap="round" /><path d="M14 23 A9 9 0 1 1 23 14" stroke="#C3B2FF" strokeWidth="1.7" fill="none" strokeLinecap="round" /></svg>
             <span style={{ fontFamily: SG, fontWeight: 700, fontSize: 17 }}>ReachKit</span>
           </div>
-          {/* Product switcher */}
-          <div style={{ position: "relative", marginBottom: 16 }}>
-            <button style={{ width: "100%", fontFamily: PJ, background: "#FAFAFC", border: "1px solid #EEEDF3", borderRadius: 11, padding: "9px 11px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", textAlign: "left" }}>
-              <span style={{ width: 28, height: 28, borderRadius: 7, background: "linear-gradient(135deg, #6E56F7, #9A88FF)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: SG, flex: "0 0 auto" }}>{p.appInitial}</span>
-              <div style={{ flex: "1 1 0%", minWidth: 0 }}>
-                <div style={{ fontWeight: 600, fontSize: 13.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: "#14131A" }}>{p.appName}</div>
-                <div style={{ fontSize: 11.5, color: "#9A97A5" }}>{p.plan}</div>
-              </div>
-              <span style={{ color: "#9A97A5", fontSize: 11 }}>▾</span>
-            </button>
-          </div>
+          {/* Product switcher — functional dropdown (swap / add app) */}
+          <AppSwitcher
+            apps={p.apps}
+            activeId={p.activeAppId}
+            appName={p.appName}
+            appInitial={p.appInitial}
+            plan={p.plan}
+            canAddApp={p.canAddApp}
+          />
           {/* Nav */}
           <nav style={{ display: "flex", flexDirection: "column", gap: 3 }}>
             {NAV.map((n) => {
@@ -90,12 +100,17 @@ export function AppShell(p: AppShellProps) {
             })}
           </nav>
           <div style={{ flex: "1 1 0%" }} />
-          {/* Next-scan card */}
-          <div style={{ background: "linear-gradient(150deg, #14131A, #2B2640)", borderRadius: 13, padding: 15, color: "#fff", marginBottom: 10 }}>
-            <div style={{ fontFamily: SG, fontWeight: 700, fontSize: 14.5 }}>{p.nextScanLabel}</div>
-            <div style={{ fontSize: 12, color: "#B7B4C4", margin: "5px 0 11px" }}>Weekly tracking is on. Re-run anytime.</div>
-            <button style={{ width: "100%", fontFamily: PJ, fontWeight: 600, fontSize: 12.5, background: "#6E56F7", color: "#fff", border: "none", borderRadius: 8, padding: 8, cursor: "pointer" }}>Re-scan now</button>
-          </div>
+          {/* Side card — trial countdown (free-trial users) or next auto-scan
+              (paid). Hidden for free non-trial users. */}
+          {p.sideCard && (
+            <div style={{ background: "linear-gradient(150deg, #14131A, #2B2640)", borderRadius: 13, padding: 15, color: "#fff", marginBottom: 10 }}>
+              <div style={{ fontFamily: SG, fontWeight: 700, fontSize: 14.5 }}>{p.sideCard.title}</div>
+              <div style={{ fontSize: 12, color: "#B7B4C4", margin: p.sideCard.cta ? "5px 0 11px" : "5px 0 0" }}>{p.sideCard.sub}</div>
+              {p.sideCard.cta && (
+                <Link href={p.sideCard.cta.href} style={{ display: "block", textAlign: "center", fontFamily: PJ, fontWeight: 600, fontSize: 12.5, background: "#6E56F7", color: "#fff", border: "none", borderRadius: 8, padding: 8, cursor: "pointer", textDecoration: "none" }}>{p.sideCard.cta.label}</Link>
+              )}
+            </div>
+          )}
           {/* User footer */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 8, borderTop: "1px solid #F0EEF6" }}>
             <span style={{ width: 30, height: 30, borderRadius: "50%", background: "#E7E2FF", color: "#6E56F7", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13 }}>{p.userInitials}</span>
@@ -115,9 +130,6 @@ export function AppShell(p: AppShellProps) {
               <div style={{ fontSize: 12.5, color: "#9A97A5", marginTop: 1 }}>{p.lastScannedLabel} · {p.appName} · score {p.scoreVersion}</div>
             </div>
             <div style={{ flex: "1 1 0%" }} />
-            <button style={{ display: "flex", alignItems: "center", gap: 7, fontFamily: PJ, fontWeight: 600, fontSize: 13.5, color: "#fff", background: "#14131A", border: "none", borderRadius: 9, padding: "9px 15px", cursor: "pointer" }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M21 12a9 9 0 1 1-2.6-6.4" /><path d="M21 3v5h-5" /></svg>Re-scan
-            </button>
           </header>
           <div style={{ padding: "26px 28px 60px", overflow: "auto" }}>{p.children}</div>
         </div>
