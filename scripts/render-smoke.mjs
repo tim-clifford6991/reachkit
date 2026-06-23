@@ -377,7 +377,7 @@ function buildRoutes(scanId) {
     });
     routes.push({
       path: `/report/${scanId}`,
-      markers: ["Discoverability Report", "Discoverability score"],
+      markers: ["ranked fixes", "Positioning Mirror"],
     });
   }
   return routes;
