@@ -27,15 +27,8 @@ export function WhatYouOfferSection({
   const { positioningMirror: pm } = whatYouOffer;
 
   return (
-    <section
-      aria-labelledby="what-you-offer-heading"
-      className="rounded-2xl border shadow-[var(--elevation-sm),var(--edge-highlight)]"
-      style={{
-        borderColor: "var(--hairline)",
-        background: "var(--gradient-surface)",
-      }}
-    >
-      <div className="px-7 pb-6 pt-6">
+    <section aria-labelledby="what-you-offer-heading">
+      <div>
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
             <p
@@ -46,76 +39,70 @@ export function WhatYouOfferSection({
             </p>
             <h2
               id="what-you-offer-heading"
-              className="mt-0.5 text-base font-semibold"
-              style={{ color: "var(--color-fg)" }}
+              className="mt-0.5 text-[20px] font-bold tracking-[-0.01em]"
+              style={{ color: "#14131A", fontFamily: "var(--font-display)" }}
             >
-              What you offer
+              Positioning Mirror
             </h2>
+            <p className="mt-1 text-sm" style={{ color: "#8A8794" }}>
+              Who you think you target, vs. who your page actually reads as.
+            </p>
           </div>
         </div>
 
-        <div className="space-y-4">
-          {/* Two-column diff: what you claim vs what buyers actually value */}
-          <div className="grid gap-3 sm:grid-cols-2">
-            {/* Positioning Mirror — intended (violet) vs actual (orange), per mockup */}
-            <div
-              className="rounded-lg px-4 py-3"
-              style={{
-                background: "var(--color-accent-subtle)",
-                border: "1px solid var(--color-accent-900)",
-              }}
-            >
-              <p className="font-mono text-[10px] uppercase tracking-wider" style={{ color: "var(--color-accent-400)" }}>
-                Your listing says
-              </p>
-              <p className="mt-1.5 text-sm leading-relaxed" style={{ color: "var(--color-fg)" }}>
-                {pm.listingSays}
-              </p>
+        {/* White card — exact mockup styling (ReachKit.dc.html Positioning Mirror) */}
+        <div style={{ background: "#fff", border: "1px solid #ECEAF3", borderRadius: 16, padding: 24 }}>
+          <div className="grid gap-5 sm:grid-cols-2">
+            {/* "You think you target" — violet column */}
+            <div style={{ border: "1px solid #ECE7FB", background: "#FAF8FF", borderRadius: 12, padding: 18 }}>
+              <div
+                className="mb-3 text-xs font-bold uppercase"
+                style={{ color: "#6E56F7", letterSpacing: "0.04em" }}
+              >
+                You think you target
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <span
+                  className="text-[13px] font-semibold"
+                  style={{ background: "#fff", border: "1px solid #E2DEF0", color: "#3A3744", padding: "6px 12px", borderRadius: 8 }}
+                >
+                  {pm.listingSays}
+                </span>
+              </div>
             </div>
-            <div
-              className="rounded-lg px-4 py-3"
-              style={{
-                background: "oklch(0.66 0.16 50 / 0.08)",
-                border: "1px solid oklch(0.66 0.16 50 / 0.25)",
-              }}
-            >
-              <p className="font-mono text-[10px] uppercase tracking-wider" style={{ color: "oklch(0.58 0.15 50)" }}>
-                Your page reads as
-              </p>
-              <p className="mt-1.5 text-sm leading-relaxed" style={{ color: "var(--color-fg)" }}>
-                {pm.reviewsValue}
-              </p>
+            {/* "Your page actually reads as" — orange column */}
+            <div style={{ border: "1px solid #F0E4DA", background: "#FFFAF6", borderRadius: 12, padding: 18 }}>
+              <div
+                className="mb-3 text-xs font-bold uppercase"
+                style={{ color: "#E0731C", letterSpacing: "0.04em" }}
+              >
+                Your page actually reads as
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <span
+                  className="text-[13px] font-semibold"
+                  style={{ background: "#fff", border: "1px solid #F0E0D2", color: "#3A3744", padding: "6px 12px", borderRadius: 8 }}
+                >
+                  {pm.reviewsValue}
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* Positioning gap — the key insight */}
+          {/* Gap callout — red left border (mockup) */}
           <div
-            className="rounded-lg px-4 py-3"
             style={{
-              background: unlocked
-                ? "var(--color-danger-subtle)"
-                : "var(--fill-subtle)",
-              borderLeft: unlocked
-                ? "2px solid var(--color-danger)"
-                : "2px solid var(--hairline)",
+              marginTop: 18,
+              padding: "16px 18px",
+              background: unlocked ? "#FDF6F6" : "var(--fill-subtle)",
+              borderLeft: unlocked ? "3px solid #E5484D" : "3px solid var(--hairline)",
+              borderRadius: "0 10px 10px 0",
+              fontSize: "14.5px",
+              lineHeight: 1.55,
+              color: "#3A3744",
             }}
           >
-            <p
-              className="font-mono text-[10px] uppercase tracking-wider"
-              style={{
-                color: unlocked
-                  ? "oklch(0.70 0.20 22 / 0.85)"
-                  : "var(--color-muted)",
-              }}
-            >
-              Positioning gap
-            </p>
-            <p
-              className="mt-1 text-sm leading-relaxed"
-              style={{ color: "var(--color-fg)" }}
-            >
-              {pm.gap}
-            </p>
+            {pm.gap}
           </div>
         </div>
       </div>
