@@ -9,6 +9,7 @@
 
 import type { ReportPayload } from "@/lib/scan/report";
 import { bandFor } from "@/lib/scan/score-bands";
+import { CapturedShareButton } from "./share-button";
 
 // ── helpers ─────────────────────────────────────────────────────────────────
 const CX = 100, CY = 100, R = 88.5, START = 40, SWEEP = 280;
@@ -71,6 +72,8 @@ export interface ResultsScreenProps {
   mirrorGap: string;
   gapRows: GapRow[];
   gapTotal: number;
+  /** When set, the "Share score" button opens the interactive share modal. */
+  slug?: string;
 }
 
 export function ResultsScreen(p: ResultsScreenProps) {
@@ -100,20 +103,24 @@ export function ResultsScreen(p: ResultsScreenProps) {
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
               <span style={{ fontFamily: JM, fontSize: 12.5, color: "#9A97A5" }}>free scan · {p.siteLabel}</span>
-              <button style={{ display: "flex", alignItems: "center", gap: 7, fontFamily: PJ, fontWeight: 600, fontSize: 13.5, color: "#6E56F7", background: "#fff", border: "1.5px solid #E2DBF7", borderRadius: 9, padding: "8px 14px", cursor: "pointer" }}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6E56F7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
-                  <line x1="8.6" y1="13.5" x2="15.4" y2="17.5" /><line x1="15.4" y1="6.5" x2="8.6" y2="10.5" />
-                </svg>
-                Share score
-              </button>
+              {p.slug ? (
+                <CapturedShareButton slug={p.slug} score={p.score} bandLabel={band.label} siteLabel={p.siteLabel} />
+              ) : (
+                <button style={{ display: "flex", alignItems: "center", gap: 7, fontFamily: PJ, fontWeight: 600, fontSize: 13.5, color: "#6E56F7", background: "#fff", border: "1.5px solid #E2DBF7", borderRadius: 9, padding: "8px 14px", cursor: "pointer" }}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6E56F7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+                    <line x1="8.6" y1="13.5" x2="15.4" y2="17.5" /><line x1="15.4" y1="6.5" x2="8.6" y2="10.5" />
+                  </svg>
+                  Share score
+                </button>
+              )}
             </div>
           </div>
 
           {/* Hero: gauge + headline + pillars */}
           <div style={{ background: "#fff", border: "1px solid #ECEAF3", borderRadius: 20, padding: 32, boxShadow: "rgba(40, 33, 84, 0.3) 0px 16px 44px -26px", display: "grid", gridTemplateColumns: "auto 1fr", gap: 34, alignItems: "center" }}>
             <div style={{ textAlign: "center" }}>
-              <svg width="200" height="200" viewBox="0 0 200 200" style={{ display: "block" }}>
+              <svg width="200" height="200" viewBox="0 0 200 200" style={{ display: "block", ["viewTransitionName" as string]: "score-circle" }}>
                 <path d={track} fill="none" stroke="#EEECF5" strokeWidth="15" strokeLinecap="round" />
                 <path d={fill} fill="none" stroke={band.fg} strokeWidth="15" strokeLinecap="round" />
                 <text x="100" y="107.2" textAnchor="middle" style={{ font: `700 40px ${JM}, monospace`, fill: "#14131A" }}>{p.score}</text>

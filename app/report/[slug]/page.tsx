@@ -186,7 +186,7 @@ export async function ReportContent({ slug }: { slug: string }) {
 
       {/* Captured "results" screen 1:1, wired to the free-redacted payload.
           Public-safe: same redactor as the funnel — paid drafts never leak. */}
-      <ResultsScreen {...toResultsProps(report, "this site", fullActions)} />
+      <ResultsScreen {...toResultsProps(report, "this site", fullActions)} slug={slug} />
 
       {/* §22 Growth loop: badge embed (kept below the captured screen). */}
       <div className="mx-auto max-w-2xl px-4 pb-16">

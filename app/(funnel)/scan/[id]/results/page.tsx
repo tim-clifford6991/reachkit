@@ -159,7 +159,7 @@ async function ResultsContent({ id }: { id: string }) {
   void lockCounts;
   void hasMarket;
 
-  return <ResultsScreen {...toResultsProps(report, siteLabel, fullActions)} />;
+  return <ResultsScreen {...toResultsProps(report, siteLabel, fullActions)} slug={id} />;
 }
 
 // ---------------------------------------------------------------------------

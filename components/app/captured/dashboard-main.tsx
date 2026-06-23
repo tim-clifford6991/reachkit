@@ -92,7 +92,7 @@ export function DashboardMain(p: DashboardMainProps) {
     <div style={{ display: "grid", gridTemplateColumns: "330px 1fr", gap: 20 }}>
       {/* Score card */}
       <div style={{ background: "#fff", border: "1px solid #ECEAF3", borderRadius: 18, padding: 24, textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", boxShadow: "rgba(20,19,26,0.03) 0px 1px 2px" }}>
-        <svg width="220" height="220" viewBox="0 0 220 220" style={{ display: "block" }}>
+        <svg width="220" height="220" viewBox="0 0 220 220" style={{ display: "block", ["viewTransitionName" as string]: "score-circle" }}>
           <path d={garc(40, 320)} fill="none" stroke="#EEECF5" strokeWidth="20" strokeLinecap="round" />
           <path d={garc(40, 40 + 280 * frac)} fill="none" stroke={band.fg} strokeWidth="20" strokeLinecap="round" />
           <text x="110" y="120.08" textAnchor="middle" style={{ font: `700 56px ${JM}, monospace`, fill: "#14131A" }}>{p.score}</text>
