@@ -86,28 +86,29 @@
   --color-surface:  oklch(1.000 0 0);         /* card / panel (white) */
   --color-elevated: oklch(0.975 0.006 290);   /* raised: chips, sidebar, hover */
 
-  /* Themed hairlines + washes */
-  --hairline:        oklch(0 0 0 / 0.09);
-  --hairline-strong: oklch(0 0 0 / 0.14);
-  --fill-subtle:     oklch(0 0 0 / 0.030);
+  /* Themed hairlines + washes — Claude Design spec: #ECEAF3 cool-violet hairline */
+  --hairline:        oklch(0.93 0.009 296);   /* #ECEAF3 */
+  --hairline-strong: oklch(0.89 0.018 295);   /* #E2DEF0 */
+  --fill-subtle:     oklch(0.965 0.006 294);  /* #F4F2FA faint fill */
 
-  --ambient-spot:   oklch(0.62 0.18 286 / 0.10);
+  --ambient-spot:   oklch(0.62 0.18 286 / 0.08);
 
-  /* ── Elevation (LIGHT: soft, violet-tinted; overridden darker in .dark) ─ */
-  --elevation-xs:   0 1px 2px oklch(0.40 0.14 286 / 0.06);
-  --elevation-sm:   0 1px 3px oklch(0.38 0.15 286 / 0.09), 0 6px 16px -4px oklch(0.38 0.15 286 / 0.14);
-  --elevation-md:   0 2px 4px oklch(0.38 0.15 286 / 0.10), 0 12px 36px -8px oklch(0.38 0.15 286 / 0.20);
-  --elevation-lg:   0 4px 8px oklch(0.38 0.15 286 / 0.12), 0 20px 52px -12px oklch(0.38 0.15 286 / 0.22);
-  --elevation-xl:   0 18px 40px -12px oklch(0.40 0.14 286 / 0.18), 0 40px 80px -24px oklch(0.40 0.14 286 / 0.22);
-  --elevation-glow: 0 8px 28px -6px oklch(0.62 0.18 286 / 0.32);
-  --edge-highlight: inset 0 1px 0 oklch(1 0 0 / 0.70);
+  /* ── Elevation (Claude Design: cards are border-only; real shadow reserved
+     for floating hero / CTA blocks). Flattened from the old glassy stack. ── */
+  --elevation-xs:   0 1px 2px oklch(0.20 0.01 290 / 0.04);
+  --elevation-sm:   0 1px 2px oklch(0.20 0.01 290 / 0.05);
+  --elevation-md:   0 8px 24px -16px oklch(0.28 0.06 290 / 0.12);
+  --elevation-lg:   0 16px 44px -26px oklch(0.28 0.10 292 / 0.22);
+  --elevation-xl:   0 30px 80px -28px oklch(0.26 0.10 292 / 0.30);
+  --elevation-glow: 0 18px 50px -22px oklch(0.60 0.20 286 / 0.40);
+  --edge-highlight: 0 0 0 0 transparent;   /* no glassy inset in the flat design */
 
-  /* ── Glass (LIGHT; overridden in .dark) ───────────────────────────────── */
-  --glass-blur:        16px;
-  --glass-blur-strong: 28px;
-  --glass-tint:        oklch(1 0 0 / 0.78);
-  --glass-tint-accent: oklch(0.82 0.08 288 / 0.42);
-  --glass-border:      oklch(0 0 0 / 0.07);
+  /* ── Glass (Claude Design nav: rgba(255,255,255,0.82) + 14px blur) ─────── */
+  --glass-blur:        14px;
+  --glass-blur-strong: 20px;
+  --glass-tint:        oklch(1 0 0 / 0.82);
+  --glass-tint-accent: oklch(0.95 0.02 292 / 0.70);
+  --glass-border:      oklch(0.93 0.009 296);
 
   /* ── Gradient / mesh (LIGHT; overridden in .dark) ─────────────────────── */
   --gradient-accent:      linear-gradient(135deg, oklch(0.56 0.205 286) 0%, oklch(0.46 0.185 282) 100%);
@@ -133,10 +134,10 @@
   --radius-none:   0px;
   --radius-xs:     0.375rem;  /* 6px  */
   --radius-sm:     0.625rem;  /* 10px */
-  --radius-md:     0.875rem;  /* 14px */
-  --radius-lg:     1.125rem;  /* 18px — inputs / buttons / selects */
-  --radius-xl:     1.5rem;    /* 24px — cards / panels */
-  --radius-2xl:    2rem;      /* 32px — large / marketing cards */
+  --radius-md:     0.875rem;  /* 14px — cards (Claude Design) */
+  --radius-lg:     0.75rem;   /* 12px — inputs / buttons / selects */
+  --radius-xl:     1rem;      /* 16px — cards / panels (Claude Design) */
+  --radius-2xl:    1.125rem;  /* 18px — large / marketing cards (Claude Design) */
   --radius-3xl:    2.5rem;    /* 40px */
   --radius-4xl:    3rem;      /* 48px */
   --radius-full:   9999px;
