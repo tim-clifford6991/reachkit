@@ -20,7 +20,7 @@ const LINKS = [
 
 const focusRing = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50";
 
-export function MarketingNav() {
+export function MarketingNav({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
   return (
     <header
       style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(255,255,255,0.82)", backdropFilter: "blur(14px)", borderBottom: "1px solid #EEEDF3" }}
@@ -45,15 +45,19 @@ export function MarketingNav() {
         <div className="flex-1" />
 
         <div className="flex items-center gap-3.5">
-          <Link href="/login" className={`hidden sm:inline-flex ${focusRing}`} style={{ fontSize: 14.5, fontWeight: 600, color: "#3A3744" }}>
-            Log in
+          <Link
+            href={isLoggedIn ? "/app" : "/login"}
+            className={`hidden sm:inline-flex ${focusRing}`}
+            style={{ fontSize: 14.5, fontWeight: 600, color: "#3A3744" }}
+          >
+            {isLoggedIn ? "Dashboard" : "Log in"}
           </Link>
           <Link
-            href="/scan"
+            href={isLoggedIn ? "/app" : "/scan"}
             className={`inline-flex items-center transition-transform hover:-translate-y-px motion-reduce:transform-none ${focusRing}`}
             style={{ fontFamily: "Plus Jakarta Sans, sans-serif", fontWeight: 600, fontSize: 14, color: "#fff", background: "#14131A", borderRadius: 9, padding: "9px 16px" }}
           >
-            Analyze my site
+            {isLoggedIn ? "Go to dashboard" : "Analyze my site"}
           </Link>
           <MobileMenu links={[...LINKS]} />
         </div>
