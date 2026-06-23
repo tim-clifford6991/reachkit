@@ -19,6 +19,7 @@ import { TopFixesPreview } from "@/components/report/top-fixes-preview";
 import { ShareScoreButton } from "@/components/report/share-score-button";
 import { ResultsScreen } from "@/components/report/captured/results-screen";
 import { toResultsProps } from "@/components/report/captured/to-results-props";
+import { CapturedUnlockButton } from "@/components/report/captured/unlock-button";
 import { readSignalBreakdown } from "@/lib/scan/signal-breakdown";
 import { CompetitiveLandscapeSection } from "@/components/report/competitive-landscape-section";
 import { ChannelOpportunitiesSection } from "@/components/report/channel-opportunities-section";
@@ -159,7 +160,16 @@ async function ResultsContent({ id }: { id: string }) {
   void lockCounts;
   void hasMarket;
 
-  return <ResultsScreen {...toResultsProps(report, siteLabel, fullActions)} slug={id} />;
+  // Paid viewers see the full report (redacted-to-tier already unlocks it), so
+  // the unlock band is hidden. Free/anon viewers get the 7-day trial CTA.
+  return (
+    <ResultsScreen
+      {...toResultsProps(report, siteLabel, fullActions)}
+      slug={id}
+      hideUnlock={isPaid}
+      unlockButton={isPaid ? undefined : <CapturedUnlockButton scanId={id} />}
+    />
+  );
 }
 
 // ---------------------------------------------------------------------------

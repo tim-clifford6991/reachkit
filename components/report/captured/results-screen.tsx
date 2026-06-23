@@ -7,6 +7,7 @@
  * (center 100,100 · r 88.5 · 280° sweep starting at 40°, gap on the right).
  */
 
+import type { ReactNode } from "react";
 import type { ReportPayload } from "@/lib/scan/report";
 import { bandFor } from "@/lib/scan/score-bands";
 import { CapturedShareButton } from "./share-button";
@@ -74,6 +75,14 @@ export interface ResultsScreenProps {
   gapTotal: number;
   /** When set, the "Share score" button opens the interactive share modal. */
   slug?: string;
+  /** Custom unlock-CTA button (e.g. start-trial / upgrade). Falls back to a
+   *  static button. */
+  unlockButton?: ReactNode;
+  /** Title/subtitle for the unlock band (defaults to the free-teaser copy). */
+  unlockTitle?: string;
+  unlockSub?: string;
+  /** Hide the unlock band entirely (e.g. a fully-unlocked paid report). */
+  hideUnlock?: boolean;
 }
 
 export function ResultsScreen(p: ResultsScreenProps) {
@@ -232,13 +241,17 @@ export function ResultsScreen(p: ResultsScreenProps) {
           </div>
 
           {/* Unlock CTA */}
-          <div style={{ marginTop: 18, background: "linear-gradient(135deg, #14131A, #262236)", borderRadius: 18, padding: "30px 32px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}>
-            <div>
-              <h3 style={{ fontFamily: SG, fontWeight: 700, fontSize: 22, color: "#fff", margin: "0 0 6px" }}>Unlock all {p.fixes.length + p.lockedCount} fixes + weekly tracking</h3>
-              <p style={{ fontSize: 14.5, color: "#B7B4C4", margin: 0, maxWidth: 430 }}>Create a free account to see the full 18-signal breakdown, track your score over time, and verify each fix as you ship it.</p>
+          {!p.hideUnlock && (
+            <div style={{ marginTop: 18, background: "linear-gradient(135deg, #14131A, #262236)", borderRadius: 18, padding: "30px 32px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}>
+              <div>
+                <h3 style={{ fontFamily: SG, fontWeight: 700, fontSize: 22, color: "#fff", margin: "0 0 6px" }}>{p.unlockTitle ?? `Unlock all ${p.fixes.length + p.lockedCount} fixes + weekly tracking`}</h3>
+                <p style={{ fontSize: 14.5, color: "#B7B4C4", margin: 0, maxWidth: 430 }}>{p.unlockSub ?? "Start your free trial to see the full 18-signal breakdown, track your score over time, and verify each fix as you ship it."}</p>
+              </div>
+              {p.unlockButton ?? (
+                <button style={{ fontFamily: PJ, fontWeight: 700, fontSize: 15, color: "#14131A", background: "#fff", border: "none", borderRadius: 10, padding: "13px 24px", cursor: "pointer", whiteSpace: "nowrap" }}>Unlock full report →</button>
+              )}
             </div>
-            <button style={{ fontFamily: PJ, fontWeight: 700, fontSize: 15, color: "#14131A", background: "#fff", border: "none", borderRadius: 10, padding: "13px 24px", cursor: "pointer", whiteSpace: "nowrap" }}>Unlock full report →</button>
-          </div>
+          )}
         </div>
       </main>
     </>

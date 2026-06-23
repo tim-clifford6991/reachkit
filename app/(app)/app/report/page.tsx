@@ -62,7 +62,23 @@ async function ReportContent() {
   void StrengthsWeaknessesSection; void ActionPlanSection; void MarketTrends;
   void EngagementStrip; void engagementSummary; void marketTrendSeries; void userIsPaid;
 
-  return <ResultsScreen {...toResultsProps(report, siteLabel, fullActions)} />;
+  // Paid viewers get the fully-unlocked report; free/trial users upgrade (no
+  // second trial — they're already customers).
+  return (
+    <ResultsScreen
+      {...toResultsProps(report, siteLabel, fullActions)}
+      hideUnlock={userIsPaid}
+      unlockTitle="Upgrade to unlock the full report"
+      unlockSub="See the full 18-signal breakdown, weekly tracking, and verification — upgrade your plan to continue."
+      unlockButton={
+        userIsPaid ? undefined : (
+          <a href="/app/billing" style={{ fontFamily: "Plus Jakarta Sans, sans-serif", fontWeight: 700, fontSize: 15, color: "#14131A", background: "#fff", borderRadius: 10, padding: "13px 24px", whiteSpace: "nowrap", textDecoration: "none" }}>
+            Upgrade plan →
+          </a>
+        )
+      }
+    />
+  );
 }
 
 function ReportSkeleton() {

@@ -186,7 +186,17 @@ export async function ReportContent({ slug }: { slug: string }) {
 
       {/* Captured "results" screen 1:1, wired to the free-redacted payload.
           Public-safe: same redactor as the funnel — paid drafts never leak. */}
-      <ResultsScreen {...toResultsProps(report, "this site", fullActions)} slug={slug} />
+      <ResultsScreen
+        {...toResultsProps(report, "this site", fullActions)}
+        slug={slug}
+        unlockTitle="Get your own Discoverability Score"
+        unlockSub="Run a free scan of your site — the score, your positioning gap, and the 7 fixes that move it, in ~90 seconds."
+        unlockButton={
+          <a href="/scan" style={{ fontFamily: "Plus Jakarta Sans, sans-serif", fontWeight: 700, fontSize: 15, color: "#14131A", background: "#fff", borderRadius: 10, padding: "13px 24px", whiteSpace: "nowrap", textDecoration: "none" }}>
+            Scan your site →
+          </a>
+        }
+      />
 
       {/* §22 Growth loop: badge embed (kept below the captured screen). */}
       <div className="mx-auto max-w-2xl px-4 pb-16">

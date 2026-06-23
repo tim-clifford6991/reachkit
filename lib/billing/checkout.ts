@@ -100,13 +100,19 @@ export async function createCheckout({
   // Load user row.
   const { data: user, error: userError } = await db
     .from("users")
-    .select("id, email, stripe_customer_id")
+    .select("id, email, stripe_customer_id, subscription_status")
     .eq("id", userId)
     .maybeSingle();
 
   if (userError || !user) {
     throw new Error(`checkout: user not found (id=${userId})`);
   }
+
+  // Trial eligibility: the 7-day free trial is for NEW customers only. A user who
+  // has ever held a subscription (any subscription_status set, or an existing
+  // Stripe customer) is an existing customer upgrading tiers — they cannot avail
+  // of another trial and are charged immediately.
+  const isExistingCustomer = !!user.subscription_status || !!user.stripe_customer_id;
 
   const stripe = stripeClient();
 
@@ -141,10 +147,9 @@ export async function createCheckout({
     customer: customerId,
     client_reference_id: userId,
     metadata: { userId, plan, interval },
-    // 7-day free trial: subscription is created in `trialing` status (card
-    // collected now, first charge at trial end). entitlementsFor() already
-    // treats "trialing" as active, so trial users get full paid access.
-    subscription_data: { trial_period_days: 7 },
+    // 7-day free trial only for genuinely new customers; existing customers
+    // upgrading tiers are charged immediately (no second trial).
+    ...(isExistingCustomer ? {} : { subscription_data: { trial_period_days: 7 } }),
     success_url: `${env.appUrl}/app?upgraded=1`,
     cancel_url: `${env.appUrl}/app/billing`,
   });
