@@ -5,6 +5,13 @@ export const metadata: Metadata = { title: "Design directions", robots: { index:
 
 const VARIANTS = [
   {
+    slug: "reachkit",
+    name: "Violet",
+    sub: "Discoverability · Violet",
+    desc: "The new direction from the Claude Design mockup. Clean near-white surfaces, a vivid violet brand, ink near-black text, geometric Space Grotesk headlines. Confident, modern, analytics-product.",
+    swatches: ["oklch(1 0 0)", "oklch(0.56 0.20 285)", "oklch(0.20 0.012 286)"],
+  },
+  {
     slug: "almanac",
     name: "Almanac",
     sub: "Editorial · Honey",
@@ -51,7 +58,7 @@ export default function DesignIndex() {
           between them from the pill nav. Tell me which to refine.
         </p>
 
-        <div className="mt-12 grid gap-6 sm:grid-cols-3">
+        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {VARIANTS.map((v) => (
             <Link
               key={v.slug}
