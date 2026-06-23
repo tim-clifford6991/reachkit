@@ -17,6 +17,8 @@ import { SignalBreakdownSection } from "@/components/report/signal-breakdown-sec
 import { EvidenceFooter } from "@/components/report/evidence-footer";
 import { TopFixesPreview } from "@/components/report/top-fixes-preview";
 import { ShareScoreButton } from "@/components/report/share-score-button";
+import { ResultsScreen } from "@/components/report/captured/results-screen";
+import { toResultsProps } from "@/components/report/captured/to-results-props";
 import { readSignalBreakdown } from "@/lib/scan/signal-breakdown";
 import { CompetitiveLandscapeSection } from "@/components/report/competitive-landscape-section";
 import { ChannelOpportunitiesSection } from "@/components/report/channel-opportunities-section";
@@ -143,85 +145,21 @@ async function ResultsContent({ id }: { id: string }) {
   const signalBreakdown = await readSignalBreakdown(id);
   const productName = (data.preliminary_facts as unknown as PreliminaryFacts | null)?.listing?.name ?? null;
 
-  return (
-    <>
-      {/* Hero header — the product this report is about. */}
-      {productName && (
-        <div className="text-center">
-          <p className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "var(--color-accent-400)" }}>
-            Discoverability report
-          </p>
-          <h1 className="mt-0.5 text-xl font-semibold" style={{ color: "var(--color-fg)" }}>
-            {productName}
-          </h1>
-          <div className="mt-2 flex justify-center">
-            <ShareScoreButton slug={id} score={report.score.total} productName={productName} />
-          </div>
-        </div>
-      )}
+  // Captured "results" screen (ReachKit.dc.html) wired to live report data.
+  // Supersedes the prior section stack for the free results view.
+  const siteLabel = productName ?? "your site";
+  const fullActions =
+    fullReport.whatToDoThisWeek.quickWins.length +
+    fullReport.whatToDoThisWeek.medium.length +
+    fullReport.whatToDoThisWeek.longPlay.length;
+  void signalBreakdown;
+  void lossFrame;
+  void snapshotAge;
+  void generatedAt;
+  void lockCounts;
+  void hasMarket;
 
-      {/* §23 moment 6 — stale-report strip. Honest, not nagging. */}
-      <SnapshotStrip generatedAt={generatedAt} isPaid={isPaid} />
-
-      {/* ── Score — signature visual; lazy-loaded client component ────── */}
-      <ScoreBlock score={report.score} lossFrame={isPaid ? null : lossFrame} />
-
-      {/* ── Executive summary ("page 1") + jump nav. The summary doubles as
-          the strongest free teaser, so it sits above the upgrade wall. ── */}
-      <ExecutiveSummary summary={buildExecutiveSummary(report)} />
-
-      {/* Top fixes — lead with impact, above the four-question sections. */}
-      <TopFixesPreview whatToDoThisWeek={report.whatToDoThisWeek} />
-
-      <SectionNav items={buildSectionNavItems(report, { unlocked: isPaid })} />
-
-      {/* ── Free-teaser proof / paid landscape — superseded by the market
-          analysis when present. ── */}
-      {!hasMarket && (
-        <CompetitiveLandscapeSection rows={report.competitiveLandscape} unlocked={isPaid} />
-      )}
-
-      {/* Trial wall (§23 moment 7) + #unlock scroll target for locked sections. */}
-      {!isPaid && <UpgradeCta scanId={id} snapshotAge={snapshotAge} lossFrame={lossFrame} />}
-
-      {/* ── Report sections — binary gating: teaser (free) vs full (paid). ─── */}
-      <ReportReveal>
-        <WhatYouOfferSection whatYouOffer={report.whatYouOffer} unlocked={isPaid} />
-        <WhoItsForSection whoItsFor={report.whoItsFor} unlocked={isPaid} />
-        <WhereTheyAreSection whereTheyAre={report.whereTheyAre} unlocked={isPaid} />
-
-        {/* M4 market analysis supersedes the lighter channels/creators sections. */}
-        {hasMarket && report.market ? (
-          <MarketAnalysisSections market={report.market} unlocked={isPaid} rankDepth={TIER_LIMITS[tier].rankDepth} dataAsOf={(data.rank_data_fetched_at as string | null) ?? data.completed_at ?? undefined} />
-        ) : (
-          <>
-            <ChannelOpportunitiesSection
-              data={report.channelOpportunities}
-              unlocked={isPaid}
-              lockLabel={lockCounts.channelsLabel}
-            />
-            <CreatorsToReachSection
-              creators={report.creatorsToReach}
-              unlocked={isPaid}
-              lockLabel={lockCounts.creatorsLabel}
-            />
-          </>
-        )}
-        <StrengthsWeaknessesSection
-          data={report.strengthsAndWeaknesses}
-          unlocked={isPaid}
-          lockLabel={lockCounts.strengthsLabel}
-        />
-        <ActionPlanSection
-          whatToDoThisWeek={report.whatToDoThisWeek}
-          unlocked={isPaid}
-          lockLabel={lockCounts.actionsLabel}
-        />
-        <SignalBreakdownSection groups={signalBreakdown} />
-      </ReportReveal>
-      <EvidenceFooter generatedAt={generatedAt} groups={signalBreakdown} />
-    </>
-  );
+  return <ResultsScreen {...toResultsProps(report, siteLabel, fullActions)} />;
 }
 
 // ---------------------------------------------------------------------------

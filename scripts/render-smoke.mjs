@@ -373,7 +373,7 @@ function buildRoutes(scanId) {
   if (scanId) {
     routes.push({
       path: `/scan/${scanId}/results`,
-      markers: ["Discoverability score", "DISCOVERABILITY SCORE"],
+      markers: ["ranked fixes", "Positioning Mirror"],
     });
     routes.push({
       path: `/report/${scanId}`,

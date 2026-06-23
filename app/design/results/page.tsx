@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { ResultsCapture } from "@/components/design/captured/results-capture";
+import { ResultsScreen } from "@/components/report/captured/results-screen";
+import { RESULTS_DEMO } from "@/components/report/captured/results-demo";
 
-export const metadata: Metadata = { title: "Captured · Results", robots: { index: false } };
+export const metadata: Metadata = { title: "Captured · Results (React)", robots: { index: false } };
 
-// Phase-1 checkpoint: the imported Claude Design "results" screen, rendered 1:1
-// from the captured ground truth. No live data yet — this validates the UI
-// fidelity of the capture→app pipeline before conversion/wiring proceeds.
+// React conversion of the results screen rendered with the mockup's exact demo
+// data — verifies 1:1 fidelity before live-data wiring in the real route.
 export default function CapturedResultsPage() {
-  return <ResultsCapture />;
+  return <ResultsScreen {...RESULTS_DEMO} />;
 }
