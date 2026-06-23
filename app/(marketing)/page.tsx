@@ -410,9 +410,9 @@ export default function HomePage() {
           {/* Ambient animated gradient mesh — pure CSS, below the LCP path */}
           <GradientMesh />
 
-          <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-2 lg:gap-10">
-            {/* ── Left: text + the single action ── */}
-            <div className="hero-content flex flex-col items-center gap-8 text-center lg:items-start lg:text-left">
+          <div className="relative z-10 mx-auto flex max-w-4xl flex-col items-center gap-9 text-center">
+            {/* ── Centered hero copy + the single action ── */}
+            <div className="hero-content flex flex-col items-center gap-7">
               {/* Eyebrow — glass pill */}
               <p
                 className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-mono text-xs uppercase tracking-wider backdrop-blur-[var(--glass-blur)]"
@@ -429,7 +429,7 @@ export default function HomePage() {
                   style={{ background: "var(--color-accent-400)" }}
                   aria-hidden="true"
                 />
-                Free · no account needed
+                Grounded in your live page — every claim links to evidence
               </p>
 
               {/* Headline — SSR'd for SEO + LCP. The highlighted phrase uses a
@@ -440,42 +440,36 @@ export default function HomePage() {
                 className="text-[2.25rem] font-bold tracking-[var(--tracking-display)] sm:text-6xl lg:text-6xl"
                 style={{ color: "var(--color-fg)", lineHeight: 1.28 }}
               >
-                Find exactly why
-                <br />
-                <span
-                  data-hero-accent
-                  style={{
-                    background: "var(--color-accent-subtle)",
-                    color: "var(--color-fg)",
-                    borderRadius: "0.15em",
-                    padding: "0.06em 0.2em",
-                    boxDecorationBreak: "clone",
-                    WebkitBoxDecorationBreak: "clone",
-                  }}
-                >
-                  your product isn&apos;t found
+                One number tells you how findable you are.{" "}
+                <span data-hero-accent style={{ color: "var(--color-accent-400)" }}>
+                  And the 7 fixes that move it.
                 </span>
               </h1>
 
               {/* Subhead — generalized (any website / product link) */}
               <p
                 data-hero-subhead
-                className="max-w-md text-base leading-relaxed sm:text-lg"
+                className="max-w-xl text-base leading-relaxed sm:text-lg"
                 style={{ color: "var(--color-muted)" }}
               >
-                Paste your website or product link. An AI reads your live page the
-                way a customer&apos;s search does — and hands back a Discoverability
-                Score, your positioning gap, and ranked fixes in ~90 seconds.
+                Paste your URL. In ~90 seconds ReachKit reads your live page the way a
+                customer&apos;s search does — and hands back your Discoverability Score,
+                your positioning gap, and a ranked, verified to-do list.
               </p>
 
               {/* ── Scan input — THE single action above the fold ── */}
               <div className="w-full max-w-lg">
                 <ScanInput />
               </div>
+
+              {/* Meta line */}
+              <p className="font-mono text-xs" style={{ color: "var(--color-muted)" }}>
+                90 seconds · No login for your first scan · Try: bloom.io
+              </p>
             </div>
 
-            {/* ── Right: live-style scan-result demo (proof) — desktop only ── */}
-            <div className="hero-demo hidden justify-center lg:flex">
+            {/* ── Wide live-style scan-result demo (proof) ── */}
+            <div className="hero-demo mt-2 flex w-full justify-center">
               <HeroScanDemo />
             </div>
           </div>
