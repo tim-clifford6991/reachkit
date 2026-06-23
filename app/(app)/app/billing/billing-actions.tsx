@@ -72,7 +72,7 @@ function UpgradeButton({
           ? "var(--color-accent-900)"
           : "var(--hairline)",
         background: highlighted
-          ? "oklch(0.70 0.13 66 / 0.07)"
+          ? "oklch(0.56 0.205 285 / 0.07)"
           : "transparent",
       }}
     >

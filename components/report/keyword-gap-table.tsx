@@ -26,9 +26,10 @@ function opportunityOf(volume: number): Opportunity {
   if (volume >= 500) return "Medium";
   return "Low";
 }
+// Heat ramp per mockup: High = red-hot, Medium = amber, Low = grey.
 const OPP_STYLE: Record<Opportunity, { bg: string; fg: string }> = {
-  High: { bg: "color-mix(in oklch, var(--color-success) 14%, transparent)", fg: "var(--color-success)" },
-  Medium: { bg: "var(--color-accent-subtle)", fg: "var(--color-accent-400)" },
+  High: { bg: "var(--color-danger-subtle)", fg: "var(--color-danger)" },
+  Medium: { bg: "var(--color-warning-subtle)", fg: "var(--color-warning)" },
   Low: { bg: "var(--fill-subtle)", fg: "var(--color-muted)" },
 };
 

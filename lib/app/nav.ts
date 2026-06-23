@@ -23,6 +23,7 @@ export const APP_NAV: readonly AppNavItem[] = [
   { href: "/app/channels", label: "Market Report", group: "primary", iconKey: "channels", hint: "Competitors, channels & playbook" },
   { href: "/app/plays", label: "This week's plays", group: "primary", iconKey: "plays", hint: "Your weekly action queue" },
   { href: "/app/feed", label: "Signal feed", group: "primary", iconKey: "feed", hint: "Weekly market changes" },
+  { href: "/app/history", label: "Score history", group: "primary", iconKey: "history", hint: "Your score trend & scan timeline" },
   { href: "/app/settings", label: "Settings", group: "utility", iconKey: "settings" },
   { href: "/app/billing", label: "Billing", group: "utility", iconKey: "billing" },
 ] as const;

@@ -1,169 +1,183 @@
 /**
- * HeroScanDemo — the right-hand proof panel for the hero (§22.1).
+ * HeroScanDemo — the hero proof panel (§22.1), rebuilt 1:1 to the Claude Design
+ * mockup (ReachKit.dc.html): a WIDE browser-framed scan-result card sitting
+ * below the centered hero copy. Browser chrome → a 280° gauge on the left,
+ * pillar bars + the #1 ranked fix on the right.
  *
- * A static, server-rendered mock of a real scan result: score ring, subscore
- * bars, and the top fixes. Animation is pure CSS (reduced-motion-safe) so it
- * adds ZERO client JS above the fold — important for the (marketing) bundle
- * budget and LCP. Base styles are the final state; the entrance animation only
- * plays when motion is allowed, so reduced-motion users see the finished card.
- *
- * It is illustrative (a sample product), clearly framed as a preview — not a
- * claim about a specific real customer.
+ * Static, server-rendered, zero client JS above the fold. Entrance is pure CSS
+ * (reduced-motion-safe; base styles are the final state). Illustrative sample —
+ * clearly framed as a preview, not a claim about a real customer.
  */
 
-const RING_CIRC = 326.7; // 2π·52
+import { bandFor } from "@/lib/scan/score-bands";
+
 const SCORE = 47;
-const RING_OFFSET = RING_CIRC * (1 - SCORE / 100); // ≈ 173
+const band = bandFor(SCORE); // 47 → "Hard to find" (orange)
 
-const SUBSCORES = [
-  { label: "Content", value: 38, color: "var(--color-warning)" },
-  { label: "Outreach", value: 52, color: "var(--color-accent)" },
-  { label: "SEO", value: 41, color: "var(--color-accent)" },
-] as const;
+// 280° arc geometry (opening at the bottom), matching DiscoverabilityScore.
+const R = 70;
+const CX = 90;
+const CY = 90;
+const START = 220;
+const SWEEP = 280;
+function polar(r: number, deg: number) {
+  const rad = (deg - 90) * (Math.PI / 180);
+  return { x: CX + r * Math.cos(rad), y: CY + r * Math.sin(rad) };
+}
+function arc(deg0: number, deg1: number) {
+  const a = polar(R, deg0);
+  const b = polar(R, deg1);
+  const large = deg1 - deg0 > 180 ? 1 : 0;
+  return `M ${a.x.toFixed(2)} ${a.y.toFixed(2)} A ${R} ${R} 0 ${large} 1 ${b.x.toFixed(2)} ${b.y.toFixed(2)}`;
+}
+const TRACK = arc(START, START + SWEEP);
+const FILL = arc(START, START + SWEEP * (SCORE / 100));
 
-const FIXES = [
-  "Title wastes 80 characters on branding no one searches",
-  "Invisible for “budget tracker” — ~12k searches / mo",
-  "Missing structured data (schema.org) on the landing page",
+const PILLARS = [
+  { label: "Content", value: 56 },
+  { label: "Outreach", value: 29 },
+  { label: "SEO", value: 54 },
 ] as const;
 
 export function HeroScanDemo() {
   return (
     <div
-      className="reachkit-hero-demo relative w-full max-w-md rounded-2xl border p-6"
+      className="reachkit-hero-demo relative w-full max-w-3xl overflow-hidden rounded-2xl border"
       style={{
         borderColor: "var(--hairline)",
-        background: "var(--gradient-surface)",
-        boxShadow: "var(--elevation-lg),var(--edge-highlight)",
+        background: "var(--color-surface)",
+        boxShadow: "var(--elevation-xl),var(--edge-highlight)",
       }}
       role="img"
-      aria-label="Sample ReachKit scan result: a Discoverability Score of 47 out of 100 with the top fixes."
+      aria-label="Sample ReachKit report: a Discoverability Score of 47 out of 100 — Hard to find — with pillar sub-scores and the top ranked fix."
     >
-      {/* Header — faux URL chip + complete pill */}
-      <div className="mb-6 flex items-center justify-between">
-        <span
-          className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 font-mono text-[11px]"
-          style={{ background: "var(--fill-subtle)", color: "var(--color-muted)" }}
-        >
-          <span
-            className="h-1.5 w-1.5 rounded-full"
-            style={{ background: "var(--color-accent-400)" }}
-            aria-hidden="true"
-          />
-          yourproduct.com
+      {/* Browser chrome */}
+      <div
+        className="flex items-center gap-2 border-b px-4 py-2.5"
+        style={{ borderColor: "var(--hairline)", background: "var(--color-elevated)" }}
+      >
+        <span className="flex gap-1.5" aria-hidden>
+          <span className="size-2.5 rounded-full" style={{ background: "oklch(0.72 0.16 25)" }} />
+          <span className="size-2.5 rounded-full" style={{ background: "oklch(0.82 0.13 80)" }} />
+          <span className="size-2.5 rounded-full" style={{ background: "oklch(0.78 0.13 150)" }} />
         </span>
         <span
-          className="rounded-full px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider"
-          style={{ background: "var(--color-success-subtle)", color: "var(--color-success)" }}
+          className="ml-2 truncate rounded-md px-2.5 py-1 font-mono text-[11px]"
+          style={{ background: "var(--fill-subtle)", color: "var(--color-muted)" }}
         >
-          Scan complete
+          app.reachkit.io/report/bloom.io
         </span>
       </div>
 
-      {/* Score ring + label */}
-      <div className="mb-6 flex items-center gap-5">
-        <div className="relative h-[120px] w-[120px] shrink-0">
-          <svg width="120" height="120" viewBox="0 0 120 120" aria-hidden="true">
-            <circle cx="60" cy="60" r="52" fill="none" stroke="var(--hairline)" strokeWidth="8" />
-            <circle
-              className="reachkit-hero-demo-ring"
-              cx="60"
-              cy="60"
-              r="52"
-              fill="none"
-              stroke="var(--color-accent)"
-              strokeWidth="8"
-              strokeLinecap="round"
-              strokeDasharray={RING_CIRC}
-              strokeDashoffset={RING_OFFSET}
-              transform="rotate(-90 60 60)"
-            />
-          </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span
-              className="font-mono text-3xl font-semibold leading-none tabular-nums"
-              style={{ color: "var(--color-fg)" }}
-            >
-              {SCORE}
-            </span>
-            <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
-              / 100
-            </span>
+      {/* Body */}
+      <div className="grid items-center gap-6 p-6 sm:grid-cols-[auto_1fr] sm:gap-8 sm:p-8">
+        {/* Gauge */}
+        <div className="flex flex-col items-center">
+          <div className="relative size-[180px]">
+            <svg width="180" height="180" viewBox="0 0 180 180" aria-hidden>
+              <path d={TRACK} fill="none" stroke="var(--hairline)" strokeWidth="11" strokeLinecap="round" />
+              <path
+                className="reachkit-hero-demo-arc"
+                d={FILL}
+                fill="none"
+                stroke={band.color}
+                strokeWidth="11"
+                strokeLinecap="round"
+                pathLength={1}
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span
+                className="font-mono font-semibold leading-none tabular-nums"
+                style={{ fontSize: "2.75rem", color: band.color }}
+              >
+                {SCORE}
+              </span>
+              <span className="mt-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                / 100
+              </span>
+            </div>
           </div>
+          <span
+            className="mt-1 rounded-full px-3 py-1 text-xs font-semibold"
+            style={{ background: `color-mix(in oklch, ${band.color} 14%, transparent)`, color: band.color }}
+          >
+            {band.label}
+          </span>
         </div>
 
+        {/* Pillars + top fix */}
         <div className="min-w-0">
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Discoverability
+            Discoverability Score
           </p>
-          <p className="text-lg font-semibold" style={{ color: "var(--color-fg)" }}>
-            Fair — room to climb
-          </p>
-          <div className="mt-3 space-y-2">
-            {SUBSCORES.map((s, i) => (
-              <div key={s.label} className="flex items-center gap-2">
-                <span className="w-14 shrink-0 font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
-                  {s.label}
+          <div className="mt-3 space-y-3">
+            {PILLARS.map((p, i) => (
+              <div key={p.label} className="flex items-center gap-3">
+                <span className="w-16 shrink-0 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                  {p.label}
                 </span>
-                <span className="relative h-1 flex-1 overflow-hidden rounded-full" style={{ background: "var(--fill-subtle)" }}>
+                <span className="relative h-1.5 flex-1 overflow-hidden rounded-full" style={{ background: "var(--hairline)" }}>
                   <span
                     className="reachkit-hero-demo-bar absolute inset-y-0 left-0 rounded-full"
-                    style={{ width: `${s.value}%`, background: s.color, ["--bar-w" as string]: `${s.value}%`, ["--bar-i" as string]: i }}
+                    style={{ width: `${p.value}%`, background: bandFor(p.value).color, ["--bar-w" as string]: `${p.value}%`, ["--bar-i" as string]: i }}
                   />
+                </span>
+                <span className="w-6 text-right font-mono text-xs tabular-nums" style={{ color: "var(--color-fg)" }}>
+                  {p.value}
                 </span>
               </div>
             ))}
           </div>
+
+          {/* #1 ranked fix */}
+          <div
+            className="reachkit-hero-demo-fix mt-5 flex items-center gap-3 rounded-xl border p-3"
+            style={{ borderColor: "var(--hairline)", background: "var(--fill-subtle)" }}
+          >
+            <span
+              className="grid size-7 shrink-0 place-items-center rounded-lg font-mono text-xs font-bold"
+              style={{ background: "var(--color-accent-subtle)", color: "var(--color-accent-400)" }}
+            >
+              1
+            </span>
+            <span className="flex-1 text-[13px] font-medium leading-snug" style={{ color: "var(--color-fg)" }}>
+              Publish 3 “vs competitor” comparison pages
+            </span>
+            <span
+              className="shrink-0 rounded-full px-2 py-0.5 font-mono text-[11px] font-semibold tabular-nums"
+              style={{ background: "var(--color-success-subtle)", color: "var(--color-success)" }}
+            >
+              +6
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Top fixes */}
-      <div className="border-t pt-4" style={{ borderColor: "var(--hairline)" }}>
-        <p className="mb-2.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-          Top fixes
-        </p>
-        <ul className="space-y-2">
-          {FIXES.map((fix, i) => (
-            <li
-              key={fix}
-              className="reachkit-hero-demo-fix flex items-start gap-2.5 text-[13px] leading-snug"
-              style={{ color: "var(--color-fg)", ["--fix-i" as string]: i }}
-            >
-              <span
-                className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full"
-                style={{ background: "var(--color-accent-400)" }}
-                aria-hidden="true"
-              />
-              {fix}
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {/* CSS-only entrance — reduced-motion-safe (base styles are the final state) */}
+      {/* CSS-only entrance — reduced-motion-safe (base styles are final state) */}
       <style>{`
         @media (prefers-reduced-motion: no-preference) {
-          .reachkit-hero-demo-ring {
-            animation: reachkit-hero-ring 1.3s cubic-bezier(0.25, 0, 0, 1) 0.2s both;
+          .reachkit-hero-demo-arc {
+            stroke-dasharray: 1;
+            animation: reachkit-hero-arc 1.3s cubic-bezier(0.25, 0, 0, 1) 0.2s both;
           }
           .reachkit-hero-demo-bar {
             animation: reachkit-hero-bar 0.8s cubic-bezier(0.25, 0, 0, 1) both;
             animation-delay: calc(0.5s + var(--bar-i) * 0.12s);
           }
           .reachkit-hero-demo-fix {
-            animation: reachkit-hero-fix 0.5s cubic-bezier(0.25, 0, 0, 1) both;
-            animation-delay: calc(0.9s + var(--fix-i) * 0.12s);
+            animation: reachkit-hero-fix 0.6s cubic-bezier(0.25, 0, 0, 1) 0.9s both;
           }
-          @keyframes reachkit-hero-ring {
-            from { stroke-dashoffset: ${RING_CIRC}; }
-            to   { stroke-dashoffset: ${RING_OFFSET}; }
+          @keyframes reachkit-hero-arc {
+            from { stroke-dashoffset: 1; }
+            to   { stroke-dashoffset: 0; }
           }
           @keyframes reachkit-hero-bar {
             from { width: 0%; }
             to   { width: var(--bar-w); }
           }
           @keyframes reachkit-hero-fix {
-            from { opacity: 0; transform: translateY(6px); }
+            from { opacity: 0; transform: translateY(8px); }
             to   { opacity: 1; transform: translateY(0); }
           }
         }
