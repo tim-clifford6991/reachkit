@@ -103,7 +103,7 @@ export function AppShell(p: AppShellProps) {
           {/* Side card — trial countdown (free-trial users) or next auto-scan
               (paid). Hidden for free non-trial users. */}
           {p.sideCard && (
-            <div style={{ background: "linear-gradient(150deg, #14131A, #2B2640)", borderRadius: 13, padding: 15, color: "#fff", marginBottom: 10 }}>
+            <div style={{ background: "linear-gradient(150deg, #322E4A, #47416B)", borderRadius: 13, padding: 15, color: "#fff", marginBottom: 10 }}>
               <div style={{ fontFamily: SG, fontWeight: 700, fontSize: 14.5 }}>{p.sideCard.title}</div>
               <div style={{ fontSize: 12, color: "#B7B4C4", margin: p.sideCard.cta ? "5px 0 11px" : "5px 0 0" }}>{p.sideCard.sub}</div>
               {p.sideCard.cta && (

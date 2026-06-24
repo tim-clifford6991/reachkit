@@ -67,7 +67,7 @@ export default function HowItWorksPage() {
 
       {/* CTA band */}
       <section style={{ maxWidth: 1180, margin: "0 auto", padding: "32px 28px 90px" }}>
-        <div style={{ background: "linear-gradient(135deg, #14131A, #262236)", borderRadius: 22, padding: "44px 32px", textAlign: "center" }}>
+        <div style={{ background: "linear-gradient(135deg, #322E4A, #47416B)", borderRadius: 22, padding: "44px 32px", textAlign: "center" }}>
           <p style={{ fontFamily: JM, fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "#B7B4C4", margin: 0 }}>Free, no account needed</p>
           <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: "clamp(1.6rem, 3vw, 2.3rem)", letterSpacing: "-0.02em", color: "#fff", margin: "12px auto 8px", maxWidth: 520 }}>See it on your own product</h2>
           <p style={{ fontSize: 15.5, color: "#B7B4C4", margin: "0 auto 22px", maxWidth: 460 }}>Paste your URL and get your Discoverability Score and ranked action list in ~90 seconds.</p>

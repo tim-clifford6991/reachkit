@@ -71,7 +71,7 @@ export function CapturedShareButton({
           style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, background: "oklch(0.14 0.01 285 / 0.55)", backdropFilter: "blur(4px)" }}
         >
           <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 380, overflow: "hidden", borderRadius: 18, background: "#fff", boxShadow: "0 40px 90px -30px oklch(0.14 0.01 285 / 0.6)" }}>
-            <div style={{ position: "relative", overflow: "hidden", padding: 28, textAlign: "center", background: "linear-gradient(150deg, #6E56F7 0%, #2B2640 100%)" }}>
+            <div style={{ position: "relative", overflow: "hidden", padding: 28, textAlign: "center", background: "linear-gradient(150deg, #6E56F7 0%, #47416B 100%)" }}>
               <svg style={{ position: "absolute", right: -40, top: -40, opacity: 0.2 }} width="180" height="180" viewBox="0 0 180 180" aria-hidden>
                 <circle cx="90" cy="90" r="40" fill="none" stroke="#fff" strokeWidth="1" />
                 <circle cx="90" cy="90" r="62" fill="none" stroke="#fff" strokeWidth="1" />
@@ -84,7 +84,7 @@ export function CapturedShareButton({
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: 18 }}>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
-                <ShareLink href={intents.x} bg="#14131A" label="Post on X" />
+                <ShareLink href={intents.x} bg="#322E4A" label="Post on X" />
                 <ShareLink href={intents.linkedin} bg="#0A66C2" label="LinkedIn" />
                 <ShareLink href={intents.reddit} bg="#FF4500" label="Reddit" />
               </div>

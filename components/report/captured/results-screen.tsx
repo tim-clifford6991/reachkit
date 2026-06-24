@@ -247,7 +247,7 @@ export function ResultsScreen(p: ResultsScreenProps) {
 
           {/* Unlock CTA */}
           {!p.hideUnlock && (
-            <div style={{ marginTop: 18, background: "linear-gradient(135deg, #14131A, #262236)", borderRadius: 18, padding: "30px 32px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}>
+            <div style={{ marginTop: 18, background: "linear-gradient(135deg, #322E4A, #47416B)", borderRadius: 18, padding: "30px 32px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}>
               <div>
                 <h3 style={{ fontFamily: SG, fontWeight: 700, fontSize: 22, color: "#fff", margin: "0 0 6px" }}>{p.unlockTitle ?? `Unlock all ${p.fixes.length + p.lockedCount} fixes + weekly tracking`}</h3>
                 <p style={{ fontSize: 14.5, color: "#B7B4C4", margin: 0, maxWidth: 430 }}>{p.unlockSub ?? "Unlock the full report to see the full 18-signal breakdown, track your score over time, and verify each fix as you ship it."}</p>

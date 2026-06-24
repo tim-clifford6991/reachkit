@@ -57,7 +57,7 @@ export function MarketingNav({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
           <Link
             href="/scan"
             className={`inline-flex items-center transition-transform hover:-translate-y-px motion-reduce:transform-none ${focusRing}`}
-            style={{ fontFamily: "Plus Jakarta Sans, sans-serif", fontWeight: 600, fontSize: 14, color: "#fff", background: "#14131A", borderRadius: 9, padding: "9px 16px" }}
+            style={{ fontFamily: "Plus Jakarta Sans, sans-serif", fontWeight: 600, fontSize: 14, color: "#fff", background: "#322E4A", borderRadius: 9, padding: "9px 16px" }}
           >
             {isLoggedIn ? "New scan" : "Analyze my site"}
           </Link>

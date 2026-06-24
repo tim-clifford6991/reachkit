@@ -71,7 +71,7 @@ export const LANDING_HTML = `<main>
         </div>
       </div>
     </section>
-    <section class="rk-reveal" style="background: rgb(14, 13, 20); color: rgb(255, 255, 255);">
+    <section class="rk-reveal" style="background: rgb(50, 46, 74); color: rgb(255, 255, 255);">
       <div style="max-width: 1180px; margin: 0px auto; padding: 70px 28px; display: grid; grid-template-columns: 1fr 1fr; gap: 54px; align-items: center;">
         <div>
           <div style="font-size: 13px; font-weight: 700; letter-spacing: 0.08em; color: rgb(154, 136, 255); text-transform: uppercase;">The verified action engine</div>
@@ -233,14 +233,14 @@ export const LANDING_HTML = `<main>
       </div>
     </section>
     <section class="rk-reveal" style="max-width: 1180px; margin: 0px auto; padding: 0px 28px 70px;">
-      <div style="border-radius: 22px; background: radial-gradient(700px 300px at 80% 0%, rgb(139, 115, 255) 0%, rgb(110, 86, 247) 55%); padding: 48px; color: rgb(255, 255, 255); box-shadow: rgba(110, 86, 247, 0.6) 0px 24px 60px -22px; display: grid; grid-template-columns: 1fr auto; gap: 40px; align-items: center;">
+      <div style="border-radius: 22px; background: rgb(110, 86, 247); padding: 48px; color: rgb(255, 255, 255); box-shadow: rgba(110, 86, 247, 0.6) 0px 24px 60px -22px; display: grid; grid-template-columns: 1fr auto; gap: 40px; align-items: center;">
         <div>
           <div style="font-family: &quot;JetBrains Mono&quot;; font-size: 13px; color: rgb(215, 204, 255); margin-bottom: 14px;">THE SCORE TRAVELS</div>
           <h2 style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 34px; letter-spacing: -0.02em; margin: 0px; max-width: 440px;">Every shared score is how the next founder finds the gap.</h2>
           <p style="font-size: 16px; color: rgb(237, 233, 255); margin: 14px 0px 24px; max-width: 440px;">Each scan generates a branded score card built for the timeline. Post it, watch the replies, send them here.</p>
           <button class="scp4" style="font-family: &quot;Plus Jakarta Sans&quot;; font-weight: 700; font-size: 15px; color: rgb(110, 86, 247); background: rgb(255, 255, 255); border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; border-radius: 11px; padding: 13px 24px; cursor: pointer;">Get my score card →</button>
         </div>
-        <div style="background: rgb(20, 19, 26); border-radius: 16px; padding: 26px; width: 280px; box-shadow: rgba(0, 0, 0, 0.5) 0px 20px 40px -16px;">
+        <div style="background: rgb(50, 46, 74); border-radius: 16px; padding: 26px; width: 280px; box-shadow: rgba(0, 0, 0, 0.5) 0px 20px 40px -16px;">
           <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 18px;"><svg width="20" height="20" viewBox="0 0 28 28"><rect width="28" height="28" rx="9" fill="#6E56F7"></rect><circle cx="14" cy="14" r="1.7" fill="#fff"></circle><path d="M14 19 A5 5 0 1 1 19 14" stroke="#fff" stroke-width="1.7" fill="none" stroke-linecap="round"></path><path d="M14 23 A9 9 0 1 1 23 14" stroke="#C3B2FF" stroke-width="1.7" fill="none" stroke-linecap="round"></path></svg><span style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 13px; color: rgb(255, 255, 255);">ReachKit</span></div>
           <div style="font-family: &quot;JetBrains Mono&quot;; font-weight: 700; font-size: 60px; color: rgb(255, 255, 255); line-height: 1;">47</div>
           <div style="display: inline-flex; background: rgb(58, 42, 26); color: rgb(224, 115, 28); font-weight: 700; font-size: 12px; padding: 4px 10px; border-radius: 7px; margin-top: 8px; font-family: &quot;Space Grotesk&quot;;">Hard to find</div>

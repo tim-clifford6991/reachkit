@@ -111,7 +111,7 @@ export const PRICING_HTML = `<main style="max-width: 1080px; margin: 0px auto; p
           <div style="font-size: 14px; line-height: 1.6; color: rgb(86, 83, 95);"><span class="sc-interp">Yes. Plans are month-to-month — cancel in one click and keep access until the end of your billing period.</span></div>
         </div>
     </div>
-    <div style="margin-top: 40px; background: linear-gradient(135deg, rgb(20, 19, 26), rgb(38, 34, 54)); border-radius: 18px; padding: 34px; text-align: center;">
+    <div style="margin-top: 40px; background: linear-gradient(135deg, rgb(50, 46, 74), rgb(71, 65, 107)); border-radius: 18px; padding: 34px; text-align: center;">
       <h3 style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 24px; color: rgb(255, 255, 255); margin: 0px 0px 8px;">Start with a free scan.</h3>
       <p style="font-size: 15px; color: rgb(183, 180, 196); margin: 0px 0px 20px;">See your number in 90 seconds. Upgrade only when you want to track it.</p>
       <button class="scp4" style="font-family: &quot;Plus Jakarta Sans&quot;; font-weight: 700; font-size: 15px; color: rgb(20, 19, 26); background: rgb(255, 255, 255); border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; border-radius: 10px; padding: 13px 26px; cursor: pointer;">Analyze my site</button>
