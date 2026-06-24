@@ -33,6 +33,8 @@ import { MilestoneBanner } from "@/components/app/milestone-banner";
 import { OnboardingChecklist } from "@/components/app/onboarding-checklist";
 import { onboardingChecklist } from "@/lib/scan/onboarding-checklist";
 import { activeAppId } from "@/lib/app/active-app";
+import { ensureDeepScan } from "@/lib/scan/deepen";
+import { AutoRefresh } from "@/components/app/auto-refresh";
 import { PlaysPreview } from "@/components/app/plays-preview";
 import { ExportButton } from "@/components/app/export-button";
 import { WhatsChanged } from "@/components/app/whats-changed";
@@ -70,14 +72,22 @@ async function DashboardContent() {
   // Latest scan
   const { data: scanRow } = await db
     .from("scans")
-    .select("id, report_payload, rank_data_fetched_at, completed_at")
+    .select("id, report_payload, rank_data_fetched_at, completed_at, tier")
     .eq("app_id", primaryAppId)
     .order("completed_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
   if (!scanRow?.report_payload) {
-    return <NoReportEmptyState />;
+    // Safety net: a PAID viewer looking at a scan that only ran the free
+    // (teaser) track has no report_payload. Promote it to the deep pipeline so
+    // the full report generates, then show a self-refreshing "generating" state.
+    // ensureDeepScan is idempotent; the tier gate stops it re-firing each render.
+    const needsDeepen = !!scanRow?.id && userIsPaid && scanRow.tier !== "full";
+    if (needsDeepen) {
+      await ensureDeepScan(scanRow.id as string);
+    }
+    return <NoReportEmptyState deepening={!!scanRow?.id && userIsPaid} />;
   }
 
   const fullReport = scanRow.report_payload as unknown as ReportPayload;
@@ -234,24 +244,28 @@ function NoAppEmptyState() {
   );
 }
 
-function NoReportEmptyState() {
+function NoReportEmptyState({ deepening = false }: { deepening?: boolean }) {
   return (
     <div className="flex flex-1 items-center justify-center py-16">
+      {/* While deepening, poll so the full report appears automatically. */}
+      {deepening && <AutoRefresh />}
       <div
         className="max-w-sm rounded-xl border p-8 text-center"
         style={{
-          borderColor: "var(--hairline)",
-          background: "var(--color-surface)",
+          borderColor: "var(--c-line)",
+          background: "var(--c-surface)",
         }}
       >
         <p
           className="font-mono text-[10px] uppercase tracking-widest"
-          style={{ color: "var(--color-muted)" }}
+          style={{ color: "var(--c-action)" }}
         >
-          Report pending
+          {deepening ? "Generating full report" : "Report pending"}
         </p>
-        <p className="mt-2 text-sm" style={{ color: "var(--color-muted)" }}>
-          Your scan is still processing. Check back in a few seconds.
+        <p className="mt-2 text-sm" style={{ color: "var(--c-muted)" }}>
+          {deepening
+            ? "Building your full report — the deep analysis takes ~30–60 seconds. This page updates automatically."
+            : "Your scan is still processing. Check back in a few seconds."}
         </p>
       </div>
     </div>
