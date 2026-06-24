@@ -1,14 +1,14 @@
 export const LANDING_HTML = `<main>
     <section style="position: relative; overflow: hidden; background: radial-gradient(1100px 480px at 50% -8%, var(--c-soft) 0%, rgba(242, 238, 255, 0) 62%), rgb(255, 255, 255);">
       <div style="max-width: 1180px; margin: 0px auto; padding: 70px 28px 52px; text-align: center;">
-        <div style="display: inline-flex; align-items: center; gap: 9px; background: var(--c-surface); border: 1px solid rgb(231, 227, 247); border-radius: 999px; padding: 6px 14px; font-size: 13px; font-weight: 600; color: var(--c-action); box-shadow: rgba(20, 19, 26, 0.04) 0px 1px 2px;">
+        <div style="display: inline-flex; align-items: center; gap: 9px; background: var(--c-surface); border: 1px solid var(--c-soft); border-radius: 999px; padding: 6px 14px; font-size: 13px; font-weight: 600; color: var(--c-action); box-shadow: rgba(20, 19, 26, 0.04) 0px 1px 2px;">
           <span style="width: 7px; height: 7px; border-radius: 50%; background: var(--c-action); display: inline-block;"></span>
           Grounded in your live page. Every claim links to real evidence.
         </div>
         <h1 style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 57px; line-height: 1.04; letter-spacing: -0.035em; margin: 22px auto 0px; max-width: 860px; text-wrap: balance;">One number tells you how findable you are. <span style="color: var(--c-action);">And the 7 fixes that move it.</span></h1>
         <p style="font-size: 19px; line-height: 1.55; color: var(--c-muted); max-width: 600px; margin: 20px auto 0px; text-wrap: pretty;">Paste your URL. In 90 seconds ReachKit reads your live page like a customer's search does and hands back your Discoverability Score, your positioning gap, and a ranked, verified to-do list.</p>
         <div style="max-width: 560px; margin: 32px auto 0px;">
-          <div style="display: flex; align-items: center; gap: 8px; background: var(--c-surface); border: 1.5px solid rgb(226, 222, 240); border-radius: 14px; padding: 8px 8px 8px 16px; box-shadow: rgba(110, 86, 247, 0.1) 0px 10px 34px;">
+          <div style="display: flex; align-items: center; gap: 8px; background: var(--c-surface); border: 1.5px solid var(--c-line); border-radius: 14px; padding: 8px 8px 8px 16px; box-shadow: rgba(110, 86, 247, 0.1) 0px 10px 34px;">
             <span style="color: var(--c-faint); font-weight: 600; font-size: 15px;">https://</span>
             <input placeholder="yourdomain.com" value="" style="flex: 1 1 0%; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; outline: none; font-family: &quot;Plus Jakarta Sans&quot;; font-size: 16px; font-weight: 500; color: var(--c-ink); background: transparent; min-width: 0px;">
             <button class="scp2" style="font-family: &quot;Plus Jakarta Sans&quot;; font-weight: 700; font-size: 15px; color: rgb(255, 255, 255); background: var(--c-action); border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; border-radius: 9px; padding: 11px 20px; cursor: pointer; white-space: nowrap;">Analyze my site</button>
@@ -18,14 +18,14 @@ export const LANDING_HTML = `<main>
           </div>
         </div>
         <div style="margin: 50px auto 0px; max-width: 960px; border: 1px solid var(--c-line); border-radius: 18px; background: var(--c-surface); box-shadow: rgba(40, 33, 84, 0.34) 0px 30px 80px -28px; overflow: hidden; text-align: left;">
-          <div style="display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--c-line2); background: rgb(250, 250, 252);">
+          <div style="display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--c-line2); background: var(--c-bg2);">
             <span style="width: 11px; height: 11px; border-radius: 50%; background: rgb(229, 192, 194);"></span>
             <span style="width: 11px; height: 11px; border-radius: 50%; background: rgb(234, 217, 176);"></span>
             <span style="width: 11px; height: 11px; border-radius: 50%; background: rgb(191, 224, 194);"></span>
             <span style="margin-left: 10px; font-family: &quot;JetBrains Mono&quot;; font-size: 12px; color: var(--c-faint);">app.reachkit.io/report/bloom.io</span>
           </div>
           <div style="display: grid; grid-template-columns: 300px 1fr; gap: 0px;">
-            <div style="padding: 26px; border-right: 1px solid var(--c-line2); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: linear-gradient(rgb(252, 251, 255), rgb(255, 255, 255));">
+            <div style="padding: 26px; border-right: 1px solid var(--c-line2); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: linear-gradient(var(--c-bg2), rgb(255, 255, 255));">
               <svg width="160" height="160" viewBox="0 0 160 160" style="display: block;"><path d="M 132.47404435365 124.03095126352794 A 68.5 68.5 0 1 1 132.47404435365 35.96904873647204" fill="none" stroke="#EEECF5" stroke-width="15" stroke-linecap="round"></path><path d="M 132.47404435365 124.03095126352794 A 68.5 68.5 0 0 1 12.234845192035294 90.00668745652519" fill="none" stroke="#E0731C" stroke-width="15" stroke-linecap="round"></path><text x="80" y="87.2" text-anchor="middle" style="font: 700 40px &quot;JetBrains Mono&quot;, monospace; fill: var(--c-ink);">47</text><text x="80" y="106.2" text-anchor="middle" style="font: 600 11px &quot;JetBrains Mono&quot;, monospace; fill: var(--c-faint); letter-spacing: 1px;">/ 100</text></svg>
               <div style="display: inline-flex; align-items: center; gap: 6px; background: rgb(255, 240, 230); color: rgb(224, 115, 28); font-weight: 700; font-size: 12.5px; padding: 5px 12px; border-radius: 8px; margin-top: 8px; font-family: &quot;Space Grotesk&quot;;">Hard to find</div>
               <div style="font-size: 12.5px; font-weight: 600; color: var(--c-faint); margin-top: 8px;">Discoverability Score</div>
@@ -85,7 +85,7 @@ export const LANDING_HTML = `<main>
         </div>
         <div style="background: rgb(22, 21, 31); border: 1px solid rgb(38, 36, 51); border-radius: 16px; padding: 22px;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-            <span style="font-weight: 600; font-size: 14px; color: rgb(207, 205, 218);">This week's queue</span>
+            <span style="font-weight: 600; font-size: 14px; color: var(--c-faint);">This week's queue</span>
             <span style="font-family: &quot;JetBrains Mono&quot;; font-size: 12px; color: rgb(154, 136, 255);">refreshes in 4 days</span>
           </div>
           <div style="display: flex; flex-direction: column; gap: 10px;">
@@ -102,39 +102,39 @@ export const LANDING_HTML = `<main>
         <h2 style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 34px; letter-spacing: -0.03em; margin: 12px 0px 0px;">The honest comparison</h2>
       </div>
       <div style="border: 1px solid var(--c-line); border-radius: 16px; overflow: hidden;">
-        <div style="display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; background: rgb(251, 250, 253); border-bottom: 1px solid var(--c-line2);">
+        <div style="display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; background: var(--c-bg2); border-bottom: 1px solid var(--c-line2);">
           <div style="padding: 18px 22px;"></div>
           <div style="padding: 18px 16px; text-align: center; background: var(--c-soft);"><div style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 16px; color: var(--c-action);">ReachKit</div></div>
           <div style="padding: 18px 16px; text-align: center;"><div style="font-weight: 600; font-size: 14px; color: var(--c-muted);">A ChatGPT prompt</div></div>
           <div style="padding: 18px 16px; text-align: center;"><div style="font-weight: 600; font-size: 14px; color: var(--c-muted);">An SEO suite</div></div>
         </div>
           <div style="display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; border-bottom: 1px solid var(--c-fill); align-items: center;">
-            <div style="padding: 15px 22px; font-size: 14.5px; font-weight: 600; color: rgb(58, 55, 68);"><span class="sc-interp">Reads your live page</span></div>
-            <div style="padding: 15px 16px; text-align: center; background: rgb(250, 248, 255); font-size: 14px; font-weight: 700; color: rgb(31, 157, 91);"><span class="sc-interp">Yes</span></div>
+            <div style="padding: 15px 22px; font-size: 14.5px; font-weight: 600; color: var(--c-muted);"><span class="sc-interp">Reads your live page</span></div>
+            <div style="padding: 15px 16px; text-align: center; background: var(--c-soft); font-size: 14px; font-weight: 700; color: rgb(31, 157, 91);"><span class="sc-interp">Yes</span></div>
             <div style="padding: 15px 16px; text-align: center; font-size: 14px; color: var(--c-faint);"><span class="sc-interp">Hallucinates</span></div>
             <div style="padding: 15px 16px; text-align: center; font-size: 14px; color: var(--c-faint);"><span class="sc-interp">Crawls only</span></div>
           </div>
           <div style="display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; border-bottom: 1px solid var(--c-fill); align-items: center;">
-            <div style="padding: 15px 22px; font-size: 14.5px; font-weight: 600; color: rgb(58, 55, 68);"><span class="sc-interp">One clear score</span></div>
-            <div style="padding: 15px 16px; text-align: center; background: rgb(250, 248, 255); font-size: 14px; font-weight: 700; color: rgb(31, 157, 91);"><span class="sc-interp">Yes</span></div>
+            <div style="padding: 15px 22px; font-size: 14.5px; font-weight: 600; color: var(--c-muted);"><span class="sc-interp">One clear score</span></div>
+            <div style="padding: 15px 16px; text-align: center; background: var(--c-soft); font-size: 14px; font-weight: 700; color: rgb(31, 157, 91);"><span class="sc-interp">Yes</span></div>
             <div style="padding: 15px 16px; text-align: center; font-size: 14px; color: var(--c-faint);"><span class="sc-interp">No</span></div>
             <div style="padding: 15px 16px; text-align: center; font-size: 14px; color: var(--c-faint);"><span class="sc-interp">200 metrics</span></div>
           </div>
           <div style="display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; border-bottom: 1px solid var(--c-fill); align-items: center;">
-            <div style="padding: 15px 22px; font-size: 14.5px; font-weight: 600; color: rgb(58, 55, 68);"><span class="sc-interp">Ranked, drafted fixes</span></div>
-            <div style="padding: 15px 16px; text-align: center; background: rgb(250, 248, 255); font-size: 14px; font-weight: 700; color: rgb(31, 157, 91);"><span class="sc-interp">Yes</span></div>
+            <div style="padding: 15px 22px; font-size: 14.5px; font-weight: 600; color: var(--c-muted);"><span class="sc-interp">Ranked, drafted fixes</span></div>
+            <div style="padding: 15px 16px; text-align: center; background: var(--c-soft); font-size: 14px; font-weight: 700; color: rgb(31, 157, 91);"><span class="sc-interp">Yes</span></div>
             <div style="padding: 15px 16px; text-align: center; font-size: 14px; color: var(--c-faint);"><span class="sc-interp">Generic</span></div>
             <div style="padding: 15px 16px; text-align: center; font-size: 14px; color: var(--c-faint);"><span class="sc-interp">You triage</span></div>
           </div>
           <div style="display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; border-bottom: 1px solid var(--c-fill); align-items: center;">
-            <div style="padding: 15px 22px; font-size: 14.5px; font-weight: 600; color: rgb(58, 55, 68);"><span class="sc-interp">Verifies the fix shipped</span></div>
-            <div style="padding: 15px 16px; text-align: center; background: rgb(250, 248, 255); font-size: 14px; font-weight: 700; color: rgb(31, 157, 91);"><span class="sc-interp">Yes</span></div>
+            <div style="padding: 15px 22px; font-size: 14.5px; font-weight: 600; color: var(--c-muted);"><span class="sc-interp">Verifies the fix shipped</span></div>
+            <div style="padding: 15px 16px; text-align: center; background: var(--c-soft); font-size: 14px; font-weight: 700; color: rgb(31, 157, 91);"><span class="sc-interp">Yes</span></div>
             <div style="padding: 15px 16px; text-align: center; font-size: 14px; color: var(--c-faint);"><span class="sc-interp">No</span></div>
             <div style="padding: 15px 16px; text-align: center; font-size: 14px; color: var(--c-faint);"><span class="sc-interp">No</span></div>
           </div>
           <div style="display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; border-bottom: 1px solid var(--c-fill); align-items: center;">
-            <div style="padding: 15px 22px; font-size: 14.5px; font-weight: 600; color: rgb(58, 55, 68);"><span class="sc-interp">Built for one founder</span></div>
-            <div style="padding: 15px 16px; text-align: center; background: rgb(250, 248, 255); font-size: 14px; font-weight: 700; color: rgb(31, 157, 91);"><span class="sc-interp">Yes</span></div>
+            <div style="padding: 15px 22px; font-size: 14.5px; font-weight: 600; color: var(--c-muted);"><span class="sc-interp">Built for one founder</span></div>
+            <div style="padding: 15px 16px; text-align: center; background: var(--c-soft); font-size: 14px; font-weight: 700; color: rgb(31, 157, 91);"><span class="sc-interp">Yes</span></div>
             <div style="padding: 15px 16px; text-align: center; font-size: 14px; color: var(--c-faint);"><span class="sc-interp">—</span></div>
             <div style="padding: 15px 16px; text-align: center; font-size: 14px; color: var(--c-faint);"><span class="sc-interp">For agencies</span></div>
           </div>
@@ -144,7 +144,7 @@ export const LANDING_HTML = `<main>
       <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
         <div data-stagger="1" class="rk-reveal" style="border: 1px solid var(--c-line); border-radius: 16px; padding: 24px; background: var(--c-surface); transition-delay: 0ms;">
           <p style="font-size: 15px; line-height: 1.6; color: rgb(31, 29, 41); margin: 0px 0px 16px;">"I'd been guessing for a year. ReachKit gave me a 41 and three fixes. Two weeks later I was at 58 and actually getting signups from search."</p>
-          <div style="display: flex; align-items: center; gap: 10px;"><span style="width: 34px; height: 34px; border-radius: 50%; background: rgb(231, 226, 255); color: var(--c-action); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px;">MK</span><div><div style="font-weight: 600; font-size: 13.5px;">Mara K.</div><div style="font-size: 12px; color: var(--c-faint);">founder, indie SaaS</div></div></div>
+          <div style="display: flex; align-items: center; gap: 10px;"><span style="width: 34px; height: 34px; border-radius: 50%; background: var(--c-soft); color: var(--c-action); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px;">MK</span><div><div style="font-weight: 600; font-size: 13.5px;">Mara K.</div><div style="font-size: 12px; color: var(--c-faint);">founder, indie SaaS</div></div></div>
         </div>
         <div data-stagger="1" class="rk-reveal" style="border: 1px solid var(--c-line); border-radius: 16px; padding: 24px; background: var(--c-surface); transition-delay: 85ms;">
           <p style="font-size: 15px; line-height: 1.6; color: rgb(31, 29, 41); margin: 0px 0px 16px;">"The verification is the whole thing. It re-checked my page and told me my schema was malformed. No other tool caught that."</p>
@@ -195,33 +195,33 @@ export const LANDING_HTML = `<main>
           <div style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 18px;">Free scan</div>
           <div style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 40px; margin: 12px 0px 2px;">$0</div>
           <div style="font-size: 13px; color: var(--c-faint); margin-bottom: 18px;">one-time, no card</div>
-          <div style="display: flex; flex-direction: column; gap: 9px; font-size: 14px; color: rgb(58, 55, 68); flex: 1 1 0%;">
+          <div style="display: flex; flex-direction: column; gap: 9px; font-size: 14px; color: var(--c-muted); flex: 1 1 0%;">
             <div>✓ Your Discoverability Score</div>
             <div>✓ 3 pillar sub-scores</div>
             <div>✓ Top 3 ranked fixes</div>
             <div>✓ Positioning Mirror</div>
           </div>
-          <button class="scp3" style="margin-top: 20px; font-family: &quot;Plus Jakarta Sans&quot;; font-weight: 600; font-size: 14.5px; color: var(--c-ink); background: var(--c-surface); border: 1.5px solid rgb(226, 222, 240); border-radius: 10px; padding: 11px; cursor: pointer;">Scan my site</button>
+          <button class="scp3" style="margin-top: 20px; font-family: &quot;Plus Jakarta Sans&quot;; font-weight: 600; font-size: 14.5px; color: var(--c-ink); background: var(--c-surface); border: 1.5px solid var(--c-line); border-radius: 10px; padding: 11px; cursor: pointer;">Scan my site</button>
         </div>
         <div style="border: 1px solid var(--c-line); border-radius: 18px; padding: 28px; background: var(--c-surface); display: flex; flex-direction: column;">
           <div style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 18px;">Solo</div>
           <div style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 40px; margin: 12px 0px 2px;">$59<span style="font-size: 16px; color: var(--c-faint); font-weight: 600;">/mo</span></div>
           <div style="font-size: 13px; color: var(--c-faint); margin-bottom: 18px;">for one product</div>
-          <div style="display: flex; flex-direction: column; gap: 9px; font-size: 14px; color: rgb(58, 55, 68); flex: 1 1 0%;">
+          <div style="display: flex; flex-direction: column; gap: 9px; font-size: 14px; color: var(--c-muted); flex: 1 1 0%;">
             <div>✓ Everything in Free, unlocked</div>
             <div>✓ Weekly re-scan + score history</div>
             <div>✓ Verified action engine</div>
             <div>✓ Full 18-signal breakdown</div>
             <div>✓ 20-keyword rank depth</div>
           </div>
-          <button class="scp3" style="margin-top: 20px; font-family: &quot;Plus Jakarta Sans&quot;; font-weight: 600; font-size: 14.5px; color: var(--c-ink); background: var(--c-surface); border: 1.5px solid rgb(226, 222, 240); border-radius: 10px; padding: 11px; cursor: pointer;">Start Solo</button>
+          <button class="scp3" style="margin-top: 20px; font-family: &quot;Plus Jakarta Sans&quot;; font-weight: 600; font-size: 14.5px; color: var(--c-ink); background: var(--c-surface); border: 1.5px solid var(--c-line); border-radius: 10px; padding: 11px; cursor: pointer;">Start Solo</button>
         </div>
         <div style="border: 2px solid var(--c-action); border-radius: 18px; padding: 28px; background: var(--c-surface); display: flex; flex-direction: column; position: relative; box-shadow: rgba(110, 86, 247, 0.5) 0px 20px 50px -24px;">
           <div style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--c-action); color: rgb(255, 255, 255); font-size: 11.5px; font-weight: 700; padding: 4px 12px; border-radius: 7px; letter-spacing: 0.03em;">MOST POPULAR</div>
           <div style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 18px; color: var(--c-action);">Growth</div>
           <div style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 40px; margin: 12px 0px 2px;">$129<span style="font-size: 16px; color: var(--c-faint); font-weight: 600;">/mo</span></div>
           <div style="font-size: 13px; color: var(--c-faint); margin-bottom: 18px;">up to 3 products</div>
-          <div style="display: flex; flex-direction: column; gap: 9px; font-size: 14px; color: rgb(58, 55, 68); flex: 1 1 0%;">
+          <div style="display: flex; flex-direction: column; gap: 9px; font-size: 14px; color: var(--c-muted); flex: 1 1 0%;">
             <div>✓ Everything in Solo</div>
             <div>✓ Track 3 products</div>
             <div>✓ 50-keyword rank depth</div>
@@ -235,9 +235,9 @@ export const LANDING_HTML = `<main>
     <section class="rk-reveal" style="max-width: 1180px; margin: 0px auto; padding: 0px 28px 70px;">
       <div style="border-radius: 22px; background: var(--c-action); padding: 48px; color: rgb(255, 255, 255); box-shadow: rgba(110, 86, 247, 0.6) 0px 24px 60px -22px; display: grid; grid-template-columns: 1fr auto; gap: 40px; align-items: center;">
         <div>
-          <div style="font-family: &quot;JetBrains Mono&quot;; font-size: 13px; color: rgb(215, 204, 255); margin-bottom: 14px;">THE SCORE TRAVELS</div>
+          <div style="font-family: &quot;JetBrains Mono&quot;; font-size: 13px; color: var(--c-soft); margin-bottom: 14px;">THE SCORE TRAVELS</div>
           <h2 style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 34px; letter-spacing: -0.02em; margin: 0px; max-width: 440px;">Every shared score is how the next founder finds the gap.</h2>
-          <p style="font-size: 16px; color: rgb(237, 233, 255); margin: 14px 0px 24px; max-width: 440px;">Each scan generates a branded score card built for the timeline. Post it, watch the replies, send them here.</p>
+          <p style="font-size: 16px; color: var(--c-soft); margin: 14px 0px 24px; max-width: 440px;">Each scan generates a branded score card built for the timeline. Post it, watch the replies, send them here.</p>
           <button class="scp4" style="font-family: &quot;Plus Jakarta Sans&quot;; font-weight: 700; font-size: 15px; color: var(--c-action); background: var(--c-surface); border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; border-radius: 11px; padding: 13px 24px; cursor: pointer;">Get my score card →</button>
         </div>
         <div style="background: var(--c-dark); border-radius: 16px; padding: 26px; width: 280px; box-shadow: rgba(0, 0, 0, 0.5) 0px 20px 40px -16px;">
