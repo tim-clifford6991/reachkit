@@ -52,7 +52,7 @@ function FeedEmptyState() {
       >
         <div
           className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full"
-          style={{ background: "oklch(0.70 0.13 66 / 0.12)", border: "1.5px solid var(--color-accent-900)" }}
+          style={{ background: "var(--color-accent-subtle)", border: "1.5px solid var(--color-accent-900)" }}
           aria-hidden
         >
           <svg width="20" height="20" viewBox="0 0 16 16" fill="none">
@@ -97,12 +97,9 @@ function FeedSkeleton() {
 
 export default function FeedPage() {
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-6 px-6 py-8">
+    <div className="mx-auto w-full max-w-3xl space-y-6 px-6 py-6">
       <div>
-        <p className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "var(--color-muted)" }}>
-          Signal feed
-        </p>
-        <h1 className="mt-0.5 text-xl font-semibold" style={{ color: "var(--color-fg)" }}>
+        <h1 className="text-xl font-semibold" style={{ color: "var(--color-fg)" }}>
           What moved, week by week
         </h1>
       </div>

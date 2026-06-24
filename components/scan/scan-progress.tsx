@@ -3,15 +3,10 @@
 import { useScanNarrative } from "./scan-narrative";
 import { ScanChecklist } from "./scan-checklist";
 import { ScanAnimation } from "./scan-animation";
+import { ScanningScreen } from "./captured-scanning";
 
-function PulseDot() {
-  return (
-    <span className="relative flex h-2 w-2 shrink-0" aria-hidden="true">
-      <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 motion-reduce:animate-none" style={{ background: "var(--color-accent)" }} />
-      <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: "var(--color-accent)" }} />
-    </span>
-  );
-}
+void ScanChecklist;
+void ScanAnimation;
 
 /**
  * The live "thinking" view: a page-scan animation beside an accumulating ✓/active/
@@ -43,19 +38,6 @@ export function ScanProgress({
     !finished,
   );
 
-  return (
-    <div className="mx-auto max-w-4xl space-y-6 p-8">
-      {/* Full-width status header — shows first on mobile (above the animation card). */}
-      <div className="flex items-center gap-3">
-        <PulseDot />
-        <p className="font-mono text-sm font-medium tracking-wide" style={{ color: "var(--color-fg)" }}>
-          Scanning your product…
-        </p>
-      </div>
-      <div className="grid gap-8 md:grid-cols-2 md:items-start">
-        <ScanAnimation productName={productName} host={host} />
-        <ScanChecklist steps={steps} />
-      </div>
-    </div>
-  );
+  void productName;
+  return <ScanningScreen host={host ?? null} steps={steps.map((s) => ({ state: s.state, label: s.label }))} />;
 }

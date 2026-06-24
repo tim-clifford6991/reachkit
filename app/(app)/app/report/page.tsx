@@ -24,6 +24,12 @@ import { MarketTrends } from "@/components/app/market-trends";
 import { EngagementStrip } from "@/components/app/engagement-strip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { buildMetadata } from "@/lib/seo";
+import { ResultsScreen } from "@/components/report/captured/results-screen";
+import { toResultsProps } from "@/components/report/captured/to-results-props";
+import { readSignalBreakdown } from "@/lib/scan/signal-breakdown";
+import { CapturedSignalBreakdown } from "@/components/app/captured/signal-breakdown";
+
+const PILLAR_LABEL: Record<string, string> = { seo: "SEO", content: "Content", outreach: "Outreach" };
 
 export const metadata = buildMetadata({ title: "Report", path: "/app/report" });
 
@@ -40,32 +46,56 @@ async function ReportContent() {
 
   const { data: scanRow } = await serverDb()
     .from("scans")
-    .select("report_payload")
+    .select("id, report_payload")
     .eq("app_id", primaryAppId)
     .order("completed_at", { ascending: false })
     .limit(1)
     .maybeSingle();
   if (!scanRow?.report_payload) redirect("/app");
 
-  const report = redactReportForTier(scanRow.report_payload as unknown as ReportPayload, tier);
-  const [engagement, trend] = await Promise.all([
-    engagementSummary(primaryAppId),
-    userIsPaid ? marketTrendSeries(primaryAppId) : Promise.resolve({ weeks: 0, metrics: [] }),
-  ]);
-  const hasEngagement = engagement.streak > 0 || engagement.history.length > 0;
+  // Deep 18-signal breakdown (paid only — the full "how your score is calculated").
+  const breakdownGroups = userIsPaid
+    ? (await readSignalBreakdown(scanRow.id as string))
+        .map((g) => ({ pillar: g.pillar, label: PILLAR_LABEL[g.pillar] ?? g.pillar, signals: g.signals.map((s) => ({ key: s.key, label: s.label, why: s.why, state: s.state, contribution: s.contribution, weight: s.weight })) }))
+        .filter((g) => g.signals.length > 0)
+    : [];
 
+  const fullReport = scanRow.report_payload as unknown as ReportPayload;
+  const report = redactReportForTier(fullReport, tier);
+  const { data: appRow } = await serverDb().from("apps").select("name, store_url").eq("id", primaryAppId).maybeSingle();
+  const siteLabel = appRow?.name ?? appRow?.store_url ?? "your site";
+  const fullActions =
+    fullReport.whatToDoThisWeek.quickWins.length +
+    fullReport.whatToDoThisWeek.medium.length +
+    fullReport.whatToDoThisWeek.longPlay.length;
+
+  void WhatYouOfferSection; void WhoItsForSection; void WhereTheyAreSection;
+  void StrengthsWeaknessesSection; void ActionPlanSection; void MarketTrends;
+  void EngagementStrip; void engagementSummary; void marketTrendSeries; void userIsPaid;
+
+  // Paid viewers get the fully-unlocked report + the deep 18-signal breakdown;
+  // free/trial users upgrade (no second trial — they're already customers).
   return (
-    <div className="space-y-4">
-      <WhatYouOfferSection whatYouOffer={report.whatYouOffer} unlocked={userIsPaid} />
-      <WhoItsForSection whoItsFor={report.whoItsFor} unlocked={userIsPaid} />
-      <WhereTheyAreSection whereTheyAre={report.whereTheyAre} unlocked={userIsPaid} />
-      <StrengthsWeaknessesSection data={report.strengthsAndWeaknesses} unlocked={userIsPaid} />
-      <ActionPlanSection whatToDoThisWeek={report.whatToDoThisWeek} unlocked={userIsPaid} />
-      {trend.metrics.length > 0 && <MarketTrends trend={trend} />}
-      {hasEngagement && (
-        <EngagementStrip streak={engagement.streak} history={engagement.history} honestyNote={engagement.honestyNote} />
+    <>
+      <ResultsScreen
+        {...toResultsProps(report, siteLabel, fullActions)}
+        hideUnlock={userIsPaid}
+        unlockTitle="Upgrade to unlock the full report"
+        unlockSub="See the full 18-signal breakdown, weekly tracking, and verification — upgrade your plan to continue."
+        unlockButton={
+          userIsPaid ? undefined : (
+            <a href="/app/billing" style={{ fontFamily: "Plus Jakarta Sans, sans-serif", fontWeight: 700, fontSize: 15, color: "#14131A", background: "#fff", borderRadius: 10, padding: "13px 24px", whiteSpace: "nowrap", textDecoration: "none" }}>
+              Upgrade plan →
+            </a>
+          )
+        }
+      />
+      {breakdownGroups.length > 0 && (
+        <div style={{ maxWidth: "100%", margin: "0 auto", padding: "0 clamp(24px, 4vw, 56px) 40px" }}>
+          <CapturedSignalBreakdown groups={breakdownGroups} />
+        </div>
       )}
-    </div>
+    </>
   );
 }
 
@@ -86,7 +116,7 @@ function ReportSkeleton() {
 
 export default function ReportPage() {
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-4 px-6 py-6">
+    <div style={{ margin: "-26px -28px -60px" }}>
       <Suspense fallback={<ReportSkeleton />}>
         <ReportContent />
       </Suspense>

@@ -1,122 +1,124 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-/* next-themes toggles `.dark` on <html>. Light is the DEFAULT (Almanac). */
+/* next-themes toggles `.dark` on <html>. Light is the DEFAULT. */
 @custom-variant dark (&:is(.dark *));
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   ReachKit Design System — "Almanac" direction
+   ReachKit Design System — "Violet Discoverability" direction
 
-   Editorial + warm. Light-first cream paper, ink-brown text, a honey/amber
-   accent, ink serif display headlines. Calm, human, Stripe/Notion-clean.
-   Fully themed: light values live in @theme (the default); `.dark` overrides
-   them with the warm-dark palette.
+   Modern analytics product. Clean near-white surfaces, ink near-black text, a
+   vivid violet brand (#6E56F7), geometric Space Grotesk display + Plus Jakarta
+   Sans body + JetBrains Mono numbers. Ported from the Claude Design mockup
+   (ReachKit.dc.html). Fully themed: light values live in @theme (the default);
+   `.dark` overrides them with a violet-tinted near-black palette.
 
    Token roles:
      --color-fg / --color-muted        body + secondary text
      --color-bg / --color-surface / --color-elevated   page / card / raised
-     --hairline / --hairline-strong    themed borders (replaces white-alpha)
+     --hairline / --hairline-strong    themed borders
      --fill-subtle                     themed subtle washes
-     --color-accent* / --color-accent-fg   honey brand accent + text-on-accent
-     --font-display                    editorial serif (headlines only)
-     --font-mono                       numbers / scores / evidence only
+     --color-accent* / --color-accent-fg   violet brand + text-on-accent
+     --font-display                    Space Grotesk (headlines)
+     --font-mono                       JetBrains Mono (numbers / scores / code)
    ═══════════════════════════════════════════════════════════════════════════ */
 
 @theme {
   /* ── Fonts ────────────────────────────────────────────────────────────── */
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  /* Editorial serif for oversized display headlines. System serif stack keeps
-     it dependency-free and matches the approved sample. */
-  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Hoefler Text", Georgia, Cambria, "Times New Roman", serif;
+  --font-sans:    var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-mono:    var(--font-jetbrains-mono), ui-monospace, "SF Mono", Menlo, monospace;
+  /* Geometric display for oversized headlines (replaces the editorial serif). */
+  --font-display: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
 
-  /* ── Honey accent scale (static stops, mostly for utilities/decoration) ── */
-  --color-accent-50:  oklch(0.97 0.02 78);
-  --color-accent-100: oklch(0.93 0.04 74);
-  --color-accent-200: oklch(0.87 0.07 72);
-  --color-accent-300: oklch(0.80 0.10 70);
-  --color-accent-400: oklch(0.48 0.14 54);   /* accent TEXT on cream — clears WCAG AA (≈4.8:1). Overridden in .dark */
-  --color-accent-500: oklch(0.60 0.14 62);   /* fill / ring / decoration */
-  --color-accent-600: oklch(0.54 0.15 56);   /* button fill — deep enough for white text */
-  --color-accent-700: oklch(0.48 0.15 52);   /* pressed */
-  --color-accent-800: oklch(0.42 0.13 52);
-  --color-accent-900: oklch(0.76 0.10 68);   /* honey border on light. Overridden in .dark */
+  /* ── Violet accent scale (static stops, mostly for utilities/decoration) ── */
+  --color-accent-50:  oklch(0.97 0.02 290);
+  --color-accent-100: oklch(0.94 0.04 290);
+  --color-accent-200: oklch(0.88 0.08 288);
+  --color-accent-300: oklch(0.78 0.13 287);
+  --color-accent-400: oklch(0.50 0.205 286);   /* accent TEXT on white — clears WCAG AA. Overridden in .dark */
+  --color-accent-500: oklch(0.56 0.205 285);   /* fill / ring / decoration */
+  --color-accent-600: oklch(0.54 0.205 285);   /* button fill — deep enough for white text */
+  --color-accent-700: oklch(0.49 0.200 285);   /* pressed */
+  --color-accent-800: oklch(0.43 0.180 285);
+  --color-accent-900: oklch(0.86 0.060 290);   /* light violet border on light. Overridden in .dark */
 
-  --color-accent:           oklch(0.58 0.15 60);
-  --color-accent-hover:     oklch(0.60 0.14 62);
-  --color-accent-active:    oklch(0.52 0.14 58);
-  --color-accent-subtle:    oklch(0.66 0.13 66 / 0.14);
-  --color-accent-fg:        oklch(0.99 0.01 85);   /* near-white on honey fill */
-  --color-accent-glow:      oklch(0.72 0.13 68);
-  --color-accent-bright:    oklch(0.74 0.12 50);
+  --color-accent:           oklch(0.56 0.205 285);
+  --color-accent-hover:     oklch(0.59 0.200 286);
+  --color-accent-active:    oklch(0.50 0.205 285);
+  --color-accent-subtle:    oklch(0.56 0.205 285 / 0.12);
+  --color-accent-fg:        oklch(0.99 0.004 285);   /* white on violet fill */
+  --color-accent-glow:      oklch(0.66 0.180 286);
+  --color-accent-bright:    oklch(0.66 0.200 288);
 
-  /* ── Warm neutral scale ───────────────────────────────────────────────── */
+  /* ── Cool neutral scale (violet-grey) ─────────────────────────────────── */
   --color-neutral-0:   oklch(1 0 0);
-  --color-neutral-50:  oklch(0.985 0.006 80);
-  --color-neutral-100: oklch(0.96 0.010 78);
-  --color-neutral-200: oklch(0.90 0.012 76);
-  --color-neutral-300: oklch(0.80 0.014 72);
-  --color-neutral-400: oklch(0.64 0.016 66);
-  --color-neutral-500: oklch(0.52 0.018 62);
-  --color-neutral-600: oklch(0.42 0.018 60);
-  --color-neutral-700: oklch(0.34 0.018 58);
-  --color-neutral-800: oklch(0.27 0.016 58);
-  --color-neutral-850: oklch(0.24 0.014 60);
-  --color-neutral-900: oklch(0.205 0.012 60);
-  --color-neutral-950: oklch(0.17 0.012 60);
+  --color-neutral-50:  oklch(0.985 0.004 290);
+  --color-neutral-100: oklch(0.96 0.006 290);
+  --color-neutral-200: oklch(0.93 0.006 290);
+  --color-neutral-300: oklch(0.84 0.008 290);
+  --color-neutral-400: oklch(0.67 0.010 290);
+  --color-neutral-500: oklch(0.54 0.012 290);
+  --color-neutral-600: oklch(0.45 0.012 290);
+  --color-neutral-700: oklch(0.36 0.012 288);
+  --color-neutral-800: oklch(0.28 0.012 288);
+  --color-neutral-850: oklch(0.24 0.012 288);
+  --color-neutral-900: oklch(0.20 0.012 286);
+  --color-neutral-950: oklch(0.16 0.012 286);
 
   /* ── State colours (LIGHT defaults; overridden in .dark) ──────────────── */
-  --color-success:         oklch(0.52 0.10 150);
-  --color-success-subtle:  oklch(0.52 0.10 150 / 0.14);
-  --color-success-fg:      oklch(0.99 0.01 150);
+  --color-success:         oklch(0.60 0.13 153);
+  --color-success-subtle:  oklch(0.60 0.13 153 / 0.14);
+  --color-success-fg:      oklch(0.99 0.01 153);
 
-  --color-warning:         oklch(0.62 0.12 62);
-  --color-warning-subtle:  oklch(0.62 0.12 62 / 0.16);
+  --color-warning:         oklch(0.66 0.15 55);
+  --color-warning-subtle:  oklch(0.66 0.15 55 / 0.16);
   --color-warning-fg:      oklch(0.22 0.02 60);
 
-  --color-danger:          oklch(0.55 0.18 25);
-  --color-danger-subtle:   oklch(0.55 0.18 25 / 0.14);
+  --color-danger:          oklch(0.60 0.20 23);
+  --color-danger-subtle:   oklch(0.60 0.20 23 / 0.14);
   --color-danger-fg:       oklch(0.99 0.01 25);
 
   /* ── Surface / text aliases (LIGHT defaults; overridden in .dark) ─────── */
-  --color-bg:       oklch(0.975 0.012 80);   /* warm cream paper */
-  --color-fg:       oklch(0.28 0.020 60);    /* warm ink */
-  --color-muted:    oklch(0.50 0.020 62);    /* secondary text */
-  --color-surface:  oklch(0.995 0.006 85);   /* card / panel (near-white warm) */
-  --color-elevated: oklch(0.955 0.014 78);   /* raised: chips, sidebar, hover */
+  --color-bg:       oklch(0.990 0.003 290);   /* near-white page */
+  --color-app-canvas: oklch(0.975 0.004 290); /* app shell canvas (#FAFAFC) so white cards pop */
+  --color-fg:       oklch(0.21 0.013 286);    /* ink near-black (#14131A) */
+  --color-muted:    oklch(0.48 0.012 288);    /* secondary text (#56535F) */
+  --color-surface:  oklch(1.000 0 0);         /* card / panel (white) */
+  --color-elevated: oklch(0.975 0.006 290);   /* raised: chips, sidebar, hover */
 
-  /* Themed hairlines + washes — replace the old hardcoded white-alpha values */
-  --hairline:        oklch(0 0 0 / 0.10);
-  --hairline-strong: oklch(0 0 0 / 0.16);
-  --fill-subtle:     oklch(0 0 0 / 0.035);
+  /* Themed hairlines + washes — Claude Design spec: #ECEAF3 cool-violet hairline */
+  --hairline:        oklch(0.93 0.009 296);   /* #ECEAF3 */
+  --hairline-strong: oklch(0.89 0.018 295);   /* #E2DEF0 */
+  --fill-subtle:     oklch(0.965 0.006 294);  /* #F4F2FA faint fill */
 
-  --ambient-spot:   oklch(0.66 0.13 66 / 0.10);
+  --ambient-spot:   oklch(0.62 0.18 286 / 0.08);
 
-  /* ── Elevation (LIGHT: soft, warm; overridden darker in .dark) ────────── */
-  --elevation-xs:   0 1px 2px oklch(0.40 0.05 60 / 0.06);
-  --elevation-sm:   0 1px 2px oklch(0.40 0.05 60 / 0.06), 0 4px 12px -4px oklch(0.40 0.05 60 / 0.10);
-  --elevation-md:   0 4px 10px -4px oklch(0.40 0.05 60 / 0.10), 0 14px 32px -12px oklch(0.40 0.05 60 / 0.14);
-  --elevation-lg:   0 10px 24px -8px oklch(0.40 0.05 60 / 0.14), 0 28px 56px -18px oklch(0.40 0.05 60 / 0.18);
-  --elevation-xl:   0 18px 40px -12px oklch(0.40 0.05 60 / 0.18), 0 40px 80px -24px oklch(0.40 0.05 60 / 0.22);
-  --elevation-glow: 0 8px 24px -6px oklch(0.66 0.13 66 / 0.30);
-  --edge-highlight: inset 0 1px 0 oklch(1 0 0 / 0.70);
+  /* ── Elevation (Claude Design: cards are border-only; real shadow reserved
+     for floating hero / CTA blocks). Flattened from the old glassy stack. ── */
+  --elevation-xs:   0 1px 2px oklch(0.20 0.01 290 / 0.04);
+  --elevation-sm:   0 1px 2px oklch(0.20 0.01 290 / 0.05);
+  --elevation-md:   0 8px 24px -16px oklch(0.28 0.06 290 / 0.12);
+  --elevation-lg:   0 16px 44px -26px oklch(0.28 0.10 292 / 0.22);
+  --elevation-xl:   0 30px 80px -28px oklch(0.26 0.10 292 / 0.30);
+  --elevation-glow: 0 18px 50px -22px oklch(0.60 0.20 286 / 0.40);
+  --edge-highlight: 0 0 0 0 transparent;   /* no glassy inset in the flat design */
 
-  /* ── Glass (LIGHT; overridden in .dark) ───────────────────────────────── */
-  --glass-blur:        16px;
-  --glass-blur-strong: 28px;
-  --glass-tint:        oklch(0.99 0.01 82 / 0.72);
-  --glass-tint-accent: oklch(0.90 0.06 70 / 0.45);
-  --glass-border:      oklch(0 0 0 / 0.08);
+  /* ── Glass (Claude Design nav: rgba(255,255,255,0.82) + 14px blur) ─────── */
+  --glass-blur:        14px;
+  --glass-blur-strong: 20px;
+  --glass-tint:        oklch(1 0 0 / 0.82);
+  --glass-tint-accent: oklch(0.95 0.02 292 / 0.70);
+  --glass-border:      oklch(0.93 0.009 296);
 
   /* ── Gradient / mesh (LIGHT; overridden in .dark) ─────────────────────── */
-  --gradient-accent:      linear-gradient(135deg, oklch(0.62 0.14 64) 0%, oklch(0.53 0.16 44) 100%);
-  --gradient-accent-fade: linear-gradient(180deg, oklch(0.66 0.13 66 / 0.12) 0%, transparent 100%);
-  --gradient-surface:     linear-gradient(165deg, oklch(0.99 0.012 82) 0%, var(--color-surface) 80%);
+  --gradient-accent:      linear-gradient(135deg, oklch(0.56 0.205 286) 0%, oklch(0.46 0.185 282) 100%);
+  --gradient-accent-fade: linear-gradient(180deg, oklch(0.62 0.18 286 / 0.12) 0%, transparent 100%);
+  --gradient-surface:     linear-gradient(165deg, oklch(1.00 0 0) 0%, var(--color-surface) 80%);
   --gradient-shine:       linear-gradient(115deg, transparent 30%, oklch(1 0 0 / 0.50) 50%, transparent 70%);
   --mesh-hero:
-    radial-gradient(55% 50% at 18% 12%, oklch(0.80 0.10 72 / 0.22) 0%, transparent 60%),
-    radial-gradient(50% 55% at 85% 18%, oklch(0.74 0.12 45 / 0.16) 0%, transparent 60%),
-    radial-gradient(70% 60% at 50% 102%, oklch(0.82 0.07 120 / 0.12) 0%, transparent 70%);
+    radial-gradient(55% 50% at 18% 12%, oklch(0.70 0.16 288 / 0.18) 0%, transparent 60%),
+    radial-gradient(50% 55% at 85% 18%, oklch(0.62 0.20 282 / 0.14) 0%, transparent 60%),
+    radial-gradient(70% 60% at 50% 102%, oklch(0.72 0.14 300 / 0.10) 0%, transparent 70%);
 
   /* ── Rounding system ──────────────────────────────────────────────────── */
   /* Each tier steps up by a consistent ~1.33× ratio. Role mapping (apply these
@@ -132,16 +134,16 @@
   --radius-none:   0px;
   --radius-xs:     0.375rem;  /* 6px  */
   --radius-sm:     0.625rem;  /* 10px */
-  --radius-md:     0.875rem;  /* 14px */
-  --radius-lg:     1.125rem;  /* 18px — inputs / buttons / selects */
-  --radius-xl:     1.5rem;    /* 24px — cards / panels */
-  --radius-2xl:    2rem;      /* 32px — large / marketing cards */
+  --radius-md:     0.875rem;  /* 14px — cards (Claude Design) */
+  --radius-lg:     0.75rem;   /* 12px — inputs / buttons / selects */
+  --radius-xl:     1rem;      /* 16px — cards / panels (Claude Design) */
+  --radius-2xl:    1.125rem;  /* 18px — large / marketing cards (Claude Design) */
   --radius-3xl:    2.5rem;    /* 40px */
   --radius-4xl:    3rem;      /* 48px */
   --radius-full:   9999px;
   --radius-card:   var(--radius-xl);
 
-  /* ── Spacing (generous, airy — Almanac breathes) ──────────────────────── */
+  /* ── Spacing (generous, airy) ─────────────────────────────────────────── */
   --spacing-content-x:   clamp(1.5rem, 5vw, 3rem);
   --spacing-content-max: 72rem;
   /* Applied as py on each section, so adjacent sections get ~2× between them.
@@ -163,7 +165,7 @@
   --text-6xl:   3.75rem;
   --text-7xl:   4.5rem;
   --text-display: clamp(2.5rem, 6vw, 4.5rem);
-  --tracking-display: -0.018em;   /* serif display sits looser than the old sans */
+  --tracking-display: -0.022em;   /* Space Grotesk sits tight at display sizes */
 
   --text-score:    3.5rem;
   --text-score-lg: 4.5rem;
@@ -226,143 +228,144 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   :root carries the LIGHT (Almanac) shadcn slots. `.dark` overrides both the
-   shadcn slots and every themed design token above.
+   :root carries the LIGHT shadcn slots. `.dark` overrides both the shadcn
+   slots and every themed design token above.
    ═══════════════════════════════════════════════════════════════════════════ */
 :root {
   color-scheme: light;
 
-  --background:             oklch(0.975 0.012 80);
-  --foreground:             oklch(0.28 0.020 60);
-  --card:                   oklch(0.995 0.006 85);
-  --card-foreground:        oklch(0.28 0.020 60);
-  --popover:                oklch(0.995 0.006 85);
-  --popover-foreground:     oklch(0.28 0.020 60);
+  --background:             oklch(0.990 0.003 290);
+  --foreground:             oklch(0.21 0.013 286);
+  --card:                   oklch(1.000 0 0);
+  --card-foreground:        oklch(0.21 0.013 286);
+  --popover:                oklch(1.000 0 0);
+  --popover-foreground:     oklch(0.21 0.013 286);
 
-  --primary:                oklch(0.55 0.15 58);
-  --primary-foreground:     oklch(0.99 0.01 85);
+  --primary:                oklch(0.55 0.205 285);
+  --primary-foreground:     oklch(0.99 0.004 285);
 
-  --secondary:              oklch(0.955 0.014 78);
-  --secondary-foreground:   oklch(0.30 0.020 60);
+  --secondary:              oklch(0.975 0.006 290);
+  --secondary-foreground:   oklch(0.28 0.013 286);
 
-  --muted:                  oklch(0.955 0.014 78);
-  --muted-foreground:       oklch(0.50 0.020 62);
+  --muted:                  oklch(0.975 0.006 290);
+  --muted-foreground:       oklch(0.48 0.012 288);
 
-  --accent:                 oklch(0.945 0.016 76);
-  --accent-foreground:      oklch(0.30 0.020 60);
+  --accent:                 oklch(0.965 0.012 290);
+  --accent-foreground:      oklch(0.28 0.013 286);
 
-  --destructive:            oklch(0.55 0.18 25);
+  --destructive:            oklch(0.60 0.20 23);
 
-  --border:                 oklch(0 0 0 / 0.10);
+  --border:                 oklch(0 0 0 / 0.09);
   --input:                  oklch(0 0 0 / 0.12);
-  --ring:                   oklch(0.60 0.14 62);
+  --ring:                   oklch(0.56 0.205 285);
 
   --radius: 1.125rem;
 
-  --chart-1: oklch(0.66 0.13 66);
-  --chart-2: oklch(0.52 0.10 150);
-  --chart-3: oklch(0.62 0.12 62);
-  --chart-4: oklch(0.52 0.14 58);
-  --chart-5: oklch(0.72 0.012 70);
+  --chart-1: oklch(0.56 0.205 285);
+  --chart-2: oklch(0.60 0.13 153);
+  --chart-3: oklch(0.66 0.15 50);
+  --chart-4: oklch(0.48 0.19 282);
+  --chart-5: oklch(0.72 0.012 290);
 
-  --sidebar:                    oklch(0.955 0.014 78);
-  --sidebar-foreground:         oklch(0.30 0.020 60);
-  --sidebar-primary:            oklch(0.60 0.14 62);
-  --sidebar-primary-foreground: oklch(0.99 0.01 85);
-  --sidebar-accent:             oklch(0.93 0.016 76);
-  --sidebar-accent-foreground:  oklch(0.30 0.020 60);
-  --sidebar-border:             oklch(0 0 0 / 0.08);
-  --sidebar-ring:               oklch(0.60 0.14 62);
+  --sidebar:                    oklch(1.000 0 0);
+  --sidebar-foreground:         oklch(0.30 0.013 286);
+  --sidebar-primary:            oklch(0.56 0.205 285);
+  --sidebar-primary-foreground: oklch(0.99 0.004 285);
+  --sidebar-accent:             oklch(0.96 0.014 290);
+  --sidebar-accent-foreground:  oklch(0.50 0.205 286);
+  --sidebar-border:             oklch(0 0 0 / 0.07);
+  --sidebar-ring:               oklch(0.56 0.205 285);
 }
 
-/* ── Dark (Almanac) — overrides shadcn slots AND every themed design token ── */
+/* ── Dark — overrides shadcn slots AND every themed design token ─────────── */
 .dark {
   color-scheme: dark;
 
   /* shadcn slots */
-  --background:             oklch(0.205 0.012 60);
-  --foreground:             oklch(0.93 0.012 75);
-  --card:                   oklch(0.235 0.012 60);
-  --card-foreground:        oklch(0.93 0.012 75);
-  --popover:                oklch(0.255 0.012 60);
-  --popover-foreground:     oklch(0.93 0.012 75);
-  --primary:                oklch(0.72 0.13 72);
-  --primary-foreground:     oklch(0.22 0.03 60);
-  --secondary:              oklch(0.265 0.012 60);
-  --secondary-foreground:   oklch(0.93 0.012 75);
-  --muted:                  oklch(0.265 0.012 60);
-  --muted-foreground:       oklch(0.70 0.015 72);
-  --accent:                 oklch(0.285 0.014 60);
-  --accent-foreground:      oklch(0.93 0.012 75);
+  --background:             oklch(0.17 0.012 288);
+  --foreground:             oklch(0.95 0.005 290);
+  --card:                   oklch(0.21 0.012 288);
+  --card-foreground:        oklch(0.95 0.005 290);
+  --popover:                oklch(0.23 0.012 288);
+  --popover-foreground:     oklch(0.95 0.005 290);
+  --primary:                oklch(0.62 0.200 286);
+  --primary-foreground:     oklch(0.99 0.005 285);
+  --secondary:              oklch(0.25 0.012 288);
+  --secondary-foreground:   oklch(0.95 0.005 290);
+  --muted:                  oklch(0.25 0.012 288);
+  --muted-foreground:       oklch(0.70 0.010 290);
+  --accent:                 oklch(0.27 0.014 288);
+  --accent-foreground:      oklch(0.95 0.005 290);
   --destructive:            oklch(0.70 0.20 22);
   --border:                 oklch(1 0 0 / 0.10);
   --input:                  oklch(1 0 0 / 0.12);
-  --ring:                   oklch(0.72 0.13 72);
-  --chart-1: oklch(0.76 0.12 75);
-  --chart-2: oklch(0.72 0.13 150);
-  --chart-3: oklch(0.78 0.16 70);
-  --chart-4: oklch(0.64 0.13 70);
-  --chart-5: oklch(0.55 0.012 70);
-  --sidebar:                    oklch(0.185 0.012 60);
-  --sidebar-foreground:         oklch(0.93 0.012 75);
-  --sidebar-primary:            oklch(0.72 0.13 72);
-  --sidebar-primary-foreground: oklch(0.22 0.03 60);
-  --sidebar-accent:             oklch(0.265 0.012 60);
-  --sidebar-accent-foreground:  oklch(0.93 0.012 75);
+  --ring:                   oklch(0.66 0.190 286);
+  --chart-1: oklch(0.68 0.18 286);
+  --chart-2: oklch(0.72 0.13 153);
+  --chart-3: oklch(0.74 0.15 55);
+  --chart-4: oklch(0.60 0.18 282);
+  --chart-5: oklch(0.55 0.012 290);
+  --sidebar:                    oklch(0.15 0.012 288);
+  --sidebar-foreground:         oklch(0.93 0.008 290);
+  --sidebar-primary:            oklch(0.66 0.190 286);
+  --sidebar-primary-foreground: oklch(0.99 0.005 285);
+  --sidebar-accent:             oklch(0.25 0.012 288);
+  --sidebar-accent-foreground:  oklch(0.93 0.008 290);
   --sidebar-border:             oklch(1 0 0 / 0.08);
-  --sidebar-ring:               oklch(0.72 0.13 72);
+  --sidebar-ring:               oklch(0.66 0.190 286);
 
   /* themed design tokens */
-  --color-accent-400: oklch(0.80 0.12 78);
-  --color-accent-500: oklch(0.76 0.12 75);
-  --color-accent-600: oklch(0.70 0.13 72);
-  --color-accent-700: oklch(0.64 0.13 70);
-  --color-accent-900: oklch(0.46 0.11 70);
-  --color-accent:           oklch(0.76 0.12 75);
-  --color-accent-hover:     oklch(0.80 0.12 78);
-  --color-accent-active:    oklch(0.64 0.13 70);
-  --color-accent-subtle:    oklch(0.76 0.12 75 / 0.16);
-  --color-accent-fg:        oklch(0.22 0.03 60);
-  --color-accent-glow:      oklch(0.78 0.12 76);
+  --color-accent-400: oklch(0.78 0.13 287);
+  --color-accent-500: oklch(0.68 0.18 286);
+  --color-accent-600: oklch(0.62 0.20 286);
+  --color-accent-700: oklch(0.56 0.20 285);
+  --color-accent-900: oklch(0.40 0.14 285);
+  --color-accent:           oklch(0.66 0.190 286);
+  --color-accent-hover:     oklch(0.72 0.170 288);
+  --color-accent-active:    oklch(0.58 0.200 285);
+  --color-accent-subtle:    oklch(0.66 0.190 286 / 0.18);
+  --color-accent-fg:        oklch(0.99 0.005 285);
+  --color-accent-glow:      oklch(0.70 0.170 288);
 
-  --color-success:         oklch(0.72 0.13 150);
-  --color-success-subtle:  oklch(0.72 0.13 150 / 0.16);
-  --color-warning:         oklch(0.78 0.16 70);
-  --color-warning-subtle:  oklch(0.78 0.16 70 / 0.16);
+  --color-success:         oklch(0.72 0.13 153);
+  --color-success-subtle:  oklch(0.72 0.13 153 / 0.16);
+  --color-warning:         oklch(0.74 0.15 55);
+  --color-warning-subtle:  oklch(0.74 0.15 55 / 0.16);
   --color-danger:          oklch(0.70 0.20 22);
   --color-danger-subtle:   oklch(0.70 0.20 22 / 0.16);
 
-  --color-bg:       oklch(0.205 0.012 60);
-  --color-fg:       oklch(0.93 0.012 75);
-  --color-muted:    oklch(0.70 0.015 72);
-  --color-surface:  oklch(0.235 0.012 60);
-  --color-elevated: oklch(0.265 0.012 60);
+  --color-bg:       oklch(0.17 0.012 288);
+  --color-app-canvas: oklch(0.145 0.012 288); /* app shell canvas — recessed vs cards (dark) */
+  --color-fg:       oklch(0.95 0.005 290);
+  --color-muted:    oklch(0.70 0.010 290);
+  --color-surface:  oklch(0.21 0.012 288);
+  --color-elevated: oklch(0.25 0.012 288);
 
   --hairline:        oklch(1 0 0 / 0.10);
   --hairline-strong: oklch(1 0 0 / 0.18);
   --fill-subtle:     oklch(1 0 0 / 0.04);
-  --ambient-spot:    oklch(0.76 0.12 75 / 0.10);
+  --ambient-spot:    oklch(0.66 0.18 286 / 0.10);
 
   --elevation-xs:   0 1px 2px oklch(0 0 0 / 0.30);
   --elevation-sm:   0 1px 2px oklch(0 0 0 / 0.30), 0 2px 6px oklch(0 0 0 / 0.22);
   --elevation-md:   0 2px 4px oklch(0 0 0 / 0.30), 0 8px 20px oklch(0 0 0 / 0.30);
   --elevation-lg:   0 4px 8px oklch(0 0 0 / 0.32), 0 16px 40px oklch(0 0 0 / 0.38);
   --elevation-xl:   0 8px 16px oklch(0 0 0 / 0.34), 0 30px 70px oklch(0 0 0 / 0.45);
-  --elevation-glow: 0 6px 24px oklch(0.76 0.12 75 / 0.30);
+  --elevation-glow: 0 6px 24px oklch(0.66 0.18 286 / 0.30);
   --edge-highlight: inset 0 1px 0 oklch(1 0 0 / 0.06);
 
-  --glass-tint:        oklch(0.22 0.012 60 / 0.6);
-  --glass-tint-accent: oklch(0.30 0.05 70 / 0.45);
+  --glass-tint:        oklch(0.21 0.012 288 / 0.6);
+  --glass-tint-accent: oklch(0.32 0.10 286 / 0.45);
   --glass-border:      oklch(1 0 0 / 0.10);
 
-  --gradient-accent:      linear-gradient(135deg, oklch(0.76 0.12 75) 0%, oklch(0.66 0.14 55) 100%);
-  --gradient-accent-fade: linear-gradient(180deg, oklch(0.76 0.12 75 / 0.12) 0%, transparent 100%);
-  --gradient-surface:     linear-gradient(165deg, oklch(0.255 0.014 62) 0%, var(--color-surface) 80%);
+  --gradient-accent:      linear-gradient(135deg, oklch(0.66 0.190 286) 0%, oklch(0.54 0.180 282) 100%);
+  --gradient-accent-fade: linear-gradient(180deg, oklch(0.66 0.19 286 / 0.12) 0%, transparent 100%);
+  --gradient-surface:     linear-gradient(165deg, oklch(0.235 0.014 288) 0%, var(--color-surface) 80%);
   --gradient-shine:       linear-gradient(115deg, transparent 30%, oklch(1 0 0 / 0.14) 50%, transparent 70%);
   --mesh-hero:
-    radial-gradient(55% 50% at 18% 12%, oklch(0.72 0.12 70 / 0.20) 0%, transparent 60%),
-    radial-gradient(50% 55% at 85% 18%, oklch(0.66 0.14 45 / 0.16) 0%, transparent 60%),
-    radial-gradient(70% 60% at 50% 102%, oklch(0.70 0.10 120 / 0.10) 0%, transparent 70%);
+    radial-gradient(55% 50% at 18% 12%, oklch(0.62 0.18 288 / 0.20) 0%, transparent 60%),
+    radial-gradient(50% 55% at 85% 18%, oklch(0.56 0.20 282 / 0.16) 0%, transparent 60%),
+    radial-gradient(70% 60% at 50% 102%, oklch(0.64 0.14 300 / 0.10) 0%, transparent 70%);
 }
 
 /* ── Global base layer ────────────────────────────────────────────────────── */
@@ -385,8 +388,9 @@
   }
 }
 
-/* Editorial headlines: every h1/h2 inside the marketing surface renders in the
-   serif display face. Card titles (h3) and app/data headings stay sans. */
+/* Display headlines: every h1/h2 inside the marketing surface renders in the
+   geometric display face (Space Grotesk). Card titles (h3) and app/data
+   headings stay in the body sans. */
 .font-editorial :is(h1, h2) {
   font-family: var(--font-display);
   letter-spacing: var(--tracking-display);

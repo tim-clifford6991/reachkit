@@ -44,10 +44,17 @@ export async function generateMetadata(props: {
 // Helpers
 // ---------------------------------------------------------------------------
 
+// Font CSS vars (already loaded). Matches the harmonized index/compare pages.
+const SG = "var(--font-display)";
+const JM = "var(--font-mono)";
+const SANS = "var(--font-sans)";
+
+// Score → band color (Claude Design ramp: red → orange → gold → green).
 function scoreColour(score: number): string {
-  if (score >= 70) return "var(--color-success)";
-  if (score >= 40) return "var(--color-accent-400)";
-  return "var(--color-warning)";
+  if (score < 35) return "#E5484D";
+  if (score < 55) return "#E0731C";
+  if (score < 70) return "#C98A12";
+  return "#1F9D5B";
 }
 
 function scoreLabel(score: number): string {
@@ -77,10 +84,11 @@ function ScorePanel({ teardown }: { teardown: Teardown }) {
 
   return (
     <div
-      className="rounded-xl border p-8"
       style={{
-        borderColor: "var(--hairline)",
-        background: "var(--color-surface)",
+        background: "#fff",
+        border: "1px solid #ECEAF3",
+        borderRadius: 16,
+        padding: "22px 24px",
       }}
       aria-label={`Discoverability score: ${teardown.score.total} out of 100`}
     >
@@ -88,28 +96,48 @@ function ScorePanel({ teardown }: { teardown: Teardown }) {
       <div className="flex items-center justify-between gap-4">
         <div>
           <p
-            className="font-mono text-[10px] uppercase tracking-widest"
-            style={{ color: "var(--color-muted)" }}
+            style={{
+              fontFamily: JM,
+              fontSize: 12,
+              fontWeight: 600,
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              color: "#9A97A5",
+              margin: 0,
+            }}
           >
             Discoverability Score
           </p>
           <div className="mt-1 flex items-baseline gap-1.5">
             <span
-              className="font-mono text-4xl font-bold tabular-nums leading-none"
-              style={{ color: colour }}
+              style={{
+                fontFamily: JM,
+                fontWeight: 700,
+                fontSize: 40,
+                lineHeight: 1,
+                color: colour,
+                fontVariantNumeric: "tabular-nums",
+              }}
             >
               {teardown.score.total}
             </span>
             <span
-              className="font-mono text-sm"
-              style={{ color: "var(--color-muted)" }}
+              style={{ fontFamily: JM, fontSize: 14, color: "#9A97A5" }}
             >
               / 100
             </span>
           </div>
           <p
-            className="mt-1 font-mono text-xs uppercase tracking-widest"
-            style={{ color: colour }}
+            className="mt-1"
+            style={{
+              fontFamily: JM,
+              fontSize: 12,
+              fontWeight: 600,
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              color: colour,
+              margin: "4px 0 0",
+            }}
           >
             {label}
           </p>
@@ -117,10 +145,17 @@ function ScorePanel({ teardown }: { teardown: Teardown }) {
 
         {/* Platform badge */}
         <div
-          className="shrink-0 rounded-md border px-2.5 py-1 font-mono text-[10px] uppercase tracking-widest"
+          className="shrink-0"
           style={{
-            borderColor: "var(--hairline)",
-            color: "var(--color-muted)",
+            border: "1px solid #ECEAF3",
+            borderRadius: 8,
+            padding: "5px 10px",
+            fontFamily: JM,
+            fontSize: 11,
+            fontWeight: 600,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            color: "#9A97A5",
           }}
         >
           {teardown.platform === "ios" ? "iOS App Store" : "Web"}
@@ -129,7 +164,7 @@ function ScorePanel({ teardown }: { teardown: Teardown }) {
 
       <div
         className="my-5 h-px"
-        style={{ background: "var(--fill-subtle)" }}
+        style={{ background: "#ECEAF3" }}
         aria-hidden="true"
       />
 
@@ -146,14 +181,21 @@ function ScorePanel({ teardown }: { teardown: Teardown }) {
           return (
             <div key={label} className="flex items-center gap-3">
               <span
-                className="w-16 shrink-0 font-mono text-[10px] uppercase tracking-wider"
-                style={{ color: "var(--color-muted)" }}
+                className="w-16 shrink-0"
+                style={{
+                  fontFamily: JM,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  color: "#9A97A5",
+                }}
               >
                 {label}
               </span>
               <div
                 className="relative h-1 flex-1 overflow-hidden rounded-full"
-                style={{ background: "var(--fill-subtle)" }}
+                style={{ background: "#ECEAF3" }}
                 role="progressbar"
                 aria-valuenow={value}
                 aria-valuemin={0}
@@ -166,8 +208,14 @@ function ScorePanel({ teardown }: { teardown: Teardown }) {
                 />
               </div>
               <span
-                className="w-7 text-right font-mono text-xs tabular-nums"
-                style={{ color: "var(--color-fg)" }}
+                className="w-7 text-right"
+                style={{
+                  fontFamily: JM,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: "#14131A",
+                  fontVariantNumeric: "tabular-nums",
+                }}
                 aria-hidden="true"
               >
                 {value}
@@ -179,8 +227,12 @@ function ScorePanel({ teardown }: { teardown: Teardown }) {
 
       {/* Last verified */}
       <p
-        className="mt-5 font-mono text-[10px]"
-        style={{ color: "var(--color-muted)", opacity: 0.6 }}
+        className="mt-5"
+        style={{
+          fontFamily: JM,
+          fontSize: 11,
+          color: "#9A97A5",
+        }}
       >
         Last verified:{" "}
         <time dateTime={teardown.lastVerified}>
@@ -197,8 +249,14 @@ function TeardownSections({ teardown }: { teardown: Teardown }) {
       {teardown.sections.map((section) => (
         <section key={section.heading} aria-label={section.heading}>
           <h2
-            className="text-xl font-bold tracking-tight sm:text-2xl"
-            style={{ color: "var(--color-fg)", lineHeight: 1.25 }}
+            className="text-xl sm:text-2xl"
+            style={{
+              fontFamily: SG,
+              fontWeight: 700,
+              letterSpacing: "-0.02em",
+              color: "#14131A",
+              lineHeight: 1.25,
+            }}
           >
             {section.heading}
           </h2>
@@ -206,8 +264,11 @@ function TeardownSections({ teardown }: { teardown: Teardown }) {
             {section.body.map((para, i) => (
               <p
                 key={i}
-                className="text-base leading-relaxed"
-                style={{ color: "var(--color-muted)" }}
+                style={{
+                  fontSize: 16,
+                  lineHeight: 1.6,
+                  color: "#3A3744",
+                }}
               >
                 {para}
               </p>
@@ -222,16 +283,24 @@ function TeardownSections({ teardown }: { teardown: Teardown }) {
 function TakeawaysPanel({ teardown }: { teardown: Teardown }) {
   return (
     <aside
-      className="rounded-xl border p-8"
       style={{
-        borderColor: "var(--hairline)",
-        background: "var(--color-surface)",
+        background: "#fff",
+        border: "1px solid #ECEAF3",
+        borderRadius: 16,
+        padding: "22px 24px",
       }}
       aria-label="Key takeaways"
     >
       <p
-        className="font-mono text-[10px] uppercase tracking-widest"
-        style={{ color: "var(--color-accent-400)" }}
+        style={{
+          fontFamily: JM,
+          fontSize: 12,
+          fontWeight: 600,
+          letterSpacing: "0.12em",
+          textTransform: "uppercase",
+          color: "#6E56F7",
+          margin: 0,
+        }}
       >
         Key takeaways
       </p>
@@ -239,15 +308,20 @@ function TakeawaysPanel({ teardown }: { teardown: Teardown }) {
         {teardown.takeaways.map((takeaway, i) => (
           <li key={i} className="flex gap-3">
             <span
-              className="mt-0.5 shrink-0 font-mono text-xs tabular-nums"
-              style={{ color: "var(--color-accent-400)" }}
+              className="mt-0.5 shrink-0"
+              style={{
+                fontFamily: JM,
+                fontSize: 12,
+                fontWeight: 700,
+                color: "#6E56F7",
+                fontVariantNumeric: "tabular-nums",
+              }}
               aria-hidden="true"
             >
               {String(i + 1).padStart(2, "0")}
             </span>
             <span
-              className="text-sm leading-relaxed"
-              style={{ color: "var(--color-muted)" }}
+              style={{ fontSize: 15, lineHeight: 1.6, color: "#56535F" }}
             >
               {takeaway}
             </span>
@@ -295,6 +369,7 @@ export default async function TeardownSlugPage(props: {
 
       <main
         className="mx-auto max-w-[var(--spacing-content-max)] px-(--spacing-content-x) pb-24 pt-12 sm:pt-20"
+        style={{ background: "#fff" }}
         aria-label={teardown.title}
       >
         {/* Breadcrumb */}
@@ -302,12 +377,22 @@ export default async function TeardownSlugPage(props: {
           aria-label="Breadcrumb"
           className="mb-8"
         >
-          <ol className="flex items-center gap-2 font-mono text-xs" style={{ color: "var(--color-muted)" }}>
+          <ol
+            className="flex items-center gap-2"
+            style={{
+              fontFamily: JM,
+              fontSize: 12,
+              fontWeight: 600,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              color: "#9A97A5",
+            }}
+          >
             <li>
               <Link
                 href="/"
-                className="transition-colors hover:opacity-80"
-                style={{ color: "var(--color-muted)" }}
+                className="transition-opacity hover:opacity-70"
+                style={{ color: "#9A97A5" }}
               >
                 ReachKit
               </Link>
@@ -316,14 +401,14 @@ export default async function TeardownSlugPage(props: {
             <li>
               <Link
                 href="/teardowns"
-                className="transition-colors hover:opacity-80"
-                style={{ color: "var(--color-muted)" }}
+                className="transition-opacity hover:opacity-70"
+                style={{ color: "#9A97A5" }}
               >
                 Teardowns
               </Link>
             </li>
             <li aria-hidden="true" style={{ opacity: 0.4 }}>/</li>
-            <li aria-current="page" style={{ color: "var(--color-fg)" }}>
+            <li aria-current="page" style={{ color: "#14131A" }}>
               {teardown.appName}
             </li>
           </ol>
@@ -332,26 +417,40 @@ export default async function TeardownSlugPage(props: {
         {/* Header */}
         <header className="mb-10">
           <p
-            className="mb-3 font-mono text-[10px] uppercase tracking-widest"
-            style={{ color: "var(--color-accent-400)" }}
+            className="mb-3"
+            style={{
+              fontFamily: JM,
+              fontSize: 12,
+              fontWeight: 600,
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              color: "#6E56F7",
+              margin: "0 0 12px",
+            }}
           >
             Discoverability teardown
           </p>
           <h1
-            className="text-3xl font-bold tracking-tight sm:text-4xl"
-            style={{ color: "var(--color-fg)", lineHeight: 1.1 }}
+            className="text-3xl sm:text-4xl"
+            style={{
+              fontFamily: SG,
+              fontWeight: 700,
+              letterSpacing: "-0.02em",
+              color: "#14131A",
+              lineHeight: 1.1,
+            }}
           >
             {teardown.title}
           </h1>
           <p
-            className="mt-4 max-w-2xl text-base leading-relaxed sm:text-lg"
-            style={{ color: "var(--color-muted)" }}
+            className="mt-4 max-w-2xl"
+            style={{ fontSize: 16, lineHeight: 1.6, color: "#56535F" }}
           >
             {teardown.intro}
           </p>
           <p
-            className="mt-4 font-mono text-xs"
-            style={{ color: "var(--color-muted)", opacity: 0.5 }}
+            className="mt-4"
+            style={{ fontFamily: JM, fontSize: 12, color: "#9A97A5" }}
           >
             Published{" "}
             <time dateTime={teardown.publishedAt}>
@@ -374,30 +473,44 @@ export default async function TeardownSlugPage(props: {
 
             {/* CTA */}
             <div
-              className="rounded-xl border p-8 text-center"
+              className="text-center"
               style={{
-                borderColor: "oklch(0.70 0.13 66 / 0.25)",
-                background: "oklch(0.70 0.13 66 / 0.05)",
+                background: "#fff",
+                border: "1px solid #ECEAF3",
+                borderRadius: 16,
+                padding: "22px 24px",
               }}
             >
               <p
-                className="text-sm font-semibold"
-                style={{ color: "var(--color-fg)" }}
+                style={{
+                  fontFamily: SG,
+                  fontWeight: 700,
+                  letterSpacing: "-0.02em",
+                  fontSize: 16,
+                  color: "#14131A",
+                  margin: 0,
+                }}
               >
                 What does your app score?
               </p>
               <p
-                className="mt-1.5 text-xs leading-relaxed"
-                style={{ color: "var(--color-muted)" }}
+                className="mt-1.5"
+                style={{ fontSize: 15, lineHeight: 1.6, color: "#56535F" }}
               >
                 Run a free scan and see your discoverability gaps in 90 seconds.
               </p>
               <Link
                 href="/scan"
-                className="mt-4 inline-flex items-center rounded-lg px-4 py-2 font-mono text-sm font-semibold transition-all duration-150"
+                className="mt-4 inline-flex items-center"
                 style={{
-                  background: "var(--color-accent-400)",
-                  color: "var(--color-bg)",
+                  background: "#6E56F7",
+                  color: "#fff",
+                  borderRadius: 10,
+                  padding: "11px 20px",
+                  fontFamily: SANS,
+                  fontWeight: 600,
+                  fontSize: 14,
+                  textDecoration: "none",
                 }}
               >
                 Scan my app free
@@ -407,11 +520,16 @@ export default async function TeardownSlugPage(props: {
         </div>
 
         {/* Back link */}
-        <div className="mt-16 border-t pt-8" style={{ borderColor: "var(--fill-subtle)" }}>
+        <div className="mt-16 pt-8" style={{ borderTop: "1px solid #ECEAF3" }}>
           <Link
             href="/teardowns"
-            className="font-mono text-sm transition-colors hover:opacity-80"
-            style={{ color: "var(--color-accent-400)" }}
+            className="transition-opacity hover:opacity-70"
+            style={{
+              fontFamily: SANS,
+              fontSize: 14,
+              fontWeight: 600,
+              color: "#6E56F7",
+            }}
           >
             ← All teardowns
           </Link>

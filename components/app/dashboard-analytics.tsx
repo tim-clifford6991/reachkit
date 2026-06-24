@@ -32,15 +32,35 @@ interface Kpi {
   ticker?: { value: number; suffix?: string };
   /** When set, the value becomes a click-to-drill popover revealing the evidence. */
   evidence?: React.ReactNode;
+  /** The signature metric — amber-washed tile + larger accent value. */
+  hero?: boolean;
 }
 
 function KpiTile({ kpi }: { kpi: Kpi }) {
   const showDelta = kpi.delta != null && kpi.delta !== 0;
   const up = (kpi.delta ?? 0) > 0;
+  const valueColor = kpi.hero ? "var(--color-accent-400)" : "var(--color-fg)";
+  const valueSize = kpi.hero ? "text-4xl" : "text-3xl";
+  const valueInner = kpi.ticker ? (
+    <>
+      <NumberTicker value={kpi.ticker.value} />
+      {kpi.ticker.suffix ?? ""}
+    </>
+  ) : (
+    kpi.value
+  );
   return (
-    <div className="flex flex-col gap-1 pt-3" style={{ borderTop: `2px solid ${kpi.accent}` }}>
-      <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider" style={{ color: "var(--color-muted)" }}>
-        <span className="size-1.5 rounded-full" style={{ background: kpi.accent }} aria-hidden />
+    <div
+      className="flex flex-col gap-2 rounded-xl border p-4 shadow-[var(--elevation-sm),var(--edge-highlight)]"
+      style={{
+        borderColor: "var(--hairline)",
+        background: kpi.hero
+          ? "color-mix(in oklch, var(--color-accent) 8%, var(--color-surface))"
+          : "var(--color-surface)",
+      }}
+    >
+      <span className="block h-1 w-full rounded-full" style={{ background: kpi.accent }} aria-hidden />
+      <span className="font-mono text-[10px] uppercase tracking-wider" style={{ color: "var(--color-muted)" }}>
         <InfoTip term={kpi.label} />
       </span>
       {kpi.evidence ? (
@@ -49,10 +69,10 @@ function KpiTile({ kpi }: { kpi: Kpi }) {
             render={
               <button
                 type="button"
-                className="group flex items-center gap-1 text-left text-2xl font-semibold tabular-nums leading-none"
-                style={{ color: "var(--color-fg)" }}
+                className={`group flex items-center gap-1.5 text-left ${valueSize} font-bold tabular-nums leading-none`}
+                style={{ color: valueColor }}
               >
-                {kpi.ticker ? (<><NumberTicker value={kpi.ticker.value} />{kpi.ticker.suffix ?? ""}</>) : kpi.value}
+                {valueInner}
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden className="opacity-40 transition-opacity group-hover:opacity-90" style={{ color: "var(--color-muted)" }}>
                   <circle cx="6" cy="6" r="5" stroke="currentColor" strokeWidth="1.1" />
                   <path d="M6 5.4v2.2" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" />
@@ -64,8 +84,8 @@ function KpiTile({ kpi }: { kpi: Kpi }) {
           <PopoverContent>{kpi.evidence}</PopoverContent>
         </Popover>
       ) : (
-        <span className="text-2xl font-semibold tabular-nums leading-none" style={{ color: "var(--color-fg)" }}>
-          {kpi.ticker ? (<><NumberTicker value={kpi.ticker.value} />{kpi.ticker.suffix ?? ""}</>) : kpi.value}
+        <span className={`${valueSize} font-semibold tabular-nums leading-none`} style={{ color: valueColor }}>
+          {valueInner}
         </span>
       )}
       <span className="flex items-center gap-2">
@@ -108,7 +128,7 @@ function buildKpis(
   const passing = measured.filter((s) => s.state === "pass").length;
 
   const kpis: Kpi[] = [
-    { label: "Discoverability", value: `${score.total}`, accent: band.color, delta: scoreDelta, sub: band.label, ticker: { value: score.total } },
+    { label: "Discoverability", value: `${score.total}`, accent: band.color, delta: scoreDelta, sub: band.label, ticker: { value: score.total }, hero: true },
   ];
   if (measured.length > 0) {
     kpis.push({ label: "Signals passing", value: `${passing}/${measured.length}`, accent: "var(--color-success)" });
@@ -131,7 +151,7 @@ function buildKpis(
 
 function Card({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl border p-5 shadow-[var(--elevation-sm),var(--edge-highlight)]" style={{ borderColor: "var(--hairline)", background: "var(--gradient-surface)" }}>
+    <section className="rounded-2xl border p-6 shadow-[var(--elevation-md),var(--edge-highlight)]" style={{ borderColor: "var(--hairline)", background: "var(--gradient-surface)" }}>
       <div className="mb-3 flex items-center justify-between">
         <p className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "var(--color-muted)" }}>{title}</p>
         {action}
@@ -185,7 +205,7 @@ function OptimizationIdeasCard({ breakdown }: { breakdown: BreakdownGroup[] }) {
 
   return (
     <Card title="Optimization ideas">
-      <div className="mb-3 flex h-1.5 w-full overflow-hidden rounded-full" style={{ background: "var(--fill-subtle)" }}>
+      <div className="mb-3 flex h-2 w-full overflow-hidden rounded-full" style={{ background: "var(--fill-subtle)" }}>
         {pillarTotals.map((p) => (
           <span key={p.pillar} style={{ width: `${(p.contribution / sum) * 100}%`, background: PILLAR_COLOR[p.pillar] }} />
         ))}
@@ -260,10 +280,9 @@ export function DashboardAnalytics({
   const hasMarket = market != null;
 
   return (
-    <div className="space-y-5">
-      {/* KPI scorecards — primary surface: stepped-up elevation + a faint mesh wash */}
-      <div className="grid gap-x-6 gap-y-5 rounded-2xl border p-5 shadow-[var(--elevation-md),var(--edge-highlight)] sm:grid-cols-2 lg:grid-cols-5"
-        style={{ borderColor: "var(--hairline)", background: "var(--mesh-hero), var(--gradient-surface)" }}>
+    <div className="space-y-6">
+      {/* KPI bento — five individual lifted stat cards on the canvas */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <KpiStagger>
           {kpis.map((k) => (
             <KpiTile key={k.label} kpi={k} />
@@ -271,9 +290,10 @@ export function DashboardAnalytics({
         </KpiStagger>
       </div>
 
-      {/* Hero trend + right rail */}
+      {/* Hero trend (2-wide) + a stacked buyers/ideas rail (heights match better
+          than a bento here); the keyword table runs full-width below — no side gap. */}
       <div className="grid gap-5 lg:grid-cols-3 lg:items-start">
-        <div className="lg:col-span-2">
+        <div className="min-w-0 lg:col-span-2">
           <ScoreHistoryCard history={history} markers={markers} />
         </div>
         <div className="space-y-5">

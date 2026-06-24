@@ -76,9 +76,9 @@ export function ScoreHistoryChart({
 
   return (
     <div>
-      <div style={{ width: "100%", height: 200 }}>
+      <div style={{ width: "100%", height: 240, contain: "layout paint" }}>
         <ResponsiveContainer>
-          <AreaChart data={data} margin={{ top: 8, right: 12, bottom: 4, left: -16 }}>
+          <AreaChart data={data} margin={{ top: 8, right: 12, bottom: 4, left: 4 }}>
             {SCORE_BANDS.map((b) => (
               <ReferenceArea
                 key={b.key}
@@ -121,7 +121,7 @@ export function ScoreHistoryChart({
               stroke="var(--color-accent-400)"
               strokeWidth={2}
               fill="var(--color-accent-400)"
-              fillOpacity={0.12}
+              fillOpacity={0.16}
               dot={{ r: 2.5, fill: "var(--color-accent-400)", strokeWidth: 0 }}
               activeDot={{ r: 4 }}
               isAnimationActive={false}

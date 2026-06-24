@@ -16,11 +16,19 @@ import { entitlementsFor } from "@/lib/billing/entitlements";
 import { serverDb } from "@/lib/db/client";
 import type { ReportPayload } from "@/lib/scan/report";
 import type { Tier } from "@/lib/billing/tiers";
-import { AppSidebar } from "@/components/app/app-sidebar";
 import { activeAppId, userApps } from "@/lib/app/active-app";
 import { CommandPalette } from "@/components/app/command-palette";
-import { PageHeader } from "@/components/app/page-header";
+import { AppShell } from "@/components/app/captured/app-shell";
 import type { Metadata } from "next";
+
+function relAge(iso: string | null): string {
+  if (!iso) return "No scans yet";
+  const d = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
+  if (d <= 0) return "Last scanned today";
+  if (d === 1) return "Last scanned yesterday";
+  return `Last scanned ${d} days ago`;
+}
+const PLAN_LABEL: Record<string, string> = { free: "Free plan", solo: "Solo plan", growth: "Growth plan" };
 
 export const metadata: Metadata = {
   title: {
@@ -41,14 +49,13 @@ async function SidebarData({ children }: { children: React.ReactNode }) {
   const entitlements = await entitlementsFor(user.id);
   const tier: Tier = entitlements.active ? entitlements.tier : "free";
   const primaryAppId = await activeAppId(user);
-  const apps = await userApps(user.app_ids);
 
   let appName: string | null = null;
-  let appScore: number | null = null;
+  let lastScannedIso: string | null = null;
+  const actionsCount = 0;
 
   if (primaryAppId) {
     const db = serverDb();
-
     const { data: appRow } = await db
       .from("apps")
       .select("name, store_url")
@@ -58,35 +65,61 @@ async function SidebarData({ children }: { children: React.ReactNode }) {
 
     const { data: scanRow } = await db
       .from("scans")
-      .select("report_payload")
+      .select("completed_at")
       .eq("app_id", primaryAppId)
       .order("completed_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-
-    if (scanRow?.report_payload) {
-      const payload = scanRow.report_payload as unknown as ReportPayload;
-      appScore = payload.score?.total ?? null;
-    }
+    lastScannedIso = (scanRow?.completed_at as string | null) ?? null;
   }
 
   const email = user.email ?? "";
   const initials = email.slice(0, 2).toUpperCase();
+  const userName = email ? email.split("@")[0]!.replace(/[._]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "Founder";
+
+  // App switcher: the user's apps + whether the plan has a free slot to add one.
+  const apps = (await userApps(user.app_ids)).map((a) => ({ id: a.id, name: a.name }));
+  const APP_LIMIT: Record<string, number> = { free: 1, solo: 1, growth: 3 };
+  const canAddApp = apps.length < (APP_LIMIT[tier] ?? 1);
+
+  // Side card: free-trial countdown, paid next-auto-scan, or nothing (free).
+  const status = (user.subscription_status as string | null) ?? null;
+  const periodEnd = (user.current_period_end as string | null) ?? null;
+  const daysUntil = (iso: string | null) => (iso ? Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000)) : 0);
+  let sideCard = null as null | { title: string; sub: string; cta?: { label: string; href: string }; tone: "trial" | "scan" };
+  if (status === "trialing" && periodEnd) {
+    const d = daysUntil(periodEnd);
+    sideCard = {
+      title: `Trial ends in ${d} day${d === 1 ? "" : "s"}`,
+      sub: "Upgrade to keep weekly tracking and the full report.",
+      cta: { label: "Upgrade", href: "/app/billing" },
+      tone: "trial",
+    };
+  } else if (entitlements.active && lastScannedIso) {
+    const d = Math.max(0, Math.ceil((new Date(lastScannedIso).getTime() + 7 * 86_400_000 - Date.now()) / 86_400_000));
+    sideCard = { title: `Next auto-scan in ${d} day${d === 1 ? "" : "s"}`, sub: "Weekly tracking keeps your score current.", tone: "scan" };
+  }
+
+  void actionsCount;
 
   return (
-    <>
-      <AppSidebar
-        email={email}
-        initials={initials}
-        tier={tier}
-        appName={appName}
-        appScore={appScore}
-        hasApp={primaryAppId !== null}
-        apps={apps}
-        activeId={primaryAppId}
-      />
+    <AppShell
+      appName={appName ?? "your site"}
+      plan={PLAN_LABEL[tier] ?? "Free plan"}
+      appInitial={(appName ?? "?").charAt(0).toUpperCase()}
+      actionsCount={0}
+      apps={apps}
+      activeAppId={primaryAppId}
+      canAddApp={canAddApp}
+      sideCard={sideCard}
+      userName={userName}
+      userRole="solo founder"
+      userInitials={initials}
+      lastScannedLabel={relAge(lastScannedIso)}
+      scoreVersion="v3"
+    >
       {children}
-    </>
+    </AppShell>
   );
 }
 
@@ -95,21 +128,9 @@ async function SidebarData({ children }: { children: React.ReactNode }) {
 // ---------------------------------------------------------------------------
 
 function SidebarSkeleton({ children }: { children: React.ReactNode }) {
-  return (
-    <>
-      {/* Minimal sidebar placeholder while loading */}
-      <aside
-        className="flex w-50 shrink-0 flex-col border-r"
-        style={{
-          background: "var(--sidebar)",
-          borderColor: "var(--sidebar-border)",
-          minHeight: "100svh",
-        }}
-        aria-hidden
-      />
-      {children}
-    </>
-  );
+  // While auth/data resolve, render content full-bleed (the captured AppShell
+  // takes over once SidebarData resolves).
+  return <div style={{ minHeight: "100vh", background: "#FAFAFC" }}>{children}</div>;
 }
 
 // ---------------------------------------------------------------------------
@@ -122,24 +143,12 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div
-      className="flex min-h-screen"
-      style={{ background: "var(--color-bg)" }}
-    >
+    <>
       {/* ⌘K command palette — globally available across the app shell */}
       <CommandPalette />
-      <Suspense fallback={<SidebarSkeleton>{null}</SidebarSkeleton>}>
-        <SidebarData>
-          {/* ── Content area — View Transitions swap here ── */}
-          <main
-            className="flex min-h-screen flex-1 flex-col overflow-x-hidden"
-            style={{ background: "var(--color-bg)" }}
-          >
-            <PageHeader />
-            {children}
-          </main>
-        </SidebarData>
+      <Suspense fallback={<SidebarSkeleton>{children}</SidebarSkeleton>}>
+        <SidebarData>{children}</SidebarData>
       </Suspense>
-    </div>
+    </>
   );
 }

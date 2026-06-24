@@ -39,7 +39,7 @@ export function UpgradeCta({ scanId, snapshotAge, lossFrame }: UpgradeCtaProps) 
       style={{
         borderColor: "var(--color-accent-900)",
         background:
-          "linear-gradient(135deg, oklch(0.70 0.13 66 / 0.07) 0%, var(--color-surface) 60%)",
+          "linear-gradient(135deg, oklch(0.56 0.205 285 / 0.07) 0%, var(--color-surface) 60%)",
       }}
       role="region"
       aria-label="Start your free trial"

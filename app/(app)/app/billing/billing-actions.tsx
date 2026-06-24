@@ -18,6 +18,30 @@ import type { Tier } from "@/lib/billing/tiers";
 type ButtonState = "idle" | "loading" | "error";
 
 // ---------------------------------------------------------------------------
+// Design tokens — Claude Design mockup spec (literal hex, matching captured app)
+// ---------------------------------------------------------------------------
+
+const SG = "Space Grotesk", JM = "JetBrains Mono", PJ = "Plus Jakarta Sans";
+const INK = "#14131A", BODY = "#56535F", FAINT = "#9A97A5", VIOLET = "#6E56F7";
+const CARD_BORDER = "#ECEAF3";
+
+const cardStyle: React.CSSProperties = {
+  background: "#fff",
+  border: `1px solid ${CARD_BORDER}`,
+  borderRadius: 16,
+  padding: "22px 24px",
+};
+
+const eyebrowStyle: React.CSSProperties = {
+  fontFamily: JM,
+  fontSize: 12,
+  fontWeight: 600,
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: FAINT,
+};
+
+// ---------------------------------------------------------------------------
 // Upgrade button (checkout)
 // ---------------------------------------------------------------------------
 
@@ -66,38 +90,39 @@ function UpgradeButton({
       type="button"
       disabled={isLoading}
       onClick={() => void handleClick()}
-      className="flex w-full flex-col items-start gap-0.5 rounded-lg border px-4 py-3 text-left transition-all disabled:pointer-events-none disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2"
       style={{
-        borderColor: highlighted
-          ? "var(--color-accent-900)"
-          : "var(--hairline)",
-        background: highlighted
-          ? "oklch(0.70 0.13 66 / 0.07)"
-          : "transparent",
+        display: "flex",
+        width: "100%",
+        flexDirection: "column",
+        alignItems: "flex-start",
+        gap: 2,
+        textAlign: "left",
+        cursor: isLoading ? "default" : "pointer",
+        opacity: isLoading ? 0.6 : 1,
+        borderRadius: 10,
+        padding: "12px 16px",
+        border: highlighted ? `1.5px solid ${VIOLET}` : `1px solid ${CARD_BORDER}`,
+        background: highlighted ? "#F2EEFF" : "#fff",
+        transition: "all 0.15s ease",
       }}
     >
-      <div className="flex w-full items-center justify-between gap-3">
-        <span
-          className="text-sm font-semibold"
-          style={{ color: "var(--color-fg)" }}
-        >
+      <div style={{ display: "flex", width: "100%", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+        <span style={{ fontFamily: PJ, fontSize: 14, fontWeight: 600, color: INK }}>
           {isLoading ? "Redirecting…" : `Upgrade to ${label}`}
         </span>
         <span
-          className="font-mono text-sm font-semibold tabular-nums"
           style={{
-            color: highlighted
-              ? "var(--color-accent-400)"
-              : "var(--color-muted)",
+            fontFamily: JM,
+            fontSize: 14,
+            fontWeight: 700,
+            fontVariantNumeric: "tabular-nums",
+            color: highlighted ? VIOLET : BODY,
           }}
         >
           {price}
         </span>
       </div>
-      <span
-        className="font-mono text-[10px]"
-        style={{ color: "var(--color-muted)" }}
-      >
+      <span style={{ fontFamily: JM, fontSize: 11, color: FAINT }}>
         {plan === "solo"
           ? "1 app · weekly queue · draft copy · monitoring"
           : "3 apps · higher quotas · 50 keyword rank depth"}
@@ -140,11 +165,21 @@ function ManageBillingButton() {
       type="button"
       disabled={isLoading}
       onClick={() => void handleClick()}
-      className="inline-flex items-center justify-center rounded-lg border px-4 py-2 text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2"
       style={{
-        borderColor: "var(--hairline-strong)",
-        color: "var(--color-fg)",
-        background: "var(--fill-subtle)",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: 10,
+        border: `1px solid ${CARD_BORDER}`,
+        padding: "10px 18px",
+        fontFamily: PJ,
+        fontSize: 14,
+        fontWeight: 600,
+        color: INK,
+        background: "#fff",
+        cursor: isLoading ? "default" : "pointer",
+        opacity: isLoading ? 0.6 : 1,
+        transition: "all 0.15s ease",
       }}
     >
       {isLoading ? "Opening portal…" : "Manage billing"}
@@ -182,23 +217,11 @@ export function BillingActions({ tier, isActivePaid }: BillingActionsProps) {
 
   if (isActivePaid) {
     return (
-      <div
-        className="rounded-xl border px-7 py-4"
-        style={{
-          borderColor: "var(--hairline)",
-          background: "var(--color-surface)",
-        }}
-      >
-        <p
-          className="mb-3 font-mono text-[10px] uppercase tracking-widest"
-          style={{ color: "var(--color-muted)" }}
-        >
+      <div style={cardStyle}>
+        <p style={{ ...eyebrowStyle, marginBottom: 12 }}>
           Billing management
         </p>
-        <p
-          className="mb-4 text-sm"
-          style={{ color: "var(--color-muted)" }}
-        >
+        <p style={{ fontSize: 14, color: BODY, marginBottom: 16 }}>
           Update your payment method, view invoices, or cancel your
           subscription via the Stripe portal.
         </p>
@@ -208,28 +231,16 @@ export function BillingActions({ tier, isActivePaid }: BillingActionsProps) {
   }
 
   return (
-    <div
-      className="rounded-xl border px-7 py-6"
-      style={{
-        borderColor: "var(--hairline)",
-        background: "var(--color-surface)",
-      }}
-    >
-      <p
-        className="mb-1 font-mono text-[10px] uppercase tracking-widest"
-        style={{ color: "var(--color-muted)" }}
-      >
+    <div style={cardStyle}>
+      <p style={{ ...eyebrowStyle, marginBottom: 4 }}>
         Upgrade your plan
       </p>
-      <p
-        className="mb-4 text-sm"
-        style={{ color: "var(--color-muted)" }}
-      >
+      <p style={{ fontSize: 14, color: BODY, marginBottom: 16 }}>
         Turn your report into a weekly engine — action queue, draft copy,
         score tracking, and verification.
       </p>
 
-      <div className="space-y-2">
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <UpgradeButton
           plan="solo"
           label="Solo"
@@ -244,10 +255,7 @@ export function BillingActions({ tier, isActivePaid }: BillingActionsProps) {
         )}
       </div>
 
-      <p
-        className="mt-3 text-center font-mono text-[10px]"
-        style={{ color: "var(--color-muted)" }}
-      >
+      <p style={{ marginTop: 12, textAlign: "center", fontFamily: JM, fontSize: 11, color: FAINT }}>
         7-day free trial. Cancel any time. No lock-in. Stripe-secured checkout.
       </p>
     </div>

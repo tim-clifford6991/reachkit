@@ -362,9 +362,9 @@ async function seedDemoScan() {
 
 function buildRoutes(scanId) {
   const routes = [
-    { path: "/", markers: ["Scan my product", "getting found"] },
+    { path: "/", markers: ["findable you are", "Analyze my site"] },
     { path: "/scan", markers: ["Get your score", "Paste a URL"] },
-    { path: "/pricing", markers: ["$29"] },
+    { path: "/pricing", markers: ["$59", "$129"] },
     { path: "/teardowns", markers: ["Teardown", "Bearable"] },
     { path: "/teardowns/bearable", markers: ["Bearable"] },
     { path: "/privacy", markers: ["Privacy"] },
@@ -373,11 +373,11 @@ function buildRoutes(scanId) {
   if (scanId) {
     routes.push({
       path: `/scan/${scanId}/results`,
-      markers: ["Discoverability score", "DISCOVERABILITY SCORE"],
+      markers: ["ranked fixes", "Positioning Mirror"],
     });
     routes.push({
       path: `/report/${scanId}`,
-      markers: ["Discoverability Report", "Discoverability score"],
+      markers: ["ranked fixes", "Positioning Mirror"],
     });
   }
   return routes;

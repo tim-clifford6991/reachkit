@@ -28,8 +28,8 @@ function StreakDisplay({ streak }: { streak: number }) {
       <div
         className="flex size-9 shrink-0 items-center justify-center rounded-full"
         style={{
-          background: "oklch(0.78 0.18 70 / 0.12)",
-          border: "1.5px solid oklch(0.78 0.18 70 / 0.3)",
+          background: "oklch(0.66 0.16 50 / 0.12)",
+          border: "1.5px solid oklch(0.66 0.16 50 / 0.3)",
         }}
       >
         <span aria-hidden className="text-base leading-none">

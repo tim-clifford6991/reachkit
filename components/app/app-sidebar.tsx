@@ -34,6 +34,8 @@ interface AppSidebarProps {
   hasApp: boolean;
   apps: AppOption[];
   activeId: string | null;
+  /** Next weekly auto-scan (ISO) — paid only; null hides the card. */
+  nextScanAt?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -117,12 +119,42 @@ function IconDashboard() {
   );
 }
 
+/** Dark "next auto-scan" countdown card (paid weekly refresh). */
+function NextScanCard({ iso }: { iso: string }) {
+  const days = Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000));
+  const when = days === 0 ? "today" : days === 1 ? "tomorrow" : `in ${days} days`;
+  return (
+    <div className="mx-3 mb-2">
+      <div
+        className="rounded-xl px-3.5 py-3"
+        style={{ background: "oklch(0.21 0.012 288)", color: "oklch(0.95 0.005 290)" }}
+      >
+        <p className="font-mono text-[9px] uppercase tracking-widest" style={{ color: "oklch(0.70 0.01 290)" }}>
+          Next auto-scan
+        </p>
+        <p className="mt-1 text-sm font-semibold">{when}</p>
+      </div>
+    </div>
+  );
+}
+
+function IconHistory() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <path d="M2 8a6 6 0 1 0 1.8-4.3" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
+      <path d="M2 2.5V5.5H5" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M8 5v3l2 1.5" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 /** Resolves an APP_NAV `iconKey` to its inline SVG (no icon-bundle weight). */
 const NAV_ICONS: Record<string, React.ReactNode> = {
   dashboard: <IconDashboard />,
   channels: <IconChannels />,
   plays: <IconPlays />,
   feed: <IconFeed />,
+  history: <IconHistory />,
   settings: <IconSettings />,
   billing: <IconBilling />,
 };
@@ -158,10 +190,10 @@ function TierBadge({ tier }: { tier: Tier }) {
 function SidebarScore({ score }: { score: number }) {
   const color =
     score >= 70
-      ? "oklch(0.72 0.17 155)"
+      ? "oklch(0.62 0.13 153)"
       : score >= 40
       ? "var(--color-accent)"
-      : "oklch(0.78 0.18 70)";
+      : "oklch(0.65 0.17 47)";
 
   return (
     <div className="flex items-center gap-2 px-3 py-2.5">
@@ -258,6 +290,7 @@ export function AppSidebar({
   hasApp: _hasApp,
   apps,
   activeId,
+  nextScanAt,
 }: AppSidebarProps) {
   const pathname = usePathname();
 
@@ -364,6 +397,9 @@ export function AppSidebar({
           <NavLink key={item.href} item={item} active={isActive(item.href)} />
         ))}
       </div>
+
+      {/* ── Next auto-scan card (paid) ───────────────────────────────────── */}
+      {nextScanAt && <NextScanCard iso={nextScanAt} />}
 
       {/* ── User identity + sign out ─────────────────────────────────────── */}
       <div

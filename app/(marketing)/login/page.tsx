@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { buildMetadata } from "@/lib/seo";
 import { LoginForm } from "./login-form";
+import { AuthScorePanel } from "./auth-score-panel";
 
 export const metadata: Metadata = buildMetadata({
   title: "Log in",
@@ -30,33 +31,37 @@ export default function LoginPage({
 }) {
   return (
     <main
-      className="flex min-h-[62vh] flex-col items-center justify-center px-(--spacing-content-x) py-(--spacing-section-y)"
+      className="grid min-h-dvh grid-cols-1 lg:grid-cols-2"
       aria-label="Log in"
+      style={{ background: "#fff" }}
     >
-      <div
-        className="w-full max-w-md rounded-2xl border p-10 shadow-[var(--elevation-md),var(--edge-highlight)]"
-        style={{ borderColor: "var(--hairline)", background: "var(--color-surface)" }}
-      >
-        <div className="mb-8 flex flex-col gap-2 text-center">
-          <h1 className="text-3xl" style={{ color: "var(--color-fg)" }}>
-            Welcome back
-          </h1>
-          <p className="text-base leading-relaxed" style={{ color: "var(--color-muted)" }}>
-            Enter your email and we&apos;ll send you a magic link to sign in.
+      {/* ── Form column ─────────────────────────────────────────────────── */}
+      <div className="flex flex-col items-center justify-center px-(--spacing-content-x) py-(--spacing-section-y)">
+        <div className="w-full max-w-sm">
+          <div className="mb-8 flex flex-col gap-2">
+            <h1 className="text-3xl" style={{ fontFamily: "var(--font-display)", fontWeight: 700, letterSpacing: "-0.02em", color: "#14131A" }}>
+              Welcome back
+            </h1>
+            <p className="text-base leading-relaxed" style={{ color: "var(--color-muted)" }}>
+              Enter your email and we&apos;ll send you a magic link to sign in.
+            </p>
+          </div>
+
+          <Suspense fallback={<LoginForm />}>
+            <LoginFormWithNext searchParams={searchParams} />
+          </Suspense>
+
+          <p className="mt-8 text-sm" style={{ color: "var(--color-muted)" }}>
+            New to ReachKit?{" "}
+            <Link href="/scan" className="font-medium" style={{ color: "var(--color-accent-400)" }}>
+              Start a free scan →
+            </Link>
           </p>
         </div>
-
-        <Suspense fallback={<LoginForm />}>
-          <LoginFormWithNext searchParams={searchParams} />
-        </Suspense>
-
-        <p className="mt-8 text-center text-sm" style={{ color: "var(--color-muted)" }}>
-          New to ReachKit?{" "}
-          <Link href="/scan" className="font-medium" style={{ color: "var(--color-accent-400)" }}>
-            Start a free scan →
-          </Link>
-        </p>
       </div>
+
+      {/* ── Violet score-card panel (decorative; hidden on mobile) ───────── */}
+      <AuthScorePanel />
     </main>
   );
 }

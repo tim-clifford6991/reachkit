@@ -12,7 +12,7 @@ import type { HistoryMarker } from "@/lib/scan/score-history-markers";
 
 const ScoreHistoryChart = dynamic(
   () => import("@/components/charts/score-history-chart").then((m) => m.ScoreHistoryChart),
-  { ssr: false, loading: () => <Skeleton className="h-[200px] w-full rounded-lg" /> },
+  { ssr: false, loading: () => <Skeleton className="h-[240px] w-full rounded-lg" /> },
 );
 
 export function ScoreHistoryCard({
@@ -24,7 +24,7 @@ export function ScoreHistoryCard({
 }) {
   return (
     <section
-      className="rounded-2xl border p-5 shadow-[var(--elevation-sm),var(--edge-highlight)]"
+      className="rounded-2xl border p-6 shadow-[var(--elevation-md),var(--elevation-glow),var(--edge-highlight)]"
       style={{ borderColor: "var(--hairline)", background: "var(--gradient-surface)" }}
       aria-label="Score history"
     >

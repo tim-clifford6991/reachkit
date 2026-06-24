@@ -1,113 +1,67 @@
 /**
- * MarketingNav — sticky top navigation for the marketing surface.
- *
- * Lean (modeled on Plausible / Fathom / SparkToro): a few flat links + one
- * small "Resources" dropdown (pure CSS hover/focus — no JS), the theme toggle,
- * Log in, and a primary CTA. Collapses to a hamburger below the sm breakpoint.
+ * MarketingNav — sticky top navigation, 1:1 with the Claude Design mockup
+ * (ReachKit.dc.html): glass sticky header, logo + flat links (Product / Pricing
+ * / Free tools / Compare / Teardowns), Log in, and a dark "Analyze my site" CTA.
+ * Used on the non-captured marketing pages so their chrome matches the captured
+ * landing/pricing pages.
  */
 
 import Link from "next/link";
-
-import { ThemeToggle } from "@/components/theme-toggle";
 import { Wordmark } from "@/components/brand/logo";
 import { MobileMenu } from "./mobile-menu";
 
 const LINKS = [
-  { label: "How it works", href: "/how-it-works" },
-  { label: "Teardowns", href: "/teardowns" },
+  { label: "Product", href: "/how-it-works" },
   { label: "Pricing", href: "/pricing" },
-] as const;
-
-const RESOURCES = [
-  { label: "Blog", href: "/blog" },
   { label: "Free tools", href: "/tools" },
-  { label: "Changelog", href: "/changelog" },
-  { label: "Help & docs", href: "/docs" },
+  { label: "Compare", href: "/compare" },
+  { label: "Teardowns", href: "/teardowns" },
 ] as const;
 
-const focusRing =
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50";
+const focusRing = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50";
 
-export function MarketingNav() {
+export function MarketingNav({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
   return (
     <header
-      className="sticky top-0 z-50 backdrop-blur-xl"
-      style={{ background: "var(--glass-tint)", borderBottom: "1px solid var(--hairline)" }}
+      style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(255,255,255,0.82)", backdropFilter: "blur(14px)", borderBottom: "1px solid #EEEDF3" }}
     >
       <nav
-        className="mx-auto flex h-16 max-w-[var(--spacing-content-max)] items-center justify-between gap-4 px-(--spacing-content-x)"
+        className="mx-auto flex items-center gap-[30px]"
+        style={{ maxWidth: 1180, padding: "14px 28px" }}
         aria-label="Primary"
       >
-        {/* Wordmark */}
-        <Link href="/" className={`rounded-lg ${focusRing}`} aria-label="ReachKit home">
+        <Link href="/" className={`shrink-0 rounded-lg ${focusRing}`} aria-label="ReachKit home">
           <Wordmark />
         </Link>
 
-        {/* Center links */}
-        <div className="hidden items-center gap-1 sm:flex">
+        <div className="hidden items-center gap-6 sm:flex">
           {LINKS.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className={`rounded-full px-3.5 py-2 text-sm font-medium transition-colors hover:bg-secondary ${focusRing}`}
-              style={{ color: "var(--color-muted)" }}
-            >
+            <Link key={l.href} href={l.href} className={`transition-colors hover:text-[#14131A] ${focusRing}`} style={{ fontSize: 14.5, fontWeight: 500, color: "#56535F" }}>
               {l.label}
             </Link>
           ))}
-
-          {/* Resources dropdown — CSS hover/focus, no JS */}
-          <div className="group relative">
-            <button
-              type="button"
-              aria-haspopup="true"
-              className={`inline-flex items-center gap-1 rounded-full px-3.5 py-2 text-sm font-medium transition-colors hover:bg-secondary group-hover:bg-secondary ${focusRing}`}
-              style={{ color: "var(--color-muted)" }}
-            >
-              Resources
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden className="mt-px transition-transform group-hover:rotate-180">
-                <path d="M3 4.5 6 7.5 9 4.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-            {/* pt-2 bridges the hover gap so the menu doesn't flicker shut */}
-            <div className="invisible absolute left-0 top-full pt-2 opacity-0 transition-opacity duration-150 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
-              <div
-                className="flex min-w-48 flex-col gap-0.5 rounded-xl border p-1.5 shadow-[var(--elevation-lg),var(--edge-highlight)] backdrop-blur-xl"
-                style={{ background: "var(--glass-tint)", borderColor: "var(--hairline)" }}
-              >
-                {RESOURCES.map((r) => (
-                  <Link
-                    key={r.href}
-                    href={r.href}
-                    className={`rounded-lg px-3 py-2 text-sm transition-colors hover:bg-secondary ${focusRing}`}
-                    style={{ color: "var(--color-fg)" }}
-                  >
-                    {r.label}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </div>
         </div>
 
-        {/* Right actions */}
-        <div className="flex items-center gap-1.5 sm:gap-2.5">
-          <ThemeToggle />
+        <div className="flex-1" />
+
+        <div className="flex items-center gap-3.5">
+          {/* Logged in: one "Dashboard" link + a primary "New scan" CTA (run an
+              additional free scan). Logged out: "Log in" + "Analyze my site". */}
           <Link
-            href="/login"
-            className={`hidden rounded-full px-3.5 py-2 text-sm font-medium transition-colors hover:bg-secondary sm:inline-flex ${focusRing}`}
-            style={{ color: "var(--color-fg)" }}
+            href={isLoggedIn ? "/app" : "/login"}
+            className={`hidden sm:inline-flex ${focusRing}`}
+            style={{ fontSize: 14.5, fontWeight: 600, color: "#3A3744" }}
           >
-            Log in
+            {isLoggedIn ? "Dashboard" : "Log in"}
           </Link>
           <Link
             href="/scan"
-            className={`inline-flex items-center rounded-full px-4 py-2.5 text-sm font-semibold shadow-[var(--elevation-glow)] transition-transform hover:-translate-y-px active:translate-y-0 motion-reduce:transform-none ${focusRing}`}
-            style={{ background: "var(--color-accent)", color: "var(--color-accent-fg)" }}
+            className={`inline-flex items-center transition-transform hover:-translate-y-px motion-reduce:transform-none ${focusRing}`}
+            style={{ fontFamily: "Plus Jakarta Sans, sans-serif", fontWeight: 600, fontSize: 14, color: "#fff", background: "#14131A", borderRadius: 9, padding: "9px 16px" }}
           >
-            Scan my app
+            {isLoggedIn ? "New scan" : "Analyze my site"}
           </Link>
-          <MobileMenu links={[...LINKS, ...RESOURCES]} />
+          <MobileMenu links={[...LINKS]} />
         </div>
       </nav>
     </header>

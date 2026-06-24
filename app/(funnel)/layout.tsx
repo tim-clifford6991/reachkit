@@ -99,14 +99,15 @@ function FunnelHeader() {
 // ---------------------------------------------------------------------------
 
 export default function FunnelLayout({ children }: { children: ReactNode }) {
-  return (
-    <div
-      className="flex min-h-dvh flex-col overflow-x-hidden"
-      style={{ background: "var(--color-bg)" }}
-    >
-      <FunnelHeader />
-      <div className="flex-1">{children}</div>
-      <Footer content={FOOTER_CONTENT} />
-    </div>
-  );
+  // Pass-through: the captured funnel screens (scan, results) are full-page and
+  // carry their own chrome (header / CTA), 1:1 with the design mockup. The old
+  // FunnelHeader/Footer are retained above for non-captured fallbacks but are
+  // no longer wrapped around the captured pages.
+  return <>{children}</>;
 }
+
+// Retained for reference / future non-captured funnel pages.
+void FunnelHeader;
+void FOOTER_CONTENT;
+void Footer;
+void Link;

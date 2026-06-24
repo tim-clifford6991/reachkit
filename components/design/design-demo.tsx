@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 
 const VARIANTS = [
+  { slug: "reachkit", label: "Violet" },
   { slug: "almanac", label: "Almanac" },
   { slug: "sage", label: "Sage" },
   { slug: "clay", label: "Clay" },

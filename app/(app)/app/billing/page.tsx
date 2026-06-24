@@ -18,6 +18,38 @@ import type { Tier } from "@/lib/billing/tiers";
 export const metadata = buildMetadata({ title: "Billing", path: "/app/billing" });
 
 // ---------------------------------------------------------------------------
+// Design tokens — Claude Design mockup spec (literal hex, matching captured app)
+// ---------------------------------------------------------------------------
+
+const SG = "Space Grotesk", JM = "JetBrains Mono", PJ = "Plus Jakarta Sans";
+const INK = "#14131A", BODY = "#56535F", FAINT = "#9A97A5", VIOLET = "#6E56F7";
+const CARD_BORDER = "#ECEAF3";
+
+const cardStyle: React.CSSProperties = {
+  background: "#fff",
+  border: `1px solid ${CARD_BORDER}`,
+  borderRadius: 16,
+  padding: "22px 24px",
+};
+
+const eyebrowStyle: React.CSSProperties = {
+  fontFamily: JM,
+  fontSize: 12,
+  fontWeight: 600,
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: FAINT,
+};
+
+const headingStyle: React.CSSProperties = {
+  fontFamily: SG,
+  fontWeight: 700,
+  fontSize: 19,
+  letterSpacing: "-0.01em",
+  color: INK,
+};
+
+// ---------------------------------------------------------------------------
 // Tier details
 // ---------------------------------------------------------------------------
 
@@ -81,113 +113,92 @@ async function BillingContent() {
 
   const tierDetails = TIER_DETAILS[tier];
 
+  const isPaid = tier !== "free";
+
   return (
-    <div className="space-y-8">
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       {/* Current plan card */}
       <section
         aria-labelledby="current-plan-heading"
-        className="rounded-xl border"
         style={{
-          borderColor:
-            tier !== "free"
-              ? "var(--color-accent-900)"
-              : "var(--hairline)",
-          background:
-            tier !== "free"
-              ? "oklch(0.70 0.13 66 / 0.05)"
-              : "var(--color-surface)",
+          ...cardStyle,
+          ...(isPaid
+            ? { border: `1.5px solid ${VIOLET}` }
+            : {}),
         }}
       >
-        <div className="px-7 py-6">
-          <div className="mb-4 flex items-start justify-between gap-4">
-            <div>
-              <p
-                className="font-mono text-[10px] uppercase tracking-widest"
-                style={{ color: "var(--color-muted)" }}
-              >
-                Current plan
-              </p>
-              <h2
-                id="current-plan-heading"
-                className="mt-0.5 text-xl font-semibold"
-                style={{ color: "var(--color-fg)" }}
-              >
-                {tierDetails.label}
-              </h2>
-            </div>
-
-            <div className="flex shrink-0 flex-col items-end gap-1">
-              <span
-                className="font-mono text-lg font-semibold tabular-nums"
-                style={{ color: "var(--color-fg)" }}
-              >
-                {tierDetails.price}
-              </span>
-              {isActivePaid && (
-                <span
-                  className="rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider"
-                  style={{
-                    background: "var(--color-success-subtle)",
-                    color: "var(--color-success)",
-                    borderColor: "oklch(0.72 0.17 155 / 0.3)",
-                  }}
-                >
-                  Active
-                </span>
-              )}
-            </div>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, marginBottom: 16 }}>
+          <div>
+            <p style={eyebrowStyle}>Current plan</p>
+            <h2
+              id="current-plan-heading"
+              style={{ ...headingStyle, marginTop: 4 }}
+            >
+              {tierDetails.label}
+            </h2>
           </div>
 
-          <p
-            className="mb-4 text-sm"
-            style={{ color: "var(--color-muted)" }}
-          >
-            {tierDetails.description}
-          </p>
-
-          <ul className="space-y-2">
-            {tierDetails.features.map((f) => (
-              <li
-                key={f}
-                className="flex items-start gap-2.5 text-sm"
-                style={{ color: "var(--color-fg)" }}
+          <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
+            <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 18, color: INK }}>
+              {tierDetails.price}
+            </span>
+            {isActivePaid && (
+              <span
+                style={{
+                  background: "#EAF7EF",
+                  color: "#1F9D5B",
+                  fontFamily: JM,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  padding: "3px 10px",
+                  borderRadius: 7,
+                }}
               >
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 14 14"
-                  fill="none"
-                  aria-hidden
-                  className="mt-0.5 shrink-0"
-                >
-                  <circle
-                    cx="7"
-                    cy="7"
-                    r="6"
-                    stroke={
-                      tier !== "free"
-                        ? "var(--color-accent-500)"
-                        : "var(--color-muted)"
-                    }
-                    strokeWidth="1.25"
-                  />
-                  <path
-                    d="M4.5 7l1.75 1.75L9.5 5"
-                    stroke={
-                      tier !== "free"
-                        ? "var(--color-accent-500)"
-                        : "var(--color-muted)"
-                    }
-                    strokeWidth="1.25"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                {f}
-              </li>
-            ))}
-          </ul>
+                Active
+              </span>
+            )}
+          </div>
         </div>
+
+        <p style={{ fontSize: 14, color: BODY, marginBottom: 16 }}>
+          {tierDetails.description}
+        </p>
+
+        <ul style={{ display: "flex", flexDirection: "column", gap: 9, listStyle: "none", margin: 0, padding: 0 }}>
+          {tierDetails.features.map((f) => (
+            <li
+              key={f}
+              style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 14, color: INK }}
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 14 14"
+                fill="none"
+                aria-hidden
+                style={{ marginTop: 3, flexShrink: 0 }}
+              >
+                <circle
+                  cx="7"
+                  cy="7"
+                  r="6"
+                  stroke={isPaid ? VIOLET : FAINT}
+                  strokeWidth="1.25"
+                />
+                <path
+                  d="M4.5 7l1.75 1.75L9.5 5"
+                  stroke={isPaid ? VIOLET : FAINT}
+                  strokeWidth="1.25"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              {f}
+            </li>
+          ))}
+        </ul>
       </section>
 
       {/* Actions: manage or upgrade */}
@@ -252,92 +263,75 @@ const COMPARISON_ROWS = [
 
 function TierComparisonTable({ currentTier }: { currentTier: Tier }) {
   return (
-    <section
-      aria-labelledby="comparison-heading"
-      className="rounded-xl border"
-      style={{
-        borderColor: "var(--hairline)",
-        background: "var(--color-surface)",
-      }}
-    >
-      <div className="px-7 py-6">
-        <h3
-          id="comparison-heading"
-          className="mb-4 text-sm font-semibold"
-          style={{ color: "var(--color-fg)" }}
-        >
-          Plan comparison
-        </h3>
+    <section aria-labelledby="comparison-heading" style={cardStyle}>
+      <h3
+        id="comparison-heading"
+        style={{ ...headingStyle, fontSize: 18, marginBottom: 16 }}
+      >
+        Plan comparison
+      </h3>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm" aria-label="Plan comparison">
-            <thead>
-              <tr>
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }} aria-label="Plan comparison">
+          <thead>
+            <tr>
+              <th style={{ ...eyebrowStyle, textAlign: "left", paddingBottom: 10 }}>
+                Feature
+              </th>
+              {(["free", "solo", "growth"] as const).map((t) => (
                 <th
-                  className="pb-2 text-left font-mono text-[10px] uppercase tracking-widest"
-                  style={{ color: "var(--color-muted)" }}
-                >
-                  Feature
-                </th>
-                {(["free", "solo", "growth"] as const).map((t) => (
-                  <th
-                    key={t}
-                    className="pb-2 text-right font-mono text-[10px] uppercase tracking-widest"
-                    style={{
-                      color:
-                        t === currentTier
-                          ? "var(--color-accent-400)"
-                          : "var(--color-muted)",
-                    }}
-                  >
-                    {t === "free"
-                      ? "Free"
-                      : t === "solo"
-                      ? "Solo $59"
-                      : "Growth $129"}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {COMPARISON_ROWS.map((row, i) => (
-                <tr
-                  key={row.feature}
+                  key={t}
                   style={{
-                    borderTop:
-                      i === 0
-                        ? undefined
-                        : "1px solid var(--fill-subtle)",
+                    ...eyebrowStyle,
+                    textAlign: "right",
+                    paddingBottom: 10,
+                    color: t === currentTier ? VIOLET : FAINT,
                   }}
                 >
-                  <td
-                    className="py-2 pr-4"
-                    style={{ color: "var(--color-muted)" }}
-                  >
-                    {row.feature}
-                  </td>
-                  {(["free", "solo", "growth"] as const).map((t) => (
-                    <td
-                      key={t}
-                      className="py-2 text-right tabular-nums"
-                      style={{
-                        color:
-                          row[t] === "—"
-                            ? "var(--hairline-strong)"
-                            : t === currentTier
-                            ? "var(--color-fg)"
-                            : "var(--color-muted)",
-                        fontWeight: t === currentTier ? 500 : 400,
-                      }}
-                    >
-                      {row[t]}
-                    </td>
-                  ))}
-                </tr>
+                  {t === "free"
+                    ? "Free"
+                    : t === "solo"
+                    ? "Solo $59"
+                    : "Growth $129"}
+                </th>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </tr>
+          </thead>
+          <tbody>
+            {COMPARISON_ROWS.map((row, i) => (
+              <tr
+                key={row.feature}
+                style={{
+                  borderTop: i === 0 ? undefined : "1px solid #F4F2FA",
+                }}
+              >
+                <td style={{ padding: "9px 16px 9px 0", color: BODY }}>
+                  {row.feature}
+                </td>
+                {(["free", "solo", "growth"] as const).map((t) => (
+                  <td
+                    key={t}
+                    style={{
+                      padding: "9px 0",
+                      textAlign: "right",
+                      fontFamily: JM,
+                      fontSize: 13,
+                      fontWeight: t === currentTier ? 700 : 400,
+                      color:
+                        row[t] === "—"
+                          ? "#CBC8D6"
+                          : t === currentTier
+                          ? VIOLET
+                          : BODY,
+                    }}
+                  >
+                    {row[t]}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </section>
   );
@@ -349,26 +343,14 @@ function TierComparisonTable({ currentTier }: { currentTier: Tier }) {
 
 function BillingSkeleton() {
   return (
-    <div className="space-y-8">
-      <div
-        className="rounded-xl border p-7"
-        style={{
-          borderColor: "var(--hairline)",
-          background: "var(--color-surface)",
-        }}
-      >
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <div style={cardStyle}>
         <Skeleton className="mb-3 h-3 w-20" />
         <Skeleton className="mb-4 h-6 w-24" />
         <Skeleton className="mb-2 h-3 w-full" />
         <Skeleton className="h-3 w-3/4" />
       </div>
-      <div
-        className="h-24 rounded-xl border"
-        style={{
-          borderColor: "var(--hairline)",
-          background: "var(--color-surface)",
-        }}
-      />
+      <div style={{ ...cardStyle, height: 96, padding: 0 }} />
     </div>
   );
 }
@@ -379,22 +361,7 @@ function BillingSkeleton() {
 
 export default function BillingPage() {
   return (
-    <div className="mx-auto w-full max-w-xl space-y-6 px-6 py-8">
-      <div>
-        <p
-          className="font-mono text-[10px] uppercase tracking-widest"
-          style={{ color: "var(--color-muted)" }}
-        >
-          Account
-        </p>
-        <h1
-          className="mt-0.5 text-xl font-semibold"
-          style={{ color: "var(--color-fg)" }}
-        >
-          Billing
-        </h1>
-      </div>
-
+    <div style={{ width: "100%", maxWidth: 640, margin: "0 auto", padding: "24px" }}>
       <Suspense fallback={<BillingSkeleton />}>
         <BillingContent />
       </Suspense>

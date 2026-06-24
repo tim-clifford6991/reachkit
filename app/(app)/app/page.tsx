@@ -27,6 +27,7 @@ import { engagementSummary } from "@/lib/scan/engagement";
 import { latestRefreshDigest } from "@/lib/scan/digest";
 import { marketTrendSeries } from "@/lib/scan/market-trends";
 import { DashboardAnalytics } from "@/components/app/dashboard-analytics";
+import { DashboardMain } from "@/components/app/captured/dashboard-main";
 import { MilestoneBanner } from "@/components/app/milestone-banner";
 import { OnboardingChecklist } from "@/components/app/onboarding-checklist";
 import { onboardingChecklist } from "@/lib/scan/onboarding-checklist";
@@ -124,81 +125,58 @@ async function DashboardContent() {
   };
   const hasMarket = !!report.market || (report.competitiveLandscape?.length ?? 0) > 0;
 
+  // ── Map live data onto the captured DashboardMain ──
+  const CAT: Record<string, string> = { content: "Content", outreach: "Outreach", seo_aso: "SEO" };
+  const effLabel = (m: number) => (m < 30 ? "Quick" : m <= 120 ? "Medium" : "Deep");
+  const b = report.score.breakdown;
+  const dashActions = [
+    ...report.whatToDoThisWeek.quickWins,
+    ...report.whatToDoThisWeek.medium,
+    ...report.whatToDoThisWeek.longPlay,
+  ]
+    .filter((a) => (a.expectedOutcome?.delta ?? 0) > 0)
+    .sort((x, y) => (y.expectedOutcome?.delta ?? 0) - (x.expectedOutcome?.delta ?? 0));
+  const dashHistory = engagement.history.map((h, i, arr) => ({
+    label: i === arr.length - 1 ? "now" : `w${i + 1}`,
+    score: h.total,
+  }));
+  const dashMarkers = markers
+    .map((m) => ({
+      index: engagement.history.findIndex((h) => h.takenAt === m.takenAt),
+      label: m.label.split(" ").slice(0, 2).join(" "),
+    }))
+    .filter((m) => m.index >= 0);
+
+  void breakdown; void kpiDeltas; void digest; void checklist; void weeklyPlan;
+  void previewPlays; void dataAsOf; void hasMarket; void primaryAppId; void userIsPaid; void tier;
+
   return (
-    <div className="space-y-6">
-      {/* Top bar — paid CSV export of the latest report. */}
-      <div className="flex justify-end">
-        <ExportButton appId={primaryAppId} unlocked={userIsPaid} />
-      </div>
-
-      {/* Activation checklist for new users — self-hides when complete. */}
-      <OnboardingChecklist steps={checklist} />
-
-      {/* Milestone moment — restrained celebration on a material score jump. */}
-      <MilestoneBanner delta={scoreDelta} />
-
-      {/* Weekly retention hook — alerts + change digest (paid). */}
-      <WhatsChanged digest={digest} />
-
-      {/* ── ANALYTICS ── KPI scorecards → hero trend + right rail → keyword table. */}
-      <DashboardAnalytics
-        score={report.score}
-        scoreDelta={scoreDelta}
-        breakdown={breakdown}
-        market={report.market ?? null}
-        history={engagement.history}
-        markers={markers}
-        kpiDeltas={kpiDeltas}
-        rankDepth={TIER_LIMITS[tier].rankDepth}
-        dataAsOf={dataAsOf}
-      />
-
-      {/* Deep market intel lives on its own page now — link, don't duplicate. */}
-      {hasMarket && (
-        <div className="flex justify-end">
-          <Link
-            href="/app/channels"
-            className="inline-flex items-center gap-1.5 text-sm font-medium transition-colors"
-            style={{ color: "var(--color-accent-400)" }}
-          >
-            View full market report
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
-              <path d="M5 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </Link>
-        </div>
-      )}
-
-      {/* ── ACTION ── this week's plays. */}
-      {previewPlays.length > 0 && (
-        <PlaysPreview
-          plays={previewPlays}
-          weekOf={weeklyPlan.weekOf}
-          scoreDelta={weeklyPlan.scoreDeltaLastWeek}
-          carryoverCount={weeklyPlan.carryover.length}
-          honestyNote={weeklyPlan.honestyNote}
-          userIsPaid={userIsPaid}
-        />
-      )}
-
-      {/* ── DETAIL ── the full prose report (offer/audience/where/strengths/plan)
-          + trends + engagement now live on their own /app/report page. */}
-      <Link
-        href="/app/report"
-        className="flex items-center justify-between gap-3 rounded-2xl border p-5 shadow-[var(--elevation-sm),var(--edge-highlight)] transition-colors hover:bg-[var(--fill-subtle)]"
-        style={{ borderColor: "var(--hairline)", background: "var(--gradient-surface)" }}
-      >
-        <span>
-          <span className="block text-sm font-semibold" style={{ color: "var(--color-fg)" }}>Your full report</span>
-          <span className="mt-0.5 block text-xs" style={{ color: "var(--color-muted)" }}>
-            What you offer, who it&apos;s for, where to reach them, strengths &amp; weaknesses, and your action plan.
-          </span>
-        </span>
-        <svg width="16" height="16" viewBox="0 0 14 14" fill="none" aria-hidden style={{ color: "var(--color-accent-400)" }}>
-          <path d="M5 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </Link>
-    </div>
+    <DashboardMain
+      score={report.score.total}
+      delta={scoreDelta}
+      pillars={[
+        { label: "Content", value: b.content },
+        { label: "Outreach", value: b.outreach },
+        { label: "SEO", value: b.seo },
+      ]}
+      nextAction={
+        dashActions[0]
+          ? {
+              title: dashActions[0].title,
+              meta: `${effLabel(dashActions[0].effortMin)} · ${CAT[dashActions[0].category] ?? dashActions[0].category} · predicted +${dashActions[0].expectedOutcome?.delta ?? 0}`,
+            }
+          : null
+      }
+      history={dashHistory}
+      markers={dashMarkers}
+      queue={dashActions.slice(0, 3).map((a, i) => ({
+        rank: i + 1,
+        title: a.title,
+        effort: effLabel(a.effortMin),
+        pillar: CAT[a.category] ?? a.category,
+        pred: a.expectedOutcome?.delta ?? 0,
+      }))}
+    />
   );
 }
 
@@ -241,7 +219,7 @@ function DashboardSkeleton() {
 
 export default function AppDashboardPage() {
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-8 px-6 py-6">
+    <div className="mx-auto w-full max-w-[1600px] space-y-6 px-8 py-6">
       <Suspense fallback={<DashboardSkeleton />}>
         <DashboardContent />
       </Suspense>
