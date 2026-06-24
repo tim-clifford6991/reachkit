@@ -79,6 +79,7 @@ async function ReportContent() {
     <>
       <ResultsScreen
         {...toResultsProps(report, siteLabel, fullActions)}
+        embedded
         hideUnlock={userIsPaid}
         unlockTitle="Upgrade to unlock the full report"
         unlockSub="See the full 18-signal breakdown, weekly tracking, and verification — upgrade your plan to continue."
@@ -90,21 +91,15 @@ async function ReportContent() {
           )
         }
       />
-      {breakdownGroups.length > 0 && (
-        <div style={{ maxWidth: "100%", margin: "0 auto", padding: "0 clamp(24px, 4vw, 56px) 40px" }}>
-          <CapturedSignalBreakdown groups={breakdownGroups} />
-        </div>
-      )}
+      {breakdownGroups.length > 0 && <CapturedSignalBreakdown groups={breakdownGroups} />}
     </>
   );
 }
 
 export default function ReportPage() {
   return (
-    <div style={{ margin: "-26px -28px -60px" }}>
-      <Suspense fallback={<ReportSkeleton />}>
-        <ReportContent />
-      </Suspense>
-    </div>
+    <Suspense fallback={<ReportSkeleton />}>
+      <ReportContent />
+    </Suspense>
   );
 }

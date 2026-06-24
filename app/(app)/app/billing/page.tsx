@@ -347,10 +347,8 @@ function TierComparisonTable({ currentTier }: { currentTier: Tier }) {
 
 export default function BillingPage() {
   return (
-    <div style={{ width: "100%", maxWidth: 640, margin: "0 auto", padding: "24px" }}>
-      <Suspense fallback={<BillingSkeleton />}>
-        <BillingContent />
-      </Suspense>
-    </div>
+    <Suspense fallback={<BillingSkeleton />}>
+      <BillingContent />
+    </Suspense>
   );
 }

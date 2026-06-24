@@ -83,6 +83,9 @@ export interface ResultsScreenProps {
   unlockSub?: string;
   /** Hide the unlock band entirely (e.g. a fully-unlocked paid report). */
   hideUnlock?: boolean;
+  /** Embedded inside the app shell: drop the full-page bg + outer padding + the
+   *  ReachKit banner header (the shell already provides chrome + spacing). */
+  embedded?: boolean;
 }
 
 export function ResultsScreen(p: ResultsScreenProps) {
@@ -97,9 +100,10 @@ export function ResultsScreen(p: ResultsScreenProps) {
         rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
       />
-      <main style={{ background: "#FAFAFC", minHeight: "100vh", fontFamily: PJ, color: "#14131A" }}>
-        <div style={{ maxWidth: "100%", margin: "0 auto", padding: "40px clamp(24px, 4vw, 56px) 70px" }}>
-          {/* Header */}
+      <main style={{ ...(p.embedded ? {} : { background: "#FAFAFC", minHeight: "100vh" }), fontFamily: PJ, color: "#14131A" }}>
+        <div style={{ maxWidth: "100%", margin: "0 auto", padding: p.embedded ? 0 : "40px clamp(24px, 4vw, 56px) 70px" }}>
+          {/* Header (standalone only — the app shell provides its own header) */}
+          {!p.embedded && (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
               <svg width="24" height="24" viewBox="0 0 28 28">
@@ -125,6 +129,7 @@ export function ResultsScreen(p: ResultsScreenProps) {
               )}
             </div>
           </div>
+          )}
 
           {/* Hero: gauge + headline + pillars */}
           <div style={{ background: "#fff", border: "1px solid #ECEAF3", borderRadius: 20, padding: 32, boxShadow: "rgba(40, 33, 84, 0.3) 0px 16px 44px -26px", display: "grid", gridTemplateColumns: "auto 1fr", gap: 34, alignItems: "center" }}>

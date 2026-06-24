@@ -131,7 +131,13 @@ export function AppShell(p: AppShellProps) {
             </div>
             <div style={{ flex: "1 1 0%" }} />
           </header>
-          <div style={{ padding: "26px 28px 60px", overflow: "auto" }}>{p.children}</div>
+          {/* Template content area — the ONLY place app pages get spacing/width.
+              Every /app page renders body-only here (no own padding/margins/max-
+              width) so all tabs share identical structure; the sticky header
+              above is the single page header. */}
+          <div style={{ overflow: "auto" }}>
+            <div style={{ maxWidth: 1440, width: "100%", margin: "0 auto", padding: "28px 32px 64px" }}>{p.children}</div>
+          </div>
         </div>
       </div>
     </div>

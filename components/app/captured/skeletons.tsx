@@ -192,7 +192,7 @@ export function ActionsSkeleton() {
 
 export function BillingSkeleton() {
   return (
-    <div style={{ maxWidth: 640, margin: "0 auto", display: "flex", flexDirection: "column", gap: 18 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       <Card>
         <Box w={100} h={12} style={{ marginBottom: 12 }} />
         <Box w={80} h={22} style={{ marginBottom: 14 }} />

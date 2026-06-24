@@ -187,11 +187,9 @@ async function DashboardContent() {
 
 export default function AppDashboardPage() {
   return (
-    <div className="mx-auto w-full max-w-[1600px] space-y-6 px-8 py-6">
-      <Suspense fallback={<DashboardSkeleton />}>
-        <DashboardContent />
-      </Suspense>
-    </div>
+    <Suspense fallback={<DashboardSkeleton />}>
+      <DashboardContent />
+    </Suspense>
   );
 }
 
