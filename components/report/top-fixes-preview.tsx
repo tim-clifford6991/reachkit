@@ -18,7 +18,7 @@ function effortLabel(effortMin: number | null): string {
 
 // Effort → chip/tile colors (mockup: Quick = blue, else = amber).
 function effortColors(label: string): { bg: string; fg: string } {
-  return label === "Quick" ? { bg: "#EAF1FF", fg: "#3B6FE0" } : { bg: "#FFF4E0", fg: "#C98A12" };
+  return label === "Quick" ? { bg: "var(--c-tint-blue)", fg: "#3B6FE0" } : { bg: "var(--c-tint-amber)", fg: "#C98A12" };
 }
 
 const PILLAR_LABEL: Record<string, string> = {

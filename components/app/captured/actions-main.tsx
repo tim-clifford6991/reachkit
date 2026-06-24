@@ -10,9 +10,9 @@ import { MarkDoneButton } from "./mark-done-button";
 const SG = "Space Grotesk", JM = "JetBrains Mono";
 
 function effortColors(effort: string) {
-  if (/\$0|free/i.test(effort)) return { bg: "#EAF7EF", fg: "#1F9D5B" };
-  if (/quick/i.test(effort)) return { bg: "#EAF1FF", fg: "#3B6FE0" };
-  return { bg: "#FFF4E0", fg: "#C98A12" };
+  if (/\$0|free/i.test(effort)) return { bg: "var(--c-tint-green)", fg: "#1F9D5B" };
+  if (/quick/i.test(effort)) return { bg: "var(--c-tint-blue)", fg: "#3B6FE0" };
+  return { bg: "var(--c-tint-amber)", fg: "#C98A12" };
 }
 
 export interface OpenAction { id: string; rank: number; title: string; why: string; effort: string; pillar: string; pred: number }
@@ -33,7 +33,7 @@ export function ActionsMain(p: ActionsMainProps) {
       </div>
 
       {p.showOnboarding && (
-        <div style={{ background: "linear-gradient(120deg, #F4F0FF, #FAF8FF)", border: "1px solid #E7E0FB", borderRadius: 14, padding: "18px 20px", marginBottom: 18, display: "flex", alignItems: "center", gap: 16 }}>
+        <div style={{ background: "linear-gradient(120deg, #F4F0FF, var(--c-tint-violet))", border: "1px solid #E7E0FB", borderRadius: 14, padding: "18px 20px", marginBottom: 18, display: "flex", alignItems: "center", gap: 16 }}>
           <span style={{ fontSize: 22 }}>👋</span>
           <div style={{ flex: "1 1 0%" }}>
             <div style={{ fontWeight: 700, fontSize: 15, fontFamily: SG }}>Mark your first fix done to feel the loop</div>

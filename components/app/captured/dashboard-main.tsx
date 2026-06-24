@@ -9,11 +9,11 @@
 const SG = "Space Grotesk", JM = "JetBrains Mono";
 
 function bandViz(s: number) {
-  if (s < 30) return { label: "Invisible", fg: "#E5484D", bg: "#FDECEC" };
-  if (s < 50) return { label: "Hard to find", fg: "#E0731C", bg: "#FFF0E6" };
-  if (s < 70) return { label: "Fair — room to climb", fg: "#C98A12", bg: "#FFF4E0" };
-  if (s < 85) return { label: "Findable", fg: "#1F9D5B", bg: "#EAF7EF" };
-  return { label: "Highly discoverable", fg: "#0E7A48", bg: "#E0F3E8" };
+  if (s < 30) return { label: "Invisible", fg: "#E5484D", bg: "var(--c-tint-red)" };
+  if (s < 50) return { label: "Hard to find", fg: "#E0731C", bg: "var(--c-tint-orange)" };
+  if (s < 70) return { label: "Fair — room to climb", fg: "#C98A12", bg: "var(--c-tint-amber)" };
+  if (s < 85) return { label: "Findable", fg: "#1F9D5B", bg: "var(--c-tint-green)" };
+  return { label: "Highly discoverable", fg: "#0E7A48", bg: "var(--c-tint-green)" };
 }
 function pillarColor(v: number) {
   if (v < 30) return "#E5484D";
@@ -39,7 +39,7 @@ export interface DashboardMainProps {
   queue: QueueItem[];
 }
 
-const TILE = ["#FFF4E0", "#EAF7EF", "#EAF1FF", "var(--c-soft)"];
+const TILE = ["var(--c-tint-amber)", "var(--c-tint-green)", "var(--c-tint-blue)", "var(--c-soft)"];
 const TILE_FG = ["#C98A12", "#1F9D5B", "#3B6FE0", "var(--c-action)"];
 
 function yFor(s: number) { return Math.max(14, Math.min(148, 215 - 2.68 * s)); }
@@ -100,7 +100,7 @@ export function DashboardMain(p: DashboardMainProps) {
         </svg>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 700, fontSize: 13, padding: "5px 13px", borderRadius: 8, marginTop: 8, fontFamily: SG, color: band.fg, background: band.bg }}>{band.label}</div>
         {p.delta !== null && (
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: p.delta >= 0 ? "#EAF7EF" : "#FDECEC", color: p.delta >= 0 ? "#1F9D5B" : "#E5484D", fontWeight: 700, fontSize: 12.5, padding: "5px 11px", borderRadius: 8, marginTop: 10, fontFamily: JM }}>{p.delta >= 0 ? "▲" : "▼"} {p.delta >= 0 ? "+" : ""}{p.delta} since last week</div>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: p.delta >= 0 ? "var(--c-tint-green)" : "var(--c-tint-red)", color: p.delta >= 0 ? "#1F9D5B" : "#E5484D", fontWeight: 700, fontSize: 12.5, padding: "5px 11px", borderRadius: 8, marginTop: 10, fontFamily: JM }}>{p.delta >= 0 ? "▲" : "▼"} {p.delta >= 0 ? "+" : ""}{p.delta} since last week</div>
         )}
         <div style={{ width: "100%", height: 1, background: "var(--c-line2)", margin: "18px 0 0" }} />
         <div style={{ width: "100%", textAlign: "left", marginTop: 16 }}>
@@ -120,7 +120,7 @@ export function DashboardMain(p: DashboardMainProps) {
       {/* Right column */}
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         {p.nextAction && (
-          <div style={{ background: "linear-gradient(120deg, #F4F0FF, #FAF8FF)", border: "1px solid #E7E0FB", borderRadius: 16, padding: "20px 22px", display: "flex", alignItems: "center", gap: 18 }}>
+          <div style={{ background: "linear-gradient(120deg, #F4F0FF, var(--c-tint-violet))", border: "1px solid #E7E0FB", borderRadius: 16, padding: "20px 22px", display: "flex", alignItems: "center", gap: 18 }}>
             <div style={{ flex: "1 1 0%" }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: "var(--c-action)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Your next action</div>
               <div style={{ fontWeight: 700, fontSize: 17, fontFamily: SG, marginTop: 4 }}>{p.nextAction.title}</div>

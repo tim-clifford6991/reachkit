@@ -31,7 +31,7 @@ export function SettingsMain(p: SettingsMainProps) {
   return (
     <div style={{ maxWidth: "100%", display: "flex", flexDirection: "column", gap: 18 }}>
       <Card title="Plan">
-        <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px", background: "#FAF8FF", border: "1px solid #ECE7FB", borderRadius: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px", background: "var(--c-tint-violet)", border: "1px solid var(--c-tint-violet-line)", borderRadius: 12 }}>
           <div style={{ flex: "1 1 0%" }}>
             <div style={{ fontWeight: 700, fontSize: 15, color: "var(--c-action)" }}>{p.planTitle}</div>
             <div style={{ fontSize: 13, color: "var(--c-muted)", marginTop: 2 }}>{p.planDesc}</div>
@@ -48,7 +48,7 @@ export function SettingsMain(p: SettingsMainProps) {
             <div style={{ fontWeight: 600, fontSize: 14 }}>{p.appName}</div>
             <div style={{ fontSize: 12.5, color: "var(--c-faint)" }}>{p.productMeta}</div>
           </div>
-          {p.dataFresh && <span style={{ fontSize: 12, fontWeight: 600, color: "#1F9D5B", background: "#EAF7EF", padding: "4px 10px", borderRadius: 7 }}>data fresh</span>}
+          {p.dataFresh && <span style={{ fontSize: 12, fontWeight: 600, color: "#1F9D5B", background: "var(--c-tint-green)", padding: "4px 10px", borderRadius: 7 }}>data fresh</span>}
         </div>
       </Card>
       <Card title="Scoring">

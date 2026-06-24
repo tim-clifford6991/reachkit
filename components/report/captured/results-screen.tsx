@@ -27,11 +27,11 @@ function arc(fromDeg: number, toDeg: number) {
 
 /** Mockup band → {label, fg, bg} using exact mockup hex. */
 function bandViz(score: number) {
-  if (score < 30) return { label: "Invisible", fg: "#E5484D", bg: "#FDECEC" };
-  if (score < 50) return { label: "Hard to find", fg: "#E0731C", bg: "#FFF0E6" };
-  if (score < 70) return { label: "Fair — room to climb", fg: "#C98A12", bg: "#FFF4E0" };
-  if (score < 85) return { label: "Findable", fg: "#1F9D5B", bg: "#EAF7EF" };
-  return { label: "Highly discoverable", fg: "#0E7A48", bg: "#E0F3E8" };
+  if (score < 30) return { label: "Invisible", fg: "#E5484D", bg: "var(--c-tint-red)" };
+  if (score < 50) return { label: "Hard to find", fg: "#E0731C", bg: "var(--c-tint-orange)" };
+  if (score < 70) return { label: "Fair — room to climb", fg: "#C98A12", bg: "var(--c-tint-amber)" };
+  if (score < 85) return { label: "Findable", fg: "#1F9D5B", bg: "var(--c-tint-green)" };
+  return { label: "Highly discoverable", fg: "#0E7A48", bg: "var(--c-tint-green)" };
 }
 // pillar value → bar color (mockup ramp)
 function pillarColor(v: number) {
@@ -42,14 +42,14 @@ function pillarColor(v: number) {
 }
 // effort → rank-tile / chip colors (mockup)
 function effortColors(effort: string) {
-  if (/\$0|free/i.test(effort)) return { bg: "#EAF7EF", fg: "#1F9D5B" };
-  if (/quick/i.test(effort)) return { bg: "#EAF1FF", fg: "#3B6FE0" };
-  return { bg: "#FFF4E0", fg: "#C98A12" };
+  if (/\$0|free/i.test(effort)) return { bg: "var(--c-tint-green)", fg: "#1F9D5B" };
+  if (/quick/i.test(effort)) return { bg: "var(--c-tint-blue)", fg: "#3B6FE0" };
+  return { bg: "var(--c-tint-amber)", fg: "#C98A12" };
 }
 // opportunity → heat colors (mockup: High = red, Med = amber, Low = grey)
 function oppColors(opp: string) {
-  if (/high/i.test(opp)) return { fg: "#E5484D", bg: "#FDECEC" };
-  if (/med/i.test(opp)) return { fg: "#C98A12", bg: "#FFF4E0" };
+  if (/high/i.test(opp)) return { fg: "#E5484D", bg: "var(--c-tint-red)" };
+  if (/med/i.test(opp)) return { fg: "#C98A12", bg: "var(--c-tint-amber)" };
   return { fg: "var(--c-faint)", bg: "var(--c-fill)" };
 }
 

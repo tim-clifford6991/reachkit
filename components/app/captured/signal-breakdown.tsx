@@ -26,9 +26,9 @@ export interface BreakdownGroupView {
 }
 
 const PILLAR_TINT: Record<string, { bg: string; fg: string }> = {
-  Content: { bg: "#EEF1FF", fg: "#3B6FE0" },
-  Outreach: { bg: "#FFF1F0", fg: "#E5484D" },
-  SEO: { bg: "#EAF7EF", fg: "#1F9D5B" },
+  Content: { bg: "var(--c-tint-blue)", fg: "#3B6FE0" },
+  Outreach: { bg: "var(--c-tint-red)", fg: "#E5484D" },
+  SEO: { bg: "var(--c-tint-green)", fg: "#1F9D5B" },
 };
 
 function stateColor(state: string): { dot: string; label: string } {

@@ -65,7 +65,7 @@ export function ScanHero() {
                 <text x="90" y="110" textAnchor="middle" style={{ font: `600 10px ${JM}, monospace`, fill: "var(--c-faint)" }}>/ 100</text>
               </svg>
               <div style={{ fontFamily: JM, fontSize: 11, color: "var(--c-faint)", marginTop: 4 }}>Discoverability Score</div>
-              <span style={{ display: "inline-block", marginTop: 8, fontFamily: SG, fontWeight: 700, fontSize: 12, color: "#E0731C", background: "#FCEFE3", borderRadius: 7, padding: "4px 11px" }}>Hard to find</span>
+              <span style={{ display: "inline-block", marginTop: 8, fontFamily: SG, fontWeight: 700, fontSize: 12, color: "#E0731C", background: "var(--c-tint-orange)", borderRadius: 7, padding: "4px 11px" }}>Hard to find</span>
             </div>
             <div>
               <div style={{ fontFamily: JM, fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", color: "var(--c-faint)" }}>3 PILLARS</div>

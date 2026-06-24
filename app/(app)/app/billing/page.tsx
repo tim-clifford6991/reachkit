@@ -145,7 +145,7 @@ async function BillingContent() {
             {isActivePaid && (
               <span
                 style={{
-                  background: "#EAF7EF",
+                  background: "var(--c-tint-green)",
                   color: "#1F9D5B",
                   fontFamily: JM,
                   fontSize: 12,
