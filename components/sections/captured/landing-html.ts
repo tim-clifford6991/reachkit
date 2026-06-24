@@ -248,7 +248,7 @@ export const LANDING_HTML = `<main>
         </div>
       </div>
     </section>
-    <section class="rk-reveal" style="border-top: 1px solid rgb(238, 237, 243); background: rgb(250, 250, 252);">
+    <section class="rk-reveal" style="background: rgb(255, 255, 255);">
       <div style="max-width: 1180px; margin: 0px auto; padding: 52px 28px; text-align: center;">
         <h3 style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 26px; letter-spacing: -0.02em; margin: 0px 0px 8px;">Stop guessing where you stand.</h3>
         <p style="font-size: 15px; color: rgb(86, 83, 95); margin: 0px 0px 20px;">Your first scan is free and takes 90 seconds.</p>
