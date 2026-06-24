@@ -363,7 +363,7 @@ async function seedDemoScan() {
 function buildRoutes(scanId) {
   const routes = [
     { path: "/", markers: ["findable you are", "Analyze my site"] },
-    { path: "/scan", markers: ["Get your score", "Paste a URL"] },
+    { path: "/scan", markers: ["findable you are", "Analyze my site"] },
     { path: "/pricing", markers: ["$59", "$129"] },
     { path: "/teardowns", markers: ["Teardown", "Bearable"] },
     { path: "/teardowns/bearable", markers: ["Bearable"] },

@@ -66,24 +66,34 @@ export function ScanInput() {
 
   const isLoading = state.status === "loading";
 
+  // Horizontal "pill" — 1:1 with the landing hero scan input (white rounded
+  // field + violet "Analyze my site" button). The single shared input/button +
+  // terminology used everywhere (landing hero, /scan, /how-it-works).
   return (
-    <form
-      onSubmit={(e) => void handleSubmit(e)}
-      className="flex w-full flex-col gap-3"
-    >
-      <div className="flex-1 space-y-1.5">
+    <form onSubmit={(e) => void handleSubmit(e)} className="w-full">
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          background: "#fff",
+          border: `1px solid ${state.status === "error" ? "#E5484D" : "#ECEAF3"}`,
+          borderRadius: 14,
+          padding: "7px 7px 7px 18px",
+          boxShadow: "0 1px 2px oklch(0.20 0.01 290 / 0.04)",
+        }}
+      >
         <input
           ref={inputRef}
-          // `type="text"` (not "url") so a bare domain like "apple.com" is accepted —
-          // the browser's native type="url" validation rejects scheme-less input.
-          // The server normalises it (lib/scan/router.ts prepends https://).
+          // type="text" (not "url") so a bare domain like "apple.com" is accepted;
+          // the server normalises it (lib/scan/router.ts prepends https://).
           type="text"
           inputMode="url"
           autoFocus
           autoComplete="url"
           autoCapitalize="none"
           spellCheck={false}
-          placeholder="Paste a link or type a domain — e.g. yourproduct.com"
+          placeholder="yourdomain.com"
           value={url}
           onChange={(e) => {
             setUrl(e.target.value);
@@ -93,42 +103,30 @@ export function ScanInput() {
           aria-invalid={state.status === "error" || undefined}
           aria-describedby={state.status === "error" ? "scan-error" : undefined}
           disabled={isLoading}
-          className={[
-            "h-[50px] w-full min-w-0 rounded-[12px] border bg-white px-4 text-base font-medium text-[#14131A] outline-none transition-colors",
-            "placeholder:text-[#9A97A5]",
-            "focus-visible:border-[#6E56F7] focus-visible:ring-4 focus-visible:ring-[#6E56F7]/15",
-            "disabled:pointer-events-none disabled:opacity-60",
-            state.status === "error" ? "border-[#E5484D]" : "border-[#ECEAF3]",
-          ].join(" ")}
+          className="placeholder:text-[#9A97A5]"
+          style={{ flex: "1 1 0%", minWidth: 0, border: "none", outline: "none", fontFamily: "var(--font-sans)", fontSize: 16, fontWeight: 500, color: "#14131A", background: "transparent" }}
         />
-        {state.status === "error" && (
-          <p id="scan-error" className="text-xs text-destructive" role="alert">
-            {state.message}
-          </p>
-        )}
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="transition-all hover:bg-[#5d46e8] active:scale-[0.99] disabled:pointer-events-none disabled:opacity-70"
+          style={{ flex: "0 0 auto", fontFamily: "var(--font-sans)", fontWeight: 700, fontSize: 15, color: "#fff", background: "#6E56F7", border: "none", borderRadius: 9, padding: "11px 20px", cursor: "pointer", whiteSpace: "nowrap" }}
+        >
+          {isLoading ? (
+            <span className="flex items-center justify-center gap-2">
+              <LoadingSpinner />
+              Analyzing…
+            </span>
+          ) : (
+            "Analyze my site"
+          )}
+        </button>
       </div>
-
-      {/* CTA — full-width on mobile, prominent */}
-      <button
-        type="submit"
-        disabled={isLoading}
-        className={[
-          "h-[50px] w-full rounded-[12px] px-6 text-sm font-semibold text-white outline-none",
-          "bg-[#6E56F7] transition-all duration-150 select-none",
-          "hover:bg-[#5d46e8] active:scale-[0.99]",
-          "focus-visible:ring-4 focus-visible:ring-[#6E56F7]/25",
-          "disabled:pointer-events-none disabled:opacity-70",
-        ].join(" ")}
-      >
-        {isLoading ? (
-          <span className="flex items-center justify-center gap-2">
-            <LoadingSpinner />
-            Starting scan…
-          </span>
-        ) : (
-          "Scan my product →"
-        )}
-      </button>
+      {state.status === "error" && (
+        <p id="scan-error" className="mt-2 text-xs" style={{ color: "#E5484D" }} role="alert">
+          {state.message}
+        </p>
+      )}
     </form>
   );
 }
