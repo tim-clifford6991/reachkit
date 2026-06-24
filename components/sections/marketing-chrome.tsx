@@ -2,25 +2,26 @@
 
 /**
  * MarketingChrome — wraps marketing children with the shared nav + footer, EXCEPT
- * on full-bleed routes (auth) which own the whole viewport. Receives the
- * server-resolved auth state so the nav stays auth-aware while the suppression
- * decision stays client-side (usePathname).
+ * on full-bleed routes (auth) which own the whole viewport. The nav is passed in
+ * as a (Suspense-wrapped, auth-aware) server node so the cookie read stays out of
+ * the static prerender path; the suppression decision stays client-side
+ * (usePathname). On full-bleed routes the nav node is never rendered, so its
+ * auth lookup never runs.
  */
 
 import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { MarketingNav } from "@/components/sections/marketing-nav";
 import { Footer, type FooterContent } from "@/components/sections/footer";
 
 // Routes that render full-bleed (no shared nav/footer).
 const FULL_BLEED = new Set<string>(["/login"]);
 
 export function MarketingChrome({
-  isLoggedIn,
+  nav,
   footer,
   children,
 }: {
-  isLoggedIn: boolean;
+  nav: ReactNode;
   footer: FooterContent;
   children: ReactNode;
 }) {
@@ -30,7 +31,7 @@ export function MarketingChrome({
   }
   return (
     <div className="flex min-h-dvh flex-col overflow-x-hidden" style={{ background: "#fff" }}>
-      <MarketingNav isLoggedIn={isLoggedIn} />
+      {nav}
       <div className="flex-1">{children}</div>
       <Footer content={footer} />
     </div>
