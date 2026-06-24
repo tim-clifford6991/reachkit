@@ -9,7 +9,7 @@
  *     lands in the new user's dashboard.
  *   - trial-direct (no scanId): POST /api/billing/trial — pricing-table path.
  *
- * Solo/Growth selectable; 7-day free trial, card collected at checkout.
+ * Solo/Growth selectable; charged at checkout (no free trial).
  */
 
 import { useState, useCallback } from "react";
@@ -96,10 +96,10 @@ export function TrialCta({ scanId, className }: TrialCtaProps) {
         className="w-full rounded-lg px-4 py-2.5 text-sm font-semibold transition-all disabled:pointer-events-none disabled:opacity-60"
         style={{ background: "var(--color-accent-600)", color: "var(--color-accent-fg)" }}
       >
-        {loading ? "Redirecting to checkout…" : "Start 7-day free trial"}
+        {loading ? "Redirecting to checkout…" : "Unlock the full report"}
       </button>
       <p className="mt-2 text-center font-mono text-[10px]" style={{ color: "var(--color-muted)" }}>
-        Card collected now · first charge after 7 days · cancel in one click before day 7
+        Charged at checkout · cancel any time · no lock-in
       </p>
     </div>
   );

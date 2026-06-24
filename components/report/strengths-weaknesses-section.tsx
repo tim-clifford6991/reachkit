@@ -88,7 +88,7 @@ export function StrengthsWeaknessesSection({
       </div>
 
       {!unlocked && (
-        <LockNote label={lockLabel ?? "Unlock quotes + full diagnostics with a free trial"} />
+        <LockNote label={lockLabel ?? "Unlock quotes + full diagnostics"} />
       )}
     </DeepSection>
   );

@@ -2,9 +2,9 @@
 
 /**
  * CapturedUnlockButton — the results "Unlock full report" CTA, styled 1:1 with
- * the mockup's white button. Starts the anonymous 7-day trial checkout for the
- * funnel (Stripe → email → magic link). New customers only — existing customers
- * upgrade via /app/billing (no second trial; handled in createCheckout).
+ * the mockup's white button. Starts the anonymous paid checkout for the funnel
+ * (Stripe → email → magic link). No free trial — the free scan is the only free
+ * capability; unlocking the full report is a paid plan, charged immediately.
  */
 
 import { useState } from "react";
@@ -36,7 +36,7 @@ export function CapturedUnlockButton({ scanId, plan = "solo" }: { scanId: string
       disabled={loading}
       style={{ fontFamily: "Plus Jakarta Sans, sans-serif", fontWeight: 700, fontSize: 15, color: "#14131A", background: "#fff", border: "none", borderRadius: 10, padding: "13px 24px", cursor: "pointer", whiteSpace: "nowrap", opacity: loading ? 0.7 : 1 }}
     >
-      {loading ? "Starting…" : "Start 7-day free trial →"}
+      {loading ? "Starting…" : "Unlock the full report →"}
     </button>
   );
 }

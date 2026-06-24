@@ -42,7 +42,7 @@ export function UpgradeCta({ scanId, snapshotAge, lossFrame }: UpgradeCtaProps) 
           "linear-gradient(135deg, oklch(0.56 0.205 285 / 0.07) 0%, var(--color-surface) 60%)",
       }}
       role="region"
-      aria-label="Start your free trial"
+      aria-label="Unlock the full report"
     >
       <div className="px-7 py-6">
         <p
@@ -56,7 +56,7 @@ export function UpgradeCta({ scanId, snapshotAge, lossFrame }: UpgradeCtaProps) 
         </h3>
         <p className="mb-4 text-sm leading-relaxed" style={{ color: "var(--color-muted)" }}>
           {diagnosis}
-          Start a free trial to unlock your exact opening vs every rival, the
+          Unlock the full report to see your exact opening vs every rival, the
           creators who already reach their buyers, and a weekly action queue with
           draft copy. Then we re-scan
           {snapshotAge ? ` this ${snapshotAge} snapshot` : ""} every week and alert

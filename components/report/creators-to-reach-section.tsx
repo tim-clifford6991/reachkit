@@ -49,7 +49,7 @@ export function CreatorsToReachSection({
       </ul>
 
       {!unlocked && (
-        <LockNote label={lockLabel ?? "Unlock every creator to reach with a free trial"} />
+        <LockNote label={lockLabel ?? "Unlock every creator to reach"} />
       )}
     </DeepSection>
   );

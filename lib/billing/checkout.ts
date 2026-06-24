@@ -55,9 +55,8 @@ export async function createAnonymousCheckout({
     line_items: [{ price: priceIdFor(plan, interval), quantity: 1 }],
     metadata: { plan, interval, ...(scanId ? { scanId } : {}) },
     client_reference_id: scanId,
-    // 7-day free trial: subscription created in `trialing` (card now, charge at
-    // trial end). entitlementsFor() treats "trialing" as active.
-    subscription_data: { trial_period_days: 7 },
+    // No free trial — the free scan is the only free capability. Paid plans are
+    // charged immediately at checkout.
     success_url: `${env.appUrl}/welcome?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: cancelUrl,
   });
@@ -108,12 +107,6 @@ export async function createCheckout({
     throw new Error(`checkout: user not found (id=${userId})`);
   }
 
-  // Trial eligibility: the 7-day free trial is for NEW customers only. A user who
-  // has ever held a subscription (any subscription_status set, or an existing
-  // Stripe customer) is an existing customer upgrading tiers — they cannot avail
-  // of another trial and are charged immediately.
-  const isExistingCustomer = !!user.subscription_status || !!user.stripe_customer_id;
-
   const stripe = stripeClient();
 
   // Ensure Stripe customer exists.
@@ -147,9 +140,7 @@ export async function createCheckout({
     customer: customerId,
     client_reference_id: userId,
     metadata: { userId, plan, interval },
-    // 7-day free trial only for genuinely new customers; existing customers
-    // upgrading tiers are charged immediately (no second trial).
-    ...(isExistingCustomer ? {} : { subscription_data: { trial_period_days: 7 } }),
+    // No free trial — paid plans are charged immediately at checkout.
     success_url: `${env.appUrl}/app?upgraded=1`,
     cancel_url: `${env.appUrl}/app/billing`,
   });

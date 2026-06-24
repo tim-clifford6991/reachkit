@@ -161,7 +161,7 @@ async function ResultsContent({ id }: { id: string }) {
   void hasMarket;
 
   // Paid viewers see the full report (redacted-to-tier already unlocks it), so
-  // the unlock band is hidden. Free/anon viewers get the 7-day trial CTA.
+  // the unlock band is hidden. Free/anon viewers get the unlock (paid) CTA.
   return (
     <ResultsScreen
       {...toResultsProps(report, siteLabel, fullActions)}

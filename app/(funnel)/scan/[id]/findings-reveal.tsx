@@ -190,7 +190,7 @@ function LockedFinding({ finding, index }: { finding: Finding; index: number }) 
       </div>
 
       {/* Lock overlay — clickable: prompts the trial CTA */}
-      <LockBadge label={`Unlock finding ${index + 1} with a free trial`} />
+      <LockBadge label={`Unlock finding ${index + 1}`} />
     </div>
   );
 }
@@ -250,7 +250,7 @@ function LockIcon() {
 
 // ---------------------------------------------------------------------------
 // Unlock interaction — every locked element is an actionable CTA: clicking it
-// scrolls to the trial CTA, prompting the user to start their free trial.
+// scrolls to the unlock CTA, prompting the user to unlock the full report.
 // ---------------------------------------------------------------------------
 
 function scrollToGate() {
@@ -275,7 +275,7 @@ function LockBadge({ label }: { label: string }) {
       >
         <LockIcon />
         <span className="text-xs font-medium" style={{ color: "oklch(0.96 0.006 85)" }}>
-          Unlock with free trial
+          Unlock full report
         </span>
       </div>
     </button>
@@ -462,7 +462,7 @@ export function FindingsReveal({
             {sampleAction.draft}
           </p>
         </div>
-        <LockBadge label="Unlock your action plan with a free trial" />
+        <LockBadge label="Unlock your action plan" />
       </div>
 
       {/* ── What your report also contains (pre-gate teaser) ─────────────── */}
@@ -499,7 +499,7 @@ export function FindingsReveal({
           className="mt-4 text-xs font-medium underline underline-offset-4 transition-colors"
           style={{ color: "var(--color-accent-400)" }}
         >
-          Unlock the full report with a free trial →
+          Unlock the full report →
         </button>
       </div>
 
@@ -521,7 +521,7 @@ export function FindingsReveal({
             See who&apos;s ahead — and exactly what to do about it
           </h2>
           <p className="text-sm" style={{ color: "var(--color-muted)" }}>
-            Start your free trial to unlock all{" "}
+            Unlock the full report to see all{" "}
             {restFindings.length > 0
               ? `${restFindings.length + 1} findings`
               : "findings"}{" "}

@@ -82,22 +82,19 @@ async function SidebarData({ children }: { children: React.ReactNode }) {
   const APP_LIMIT: Record<string, number> = { free: 1, solo: 1, growth: 3 };
   const canAddApp = apps.length < (APP_LIMIT[tier] ?? 1);
 
-  // Side card: free-trial countdown, paid next-auto-scan, or nothing (free).
-  const status = (user.subscription_status as string | null) ?? null;
-  const periodEnd = (user.current_period_end as string | null) ?? null;
-  const daysUntil = (iso: string | null) => (iso ? Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000)) : 0);
+  // Side card: paid users get the next-auto-scan countdown; free users get a
+  // single upgrade prompt (no trial — the free scan is the only free capability).
   let sideCard = null as null | { title: string; sub: string; cta?: { label: string; href: string }; tone: "trial" | "scan" };
-  if (status === "trialing" && periodEnd) {
-    const d = daysUntil(periodEnd);
-    sideCard = {
-      title: `Trial ends in ${d} day${d === 1 ? "" : "s"}`,
-      sub: "Upgrade to keep weekly tracking and the full report.",
-      cta: { label: "Upgrade", href: "/app/billing" },
-      tone: "trial",
-    };
-  } else if (entitlements.active && lastScannedIso) {
+  if (entitlements.active && lastScannedIso) {
     const d = Math.max(0, Math.ceil((new Date(lastScannedIso).getTime() + 7 * 86_400_000 - Date.now()) / 86_400_000));
     sideCard = { title: `Next auto-scan in ${d} day${d === 1 ? "" : "s"}`, sub: "Weekly tracking keeps your score current.", tone: "scan" };
+  } else if (!entitlements.active) {
+    sideCard = {
+      title: "Unlock the weekly engine",
+      sub: "Turn your report into a ranked, verified weekly action queue.",
+      cta: { label: "See plans", href: "/app/billing" },
+      tone: "trial",
+    };
   }
 
   void actionsCount;

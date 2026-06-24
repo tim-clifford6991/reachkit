@@ -75,13 +75,13 @@ async function WelcomeContent({
         className="font-mono text-[10px] uppercase tracking-widest"
         style={{ color: "var(--color-accent-400)" }}
       >
-        Trial active
+        Subscription active
       </p>
       <h1 className="mt-1 text-xl font-semibold" style={{ color: "var(--color-fg)" }}>
         Check your email to log in
       </h1>
       <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--color-muted)" }}>
-        Your free trial is active. We&apos;ve sent a one-click login link
+        Your subscription is active. We&apos;ve sent a one-click login link
         {email ? (
           <>
             {" "}to <span style={{ color: "var(--color-accent-400)" }}>{email}</span>

@@ -256,7 +256,7 @@ export function BillingActions({ tier, isActivePaid }: BillingActionsProps) {
       </div>
 
       <p style={{ marginTop: 12, textAlign: "center", fontFamily: JM, fontSize: 11, color: FAINT }}>
-        7-day free trial. Cancel any time. No lock-in. Stripe-secured checkout.
+        Cancel any time. No lock-in. Stripe-secured checkout.
       </p>
     </div>
   );

@@ -59,7 +59,7 @@ export function BillingToggle({ monthly, annual }: BillingToggleProps) {
       {interval === "month" ? monthly : annual}
 
       <p className="text-center text-sm" style={{ color: "var(--color-muted)" }}>
-        Every plan starts with a 7-day free trial. Your first scan is always free — no account
+        Your first scan is always free — no account
         needed.
       </p>
     </div>

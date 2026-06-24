@@ -74,7 +74,7 @@ function toTier(def: PlanDef, interval: Interval): PricingTier {
       <PricingCheckoutLinks
         plan={def.plan}
         interval={interval}
-        label="Start 7-day free trial"
+        label="Get started"
         highlighted={def.highlighted}
       />
     ),

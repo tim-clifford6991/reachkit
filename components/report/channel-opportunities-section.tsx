@@ -97,7 +97,7 @@ export function ChannelOpportunitiesSection({
 
       {!unlocked && (
         <LockNote
-          label={lockLabel ?? "Unlock keyword CPC, competition & all communities with a free trial"}
+          label={lockLabel ?? "Unlock keyword CPC, competition & all communities"}
         />
       )}
     </DeepSection>
