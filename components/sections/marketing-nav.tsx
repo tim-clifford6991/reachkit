@@ -45,6 +45,8 @@ export function MarketingNav({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
         <div className="flex-1" />
 
         <div className="flex items-center gap-3.5">
+          {/* Logged in: one "Dashboard" link + a primary "New scan" CTA (run an
+              additional free scan). Logged out: "Log in" + "Analyze my site". */}
           <Link
             href={isLoggedIn ? "/app" : "/login"}
             className={`hidden sm:inline-flex ${focusRing}`}
@@ -53,11 +55,11 @@ export function MarketingNav({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
             {isLoggedIn ? "Dashboard" : "Log in"}
           </Link>
           <Link
-            href={isLoggedIn ? "/app" : "/scan"}
+            href="/scan"
             className={`inline-flex items-center transition-transform hover:-translate-y-px motion-reduce:transform-none ${focusRing}`}
             style={{ fontFamily: "Plus Jakarta Sans, sans-serif", fontWeight: 600, fontSize: 14, color: "#fff", background: "#14131A", borderRadius: 9, padding: "9px 16px" }}
           >
-            {isLoggedIn ? "Go to dashboard" : "Analyze my site"}
+            {isLoggedIn ? "New scan" : "Analyze my site"}
           </Link>
           <MobileMenu links={[...LINKS]} />
         </div>
