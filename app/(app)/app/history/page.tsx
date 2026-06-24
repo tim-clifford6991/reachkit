@@ -11,7 +11,7 @@ import { activeAppId } from "@/lib/app/active-app";
 import { engagementSummary } from "@/lib/scan/engagement";
 import { scoreHistoryMarkers } from "@/lib/scan/score-history-markers";
 import { HistoryMain, type TimelineRow } from "@/components/app/captured/history-main";
-import { Skeleton } from "@/components/ui/skeleton";
+import { HistorySkeleton } from "@/components/app/captured/skeletons";
 import { buildMetadata } from "@/lib/seo";
 
 export const metadata = buildMetadata({ title: "Score history", path: "/app/history" });
@@ -67,7 +67,7 @@ async function HistoryContent() {
 
 export default function HistoryPage() {
   return (
-    <Suspense fallback={<Skeleton className="h-[400px] w-full rounded-2xl" />}>
+    <Suspense fallback={<HistorySkeleton />}>
       <HistoryContent />
     </Suspense>
   );

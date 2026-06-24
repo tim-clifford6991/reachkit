@@ -22,12 +22,12 @@ import { StrengthsWeaknessesSection } from "@/components/report/strengths-weakne
 import { ActionPlanSection } from "@/components/report/action-plan-section";
 import { MarketTrends } from "@/components/app/market-trends";
 import { EngagementStrip } from "@/components/app/engagement-strip";
-import { Skeleton } from "@/components/ui/skeleton";
 import { buildMetadata } from "@/lib/seo";
 import { ResultsScreen } from "@/components/report/captured/results-screen";
 import { toResultsProps } from "@/components/report/captured/to-results-props";
 import { readSignalBreakdown } from "@/lib/scan/signal-breakdown";
 import { CapturedSignalBreakdown } from "@/components/app/captured/signal-breakdown";
+import { ReportSkeleton } from "@/components/app/captured/skeletons";
 
 const PILLAR_LABEL: Record<string, string> = { seo: "SEO", content: "Content", outreach: "Outreach" };
 
@@ -96,21 +96,6 @@ async function ReportContent() {
         </div>
       )}
     </>
-  );
-}
-
-function ReportSkeleton() {
-  return (
-    <div className="space-y-4">
-      {[1, 2, 3, 4].map((i) => (
-        <div key={i} className="rounded-2xl border p-7" style={{ borderColor: "var(--hairline)", background: "var(--color-surface)" }}>
-          <Skeleton className="mb-3 h-3 w-24" />
-          <Skeleton className="mb-2 h-5 w-44" />
-          <Skeleton className="h-3 w-full" />
-          <Skeleton className="mt-1.5 h-3 w-3/4" />
-        </div>
-      ))}
-    </div>
   );
 }
 

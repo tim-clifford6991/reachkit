@@ -12,9 +12,9 @@ import { entitlementsFor } from "@/lib/billing/entitlements";
 import { serverDb } from "@/lib/db/client";
 import { assembleWeeklyPlan } from "@/lib/scan/weekly-plan";
 import type { ReportPayload } from "@/lib/scan/report";
-import { Skeleton } from "@/components/ui/skeleton";
 import { buildMetadata } from "@/lib/seo";
 import { ActionsMain, type OpenAction } from "@/components/app/captured/actions-main";
+import { ActionsSkeleton } from "@/components/app/captured/skeletons";
 import Link from "next/link";
 
 export const metadata = buildMetadata({ title: "This week's plays", path: "/app/plays" });
@@ -102,7 +102,7 @@ function PlaysUpgradeWall() {
 
 export default function PlaysPage() {
   return (
-    <Suspense fallback={<Skeleton className="h-[400px] w-full rounded-2xl" />}>
+    <Suspense fallback={<ActionsSkeleton />}>
       <PlaysContent />
     </Suspense>
   );

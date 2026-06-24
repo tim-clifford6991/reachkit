@@ -19,6 +19,7 @@ import type { Tier } from "@/lib/billing/tiers";
 import { activeAppId, userApps } from "@/lib/app/active-app";
 import { CommandPalette } from "@/components/app/command-palette";
 import { AppShell } from "@/components/app/captured/app-shell";
+import { ShellSkeleton } from "@/components/app/captured/skeletons";
 import type { Metadata } from "next";
 
 function relAge(iso: string | null): string {
@@ -124,11 +125,8 @@ async function SidebarData({ children }: { children: React.ReactNode }) {
 // Sidebar skeleton — shown while auth resolves
 // ---------------------------------------------------------------------------
 
-function SidebarSkeleton({ children }: { children: React.ReactNode }) {
-  // While auth/data resolve, render content full-bleed (the captured AppShell
-  // takes over once SidebarData resolves).
-  return <div style={{ minHeight: "100vh", background: "#FAFAFC" }}>{children}</div>;
-}
+// ShellSkeleton (sidebar + header structure) renders instantly while SidebarData
+// resolves; the per-tab content keeps its own structural skeleton inside.
 
 // ---------------------------------------------------------------------------
 // Layout
@@ -143,7 +141,7 @@ export default function AppLayout({
     <>
       {/* ⌘K command palette — globally available across the app shell */}
       <CommandPalette />
-      <Suspense fallback={<SidebarSkeleton>{children}</SidebarSkeleton>}>
+      <Suspense fallback={<ShellSkeleton>{children}</ShellSkeleton>}>
         <SidebarData>{children}</SidebarData>
       </Suspense>
     </>

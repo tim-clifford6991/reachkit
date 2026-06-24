@@ -28,6 +28,7 @@ import { latestRefreshDigest } from "@/lib/scan/digest";
 import { marketTrendSeries } from "@/lib/scan/market-trends";
 import { DashboardAnalytics } from "@/components/app/dashboard-analytics";
 import { DashboardMain } from "@/components/app/captured/dashboard-main";
+import { DashboardSkeleton } from "@/components/app/captured/skeletons";
 import { MilestoneBanner } from "@/components/app/milestone-banner";
 import { OnboardingChecklist } from "@/components/app/onboarding-checklist";
 import { onboardingChecklist } from "@/lib/scan/onboarding-checklist";
@@ -35,7 +36,6 @@ import { activeAppId } from "@/lib/app/active-app";
 import { PlaysPreview } from "@/components/app/plays-preview";
 import { ExportButton } from "@/components/app/export-button";
 import { WhatsChanged } from "@/components/app/whats-changed";
-import { Skeleton } from "@/components/ui/skeleton";
 import { buildMetadata } from "@/lib/seo";
 
 export const metadata = buildMetadata({ title: "Dashboard", path: "/app" });
@@ -180,38 +180,6 @@ async function DashboardContent() {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Skeleton shown while the content loads
-// ---------------------------------------------------------------------------
-
-function DashboardSkeleton() {
-  return (
-    <div className="space-y-8">
-      {/* Score skeleton */}
-      <div
-        className="flex flex-col items-center rounded-2xl border py-10"
-        style={{ borderColor: "var(--hairline)", background: "var(--color-surface)" }}
-      >
-        <Skeleton className="mb-6 h-3 w-28" />
-        <Skeleton className="size-[140px] rounded-full" />
-        <Skeleton className="mt-6 h-3 w-48" />
-      </div>
-      {/* Section skeletons */}
-      {[1, 2, 3, 4].map((i) => (
-        <div
-          key={i}
-          className="rounded-2xl border p-7"
-          style={{ borderColor: "var(--hairline)", background: "var(--color-surface)" }}
-        >
-          <Skeleton className="mb-3 h-3 w-20" />
-          <Skeleton className="mb-2 h-5 w-40" />
-          <Skeleton className="h-3 w-full" />
-          <Skeleton className="mt-1.5 h-3 w-3/4" />
-        </div>
-      ))}
-    </div>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Page

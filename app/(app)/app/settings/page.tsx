@@ -9,8 +9,8 @@ import { currentUser } from "@/lib/auth/server";
 import { entitlementsFor } from "@/lib/billing/entitlements";
 import { activeAppId } from "@/lib/app/active-app";
 import { serverDb } from "@/lib/db/client";
-import { Skeleton } from "@/components/ui/skeleton";
 import { SettingsMain } from "@/components/app/captured/settings-main";
+import { SettingsSkeleton } from "@/components/app/captured/skeletons";
 import { buildMetadata } from "@/lib/seo";
 
 export const metadata = buildMetadata({ title: "Settings", path: "/app/settings" });
@@ -62,7 +62,7 @@ async function SettingsContent() {
 
 export default function SettingsPage() {
   return (
-    <Suspense fallback={<Skeleton className="h-[400px] w-full max-w-[680px] rounded-2xl" />}>
+    <Suspense fallback={<SettingsSkeleton />}>
       <SettingsContent />
     </Suspense>
   );

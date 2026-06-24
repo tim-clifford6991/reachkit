@@ -10,7 +10,7 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth/server";
 import { entitlementsFor } from "@/lib/billing/entitlements";
-import { Skeleton } from "@/components/ui/skeleton";
+import { BillingSkeleton } from "@/components/app/captured/skeletons";
 import { buildMetadata } from "@/lib/seo";
 import { BillingActions } from "./billing-actions";
 import type { Tier } from "@/lib/billing/tiers";
@@ -340,20 +340,6 @@ function TierComparisonTable({ currentTier }: { currentTier: Tier }) {
 // ---------------------------------------------------------------------------
 // Skeleton
 // ---------------------------------------------------------------------------
-
-function BillingSkeleton() {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-      <div style={cardStyle}>
-        <Skeleton className="mb-3 h-3 w-20" />
-        <Skeleton className="mb-4 h-6 w-24" />
-        <Skeleton className="mb-2 h-3 w-full" />
-        <Skeleton className="h-3 w-3/4" />
-      </div>
-      <div style={{ ...cardStyle, height: 96, padding: 0 }} />
-    </div>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Page
