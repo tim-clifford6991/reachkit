@@ -9,6 +9,8 @@ export const metadata: Metadata = buildMetadata({
   path: "/contact",
 });
 
+const SG = "var(--font-display)", JM = "var(--font-mono)";
+
 const CHANNELS = [
   {
     label: "General & support",
@@ -27,50 +29,52 @@ const CHANNELS = [
 
 export default function ContactPage() {
   return (
-    <main
-      className="mx-auto max-w-2xl px-(--spacing-content-x) pb-(--spacing-section-y) pt-20 sm:pt-28"
-      aria-label="Contact ReachKit"
-    >
-      <p className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "var(--color-accent-400)" }}>
-        Contact
-      </p>
-      <h1 className="mt-3 text-4xl sm:text-5xl" style={{ color: "var(--color-fg)", lineHeight: 1.08 }}>
-        Talk to us
-      </h1>
-      <p className="mt-4 text-lg leading-relaxed" style={{ color: "var(--color-muted)" }}>
-        We&apos;re a small team that reads everything. Whether it&apos;s a bug, a feature idea, a
-        partnership, or a question about your report — get in touch.
-      </p>
+    <main aria-label="Contact ReachKit" style={{ background: "#fff" }}>
+      <section style={{ position: "relative", overflow: "hidden", background: "radial-gradient(1100px 480px at 50% -8%, #F2EEFF 0%, rgba(242,238,255,0) 62%), #fff" }}>
+        <div style={{ maxWidth: 1180, margin: "0 auto", padding: "72px 28px 0" }}>
+          <p style={{ fontFamily: JM, fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "#6E56F7", margin: 0 }}>
+            Contact
+          </p>
+          <h1 style={{ fontFamily: SG, fontWeight: 700, fontSize: "clamp(2rem, 4.5vw, 3.4rem)", letterSpacing: "-0.02em", lineHeight: 1.04, color: "#14131A", margin: "16px 0 0", maxWidth: 700 }}>
+            Talk to us
+          </h1>
+          <p style={{ fontSize: 17.5, lineHeight: 1.5, color: "#56535F", margin: "18px 0 0", maxWidth: 580 }}>
+            We&apos;re a small team that reads everything. Whether it&apos;s a bug, a feature idea, a
+            partnership, or a question about your report — get in touch.
+          </p>
+        </div>
+      </section>
 
-      <div className="mt-10 flex flex-col gap-4">
-        {CHANNELS.map((c) => (
-          <a
-            key={c.label}
-            href={c.href}
-            {...(c.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-            className="group flex flex-col gap-1 rounded-2xl border p-7 shadow-[var(--elevation-sm),var(--edge-highlight)] transition-transform hover:-translate-y-0.5 motion-reduce:transform-none"
-            style={{ borderColor: "var(--hairline)", background: "var(--gradient-surface)" }}
-          >
-            <span className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "var(--color-muted)" }}>
-              {c.label}
-            </span>
-            <span className="text-lg font-semibold" style={{ color: "var(--color-accent-400)" }}>
-              {c.value}
-            </span>
-            <span className="text-sm leading-relaxed" style={{ color: "var(--color-muted)" }}>
-              {c.note}
-            </span>
-          </a>
-        ))}
-      </div>
+      <section style={{ maxWidth: 1180, margin: "0 auto", padding: "32px 28px 28px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {CHANNELS.map((c) => (
+            <a
+              key={c.label}
+              href={c.href}
+              {...(c.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+              style={{ display: "flex", flexDirection: "column", gap: 6, background: "#fff", border: "1px solid #ECEAF3", borderRadius: 16, padding: "24px 26px", textDecoration: "none" }}
+            >
+              <span style={{ fontFamily: JM, fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "#9A97A5" }}>
+                {c.label}
+              </span>
+              <span style={{ fontFamily: SG, fontWeight: 700, fontSize: 18, letterSpacing: "-0.01em", color: "#6E56F7" }}>
+                {c.value}
+              </span>
+              <span style={{ fontSize: 14.5, lineHeight: 1.5, color: "#56535F" }}>
+                {c.note}
+              </span>
+            </a>
+          ))}
+        </div>
 
-      <p className="mt-8 text-sm" style={{ color: "var(--color-muted)" }}>
-        Looking for legal details? See the{" "}
-        <Link href="/imprint" className="font-medium" style={{ color: "var(--color-accent-400)" }}>
-          Imprint
-        </Link>
-        .
-      </p>
+        <p style={{ fontSize: 14.5, lineHeight: 1.5, color: "#56535F", margin: "28px 0 0" }}>
+          Looking for legal details? See the{" "}
+          <Link href="/imprint" style={{ color: "#6E56F7", fontWeight: 600, textDecoration: "none" }}>
+            Imprint
+          </Link>
+          .
+        </p>
+      </section>
     </main>
   );
 }

@@ -7,9 +7,9 @@
 
 import type { ReactNode } from "react";
 import { currentUser } from "@/lib/auth/server";
-import { MarketingNav } from "@/components/sections/marketing-nav";
-import { Footer, type FooterContent } from "@/components/sections/footer";
+import { type FooterContent } from "@/components/sections/footer";
 import { MotionProvider } from "@/components/sections/motion-provider";
+import { MarketingChrome } from "@/components/sections/marketing-chrome";
 
 const FOOTER_CONTENT: FooterContent = {
   brand: "ReachKit",
@@ -70,12 +70,8 @@ const FOOTER_CONTENT: FooterContent = {
 export default async function MarketingLayout({ children }: { children: ReactNode }) {
   const viewer = await currentUser();
   return (
-    <div className="flex min-h-dvh flex-col overflow-x-hidden" style={{ background: "#fff" }}>
-      <MarketingNav isLoggedIn={!!viewer} />
-      <MotionProvider>
-        <div className="flex-1">{children}</div>
-      </MotionProvider>
-      <Footer content={FOOTER_CONTENT} />
-    </div>
+    <MarketingChrome isLoggedIn={!!viewer} footer={FOOTER_CONTENT}>
+      <MotionProvider>{children}</MotionProvider>
+    </MarketingChrome>
   );
 }

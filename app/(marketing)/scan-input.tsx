@@ -94,21 +94,12 @@ export function ScanInput() {
           aria-describedby={state.status === "error" ? "scan-error" : undefined}
           disabled={isLoading}
           className={[
-            // Height + layout
-            "h-12 w-full min-w-0 rounded-lg border px-4 py-2 text-base",
-            // Colour
-            "bg-card text-foreground placeholder:text-muted-foreground/60",
-            // Focus
-            "outline-none transition-colors duration-150",
-            "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
-            // States
-            "disabled:pointer-events-none disabled:opacity-50",
-            state.status === "error"
-              ? "border-destructive/60 ring-3 ring-destructive/20"
-              : "border-[var(--hairline)]",
-          ]
-            .filter(Boolean)
-            .join(" ")}
+            "h-[50px] w-full min-w-0 rounded-[12px] border bg-white px-4 text-base font-medium text-[#14131A] outline-none transition-colors",
+            "placeholder:text-[#9A97A5]",
+            "focus-visible:border-[#6E56F7] focus-visible:ring-4 focus-visible:ring-[#6E56F7]/15",
+            "disabled:pointer-events-none disabled:opacity-60",
+            state.status === "error" ? "border-[#E5484D]" : "border-[#ECEAF3]",
+          ].join(" ")}
         />
         {state.status === "error" && (
           <p id="scan-error" className="text-xs text-destructive" role="alert">
@@ -120,18 +111,13 @@ export function ScanInput() {
       {/* CTA — full-width on mobile, prominent */}
       <button
         type="submit"
-        disabled={isLoading || !url.trim()}
+        disabled={isLoading}
         className={[
-          // Layout + shape
-          "h-12 w-full rounded-lg border border-transparent px-6 text-sm font-semibold",
-          // Colours — accent fill
-          "bg-primary text-primary-foreground outline-none",
-          // Motion
-          "transition-all duration-150 select-none",
-          "hover:bg-primary/85 active:scale-[0.98] active:translate-y-px",
-          "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
-          // Disabled
-          "disabled:pointer-events-none disabled:opacity-50",
+          "h-[50px] w-full rounded-[12px] px-6 text-sm font-semibold text-white outline-none",
+          "bg-[#6E56F7] transition-all duration-150 select-none",
+          "hover:bg-[#5d46e8] active:scale-[0.99]",
+          "focus-visible:ring-4 focus-visible:ring-[#6E56F7]/25",
+          "disabled:pointer-events-none disabled:opacity-70",
         ].join(" ")}
       >
         {isLoading ? (

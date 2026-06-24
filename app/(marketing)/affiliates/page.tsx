@@ -9,6 +9,8 @@ export const metadata: Metadata = buildMetadata({
   path: "/affiliates",
 });
 
+const SG = "var(--font-display)", JM = "var(--font-mono)";
+
 const POINTS = [
   {
     title: "Recurring commission",
@@ -26,53 +28,53 @@ const POINTS = [
 
 export default function AffiliatesPage() {
   return (
-    <main
-      className="mx-auto max-w-2xl px-(--spacing-content-x) pb-(--spacing-section-y) pt-20 sm:pt-28"
-      aria-label="ReachKit affiliate program"
-    >
-      <p className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "var(--color-accent-400)" }}>
-        Affiliate program
-      </p>
-      <h1 className="mt-3 text-4xl sm:text-5xl" style={{ color: "var(--color-fg)", lineHeight: 1.08 }}>
-        Get paid to help founders get found
-      </h1>
-      <p className="mt-4 text-lg leading-relaxed" style={{ color: "var(--color-muted)" }}>
-        We&apos;re opening a referral program for creators and consultants in the indie-founder
-        space. Recurring commission, honest product, no spammy gimmicks.
-      </p>
+    <main aria-label="ReachKit affiliate program" style={{ background: "#fff" }}>
+      <section style={{ position: "relative", overflow: "hidden", background: "radial-gradient(1100px 480px at 50% -8%, #F2EEFF 0%, rgba(242,238,255,0) 62%), #fff" }}>
+        <div style={{ maxWidth: 1180, margin: "0 auto", padding: "72px 28px 0" }}>
+          <p style={{ fontFamily: JM, fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "#6E56F7", margin: 0 }}>
+            Affiliate program
+          </p>
+          <h1 style={{ fontFamily: SG, fontWeight: 700, fontSize: "clamp(2rem, 4.5vw, 3.4rem)", letterSpacing: "-0.02em", lineHeight: 1.04, color: "#14131A", margin: "16px 0 0", maxWidth: 740 }}>
+            Get paid to help founders get found
+          </h1>
+          <p style={{ fontSize: 17.5, lineHeight: 1.5, color: "#56535F", margin: "18px 0 0", maxWidth: 580 }}>
+            We&apos;re opening a referral program for creators and consultants in the indie-founder
+            space. Recurring commission, honest product, no spammy gimmicks.
+          </p>
+        </div>
+      </section>
 
-      <div className="mt-10 grid gap-4 sm:grid-cols-3">
-        {POINTS.map((p) => (
-          <div
-            key={p.title}
-            className="rounded-2xl border p-6 shadow-[var(--elevation-sm),var(--edge-highlight)]"
-            style={{ borderColor: "var(--hairline)", background: "var(--gradient-surface)" }}
-          >
-            <h2 className="text-base font-semibold" style={{ color: "var(--color-fg)" }}>
-              {p.title}
-            </h2>
-            <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--color-muted)" }}>
-              {p.body}
-            </p>
-          </div>
-        ))}
-      </div>
+      <section style={{ maxWidth: 1180, margin: "0 auto", padding: "32px 28px 28px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
+          {POINTS.map((p) => (
+            <div
+              key={p.title}
+              style={{ background: "#fff", border: "1px solid #ECEAF3", borderRadius: 16, padding: "24px 26px" }}
+            >
+              <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: 17, letterSpacing: "-0.01em", color: "#14131A", margin: 0 }}>
+                {p.title}
+              </h2>
+              <p style={{ fontSize: 14.5, lineHeight: 1.5, color: "#56535F", margin: "10px 0 0" }}>
+                {p.body}
+              </p>
+            </div>
+          ))}
+        </div>
 
-      <div
-        className="mt-10 flex flex-col items-start gap-3 rounded-2xl border p-7 sm:flex-row sm:items-center sm:justify-between"
-        style={{ borderColor: "var(--color-accent-900)", background: "var(--color-accent-subtle)" }}
-      >
-        <p className="text-sm" style={{ color: "var(--color-fg)" }}>
-          Want in early? Email us and we&apos;ll add you when the program opens.
-        </p>
-        <a
-          href="mailto:hello@reachkit.app?subject=ReachKit%20affiliate%20program"
-          className="inline-flex h-11 shrink-0 items-center rounded-lg px-5 text-sm font-semibold shadow-[var(--elevation-glow)] transition-transform hover:-translate-y-px motion-reduce:transform-none"
-          style={{ background: "var(--color-accent)", color: "var(--color-accent-fg)" }}
+        <div
+          style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 16, marginTop: 28, background: "#F2EEFF", border: "1px solid #ECEAF3", borderRadius: 18, padding: "24px 26px" }}
         >
-          Join the waitlist
-        </a>
-      </div>
+          <p style={{ fontSize: 15.5, lineHeight: 1.5, color: "#14131A", margin: 0 }}>
+            Want in early? Email us and we&apos;ll add you when the program opens.
+          </p>
+          <a
+            href="mailto:hello@reachkit.app?subject=ReachKit%20affiliate%20program"
+            style={{ display: "inline-block", background: "#6E56F7", color: "#fff", borderRadius: 10, padding: "11px 20px", fontFamily: "var(--font-sans)", fontWeight: 600, fontSize: 14, textDecoration: "none" }}
+          >
+            Join the waitlist
+          </a>
+        </div>
+      </section>
     </main>
   );
 }
