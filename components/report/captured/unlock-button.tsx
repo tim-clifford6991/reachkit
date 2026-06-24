@@ -34,7 +34,7 @@ export function CapturedUnlockButton({ scanId, plan = "solo" }: { scanId: string
       type="button"
       onClick={start}
       disabled={loading}
-      style={{ fontFamily: "Plus Jakarta Sans, sans-serif", fontWeight: 700, fontSize: 15, color: "#14131A", background: "#fff", border: "none", borderRadius: 10, padding: "13px 24px", cursor: "pointer", whiteSpace: "nowrap", opacity: loading ? 0.7 : 1 }}
+      style={{ fontFamily: "Plus Jakarta Sans, sans-serif", fontWeight: 700, fontSize: 15, color: "var(--c-ink)", background: "var(--c-surface)", border: "none", borderRadius: 10, padding: "13px 24px", cursor: "pointer", whiteSpace: "nowrap", opacity: loading ? 0.7 : 1 }}
     >
       {loading ? "Starting…" : "Unlock the full report →"}
     </button>

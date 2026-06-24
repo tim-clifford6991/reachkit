@@ -16,15 +16,15 @@
 
 import type { CSSProperties, ReactNode } from "react";
 
-const HAIR = "#ECEAF3";
-const SKEL = "#ECEAF3";
+const HAIR = "var(--c-line)";
+const SKEL = "var(--c-line)";
 
 function Box({ w, h, r = 8, style }: { w?: number | string; h: number; r?: number; style?: CSSProperties }) {
   return <div className="animate-pulse" style={{ width: w ?? "100%", height: h, borderRadius: r, background: SKEL, flex: w ? "0 0 auto" : undefined, ...style }} />;
 }
 
 function Card({ children, style }: { children: ReactNode; style?: CSSProperties }) {
-  return <div style={{ background: "#fff", border: `1px solid ${HAIR}`, borderRadius: 16, padding: "22px 24px", ...style }}>{children}</div>;
+  return <div style={{ background: "var(--c-surface)", border: `1px solid ${HAIR}`, borderRadius: 16, padding: "22px 24px", ...style }}>{children}</div>;
 }
 
 // ---------------------------------------------------------------------------
@@ -33,8 +33,8 @@ function Card({ children, style }: { children: ReactNode; style?: CSSProperties 
 
 export function ShellSkeleton({ children }: { children: ReactNode }) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", minHeight: "100vh", background: "#FAFAFC" }}>
-      <aside style={{ background: "#fff", borderRight: "1px solid #EEEDF3", display: "flex", flexDirection: "column", padding: "18px 14px", height: "100vh", position: "sticky", top: 0 }}>
+    <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", minHeight: "100vh", background: "var(--c-bg2)" }}>
+      <aside style={{ background: "var(--c-surface)", borderRight: "1px solid var(--c-line2)", display: "flex", flexDirection: "column", padding: "18px 14px", height: "100vh", position: "sticky", top: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 8px 18px" }}>
           <Box w={26} h={26} r={9} />
           <Box w={74} h={14} />
@@ -46,7 +46,7 @@ export function ShellSkeleton({ children }: { children: ReactNode }) {
           ))}
         </div>
         <div style={{ flex: 1 }} />
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 8, borderTop: "1px solid #F0EEF6" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 8, borderTop: "1px solid var(--c-line2)" }}>
           <Box w={30} h={30} r={999} />
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             <Box w={84} h={12} />
@@ -55,7 +55,7 @@ export function ShellSkeleton({ children }: { children: ReactNode }) {
         </div>
       </aside>
       <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-        <header style={{ background: "rgba(255,255,255,0.85)", borderBottom: "1px solid #EEEDF3", padding: "16px 28px", display: "flex", flexDirection: "column", gap: 7 }}>
+        <header style={{ background: "var(--c-glass)", borderBottom: "1px solid var(--c-line2)", padding: "16px 28px", display: "flex", flexDirection: "column", gap: 7 }}>
           <Box w={150} h={20} />
           <Box w={260} h={12} />
         </header>

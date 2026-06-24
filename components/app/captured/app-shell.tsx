@@ -10,6 +10,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AppSwitcher, type SwitcherApp } from "./app-switcher-menu";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const SG = "Space Grotesk", PJ = "Plus Jakarta Sans", JM = "JetBrains Mono";
 
@@ -68,10 +69,10 @@ export function AppShell(p: AppShellProps) {
   const title = TITLES[activeHref] ?? "Dashboard";
 
   return (
-    <div style={{ fontFamily: `${PJ}, sans-serif`, color: "#14131A", minHeight: "100vh" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", minHeight: "100vh", background: "#FAFAFC" }}>
+    <div style={{ fontFamily: `${PJ}, sans-serif`, color: "var(--c-ink)", minHeight: "100vh" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", minHeight: "100vh", background: "var(--c-bg2)" }}>
         {/* Sidebar */}
-        <aside style={{ background: "#fff", borderRight: "1px solid #EEEDF3", display: "flex", flexDirection: "column", padding: "18px 14px", position: "sticky", top: 0, height: "100vh" }}>
+        <aside style={{ background: "var(--c-surface)", borderRight: "1px solid var(--c-line2)", display: "flex", flexDirection: "column", padding: "18px 14px", position: "sticky", top: 0, height: "100vh" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 8px 18px" }}>
             <svg width="26" height="26" viewBox="0 0 28 28"><rect width="28" height="28" rx="9" fill="#6E56F7" /><circle cx="14" cy="14" r="1.7" fill="#fff" /><path d="M14 19 A5 5 0 1 1 19 14" stroke="#fff" strokeWidth="1.7" fill="none" strokeLinecap="round" /><path d="M14 23 A9 9 0 1 1 23 14" stroke="#C3B2FF" strokeWidth="1.7" fill="none" strokeLinecap="round" /></svg>
             <span style={{ fontFamily: SG, fontWeight: 700, fontSize: 17 }}>ReachKit</span>
@@ -90,10 +91,10 @@ export function AppShell(p: AppShellProps) {
             {NAV.map((n) => {
               const active = n.href === activeHref;
               return (
-                <Link key={n.href} href={n.href} style={{ display: "flex", alignItems: "center", gap: 11, padding: "9px 11px", borderRadius: 10, cursor: "pointer", fontSize: 14, fontWeight: active ? 600 : 500, color: active ? "#6E56F7" : "#56535F", background: active ? "#F2EEFF" : "transparent", textDecoration: "none" }}>
+                <Link key={n.href} href={n.href} style={{ display: "flex", alignItems: "center", gap: 11, padding: "9px 11px", borderRadius: 10, cursor: "pointer", fontSize: 14, fontWeight: active ? 600 : 500, color: active ? "var(--c-action)" : "var(--c-muted)", background: active ? "var(--c-soft)" : "transparent", textDecoration: "none" }}>
                   {n.icon}{n.label}
                   {n.badge && p.actionsCount > 0 && (
-                    <span style={{ marginLeft: "auto", background: "#6E56F7", color: "#fff", fontFamily: JM, fontSize: 11, fontWeight: 700, padding: "1px 7px", borderRadius: 7 }}>{p.actionsCount}</span>
+                    <span style={{ marginLeft: "auto", background: "var(--c-action)", color: "#fff", fontFamily: JM, fontSize: 11, fontWeight: 700, padding: "1px 7px", borderRadius: 7 }}>{p.actionsCount}</span>
                   )}
                 </Link>
               );
@@ -103,33 +104,34 @@ export function AppShell(p: AppShellProps) {
           {/* Side card — trial countdown (free-trial users) or next auto-scan
               (paid). Hidden for free non-trial users. */}
           {p.sideCard && (
-            <div style={{ background: "linear-gradient(150deg, #322E4A, #47416B)", borderRadius: 13, padding: 15, color: "#fff", marginBottom: 10 }}>
+            <div style={{ background: "linear-gradient(150deg, var(--c-dark), var(--c-dark2))", borderRadius: 13, padding: 15, color: "#fff", marginBottom: 10 }}>
               <div style={{ fontFamily: SG, fontWeight: 700, fontSize: 14.5 }}>{p.sideCard.title}</div>
               <div style={{ fontSize: 12, color: "#B7B4C4", margin: p.sideCard.cta ? "5px 0 11px" : "5px 0 0" }}>{p.sideCard.sub}</div>
               {p.sideCard.cta && (
-                <Link href={p.sideCard.cta.href} style={{ display: "block", textAlign: "center", fontFamily: PJ, fontWeight: 600, fontSize: 12.5, background: "#6E56F7", color: "#fff", border: "none", borderRadius: 8, padding: 8, cursor: "pointer", textDecoration: "none" }}>{p.sideCard.cta.label}</Link>
+                <Link href={p.sideCard.cta.href} style={{ display: "block", textAlign: "center", fontFamily: PJ, fontWeight: 600, fontSize: 12.5, background: "var(--c-action)", color: "#fff", border: "none", borderRadius: 8, padding: 8, cursor: "pointer", textDecoration: "none" }}>{p.sideCard.cta.label}</Link>
               )}
             </div>
           )}
           {/* User footer */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 8, borderTop: "1px solid #F0EEF6" }}>
-            <span style={{ width: 30, height: 30, borderRadius: "50%", background: "#E7E2FF", color: "#6E56F7", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13 }}>{p.userInitials}</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 8, borderTop: "1px solid var(--c-line2)" }}>
+            <span style={{ width: 30, height: 30, borderRadius: "50%", background: "#E7E2FF", color: "var(--c-action)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13 }}>{p.userInitials}</span>
             <div style={{ flex: "1 1 0%", minWidth: 0 }}>
               <div style={{ fontWeight: 600, fontSize: 13 }}>{p.userName}</div>
-              <div style={{ fontSize: 11.5, color: "#9A97A5" }}>{p.userRole}</div>
+              <div style={{ fontSize: 11.5, color: "var(--c-faint)" }}>{p.userRole}</div>
             </div>
-            <Link href="/auth/signout" title="Sign out" style={{ color: "#9A97A5", cursor: "pointer", fontSize: 15, textDecoration: "none" }}>⏻</Link>
+            <Link href="/auth/signout" title="Sign out" style={{ color: "var(--c-faint)", cursor: "pointer", fontSize: 15, textDecoration: "none" }}>⏻</Link>
           </div>
         </aside>
 
         {/* Content column */}
         <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-          <header style={{ background: "rgba(255,255,255,0.85)", backdropFilter: "blur(10px)", borderBottom: "1px solid #EEEDF3", padding: "15px 28px", display: "flex", alignItems: "center", gap: 18, position: "sticky", top: 0, zIndex: 20 }}>
+          <header style={{ background: "var(--c-glass)", backdropFilter: "blur(10px)", borderBottom: "1px solid var(--c-line2)", padding: "15px 28px", display: "flex", alignItems: "center", gap: 18, position: "sticky", top: 0, zIndex: 20 }}>
             <div>
               <h1 style={{ fontFamily: SG, fontWeight: 700, fontSize: 20, letterSpacing: "-0.01em", margin: 0 }}>{title}</h1>
-              <div style={{ fontSize: 12.5, color: "#9A97A5", marginTop: 1 }}>{p.lastScannedLabel} · {p.appName} · score {p.scoreVersion}</div>
+              <div style={{ fontSize: 12.5, color: "var(--c-faint)", marginTop: 1 }}>{p.lastScannedLabel} · {p.appName} · score {p.scoreVersion}</div>
             </div>
             <div style={{ flex: "1 1 0%" }} />
+            <ThemeToggle className="size-8" />
           </header>
           {/* Template content area — the ONLY place app pages get spacing/width.
               Every /app page renders body-only here (no own padding/margins/max-

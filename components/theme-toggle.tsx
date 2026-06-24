@@ -23,9 +23,10 @@ export function ThemeToggle({ className }: { className?: string }) {
       aria-label={resolvedTheme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
       onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
       className={cn(
-        "grid size-9 place-items-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+        "grid size-9 place-items-center rounded-full border bg-[var(--c-surface)] text-[var(--c-faint)] transition-colors hover:text-[var(--c-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-action)]/40",
         className
       )}
+      style={{ borderColor: "var(--c-line)" }}
     >
       <Moon className="size-4 dark:hidden" />
       <Sun className="hidden size-4 dark:block" />

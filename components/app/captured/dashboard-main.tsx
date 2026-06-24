@@ -39,14 +39,14 @@ export interface DashboardMainProps {
   queue: QueueItem[];
 }
 
-const TILE = ["#FFF4E0", "#EAF7EF", "#EAF1FF", "#F2EEFF"];
-const TILE_FG = ["#C98A12", "#1F9D5B", "#3B6FE0", "#6E56F7"];
+const TILE = ["#FFF4E0", "#EAF7EF", "#EAF1FF", "var(--c-soft)"];
+const TILE_FG = ["#C98A12", "#1F9D5B", "#3B6FE0", "var(--c-action)"];
 
 function yFor(s: number) { return Math.max(14, Math.min(148, 215 - 2.68 * s)); }
 
 function ScoreHistory({ history, markers, current }: { history: HistoryPoint[]; markers: Marker[]; current: number }) {
   if (history.length < 2) {
-    return <div style={{ height: 120, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: "#9A97A5" }}>Your score history starts building with weekly scans.</div>;
+    return <div style={{ height: 120, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: "var(--c-faint)" }}>Your score history starts building with weekly scans.</div>;
   }
   const n = history.length;
   const x = (i: number) => 30 + (516 * i) / (n - 1);
@@ -79,7 +79,7 @@ function ScoreHistory({ history, markers, current }: { history: HistoryPoint[]; 
       })}
       {pts.map(([px, py], i) => <circle key={i} cx={px} cy={py} r="2.6" fill="#fff" stroke="#6E56F7" strokeWidth="1.5" />)}
       <circle cx={pts[n - 1]![0]} cy={pts[n - 1]![1]} r="5.5" fill="#6E56F7" stroke="#fff" strokeWidth="2.5" />
-      <text x={pts[n - 1]![0]} y={pts[n - 1]![1] - 13} textAnchor="middle" style={{ font: `700 13px ${JM}, monospace`, fill: "#6E56F7" }}>{current}</text>
+      <text x={pts[n - 1]![0]} y={pts[n - 1]![1] - 13} textAnchor="middle" style={{ font: `700 13px ${JM}, monospace`, fill: "var(--c-action)" }}>{current}</text>
       {history.map((h, i) => <text key={i} x={x(i)} y="165" textAnchor="middle" style={{ font: `500 10px Plus Jakarta Sans, sans-serif`, fill: "#A8A6B2" }}>{h.label}</text>)}
     </svg>
   );
@@ -91,26 +91,26 @@ export function DashboardMain(p: DashboardMainProps) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "330px 1fr", gap: 20 }}>
       {/* Score card */}
-      <div style={{ background: "#fff", border: "1px solid #ECEAF3", borderRadius: 18, padding: 24, textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", boxShadow: "rgba(20,19,26,0.03) 0px 1px 2px" }}>
+      <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 18, padding: 24, textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", boxShadow: "rgba(20,19,26,0.03) 0px 1px 2px" }}>
         <svg width="220" height="220" viewBox="0 0 220 220" style={{ display: "block", ["viewTransitionName" as string]: "score-circle" }}>
           <path d={garc(40, 320)} fill="none" stroke="#EEECF5" strokeWidth="20" strokeLinecap="round" />
           <path d={garc(40, 40 + 280 * frac)} fill="none" stroke={band.fg} strokeWidth="20" strokeLinecap="round" />
-          <text x="110" y="120.08" textAnchor="middle" style={{ font: `700 56px ${JM}, monospace`, fill: "#14131A" }}>{p.score}</text>
-          <text x="110" y="141.08" textAnchor="middle" style={{ font: `600 13px ${JM}, monospace`, fill: "#9A97A5", letterSpacing: 1 }}>/ 100</text>
+          <text x="110" y="120.08" textAnchor="middle" style={{ font: `700 56px ${JM}, monospace`, fill: "var(--c-ink)" }}>{p.score}</text>
+          <text x="110" y="141.08" textAnchor="middle" style={{ font: `600 13px ${JM}, monospace`, fill: "var(--c-faint)", letterSpacing: 1 }}>/ 100</text>
         </svg>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 700, fontSize: 13, padding: "5px 13px", borderRadius: 8, marginTop: 8, fontFamily: SG, color: band.fg, background: band.bg }}>{band.label}</div>
         {p.delta !== null && (
           <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: p.delta >= 0 ? "#EAF7EF" : "#FDECEC", color: p.delta >= 0 ? "#1F9D5B" : "#E5484D", fontWeight: 700, fontSize: 12.5, padding: "5px 11px", borderRadius: 8, marginTop: 10, fontFamily: JM }}>{p.delta >= 0 ? "▲" : "▼"} {p.delta >= 0 ? "+" : ""}{p.delta} since last week</div>
         )}
-        <div style={{ width: "100%", height: 1, background: "#F0EEF6", margin: "18px 0 0" }} />
+        <div style={{ width: "100%", height: 1, background: "var(--c-line2)", margin: "18px 0 0" }} />
         <div style={{ width: "100%", textAlign: "left", marginTop: 16 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#9A97A5", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 12 }}>Pillars</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--c-faint)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 12 }}>Pillars</div>
           {p.pillars.map((pil) => {
             const c = pillarColor(pil.value);
             return (
               <div key={pil.label} style={{ marginBottom: 13 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 600, marginBottom: 5 }}><span>{pil.label}</span><span style={{ fontFamily: JM, color: c }}>{pil.value}</span></div>
-                <div style={{ height: 7, borderRadius: 4, background: "#F2F0F8", overflow: "hidden" }}><div style={{ width: `${pil.value}%`, height: "100%", background: c, borderRadius: 4 }} /></div>
+                <div style={{ height: 7, borderRadius: 4, background: "var(--c-fill)", overflow: "hidden" }}><div style={{ width: `${pil.value}%`, height: "100%", background: c, borderRadius: 4 }} /></div>
               </div>
             );
           })}
@@ -122,32 +122,32 @@ export function DashboardMain(p: DashboardMainProps) {
         {p.nextAction && (
           <div style={{ background: "linear-gradient(120deg, #F4F0FF, #FAF8FF)", border: "1px solid #E7E0FB", borderRadius: 16, padding: "20px 22px", display: "flex", alignItems: "center", gap: 18 }}>
             <div style={{ flex: "1 1 0%" }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#6E56F7", textTransform: "uppercase", letterSpacing: "0.04em" }}>Your next action</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--c-action)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Your next action</div>
               <div style={{ fontWeight: 700, fontSize: 17, fontFamily: SG, marginTop: 4 }}>{p.nextAction.title}</div>
-              <div style={{ fontSize: 13, color: "#56535F", marginTop: 2 }}>{p.nextAction.meta}</div>
+              <div style={{ fontSize: 13, color: "var(--c-muted)", marginTop: 2 }}>{p.nextAction.meta}</div>
             </div>
-            <button style={{ fontFamily: "Plus Jakarta Sans", fontWeight: 700, fontSize: 14, color: "#fff", background: "#6E56F7", border: "none", borderRadius: 10, padding: "11px 18px", cursor: "pointer", whiteSpace: "nowrap" }}>Start →</button>
+            <button style={{ fontFamily: "Plus Jakarta Sans", fontWeight: 700, fontSize: 14, color: "#fff", background: "var(--c-action)", border: "none", borderRadius: 10, padding: "11px 18px", cursor: "pointer", whiteSpace: "nowrap" }}>Start →</button>
           </div>
         )}
-        <div style={{ background: "#fff", border: "1px solid #ECEAF3", borderRadius: 16, padding: "20px 22px" }}>
+        <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16, padding: "20px 22px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <div style={{ fontWeight: 700, fontSize: 15, fontFamily: SG }}>Score history</div>
-            <span style={{ fontSize: 11.5, fontWeight: 600, color: "#6E56F7", background: "#F2EEFF", padding: "4px 10px", borderRadius: 7 }}>markers = verified fixes</span>
+            <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--c-action)", background: "var(--c-soft)", padding: "4px 10px", borderRadius: 7 }}>markers = verified fixes</span>
           </div>
           <ScoreHistory history={p.history} markers={p.markers} current={p.score} />
         </div>
-        <div style={{ background: "#fff", border: "1px solid #ECEAF3", borderRadius: 16, padding: "20px 22px" }}>
+        <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16, padding: "20px 22px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
             <div style={{ fontWeight: 700, fontSize: 15, fontFamily: SG }}>This week&apos;s queue</div>
-            <span style={{ fontSize: 13, fontWeight: 600, color: "#6E56F7", cursor: "pointer" }}>View all →</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--c-action)", cursor: "pointer" }}>View all →</span>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {p.queue.map((q, i) => (
-              <div key={q.rank} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 14px", border: "1px solid #F0EEF6", borderRadius: 11 }}>
+              <div key={q.rank} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 14px", border: "1px solid var(--c-line2)", borderRadius: 11 }}>
                 <span style={{ width: 24, height: 24, borderRadius: 7, background: TILE[i % 4], color: TILE_FG[i % 4], fontWeight: 700, fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: JM, flex: "0 0 auto" }}>{q.rank}</span>
                 <div style={{ flex: "1 1 0%" }}>
                   <div style={{ fontWeight: 600, fontSize: 14 }}>{q.title}</div>
-                  <div style={{ fontSize: 12.5, color: "#9A97A5" }}>{q.effort} · {q.pillar}</div>
+                  <div style={{ fontSize: 12.5, color: "var(--c-faint)" }}>{q.effort} · {q.pillar}</div>
                 </div>
                 <span style={{ fontFamily: JM, fontSize: 13, fontWeight: 700, color: "#1F9D5B", flex: "0 0 auto" }}>+{q.pred}</span>
               </div>

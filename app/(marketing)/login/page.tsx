@@ -33,13 +33,13 @@ export default function LoginPage({
     <main
       className="grid min-h-dvh grid-cols-1 lg:grid-cols-2"
       aria-label="Log in"
-      style={{ background: "#fff" }}
+      style={{ background: "var(--c-surface)" }}
     >
       {/* ── Form column ─────────────────────────────────────────────────── */}
       <div className="flex flex-col items-center justify-center px-(--spacing-content-x) py-(--spacing-section-y)">
         <div className="w-full max-w-sm">
           <div className="mb-8 flex flex-col gap-2">
-            <h1 className="text-3xl" style={{ fontFamily: "var(--font-display)", fontWeight: 700, letterSpacing: "-0.02em", color: "#14131A" }}>
+            <h1 className="text-3xl" style={{ fontFamily: "var(--font-display)", fontWeight: 700, letterSpacing: "-0.02em", color: "var(--c-ink)" }}>
               Welcome back
             </h1>
             <p className="text-base leading-relaxed" style={{ color: "var(--color-muted)" }}>

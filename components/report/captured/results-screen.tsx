@@ -50,7 +50,7 @@ function effortColors(effort: string) {
 function oppColors(opp: string) {
   if (/high/i.test(opp)) return { fg: "#E5484D", bg: "#FDECEC" };
   if (/med/i.test(opp)) return { fg: "#C98A12", bg: "#FFF4E0" };
-  return { fg: "#8A8794", bg: "#F2F0F8" };
+  return { fg: "var(--c-faint)", bg: "var(--c-fill)" };
 }
 
 const SG = "Space Grotesk", PJ = "Plus Jakarta Sans", JM = "JetBrains Mono";
@@ -100,7 +100,7 @@ export function ResultsScreen(p: ResultsScreenProps) {
         rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
       />
-      <main style={{ ...(p.embedded ? {} : { background: "#FAFAFC", minHeight: "100vh" }), fontFamily: PJ, color: "#14131A" }}>
+      <main style={{ ...(p.embedded ? {} : { background: "var(--c-bg2)", minHeight: "100vh" }), fontFamily: PJ, color: "var(--c-ink)" }}>
         <div style={{ maxWidth: "100%", margin: "0 auto", padding: p.embedded ? 0 : "40px clamp(24px, 4vw, 56px) 70px" }}>
           {/* Header (standalone only — the app shell provides its own header) */}
           {!p.embedded && (
@@ -115,11 +115,11 @@ export function ResultsScreen(p: ResultsScreenProps) {
               <span style={{ fontFamily: SG, fontWeight: 700, fontSize: 16 }}>ReachKit</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-              <span style={{ fontFamily: JM, fontSize: 12.5, color: "#9A97A5" }}>free scan · {p.siteLabel}</span>
+              <span style={{ fontFamily: JM, fontSize: 12.5, color: "var(--c-faint)" }}>free scan · {p.siteLabel}</span>
               {p.slug ? (
                 <CapturedShareButton slug={p.slug} score={p.score} bandLabel={band.label} siteLabel={p.siteLabel} />
               ) : (
-                <button style={{ display: "flex", alignItems: "center", gap: 7, fontFamily: PJ, fontWeight: 600, fontSize: 13.5, color: "#6E56F7", background: "#fff", border: "1.5px solid #E2DBF7", borderRadius: 9, padding: "8px 14px", cursor: "pointer" }}>
+                <button style={{ display: "flex", alignItems: "center", gap: 7, fontFamily: PJ, fontWeight: 600, fontSize: 13.5, color: "var(--c-action)", background: "var(--c-surface)", border: "1.5px solid #E2DBF7", borderRadius: 9, padding: "8px 14px", cursor: "pointer" }}>
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6E56F7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
                     <line x1="8.6" y1="13.5" x2="15.4" y2="17.5" /><line x1="15.4" y1="6.5" x2="8.6" y2="10.5" />
@@ -132,19 +132,19 @@ export function ResultsScreen(p: ResultsScreenProps) {
           )}
 
           {/* Hero: gauge + headline + pillars */}
-          <div style={{ background: "#fff", border: "1px solid #ECEAF3", borderRadius: 20, padding: 32, boxShadow: "rgba(40, 33, 84, 0.3) 0px 16px 44px -26px", display: "grid", gridTemplateColumns: "auto 1fr", gap: 34, alignItems: "center" }}>
+          <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 20, padding: 32, boxShadow: "rgba(40, 33, 84, 0.3) 0px 16px 44px -26px", display: "grid", gridTemplateColumns: "auto 1fr", gap: 34, alignItems: "center" }}>
             <div style={{ textAlign: "center" }}>
               <svg width="200" height="200" viewBox="0 0 200 200" style={{ display: "block", ["viewTransitionName" as string]: "score-circle" }}>
                 <path d={track} fill="none" stroke="#EEECF5" strokeWidth="15" strokeLinecap="round" />
                 <path d={fill} fill="none" stroke={band.fg} strokeWidth="15" strokeLinecap="round" />
-                <text x="100" y="107.2" textAnchor="middle" style={{ font: `700 40px ${JM}, monospace`, fill: "#14131A" }}>{p.score}</text>
-                <text x="100" y="126.2" textAnchor="middle" style={{ font: `600 11px ${JM}, monospace`, fill: "#9A97A5", letterSpacing: 1 }}>/ 100</text>
+                <text x="100" y="107.2" textAnchor="middle" style={{ font: `700 40px ${JM}, monospace`, fill: "var(--c-ink)" }}>{p.score}</text>
+                <text x="100" y="126.2" textAnchor="middle" style={{ font: `600 11px ${JM}, monospace`, fill: "var(--c-faint)", letterSpacing: 1 }}>/ 100</text>
               </svg>
               <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: band.bg, color: band.fg, fontWeight: 700, fontSize: 13, padding: "5px 13px", borderRadius: 8, marginTop: 8, fontFamily: SG }}>{band.label}</div>
             </div>
             <div>
               <h1 style={{ fontFamily: SG, fontWeight: 700, fontSize: 26, letterSpacing: "-0.02em", margin: "0 0 6px" }}>{p.headline}</h1>
-              <p style={{ fontSize: 15, lineHeight: 1.6, color: "#56535F", margin: "0 0 14px" }}>
+              <p style={{ fontSize: 15, lineHeight: 1.6, color: "var(--c-muted)", margin: "0 0 14px" }}>
                 {p.siteLabel} {p.intro}
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
@@ -153,10 +153,10 @@ export function ResultsScreen(p: ResultsScreenProps) {
                   return (
                     <div key={pil.label} style={{ display: "flex", alignItems: "center", gap: 12 }}>
                       <div style={{ width: 74, fontSize: 13, fontWeight: 600 }}>{pil.label}</div>
-                      <div style={{ flex: "1 1 0%", height: 8, borderRadius: 5, background: "#F2F0F8", overflow: "hidden" }}>
+                      <div style={{ flex: "1 1 0%", height: 8, borderRadius: 5, background: "var(--c-fill)", overflow: "hidden" }}>
                         <div style={{ height: "100%", borderRadius: 5, width: `${pil.value}%`, background: c }} />
                       </div>
-                      <div style={{ width: 78, fontSize: 12.5, color: "#56535F" }}>{pil.note}</div>
+                      <div style={{ width: 78, fontSize: 12.5, color: "var(--c-muted)" }}>{pil.note}</div>
                       <div style={{ width: 28, textAlign: "right", fontFamily: JM, fontWeight: 700, fontSize: 14, color: c }}>{pil.value}</div>
                     </div>
                   );
@@ -167,45 +167,45 @@ export function ResultsScreen(p: ResultsScreenProps) {
 
           {/* Top ranked fixes */}
           <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: 20, letterSpacing: "-0.01em", margin: "32px 0 6px" }}>Your top {p.fixes.length} ranked fixes</h2>
-          <p style={{ fontSize: 14, color: "#8A8794", margin: "0 0 14px" }}>Ordered by expected score impact. Free scans show {p.fixes.length} of {p.fixes.length + p.lockedCount}.</p>
+          <p style={{ fontSize: 14, color: "var(--c-faint)", margin: "0 0 14px" }}>Ordered by expected score impact. Free scans show {p.fixes.length} of {p.fixes.length + p.lockedCount}.</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {p.fixes.map((f) => {
               const ec = effortColors(f.effort);
               return (
-                <div key={f.rank} style={{ background: "#fff", border: "1px solid #ECEAF3", borderRadius: 14, padding: "18px 20px", display: "flex", alignItems: "flex-start", gap: 16 }}>
+                <div key={f.rank} style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 14, padding: "18px 20px", display: "flex", alignItems: "flex-start", gap: 16 }}>
                   <span style={{ width: 30, height: 30, borderRadius: 8, background: ec.bg, color: ec.fg, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: JM, flex: "0 0 auto" }}>{f.rank}</span>
                   <div style={{ flex: "1 1 0%" }}>
                     <div style={{ fontWeight: 600, fontSize: 15.5 }}>{f.title}</div>
-                    <div style={{ fontSize: 13.5, color: "#8A8794", marginTop: 3 }}>{f.why}</div>
+                    <div style={{ fontSize: 13.5, color: "var(--c-faint)", marginTop: 3 }}>{f.why}</div>
                     <div style={{ display: "flex", gap: 7, marginTop: 10 }}>
                       <span style={{ fontSize: 11.5, fontWeight: 600, color: ec.fg, background: ec.bg, padding: "3px 9px", borderRadius: 6 }}>{f.effort}</span>
-                      <span style={{ fontSize: 11.5, fontWeight: 600, color: "#56535F", background: "#F4F2FA", padding: "3px 9px", borderRadius: 6 }}>{f.pillar}</span>
+                      <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--c-muted)", background: "var(--c-fill)", padding: "3px 9px", borderRadius: 6 }}>{f.pillar}</span>
                     </div>
                   </div>
                   <div style={{ textAlign: "right", flex: "0 0 auto" }}>
-                    <div style={{ fontSize: 11, color: "#9A97A5", fontWeight: 600 }}>Predicted</div>
+                    <div style={{ fontSize: 11, color: "var(--c-faint)", fontWeight: 600 }}>Predicted</div>
                     <div style={{ fontFamily: JM, fontWeight: 700, fontSize: 18, color: "#1F9D5B" }}>+{f.pred}</div>
                   </div>
                 </div>
               );
             })}
             {p.lockedCount > 0 && (
-              <div style={{ position: "relative", background: "#fff", border: "1px dashed #D9D6E4", borderRadius: 14, padding: "18px 20px", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
-                <span style={{ fontSize: 14, fontWeight: 600, color: "#8A8794" }}>🔒 {p.lockedCount} more ranked fixes — worth an estimated +{p.lockedWorth} — unlock with a free account</span>
+              <div style={{ position: "relative", background: "var(--c-surface)", border: "1px dashed #D9D6E4", borderRadius: 14, padding: "18px 20px", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+                <span style={{ fontSize: 14, fontWeight: 600, color: "var(--c-faint)" }}>🔒 {p.lockedCount} more ranked fixes — worth an estimated +{p.lockedWorth} — unlock with a free account</span>
               </div>
             )}
           </div>
 
           {/* Positioning Mirror */}
           <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: 20, letterSpacing: "-0.01em", margin: "32px 0 6px" }}>Positioning Mirror</h2>
-          <p style={{ fontSize: 14, color: "#8A8794", margin: "0 0 14px" }}>Who you think you target, vs. who your page actually reads as.</p>
-          <div style={{ background: "#fff", border: "1px solid #ECEAF3", borderRadius: 16, padding: 24 }}>
+          <p style={{ fontSize: 14, color: "var(--c-faint)", margin: "0 0 14px" }}>Who you think you target, vs. who your page actually reads as.</p>
+          <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16, padding: 24 }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
               <div style={{ border: "1px solid #ECE7FB", background: "#FAF8FF", borderRadius: 12, padding: 18 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#6E56F7", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 12 }}>You think you target</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--c-action)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 12 }}>You think you target</div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {p.intendedTags.map((t) => (
-                    <span key={t} style={{ fontSize: 13, fontWeight: 600, background: "#fff", border: "1px solid #E2DEF0", color: "#3A3744", padding: "6px 12px", borderRadius: 8 }}>{t}</span>
+                    <span key={t} style={{ fontSize: 13, fontWeight: 600, background: "var(--c-surface)", border: "1px solid #E2DEF0", color: "#3A3744", padding: "6px 12px", borderRadius: 8 }}>{t}</span>
                   ))}
                 </div>
               </div>
@@ -213,7 +213,7 @@ export function ResultsScreen(p: ResultsScreenProps) {
                 <div style={{ fontSize: 12, fontWeight: 700, color: "#E0731C", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 12 }}>Your page actually reads as</div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {p.actualTags.map((t) => (
-                    <span key={t} style={{ fontSize: 13, fontWeight: 600, background: "#fff", border: "1px solid #F0E0D2", color: "#3A3744", padding: "6px 12px", borderRadius: 8 }}>{t}</span>
+                    <span key={t} style={{ fontSize: 13, fontWeight: 600, background: "var(--c-surface)", border: "1px solid #F0E0D2", color: "#3A3744", padding: "6px 12px", borderRadius: 8 }}>{t}</span>
                   ))}
                 </div>
               </div>
@@ -223,37 +223,37 @@ export function ResultsScreen(p: ResultsScreenProps) {
 
           {/* Search Gap Analysis */}
           <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: 20, letterSpacing: "-0.01em", margin: "32px 0 6px" }}>Search Gap Analysis</h2>
-          <p style={{ fontSize: 14, color: "#8A8794", margin: "0 0 14px" }}>High-intent queries your buyers use — where you&apos;re invisible.</p>
-          <div style={{ background: "#fff", border: "1px solid #ECEAF3", borderRadius: 16, overflow: "hidden" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "2.2fr 1fr 1fr 0.9fr", padding: "13px 22px", borderBottom: "1px solid #F0EEF6", fontSize: 11.5, fontWeight: 700, letterSpacing: "0.04em", color: "#9A97A5", textTransform: "uppercase", background: "#FBFAFD" }}>
+          <p style={{ fontSize: 14, color: "var(--c-faint)", margin: "0 0 14px" }}>High-intent queries your buyers use — where you&apos;re invisible.</p>
+          <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16, overflow: "hidden" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "2.2fr 1fr 1fr 0.9fr", padding: "13px 22px", borderBottom: "1px solid var(--c-line2)", fontSize: 11.5, fontWeight: 700, letterSpacing: "0.04em", color: "var(--c-faint)", textTransform: "uppercase", background: "var(--c-bg2)" }}>
               <span>Query</span><span>Volume / mo</span><span>Your rank</span><span>Opportunity</span>
             </div>
             {p.gapRows.map((g, i) => (
-              <div key={i} style={{ display: "grid", gridTemplateColumns: "2.2fr 1fr 1fr 0.9fr", padding: "14px 22px", borderBottom: "1px solid #F4F2FA", alignItems: "center" }}>
+              <div key={i} style={{ display: "grid", gridTemplateColumns: "2.2fr 1fr 1fr 0.9fr", padding: "14px 22px", borderBottom: "1px solid var(--c-fill)", alignItems: "center" }}>
                 <span style={{ fontSize: 14, fontWeight: 600 }}>{g.query}</span>
                 <span style={{ fontFamily: JM, fontSize: 13, color: "#3A3744" }}>{g.volume}</span>
                 <span style={{ fontFamily: JM, fontSize: 13, color: g.ranked ? "#3A3744" : "#E5484D" }}>{g.rank}</span>
                 <span><span style={{ fontSize: 11.5, fontWeight: 700, color: oppColors(g.opp).fg, background: oppColors(g.opp).bg, padding: "3px 10px", borderRadius: 6 }}>{g.opp}</span></span>
               </div>
             ))}
-            <div style={{ padding: "14px 22px", textAlign: "center", fontSize: 13, fontWeight: 600, color: "#6E56F7", background: "#FAF8FF", cursor: "pointer" }}>Showing {p.gapRows.length} of {p.gapTotal} queries — unlock full depth →</div>
+            <div style={{ padding: "14px 22px", textAlign: "center", fontSize: 13, fontWeight: 600, color: "var(--c-action)", background: "#FAF8FF", cursor: "pointer" }}>Showing {p.gapRows.length} of {p.gapTotal} queries — unlock full depth →</div>
           </div>
 
           {/* Evidence footnote */}
-          <div style={{ marginTop: 24, display: "flex", alignItems: "center", gap: 10, fontSize: 12.5, color: "#9A97A5", fontFamily: JM }}>
+          <div style={{ marginTop: 24, display: "flex", alignItems: "center", gap: 10, fontSize: 12.5, color: "var(--c-faint)", fontFamily: JM }}>
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#1F9D5B", display: "inline-block" }} />
             Scanned {p.siteLabel} just now · 18 signals · every claim links to extracted evidence
           </div>
 
           {/* Unlock CTA */}
           {!p.hideUnlock && (
-            <div style={{ marginTop: 18, background: "linear-gradient(135deg, #322E4A, #47416B)", borderRadius: 18, padding: "30px 32px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}>
+            <div style={{ marginTop: 18, background: "linear-gradient(135deg, var(--c-dark), var(--c-dark2))", borderRadius: 18, padding: "30px 32px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}>
               <div>
                 <h3 style={{ fontFamily: SG, fontWeight: 700, fontSize: 22, color: "#fff", margin: "0 0 6px" }}>{p.unlockTitle ?? `Unlock all ${p.fixes.length + p.lockedCount} fixes + weekly tracking`}</h3>
                 <p style={{ fontSize: 14.5, color: "#B7B4C4", margin: 0, maxWidth: 430 }}>{p.unlockSub ?? "Unlock the full report to see the full 18-signal breakdown, track your score over time, and verify each fix as you ship it."}</p>
               </div>
               {p.unlockButton ?? (
-                <button style={{ fontFamily: PJ, fontWeight: 700, fontSize: 15, color: "#14131A", background: "#fff", border: "none", borderRadius: 10, padding: "13px 24px", cursor: "pointer", whiteSpace: "nowrap" }}>Unlock full report →</button>
+                <button style={{ fontFamily: PJ, fontWeight: 700, fontSize: 15, color: "var(--c-ink)", background: "var(--c-surface)", border: "none", borderRadius: 10, padding: "13px 24px", cursor: "pointer", whiteSpace: "nowrap" }}>Unlock full report →</button>
               )}
             </div>
           )}

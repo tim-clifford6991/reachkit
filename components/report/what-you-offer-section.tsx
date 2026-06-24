@@ -40,31 +40,31 @@ export function WhatYouOfferSection({
             <h2
               id="what-you-offer-heading"
               className="mt-0.5 text-[20px] font-bold tracking-[-0.01em]"
-              style={{ color: "#14131A", fontFamily: "var(--font-display)" }}
+              style={{ color: "var(--c-ink)", fontFamily: "var(--font-display)" }}
             >
               Positioning Mirror
             </h2>
-            <p className="mt-1 text-sm" style={{ color: "#8A8794" }}>
+            <p className="mt-1 text-sm" style={{ color: "var(--c-faint)" }}>
               Who you think you target, vs. who your page actually reads as.
             </p>
           </div>
         </div>
 
         {/* White card — exact mockup styling (ReachKit.dc.html Positioning Mirror) */}
-        <div style={{ background: "#fff", border: "1px solid #ECEAF3", borderRadius: 16, padding: 24 }}>
+        <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16, padding: 24 }}>
           <div className="grid gap-5 sm:grid-cols-2">
             {/* "You think you target" — violet column */}
             <div style={{ border: "1px solid #ECE7FB", background: "#FAF8FF", borderRadius: 12, padding: 18 }}>
               <div
                 className="mb-3 text-xs font-bold uppercase"
-                style={{ color: "#6E56F7", letterSpacing: "0.04em" }}
+                style={{ color: "var(--c-action)", letterSpacing: "0.04em" }}
               >
                 You think you target
               </div>
               <div className="flex flex-wrap gap-2">
                 <span
                   className="text-[13px] font-semibold"
-                  style={{ background: "#fff", border: "1px solid #E2DEF0", color: "#3A3744", padding: "6px 12px", borderRadius: 8 }}
+                  style={{ background: "var(--c-surface)", border: "1px solid #E2DEF0", color: "#3A3744", padding: "6px 12px", borderRadius: 8 }}
                 >
                   {pm.listingSays}
                 </span>
@@ -81,7 +81,7 @@ export function WhatYouOfferSection({
               <div className="flex flex-wrap gap-2">
                 <span
                   className="text-[13px] font-semibold"
-                  style={{ background: "#fff", border: "1px solid #F0E0D2", color: "#3A3744", padding: "6px 12px", borderRadius: 8 }}
+                  style={{ background: "var(--c-surface)", border: "1px solid #F0E0D2", color: "#3A3744", padding: "6px 12px", borderRadius: 8 }}
                 >
                   {pm.reviewsValue}
                 </span>

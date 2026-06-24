@@ -76,8 +76,8 @@ export function ScanInput() {
           display: "flex",
           alignItems: "center",
           gap: 8,
-          background: "#fff",
-          border: `1px solid ${state.status === "error" ? "#E5484D" : "#ECEAF3"}`,
+          background: "var(--c-surface)",
+          border: `1px solid ${state.status === "error" ? "#E5484D" : "var(--c-line)"}`,
           borderRadius: 14,
           padding: "7px 7px 7px 18px",
           boxShadow: "0 1px 2px oklch(0.20 0.01 290 / 0.04)",
@@ -103,14 +103,14 @@ export function ScanInput() {
           aria-invalid={state.status === "error" || undefined}
           aria-describedby={state.status === "error" ? "scan-error" : undefined}
           disabled={isLoading}
-          className="placeholder:text-[#9A97A5]"
-          style={{ flex: "1 1 0%", minWidth: 0, border: "none", outline: "none", fontFamily: "var(--font-sans)", fontSize: 16, fontWeight: 500, color: "#14131A", background: "transparent" }}
+          className="placeholder:text-[var(--c-faint)]"
+          style={{ flex: "1 1 0%", minWidth: 0, border: "none", outline: "none", fontFamily: "var(--font-sans)", fontSize: 16, fontWeight: 500, color: "var(--c-ink)", background: "transparent" }}
         />
         <button
           type="submit"
           disabled={isLoading}
           className="transition-all hover:bg-[#5d46e8] active:scale-[0.99] disabled:pointer-events-none disabled:opacity-70"
-          style={{ flex: "0 0 auto", fontFamily: "var(--font-sans)", fontWeight: 700, fontSize: 15, color: "#fff", background: "#6E56F7", border: "none", borderRadius: 9, padding: "11px 20px", cursor: "pointer", whiteSpace: "nowrap" }}
+          style={{ flex: "0 0 auto", fontFamily: "var(--font-sans)", fontWeight: 700, fontSize: 15, color: "#fff", background: "var(--c-action)", border: "none", borderRadius: 9, padding: "11px 20px", cursor: "pointer", whiteSpace: "nowrap" }}
         >
           {isLoading ? (
             <span className="flex items-center justify-center gap-2">

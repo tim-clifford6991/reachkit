@@ -28,7 +28,7 @@ const HOW_TO_LD = howToLd({
 
 export default function ScanPage() {
   return (
-    <main aria-label="Scan your product" style={{ background: "#fff" }}>
+    <main aria-label="Scan your product" style={{ background: "var(--c-surface)" }}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(HOW_TO_LD) }} />
       <ScanHero />
     </main>

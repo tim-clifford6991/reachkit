@@ -89,7 +89,7 @@ export function LoginForm({ next }: { next?: string }) {
         aria-label="Email address"
         aria-invalid={state.status === "error" || undefined}
         disabled={state.status === "loading"}
-        className="h-[50px] w-full min-w-0 rounded-[12px] border bg-white px-4 text-base font-medium text-[#14131A] outline-none transition-colors placeholder:text-[#9A97A5] focus-visible:border-[#6E56F7] focus-visible:ring-4 focus-visible:ring-[#6E56F7]/15 disabled:opacity-60 border-[#ECEAF3]"
+        className="h-[50px] w-full min-w-0 rounded-[12px] border bg-white px-4 text-base font-medium text-[var(--c-ink)] outline-none transition-colors placeholder:text-[var(--c-faint)] focus-visible:border-[var(--c-action)] focus-visible:ring-4 focus-visible:ring-[var(--c-action)]/15 disabled:opacity-60 border-[var(--c-line)]"
       />
       {state.status === "error" && (
         <p className="text-sm text-destructive" role="alert">
@@ -99,7 +99,7 @@ export function LoginForm({ next }: { next?: string }) {
       <button
         type="submit"
         disabled={state.status === "loading"}
-        className="inline-flex h-[50px] w-full items-center justify-center rounded-[12px] bg-[#6E56F7] px-5 text-sm font-semibold text-white outline-none transition-all hover:bg-[#5d46e8] active:scale-[0.99] focus-visible:ring-4 focus-visible:ring-[#6E56F7]/25 disabled:pointer-events-none disabled:opacity-70"
+        className="inline-flex h-[50px] w-full items-center justify-center rounded-[12px] bg-[var(--c-action)] px-5 text-sm font-semibold text-white outline-none transition-all hover:bg-[#5d46e8] active:scale-[0.99] focus-visible:ring-4 focus-visible:ring-[var(--c-action)]/25 disabled:pointer-events-none disabled:opacity-70"
       >
         {state.status === "loading" ? "Sending…" : "Email me a magic link"}
       </button>

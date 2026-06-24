@@ -86,6 +86,26 @@
   --color-surface:  oklch(1.000 0 0);         /* card / panel (white) */
   --color-elevated: oklch(0.975 0.006 290);   /* raised: chips, sidebar, hover */
 
+  /* ── Semantic palette (Palette A · Refined Violet) — used by the captured /
+     hand-built components via var(--c-*). Light values here; .dark overrides.
+     This is the single seam that powers light/dark across the whole app. ──── */
+  --c-bg:        #FFFFFF;  /* page background */
+  --c-bg2:       #FAFAFC;  /* faint app canvas / raised sections */
+  --c-surface:   #FFFFFF;  /* cards / panels */
+  --c-ink:       #16141F;  /* primary text */
+  --c-muted:     #57536A;  /* secondary text */
+  --c-faint:     #9A97A5;  /* tertiary text / labels */
+  --c-line:      #ECEAF3;  /* hairline border */
+  --c-line2:     #EEEDF3;  /* secondary hairline */
+  --c-fill:      #F4F2FA;  /* soft neutral fill (chips, tracks) */
+  --c-action:    #6E56F7;  /* primary action (violet) */
+  --c-soft:      #F2EEFF;  /* action tint (chips, active nav) */
+  --c-dark:      #322E4A;  /* dark band / score-card surface */
+  --c-dark2:     #47416B;  /* dark band gradient end */
+  --c-on-dark:   #FFFFFF;  /* text on dark / action surfaces (stays light) */
+  --c-on-dark-muted: #B7B4C4;
+  --c-glass:     rgba(255,255,255,0.82);
+
   /* Themed hairlines + washes — Claude Design spec: #ECEAF3 cool-violet hairline */
   --hairline:        oklch(0.93 0.009 296);   /* #ECEAF3 */
   --hairline-strong: oklch(0.89 0.018 295);   /* #E2DEF0 */
@@ -280,6 +300,24 @@
 /* ── Dark — overrides shadcn slots AND every themed design token ─────────── */
 .dark {
   color-scheme: dark;
+
+  /* Semantic palette — dark counterpart of Palette A (Refined Violet on near-black). */
+  --c-bg:        #0E0D14;
+  --c-bg2:       #14131C;
+  --c-surface:   #1A1824;
+  --c-ink:       #F3F2F7;
+  --c-muted:     #A9A5B7;
+  --c-faint:     #6F6B7E;
+  --c-line:      #2A2735;
+  --c-line2:     #2A2735;
+  --c-fill:      #232029;
+  --c-action:    #8B73FF;
+  --c-soft:      #251F3D;
+  --c-dark:      #232029;
+  --c-dark2:     #322E3E;
+  --c-on-dark:   #FFFFFF;
+  --c-on-dark-muted: #B7B4C4;
+  --c-glass:     rgba(16,14,22,0.82);
 
   /* shadcn slots */
   --background:             oklch(0.17 0.012 288);

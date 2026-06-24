@@ -85,8 +85,8 @@ function ScorePanel({ teardown }: { teardown: Teardown }) {
   return (
     <div
       style={{
-        background: "#fff",
-        border: "1px solid #ECEAF3",
+        background: "var(--c-surface)",
+        border: "1px solid var(--c-line)",
         borderRadius: 16,
         padding: "22px 24px",
       }}
@@ -102,7 +102,7 @@ function ScorePanel({ teardown }: { teardown: Teardown }) {
               fontWeight: 600,
               letterSpacing: "0.12em",
               textTransform: "uppercase",
-              color: "#9A97A5",
+              color: "var(--c-faint)",
               margin: 0,
             }}
           >
@@ -122,7 +122,7 @@ function ScorePanel({ teardown }: { teardown: Teardown }) {
               {teardown.score.total}
             </span>
             <span
-              style={{ fontFamily: JM, fontSize: 14, color: "#9A97A5" }}
+              style={{ fontFamily: JM, fontSize: 14, color: "var(--c-faint)" }}
             >
               / 100
             </span>
@@ -147,7 +147,7 @@ function ScorePanel({ teardown }: { teardown: Teardown }) {
         <div
           className="shrink-0"
           style={{
-            border: "1px solid #ECEAF3",
+            border: "1px solid var(--c-line)",
             borderRadius: 8,
             padding: "5px 10px",
             fontFamily: JM,
@@ -155,7 +155,7 @@ function ScorePanel({ teardown }: { teardown: Teardown }) {
             fontWeight: 600,
             letterSpacing: "0.08em",
             textTransform: "uppercase",
-            color: "#9A97A5",
+            color: "var(--c-faint)",
           }}
         >
           {teardown.platform === "ios" ? "iOS App Store" : "Web"}
@@ -164,7 +164,7 @@ function ScorePanel({ teardown }: { teardown: Teardown }) {
 
       <div
         className="my-5 h-px"
-        style={{ background: "#ECEAF3" }}
+        style={{ background: "var(--c-line)" }}
         aria-hidden="true"
       />
 
@@ -188,14 +188,14 @@ function ScorePanel({ teardown }: { teardown: Teardown }) {
                   fontWeight: 600,
                   letterSpacing: "0.08em",
                   textTransform: "uppercase",
-                  color: "#9A97A5",
+                  color: "var(--c-faint)",
                 }}
               >
                 {label}
               </span>
               <div
                 className="relative h-1 flex-1 overflow-hidden rounded-full"
-                style={{ background: "#ECEAF3" }}
+                style={{ background: "var(--c-line)" }}
                 role="progressbar"
                 aria-valuenow={value}
                 aria-valuemin={0}
@@ -213,7 +213,7 @@ function ScorePanel({ teardown }: { teardown: Teardown }) {
                   fontFamily: JM,
                   fontSize: 12,
                   fontWeight: 600,
-                  color: "#14131A",
+                  color: "var(--c-ink)",
                   fontVariantNumeric: "tabular-nums",
                 }}
                 aria-hidden="true"
@@ -231,7 +231,7 @@ function ScorePanel({ teardown }: { teardown: Teardown }) {
         style={{
           fontFamily: JM,
           fontSize: 11,
-          color: "#9A97A5",
+          color: "var(--c-faint)",
         }}
       >
         Last verified:{" "}
@@ -254,7 +254,7 @@ function TeardownSections({ teardown }: { teardown: Teardown }) {
               fontFamily: SG,
               fontWeight: 700,
               letterSpacing: "-0.02em",
-              color: "#14131A",
+              color: "var(--c-ink)",
               lineHeight: 1.25,
             }}
           >
@@ -284,8 +284,8 @@ function TakeawaysPanel({ teardown }: { teardown: Teardown }) {
   return (
     <aside
       style={{
-        background: "#fff",
-        border: "1px solid #ECEAF3",
+        background: "var(--c-surface)",
+        border: "1px solid var(--c-line)",
         borderRadius: 16,
         padding: "22px 24px",
       }}
@@ -298,7 +298,7 @@ function TakeawaysPanel({ teardown }: { teardown: Teardown }) {
           fontWeight: 600,
           letterSpacing: "0.12em",
           textTransform: "uppercase",
-          color: "#6E56F7",
+          color: "var(--c-action)",
           margin: 0,
         }}
       >
@@ -313,7 +313,7 @@ function TakeawaysPanel({ teardown }: { teardown: Teardown }) {
                 fontFamily: JM,
                 fontSize: 12,
                 fontWeight: 700,
-                color: "#6E56F7",
+                color: "var(--c-action)",
                 fontVariantNumeric: "tabular-nums",
               }}
               aria-hidden="true"
@@ -321,7 +321,7 @@ function TakeawaysPanel({ teardown }: { teardown: Teardown }) {
               {String(i + 1).padStart(2, "0")}
             </span>
             <span
-              style={{ fontSize: 15, lineHeight: 1.6, color: "#56535F" }}
+              style={{ fontSize: 15, lineHeight: 1.6, color: "var(--c-muted)" }}
             >
               {takeaway}
             </span>
@@ -369,7 +369,7 @@ export default async function TeardownSlugPage(props: {
 
       <main
         className="mx-auto max-w-[var(--spacing-content-max)] px-(--spacing-content-x) pb-24 pt-12 sm:pt-20"
-        style={{ background: "#fff" }}
+        style={{ background: "var(--c-surface)" }}
         aria-label={teardown.title}
       >
         {/* Breadcrumb */}
@@ -385,14 +385,14 @@ export default async function TeardownSlugPage(props: {
               fontWeight: 600,
               letterSpacing: "0.08em",
               textTransform: "uppercase",
-              color: "#9A97A5",
+              color: "var(--c-faint)",
             }}
           >
             <li>
               <Link
                 href="/"
                 className="transition-opacity hover:opacity-70"
-                style={{ color: "#9A97A5" }}
+                style={{ color: "var(--c-faint)" }}
               >
                 ReachKit
               </Link>
@@ -402,13 +402,13 @@ export default async function TeardownSlugPage(props: {
               <Link
                 href="/teardowns"
                 className="transition-opacity hover:opacity-70"
-                style={{ color: "#9A97A5" }}
+                style={{ color: "var(--c-faint)" }}
               >
                 Teardowns
               </Link>
             </li>
             <li aria-hidden="true" style={{ opacity: 0.4 }}>/</li>
-            <li aria-current="page" style={{ color: "#14131A" }}>
+            <li aria-current="page" style={{ color: "var(--c-ink)" }}>
               {teardown.appName}
             </li>
           </ol>
@@ -424,7 +424,7 @@ export default async function TeardownSlugPage(props: {
               fontWeight: 600,
               letterSpacing: "0.12em",
               textTransform: "uppercase",
-              color: "#6E56F7",
+              color: "var(--c-action)",
               margin: "0 0 12px",
             }}
           >
@@ -436,7 +436,7 @@ export default async function TeardownSlugPage(props: {
               fontFamily: SG,
               fontWeight: 700,
               letterSpacing: "-0.02em",
-              color: "#14131A",
+              color: "var(--c-ink)",
               lineHeight: 1.1,
             }}
           >
@@ -444,13 +444,13 @@ export default async function TeardownSlugPage(props: {
           </h1>
           <p
             className="mt-4 max-w-2xl"
-            style={{ fontSize: 16, lineHeight: 1.6, color: "#56535F" }}
+            style={{ fontSize: 16, lineHeight: 1.6, color: "var(--c-muted)" }}
           >
             {teardown.intro}
           </p>
           <p
             className="mt-4"
-            style={{ fontFamily: JM, fontSize: 12, color: "#9A97A5" }}
+            style={{ fontFamily: JM, fontSize: 12, color: "var(--c-faint)" }}
           >
             Published{" "}
             <time dateTime={teardown.publishedAt}>
@@ -475,8 +475,8 @@ export default async function TeardownSlugPage(props: {
             <div
               className="text-center"
               style={{
-                background: "#fff",
-                border: "1px solid #ECEAF3",
+                background: "var(--c-surface)",
+                border: "1px solid var(--c-line)",
                 borderRadius: 16,
                 padding: "22px 24px",
               }}
@@ -487,7 +487,7 @@ export default async function TeardownSlugPage(props: {
                   fontWeight: 700,
                   letterSpacing: "-0.02em",
                   fontSize: 16,
-                  color: "#14131A",
+                  color: "var(--c-ink)",
                   margin: 0,
                 }}
               >
@@ -495,7 +495,7 @@ export default async function TeardownSlugPage(props: {
               </p>
               <p
                 className="mt-1.5"
-                style={{ fontSize: 15, lineHeight: 1.6, color: "#56535F" }}
+                style={{ fontSize: 15, lineHeight: 1.6, color: "var(--c-muted)" }}
               >
                 Run a free scan and see your discoverability gaps in 90 seconds.
               </p>
@@ -503,7 +503,7 @@ export default async function TeardownSlugPage(props: {
                 href="/scan"
                 className="mt-4 inline-flex items-center"
                 style={{
-                  background: "#6E56F7",
+                  background: "var(--c-action)",
                   color: "#fff",
                   borderRadius: 10,
                   padding: "11px 20px",
@@ -520,7 +520,7 @@ export default async function TeardownSlugPage(props: {
         </div>
 
         {/* Back link */}
-        <div className="mt-16 pt-8" style={{ borderTop: "1px solid #ECEAF3" }}>
+        <div className="mt-16 pt-8" style={{ borderTop: "1px solid var(--c-line)" }}>
           <Link
             href="/teardowns"
             className="transition-opacity hover:opacity-70"
@@ -528,7 +528,7 @@ export default async function TeardownSlugPage(props: {
               fontFamily: SANS,
               fontSize: 14,
               fontWeight: 600,
-              color: "#6E56F7",
+              color: "var(--c-action)",
             }}
           >
             ← All teardowns

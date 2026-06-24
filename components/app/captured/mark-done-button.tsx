@@ -36,7 +36,7 @@ export function MarkDoneButton({ actionId }: { actionId: string }) {
       type="button"
       onClick={mark}
       disabled={done || pending}
-      style={{ marginTop: 8, fontFamily: "Plus Jakarta Sans, sans-serif", fontWeight: 600, fontSize: 12.5, color: "#fff", background: done ? "#9A88FF" : "#6E56F7", border: "none", borderRadius: 8, padding: "7px 14px", cursor: done ? "default" : "pointer", whiteSpace: "nowrap" }}
+      style={{ marginTop: 8, fontFamily: "Plus Jakarta Sans, sans-serif", fontWeight: 600, fontSize: 12.5, color: "#fff", background: done ? "#9A88FF" : "var(--c-action)", border: "none", borderRadius: 8, padding: "7px 14px", cursor: done ? "default" : "pointer", whiteSpace: "nowrap" }}
     >
       {done ? "Verifying…" : "Mark done"}
     </button>

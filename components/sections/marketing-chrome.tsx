@@ -27,10 +27,10 @@ export function MarketingChrome({
 }) {
   const pathname = usePathname();
   if (FULL_BLEED.has(pathname)) {
-    return <div className="flex min-h-dvh flex-col" style={{ background: "#fff" }}>{children}</div>;
+    return <div className="flex min-h-dvh flex-col" style={{ background: "var(--c-surface)" }}>{children}</div>;
   }
   return (
-    <div className="flex min-h-dvh flex-col overflow-x-hidden" style={{ background: "#fff" }}>
+    <div className="flex min-h-dvh flex-col overflow-x-hidden" style={{ background: "var(--c-surface)" }}>
       {nav}
       <div className="flex-1">{children}</div>
       <Footer content={footer} />

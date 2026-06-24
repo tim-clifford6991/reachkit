@@ -80,7 +80,7 @@ async function PlaysContent() {
 
 function PlaysEmpty({ label }: { label: string }) {
   return (
-    <div style={{ background: "#fff", border: "1px dashed #ECEAF3", borderRadius: 16, padding: "48px 24px", textAlign: "center", fontSize: 14, color: "#9A97A5" }}>
+    <div style={{ background: "var(--c-surface)", border: "1px dashed var(--c-line)", borderRadius: 16, padding: "48px 24px", textAlign: "center", fontSize: 14, color: "var(--c-faint)" }}>
       {label}
     </div>
   );
@@ -88,12 +88,12 @@ function PlaysEmpty({ label }: { label: string }) {
 
 function PlaysUpgradeWall() {
   return (
-    <div style={{ maxWidth: 560, margin: "40px auto 0", background: "#fff", border: "1px solid #ECEAF3", borderRadius: 18, padding: "36px 32px", textAlign: "center" }}>
-      <div style={{ fontFamily: "Space Grotesk", fontWeight: 700, fontSize: 20, color: "#14131A" }}>Your weekly action queue is a paid surface</div>
-      <p style={{ fontSize: 14.5, color: "#56535F", margin: "10px auto 20px", maxWidth: 420 }}>
+    <div style={{ maxWidth: 560, margin: "40px auto 0", background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 18, padding: "36px 32px", textAlign: "center" }}>
+      <div style={{ fontFamily: "Space Grotesk", fontWeight: 700, fontSize: 20, color: "var(--c-ink)" }}>Your weekly action queue is a paid surface</div>
+      <p style={{ fontSize: 14.5, color: "var(--c-muted)", margin: "10px auto 20px", maxWidth: 420 }}>
         Upgrade to get a ranked, drafted queue every week — and verification that each fix actually shipped.
       </p>
-      <Link href="/app/billing" style={{ display: "inline-block", fontFamily: "Plus Jakarta Sans", fontWeight: 700, fontSize: 15, color: "#fff", background: "#6E56F7", borderRadius: 10, padding: "12px 22px", textDecoration: "none" }}>
+      <Link href="/app/billing" style={{ display: "inline-block", fontFamily: "Plus Jakarta Sans", fontWeight: 700, fontSize: 15, color: "#fff", background: "var(--c-action)", borderRadius: 10, padding: "12px 22px", textDecoration: "none" }}>
         Upgrade →
       </Link>
     </div>

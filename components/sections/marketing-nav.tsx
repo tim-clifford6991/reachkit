@@ -9,6 +9,7 @@
 import Link from "next/link";
 import { Wordmark } from "@/components/brand/logo";
 import { MobileMenu } from "./mobile-menu";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const LINKS = [
   { label: "Product", href: "/how-it-works" },
@@ -23,7 +24,7 @@ const focusRing = "focus-visible:outline-none focus-visible:ring-2 focus-visible
 export function MarketingNav({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
   return (
     <header
-      style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(255,255,255,0.82)", backdropFilter: "blur(14px)", borderBottom: "1px solid #EEEDF3" }}
+      style={{ position: "sticky", top: 0, zIndex: 50, background: "var(--c-glass)", backdropFilter: "blur(14px)", borderBottom: "1px solid var(--c-line2)" }}
     >
       <nav
         className="mx-auto flex items-center gap-[30px]"
@@ -36,7 +37,7 @@ export function MarketingNav({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
 
         <div className="hidden items-center gap-6 sm:flex">
           {LINKS.map((l) => (
-            <Link key={l.href} href={l.href} className={`transition-colors hover:text-[#14131A] ${focusRing}`} style={{ fontSize: 14.5, fontWeight: 500, color: "#56535F" }}>
+            <Link key={l.href} href={l.href} className={`transition-colors hover:text-[var(--c-ink)] ${focusRing}`} style={{ fontSize: 14.5, fontWeight: 500, color: "var(--c-muted)" }}>
               {l.label}
             </Link>
           ))}
@@ -45,6 +46,7 @@ export function MarketingNav({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
         <div className="flex-1" />
 
         <div className="flex items-center gap-3.5">
+          <ThemeToggle className="size-8" />
           {/* Logged in: one "Dashboard" link + a primary "New scan" CTA (run an
               additional free scan). Logged out: "Log in" + "Analyze my site". */}
           <Link
@@ -57,7 +59,7 @@ export function MarketingNav({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
           <Link
             href="/scan"
             className={`inline-flex items-center transition-transform hover:-translate-y-px motion-reduce:transform-none ${focusRing}`}
-            style={{ fontFamily: "Plus Jakarta Sans, sans-serif", fontWeight: 600, fontSize: 14, color: "#fff", background: "#322E4A", borderRadius: 9, padding: "9px 16px" }}
+            style={{ fontFamily: "Plus Jakarta Sans, sans-serif", fontWeight: 600, fontSize: 14, color: "#fff", background: "var(--c-dark)", borderRadius: 9, padding: "9px 16px" }}
           >
             {isLoggedIn ? "New scan" : "Analyze my site"}
           </Link>

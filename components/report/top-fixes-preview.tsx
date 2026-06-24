@@ -36,8 +36,8 @@ function FixRow({ action, rank }: { action: ActionCard; rank: number }) {
   return (
     <div
       style={{
-        background: "#fff",
-        border: "1px solid #ECEAF3",
+        background: "var(--c-surface)",
+        border: "1px solid var(--c-line)",
         borderRadius: 14,
         padding: "18px 20px",
         display: "flex",
@@ -63,19 +63,19 @@ function FixRow({ action, rank }: { action: ActionCard; rank: number }) {
         {rank}
       </span>
       <div style={{ flex: 1 }}>
-        <div style={{ fontWeight: 600, fontSize: "15.5px", color: "#14131A" }}>{action.title}</div>
-        <div style={{ fontSize: "13.5px", color: "#8A8794", marginTop: 3 }}>{action.why}</div>
+        <div style={{ fontWeight: 600, fontSize: "15.5px", color: "var(--c-ink)" }}>{action.title}</div>
+        <div style={{ fontSize: "13.5px", color: "var(--c-faint)", marginTop: 3 }}>{action.why}</div>
         <div style={{ display: "flex", gap: 7, marginTop: 10 }}>
           <span style={{ fontSize: "11.5px", fontWeight: 600, color: ec.fg, background: ec.bg, padding: "3px 9px", borderRadius: 6 }}>
             {effort}
           </span>
-          <span style={{ fontSize: "11.5px", fontWeight: 600, color: "#56535F", background: "#F4F2FA", padding: "3px 9px", borderRadius: 6 }}>
+          <span style={{ fontSize: "11.5px", fontWeight: 600, color: "var(--c-muted)", background: "var(--c-fill)", padding: "3px 9px", borderRadius: 6 }}>
             {pillar}
           </span>
         </div>
       </div>
       <div style={{ textAlign: "right", flex: "none" }}>
-        <div style={{ fontSize: 11, color: "#9A97A5", fontWeight: 600 }}>Predicted</div>
+        <div style={{ fontSize: 11, color: "var(--c-faint)", fontWeight: 600 }}>Predicted</div>
         <div style={{ fontFamily: "var(--font-mono)", fontWeight: 700, fontSize: 18, color: "#1F9D5B" }}>
           +{delta}
         </div>
@@ -103,11 +103,11 @@ export function TopFixesPreview({ whatToDoThisWeek }: { whatToDoThisWeek: Report
     <section aria-label="Your top 3 ranked fixes">
       <h2
         className="text-[20px] font-bold tracking-[-0.01em]"
-        style={{ color: "#14131A", fontFamily: "var(--font-display)", margin: "0 0 6px" }}
+        style={{ color: "var(--c-ink)", fontFamily: "var(--font-display)", margin: "0 0 6px" }}
       >
         Your top {top.length} ranked fixes
       </h2>
-      <p style={{ fontSize: 14, color: "#8A8794", margin: "0 0 14px" }}>
+      <p style={{ fontSize: 14, color: "var(--c-faint)", margin: "0 0 14px" }}>
         Ordered by expected score impact. Free scans show {top.length} of {ranked.length}.
       </p>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -117,7 +117,7 @@ export function TopFixesPreview({ whatToDoThisWeek }: { whatToDoThisWeek: Report
         {rest.length > 0 && (
           <div
             style={{
-              background: "#fff",
+              background: "var(--c-surface)",
               border: "1px dashed #D9D6E4",
               borderRadius: 14,
               padding: "18px 20px",
@@ -126,7 +126,7 @@ export function TopFixesPreview({ whatToDoThisWeek }: { whatToDoThisWeek: Report
               justifyContent: "center",
               gap: 10,
               fontSize: 14,
-              color: "#8A8794",
+              color: "var(--c-faint)",
             }}
           >
             🔒 {rest.length} more ranked fixes{restWorth > 0 ? ` — worth an estimated +${restWorth}` : ""}

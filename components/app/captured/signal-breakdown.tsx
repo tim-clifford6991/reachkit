@@ -43,20 +43,20 @@ export function CapturedSignalBreakdown({ groups }: { groups: BreakdownGroupView
   const [open, setOpen] = useState<string | null>(groups[0]?.pillar ?? null);
 
   return (
-    <div style={{ marginTop: 18, background: "#fff", border: "1px solid #ECEAF3", borderRadius: 18, padding: "24px 26px" }}>
+    <div style={{ marginTop: 18, background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 18, padding: "24px 26px" }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-        <span style={{ fontFamily: JM, fontSize: 13, color: "#6E56F7", fontWeight: 700 }}>Q4</span>
-        <h3 style={{ fontFamily: SG, fontWeight: 700, fontSize: 18, margin: 0, color: "#14131A" }}>How your score is calculated</h3>
+        <span style={{ fontFamily: JM, fontSize: 13, color: "var(--c-action)", fontWeight: 700 }}>Q4</span>
+        <h3 style={{ fontFamily: SG, fontWeight: 700, fontSize: 18, margin: 0, color: "var(--c-ink)" }}>How your score is calculated</h3>
       </div>
-      <p style={{ fontSize: 13.5, color: "#8A8794", margin: "6px 0 14px" }}>All {total} signals across {groups.length} pillars. Click a pillar to expand.</p>
+      <p style={{ fontSize: 13.5, color: "var(--c-faint)", margin: "6px 0 14px" }}>All {total} signals across {groups.length} pillars. Click a pillar to expand.</p>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {groups.map((g) => {
-          const tint = PILLAR_TINT[g.label] ?? { bg: "#F2EEFF", fg: "#6E56F7" };
+          const tint = PILLAR_TINT[g.label] ?? { bg: "var(--c-soft)", fg: "var(--c-action)" };
           const pts = g.signals.reduce((s, x) => s + (x.contribution ?? 0), 0);
           const isOpen = open === g.pillar;
           return (
-            <div key={g.pillar} style={{ background: "#fff", border: "1px solid #ECEAF3", borderRadius: 14, overflow: "hidden" }}>
+            <div key={g.pillar} style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 14, overflow: "hidden" }}>
               <button
                 type="button"
                 onClick={() => setOpen(isOpen ? null : g.pillar)}
@@ -64,25 +64,25 @@ export function CapturedSignalBreakdown({ groups }: { groups: BreakdownGroupView
               >
                 <span style={{ width: 34, height: 34, borderRadius: 9, background: tint.bg, color: tint.fg, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontFamily: JM }}>{g.label.charAt(0)}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontFamily: SG, fontWeight: 700, fontSize: 15, color: "#14131A" }}>{g.label}</div>
-                  <div style={{ fontSize: 12.5, color: "#9A97A5" }}>{g.signals.length} signals · +{Math.round(pts)} pts</div>
+                  <div style={{ fontFamily: SG, fontWeight: 700, fontSize: 15, color: "var(--c-ink)" }}>{g.label}</div>
+                  <div style={{ fontSize: 12.5, color: "var(--c-faint)" }}>{g.signals.length} signals · +{Math.round(pts)} pts</div>
                 </div>
-                <span style={{ color: "#9A97A5", fontSize: 12, transform: isOpen ? "rotate(180deg)" : "none", transition: "transform .15s" }}>▾</span>
+                <span style={{ color: "var(--c-faint)", fontSize: 12, transform: isOpen ? "rotate(180deg)" : "none", transition: "transform .15s" }}>▾</span>
               </button>
               {isOpen && (
-                <div style={{ borderTop: "1px solid #F0EEF6", padding: "6px 20px 14px" }}>
+                <div style={{ borderTop: "1px solid var(--c-line2)", padding: "6px 20px 14px" }}>
                   {g.signals.map((s) => {
                     const sc = stateColor(s.state);
                     return (
-                      <div key={s.key} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "11px 0", borderBottom: "1px solid #F6F5FA" }}>
+                      <div key={s.key} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "11px 0", borderBottom: "1px solid var(--c-line2)" }}>
                         <span style={{ width: 8, height: 8, borderRadius: "50%", background: sc.dot, flex: "0 0 auto", marginTop: 6 }} />
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontFamily: PJ, fontWeight: 600, fontSize: 13.5, color: "#14131A" }}>{s.label}</div>
-                          <div style={{ fontSize: 12.5, color: "#8A8794", marginTop: 2, lineHeight: 1.45 }}>{s.why}</div>
+                          <div style={{ fontFamily: PJ, fontWeight: 600, fontSize: 13.5, color: "var(--c-ink)" }}>{s.label}</div>
+                          <div style={{ fontSize: 12.5, color: "var(--c-faint)", marginTop: 2, lineHeight: 1.45 }}>{s.why}</div>
                         </div>
                         <div style={{ textAlign: "right", flex: "0 0 auto" }}>
                           <div style={{ fontFamily: JM, fontWeight: 700, fontSize: 13, color: sc.dot }}>{s.contribution != null ? `+${Math.round(s.contribution)}` : "—"}</div>
-                          <div style={{ fontSize: 10.5, color: "#9A97A5" }}>{sc.label}</div>
+                          <div style={{ fontSize: 10.5, color: "var(--c-faint)" }}>{sc.label}</div>
                         </div>
                       </div>
                     );

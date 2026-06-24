@@ -22,11 +22,11 @@ export const metadata = buildMetadata({ title: "Billing", path: "/app/billing" }
 // ---------------------------------------------------------------------------
 
 const SG = "Space Grotesk", JM = "JetBrains Mono", PJ = "Plus Jakarta Sans";
-const INK = "#14131A", BODY = "#56535F", FAINT = "#9A97A5", VIOLET = "#6E56F7";
-const CARD_BORDER = "#ECEAF3";
+const INK = "var(--c-ink)", BODY = "var(--c-muted)", FAINT = "var(--c-faint)", VIOLET = "var(--c-action)";
+const CARD_BORDER = "var(--c-line)";
 
 const cardStyle: React.CSSProperties = {
-  background: "#fff",
+  background: "var(--c-surface)",
   border: `1px solid ${CARD_BORDER}`,
   borderRadius: 16,
   padding: "22px 24px",
@@ -302,7 +302,7 @@ function TierComparisonTable({ currentTier }: { currentTier: Tier }) {
               <tr
                 key={row.feature}
                 style={{
-                  borderTop: i === 0 ? undefined : "1px solid #F4F2FA",
+                  borderTop: i === 0 ? undefined : "1px solid var(--c-fill)",
                 }}
               >
                 <td style={{ padding: "9px 16px 9px 0", color: BODY }}>

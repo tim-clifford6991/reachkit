@@ -25,7 +25,7 @@ async function HistoryContent() {
   const primaryAppId = await activeAppId(user);
   if (!primaryAppId) {
     return (
-      <div style={{ background: "#fff", border: "1px dashed #ECEAF3", borderRadius: 16, padding: "48px 24px", textAlign: "center", fontSize: 14, color: "#9A97A5" }}>
+      <div style={{ background: "var(--c-surface)", border: "1px dashed var(--c-line)", borderRadius: 16, padding: "48px 24px", textAlign: "center", fontSize: 14, color: "var(--c-faint)" }}>
         Run your first scan to start building a score history.
       </div>
     );

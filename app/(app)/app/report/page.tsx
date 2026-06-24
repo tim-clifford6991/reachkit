@@ -85,7 +85,7 @@ async function ReportContent() {
         unlockSub="See the full 18-signal breakdown, weekly tracking, and verification — upgrade your plan to continue."
         unlockButton={
           userIsPaid ? undefined : (
-            <a href="/app/billing" style={{ fontFamily: "Plus Jakarta Sans, sans-serif", fontWeight: 700, fontSize: 15, color: "#14131A", background: "#fff", borderRadius: 10, padding: "13px 24px", whiteSpace: "nowrap", textDecoration: "none" }}>
+            <a href="/app/billing" style={{ fontFamily: "Plus Jakarta Sans, sans-serif", fontWeight: 700, fontSize: 15, color: "var(--c-ink)", background: "var(--c-surface)", borderRadius: 10, padding: "13px 24px", whiteSpace: "nowrap", textDecoration: "none" }}>
               Upgrade plan →
             </a>
           )

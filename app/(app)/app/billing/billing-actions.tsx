@@ -22,11 +22,11 @@ type ButtonState = "idle" | "loading" | "error";
 // ---------------------------------------------------------------------------
 
 const SG = "Space Grotesk", JM = "JetBrains Mono", PJ = "Plus Jakarta Sans";
-const INK = "#14131A", BODY = "#56535F", FAINT = "#9A97A5", VIOLET = "#6E56F7";
-const CARD_BORDER = "#ECEAF3";
+const INK = "var(--c-ink)", BODY = "var(--c-muted)", FAINT = "var(--c-faint)", VIOLET = "var(--c-action)";
+const CARD_BORDER = "var(--c-line)";
 
 const cardStyle: React.CSSProperties = {
-  background: "#fff",
+  background: "var(--c-surface)",
   border: `1px solid ${CARD_BORDER}`,
   borderRadius: 16,
   padding: "22px 24px",
@@ -102,7 +102,7 @@ function UpgradeButton({
         borderRadius: 10,
         padding: "12px 16px",
         border: highlighted ? `1.5px solid ${VIOLET}` : `1px solid ${CARD_BORDER}`,
-        background: highlighted ? "#F2EEFF" : "#fff",
+        background: highlighted ? "var(--c-soft)" : "var(--c-surface)",
         transition: "all 0.15s ease",
       }}
     >
@@ -176,7 +176,7 @@ function ManageBillingButton() {
         fontSize: 14,
         fontWeight: 600,
         color: INK,
-        background: "#fff",
+        background: "var(--c-surface)",
         cursor: isLoading ? "default" : "pointer",
         opacity: isLoading ? 0.6 : 1,
         transition: "all 0.15s ease",
