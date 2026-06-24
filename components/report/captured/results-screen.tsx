@@ -201,7 +201,7 @@ export function ResultsScreen(p: ResultsScreenProps) {
           <p style={{ fontSize: 14, color: "var(--c-faint)", margin: "0 0 14px" }}>Who you think you target, vs. who your page actually reads as.</p>
           <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16, padding: 24 }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-              <div style={{ border: "1px solid #ECE7FB", background: "#FAF8FF", borderRadius: 12, padding: 18 }}>
+              <div style={{ border: "1px solid var(--c-tint-violet-line)", background: "var(--c-tint-violet)", borderRadius: 12, padding: 18 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "var(--c-action)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 12 }}>You think you target</div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {p.intendedTags.map((t) => (
@@ -209,7 +209,7 @@ export function ResultsScreen(p: ResultsScreenProps) {
                   ))}
                 </div>
               </div>
-              <div style={{ border: "1px solid #F0E4DA", background: "#FFFAF6", borderRadius: 12, padding: 18 }}>
+              <div style={{ border: "1px solid var(--c-tint-orange-line)", background: "var(--c-tint-orange)", borderRadius: 12, padding: 18 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "#E0731C", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 12 }}>Your page actually reads as</div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {p.actualTags.map((t) => (
@@ -218,7 +218,7 @@ export function ResultsScreen(p: ResultsScreenProps) {
                 </div>
               </div>
             </div>
-            <div style={{ marginTop: 18, padding: "16px 18px", background: "#FDF6F6", borderLeft: "3px solid #E5484D", borderRadius: "0 10px 10px 0", fontSize: 14.5, lineHeight: 1.55, color: "#3A3744" }}>{p.mirrorGap}</div>
+            <div style={{ marginTop: 18, padding: "16px 18px", background: "var(--c-tint-red)", borderLeft: "3px solid #E5484D", borderRadius: "0 10px 10px 0", fontSize: 14.5, lineHeight: 1.55, color: "#3A3744" }}>{p.mirrorGap}</div>
           </div>
 
           {/* Search Gap Analysis */}
@@ -236,7 +236,7 @@ export function ResultsScreen(p: ResultsScreenProps) {
                 <span><span style={{ fontSize: 11.5, fontWeight: 700, color: oppColors(g.opp).fg, background: oppColors(g.opp).bg, padding: "3px 10px", borderRadius: 6 }}>{g.opp}</span></span>
               </div>
             ))}
-            <div style={{ padding: "14px 22px", textAlign: "center", fontSize: 13, fontWeight: 600, color: "var(--c-action)", background: "#FAF8FF", cursor: "pointer" }}>Showing {p.gapRows.length} of {p.gapTotal} queries — unlock full depth →</div>
+            <div style={{ padding: "14px 22px", textAlign: "center", fontSize: 13, fontWeight: 600, color: "var(--c-action)", background: "var(--c-tint-violet)", cursor: "pointer" }}>Showing {p.gapRows.length} of {p.gapTotal} queries — unlock full depth →</div>
           </div>
 
           {/* Evidence footnote */}

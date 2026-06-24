@@ -105,6 +105,9 @@
   --c-on-dark:   #FFFFFF;  /* text on dark / action surfaces (stays light) */
   --c-on-dark-muted: #B7B4C4;
   --c-glass:     rgba(255,255,255,0.82);
+  --c-tint-violet: #FAF8FF; --c-tint-violet-line: #ECE7FB;
+  --c-tint-orange: #FFFAF6; --c-tint-orange-line: #F0E4DA;
+  --c-tint-red: #FDF6F6;
 
   /* Themed hairlines + washes — Claude Design spec: #ECEAF3 cool-violet hairline */
   --hairline:        oklch(0.93 0.009 296);   /* #ECEAF3 */
@@ -318,6 +321,9 @@
   --c-on-dark:   #FFFFFF;
   --c-on-dark-muted: #B7B4C4;
   --c-glass:     rgba(16,14,22,0.82);
+  --c-tint-violet: #211D33; --c-tint-violet-line: #312B49;
+  --c-tint-orange: #2A2017; --c-tint-orange-line: #3C2F21;
+  --c-tint-red: #2E1C1C;
 
   /* shadcn slots */
   --background:             oklch(0.17 0.012 288);

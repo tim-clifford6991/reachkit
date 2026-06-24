@@ -54,7 +54,7 @@ export function WhatYouOfferSection({
         <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16, padding: 24 }}>
           <div className="grid gap-5 sm:grid-cols-2">
             {/* "You think you target" — violet column */}
-            <div style={{ border: "1px solid #ECE7FB", background: "#FAF8FF", borderRadius: 12, padding: 18 }}>
+            <div style={{ border: "1px solid var(--c-tint-violet-line)", background: "var(--c-tint-violet)", borderRadius: 12, padding: 18 }}>
               <div
                 className="mb-3 text-xs font-bold uppercase"
                 style={{ color: "var(--c-action)", letterSpacing: "0.04em" }}
@@ -71,7 +71,7 @@ export function WhatYouOfferSection({
               </div>
             </div>
             {/* "Your page actually reads as" — orange column */}
-            <div style={{ border: "1px solid #F0E4DA", background: "#FFFAF6", borderRadius: 12, padding: 18 }}>
+            <div style={{ border: "1px solid var(--c-tint-orange-line)", background: "var(--c-tint-orange)", borderRadius: 12, padding: 18 }}>
               <div
                 className="mb-3 text-xs font-bold uppercase"
                 style={{ color: "#E0731C", letterSpacing: "0.04em" }}
@@ -94,7 +94,7 @@ export function WhatYouOfferSection({
             style={{
               marginTop: 18,
               padding: "16px 18px",
-              background: unlocked ? "#FDF6F6" : "var(--fill-subtle)",
+              background: unlocked ? "var(--c-tint-red)" : "var(--fill-subtle)",
               borderLeft: unlocked ? "3px solid #E5484D" : "3px solid var(--hairline)",
               borderRadius: "0 10px 10px 0",
               fontSize: "14.5px",
