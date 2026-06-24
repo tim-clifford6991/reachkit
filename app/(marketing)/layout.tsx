@@ -5,9 +5,10 @@
  * Lenis/GSAP motion lives in the client MotionProvider.
  */
 
-import type { ReactNode } from "react";
+import { type ReactNode, Suspense } from "react";
 import { currentUser } from "@/lib/auth/server";
 import { type FooterContent } from "@/components/sections/footer";
+import { MarketingNav } from "@/components/sections/marketing-nav";
 import { MotionProvider } from "@/components/sections/motion-provider";
 import { MarketingChrome } from "@/components/sections/marketing-chrome";
 
@@ -67,10 +68,26 @@ const FOOTER_CONTENT: FooterContent = {
   attribution: "Built for founders who ship",
 };
 
-export default async function MarketingLayout({ children }: { children: ReactNode }) {
+// Auth-aware nav isolated in its own async component: reading the session
+// (cookies) is uncached/dynamic, so it MUST sit inside a <Suspense> boundary —
+// otherwise it blocks static prerendering of every marketing page (Next 16
+// cacheComponents). The static shell renders with the logged-out nav; the
+// logged-in state streams in.
+async function AuthNav() {
   const viewer = await currentUser();
+  return <MarketingNav isLoggedIn={!!viewer} />;
+}
+
+export default function MarketingLayout({ children }: { children: ReactNode }) {
   return (
-    <MarketingChrome isLoggedIn={!!viewer} footer={FOOTER_CONTENT}>
+    <MarketingChrome
+      footer={FOOTER_CONTENT}
+      nav={
+        <Suspense fallback={<MarketingNav isLoggedIn={false} />}>
+          <AuthNav />
+        </Suspense>
+      }
+    >
       <MotionProvider>{children}</MotionProvider>
     </MarketingChrome>
   );
