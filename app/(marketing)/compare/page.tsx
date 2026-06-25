@@ -19,6 +19,12 @@ const COMPARISONS = [
   { slug: "sparktoro", name: "SparkToro", tagline: "Audience research", blurb: "Great for finding where an audience hangs out. ReachKit fixes your own discoverability with a ranked, weekly plan." },
   { slug: "ahrefs", name: "Ahrefs", tagline: "SEO toolset", blurb: "A deep SEO suite for agencies. ReachKit scores App Store + web and turns it into a small weekly to-do list at indie pricing." },
   { slug: "chatgpt", name: "ChatGPT", tagline: "General AI assistant", blurb: "Generic advice from what you tell it. ReachKit reads your real page and grounds every fix in evidence — no hallucinations." },
+  { slug: "semrush", name: "Semrush", tagline: "Marketing suite", blurb: "An all-in-one suite for marketing teams. ReachKit does one thing for solo founders: scores your listing and hands you a ranked weekly plan with draft copy." },
+  { slug: "moz", name: "Moz", tagline: "SEO software", blurb: "Loved SEO software for Domain Authority and rank tracking. ReachKit scores App Store + web, names your positioning gap, and turns it into a weekly to-do list." },
+  { slug: "ubersuggest", name: "Ubersuggest", tagline: "Budget SEO", blurb: "Affordable keyword and content ideas. ReachKit centres on your own page — an 18-signal score and a ranked, verified weekly plan instead of a keyword list." },
+  { slug: "google-search-console", name: "Google Search Console", tagline: "Search data", blurb: "Google's free source of truth for impressions and queries. ReachKit reads those signals, scores them, and explains the fixes in a ranked weekly plan." },
+  { slug: "appfigures", name: "Appfigures", tagline: "ASO analytics", blurb: "Strong App Store keyword and revenue analytics. ReachKit isn't a dashboard — it scores your listing, names your positioning gap, and plans the fixes, web included." },
+  { slug: "surfer-seo", name: "Surfer SEO", tagline: "Content optimization", blurb: "Great at optimizing a single article against the SERP. ReachKit works one level up: a whole-listing score for App Store + web and a ranked weekly action plan." },
 ];
 
 const SG = "var(--font-display)", JM = "var(--font-mono)";

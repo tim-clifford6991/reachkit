@@ -1,5 +1,5 @@
 /**
- * Teardown registry — all 5 launch analyses indexed by slug.
+ * Teardown registry — all 9 analyses indexed by slug.
  *
  * Import this registry in pages that need to look up teardowns by slug
  * (`teardownBySlug`) or render the full list (`allTeardowns`).
@@ -13,9 +13,17 @@ import opal from "./opal";
 import cardpointers from "./cardpointers";
 import sofa from "./sofa";
 import nudgi from "./nudgi";
+import plausible from "./plausible";
+import calCom from "./cal-com";
+import raycast from "./raycast";
+import reflect from "./reflect";
 
 /** All teardowns ordered for display (most recently published first). */
 export const allTeardowns: readonly Teardown[] = [
+  reflect,
+  raycast,
+  calCom,
+  plausible,
   bearable,
   opal,
   cardpointers,

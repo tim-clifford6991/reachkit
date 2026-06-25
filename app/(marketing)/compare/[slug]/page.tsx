@@ -64,6 +64,96 @@ const COMPETITORS: Record<string, Competitor> = {
       { capability: "Free to start", cells: [check, check] },
     ],
   },
+  semrush: {
+    name: "Semrush",
+    tagline: "marketing suite",
+    intro:
+      "Semrush is an all-in-one suite — keyword research, backlink index, rank tracking, site audits and more — built for marketing teams. ReachKit does one thing for solo founders: it scores your live App Store listing or website and hands you a small, ranked weekly action plan with draft copy, at indie pricing.",
+    rows: [
+      { capability: "Discoverability score for App Store + web", cells: [check, partial("web SEO + site audit only")] },
+      { capability: "Ranked weekly action plan (not a dashboard)", cells: [check, partial("audits surface issues")] },
+      { capability: "Draft copy per fix", cells: [check, partial("AI writing add-on")] },
+      { capability: "Change verification on re-scan", cells: [check, cross] },
+      { capability: "Keyword, backlink + rank-tracking database", cells: [cross, check] },
+      { capability: "Priced for solo founders", cells: [check, partial("team pricing")] },
+      { capability: "Free to start", cells: [check, partial("limited free account")] },
+    ],
+  },
+  moz: {
+    name: "Moz",
+    tagline: "SEO software",
+    intro:
+      "Moz is well-loved SEO software — Domain Authority, keyword research and rank tracking, with a strong learning community. ReachKit isn't an SEO metrics tool: it scores both App Store and web discoverability, names your positioning gap, and turns it into a ranked weekly to-do list with draft copy.",
+    rows: [
+      { capability: "Discoverability score for App Store + web", cells: [check, partial("web only")] },
+      { capability: "Ranked, prioritised fixes", cells: [check, partial("site crawl flags issues")] },
+      { capability: "Positioning / messaging gap analysis", cells: [check, cross] },
+      { capability: "Draft copy per action", cells: [check, cross] },
+      { capability: "Weekly action engine + verification", cells: [check, cross] },
+      { capability: "Domain Authority + link metrics", cells: [cross, check] },
+      { capability: "Free to start", cells: [check, partial("free tools + trial")] },
+    ],
+  },
+  ubersuggest: {
+    name: "Ubersuggest",
+    tagline: "budget SEO",
+    intro:
+      "Ubersuggest is a budget-friendly SEO tool for keyword ideas, content suggestions and basic site audits. ReachKit is built around your own product page: it scores your live App Store or web listing across 18 signals and gives a ranked, verified weekly plan rather than a keyword list.",
+    rows: [
+      { capability: "Discoverability score (0–100)", cells: [check, cross] },
+      { capability: "Grounded in your live page", cells: [check, partial("site audit + keyword data")] },
+      { capability: "App Store / ASO coverage", cells: [check, cross] },
+      { capability: "Ranked weekly action plan", cells: [check, partial("flat suggestions list")] },
+      { capability: "Draft copy per action", cells: [check, cross] },
+      { capability: "Keyword volume + content ideas", cells: [partial("surfaced in the report"), check] },
+      { capability: "Affordable for indies", cells: [check, check] },
+    ],
+  },
+  "google-search-console": {
+    name: "Google Search Console",
+    tagline: "search data",
+    intro:
+      "Google Search Console is the free source of truth for how Google sees your site — impressions, clicks, queries and indexing health. ReachKit reads that kind of signal and goes further: it scores your discoverability, explains what's wrong in plain English, and hands you a ranked weekly plan with draft copy.",
+    rows: [
+      { capability: "Discoverability score (0–100)", cells: [check, cross] },
+      { capability: "App Store / web listing coverage", cells: [check, partial("web search only")] },
+      { capability: "Ranked, prioritised fixes", cells: [check, partial("flags issues, no priorities")] },
+      { capability: "Plain-English explanation + draft copy", cells: [check, cross] },
+      { capability: "Weekly action engine + verification", cells: [check, cross] },
+      { capability: "Real Google impression + query data", cells: [cross, check] },
+      { capability: "Free to use", cells: [partial("first scan free"), check] },
+    ],
+  },
+  appfigures: {
+    name: "Appfigures",
+    tagline: "ASO analytics",
+    intro:
+      "Appfigures is strong App Store analytics — keyword rankings, downloads, revenue and review tracking across stores. ReachKit isn't a metrics dashboard: it scores your live listing, names your positioning gap, and turns it into a ranked weekly action plan with draft copy — and it covers your website too.",
+    rows: [
+      { capability: "Discoverability score (0–100)", cells: [check, cross] },
+      { capability: "Covers App Store + website", cells: [check, partial("app stores only")] },
+      { capability: "Ranked weekly action plan", cells: [check, cross] },
+      { capability: "Draft copy per action", cells: [check, cross] },
+      { capability: "Change verification on re-scan", cells: [check, partial("tracks rank over time")] },
+      { capability: "ASO keyword rank + download data", cells: [partial("listing signals only"), check] },
+      { capability: "Priced for solo founders", cells: [check, partial("per-app tiers")] },
+    ],
+  },
+  "surfer-seo": {
+    name: "Surfer SEO",
+    tagline: "content optimization",
+    intro:
+      "Surfer SEO is excellent at on-page content optimization — scoring a draft against top-ranking pages by terms, structure and length. ReachKit works one level up: it scores your whole App Store or web listing across 18 signals and gives a ranked, verified weekly plan, not just a content editor.",
+    rows: [
+      { capability: "Whole-listing discoverability score", cells: [check, partial("per-article content score")] },
+      { capability: "Covers App Store + website", cells: [check, cross] },
+      { capability: "Ranked weekly action plan", cells: [check, cross] },
+      { capability: "Draft copy per action", cells: [check, partial("content editor + AI writer")] },
+      { capability: "Change verification on re-scan", cells: [check, partial("re-score a draft")] },
+      { capability: "SERP-based on-page content scoring", cells: [partial("copy signals in the report"), check] },
+      { capability: "Free to start", cells: [check, partial("free audit, paid plans")] },
+    ],
+  },
 };
 
 export function generateStaticParams() {
