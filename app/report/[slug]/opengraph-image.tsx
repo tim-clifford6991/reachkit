@@ -34,16 +34,16 @@ export const contentType = "image/png";
 // ---------------------------------------------------------------------------
 
 const BRAND = {
-  bg: "#0a0a0b",
-  surface: "#111114",
+  bg: "#0E0D14",
+  surface: "#1A1824",
   border: "rgba(255,255,255,0.09)",
-  accent: "#5b8cff",
-  accentDim: "rgba(91,140,255,0.15)",
+  accent: "#8B73FF",
+  accentDim: "rgba(139,115,255,0.16)",
   success: "#4ade80",
   warning: "#fbbf24",
-  fg: "#f0f0f0",
-  muted: "#6b7280",
-  mutedDim: "rgba(107,114,128,0.5)",
+  fg: "#F3F2F7",
+  muted: "#A9A5B7",
+  mutedDim: "rgba(169,165,183,0.55)",
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -132,7 +132,7 @@ export default async function OGImage({
             width: "600px",
             height: "600px",
             borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(91,140,255,0.07) 0%, transparent 70%)",
+            background: "radial-gradient(circle, rgba(139,115,255,0.10) 0%, transparent 70%)",
           }}
         />
 
@@ -374,7 +374,7 @@ export default async function OGImage({
               textTransform: "uppercase",
             }}
           >
-            verified score · reachkit.app
+            ReachKit · verified score
           </p>
         </div>
       </div>

@@ -1,6 +1,19 @@
 import type { Metadata } from "next";
 
-export const SITE = { url: "https://reachkit.app", name: "ReachKit" } as const;
+// Resolve the canonical site URL so OG images + canonical tags point at the
+// domain the page is actually served from. Without this, metadataBase pinned to
+// a non-deployment domain makes crawlers fetch OG images from the wrong host and
+// the share preview shows no image. Priority:
+//   1. NEXT_PUBLIC_SITE_URL  (set this to the production/custom domain)
+//   2. VERCEL_PROJECT_PRODUCTION_URL  (auto-provided stable production alias)
+//   3. localhost (dev)
+const SITE_URL = (
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL && `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`) ||
+  "http://localhost:3000"
+).replace(/\/+$/, "");
+
+export const SITE = { url: SITE_URL, name: "ReachKit" } as const;
 
 export function buildMetadata(opts: { title: string; description?: string; path: string }): Metadata {
   const canonical = `${SITE.url}${opts.path}`;
