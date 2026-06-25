@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import type { PreliminaryFacts, ScanEvent } from "@/lib/scan/types";
@@ -347,6 +348,17 @@ export function ScanStream({
   const seededTerminal =
     seed.done || seed.errored || (initialStatus != null && !statusActive);
 
+  const router = useRouter();
+
+  // Single results experience: once the report is ready, hand off to the
+  // canonical /scan/[id]/results page (which renders the full report, the free
+  // teaser, or a pending state). Failures stay here to show the error inline.
+  useEffect(() => {
+    if (findingsData && !failed) {
+      router.replace(`/scan/${id}/results`);
+    }
+  }, [findingsData, failed, id, router]);
+
   useEffect(() => {
     if (!scanExists || seededTerminal) return;
 
@@ -439,13 +451,17 @@ export function ScanStream({
   if (!scanExists) return <ScanNotFound />;
   if (failed && !facts) return <ScanError />;
 
-  // Reveal (speed-to-wow): the wow — competitor card + score + positioning — is
-  // fully carried by the facts + findings events (~40s). Reveal as soon as findings
-  // land; the heavy full-scan (action drafting) keeps running in the background for
-  // the post-email results page. `done` still closes the SSE loop but no longer
-  // gates the reveal. A failure after facts shows the partial result, not a spinner.
-  if ((findingsData || failed) && facts) {
+  // Partial failure (we gathered facts but the run errored): show what we have
+  // inline rather than bouncing to a results page that may have no data.
+  if (failed && facts) {
     return <FactsView facts={facts} findingsData={findingsData} scanId={id} />;
+  }
+
+  // Success: the report is ready → we're handing off to /scan/[id]/results (the
+  // single results experience; see the effect above). Brief placeholder while
+  // the route transition happens.
+  if (findingsData && facts) {
+    return <PreparingResults />;
   }
 
   // Otherwise we're actively scanning — the live "thinking" narrative + scan
@@ -459,6 +475,21 @@ export function ScanStream({
       competitorCount={facts?.competitors.length}
       finished={false}
     />
+  );
+}
+
+// ── Hand-off placeholder — shown for the instant before routing to /results ───
+function PreparingResults() {
+  return (
+    <div className="mx-auto flex max-w-md flex-col items-center gap-4 px-6 py-24 text-center">
+      <span className="relative flex h-2.5 w-2.5" aria-hidden="true">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" style={{ background: "var(--c-action)" }} />
+        <span className="relative inline-flex h-2.5 w-2.5 rounded-full" style={{ background: "var(--c-action)" }} />
+      </span>
+      <p className="font-mono text-sm tracking-wide" style={{ color: "var(--c-muted)" }}>
+        Preparing your report…
+      </p>
+    </div>
   );
 }
 

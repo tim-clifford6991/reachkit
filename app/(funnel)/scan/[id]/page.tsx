@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { redirect } from "next/navigation";
 import { buildMetadata } from "@/lib/seo";
 import { serverDb } from "@/lib/db/client";
 import { hostname } from "@/lib/scan/url";
@@ -52,6 +53,13 @@ async function ScanHydrator({ id }: { id: string }) {
   ]);
 
   const initialStatus = (scanRes.data?.status as string | undefined) ?? null;
+
+  // Single results experience: a finished scan never shows an inline teaser here —
+  // it hands straight off to the canonical /scan/[id]/results page (full report,
+  // free teaser, or pending). Failed scans stay on the live view to show the error.
+  if (initialStatus === "done" || initialStatus === "degraded") {
+    redirect(`/scan/${id}/results`);
+  }
   // The scanned site's host — shown as a reference in the scan animation from the start.
   const storeUrl = (scanRes.data?.apps as unknown as { store_url?: string } | null)?.store_url;
   const host = storeUrl ? hostname(storeUrl) : null;
