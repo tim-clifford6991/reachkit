@@ -73,6 +73,9 @@ export interface ResultsScreenProps {
   mirrorGap: string;
   gapRows: GapRow[];
   gapTotal: number;
+  /** Client brand mark (favicon/logo) + bare host, for personalisation. */
+  logoUrl?: string;
+  siteHost?: string;
   /** When set, the "Share score" button opens the interactive share modal. */
   slug?: string;
   /** Custom unlock-CTA button (e.g. start-trial / upgrade). Falls back to a
@@ -134,6 +137,22 @@ export function ResultsScreen(p: ResultsScreenProps) {
               <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: band.bg, color: band.fg, fontWeight: 700, fontSize: 13, padding: "5px 13px", borderRadius: 8, marginTop: 8, fontFamily: SG }}>{band.label}</div>
             </div>
             <div>
+              {/* Personalisation: the client's own brand mark + domain. */}
+              {p.logoUrl && (
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={p.logoUrl}
+                    alt=""
+                    width={36}
+                    height={36}
+                    style={{ width: 36, height: 36, borderRadius: 9, border: "1px solid var(--c-line)", background: "var(--c-surface)", objectFit: "contain", flex: "0 0 auto" }}
+                  />
+                  {p.siteHost && (
+                    <span style={{ fontFamily: JM, fontSize: 13, fontWeight: 600, color: "var(--c-muted)" }}>{p.siteHost}</span>
+                  )}
+                </div>
+              )}
               <h1 style={{ fontFamily: SG, fontWeight: 700, fontSize: 26, letterSpacing: "-0.02em", margin: "0 0 6px" }}>{p.headline}</h1>
               <p style={{ fontSize: 15, lineHeight: 1.6, color: "var(--c-muted)", margin: "0 0 14px" }}>
                 {p.siteLabel} {p.intro}

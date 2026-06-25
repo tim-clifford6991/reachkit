@@ -35,6 +35,7 @@ import { ScoreBlock } from "./score-block";
 import { BadgeEmbed } from "./badge-embed";
 import { ResultsScreen } from "@/components/report/captured/results-screen";
 import { toResultsProps } from "@/components/report/captured/to-results-props";
+import { brandFromUrl } from "@/lib/brand/logo";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Suspense } from "react";
 import { cacheLife, cacheTag } from "next/cache";
@@ -136,25 +137,32 @@ export default async function ReportPage({
  * cookies/request state), so it's safe to serve from cache. Tagged for targeted
  * revalidation (`report:<slug>`) if the scan is ever refreshed.
  */
-async function getCachedReportPayload(slug: string): Promise<ReportPayload | null> {
+async function getCachedReportPayload(
+  slug: string,
+): Promise<{ payload: ReportPayload; storeUrl: string | null } | null> {
   "use cache";
   cacheLife("hours");
   cacheTag(`report:${slug}`);
   const db = serverDb();
   const { data } = await db
     .from("scans")
-    .select("report_payload")
+    .select("report_payload, apps(store_url)")
     .eq("id", slug)
     .maybeSingle();
-  return (data?.report_payload as unknown as ReportPayload | undefined) ?? null;
+  const payload = data?.report_payload as unknown as ReportPayload | undefined;
+  if (!payload) return null;
+  const storeUrl = (data?.apps as unknown as { store_url?: string } | null)?.store_url ?? null;
+  return { payload, storeUrl };
 }
 
 export async function ReportContent({ slug }: { slug: string }) {
-  const payload = await getCachedReportPayload(slug);
+  const cached = await getCachedReportPayload(slug);
 
-  if (!payload) {
+  if (!cached) {
     notFound();
   }
+  const { payload, storeUrl } = cached;
+  const brand = brandFromUrl(storeUrl);
   const card = buildScoreCard(payload);
   const reportUrl = `${SITE.url}/report/${slug}`;
 
@@ -187,12 +195,14 @@ export async function ReportContent({ slug }: { slug: string }) {
       {/* Captured "results" screen 1:1, wired to the free-redacted payload.
           Public-safe: same redactor as the funnel — paid drafts never leak. */}
       <ResultsScreen
-        {...toResultsProps(report, "this site", fullActions)}
+        {...toResultsProps(report, brand?.host ?? "this site", fullActions)}
+        logoUrl={brand?.logoUrl}
+        siteHost={brand?.host}
         slug={slug}
         unlockTitle="Get your own Discoverability Score"
         unlockSub="Run a free scan of your site — the score, your positioning gap, and the 7 fixes that move it, in ~90 seconds."
         unlockButton={
-          <a href="/scan" style={{ fontFamily: "Plus Jakarta Sans, sans-serif", fontWeight: 700, fontSize: 15, color: "#14131A", background: "#fff", borderRadius: 10, padding: "13px 24px", whiteSpace: "nowrap", textDecoration: "none" }}>
+          <a href="/scan" style={{ fontFamily: "Plus Jakarta Sans, sans-serif", fontWeight: 700, fontSize: 15, color: "var(--c-ink)", background: "var(--c-surface)", borderRadius: 10, padding: "13px 24px", whiteSpace: "nowrap", textDecoration: "none" }}>
             Scan your site →
           </a>
         }

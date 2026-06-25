@@ -21,6 +21,7 @@ import { ResultsScreen } from "@/components/report/captured/results-screen";
 import { toResultsProps } from "@/components/report/captured/to-results-props";
 import { CapturedUnlockButton } from "@/components/report/captured/unlock-button";
 import { readSignalBreakdown } from "@/lib/scan/signal-breakdown";
+import { brandFromUrl } from "@/lib/brand/logo";
 import { CompetitiveLandscapeSection } from "@/components/report/competitive-landscape-section";
 import { ChannelOpportunitiesSection } from "@/components/report/channel-opportunities-section";
 import { CreatorsToReachSection } from "@/components/report/creators-to-reach-section";
@@ -102,7 +103,7 @@ async function ResultsContent({ id }: { id: string }) {
   const db = serverDb();
   const { data } = await db
     .from("scans")
-    .select("report_payload, findings_payload, preliminary_facts, tier, completed_at, started_at, rank_data_fetched_at")
+    .select("report_payload, findings_payload, preliminary_facts, tier, completed_at, started_at, rank_data_fetched_at, apps(store_url)")
     .eq("id", id)
     .maybeSingle();
 
@@ -164,6 +165,8 @@ async function ResultsContent({ id }: { id: string }) {
   // Captured "results" screen (ReachKit.dc.html) wired to live report data.
   // Supersedes the prior section stack for the free results view.
   const siteLabel = productName ?? "your site";
+  const storeUrl = (data.apps as unknown as { store_url?: string } | null)?.store_url;
+  const brand = brandFromUrl(storeUrl);
   const fullActions =
     fullReport.whatToDoThisWeek.quickWins.length +
     fullReport.whatToDoThisWeek.medium.length +
@@ -180,6 +183,8 @@ async function ResultsContent({ id }: { id: string }) {
   return (
     <ResultsScreen
       {...toResultsProps(report, siteLabel, fullActions)}
+      logoUrl={brand?.logoUrl}
+      siteHost={brand?.host}
       slug={id}
       hideUnlock={isPaid}
       unlockButton={isPaid ? undefined : <CapturedUnlockButton scanId={id} />}
