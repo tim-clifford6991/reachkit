@@ -101,33 +101,24 @@ export function ResultsScreen(p: ResultsScreenProps) {
         href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
       />
       <main style={{ ...(p.embedded ? {} : { background: "var(--c-bg2)", minHeight: "100vh" }), fontFamily: PJ, color: "var(--c-ink)" }}>
-        <div style={{ maxWidth: "100%", margin: "0 auto", padding: p.embedded ? 0 : "40px clamp(24px, 4vw, 56px) 70px" }}>
-          {/* Header (standalone only — the app shell provides its own header) */}
+        <div style={{ maxWidth: p.embedded ? "100%" : "var(--spacing-content-max)", margin: "0 auto", padding: p.embedded ? 0 : "32px clamp(24px, 4vw, 48px) 70px" }}>
+          {/* Report context bar (standalone only) — the global nav already
+              carries the ReachKit wordmark, so this is just scan context +
+              Share, no duplicate logo. The app shell provides its own header. */}
           {!p.embedded && (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-              <svg width="24" height="24" viewBox="0 0 28 28">
-                <rect width="28" height="28" rx="9" fill="#6E56F7" />
-                <circle cx="14" cy="14" r="1.7" fill="#fff" />
-                <path d="M14 19 A5 5 0 1 1 19 14" stroke="#fff" strokeWidth="1.7" fill="none" strokeLinecap="round" />
-                <path d="M14 23 A9 9 0 1 1 23 14" stroke="#C3B2FF" strokeWidth="1.7" fill="none" strokeLinecap="round" />
-              </svg>
-              <span style={{ fontFamily: SG, fontWeight: 700, fontSize: 16 }}>ReachKit</span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-              <span style={{ fontFamily: JM, fontSize: 12.5, color: "var(--c-faint)" }}>free scan · {p.siteLabel}</span>
-              {p.slug ? (
-                <CapturedShareButton slug={p.slug} score={p.score} bandLabel={band.label} siteLabel={p.siteLabel} />
-              ) : (
-                <button style={{ display: "flex", alignItems: "center", gap: 7, fontFamily: PJ, fontWeight: 600, fontSize: 13.5, color: "var(--c-action)", background: "var(--c-surface)", border: "1.5px solid #E2DBF7", borderRadius: 9, padding: "8px 14px", cursor: "pointer" }}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6E56F7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
-                    <line x1="8.6" y1="13.5" x2="15.4" y2="17.5" /><line x1="15.4" y1="6.5" x2="8.6" y2="10.5" />
-                  </svg>
-                  Share score
-                </button>
-              )}
-            </div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, marginBottom: 20 }}>
+            <span style={{ fontFamily: JM, fontSize: 12.5, color: "var(--c-faint)" }}>free scan · {p.siteLabel}</span>
+            {p.slug ? (
+              <CapturedShareButton slug={p.slug} score={p.score} bandLabel={band.label} siteLabel={p.siteLabel} />
+            ) : (
+              <button style={{ display: "flex", alignItems: "center", gap: 7, fontFamily: PJ, fontWeight: 600, fontSize: 13.5, color: "var(--c-action)", background: "var(--c-surface)", border: "1.5px solid #E2DBF7", borderRadius: 9, padding: "8px 14px", cursor: "pointer" }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6E56F7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+                  <line x1="8.6" y1="13.5" x2="15.4" y2="17.5" /><line x1="15.4" y1="6.5" x2="8.6" y2="10.5" />
+                </svg>
+                Share score
+              </button>
+            )}
           </div>
           )}
 

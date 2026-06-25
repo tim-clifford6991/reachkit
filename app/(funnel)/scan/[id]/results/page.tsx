@@ -80,8 +80,14 @@ export default async function ResultsPage({
   }
 
   return (
-    <main className="mx-auto max-w-2xl space-y-6 px-4 pb-16 pt-8">
-      <Suspense fallback={<ResultsSkeleton />}>
+    <main className="w-full">
+      <Suspense
+        fallback={
+          <div className="mx-auto max-w-2xl space-y-6 px-4 pb-16 pt-8">
+            <ResultsSkeleton />
+          </div>
+        }
+      >
         <ResultsContent id={id} />
       </Suspense>
     </main>
@@ -108,10 +114,19 @@ async function ResultsContent({ id }: { id: string }) {
     if (data?.tier === "free" && findings) {
       const facts = data.preliminary_facts as unknown as PreliminaryFacts | null;
       const competitorCount = facts?.competitors?.length ?? 0;
-      return <FindingsReveal scanId={id} data={findings} competitorCount={competitorCount} />;
+      // Narrow teaser column (the wide ResultsScreen owns its own width below).
+      return (
+        <div className="mx-auto max-w-2xl space-y-6 px-4 pb-16 pt-8">
+          <FindingsReveal scanId={id} data={findings} competitorCount={competitorCount} />
+        </div>
+      );
     }
     // Paid scan still generating (or findings not yet ready) — auto-refresh.
-    return <ReportPending />;
+    return (
+      <div className="mx-auto max-w-2xl space-y-6 px-4 pb-16 pt-8">
+        <ReportPending />
+      </div>
+    );
   }
 
   const fullReport = data.report_payload as unknown as ReportPayload;
