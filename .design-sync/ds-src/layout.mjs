@@ -30,6 +30,16 @@ const META = {
   AppShell:         { group: "App",         render: "{}" },
   KpiCard:          { group: "App",         render: "{delta:'+8'}" },
   ScanningRing:     { group: "App",         render: "{}" },
+  Testimonial:      { group: "Marketing",   render: "{}" },
+  FaqItem:          { group: "Marketing",   render: "{}" },
+  Alert:            { group: "Foundations", render: "{tone:'success',title:'Scan complete',children:'Your discoverability score is ready.'}" },
+  FeatureStep:      { group: "Marketing",   render: "{}" },
+  TextField:        { group: "Foundations", render: "{hint:'We never share it.'}" },
+  Tabs:             { group: "Foundations", render: "{}" },
+  PricingTable:     { group: "Marketing",   render: "{}" },
+  LandingHero:      { group: "Marketing",   render: "{}" },
+  ResultsScreen:    { group: "Report",      render: "{}" },
+  DashboardScreen:  { group: "App",         render: "{}" },
 };
 
 function extract(name) {

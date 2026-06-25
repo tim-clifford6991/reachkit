@@ -35,7 +35,7 @@ const result = await esbuild.build({
 });
 
 const code = result.outputFiles[0].text;
-const exportsList = ["BrandMark","Button","Badge","ScoreGauge","ScoreCard","ComparisonTable","NavBar","Footer","ScanInput","RankedFix","PositioningMirror","SearchGapTable","AppShell","KpiCard","UnlockBand","ScanningRing","CompareCard","TeardownCard"];
+const exportsList = ["BrandMark","Button","Badge","ScoreGauge","ScoreCard","ComparisonTable","NavBar","Footer","ScanInput","RankedFix","PositioningMirror","SearchGapTable","AppShell","KpiCard","UnlockBand","ScanningRing","CompareCard","TeardownCard","Testimonial","FaqItem","Alert","FeatureStep","TextField","Tabs","PricingTable","LandingHero","ResultsScreen","DashboardScreen"];
 const header = `/* @ds-bundle: ${JSON.stringify({ global: GLOBAL, exports: exportsList })} */\n`;
 writeFileSync(resolve(out, "_ds_bundle.js"), header + code);
 // No extracted component CSS (styles are inline + token-driven) — emit a stub
