@@ -62,10 +62,8 @@ for (const [name, meta] of Object.entries(META)) {
 <link rel="stylesheet" href="../../../styles.css">
 <style>body{margin:0;padding:28px;background:var(--c-bg2)}#root{display:flex;justify-content:center}</style>
 </head><body><div id="root"></div>
-<script src="../../../_vendor/react.js"></script>
-<script src="../../../_vendor/react-dom.js"></script>
 <script src="../../../_ds_bundle.js"></script>
-<script>ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(ReachKitDS.${name}, ${meta.render}));</script>
+<script>ReachKitDS.mount(ReachKitDS.${name}, ${meta.render}, document.getElementById('root'));</script>
 </body></html>`;
   writeFileSync(resolve(dir, name + ".html"), html);
 

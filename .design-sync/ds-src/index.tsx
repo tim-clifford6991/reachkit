@@ -26,3 +26,11 @@ export { PricingTable } from "./PricingTable";
 export { LandingHero } from "./LandingHero";
 export { ResultsScreen } from "./ResultsScreen";
 export { DashboardScreen } from "./DashboardScreen";
+
+// Self-contained preview runtime: render any export with the SAME bundled React,
+// so preview cards need no external/vendored React (avoids cross-instance errors).
+import * as __React from "react";
+import { createRoot as __createRoot } from "react-dom/client";
+export function mount(Comp: any, props: any, el: any) {
+  __createRoot(el).render(__React.createElement(Comp, props));
+}

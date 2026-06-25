@@ -32,3 +32,15 @@ versions of the app's components.
 - The bundle is hand-built, NOT from a published dist — it can drift from the
   app's real components. Treat ds-src as the DS's own source of truth.
 - Fonts load from Google Fonts at runtime (`[FONT_REMOTE]`), not shipped woff2.
+
+## Preview rendering in Claude Design (FIXED)
+- First upload: cards registered (sidebar) but rendered BLANK. Two causes:
+  (1) the bundle's `require` banner defined a GLOBAL `require` that interfered
+  with the host runtime; (2) vendored React 18 vs a differently-versioned React
+  → React error #31 (cross-instance element mismatch).
+- Fix: bundle React + ReactDOM INTO `_ds_bundle.js` (self-contained, no external,
+  no `require` hack) and expose a `mount(Comp, props, el)` helper. Preview `.html`
+  is now just `<script src=_ds_bundle.js>` + `ReachKitDS.mount(...)` — ONE React,
+  no `_vendor/`. build.mjs: no `external`, `define process.env.NODE_ENV`, minify.
+- There is NO manual "publish" — the `_ds_needs_recompile` sentinel triggers the
+  app self-check on project open, which builds `_ds_manifest.json`.

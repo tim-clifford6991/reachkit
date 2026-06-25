@@ -24,14 +24,14 @@ const result = await esbuild.build({
   // Override the repo tsconfig (jsx: react-jsx → automatic runtime) so the bundle
   // uses classic JSX and needs only the React global, no react/jsx-runtime.
   tsconfigRaw: { compilerOptions: { jsx: "react", jsxFactory: "React.createElement", jsxFragmentFactory: "React.Fragment" } },
-  external: ["react", "react-dom"],
+  // Bundle React IN — self-contained, so the bundle never touches the host's
+  // global `require`/module system (that broke rendering in Claude Design). React
+  // elements interop across instances via Symbol.for, so the host renderer mounts
+  // our components fine. NODE_ENV must be set or React's dev build throws.
+  define: { "process.env.NODE_ENV": '"production"' },
   write: false,
-  // External requires resolve to the vendored globals the preview cards load.
-  banner: {
-    js: 'var require=function(m){if(m==="react")return window.React;if(m==="react-dom"||m==="react-dom/client")return window.ReactDOM;throw new Error("unexpected external "+m)};',
-  },
   loader: { ".tsx": "tsx", ".ts": "ts" },
-  minify: false,
+  minify: true,
 });
 
 const code = result.outputFiles[0].text;
