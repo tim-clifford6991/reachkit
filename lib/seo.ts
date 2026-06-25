@@ -17,11 +17,34 @@ export const SITE = { url: SITE_URL, name: "ReachKit" } as const;
 
 export function buildMetadata(opts: { title: string; description?: string; path: string }): Metadata {
   const canonical = `${SITE.url}${opts.path}`;
+  const fullTitle = `${opts.title} — ${SITE.name}`;
+  // Explicit OG image: when a page sets `openGraph`, Next does NOT auto-merge the
+  // file-convention opengraph-image, so without this every share preview is blank.
+  // Routes with a custom card (e.g. /report/[slug]) override openGraph.images.
+  const ogImage = {
+    url: `${SITE.url}/opengraph-image`,
+    width: 1200,
+    height: 630,
+    alt: `${SITE.name} — find out why your product isn't getting found`,
+  };
   return {
-    title: `${opts.title} — ${SITE.name}`,
+    title: fullTitle,
     description: opts.description,
     alternates: { canonical },
-    openGraph: { type: "website", title: `${opts.title} — ${SITE.name}`, url: canonical, siteName: SITE.name },
+    openGraph: {
+      type: "website",
+      title: fullTitle,
+      description: opts.description,
+      url: canonical,
+      siteName: SITE.name,
+      images: [ogImage],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: fullTitle,
+      description: opts.description,
+      images: [ogImage.url],
+    },
   };
 }
 
