@@ -37,6 +37,13 @@ const TITLES: Record<string, string> = {
   "/app/history": "History", "/app/settings": "Settings", "/app/billing": "Billing",
 };
 
+// Off-nav subpages → the primary nav section they live under + their breadcrumb
+// label. This keeps the correct top-level tab highlighted (e.g. Billing is a
+// Settings subpage, not Dashboard) and drives the header breadcrumb.
+const SUBPAGES: Record<string, { parent: string; label: string }> = {
+  "/app/billing": { parent: "/app/settings", label: "Billing" },
+};
+
 export interface SideCard {
   title: string;
   sub: string;
@@ -64,19 +71,22 @@ export interface AppShellProps {
 
 export function AppShell(p: AppShellProps) {
   const pathname = usePathname() || "/app";
+  const sub = SUBPAGES[pathname];
   const activeHref =
-    [...NAV].sort((a, b) => b.href.length - a.href.length).find((n) => pathname === n.href || (n.href !== "/app" && pathname.startsWith(n.href)))?.href ?? "/app";
-  const title = TITLES[activeHref] ?? "Dashboard";
+    sub?.parent ??
+    ([...NAV].sort((a, b) => b.href.length - a.href.length).find((n) => pathname === n.href || (n.href !== "/app" && pathname.startsWith(n.href)))?.href ?? "/app");
+  const title = sub?.label ?? TITLES[activeHref] ?? "Dashboard";
 
   return (
     <div style={{ fontFamily: `${PJ}, sans-serif`, color: "var(--c-ink)", minHeight: "100vh" }}>
       <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", minHeight: "100vh", background: "var(--c-bg2)" }}>
         {/* Sidebar */}
         <aside style={{ background: "var(--c-surface)", borderRight: "1px solid var(--c-line2)", display: "flex", flexDirection: "column", padding: "18px 14px", position: "sticky", top: 0, height: "100vh" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 8px 18px" }}>
+          {/* Brand → always returns to the dashboard home. */}
+          <Link href="/app" style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 8px 18px", textDecoration: "none", color: "inherit" }}>
             <svg width="26" height="26" viewBox="0 0 28 28"><rect width="28" height="28" rx="9" fill="#6E56F7" /><circle cx="14" cy="14" r="1.7" fill="#fff" /><path d="M14 19 A5 5 0 1 1 19 14" stroke="#fff" strokeWidth="1.7" fill="none" strokeLinecap="round" /><path d="M14 23 A9 9 0 1 1 23 14" stroke="#C3B2FF" strokeWidth="1.7" fill="none" strokeLinecap="round" /></svg>
             <span style={{ fontFamily: SG, fontWeight: 700, fontSize: 17 }}>ReachKit</span>
-          </div>
+          </Link>
           {/* Product switcher — functional dropdown (swap / add app) */}
           <AppSwitcher
             apps={p.apps}
@@ -131,7 +141,15 @@ export function AppShell(p: AppShellProps) {
         <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
           <header style={{ background: "var(--c-glass)", backdropFilter: "blur(10px)", borderBottom: "1px solid var(--c-line2)", padding: "15px 28px", display: "flex", alignItems: "center", gap: 18, position: "sticky", top: 0, zIndex: 20 }}>
             <div>
-              <h1 style={{ fontFamily: SG, fontWeight: 700, fontSize: 20, letterSpacing: "-0.01em", margin: 0 }}>{title}</h1>
+              {sub ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <Link href={sub.parent} style={{ fontFamily: SG, fontWeight: 700, fontSize: 20, letterSpacing: "-0.01em", color: "var(--c-faint)", textDecoration: "none" }}>{TITLES[sub.parent]}</Link>
+                  <span style={{ color: "var(--c-faint)", fontSize: 16, fontWeight: 400 }}>/</span>
+                  <h1 style={{ fontFamily: SG, fontWeight: 700, fontSize: 20, letterSpacing: "-0.01em", margin: 0 }}>{sub.label}</h1>
+                </div>
+              ) : (
+                <h1 style={{ fontFamily: SG, fontWeight: 700, fontSize: 20, letterSpacing: "-0.01em", margin: 0 }}>{title}</h1>
+              )}
               <div style={{ fontSize: 12.5, color: "var(--c-faint)", marginTop: 1 }}>{p.lastScannedLabel} · {p.appName} · score {p.scoreVersion}</div>
             </div>
             <div style={{ flex: "1 1 0%" }} />
