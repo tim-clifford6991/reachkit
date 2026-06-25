@@ -119,7 +119,11 @@ export function AppShell(p: AppShellProps) {
               <div style={{ fontWeight: 600, fontSize: 13 }}>{p.userName}</div>
               <div style={{ fontSize: 11.5, color: "var(--c-faint)" }}>{p.userRole}</div>
             </div>
-            <Link href="/auth/signout" title="Sign out" style={{ color: "var(--c-faint)", cursor: "pointer", fontSize: 15, textDecoration: "none" }}>⏻</Link>
+            {/* POST (not a GET link) — the route is POST-only, and a GET link
+                would let prefetch/hover sign the user out. */}
+            <form action="/auth/signout" method="post" style={{ display: "flex" }}>
+              <button type="submit" title="Sign out" style={{ color: "var(--c-faint)", cursor: "pointer", fontSize: 15, background: "none", border: "none", padding: 0, lineHeight: 1 }}>⏻</button>
+            </form>
           </div>
         </aside>
 
