@@ -194,9 +194,11 @@ function ManageBillingButton() {
 interface BillingActionsProps {
   tier: Tier;
   isActivePaid: boolean;
+  /** Whether the user has a Stripe customer (the portal needs one). */
+  hasStripeCustomer?: boolean;
 }
 
-export function BillingActions({ tier, isActivePaid }: BillingActionsProps) {
+export function BillingActions({ tier, isActivePaid, hasStripeCustomer = true }: BillingActionsProps) {
   const searchParams = useSearchParams();
 
   // Handle Stripe success + demo flags
@@ -221,11 +223,21 @@ export function BillingActions({ tier, isActivePaid }: BillingActionsProps) {
         <p style={{ ...eyebrowStyle, marginBottom: 12 }}>
           Billing management
         </p>
-        <p style={{ fontSize: 14, color: BODY, marginBottom: 16 }}>
-          Update your payment method, view invoices, or cancel your
-          subscription via the Stripe portal.
-        </p>
-        <ManageBillingButton />
+        {hasStripeCustomer ? (
+          <>
+            <p style={{ fontSize: 14, color: BODY, marginBottom: 16 }}>
+              Update your payment method, view invoices, or cancel your
+              subscription via the Stripe portal.
+            </p>
+            <ManageBillingButton />
+          </>
+        ) : (
+          <p style={{ fontSize: 14, color: BODY, margin: 0 }}>
+            This subscription isn&apos;t linked to a Stripe customer, so the
+            billing portal isn&apos;t available for this account. (Subscriptions
+            created through checkout manage payment methods and invoices here.)
+          </p>
+        )}
       </div>
     );
   }

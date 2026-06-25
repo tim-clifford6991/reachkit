@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireUser, AuthError } from "@/lib/auth/server";
-import { createPortalSession } from "@/lib/billing/portal";
+import { createPortalSession, NoBillingAccountError } from "@/lib/billing/portal";
 
 export async function POST(): Promise<NextResponse> {
   // Auth guard.
@@ -19,6 +19,10 @@ export async function POST(): Promise<NextResponse> {
     const { url } = await createPortalSession(userId);
     return NextResponse.json({ url });
   } catch (e) {
+    // Clear, user-facing condition (no Stripe customer to manage) → 400, not 500.
+    if (e instanceof NoBillingAccountError) {
+      return NextResponse.json({ error: e.message }, { status: 400 });
+    }
     console.error("billing/portal POST error", e);
     return NextResponse.json({ error: "failed to create portal session" }, { status: 500 });
   }

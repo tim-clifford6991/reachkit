@@ -110,6 +110,7 @@ async function BillingContent() {
   const entitlements = await entitlementsFor(viewer.user.id);
   const tier: Tier = entitlements.active ? entitlements.tier : "free";
   const isActivePaid = entitlements.active;
+  const hasStripeCustomer = !!(viewer.user as { stripe_customer_id?: string | null }).stripe_customer_id;
 
   const tierDetails = TIER_DETAILS[tier];
 
@@ -202,7 +203,7 @@ async function BillingContent() {
       </section>
 
       {/* Actions: manage or upgrade */}
-      <BillingActions tier={tier} isActivePaid={isActivePaid} />
+      <BillingActions tier={tier} isActivePaid={isActivePaid} hasStripeCustomer={hasStripeCustomer} />
 
       {/* Tier comparison — only for non-growth */}
       {tier !== "growth" && (

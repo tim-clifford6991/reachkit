@@ -4,6 +4,18 @@ import { env } from "@/lib/config/env";
 import { assertStripeConfigured, stripeClient } from "@/lib/billing/stripe";
 
 /**
+ * Thrown when a user has no Stripe customer to manage (e.g. a subscription that
+ * was provisioned outside Stripe, or checkout never completed). A clear,
+ * user-facing condition — not an unexpected server error.
+ */
+export class NoBillingAccountError extends Error {
+  constructor() {
+    super("No Stripe billing account is linked to this subscription yet — it was set up outside checkout, so there's nothing to manage in the portal.");
+    this.name = "NoBillingAccountError";
+  }
+}
+
+/**
  * Create a Stripe customer-portal session for the given user.
  *
  * Fixture path → a demo URL (no Stripe). Live path → load the user's
@@ -35,9 +47,7 @@ export async function createPortalSession(userId: string): Promise<{ url: string
 
   const customer = user?.stripe_customer_id;
   if (!customer) {
-    throw new Error(
-      `portal: user ${userId} has no Stripe customer — no subscription to manage.`,
-    );
+    throw new NoBillingAccountError();
   }
 
   const session = await stripeClient().billingPortal.sessions.create({
