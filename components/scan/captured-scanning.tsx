@@ -18,7 +18,7 @@ export function ScanningScreen({ host, steps }: { host: string | null; steps: Sc
       <style>{`@keyframes rk-spin{to{transform:rotate(360deg)}}@keyframes rk-pulse{0%,100%{opacity:1}50%{opacity:.35}}`}</style>
       <div style={{ width: "min(560px, 92vw)", textAlign: "center", padding: 32 }}>
         <div style={{ position: "relative", width: 120, height: 120, margin: "0 auto 28px" }}>
-          <div style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "3px solid #ECE7FB" }} />
+          <div style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "3px solid var(--c-tint-violet-line)" }} />
           <div style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "3px solid", borderColor: "var(--c-action) transparent transparent", animation: "rk-spin 1s linear infinite" }} />
           <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: JM, fontWeight: 700, fontSize: 26, color: "var(--c-action)" }}>{pct}%</div>
         </div>
