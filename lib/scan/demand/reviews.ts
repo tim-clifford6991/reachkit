@@ -46,12 +46,22 @@ export async function mineCompetitorReviews(competitors: string[], category: str
     const isReviewPage = (u: string) =>
       !/event_tracking|\/compare\/|\/sellers\/|\/marketplace\//.test(u) &&
       (/\/reviews?\b/i.test(u) || /trustpilot\.com\/review\//.test(u) || /producthunt\.com\/products\/[^/]+\/reviews/.test(u));
-    const urls = [...new Set(searches.flat().map((r) => r.url).filter((u) => u && isReviewPage(u)))].slice(0, 8);
+    const reviewResults = searches.flat().filter((r) => r.url && isReviewPage(r.url));
+    const urls = [...new Set(reviewResults.map((r) => r.url))].slice(0, 8);
     if (urls.length === 0) return EMPTY;
 
-    // 2. Extract the review text.
+    // 2. Gather review text. Full-page extraction is the richest source, but the
+    //    big review sites (G2 / Capterra / Trustpilot) frequently bot-block it and
+    //    return empty content — which silently zeroed buyer insights even though we
+    //    found real review pages. So ALSO use the search-result snippets, which
+    //    always come back and carry verbatim review excerpts. Snippets are the floor.
+    const snippetText = reviewResults
+      .map((r) => `${r.title}\n${r.content}`.trim())
+      .filter(Boolean)
+      .join("\n\n");
     const extracted = await tavilyExtract(urls).catch(() => []);
-    const text = extracted.map((e) => e.content).join("\n\n").slice(0, 14_000);
+    const extractText = extracted.map((e) => e.content).filter(Boolean).join("\n\n");
+    const text = [extractText, snippetText].filter(Boolean).join("\n\n").slice(0, 14_000);
     if (!text.trim()) return { ...EMPTY, sources: urls };
 
     // 3. Distill buyer evidence.

@@ -59,7 +59,10 @@ async function clusterKeywordThemes(ideas: KeywordIdea[], category: string): Pro
 KEYWORDS:
 ${list}
 
-DROP keywords that are NOT buyer demand for this product: named events/conferences (e.g. "fomc meeting", "asco meeting"), organization/person names, news queries, and pure dictionary lookups ("X meaning", "X defined"). Keep only keywords a prospective buyer would search while looking to solve the problem.
+DROP keywords that are NOT buyer demand for a "${category}" product. This includes:
+- OFF-CATEGORY terms that only loosely share a word but a buyer of THIS product would never search. (E.g. for an SEO/discoverability tool, drop "people search", "reverse image search", "excel data analysis", "python data analysis", "list crawlers" — these share "search"/"analysis" but are unrelated demand.)
+- named events/conferences ("fomc meeting"), organization/person names, news queries, and pure dictionary lookups ("X meaning", "X defined").
+Keep ONLY keywords a prospective buyer of a "${category}" product would search while looking to solve the problem. If after dropping there are too few left, return fewer themes rather than padding with off-category keywords.
 
 Return ONLY a JSON array, biggest-demand themes first:
 [ { "theme": "<short theme name>", "intent": "informational|commercial|transactional", "sampleKeywords": ["<3-5 of the kept keywords above>"] } ]`,
@@ -161,13 +164,21 @@ export async function gatherDemand(rawSelf: string, opts: { competitorDomains?: 
     mineCompetitorReviews(competitors, brief.category),
   ]);
 
-  // Keep only ideas containing a DISTINCTIVE category noun (drops generic-SaaS +
-  // dictionary noise like "preparation meaning"). Prefer the model's coreTerms;
-  // fall back to seed-derived tokens.
-  const tokens = brief.coreTerms.length ? new Set(brief.coreTerms) : topicTokens(brief.seedKeywords);
-  const ideas = tokens.size
-    ? rawIdeas.filter((k) => { const kw = k.keyword.toLowerCase(); return [...tokens].some((t) => kw.includes(t)); })
-    : rawIdeas;
+  // Keep only ideas containing a DISTINCTIVE term (drops generic-SaaS + dictionary
+  // noise like "preparation meaning"). But the model's coreTerms are often abstract
+  // product concepts ("discoverability", "positioning") that match NONE of the
+  // concrete keyword-demand vocabulary ("seo audit", "site checker") — filtering by
+  // them alone can wipe the whole list and leave the Demand page blank. So degrade:
+  // coreTerms → seed-derived tokens → unfiltered, never going below MIN_IDEAS.
+  const MIN_IDEAS = 5;
+  const filterBy = (toks: Set<string>) =>
+    toks.size
+      ? rawIdeas.filter((k) => { const kw = k.keyword.toLowerCase(); return [...toks].some((t) => kw.includes(t.toLowerCase())); })
+      : rawIdeas;
+  const seedTokens = topicTokens(brief.seedKeywords);
+  let ideas = filterBy(brief.coreTerms.length ? new Set(brief.coreTerms) : seedTokens);
+  if (ideas.length < MIN_IDEAS && seedTokens.size) ideas = filterBy(seedTokens);
+  if (ideas.length < MIN_IDEAS) ideas = rawIdeas;
 
   const themes = await clusterKeywordThemes(ideas, brief.category);
 
@@ -185,14 +196,18 @@ export async function gatherDemand(rawSelf: string, opts: { competitorDomains?: 
   // the table reflects real buyer demand, not "fomc meeting"-style pollution.
   const themeKw = new Set(themes.flatMap((t) => t.sampleKeywords.map((k) => k.toLowerCase())));
   const cleaned = ideas.filter((k) => themeKw.has(k.keyword.toLowerCase()) && (k.intent ?? "").toLowerCase() !== "navigational");
-  const topKeywords = (cleaned.length >= 5 ? cleaned : ideas).slice(0, 25);
+  // The clustering LLM already dropped off-category / noise keywords, so derive BOTH
+  // the table AND the addressable volume from the kept set — padding with raw ideas
+  // would re-introduce the unrelated demand we just filtered out (and inflate volume).
+  const onTopic = cleaned.length > 0 ? cleaned : ideas;
+  const topKeywords = onTopic.slice(0, 25);
 
   const result: DemandIntel = {
     domain: self,
     category: brief.category,
     icp: brief.icp,
     searchDemand: {
-      totalAddressableVolume: ideas.reduce((s, k) => s + k.volume, 0),
+      totalAddressableVolume: onTopic.reduce((s, k) => s + k.volume, 0),
       topKeywords,
       themes,
     },
