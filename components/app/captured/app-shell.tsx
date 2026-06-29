@@ -15,17 +15,17 @@ import { ThemeToggle } from "@/components/theme-toggle";
 const SG = "Space Grotesk", PJ = "Plus Jakarta Sans", JM = "JetBrains Mono";
 
 const NAV: { label: string; href: string; badge?: boolean; icon: React.ReactNode }[] = [
-  { label: "Dashboard", href: "/app", icon: (
+  { label: "Supply", href: "/app/supply", icon: (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="7" height="9" rx="1.5" /><rect x="14" y="3" width="7" height="5" rx="1.5" /><rect x="14" y="12" width="7" height="9" rx="1.5" /><rect x="3" y="16" width="7" height="5" rx="1.5" /></svg>
   ) },
-  { label: "Report", href: "/app/report", icon: (
+  { label: "Demand", href: "/app/demand", icon: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3" /><path d="M2 21a7 7 0 0 1 14 0" /><path d="M16 3.5a3 3 0 0 1 0 5.5M22 21a6.5 6.5 0 0 0-4-6" /></svg>
+  ) },
+  { label: "Synthesis", href: "/app/synthesis", icon: (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3v5h5" /><path d="M19 8v11a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h8z" /><path d="M9 13h6M9 17h4" /></svg>
   ) },
-  { label: "Actions", href: "/app/plays", badge: true, icon: (
+  { label: "Plans", href: "/app/plans", badge: true, icon: (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3 8-8" /><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9" /></svg>
-  ) },
-  { label: "History", href: "/app/history", icon: (
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5M12 7v5l3 2" /></svg>
   ) },
   { label: "Settings", href: "/app/settings", icon: (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-2.82 1.17V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 7.5 19.4l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 3 12.6V12a2 2 0 0 1 4 0v.09c.7.32 1.5.13 2-.41" /></svg>
@@ -33,8 +33,17 @@ const NAV: { label: string; href: string; badge?: boolean; icon: React.ReactNode
 ] as const;
 
 const TITLES: Record<string, string> = {
-  "/app": "Dashboard", "/app/report": "Report", "/app/plays": "Actions",
-  "/app/history": "History", "/app/settings": "Settings", "/app/billing": "Billing",
+  "/app/supply": "Supply", "/app/demand": "Demand", "/app/synthesis": "Synthesis",
+  "/app/plans": "Plans", "/app/settings": "Settings", "/app/billing": "Billing",
+};
+
+// Per-page description shown natively as the header subtitle — one consistent
+// place for every page's one-line intro (replaces the floating per-view headers).
+const DESCRIPTIONS: Record<string, string> = {
+  "/app/supply": "How you and your rivals get found — channels, scores, and the gaps.",
+  "/app/demand": "Who your buyer is, what they search, and where they ask.",
+  "/app/synthesis": "Where you stand and the highest-leverage path forward.",
+  "/app/plans": "Specific, evidence-grounded actions you can run today.",
 };
 
 // Off-nav subpages → the primary nav section they live under + their breadcrumb
@@ -74,8 +83,8 @@ export function AppShell(p: AppShellProps) {
   const sub = SUBPAGES[pathname];
   const activeHref =
     sub?.parent ??
-    ([...NAV].sort((a, b) => b.href.length - a.href.length).find((n) => pathname === n.href || (n.href !== "/app" && pathname.startsWith(n.href)))?.href ?? "/app");
-  const title = sub?.label ?? TITLES[activeHref] ?? "Dashboard";
+    ([...NAV].sort((a, b) => b.href.length - a.href.length).find((n) => pathname === n.href || pathname.startsWith(n.href + "/"))?.href ?? "/app/supply");
+  const title = sub?.label ?? TITLES[activeHref] ?? "Supply";
 
   return (
     <div style={{ fontFamily: `${PJ}, sans-serif`, color: "var(--c-ink)", minHeight: "100vh" }}>
@@ -150,7 +159,7 @@ export function AppShell(p: AppShellProps) {
               ) : (
                 <h1 style={{ fontFamily: SG, fontWeight: 700, fontSize: 20, letterSpacing: "-0.01em", margin: 0 }}>{title}</h1>
               )}
-              <div style={{ fontSize: 12.5, color: "var(--c-faint)", marginTop: 1 }}>{p.lastScannedLabel} · {p.appName} · score {p.scoreVersion}</div>
+              <div style={{ fontSize: 12.5, color: "var(--c-faint)", marginTop: 1 }}>{DESCRIPTIONS[activeHref] ?? `${p.lastScannedLabel} · ${p.appName} · score ${p.scoreVersion}`}</div>
             </div>
             <div style={{ flex: "1 1 0%" }} />
             <ThemeToggle className="size-8" />

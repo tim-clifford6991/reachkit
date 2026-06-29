@@ -258,6 +258,18 @@
 :root {
   color-scheme: light;
 
+  /* Radius scale — defined statically (not only in @theme) so var(--radius-*)
+     resolves in inline styles too. Tailwind v4 tree-shakes @theme tokens that no
+     utility class references, which left radii used only by inline styles empty
+     → square corners. These mirror the @theme + design-system values. */
+  --radius-xs: 0.375rem;   /* 6px  */
+  --radius-sm: 0.625rem;   /* 10px */
+  --radius-md: 0.875rem;   /* 14px */
+  --radius-lg: 0.75rem;    /* 12px */
+  --radius-xl: 1rem;       /* 16px */
+  --radius-2xl: 1.125rem;  /* 18px */
+  --radius-full: 9999px;
+
   --background:             oklch(0.990 0.003 290);
   --foreground:             oklch(0.21 0.013 286);
   --card:                   oklch(1.000 0 0);

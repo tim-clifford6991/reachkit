@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="168" height="28" viewBox="0 0 168 28" fill="none" role="img" aria-label="ReachKit">
+  <rect width="28" height="28" rx="9" fill="#6E56F7"/>
+  <circle cx="14" cy="14" r="1.7" fill="#ffffff"/>
+  <path d="M14 19 A5 5 0 1 1 19 14" stroke="#ffffff" stroke-width="1.7" fill="none" stroke-linecap="round"/>
+  <path d="M14 23 A9 9 0 1 1 23 14" stroke="#C3B2FF" stroke-width="1.7" fill="none" stroke-linecap="round"/>
+  <text x="40" y="14" dominant-baseline="central" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="18" font-weight="600" letter-spacing="-0.01em" fill="#1A1523">ReachKit</text>
+</svg>

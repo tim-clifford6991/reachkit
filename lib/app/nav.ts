@@ -19,11 +19,10 @@ export interface AppNavItem {
 }
 
 export const APP_NAV: readonly AppNavItem[] = [
-  { href: "/app", label: "Dashboard", group: "primary", iconKey: "dashboard", hint: "Your four-question report" },
-  { href: "/app/channels", label: "Market Report", group: "primary", iconKey: "channels", hint: "Competitors, channels & playbook" },
-  { href: "/app/plays", label: "This week's plays", group: "primary", iconKey: "plays", hint: "Your weekly action queue" },
-  { href: "/app/feed", label: "Signal feed", group: "primary", iconKey: "feed", hint: "Weekly market changes" },
-  { href: "/app/history", label: "Score history", group: "primary", iconKey: "history", hint: "Your score trend & scan timeline" },
+  { href: "/app/supply", label: "Supply", group: "primary", iconKey: "channels", hint: "How you & rivals get found" },
+  { href: "/app/demand", label: "Demand", group: "primary", iconKey: "feed", hint: "Your buyer & the market" },
+  { href: "/app/synthesis", label: "Synthesis", group: "primary", iconKey: "dashboard", hint: "Your strategic position" },
+  { href: "/app/plans", label: "Plans", group: "primary", iconKey: "plays", hint: "Content & distribution actions" },
   { href: "/app/settings", label: "Settings", group: "utility", iconKey: "settings" },
   { href: "/app/billing", label: "Billing", group: "utility", iconKey: "billing" },
 ] as const;
@@ -35,7 +34,7 @@ export const APP_NAV: readonly AppNavItem[] = [
  */
 export function isNavActive(href: string, pathname: string): boolean {
   if (href === "/app") return pathname === "/app";
-  return pathname.startsWith(href);
+  return pathname === href || pathname.startsWith(href + "/");
 }
 
 export interface Breadcrumb {
