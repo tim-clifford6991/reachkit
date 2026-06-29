@@ -90,7 +90,7 @@ export async function discoverReferralChannels(input: Input): Promise<DiscoverRe
   // Resolve each intersection row's target indices → competitor hostnames.
   const rows: ReferralRow[] = interRows.map((r) => ({
     host: r.referringHost,
-    competitorHosts: r.targetIdxs.map((i) => competitorDomains[i]).filter(Boolean),
+    competitorHosts: r.targetIdxs.map((i) => competitorDomains[i]).filter((h): h is string => h !== undefined),
     exampleUrl: r.exampleUrl,
   }));
 

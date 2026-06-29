@@ -95,9 +95,9 @@ function buildReport(d: PreviewResult): string {
 }
 
 export default function TestPreviewPage() {
-  const [presetId, setPresetId] = useState(PRESETS[0].id);
-  const [self, setSelf] = useState(PRESETS[0].self);
-  const [competitors, setCompetitors] = useState(PRESETS[0].competitors);
+  const [presetId, setPresetId] = useState(PRESETS[0]!.id);
+  const [self, setSelf] = useState(PRESETS[0]!.self);
+  const [competitors, setCompetitors] = useState(PRESETS[0]!.competitors);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<PreviewResult | null>(null);

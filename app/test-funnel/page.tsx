@@ -46,7 +46,7 @@ const prioColor = (p: string) => (p === "high" ? "#dc2626" : p === "medium" ? "#
 const fmt = (n: number) => n.toLocaleString();
 
 export default function TestFunnelPage() {
-  const [domain, setDomain] = useState(PRESETS[0]);
+  const [domain, setDomain] = useState(PRESETS[0]!);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [d, setD] = useState<Funnel | null>(null);

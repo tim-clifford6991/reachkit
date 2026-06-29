@@ -6,7 +6,7 @@
  */
 import { useMemo, useState } from "react";
 import { useIntel, IntelShell, fmt, fmtCompact } from "@/components/app/intel/shared";
-import { Card, Kpi, KpiRow, Badge, Eyebrow, Gauge, Donut, HBars, Bar, Tabs, Expand, EvidenceLink, bandFor, PALETTE, type Segment } from "@/components/app/intel/kit";
+import { Card, Kpi, KpiRow, Badge, Eyebrow, Gauge, Donut, HBars, Bar, DataTable, Tabs, Expand, EvidenceLink, bandFor, PALETTE, type Segment } from "@/components/app/intel/kit";
 
 interface Backlinks { topQualityReferrers: { host: string; category: string; url: string }[]; byCategory: Record<string, number>; qualityShare: number; sampled: number }
 /** Two-lens supply view — ESTIMATES from public SEO signals, not measured analytics. */

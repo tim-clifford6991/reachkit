@@ -20,7 +20,7 @@ const fmt = (n: number) => n.toLocaleString();
 const prioColor = (p: string) => (p === "high" ? "#dc2626" : p === "medium" ? "#E0731C" : "#9ca3af");
 
 export default function TestSynthesisPage() {
-  const [domain, setDomain] = useState(PRESETS[0]);
+  const [domain, setDomain] = useState(PRESETS[0]!);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [d, setD] = useState<Syn | null>(null);

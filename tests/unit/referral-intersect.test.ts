@@ -94,7 +94,7 @@ describe("rankOpportunities", () => {
       ["small.com", 100],
     ]);
     const { opportunities } = rankOpportunities(rows, ctx({ traffic }));
-    expect(opportunities[0].host).toBe("big.com");
+    expect(opportunities[0]!.host).toBe("big.com");
   });
 
   it("drops referrers below the traffic floor (kills zero-traffic spam)", () => {
@@ -116,9 +116,9 @@ describe("parseClassifications (Task 6b)", () => {
     ]);
     const out = parseClassifications(raw, hosts);
     const byHost = Object.fromEntries(out.map((c) => [c.host, c]));
-    expect(byHost["webcatalog.io"].actionable).toBe(true);
-    expect(byHost["moz.com"].actionable).toBe(false); // competitor never actionable
-    expect(byHost["godaddy.com"].actionable).toBe(false); // tool_or_platform never actionable
+    expect(byHost["webcatalog.io"]!.actionable).toBe(true);
+    expect(byHost["moz.com"]!.actionable).toBe(false); // competitor never actionable
+    expect(byHost["godaddy.com"]!.actionable).toBe(false); // tool_or_platform never actionable
     expect(out.find((c) => c.host === "notinlist.com")).toBeUndefined();
   });
 });

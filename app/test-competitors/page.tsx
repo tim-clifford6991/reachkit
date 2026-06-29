@@ -49,7 +49,7 @@ function buildReport(d: Result): string {
 }
 
 export default function TestCompetitorsPage() {
-  const [domain, setDomain] = useState(PRESETS[0].domain);
+  const [domain, setDomain] = useState(PRESETS[0]!.domain);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<Result | null>(null);

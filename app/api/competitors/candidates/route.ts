@@ -11,6 +11,7 @@ import { currentUser } from "@/lib/auth/server";
 import { activeAppId } from "@/lib/app/active-app";
 import { serverDb } from "@/lib/db/client";
 import { normalizeHost } from "@/lib/scan/referral/classify";
+import type { Json } from "@/lib/db/types";
 import { discoverClosestCompetitors } from "@/lib/scan/referral/discover-competitors";
 
 export const maxDuration = 60;
@@ -41,7 +42,7 @@ export async function GET(req: NextRequest) {
     if (scan?.id && payload) {
       payload.competitorCandidates = { generatedAt: new Date().toISOString(), ...result };
       try {
-        await db.from("scans").update({ report_payload: payload }).eq("id", scan.id);
+        await db.from("scans").update({ report_payload: payload as Json }).eq("id", scan.id);
       } catch (e) {
         console.error("[competitors/candidates] cache write failed (best-effort)", e);
       }

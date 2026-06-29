@@ -16,7 +16,7 @@ const gap: GapAnalysis = {
   shareOfVoice: null,
   keywordGap: [],
   demandPockets: [
-    { surface: "r/SaaS", subreddit: "r/SaaS", count: 8, intentSum: 5, score: 6, topThreads: [] },
+    { surface: "r/SaaS", platform: "Reddit", subreddit: "r/SaaS", count: 8, intentSum: 5, score: 6, topThreads: [] },
   ],
 };
 

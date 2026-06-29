@@ -50,11 +50,12 @@ const market: MarketAnalysis = {
     demandPockets: [
       {
         surface: "r/SEO",
+        platform: "Reddit",
         subreddit: "r/SEO",
         count: 4,
         intentSum: 3,
         score: 5,
-        topThreads: [{ title: "how do I get found", url: "https://reddit.com/r/SEO/x", intent: 0.9, publishedAt: "2026-06-10T00:00:00Z" }],
+        topThreads: [{ title: "how do I get found", url: "https://reddit.com/r/SEO/x", intent: 0.9, publishedAt: "2026-06-10T00:00:00Z", theme: "Problem" }],
       },
     ],
   },

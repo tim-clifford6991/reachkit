@@ -3,7 +3,7 @@ import { dedupeHits } from "./index";
 import type { DemandHit } from "./types";
 
 function hit(url: string, query = "q"): DemandHit {
-  return { title: url, url, snippet: "", subreddit: null, query, publishedAt: null };
+  return { title: url, url, snippet: "", subreddit: null, platform: "Reddit", theme: "Problem", query, publishedAt: null };
 }
 
 describe("dedupeHits", () => {

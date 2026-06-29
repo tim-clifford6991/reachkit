@@ -77,7 +77,6 @@ export function CompetitorSetup({ domain }: { domain: string }) {
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-2">
                       <span className="truncate font-medium">{c.domain}</span>
-                      {c.suggested && null}
                       {!c.sizeRelevant && <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[9px] text-amber-700">size gap</span>}
                     </span>
                     <span className="block truncate text-[11px] text-neutral-500">{c.reason}</span>

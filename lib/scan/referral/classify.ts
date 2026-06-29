@@ -5,11 +5,12 @@ export function normalizeHost(url: string): string {
     const h = new URL(url.startsWith("http") ? url : `https://${url}`).hostname;
     return h.replace(/^www\./, "").toLowerCase();
   } catch {
-    return url
-      .replace(/^https?:\/\//, "")
-      .replace(/^www\./, "")
-      .split("/")[0]
-      .toLowerCase();
+    return (
+      url
+        .replace(/^https?:\/\//, "")
+        .replace(/^www\./, "")
+        .split("/")[0] ?? ""
+    ).toLowerCase();
   }
 }
 

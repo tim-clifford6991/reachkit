@@ -24,7 +24,7 @@ const Chips = ({ items, color = "#7c3aed" }: { items: string[]; color?: string }
 );
 
 export default function TestDemandPage() {
-  const [domain, setDomain] = useState(PRESETS[0]);
+  const [domain, setDomain] = useState(PRESETS[0]!);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [d, setD] = useState<Demand | null>(null);

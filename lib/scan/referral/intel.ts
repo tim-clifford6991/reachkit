@@ -12,6 +12,7 @@
  * estimateTrafficMix, discoverReferralChannels, classifyOpportunityPages.
  */
 import { serverDb } from "@/lib/db/client";
+import type { Json } from "@/lib/db/types";
 import { normalizeHost } from "@/lib/scan/referral/classify";
 import { productNameFromHost } from "@/lib/scan/referral/discover-competitors";
 import { cachedDiscoverCompetitors, cachedBrandedSearch } from "@/lib/scan/cache/cached-adapters";
@@ -239,7 +240,7 @@ export async function persistCompetitiveIntel(scanId: string, intel: DashboardIn
   const payload = (data?.report_payload ?? null) as Record<string, unknown> | null;
   if (!payload) return;
   payload.competitiveIntel = { generatedAt: new Date().toISOString(), ...intel };
-  await db.from("scans").update({ report_payload: payload }).eq("id", scanId);
+  await db.from("scans").update({ report_payload: payload as Json }).eq("id", scanId);
 }
 
 export async function attachCompetitiveIntel(

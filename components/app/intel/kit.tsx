@@ -175,7 +175,7 @@ export interface QuadrantItem { ease: number; impact: number; color: string; lab
 export function Quadrant({ items, legend }: { items: QuadrantItem[]; legend?: { color: string; label: string }[] }) {
   const MIN = 14, MAX = 92, span = MAX - MIN, mid = (MIN + MAX) / 2;
   const mapX = (e: number) => MIN + e * span, mapY = (i: number) => MAX - i * span;
-  const lbl = (x: number, y: number, t: string, anchor: string) => <text x={x} y={y} textAnchor={anchor} style={{ font: "600 3.4px var(--font-mono)", fill: "var(--c-faint)", letterSpacing: "0.04em" }}>{t}</text>;
+  const lbl = (x: number, y: number, t: string, anchor: "start" | "middle" | "end" | "inherit") => <text x={x} y={y} textAnchor={anchor} style={{ font: "600 3.4px var(--font-mono)", fill: "var(--c-faint)", letterSpacing: "0.04em" }}>{t}</text>;
   return (
     <div>
       <svg viewBox="0 0 106 100" width="100%" style={{ display: "block", maxWidth: 440, margin: "0 auto" }}>

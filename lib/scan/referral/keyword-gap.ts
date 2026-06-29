@@ -12,6 +12,7 @@ import { normalizeHost } from "@/lib/scan/referral/classify";
 import { cohortFor } from "@/lib/scan/cache/cached-adapters";
 import { cachedRankedKeywords } from "@/lib/scan/cache/cached-adapters";
 import { serverDb } from "@/lib/db/client";
+import type { Json } from "@/lib/db/types";
 
 const WINNING_POSITION = 30; // only count a rival ranking in the top 30 as "winning"
 
@@ -37,7 +38,7 @@ async function persistKeywordGaps(subject: string, cohortKey: string, gaps: Keyw
     rival_count: g.competitorsRanking,
     opportunity: g.opportunity,
     winning_url: g.competitors[0]?.url ?? null,
-    competitors: g.competitors,
+    competitors: g.competitors as unknown as Json,
     fetched_at: new Date().toISOString(),
   }));
   const CHUNK = 100;
@@ -143,7 +144,7 @@ export async function gatherKeywordGap(rawSelf: string, opts: { topN?: number; c
   // Aggregate competitor rankings per keyword (best position per competitor).
   const agg = new Map<string, { volume: number; comps: Map<string, { position: number; url: string }> }>();
   cohort.forEach((domain, i) => {
-    for (const k of compKwLists[i]) {
+    for (const k of (compKwLists[i] ?? [])) {
       if (k.position <= 0 || k.position > WINNING_POSITION) continue;
       if (isBrandKeyword(k.keyword, brands)) continue; // drop rival/own brand terms
       let e = agg.get(k.keyword);
@@ -163,14 +164,15 @@ export async function gatherKeywordGap(rawSelf: string, opts: { topN?: number; c
     const competitors = [...e.comps.entries()]
       .map(([domain, v]) => ({ domain, position: v.position, url: v.url }))
       .sort((a, b) => a.position - b.position);
-    const bestPosition = competitors[0].position;
+    if (competitors.length === 0) continue;
+    const bestPosition = competitors[0]!.position;
     const subjPos = subjectPos.get(keyword) ?? null;
 
     if (subjPos == null) {
       const opportunity = Math.log1p(e.volume) * competitors.length * ((WINNING_POSITION + 1 - bestPosition) / WINNING_POSITION);
       gaps.push({ keyword, volume: e.volume, subjectPosition: null, bestPosition, competitorsRanking: competitors.length, competitors: competitors.slice(0, 5), opportunity });
     } else if (subjPos > bestPosition) {
-      shared.push({ keyword, volume: e.volume, subjectPosition: subjPos, bestCompetitor: competitors[0].domain, bestPosition });
+      shared.push({ keyword, volume: e.volume, subjectPosition: subjPos, bestCompetitor: competitors[0]!.domain, bestPosition });
     }
   }
   // Lead with cross-referenced consensus: keywords MULTIPLE rivals rank for are
@@ -178,11 +180,14 @@ export async function gatherKeywordGap(rawSelf: string, opts: { topN?: number; c
   gaps.sort((a, b) => b.competitorsRanking - a.competitorsRanking || b.opportunity - a.opportunity);
   shared.sort((a, b) => b.volume - a.volume);
 
-  const competitors: DomainKwSummary[] = cohort.map((domain, i) => ({
-    domain,
-    rankedFor: compKwLists[i].length,
-    topVolume: Math.max(0, ...compKwLists[i].map((k) => k.volume)),
-  }));
+  const competitors: DomainKwSummary[] = cohort.map((domain, i) => {
+    const kwList = compKwLists[i] ?? [];
+    return {
+      domain,
+      rankedFor: kwList.length,
+      topVolume: Math.max(0, ...kwList.map((k) => k.volume)),
+    };
+  });
 
   const result: KeywordGapResult = {
     category: closest.category,

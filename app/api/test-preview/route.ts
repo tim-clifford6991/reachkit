@@ -104,8 +104,8 @@ export async function GET(req: NextRequest) {
   // Task 6b — page-level classification: keep only sites that are real CHANNELS a
   // founder can get onto (directory/community/podcast/newsletter/guest-post), and
   // drop tools/platforms/competitors (godaddy, moz, semrush, search engines).
-  type ClassedOpp = (typeof result.opportunities)[number] & { type: OppChannelType; action: string };
-  let opportunities: ClassedOpp[] = result.opportunities.map((o) => ({ ...o, type: "other" as OppChannelType, action: "" }));
+  type ClassedOpp = (typeof result.opportunities)[number] & { type: OppChannelType; action: string; actionable: boolean };
+  let opportunities: ClassedOpp[] = result.opportunities.map((o) => ({ ...o, type: "other" as OppChannelType, action: "", actionable: false }));
   if (result.opportunities.length) {
     const tC = Date.now();
     const top = result.opportunities.slice(0, 25);

@@ -12,6 +12,8 @@ function hit(p: Partial<ClassifiedHit>): ClassifiedHit {
     url: p.url ?? "https://reddit.com/r/SaaS/comments/1/x",
     snippet: p.snippet ?? "",
     subreddit: p.subreddit ?? null,
+    platform: p.platform ?? "Reddit",
+    theme: p.theme ?? "Problem",
     query: p.query ?? "q",
     publishedAt: p.publishedAt ?? RECENT, // default fresh → weight 1.0
     isBuyerPain: p.isBuyerPain ?? true,

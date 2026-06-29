@@ -56,7 +56,7 @@ function RankTeardown({ url, keyword }: { url: string; keyword: string }) {
 }
 
 export default function TestKeywordsPage() {
-  const [domain, setDomain] = useState(PRESETS[0]);
+  const [domain, setDomain] = useState(PRESETS[0]!);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [d, setD] = useState<KwResult | null>(null);
