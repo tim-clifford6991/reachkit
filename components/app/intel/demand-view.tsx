@@ -62,7 +62,7 @@ function Body({ data }: { data: Demand }) {
           {themeBars.length ? <HBars data={themeBars} format={fmtCompact} /> : <Empty>Thin search demand.</Empty>}
         </Card>
         <Card title="Intent mix" info="Share of demand by buyer stage. Bottom-funnel = ready to buy.">
-          {intentSegs.length ? <Donut segments={intentSegs} centerLabel={`${bottom}%`} centerSub="buying" /> : <Empty>—</Empty>}
+          {intentSegs.length ? <Donut segments={intentSegs} size={108} centerLabel={`${bottom}%`} centerSub="buying" /> : <Empty>—</Empty>}
         </Card>
       </div>
 

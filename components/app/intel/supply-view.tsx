@@ -296,7 +296,7 @@ function LensSections({ lens }: { lens: TrafficLens }) {
         {sourceSegs.length > 0 ? (
           <Donut
             segments={sourceSegs}
-            centerLabel={SOURCE_LABELS[dominant] ?? dominant}
+            centerLabel={dominant.charAt(0).toUpperCase() + dominant.slice(1)}
             centerSub="dominant"
           />
         ) : (

@@ -129,7 +129,7 @@ export function Donut({ segments, centerLabel, centerSub, size = 132, thickness 
             <circle key={i} cx={cx} cy={cx} r={r} fill="none" stroke={seg.color} strokeWidth={thickness} strokeDasharray={`${(fractions[i]! * c).toFixed(2)} ${(c - fractions[i]! * c).toFixed(2)}`} strokeDashoffset={offsets[i]!.toFixed(2)} />
           ))}
         </g>
-        {centerLabel && <text x={cx} y={cx - 1} textAnchor="middle" dominantBaseline="middle" style={{ font: `700 ${size * 0.19}px var(--font-mono)`, fill: "var(--c-ink)" }}>{centerLabel}</text>}
+        {centerLabel && <text x={cx} y={cx - 1} textAnchor="middle" dominantBaseline="middle" style={{ font: `700 ${Math.max(9, Math.min(size * 0.19, (size - thickness * 2 - 10) / Math.max(1, centerLabel.length * 0.62)))}px var(--font-mono)`, fill: "var(--c-ink)" }}>{centerLabel}</text>}
         {centerSub && <text x={cx} y={cx + size * 0.13} textAnchor="middle" dominantBaseline="middle" style={{ font: `${size * 0.07}px var(--font-mono)`, fill: "var(--c-faint)" }}>{centerSub}</text>}
       </svg>
       <ul style={{ minWidth: 0, flex: 1, margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 4 }}>
@@ -154,7 +154,7 @@ export function HBars({ data, format }: { data: BarDatum[]; format?: (n: number)
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       {data.map((d, i) => (
         <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ width: 150, flexShrink: 0, fontSize: 12, color: "var(--c-muted)", textAlign: "right", ...ELLIPSIS }}>{d.label}</span>
+          <span style={{ width: 160, flexShrink: 0, fontSize: 12, color: "var(--c-muted)", textAlign: "right", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", lineHeight: 1.2 }}>{d.label}</span>
           <div style={{ flex: 1, height: 16, background: "var(--c-fill)", borderRadius: "var(--radius-sm)", overflow: "hidden" }}>
             <div style={{ width: `${Math.max(2, (d.value / max) * 100)}%`, height: "100%", background: d.color ?? "var(--c-action)", borderRadius: "var(--radius-sm)" }} />
           </div>
