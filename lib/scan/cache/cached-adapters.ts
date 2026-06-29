@@ -91,7 +91,7 @@ export async function cohortFor(self: string, override?: string[]): Promise<Clos
   if (chosen.length === 0) return base;
   return {
     ...base,
-    ranked: [...new Set(chosen)].slice(0, 5).map((d) => ({ domain: d, name: d, closeness: 5, reason: "(selected)", etv: 0, ratio: null, sizeRelevant: true })),
+    ranked: [...new Set(chosen)].slice(0, 5).map((d) => ({ domain: d, name: d, closeness: 5, reason: "(selected)", etv: 0, ratio: null, sizeRelevant: true, sizeTier: "similar" as const })),
     suggested: chosen,
   };
 }

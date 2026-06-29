@@ -164,12 +164,17 @@ export async function discoverCompetitors(self: string, trace: TraceStep[] = [])
 // DIRECT rivals even if larger, ranked by closeness to the subject's offering.
 // ---------------------------------------------------------------------------
 
+/** Four-bucket size classification relative to the subject product. */
+export type SizeTier = "similar" | "bigger" | "much_bigger" | "biggest";
+
 export interface RankedCandidate extends RankedCompetitor {
   etv: number;
   /** competitor ETV ÷ subject ETV. null when the subject has no measurable traffic. */
   ratio: number | null;
   /** false when far larger than the subject (>SIZE_RATIO_CAP×) and the subject has real traffic. */
   sizeRelevant: boolean;
+  /** Size tier relative to the subject for UI filtering. */
+  sizeTier: SizeTier;
 }
 
 export interface ClosestCompetitorsResult {
@@ -177,7 +182,7 @@ export interface ClosestCompetitorsResult {
   blurb: string;
   /** The subject's own estimated organic traffic (for size comparison). */
   subjectEtv: number;
-  /** LLM closeness ranking (≥3), enriched with traffic + size ratio, closest first. */
+  /** LLM closeness ranking (≥3), enriched with traffic + size ratio, closest first. Up to 15. */
   ranked: RankedCandidate[];
   /** Suggested default set: closeness-ranked, alive, size-relevant — but the USER picks. */
   suggested: string[];
@@ -186,6 +191,31 @@ export interface ClosestCompetitorsResult {
 const ALIVE_FLOOR = 100; // drop parked/dead domains, but keep small real rivals
 const SIZE_RATIO_CAP = 50; // >50× the subject's traffic → likely not a benchmarkable peer
 const SIZE_BASELINE = 1000; // below this the subject's traffic is too small to compute a ratio
+
+/**
+ * Assigns a size tier to a competitor relative to the subject.
+ *
+ * When the subject has measurable traffic (≥ SIZE_BASELINE), tier by traffic ratio:
+ *   ≤3× (or smaller) → similar | 3–8× → bigger | 8–25× → much_bigger | >25× → biggest
+ *
+ * When the subject has ~no traffic (new product — ratio is meaningless), tier by the
+ * competitor's absolute ETV so the UI always shows a spread across buckets:
+ *   <10k → similar | 10k–100k → bigger | 100k–1M → much_bigger | ≥1M → biggest
+ */
+export function computeSizeTier(etv: number, subjectEtv: number): SizeTier {
+  if (subjectEtv >= SIZE_BASELINE) {
+    const ratio = etv / subjectEtv;
+    if (ratio <= 3) return "similar";
+    if (ratio <= 8) return "bigger";
+    if (ratio <= 25) return "much_bigger";
+    return "biggest";
+  }
+  // Subject has no measurable traffic — tier by absolute etv for a useful spread
+  if (etv < 10_000) return "similar";
+  if (etv < 100_000) return "bigger";
+  if (etv < 1_000_000) return "much_bigger";
+  return "biggest";
+}
 
 export async function discoverClosestCompetitors(self: string, trace: TraceStep[] = []): Promise<ClosestCompetitorsResult> {
   const productName = productNameFromHost(self);
@@ -200,11 +230,11 @@ export async function discoverClosestCompetitors(self: string, trace: TraceStep[
     output: { category: cat.category, queries: cat.queries },
   });
 
-  // Richer pool: up to 3 category queries.
+  // Richer pool: up to 4 category queries, 15 results each → more large players surface.
   let candidates: { domain: string; title: string }[] = [];
   if (cat.queries.length) {
     t = Date.now();
-    const resultSets = await Promise.all(cat.queries.slice(0, 3).map((q) => tavilySearch(q, { maxResults: 10 })));
+    const resultSets = await Promise.all(cat.queries.slice(0, 4).map((q) => tavilySearch(q, { maxResults: 15 })));
     const byDomain = new Map<string, string>();
     for (const rs of resultSets) {
       for (const r of rs) {
@@ -213,8 +243,8 @@ export async function discoverClosestCompetitors(self: string, trace: TraceStep[
         if (!byDomain.has(d)) byDomain.set(d, r.title || d);
       }
     }
-    candidates = [...byDomain.entries()].map(([domain, title]) => ({ domain, title })).slice(0, 30);
-    trace.push({ node: "closest.category_search", status: candidates.length ? "ok" : "empty", ms: Date.now() - t, input: { queries: cat.queries.slice(0, 3) }, output: { candidateDomains: candidates.map((c) => c.domain) } });
+    candidates = [...byDomain.entries()].map(([domain, title]) => ({ domain, title })).slice(0, 45);
+    trace.push({ node: "closest.category_search", status: candidates.length ? "ok" : "empty", ms: Date.now() - t, input: { queries: cat.queries.slice(0, 4) }, output: { candidateDomains: candidates.map((c) => c.domain) } });
   }
 
   // Traffic for the subject + candidates (size comparison + liveness).
@@ -230,16 +260,18 @@ export async function discoverClosestCompetitors(self: string, trace: TraceStep[
       const etv = traffic.get(r.domain) ?? 0;
       const ratio = hasSubjectSize ? etv / subjectEtv : null;
       const sizeRelevant = ratio == null ? true : ratio <= SIZE_RATIO_CAP;
-      return { ...r, etv, ratio, sizeRelevant };
+      const sizeTier = computeSizeTier(etv, subjectEtv);
+      return { ...r, etv, ratio, sizeRelevant, sizeTier };
     })
-    .filter((r) => r.closeness >= 3 && r.etv >= ALIVE_FLOOR && !isJunkHost(r.domain));
+    .filter((r) => r.closeness >= 3 && r.etv >= ALIVE_FLOOR && !isJunkHost(r.domain))
+    .slice(0, 15); // return up to 15 so the picker shows a varied size spectrum
 
   trace.push({
     node: "closest.rank",
     status: ranked.length ? "ok" : "empty",
     ms: Date.now() - t,
     input: { model: "claude-haiku-4-5", candidateCount: candidates.length, subjectEtv: Math.round(subjectEtv) },
-    output: { ranked: ranked.map((r) => ({ domain: r.domain, closeness: r.closeness, etv: Math.round(r.etv), ratio: r.ratio ? Math.round(r.ratio * 10) / 10 : null, sizeRelevant: r.sizeRelevant, reason: r.reason })), tokensIn: cl.tokensIn, tokensOut: cl.tokensOut },
+    output: { ranked: ranked.map((r) => ({ domain: r.domain, closeness: r.closeness, etv: Math.round(r.etv), ratio: r.ratio ? Math.round(r.ratio * 10) / 10 : null, sizeRelevant: r.sizeRelevant, sizeTier: r.sizeTier, reason: r.reason })), tokensIn: cl.tokensIn, tokensOut: cl.tokensOut },
   });
 
   // Suggested default = closest + size-relevant; the user can override.

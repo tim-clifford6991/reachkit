@@ -253,7 +253,7 @@ SUBJECT:
 A DIRECT competitor solves the SAME core job for the SAME user — a buyer would seriously evaluate it instead of the subject. Strongest direct rivals belong at the top EVEN IF they are larger.
 
 CANDIDATES:
-${list.slice(0, 4500)}
+${list.slice(0, 6000)}
 
 Return ONLY a JSON array sorted by closeness (highest first), using ONLY candidate domains:
 [ { "domain": "<candidate domain>", "name": "<product>", "closeness": 1-5, "reason": "<≤12 words: what makes it the same/different>" } ]

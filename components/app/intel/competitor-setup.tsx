@@ -8,12 +8,48 @@
  */
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { fmt } from "@/components/app/intel/shared";
+import { fmt, fmtCompact } from "@/components/app/intel/shared";
+import { Badge, type Tone } from "@/components/app/intel/kit";
 
-interface Candidate { domain: string; name: string; closeness: number; reason: string; etv: number; ratio: number | null; sizeRelevant: boolean }
+type SizeTier = "similar" | "bigger" | "much_bigger" | "biggest";
+
+interface Candidate {
+  domain: string;
+  name: string;
+  closeness: number;
+  reason: string;
+  etv: number;
+  ratio: number | null;
+  sizeRelevant: boolean;
+  sizeTier?: SizeTier;
+}
 interface Candidates { category: string; ranked: Candidate[]; suggested: string[]; subjectEtv: number }
 
 const MAX = 5;
+
+type TierFilter = "all" | SizeTier;
+
+const TIER_LABELS: Record<SizeTier, string> = {
+  similar: "Your size",
+  bigger: "A bit bigger",
+  much_bigger: "Much bigger",
+  biggest: "Biggest",
+};
+
+const TIER_CHIPS: { value: TierFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "similar", label: "Your size" },
+  { value: "bigger", label: "A bit bigger" },
+  { value: "much_bigger", label: "Much bigger" },
+  { value: "biggest", label: "Biggest" },
+];
+
+const TIER_TONE: Record<SizeTier, Tone> = {
+  similar: "green",
+  bigger: "neutral",
+  much_bigger: "amber",
+  biggest: "orange",
+};
 
 export function CompetitorSetup({ domain }: { domain: string }) {
   const router = useRouter();
@@ -22,6 +58,7 @@ export function CompetitorSetup({ domain }: { domain: string }) {
   const [error, setError] = useState<string | null>(null);
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
+  const [tierFilter, setTierFilter] = useState<TierFilter>("all");
 
   useEffect(() => {
     (async () => {
@@ -55,6 +92,15 @@ export function CompetitorSetup({ domain }: { domain: string }) {
     } catch (e) { setError(e instanceof Error ? e.message : "save failed"); setSaving(false); }
   }
 
+  const visibleCandidates = data
+    ? tierFilter === "all"
+      ? data.ranked
+      : data.ranked.filter((c) => c.sizeTier === tierFilter)
+    : [];
+
+  // Only show tier chips when the data has sizeTier attached (new API responses)
+  const hasTiers = data?.ranked.some((c) => c.sizeTier != null) ?? false;
+
   return (
     <div className="mx-auto max-w-2xl py-10">
       <div className="text-[10px] font-mono uppercase tracking-widest text-violet-500">Set up · {domain}</div>
@@ -67,8 +113,42 @@ export function CompetitorSetup({ domain }: { domain: string }) {
       {data && (
         <>
           <div className="mt-2 text-[11px] text-neutral-400">Category: {data.category} · your traffic ≈ {fmt(data.subjectEtv)}/mo</div>
+
+          {/* Size-tier filter chips — only shown when the API returns sizeTier */}
+          {hasTiers && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 14 }}>
+              {TIER_CHIPS.map((chip) => {
+                const active = tierFilter === chip.value;
+                return (
+                  <button
+                    key={chip.value}
+                    type="button"
+                    onClick={() => setTierFilter(chip.value)}
+                    style={{
+                      padding: "5px 12px",
+                      borderRadius: "var(--radius-sm)",
+                      border: `1px solid ${active ? "var(--c-action)" : "var(--c-line)"}`,
+                      background: active ? "var(--c-soft)" : "var(--c-surface)",
+                      color: active ? "var(--c-action)" : "var(--c-muted)",
+                      fontFamily: "var(--font-sans)",
+                      fontSize: 12,
+                      fontWeight: active ? 600 : 400,
+                      cursor: "pointer",
+                      lineHeight: 1.3,
+                    }}
+                  >
+                    {chip.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           <div className="mt-4 space-y-1.5">
-            {data.ranked.map((c) => {
+            {visibleCandidates.length === 0 && tierFilter !== "all" && (
+              <p className="text-[12px] text-neutral-400 py-3">No candidates in this size tier.</p>
+            )}
+            {visibleCandidates.map((c) => {
               const on = picked.has(c.domain);
               return (
                 <button key={c.domain} onClick={() => toggle(c.domain)} disabled={!on && picked.size >= MAX}
@@ -77,11 +157,16 @@ export function CompetitorSetup({ domain }: { domain: string }) {
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-2">
                       <span className="truncate font-medium">{c.domain}</span>
-                      {!c.sizeRelevant && <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[9px] text-amber-700">size gap</span>}
+                      {c.sizeTier
+                        ? <Badge tone={TIER_TONE[c.sizeTier]}>{TIER_LABELS[c.sizeTier]}</Badge>
+                        : (!c.sizeRelevant && <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[9px] text-amber-700">size gap</span>)}
                     </span>
                     <span className="block truncate text-[11px] text-neutral-500">{c.reason}</span>
                   </span>
-                  <span className="shrink-0 text-right text-[11px] text-neutral-400">{fmt(c.etv)}/mo{c.ratio ? ` · ${c.ratio.toFixed(0)}×` : ""}</span>
+                  <span className="shrink-0 text-right text-[11px] text-neutral-400">
+                    {fmtCompact(c.etv)}/mo
+                    {c.ratio != null && c.ratio > 0 ? ` · ${c.ratio.toFixed(0)}×` : ""}
+                  </span>
                 </button>
               );
             })}
