@@ -11,8 +11,47 @@
 import { normalizeHost } from "@/lib/scan/referral/classify";
 import { cohortFor } from "@/lib/scan/cache/cached-adapters";
 import { cachedRankedKeywords } from "@/lib/scan/cache/cached-adapters";
+import { serverDb } from "@/lib/db/client";
 
 const WINNING_POSITION = 30; // only count a rival ranking in the top 30 as "winning"
+
+// ---------------------------------------------------------------------------
+// Structured persistence (keyword_gap table)
+// ---------------------------------------------------------------------------
+
+/**
+ * Upsert keyword gap rows into `keyword_gap`.
+ * Best-effort — any write error is logged and swallowed so it never breaks the
+ * gather. Called via `void ...catch(...)` so it doesn't block the return.
+ */
+async function persistKeywordGaps(subject: string, cohortKey: string, gaps: KeywordGap[]): Promise<void> {
+  if (gaps.length === 0) return;
+  const db = serverDb();
+  const rows = gaps.map((g) => ({
+    subject_domain: subject,
+    cohort_key: cohortKey,
+    keyword: g.keyword,
+    volume: g.volume,
+    subject_position: g.subjectPosition,
+    best_position: g.bestPosition,
+    rival_count: g.competitorsRanking,
+    opportunity: g.opportunity,
+    winning_url: g.competitors[0]?.url ?? null,
+    competitors: g.competitors,
+    fetched_at: new Date().toISOString(),
+  }));
+  const CHUNK = 100;
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    try {
+      await db
+        .from("keyword_gap")
+        .upsert(rows.slice(i, i + CHUNK), { onConflict: "subject_domain,cohort_key,keyword" });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[keyword_gap] chunk ${i} persist failed: ${msg}`);
+    }
+  }
+}
 
 /** Brand tokens for the cohort — a founder can't realistically rank for a rival's
  *  brand ("read", "read ai", "cirrusinsight"), so those keywords are not opportunities. */
@@ -82,6 +121,7 @@ export interface KeywordGapResult {
 
 export async function gatherKeywordGap(rawSelf: string, opts: { topN?: number; competitorDomains?: string[] } = {}): Promise<KeywordGapResult> {
   const self = normalizeHost(rawSelf);
+  const cohortKey = (opts.competitorDomains ?? []).map((d) => d.toLowerCase()).sort().join(",");
   const closest = await cohortFor(self, opts.competitorDomains);
   const cohort = closest.ranked.slice(0, opts.topN ?? 4).map((r) => r.domain);
 
@@ -144,11 +184,18 @@ export async function gatherKeywordGap(rawSelf: string, opts: { topN?: number; c
     topVolume: Math.max(0, ...compKwLists[i].map((k) => k.volume)),
   }));
 
-  return {
+  const result: KeywordGapResult = {
     category: closest.category,
     subject: { domain: self, rankedFor: subjectKw.length },
     competitors,
     gaps: gaps.slice(0, 40),
     shared: shared.slice(0, 20),
   };
+
+  // Persist structured gap rows (best-effort, never blocks the return).
+  void persistKeywordGaps(self, cohortKey, result.gaps).catch((err) =>
+    console.error("[keyword_gap] persist error:", err),
+  );
+
+  return result;
 }

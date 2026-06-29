@@ -19,6 +19,7 @@ import { mineCompetitorReviews, type BuyerInsights } from "@/lib/scan/demand/rev
 import { discoverDemand } from "@/lib/scan/demand/index";
 import type { DemandPocket } from "@/lib/scan/demand/types";
 import type { KeywordIdea } from "@/lib/scan/adapters/dataforseo-keyword-ideas";
+import { serverDb } from "@/lib/db/client";
 
 export interface DemandTheme {
   theme: string;
@@ -107,12 +108,50 @@ function topicTokens(seeds: string[]): Set<string> {
   return t;
 }
 
+// ---------------------------------------------------------------------------
+// Structured persistence (demand_pocket table)
+// ---------------------------------------------------------------------------
+
+/**
+ * Upsert demand pocket rows into `demand_pocket`.
+ * Best-effort — any write error is logged and swallowed so it never breaks the
+ * gather. Called via `void ...catch(...)` inside the cachedJson body.
+ */
+async function persistDemandPockets(subject: string, cohortKey: string, pockets: DemandPocket[]): Promise<void> {
+  if (pockets.length === 0) return;
+  const db = serverDb();
+  const rows = pockets.map((p) => ({
+    subject_domain: subject,
+    cohort_key: cohortKey,
+    surface: p.surface,
+    platform: p.platform,
+    subreddit: p.subreddit,
+    count: p.count,
+    intent_sum: p.intentSum,
+    score: p.score,
+    top_threads: p.topThreads,
+    fetched_at: new Date().toISOString(),
+  }));
+  const CHUNK = 100;
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    try {
+      await db
+        .from("demand_pocket")
+        .upsert(rows.slice(i, i + CHUNK), { onConflict: "subject_domain,cohort_key,surface" });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[demand_pocket] chunk ${i} persist failed: ${msg}`);
+    }
+  }
+}
+
 export async function gatherDemand(rawSelf: string, opts: { competitorDomains?: string[] } = {}): Promise<DemandIntel> {
   const self = normalizeHost(rawSelf);
   const cohortKey = (opts.competitorDomains ?? []).map((d) => d.toLowerCase()).sort().join(",");
   // Persist the assembled demand intel so repeat dashboard loads are instant.
   return cachedJson(`demand-intel:${self}:${cohortKey}`, 7 * DAY_MS, async () => {
   const brief = await inferProductBrief(self);
+  // cohortKey is closed over from the outer scope.
   const competitors = (await cohortFor(self, opts.competitorDomains)).ranked.slice(0, 4).map((r) => r.domain);
 
   // Compute the SEARCH SIGNALS (keyword demand + buyer pains) first — they seed the
@@ -148,7 +187,7 @@ export async function gatherDemand(rawSelf: string, opts: { competitorDomains?: 
   const cleaned = ideas.filter((k) => themeKw.has(k.keyword.toLowerCase()) && (k.intent ?? "").toLowerCase() !== "navigational");
   const topKeywords = (cleaned.length >= 5 ? cleaned : ideas).slice(0, 25);
 
-  return {
+  const result: DemandIntel = {
     domain: self,
     category: brief.category,
     icp: brief.icp,
@@ -160,5 +199,12 @@ export async function gatherDemand(rawSelf: string, opts: { competitorDomains?: 
     community: { painQueries: demand.painQueries, pockets: demand.pockets },
     buyerInsights,
   };
+
+  // Persist structured demand pocket rows (best-effort, never blocks the return).
+  void persistDemandPockets(self, cohortKey, result.community.pockets).catch((err) =>
+    console.error("[demand_pocket] persist error:", err),
+  );
+
+  return result;
   });
 }

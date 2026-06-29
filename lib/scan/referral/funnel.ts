@@ -116,6 +116,60 @@ async function persistDomainIntel(entity: EntityWithBreakdown): Promise<void> {
   }
 }
 
+/**
+ * Upsert cohort-competitor rows into `cohort_competitor`.
+ * Captures the per-cohort relationship: score, band, traffic, closeness, reason,
+ * and quality_share. The subject itself gets is_subject=true and closeness=1.
+ * Best-effort — a write error is logged and silently swallowed.
+ */
+async function persistCohortCompetitors(
+  subjectDomain: string,
+  cohortKey: string,
+  subject: EntityWithBreakdown,
+  competitors: CompetitorDeep[],
+): Promise<void> {
+  try {
+    const db = serverDb();
+    const rows = [
+      {
+        subject_domain: subjectDomain,
+        cohort_key: cohortKey,
+        competitor_domain: subject.domain,
+        is_subject: true,
+        score: subject.score,
+        band: subject.band,
+        monthly_traffic: Math.round(subject.monthlyTraffic),
+        closeness: 1,
+        reason: "",
+        quality_share: subject.backlinks.qualityShare,
+        fetched_at: new Date().toISOString(),
+      },
+      ...competitors.map((c) => ({
+        subject_domain: subjectDomain,
+        cohort_key: cohortKey,
+        competitor_domain: c.domain,
+        is_subject: false,
+        score: c.score,
+        band: c.band,
+        monthly_traffic: Math.round(c.monthlyTraffic),
+        closeness: c.closeness,
+        reason: c.reason,
+        quality_share: c.backlinks.qualityShare,
+        fetched_at: new Date().toISOString(),
+      })),
+    ];
+    const CHUNK = 100;
+    for (let i = 0; i < rows.length; i += CHUNK) {
+      await db
+        .from("cohort_competitor")
+        .upsert(rows.slice(i, i + CHUNK), { onConflict: "subject_domain,cohort_key,competitor_domain" });
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[cohort_competitor] persist failed for ${subjectDomain}: ${msg}`);
+  }
+}
+
 /** Top distinct referrers for a domain (by backlink rank), with the deep link to
  *  the exact referring page. one_per_domain mode → the strongest page per host. */
 async function rawReferrers(domain: string, limit = 40): Promise<RawRef[]> {
@@ -284,11 +338,13 @@ export async function gatherFullFunnel(rawSelf: string, opts: { topN?: number; c
 
   const funnelSubject = { ...subjectWithLens, category: closest.category, backlinks: selfBacklinks };
 
-  // 6. Persist structured per-domain intel rows (best-effort, never breaks the gather).
+  // 6. Persist structured per-domain intel rows + cohort-competitor rows
+  //    (best-effort, never breaks the gather).
   void Promise.all([
     persistDomainIntel({ ...funnelSubject }),
     ...competitorsWithLens.map((c) => persistDomainIntel(c)),
-  ]).catch((err) => console.error("[domain_intel] batch persist error:", err));
+    persistCohortCompetitors(self, cohortKey, funnelSubject, competitorsWithLens),
+  ]).catch((err) => console.error("[funnel] batch persist error:", err));
 
   return { subject: funnelSubject, category: closest.category, competitors: competitorsWithLens, discoveryChannels, channelsMissing, keyActions };
   });

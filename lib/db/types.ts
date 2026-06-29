@@ -291,6 +291,228 @@ export type Database = {
         }
         Relationships: []
       }
+      cohort_competitor: {
+        Row: {
+          subject_domain: string
+          cohort_key: string
+          competitor_domain: string
+          is_subject: boolean
+          score: number
+          band: string
+          monthly_traffic: number
+          closeness: number
+          reason: string
+          quality_share: number
+          fetched_at: string
+        }
+        Insert: {
+          subject_domain: string
+          cohort_key?: string
+          competitor_domain: string
+          is_subject?: boolean
+          score?: number
+          band?: string
+          monthly_traffic?: number
+          closeness?: number
+          reason?: string
+          quality_share?: number
+          fetched_at?: string
+        }
+        Update: {
+          subject_domain?: string
+          cohort_key?: string
+          competitor_domain?: string
+          is_subject?: boolean
+          score?: number
+          band?: string
+          monthly_traffic?: number
+          closeness?: number
+          reason?: string
+          quality_share?: number
+          fetched_at?: string
+        }
+        Relationships: []
+      }
+      content_plan_item: {
+        Row: {
+          subject_domain: string
+          cohort_key: string
+          topic: string
+          format: string
+          depth_target: string
+          priority: string
+          est_monthly_volume: number
+          buyer_angle: string
+          intent: string
+          target_keywords: Json
+          brief: string
+          agent_prompt: string
+          evidence: string
+          fetched_at: string
+        }
+        Insert: {
+          subject_domain: string
+          cohort_key?: string
+          topic: string
+          format?: string
+          depth_target?: string
+          priority?: string
+          est_monthly_volume?: number
+          buyer_angle?: string
+          intent?: string
+          target_keywords?: Json
+          brief?: string
+          agent_prompt?: string
+          evidence?: string
+          fetched_at?: string
+        }
+        Update: {
+          subject_domain?: string
+          cohort_key?: string
+          topic?: string
+          format?: string
+          depth_target?: string
+          priority?: string
+          est_monthly_volume?: number
+          buyer_angle?: string
+          intent?: string
+          target_keywords?: Json
+          brief?: string
+          agent_prompt?: string
+          evidence?: string
+          fetched_at?: string
+        }
+        Relationships: []
+      }
+      demand_pocket: {
+        Row: {
+          subject_domain: string
+          cohort_key: string
+          surface: string
+          platform: string
+          subreddit: string | null
+          count: number
+          intent_sum: number
+          score: number
+          top_threads: Json
+          fetched_at: string
+        }
+        Insert: {
+          subject_domain: string
+          cohort_key?: string
+          surface: string
+          platform?: string
+          subreddit?: string | null
+          count?: number
+          intent_sum?: number
+          score?: number
+          top_threads?: Json
+          fetched_at?: string
+        }
+        Update: {
+          subject_domain?: string
+          cohort_key?: string
+          surface?: string
+          platform?: string
+          subreddit?: string | null
+          count?: number
+          intent_sum?: number
+          score?: number
+          top_threads?: Json
+          fetched_at?: string
+        }
+        Relationships: []
+      }
+      distribution_plan_item: {
+        Row: {
+          subject_domain: string
+          cohort_key: string
+          channel: string
+          action: string
+          ease: number
+          impact: number
+          priority: string
+          effort: string
+          target: string
+          target_url: string
+          why: string
+          evidence: string
+          fetched_at: string
+        }
+        Insert: {
+          subject_domain: string
+          cohort_key?: string
+          channel: string
+          action: string
+          ease?: number
+          impact?: number
+          priority?: string
+          effort?: string
+          target?: string
+          target_url?: string
+          why?: string
+          evidence?: string
+          fetched_at?: string
+        }
+        Update: {
+          subject_domain?: string
+          cohort_key?: string
+          channel?: string
+          action?: string
+          ease?: number
+          impact?: number
+          priority?: string
+          effort?: string
+          target?: string
+          target_url?: string
+          why?: string
+          evidence?: string
+          fetched_at?: string
+        }
+        Relationships: []
+      }
+      keyword_gap: {
+        Row: {
+          subject_domain: string
+          cohort_key: string
+          keyword: string
+          volume: number
+          subject_position: number | null
+          best_position: number
+          rival_count: number
+          opportunity: number
+          winning_url: string | null
+          competitors: Json
+          fetched_at: string
+        }
+        Insert: {
+          subject_domain: string
+          cohort_key?: string
+          keyword: string
+          volume?: number
+          subject_position?: number | null
+          best_position?: number
+          rival_count?: number
+          opportunity?: number
+          winning_url?: string | null
+          competitors?: Json
+          fetched_at?: string
+        }
+        Update: {
+          subject_domain?: string
+          cohort_key?: string
+          keyword?: string
+          volume?: number
+          subject_position?: number | null
+          best_position?: number
+          rival_count?: number
+          opportunity?: number
+          winning_url?: string | null
+          competitors?: Json
+          fetched_at?: string
+        }
+        Relationships: []
+      }
       embeddings: {
         Row: {
           app_id: string | null
