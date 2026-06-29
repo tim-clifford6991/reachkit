@@ -17,6 +17,7 @@ import { extractJson } from "@/lib/llm/json";
 import { normalizeHost } from "@/lib/scan/referral/classify";
 import { cachedRelevantPages, cohortFor } from "@/lib/scan/cache/cached-adapters";
 import { cachedJson, DAY_MS } from "@/lib/scan/cache/external-cache";
+import { fixturesEnabled } from "@/lib/dev/fixtures";
 import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
 import { serverDb } from "@/lib/db/client";
 import type { ContentIntel, ContentEntity, ContentPage, Cluster, ContentType } from "./types";
@@ -135,9 +136,10 @@ export async function classifyContentTypes(
       else uncertain.push(url);
     }
 
-    // Step 2: LLM for uncertain URLs (skip when none remain).
+    // Step 2: LLM for uncertain URLs (skip when none remain, or in fixtures mode
+    // — the live run needs a real key; uncertain URLs then fall back to "other").
     const llmResults = new Map<string, ContentType>();
-    if (uncertain.length > 0) {
+    if (uncertain.length > 0 && !fixturesEnabled()) {
       const list = uncertain.map((url, i) => `${i + 1}. ${url}`).join("\n");
       try {
         const { text } = await callModel({
@@ -240,6 +242,9 @@ export async function clusterPageTopics(
   return cachedJson(cacheKey, 14 * DAY_MS, async () => {
     const list = pages.map((p, i) => `${i + 1}. [${p.domain}] ${p.url}`).join("\n");
     const allUrls = pages.map((p) => p.url);
+
+    // Fixtures mode: no LLM call — default every page to a single neutral cluster.
+    if (fixturesEnabled()) return { pageAssignments: allUrls.map((url) => ({ url, cluster: "general" })) };
 
     try {
       const { text } = await callModel({
