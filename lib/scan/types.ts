@@ -38,3 +38,13 @@ export interface WatermarkBody {
 
 export type ScanEventType = "artifact" | "facts" | "findings" | "report" | "refresh" | "done" | "error";
 export interface ScanEvent { type: ScanEventType; payload: Record<string, unknown>; }
+
+/** A progress checkpoint emitted by cold-compute gatherers. */
+export interface StageEvent {
+  key: string;
+  label: string;
+  /** Real data already available at this checkpoint, shown inline (e.g. "Found 4 competitors"). */
+  detail?: string;
+}
+/** Optional progress callback threaded into gatherers. No-op when omitted. */
+export type OnStageCallback = (s: StageEvent) => void;

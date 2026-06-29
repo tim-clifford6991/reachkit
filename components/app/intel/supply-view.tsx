@@ -36,9 +36,9 @@ interface Supply {
 const median = (xs: number[]) => { if (!xs.length) return 0; const s = [...xs].sort((a, b) => a - b); const m = Math.floor(s.length / 2); return s.length % 2 ? s[m]! : (s[m - 1]! + s[m]!) / 2; };
 
 export function SupplyView() {
-  const { data, loading, error } = useIntel<Supply>("supply");
+  const { data, loading, error, stages } = useIntel<Supply>("supply");
   return (
-    <div>      <IntelShell loading={loading} error={error} hasData={!!data}>{data && <Body data={data} />}</IntelShell>
+    <div>      <IntelShell loading={loading} error={error} hasData={!!data} stages={stages}>{data && <Body data={data} />}</IntelShell>
     </div>
   );
 }

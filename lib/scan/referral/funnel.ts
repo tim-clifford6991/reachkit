@@ -19,6 +19,7 @@ import { cachedJson, DAY_MS } from "@/lib/scan/cache/external-cache";
 import { classifyReferrers, QUALITY_CATEGORIES, type ReferrerCategory } from "@/lib/scan/referral/classify-referrers";
 import { computeTrafficLens, type TrafficLens } from "@/lib/scan/referral/traffic-lens";
 import { serverDb } from "@/lib/db/client";
+import type { OnStageCallback } from "@/lib/scan/types";
 
 export interface QualityReferrer {
   host: string;
@@ -261,7 +262,7 @@ Return ONLY a JSON array:
   }
 }
 
-export async function gatherFullFunnel(rawSelf: string, opts: { topN?: number; competitorDomains?: string[] } = {}): Promise<FunnelResult> {
+export async function gatherFullFunnel(rawSelf: string, opts: { topN?: number; competitorDomains?: string[]; onStage?: OnStageCallback } = {}): Promise<FunnelResult> {
   const self = normalizeHost(rawSelf);
   const topN = opts.topN ?? 4;
   const cohortKey = (opts.competitorDomains ?? []).map((d) => d.toLowerCase()).sort().join(",");
@@ -269,6 +270,9 @@ export async function gatherFullFunnel(rawSelf: string, opts: { topN?: number; c
   // each dashboard load is instant and makes ZERO new DataForSEO/LLM calls.
   // v2: includes lens (traffic sources + growth activities) on each entity.
   return cachedJson(`funnel2:${self}:${topN}:${cohortKey}`, 7 * DAY_MS, async () => {
+  // Stage: fired inside cachedJson body so only cold computes emit progress events.
+  opts.onStage?.({ key: "funnel:profile", label: "Profiling your site" });
+
   // 1. Category + cohort (user-selected when provided, else closeness-ranked).
   const closest = await cohortFor(self, opts.competitorDomains);
   const cohort = closest.ranked.slice(0, topN).map((r) => r.domain);
@@ -281,10 +285,14 @@ export async function gatherFullFunnel(rawSelf: string, opts: { topN?: number; c
     Promise.all(cohort.map((d) => rawReferrers(d))),
   ]);
 
+  opts.onStage?.({ key: "funnel:competitors", label: "Finding & ranking competitors", detail: `Found ${cohort.length} competitor${cohort.length === 1 ? "" : "s"}` });
+
   // 3. ONE batched LLM call categorizing every referrer host across the cohort
   //    (subject + competitors), so the subject's own channel mix is comparable.
   const allHosts = [...new Set([...selfRefs, ...referrerLists.flat()].map((r) => r.host))];
   const cats = await classifyReferrers(allHosts, closest.category);
+
+  opts.onStage?.({ key: "funnel:backlinks", label: "Measuring traffic & backlinks" });
 
   // 3b. Build per-domain referral breakdowns (byCategory available after classify).
   const selfBacklinks = buildBreakdown(selfRefs, cats);
@@ -327,6 +335,7 @@ export async function gatherFullFunnel(rawSelf: string, opts: { topN?: number; c
   }
 
   // 4. Channels the user is missing.
+  opts.onStage?.({ key: "funnel:gaps", label: "Mapping content gaps" });
   let channelsMissing: ActionableChannel[] = [];
   if (cohort.length >= 2) {
     const ref = await discoverReferralChannels({ selfDomain: self, competitorDomains: cohort, limit: 40 });

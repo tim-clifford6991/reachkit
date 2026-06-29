@@ -13,6 +13,7 @@ import { cohortFor } from "@/lib/scan/cache/cached-adapters";
 import { cachedRankedKeywords } from "@/lib/scan/cache/cached-adapters";
 import { serverDb } from "@/lib/db/client";
 import type { Json } from "@/lib/db/types";
+import type { OnStageCallback } from "@/lib/scan/types";
 
 const WINNING_POSITION = 30; // only count a rival ranking in the top 30 as "winning"
 
@@ -120,7 +121,7 @@ export interface KeywordGapResult {
   shared: SharedKeyword[];
 }
 
-export async function gatherKeywordGap(rawSelf: string, opts: { topN?: number; competitorDomains?: string[] } = {}): Promise<KeywordGapResult> {
+export async function gatherKeywordGap(rawSelf: string, opts: { topN?: number; competitorDomains?: string[]; onStage?: OnStageCallback } = {}): Promise<KeywordGapResult> {
   const self = normalizeHost(rawSelf);
   const cohortKey = (opts.competitorDomains ?? []).map((d) => d.toLowerCase()).sort().join(",");
   const closest = await cohortFor(self, opts.competitorDomains);
@@ -196,6 +197,9 @@ export async function gatherKeywordGap(rawSelf: string, opts: { topN?: number; c
     gaps: gaps.slice(0, 40),
     shared: shared.slice(0, 20),
   };
+
+  // Stage fired after computing gaps — carries real count as detail.
+  opts.onStage?.({ key: "kw:gaps", label: "Finding keyword gaps", detail: `${result.gaps.length} gaps your rivals win` });
 
   // Persist structured gap rows (best-effort, never blocks the return).
   void persistKeywordGaps(self, cohortKey, result.gaps).catch((err) =>

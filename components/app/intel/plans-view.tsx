@@ -16,9 +16,9 @@ const KIND_COLOR: Record<string, string> = { channel: "var(--c-action)", communi
 const kindOf = (ch: string) => (ch === "community" ? "community" : ch === "newsletter" || ch === "media" || ch === "podcast" ? "demand" : "channel");
 
 export function PlansView() {
-  const { data, loading, error } = useIntel<Synthesis>("synthesis");
+  const { data, loading, error, stages } = useIntel<Synthesis>("synthesis");
   return (
-    <div>      <IntelShell loading={loading} error={error} hasData={!!data}>{data && <Body data={data} />}</IntelShell>
+    <div>      <IntelShell loading={loading} error={error} hasData={!!data} stages={stages}>{data && <Body data={data} />}</IntelShell>
     </div>
   );
 }

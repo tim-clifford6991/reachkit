@@ -21,6 +21,7 @@ import { fixturesEnabled } from "@/lib/dev/fixtures";
 import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
 import { serverDb } from "@/lib/db/client";
 import type { ContentIntel, ContentEntity, ContentPage, Cluster, ContentType } from "./types";
+import type { OnStageCallback } from "@/lib/scan/types";
 
 export type { ContentIntel, ContentEntity, ContentPage, Cluster, ContentType };
 
@@ -343,7 +344,7 @@ async function persistContentPages(entities: ContentEntity[]): Promise<void> {
  */
 export async function gatherContentIntel(
   rawSelf: string,
-  opts: { competitorDomains?: string[] } = {},
+  opts: { competitorDomains?: string[]; onStage?: OnStageCallback } = {},
 ): Promise<ContentIntel> {
   const self = normalizeHost(rawSelf);
   const cohortKey = (opts.competitorDomains ?? [])
@@ -352,6 +353,9 @@ export async function gatherContentIntel(
     .join(",");
 
   return cachedJson(`content-intel:${self}:${cohortKey}`, 7 * DAY_MS, async () => {
+    // Stage fired inside cachedJson body — cold computes only.
+    opts.onStage?.({ key: "content:analyze", label: "Analyzing winning content" });
+
     // 1. Resolve cohort (user-selected when provided, else auto closeness-ranked).
     const cohortResult = await cohortFor(self, opts.competitorDomains);
     const competitors = cohortResult.ranked.slice(0, 4).map((r) => r.domain);

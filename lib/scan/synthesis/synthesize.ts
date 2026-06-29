@@ -21,6 +21,7 @@ import { gatherFullFunnel } from "@/lib/scan/referral/funnel";
 import { gatherKeywordGap } from "@/lib/scan/referral/keyword-gap";
 import { gatherDemand } from "@/lib/scan/demand/gather";
 import { serverDb } from "@/lib/db/client";
+import type { OnStageCallback } from "@/lib/scan/types";
 
 export interface ContentPlanItem {
   topic: string;
@@ -140,13 +141,15 @@ async function persistDistributionPlan(subject: string, cohortKey: string, plan:
   }
 }
 
-export async function gatherSynthesis(rawSelf: string, opts: { competitorDomains?: string[] } = {}): Promise<Synthesis> {
+export async function gatherSynthesis(rawSelf: string, opts: { competitorDomains?: string[]; onStage?: OnStageCallback } = {}): Promise<Synthesis> {
   const self = normalizeHost(rawSelf);
   const cohortKey = (opts.competitorDomains ?? []).map((d) => d.toLowerCase()).sort().join(",");
   // Cache the whole synthesis so a repeat is instant (otherwise the three gatherers
   // — incl. the funnel's uncached page-classification — re-run every call). Keyed by
   // the chosen cohort so different selections don't collide.
   return cachedJson(`synth:${self}:${cohortKey}`, 7 * DAY_MS, async () => {
+    // Stage fired inside cachedJson body — cold computes only.
+    opts.onStage?.({ key: "synthesis:plan", label: "Synthesizing your plan" });
     const co = opts.competitorDomains;
     const [funnel, kw, demand] = await Promise.all([
       gatherFullFunnel(self, { competitorDomains: co }),

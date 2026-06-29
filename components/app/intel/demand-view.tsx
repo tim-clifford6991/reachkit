@@ -21,9 +21,9 @@ const intentColor = (i: string) => { const v = (i || "").toLowerCase(); return v
 const isBottom = (i: string) => { const v = (i || "").toLowerCase(); return v.startsWith("transaction") || v.startsWith("commercial"); };
 
 export function DemandView() {
-  const { data, loading, error } = useIntel<Demand>("demand");
+  const { data, loading, error, stages } = useIntel<Demand>("demand");
   return (
-    <div>      <IntelShell loading={loading} error={error} hasData={!!data}>{data && <Body data={data} />}</IntelShell>
+    <div>      <IntelShell loading={loading} error={error} hasData={!!data} stages={stages}>{data && <Body data={data} />}</IntelShell>
     </div>
   );
 }

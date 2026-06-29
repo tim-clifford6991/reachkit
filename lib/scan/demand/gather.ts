@@ -20,6 +20,7 @@ import { discoverDemand } from "@/lib/scan/demand/index";
 import type { DemandPocket } from "@/lib/scan/demand/types";
 import type { KeywordIdea } from "@/lib/scan/adapters/dataforseo-keyword-ideas";
 import { serverDb } from "@/lib/db/client";
+import type { OnStageCallback } from "@/lib/scan/types";
 
 export interface DemandTheme {
   theme: string;
@@ -148,11 +149,13 @@ async function persistDemandPockets(subject: string, cohortKey: string, pockets:
   }
 }
 
-export async function gatherDemand(rawSelf: string, opts: { competitorDomains?: string[] } = {}): Promise<DemandIntel> {
+export async function gatherDemand(rawSelf: string, opts: { competitorDomains?: string[]; onStage?: OnStageCallback } = {}): Promise<DemandIntel> {
   const self = normalizeHost(rawSelf);
   const cohortKey = (opts.competitorDomains ?? []).map((d) => d.toLowerCase()).sort().join(",");
   // Persist the assembled demand intel so repeat dashboard loads are instant.
   return cachedJson(`demand-intel:${self}:${cohortKey}`, 7 * DAY_MS, async () => {
+  // Stages fired inside the cachedJson body — cold computes only; warm hits are instant.
+  opts.onStage?.({ key: "demand:icp", label: "Understanding your buyers" });
   const brief = await inferProductBrief(self);
   // cohortKey is closed over from the outer scope.
   const competitors = (await cohortFor(self, opts.competitorDomains)).ranked.slice(0, 4).map((r) => r.domain);
@@ -163,6 +166,10 @@ export async function gatherDemand(rawSelf: string, opts: { competitorDomains?: 
     cachedKeywordIdeas(brief.seedKeywords),
     mineCompetitorReviews(competitors, brief.category),
   ]);
+
+  // Keyword volume is now available; fire the stage with real total-addressable-volume.
+  const totalRawVolume = rawIdeas.reduce((s, k) => s + k.volume, 0);
+  opts.onStage?.({ key: "demand:keywords", label: "Sizing keyword demand", detail: `${totalRawVolume.toLocaleString()} monthly searches` });
 
   // Keep only ideas containing a DISTINCTIVE term (drops generic-SaaS + dictionary
   // noise like "preparation meaning"). But the model's coreTerms are often abstract
@@ -190,6 +197,11 @@ export async function gatherDemand(rawSelf: string, opts: { competitorDomains?: 
   const demand = await cachedJson(`demand:${self}:${cohortKey}`, 30 * DAY_MS, () =>
     discoverDemand({ brand: brief.brand, problem: brief.problem, audience: brief.audience, valueProp: brief.valueProp }, { queryCap: 10, maxHits: 80 }),
   );
+
+  // Community pockets are now available — fire with real count.
+  opts.onStage?.({ key: "demand:community", label: "Listening to communities", detail: `${demand.pockets.length} discussion${demand.pockets.length === 1 ? "" : "s"}` });
+  // Reviews ran in parallel with keyword ideas above; fire as a final checkpoint.
+  opts.onStage?.({ key: "demand:reviews", label: "Mining competitor reviews" });
 
   // Top-keywords table = only keywords the theme-clustering KEPT (it already drops
   // news/events/dictionary noise) minus navigational (competitor-brand) terms — so

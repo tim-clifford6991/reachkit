@@ -21,9 +21,9 @@ function prioSegs(items: { priority: string }[]): Segment[] {
 }
 
 export function SynthesisView() {
-  const { data, loading, error } = useIntel<Synthesis>("synthesis");
+  const { data, loading, error, stages } = useIntel<Synthesis>("synthesis");
   return (
-    <div>      <IntelShell loading={loading} error={error} hasData={!!data}>{data && <Body data={data} />}</IntelShell>
+    <div>      <IntelShell loading={loading} error={error} hasData={!!data} stages={stages}>{data && <Body data={data} />}</IntelShell>
     </div>
   );
 }
