@@ -24,8 +24,8 @@ describe("parseRankedKeywords", () => {
       ],
     };
     expect(parseRankedKeywords(body)).toEqual([
-      { keyword: "habit tracker", position: 4, volume: 12000, etv: 800 },
-      { keyword: "best habit app", position: 11, volume: 3000, etv: 90 },
+      { keyword: "habit tracker", position: 4, volume: 12000, etv: 800, url: "" },
+      { keyword: "best habit app", position: 11, volume: 3000, etv: 90, url: "" },
     ]);
   });
 

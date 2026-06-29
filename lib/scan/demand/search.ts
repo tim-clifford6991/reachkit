@@ -24,9 +24,37 @@ export function recencySearchParam(recency: RecencyWindow): string {
   return recency === "any" ? "" : `&tbs=qdr:${QDR[recency]}`;
 }
 
-/** Reddit-scoped demand query for a pain phrasing. */
+/** Reddit-scoped demand query for a pain phrasing (kept for callers/tests). */
 export function buildRedditDemandKeyword(pain: string): string {
   return `site:reddit.com "${pain}"`;
+}
+
+/** Platforms we sweep for buyer pain-talk — communities + social + Q&A + forums. */
+export const DEMAND_PLATFORMS = [
+  "reddit.com", "news.ycombinator.com", "x.com", "quora.com", "indiehackers.com", "stackexchange.com", "facebook.com",
+];
+
+/** One cross-platform demand query (OR of site: filters) — cost-neutral vs. a
+ *  single-platform search but surfaces where buyers talk across the web. */
+export function buildMultiPlatformQuery(pain: string): string {
+  return `"${pain}" (${DEMAND_PLATFORMS.map((p) => `site:${p}`).join(" OR ")})`;
+}
+
+/** Human platform label for a hit URL (drives the per-platform UI split). */
+export function platformFromUrl(url: string): string {
+  try {
+    const h = new URL(url).host.replace(/^www\./, "").toLowerCase();
+    if (h.includes("reddit.com")) return "Reddit";
+    if (h === "x.com" || h.includes("twitter.com")) return "X";
+    if (h.includes("news.ycombinator.com")) return "Hacker News";
+    if (h.includes("quora.com")) return "Quora";
+    if (h.includes("indiehackers.com")) return "Indie Hackers";
+    if (h.includes("stackexchange.com") || h.includes("stackoverflow.com")) return "Stack Exchange";
+    if (h.includes("facebook.com")) return "Facebook";
+    return h;
+  } catch {
+    return "other";
+  }
 }
 
 /** Extract "r/{name}" from a Reddit thread URL, else null. */
@@ -60,6 +88,8 @@ export function parseDemandHits(body: unknown, query: string): DemandHit[] {
       url,
       snippet: String(i["description"] ?? "").trim(),
       subreddit: subredditFromUrl(url),
+      platform: platformFromUrl(url),
+      theme: "",
       query,
       publishedAt: parsePublishedAt(i["timestamp"]),
     });
@@ -78,6 +108,10 @@ export async function searchDemand(
 ): Promise<DemandHit[]> {
   if (fixturesEnabled()) return [];
 
+  // Reddit-scoped by default: it's the highest-signal "buyers asking" surface
+  // (open web search yields blogs/marketing, not real problem-talk). Coverage
+  // comes from running MANY diverse queries (themes/keywords/buyer-pains), not
+  // from broadening platforms. `redditOnly:false` opts into a plain query.
   const keyword = opts.redditOnly === false ? query : buildRedditDemandKeyword(query);
   // Recency-bias at the source: default to the past year so stale threads don't
   // dominate. `search_param` carries Google's tbs=qdr: time filter.
@@ -85,7 +119,7 @@ export async function searchDemand(
   const searchParam = recencySearchParam(recency);
 
   // Cache hit → skip the (paid) SERP call entirely.
-  const cacheKey = searchCacheKey("demand", keyword, recency, String(opts.depth ?? 10));
+  const cacheKey = searchCacheKey("demand", keyword, recency, String(opts.depth ?? 20));
   const cached = await getCachedSearch<DemandHit[]>(cacheKey);
   if (cached) return cached;
 
@@ -103,7 +137,7 @@ export async function searchDemand(
             keyword,
             location_code: env.dataforseoLocationCode,
             language_code: env.dataforseoLanguageCode,
-            depth: opts.depth ?? 10,
+            depth: opts.depth ?? 20,
             ...(searchParam ? { search_param: searchParam } : {}),
           },
         ]),

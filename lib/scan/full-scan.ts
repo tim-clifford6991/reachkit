@@ -555,6 +555,10 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
       await attachMarketAnalysis(ctx.scanId, ctx.storeUrl).catch((e) =>
         console.error("[full-scan] market analysis failed (best-effort)", e),
       );
+      // NOTE: competitive intel is NOT pre-computed here. The user picks their own
+      // benchmark competitors on the dashboard; intel is computed once at that point
+      // (POST /api/competitors/select) and persisted — avoids wasted DataForSEO spend
+      // on auto-discovered competitors the user would just replace.
     }
     // (attachMarketAnalysis lives in lib/scan/market.ts — shared with the free
     //  light pass + weekly refresh.)

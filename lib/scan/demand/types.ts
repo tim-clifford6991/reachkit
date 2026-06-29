@@ -24,6 +24,10 @@ export interface DemandHit {
   snippet: string;
   /** "r/xyz" when the hit is a Reddit thread, else null. */
   subreddit: string | null;
+  /** The platform the hit lives on (Reddit / X / Hacker News / Quora / …). */
+  platform: string;
+  /** Which demand signal surfaced this — a theme name, "Buyer pain", or "Problem". */
+  theme: string;
   /** The pain query that surfaced this hit. */
   query: string;
   /** Publish date (ISO) when the SERP exposes one — drives recency weighting. */
@@ -42,6 +46,8 @@ export interface ClassifiedHit extends DemandHit {
 export interface DemandPocket {
   /** Display surface, e.g. "r/SaaS" or a domain. */
   surface: string;
+  /** Platform group (Reddit / X / Hacker News / Quora / Indie Hackers / …). */
+  platform: string;
   subreddit: string | null;
   count: number;
   /** Sum of buyer-intent across the pocket's hits. */
@@ -49,7 +55,7 @@ export interface DemandPocket {
   /** Ranking score (recency-weighted intent density × reach). */
   score: number;
   /** A few representative threads to engage (freshest, highest-intent first). */
-  topThreads: Array<{ title: string; url: string; intent: number; publishedAt: string | null }>;
+  topThreads: Array<{ title: string; url: string; intent: number; publishedAt: string | null; theme: string }>;
 }
 
 export interface DemandResult {

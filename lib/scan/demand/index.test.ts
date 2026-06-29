@@ -18,7 +18,7 @@ describe("discoverDemand (wiring)", () => {
 
   it("threads queries → search → classify → cluster into a ranked result", async () => {
     vi.doMock("./queries", () => ({
-      generatePainQueries: vi.fn().mockResolvedValue(["no users find my app"]),
+      generatePainQueries: vi.fn().mockResolvedValue([{ query: "no users find my app", theme: "Problem" }]),
       normalizePainQueries: vi.fn(),
     }));
     vi.doMock("./search", () => ({

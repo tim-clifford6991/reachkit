@@ -83,15 +83,18 @@ export async function upsertProfile(
  */
 export async function profileDomainCached(
   domain: string,
-  opts: { maxAgeMs?: number; nowMs?: number; reddit?: boolean; light?: boolean } = {},
+  opts: { maxAgeMs?: number; nowMs?: number; reddit?: boolean; light?: boolean; backlinks?: boolean } = {},
 ): Promise<DistributionProfile> {
   const nowMs = opts.nowMs ?? Date.now();
   const cached = await getCachedProfile(domain, opts.maxAgeMs ?? PROFILE_TTL_MS, nowMs, {
     wantFull: !opts.light,
   }).catch(() => null);
-  if (cached) return cached;
+  // Serve the cache UNLESS we need referring-domains (backlinks) and the cached
+  // profile predates that (referringDomains null). This keeps SEO data — which
+  // changes slowly — cached for the full TTL instead of re-fetching every load.
+  if (cached && (!opts.backlinks || cached.seo?.referringDomains != null)) return cached;
 
-  const profile = await profileDomain(domain, { nowMs, reddit: opts.reddit, light: opts.light });
+  const profile = await profileDomain(domain, { nowMs, reddit: opts.reddit, light: opts.light, backlinks: opts.backlinks });
   await upsertProfile(profile, { light: opts.light }).catch(() => {});
   return profile;
 }

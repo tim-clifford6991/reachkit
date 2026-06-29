@@ -6,11 +6,17 @@ describe("parseRankOverview", () => {
     const body = {
       tasks: [{ result: [{ items: [{ metrics: { organic: { count: 1234, etv: 56.7 } } }] }] }],
     };
-    expect(parseRankOverview(body)).toEqual({ organicKeywords: 1234, etv: 56.7 });
+    expect(parseRankOverview(body)).toEqual({ organicKeywords: 1234, etv: 56.7, paidKeywords: 0, paidEtv: 0 });
+  });
+  it("also pulls the paid block when present", () => {
+    const body = {
+      tasks: [{ result: [{ items: [{ metrics: { organic: { count: 1234, etv: 56.7 }, paid: { count: 8, etv: 40 } } }] }] }],
+    };
+    expect(parseRankOverview(body)).toEqual({ organicKeywords: 1234, etv: 56.7, paidKeywords: 8, paidEtv: 40 });
   });
   it("returns zeros for an empty/unknown shape", () => {
-    expect(parseRankOverview({})).toEqual({ organicKeywords: 0, etv: 0 });
-    expect(parseRankOverview(null)).toEqual({ organicKeywords: 0, etv: 0 });
+    expect(parseRankOverview({})).toEqual({ organicKeywords: 0, etv: 0, paidKeywords: 0, paidEtv: 0 });
+    expect(parseRankOverview(null)).toEqual({ organicKeywords: 0, etv: 0, paidKeywords: 0, paidEtv: 0 });
   });
 });
 

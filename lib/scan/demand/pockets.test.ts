@@ -36,9 +36,9 @@ describe("pocketKey", () => {
 describe("recencyWeight", () => {
   it("decays with age; unknown dates get a mild penalty", () => {
     expect(recencyWeight(RECENT, NOW)).toBe(1);
-    expect(recencyWeight(daysAgo(60), NOW)).toBe(0.9);
-    expect(recencyWeight(daysAgo(300), NOW)).toBe(0.55);
-    expect(recencyWeight(daysAgo(900), NOW)).toBe(0.2);
+    expect(recencyWeight(daysAgo(60), NOW)).toBe(0.85);
+    expect(recencyWeight(daysAgo(300), NOW)).toBe(0.35);
+    expect(recencyWeight(daysAgo(900), NOW)).toBe(0.05);
     expect(recencyWeight(null, NOW)).toBe(0.7);
     expect(recencyWeight("garbage", NOW)).toBe(0.7);
   });
@@ -78,9 +78,9 @@ describe("clusterIntoPockets", () => {
       ],
       NOW,
     );
-    // r/fresh: 0.6*1.0=0.6 ; r/stale: 0.9*0.2=0.18 → fresh ranks first
+    // r/fresh: 0.6*1.0=0.6 ; r/stale: 0.9*0.05=0.045 → fresh ranks first
     expect(pockets[0]?.surface).toBe("r/fresh");
-    expect(pockets[1]?.intentSum).toBeCloseTo(0.18, 5);
+    expect(pockets[1]?.intentSum).toBeCloseTo(0.045, 5);
   });
 
   it("returns an empty array when nothing is buyer pain", () => {

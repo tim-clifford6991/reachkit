@@ -15,25 +15,30 @@ import type { ProductBrief } from "./types";
 const MODEL = "claude-haiku-4-5-20251001" as const;
 
 export function buildPainQueryPrompt(brief: ProductBrief, count: number): string {
-  return `You generate search queries to find people who HAVE a problem — not people who know a product.
+  return `You generate search queries to find people who HAVE a specific problem — not people who know a product, and NOT the broad category.
 
-PRODUCT (for context only — NEVER mention it in the queries):
+PRODUCT (context only — NEVER mention it in the queries):
 - Brand: ${brief.brand}
 - Problem it solves: ${brief.problem}
 - For: ${brief.audience}
 - Value: ${brief.valueProp}
 
-Write ${count} short search queries (3–8 words) phrased the way someone SUFFERING this
-problem would type them — their pain, their words. Mix: direct complaints, "how do I…"
-questions, and "looking for a way to…" phrasings.
+Break THIS product's problem into 4–6 distinct sub-angles that ${brief.audience} actually
+experience, and for EACH angle write 2 short search queries (3–8 words) phrased the way
+someone SUFFERING that specific angle would type them — their pain, their words.
+
+CRITICAL: stay tightly anchored to THIS product's exact problem and audience. Do NOT drift
+to generic "${brief.problem.split(" ").slice(-2).join(" ")}"-style category terms that would
+surface unrelated discussions. Every query must describe the pain of someone who would be a
+genuine buyer of THIS product.
 
 Return ONLY this JSON (no markdown fences):
-{ "queries": ["...", "..."] }
+{ "angles": [ { "angle": "<2-4 word label of the sub-problem>", "queries": ["...", "..."] } ] }
 
 Hard rules:
 - NEVER include the brand "${brief.brand}" or any product/brand name.
 - Express the PAIN or the GOAL, not a solution category buzzword.
-- No quotes, no operators, no hashtags — plain phrases only.`;
+- No quotes, no operators, no hashtags — plain phrases only. Aim for ~${count} queries total.`;
 }
 
 export function parsePainQueries(raw: string): string[] {
@@ -70,24 +75,46 @@ export function normalizePainQueries(queries: string[], brand: string, cap: numb
 }
 
 /**
- * Generate normalized pain queries for a brief. Fixtures-mode returns []
- * (the live dogfood needs a real Anthropic key). Never throws.
+ * Generate product-grounded pain queries, each tagged with the PRODUCT-RELEVANT
+ * angle (sub-problem) it explores — so the community search stays on-topic and the
+ * results classify by a meaningful theme. Fixtures-mode returns []. Never throws.
  */
 export async function generatePainQueries(
   brief: ProductBrief,
   opts: { count?: number; scanId?: string | null } = {},
-): Promise<string[]> {
+): Promise<Array<{ query: string; theme: string }>> {
   const count = opts.count ?? 10;
   if (fixturesEnabled()) return [];
   try {
     const { text } = await callModel({
       model: MODEL,
-      system: "You generate search queries that find people describing a problem. Return only JSON.",
+      system: "You generate search queries that find people describing a SPECIFIC product's problem. Return only JSON.",
       prompt: buildPainQueryPrompt(brief, count),
       scanId: opts.scanId ?? null,
       stage: "extract",
     });
-    return normalizePainQueries(parsePainQueries(text), brief.brand, count);
+    const parsed = JSON.parse(extractJson(text)) as { angles?: Array<{ angle?: unknown; queries?: unknown }>; queries?: unknown };
+    const angles = Array.isArray(parsed?.angles) ? parsed.angles : [];
+    const out: Array<{ query: string; theme: string }> = [];
+    const seen = new Set<string>();
+    const push = (q: string, theme: string) => {
+      const lc = q.toLowerCase();
+      if (seen.has(lc)) return;
+      seen.add(lc);
+      out.push({ query: q, theme });
+    };
+    for (const a of angles) {
+      const theme = String(a?.angle ?? "").trim() || "Problem";
+      for (const q of normalizePainQueries(Array.isArray(a?.queries) ? a.queries.map(String) : [], brief.brand, 99)) {
+        push(q, theme);
+        if (out.length >= count) return out;
+      }
+    }
+    // Fallback: the model returned a flat { queries: [...] } (or no angles) — still usable.
+    if (out.length === 0 && Array.isArray(parsed?.queries)) {
+      for (const q of normalizePainQueries(parsed.queries.map(String), brief.brand, count)) push(q, "Problem");
+    }
+    return out.slice(0, count);
   } catch {
     return [];
   }

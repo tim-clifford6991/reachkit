@@ -14,14 +14,14 @@ import type { DistributionProfile } from "./types";
 
 export async function profileDomain(
   domain: string,
-  opts: { nowMs?: number; reddit?: boolean; light?: boolean } = {},
+  opts: { nowMs?: number; reddit?: boolean; light?: boolean; backlinks?: boolean } = {},
 ): Promise<DistributionProfile> {
   const nowMs = opts.nowMs ?? Date.now();
   const brand = toHost(domain).split(".")[0] ?? domain;
   // Marketplace presence costs a Tavily call — full/paid pass only.
   const [channels, seo, communities, marketplace] = await Promise.all([
     crawlContentChannels(domain, nowMs),
-    fetchSeoPosture(domain, { light: opts.light }),
+    fetchSeoPosture(domain, { light: opts.light, backlinks: opts.backlinks }),
     gatherCommunityPresence(brand, nowMs, { reddit: opts.reddit }),
     opts.light ? Promise.resolve([]) : gatherMarketplacePresence(brand),
   ]);

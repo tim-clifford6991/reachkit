@@ -21,6 +21,8 @@ export interface RankedKeyword {
   volume: number;
   /** Estimated traffic value contributed by this keyword. */
   etv: number;
+  /** The ranking page URL — where the domain "maps higher" for this keyword. */
+  url: string;
 }
 
 export interface TopPage {
@@ -55,6 +57,7 @@ export function parseRankedKeywords(body: unknown): RankedKeyword[] {
       position: num(serp?.["rank_absolute"]),
       volume: num(kwInfo?.["search_volume"]),
       etv: num(serp?.["etv"]),
+      url: String(serp?.["url"] ?? ""),
     });
   }
   return out;

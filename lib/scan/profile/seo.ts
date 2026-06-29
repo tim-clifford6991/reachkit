@@ -21,11 +21,20 @@ const num = (v: unknown): number => {
 };
 
 /** Pure: organic keyword count + ETV from Labs domain_rank_overview. */
-export function parseRankOverview(body: unknown): { organicKeywords: number; etv: number } {
-  const organic = ((body ?? {}) as {
-    tasks?: Array<{ result?: Array<{ items?: Array<{ metrics?: { organic?: Record<string, unknown> } }> }> }>;
-  }).tasks?.[0]?.result?.[0]?.items?.[0]?.metrics?.organic;
-  return { organicKeywords: num(organic?.["count"]), etv: num(organic?.["etv"]) };
+export function parseRankOverview(body: unknown): { organicKeywords: number; etv: number; paidKeywords: number; paidEtv: number } {
+  // The same domain_rank_overview response carries BOTH an organic and a paid
+  // metrics block — parsing paid here is a free signal (no extra API call).
+  const metrics = ((body ?? {}) as {
+    tasks?: Array<{ result?: Array<{ items?: Array<{ metrics?: { organic?: Record<string, unknown>; paid?: Record<string, unknown> } }> }> }>;
+  }).tasks?.[0]?.result?.[0]?.items?.[0]?.metrics;
+  const organic = metrics?.organic;
+  const paid = metrics?.paid;
+  return {
+    organicKeywords: num(organic?.["count"]),
+    etv: num(organic?.["etv"]),
+    paidKeywords: num(paid?.["count"]),
+    paidEtv: num(paid?.["etv"]),
+  };
 }
 
 /** Pure: authority (rank) + referring domains from Backlinks summary. Returns
@@ -76,11 +85,14 @@ async function post(url: string, payload: unknown): Promise<unknown | null> {
  */
 export async function fetchSeoPosture(
   domain: string,
-  opts: { light?: boolean } = {},
+  opts: { light?: boolean; backlinks?: boolean } = {},
 ): Promise<SeoPosture | null> {
   if (fixturesEnabled()) return null;
   const target = toHost(domain);
-  const wantBacklinks = false; // Backlinks subscription not held — see note above.
+  // Backlinks subscription is now live (trial). Off by default to keep the free
+  // scan cheap; callers that need referring-domains (traffic mix, fair competitor
+  // scoring) opt in via `backlinks: true`.
+  const wantBacklinks = opts.backlinks ?? false;
 
   // Ranked keywords + top pages are the richer (paid) signals — full pass only.
   const wantRanked = !opts.light;
@@ -98,9 +110,9 @@ export async function fetchSeoPosture(
 
   if (!overview && !backlinks) return null;
 
-  const { organicKeywords, etv } = parseRankOverview(overview);
+  const { organicKeywords, etv, paidKeywords, paidEtv } = parseRankOverview(overview);
   const { authority, referringDomains } = parseBacklinksSummary(backlinks);
-  const posture: SeoPosture = { organicKeywords, etv, authority, referringDomains };
+  const posture: SeoPosture = { organicKeywords, etv, authority, referringDomains, paidKeywords, paidEtv };
   if (rankedKeywords.length > 0) posture.rankedKeywords = rankedKeywords;
   if (topPages.length > 0) posture.topPages = topPages;
   return posture;

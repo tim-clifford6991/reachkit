@@ -134,6 +134,36 @@ export interface ReportPayload {
   // plan. Present only on paid deep scans (flag-gated). Supersedes the lighter
   // competitiveLandscape/channelOpportunities/creators sections when present.
   market?: MarketAnalysis;
+
+  /** Competitive distribution intel (category, scored competitors, channels).
+   *  Computed post-persist by attachCompetitiveIntel; lets the dashboard render
+   *  instantly instead of live-fetching. */
+  competitiveIntel?: CompetitiveIntelPayload;
+}
+
+interface ScoredEntityShape {
+  domain: string;
+  isSubject: boolean;
+  monthlyTraffic: number;
+  score: number;
+  band: string;
+  mix: {
+    organic: number;
+    referral: number;
+    social: number;
+    direct: number;
+    organicKeywords: number;
+    referringDomains: number;
+    socialMentions: number;
+  } | null;
+}
+
+export interface CompetitiveIntelPayload {
+  generatedAt: string;
+  category: string;
+  subject: ScoredEntityShape;
+  competitors: ScoredEntityShape[];
+  actionableChannels: Array<{ host: string; type: string; action: string; competitorsUsing: number; reachWeight: number }>;
 }
 
 // ---------------------------------------------------------------------------

@@ -92,21 +92,25 @@ export async function classifyHits(
     return hits.map((h) => ({ ...h, isBuyerPain: false, intent: 0 }));
   }
 
-  const out: ClassifiedHit[] = [];
-  for (let i = 0; i < hits.length; i += MAX_HITS_PER_CALL) {
-    const batch = hits.slice(i, i + MAX_HITS_PER_CALL);
-    try {
-      const { text } = await callModel({
-        model: MODEL,
-        system: "You judge whether search results show real buyer pain. Return only JSON.",
-        prompt: buildClassifyPrompt(problem, batch),
-        scanId: opts.scanId ?? null,
-        stage: "critic",
-      });
-      out.push(...parseClassifications(text, batch));
-    } catch {
-      out.push(...batch.map((h) => ({ ...h, isBuyerPain: false, intent: 0 })));
-    }
-  }
-  return out;
+  const batches: DemandHit[][] = [];
+  for (let i = 0; i < hits.length; i += MAX_HITS_PER_CALL) batches.push(hits.slice(i, i + MAX_HITS_PER_CALL));
+
+  // Classify batches in PARALLEL — sequential await per batch was the bottleneck.
+  const results = await Promise.all(
+    batches.map(async (batch) => {
+      try {
+        const { text } = await callModel({
+          model: MODEL,
+          system: "You judge whether search results show real buyer pain. Return only JSON.",
+          prompt: buildClassifyPrompt(problem, batch),
+          scanId: opts.scanId ?? null,
+          stage: "critic",
+        });
+        return parseClassifications(text, batch);
+      } catch {
+        return batch.map((h) => ({ ...h, isBuyerPain: false, intent: 0 }));
+      }
+    }),
+  );
+  return results.flat();
 }

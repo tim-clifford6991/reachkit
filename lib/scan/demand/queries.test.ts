@@ -51,6 +51,6 @@ describe("buildPainQueryPrompt", () => {
     );
     expect(p).toContain("Acme");
     expect(p).toContain("NEVER include the brand");
-    expect(p).toContain("8 short search queries");
+    expect(p).toContain("search queries");
   });
 });

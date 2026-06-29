@@ -44,6 +44,9 @@ export interface SeoPosture {
   organicKeywords: number;
   /** Estimated traffic value (summed ETV). */
   etv: number;
+  /** Paid-search footprint (Google Ads) from the same rank-overview response. */
+  paidKeywords?: number;
+  paidEtv?: number;
   /** Domain authority proxy (DataForSEO backlinks `rank`). null when the
    *  Backlinks API returned no data (e.g. not subscribed) — distinct from 0. */
   authority: number | null;

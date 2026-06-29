@@ -30,12 +30,14 @@ export function recencyWeight(publishedAt: string | null, nowMs: number): number
   const t = Date.parse(publishedAt);
   if (Number.isNaN(t)) return 0.7;
   const ageDays = (nowMs - t) / DAY_MS;
+  // Recency matters a lot — penalise stale threads hard so fresh problem-talk
+  // floats to the top of each pocket (and fresher pockets outrank stale ones).
   if (ageDays <= 30) return 1;
-  if (ageDays <= 90) return 0.9;
-  if (ageDays <= 180) return 0.75;
-  if (ageDays <= 365) return 0.55;
-  if (ageDays <= 730) return 0.35;
-  return 0.2;
+  if (ageDays <= 90) return 0.85;
+  if (ageDays <= 180) return 0.6;
+  if (ageDays <= 365) return 0.35;
+  if (ageDays <= 730) return 0.15;
+  return 0.05;
 }
 
 /**
@@ -75,9 +77,10 @@ export function clusterIntoPockets(
     const topThreads = [...hits]
       .sort((a, b) => eff(b) - eff(a))
       .slice(0, 5)
-      .map((h) => ({ title: h.title, url: h.url, intent: h.intent, publishedAt: h.publishedAt }));
+      .map((h) => ({ title: h.title, url: h.url, intent: h.intent, publishedAt: h.publishedAt, theme: h.theme }));
     pockets.push({
       surface: key,
+      platform: hits[0]?.platform ?? "other",
       subreddit: hits[0]?.subreddit ?? null,
       count: hits.length,
       intentSum,
