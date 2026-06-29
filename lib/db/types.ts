@@ -207,6 +207,90 @@ export type Database = {
         }
         Relationships: []
       }
+      domain_content_page: {
+        Row: {
+          domain: string
+          url: string
+          title: string | null
+          content_type: string
+          topic_cluster: string | null
+          keyword_count: number
+          etv: number
+          word_count: number
+          fetched_at: string
+        }
+        Insert: {
+          domain: string
+          url: string
+          title?: string | null
+          content_type?: string
+          topic_cluster?: string | null
+          keyword_count?: number
+          etv?: number
+          word_count?: number
+          fetched_at?: string
+        }
+        Update: {
+          domain?: string
+          url?: string
+          title?: string | null
+          content_type?: string
+          topic_cluster?: string | null
+          keyword_count?: number
+          etv?: number
+          word_count?: number
+          fetched_at?: string
+        }
+        Relationships: []
+      }
+      domain_intel: {
+        Row: {
+          domain: string
+          organic_etv: number
+          organic_keywords: number
+          paid_etv: number
+          paid_keywords: number
+          referring_domains: number
+          branded_search_volume: number
+          top_pages_count: number
+          quality_share: number
+          referrer_categories: Json
+          traffic_sources: Json
+          growth_activities: Json
+          fetched_at: string
+        }
+        Insert: {
+          domain: string
+          organic_etv?: number
+          organic_keywords?: number
+          paid_etv?: number
+          paid_keywords?: number
+          referring_domains?: number
+          branded_search_volume?: number
+          top_pages_count?: number
+          quality_share?: number
+          referrer_categories?: Json
+          traffic_sources?: Json
+          growth_activities?: Json
+          fetched_at?: string
+        }
+        Update: {
+          domain?: string
+          organic_etv?: number
+          organic_keywords?: number
+          paid_etv?: number
+          paid_keywords?: number
+          referring_domains?: number
+          branded_search_volume?: number
+          top_pages_count?: number
+          quality_share?: number
+          referrer_categories?: Json
+          traffic_sources?: Json
+          growth_activities?: Json
+          fetched_at?: string
+        }
+        Relationships: []
+      }
       embeddings: {
         Row: {
           app_id: string | null
