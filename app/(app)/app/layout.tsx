@@ -87,6 +87,7 @@ async function SidebarData({ children }: { children: React.ReactNode }) {
   // single upgrade prompt (no trial — the free scan is the only free capability).
   let sideCard = null as null | { title: string; sub: string; cta?: { label: string; href: string }; tone: "trial" | "scan" };
   if (entitlements.active && lastScannedIso) {
+    // eslint-disable-next-line react-hooks/purity -- server component: single render per request, Date.now is deterministic per-request
     const d = Math.max(0, Math.ceil((new Date(lastScannedIso).getTime() + 7 * 86_400_000 - Date.now()) / 86_400_000));
     sideCard = { title: `Next auto-scan in ${d} day${d === 1 ? "" : "s"}`, sub: "Weekly tracking keeps your score current.", tone: "scan" };
   } else if (!entitlements.active) {

@@ -3,19 +3,25 @@
  * dashboard picker: closeness score + reason, estimated traffic, and size ratio vs
  * the user's own traffic. The user chooses up to 5 from this list to benchmark.
  *
- * Cached per app in report_payload.competitorCandidates (7-day TTL) — competitor
- * landscapes change slowly, so the picker should not re-spend DataForSEO each load.
+ * Backed by the SAME domain-keyed global cache the intel layers use (`cc:<host>`,
+ * 14-day TTL) via `cachedClosestCompetitors`. This means:
+ *   - Picker loads share the intel-layer cache instead of re-paying the full
+ *     Tavily + DataForSEO + LLM discovery pipeline per load (even for users
+ *     without a completed scan).
+ *   - Results are inherently DOMAIN-CORRECT: the cache is keyed on the resolved
+ *     host, so changing the app's domain can never serve stale wrong-domain
+ *     candidates (the old report_payload blob was served regardless of which
+ *     domain it was computed for).
+ *
+ * `?refresh=1` busts the domain's cache entry so the next compute is fresh.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth/server";
-import { activeAppId } from "@/lib/app/active-app";
 import { serverDb } from "@/lib/db/client";
 import { normalizeHost } from "@/lib/scan/referral/classify";
-import type { Json } from "@/lib/db/types";
-import { discoverClosestCompetitors } from "@/lib/scan/referral/discover-competitors";
+import { cachedClosestCompetitors } from "@/lib/scan/cache/cached-adapters";
 
 export const maxDuration = 60;
-const TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 export async function GET(req: NextRequest) {
   const viewer = await currentUser();
@@ -24,29 +30,20 @@ export async function GET(req: NextRequest) {
   if (!domain) return NextResponse.json({ error: "domain required" }, { status: 400 });
   const fresh = req.nextUrl.searchParams.get("refresh") === "1";
 
-  const appId = await activeAppId(viewer.user);
-  const db = serverDb();
-  const { data: scan } = appId
-    ? await db.from("scans").select("id, report_payload").eq("app_id", appId).order("completed_at", { ascending: false }).limit(1).maybeSingle()
-    : { data: null };
-  const payload = (scan?.report_payload ?? null) as Record<string, unknown> | null;
+  const self = normalizeHost(domain);
 
-  // Serve cached candidates when fresh.
-  const cached = payload?.competitorCandidates as { generatedAt?: string } | undefined;
-  if (!fresh && cached?.generatedAt && Date.now() - Date.parse(cached.generatedAt) < TTL_MS) {
-    return NextResponse.json(cached);
+  // refresh=1 → bust the domain-keyed cache entry (mirrors cachedClosestCompetitors'
+  // `cc:${norm(self)}` key) so the wrapper below recomputes and re-persists.
+  if (fresh) {
+    try {
+      await serverDb().from("search_cache").delete().eq("key", `cc:${self.trim().toLowerCase()}`);
+    } catch (e) {
+      console.error("[competitors/candidates] cache bust failed (best-effort)", e);
+    }
   }
 
   try {
-    const result = await discoverClosestCompetitors(normalizeHost(domain));
-    if (scan?.id && payload) {
-      payload.competitorCandidates = { generatedAt: new Date().toISOString(), ...result };
-      try {
-        await db.from("scans").update({ report_payload: payload as Json }).eq("id", scan.id);
-      } catch (e) {
-        console.error("[competitors/candidates] cache write failed (best-effort)", e);
-      }
-    }
+    const result = await cachedClosestCompetitors(self);
     return NextResponse.json(result);
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "failed" }, { status: 500 });

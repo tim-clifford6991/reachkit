@@ -18,6 +18,7 @@
  */
 
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { serverDb } from "@/lib/db/client";
 import { buildMetadata, articleLd, SITE } from "@/lib/seo";
@@ -202,9 +203,9 @@ export async function ReportContent({ slug }: { slug: string }) {
         unlockTitle="Get your own Discoverability Score"
         unlockSub="Run a free scan of your site — the score, your positioning gap, and the 7 fixes that move it, in ~90 seconds."
         unlockButton={
-          <a href="/scan" style={{ fontFamily: "Plus Jakarta Sans, sans-serif", fontWeight: 700, fontSize: 15, color: "var(--c-ink)", background: "var(--c-surface)", borderRadius: 10, padding: "13px 24px", whiteSpace: "nowrap", textDecoration: "none" }}>
+          <Link href="/scan" style={{ fontFamily: "Plus Jakarta Sans, sans-serif", fontWeight: 700, fontSize: 15, color: "var(--c-ink)", background: "var(--c-surface)", borderRadius: 10, padding: "13px 24px", whiteSpace: "nowrap", textDecoration: "none" }}>
             Scan your site →
-          </a>
+          </Link>
         }
       />
 

@@ -25,7 +25,12 @@ import { gatherSynthesis } from "@/lib/scan/synthesis/synthesize";
 import { gatherContentIntel } from "@/lib/scan/content/gather";
 import type { StageEvent } from "@/lib/scan/types";
 
-export const maxDuration = 120;
+// Matches the non-stream fallback route (app/api/app/intel/route.ts). A cold
+// supply gather runs three gatherers and can take 120–240s; a 120s cap would
+// KILL the stream mid-compute, the client's EventSource would `onerror`, and the
+// plain-fetch fallback would launch a SECOND full (cost-metered) gather while the
+// orphaned first one keeps spending. 240 gives the stream time to actually finish.
+export const maxDuration = 240;
 
 const SSE_HEADERS = {
   "Content-Type": "text/event-stream",
@@ -79,10 +84,15 @@ export async function GET(req: NextRequest) {
 
   const co = competitors;
 
+  // Flipped by the stream's cancel() when the client disconnects, so post-disconnect
+  // send() calls become no-ops instead of throwing on an enqueue to a dead controller.
+  let cancelled = false;
+
   const stream = new ReadableStream({
     async start(controller) {
-      /** Enqueue one SSE frame; swallows errors if the client already disconnected. */
+      /** Enqueue one SSE frame; no-op after client disconnect, swallows enqueue errors. */
       const send = (data: object) => {
+        if (cancelled) return;
         try { controller.enqueue(sseFrame(data)); } catch { /* client gone */ }
       };
 
@@ -112,6 +122,9 @@ export async function GET(req: NextRequest) {
       }
 
       try { controller.close(); } catch { /* already closed */ }
+    },
+    cancel() {
+      cancelled = true;
     },
   });
 

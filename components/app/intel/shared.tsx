@@ -4,7 +4,7 @@
  * Shared plumbing for the intel views: the fetch hook + a loading/error/empty
  * shell + number formatters. Styled in the kit's --c-* idiom (no foreign tokens).
  */
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 
 export interface IntelStage {
@@ -33,6 +33,17 @@ export function useIntel<T>(layer: string) {
   const [error, setError] = useState<string | null>(null);
   const [stages, setStages] = useState<IntelStage[]>([]);
 
+  // The currently-open stream, so reload() can close it before starting a new
+  // request (else a late `done` frame from the old stream can overwrite the
+  // reload result — last-write-wins race).
+  const esRef = useRef<EventSource | null>(null);
+  // True once the stream (or a fallback fetch) has delivered a terminal
+  // frame — `done` (data set) or an explicit `error`. Guards the EventSource
+  // `onerror` handler: the browser fires `onerror` when the SERVER closes the
+  // connection after `done`, and without this guard that post-success error
+  // would launch a redundant SECOND (cost-metered) gather and clobber good data.
+  const settledRef = useRef(false);
+
   // Plain-fetch fallback used when EventSource fails or on manual reload.
   const fallbackFetch = useCallback(async () => {
     try {
@@ -40,6 +51,7 @@ export function useIntel<T>(layer: string) {
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error ?? `HTTP ${res.status}`);
       setData(json as T);
+      settledRef.current = true;
     } catch (e) {
       setError(e instanceof Error ? e.message : "failed");
     } finally {
@@ -47,17 +59,29 @@ export function useIntel<T>(layer: string) {
     }
   }, [layer]);
 
-  useEffect(() => {
-    setLoading(true);
+  // Reset per-layer state during render (not in an effect) when `layer` changes.
+  // This is React's documented "adjust state on prop change" pattern — it keeps
+  // the reset-on-layer-switch behavior without a synchronous setState-in-effect
+  // (which trips react-hooks/set-state-in-effect and causes cascading renders).
+  const [renderedLayer, setRenderedLayer] = useState(layer);
+  if (layer !== renderedLayer) {
+    setRenderedLayer(layer);
+    setData(null);
     setError(null);
     setStages([]);
-    setData(null);
+    setLoading(true);
+  }
 
+  useEffect(() => {
     let es: EventSource | null = null;
     let cancelled = false;
+    // Fresh stream for this layer — no terminal frame delivered yet. (Reset here,
+    // not during render, since refs can't be mutated in the render phase.)
+    settledRef.current = false;
 
     try {
       es = new EventSource(`/api/app/intel/stream?layer=${layer}`);
+      esRef.current = es;
 
       es.onmessage = (event: MessageEvent) => {
         if (cancelled) return;
@@ -82,10 +106,12 @@ export function useIntel<T>(layer: string) {
           } else if (msg.type === "done") {
             setData(msg.payload as T);
             setLoading(false);
+            settledRef.current = true;
             es?.close();
           } else if (msg.type === "error") {
             setError(msg.message ?? "failed");
             setLoading(false);
+            settledRef.current = true;
             es?.close();
           }
         } catch {
@@ -96,22 +122,35 @@ export function useIntel<T>(layer: string) {
       es.onerror = () => {
         if (cancelled) return;
         es?.close();
-        // EventSource failed (auth error, network, etc.) — fall back to plain fetch.
+        // If the stream already delivered a terminal frame, this `onerror` is
+        // just the server closing the connection after completion — do NOT run a
+        // second gather. Only fall back on a genuine pre-completion failure.
+        if (settledRef.current) return;
         void fallbackFetch();
       };
     } catch {
-      // EventSource constructor threw (e.g. SSR context) — fall back immediately.
-      void fallbackFetch();
+      // EventSource constructor threw (e.g. SSR context) — fall back on the next
+      // microtask so the fetch's setState isn't dispatched synchronously inside
+      // the effect (which would trip react-hooks/set-state-in-effect).
+      queueMicrotask(() => {
+        if (!cancelled) void fallbackFetch();
+      });
     }
 
     return () => {
       cancelled = true;
       es?.close();
+      if (esRef.current === es) esRef.current = null;
     };
   }, [layer, fallbackFetch]);
 
   // Manual reload bypasses the stream and uses the plain fetch (instant when cached).
   const reload = useCallback(() => {
+    // Close any still-open stream first so a late `done` frame can't overwrite
+    // the reload result.
+    esRef.current?.close();
+    esRef.current = null;
+    settledRef.current = false;
     setLoading(true);
     setError(null);
     setStages([]);

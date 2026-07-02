@@ -4,10 +4,10 @@ import { APP_NAV, isNavActive, buildBreadcrumbs } from "./nav";
 describe("APP_NAV", () => {
   it("lists the six app routes with primary/utility grouping", () => {
     expect(APP_NAV.map((i) => i.href)).toEqual([
-      "/app",
-      "/app/channels",
-      "/app/plays",
-      "/app/feed",
+      "/app/supply",
+      "/app/demand",
+      "/app/synthesis",
+      "/app/plans",
       "/app/settings",
       "/app/billing",
     ]);
@@ -19,13 +19,13 @@ describe("APP_NAV", () => {
 describe("isNavActive", () => {
   it("matches the dashboard root only exactly", () => {
     expect(isNavActive("/app", "/app")).toBe(true);
-    expect(isNavActive("/app", "/app/channels")).toBe(false);
+    expect(isNavActive("/app", "/app/supply")).toBe(false);
   });
 
   it("matches non-root items by prefix (so nested pages stay highlighted)", () => {
-    expect(isNavActive("/app/channels", "/app/channels")).toBe(true);
-    expect(isNavActive("/app/plays", "/app/plays/abc")).toBe(true);
-    expect(isNavActive("/app/feed", "/app/channels")).toBe(false);
+    expect(isNavActive("/app/supply", "/app/supply")).toBe(true);
+    expect(isNavActive("/app/plans", "/app/plans/abc")).toBe(true);
+    expect(isNavActive("/app/demand", "/app/supply")).toBe(false);
   });
 });
 
@@ -35,13 +35,13 @@ describe("buildBreadcrumbs", () => {
   });
 
   it("links Dashboard and labels the current known section (no trailing href)", () => {
-    expect(buildBreadcrumbs("/app/channels")).toEqual([
+    expect(buildBreadcrumbs("/app/supply")).toEqual([
       { label: "Dashboard", href: "/app" },
-      { label: "Market Report" },
+      { label: "Supply" },
     ]);
-    expect(buildBreadcrumbs("/app/plays")).toEqual([
+    expect(buildBreadcrumbs("/app/plans")).toEqual([
       { label: "Dashboard", href: "/app" },
-      { label: "This week's plays" },
+      { label: "Plans" },
     ]);
   });
 

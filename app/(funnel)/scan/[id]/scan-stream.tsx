@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
@@ -329,9 +329,7 @@ export function ScanStream({
   host?: string | null;
 }) {
   // Compute the seed exactly once (initialEvents is a stable SSR prop).
-  const seedRef = useRef<ReturnType<typeof buildSeed> | null>(null);
-  if (seedRef.current === null) seedRef.current = buildSeed(initialEvents);
-  const seed = seedRef.current;
+  const [seed] = useState(() => buildSeed(initialEvents));
 
   const [artifacts, setArtifacts] = useState<string[]>(seed.artifacts);
   const [facts, setFacts] = useState<PreliminaryFacts | null>(seed.facts);

@@ -40,6 +40,7 @@ async function SettingsContent() {
     const { data: scanRow } = await db.from("scans").select("completed_at").eq("app_id", primaryAppId).order("completed_at", { ascending: false }).limit(1).maybeSingle();
     const iso = scanRow?.completed_at as string | null;
     if (iso) {
+      // eslint-disable-next-line react-hooks/purity -- server component: single render per request, Date.now is deterministic per-request
       const d = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
       productMeta = `Web · last fetched ${d <= 0 ? "today" : d === 1 ? "yesterday" : `${d} days ago`}`;
       dataFresh = d <= 7;

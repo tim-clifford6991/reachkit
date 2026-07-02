@@ -167,17 +167,22 @@ function LeaderRow({ e, i, sov }: { e: Entity & { isSubject?: boolean; reason?: 
   );
 }
 
-function KeywordGaps({ gaps, rivals, maxOpp }: { gaps: Gap[]; rivals: number; maxOpp: number }) {
-  const [sortKey, setSortKey] = useState<"opportunity" | "volume">("opportunity");
-  const sorted = useMemo(() => [...gaps].sort((a, b) => (sortKey === "volume" ? b.volume - a.volume : b.opportunity - a.opportunity)), [gaps, sortKey]);
-  if (gaps.length === 0) return <Empty>No keyword gaps surfaced.</Empty>;
-  const H = ({ k, children, w }: { k?: "opportunity" | "volume"; children: React.ReactNode; w?: string }) => (
+type GapSortKey = "opportunity" | "volume";
+
+function GapHeader({ k, children, w, sortKey, setSortKey }: { k?: GapSortKey; children: React.ReactNode; w?: string; sortKey: GapSortKey; setSortKey: (k: GapSortKey) => void }) {
+  return (
     <span style={{ width: w, flexShrink: 0 }}>{k ? <button type="button" onClick={() => setSortKey(k)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: sortKey === k ? "var(--c-ink)" : "inherit", font: "inherit", textTransform: "inherit", letterSpacing: "inherit" }}>{children}{sortKey === k ? " ↓" : ""}</button> : children}</span>
   );
+}
+
+function KeywordGaps({ gaps, rivals, maxOpp }: { gaps: Gap[]; rivals: number; maxOpp: number }) {
+  const [sortKey, setSortKey] = useState<GapSortKey>("opportunity");
+  const sorted = useMemo(() => [...gaps].sort((a, b) => (sortKey === "volume" ? b.volume - a.volume : b.opportunity - a.opportunity)), [gaps, sortKey]);
+  if (gaps.length === 0) return <Empty>No keyword gaps surfaced.</Empty>;
   return (
     <div style={{ border: "1px solid var(--c-line)", borderRadius: "var(--radius-lg)", overflow: "hidden" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: "var(--c-fill)", borderBottom: "1px solid var(--c-line)", fontFamily: "var(--font-sans)", fontSize: 11, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--c-faint)" }}>
-        <span style={{ flex: 1 }}>Keyword</span><H k="volume" w="80px">Volume</H><H k="opportunity" w="120px">Opportunity</H><span style={{ width: 90, flexShrink: 0 }}>Rivals</span>
+        <span style={{ flex: 1 }}>Keyword</span><GapHeader k="volume" w="80px" sortKey={sortKey} setSortKey={setSortKey}>Volume</GapHeader><GapHeader k="opportunity" w="120px" sortKey={sortKey} setSortKey={setSortKey}>Opportunity</GapHeader><span style={{ width: 90, flexShrink: 0 }}>Rivals</span>
       </div>
       {sorted.slice(0, 25).map((g) => (
         <div key={g.keyword} style={{ padding: "10px 14px", borderBottom: "1px solid var(--c-fill)" }}>

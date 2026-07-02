@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generated / vendored bundles (mirrors tsconfig.json exclude):
+    // ds-bundle is a gitignored generated bundle; .design-sync is committed
+    // generated design-system output managed via the /design-sync pipeline.
+    "ds-bundle/**",
+    ".design-sync/**",
   ]),
 ]);
 
