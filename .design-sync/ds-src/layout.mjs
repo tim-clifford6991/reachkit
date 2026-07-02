@@ -3,8 +3,9 @@
 // contract), <Name>.prompt.md (usage), <Name>.jsx (re-export stub). Reads the
 // JSDoc + Props interface straight from each ds-src/<Name>.tsx so docs never drift.
 import { readFileSync, writeFileSync, mkdirSync, readdirSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, resolve } from "node:path";
+import * as esbuild from "esbuild";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, "../..");
@@ -42,6 +43,59 @@ const META = {
   DashboardScreen:  { group: "App",         render: "{}" },
 };
 
+// Turn a JS object-literal render string ("{score:46}") into a real object at
+// build time (trusted, literals only), so it can be passed as component props.
+function evalLiteral(src) {
+  // eslint-disable-next-line no-eval
+  return eval("(" + src + ")");
+}
+
+// Pre-render the components to STATIC HTML at build time. The Claude Design
+// sandbox serves preview cards as sandboxed iframes and does NOT run our card's
+// client <script> (inline OR external) the way it runs the DC-format template's
+// runtime — so a card that mounts React on load stays blank. Static HTML always
+// renders (it's just markup + CSS, like the template's own markup). Since every
+// component styles itself with inline styles + `--c-*` token vars, static markup
+// keeps full visual fidelity with zero client JS. We build a tiny module that
+// renders any component to a string, sharing ONE React instance with the
+// components (react bundled in — not external — so no cross-instance mismatch).
+const renderModPath = resolve(out, ".prerender.mjs");
+{
+  const built = await esbuild.build({
+    stdin: {
+      contents: `
+        import { renderToStaticMarkup } from "react-dom/server";
+        import * as React from "react";
+        import * as C from "./index.tsx";
+        export function render(name, props) {
+          return renderToStaticMarkup(React.createElement(C[name], props));
+        }
+      `,
+      resolveDir: here,
+      loader: "tsx",
+    },
+    bundle: true,
+    format: "esm",
+    platform: "node",
+    // Bundle only our local .tsx components; keep react/react-dom native so their
+    // node builtins (util, etc.) resolve at runtime and there's ONE React copy.
+    packages: "external",
+    jsx: "transform",
+    jsxFactory: "React.createElement",
+    jsxFragment: "React.Fragment",
+    tsconfigRaw: { compilerOptions: { jsx: "react", jsxFactory: "React.createElement", jsxFragmentFactory: "React.Fragment" } },
+    define: { "process.env.NODE_ENV": '"production"' },
+    loader: { ".tsx": "tsx", ".ts": "ts" },
+    outfile: renderModPath,
+  });
+  if (built.errors?.length) throw new Error("prerender build failed");
+}
+const { render } = await import(pathToFileURL(renderModPath).href);
+// Inline the token CSS so each card is fully self-contained (no external
+// stylesheet fetch to depend on inside the sandbox iframe).
+const tokensCss = readFileSync(resolve(out, "tokens", "tokens.css"), "utf8");
+const renderFailures = [];
+
 function extract(name) {
   const src = readFileSync(resolve(here, name + ".tsx"), "utf8");
   const jsdoc = (src.match(/\/\*\*([\s\S]*?)\*\//) || [, ""])[1]
@@ -56,15 +110,23 @@ for (const [name, meta] of Object.entries(META)) {
   const dir = resolve(out, "components", meta.group, name);
   mkdirSync(dir, { recursive: true });
 
-  // Preview card — first line MUST be the @dsCard marker.
+  // Preview card — first line MUST be the @dsCard marker. Self-contained STATIC
+  // HTML (pre-rendered markup + inlined tokens), NO client script — renders in
+  // the Claude Design sandbox where client-mounted cards do not.
+  let markup;
+  try {
+    markup = render(name, evalLiteral(meta.render));
+  } catch (e) {
+    markup = `<div style="font:14px var(--font-sans,sans-serif);color:var(--c-muted,#666)">${name} — preview unavailable</div>`;
+    renderFailures.push(name + ": " + (e && e.message ? e.message.split("\n")[0] : e));
+  }
   const html = `<!-- @dsCard group="${meta.group}" -->
 <!doctype html><html><head><meta charset="utf-8">
-<link rel="stylesheet" href="../../../styles.css">
-<style>body{margin:0;padding:28px;background:var(--c-bg2)}#root{display:flex;justify-content:center}</style>
-</head><body><div id="root"></div>
-<script src="../../../_ds_bundle.js"></script>
-<script>ReachKitDS.mount(ReachKitDS.${name}, ${meta.render}, document.getElementById('root'));</script>
-</body></html>`;
+<style>
+${tokensCss}
+body{margin:0;padding:28px;background:var(--c-bg2)}#root{display:flex;justify-content:center}
+</style>
+</head><body><div id="root">${markup}</div></body></html>`;
   writeFileSync(resolve(dir, name + ".html"), html);
 
   // .d.ts — the props contract (plus a declared component).
@@ -96,3 +158,9 @@ ${propLines}
   n++;
 }
 console.log("generated layout for", n, "components across groups:", [...new Set(Object.values(META).map((m) => m.group))].join(", "));
+if (renderFailures.length) {
+  console.log("\n⚠ static prerender FAILED for " + renderFailures.length + " component(s):");
+  for (const f of renderFailures) console.log("  - " + f);
+} else {
+  console.log("static prerender: all " + n + " components rendered to HTML ✓");
+}
