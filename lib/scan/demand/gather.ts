@@ -96,6 +96,9 @@ Return ONLY a JSON array, biggest-demand themes first:
     } catch {
       return [];
     }
+  }, {
+    // A `[]` here is an LLM failure / non-array parse — don't cache it for 30d.
+    isEmpty: (themes) => themes.length === 0,
   });
 }
 
@@ -233,5 +236,10 @@ export async function gatherDemand(rawSelf: string, opts: { competitorDomains?: 
   );
 
   return result;
+  }, {
+    // If BOTH the keyword table and the themes came back empty, the underlying
+    // keyword-ideas / clustering calls degraded — don't persist a blank demand
+    // payload for 7d (it would blank the Demand page every load until TTL).
+    isEmpty: (r) => r.searchDemand.themes.length === 0 && r.searchDemand.topKeywords.length === 0,
   });
 }

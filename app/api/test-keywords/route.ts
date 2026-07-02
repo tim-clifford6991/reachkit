@@ -8,7 +8,10 @@ import { gatherKeywordGap } from "@/lib/scan/referral/keyword-gap";
 
 export const maxDuration = 120;
 
+import { blockInProd } from "@/lib/api/dev-only";
 export async function GET(req: NextRequest) {
+  const blocked = blockInProd();
+  if (blocked) return blocked;
   const domain = req.nextUrl.searchParams.get("domain")?.trim();
   if (!domain) return NextResponse.json({ error: "domain required" }, { status: 400 });
   try {

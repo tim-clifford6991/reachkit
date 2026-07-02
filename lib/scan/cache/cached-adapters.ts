@@ -40,7 +40,9 @@ export function cachedRelevantPages(domain: string, limit = 10): Promise<TopPage
 /** Keyword ideas (demand) seeded from category terms. Keyed on the seed set. 30d. */
 export function cachedKeywordIdeas(seeds: string[], limit = 200): Promise<KeywordIdea[]> {
   const key = `ki:${[...seeds].map(norm).sort().join("|")}:${limit}`;
-  return cachedJson(key, 30 * DAY_MS, () => fetchKeywordIdeas(seeds, limit));
+  // fetchKeywordIdeas returns [] on !res.ok / timeout / fixtures — don't cache
+  // that transient-failure poison for 30d.
+  return cachedJson(key, 30 * DAY_MS, () => fetchKeywordIdeas(seeds, limit), { isEmpty: (ideas) => ideas.length === 0 });
 }
 
 /** Cross-competitor backlink intersection. Keyed on the sorted target set. 30d. */
@@ -57,12 +59,15 @@ export async function cachedDomainIntersection(targets: string[], limit = 200): 
 
 /** Closeness-ranked competitors (for benchmark / "learn from"). 14d. */
 export function cachedClosestCompetitors(self: string): Promise<ClosestCompetitorsResult> {
-  return cachedJson(`cc:${norm(self)}`, 14 * DAY_MS, () => discoverClosestCompetitors(self));
+  // ranked=[] means discovery (Tavily/traffic/LLM) degraded — don't cache a
+  // no-competitors result for 14d (it would blank the whole cohort until TTL).
+  return cachedJson(`cc:${norm(self)}`, 14 * DAY_MS, () => discoverClosestCompetitors(self), { isEmpty: (r) => r.ranked.length === 0 });
 }
 
 /** Size-banded competitors (for the referral-channel cohort). 14d. */
 export function cachedDiscoverCompetitors(self: string): Promise<DiscoverCompetitorsResult> {
-  return cachedJson(`dc:${norm(self)}`, 14 * DAY_MS, () => discoverCompetitors(self));
+  // domains=[] means discovery degraded — don't cache an empty cohort for 14d.
+  return cachedJson(`dc:${norm(self)}`, 14 * DAY_MS, () => discoverCompetitors(self), { isEmpty: (r) => r.domains.length === 0 });
 }
 
 /**
@@ -77,6 +82,10 @@ export function cachedBrandedSearch(brand: string): Promise<number> {
     const { keywords } = await keywordsData([brand]);
     const match = keywords.find((k) => k.keyword.toLowerCase() === brand.toLowerCase());
     return match?.volume ?? 0;
+  }, {
+    // 0 is the degraded result (missing subscription, fixtures, error) — don't
+    // cache it for 30d and re-serve a false "no branded traffic".
+    isEmpty: (vol) => vol === 0,
   });
 }
 

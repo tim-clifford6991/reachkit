@@ -159,10 +159,10 @@ export async function gatherSynthesis(rawSelf: string, opts: { competitorDomains
     const category = demand.category || funnel.category;
 
     const [contentPlan, distributionPlan] = await Promise.all([
-      synthContent({ self, category, demand, kw }),
-      synthDistribution({ self, category, funnel, demand }),
+      synthContent({ self, cohortKey, category, demand, kw }),
+      synthDistribution({ self, cohortKey, category, funnel, demand }),
     ]);
-    const summary = await synthSummary({ self, category, demand, kw, funnel, contentPlan, distributionPlan });
+    const summary = await synthSummary({ self, cohortKey, category, demand, kw, funnel, contentPlan, distributionPlan });
 
     // Persist structured plan rows (best-effort, never blocks the return).
     void Promise.all([
@@ -176,6 +176,7 @@ export async function gatherSynthesis(rawSelf: string, opts: { competitorDomains
 
 async function synthContent(i: {
   self: string;
+  cohortKey: string;
   category: string;
   demand: Awaited<ReturnType<typeof gatherDemand>>;
   kw: Awaited<ReturnType<typeof gatherKeywordGap>>;
@@ -184,7 +185,9 @@ async function synthContent(i: {
   const gaps = i.kw.gaps.slice(0, 15).map((g) => `- "${g.keyword}" (${g.volume}/mo, ${g.competitorsRanking} rivals); winning page e.g. ${g.competitors[0]?.domain} #${g.competitors[0]?.position} ${g.competitors[0]?.url ?? ""}`).join("\n");
   const pains = i.demand.buyerInsights.pains.slice(0, 6).join("; ");
   const language = i.demand.buyerInsights.buyerLanguage.slice(0, 6).join("; ");
-  const key = `synth:content:${i.self}`;
+  // Include cohortKey — the plan is built from THIS cohort's demand/gaps, so a
+  // competitor change must not serve the old cohort's plan.
+  const key = `synth:content:${i.self}:${i.cohortKey}`;
 
   return cachedJson(key, 7 * DAY_MS, async () => {
     const prompt = `You are planning CONTENT for "${i.self}" — a ${i.category}. Target ICP: ${i.demand.icp.whoItsFor}.
@@ -235,11 +238,15 @@ Return ONLY a JSON array:
     } catch {
       return [];
     }
+  }, {
+    // A `[]` here is an LLM failure / non-array parse — don't cache it for 7d.
+    isEmpty: (plan) => plan.length === 0,
   });
 }
 
 async function synthDistribution(i: {
   self: string;
+  cohortKey: string;
   category: string;
   funnel: Awaited<ReturnType<typeof gatherFullFunnel>>;
   demand: Awaited<ReturnType<typeof gatherDemand>>;
@@ -248,7 +255,8 @@ async function synthDistribution(i: {
   const discovery = Object.entries(i.funnel.discoveryChannels).sort((a, b) => b[1] - a[1]).map(([c, n]) => `${c}:${n}`).join(", ");
   const wateringHoles = i.demand.community.pockets.slice(0, 8).map((p) => `- ${p.surface} (${p.count} buyer threads)`).join("\n");
   const personas = i.demand.buyerInsights.personas.slice(0, 5).join("; ");
-  const key = `synth:dist:${i.self}`;
+  // Include cohortKey — plan derives from THIS cohort's funnel/demand.
+  const key = `synth:dist:${i.self}:${i.cohortKey}`;
 
   return cachedJson(key, 7 * DAY_MS, async () => {
     const prompt = `You are planning DISTRIBUTION for "${i.self}" — a ${i.category}. Buyers: ${personas || i.demand.icp.whoItsFor}.
@@ -293,17 +301,21 @@ Return ONLY a JSON array:
     } catch {
       return [];
     }
+  }, {
+    // A `[]` here is an LLM failure / non-array parse — don't cache it for 7d.
+    isEmpty: (plan) => plan.length === 0,
   });
 }
 
 async function synthSummary(i: {
-  self: string; category: string;
+  self: string; cohortKey: string; category: string;
   demand: Awaited<ReturnType<typeof gatherDemand>>;
   kw: Awaited<ReturnType<typeof gatherKeywordGap>>;
   funnel: Awaited<ReturnType<typeof gatherFullFunnel>>;
   contentPlan: ContentPlanItem[]; distributionPlan: DistributionPlanItem[];
 }): Promise<string> {
-  const key = `synth:summary:${i.self}`;
+  // Include cohortKey — the summary cites this cohort's plans/scores.
+  const key = `synth:summary:${i.self}:${i.cohortKey}`;
   return cachedJson(key, 7 * DAY_MS, async () => {
     const prompt = `Write a 2–3 sentence strategic summary for "${i.self}" (${i.category}). Score ${i.funnel.subject.score}/100, ${i.funnel.subject.monthlyTraffic.toLocaleString()} monthly visits, ranks for ${i.kw.subject.rankedFor} keywords. Top content move: ${i.contentPlan[0]?.topic ?? "—"}. Top distribution move: ${i.distributionPlan[0]?.action ?? "—"} on ${i.distributionPlan[0]?.target ?? "—"}. Be direct about where they stand and the single highest-leverage path forward. Plain prose, no preamble.`;
     try {
@@ -312,5 +324,8 @@ async function synthSummary(i: {
     } catch {
       return "";
     }
+  }, {
+    // An empty summary is an LLM failure — don't cache "" for 7d.
+    isEmpty: (s) => s.trim() === "",
   });
 }

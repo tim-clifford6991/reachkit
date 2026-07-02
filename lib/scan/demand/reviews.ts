@@ -97,5 +97,10 @@ Each list 4–8 items, specific and grounded in the text.`,
     } catch {
       return { ...EMPTY, sources: urls };
     }
+  }, {
+    // The two early `return EMPTY` / `return { ...EMPTY, sources }` paths (no
+    // review pages found, or extraction bot-blocked) plus a total LLM failure
+    // are transient poison — don't cache a blank buyer-insights payload for 60d.
+    isEmpty: (v) => v.pains.length === 0 && v.lovedFeatures.length === 0 && v.personas.length === 0 && v.buyerLanguage.length === 0,
   });
 }

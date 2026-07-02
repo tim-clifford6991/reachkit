@@ -10,7 +10,10 @@ import { discoverClosestCompetitors, type TraceStep } from "@/lib/scan/referral/
 
 export const maxDuration = 60;
 
+import { blockInProd } from "@/lib/api/dev-only";
 export async function GET(req: NextRequest) {
+  const blocked = blockInProd();
+  if (blocked) return blocked;
   const domain = req.nextUrl.searchParams.get("domain")?.trim();
   if (!domain) return NextResponse.json({ error: "domain required" }, { status: 400 });
   const self = normalizeHost(domain);

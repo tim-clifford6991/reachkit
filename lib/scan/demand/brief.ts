@@ -89,5 +89,9 @@ export async function inferProductBrief(domain: string): Promise<ProductDemandBr
     } catch {
       return empty;
     }
+  }, {
+    // The LLM-failure fallback (`empty`) has no seeds/coreTerms — don't cache it
+    // for 30d, or a transient outage blanks the demand seed for weeks.
+    isEmpty: (v) => v.seedKeywords.length === 0 && v.coreTerms.length === 0,
   });
 }

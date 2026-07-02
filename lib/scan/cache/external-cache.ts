@@ -23,10 +23,30 @@ export const DAY_MS = 24 * 60 * 60 * 1000;
 const inflight = new Map<string, Promise<unknown>>();
 
 /**
+ * Options for {@link cachedJson}.
+ */
+export interface CachedJsonOptions<T> {
+  /**
+   * Predicate that flags a computed value as "empty" — a degraded/failure result
+   * (e.g. `[]`, `0`, `""`, an all-"other" classification) that adapters return
+   * on transient errors. When it returns true the value is RETURNED but NOT
+   * persisted, so a 30s outage can't poison the cache with an empty result for
+   * the full TTL. A genuinely-empty result simply recomputes next load — the
+   * exception, not the norm, and strictly better than weeks of poison.
+   */
+  isEmpty?: (value: T) => boolean;
+}
+
+/**
  * Return the cached value for `key` if fresher than `ttlMs`, else run `fetchFn`
  * (de-duplicated across concurrent callers), persist the result, and return it.
  */
-export async function cachedJson<T>(key: string, ttlMs: number, fetchFn: () => Promise<T>): Promise<T> {
+export async function cachedJson<T>(
+  key: string,
+  ttlMs: number,
+  fetchFn: () => Promise<T>,
+  opts?: CachedJsonOptions<T>,
+): Promise<T> {
   const db = serverDb();
   try {
     const { data } = await db.from("search_cache").select("response, created_at").eq("key", key).maybeSingle();
@@ -42,10 +62,20 @@ export async function cachedJson<T>(key: string, ttlMs: number, fetchFn: () => P
 
   const p = (async () => {
     const fresh = await fetchFn();
+    // Don't cache degraded/empty results (transient-failure poison).
+    if (opts?.isEmpty?.(fresh)) {
+      console.warn(`[cache] skip empty ${key}`);
+      return fresh;
+    }
     try {
-      await db.from("search_cache").upsert({ key, response: fresh as unknown as Json, created_at: new Date().toISOString() });
-    } catch {
+      // supabase-js does NOT throw on a write failure — it returns `{ error }`.
+      // Surface a persistent cache-write failure (else every call silently
+      // recomputes) while keeping caching best-effort (never throw).
+      const { error } = await db.from("search_cache").upsert({ key, response: fresh as unknown as Json, created_at: new Date().toISOString() });
+      if (error) console.warn(`[cache] write failed ${key}: ${error.message}`);
+    } catch (err) {
       /* best-effort persist */
+      console.warn(`[cache] write threw ${key}: ${err instanceof Error ? err.message : String(err)}`);
     }
     return fresh;
   })();

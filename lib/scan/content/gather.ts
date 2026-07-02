@@ -179,6 +179,10 @@ Return ONLY a JSON array:
       url,
       type: heuristicResults.get(url) ?? llmResults.get(url) ?? "other",
     }));
+  }, {
+    // All-"other" means both heuristic and LLM produced nothing (LLM failure) —
+    // don't cache a useless all-"other" classification for 14d.
+    isEmpty: (rows) => rows.length === 0 || rows.every((r) => r.type === "other"),
   });
 }
 
@@ -269,6 +273,11 @@ Return ONLY a JSON array (no prose, no markdown):
     } catch {
       return { pageAssignments: pages.map((p) => ({ url: p.url, cluster: "general" })) };
     }
+  }, {
+    // The failure fallback (and fixtures) tag every page "general"; a broken
+    // parse tags them "other". Either way there's no real shared taxonomy —
+    // don't cache a degenerate clustering for 14d.
+    isEmpty: (r) => r.pageAssignments.length === 0 || r.pageAssignments.every((a) => a.cluster === "general" || a.cluster === "other"),
   });
 }
 

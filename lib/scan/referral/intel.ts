@@ -1,26 +1,16 @@
 /**
- * Dashboard intel — the productized output of the validated reverse-referral
- * pipeline, ready to render on the app dashboard.
+ * Entity enrichment — the shared scoring/traffic-mix primitive used by the
+ * supply/demand funnel to score a subject domain and its competitors.
  *
- * Assembles, for a subject domain:
- *   - the inferred micro-category
- *   - size-comparable competitors, each with an estimated discoverability score
- *     and a referral traffic-source split (organic/referral/social/direct)
- *   - actionable distribution channels (page-classified, joinable only)
- *
- * Reuses existing engine functions wholesale: profileDomainCached, verifiedScore,
- * estimateTrafficMix, discoverReferralChannels, classifyOpportunityPages.
+ * `enrichEntity` returns, for one domain: an estimated discoverability score,
+ * estimated monthly organic traffic, and a referral traffic-source split
+ * (organic/referral/social/direct), reusing profileDomainCached +
+ * estimateTrafficMix wholesale.
  */
-import { serverDb } from "@/lib/db/client";
-import type { Json } from "@/lib/db/types";
-import { normalizeHost } from "@/lib/scan/referral/classify";
 import { productNameFromHost } from "@/lib/scan/referral/discover-competitors";
-import { cachedDiscoverCompetitors, cachedBrandedSearch } from "@/lib/scan/cache/cached-adapters";
-import { inferCategoryAndQueries } from "@/lib/scan/referral/llm-competitors";
-import { discoverReferralChannels } from "@/lib/scan/referral/discover";
-import { classifyOpportunityPages, type OppChannelType } from "@/lib/scan/referral/classify-pages";
+import { cachedBrandedSearch } from "@/lib/scan/cache/cached-adapters";
 import { profileDomainCached } from "@/lib/scan/profile/cache";
-import { estimateTrafficMix, type TrafficMix } from "@/lib/scan/profile/traffic-mix";
+import { estimateTrafficMix } from "@/lib/scan/profile/traffic-mix";
 import { bandFor } from "@/lib/scan/score-bands";
 import type { DistributionProfile } from "@/lib/scan/profile/types";
 import type { TrafficLens } from "@/lib/scan/referral/traffic-lens";
@@ -66,22 +56,6 @@ export interface ScoredEntity {
    * provides the per-category referrer breakdown needed to complete the computation.
    */
   lens: TrafficLens | null;
-}
-
-export interface ActionableChannel {
-  host: string;
-  type: OppChannelType;
-  action: string;
-  competitorsUsing: number;
-  reachWeight: number;
-}
-
-export interface DashboardIntel {
-  /** The user's own app — always shown alongside competitors for comparison. */
-  subject: ScoredEntity;
-  category: string;
-  competitors: ScoredEntity[];
-  actionableChannels: ActionableChannel[];
 }
 
 const log100 = (value: number, ref: number) => Math.min(100, (Math.log1p(Math.max(0, value)) / Math.log1p(ref)) * 100);
@@ -165,90 +139,4 @@ export async function enrichEntity(domain: string, isSubject: boolean): Promise<
       lens: null,
     };
   }
-}
-
-/**
- * End-to-end dashboard intel for a subject domain. Never throws on partial failure.
- * When `competitorDomains` is given (the user's chosen benchmark set) we use those;
- * otherwise we auto-discover. Category is inferred either way for channel classification.
- */
-export async function gatherDashboardIntel(
-  rawSelf: string,
-  opts: { competitorDomains?: string[] } = {},
-): Promise<DashboardIntel> {
-  const self = normalizeHost(rawSelf);
-  const chosen = (opts.competitorDomains ?? []).map(normalizeHost).filter((d) => d && d !== self);
-
-  let domains: string[];
-  let category: string;
-  if (chosen.length >= 1) {
-    domains = [...new Set(chosen)].slice(0, 5);
-    category = (await inferCategoryAndQueries({ productName: productNameFromHost(self), host: self })).category;
-  } else {
-    const disc = await cachedDiscoverCompetitors(self);
-    domains = disc.domains;
-    category = disc.category;
-  }
-
-  // The user's own app + competitors — scores, monthly traffic, mix (cached profiles).
-  const [subject, ...competitors] = await Promise.all([
-    enrichEntity(self, true),
-    ...domains.map((d) => enrichEntity(d, false)),
-  ]);
-
-  // Actionable channels (needs ≥2 competitors for the intersection).
-  let actionableChannels: ActionableChannel[] = [];
-  if (domains.length >= 2) {
-    const ref = await discoverReferralChannels({ selfDomain: self, competitorDomains: domains, limit: 40 });
-    const top = ref.opportunities.slice(0, 25);
-    if (top.length) {
-      const cls = await classifyOpportunityPages({
-        productName: productNameFromHost(self),
-        category,
-        hosts: top.map((o) => o.host),
-      });
-      const byHost = new Map(cls.classifications.map((c) => [c.host, c]));
-      actionableChannels = top
-        .map((o) => {
-          const c = byHost.get(o.host.toLowerCase());
-          return {
-            host: o.host,
-            type: (c?.type ?? "other") as OppChannelType,
-            action: c?.action ?? "",
-            actionable: c?.actionable ?? false,
-            competitorsUsing: o.competitorsUsing,
-            reachWeight: o.reachWeight,
-          };
-        })
-        .filter((o) => o.actionable)
-        .map(({ actionable: _a, ...rest }) => rest);
-    }
-  }
-
-  return { subject, category, competitors, actionableChannels };
-}
-
-/**
- * Compute intel and patch it into the scan's persisted report_payload, so the
- * dashboard renders instantly. Best-effort: mirrors attachMarketAnalysis. The core
- * report is already persisted, so a failure here never breaks the scan.
- */
-/** Write a (JSON-serializable) intel object into the scan's report_payload. */
-export async function persistCompetitiveIntel(scanId: string, intel: DashboardIntel): Promise<void> {
-  const db = serverDb();
-  const { data } = await db.from("scans").select("report_payload").eq("id", scanId).maybeSingle();
-  const payload = (data?.report_payload ?? null) as Record<string, unknown> | null;
-  if (!payload) return;
-  payload.competitiveIntel = { generatedAt: new Date().toISOString(), ...intel };
-  await db.from("scans").update({ report_payload: payload as Json }).eq("id", scanId);
-}
-
-export async function attachCompetitiveIntel(
-  scanId: string,
-  storeUrl: string,
-  competitorDomains?: string[],
-): Promise<DashboardIntel> {
-  const intel = await gatherDashboardIntel(storeUrl, competitorDomains?.length ? { competitorDomains } : {});
-  await persistCompetitiveIntel(scanId, intel);
-  return intel;
 }

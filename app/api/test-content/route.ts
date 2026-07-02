@@ -12,7 +12,10 @@ import { gatherContentIntel } from "@/lib/scan/content/gather";
 
 export const maxDuration = 120;
 
+import { blockInProd } from "@/lib/api/dev-only";
 export async function GET(req: NextRequest) {
+  const blocked = blockInProd();
+  if (blocked) return blocked;
   const raw = req.nextUrl.searchParams.get("domain")?.trim();
   if (!raw) return NextResponse.json({ error: "domain required" }, { status: 400 });
 

@@ -17,7 +17,10 @@ import { discoverCompetitors, productNameFromHost, type TraceStep } from "@/lib/
 
 export const maxDuration = 90;
 
+import { blockInProd } from "@/lib/api/dev-only";
 export async function GET(req: NextRequest) {
+  const blocked = blockInProd();
+  if (blocked) return blocked;
   const sp = req.nextUrl.searchParams;
   const self = normalizeHost(sp.get("self") || "nudgi.ai");
   const explicit = (sp.get("competitors") || "")

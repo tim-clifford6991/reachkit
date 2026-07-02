@@ -8,7 +8,10 @@ import { teardownRankingPage } from "@/lib/scan/referral/page-teardown";
 
 export const maxDuration = 60;
 
+import { blockInProd } from "@/lib/api/dev-only";
 export async function GET(req: NextRequest) {
+  const blocked = blockInProd();
+  if (blocked) return blocked;
   const url = req.nextUrl.searchParams.get("url")?.trim();
   const keyword = req.nextUrl.searchParams.get("keyword")?.trim() ?? "";
   if (!url) return NextResponse.json({ error: "url required" }, { status: 400 });
