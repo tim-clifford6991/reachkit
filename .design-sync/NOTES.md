@@ -27,6 +27,16 @@ versions of the app's components.
 - Project: "ReachKit Design System" (819c77dc-3b5b-42e1-a065-315f28ee4f0b).
 - Foundations + 6 signature components built & bundle render-verified:
   BrandMark, Button, Badge, ScoreGauge, ScoreCard, ComparisonTable.
+- **2026-07-02 — DS aligned to the Analytics Dashboard template (33 components).**
+  The template (`templates/analytics-dashboard/`) is the canonical standard.
+  Added 5 components extracted from it (group "App"): `ChannelDonut`,
+  `CompetitorEdgePanel`, `PlanItemCard`, `LeverBanner`, `ProgressChart`.
+  Reconciled `ScoreGauge`, `KpiCard`, `AppShell`, `SearchGapTable` and rebuilt
+  `DashboardScreen` to mirror the template's Dashboard view. All visually verified
+  locally + confirmed rendering in the sandbox. `build.mjs` now GENERATES
+  `_ds_sync.json` from `exportsList` (no more hand-drift). Adding a component =
+  4 edits: `<Name>.tsx`, `index.tsx` export, `build.mjs` exportsList, `layout.mjs`
+  META. Spec+plan: `docs/superpowers/specs|plans/2026-07-02-ds-align-*`.
 
 ## Re-sync risks
 - The bundle is hand-built, NOT from a published dist — it can drift from the
