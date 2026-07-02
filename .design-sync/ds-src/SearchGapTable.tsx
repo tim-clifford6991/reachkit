@@ -1,44 +1,62 @@
 import * as React from "react";
 
 /**
- * SearchGapTable — the report's "Search Gap" table: Query / Volume / Your rank /
- * Opportunity rows in a bordered card. Volume + rank are mono; a non-ranking
- * rank reads red; opportunity is heat-chipped. Renders fully with no props.
+ * SearchGapTable — the report's "Keyword gap" card: a two-column list of
+ * high-volume terms the brand doesn't rank for. Each row shows the term,
+ * a mono search-volume label, and a trailing chip — a filled "→ in plan"
+ * pill (reusing the action/soft tint pair) for terms already queued, or a
+ * dashed "+ add" pill for terms that can still be added. Renders fully with
+ * no props.
+ *
+ * `rows` (legacy Query/Volume/Rank/Opportunity shape) is kept for backward
+ * compatibility and, when supplied without `keywords`, is mapped onto the
+ * new term/volLabel/inPlan/canAdd row shape so existing callers keep working.
  */
 export interface SearchGapTableProps {
+  /** @deprecated legacy row shape — prefer `keywords`. Mapped onto the new layout when `keywords` is not supplied. */
   rows?: { query: string; volume: string; rank: string; opportunity: string }[];
+  keywords?: { term: string; volLabel: string; inPlan?: boolean; canAdd?: boolean }[];
+  title?: string;
+  subtitle?: string;
 }
 
 export function SearchGapTable({
-  rows = [
-    { query: "discoverability tool", volume: "2,400/mo", rank: "Not ranking", opportunity: "High" },
-    { query: "improve SaaS SEO", volume: "1,900/mo", rank: "Page 4", opportunity: "High" },
-    { query: "website audit for founders", volume: "880/mo", rank: "Page 2", opportunity: "Medium" },
-    { query: "landing page checklist", volume: "1,300/mo", rank: "Not ranking", opportunity: "Medium" },
-  ],
+  rows,
+  keywords = rows
+    ? rows.map((r) => {
+        const inPlan = !/not\s*rank/i.test(r.rank);
+        return { term: r.query, volLabel: r.volume.replace(/\/mo$/i, ""), inPlan, canAdd: !inPlan };
+      })
+    : [
+        { term: "discoverability tool", volLabel: "2.4k", inPlan: false, canAdd: true },
+        { term: "improve SaaS SEO", volLabel: "1.9k", inPlan: true, canAdd: false },
+        { term: "website audit for founders", volLabel: "880", inPlan: false, canAdd: true },
+        { term: "landing page checklist", volLabel: "1.3k", inPlan: false, canAdd: true },
+        { term: "AI meeting notes", volLabel: "3.1k", inPlan: true, canAdd: false },
+        { term: "startup SEO audit", volLabel: "640", inPlan: false, canAdd: true },
+      ],
+  title = "Keyword gap",
+  subtitle = "High-volume terms you don't rank for yet",
 }: SearchGapTableProps) {
-  const oppColors = (opp: string) =>
-    /high/i.test(opp) ? { fg: "#E5484D", bg: "var(--c-tint-orange)" }
-    : /med/i.test(opp) ? { fg: "#C98A12", bg: "var(--c-tint-amber)" }
-    : { fg: "var(--c-faint)", bg: "var(--c-fill)" };
-  const cols = "2.2fr 1fr 1fr 0.9fr";
   return (
-    <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-xl)", overflow: "hidden", fontFamily: "var(--font-sans)", color: "var(--c-ink)", maxWidth: 680 }}>
-      <div style={{ display: "grid", gridTemplateColumns: cols, padding: "13px 22px", borderBottom: "1px solid var(--c-line)", fontSize: 11.5, fontWeight: 700, letterSpacing: "0.04em", color: "var(--c-faint)", textTransform: "uppercase", background: "var(--c-fill)" }}>
-        <span>Query</span><span>Volume / mo</span><span>Your rank</span><span>Opportunity</span>
+    <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-md)", padding: "20px 22px", display: "flex", flexDirection: "column", gap: 14, fontFamily: "var(--font-sans)", maxWidth: 680 }}>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
+        <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "var(--c-ink)", margin: 0 }}>{title}</h3>
+        <span style={{ fontSize: 12.5, color: "var(--c-muted)" }}>{subtitle}</span>
       </div>
-      {rows.map((r, i) => {
-        const oc = oppColors(r.opportunity);
-        const ranked = !/not\s*rank/i.test(r.rank);
-        return (
-          <div key={i} style={{ display: "grid", gridTemplateColumns: cols, padding: "14px 22px", borderBottom: "1px solid var(--c-fill)", alignItems: "center" }}>
-            <span style={{ fontSize: 14, fontWeight: 600 }}>{r.query}</span>
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--c-muted)" }}>{r.volume}</span>
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: ranked ? "var(--c-muted)" : "#E5484D" }}>{r.rank}</span>
-            <span><span style={{ fontSize: 11.5, fontWeight: 700, color: oc.fg, background: oc.bg, padding: "3px 10px", borderRadius: "var(--radius-md)" }}>{r.opportunity}</span></span>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "10px 28px" }}>
+        {keywords.map((k, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, paddingBottom: 9, borderBottom: "1px solid var(--c-line2)" }}>
+            <span style={{ fontSize: 13, color: "var(--c-ink)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{k.term}</span>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, color: "var(--c-muted)", flex: "0 0 auto" }}>{k.volLabel}/mo</span>
+            {k.inPlan ? (
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, color: "var(--c-action)", background: "var(--c-soft)", padding: "3px 8px", borderRadius: "var(--radius-full)", cursor: "pointer", flex: "0 0 auto" }}>→ in plan</span>
+            ) : k.canAdd !== false ? (
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, color: "var(--c-muted)", border: "1px dashed var(--c-line)", padding: "2px 8px", borderRadius: "var(--radius-full)", cursor: "pointer", flex: "0 0 auto" }}>+ add</span>
+            ) : null}
           </div>
-        );
-      })}
+        ))}
+      </div>
     </div>
   );
 }
