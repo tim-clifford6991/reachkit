@@ -27,7 +27,7 @@ interface ContentEntity { domain: string; isSubject: boolean; contentTypeMix: Pa
 interface ContentCluster { label: string; totalPages: number; coveredBy: string[] }
 interface ContentIntel { subjectDomain: string; entities: ContentEntity[]; clusters: ContentCluster[] }
 
-interface Supply {
+export interface Supply {
   funnel: { subject: Entity & { category: string; backlinks?: Backlinks }; category: string; competitors: CompetitorDeep[]; discoveryChannels: Record<string, number>; channelsMissing: Channel[] };
   keywords: { gaps: Gap[] };
   content?: ContentIntel;

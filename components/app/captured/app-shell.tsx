@@ -15,6 +15,9 @@ import { ThemeToggle } from "@/components/theme-toggle";
 const SG = "Space Grotesk", PJ = "Plus Jakarta Sans", JM = "JetBrains Mono";
 
 const NAV: { label: string; href: string; badge?: boolean; icon: React.ReactNode }[] = [
+  { label: "Dashboard", href: "/app/dashboard", icon: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /></svg>
+  ) },
   { label: "Supply", href: "/app/supply", icon: (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="7" height="9" rx="1.5" /><rect x="14" y="3" width="7" height="5" rx="1.5" /><rect x="14" y="12" width="7" height="9" rx="1.5" /><rect x="3" y="16" width="7" height="5" rx="1.5" /></svg>
   ) },
@@ -33,6 +36,7 @@ const NAV: { label: string; href: string; badge?: boolean; icon: React.ReactNode
 ] as const;
 
 const TITLES: Record<string, string> = {
+  "/app/dashboard": "Dashboard",
   "/app/supply": "Supply", "/app/demand": "Demand", "/app/synthesis": "Synthesis",
   "/app/plans": "Plans", "/app/settings": "Settings", "/app/billing": "Billing",
 };
@@ -40,6 +44,7 @@ const TITLES: Record<string, string> = {
 // Per-page description shown natively as the header subtitle — one consistent
 // place for every page's one-line intro (replaces the floating per-view headers).
 const DESCRIPTIONS: Record<string, string> = {
+  "/app/dashboard": "Your score, your edge, and this week's highest-leverage move — at a glance.",
   "/app/supply": "How you and your rivals get found — channels, scores, and the gaps.",
   "/app/demand": "Who your buyer is, what they search, and where they ask.",
   "/app/synthesis": "Where you stand and the highest-leverage path forward.",

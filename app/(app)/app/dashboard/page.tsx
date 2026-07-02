@@ -1,0 +1,75 @@
+import { Suspense } from "react";
+import Link from "next/link";
+import { resolveIntelContext } from "@/lib/app/intel-context";
+import { serverDb } from "@/lib/db/client";
+import { engagementSummary } from "@/lib/scan/engagement";
+import { scoreHistoryMarkers } from "@/lib/scan/score-history-markers";
+import { pillarRollup, type ScoreBreakdown } from "@/lib/scan/pillar-scores";
+import { DashboardHero } from "@/components/app/intel/dashboard-hero";
+import { DashboardIntelBlocks } from "@/components/app/intel/dashboard-view";
+import { buildMetadata } from "@/lib/seo";
+
+export const metadata = buildMetadata({ title: "Dashboard", path: "/app/dashboard" });
+
+/**
+ * Dashboard home — the templated Analytics Dashboard, wired to live data. The
+ * scan-side hero (score + pillars + weakest lever + trend) renders server-side
+ * and instantly; the intel-side blocks (competitors, traffic, keyword gap) stream
+ * in below via the shared `supply` layer. Auth/onboarding/app gating is handled by
+ * resolveIntelContext, the same as the four detail tabs.
+ */
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={null}>
+      <DashboardContent />
+    </Suspense>
+  );
+}
+
+async function DashboardContent() {
+  const ctx = await resolveIntelContext("/app/dashboard");
+
+  const { data: scan } = await serverDb()
+    .from("scans")
+    .select("score_total, score_breakdown")
+    .eq("app_id", ctx.appId)
+    .not("completed_at", "is", null)
+    .not("score_total", "is", null)
+    .order("completed_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  // No completed scan yet — the score story has nothing to show, but the intel
+  // blocks (which don't depend on a scan) still render below the notice.
+  if (!scan || scan.score_total == null) {
+    return (
+      <>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "48px 24px", textAlign: "center", border: "1px dashed var(--c-line)", borderRadius: "var(--radius-xl)", background: "var(--c-surface)" }}>
+          <p style={{ fontSize: 14, fontWeight: 600, color: "var(--c-ink)", margin: 0 }}>Your Discoverability Score appears here after your first scan.</p>
+          <p style={{ fontSize: 12.5, color: "var(--c-muted)", margin: 0, maxWidth: 360 }}>Run a scan to see your score, pillar breakdown, and biggest lever.</p>
+          <Link href="/" style={{ marginTop: 6, background: "var(--c-action)", color: "var(--c-on-dark)", fontFamily: "var(--font-sans)", fontWeight: 600, fontSize: 13, padding: "8px 14px", borderRadius: "var(--radius-lg)", textDecoration: "none" }}>Run a scan</Link>
+        </div>
+        <DashboardIntelBlocks />
+      </>
+    );
+  }
+
+  const [engagement, markers] = await Promise.all([
+    engagementSummary(ctx.appId),
+    scoreHistoryMarkers(ctx.appId),
+  ]);
+
+  const rollup = pillarRollup(scan.score_breakdown as unknown as ScoreBreakdown | null);
+
+  return (
+    <>
+      <DashboardHero
+        score={scan.score_total}
+        rollup={rollup}
+        history={engagement.history}
+        markers={markers}
+      />
+      <DashboardIntelBlocks />
+    </>
+  );
+}
