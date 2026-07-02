@@ -10,7 +10,11 @@
  */
 
 import Link from "next/link";
-import { Card, HeroCard, Bar, Eyebrow, Badge, Gauge, bandFor } from "@/components/app/intel/kit";
+import { Card, HeroCard, Bar, Eyebrow, Badge, Gauge } from "@/components/app/intel/kit";
+// bandFor comes from the server-safe bands module, NOT the "use client" kit:
+// this is a server component, and calling a client-exported function during
+// server render throws ("Attempted to call bandFor() from the server").
+import { bandFor } from "@/components/app/intel/bands";
 import type { PillarRollup } from "@/lib/scan/pillar-scores";
 import type { ScoreHistoryPoint } from "@/lib/scan/engagement";
 import type { HistoryMarker } from "@/lib/scan/score-history-markers";
