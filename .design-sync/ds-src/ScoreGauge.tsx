@@ -1,5 +1,5 @@
 import * as React from "react";
-import { bandFor, arcPath, GAUGE_SWEEP } from "./bands";
+import { bandFor } from "./bands";
 
 export interface ScoreGaugeProps {
   /** Discoverability score, 0–100. */
@@ -10,25 +10,48 @@ export interface ScoreGaugeProps {
   showBand?: boolean;
 }
 
+/** Maps a band key to its `--c-tint-*` background token (mirrors the reference template's `band()` helper). */
+const BAND_TINT: Record<string, string> = {
+  invisible: "var(--c-tint-red)",
+  hard: "var(--c-tint-orange)",
+  fair: "var(--c-tint-amber)",
+  findable: "var(--c-tint-green)",
+  high: "var(--c-tint-green)",
+};
+
 /**
- * The signature ReachKit gauge — a 270° arc that fills to the score, coloured by
+ * The signature ReachKit gauge — a 270° ring that fills to the score, coloured by
  * its discoverability band, with the number centred. Used in the report hero,
- * dashboard, and share card.
+ * dashboard, and share card. Geometry (232 viewBox, r=92, 18px stroke, 135°
+ * rotation, 0.75-circumference sweep) matches the reference dashboard template.
  */
 export function ScoreGauge({ score, size = 200, showBand = true }: ScoreGaugeProps) {
   const s = Math.max(0, Math.min(100, score));
   const band = bandFor(s);
-  const cx = 100, cy = 100, r = 78, sw = 15;
+  const colorVar = `var(--c-band-${band.key})`;
+  const tintVar = BAND_TINT[band.key] ?? "var(--c-tint-red)";
+
+  const cx = 116, cy = 116, r = 92, sw = 18;
+  const circumference = 2 * Math.PI * r;
+  const span = 0.75 * circumference; // 270° of the ring
+  const fill = (s / 100) * span;
+
   return (
     <div style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-      <svg width={size} height={size} viewBox="0 0 200 200" style={{ display: "block" }}>
-        <path d={arcPath(cx, cy, r, GAUGE_SWEEP)} fill="none" stroke="var(--c-fill)" strokeWidth={sw} strokeLinecap="round" />
-        <path d={arcPath(cx, cy, r, (GAUGE_SWEEP * s) / 100)} fill="none" stroke={band.color} strokeWidth={sw} strokeLinecap="round" />
-        <text x="100" y="106" textAnchor="middle" style={{ font: "700 42px var(--font-mono), monospace", fill: "var(--c-ink)" }}>{s}</text>
-        <text x="100" y="126" textAnchor="middle" style={{ font: "600 11px var(--font-mono), monospace", fill: "var(--c-faint)", letterSpacing: "1px" }}>/ 100</text>
-      </svg>
+      <div style={{ position: "relative", width: size, height: size, flex: "0 0 auto" }}>
+        <svg viewBox="0 0 232 232" width={size} height={size} style={{ display: "block" }}>
+          <g transform={`rotate(135 ${cx} ${cy})`} fill="none" strokeWidth={sw} strokeLinecap="round">
+            <circle cx={cx} cy={cy} r={r} stroke="var(--c-fill)" strokeDasharray={`${span.toFixed(1)} ${circumference.toFixed(1)}`} />
+            <circle cx={cx} cy={cy} r={r} stroke={colorVar} strokeDasharray={`${fill.toFixed(1)} ${circumference.toFixed(1)}`} />
+          </g>
+        </svg>
+        <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+          <b style={{ fontFamily: "var(--font-mono)", fontWeight: 700, fontSize: size * 0.2955, color: "var(--c-ink)", lineHeight: 1 }}>{s}</b>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: size * 0.0739, color: "var(--c-faint)" }}>/ 100</span>
+        </div>
+      </div>
       {showBand && (
-        <span style={{ display: "inline-flex", alignItems: "center", background: `${band.color}1f`, color: band.color, fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, padding: "5px 13px", borderRadius: "var(--radius-sm)" }}>
+        <span style={{ display: "inline-flex", alignItems: "center", fontFamily: "var(--font-sans)", fontWeight: 700, fontSize: 13, padding: "5px 14px", borderRadius: "var(--radius-full)", background: tintVar, color: colorVar }}>
           {band.label}
         </span>
       )}

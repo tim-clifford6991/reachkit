@@ -27,6 +27,16 @@ versions of the app's components.
 - Project: "ReachKit Design System" (819c77dc-3b5b-42e1-a065-315f28ee4f0b).
 - Foundations + 6 signature components built & bundle render-verified:
   BrandMark, Button, Badge, ScoreGauge, ScoreCard, ComparisonTable.
+- **2026-07-02 — DS aligned to the Analytics Dashboard template (33 components).**
+  The template (`templates/analytics-dashboard/`) is the canonical standard.
+  Added 5 components extracted from it (group "App"): `ChannelDonut`,
+  `CompetitorEdgePanel`, `PlanItemCard`, `LeverBanner`, `ProgressChart`.
+  Reconciled `ScoreGauge`, `KpiCard`, `AppShell`, `SearchGapTable` and rebuilt
+  `DashboardScreen` to mirror the template's Dashboard view. All visually verified
+  locally + confirmed rendering in the sandbox. `build.mjs` now GENERATES
+  `_ds_sync.json` from `exportsList` (no more hand-drift). Adding a component =
+  4 edits: `<Name>.tsx`, `index.tsx` export, `build.mjs` exportsList, `layout.mjs`
+  META. Spec+plan: `docs/superpowers/specs|plans/2026-07-02-ds-align-*`.
 
 ## Re-sync risks
 - The bundle is hand-built, NOT from a published dist — it can drift from the
@@ -58,7 +68,39 @@ are hand-derived):**
 - Only upload when the managed set actually drifted (local `_ds_sync.json`
   exports / rebuilt bundle differ from remote). A no-op re-sync uploads nothing.
 
-## Preview rendering in Claude Design (FIXED)
+## Preview rendering in Claude Design — RESOLVED 2026-07-02 via STATIC prerender
+**Root cause:** the Claude Design sandbox does NOT render our preview cards'
+client `<script>` (inline OR external) — a card that mounts React on load stays
+blank. (The working `templates/analytics-dashboard/` card renders because it's
+Claude's DC format: `<x-dc>` + `<helmet>` + `support.js`/`ds-base.js` runtime,
+static markup + {{mustache}}, no app-owned mount script.) Cards are served as
+LIVE cross-origin sandboxed iframes from
+`https://<projid>.claudeusercontent.com/.../serve/<path>?t=<token>`
+(`sandbox="allow-scripts allow-same-origin"`) — cross-origin from claude.ai, so
+you CANNOT read their console/DOM from the parent tab (this made diagnosis slow;
+use iframe **height** as the render signal: content-sized = rendered, ~0/60px =
+blank). Direct nav to a /serve/ URL without the token = "preview token required".
+
+**Fix (current mechanism — DO NOT regress to client-mount):** each `<Name>.html`
+card is now **self-contained STATIC HTML** — `layout.mjs` pre-renders every
+component to markup at build time with `react-dom/server` `renderToStaticMarkup`
+(esbuild builds a tiny `.prerender.mjs` with `packages:"external"` so react/
+react-dom stay native → ONE React instance, node builtins resolve). The card is
+`<style>{inlined tokens.css}…</style>` + the pre-rendered markup in `#root`,
+**no `<script>`, no `_ds_bundle.js` link**. Static HTML always renders in the
+sandbox. Full visual fidelity because components style via inline styles + `--c-*`
+vars. `_ds_bundle.js` is still built + uploaded (it's the importable DS the design
+agent builds with) but the CARDS no longer depend on it.
+- Failed attempts this session (for the record, don't repeat): (1) re-upload of
+  the client-mount bundle+cards; (2) defensive inline poll for `ReachKitDS.mount`;
+  (3) external-only `data-rk-mount` auto-mount in the bundle. All render LOCALLY
+  but stay blank in the sandbox — because the sandbox doesn't run the card script.
+- Prerender caveat: `renderToStaticMarkup` shows initial render only — components
+  that need `useEffect` to show content would render empty (none did; build prints
+  "static prerender: all N components rendered ✓" or lists failures).
+- User confirmed cards load after this upload.
+
+## Preview rendering in Claude Design (older "FIXED" note — both superseded above)
 - First upload: cards registered (sidebar) but rendered BLANK. Two causes:
   (1) the bundle's `require` banner defined a GLOBAL `require` that interfered
   with the host runtime; (2) vendored React 18 vs a differently-versioned React

@@ -45,3 +45,7 @@ ds-bundle/
 .design-sync/learnings/
 .design-sync/node_modules
 .design-sync/ds-src/node_modules
+
+.design-sync/ds-src/.reference/
+
+.superpowers/
