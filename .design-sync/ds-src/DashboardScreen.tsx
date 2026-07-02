@@ -1,12 +1,20 @@
 import * as React from "react";
 import { AppShell } from "./AppShell";
+import { ScoreGauge } from "./ScoreGauge";
+import { CompetitorEdgePanel } from "./CompetitorEdgePanel";
+import { ChannelDonut } from "./ChannelDonut";
 import { KpiCard } from "./KpiCard";
-import { RankedFix } from "./RankedFix";
+import { LeverBanner } from "./LeverBanner";
+import { SearchGapTable } from "./SearchGapTable";
 
 /**
- * DashboardScreen — the in-app dashboard composition: the AppShell chrome wrapping
- * a KPI row and a "this week's fixes" list. Shows how the app primitives compose
- * into a real screen. Renders fully with no props.
+ * DashboardScreen — the in-app Dashboard view: the AppShell chrome wrapping the
+ * canonical dashboard story — a score + "You vs. top competitors" benchmark card
+ * (with the weakest-pillar lever banner), the "Traffic by channel" donut paired
+ * with its Est. visits/mo + Referring domains KPI tiles, and the "Keyword gap"
+ * table. Mirrors the reference template's default (isA/isFull) Dashboard layout:
+ * a single centred column of stacked report-style cards. Composes the real report
+ * + app primitives — no hand-rolled lookalikes. Renders fully with no props.
  */
 export interface DashboardScreenProps {
   appName?: string;
@@ -14,21 +22,58 @@ export interface DashboardScreenProps {
 
 export function DashboardScreen({ appName = "nudgi.ai" }: DashboardScreenProps) {
   return (
-    <AppShell title="Dashboard" subtitle={`Last scanned 2 days ago · ${appName} · score v3`}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 24, fontFamily: "var(--font-sans)" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
-          <KpiCard label="Discoverability score" value="46" delta="+8" deltaDirection="up" note="vs. last scan" />
-          <KpiCard label="Fixes shipped" value="5" delta="+2" deltaDirection="up" note="this week" />
-          <KpiCard label="Keywords ranking" value="12" delta="−1" deltaDirection="down" note="vs. last scan" />
-          <KpiCard label="Weeks tracked" value="6" note="since first scan" />
-        </div>
-        <div>
-          <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, letterSpacing: "-0.01em", margin: "0 0 12px", color: "var(--c-ink)" }}>This week&apos;s fixes</h2>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <RankedFix rank={1} title="Add a one-line value proposition above the fold" why="Your hero leads with a feature, not the outcome." effort="Quick win" pillar="Clarity" />
-            <RankedFix rank={2} title="Claim the comparison surfaces you're missing" why="Buyers compare on third-party sites you're absent from." effort="Medium" pillar="Outreach" />
+    <AppShell
+      active="dashboard"
+      headerTitle="Dashboard"
+      headerSub={`Last scanned 2 days ago · ${appName} · score v3`}
+      user={{ name: "Nadia L.", sub: `${appName} · solo founder` }}
+    >
+      <div style={{ maxWidth: "var(--spacing-content-max)", margin: "0 auto", display: "flex", flexDirection: "column", gap: 20, fontFamily: "var(--font-sans)" }}>
+        {/* SCORE + COMPETITOR BENCHMARK */}
+        <section style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-xl)", padding: "28px 32px", boxShadow: "var(--elevation-md)", display: "flex", flexDirection: "column", gap: 22 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 34 }}>
+            <ScoreGauge score={54} size={176} showBand={false} />
+            <div style={{ flex: "1 1 440px", minWidth: 0 }}>
+              <CompetitorEdgePanel
+                variant="bars"
+                title="You vs. top competitors"
+                rows={[
+                  { name: "YOU", score: 54, isYou: true, scoreColor: "var(--c-band-fair)" },
+                  { name: "otter.ai", score: 67 },
+                  { name: "fireflies.ai", score: 78 },
+                  { name: "fathom.video", score: 86 },
+                ]}
+              />
+            </div>
           </div>
-        </div>
+          <LeverBanner pillar="Outreach" note="closing the referral & directory gaps is worth the most right now" points="+9 pts" />
+        </section>
+
+        {/* TRAFFIC BY CHANNEL */}
+        <section style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-md)", padding: "22px 24px", display: "flex", flexDirection: "column", gap: 18 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, color: "var(--c-ink)", margin: 0 }}>Traffic by channel</h3>
+            <span style={{ fontSize: 12.5, color: "var(--c-muted)" }}>Where your reach comes from — organic is the largest slice.</span>
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 28, alignItems: "center" }}>
+            <ChannelDonut
+              centerLabel="46% Organic"
+              segments={[
+                { label: "Organic", pct: 46, visits: "1.86k" },
+                { label: "Direct / brand", pct: 24, visits: "970" },
+                { label: "Referral", pct: 18, visits: "720" },
+                { label: "Social", pct: 12, visits: "480" },
+              ]}
+            />
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, flex: "1 1 180px", minWidth: 180 }}>
+              <KpiCard label="Est. visits / mo" value="1.86k" note="" />
+              <KpiCard label="Referring domains" value="42" note="" />
+            </div>
+          </div>
+        </section>
+
+        {/* KEYWORD GAP */}
+        <SearchGapTable />
       </div>
     </AppShell>
   );
