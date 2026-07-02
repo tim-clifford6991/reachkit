@@ -41,4 +41,9 @@ writeFileSync(resolve(out, "_ds_bundle.js"), header + code);
 // No extracted component CSS (styles are inline + token-driven) — emit a stub
 // so the styles.css @import always resolves.
 writeFileSync(resolve(out, "_ds_bundle.css"), "/* ReachKit components style via inline styles + design tokens; no extracted CSS. */\n");
+// Emit the sync anchor from the same exportsList so it never drifts by hand.
+writeFileSync(
+  resolve(out, "_ds_sync.json"),
+  JSON.stringify({ shape: "package-handauthored", global: GLOBAL, exports: exportsList }, null, 2) + "\n"
+);
 console.log("built _ds_bundle.js (" + (header.length + code.length) + " bytes), exports:", exportsList.join(", "));
