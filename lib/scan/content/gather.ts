@@ -16,6 +16,7 @@ import { callModel } from "@/lib/llm/anthropic";
 import { extractJson } from "@/lib/llm/json";
 import { normalizeHost } from "@/lib/scan/referral/classify";
 import { cachedRelevantPages, cohortFor } from "@/lib/scan/cache/cached-adapters";
+import { MAX_SELECTED } from "@/lib/scan/competitor-selection";
 import { cachedJson, DAY_MS } from "@/lib/scan/cache/external-cache";
 import { fixturesEnabled } from "@/lib/dev/fixtures";
 import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
@@ -390,7 +391,7 @@ export async function gatherContentIntel(
 
     // 1. Resolve cohort (user-selected when provided, else auto closeness-ranked).
     const cohortResult = await cohortFor(self, opts.competitorDomains);
-    const competitors = cohortResult.ranked.slice(0, 4).map((r) => r.domain);
+    const competitors = cohortResult.ranked.slice(0, MAX_SELECTED).map((r) => r.domain);
     const allDomains = [self, ...competitors];
 
     // 2. Fetch top pages for each domain from the 14d global cache — zero new

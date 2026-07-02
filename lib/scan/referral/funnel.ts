@@ -15,6 +15,7 @@ import { enrichEntity, type ScoredEntity } from "@/lib/scan/referral/intel";
 import { discoverReferralChannels } from "@/lib/scan/referral/discover";
 import { classifyOpportunityPages, type OppChannelType } from "@/lib/scan/referral/classify-pages";
 import { cachedBacklinks, cohortFor } from "@/lib/scan/cache/cached-adapters";
+import { MAX_SELECTED } from "@/lib/scan/competitor-selection";
 import { cachedJson, DAY_MS } from "@/lib/scan/cache/external-cache";
 import { classifyReferrers, QUALITY_CATEGORIES, type ReferrerCategory } from "@/lib/scan/referral/classify-referrers";
 import { computeTrafficLens, type TrafficLens } from "@/lib/scan/referral/traffic-lens";
@@ -101,7 +102,11 @@ async function persistDomainIntel(entity: EntityWithBreakdown): Promise<void> {
         organic_etv: Math.round(entity.monthlyTraffic),
         organic_keywords: entity.mix?.organicKeywords ?? 0,
         paid_etv: Math.round(entity.paidEtv),
-        paid_keywords: 0, // not available on ScoredEntity; set separately if needed
+        // KNOWN-UNKNOWN placeholder: the real paid-keyword count needs an extra paid
+        // DataForSEO call and isn't on ScoredEntity. Column is NOT NULL, so we cannot
+        // write null — this 0 does NOT assert "zero paid keywords". Making it honest
+        // requires a schema change to make the column nullable (out of scope here).
+        paid_keywords: 0,
         referring_domains: entity.mix?.referringDomains ?? 0,
         branded_search_volume: entity.brandedSearchVolume,
         top_pages_count: entity.topPagesCount,
@@ -281,7 +286,7 @@ Return ONLY a JSON array:
 
 export async function gatherFullFunnel(rawSelf: string, opts: { topN?: number; competitorDomains?: string[]; onStage?: OnStageCallback } = {}): Promise<FunnelResult> {
   const self = normalizeHost(rawSelf);
-  const topN = opts.topN ?? 4;
+  const topN = opts.topN ?? MAX_SELECTED;
   const cohortKey = (opts.competitorDomains ?? []).map((d) => d.toLowerCase()).sort().join(",");
   // Persist the whole funnel (incl. the uncached homepage-classification step) so
   // each dashboard load is instant and makes ZERO new DataForSEO/LLM calls.

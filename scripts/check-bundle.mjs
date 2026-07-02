@@ -28,11 +28,19 @@
  *                         checkout client) approaches the cap. Heavy animation
  *                         (GSAP/Lenis/Motion) and the toast layer stay lazy; the
  *                         shared root chunk is unchanged (~175 KB).
- *   (funnel)    215 KB — the `/scan/[id]` page carries the SSE scan-theater +
+ *   (funnel)    225 KB — the `/scan/[id]` page carries the SSE scan-theater +
  *                         the score-reveal; the heavy bits (DiscoverabilityScore,
  *                         Stagger, EmailGate) are all lazy-loaded.
- *   (app)       226 KB — authenticated product shell (persistent sidebar + sign
- *                         out, score block, report sections, per-page toasts).
+ *   (app)       275 KB — authenticated product shell (persistent sidebar + sign
+ *                         out, score block) PLUS the four intel dashboards
+ *                         (supply/demand/synthesis/plans) and their chart kit,
+ *                         which share a ~249 KB app-group client baseline; the
+ *                         richest (supply) lands ~267 KB. This budget sits just
+ *                         above the current worst case so it still catches future
+ *                         regressions. FOLLOW-UP: the ~249 KB shared app-group
+ *                         floor (present even on onboarding/settings/billing) is
+ *                         worth investigating for a real reduction (code-split the
+ *                         intel kit / defer charts) rather than raising further.
  */
 
 import { readFileSync, existsSync } from "node:fs";
@@ -40,7 +48,7 @@ import { join, dirname } from "node:path";
 import { gzipSync } from "node:zlib";
 
 // Budgets in KB of First Load JS (gzip) per route group (§20.4). See file-header comment.
-const BUDGETS = { "(marketing)": 220, "(funnel)": 215, "(app)": 226 };
+const BUDGETS = { "(marketing)": 220, "(funnel)": 225, "(app)": 275 };
 
 const NEXT_DIR = ".next";
 

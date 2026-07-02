@@ -103,7 +103,9 @@ export async function discoverCompetitors(self: string, trace: TraceStep[] = [])
     t = Date.now();
     const traffic = await fetchTrafficForHosts([self, ...candidates.map((c) => c.domain)]);
     const subjectTraffic = traffic.get(self) ?? 0;
-    const ceiling = subjectTraffic > 5000 ? subjectTraffic * 8 : SIZE_CEILING_DEFAULT;
+    // Continuous ceiling: small subjects keep the 200k floor, large subjects scale
+    // at 8x. The two regimes meet smoothly at subjectTraffic = 25,000 — no cliff.
+    const ceiling = Math.max(SIZE_CEILING_DEFAULT, subjectTraffic * 8);
     const withEtv = candidates.map((c) => ({ ...c, etv: traffic.get(c.domain) ?? 0 }));
     let banded = withEtv.filter((c) => c.etv >= SIZE_FLOOR && c.etv <= ceiling);
     let relaxed = false;

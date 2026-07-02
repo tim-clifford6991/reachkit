@@ -13,6 +13,7 @@ import { callModel } from "@/lib/llm/anthropic";
 import { extractJson } from "@/lib/llm/json";
 import { normalizeHost } from "@/lib/scan/referral/classify";
 import { cohortFor, cachedKeywordIdeas } from "@/lib/scan/cache/cached-adapters";
+import { MAX_SELECTED } from "@/lib/scan/competitor-selection";
 import { cachedJson, DAY_MS } from "@/lib/scan/cache/external-cache";
 import { inferProductBrief, type ICP } from "@/lib/scan/demand/brief";
 import { mineCompetitorReviews, type BuyerInsights } from "@/lib/scan/demand/reviews";
@@ -180,7 +181,7 @@ export async function gatherDemand(rawSelf: string, opts: { competitorDomains?: 
   opts.onStage?.({ key: "demand:icp", label: "Understanding your buyers" });
   const brief = await inferProductBrief(self);
   // cohortKey is closed over from the outer scope.
-  const competitors = (await cohortFor(self, opts.competitorDomains)).ranked.slice(0, 4).map((r) => r.domain);
+  const competitors = (await cohortFor(self, opts.competitorDomains)).ranked.slice(0, MAX_SELECTED).map((r) => r.domain);
 
   // Compute the SEARCH SIGNALS (keyword demand + buyer pains) first — they seed the
   // Reddit community search so it finds many subreddits/threads per theme/pain.
