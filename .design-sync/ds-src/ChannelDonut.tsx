@@ -14,9 +14,11 @@ export interface ChannelDonutProps {
   size?: number;
 }
 
+// Saturated channel palette (the `--c-tint-*` tokens are pale surface tints, too
+// faint for donut segments — the template uses vivid channel colours).
 const PALETTE = [
-  "var(--c-tint-violet)", "var(--c-tint-blue)", "var(--c-tint-green)",
-  "var(--c-tint-amber)", "var(--c-tint-orange)", "var(--c-tint-red)",
+  "var(--c-action)", "var(--c-band-findable)", "var(--c-band-fair)",
+  "var(--c-band-hard)", "var(--c-band-invisible)", "var(--c-band-high)",
 ];
 
 export function ChannelDonut({ segments, centerLabel, size = 180 }: ChannelDonutProps) {
