@@ -75,7 +75,7 @@ export async function findAppByUrl(storeUrl: string): Promise<string | null> {
  * Only two kinds of scan dedupe a new request; anything else (a `failed` row,
  * or a stuck `queued`/`collecting`/`synthesizing` row older than the in-flight
  * window) is dead and must NOT poison re-scans, so we fall through to null:
- *   1. A FINISHED scan (`done`; `complete` accepted defensively) — reuse the
+ *   1. A FINISHED scan (`done`, the sole terminal success state) — reuse the
  *      report. Checked first so a finished scan always wins over an in-flight one.
  *   2. Else a still-RUNNING scan (`queued`/`collecting`/`synthesizing`) created
  *      within the last 15 minutes — avoid kicking off a duplicate concurrent run.
@@ -89,7 +89,7 @@ export async function findExistingScanForApp(appId: string): Promise<string | nu
     .from("scans")
     .select("id")
     .eq("app_id", appId)
-    .in("status", ["done", "complete"])
+    .eq("status", "done")
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
