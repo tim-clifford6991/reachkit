@@ -9,46 +9,63 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import { AppSwitcher, type SwitcherApp } from "./app-switcher-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 const SG = "Space Grotesk", PJ = "Plus Jakarta Sans", JM = "JetBrains Mono";
 
-const NAV: { label: string; href: string; badge?: boolean; icon: React.ReactNode }[] = [
+interface NavLeaf { label: string; href: string; }
+interface NavItem extends NavLeaf { badge?: boolean; icon: React.ReactNode; }
+interface NavGroup { label: string; badge?: boolean; icon: React.ReactNode; children: NavLeaf[]; }
+
+// Sidebar order: Dashboard, Audience (group), Plan (group), Progress, Settings.
+const NAV: (NavItem | NavGroup)[] = [
   { label: "Dashboard", href: "/app/dashboard", icon: (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /></svg>
   ) },
-  { label: "Supply", href: "/app/supply", icon: (
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="7" height="9" rx="1.5" /><rect x="14" y="3" width="7" height="5" rx="1.5" /><rect x="14" y="12" width="7" height="9" rx="1.5" /><rect x="3" y="16" width="7" height="5" rx="1.5" /></svg>
-  ) },
-  { label: "Demand", href: "/app/demand", icon: (
+  { label: "Audience", icon: (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3" /><path d="M2 21a7 7 0 0 1 14 0" /><path d="M16 3.5a3 3 0 0 1 0 5.5M22 21a6.5 6.5 0 0 0-4-6" /></svg>
-  ) },
-  { label: "Synthesis", href: "/app/synthesis", icon: (
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3v5h5" /><path d="M19 8v11a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h8z" /><path d="M9 13h6M9 17h4" /></svg>
-  ) },
-  { label: "Plans", href: "/app/plans", badge: true, icon: (
+  ), children: [
+    { label: "Competitors", href: "/app/audience/competitors" },
+    { label: "Customers", href: "/app/audience/customers" },
+  ] },
+  { label: "Plan", badge: true, icon: (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3 8-8" /><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9" /></svg>
+  ), children: [
+    { label: "Content", href: "/app/plan/content" },
+    { label: "Distribution", href: "/app/plan/distribution" },
+  ] },
+  { label: "Progress", href: "/app/progress", icon: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 17 9 11 13 15 21 6" /><polyline points="14 6 21 6 21 13" /></svg>
   ) },
   { label: "Settings", href: "/app/settings", icon: (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-2.82 1.17V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 7.5 19.4l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 3 12.6V12a2 2 0 0 1 4 0v.09c.7.32 1.5.13 2-.41" /></svg>
   ) },
-] as const;
+];
+
+function isGroup(n: NavItem | NavGroup): n is NavGroup {
+  return "children" in n;
+}
 
 const TITLES: Record<string, string> = {
   "/app/dashboard": "Dashboard",
-  "/app/supply": "Supply", "/app/demand": "Demand", "/app/synthesis": "Synthesis",
-  "/app/plans": "Plans", "/app/settings": "Settings", "/app/billing": "Billing",
+  "/app/audience/competitors": "Competitors", "/app/audience/customers": "Customers",
+  "/app/plan/content": "Content", "/app/plan/distribution": "Distribution",
+  "/app/progress": "Progress",
+  "/app/settings": "Settings", "/app/billing": "Billing",
+  "/app/audience": "Audience", "/app/plan": "Plan",
 };
 
 // Per-page description shown natively as the header subtitle — one consistent
 // place for every page's one-line intro (replaces the floating per-view headers).
 const DESCRIPTIONS: Record<string, string> = {
   "/app/dashboard": "Your score, your edge, and this week's highest-leverage move — at a glance.",
-  "/app/supply": "How you and your rivals get found — channels, scores, and the gaps.",
-  "/app/demand": "Who your buyer is, what they search, and where they ask.",
-  "/app/synthesis": "Where you stand and the highest-leverage path forward.",
-  "/app/plans": "Specific, evidence-grounded actions you can run today.",
+  "/app/audience/competitors": "How you and your rivals get found — channels, scores, and the gaps.",
+  "/app/audience/customers": "Who your buyer is, what they search, and where they ask.",
+  "/app/plan/content": "Your content plan — topics and briefs grounded in real demand.",
+  "/app/plan/distribution": "Where to get seen — channels, communities, and outreach targets.",
+  "/app/progress": "Your Discoverability Score over time and what moved it.",
 };
 
 // Off-nav subpages → the primary nav section they live under + their breadcrumb
@@ -57,6 +74,17 @@ const DESCRIPTIONS: Record<string, string> = {
 const SUBPAGES: Record<string, { parent: string; label: string }> = {
   "/app/billing": { parent: "/app/settings", label: "Billing" },
 };
+
+// Flat list of every leaf href (top-level items + group children), used for
+// longest-prefix active-route matching. Also maps each child href back to its
+// group, so the header can render "Group / Leaf" breadcrumbs for group children.
+const LEAF_HREFS: string[] = NAV.flatMap((n) => (isGroup(n) ? n.children.map((c) => c.href) : [n.href]));
+const CHILD_TO_GROUP: Record<string, { label: string; firstHref: string }> = Object.fromEntries(
+  NAV.filter(isGroup).flatMap((g) => {
+    const firstHref = g.children[0]?.href ?? "";
+    return g.children.map((c) => [c.href, { label: g.label, firstHref }]);
+  })
+);
 
 export interface SideCard {
   title: string;
@@ -83,13 +111,51 @@ export interface AppShellProps {
   children: React.ReactNode;
 }
 
+// A group's header row + its indented child links. Local `useState` controls
+// expand/collapse, defaulting open (including whenever a child is active).
+function NavGroupRow({ group, pathname, actionsCount }: { group: NavGroup; pathname: string; actionsCount: number }) {
+  const hasActiveChild = group.children.some((c) => pathname === c.href);
+  const [open, setOpen] = useState(true);
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", padding: "9px 11px", borderRadius: 10, cursor: "pointer", fontSize: 14, fontWeight: hasActiveChild ? 600 : 500, color: hasActiveChild ? "var(--c-action)" : "var(--c-muted)", background: hasActiveChild ? "var(--c-soft)" : "transparent", border: "none", textAlign: "left", fontFamily: PJ }}
+      >
+        {group.icon}{group.label}
+        {group.badge && actionsCount > 0 && (
+          <span style={{ marginLeft: "auto", background: "var(--c-action)", color: "#fff", fontFamily: JM, fontSize: 11, fontWeight: 700, padding: "1px 7px", borderRadius: 7 }}>{actionsCount}</span>
+        )}
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: group.badge && actionsCount > 0 ? 6 : "auto", flexShrink: 0, transform: open ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}><polyline points="6 9 12 15 18 9" /></svg>
+      </button>
+      {open && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 1, marginTop: 2 }}>
+          {group.children.map((c) => {
+            const active = pathname === c.href;
+            return (
+              <Link key={c.href} href={c.href} style={{ display: "block", padding: "8px 11px 8px 38px", borderRadius: 10, cursor: "pointer", fontSize: 13.5, fontWeight: active ? 600 : 500, color: active ? "var(--c-action)" : "var(--c-muted)", background: active ? "var(--c-soft)" : "transparent", textDecoration: "none" }}>
+                {c.label}
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function AppShell(p: AppShellProps) {
   const pathname = usePathname() || "/app";
   const sub = SUBPAGES[pathname];
-  const activeHref =
-    sub?.parent ??
-    ([...NAV].sort((a, b) => b.href.length - a.href.length).find((n) => pathname === n.href || pathname.startsWith(n.href + "/"))?.href ?? "/app/supply");
-  const title = sub?.label ?? TITLES[activeHref] ?? "Supply";
+  const activeLeaf =
+    [...LEAF_HREFS].sort((a, b) => b.length - a.length).find((href) => pathname === href || pathname.startsWith(href + "/")) ?? "/app/dashboard";
+  const groupCrumb = CHILD_TO_GROUP[activeLeaf];
+  // activeHref drives which top-level sidebar row is highlighted: a group child
+  // resolves to nothing here (the group itself highlights via hasActiveChild),
+  // top-level leaves resolve directly.
+  const activeHref = sub?.parent ?? activeLeaf;
+  const title = sub?.label ?? TITLES[activeLeaf] ?? "Dashboard";
 
   return (
     <div style={{ fontFamily: `${PJ}, sans-serif`, color: "var(--c-ink)", minHeight: "100vh" }}>
@@ -113,6 +179,9 @@ export function AppShell(p: AppShellProps) {
           {/* Nav */}
           <nav style={{ display: "flex", flexDirection: "column", gap: 3 }}>
             {NAV.map((n) => {
+              if (isGroup(n)) {
+                return <NavGroupRow key={n.label} group={n} pathname={pathname} actionsCount={p.actionsCount} />;
+              }
               const active = n.href === activeHref;
               return (
                 <Link key={n.href} href={n.href} style={{ display: "flex", alignItems: "center", gap: 11, padding: "9px 11px", borderRadius: 10, cursor: "pointer", fontSize: 14, fontWeight: active ? 600 : 500, color: active ? "var(--c-action)" : "var(--c-muted)", background: active ? "var(--c-soft)" : "transparent", textDecoration: "none" }}>
@@ -161,10 +230,16 @@ export function AppShell(p: AppShellProps) {
                   <span style={{ color: "var(--c-faint)", fontSize: 16, fontWeight: 400 }}>/</span>
                   <h1 style={{ fontFamily: SG, fontWeight: 700, fontSize: 20, letterSpacing: "-0.01em", margin: 0 }}>{sub.label}</h1>
                 </div>
+              ) : groupCrumb ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <Link href={groupCrumb.firstHref} style={{ fontFamily: SG, fontWeight: 700, fontSize: 20, letterSpacing: "-0.01em", color: "var(--c-faint)", textDecoration: "none" }}>{groupCrumb.label}</Link>
+                  <span style={{ color: "var(--c-faint)", fontSize: 16, fontWeight: 400 }}>/</span>
+                  <h1 style={{ fontFamily: SG, fontWeight: 700, fontSize: 20, letterSpacing: "-0.01em", margin: 0 }}>{title}</h1>
+                </div>
               ) : (
                 <h1 style={{ fontFamily: SG, fontWeight: 700, fontSize: 20, letterSpacing: "-0.01em", margin: 0 }}>{title}</h1>
               )}
-              <div style={{ fontSize: 12.5, color: "var(--c-faint)", marginTop: 1 }}>{DESCRIPTIONS[activeHref] ?? `${p.lastScannedLabel} · ${p.appName} · score ${p.scoreVersion}`}</div>
+              <div style={{ fontSize: 12.5, color: "var(--c-faint)", marginTop: 1 }}>{DESCRIPTIONS[activeLeaf] ?? `${p.lastScannedLabel} · ${p.appName} · score ${p.scoreVersion}`}</div>
             </div>
             <div style={{ flex: "1 1 0%" }} />
             <ThemeToggle className="size-8" />

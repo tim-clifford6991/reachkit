@@ -7,9 +7,22 @@ import Link from "next/link";
 import { useIntel, IntelShell, fmtCompact } from "@/components/app/intel/shared";
 import { Card, HeroCard, Eyebrow, Kpi, KpiRow, Badge, Donut, Quadrant, ActionButton, type Segment, type QuadrantItem } from "@/components/app/intel/kit";
 
-interface Content { topic: string; estMonthlyVolume: number; priority: string }
-interface Dist { channel: string; action: string; priority: string; ease: number; impact: number }
-interface Synthesis { category: string; summary: string; contentPlan: Content[]; distributionPlan: Dist[] }
+export interface Content {
+  topic: string;
+  targetKeywords: string[];
+  estMonthlyVolume: number;
+  intent: string;
+  format: string;
+  depthTarget: string;
+  buyerAngle: string;
+  competitorExemplars: { domain: string; url: string; position: number }[];
+  brief: string;
+  agentPrompt: string;
+  priority: string;
+  evidence: string;
+}
+export interface Dist { channel: string; action: string; target: string; targetUrl: string; why: string; effort: string; priority: string; ease: number; impact: number }
+export interface Synthesis { category: string; summary: string; contentPlan: Content[]; distributionPlan: Dist[] }
 
 const PRIO_COLOR: Record<string, string> = { high: "#e5484d", medium: "#e0b341", low: "var(--c-faint)" };
 const KIND_COLOR: Record<string, string> = { channel: "var(--c-action)", community: "#46a758", demand: "#e0731c" };
