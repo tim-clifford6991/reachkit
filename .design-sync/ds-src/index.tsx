@@ -26,6 +26,11 @@ export { PricingTable } from "./PricingTable";
 export { LandingHero } from "./LandingHero";
 export { ResultsScreen } from "./ResultsScreen";
 export { DashboardScreen } from "./DashboardScreen";
+export { ChannelDonut } from "./ChannelDonut";
+export { CompetitorEdgePanel } from "./CompetitorEdgePanel";
+export { PlanItemCard } from "./PlanItemCard";
+export { LeverBanner } from "./LeverBanner";
+export { ProgressChart } from "./ProgressChart";
 
 // Self-contained preview runtime: render any export with the SAME bundled React,
 // so preview cards need no external/vendored React (avoids cross-instance errors).
