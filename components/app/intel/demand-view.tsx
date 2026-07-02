@@ -7,9 +7,9 @@ import { useMemo, useState } from "react";
 import { useIntel, IntelShell, fmt, fmtCompact } from "@/components/app/intel/shared";
 import { Card, HeroCard, Eyebrow, Kpi, KpiRow, Badge, Donut, HBars, DataTable, Tabs, EvidenceLink, intentTone, type Segment, type BarDatum, type Tone } from "@/components/app/intel/kit";
 
-interface Theme { theme: string; totalVolume: number; intent: string; sampleKeywords: string[] }
-interface Pocket { surface: string; platform: string; count: number; intentSum?: number; topThreads: { title: string; url: string; intent?: number; publishedAt?: string | null; theme: string }[] }
-interface Demand {
+export interface Theme { theme: string; totalVolume: number; intent: string; sampleKeywords: string[] }
+export interface Pocket { surface: string; platform: string; count: number; intentSum?: number; topThreads: { title: string; url: string; intent?: number; publishedAt?: string | null; theme: string }[] }
+export interface Demand {
   category: string;
   icp: { whoItsFor: string; jobsToBeDone: string[]; useCases: string[] };
   searchDemand: { totalAddressableVolume: number; themes: Theme[]; topKeywords: { keyword: string; volume: number; intent: string | null }[] };
