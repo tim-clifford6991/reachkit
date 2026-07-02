@@ -76,6 +76,9 @@ const prio = (v: unknown): "high" | "medium" | "low" => (["high", "medium", "low
 async function persistContentPlan(subject: string, cohortKey: string, plan: ContentPlanItem[]): Promise<void> {
   if (plan.length === 0) return;
   const db = serverDb();
+  // One run timestamp stamped on every row — reused by the reconciliation delete below
+  // to drop rows superseded by THIS run (stale topics from prior LLM output).
+  const fetchedAt = new Date().toISOString();
   const rows = plan.map((c) => ({
     subject_domain: subject,
     cohort_key: cohortKey,
@@ -90,18 +93,34 @@ async function persistContentPlan(subject: string, cohortKey: string, plan: Cont
     brief: c.brief,
     agent_prompt: c.agentPrompt,
     evidence: c.evidence,
-    fetched_at: new Date().toISOString(),
+    fetched_at: fetchedAt,
   }));
   const CHUNK = 100;
+  // Upsert fresh rows FIRST so current data is guaranteed present before any delete.
   for (let i = 0; i < rows.length; i += CHUNK) {
     try {
-      await db
+      const { error } = await db
         .from("content_plan_item")
         .upsert(rows.slice(i, i + CHUNK), { onConflict: "subject_domain,cohort_key,topic" });
+      if (error) console.error(`[content_plan_item] chunk ${i} persist failed: ${error.message}`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`[content_plan_item] chunk ${i} persist failed: ${msg}`);
     }
+  }
+  // THEN reconcile: drop superseded rows for this (subject, cohort) scope. Safe ordering —
+  // a failed delete leaves harmless extra old rows, never data loss.
+  try {
+    const { error } = await db
+      .from("content_plan_item")
+      .delete()
+      .eq("subject_domain", subject)
+      .eq("cohort_key", cohortKey)
+      .lt("fetched_at", fetchedAt);
+    if (error) console.error(`[content_plan_item] reconcile delete failed: ${error.message}`);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[content_plan_item] reconcile delete failed: ${msg}`);
   }
 }
 
@@ -113,6 +132,9 @@ async function persistContentPlan(subject: string, cohortKey: string, plan: Cont
 async function persistDistributionPlan(subject: string, cohortKey: string, plan: DistributionPlanItem[]): Promise<void> {
   if (plan.length === 0) return;
   const db = serverDb();
+  // One run timestamp stamped on every row — reused by the reconciliation delete below
+  // to drop rows superseded by THIS run (stale channel/action pairs from prior LLM output).
+  const fetchedAt = new Date().toISOString();
   const rows = plan.map((d) => ({
     subject_domain: subject,
     cohort_key: cohortKey,
@@ -126,18 +148,34 @@ async function persistDistributionPlan(subject: string, cohortKey: string, plan:
     target_url: d.targetUrl,
     why: d.why,
     evidence: d.evidence,
-    fetched_at: new Date().toISOString(),
+    fetched_at: fetchedAt,
   }));
   const CHUNK = 100;
+  // Upsert fresh rows FIRST so current data is guaranteed present before any delete.
   for (let i = 0; i < rows.length; i += CHUNK) {
     try {
-      await db
+      const { error } = await db
         .from("distribution_plan_item")
         .upsert(rows.slice(i, i + CHUNK), { onConflict: "subject_domain,cohort_key,channel,action" });
+      if (error) console.error(`[distribution_plan_item] chunk ${i} persist failed: ${error.message}`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`[distribution_plan_item] chunk ${i} persist failed: ${msg}`);
     }
+  }
+  // THEN reconcile: drop superseded rows for this (subject, cohort) scope. Safe ordering —
+  // a failed delete leaves harmless extra old rows, never data loss.
+  try {
+    const { error } = await db
+      .from("distribution_plan_item")
+      .delete()
+      .eq("subject_domain", subject)
+      .eq("cohort_key", cohortKey)
+      .lt("fetched_at", fetchedAt);
+    if (error) console.error(`[distribution_plan_item] reconcile delete failed: ${error.message}`);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[distribution_plan_item] reconcile delete failed: ${msg}`);
   }
 }
 

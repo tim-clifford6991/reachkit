@@ -127,6 +127,9 @@ function topicTokens(seeds: string[]): Set<string> {
 async function persistDemandPockets(subject: string, cohortKey: string, pockets: DemandPocket[]): Promise<void> {
   if (pockets.length === 0) return;
   const db = serverDb();
+  // One run timestamp stamped on every row — the reconciliation delete below uses
+  // it to remove rows superseded by THIS run (stale surfaces from prior LLM/SERP output).
+  const fetchedAt = new Date().toISOString();
   const rows = pockets.map((p) => ({
     subject_domain: subject,
     cohort_key: cohortKey,
@@ -137,18 +140,34 @@ async function persistDemandPockets(subject: string, cohortKey: string, pockets:
     intent_sum: p.intentSum,
     score: p.score,
     top_threads: p.topThreads,
-    fetched_at: new Date().toISOString(),
+    fetched_at: fetchedAt,
   }));
   const CHUNK = 100;
+  // Upsert the fresh rows FIRST so current data is guaranteed present before any delete.
   for (let i = 0; i < rows.length; i += CHUNK) {
     try {
-      await db
+      const { error } = await db
         .from("demand_pocket")
         .upsert(rows.slice(i, i + CHUNK), { onConflict: "subject_domain,cohort_key,surface" });
+      if (error) console.error(`[demand_pocket] chunk ${i} persist failed: ${error.message}`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`[demand_pocket] chunk ${i} persist failed: ${msg}`);
     }
+  }
+  // THEN reconcile: drop superseded rows for this (subject, cohort) scope. Safe ordering —
+  // a failed delete leaves harmless extra old rows, never data loss.
+  try {
+    const { error } = await db
+      .from("demand_pocket")
+      .delete()
+      .eq("subject_domain", subject)
+      .eq("cohort_key", cohortKey)
+      .lt("fetched_at", fetchedAt);
+    if (error) console.error(`[demand_pocket] reconcile delete failed: ${error.message}`);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[demand_pocket] reconcile delete failed: ${msg}`);
   }
 }
 

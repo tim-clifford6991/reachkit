@@ -93,7 +93,9 @@ type EntityWithBreakdown = ScoredEntity & { backlinks: ReferralBreakdown };
 async function persistDomainIntel(entity: EntityWithBreakdown): Promise<void> {
   try {
     const db = serverDb();
-    await db.from("domain_intel").upsert(
+    // Single row per domain (PK = domain) — the upsert fully overwrites, so no
+    // reconciliation is needed here; just surface any returned write error.
+    const { error } = await db.from("domain_intel").upsert(
       {
         domain: entity.domain,
         organic_etv: Math.round(entity.monthlyTraffic),
@@ -111,6 +113,7 @@ async function persistDomainIntel(entity: EntityWithBreakdown): Promise<void> {
       },
       { onConflict: "domain" },
     );
+    if (error) console.error(`[domain_intel] persist failed for ${entity.domain}: ${error.message}`);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`[domain_intel] persist failed for ${entity.domain}: ${msg}`);
@@ -131,6 +134,8 @@ async function persistCohortCompetitors(
 ): Promise<void> {
   try {
     const db = serverDb();
+    // One run timestamp for the whole batch — reused by the reconciliation delete below.
+    const fetchedAt = new Date().toISOString();
     const rows = [
       {
         subject_domain: subjectDomain,
@@ -143,7 +148,7 @@ async function persistCohortCompetitors(
         closeness: 1,
         reason: "",
         quality_share: subject.backlinks.qualityShare,
-        fetched_at: new Date().toISOString(),
+        fetched_at: fetchedAt,
       },
       ...competitors.map((c) => ({
         subject_domain: subjectDomain,
@@ -156,15 +161,27 @@ async function persistCohortCompetitors(
         closeness: c.closeness,
         reason: c.reason,
         quality_share: c.backlinks.qualityShare,
-        fetched_at: new Date().toISOString(),
+        fetched_at: fetchedAt,
       })),
     ];
     const CHUNK = 100;
+    // Upsert fresh rows FIRST so current data is guaranteed present before any delete.
     for (let i = 0; i < rows.length; i += CHUNK) {
-      await db
+      const { error } = await db
         .from("cohort_competitor")
         .upsert(rows.slice(i, i + CHUNK), { onConflict: "subject_domain,cohort_key,competitor_domain" });
+      if (error) console.error(`[cohort_competitor] chunk ${i} persist failed for ${subjectDomain}: ${error.message}`);
     }
+    // THEN reconcile: drop rows for this (subject, cohort) scope superseded by this run
+    // (e.g. a competitor dropped from the cohort). Safe ordering — a failed delete leaves
+    // harmless extra old rows, never data loss.
+    const { error: delError } = await db
+      .from("cohort_competitor")
+      .delete()
+      .eq("subject_domain", subjectDomain)
+      .eq("cohort_key", cohortKey)
+      .lt("fetched_at", fetchedAt);
+    if (delError) console.error(`[cohort_competitor] reconcile delete failed for ${subjectDomain}: ${delError.message}`);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`[cohort_competitor] persist failed for ${subjectDomain}: ${msg}`);

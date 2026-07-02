@@ -311,6 +311,9 @@ async function fetchWordCount(rawUrl: string): Promise<number> {
  */
 async function persistContentPages(entities: ContentEntity[]): Promise<void> {
   const db = serverDb();
+  // One run timestamp for the whole batch — reused by the per-domain reconciliation
+  // delete below to drop pages superseded by THIS run.
+  const fetchedAt = new Date().toISOString();
   const rows = entities.flatMap((entity) =>
     entity.pages.map((page) => ({
       domain: entity.domain,
@@ -322,22 +325,42 @@ async function persistContentPages(entities: ContentEntity[]): Promise<void> {
       // ETV from DataForSEO is a float; the column is bigint — round to integer.
       etv: Math.round(page.etv),
       word_count: page.wordCount,
-      fetched_at: new Date().toISOString(),
+      fetched_at: fetchedAt,
     })),
   );
 
   if (rows.length === 0) return;
 
   // Upsert in chunks of 100 to stay well within Postgres parameter limits.
+  // Fresh rows go in FIRST so current data is guaranteed present before any delete.
   const CHUNK = 100;
   for (let i = 0; i < rows.length; i += CHUNK) {
     try {
-      await db
+      const { error } = await db
         .from("domain_content_page")
         .upsert(rows.slice(i, i + CHUNK), { onConflict: "domain,url" });
+      if (error) console.error(`[domain_content_page] chunk ${i} persist failed: ${error.message}`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`[domain_content_page] chunk ${i} persist failed: ${msg}`);
+    }
+  }
+
+  // THEN reconcile per domain (the table's only scope column — no cohort). For each
+  // domain written this run, drop pages whose url is no longer in the top set. Safe
+  // ordering — a failed delete leaves harmless stale pages, never data loss.
+  const domains = [...new Set(entities.map((e) => e.domain))];
+  for (const domain of domains) {
+    try {
+      const { error } = await db
+        .from("domain_content_page")
+        .delete()
+        .eq("domain", domain)
+        .lt("fetched_at", fetchedAt);
+      if (error) console.error(`[domain_content_page] reconcile delete failed for ${domain}: ${error.message}`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[domain_content_page] reconcile delete failed for ${domain}: ${msg}`);
     }
   }
 }
