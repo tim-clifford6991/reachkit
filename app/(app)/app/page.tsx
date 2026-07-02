@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
 
 /**
- * The dashboard is split into Supply / Demand / Synthesis / Plans. `/app` forwards
- * to Supply (the entry point); auth + onboarding gating happen in resolveIntelContext.
+ * `/app` is the Dashboard home — the at-a-glance score/competitor/keyword story
+ * that Supply / Demand / Synthesis / Plans drill into. Auth + onboarding gating
+ * happen in resolveIntelContext (inside the dashboard page).
  */
 export default function AppDashboardPage() {
-  redirect("/app/supply");
+  redirect("/app/dashboard");
 }
