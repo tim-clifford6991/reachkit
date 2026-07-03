@@ -76,7 +76,17 @@ export function useIntel<T>(layer: string, opts: { enabled?: boolean } = {}) {
     setData(null);
     setError(null);
     setStages([]);
-    setLoading(true);
+    setLoading(enabled);
+  }
+
+  // Same render-phase pattern for `enabled` flipping false→true: loading turns
+  // on with the flip, so the effect below never needs a synchronous setState.
+  const [renderedEnabled, setRenderedEnabled] = useState(enabled);
+  if (enabled !== renderedEnabled) {
+    setRenderedEnabled(enabled);
+    // On false→true the effect below re-runs and starts the fetch, so loading
+    // is accurate; on true→false the effect tears down and we leave state as-is.
+    if (enabled) setLoading(true);
   }
 
   useEffect(() => {
@@ -89,9 +99,9 @@ export function useIntel<T>(layer: string, opts: { enabled?: boolean } = {}) {
     let es: EventSource | null = null;
     let cancelled = false;
     // Fresh stream for this layer — no terminal frame delivered yet. (Reset here,
-    // not during render, since refs can't be mutated in the render phase.)
+    // not during render, since refs can't be mutated in the render phase.
+    // `loading` is already true: set at mount / the render-phase adjustments.)
     settledRef.current = false;
-    setLoading(true);
 
     try {
       es = new EventSource(`/api/app/intel/stream?layer=${layer}`);
