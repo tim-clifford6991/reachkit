@@ -11,7 +11,7 @@
  * only: it renders the payload, it does not gather.
  */
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useIntel, IntelShell, fmt, fmtCompact } from "@/components/app/intel/shared";
 import type { Supply } from "@/components/app/intel/supply-view";
@@ -20,6 +20,97 @@ import { Card, Kpi, KpiRow, Badge, Eyebrow, Donut, Bar, bandFor, EvidenceLink, P
 type Gap = Supply["keywords"]["gaps"][number];
 
 const JM = "var(--font-mono)";
+
+// ---------------------------------------------------------------------------
+// Keyword-gap "add to plan" chips — POSTs a content action against the
+// sibling-owned /api/action route ({ title, category, why } -> { id }).
+// Contract: GET /api/action -> { actions: { id; title; category; status }[] }.
+// A keyword gap is "in plan" when an action titled exactly `Target "{keyword}"`
+// already exists. Failed GET (unauthed) just leaves every chip on "add".
+// ---------------------------------------------------------------------------
+type ActionCategory = "content" | "outreach" | "seo";
+
+interface ActionPlan {
+  isInPlan: (title: string) => boolean;
+  isPending: (title: string) => boolean;
+  isError: (title: string) => boolean;
+  add: (title: string, category: ActionCategory, why?: string) => void;
+}
+
+function useActionPlan(): ActionPlan {
+  const [inPlan, setInPlan] = useState<Set<string>>(new Set());
+  const [pending, setPending] = useState<Set<string>>(new Set());
+  const [errored, setErrored] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/action");
+        if (!res.ok) throw new Error(String(res.status));
+        const json = (await res.json()) as { actions?: { title: string }[] };
+        if (!cancelled) setInPlan(new Set((json.actions ?? []).map((a) => a.title)));
+      } catch {
+        // Unauthed or failed — leave `inPlan` empty; every chip defaults to "add".
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const add = useCallback((title: string, category: ActionCategory, why?: string) => {
+    setInPlan((prev) => new Set(prev).add(title)); // optimistic swap to "in plan"
+    setPending((prev) => new Set(prev).add(title));
+    setErrored((prev) => (prev.has(title) ? new Set([...prev].filter((t) => t !== title)) : prev));
+    (async () => {
+      try {
+        const res = await fetch("/api/action", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ title, category, why }),
+        });
+        if (!res.ok) throw new Error(String(res.status));
+      } catch {
+        setInPlan((prev) => new Set([...prev].filter((t) => t !== title))); // revert
+        setErrored((prev) => new Set(prev).add(title));
+      } finally {
+        setPending((prev) => new Set([...prev].filter((t) => t !== title)));
+      }
+    })();
+  }, []);
+
+  return {
+    isInPlan: (title) => inPlan.has(title),
+    isPending: (title) => pending.has(title),
+    isError: (title) => errored.has(title),
+    add,
+  };
+}
+
+const keywordActionTitle = (keyword: string) => `Target “${keyword}”`;
+const keywordActionWhy = (gap: Gap) => `${fmtCompact(gap.volume)}/mo keyword gap — ${gap.competitorsRanking} rivals rank`;
+
+/** The chip pair: static "→ in plan" pill once the action exists, else a clickable "＋ add". */
+function AddToPlanChip({ title, category, why, plan }: { title: string; category: ActionCategory; why?: string; plan: ActionPlan }) {
+  if (plan.isInPlan(title)) return <Badge tone="violet">→ in plan</Badge>;
+  const pending = plan.isPending(title);
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+      <button
+        type="button"
+        disabled={pending}
+        onClick={(ev) => { ev.stopPropagation(); plan.add(title, category, why); }}
+        style={{
+          display: "inline-flex", alignItems: "center", gap: 5, background: "var(--c-fill)", color: "var(--c-muted)",
+          fontFamily: "var(--font-sans)", fontWeight: 700, fontSize: 11.5, padding: "3px 9px", borderRadius: "var(--radius-xs)",
+          lineHeight: 1.2, whiteSpace: "nowrap", border: "none", cursor: pending ? "default" : "pointer", opacity: pending ? 0.6 : 1,
+        }}
+      >
+        ＋ add
+      </button>
+      {plan.isError(title) && <span style={{ fontSize: 10.5, color: "var(--c-faint)" }}>couldn&rsquo;t add</span>}
+    </span>
+  );
+}
 
 /** Traffic-source key → display label + stable palette order (mirrors Supply). */
 const SOURCE_LABELS: Record<string, string> = {
@@ -46,6 +137,7 @@ export function DashboardIntelBlocks() {
 function Blocks({ data }: { data: Supply }) {
   const { subject, competitors } = data.funnel;
   const gaps = data.keywords.gaps;
+  const plan = useActionPlan();
 
   const ranked = [{ ...subject, isSubject: true }, ...competitors].sort((a, b) => b.score - a.score);
   const totalTraffic = ranked.reduce((s, e) => s + e.monthlyTraffic, 0) || 1;
@@ -104,7 +196,7 @@ function Blocks({ data }: { data: Supply }) {
       <Card title="Keyword gap" info="High-volume terms rivals rank for that you don't. Opportunity = volume × consensus × position quality. Expand a row to see who ranks where.">
         {topGaps.length > 0 ? (
           <>
-            <KeywordGapTable gaps={topGaps} />
+            <KeywordGapTable gaps={topGaps} plan={plan} />
             <Footer href="/app/supply">See all {gaps.length} keyword gaps →</Footer>
           </>
         ) : (
@@ -115,28 +207,31 @@ function Blocks({ data }: { data: Supply }) {
   );
 }
 
-const GAP_COLS = "minmax(0,1fr) 90px 110px";
+const GAP_COLS = "minmax(0,1fr) 90px 110px 106px";
 
 /** R3 — expandable keyword-gap rows: each row opens to show every rival's position + a link to their winning URL. */
-function KeywordGapTable({ gaps }: { gaps: Gap[] }) {
+function KeywordGapTable({ gaps, plan }: { gaps: Gap[]; plan: ActionPlan }) {
   return (
     <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-lg)", overflow: "hidden" }}>
       <div style={{ display: "grid", gridTemplateColumns: GAP_COLS, gap: 12, padding: "11px 16px", borderBottom: "1px solid var(--c-line)", fontFamily: "var(--font-sans)", fontSize: 11, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--c-faint)", background: "var(--c-fill)" }}>
-        <span>Keyword</span><span>Volume</span><span>Rivals</span>
+        <span>Keyword</span><span>Volume</span><span>Rivals</span><span>Plan</span>
       </div>
-      {gaps.map((g, i) => <KeywordGapRow key={g.keyword} gap={g} isLast={i === gaps.length - 1} />)}
+      {gaps.map((g, i) => <KeywordGapRow key={g.keyword} gap={g} isLast={i === gaps.length - 1} plan={plan} />)}
     </div>
   );
 }
 
-function KeywordGapRow({ gap, isLast }: { gap: Gap; isLast: boolean }) {
+function KeywordGapRow({ gap, isLast, plan }: { gap: Gap; isLast: boolean; plan: ActionPlan }) {
   const [open, setOpen] = useState(false);
+  const toggle = () => setOpen((o) => !o);
   return (
     <div style={{ borderBottom: isLast ? "none" : "1px solid var(--c-fill)" }}>
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        style={{ display: "grid", gridTemplateColumns: GAP_COLS, gap: 12, width: "100%", alignItems: "center", padding: "11px 16px", background: "none", border: "none", cursor: "pointer", textAlign: "left", font: "inherit" }}
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={toggle}
+        onKeyDown={(ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); toggle(); } }}
+        style={{ display: "grid", gridTemplateColumns: GAP_COLS, gap: 12, width: "100%", alignItems: "center", padding: "11px 16px", cursor: "pointer" }}
       >
         <span style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0, fontWeight: 600, color: "var(--c-ink)" }}>
           <span style={{ fontSize: 10, color: "var(--c-faint)", flexShrink: 0 }}>{open ? "▾" : "▸"}</span>
@@ -144,7 +239,10 @@ function KeywordGapRow({ gap, isLast }: { gap: Gap; isLast: boolean }) {
         </span>
         <span style={{ fontFamily: JM, fontSize: 13, color: "var(--c-muted)" }}>{fmt(gap.volume)}</span>
         <span><Badge tone="amber">{gap.competitorsRanking} rank it</Badge></span>
-      </button>
+        <span onClick={(ev) => ev.stopPropagation()}>
+          <AddToPlanChip title={keywordActionTitle(gap.keyword)} category="content" why={keywordActionWhy(gap)} plan={plan} />
+        </span>
+      </div>
       {open && (
         <div style={{ padding: "0 16px 12px 33px" }}>
           <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 5 }}>

@@ -1,6 +1,15 @@
-// Discoverability score bands + gauge geometry — mirrors the canonical design-
-// system source (.design-sync/ds-src/bands.ts). The single source of band color
-// + the 270° gauge arc used across the intel dashboards.
+// Discoverability score bands + gauge geometry — the canonical source of truth
+// for what a score "means" is `lib/scan/score-bands.ts` (used by the report,
+// OG image, share card, and history chart). This module maps that canonical
+// scale onto the intel-facing `Band` shape ({key, label, color}) so every
+// intel dashboard (Supply/Demand/Synthesis/Plans/Progress) agrees with the
+// report on band thresholds/labels/colors — plus the 270° gauge arc geometry
+// used across the intel dashboards.
+//
+// Server-safe (no "use client", no React): server components (e.g.
+// progress-view.tsx) import `bandFor` directly and must be able to call it
+// during SSR without pulling in the "use client" intel kit.
+import { bandFor as scoreBandFor } from "@/lib/scan/score-bands";
 
 export interface Band {
   key: string;
@@ -8,12 +17,10 @@ export interface Band {
   color: string;
 }
 
+/** The band a score falls in — delegates to the canonical score-bands scale. */
 export function bandFor(score: number): Band {
-  if (score >= 85) return { key: "high", label: "Highly discoverable", color: "#2f8a4a" };
-  if (score >= 65) return { key: "findable", label: "Findable", color: "#46a758" };
-  if (score >= 45) return { key: "fair", label: "Getting found", color: "#e0b341" };
-  if (score >= 25) return { key: "hard", label: "Hard to find", color: "#e8853f" };
-  return { key: "invisible", label: "Invisible", color: "#e5484d" };
+  const { key, label, color } = scoreBandFor(score);
+  return { key, label, color };
 }
 
 const START = 135;

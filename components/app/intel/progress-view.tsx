@@ -12,6 +12,7 @@
  */
 import Link from "next/link";
 import { Card, Badge } from "@/components/app/intel/kit";
+import { SCORE_BANDS } from "@/lib/scan/score-bands";
 import type { ScoreHistoryPoint } from "@/lib/scan/engagement";
 import type { HistoryMarker } from "@/lib/scan/score-history-markers";
 
@@ -87,14 +88,16 @@ function ScoreTrendLarge({ history, markers }: { history: ScoreHistoryPoint[]; m
     { key: "seo", label: "SEO", color: "var(--c-band-hard)" },
   ];
 
-  // Band zones (invisible → highly discoverable), matching the gauge bands, so
-  // the chart reads at a glance without needing the legend.
-  const zones = [
-    { from: 0, to: 25, color: "var(--c-tint-red)" },
-    { from: 25, to: 45, color: "var(--c-tint-orange)" },
-    { from: 45, to: 65, color: "var(--c-tint-amber)" },
-    { from: 65, to: 100, color: "var(--c-tint-green)" },
-  ];
+  // Band zones (invisible → highly discoverable), derived from the canonical
+  // score-bands scale (lib/scan/score-bands.ts) so the chart's shading always
+  // agrees with the gauge/report bands. Rendered as very low-opacity fills —
+  // the score line stays dominant — with a faint dashed line at each boundary.
+  const zones = SCORE_BANDS.map((b, i) => ({
+    from: b.min,
+    to: i === SCORE_BANDS.length - 1 ? 100 : SCORE_BANDS[i + 1]!.min,
+    color: b.color,
+  }));
+  const boundaries = [0, ...SCORE_BANDS.slice(1).map((b) => b.min), 100];
 
   // Map each verified-fix marker onto the point whose snapshot it triggered
   // (same takenAt), so the dot lands on the line at the bump it caused.
@@ -118,9 +121,9 @@ function ScoreTrendLarge({ history, markers }: { history: ScoreHistoryPoint[]; m
           </linearGradient>
         </defs>
         {zones.map((z) => (
-          <rect key={z.from} x={padL} y={y(z.to)} width={W - padL - padR} height={y(z.from) - y(z.to)} fill={z.color} opacity={0.5} />
+          <rect key={z.from} x={padL} y={y(z.to)} width={W - padL - padR} height={y(z.from) - y(z.to)} fill={z.color} opacity={0.07} />
         ))}
-        {[0, 25, 45, 65, 100].map((g) => (
+        {boundaries.map((g) => (
           <line key={g} x1={padL} x2={W - padR} y1={y(g)} y2={y(g)} stroke="var(--c-line)" strokeWidth={0.6} strokeDasharray={g === 0 || g === 100 ? undefined : "3 3"} />
         ))}
         <path d={area} fill="url(#rkProgressHist)" />
