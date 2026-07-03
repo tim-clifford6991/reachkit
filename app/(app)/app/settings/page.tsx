@@ -31,12 +31,14 @@ async function SettingsContent() {
 
   const primaryAppId = await activeAppId(user);
   let appName = "your site";
+  let storeUrl: string | null = null;
   let productMeta = "No scans yet";
   let dataFresh = false;
   if (primaryAppId) {
     const db = serverDb();
     const { data: appRow } = await db.from("apps").select("name, store_url").eq("id", primaryAppId).maybeSingle();
     appName = appRow?.name ?? appRow?.store_url ?? "your site";
+    storeUrl = appRow?.store_url ?? null;
     const { data: scanRow } = await db.from("scans").select("completed_at").eq("app_id", primaryAppId).order("completed_at", { ascending: false }).limit(1).maybeSingle();
     const iso = scanRow?.completed_at as string | null;
     if (iso) {
@@ -57,6 +59,8 @@ async function SettingsContent() {
       appInitial={appName.charAt(0).toUpperCase()}
       productMeta={productMeta}
       dataFresh={dataFresh}
+      appId={primaryAppId}
+      storeUrl={storeUrl}
     />
   );
 }
