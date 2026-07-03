@@ -45,7 +45,8 @@ export interface FindingsPayload {
   score: ScoreResult;
   positioningMirror: PositioningMirror;
   findings: Finding[];
-  sampleAction: SampleAction;
+  /** Absent on payloads persisted before the sample-action step existed. */
+  sampleAction?: SampleAction;
 }
 
 // ---------------------------------------------------------------------------
@@ -288,25 +289,27 @@ export function FindingsReveal({
       </div>
 
       {/* ── Sample action — blur-locked with real title visible ─────────── */}
-      <div style={{ ...CARD, position: "relative", overflow: "hidden" }}>
-        <div style={{ userSelect: "none", padding: "20px 22px", display: "flex", flexDirection: "column", gap: 8 }} aria-hidden="true">
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-            <p style={{ fontSize: 14.5, fontWeight: 600, lineHeight: 1.45, color: "var(--c-ink)", margin: 0, filter: "blur(4px)" }}>
-              {sampleAction.title}
+      {sampleAction && (
+        <div style={{ ...CARD, position: "relative", overflow: "hidden" }}>
+          <div style={{ userSelect: "none", padding: "20px 22px", display: "flex", flexDirection: "column", gap: 8 }} aria-hidden="true">
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+              <p style={{ fontSize: 14.5, fontWeight: 600, lineHeight: 1.45, color: "var(--c-ink)", margin: 0, filter: "blur(4px)" }}>
+                {sampleAction.title}
+              </p>
+              <span style={{ filter: "blur(3px)", display: "inline-flex" }}>
+                <Chip>{categoryLabel(sampleAction.category)}</Chip>
+              </span>
+            </div>
+            <p style={{ fontSize: 12.5, lineHeight: 1.6, color: "var(--c-muted)", margin: 0, filter: "blur(4px)" }}>
+              {sampleAction.why}
             </p>
-            <span style={{ filter: "blur(3px)", display: "inline-flex" }}>
-              <Chip>{categoryLabel(sampleAction.category)}</Chip>
-            </span>
+            <p style={{ fontFamily: JM, fontSize: 12, lineHeight: 1.6, color: "var(--c-muted)", background: "var(--c-fill)", borderRadius: 10, padding: "8px 12px", margin: "4px 0 0", filter: "blur(4px)", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+              {sampleAction.draft}
+            </p>
           </div>
-          <p style={{ fontSize: 12.5, lineHeight: 1.6, color: "var(--c-muted)", margin: 0, filter: "blur(4px)" }}>
-            {sampleAction.why}
-          </p>
-          <p style={{ fontFamily: JM, fontSize: 12, lineHeight: 1.6, color: "var(--c-muted)", background: "var(--c-fill)", borderRadius: 10, padding: "8px 12px", margin: "4px 0 0", filter: "blur(4px)", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-            {sampleAction.draft}
-          </p>
+          <LockBadge label="Unlock your action plan" />
         </div>
-        <LockBadge label="Unlock your action plan" />
-      </div>
+      )}
 
       {/* ── What your report also contains (pre-gate teaser) ─────────────── */}
       <div style={{ ...CARD, padding: "20px 22px" }}>
