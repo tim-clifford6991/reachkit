@@ -171,6 +171,9 @@ async function ResultsContent({ id }: { id: string }) {
     fullReport.whatToDoThisWeek.quickWins.length +
     fullReport.whatToDoThisWeek.medium.length +
     fullReport.whatToDoThisWeek.longPlay.length;
+  // Pre-redaction keyword-gap total — free redaction empties keywordGap, so the
+  // teaser must count from the FULL payload ("show the total, render a fraction").
+  const fullGapQueries = fullReport.market?.gap?.keywordGap?.length ?? 0;
   void signalBreakdown;
   void lossFrame;
   void snapshotAge;
@@ -182,7 +185,7 @@ async function ResultsContent({ id }: { id: string }) {
   // the unlock band is hidden. Free/anon viewers get the unlock (paid) CTA.
   return (
     <ResultsScreen
-      {...toResultsProps(report, siteLabel, fullActions)}
+      {...toResultsProps(report, siteLabel, fullActions, fullGapQueries)}
       logoUrl={brand?.logoUrl}
       siteHost={brand?.host}
       slug={id}

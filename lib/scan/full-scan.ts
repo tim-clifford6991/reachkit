@@ -34,7 +34,8 @@ import { generateColdStartActions } from "@/lib/llm/cold-start-actions";
 import { runCriticGate } from "@/lib/llm/critic";
 import { algorithmSafety } from "@/lib/scan/algorithm-safety";
 import { gatherScoreComponents, verifiedScore } from "@/lib/scan/score-full";
-import { persistScanSignals } from "@/lib/scan/persist-signals";
+import { persistScanSignals, computeSignalRowsForScan } from "@/lib/scan/persist-signals";
+import { fallbackActionsFromSignals } from "@/lib/scan/fallback-actions";
 import {
   registryScore,
   applyRegistryScore,
@@ -512,6 +513,33 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
     const components = await gatherScoreComponents(ctx, facts);
     const score = verifiedScore(components, ctx.mode);
 
+    // 6b. Graceful floor — a completed scan must NEVER persist an empty action
+    //     plan (seen live: bloom.io 388982c5, nudgi.ai). The Critic/§11 gates
+    //     can legitimately drop 100% of cards (e.g. a generation parse failure
+    //     yields placeholder cards the critic always rejects), so when the
+    //     gated set is empty we derive deterministic baseline fixes from the
+    //     weakest fail/warn signals of the 18-signal registry. Deliberately a
+    //     SEPARATE path that bypasses the critic (its evidence rules would
+    //     reject templated, evidence-free cards by construction). Best-effort:
+    //     a floor failure keeps the (empty) gated set rather than failing the scan.
+    let plan = safe;
+    if (plan.length === 0) {
+      try {
+        const signalRows = await computeSignalRowsForScan({
+          mode: ctx.mode,
+          storeUrl: ctx.storeUrl,
+          components,
+          market: null, // market analysis attaches later (8b); Wave A + existing inputs suffice
+        });
+        plan = fallbackActionsFromSignals(signalRows);
+        console.warn(
+          `[full-scan] critic gate returned 0 actions for scan ${ctx.scanId} — floored with ${plan.length} signal-derived baseline fixes`,
+        );
+      } catch (e) {
+        console.error("[full-scan] action floor failed (best-effort)", e);
+      }
+    }
+
     // 7. Gather the remaining report inputs + assemble the four-question report.
     //    Deep sections (competitive landscape / channels / creators / review
     //    sentiment) are surfaced here from already-persisted data — no new calls.
@@ -536,7 +564,7 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
       icpSignals,
       surfaces,
       competitorGap,
-      actions: safe,
+      actions: plan,
       score,
       competitiveLandscape,
       channelOpportunities,
@@ -563,8 +591,9 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
     // (attachMarketAnalysis lives in lib/scan/market.ts — shared with the free
     //  light pass + weekly refresh.)
 
-    // 9. Persist the safe actions (idempotent)
-    await persistActions(ctx, safe);
+    // 9. Persist the safe actions (idempotent) — `plan` = the gated set, or the
+    //    signal-derived floor when the gate emptied it (matches report_payload).
+    await persistActions(ctx, plan);
 
     // 10. Update the verified score on the scan row (v1 first; the web headline
     //     is flipped to the v2 registry score in 10a once signals are persisted).
@@ -631,7 +660,7 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
     // 12. Emit the report event
     await emitScanEvent(ctx.scanId, "report", {
       score: score as unknown as Json,
-      actionCount: safe.length,
+      actionCount: plan.length,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

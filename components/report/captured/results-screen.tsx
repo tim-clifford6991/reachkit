@@ -110,7 +110,7 @@ export function ResultsScreen(p: ResultsScreenProps) {
               Share, no duplicate logo. The app shell provides its own header. */}
           {!p.embedded && (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, marginBottom: 20 }}>
-            <span style={{ fontFamily: JM, fontSize: 12.5, color: "var(--c-faint)" }}>free scan · {p.siteLabel}</span>
+            <span style={{ fontFamily: JM, fontSize: 12.5, color: "var(--c-faint)" }}>{p.hideUnlock ? "full report" : "free scan"} · {p.siteLabel}</span>
             {p.slug ? (
               <CapturedShareButton slug={p.slug} score={p.score} bandLabel={band.label} siteLabel={p.siteLabel} />
             ) : (
@@ -176,9 +176,20 @@ export function ResultsScreen(p: ResultsScreenProps) {
           </div>
 
           {/* Top ranked fixes */}
-          <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: 20, letterSpacing: "-0.01em", margin: "32px 0 6px" }}>Your top {p.fixes.length} ranked fixes</h2>
-          <p style={{ fontSize: 14, color: "var(--c-faint)", margin: "0 0 14px" }}>Ordered by expected score impact. Free scans show {p.fixes.length} of {p.fixes.length + p.lockedCount}.</p>
+          <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: 20, letterSpacing: "-0.01em", margin: "32px 0 6px" }}>{p.fixes.length > 0 ? `Your top ${p.fixes.length} ranked fixes` : "Your ranked fixes"}</h2>
+          <p style={{ fontSize: 14, color: "var(--c-faint)", margin: "0 0 14px" }}>
+            {/* Tier-aware: the old copy hardcoded "Free scans show X of Y" for
+                every viewer, mislabeling paid reports. */}
+            Ordered by expected score impact.{!p.hideUnlock && ` Free scans show ${p.fixes.length} of ${p.fixes.length + p.lockedCount}.`}
+          </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {/* Graceful floor for already-persisted reports with an empty action
+                plan — never render a bare "top 0 fixes" section. */}
+            {p.fixes.length === 0 && p.lockedCount === 0 && (
+              <div style={{ background: "var(--c-surface)", border: "1px dashed #D9D6E4", borderRadius: 14, padding: "18px 20px", fontSize: 14, color: "var(--c-faint)" }}>
+                We couldn&apos;t rank fixes for this scan. The pillar bars above show where you&apos;re weakest — re-run the scan to regenerate a full action plan.
+              </div>
+            )}
             {p.fixes.map((f) => {
               const ec = effortColors(f.effort);
               return (
@@ -238,6 +249,11 @@ export function ResultsScreen(p: ResultsScreenProps) {
             <div style={{ display: "grid", gridTemplateColumns: "2.2fr 1fr 1fr 0.9fr", padding: "13px 22px", borderBottom: "1px solid var(--c-line2)", fontSize: 11.5, fontWeight: 700, letterSpacing: "0.04em", color: "var(--c-faint)", textTransform: "uppercase", background: "var(--c-bg2)" }}>
               <span>Query</span><span>Volume / mo</span><span>Your rank</span><span>Opportunity</span>
             </div>
+            {p.gapRows.length === 0 && p.gapTotal === 0 && (
+              <div style={{ padding: "18px 22px", fontSize: 14, color: "var(--c-faint)" }}>
+                Search-gap data wasn&apos;t available for this scan — keyword rankings could not be measured for this site yet.
+              </div>
+            )}
             {p.gapRows.map((g, i) => (
               <div key={i} style={{ display: "grid", gridTemplateColumns: "2.2fr 1fr 1fr 0.9fr", padding: "14px 22px", borderBottom: "1px solid var(--c-fill)", alignItems: "center" }}>
                 <span style={{ fontSize: 14, fontWeight: 600 }}>{g.query}</span>
@@ -246,7 +262,15 @@ export function ResultsScreen(p: ResultsScreenProps) {
                 <span><span style={{ fontSize: 11.5, fontWeight: 700, color: oppColors(g.opp).fg, background: oppColors(g.opp).bg, padding: "3px 10px", borderRadius: 6 }}>{g.opp}</span></span>
               </div>
             ))}
-            <div style={{ padding: "14px 22px", textAlign: "center", fontSize: 13, fontWeight: 600, color: "var(--c-action)", background: "var(--c-tint-violet)", cursor: "pointer" }}>Showing {p.gapRows.length} of {p.gapTotal} queries — unlock full depth →</div>
+            {/* Tier-aware footer: no "unlock" upsell on a paid report, and no
+                "Showing 0 of 0 queries" when there is no data (empty state above). */}
+            {p.gapTotal > 0 && (
+              <div style={{ padding: "14px 22px", textAlign: "center", fontSize: 13, fontWeight: 600, color: "var(--c-action)", background: "var(--c-tint-violet)", cursor: "pointer" }}>
+                {p.hideUnlock
+                  ? `Showing ${p.gapRows.length} of ${p.gapTotal} queries`
+                  : `Showing ${p.gapRows.length} of ${p.gapTotal} queries — unlock full depth →`}
+              </div>
+            )}
           </div>
 
           {/* Evidence footnote */}

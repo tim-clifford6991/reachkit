@@ -15,7 +15,15 @@ const PILLAR_NOTE = (v: number, isMin: boolean) =>
 const CATEGORY_LABEL: Record<string, string> = { content: "Content", outreach: "Outreach", seo_aso: "SEO" };
 const effortLabel = (min: number) => (min < 30 ? "Quick" : min <= 120 ? "Medium" : "Deep");
 
-export function toResultsProps(report: ReportPayload, siteLabel: string, totalActions?: number): ResultsScreenProps {
+export function toResultsProps(
+  report: ReportPayload,
+  siteLabel: string,
+  totalActions?: number,
+  /** Pre-redaction keyword-gap count — the free-tier redaction empties
+   *  `market.gap.keywordGap`, so the caller passes the full payload's total
+   *  ("show the total, render a fraction", same as `totalActions`). */
+  totalGapQueries?: number,
+): ResultsScreenProps {
   const b = report.score.breakdown;
   const minVal = Math.min(b.content, b.outreach, b.seo);
   const pillars = [
@@ -24,13 +32,16 @@ export function toResultsProps(report: ReportPayload, siteLabel: string, totalAc
     { label: "SEO", value: b.seo, note: PILLAR_NOTE(b.seo, b.seo === minVal) },
   ];
 
-  const allActions = [
+  const ranked = [
     ...report.whatToDoThisWeek.quickWins,
     ...report.whatToDoThisWeek.medium,
     ...report.whatToDoThisWeek.longPlay,
-  ]
-    .filter((a) => (a.expectedOutcome?.delta ?? 0) > 0)
-    .sort((a, b2) => (b2.expectedOutcome?.delta ?? 0) - (a.expectedOutcome?.delta ?? 0));
+  ].sort((a, b2) => (b2.expectedOutcome?.delta ?? 0) - (a.expectedOutcome?.delta ?? 0));
+  // Prefer actions with a positive predicted delta, but NEVER let the filter
+  // empty a non-empty plan (regression: real scans whose cards carried delta 0
+  // rendered "your top 0 ranked fixes").
+  const positive = ranked.filter((a) => (a.expectedOutcome?.delta ?? 0) > 0);
+  const allActions = positive.length > 0 ? positive : ranked;
 
   const fixes: Fix[] = allActions.slice(0, 3).map((a, i) => ({
     rank: i + 1,
@@ -85,6 +96,6 @@ export function toResultsProps(report: ReportPayload, siteLabel: string, totalAc
     actualTags,
     mirrorGap: pm.gap,
     gapRows,
-    gapTotal: kg.length || gapRows.length,
+    gapTotal: totalGapQueries ?? (kg.length || gapRows.length),
   };
 }
