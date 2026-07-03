@@ -4,6 +4,7 @@ import { currentUser } from "@/lib/auth/server";
 import { activeAppId } from "@/lib/app/active-app";
 import { serverDb } from "@/lib/db/client";
 import type { Json } from "@/lib/db/types";
+import { groupForVerifyState, actualDeltaForAction, type SnapshotPoint } from "@/lib/scan/action-board";
 
 /**
  * /api/action — "Add to plan" backend. Lets the plan views (content /
@@ -22,9 +23,15 @@ import type { Json } from "@/lib/db/types";
  *   the existing row's id with `existing: true` instead of duplicating.
  *   401 unauthed, 400 missing/invalid title or category.
  *
- * GET → 200 { actions: { id, title, category, status }[] }
+ * GET → 200 { actions: { id, title, category, status, predictedDelta?, actualDelta? }[] }
  *   All actions for the caller's active app (no archived filter — the schema
- *   has none). 401 unauthed.
+ *   has none). 401 unauthed. predictedDelta/actualDelta reuse the exact
+ *   measurement helpers from lib/scan/action-board.ts (groupForVerifyState +
+ *   actualDeltaForAction) so this stays in lockstep with the action board —
+ *   predictedDelta comes from expected_outcome.delta (any lifecycle state);
+ *   actualDelta is only populated once verify_state has settled to "verified"
+ *   (i.e. status === "done"), measured from the score_snapshots taken at that
+ *   action's verification vs the snapshot before it.
  */
 
 const Body = z.object({
@@ -102,20 +109,44 @@ export async function GET() {
   }
 
   const db = serverDb();
-  const { data, error } = await db
-    .from("actions")
-    .select("id, title, category, status")
-    .eq("app_id", appId);
+  const [{ data, error }, { data: snaps, error: snapErr }] = await Promise.all([
+    db
+      .from("actions")
+      .select("id, title, category, status, verify_state, expected_outcome")
+      .eq("app_id", appId),
+    db
+      .from("score_snapshots")
+      .select("action_id, total, taken_at")
+      .eq("app_id", appId)
+      .order("taken_at", { ascending: true, nullsFirst: false }),
+  ]);
   if (error) {
     return NextResponse.json({ message: "failed to load actions" }, { status: 500 });
   }
+  if (snapErr) {
+    return NextResponse.json({ message: "failed to load score snapshots" }, { status: 500 });
+  }
+
+  const snapshots: SnapshotPoint[] = (snaps ?? []).map((s) => ({
+    actionId: s.action_id ?? null,
+    total: s.total,
+    takenAt: s.taken_at ?? "",
+  }));
 
   return NextResponse.json({
-    actions: (data ?? []).map((a) => ({
-      id: a.id as string,
-      title: a.title as string,
-      category: a.category as string,
-      status: a.status as string,
-    })),
+    actions: (data ?? []).map((a) => {
+      const eo = a.expected_outcome as { delta?: number } | null;
+      const predictedDelta = eo?.delta ?? null;
+      const isDone = groupForVerifyState((a.verify_state as string | null) ?? "") === "done";
+      const actualDelta = isDone ? actualDeltaForAction(snapshots, a.id as string) : null;
+      return {
+        id: a.id as string,
+        title: a.title as string,
+        category: a.category as string,
+        status: a.status as string,
+        ...(predictedDelta !== null ? { predictedDelta } : {}),
+        ...(actualDelta !== null ? { actualDelta } : {}),
+      };
+    }),
   });
 }

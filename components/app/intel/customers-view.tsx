@@ -12,6 +12,7 @@ import { useIntel, IntelShell, fmtCompact } from "@/components/app/intel/shared"
 import { Card, Eyebrow, Badge, EvidenceLink, intentTone } from "@/components/app/intel/kit";
 import { WhereBuyersAsk } from "@/components/app/intel/demand-view";
 import type { Demand, Theme } from "@/components/app/intel/demand-view";
+import type { Synthesis } from "@/components/app/intel/synthesis-view";
 
 const SG = "var(--font-display)";
 const JM = "var(--font-mono)";
@@ -27,10 +28,26 @@ export function CustomersView() {
   );
 }
 
-export function CustomersBody({ data }: { data: Demand }) {
+export function CustomersBody({
+  data,
+  planTargetsOverride,
+}: {
+  data: Demand;
+  /** Fixtures only: hardcode plan targets instead of the live (best-effort)
+   * synthesis fetch below, so the "in your plan" pill is visible unauthed. */
+  planTargetsOverride?: { target: string; channel: string }[];
+}) {
   const { icp, searchDemand, community, buyerInsights } = data;
   const primaryJob = icp.jobsToBeDone[0] ?? "—";
   const themes = searchDemand.themes;
+
+  // Best-effort secondary fetch: cross-links community pockets to the
+  // distribution plan. Cheap (server-cached), but must never block or
+  // degrade this view if it's slow, loading, or errors — so we skip
+  // IntelShell entirely and just use `data` once it resolves.
+  const { data: synthesis } = useIntel<Synthesis>("synthesis");
+  const planTargets =
+    planTargetsOverride ?? synthesis?.distributionPlan.map((d) => ({ target: d.target, channel: d.channel }));
 
   return (
     <Card title="Who your buyers are" meta={data.category}>
@@ -79,7 +96,7 @@ export function CustomersBody({ data }: { data: Demand }) {
           <span style={{ fontSize: 12, color: "var(--c-faint)", marginTop: -4 }}>
             Highest-intent threads where buyers raise the problem unprompted.
           </span>
-          <WhereBuyersAsk pockets={community.pockets} />
+          <WhereBuyersAsk pockets={community.pockets} planTargets={planTargets} />
         </div>
 
         {/* Buyer insights */}
@@ -87,7 +104,7 @@ export function CustomersBody({ data }: { data: Demand }) {
           <Eyebrow>Buyer insights</Eyebrow>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <QuoteGroup label="Pains" items={buyerInsights.pains} color="#e5484d" />
-            <QuoteGroup label="Loved features" items={buyerInsights.lovedFeatures} color="#1f9d5b" />
+            <QuoteGroup label="Loved features" items={buyerInsights.lovedFeatures} color="var(--c-band-findable)" />
             <QuoteGroup label="Personas" items={buyerInsights.personas} color="#3b6fe0" />
             <QuoteGroup label="Buyer language" items={buyerInsights.buyerLanguage} color="var(--c-action)" />
           </div>

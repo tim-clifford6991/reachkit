@@ -4,6 +4,7 @@ import { serverDb } from "@/lib/db/client";
 import { engagementSummary, type ScoreHistoryPoint } from "@/lib/scan/engagement";
 import { scoreHistoryMarkers, type HistoryMarker } from "@/lib/scan/score-history-markers";
 import { computeMarketAlerts } from "@/lib/scan/market";
+import { signalChanges } from "@/lib/scan/signal-diff";
 import { ProgressView, type ProgressEvent } from "@/components/app/intel/progress-view";
 import { buildMetadata } from "@/lib/seo";
 
@@ -48,7 +49,7 @@ function eventsFromMarkers(history: ScoreHistoryPoint[], markers: HistoryMarker[
 async function ProgressContent() {
   const ctx = await resolveIntelContext("/app/progress");
 
-  const [engagement, markers, snapshots] = await Promise.all([
+  const [engagement, markers, snapshots, signalDiff] = await Promise.all([
     engagementSummary(ctx.appId),
     scoreHistoryMarkers(ctx.appId),
     serverDb()
@@ -57,6 +58,7 @@ async function ProgressContent() {
       .eq("app_id", ctx.appId)
       .order("taken_at", { ascending: false })
       .limit(2),
+    signalChanges(ctx.appId),
   ]);
 
   const events: ProgressEvent[] = eventsFromMarkers(engagement.history, markers);
@@ -77,5 +79,5 @@ async function ProgressContent() {
   // Newest first, matching the template's "What changed" ordering.
   events.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
 
-  return <ProgressView history={engagement.history} markers={markers} events={events} />;
+  return <ProgressView history={engagement.history} markers={markers} events={events} signalChanges={signalDiff} />;
 }

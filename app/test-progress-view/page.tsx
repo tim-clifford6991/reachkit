@@ -1,13 +1,15 @@
 /**
  * /test-progress-view — styled fixture preview for the Progress view (Score
- * history + "What changed"). Renders <ProgressView> against a realistic
- * hardcoded 8-week ramp (38 → 54) with 3 verified-fix markers and a handful
- * of "what changed" events, so the populated, styled UI can be reviewed
- * without auth or a live gather. Server component — no fetch, no auth gate.
+ * history + "Why it moved" + "What changed"). Renders <ProgressView> against a
+ * realistic hardcoded 8-week ramp (38 → 54) with 3 verified-fix markers, a
+ * signal-level diff (mostly gains, one regression), and a handful of "what
+ * changed" events, so the populated, styled UI can be reviewed without auth or
+ * a live gather. Server component — no fetch, no auth gate.
  */
 import { ProgressView } from "@/components/app/intel/progress-view";
 import type { ScoreHistoryPoint } from "@/lib/scan/engagement";
 import type { HistoryMarker } from "@/lib/scan/score-history-markers";
+import type { SignalChange } from "@/lib/scan/signal-diff";
 
 function iso(daysAgo: number): string {
   return new Date(Date.now() - daysAgo * 86_400_000).toISOString();
@@ -32,6 +34,17 @@ const SAMPLE_MARKERS: HistoryMarker[] = [
   { takenAt: iso(7), label: "Published 'How to share meeting notes'", actionId: "sample-action-3" },
 ];
 
+// A realistic "Why it moved" diff between the two most recent scans — mostly
+// gains from shipped fixes, plus one regression (a competitor content refresh
+// eroding relative organic footprint) to show the negative-delta styling.
+const SAMPLE_SIGNAL_CHANGES: SignalChange[] = [
+  { key: "meta_description", label: "Meta description", pillar: "seo", fromState: "fail", toState: "pass", contributionDelta: 2.1 },
+  { key: "content_cadence", label: "Publishing cadence", pillar: "content", fromState: "warn", toState: "pass", contributionDelta: 1.4 },
+  { key: "schema_jsonld", label: "Structured data", pillar: "seo", fromState: "fail", toState: "warn", contributionDelta: 1.1 },
+  { key: "marketplace_presence", label: "Marketplace presence", pillar: "outreach", fromState: "warn", toState: "pass", contributionDelta: 0.8 },
+  { key: "organic_keywords", label: "Organic keyword footprint", pillar: "seo", fromState: "warn", toState: "warn", contributionDelta: -0.7 },
+];
+
 const SAMPLE_EVENTS = [
   { label: "Published 'How to share meeting notes'", date: iso(7), delta: 3, href: "/app/plan/content" },
   { label: "Listed on webcatalog.io directory", date: iso(14), delta: 3, href: "/app/plan/content" },
@@ -50,7 +63,7 @@ export default function TestProgressViewPage() {
       <p style={{ fontSize: 13, color: "var(--c-muted)", marginBottom: 24 }}>
         Styled, populated <code>ProgressView</code> against a hardcoded 8-week score ramp — no auth, no live gather.
       </p>
-      <ProgressView history={SAMPLE_HISTORY} markers={SAMPLE_MARKERS} events={SAMPLE_EVENTS} />
+      <ProgressView history={SAMPLE_HISTORY} markers={SAMPLE_MARKERS} events={SAMPLE_EVENTS} signalChanges={SAMPLE_SIGNAL_CHANGES} />
     </main>
   );
 }

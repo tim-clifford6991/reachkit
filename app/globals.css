@@ -102,6 +102,12 @@
   --c-soft:      #F2EEFF;  /* action tint (chips, active nav) */
   --c-dark:      #322E4A;  /* dark band / score-card surface */
   --c-dark2:     #47416B;  /* dark band gradient end */
+  /* Score bands — semantic, never themed (same in dark; mirrors the DS tokens). */
+  --c-band-invisible: #e5484d;
+  --c-band-hard:      #e8853f;
+  --c-band-fair:      #e0b341;
+  --c-band-findable:  #46a758;
+  --c-band-high:      #2f8a4a;
   --c-on-dark:   #FFFFFF;  /* text on dark / action surfaces (stays light) */
   --c-on-dark-muted: #B7B4C4;
   --c-glass:     rgba(255,255,255,0.82);

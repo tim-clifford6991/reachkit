@@ -15,6 +15,7 @@ import { Card, Badge } from "@/components/app/intel/kit";
 import { SCORE_BANDS } from "@/lib/scan/score-bands";
 import type { ScoreHistoryPoint } from "@/lib/scan/engagement";
 import type { HistoryMarker } from "@/lib/scan/score-history-markers";
+import type { SignalChange } from "@/lib/scan/signal-diff";
 
 const JM = "var(--font-mono)";
 
@@ -30,6 +31,8 @@ export interface ProgressViewProps {
   history: ScoreHistoryPoint[];
   markers: HistoryMarker[];
   events?: ProgressEvent[];
+  /** Signal-level diff between the two most recent completed scans — renders a "Why it moved" panel when non-empty. */
+  signalChanges?: SignalChange[];
 }
 
 function fmtDate(iso: string): string {
@@ -38,16 +41,71 @@ function fmtDate(iso: string): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 }
 
-export function ProgressView({ history, markers, events = [] }: ProgressViewProps) {
+export function ProgressView({ history, markers, events = [], signalChanges = [] }: ProgressViewProps) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <Card title="Discoverability over time" info="Your Discoverability Score at each scan. Dots mark a verified fix that moved the score.">
         <ScoreTrendLarge history={history} markers={markers} />
       </Card>
 
+      {signalChanges.length > 0 && (
+        <Card title="Why it moved" info="Signal-level changes between your two most recent scans — the concrete reasons your score shifted.">
+          <WhyItMoved changes={signalChanges} />
+        </Card>
+      )}
+
       <Card title="What changed">
         <ChangedList events={events} />
       </Card>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Why it moved — per-signal state transitions + contribution deltas between
+// the two most recent completed scans (lib/scan/signal-diff.ts).
+// ---------------------------------------------------------------------------
+const SIGNAL_STATE_COLOR: Record<string, string> = {
+  pass: "var(--c-band-findable)",
+  warn: "var(--c-band-fair)",
+  fail: "var(--c-band-invisible)",
+  unmeasured: "var(--c-faint)",
+};
+
+function WhyItMoved({ changes }: { changes: SignalChange[] }) {
+  const rows = changes.slice(0, 8);
+  return (
+    <div>
+      {rows.map((c, i) => (
+        <div
+          key={c.key}
+          style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 0", borderBottom: i < rows.length - 1 ? "1px solid var(--c-line2)" : "none" }}
+        >
+          <Badge tone="neutral" style={{ flexShrink: 0, textTransform: "capitalize" }}>{c.pillar}</Badge>
+          <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, color: "var(--c-ink)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {c.label}
+          </span>
+          <span style={{ fontFamily: JM, fontSize: 12, flexShrink: 0 }}>
+            <span style={{ color: SIGNAL_STATE_COLOR[c.fromState] ?? "var(--c-faint)" }}>{c.fromState}</span>
+            {" → "}
+            <span style={{ color: SIGNAL_STATE_COLOR[c.toState] ?? "var(--c-faint)" }}>{c.toState}</span>
+          </span>
+          <span
+            style={{
+              fontFamily: JM,
+              fontSize: 12.5,
+              fontWeight: 700,
+              width: 68,
+              textAlign: "right",
+              flexShrink: 0,
+              color: c.contributionDelta > 0 ? "var(--c-band-high)" : c.contributionDelta < 0 ? "var(--c-band-invisible)" : "var(--c-faint)",
+            }}
+          >
+            {c.contributionDelta > 0 ? "+" : ""}
+            {c.contributionDelta.toFixed(1)} pts
+          </span>
+        </div>
+      ))}
     </div>
   );
 }
