@@ -44,6 +44,13 @@ const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 export interface ScoreHistoryPoint {
   takenAt: string;
   total: number;
+  /**
+   * Pillar breakdown at this snapshot, mirroring `scans.score_breakdown`
+   * (`registryScore`/`verifiedScore` output — see lib/scan/registry-score.ts).
+   * Optional/nullable: older snapshots or rows without a computed breakdown
+   * omit it, and the Progress-view overlay skips those points.
+   */
+  breakdown?: { content: number; outreach: number; seo: number } | null;
 }
 
 export interface EngagementSummary {
@@ -136,12 +143,16 @@ export async function scoreHistory(appId: string): Promise<ScoreHistoryPoint[]> 
   const db = serverDb();
   const { data, error } = await db
     .from("score_snapshots")
-    .select("taken_at, total")
+    .select("taken_at, total, breakdown")
     .eq("app_id", appId)
     .order("taken_at", { ascending: true, nullsFirst: false });
   if (error) throw error;
 
-  return (data ?? []).map((row) => ({ takenAt: row.taken_at, total: row.total }));
+  return (data ?? []).map((row) => ({
+    takenAt: row.taken_at,
+    total: row.total,
+    breakdown: row.breakdown as ScoreHistoryPoint["breakdown"],
+  }));
 }
 
 /**

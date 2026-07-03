@@ -48,7 +48,7 @@ export function DashboardHero({ score, rollup, history, markers }: DashboardHero
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
             <Gauge score={score} />
             {delta !== null && (
-              <span style={{ fontSize: 12, fontFamily: JM, color: delta > 0 ? "#1f9d5b" : delta < 0 ? "#e5484d" : "var(--c-faint)" }}>
+              <span style={{ fontSize: 12, fontFamily: JM, color: delta > 0 ? "var(--c-band-high)" : delta < 0 ? "var(--c-band-invisible)" : "var(--c-faint)" }}>
                 {delta > 0 ? `▲ +${delta}` : delta < 0 ? `▼ ${delta}` : "no change"} since last scan
               </span>
             )}

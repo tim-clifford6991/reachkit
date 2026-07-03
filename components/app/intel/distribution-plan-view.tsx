@@ -17,7 +17,7 @@ const CHANNEL_LABEL: Record<string, string> = {
   directory: "Directory", marketplace: "Marketplace", community: "Community",
   media: "Media", podcast: "Podcast", newsletter: "Newsletter", partner: "Partner",
 };
-const KIND_COLOR: Record<string, string> = { channel: "var(--c-action)", community: "#46a758", demand: "#e0731c", media: "#3b6fe0" };
+const KIND_COLOR: Record<string, string> = { channel: "var(--c-action)", community: "var(--c-band-findable)", demand: "var(--c-band-hard)", media: "#3b6fe0" };
 const kindOf = (ch: string) => (ch === "community" ? "community" : ch === "newsletter" || ch === "media" || ch === "podcast" ? "demand" : "channel");
 
 export function DistributionPlanView() {
@@ -45,7 +45,7 @@ export function DistributionPlanBody({ data }: { data: Synthesis }) {
 
       {quad.length > 0 && (
         <Card title="Ease × impact" info="Each play plotted on Ease × Impact. Top-right = quick, high-impact wins.">
-          <Quadrant items={quad} legend={[{ color: "var(--c-action)", label: "Channel" }, { color: "#46a758", label: "Community" }, { color: "#e0731c", label: "Media/Demand" }]} />
+          <Quadrant items={quad} legend={[{ color: KIND_COLOR.channel!, label: "Channel" }, { color: KIND_COLOR.community!, label: "Community" }, { color: KIND_COLOR.demand!, label: "Media/Demand" }]} />
         </Card>
       )}
 
@@ -69,7 +69,8 @@ function DistCard({ d }: { d: Dist }) {
       <div style={{ fontSize: 13, marginBottom: 8 }}>
         {d.targetUrl ? <EvidenceLink href={d.targetUrl}>{d.target}</EvidenceLink> : <span style={{ fontWeight: 600, color: "var(--c-ink)" }}>{d.target}</span>}
       </div>
-      {d.why && <p style={{ fontSize: 13, color: "var(--c-muted)", lineHeight: 1.5, margin: "0 0 12px" }}>{d.why}</p>}
+      {d.why && <p style={{ fontSize: 13, color: "var(--c-muted)", lineHeight: 1.5, margin: "0 0 8px" }}>{d.why}</p>}
+      {d.evidence && <p style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--c-faint)", lineHeight: 1.4, margin: "0 0 12px" }}>↳ {d.evidence}</p>}
       <div style={{ display: "flex", gap: 20 }}>
         <Meter label="Ease" value={d.ease} />
         <Meter label="Impact" value={d.impact} />

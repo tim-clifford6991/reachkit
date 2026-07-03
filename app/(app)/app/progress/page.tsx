@@ -39,6 +39,8 @@ function eventsFromMarkers(history: ScoreHistoryPoint[], markers: HistoryMarker[
       label: m.label,
       date: m.takenAt,
       ...(delta !== null ? { delta } : {}),
+      // Every fix event deep-links back into the plan it came from.
+      href: "/app/plan/content",
     };
   });
 }

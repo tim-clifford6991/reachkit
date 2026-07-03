@@ -110,7 +110,7 @@ function Cluster({ title, items, tone }: { title: string; items: string[]; tone:
   );
 }
 
-function relativeDate(iso?: string | null): string | null {
+export function relativeDate(iso?: string | null): string | null {
   if (!iso) return null;
   const t = Date.parse(iso);
   if (Number.isNaN(t)) return null;
@@ -121,9 +121,9 @@ function relativeDate(iso?: string | null): string | null {
   return `${Math.floor(days / 365)}y ago`;
 }
 
-const subUrl = (surface: string) => (surface.startsWith("r/") ? `https://www.reddit.com/${surface}/` : `https://${surface}`);
+export const subUrl = (surface: string) => (surface.startsWith("r/") ? `https://www.reddit.com/${surface}/` : `https://${surface}`);
 
-function WhereBuyersAsk({ pockets }: { pockets: Pocket[] }) {
+export function WhereBuyersAsk({ pockets }: { pockets: Pocket[] }) {
   // Classify by the demand signal (theme / buyer pain / problem search) that
   // surfaced each thread — not by platform (it's all Reddit, the high-signal surface).
   const themes = useMemo(() => {

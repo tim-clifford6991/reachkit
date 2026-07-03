@@ -10,6 +10,7 @@
  * server code that needs band logic imports `bandFor` from the server-safe
  * `@/components/app/intel/bands` module instead).
  */
+import Link from "next/link";
 import { Card, Badge } from "@/components/app/intel/kit";
 import type { ScoreHistoryPoint } from "@/lib/scan/engagement";
 import type { HistoryMarker } from "@/lib/scan/score-history-markers";
@@ -20,6 +21,8 @@ export interface ProgressEvent {
   label: string;
   date: string;
   delta?: number;
+  /** When set, "What changed" renders this row as a plan deep-link. */
+  href?: string;
 }
 
 export interface ProgressViewProps {
@@ -66,6 +69,24 @@ function ScoreTrendLarge({ history, markers }: { history: ScoreHistoryPoint[]; m
   const line = pts.map((p, i) => `${i ? "L" : "M"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
   const area = `${line} L${pts[pts.length - 1]!.x.toFixed(1)},${H - padB} L${pts[0]!.x.toFixed(1)},${H - padB} Z`;
 
+  // Pillar overlay: thin content/outreach/SEO lines under the main total line,
+  // drawn only when at least two points carry a breakdown. Points missing a
+  // breakdown are skipped — the line connects the nearest available points.
+  const pillarKeys = ["content", "outreach", "seo"] as const;
+  const pillarPointCount = history.filter((p) => p.breakdown != null).length;
+  const showPillars = pillarPointCount >= 2;
+  const pillarLine = (key: (typeof pillarKeys)[number]): string =>
+    history
+      .map((p, i) => (p.breakdown ? { x: x(i), y: y(p.breakdown[key]) } : null))
+      .filter((d): d is { x: number; y: number } => d !== null)
+      .map((d, i) => `${i ? "L" : "M"}${d.x.toFixed(1)},${d.y.toFixed(1)}`)
+      .join(" ");
+  const pillars: { key: (typeof pillarKeys)[number]; label: string; color: string }[] = [
+    { key: "content", label: "Content", color: "var(--c-band-findable)" },
+    { key: "outreach", label: "Outreach", color: "var(--c-action)" },
+    { key: "seo", label: "SEO", color: "var(--c-band-hard)" },
+  ];
+
   // Band zones (invisible → highly discoverable), matching the gauge bands, so
   // the chart reads at a glance without needing the legend.
   const zones = [
@@ -103,10 +124,34 @@ function ScoreTrendLarge({ history, markers }: { history: ScoreHistoryPoint[]; m
           <line key={g} x1={padL} x2={W - padR} y1={y(g)} y2={y(g)} stroke="var(--c-line)" strokeWidth={0.6} strokeDasharray={g === 0 || g === 100 ? undefined : "3 3"} />
         ))}
         <path d={area} fill="url(#rkProgressHist)" />
+        {showPillars &&
+          pillars.map((p) => (
+            <path
+              key={p.key}
+              d={pillarLine(p.key)}
+              fill="none"
+              stroke={p.color}
+              strokeWidth={1.5}
+              strokeOpacity={0.55}
+              strokeLinejoin="round"
+              strokeLinecap="round"
+            />
+          ))}
         <path d={line} fill="none" stroke="var(--c-action)" strokeWidth={3} strokeLinejoin="round" strokeLinecap="round" />
         {pts.map((p, i) => <circle key={i} cx={p.x} cy={p.y} r={3} fill="var(--c-action)" />)}
         {markerDots.map((d, i) => <circle key={`m${i}`} cx={d.x} cy={d.y} r={5} fill="var(--c-action)" stroke="var(--c-surface)" strokeWidth={2.5} />)}
       </svg>
+
+      {showPillars && (
+        <div style={{ marginTop: 8, display: "flex", justifyContent: "center", gap: 16, flexWrap: "wrap" }}>
+          {pillars.map((p) => (
+            <span key={p.key} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, color: "var(--c-faint)" }}>
+              <span style={{ width: 7, height: 7, borderRadius: "var(--radius-full)", background: p.color, flexShrink: 0 }} />
+              {p.label}
+            </span>
+          ))}
+        </div>
+      )}
 
       {history.length === 1 ? (
         <p style={{ marginTop: 10, textAlign: "center", fontSize: 12, color: "var(--c-faint)" }}>Baseline established — weekly scans build your trend line.</p>
@@ -141,15 +186,28 @@ function ChangedList({ events }: { events: ProgressEvent[] }) {
   }
   return (
     <div>
-      {events.map((e, i) => (
-        <div key={i} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 0", borderBottom: i < events.length - 1 ? "1px solid var(--c-line2)" : "none" }}>
-          <span style={{ fontFamily: JM, fontSize: 11.5, color: "var(--c-faint)", width: 72, flexShrink: 0 }}>{fmtDate(e.date)}</span>
-          <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, color: "var(--c-ink)" }}>{e.label}</span>
-          {typeof e.delta === "number" && e.delta !== 0 && (
-            <Badge tone={e.delta > 0 ? "green" : "red"}>{e.delta > 0 ? `+${e.delta}` : e.delta}</Badge>
-          )}
-        </div>
-      ))}
+      {events.map((e, i) => {
+        const rowStyle: React.CSSProperties = { display: "flex", alignItems: "center", gap: 14, padding: "12px 0", borderBottom: i < events.length - 1 ? "1px solid var(--c-line2)" : "none" };
+        const row = (
+          <>
+            <span style={{ fontFamily: JM, fontSize: 11.5, color: "var(--c-faint)", width: 72, flexShrink: 0 }}>{fmtDate(e.date)}</span>
+            <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, color: "var(--c-ink)" }}>{e.label}</span>
+            {typeof e.delta === "number" && e.delta !== 0 && (
+              <Badge tone={e.delta > 0 ? "green" : "red"}>{e.delta > 0 ? `+${e.delta}` : e.delta}</Badge>
+            )}
+            {e.href && <span style={{ fontSize: 13, color: "var(--c-faint)", flexShrink: 0 }}>&rarr;</span>}
+          </>
+        );
+        return e.href ? (
+          <Link key={i} href={e.href} style={{ ...rowStyle, textDecoration: "none" }}>
+            {row}
+          </Link>
+        ) : (
+          <div key={i} style={rowStyle}>
+            {row}
+          </div>
+        );
+      })}
     </div>
   );
 }

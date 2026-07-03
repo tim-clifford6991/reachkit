@@ -9,7 +9,7 @@
  * Built strictly on the intel kit (--c-* tokens, no foreign components).
  */
 import { useIntel, IntelShell, fmtCompact } from "@/components/app/intel/shared";
-import { Card, Kpi, KpiRow, Badge, EvidenceLink, ActionButton, priorityTone } from "@/components/app/intel/kit";
+import { Card, Kpi, KpiRow, Badge, EvidenceLink, ActionButton, Expand, CopyButton, priorityTone } from "@/components/app/intel/kit";
 import type { Synthesis, Content } from "@/components/app/intel/synthesis-view";
 
 const PRIO_COLOR: Record<string, string> = { high: "#e5484d", medium: "#e0b341", low: "var(--c-faint)" };
@@ -78,31 +78,50 @@ export function ContentPlanBody({ data }: { data: Synthesis }) {
 
 function ContentCard({ c, doFirst }: { c: Content; doFirst: boolean }) {
   const kw = c.targetKeywords?.[0];
-  const ex = c.competitorExemplars?.[0];
+  const exemplars = c.competitorExemplars ?? [];
   return (
-    <div style={{ display: "flex", gap: 16, alignItems: "flex-start", background: "var(--c-surface)", border: `1px solid ${doFirst ? "var(--c-action)" : "var(--c-line)"}`, borderRadius: "var(--radius-lg)", padding: "16px 18px" }}>
-      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 5 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
-          <Badge tone="violet">{c.format}</Badge>
-          <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14.5, color: "var(--c-ink)" }}>{c.topic}</span>
-          {doFirst && <Badge tone="orange">Do this first</Badge>}
+    <div style={{ display: "flex", flexDirection: "column", background: "var(--c-surface)", border: `1px solid ${doFirst ? "var(--c-action)" : "var(--c-line)"}`, borderRadius: "var(--radius-lg)", padding: "16px 18px" }}>
+      <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
+        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 5 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
+            <Badge tone="violet">{c.format}</Badge>
+            <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14.5, color: "var(--c-ink)" }}>{c.topic}</span>
+            {doFirst && <Badge tone="orange">Do this first</Badge>}
+          </div>
+          {c.buyerAngle && <span style={{ fontSize: 12.5, color: "var(--c-muted)", lineHeight: 1.5 }}>{c.buyerAngle}</span>}
+          {kw && <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--c-action)", marginTop: 2 }}>↳ keyword gap: {kw}</span>}
+          {exemplars.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 3, marginTop: 2 }}>
+              {exemplars.map((ex, i) => (
+                <span key={i} style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--c-muted)" }}>
+                  ↳ <EvidenceLink href={ex.url} style={{ fontSize: 10.5 }}>{ex.domain} ranks #{ex.position}</EvidenceLink>
+                </span>
+              ))}
+            </div>
+          )}
+          {c.evidence && <span style={{ fontSize: 10.5, color: "var(--c-faint)", fontStyle: "italic", marginTop: 2 }}>{c.evidence}</span>}
         </div>
-        {c.buyerAngle && <span style={{ fontSize: 12.5, color: "var(--c-muted)", lineHeight: 1.5 }}>{c.buyerAngle}</span>}
-        {ex ? (
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--c-action)", marginTop: 2 }}>
-            ↳ {kw ?? c.format} · <EvidenceLink href={ex.url} style={{ fontSize: 10.5 }}>{ex.domain} ranks #{ex.position}</EvidenceLink>
-          </span>
-        ) : kw ? (
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--c-action)", marginTop: 2 }}>↳ keyword gap: {kw}</span>
-        ) : c.evidence ? (
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--c-faint)", marginTop: 2 }}>↳ {c.evidence}</span>
-        ) : null}
+        <div style={{ flex: "0 0 auto", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
+          <Badge tone={priorityTone(c.priority)}>{c.priority}</Badge>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--c-faint)" }}>{fmtCompact(c.estMonthlyVolume)}/mo predicted</span>
+          {c.depthTarget && <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--c-faint)" }}>{c.depthTarget}</span>}
+        </div>
       </div>
-      <div style={{ flex: "0 0 auto", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
-        <Badge tone={priorityTone(c.priority)}>{c.priority}</Badge>
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--c-faint)" }}>{fmtCompact(c.estMonthlyVolume)}/mo predicted</span>
-        {c.depthTarget && <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--c-faint)" }}>{c.depthTarget}</span>}
-      </div>
+      {(c.brief || c.agentPrompt) && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--c-line)" }}>
+          {c.brief ? (
+            <Expand label="View brief">
+              <p style={{ fontFamily: "var(--font-sans)", fontSize: 12.5, lineHeight: 1.6, color: "var(--c-muted)", background: "var(--c-fill)", borderRadius: "var(--radius-sm)", padding: "10px 12px", margin: 0, maxWidth: 480 }}>{c.brief}</p>
+            </Expand>
+          ) : <span />}
+          {c.agentPrompt && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--c-soft)", border: "1px solid var(--c-tint-violet-line)", borderRadius: "var(--radius-sm)", padding: "5px 6px 5px 10px" }}>
+              <span style={{ fontFamily: "var(--font-sans)", fontSize: 11, fontWeight: 700, color: "var(--c-action)" }}>Agent prompt</span>
+              <CopyButton text={c.agentPrompt} label="Copy agent prompt" />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

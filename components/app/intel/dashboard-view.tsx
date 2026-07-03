@@ -11,10 +11,13 @@
  * only: it renders the payload, it does not gather.
  */
 
+import { useState } from "react";
 import Link from "next/link";
 import { useIntel, IntelShell, fmt, fmtCompact } from "@/components/app/intel/shared";
 import type { Supply } from "@/components/app/intel/supply-view";
-import { Card, Kpi, KpiRow, Badge, Eyebrow, Donut, Bar, DataTable, bandFor, PALETTE, type Segment } from "@/components/app/intel/kit";
+import { Card, Kpi, KpiRow, Badge, Eyebrow, Donut, Bar, bandFor, EvidenceLink, PALETTE, type Segment } from "@/components/app/intel/kit";
+
+type Gap = Supply["keywords"]["gaps"][number];
 
 const JM = "var(--font-mono)";
 
@@ -90,29 +93,73 @@ function Blocks({ data }: { data: Supply }) {
           <KpiRow>
             <Kpi label="Est. visits / mo" value={fmtCompact(subject.monthlyTraffic)} />
             <Kpi label="Share of voice" value={`${sov}%`} sub="of cohort traffic" />
+            {typeof subject.mix?.referringDomains === "number" && (
+              <Kpi label="Referring domains" value={fmt(subject.mix?.referringDomains ?? 0)} />
+            )}
           </KpiRow>
         </Card>
       </div>
 
       {/* KEYWORD GAP */}
-      <Card title="Keyword gap" info="High-volume terms rivals rank for that you don't. Opportunity = volume × consensus × position quality.">
+      <Card title="Keyword gap" info="High-volume terms rivals rank for that you don't. Opportunity = volume × consensus × position quality. Expand a row to see who ranks where.">
         {topGaps.length > 0 ? (
           <>
-            <DataTable
-              cols="minmax(0,1fr) 90px 110px"
-              head={["Keyword", "Volume", "Rivals"]}
-              rows={topGaps.map((g) => [
-                <span key="k" style={{ fontWeight: 600, color: "var(--c-ink)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", display: "block" }}>{g.keyword}</span>,
-                <span key="v" style={{ fontFamily: JM, fontSize: 13, color: "var(--c-muted)" }}>{fmt(g.volume)}</span>,
-                <Badge key="r" tone="amber">{g.competitorsRanking} rank it</Badge>,
-              ])}
-            />
+            <KeywordGapTable gaps={topGaps} />
             <Footer href="/app/supply">See all {gaps.length} keyword gaps →</Footer>
           </>
         ) : (
           <p style={{ fontSize: 13, color: "var(--c-faint)", margin: 0 }}>No keyword gaps surfaced — you rank where your rivals do.</p>
         )}
       </Card>
+    </div>
+  );
+}
+
+const GAP_COLS = "minmax(0,1fr) 90px 110px";
+
+/** R3 — expandable keyword-gap rows: each row opens to show every rival's position + a link to their winning URL. */
+function KeywordGapTable({ gaps }: { gaps: Gap[] }) {
+  return (
+    <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-lg)", overflow: "hidden" }}>
+      <div style={{ display: "grid", gridTemplateColumns: GAP_COLS, gap: 12, padding: "11px 16px", borderBottom: "1px solid var(--c-line)", fontFamily: "var(--font-sans)", fontSize: 11, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--c-faint)", background: "var(--c-fill)" }}>
+        <span>Keyword</span><span>Volume</span><span>Rivals</span>
+      </div>
+      {gaps.map((g, i) => <KeywordGapRow key={g.keyword} gap={g} isLast={i === gaps.length - 1} />)}
+    </div>
+  );
+}
+
+function KeywordGapRow({ gap, isLast }: { gap: Gap; isLast: boolean }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ borderBottom: isLast ? "none" : "1px solid var(--c-fill)" }}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        style={{ display: "grid", gridTemplateColumns: GAP_COLS, gap: 12, width: "100%", alignItems: "center", padding: "11px 16px", background: "none", border: "none", cursor: "pointer", textAlign: "left", font: "inherit" }}
+      >
+        <span style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0, fontWeight: 600, color: "var(--c-ink)" }}>
+          <span style={{ fontSize: 10, color: "var(--c-faint)", flexShrink: 0 }}>{open ? "▾" : "▸"}</span>
+          <span style={{ minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{gap.keyword}</span>
+        </span>
+        <span style={{ fontFamily: JM, fontSize: 13, color: "var(--c-muted)" }}>{fmt(gap.volume)}</span>
+        <span><Badge tone="amber">{gap.competitorsRanking} rank it</Badge></span>
+      </button>
+      {open && (
+        <div style={{ padding: "0 16px 12px 33px" }}>
+          <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 5 }}>
+            {gap.competitors.map((c, i) => (
+              <li key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, fontSize: 12.5 }}>
+                <span style={{ color: "var(--c-muted)", minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.domain}</span>
+                <span style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                  <span style={{ fontFamily: JM, fontSize: 11.5, color: "var(--c-faint)" }}>#{c.position}</span>
+                  <EvidenceLink href={c.url} style={{ fontSize: 11.5 }}>view</EvidenceLink>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

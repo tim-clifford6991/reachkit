@@ -9,8 +9,9 @@
  * Built strictly on the intel kit (`--c-*` tokens).
  */
 import { useIntel, IntelShell, fmtCompact } from "@/components/app/intel/shared";
-import { Card, Eyebrow, Badge, intentTone } from "@/components/app/intel/kit";
-import type { Demand, Theme, Pocket } from "@/components/app/intel/demand-view";
+import { Card, Eyebrow, Badge, EvidenceLink, intentTone } from "@/components/app/intel/kit";
+import { WhereBuyersAsk } from "@/components/app/intel/demand-view";
+import type { Demand, Theme } from "@/components/app/intel/demand-view";
 
 const SG = "var(--font-display)";
 const JM = "var(--font-mono)";
@@ -30,7 +31,6 @@ export function CustomersBody({ data }: { data: Demand }) {
   const { icp, searchDemand, community, buyerInsights } = data;
   const primaryJob = icp.jobsToBeDone[0] ?? "—";
   const themes = searchDemand.themes;
-  const communities = [...community.pockets].sort((a, b) => b.count - a.count).slice(0, 10);
 
   return (
     <Card title="Who your buyers are" meta={data.category}>
@@ -52,42 +52,34 @@ export function CustomersBody({ data }: { data: Demand }) {
 
         <ChipSection title="Use cases" items={icp.useCases} tone="ink" />
 
-        {/* Demand themes / where they hang out */}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 16, alignItems: "flex-start" }}>
-          <div style={{ flex: "1 1 300px", display: "flex", flexDirection: "column", gap: 10 }}>
-            <Eyebrow>Demand themes</Eyebrow>
-            {themes.length ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {themes.map((t: Theme, i: number) => (
-                  <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "11px 14px", background: "var(--c-bg2)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-sm)" }}>
-                    <span style={{ fontSize: 13.5, color: "var(--c-ink)", fontWeight: 500, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.theme}</span>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 8, flex: "0 0 auto" }}>
-                      <span style={{ fontFamily: JM, fontSize: 10.5, color: "var(--c-faint)" }}>{t.sampleKeywords.length} keyword{t.sampleKeywords.length === 1 ? "" : "s"}</span>
-                      <span style={{ fontFamily: JM, fontSize: 12, fontWeight: 700, color: "var(--c-ink)" }}>{fmtCompact(t.totalVolume)}/mo</span>
-                      <Badge tone={intentTone(t.intent)}>{t.intent || "informational"}</Badge>
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <Empty>Thin search demand.</Empty>
-            )}
-          </div>
-
-          <div style={{ flex: "1 1 220px", display: "flex", flexDirection: "column", gap: 10 }}>
-            <Eyebrow>Where they hang out</Eyebrow>
-            {communities.length ? (
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {communities.map((c: Pocket, i: number) => (
-                  <span key={i} style={{ fontSize: 13, fontWeight: 600, color: "var(--c-action)", background: "var(--c-soft)", padding: "7px 13px", borderRadius: "var(--radius-full)" }}>
-                    {c.surface}
+        {/* Demand themes */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <Eyebrow>Demand themes</Eyebrow>
+          {themes.length ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {themes.map((t: Theme, i: number) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "11px 14px", background: "var(--c-bg2)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-sm)" }}>
+                  <span style={{ fontSize: 13.5, color: "var(--c-ink)", fontWeight: 500, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.theme}</span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 8, flex: "0 0 auto" }}>
+                    <span style={{ fontFamily: JM, fontSize: 10.5, color: "var(--c-faint)" }}>{t.sampleKeywords.length} keyword{t.sampleKeywords.length === 1 ? "" : "s"}</span>
+                    <span style={{ fontFamily: JM, fontSize: 12, fontWeight: 700, color: "var(--c-ink)" }}>{fmtCompact(t.totalVolume)}/mo</span>
+                    <Badge tone={intentTone(t.intent)}>{t.intent || "informational"}</Badge>
                   </span>
-                ))}
-              </div>
-            ) : (
-              <Empty>No community discussions surfaced yet.</Empty>
-            )}
-          </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <Empty>Thin search demand.</Empty>
+          )}
+        </div>
+
+        {/* Where they hang out */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <Eyebrow>Where they hang out</Eyebrow>
+          <span style={{ fontSize: 12, color: "var(--c-faint)", marginTop: -4 }}>
+            Highest-intent threads where buyers raise the problem unprompted.
+          </span>
+          <WhereBuyersAsk pockets={community.pockets} />
         </div>
 
         {/* Buyer insights */}
@@ -100,7 +92,16 @@ export function CustomersBody({ data }: { data: Demand }) {
             <QuoteGroup label="Buyer language" items={buyerInsights.buyerLanguage} color="var(--c-action)" />
           </div>
           {buyerInsights.sources.length > 0 && (
-            <span style={{ fontSize: 11.5, color: "var(--c-faint)" }}>from {buyerInsights.sources.length} competitor review pages</span>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 2 }}>
+              <span style={{ fontSize: 11.5, color: "var(--c-faint)" }}>from {buyerInsights.sources.length} competitor review pages</span>
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                {buyerInsights.sources.map((src, i) => (
+                  <EvidenceLink key={i} href={sourceHref(src)} style={{ fontSize: 12 }}>
+                    {sourceHost(src)}
+                  </EvidenceLink>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       </div>
@@ -151,3 +152,13 @@ function QuoteGroup({ label, items, color }: { label: string; items: string[]; c
 function Empty({ children }: { children: React.ReactNode }) {
   return <span style={{ fontSize: 13, color: "var(--c-faint)" }}>{children}</span>;
 }
+
+/** Sources come as full URLs (see lib/scan/demand/reviews.ts); tolerate a bare host+path too. */
+const sourceHref = (src: string) => (/^https?:\/\//i.test(src) ? src : `https://${src}`);
+const sourceHost = (src: string) => {
+  try {
+    return new URL(sourceHref(src)).hostname.replace(/^www\./, "");
+  } catch {
+    return src;
+  }
+};
