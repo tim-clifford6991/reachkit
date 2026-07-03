@@ -51,7 +51,7 @@ const TIER_TONE: Record<SizeTier, Tone> = {
   biggest: "orange",
 };
 
-export function CompetitorSetup({ domain }: { domain: string }) {
+export function CompetitorSetup({ domain, onDone }: { domain: string; onDone?: () => void }) {
   const router = useRouter();
   const [data, setData] = useState<Candidates | null>(null);
   const [loading, setLoading] = useState(true);
@@ -87,6 +87,9 @@ export function CompetitorSetup({ domain }: { domain: string }) {
     try {
       const res = await fetch("/api/competitors/select", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ domains: [...picked] }) });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      // Embedded in the setup overlay: hand control back to the stepper instead
+      // of navigating (the overlay's final step refreshes when it's done).
+      if (onDone) { onDone(); return; }
       router.push("/app/supply");
       router.refresh();
     } catch (e) { setError(e instanceof Error ? e.message : "save failed"); setSaving(false); }
@@ -104,7 +107,7 @@ export function CompetitorSetup({ domain }: { domain: string }) {
   return (
     <div className="mx-auto max-w-2xl py-10">
       <div className="text-[10px] font-mono uppercase tracking-widest text-violet-500">Set up · {domain}</div>
-      <h1 className="mt-1 text-2xl font-semibold tracking-tight">Choose your competitors</h1>
+      <h1 className="mt-1 text-2xl font-semibold tracking-tight">Who are you up against?</h1>
       <p className="mt-1 text-sm text-neutral-500">We ranked the closest matches. Pick up to {MAX} — your whole report (supply, demand, plans) benchmarks against exactly these.</p>
 
       {loading && <p className="mt-8 text-sm text-neutral-500">Discovering competitors…</p>}

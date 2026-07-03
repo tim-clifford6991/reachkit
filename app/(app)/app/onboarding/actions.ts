@@ -6,10 +6,11 @@ import { serverDb } from "@/lib/db/client";
 import { parseOnboardingForm } from "./parse";
 
 /**
- * Persist the post-checkout onboarding backfill and mark onboarding complete.
- * Setting `onboarded_at` is what lifts the dashboard gate.
+ * Persist the profile backfill and mark onboarding complete. Setting
+ * `onboarded_at` is what advances the app-wide SetupOverlay past the
+ * profile step (and, historically, lifted the dashboard gate).
  */
-export async function saveOnboarding(formData: FormData): Promise<void> {
+async function persistOnboarding(formData: FormData): Promise<void> {
   const { user } = await requireUser();
 
   const { displayName, goal, icp } = parseOnboardingForm(formData);
@@ -27,6 +28,26 @@ export async function saveOnboarding(formData: FormData): Promise<void> {
   if (error) {
     throw new Error(`saveOnboarding: failed to update user ${user.id}: ${error.message}`);
   }
+}
 
+/** Legacy full-page variant: persists, then navigates to the app. */
+export async function saveOnboarding(formData: FormData): Promise<void> {
+  await persistOnboarding(formData);
   redirect("/app");
+}
+
+/**
+ * Overlay variant: persists and RETURNS (no redirect) so the client-side
+ * setup stepper can advance to the next step in place. Same persistence
+ * path as `saveOnboarding` — only the navigation behaviour differs.
+ */
+export async function saveOnboardingStep(
+  formData: FormData,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    await persistOnboarding(formData);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to save" };
+  }
 }
