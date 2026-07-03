@@ -1,41 +1,55 @@
 /**
  * /test-progress-view — styled fixture preview for the Progress view (Score
- * history + "What changed"). Renders <ProgressView> against a realistic
- * hardcoded 8-week ramp (38 → 54) with 3 verified-fix markers and a handful
- * of "what changed" events, so the populated, styled UI can be reviewed
- * without auth or a live gather. Server component — no fetch, no auth gate.
+ * history + "Why it moved" + "What changed"). Renders <ProgressView> against a
+ * realistic hardcoded 8-week ramp (38 → 54) with 3 verified-fix markers, a
+ * signal-level diff (mostly gains, one regression), and a handful of "what
+ * changed" events, so the populated, styled UI can be reviewed without auth or
+ * a live gather. Server component — no fetch, no auth gate.
  */
 import { ProgressView } from "@/components/app/intel/progress-view";
 import type { ScoreHistoryPoint } from "@/lib/scan/engagement";
 import type { HistoryMarker } from "@/lib/scan/score-history-markers";
+import type { SignalChange } from "@/lib/scan/signal-diff";
 
 function iso(daysAgo: number): string {
   return new Date(Date.now() - daysAgo * 86_400_000).toISOString();
 }
 
-// 8-week ramp, oldest first.
+// 8-week ramp, oldest first — each point also carries a plausible pillar
+// breakdown (seo 30→40, content 45→58, outreach 40→60) so the overlay renders.
 const SAMPLE_HISTORY: ScoreHistoryPoint[] = [
-  { takenAt: iso(56), total: 38 },
-  { takenAt: iso(49), total: 40 },
-  { takenAt: iso(42), total: 39 },
-  { takenAt: iso(35), total: 44 },
-  { takenAt: iso(28), total: 46 },
-  { takenAt: iso(21), total: 49 },
-  { takenAt: iso(14), total: 51 },
-  { takenAt: iso(7), total: 54 },
+  { takenAt: iso(56), total: 38, breakdown: { content: 45, outreach: 40, seo: 30 } },
+  { takenAt: iso(49), total: 40, breakdown: { content: 47, outreach: 43, seo: 32 } },
+  { takenAt: iso(42), total: 39, breakdown: { content: 48, outreach: 41, seo: 33 } },
+  { takenAt: iso(35), total: 44, breakdown: { content: 51, outreach: 48, seo: 35 } },
+  { takenAt: iso(28), total: 46, breakdown: { content: 53, outreach: 51, seo: 36 } },
+  { takenAt: iso(21), total: 49, breakdown: { content: 55, outreach: 55, seo: 38 } },
+  { takenAt: iso(14), total: 51, breakdown: { content: 56, outreach: 58, seo: 39 } },
+  { takenAt: iso(7), total: 54, breakdown: { content: 58, outreach: 60, seo: 40 } },
 ];
 
 const SAMPLE_MARKERS: HistoryMarker[] = [
-  { takenAt: iso(35), label: "Added schema markup + meta descriptions" },
-  { takenAt: iso(14), label: "Listed on webcatalog.io directory" },
-  { takenAt: iso(7), label: "Published 'How to share meeting notes'" },
+  { takenAt: iso(35), label: "Added schema markup + meta descriptions", actionId: "sample-action-1" },
+  { takenAt: iso(14), label: "Listed on webcatalog.io directory", actionId: "sample-action-2" },
+  { takenAt: iso(7), label: "Published 'How to share meeting notes'", actionId: "sample-action-3" },
+];
+
+// A realistic "Why it moved" diff between the two most recent scans — mostly
+// gains from shipped fixes, plus one regression (a competitor content refresh
+// eroding relative organic footprint) to show the negative-delta styling.
+const SAMPLE_SIGNAL_CHANGES: SignalChange[] = [
+  { key: "meta_description", label: "Meta description", pillar: "seo", fromState: "fail", toState: "pass", contributionDelta: 2.1 },
+  { key: "content_cadence", label: "Publishing cadence", pillar: "content", fromState: "warn", toState: "pass", contributionDelta: 1.4 },
+  { key: "schema_jsonld", label: "Structured data", pillar: "seo", fromState: "fail", toState: "warn", contributionDelta: 1.1 },
+  { key: "marketplace_presence", label: "Marketplace presence", pillar: "outreach", fromState: "warn", toState: "pass", contributionDelta: 0.8 },
+  { key: "organic_keywords", label: "Organic keyword footprint", pillar: "seo", fromState: "warn", toState: "warn", contributionDelta: -0.7 },
 ];
 
 const SAMPLE_EVENTS = [
-  { label: "Published 'How to share meeting notes'", date: iso(7), delta: 3 },
-  { label: "Listed on webcatalog.io directory", date: iso(14), delta: 3 },
+  { label: "Published 'How to share meeting notes'", date: iso(7), delta: 3, href: "/app/plan/content" },
+  { label: "Listed on webcatalog.io directory", date: iso(14), delta: 3, href: "/app/plan/content" },
   { label: "New competitor in your space: notionmeet.com", date: iso(21) },
-  { label: "Added schema markup + meta descriptions", date: iso(35), delta: 2 },
+  { label: "Added schema markup + meta descriptions", date: iso(35), delta: 2, href: "/app/plan/content" },
   { label: "Crossed from Invisible into Hard-to-find", date: iso(42) },
   { label: "First scan — baseline score 38", date: iso(56) },
 ];
@@ -49,7 +63,7 @@ export default function TestProgressViewPage() {
       <p style={{ fontSize: 13, color: "var(--c-muted)", marginBottom: 24 }}>
         Styled, populated <code>ProgressView</code> against a hardcoded 8-week score ramp — no auth, no live gather.
       </p>
-      <ProgressView history={SAMPLE_HISTORY} markers={SAMPLE_MARKERS} events={SAMPLE_EVENTS} />
+      <ProgressView history={SAMPLE_HISTORY} markers={SAMPLE_MARKERS} events={SAMPLE_EVENTS} signalChanges={SAMPLE_SIGNAL_CHANGES} />
     </main>
   );
 }

@@ -102,7 +102,7 @@ export function Gauge({ score, sub, size = 184 }: { score: number; sub?: string;
         <text x="100" y="106" textAnchor="middle" style={{ font: "700 42px var(--font-mono), monospace", fill: "var(--c-ink)" }}>{s}</text>
         <text x="100" y="126" textAnchor="middle" style={{ font: "600 11px var(--font-mono), monospace", fill: "var(--c-faint)", letterSpacing: "1px" }}>/ 100</text>
       </svg>
-      <span style={{ display: "inline-flex", alignItems: "center", background: `${band.color}1f`, color: band.color, fontFamily: SG, fontWeight: 700, fontSize: 13, padding: "5px 13px", borderRadius: "var(--radius-sm)" }}>{band.label}</span>
+      <span style={{ display: "inline-flex", alignItems: "center", background: `color-mix(in oklab, ${band.color} 12%, transparent)`, color: band.color, fontFamily: SG, fontWeight: 700, fontSize: 13, padding: "5px 13px", borderRadius: "var(--radius-sm)" }}>{band.label}</span>
       {sub && <div style={{ fontSize: 12, color: "var(--c-faint)" }}>{sub}</div>}
     </div>
   );

@@ -21,14 +21,15 @@ const SAMPLE: Supply = {
       category: "AI meeting notes",
       backlinks: {
         topQualityReferrers: [
-          { host: "producthunt.com", category: "directory", url: "https://producthunt.com/products/nudgi" },
-          { host: "indiehackers.com", category: "community", url: "https://indiehackers.com/product/nudgi" },
-          { host: "betalist.com", category: "directory", url: "https://betalist.com/startups/nudgi" },
+          { host: "producthunt.com", category: "directory", url: "https://producthunt.com/products/nudgi", anchor: "Nudgi", target: "https://nudgi.ai" },
+          { host: "indiehackers.com", category: "community", url: "https://indiehackers.com/product/nudgi", anchor: "Nudgi — AI meeting prep", target: "https://nudgi.ai" },
+          { host: "betalist.com", category: "directory", url: "https://betalist.com/startups/nudgi", anchor: "nudgi.ai", target: "https://nudgi.ai/" },
         ],
         byCategory: { directory: 5, community: 2 },
         qualityShare: 0.31,
         sampled: 14,
       },
+      mix: { organic: 0.42, referral: 0.28, social: 0.14, direct: 0.1, organicKeywords: 340, referringDomains: 14, socialMentions: 6 },
       lens: {
         sources: { organic: 0.42, paid: 0.02, referral: 0.28, social: 0.14, direct: 0.1, email: 0.04 },
         activities: { content: 0.35, seo: 0.4, outreach: 0.25 },
@@ -45,9 +46,9 @@ const SAMPLE: Supply = {
         reason: "Same core job (live meeting transcription) at a larger scale — closest apples-to-apples rival.",
         backlinks: {
           topQualityReferrers: [
-            { host: "producthunt.com", category: "directory", url: "https://producthunt.com/products/otter-ai" },
-            { host: "g2.com", category: "review", url: "https://g2.com/products/otter-ai" },
-            { host: "zapier.com", category: "integration", url: "https://zapier.com/apps/otter" },
+            { host: "producthunt.com", category: "directory", url: "https://producthunt.com/products/otter-ai", anchor: "Otter.ai", target: "https://otter.ai" },
+            { host: "g2.com", category: "review", url: "https://g2.com/products/otter-ai", anchor: "Otter.ai reviews", target: "https://otter.ai" },
+            { host: "zapier.com", category: "integration", url: "https://zapier.com/apps/otter", anchor: "Otter integrations", target: "https://otter.ai/integrations" },
           ],
           byCategory: { directory: 8, review: 12, integration: 6 },
           qualityShare: 0.58,
@@ -63,9 +64,9 @@ const SAMPLE: Supply = {
         reason: "Nearly identical positioning (AI notetaker for sales & recurring meetings) and pricing tier.",
         backlinks: {
           topQualityReferrers: [
-            { host: "g2.com", category: "review", url: "https://g2.com/products/fireflies-ai" },
-            { host: "capterra.com", category: "review", url: "https://capterra.com/p/fireflies" },
-            { host: "reddit.com", category: "community", url: "https://reddit.com/r/sales/fireflies" },
+            { host: "g2.com", category: "review", url: "https://g2.com/products/fireflies-ai", anchor: "Fireflies.ai reviews", target: "https://fireflies.ai" },
+            { host: "capterra.com", category: "review", url: "https://capterra.com/p/fireflies", anchor: "Fireflies", target: "https://fireflies.ai" },
+            { host: "reddit.com", category: "community", url: "https://reddit.com/r/sales/fireflies", anchor: "anyone using Fireflies for sales calls?", target: "https://fireflies.ai/blog/sales-calls" },
           ],
           byCategory: { review: 18, community: 9 },
           qualityShare: 0.64,
@@ -81,9 +82,9 @@ const SAMPLE: Supply = {
         reason: "Direct free-tier competitor pulling the same Product Hunt / YC-adjacent audience.",
         backlinks: {
           topQualityReferrers: [
-            { host: "producthunt.com", category: "directory", url: "https://producthunt.com/products/fathom" },
-            { host: "ycombinator.com", category: "community", url: "https://news.ycombinator.com/item?id=fathom" },
-            { host: "trustpilot.com", category: "review", url: "https://trustpilot.com/review/fathom.video" },
+            { host: "producthunt.com", category: "directory", url: "https://producthunt.com/products/fathom", anchor: "Fathom", target: "https://fathom.video" },
+            { host: "ycombinator.com", category: "community", url: "https://news.ycombinator.com/item?id=fathom", anchor: "Fathom — free AI notetaker", target: "https://fathom.video" },
+            { host: "trustpilot.com", category: "review", url: "https://trustpilot.com/review/fathom.video", anchor: "Fathom.video reviews", target: "https://fathom.video" },
           ],
           byCategory: { directory: 10, community: 7, review: 9 },
           qualityShare: 0.71,
@@ -104,11 +105,12 @@ const SAMPLE: Supply = {
         keyword: "meeting notes",
         volume: 22200,
         bestPosition: 4,
-        competitorsRanking: 2,
+        competitorsRanking: 3,
         opportunity: 88,
         competitors: [
           { domain: "otter.ai", position: 4, url: "https://otter.ai/blog/ai-meeting-notes" },
           { domain: "fireflies.ai", position: 7, url: "https://fireflies.ai/blog/meeting-notes" },
+          { domain: "read.ai", position: 9, url: "https://read.ai/blog/meeting-notes" },
         ],
       },
       {
@@ -127,9 +129,13 @@ const SAMPLE: Supply = {
         keyword: "free ai meeting notetaker",
         volume: 9600,
         bestPosition: 2,
-        competitorsRanking: 1,
+        competitorsRanking: 3,
         opportunity: 81,
-        competitors: [{ domain: "fathom.video", position: 2, url: "https://fathom.video/free" }],
+        competitors: [
+          { domain: "fathom.video", position: 2, url: "https://fathom.video/free" },
+          { domain: "otter.ai", position: 5, url: "https://otter.ai/free" },
+          { domain: "read.ai", position: 7, url: "https://read.ai/pricing" },
+        ],
       },
       {
         keyword: "zoom notes",
@@ -146,9 +152,13 @@ const SAMPLE: Supply = {
         keyword: "sales call recorder",
         volume: 3900,
         bestPosition: 8,
-        competitorsRanking: 1,
+        competitorsRanking: 3,
         opportunity: 42,
-        competitors: [{ domain: "fireflies.ai", position: 8, url: "https://fireflies.ai/blog/sales-calls" }],
+        competitors: [
+          { domain: "fireflies.ai", position: 8, url: "https://fireflies.ai/blog/sales-calls" },
+          { domain: "otter.ai", position: 12, url: "https://otter.ai/use-cases/sales" },
+          { domain: "read.ai", position: 15, url: "https://read.ai/use-cases/sales-calls" },
+        ],
       },
     ],
   },
@@ -163,6 +173,7 @@ const SAMPLE: Supply = {
           { url: "https://nudgi.ai/blog/meeting-minutes", title: "How to write meeting minutes", contentType: "blog", cluster: "Meeting minutes", keywordCount: 4, etv: 210, wordCount: 1400 },
           { url: "https://nudgi.ai/", title: "Nudgi — AI meeting prep", contentType: "landing", cluster: "Brand", keywordCount: 2, etv: 180, wordCount: 600 },
           { url: "https://nudgi.ai/features", title: "Features", contentType: "landing", cluster: "Brand", keywordCount: 1, etv: 90, wordCount: 500 },
+          { url: "https://nudgi.ai/docs/getting-started", title: "Getting started", contentType: "docs", cluster: "Docs", keywordCount: 1, etv: 40, wordCount: 900 },
         ],
       },
       {
@@ -173,6 +184,8 @@ const SAMPLE: Supply = {
           { url: "https://otter.ai/templates", title: "Meeting minutes templates", contentType: "tool", cluster: "Meeting minutes", keywordCount: 18, etv: 3400, wordCount: 2200 },
           { url: "https://otter.ai/blog/ai-meeting-notes", title: "AI meeting notes guide", contentType: "guide", cluster: "AI notetaker", keywordCount: 14, etv: 2600, wordCount: 3100 },
           { url: "https://otter.ai/integrations/zoom", title: "Zoom integration", contentType: "landing", cluster: "Zoom notes", keywordCount: 6, etv: 980, wordCount: 900 },
+          { url: "https://otter.ai/free", title: "Otter.ai free plan", contentType: "landing", cluster: "Best AI notetakers", keywordCount: 9, etv: 1450, wordCount: 750 },
+          { url: "https://otter.ai/use-cases/sales", title: "Otter for sales teams", contentType: "landing", cluster: "Sales calls", keywordCount: 5, etv: 640, wordCount: 850 },
         ],
       },
       {
@@ -183,6 +196,8 @@ const SAMPLE: Supply = {
           { url: "https://fireflies.ai/compare", title: "Compare AI notetakers", contentType: "comparison", cluster: "Best AI notetakers", keywordCount: 22, etv: 4100, wordCount: 2800 },
           { url: "https://fireflies.ai/blog/sales-calls", title: "Recording sales calls", contentType: "blog", cluster: "Sales calls", keywordCount: 11, etv: 1900, wordCount: 1700 },
           { url: "https://fireflies.ai/integrations", title: "Integrations", contentType: "landing", cluster: "Brand", keywordCount: 3, etv: 620, wordCount: 700 },
+          { url: "https://fireflies.ai/blog/meeting-notes", title: "AI meeting notes for every call", contentType: "blog", cluster: "Meeting minutes", keywordCount: 7, etv: 1100, wordCount: 1600 },
+          { url: "https://fireflies.ai", title: "Fireflies.ai — AI notetaker", contentType: "landing", cluster: "AI notetaker", keywordCount: 15, etv: 3200, wordCount: 650 },
         ],
       },
       {
@@ -193,6 +208,7 @@ const SAMPLE: Supply = {
           { url: "https://fathom.video/", title: "Fathom — free AI notetaker", contentType: "landing", cluster: "Brand", keywordCount: 9, etv: 5200, wordCount: 800 },
           { url: "https://fathom.video/blog/free-notetaker", title: "Best free notetaker", contentType: "listicle", cluster: "Best AI notetakers", keywordCount: 16, etv: 3800, wordCount: 2100 },
           { url: "https://fathom.video/use-cases", title: "Use cases", contentType: "landing", cluster: "Zoom notes", keywordCount: 5, etv: 1100, wordCount: 950 },
+          { url: "https://fathom.video/free", title: "Fathom free plan", contentType: "landing", cluster: "Best AI notetakers", keywordCount: 6, etv: 1600, wordCount: 700 },
         ],
       },
     ],

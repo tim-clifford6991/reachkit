@@ -26,10 +26,17 @@ export interface IntelStage {
  * The `stages` array lets IntelShell render live progress instead of a blind
  * spinner. When data is already cached the stream emits `done` almost instantly
  * with no stage events — IntelShell falls back to the simple spinner briefly.
+ *
+ * `opts.enabled` (default `true`) lets a caller defer the fetch entirely — while
+ * disabled, no stream/fallback-fetch is started and `loading` stays false. Flip
+ * it to `true` later (e.g. once a sibling layer has resolved) to kick off the
+ * fetch at that point. Additive/non-breaking: omitting `opts` behaves exactly
+ * as before.
  */
-export function useIntel<T>(layer: string) {
+export function useIntel<T>(layer: string, opts: { enabled?: boolean } = {}) {
+  const enabled = opts.enabled ?? true;
   const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
   const [stages, setStages] = useState<IntelStage[]>([]);
 
@@ -69,14 +76,31 @@ export function useIntel<T>(layer: string) {
     setData(null);
     setError(null);
     setStages([]);
-    setLoading(true);
+    setLoading(enabled);
+  }
+
+  // Same render-phase pattern for `enabled` flipping false→true: loading turns
+  // on with the flip, so the effect below never needs a synchronous setState.
+  const [renderedEnabled, setRenderedEnabled] = useState(enabled);
+  if (enabled !== renderedEnabled) {
+    setRenderedEnabled(enabled);
+    // On false→true the effect below re-runs and starts the fetch, so loading
+    // is accurate; on true→false the effect tears down and we leave state as-is.
+    if (enabled) setLoading(true);
   }
 
   useEffect(() => {
+    // Deferred: caller isn't ready for this layer yet (e.g. waiting on a
+    // sibling layer to resolve first). Don't open a stream or fallback-fetch;
+    // `loading` stays false (set from `enabled` at mount / reset above) until
+    // this flips to true and the effect re-runs.
+    if (!enabled) return;
+
     let es: EventSource | null = null;
     let cancelled = false;
     // Fresh stream for this layer — no terminal frame delivered yet. (Reset here,
-    // not during render, since refs can't be mutated in the render phase.)
+    // not during render, since refs can't be mutated in the render phase.
+    // `loading` is already true: set at mount / the render-phase adjustments.)
     settledRef.current = false;
 
     try {
@@ -142,7 +166,7 @@ export function useIntel<T>(layer: string) {
       es?.close();
       if (esRef.current === es) esRef.current = null;
     };
-  }, [layer, fallbackFetch]);
+  }, [layer, fallbackFetch, enabled]);
 
   // Manual reload bypasses the stream and uses the plain fetch (instant when cached).
   const reload = useCallback(() => {

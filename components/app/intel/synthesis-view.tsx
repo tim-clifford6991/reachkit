@@ -21,11 +21,11 @@ export interface Content {
   priority: string;
   evidence: string;
 }
-export interface Dist { channel: string; action: string; target: string; targetUrl: string; why: string; effort: string; priority: string; ease: number; impact: number }
+export interface Dist { channel: string; action: string; target: string; targetUrl: string; why: string; effort: string; priority: string; ease: number; impact: number; evidence?: string }
 export interface Synthesis { category: string; summary: string; contentPlan: Content[]; distributionPlan: Dist[] }
 
-const PRIO_COLOR: Record<string, string> = { high: "#e5484d", medium: "#e0b341", low: "var(--c-faint)" };
-const KIND_COLOR: Record<string, string> = { channel: "var(--c-action)", community: "#46a758", demand: "#e0731c" };
+const PRIO_COLOR: Record<string, string> = { high: "var(--c-band-invisible)", medium: "var(--c-band-fair)", low: "var(--c-faint)" };
+const KIND_COLOR: Record<string, string> = { channel: "var(--c-action)", community: "var(--c-band-findable)", demand: "var(--c-band-hard)" };
 const kindOf = (ch: string) => (ch === "community" ? "community" : ch === "newsletter" || ch === "media" || ch === "podcast" ? "demand" : "channel");
 
 function prioSegs(items: { priority: string }[]): Segment[] {
@@ -69,7 +69,7 @@ function Body({ data }: { data: Synthesis }) {
           </div>
         </Card>
         <Card title="Focus quadrant" info="Distribution plays on Ease × Impact. Top-right = quick, high-impact wins.">
-          {quad.length ? <Quadrant items={quad} legend={[{ color: "var(--c-action)", label: "Channel" }, { color: "#46a758", label: "Community" }, { color: "#e0731c", label: "Media/Demand" }]} /> : <Empty>No distribution plays yet.</Empty>}
+          {quad.length ? <Quadrant items={quad} legend={[{ color: KIND_COLOR.channel!, label: "Channel" }, { color: KIND_COLOR.community!, label: "Community" }, { color: KIND_COLOR.demand!, label: "Media/Demand" }]} /> : <Empty>No distribution plays yet.</Empty>}
         </Card>
       </div>
 

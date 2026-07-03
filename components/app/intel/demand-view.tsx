@@ -3,6 +3,7 @@
 /**
  * Demand view — buyer-anchored intelligence. Built entirely on the intel kit.
  */
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useIntel, IntelShell, fmt, fmtCompact } from "@/components/app/intel/shared";
 import { Card, HeroCard, Eyebrow, Kpi, KpiRow, Badge, Donut, HBars, DataTable, Tabs, EvidenceLink, intentTone, type Segment, type BarDatum, type Tone } from "@/components/app/intel/kit";
@@ -110,7 +111,7 @@ function Cluster({ title, items, tone }: { title: string; items: string[]; tone:
   );
 }
 
-function relativeDate(iso?: string | null): string | null {
+export function relativeDate(iso?: string | null): string | null {
   if (!iso) return null;
   const t = Date.parse(iso);
   if (Number.isNaN(t)) return null;
@@ -121,9 +122,20 @@ function relativeDate(iso?: string | null): string | null {
   return `${Math.floor(days / 365)}y ago`;
 }
 
-const subUrl = (surface: string) => (surface.startsWith("r/") ? `https://www.reddit.com/${surface}/` : `https://${surface}`);
+export const subUrl = (surface: string) => (surface.startsWith("r/") ? `https://www.reddit.com/${surface}/` : `https://${surface}`);
 
-function WhereBuyersAsk({ pockets }: { pockets: Pocket[] }) {
+/** Loose surface match for cross-linking community pockets to distribution
+ * plan targets: case-insensitive, ignores a leading "r/", and matches if
+ * either string contains the other (e.g. "r/SaaS" vs "SaaS community"). */
+const normalizeSurface = (s: string) => s.toLowerCase().replace(/^r\//, "").trim();
+const surfacesMatch = (a: string, b: string) => {
+  const na = normalizeSurface(a);
+  const nb = normalizeSurface(b);
+  if (!na || !nb) return false;
+  return na === nb || na.includes(nb) || nb.includes(na);
+};
+
+export function WhereBuyersAsk({ pockets, planTargets }: { pockets: Pocket[]; planTargets?: { target: string; channel: string }[] }) {
   // Classify by the demand signal (theme / buyer pain / problem search) that
   // surfaced each thread — not by platform (it's all Reddit, the high-signal surface).
   const themes = useMemo(() => {
@@ -146,10 +158,18 @@ function WhereBuyersAsk({ pockets }: { pockets: Pocket[] }) {
         {filtered.map((p, i) => {
           const fresh = p.topThreads.map((t) => t.publishedAt).filter(Boolean).sort().reverse()[0];
           const rel = relativeDate(fresh ?? null);
+          const inPlan = planTargets?.some((d) => surfacesMatch(p.surface, d.target));
           return (
             <div key={i} style={{ border: "1px solid var(--c-line)", borderRadius: "var(--radius-lg)", padding: 14 }}>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "baseline" }}>
-                <a href={subUrl(p.surface)} target="_blank" rel="noopener noreferrer" style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 700, color: "var(--c-ink)", textDecoration: "none", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.surface}</a>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 8, minWidth: 0, flex: "0 1 auto" }}>
+                  <a href={subUrl(p.surface)} target="_blank" rel="noopener noreferrer" style={{ flex: "0 1 auto", minWidth: 0, fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 700, color: "var(--c-ink)", textDecoration: "none", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.surface}</a>
+                  {inPlan && (
+                    <Link href="/app/plan/distribution" style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 5, background: "var(--c-soft)", color: "var(--c-action)", fontFamily: "var(--font-sans)", fontWeight: 700, fontSize: 10.5, padding: "3px 9px", borderRadius: "var(--radius-full)", whiteSpace: "nowrap", textDecoration: "none" }}>
+                      → in your plan
+                    </Link>
+                  )}
+                </span>
                 <span style={{ flexShrink: 0, fontSize: 11, color: "var(--c-faint)" }}>{p.topThreads.length} thread{p.topThreads.length === 1 ? "" : "s"}{rel ? ` · ${rel}` : ""}</span>
               </div>
               <ul style={{ margin: "10px 0 0", padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 8 }}>

@@ -21,6 +21,7 @@ import { discoverDemand } from "@/lib/scan/demand/index";
 import type { DemandPocket } from "@/lib/scan/demand/types";
 import type { KeywordIdea } from "@/lib/scan/adapters/dataforseo-keyword-ideas";
 import { serverDb } from "@/lib/db/client";
+import type { Json } from "@/lib/db/types";
 import type { OnStageCallback } from "@/lib/scan/types";
 
 export interface DemandTheme {
@@ -120,6 +121,92 @@ function topicTokens(seeds: string[]): Set<string> {
 // Structured persistence (demand_pocket table)
 // ---------------------------------------------------------------------------
 
+const DEMAND_INTEL_TTL_MS = 7 * DAY_MS;
+
+/**
+ * True when a gathered/reassembled DemandIntel is degraded (both the keyword
+ * table and the themes came back empty — the underlying keyword-ideas /
+ * clustering calls failed or starved). Shared by every path that can put a
+ * DemandIntel in front of a user or into a cache/table, so a poisoned payload
+ * can neither be written NOR read back as valid:
+ *   - the `demand-intel:*` cachedJson `isEmpty` option (skip the 7d cache write)
+ *   - `persistDemandIntel` (skip the `demand_intel` table upsert)
+ *   - `readDemandIntelFallback` (refuse to serve a previously-poisoned row)
+ */
+function isEmptyDemandIntel(intel: Pick<DemandIntel, "searchDemand">): boolean {
+  return intel.searchDemand.themes.length === 0 && intel.searchDemand.topKeywords.length === 0;
+}
+
+/**
+ * Upsert the assembled DemandIntel into `demand_intel`.
+ * Best-effort — any write error is logged and swallowed so it never breaks the
+ * gather. Called via `void ...catch(...)` after a successful full gather.
+ * Skips the write entirely when `intel` is empty by `isEmptyDemandIntel` —
+ * otherwise a single degraded gather would blank the Demand page for every
+ * reader until the row's 7-day TTL expires.
+ */
+async function persistDemandIntel(subject: string, cohortKey: string, intel: DemandIntel): Promise<void> {
+  if (isEmptyDemandIntel(intel)) return;
+  const db = serverDb();
+  try {
+    const { error } = await db.from("demand_intel").upsert(
+      {
+        subject_domain: subject,
+        cohort_key: cohortKey,
+        category: intel.category,
+        icp: intel.icp as unknown as Json,
+        search_demand: intel.searchDemand as unknown as Json,
+        community: intel.community as unknown as Json,
+        buyer_insights: intel.buyerInsights as unknown as Json,
+        fetched_at: new Date().toISOString(),
+      },
+      { onConflict: "subject_domain,cohort_key" },
+    );
+    if (error) console.error(`[demand_intel] persist failed: ${error.message}`);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[demand_intel] persist failed: ${msg}`);
+  }
+}
+
+/**
+ * Read-through fallback for a JSON-cache miss: check the structured `demand_intel`
+ * row before paying for a full gather. Returns null on absence, staleness (older
+ * than the same TTL the JSON cache uses), or any read error — callers fall back to
+ * the normal (expensive) gather in every one of those cases.
+ */
+async function readDemandIntelFallback(subject: string, cohortKey: string): Promise<DemandIntel | null> {
+  try {
+    const db = serverDb();
+    const { data } = await db
+      .from("demand_intel")
+      .select("category, icp, search_demand, community, buyer_insights, fetched_at")
+      .eq("subject_domain", subject)
+      .eq("cohort_key", cohortKey)
+      .maybeSingle();
+    if (!data) return null;
+    if (Date.now() - new Date(data.fetched_at).getTime() >= DEMAND_INTEL_TTL_MS) return null;
+    if (!data.search_demand || !data.community || !data.buyer_insights || !data.icp) return null;
+    const reassembled: DemandIntel = {
+      domain: subject,
+      category: data.category ?? "",
+      icp: data.icp as unknown as ICP,
+      searchDemand: data.search_demand as unknown as DemandIntel["searchDemand"],
+      community: data.community as unknown as DemandIntel["community"],
+      buyerInsights: data.buyer_insights as unknown as BuyerInsights,
+    };
+    // A previously-poisoned row (written before this predicate existed, or
+    // written by a since-fixed-but-still-empty gather) must never satisfy a
+    // read — same emptiness rule as the write path, so callers fall back to a
+    // real gather instead of getting a blank Demand page for the full TTL.
+    if (isEmptyDemandIntel(reassembled)) return null;
+    return reassembled;
+  } catch (err) {
+    console.warn(`[demand_intel] fallback read failed: ${err instanceof Error ? err.message : String(err)}`);
+    return null;
+  }
+}
+
 /**
  * Upsert demand pocket rows into `demand_pocket`.
  * Best-effort — any write error is logged and swallowed so it never breaks the
@@ -176,7 +263,15 @@ export async function gatherDemand(rawSelf: string, opts: { competitorDomains?: 
   const self = normalizeHost(rawSelf);
   const cohortKey = (opts.competitorDomains ?? []).map((d) => d.toLowerCase()).sort().join(",");
   // Persist the assembled demand intel so repeat dashboard loads are instant.
-  return cachedJson(`demand-intel:${self}:${cohortKey}`, 7 * DAY_MS, async () => {
+  return cachedJson(`demand-intel:${self}:${cohortKey}`, DEMAND_INTEL_TTL_MS, async () => {
+  // Read-through fallback: the JSON cache missed (expired/absent). Before paying for
+  // a full gather, check the structured `demand_intel` table — a fresher-than-TTL
+  // row (e.g. written by a sibling scan, or surviving a search_cache eviction) lets
+  // us skip straight to reassembly. Returning it here also repopulates the JSON
+  // cache, since cachedJson persists whatever this function returns.
+  const fallback = await readDemandIntelFallback(self, cohortKey);
+  if (fallback) return fallback;
+
   // Stages fired inside the cachedJson body — cold computes only; warm hits are instant.
   opts.onStage?.({ key: "demand:icp", label: "Understanding your buyers" });
   const brief = await inferProductBrief(self);
@@ -254,12 +349,16 @@ export async function gatherDemand(rawSelf: string, opts: { competitorDomains?: 
   void persistDemandPockets(self, cohortKey, result.community.pockets).catch((err) =>
     console.error("[demand_pocket] persist error:", err),
   );
+  // Persist the assembled demand intel itself (best-effort, never blocks the return).
+  void persistDemandIntel(self, cohortKey, result).catch((err) =>
+    console.error("[demand_intel] persist error:", err),
+  );
 
   return result;
   }, {
     // If BOTH the keyword table and the themes came back empty, the underlying
     // keyword-ideas / clustering calls degraded — don't persist a blank demand
     // payload for 7d (it would blank the Demand page every load until TTL).
-    isEmpty: (r) => r.searchDemand.themes.length === 0 && r.searchDemand.topKeywords.length === 0,
+    isEmpty: isEmptyDemandIntel,
   });
 }

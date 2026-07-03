@@ -9,12 +9,18 @@ import { serverDb } from "@/lib/db/client";
 export interface HistoryMarker {
   takenAt: string;
   label: string;
+  /** The verified action's id (from the `actions` join), for plan deep-links. */
+  actionId?: string;
+  /** The verified action's category (from the `actions` join) — lets callers
+   * route the "What changed" deep-link to the right plan page (content vs.
+   * distribution) instead of hardcoding one destination for every event. */
+  category?: string;
 }
 
 export async function scoreHistoryMarkers(appId: string): Promise<HistoryMarker[]> {
   const { data } = await serverDb()
     .from("score_snapshots")
-    .select("taken_at, actions(title)")
+    .select("taken_at, action_id, actions(title, category)")
     .eq("app_id", appId)
     .not("action_id", "is", null)
     .order("taken_at", { ascending: true });
@@ -22,5 +28,7 @@ export async function scoreHistoryMarkers(appId: string): Promise<HistoryMarker[
   return (data ?? []).map((r) => ({
     takenAt: (r.taken_at as string | null) ?? "",
     label: (r.actions as { title?: string } | null)?.title ?? "Fix shipped",
+    actionId: (r.action_id as string | null) ?? undefined,
+    category: (r.actions as { category?: string } | null)?.category ?? undefined,
   }));
 }

@@ -423,6 +423,39 @@ export type Database = {
         }
         Relationships: []
       }
+      demand_intel: {
+        Row: {
+          subject_domain: string
+          cohort_key: string
+          category: string | null
+          icp: Json | null
+          search_demand: Json | null
+          community: Json | null
+          buyer_insights: Json | null
+          fetched_at: string
+        }
+        Insert: {
+          subject_domain: string
+          cohort_key?: string
+          category?: string | null
+          icp?: Json | null
+          search_demand?: Json | null
+          community?: Json | null
+          buyer_insights?: Json | null
+          fetched_at?: string
+        }
+        Update: {
+          subject_domain?: string
+          cohort_key?: string
+          category?: string | null
+          icp?: Json | null
+          search_demand?: Json | null
+          community?: Json | null
+          buyer_insights?: Json | null
+          fetched_at?: string
+        }
+        Relationships: []
+      }
       distribution_plan_item: {
         Row: {
           subject_domain: string
