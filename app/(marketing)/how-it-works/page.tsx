@@ -16,7 +16,7 @@
 import type { Metadata } from "next";
 import { buildMetadata, howToLd } from "@/lib/seo";
 import { ScanInput } from "@/app/(marketing)/scan-input";
-import { DashboardGlimpse } from "@/components/sections/dashboard-glimpse";
+import { DashboardGlimpseLazy as DashboardGlimpse } from "@/components/sections/dashboard-glimpse-lazy";
 import { SIGNAL_REGISTRY, PILLAR_WEIGHTS, type Pillar, type SignalDefinition } from "@/lib/scan/signals";
 import { SCORE_BANDS } from "@/lib/scan/score-bands";
 

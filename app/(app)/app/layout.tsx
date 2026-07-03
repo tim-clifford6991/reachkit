@@ -25,7 +25,7 @@ import { getSelectedCompetitors } from "@/lib/scan/competitor-selection";
 import { CommandPalette } from "@/components/app/command-palette";
 import { AppShell } from "@/components/app/captured/app-shell";
 import { ShellSkeleton } from "@/components/app/captured/skeletons";
-import { SetupOverlay } from "@/components/app/setup/setup-overlay";
+import { SetupOverlayLazy as SetupOverlay } from "@/components/app/setup/setup-overlay-lazy";
 import type { Metadata } from "next";
 
 function relAge(iso: string | null): string {
