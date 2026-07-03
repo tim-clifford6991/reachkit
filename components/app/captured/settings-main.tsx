@@ -4,8 +4,10 @@
  * inside the captured AppShell.
  */
 import Link from "next/link";
+import { ProductUrlForm } from "./settings-product-url-form";
 
-const SG = "Space Grotesk", JM = "JetBrains Mono";
+const SG = "Space Grotesk", JM = "JetBrains Mono", PJ = "Plus Jakarta Sans";
+const SUPPORT_EMAIL = "hello@reachkit.app";
 
 export interface SettingsMainProps {
   planTitle: string;
@@ -16,6 +18,9 @@ export interface SettingsMainProps {
   appInitial: string;
   productMeta: string;
   dataFresh: boolean;
+  /** Present when the user has a tracked app — enables the product-URL editor. */
+  appId: string | null;
+  storeUrl: string | null;
 }
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
@@ -50,6 +55,9 @@ export function SettingsMain(p: SettingsMainProps) {
           </div>
           {p.dataFresh && <span style={{ fontSize: 12, fontWeight: 600, color: "#1F9D5B", background: "var(--c-tint-green)", padding: "4px 10px", borderRadius: 7 }}>data fresh</span>}
         </div>
+        {p.appId && (
+          <ProductUrlForm appId={p.appId} initialUrl={p.storeUrl ?? ""} />
+        )}
       </Card>
       <Card title="Scoring">
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -64,6 +72,46 @@ export function SettingsMain(p: SettingsMainProps) {
               {val}
             </div>
           ))}
+        </div>
+      </Card>
+      <Card title="Account">
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap",
+            padding: "14px 16px",
+            background: "var(--c-tint-red)",
+            border: "1px solid var(--c-line)",
+            borderRadius: 12,
+          }}
+        >
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 14, color: "var(--c-ink)" }}>Delete account</div>
+            <div style={{ fontSize: 12.5, color: "var(--c-muted)", marginTop: 2 }}>
+              Permanently remove your account and tracked data. We&apos;ll confirm by email.
+            </div>
+          </div>
+          <a
+            href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("Delete my ReachKit account")}`}
+            style={{
+              flexShrink: 0,
+              fontFamily: PJ,
+              fontWeight: 600,
+              fontSize: 13,
+              color: "#B23B3B",
+              background: "#fff",
+              border: "1px solid #E8C6C6",
+              borderRadius: 8,
+              padding: "8px 14px",
+              textDecoration: "none",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Delete account
+          </a>
         </div>
       </Card>
     </div>

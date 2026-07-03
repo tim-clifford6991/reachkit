@@ -1,5 +1,6 @@
 "use client";
 
+import type * as React from "react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -7,9 +8,39 @@ import dynamic from "next/dynamic";
 import type { PreliminaryFacts, ScanEvent } from "@/lib/scan/types";
 import type { FindingsPayload } from "./findings-reveal";
 import { funnel } from "@/lib/analytics";
-import { Badge } from "@/components/ui/badge";
 import { competitorSourceLabel } from "@/lib/scan/source-labels";
 import { ScanProgress } from "@/components/scan/scan-progress";
+
+// ── Design idiom: intel-kit — inline styles + `--c-*` tokens + the three fonts ─
+const SG = "var(--font-display)", PJ = "var(--font-sans)", JM = "var(--font-mono)";
+const CARD: React.CSSProperties = {
+  background: "var(--c-surface)",
+  border: "1px solid var(--c-line)",
+  borderRadius: 14,
+  padding: "24px 26px",
+};
+const EYEBROW: React.CSSProperties = {
+  fontFamily: JM,
+  fontSize: 11,
+  fontWeight: 600,
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: "var(--c-faint)",
+  margin: 0,
+};
+const CTA_LINK: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  height: 44,
+  background: "var(--c-action)",
+  color: "var(--c-on-dark)",
+  fontFamily: PJ,
+  fontWeight: 600,
+  fontSize: 13.5,
+  padding: "0 20px",
+  borderRadius: 12,
+  textDecoration: "none",
+};
 
 // Lazy-load the entire findings reveal (includes Motion + TrialCta + base-ui)
 // so none of it lands in the initial funnel chunk.
@@ -34,55 +65,34 @@ function FactsView({ facts, findingsData, scanId }: FactsViewProps) {
     facts.webProxy != null ? facts.webProxy.score.toFixed(0) : "—";
 
   return (
-    <div className="mx-auto max-w-2xl space-y-5 p-8">
+    <div style={{ maxWidth: 672, margin: "0 auto", padding: 32, display: "flex", flexDirection: "column", gap: 20, fontFamily: PJ, color: "var(--c-ink)" }}>
       {/* ── Product header ──────────────────────────────────────────────── */}
-      <div
-        className="rounded-xl border p-7"
-        style={{
-          borderColor: "var(--hairline)",
-          background: "var(--color-surface)",
-        }}
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h1
-              className="truncate text-lg font-semibold leading-tight"
-              style={{ color: "var(--color-fg)" }}
-            >
+      <div style={CARD}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+          <div style={{ minWidth: 0 }}>
+            <h1 style={{ fontFamily: SG, fontWeight: 700, fontSize: 19, lineHeight: 1.25, letterSpacing: "-0.01em", color: "var(--c-ink)", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
               {facts.listing.name}
             </h1>
             {facts.listing.category != null && (
-              <p
-                className="mt-0.5 text-sm"
-                style={{ color: "var(--color-muted)" }}
-              >
+              <p style={{ fontSize: 13.5, color: "var(--c-muted)", margin: "2px 0 0" }}>
                 {facts.listing.category}
               </p>
             )}
           </div>
-          <Badge variant="outline" className="shrink-0 capitalize">
+          <span style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", background: "var(--c-fill)", color: "var(--c-muted)", fontWeight: 700, fontSize: 11.5, padding: "3px 9px", borderRadius: 6, textTransform: "capitalize", whiteSpace: "nowrap" }}>
             {facts.mode}
-          </Badge>
+          </span>
         </div>
 
         {facts.listing.description != null && (
-          <p
-            className="mt-3 line-clamp-3 text-sm leading-relaxed"
-            style={{ color: "var(--color-muted)" }}
-          >
+          <p style={{ fontSize: 13.5, lineHeight: 1.6, color: "var(--c-muted)", margin: "12px 0 0", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
             {facts.listing.description}
           </p>
         )}
       </div>
 
       {/* ── Signal metrics ───────────────────────────────────────────────── */}
-      <div
-        className="grid grid-cols-2 gap-px rounded-xl border overflow-hidden sm:grid-cols-4"
-        style={{
-          borderColor: "var(--hairline)",
-          background: "var(--hairline)",
-        }}
-      >
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 1, borderRadius: 14, border: "1px solid var(--c-line)", overflow: "hidden", background: "var(--c-line)" }}>
         <MetricCell label="Reviews" value={String(facts.reviewVolume)} />
         {isApp ? (
           <MetricCell label="Avg rating" value={ratingDisplay} />
@@ -107,42 +117,22 @@ function FactsView({ facts, findingsData, scanId }: FactsViewProps) {
 
       {/* ── Competitors ──────────────────────────────────────────────────── */}
       {facts.competitors.length > 0 && (
-        <div
-          className="rounded-xl border p-7"
-          style={{
-            borderColor: "var(--hairline)",
-            background: "var(--color-surface)",
-          }}
-        >
-          <h2
-            className="mb-1 font-mono text-xs uppercase tracking-widest"
-            style={{ color: "var(--color-muted)" }}
-          >
-            Your competitive landscape
-          </h2>
-          <p className="mb-4 text-xs" style={{ color: "var(--color-muted)" }}>
+        <div style={CARD}>
+          <h2 style={{ ...EYEBROW, marginBottom: 4 }}>Your competitive landscape</h2>
+          <p style={{ fontSize: 12.5, color: "var(--c-muted)", margin: "0 0 16px" }}>
             Who shows up where your category buyers look:
           </p>
-          <ul className="space-y-3">
+          <ul style={{ display: "flex", flexDirection: "column", gap: 12, margin: 0, padding: 0, listStyle: "none" }}>
             {facts.competitors.slice(0, 5).map((c, i) => (
-              <li key={i} className="flex items-start gap-3 text-sm">
-                <span
-                  className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full font-mono text-[10px] tabular-nums"
-                  style={{ background: "var(--fill-subtle)", color: "var(--color-muted)" }}
-                >
+              <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12, fontSize: 13.5 }}>
+                <span style={{ marginTop: 2, width: 20, height: 20, flexShrink: 0, display: "grid", placeItems: "center", borderRadius: "50%", fontFamily: JM, fontSize: 10, background: "var(--c-fill)", color: "var(--c-muted)" }}>
                   {c.rank}
                 </span>
-                <div className="min-w-0">
-                  <p
-                    className="truncate font-medium"
-                    style={{ color: "var(--color-fg)" }}
-                  >
+                <div style={{ minWidth: 0 }}>
+                  <p style={{ fontWeight: 600, color: "var(--c-ink)", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {c.name}
                   </p>
-                  <p
-                    className="text-xs leading-snug"
-                    style={{ color: "var(--color-muted)" }}
-                  >
+                  <p style={{ fontSize: 12, lineHeight: 1.4, color: "var(--c-faint)", margin: 0 }}>
                     {competitorSourceLabel(c.source)}
                   </p>
                 </div>
@@ -150,10 +140,7 @@ function FactsView({ facts, findingsData, scanId }: FactsViewProps) {
             ))}
           </ul>
           {facts.competitors.length > 5 && (
-            <p
-              className="mt-3 font-mono text-xs"
-              style={{ color: "var(--color-muted)" }}
-            >
+            <p style={{ fontFamily: JM, fontSize: 12, color: "var(--c-muted)", margin: "12px 0 0" }}>
               +{facts.competitors.length - 5} more mapped in your full report
             </p>
           )}
@@ -162,37 +149,19 @@ function FactsView({ facts, findingsData, scanId }: FactsViewProps) {
 
       {/* ── Theme chips ──────────────────────────────────────────────────── */}
       {facts.themes.length > 0 && (
-        <div
-          className="rounded-xl border p-7"
-          style={{
-            borderColor: "var(--hairline)",
-            background: "var(--color-surface)",
-          }}
-        >
-          <h2
-            className="mb-1 font-mono text-xs uppercase tracking-widest"
-            style={{ color: "var(--color-muted)" }}
-          >
-            What buyers care about
-          </h2>
-          <p className="mb-3 text-xs" style={{ color: "var(--color-muted)" }}>
+        <div style={CARD}>
+          <h2 style={{ ...EYEBROW, marginBottom: 4 }}>What buyers care about</h2>
+          <p style={{ fontSize: 12.5, color: "var(--c-muted)", margin: "0 0 12px" }}>
             From {facts.reviewVolume} reviews — the language your buyers use:
           </p>
-          <div className="flex flex-wrap gap-2">
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {facts.themes.slice(0, 10).map((t, i) => (
               <span
                 key={i}
-                className="rounded-full border px-2.5 py-0.5 font-mono text-xs"
-                style={{
-                  borderColor: "var(--hairline)",
-                  color: "var(--color-muted)",
-                }}
+                style={{ border: "1px solid var(--c-line)", borderRadius: 999, padding: "2px 10px", fontFamily: JM, fontSize: 12, color: "var(--c-muted)" }}
               >
                 {t.term}
-                <span
-                  className="ml-1.5 tabular-nums"
-                  style={{ color: "var(--hairline-strong)" }}
-                >
+                <span style={{ marginLeft: 6, color: "var(--c-faint)" }}>
                   {t.count}
                 </span>
               </span>
@@ -216,20 +185,9 @@ function FactsView({ facts, findingsData, scanId }: FactsViewProps) {
 // Compact metric cell for the stats grid
 function MetricCell({ label, value }: { label: string; value: string }) {
   return (
-    <div
-      className="flex flex-col gap-0.5 p-4"
-      style={{ background: "var(--color-surface)" }}
-    >
-      <span
-        className="font-mono text-[10px] uppercase tracking-wider"
-        style={{ color: "var(--color-muted)" }}
-      >
-        {label}
-      </span>
-      <span
-        className="font-mono text-xl font-semibold tabular-nums leading-tight"
-        style={{ color: "var(--color-fg)" }}
-      >
+    <div style={{ display: "flex", flexDirection: "column", gap: 2, padding: 16, background: "var(--c-surface)" }}>
+      <span style={EYEBROW}>{label}</span>
+      <span style={{ fontFamily: JM, fontSize: 20, fontWeight: 700, lineHeight: 1.25, color: "var(--c-ink)" }}>
         {value}
       </span>
     </div>
@@ -240,10 +198,9 @@ function MetricCell({ label, value }: { label: string; value: string }) {
 
 function ScanError() {
   return (
-    <div className="mx-auto flex max-w-md flex-col items-center gap-5 px-6 py-20 text-center">
+    <div style={{ maxWidth: 448, margin: "0 auto", display: "flex", flexDirection: "column", alignItems: "center", gap: 20, padding: "80px 24px", textAlign: "center", fontFamily: PJ }}>
       <span
-        className="grid size-12 place-items-center rounded-full"
-        style={{ background: "var(--color-danger-subtle)", color: "var(--color-danger)" }}
+        style={{ width: 48, height: 48, display: "grid", placeItems: "center", borderRadius: "50%", background: "var(--c-tint-red)", color: "#E5484D" }}
         aria-hidden
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -251,18 +208,14 @@ function ScanError() {
           <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" />
         </svg>
       </span>
-      <h2 className="text-2xl font-semibold" style={{ color: "var(--color-fg)" }}>
+      <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: 24, letterSpacing: "-0.02em", color: "var(--c-ink)", margin: 0 }}>
         This scan didn&apos;t finish
       </h2>
-      <p className="text-base leading-relaxed" style={{ color: "var(--color-muted)" }}>
+      <p style={{ fontSize: 15, lineHeight: 1.6, color: "var(--c-muted)", margin: 0 }}>
         Something went wrong while analysing your product, or it took too long. This is on us —
         please try running the scan again.
       </p>
-      <Link
-        href="/scan"
-        className="inline-flex h-11 items-center rounded-lg px-5 text-sm font-semibold shadow-[var(--elevation-glow)] transition-transform hover:-translate-y-px motion-reduce:transform-none"
-        style={{ background: "var(--color-accent)", color: "var(--color-accent-fg)" }}
-      >
+      <Link href="/scan" style={CTA_LINK}>
         Try another scan
       </Link>
     </div>
@@ -479,12 +432,13 @@ export function ScanStream({
 // ── Hand-off placeholder — shown for the instant before routing to /results ───
 function PreparingResults() {
   return (
-    <div className="mx-auto flex max-w-md flex-col items-center gap-4 px-6 py-24 text-center">
-      <span className="relative flex h-2.5 w-2.5" aria-hidden="true">
-        <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" style={{ background: "var(--c-action)" }} />
-        <span className="relative inline-flex h-2.5 w-2.5 rounded-full" style={{ background: "var(--c-action)" }} />
+    <div style={{ maxWidth: 448, margin: "0 auto", display: "flex", flexDirection: "column", alignItems: "center", gap: 16, padding: "96px 24px", textAlign: "center" }}>
+      <style>{`@keyframes rk-ping{75%,100%{transform:scale(2.4);opacity:0}}`}</style>
+      <span style={{ position: "relative", display: "flex", width: 10, height: 10 }} aria-hidden="true">
+        <span style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "var(--c-action)", opacity: 0.75, animation: "rk-ping 1s cubic-bezier(0,0,0.2,1) infinite" }} />
+        <span style={{ position: "relative", display: "inline-flex", width: 10, height: 10, borderRadius: "50%", background: "var(--c-action)" }} />
       </span>
-      <p className="font-mono text-sm tracking-wide" style={{ color: "var(--c-muted)" }}>
+      <p style={{ fontFamily: JM, fontSize: 13.5, letterSpacing: "0.025em", color: "var(--c-muted)", margin: 0 }}>
         Preparing your report…
       </p>
     </div>
@@ -494,25 +448,15 @@ function PreparingResults() {
 // ── Scan-not-found state — a bad/expired id never shows a hard 404 ─────────────
 function ScanNotFound() {
   return (
-    <div className="mx-auto flex max-w-md flex-col items-center gap-5 px-6 py-20 text-center">
-      <h2
-        className="text-2xl font-semibold"
-        style={{ color: "var(--color-fg)" }}
-      >
+    <div style={{ maxWidth: 448, margin: "0 auto", display: "flex", flexDirection: "column", alignItems: "center", gap: 20, padding: "80px 24px", textAlign: "center", fontFamily: PJ }}>
+      <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: 24, letterSpacing: "-0.02em", color: "var(--c-ink)", margin: 0 }}>
         We couldn&apos;t find that scan
       </h2>
-      <p
-        className="text-base leading-relaxed"
-        style={{ color: "var(--color-muted)" }}
-      >
+      <p style={{ fontSize: 15, lineHeight: 1.6, color: "var(--c-muted)", margin: 0 }}>
         This scan link is invalid or has expired. Start a fresh scan and
         we&apos;ll analyse your product from scratch.
       </p>
-      <Link
-        href="/scan"
-        className="inline-flex h-11 items-center rounded-lg px-5 text-sm font-semibold shadow-[var(--elevation-glow)] transition-transform hover:-translate-y-px motion-reduce:transform-none"
-        style={{ background: "var(--color-accent)", color: "var(--color-accent-fg)" }}
-      >
+      <Link href="/scan" style={CTA_LINK}>
         Start a scan
       </Link>
     </div>

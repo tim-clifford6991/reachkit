@@ -1,5 +1,6 @@
 "use client";
 
+import type * as React from "react";
 import dynamic from "next/dynamic";
 import type {
   Finding,
@@ -7,20 +8,21 @@ import type {
   PositioningMirror,
   SampleAction,
 } from "@/lib/llm/types";
-import { Badge } from "@/components/ui/badge";
+import { ScoreGauge } from "@/components/report/score-gauge";
 
 // ---------------------------------------------------------------------------
-// Lazy-load heavy components — keeps the initial funnel chunk lean
+// Design idiom: intel-kit — inline styles + `--c-*` tokens, Space Grotesk /
+// Plus Jakarta Sans / JetBrains Mono. The score dial is the SAME canonical
+// gauge geometry the results screen uses (components/report/score-gauge.tsx).
 // ---------------------------------------------------------------------------
 
-// DiscoverabilityScore: SVG-based, drives view-transition shared-element morph
-const DiscoverabilityScore = dynamic(
-  () =>
-    import("@/components/report/discoverability-score").then(
-      (m) => m.DiscoverabilityScore
-    ),
-  { ssr: false, loading: () => <ScoreRingSkeleton /> }
-);
+const SG = "var(--font-display)", PJ = "var(--font-sans)", JM = "var(--font-mono)";
+
+const CARD: React.CSSProperties = {
+  background: "var(--c-surface)",
+  border: "1px solid var(--c-line)",
+  borderRadius: 14,
+};
 
 // Motion stagger for the findings list
 const Stagger = dynamic(
@@ -43,43 +45,28 @@ export interface FindingsPayload {
   score: ScoreResult;
   positioningMirror: PositioningMirror;
   findings: Finding[];
-  sampleAction: SampleAction;
+  /** Absent on payloads persisted before the sample-action step existed. */
+  sampleAction?: SampleAction;
 }
 
 // ---------------------------------------------------------------------------
-// Skeleton — shown while DiscoverabilityScore lazy-loads
+// Small kit primitives (local — funnel-only)
 // ---------------------------------------------------------------------------
 
-function ScoreRingSkeleton() {
+function Eyebrow({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
   return (
-    <div className="flex flex-col items-center gap-4">
-      <div
-        className="h-[140px] w-[140px] animate-pulse rounded-full"
-        style={{ background: "var(--fill-subtle)" }}
-        aria-hidden="true"
-      />
-      <div
-        className="h-3 w-20 animate-pulse rounded-lg"
-        style={{ background: "var(--fill-subtle)" }}
-        aria-hidden="true"
-      />
-    </div>
+    <p style={{ fontFamily: JM, fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--c-faint)", margin: 0, ...style }}>
+      {children}
+    </p>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Build a VerifiedScore-shaped object from the ScoreResult we have at this
-// stage. The partial-reveal score is "preliminary" (basis from facts), so we
-// annotate it with an empty radar to satisfy DiscoverabilityScore's type.
-// The real radar appears on the full results page after email unlock.
-// ---------------------------------------------------------------------------
-
-function buildPreviewScore(score: ScoreResult) {
-  return {
-    ...score,
-    radar: [] as Array<{ axis: string; value: number; active: boolean }>,
-    basis: "preliminary" as const,
-  };
+function Chip({ children }: { children: React.ReactNode }) {
+  return (
+    <span style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", background: "var(--c-fill)", color: "var(--c-muted)", fontFamily: PJ, fontWeight: 700, fontSize: 11.5, padding: "3px 9px", borderRadius: 6, lineHeight: 1.2, whiteSpace: "nowrap", textTransform: "capitalize" }}>
+      {children}
+    </span>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -87,55 +74,30 @@ function buildPreviewScore(score: ScoreResult) {
 // ---------------------------------------------------------------------------
 
 function FullFinding({ finding }: { finding: Finding }) {
-  const categoryLabel =
-    finding.category === "seo_aso" ? "SEO / ASO" : finding.category;
+  const label = finding.category === "seo_aso" ? "SEO / ASO" : finding.category;
 
   return (
-    <div
-      className="space-y-3 rounded-xl border p-7"
-      style={{
-        borderColor: "var(--hairline)",
-        background: "var(--color-surface)",
-      }}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <p
-          className="text-sm font-medium leading-snug"
-          style={{ color: "var(--color-fg)" }}
-        >
+    <div style={{ ...CARD, padding: "20px 22px", display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+        <p style={{ fontFamily: PJ, fontSize: 14.5, fontWeight: 600, lineHeight: 1.45, color: "var(--c-ink)", margin: 0 }}>
           {finding.claim}
         </p>
-        <Badge variant="outline" className="shrink-0 capitalize">
-          {categoryLabel}
-        </Badge>
+        <Chip>{label}</Chip>
       </div>
 
-      <p
-        className="font-mono text-xs"
-        style={{ color: "var(--color-muted)" }}
-      >
+      <p style={{ fontFamily: JM, fontSize: 12, color: "var(--c-faint)", margin: 0 }}>
         {finding.basis === "evidence_based" ? "Evidence-based" : "Probability-based"}
         {" · "}confidence {Math.round(finding.confidence * 100)}%
       </p>
 
       {finding.evidence.length > 0 && (
-        <ul className="space-y-2">
+        <ul style={{ display: "flex", flexDirection: "column", gap: 8, margin: 0, padding: 0, listStyle: "none" }}>
           {finding.evidence.map((ev, i) => (
-            <li
-              key={i}
-              className="rounded-lg px-3 py-2.5"
-              style={{ background: "var(--fill-subtle)" }}
-            >
-              <p
-                className="text-xs italic leading-relaxed"
-                style={{ color: "oklch(0.90 0 0)" }}
-              >
+            <li key={i} style={{ background: "var(--c-fill)", borderRadius: 10, padding: "10px 12px" }}>
+              <p style={{ fontFamily: PJ, fontSize: 12.5, fontStyle: "italic", lineHeight: 1.6, color: "var(--c-muted)", margin: 0 }}>
                 &ldquo;{ev.excerpt}&rdquo;
               </p>
-              <p
-                className="mt-1 font-mono text-[10px]"
-                style={{ color: "var(--color-muted)" }}
-              >
+              <p style={{ fontFamily: JM, fontSize: 10.5, color: "var(--c-faint)", margin: "4px 0 0" }}>
                 {ev.source}
               </p>
             </li>
@@ -165,26 +127,15 @@ function LockedFinding({ finding, index }: { finding: Finding; index: number }) 
 
   return (
     <div
-      className="relative overflow-hidden rounded-xl border"
-      style={{ borderColor: "var(--hairline)" }}
+      style={{ ...CARD, position: "relative", overflow: "hidden" }}
       aria-label={`Locked finding ${index + 1}: unlock to read`}
     >
       {/* Real headline + preview — blurred */}
-      <div
-        className="select-none px-7 py-4"
-        style={{ background: "var(--color-surface)" }}
-        aria-hidden="true"
-      >
-        <p
-          className="text-sm font-medium leading-snug blur-[4px]"
-          style={{ color: "var(--color-fg)" }}
-        >
+      <div style={{ userSelect: "none", padding: "16px 22px" }} aria-hidden="true">
+        <p style={{ fontFamily: PJ, fontSize: 14.5, fontWeight: 600, lineHeight: 1.45, color: "var(--c-ink)", margin: 0, filter: "blur(4px)" }}>
           {finding.claim}
         </p>
-        <p
-          className="mt-1.5 font-mono text-xs blur-[3px]"
-          style={{ color: "var(--color-muted)" }}
-        >
+        <p style={{ fontFamily: JM, fontSize: 12, color: "var(--c-faint)", margin: "6px 0 0", filter: "blur(3px)" }}>
           {evidenceLabel} · {communityHint}
         </p>
       </div>
@@ -211,8 +162,7 @@ function categoryLabel(cat: string): string {
 function TeaserDot() {
   return (
     <span
-      className="mt-1.5 size-1.5 shrink-0 rounded-full"
-      style={{ background: "var(--color-accent-500)" }}
+      style={{ marginTop: 6, width: 6, height: 6, flexShrink: 0, borderRadius: "50%", background: "var(--c-action)" }}
       aria-hidden="true"
     />
   );
@@ -220,30 +170,9 @@ function TeaserDot() {
 
 function LockIcon() {
   return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      fill="none"
-      aria-hidden="true"
-    >
-      <rect
-        x="1.5"
-        y="5"
-        width="9"
-        height="6.5"
-        rx="1.5"
-        stroke="currentColor"
-        strokeWidth="1.2"
-        style={{ color: "oklch(0.76 0 0)" }}
-      />
-      <path
-        d="M3.5 5V3.5a2.5 2.5 0 0 1 5 0V5"
-        stroke="currentColor"
-        strokeWidth="1.2"
-        strokeLinecap="round"
-        style={{ color: "oklch(0.76 0 0)" }}
-      />
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true" style={{ color: "var(--c-on-dark-muted)" }}>
+      <rect x="1.5" y="5" width="9" height="6.5" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
+      <path d="M3.5 5V3.5a2.5 2.5 0 0 1 5 0V5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
     </svg>
   );
 }
@@ -266,18 +195,15 @@ function LockBadge({ label }: { label: string }) {
     <button
       type="button"
       onClick={scrollToGate}
-      className="absolute inset-0 flex cursor-pointer items-center justify-center backdrop-blur-[2px] transition-transform hover:scale-[1.02] motion-reduce:transform-none"
+      style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", background: "transparent", border: "none", padding: 0, backdropFilter: "blur(2px)", WebkitBackdropFilter: "blur(2px)" }}
       aria-label={label}
     >
-      <div
-        className="flex items-center gap-2 rounded-full border px-3 py-1.5"
-        style={{ borderColor: "oklch(1 0 0 / 0.18)", background: "oklch(0.085 0 0 / 0.85)" }}
-      >
+      <span style={{ display: "flex", alignItems: "center", gap: 8, borderRadius: 999, background: "var(--c-dark)", border: "1px solid var(--c-dark2)", padding: "6px 13px", boxShadow: "rgba(40,33,84,0.28) 0px 10px 26px -12px" }}>
         <LockIcon />
-        <span className="text-xs font-medium" style={{ color: "oklch(0.96 0.006 85)" }}>
+        <span style={{ fontFamily: PJ, fontSize: 12, fontWeight: 600, color: "var(--c-on-dark)" }}>
           Unlock full report
         </span>
-      </div>
+      </span>
     </button>
   );
 }
@@ -298,97 +224,45 @@ export function FindingsReveal({
   const { score, positioningMirror, findings, sampleAction } = data;
   const [firstFinding, ...restFindings] = findings;
 
-  // Build the preview score — uses the DiscoverabilityScore visual (signature moment)
-  const previewScore = buildPreviewScore(score);
-
   return (
-    <div className="space-y-6">
-      {/* ── Score reveal — THE signature moment (§23.3) ─────────────────── */}
-      <div
-        className="flex flex-col items-center rounded-xl border py-8"
-        style={{
-          borderColor: "var(--color-accent-900)",
-          background:
-            "linear-gradient(135deg, var(--color-surface) 0%, var(--color-elevated) 100%)",
-        }}
-      >
-        <p
-          className="mb-6 font-mono text-xs uppercase tracking-widest"
-          style={{ color: "var(--color-muted)" }}
-        >
-          Your discoverability score
-        </p>
+    <div style={{ display: "flex", flexDirection: "column", gap: 24, fontFamily: PJ, color: "var(--c-ink)" }}>
+      {/* ── Score reveal — THE signature moment (§23.3): the SAME canonical
+             gauge the results screen renders seconds later. ───────────────── */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", background: "linear-gradient(120deg, var(--c-tint-violet), var(--c-soft))", border: "1px solid var(--c-tint-violet-line)", borderRadius: 16, padding: "32px 24px" }}>
+        <Eyebrow style={{ marginBottom: 20 }}>Your discoverability score</Eyebrow>
 
-        {/* DiscoverabilityScore — count-up NumberTicker + radial sweep */}
-        <DiscoverabilityScore
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          score={previewScore as any}
-          size="sm"
-        />
+        <ScoreGauge score={score.total} size={200} />
 
-        <p
-          className="mt-6 max-w-xs text-center text-xs leading-relaxed"
-          style={{ color: "var(--color-muted)" }}
-        >
+        <p style={{ marginTop: 20, maxWidth: 320, textAlign: "center", fontSize: 12.5, lineHeight: 1.6, color: "var(--c-muted)" }}>
           Based on content signals, keyword coverage, and competitive gaps.
           Your full report reveals exactly what to fix first.
         </p>
       </div>
 
       {/* ── Positioning mirror ───────────────────────────────────────────── */}
-      <div
-        className="space-y-3 rounded-xl border p-7"
-        style={{
-          borderColor: "var(--hairline)",
-          background: "var(--color-surface)",
-        }}
-      >
-        <h2
-          className="font-mono text-xs uppercase tracking-widest"
-          style={{ color: "var(--color-muted)" }}
-        >
+      <div style={{ ...CARD, borderRadius: 16, padding: "20px 22px", display: "flex", flexDirection: "column", gap: 14 }}>
+        <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: 15, color: "var(--c-ink)", margin: 0 }}>
           Positioning mirror
         </h2>
 
-        <div className="space-y-3">
-          <div className="space-y-1">
-            <p
-              className="font-mono text-[10px] uppercase tracking-wider"
-              style={{ color: "var(--color-muted)" }}
-            >
-              Your listing says
-            </p>
-            <p className="text-sm" style={{ color: "var(--color-fg)" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div>
+            <Eyebrow>Your listing says</Eyebrow>
+            <p style={{ fontSize: 14, lineHeight: 1.55, color: "var(--c-ink)", margin: "4px 0 0" }}>
               {positioningMirror.listingSays}
             </p>
           </div>
 
-          <div className="space-y-1">
-            <p
-              className="font-mono text-[10px] uppercase tracking-wider"
-              style={{ color: "var(--color-muted)" }}
-            >
-              Your reviews value
-            </p>
-            <p className="text-sm" style={{ color: "var(--color-fg)" }}>
+          <div>
+            <Eyebrow>Your reviews value</Eyebrow>
+            <p style={{ fontSize: 14, lineHeight: 1.55, color: "var(--c-ink)", margin: "4px 0 0" }}>
               {positioningMirror.reviewsValue}
             </p>
           </div>
 
-          <div
-            className="rounded-lg px-3 py-2.5"
-            style={{ background: "var(--color-danger-subtle)" }}
-          >
-            <p
-              className="font-mono text-[10px] uppercase tracking-wider"
-              style={{ color: "oklch(0.70 0.20 22 / 0.8)" }}
-            >
-              Gap
-            </p>
-            <p
-              className="mt-0.5 text-sm"
-              style={{ color: "var(--color-fg)" }}
-            >
+          <div style={{ background: "var(--c-tint-red)", borderLeft: "3px solid #E5484D", borderRadius: "0 10px 10px 0", padding: "10px 14px" }}>
+            <Eyebrow style={{ color: "#E5484D" }}>Gap</Eyebrow>
+            <p style={{ fontSize: 14, lineHeight: 1.55, color: "var(--c-ink)", margin: "2px 0 0" }}>
               {positioningMirror.gap}
             </p>
           </div>
@@ -396,20 +270,15 @@ export function FindingsReveal({
       </div>
 
       {/* ── Findings — first one full, rest blur-locked ──────────────────── */}
-      <div className="space-y-3">
-        <h2
-          className="font-mono text-xs uppercase tracking-widest"
-          style={{ color: "var(--color-muted)" }}
-        >
-          Findings
-        </h2>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <Eyebrow>Findings</Eyebrow>
 
         {/* First finding — shown IN FULL with evidence */}
         {firstFinding !== undefined && <FullFinding finding={firstFinding} />}
 
         {/* Remaining findings — real headlines blur-locked */}
         {restFindings.length > 0 && (
-          <div className="space-y-2">
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <Stagger>
               {restFindings.map((f, i) => (
                 <LockedFinding key={i} finding={f} index={i} />
@@ -420,84 +289,54 @@ export function FindingsReveal({
       </div>
 
       {/* ── Sample action — blur-locked with real title visible ─────────── */}
-      <div
-        className="relative overflow-hidden rounded-xl border"
-        style={{ borderColor: "var(--hairline)" }}
-      >
-        <div
-          className="select-none space-y-2 p-7"
-          style={{ background: "var(--color-surface)" }}
-          aria-hidden="true"
-        >
-          <div className="flex items-start justify-between gap-3">
-            <p
-              className="text-sm font-medium leading-snug blur-[4px]"
-              style={{ color: "var(--color-fg)" }}
-            >
-              {sampleAction.title}
+      {sampleAction && (
+        <div style={{ ...CARD, position: "relative", overflow: "hidden" }}>
+          <div style={{ userSelect: "none", padding: "20px 22px", display: "flex", flexDirection: "column", gap: 8 }} aria-hidden="true">
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+              <p style={{ fontSize: 14.5, fontWeight: 600, lineHeight: 1.45, color: "var(--c-ink)", margin: 0, filter: "blur(4px)" }}>
+                {sampleAction.title}
+              </p>
+              <span style={{ filter: "blur(3px)", display: "inline-flex" }}>
+                <Chip>{categoryLabel(sampleAction.category)}</Chip>
+              </span>
+            </div>
+            <p style={{ fontSize: 12.5, lineHeight: 1.6, color: "var(--c-muted)", margin: 0, filter: "blur(4px)" }}>
+              {sampleAction.why}
             </p>
-            <span
-              className="rounded-full border px-2 py-0.5 font-mono text-xs blur-[3px]"
-              style={{
-                borderColor: "var(--hairline)",
-                color: "var(--color-muted)",
-              }}
-            >
-              {categoryLabel(sampleAction.category)}
-            </span>
+            <p style={{ fontFamily: JM, fontSize: 12, lineHeight: 1.6, color: "var(--c-muted)", background: "var(--c-fill)", borderRadius: 10, padding: "8px 12px", margin: "4px 0 0", filter: "blur(4px)", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+              {sampleAction.draft}
+            </p>
           </div>
-          <p
-            className="text-xs leading-relaxed blur-[4px]"
-            style={{ color: "var(--color-muted)" }}
-          >
-            {sampleAction.why}
-          </p>
-          <p
-            className="mt-2 rounded-lg px-3 py-2 font-mono text-xs leading-relaxed blur-[4px] line-clamp-3"
-            style={{
-              background: "var(--fill-subtle)",
-              color: "var(--color-muted)",
-            }}
-          >
-            {sampleAction.draft}
-          </p>
+          <LockBadge label="Unlock your action plan" />
         </div>
-        <LockBadge label="Unlock your action plan" />
-      </div>
+      )}
 
       {/* ── What your report also contains (pre-gate teaser) ─────────────── */}
-      <div
-        className="rounded-xl border p-7"
-        style={{ borderColor: "var(--hairline)", background: "var(--color-surface)" }}
-      >
-        <p
-          className="mb-3 font-mono text-[10px] uppercase tracking-widest"
-          style={{ color: "var(--color-muted)" }}
-        >
-          What your report also contains
-        </p>
-        <ul className="space-y-2 text-sm" style={{ color: "var(--color-fg)" }}>
+      <div style={{ ...CARD, padding: "20px 22px" }}>
+        <Eyebrow style={{ marginBottom: 12 }}>What your report also contains</Eyebrow>
+        <ul style={{ display: "flex", flexDirection: "column", gap: 8, margin: 0, padding: 0, listStyle: "none", fontSize: 14, lineHeight: 1.5, color: "var(--c-ink)" }}>
           {competitorCount > 0 && (
-            <li className="flex items-start gap-2.5">
+            <li style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
               <TeaserDot />
-              {competitorCount} competitor{competitorCount === 1 ? "" : "s"} analysed — their
-              positioning and where they outrank you
+              <span>
+                {competitorCount} competitor{competitorCount === 1 ? "" : "s"} analysed — their
+                positioning and where they outrank you
+              </span>
             </li>
           )}
-          <li className="flex items-start gap-2.5">
+          <li style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
             <TeaserDot />
-            The communities where your buyers actually gather
+            <span>The communities where your buyers actually gather</span>
           </li>
-          <li className="flex items-start gap-2.5">
+          <li style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
             <TeaserDot />
-            A prioritized action plan across content, outreach &amp; SEO
+            <span>A prioritized action plan across content, outreach &amp; SEO</span>
           </li>
         </ul>
         <button
           type="button"
           onClick={scrollToGate}
-          className="mt-4 text-xs font-medium underline underline-offset-4 transition-colors"
-          style={{ color: "var(--color-accent-400)" }}
+          style={{ marginTop: 16, background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: PJ, fontSize: 12.5, fontWeight: 600, color: "var(--c-action)", textDecoration: "underline", textUnderlineOffset: 4 }}
         >
           Unlock the full report →
         </button>
@@ -506,21 +345,13 @@ export function FindingsReveal({
       {/* ── Moment 4: Trial wall (every locked CTA scrolls here) ─────────── */}
       <div
         id="unlock-gate"
-        className="scroll-mt-8 rounded-xl border p-8"
-        style={{
-          borderColor: "var(--color-accent-900)",
-          background:
-            "linear-gradient(135deg, var(--color-surface) 0%, var(--color-elevated) 100%)",
-        }}
+        style={{ scrollMarginTop: 32, background: "linear-gradient(120deg, var(--c-tint-violet), var(--c-soft))", border: "1px solid var(--c-tint-violet-line)", borderRadius: 16, padding: "28px 26px" }}
       >
-        <div className="mb-5 space-y-1.5">
-          <h2
-            className="text-base font-semibold"
-            style={{ color: "var(--color-fg)" }}
-          >
+        <div style={{ marginBottom: 20, display: "flex", flexDirection: "column", gap: 6 }}>
+          <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: 18, letterSpacing: "-0.01em", color: "var(--c-ink)", margin: 0 }}>
             See who&apos;s ahead — and exactly what to do about it
           </h2>
-          <p className="text-sm" style={{ color: "var(--color-muted)" }}>
+          <p style={{ fontSize: 14, lineHeight: 1.55, color: "var(--c-muted)", margin: 0 }}>
             Unlock the full report to see all{" "}
             {restFindings.length > 0
               ? `${restFindings.length + 1} findings`

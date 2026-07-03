@@ -7,6 +7,10 @@
  *
  * The primary app is users.app_ids[0]. If app_ids is empty, the dashboard
  * page shows an empty state linking to / to run a scan.
+ *
+ * First-run gate: computes setupState (profile → competitors → ready) and,
+ * until "ready", renders the blocking <SetupOverlay/> over the inert shell —
+ * the entire app is locked until onboarding + competitor selection complete.
  */
 
 import { Suspense } from "react";
@@ -17,9 +21,11 @@ import { serverDb } from "@/lib/db/client";
 import type { ReportPayload } from "@/lib/scan/report";
 import type { Tier } from "@/lib/billing/tiers";
 import { activeAppId, userApps } from "@/lib/app/active-app";
+import { getSelectedCompetitors } from "@/lib/scan/competitor-selection";
 import { CommandPalette } from "@/components/app/command-palette";
 import { AppShell } from "@/components/app/captured/app-shell";
 import { ShellSkeleton } from "@/components/app/captured/skeletons";
+import { SetupOverlayLazy as SetupOverlay } from "@/components/app/setup/setup-overlay-lazy";
 import type { Metadata } from "next";
 
 function relAge(iso: string | null): string {
@@ -52,17 +58,19 @@ async function SidebarData({ children }: { children: React.ReactNode }) {
   const primaryAppId = await activeAppId(user);
 
   let appName: string | null = null;
+  let domain: string | null = null;
   let lastScannedIso: string | null = null;
   const actionsCount = 0;
 
+  const db = serverDb();
   if (primaryAppId) {
-    const db = serverDb();
     const { data: appRow } = await db
       .from("apps")
       .select("name, store_url")
       .eq("id", primaryAppId)
       .maybeSingle();
     appName = appRow?.name ?? appRow?.store_url ?? null;
+    domain = (appRow?.store_url as string | null) ?? null;
 
     const { data: scanRow } = await db
       .from("scans")
@@ -72,6 +80,36 @@ async function SidebarData({ children }: { children: React.ReactNode }) {
       .limit(1)
       .maybeSingle();
     lastScannedIso = (scanRow?.completed_at as string | null) ?? null;
+  }
+
+  // ── Setup gate ─────────────────────────────────────────────────────────────
+  // The blocking first-run sequence. "profile" until saveOnboarding sets
+  // `onboarded_at`; then "competitors" until the active app has a confirmed
+  // benchmark cohort (same source resolveIntelContext reads); else "ready".
+  // Users with no scanned app can't pick competitors — they're "ready" after
+  // the profile step (the dashboard empty state points at the first scan).
+  let setupState: "profile" | "competitors" | "ready" = "ready";
+  if (!user.onboarded_at) {
+    setupState = "profile";
+  } else if (primaryAppId && domain && (await getSelectedCompetitors(primaryAppId)).length === 0) {
+    setupState = "competitors";
+  }
+
+  // Profile step prefill: detected ICP traits from the latest scan report
+  // (fetched only when the step will actually render — report payloads are big).
+  let icpSignals: string[] = [];
+  if (setupState === "profile" && primaryAppId) {
+    const { data: reportRow } = await db
+      .from("scans")
+      .select("report_payload")
+      .eq("app_id", primaryAppId)
+      .order("completed_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (reportRow?.report_payload) {
+      const payload = reportRow.report_payload as unknown as ReportPayload;
+      icpSignals = payload.whoItsFor?.signals?.slice(0, 8) ?? [];
+    }
   }
 
   const email = user.email ?? "";
@@ -101,7 +139,7 @@ async function SidebarData({ children }: { children: React.ReactNode }) {
 
   void actionsCount;
 
-  return (
+  const shell = (
     <AppShell
       appName={appName ?? "your site"}
       plan={PLAN_LABEL[tier] ?? "Free plan"}
@@ -119,6 +157,28 @@ async function SidebarData({ children }: { children: React.ReactNode }) {
     >
       {children}
     </AppShell>
+  );
+
+  // Setup not complete → the SetupOverlay locks the WHOLE app. The shell still
+  // renders behind it (inert, hidden from AT, unclickable) so completing setup
+  // feels like unlocking the dashboard in place. The ⌘K palette only mounts once
+  // the app is unlocked. Sign-out stays possible from inside the overlay.
+  if (setupState !== "ready") {
+    return (
+      <>
+        <div inert aria-hidden style={{ pointerEvents: "none", userSelect: "none" }}>
+          {shell}
+        </div>
+        <SetupOverlay initialStep={setupState} domain={domain} icpSignals={icpSignals} />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <CommandPalette />
+      {shell}
+    </>
   );
 }
 
@@ -139,12 +199,10 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   return (
-    <>
-      {/* ⌘K command palette — globally available across the app shell */}
-      <CommandPalette />
-      <Suspense fallback={<ShellSkeleton>{children}</ShellSkeleton>}>
-        <SidebarData>{children}</SidebarData>
-      </Suspense>
-    </>
+    // The ⌘K command palette mounts inside SidebarData (only once setup is
+    // complete — while the SetupOverlay locks the app, no palette either).
+    <Suspense fallback={<ShellSkeleton>{children}</ShellSkeleton>}>
+      <SidebarData>{children}</SidebarData>
+    </Suspense>
   );
 }

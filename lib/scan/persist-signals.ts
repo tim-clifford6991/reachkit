@@ -7,7 +7,11 @@
 
 import { serverDb } from "@/lib/db/client";
 import { extractHtmlSignals } from "./extract-html";
-import { computeScanSignals, type MarketSignalInputs } from "./compute-signals";
+import {
+  computeScanSignals,
+  type MarketSignalInputs,
+  type ScanSignalRow,
+} from "./compute-signals";
 import type { ScoreComponents } from "./score-full";
 import type { Platform } from "./router";
 import type { MarketAnalysis } from "./gap";
@@ -53,6 +57,22 @@ async function readSubjectHtml(subjectKey: string): Promise<string | null> {
   return null;
 }
 
+/**
+ * Compute the 18-signal rows for a scan (HTML re-read from raw_documents; no
+ * writes). Shared by `persistScanSignals` and the full-scan action floor.
+ */
+export async function computeSignalRowsForScan(args: {
+  mode: Platform;
+  storeUrl: string;
+  components: ScoreComponents;
+  market: MarketAnalysis | null | undefined;
+}): Promise<ScanSignalRow[]> {
+  const { mode, storeUrl, components, market } = args;
+  const rawHtml = mode === "web" ? await readSubjectHtml(storeUrl) : null;
+  const html = rawHtml ? extractHtmlSignals(rawHtml) : null;
+  return computeScanSignals(mode, html, components, marketToSignalInputs(market));
+}
+
 export async function persistScanSignals(args: {
   scanId: string;
   mode: Platform;
@@ -62,9 +82,7 @@ export async function persistScanSignals(args: {
 }): Promise<void> {
   const { scanId, mode, storeUrl, components, market } = args;
 
-  const rawHtml = mode === "web" ? await readSubjectHtml(storeUrl) : null;
-  const html = rawHtml ? extractHtmlSignals(rawHtml) : null;
-  const computed = computeScanSignals(mode, html, components, marketToSignalInputs(market));
+  const computed = await computeSignalRowsForScan({ mode, storeUrl, components, market });
 
   const db = serverDb();
 

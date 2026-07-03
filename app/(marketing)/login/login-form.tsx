@@ -44,23 +44,19 @@ export function LoginForm({ next }: { next?: string }) {
 
   if (state.status === "sent") {
     return (
-      <div
-        className="flex items-start gap-3 rounded-xl border px-5 py-4"
-        style={{ borderColor: "var(--color-success-subtle)", background: "var(--color-success-subtle)" }}
-      >
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 12, borderRadius: 12, border: "1px solid color-mix(in oklab, #1f9d5b 25%, transparent)", background: "var(--c-tint-green)", padding: "16px 20px" }}>
         <span
-          className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full"
-          style={{ background: "var(--color-success)", color: "var(--color-success-fg)" }}
+          style={{ marginTop: 2, display: "grid", width: 20, height: 20, flexShrink: 0, placeItems: "center", borderRadius: "50%", background: "#1f9d5b", color: "var(--c-on-dark)", fontSize: 12 }}
           aria-hidden
         >
           ✓
         </span>
-        <div className="space-y-0.5">
-          <p className="text-sm font-medium" style={{ color: "var(--color-fg)" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <p style={{ fontSize: 14, fontWeight: 600, color: "var(--c-ink)", margin: 0 }}>
             Magic link sent
           </p>
-          <p className="text-sm" style={{ color: "var(--color-muted)" }}>
-            Check <span style={{ color: "var(--color-accent-400)" }}>{state.email}</span> and click the
+          <p style={{ fontSize: 14, color: "var(--c-muted)", margin: 0 }}>
+            Check <span style={{ color: "var(--c-action)", fontWeight: 600 }}>{state.email}</span> and click the
             link to sign in.
           </p>
         </div>
@@ -92,7 +88,7 @@ export function LoginForm({ next }: { next?: string }) {
         className="h-[50px] w-full min-w-0 rounded-[12px] border bg-white px-4 text-base font-medium text-[var(--c-ink)] outline-none transition-colors placeholder:text-[var(--c-faint)] focus-visible:border-[var(--c-action)] focus-visible:ring-4 focus-visible:ring-[var(--c-action)]/15 disabled:opacity-60 border-[var(--c-line)]"
       />
       {state.status === "error" && (
-        <p className="text-sm text-destructive" role="alert">
+        <p style={{ fontSize: 14, color: "#e5484d", margin: 0 }} role="alert">
           {state.message}
         </p>
       )}

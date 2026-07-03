@@ -40,10 +40,11 @@ async function WelcomeContent({
 }: {
   searchParams: Promise<{ session_id?: string; fixture?: string }>;
 }) {
-  // Already signed in (arrived via the magic link) → forward.
+  // Already signed in (arrived via the magic link) → forward. The app layout's
+  // SetupOverlay takes over for anyone whose setup is incomplete.
   const viewer = await currentUser();
   if (viewer) {
-    redirect(viewer.user.onboarded_at ? "/app" : "/app/onboarding");
+    redirect("/app");
   }
 
   const { session_id } = await searchParams;

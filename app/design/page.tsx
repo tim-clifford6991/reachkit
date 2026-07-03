@@ -41,7 +41,7 @@ export default function DesignIndex() {
       style={{
         background: "oklch(0.97 0.01 75)",
         color: "oklch(0.27 0.02 60)",
-        fontFamily: "var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif",
+        fontFamily: "var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif",
       }}
     >
       <div className="mx-auto max-w-4xl">

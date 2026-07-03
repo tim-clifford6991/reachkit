@@ -2,9 +2,11 @@ import Link from "next/link";
 
 /**
  * ComingSoon — a calm, branded placeholder for pages that are linked from the
- * nav/footer but not built yet (Blog, Changelog, Roadmap, Docs, Status). Routes
- * using this should also export `robots: { index: false }` so search engines
- * don't index empty pages.
+ * nav/footer but not built yet (Roadmap, Status). Routes using this should also
+ * export `robots: { index: false }` so search engines don't index empty pages.
+ *
+ * Design idiom: intel-kit — inline styles + `--c-*` tokens, Space Grotesk /
+ * Plus Jakarta Sans / JetBrains Mono.
  */
 export function ComingSoon({
   eyebrow,
@@ -17,39 +19,28 @@ export function ComingSoon({
 }) {
   return (
     <main
-      className="flex min-h-[62vh] flex-col items-center justify-center px-(--spacing-content-x) py-(--spacing-section-y) text-center"
+      style={{ minHeight: "62vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "var(--spacing-section-y, 96px) var(--spacing-content-x, 24px)", textAlign: "center", fontFamily: "var(--font-sans)" }}
       aria-label={title}
     >
-      <p
-        className="font-mono text-[11px] uppercase tracking-widest"
-        style={{ color: "var(--color-accent-400)" }}
-      >
+      <p style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-action)", margin: 0 }}>
         {eyebrow}
       </p>
-      <h1
-        className="mt-3 text-4xl sm:text-5xl"
-        style={{ color: "var(--color-fg)", lineHeight: 1.05 }}
-      >
+      <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "clamp(34px, 5vw, 46px)", letterSpacing: "-0.02em", lineHeight: 1.05, color: "var(--c-ink)", margin: "12px 0 0" }}>
         {title}
       </h1>
-      <p
-        className="mt-4 max-w-md text-lg leading-relaxed"
-        style={{ color: "var(--color-muted)" }}
-      >
+      <p style={{ maxWidth: 448, fontSize: 17, lineHeight: 1.6, color: "var(--c-muted)", margin: "16px 0 0" }}>
         {blurb}
       </p>
-      <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+      <div style={{ marginTop: 32, display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 12 }}>
         <Link
           href="/scan"
-          className="inline-flex h-11 items-center rounded-lg px-5 text-sm font-semibold shadow-[var(--elevation-glow)] transition-transform hover:-translate-y-px motion-reduce:transform-none"
-          style={{ background: "var(--color-accent)", color: "var(--color-accent-fg)" }}
+          style={{ display: "inline-flex", alignItems: "center", height: 44, background: "var(--c-action)", color: "var(--c-on-dark)", fontWeight: 600, fontSize: 13.5, padding: "0 20px", borderRadius: 12, textDecoration: "none", boxShadow: "0 10px 26px -12px color-mix(in oklab, var(--c-action) 55%, transparent)" }}
         >
           Scan your product
         </Link>
         <Link
           href="/"
-          className="inline-flex h-11 items-center rounded-lg border px-5 text-sm font-medium transition-colors hover:bg-secondary"
-          style={{ borderColor: "var(--hairline)", color: "var(--color-fg)" }}
+          style={{ display: "inline-flex", alignItems: "center", height: 44, background: "var(--c-surface)", border: "1px solid var(--c-line)", color: "var(--c-ink)", fontWeight: 500, fontSize: 13.5, padding: "0 20px", borderRadius: 12, textDecoration: "none" }}
         >
           Back to home
         </Link>

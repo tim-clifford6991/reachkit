@@ -25,7 +25,7 @@ export default async function ScanPage({
 }) {
   const { id } = await params;
   return (
-    <main className="min-h-dvh" style={{ background: "var(--color-bg)" }}>
+    <main style={{ minHeight: "100dvh", background: "var(--c-bg2)" }}>
       {id === "_placeholder" ? null : (
         <Suspense fallback={<StartingFallback />}>
           <ScanHydrator id={id} />
@@ -82,19 +82,14 @@ async function ScanHydrator({ id }: { id: string }) {
 
 function StartingFallback() {
   return (
-    <div className="mx-auto max-w-2xl space-y-8 p-8">
-      <div className="flex items-center gap-3">
-        <span
-          className="relative mt-0.5 flex h-2 w-2 shrink-0"
-          aria-hidden="true"
-        >
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
+    <div style={{ maxWidth: 672, margin: "0 auto", padding: 32 }}>
+      <style>{`@keyframes rk-ping{75%,100%{transform:scale(2.4);opacity:0}}`}</style>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <span style={{ position: "relative", marginTop: 2, display: "flex", width: 8, height: 8, flexShrink: 0 }} aria-hidden="true">
+          <span style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "var(--c-action)", opacity: 0.75, animation: "rk-ping 1s cubic-bezier(0,0,0.2,1) infinite" }} />
+          <span style={{ position: "relative", display: "inline-flex", width: 8, height: 8, borderRadius: "50%", background: "var(--c-action)" }} />
         </span>
-        <p
-          className="font-mono text-sm tracking-wide"
-          style={{ color: "var(--color-muted)" }}
-        >
+        <p style={{ fontFamily: "var(--font-mono)", fontSize: 13.5, letterSpacing: "0.025em", color: "var(--c-muted)", margin: 0 }}>
           Loading your scan…
         </p>
       </div>

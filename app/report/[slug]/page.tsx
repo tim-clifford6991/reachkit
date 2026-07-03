@@ -183,6 +183,9 @@ export async function ReportContent({ slug }: { slug: string }) {
     payload.whatToDoThisWeek.quickWins.length +
     payload.whatToDoThisWeek.medium.length +
     payload.whatToDoThisWeek.longPlay.length;
+  // Pre-redaction keyword-gap total — the free redactor empties keywordGap, so
+  // the public teaser counts from the full payload (never "Showing 0 of 0").
+  const fullGapQueries = payload.market?.gap?.keywordGap?.length ?? 0;
 
   return (
     <>
@@ -196,7 +199,7 @@ export async function ReportContent({ slug }: { slug: string }) {
       {/* Captured "results" screen 1:1, wired to the free-redacted payload.
           Public-safe: same redactor as the funnel — paid drafts never leak. */}
       <ResultsScreen
-        {...toResultsProps(report, brand?.host ?? "this site", fullActions)}
+        {...toResultsProps(report, brand?.host ?? "this site", fullActions, fullGapQueries)}
         logoUrl={brand?.logoUrl}
         siteHost={brand?.host}
         slug={slug}
