@@ -89,20 +89,28 @@ type ActionPlan = ReturnType<typeof useActionPlan>;
 /** Compact `{done}/{total} shipped` strip + thin progress bar + open count.
  * When any shipped action has a measured `actualDelta`, the strip also totals
  * up "+N pts verified" — the closed loop from plan card to measured outcome.
- * Hidden entirely when the GET failed (`actions === null` — e.g. fixtures). */
-function PlanProgressStrip({ actions }: { actions: ApiActionSummary[] | null }) {
+ * Hidden entirely when the GET failed (`actions === null` — e.g. fixtures).
+ * `category` scopes done/total/pts to THIS plan's actions only — the GET
+ * returns every action for the app (content + outreach + seo), and without
+ * this filter the content plan's strip would double-count outreach actions
+ * (and vice versa on the distribution plan). Title-matching for the "Add to
+ * plan" chips intentionally stays unfiltered (see `useActionPlan` above) —
+ * only this aggregate needs the category scope. */
+function PlanProgressStrip({ actions, category }: { actions: ApiActionSummary[] | null; category: "content" | "outreach" }) {
   if (actions === null) return null;
-  const total = actions.length;
-  const doneActions = actions.filter((a) => a.status === "done");
+  const scoped = actions.filter((a) => a.category === category);
+  const total = scoped.length;
+  const doneActions = scoped.filter((a) => a.status === "done");
   const done = doneActions.length;
   const open = total - done;
   const pct = total > 0 ? (done / total) * 100 : 0;
   const measured = doneActions.filter((a): a is ApiActionSummary & { actualDelta: number } => typeof a.actualDelta === "number");
   const ptsVerified = measured.reduce((s, a) => s + a.actualDelta, 0);
+  const ptsVerifiedSigned = ptsVerified >= 0 ? `+${ptsVerified}` : `${ptsVerified}`;
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 14, background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-md)", padding: "10px 16px" }}>
       <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700, fontSize: 12.5, color: "var(--c-ink)", whiteSpace: "nowrap" }}>
-        {done}/{total} shipped{measured.length > 0 && <span style={{ color: "var(--c-band-findable)" }}> · +{ptsVerified} pts verified</span>}
+        {done}/{total} shipped{measured.length > 0 && <span style={{ color: "var(--c-band-findable)" }}> · {ptsVerifiedSigned} pts verified</span>}
       </span>
       <div style={{ flex: 1, minWidth: 80 }}><Bar value={pct} max={100} /></div>
       <span style={{ fontSize: 11.5, color: "var(--c-faint)", whiteSpace: "nowrap" }}>{open} open</span>
@@ -127,7 +135,7 @@ function AddToPlanChip({
   if (inPlan) {
     if (match?.status === "done") {
       const pts = typeof match.actualDelta === "number"
-        ? `+${match.actualDelta} pts`
+        ? `${match.actualDelta >= 0 ? "+" : ""}${match.actualDelta} pts`
         : typeof match.predictedDelta === "number"
           ? `~+${match.predictedDelta} pts predicted`
           : null;
@@ -181,7 +189,7 @@ export function DistributionPlanBody({ data }: { data: Synthesis }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      <PlanProgressStrip actions={plan.actions} />
+      <PlanProgressStrip actions={plan.actions} category="outreach" />
 
       <KpiRow>
         <Kpi label="Distribution actions" value={distributionPlan.length} sub="channels to work" />

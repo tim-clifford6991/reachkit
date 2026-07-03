@@ -124,11 +124,29 @@ function topicTokens(seeds: string[]): Set<string> {
 const DEMAND_INTEL_TTL_MS = 7 * DAY_MS;
 
 /**
+ * True when a gathered/reassembled DemandIntel is degraded (both the keyword
+ * table and the themes came back empty — the underlying keyword-ideas /
+ * clustering calls failed or starved). Shared by every path that can put a
+ * DemandIntel in front of a user or into a cache/table, so a poisoned payload
+ * can neither be written NOR read back as valid:
+ *   - the `demand-intel:*` cachedJson `isEmpty` option (skip the 7d cache write)
+ *   - `persistDemandIntel` (skip the `demand_intel` table upsert)
+ *   - `readDemandIntelFallback` (refuse to serve a previously-poisoned row)
+ */
+function isEmptyDemandIntel(intel: Pick<DemandIntel, "searchDemand">): boolean {
+  return intel.searchDemand.themes.length === 0 && intel.searchDemand.topKeywords.length === 0;
+}
+
+/**
  * Upsert the assembled DemandIntel into `demand_intel`.
  * Best-effort — any write error is logged and swallowed so it never breaks the
  * gather. Called via `void ...catch(...)` after a successful full gather.
+ * Skips the write entirely when `intel` is empty by `isEmptyDemandIntel` —
+ * otherwise a single degraded gather would blank the Demand page for every
+ * reader until the row's 7-day TTL expires.
  */
 async function persistDemandIntel(subject: string, cohortKey: string, intel: DemandIntel): Promise<void> {
+  if (isEmptyDemandIntel(intel)) return;
   const db = serverDb();
   try {
     const { error } = await db.from("demand_intel").upsert(
@@ -169,7 +187,7 @@ async function readDemandIntelFallback(subject: string, cohortKey: string): Prom
     if (!data) return null;
     if (Date.now() - new Date(data.fetched_at).getTime() >= DEMAND_INTEL_TTL_MS) return null;
     if (!data.search_demand || !data.community || !data.buyer_insights || !data.icp) return null;
-    return {
+    const reassembled: DemandIntel = {
       domain: subject,
       category: data.category ?? "",
       icp: data.icp as unknown as ICP,
@@ -177,6 +195,12 @@ async function readDemandIntelFallback(subject: string, cohortKey: string): Prom
       community: data.community as unknown as DemandIntel["community"],
       buyerInsights: data.buyer_insights as unknown as BuyerInsights,
     };
+    // A previously-poisoned row (written before this predicate existed, or
+    // written by a since-fixed-but-still-empty gather) must never satisfy a
+    // read — same emptiness rule as the write path, so callers fall back to a
+    // real gather instead of getting a blank Demand page for the full TTL.
+    if (isEmptyDemandIntel(reassembled)) return null;
+    return reassembled;
   } catch (err) {
     console.warn(`[demand_intel] fallback read failed: ${err instanceof Error ? err.message : String(err)}`);
     return null;
@@ -335,6 +359,6 @@ export async function gatherDemand(rawSelf: string, opts: { competitorDomains?: 
     // If BOTH the keyword table and the themes came back empty, the underlying
     // keyword-ideas / clustering calls degraded — don't persist a blank demand
     // payload for 7d (it would blank the Demand page every load until TTL).
-    isEmpty: (r) => r.searchDemand.themes.length === 0 && r.searchDemand.topKeywords.length === 0,
+    isEmpty: isEmptyDemandIntel,
   });
 }

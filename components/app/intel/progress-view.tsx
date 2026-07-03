@@ -136,7 +136,11 @@ function ScoreTrendLarge({ history, markers }: { history: ScoreHistoryPoint[]; m
   const showPillars = pillarPointCount >= 2;
   const pillarLine = (key: (typeof pillarKeys)[number]): string =>
     history
-      .map((p, i) => (p.breakdown ? { x: x(i), y: y(p.breakdown[key]) } : null))
+      // Skip points whose breakdown value for this pillar isn't a finite
+      // number (guards malformed historical jsonb, e.g. a null/NaN slipped
+      // in from an older snapshot shape) — a NaN coordinate here would emit
+      // an invalid SVG path segment ("L NaN,NaN") that breaks the whole line.
+      .map((p, i) => (p.breakdown && Number.isFinite(p.breakdown[key]) ? { x: x(i), y: y(p.breakdown[key]) } : null))
       .filter((d): d is { x: number; y: number } => d !== null)
       .map((d, i) => `${i ? "L" : "M"}${d.x.toFixed(1)},${d.y.toFixed(1)}`)
       .join(" ");

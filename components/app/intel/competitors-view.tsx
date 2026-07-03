@@ -34,7 +34,7 @@ type ReferrerItem = NonNullable<Entity["backlinks"]>["topQualityReferrers"][numb
 // Keyword-gap "add to plan" chips — POSTs a content action against the
 // sibling-owned /api/action route ({ title, category, why } -> { id }).
 // Contract: GET /api/action -> { actions: { id; title; category; status }[] }.
-// A keyword gap is "in plan" when an action titled exactly `Target "{keyword}"`
+// A keyword gap is "in plan" when an action titled exactly `Target “{keyword}”`
 // already exists. Unauthed/failed GET (the styled fixture has no session) just
 // leaves every chip defaulted to "add" — never throws.
 // ---------------------------------------------------------------------------

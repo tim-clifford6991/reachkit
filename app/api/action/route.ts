@@ -18,7 +18,8 @@ import { groupForVerifyState, actualDeltaForAction, type SnapshotPoint } from "@
  * active app.
  *
  * POST { title, category, why?, expectedDelta?, signalKeys? } → 200 { id, existing? }
- *   Creates an open `actions` row for the caller's active app. Dedupes on an
+ *   Creates a `pending` (open) `actions` row for the caller's active app —
+ *   "pending" is the schema's default status vocabulary. Dedupes on an
  *   OPEN (status !== "done") action with the same title for the app — returns
  *   the existing row's id with `existing: true` instead of duplicating.
  *   401 unauthed, 400 missing/invalid title or category.
@@ -35,11 +36,11 @@ import { groupForVerifyState, actualDeltaForAction, type SnapshotPoint } from "@
  */
 
 const Body = z.object({
-  title: z.string().trim().min(1),
+  title: z.string().trim().min(1).max(300),
   category: z.enum(["content", "outreach", "seo"]),
-  why: z.string().optional(),
-  expectedDelta: z.number().optional(),
-  signalKeys: z.array(z.string()).optional(),
+  why: z.string().max(2000).optional(),
+  expectedDelta: z.number().min(-100).max(100).optional(),
+  signalKeys: z.array(z.string().max(100)).max(20).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -64,6 +65,15 @@ export async function POST(req: NextRequest) {
 
   // Dedupe: an OPEN (status !== "done") action with the same title already
   // exists for this app → return it instead of inserting a duplicate.
+  // NOTE (race): this is a select-then-insert check, not an atomic constraint —
+  // two concurrent requests (e.g. two open tabs both clicking "Add to plan" on
+  // the same recommendation) can both pass this SELECT before either INSERT
+  // lands, producing two open actions with the same title. The durable fix is
+  // a partial unique index on (app_id, title) WHERE status != 'done', but that
+  // needs a data-dedupe migration first (existing duplicate rows would violate
+  // it on creation). Left as select-then-insert for now: a duplicate open
+  // action across tabs is low-harm (cosmetic double entry in the plan, not a
+  // data-integrity issue) and accepted until that migration lands.
   const { data: existingRows, error: findErr } = await db
     .from("actions")
     .select("id, status")
@@ -84,7 +94,7 @@ export async function POST(req: NextRequest) {
       category,
       title,
       why: why ?? null,
-      status: "open",
+      status: "pending",
       signal_keys: signalKeys ?? [],
       expected_outcome: (expectedDelta !== undefined ? { delta: expectedDelta } : null) as Json | null,
     })

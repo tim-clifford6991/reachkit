@@ -42,10 +42,15 @@ export function CustomersBody({
   const themes = searchDemand.themes;
 
   // Best-effort secondary fetch: cross-links community pockets to the
-  // distribution plan. Cheap (server-cached), but must never block or
-  // degrade this view if it's slow, loading, or errors — so we skip
-  // IntelShell entirely and just use `data` once it resolves.
-  const { data: synthesis } = useIntel<Synthesis>("synthesis");
+  // distribution plan. Cheap when warm (server-cached) — but cold, this warms
+  // the SAME synthesis cache the Plan pages use, which can mean a full LLM
+  // synthesis gather (minutes). Must never block or degrade this view if it's
+  // slow, loading, or errors — so we skip IntelShell entirely and just use
+  // `data` once it resolves. `enabled: !!data` additionally defers starting
+  // this fetch until the (required) demand data above has resolved, so a cold
+  // synthesis gather never runs concurrently with the demand gather this view
+  // actually needs.
+  const { data: synthesis } = useIntel<Synthesis>("synthesis", { enabled: !!data });
   const planTargets =
     planTargetsOverride ?? synthesis?.distributionPlan.map((d) => ({ target: d.target, channel: d.channel }));
 
@@ -103,7 +108,7 @@ export function CustomersBody({
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <Eyebrow>Buyer insights</Eyebrow>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <QuoteGroup label="Pains" items={buyerInsights.pains} color="#e5484d" />
+            <QuoteGroup label="Pains" items={buyerInsights.pains} color="var(--c-band-invisible)" />
             <QuoteGroup label="Loved features" items={buyerInsights.lovedFeatures} color="var(--c-band-findable)" />
             <QuoteGroup label="Personas" items={buyerInsights.personas} color="#3b6fe0" />
             <QuoteGroup label="Buyer language" items={buyerInsights.buyerLanguage} color="var(--c-action)" />

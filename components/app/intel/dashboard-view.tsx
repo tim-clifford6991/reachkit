@@ -28,7 +28,7 @@ const JM = "var(--font-mono)";
 // Keyword-gap "add to plan" chips — POSTs a content action against the
 // sibling-owned /api/action route ({ title, category, why } -> { id }).
 // Contract: GET /api/action -> { actions: { id; title; category; status }[] }.
-// A keyword gap is "in plan" when an action titled exactly `Target "{keyword}"`
+// A keyword gap is "in plan" when an action titled exactly `Target “{keyword}”`
 // already exists. Failed GET (unauthed) just leaves every chip on "add".
 // ---------------------------------------------------------------------------
 type ActionCategory = "content" | "outreach" | "seo";
