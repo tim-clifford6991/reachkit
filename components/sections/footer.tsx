@@ -3,11 +3,17 @@
  *
  * Brand block (mark + tagline + social) on the left, up to four nav columns on
  * the right, then a legal + copyright row. Content-as-props. Server component.
+ *
+ * Design idiom: intel-kit — inline styles + `--c-*` tokens, Space Grotesk /
+ * Plus Jakarta Sans / JetBrains Mono (no Tailwind, no `--color-*` tokens).
  */
 
+import type * as React from "react";
 import Link from "next/link";
 
 import { LogoMark } from "@/components/brand/logo";
+
+const SG = "var(--font-display)", PJ = "var(--font-sans)", JM = "var(--font-mono)";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -48,6 +54,26 @@ export interface FooterProps {
 }
 
 // ---------------------------------------------------------------------------
+// Shared styles
+// ---------------------------------------------------------------------------
+
+const NAV_LINK: React.CSSProperties = {
+  fontFamily: PJ,
+  fontSize: 13.5,
+  color: "var(--c-muted)",
+  textDecoration: "none",
+};
+
+const MONO_LABEL: React.CSSProperties = {
+  fontFamily: JM,
+  fontSize: 10,
+  fontWeight: 600,
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  color: "var(--c-faint)",
+};
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -56,35 +82,30 @@ export function Footer({ content }: FooterProps) {
 
   return (
     <footer
-      className="relative border-t px-(--spacing-content-x) py-14"
-      style={{ borderColor: "var(--hairline)" }}
+      style={{ position: "relative", borderTop: "1px solid var(--c-line)", padding: "56px var(--spacing-content-x, 24px)", background: "var(--c-surface)", fontFamily: PJ }}
       aria-label="Site footer"
     >
-      {/* Subtle accent fade rising from the top border */}
+      {/* Subtle violet fade rising from the top border */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-32"
-        style={{ background: "var(--gradient-accent-fade)" }}
+        style={{ pointerEvents: "none", position: "absolute", insetInline: 0, top: 0, height: 128, background: "linear-gradient(180deg, color-mix(in oklab, var(--c-action) 4%, transparent), transparent)" }}
       />
-      <div className="relative mx-auto max-w-[var(--spacing-content-max)]">
+      <div style={{ position: "relative", margin: "0 auto", maxWidth: "var(--spacing-content-max, 1200px)" }}>
         {/* Top: brand + columns */}
-        <div className="flex flex-col gap-12 lg:flex-row lg:justify-between lg:gap-16">
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 48 }}>
           {/* Brand block */}
-          <div className="max-w-xs">
-            <Link href="/" className="flex items-center gap-2.5" aria-label="ReachKit home">
+          <div style={{ maxWidth: 320 }}>
+            <Link href="/" style={{ display: "inline-flex", alignItems: "center", gap: 10, textDecoration: "none" }} aria-label="ReachKit home">
               <LogoMark size={24} />
-              <span
-                className="text-base font-semibold"
-                style={{ fontFamily: "var(--font-display)", color: "var(--color-fg)" }}
-              >
+              <span style={{ fontFamily: SG, fontSize: 16, fontWeight: 700, color: "var(--c-ink)" }}>
                 {brand}
               </span>
             </Link>
             {tagline && (
-              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{tagline}</p>
+              <p style={{ margin: "12px 0 0", fontSize: 13.5, lineHeight: 1.6, color: "var(--c-muted)" }}>{tagline}</p>
             )}
             {social && social.length > 0 && (
-              <div className="mt-5 flex items-center gap-2">
+              <div style={{ marginTop: 20, display: "flex", alignItems: "center", gap: 8 }}>
                 {social.map((s) => (
                   <a
                     key={s.label}
@@ -92,7 +113,7 @@ export function Footer({ content }: FooterProps) {
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={s.label}
-                    className="grid size-9 place-items-center rounded-full border border-border text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                    style={{ display: "grid", width: 36, height: 36, placeItems: "center", borderRadius: "50%", border: "1px solid var(--c-line)", color: "var(--c-muted)" }}
                   >
                     <SocialIcon icon={s.icon} />
                   </a>
@@ -102,19 +123,17 @@ export function Footer({ content }: FooterProps) {
           </div>
 
           {/* Nav columns */}
-          <div className="grid grid-cols-2 gap-8 sm:grid-cols-4 lg:gap-12">
+          <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(columns.length, 4)}, minmax(120px, 1fr))`, gap: "32px 48px", flex: "1 1 480px", maxWidth: 720 }}>
             {columns.map((col) => (
               <nav key={col.heading} aria-label={col.heading}>
-                <p className="mb-3 font-mono text-[10px] uppercase tracking-widest text-muted-foreground/80">
-                  {col.heading}
-                </p>
-                <ul className="flex flex-col gap-2.5">
+                <p style={{ ...MONO_LABEL, margin: "0 0 12px" }}>{col.heading}</p>
+                <ul style={{ display: "flex", flexDirection: "column", gap: 10, margin: 0, padding: 0, listStyle: "none" }}>
                   {col.items.map((item) => (
                     <li key={item.label}>
                       <Link
                         href={item.href}
                         {...(item.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                        className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                        style={NAV_LINK}
                       >
                         {item.label}
                       </Link>
@@ -127,29 +146,20 @@ export function Footer({ content }: FooterProps) {
         </div>
 
         {/* Bottom: legal + copyright */}
-        <div
-          className="mt-12 flex flex-col items-start gap-4 border-t pt-8 sm:flex-row sm:items-center sm:justify-between"
-          style={{ borderColor: "var(--hairline)" }}
-        >
-          <nav aria-label="Legal links" className="flex flex-wrap gap-4">
+        <div style={{ marginTop: 48, display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 16, borderTop: "1px solid var(--c-line)", paddingTop: 32 }}>
+          <nav aria-label="Legal links" style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
             {legal.map((item) => (
-              <Link
-                key={item.label}
-                href={item.href}
-                className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground"
-              >
+              <Link key={item.label} href={item.href} style={{ ...MONO_LABEL, letterSpacing: "0.08em", color: "var(--c-muted)", textDecoration: "none" }}>
                 {item.label}
               </Link>
             ))}
           </nav>
-          <div className="flex flex-col gap-1 sm:text-right">
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {copyright && (
-              <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/70">
-                {copyright}
-              </p>
+              <p style={{ ...MONO_LABEL, letterSpacing: "0.08em", margin: 0 }}>{copyright}</p>
             )}
             {attribution && (
-              <p className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/50">
+              <p style={{ ...MONO_LABEL, fontSize: 9, letterSpacing: "0.08em", color: "color-mix(in oklab, var(--c-faint) 65%, transparent)", margin: 0 }}>
                 {attribution}
               </p>
             )}

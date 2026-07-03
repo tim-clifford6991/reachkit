@@ -27,6 +27,7 @@ export const SITE_FOOTER: FooterContent = {
         { label: "How it works", href: "/how-it-works" },
         { label: "Pricing", href: "/pricing" },
         { label: "Free tools", href: "/tools" },
+        { label: "Roadmap", href: "/roadmap" },
       ],
     },
     {
@@ -34,8 +35,7 @@ export const SITE_FOOTER: FooterContent = {
       items: [
         { label: "Teardowns", href: "/teardowns" },
         { label: "Compare", href: "/compare" },
-        { label: "Blog", href: "/blog" },
-        { label: "Help & docs", href: "/docs" },
+        { label: "Status", href: "/status" },
       ],
     },
     {

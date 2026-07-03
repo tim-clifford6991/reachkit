@@ -8,8 +8,8 @@ export const metadata: Metadata = { title: "Design · Clay", robots: { index: fa
 // most distinctive and energetic of the three.
 const css = `
 .v-clay {
-  --d-font-display: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --d-font-body: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --d-font-display: var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --d-font-body: var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
   --d-display-weight: 800;
   --d-display-tracking: -0.035em;
   --d-radius: 16px;

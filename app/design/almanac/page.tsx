@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: "Design · Almanac", robots: { index:
 const css = `
 .v-almanac {
   --d-font-display: 'Iowan Old Style','Palatino Linotype',Palatino,'Hoefler Text',Georgia,Cambria,serif;
-  --d-font-body: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --d-font-body: var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
   --d-display-weight: 500;
   --d-display-tracking: -0.01em;
   --d-radius: 14px;

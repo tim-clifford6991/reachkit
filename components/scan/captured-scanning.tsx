@@ -6,7 +6,8 @@
  * app's REAL narrative steps (state + label) and host. 1:1 styling.
  */
 
-const SG = "Space Grotesk", JM = "JetBrains Mono";
+// Canonical font vars (next/font in the root layout) — no per-page font loading.
+const SG = "var(--font-display)", JM = "var(--font-mono)";
 
 export interface ScanStep { state: "done" | "active" | "pending"; label: string }
 

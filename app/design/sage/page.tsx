@@ -8,8 +8,8 @@ export const metadata: Metadata = { title: "Design · Sage", robots: { index: fa
 // disciplined and calm. Green reads "growth" without shouting.
 const css = `
 .v-sage {
-  --d-font-display: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --d-font-body: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --d-font-display: var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --d-font-body: var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
   --d-display-weight: 700;
   --d-display-tracking: -0.025em;
   --d-radius: 10px;

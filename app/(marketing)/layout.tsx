@@ -23,7 +23,6 @@ const FOOTER_CONTENT: FooterContent = {
         { label: "How it works", href: "/how-it-works" },
         { label: "Pricing", href: "/pricing" },
         { label: "Free tools", href: "/tools" },
-        { label: "Changelog", href: "/changelog" },
         { label: "Roadmap", href: "/roadmap" },
       ],
     },
@@ -31,8 +30,6 @@ const FOOTER_CONTENT: FooterContent = {
       heading: "Resources",
       items: [
         { label: "Teardowns", href: "/teardowns" },
-        { label: "Blog", href: "/blog" },
-        { label: "Help & docs", href: "/docs" },
         { label: "Status", href: "/status" },
       ],
     },
