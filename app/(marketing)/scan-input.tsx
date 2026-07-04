@@ -13,7 +13,7 @@ type InputState =
   | { status: "loading" }
   | { status: "error"; message: string };
 
-export function ScanInput() {
+export function ScanInput({ autoFocus = true }: { autoFocus?: boolean } = {}) {
   const router = useRouter();
   const [url, setUrl] = useState("");
   const [state, setState] = useState<InputState>({ status: "idle" });
@@ -89,7 +89,7 @@ export function ScanInput() {
           // the server normalises it (lib/scan/router.ts prepends https://).
           type="text"
           inputMode="url"
-          autoFocus
+          autoFocus={autoFocus}
           autoComplete="url"
           autoCapitalize="none"
           spellCheck={false}

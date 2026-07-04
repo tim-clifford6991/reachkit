@@ -26,6 +26,7 @@ import { CommandPalette } from "@/components/app/command-palette";
 import { AppShell } from "@/components/app/captured/app-shell";
 import { ShellSkeleton } from "@/components/app/captured/skeletons";
 import { SetupOverlayLazy as SetupOverlay } from "@/components/app/setup/setup-overlay-lazy";
+import { PaywallScreen } from "@/components/app/paywall-screen";
 import type { Metadata } from "next";
 
 function relAge(iso: string | null): string {
@@ -54,7 +55,26 @@ async function SidebarData({ children }: { children: React.ReactNode }) {
 
   const { user } = viewer;
   const entitlements = await entitlementsFor(user.id);
-  const tier: Tier = entitlements.active ? entitlements.tier : "free";
+
+  // ── Hard paid gate ─────────────────────────────────────────────────────────
+  // ReachKit is payment-first: the app workspace exists only for active
+  // subscribers. No active subscription → the PaywallScreen replaces the app
+  // entirely — children are never rendered (no intel work runs for non-payers)
+  // and onboarding can only ever begin behind this gate. The screen self-heals
+  // the post-checkout webhook race by refreshing until entitlements go active.
+  if (!entitlements.active) {
+    const hasBillingAccount = Boolean(
+      (user as { stripe_customer_id?: string | null }).stripe_customer_id,
+    );
+    return (
+      <PaywallScreen
+        variant={hasBillingAccount ? "resume" : "activate"}
+        hasBillingAccount={hasBillingAccount}
+      />
+    );
+  }
+
+  const tier: Tier = entitlements.tier;
   const primaryAppId = await activeAppId(user);
 
   let appName: string | null = null;
@@ -121,22 +141,13 @@ async function SidebarData({ children }: { children: React.ReactNode }) {
   const APP_LIMIT: Record<string, number> = { free: 1, solo: 1, growth: 3 };
   const canAddApp = apps.length < (APP_LIMIT[tier] ?? 1);
 
-  // Side card: paid users get the next-auto-scan countdown; free users get a
-  // single upgrade prompt (no trial — the free scan is the only free capability).
-  // The free CTA goes STRAIGHT to Stripe checkout (Solo default, W6) — the
-  // billing page is only the error fallback / plan-comparison surface.
+  // Side card: the next-auto-scan countdown. (Everyone past the paid gate is an
+  // active subscriber — the old free-user upgrade card is gone with the gate.)
   let sideCard = null as null | { title: string; sub: string; cta?: { label: string; href: string; checkoutPlan?: "solo" | "growth" }; tone: "trial" | "scan" };
-  if (entitlements.active && lastScannedIso) {
+  if (lastScannedIso) {
     // eslint-disable-next-line react-hooks/purity -- server component: single render per request, Date.now is deterministic per-request
     const d = Math.max(0, Math.ceil((new Date(lastScannedIso).getTime() + 7 * 86_400_000 - Date.now()) / 86_400_000));
     sideCard = { title: `Next auto-scan in ${d} day${d === 1 ? "" : "s"}`, sub: "Weekly tracking keeps your score current.", tone: "scan" };
-  } else if (!entitlements.active) {
-    sideCard = {
-      title: "Unlock the weekly engine",
-      sub: "Turn your report into a ranked, verified weekly action queue.",
-      cta: { label: "Upgrade", href: "/app/billing", checkoutPlan: "solo" },
-      tone: "trial",
-    };
   }
 
   void actionsCount;

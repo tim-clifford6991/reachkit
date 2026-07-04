@@ -1,4 +1,4 @@
-export const PRICING_HTML = `<main style="max-width: 1080px; margin: 0px auto; padding: 56px 28px 80px;">
+export const PRICING_HTML = `<main style="max-width: 1080px; margin: 0px auto; padding: 72px 28px 80px;">
     <div style="text-align: center; margin-bottom: 42px;">
       <div style="font-size: 13px; font-weight: 700; letter-spacing: 0.08em; color: var(--c-action); text-transform: uppercase;">Pricing</div>
       <h1 style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 42px; letter-spacing: -0.03em; margin: 12px 0px 0px;">One number. Then a short, verified list.</h1>
