@@ -334,7 +334,9 @@ export default function HowItWorksPage() {
             The free scan gives you your discoverability score and your top fixes right now. Paid plans run the whole engine every week — what your buyers search, where rivals show up, the ranked queue, the verification, your score history — so you&rsquo;re never guessing what to do next.
           </p>
           <div style={{ maxWidth: 540, margin: "0 auto", textAlign: "left" }}>
-            <ScanInput />
+            {/* No autoFocus: this input sits at the foot of the page, so focusing
+                it on load would scroll the visitor straight past the content. */}
+            <ScanInput autoFocus={false} />
           </div>
         </div>
       </section>
