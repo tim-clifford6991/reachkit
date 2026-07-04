@@ -497,7 +497,7 @@ export default async function TeardownSlugPage(props: {
                 className="mt-1.5"
                 style={{ fontSize: 15, lineHeight: 1.6, color: "var(--c-muted)" }}
               >
-                Run a free scan and see your discoverability gaps in 90 seconds.
+                Run a free scan and see your discoverability gaps in under a minute.
               </p>
               <Link
                 href="/scan"

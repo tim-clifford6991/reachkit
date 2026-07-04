@@ -78,7 +78,7 @@ export function organizationLd() {
     name: SITE.name,
     url: SITE.url,
     description:
-      "The discoverability engine for solo founders. Scan your App Store listing or website and get a scored, ranked action plan in 90 seconds.",
+      "The discoverability engine for solo founders. Scan your App Store listing or website and get a scored, ranked action plan in under a minute.",
     founder: {
       "@type": "Person",
       name: "Tim Clifford",

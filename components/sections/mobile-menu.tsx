@@ -9,6 +9,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { isActivePath } from "./nav-links";
 
 interface NavLink {
   label: string;
@@ -17,6 +19,7 @@ interface NavLink {
 
 export function MobileMenu({ links }: { links: readonly NavLink[] }) {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
 
   return (
     <div className="sm:hidden">
@@ -44,17 +47,25 @@ export function MobileMenu({ links }: { links: readonly NavLink[] }) {
             className="absolute inset-x-0 top-full z-50 flex flex-col gap-1 border-b p-3 backdrop-blur-xl"
             style={{ background: "var(--glass-tint)", borderColor: "var(--hairline)" }}
           >
-            {[...links, { label: "Log in", href: "/login" }].map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                onClick={() => setOpen(false)}
-                className="rounded-lg px-4 py-3 text-base font-medium transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-                style={{ color: "var(--color-fg)" }}
-              >
-                {l.label}
-              </Link>
-            ))}
+            {[...links, { label: "Log in", href: "/login" }].map((l) => {
+              const active = isActivePath(pathname, l.href);
+              return (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  onClick={() => setOpen(false)}
+                  aria-current={active ? "page" : undefined}
+                  className="rounded-lg px-4 py-3 text-base font-medium transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                  style={
+                    active
+                      ? { color: "var(--c-action)", background: "var(--c-soft)", fontWeight: 600 }
+                      : { color: "var(--color-fg)" }
+                  }
+                >
+                  {l.label}
+                </Link>
+              );
+            })}
           </div>
         </>
       )}

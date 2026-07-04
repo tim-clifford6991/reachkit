@@ -81,7 +81,7 @@ export function ScoreBlock({ score, lossFrame }: ScoreBlockProps) {
         className="mt-6 max-w-xs text-center text-xs leading-relaxed"
         style={{ color: "var(--color-muted)" }}
       >
-        Discoverability we could verify in ~90 seconds. Content, outreach, ads,
+        Discoverability we could verify in under a minute. Content, outreach, ads,
         PR &amp; partnerships aren&apos;t measured in the free scan — fix the actions
         below to move what we can see.
       </p>

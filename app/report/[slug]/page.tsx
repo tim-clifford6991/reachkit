@@ -204,7 +204,7 @@ export async function ReportContent({ slug }: { slug: string }) {
         siteHost={brand?.host}
         slug={slug}
         unlockTitle="Get your own Discoverability Score"
-        unlockSub="Run a free scan of your site — the score, your positioning gap, and the 7 fixes that move it, in ~90 seconds."
+        unlockSub="Run a free scan of your site — the score, your positioning gap, and the 7 fixes that move it — in under a minute."
         unlockButton={
           <Link href="/scan" style={{ fontFamily: "Plus Jakarta Sans, sans-serif", fontWeight: 700, fontSize: 15, color: "var(--c-ink)", background: "var(--c-surface)", borderRadius: 10, padding: "13px 24px", whiteSpace: "nowrap", textDecoration: "none" }}>
             Scan your site →

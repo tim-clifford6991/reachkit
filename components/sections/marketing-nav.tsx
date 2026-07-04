@@ -9,6 +9,7 @@
 import Link from "next/link";
 import { Wordmark } from "@/components/brand/logo";
 import { MobileMenu } from "./mobile-menu";
+import { NavLinks } from "./nav-links";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 const LINKS = [
@@ -35,13 +36,9 @@ export function MarketingNav({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
           <Wordmark />
         </Link>
 
-        <div className="hidden items-center gap-6 sm:flex">
-          {LINKS.map((l) => (
-            <Link key={l.href} href={l.href} className={`transition-colors hover:text-[var(--c-ink)] ${focusRing}`} style={{ fontSize: 14.5, fontWeight: 500, color: "var(--c-muted)" }}>
-              {l.label}
-            </Link>
-          ))}
-        </div>
+        {/* Desktop links live in a tiny client component so the current page
+            gets aria-current="page" + the violet active pill. */}
+        <NavLinks links={LINKS} />
 
         <div className="flex-1" />
 

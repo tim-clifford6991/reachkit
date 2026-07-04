@@ -11,7 +11,7 @@ import { ScanHero } from "@/components/sections/scan-hero";
 export const metadata: Metadata = buildMetadata({
   title: "Scan your product — free discoverability report",
   description:
-    "Paste your App Store URL or website. Get a Discoverability Score, positioning gap, and ranked action steps in 90 seconds. Free, no account needed.",
+    "Paste your App Store URL or website. Get a Discoverability Score, positioning gap, and ranked action steps in under a minute. Free, no account needed.",
   path: "/scan",
 });
 
@@ -21,7 +21,7 @@ const HOW_TO_LD = howToLd({
     "Get a free discoverability score and ranked action plan for your App Store listing or website in under two minutes.",
   steps: [
     { name: "Paste your URL", text: "Copy your App Store URL, Google Play URL, or website address and paste it into the scan input." },
-    { name: "Wait ~90 seconds", text: "ReachKit fetches your live product page, extracts 18 discoverability signals, and runs the four-question analysis engine." },
+    { name: "Wait under a minute", text: "ReachKit fetches your live product page, extracts 18 discoverability signals, and runs the four-question analysis engine." },
     { name: "Read your report", text: "Review your Discoverability Score, positioning mirror, search gap analysis, and ranked action steps. Free, no account required." },
   ],
 });

@@ -58,7 +58,7 @@ const STEPS: readonly Step[] = [
   {
     number: "01",
     eyebrow: "Scan",
-    title: "Paste a URL. Get a score in 90 seconds.",
+    title: "Paste a URL. Get a score in under a minute.",
     description:
       "ReachKit fetches your App Store listing or website, extracts every discoverability signal, and runs it through 18 checks.",
     detail:
