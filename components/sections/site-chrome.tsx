@@ -18,7 +18,7 @@ import { MarketingChrome } from "@/components/sections/marketing-chrome";
 export const SITE_FOOTER: FooterContent = {
   brand: "ReachKit",
   tagline:
-    "The discoverability engine for solo founders — a scored report and a weekly, verified action plan in ~90 seconds.",
+    "The discoverability engine for solo founders — a scored report and a weekly, verified action plan in under a minute.",
   columns: [
     {
       heading: "Product",
@@ -34,8 +34,17 @@ export const SITE_FOOTER: FooterContent = {
       heading: "Resources",
       items: [
         { label: "Teardowns", href: "/teardowns" },
-        { label: "Compare", href: "/compare" },
         { label: "Status", href: "/status" },
+      ],
+    },
+    {
+      heading: "Compare",
+      items: [
+        { label: "vs Ahrefs", href: "/compare/ahrefs" },
+        { label: "vs Semrush", href: "/compare/semrush" },
+        { label: "vs SparkToro", href: "/compare/sparktoro" },
+        { label: "vs ChatGPT", href: "/compare/chatgpt" },
+        { label: "All comparisons", href: "/compare" },
       ],
     },
     {

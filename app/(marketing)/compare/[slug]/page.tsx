@@ -1,163 +1,26 @@
+/**
+ * /compare/[slug] — full differentiator page per competitor. Thin renderer over
+ * the compare-content registry: hero, deep prose sections, a "use both / choose
+ * ReachKit" verdict, the capability table, and the free-scan CTA. Pure server
+ * component in the kit idiom (inline var(--c-*) styles, three font vars).
+ */
+
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 
 import { buildMetadata } from "@/lib/seo";
 import {
-  ComparisonTable,
-  type ComparisonRow,
-} from "@/components/sections/comparison-table";
+  COMPARE_MAP,
+  COMPARE_SLUGS,
+  type CompareCell,
+  type CompareEntry,
+} from "../compare-content";
 
-interface Competitor {
-  name: string;
-  tagline: string;
-  intro: string;
-  rows: readonly ComparisonRow[];
-}
-
-const check = { type: "check" } as const;
-const cross = { type: "cross" } as const;
-const partial = (note: string) => ({ type: "partial", note }) as const;
-
-const COMPETITORS: Record<string, Competitor> = {
-  sparktoro: {
-    name: "SparkToro",
-    tagline: "audience research",
-    intro:
-      "SparkToro is great for finding where an audience already hangs out. ReachKit is built to fix your own discoverability — it scores your live App Store listing or website and hands you a ranked, weekly action plan.",
-    rows: [
-      { capability: "Discoverability score (0–100)", cells: [check, cross] },
-      { capability: "Grounded in your live page", cells: [check, partial("audience data, not your page")] },
-      { capability: "Ranked, prioritised fixes", cells: [check, cross] },
-      { capability: "Draft copy per action", cells: [check, cross] },
-      { capability: "Weekly action engine + verification", cells: [check, cross] },
-      { capability: "Audience / where-they-gather research", cells: [partial("surfaced in the report"), check] },
-      { capability: "Free to start", cells: [check, check] },
-    ],
-  },
-  ahrefs: {
-    name: "Ahrefs",
-    tagline: "SEO toolset",
-    intro:
-      "Ahrefs is a deep SEO toolset built for agencies and SEO pros. ReachKit is built for solo founders: it scores both App Store and web discoverability and turns the findings into a small, ranked weekly to-do list — at indie pricing.",
-    rows: [
-      { capability: "Discoverability score for App Store + web", cells: [check, partial("web SEO only")] },
-      { capability: "Ranked action plan (not just data)", cells: [check, partial("audits list issues")] },
-      { capability: "Draft copy per fix", cells: [check, cross] },
-      { capability: "Weekly queue + change verification", cells: [check, cross] },
-      { capability: "Deep backlink / keyword index", cells: [cross, check] },
-      { capability: "Priced for solo founders", cells: [check, partial("agency pricing")] },
-      { capability: "Free to start", cells: [check, partial("limited free tools")] },
-    ],
-  },
-  chatgpt: {
-    name: "ChatGPT",
-    tagline: "general AI assistant",
-    intro:
-      "ChatGPT gives generic advice based on what you tell it. ReachKit fetches your real product page, extracts the actual signals, and grounds every answer in evidence — so there are no hallucinations and nothing that doesn't apply to you.",
-    rows: [
-      { capability: "Grounded in your live page", cells: [check, cross] },
-      { capability: "Discoverability score (0–100)", cells: [check, cross] },
-      { capability: "Ranked, evidence-based fixes", cells: [check, partial("generic, unranked")] },
-      { capability: "Draft copy per action", cells: [check, partial("with prompting")] },
-      { capability: "Weekly action engine + verification", cells: [check, cross] },
-      { capability: "Free to start", cells: [check, check] },
-    ],
-  },
-  semrush: {
-    name: "Semrush",
-    tagline: "marketing suite",
-    intro:
-      "Semrush is an all-in-one suite — keyword research, backlink index, rank tracking, site audits and more — built for marketing teams. ReachKit does one thing for solo founders: it scores your live App Store listing or website and hands you a small, ranked weekly action plan with draft copy, at indie pricing.",
-    rows: [
-      { capability: "Discoverability score for App Store + web", cells: [check, partial("web SEO + site audit only")] },
-      { capability: "Ranked weekly action plan (not a dashboard)", cells: [check, partial("audits surface issues")] },
-      { capability: "Draft copy per fix", cells: [check, partial("AI writing add-on")] },
-      { capability: "Change verification on re-scan", cells: [check, cross] },
-      { capability: "Keyword, backlink + rank-tracking database", cells: [cross, check] },
-      { capability: "Priced for solo founders", cells: [check, partial("team pricing")] },
-      { capability: "Free to start", cells: [check, partial("limited free account")] },
-    ],
-  },
-  moz: {
-    name: "Moz",
-    tagline: "SEO software",
-    intro:
-      "Moz is well-loved SEO software — Domain Authority, keyword research and rank tracking, with a strong learning community. ReachKit isn't an SEO metrics tool: it scores both App Store and web discoverability, names your positioning gap, and turns it into a ranked weekly to-do list with draft copy.",
-    rows: [
-      { capability: "Discoverability score for App Store + web", cells: [check, partial("web only")] },
-      { capability: "Ranked, prioritised fixes", cells: [check, partial("site crawl flags issues")] },
-      { capability: "Positioning / messaging gap analysis", cells: [check, cross] },
-      { capability: "Draft copy per action", cells: [check, cross] },
-      { capability: "Weekly action engine + verification", cells: [check, cross] },
-      { capability: "Domain Authority + link metrics", cells: [cross, check] },
-      { capability: "Free to start", cells: [check, partial("free tools + trial")] },
-    ],
-  },
-  ubersuggest: {
-    name: "Ubersuggest",
-    tagline: "budget SEO",
-    intro:
-      "Ubersuggest is a budget-friendly SEO tool for keyword ideas, content suggestions and basic site audits. ReachKit is built around your own product page: it scores your live App Store or web listing across 18 signals and gives a ranked, verified weekly plan rather than a keyword list.",
-    rows: [
-      { capability: "Discoverability score (0–100)", cells: [check, cross] },
-      { capability: "Grounded in your live page", cells: [check, partial("site audit + keyword data")] },
-      { capability: "App Store / ASO coverage", cells: [check, cross] },
-      { capability: "Ranked weekly action plan", cells: [check, partial("flat suggestions list")] },
-      { capability: "Draft copy per action", cells: [check, cross] },
-      { capability: "Keyword volume + content ideas", cells: [partial("surfaced in the report"), check] },
-      { capability: "Affordable for indies", cells: [check, check] },
-    ],
-  },
-  "google-search-console": {
-    name: "Google Search Console",
-    tagline: "search data",
-    intro:
-      "Google Search Console is the free source of truth for how Google sees your site — impressions, clicks, queries and indexing health. ReachKit reads that kind of signal and goes further: it scores your discoverability, explains what's wrong in plain English, and hands you a ranked weekly plan with draft copy.",
-    rows: [
-      { capability: "Discoverability score (0–100)", cells: [check, cross] },
-      { capability: "App Store / web listing coverage", cells: [check, partial("web search only")] },
-      { capability: "Ranked, prioritised fixes", cells: [check, partial("flags issues, no priorities")] },
-      { capability: "Plain-English explanation + draft copy", cells: [check, cross] },
-      { capability: "Weekly action engine + verification", cells: [check, cross] },
-      { capability: "Real Google impression + query data", cells: [cross, check] },
-      { capability: "Free to use", cells: [partial("first scan free"), check] },
-    ],
-  },
-  appfigures: {
-    name: "Appfigures",
-    tagline: "ASO analytics",
-    intro:
-      "Appfigures is strong App Store analytics — keyword rankings, downloads, revenue and review tracking across stores. ReachKit isn't a metrics dashboard: it scores your live listing, names your positioning gap, and turns it into a ranked weekly action plan with draft copy — and it covers your website too.",
-    rows: [
-      { capability: "Discoverability score (0–100)", cells: [check, cross] },
-      { capability: "Covers App Store + website", cells: [check, partial("app stores only")] },
-      { capability: "Ranked weekly action plan", cells: [check, cross] },
-      { capability: "Draft copy per action", cells: [check, cross] },
-      { capability: "Change verification on re-scan", cells: [check, partial("tracks rank over time")] },
-      { capability: "ASO keyword rank + download data", cells: [partial("listing signals only"), check] },
-      { capability: "Priced for solo founders", cells: [check, partial("per-app tiers")] },
-    ],
-  },
-  "surfer-seo": {
-    name: "Surfer SEO",
-    tagline: "content optimization",
-    intro:
-      "Surfer SEO is excellent at on-page content optimization — scoring a draft against top-ranking pages by terms, structure and length. ReachKit works one level up: it scores your whole App Store or web listing across 18 signals and gives a ranked, verified weekly plan, not just a content editor.",
-    rows: [
-      { capability: "Whole-listing discoverability score", cells: [check, partial("per-article content score")] },
-      { capability: "Covers App Store + website", cells: [check, cross] },
-      { capability: "Ranked weekly action plan", cells: [check, cross] },
-      { capability: "Draft copy per action", cells: [check, partial("content editor + AI writer")] },
-      { capability: "Change verification on re-scan", cells: [check, partial("re-score a draft")] },
-      { capability: "SERP-based on-page content scoring", cells: [partial("copy signals in the report"), check] },
-      { capability: "Free to start", cells: [check, partial("free audit, paid plans")] },
-    ],
-  },
-};
+const SG = "var(--font-display)", JM = "var(--font-mono)", SANS = "var(--font-sans)";
 
 export function generateStaticParams() {
-  return Object.keys(COMPETITORS).map((slug) => ({ slug }));
+  return COMPARE_SLUGS.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({
@@ -166,58 +29,174 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const c = COMPETITORS[slug];
+  const c = COMPARE_MAP[slug];
   if (!c) return {};
   return buildMetadata({
-    title: `ReachKit vs ${c.name}`,
-    description: `ReachKit vs ${c.name}: how a discoverability engine for solo founders compares to ${c.name} (${c.tagline}). Feature-by-feature.`,
+    title: `ReachKit vs ${c.name} — ${c.titleTail}`,
+    description: c.metaDescription,
     path: `/compare/${slug}`,
   });
 }
 
-export default async function ComparePage({
+function CellMark({ cell, highlight }: { cell: CompareCell; highlight: boolean }) {
+  if (cell.type === "check") {
+    return (
+      <span aria-label="Yes" style={{ fontFamily: JM, fontWeight: 700, fontSize: 15, color: highlight ? "var(--c-action)" : "var(--c-band-findable)" }}>
+        ✓
+      </span>
+    );
+  }
+  if (cell.type === "cross") {
+    return (
+      <span aria-label="No" style={{ fontFamily: JM, fontWeight: 600, fontSize: 15, color: "var(--c-faint)" }}>
+        ✕
+      </span>
+    );
+  }
+  return (
+    <span style={{ fontFamily: JM, fontSize: 11.5, lineHeight: 1.35, color: "var(--c-muted)", display: "inline-block", maxWidth: 170 }}>
+      {cell.note}
+    </span>
+  );
+}
+
+function CapabilityTable({ c }: { c: CompareEntry }) {
+  return (
+    <div style={{ overflowX: "auto", border: "1px solid var(--c-line)", borderRadius: 16, background: "var(--c-surface)" }}>
+      <table style={{ width: "100%", minWidth: 560, borderCollapse: "collapse" }}>
+        <thead>
+          <tr>
+            <th scope="col" style={{ textAlign: "left", padding: "14px 18px", fontFamily: JM, fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-faint)", borderBottom: "1px solid var(--c-line)" }}>
+              Capability
+            </th>
+            <th scope="col" style={{ textAlign: "center", padding: "14px 16px", fontFamily: SG, fontSize: 13.5, fontWeight: 700, color: "var(--c-action)", borderBottom: "1px solid var(--c-line)", background: "var(--c-tint-violet)" }}>
+              ReachKit
+            </th>
+            <th scope="col" style={{ textAlign: "center", padding: "14px 16px", fontFamily: SG, fontSize: 13.5, fontWeight: 700, color: "var(--c-ink)", borderBottom: "1px solid var(--c-line)" }}>
+              {c.name}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {c.rows.map((row, i) => {
+            const last = i === c.rows.length - 1;
+            const border = last ? "none" : "1px solid var(--c-line2)";
+            return (
+              <tr key={row.capability}>
+                <th scope="row" style={{ textAlign: "left", padding: "13px 18px", fontFamily: SANS, fontSize: 14, fontWeight: 500, color: "var(--c-ink)", borderBottom: border }}>
+                  {row.capability}
+                </th>
+                <td style={{ textAlign: "center", padding: "13px 16px", borderBottom: border, background: "var(--c-tint-violet)" }}>
+                  <CellMark cell={row.cells[0]} highlight />
+                </td>
+                <td style={{ textAlign: "center", padding: "13px 16px", borderBottom: border }}>
+                  <CellMark cell={row.cells[1]} highlight={false} />
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function VerdictList({ title, items, accent }: { title: string; items: readonly string[]; accent: boolean }) {
+  return (
+    <div style={{ flex: "1 1 300px", background: accent ? "var(--c-tint-violet)" : "var(--c-surface)", border: `1px solid ${accent ? "var(--c-tint-violet-line)" : "var(--c-line)"}`, borderRadius: 16, padding: "24px 26px" }}>
+      <h3 style={{ fontFamily: SG, fontWeight: 700, fontSize: 17, letterSpacing: "-0.01em", color: accent ? "var(--c-action)" : "var(--c-ink)", margin: 0 }}>
+        {title}
+      </h3>
+      <ul style={{ margin: "14px 0 0", padding: 0, listStyle: "none", display: "grid", gap: 10 }}>
+        {items.map((item) => (
+          <li key={item} style={{ display: "flex", gap: 10, fontSize: 14.5, lineHeight: 1.5, color: "var(--c-muted)" }}>
+            <span aria-hidden style={{ fontFamily: JM, fontWeight: 700, color: accent ? "var(--c-action)" : "var(--c-faint)", flexShrink: 0 }}>—</span>
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+export default async function CompareSlugPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const c = COMPETITORS[slug];
+  const c = COMPARE_MAP[slug];
   if (!c) notFound();
 
   return (
-    <main aria-label={`ReachKit versus ${c.name}`}>
+    <main aria-label={`ReachKit versus ${c.name}`} style={{ background: "var(--c-surface)" }}>
       {/* Hero */}
-      <section className="mx-auto max-w-2xl px-(--spacing-content-x) pb-8 pt-20 text-center sm:pt-28">
-        <p className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "var(--color-accent-400)" }}>
-          Compare
+      <section style={{ maxWidth: 760, margin: "0 auto", padding: "70px 28px 16px", textAlign: "center" }}>
+        <p style={{ fontFamily: JM, fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-action)", margin: 0 }}>
+          Compare · {c.tagline}
         </p>
-        <h1 className="mt-3 text-4xl sm:text-5xl lg:text-6xl" style={{ color: "var(--color-fg)", lineHeight: 1.05 }}>
+        <h1 style={{ fontFamily: SG, fontWeight: 700, fontSize: "clamp(2rem, 4vw, 3.25rem)", letterSpacing: "-0.02em", lineHeight: 1.05, color: "var(--c-ink)", margin: "16px 0 0" }}>
           ReachKit vs {c.name}
         </h1>
-        <p className="mt-4 text-lg leading-relaxed" style={{ color: "var(--color-muted)" }}>
+        <p style={{ fontSize: 17, lineHeight: 1.6, color: "var(--c-muted)", margin: "20px auto 0", maxWidth: 640 }}>
           {c.intro}
         </p>
       </section>
 
-      {/* Table */}
-      <ComparisonTable
-        content={{
-          eyebrow: "Feature by feature",
-          headline: `What you get with each`,
-          tools: ["ReachKit", c.name],
-          rows: c.rows,
-        }}
-      />
+      {/* Deep sections */}
+      <section style={{ maxWidth: 720, margin: "0 auto", padding: "28px 28px 8px" }}>
+        {c.sections.map((s) => (
+          <div key={s.heading} style={{ marginBottom: 36 }}>
+            <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: 23, letterSpacing: "-0.015em", color: "var(--c-ink)", margin: "0 0 14px" }}>
+              {s.heading}
+            </h2>
+            {s.paragraphs.map((p) => (
+              <p key={p.slice(0, 40)} style={{ fontSize: 15.5, lineHeight: 1.65, color: "var(--c-muted)", margin: "0 0 14px" }}>
+                {p}
+              </p>
+            ))}
+          </div>
+        ))}
+      </section>
+
+      {/* Verdict */}
+      <section aria-label="Verdict" style={{ maxWidth: 880, margin: "0 auto", padding: "8px 28px 12px" }}>
+        <p style={{ fontFamily: JM, fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-faint)", margin: "0 0 14px" }}>
+          The honest verdict
+        </p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 18 }}>
+          <VerdictList title={`Use ${c.name} when…`} items={c.useBothWhen} accent={false} />
+          <VerdictList title="Choose ReachKit when…" items={c.chooseReachKitWhen} accent />
+        </div>
+      </section>
+
+      {/* Capability table */}
+      <section aria-label="Capability comparison" style={{ maxWidth: 880, margin: "0 auto", padding: "36px 28px 8px" }}>
+        <p style={{ fontFamily: JM, fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-faint)", margin: "0 0 14px" }}>
+          Capability by capability
+        </p>
+        <CapabilityTable c={c} />
+      </section>
 
       {/* CTA */}
-      <section className="px-(--spacing-content-x) pb-(--spacing-section-y) pt-4 text-center">
-        <Link
-          href="/scan"
-          className="inline-flex h-11 items-center rounded-lg px-6 text-sm font-semibold shadow-[var(--elevation-glow)] transition-transform hover:-translate-y-px motion-reduce:transform-none"
-          style={{ background: "var(--color-accent)", color: "var(--color-accent-fg)" }}
-        >
-          See your Discoverability Score — free
-        </Link>
+      <section style={{ maxWidth: 720, margin: "0 auto", padding: "48px 28px 90px", textAlign: "center" }}>
+        <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: 26, letterSpacing: "-0.015em", color: "var(--c-ink)", margin: 0 }}>
+          See the difference on your own product
+        </h2>
+        <p style={{ fontSize: 15.5, lineHeight: 1.6, color: "var(--c-muted)", margin: "12px auto 0", maxWidth: 480 }}>
+          One free scan: your 0–100 discoverability score, the findings behind it, and the part {c.name} leaves to you — a ranked plan, verified live.
+        </p>
+        <div style={{ marginTop: 24 }}>
+          <Link
+            href="/scan"
+            style={{ display: "inline-block", background: "var(--c-action)", color: "var(--c-on-dark)", borderRadius: 10, padding: "12px 24px", fontFamily: SANS, fontWeight: 600, fontSize: 14.5, textDecoration: "none" }}
+          >
+            See your Discoverability Score — free
+          </Link>
+        </div>
+        <p style={{ fontFamily: JM, fontSize: 12, color: "var(--c-faint)", margin: "14px 0 0" }}>
+          Free scan · then $29/mo Solo or $129/mo Growth
+        </p>
       </section>
     </main>
   );

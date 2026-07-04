@@ -12,6 +12,7 @@
 import type { MetadataRoute } from "next";
 import { SITE } from "@/lib/seo";
 import { allTeardowns } from "@/content/teardowns";
+import { COMPARE_SLUGS } from "@/app/(marketing)/compare/compare-content";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
@@ -28,12 +29,24 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${SITE.url}/affiliates`, lastModified: now, changeFrequency: "monthly", priority: 0.4 },
   ];
 
-  const compare: MetadataRoute.Sitemap = ["sparktoro", "ahrefs", "chatgpt"].map((slug) => ({
-    url: `${SITE.url}/compare/${slug}`,
-    lastModified: now,
-    changeFrequency: "monthly",
-    priority: 0.6,
-  }));
+  const tools: MetadataRoute.Sitemap = ["on-page-check", "ai-visibility-check", "meta-preview"].map(
+    (slug) => ({
+      url: `${SITE.url}/tools/${slug}`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    }),
+  );
+
+  const compare: MetadataRoute.Sitemap = [
+    { url: `${SITE.url}/compare`, lastModified: now, changeFrequency: "monthly" as const, priority: 0.7 },
+    ...COMPARE_SLUGS.map((slug) => ({
+      url: `${SITE.url}/compare/${slug}`,
+      lastModified: now,
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    })),
+  ];
 
   const teardowns: MetadataRoute.Sitemap = allTeardowns.map((t) => ({
     url: `${SITE.url}/teardowns/${t.slug}`,
@@ -49,5 +62,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${SITE.url}/terms`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
   ];
 
-  return [...core, ...compare, ...teardowns, ...legal];
+  return [...core, ...tools, ...compare, ...teardowns, ...legal];
 }
