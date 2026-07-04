@@ -36,6 +36,7 @@ const NAV: (NavItem | NavGroup)[] = [
   ), children: [
     { label: "Content", href: "/app/plan/content" },
     { label: "Distribution", href: "/app/plan/distribution" },
+    { label: "Queue", href: "/app/plans" },
   ] },
   { label: "Progress", href: "/app/progress", icon: (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 17 9 11 13 15 21 6" /><polyline points="14 6 21 6 21 13" /></svg>
@@ -52,7 +53,7 @@ function isGroup(n: NavItem | NavGroup): n is NavGroup {
 const TITLES: Record<string, string> = {
   "/app/dashboard": "Dashboard",
   "/app/audience/competitors": "Competitors", "/app/audience/customers": "Customers",
-  "/app/plan/content": "Content", "/app/plan/distribution": "Distribution",
+  "/app/plan/content": "Content", "/app/plan/distribution": "Distribution", "/app/plans": "Queue",
   "/app/progress": "Progress",
   "/app/settings": "Settings", "/app/billing": "Billing",
   "/app/audience": "Audience", "/app/plan": "Plan",
@@ -66,6 +67,7 @@ const DESCRIPTIONS: Record<string, string> = {
   "/app/audience/customers": "Who your buyer is, what they search, and where they ask.",
   "/app/plan/content": "Your content plan — topics and briefs grounded in real demand.",
   "/app/plan/distribution": "Where to get seen — channels, communities, and outreach targets.",
+  "/app/plans": "Everything you've queued — open fixes, in-flight checks, and verified wins.",
   "/app/progress": "Your Discoverability Score over time and what moved it.",
 };
 
