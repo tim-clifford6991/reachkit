@@ -4,6 +4,7 @@
  * Synthesis view — the strategic read + prioritization. Built on the intel kit.
  */
 import Link from "next/link";
+import { CheckoutButton } from "@/components/app/checkout-button";
 import { useIntel, IntelShell, fmtCompact } from "@/components/app/intel/shared";
 import { Card, HeroCard, Eyebrow, Kpi, KpiRow, Badge, Donut, Quadrant, ActionButton, type Segment, type QuadrantItem } from "@/components/app/intel/kit";
 
@@ -33,15 +34,15 @@ function prioSegs(items: { priority: string }[]): Segment[] {
   return ["high", "medium", "low"].filter((k) => g[k]).map((k) => ({ label: k, value: g[k]!, color: PRIO_COLOR[k]! }));
 }
 
-export function SynthesisView() {
+export function SynthesisView({ isPaid = true }: { isPaid?: boolean } = {}) {
   const { data, loading, error, stages } = useIntel<Synthesis>("synthesis");
   return (
-    <div>      <IntelShell loading={loading} error={error} hasData={!!data} stages={stages}>{data && <Body data={data} />}</IntelShell>
+    <div>      <IntelShell loading={loading} error={error} hasData={!!data} stages={stages}>{data && <Body data={data} isPaid={isPaid} />}</IntelShell>
     </div>
   );
 }
 
-function Body({ data }: { data: Synthesis }) {
+function Body({ data, isPaid }: { data: Synthesis; isPaid: boolean }) {
   const { contentPlan, distributionPlan } = data;
   const totalVol = contentPlan.reduce((s, c) => s + c.estMonthlyVolume, 0);
   const high = [...contentPlan, ...distributionPlan].filter((x) => x.priority === "high").length;
@@ -78,7 +79,15 @@ function Body({ data }: { data: Synthesis }) {
         <Digest title="Top distribution moves" items={distributionPlan.slice(0, 4).map((c) => ({ prio: c.priority, label: c.action, badge: c.channel }))} />
       </div>
 
-      <ActionButton href="/app/plans">See the full plan →</ActionButton>
+      {isPaid ? (
+        <ActionButton href="/app/plans">See the full plan →</ActionButton>
+      ) : (
+        // Free-user teaser → one-click Solo checkout (W6), styled to match
+        // ActionButton exactly; /app/billing only as the error fallback.
+        <CheckoutButton plan="solo" pendingLabel="Redirecting…" style={{ display: "inline-block", background: "var(--c-action)", color: "var(--c-on-dark)", fontFamily: "Plus Jakarta Sans", fontWeight: 600, fontSize: 13, padding: "9px 16px", borderRadius: "var(--radius-lg)", border: "none" }}>
+          Unlock the full plan →
+        </CheckoutButton>
+      )}
     </div>
   );
 }

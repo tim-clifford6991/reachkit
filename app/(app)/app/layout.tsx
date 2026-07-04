@@ -123,7 +123,9 @@ async function SidebarData({ children }: { children: React.ReactNode }) {
 
   // Side card: paid users get the next-auto-scan countdown; free users get a
   // single upgrade prompt (no trial — the free scan is the only free capability).
-  let sideCard = null as null | { title: string; sub: string; cta?: { label: string; href: string }; tone: "trial" | "scan" };
+  // The free CTA goes STRAIGHT to Stripe checkout (Solo default, W6) — the
+  // billing page is only the error fallback / plan-comparison surface.
+  let sideCard = null as null | { title: string; sub: string; cta?: { label: string; href: string; checkoutPlan?: "solo" | "growth" }; tone: "trial" | "scan" };
   if (entitlements.active && lastScannedIso) {
     // eslint-disable-next-line react-hooks/purity -- server component: single render per request, Date.now is deterministic per-request
     const d = Math.max(0, Math.ceil((new Date(lastScannedIso).getTime() + 7 * 86_400_000 - Date.now()) / 86_400_000));
@@ -132,7 +134,7 @@ async function SidebarData({ children }: { children: React.ReactNode }) {
     sideCard = {
       title: "Unlock the weekly engine",
       sub: "Turn your report into a ranked, verified weekly action queue.",
-      cta: { label: "See plans", href: "/app/billing" },
+      cta: { label: "Upgrade", href: "/app/billing", checkoutPlan: "solo" },
       tone: "trial",
     };
   }
@@ -148,6 +150,7 @@ async function SidebarData({ children }: { children: React.ReactNode }) {
       apps={apps}
       activeAppId={primaryAppId}
       canAddApp={canAddApp}
+      addAppUpgradePlan={tier === "growth" ? null : "growth"}
       sideCard={sideCard}
       userName={userName}
       userRole="solo founder"

@@ -11,6 +11,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { AppSwitcher, type SwitcherApp } from "./app-switcher-menu";
+import { CheckoutButton } from "@/components/app/checkout-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 const SG = "Space Grotesk", PJ = "Plus Jakarta Sans", JM = "JetBrains Mono";
@@ -89,7 +90,9 @@ const CHILD_TO_GROUP: Record<string, { label: string; firstHref: string }> = Obj
 export interface SideCard {
   title: string;
   sub: string;
-  cta?: { label: string; href: string };
+  /** When `checkoutPlan` is set the CTA POSTs Stripe checkout directly (one
+   *  click); `href` then only serves as the error fallback. */
+  cta?: { label: string; href: string; checkoutPlan?: "solo" | "growth" };
   /** "trial" tints the card violet-accented; "scan" keeps the dark look. */
   tone?: "trial" | "scan";
 }
@@ -103,6 +106,9 @@ export interface AppShellProps {
   apps: SwitcherApp[];
   activeAppId: string | null;
   canAddApp: boolean;
+  /** When at the plan's app limit: the plan that unlocks another slot (direct
+   *  checkout). null (e.g. already Growth) keeps the billing-page link. */
+  addAppUpgradePlan?: "growth" | null;
   userName: string;
   userRole: string;
   userInitials: string;
@@ -175,6 +181,7 @@ export function AppShell(p: AppShellProps) {
             appInitial={p.appInitial}
             plan={p.plan}
             canAddApp={p.canAddApp}
+            addAppUpgradePlan={p.addAppUpgradePlan ?? null}
           />
           {/* Nav */}
           <nav style={{ display: "flex", flexDirection: "column", gap: 3 }}>
@@ -200,9 +207,11 @@ export function AppShell(p: AppShellProps) {
             <div style={{ background: "linear-gradient(150deg, var(--c-dark), var(--c-dark2))", borderRadius: 13, padding: 15, color: "#fff", marginBottom: 10 }}>
               <div style={{ fontFamily: SG, fontWeight: 700, fontSize: 14.5 }}>{p.sideCard.title}</div>
               <div style={{ fontSize: 12, color: "#B7B4C4", margin: p.sideCard.cta ? "5px 0 11px" : "5px 0 0" }}>{p.sideCard.sub}</div>
-              {p.sideCard.cta && (
+              {p.sideCard.cta && (p.sideCard.cta.checkoutPlan ? (
+                <CheckoutButton plan={p.sideCard.cta.checkoutPlan} fallbackHref={p.sideCard.cta.href} style={{ display: "block", width: "100%", textAlign: "center", fontFamily: PJ, fontWeight: 600, fontSize: 12.5, background: "var(--c-action)", color: "#fff", border: "none", borderRadius: 8, padding: 8 }}>{p.sideCard.cta.label}</CheckoutButton>
+              ) : (
                 <Link href={p.sideCard.cta.href} style={{ display: "block", textAlign: "center", fontFamily: PJ, fontWeight: 600, fontSize: 12.5, background: "var(--c-action)", color: "#fff", border: "none", borderRadius: 8, padding: 8, cursor: "pointer", textDecoration: "none" }}>{p.sideCard.cta.label}</Link>
-              )}
+              ))}
             </div>
           )}
           {/* User footer */}
