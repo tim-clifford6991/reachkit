@@ -93,8 +93,19 @@ export async function POST(
     return NextResponse.json({ message: "failed to mark action verifying" }, { status: 500 });
   }
 
-  // 5. Kick off async verification.
-  await inngest.send({ name: "action/verify", data: { actionId } });
+  // 5. Kick off async verification. If the event can't be emitted (Inngest
+  //    unreachable), revert to "pending" — otherwise the action is stuck in a
+  //    "verifying" state no pipeline will ever resolve — and tell the caller
+  //    to retry.
+  try {
+    await inngest.send({ name: "action/verify", data: { actionId } });
+  } catch {
+    await db.from("actions").update({ verify_state: "pending" }).eq("id", actionId);
+    return NextResponse.json(
+      { message: "verification queue unavailable — try again shortly" },
+      { status: 503 },
+    );
+  }
 
   return NextResponse.json({ ok: true });
 }
