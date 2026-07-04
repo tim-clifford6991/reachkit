@@ -90,7 +90,7 @@ export const COMPARE_ENTRIES: readonly CompareEntry[] = [
     verdict: "World-class link and keyword data for SEO pros. ReachKit skips the dataset and hands a founder the decision.",
     titleTail: "Do You Need the Data or the Decision?",
     metaDescription:
-      "Ahrefs gives SEO professionals a world-class dataset. ReachKit gives solo founders the decision: an 18-signal discoverability score and an evidence-cited weekly plan from $29/mo.",
+      "Ahrefs gives SEO professionals a world-class dataset. ReachKit gives solo founders the decision: an 18-signal discoverability score and an evidence-cited weekly plan from $59/mo.",
     intro:
       "Ahrefs is one of the best SEO datasets ever built, and it is built for people whose job is SEO. ReachKit is built for people whose job is the product — it scans your actual site and listings, scores your discoverability across 18 signals, and tells you what to fix this week.",
     sections: [
@@ -114,7 +114,7 @@ export const COMPARE_ENTRIES: readonly CompareEntry[] = [
         paragraphs: [
           "ReachKit starts from your product, not from a database. It scans your live site, listings, and reviews, measures the real search demand around your category and where your rivals actually show up, and computes a 0–100 discoverability score from 18 deterministic signals across three weighted pillars — SEO (45%), Content (30%), and Outreach (25%). No judgement calls, no vibes: the same inputs always produce the same score.",
           "Then it does the part Ahrefs leaves to you: it ranks the fixes by impact and hands you a weekly action plan where every item cites the evidence it came from — the tag that's missing, the query you don't rank for, the rival page outranking you. When you ship a fix, ReachKit re-checks it live; a fix only counts as done when the scan confirms it.",
-          "The first scan is free, and the paid engine is $29/month Solo or $129/month Growth — priced for a founder's budget, not an agency retainer.",
+          "The first scan is free, and the paid engine is $59/month Solo or $129/month Growth — priced for a founder's budget, not an agency retainer.",
         ],
       },
     ],
@@ -147,7 +147,7 @@ export const COMPARE_ENTRIES: readonly CompareEntry[] = [
     verdict: "Fifty tools for a marketing team with a driver. ReachKit is one engine that decides for you.",
     titleTail: "A Marketing Department vs a Decision Engine",
     metaDescription:
-      "Semrush is an all-in-one suite built for marketing teams. ReachKit does one thing for solo founders: an 18-signal discoverability score and a ranked, verified weekly plan from $29/mo.",
+      "Semrush is an all-in-one suite built for marketing teams. ReachKit does one thing for solo founders: an 18-signal discoverability score and a ranked, verified weekly plan from $59/mo.",
     intro:
       "Semrush is the broadest marketing suite on the market — and breadth is exactly what a marketing team wants. ReachKit is the opposite bet: one engine that scans your product, scores its discoverability, and hands you the week's ranked fixes, because a solo founder needs the decision, not another department's toolbox.",
     sections: [
@@ -172,7 +172,7 @@ export const COMPARE_ENTRIES: readonly CompareEntry[] = [
           "ReachKit collapses the workflow into one loop. It scans your live site, app-store listings, and reviews; measures the real buyer search demand in your category and where competitors show up for it; and scores you 0–100 across 18 deterministic signals in three weighted pillars — SEO 45%, Content 30%, Outreach 25%. There's nothing to configure and no dashboard to babysit.",
           "The output isn't a report to interpret — it's a ranked weekly action plan where every item cites its evidence, and where each fix is re-checked live before it counts as done. That verification loop is the piece no suite offers: Semrush can tell you an issue exists; ReachKit confirms you actually fixed it.",
           "The workflow difference is easiest to feel on a Monday. Semrush greets you with dashboards to inspect and audits to re-run; ReachKit greets you with this week's three highest-impact fixes and the reasons they're on top. One tool asks for your attention; the other returns it.",
-          "The first scan is free; the weekly engine is $29/month Solo or $129/month Growth.",
+          "The first scan is free; the weekly engine is $59/month Solo or $129/month Growth.",
         ],
       },
     ],
@@ -184,7 +184,7 @@ export const COMPARE_ENTRIES: readonly CompareEntry[] = [
     chooseReachKitWhen: [
       "You want one prioritised list, not fifty tools to learn.",
       "Nobody on the team has 'drive the SEO suite' in their job description.",
-      "You'd rather pay $29 for the decision than $100+ to make it yourself.",
+      "You'd rather pay $59 for the decision than $100+ to make it yourself.",
     ],
     rows: [
       { capability: "Discoverability score for web + app stores", cells: [check, partial("web SEO + site audit only")] },
@@ -205,7 +205,7 @@ export const COMPARE_ENTRIES: readonly CompareEntry[] = [
     verdict: "The tool that taught the industry SEO. ReachKit is for founders who'd rather skip the course.",
     titleTail: "Learn SEO, or Just Get Found?",
     metaDescription:
-      "Moz pairs respected SEO metrics with the industry's best education. ReachKit skips the curriculum: an 18-signal score and an evidence-cited weekly plan for founders, from $29/mo.",
+      "Moz pairs respected SEO metrics with the industry's best education. ReachKit skips the curriculum: an 18-signal score and an evidence-cited weekly plan for founders, from $59/mo.",
     intro:
       "Moz practically invented the SEO-software category, and its education is still how much of the industry learned the craft. ReachKit makes the opposite offer: you shouldn't have to learn the craft. It scans your product, scores it across 18 signals, and tells you what to fix — with the evidence attached.",
     sections: [
@@ -230,7 +230,7 @@ export const COMPARE_ENTRIES: readonly CompareEntry[] = [
           "ReachKit assumes you will never take the course, and builds the expertise into the engine. It scans your live site, listings, and reviews, measures real buyer search demand and competitor presence, and computes a 0–100 score from 18 deterministic signals across three weighted pillars (SEO 45%, Content 30%, Outreach 25%). The score explains itself: every signal shows why it matters and what to do.",
           "Instead of metrics to interpret, you get a ranked weekly plan with the evidence cited inline — and a verification loop that re-checks each fix live before marking it done. It's the difference between a grade with a syllabus and a to-do list with receipts.",
           "Concretely: where Moz would show you a keyword-difficulty column and a crawl report, ReachKit's plan reads more like \"your pricing page has no structured data and it's costing you rich results — here's the block to add\", followed by a re-scan that confirms it landed. Same underlying discipline, opposite starting point: the fix first, the theory available when you want it.",
-          "First scan free; $29/month Solo, $129/month Growth after that.",
+          "First scan free; $59/month Solo, $129/month Growth after that.",
         ],
       },
     ],
@@ -263,7 +263,7 @@ export const COMPARE_ENTRIES: readonly CompareEntry[] = [
     verdict: "Honest budget keyword research. ReachKit spends the same money on answers instead of ideas.",
     titleTail: "Cheap Data vs an Affordable Decision",
     metaDescription:
-      "Ubersuggest is genuinely affordable keyword research. ReachKit turns the same budget into decisions: an 18-signal score of your actual product and a verified weekly plan from $29/mo.",
+      "Ubersuggest is genuinely affordable keyword research. ReachKit turns the same budget into decisions: an 18-signal score of your actual product and a verified weekly plan from $59/mo.",
     intro:
       "Ubersuggest deserves credit for making SEO data affordable — real keyword and audit tooling at a fraction of suite prices. ReachKit competes for the same founder budget with a different product entirely: not cheaper data, but the decision itself, computed from your actual site and listings.",
     sections: [
@@ -287,7 +287,7 @@ export const COMPARE_ENTRIES: readonly CompareEntry[] = [
           "At a similar price point, ReachKit inverts the model: instead of generic data about the whole web, it's a deep read of you. It scans your live site, listings, and reviews, measures the real search demand around your category and where competitors show up, and scores you 0–100 across 18 deterministic signals in three weighted pillars — SEO 45%, Content 30%, Outreach 25%.",
           "The output is a ranked weekly action plan, each item citing the evidence it came from, and each fix re-checked live before it counts. Keyword and demand data still appear — but as inputs to a decision, not homework.",
           "The practical difference shows up in what you do after opening the tool. An Ubersuggest session ends with a spreadsheet of candidate keywords and a vague intention; a ReachKit week ends with a shipped fix and a re-scan that confirmed it. For a founder with four spare hours a week, that gap is the whole game.",
-          "First scan free; $29/month Solo or $129/month Growth.",
+          "First scan free; $59/month Solo or $129/month Growth.",
         ],
       },
     ],
@@ -320,7 +320,7 @@ export const COMPARE_ENTRIES: readonly CompareEntry[] = [
     verdict: "The friendliest keyword research on the market. ReachKit answers the question keywords can't: what do I fix?",
     titleTail: "Beautiful Keyword Data vs Your Fix List",
     metaDescription:
-      "Mangools (KWFinder) is the friendliest keyword research suite for beginners. ReachKit scans your actual product, scores 18 discoverability signals, and hands you a verified weekly plan from $29/mo.",
+      "Mangools (KWFinder) is the friendliest keyword research suite for beginners. ReachKit scans your actual product, scores 18 discoverability signals, and hands you a verified weekly plan from $59/mo.",
     intro:
       "Mangools — best known for KWFinder — made keyword research genuinely pleasant, which in this industry counts as a breakthrough. But keyword research is one input to discoverability, not the answer. ReachKit scans your actual product, scores the whole picture across 18 signals, and ranks the fixes for you.",
     sections: [
@@ -344,7 +344,7 @@ export const COMPARE_ENTRIES: readonly CompareEntry[] = [
           "ReachKit starts where keyword tools can't: your actual product. It scans your live site, listings, and reviews; measures the real buyer search demand in your category and which rivals show up for it; and computes a 0–100 discoverability score from 18 deterministic signals across three weighted pillars — SEO 45%, Content 30%, Outreach 25%. That structure is the point: it tells you whether keywords, content, or presence is what's actually holding you back.",
           "You get a ranked weekly action plan with the evidence cited per item, and a verify loop that re-checks each fix live before it counts as done. Keyword demand shows up in the report too — already filtered to what fits your positioning.",
           "Think of it as the difference between a thermometer and a diagnosis. KWFinder can tell you, precisely and pleasantly, how hot a keyword is. ReachKit tells you whether your product would benefit from ranking for it, what's blocking that today, and — after you ship the fix — whether it worked. Both are honest instruments; only one closes the loop.",
-          "First scan free; $29/month Solo or $129/month Growth.",
+          "First scan free; $59/month Solo or $129/month Growth.",
         ],
       },
     ],
@@ -377,7 +377,7 @@ export const COMPARE_ENTRIES: readonly CompareEntry[] = [
     verdict: "An agency's daily rank tracker at fair prices. ReachKit tracks one thing: whether buyers can find you.",
     titleTail: "Tracking Positions vs Fixing Discoverability",
     metaDescription:
-      "SE Ranking is a fairly-priced rank-tracking suite loved by agencies. ReachKit is a decision engine for founders: an 18-signal discoverability score and a verified weekly fix list from $29/mo.",
+      "SE Ranking is a fairly-priced rank-tracking suite loved by agencies. ReachKit is a decision engine for founders: an 18-signal discoverability score and a verified weekly fix list from $59/mo.",
     intro:
       "SE Ranking built a serious all-in-one — accurate rank tracking at its core, plus audits and competitor research — at prices well under the big suites. It's a strong choice for agencies. ReachKit asks a different question: does a solo founder need daily positions, or a weekly answer to 'what do I fix'?",
     sections: [
@@ -401,7 +401,7 @@ export const COMPARE_ENTRIES: readonly CompareEntry[] = [
           "ReachKit replaces the tracking rhythm with a fixing rhythm. It scans your live site, listings, and reviews; measures real buyer search demand and where rivals show up for it; and computes a 0–100 score from 18 deterministic signals across three weighted pillars — SEO 45%, Content 30%, Outreach 25%. One number, decomposable to evidence, instead of a grid of daily positions.",
           "Each week you get a ranked action plan — every item citing the evidence behind it — and each shipped fix is re-checked live before it counts. Rankings still matter; they're an input to the score. But the product you interact with is the fix list, not the tracker.",
           "There's a psychological difference too. A rank tracker trains you to watch — positions wobble daily for reasons you can't control, and watching them feels like work while changing nothing. A verify loop trains you to ship: the only way the score moves is a confirmed fix. For a founder, the second habit compounds; the first just fills mornings.",
-          "First scan free; $29/month Solo or $129/month Growth.",
+          "First scan free; $59/month Solo or $129/month Growth.",
         ],
       },
     ],
@@ -436,7 +436,7 @@ export const COMPARE_ENTRIES: readonly CompareEntry[] = [
     verdict: "The best tool for learning where your audience hangs out. ReachKit fixes whether they can find you.",
     titleTail: "Know Your Audience vs Be Found by It",
     metaDescription:
-      "SparkToro reveals where your audience spends time. ReachKit fixes your side of the equation — an 18-signal discoverability score and a verified weekly action plan from $29/mo.",
+      "SparkToro reveals where your audience spends time. ReachKit fixes your side of the equation — an 18-signal discoverability score and a verified weekly action plan from $59/mo.",
     intro:
       "SparkToro answers a question almost nothing else can: where does my audience actually spend time? ReachKit answers the mirror image: when that audience goes looking, can they find you? The two are more complementary than competitive — but only one of them will hand you a fix list.",
     sections: [
@@ -460,7 +460,7 @@ export const COMPARE_ENTRIES: readonly CompareEntry[] = [
         paragraphs: [
           "ReachKit works your side of the street. It scans your live site, listings, and reviews; measures the real buyer search demand in your category and where competitors show up for it; and computes a 0–100 score from 18 deterministic signals across three weighted pillars. Outreach — the where-you-show-up dimension SparkToro studies — is one of them, weighted at 25%, alongside SEO (45%) and Content (30%).",
           "The output is a ranked weekly action plan with evidence cited per item, and a verify loop that re-checks every shipped fix live before it counts. Where SparkToro ends with insight, ReachKit ends with a confirmed change to your product's findability.",
-          "First scan free; $29/month Solo or $129/month Growth. Honestly: of every tool on this page, SparkToro is the one that pairs best with ReachKit.",
+          "First scan free; $59/month Solo or $129/month Growth. Honestly: of every tool on this page, SparkToro is the one that pairs best with ReachKit.",
         ],
       },
     ],
@@ -492,7 +492,7 @@ export const COMPARE_ENTRIES: readonly CompareEntry[] = [
     verdict: "The best window into Reddit pain points. ReachKit turns your whole presence into a scored, fixable system.",
     titleTail: "Mining Reddit vs Fixing Your Findability",
     metaDescription:
-      "GummySearch mines Reddit for pain points and demand signals. ReachKit scans your actual product presence, scores 18 discoverability signals, and ships a verified weekly plan from $29/mo.",
+      "GummySearch mines Reddit for pain points and demand signals. ReachKit scans your actual product presence, scores 18 discoverability signals, and ships a verified weekly plan from $59/mo.",
     intro:
       "GummySearch turned Reddit — the internet's biggest honest focus group — into a searchable research tool, and for validation and voice-of-customer work it's excellent. ReachKit works the other end of the funnel: once you know what buyers want, it makes sure they can actually find you.",
     sections: [
@@ -516,7 +516,7 @@ export const COMPARE_ENTRIES: readonly CompareEntry[] = [
           "ReachKit is the prioritisation layer GummySearch can't be. It scans your live site, listings, and reviews; measures real buyer search demand and where rivals show up; and scores you 0–100 across 18 deterministic signals in three weighted pillars — SEO 45%, Content 30%, Outreach 25%. Community presence belongs in that outreach pillar; it's weighed against everything else instead of competing for your attention alone.",
           "The weekly plan ranks all of it — technical fixes, content gaps, presence plays — with evidence cited per item, and re-checks every fix live before it counts. Pair it with GummySearch's vocabulary mining and you have both the words and the findability.",
           "A concrete week with both: GummySearch surfaces the phrase buyers keep using for your problem; ReachKit's scan shows your landing page never says it, ranks the rewrite above your other fixes because measured demand backs it, drafts the copy, and confirms the change on re-scan. Research became a shipped, verified improvement — not a bookmark.",
-          "First scan free; $29/month Solo or $129/month Growth.",
+          "First scan free; $59/month Solo or $129/month Growth.",
         ],
       },
     ],
@@ -549,7 +549,7 @@ export const COMPARE_ENTRIES: readonly CompareEntry[] = [
     verdict: "Market-level traffic estimates for enterprises. ReachKit measures your niche precisely — and fixes it.",
     titleTail: "Estimating the Market vs Winning Your Corner of It",
     metaDescription:
-      "Similarweb models market-level traffic for enterprise teams. ReachKit measures your niche precisely — an 18-signal discoverability score and a verified weekly action plan from $29/mo.",
+      "Similarweb models market-level traffic for enterprise teams. ReachKit measures your niche precisely — an 18-signal discoverability score and a verified weekly action plan from $59/mo.",
     intro:
       "Similarweb is the reference tool for digital market intelligence — modelled traffic estimates, channel mixes, and market share for the world's websites. It's built for enterprise questions. A solo founder's question is smaller and sharper: why isn't my product being found, and what do I fix first?",
     sections: [
@@ -573,7 +573,7 @@ export const COMPARE_ENTRIES: readonly CompareEntry[] = [
           "ReachKit trades altitude for precision. Instead of modelling the whole web, it examines your corner of it exactly: your live site, listings, and reviews; the real search queries buyers use in your category, measured directly; and which competitors actually appear for them. From that it computes a 0–100 score across 18 deterministic signals in three weighted pillars — SEO 45%, Content 30%, Outreach 25% — where every number is observed, not estimated.",
           "Then it prescribes: a ranked weekly action plan, evidence cited per item, each fix re-checked live before it counts as done. Your competitive picture comes from where rivals actually show up in your category's searches — the part of market intelligence a founder can act on.",
           "The two tools also answer to different clocks. Similarweb's story plays out over quarters — share shifts, channel trends, market movements. A founder's discoverability problem is a this-week problem: the missing schema, the illegible headline, the query a rival owns. ReachKit is built for that clock.",
-          "First scan free; $29/month Solo or $129/month Growth.",
+          "First scan free; $59/month Solo or $129/month Growth.",
         ],
       },
     ],
@@ -608,7 +608,7 @@ export const COMPARE_ENTRIES: readonly CompareEntry[] = [
     verdict: "Brilliant generalist, ungrounded advisor. ReachKit measures first — so the plan can't hallucinate.",
     titleTail: "Plausible Advice vs Measured Evidence",
     metaDescription:
-      "ChatGPT gives plausible SEO advice from what you tell it. ReachKit measures first: it scans your real pages, scores 18 signals, and cites evidence for every fix. Free scan, then $29/mo.",
+      "ChatGPT gives plausible SEO advice from what you tell it. ReachKit measures first: it scans your real pages, scores 18 signals, and cites evidence for every fix. Free scan, then $59/mo.",
     intro:
       "Ask ChatGPT how to improve your SEO and you'll get a fluent, sensible-sounding answer in seconds. The problem isn't the fluency — it's that the answer is built from what you told it, not from what's true about your product. ReachKit measures first, then advises, and cites the evidence for every fix.",
     sections: [
@@ -632,7 +632,7 @@ export const COMPARE_ENTRIES: readonly CompareEntry[] = [
           "ReachKit inverts the order: measure, then advise. It fetches your actual site, listings, and reviews; measures the real buyer search demand in your category and which rivals show up for it; and computes a 0–100 discoverability score from 18 deterministic signals across three weighted pillars — SEO 45%, Content 30%, Outreach 25%. Deterministic means exactly that: same inputs, same score, every time.",
           "Every action in the weekly plan cites the evidence it came from — the missing tag, the unranked query, the rival page above you — so nothing can be hallucinated. And when you ship a fix, ReachKit re-checks it live; it only counts as done when the scan confirms it. That's the loop a chat window can't close.",
           "None of this is anti-AI — ReachKit uses language models too, for the parts they're good at, like drafting copy and explaining findings. The difference is architectural: the score, the demand numbers, and the rankings come from deterministic measurement of your real pages, and the AI is only ever allowed to speak from that evidence.",
-          "First scan free; $29/month Solo or $129/month Growth.",
+          "First scan free; $59/month Solo or $129/month Growth.",
         ],
       },
     ],
@@ -665,7 +665,7 @@ export const COMPARE_ENTRIES: readonly CompareEntry[] = [
     verdict: "Excellent at optimizing the article you chose. ReachKit tells you whether that article was the right move.",
     titleTail: "Optimizing an Article vs Fixing the Whole Funnel",
     metaDescription:
-      "Surfer SEO optimizes individual articles against the SERP. ReachKit works a level up — scoring your whole product's discoverability across 18 signals with a verified weekly plan from $29/mo.",
+      "Surfer SEO optimizes individual articles against the SERP. ReachKit works a level up — scoring your whole product's discoverability across 18 signals with a verified weekly plan from $59/mo.",
     intro:
       "Surfer SEO is very good at its chosen job: scoring a piece of content against what already ranks and coaching it upward. But it starts after the most important decision — what to work on — has been made. ReachKit works one level up: it scores your whole product's discoverability and tells you whether content is even your bottleneck.",
     sections: [
@@ -689,7 +689,7 @@ export const COMPARE_ENTRIES: readonly CompareEntry[] = [
         paragraphs: [
           "ReachKit answers the question that comes first. It scans your live site, listings, and reviews; measures real buyer search demand and which competitors show up for it; and computes a 0–100 score from 18 deterministic signals across three weighted pillars — SEO 45%, Content 30%, Outreach 25%. That decomposition is the diagnosis: it shows whether content is your constraint or a distraction from it.",
           "The weekly plan ranks fixes across all three pillars with evidence cited per item — and when content is the right move, it says which content and why, grounded in measured demand rather than a keyword hunch. Every shipped fix is re-checked live before it counts.",
-          "First scan free; $29/month Solo or $129/month Growth. If the scan says content is your lever, Surfer is a fine tool to execute with.",
+          "First scan free; $59/month Solo or $129/month Growth. If the scan says content is your lever, Surfer is a fine tool to execute with.",
         ],
       },
     ],
@@ -724,7 +724,7 @@ export const COMPARE_ENTRIES: readonly CompareEntry[] = [
     verdict: "The free source of truth every founder should have. ReachKit is what turns its data into a plan.",
     titleTail: "The Data You Should Have vs the Plan You Need",
     metaDescription:
-      "Google Search Console is free, first-party, and essential. ReachKit turns that class of signal into decisions: an 18-signal score and a verified weekly action plan from $29/mo.",
+      "Google Search Console is free, first-party, and essential. ReachKit turns that class of signal into decisions: an 18-signal score and a verified weekly action plan from $59/mo.",
     intro:
       "Let's be clear up front: you should have Google Search Console. It's free, it's first-party, and nothing else tells you how Google actually sees your site. The comparison isn't whether to use it — it's what GSC was never built to do: decide what you should fix, in what order, and confirm that you fixed it.",
     sections: [
@@ -748,7 +748,7 @@ export const COMPARE_ENTRIES: readonly CompareEntry[] = [
           "ReachKit is the decision layer on top of exactly this class of signal. It scans your live site, listings, and reviews; measures the full buyer search demand in your category — including everything you don't yet rank for — and where competitors show up; and computes a 0–100 score from 18 deterministic signals across three weighted pillars (SEO 45%, Content 30%, Outreach 25%).",
           "Instead of reports to interpret, you get a ranked weekly action plan with evidence cited per item, and every shipped fix is re-checked live before it counts. Keep GSC verified — its numbers will confirm the trend as your score climbs. Use ReachKit to decide what moves the numbers.",
           "A useful way to hold the pair: GSC is the scoreboard, ReachKit is the coach. The scoreboard is authoritative and free, and you should absolutely watch it — but no one ever won a game by watching the scoreboard harder.",
-          "First scan free; $29/month Solo or $129/month Growth.",
+          "First scan free; $59/month Solo or $129/month Growth.",
         ],
       },
     ],
@@ -781,7 +781,7 @@ export const COMPARE_ENTRIES: readonly CompareEntry[] = [
     verdict: "Serious app-store analytics for app businesses. ReachKit scores your whole presence — store and web — and plans the fixes.",
     titleTail: "App-Store Analytics vs Whole-Presence Fixes",
     metaDescription:
-      "Appfigures is strong ASO analytics — ranks, downloads, reviews. ReachKit scores your entire presence, store and web, across 18 signals and ships a verified weekly plan from $29/mo.",
+      "Appfigures is strong ASO analytics — ranks, downloads, reviews. ReachKit scores your entire presence, store and web, across 18 signals and ships a verified weekly plan from $59/mo.",
     intro:
       "Appfigures is proper app-store analytics: keyword ranks, downloads, revenue, and reviews tracked across stores, trusted by serious app businesses. But tracking a listing and fixing one are different jobs — and for most SaaS, the app store is only half the surface buyers search. ReachKit scores the whole presence and plans the fixes.",
     sections: [
@@ -805,7 +805,7 @@ export const COMPARE_ENTRIES: readonly CompareEntry[] = [
           "ReachKit treats your store listing and your website as one discoverable surface — because to a buyer, they are. It scans both, plus your reviews; measures real buyer search demand and where rivals show up for it; and computes a single 0–100 score from 18 deterministic signals across three weighted pillars — SEO 45%, Content 30%, Outreach 25%.",
           "Then it does the deciding: a ranked weekly action plan with evidence cited per item — including draft copy where copy is the fix — and a verify loop that re-checks each change live before it counts. Rank tracking tells you a number moved; ReachKit tells you what to change and confirms you changed it.",
           "The whole-surface view changes priorities in ways a store-only dashboard can't. If the scan shows your category's buyers search the web three times more than the store, this week's fix is your landing page, not your screenshot order — a call Appfigures has no data to make.",
-          "First scan free; $29/month Solo or $129/month Growth — flat, not per app.",
+          "First scan free; $59/month Solo or $129/month Growth — flat, not per app.",
         ],
       },
     ],
