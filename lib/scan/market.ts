@@ -1,16 +1,17 @@
 /**
- * Market-analysis attach — shared by the paid full-scan, the free light pass, and
- * the weekly refresh.
+ * Market-analysis attach — shared by the paid full-scan and the weekly refresh.
  *
  * `attachMarketAnalysis` runs the M4 pipeline for a scan's domain and patches the
  * result into the already-persisted `report_payload.market`. Best-effort by
  * contract: callers wrap it in `.catch`, so any failure is logged without touching
  * the core report.
  *
- * The `light` option drives the FREE-tier pass: a top-3, ETV-only cohort with a
- * 2-query demand sweep (no Backlinks / ranked-keywords / Tavily-extract), so the
- * free scan can show competitors + channels + traffic + pockets inside ≤20¢. The
- * full (paid) pass runs the complete analysis.
+ * The `light` option (top-3, ETV-only cohort with a 2-query demand sweep; no
+ * Backlinks / ranked-keywords / Tavily-extract) previously drove a FREE-tier pass
+ * from scan-requested. That pass was removed (W5, 2026-07-04): the market/demand
+ * sweep is paid-only, and a free scan has no report_payload to patch anyway (the
+ * guard below made the free result a discard). The option stays for cheap ad-hoc
+ * callers; production callers today run the full pass.
  */
 
 import { serverDb } from "@/lib/db/client";

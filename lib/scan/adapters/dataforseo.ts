@@ -38,7 +38,11 @@ export async function liveSerpAlternatives(productName: string): Promise<{ compe
     method: "POST",
     headers: { Authorization: serpAuthHeader(env.dataforseoLogin, env.dataforseoPassword), "content-type": "application/json" },
     body: JSON.stringify([{ keyword: `alternatives to ${productName}`, location_code: env.dataforseoLocationCode, language_code: env.dataforseoLanguageCode, depth: 10 }]),
-  }, 15_000);
+    // 10s (was 15s): SERP Live is the slowest external in the free scan's collect
+    // step and gates its critical path. Degradation is graceful — findCompetitors
+    // runs allSettled across SERP/PH/Tavily, and the web-mode content refine
+    // recovers competitor names from the Tavily doc when the SERP doc is absent.
+  }, 10_000);
   if (!res.ok) throw new Error(`dataforseo serp "${productName}" failed: ${res.status}`);
   const body = await res.json() as unknown;
   return { ...parseSerp(body), raw: body };

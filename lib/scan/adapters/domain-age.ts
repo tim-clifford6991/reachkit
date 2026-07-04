@@ -11,7 +11,11 @@ export function ageYearsFromCdx(rows: string[][], now: Date): number | null {
 export async function fetchDomainAgeYears(domain: string): Promise<number | null> {
   const url = `http://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(domain)}&output=json&limit=1&sort=ascending&fl=timestamp`;
   try {
-    const res = await fetchWithTimeout(url);
+    // 4s (was the 8s default): archive.org CDX routinely takes 5–8s+ and was
+    // gating get-listing (and thus the whole collect step) on every web scan.
+    // Domain age is a garnish signal — degrading it to null beats paying ~4–8s
+    // of scan wall-clock for it.
+    const res = await fetchWithTimeout(url, {}, 4_000);
     if (!res.ok) return null;                  // garnish source — degrade gracefully
     const rows = (await res.json()) as string[][];
     return ageYearsFromCdx(rows, new Date());
