@@ -39,6 +39,10 @@ export interface WeeklyPlanAction {
   draft: string | null;
   status: string;
   scoreComponent: string | null;
+  /** `expected_outcome.delta` — predicted score movement, when the generator set one. */
+  expectedDelta: number | null;
+  /** `verify_state` — "pending" | "verifying" | "verified" | "failed" (open items are "pending"). */
+  verifyState: string;
 }
 
 export interface WeeklyPlan {
@@ -207,10 +211,15 @@ interface ActionRow {
   draft: string | null;
   status: string;
   score_component: string | null;
+  expected_outcome: unknown;
+  verify_state: string;
   created_at: string;
 }
 
 function projectAction(row: ActionRow): WeeklyPlanAction {
+  // expected_outcome is jsonb — { delta?: number } when the generator set one
+  // (same read idiom as action-board.ts).
+  const eo = row.expected_outcome as { delta?: number } | null;
   return {
     id: row.id,
     category: row.category,
@@ -221,6 +230,8 @@ function projectAction(row: ActionRow): WeeklyPlanAction {
     draft: row.draft,
     status: row.status,
     scoreComponent: row.score_component,
+    expectedDelta: typeof eo?.delta === "number" ? eo.delta : null,
+    verifyState: row.verify_state,
   };
 }
 
@@ -245,7 +256,7 @@ export async function assembleWeeklyPlan(
   const { data: actionRows, error: actionsErr } = await db
     .from("actions")
     .select(
-      "id, category, title, why, effort_min, deadline, draft, status, score_component, created_at",
+      "id, category, title, why, effort_min, deadline, draft, status, score_component, expected_outcome, verify_state, created_at",
     )
     .eq("app_id", appId);
   if (actionsErr) throw actionsErr;

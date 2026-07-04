@@ -136,6 +136,8 @@ test(
       effortMin: 10,
       status: "open",
       scoreComponent: "seo",
+      expectedDelta: null, // no expected_outcome seeded
+      verifyState: "pending",
     });
 
     // Score delta = 64 − 60 = 4.
