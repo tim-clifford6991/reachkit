@@ -57,7 +57,11 @@ const { error: upErr } = await admin
       id: userId,
       email: EMAIL,
       app_ids: appIds,
+      // A real ACTIVE subscription state: /app is hard-gated on
+      // entitlements.active (tier + live subscription_status), so a dev user
+      // without it would only ever see the paywall.
       tier: "solo",
+      subscription_status: "active",
       // Mark onboarded so /app shows the real dashboard, not the onboarding flow.
       display_name: "Design Preview",
       distribution_goal: "awareness",
