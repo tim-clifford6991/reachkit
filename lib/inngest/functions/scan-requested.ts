@@ -5,14 +5,14 @@ import { ScanBudget } from "@/lib/tools/registry";
 import { runCollect } from "@/lib/scan/pipeline";
 import { runFindings } from "@/lib/scan/findings-pipeline";
 import { runFullScan } from "@/lib/scan/full-scan";
-import { attachMarketAnalysis } from "@/lib/scan/market";
 import { emitScanEvent } from "@/lib/scan/progress";
+import { scanCostCents } from "@/lib/telemetry/pipeline-runs";
 import type { Json } from "@/lib/db/types";
 
-/** Cheap free-track ceiling (collect + findings + a light market pass). The deep
- *  paid pass uses the full `env.scanBudgetCents`. Kept low and cache-funded —
- *  popular competitor domains are profiled once and shared across users. */
-const FREE_SCAN_BUDGET_CENTS = 20;
+/** Cheap free-track ceiling (collect + findings ONLY — the market/demand sweep is
+ *  paid-tier). The deep paid pass uses the full `env.scanBudgetCents`. Kept low
+ *  and cache-funded — popular competitor domains are profiled once and shared. */
+const FREE_SCAN_BUDGET_CENTS = 15;
 type ScanTier = "free" | "full";
 function budgetCentsForTier(tier: ScanTier): number {
   return tier === "full" ? env.scanBudgetCents : FREE_SCAN_BUDGET_CENTS;
@@ -182,36 +182,46 @@ export const scanRequested = inngest.createFunction(
       });
     }
 
-    // Step 3b: light market pass (free track only). Gives the free teaser its
-    // competitor channels + traffic + demand pockets within the ≤20¢ ceiling.
-    // Web-only (domain-centric) + flag-gated + best-effort: a failure never breaks
-    // the already-persisted findings teaser.
-    if (tier === "free" && facts.mode === "web") {
-      await step.run("light-market", async () => {
-        const db = serverDb();
-        const { data: scanRow } = await db
-          .from("scans")
-          .select("id, apps(store_url)")
-          .eq("id", scanId)
-          .single();
-        const storeUrl = (scanRow?.apps as unknown as { store_url?: string } | null)?.store_url;
-        if (!storeUrl) return;
-        await attachMarketAnalysis(scanId, storeUrl, { light: true }).catch((e) =>
-          console.error("[scan-requested] light market failed (best-effort)", e),
-        );
-      });
-    }
+    // NOTE (2026-07-04, W5): the free tier previously ran a "light-market" step
+    // here (top-3 cohort profiling + a 2-query demand sweep). Removed: the
+    // market/demand sweep is paid-only now — and the light pass's result was
+    // discarded anyway (attachMarketAnalysis patches report_payload, which a
+    // free scan never has). Paid scans keep their full market pass inside
+    // runFullScan (lib/scan/full-scan.ts).
 
-    // Step 4: done — emit done event and mark scan complete
+    // Step 4: done — emit done event and mark scan complete.
     await step.run("done", async () => {
       await emitScanEvent(scanId, "done", { scanId });
 
       const db = serverDb();
+      const completedAt = new Date().toISOString();
       const { error } = await db
         .from("scans")
-        .update({ status: "done", completed_at: new Date().toISOString() })
+        .update({ status: "done", completed_at: completedAt })
         .eq("id", scanId);
       if (error) throw error;
+
+      // Observability: one log line per completed scan with tier + wall-clock +
+      // cost, so latency/cost measurement is one grep away (pipeline_runs holds
+      // the per-stage rows; scans.started_at/completed_at the same wall-clock).
+      // Best-effort — never fail a finished scan over a telemetry read.
+      try {
+        const { data: row } = await db
+          .from("scans")
+          .select("started_at")
+          .eq("id", scanId)
+          .single();
+        const startedMs = row?.started_at ? new Date(row.started_at).getTime() : NaN;
+        const seconds = Number.isFinite(startedMs)
+          ? Math.round((new Date(completedAt).getTime() - startedMs) / 100) / 10
+          : null;
+        const costCents = await scanCostCents(scanId);
+        console.log(
+          `[scan-complete] scan=${scanId} tier=${tier} seconds=${seconds ?? "?"} costCents=${costCents.toFixed(2)}`,
+        );
+      } catch (e) {
+        console.error("[scan-complete] completion log failed (best-effort)", e);
+      }
     });
 
     return { ok: true, factsMode: facts.mode };

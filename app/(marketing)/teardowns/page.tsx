@@ -8,6 +8,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { buildMetadata, SITE } from "@/lib/seo";
 import { allTeardowns } from "@/content/teardowns";
+import { HeroFade } from "@/components/sections/hero-fade";
 
 export const metadata: Metadata = buildMetadata({
   title: "App Teardowns — Discoverability Analyses",
@@ -45,21 +46,19 @@ export default function TeardownsPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionPageLd()) }} />
       <main aria-label="Teardowns" style={{ background: "var(--c-surface)" }}>
         {/* Hero */}
-        <section style={{ position: "relative", overflow: "hidden", background: "radial-gradient(1100px 480px at 50% -8%, var(--c-soft) 0%, rgba(242,238,255,0) 62%), var(--c-bg)" }}>
-          <div style={{ maxWidth: 1180, margin: "0 auto", padding: "70px 28px 36px", textAlign: "center" }}>
-            <p style={{ fontFamily: JM, fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-action)", margin: 0 }}>Discoverability analyses</p>
-            <h1 style={{ fontFamily: SG, fontWeight: 700, fontSize: "clamp(2.1rem, 4.5vw, 3.4rem)", letterSpacing: "-0.02em", lineHeight: 1.04, color: "var(--c-ink)", margin: "16px auto 0", maxWidth: 800 }}>
-              What a ReachKit scan actually finds
-            </h1>
-            <p style={{ fontSize: 17.5, lineHeight: 1.5, color: "var(--c-muted)", margin: "18px auto 0", maxWidth: 600 }}>
-              {allTeardowns.length} real apps. Scored, evidenced, and written out in full — so you can see the gap between what a listing says and what it earns in search before you run your own scan.
-            </p>
-            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 12, marginTop: 24 }}>
-              <Link href="/scan" style={{ fontFamily: "var(--font-sans)", fontWeight: 600, fontSize: 14, color: "#fff", background: "var(--c-action)", borderRadius: 9, padding: "11px 20px", textDecoration: "none" }}>Scan your app free</Link>
-              <Link href="/how-it-works" style={{ fontFamily: "var(--font-sans)", fontWeight: 600, fontSize: 14, color: "var(--c-ink)", background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 9, padding: "11px 20px", textDecoration: "none" }}>How it works</Link>
-            </div>
+        <HeroFade padding="70px 28px 36px">
+          <p style={{ fontFamily: JM, fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-action)", margin: 0 }}>Discoverability analyses</p>
+          <h1 style={{ fontFamily: SG, fontWeight: 700, fontSize: "clamp(2.1rem, 4.5vw, 3.4rem)", letterSpacing: "-0.02em", lineHeight: 1.04, color: "var(--c-ink)", margin: "16px auto 0", maxWidth: 800 }}>
+            What a ReachKit scan actually finds
+          </h1>
+          <p style={{ fontSize: 17.5, lineHeight: 1.5, color: "var(--c-muted)", margin: "18px auto 0", maxWidth: 600 }}>
+            {allTeardowns.length} real apps. Scored, evidenced, and written out in full — so you can see the gap between what a listing says and what it earns in search before you run your own scan.
+          </p>
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 12, marginTop: 24 }}>
+            <Link href="/scan" style={{ fontFamily: "var(--font-sans)", fontWeight: 600, fontSize: 14, color: "#fff", background: "var(--c-action)", borderRadius: 9, padding: "11px 20px", textDecoration: "none" }}>Scan your app free</Link>
+            <Link href="/how-it-works" style={{ fontFamily: "var(--font-sans)", fontWeight: 600, fontSize: 14, color: "var(--c-ink)", background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 9, padding: "11px 20px", textDecoration: "none" }}>How it works</Link>
           </div>
-        </section>
+        </HeroFade>
 
         {/* Grid */}
         <section style={{ maxWidth: 1180, margin: "0 auto", padding: "20px 28px 88px" }}>

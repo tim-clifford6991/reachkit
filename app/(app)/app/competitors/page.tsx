@@ -20,5 +20,8 @@ export default function CompetitorsPage() {
 async function CompetitorsContent() {
   const ctx = await resolveIntelContext("/app/competitors");
   if (!ctx.domain) return <p className="py-16 text-center text-sm text-neutral-400">Add your product URL in Settings to begin.</p>;
-  return <CompetitorSetup domain={ctx.domain} />;
+  // Pre-check the SAVED cohort (ctx.competitors = getSelectedCompetitors) so
+  // re-picking edits the real selection; first-time users (no cohort yet) get
+  // the discovery-suggested defaults.
+  return <CompetitorSetup domain={ctx.domain} initialSelected={ctx.competitors} />;
 }

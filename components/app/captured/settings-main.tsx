@@ -3,7 +3,7 @@
  * scoring cards), converted 1:1 and wired to live tier + app data. Renders
  * inside the captured AppShell.
  */
-import Link from "next/link";
+import { CheckoutButton } from "@/components/app/checkout-button";
 import { ProductUrlForm } from "./settings-product-url-form";
 
 const SG = "Space Grotesk", JM = "JetBrains Mono", PJ = "Plus Jakarta Sans";
@@ -13,7 +13,10 @@ export interface SettingsMainProps {
   planTitle: string;
   planDesc: string;
   upgradeLabel: string | null;
+  /** Error fallback for the one-click checkout (the billing/compare page). */
   upgradeHref: string;
+  /** Plan the upgrade CTA checks out directly (free→solo, solo→growth). */
+  upgradePlan: "solo" | "growth" | null;
   appName: string;
   appInitial: string;
   productMeta: string;
@@ -41,8 +44,9 @@ export function SettingsMain(p: SettingsMainProps) {
             <div style={{ fontWeight: 700, fontSize: 15, color: "var(--c-action)" }}>{p.planTitle}</div>
             <div style={{ fontSize: 13, color: "var(--c-muted)", marginTop: 2 }}>{p.planDesc}</div>
           </div>
-          {p.upgradeLabel && (
-            <Link href={p.upgradeHref} style={{ fontFamily: "Plus Jakarta Sans", fontWeight: 600, fontSize: 13, color: "#fff", background: "var(--c-action)", border: "none", borderRadius: 8, padding: "8px 14px", cursor: "pointer", textDecoration: "none" }}>{p.upgradeLabel}</Link>
+          {p.upgradeLabel && p.upgradePlan && (
+            // One-click Stripe checkout (W6) — /app/billing only as fallback.
+            <CheckoutButton plan={p.upgradePlan} fallbackHref={p.upgradeHref} style={{ fontFamily: "Plus Jakarta Sans", fontWeight: 600, fontSize: 13, color: "#fff", background: "var(--c-action)", border: "none", borderRadius: 8, padding: "8px 14px" }}>{p.upgradeLabel}</CheckoutButton>
           )}
         </div>
       </Card>

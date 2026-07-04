@@ -1,6 +1,8 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { resolveIntelContext } from "@/lib/app/intel-context";
+import { currentUser } from "@/lib/auth/server";
+import { entitlementsFor } from "@/lib/billing/entitlements";
 import { serverDb } from "@/lib/db/client";
 import { engagementSummary } from "@/lib/scan/engagement";
 import { scoreHistoryMarkers } from "@/lib/scan/score-history-markers";
@@ -54,9 +56,13 @@ async function DashboardContent() {
     );
   }
 
-  const [engagement, markers] = await Promise.all([
+  // Tier gate for the hero CTA: paid → plan link; free → one-click Solo
+  // checkout (W6). resolveIntelContext already redirected unauthenticated users.
+  const viewer = await currentUser();
+  const [engagement, markers, entitlements] = await Promise.all([
     engagementSummary(ctx.appId),
     scoreHistoryMarkers(ctx.appId),
+    viewer ? entitlementsFor(viewer.user.id) : Promise.resolve(null),
   ]);
 
   const rollup = pillarRollup(scan.score_breakdown as unknown as ScoreBreakdown | null);
@@ -68,6 +74,7 @@ async function DashboardContent() {
         rollup={rollup}
         history={engagement.history}
         markers={markers}
+        isPaid={entitlements?.active ?? false}
       />
       <DashboardIntelBlocks />
     </>

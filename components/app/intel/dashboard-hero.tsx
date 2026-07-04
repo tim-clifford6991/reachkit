@@ -10,6 +10,7 @@
  */
 
 import Link from "next/link";
+import { CheckoutButton } from "@/components/app/checkout-button";
 import { Card, HeroCard, Bar, Eyebrow, Badge, Gauge } from "@/components/app/intel/kit";
 // bandFor comes from the server-safe bands module, NOT the "use client" kit:
 // this is a server component, and calling a client-exported function during
@@ -32,9 +33,11 @@ export interface DashboardHeroProps {
   rollup: PillarRollup;
   history: ScoreHistoryPoint[];
   markers: HistoryMarker[];
+  /** Paid users get the plan link; free users get one-click Solo checkout (W6). */
+  isPaid: boolean;
 }
 
-export function DashboardHero({ score, rollup, history, markers }: DashboardHeroProps) {
+export function DashboardHero({ score, rollup, history, markers, isPaid }: DashboardHeroProps) {
   const band = bandFor(score);
   const assessedCount = rollup.pillars.filter((p) => p.assessed).length;
   const delta =
@@ -71,7 +74,7 @@ export function DashboardHero({ score, rollup, history, markers }: DashboardHero
         </div>
 
         <div style={{ marginTop: 18 }}>
-          <LeverBanner rollup={rollup} assessedCount={assessedCount} />
+          <LeverBanner rollup={rollup} assessedCount={assessedCount} isPaid={isPaid} />
         </div>
       </Card>
 
@@ -84,7 +87,7 @@ export function DashboardHero({ score, rollup, history, markers }: DashboardHero
 }
 
 /** The weakest-pillar callout — a violet HeroCard naming the biggest lever + CTA. */
-function LeverBanner({ rollup, assessedCount }: { rollup: PillarRollup; assessedCount: number }) {
+function LeverBanner({ rollup, assessedCount, isPaid }: { rollup: PillarRollup; assessedCount: number; isPaid: boolean }) {
   const { weakest, estGain } = rollup;
 
   // First-scan case: only SEO is measured — the honest lever is to unlock the
@@ -108,9 +111,17 @@ function LeverBanner({ rollup, assessedCount }: { rollup: PillarRollup; assessed
             </>
           )}
         </div>
-        <Link href="/app/plans" style={{ flexShrink: 0, fontSize: 13, fontWeight: 600, color: "var(--c-action)", textDecoration: "none", whiteSpace: "nowrap" }}>
-          See your plan →
-        </Link>
+        {isPaid ? (
+          <Link href="/app/plans" style={{ flexShrink: 0, fontSize: 13, fontWeight: 600, color: "var(--c-action)", textDecoration: "none", whiteSpace: "nowrap" }}>
+            See your plan →
+          </Link>
+        ) : (
+          // Free-user teaser → one-click Solo checkout (W6); billing page only
+          // as the error fallback. Same visual weight as the paid link.
+          <CheckoutButton plan="solo" pendingLabel="Redirecting…" style={{ flexShrink: 0, fontSize: 13, fontWeight: 600, fontFamily: "inherit", color: "var(--c-action)", background: "none", border: "none", padding: 0, whiteSpace: "nowrap" }}>
+            Unlock your full plan →
+          </CheckoutButton>
+        )}
       </div>
     </HeroCard>
   );

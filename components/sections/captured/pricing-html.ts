@@ -113,7 +113,7 @@ export const PRICING_HTML = `<main style="max-width: 1080px; margin: 0px auto; p
     </div>
     <div style="margin-top: 40px; background: linear-gradient(135deg, var(--c-dark), var(--c-dark2)); border-radius: 18px; padding: 34px; text-align: center;">
       <h3 style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 24px; color: rgb(255, 255, 255); margin: 0px 0px 8px;">Start with a free scan.</h3>
-      <p style="font-size: 15px; color: rgb(183, 180, 196); margin: 0px 0px 20px;">See your number in 90 seconds. Upgrade only when you want to track it.</p>
+      <p style="font-size: 15px; color: rgb(183, 180, 196); margin: 0px 0px 20px;">See your number in under a minute. Upgrade only when you want to track it.</p>
       <button class="scp4" style="font-family: &quot;Plus Jakarta Sans&quot;; font-weight: 700; font-size: 15px; color: var(--c-ink); background: var(--c-surface); border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; border-radius: 10px; padding: 13px 26px; cursor: pointer;">Analyze my site</button>
     </div>
   </main>`;

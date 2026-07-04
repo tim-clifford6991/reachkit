@@ -20,7 +20,7 @@ function buildLlmsTxt(): string {
 
   return `# ${SITE.name}
 
-> ${SITE.name} is a discoverability ("GEO/SEO/ASO") tool for solo founders. Paste an App Store, Google Play, or website URL and, in about 90 seconds, get a Discoverability Score (0–100) plus a ranked, evidence-backed action plan. Unlike a generic chatbot prompt, ${SITE.name} fetches your live page, extracts real signals (keyword density, metadata completeness, category fit, positioning, competitor gaps, community surfaces), and grounds every recommendation in your actual listing — no hallucinated advice. Paid plans turn the report into a weekly action engine with draft copy for each fix and action verification (it re-checks the live URL before crediting your score).
+> ${SITE.name} is a discoverability ("GEO/SEO/ASO") tool for solo founders. Paste an App Store, Google Play, or website URL and, in under a minute, get a Discoverability Score (0–100) plus a ranked, evidence-backed action plan. Unlike a generic chatbot prompt, ${SITE.name} fetches your live page, extracts real signals (keyword density, metadata completeness, category fit, positioning, competitor gaps, community surfaces), and grounds every recommendation in your actual listing — no hallucinated advice. Paid plans turn the report into a weekly action engine with draft copy for each fix and action verification (it re-checks the live URL before crediting your score).
 
 ## What it does
 - Scores your App Store listing or website for discoverability (0–100).

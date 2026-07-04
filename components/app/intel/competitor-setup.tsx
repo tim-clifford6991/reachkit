@@ -51,7 +51,19 @@ const TIER_TONE: Record<SizeTier, Tone> = {
   biggest: "orange",
 };
 
-export function CompetitorSetup({ domain, onDone }: { domain: string; onDone?: () => void }) {
+export function CompetitorSetup({
+  domain,
+  onDone,
+  initialSelected,
+}: {
+  domain: string;
+  onDone?: () => void;
+  /** The user's SAVED cohort (getSelectedCompetitors). When present, those
+   *  domains are pre-checked (and shown even if discovery no longer ranks
+   *  them) instead of the top candidates — the re-pick flow edits the real
+   *  selection. Omit for first-time setup (onboarding overlay). */
+  initialSelected?: string[];
+}) {
   const router = useRouter();
   const [data, setData] = useState<Candidates | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,18 +72,38 @@ export function CompetitorSetup({ domain, onDone }: { domain: string; onDone?: (
   const [saving, setSaving] = useState(false);
   const [tierFilter, setTierFilter] = useState<TierFilter>("all");
 
+  // Stable dependency for the fetch effect (array props get a fresh identity
+  // per parent render; the joined string doesn't).
+  const initialKey = (initialSelected ?? []).join(",");
+
   useEffect(() => {
     (async () => {
       try {
         const res = await fetch(`/api/competitors/candidates?domain=${encodeURIComponent(domain)}`);
-        const json = await res.json();
+        const json = (await res.json()) as Candidates & { error?: string };
         if (!res.ok) throw new Error(json?.error ?? `HTTP ${res.status}`);
-        setData(json as Candidates);
-        setPicked(new Set((json.suggested ?? []).slice(0, MAX)));
+        const saved = initialKey ? initialKey.split(",") : [];
+        if (saved.length > 0) {
+          // Saved cohort: show it checked. Any saved domain discovery no longer
+          // surfaces still gets a row (top of the list) so it can be unchecked.
+          const have = new Set(json.ranked.map((c) => c.domain));
+          const missing = saved.filter((d) => !have.has(d));
+          if (missing.length > 0) {
+            json.ranked = [
+              ...missing.map((d) => ({ domain: d, name: d, closeness: 5, reason: "In your current cohort", etv: 0, ratio: null, sizeRelevant: true })),
+              ...json.ranked,
+            ];
+          }
+          setData(json);
+          setPicked(new Set(saved.slice(0, MAX)));
+        } else {
+          setData(json);
+          setPicked(new Set((json.suggested ?? []).slice(0, MAX)));
+        }
       } catch (e) { setError(e instanceof Error ? e.message : "failed"); }
       finally { setLoading(false); }
     })();
-  }, [domain]);
+  }, [domain, initialKey]);
 
   function toggle(d: string) {
     setPicked((prev) => {
@@ -115,7 +147,15 @@ export function CompetitorSetup({ domain, onDone }: { domain: string; onDone?: (
 
       {data && (
         <>
-          <div className="mt-2 text-[11px] text-neutral-400">Category: {data.category} · your traffic ≈ {fmt(data.subjectEtv)}/mo</div>
+          {/* Category/traffic meta — hidden for degraded values (scan-seeded
+              candidates carry no category or traffic estimate). */}
+          {(data.category || data.subjectEtv > 0) && (
+            <div className="mt-2 text-[11px] text-neutral-400">
+              {data.category ? `Category: ${data.category}` : ""}
+              {data.category && data.subjectEtv > 0 ? " · " : ""}
+              {data.subjectEtv > 0 ? `your traffic ≈ ${fmt(data.subjectEtv)}/mo` : ""}
+            </div>
+          )}
 
           {/* Size-tier filter chips — only shown when the API returns sizeTier */}
           {hasTiers && (
@@ -167,7 +207,7 @@ export function CompetitorSetup({ domain, onDone }: { domain: string; onDone?: (
                     <span className="block truncate text-[11px] text-neutral-500">{c.reason}</span>
                   </span>
                   <span className="shrink-0 text-right text-[11px] text-neutral-400">
-                    {fmtCompact(c.etv)}/mo
+                    {c.etv > 0 ? `${fmtCompact(c.etv)}/mo` : ""}
                     {c.ratio != null && c.ratio > 0 ? ` · ${c.ratio.toFixed(0)}×` : ""}
                   </span>
                 </button>

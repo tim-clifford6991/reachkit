@@ -7,6 +7,15 @@ import { LogoMark } from "@/components/brand/logo";
 
 const SG = "var(--font-display)", JM = "var(--font-mono)";
 
+/**
+ * Deployment-skew signatures: an old tab holding a previous build fails to load
+ * a chunk / dynamic import / RSC payload that the new deploy renamed. These are
+ * fixed by a single hard reload (fetches the fresh build), not by `reset()`.
+ */
+const SKEW_RE =
+  /ChunkLoadError|Loading chunk [^ ]+ failed|dynamically imported module|Importing a module script failed|Failed to fetch RSC payload/i;
+const SKEW_RELOAD_KEY = "rk-skew-reloaded";
+
 export default function Error({
   error,
   reset,
@@ -17,6 +26,20 @@ export default function Error({
   useEffect(() => {
     // Surface to the console / any attached error reporter.
     console.error(error);
+
+    // One-shot auto-recovery for deployment skew: reload once per session when
+    // the error looks like a stale-build asset failure. The sessionStorage flag
+    // prevents reload loops if the error persists after a fresh build.
+    if (SKEW_RE.test(`${error.name ?? ""} ${error.message ?? ""}`)) {
+      try {
+        if (!sessionStorage.getItem(SKEW_RELOAD_KEY)) {
+          sessionStorage.setItem(SKEW_RELOAD_KEY, "1");
+          window.location.reload();
+        }
+      } catch {
+        /* sessionStorage unavailable (privacy mode) — fall through to the UI */
+      }
+    }
   }, [error]);
 
   return (

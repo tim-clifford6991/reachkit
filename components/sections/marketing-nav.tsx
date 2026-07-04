@@ -1,21 +1,22 @@
 /**
  * MarketingNav — sticky top navigation, 1:1 with the Claude Design mockup
- * (ReachKit.dc.html): glass sticky header, logo + flat links (Product / Pricing
- * / Free tools / Compare / Teardowns), Log in, and a dark "Analyze my site" CTA.
- * Used on the non-captured marketing pages so their chrome matches the captured
- * landing/pricing pages.
+ * (ReachKit.dc.html): glass sticky header, logo + flat links (How it works /
+ * Pricing / Compare / Free tools / Teardowns), Log in, and a dark "Analyze my
+ * site" CTA. Used on the non-captured marketing pages so their chrome matches
+ * the captured landing/pricing pages.
  */
 
 import Link from "next/link";
 import { Wordmark } from "@/components/brand/logo";
 import { MobileMenu } from "./mobile-menu";
+import { NavLinks } from "./nav-links";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 const LINKS = [
-  { label: "Product", href: "/how-it-works" },
+  { label: "How it works", href: "/how-it-works" },
   { label: "Pricing", href: "/pricing" },
-  { label: "Free tools", href: "/tools" },
   { label: "Compare", href: "/compare" },
+  { label: "Free tools", href: "/tools" },
   { label: "Teardowns", href: "/teardowns" },
 ] as const;
 
@@ -35,13 +36,9 @@ export function MarketingNav({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
           <Wordmark />
         </Link>
 
-        <div className="hidden items-center gap-6 sm:flex">
-          {LINKS.map((l) => (
-            <Link key={l.href} href={l.href} className={`transition-colors hover:text-[var(--c-ink)] ${focusRing}`} style={{ fontSize: 14.5, fontWeight: 500, color: "var(--c-muted)" }}>
-              {l.label}
-            </Link>
-          ))}
-        </div>
+        {/* Desktop links live in a tiny client component so the current page
+            gets aria-current="page" + the violet active pill. */}
+        <NavLinks links={LINKS} />
 
         <div className="flex-1" />
 

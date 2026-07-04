@@ -3,15 +3,17 @@
 /**
  * AppSwitcher — the captured sidebar product switcher, made functional: a
  * dropdown to swap between the user's apps (multi-app plans) and an "Add
- * product" action. Adding when no plan slot is free routes to billing to upgrade
- * (Stripe checkout); otherwise routes to a fresh scan. Single-app users still
- * see the (non-interactive) current-app button.
+ * product" action. Adding when no plan slot is free goes STRAIGHT to Stripe
+ * checkout for the tier with more slots (Growth) — /app/billing only as error
+ * fallback (or for users already on the top tier); otherwise routes to a fresh
+ * scan. Single-app users still see the (non-interactive) current-app button.
  */
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { setActiveApp } from "@/lib/app/set-active-app";
+import { CheckoutButton } from "@/components/app/checkout-button";
 
 const SG = "Space Grotesk", PJ = "Plus Jakarta Sans";
 
@@ -27,6 +29,7 @@ export function AppSwitcher({
   appInitial,
   plan,
   canAddApp,
+  addAppUpgradePlan = null,
 }: {
   apps: SwitcherApp[];
   activeId: string | null;
@@ -34,6 +37,9 @@ export function AppSwitcher({
   appInitial: string;
   plan: string;
   canAddApp: boolean;
+  /** At the app limit: which plan unlocks another slot via direct checkout.
+   *  null (already on the top tier) keeps the billing-page link. */
+  addAppUpgradePlan?: "growth" | null;
 }) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -79,13 +85,25 @@ export function AppSwitcher({
               </button>
             ))}
             <div style={{ height: 1, background: "var(--c-line2)", margin: "4px 2px" }} />
-            <Link
-              href={canAddApp ? "/scan" : "/app/billing"}
-              onClick={() => setOpen(false)}
-              style={{ display: "flex", alignItems: "center", gap: 8, borderRadius: 8, padding: "8px 10px", textDecoration: "none", fontFamily: PJ, fontSize: 13, fontWeight: 600, color: "var(--c-action)" }}
-            >
-              + Add product{canAddApp ? "" : " — upgrade plan"}
-            </Link>
+            {!canAddApp && addAppUpgradePlan ? (
+              // At the plan's app limit → one-click checkout for the tier with
+              // more slots (Growth). Falls back to /app/billing on error.
+              <CheckoutButton
+                plan={addAppUpgradePlan}
+                pendingLabel="Redirecting…"
+                style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", borderRadius: 8, padding: "8px 10px", border: "none", background: "transparent", textAlign: "left", fontFamily: PJ, fontSize: 13, fontWeight: 600, color: "var(--c-action)" }}
+              >
+                + Add product — upgrade plan
+              </CheckoutButton>
+            ) : (
+              <Link
+                href={canAddApp ? "/scan" : "/app/billing"}
+                onClick={() => setOpen(false)}
+                style={{ display: "flex", alignItems: "center", gap: 8, borderRadius: 8, padding: "8px 10px", textDecoration: "none", fontFamily: PJ, fontSize: 13, fontWeight: 600, color: "var(--c-action)" }}
+              >
+                + Add product{canAddApp ? "" : " — upgrade plan"}
+              </Link>
+            )}
           </div>
         </>
       )}

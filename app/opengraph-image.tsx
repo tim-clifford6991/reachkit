@@ -51,7 +51,7 @@ export default function OpengraphImage() {
           </div>
 
           <span style={{ fontSize: 24, color: "#57536A" }}>
-            A scored report + a weekly action plan — in ~90 seconds. Free.
+            A scored report + a weekly action plan — in under a minute. Free.
           </span>
         </div>
 
