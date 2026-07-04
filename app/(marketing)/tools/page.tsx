@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { buildMetadata } from "@/lib/seo";
+import { HeroFade } from "@/components/sections/hero-fade";
 
 export const metadata: Metadata = buildMetadata({
   title: "Free SEO & AI visibility tools — check any website in seconds",
@@ -52,7 +53,7 @@ const SG = "var(--font-display)", JM = "var(--font-mono)";
 export default function ToolsPage() {
   return (
     <main aria-label="Free tools" style={{ background: "var(--c-surface)" }}>
-      <section style={{ maxWidth: 1180, margin: "0 auto", padding: "70px 28px 24px", textAlign: "center" }}>
+      <HeroFade padding="70px 28px 24px">
         <p style={{ fontFamily: JM, fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-action)", margin: 0 }}>Free tools</p>
         <h1 style={{ fontFamily: SG, fontWeight: 700, fontSize: "clamp(2rem, 4.5vw, 3.4rem)", letterSpacing: "-0.02em", lineHeight: 1.04, color: "var(--c-ink)", margin: "16px auto 0", maxWidth: 720 }}>
           Free tools to help you get found
@@ -60,7 +61,7 @@ export default function ToolsPage() {
         <p style={{ fontSize: 17.5, lineHeight: 1.5, color: "var(--c-muted)", margin: "18px auto 0", maxWidth: 560 }}>
           Single-purpose checkers that run on your live site — no signup, no email. Each one covers a slice of the full 18-signal Discoverability Score.
         </p>
-      </section>
+      </HeroFade>
 
       <section style={{ maxWidth: 1180, margin: "0 auto", padding: "20px 28px 80px" }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 18 }}>

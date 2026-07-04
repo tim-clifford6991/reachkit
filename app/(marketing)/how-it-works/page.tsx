@@ -1,11 +1,13 @@
 /**
- * /how-it-works — the methodology deep-dive. "We give away the secret, we sell
- * the implementation": this page publishes the full scoring model — the real
- * 18-signal registry with its pillar weights (imported from lib/scan/signals,
- * the same module the engine scores with), the three-pass pipeline (what you
- * have → what buyers want → what to do), and why the number is trustworthy —
- * then shows a fixture-data glimpse of the paid dashboard and ends on the
- * free-scan CTA. Buyer language only: no internal jargon, no vendor names.
+ * /how-it-works — a plain-language walkthrough of what a founder gets and how
+ * ReachKit gets there. Written reader-value first (see why buyers can't find
+ * you, then how to fix it); the full openness — the real 18-signal registry
+ * with its pillar weights (imported from lib/scan/signals, the same module the
+ * engine scores with), the three-pass pipeline (what's out there → what buyers
+ * search → what to do), and why the number is trustworthy — is kept as a trust
+ * asset, not the thesis. Then a fixture-data glimpse of the paid dashboard,
+ * ending on the free-scan CTA. Buyer language only: no internal jargon, no
+ * vendor names.
  *
  * Design idiom: intel-kit style — inline styles on --c-* tokens, Space Grotesk /
  * JetBrains Mono / Plus Jakarta Sans. Server component: registry/band data is
@@ -18,13 +20,14 @@ import type { Metadata } from "next";
 import { buildMetadata, howToLd } from "@/lib/seo";
 import { ScanInput } from "@/app/(marketing)/scan-input";
 import { DashboardGlimpseLazy as DashboardGlimpse } from "@/components/sections/dashboard-glimpse-lazy";
+import { HeroFade } from "@/components/sections/hero-fade";
 import { SIGNAL_REGISTRY, PILLAR_WEIGHTS, type Pillar, type SignalDefinition } from "@/lib/scan/signals";
 import { SCORE_BANDS } from "@/lib/scan/score-bands";
 
 export const metadata: Metadata = buildMetadata({
-  title: "How it works — the full methodology",
+  title: "How ReachKit works — see why buyers can't find you",
   description:
-    "The complete ReachKit methodology, published: all 18 discoverability signals and their weights, how your scan turns into a ranked action plan, and why the score is deterministic and verifiable. Then run it free on your own product.",
+    "Paste your link and watch ReachKit read your live site, score 18 discoverability signals, and hand you a ranked plan to get found. Every step shown in the open — run it free on your own product.",
   path: "/how-it-works",
 });
 
@@ -41,9 +44,9 @@ const HOW_TO_LD = howToLd({
 const SG = "var(--font-display)", JM = "var(--font-mono)";
 
 const STEPS = [
-  { n: "01", title: "Scan your live page", body: "Paste your App Store URL or website. ReachKit fetches the real page and scores 18 discoverability signals — in under a minute, no account for your first scan.", tag: "Under a minute" },
-  { n: "02", title: "See what's costing you buyers", body: "Your free report: the score, and your top findings ranked by impact — what's holding you back and what to fix first, every claim grounded in evidence from your live page.", tag: "Grounded in evidence" },
-  { n: "03", title: "Work the weekly action engine", body: "Paid plans run the full engine every week: what your buyers actually search, where rivals show up, and a small ranked queue of moves. Mark a fix done and ReachKit re-checks reality before it counts.", tag: "Verified, not vanity" },
+  { n: "01", title: "Scan your live page", body: "Paste your App Store URL or website. ReachKit reads the real page — the same signals search engines and buyers weigh — and scores all 18 in under a minute. No account needed for your first scan.", tag: "Under a minute" },
+  { n: "02", title: "Get your four-question report", body: "In plain language: what you offer, who it's for, where those buyers are, and what to fix first — every answer pulled straight from your live page, so you can see the gap that's costing you traffic.", tag: "Grounded in evidence" },
+  { n: "03", title: "Work a weekly plan that keeps you moving", body: "Paid plans turn the report into a short, ranked to-do list each week. Mark a fix done and ReachKit re-reads your page to confirm it actually landed — so your score reflects real progress, not busywork.", tag: "Verified, not vanity" },
 ];
 
 // ---------------------------------------------------------------------------
@@ -116,7 +119,7 @@ function SignalRow({ s }: { s: SignalDefinition }) {
 const PIPELINE = [
   {
     n: "01",
-    name: "What you have",
+    name: "What's out there today",
     q: "Everything your product already puts out — next to your rivals.",
     points: [
       "We crawl your live pages and parse the on-page facts: title, meta description, structured data, canonical, heading structure, content depth, share tags, image alt coverage.",
@@ -127,7 +130,7 @@ const PIPELINE = [
   },
   {
     n: "02",
-    name: "What buyers want",
+    name: "What buyers are searching for",
     q: "What your buyers actually search — and who shows up when they do.",
     points: [
       "From your product brief we generate pain queries in your buyers' own words — the things they type before they know your name.",
@@ -138,7 +141,7 @@ const PIPELINE = [
   },
   {
     n: "03",
-    name: "What to do",
+    name: "What to do about it",
     q: "The two crossed into a ranked, evidence-backed plan.",
     points: [
       "Your content plan matches what buyers search with the format that currently wins each result page — topic, target keywords with real volumes, buyer angle, brief.",
@@ -174,7 +177,7 @@ const TRUST = [
 export default function HowItWorksPage() {
   const anchors = [
     { href: "#signals", label: "The 18 signals" },
-    { href: "#pipeline", label: "How your plan is built" },
+    { href: "#pipeline", label: "Inside a scan" },
     { href: "#trust", label: "Why trust it" },
     { href: "#glimpse", label: "The dashboard" },
     { href: "#scan", label: "Run it free" },
@@ -185,22 +188,20 @@ export default function HowItWorksPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(HOW_TO_LD) }} />
 
       {/* Hero */}
-      <section style={{ position: "relative", overflow: "hidden", background: "radial-gradient(1100px 480px at 50% -8%, var(--c-soft) 0%, rgba(242,238,255,0) 62%), var(--c-bg)" }}>
-        <div style={{ maxWidth: 1180, margin: "0 auto", padding: "72px 28px 44px", textAlign: "center" }}>
-          <p style={{ fontFamily: JM, fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-action)", margin: 0 }}>How it works</p>
-          <h1 style={{ fontFamily: SG, fontWeight: 700, fontSize: "clamp(2.1rem, 4.5vw, 3.4rem)", letterSpacing: "-0.02em", lineHeight: 1.04, color: "var(--c-ink)", margin: "16px auto 0", maxWidth: 820 }}>
-            The whole methodology, published. The execution is the product.
-          </h1>
-          <p style={{ fontSize: 17.5, lineHeight: 1.5, color: "var(--c-muted)", margin: "18px auto 0", maxWidth: 640 }}>
-            No black box. Below is exactly how ReachKit scores discoverability — all 18 signals, the real weights, how your plan gets built, and why the number holds up. You could do all of this by hand. ReachKit scores you in under a minute, then keeps working it every week.
-          </p>
-          <nav aria-label="On this page" style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 8, marginTop: 26 }}>
-            {anchors.map((a) => (
-              <a key={a.href} href={a.href} style={{ fontFamily: JM, fontSize: 12, fontWeight: 600, color: "var(--c-action)", background: "var(--c-soft)", padding: "7px 14px", borderRadius: 999, textDecoration: "none" }}>{a.label}</a>
-            ))}
-          </nav>
-        </div>
-      </section>
+      <HeroFade>
+        <p style={{ fontFamily: JM, fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-action)", margin: 0 }}>How it works</p>
+        <h1 style={{ fontFamily: SG, fontWeight: 700, fontSize: "clamp(2.1rem, 4.5vw, 3.4rem)", letterSpacing: "-0.02em", lineHeight: 1.04, color: "var(--c-ink)", margin: "16px auto 0", maxWidth: 820 }}>
+          See exactly why buyers can&rsquo;t find you — and how to fix it.
+        </h1>
+        <p style={{ fontSize: 17.5, lineHeight: 1.5, color: "var(--c-muted)", margin: "18px auto 0", maxWidth: 640 }}>
+          ReachKit reads your live site the way search engines and buyers do, scores your discoverability across 18 signals, and hands you a ranked plan to close the gap. Every step is shown in the open — no black box, nothing to take on faith.
+        </p>
+        <nav aria-label="On this page" style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 8, marginTop: 26 }}>
+          {anchors.map((a) => (
+            <a key={a.href} href={a.href} style={{ fontFamily: JM, fontSize: 12, fontWeight: 600, color: "var(--c-action)", background: "var(--c-soft)", padding: "7px 14px", borderRadius: 999, textDecoration: "none" }}>{a.label}</a>
+          ))}
+        </nav>
+      </HeroFade>
 
       {/* Three steps */}
       <section style={{ maxWidth: 1180, margin: "0 auto", padding: "28px 28px 20px" }}>
@@ -219,9 +220,9 @@ export default function HowItWorksPage() {
       {/* ── The 18-signal registry ─────────────────────────────────────────── */}
       <section id="signals" style={{ maxWidth: 1180, margin: "0 auto", padding: "64px 28px 20px", scrollMarginTop: 88 }}>
         <SectionHead
-          eyebrow="The scoring model"
-          title="All 18 signals, with their real weights"
-          sub="This list is rendered from the same signal registry the scoring engine runs — it cannot drift from the product. Three pillars, weighted by how much they move discoverability; within each pillar, every signal declares its weight and pass/warn thresholds."
+          eyebrow="What we check"
+          title="The 18 things we check — and how much each one counts"
+          sub="This list is generated from the exact signal registry the engine scores with, so what you read here is what runs on your product. Three pillars, weighted by how much they actually move discoverability — so you always know where to spend your effort first."
         />
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 18 }}>
           {PILLAR_ORDER.map((pillar) => (
@@ -264,9 +265,9 @@ export default function HowItWorksPage() {
       {/* ── The pipeline ───────────────────────────────────────────────────── */}
       <section id="pipeline" style={{ maxWidth: 1180, margin: "0 auto", padding: "64px 28px 20px", scrollMarginTop: 88 }}>
         <SectionHead
-          eyebrow="How your plan is built"
-          title="What you have × What buyers want = What to do"
-          sub="Three passes: we scan everything your product already puts out, measure what your buyers actually search and where rivals show up, then cross the two into a ranked, evidence-backed action plan. The free scan runs the first pass and scores you; paid plans run all three — every week."
+          eyebrow="Inside a scan"
+          title="How your scan turns into a plan"
+          sub="Every scan runs three passes: what's already out there (you vs. your competitors), what your buyers are actually searching for, and the specific plays that fall out of crossing the two. The free scan runs the first pass and scores you; paid plans run all three — every week. The score is deterministic; every recommendation cites the evidence behind it."
         />
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 18 }}>
           {PIPELINE.map((p) => (
@@ -293,9 +294,9 @@ export default function HowItWorksPage() {
       {/* ── Why trust the score ────────────────────────────────────────────── */}
       <section id="trust" style={{ maxWidth: 1180, margin: "0 auto", padding: "64px 28px 20px", scrollMarginTop: 88 }}>
         <SectionHead
-          eyebrow="Why trust it"
-          title="Why the score holds up"
-          sub="Most “AI audits” are a prompt and a prayer. ReachKit separates the arithmetic from the language: deterministic scoring, evidence-grounded generation, and a verification loop that checks reality before anything counts."
+          eyebrow="Why you can trust it"
+          title="Why the number holds up"
+          sub="Most “AI audits” are a prompt and a prayer. ReachKit keeps the maths and the language separate: a deterministic score, evidence-grounded recommendations, and a verification loop that checks reality before anything counts — so you can act on it with confidence."
         />
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 18 }}>
           {TRUST.map((t) => (
@@ -312,8 +313,8 @@ export default function HowItWorksPage() {
       {/* ── Dashboard glimpse ──────────────────────────────────────────────── */}
       <section id="glimpse" style={{ maxWidth: 1180, margin: "0 auto", padding: "64px 28px 24px", scrollMarginTop: 88 }}>
         <SectionHead
-          eyebrow="The implementation"
-          title="What the paid dashboard looks like"
+          eyebrow="What you get"
+          title="What your weekly dashboard looks like"
           sub="These are the real dashboard components with sample data from a demo scan. Your own dashboard renders your live signals, your competitor set, and your ranked queue — refreshed weekly."
         />
         <DashboardGlimpse />
@@ -325,12 +326,12 @@ export default function HowItWorksPage() {
       {/* ── The secret is free — CTA ───────────────────────────────────────── */}
       <section id="scan" style={{ maxWidth: 1180, margin: "0 auto", padding: "40px 28px 90px", scrollMarginTop: 88 }}>
         <div style={{ background: "linear-gradient(135deg, var(--c-dark), var(--c-dark2))", borderRadius: 22, padding: "48px 32px", textAlign: "center" }}>
-          <p style={{ fontFamily: JM, fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-on-dark-muted)", margin: 0 }}>The secret is free</p>
+          <p style={{ fontFamily: JM, fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-on-dark-muted)", margin: 0 }}>Start free</p>
           <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: "clamp(1.6rem, 3vw, 2.3rem)", letterSpacing: "-0.02em", color: "var(--c-on-dark)", margin: "12px auto 10px", maxWidth: 640 }}>
-            You&rsquo;ve just read the entire methodology. Now run it.
+            You&rsquo;ve seen how it works. Now see your own score.
           </h2>
           <p style={{ fontSize: 15.5, lineHeight: 1.6, color: "var(--c-on-dark-muted)", margin: "0 auto 24px", maxWidth: 560 }}>
-            Everything above is public because the model isn&rsquo;t the moat — the execution is. The free scan gives you the score and your top fixes. Paid plans run the whole engine every week: what your buyers search, where rivals show up, the ranked queue, the verification, the score history.
+            The free scan gives you your discoverability score and your top fixes right now. Paid plans run the whole engine every week — what your buyers search, where rivals show up, the ranked queue, the verification, your score history — so you&rsquo;re never guessing what to do next.
           </p>
           <div style={{ maxWidth: 540, margin: "0 auto", textAlign: "left" }}>
             <ScanInput />

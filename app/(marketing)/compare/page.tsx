@@ -8,6 +8,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { buildMetadata } from "@/lib/seo";
+import { HeroFade } from "@/components/sections/hero-fade";
 import { COMPARE_CATEGORIES, COMPARE_ENTRIES } from "./compare-content";
 
 export const metadata: Metadata = buildMetadata({
@@ -31,7 +32,7 @@ export default function ComparePage() {
   return (
     <main aria-label="Compare ReachKit" style={{ background: "var(--c-surface)" }}>
       {/* Hero — the category story */}
-      <section style={{ maxWidth: 1180, margin: "0 auto", padding: "70px 28px 8px", textAlign: "center" }}>
+      <HeroFade padding="70px 28px 8px">
         <p style={{ fontFamily: JM, fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-action)", margin: 0 }}>Compare</p>
         <h1 style={{ fontFamily: SG, fontWeight: 700, fontSize: "clamp(2rem, 4vw, 3.25rem)", letterSpacing: "-0.02em", lineHeight: 1.05, color: "var(--c-ink)", margin: "16px auto 0", maxWidth: 820 }}>
           Every tool below sells you data.
@@ -41,7 +42,7 @@ export default function ComparePage() {
         <p style={{ fontSize: 17, lineHeight: 1.6, color: "var(--c-muted)", margin: "20px auto 0", maxWidth: 680 }}>
           &ldquo;SEO tool&rdquo; comparisons usually miss the point. The legacy suites are superb databases — keywords, backlinks, rankings — priced for professionals whose job is to do the analysis. ReachKit isn&apos;t a rank tracker or a keyword database. It scans your actual product, scores its discoverability, and hands you the ranked, evidence-cited fix list — then verifies you shipped it.
         </p>
-      </section>
+      </HeroFade>
 
       {/* End-to-end band */}
       <section aria-label="What ReachKit does end-to-end" style={{ maxWidth: 1180, margin: "0 auto", padding: "40px 28px 12px" }}>
