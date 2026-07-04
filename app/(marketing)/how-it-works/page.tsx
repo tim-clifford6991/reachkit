@@ -2,9 +2,10 @@
  * /how-it-works — the methodology deep-dive. "We give away the secret, we sell
  * the implementation": this page publishes the full scoring model — the real
  * 18-signal registry with its pillar weights (imported from lib/scan/signals,
- * the same module the engine scores with), the supply→demand→synthesis
- * pipeline, and why the number is trustworthy — then shows a fixture-data
- * glimpse of the paid dashboard and ends on the free-scan CTA.
+ * the same module the engine scores with), the three-pass pipeline (what you
+ * have → what buyers want → what to do), and why the number is trustworthy —
+ * then shows a fixture-data glimpse of the paid dashboard and ends on the
+ * free-scan CTA. Buyer language only: no internal jargon, no vendor names.
  *
  * Design idiom: intel-kit style — inline styles on --c-* tokens, Space Grotesk /
  * JetBrains Mono / Plus Jakarta Sans. Server component: registry/band data is
@@ -23,7 +24,7 @@ import { SCORE_BANDS } from "@/lib/scan/score-bands";
 export const metadata: Metadata = buildMetadata({
   title: "How it works — the full methodology",
   description:
-    "The complete ReachKit methodology, published: all 18 discoverability signals and their weights, the supply→demand→synthesis pipeline, and why the score is deterministic and verifiable. Then run it free on your own product.",
+    "The complete ReachKit methodology, published: all 18 discoverability signals and their weights, how your scan turns into a ranked action plan, and why the score is deterministic and verifiable. Then run it free on your own product.",
   path: "/how-it-works",
 });
 
@@ -31,18 +32,18 @@ const HOW_TO_LD = howToLd({
   name: "How ReachKit works",
   description: "Scan your product, read your Discoverability report, and work a weekly action queue.",
   steps: [
-    { name: "Scan", text: "Paste your App Store URL or website. ReachKit fetches it and scores 18 discoverability signals in about 90 seconds." },
-    { name: "Report", text: "Read a four-question report: what you offer, who it's for, where they are, and what to fix first — grounded in your live page." },
-    { name: "Engine", text: "Paid plans unlock a weekly, prioritised action queue that verifies each fix and tracks your score over time." },
+    { name: "Scan", text: "Paste your App Store URL or website. ReachKit fetches it and scores 18 discoverability signals in under a minute — no account needed." },
+    { name: "Report", text: "See your score and your top findings: what's holding you back and what to fix first, every claim grounded in your live page." },
+    { name: "Engine", text: "Paid plans run the full engine weekly — buyer search demand, competitor coverage, and a ranked action queue that verifies each fix and tracks your score over time." },
   ],
 });
 
 const SG = "var(--font-display)", JM = "var(--font-mono)";
 
 const STEPS = [
-  { n: "01", title: "Scan your live page", body: "Paste your App Store URL or website. ReachKit fetches the real page and scores 18 discoverability signals — in about 90 seconds, no account for your first scan.", tag: "~90 seconds" },
-  { n: "02", title: "Read the four-question report", body: "What you offer, who it's for, where they are, and what to fix first — every claim grounded in evidence from your live page, plus your positioning gap.", tag: "Grounded in evidence" },
-  { n: "03", title: "Work the weekly action engine", body: "Paid plans turn the report into a small, ranked weekly queue. Mark a fix done, ReachKit re-reads your page and verifies the move — your score tracks over time.", tag: "Verified, not vanity" },
+  { n: "01", title: "Scan your live page", body: "Paste your App Store URL or website. ReachKit fetches the real page and scores 18 discoverability signals — in under a minute, no account for your first scan.", tag: "Under a minute" },
+  { n: "02", title: "See what's costing you buyers", body: "Your free report: the score, and your top findings ranked by impact — what's holding you back and what to fix first, every claim grounded in evidence from your live page.", tag: "Grounded in evidence" },
+  { n: "03", title: "Work the weekly action engine", body: "Paid plans run the full engine every week: what your buyers actually search, where rivals show up, and a small ranked queue of moves. Mark a fix done and ReachKit re-checks reality before it counts.", tag: "Verified, not vanity" },
 ];
 
 // ---------------------------------------------------------------------------
@@ -63,6 +64,18 @@ function signalsByPillar(pillar: Pillar): SignalDefinition[] {
 }
 
 const pct = (n: number) => `${Math.round(n * 100)}%`;
+
+/** Interstitial pull toward the free scan — every major section lands here. */
+function SectionCta({ text, link }: { text: string; link: string }) {
+  return (
+    <p style={{ textAlign: "center", margin: "26px 0 0", fontSize: 14, color: "var(--c-muted)" }}>
+      {text}{" "}
+      <a href="#scan" style={{ fontFamily: JM, fontSize: 12.5, fontWeight: 700, color: "var(--c-action)", background: "var(--c-soft)", padding: "6px 13px", borderRadius: 999, textDecoration: "none", whiteSpace: "nowrap", marginLeft: 6 }}>
+        {link} ↓
+      </a>
+    </p>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Local layout helpers (server-safe, page-local — NOT imports from kit.tsx)
@@ -95,39 +108,41 @@ function SignalRow({ s }: { s: SignalDefinition }) {
 }
 
 // ---------------------------------------------------------------------------
-// Pipeline copy — grounded in lib/scan/profile (supply), lib/scan/demand, and
-// lib/scan/synthesis/synthesize.ts. No invented sources or numbers.
+// Pipeline copy — grounded in lib/scan/profile, lib/scan/demand, and
+// lib/scan/synthesis/synthesize.ts. No invented sources or numbers, and no
+// vendor names: capability language only ("live search results", "real
+// ranking positions").
 // ---------------------------------------------------------------------------
 const PIPELINE = [
   {
     n: "01",
-    name: "Supply",
-    q: "What exists today — for you and your rivals?",
+    name: "What you have",
+    q: "Everything your product already puts out — next to your rivals.",
     points: [
       "We crawl your live pages and parse the on-page facts: title, meta description, structured data, canonical, heading structure, content depth, share tags, image alt coverage.",
-      "We read your sitemap and feeds to measure real publishing cadence, and map your owned channels (blog, YouTube, newsletter).",
+      "We read your sitemap and feeds to measure how often you really publish, and map your owned channels (blog, YouTube, newsletter).",
       "We run the same profile on a category-validated competitor set — so every gap is relative to rivals in YOUR category, not a same-named brand in another market.",
       "We check the surfaces buyers decide on: marketplace listings (Product Hunt, G2, Capterra, AlternativeTo), community mentions (Hacker News, Reddit), and comparison pages.",
     ],
   },
   {
     n: "02",
-    name: "Demand",
-    q: "What are buyers actually searching for?",
+    name: "What buyers want",
+    q: "What your buyers actually search — and who shows up when they do.",
     points: [
       "From your product brief we generate pain queries in your buyers' own words — the things they type before they know your name.",
-      "Each query runs through live search-engine results (via DataForSEO's SERP data — real rankings and search volumes, not estimates we made up).",
-      "Hits are deduplicated, classified by intent, and clustered into ranked demand pockets — the themes where demand is real and reachable.",
+      "Each query runs against live search results: real ranking positions and real search volumes, the same SERP data the big SEO suites are built on — not estimates.",
+      "Hits are deduplicated, classified by intent, and clustered into a ranked list of themes where the search demand is real — and reachable for you.",
       "Competitor reviews are mined for buyer language: what people praise, what they complain about, and the words they use for both.",
     ],
   },
   {
     n: "03",
-    name: "Synthesis",
-    q: "Supply × Demand → what to do about it",
+    name: "What to do",
+    q: "The two crossed into a ranked, evidence-backed plan.",
     points: [
-      "The content plan crosses demand themes with the format that currently wins each SERP and your positioning — topic, target keywords with real volumes, buyer angle, brief.",
-      "The distribution plan is the intersection of where rivals are found and where your audience already is — channel, specific target, why, and effort.",
+      "Your content plan matches what buyers search with the format that currently wins each result page — topic, target keywords with real volumes, buyer angle, brief.",
+      "Your distribution plan is the overlap of where rivals get found and where your audience already is — channel, specific target, why, and effort.",
       "Every item cites the evidence it came from. If we can't point at the evidence, the item doesn't ship.",
     ],
   },
@@ -136,12 +151,12 @@ const PIPELINE = [
 const TRUST = [
   {
     title: "The number is deterministic",
-    body: "Your score is computed from the 18-signal registry above — fixed weights, fixed pass/warn/fail thresholds, no LLM anywhere in the arithmetic. Same inputs, same score, every time.",
-    tag: "No LLM in the score",
+    body: "Your score is computed from the 18-signal registry above — fixed weights, fixed pass/warn/fail thresholds, no AI anywhere in the arithmetic. Same inputs, same score, every time.",
+    tag: "No AI in the score",
   },
   {
     title: "The words are grounded",
-    body: "Every LLM step reads evidence extracted from your live pages, reviews, and search results — never free association. Each recommendation cites its evidence, and a critic gate pressure-tests every card before it reaches you. Cards that can't back themselves up get dropped.",
+    body: "Every AI step reads evidence extracted from your live pages, reviews, and search results — never free association. Each recommendation cites its evidence, and a critic gate pressure-tests every card before it reaches you. Cards that can't back themselves up get dropped.",
     tag: "Evidence-cited, critic-gated",
   },
   {
@@ -159,9 +174,10 @@ const TRUST = [
 export default function HowItWorksPage() {
   const anchors = [
     { href: "#signals", label: "The 18 signals" },
-    { href: "#pipeline", label: "The pipeline" },
+    { href: "#pipeline", label: "How your plan is built" },
     { href: "#trust", label: "Why trust it" },
     { href: "#glimpse", label: "The dashboard" },
+    { href: "#scan", label: "Run it free" },
   ];
 
   return (
@@ -176,7 +192,7 @@ export default function HowItWorksPage() {
             The whole methodology, published. The execution is the product.
           </h1>
           <p style={{ fontSize: 17.5, lineHeight: 1.5, color: "var(--c-muted)", margin: "18px auto 0", maxWidth: 640 }}>
-            No black box. Below is exactly how ReachKit scores discoverability — all 18 signals, the real weights, the pipeline, and why the number holds up. You could do all of this by hand. ReachKit does it in ~90 seconds, then keeps doing it every week.
+            No black box. Below is exactly how ReachKit scores discoverability — all 18 signals, the real weights, how your plan gets built, and why the number holds up. You could do all of this by hand. ReachKit scores you in under a minute, then keeps working it every week.
           </p>
           <nav aria-label="On this page" style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 8, marginTop: 26 }}>
             {anchors.map((a) => (
@@ -242,14 +258,15 @@ export default function HowItWorksPage() {
             ))}
           </div>
         </div>
+        <SectionCta text="Wondering which of these 18 you're failing?" link="Get your score free" />
       </section>
 
       {/* ── The pipeline ───────────────────────────────────────────────────── */}
       <section id="pipeline" style={{ maxWidth: 1180, margin: "0 auto", padding: "64px 28px 20px", scrollMarginTop: 88 }}>
         <SectionHead
-          eyebrow="The pipeline"
-          title="Supply × Demand → Synthesis"
-          sub="A scan is three passes: what exists today (you vs. competitors), what buyers are actually searching for, and the plans that fall out of crossing the two. Scoring is deterministic; every generated insight cites the evidence it came from."
+          eyebrow="How your plan is built"
+          title="What you have × What buyers want = What to do"
+          sub="Three passes: we scan everything your product already puts out, measure what your buyers actually search and where rivals show up, then cross the two into a ranked, evidence-backed action plan. The free scan runs the first pass and scores you; paid plans run all three — every week."
         />
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 18 }}>
           {PIPELINE.map((p) => (
@@ -270,6 +287,7 @@ export default function HowItWorksPage() {
             </div>
           ))}
         </div>
+        <SectionCta text="Pass one is free — see what you have (and what's missing)." link="Start the free scan" />
       </section>
 
       {/* ── Why trust the score ────────────────────────────────────────────── */}
@@ -288,6 +306,7 @@ export default function HowItWorksPage() {
             </div>
           ))}
         </div>
+        <SectionCta text="Don't take our word for the rigour — put your own product through it." link="Scan yours free" />
       </section>
 
       {/* ── Dashboard glimpse ──────────────────────────────────────────────── */}
@@ -299,19 +318,19 @@ export default function HowItWorksPage() {
         />
         <DashboardGlimpse />
         <p style={{ fontSize: 13, color: "var(--c-faint)", margin: "14px 4px 0", textAlign: "center" }}>
-          Sample data shown. Run a free scan below to see your own numbers — no account needed.
+          Sample data shown. <a href="#scan" style={{ color: "var(--c-action)", fontWeight: 600 }}>Run a free scan</a> to see your own numbers — no account needed.
         </p>
       </section>
 
       {/* ── The secret is free — CTA ───────────────────────────────────────── */}
-      <section style={{ maxWidth: 1180, margin: "0 auto", padding: "40px 28px 90px" }}>
+      <section id="scan" style={{ maxWidth: 1180, margin: "0 auto", padding: "40px 28px 90px", scrollMarginTop: 88 }}>
         <div style={{ background: "linear-gradient(135deg, var(--c-dark), var(--c-dark2))", borderRadius: 22, padding: "48px 32px", textAlign: "center" }}>
           <p style={{ fontFamily: JM, fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-on-dark-muted)", margin: 0 }}>The secret is free</p>
           <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: "clamp(1.6rem, 3vw, 2.3rem)", letterSpacing: "-0.02em", color: "var(--c-on-dark)", margin: "12px auto 10px", maxWidth: 640 }}>
             You&rsquo;ve just read the entire methodology. Now run it.
           </h2>
           <p style={{ fontSize: 15.5, lineHeight: 1.6, color: "var(--c-on-dark-muted)", margin: "0 auto 24px", maxWidth: 560 }}>
-            Everything above is public because the model isn&rsquo;t the moat — the execution is. The free scan gives you the score and your top fixes. Paid plans run the whole engine every week: the ranked queue, the drafts, the verification, the score history.
+            Everything above is public because the model isn&rsquo;t the moat — the execution is. The free scan gives you the score and your top fixes. Paid plans run the whole engine every week: what your buyers search, where rivals show up, the ranked queue, the verification, the score history.
           </p>
           <div style={{ maxWidth: 540, margin: "0 auto", textAlign: "left" }}>
             <ScanInput />
