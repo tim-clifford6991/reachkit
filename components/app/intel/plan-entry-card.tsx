@@ -19,6 +19,7 @@
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge, CopyButton, priorityTone } from "@/components/app/intel/kit";
+import { KIND_STYLE } from "@/components/app/intel/plan-kind-style";
 import { buildShareUrl, deliveryMode, type SharePlatform } from "@/lib/scan/distribute/intent";
 import { COACH_GUIDES } from "@/lib/scan/distribute/coach";
 import { inferExecutionRoute, type ExecutionRoute } from "@/lib/scan/distribute/platform-map";
@@ -172,11 +173,15 @@ export function PlanEntryCard({ entry, domain }: { entry: PlanEntry; domain: str
     );
   }
 
+  const kindStyle = KIND_STYLE[entry.kind];
+
   return (
-    <div style={{ fontFamily: PJ, color: "var(--c-ink)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-lg)", padding: 16, background: "var(--c-surface)" }}>
-      {/* Header row */}
+    <div style={{ fontFamily: PJ, color: "var(--c-ink)", border: "1px solid var(--c-line)", borderLeft: `3px solid ${kindStyle.fg}`, borderRadius: "var(--radius-lg)", padding: "16px 16px 16px 14px", background: "var(--c-surface)" }}>
+      {/* Header row — kind badge matches the calendar chip colors exactly */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
-        <Badge tone="violet">{entry.kind === "content" ? "content" : entry.kind === "post" ? "daily post" : (entry.channel || "outreach")}</Badge>
+        <span style={{ display: "inline-block", fontFamily: PJ, fontSize: 10.5, fontWeight: 700, color: kindStyle.fg, background: kindStyle.bg, padding: "3px 9px", borderRadius: "var(--radius-full)", whiteSpace: "nowrap" }}>
+          {entry.kind === "distribution" && entry.channel ? entry.channel : kindStyle.label}
+        </span>
         <Badge tone={priorityTone(entry.priority)}>{entry.priority}</Badge>
         <span style={{ fontFamily: JM, fontSize: 10.5, color: "var(--c-faint)" }}>~{entry.effortMin} min</span>
         {!entry.tracked && !actionId && (

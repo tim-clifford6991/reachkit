@@ -19,6 +19,7 @@ import Link from "next/link";
 import { Card, Eyebrow } from "@/components/app/intel/kit";
 import { useIntel, IntelShell } from "@/components/app/intel/shared";
 import { PlanEntryCard } from "@/components/app/intel/plan-entry-card";
+import { KIND_STYLE, kindOfAction } from "@/components/app/intel/plan-kind-style";
 import {
   mergePlanEntries, schedulePlan, scheduleToDays, localDateKey,
   buildDailyPostAngles, addDailyPosts, DAILY_POST_PREFIX,
@@ -185,11 +186,9 @@ function dayHeading(dateKey: string): string {
   return new Date(y!, m! - 1, d!).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
 }
 
-const CHIP_STYLE: Record<PlanEntry["kind"], { bg: string; fg: string }> = {
-  content: { bg: "var(--c-soft)", fg: "var(--c-action)" },
-  distribution: { bg: "var(--c-tint-green)", fg: "var(--c-band-findable)" },
-  post: { bg: "var(--c-tint-blue)", fg: "#3b6fe0" },
-};
+// Kind colors come from the shared source of truth — calendar chips, entry
+// cards, and lifecycle rows must always match.
+const CHIP_STYLE = KIND_STYLE;
 
 function PlanCalendar({ days, today, activeDate, onSelect }: {
   days: ScheduledDay[];
@@ -349,7 +348,14 @@ function LifecycleRow({ action, state }: { action: BoardAction; state: "verifyin
         <span aria-hidden style={{ fontFamily: JM, fontSize: 11, color: "var(--c-faint)", flexShrink: 0 }}>{open ? "▾" : "▸"}</span>
         <span style={{ minWidth: 0, flex: 1 }}>
           <span style={{ display: "block", fontFamily: SG, fontWeight: 700, fontSize: 14, color: "var(--c-ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{action.title}</span>
-          <span style={{ fontFamily: JM, fontSize: 10.5, color: "var(--c-faint)", textTransform: "uppercase", letterSpacing: ".04em" }}>{action.category}</span>
+          {(() => {
+            const k = KIND_STYLE[kindOfAction(action)];
+            return (
+              <span style={{ display: "inline-block", marginTop: 3, fontFamily: PJ, fontSize: 10, fontWeight: 700, color: k.fg, background: k.bg, padding: "2px 7px", borderRadius: "var(--radius-full)" }}>
+                {k.label}
+              </span>
+            );
+          })()}
         </span>
         {state === "done" && action.actualDelta !== null && (
           <span style={{ fontFamily: JM, fontSize: 12, fontWeight: 700, color: VERIFIED_COLOR, whiteSpace: "nowrap" }}>{fmtPts(action.actualDelta)}</span>
