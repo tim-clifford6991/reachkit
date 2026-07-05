@@ -230,6 +230,60 @@ export function ContentPlanBody({ data }: { data: Synthesis }) {
   );
 }
 
+/** Generate-draft control + review-required draft panel (automation Phase 1).
+ * Posts the topic to /api/content-draft; the server resolves the item, §11-scrubs
+ * the draft, stores it on the action, and returns it. Always shown as a draft the
+ * founder must edit before publishing — we never publish anything. */
+function ContentDraftPanel({ topic }: { topic: string }) {
+  const [state, setState] = useState<{ status: "idle" | "loading" | "error"; text: string | null }>({ status: "idle", text: null });
+
+  const generate = useCallback(async (regenerate: boolean) => {
+    setState((s) => ({ status: "loading", text: s.text }));
+    try {
+      const res = await fetch("/api/content-draft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topic, regenerate }),
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      const json = (await res.json()) as { draft?: string };
+      setState({ status: "idle", text: json.draft ?? "" });
+    } catch {
+      setState((s) => ({ status: "error", text: s.text }));
+    }
+  }, [topic]);
+
+  const loading = state.status === "loading";
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--c-line)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        <button
+          type="button"
+          disabled={loading}
+          onClick={() => generate(state.text !== null)}
+          style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "var(--c-action)", color: "#fff", fontFamily: "var(--font-sans)", fontWeight: 700, fontSize: 11.5, padding: "6px 12px", borderRadius: "var(--radius-full)", border: "none", cursor: loading ? "default" : "pointer", opacity: loading ? 0.6 : 1, whiteSpace: "nowrap" }}
+        >
+          {loading ? "Writing…" : state.text !== null ? "↻ Regenerate draft" : "✍ Generate draft"}
+        </button>
+        {state.status === "error" && <span style={{ fontSize: 10.5, color: "var(--c-faint)" }}>couldn&apos;t generate — try again</span>}
+        {state.text !== null && <CopyButton text={state.text} label="Copy draft" />}
+      </div>
+      {state.text !== null && (
+        <>
+          <p style={{ fontSize: 10.5, color: "var(--c-faint)", fontStyle: "italic", margin: 0 }}>
+            First draft — review, fact-check, and edit before publishing on your own site. ReachKit never publishes for you.
+          </p>
+          <textarea
+            readOnly
+            value={state.text}
+            style={{ width: "100%", minHeight: 180, resize: "vertical", fontFamily: "var(--font-mono)", fontSize: 11.5, lineHeight: 1.6, color: "var(--c-ink)", background: "var(--c-fill)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-sm)", padding: "10px 12px" }}
+          />
+        </>
+      )}
+    </div>
+  );
+}
+
 function ContentCard({ c, doFirst, plan }: { c: Content; doFirst: boolean; plan: ActionPlan }) {
   const kw = c.targetKeywords?.[0];
   const exemplars = c.competitorExemplars ?? [];
@@ -277,6 +331,7 @@ function ContentCard({ c, doFirst, plan }: { c: Content; doFirst: boolean; plan:
           )}
         </div>
       )}
+      <ContentDraftPanel topic={c.topic} />
     </div>
   );
 }

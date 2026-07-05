@@ -106,7 +106,7 @@ export function genericTellScore(draft: string): number {
 // ---------------------------------------------------------------------------
 
 async function rewriteDraft(
-  ctx: ScanContext,
+  scanId: string | null,
   draft: string,
   instruction: string,
 ): Promise<string> {
@@ -116,11 +116,48 @@ async function rewriteDraft(
       "You are a marketing copy editor. Rewrite the provided draft according to the instruction. " +
       "Output ONLY the rewritten draft — no preamble, no explanation, no markdown.",
     prompt: `Instruction: ${instruction}\n\nDraft to rewrite:\n${draft}`,
-    scanId: ctx.scanId,
+    scanId,
     stage: "format",
     maxTokens: 1024,
   });
   return result.text.trim() || draft;
+}
+
+/** The §11 (6) instruction — shared by the action-set pass and one-off scrubs. */
+const GENERIC_REWRITE_INSTRUCTION =
+  "Rewrite this draft to be specific and non-generic, citing the real facts present in the text. " +
+  "Remove all AI clichés (game-changer, leverage, seamless, unlock, effortlessly, etc.). " +
+  "Keep the same general message and length.";
+
+/**
+ * §11 (6) generic-tell scrub for a single draft string — reusable across the
+ * action-set safety pass and one-off draft generation (content/distribution).
+ *
+ * Returns the input UNCHANGED when it is already specific (score below the
+ * threshold), in fixtures mode, or when the single Haiku rewrite fails or does
+ * not actually reduce the generic score. Never throws.
+ */
+export async function scrubGenericTells(
+  draft: string,
+  scanId: string | null = null,
+): Promise<string> {
+  if (draft.trim().length === 0) return draft;
+
+  const initialScore = genericTellScore(draft);
+  if (initialScore < GENERIC_THRESHOLD) return draft;
+
+  // Fixtures mode: deterministic detection only — no paid rewrite.
+  if (fixturesEnabled()) return draft;
+
+  let rewritten: string;
+  try {
+    rewritten = await rewriteDraft(scanId, draft, GENERIC_REWRITE_INSTRUCTION);
+  } catch {
+    return draft;
+  }
+
+  // Keep whichever version is less generic.
+  return genericTellScore(rewritten) < initialScore ? rewritten : draft;
 }
 
 // ---------------------------------------------------------------------------
@@ -134,34 +171,10 @@ async function applyGenericTellCheck(
   const draft = card.draft;
   if (draft === null || draft.trim().length === 0) return card;
 
-  const initialScore = genericTellScore(draft);
-  if (initialScore < GENERIC_THRESHOLD) return card;
-
-  // In fixture mode: skip LLM rewrite but still return the card as-is
-  // (the flag is implicit — callers see no difference; the card is not dropped)
-  if (fixturesEnabled()) {
-    return card;
-  }
-
-  // Attempt ONE Haiku rewrite
-  let rewritten: string;
-  try {
-    rewritten = await rewriteDraft(
-      ctx,
-      draft,
-      "Rewrite this draft to be specific and non-generic, citing the real facts present in the text. " +
-        "Remove all AI clichés (game-changer, leverage, seamless, unlock, effortlessly, etc.). " +
-        "Keep the same general message and length.",
-    );
-  } catch {
-    // Rewrite failed — keep original
-    return card;
-  }
-
-  // Keep whichever version is less generic
-  const rewrittenScore = genericTellScore(rewritten);
-  const finalDraft = rewrittenScore < initialScore ? rewritten : draft;
-  return { ...card, draft: finalDraft };
+  // Shared §11 (6) scrub: score → optional single Haiku rewrite → keep the
+  // less-generic version. No-op in fixtures mode and on rewrite failure.
+  const scrubbed = await scrubGenericTells(draft, ctx.scanId);
+  return scrubbed === draft ? card : { ...card, draft: scrubbed };
 }
 
 // ---------------------------------------------------------------------------
@@ -239,7 +252,7 @@ async function applyDivergenceCheck(
       let rewritten: string;
       try {
         rewritten = await rewriteDraft(
-          ctx,
+          ctx.scanId,
           draft,
           "Rewrite this draft to be clearly distinct from similar outreach messages that other apps " +
             "might be sending to the same audience. Use specific facts and a unique angle.",
