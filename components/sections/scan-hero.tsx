@@ -83,16 +83,20 @@ export function ScanHero({ showScrollCue = false }: { showScrollCue?: boolean })
         <div className="rkh-grid">
           {/* Copy column — eyebrow, stacked headline, subhead, input, meta */}
           <div className="rkh-copy">
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 8, fontFamily: JM, fontSize: 12.5, fontWeight: 600, letterSpacing: "0.04em", color: "var(--c-action)", background: "var(--c-surface)", border: "1px solid #E7E0FB", borderRadius: 999, padding: "7px 15px" }}>
-              <span style={{ width: 6, height: 6, borderRadius: 999, background: "var(--c-action)" }} />
-              Grounded in your live page. Every claim links to real evidence.
+            {/* Short enough to stay on ONE line in the 46% column — a wrapped
+                pill ("…evidence." dangling) reads broken. */}
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8, fontFamily: JM, fontSize: 12.5, fontWeight: 600, letterSpacing: "0.04em", color: "var(--c-action)", background: "var(--c-surface)", border: "1px solid #E7E0FB", borderRadius: 999, padding: "7px 15px", whiteSpace: "nowrap" }}>
+              <span style={{ width: 6, height: 6, borderRadius: 999, background: "var(--c-action)", flexShrink: 0 }} />
+              Every claim grounded in your live page.
             </span>
 
-            <h1 className="rkh-h1" style={{ fontFamily: SG, fontWeight: 700, lineHeight: 1.06, letterSpacing: "-0.035em", margin: "22px 0 0", textWrap: "balance" } as React.CSSProperties}>
-              <span style={{ display: "block" }}>Your competitors are being found.</span>
-              {/* The punch — its own line, italic, a touch larger, tighter tracking */}
-              <span style={{ display: "block", fontStyle: "italic", fontSize: "1.14em", letterSpacing: "-0.05em", color: "var(--c-ink)", padding: "2px 0 3px" }}>You aren&apos;t.</span>
-              <span style={{ display: "block", color: "var(--c-action)" }}>See exactly why.</span>
+            {/* Lockup rhythm: the setup line and resolution line sit smaller so
+                the italic punch is unmistakably the loudest thing on the page. */}
+            <h1 className="rkh-h1" style={{ fontFamily: SG, fontWeight: 700, lineHeight: 1.08, letterSpacing: "-0.035em", margin: "22px 0 0", textWrap: "balance" } as React.CSSProperties}>
+              <span style={{ display: "block", fontSize: "0.62em", fontWeight: 600, color: "var(--c-ink)", letterSpacing: "-0.02em" }}>Your competitors are being found.</span>
+              {/* The punch — its own line, italic, the biggest element in the hero */}
+              <span style={{ display: "block", fontStyle: "italic", fontSize: "1.18em", letterSpacing: "-0.05em", color: "var(--c-ink)", padding: "4px 0 6px" }}>You aren&apos;t.</span>
+              <span style={{ display: "block", fontSize: "0.62em", fontWeight: 600, color: "var(--c-action)", letterSpacing: "-0.02em" }}>See exactly why.</span>
             </h1>
 
             <p style={{ fontSize: 19, lineHeight: 1.55, color: "var(--c-muted)", maxWidth: 620, margin: "18px 0 0", textWrap: "pretty" } as React.CSSProperties}>
