@@ -37,7 +37,7 @@ function deltaAt(history: ScoreHistoryPoint[], idx: number): number | null {
  * content for everything else — mirroring the two plan pages that actually
  * exist (there's no dedicated SEO plan page). */
 function hrefForCategory(category: string | undefined): string {
-  return category === "outreach" ? "/app/plan/distribution" : "/app/plan/content";
+  return category === "outreach" ? "/app/plan" : "/app/plan";
 }
 
 /** Verified-fix markers → changelog events, each carrying the score delta the fix produced. */

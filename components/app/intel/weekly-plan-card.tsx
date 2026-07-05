@@ -135,8 +135,8 @@ function EmptyPlanPrompt() {
         week&rsquo;s queue.
       </p>
       <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 16, marginTop: 8 }}>
-        <PlanLink href="/app/plan/content">Content gaps →</PlanLink>
-        <PlanLink href="/app/plan/distribution">Distribution gaps →</PlanLink>
+        <PlanLink href="/app/plan">Content gaps →</PlanLink>
+        <PlanLink href="/app/plan">Distribution gaps →</PlanLink>
       </div>
     </div>
   );

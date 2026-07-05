@@ -1,22 +1,9 @@
-import { Suspense } from "react";
-import { resolveIntelContext } from "@/lib/app/intel-context";
-import { CompetitorSetup } from "@/components/app/intel/competitor-setup";
-import { ContentPlanView } from "@/components/app/intel/content-plan-view";
-import { buildMetadata } from "@/lib/seo";
+import { redirect } from "next/navigation";
 
-export const metadata = buildMetadata({ title: "Content", path: "/app/plan/content" });
-
+/**
+ * The content backlog is absorbed into the singular plan page — every
+ * action's full analysis now lives in its detail popup on /app/plan.
+ */
 export default function ContentPage() {
-  return (
-    <Suspense fallback={null}>
-      <ContentContent />
-    </Suspense>
-  );
-}
-
-async function ContentContent() {
-  const ctx = await resolveIntelContext("/app/plan/content");
-  if (!ctx.domain) return <p className="py-16 text-center text-sm text-neutral-400">Add your product URL in Settings to begin.</p>;
-  if (ctx.competitors.length === 0) return <CompetitorSetup domain={ctx.domain} />;
-  return <ContentPlanView />;
+  redirect("/app/plan");
 }

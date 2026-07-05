@@ -46,10 +46,10 @@ const SAMPLE_SIGNAL_CHANGES: SignalChange[] = [
 ];
 
 const SAMPLE_EVENTS = [
-  { label: "Published 'How to share meeting notes'", date: iso(7), delta: 3, href: "/app/plan/content" },
-  { label: "Listed on webcatalog.io directory", date: iso(14), delta: 3, href: "/app/plan/content" },
+  { label: "Published 'How to share meeting notes'", date: iso(7), delta: 3, href: "/app/plan" },
+  { label: "Listed on webcatalog.io directory", date: iso(14), delta: 3, href: "/app/plan" },
   { label: "New competitor in your space: notionmeet.com", date: iso(21) },
-  { label: "Added schema markup + meta descriptions", date: iso(35), delta: 2, href: "/app/plan/content" },
+  { label: "Added schema markup + meta descriptions", date: iso(35), delta: 2, href: "/app/plan" },
   { label: "Crossed from Invisible into Hard-to-find", date: iso(42) },
   { label: "First scan — baseline score 38", date: iso(56) },
 ];

@@ -173,10 +173,10 @@ function EmptyBoard() {
         Nothing queued yet. Add fixes from your plans — they line up here, and every verified win lands on your score.
       </p>
       <div style={{ display: "flex", gap: 18, marginTop: 6 }}>
-        <Link href="/app/plan/content" style={{ fontSize: 13, fontWeight: 600, color: "var(--c-action)", textDecoration: "none" }}>
+        <Link href="/app/plan" style={{ fontSize: 13, fontWeight: 600, color: "var(--c-action)", textDecoration: "none" }}>
           Content plan &rarr;
         </Link>
-        <Link href="/app/plan/distribution" style={{ fontSize: 13, fontWeight: 600, color: "var(--c-action)", textDecoration: "none" }}>
+        <Link href="/app/plan" style={{ fontSize: 13, fontWeight: 600, color: "var(--c-action)", textDecoration: "none" }}>
           Distribution plan &rarr;
         </Link>
       </div>

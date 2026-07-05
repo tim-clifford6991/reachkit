@@ -18,7 +18,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Card, Eyebrow } from "@/components/app/intel/kit";
 import { useIntel, IntelShell } from "@/components/app/intel/shared";
-import { PlanEntryCard } from "@/components/app/intel/plan-entry-card";
+import { PlanEntryCard, type EntryDetail } from "@/components/app/intel/plan-entry-card";
 import { KIND_STYLE, kindOfAction } from "@/components/app/intel/plan-kind-style";
 import {
   mergePlanEntries, schedulePlan, scheduleToDays, localDateKey,
@@ -77,6 +77,28 @@ export function PlanTimelineBody({ board, synthesis, domain, today: todayProp }:
   }, [board, synthesis, today]);
 
   const byDate = useMemo(() => new Map(days.map((d) => [d.date, d.entries])), [days]);
+
+  // Full analysis lookup for the detail popups — the old content/distribution
+  // pages folded into per-entry modals.
+  const detailFor = useMemo(() => {
+    const contentByTitle = new Map(synthesis.contentPlan.map((c) => [c.topic, c]));
+    const distByTitle = new Map(synthesis.distributionPlan.map((d) => [d.action, d]));
+    const upcoming = buildDailyPostAngles({
+      category: synthesis.category,
+      contentPlan: synthesis.contentPlan,
+      distribution: synthesis.distributionPlan,
+    }).slice(0, 6).map((a) => a.title);
+    return (e: PlanEntry): EntryDetail | undefined => {
+      if (e.kind === "post") return { kind: "post", upcoming };
+      if (e.kind === "content") {
+        const item = contentByTitle.get(e.title);
+        return item ? { kind: "content", item } : undefined;
+      }
+      const item = distByTitle.get(e.title);
+      return item ? { kind: "distribution", item } : undefined;
+    };
+  }, [synthesis]);
+
   const [selected, setSelected] = useState<string | null>(null);
   // Default focus: today if it has work, else the first scheduled day.
   const todayKey = localDateKey(today);
@@ -123,7 +145,7 @@ export function PlanTimelineBody({ board, synthesis, domain, today: todayProp }:
                 {activeDate === todayKey && <span style={{ fontFamily: JM, fontSize: 10.5, fontWeight: 700, color: "var(--c-action)" }}>← start here</span>}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {activeEntries.map((e) => <PlanEntryCard key={e.key} entry={e} domain={domain} />)}
+                {activeEntries.map((e) => <PlanEntryCard key={e.key} entry={e} domain={domain} detail={detailFor(e)} />)}
               </div>
             </section>
           )}
@@ -163,8 +185,8 @@ export function PlanTimelineBody({ board, synthesis, domain, today: todayProp }:
 
       <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
         <span style={{ fontSize: 13, color: "var(--c-faint)" }}>
-          Backed by your <Link href="/app/plan/content" style={{ color: "var(--c-action)", fontWeight: 600, textDecoration: "none" }}>content</Link> and{" "}
-          <Link href="/app/plan/distribution" style={{ color: "var(--c-action)", fontWeight: 600, textDecoration: "none" }}>distribution</Link> analyses.
+          Backed by your <Link href="/app/plan" style={{ color: "var(--c-action)", fontWeight: 600, textDecoration: "none" }}>content</Link> and{" "}
+          <Link href="/app/plan" style={{ color: "var(--c-action)", fontWeight: 600, textDecoration: "none" }}>distribution</Link> analyses.
         </span>
         <Link href="/app/progress" style={{ fontSize: 13, fontWeight: 600, color: "var(--c-action)", textDecoration: "none" }}>
           Verified wins land on your Progress timeline &rarr;

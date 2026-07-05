@@ -11,21 +11,34 @@
  *                   post there), or the coach checklist + direct venue link +
  *                   copy for everything else
  *
+ * "Details" opens the entry's full analysis as a popup (the old content/
+ * distribution pages folded into a modal): brief, keywords + volumes,
+ * competitor exemplars, ease × impact, evidence — plus the SAME execute
+ * affordances (the modal shares this card's state, so a draft started in
+ * either place is the same draft).
+ *
  * Executing auto-tracks the entry in the actions table (draft/venue/effort
  * ride along) and Mark done → verify closes the loop into the score. We never
  * post or submit anything ourselves.
  */
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Badge, CopyButton, priorityTone } from "@/components/app/intel/kit";
+import { Badge, CopyButton, EvidenceLink, priorityTone } from "@/components/app/intel/kit";
 import { KIND_STYLE } from "@/components/app/intel/plan-kind-style";
 import { buildShareUrl, deliveryMode, type SharePlatform } from "@/lib/scan/distribute/intent";
 import { COACH_GUIDES } from "@/lib/scan/distribute/coach";
 import { inferExecutionRoute, type ExecutionRoute } from "@/lib/scan/distribute/platform-map";
 import type { PlanEntry } from "@/lib/scan/plan-schedule";
+import type { Content, Dist } from "./synthesis-view";
 
 const SG = "var(--font-display)", PJ = "var(--font-sans)", JM = "var(--font-mono)";
+
+/** The full analysis behind an entry — shown in the detail popup. */
+export type EntryDetail =
+  | { kind: "content"; item: Content }
+  | { kind: "distribution"; item: Dist }
+  | { kind: "post"; upcoming: string[] };
 
 const SHARE_LABEL: Record<SharePlatform, string> = {
   x: "X", reddit: "Reddit", threads: "Threads", linkedin: "LinkedIn",
@@ -42,7 +55,7 @@ const btnGhost: React.CSSProperties = {
   padding: "4px 12px", fontFamily: PJ, fontSize: 11.5, fontWeight: 600, color: "var(--c-ink)", cursor: "pointer",
 };
 
-export function PlanEntryCard({ entry, domain }: { entry: PlanEntry; domain: string }) {
+export function PlanEntryCard({ entry, domain, detail }: { entry: PlanEntry; domain: string; detail?: EntryDetail }) {
   const router = useRouter();
   const [draft, setDraft] = useState<{ title?: string; text: string } | null>(
     entry.draft ? { text: entry.draft } : null,
@@ -50,6 +63,15 @@ export function PlanEntryCard({ entry, domain }: { entry: PlanEntry; domain: str
   const [actionId, setActionId] = useState<string | null>(entry.actionId);
   const [status, setStatus] = useState<"idle" | "drafting" | "error" | "upgrade" | "completing" | "done">("idle");
   const [showDraft, setShowDraft] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+
+  // Escape closes the detail popup.
+  useEffect(() => {
+    if (!detailsOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setDetailsOpen(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [detailsOpen]);
 
   const productUrl = domain ? `https://${domain}` : undefined;
   const route: ExecutionRoute | null = entry.kind === "distribution"
@@ -152,6 +174,7 @@ export function PlanEntryCard({ entry, domain }: { entry: PlanEntry; domain: str
       });
       if (!res.ok) throw new Error("complete failed");
       setStatus("done");
+      setDetailsOpen(false);
       router.refresh();
     } catch {
       setStatus("error");
@@ -175,41 +198,10 @@ export function PlanEntryCard({ entry, domain }: { entry: PlanEntry; domain: str
 
   const kindStyle = KIND_STYLE[entry.kind];
 
-  return (
-    <div style={{ fontFamily: PJ, color: "var(--c-ink)", border: "1px solid var(--c-line)", borderLeft: `3px solid ${kindStyle.fg}`, borderRadius: "var(--radius-lg)", padding: "16px 16px 16px 14px", background: "var(--c-surface)" }}>
-      {/* Header row — kind badge matches the calendar chip colors exactly */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
-        <span style={{ display: "inline-block", fontFamily: PJ, fontSize: 10.5, fontWeight: 700, color: kindStyle.fg, background: kindStyle.bg, padding: "3px 9px", borderRadius: "var(--radius-full)", whiteSpace: "nowrap" }}>
-          {entry.kind === "distribution" && entry.channel ? entry.channel : kindStyle.label}
-        </span>
-        <Badge tone={priorityTone(entry.priority)}>{entry.priority}</Badge>
-        <span style={{ fontFamily: JM, fontSize: 10.5, color: "var(--c-faint)" }}>~{entry.effortMin} min</span>
-        {!entry.tracked && !actionId && (
-          <span style={{ marginLeft: "auto", fontFamily: JM, fontSize: 10, color: "var(--c-faint)" }}>suggested</span>
-        )}
-      </div>
-
-      <div style={{ fontFamily: SG, fontWeight: 700, fontSize: 15, marginBottom: 4 }}>{entry.title}</div>
-      {entry.why && <p style={{ fontSize: 13, color: "var(--c-muted)", lineHeight: 1.5, margin: "0 0 6px" }}>{entry.why}</p>}
-      {entry.target && (
-        <p style={{ fontSize: 12, margin: "0 0 8px" }}>
-          {entry.targetUrl
-            ? <a href={entry.targetUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--c-action)", fontWeight: 600, textDecoration: "none" }}>{entry.target} ↗</a>
-            : <span style={{ fontWeight: 600 }}>{entry.target}</span>}
-        </p>
-      )}
-      {/* Provenance — every recommendation cites its evidence and links to the
-          analysis it came from. Nothing is a black box. */}
-      <p style={{ fontFamily: JM, fontSize: 10.5, color: "var(--c-faint)", lineHeight: 1.5, margin: "0 0 8px" }}>
-        {entry.evidence && <>↳ {entry.evidence}{" · "}</>}
-        <a
-          href={entry.kind === "distribution" ? "/app/plan/distribution" : "/app/plan/content"}
-          style={{ color: "var(--c-action)", textDecoration: "none", fontWeight: 700 }}
-        >
-          {entry.kind === "post" ? "what to post about →" : entry.kind === "content" ? "full content analysis →" : "full distribution analysis →"}
-        </a>
-      </p>
-
+  /** The interactive execute area — rendered in the card AND the detail popup
+   *  (same component instance → same draft state everywhere). */
+  const executeArea = (
+    <>
       {/* Draft area */}
       {draft && showDraft && (
         <div style={{ display: "flex", flexDirection: "column", gap: 6, margin: "8px 0" }}>
@@ -279,6 +271,186 @@ export function PlanEntryCard({ entry, domain }: { entry: PlanEntry; domain: str
           {SHARE_LABEL[route.platform]} doesn&apos;t accept prefilled text — copy the draft, then paste it into the composer.
         </p>
       )}
+    </>
+  );
+
+  return (
+    <div style={{ fontFamily: PJ, color: "var(--c-ink)", border: "1px solid var(--c-line)", borderLeft: `3px solid ${kindStyle.fg}`, borderRadius: "var(--radius-lg)", padding: "16px 16px 16px 14px", background: "var(--c-surface)" }}>
+      {/* Header row — kind badge matches the calendar chip colors exactly */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
+        <span style={{ display: "inline-block", fontFamily: PJ, fontSize: 10.5, fontWeight: 700, color: kindStyle.fg, background: kindStyle.bg, padding: "3px 9px", borderRadius: "var(--radius-full)", whiteSpace: "nowrap" }}>
+          {entry.kind === "distribution" && entry.channel ? entry.channel : kindStyle.label}
+        </span>
+        <Badge tone={priorityTone(entry.priority)}>{entry.priority}</Badge>
+        <span style={{ fontFamily: JM, fontSize: 10.5, color: "var(--c-faint)" }}>~{entry.effortMin} min</span>
+        {!entry.tracked && !actionId && (
+          <span style={{ marginLeft: "auto", fontFamily: JM, fontSize: 10, color: "var(--c-faint)" }}>suggested</span>
+        )}
+      </div>
+
+      <div style={{ fontFamily: SG, fontWeight: 700, fontSize: 15, marginBottom: 4 }}>{entry.title}</div>
+      {entry.why && <p style={{ fontSize: 13, color: "var(--c-muted)", lineHeight: 1.5, margin: "0 0 6px" }}>{entry.why}</p>}
+      {entry.target && (
+        <p style={{ fontSize: 12, margin: "0 0 8px" }}>
+          {entry.targetUrl
+            ? <a href={entry.targetUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--c-action)", fontWeight: 600, textDecoration: "none" }}>{entry.target} ↗</a>
+            : <span style={{ fontWeight: 600 }}>{entry.target}</span>}
+        </p>
+      )}
+      {/* Provenance — every recommendation cites its evidence and opens its full
+          analysis in place. Nothing is a black box, and no extra routes. */}
+      <p style={{ fontFamily: JM, fontSize: 10.5, color: "var(--c-faint)", lineHeight: 1.5, margin: "0 0 8px" }}>
+        {entry.evidence && <>↳ {entry.evidence}{" · "}</>}
+        <button
+          type="button"
+          onClick={() => setDetailsOpen(true)}
+          style={{ background: "none", border: "none", padding: 0, fontFamily: JM, fontSize: 10.5, color: "var(--c-action)", cursor: "pointer", fontWeight: 700 }}
+        >
+          {entry.kind === "post" ? "what to post about →" : "details →"}
+        </button>
+      </p>
+
+      {executeArea}
+
+      {/* Detail popup — the folded-in analysis + the same execute affordances */}
+      {detailsOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${entry.title} — details`}
+          onClick={() => setDetailsOpen(false)}
+          style={{ position: "fixed", inset: 0, zIndex: 120, background: "oklch(0.2 0.02 290 / 0.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ width: "100%", maxWidth: 620, maxHeight: "85vh", overflowY: "auto", background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-xl)", padding: "22px 24px", boxShadow: "0 24px 60px oklch(0.2 0.02 290 / 0.25)" }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+              <span style={{ fontFamily: PJ, fontSize: 10.5, fontWeight: 700, color: kindStyle.fg, background: kindStyle.bg, padding: "3px 9px", borderRadius: "var(--radius-full)" }}>{kindStyle.label}</span>
+              <Badge tone={priorityTone(entry.priority)}>{entry.priority}</Badge>
+              <button type="button" aria-label="Close" onClick={() => setDetailsOpen(false)} style={{ marginLeft: "auto", background: "none", border: "none", fontSize: 18, lineHeight: 1, color: "var(--c-faint)", cursor: "pointer" }}>×</button>
+            </div>
+            <h3 style={{ fontFamily: SG, fontWeight: 700, fontSize: 17, color: "var(--c-ink)", margin: "0 0 6px" }}>{entry.title}</h3>
+            {entry.why && <p style={{ fontSize: 13, color: "var(--c-muted)", lineHeight: 1.55, margin: "0 0 12px" }}>{entry.why}</p>}
+
+            <DetailSections entry={entry} detail={detail} />
+
+            <div style={{ borderTop: "1px solid var(--c-line)", marginTop: 14, paddingTop: 4 }}>
+              {executeArea}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Detail sections — the analysis that used to live on /app/plan/content and
+// /app/plan/distribution, per kind.
+// ---------------------------------------------------------------------------
+
+function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div style={{ display: "flex", gap: 10, alignItems: "baseline" }}>
+      <span style={{ flexShrink: 0, width: 92, fontFamily: JM, fontSize: 10, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--c-faint)" }}>{label}</span>
+      <span style={{ minWidth: 0, fontSize: 12.5, lineHeight: 1.55, color: "var(--c-ink)" }}>{children}</span>
+    </div>
+  );
+}
+
+function MeterRow({ label, value }: { label: string; value: number }) {
+  return (
+    <div style={{ flex: 1, minWidth: 100 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", fontFamily: JM, fontSize: 10.5, color: "var(--c-faint)", marginBottom: 4 }}>
+        <span>{label}</span><span>{Math.round(value * 100)}%</span>
+      </div>
+      <div style={{ height: 6, borderRadius: 999, background: "var(--c-fill)", overflow: "hidden" }}>
+        <div style={{ width: `${Math.round(value * 100)}%`, height: "100%", background: "var(--c-action)" }} />
+      </div>
+    </div>
+  );
+}
+
+function DetailSections({ entry, detail }: { entry: PlanEntry; detail?: EntryDetail }) {
+  const fmtVol = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n));
+
+  if (detail?.kind === "content") {
+    const c = detail.item;
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+        {c.targetKeywords?.length > 0 && (
+          <DetailRow label="Keywords">
+            {c.targetKeywords.join(", ")}
+            {c.estMonthlyVolume > 0 && <span style={{ fontFamily: JM, fontSize: 11, color: "var(--c-action)" }}> · ~{fmtVol(c.estMonthlyVolume)}/mo</span>}
+          </DetailRow>
+        )}
+        {(c.format || c.depthTarget) && <DetailRow label="Format">{[c.format, c.depthTarget].filter(Boolean).join(" · ")}</DetailRow>}
+        {c.brief && <DetailRow label="Brief">{c.brief}</DetailRow>}
+        {(c.competitorExemplars ?? []).length > 0 && (
+          <DetailRow label="Who wins it">
+            <span style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              {c.competitorExemplars.map((ex, i) => (
+                <EvidenceLink key={i} href={ex.url} style={{ fontSize: 12 }}>{ex.domain} ranks #{ex.position}</EvidenceLink>
+              ))}
+            </span>
+          </DetailRow>
+        )}
+        {c.evidence && <DetailRow label="Evidence">{c.evidence}</DetailRow>}
+        {c.agentPrompt && (
+          <DetailRow label="Agent prompt">
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontFamily: JM, fontSize: 11, color: "var(--c-muted)" }}>ready-to-run writing prompt</span>
+              <CopyButton text={c.agentPrompt} label="Copy" />
+            </span>
+          </DetailRow>
+        )}
+      </div>
+    );
+  }
+
+  if (detail?.kind === "distribution") {
+    const d = detail.item;
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+        <DetailRow label="Where">
+          {d.targetUrl
+            ? <a href={d.targetUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--c-action)", fontWeight: 600, textDecoration: "none" }}>{d.target} ↗</a>
+            : d.target}
+          <span style={{ fontFamily: JM, fontSize: 11, color: "var(--c-faint)" }}> · {d.channel} · {d.effort} effort</span>
+        </DetailRow>
+        {d.evidence && <DetailRow label="Evidence">{d.evidence}</DetailRow>}
+        <div style={{ display: "flex", gap: 18, marginTop: 2 }}>
+          <MeterRow label="Ease" value={d.ease} />
+          <MeterRow label="Impact" value={d.impact} />
+        </div>
+      </div>
+    );
+  }
+
+  if (detail?.kind === "post") {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+        <DetailRow label="How it works">
+          Daily post angles rotate through your content topics, your buyers&rsquo; pains, and live market
+          insights from your scan — so you always have something grounded to say. Ten minutes, every day.
+        </DetailRow>
+        {detail.upcoming.length > 0 && (
+          <DetailRow label="Coming up">
+            <span style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+              {detail.upcoming.map((t, i) => (
+                <span key={i} style={{ fontSize: 12, color: "var(--c-muted)" }}>· {t}</span>
+              ))}
+            </span>
+          </DetailRow>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <p style={{ fontSize: 12.5, color: "var(--c-muted)", margin: 0 }}>
+      {entry.evidence ? `↳ ${entry.evidence}` : "This action was queued directly from your plan."}
+    </p>
   );
 }

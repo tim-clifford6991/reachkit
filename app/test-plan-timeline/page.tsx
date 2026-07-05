@@ -1,7 +1,7 @@
 /**
  * /test-plan-timeline — fixture render of the singular plan timeline
  * (PlanTimelineBody with a sample board + synthesis, no auth / no gathers).
- * Mirrors test-content-plan-view / test-distribution-plan-view.
+ * Fixture idiom: sample board + synthesis rendered directly, no auth/gathers.
  */
 import { PlanTimelineBody } from "@/components/app/intel/plan-timeline-view";
 import type { Synthesis } from "@/components/app/intel/synthesis-view";
