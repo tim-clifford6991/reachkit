@@ -114,7 +114,7 @@ export function WeeklyPlanCard({ plan }: { plan: WeeklyPlan }) {
       )}
 
       <div style={{ marginTop: 14, textAlign: "right" }}>
-        <PlanLink href="/app/plans">Full plan board →</PlanLink>
+        <PlanLink href="/app/plan">Full plan →</PlanLink>
       </div>
     </Card>
   );

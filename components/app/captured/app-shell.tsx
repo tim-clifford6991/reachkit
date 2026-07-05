@@ -34,9 +34,9 @@ const NAV: (NavItem | NavGroup)[] = [
   { label: "Plan", badge: true, icon: (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3 8-8" /><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9" /></svg>
   ), children: [
+    { label: "Your plan", href: "/app/plan" },
     { label: "Content", href: "/app/plan/content" },
     { label: "Distribution", href: "/app/plan/distribution" },
-    { label: "Queue", href: "/app/plans" },
   ] },
   { label: "Progress", href: "/app/progress", icon: (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 17 9 11 13 15 21 6" /><polyline points="14 6 21 6 21 13" /></svg>
@@ -53,7 +53,7 @@ function isGroup(n: NavItem | NavGroup): n is NavGroup {
 const TITLES: Record<string, string> = {
   "/app/dashboard": "Dashboard",
   "/app/audience/competitors": "Competitors", "/app/audience/customers": "Customers",
-  "/app/plan/content": "Content", "/app/plan/distribution": "Distribution", "/app/plans": "Queue",
+  "/app/plan/content": "Content", "/app/plan/distribution": "Distribution",
   "/app/progress": "Progress",
   "/app/settings": "Settings", "/app/billing": "Billing",
   "/app/audience": "Audience", "/app/plan": "Plan",
@@ -65,9 +65,9 @@ const DESCRIPTIONS: Record<string, string> = {
   "/app/dashboard": "Your score, your edge, and this week's highest-leverage move — at a glance.",
   "/app/audience/competitors": "How you and your rivals get found — channels, scores, and the gaps.",
   "/app/audience/customers": "Who your buyer is, what they search, and where they ask.",
-  "/app/plan/content": "Your content plan — topics and briefs grounded in real demand.",
-  "/app/plan/distribution": "Where to get seen — channels, communities, and outreach targets.",
-  "/app/plans": "Everything you've queued — open fixes, in-flight checks, and verified wins.",
+  "/app/plan": "Your whole plan on a timeline — what to do this week, what's next, and what's already verified.",
+  "/app/plan/content": "The analysis behind your content plan — topics and briefs grounded in real demand.",
+  "/app/plan/distribution": "The analysis behind your outreach — channels, communities, and targets.",
   "/app/progress": "Your Discoverability Score over time and what moved it.",
 };
 

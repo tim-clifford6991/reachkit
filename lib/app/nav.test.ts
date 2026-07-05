@@ -7,7 +7,7 @@ describe("APP_NAV", () => {
       "/app/supply",
       "/app/demand",
       "/app/synthesis",
-      "/app/plans",
+      "/app/plan",
       "/app/settings",
       "/app/billing",
     ]);
@@ -24,7 +24,7 @@ describe("isNavActive", () => {
 
   it("matches non-root items by prefix (so nested pages stay highlighted)", () => {
     expect(isNavActive("/app/supply", "/app/supply")).toBe(true);
-    expect(isNavActive("/app/plans", "/app/plans/abc")).toBe(true);
+    expect(isNavActive("/app/plan", "/app/plan/content")).toBe(true);
     expect(isNavActive("/app/demand", "/app/supply")).toBe(false);
   });
 });
@@ -39,9 +39,9 @@ describe("buildBreadcrumbs", () => {
       { label: "Dashboard", href: "/app" },
       { label: "Supply" },
     ]);
-    expect(buildBreadcrumbs("/app/plans")).toEqual([
+    expect(buildBreadcrumbs("/app/plan")).toEqual([
       { label: "Dashboard", href: "/app" },
-      { label: "Plans" },
+      { label: "Plan" },
     ]);
   });
 
