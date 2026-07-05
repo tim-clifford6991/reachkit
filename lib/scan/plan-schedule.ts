@@ -45,6 +45,8 @@ export interface PlanEntry {
   draft: string | null;
   /** True when the entry is already in the actions table (vs. a suggestion). */
   tracked: boolean;
+  /** The evidence line this recommendation cites — never a black box. */
+  evidence: string | null;
 }
 
 export interface ScheduledWeek {
@@ -62,6 +64,7 @@ export interface ContentPlanItemLike {
   buyerAngle?: string;
   priority: string;
   estMonthlyVolume?: number;
+  evidence?: string;
 }
 
 export interface DistributionPlanItemLike {
@@ -72,6 +75,7 @@ export interface DistributionPlanItemLike {
   why?: string;
   effort: string;
   priority: string;
+  evidence?: string;
 }
 
 /** Effort → minutes, matching the weekly-plan buckets. */
@@ -120,6 +124,7 @@ export function mergePlanEntries(args: {
       predictedDelta: a.predictedDelta,
       draft: a.draft,
       tracked: true,
+      evidence: null,
     });
   }
 
@@ -139,6 +144,7 @@ export function mergePlanEntries(args: {
       predictedDelta: null,
       draft: null,
       tracked: false,
+      evidence: c.evidence || null,
     });
   }
 
@@ -158,6 +164,7 @@ export function mergePlanEntries(args: {
       predictedDelta: null,
       draft: null,
       tracked: false,
+      evidence: d.evidence || null,
     });
   }
 
@@ -426,6 +433,7 @@ export function addDailyPosts(
       predictedDelta: null,
       draft: null,
       tracked: false,
+      evidence: null,
     };
     const list = byDate.get(key) ?? [];
     list.unshift(entry); // the daily ritual leads the day

@@ -18,14 +18,13 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Card, Eyebrow } from "@/components/app/intel/kit";
 import { useIntel, IntelShell } from "@/components/app/intel/shared";
-import { PlanItem } from "@/components/app/intel/plan-item";
 import { PlanEntryCard } from "@/components/app/intel/plan-entry-card";
 import {
   mergePlanEntries, schedulePlan, scheduleToDays, localDateKey,
   buildDailyPostAngles, addDailyPosts, DAILY_POST_PREFIX,
   type PlanEntry, type ScheduledDay,
 } from "@/lib/scan/plan-schedule";
-import type { ActionBoard } from "@/lib/scan/action-board";
+import type { ActionBoard, BoardAction } from "@/lib/scan/action-board";
 import type { Synthesis } from "./synthesis-view";
 
 const SG = "var(--font-display)", PJ = "var(--font-sans)", JM = "var(--font-mono)";
@@ -138,16 +137,17 @@ export function PlanTimelineBody({ board, synthesis, domain, today: todayProp }:
         </p>
       )}
 
-      {/* What's in flight and what's done — the same page answers both */}
+      {/* What's in flight and what's done — the same page answers both.
+          Every row expands: the draft, the URL being checked, the points, and
+          what happens next. Nothing is a black box. */}
       {board.verifying.length > 0 && (
         <Card title="Verifying" meta={`${board.verifying.length} in flight`}>
           <p style={{ fontSize: 12.5, color: "var(--c-muted)", margin: "0 0 12px" }}>
-            Re-checking your live pages — a move only counts when it&rsquo;s confirmed.
+            You marked these done — ReachKit is re-checking your live pages to confirm each one actually
+            shipped before it counts toward your score. Click any row for the full detail.
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {board.verifying.map((a) => (
-              <PlanItem key={a.id} item={{ id: a.id, title: a.title, type: a.category, why: a.why, status: "Verifying", statusColor: VERIFYING_COLOR, predictedPts: a.predictedDelta !== null ? fmtPts(a.predictedDelta) : null }} />
-            ))}
+            {board.verifying.map((a) => <LifecycleRow key={a.id} action={a} state="verifying" />)}
           </div>
         </Card>
       )}
@@ -155,9 +155,7 @@ export function PlanTimelineBody({ board, synthesis, domain, today: todayProp }:
       {board.done.length > 0 && (
         <Card title="Done" meta={`${board.done.length} verified`} info="Confirmed live, newest first — with the score movement actually measured at verification.">
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {board.done.map((a) => (
-              <PlanItem key={a.id} item={{ id: a.id, title: a.title, type: a.category, why: a.why, status: "Verified", statusColor: VERIFIED_COLOR, actualPts: a.actualDelta !== null ? fmtPts(a.actualDelta) : null }} />
-            ))}
+            {board.done.map((a) => <LifecycleRow key={a.id} action={a} state="done" />)}
           </div>
         </Card>
       )}
@@ -204,87 +202,204 @@ function PlanCalendar({ days, today, activeDate, onSelect }: {
   const last = days[days.length - 1]!.date;
   const [ly, lm] = last.split("-").map(Number);
 
-  // Months from today's month through the last scheduled month.
+  // Month slides: previous month (context/history) through the last scheduled
+  // month — one full-width slide each, horizontally scrollable.
   const months: { year: number; month: number }[] = [];
-  for (let y = today.getFullYear(), m = today.getMonth(); y < ly! || (y === ly! && m <= lm! - 1); m === 11 ? (m = 0, y++) : m++) {
-    months.push({ year: y, month: m });
+  {
+    let y = today.getFullYear(), m = today.getMonth() - 1;
+    if (m < 0) { m = 11; y--; }
+    while (y < ly! || (y === ly! && m <= lm! - 1)) {
+      months.push({ year: y, month: m });
+      m === 11 ? (m = 0, y++) : m++;
+    }
   }
+  const currentIdx = months.findIndex((x) => x.year === today.getFullYear() && x.month === today.getMonth());
+
+  // State-driven slider (transform paging). Opens on the CURRENT month.
+  // Deliberately NOT native scroll-snap: Chrome's mandatory snapping fights
+  // programmatic scrolls and can snap back mid-animation — arrows must always
+  // land exactly one month over.
+  const [slide, setSlide] = useState(Math.max(0, currentIdx));
+  const goTo = (index: number) => setSlide(Math.min(months.length - 1, Math.max(0, index)));
+  const go = (dir: -1 | 1) => goTo(slide + dir);
+
+  const active = months[slide] ?? months[0]!;
+  const monthTitle = new Date(active.year, active.month, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+
+  const navBtn: React.CSSProperties = {
+    background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-full)",
+    width: 28, height: 28, display: "inline-flex", alignItems: "center", justifyContent: "center",
+    fontSize: 14, color: "var(--c-ink)", cursor: "pointer", lineHeight: 1,
+  };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-      {months.map(({ year, month }) => {
-        const first = new Date(year, month, 1);
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-        const lead = (first.getDay() + 6) % 7; // Mon-first offset
-        const cells: (number | null)[] = [
-          ...Array.from({ length: lead }, () => null),
-          ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
-        ];
-        return (
-          <section key={`${year}-${month}`}>
-            <h3 style={{ fontFamily: SG, fontWeight: 700, fontSize: 15, color: "var(--c-ink)", margin: "0 2px 8px" }}>
-              {first.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-            </h3>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 6 }}>
-              {WEEKDAYS.map((w) => (
-                <span key={w} style={{ fontFamily: JM, fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--c-faint)", padding: "0 4px" }}>{w}</span>
-              ))}
-              {cells.map((dayNum, i) => {
-                if (dayNum === null) return <span key={`b${i}`} />;
-                const key = localDateKey(new Date(year, month, dayNum));
-                const entries = byDate.get(key) ?? [];
-                const isToday = key === todayKey;
-                const isActive = key === activeDate;
-                const isPast = key < todayKey;
-                const clickable = entries.length > 0;
-                return (
-                  <div
-                    key={key}
-                    role={clickable ? "button" : undefined}
-                    tabIndex={clickable ? 0 : undefined}
-                    onClick={clickable ? () => onSelect(key) : undefined}
-                    onKeyDown={clickable ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(key); } } : undefined}
-                    aria-label={clickable ? `${dayHeading(key)} — ${entries.length} ${entries.length === 1 ? "action" : "actions"}` : undefined}
-                    style={{
-                      minHeight: 76,
-                      border: `1px solid ${isActive ? "var(--c-action)" : "var(--c-line)"}`,
-                      borderRadius: "var(--radius-md)",
-                      background: isActive ? "var(--c-soft)" : "var(--c-surface)",
-                      padding: "6px 6px 7px",
-                      opacity: isPast && !clickable ? 0.45 : 1,
-                      cursor: clickable ? "pointer" : "default",
-                      display: "flex", flexDirection: "column", gap: 4, minWidth: 0,
-                    }}
-                  >
-                    <span style={{
-                      fontFamily: JM, fontSize: 11, fontWeight: 700, lineHeight: 1,
-                      color: isToday ? "#fff" : "var(--c-faint)",
-                      background: isToday ? "var(--c-action)" : "transparent",
-                      borderRadius: "var(--radius-full)", padding: isToday ? "3px 7px" : "3px 0",
-                      alignSelf: "flex-start",
-                    }}>
-                      {dayNum}
-                    </span>
-                    {entries.slice(0, 2).map((e) => (
-                      <span key={e.key} title={e.title} style={{
-                        fontFamily: PJ, fontSize: 10, fontWeight: 600, lineHeight: 1.3,
-                        color: CHIP_STYLE[e.kind].fg, background: CHIP_STYLE[e.kind].bg,
-                        borderRadius: "var(--radius-sm)", padding: "3px 6px",
-                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+    <div>
+      {/* Month header + prev/next */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "0 2px 8px" }}>
+        <h3 style={{ fontFamily: SG, fontWeight: 700, fontSize: 15, color: "var(--c-ink)", margin: 0, minWidth: 130 }}>{monthTitle}</h3>
+        {slide !== currentIdx && (
+          <button type="button" onClick={() => goTo(currentIdx)}
+            style={{ background: "none", border: "none", padding: 0, fontFamily: JM, fontSize: 11, fontWeight: 700, color: "var(--c-action)", cursor: "pointer" }}>
+            back to today
+          </button>
+        )}
+        <span style={{ marginLeft: "auto", display: "inline-flex", gap: 6 }}>
+          <button type="button" aria-label="Previous month" onClick={() => go(-1)} disabled={slide === 0} style={{ ...navBtn, opacity: slide === 0 ? 0.4 : 1 }}>‹</button>
+          <button type="button" aria-label="Next month" onClick={() => go(1)} disabled={slide === months.length - 1} style={{ ...navBtn, opacity: slide === months.length - 1 ? 0.4 : 1 }}>›</button>
+        </span>
+      </div>
+
+      {/* Slides — transform paging, one month per viewport width */}
+      <div style={{ overflow: "hidden" }}>
+        <div style={{ display: "flex", transform: `translateX(-${slide * 100}%)`, transition: "transform 0.3s ease" }}>
+        {months.map(({ year, month }) => {
+          const first = new Date(year, month, 1);
+          const daysInMonth = new Date(year, month + 1, 0).getDate();
+          const lead = (first.getDay() + 6) % 7; // Mon-first offset
+          const cells: (number | null)[] = [
+            ...Array.from({ length: lead }, () => null),
+            ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
+          ];
+          return (
+            <div key={`${year}-${month}`} style={{ flex: "0 0 100%", minWidth: 0 }} aria-hidden={months[slide] !== undefined && !(months[slide]!.year === year && months[slide]!.month === month)}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 5 }}>
+                {WEEKDAYS.map((w) => (
+                  <span key={w} style={{ fontFamily: JM, fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--c-faint)", padding: "0 4px" }}>{w}</span>
+                ))}
+                {cells.map((dayNum, i) => {
+                  if (dayNum === null) return <span key={`b${i}`} />;
+                  const key = localDateKey(new Date(year, month, dayNum));
+                  const entries = byDate.get(key) ?? [];
+                  const isToday = key === todayKey;
+                  const isActive = key === activeDate;
+                  const isPast = key < todayKey;
+                  const clickable = entries.length > 0;
+                  return (
+                    <div
+                      key={key}
+                      role={clickable ? "button" : undefined}
+                      tabIndex={clickable ? 0 : undefined}
+                      onClick={clickable ? () => onSelect(key) : undefined}
+                      onKeyDown={clickable ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(key); } } : undefined}
+                      aria-label={clickable ? `${dayHeading(key)} — ${entries.length} ${entries.length === 1 ? "action" : "actions"}` : undefined}
+                      style={{
+                        minHeight: 54,
+                        border: `1px solid ${isActive ? "var(--c-action)" : "var(--c-line)"}`,
+                        borderRadius: "var(--radius-md)",
+                        background: isActive ? "var(--c-soft)" : "var(--c-surface)",
+                        padding: "4px 5px 5px",
+                        opacity: isPast && !clickable ? 0.45 : 1,
+                        cursor: clickable ? "pointer" : "default",
+                        display: "flex", flexDirection: "column", gap: 3, minWidth: 0,
+                      }}
+                    >
+                      <span style={{
+                        fontFamily: JM, fontSize: 10.5, fontWeight: 700, lineHeight: 1,
+                        color: isToday ? "#fff" : "var(--c-faint)",
+                        background: isToday ? "var(--c-action)" : "transparent",
+                        borderRadius: "var(--radius-full)", padding: isToday ? "3px 6px" : "3px 0",
+                        alignSelf: "flex-start",
                       }}>
-                        {e.title}
+                        {dayNum}
                       </span>
-                    ))}
-                    {entries.length > 2 && (
-                      <span style={{ fontFamily: JM, fontSize: 9.5, color: "var(--c-faint)" }}>+{entries.length - 2} more</span>
-                    )}
-                  </div>
-                );
-              })}
+                      {entries.slice(0, 2).map((e) => (
+                        <span key={e.key} title={e.title} style={{
+                          fontFamily: PJ, fontSize: 9.5, fontWeight: 600, lineHeight: 1.25,
+                          color: CHIP_STYLE[e.kind].fg, background: CHIP_STYLE[e.kind].bg,
+                          borderRadius: "var(--radius-sm)", padding: "2px 5px",
+                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                        }}>
+                          {e.title}
+                        </span>
+                      ))}
+                      {entries.length > 2 && (
+                        <span style={{ fontFamily: JM, fontSize: 9, color: "var(--c-faint)" }}>+{entries.length - 2}</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </section>
-        );
-      })}
+          );
+        })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Lifecycle rows — verifying / verified actions, fully drillable.
+// ---------------------------------------------------------------------------
+
+function LifecycleRow({ action, state }: { action: BoardAction; state: "verifying" | "done" }) {
+  const [open, setOpen] = useState(false);
+  const pill = state === "verifying"
+    ? { label: "Verifying", color: VERIFYING_COLOR }
+    : { label: "Verified", color: VERIFIED_COLOR };
+
+  return (
+    <div style={{ border: "1px solid var(--c-line)", borderRadius: "var(--radius-lg)", background: "var(--c-surface)" }}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left", background: "none", border: "none", padding: "14px 16px", cursor: "pointer" }}
+      >
+        <span aria-hidden style={{ fontFamily: JM, fontSize: 11, color: "var(--c-faint)", flexShrink: 0 }}>{open ? "▾" : "▸"}</span>
+        <span style={{ minWidth: 0, flex: 1 }}>
+          <span style={{ display: "block", fontFamily: SG, fontWeight: 700, fontSize: 14, color: "var(--c-ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{action.title}</span>
+          <span style={{ fontFamily: JM, fontSize: 10.5, color: "var(--c-faint)", textTransform: "uppercase", letterSpacing: ".04em" }}>{action.category}</span>
+        </span>
+        {state === "done" && action.actualDelta !== null && (
+          <span style={{ fontFamily: JM, fontSize: 12, fontWeight: 700, color: VERIFIED_COLOR, whiteSpace: "nowrap" }}>{fmtPts(action.actualDelta)}</span>
+        )}
+        {state === "verifying" && action.predictedDelta !== null && (
+          <span style={{ fontFamily: JM, fontSize: 12, color: "var(--c-action)", whiteSpace: "nowrap" }}>{fmtPts(action.predictedDelta)} predicted</span>
+        )}
+        <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, color: "#fff", background: pill.color, padding: "2px 8px", borderRadius: "var(--radius-full)" }}>{pill.label}</span>
+      </button>
+
+      {open && (
+        <div style={{ padding: "0 16px 14px 33px", display: "flex", flexDirection: "column", gap: 8 }}>
+          {action.why && <p style={{ fontSize: 12.5, color: "var(--c-muted)", lineHeight: 1.5, margin: 0 }}>{action.why}</p>}
+
+          {/* What exactly is happening / happened */}
+          <p style={{ fontSize: 12, color: "var(--c-muted)", lineHeight: 1.55, margin: 0, background: "var(--c-fill)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-sm)", padding: "8px 10px" }}>
+            {state === "verifying" ? (
+              <>
+                ReachKit is re-reading{" "}
+                {action.verifyUrl
+                  ? <a href={action.verifyUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--c-action)", fontWeight: 600 }}>{action.verifyUrl}</a>
+                  : "your live pages"}{" "}
+                to confirm this shipped. Once confirmed it moves to Done, your score re-snapshots, and the measured
+                movement appears here. If the check can&rsquo;t confirm it, the action returns to your queue with a Retry tag.
+              </>
+            ) : (
+              <>
+                Confirmed live{action.verifiedAt ? ` on ${new Date(action.verifiedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : ""}
+                {action.verifyUrl && (
+                  <>{" "}at <a href={action.verifyUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--c-action)", fontWeight: 600 }}>{action.verifyUrl}</a></>
+                )}
+                . {action.actualDelta !== null
+                  ? `The score moved ${fmtPts(action.actualDelta)} at verification — measured, not estimated.`
+                  : "No score snapshot was captured for this one, so no measured movement is shown."}
+              </>
+            )}
+          </p>
+
+          {action.draft && (
+            <details>
+              <summary style={{ fontFamily: PJ, fontSize: 12, fontWeight: 600, color: "var(--c-action)", cursor: "pointer" }}>View the draft behind this action</summary>
+              <pre style={{ whiteSpace: "pre-wrap", fontFamily: JM, fontSize: 11, lineHeight: 1.6, color: "var(--c-ink)", background: "var(--c-fill)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-sm)", padding: "10px 12px", margin: "6px 0 0", maxHeight: 220, overflowY: "auto" }}>{action.draft}</pre>
+            </details>
+          )}
+
+          <p style={{ fontFamily: JM, fontSize: 10.5, color: "var(--c-faint)", margin: 0 }}>
+            Full history on your <Link href="/app/progress" style={{ color: "var(--c-action)", fontWeight: 700, textDecoration: "none" }}>Progress timeline →</Link>
+          </p>
+        </div>
+      )}
     </div>
   );
 }

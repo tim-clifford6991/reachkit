@@ -48,6 +48,7 @@ function entry(overrides: Partial<PlanEntry> & { key: string; title: string }): 
     predictedDelta: null,
     draft: null,
     tracked: false,
+    evidence: null,
     ...overrides,
   };
 }

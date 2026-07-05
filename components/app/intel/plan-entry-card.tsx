@@ -193,6 +193,17 @@ export function PlanEntryCard({ entry, domain }: { entry: PlanEntry; domain: str
             : <span style={{ fontWeight: 600 }}>{entry.target}</span>}
         </p>
       )}
+      {/* Provenance — every recommendation cites its evidence and links to the
+          analysis it came from. Nothing is a black box. */}
+      <p style={{ fontFamily: JM, fontSize: 10.5, color: "var(--c-faint)", lineHeight: 1.5, margin: "0 0 8px" }}>
+        {entry.evidence && <>↳ {entry.evidence}{" · "}</>}
+        <a
+          href={entry.kind === "distribution" ? "/app/plan/distribution" : "/app/plan/content"}
+          style={{ color: "var(--c-action)", textDecoration: "none", fontWeight: 700 }}
+        >
+          {entry.kind === "post" ? "what to post about →" : entry.kind === "content" ? "full content analysis →" : "full distribution analysis →"}
+        </a>
+      </p>
 
       {/* Draft area */}
       {draft && showDraft && (
