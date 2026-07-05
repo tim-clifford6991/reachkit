@@ -8,7 +8,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { buildMetadata, SITE } from "@/lib/seo";
 import { allTeardowns } from "@/content/teardowns";
+import { Suspense } from "react";
 import { HeroFade } from "@/components/sections/hero-fade";
+import { listPublicScans } from "@/lib/scan/public-scans";
 
 export const metadata: Metadata = buildMetadata({
   title: "App Teardowns — Discoverability Analyses",
@@ -78,7 +80,50 @@ export default function TeardownsPage() {
             ))}
           </div>
         </section>
+
+        {/* Live scans — every free scan we run becomes a public teardown.
+            We never hide a cost we incurred: each one is a permanent,
+            free-redacted public report (and an indexable SEO surface). */}
+        <section style={{ maxWidth: 1180, margin: "0 auto", padding: "0 28px 88px" }}>
+          <p style={{ fontFamily: JM, fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-action)", margin: "0 0 6px" }}>Live scans</p>
+          <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: "clamp(1.4rem, 2.6vw, 1.9rem)", letterSpacing: "-0.02em", color: "var(--c-ink)", margin: "0 0 8px" }}>
+            Every scan we run is public
+          </h2>
+          <p style={{ fontSize: 14.5, lineHeight: 1.55, color: "var(--c-muted)", margin: "0 0 18px", maxWidth: 640 }}>
+            Each free scan becomes a permanent public report — the score, the positioning read, and the findings.
+            Yours will too (that&rsquo;s the deal for a free scan of real market data).
+          </p>
+          <Suspense fallback={null}>
+            <LiveScans />
+          </Suspense>
+        </section>
       </main>
     </>
+  );
+}
+
+async function LiveScans() {
+  const scans = await listPublicScans(48);
+  if (scans.length === 0) return null;
+  const fmt = (iso: string | null) =>
+    iso ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: 10 }}>
+      {scans.map((s) => (
+        <Link
+          key={s.slug}
+          href={`/report/${s.slug}`}
+          style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 12, padding: "12px 14px", textDecoration: "none" }}
+        >
+          <span style={{ minWidth: 0 }}>
+            <span style={{ display: "block", fontFamily: SG, fontWeight: 700, fontSize: 13.5, color: "var(--c-ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.host}</span>
+            <span style={{ fontFamily: JM, fontSize: 10.5, color: "var(--c-faint)" }}>{fmt(s.completedAt)}</span>
+          </span>
+          {s.score !== null && (
+            <span style={{ flexShrink: 0, fontFamily: JM, fontWeight: 700, fontSize: 15, color: "var(--c-action)" }}>{s.score}</span>
+          )}
+        </Link>
+      ))}
+    </div>
   );
 }

@@ -1,6 +1,8 @@
 import { Suspense } from "react";
+import { notFound, redirect } from "next/navigation";
 import { buildMetadata } from "@/lib/seo";
 import { serverDb } from "@/lib/db/client";
+import { resolveScanParam } from "@/lib/scan/scan-slug";
 import { currentUser } from "@/lib/auth/server";
 import { type Tier, TIER_LIMITS } from "@/lib/billing/tiers";
 import { entitlementsFor, redactReportForTier } from "@/lib/billing/entitlements";
@@ -99,7 +101,13 @@ export default async function ResultsPage({
 // Async content — all data fetching happens here, inside Suspense
 // ---------------------------------------------------------------------------
 
-async function ResultsContent({ id }: { id: string }) {
+async function ResultsContent({ id: param }: { id: string }) {
+  // Domain (personal URL) or legacy UUID — resolve, then canonicalize.
+  const resolved = await resolveScanParam(param);
+  if (!resolved) notFound();
+  if (resolved.slug !== param) redirect(`/scan/${resolved.slug}/results`);
+  const id = resolved.scanId;
+
   const db = serverDb();
   const { data } = await db
     .from("scans")

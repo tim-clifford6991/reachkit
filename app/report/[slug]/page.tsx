@@ -19,8 +19,9 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { serverDb } from "@/lib/db/client";
+import { resolveScanParam } from "@/lib/scan/scan-slug";
 import { buildMetadata, articleLd, SITE } from "@/lib/seo";
 import type { ReportPayload } from "@/lib/scan/report";
 import { buildExecutiveSummary } from "@/lib/scan/report";
@@ -58,20 +59,37 @@ export async function generateMetadata({
 }: {
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
-  const { slug } = await params;
+  const { slug: param } = await params;
 
-  if (slug === "_placeholder") {
+  if (param === "_placeholder") {
     return buildMetadata({ title: "Discoverability Report", path: "/report/_placeholder" });
   }
+
+  // Personal URL: the param is a domain (/report/nudgi.ai) or a legacy UUID.
+  const resolved = await resolveScanParam(param);
+  const slug = resolved?.slug ?? param;
 
   const db = serverDb();
   const { data } = await db
     .from("scans")
     .select("report_payload")
-    .eq("id", slug)
+    .eq("id", resolved?.scanId ?? param)
     .maybeSingle();
 
   if (!data?.report_payload) {
+    // Free scan: no full report, but the score + findings are public.
+    const { data: free } = await db
+      .from("scans")
+      .select("score_total")
+      .eq("id", resolved?.scanId ?? param)
+      .maybeSingle();
+    if (typeof free?.score_total === "number") {
+      return buildMetadata({
+        title: `Discoverability Score: ${free.score_total}/100 — ${slug}`,
+        description: `Free discoverability teardown of ${slug}: the score, the positioning gap, and the findings. Run your own free scan on ReachKit.`,
+        path: `/report/${slug}`,
+      });
+    }
     return buildMetadata({ title: "Report not found", path: `/report/${slug}` });
   }
 
@@ -117,19 +135,27 @@ export default async function ReportPage({
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  const { slug } = await params;
+  const { slug: param } = await params;
 
   // Build-time placeholder — render nothing
-  if (slug === "_placeholder") {
+  if (param === "_placeholder") {
     return null;
   }
 
   // Next 16 cacheComponents: the uncached scan fetch must live inside <Suspense>.
   return (
     <Suspense fallback={<ReportSkeleton />}>
-      <ReportContent slug={slug} />
+      <ResolvedReport param={param} />
     </Suspense>
   );
+}
+
+/** Resolve the domain-or-UUID param, 308 to the canonical personal URL, render. */
+async function ResolvedReport({ param }: { param: string }) {
+  const resolved = await resolveScanParam(param);
+  if (!resolved) notFound();
+  if (resolved.slug !== param) redirect(`/report/${resolved.slug}`);
+  return <ReportContent slug={resolved.slug} scanId={resolved.scanId} />;
 }
 
 /**
@@ -139,16 +165,16 @@ export default async function ReportPage({
  * revalidation (`report:<slug>`) if the scan is ever refreshed.
  */
 async function getCachedReportPayload(
-  slug: string,
+  scanId: string,
 ): Promise<{ payload: ReportPayload; storeUrl: string | null } | null> {
   "use cache";
   cacheLife("hours");
-  cacheTag(`report:${slug}`);
+  cacheTag(`report:${scanId}`);
   const db = serverDb();
   const { data } = await db
     .from("scans")
     .select("report_payload, apps(store_url)")
-    .eq("id", slug)
+    .eq("id", scanId)
     .maybeSingle();
   const payload = data?.report_payload as unknown as ReportPayload | undefined;
   if (!payload) return null;
@@ -156,11 +182,14 @@ async function getCachedReportPayload(
   return { payload, storeUrl };
 }
 
-export async function ReportContent({ slug }: { slug: string }) {
-  const cached = await getCachedReportPayload(slug);
+export async function ReportContent({ slug, scanId }: { slug: string; scanId: string }) {
+  const cached = await getCachedReportPayload(scanId);
 
   if (!cached) {
-    notFound();
+    // Free scan — no full report, but every scan we run is public: the score,
+    // the positioning mirror, and the findings are the (already-public) free
+    // teaser. Never hide a cost we incurred.
+    return <FreeScanTeardown scanId={scanId} slug={slug} />;
   }
   const { payload, storeUrl } = cached;
   const brand = brandFromUrl(storeUrl);
@@ -247,6 +276,100 @@ function ReportSkeleton() {
           <Skeleton className="h-3 w-full" />
         </div>
       ))}
+    </main>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Free-scan public teardown — the free-tier teaser (score + positioning +
+// findings), server-rendered. This is the same information the anonymous
+// funnel already shows, so it is public-safe by construction; the paid report
+// never exists for these scans, so nothing paid can leak.
+// ---------------------------------------------------------------------------
+
+const T_SG = "var(--font-display)", T_JM = "var(--font-mono)";
+
+async function getCachedFreeTeardown(scanId: string) {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(`report:${scanId}`);
+  const db = serverDb();
+  const { data } = await db
+    .from("scans")
+    .select("score_total, findings_payload, completed_at, apps(store_url)")
+    .eq("id", scanId)
+    .maybeSingle();
+  if (!data || typeof data.score_total !== "number") return null;
+  const findings = data.findings_payload as unknown as {
+    positioningMirror?: { listingSays: string; reviewsValue: string; gap: string };
+    findings?: { category: string; claim: string; confidence: number }[];
+  } | null;
+  return {
+    score: data.score_total,
+    completedAt: data.completed_at as string | null,
+    storeUrl: (data.apps as unknown as { store_url?: string } | null)?.store_url ?? null,
+    mirror: findings?.positioningMirror ?? null,
+    findings: findings?.findings ?? [],
+  };
+}
+
+async function FreeScanTeardown({ scanId, slug }: { scanId: string; slug: string }) {
+  const t = await getCachedFreeTeardown(scanId);
+  if (!t) notFound();
+
+  const ld = articleLd({
+    headline: `Discoverability Score: ${t.score}/100 — ${slug}`,
+    url: `${SITE.url}/report/${slug}`,
+    datePublished: t.completedAt ?? new Date().toISOString(),
+  });
+
+  return (
+    <main style={{ maxWidth: 720, margin: "0 auto", padding: "56px 24px 90px" }}>
+      <script type="application/ld+json" suppressHydrationWarning dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
+
+      <p style={{ fontFamily: T_JM, fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-action)", margin: 0 }}>Free scan teardown</p>
+      <h1 style={{ fontFamily: T_SG, fontWeight: 700, fontSize: "clamp(1.8rem, 4vw, 2.6rem)", letterSpacing: "-0.02em", color: "var(--c-ink)", margin: "10px 0 4px" }}>{slug}</h1>
+      <p style={{ fontSize: 14, color: "var(--c-muted)", margin: "0 0 26px" }}>
+        Scanned{t.completedAt ? ` ${new Date(t.completedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}` : ""} · every ReachKit scan is a public teardown
+      </p>
+
+      {/* Score */}
+      <div style={{ display: "flex", alignItems: "baseline", gap: 14, background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 18, padding: "22px 26px", marginBottom: 14 }}>
+        <span style={{ fontFamily: T_JM, fontWeight: 700, fontSize: 52, lineHeight: 1, color: "var(--c-action)" }}>{t.score}</span>
+        <span style={{ fontFamily: T_JM, fontSize: 15, color: "var(--c-faint)" }}>/100 Discoverability Score</span>
+      </div>
+
+      {/* Positioning mirror */}
+      {t.mirror && (
+        <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 18, padding: "20px 26px", marginBottom: 14 }}>
+          <p style={{ fontFamily: T_JM, fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--c-faint)", margin: "0 0 10px" }}>Positioning mirror</p>
+          <p style={{ fontSize: 14, lineHeight: 1.6, color: "var(--c-ink)", margin: "0 0 6px" }}><strong>The site says:</strong> {t.mirror.listingSays}</p>
+          <p style={{ fontSize: 14, lineHeight: 1.6, color: "var(--c-ink)", margin: "0 0 6px" }}><strong>Users value:</strong> {t.mirror.reviewsValue}</p>
+          <p style={{ fontSize: 14, lineHeight: 1.6, color: "var(--c-muted)", margin: 0 }}><strong>The gap:</strong> {t.mirror.gap}</p>
+        </div>
+      )}
+
+      {/* Findings */}
+      {t.findings.length > 0 && (
+        <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 18, padding: "20px 26px", marginBottom: 22 }}>
+          <p style={{ fontFamily: T_JM, fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--c-faint)", margin: "0 0 12px" }}>What the scan found</p>
+          <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10 }}>
+            {t.findings.map((f, i) => (
+              <li key={i} style={{ display: "flex", gap: 10, alignItems: "baseline" }}>
+                <span style={{ flexShrink: 0, fontFamily: T_JM, fontSize: 10, fontWeight: 700, textTransform: "uppercase", color: "var(--c-action)", background: "var(--c-soft)", padding: "2px 8px", borderRadius: 999 }}>{f.category.replace("_", "/")}</span>
+                <span style={{ fontSize: 13.5, lineHeight: 1.55, color: "var(--c-ink)" }}>{f.claim}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* CTA */}
+      <div style={{ background: "linear-gradient(135deg, var(--c-dark), var(--c-dark2))", borderRadius: 18, padding: "26px 28px", textAlign: "center" }}>
+        <p style={{ fontFamily: T_SG, fontWeight: 700, fontSize: 18, color: "var(--c-on-dark, #fff)", margin: "0 0 6px" }}>Get your own Discoverability Score</p>
+        <p style={{ fontSize: 13.5, color: "var(--c-on-dark-muted, #cfcbe0)", margin: "0 0 16px" }}>Free scan, under a minute, no account — and yes, it becomes a public teardown like this one.</p>
+        <Link href="/scan" style={{ display: "inline-block", fontFamily: "var(--font-sans)", fontWeight: 700, fontSize: 14, color: "var(--c-ink)", background: "#fff", borderRadius: 10, padding: "11px 22px", textDecoration: "none" }}>Scan your site →</Link>
+      </div>
     </main>
   );
 }
