@@ -7,10 +7,10 @@ import { serverDb } from "@/lib/db/client";
 import { engagementSummary } from "@/lib/scan/engagement";
 import { scoreHistoryMarkers } from "@/lib/scan/score-history-markers";
 import { pillarRollup, type ScoreBreakdown } from "@/lib/scan/pillar-scores";
-import { assembleWeeklyPlan } from "@/lib/scan/weekly-plan";
+import { actionBoard } from "@/lib/scan/action-board";
 import { DashboardHero } from "@/components/app/intel/dashboard-hero";
 import { DashboardIntelBlocks } from "@/components/app/intel/dashboard-view";
-import { WeeklyPlanCard } from "@/components/app/intel/weekly-plan-card";
+import { WeekPlanPreview } from "@/components/app/intel/week-plan-preview";
 import { buildMetadata } from "@/lib/seo";
 
 export const metadata = buildMetadata({ title: "Dashboard", path: "/app/dashboard" });
@@ -33,9 +33,9 @@ export default function DashboardPage() {
 async function DashboardContent() {
   const ctx = await resolveIntelContext("/app/dashboard");
 
-  // The scan (score hero) and the weekly plan ("what to do this week") are
+  // The scan (score hero) and the plan board ("what to do this week") are
   // independent reads — fetch them together.
-  const [{ data: scan }, weeklyPlan] = await Promise.all([
+  const [{ data: scan }, board] = await Promise.all([
     serverDb()
       .from("scans")
       .select("score_total, score_breakdown")
@@ -45,7 +45,7 @@ async function DashboardContent() {
       .order("completed_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
-    assembleWeeklyPlan(ctx.appId),
+    actionBoard(ctx.appId),
   ]);
 
   // No completed scan yet — the score story has nothing to show, but the plan
@@ -60,7 +60,7 @@ async function DashboardContent() {
           <Link href="/" style={{ marginTop: 6, background: "var(--c-action)", color: "var(--c-on-dark)", fontFamily: "var(--font-sans)", fontWeight: 600, fontSize: 13, padding: "8px 14px", borderRadius: "var(--radius-lg)", textDecoration: "none" }}>Run a scan</Link>
         </div>
         <div style={{ marginTop: 20 }}>
-          <WeeklyPlanCard plan={weeklyPlan} />
+          <WeekPlanPreview board={board} />
         </div>
         <DashboardIntelBlocks />
       </>
@@ -89,7 +89,7 @@ async function DashboardContent() {
       />
       {/* The plan is what a founder acts on — it reads second, right after the score story. */}
       <div style={{ marginTop: 20 }}>
-        <WeeklyPlanCard plan={weeklyPlan} />
+        <WeekPlanPreview board={board} />
       </div>
       <DashboardIntelBlocks />
     </>

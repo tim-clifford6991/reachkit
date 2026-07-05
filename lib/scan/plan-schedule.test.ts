@@ -223,7 +223,8 @@ describe("daily posts — content as a habit", () => {
     const days = addDailyPosts(scheduled, buildDailyPostAngles(synthesisLike), wednesday);
     expect(days).toHaveLength(DAILY_POST_HORIZON_DAYS);
     expect(days[0]!.date).toBe("2026-07-08");
-    expect(days[days.length - 1]!.date).toBe("2026-08-04");
+    // 30-day rolling horizon: Jul 8 + 29 = Aug 6.
+    expect(days[days.length - 1]!.date).toBe("2026-08-06");
     // Every day has a post; the day that also has the distribution action puts the post FIRST.
     expect(days.every((d) => d.entries.some((e) => e.kind === "post"))).toBe(true);
     const busy = days.find((d) => d.entries.length > 1)!;

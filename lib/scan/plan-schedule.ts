@@ -392,8 +392,10 @@ export function buildDailyPostAngles(s: {
   return pool;
 }
 
-/** Default calendar horizon: at least four weeks of daily rhythm. */
-export const DAILY_POST_HORIZON_DAYS = 28;
+/** Rolling roadmap horizon: the founder always sees the next 30 days planned.
+ *  Derived from `today` on every build, so finishing a day automatically
+ *  extends the horizon by one — the roadmap never shrinks. */
+export const DAILY_POST_HORIZON_DAYS = 30;
 
 /**
  * Fill EVERY day from today through the horizon with a daily post entry —
@@ -444,4 +446,51 @@ export function addDailyPosts(
   return [...byDate.entries()]
     .sort(([a], [b]) => (a < b ? -1 : 1))
     .map(([date, entries]) => ({ date, entries }));
+}
+
+// ---------------------------------------------------------------------------
+// The whole build, one call — shared by the plan page and the dashboard.
+// ---------------------------------------------------------------------------
+
+export interface PlanBoardLike {
+  open: BoardAction[];
+  retry: BoardAction[];
+  verifying: BoardAction[];
+  done: BoardAction[];
+}
+
+/**
+ * Build the founder's rolling 30-day plan: merge tracked actions with the
+ * synthesis recommendations, pace them (§11-as-scheduler), place them on
+ * calendar days starting today, and fill every day with the daily post habit.
+ * PURE + deterministic for a given `today` — recomputed on every render, so
+ * the roadmap always extends 30 days ahead of wherever the founder is.
+ */
+export function buildPlanDays(args: {
+  board: PlanBoardLike;
+  category: string;
+  content: ContentPlanItemLike[];
+  distribution: DistributionPlanItemLike[];
+  today: Date;
+}): ScheduledDay[] {
+  const allActions = [...args.board.open, ...args.board.retry, ...args.board.verifying, ...args.board.done];
+  const entries = mergePlanEntries({
+    openActions: [...args.board.open, ...args.board.retry],
+    allActionTitles: new Set(allActions.map((a) => a.title)),
+    content: args.content,
+    distribution: args.distribution,
+  });
+  const scheduled = scheduleToDays(schedulePlan(entries), args.today);
+
+  const postedDates = new Set(
+    allActions
+      .map((a) => /^X post \((\d{4}-\d{2}-\d{2})\)/.exec(a.title)?.[1])
+      .filter((d): d is string => !!d),
+  );
+  const angles = buildDailyPostAngles({
+    category: args.category,
+    contentPlan: args.content,
+    distribution: args.distribution,
+  });
+  return addDailyPosts(scheduled, angles, args.today, { postedDates });
 }

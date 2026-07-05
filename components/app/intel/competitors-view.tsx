@@ -229,7 +229,7 @@ export function CompetitorsBody({ data }: { data: Supply }) {
     : bestGapHit
       ? `Ranks #${bestGapHit.hit.position} for "${bestGapHit.g.keyword}" (${fmtCompact(bestGapHit.g.volume)}/mo) — a keyword you don't rank for at all.`
       : `Pulls ${fmtCompact(sel.monthlyTraffic)}/mo with ${referrerItems.length ? `referrers like ${referrerItems[0]!.host}` : "a stronger backlink profile"} — worth studying their acquisition mix.`;
-  const moveLabel = !sel.isSubject && bestGapHit ? `Counter: target "${bestGapHit.g.keyword}" — in your Content plan` : null;
+  const moveLabel = !sel.isSubject && bestGapHit ? `Counter: target "${bestGapHit.g.keyword}" — in your plan` : null;
 
   // R4 — concrete edge moves: when a rival is selected, prefer the channels
   // they use that the subject doesn't (real, actionable) over the prose framing.

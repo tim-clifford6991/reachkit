@@ -31,13 +31,9 @@ function deltaAt(history: ScoreHistoryPoint[], idx: number): number | null {
   return history[idx]!.total - history[idx - 1]!.total;
 }
 
-/** The plan page a fix event should deep-link to, by its action's category:
- * `content` → the content plan; `outreach` (and any other/unknown category,
- * e.g. `seo`) → falls through to distribution for outreach specifically,
- * content for everything else — mirroring the two plan pages that actually
- * exist (there's no dedicated SEO plan page). */
-function hrefForCategory(category: string | undefined): string {
-  return category === "outreach" ? "/app/plan" : "/app/plan";
+/** Every fix event deep-links to THE plan — one page for all categories. */
+function hrefForCategory(_category: string | undefined): string {
+  return "/app/plan";
 }
 
 /** Verified-fix markers → changelog events, each carrying the score delta the fix produced. */

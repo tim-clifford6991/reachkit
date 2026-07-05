@@ -19,10 +19,10 @@ import Link from "next/link";
 import { Card, Eyebrow } from "@/components/app/intel/kit";
 import { useIntel, IntelShell } from "@/components/app/intel/shared";
 import { PlanEntryCard, type EntryDetail } from "@/components/app/intel/plan-entry-card";
+import { PlanBuildingHero } from "@/components/app/intel/plan-building";
 import { KIND_STYLE, kindOfAction } from "@/components/app/intel/plan-kind-style";
 import {
-  mergePlanEntries, schedulePlan, scheduleToDays, localDateKey,
-  buildDailyPostAngles, addDailyPosts, DAILY_POST_PREFIX,
+  buildPlanDays, buildDailyPostAngles, localDateKey,
   type PlanEntry, type ScheduledDay,
 } from "@/lib/scan/plan-schedule";
 import type { ActionBoard, BoardAction } from "@/lib/scan/action-board";
@@ -41,6 +41,9 @@ export interface PlanScore { total: number; delta: number }
 
 export function PlanTimelineView({ board, domain, score }: { board: ActionBoard; domain: string; score?: PlanScore | null }) {
   const { data, loading, error, stages } = useIntel<Synthesis>("synthesis");
+  // Cold build (stages streaming) → the proof-of-work experience: the founder
+  // watches competitors, ICP, demand, and the plan get built, step by step.
+  if (loading && stages.length > 0) return <PlanBuildingHero stages={stages} />;
   return (
     <IntelShell loading={loading} error={error} hasData={!!data} stages={stages}>
       {data && <PlanTimelineBody board={board} synthesis={data} domain={domain || data.domain} score={score} />}
@@ -52,31 +55,18 @@ export function PlanTimelineBody({ board, synthesis, domain, score, today: today
   // Stable "today" for the lifetime of the view (fixture pages inject one).
   const [today] = useState(() => todayProp ?? new Date());
 
-  const days: ScheduledDay[] = useMemo(() => {
-    const allActions = [...board.open, ...board.retry, ...board.verifying, ...board.done];
-    const allTitles = new Set(allActions.map((a) => a.title));
-    const entries = mergePlanEntries({
-      openActions: [...board.open, ...board.retry],
-      allActionTitles: allTitles,
+  // The rolling 30-day plan — one shared builder (also drives the dashboard
+  // preview): pace, place on days from today, fill the daily-post habit.
+  const days: ScheduledDay[] = useMemo(
+    () => buildPlanDays({
+      board,
+      category: synthesis.category,
       content: synthesis.contentPlan,
       distribution: synthesis.distributionPlan,
-    });
-    const scheduled = scheduleToDays(schedulePlan(entries), today);
-    // Content as a daily habit: every day carries a short X post, drawn from a
-    // rotating pool of angles grounded in the founder's own market data. Days
-    // whose dated post was already queued/done stay clear.
-    const postedDates = new Set(
-      allActions
-        .map((a) => /^X post \((\d{4}-\d{2}-\d{2})\)/.exec(a.title)?.[1])
-        .filter((d): d is string => !!d),
-    );
-    const angles = buildDailyPostAngles({
-      category: synthesis.category,
-      contentPlan: synthesis.contentPlan,
-      distribution: synthesis.distributionPlan,
-    });
-    return addDailyPosts(scheduled, angles, today, { postedDates });
-  }, [board, synthesis, today]);
+      today,
+    }),
+    [board, synthesis, today],
+  );
 
   const byDate = useMemo(() => new Map(days.map((d) => [d.date, d.entries])), [days]);
 
@@ -169,8 +159,8 @@ export function PlanTimelineBody({ board, synthesis, domain, score, today: today
       {days.length > 0 && (
         <p style={{ fontFamily: JM, fontSize: 11, color: "var(--c-faint)", margin: "-6px 2px 0", lineHeight: 1.6 }}>
           The rhythm: a short post every day (10 minutes, angles drawn from your own market), one deep content piece a
-          week, outreach spaced across venues — steady beats spam, for you and for the algorithms. Every draft is
-          scrubbed of AI tells and unique to you; you always post it yourself.
+          week, outreach spaced across venues — steady beats spam, for you and for the algorithms. Your roadmap always
+          rolls 30 days ahead; every draft is scrubbed of AI tells and unique to you; you always post it yourself.
         </p>
       )}
 
