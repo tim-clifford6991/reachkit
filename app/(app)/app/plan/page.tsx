@@ -1,6 +1,8 @@
 import { Suspense } from "react";
 import { resolveIntelContext } from "@/lib/app/intel-context";
 import { actionBoard } from "@/lib/scan/action-board";
+import { scoreDelta } from "@/lib/scan/weekly-plan";
+import { serverDb } from "@/lib/db/client";
 import { CompetitorSetup } from "@/components/app/intel/competitor-setup";
 import { PlanTimelineView } from "@/components/app/intel/plan-timeline-view";
 import { buildMetadata } from "@/lib/seo";
@@ -29,6 +31,20 @@ async function PlanContent() {
   const ctx = await resolveIntelContext("/app/plan");
   if (!ctx.domain) return <p className="py-16 text-center text-sm text-neutral-400">Add your product URL in Settings to begin.</p>;
   if (ctx.competitors.length === 0) return <CompetitorSetup domain={ctx.domain} />;
-  const board = await actionBoard(ctx.appId);
-  return <PlanTimelineView board={board} domain={ctx.domain} />;
+
+  // Board + the two latest score snapshots (cheap reads) — the strip shows the
+  // live score and its most recent movement right where the work happens.
+  const [board, { data: snaps }] = await Promise.all([
+    actionBoard(ctx.appId),
+    serverDb()
+      .from("score_snapshots")
+      .select("total, taken_at")
+      .eq("app_id", ctx.appId)
+      .order("taken_at", { ascending: false, nullsFirst: false })
+      .limit(2),
+  ]);
+  const latest = snaps?.[0];
+  const score = latest ? { total: latest.total, delta: scoreDelta(snaps ?? []) } : null;
+
+  return <PlanTimelineView board={board} domain={ctx.domain} score={score} />;
 }

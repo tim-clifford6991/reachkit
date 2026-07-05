@@ -40,7 +40,7 @@ export default function TestPlanTimelinePage() {
   return (
     <main style={{ maxWidth: 900, margin: "0 auto", padding: "40px 24px", background: "var(--c-bg)" }}>
       {/* Fixed "today" (Wed Jul 8 2026) so the calendar renders deterministically. */}
-      <PlanTimelineBody board={BOARD} synthesis={SYNTHESIS} domain="notably.app" today={new Date(2026, 6, 8)} />
+      <PlanTimelineBody board={BOARD} synthesis={SYNTHESIS} domain="notably.app" score={{ total: 62, delta: 4 }} today={new Date(2026, 6, 8)} />
     </main>
   );
 }

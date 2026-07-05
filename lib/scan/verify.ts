@@ -27,6 +27,7 @@ import { ScanBudget } from "@/lib/tools/registry";
 import { verifyAction } from "@/lib/scan/tools/verify-action";
 import { trackRank } from "@/lib/scan/tools/track-rank";
 import { gatherScoreComponents, verifiedScore } from "@/lib/scan/score-full";
+import { coerceFacts, refreshSiteCrawl } from "@/lib/scan/pulse";
 import { persistScanSignals } from "@/lib/scan/persist-signals";
 import { headlineFromRows, type RegistryScoreRow } from "@/lib/scan/registry-score";
 import { hostname } from "@/lib/scan/url";
@@ -264,6 +265,10 @@ async function snapshotScore(action: LoadedAction): Promise<void> {
     budget: new ScanBudget({ maxToolCalls: 10, budgetCents: env.scanBudgetCents }),
   };
 
+  // The founder just shipped something — score the LIVE page, not the last
+  // stored crawl. Free (one GET), best-effort (a failed crawl scores as before).
+  if (ctx.mode === "web") await refreshSiteCrawl(ctx.storeUrl);
+
   const components = await gatherScoreComponents(ctx, facts);
   const score = verifiedScore(components, action.platform);
 
@@ -298,24 +303,5 @@ async function snapshotScore(action: LoadedAction): Promise<void> {
   if (snapErr) throw snapErr;
 }
 
-/**
- * Coerce a persisted preliminary_facts blob into the minimal PreliminaryFacts the
- * score gatherer reads (mode, themes, ratingTrend). Degrades to a safe empty-shape
- * for the platform when the blob is missing/malformed — the verified-outcome bumps
- * (the point of this flow) are independent of these proxy fields.
- */
-function coerceFacts(raw: Json | null, platform: Platform): PreliminaryFacts {
-  const empty: PreliminaryFacts = {
-    mode: platform,
-    listing: { name: "", category: null, description: null },
-    competitors: [],
-    reviewVolume: 0,
-    ratingTrend: null,
-    webProxy: null,
-    themes: [],
-    sourcesUsed: [],
-    coldStart: true, // no footprint in this degraded placeholder; overridden by the persisted blob below
-  };
-  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return empty;
-  return { ...empty, ...(raw as Partial<PreliminaryFacts>), mode: platform };
-}
+// coerceFacts moved to lib/scan/pulse.ts — shared by the verify snapshot and
+// the score pulse (both reconstruct facts the same way).

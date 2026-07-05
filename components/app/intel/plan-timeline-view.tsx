@@ -37,16 +37,18 @@ function fmtPts(n: number): string {
   return `${n > 0 ? "+" : ""}${v} pts`;
 }
 
-export function PlanTimelineView({ board, domain }: { board: ActionBoard; domain: string }) {
+export interface PlanScore { total: number; delta: number }
+
+export function PlanTimelineView({ board, domain, score }: { board: ActionBoard; domain: string; score?: PlanScore | null }) {
   const { data, loading, error, stages } = useIntel<Synthesis>("synthesis");
   return (
     <IntelShell loading={loading} error={error} hasData={!!data} stages={stages}>
-      {data && <PlanTimelineBody board={board} synthesis={data} domain={domain || data.domain} />}
+      {data && <PlanTimelineBody board={board} synthesis={data} domain={domain || data.domain} score={score} />}
     </IntelShell>
   );
 }
 
-export function PlanTimelineBody({ board, synthesis, domain, today: todayProp }: { board: ActionBoard; synthesis: Synthesis; domain: string; today?: Date }) {
+export function PlanTimelineBody({ board, synthesis, domain, score, today: todayProp }: { board: ActionBoard; synthesis: Synthesis; domain: string; score?: PlanScore | null; today?: Date }) {
   // Stable "today" for the lifetime of the view (fixture pages inject one).
   const [today] = useState(() => todayProp ?? new Date());
 
@@ -111,9 +113,21 @@ export function PlanTimelineBody({ board, synthesis, domain, today: todayProp }:
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      {/* Summary strip — the whole plan at a glance */}
+      {/* Summary strip — the whole plan at a glance, score first: working the
+          plan is how the number moves, and the number lives where the work is. */}
       <Card style={{ padding: "16px 22px" }}>
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 32 }}>
+          {score && (
+            <span style={{ display: "inline-flex", alignItems: "baseline", gap: 8 }}>
+              <span style={{ fontFamily: JM, fontSize: 22, fontWeight: 700, lineHeight: 1, color: "var(--c-action)" }}>{score.total}</span>
+              <Eyebrow>Score</Eyebrow>
+              {score.delta !== 0 && (
+                <span style={{ fontFamily: JM, fontSize: 12, fontWeight: 700, color: score.delta > 0 ? VERIFIED_COLOR : "#E5484D" }}>
+                  {fmtPts(score.delta)}
+                </span>
+              )}
+            </span>
+          )}
           <Stat label="To do" value={openCount} />
           <Stat label="Verifying" value={board.verifying.length} color={board.verifying.length > 0 ? VERIFYING_COLOR : undefined} />
           <Stat label="Verified" value={board.done.length} color={board.done.length > 0 ? VERIFIED_COLOR : undefined} />
