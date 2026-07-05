@@ -36,6 +36,12 @@ export interface PlanItemData {
   /** Status pill, e.g. "Verifying" | "Verified". Omit for open items. */
   status?: string | null;
   statusColor?: string | null;
+  /** Review-required draft attached from the plan views (§11 No-auto). */
+  draft?: string | null;
+  /** The venue to post/submit at — also prefills the Mark-done verify URL. */
+  verifyUrl?: string | null;
+  /** Effort estimate in minutes. */
+  effortMin?: number | null;
 }
 
 export function PlanItem({
@@ -81,10 +87,55 @@ export function PlanItem({
       {item.why && <div style={{ fontSize: 13, color: "var(--c-muted)", marginBottom: 8 }}>{item.why}</div>}
       <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 12, fontSize: 12, color: "var(--c-faint)" }}>
         {item.from && <span>from {item.from}</span>}
+        {typeof item.effortMin === "number" && <span style={{ fontFamily: JM }}>~{item.effortMin} min</span>}
+        {item.verifyUrl && (
+          <a href={item.verifyUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--c-action)", textDecoration: "none", fontWeight: 600 }}>
+            Open target ↗
+          </a>
+        )}
         {item.predictedPts && <span style={{ color: "var(--c-action)", fontFamily: JM }}>{item.predictedPts} predicted</span>}
         {item.actualPts && <span style={{ color: "var(--c-band-high, #1F9D5B)", fontFamily: JM }}>{item.actualPts} verified</span>}
-        {showMarkDone && <MarkDone actionId={item.id} />}
+        {showMarkDone && <MarkDone actionId={item.id} prefillUrl={item.verifyUrl ?? ""} />}
       </div>
+      {item.draft && showMarkDone && <DraftDisclosure draft={item.draft} />}
+    </div>
+  );
+}
+
+/** Collapsed "View draft" → the review-required draft with a copy affordance.
+ * Read-only here: editing belongs where the founder posts; this is the grab-
+ * and-go copy so working the queue never requires a trip back to the plan. */
+function DraftDisclosure({ draft }: { draft: string }) {
+  const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  return (
+    <div style={{ marginTop: 10 }}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        style={{ background: "none", border: "none", padding: 0, fontFamily: PJ, fontSize: 12, fontWeight: 600, color: "var(--c-action)", cursor: "pointer" }}
+      >
+        {open ? "▾ Hide draft" : "▸ View draft"}
+      </button>
+      {open && (
+        <div style={{ marginTop: 6 }}>
+          <pre style={{ whiteSpace: "pre-wrap", fontFamily: JM, fontSize: 11.5, lineHeight: 1.6, color: "var(--c-ink)", background: "var(--c-fill)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-sm)", padding: "10px 12px", margin: 0, maxHeight: 260, overflowY: "auto" }}>{draft}</pre>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 6 }}>
+            <button
+              type="button"
+              onClick={() => {
+                void navigator.clipboard?.writeText(draft);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 1500);
+              }}
+              style={{ background: "transparent", border: "1px solid var(--c-line)", borderRadius: "var(--radius-full)", padding: "3px 12px", fontFamily: PJ, fontSize: 12, fontWeight: 600, color: "var(--c-ink)", cursor: "pointer" }}
+            >
+              {copied ? "Copied ✓" : "Copy draft"}
+            </button>
+            <span style={{ fontFamily: JM, fontSize: 10, color: "var(--c-faint)" }}>review before posting — you post it, never us</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -92,12 +143,14 @@ export function PlanItem({
 /**
  * Mark done → verify. First click reveals an optional "URL you shipped" field
  * (verify re-checks that page); confirm POSTs and the row moves to Verifying
- * on the next server render (router.refresh()).
+ * on the next server render (router.refresh()). When the action was queued
+ * with a venue (verify_url from the plan views), the field is prefilled so the
+ * verify loop is one click, not a copy-paste hunt.
  */
-function MarkDone({ actionId }: { actionId: string }) {
+function MarkDone({ actionId, prefillUrl = "" }: { actionId: string; prefillUrl?: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [url, setUrl] = useState("");
+  const [url, setUrl] = useState(prefillUrl);
   const [state, setState] = useState<"idle" | "pending" | "error">("idle");
 
   const submit = useCallback(async () => {

@@ -37,6 +37,12 @@ function toItem(a: BoardAction, extra: Partial<PlanItemData> = {}): PlanItemData
     type: a.category,
     why: a.why,
     predictedPts: a.predictedDelta !== null ? fmtPts(a.predictedDelta) : null,
+    // Execution payload from the plan views — the queue is workable in place:
+    // the draft is one disclosure away, the venue link opens the target, and
+    // Mark-done arrives prefilled with the verify URL.
+    draft: a.draft,
+    verifyUrl: a.verifyUrl,
+    effortMin: a.effortMin,
     ...extra,
   };
 }

@@ -56,6 +56,12 @@ export interface BoardAction {
   createdAt: string;
   /** Verification-snapshot timestamp — only set for `done` actions with a snapshot. */
   verifiedAt: string | null;
+  /** Execution payload (from the plan views): review-required draft, the venue
+   *  to post/submit at, and the effort estimate. Null when the action was
+   *  queued without them. */
+  draft: string | null;
+  verifyUrl: string | null;
+  effortMin: number | null;
 }
 
 /** Open-queue order: biggest predicted Δ first; actions without a prediction sink last. */
@@ -90,7 +96,7 @@ export async function actionBoard(appId: string): Promise<ActionBoard> {
   const [{ data: actions }, { data: snaps }] = await Promise.all([
     db
       .from("actions")
-      .select("id, title, category, why, status, verify_state, expected_outcome, created_at")
+      .select("id, title, category, why, status, verify_state, expected_outcome, created_at, draft, verify_url, effort_min")
       .eq("app_id", appId),
     db
       .from("score_snapshots")
@@ -121,6 +127,9 @@ export async function actionBoard(appId: string): Promise<ActionBoard> {
       actualDelta: group === "done" ? actualDeltaForAction(snapshots, a.id as string) : null,
       createdAt: (a.created_at as string | null) ?? "",
       verifiedAt: group === "done" ? verifiedAtForAction(snapshots, a.id as string) : null,
+      draft: (a.draft as string | null) ?? null,
+      verifyUrl: (a.verify_url as string | null) ?? null,
+      effortMin: (a.effort_min as number | null) ?? null,
     });
   }
   board.open.sort(byPredictedDeltaDesc);

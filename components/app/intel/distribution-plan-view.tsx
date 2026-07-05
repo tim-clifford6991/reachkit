@@ -208,6 +208,13 @@ export function DistributionPlanBody({ data }: { data: Synthesis }) {
         <Kpi label="Avg. ease" value={`${Math.round(avgEase * 100)}%`} sub="how quick to ship" />
       </KpiRow>
 
+      {/* §11 as a visible promise — the guards exist in the pipeline (generic-tell
+          scrub, cross-customer divergence, outreach + per-surface caps, no-auto);
+          saying so turns invisible safety into founder trust. */}
+      <p style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--c-faint)", margin: "-6px 2px 0", lineHeight: 1.6 }}>
+        Every draft is platform-native, scrubbed of AI tells, and unique to you — and outreach is capped and spaced per surface so you never read as spam. You always post it yourself.
+      </p>
+
       {quad.length > 0 && (
         <Card title="Ease × impact" info="Each play plotted on Ease × Impact. Top-right = quick, high-impact wins.">
           <Quadrant items={quad} legend={[{ color: KIND_COLOR.channel!, label: "Channel" }, { color: KIND_COLOR.community!, label: "Community" }, { color: KIND_COLOR.demand!, label: "Media/Demand" }]} />
