@@ -23,7 +23,7 @@ export interface Content {
   evidence: string;
 }
 export interface Dist { channel: string; action: string; target: string; targetUrl: string; why: string; effort: string; priority: string; ease: number; impact: number; evidence?: string }
-export interface Synthesis { category: string; summary: string; contentPlan: Content[]; distributionPlan: Dist[] }
+export interface Synthesis { domain: string; category: string; summary: string; contentPlan: Content[]; distributionPlan: Dist[] }
 
 const PRIO_COLOR: Record<string, string> = { high: "var(--c-band-invisible)", medium: "var(--c-band-fair)", low: "var(--c-faint)" };
 const KIND_COLOR: Record<string, string> = { channel: "var(--c-action)", community: "var(--c-band-findable)", demand: "var(--c-band-hard)" };

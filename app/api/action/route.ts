@@ -41,6 +41,12 @@ const Body = z.object({
   why: z.string().max(2000).optional(),
   expectedDelta: z.number().min(-100).max(100).optional(),
   signalKeys: z.array(z.string().max(100)).max(20).optional(),
+  /** Execution payload — carried onto the action so the weekly queue is
+   *  workable without going back to the plan view. The draft is ALWAYS stored
+   *  review-required (§11 No-auto). */
+  draft: z.string().max(20000).optional(),
+  verifyUrl: z.string().url().max(2048).optional(),
+  effortMin: z.number().int().min(1).max(960).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -54,7 +60,7 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ message: "missing or invalid title/category" }, { status: 400 });
   }
-  const { title, category, why, expectedDelta, signalKeys } = parsed.data;
+  const { title, category, why, expectedDelta, signalKeys, draft, verifyUrl, effortMin } = parsed.data;
 
   const appId = await activeAppId(viewer.user);
   if (!appId) {
@@ -76,7 +82,7 @@ export async function POST(req: NextRequest) {
   // data-integrity issue) and accepted until that migration lands.
   const { data: existingRows, error: findErr } = await db
     .from("actions")
-    .select("id, status")
+    .select("id, status, draft, verify_url, effort_min")
     .eq("app_id", appId)
     .eq("title", title);
   if (findErr) {
@@ -84,6 +90,22 @@ export async function POST(req: NextRequest) {
   }
   const openMatch = (existingRows ?? []).find((a) => a.status !== "done");
   if (openMatch) {
+    // Enrich the existing open action with any execution payload it's missing.
+    // The draft is only FILLED, never overwritten — a founder-edited draft on
+    // the action must never be clobbered by a re-generated one.
+    const patch: { draft?: string; draft_requires_edit?: boolean; verify_url?: string; effort_min?: number } = {};
+    if (draft && !(typeof openMatch.draft === "string" && openMatch.draft.length > 0)) {
+      patch.draft = draft;
+      patch.draft_requires_edit = true;
+    }
+    if (verifyUrl && !openMatch.verify_url) patch.verify_url = verifyUrl;
+    if (effortMin !== undefined && openMatch.effort_min === null) patch.effort_min = effortMin;
+    if (Object.keys(patch).length > 0) {
+      const { error: updErr } = await db.from("actions").update(patch).eq("id", openMatch.id);
+      if (updErr) {
+        return NextResponse.json({ message: "failed to update existing action" }, { status: 500 });
+      }
+    }
     return NextResponse.json({ id: openMatch.id as string, existing: true });
   }
 
@@ -97,6 +119,11 @@ export async function POST(req: NextRequest) {
       status: "pending",
       signal_keys: signalKeys ?? [],
       expected_outcome: (expectedDelta !== undefined ? { delta: expectedDelta } : null) as Json | null,
+      draft: draft ?? null,
+      // §11 No-auto: anything we drafted is review-required by definition.
+      draft_requires_edit: true,
+      verify_url: verifyUrl ?? null,
+      effort_min: effortMin ?? null,
     })
     .select("id")
     .single();

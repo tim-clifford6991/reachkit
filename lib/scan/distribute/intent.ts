@@ -18,8 +18,11 @@ export type SharePlatform =
   | "facebook"
   | "email";
 
-/** Platforms where no safe automation exists — coach the human, never post. */
-export type CoachPlatform = "hackernews" | "producthunt" | "discord" | "indiehackers";
+/** Platforms where no safe automation exists — coach the human, never post.
+ *  "directory" covers listing submissions (G2, Capterra, AlternativeTo, niche
+ *  directories): forms with manual review + anti-bot, so we draft the listing
+ *  copy and deep-link the submission page — auto-submission is directory spam. */
+export type CoachPlatform = "hackernews" | "producthunt" | "discord" | "indiehackers" | "directory";
 
 export interface SharePayload {
   /** Body text (the draft). */

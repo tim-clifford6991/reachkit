@@ -10,6 +10,7 @@ import { DistributionPlanBody } from "@/components/app/intel/distribution-plan-v
 import type { Synthesis } from "@/components/app/intel/synthesis-view";
 
 const SAMPLE: Synthesis = {
+  domain: "notably.app",
   category: "AI meeting notes",
   summary: "You're findable for branded search but invisible where buyers actually discover tools like yours — directories and community threads that feed 3 of your 4 rivals. Closing that gap is the single highest-leverage move this month.",
   contentPlan: [

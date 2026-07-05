@@ -8,10 +8,13 @@
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Card, Kpi, KpiRow, Badge, Bar, Quadrant, EvidenceLink,
+  Card, Kpi, KpiRow, Badge, Bar, Quadrant, EvidenceLink, CopyButton,
   priorityTone, effortTone, type QuadrantItem,
 } from "@/components/app/intel/kit";
 import { useIntel, IntelShell } from "@/components/app/intel/shared";
+import { buildShareUrl, deliveryMode, type SharePlatform } from "@/lib/scan/distribute/intent";
+import { COACH_GUIDES } from "@/lib/scan/distribute/coach";
+import { inferExecutionRoute } from "@/lib/scan/distribute/platform-map";
 import type { Synthesis, Dist } from "./synthesis-view";
 
 const CHANNEL_LABEL: Record<string, string> = {
@@ -59,7 +62,15 @@ function useActionPlan() {
   const getMatch = useCallback((title: string) => (actions ?? []).find((a) => a.title === title), [actions]);
 
   const addToPlan = useCallback(
-    async (payload: { title: string; category: "content" | "outreach" | "seo"; why?: string }) => {
+    async (payload: {
+      title: string;
+      category: "content" | "outreach" | "seo";
+      why?: string;
+      /** Execution payload — travels onto the action so the weekly queue is workable. */
+      draft?: string;
+      verifyUrl?: string;
+      effortMin?: number;
+    }) => {
       setFailedTitles((prev) => {
         if (!prev.has(payload.title)) return prev;
         const next = new Set(prev);
@@ -125,8 +136,8 @@ function PlanProgressStrip({ actions, category }: { actions: ApiActionSummary[] 
  * `predictedDelta` labeled "predicted") so the card shows the live outcome of
  * its own action. On failure, reverts and shows a small muted "couldn't add" note. */
 function AddToPlanChip({
-  plan, title, category, why,
-}: { plan: ActionPlan; title: string; category: "content" | "outreach" | "seo"; why?: string }) {
+  plan, title, category, why, verifyUrl, effortMin,
+}: { plan: ActionPlan; title: string; category: "content" | "outreach" | "seo"; why?: string; verifyUrl?: string; effortMin?: number }) {
   const [pending, setPending] = useState(false);
   const inPlan = plan.isInPlan(title);
   const failed = plan.didFail(title);
@@ -159,7 +170,7 @@ function AddToPlanChip({
         disabled={pending}
         onClick={async () => {
           setPending(true);
-          await plan.addToPlan({ title, category, why });
+          await plan.addToPlan({ title, category, why, verifyUrl, effortMin });
           setPending(false);
         }}
         style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "var(--c-fill)", color: "var(--c-action)", fontFamily: "var(--font-sans)", fontWeight: 700, fontSize: 11, padding: "4px 10px", borderRadius: "var(--radius-full)", border: "1px solid var(--c-tint-violet-line)", cursor: pending ? "default" : "pointer", whiteSpace: "nowrap", opacity: pending ? 0.6 : 1 }}
@@ -204,14 +215,161 @@ export function DistributionPlanBody({ data }: { data: Synthesis }) {
       )}
 
       <div style={{ display: "grid", gap: 14, gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))" }}>
-        {distributionPlan.map((d, i) => <DistCard key={i} d={d} plan={plan} />)}
+        {distributionPlan.map((d, i) => <DistCard key={i} d={d} domain={data.domain} plan={plan} />)}
       </div>
       {distributionPlan.length === 0 && <Empty>No distribution plan generated yet.</Empty>}
     </div>
   );
 }
 
-function DistCard({ d, plan }: { d: Dist; plan: ActionPlan }) {
+/** Effort → minutes, matching the weekly-plan buckets (quick <30 / medium ≤120 / long >120). */
+const EFFORT_MIN: Record<string, number> = { low: 15, medium: 60, high: 180 };
+
+const SHARE_LABEL: Record<SharePlatform, string> = {
+  x: "X", reddit: "Reddit", threads: "Threads", linkedin: "LinkedIn",
+  telegram: "Telegram", whatsapp: "WhatsApp", facebook: "Facebook", email: "Email",
+};
+
+/** Execute panel (M5 on the plan surface): draft → edit → hand off.
+ * Share platforms open the platform's OWN composer prefilled (buildShareUrl);
+ * coach platforms show the etiquette checklist + the submission/venue link.
+ * Executing auto-tracks the item in the plan (draft + verify URL + effort ride
+ * along) so the verify loop can count it toward the score. We never post. */
+function DistExecutePanel({ d, domain, plan }: { d: Dist; domain: string; plan: ActionPlan }) {
+  const route = inferExecutionRoute(d);
+  const [draft, setDraft] = useState<{ title?: string; text: string } | null>(null);
+  const [status, setStatus] = useState<"idle" | "loading" | "error" | "upgrade">("idle");
+  const [tracked, setTracked] = useState(false);
+
+  const productUrl = domain ? `https://${domain}` : undefined;
+  const platformLabel = route.kind === "share" ? SHARE_LABEL[route.platform] : COACH_GUIDES[route.platform].label;
+  const draftLabel = route.kind === "coach" && route.platform === "directory" ? "Draft your listing"
+    : route.kind === "share" && route.platform === "email" ? "Draft the pitch"
+    : "Draft this post";
+
+  const generate = useCallback(async () => {
+    setStatus("loading");
+    try {
+      const res = await fetch("/api/distribute/draft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          platform: route.platform,
+          productName: domain,
+          angle: `${d.action} — ${d.target}.${d.why ? ` ${d.why}` : ""}`,
+          url: productUrl,
+        }),
+      });
+      if (res.status === 403) { setStatus("upgrade"); return; }
+      if (!res.ok) throw new Error(String(res.status));
+      const json = (await res.json()) as { draft?: { text?: string; title?: string } };
+      setDraft({ title: json.draft?.title, text: json.draft?.text ?? "" });
+      setStatus("idle");
+    } catch {
+      setStatus("error");
+    }
+  }, [route, domain, productUrl, d.action, d.target, d.why]);
+
+  /** Track in the plan (dedupes + enriches server-side), then run the handoff. */
+  const trackAndRun = useCallback((run: () => void) => {
+    const text = draft ? [draft.title, draft.text].filter(Boolean).join("\n\n") : undefined;
+    void plan.addToPlan({
+      title: d.action, category: "outreach", why: d.why || undefined,
+      draft: text, verifyUrl: d.targetUrl || undefined, effortMin: EFFORT_MIN[d.effort],
+    });
+    setTracked(true);
+    run();
+  }, [plan, d, draft]);
+
+  const openComposer = useCallback(() => {
+    if (route.kind !== "share" || !draft) return;
+    trackAndRun(() => {
+      const shareUrl = buildShareUrl(route.platform, { text: draft.text, url: productUrl, title: draft.title, subreddit: route.subreddit });
+      window.open(shareUrl, "_blank", "noopener,noreferrer");
+    });
+  }, [route, draft, productUrl, trackAndRun]);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--c-line)" }}>
+      {draft === null ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <button
+            type="button"
+            disabled={status === "loading"}
+            onClick={() => void generate()}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "var(--c-action)", color: "#fff", fontFamily: "var(--font-sans)", fontWeight: 700, fontSize: 11.5, padding: "6px 12px", borderRadius: "var(--radius-full)", border: "none", cursor: status === "loading" ? "default" : "pointer", opacity: status === "loading" ? 0.6 : 1, whiteSpace: "nowrap" }}
+          >
+            {status === "loading" ? "Drafting…" : `✍ ${draftLabel}`}
+          </button>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--c-faint)" }}>{platformLabel}-native · you post it</span>
+          {status === "error" && <span style={{ fontSize: 10.5, color: "var(--c-faint)" }}>couldn&apos;t draft — try again</span>}
+          {status === "upgrade" && <span style={{ fontSize: 10.5, color: "var(--c-faint)" }}>drafting is a paid feature — <a href="/pricing" style={{ color: "var(--c-action)" }}>upgrade</a></span>}
+        </div>
+      ) : (
+        <>
+          {draft.title !== undefined && (
+            <input
+              value={draft.title}
+              onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+              aria-label="Draft title — edit before posting"
+              style={{ width: "100%", fontFamily: "var(--font-sans)", fontWeight: 600, fontSize: 13, color: "var(--c-ink)", background: "var(--c-fill)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-sm)", padding: "8px 12px" }}
+            />
+          )}
+          <textarea
+            value={draft.text}
+            onChange={(e) => setDraft({ ...draft, text: e.target.value })}
+            aria-label="Draft body — edit before posting"
+            style={{ width: "100%", minHeight: 110, resize: "vertical", fontFamily: "var(--font-mono)", fontSize: 11.5, lineHeight: 1.6, color: "var(--c-ink)", background: "var(--c-fill)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-sm)", padding: "10px 12px" }}
+          />
+          {route.kind === "coach" && (
+            <div style={{ background: "var(--c-fill)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-sm)", padding: "10px 12px" }}>
+              <p style={{ fontSize: 11.5, fontWeight: 600, color: "var(--c-ink)", margin: "0 0 6px" }}>{COACH_GUIDES[route.platform].intro}</p>
+              <ul style={{ margin: 0, paddingLeft: 16, display: "flex", flexDirection: "column", gap: 3 }}>
+                {COACH_GUIDES[route.platform].steps.map((s, i) => (
+                  <li key={i} style={{ fontSize: 11.5, color: "var(--c-muted)", lineHeight: 1.5 }}>{s}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            {route.kind === "share" ? (
+              <button
+                type="button"
+                onClick={openComposer}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "var(--c-action)", color: "#fff", fontFamily: "var(--font-sans)", fontWeight: 700, fontSize: 11.5, padding: "6px 12px", borderRadius: "var(--radius-full)", border: "none", cursor: "pointer", whiteSpace: "nowrap" }}
+              >
+                Open {SHARE_LABEL[route.platform]} →
+              </button>
+            ) : d.targetUrl ? (
+              <button
+                type="button"
+                onClick={() => trackAndRun(() => window.open(d.targetUrl, "_blank", "noopener,noreferrer"))}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "var(--c-action)", color: "#fff", fontFamily: "var(--font-sans)", fontWeight: 700, fontSize: 11.5, padding: "6px 12px", borderRadius: "var(--radius-full)", border: "none", cursor: "pointer", whiteSpace: "nowrap" }}
+              >
+                Open {d.target} →
+              </button>
+            ) : null}
+            <CopyButton text={[draft.title, draft.text].filter(Boolean).join("\n\n")} label="Copy draft" />
+            <button type="button" onClick={() => void generate()} style={{ background: "none", border: "none", fontSize: 11, color: "var(--c-muted)", cursor: "pointer", padding: 0 }}>↻ redraft</button>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--c-faint)", marginLeft: "auto" }}>you post it — we never post for you</span>
+          </div>
+          {route.kind === "share" && deliveryMode(route.platform) === "url-only" && (
+            <p style={{ fontSize: 10.5, color: "var(--c-faint)", fontStyle: "italic", margin: 0 }}>
+              {SHARE_LABEL[route.platform]} doesn&apos;t accept prefilled text — copy the draft, then paste it into the composer.
+            </p>
+          )}
+          {tracked && (
+            <p style={{ fontSize: 10.5, color: "var(--c-band-findable)", margin: 0 }}>
+              ✓ Tracked in your plan — mark it done once posted and ReachKit verifies it toward your score.
+            </p>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function DistCard({ d, domain, plan }: { d: Dist; domain: string; plan: ActionPlan }) {
   return (
     <div style={{ fontFamily: "var(--font-sans)", color: "var(--c-ink)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-lg)", padding: 16, background: "var(--c-surface)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
@@ -228,8 +386,9 @@ function DistCard({ d, plan }: { d: Dist; plan: ActionPlan }) {
       <div style={{ display: "flex", gap: 20, alignItems: "flex-end" }}>
         <Meter label="Ease" value={d.ease} />
         <Meter label="Impact" value={d.impact} />
-        <AddToPlanChip plan={plan} title={d.action} category="outreach" why={d.why || undefined} />
+        <AddToPlanChip plan={plan} title={d.action} category="outreach" why={d.why || undefined} verifyUrl={d.targetUrl || undefined} effortMin={EFFORT_MIN[d.effort]} />
       </div>
+      <DistExecutePanel d={d} domain={domain} plan={plan} />
     </div>
   );
 }
