@@ -24,11 +24,14 @@ import type { BoardAction } from "@/lib/scan/action-board";
 // ---------------------------------------------------------------------------
 
 export interface PlanEntry {
-  /** Stable key: the action id when tracked, else "suggest:{title}". */
+  /** Stable key: the action id when tracked, "suggest:{title}", or "post:{date}". */
   key: string;
   /** The action id when this entry is already tracked in `actions`. */
   actionId: string | null;
-  kind: "content" | "distribution";
+  /** content = long-form article for their own site (weekly long play);
+   *  post = the DAILY short social post (X first) — content as a habit;
+   *  distribution = targeted venue actions, §11-spaced. */
+  kind: "content" | "distribution" | "post";
   title: string;
   why: string | null;
   /** Channel for distribution entries (directory | community | …). */
@@ -85,6 +88,10 @@ const asPriority = (p: string): "high" | "medium" | "low" =>
  * A recommendation whose title matches ANY existing action (open or done) is
  * dropped — it's already tracked or already shipped.
  */
+/** Tracked daily posts are titled "X post (YYYY-MM-DD): …" so they stay
+ *  distinguishable from articles/distribution in the actions table. */
+export const DAILY_POST_PREFIX = "X post (";
+
 export function mergePlanEntries(args: {
   openActions: BoardAction[];
   /** every action title (any lifecycle state), for suggestion dedupe */
@@ -95,6 +102,10 @@ export function mergePlanEntries(args: {
   const entries: PlanEntry[] = [];
 
   for (const a of args.openActions) {
+    // Tracked daily posts belong to their calendar day (addDailyPosts), not
+    // the weekly schedule — merging them here would misfile a 10-minute post
+    // as a long-form article and eat the 1-content-piece-a-week slot.
+    if (a.title.startsWith(DAILY_POST_PREFIX)) continue;
     entries.push({
       key: a.id,
       actionId: a.id,
@@ -310,6 +321,118 @@ export function scheduleToDays(weeks: ScheduledWeek[], today: Date): ScheduledDa
     });
   }
 
+  return [...byDate.entries()]
+    .sort(([a], [b]) => (a < b ? -1 : 1))
+    .map(([date, entries]) => ({ date, entries }));
+}
+
+// ---------------------------------------------------------------------------
+// Daily posts — content as a habit, not an event.
+// ---------------------------------------------------------------------------
+
+export interface PostAngle {
+  /** Short display title for the calendar chip. */
+  title: string;
+  /** The angle handed to the draft engine. */
+  angle: string;
+}
+
+const trunc = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
+
+/**
+ * Build the rotating pool of daily X-post angles from what the scan already
+ * knows: the content plan's demand-led topics and buyer angles, the
+ * distribution plan's evidence ("why buyers are there"), and evergreen
+ * build-in-public beats. PURE and deterministic — the founder can post to
+ * their heart's content and every prompt is grounded in their own market.
+ */
+export function buildDailyPostAngles(s: {
+  category: string;
+  contentPlan: ContentPlanItemLike[];
+  distribution?: DistributionPlanItemLike[];
+}): PostAngle[] {
+  const pool: PostAngle[] = [];
+
+  for (const c of s.contentPlan) {
+    pool.push({
+      title: trunc(`Tip: ${c.topic}`, 60),
+      angle: `Share ONE practical, non-obvious tip on "${c.topic}"${c.buyerAngle ? ` (audience: ${c.buyerAngle})` : ""}. Teach something real in 2-3 sentences.`,
+    });
+    if (c.buyerAngle) {
+      pool.push({
+        title: trunc(`Pain point: ${c.buyerAngle}`, 60),
+        angle: `Describe the pain "${c.buyerAngle}" the way a buyer would say it, then one insight that helps — related to ${c.topic}.`,
+      });
+    }
+  }
+
+  for (const d of s.distribution ?? []) {
+    if (d.why) {
+      pool.push({
+        title: trunc(`Insight: ${d.why}`, 60),
+        angle: `Turn this market observation into a useful post: "${d.why}" (context: ${d.target}). No pitch — share the insight.`,
+      });
+    }
+  }
+
+  // Evergreen build-in-public beats — always available, even on a thin plan.
+  pool.push(
+    { title: "Build in public: this week's progress", angle: `Share what you shipped or learned this week building a ${s.category} product. Specific, honest, no humblebrag.` },
+    { title: "Behind the scenes: a decision you made", angle: `Explain one real product/positioning decision you made recently for your ${s.category} product and why.` },
+    { title: "Answer a buyer question", angle: `Answer one question buyers of ${s.category} tools always ask — the answer you'd give a friend.` },
+  );
+
+  return pool;
+}
+
+/** Default calendar horizon: at least four weeks of daily rhythm. */
+export const DAILY_POST_HORIZON_DAYS = 28;
+
+/**
+ * Fill EVERY day from today through the horizon with a daily post entry —
+ * content is the founder's daily habit; articles and distribution land around
+ * it. Days whose dated post is already tracked (the founder queued/did it)
+ * are skipped via `postedDates`. Posts go FIRST in each day: the 10-minute
+ * ritual before the bigger rocks. Mutates nothing; returns a new day list.
+ */
+export function addDailyPosts(
+  days: ScheduledDay[],
+  angles: PostAngle[],
+  today: Date,
+  opts: { horizonDays?: number; postedDates?: ReadonlySet<string> } = {},
+): ScheduledDay[] {
+  if (angles.length === 0) return days;
+  const horizonDays = opts.horizonDays ?? DAILY_POST_HORIZON_DAYS;
+  const posted = opts.postedDates ?? new Set<string>();
+
+  const byDate = new Map(days.map((d) => [d.date, [...d.entries]]));
+
+  for (let i = 0; i < horizonDays; i++) {
+    const day = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
+    const key = localDateKey(day);
+    if (posted.has(key)) continue;
+    const angle = angles[i % angles.length]!;
+    const entry: PlanEntry = {
+      key: `post:${key}`,
+      actionId: null,
+      kind: "post",
+      title: angle.title,
+      why: angle.angle,
+      channel: "x",
+      target: "X (Twitter)",
+      targetUrl: null,
+      effortMin: 10,
+      priority: "high",
+      predictedDelta: null,
+      draft: null,
+      tracked: false,
+    };
+    const list = byDate.get(key) ?? [];
+    list.unshift(entry); // the daily ritual leads the day
+    byDate.set(key, list);
+  }
+
+  // Scheduled days beyond the horizon pass through untouched (already in byDate).
   return [...byDate.entries()]
     .sort(([a], [b]) => (a < b ? -1 : 1))
     .map(([date, entries]) => ({ date, entries }));

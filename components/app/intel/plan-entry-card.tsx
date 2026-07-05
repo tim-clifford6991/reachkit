@@ -21,7 +21,7 @@ import { useRouter } from "next/navigation";
 import { Badge, CopyButton, priorityTone } from "@/components/app/intel/kit";
 import { buildShareUrl, deliveryMode, type SharePlatform } from "@/lib/scan/distribute/intent";
 import { COACH_GUIDES } from "@/lib/scan/distribute/coach";
-import { inferExecutionRoute } from "@/lib/scan/distribute/platform-map";
+import { inferExecutionRoute, type ExecutionRoute } from "@/lib/scan/distribute/platform-map";
 import type { PlanEntry } from "@/lib/scan/plan-schedule";
 
 const SG = "var(--font-display)", PJ = "var(--font-sans)", JM = "var(--font-mono)";
@@ -51,20 +51,25 @@ export function PlanEntryCard({ entry, domain }: { entry: PlanEntry; domain: str
   const [showDraft, setShowDraft] = useState(false);
 
   const productUrl = domain ? `https://${domain}` : undefined;
-  const route = entry.kind === "distribution"
+  const route: ExecutionRoute | null = entry.kind === "distribution"
     ? inferExecutionRoute({ channel: entry.channel ?? "", target: entry.target ?? entry.title, targetUrl: entry.targetUrl ?? undefined })
-    : null;
+    : entry.kind === "post"
+      ? { kind: "share", platform: "x" } // the daily post: X composer, prefilled
+      : null;
 
   // -- Track in the plan (idempotent: the API dedupes + enriches) ------------
   const track = useCallback(async (withDraft?: { title?: string; text: string }): Promise<string | null> => {
     const text = withDraft ? [withDraft.title, withDraft.text].filter(Boolean).join("\n\n") : undefined;
+    // Daily posts are tracked with a DATED title ("X post (2026-07-09): …") so
+    // each day's post is its own action and the calendar can mark days posted.
+    const trackedTitle = entry.kind === "post" ? `X post (${entry.key.slice(5)}): ${entry.title}` : entry.title;
     try {
       const res = await fetch("/api/action", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title: entry.title,
-          category: entry.kind === "content" ? "content" : "outreach",
+          title: trackedTitle,
+          category: entry.kind === "distribution" ? "outreach" : "content",
           why: entry.why || undefined,
           draft: text,
           verifyUrl: entry.targetUrl || undefined,
@@ -153,6 +158,7 @@ export function PlanEntryCard({ entry, domain }: { entry: PlanEntry; domain: str
   }, [actionId, track, draft, entry.targetUrl, router]);
 
   const draftLabel = entry.kind === "content" ? "Generate draft"
+    : entry.kind === "post" ? "Draft today's post"
     : route?.kind === "coach" && route.platform === "directory" ? "Draft your listing"
     : route?.kind === "share" && route.platform === "email" ? "Draft the pitch"
     : "Draft this post";
@@ -170,7 +176,7 @@ export function PlanEntryCard({ entry, domain }: { entry: PlanEntry; domain: str
     <div style={{ fontFamily: PJ, color: "var(--c-ink)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-lg)", padding: 16, background: "var(--c-surface)" }}>
       {/* Header row */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
-        <Badge tone="violet">{entry.kind === "content" ? "content" : (entry.channel || "outreach")}</Badge>
+        <Badge tone="violet">{entry.kind === "content" ? "content" : entry.kind === "post" ? "daily post" : (entry.channel || "outreach")}</Badge>
         <Badge tone={priorityTone(entry.priority)}>{entry.priority}</Badge>
         <span style={{ fontFamily: JM, fontSize: 10.5, color: "var(--c-faint)" }}>~{entry.effortMin} min</span>
         {!entry.tracked && !actionId && (

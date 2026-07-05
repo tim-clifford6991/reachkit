@@ -12,7 +12,10 @@ import {
   schedulePlan,
   scheduleToDays,
   byScheduleOrder,
+  buildDailyPostAngles,
+  addDailyPosts,
   CONTENT_EFFORT_MIN,
+  DAILY_POST_HORIZON_DAYS,
   type PlanEntry,
 } from "./plan-schedule";
 import type { BoardAction } from "./action-board";
@@ -188,5 +191,59 @@ describe("scheduleToDays — the calendar layer", () => {
       entry({ key: "b", title: "B", priority: "medium" }),
     ]);
     expect(scheduleToDays(weeks, wednesday)).toEqual(scheduleToDays(weeks, new Date(2026, 6, 8)));
+  });
+});
+
+describe("daily posts — content as a habit", () => {
+  const wednesday = new Date(2026, 6, 8);
+  const synthesisLike = {
+    category: "AI meeting notes",
+    contentPlan: [
+      { topic: "Best AI meeting note tools", buyerAngle: "teams drowning in calls", priority: "high" },
+    ],
+    distribution: [
+      { action: "Post in r/SaaS", channel: "community", target: "r/SaaS", why: "Buyers describe this pain weekly.", effort: "low", priority: "high" },
+    ],
+  };
+
+  test("angle pool is grounded in the plan + evergreen beats, deterministic", () => {
+    const angles = buildDailyPostAngles(synthesisLike);
+    // 2 per content item (topic tip + pain point) + 1 per distribution why + 3 evergreen.
+    expect(angles).toHaveLength(6);
+    expect(angles.map((a) => a.title).join(" ")).toContain("Best AI meeting note tools");
+    expect(buildDailyPostAngles(synthesisLike)).toEqual(angles);
+  });
+
+  test("every day through the horizon gets a post, posts lead the day", () => {
+    const scheduled = scheduleToDays(
+      schedulePlan([entry({ key: "d1", title: "Submit somewhere", priority: "high" })]),
+      wednesday,
+    );
+    const days = addDailyPosts(scheduled, buildDailyPostAngles(synthesisLike), wednesday);
+    expect(days).toHaveLength(DAILY_POST_HORIZON_DAYS);
+    expect(days[0]!.date).toBe("2026-07-08");
+    expect(days[days.length - 1]!.date).toBe("2026-08-04");
+    // Every day has a post; the day that also has the distribution action puts the post FIRST.
+    expect(days.every((d) => d.entries.some((e) => e.kind === "post"))).toBe(true);
+    const busy = days.find((d) => d.entries.length > 1)!;
+    expect(busy.entries[0]!.kind).toBe("post");
+  });
+
+  test("days already posted (dated tracked title) stay clear", () => {
+    const days = addDailyPosts([], buildDailyPostAngles(synthesisLike), wednesday, {
+      horizonDays: 3,
+      postedDates: new Set(["2026-07-09"]),
+    });
+    expect(days.map((d) => d.date)).toEqual(["2026-07-08", "2026-07-10"]);
+  });
+
+  test("mergePlanEntries never misfiles tracked daily posts as articles", () => {
+    const merged = mergePlanEntries({
+      openActions: [boardAction({ id: "p1", title: "X post (2026-07-08): Tip: something", category: "content" })],
+      allActionTitles: new Set(["X post (2026-07-08): Tip: something"]),
+      content: [],
+      distribution: [],
+    });
+    expect(merged).toHaveLength(0);
   });
 });

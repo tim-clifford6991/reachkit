@@ -22,6 +22,7 @@ import { PlanItem } from "@/components/app/intel/plan-item";
 import { PlanEntryCard } from "@/components/app/intel/plan-entry-card";
 import {
   mergePlanEntries, schedulePlan, scheduleToDays, localDateKey,
+  buildDailyPostAngles, addDailyPosts, DAILY_POST_PREFIX,
   type PlanEntry, type ScheduledDay,
 } from "@/lib/scan/plan-schedule";
 import type { ActionBoard } from "@/lib/scan/action-board";
@@ -50,16 +51,29 @@ export function PlanTimelineBody({ board, synthesis, domain, today: todayProp }:
   const [today] = useState(() => todayProp ?? new Date());
 
   const days: ScheduledDay[] = useMemo(() => {
-    const allTitles = new Set(
-      [...board.open, ...board.retry, ...board.verifying, ...board.done].map((a) => a.title),
-    );
+    const allActions = [...board.open, ...board.retry, ...board.verifying, ...board.done];
+    const allTitles = new Set(allActions.map((a) => a.title));
     const entries = mergePlanEntries({
       openActions: [...board.open, ...board.retry],
       allActionTitles: allTitles,
       content: synthesis.contentPlan,
       distribution: synthesis.distributionPlan,
     });
-    return scheduleToDays(schedulePlan(entries), today);
+    const scheduled = scheduleToDays(schedulePlan(entries), today);
+    // Content as a daily habit: every day carries a short X post, drawn from a
+    // rotating pool of angles grounded in the founder's own market data. Days
+    // whose dated post was already queued/done stay clear.
+    const postedDates = new Set(
+      allActions
+        .map((a) => /^X post \((\d{4}-\d{2}-\d{2})\)/.exec(a.title)?.[1])
+        .filter((d): d is string => !!d),
+    );
+    const angles = buildDailyPostAngles({
+      category: synthesis.category,
+      contentPlan: synthesis.contentPlan,
+      distribution: synthesis.distributionPlan,
+    });
+    return addDailyPosts(scheduled, angles, today, { postedDates });
   }, [board, synthesis, today]);
 
   const byDate = useMemo(() => new Map(days.map((d) => [d.date, d.entries])), [days]);
@@ -118,8 +132,9 @@ export function PlanTimelineBody({ board, synthesis, domain, today: todayProp }:
 
       {days.length > 0 && (
         <p style={{ fontFamily: JM, fontSize: 11, color: "var(--c-faint)", margin: "-6px 2px 0", lineHeight: 1.6 }}>
-          Paced on purpose: one content piece a week, outreach spaced across venues — steady beats spam, for
-          you and for the algorithms. Every draft is scrubbed of AI tells and unique to you; you always post it yourself.
+          The rhythm: a short post every day (10 minutes, angles drawn from your own market), one deep content piece a
+          week, outreach spaced across venues — steady beats spam, for you and for the algorithms. Every draft is
+          scrubbed of AI tells and unique to you; you always post it yourself.
         </p>
       )}
 
@@ -175,6 +190,7 @@ function dayHeading(dateKey: string): string {
 const CHIP_STYLE: Record<PlanEntry["kind"], { bg: string; fg: string }> = {
   content: { bg: "var(--c-soft)", fg: "var(--c-action)" },
   distribution: { bg: "var(--c-tint-green)", fg: "var(--c-band-findable)" },
+  post: { bg: "var(--c-tint-blue)", fg: "#3b6fe0" },
 };
 
 function PlanCalendar({ days, today, activeDate, onSelect }: {
