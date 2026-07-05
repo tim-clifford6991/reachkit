@@ -50,9 +50,22 @@ Hard rules:
 Return the article as Markdown — a title, then the body. No preamble, no commentary.`;
 }
 
+const SYSTEM =
+  "You are a founder's writing assistant. You write specific, genuinely useful first drafts, " +
+  "never generic SEO filler. Return only the article as Markdown.";
+
+/** Output budget per call — a 2,000–4,000-word article runs ~3k–6k tokens;
+ *  16k covers every depth target with room to spare. */
+const DRAFT_MAX_TOKENS = 16000;
+/** Safety net: if the model still hits the cap, continue up to this many times
+ *  so the founder NEVER receives an article cut off mid-sentence. */
+const MAX_CONTINUATIONS = 2;
+
 /**
  * Generate a single review-required content draft for one content-plan item.
  * Fixtures mode returns a labelled stub (zero paid calls). Always `requiresEdit`.
+ * Truncation-proof: continues from the cut point while stop_reason is
+ * max_tokens, so the draft always ends where the article ends.
  */
 export async function generateContentDraft(item: ContentPlanItem): Promise<ContentDraft> {
   if (fixturesEnabled()) {
@@ -62,18 +75,37 @@ export async function generateContentDraft(item: ContentPlanItem): Promise<Conte
     };
   }
 
-  const { text } = await callModel({
+  const first = await callModel({
     model: MODEL,
-    system:
-      "You are a founder's writing assistant. You write specific, genuinely useful first drafts, " +
-      "never generic SEO filler. Return only the article as Markdown.",
+    system: SYSTEM,
     prompt: buildContentDraftPrompt(item),
     scanId: null,
     stage: "synth",
-    maxTokens: 4096,
+    maxTokens: DRAFT_MAX_TOKENS,
   });
+  let markdown = first.text.trim();
+  let stopReason = first.stopReason;
+
+  for (let round = 0; stopReason === "max_tokens" && round < MAX_CONTINUATIONS; round++) {
+    // Re-anchor on the tail (not the whole article) to keep the input small.
+    const tail = markdown.slice(-2000);
+    const cont = await callModel({
+      model: MODEL,
+      system: SYSTEM,
+      prompt:
+        `You are finishing an article titled "${item.topic}" that was cut off mid-generation.\n\n` +
+        `Here is the END of the text so far:\n---\n${tail}\n---\n\n` +
+        "Continue EXACTLY from where it stops — do not repeat anything, do not restart, " +
+        "do not add any preamble. Just continue the sentence/section and complete the article.",
+      scanId: null,
+      stage: "synth",
+      maxTokens: DRAFT_MAX_TOKENS,
+    });
+    markdown += cont.text;
+    stopReason = cont.stopReason;
+  }
 
   // §11 (6): strip AI tells before the founder ever sees it.
-  const scrubbed = await scrubGenericTells(text.trim());
+  const scrubbed = await scrubGenericTells(markdown.trim());
   return { markdown: scrubbed, requiresEdit: true };
 }

@@ -110,6 +110,11 @@ async function rewriteDraft(
   draft: string,
   instruction: string,
 ): Promise<string> {
+  // Budget the rewrite to the DRAFT's size, not a fixed cap — a long-form
+  // article rewritten under a small cap comes back truncated mid-sentence,
+  // and (being shorter) can even "win" the less-generic comparison. ~1 token
+  // per 3 chars plus headroom, floor for short drafts, ceiling for sanity.
+  const maxTokens = Math.min(16000, Math.max(1024, Math.ceil(draft.length / 3) + 512));
   const result = await callModel({
     model: HAIKU_MODEL,
     system:
@@ -118,9 +123,13 @@ async function rewriteDraft(
     prompt: `Instruction: ${instruction}\n\nDraft to rewrite:\n${draft}`,
     scanId,
     stage: "format",
-    maxTokens: 1024,
+    maxTokens,
   });
-  return result.text.trim() || draft;
+  // A truncated rewrite must NEVER replace the draft — cut-off text is worse
+  // than a cliché. Same for a rewrite that lost a big chunk of the content.
+  const text = result.text.trim();
+  if (!text || result.stopReason === "max_tokens" || text.length < draft.length * 0.6) return draft;
+  return text;
 }
 
 /** The §11 (6) instruction — shared by the action-set pass and one-off scrubs. */

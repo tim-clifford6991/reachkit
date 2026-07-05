@@ -39,7 +39,8 @@ export default function TestPlanTimelinePage() {
   if (process.env.NODE_ENV === "production") return null;
   return (
     <main style={{ maxWidth: 900, margin: "0 auto", padding: "40px 24px", background: "var(--c-bg)" }}>
-      <PlanTimelineBody board={BOARD} synthesis={SYNTHESIS} domain="notably.app" />
+      {/* Fixed "today" (Wed Jul 8 2026) so the calendar renders deterministically. */}
+      <PlanTimelineBody board={BOARD} synthesis={SYNTHESIS} domain="notably.app" today={new Date(2026, 6, 8)} />
     </main>
   );
 }

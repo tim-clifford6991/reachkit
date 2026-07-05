@@ -14,33 +14,26 @@
  * "what to do".
  */
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Card, Eyebrow } from "@/components/app/intel/kit";
 import { useIntel, IntelShell } from "@/components/app/intel/shared";
 import { PlanItem } from "@/components/app/intel/plan-item";
 import { PlanEntryCard } from "@/components/app/intel/plan-entry-card";
-import { mergePlanEntries, schedulePlan, type ScheduledWeek } from "@/lib/scan/plan-schedule";
+import {
+  mergePlanEntries, schedulePlan, scheduleToDays, localDateKey,
+  type PlanEntry, type ScheduledDay,
+} from "@/lib/scan/plan-schedule";
 import type { ActionBoard } from "@/lib/scan/action-board";
 import type { Synthesis } from "./synthesis-view";
 
-const SG = "var(--font-display)", JM = "var(--font-mono)";
+const SG = "var(--font-display)", PJ = "var(--font-sans)", JM = "var(--font-mono)";
 const VERIFYING_COLOR = "#C98A12";
 const VERIFIED_COLOR = "#1F9D5B";
 
 function fmtPts(n: number): string {
   const v = Number.isInteger(n) ? String(n) : n.toFixed(1);
   return `${n > 0 ? "+" : ""}${v} pts`;
-}
-
-/** Monday (local) of the ISO week `offset` weeks from now, as "Mon d". */
-function weekLabel(offset: number): string {
-  if (offset === 0) return "This week";
-  if (offset === 1) return "Next week";
-  const now = new Date();
-  const monday = new Date(now);
-  monday.setDate(now.getDate() - ((now.getDay() + 6) % 7) + offset * 7);
-  return `Week of ${monday.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
 }
 
 export function PlanTimelineView({ board, domain }: { board: ActionBoard; domain: string }) {
@@ -52,8 +45,11 @@ export function PlanTimelineView({ board, domain }: { board: ActionBoard; domain
   );
 }
 
-export function PlanTimelineBody({ board, synthesis, domain }: { board: ActionBoard; synthesis: Synthesis; domain: string }) {
-  const weeks: ScheduledWeek[] = useMemo(() => {
+export function PlanTimelineBody({ board, synthesis, domain, today: todayProp }: { board: ActionBoard; synthesis: Synthesis; domain: string; today?: Date }) {
+  // Stable "today" for the lifetime of the view (fixture pages inject one).
+  const [today] = useState(() => todayProp ?? new Date());
+
+  const days: ScheduledDay[] = useMemo(() => {
     const allTitles = new Set(
       [...board.open, ...board.retry, ...board.verifying, ...board.done].map((a) => a.title),
     );
@@ -63,10 +59,17 @@ export function PlanTimelineBody({ board, synthesis, domain }: { board: ActionBo
       content: synthesis.contentPlan,
       distribution: synthesis.distributionPlan,
     });
-    return schedulePlan(entries);
-  }, [board, synthesis]);
+    return scheduleToDays(schedulePlan(entries), today);
+  }, [board, synthesis, today]);
 
-  const openCount = weeks.reduce((s, w) => s + w.entries.length, 0);
+  const byDate = useMemo(() => new Map(days.map((d) => [d.date, d.entries])), [days]);
+  const [selected, setSelected] = useState<string | null>(null);
+  // Default focus: today if it has work, else the first scheduled day.
+  const todayKey = localDateKey(today);
+  const activeDate = selected && byDate.has(selected) ? selected : byDate.has(todayKey) ? todayKey : days[0]?.date ?? null;
+  const activeEntries: PlanEntry[] = activeDate ? byDate.get(activeDate) ?? [] : [];
+
+  const openCount = days.reduce((s, d) => s + d.entries.length, 0);
   const measured = board.done.filter((a) => a.actualDelta !== null);
   const verifiedPts = measured.length > 0 ? measured.reduce((s, a) => s + (a.actualDelta ?? 0), 0) : null;
 
@@ -86,27 +89,34 @@ export function PlanTimelineBody({ board, synthesis, domain }: { board: ActionBo
         </div>
       </Card>
 
-      {/* The timeline — paced so every move lands (and never reads as spam) */}
-      {weeks.length === 0 ? (
+      {/* The calendar — the plan laid out day by day, starting today */}
+      {days.length === 0 ? (
         <EmptyPlan />
       ) : (
-        weeks.map((w) => (
-          <section key={w.index}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 10, margin: "0 2px 10px" }}>
-              <h3 style={{ fontFamily: SG, fontWeight: 700, fontSize: 15, color: "var(--c-ink)", margin: 0 }}>{weekLabel(w.index)}</h3>
-              <span style={{ fontFamily: JM, fontSize: 11, color: "var(--c-faint)" }}>
-                {w.entries.length} {w.entries.length === 1 ? "action" : "actions"} · ~{w.entries.reduce((s, e) => s + e.effortMin, 0)} min
-              </span>
-              {w.index === 0 && <span style={{ fontFamily: JM, fontSize: 10.5, fontWeight: 700, color: "var(--c-action)" }}>← start here</span>}
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {w.entries.map((e) => <PlanEntryCard key={e.key} entry={e} domain={domain} />)}
-            </div>
-          </section>
-        ))
+        <>
+          <PlanCalendar days={days} today={today} activeDate={activeDate} onSelect={setSelected} />
+
+          {/* The selected day, workable in place */}
+          {activeDate && (
+            <section>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 10, margin: "0 2px 10px" }}>
+                <h3 style={{ fontFamily: SG, fontWeight: 700, fontSize: 15, color: "var(--c-ink)", margin: 0 }}>
+                  {activeDate === todayKey ? "Today" : dayHeading(activeDate)}
+                </h3>
+                <span style={{ fontFamily: JM, fontSize: 11, color: "var(--c-faint)" }}>
+                  {activeEntries.length} {activeEntries.length === 1 ? "action" : "actions"} · ~{activeEntries.reduce((s, e) => s + e.effortMin, 0)} min
+                </span>
+                {activeDate === todayKey && <span style={{ fontFamily: JM, fontSize: 10.5, fontWeight: 700, color: "var(--c-action)" }}>← start here</span>}
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {activeEntries.map((e) => <PlanEntryCard key={e.key} entry={e} domain={domain} />)}
+              </div>
+            </section>
+          )}
+        </>
       )}
 
-      {weeks.length > 0 && (
+      {days.length > 0 && (
         <p style={{ fontFamily: JM, fontSize: 11, color: "var(--c-faint)", margin: "-6px 2px 0", lineHeight: 1.6 }}>
           Paced on purpose: one content piece a week, outreach spaced across venues — steady beats spam, for
           you and for the algorithms. Every draft is scrubbed of AI tells and unique to you; you always post it yourself.
@@ -146,6 +156,119 @@ export function PlanTimelineBody({ board, synthesis, domain }: { board: ActionBo
           Verified wins land on your Progress timeline &rarr;
         </Link>
       </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Calendar — Outrank-style month grids: every scheduled day carries its
+// entries as chips; clicking a day focuses the workable panel below.
+// ---------------------------------------------------------------------------
+
+const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
+
+function dayHeading(dateKey: string): string {
+  const [y, m, d] = dateKey.split("-").map(Number);
+  return new Date(y!, m! - 1, d!).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
+}
+
+const CHIP_STYLE: Record<PlanEntry["kind"], { bg: string; fg: string }> = {
+  content: { bg: "var(--c-soft)", fg: "var(--c-action)" },
+  distribution: { bg: "var(--c-tint-green)", fg: "var(--c-band-findable)" },
+};
+
+function PlanCalendar({ days, today, activeDate, onSelect }: {
+  days: ScheduledDay[];
+  today: Date;
+  activeDate: string | null;
+  onSelect: (date: string) => void;
+}) {
+  const byDate = new Map(days.map((d) => [d.date, d.entries]));
+  const todayKey = localDateKey(today);
+  const last = days[days.length - 1]!.date;
+  const [ly, lm] = last.split("-").map(Number);
+
+  // Months from today's month through the last scheduled month.
+  const months: { year: number; month: number }[] = [];
+  for (let y = today.getFullYear(), m = today.getMonth(); y < ly! || (y === ly! && m <= lm! - 1); m === 11 ? (m = 0, y++) : m++) {
+    months.push({ year: y, month: m });
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      {months.map(({ year, month }) => {
+        const first = new Date(year, month, 1);
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const lead = (first.getDay() + 6) % 7; // Mon-first offset
+        const cells: (number | null)[] = [
+          ...Array.from({ length: lead }, () => null),
+          ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
+        ];
+        return (
+          <section key={`${year}-${month}`}>
+            <h3 style={{ fontFamily: SG, fontWeight: 700, fontSize: 15, color: "var(--c-ink)", margin: "0 2px 8px" }}>
+              {first.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+            </h3>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 6 }}>
+              {WEEKDAYS.map((w) => (
+                <span key={w} style={{ fontFamily: JM, fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--c-faint)", padding: "0 4px" }}>{w}</span>
+              ))}
+              {cells.map((dayNum, i) => {
+                if (dayNum === null) return <span key={`b${i}`} />;
+                const key = localDateKey(new Date(year, month, dayNum));
+                const entries = byDate.get(key) ?? [];
+                const isToday = key === todayKey;
+                const isActive = key === activeDate;
+                const isPast = key < todayKey;
+                const clickable = entries.length > 0;
+                return (
+                  <div
+                    key={key}
+                    role={clickable ? "button" : undefined}
+                    tabIndex={clickable ? 0 : undefined}
+                    onClick={clickable ? () => onSelect(key) : undefined}
+                    onKeyDown={clickable ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(key); } } : undefined}
+                    aria-label={clickable ? `${dayHeading(key)} — ${entries.length} ${entries.length === 1 ? "action" : "actions"}` : undefined}
+                    style={{
+                      minHeight: 76,
+                      border: `1px solid ${isActive ? "var(--c-action)" : "var(--c-line)"}`,
+                      borderRadius: "var(--radius-md)",
+                      background: isActive ? "var(--c-soft)" : "var(--c-surface)",
+                      padding: "6px 6px 7px",
+                      opacity: isPast && !clickable ? 0.45 : 1,
+                      cursor: clickable ? "pointer" : "default",
+                      display: "flex", flexDirection: "column", gap: 4, minWidth: 0,
+                    }}
+                  >
+                    <span style={{
+                      fontFamily: JM, fontSize: 11, fontWeight: 700, lineHeight: 1,
+                      color: isToday ? "#fff" : "var(--c-faint)",
+                      background: isToday ? "var(--c-action)" : "transparent",
+                      borderRadius: "var(--radius-full)", padding: isToday ? "3px 7px" : "3px 0",
+                      alignSelf: "flex-start",
+                    }}>
+                      {dayNum}
+                    </span>
+                    {entries.slice(0, 2).map((e) => (
+                      <span key={e.key} title={e.title} style={{
+                        fontFamily: PJ, fontSize: 10, fontWeight: 600, lineHeight: 1.3,
+                        color: CHIP_STYLE[e.kind].fg, background: CHIP_STYLE[e.kind].bg,
+                        borderRadius: "var(--radius-sm)", padding: "3px 6px",
+                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                      }}>
+                        {e.title}
+                      </span>
+                    ))}
+                    {entries.length > 2 && (
+                      <span style={{ fontFamily: JM, fontSize: 9.5, color: "var(--c-faint)" }}>+{entries.length - 2} more</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 }

@@ -251,3 +251,66 @@ export function schedulePlan(
     .map((w, index) => ({ index, entries: w.entries }))
     .filter((w) => w.entries.length > 0);
 }
+
+// ---------------------------------------------------------------------------
+// Day placement — the calendar layer
+// ---------------------------------------------------------------------------
+
+export interface ScheduledDay {
+  /** Local date, "YYYY-MM-DD". */
+  date: string;
+  entries: PlanEntry[];
+}
+
+/** Local YYYY-MM-DD (no UTC shift). */
+export function localDateKey(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/** Local Monday of the week containing `d`. */
+export function mondayOf(d: Date): Date {
+  const out = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  out.setDate(out.getDate() - ((out.getDay() + 6) % 7));
+  return out;
+}
+
+/**
+ * Spread each scheduled week's entries across its calendar days — the plan as
+ * a calendar, starting TODAY. Week 0 only uses today..Sunday (never schedules
+ * into the past); later weeks use all seven days. One entry per day until a
+ * week has more entries than days, then round-robin. Deterministic for a given
+ * `today`, so the calendar doesn't reshuffle on every render.
+ */
+export function scheduleToDays(weeks: ScheduledWeek[], today: Date): ScheduledDay[] {
+  const monday0 = mondayOf(today);
+  const byDate = new Map<string, PlanEntry[]>();
+
+  for (const week of weeks) {
+    const weekMonday = new Date(monday0);
+    weekMonday.setDate(monday0.getDate() + week.index * 7);
+
+    // Candidate days: week 0 starts at today; later weeks start on Monday.
+    const startOffset = week.index === 0 ? (today.getDay() + 6) % 7 : 0;
+    const days: Date[] = [];
+    for (let d = startOffset; d < 7; d++) {
+      const day = new Date(weekMonday);
+      day.setDate(weekMonday.getDate() + d);
+      days.push(day);
+    }
+
+    week.entries.forEach((entry, i) => {
+      const day = days[i % days.length]!;
+      const key = localDateKey(day);
+      const list = byDate.get(key) ?? [];
+      list.push(entry);
+      byDate.set(key, list);
+    });
+  }
+
+  return [...byDate.entries()]
+    .sort(([a], [b]) => (a < b ? -1 : 1))
+    .map(([date, entries]) => ({ date, entries }));
+}

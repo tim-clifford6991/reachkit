@@ -10,6 +10,7 @@ import { describe, expect, test } from "vitest";
 import {
   mergePlanEntries,
   schedulePlan,
+  scheduleToDays,
   byScheduleOrder,
   CONTENT_EFFORT_MIN,
   type PlanEntry,
@@ -142,5 +143,50 @@ describe("schedulePlan — §11 pacing as the calendar", () => {
       entry({ key: "b", title: "B", priority: "high", effortMin: 30 }),
     ];
     expect(schedulePlan(input)).toEqual(schedulePlan([...input].reverse()));
+  });
+});
+
+describe("scheduleToDays — the calendar layer", () => {
+  // Wednesday 2026-07-08 (local): week 0 has Wed..Sun left.
+  const wednesday = new Date(2026, 6, 8);
+
+  test("week 0 starts TODAY, one entry per day, never in the past", () => {
+    const weeks = [{
+      index: 0,
+      entries: [
+        entry({ key: "a", title: "A" }),
+        entry({ key: "b", title: "B" }),
+        entry({ key: "c", title: "C" }),
+      ],
+    }];
+    const days = scheduleToDays(weeks, wednesday);
+    expect(days.map((d) => d.date)).toEqual(["2026-07-08", "2026-07-09", "2026-07-10"]);
+    expect(days.every((d) => d.entries.length === 1)).toBe(true);
+  });
+
+  test("later weeks start on their Monday", () => {
+    const weeks = [{ index: 1, entries: [entry({ key: "a", title: "A" })] }];
+    const days = scheduleToDays(weeks, wednesday);
+    expect(days.map((d) => d.date)).toEqual(["2026-07-13"]);
+  });
+
+  test("more entries than remaining days wraps round-robin (nothing dropped)", () => {
+    const sunday = new Date(2026, 6, 12); // week 0 has only Sunday left
+    const weeks = [{
+      index: 0,
+      entries: [entry({ key: "a", title: "A" }), entry({ key: "b", title: "B" })],
+    }];
+    const days = scheduleToDays(weeks, sunday);
+    expect(days).toHaveLength(1);
+    expect(days[0]!.date).toBe("2026-07-12");
+    expect(days[0]!.entries.map((e) => e.key)).toEqual(["a", "b"]);
+  });
+
+  test("deterministic for a fixed today", () => {
+    const weeks = schedulePlan([
+      entry({ key: "a", title: "A", priority: "high" }),
+      entry({ key: "b", title: "B", priority: "medium" }),
+    ]);
+    expect(scheduleToDays(weeks, wednesday)).toEqual(scheduleToDays(weeks, new Date(2026, 6, 8)));
   });
 });
