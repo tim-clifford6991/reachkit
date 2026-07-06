@@ -59,6 +59,17 @@ after first </section>)`) and renders `<ScanHero showScrollCue/>` in its place
 report-card mock on the right). So the hero <section> in `landing-html.ts` is DEAD
 — editing it does nothing. To change the real landing hero, edit `scan-hero.tsx`.
 
+## Hero iteration 5 — ShipFast two-line lockup, ONE consistent size (final)
+Per user + ShipFast reference: fixed structure at ALL widths — line 1 "Your
+competitors are being", line 2 "found. <You aren't. highlighted inline>". ONE
+consistent font size (dropped the 0.62/1.18 split). Each line is white-space:
+nowrap; `.rkh-h1` clamps retuned so line 1 fits the 46% column (desktop
+clamp(1.7rem,3vw,36px)) and scales down on mobile (clamp(1.4rem,6vw,44px)) —
+verified rects=1/no-overflow at 36px desktop + narrow sim. Violet highlight
+(color-mix var(--c-action) onto surface) kept. DS LandingHero mirrors it
+(headline default now "Your competitors are being", "found." bridge hardcoded);
+re-synced.
+
 ## Hero iteration 4 — restored missing PR work + violet punch, "See exactly why" dropped
 Missing commit **4a10aef** (on feat/story-copy-hero, NOT in feat/scan-slugs — my branch
 was cut at 8fe66e2, before it) carried: one-line eyebrow "Every claim grounded in your

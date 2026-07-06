@@ -59,13 +59,13 @@ const chip = (color: string): React.CSSProperties => ({
 const HERO_CSS = `
 .rkh-grid{display:flex;flex-direction:column;align-items:center;gap:44px}
 .rkh-copy{display:flex;flex-direction:column;align-items:center;text-align:center;width:100%;max-width:720px;min-width:0}
-.rkh-h1{font-size:clamp(2.35rem,5.4vw,52px)}
+.rkh-h1{font-size:clamp(1.4rem,6vw,44px)}
 .rkh-input{width:100%;max-width:540px}
 .rkh-card{width:100%;max-width:800px;min-width:0}
 @media (min-width:1000px){
   .rkh-grid{flex-direction:row;align-items:center;gap:48px}
   .rkh-copy{flex:0 1 46%;align-items:flex-start;text-align:left;max-width:none}
-  .rkh-h1{font-size:clamp(2.3rem,3.4vw,46px)}
+  .rkh-h1{font-size:clamp(1.7rem,3vw,36px)}
   .rkh-input{max-width:520px}
   .rkh-card{flex:1 1 54%;max-width:none}
 }
@@ -90,15 +90,16 @@ export function ScanHero({ showScrollCue = false }: { showScrollCue?: boolean })
               Every claim grounded in your live page.
             </span>
 
-            {/* Lockup rhythm: the setup line sits smaller so the punch is the
-                loudest thing on the page. "See exactly why." is dropped — the
-                two-line lockup lands harder. */}
-            <h1 className="rkh-h1" style={{ fontFamily: SG, fontWeight: 700, lineHeight: 1.08, letterSpacing: "-0.035em", margin: "22px 0 0", textWrap: "balance" } as React.CSSProperties}>
-              <span style={{ display: "block", fontSize: "0.62em", fontWeight: 600, color: "var(--c-ink)", letterSpacing: "-0.02em" }}>Your competitors are being found.</span>
-              {/* The punch — the biggest, loudest element, in a solid highlight
-                  marker drawn from the CENTRAL palette (var(--c-action) mixed onto
-                  the surface — no new colour). inline-block so the box hugs it. */}
-              <span style={{ display: "inline-block", marginTop: 6, fontSize: "1.18em", fontStyle: "italic", letterSpacing: "-0.05em", color: "var(--c-ink)", background: "color-mix(in oklab, var(--c-action) 20%, var(--c-surface))", padding: "0.04em 0.22em", borderRadius: "0.14em" }}>You aren&apos;t.</span>
+            {/* Fixed two-line lockup at EVERY width — one consistent size, each
+                line held on one row (nowrap). "You aren't." is highlighted inline
+                on line 2 in a solid marker from the CENTRAL palette (color-mix on
+                var(--c-action) onto the surface — no new colour). ShipFast idiom. */}
+            <h1 className="rkh-h1" style={{ fontFamily: SG, fontWeight: 700, lineHeight: 1.14, letterSpacing: "-0.035em", margin: "22px 0 0" } as React.CSSProperties}>
+              <span style={{ display: "block", whiteSpace: "nowrap" }}>Your competitors are being</span>
+              <span style={{ display: "block", whiteSpace: "nowrap" }}>
+                found.{" "}
+                <span style={{ display: "inline-block", fontStyle: "italic", color: "var(--c-ink)", background: "color-mix(in oklab, var(--c-action) 20%, var(--c-surface))", padding: "0.02em 0.22em", borderRadius: "0.14em" }}>You aren&apos;t.</span>
+              </span>
             </h1>
 
             <p style={{ fontSize: 19, lineHeight: 1.55, color: "var(--c-muted)", maxWidth: 620, margin: "18px 0 0", textWrap: "pretty" } as React.CSSProperties}>

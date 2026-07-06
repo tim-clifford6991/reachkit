@@ -3,11 +3,11 @@ import { ScanInput } from "./ScanInput";
 
 /**
  * LandingHero — the marketing hero: a soft radial-fade backdrop, an evidence
- * pill (dot + trust line), a two-line display headline (a smaller setup line
- * over the punch phrase "You aren't." — the loudest element, in a solid violet
- * highlight marker from the central palette), a supporting subhead, and the
- * ScanInput conversion control with its trust line. Mirrors the live ReachKit
- * landing hero. Renders fully with no props.
+ * pill (dot + trust line), a fixed two-line display headline at ONE consistent
+ * size ("Your competitors are being" / "found. You aren't." — the phrase in a
+ * solid violet highlight marker from the central palette), a supporting subhead,
+ * and the ScanInput conversion control with its trust line. Mirrors the live
+ * ReachKit landing hero. Renders fully with no props.
  */
 export interface LandingHeroProps {
   eyebrow?: string;
@@ -19,7 +19,7 @@ export interface LandingHeroProps {
 
 export function LandingHero({
   eyebrow = "Every claim grounded in your live page.",
-  headline = "Your competitors are being found.",
+  headline = "Your competitors are being",
   emphasis = "You aren't.",
   subhead = "Paste your URL. In under a minute ReachKit reads your live page the way a buyer's search does — then shows you the searches your rivals win, the score that measures the gap, and the ranked fixes that close it.",
 }: LandingHeroProps) {
@@ -54,40 +54,36 @@ export function LandingHero({
           {eyebrow}
         </div>
 
-        {/* Two-line lockup: the setup line sits smaller so the highlighted
-            punch is the loudest element. No third "See exactly why" line. */}
+        {/* Fixed two-line lockup — ONE consistent size, each line on one row.
+            "You aren't." is highlighted inline on line 2 in a solid marker from
+            the CENTRAL palette (color-mix on var(--c-action)). ShipFast idiom. */}
         <h1
           style={{
             fontFamily: "var(--font-display)",
             fontWeight: 700,
-            fontSize: "clamp(2.1rem, 5.4vw, 3.4rem)",
-            lineHeight: 1.08,
+            fontSize: "clamp(1.7rem, 4.6vw, 3rem)",
+            lineHeight: 1.14,
             letterSpacing: "-0.035em",
             color: "var(--c-ink)",
             margin: "22px auto 0",
-            maxWidth: 860,
-            textWrap: "balance",
           }}
         >
-          <span style={{ display: "block", fontSize: "0.62em", fontWeight: 600, letterSpacing: "-0.02em" }}>{headline}</span>
-          {/* The punch — the biggest, loudest element, in a solid highlight
-              marker drawn from the CENTRAL palette (var(--c-action) mixed onto
-              the surface — no new colour). inline-block so the box hugs it. */}
-          <em
-            style={{
-              display: "inline-block",
-              marginTop: "0.14em",
-              fontSize: "1.18em",
-              fontStyle: "italic",
-              letterSpacing: "-0.05em",
-              background: "color-mix(in oklab, var(--c-action) 20%, var(--c-surface))",
-              color: "var(--c-ink)",
-              padding: "0.04em 0.22em",
-              borderRadius: "0.14em",
-            }}
-          >
-            {emphasis}
-          </em>
+          <span style={{ display: "block", whiteSpace: "nowrap" }}>{headline}</span>
+          <span style={{ display: "block", whiteSpace: "nowrap" }}>
+            found.{" "}
+            <em
+              style={{
+                display: "inline-block",
+                fontStyle: "italic",
+                background: "color-mix(in oklab, var(--c-action) 20%, var(--c-surface))",
+                color: "var(--c-ink)",
+                padding: "0.02em 0.22em",
+                borderRadius: "0.14em",
+              }}
+            >
+              {emphasis}
+            </em>
+          </span>
         </h1>
 
         <p
