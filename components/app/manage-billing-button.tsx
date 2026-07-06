@@ -30,7 +30,12 @@ export function ManageBillingButton({
   const open = useCallback(async () => {
     setPending(true);
     try {
-      const res = await fetch("/api/billing/portal", { method: "POST" });
+      const res = await fetch("/api/billing/portal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // "Return to ReachKit" in the portal comes back to this page.
+        body: JSON.stringify({ returnPath: window.location.pathname }),
+      });
       const data = (await res.json().catch(() => ({}))) as { url?: string };
       if (!res.ok || !data.url) throw new Error("portal failed");
       window.location.assign(data.url);

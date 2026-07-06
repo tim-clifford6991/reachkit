@@ -2,6 +2,7 @@ import { serverDb } from "@/lib/db/client";
 import { fixturesEnabled } from "@/lib/dev/fixtures";
 import { env } from "@/lib/config/env";
 import { assertStripeConfigured, stripeClient } from "@/lib/billing/stripe";
+import { safeReturnPath } from "@/lib/billing/return-path";
 
 /**
  * Thrown when a user has no Stripe customer to manage (e.g. a subscription that
@@ -22,12 +23,19 @@ export class NoBillingAccountError extends Error {
  * stripe_customer_id (must exist — without it there is no subscription to
  * manage) and open a billing-portal session that returns to /app/billing.
  */
-export async function createPortalSession(userId: string): Promise<{ url: string }> {
+export async function createPortalSession(
+  userId: string,
+  returnPath?: string,
+): Promise<{ url: string }> {
+  // Where the portal's "Return to ReachKit" sends the user — the surface they
+  // opened it from (e.g. /app/settings), never a hard-coded /app/billing.
+  const returnUrl = `${env.appUrl}${safeReturnPath(returnPath)}`;
+
   // ---------------------------------------------------------------------------
   // Fixture path — no Stripe; return the demo billing URL.
   // ---------------------------------------------------------------------------
   if (fixturesEnabled()) {
-    return { url: `${env.appUrl}/app/billing?portal=demo` };
+    return { url: `${returnUrl}${returnUrl.includes("?") ? "&" : "?"}portal=demo` };
   }
 
   // ---------------------------------------------------------------------------
@@ -52,7 +60,7 @@ export async function createPortalSession(userId: string): Promise<{ url: string
 
   const session = await stripeClient().billingPortal.sessions.create({
     customer,
-    return_url: `${env.appUrl}/app/billing`,
+    return_url: returnUrl,
   });
 
   return { url: session.url };
