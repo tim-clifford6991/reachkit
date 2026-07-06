@@ -106,12 +106,21 @@ async function SidebarData({ children }: { children: React.ReactNode }) {
   // The blocking first-run sequence. "profile" until saveOnboarding sets
   // `onboarded_at`; then "competitors" until the active app has a confirmed
   // benchmark cohort (same source resolveIntelContext reads); else "ready".
-  // Users with no scanned app can't pick competitors — they're "ready" after
-  // the profile step (the dashboard empty state points at the first scan).
+  // Users with no *completed scan* can't pick competitors — there are no
+  // candidates to benchmark against yet — so they're "ready" and the dashboard's
+  // empty state points them at the first scan. This is also what keeps a
+  // freshly-switched product (new app, no scan) out of the discovery overlay:
+  // its single on-demand scan seeds the candidates, and the competitor pick
+  // becomes the normal cheap post-scan beat.
   let setupState: "profile" | "competitors" | "ready" = "ready";
   if (!user.onboarded_at) {
     setupState = "profile";
-  } else if (primaryAppId && domain && (await getSelectedCompetitors(primaryAppId)).length === 0) {
+  } else if (
+    primaryAppId &&
+    domain &&
+    lastScannedIso &&
+    (await getSelectedCompetitors(primaryAppId)).length === 0
+  ) {
     setupState = "competitors";
   }
 
