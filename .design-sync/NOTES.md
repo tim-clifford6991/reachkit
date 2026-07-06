@@ -52,6 +52,17 @@ Uploaded SCOPED (atomic path): `_ds_bundle.js` + `components/Marketing/LandingHe
 + sentinel + `_ds_sync.json` (unchanged, re-armed last). Protected content
 re-confirmed intact via list_files. planId plan_819c77dc3b5b42e1_ad375d1462f4.
 
+## Hero title treatment 2026-07-06 (iteration 2)
+Title reworked: all 3 phrases ONE size; the negative phrase "You aren't." gets a
+soft-red highlight marker `background: color-mix(in oklab, var(--c-band-invisible)
+16%, transparent)` + italic (ShipFast-marker inspiration, but our palette — no new
+colours); "See exactly why." stays `var(--c-action)` violet. Applied to BOTH
+`ds-src/LandingHero.tsx` AND app `components/sections/captured/landing-html.ts`
+(the h1 `<em>`). DS re-synced scoped (reused session planId). NOTE: user's running
+app (localhost:3001) showed an UNEVEN-sized hero not present in feat/scan-slugs
+(uniform 57px here) — their instance is a different/newer version; target design
+applied to this branch + DS regardless.
+
 ## Re-sync verdict 2026-07-06 — NO-OP (no drift)
 ds-src + build.mjs + layout.mjs all unchanged since the 2026-07-02 sync; rebuilt
 `_ds_sync.json` exports IDENTICAL to remote (33); ScoreGauge card byte-matches

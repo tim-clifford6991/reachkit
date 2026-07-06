@@ -3,10 +3,11 @@ import { ScanInput } from "./ScanInput";
 
 /**
  * LandingHero — the marketing hero: a soft radial-fade backdrop, an evidence
- * pill (dot + trust line), a big display headline (with an italic emphasis and
- * a violet-accented closing phrase), a supporting subhead, and the ScanInput
- * conversion control with its trust line. Mirrors the live ReachKit landing
- * hero. Renders fully with no props.
+ * pill (dot + trust line), a big display headline (all three phrases at ONE
+ * size; the negative phrase highlighted + italic, the closing phrase in the
+ * violet action colour), a supporting subhead, and the ScanInput conversion
+ * control with its trust line. Mirrors the live ReachKit landing hero. Renders
+ * fully with no props.
  */
 export interface LandingHeroProps {
   eyebrow?: string;
@@ -69,7 +70,24 @@ export function LandingHero({
             textWrap: "balance",
           }}
         >
-          {headline} <em>{emphasis}</em> <span style={{ color: "var(--c-action)" }}>{accent}</span>
+          {headline}{" "}
+          <em
+            style={{
+              // Highlight marker for the negative phrase — a soft red drawn
+              // from the score palette (var(--c-band-invisible)), NOT a new
+              // colour. Same font size as the rest of the headline; italic.
+              fontStyle: "italic",
+              background: "color-mix(in oklab, var(--c-band-invisible) 16%, transparent)",
+              color: "var(--c-ink)",
+              padding: "0 0.16em",
+              borderRadius: "0.4em",
+              boxDecorationBreak: "clone",
+              WebkitBoxDecorationBreak: "clone",
+            }}
+          >
+            {emphasis}
+          </em>{" "}
+          <span style={{ color: "var(--c-action)" }}>{accent}</span>
         </h1>
 
         <p
