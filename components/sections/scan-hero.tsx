@@ -1,7 +1,7 @@
 /**
  * ScanHero — the single shared hero used by BOTH the landing ("/") and /scan, so
  * the "analyze my site" experience is identical everywhere. Split layout at
- * >=1000px: copy column (eyebrow, stacked three-line headline with the italic
+ * >=1000px: copy column (eyebrow, two-line headline with the highlighted italic
  * "You aren't." punch, subhead, ScanInput pill, meta line) on the left, the
  * browser-framed proof card on the right; below the breakpoint everything
  * stacks centered as before. The proof card is a slice of the real paid
@@ -83,19 +83,22 @@ export function ScanHero({ showScrollCue = false }: { showScrollCue?: boolean })
         <div className="rkh-grid">
           {/* Copy column — eyebrow, stacked headline, subhead, input, meta */}
           <div className="rkh-copy">
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 8, fontFamily: JM, fontSize: 12.5, fontWeight: 600, letterSpacing: "0.04em", color: "var(--c-action)", background: "var(--c-surface)", border: "1px solid #E7E0FB", borderRadius: 999, padding: "7px 15px" }}>
-              <span style={{ width: 6, height: 6, borderRadius: 999, background: "var(--c-action)" }} />
-              Grounded in your live page. Every claim links to real evidence.
+            {/* Short enough to stay on ONE line in the 46% column — a wrapped
+                pill ("…evidence." dangling) reads broken. */}
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8, fontFamily: JM, fontSize: 12.5, fontWeight: 600, letterSpacing: "0.04em", color: "var(--c-action)", background: "var(--c-surface)", border: "1px solid #E7E0FB", borderRadius: 999, padding: "7px 15px", whiteSpace: "nowrap" }}>
+              <span style={{ width: 6, height: 6, borderRadius: 999, background: "var(--c-action)", flexShrink: 0 }} />
+              Every claim grounded in your live page.
             </span>
 
-            <h1 className="rkh-h1" style={{ fontFamily: SG, fontWeight: 700, lineHeight: 1.06, letterSpacing: "-0.035em", margin: "22px 0 0", textWrap: "balance" } as React.CSSProperties}>
-              <span style={{ display: "block" }}>Your competitors are being found.</span>
-              {/* The punch — SAME size as the other lines, on its own line, italic,
-                  inside a solid highlight marker (a soft red from the score palette,
-                  var(--c-band-invisible) mixed onto the surface — an existing token,
-                  no new colour). display:inline-block so the box hugs the phrase. */}
-              <span style={{ display: "inline-block", margin: "3px 0", fontStyle: "italic", color: "var(--c-ink)", background: "color-mix(in oklab, var(--c-band-invisible) 22%, var(--c-surface))", padding: "0.02em 0.2em", borderRadius: "0.14em" }}>You aren&apos;t.</span>
-              <span style={{ display: "block", color: "var(--c-action)" }}>See exactly why.</span>
+            {/* Lockup rhythm: the setup line sits smaller so the punch is the
+                loudest thing on the page. "See exactly why." is dropped — the
+                two-line lockup lands harder. */}
+            <h1 className="rkh-h1" style={{ fontFamily: SG, fontWeight: 700, lineHeight: 1.08, letterSpacing: "-0.035em", margin: "22px 0 0", textWrap: "balance" } as React.CSSProperties}>
+              <span style={{ display: "block", fontSize: "0.62em", fontWeight: 600, color: "var(--c-ink)", letterSpacing: "-0.02em" }}>Your competitors are being found.</span>
+              {/* The punch — the biggest, loudest element, in a solid highlight
+                  marker drawn from the CENTRAL palette (var(--c-action) mixed onto
+                  the surface — no new colour). inline-block so the box hugs it. */}
+              <span style={{ display: "inline-block", marginTop: 6, fontSize: "1.18em", fontStyle: "italic", letterSpacing: "-0.05em", color: "var(--c-ink)", background: "color-mix(in oklab, var(--c-action) 20%, var(--c-surface))", padding: "0.04em 0.22em", borderRadius: "0.14em" }}>You aren&apos;t.</span>
             </h1>
 
             <p style={{ fontSize: 19, lineHeight: 1.55, color: "var(--c-muted)", maxWidth: 620, margin: "18px 0 0", textWrap: "pretty" } as React.CSSProperties}>

@@ -59,6 +59,17 @@ after first </section>)`) and renders `<ScanHero showScrollCue/>` in its place
 report-card mock on the right). So the hero <section> in `landing-html.ts` is DEAD
 — editing it does nothing. To change the real landing hero, edit `scan-hero.tsx`.
 
+## Hero iteration 4 — restored missing PR work + violet punch, "See exactly why" dropped
+Missing commit **4a10aef** (on feat/story-copy-hero, NOT in feat/scan-slugs — my branch
+was cut at 8fe66e2, before it) carried: one-line eyebrow "Every claim grounded in your
+live page." (nowrap), the punchier lockup (setup 0.62em / punch 1.18em), and smooth-glide
+Lenis anchor scrolling for the "See how it works" cue (motion-provider.tsx). Cherry-picked
+it in (resolved the scan-hero h1 conflict to the final design). Then per user: highlight
+now uses the CENTRAL palette — `color-mix(in oklab, var(--c-action) 20%, var(--c-surface))`
+(violet, not the red band-invisible) — and "See exactly why." REMOVED so the two-line
+lockup puts all weight on the highlighted italic "You aren't." DS LandingHero mirrors it
+(dropped the `accent` prop) + re-synced.
+
 ## Hero title treatment 2026-07-06 (iteration 3 — SOLID box, on the real hero)
 Fixed on `scan-hero.tsx` (the punch was `fontSize:1.14em` italic block → oversized).
 Now: all 3 headline lines ONE size; "You aren't." is a SOLID highlight marker

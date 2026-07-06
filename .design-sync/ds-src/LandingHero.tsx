@@ -3,27 +3,24 @@ import { ScanInput } from "./ScanInput";
 
 /**
  * LandingHero — the marketing hero: a soft radial-fade backdrop, an evidence
- * pill (dot + trust line), a big display headline (all three phrases at ONE
- * size; the negative phrase highlighted + italic, the closing phrase in the
- * violet action colour), a supporting subhead, and the ScanInput conversion
- * control with its trust line. Mirrors the live ReachKit landing hero. Renders
- * fully with no props.
+ * pill (dot + trust line), a two-line display headline (a smaller setup line
+ * over the punch phrase "You aren't." — the loudest element, in a solid violet
+ * highlight marker from the central palette), a supporting subhead, and the
+ * ScanInput conversion control with its trust line. Mirrors the live ReachKit
+ * landing hero. Renders fully with no props.
  */
 export interface LandingHeroProps {
   eyebrow?: string;
   headline?: string;
   /** Italic emphasis phrase, rendered right after the headline. */
   emphasis?: string;
-  /** Violet-accented closing phrase. */
-  accent?: string;
   subhead?: string;
 }
 
 export function LandingHero({
-  eyebrow = "Grounded in your live page. Every claim links to real evidence.",
+  eyebrow = "Every claim grounded in your live page.",
   headline = "Your competitors are being found.",
   emphasis = "You aren't.",
-  accent = "See exactly why.",
   subhead = "Paste your URL. In under a minute ReachKit reads your live page the way a buyer's search does — then shows you the searches your rivals win, the score that measures the gap, and the ranked fixes that close it.",
 }: LandingHeroProps) {
   return (
@@ -57,12 +54,14 @@ export function LandingHero({
           {eyebrow}
         </div>
 
+        {/* Two-line lockup: the setup line sits smaller so the highlighted
+            punch is the loudest element. No third "See exactly why" line. */}
         <h1
           style={{
             fontFamily: "var(--font-display)",
             fontWeight: 700,
-            fontSize: "clamp(2.1rem, 5.4vw, 3.56rem)",
-            lineHeight: 1.04,
+            fontSize: "clamp(2.1rem, 5.4vw, 3.4rem)",
+            lineHeight: 1.08,
             letterSpacing: "-0.035em",
             color: "var(--c-ink)",
             margin: "22px auto 0",
@@ -70,24 +69,25 @@ export function LandingHero({
             textWrap: "balance",
           }}
         >
-          {headline}{" "}
+          <span style={{ display: "block", fontSize: "0.62em", fontWeight: 600, letterSpacing: "-0.02em" }}>{headline}</span>
+          {/* The punch — the biggest, loudest element, in a solid highlight
+              marker drawn from the CENTRAL palette (var(--c-action) mixed onto
+              the surface — no new colour). inline-block so the box hugs it. */}
           <em
             style={{
-              // Solid highlight marker for the negative phrase — a soft red
-              // drawn from the score palette (var(--c-band-invisible) mixed onto
-              // the surface), NOT a new colour. Same font size as the rest of
-              // the headline; italic. inline-block so the box hugs the phrase.
               display: "inline-block",
+              marginTop: "0.14em",
+              fontSize: "1.18em",
               fontStyle: "italic",
-              background: "color-mix(in oklab, var(--c-band-invisible) 22%, var(--c-surface))",
+              letterSpacing: "-0.05em",
+              background: "color-mix(in oklab, var(--c-action) 20%, var(--c-surface))",
               color: "var(--c-ink)",
-              padding: "0.02em 0.2em",
+              padding: "0.04em 0.22em",
               borderRadius: "0.14em",
             }}
           >
             {emphasis}
-          </em>{" "}
-          <span style={{ color: "var(--c-action)" }}>{accent}</span>
+          </em>
         </h1>
 
         <p
