@@ -15,12 +15,14 @@
  */
 
 import { useCallback, useState } from "react";
+import { toast } from "sonner";
 
 export function CheckoutButton({
   plan = "solo",
   children,
   pendingLabel = "Redirecting…",
   fallbackHref = "/app/billing",
+  onErrorToast,
   style,
   className,
 }: {
@@ -29,6 +31,10 @@ export function CheckoutButton({
   pendingLabel?: React.ReactNode;
   /** Where to send the user when checkout can't start (default /app/billing). */
   fallbackHref?: string;
+  /** When set, a failed checkout shows this toast and STAYS put (retryable)
+   *  instead of navigating to `fallbackHref` — so surfaces that want to be
+   *  self-contained (e.g. Settings) never bounce the user to /app/billing. */
+  onErrorToast?: string;
   style?: React.CSSProperties;
   className?: string;
 }) {
@@ -47,10 +53,15 @@ export function CheckoutButton({
       window.location.assign(data.url);
       // Keep the pending state — the browser is navigating away.
     } catch {
-      // Error fallback: the billing page has the full plan cards + retry.
-      window.location.assign(fallbackHref);
+      if (onErrorToast) {
+        toast.error(onErrorToast);
+        setPending(false); // stay put, let the user retry
+      } else {
+        // Legacy fallback: the billing page has the full plan cards + retry.
+        window.location.assign(fallbackHref);
+      }
     }
-  }, [plan, fallbackHref]);
+  }, [plan, fallbackHref, onErrorToast]);
 
   return (
     <button
