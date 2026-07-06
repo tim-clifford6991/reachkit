@@ -54,8 +54,8 @@ async function SettingsContent() {
       planTitle={plan.title}
       planDesc={plan.desc}
       upgradeLabel={plan.upgrade}
-      upgradeHref="/app/billing"
       upgradePlan={plan.upgradePlan}
+      isPaid={ent.active}
       appName={appName}
       appInitial={appName.charAt(0).toUpperCase()}
       productMeta={productMeta}

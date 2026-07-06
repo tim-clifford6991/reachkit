@@ -23,6 +23,92 @@ versions of the app's components.
   symlink to it so build.mjs resolves esbuild (recreate per clone:
   `ln -sfn ../.ds-sync/node_modules .design-sync/node_modules`).
 
+## ⚠ Full build pipeline is 3 steps — `tokens/tokens.css` + `styles.css` are CURATED, not script-generated (learned 2026-07-06)
+`ds-bundle/` is **gitignored** (never committed). NO committed script generates
+`tokens/tokens.css` or `styles.css` — they are **hand-curated** standalone files
+(tokens.css is the app's `--c-*` palette transcribed to plain CSS + Google-Fonts
+@import; NOT auto-derived from `app/globals.css`). `layout.mjs` READS
+`ds-bundle/tokens/tokens.css` at line ~101, so it must exist BEFORE layout runs.
+The complete rebuild is therefore:
+  1. `node .design-sync/ds-src/build.mjs`   → `_ds_bundle.js`, `_ds_bundle.css`, `_ds_sync.json`
+  2. **ensure `ds-bundle/tokens/tokens.css` + `ds-bundle/styles.css` exist** —
+     they are NOT regenerable by any script. If `ds-bundle` was wiped, re-fetch
+     them from the remote project (`DesignSync get_file tokens/tokens.css` &
+     `styles.css`) or restore from a prior local `ds-bundle`. **Do NOT
+     `rm -rf ds-bundle` without first preserving these two.**
+  3. `node .design-sync/ds-src/layout.mjs` → all 33 component cards + static prerender.
+`README.md` in the managed set is likewise curated/hand-stitched (no converter
+stitches `readmeHeader`); conventions.md is validated, not re-authored, on re-sync.
+
+## LandingHero updated 2026-07-06 → live-landing hero
+`ds-src/LandingHero.tsx` was stale ("Stop guessing… isn't getting found", ~90s).
+Rewrote it to mirror the current captured landing hero (`landing-html.ts`):
+radial-fade section, evidence pill (dot + "Grounded in your live page…"),
+headline "Your competitors are being found. <em>You aren't.</em> <violet>See
+exactly why.</violet>", updated subhead, ScanInput with note "Under a minute ·
+No login for your first scan · Try: bloom.io". New optional `emphasis` prop.
+Rebuilt + card render-verified (served static, screenshot-matched the live hero).
+Uploaded SCOPED (atomic path): `_ds_bundle.js` + `components/Marketing/LandingHero/**`
++ sentinel + `_ds_sync.json` (unchanged, re-armed last). Protected content
+re-confirmed intact via list_files. planId plan_819c77dc3b5b42e1_ad375d1462f4.
+
+## ⚠ The LIVE landing hero is `components/sections/scan-hero.tsx`, NOT landing-html.ts
+`landing-screen.tsx` slices the captured hero OUT (`REST_HTML = LANDING_HTML.slice(
+after first </section>)`) and renders `<ScanHero showScrollCue/>` in its place
+(PR 37caa07: split layout + evidence pill + "See how it works" scroll cue + the
+report-card mock on the right). So the hero <section> in `landing-html.ts` is DEAD
+— editing it does nothing. To change the real landing hero, edit `scan-hero.tsx`.
+
+## Hero iteration 5 — ShipFast two-line lockup, ONE consistent size (final)
+Per user + ShipFast reference: fixed structure at ALL widths — line 1 "Your
+competitors are being", line 2 "found. <You aren't. highlighted inline>". ONE
+consistent font size (dropped the 0.62/1.18 split). Each line is white-space:
+nowrap; `.rkh-h1` clamps retuned so line 1 fits the 46% column (desktop
+clamp(1.7rem,3vw,36px)) and scales down on mobile (clamp(1.4rem,6vw,44px)) —
+verified rects=1/no-overflow at 36px desktop + narrow sim. Violet highlight
+(color-mix var(--c-action) onto surface) kept. DS LandingHero mirrors it
+(headline default now "Your competitors are being", "found." bridge hardcoded);
+re-synced.
+
+## Hero iteration 4 — restored missing PR work + violet punch, "See exactly why" dropped
+Missing commit **4a10aef** (on feat/story-copy-hero, NOT in feat/scan-slugs — my branch
+was cut at 8fe66e2, before it) carried: one-line eyebrow "Every claim grounded in your
+live page." (nowrap), the punchier lockup (setup 0.62em / punch 1.18em), and smooth-glide
+Lenis anchor scrolling for the "See how it works" cue (motion-provider.tsx). Cherry-picked
+it in (resolved the scan-hero h1 conflict to the final design). Then per user: highlight
+now uses the CENTRAL palette — `color-mix(in oklab, var(--c-action) 20%, var(--c-surface))`
+(violet, not the red band-invisible) — and "See exactly why." REMOVED so the two-line
+lockup puts all weight on the highlighted italic "You aren't." DS LandingHero mirrors it
+(dropped the `accent` prop) + re-synced.
+
+## Hero title treatment 2026-07-06 (iteration 3 — SOLID box, on the real hero)
+Fixed on `scan-hero.tsx` (the punch was `fontSize:1.14em` italic block → oversized).
+Now: all 3 headline lines ONE size; "You aren't." is a SOLID highlight marker
+(ShipFast style) — `display:inline-block; background: color-mix(in oklab,
+var(--c-band-invisible) 22%, var(--c-surface))` (solid soft-red from our palette,
+NOT a new colour), italic, small radius; "See exactly why." stays violet. DS
+`LandingHero.tsx` mirrors it; re-synced scoped. Reverted the earlier dead
+landing-html.ts hero edit.
+
+## Hero title treatment 2026-07-06 (iteration 2)
+Title reworked: all 3 phrases ONE size; the negative phrase "You aren't." gets a
+soft-red highlight marker `background: color-mix(in oklab, var(--c-band-invisible)
+16%, transparent)` + italic (ShipFast-marker inspiration, but our palette — no new
+colours); "See exactly why." stays `var(--c-action)` violet. Applied to BOTH
+`ds-src/LandingHero.tsx` AND app `components/sections/captured/landing-html.ts`
+(the h1 `<em>`). DS re-synced scoped (reused session planId). NOTE: user's running
+app (localhost:3001) showed an UNEVEN-sized hero not present in feat/scan-slugs
+(uniform 57px here) — their instance is a different/newer version; target design
+applied to this branch + DS regardless.
+
+## Re-sync verdict 2026-07-06 — NO-OP (no drift)
+ds-src + build.mjs + layout.mjs all unchanged since the 2026-07-02 sync; rebuilt
+`_ds_sync.json` exports IDENTICAL to remote (33); ScoreGauge card byte-matches
+remote; conventions.md all 34 tokens + 7 components verify. `app/globals.css`
+changed 2026-07-03 but only to add the `--c-band-*` tokens in `oklch()` — the DS
+already carries those bands as the equivalent hex (tokens.css == bands.ts), so no
+DS drift. Nothing uploaded. Protected remote content untouched.
+
 ## Status
 - Project: "ReachKit Design System" (819c77dc-3b5b-42e1-a065-315f28ee4f0b).
 - Foundations + 6 signature components built & bundle render-verified:

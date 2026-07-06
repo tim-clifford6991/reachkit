@@ -54,8 +54,9 @@ export function ScanInput({ autoFocus = true }: { autoFocus?: boolean } = {}) {
         return;
       }
 
-      const data = (await res.json()) as { scan_id: string };
-      router.push(`/scan/${data.scan_id}`);
+      const data = (await res.json()) as { scan_id: string; slug?: string };
+      // Personal URL: /scan/nudgi.ai for web scans (UUID for app-store scans).
+      router.push(`/scan/${data.slug ?? data.scan_id}`);
     } catch {
       setState({
         status: "error",

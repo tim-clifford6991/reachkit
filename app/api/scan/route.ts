@@ -7,6 +7,7 @@ import { currentUser } from "@/lib/auth/server";
 import { linkScanToUser } from "@/lib/auth/profile";
 import { entitlementsFor } from "@/lib/billing/entitlements";
 import { ensureDeepScan } from "@/lib/scan/deepen";
+import { slugForScan } from "@/lib/scan/scan-slug";
 import {
   AbuseError,
   assertRateLimit,
@@ -55,7 +56,9 @@ export async function POST(req: NextRequest) {
       if (viewer) await linkScanToUser(existingScanId, viewer.user.id);
       // A paid viewer opening a previously-free scan gets it deepened (idempotent).
       if (viewerIsPaid) await ensureDeepScan(existingScanId);
-      return NextResponse.json({ scan_id: existingScanId, deduped: true });
+      // Personal, run-once URL: the same link always lands on the same scan.
+      const slug = slugForScan({ storeUrl: routed.url, platform: routed.platform, scanId: existingScanId });
+      return NextResponse.json({ scan_id: existingScanId, slug, deduped: true });
     }
   } else {
     const app = await db.from("apps").insert({ store_url: routed.url, platform: routed.platform }).select("id").single();
@@ -67,5 +70,6 @@ export async function POST(req: NextRequest) {
   if (scan.error) return NextResponse.json({ error: scan.error.message }, { status: 500 });
   if (viewer) await linkScanToUser(scan.data.id, viewer.user.id);
   await inngest.send({ name: "scan/requested", data: { scanId: scan.data.id } });
-  return NextResponse.json({ scan_id: scan.data.id });
+  const slug = slugForScan({ storeUrl: routed.url, platform: routed.platform, scanId: scan.data.id });
+  return NextResponse.json({ scan_id: scan.data.id, slug });
 }

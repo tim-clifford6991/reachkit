@@ -5,7 +5,7 @@ export const LANDING_HTML = `<main>
           <span style="width: 7px; height: 7px; border-radius: 50%; background: var(--c-action); display: inline-block;"></span>
           Grounded in your live page. Every claim links to real evidence.
         </div>
-        <h1 style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 57px; line-height: 1.04; letter-spacing: -0.035em; margin: 22px auto 0px; max-width: 860px; text-wrap: balance;">Your competitors are being found. You aren't. <span style="color: var(--c-action);">See exactly why.</span></h1>
+        <h1 style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 57px; line-height: 1.04; letter-spacing: -0.035em; margin: 22px auto 0px; max-width: 860px; text-wrap: balance;">Your competitors are being found. <em>You aren't.</em> <span style="color: var(--c-action);">See exactly why.</span></h1>
         <p style="font-size: 19px; line-height: 1.55; color: var(--c-muted); max-width: 600px; margin: 20px auto 0px; text-wrap: pretty;">Paste your URL. In under a minute ReachKit reads your live page the way a buyer's search does — then shows you the searches your rivals win, the score that measures the gap, and the ranked fixes that close it.</p>
         <div style="max-width: 560px; margin: 32px auto 0px;">
           <div style="display: flex; align-items: center; gap: 8px; background: var(--c-surface); border: 1.5px solid var(--c-line); border-radius: 14px; padding: 8px 8px 8px 16px; box-shadow: rgba(110, 86, 247, 0.1) 0px 10px 34px;">
@@ -48,26 +48,26 @@ export const LANDING_HTML = `<main>
         <div style="margin-top: 28px; font-size: 13px; font-weight: 600; color: var(--c-faint);">Free scan · No signup · Results in under a minute</div>
       </div>
     </section>
-    <section class="rk-reveal" style="max-width: 980px; margin: 0px auto; padding: 60px 28px 20px; text-align: center;">
+    <section id="story" class="rk-reveal" style="max-width: 980px; margin: 0px auto; padding: 60px 28px 20px; text-align: center;">
       <h2 style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 34px; letter-spacing: -0.03em; margin: 0px; text-wrap: balance;">You shipped a great product. <span style="color: var(--c-faint);">Nobody can find it.</span></h2>
-      <p style="font-size: 17px; line-height: 1.6; color: var(--c-muted); max-width: 600px; margin: 16px auto 0px;">You're too close to your own page to see what a buyer's search sees. An SEO suite buries you in 200 metrics. A chatbot makes things up. You just want to know: <strong>which searches are my rivals winning, and what do I fix first?</strong></p>
+      <p style="font-size: 17px; line-height: 1.6; color: var(--c-muted); max-width: 600px; margin: 16px auto 0px;">You're too close to your own page to see what a buyer's search sees — and your rivals are winning it while you guess. You don't need 200 metrics, and you don't need a chatbot's guess. You need one number that tells you exactly where you stand, and a short list that tells you what to do about it. <strong>Not more data. The decision.</strong></p>
     </section>
     <section style="max-width: 1180px; margin: 0px auto; padding: 40px 28px 56px;">
       <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px;">
         <div data-stagger="1" class="rk-reveal" style="border: 1px solid var(--c-line); border-radius: 16px; padding: 26px; background: var(--c-surface); transition-delay: 0ms;">
           <div style="width: 42px; height: 42px; border-radius: 11px; background: var(--c-soft); display: flex; align-items: center; justify-content: center; font-family: &quot;JetBrains Mono&quot;; font-weight: 700; color: var(--c-action); font-size: 16px;">01</div>
           <h3 style="font-family: &quot;Space Grotesk&quot;; font-weight: 600; font-size: 19px; margin: 16px 0px 6px;">Paste your URL</h3>
-          <p style="font-size: 14.5px; line-height: 1.55; color: var(--c-muted); margin: 0px;">That's the whole setup — no account, no tracking code. ReachKit reads your live page the way a buyer's search does: title, headings, schema, content, links. No guessing.</p>
+          <p style="font-size: 14.5px; line-height: 1.55; color: var(--c-muted); margin: 0px;">That's the whole setup — no signup, no tracking code, under a minute. ReachKit reads your live page the way a buyer's search does: title, headings, schema, content, links. No guessing.</p>
         </div>
         <div data-stagger="1" class="rk-reveal" style="border: 1px solid var(--c-line); border-radius: 16px; padding: 26px; background: var(--c-surface); transition-delay: 85ms;">
           <div style="width: 42px; height: 42px; border-radius: 11px; background: var(--c-soft); display: flex; align-items: center; justify-content: center; font-family: &quot;JetBrains Mono&quot;; font-weight: 700; color: var(--c-action); font-size: 16px;">02</div>
-          <h3 style="font-family: &quot;Space Grotesk&quot;; font-weight: 600; font-size: 19px; margin: 16px 0px 6px;">See exactly why rivals outrank you</h3>
-          <p style="font-size: 14.5px; line-height: 1.55; color: var(--c-muted); margin: 0px;">One Discoverability Score across Content, Outreach and SEO — plus the specific searches competitors win that you don't appear in, each with a plain-English reason.</p>
+          <h3 style="font-family: &quot;Space Grotesk&quot;; font-weight: 600; font-size: 19px; margin: 16px 0px 6px;">See the searches your rivals win</h3>
+          <p style="font-size: 14.5px; line-height: 1.55; color: var(--c-muted); margin: 0px;">The specific searches your buyers run where a competitor shows up and you don't — each with a plain-English reason — and one Discoverability Score that measures exactly how wide the gap is.</p>
         </div>
         <div data-stagger="1" class="rk-reveal" style="border: 1px solid var(--c-line); border-radius: 16px; padding: 26px; background: var(--c-surface); transition-delay: 170ms;">
           <div style="width: 42px; height: 42px; border-radius: 11px; background: var(--c-soft); display: flex; align-items: center; justify-content: center; font-family: &quot;JetBrains Mono&quot;; font-weight: 700; color: var(--c-action); font-size: 16px;">03</div>
-          <h3 style="font-family: &quot;Space Grotesk&quot;; font-weight: 600; font-size: 19px; margin: 16px 0px 6px;">Ship the fixes, watch the score move</h3>
-          <p style="font-size: 14.5px; line-height: 1.55; color: var(--c-muted); margin: 0px;">A weekly queue ranked by impact, biggest lever first. Mark a fix done and ReachKit re-reads your live page to verify it shipped — then your score moves.</p>
+          <h3 style="font-family: &quot;Space Grotesk&quot;; font-weight: 600; font-size: 19px; margin: 16px 0px 6px;">Work the queue, watch the gap close</h3>
+          <p style="font-size: 14.5px; line-height: 1.55; color: var(--c-muted); margin: 0px;">A short weekly queue ranked by impact, biggest lever first. Mark a fix done and ReachKit re-checks your live page — only then does your score move. Watch the gap close, week after week.</p>
         </div>
       </div>
     </section>
@@ -76,7 +76,7 @@ export const LANDING_HTML = `<main>
         <div>
           <div style="font-size: 13px; font-weight: 700; letter-spacing: 0.08em; color: rgb(154, 136, 255); text-transform: uppercase;">The verified action engine</div>
           <h2 style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 38px; letter-spacing: -0.03em; line-height: 1.1; margin: 14px 0px 0px;">It doesn't just tell you.<br>It checks your work.</h2>
-          <p style="font-size: 16.5px; line-height: 1.6; color: rgb(183, 180, 196); margin: 18px 0px 0px; max-width: 440px;">No other tool re-reads your live page to confirm a fix actually shipped. Mark a task done — ReachKit re-fetches, checks the exact signal, and only then moves your score. Predicted vs. actual, every time.</p>
+          <p style="font-size: 16.5px; line-height: 1.6; color: rgb(183, 180, 196); margin: 18px 0px 0px; max-width: 440px;">Mark a fix done and ReachKit re-reads your live page to confirm it actually shipped. Only then does your score move. That's what makes the number worth trusting: it's hard to move, so every point you gain is provable progress — not vanity.</p>
           <div style="margin-top: 24px; display: flex; flex-direction: column; gap: 12px;">
             <div style="display: flex; align-items: center; gap: 10px; font-size: 15px; color: rgb(230, 228, 239);"><span style="color: rgb(123, 224, 163);">✓</span> Every insight cites a real extracted field</div>
             <div style="display: flex; align-items: center; gap: 10px; font-size: 15px; color: rgb(230, 228, 239);"><span style="color: rgb(123, 224, 163);">✓</span> Same URL → same score. Deterministic, not vibes.</div>
@@ -100,12 +100,13 @@ export const LANDING_HTML = `<main>
       <div style="text-align: center; margin-bottom: 36px;">
         <div style="font-size: 13px; font-weight: 700; letter-spacing: 0.08em; color: var(--c-action); text-transform: uppercase;">Why switch</div>
         <h2 style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 34px; letter-spacing: -0.03em; margin: 12px 0px 0px;">The honest comparison</h2>
+        <p style="font-size: 16px; line-height: 1.6; color: var(--c-muted); max-width: 520px; margin: 12px auto 0px;">Data tools hand you numbers. ReachKit hands you the decision.</p>
       </div>
       <div style="border: 1px solid var(--c-line); border-radius: 16px; overflow: hidden;">
         <div style="display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; background: var(--c-bg2); border-bottom: 1px solid var(--c-line2);">
           <div style="padding: 18px 22px;"></div>
           <div style="padding: 18px 16px; text-align: center; background: var(--c-soft);"><div style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 16px; color: var(--c-action);">ReachKit</div></div>
-          <div style="padding: 18px 16px; text-align: center;"><div style="font-weight: 600; font-size: 14px; color: var(--c-muted);">A ChatGPT prompt</div></div>
+          <div style="padding: 18px 16px; text-align: center;"><div style="font-weight: 600; font-size: 14px; color: var(--c-muted);">A chatbot prompt</div></div>
           <div style="padding: 18px 16px; text-align: center;"><div style="font-weight: 600; font-size: 14px; color: var(--c-muted);">An SEO suite</div></div>
         </div>
           <div style="display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; border-bottom: 1px solid var(--c-fill); align-items: center;">
@@ -180,7 +181,7 @@ export const LANDING_HTML = `<main>
         <div data-stagger="1" class="rk-reveal" style="border: 1px solid var(--c-line); border-radius: 16px; padding: 22px; background: var(--c-surface); transition-delay: 255ms;">
           <div style="width: 38px; height: 38px; border-radius: 10px; background: var(--c-soft); display: flex; align-items: center; justify-content: center; font-family: &quot;JetBrains Mono&quot;; font-weight: 700; color: var(--c-action); font-size: 14px;">04</div>
           <h3 style="font-family: &quot;Space Grotesk&quot;; font-weight: 600; font-size: 16px; margin: 14px 0px 5px;">AI-native builders</h3>
-          <p style="font-size: 13.5px; line-height: 1.5; color: var(--c-muted); margin: 0px;">Get cited by ChatGPT and Perplexity — not buried under the tools that are.</p>
+          <p style="font-size: 13.5px; line-height: 1.5; color: var(--c-muted); margin: 0px;">Get cited when buyers ask an AI assistant — instead of watching rivals take the answer.</p>
         </div>
       </div>
     </section>
@@ -188,7 +189,7 @@ export const LANDING_HTML = `<main>
       <div style="text-align: center; margin-bottom: 40px;">
         <div style="font-size: 13px; font-weight: 700; letter-spacing: 0.08em; color: var(--c-action); text-transform: uppercase;">Pricing</div>
         <h2 style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 36px; letter-spacing: -0.03em; margin: 12px 0px 0px;">One number. Then a short, verified list.</h2>
-        <p style="font-size: 16px; color: var(--c-muted); margin: 10px 0px 0px;">Your first scan is free. Track it weekly when you're ready to move.</p>
+        <p style="font-size: 16px; color: var(--c-muted); margin: 10px 0px 0px;">Your first scan is free. Upgrade when you're ready to make that number the weekly meter of your marketing — and watch the gap close.</p>
       </div>
       <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; align-items: stretch;">
         <div style="border: 1px solid var(--c-line); border-radius: 18px; padding: 28px; background: var(--c-surface); display: flex; flex-direction: column;">
@@ -236,8 +237,8 @@ export const LANDING_HTML = `<main>
       <div style="border-radius: 22px; background: var(--c-action); padding: 48px; color: rgb(255, 255, 255); box-shadow: rgba(110, 86, 247, 0.6) 0px 24px 60px -22px; display: grid; grid-template-columns: 1fr auto; gap: 40px; align-items: center;">
         <div>
           <div style="font-family: &quot;JetBrains Mono&quot;; font-size: 13px; color: var(--c-soft); margin-bottom: 14px;">THE SCORE TRAVELS</div>
-          <h2 style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 34px; letter-spacing: -0.02em; margin: 0px; max-width: 440px;">Every shared score is how the next founder finds the gap.</h2>
-          <p style="font-size: 16px; color: var(--c-soft); margin: 14px 0px 24px; max-width: 440px;">Each scan generates a branded score card built for the timeline. Post it, watch the replies, send them here.</p>
+          <h2 style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 34px; letter-spacing: -0.02em; margin: 0px; max-width: 440px;">Post this week's score. Then post the one that beats it.</h2>
+          <p style="font-size: 16px; color: var(--c-soft); margin: 14px 0px 24px; max-width: 440px;">Every scan generates a branded score card built for the timeline. Your score history is the record of your marketing actually working — share the climb.</p>
           <button class="scp4" style="font-family: &quot;Plus Jakarta Sans&quot;; font-weight: 700; font-size: 15px; color: var(--c-action); background: var(--c-surface); border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; border-radius: 11px; padding: 13px 24px; cursor: pointer;">Get my score card →</button>
         </div>
         <div style="background: var(--c-dark); border-radius: 16px; padding: 26px; width: 280px; box-shadow: rgba(0, 0, 0, 0.5) 0px 20px 40px -16px;">
@@ -251,7 +252,7 @@ export const LANDING_HTML = `<main>
     <section class="rk-reveal" style="background: var(--c-surface);">
       <div style="max-width: 1180px; margin: 0px auto; padding: 52px 28px; text-align: center;">
         <h3 style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 26px; letter-spacing: -0.02em; margin: 0px 0px 8px;">Stop guessing where you stand.</h3>
-        <p style="font-size: 15px; color: var(--c-muted); margin: 0px 0px 20px;">Your first scan is free and takes under a minute.</p>
+        <p style="font-size: 15px; color: var(--c-muted); margin: 0px 0px 20px;">Your first scan is free and takes under a minute — then it's a number you can move, week after week.</p>
         <button class="scp2" style="font-family: &quot;Plus Jakarta Sans&quot;; font-weight: 700; font-size: 15px; color: rgb(255, 255, 255); background: var(--c-action); border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; border-radius: 10px; padding: 12px 26px; cursor: pointer;">Analyze my site</button>
       </div>
     </section>

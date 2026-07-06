@@ -4,6 +4,7 @@
  * inside the captured AppShell.
  */
 import { CheckoutButton } from "@/components/app/checkout-button";
+import { ManageBillingButton } from "@/components/app/manage-billing-button";
 import { ProductUrlForm } from "./settings-product-url-form";
 
 const SG = "Space Grotesk", JM = "JetBrains Mono", PJ = "Plus Jakarta Sans";
@@ -13,10 +14,11 @@ export interface SettingsMainProps {
   planTitle: string;
   planDesc: string;
   upgradeLabel: string | null;
-  /** Error fallback for the one-click checkout (the billing/compare page). */
-  upgradeHref: string;
   /** Plan the upgrade CTA checks out directly (free→solo, solo→growth). */
   upgradePlan: "solo" | "growth" | null;
+  /** Paid users (active subscription) get the "Manage billing" portal button
+   *  right here, so billing is fully self-contained on Settings. */
+  isPaid: boolean;
   appName: string;
   appInitial: string;
   productMeta: string;
@@ -39,15 +41,31 @@ export function SettingsMain(p: SettingsMainProps) {
   return (
     <div style={{ maxWidth: "100%", display: "flex", flexDirection: "column", gap: 18 }}>
       <Card title="Plan">
-        <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px", background: "var(--c-tint-violet)", border: "1px solid var(--c-tint-violet-line)", borderRadius: 12 }}>
-          <div style={{ flex: "1 1 0%" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px", background: "var(--c-tint-violet)", border: "1px solid var(--c-tint-violet-line)", borderRadius: 12, flexWrap: "wrap" }}>
+          <div style={{ flex: "1 1 220px" }}>
             <div style={{ fontWeight: 700, fontSize: 15, color: "var(--c-action)" }}>{p.planTitle}</div>
             <div style={{ fontSize: 13, color: "var(--c-muted)", marginTop: 2 }}>{p.planDesc}</div>
           </div>
-          {p.upgradeLabel && p.upgradePlan && (
-            // One-click Stripe checkout (W6) — /app/billing only as fallback.
-            <CheckoutButton plan={p.upgradePlan} fallbackHref={p.upgradeHref} style={{ fontFamily: "Plus Jakarta Sans", fontWeight: 600, fontSize: 13, color: "#fff", background: "var(--c-action)", border: "none", borderRadius: 8, padding: "8px 14px" }}>{p.upgradeLabel}</CheckoutButton>
-          )}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+            {/* Paid users manage their subscription (update card, invoices,
+                cancel) via the Stripe portal — right here, no /app/billing. */}
+            {p.isPaid && (
+              <ManageBillingButton style={{ fontFamily: PJ, fontWeight: 600, fontSize: 13, color: "var(--c-action)", background: "var(--c-surface)", border: "1px solid var(--c-tint-violet-line)", borderRadius: 8, padding: "8px 14px" }}>
+                Manage billing
+              </ManageBillingButton>
+            )}
+            {p.upgradeLabel && p.upgradePlan && (
+              // One-click Stripe checkout → straight to Stripe. On error it
+              // toasts and stays put (never routes to /app/billing).
+              <CheckoutButton
+                plan={p.upgradePlan}
+                onErrorToast="Couldn't start checkout. Please try again."
+                style={{ fontFamily: PJ, fontWeight: 600, fontSize: 13, color: "#fff", background: "var(--c-action)", border: "none", borderRadius: 8, padding: "8px 14px" }}
+              >
+                {p.upgradeLabel}
+              </CheckoutButton>
+            )}
+          </div>
         </div>
       </Card>
       <Card title="Tracked product">

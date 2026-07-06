@@ -97,7 +97,7 @@ test("public /report/[slug] redacts to free — no paid drafts leak, sections lo
   // Render the async content directly (the page wraps it in <Suspense>, which
   // renderToStaticMarkup can't resolve; ReportContent is the data+render unit).
   const { ReportContent } = await import("@/app/report/[slug]/page");
-  const element = await ReportContent({ slug: "scan-uuid-1" });
+  const element = await ReportContent({ slug: "scan-uuid-1", scanId: "scan-uuid-1" });
   const html = renderToStaticMarkup(element);
 
   // 1. The draft string never appears anywhere in the rendered output.

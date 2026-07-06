@@ -20,6 +20,7 @@
 
 import { ImageResponse } from "next/og";
 import { serverDb } from "@/lib/db/client";
+import { resolveScanParam } from "@/lib/scan/scan-slug";
 import type { ReportPayload } from "@/lib/scan/report";
 import { buildScoreCard } from "@/lib/badge/score-card";
 import { bandFor } from "@/lib/scan/score-bands";
@@ -92,12 +93,13 @@ export default async function OGImage({
 }) {
   const { slug } = await params;
 
-  // Fetch the scan by id (slug = scan id, same as the public report page)
+  // The slug is a domain (personal URL) or a legacy scan UUID — resolve either.
+  const resolved = await resolveScanParam(slug);
   const db = serverDb();
   const { data } = await db
     .from("scans")
     .select("report_payload")
-    .eq("id", slug)
+    .eq("id", resolved?.scanId ?? slug)
     .maybeSingle();
 
   // If no data, render a generic branded card rather than erroring

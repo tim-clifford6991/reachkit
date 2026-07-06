@@ -1,9 +1,10 @@
 /**
  * sitemap.xml — §22.2 GEO / discoverability
  *
- * Served at /sitemap.xml (Next 16 MetadataRoute). Lists the MVP public routes
- * only — no auth product (`/app/*`), no API, and no per-scan public reports
- * (`/report/[slug]` are unbounded UUID artifacts, not a fixed indexable set).
+ * Served at /sitemap.xml (Next 16 MetadataRoute). Lists the public routes —
+ * no auth product (`/app/*`), no API. Per-scan public reports ARE included
+ * now that they live at domain slugs (/report/nudgi.ai): every free scan we
+ * run is a public teardown and an indexable SEO surface.
  *
  * Teardown entries are generated from the content registry so the sitemap stays
  * in sync as teardowns are added; their `lastModified` uses `lastVerified`.
@@ -13,8 +14,9 @@ import type { MetadataRoute } from "next";
 import { SITE } from "@/lib/seo";
 import { allTeardowns } from "@/content/teardowns";
 import { COMPARE_SLUGS } from "@/app/(marketing)/compare/compare-content";
+import { listPublicScans } from "@/lib/scan/public-scans";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
 
   const core: MetadataRoute.Sitemap = [
@@ -62,5 +64,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${SITE.url}/terms`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
   ];
 
-  return [...core, ...tools, ...compare, ...teardowns, ...legal];
+  // Every completed free scan is a public report at its domain slug — spent
+  // scan cost turned into indexable surface. Bounded (latest 500, one per app).
+  const reports: MetadataRoute.Sitemap = (await listPublicScans(500)).map((scan) => ({
+    url: `${SITE.url}/report/${scan.slug}`,
+    lastModified: scan.completedAt ? new Date(scan.completedAt) : now,
+    changeFrequency: "weekly",
+    priority: 0.5,
+  }));
+
+  return [...core, ...tools, ...compare, ...teardowns, ...reports, ...legal];
 }
