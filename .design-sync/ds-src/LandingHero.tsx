@@ -2,32 +2,92 @@ import * as React from "react";
 import { ScanInput } from "./ScanInput";
 
 /**
- * LandingHero — the marketing hero: an eyebrow, a big display headline (with a
- * violet-accented phrase), a supporting subhead, and the ScanInput conversion
- * control. Renders fully with no props.
+ * LandingHero — the marketing hero: a soft radial-fade backdrop, an evidence
+ * pill (dot + trust line), a big display headline (with an italic emphasis and
+ * a violet-accented closing phrase), a supporting subhead, and the ScanInput
+ * conversion control with its trust line. Mirrors the live ReachKit landing
+ * hero. Renders fully with no props.
  */
 export interface LandingHeroProps {
   eyebrow?: string;
   headline?: string;
+  /** Italic emphasis phrase, rendered right after the headline. */
+  emphasis?: string;
+  /** Violet-accented closing phrase. */
   accent?: string;
   subhead?: string;
 }
 
 export function LandingHero({
-  eyebrow = "The discoverability engine for solo founders",
-  headline = "Stop guessing why your product",
-  accent = "isn't getting found.",
-  subhead = "Paste your site or App Store link and get a scored discoverability report — SEO gaps, positioning blind spots, and the ranked fixes that move the needle — in ~90 seconds.",
+  eyebrow = "Grounded in your live page. Every claim links to real evidence.",
+  headline = "Your competitors are being found.",
+  emphasis = "You aren't.",
+  accent = "See exactly why.",
+  subhead = "Paste your URL. In under a minute ReachKit reads your live page the way a buyer's search does — then shows you the searches your rivals win, the score that measures the gap, and the ranked fixes that close it.",
 }: LandingHeroProps) {
   return (
-    <section style={{ background: "var(--c-bg)", padding: "72px 24px", textAlign: "center", fontFamily: "var(--font-sans)" }}>
-      <div style={{ maxWidth: 760, margin: "0 auto" }}>
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "var(--c-soft)", color: "var(--c-action)", fontFamily: "var(--font-mono)", fontSize: 12.5, fontWeight: 600, padding: "6px 14px", borderRadius: "var(--radius-full)", marginBottom: 24 }}>{eyebrow}</div>
-        <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "clamp(2.4rem, 6vw, 3.6rem)", lineHeight: 1.08, letterSpacing: "-0.022em", color: "var(--c-ink)", margin: "0 0 18px" }}>
-          {headline} <span style={{ color: "var(--c-action)" }}>{accent}</span>
+    <section
+      style={{
+        position: "relative",
+        overflow: "hidden",
+        background:
+          "radial-gradient(1100px 480px at 50% -8%, var(--c-soft) 0%, rgba(242,238,255,0) 62%), var(--c-bg)",
+        fontFamily: "var(--font-sans)",
+      }}
+    >
+      <div style={{ maxWidth: 1180, margin: "0 auto", padding: "70px 28px 52px", textAlign: "center" }}>
+        {/* Evidence pill — dot + trust line */}
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 9,
+            background: "var(--c-surface)",
+            border: "1px solid var(--c-soft)",
+            borderRadius: "var(--radius-full)",
+            padding: "6px 14px",
+            fontSize: 13,
+            fontWeight: 600,
+            color: "var(--c-action)",
+            boxShadow: "0 1px 2px rgba(20,19,26,0.04)",
+          }}
+        >
+          <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--c-action)", display: "inline-block" }} />
+          {eyebrow}
+        </div>
+
+        <h1
+          style={{
+            fontFamily: "var(--font-display)",
+            fontWeight: 700,
+            fontSize: "clamp(2.1rem, 5.4vw, 3.56rem)",
+            lineHeight: 1.04,
+            letterSpacing: "-0.035em",
+            color: "var(--c-ink)",
+            margin: "22px auto 0",
+            maxWidth: 860,
+            textWrap: "balance",
+          }}
+        >
+          {headline} <em>{emphasis}</em> <span style={{ color: "var(--c-action)" }}>{accent}</span>
         </h1>
-        <p style={{ fontSize: 17, lineHeight: 1.6, color: "var(--c-muted)", maxWidth: 600, margin: "0 auto 32px" }}>{subhead}</p>
-        <div style={{ maxWidth: 540, margin: "0 auto" }}><ScanInput /></div>
+
+        <p
+          style={{
+            fontSize: 19,
+            lineHeight: 1.55,
+            color: "var(--c-muted)",
+            maxWidth: 600,
+            margin: "20px auto 0",
+            textWrap: "pretty",
+          }}
+        >
+          {subhead}
+        </p>
+
+        <div style={{ maxWidth: 560, margin: "32px auto 0" }}>
+          <ScanInput placeholder="yourdomain.com" note="Under a minute · No login for your first scan · Try: bloom.io" />
+        </div>
       </div>
     </section>
   );

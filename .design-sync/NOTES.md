@@ -40,6 +40,18 @@ The complete rebuild is therefore:
 `README.md` in the managed set is likewise curated/hand-stitched (no converter
 stitches `readmeHeader`); conventions.md is validated, not re-authored, on re-sync.
 
+## LandingHero updated 2026-07-06 → live-landing hero
+`ds-src/LandingHero.tsx` was stale ("Stop guessing… isn't getting found", ~90s).
+Rewrote it to mirror the current captured landing hero (`landing-html.ts`):
+radial-fade section, evidence pill (dot + "Grounded in your live page…"),
+headline "Your competitors are being found. <em>You aren't.</em> <violet>See
+exactly why.</violet>", updated subhead, ScanInput with note "Under a minute ·
+No login for your first scan · Try: bloom.io". New optional `emphasis` prop.
+Rebuilt + card render-verified (served static, screenshot-matched the live hero).
+Uploaded SCOPED (atomic path): `_ds_bundle.js` + `components/Marketing/LandingHero/**`
++ sentinel + `_ds_sync.json` (unchanged, re-armed last). Protected content
+re-confirmed intact via list_files. planId plan_819c77dc3b5b42e1_ad375d1462f4.
+
 ## Re-sync verdict 2026-07-06 — NO-OP (no drift)
 ds-src + build.mjs + layout.mjs all unchanged since the 2026-07-02 sync; rebuilt
 `_ds_sync.json` exports IDENTICAL to remote (33); ScoreGauge card byte-matches
