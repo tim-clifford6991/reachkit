@@ -12,6 +12,7 @@
 import { callModel } from "@/lib/llm/anthropic";
 import { extractJson } from "@/lib/llm/json";
 import { fixturesEnabled } from "@/lib/dev/fixtures";
+import { scrubGenericTells } from "@/lib/scan/algorithm-safety";
 import type { SharePlatform, CoachPlatform } from "./intent";
 
 const MODEL = "claude-sonnet-4-6" as const;
@@ -41,9 +42,10 @@ const STYLE: Record<DraftPlatform, string> = {
   producthunt: "A Product Hunt launch comment: what it is, the problem it solves, and a genuine ask for feedback. No upvote requests.",
   discord: "A short, value-first community message for a relevant channel.",
   indiehackers: "A genuine Indie Hackers post: share the journey/learning, product as context not pitch.",
+  directory: "A directory listing: a TITLE (a specific one-line tagline, ≤60 chars, no buzzwords) and a BODY (2-4 sentences: what it does, who it's for, what makes it different — written uniquely for this directory, never a copy-paste blurb; duplicate descriptions get filtered).",
 };
 
-const NEEDS_TITLE = new Set<DraftPlatform>(["reddit", "email", "hackernews"]);
+const NEEDS_TITLE = new Set<DraftPlatform>(["reddit", "email", "hackernews", "directory"]);
 
 export function buildDraftPrompt(ctx: DraftContext): string {
   const product = ctx.productDescription
@@ -100,5 +102,8 @@ export async function generateDraft(ctx: DraftContext): Promise<Draft> {
     scanId: null,
     stage: "synth",
   });
-  return parseDraft(text);
+  const draft = parseDraft(text);
+  // §11 (6): strip AI tells at the single choke point every caller shares —
+  // generic phrasing is both a quality problem and a cross-customer fingerprint.
+  return { ...draft, text: await scrubGenericTells(draft.text) };
 }

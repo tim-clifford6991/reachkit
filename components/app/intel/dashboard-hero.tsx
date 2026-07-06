@@ -112,7 +112,7 @@ function LeverBanner({ rollup, assessedCount, isPaid }: { rollup: PillarRollup; 
           )}
         </div>
         {isPaid ? (
-          <Link href="/app/plans" style={{ flexShrink: 0, fontSize: 13, fontWeight: 600, color: "var(--c-action)", textDecoration: "none", whiteSpace: "nowrap" }}>
+          <Link href="/app/plan" style={{ flexShrink: 0, fontSize: 13, fontWeight: 600, color: "var(--c-action)", textDecoration: "none", whiteSpace: "nowrap" }}>
             See your plan →
           </Link>
         ) : (

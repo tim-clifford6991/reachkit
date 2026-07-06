@@ -23,7 +23,7 @@ export interface Content {
   evidence: string;
 }
 export interface Dist { channel: string; action: string; target: string; targetUrl: string; why: string; effort: string; priority: string; ease: number; impact: number; evidence?: string }
-export interface Synthesis { category: string; summary: string; contentPlan: Content[]; distributionPlan: Dist[] }
+export interface Synthesis { domain: string; category: string; summary: string; contentPlan: Content[]; distributionPlan: Dist[] }
 
 const PRIO_COLOR: Record<string, string> = { high: "var(--c-band-invisible)", medium: "var(--c-band-fair)", low: "var(--c-faint)" };
 const KIND_COLOR: Record<string, string> = { channel: "var(--c-action)", community: "var(--c-band-findable)", demand: "var(--c-band-hard)" };
@@ -80,7 +80,7 @@ function Body({ data, isPaid }: { data: Synthesis; isPaid: boolean }) {
       </div>
 
       {isPaid ? (
-        <ActionButton href="/app/plans">See the full plan →</ActionButton>
+        <ActionButton href="/app/plan">See the full plan →</ActionButton>
       ) : (
         // Free-user teaser → one-click Solo checkout (W6), styled to match
         // ActionButton exactly; /app/billing only as the error fallback.
@@ -94,7 +94,7 @@ function Body({ data, isPaid }: { data: Synthesis; isPaid: boolean }) {
 
 function Digest({ title, items }: { title: string; items: { prio: string; label: string; meta?: string; badge?: string }[] }) {
   return (
-    <Card title={title} meta={<Link href="/app/plans" style={{ color: "var(--c-action)", textDecoration: "none" }}>all →</Link>}>
+    <Card title={title} meta={<Link href="/app/plan" style={{ color: "var(--c-action)", textDecoration: "none" }}>all →</Link>}>
       <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 9 }}>
         {items.map((it, i) => (
           <li key={i} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>

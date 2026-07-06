@@ -57,4 +57,15 @@ export const COACH_GUIDES: Record<CoachPlatform, CoachGuide> = {
       "One account per person; build a real history.",
     ],
   },
+  directory: {
+    label: "Directory listing",
+    intro: "Listings are reviewed by humans and filters; a lazy submission is a wasted (or rejected) slot.",
+    steps: [
+      "Write a description unique to THIS directory — duplicate blurbs get filtered as spam.",
+      "Fill every optional field: category, screenshots, pricing, alternatives.",
+      "Pick the most specific category that fits, not the biggest one.",
+      "Use your real product URL — no tracking-parameter or redirect links.",
+      "One submission per product; resubmitting reads as spam.",
+    ],
+  },
 };

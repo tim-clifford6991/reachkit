@@ -42,7 +42,7 @@ export function CustomersBody({
   const themes = searchDemand.themes;
 
   // Best-effort secondary fetch: cross-links community pockets to the
-  // distribution plan. Cheap when warm (server-cached) — but cold, this warms
+  // plan. Cheap when warm (server-cached) — but cold, this warms
   // the SAME synthesis cache the Plan pages use, which can mean a full LLM
   // synthesis gather (minutes). Must never block or degrade this view if it's
   // slow, loading, or errors — so we skip IntelShell entirely and just use

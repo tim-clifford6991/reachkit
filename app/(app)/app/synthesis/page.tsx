@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
 export default function SynthesisPage() {
-  redirect("/app/plan/content");
+  redirect("/app/plan");
 }

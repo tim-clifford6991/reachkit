@@ -13,9 +13,16 @@ export async function callModel(args: {
   scanId: string | null;
   stage: Stage;
   maxTokens?: number;
-}): Promise<{ text: string; usage: { inputTokens: number; outputTokens: number } }> {
+}): Promise<{
+  text: string;
+  usage: { inputTokens: number; outputTokens: number };
+  /** Anthropic stop_reason — "max_tokens" means the output was TRUNCATED and
+   *  callers producing long-form content must continue or retry, never ship
+   *  the cut-off text. */
+  stopReason: string | null;
+}> {
   // Fixtures mode makes zero paid calls; LLM-derived fields are intentionally empty in this mode.
-  if (fixturesEnabled()) return { text: "", usage: { inputTokens: 0, outputTokens: 0 } };
+  if (fixturesEnabled()) return { text: "", usage: { inputTokens: 0, outputTokens: 0 }, stopReason: null };
   const client = new Anthropic({ apiKey: env.anthropicApiKey });
   const started = performance.now();
 
@@ -48,5 +55,5 @@ export async function callModel(args: {
     durationMs: Math.round(performance.now() - started),
   });
 
-  return { text, usage: { inputTokens, outputTokens } };
+  return { text, usage: { inputTokens, outputTokens }, stopReason: res.stop_reason ?? null };
 }

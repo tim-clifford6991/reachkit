@@ -110,6 +110,8 @@ interface Row {
   deadline: string | null;
   draft: string | null;
   score_component: string | null;
+  expected_outcome: { delta?: number } | null;
+  verify_state: string;
 }
 
 function row(over: Partial<Row> & Pick<Row, "id">): Row {
@@ -123,6 +125,8 @@ function row(over: Partial<Row> & Pick<Row, "id">): Row {
     deadline: null,
     draft: null,
     score_component: null,
+    expected_outcome: null,
+    verify_state: "pending",
     ...over,
   };
 }
@@ -137,6 +141,8 @@ const project = (r: Row): WeeklyPlanAction => ({
   draft: r.draft,
   status: r.status,
   scoreComponent: r.score_component,
+  expectedDelta: typeof r.expected_outcome?.delta === "number" ? r.expected_outcome.delta : null,
+  verifyState: r.verify_state,
 });
 
 describe("splitQueueAndCarryover", () => {
@@ -205,7 +211,24 @@ describe("splitQueueAndCarryover", () => {
       draft: null,
       status: "open",
       scoreComponent: "seo",
+      expectedDelta: null,
+      verifyState: "pending",
     });
+  });
+
+  test("carries expected_outcome.delta and verify_state through the projection", () => {
+    const { queue } = splitQueueAndCarryover(
+      [
+        row({ id: "d", effort_min: 45, expected_outcome: { delta: 3 }, verify_state: "verifying" }),
+        row({ id: "no-delta", effort_min: 45, expected_outcome: {} }),
+      ],
+      weekOf,
+      project,
+    );
+    const withDelta = queue.medium.find((a) => a.id === "d");
+    const withoutDelta = queue.medium.find((a) => a.id === "no-delta");
+    expect(withDelta).toMatchObject({ expectedDelta: 3, verifyState: "verifying" });
+    expect(withoutDelta).toMatchObject({ expectedDelta: null, verifyState: "pending" });
   });
 
   test("any non-'done' status counts as open", () => {

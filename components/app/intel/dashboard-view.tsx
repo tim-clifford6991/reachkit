@@ -318,7 +318,7 @@ function ChannelPanel({ channel, subjectPages, referrers }: { channel: string; s
       body = <NoData />;
   }
 
-  const href = channel === "referral" || channel === "social" || channel === "email" ? "/app/plan/distribution" : "/app/plan/content";
+  const href = channel === "referral" || channel === "social" || channel === "email" ? "/app/plan" : "/app/plan";
 
   return (
     <div>

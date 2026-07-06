@@ -22,7 +22,7 @@ export const APP_NAV: readonly AppNavItem[] = [
   { href: "/app/supply", label: "Supply", group: "primary", iconKey: "channels", hint: "How you & rivals get found" },
   { href: "/app/demand", label: "Demand", group: "primary", iconKey: "feed", hint: "Your buyer & the market" },
   { href: "/app/synthesis", label: "Synthesis", group: "primary", iconKey: "dashboard", hint: "Your strategic position" },
-  { href: "/app/plans", label: "Plans", group: "primary", iconKey: "plays", hint: "Content & distribution actions" },
+  { href: "/app/plan", label: "Plan", group: "primary", iconKey: "plays", hint: "Your plan on a timeline — do, draft, post" },
   { href: "/app/settings", label: "Settings", group: "utility", iconKey: "settings" },
   { href: "/app/billing", label: "Billing", group: "utility", iconKey: "billing" },
 ] as const;

@@ -165,7 +165,7 @@ export function WhereBuyersAsk({ pockets, planTargets }: { pockets: Pocket[]; pl
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 8, minWidth: 0, flex: "0 1 auto" }}>
                   <a href={subUrl(p.surface)} target="_blank" rel="noopener noreferrer" style={{ flex: "0 1 auto", minWidth: 0, fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 700, color: "var(--c-ink)", textDecoration: "none", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.surface}</a>
                   {inPlan && (
-                    <Link href="/app/plan/distribution" style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 5, background: "var(--c-soft)", color: "var(--c-action)", fontFamily: "var(--font-sans)", fontWeight: 700, fontSize: 10.5, padding: "3px 9px", borderRadius: "var(--radius-full)", whiteSpace: "nowrap", textDecoration: "none" }}>
+                    <Link href="/app/plan" style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 5, background: "var(--c-soft)", color: "var(--c-action)", fontFamily: "var(--font-sans)", fontWeight: 700, fontSize: 10.5, padding: "3px 9px", borderRadius: "var(--radius-full)", whiteSpace: "nowrap", textDecoration: "none" }}>
                       → in your plan
                     </Link>
                   )}
