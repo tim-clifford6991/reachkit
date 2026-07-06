@@ -73,16 +73,16 @@ export function LandingHero({
           {headline}{" "}
           <em
             style={{
-              // Highlight marker for the negative phrase — a soft red drawn
-              // from the score palette (var(--c-band-invisible)), NOT a new
-              // colour. Same font size as the rest of the headline; italic.
+              // Solid highlight marker for the negative phrase — a soft red
+              // drawn from the score palette (var(--c-band-invisible) mixed onto
+              // the surface), NOT a new colour. Same font size as the rest of
+              // the headline; italic. inline-block so the box hugs the phrase.
+              display: "inline-block",
               fontStyle: "italic",
-              background: "color-mix(in oklab, var(--c-band-invisible) 16%, transparent)",
+              background: "color-mix(in oklab, var(--c-band-invisible) 22%, var(--c-surface))",
               color: "var(--c-ink)",
-              padding: "0 0.16em",
-              borderRadius: "0.4em",
-              boxDecorationBreak: "clone",
-              WebkitBoxDecorationBreak: "clone",
+              padding: "0.02em 0.2em",
+              borderRadius: "0.14em",
             }}
           >
             {emphasis}

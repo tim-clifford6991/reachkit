@@ -52,6 +52,22 @@ Uploaded SCOPED (atomic path): `_ds_bundle.js` + `components/Marketing/LandingHe
 + sentinel + `_ds_sync.json` (unchanged, re-armed last). Protected content
 re-confirmed intact via list_files. planId plan_819c77dc3b5b42e1_ad375d1462f4.
 
+## ⚠ The LIVE landing hero is `components/sections/scan-hero.tsx`, NOT landing-html.ts
+`landing-screen.tsx` slices the captured hero OUT (`REST_HTML = LANDING_HTML.slice(
+after first </section>)`) and renders `<ScanHero showScrollCue/>` in its place
+(PR 37caa07: split layout + evidence pill + "See how it works" scroll cue + the
+report-card mock on the right). So the hero <section> in `landing-html.ts` is DEAD
+— editing it does nothing. To change the real landing hero, edit `scan-hero.tsx`.
+
+## Hero title treatment 2026-07-06 (iteration 3 — SOLID box, on the real hero)
+Fixed on `scan-hero.tsx` (the punch was `fontSize:1.14em` italic block → oversized).
+Now: all 3 headline lines ONE size; "You aren't." is a SOLID highlight marker
+(ShipFast style) — `display:inline-block; background: color-mix(in oklab,
+var(--c-band-invisible) 22%, var(--c-surface))` (solid soft-red from our palette,
+NOT a new colour), italic, small radius; "See exactly why." stays violet. DS
+`LandingHero.tsx` mirrors it; re-synced scoped. Reverted the earlier dead
+landing-html.ts hero edit.
+
 ## Hero title treatment 2026-07-06 (iteration 2)
 Title reworked: all 3 phrases ONE size; the negative phrase "You aren't." gets a
 soft-red highlight marker `background: color-mix(in oklab, var(--c-band-invisible)
