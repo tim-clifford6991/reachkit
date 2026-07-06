@@ -23,6 +23,31 @@ versions of the app's components.
   symlink to it so build.mjs resolves esbuild (recreate per clone:
   `ln -sfn ../.ds-sync/node_modules .design-sync/node_modules`).
 
+## ⚠ Full build pipeline is 3 steps — `tokens/tokens.css` + `styles.css` are CURATED, not script-generated (learned 2026-07-06)
+`ds-bundle/` is **gitignored** (never committed). NO committed script generates
+`tokens/tokens.css` or `styles.css` — they are **hand-curated** standalone files
+(tokens.css is the app's `--c-*` palette transcribed to plain CSS + Google-Fonts
+@import; NOT auto-derived from `app/globals.css`). `layout.mjs` READS
+`ds-bundle/tokens/tokens.css` at line ~101, so it must exist BEFORE layout runs.
+The complete rebuild is therefore:
+  1. `node .design-sync/ds-src/build.mjs`   → `_ds_bundle.js`, `_ds_bundle.css`, `_ds_sync.json`
+  2. **ensure `ds-bundle/tokens/tokens.css` + `ds-bundle/styles.css` exist** —
+     they are NOT regenerable by any script. If `ds-bundle` was wiped, re-fetch
+     them from the remote project (`DesignSync get_file tokens/tokens.css` &
+     `styles.css`) or restore from a prior local `ds-bundle`. **Do NOT
+     `rm -rf ds-bundle` without first preserving these two.**
+  3. `node .design-sync/ds-src/layout.mjs` → all 33 component cards + static prerender.
+`README.md` in the managed set is likewise curated/hand-stitched (no converter
+stitches `readmeHeader`); conventions.md is validated, not re-authored, on re-sync.
+
+## Re-sync verdict 2026-07-06 — NO-OP (no drift)
+ds-src + build.mjs + layout.mjs all unchanged since the 2026-07-02 sync; rebuilt
+`_ds_sync.json` exports IDENTICAL to remote (33); ScoreGauge card byte-matches
+remote; conventions.md all 34 tokens + 7 components verify. `app/globals.css`
+changed 2026-07-03 but only to add the `--c-band-*` tokens in `oklch()` — the DS
+already carries those bands as the equivalent hex (tokens.css == bands.ts), so no
+DS drift. Nothing uploaded. Protected remote content untouched.
+
 ## Status
 - Project: "ReachKit Design System" (819c77dc-3b5b-42e1-a065-315f28ee4f0b).
 - Foundations + 6 signature components built & bundle render-verified:
