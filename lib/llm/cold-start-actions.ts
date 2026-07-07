@@ -24,6 +24,7 @@ import { getFreshFactSheet, factSheetSubjectType } from "@/lib/scan/fact-sheets"
 import type { ScanContext } from "@/lib/scan/pipeline";
 import type { PreliminaryFacts } from "@/lib/scan/types";
 import type { ActionCard, PositioningSheet } from "@/lib/llm/types";
+import type { ActionGrounding } from "@/lib/llm/grounding";
 
 // ---------------------------------------------------------------------------
 // Seed derivation — pull the ICP, top intent keyword, top competitor and a
@@ -100,6 +101,9 @@ function deriveSeed(facts: PreliminaryFacts, positioning?: PositioningSheet): Co
 export async function generateColdStartActions(
   ctx: ScanContext,
   facts: PreliminaryFacts,
+  // Task 7 will ground the cold-start templates in named communities/creators;
+  // accepted now so the standard + cold-start call sites share one signature.
+  _grounding: ActionGrounding = { competitors: [], communities: [], creators: [] },
 ): Promise<ActionCard[]> {
   // Fixture path — deterministic, no derivation, no I/O.
   if (fixturesEnabled()) {

@@ -1,6 +1,26 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import type { ActionCard, Finding } from "./types";
 import { clampEffort, ACTION_EFFORT_MIN, ACTION_EFFORT_MAX, coerceCardForTest } from "./actions";
+import { buildActionsPrompt } from "./prompts";
+
+describe("buildActionsPrompt grounding", () => {
+  test("embeds grounding names + demands a target", () => {
+    const p = buildActionsPrompt({
+      storeUrl: "https://nudgi.ai", reviewThemes: "{}", positioning: "{}",
+      competitorGap: "{}", keywordData: "{}", findings: "[]", founderVoice: null,
+      today: "2026-07-07",
+      grounding: {
+        competitors: [{ name: "Fathom", positioning: "AI notetaker", themMentions: 12, youMentions: 0 }],
+        communities: [{ source: "reddit", title: "r/productivity", url: "https://reddit.com/r/productivity", engagement: 340 }],
+        creators: [{ name: "Thomas Frank", url: "https://youtube.com/@thomasfrank", coveredCompetitor: "Fathom", audienceProxy: 0 }],
+      },
+    });
+    expect(p).toContain("Fathom");
+    expect(p).toContain("r/productivity");
+    expect(p).toContain("Thomas Frank");
+    expect(p).toMatch(/target/i);
+  });
+});
 
 describe("clampEffort", () => {
   test("caps extreme estimates at the ceiling (no '120 min for an email')", () => {

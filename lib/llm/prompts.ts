@@ -4,6 +4,8 @@
 // Shared system preamble + per-kind user prompts.
 // Return STRICT JSON only — no markdown fences, no prose.
 
+import type { ActionGrounding } from "@/lib/llm/grounding";
+
 // ---------------------------------------------------------------------------
 // ENTAIL stage — Haiku judges whether a source text supports a given claim.
 // Used by check_link (§9.4 L-tool) in the Critic Gate.
@@ -155,7 +157,10 @@ STRICT OUTPUT RULES:
 12. expectedOutcome.scoreComponent is one of: "content", "outreach", "seo".
 13. basis is "evidence_based" when the card is driven by a specific signal from the fact sheets; "probability_based" when it is a reasonable inference without a direct quote.
 14. evidence is an array of ≥2 items drawn from ≥2 distinct sourceTypes. Each item has: excerpt (verbatim quote from the fact sheets), source (the name of the fact sheet or URL if available), sourceType (one of: "app_store_rss", "dataforseo_serp", "communities", "youtube", "dataforseo_keywords", "review_themes", "positioning", "competitor_gap", "keyword_data"). You MUST include at least 2 evidence items from at least 2 different sourceTypes per card.
-15. BRAND-AMBIGUITY HARD RULE: generate actions ONLY for the subject product identified in the prompt (by its URL) and described by the fact sheets. NEVER introduce competitors, facts, acquisitions, or claims from outside/training knowledge — especially about other products whose names merely resemble the subject's. If it is not in the fact sheets, do not use it.`;
+15. BRAND-AMBIGUITY HARD RULE: generate actions ONLY for the subject product identified in the prompt (by its URL) and described by the fact sheets. NEVER introduce competitors, facts, acquisitions, or claims from outside/training knowledge — especially about other products whose names merely resemble the subject's. If it is not in the fact sheets, do not use it.
+16. GROUNDING: every outreach card MUST set "target" to a REAL venue or person drawn from the COMMUNITIES or CREATORS lists in the prompt — never invent a community or creator. Use the exact label and URL given. If no suitable named venue exists, set target to null and do NOT fabricate one.
+17. Every seo_aso comparison/alternative card MUST name a real competitor from the NAMED COMPETITORS list; if that list is empty, frame the action around the category keyword, not a made-up rival.
+18. "target.channel" must be one of: community, creator, directory, media, podcast, newsletter, partner, x.`;
 
 export interface ActionsPromptInput {
   storeUrl: string;
@@ -166,12 +171,34 @@ export interface ActionsPromptInput {
   findings: string;
   founderVoice: string | null;
   today: string; // ISO date YYYY-MM-DD
+  grounding: ActionGrounding;
 }
 
 export function buildActionsPrompt(input: ActionsPromptInput): string {
   const voiceSection = input.founderVoice
     ? `=== FOUNDER VOICE HINT ===\n${input.founderVoice}\n`
     : `=== FOUNDER VOICE HINT ===\n(none provided — use plain, direct, non-salesy language)\n`;
+
+  const g = input.grounding;
+  const competitorsBlock = g.competitors.length
+    ? g.competitors.map((c) => `- ${c.name}${c.positioning ? ` — ${c.positioning}` : ""} (mentioned ${c.themMentions}× in tracked communities; you: ${c.youMentions}×)`).join("\n")
+    : "(none discovered)";
+  const communitiesBlock = g.communities.length
+    ? g.communities.map((c) => `- ${c.title} [${c.source}] ${c.url} (engagement ${c.engagement})`).join("\n")
+    : "(none discovered)";
+  const creatorsBlock = g.creators.length
+    ? g.creators.map((c) => `- ${c.name} ${c.url}${c.coveredCompetitor ? ` (covered ${c.coveredCompetitor})` : ""}`).join("\n")
+    : "(none discovered)";
+
+  const groundingSection = `=== NAMED COMPETITORS (real, brand-validated — mention counts from tracked communities) ===
+${competitorsBlock}
+
+=== COMMUNITIES RANKED BY ENGAGEMENT (real venues to post in — use these exact names/URLs) ===
+${communitiesBlock}
+
+=== NAMED CREATORS WHO COVERED A COMPETITOR (real outreach targets — use these exact names/URLs) ===
+${creatorsBlock}
+`;
 
   return `SUBJECT — generate actions ONLY for this product, and ignore any same-/similar-named product you may know of: ${input.storeUrl}
 
@@ -193,6 +220,7 @@ ${input.keywordData}
 === SYNTHESIS FINDINGS ===
 ${input.findings}
 
+${groundingSection}
 Today's date: ${input.today}
 
 Return ONLY a JSON array (no markdown, no code fences). Each element must match this shape exactly:
@@ -218,12 +246,13 @@ Return ONLY a JSON array (no markdown, no code fences). Each element must match 
     "verification": { "method": "url" | "self_report" | "rank_check", "state": "pending" },
     "basis": "evidence_based" | "probability_based",
     "confidence": <0.0–1.0>
+    ,"target": { "channel": "community" | "creator" | "directory" | "media" | "podcast" | "newsletter" | "partner" | "x", "label": "<exact venue/recipient name from the grounding, e.g. 'r/productivity' or 'Thomas Frank'>", "url": "<direct URL if known, else omit>" } | null
   }
 ]
 
 Rules recap:
 - Produce ≥3 cards per category (content, outreach, seo_aso) — over-generate rather than under.
-- Each outreach card must name a real, specific community or creator (e.g. "r/habittracking", "Thomas Frank's YouTube channel") — not a generic placeholder.
+- Each outreach card must name a real, specific community or creator — use a venue from the COMMUNITIES list or a creator from the CREATORS list above — and set "target" to that exact venue/person; never use a generic placeholder.
 - Each content card must name a specific content surface or format (e.g. "App Store 'What's New' copy", "Product Hunt launch post", "HackerNews Show HN post").
 - Each seo_aso card must include a specific keyword phrase or directory URL.
 - Drafts for content/outreach must reference a real review theme quote or competitor gap from the sheets above.

@@ -9,6 +9,7 @@
 
 import { callModel } from "@/lib/llm/anthropic";
 import { ACTIONS_SYSTEM, buildActionsPrompt } from "@/lib/llm/prompts";
+import { type ActionGrounding, EMPTY_GROUNDING } from "@/lib/llm/grounding";
 import { getFreshFactSheet, factSheetSubjectType } from "@/lib/scan/fact-sheets";
 import { fixturesEnabled, fixtureActions } from "@/lib/dev/fixtures";
 import { serverDb } from "@/lib/db/client";
@@ -251,6 +252,7 @@ export async function readFounderVoice(appId: string): Promise<string | null> {
 export async function generateActions(
   ctx: ScanContext,
   findings: Finding[],
+  grounding: ActionGrounding = EMPTY_GROUNDING,
 ): Promise<ActionCard[]> {
   // Fixture path — no LLM call, no DB reads
   if (fixturesEnabled()) {
@@ -279,6 +281,7 @@ export async function generateActions(
     findings: JSON.stringify(findings, null, 2),
     founderVoice,
     today,
+    grounding,
   });
 
   let text: string;
