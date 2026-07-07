@@ -115,12 +115,15 @@ export default async function TeardownsPage({ searchParams }: TeardownsPageProps
   );
 }
 
-async function LiveScans({ q, page }: { q?: string; page: number }) {
+async function LiveScans({ q, page: pageIn }: { q?: string; page: number }) {
   const total = await countPublicScans({ q });
+  const totalPages = Math.max(1, Math.ceil(total / TEARDOWNS_PAGE_SIZE));
+  // Clamp an out-of-range ?page= (hand-edited / stale crawl) to the last page so
+  // it never renders an empty grid under a "Page 999 of 3" pager.
+  const page = Math.min(pageIn, totalPages);
   const scans = await listPublicScans({ q, limit: TEARDOWNS_PAGE_SIZE, offset: (page - 1) * TEARDOWNS_PAGE_SIZE });
   const fmt = (iso: string | null) =>
     iso ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
-  const totalPages = Math.max(1, Math.ceil(total / TEARDOWNS_PAGE_SIZE));
   const pageHref = (n: number) => `/teardowns?${q ? `q=${encodeURIComponent(q)}&` : ""}page=${n}`;
 
   return (

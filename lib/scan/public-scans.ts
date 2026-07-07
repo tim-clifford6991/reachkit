@@ -48,6 +48,7 @@ export async function listPublicScans(opts?: number | ListPublicScansOpts): Prom
 
   const { data } = await query
     .order("completed_at", { ascending: false })
+    .order("scan_id", { ascending: false }) // stable tiebreak so pages don't dup/gap on equal timestamps
     .range(offset, offset + limit - 1);
 
   const out: PublicScan[] = [];
