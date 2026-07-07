@@ -14,7 +14,7 @@
 
 import type { Platform } from "./router";
 import type { PreliminaryFacts } from "./types";
-import type { Finding, PositioningMirror, ActionCard } from "@/lib/llm/types";
+import type { Finding, PositioningMirror, ActionCard, ScoreResult } from "@/lib/llm/types";
 import type { RegistryScore } from "./registry-score";
 import type { VerifiedScore, RadarAxis } from "./score-full";
 import { assembleReport, type ReportPayload } from "./report";
@@ -41,6 +41,20 @@ export function verifiedScoreFromRegistry(v: RegistryScore): VerifiedScore {
       { axis: "Positioning", value: 0, active: false, assessed: false },
     ],
   };
+}
+
+/**
+ * Wrap the v1 (Cycle 2 heuristic) `discoverabilityScore` result as a full
+ * 7-axis `VerifiedScore`, via `verifiedScoreFromRegistry`. `discoverabilityScore`
+ * always measures all three pillars, so `assessed` is the full pillar set.
+ */
+export function verifiedScoreFromV1(v1: ScoreResult): VerifiedScore {
+  const reg: RegistryScore = {
+    total: v1.total,
+    breakdown: v1.breakdown,
+    assessed: ["content", "outreach", "seo"],
+  };
+  return verifiedScoreFromRegistry(reg);
 }
 
 /**
@@ -140,8 +154,7 @@ export async function runFreeReport(ctx: ScanContext, facts: PreliminaryFacts): 
   if (ctx.mode === "web" && reg.assessed.length > 0) {
     score = verifiedScoreFromRegistry(reg);
   } else {
-    const v1 = discoverabilityScore(facts, null);
-    score = { ...v1, radar: [], basis: "verified" as const };
+    score = verifiedScoreFromV1(discoverabilityScore(facts, null));
     scoreVersion = 1;
   }
 
