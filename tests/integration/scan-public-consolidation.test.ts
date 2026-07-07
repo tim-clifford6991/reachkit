@@ -65,6 +65,7 @@ function makeAction(title: string, effortMin: number, delta: number): ActionCard
     verification: { method: "url", state: "pending" },
     basis: "evidence_based",
     confidence: 0.85,
+    target: null,
   };
 }
 

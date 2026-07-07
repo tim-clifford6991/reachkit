@@ -92,5 +92,6 @@ export function fallbackActionsFromSignals(
     verification: { method: "self_report", state: "pending" },
     basis: "probability_based",
     confidence: 0.5,
+    target: null, // signal-derived baseline fixes carry no WHO/WHERE
   }));
 }

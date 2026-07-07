@@ -343,6 +343,7 @@ export function fixtureActions(): ActionCard[] {
       verification: { method: "url", state: "pending" },
       basis: "evidence_based",
       confidence: 0.87,
+      target: null,
     },
     {
       category: "content",
@@ -365,6 +366,7 @@ export function fixtureActions(): ActionCard[] {
       verification: { method: "url", state: "pending" },
       basis: "evidence_based",
       confidence: 0.72,
+      target: null,
     },
     {
       category: "content",
@@ -388,6 +390,7 @@ export function fixtureActions(): ActionCard[] {
       verification: { method: "url", state: "pending" },
       basis: "evidence_based",
       confidence: 0.79,
+      target: null,
     },
     // --- OUTREACH cards ---
     {
@@ -411,6 +414,7 @@ export function fixtureActions(): ActionCard[] {
       verification: { method: "url", state: "pending" },
       basis: "evidence_based",
       confidence: 0.81,
+      target: null,
     },
     {
       category: "outreach",
@@ -433,6 +437,7 @@ export function fixtureActions(): ActionCard[] {
       verification: { method: "url", state: "pending" },
       basis: "evidence_based",
       confidence: 0.68,
+      target: null,
     },
     {
       category: "outreach",
@@ -456,6 +461,7 @@ export function fixtureActions(): ActionCard[] {
       verification: { method: "url", state: "pending" },
       basis: "probability_based",
       confidence: 0.55,
+      target: null,
     },
     // --- SEO/ASO cards ---
     {
@@ -480,6 +486,7 @@ export function fixtureActions(): ActionCard[] {
       verification: { method: "rank_check", state: "pending" },
       basis: "evidence_based",
       confidence: 0.93,
+      target: null,
     },
     {
       category: "seo_aso",
@@ -502,6 +509,7 @@ export function fixtureActions(): ActionCard[] {
       verification: { method: "url", state: "pending" },
       basis: "evidence_based",
       confidence: 0.85,
+      target: null,
     },
     {
       category: "seo_aso",
@@ -523,6 +531,7 @@ export function fixtureActions(): ActionCard[] {
       verification: { method: "rank_check", state: "pending" },
       basis: "evidence_based",
       confidence: 0.76,
+      target: null,
     },
   ];
 }
@@ -599,6 +608,7 @@ export function coldStartActionsFrom(seed: ColdStartSeed): ActionCard[] {
       verification: { method: "url", state: "pending" },
       basis: "probability_based",
       confidence: 0.55,
+      target: null,
     },
     // 2. Post it in a scored community (demand test #1).
     {
@@ -619,6 +629,7 @@ export function coldStartActionsFrom(seed: ColdStartSeed): ActionCard[] {
       verification: { method: "url", state: "pending" },
       basis: "probability_based",
       confidence: 0.5,
+      target: null,
     },
     // 2b. Post it in a second scored community (demand test #2).
     {
@@ -639,6 +650,7 @@ export function coldStartActionsFrom(seed: ColdStartSeed): ActionCard[] {
       verification: { method: "url", state: "pending" },
       basis: "probability_based",
       confidence: 0.5,
+      target: null,
     },
     // 3. Stand up one comparison / landing page on the top intent keyword.
     {
@@ -659,6 +671,7 @@ export function coldStartActionsFrom(seed: ColdStartSeed): ActionCard[] {
       verification: { method: "url", state: "pending" },
       basis: "probability_based",
       confidence: 0.5,
+      target: null,
     },
     // 4. Optional fast-signal: a small ad test on the top intent keyword.
     {
@@ -679,6 +692,7 @@ export function coldStartActionsFrom(seed: ColdStartSeed): ActionCard[] {
       verification: { method: "url", state: "pending" },
       basis: "probability_based",
       confidence: 0.45,
+      target: null,
     },
     // 5. Optional (never mandatory) discovery-conversation script.
     {
@@ -699,6 +713,7 @@ export function coldStartActionsFrom(seed: ColdStartSeed): ActionCard[] {
       verification: { method: "self_report", state: "pending" },
       basis: "probability_based",
       confidence: 0.5,
+      target: null,
     },
     // 6. Pivot-suggestion card — kill/pivot criteria from OBSERVED signals, framed
     //    as the next action (not a lecture). Highest confidence so it always survives.
@@ -720,6 +735,7 @@ export function coldStartActionsFrom(seed: ColdStartSeed): ActionCard[] {
       verification: { method: "self_report", state: "pending" },
       basis: "probability_based",
       confidence: 0.6,
+      target: null,
     },
   ];
 }

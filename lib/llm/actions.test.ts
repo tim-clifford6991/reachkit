@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import type { ActionCard, Finding } from "./types";
-import { clampEffort, ACTION_EFFORT_MIN, ACTION_EFFORT_MAX } from "./actions";
+import { clampEffort, ACTION_EFFORT_MIN, ACTION_EFFORT_MAX, coerceCardForTest } from "./actions";
 
 describe("clampEffort", () => {
   test("caps extreme estimates at the ceiling (no '120 min for an email')", () => {
@@ -18,6 +18,26 @@ describe("clampEffort", () => {
   test("non-finite input degrades to the floor", () => {
     expect(clampEffort(NaN)).toBe(ACTION_EFFORT_MIN);
     expect(clampEffort(Infinity)).toBe(ACTION_EFFORT_MIN);
+  });
+});
+
+describe("ActionCard target coercion", () => {
+  const base = {
+    category: "outreach" as const, title: "t", why: "w", evidenceIds: [], evidence: [],
+    effortMin: 30, suggestedDeadline: "2026-07-20",
+    expectedOutcome: { scoreComponent: "outreach", delta: 3 },
+    draft: null, draftRequiresEdit: true,
+    verification: { method: "url" as const, state: "pending" as const },
+    basis: "probability_based" as const, confidence: 0.5,
+  };
+  test("keeps a well-formed target", () => {
+    const c = coerceCardForTest({ ...base, target: { channel: "community", label: "r/productivity", url: "https://reddit.com/r/productivity" } });
+    expect(c.target).toEqual({ channel: "community", label: "r/productivity", url: "https://reddit.com/r/productivity" });
+  });
+  test("drops a malformed target to null", () => {
+    expect(coerceCardForTest({ ...base, target: { channel: "bogus", label: "" } as never }).target).toBeNull();
+    expect(coerceCardForTest({ ...base, target: null }).target).toBeNull();
+    expect(coerceCardForTest({ ...base }).target).toBeNull(); // absent → null
   });
 });
 
@@ -84,6 +104,7 @@ function makeCard(
     verification: { method: "url", state: "pending" },
     basis: "evidence_based",
     confidence: 0.8,
+    target: null,
     ...overrides,
   };
 }
