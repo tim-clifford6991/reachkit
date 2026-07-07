@@ -67,51 +67,42 @@ export async function resolveScanParam(param: string): Promise<ResolvedScan | nu
   // Domain form. Guard: a plausible hostname only (no paths/queries smuggled in).
   if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(decoded)) return null;
 
-  // Normalize exactly like scan creation does, so lookup matches store_url
-  // byte-for-byte in the common case; fall back to the www. variant and a
-  // prefix match for apps scanned with a path.
-  let candidates: string[];
+  // Validate the domain normalizes to a real URL (rejects junk early).
   try {
-    candidates = [classifyUrl(decoded).url, classifyUrl(`www.${decoded}`).url];
+    void classifyUrl(decoded).url;
   } catch {
     return null;
   }
 
-  let app: { id: string; store_url: string; platform: string } | null = null;
-  for (const url of candidates) {
-    const { data } = await db
-      .from("apps")
-      .select("id, store_url, platform")
-      .eq("store_url", url)
-      .limit(1)
-      .maybeSingle();
-    if (data) { app = data; break; }
-  }
-  if (!app) {
-    const { data } = await db
-      .from("apps")
-      .select("id, store_url, platform")
-      .or(`store_url.ilike.https://${decoded}%,store_url.ilike.https://www.${decoded}%`)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    app = data ?? null;
-  }
-  if (!app) return null;
+  // A domain can map to MULTIPLE app rows — URL variants (trailing slash, www)
+  // have historically created duplicate `apps` for the same site. Picking one
+  // arbitrarily (`.limit(1)` with no order) is non-deterministic and makes the
+  // page flicker between different scans (e.g. a done app's report vs another
+  // app's in-flight scan). So gather EVERY app for the domain and resolve to the
+  // single most-recent scan across all of them, with a deterministic tiebreak.
+  const { data: apps } = await db
+    .from("apps")
+    .select("id")
+    .or(`store_url.ilike.https://${decoded}%,store_url.ilike.https://www.${decoded}%`);
+  if (!apps || apps.length === 0) return null;
+  const appIds = apps.map((a) => a.id as string);
 
   const { data: scan } = await db
     .from("scans")
-    .select("id")
-    .eq("app_id", app.id)
+    .select("id, app_id, apps(store_url, platform)")
+    .in("app_id", appIds)
     .order("created_at", { ascending: false })
+    .order("id", { ascending: false }) // deterministic tiebreak for same-instant rows
     .limit(1)
     .maybeSingle();
   if (!scan) return null;
+  const app = scan.apps as unknown as { store_url: string; platform: string } | null;
+  if (!app) return null;
 
   return {
     scanId: scan.id,
     slug: slugForScan({ storeUrl: app.store_url, platform: app.platform, scanId: scan.id }),
-    appId: app.id,
+    appId: scan.app_id,
     storeUrl: app.store_url,
     platform: app.platform,
   };
