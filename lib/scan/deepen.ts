@@ -17,20 +17,35 @@ import { serverDb } from "@/lib/db/client";
 import { inngest } from "@/lib/inngest/client";
 
 /**
- * Has the DEEP pass already run for this scan? runFullScan persists its action
- * plan to the `actions` table; the free/lightweight pass never does — so an
- * actions row is the deep-pass sentinel, distinct from the lightweight
- * report_payload a free scan now carries. Fail-open (returns false on a lookup
- * error) so a transient blip never blocks a paid upgrade.
+ * Has the DEEP pass already run for this scan? `runFullScan` stamps
+ * `scans.deepened_at` when it completes — the unambiguous marker, set even when
+ * the critic/floor leaves 0 actions. The `actions`-table check is kept as a
+ * fallback for legacy scans deepened before the column existed. Fail-open
+ * (returns false on a lookup error) so a transient blip never blocks a paid
+ * upgrade.
  */
 export async function hasDeepReport(scanId: string): Promise<boolean> {
   const db = serverDb();
-  const { count, error } = await db
+  const { data, error } = await db
+    .from("scans")
+    .select("deepened_at")
+    .eq("id", scanId)
+    .maybeSingle();
+  if (error) {
+    console.error(`[deepen] deepened_at lookup failed for scan ${scanId}`, error.message);
+    return false;
+  }
+  if (data?.deepened_at) return true;
+
+  // Legacy fallback: scans deepened before `deepened_at` shipped still carry the
+  // persisted action plan (runFullScan → persistActions), which the free/light
+  // pass never writes.
+  const { count, error: aErr } = await db
     .from("actions")
     .select("id", { count: "exact", head: true })
     .eq("scan_id", scanId);
-  if (error) {
-    console.error(`[deepen] actions lookup failed for scan ${scanId}`, error.message);
+  if (aErr) {
+    console.error(`[deepen] actions fallback lookup failed for scan ${scanId}`, aErr.message);
     return false;
   }
   return (count ?? 0) > 0;

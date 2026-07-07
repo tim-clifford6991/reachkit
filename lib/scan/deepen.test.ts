@@ -1,13 +1,17 @@
 import { expect, test, vi, beforeEach } from "vitest";
 
 // Mock serverDb() modelling the query shapes ensureDeepScan / hasDeepReport use:
-// - "scans": a select(...).eq(...).maybeSingle() lookup and an update(...).eq().
-// - "actions": a select(...).eq() count/head lookup (the deep-pass sentinel).
+// - "scans": select(...).eq(...).maybeSingle() (id/tier for ensureDeepScan AND
+//   deepened_at for hasDeepReport — same mock row) and an update(...).eq().
+// - "actions": a select(...).eq() count/head lookup (legacy deep-pass fallback).
 function makeDb(
-  scanRow: { id: string; tier: string } | null,
-  opts: { actionsCount?: number; actionsError?: string | null } = {},
+  scanRow: { id: string; tier: string; deepened_at?: string | null } | null,
+  opts: { actionsCount?: number; actionsError?: string | null; scansError?: string | null } = {},
 ) {
-  const maybeSingle = vi.fn().mockResolvedValue({ data: scanRow, error: null });
+  const maybeSingle = vi.fn().mockResolvedValue({
+    data: scanRow,
+    error: opts.scansError ? { message: opts.scansError } : null,
+  });
   const selectEq = vi.fn().mockReturnValue({ maybeSingle });
   const scansSelect = vi.fn().mockReturnValue({ eq: selectEq });
   const updateEq = vi.fn().mockResolvedValue({ error: null });
@@ -50,14 +54,37 @@ test("ensureDeepScan promotes a free scan with no deep pass yet and enqueues dee
   expect(send).toHaveBeenCalledWith({ name: "scan/deepen", data: { scanId: "s1" } });
 });
 
-test("ensureDeepScan no-ops when the deep pass already ran (actions rows exist)", async () => {
-  const db = makeDb({ id: "s2", tier: "full" }, { actionsCount: 3 });
+test("ensureDeepScan no-ops when deepened_at is set (the marker path)", async () => {
+  const db = makeDb({ id: "s2", tier: "full", deepened_at: "2026-07-07T00:00:00Z" }, { actionsCount: 0 });
   const send = vi.fn();
   const ensureDeepScan = await load(db, send);
 
   expect(await ensureDeepScan("s2")).toBe(false);
   expect(db.spies.update).not.toHaveBeenCalled();
   expect(send).not.toHaveBeenCalled();
+  // Marker was decisive — the actions fallback isn't even consulted.
+  expect(db.spies.actionsEq).not.toHaveBeenCalled();
+});
+
+test("ensureDeepScan no-ops via the legacy actions fallback when deepened_at is null", async () => {
+  const db = makeDb({ id: "s2b", tier: "full", deepened_at: null }, { actionsCount: 3 });
+  const send = vi.fn();
+  const ensureDeepScan = await load(db, send);
+
+  expect(await ensureDeepScan("s2b")).toBe(false);
+  expect(db.spies.actionsEq).toHaveBeenCalled(); // fell back to actions
+  expect(send).not.toHaveBeenCalled();
+});
+
+test("ensureDeepScan fails open (promotes) when the actions fallback lookup errors", async () => {
+  // deepened_at null → fall back to actions; the actions lookup errors → hasDeepReport
+  // returns false (fail-open) so a transient blip never strands a paid upgrade.
+  const db = makeDb({ id: "s2c", tier: "free", deepened_at: null }, { actionsError: "db down" });
+  const send = vi.fn().mockResolvedValue(undefined);
+  const ensureDeepScan = await load(db, send);
+
+  expect(await ensureDeepScan("s2c")).toBe(true);
+  expect(send).toHaveBeenCalledWith({ name: "scan/deepen", data: { scanId: "s2c" } });
 });
 
 test("ensureDeepScan skips the tier write when already full but still enqueues", async () => {
