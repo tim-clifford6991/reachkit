@@ -1182,6 +1182,7 @@ export type Database = {
       public_scans: {
         Row: {
           app_id: string | null
+          blurb: string | null
           completed_at: string | null
           platform: string | null
           scan_id: string | null
