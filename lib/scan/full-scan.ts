@@ -54,7 +54,8 @@ import { getFreshFactSheet, factSheetSubjectType } from "@/lib/scan/fact-sheets"
 import { parseKeywords } from "@/lib/scan/adapters/keywords";
 import { checkScanCostOverrun } from "@/lib/telemetry/pipeline-runs";
 import { emitScanEvent } from "@/lib/scan/progress";
-import { attachMarketAnalysis } from "@/lib/scan/market";
+import { attachMarketAnalysis, writeMarketSnapshot } from "@/lib/scan/market";
+import { writeScanScoreSnapshot, rollupScanCost } from "@/lib/scan/scan-telemetry";
 import { countMentions } from "@/lib/scan/competitor-mentions";
 import { normalizeName } from "@/lib/scan/competitor-filter";
 import type { ScanContext } from "@/lib/scan/pipeline";
@@ -605,9 +606,17 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
     //     persisted, so a market-analysis failure is logged but never breaks the
     //     scan. Patches `report_payload.market` when it succeeds.
     if (ctx.mode === "web") {
-      await attachMarketAnalysis(ctx.scanId, ctx.storeUrl).catch((e) =>
-        console.error("[full-scan] market analysis failed (best-effort)", e),
-      );
+      const market = await attachMarketAnalysis(ctx.scanId, ctx.storeUrl).catch((e) => {
+        console.error("[full-scan] market analysis failed (best-effort)", e);
+        return null;
+      });
+      // B3: persist a market-history point so the trends reader is never empty on
+      // a fresh paid scan (previously only the weekly refresh wrote these).
+      if (market) {
+        await writeMarketSnapshot(ctx.appId, market, new Date().toISOString()).catch((e) =>
+          console.error("[full-scan] market snapshot failed (best-effort)", e),
+        );
+      }
       // NOTE: competitive intel is NOT pre-computed here. The user picks their own
       // benchmark competitors on the dashboard; intel is computed once at that point
       // (POST /api/competitors/select) and persisted — avoids wasted DataForSEO spend
@@ -685,7 +694,30 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
       console.error("[full-scan] signal persistence / score flip failed (best-effort)", e);
     }
 
-    // 10b. §13 cost-overrun alert — best-effort telemetry marker. The report is
+    // 10b. B3: deep-pass score-history point — read back the final persisted
+    //      score (v2 for web, v1 for app) so the dashboard timeline shows the
+    //      deep-pass move. Best-effort.
+    try {
+      const { data: finalRow } = await db
+        .from("scans")
+        .select("score_total, score_breakdown, score_version")
+        .eq("id", ctx.scanId)
+        .maybeSingle();
+      if (finalRow?.score_total != null) {
+        await writeScanScoreSnapshot({
+          appId: ctx.appId,
+          scanId: ctx.scanId,
+          total: finalRow.score_total,
+          breakdown: finalRow.score_breakdown,
+          version: finalRow.score_version ?? 1,
+          source: "scan_deep",
+        });
+      }
+    } catch (e) {
+      console.error("[full-scan] deep score snapshot failed (best-effort)", e);
+    }
+
+    // 10c. §13 cost-overrun alert — best-effort telemetry marker. The report is
     //      already persisted, so a hot scan is logged but never breaks the run.
     try {
       await checkScanCostOverrun(ctx.scanId);
@@ -702,6 +734,9 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
       score: score as unknown as Json,
       actionCount: plan.length,
     });
+
+    // 13. B3: roll the total pipeline cost (free + deep runs) onto scans.cost_cents.
+    await rollupScanCost(ctx.scanId);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     await emitScanEvent(ctx.scanId, "error", { message });
