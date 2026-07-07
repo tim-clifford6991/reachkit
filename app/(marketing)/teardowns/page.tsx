@@ -10,7 +10,11 @@ import { buildMetadata, SITE } from "@/lib/seo";
 import { allTeardowns } from "@/content/teardowns";
 import { Suspense } from "react";
 import { HeroFade } from "@/components/sections/hero-fade";
-import { listPublicScans } from "@/lib/scan/public-scans";
+import { listPublicScans, countPublicScans } from "@/lib/scan/public-scans";
+import { TeardownSearch } from "./teardown-search";
+
+/** Live-scan page size — also imported by the sitemap (Task 3). */
+export const TEARDOWNS_PAGE_SIZE = 24;
 
 export const metadata: Metadata = buildMetadata({
   title: "App Teardowns — Discoverability Analyses",
@@ -42,7 +46,16 @@ function scoreColor(s: number): string {
   return "#1F9D5B";
 }
 
-export default function TeardownsPage() {
+interface TeardownsPageProps {
+  searchParams: Promise<{ q?: string; page?: string }>;
+}
+
+export default async function TeardownsPage({ searchParams }: TeardownsPageProps) {
+  const params = await searchParams;
+  const q = params.q?.trim() || undefined;
+  const parsedPage = parseInt(params.page ?? "1", 10);
+  const page = Number.isFinite(parsedPage) && parsedPage > 1 ? parsedPage : 1;
+
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionPageLd()) }} />
@@ -94,7 +107,7 @@ export default function TeardownsPage() {
             Yours will too (that&rsquo;s the deal for a free scan of real market data).
           </p>
           <Suspense fallback={null}>
-            <LiveScans />
+            <LiveScans q={q} page={page} />
           </Suspense>
         </section>
       </main>
@@ -102,28 +115,72 @@ export default function TeardownsPage() {
   );
 }
 
-async function LiveScans() {
-  const scans = await listPublicScans(48);
-  if (scans.length === 0) return null;
+async function LiveScans({ q, page }: { q?: string; page: number }) {
+  const total = await countPublicScans({ q });
+  const scans = await listPublicScans({ q, limit: TEARDOWNS_PAGE_SIZE, offset: (page - 1) * TEARDOWNS_PAGE_SIZE });
   const fmt = (iso: string | null) =>
     iso ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
+  const totalPages = Math.max(1, Math.ceil(total / TEARDOWNS_PAGE_SIZE));
+  const pageHref = (n: number) => `/teardowns?${q ? `q=${encodeURIComponent(q)}&` : ""}page=${n}`;
+
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: 10 }}>
-      {scans.map((s) => (
-        <Link
-          key={s.slug}
-          href={`/scan/${s.slug}`}
-          style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 12, padding: "12px 14px", textDecoration: "none" }}
-        >
-          <span style={{ minWidth: 0 }}>
-            <span style={{ display: "block", fontFamily: SG, fontWeight: 700, fontSize: 13.5, color: "var(--c-ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.host}</span>
-            <span style={{ fontFamily: JM, fontSize: 10.5, color: "var(--c-faint)" }}>{fmt(s.completedAt)}</span>
-          </span>
-          {s.score !== null && (
-            <span style={{ flexShrink: 0, fontFamily: JM, fontWeight: 700, fontSize: 15, color: "var(--c-action)" }}>{s.score}</span>
+    <>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 14 }}>
+        <p style={{ fontFamily: JM, fontSize: 12.5, color: "var(--c-muted)", margin: 0 }}>
+          {total} scan{total === 1 ? "" : "s"} indexed
+        </p>
+      </div>
+      <div style={{ marginBottom: 18 }}>
+        <TeardownSearch initialQ={q ?? ""} />
+      </div>
+
+      {total === 0 ? (
+        <p style={{ fontFamily: "var(--font-sans)", fontSize: 14.5, color: "var(--c-muted)" }}>
+          No teardowns match &ldquo;{q}&rdquo;.
+        </p>
+      ) : (
+        <>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: 10 }}>
+            {scans.map((s) => (
+              <Link
+                key={s.slug}
+                href={`/scan/${s.slug}`}
+                style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 12, padding: "12px 14px", textDecoration: "none" }}
+              >
+                <span style={{ minWidth: 0 }}>
+                  <span style={{ display: "block", fontFamily: SG, fontWeight: 700, fontSize: 13.5, color: "var(--c-ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.host}</span>
+                  <span style={{ fontFamily: JM, fontSize: 10.5, color: "var(--c-faint)" }}>{fmt(s.completedAt)}</span>
+                </span>
+                {s.score !== null && (
+                  <span style={{ flexShrink: 0, fontFamily: JM, fontWeight: 700, fontSize: 15, color: "var(--c-action)" }}>{s.score}</span>
+                )}
+              </Link>
+            ))}
+          </div>
+
+          {totalPages > 1 && (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, marginTop: 24 }}>
+              {page > 1 ? (
+                <Link href={pageHref(page - 1)} style={{ fontFamily: "var(--font-sans)", fontWeight: 600, fontSize: 13.5, color: "var(--c-action)", textDecoration: "none" }}>
+                  ← Prev
+                </Link>
+              ) : (
+                <span style={{ width: 1 }} />
+              )}
+              <span style={{ fontFamily: JM, fontSize: 12, color: "var(--c-faint)" }}>
+                Page {page} of {totalPages}
+              </span>
+              {page < totalPages ? (
+                <Link href={pageHref(page + 1)} style={{ fontFamily: "var(--font-sans)", fontWeight: 600, fontSize: 13.5, color: "var(--c-action)", textDecoration: "none" }}>
+                  Next →
+                </Link>
+              ) : (
+                <span style={{ width: 1 }} />
+              )}
+            </div>
           )}
-        </Link>
-      ))}
-    </div>
+        </>
+      )}
+    </>
   );
 }
