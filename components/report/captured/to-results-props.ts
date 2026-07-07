@@ -25,11 +25,23 @@ export function toResultsProps(
   totalGapQueries?: number,
 ): ResultsScreenProps {
   const b = report.score.breakdown;
-  const minVal = Math.min(b.content, b.outreach, b.seo);
+  // Radar axes 0/1/2 are Content/Outreach/SEO; `assessed:false` means the pillar
+  // had no measured signal (e.g. off-site outreach on a free on-site scan). Such a
+  // pillar must render as "Not measured", never a damning 0/100, and must not be
+  // eligible as the "biggest lever" (min) — a 0 it never earned.
+  const radar = report.score.radar ?? [];
+  const measuredAt = (i: number): boolean => (radar[i] ? radar[i]!.assessed !== false : true);
+  const measured = { content: measuredAt(0), outreach: measuredAt(1), seo: measuredAt(2) };
+  const measuredVals = [
+    measured.content ? b.content : null,
+    measured.outreach ? b.outreach : null,
+    measured.seo ? b.seo : null,
+  ].filter((v): v is number => v !== null);
+  const minVal = measuredVals.length ? Math.min(...measuredVals) : -1;
   const pillars = [
-    { label: "Content", value: b.content, note: PILLAR_NOTE(b.content, b.content === minVal) },
-    { label: "Outreach", value: b.outreach, note: PILLAR_NOTE(b.outreach, b.outreach === minVal) },
-    { label: "SEO", value: b.seo, note: PILLAR_NOTE(b.seo, b.seo === minVal) },
+    { label: "Content", value: b.content, note: PILLAR_NOTE(b.content, measured.content && b.content === minVal), measured: measured.content },
+    { label: "Outreach", value: b.outreach, note: PILLAR_NOTE(b.outreach, measured.outreach && b.outreach === minVal), measured: measured.outreach },
+    { label: "SEO", value: b.seo, note: PILLAR_NOTE(b.seo, measured.seo && b.seo === minVal), measured: measured.seo },
   ];
 
   const ranked = [

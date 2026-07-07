@@ -55,7 +55,7 @@ function oppColors(opp: string) {
 
 const SG = "Space Grotesk", PJ = "Plus Jakarta Sans", JM = "JetBrains Mono";
 
-export interface Pillar { label: string; value: number; note: string }
+export interface Pillar { label: string; value: number; note: string; measured?: boolean }
 export interface Fix { rank: number; title: string; why: string; effort: string; pillar: string; pred: number }
 export interface GapRow { query: string; volume: string; rank: string; ranked: boolean; opp: string }
 
@@ -135,6 +135,24 @@ export function ResultsScreen(p: ResultsScreenProps) {
                 <text x="100" y="126.2" textAnchor="middle" style={{ font: `600 11px ${JM}, monospace`, fill: "var(--c-faint)", letterSpacing: 1 }}>/ 100</text>
               </svg>
               <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: band.bg, color: band.fg, fontWeight: 700, fontSize: 13, padding: "5px 13px", borderRadius: 8, marginTop: 8, fontFamily: SG }}>{band.label}</div>
+              {(() => {
+                // Basis honesty: name what the score is measured from so an on-site
+                // headline is never mistaken for a full market-wide verdict. Free
+                // scans always carry the upgrade hook; a fully-measured paid scan
+                // stays silent.
+                const total = p.pillars.length;
+                const measuredCount = p.pillars.filter((pil) => pil.measured !== false).length;
+                const note = !p.hideUnlock
+                  ? measuredCount < total
+                    ? `Measured on ${measuredCount} of ${total} growth surfaces — off-site reach unlocks with the full scan`
+                    : "On-site readiness — off-site reach unlocks with the full scan"
+                  : measuredCount < total
+                    ? `Measured on ${measuredCount} of ${total} growth surfaces`
+                    : null;
+                return note ? (
+                  <div style={{ marginTop: 8, fontSize: 11.5, lineHeight: 1.45, color: "var(--c-faint)", fontFamily: JM, maxWidth: 190 }}>{note}</div>
+                ) : null;
+              })()}
             </div>
             <div>
               {/* Personalisation: the client's own brand mark + domain. */}
@@ -160,6 +178,19 @@ export function ResultsScreen(p: ResultsScreenProps) {
               <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
                 {p.pillars.map((pil) => {
                   const c = pillarColor(pil.value);
+                  // An unmeasured pillar (no signal on this scan) renders as a
+                  // grey "Not measured" strip — never a 0/100 that reads as a
+                  // failing surface when it was simply never assessed.
+                  if (pil.measured === false) {
+                    return (
+                      <div key={pil.label} style={{ display: "flex", alignItems: "center", gap: 12, opacity: 0.75 }}>
+                        <div style={{ width: 74, fontSize: 13, fontWeight: 600 }}>{pil.label}</div>
+                        <div style={{ flex: "1 1 0%", height: 8, borderRadius: 5, background: "repeating-linear-gradient(90deg, var(--c-fill) 0 6px, transparent 6px 12px)" }} />
+                        <div style={{ width: 78, fontSize: 12.5, color: "var(--c-faint)" }}>unlock to measure</div>
+                        <div style={{ width: 44, textAlign: "right", fontFamily: JM, fontWeight: 600, fontSize: 11.5, color: "var(--c-faint)" }}>Not&nbsp;yet</div>
+                      </div>
+                    );
+                  }
                   return (
                     <div key={pil.label} style={{ display: "flex", alignItems: "center", gap: 12 }}>
                       <div style={{ width: 74, fontSize: 13, fontWeight: 600 }}>{pil.label}</div>
@@ -249,10 +280,20 @@ export function ResultsScreen(p: ResultsScreenProps) {
             <div style={{ display: "grid", gridTemplateColumns: "2.2fr 1fr 1fr 0.9fr", padding: "13px 22px", borderBottom: "1px solid var(--c-line2)", fontSize: 11.5, fontWeight: 700, letterSpacing: "0.04em", color: "var(--c-faint)", textTransform: "uppercase", background: "var(--c-bg2)" }}>
               <span>Query</span><span>Volume / mo</span><span>Your rank</span><span>Opportunity</span>
             </div>
-            {p.gapRows.length === 0 && p.gapTotal === 0 && (
-              <div style={{ padding: "18px 22px", fontSize: 14, color: "var(--c-faint)" }}>
-                Search-gap data wasn&apos;t available for this scan — keyword rankings could not be measured for this site yet.
-              </div>
+            {/* Empty rows: on the FREE page this is a paid feature, not a
+                failure — tease it. Only the PAID view (hideUnlock) with genuinely
+                no data shows the honest "not available" copy. */}
+            {p.gapRows.length === 0 && (
+              !p.hideUnlock ? (
+                <div style={{ padding: "18px 22px", fontSize: 14, lineHeight: 1.55, color: "#3A3744", background: "var(--c-tint-violet)" }}>
+                  🔒 Keyword-gap analysis is part of the full scan — the buyer queries where rivals outrank you, ranked by opportunity
+                  {p.gapTotal > 0 ? ` (${p.gapTotal} found on this scan)` : ""}. <span style={{ fontWeight: 700, color: "var(--c-action)" }}>Unlock with a free account →</span>
+                </div>
+              ) : p.gapTotal === 0 ? (
+                <div style={{ padding: "18px 22px", fontSize: 14, color: "var(--c-faint)" }}>
+                  Search-gap data wasn&apos;t available for this scan — keyword rankings could not be measured for this site yet.
+                </div>
+              ) : null
             )}
             {p.gapRows.map((g, i) => (
               <div key={i} style={{ display: "grid", gridTemplateColumns: "2.2fr 1fr 1fr 0.9fr", padding: "14px 22px", borderBottom: "1px solid var(--c-fill)", alignItems: "center" }}>
@@ -264,7 +305,7 @@ export function ResultsScreen(p: ResultsScreenProps) {
             ))}
             {/* Tier-aware footer: no "unlock" upsell on a paid report, and no
                 "Showing 0 of 0 queries" when there is no data (empty state above). */}
-            {p.gapTotal > 0 && (
+            {p.gapRows.length > 0 && p.gapTotal > 0 && (
               <div style={{ padding: "14px 22px", textAlign: "center", fontSize: 13, fontWeight: 600, color: "var(--c-action)", background: "var(--c-tint-violet)", cursor: "pointer" }}>
                 {p.hideUnlock
                   ? `Showing ${p.gapRows.length} of ${p.gapTotal} queries`
@@ -283,8 +324,12 @@ export function ResultsScreen(p: ResultsScreenProps) {
           {!p.hideUnlock && (
             <div style={{ marginTop: 18, background: "linear-gradient(135deg, var(--c-dark), var(--c-dark2))", borderRadius: 18, padding: "30px 32px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}>
               <div>
-                <h3 style={{ fontFamily: SG, fontWeight: 700, fontSize: 22, color: "#fff", margin: "0 0 6px" }}>{p.unlockTitle ?? `Unlock all ${p.fixes.length + p.lockedCount} fixes + weekly tracking`}</h3>
-                <p style={{ fontSize: 14.5, color: "#B7B4C4", margin: 0, maxWidth: 430 }}>{p.unlockSub ?? "Unlock the full report to see the full 18-signal breakdown, track your score over time, and verify each fix as you ship it."}</p>
+                <h3 style={{ fontFamily: SG, fontWeight: 700, fontSize: 22, color: "#fff", margin: "0 0 6px" }}>{p.unlockTitle ?? (p.lockedCount > 0
+                  ? `Unlock ${p.lockedCount} more ranked fix${p.lockedCount === 1 ? "" : "es"} + the full playbook`
+                  : "Get the full growth playbook + weekly tracking")}</h3>
+                <p style={{ fontSize: 14.5, color: "#B7B4C4", margin: 0, maxWidth: 430 }}>{p.unlockSub ?? (p.lockedCount > 0
+                  ? "Plus ready-to-ship drafts, your competitor & keyword-gap intel, the full 18-signal breakdown, and score tracking as you fix each one."
+                  : "Ready-to-ship drafts, competitor & keyword-gap intel, the full 18-signal breakdown, and weekly score tracking as you ship.")}</p>
               </div>
               {p.unlockButton ?? (
                 <button style={{ fontFamily: PJ, fontWeight: 700, fontSize: 15, color: "var(--c-ink)", background: "var(--c-surface)", border: "none", borderRadius: 10, padding: "13px 24px", cursor: "pointer", whiteSpace: "nowrap" }}>Unlock full report →</button>

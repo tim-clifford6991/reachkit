@@ -114,3 +114,38 @@ describe("toResultsProps — search gap total", () => {
     expect(p.gapTotal).toBe(12);
   });
 });
+
+describe("toResultsProps — pillar measurement (A6)", () => {
+  const radar = [
+    { axis: "Content", value: 100, active: true, assessed: true },
+    { axis: "Outreach", value: 0, active: true, assessed: false },
+    { axis: "SEO/ASO", value: 76, active: true, assessed: true },
+  ];
+
+  it("marks an unassessed pillar measured:false, never a damning 0/100", () => {
+    const p = toResultsProps(
+      report({ score: { total: 86, breakdown: { content: 100, outreach: 0, seo: 76 }, radar, basis: "verified" } }),
+      "trustmrr.com",
+      5,
+    );
+    expect(p.pillars.find((x) => x.label === "Outreach")!.measured).toBe(false);
+    expect(p.pillars.find((x) => x.label === "Content")!.measured).toBe(true);
+    expect(p.pillars.find((x) => x.label === "SEO")!.measured).toBe(true);
+  });
+
+  it("does not pick an unmeasured pillar as the biggest lever", () => {
+    const p = toResultsProps(
+      report({ score: { total: 86, breakdown: { content: 100, outreach: 0, seo: 76 }, radar, basis: "verified" } }),
+      "trustmrr.com",
+      5,
+    );
+    // SEO (76) is the weakest MEASURED pillar → the lever, not Outreach's unearned 0.
+    expect(p.pillars.find((x) => x.label === "SEO")!.note).toBe("biggest lever");
+    expect(p.pillars.find((x) => x.label === "Outreach")!.note).not.toBe("biggest lever");
+  });
+
+  it("treats an empty radar as all-measured (backward compatible)", () => {
+    const p = toResultsProps(report(), "site", 3);
+    expect(p.pillars.every((x) => x.measured)).toBe(true);
+  });
+});
