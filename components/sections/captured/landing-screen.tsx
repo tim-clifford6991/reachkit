@@ -5,6 +5,7 @@
  * (server-rendered for SEO/LCP, interactivity hydrated by LandingHydrate).
  */
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { LANDING_HTML } from "./landing-html";
 import { LandingHydrate } from "./landing-hydrate";
 import { ScanHero } from "@/components/sections/scan-hero";
@@ -16,6 +17,10 @@ import { listScannedCompanies } from "@/lib/marketing/scanned-companies";
 const REST_HTML = LANDING_HTML.slice(LANDING_HTML.indexOf("</section>") + "</section>".length).replace(/<\/main>\s*$/, "");
 
 async function CompanyTickerSection() {
+  // Defer to request time (uncached DB read → needs runtime env, must reflect
+  // current scans). Without this the landing prerenders at build and crashes on
+  // the missing SUPABASE_* env. The hero/page shell stays static.
+  await connection();
   const companies = await listScannedCompanies();
   return <CompanyTicker companies={companies} />;
 }

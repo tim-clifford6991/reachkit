@@ -6,6 +6,7 @@
  */
 
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import Link from "next/link";
 import { Suspense } from "react";
 import { buildMetadata, SITE } from "@/lib/seo";
@@ -72,6 +73,11 @@ export default function GalleryPage() {
 // a Suspense boundary throws "blocking-route"). We fetch the full set once and
 // hand it to the client grid, which filters instantly as the user types.
 async function LiveScansSection() {
+  // Render at REQUEST time, not build time: this reads the DB (uncached), which
+  // needs runtime env (SUPABASE_*) and must reflect current scans — prerendering
+  // it at build both crashes (no env) and freezes the list. connection() defers
+  // this Suspense boundary to the request; the page shell stays static.
+  await connection();
   const scans = await listPublicScans({ limit: 500 });
   return (
     <>
