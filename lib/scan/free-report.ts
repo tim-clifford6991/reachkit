@@ -76,3 +76,96 @@ export function buildFreeReport(args: {
     // deep sections omitted → assembleReport defaults them to empty
   });
 }
+
+// ---------------------------------------------------------------------------
+// runFreeReport — the I/O runner (Task 3)
+// ---------------------------------------------------------------------------
+
+import type { ScanContext } from "./pipeline";
+import { serverDb } from "@/lib/db/client";
+import { computeSignalRowsForScan, persistScanSignals } from "./persist-signals";
+import { fallbackActionsFromSignals } from "./fallback-actions";
+import { headlineScore } from "./registry-score";
+import { discoverabilityScore } from "./score";
+import { persistReport } from "./report";
+import type { ScoreComponents } from "./score-full";
+import type { Json } from "@/lib/db/types";
+
+/** Zero components — the free basis reads only HTML; comparison_pages → 0. */
+const ZERO_COMPONENTS: ScoreComponents = {
+  keywordsRanking: 0,
+  directoriesLive: 0,
+  comparisonPagesLive: 0,
+  asoCoverage: 0,
+  contentSurfaces: 0,
+  outreachSurfaces: 0,
+};
+
+/**
+ * Free-tier lightweight report. Cheap: computes the Wave-A HTML signals from the
+ * already-fetched site HTML (no new API calls), the fixed-basis headline, and
+ * signal-derived baseline fixes, then assembles + persists a minimal report_payload.
+ * Idempotent (safe on Inngest retry).
+ *
+ * Resilience: if a web scan has no usable HTML (headlineScore finds nothing
+ * assessed), falls back to the v1 discoverabilityScore wrapped as a VerifiedScore
+ * (score_version 1) rather than persisting a hollow 0 score.
+ */
+export async function runFreeReport(ctx: ScanContext, facts: PreliminaryFacts): Promise<void> {
+  const db = serverDb();
+
+  // Findings + positioning mirror written by runFindings.
+  const { data } = await db.from("scans").select("findings_payload").eq("id", ctx.scanId).maybeSingle();
+  const fp = (data?.findings_payload ?? null) as {
+    findings?: Finding[];
+    positioningMirror?: PositioningMirror;
+  } | null;
+  const findings = Array.isArray(fp?.findings) ? fp.findings : [];
+  const positioningMirror = fp?.positioningMirror ?? { listingSays: "", reviewsValue: "", gap: "" };
+
+  // Wave-A signals from already-persisted HTML (market null → deep signals unmeasured).
+  const signalRows = await computeSignalRowsForScan({
+    mode: ctx.mode,
+    storeUrl: ctx.storeUrl,
+    components: ZERO_COMPONENTS,
+    market: null,
+  });
+  await persistScanSignals({ mode: ctx.mode, storeUrl: ctx.storeUrl, scanId: ctx.scanId, components: ZERO_COMPONENTS, market: null });
+
+  // Headline: fixed-basis for web; v1 findings score for app (no HTML) — and the
+  // same v1 fallback when a web scan has no usable HTML to assess.
+  let scoreVersion = 2;
+  let score: VerifiedScore;
+  const reg: RegistryScore = ctx.mode === "web" ? headlineScore(signalRows) : { total: 0, breakdown: { content: 0, outreach: 0, seo: 0 }, assessed: [] };
+  if (ctx.mode === "web" && reg.assessed.length > 0) {
+    score = verifiedScoreFromRegistry(reg);
+  } else {
+    const v1 = discoverabilityScore(facts, null);
+    score = { ...v1, radar: [], basis: "verified" as const };
+    scoreVersion = 1;
+  }
+
+  const actions = fallbackActionsFromSignals(signalRows);
+
+  const payload = buildFreeReport({
+    mode: ctx.mode,
+    generatedAt: new Date().toISOString(),
+    facts,
+    positioningMirror,
+    findings,
+    actions,
+    score,
+  });
+
+  await persistReport(ctx.scanId, payload);
+
+  const { error } = await db
+    .from("scans")
+    .update({
+      score_total: score.total,
+      score_breakdown: score.breakdown as unknown as Json,
+      score_version: scoreVersion,
+    })
+    .eq("id", ctx.scanId);
+  if (error) throw error;
+}
