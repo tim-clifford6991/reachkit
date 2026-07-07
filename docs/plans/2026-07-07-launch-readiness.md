@@ -1,5 +1,29 @@
 # Launch-Readiness Implementation Plan
 
+## PROGRESS (branch `feat/launch-readiness-workstream-a`, updated 2026-07-08)
+
+**Workstream A — DONE (A1–A7), 1064 tests green, 0 type errors.**
+- A1 ✅ action floor `< MIN_ACTIONS(5)` (was `==0`) + `signalKeys` on every card + `persistActions` writes `signal_keys`. New `action-linking.ts` (+tests).
+- A2 ✅ upgrade wall never advertises `Unlock N fixes` when `lockedCount==0` — pivots to playbook/tracking.
+- A3 ✅ deterministic JSON-LD draft (`action-drafts.ts`, no LLM) for the schema quick-win. (Haiku-draft-for-all-quickWins = deferred; generator already drafts.)
+- A4 ✅ competitor name→domain resolver (`competitor-resolve.ts`, brand-ambiguity safe) + `seedFromScan` resolves name-only rows & backfills. Fixes onboarding "1 competitor".
+- A5 ✅ free search-gap = locked upsell teaser, not a "data unavailable" apology.
+- A6 ✅ unassessed pillars render "Not measured" (not 0/100); lever ignores them; basis subtitle. (Content-threshold recalibration → C3 with the batch.)
+- A7 ✅ mirror prompt names a real competitor when the gap sheet has one. (Deeper enrichment + live LLM verify → P1.)
+
+**Workstream B — B1 DONE.**
+- B1 ✅ `.github/workflows/inngest-sync.yml` auto-PUTs `/api/inngest` on prod deploy. (`/status` canary → follow-up.)
+- B2 ⏳ real test-mode Stripe checkout e2e — NOT done (needs deploy + test keys).
+- B3 ⏳ cost aggregation + score/market snapshots — NOT done.
+
+**Gates still required before "launch-ready":**
+- ⏳ `pnpm build` + `pnpm check:bundle` (could not run — `next dev` was live; run with dev stopped).
+- ⏳ Deploy to prod → **manually `PUT /api/inngest` once** (B1 automates subsequent deploys) → fresh live trustmrr scan verifying every Workstream-A AC.
+- ⏳ Workstream C (iOS mode, direct-paid branch, score calibration batch, retention loop, degraded/abuse).
+
+---
+
+
 **Author:** Fable 5 pre-launch review, 2026-07-07 (see `fable_assessment` in the validation JSON)
 **Executor:** Opus — follow this document task by task, in order, with TDD (`superpowers:test-driven-development`) and live verification per the protocol at the bottom.
 **Mission:** Make ReachKit launch-ready. The pipeline mechanics are proven live end-to-end; what's broken is the **conversion spine**. The free scan page must become a *competent* page — credible score, real named insights, visible proof of depth — that shows the first 30% of value and gates the rest behind upgrade. Today it gives away 100% of a thin plan while apologizing for missing data.
