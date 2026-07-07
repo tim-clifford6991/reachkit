@@ -465,6 +465,7 @@ async function persistActions(ctx: ScanContext, actions: ActionCard[]): Promise<
     draft: a.draft,
     draft_requires_edit: a.draftRequiresEdit,
     effort_min: a.effortMin,
+    target: (a.target ?? null) as unknown as Json,
     evidence_ids: a.evidenceIds,
     expected_outcome: a.expectedOutcome as unknown as Json,
     score_component: a.expectedOutcome.scoreComponent,

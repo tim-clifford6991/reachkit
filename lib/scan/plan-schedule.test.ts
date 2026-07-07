@@ -31,6 +31,7 @@ function boardAction(overrides: Partial<BoardAction> & { id: string; title: stri
     draft: null,
     verifyUrl: null,
     effortMin: null,
+    target: null,
     ...overrides,
   };
 }
