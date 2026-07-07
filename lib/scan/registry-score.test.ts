@@ -149,4 +149,13 @@ describe("headlineScore (fixed basis)", () => {
       ["canonical_url","content_depth","heading_structure","media_richness","meta_description","schema_jsonld","social_share_tags","title_tag"],
     );
   });
+
+  it("ignores deep-signal quality → paid basis equals free basis", () => {
+    // Same 8 fixed rows; paid additionally measured weak deep signals. Task 5:
+    // proves the paid full-scan path's chosen basis matches the free path's.
+    const free = headlineScore(FIXED_ROWS);
+    const paidRows = [...FIXED_ROWS, sig("organic_keywords", "seo", 0.25, 5), sig("community_presence", "outreach", 0.25, 5)];
+    const paid = headlineScore(paidRows);
+    expect(paid.total).toBe(free.total);
+  });
 });

@@ -36,12 +36,9 @@ import { algorithmSafety } from "@/lib/scan/algorithm-safety";
 import { gatherScoreComponents, verifiedScore } from "@/lib/scan/score-full";
 import { persistScanSignals, computeSignalRowsForScan } from "@/lib/scan/persist-signals";
 import { fallbackActionsFromSignals } from "@/lib/scan/fallback-actions";
-import {
-  registryScore,
-  applyRegistryScore,
-  headlineFromRows,
-  type RegistryScoreRow,
-} from "@/lib/scan/registry-score";
+import { headlineScore } from "@/lib/scan/registry-score";
+import { verifiedScoreFromRegistry } from "@/lib/scan/free-report";
+import type { ScanSignalRow } from "@/lib/scan/compute-signals";
 import { assembleReport, persistReport, type ReportPayload } from "@/lib/scan/report";
 import type {
   CompetitiveLandscapeRow,
@@ -626,20 +623,31 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
 
       const { data: rows } = await db
         .from("scan_signals")
-        .select("pillar, weight, normalised, state")
+        .select("signal_key, pillar, weight, normalised, state")
         .eq("scan_id", ctx.scanId);
-      const headline = headlineFromRows(ctx.mode, score, (rows ?? []) as RegistryScoreRow[]);
-      if (headline.version === 2 && payload) {
-        await db
-          .from("scans")
-          .update({
-            score_total: headline.total,
-            score_breakdown: headline.breakdown as unknown as Json,
-            score_version: 2,
-          })
-          .eq("id", ctx.scanId);
-        const v2Score = applyRegistryScore(payload.score, registryScore((rows ?? []) as RegistryScoreRow[]));
-        await persistReport(ctx.scanId, { ...payload, score: v2Score });
+      const signalRows = (rows ?? []).map((r) => ({
+        signalKey: r.signal_key as string,
+        pillar: r.pillar as "content" | "outreach" | "seo",
+        weight: r.weight as number,
+        normalised: r.normalised as number | null,
+        state: (r.state as ScanSignalRow["state"]) ?? "unmeasured",
+        rawValue: null,
+        contribution: null,
+        platform: ctx.mode,
+      }));
+      if (ctx.mode === "web" && payload) {
+        const reg = headlineScore(signalRows);
+        if (reg.assessed.length > 0) {
+          await db
+            .from("scans")
+            .update({
+              score_total: reg.total,
+              score_breakdown: reg.breakdown as unknown as Json,
+              score_version: 2,
+            })
+            .eq("id", ctx.scanId);
+          await persistReport(ctx.scanId, { ...payload, score: verifiedScoreFromRegistry(reg) });
+        }
       }
     } catch (e) {
       console.error("[full-scan] signal persistence / score flip failed (best-effort)", e);
