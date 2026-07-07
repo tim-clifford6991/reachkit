@@ -159,10 +159,15 @@ async function ScanHydrator({ id: param }: { id: string }) {
   // a sufficient and race-free signal. Requiring status ∈ {done,degraded} too
   // reintroduces the emit-then-status-update race this fix closes (the free
   // hand-off refresh can land between the payload write and the status
-  // write). Failed scans have no report_payload, so they fall through to
-  // ScanStream below to show the error/partial result.
+  // write). One exception: a run that persisted report_payload but was then
+  // marked `failed` (the terminal `done` step threw after the report was
+  // written) must NOT render as a finished report — fall through to ScanStream
+  // to surface the error. (A deepen re-scan keeps status active with the prior
+  // free report_payload; showing that free report is correct — the public page
+  // is always the free lead magnet — so active statuses are intentionally NOT
+  // excluded here.)
   const reportPayload = scanRes.data?.report_payload as unknown as ReportPayload | null;
-  if (reportPayload) {
+  if (reportPayload && initialStatus !== "failed") {
     return (
       <PublicReport
         scanId={id}
