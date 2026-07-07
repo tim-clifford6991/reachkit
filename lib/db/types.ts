@@ -52,6 +52,7 @@ export type Database = {
           score_component: string | null
           signal_keys: string[]
           status: string
+          target: Json | null
           title: string
           verification: Json | null
           verify_state: string
@@ -75,6 +76,7 @@ export type Database = {
           score_component?: string | null
           signal_keys?: string[]
           status?: string
+          target?: Json | null
           title: string
           verification?: Json | null
           verify_state?: string
@@ -98,6 +100,7 @@ export type Database = {
           score_component?: string | null
           signal_keys?: string[]
           status?: string
+          target?: Json | null
           title?: string
           verification?: Json | null
           verify_state?: string
