@@ -61,6 +61,49 @@ describe("scan narrative", () => {
     expect(s.find((x) => x.id === "snapshot")!.state).toBe("active"); // waits for __findings__
   });
 
+  it("deep=false: the base script ends at snapshot — no deep-pass steps", () => {
+    const s = computeStepStates({ confirmedLabels: new Set(), tick: 1, ctx: {} });
+    expect(s.some((x) => x.id === "actions")).toBe(false);
+    expect(s.some((x) => x.id === "report")).toBe(false);
+    expect(s[s.length - 1]!.id).toBe("snapshot");
+  });
+
+  it("deep=true: appends actions → critic → report after snapshot", () => {
+    const s = computeStepStates({ confirmedLabels: new Set(), tick: 1, ctx: {}, deep: true });
+    expect(s.map((x) => x.id).slice(-4)).toEqual(["snapshot", "actions", "critic", "report"]);
+  });
+
+  it("deep=true: findings done flips snapshot done and drafting active (not stuck for the whole deep pass)", () => {
+    const throughFindings = new Set([
+      "Read your product page", "Analysed 6 reviews", "Found 5 competitors",
+      "Reading your reviews & positioning", "Comparing you to your competitors",
+      "Scoring your discoverability", "__findings__",
+    ]);
+    const s = computeStepStates({ confirmedLabels: throughFindings, tick: 99, ctx: {}, deep: true });
+    expect(s.find((x) => x.id === "snapshot")!.state).toBe("done");
+    expect(s.find((x) => x.id === "actions")!.state).toBe("active");
+  });
+
+  it("deep=true: the report step is the closer until the report event lands", () => {
+    const throughCritic = new Set([
+      "Read your product page", "Analysed 6 reviews", "Found 5 competitors",
+      "Reading your reviews & positioning", "Comparing you to your competitors",
+      "Scoring your discoverability", "__findings__",
+      "Drafting your action plan", "Pressure-testing each recommendation",
+    ]);
+    const active = computeStepStates({ confirmedLabels: throughCritic, tick: 99, ctx: {}, deep: true });
+    expect(active.find((x) => x.id === "critic")!.state).toBe("done");
+    expect(active.find((x) => x.id === "report")!.state).toBe("active"); // waits for __report__
+
+    const done = computeStepStates({
+      confirmedLabels: new Set([...throughCritic, "__report__"]),
+      tick: 99,
+      ctx: {},
+      deep: true,
+    });
+    expect(done.every((x) => x.state === "done")).toBe(true);
+  });
+
   it("labelFor injects dynamic counts and falls back cleanly when unknown", () => {
     expect(labelFor("reviews", { reviewCount: 6 })).toMatch(/6 reviews/);
     expect(labelFor("reviews", {})).toMatch(/public reviews/i);

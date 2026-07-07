@@ -46,7 +46,8 @@ export function CheckoutButton({
       const res = await fetch("/api/billing/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan }),
+        // Return the user to where they are now if they hit Back on Stripe.
+        body: JSON.stringify({ plan, returnPath: window.location.pathname }),
       });
       const data = (await res.json().catch(() => ({}))) as { url?: string };
       if (!res.ok || !data.url) throw new Error("checkout failed");

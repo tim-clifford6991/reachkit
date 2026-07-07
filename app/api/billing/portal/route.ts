@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { requireUser, AuthError } from "@/lib/auth/server";
 import { createPortalSession, NoBillingAccountError } from "@/lib/billing/portal";
 
-export async function POST(): Promise<NextResponse> {
+export async function POST(req: NextRequest): Promise<NextResponse> {
   // Auth guard.
   let userId: string;
   try {
@@ -15,8 +15,12 @@ export async function POST(): Promise<NextResponse> {
     return NextResponse.json({ error: "unexpected auth error" }, { status: 500 });
   }
 
+  // Optional return path (where the portal's "Return" sends the user). Body may
+  // be empty — the portal button POSTs with no payload from most surfaces.
+  const body = (await req.json().catch(() => null)) as { returnPath?: string } | null;
+
   try {
-    const { url } = await createPortalSession(userId);
+    const { url } = await createPortalSession(userId, body?.returnPath);
     return NextResponse.json({ url });
   } catch (e) {
     // Clear, user-facing condition (no Stripe customer to manage) → 400, not 500.

@@ -2,6 +2,7 @@ import { serverDb } from "@/lib/db/client";
 import { fixturesEnabled } from "@/lib/dev/fixtures";
 import { env } from "@/lib/config/env";
 import { provisionCheckoutUser } from "@/lib/billing/provision";
+import { safeReturnPath } from "@/lib/billing/return-path";
 import {
   assertStripeConfigured,
   stripeClient,
@@ -68,11 +69,17 @@ export async function createCheckout({
   userId,
   plan,
   interval = "month",
+  returnPath,
 }: {
   userId: string;
   plan: "solo" | "growth";
   interval?: BillingInterval;
+  /** Where Back/cancel returns the user (the surface they came from). */
+  returnPath?: string;
 }): Promise<{ url: string }> {
+  // Where Stripe's "Back" (cancel_url) drops the user — the initiating surface,
+  // never a hard-coded /app/billing they never visited.
+  const cancelUrl = `${env.appUrl}${safeReturnPath(returnPath)}`;
   // ---------------------------------------------------------------------------
   // Fixture path — no Stripe; directly upgrade the user row for demo/test.
   // ---------------------------------------------------------------------------
@@ -142,8 +149,8 @@ export async function createCheckout({
     metadata: { userId, plan, interval },
     // No free trial — paid plans are charged immediately at checkout.
     success_url: `${env.appUrl}/app?upgraded=1`,
-    cancel_url: `${env.appUrl}/app/billing`,
+    cancel_url: cancelUrl,
   });
 
-  return { url: session.url ?? `${env.appUrl}/app/billing` };
+  return { url: session.url ?? cancelUrl };
 }

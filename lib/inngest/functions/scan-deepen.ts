@@ -13,6 +13,7 @@ import { env } from "@/lib/config/env";
 import { ScanBudget } from "@/lib/tools/registry";
 import { runFullScan } from "@/lib/scan/full-scan";
 import { emitScanEvent } from "@/lib/scan/progress";
+import { hasDeepReport } from "@/lib/scan/deepen";
 import type { PreliminaryFacts } from "@/lib/scan/types";
 
 export const scanDeepen = inngest.createFunction(
@@ -34,15 +35,15 @@ export const scanDeepen = inngest.createFunction(
 
       const { data: scanRow, error: scanErr } = await db
         .from("scans")
-        .select("id, app_id, report_payload, preliminary_facts, apps(store_url, platform)")
+        .select("id, app_id, preliminary_facts, apps(store_url, platform)")
         .eq("id", scanId)
         .single();
 
       if (scanErr) throw scanErr;
       if (!scanRow) throw new Error(`scan ${scanId} not found`);
 
-      // Idempotent: if the deep pass already produced a report, stop.
-      if (scanRow.report_payload) return;
+      // Idempotent: if the deep pass already persisted its action plan, stop.
+      if (await hasDeepReport(scanId)) return;
 
       const facts = scanRow.preliminary_facts as unknown as PreliminaryFacts | null;
       if (!facts) throw new Error(`scan ${scanId} has no preliminary_facts to deepen from`);

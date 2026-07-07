@@ -9,6 +9,7 @@
  */
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { updateProductUrl } from "@/app/(app)/app/settings/actions";
 
 const PJ = "Plus Jakarta Sans";
@@ -16,16 +17,17 @@ const PJ = "Plus Jakarta Sans";
 export function ProductUrlForm({ appId, initialUrl }: { appId: string; initialUrl: string }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  // null = idle; "saved" = same-host correction; "switched" = new product tracked.
+  const [result, setResult] = useState<null | "saved" | "switched">(null);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     setError(null);
-    setSuccess(false);
+    setResult(null);
     startTransition(async () => {
       const res = await updateProductUrl(appId, fd);
-      if (res.ok) setSuccess(true);
+      if (res.ok) setResult(res.switched ? "switched" : "saved");
       else setError(res.error);
     });
   }
@@ -84,9 +86,17 @@ export function ProductUrlForm({ appId, initialUrl }: { appId: string; initialUr
           {error}
         </p>
       )}
-      {success && (
+      {result === "saved" && (
         <p style={{ fontFamily: PJ, fontSize: 12.5, color: "#1F9D5B", margin: 0 }}>
-          Saved — your dashboard will recalculate once the next scan runs.
+          Saved — your next scan uses the updated URL.
+        </p>
+      )}
+      {result === "switched" && (
+        <p style={{ fontFamily: PJ, fontSize: 12.5, color: "var(--c-ink)", margin: 0 }}>
+          Now tracking a new product.{" "}
+          <Link href="/app/dashboard" style={{ color: "var(--c-action)", fontWeight: 600 }}>
+            Run its first scan →
+          </Link>
         </p>
       )}
     </form>

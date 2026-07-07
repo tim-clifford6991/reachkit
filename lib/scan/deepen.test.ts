@@ -1,16 +1,35 @@
 import { expect, test, vi, beforeEach } from "vitest";
 
-// Mock serverDb() modelling the two query shapes ensureDeepScan uses against
-// "scans": a select(...).eq(...).maybeSingle() lookup and an update(...).eq().
-function makeDb(scanRow: { id: string; tier: string; report_payload: unknown } | null) {
+// Mock serverDb() modelling the query shapes ensureDeepScan / hasDeepReport use:
+// - "scans": a select(...).eq(...).maybeSingle() lookup and an update(...).eq().
+// - "actions": a select(...).eq() count/head lookup (the deep-pass sentinel).
+function makeDb(
+  scanRow: { id: string; tier: string } | null,
+  opts: { actionsCount?: number; actionsError?: string | null } = {},
+) {
   const maybeSingle = vi.fn().mockResolvedValue({ data: scanRow, error: null });
   const selectEq = vi.fn().mockReturnValue({ maybeSingle });
-  const select = vi.fn().mockReturnValue({ eq: selectEq });
+  const scansSelect = vi.fn().mockReturnValue({ eq: selectEq });
   const updateEq = vi.fn().mockResolvedValue({ error: null });
   const update = vi.fn().mockReturnValue({ eq: updateEq });
-  const from = vi.fn().mockReturnValue({ select, update });
+
+  const actionsCount = opts.actionsCount ?? 0;
+  const actionsError = opts.actionsError ?? null;
+  const actionsEq = vi.fn().mockResolvedValue({
+    count: actionsCount,
+    error: actionsError ? { message: actionsError } : null,
+  });
+  const actionsSelect = vi.fn().mockReturnValue({ eq: actionsEq });
+
+  const from = vi.fn((table: string) => {
+    if (table === "actions") return { select: actionsSelect };
+    return { select: scansSelect, update };
+  });
   const serverDb = vi.fn().mockReturnValue({ from });
-  return { serverDb, spies: { from, select, selectEq, maybeSingle, update, updateEq } };
+  return {
+    serverDb,
+    spies: { from, select: scansSelect, selectEq, maybeSingle, update, updateEq, actionsSelect, actionsEq },
+  };
 }
 
 beforeEach(() => vi.resetModules());
@@ -21,8 +40,8 @@ async function load(db: ReturnType<typeof makeDb>, send: ReturnType<typeof vi.fn
   return (await import("./deepen")).ensureDeepScan;
 }
 
-test("ensureDeepScan promotes a free scan with no report and enqueues deepen", async () => {
-  const db = makeDb({ id: "s1", tier: "free", report_payload: null });
+test("ensureDeepScan promotes a free scan with no deep pass yet and enqueues deepen", async () => {
+  const db = makeDb({ id: "s1", tier: "free" }, { actionsCount: 0 });
   const send = vi.fn().mockResolvedValue(undefined);
   const ensureDeepScan = await load(db, send);
 
@@ -31,8 +50,8 @@ test("ensureDeepScan promotes a free scan with no report and enqueues deepen", a
   expect(send).toHaveBeenCalledWith({ name: "scan/deepen", data: { scanId: "s1" } });
 });
 
-test("ensureDeepScan no-ops when the scan already has a report", async () => {
-  const db = makeDb({ id: "s2", tier: "full", report_payload: { x: 1 } });
+test("ensureDeepScan no-ops when the deep pass already ran (actions rows exist)", async () => {
+  const db = makeDb({ id: "s2", tier: "full" }, { actionsCount: 3 });
   const send = vi.fn();
   const ensureDeepScan = await load(db, send);
 
@@ -42,7 +61,7 @@ test("ensureDeepScan no-ops when the scan already has a report", async () => {
 });
 
 test("ensureDeepScan skips the tier write when already full but still enqueues", async () => {
-  const db = makeDb({ id: "s3", tier: "full", report_payload: null });
+  const db = makeDb({ id: "s3", tier: "full" }, { actionsCount: 0 });
   const send = vi.fn().mockResolvedValue(undefined);
   const ensureDeepScan = await load(db, send);
 
@@ -58,4 +77,5 @@ test("ensureDeepScan returns false for a missing scan and enqueues nothing", asy
 
   expect(await ensureDeepScan("nope")).toBe(false);
   expect(send).not.toHaveBeenCalled();
+  expect(db.spies.actionsEq).not.toHaveBeenCalled();
 });

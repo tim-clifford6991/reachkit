@@ -6,12 +6,35 @@
  * `'full'` and emits `scan/deepen`, which runs the heavy full-scan pass.
  *
  * Idempotent and safe to call from multiple places (checkout provisioning, a
- * paid viewer re-opening a free scan): if the scan already has a `report_payload`
- * the deep pass already ran, so it no-ops.
+ * paid viewer re-opening a free scan). Both the free/lightweight pass and the
+ * deep pass now write a `report_payload`, so that column can no longer signal
+ * "deep pass already ran". Instead we use `hasDeepReport`: only the deep pass
+ * (`runFullScan`) persists rows to the `actions` table, so an actions row for
+ * this scan is the reliable deep-pass sentinel.
  */
 
 import { serverDb } from "@/lib/db/client";
 import { inngest } from "@/lib/inngest/client";
+
+/**
+ * Has the DEEP pass already run for this scan? runFullScan persists its action
+ * plan to the `actions` table; the free/lightweight pass never does — so an
+ * actions row is the deep-pass sentinel, distinct from the lightweight
+ * report_payload a free scan now carries. Fail-open (returns false on a lookup
+ * error) so a transient blip never blocks a paid upgrade.
+ */
+export async function hasDeepReport(scanId: string): Promise<boolean> {
+  const db = serverDb();
+  const { count, error } = await db
+    .from("actions")
+    .select("id", { count: "exact", head: true })
+    .eq("scan_id", scanId);
+  if (error) {
+    console.error(`[deepen] actions lookup failed for scan ${scanId}`, error.message);
+    return false;
+  }
+  return (count ?? 0) > 0;
+}
 
 /**
  * Promote a free scan to the deep pipeline. Returns true when a deepen was
@@ -22,7 +45,7 @@ export async function ensureDeepScan(scanId: string): Promise<boolean> {
 
   const { data: scan, error } = await db
     .from("scans")
-    .select("id, tier, report_payload")
+    .select("id, tier")
     .eq("id", scanId)
     .maybeSingle();
 
@@ -30,8 +53,8 @@ export async function ensureDeepScan(scanId: string): Promise<boolean> {
     console.error(`[deepen] lookup failed for scan ${scanId}`, error.message);
     return false;
   }
-  // Already deep (report produced) or missing → nothing to do.
-  if (!scan || scan.report_payload) return false;
+  if (!scan) return false;
+  if (await hasDeepReport(scanId)) return false; // deep pass already ran
 
   if (scan.tier !== "full") {
     const { error: tierErr } = await db

@@ -6,6 +6,8 @@ import { createCheckout } from "@/lib/billing/checkout";
 const Body = z.object({
   plan: z.enum(["solo", "growth"]),
   interval: z.enum(["month", "year"]).optional().default("month"),
+  // Where Back/cancel returns the user (validated server-side in createCheckout).
+  returnPath: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -30,11 +32,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { plan, interval } = parsed.data;
+  const { plan, interval, returnPath } = parsed.data;
 
   // Create checkout session.
   try {
-    const { url } = await createCheckout({ userId, plan, interval });
+    const { url } = await createCheckout({ userId, plan, interval, returnPath });
     return NextResponse.json({ url });
   } catch (e) {
     console.error("billing/checkout POST error", e);

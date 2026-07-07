@@ -10,6 +10,7 @@ import type { FindingsPayload } from "./findings-reveal";
 import { funnel } from "@/lib/analytics";
 import { competitorSourceLabel } from "@/lib/scan/source-labels";
 import { ScanProgress } from "@/components/scan/scan-progress";
+import { shouldHandOffToResults, type ScanTier } from "./handoff";
 
 // ── Design idiom: intel-kit — inline styles + `--c-*` tokens + the three fonts ─
 const SG = "var(--font-display)", PJ = "var(--font-sans)", JM = "var(--font-mono)";
@@ -234,6 +235,7 @@ function buildSeed(events: SeedEvent[]) {
   const artifacts: string[] = [];
   let facts: PreliminaryFacts | null = null;
   let findings: FindingsPayload | null = null;
+  let reported = false;
   let done = false;
   let errored = false;
   let lastId = 0;
@@ -245,13 +247,15 @@ function buildSeed(events: SeedEvent[]) {
       facts = e.payload as unknown as PreliminaryFacts;
     } else if (e.type === "findings") {
       findings = e.payload as unknown as FindingsPayload;
+    } else if (e.type === "report") {
+      reported = true;
     } else if (e.type === "done") {
       done = true;
     } else if (e.type === "error") {
       errored = true;
     }
   }
-  return { artifacts, facts, findings, done, errored, lastId };
+  return { artifacts, facts, findings, reported, done, errored, lastId };
 }
 
 // The scans.status values that mean the pipeline is STILL running. Any other
@@ -270,12 +274,15 @@ const ACTIVE_STATUSES = [
 
 export function ScanStream({
   id,
+  tier = "free",
   scanExists = true,
   initialStatus = null,
   initialEvents = [],
   host = null,
 }: {
   id: string;
+  /** Two-track split: 'full' scans run the deep pass; 'free' stops at findings. */
+  tier?: ScanTier;
   scanExists?: boolean;
   initialStatus?: string | null;
   initialEvents?: SeedEvent[];
@@ -289,6 +296,8 @@ export function ScanStream({
   const [findingsData, setFindingsData] = useState<FindingsPayload | null>(
     seed.findings
   );
+  // Report persisted (deep pass done). Full scans hand off on this; free never reach it.
+  const [reportReady, setReportReady] = useState<boolean>(seed.reported || seed.done);
   const [failed, setFailed] = useState<boolean>(
     seed.errored || initialStatus === "failed"
   );
@@ -301,14 +310,21 @@ export function ScanStream({
 
   const router = useRouter();
 
-  // Single results experience: once the report is ready, hand off to the
-  // canonical /scan/[id]/results page (which renders the full report, the free
-  // teaser, or a pending state). Failures stay here to show the error inline.
+  // Single results experience: hand off to the canonical /scan/[id]/results page
+  // once its data is actually ready. Free scans END at findings (the teaser reads
+  // findings_payload); full scans must wait for the deep pass to persist
+  // report_payload (~80s later) — handing off on findings drops the user on the
+  // "Finalising your action plan…" pending screen for the whole pass. Failures
+  // stay here to show the error inline.
+  const handOff = shouldHandOffToResults({
+    tier,
+    findingsReady: findingsData != null,
+    reportReady,
+    failed,
+  });
   useEffect(() => {
-    if (findingsData && !failed) {
-      router.replace(`/scan/${id}/results`);
-    }
-  }, [findingsData, failed, id, router]);
+    if (handOff) router.replace(`/scan/${id}/results`);
+  }, [handOff, id, router]);
 
   useEffect(() => {
     if (!scanExists || seededTerminal) return;
@@ -348,8 +364,13 @@ export function ScanStream({
         const fp = e.payload as unknown as FindingsPayload;
         setFindingsData(fp);
         funnel.findingsShown({ scan_id: id, score: fp.score.total });
+      } else if (e.type === "report") {
+        // Deep pass finished — report_payload is persisted (full scans hand off here).
+        settled = true;
+        setReportReady(true);
       } else if (e.type === "done") {
         settled = true;
+        setReportReady(true);
         cleanup();
       } else if (e.type === "error") {
         // Reveal whatever we have: the reveal is gated on (findingsData || failed) &&
@@ -408,15 +429,18 @@ export function ScanStream({
     return <FactsView facts={facts} findingsData={findingsData} scanId={id} />;
   }
 
-  // Success: the report is ready → we're handing off to /scan/[id]/results (the
-  // single results experience; see the effect above). Brief placeholder while
-  // the route transition happens.
-  if (findingsData && facts) {
+  // Ready → we're handing off to /scan/[id]/results (the single results
+  // experience; see the effect above). Brief placeholder while the route
+  // transition happens. `handOff` is false for a full scan until report_payload
+  // lands, so the live narrative below keeps running through the deep pass.
+  if (handOff && facts) {
     return <PreparingResults />;
   }
 
   // Otherwise we're actively scanning — the live "thinking" narrative + scan
-  // animation, continuously moving and synced to the real scan_events.
+  // animation, continuously moving and synced to the real scan_events. Full scans
+  // continue through the deep pass (actions → critic → report) instead of handing
+  // off at findings, so the user sees ONE loading screen, then the ready report.
   return (
     <ScanProgress
       artifacts={artifacts}
@@ -424,7 +448,9 @@ export function ScanStream({
       host={host}
       reviewCount={facts?.reviewVolume}
       competitorCount={facts?.competitors.length}
-      finished={false}
+      deep={tier === "full"}
+      findingsReady={findingsData != null}
+      reportReady={reportReady}
     />
   );
 }

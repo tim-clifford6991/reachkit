@@ -9,27 +9,39 @@
  * "https://example.com" and App/Play Store links reclassify `platform`
  * automatically.
  *
- * NOTE: this does NOT re-trigger a scan. Cached intel (scans, findings,
- * score snapshots) stays keyed to the app's existing rows, which describe
- * the OLD domain — after a successful change the dashboard will show its
- * empty/calculating state until the next scan runs. That's an accepted
- * launch-minimum tradeoff; re-scan orchestration is out of scope here.
+ * Two cases, keyed on whether the HOST changed:
+ *   - Same host (a correction — e.g. adding a `/pricing` path): update
+ *     `store_url` in place and keep all existing intel; the next scan uses the
+ *     tweaked URL. Cheap, non-destructive.
+ *   - Different host (a genuine product switch): `switchTrackedProduct` mints a
+ *     fresh app and repoints the tracked slot, so the old product's mismatched
+ *     scans/competitors/plan are no longer shown. NOTHING expensive fires — no
+ *     re-onboarding, no automatic scan. The dashboard's "no scan yet" empty
+ *     state then invites a single on-demand scan of the new product.
  */
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { requireUser } from "@/lib/auth/server";
 import { serverDb } from "@/lib/db/client";
 import { classifyUrl } from "@/lib/scan/router";
+import { normalizeHost } from "@/lib/scan/referral/classify";
+import { switchTrackedProduct } from "@/lib/app/switch-product";
+import { ACTIVE_APP_COOKIE } from "@/lib/app/active-app";
 
-export type UpdateProductUrlResult = { ok: true } | { ok: false; error: string };
+export type UpdateProductUrlResult =
+  | { ok: true; switched: boolean; host: string }
+  | { ok: false; error: string };
 
 export async function updateProductUrl(
   appId: string,
   formData: FormData,
 ): Promise<UpdateProductUrlResult> {
+  let userId: string;
   let appIds: string[];
   try {
     const { user } = await requireUser();
+    userId = user.id;
     appIds = user.app_ids ?? [];
   } catch {
     return { ok: false, error: "You need to be signed in to do that." };
@@ -53,7 +65,32 @@ export async function updateProductUrl(
     return { ok: false, error: "That doesn't look like a valid URL." };
   }
 
-  const { error } = await serverDb()
+  const db = serverDb();
+  const { data: appRow } = await db.from("apps").select("store_url").eq("id", appId).maybeSingle();
+  const currentHost = appRow?.store_url ? normalizeHost(appRow.store_url) : "";
+  const nextHost = normalizeHost(routed.url);
+  const isSwitch = !!currentHost && !!nextHost && currentHost !== nextHost;
+
+  if (isSwitch) {
+    // Different product → fresh app + repoint the tracked slot. Old intel is
+    // left behind (unreferenced), no scan/onboarding runs.
+    let newAppId: string;
+    try {
+      ({ newAppId } = await switchTrackedProduct(userId, appId, routed.url, routed.platform));
+    } catch {
+      return { ok: false, error: "Couldn't switch product — please try again." };
+    }
+    // Point the active-app selection at the new slot so the dashboard shows it
+    // immediately (Growth users especially, where app_ids[0] may be another app).
+    (await cookies()).set(ACTIVE_APP_COOKIE, newAppId, { path: "/", sameSite: "lax" });
+    revalidatePath("/app/settings");
+    revalidatePath("/app");
+    revalidatePath("/app/dashboard");
+    return { ok: true, switched: true, host: nextHost };
+  }
+
+  // Same host → in-place correction, keep existing intel.
+  const { error } = await db
     .from("apps")
     .update({ store_url: routed.url, platform: routed.platform })
     .eq("id", appId);
@@ -64,5 +101,5 @@ export async function updateProductUrl(
 
   revalidatePath("/app/settings");
   revalidatePath("/app");
-  return { ok: true };
+  return { ok: true, switched: false, host: nextHost };
 }

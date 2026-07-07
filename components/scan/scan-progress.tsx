@@ -20,7 +20,9 @@ export function ScanProgress({
   reviewCount,
   competitorCount,
   ctaCount,
-  finished,
+  deep = false,
+  findingsReady,
+  reportReady,
 }: {
   artifacts: string[];
   productName?: string | null;
@@ -28,14 +30,23 @@ export function ScanProgress({
   reviewCount?: number;
   competitorCount?: number;
   ctaCount?: number;
-  finished: boolean;
+  /** Full (paid) scan watched live end-to-end → run the deep-pass narrative. */
+  deep?: boolean;
+  /** Findings milestone landed (closes the `snapshot` step). */
+  findingsReady: boolean;
+  /** Report persisted (closes the deep `report` step; free scans never reach it). */
+  reportReady: boolean;
 }) {
   const confirmed = new Set<string>(artifacts);
-  if (finished) confirmed.add("__findings__");
+  if (findingsReady) confirmed.add("__findings__");
+  if (reportReady) confirmed.add("__report__");
+  // Free scans finish at findings; full scans keep running through the deep pass.
+  const running = deep ? !reportReady : !findingsReady;
   const steps = useScanNarrative(
     confirmed,
     { reviewCount, competitorCount, ctaCount },
-    !finished,
+    running,
+    deep,
   );
 
   void productName;

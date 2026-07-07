@@ -55,7 +55,7 @@ async function ScanHydrator({ id: param }: { id: string }) {
 
   const db = serverDb();
   const [scanRes, eventsRes] = await Promise.all([
-    db.from("scans").select("status, apps(store_url)").eq("id", id).maybeSingle(),
+    db.from("scans").select("status, tier, apps(store_url)").eq("id", id).maybeSingle(),
     db
       .from("scan_events")
       .select("id, type, payload")
@@ -80,9 +80,14 @@ async function ScanHydrator({ id: param }: { id: string }) {
     payload: (r.payload ?? {}) as Record<string, unknown>,
   }));
 
+  // Two-track split: 'full' scans run the deep pass (report_payload ~80s after
+  // findings) and must be watched to completion; 'free' stops at findings.
+  const tier = scanRes.data?.tier === "full" ? "full" : "free";
+
   return (
     <ScanStream
       id={id}
+      tier={tier}
       scanExists={scanRes.data != null}
       initialStatus={initialStatus}
       initialEvents={initialEvents}

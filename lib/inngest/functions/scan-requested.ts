@@ -4,6 +4,7 @@ import { env } from "@/lib/config/env";
 import { ScanBudget } from "@/lib/tools/registry";
 import { runCollect } from "@/lib/scan/pipeline";
 import { runFindings } from "@/lib/scan/findings-pipeline";
+import { runFreeReport } from "@/lib/scan/free-report";
 import { runFullScan } from "@/lib/scan/full-scan";
 import { emitScanEvent } from "@/lib/scan/progress";
 import { scanCostCents } from "@/lib/telemetry/pipeline-runs";
@@ -139,6 +140,31 @@ export const scanRequested = inngest.createFunction(
         facts,
       );
     });
+
+    // Step 2b: free-report — free scans get a lightweight report_payload (score +
+    // positioning + findings + signal-derived baseline fixes; deep sections empty)
+    // so the single results renderer works for the public lead magnet. Cheap:
+    // pure computation over already-fetched HTML, no new API calls.
+    if (tier === "free") {
+      await step.run("free-report", async () => {
+        const db = serverDb();
+        const { data: scanRow, error: scanErr } = await db
+          .from("scans")
+          .select("id, app_id, apps(store_url, platform)")
+          .eq("id", scanId)
+          .single();
+        if (scanErr) throw scanErr;
+        if (!scanRow) throw new Error(`scan ${scanId} not found`);
+        const appsRaw = scanRow.apps;
+        if (!appsRaw) throw new Error(`scan ${scanId} has no linked app`);
+        const app = appsRaw as unknown as { store_url: string; platform: "ios" | "android" | "web" };
+        const budget = new ScanBudget({ maxToolCalls: 60, budgetCents: budgetCentsForTier(tier) });
+        await runFreeReport(
+          { scanId, appId: scanRow.app_id, mode: app.platform, storeUrl: app.store_url, budget },
+          facts,
+        );
+      });
+    }
 
     // Step 3: full-scan — heavy collect + actions + Critic + verified score + report.
     // Two-track split: only paid ('full') scans run the deep pass here. Free scans
