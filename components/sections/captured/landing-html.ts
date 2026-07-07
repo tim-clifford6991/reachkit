@@ -22,7 +22,7 @@ export const LANDING_HTML = `<main>
             <span style="width: 11px; height: 11px; border-radius: 50%; background: rgb(229, 192, 194);"></span>
             <span style="width: 11px; height: 11px; border-radius: 50%; background: rgb(234, 217, 176);"></span>
             <span style="width: 11px; height: 11px; border-radius: 50%; background: rgb(191, 224, 194);"></span>
-            <span style="margin-left: 10px; font-family: &quot;JetBrains Mono&quot;; font-size: 12px; color: var(--c-faint);">app.reachkit.io/report/bloom.io</span>
+            <span style="margin-left: 10px; font-family: &quot;JetBrains Mono&quot;; font-size: 12px; color: var(--c-faint);">app.reachkit.io/scan/bloom.io</span>
           </div>
           <div style="display: grid; grid-template-columns: 300px 1fr; gap: 0px;">
             <div style="padding: 26px; border-right: 1px solid var(--c-line2); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: linear-gradient(var(--c-bg2), rgb(255, 255, 255));">

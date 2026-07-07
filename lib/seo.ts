@@ -20,7 +20,7 @@ export function buildMetadata(opts: { title: string; description?: string; path:
   const fullTitle = `${opts.title} — ${SITE.name}`;
   // Explicit OG image: when a page sets `openGraph`, Next does NOT auto-merge the
   // file-convention opengraph-image, so without this every share preview is blank.
-  // Routes with a custom card (e.g. /report/[slug]) override openGraph.images.
+  // Routes with a custom card (e.g. /scan/[slug]) override openGraph.images.
   const ogImage = {
     url: `${SITE.url}/opengraph-image`,
     width: 1200,

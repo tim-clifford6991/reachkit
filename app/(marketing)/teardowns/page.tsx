@@ -112,7 +112,7 @@ async function LiveScans() {
       {scans.map((s) => (
         <Link
           key={s.slug}
-          href={`/report/${s.slug}`}
+          href={`/scan/${s.slug}`}
           style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 12, padding: "12px 14px", textDecoration: "none" }}
         >
           <span style={{ minWidth: 0 }}>

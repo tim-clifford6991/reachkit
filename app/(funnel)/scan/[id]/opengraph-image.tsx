@@ -1,5 +1,5 @@
 /**
- * OG score-card for /report/[slug]
+ * OG score-card for /scan/[id]
  *
  * Next.js App Router ImageResponse at 1200×630 (standard OG share card).
  *
@@ -15,7 +15,8 @@
  * box model. No external CSS, no oklch, no CSS variables.
  * Palette uses hex equivalents of the brand token set.
  *
- * Slug is the scan id (same convention as the public report page).
+ * Ported from app/report/[slug]/opengraph-image.tsx — the `id` route param is
+ * the scan id (a domain personal URL or legacy scan UUID), same convention.
  */
 
 import { ImageResponse } from "next/og";
@@ -89,17 +90,17 @@ function barColour(value: number): string {
 export default async function OGImage({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ id: string }>;
 }) {
-  const { slug } = await params;
+  const { id } = await params;
 
-  // The slug is a domain (personal URL) or a legacy scan UUID — resolve either.
-  const resolved = await resolveScanParam(slug);
+  // The id is a domain (personal URL) or a legacy scan UUID — resolve either.
+  const resolved = await resolveScanParam(id);
   const db = serverDb();
   const { data } = await db
     .from("scans")
     .select("report_payload")
-    .eq("id", resolved?.scanId ?? slug)
+    .eq("id", resolved?.scanId ?? id)
     .maybeSingle();
 
   // If no data, render a generic branded card rather than erroring

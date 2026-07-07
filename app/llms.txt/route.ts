@@ -41,7 +41,7 @@ function buildLlmsTxt(): string {
 ${teardownLines}
 
 ## Public report format
-Every scan produces a shareable public report at ${SITE.url}/report/{scan-id}. It shows the Discoverability Score and the four-question breakdown as a verified, public-safe teaser — the paid action drafts are redacted on the public page. The report carries Article structured data (schema.org) and an Open Graph score card.
+Every scan produces a shareable public report at ${SITE.url}/scan/{scan-id}. It shows the Discoverability Score and the four-question breakdown as a verified, public-safe teaser — the paid action drafts are redacted on the public page. The report carries Article structured data (schema.org) and an Open Graph score card.
 
 ## About
 ${SITE.name} is built for indie and solo founders who ship products but lack a growth/marketing team. Homepage: ${SITE.url}

@@ -1,11 +1,11 @@
 /**
  * Scan slugs — personal, run-once scan URLs.
  *
- * A web scan's public identity is its DOMAIN, not a UUID: /scan/nudgi.ai and
- * /report/nudgi.ai. That reads personal, dedupes by construction (the same
- * link always resolves to the same app's scan — the /api/scan find-or-create
- * already guarantees one scan per app), and makes every scan an indexable SEO
- * asset instead of an unguessable artifact.
+ * A web scan's public identity is its DOMAIN, not a UUID: /scan/nudgi.ai.
+ * That reads personal, dedupes by construction (the same link always
+ * resolves to the same app's scan — the /api/scan find-or-create already
+ * guarantees one scan per app), and makes every scan an indexable SEO asset
+ * instead of an unguessable artifact.
  *
  * App Store scans keep the scan UUID as their slug (an app-store URL has no
  * clean domain identity). Old UUID links keep working for every platform —

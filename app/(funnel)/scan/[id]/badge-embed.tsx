@@ -8,7 +8,7 @@
  *   - An HTML <img> snippet (for websites / email)
  *   - Copy-to-clipboard button with Sonner confirmation toast
  *
- * The badge links back to /report/[slug] and uses the OG image as the badge
+ * The badge links back to /scan/[slug] and uses the OG image as the badge
  * graphic (the same 1200×630 card, displayed small via width attr).
  *
  * This is the §22 growth loop: every badge posted on a README or landing page
@@ -25,8 +25,8 @@ interface BadgeEmbedProps {
 }
 
 export function BadgeEmbed({ slug, total }: BadgeEmbedProps) {
-  const reportUrl = `${SITE.url}/report/${slug}`;
-  const imageUrl = `${SITE.url}/report/${slug}/opengraph-image`;
+  const reportUrl = `${SITE.url}/scan/${slug}`;
+  const imageUrl = `${SITE.url}/scan/${slug}/opengraph-image`;
   const altText = `ReachKit Discoverability Score: ${total}/100 — verified, not vanity`;
 
   const markdownSnippet = `[![${altText}](${imageUrl})](${reportUrl})`;

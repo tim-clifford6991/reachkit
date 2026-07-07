@@ -10,6 +10,21 @@ const nextConfig: NextConfig = {
     // app/globals.css and components/report/discoverability-score.tsx.
     viewTransition: true,
   },
+  async redirects() {
+    return [
+      {
+        source: "/report/:slug/opengraph-image",
+        destination: "/scan/:slug/opengraph-image",
+        permanent: true,
+      },
+      { source: "/report/:slug", destination: "/scan/:slug", permanent: true },
+      {
+        source: "/scan/:id/results",
+        destination: "/scan/:id",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
