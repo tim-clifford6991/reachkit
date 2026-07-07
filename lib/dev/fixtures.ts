@@ -573,6 +573,9 @@ export interface ColdStartSeed {
   topCompetitor: string;
   communityA: string;
   communityB: string;
+  communityAUrl?: string;
+  communityBUrl?: string;
+  creator?: { name: string; url: string; coveredCompetitor: string };
 }
 
 function isoPlusDays(days: number): string {
@@ -580,15 +583,16 @@ function isoPlusDays(days: number): string {
 }
 
 export function coldStartActionsFrom(seed: ColdStartSeed): ActionCard[] {
-  const { productName, icp, topKeyword, secondKeyword, topCompetitor, communityA, communityB } = seed;
+  const { productName, icp, topKeyword, secondKeyword, topCompetitor, communityA, communityB, communityAUrl, communityBUrl, creator } = seed;
 
   // Non-URL provenance labels keep these off the §11 per-surface cadence cap.
   const evPositioning = (excerpt: string): ActionCardEvidence => ({ excerpt, source: "positioning", sourceType: "positioning" });
   const evKeyword = (excerpt: string): ActionCardEvidence => ({ excerpt, source: "keyword_data", sourceType: "dataforseo_keywords" });
   const evSerp = (excerpt: string): ActionCardEvidence => ({ excerpt, source: "competitor_serp", sourceType: "dataforseo_serp" });
   const evCommunity = (excerpt: string): ActionCardEvidence => ({ excerpt, source: "community_scan", sourceType: "communities" });
+  const evCreator = (excerpt: string): ActionCardEvidence => ({ excerpt, source: "creator_scan", sourceType: "youtube" });
 
-  return [
+  const cards: ActionCard[] = [
     // 1. Ship a waitlist / free-tool page targeting the hypothesised ICP.
     {
       category: "content",
@@ -629,7 +633,7 @@ export function coldStartActionsFrom(seed: ColdStartSeed): ActionCard[] {
       verification: { method: "url", state: "pending" },
       basis: "probability_based",
       confidence: 0.5,
-      target: null,
+      target: { channel: "community", label: communityA, ...(communityAUrl ? { url: communityAUrl } : {}) },
     },
     // 2b. Post it in a second scored community (demand test #2).
     {
@@ -650,7 +654,7 @@ export function coldStartActionsFrom(seed: ColdStartSeed): ActionCard[] {
       verification: { method: "url", state: "pending" },
       basis: "probability_based",
       confidence: 0.5,
-      target: null,
+      target: { channel: "community", label: communityB, ...(communityBUrl ? { url: communityBUrl } : {}) },
     },
     // 3. Stand up one comparison / landing page on the top intent keyword.
     {
@@ -738,4 +742,30 @@ export function coldStartActionsFrom(seed: ColdStartSeed): ActionCard[] {
       target: null,
     },
   ];
+
+  // 7. Optional: a named creator who already covers the top competitor —
+  //    added only when grounding surfaced a real creator (never a mass pitch).
+  if (creator) {
+    cards.push({
+      category: "outreach",
+      title: `Reach out to ${creator.name}, who has covered ${topCompetitor}`,
+      why: `${creator.name} already makes content about ${topCompetitor} — a genuine, specific note (not a mass pitch) puts ${productName} in front of an audience that has shown it cares about this exact category.`,
+      evidenceIds: [],
+      evidence: [
+        evCreator(`${creator.name} covered ${creator.coveredCompetitor || topCompetitor}`),
+        evPositioning(`Angle to lead with: how ${productName} differs for ${icp}`),
+      ],
+      effortMin: 30,
+      suggestedDeadline: isoPlusDays(10),
+      expectedOutcome: { scoreComponent: "outreach", delta: 3, secondary: "Creator coverage reaches a pre-qualified audience" },
+      draft: `Hi ${creator.name} — I saw your work on ${creator.coveredCompetitor || topCompetitor}. I'm building ${productName} for ${icp}; the difference is [one concrete thing]. Not asking for a review — just wondered if it'd be useful to your audience. Happy to give you early access.`,
+      draftRequiresEdit: true,
+      verification: { method: "self_report", state: "pending" },
+      basis: "probability_based",
+      confidence: 0.45,
+      target: { channel: "creator", label: creator.name, url: creator.url },
+    });
+  }
+
+  return cards;
 }

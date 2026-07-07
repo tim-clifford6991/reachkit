@@ -24,6 +24,7 @@ import { getFreshFactSheet, factSheetSubjectType } from "@/lib/scan/fact-sheets"
 import type { ScanContext } from "@/lib/scan/pipeline";
 import type { PreliminaryFacts } from "@/lib/scan/types";
 import type { ActionCard, PositioningSheet } from "@/lib/llm/types";
+import { EMPTY_GROUNDING } from "@/lib/llm/grounding";
 import type { ActionGrounding } from "@/lib/llm/grounding";
 
 // ---------------------------------------------------------------------------
@@ -70,7 +71,7 @@ function deriveCategory(facts: PreliminaryFacts, positioning?: PositioningSheet)
   ).toLowerCase();
 }
 
-function deriveSeed(facts: PreliminaryFacts, positioning?: PositioningSheet): ColdStartSeed {
+function deriveSeed(facts: PreliminaryFacts, grounding: ActionGrounding, positioning?: PositioningSheet): ColdStartSeed {
   const productName = cleanProductName(cleanStr(facts.listing.name) || "your product");
   const base = deriveCategory(facts, positioning);
 
@@ -80,9 +81,20 @@ function deriveSeed(facts: PreliminaryFacts, positioning?: PositioningSheet): Co
   const secondKeyword = `best ${base}`;
   const icp = `people looking for ${base}`;
 
-  // Top competitor from the discovered set; fall back to a generic phrase.
-  const firstCompetitor = facts.competitors.find((c) => cleanStr(c.name).length > 0);
-  const topCompetitor = firstCompetitor ? cleanStr(firstCompetitor.name) : "the leading alternative";
+  // Top competitor: prefer the real, brand-validated grounding set, then the
+  // discovered facts set, else a generic phrase.
+  const firstCompetitor = grounding.competitors.find((c) => c.name.length > 0)?.name
+    ?? facts.competitors.find((c) => cleanStr(c.name).length > 0)?.name;
+  const topCompetitor = firstCompetitor ? cleanStr(firstCompetitor) : "the leading alternative";
+
+  // Real engaged communities/creators when grounding has them; otherwise the
+  // hardcoded defaults so behaviour is unchanged when grounding is empty.
+  const comms = grounding.communities;
+  const communityA = comms[0]?.title ?? DEFAULT_COMMUNITY_A;
+  const communityAUrl = comms[0]?.url;
+  const communityB = comms[1]?.title ?? DEFAULT_COMMUNITY_B;
+  const communityBUrl = comms[1]?.url;
+  const creator = grounding.creators[0];
 
   return {
     productName,
@@ -90,9 +102,18 @@ function deriveSeed(facts: PreliminaryFacts, positioning?: PositioningSheet): Co
     topKeyword,
     secondKeyword,
     topCompetitor,
-    communityA: DEFAULT_COMMUNITY_A,
-    communityB: DEFAULT_COMMUNITY_B,
+    communityA,
+    communityAUrl,
+    communityB,
+    communityBUrl,
+    creator,
   };
+}
+
+/** Test-only seam mirroring `coerceCardForTest` — exposes seed derivation so
+ *  tests can assert on grounded seeds without duplicating the derivation logic. */
+export function deriveSeedForTest(facts: PreliminaryFacts, grounding: ActionGrounding, positioning?: PositioningSheet): ColdStartSeed {
+  return deriveSeed(facts, grounding, positioning);
 }
 
 // ---------------------------------------------------------------------------
@@ -101,9 +122,7 @@ function deriveSeed(facts: PreliminaryFacts, positioning?: PositioningSheet): Co
 export async function generateColdStartActions(
   ctx: ScanContext,
   facts: PreliminaryFacts,
-  // Task 7 will ground the cold-start templates in named communities/creators;
-  // accepted now so the standard + cold-start call sites share one signature.
-  _grounding: ActionGrounding = { competitors: [], communities: [], creators: [] },
+  grounding: ActionGrounding = EMPTY_GROUNDING,
 ): Promise<ActionCard[]> {
   // Fixture path — deterministic, no derivation, no I/O.
   if (fixturesEnabled()) {
@@ -120,18 +139,24 @@ export async function generateColdStartActions(
     } catch {
       /* positioning is optional — fall through to facts-only derivation */
     }
-    const seed = deriveSeed(facts, positioning);
+    const seed = deriveSeed(facts, grounding, positioning);
     return coldStartActionsFrom(seed);
   } catch {
     // Last-resort fallback: a sane generic Cold Start set so the scan never breaks.
+    // Still grounded where possible — defaults preserved when grounding is empty.
+    const firstCompetitor = grounding.competitors.find((c) => c.name.length > 0)?.name;
+    const comms = grounding.communities;
     return coldStartActionsFrom({
       productName: "your product",
       icp: "your target users",
       topKeyword: "your category app",
       secondKeyword: "your category tools",
-      topCompetitor: "the leading alternative",
-      communityA: DEFAULT_COMMUNITY_A,
-      communityB: DEFAULT_COMMUNITY_B,
+      topCompetitor: firstCompetitor ? cleanStr(firstCompetitor) : "the leading alternative",
+      communityA: comms[0]?.title ?? DEFAULT_COMMUNITY_A,
+      communityAUrl: comms[0]?.url,
+      communityB: comms[1]?.title ?? DEFAULT_COMMUNITY_B,
+      communityBUrl: comms[1]?.url,
+      creator: grounding.creators[0],
     });
   }
 }
