@@ -109,12 +109,33 @@ function isValidActionCard(c: unknown): c is ActionCard {
 }
 
 // ---------------------------------------------------------------------------
+// Effort clamp — a plan action is a single bite-sized sitting, not a project.
+// Shared source of truth so every effort producer (LLM cards, cold-start &
+// fallback templates) stays inside the same window.
+// ---------------------------------------------------------------------------
+/** Minimum sensible effort for any tracked action (a real task takes >0 min). */
+export const ACTION_EFFORT_MIN = 5;
+/** Ceiling per action — beyond this the plan should split it into steps. */
+export const ACTION_EFFORT_MAX = 90;
+
+/** Clamp an effort estimate into the plan's bite-sized window; NaN → the min. */
+export function clampEffort(min: number): number {
+  if (!Number.isFinite(min)) return ACTION_EFFORT_MIN;
+  return Math.max(ACTION_EFFORT_MIN, Math.min(ACTION_EFFORT_MAX, Math.round(min)));
+}
+
+// ---------------------------------------------------------------------------
 // Coerce a validated card: clamp confidence, force §11 invariants, default evidence
 // ---------------------------------------------------------------------------
 function coerceCard(raw: ActionCard): ActionCard {
   return {
     ...raw,
     confidence: Math.max(0, Math.min(1, Number(raw.confidence))),
+    // The plan surfaces bite-sized daily actions; the model's effortMin was
+    // previously unclamped, letting it emit 120+ min ("~120 min for an email").
+    // Clamp to a sane per-action window so nothing reads as extreme — a bigger
+    // job should be split into steps, not stamped 3h.
+    effortMin: clampEffort(raw.effortMin),
     draftRequiresEdit: true, // §11 — always true regardless of model output
     evidenceIds: [], // always [] from generation; Critic step attaches real ids
     // Default evidence to [] if missing or malformed; filter out bad items

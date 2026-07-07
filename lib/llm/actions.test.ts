@@ -1,5 +1,25 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import type { ActionCard, Finding } from "./types";
+import { clampEffort, ACTION_EFFORT_MIN, ACTION_EFFORT_MAX } from "./actions";
+
+describe("clampEffort", () => {
+  test("caps extreme estimates at the ceiling (no '120 min for an email')", () => {
+    expect(clampEffort(120)).toBe(ACTION_EFFORT_MAX);
+    expect(clampEffort(999)).toBe(ACTION_EFFORT_MAX);
+  });
+  test("raises sub-minimal estimates to the floor", () => {
+    expect(clampEffort(0)).toBe(ACTION_EFFORT_MIN);
+    expect(clampEffort(-5)).toBe(ACTION_EFFORT_MIN);
+  });
+  test("passes in-window values through, rounding fractionals", () => {
+    expect(clampEffort(45)).toBe(45);
+    expect(clampEffort(45.6)).toBe(46);
+  });
+  test("non-finite input degrades to the floor", () => {
+    expect(clampEffort(NaN)).toBe(ACTION_EFFORT_MIN);
+    expect(clampEffort(Infinity)).toBe(ACTION_EFFORT_MIN);
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Helpers
