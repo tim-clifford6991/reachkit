@@ -10,6 +10,7 @@
 import { PILLAR_WEIGHTS, type Pillar } from "./signals";
 import type { Platform } from "./router";
 import type { VerifiedScore } from "./score-full";
+import type { ScanSignalRow } from "./compute-signals";
 
 export interface RegistryScoreRow {
   pillar: Pillar;
@@ -110,4 +111,29 @@ export function headlineFromRows(
   const v2 = registryScore(rows);
   if (v2.assessed.length === 0) return { ...v1, version: 1 };
   return { total: v2.total, breakdown: v2.breakdown, version: 2 };
+}
+
+/**
+ * The fixed headline basis: the 8 on-site HTML signals that are computable from
+ * the site HTML EVERY scan already fetches (source_type "site_fetch"), and are
+ * therefore always measured on a web scan in both the free and paid tiers.
+ * Computing the headline over exactly these keys makes the number identical
+ * free↔paid — it never moves on upgrade. Deep/off-site signals (keywords,
+ * communities, press) enrich the explainability panel but are NOT in the headline.
+ */
+export const FIXED_BASIS_SIGNAL_KEYS: readonly string[] = [
+  "title_tag", "meta_description", "schema_jsonld", "canonical_url", "heading_structure",
+  "content_depth", "social_share_tags", "media_richness",
+];
+
+/**
+ * The single source-of-truth headline score: `registryScore` over the fixed
+ * 8-signal subset. Same signals → same number, regardless of what deep signals a
+ * paid scan additionally measured.
+ */
+export function headlineScore(rows: ScanSignalRow[]): RegistryScore {
+  const fixed = rows
+    .filter((r) => FIXED_BASIS_SIGNAL_KEYS.includes(r.signalKey))
+    .map((r) => ({ pillar: r.pillar, weight: r.weight, normalised: r.normalised, state: r.state }));
+  return registryScore(fixed);
 }

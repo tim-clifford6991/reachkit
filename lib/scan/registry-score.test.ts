@@ -3,9 +3,12 @@ import {
   registryScore,
   applyRegistryScore,
   headlineFromRows,
+  headlineScore,
+  FIXED_BASIS_SIGNAL_KEYS,
   type RegistryScoreRow,
 } from "./registry-score";
 import type { VerifiedScore } from "./score-full";
+import type { ScanSignalRow } from "./compute-signals";
 
 const row = (pillar: RegistryScoreRow["pillar"], weight: number, normalised: number | null, state = normalised == null ? "unmeasured" : "pass"): RegistryScoreRow => ({ pillar, weight, normalised, state });
 
@@ -93,5 +96,57 @@ describe("headlineFromRows", () => {
   it("keeps v1 for web when nothing measured", () => {
     const h = headlineFromRows("web", v1, [row("seo", 1, null)]);
     expect(h).toEqual({ ...v1, version: 1 });
+  });
+});
+
+// Minimal ScanSignalRow factory (only fields headlineScore reads matter).
+function sig(signalKey: string, pillar: "content" | "outreach" | "seo", weight: number, normalised: number | null): ScanSignalRow {
+  return {
+    signalKey, pillar, weight, normalised,
+    rawValue: null,
+    contribution: null,
+    state: normalised == null ? "unmeasured" : normalised >= 70 ? "pass" : normalised >= 40 ? "warn" : "fail",
+    platform: "web",
+  };
+}
+
+// The 8 fixed HTML signals, all measured (a typical web scan).
+const FIXED_ROWS: ScanSignalRow[] = [
+  sig("title_tag", "seo", 0.1, 80),
+  sig("meta_description", "seo", 0.1, 60),
+  sig("schema_jsonld", "seo", 0.12, 0),
+  sig("canonical_url", "seo", 0.08, 100),
+  sig("heading_structure", "seo", 0.1, 50),
+  sig("content_depth", "content", 0.25, 70),
+  sig("social_share_tags", "content", 0.15, 40),
+  sig("media_richness", "content", 0.15, 90),
+];
+
+// Deep (paid-only) rows that must NOT affect the headline.
+const DEEP_ROWS: ScanSignalRow[] = [
+  sig("organic_keywords", "seo", 0.25, 20),
+  sig("keyword_rankings", "seo", 0.15, 10),
+  sig("community_presence", "outreach", 0.25, 30),
+  sig("marketplace_presence", "outreach", 0.25, 40),
+];
+
+describe("headlineScore (fixed basis)", () => {
+  it("is identical whether or not deep signals are present (free == paid)", () => {
+    const free = headlineScore(FIXED_ROWS);
+    const paid = headlineScore([...FIXED_ROWS, ...DEEP_ROWS]);
+    expect(paid.total).toBe(free.total);
+    expect(paid.breakdown).toEqual(free.breakdown);
+  });
+
+  it("assesses only SEO + Content (outreach has no fixed signal)", () => {
+    const h = headlineScore([...FIXED_ROWS, ...DEEP_ROWS]);
+    expect(h.assessed.sort()).toEqual(["content", "seo"]);
+    expect(h.breakdown.outreach).toBe(0);
+  });
+
+  it("FIXED_BASIS_SIGNAL_KEYS is exactly the 8 HTML-derived signals", () => {
+    expect([...FIXED_BASIS_SIGNAL_KEYS].sort()).toEqual(
+      ["canonical_url","content_depth","heading_structure","media_richness","meta_description","schema_jsonld","social_share_tags","title_tag"],
+    );
   });
 });
