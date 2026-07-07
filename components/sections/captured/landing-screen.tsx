@@ -4,13 +4,21 @@
  * identical everywhere); the rest of the page is the captured HTML below the hero
  * (server-rendered for SEO/LCP, interactivity hydrated by LandingHydrate).
  */
+import { Suspense } from "react";
 import { LANDING_HTML } from "./landing-html";
 import { LandingHydrate } from "./landing-hydrate";
 import { ScanHero } from "@/components/sections/scan-hero";
+import { CompanyTicker } from "@/components/sections/company-ticker";
+import { listScannedCompanies } from "@/lib/marketing/scanned-companies";
 
 // Everything after the captured hero (the first <section>…</section>), minus the
 // wrapping <main>. ScanHero replaces the captured hero.
 const REST_HTML = LANDING_HTML.slice(LANDING_HTML.indexOf("</section>") + "</section>".length).replace(/<\/main>\s*$/, "");
+
+async function CompanyTickerSection() {
+  const companies = await listScannedCompanies();
+  return <CompanyTicker companies={companies} />;
+}
 
 export function LandingScreen() {
   return (
@@ -20,6 +28,11 @@ export function LandingScreen() {
         href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
       />
       <ScanHero showScrollCue />
+      {/* Social-proof trust strip: companies we've analyzed (uncached DB read
+          lives inside <Suspense> per the Cache-Components blocking-route rule). */}
+      <Suspense fallback={null}>
+        <CompanyTickerSection />
+      </Suspense>
       <div id="rk-landing" dangerouslySetInnerHTML={{ __html: REST_HTML }} />
       <LandingHydrate />
     </>
