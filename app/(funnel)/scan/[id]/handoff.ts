@@ -1,16 +1,21 @@
 export type ScanTier = "free" | "full";
 
 /**
- * When should the live scan page (scan-stream) hand off to /scan/[id]/results?
+ * When should the live scan page (scan-stream) hand off to the same-url
+ * inline report (<PublicReport>, rendered by ScanHydrator once
+ * `report_payload` is persisted)?
  *
- * The two tracks END at different milestones:
- *   • free — stops after findings; /results renders the findings teaser straight
- *     from `findings_payload`. Hand off the instant findings land.
- *   • full — runs the deep pass (actions → critic → verified score → report),
- *     which persists `report_payload` ~80s AFTER findings. /results has no early
- *     render path, so handing off on findings drops the user on the
- *     "Finalising your action plan…" pending fallback for the whole deep pass.
- *     Wait for the report to actually be ready.
+ * Both tracks now hand off on the SAME milestone — `reportReady` — regardless
+ * of tier:
+ *   • free used to hand off the instant findings landed, back when /results
+ *     rendered a findings-only teaser straight from `findings_payload`. That
+ *     route is gone: the inline render is <PublicReport>, which needs
+ *     `report_payload`. Phase 1 now persists `report_payload` for BOTH tiers
+ *     before the `done` event, so free scans reach `reportReady` too — handing
+ *     off on findings alone just re-renders the same live view (no
+ *     report_payload yet) and stalls on "Preparing your report…" forever.
+ *   • full already waited for `reportReady` (the deep pass persists
+ *     `report_payload` ~80s after findings); unchanged.
  *
  * Pure so it's unit-tested; the component just feeds it live state.
  */
@@ -22,5 +27,5 @@ export function shouldHandOffToResults(args: {
 }): boolean {
   // A failed run stays on the live page to show the error / partial result inline.
   if (args.failed) return false;
-  return args.tier === "full" ? args.reportReady : args.findingsReady;
+  return args.reportReady;
 }

@@ -153,23 +153,24 @@ async function ScanHydrator({ id: param }: { id: string }) {
 
   // Single results experience, ONE url: a finished scan renders its result
   // INLINE right here (no redirect to /scan/[id]/results) — the same address
-  // that showed the live scan now shows the report. Failed scans stay on the
-  // live view below to show the error/partial result.
-  if (initialStatus === "done" || initialStatus === "degraded") {
-    const reportPayload = scanRes.data?.report_payload as unknown as ReportPayload | null;
-    if (reportPayload) {
-      return (
-        <PublicReport
-          scanId={id}
-          slug={resolved.slug}
-          storeUrl={storeUrl ?? ""}
-          payload={reportPayload}
-        />
-      );
-    }
-    // Rare post-Phase-1 edge: status flipped to done/degraded but report_payload
-    // hasn't been persisted yet — fall through to ScanStream below, which will
-    // pick up the `report`/`done` event and router.refresh() once it lands.
+  // that showed the live scan now shows the report. Gate on `report_payload`
+  // being PRESENT, not on `status` — Phase 1 persists report_payload for both
+  // tiers strictly before the `done` event flips status, so presence alone is
+  // a sufficient and race-free signal. Requiring status ∈ {done,degraded} too
+  // reintroduces the emit-then-status-update race this fix closes (the free
+  // hand-off refresh can land between the payload write and the status
+  // write). Failed scans have no report_payload, so they fall through to
+  // ScanStream below to show the error/partial result.
+  const reportPayload = scanRes.data?.report_payload as unknown as ReportPayload | null;
+  if (reportPayload) {
+    return (
+      <PublicReport
+        scanId={id}
+        slug={resolved.slug}
+        storeUrl={storeUrl ?? ""}
+        payload={reportPayload}
+      />
+    );
   }
 
   const initialEvents = (eventsRes.data ?? []).map((r) => ({

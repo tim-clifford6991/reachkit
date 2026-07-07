@@ -2,16 +2,19 @@ import { describe, it, expect } from "vitest";
 import { shouldHandOffToResults } from "./handoff";
 
 describe("shouldHandOffToResults", () => {
-  it("free: hands off as soon as findings land (report never comes)", () => {
+  it("free: does NOT hand off on findings alone — waits for reportReady", () => {
+    // Regression: findings land (status still `synthesizing`, report_payload not
+    // yet persisted) — handing off here is exactly what stalled free scans on
+    // "Preparing your report…" forever (the one-shot refresh fired too early).
     expect(
       shouldHandOffToResults({ tier: "free", findingsReady: true, reportReady: false, failed: false }),
-    ).toBe(true);
+    ).toBe(false);
   });
 
-  it("free: waits while findings are not ready", () => {
+  it("free: hands off once the report is ready", () => {
     expect(
-      shouldHandOffToResults({ tier: "free", findingsReady: false, reportReady: false, failed: false }),
-    ).toBe(false);
+      shouldHandOffToResults({ tier: "free", findingsReady: true, reportReady: true, failed: false }),
+    ).toBe(true);
   });
 
   it("full: does NOT hand off on findings alone (the ~80s deep-pass bug)", () => {

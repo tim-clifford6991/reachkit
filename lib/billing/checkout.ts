@@ -30,7 +30,7 @@ export async function createAnonymousCheckout({
   interval?: BillingInterval;
 }): Promise<{ url: string }> {
   const cancelUrl = scanId
-    ? `${env.appUrl}/scan/${scanId}/results`
+    ? `${env.appUrl}/scan/${scanId}`
     : `${env.appUrl}/#pricing`;
 
   // Fixtures path — no Stripe, no webhook. Provision the account inline so the
