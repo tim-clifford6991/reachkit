@@ -16,12 +16,12 @@ function scoreColor(s: number): string {
 }
 
 /**
- * The single teardowns grid: every completed scan as a card (logo + score +
+ * The single scans grid: every completed scan as a card (logo + score +
  * positioning-gap blurb, linking to its public /scan/<slug> report), with an
  * INSTANT client-side filter — results narrow as you type. Client component so
  * the search is zero-latency over the already-loaded set.
  */
-export function TeardownGrid({ scans }: { scans: PublicScan[] }) {
+export function ScanGrid({ scans }: { scans: PublicScan[] }) {
   const [q, setQ] = useState("");
 
   const filtered = useMemo(() => {
@@ -37,8 +37,8 @@ export function TeardownGrid({ scans }: { scans: PublicScan[] }) {
           type="search"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search teardowns by domain…"
-          aria-label="Search teardowns by domain"
+          placeholder="Search scans by domain…"
+          aria-label="Search scans by domain"
           style={{
             width: "100%",
             height: 44,
@@ -56,7 +56,7 @@ export function TeardownGrid({ scans }: { scans: PublicScan[] }) {
 
       {filtered.length === 0 ? (
         <p style={{ fontFamily: PJ, fontSize: 15, color: "var(--c-muted)", margin: "8px 0 40px" }}>
-          {q.trim() ? <>No teardowns match &ldquo;{q.trim()}&rdquo;.</> : <>No public teardowns yet.</>}
+          {q.trim() ? <>No scans match &ldquo;{q.trim()}&rdquo;.</> : <>No public scans yet.</>}
         </p>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 18 }}>
@@ -92,13 +92,13 @@ export function TeardownGrid({ scans }: { scans: PublicScan[] }) {
                 )}
               </div>
               <h3 style={{ fontFamily: SG, fontWeight: 700, fontSize: 17, letterSpacing: "-0.01em", color: "var(--c-ink)", margin: "12px 0 8px" }}>
-                Web Teardown: {s.host}
+                Discoverability scan: {s.host}
               </h3>
               <p style={{ fontSize: 14, lineHeight: 1.5, color: "var(--c-muted)", margin: 0, display: "-webkit-box", WebkitLineClamp: 4, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
                 {s.blurb ?? `A discoverability scan of ${s.host} — the score, the positioning gap, and the fixes that move it.`}
               </p>
               <span style={{ display: "inline-block", marginTop: 14, fontFamily: PJ, fontWeight: 600, fontSize: 14, color: "var(--c-action)" }}>
-                Read the teardown →
+                View the scan →
               </span>
             </Link>
           ))}

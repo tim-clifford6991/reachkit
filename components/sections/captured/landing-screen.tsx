@@ -27,12 +27,17 @@ export function LandingScreen() {
         rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
       />
-      <ScanHero showScrollCue />
-      {/* Social-proof trust strip: companies we've analyzed (uncached DB read
-          lives inside <Suspense> per the Cache-Components blocking-route rule). */}
-      <Suspense fallback={null}>
-        <CompanyTickerSection />
-      </Suspense>
+      {/* The companies-analyzed ticker rides inside the hero (below the input,
+          above the "See how it works" cue). Uncached DB read → <Suspense> per
+          the Cache-Components blocking-route rule. */}
+      <ScanHero
+        showScrollCue
+        trustStrip={
+          <Suspense fallback={null}>
+            <CompanyTickerSection />
+          </Suspense>
+        }
+      />
       <div id="rk-landing" dangerouslySetInnerHTML={{ __html: REST_HTML }} />
       <LandingHydrate />
     </>

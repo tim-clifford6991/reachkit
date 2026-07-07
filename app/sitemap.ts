@@ -24,7 +24,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE.url}/scan`, lastModified: now, changeFrequency: "monthly", priority: 0.9 },
     { url: `${SITE.url}/how-it-works`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
     { url: `${SITE.url}/pricing`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
-    { url: `${SITE.url}/teardowns`, lastModified: now, changeFrequency: "weekly", priority: 0.7 },
+    { url: `${SITE.url}/gallery`, lastModified: now, changeFrequency: "weekly", priority: 0.7 },
     { url: `${SITE.url}/tools`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
     { url: `${SITE.url}/about`, lastModified: now, changeFrequency: "yearly", priority: 0.5 },
     { url: `${SITE.url}/contact`, lastModified: now, changeFrequency: "yearly", priority: 0.4 },
@@ -81,7 +81,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.5,
   }));
 
-  // The /teardowns index is a single instant-search page (page 1 is already in
+  // The /gallery index is a single instant-search page (page 1 is already in
   // `core`), so no paginated ?page=N URLs. Each scan's own /scan/<slug> report
   // is the indexable surface (enumerated above in `reports`).
 

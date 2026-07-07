@@ -1,7 +1,7 @@
 /**
- * /teardowns — the single public teardown index. Every completed scan becomes a
+ * /gallery — the single public scan gallery. Every completed scan becomes a
  * permanent, free-redacted public report at /scan/<slug>; this page lists them
- * all as teardown cards (logo + score + positioning-gap blurb) with an instant
+ * all as cards (logo + score + positioning-gap blurb) with an instant
  * client-side search. Keeps CollectionPage JSON-LD (built from the live scans).
  */
 
@@ -11,43 +11,43 @@ import { Suspense } from "react";
 import { buildMetadata, SITE } from "@/lib/seo";
 import { HeroFade } from "@/components/sections/hero-fade";
 import { listPublicScans, type PublicScan } from "@/lib/scan/public-scans";
-import { TeardownGrid } from "./teardown-grid";
+import { ScanGrid } from "./scan-grid";
 
 const SG = "var(--font-display)", JM = "var(--font-mono)";
 
 export const metadata: Metadata = buildMetadata({
-  title: "App Teardowns — Discoverability Analyses",
+  title: "Public Scans — Discoverability Analyses",
   description:
     "Public discoverability analyses of real apps. Scores, keyword gaps, positioning findings, and ranked actions — so you can see exactly what ReachKit surfaces.",
-  path: "/teardowns",
+  path: "/gallery",
 });
 
 function collectionPageLd(scans: PublicScan[]) {
   return {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
-    name: "App Discoverability Teardowns — ReachKit",
+    name: "App Discoverability Scans — ReachKit",
     description:
       "Public discoverability analyses of real web apps. Scores, keyword gaps, positioning findings, and ranked action plans.",
-    url: `${SITE.url}/teardowns`,
+    url: `${SITE.url}/gallery`,
     publisher: { "@type": "Organization", name: SITE.name, url: SITE.url },
     hasPart: scans.map((s) => ({
       "@type": "Article",
-      headline: `Web Teardown: ${s.host}`,
+      headline: `Discoverability scan: ${s.host}`,
       url: `${SITE.url}/scan/${s.slug}`,
       ...(s.completedAt ? { datePublished: s.completedAt } : {}),
     })),
   } as const;
 }
 
-export default function TeardownsPage() {
+export default function GalleryPage() {
   return (
-    <main aria-label="Teardowns" style={{ background: "var(--c-surface)" }}>
+    <main aria-label="Public scans" style={{ background: "var(--c-surface)" }}>
       {/* Hero */}
       <HeroFade padding="70px 28px 36px">
         <p style={{ fontFamily: JM, fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-action)", margin: 0 }}>Discoverability analyses</p>
         <h1 style={{ fontFamily: SG, fontWeight: 700, fontSize: "clamp(2.1rem, 4.5vw, 3.4rem)", letterSpacing: "-0.02em", lineHeight: 1.04, color: "var(--c-ink)", margin: "16px auto 0", maxWidth: 800 }}>
-          Every scan is a public teardown
+          Every scan is public
         </h1>
         <p style={{ fontSize: 17.5, lineHeight: 1.5, color: "var(--c-muted)", margin: "18px auto 0", maxWidth: 600 }}>
           Every site we scan gets a permanent, public discoverability report — the score, the positioning gap, and the fixes that move it. Browse them, or run your own.
@@ -76,11 +76,11 @@ async function LiveScansSection() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionPageLd(scans)) }} />
-      <p style={{ fontFamily: JM, fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-action)", margin: "0 0 6px" }}>Real teardowns</p>
+      <p style={{ fontFamily: JM, fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-action)", margin: "0 0 6px" }}>Public scans</p>
       <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: "clamp(1.6rem, 3vw, 2.2rem)", letterSpacing: "-0.02em", color: "var(--c-ink)", margin: "0 0 22px" }}>
-        {scans.length} public teardown{scans.length === 1 ? "" : "s"}
+        {scans.length} public scan{scans.length === 1 ? "" : "s"}
       </h2>
-      <TeardownGrid scans={scans} />
+      <ScanGrid scans={scans} />
     </>
   );
 }

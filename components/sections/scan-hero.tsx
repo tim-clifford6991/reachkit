@@ -12,6 +12,7 @@
  * <style> block only (no intel-kit import — bundle budget).
  */
 
+import type { ReactNode } from "react";
 import { ScanInput } from "@/app/(marketing)/scan-input";
 
 const SG = "var(--font-display)", JM = "var(--font-mono)";
@@ -75,7 +76,14 @@ const HERO_CSS = `
 }
 `;
 
-export function ScanHero({ showScrollCue = false }: { showScrollCue?: boolean }) {
+export function ScanHero({
+  showScrollCue = false,
+  trustStrip,
+}: {
+  showScrollCue?: boolean;
+  /** Optional social-proof strip rendered below the hero content, above the cue. */
+  trustStrip?: ReactNode;
+}) {
   return (
     <section style={{ position: "relative", overflow: "hidden", background: "radial-gradient(1100px 480px at 50% -8%, var(--c-soft) 0%, rgba(242,238,255,0) 62%), var(--c-bg)" }}>
       <style>{HERO_CSS}</style>
@@ -186,6 +194,10 @@ export function ScanHero({ showScrollCue = false }: { showScrollCue?: boolean })
             </div>
           </div>
         </div>
+
+        {/* Social-proof trust strip (landing only) — sits below the hero content
+            and ABOVE the "See how it works" cue. */}
+        {trustStrip != null && <div style={{ marginTop: 34 }}>{trustStrip}</div>}
 
         {/* Scroll enticement (landing only) — anchors to the first story section */}
         {showScrollCue && (

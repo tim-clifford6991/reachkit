@@ -56,10 +56,10 @@ export default function AboutPage() {
             Scan your product
           </Link>
           <Link
-            href="/teardowns"
+            href="/gallery"
             style={{ display: "inline-block", background: "var(--c-surface)", border: "1px solid var(--c-line)", color: "var(--c-ink)", borderRadius: 10, padding: "11px 20px", fontFamily: "var(--font-sans)", fontWeight: 600, fontSize: 14, textDecoration: "none" }}
           >
-            Read a teardown
+            Browse the scans
           </Link>
         </div>
       </section>

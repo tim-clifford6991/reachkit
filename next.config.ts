@@ -23,6 +23,7 @@ const nextConfig: NextConfig = {
         destination: "/scan/:id",
         permanent: true,
       },
+      { source: "/teardowns", destination: "/gallery", permanent: true },
     ];
   },
 };
