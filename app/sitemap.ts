@@ -14,7 +14,8 @@ import type { MetadataRoute } from "next";
 import { SITE } from "@/lib/seo";
 import { allTeardowns } from "@/content/teardowns";
 import { COMPARE_SLUGS } from "@/app/(marketing)/compare/compare-content";
-import { listPublicScans } from "@/lib/scan/public-scans";
+import { listPublicScans, countPublicScans, type PublicScan } from "@/lib/scan/public-scans";
+import { TEARDOWNS_PAGE_SIZE } from "@/app/(marketing)/teardowns/page";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
@@ -65,13 +66,37 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   // Every completed free scan is a public report at its domain slug — spent
-  // scan cost turned into indexable surface. Bounded (latest 500, one per app).
-  const reports: MetadataRoute.Sitemap = (await listPublicScans(500)).map((scan) => ({
+  // scan cost turned into indexable surface. Enumerates the FULL set (no
+  // cap): page through the public_scans view in chunks so the sitemap stays
+  // correct as the corpus grows past a single page.
+  const total = await countPublicScans();
+  const CHUNK = 1000;
+  const scanRows: PublicScan[] = [];
+  for (let offset = 0; offset < total; offset += CHUNK) {
+    scanRows.push(...(await listPublicScans({ limit: CHUNK, offset })));
+  }
+  const reports: MetadataRoute.Sitemap = scanRows.map((scan) => ({
     url: `${SITE.url}/scan/${scan.slug}`,
     lastModified: scan.completedAt ? new Date(scan.completedAt) : now,
     changeFrequency: "weekly",
     priority: 0.5,
   }));
 
-  return [...core, ...tools, ...compare, ...teardowns, ...reports, ...legal];
+  // Paginated /teardowns index — page 1 is already listed in `core`, so only
+  // add pages 2..N here to avoid a duplicate `/teardowns` entry.
+  const teardownPageCount = Math.max(1, Math.ceil(total / TEARDOWNS_PAGE_SIZE));
+  const teardownPages: MetadataRoute.Sitemap = Array.from(
+    { length: Math.max(0, teardownPageCount - 1) },
+    (_, i) => {
+      const page = i + 2;
+      return {
+        url: `${SITE.url}/teardowns?page=${page}`,
+        lastModified: now,
+        changeFrequency: "weekly" as const,
+        priority: 0.4,
+      };
+    },
+  );
+
+  return [...core, ...tools, ...compare, ...teardowns, ...reports, ...teardownPages, ...legal];
 }
