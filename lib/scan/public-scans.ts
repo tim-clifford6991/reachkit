@@ -43,18 +43,26 @@ function normalizeOpts(arg?: number | ListPublicScansOpts): ListPublicScansOpts 
 /** Newest completed WEB scans, one per app (latest wins), searchable + paginated. */
 export async function listPublicScans(opts?: number | ListPublicScansOpts): Promise<PublicScan[]> {
   const { q, limit = 48, offset = 0 } = normalizeOpts(opts);
-  const db = serverDb();
-  let query = db
-    .from("public_scans")
-    .select("scan_id, score_total, completed_at, store_url, blurb");
-
-  const trimmedQ = q?.trim();
-  if (trimmedQ) query = query.ilike("store_url", `%${trimmedQ}%`);
-
-  const { data } = await query
-    .order("completed_at", { ascending: false })
-    .order("scan_id", { ascending: false }) // stable tiebreak so pages don't dup/gap on equal timestamps
-    .range(offset, offset + limit - 1);
+  // Resilient: a missing DB env (e.g. a preview build without SUPABASE_*) or a
+  // transient read must never crash the caller — the gallery, the sitemap, and
+  // the landing ticker all degrade to "no public scans yet".
+  let data: Array<{ scan_id: string | null; score_total: number | null; completed_at: string | null; store_url: string | null; blurb: string | null }> = [];
+  try {
+    const db = serverDb();
+    let query = db
+      .from("public_scans")
+      .select("scan_id, score_total, completed_at, store_url, blurb");
+    const trimmedQ = q?.trim();
+    if (trimmedQ) query = query.ilike("store_url", `%${trimmedQ}%`);
+    const res = await query
+      .order("completed_at", { ascending: false })
+      .order("scan_id", { ascending: false }) // stable tiebreak so pages don't dup/gap on equal timestamps
+      .range(offset, offset + limit - 1);
+    data = res.data ?? [];
+  } catch (e) {
+    console.error("[public-scans] listPublicScans read failed", e instanceof Error ? e.message : e);
+    return [];
+  }
 
   const out: PublicScan[] = [];
   for (const row of data ?? []) {
@@ -76,14 +84,17 @@ export async function listPublicScans(opts?: number | ListPublicScansOpts): Prom
   return out;
 }
 
-/** Total count of public teardowns matching an optional search. */
+/** Total count of public scans matching an optional search. Resilient (0 on error). */
 export async function countPublicScans(opts?: { q?: string }): Promise<number> {
-  const db = serverDb();
-  let query = db.from("public_scans").select("app_id", { count: "exact", head: true });
-
-  const trimmedQ = opts?.q?.trim();
-  if (trimmedQ) query = query.ilike("store_url", `%${trimmedQ}%`);
-
-  const { count } = await query;
-  return count ?? 0;
+  try {
+    const db = serverDb();
+    let query = db.from("public_scans").select("app_id", { count: "exact", head: true });
+    const trimmedQ = opts?.q?.trim();
+    if (trimmedQ) query = query.ilike("store_url", `%${trimmedQ}%`);
+    const { count } = await query;
+    return count ?? 0;
+  } catch (e) {
+    console.error("[public-scans] countPublicScans read failed", e instanceof Error ? e.message : e);
+    return 0;
+  }
 }
