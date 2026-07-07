@@ -5,6 +5,10 @@
  * free-redacted report at /scan/{domain}. This module lists them (newest
  * first, one per app) for the teardowns index and the sitemap — turning spent
  * scan credits into permanent SEO surface.
+ *
+ * Backed by the `public_scans` view (one latest completed WEB scan per app),
+ * so dedupe/platform/status filtering lives in SQL — this module just adds
+ * search, pagination, and slug mapping.
  */
 
 import { serverDb } from "@/lib/db/client";
@@ -19,27 +23,53 @@ export interface PublicScan {
   completedAt: string | null;
 }
 
-/** Newest completed WEB scans, one per app (latest wins), capped. */
-export async function listPublicScans(limit = 48): Promise<PublicScan[]> {
-  const db = serverDb();
-  const { data } = await db
-    .from("scans")
-    .select("id, app_id, score_total, completed_at, apps(store_url, platform)")
-    .eq("status", "done")
-    .not("completed_at", "is", null)
-    .order("completed_at", { ascending: false })
-    .limit(limit * 4); // headroom for per-app dedupe
+export interface ListPublicScansOpts {
+  q?: string;
+  limit?: number;
+  offset?: number;
+}
 
-  const seen = new Set<string>();
+/** Normalizes the legacy positional-number call (`listPublicScans(48)`) to opts. */
+function normalizeOpts(arg?: number | ListPublicScansOpts): ListPublicScansOpts {
+  if (typeof arg === "number") return { limit: arg };
+  return arg ?? {};
+}
+
+/** Newest completed WEB scans, one per app (latest wins), searchable + paginated. */
+export async function listPublicScans(opts?: number | ListPublicScansOpts): Promise<PublicScan[]> {
+  const { q, limit = 48, offset = 0 } = normalizeOpts(opts);
+  const db = serverDb();
+  let query = db
+    .from("public_scans")
+    .select("scan_id, score_total, completed_at, store_url");
+
+  const trimmedQ = q?.trim();
+  if (trimmedQ) query = query.ilike("store_url", `%${trimmedQ}%`);
+
+  const { data } = await query
+    .order("completed_at", { ascending: false })
+    .range(offset, offset + limit - 1);
+
   const out: PublicScan[] = [];
   for (const row of data ?? []) {
-    const app = row.apps as unknown as { store_url: string; platform: string } | null;
-    if (!app || app.platform !== "web") continue; // app-store scans keep UUID URLs — not listed
-    if (seen.has(row.app_id)) continue;
-    seen.add(row.app_id);
-    const slug = slugForScan({ storeUrl: app.store_url, platform: app.platform, scanId: row.id });
+    // The view's WHERE clause guarantees scan_id/store_url are populated for
+    // every row; the generated types just can't express that (views drop
+    // NOT NULL). Skip defensively rather than assert.
+    if (!row.scan_id || !row.store_url) continue;
+    const slug = slugForScan({ storeUrl: row.store_url, platform: "web", scanId: row.scan_id });
     out.push({ slug, host: slug, score: row.score_total ?? null, completedAt: row.completed_at });
-    if (out.length >= limit) break;
   }
   return out;
+}
+
+/** Total count of public teardowns matching an optional search. */
+export async function countPublicScans(opts?: { q?: string }): Promise<number> {
+  const db = serverDb();
+  let query = db.from("public_scans").select("app_id", { count: "exact", head: true });
+
+  const trimmedQ = opts?.q?.trim();
+  if (trimmedQ) query = query.ilike("store_url", `%${trimmedQ}%`);
+
+  const { count } = await query;
+  return count ?? 0;
 }
