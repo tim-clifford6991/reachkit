@@ -601,6 +601,10 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
         score_total: score.total,
         score_breakdown: score.breakdown as unknown as Json,
         score_version: 1,
+        // Unambiguous "deep pass completed" marker — the robust sentinel for the
+        // deepen guards (lib/scan/deepen.ts), set regardless of how many actions
+        // survived the critic/floor (a 0-action deep pass still counts as deep).
+        deepened_at: new Date().toISOString(),
         // Rank/keyword data is fetched during the web market pass above — stamp
         // its freshness so reports can show "Keyword data as of …".
         ...(ctx.mode === "web" ? { rank_data_fetched_at: new Date().toISOString() } : {}),

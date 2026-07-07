@@ -983,6 +983,7 @@ export type Database = {
           completed_at: string | null
           cost_cents: number
           created_at: string
+          deepened_at: string | null
           findings_payload: Json | null
           id: string
           ip_hash: string | null
@@ -1002,6 +1003,7 @@ export type Database = {
           completed_at?: string | null
           cost_cents?: number
           created_at?: string
+          deepened_at?: string | null
           findings_payload?: Json | null
           id?: string
           ip_hash?: string | null
@@ -1021,6 +1023,7 @@ export type Database = {
           completed_at?: string | null
           cost_cents?: number
           created_at?: string
+          deepened_at?: string | null
           findings_payload?: Json | null
           id?: string
           ip_hash?: string | null
