@@ -1179,7 +1179,25 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_scans: {
+        Row: {
+          app_id: string | null
+          completed_at: string | null
+          platform: string | null
+          scan_id: string | null
+          score_total: number | null
+          store_url: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scans_app_id_fkey"
+            columns: ["app_id"]
+            isOneToOne: false
+            referencedRelation: "apps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       binary_quantize: {
