@@ -99,6 +99,7 @@ import type { ScanContext } from "./pipeline";
 import { serverDb } from "@/lib/db/client";
 import { computeSignalRowsForScan, persistScanSignals } from "./persist-signals";
 import { fallbackActionsFromSignals } from "./fallback-actions";
+import { fillDeterministicDrafts } from "./action-drafts";
 import { headlineScore } from "./registry-score";
 import { discoverabilityScore } from "./score";
 import { persistReport } from "./report";
@@ -158,7 +159,12 @@ export async function runFreeReport(ctx: ScanContext, facts: PreliminaryFacts): 
     scoreVersion = 1;
   }
 
-  const actions = fallbackActionsFromSignals(signalRows);
+  const actions = fillDeterministicDrafts(
+    fallbackActionsFromSignals(signalRows),
+    facts.listing,
+    ctx.storeUrl,
+    ctx.mode,
+  );
 
   const payload = buildFreeReport({
     mode: ctx.mode,

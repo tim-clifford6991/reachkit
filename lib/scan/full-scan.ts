@@ -36,6 +36,7 @@ import { algorithmSafety } from "@/lib/scan/algorithm-safety";
 import { gatherScoreComponents, verifiedScore } from "@/lib/scan/score-full";
 import { persistScanSignals, computeSignalRowsForScan } from "@/lib/scan/persist-signals";
 import { linkSignalKeys, topUpActions, MIN_ACTIONS } from "@/lib/scan/action-linking";
+import { fillDeterministicDrafts } from "@/lib/scan/action-drafts";
 import { headlineScore } from "@/lib/scan/registry-score";
 import { verifiedScoreFromRegistry } from "@/lib/scan/free-report";
 import type { ScanSignalRow } from "@/lib/scan/compute-signals";
@@ -556,6 +557,8 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
       plan = linkSignalKeys(safe, signalRows);
       const before = plan.length;
       plan = topUpActions(plan, signalRows);
+      // A3: fill the deterministic JSON-LD draft on any schema card missing one.
+      plan = fillDeterministicDrafts(plan, facts.listing, ctx.storeUrl, ctx.mode);
       if (plan.length > before) {
         console.warn(
           `[full-scan] plan had ${before} critic-passed action(s) for scan ${ctx.scanId} — floored to ${plan.length} (MIN_ACTIONS=${MIN_ACTIONS}) with signal-derived baseline fixes`,
