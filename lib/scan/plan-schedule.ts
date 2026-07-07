@@ -116,9 +116,12 @@ export function mergePlanEntries(args: {
       kind: a.category === "content" ? "content" : "distribution",
       title: a.title,
       why: a.why,
-      channel: null,
-      target: null,
-      targetUrl: a.verifyUrl,
+      // A tracked action's structured target (Task: ActionTarget) drives routing;
+      // fall back to the legacy title-derived route (null channel/target) + verifyUrl
+      // when the action predates targets or is an on-site task.
+      channel: a.target?.channel ?? null,
+      target: a.target?.label ?? null,
+      targetUrl: a.target?.url ?? a.verifyUrl,
       effortMin: a.effortMin ?? (a.category === "content" ? CONTENT_EFFORT_MIN : EFFORT_MIN.medium!),
       priority: "high", // already chosen by the founder — schedule it first
       predictedDelta: a.predictedDelta,

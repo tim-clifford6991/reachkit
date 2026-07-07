@@ -86,6 +86,39 @@ describe("mergePlanEntries", () => {
     });
     expect(merged[0]).toMatchObject({ kind: "distribution", effortMin: 15, targetUrl: "https://reddit.com/r/SaaS", channel: "community" });
   });
+
+  test("a tracked action's ActionTarget populates the plan entry's channel/target/targetUrl", () => {
+    const entries = mergePlanEntries({
+      openActions: [{
+        id: "a1", title: "Post in r/productivity", category: "outreach", why: null,
+        predictedDelta: 3, actualDelta: null, createdAt: "2026-07-01", verifiedAt: null,
+        draft: null, verifyUrl: null, effortMin: 30,
+        target: { channel: "community", label: "r/productivity", url: "https://reddit.com/r/productivity" },
+      }],
+      allActionTitles: new Set(["Post in r/productivity"]),
+      content: [], distribution: [],
+    });
+    const e = entries[0]!;
+    expect(e.channel).toBe("community");
+    expect(e.target).toBe("r/productivity");
+    expect(e.targetUrl).toBe("https://reddit.com/r/productivity");
+  });
+
+  test("a tracked action without a target keeps today's behavior", () => {
+    const entries = mergePlanEntries({
+      openActions: [{
+        id: "a2", title: "Fix title tag", category: "seo", why: null,
+        predictedDelta: null, actualDelta: null, createdAt: "2026-07-01", verifiedAt: null,
+        draft: null, verifyUrl: "https://example.com", effortMin: 20, target: null,
+      }],
+      allActionTitles: new Set(["Fix title tag"]),
+      content: [], distribution: [],
+    });
+    const e = entries[0]!;
+    expect(e.channel).toBeNull();
+    expect(e.target).toBeNull();
+    expect(e.targetUrl).toBe("https://example.com");
+  });
 });
 
 describe("byScheduleOrder", () => {
