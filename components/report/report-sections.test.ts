@@ -140,6 +140,7 @@ function makeMockAction(effortMin: number): ActionCard {
     verification: { method: "self_report", state: "pending" },
     basis: "evidence_based",
     confidence: 0.85,
+    target: null,
   };
 }
 

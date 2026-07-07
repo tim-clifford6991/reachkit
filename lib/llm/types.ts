@@ -100,4 +100,22 @@ export interface ActionCard {
   verification: { method: "url" | "self_report" | "rank_check"; state: "pending" };
   basis: "evidence_based" | "probability_based";
   confidence: number;                    // 0..1
+  /** WHO/WHERE to execute this action (esp. outreach). Null when not applicable
+   *  (e.g. an on-site SEO task) or for legacy cards generated before this field. */
+  target: ActionTarget | null;
+}
+
+/** Routing channels an ActionTarget can name — a subset that inferExecutionRoute
+ *  (lib/scan/distribute/platform-map.ts) already understands. */
+export type ActionTargetChannel =
+  | "community" | "creator" | "directory" | "media" | "podcast" | "newsletter" | "partner" | "x";
+
+/** WHO/WHERE an action is aimed at — the concrete venue or recipient, so an
+ *  outreach card never surfaces as a recipient-less email. */
+export interface ActionTarget {
+  channel: ActionTargetChannel;
+  /** Human venue/recipient name, e.g. "r/productivity", "Thomas Frank", "AlternativeTo". */
+  label: string;
+  /** Direct venue/profile URL when known (subreddit, creator channel, directory). */
+  url?: string;
 }

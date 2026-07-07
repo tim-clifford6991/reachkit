@@ -367,6 +367,7 @@ test(
         verification: { method: "url" as const, state: "pending" as const },
         basis: "evidence_based" as const,
         confidence: 0.87,
+        target: null,
       },
     ];
 

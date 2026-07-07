@@ -22,6 +22,7 @@ function makeAction(title: string, effortMin: number): ActionCard {
     verification: { method: "url", state: "pending" },
     basis: "evidence_based",
     confidence: 0.8,
+    target: null,
   };
 }
 

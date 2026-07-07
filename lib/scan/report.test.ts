@@ -76,6 +76,7 @@ function makeCard(effortMin: number, overrides: Partial<ActionCard> = {}): Actio
     verification: { method: "url", state: "pending" },
     basis: "evidence_based",
     confidence: 0.8,
+    target: null,
     ...overrides,
   };
 }

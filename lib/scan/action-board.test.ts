@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   groupForVerifyState,
   actualDeltaForAction,
@@ -7,6 +7,24 @@ import {
   byVerifiedAtDesc,
   type SnapshotPoint,
 } from "./action-board";
+
+// Mock serverDb() modelling the query shapes actionBoard uses:
+// - "actions": select(...).eq(...) resolving to { data: rows }.
+// - "score_snapshots": select(...).eq(...).order(...) resolving to { data: rows }.
+function makeDb(actionsRows: unknown[], snapshotRows: unknown[] = []) {
+  const actionsEq = vi.fn().mockResolvedValue({ data: actionsRows, error: null });
+  const actionsSelect = vi.fn().mockReturnValue({ eq: actionsEq });
+
+  const snapOrder = vi.fn().mockResolvedValue({ data: snapshotRows, error: null });
+  const snapEq = vi.fn().mockReturnValue({ order: snapOrder });
+  const snapSelect = vi.fn().mockReturnValue({ eq: snapEq });
+
+  const from = vi.fn((table: string) => {
+    if (table === "actions") return { select: actionsSelect };
+    return { select: snapSelect };
+  });
+  return { from, spies: { actionsSelect, actionsEq, snapSelect, snapEq, snapOrder } };
+}
 
 describe("groupForVerifyState", () => {
   it("maps each persisted verify_state to its board group", () => {
@@ -82,5 +100,60 @@ describe("board ordering comparators", () => {
       "2026-06-15",
       "2026-06-01",
     ]);
+  });
+});
+
+describe("actionBoard", () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  it("surfaces the persisted target on the board action", async () => {
+    const db = makeDb([
+      {
+        id: "a1",
+        title: "Post on r/foo",
+        category: "community",
+        why: null,
+        status: "pending",
+        verify_state: "pending",
+        expected_outcome: null,
+        created_at: "2026-07-01",
+        draft: null,
+        verify_url: null,
+        effort_min: 30,
+        target: { channel: "community", label: "r/foo", url: "https://reddit.com/r/foo" },
+      },
+    ]);
+    vi.doMock("@/lib/db/client", () => ({ serverDb: () => db }));
+
+    const { actionBoard } = await import("./action-board");
+    const board = await actionBoard("app-1");
+
+    expect(board.open[0]?.target).toEqual({ channel: "community", label: "r/foo", url: "https://reddit.com/r/foo" });
+  });
+
+  it("degrades safely when target is null/missing (legacy rows)", async () => {
+    const db = makeDb([
+      {
+        id: "a2",
+        title: "Legacy action",
+        category: "seo",
+        why: null,
+        status: "pending",
+        verify_state: "pending",
+        expected_outcome: null,
+        created_at: "2026-07-01",
+        draft: null,
+        verify_url: null,
+        effort_min: null,
+      },
+    ]);
+    vi.doMock("@/lib/db/client", () => ({ serverDb: () => db }));
+
+    const { actionBoard } = await import("./action-board");
+    const board = await actionBoard("app-2");
+
+    expect(board.open[0]?.target).toBeNull();
   });
 });

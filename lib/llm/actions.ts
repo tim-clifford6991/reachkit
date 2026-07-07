@@ -9,12 +9,15 @@
 
 import { callModel } from "@/lib/llm/anthropic";
 import { ACTIONS_SYSTEM, buildActionsPrompt } from "@/lib/llm/prompts";
+import { type ActionGrounding, EMPTY_GROUNDING } from "@/lib/llm/grounding";
 import { getFreshFactSheet, factSheetSubjectType } from "@/lib/scan/fact-sheets";
 import { fixturesEnabled, fixtureActions } from "@/lib/dev/fixtures";
 import { serverDb } from "@/lib/db/client";
 import type { ScanContext } from "@/lib/scan/pipeline";
 import type {
   ActionCard,
+  ActionTarget,
+  ActionTargetChannel,
   ReviewThemesSheet,
   PositioningSheet,
   CompetitorGapSheet,
@@ -41,6 +44,7 @@ function buildDegradedActions(): ActionCard[] {
     basis: "probability_based" as const,
     confidence: 0.1,
     expectedOutcome: { scoreComponent: "content", delta: 1 },
+    target: null,
   };
   void today; // referenced only for context; deadline uses it implicitly
   return [
@@ -125,11 +129,31 @@ export function clampEffort(min: number): number {
 }
 
 // ---------------------------------------------------------------------------
+// Target validation — a nullable, structured WHO/WHERE for outreach actions
+// ---------------------------------------------------------------------------
+const TARGET_CHANNELS = new Set([
+  "community", "creator", "directory", "media", "podcast", "newsletter", "partner", "x",
+]);
+
+/** Coerce a raw target to a valid ActionTarget or null (unknown channel / empty label → null). */
+function coerceTarget(raw: unknown): ActionTarget | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const o = raw as Record<string, unknown>;
+  const channel = o["channel"];
+  const label = o["label"];
+  if (typeof channel !== "string" || !TARGET_CHANNELS.has(channel)) return null;
+  if (typeof label !== "string" || label.trim().length === 0) return null;
+  const url = typeof o["url"] === "string" && o["url"].trim().length > 0 ? o["url"].trim() : undefined;
+  return { channel: channel as ActionTargetChannel, label: label.trim(), ...(url ? { url } : {}) };
+}
+
+// ---------------------------------------------------------------------------
 // Coerce a validated card: clamp confidence, force §11 invariants, default evidence
 // ---------------------------------------------------------------------------
 function coerceCard(raw: ActionCard): ActionCard {
   return {
     ...raw,
+    target: coerceTarget((raw as unknown as { target?: unknown }).target),
     confidence: Math.max(0, Math.min(1, Number(raw.confidence))),
     // The plan surfaces bite-sized daily actions; the model's effortMin was
     // previously unclamped, letting it emit 120+ min ("~120 min for an email").
@@ -228,6 +252,7 @@ export async function readFounderVoice(appId: string): Promise<string | null> {
 export async function generateActions(
   ctx: ScanContext,
   findings: Finding[],
+  grounding: ActionGrounding = EMPTY_GROUNDING,
 ): Promise<ActionCard[]> {
   // Fixture path — no LLM call, no DB reads
   if (fixturesEnabled()) {
@@ -256,6 +281,7 @@ export async function generateActions(
     findings: JSON.stringify(findings, null, 2),
     founderVoice,
     today,
+    grounding,
   });
 
   let text: string;
@@ -276,3 +302,6 @@ export async function generateActions(
   const cards = parseActionCards(text);
   return cards ?? buildDegradedActions();
 }
+
+/** Test seam — exercises coerceCard's normalization in isolation. */
+export const coerceCardForTest = (raw: unknown): ActionCard => coerceCard(raw as ActionCard);

@@ -151,3 +151,31 @@ describe("generateColdStartActions", () => {
     assertColdStartInvariants(cards);
   });
 });
+
+describe("deriveSeed grounding (Task 7)", () => {
+  test("real grounding produces targets naming the community + a creator card", async () => {
+    const { deriveSeedForTest } = await import("@/lib/llm/cold-start-actions");
+    const seed = deriveSeedForTest(coldFacts(), {
+      competitors: [{ name: "Fathom", positioning: null, themMentions: 5, youMentions: 0 }],
+      communities: [{ source: "reddit", title: "r/productivity", url: "https://reddit.com/r/productivity", engagement: 200 }],
+      creators: [{ name: "Thomas Frank", url: "https://youtube.com/@thomasfrank", coveredCompetitor: "Fathom", audienceProxy: 0 }],
+    });
+    const cards = coldStartActionsFrom(seed);
+    assertColdStartInvariants(cards);
+    expect(cards.some((c) => c.target?.label === "r/productivity")).toBe(true);
+    expect(cards.some((c) => c.target?.channel === "creator" && c.target?.label === "Thomas Frank")).toBe(true);
+  });
+
+  test("empty grounding falls back to hardcoded defaults exactly as before", async () => {
+    const { deriveSeedForTest } = await import("@/lib/llm/cold-start-actions");
+    const { EMPTY_GROUNDING } = await import("@/lib/llm/grounding");
+    const seed = deriveSeedForTest(coldFacts(), EMPTY_GROUNDING);
+    expect(seed.communityA).toBe("a relevant subreddit");
+    expect(seed.communityB).toBe("Indie Hackers");
+    expect(seed.communityAUrl).toBeUndefined();
+    expect(seed.communityBUrl).toBeUndefined();
+    expect(seed.creator).toBeUndefined();
+    const cards = coldStartActionsFrom(seed);
+    expect(cards.some((c) => c.category === "outreach" && /Thomas Frank|coveredCompetitor/i.test(c.title))).toBe(false);
+  });
+});

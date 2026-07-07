@@ -465,6 +465,7 @@ async function persistActions(ctx: ScanContext, actions: ActionCard[]): Promise<
     draft: a.draft,
     draft_requires_edit: a.draftRequiresEdit,
     effort_min: a.effortMin,
+    target: (a.target ?? null) as unknown as Json,
     evidence_ids: a.evidenceIds,
     expected_outcome: a.expectedOutcome as unknown as Json,
     score_component: a.expectedOutcome.scoreComponent,
@@ -491,13 +492,35 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
     // 3. Findings + positioning mirror from the Cycle 2 findings pipeline
     const { findings, positioningMirror } = await readFindingsPayload(ctx.scanId);
 
-    // 4. Action cards. §4.3: Cold Start subjects (little/no footprint) get the
-    //    validation-through-distribution queue; everything else gets the standard
-    //    over-generated set. Both flow through the SAME Critic → §11 gate below.
+    // 4. Ground the generator in the ALREADY-COLLECTED market data (named
+    //    competitors with community-mention counts, communities ranked by
+    //    engagement, named creators). These readers only re-read persisted
+    //    raw_documents / fact sheets — no new external calls — and the SAME
+    //    variables are reused for report assembly below (each read exactly once).
+    const subjectType = factSheetSubjectType(ctx.mode);
+    const [competitorGap, creatorsToReach, channelOpportunities] = await Promise.all([
+      readCompetitorGap(subjectType, ctx.storeUrl, facts),
+      readCreatorDocs(ctx.storeUrl),
+      readChannelOpportunities(subjectType, ctx.storeUrl),
+    ]);
+    const grounding = {
+      competitors: competitorGap.map((r) => ({
+        name: r.competitor,
+        positioning: r.positioning ?? null,
+        themMentions: r.them,
+        youMentions: r.you,
+      })),
+      communities: channelOpportunities.communitiesByEngagement,
+      creators: creatorsToReach,
+    };
+
+    // 4b. Action cards. §4.3: Cold Start subjects (little/no footprint) get the
+    //     validation-through-distribution queue; everything else gets the standard
+    //     over-generated set. Both flow through the SAME Critic → §11 gate below.
     await emitScanEvent(ctx.scanId, "artifact", { label: "Drafting your action plan" });
     const actions = facts.coldStart
-      ? await generateColdStartActions(ctx, facts)
-      : await generateActions(ctx, findings);
+      ? await generateColdStartActions(ctx, facts, grounding)
+      : await generateActions(ctx, findings, grounding);
 
     // 5. Critic Gate v2 → §11 algorithm safety. Cold Start cards are templated
     //    and §11-compliant by construction, so we run the deterministic checks
@@ -540,16 +563,13 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
     // 7. Gather the remaining report inputs + assemble the four-question report.
     //    Deep sections (competitive landscape / channels / creators / review
     //    sentiment) are surfaced here from already-persisted data — no new calls.
-    const subjectType = factSheetSubjectType(ctx.mode);
-    const [icpSignals, surfaces, competitorGap, creatorsToReach, channelOpportunities, reviewThemes] =
-      await Promise.all([
-        readIcpSignals(subjectType, ctx.storeUrl),
-        readSurfaces(ctx.storeUrl),
-        readCompetitorGap(subjectType, ctx.storeUrl, facts),
-        readCreatorDocs(ctx.storeUrl),
-        readChannelOpportunities(subjectType, ctx.storeUrl),
-        readReviewThemesFull(subjectType, ctx.storeUrl),
-      ]);
+    //    competitorGap / creatorsToReach / channelOpportunities were already read
+    //    above (for grounding) and are reused here — no second read.
+    const [icpSignals, surfaces, reviewThemes] = await Promise.all([
+      readIcpSignals(subjectType, ctx.storeUrl),
+      readSurfaces(ctx.storeUrl),
+      readReviewThemesFull(subjectType, ctx.storeUrl),
+    ]);
     const competitiveLandscape = buildCompetitiveLandscape(competitorGap, creatorsToReach);
 
     await emitScanEvent(ctx.scanId, "artifact", { label: "Finalising your report" });

@@ -8,8 +8,8 @@ import type { ActionBoard } from "@/lib/scan/action-board";
 
 const BOARD: ActionBoard = {
   open: [
-    { id: "a1", title: "Fix your meta description", category: "seo", why: "Buyers see a truncated pitch in results.", predictedDelta: 4, actualDelta: null, createdAt: "2026-07-01T00:00:00Z", verifiedAt: null, draft: "New meta: …", verifyUrl: "https://notably.app", effortMin: 15 },
-    { id: "a2", title: "Submit to AlternativeTo", category: "outreach", why: "2 of 3 rivals are listed.", predictedDelta: 3, actualDelta: null, createdAt: "2026-07-02T00:00:00Z", verifiedAt: null, draft: null, verifyUrl: "https://alternativeto.net", effortMin: 15 },
+    { id: "a1", title: "Fix your meta description", category: "seo", why: "Buyers see a truncated pitch in results.", predictedDelta: 4, actualDelta: null, createdAt: "2026-07-01T00:00:00Z", verifiedAt: null, draft: "New meta: …", verifyUrl: "https://notably.app", effortMin: 15, target: null },
+    { id: "a2", title: "Submit to AlternativeTo", category: "outreach", why: "2 of 3 rivals are listed.", predictedDelta: 3, actualDelta: null, createdAt: "2026-07-02T00:00:00Z", verifiedAt: null, draft: null, verifyUrl: "https://alternativeto.net", effortMin: 15, target: null },
   ],
   verifying: [],
   done: [],
