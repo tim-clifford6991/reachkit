@@ -29,6 +29,7 @@ import { KIND_STYLE } from "@/components/app/intel/plan-kind-style";
 import { buildShareUrl, deliveryMode, type SharePlatform } from "@/lib/scan/distribute/intent";
 import { COACH_GUIDES } from "@/lib/scan/distribute/coach";
 import { inferExecutionRoute, type ExecutionRoute } from "@/lib/scan/distribute/platform-map";
+import { hostname } from "@/lib/scan/url";
 import type { PlanEntry } from "@/lib/scan/plan-schedule";
 import type { Content, Dist } from "./synthesis-view";
 
@@ -73,7 +74,11 @@ export function PlanEntryCard({ entry, domain, detail }: { entry: PlanEntry; dom
     return () => window.removeEventListener("keydown", onKey);
   }, [detailsOpen]);
 
-  const productUrl = domain ? `https://${domain}` : undefined;
+  // `domain` is the app's store_url, which ALREADY carries a scheme
+  // (`https://bazzly.ai`). Prefixing another `https://` produced the malformed
+  // `https://https://bazzly.ai` seen in the X composer — normalize to a clean
+  // canonical `https://<host>` (drops scheme dup + www + trailing slash).
+  const productUrl = domain ? `https://${hostname(domain)}` : undefined;
   const route: ExecutionRoute | null = entry.kind === "distribution"
     ? inferExecutionRoute({ channel: entry.channel ?? "", target: entry.target ?? entry.title, targetUrl: entry.targetUrl ?? undefined })
     : entry.kind === "post"

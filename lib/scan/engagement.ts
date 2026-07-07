@@ -129,7 +129,14 @@ export async function weeklyStreak(appId: string): Promise<number> {
     .from("outcomes")
     .select("observed_at")
     .eq("app_id", appId);
-  if (error) throw error;
+  // Resilient: this feeds the dashboard, which is otherwise fully rendered from
+  // other reads. A transient DB blip on this one read must NOT crash the whole
+  // page to the root error boundary (the "unexpected error → reload heals it"
+  // bug) — degrade to no-streak instead, matching how `actionBoard` swallows.
+  if (error) {
+    console.error("[engagement] weeklyStreak read failed", error.message);
+    return 0;
+  }
 
   const counts = bucketByWeek((data ?? []).map((row) => row.observed_at));
   return countStreak(counts, isoWeekStartDate(new Date()));
@@ -146,7 +153,12 @@ export async function scoreHistory(appId: string): Promise<ScoreHistoryPoint[]> 
     .select("taken_at, total, breakdown")
     .eq("app_id", appId)
     .order("taken_at", { ascending: true, nullsFirst: false });
-  if (error) throw error;
+  // Resilient (see weeklyStreak): degrade to an empty trend rather than crashing
+  // the dashboard on a transient read failure.
+  if (error) {
+    console.error("[engagement] scoreHistory read failed", error.message);
+    return [];
+  }
 
   return (data ?? []).map((row) => ({
     takenAt: row.taken_at,
@@ -165,19 +177,21 @@ export async function engagementSummary(appId: string): Promise<EngagementSummar
   const db = serverDb();
 
   // Two most-recent snapshots are all the honesty note needs (latest vs prior).
+  // Resilient (see weeklyStreak): a blip here degrades to no honesty note, never
+  // crashes the dashboard. weeklyStreak/scoreHistory already self-heal.
   const { data: snaps, error: snapsErr } = await db
     .from("score_snapshots")
     .select("total, installs_reported")
     .eq("app_id", appId)
     .order("taken_at", { ascending: false, nullsFirst: false })
     .limit(2);
-  if (snapsErr) throw snapsErr;
+  if (snapsErr) console.error("[engagement] engagementSummary snapshot read failed", snapsErr.message);
 
   const [streak, history] = await Promise.all([weeklyStreak(appId), scoreHistory(appId)]);
 
   return {
     streak,
     history,
-    honestyNote: honestyNote(snaps ?? []),
+    honestyNote: snapsErr ? null : honestyNote(snaps ?? []),
   };
 }

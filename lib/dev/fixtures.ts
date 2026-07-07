@@ -651,7 +651,7 @@ export function coldStartActionsFrom(seed: ColdStartSeed): ActionCard[] {
         evSerp(`Alternative-seeking queries cluster around ${topCompetitor}`),
         evKeyword(`Top intent keyword: ${topKeyword}`),
       ],
-      effortMin: 120,
+      effortMin: 90,
       suggestedDeadline: isoPlusDays(12),
       expectedOutcome: { scoreComponent: "seo", delta: 5, secondary: "Search-to-waitlist conversion validates the positioning" },
       draft: null,
