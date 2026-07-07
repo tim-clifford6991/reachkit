@@ -16,7 +16,7 @@ const NAV: Record<string, string> = {
   Pricing: "/pricing",
   "Free tools": "/tools",
   Compare: "/compare",
-  Teardowns: "/teardowns",
+  Scans: "/gallery",
   "Log in": "/login",
 };
 

@@ -14,10 +14,10 @@ import { ThemeToggle } from "@/components/theme-toggle";
 
 const LINKS = [
   { label: "How it works", href: "/how-it-works" },
+  { label: "Scans", href: "/gallery" },
   { label: "Pricing", href: "/pricing" },
   { label: "Compare", href: "/compare" },
   { label: "Free tools", href: "/tools" },
-  { label: "Teardowns", href: "/teardowns" },
 ] as const;
 
 const focusRing = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50";
