@@ -8,6 +8,7 @@ import { resolveScanParam } from "@/lib/scan/scan-slug";
 import type { ReportPayload } from "@/lib/scan/report";
 import { buildScoreCard } from "@/lib/badge/score-card";
 import { ScanStream } from "./scan-stream";
+import { PublicReport } from "./public-report";
 
 export function generateStaticParams() {
   return [{ id: "_placeholder" }];
@@ -19,9 +20,8 @@ export function generateStaticParams() {
 // Ported from app/report/[slug]/page.tsx's generateMetadata: this is the
 // canonical shareable scan URL, so once a scan has a report_payload the
 // share/crawler preview must carry the score-titled card + OG image (not the
-// generic "Scanning…" title) — even though the *page itself* redirects a
-// completed scan on to /scan/[id]/results once rendered. Metadata generation
-// doesn't follow that redirect, so it needs its own read of scan state.
+// generic "Scanning…" title). generateMetadata runs independently of the page
+// body below, so it needs its own read of scan state either way.
 // ---------------------------------------------------------------------------
 
 export async function generateMetadata({
@@ -134,7 +134,11 @@ async function ScanHydrator({ id: param }: { id: string }) {
 
   const db = serverDb();
   const [scanRes, eventsRes] = await Promise.all([
-    db.from("scans").select("status, tier, apps(store_url)").eq("id", id).maybeSingle(),
+    db
+      .from("scans")
+      .select("status, tier, report_payload, apps(store_url)")
+      .eq("id", id)
+      .maybeSingle(),
     db
       .from("scan_events")
       .select("id, type, payload")
@@ -143,16 +147,31 @@ async function ScanHydrator({ id: param }: { id: string }) {
   ]);
 
   const initialStatus = (scanRes.data?.status as string | undefined) ?? null;
-
-  // Single results experience: a finished scan never shows an inline teaser here —
-  // it hands straight off to the canonical /scan/[id]/results page (full report,
-  // free teaser, or pending). Failed scans stay on the live view to show the error.
-  if (initialStatus === "done" || initialStatus === "degraded") {
-    redirect(`/scan/${resolved.slug}/results`);
-  }
   // The scanned site's host — shown as a reference in the scan animation from the start.
   const storeUrl = (scanRes.data?.apps as unknown as { store_url?: string } | null)?.store_url;
   const host = storeUrl ? hostname(storeUrl) : null;
+
+  // Single results experience, ONE url: a finished scan renders its result
+  // INLINE right here (no redirect to /scan/[id]/results) — the same address
+  // that showed the live scan now shows the report. Failed scans stay on the
+  // live view below to show the error/partial result.
+  if (initialStatus === "done" || initialStatus === "degraded") {
+    const reportPayload = scanRes.data?.report_payload as unknown as ReportPayload | null;
+    if (reportPayload) {
+      return (
+        <PublicReport
+          scanId={id}
+          slug={resolved.slug}
+          storeUrl={storeUrl ?? ""}
+          payload={reportPayload}
+        />
+      );
+    }
+    // Rare post-Phase-1 edge: status flipped to done/degraded but report_payload
+    // hasn't been persisted yet — fall through to ScanStream below, which will
+    // pick up the `report`/`done` event and router.refresh() once it lands.
+  }
+
   const initialEvents = (eventsRes.data ?? []).map((r) => ({
     id: r.id as number,
     type: r.type as string,
