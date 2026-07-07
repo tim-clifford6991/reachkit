@@ -306,7 +306,7 @@ Return ONLY this JSON (no markdown, no code fences):
   "positioningMirror": {
     "listingSays": "<1–2 sentences: what the listing claims or emphasises>",
     "reviewsValue": "<1–2 sentences: what users actually praise or complain about in reviews>",
-    "gap": "<1 sentence: the key disconnect between listing claims and review reality>"
+    "gap": "<1–2 sentences: the key disconnect between listing claims and review reality. When the COMPETITOR GAP SHEET names competitors, name at least ONE of them and state the concrete angle where the subject wins or loses vs that rival>"
   },
   "findings": [
     {
@@ -331,6 +331,7 @@ Rules:
 - findings: EXACTLY 3 items, one per growth category (content, outreach, seo_aso) where possible.
 - Each finding must have ≥1 evidence item with a verbatim excerpt from the fact sheets above.
 - sampleAction: EXACTLY 1 item, choose the highest-confidence category.
+- positioningMirror.gap: prefer a concrete, named contrast — cite a competitor from the COMPETITOR GAP SHEET when one exists (never one you know from outside the sheets). Only fall back to a competitor-free disconnect when the sheet lists none.
 - Do not invent data not present in the fact sheets.`;
 }
 

@@ -1,0 +1,37 @@
+name: Inngest Sync
+# Launch-readiness B1. A prod deploy that does not re-register the serve endpoint
+# leaves Inngest Cloud with a STALE function set — newer functions (scan/deepen,
+# weekly-refresh, verify-action, score-pulse, cache-cleanup) then silently drop
+# their events with zero error surface (root-caused live 2026-07-07: paid deep
+# scans never ran). A PUT to /api/inngest makes the deployed app self-register all
+# current functions using its own INNGEST_SIGNING_KEY — idempotent, no secrets here.
+on:
+  deployment_status:
+
+jobs:
+  resync:
+    # Only on a SUCCESSFUL PRODUCTION deployment (Vercel emits deployment_status).
+    if: >-
+      github.event.deployment_status.state == 'success' &&
+      (github.event.deployment_status.environment == 'Production' ||
+       github.event.deployment_status.environment == 'production')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Re-sync Inngest functions
+        env:
+          # Stable prod alias; override with a repo variable if the domain changes.
+          SYNC_URL: ${{ vars.INNGEST_SYNC_URL || 'https://reachkit-pi.vercel.app' }}
+        run: |
+          echo "Re-syncing Inngest at ${SYNC_URL}/api/inngest"
+          # Retry a few times — the deployment alias can lag a few seconds behind
+          # the deployment_status event.
+          for attempt in 1 2 3 4 5; do
+            code=$(curl -s -o /tmp/resp -w "%{http_code}" -X PUT "${SYNC_URL}/api/inngest" || true)
+            echo "attempt ${attempt}: HTTP ${code}"; cat /tmp/resp 2>/dev/null; echo
+            if [ "$code" = "200" ]; then
+              echo "✓ Inngest re-synced"; exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::Inngest re-sync failed after 5 attempts — paid deep scans may silently drop. Run: curl -X PUT ${SYNC_URL}/api/inngest"
+          exit 1

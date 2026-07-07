@@ -103,6 +103,10 @@ export interface ActionCard {
   /** WHO/WHERE to execute this action (esp. outreach). Null when not applicable
    *  (e.g. an on-site SEO task) or for legacy cards generated before this field. */
   target: ActionTarget | null;
+  /** Registry signal keys this action addresses (18-signal registry, lib/scan/signals.ts).
+   *  Powers score-delta attribution + the action-floor dedupe. `[]` for legacy cards
+   *  or actions with no clean signal linkage; the floor + linker keep this populated. */
+  signalKeys?: string[];
 }
 
 /** Routing channels an ActionTarget can name — a subset that inferExecutionRoute

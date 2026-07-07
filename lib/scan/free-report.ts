@@ -99,6 +99,8 @@ import type { ScanContext } from "./pipeline";
 import { serverDb } from "@/lib/db/client";
 import { computeSignalRowsForScan, persistScanSignals } from "./persist-signals";
 import { fallbackActionsFromSignals } from "./fallback-actions";
+import { fillDeterministicDrafts } from "./action-drafts";
+import { writeScanScoreSnapshot, rollupScanCost } from "./scan-telemetry";
 import { headlineScore } from "./registry-score";
 import { discoverabilityScore } from "./score";
 import { persistReport } from "./report";
@@ -158,7 +160,12 @@ export async function runFreeReport(ctx: ScanContext, facts: PreliminaryFacts): 
     scoreVersion = 1;
   }
 
-  const actions = fallbackActionsFromSignals(signalRows);
+  const actions = fillDeterministicDrafts(
+    fallbackActionsFromSignals(signalRows),
+    facts.listing,
+    ctx.storeUrl,
+    ctx.mode,
+  );
 
   const payload = buildFreeReport({
     mode: ctx.mode,
@@ -181,4 +188,16 @@ export async function runFreeReport(ctx: ScanContext, facts: PreliminaryFacts): 
     })
     .eq("id", ctx.scanId);
   if (error) throw error;
+
+  // B3: seed the score-history timeline so the dashboard chart is never empty,
+  // and roll the free pass's pipeline cost onto scans.cost_cents.
+  await writeScanScoreSnapshot({
+    appId: ctx.appId,
+    scanId: ctx.scanId,
+    total: score.total,
+    breakdown: score.breakdown,
+    version: scoreVersion,
+    source: "scan",
+  });
+  await rollupScanCost(ctx.scanId);
 }

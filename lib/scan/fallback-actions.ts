@@ -93,5 +93,6 @@ export function fallbackActionsFromSignals(
     basis: "probability_based",
     confidence: 0.5,
     target: null, // signal-derived baseline fixes carry no WHO/WHERE
+    signalKeys: [def.key], // exact 1:1 linkage — this fix addresses this signal
   }));
 }

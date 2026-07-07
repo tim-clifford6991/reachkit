@@ -23,6 +23,7 @@ import { currentUser } from "@/lib/auth/server";
 import { activeAppId } from "@/lib/app/active-app";
 import { serverDb } from "@/lib/db/client";
 import { normalizeHost } from "@/lib/scan/referral/classify";
+import { resolveCompetitorDomain } from "@/lib/scan/competitor-resolve";
 import { cachedClosestCompetitors } from "@/lib/scan/cache/cached-adapters";
 
 export const maxDuration = 60;
@@ -76,26 +77,43 @@ async function seedFromScan(
 
   const { data: rows } = await db
     .from("competitors")
-    .select("competitor_store_url, name, source")
+    .select("id, competitor_store_url, name, source")
     .eq("app_id", appId)
     .neq("source", "user_selected");
 
   const seen = new Set<string>();
   const ranked: SeededCandidate[] = [];
+  const add = (host: string, name: string) => {
+    if (!host || host === self || seen.has(host) || ranked.length >= 15) return;
+    seen.add(host);
+    ranked.push({ domain: host, name: name || host, closeness: 3, reason: "Found during your scan", etv: 0, ratio: null, sizeRelevant: true });
+  };
+
+  // Rows that already carry a domain (SERP/Tavily-sourced) go straight in;
+  // LLM-extracted rows are name-only and must be resolved (A4) — otherwise the
+  // picker drops every one of them and falls back to 1 live-discovery result.
+  const nameOnly: Array<{ id: string; name: string }> = [];
   for (const r of rows ?? []) {
     const host = normalizeHost(r.competitor_store_url ?? "");
-    if (!host || host === self || seen.has(host)) continue;
-    seen.add(host);
-    ranked.push({
-      domain: host,
-      name: r.name ?? host,
-      closeness: 3,
-      reason: "Found during your scan",
-      etv: 0,
-      ratio: null,
-      sizeRelevant: true,
-    });
-    if (ranked.length >= 15) break;
+    if (host) add(host, r.name ?? host);
+    else if (r.name) nameOnly.push({ id: r.id as string, name: r.name });
+  }
+
+  // Resolve name-only competitors → domains in parallel, then BACKFILL the row so
+  // this cost is paid once (subsequent loads see the host and skip resolution).
+  if (nameOnly.length > 0 && ranked.length < 15) {
+    const resolved = await Promise.all(
+      nameOnly.slice(0, 8).map(async (u) => ({ u, host: await resolveCompetitorDomain(u.name) })),
+    );
+    for (const { u, host } of resolved) {
+      if (!host || host === self || seen.has(host)) continue;
+      add(host, u.name);
+      try {
+        await db.from("competitors").update({ competitor_store_url: `https://${host}` }).eq("id", u.id);
+      } catch (e) {
+        console.error("[competitors/candidates] backfill failed (best-effort)", e);
+      }
+    }
   }
 
   if (ranked.length === 0) return null;
