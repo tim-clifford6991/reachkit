@@ -40,10 +40,13 @@ export function LandingHydrate({ rootId = "rk-landing" }: { rootId?: string }) {
         const res = await fetch("/api/scan", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url }),
+          body: JSON.stringify({ store_url: url }),
         });
-        const data = (await res.json().catch(() => ({}))) as { scan_id?: string };
-        if (res.ok && data.scan_id) router.push(`/scan/${data.scan_id}`);
+        const data = (await res.json().catch(() => ({}))) as {
+          scan_id?: string;
+          slug?: string;
+        };
+        if (res.ok && (data.slug || data.scan_id)) router.push(`/scan/${data.slug ?? data.scan_id}`);
         else busy = false;
       } catch {
         busy = false;
