@@ -32,12 +32,23 @@ async function seedApp(storeUrl: string, platform = "web"): Promise<string> {
 
 async function seedScan(appId: string, status: string, completedAt?: string): Promise<string> {
   const db = serverDb();
-  const row: { app_id: string; status: string; completed_at?: string; score_total?: number } = {
+  const row: {
+    app_id: string;
+    status: string;
+    completed_at?: string;
+    score_total?: number;
+    report_payload?: import("@/lib/db/types").Json;
+  } = {
     app_id: appId,
     status,
   };
   if (completedAt) row.completed_at = completedAt;
-  if (status === "done") row.score_total = 70;
+  if (status === "done") {
+    row.score_total = 70;
+    // A public teardown must have a renderable report — the view filters on
+    // report_payload IS NOT NULL, so a done scan without one is (correctly) excluded.
+    row.report_payload = { whatYouOffer: { positioningMirror: { gap: "seeded gap" } } };
+  }
   const { data, error } = await db.from("scans").insert(row).select("id").single();
   if (error) throw error;
   return data.id;

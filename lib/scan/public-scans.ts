@@ -13,6 +13,7 @@
 
 import { serverDb } from "@/lib/db/client";
 import { slugForScan } from "@/lib/scan/scan-slug";
+import { brandFromUrl } from "@/lib/brand/logo";
 
 export interface PublicScan {
   /** Canonical public slug (domain for web scans). */
@@ -21,6 +22,10 @@ export interface PublicScan {
   host: string;
   score: number | null;
   completedAt: string | null;
+  /** Positioning-gap one-liner from the report (may be empty for older scans). */
+  blurb: string | null;
+  /** ~128px favicon for the scanned domain (for the teardown card). */
+  logoUrl: string | null;
 }
 
 export interface ListPublicScansOpts {
@@ -41,7 +46,7 @@ export async function listPublicScans(opts?: number | ListPublicScansOpts): Prom
   const db = serverDb();
   let query = db
     .from("public_scans")
-    .select("scan_id, score_total, completed_at, store_url");
+    .select("scan_id, score_total, completed_at, store_url, blurb");
 
   const trimmedQ = q?.trim();
   if (trimmedQ) query = query.ilike("store_url", `%${trimmedQ}%`);
@@ -58,7 +63,15 @@ export async function listPublicScans(opts?: number | ListPublicScansOpts): Prom
     // NOT NULL). Skip defensively rather than assert.
     if (!row.scan_id || !row.store_url) continue;
     const slug = slugForScan({ storeUrl: row.store_url, platform: "web", scanId: row.scan_id });
-    out.push({ slug, host: slug, score: row.score_total ?? null, completedAt: row.completed_at });
+    const blurb = typeof row.blurb === "string" && row.blurb.trim().length > 0 ? row.blurb.trim() : null;
+    out.push({
+      slug,
+      host: slug,
+      score: row.score_total ?? null,
+      completedAt: row.completed_at,
+      blurb,
+      logoUrl: brandFromUrl(row.store_url)?.logoUrl ?? null,
+    });
   }
   return out;
 }

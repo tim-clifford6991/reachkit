@@ -15,7 +15,6 @@ import { SITE } from "@/lib/seo";
 import { allTeardowns } from "@/content/teardowns";
 import { COMPARE_SLUGS } from "@/app/(marketing)/compare/compare-content";
 import { listPublicScans, countPublicScans, type PublicScan } from "@/lib/scan/public-scans";
-import { TEARDOWNS_PAGE_SIZE } from "@/app/(marketing)/teardowns/page";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
@@ -82,21 +81,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.5,
   }));
 
-  // Paginated /teardowns index — page 1 is already listed in `core`, so only
-  // add pages 2..N here to avoid a duplicate `/teardowns` entry.
-  const teardownPageCount = Math.max(1, Math.ceil(total / TEARDOWNS_PAGE_SIZE));
-  const teardownPages: MetadataRoute.Sitemap = Array.from(
-    { length: Math.max(0, teardownPageCount - 1) },
-    (_, i) => {
-      const page = i + 2;
-      return {
-        url: `${SITE.url}/teardowns?page=${page}`,
-        lastModified: now,
-        changeFrequency: "weekly" as const,
-        priority: 0.4,
-      };
-    },
-  );
+  // The /teardowns index is a single instant-search page (page 1 is already in
+  // `core`), so no paginated ?page=N URLs. Each scan's own /scan/<slug> report
+  // is the indexable surface (enumerated above in `reports`).
 
-  return [...core, ...tools, ...compare, ...teardowns, ...reports, ...teardownPages, ...legal];
+  return [...core, ...tools, ...compare, ...teardowns, ...reports, ...legal];
 }
