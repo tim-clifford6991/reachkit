@@ -19,7 +19,7 @@ import type { RegistryScore } from "./registry-score";
 import type { VerifiedScore, RadarAxis } from "./score-full";
 import { assembleReport, type ReportPayload } from "./report";
 
-/** Build the 3 radar axes from a RegistryScore breakdown (assessed pillars only). */
+/** Build the 7-axis radar (3 active + 4 locked) from a RegistryScore breakdown. */
 export function verifiedScoreFromRegistry(v: RegistryScore): VerifiedScore {
   const axis = (label: string, pillar: "content" | "outreach" | "seo", value: number): RadarAxis => ({
     axis: label,
@@ -35,6 +35,10 @@ export function verifiedScoreFromRegistry(v: RegistryScore): VerifiedScore {
       axis("Content", "content", v.breakdown.content),
       axis("Outreach", "outreach", v.breakdown.outreach),
       axis("SEO/ASO", "seo", v.breakdown.seo),
+      { axis: "Ads", value: 0, active: false, assessed: false },
+      { axis: "Partnerships", value: 0, active: false, assessed: false },
+      { axis: "PR", value: 0, active: false, assessed: false },
+      { axis: "Positioning", value: 0, active: false, assessed: false },
     ],
   };
 }

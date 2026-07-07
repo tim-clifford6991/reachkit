@@ -15,12 +15,23 @@ const FACTS: PreliminaryFacts = {
 } as unknown as PreliminaryFacts;
 
 describe("verifiedScoreFromRegistry", () => {
-  it("wraps a RegistryScore into a VerifiedScore with 3 radar axes", () => {
+  it("wraps a RegistryScore into a VerifiedScore with a 7-axis radar (3 active + 4 locked)", () => {
     const s = verifiedScoreFromRegistry(REG);
     expect(s.total).toBe(62);
     expect(s.breakdown).toEqual({ content: 55, outreach: 0, seo: 68 });
     expect(s.basis).toBe("verified");
-    expect(s.radar.map((a) => a.axis).sort()).toEqual(["Content", "Outreach", "SEO/ASO"]);
+    expect(s.radar).toHaveLength(7);
+
+    const active = s.radar.filter((a) => a.active);
+    expect(active.map((a) => a.axis).sort()).toEqual(["Content", "Outreach", "SEO/ASO"]);
+
+    const locked = s.radar.filter((a) => !a.active);
+    expect(locked.map((a) => a.axis).sort()).toEqual(["Ads", "PR", "Partnerships", "Positioning"]);
+    for (const l of locked) {
+      expect(l.value).toBe(0);
+      expect(l.assessed).toBe(false);
+    }
+
     // Outreach is not assessed on the fixed basis → axis marked unassessed.
     expect(s.radar.find((a) => a.axis === "Outreach")!.assessed).toBe(false);
     expect(s.radar.find((a) => a.axis === "SEO/ASO")!.assessed).toBe(true);
