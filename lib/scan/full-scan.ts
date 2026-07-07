@@ -35,7 +35,7 @@ import { runCriticGate } from "@/lib/llm/critic";
 import { algorithmSafety } from "@/lib/scan/algorithm-safety";
 import { gatherScoreComponents, verifiedScore } from "@/lib/scan/score-full";
 import { persistScanSignals, computeSignalRowsForScan } from "@/lib/scan/persist-signals";
-import { fallbackActionsFromSignals } from "@/lib/scan/fallback-actions";
+import { linkSignalKeys, topUpActions, MIN_ACTIONS } from "@/lib/scan/action-linking";
 import { headlineScore } from "@/lib/scan/registry-score";
 import { verifiedScoreFromRegistry } from "@/lib/scan/free-report";
 import type { ScanSignalRow } from "@/lib/scan/compute-signals";
@@ -470,6 +470,7 @@ async function persistActions(ctx: ScanContext, actions: ActionCard[]): Promise<
     expected_outcome: a.expectedOutcome as unknown as Json,
     score_component: a.expectedOutcome.scoreComponent,
     verification: a.verification as unknown as Json,
+    signal_keys: a.signalKeys ?? [],
   }));
 
   const { error: insErr } = await db.from("actions").insert(rows);
@@ -533,31 +534,35 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
     const components = await gatherScoreComponents(ctx, facts);
     const score = verifiedScore(components, ctx.mode);
 
-    // 6b. Graceful floor — a completed scan must NEVER persist an empty action
-    //     plan (seen live: bloom.io 388982c5, nudgi.ai). The Critic/§11 gates
-    //     can legitimately drop 100% of cards (e.g. a generation parse failure
-    //     yields placeholder cards the critic always rejects), so when the
-    //     gated set is empty we derive deterministic baseline fixes from the
-    //     weakest fail/warn signals of the 18-signal registry. Deliberately a
-    //     SEPARATE path that bypasses the critic (its evidence rules would
-    //     reject templated, evidence-free cards by construction). Best-effort:
-    //     a floor failure keeps the (empty) gated set rather than failing the scan.
+    // 6b. Link every card to the registry signals it addresses, then floor the
+    //     plan to a substantive size. The Critic/§11 gates can legitimately
+    //     survive only 0–2 cards (a generation parse failure yields placeholder
+    //     cards the critic always rejects; a strong site yields few fixes), and a
+    //     paid report with a thin plan reads as low value and leaves the upgrade
+    //     wall nothing to hold back. `linkSignalKeys` attaches signalKeys to the
+    //     LLM cards (they carry none from generation); `topUpActions` appends
+    //     deterministic signal-derived baseline fixes (deduped, capped) until the
+    //     plan reaches MIN_ACTIONS. The floor cards bypass the critic by design
+    //     (its evidence rules reject templated, evidence-free cards). Best-effort:
+    //     a signal-compute failure keeps the gated set rather than failing the scan.
     let plan = safe;
-    if (plan.length === 0) {
-      try {
-        const signalRows = await computeSignalRowsForScan({
-          mode: ctx.mode,
-          storeUrl: ctx.storeUrl,
-          components,
-          market: null, // market analysis attaches later (8b); Wave A + existing inputs suffice
-        });
-        plan = fallbackActionsFromSignals(signalRows);
+    try {
+      const signalRows = await computeSignalRowsForScan({
+        mode: ctx.mode,
+        storeUrl: ctx.storeUrl,
+        components,
+        market: null, // market analysis attaches later (8b); Wave A + existing inputs suffice
+      });
+      plan = linkSignalKeys(safe, signalRows);
+      const before = plan.length;
+      plan = topUpActions(plan, signalRows);
+      if (plan.length > before) {
         console.warn(
-          `[full-scan] critic gate returned 0 actions for scan ${ctx.scanId} — floored with ${plan.length} signal-derived baseline fixes`,
+          `[full-scan] plan had ${before} critic-passed action(s) for scan ${ctx.scanId} — floored to ${plan.length} (MIN_ACTIONS=${MIN_ACTIONS}) with signal-derived baseline fixes`,
         );
-      } catch (e) {
-        console.error("[full-scan] action floor failed (best-effort)", e);
       }
+    } catch (e) {
+      console.error("[full-scan] action floor/linking failed (best-effort)", e);
     }
 
     // 7. Gather the remaining report inputs + assemble the four-question report.
