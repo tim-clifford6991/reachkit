@@ -26,7 +26,7 @@ export function ShareScoreButton({ slug, score, productName }: ShareScoreButtonP
   const hasCard = typeof score === "number";
 
   const reportUrl =
-    typeof window !== "undefined" ? `${window.location.origin}/report/${slug}` : `/report/${slug}`;
+    typeof window !== "undefined" ? `${window.location.origin}/scan/${slug}` : `/scan/${slug}`;
 
   const band = hasCard ? bandFor(score) : null;
   const shareText = hasCard

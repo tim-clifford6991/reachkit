@@ -2,7 +2,7 @@
  * Public scans — every completed free scan is a public teardown.
  *
  * We never hide a cost we incurred: each finished scan already has a public,
- * free-redacted report at /report/{domain}. This module lists them (newest
+ * free-redacted report at /scan/{domain}. This module lists them (newest
  * first, one per app) for the teardowns index and the sitemap — turning spent
  * scan credits into permanent SEO surface.
  */

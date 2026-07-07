@@ -3,7 +3,7 @@
  *
  * Served at /sitemap.xml (Next 16 MetadataRoute). Lists the public routes —
  * no auth product (`/app/*`), no API. Per-scan public reports ARE included
- * now that they live at domain slugs (/report/nudgi.ai): every free scan we
+ * now that they live at domain slugs (/scan/nudgi.ai): every free scan we
  * run is a public teardown and an indexable SEO surface.
  *
  * Teardown entries are generated from the content registry so the sitemap stays
@@ -67,7 +67,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Every completed free scan is a public report at its domain slug — spent
   // scan cost turned into indexable surface. Bounded (latest 500, one per app).
   const reports: MetadataRoute.Sitemap = (await listPublicScans(500)).map((scan) => ({
-    url: `${SITE.url}/report/${scan.slug}`,
+    url: `${SITE.url}/scan/${scan.slug}`,
     lastModified: scan.completedAt ? new Date(scan.completedAt) : now,
     changeFrequency: "weekly",
     priority: 0.5,

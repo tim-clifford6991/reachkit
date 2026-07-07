@@ -334,7 +334,7 @@ describe("Footer — content prop interface", () => {
           heading: "Product",
           items: [
             { label: "Pricing", href: "/pricing" },
-            { label: "Report demo", href: "/report/demo" },
+            { label: "Report demo", href: "/scan/demo" },
           ],
         },
       ],

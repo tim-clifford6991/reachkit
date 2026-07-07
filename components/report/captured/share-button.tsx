@@ -23,7 +23,7 @@ export function CapturedShareButton({
 }) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const url = typeof window !== "undefined" ? `${window.location.origin}/report/${slug}` : `/report/${slug}`;
+  const url = typeof window !== "undefined" ? `${window.location.origin}/scan/${slug}` : `/scan/${slug}`;
   const text = `My Discoverability Score is ${score}/100 (${bandLabel}). See how findable your product is:`;
 
   useEffect(() => {
