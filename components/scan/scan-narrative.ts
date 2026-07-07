@@ -11,7 +11,9 @@ import { useEffect, useRef, useState } from "react";
 
 export type StepId =
   | "homepage" | "hero" | "ctas" | "reviews" | "competitors"
-  | "positioning" | "compare" | "score" | "snapshot";
+  | "positioning" | "compare" | "score" | "snapshot"
+  // Deep-pass steps — only present for a full (paid) scan watched live end-to-end.
+  | "actions" | "critic" | "report";
 
 export type StepState = "pending" | "active" | "done";
 
@@ -45,8 +47,20 @@ export const STEP_SCRIPT: Step[] = [
   { id: "snapshot",    optimistic: false, confirmBy: ["__findings__"], label: () => "Building your snapshot" },
 ];
 
+// Deep-pass continuation (full/paid scans only). A full scan keeps the user on
+// the live narrative through the ~80s deep pass (actions → critic → report)
+// instead of handing off at findings — otherwise /results shows a second
+// "Finalising your action plan…" screen for the whole pass. Each step confirms
+// on the real artifact label full-scan.ts emits (see lib/scan/full-scan.ts), so
+// the checklist advances honestly; the closer confirms on the `report` event.
+export const DEEP_STEPS: Step[] = [
+  { id: "actions", optimistic: false, confirmBy: ["Drafting your action plan"], label: () => "Drafting your action plan" },
+  { id: "critic",  optimistic: false, confirmBy: ["Pressure-testing each recommendation"], label: () => "Pressure-testing every recommendation" },
+  { id: "report",  optimistic: false, confirmBy: ["Finalising your report", "__report__"], label: () => "Finalising your report" },
+];
+
 export function labelFor(id: StepId, ctx: NarrativeCtx): string {
-  const step = STEP_SCRIPT.find((s) => s.id === id);
+  const step = STEP_SCRIPT.find((s) => s.id === id) ?? DEEP_STEPS.find((s) => s.id === id);
   return step ? step.label(ctx) : id;
 }
 
@@ -66,20 +80,22 @@ export function computeStepStates(input: {
   confirmedLabels: Set<string>;
   tick: number; // increments on a timer to advance optimistic steps
   ctx: NarrativeCtx;
+  deep?: boolean; // full scan watched live → append the deep-pass steps
 }): ComputedStep[] {
-  const { confirmedLabels, tick, ctx } = input;
+  const { confirmedLabels, tick, ctx, deep } = input;
+  const script = deep ? [...STEP_SCRIPT, ...DEEP_STEPS] : STEP_SCRIPT;
 
   // Furthest real progress: index of the last step whose milestone has confirmed.
   let confirmedThrough = -1;
-  STEP_SCRIPT.forEach((s, i) => {
+  script.forEach((s, i) => {
     if (isConfirmed(s, confirmedLabels)) confirmedThrough = Math.max(confirmedThrough, i);
   });
 
   // Optimistic steps may tick ahead of their event, but never past the first
   // non-optimistic step (we will not fake an LLM result).
   let optimisticCeiling = -1;
-  for (let i = 0; i < STEP_SCRIPT.length; i++) {
-    if (STEP_SCRIPT[i]!.optimistic) optimisticCeiling = i;
+  for (let i = 0; i < script.length; i++) {
+    if (script[i]!.optimistic) optimisticCeiling = i;
     else break;
   }
   // tick starts at 1 (nothing done yet → step 0 active); each timer fire advances one.
@@ -88,7 +104,7 @@ export function computeStepStates(input: {
   const doneThrough = Math.max(confirmedThrough, optimisticDone);
   const activeIndex = doneThrough + 1;
 
-  return STEP_SCRIPT.map((s, i) => ({
+  return script.map((s, i) => ({
     id: s.id,
     label: s.label(ctx),
     state: i <= doneThrough ? "done" : i === activeIndex ? "active" : "pending",
@@ -100,6 +116,7 @@ export function useScanNarrative(
   confirmedLabels: Set<string>,
   ctx: NarrativeCtx,
   running: boolean,
+  deep?: boolean,
 ): ComputedStep[] {
   const [tick, setTick] = useState(1);
   const tickRef = useRef(1);
@@ -111,5 +128,5 @@ export function useScanNarrative(
     }, 1400);
     return () => clearInterval(t);
   }, [running]);
-  return computeStepStates({ confirmedLabels, tick, ctx });
+  return computeStepStates({ confirmedLabels, tick, ctx, deep });
 }
