@@ -5,10 +5,23 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { PreliminaryFacts, ScanEvent } from "@/lib/scan/types";
-import type { FindingsPayload } from "./findings-reveal";
+import type {
+  Finding,
+  ScoreResult,
+  PositioningMirror,
+  SampleAction,
+} from "@/lib/llm/types";
 import { funnel } from "@/lib/analytics";
 import { ScanProgress } from "@/components/scan/scan-progress";
 import { shouldHandOffToResults, type ScanTier } from "./handoff";
+
+export interface FindingsPayload {
+  score: ScoreResult;
+  positioningMirror: PositioningMirror;
+  findings: Finding[];
+  /** Absent on payloads persisted before the sample-action step existed. */
+  sampleAction?: SampleAction;
+}
 
 // ── Design idiom: intel-kit — inline styles + `--c-*` tokens + the three fonts ─
 const SG = "var(--font-display)", PJ = "var(--font-sans)", JM = "var(--font-mono)";
@@ -55,9 +68,8 @@ function ScanError() {
 }
 
 // Partial failure: we gathered facts before the run errored, but there's no
-// full report to show. Rather than render a stale teaser (FactsView, which
-// embedded the now-deleted FindingsReveal), just say so and point back to a
-// fresh scan.
+// full report to show. Rather than render a stale teaser, just say so and
+// point back to a fresh scan.
 function PartialResult({ host }: { host: string | null }) {
   return (
     <div style={{ maxWidth: 448, margin: "0 auto", display: "flex", flexDirection: "column", alignItems: "center", gap: 20, padding: "80px 24px", textAlign: "center", fontFamily: PJ }}>
