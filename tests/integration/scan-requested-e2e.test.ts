@@ -101,7 +101,8 @@ test(
 
     const { data: scanRow, error: scanErr } = await db
       .from("scans")
-      .insert({ app_id: appId, status: "queued" })
+      // tier "full" so the pipeline runs the deep full-scan step this test asserts
+      .insert({ app_id: appId, status: "queued", tier: "full" })
       .select("id")
       .single();
     expect(scanErr).toBeNull();
