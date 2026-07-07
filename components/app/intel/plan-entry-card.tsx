@@ -31,9 +31,11 @@ import { COACH_GUIDES } from "@/lib/scan/distribute/coach";
 import { inferExecutionRoute, type ExecutionRoute } from "@/lib/scan/distribute/platform-map";
 import { hostname } from "@/lib/scan/url";
 import type { PlanEntry } from "@/lib/scan/plan-schedule";
+import type { ActionTargetChannel } from "@/lib/llm/types";
 import type { Content, Dist } from "./synthesis-view";
 
 const SG = "var(--font-display)", PJ = "var(--font-sans)", JM = "var(--font-mono)";
+const KNOWN_CHANNELS = new Set(["community", "creator", "directory", "media", "podcast", "newsletter", "partner", "x"]);
 
 /** The full analysis behind an entry — shown in the detail popup. */
 export type EntryDetail =
@@ -102,6 +104,9 @@ export function PlanEntryCard({ entry, domain, detail }: { entry: PlanEntry; dom
           draft: text,
           verifyUrl: entry.targetUrl || undefined,
           effortMin: entry.effortMin,
+          target: KNOWN_CHANNELS.has(entry.channel ?? "") && entry.target
+            ? { channel: entry.channel as ActionTargetChannel, label: entry.target, ...(entry.targetUrl ? { url: entry.targetUrl } : {}) }
+            : undefined,
         }),
       });
       if (!res.ok) return null;
