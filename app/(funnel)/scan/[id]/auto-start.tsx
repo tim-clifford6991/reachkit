@@ -32,9 +32,15 @@ export function AutoStart({ domain }: { domain: string }) {
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
+    // Fire exactly once. The `started` ref (not a per-invocation `cancelled`
+    // flag) is the guard: under dev StrictMode the mount→cleanup→remount double
+    // invoke early-returns on the second pass, so the POST fires once. We do NOT
+    // gate router.refresh()/setFailed on a cleanup flag — a StrictMode cleanup
+    // would poison the first closure and suppress the refresh, leaving the user
+    // stuck on "Starting…". A stray refresh after a real unmount is harmless
+    // (a client route re-resolve, no state mutation).
     if (started.current) return;
     started.current = true;
-    let cancelled = false;
     (async () => {
       try {
         const res = await fetch("/api/scan", {
@@ -43,14 +49,11 @@ export function AutoStart({ domain }: { domain: string }) {
           body: JSON.stringify({ store_url: domain }),
         });
         if (!res.ok) throw new Error(String(res.status));
-        if (!cancelled) router.refresh(); // re-resolve → the new scan streams live
+        router.refresh(); // re-resolve → the new scan streams live
       } catch {
-        if (!cancelled) setFailed(true);
+        setFailed(true);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
   }, [domain, router]);
 
   if (failed) {

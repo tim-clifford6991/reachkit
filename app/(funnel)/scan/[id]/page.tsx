@@ -133,9 +133,12 @@ async function ScanHydrator({ id: param }: { id: string }) {
     // POST). Link-unfurlers / crawlers never run that JS, so a shared link
     // costs nothing until a human actually opens it. A bare UUID that wasn't
     // found is a dead/expired link, not a domain to scan — show not-found.
-    const isDomain = /^[a-z0-9.-]+\.[a-z]{2,}$/.test(param.toLowerCase());
+    // Normalize exactly like resolveScanParam so the page and the resolver agree
+    // on what counts as a domain (decode + trim + lowercase).
+    const normalized = decodeURIComponent(param).trim().toLowerCase();
+    const isDomain = /^[a-z0-9.-]+\.[a-z]{2,}$/.test(normalized);
     if (isDomain) {
-      return <AutoStart domain={param} />;
+      return <AutoStart domain={normalized} />;
     }
     return <ScanStream id={param} scanExists={false} initialStatus={null} initialEvents={[]} host={null} />;
   }
