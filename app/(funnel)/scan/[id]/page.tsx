@@ -9,6 +9,7 @@ import type { ReportPayload } from "@/lib/scan/report";
 import { buildScoreCard } from "@/lib/badge/score-card";
 import { ScanStream } from "./scan-stream";
 import { PublicReport } from "./public-report";
+import { AutoStart } from "./auto-start";
 
 export function generateStaticParams() {
   return [{ id: "_placeholder" }];
@@ -127,6 +128,15 @@ async function ScanHydrator({ id: param }: { id: string }) {
   // web scan lives at exactly one shareable address.
   const resolved = await resolveScanParam(param);
   if (!resolved) {
+    // A domain param with no scan yet: kick off a FREE scan, but only from the
+    // browser (AutoStart is a client component whose useEffect fires the
+    // POST). Link-unfurlers / crawlers never run that JS, so a shared link
+    // costs nothing until a human actually opens it. A bare UUID that wasn't
+    // found is a dead/expired link, not a domain to scan — show not-found.
+    const isDomain = /^[a-z0-9.-]+\.[a-z]{2,}$/.test(param.toLowerCase());
+    if (isDomain) {
+      return <AutoStart domain={param} />;
+    }
     return <ScanStream id={param} scanExists={false} initialStatus={null} initialEvents={[]} host={null} />;
   }
   if (resolved.slug !== param) redirect(`/scan/${resolved.slug}`);
