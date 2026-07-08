@@ -87,3 +87,31 @@ describe("extractHtmlSignals — bare page", () => {
     expect(s.images.altCoverage).toBe(1);
   });
 });
+
+describe("extractHtmlSignals — SEO metadata streamed late (SPA regression)", () => {
+  // Live linear.app (Next.js/RSC) streams a huge inline payload before its
+  // <title>/<meta>/<canonical> (~865KB in). site-fetch's 200KB slice truncated
+  // them away → the whole SEO pillar scored 0 (false "Invisible"). The parser
+  // must find metadata regardless of how deep it sits, and the slice (now 2MB)
+  // must keep it. This pins the parse side of that regression.
+  const bigPayload = `<script id="__NEXT_DATA__">${"x".repeat(500_000)}</script>`;
+  const html =
+    `<!doctype html><html><head>${bigPayload}` +
+    `<title>Linear – Plan and build products</title>` +
+    `<meta name="description" content="Linear is a purpose-built tool for planning and building products, streamlining issues, projects, and roadmaps.">` +
+    `<link rel="canonical" href="https://linear.app/">` +
+    `<script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","name":"Linear"}</script>` +
+    `</head><body><h1>Linear</h1></body></html>`;
+  const s = extractHtmlSignals(html);
+
+  it("finds a title located far beyond the old 200KB limit", () => {
+    expect(s.title.present).toBe(true);
+    expect(s.title.length).toBeGreaterThan(0);
+  });
+  it("finds the meta description, canonical, and JSON-LD past the payload", () => {
+    expect(s.metaDescription.present).toBe(true);
+    expect(s.canonical.present).toBe(true);
+    expect(s.jsonLd.present).toBe(true);
+    expect(s.jsonLd.types).toContain("Organization");
+  });
+});
