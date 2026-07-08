@@ -126,7 +126,7 @@ export function PlanEntryCard({ entry, domain, detail }: { entry: PlanEntry; dom
         const res = await fetch("/api/content-draft", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ topic: entry.title, regenerate: draft !== null }),
+          body: JSON.stringify({ topic: entry.title, angle: entry.why || undefined, regenerate: draft !== null }),
         });
         if (!res.ok) throw new Error(String(res.status));
         const json = (await res.json()) as { draft?: string; actionId?: string };

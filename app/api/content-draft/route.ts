@@ -8,8 +8,15 @@
  * the matching `actions` row's `draft` column, marked pending — the founder
  * edits and publishes it themselves. We never publish anything.
  *
- * POST { topic, regenerate? } → 200 { draft, requiresEdit: true, actionId }
- *   401 unauthed · 400 no active app / domain / missing topic · 404 unknown topic.
+ * POST { topic, angle?, regenerate? } → 200 { draft, requiresEdit: true, actionId }
+ *   401 unauthed · 400 no active app / domain / missing topic.
+ *
+ * The topic is preferentially resolved against the cached synthesis content plan
+ * (rich brief + keywords). But the plan also surfaces tracked on-site actions whose
+ * titles aren't literal plan topics (e.g. a floor action "Publish keyword-targeted
+ * pages …"): for those we draft from a minimal item built from the title + the
+ * caller's `angle` (the action's `why`) rather than 404ing. Either way the draft is
+ * a single, bounded, §11-scrubbed, review-required piece — never auto-published.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -17,15 +24,37 @@ import { currentUser } from "@/lib/auth/server";
 import { activeAppId } from "@/lib/app/active-app";
 import { serverDb } from "@/lib/db/client";
 import { getSelectedCompetitors } from "@/lib/scan/competitor-selection";
-import { gatherSynthesis } from "@/lib/scan/synthesis/synthesize";
+import { gatherSynthesis, type ContentPlanItem } from "@/lib/scan/synthesis/synthesize";
 import { generateContentDraft } from "@/lib/scan/synthesis/content-draft";
 
 export const maxDuration = 240;
 
 const Body = z.object({
   topic: z.string().trim().min(1).max(300),
+  /** The action's rationale (`why`), used as the buyer angle for on-site actions
+   *  that aren't literal synthesis plan topics. */
+  angle: z.string().trim().max(600).optional(),
   regenerate: z.boolean().optional(),
 });
+
+/** Minimal content-plan item for a tracked on-site action that isn't in the
+ *  synthesis plan — enough for the draft engine to write a grounded first draft. */
+function fallbackItem(topic: string, angle?: string): ContentPlanItem {
+  return {
+    topic,
+    targetKeywords: [],
+    estMonthlyVolume: 0,
+    intent: "informational",
+    format: "article",
+    depthTarget: "800–1,500 words",
+    buyerAngle: angle ?? "",
+    competitorExemplars: [],
+    brief: "",
+    agentPrompt: "",
+    priority: "medium",
+    evidence: "",
+  };
+}
 
 export async function POST(req: NextRequest) {
   const viewer = await currentUser();
@@ -33,7 +62,7 @@ export async function POST(req: NextRequest) {
 
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ message: "missing or invalid topic" }, { status: 400 });
-  const { topic, regenerate } = parsed.data;
+  const { topic, angle, regenerate } = parsed.data;
 
   const appId = await activeAppId(viewer.user);
   if (!appId) return NextResponse.json({ message: "no active app" }, { status: 400 });
@@ -46,14 +75,18 @@ export async function POST(req: NextRequest) {
   const competitors = await getSelectedCompetitors(appId);
 
   // Resolve the item server-side from the cached synthesis (instant on repeat).
-  let item;
+  // A plan topic carries a rich brief + keywords; a tracked on-site action that
+  // isn't a plan topic falls back to a minimal item built from title + angle, so
+  // "Generate draft" always produces a draft instead of 404ing.
+  let item: ContentPlanItem;
   try {
     const synthesis = await gatherSynthesis(domain, { competitorDomains: competitors });
-    item = synthesis.contentPlan.find((c) => c.topic === topic);
-  } catch (e) {
-    return NextResponse.json({ message: e instanceof Error ? e.message : "failed to load plan" }, { status: 500 });
+    item = synthesis.contentPlan.find((c) => c.topic === topic) ?? fallbackItem(topic, angle);
+  } catch {
+    // Synthesis unavailable (cohort not selected / gather failed) — still draft
+    // from the action's own title + angle rather than blocking the founder.
+    item = fallbackItem(topic, angle);
   }
-  if (!item) return NextResponse.json({ message: "unknown topic" }, { status: 404 });
 
   // Reuse an existing open action for this topic; return its stored draft unless
   // the caller explicitly asked to regenerate (keeps repeat clicks free).
