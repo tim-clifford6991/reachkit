@@ -147,7 +147,13 @@ function Blocks({ data }: { data: Supply }) {
   const sov = Math.round((subject.monthlyTraffic / totalTraffic) * 100);
   const rank = 1 + competitors.filter((c) => c.score > subject.score).length;
 
-  const lens = subject.lens;
+  // F3 — one interactive component: the "you vs competitors" list drives the
+  // channel breakdown. Click a rival → the channel mix / referrers / KPIs re-render
+  // for THEM (all from data already loaded per entity — no new fetch).
+  const [selectedDomain, setSelectedDomain] = useState<string>(subject.domain);
+  const selected = ranked.find((e) => e.domain === selectedDomain) ?? subject;
+
+  const lens = selected.lens;
   const channelRows = lens
     ? SOURCE_ORDER.map((key, i) => ({ key, label: SOURCE_LABELS[key] ?? key, value: lens.sources[key], color: PALETTE[i % PALETTE.length]! })).filter((s) => s.value > 0.001)
     : [];
@@ -156,23 +162,35 @@ function Blocks({ data }: { data: Supply }) {
 
   // Selected-channel drill-down: default to the dominant channel; falls back to
   // "organic" when there's no lens data at all (the drilldown then just won't render).
+  // The channel pick PERSISTS across entity switches, so you can compare the same
+  // channel (e.g. Organic) across you + each rival.
   const [selectedChannel, setSelectedChannel] = useState<string>(dominant ?? SOURCE_ORDER[0]);
-  const subjectContentEntity = data.content?.entities.find((e) => e.isSubject);
-  const referrers: ReferrerItem[] = subject.backlinks?.topQualityReferrers ?? [];
+  const selectedContentEntity = data.content?.entities.find((e) => e.domain === selected.domain || (selected.isSubject && e.isSubject));
+  const referrers: ReferrerItem[] = selected.backlinks?.topQualityReferrers ?? [];
 
   const topGaps = [...gaps].sort((a, b) => b.opportunity - a.opportunity).slice(0, 6);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      <div style={{ display: "grid", gap: 20, gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))" }}>
-        {/* YOU vs. TOP COMPETITORS */}
-        <Card title="You vs. top competitors" meta={`#${rank} of ${ranked.length}`}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      {/* F3 — YOU vs. COMPETITORS + THEIR CHANNEL MIX (one interactive component) */}
+      <Card title="You vs. top competitors" meta={`#${rank} of ${ranked.length}`} info="Estimated channel mix from public SEO signals (organic ETV, backlinks, branded search). Not measured analytics. Click a competitor to see their mix.">
+        <div style={{ display: "grid", gap: 22, gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
+          {/* Left: clickable ranking */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <Eyebrow color="var(--c-faint)">click to inspect →</Eyebrow>
             {ranked.slice(0, 5).map((e) => {
               const band = bandFor(e.score);
+              const on = e.domain === selected.domain;
               return (
-                <div key={e.domain} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 9px", borderRadius: "var(--radius-lg)", background: e.isSubject ? "var(--c-soft)" : "transparent" }}>
-                  <span style={{ width: 118, flexShrink: 0, fontSize: 13, fontWeight: e.isSubject ? 700 : 500, color: e.isSubject ? "var(--c-action)" : "var(--c-ink)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                <div
+                  key={e.domain}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setSelectedDomain(e.domain)}
+                  onKeyDown={(ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); setSelectedDomain(e.domain); } }}
+                  style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 9px", borderRadius: "var(--radius-lg)", cursor: "pointer", background: on ? "var(--c-soft)" : "transparent", outline: on ? "1px solid var(--c-line2)" : "none" }}
+                >
+                  <span style={{ width: 118, flexShrink: 0, fontSize: 13, fontWeight: e.isSubject || on ? 700 : 500, color: on ? "var(--c-action)" : e.isSubject ? "var(--c-action)" : "var(--c-ink)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {e.isSubject ? "You" : e.domain}
                   </span>
                   <div style={{ flex: 1 }}><Bar value={e.score} max={100} color={band.color} height={8} /></div>
@@ -180,35 +198,37 @@ function Blocks({ data }: { data: Supply }) {
                 </div>
               );
             })}
+            <Footer href="/app/supply">See the full cohort →</Footer>
           </div>
-          <Footer href="/app/supply">See the full cohort →</Footer>
-        </Card>
 
-        {/* TRAFFIC BY CHANNEL */}
-        <Card title="Traffic by channel" info="Estimated channel mix from public SEO signals (organic ETV, backlinks, branded search). Not measured analytics.">
-          <div style={{ marginBottom: 10 }}><Eyebrow color="var(--c-faint)">estimated · not measured</Eyebrow></div>
-          {sourceSegs.length > 0 && dominant ? (
-            <Donut segments={sourceSegs} centerLabel={dominant.charAt(0).toUpperCase() + dominant.slice(1)} centerSub="dominant" />
-          ) : (
-            <p style={{ fontSize: 13, color: "var(--c-faint)", margin: "4px 0 14px" }}>Channel mix populates after a full funnel run.</p>
-          )}
-          {channelRows.length > 0 && (
-            <ChannelDrilldown
-              rows={channelRows}
-              selected={selectedChannel}
-              onSelect={setSelectedChannel}
-              panel={<ChannelPanel channel={selectedChannel} subjectPages={subjectContentEntity?.pages ?? []} referrers={referrers} />}
-            />
-          )}
-          <KpiRow>
-            <Kpi label="Est. visits / mo" value={fmtCompact(subject.monthlyTraffic)} />
-            <Kpi label="Share of voice" value={`${sov}%`} sub="of cohort traffic" />
-            {typeof subject.mix?.referringDomains === "number" && (
-              <Kpi label="Referring domains" value={fmt(subject.mix?.referringDomains ?? 0)} />
+          {/* Right: channel breakdown for the SELECTED entity */}
+          <div>
+            <div style={{ marginBottom: 8 }}>
+              <Eyebrow color="var(--c-action)">{selected.isSubject ? "Your traffic by channel" : `${selected.domain} · traffic by channel`}</Eyebrow>
+            </div>
+            {sourceSegs.length > 0 && dominant ? (
+              <Donut segments={sourceSegs} centerLabel={dominant.charAt(0).toUpperCase() + dominant.slice(1)} centerSub="dominant" />
+            ) : (
+              <p style={{ fontSize: 13, color: "var(--c-faint)", margin: "4px 0 14px" }}>Channel mix populates after a full funnel run.</p>
             )}
-          </KpiRow>
-        </Card>
-      </div>
+            {channelRows.length > 0 && (
+              <ChannelDrilldown
+                rows={channelRows}
+                selected={selectedChannel}
+                onSelect={setSelectedChannel}
+                panel={<ChannelPanel channel={selectedChannel} subjectPages={selectedContentEntity?.pages ?? []} referrers={referrers} />}
+              />
+            )}
+            <KpiRow>
+              <Kpi label="Est. visits / mo" value={fmtCompact(selected.monthlyTraffic)} />
+              {selected.isSubject && <Kpi label="Share of voice" value={`${sov}%`} sub="of cohort traffic" />}
+              {typeof selected.mix?.referringDomains === "number" && (
+                <Kpi label="Referring domains" value={fmt(selected.mix?.referringDomains ?? 0)} />
+              )}
+            </KpiRow>
+          </div>
+        </div>
+      </Card>
 
       {/* KEYWORD GAP */}
       <Card title="Keyword gap" info="High-volume terms rivals rank for that you don't. Opportunity = volume × consensus × position quality. Expand a row to see who ranks where.">
