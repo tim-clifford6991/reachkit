@@ -4,7 +4,7 @@ import Link from "next/link";
 import { resolveIntelContext } from "@/lib/app/intel-context";
 import { currentUser } from "@/lib/auth/server";
 import { isOwner } from "@/lib/auth/owner";
-import { loadScanDiagnostics, type DataPoint } from "@/lib/app/diagnostics";
+import { loadScanDiagnostics, loadUserSpend, type DataPoint } from "@/lib/app/diagnostics";
 import { Card, Badge } from "@/components/app/intel/kit";
 import { buildMetadata } from "@/lib/seo";
 
@@ -55,6 +55,7 @@ async function DiagnosticsContent() {
   if (!isOwner(viewer?.user.email)) notFound();
 
   const diag = await loadScanDiagnostics(ctx.appId);
+  const spend = viewer ? await loadUserSpend(viewer.user.id) : null;
 
   if (!diag) {
     return (
@@ -80,7 +81,10 @@ async function DiagnosticsContent() {
             { label: "STATUS", value: <Badge tone={diag.scan.status === "done" ? "green" : diag.scan.status === "failed" ? "red" : "amber"}>{diag.scan.status ?? "—"}</Badge> },
             { label: "ON-SITE SCORE", value: diag.onSiteScore ?? "—" },
             { label: "MARKET POSITION", value: diag.marketPositionScore ?? "—" },
-            { label: "TOTAL COST", value: fmtCents(diag.totalCostCents) },
+            { label: "LLM COST", value: fmtCents(diag.totalCostCents) },
+            { label: "DATAFORSEO", value: fmtCents(diag.dataforseoCostCents) },
+            { label: "TAVILY", value: fmtCents(diag.tavilyCostCents) },
+            { label: "ALL-IN COST", value: fmtCents(diag.allInCostCents) },
             { label: "PIPELINE TIME", value: fmtMs(diag.totalDurationMs) },
             { label: "DEEPENED", value: diag.scan.deepenedAt ? "yes" : "no" },
           ].map((k) => (
@@ -94,6 +98,26 @@ async function DiagnosticsContent() {
           Started {fmtDate(diag.scan.startedAt)} · Completed {fmtDate(diag.scan.completedAt)}
         </p>
       </Card>
+
+      {/* PER-USER SPEND — total across every scan of every app you own */}
+      {spend && (
+        <Card title="Your total spend" info="Summed across all scans of all your apps. LLM = Anthropic; DataForSEO = real per-request USD; Tavily = credits × the configured rate.">
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 24 }}>
+            {[
+              { label: "SCANS", value: String(spend.scanCount) },
+              { label: "LLM", value: fmtCents(spend.llmCostCents) },
+              { label: "DATAFORSEO", value: fmtCents(spend.dataforseoCostCents) },
+              { label: "TAVILY", value: fmtCents(spend.tavilyCostCents) },
+              { label: "TOTAL", value: fmtCents(spend.totalCostCents) },
+            ].map((k) => (
+              <div key={k.label} style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                <span style={{ fontSize: 10, fontFamily: JM, color: "var(--c-faint)", letterSpacing: "0.04em" }}>{k.label}</span>
+                <span style={{ fontSize: 16, fontWeight: 600, color: "var(--c-ink)" }}>{k.value}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {/* PIPELINE — cost + latency per stage */}
       <Card title="Pipeline stages" info="Every recorded pipeline_runs row for this scan — heaviest first.">

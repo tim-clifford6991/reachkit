@@ -2,6 +2,7 @@ import type { Competitor } from "@/lib/scan/types";
 import { env } from "@/lib/config/env";
 import { fixturesEnabled, fixtureTavily } from "@/lib/dev/fixtures";
 import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
+import { recordTavilyCost } from "@/lib/scan/cost-context";
 
 export function parseTavily(body: unknown): Competitor[] {
   return ((body as { results?: Array<{ title: string; url: string }> }).results ?? [])
@@ -27,6 +28,7 @@ export async function tavilyAlternatives(productName: string): Promise<{ competi
     body: JSON.stringify({ api_key: env.tavilyApiKey, query: `alternatives to ${productName}`, max_results: 5, include_answer: true }),
   });
   if (!res.ok) throw new Error(`tavily "${productName}" failed: ${res.status}`);
+  recordTavilyCost("search", env.tavilyUsdPerCredit, { depth: "basic" });
   const body = await res.json();
   return { competitors: parseTavily(body), raw: body };
 }
@@ -87,6 +89,7 @@ export async function tavilySearch(query: string, opts: TavilySearchOptions = {}
       }),
     });
     if (!res.ok) return [];
+    recordTavilyCost("search", env.tavilyUsdPerCredit, { depth: opts.searchDepth ?? "basic" });
     return parseTavilyResults(await res.json());
   } catch {
     return [];
@@ -111,6 +114,7 @@ export async function tavilyExtract(urls: string[]): Promise<Array<{ url: string
       body: JSON.stringify({ api_key: env.tavilyApiKey, urls }),
     });
     if (!res.ok) return [];
+    recordTavilyCost("extract", env.tavilyUsdPerCredit, { urlCount: urls.length });
     return parseTavilyExtract(await res.json());
   } catch {
     return [];

@@ -8,7 +8,7 @@
 import { env } from "@/lib/config/env";
 import { fixturesEnabled } from "@/lib/dev/fixtures";
 import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
-import { serpAuthHeader } from "@/lib/scan/adapters/dataforseo";
+import { serpAuthHeader, dfsJson } from "@/lib/scan/adapters/dataforseo";
 import { normalizeHost } from "@/lib/scan/referral/classify";
 import type { Referrer } from "@/lib/scan/referral/types";
 
@@ -61,7 +61,7 @@ export async function fetchDomainIntersection(
       25_000,
     );
     if (!res.ok) return { rows: [] };
-    const json = (await res.json()) as unknown;
+    const json = (await dfsJson(res)) as unknown;
     return { rows: parseDomainIntersection(json, targets.length), raw: opts.returnRaw ? json : undefined };
   } catch {
     return { rows: [] };
@@ -147,7 +147,7 @@ export async function fetchBacklinks(domain: string, opts: { limit?: number } = 
       20_000,
     );
     if (!res.ok) return [];
-    return parseBacklinks(await res.json());
+    return parseBacklinks(await dfsJson(res));
   } catch {
     return [];
   }

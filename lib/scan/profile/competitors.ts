@@ -10,7 +10,7 @@
 import { env } from "@/lib/config/env";
 import { fixturesEnabled } from "@/lib/dev/fixtures";
 import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
-import { serpAuthHeader } from "@/lib/scan/adapters/dataforseo";
+import { serpAuthHeader, dfsJson } from "@/lib/scan/adapters/dataforseo";
 import { callModel } from "@/lib/llm/anthropic";
 import { extractJson } from "@/lib/llm/json";
 import { toHost } from "./crawl";
@@ -215,7 +215,7 @@ export async function discoverCompetitorDomains(domain: string, topN = 5): Promi
       15_000,
     );
     if (!res.ok) return [];
-    const body = (await res.json()) as unknown;
+    const body = await dfsJson(res);
     return rankCompetitorDomains(parseCompetitorsDomain(body), target, topN);
   } catch {
     return [];

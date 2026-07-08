@@ -1,6 +1,6 @@
 import type { KeywordRow } from "@/lib/scan/types";
 import { env } from "@/lib/config/env";
-import { serpAuthHeader } from "./dataforseo";
+import { serpAuthHeader, dfsJson } from "./dataforseo";
 import { fixturesEnabled, fixtureKeywords } from "@/lib/dev/fixtures";
 import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
 
@@ -35,6 +35,6 @@ export async function keywordsData(seeds: string[]): Promise<{ keywords: Keyword
     },
   );
   if (!res.ok) throw new Error(`dataforseo keywords failed: ${res.status}`);
-  const body = (await res.json()) as unknown;
+  const body = (await dfsJson(res)) as unknown;
   return { keywords: parseKeywords(body), raw: body };
 }

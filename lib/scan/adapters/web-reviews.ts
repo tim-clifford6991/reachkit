@@ -1,6 +1,7 @@
 import { env } from "@/lib/config/env";
 import { fixturesEnabled } from "@/lib/dev/fixtures";
 import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
+import { recordTavilyCost } from "@/lib/scan/cost-context";
 
 /**
  * Best-effort web review snippets. Web mode collects no first-party reviews, so we
@@ -69,6 +70,7 @@ export async function fetchWebReviews(subject: string): Promise<{ snippets: stri
       body: JSON.stringify({ api_key: env.tavilyApiKey, query: `${subject} reviews`, max_results: 5, include_answer: true }),
     });
     if (!res.ok) return { snippets: [], raw: null };
+    recordTavilyCost("search", env.tavilyUsdPerCredit, { depth: "basic" });
     const body = await res.json();
     // Only keep snippets that actually reference the subject host (brand-safety).
     return { snippets: filterSubjectSnippets(parseWebReviewSnippets(body), subject), raw: body };

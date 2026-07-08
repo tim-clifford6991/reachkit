@@ -1,6 +1,6 @@
 import { env } from "@/lib/config/env";
 import { fixturesEnabled } from "@/lib/dev/fixtures";
-import { serpAuthHeader } from "@/lib/scan/adapters/dataforseo";
+import { serpAuthHeader, dfsJson } from "@/lib/scan/adapters/dataforseo";
 import { fixtureRankMap } from "@/lib/dev/fixtures";
 import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
 
@@ -60,7 +60,7 @@ async function rankOne(keyword: string, host: string, depth = 50): Promise<numbe
       }]),
     }, 15_000);
     if (!res.ok) return null;
-    const body = (await res.json()) as unknown;
+    const body = (await dfsJson(res)) as unknown;
     return findPosition(body, host);
   } catch {
     return null;  // degrade — never throw

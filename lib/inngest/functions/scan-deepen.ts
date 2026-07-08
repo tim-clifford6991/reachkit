@@ -15,6 +15,7 @@ import { runFullScan } from "@/lib/scan/full-scan";
 import { emitScanEvent } from "@/lib/scan/progress";
 import { hasDeepReport } from "@/lib/scan/deepen";
 import { handleScanPipelineFailure } from "@/lib/scan/terminal-status";
+import { costedStep } from "@/lib/scan/scan-telemetry";
 import type { PreliminaryFacts } from "@/lib/scan/types";
 
 export const scanDeepen = inngest.createFunction(
@@ -39,7 +40,7 @@ export const scanDeepen = inngest.createFunction(
   async ({ event, step }) => {
     const { scanId } = event.data;
 
-    await step.run("deepen", async () => {
+    await step.run("deepen", () => costedStep(scanId, async () => {
       const db = serverDb();
 
       const { data: scanRow, error: scanErr } = await db
@@ -78,7 +79,7 @@ export const scanDeepen = inngest.createFunction(
         },
         facts,
       );
-    });
+    }));
 
     await step.run("done", async () => {
       await emitScanEvent(scanId, "done", { scanId });

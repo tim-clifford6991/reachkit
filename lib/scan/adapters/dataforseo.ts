@@ -2,9 +2,22 @@ import type { Competitor } from "@/lib/scan/types";
 import { env } from "@/lib/config/env";
 import { fixturesEnabled, fixtureSerp } from "@/lib/dev/fixtures";
 import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
+import { recordDataForSeoCost } from "@/lib/scan/cost-context";
 
 export function serpAuthHeader(login: string, password: string): string {
   return `Basic ${Buffer.from(`${login}:${password}`).toString("base64")}`;
+}
+
+/**
+ * Parse a DataForSEO JSON response AND record its real USD cost against the
+ * active scan. Every v3 endpoint returns `cost` at the envelope top level, so
+ * this is the single choke point through which all DataForSEO reads should pass
+ * — call it in place of `res.json()`. Cost is a no-op outside a scan context.
+ */
+export async function dfsJson(res: Response): Promise<unknown> {
+  const body = (await res.json()) as unknown;
+  recordDataForSeoCost(body);
+  return body;
 }
 
 export function parseSerp(body: unknown): { competitors: Competitor[]; serpResultCount: number } {
@@ -44,6 +57,6 @@ export async function liveSerpAlternatives(productName: string): Promise<{ compe
     // recovers competitor names from the Tavily doc when the SERP doc is absent.
   }, 10_000);
   if (!res.ok) throw new Error(`dataforseo serp "${productName}" failed: ${res.status}`);
-  const body = await res.json() as unknown;
+  const body = await dfsJson(res);
   return { ...parseSerp(body), raw: body };
 }
