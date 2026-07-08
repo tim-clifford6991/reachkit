@@ -25,6 +25,10 @@ export interface Referrer {
   referringHost: string; // normalized host of referringUrl
   targetUrl: string; // the competitor/subject page being linked to
   anchorText: string;
+  /** F4 — DataForSEO domain authority of the referring domain (0–1000). */
+  domainRank?: number | null;
+  /** F4 — whether the backlink is dofollow (passes authority). */
+  dofollow?: boolean | null;
 }
 
 /** A referrer after classification + traffic weighting. */

@@ -49,9 +49,17 @@ export const findCreators: ToolDefinition<FindCreatorsArgs, FindCreatorsResult> 
       ),
     );
 
-    const creators: Creator[] = results.flatMap((r) =>
-      r.status === "fulfilled" ? r.value : [],
-    );
+    // Dedupe across competitor searches by channel name — the same channel can
+    // surface under multiple competitors (F1: "God Save America" appeared twice).
+    const seen = new Set<string>();
+    const creators: Creator[] = results
+      .flatMap((r) => (r.status === "fulfilled" ? r.value : []))
+      .filter((c) => {
+        const key = c.name.trim().toLowerCase();
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
 
     await upsertRawDocument({
       subjectType: ctx.mode === "web" ? "web" : "app",

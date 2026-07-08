@@ -37,7 +37,7 @@ import { gatherScoreComponents, verifiedScore } from "@/lib/scan/score-full";
 import { persistScanSignals, computeSignalRowsForScan } from "@/lib/scan/persist-signals";
 import { linkSignalKeys, topUpActions, MIN_ACTIONS } from "@/lib/scan/action-linking";
 import { fillDeterministicDrafts } from "@/lib/scan/action-drafts";
-import { headlineScore } from "@/lib/scan/registry-score";
+import { headlineScore, marketPositionScore } from "@/lib/scan/registry-score";
 import { verifiedScoreFromRegistry } from "@/lib/scan/free-report";
 import type { ScanSignalRow } from "@/lib/scan/compute-signals";
 import { assembleReport, persistReport, bucketActions, type ReportPayload } from "@/lib/scan/report";
@@ -724,7 +724,13 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
               score_version: 2,
             })
             .eq("id", ctx.scanId);
-          await persistReport(ctx.scanId, { ...payload, score: verifiedScoreFromRegistry(reg) });
+          // F2: the off-site "Market position" grade, distinct from the on-site
+          // headline. Attach only when off-site signals were actually measured.
+          const mp = marketPositionScore(signalRows);
+          const marketPosition = mp.assessed.length > 0
+            ? { total: mp.total, breakdown: mp.breakdown, assessed: mp.assessed }
+            : null;
+          await persistReport(ctx.scanId, { ...payload, score: verifiedScoreFromRegistry(reg), marketPosition });
         }
       }
     } catch (e) {

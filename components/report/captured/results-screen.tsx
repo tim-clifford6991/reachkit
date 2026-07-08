@@ -86,6 +86,9 @@ export interface ResultsScreenProps {
   unlockSub?: string;
   /** Hide the unlock band entirely (e.g. a fully-unlocked paid report). */
   hideUnlock?: boolean;
+  /** F2 — off-site "Market position" grade (paid-only; null on free/public). Shown
+   *  beside the on-site headline so a tidy landing page can't imply market strength. */
+  marketPosition?: number | null;
   /** Embedded inside the app shell: drop the full-page bg + outer padding + the
    *  ReachKit banner header (the shell already provides chrome + spacing). */
   embedded?: boolean;
@@ -152,6 +155,23 @@ export function ResultsScreen(p: ResultsScreenProps) {
                 return note ? (
                   <div style={{ marginTop: 8, fontSize: 11.5, lineHeight: 1.45, color: "var(--c-faint)", fontFamily: JM, maxWidth: 190 }}>{note}</div>
                 ) : null;
+              })()}
+              {/* F2 — Market position: the honest cohort-relative grade beside the
+                  on-site headline (paid-only). A tidy landing page can score 98
+                  on-site yet sit low here vs its real rivals. */}
+              {p.marketPosition != null && (() => {
+                const mp = bandViz(p.marketPosition);
+                return (
+                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px dashed var(--c-line2)" }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--c-faint)", marginBottom: 4 }}>Market position vs rivals</div>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                      <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 22, color: mp.fg }}>{p.marketPosition}</span>
+                      <span style={{ fontSize: 11, color: "var(--c-faint)" }}>/ 100</span>
+                      <span style={{ fontSize: 11.5, fontWeight: 700, color: mp.fg, background: mp.bg, padding: "2px 8px", borderRadius: 6, fontFamily: SG }}>{mp.label}</span>
+                    </div>
+                    <div style={{ marginTop: 4, fontSize: 11, lineHeight: 1.4, color: "var(--c-faint)", fontFamily: JM, maxWidth: 200 }}>Off-site footprint (keywords, backlinks, presence) measured against your discovered competitors.</div>
+                  </div>
+                );
               })()}
             </div>
             <div>

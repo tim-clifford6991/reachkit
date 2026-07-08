@@ -4,6 +4,7 @@ import {
   applyRegistryScore,
   headlineFromRows,
   headlineScore,
+  marketPositionScore,
   FIXED_BASIS_SIGNAL_KEYS,
   type RegistryScoreRow,
 } from "./registry-score";
@@ -159,3 +160,22 @@ describe("headlineScore (fixed basis)", () => {
     expect(paid.total).toBe(free.total);
   });
 });
+
+describe("marketPositionScore (F2)", () => {
+  const row = (signalKey: string, pillar: "content"|"outreach"|"seo", normalised: number|null, state: "pass"|"warn"|"fail"|"unmeasured") =>
+    ({ signalKey, pillar, weight: 0.2, normalised, state, rawValue: null, contribution: null, platform: "web" as const });
+  it("scores ONLY off-site signals (excludes the fixed on-site basis)", () => {
+    const rows = [
+      row("title_tag", "seo", 100, "pass"), row("schema_jsonld", "seo", 100, "pass"), // on-site → excluded
+      row("organic_keywords", "seo", 13, "fail"), row("referring_domains", "seo", 10, "fail"), // off-site → counted
+      row("owned_channels", "content", 0, "fail"),
+    ];
+    const mp = marketPositionScore(rows);
+    expect(mp.assessed.length).toBeGreaterThan(0);
+    expect(mp.total).toBeLessThan(30); // off-site is weak → low grade, despite on-site 100s
+  });
+  it("returns assessed:[] when only on-site signals are measured (free scan)", () => {
+    const mp = marketPositionScore([row("title_tag","seo",100,"pass"), row("organic_keywords","seo",null,"unmeasured")]);
+    expect(mp.assessed).toEqual([]);
+  });
+})

@@ -32,6 +32,13 @@ export interface MarketSignalInputs {
   ownedChannelCount?: number | null;
   contentPostsPerMonth?: number | null;
   recentBuzzCount?: number | null;
+  // F2 — cohort-relative reference points (median of the discovered rivals).
+  // When present, the SEO market signals score the subject RELATIVE to its real
+  // competitors instead of an absolute log-scale that saturates early (340 organic
+  // keywords should NOT "pass" when rivals sit at 5–14k). Null → fall back to absolute.
+  cohortOrganicKeywordsMedian?: number | null;
+  cohortRankedKeywordsMedian?: number | null;
+  cohortReferringDomainsMedian?: number | null;
 }
 
 export interface ScanSignalRow {
@@ -56,6 +63,16 @@ const logScale = (v: number, ref: number) =>
   clamp((Math.log10(1 + Math.max(0, v)) / Math.log10(1 + ref)) * 100);
 const inRange = (n: number, lo: number, hi: number) => n >= lo && n <= hi;
 
+/**
+ * F2 — cohort-relative score: the subject's `value` against the median of its
+ * discovered rivals. 50 = parity with the median rival, ~100 at ~4× the median,
+ * and low (fails) well below it — so a 340-keyword site against a 5–14k cohort
+ * scores ~13, not ~94. Falls back to an absolute `logScale(value, ref)` when
+ * there is no usable cohort median (a first scan with no rivals).
+ */
+const cohortRel = (value: number, median: number | null | undefined, absoluteRef: number): number =>
+  median != null && median > 0 ? clamp(50 * Math.sqrt(value / median)) : logScale(value, absoluteRef);
+
 type Scored = { raw: number | null; norm: number | null };
 const M = (raw: number | null, norm: number): Scored => ({ raw, norm });
 const UNMEASURED: Scored = { raw: null, norm: null };
@@ -72,11 +89,17 @@ const SCORERS: Record<string, (c: Ctx) => Scored> = {
   heading_structure: ({ html }) =>
     html ? M(html.headings.h1Count, html.headings.wellStructured ? 100 : html.headings.h1Count >= 1 ? 50 : 0) : UNMEASURED,
   organic_keywords: ({ market }) =>
-    market?.organicKeywords != null ? M(market.organicKeywords, logScale(market.organicKeywords, 500)) : UNMEASURED,
+    market?.organicKeywords != null
+      ? M(market.organicKeywords, cohortRel(market.organicKeywords, market.cohortOrganicKeywordsMedian, 500))
+      : UNMEASURED,
   keyword_rankings: ({ market }) =>
-    market?.rankedKeywordCount != null ? M(market.rankedKeywordCount, logScale(market.rankedKeywordCount, 50)) : UNMEASURED,
+    market?.rankedKeywordCount != null
+      ? M(market.rankedKeywordCount, cohortRel(market.rankedKeywordCount, market.cohortRankedKeywordsMedian, 50))
+      : UNMEASURED,
   referring_domains: ({ market }) =>
-    market?.referringDomains != null ? M(market.referringDomains, logScale(market.referringDomains, 100)) : UNMEASURED,
+    market?.referringDomains != null
+      ? M(market.referringDomains, cohortRel(market.referringDomains, market.cohortReferringDomainsMedian, 100))
+      : UNMEASURED,
 
   // Content
   // content_depth ref (C3, docs/plans/2026-07-07-launch-readiness.md A6): was 600 —

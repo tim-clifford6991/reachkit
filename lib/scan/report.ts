@@ -117,6 +117,11 @@ export interface ReportPayload {
     longPlay: ActionCard[];
   };
   score: VerifiedScore;
+  /** F2 — the off-site "Market position" grade (paid-only): how the subject stacks
+   *  up against its real cohort on organic footprint, backlinks, cadence, presence,
+   *  share of voice. Deliberately distinct from `score` (the on-site readiness
+   *  headline). Absent on free scans / when no off-site signal was measured. */
+  marketPosition?: { total: number; breakdown: { content: number; outreach: number; seo: number }; assessed: string[] } | null;
 
   // ── Deep sections — surfaced from already-computed data (paid; teaser-locked) ──
   // Optional: reports persisted before this feature won't carry them, so every

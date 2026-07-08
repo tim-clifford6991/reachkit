@@ -106,12 +106,15 @@ export function parseBacklinks(body: unknown): Referrer[] {
   return items.flatMap((i) => {
     const referringUrl = String(i["url_from"] ?? "");
     if (!referringUrl) return [];
+    const rank = i["domain_from_rank"] ?? i["rank"];
     return [
       {
         referringUrl,
         referringHost: normalizeHost(referringUrl),
         targetUrl: String(i["url_to"] ?? ""),
         anchorText: String(i["anchor"] ?? ""),
+        domainRank: typeof rank === "number" ? rank : null,
+        dofollow: typeof i["dofollow"] === "boolean" ? (i["dofollow"] as boolean) : null,
       },
     ];
   });

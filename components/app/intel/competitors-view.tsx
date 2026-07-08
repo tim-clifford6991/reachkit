@@ -211,7 +211,14 @@ export function CompetitorsBody({ data }: { data: Supply }) {
       .map(({ g, hit }) => ({ gap: g, note: `#${hit.position}` }));
   }, [gaps, sel]);
 
-  const referrerItems = (sel.backlinks?.topQualityReferrers ?? []).slice(0, 5);
+  const referrerItems = (sel.backlinks?.topQualityReferrers ?? []).slice(0, 12);
+  // F4 — "referrers they have that you don't": the actionable acquisition gap.
+  // When a rival is selected, surface the quality referrers pointing at them whose
+  // host never links to you — the concrete outreach targets to pursue.
+  const subjectRefHosts = new Set((subject.backlinks?.topQualityReferrers ?? []).map((r) => r.host));
+  const referrerGap = !sel.isSubject
+    ? (sel.backlinks?.topQualityReferrers ?? []).filter((r) => !subjectRefHosts.has(r.host)).slice(0, 8)
+    : [];
 
   // "Their edge → your move": lead with the rival's single strongest gap
   // keyword (highest volume they rank for that the subject doesn't) as the
@@ -273,6 +280,28 @@ export function CompetitorsBody({ data }: { data: Supply }) {
         </span>
 
         <ReferrerEdgeList label="Top referrers" items={referrerItems} empty="No quality referrers surfaced." />
+
+        {/* F4 — the acquisition gap: quality referrers pointing at this rival that
+            never link to you. The concrete outreach targets to pursue, each with a
+            real add-to-plan (outreach action) chip. */}
+        {referrerGap.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, borderTop: "1px solid var(--c-tint-orange-line)", paddingTop: 14 }}>
+            <span style={EDGE_LABEL_STYLE}>Referrers to pursue · they have, you don&apos;t ({referrerGap.length})</span>
+            {referrerGap.map((r, i) => {
+              const title = `Reach out to ${r.host} for a backlink`;
+              return (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}>
+                  <EvidenceLink href={r.url} style={{ fontSize: 13, fontWeight: 600, minWidth: 0, flex: 1, ...ELLIPSIS }}>{r.host}</EvidenceLink>
+                  <Badge tone="neutral">{r.category}</Badge>
+                  {typeof r.authority === "number" && r.authority > 0 && (
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, fontWeight: 700, color: "var(--c-faint)", flexShrink: 0 }}>DR&nbsp;{r.authority}</span>
+                  )}
+                  <AddToPlanChip title={title} category="outreach" why={`${sel.domain} has a ${r.category} link from ${r.host} that you don't — pursue it.`} plan={plan} />
+                </div>
+              );
+            })}
+          </div>
+        )}
         <PagesEdgeList label="Top pages" pages={topPages} byCluster={pagesByCluster} totalCount={selEntity?.pages.length ?? 0} empty="No page-level content data surfaced." />
         <KeywordEdgeList label="Top keywords" rows={keywordRows} plan={plan} empty="No keyword-gap data surfaced." />
 
@@ -365,6 +394,13 @@ function ReferrerEdgeList({ label, items, empty }: { label: string; items: Refer
               <div style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}>
                 <EvidenceLink href={r.url} style={{ fontSize: 13.5, fontWeight: 600, minWidth: 0, ...ELLIPSIS }}>{r.host}</EvidenceLink>
                 <Badge tone="neutral">{r.category}</Badge>
+                {/* F4 — authority (domain rank 0–1000) + dofollow, when the backlinks API returned them. */}
+                {typeof r.authority === "number" && r.authority > 0 && (
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, fontWeight: 700, color: "var(--c-faint)", flexShrink: 0 }} title="Referring-domain authority (0–1000)">DR&nbsp;{r.authority}</span>
+                )}
+                {r.dofollow === true && (
+                  <span style={{ fontSize: 10, fontWeight: 700, color: "#1F9D5B", background: "var(--c-tint-green)", padding: "1px 6px", borderRadius: 5, flexShrink: 0 }} title="Passes link authority">dofollow</span>
+                )}
               </div>
               {r.anchor && <span style={{ fontSize: 11.5, color: "var(--c-faint)", fontStyle: "italic", ...ELLIPSIS }}>linked as &ldquo;{r.anchor}&rdquo;</span>}
             </div>

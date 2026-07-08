@@ -137,3 +137,20 @@ export function headlineScore(rows: ScanSignalRow[]): RegistryScore {
     .map((r) => ({ pillar: r.pillar, weight: r.weight, normalised: r.normalised, state: r.state }));
   return registryScore(fixed);
 }
+
+/**
+ * F2 — the "Market Position" grade: `registryScore` over the OFF-SITE signals
+ * (everything NOT in the fixed on-site basis) — organic-keyword footprint, ranked
+ * positions, referring domains, publishing cadence, owned/marketplace/community
+ * presence, share of voice, press. With F2's cohort-relative scoring these reflect
+ * how the subject stacks up against its REAL rivals, so a tidy landing page with a
+ * tiny keyword footprint (on-site headline 98) honestly reads low here. Paid-only:
+ * the deep pass is the first time these are measured. Returns `assessed: []` when
+ * none are measured (free scan) — callers then omit the grade.
+ */
+export function marketPositionScore(rows: ScanSignalRow[]): RegistryScore {
+  const offSite = rows
+    .filter((r) => !FIXED_BASIS_SIGNAL_KEYS.includes(r.signalKey))
+    .map((r) => ({ pillar: r.pillar, weight: r.weight, normalised: r.normalised, state: r.state }));
+  return registryScore(offSite);
+}
