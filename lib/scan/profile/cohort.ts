@@ -37,6 +37,25 @@ export interface Cohort {
   product: ProductInfo;
 }
 
+/** Below this organic-keyword count a domain is treated as dead/rebranded/parked. */
+const HUSK_ORGANIC_KEYWORD_FLOOR = 20;
+
+/**
+ * F5 — drop dead/rebranded/parked domains from the cohort. A domain that redirects
+ * away (e.g. microacquire.com → acquire.com) shows only a few residual organic
+ * keywords, and pairing it next to 5–14k-keyword rivals both pollutes the "you vs
+ * rivals" view and double-counts one company. We drop only when organic keywords
+ * are KNOWN and near-zero — a null (unfetched) SEO profile is kept (absence of data
+ * ≠ dead). PURE; unit-tested. Never empties the list below one entry if that one is
+ * the only survivor — callers already tolerate a small cohort.
+ */
+export function pruneHuskCompetitors(competitors: DistributionProfile[]): DistributionProfile[] {
+  return competitors.filter((c) => {
+    const kw = c.seo?.organicKeywords;
+    return !(kw != null && kw < HUSK_ORGANIC_KEYWORD_FLOOR);
+  });
+}
+
 export async function profileCohort(
   domain: string,
   opts: { topN?: number; nowMs?: number; maxAgeMs?: number; light?: boolean } = {},
@@ -45,7 +64,7 @@ export async function profileCohort(
   const product = await subjectInfo(domain);
   const competitorDomains = await discoverCompetitorsSmart(domain, product, { topN });
 
-  const [self, ...competitors] = await Promise.all([
+  const [self, ...profiled] = await Promise.all([
     // Reddit community (paid SERP) only for the subject; competitors keep free HN.
     profileDomainCached(domain, { nowMs: opts.nowMs, maxAgeMs: opts.maxAgeMs, reddit: true, light: opts.light }),
     ...competitorDomains.map((d) =>
@@ -53,5 +72,8 @@ export async function profileCohort(
     ),
   ]);
 
-  return { self: self!, competitors, competitorDomains, product };
+  // F5 — drop dead/rebranded husks (near-zero organic footprint); derive the domain
+  // list from the survivors so the two stay in sync regardless of host formatting.
+  const competitors = pruneHuskCompetitors(profiled);
+  return { self: self!, competitors, competitorDomains: competitors.map((c) => c.domain), product };
 }
