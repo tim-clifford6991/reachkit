@@ -239,6 +239,60 @@ test("getListing (app) charges 1 call and returns listing + rating extras", asyn
 });
 
 // ---------------------------------------------------------------------------
+// android — C1 audit finding: there is no Google Play Store adapter. Every
+// "app mode" tool is written as "app mode (ios / android)" with no platform
+// branch and always calls the Apple-only itunes adapter (appIdFromUrl's
+// `/\/id(\d+)/` pattern never matches a real play.google.com URL — see
+// lib/scan/adapters/itunes.test.ts). These tests use the REAL itunes adapter
+// (not mocked) to pin exactly what a live android scan currently does: it
+// does not crash the scan, but it does NOT get real data either.
+// ---------------------------------------------------------------------------
+
+const REAL_PLAY_URL = "https://play.google.com/store/apps/details?id=com.example.app";
+
+test("getListing (android) degrades to a hostname-only listing — no Play Store adapter exists", async () => {
+  vi.resetModules();
+  // Earlier tests in this file `vi.doMock` the itunes adapter; that registration
+  // outlives `vi.resetModules()`, so it must be explicitly undone to exercise
+  // the REAL adapter (and its Apple-only appId regex) here.
+  vi.doUnmock("@/lib/scan/adapters/itunes");
+  vi.doMock("@/lib/db/raw-documents", () => ({ upsertRawDocument: async () => ({ id: 1, deduped: false }) }));
+  vi.doMock("@/lib/telemetry/pipeline-runs", () => ({ recordPipelineRun: async () => {} }));
+  const { getListing } = await import("./get-listing");
+  const { ScanBudget } = await import("@/lib/tools/registry");
+  const budget = new ScanBudget({ maxToolCalls: 60, budgetCents: 150 });
+  const out = await getListing.run(
+    { storeUrl: REAL_PLAY_URL, subjectKey: REAL_PLAY_URL },
+    { scanId: "s-android", mode: "android", budget },
+  );
+  // getListing's app-mode branch DOES try/catch appIdFromUrl+fetchItunesListing,
+  // so this resolves rather than throwing — but with a useless hostname stand-in,
+  // not the app's real name/category/description.
+  expect(out.listing).toEqual({ name: "play.google.com", category: null, description: null });
+  expect(out.extras).toEqual({});
+});
+
+test("findCompetitors (android) REJECTS — appIdFromUrl throws unguarded in the app-mode branch (no internal try/catch)", async () => {
+  vi.resetModules();
+  vi.doUnmock("@/lib/scan/adapters/itunes");
+  vi.doMock("@/lib/db/raw-documents", () => ({ upsertRawDocument: async () => ({ id: 1, deduped: false }) }));
+  vi.doMock("@/lib/telemetry/pipeline-runs", () => ({ recordPipelineRun: async () => {} }));
+  const { findCompetitors } = await import("./find-competitors");
+  const { ScanBudget } = await import("@/lib/tools/registry");
+  const budget = new ScanBudget({ maxToolCalls: 60, budgetCents: 150 });
+  // Unlike getListing, find-competitors.ts's app-mode branch has no internal
+  // try/catch around appIdFromUrl — it only survives in production because
+  // collect.ts wraps the whole `findCompetitors.run(...)` call in `.catch()`.
+  // Called directly (as this test does), it rejects.
+  await expect(
+    findCompetitors.run(
+      { productName: "example app", storeUrl: REAL_PLAY_URL, subjectKey: REAL_PLAY_URL },
+      { scanId: "s-android", mode: "android", budget },
+    ),
+  ).rejects.toThrow(/no app id in url/);
+});
+
+// ---------------------------------------------------------------------------
 // getListing — web mode
 // ---------------------------------------------------------------------------
 
