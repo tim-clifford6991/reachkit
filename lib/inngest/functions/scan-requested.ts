@@ -9,6 +9,7 @@ import { runFullScan } from "@/lib/scan/full-scan";
 import { emitScanEvent } from "@/lib/scan/progress";
 import { scanCostCents } from "@/lib/telemetry/pipeline-runs";
 import { handleScanPipelineFailure } from "@/lib/scan/terminal-status";
+import { costedStep } from "@/lib/scan/scan-telemetry";
 import type { Json } from "@/lib/db/types";
 
 /** Cheap free-track ceiling (collect + findings ONLY — the market/demand sweep is
@@ -40,7 +41,7 @@ export const scanRequested = inngest.createFunction(
     // Step 1: collect — load scan + app, run pipeline, persist facts.
     // Also reads `scans.tier`: the two-track split runs the heavy full-scan step
     // only for 'full' (paid); 'free' stops after findings (the cheap teaser).
-    const { facts, tier } = await step.run("collect", async () => {
+    const { facts, tier } = await step.run("collect", () => costedStep(scanId, async () => {
       const db = serverDb();
 
       // Load the scan row and its app (join)
@@ -92,10 +93,10 @@ export const scanRequested = inngest.createFunction(
       await emitScanEvent(scanId, "facts", collectedFacts as unknown as Record<string, unknown>);
 
       return { facts: collectedFacts, tier: scanTier };
-    });
+    }));
 
     // Step 2: findings — run extract→synth→score, persist findings + score, emit findings event
-    await step.run("findings", async () => {
+    await step.run("findings", () => costedStep(scanId, async () => {
       const db = serverDb();
 
       // Mark as synthesizing so the UI shows progress during the LLM stage
@@ -137,14 +138,14 @@ export const scanRequested = inngest.createFunction(
         },
         facts,
       );
-    });
+    }));
 
     // Step 2b: free-report — free scans get a lightweight report_payload (score +
     // positioning + findings + signal-derived baseline fixes; deep sections empty)
     // so the single results renderer works for the public lead magnet. Cheap:
     // pure computation over already-fetched HTML, no new API calls.
     if (tier === "free") {
-      await step.run("free-report", async () => {
+      await step.run("free-report", () => costedStep(scanId, async () => {
         const db = serverDb();
         const { data: scanRow, error: scanErr } = await db
           .from("scans")
@@ -161,7 +162,7 @@ export const scanRequested = inngest.createFunction(
           { scanId, appId: scanRow.app_id, mode: app.platform, storeUrl: app.store_url, budget },
           facts,
         );
-      });
+      }));
     }
 
     // Step 3: full-scan — heavy collect + actions + Critic + verified score + report.
@@ -171,7 +172,7 @@ export const scanRequested = inngest.createFunction(
     // Reconstructs the ScanContext from the DB (Inngest replays steps, so closures
     // from earlier step bodies are not reliable); `facts` is the memoized collect result.
     if (tier === "full") {
-      await step.run("full-scan", async () => {
+      await step.run("full-scan", () => costedStep(scanId, async () => {
         const db = serverDb();
 
         const { data: scanRow, error: scanErr } = await db
@@ -203,7 +204,7 @@ export const scanRequested = inngest.createFunction(
           },
           facts,
         );
-      });
+      }));
     }
 
     // NOTE (2026-07-04, W5): the free tier previously ran a "light-market" step

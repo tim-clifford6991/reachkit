@@ -680,6 +680,7 @@ export type Database = {
           completed_at: string | null
           cost_cents: number
           created_at: string
+          dataforseo_cost_cents: number
           deepened_at: string | null
           findings_payload: Json | null
           id: string
@@ -692,6 +693,7 @@ export type Database = {
           score_version: number
           started_at: string | null
           status: string
+          tavily_cost_cents: number
           tier: string
         }
         Insert: {
@@ -700,6 +702,7 @@ export type Database = {
           completed_at?: string | null
           cost_cents?: number
           created_at?: string
+          dataforseo_cost_cents?: number
           deepened_at?: string | null
           findings_payload?: Json | null
           id?: string
@@ -712,6 +715,7 @@ export type Database = {
           score_version?: number
           started_at?: string | null
           status?: string
+          tavily_cost_cents?: number
           tier?: string
         }
         Update: {
@@ -720,6 +724,7 @@ export type Database = {
           completed_at?: string | null
           cost_cents?: number
           created_at?: string
+          dataforseo_cost_cents?: number
           deepened_at?: string | null
           findings_payload?: Json | null
           id?: string
@@ -732,6 +737,7 @@ export type Database = {
           score_version?: number
           started_at?: string | null
           status?: string
+          tavily_cost_cents?: number
           tier?: string
         }
         Relationships: [

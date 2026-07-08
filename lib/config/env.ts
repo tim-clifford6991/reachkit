@@ -50,6 +50,11 @@ const schema = z.object({
   WEEKLY_REFRESH_BUDGET_CENTS: z.coerce.number().int().positive().default(120),
   DATAFORSEO_LOCATION_CODE: z.coerce.number().int().default(2840), // US
   DATAFORSEO_LANGUAGE_CODE: z.string().default("en"),
+  // Tavily bills in credits, not dollars, and returns no cost in its response.
+  // This is the $/credit rate for our plan, used to price each call for per-scan
+  // cost accounting (DataForSEO returns real USD, so it needs no such rate).
+  // Default ≈ Tavily pay-as-you-go ($8 / 1,000 credits); override per plan.
+  TAVILY_USD_PER_CREDIT: z.coerce.number().nonnegative().default(0.008),
   // The only feature flag: keyless fixtures mode for tests / local dev.
   REACHKIT_USE_FIXTURES: z.string().optional().transform((v) => v === "true"),
 }).superRefine((val, ctx) => {
@@ -78,6 +83,7 @@ export function parseEnv(src: NodeJS.ProcessEnv) {
     productHuntToken: p.PRODUCT_HUNT_TOKEN, youtubeApiKey: p.YOUTUBE_API_KEY,
     voyageApiKey: p.VOYAGE_API_KEY,
     dataforseoLocationCode: p.DATAFORSEO_LOCATION_CODE, dataforseoLanguageCode: p.DATAFORSEO_LANGUAGE_CODE,
+    tavilyUsdPerCredit: p.TAVILY_USD_PER_CREDIT,
     useFixtures: p.REACHKIT_USE_FIXTURES,
     appUrl: p.APP_URL,
     stripeSecretKey: p.STRIPE_SECRET_KEY,

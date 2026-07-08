@@ -6,7 +6,7 @@
 import { env } from "@/lib/config/env";
 import { fixturesEnabled } from "@/lib/dev/fixtures";
 import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
-import { serpAuthHeader } from "@/lib/scan/adapters/dataforseo";
+import { serpAuthHeader, dfsJson } from "@/lib/scan/adapters/dataforseo";
 
 const BULK_TRAFFIC =
   "https://api.dataforseo.com/v3/dataforseo_labs/google/bulk_traffic_estimation/live";
@@ -50,7 +50,7 @@ export async function fetchTrafficForHosts(hosts: string[]): Promise<Map<string,
       20_000,
     );
     if (!res.ok) return new Map();
-    return parseTrafficEstimation(await res.json());
+    return parseTrafficEstimation(await dfsJson(res));
   } catch {
     return new Map();
   }

@@ -10,7 +10,7 @@
 import { env } from "@/lib/config/env";
 import { fixturesEnabled } from "@/lib/dev/fixtures";
 import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
-import { serpAuthHeader } from "@/lib/scan/adapters/dataforseo";
+import { serpAuthHeader, dfsJson } from "@/lib/scan/adapters/dataforseo";
 
 export interface KeywordIdea {
   keyword: string;
@@ -68,7 +68,7 @@ export async function fetchKeywordIdeas(seeds: string[], limit = 200): Promise<K
       20_000,
     );
     if (!res.ok) return [];
-    return parseKeywordIdeas(await res.json());
+    return parseKeywordIdeas(await dfsJson(res));
   } catch {
     return [];
   }

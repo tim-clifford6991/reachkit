@@ -10,7 +10,7 @@
 import { env } from "@/lib/config/env";
 import { fixturesEnabled } from "@/lib/dev/fixtures";
 import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
-import { serpAuthHeader } from "@/lib/scan/adapters/dataforseo";
+import { serpAuthHeader, dfsJson } from "@/lib/scan/adapters/dataforseo";
 import { searchCacheKey, getCachedSearch, putCachedSearch } from "@/lib/scan/search-cache";
 import type { DemandHit } from "./types";
 
@@ -145,7 +145,7 @@ export async function searchDemand(
       15_000,
     );
     if (!res.ok) return [];
-    const body = (await res.json()) as unknown;
+    const body = await dfsJson(res);
     const hits = parseDemandHits(body, query);
     await putCachedSearch(cacheKey, hits);
     return hits;

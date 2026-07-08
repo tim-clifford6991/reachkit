@@ -56,11 +56,26 @@ export interface ScanDiagnostics {
   };
   onSiteScore: number | null;
   marketPositionScore: number | null;
+  /** LLM cost (sum of pipeline_runs) — the Anthropic spend. */
   totalCostCents: number;
+  /** External metered spend for this scan (DataForSEO real USD; Tavily from credits). */
+  dataforseoCostCents: number;
+  tavilyCostCents: number;
+  /** LLM + DataForSEO + Tavily — the true all-in cost of this scan. */
+  allInCostCents: number;
   totalDurationMs: number;
   stages: StageRun[];
   dataMap: DataPoint[];
   signals: SignalRow[];
+}
+
+/** Per-user spend rollup across all of a user's apps' scans. */
+export interface UserSpend {
+  scanCount: number;
+  llmCostCents: number;
+  dataforseoCostCents: number;
+  tavilyCostCents: number;
+  totalCostCents: number;
 }
 
 /** Classify a section: absent (undefined/null), empty (0-length), else populated. */
@@ -105,7 +120,7 @@ export async function loadScanDiagnostics(appId: string): Promise<ScanDiagnostic
   const db = serverDb();
   const { data: scan } = await db
     .from("scans")
-    .select("id, status, started_at, completed_at, deepened_at, score_total, report_payload")
+    .select("id, status, started_at, completed_at, deepened_at, score_total, report_payload, dataforseo_cost_cents, tavily_cost_cents")
     .eq("app_id", appId)
     .order("completed_at", { ascending: false, nullsFirst: false })
     .limit(1)
@@ -138,6 +153,10 @@ export async function loadScanDiagnostics(appId: string): Promise<ScanDiagnostic
     weight: Number(r.weight ?? 0),
   }));
 
+  const llmCostCents = stages.reduce((n, s) => n + s.costCents, 0);
+  const dataforseoCostCents = Number(scan.dataforseo_cost_cents ?? 0);
+  const tavilyCostCents = Number(scan.tavily_cost_cents ?? 0);
+
   return {
     scan: {
       id: scan.id,
@@ -149,10 +168,41 @@ export async function loadScanDiagnostics(appId: string): Promise<ScanDiagnostic
     },
     onSiteScore: scan.score_total,
     marketPositionScore: payload?.marketPosition?.total ?? null,
-    totalCostCents: stages.reduce((n, s) => n + s.costCents, 0),
+    totalCostCents: llmCostCents,
+    dataforseoCostCents,
+    tavilyCostCents,
+    allInCostCents: llmCostCents + dataforseoCostCents + tavilyCostCents,
     totalDurationMs: stages.reduce((n, s) => n + s.durationMs, 0),
     stages,
     dataMap: buildDataMap(payload),
     signals,
   };
+}
+
+/**
+ * Sum external + LLM spend across every scan of every app a user owns.
+ * User↔app linkage is `users.app_ids` (an array of app ids). Best-effort: a
+ * missing user row or empty app list returns a zeroed rollup.
+ */
+export async function loadUserSpend(userId: string): Promise<UserSpend> {
+  const zero: UserSpend = { scanCount: 0, llmCostCents: 0, dataforseoCostCents: 0, tavilyCostCents: 0, totalCostCents: 0 };
+  const db = serverDb();
+  const { data: user } = await db.from("users").select("app_ids").eq("id", userId).maybeSingle();
+  const appIds = (user?.app_ids ?? []) as string[];
+  if (appIds.length === 0) return zero;
+
+  const { data: scans } = await db
+    .from("scans")
+    .select("cost_cents, dataforseo_cost_cents, tavily_cost_cents")
+    .in("app_id", appIds);
+  if (!scans || scans.length === 0) return zero;
+
+  return scans.reduce<UserSpend>((acc, s) => {
+    acc.scanCount += 1;
+    acc.llmCostCents += Number(s.cost_cents ?? 0);
+    acc.dataforseoCostCents += Number(s.dataforseo_cost_cents ?? 0);
+    acc.tavilyCostCents += Number(s.tavily_cost_cents ?? 0);
+    acc.totalCostCents = acc.llmCostCents + acc.dataforseoCostCents + acc.tavilyCostCents;
+    return acc;
+  }, { ...zero });
 }

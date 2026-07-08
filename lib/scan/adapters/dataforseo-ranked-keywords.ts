@@ -11,7 +11,7 @@
 import { env } from "@/lib/config/env";
 import { fixturesEnabled } from "@/lib/dev/fixtures";
 import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
-import { serpAuthHeader } from "@/lib/scan/adapters/dataforseo";
+import { serpAuthHeader, dfsJson } from "@/lib/scan/adapters/dataforseo";
 
 export interface RankedKeyword {
   keyword: string;
@@ -96,7 +96,7 @@ async function postLabs(path: string, payload: unknown): Promise<unknown | null>
       15_000,
     );
     if (!res.ok) return null;
-    return (await res.json()) as unknown;
+    return (await dfsJson(res)) as unknown;
   } catch {
     return null;
   }
