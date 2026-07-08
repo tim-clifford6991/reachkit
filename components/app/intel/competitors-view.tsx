@@ -99,6 +99,22 @@ function useActionPlan(): ActionPlan {
 const keywordActionTitle = (keyword: string) => `Target “${keyword}”`;
 const keywordActionWhy = (gap: Gap) => `${fmtCompact(gap.volume)}/mo keyword gap — ${gap.competitorsRanking} rivals rank`;
 
+// Plain-language tooltips for the referrer tags (hover to learn what each means).
+const CATEGORY_HELP: Record<string, string> = {
+  marketplace: "Marketplace — a software listing/review platform (G2, Capterra, Product Hunt, AppSumo). High-intent discovery surface.",
+  software_directory: "Software directory — a categorized listing site where buyers browse tools.",
+  blog: "Blog — an editorial/content site that linked to this domain (a mention or review).",
+  media: "Media — a news or press outlet.",
+  community: "Community — a forum or discussion site (Reddit, Indie Hackers, Hacker News) where the link appeared.",
+  social: "Social — a social network link.",
+  newsletter: "Newsletter — an email publication that featured this domain.",
+  partner: "Partner — an integration or partner site linking back.",
+  other: "Other — a link that doesn't fit the main discovery channels.",
+};
+const categoryTitle = (c: string) => CATEGORY_HELP[c] ?? `Referrer type: ${c}`;
+const DOFOLLOW_HELP = "Dofollow — this link passes SEO authority to the page it points to (a nofollow link doesn't). Dofollow links from strong domains are the most valuable.";
+const DR_HELP = "Domain Rating (0–1000) — the referring site's own authority. Higher = a more valuable, harder-to-earn link.";
+
 /** The chip pair: static "→ in plan" pill once the action exists, else a clickable "＋ add". */
 function AddToPlanChip({ title, category, why, plan }: { title: string; category: ActionCategory; why?: string; plan: ActionPlan }) {
   if (plan.isInPlan(title)) return <Badge tone="violet">→ in plan</Badge>;
@@ -247,7 +263,10 @@ export function CompetitorsBody({ data }: { data: Supply }) {
       <Card
         title="Competitors"
         info="Pick a rival to see what powers their referral engine — and the move that answers it."
-        style={{ flex: "2 1 440px" }}
+        // Narrow, sticky rail: the rival list is short but the detail panel is tall,
+        // so pinning the list (instead of leaving dead space beside it) keeps it in
+        // view while you read the detail, and gives the detail the wider column.
+        style={{ flex: "1 1 340px", position: "sticky", top: 16, alignSelf: "flex-start" }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 13, flexWrap: "wrap", marginTop: -6, marginBottom: 10 }}>
           <span style={{ fontSize: 12.5, color: "var(--c-muted)" }}>Pick one to inspect</span>
@@ -265,7 +284,7 @@ export function CompetitorsBody({ data }: { data: Supply }) {
 
       <div
         style={{
-          flex: "1 1 280px",
+          flex: "2 1 460px",
           background: "var(--c-tint-orange)",
           border: "1px solid var(--c-tint-orange-line)",
           borderRadius: "var(--radius-xl)",
@@ -305,9 +324,9 @@ export function CompetitorsBody({ data }: { data: Supply }) {
               return (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}>
                   <EvidenceLink href={r.url} style={{ fontSize: 13, fontWeight: 600, minWidth: 0, flex: 1, ...ELLIPSIS }}>{r.host}</EvidenceLink>
-                  <Badge tone="neutral">{r.category}</Badge>
+                  <Badge tone="neutral" title={categoryTitle(r.category)}>{r.category}</Badge>
                   {typeof r.authority === "number" && r.authority > 0 && (
-                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, fontWeight: 700, color: "var(--c-faint)", flexShrink: 0 }}>DR&nbsp;{r.authority}</span>
+                    <span title={DR_HELP} style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, fontWeight: 700, color: "var(--c-faint)", flexShrink: 0, cursor: "help" }}>DR&nbsp;{r.authority}</span>
                   )}
                   <AddToPlanChip title={title} category="outreach" why={`${sel.domain} has a ${r.category} link from ${r.host} that you don't — pursue it.`} plan={plan} />
                 </div>
@@ -446,13 +465,13 @@ function ReferrerEdgeList({ label, items, summary, empty }: { label: string; ite
             <div key={i} style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}>
                 <EvidenceLink href={r.url} style={{ fontSize: 13.5, fontWeight: 600, minWidth: 0, ...ELLIPSIS }}>{r.host}</EvidenceLink>
-                <Badge tone="neutral">{r.category}</Badge>
+                <Badge tone="neutral" title={categoryTitle(r.category)}>{r.category}</Badge>
                 {/* F4 — authority (domain rank 0–1000) + dofollow, when the backlinks API returned them. */}
                 {typeof r.authority === "number" && r.authority > 0 && (
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, fontWeight: 700, color: "var(--c-faint)", flexShrink: 0 }} title="Referring-domain authority (0–1000)">DR&nbsp;{r.authority}</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, fontWeight: 700, color: "var(--c-faint)", flexShrink: 0, cursor: "help" }} title={DR_HELP}>DR&nbsp;{r.authority}</span>
                 )}
                 {r.dofollow === true && (
-                  <span style={{ fontSize: 10, fontWeight: 700, color: "#1F9D5B", background: "var(--c-tint-green)", padding: "1px 6px", borderRadius: 5, flexShrink: 0 }} title="Passes link authority">dofollow</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: "#1F9D5B", background: "var(--c-tint-green)", padding: "1px 6px", borderRadius: 5, flexShrink: 0, cursor: "help" }} title={DOFOLLOW_HELP}>dofollow</span>
                 )}
               </div>
               {/* 2D — the exact page the backlink points to (the most actionable field). */}

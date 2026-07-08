@@ -9,10 +9,20 @@ import Link from "next/link";
  * instead of the full-page global boundary (app/error.tsx) blanking everything.
  *
  * Auth failures (expired session) no longer reach here: currentUser() catches
- * getUser() rejections and resolveIntelContext redirects to /login. Deployment
- * skew is handled by the global boundary's one-shot reload. This is defense in
- * depth for a data-shaped throw inside an /app page.
+ * getUser() rejections and resolveIntelContext redirects to /login. This is
+ * defense in depth for a data-shaped throw inside an /app page.
+ *
+ * IMPORTANT: this SEGMENT boundary catches /app errors BEFORE the global
+ * app/error.tsx does, so it must own the deployment-skew auto-recovery itself —
+ * otherwise a stale-build chunk/RSC failure on a soft nav (e.g. clicking the logo
+ * → /app → /app/dashboard right after a deploy) shows a scary "hit a snag" that
+ * only clears after the user manually retries into the global boundary. We mirror
+ * the global boundary's one-shot reload here so it self-heals silently.
  */
+const SKEW_RE =
+  /ChunkLoadError|Loading chunk [^ ]+ failed|dynamically imported module|Importing a module script failed|Failed to fetch RSC payload/i;
+const SKEW_RELOAD_KEY = "rk-skew-reloaded";
+
 export default function AppError({
   error,
   reset,
@@ -22,6 +32,19 @@ export default function AppError({
 }) {
   useEffect(() => {
     console.error("[app/error]", error);
+    // One-shot auto-recovery for deployment skew (stale-build asset/RSC failure):
+    // reload once per session so the user never sees the error page for a transient
+    // build mismatch. sessionStorage flag prevents a reload loop if it persists.
+    if (SKEW_RE.test(`${error.name ?? ""} ${error.message ?? ""}`)) {
+      try {
+        if (!sessionStorage.getItem(SKEW_RELOAD_KEY)) {
+          sessionStorage.setItem(SKEW_RELOAD_KEY, "1");
+          window.location.reload();
+        }
+      } catch {
+        /* sessionStorage unavailable — fall through to the retry UI */
+      }
+    }
   }, [error]);
 
   return (
