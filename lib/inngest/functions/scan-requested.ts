@@ -8,6 +8,7 @@ import { runFreeReport } from "@/lib/scan/free-report";
 import { runFullScan } from "@/lib/scan/full-scan";
 import { emitScanEvent } from "@/lib/scan/progress";
 import { scanCostCents } from "@/lib/telemetry/pipeline-runs";
+import { handleScanPipelineFailure } from "@/lib/scan/terminal-status";
 import type { Json } from "@/lib/db/types";
 
 /** Cheap free-track ceiling (collect + findings ONLY — the market/demand sweep is
@@ -25,15 +26,12 @@ export const scanRequested = inngest.createFunction(
     retries: 2,
     triggers: [scanRequestedEvent],
     onFailure: async ({ event, error }) => {
-      // event.data.event is the original scan/requested event that failed
+      // event.data.event is the original scan/requested event that failed.
+      // A prior step (collect/findings/free-report/full-scan) may already have
+      // persisted a renderable report_payload — degrade rather than fail
+      // outright so that partial result stays reachable (see terminal-status.ts).
       const scanId = event.data.event.data.scanId;
-      const message = error instanceof Error ? error.message : String(error);
-      const db = serverDb();
-      await emitScanEvent(scanId, "error", { message });
-      await db
-        .from("scans")
-        .update({ status: "failed" })
-        .eq("id", scanId);
+      await handleScanPipelineFailure(scanId, error);
     },
   },
   async ({ event, step }) => {

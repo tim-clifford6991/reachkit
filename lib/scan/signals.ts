@@ -60,16 +60,27 @@ export const SIGNAL_REGISTRY: readonly SignalDefinition[] = [
     why: "Links from distinct domains are the strongest off-page authority signal.", howToFix: "Earn links via launches, guest posts, and directory listings." },
 
   // ── Content (0.30) ─────────────────────────────────────────────────────────
-  { key: "content_depth", pillar: "content", label: "Content depth", weight: 0.25, thresholds: { pass: 70, warn: 40 }, platforms: WEB, source: "parse",
-    why: "Thin pages rarely rank; substantive copy earns relevance and trust.", howToFix: "Expand the page past ~300 words with specifics buyers search for." },
+  // content_depth / media_richness thresholds (C3, docs/plans/2026-07-07-launch-readiness.md
+  // A6): the live trustmrr.com scan hit Content 100/100 off a merely decent
+  // landing page, which reads as fake-perfect. `thresholds.pass/warn` here only
+  // drive the pass/warn/fail STATE badge (explainability panel, fallback-action
+  // eligibility) — the numeric score comes from the `normalised` value computed
+  // in compute-signals.ts, so both signals' scorers were tightened alongside
+  // these bars (see the comments there). Raised conservatively (not punitively)
+  // so a single strong page can still pass, but cannot trivially cap at 100.
+  // CONSERVATIVE + PROVISIONAL: needs live re-validation via
+  // scripts/score-calibration.mjs (monotonic strong > median > weak, median
+  // indie lands 50–69 "Fair") before being considered final.
+  { key: "content_depth", pillar: "content", label: "Content depth", weight: 0.25, thresholds: { pass: 80, warn: 50 }, platforms: WEB, source: "parse",
+    why: "Thin pages rarely rank; substantive copy earns relevance and trust.", howToFix: "Expand the page past ~500 words of real, specific copy — thin templated pages plateau below this bar." },
   { key: "content_cadence", pillar: "content", label: "Publishing cadence", weight: 0.25, thresholds: { pass: 70, warn: 40 }, platforms: WEB, source: "wire",
     why: "Fresh, regular content compounds discoverability over time.", howToFix: "Ship a post on a predictable cadence (e.g. one useful piece a week)." },
   { key: "owned_channels", pillar: "content", label: "Owned channels", weight: 0.2, thresholds: { pass: 60, warn: 25 }, platforms: WEB, source: "wire",
     why: "More owned surfaces (blog, YouTube, newsletter) = more ways to be found.", howToFix: "Stand up one additional owned channel your rivals already use." },
   { key: "social_share_tags", pillar: "content", label: "Social share tags", weight: 0.15, thresholds: { pass: 70, warn: 40 }, platforms: WEB, source: "parse",
     why: "OpenGraph/Twitter tags control how your link looks when shared.", howToFix: "Add og:title, og:description, og:image and twitter:card meta tags." },
-  { key: "media_richness", pillar: "content", label: "Media & alt coverage", weight: 0.15, thresholds: { pass: 70, warn: 40 }, platforms: ALL, source: "parse",
-    why: "Images with alt text aid accessibility, image search, and comprehension.", howToFix: "Add descriptive alt text to every meaningful image." },
+  { key: "media_richness", pillar: "content", label: "Media & alt coverage", weight: 0.15, thresholds: { pass: 80, warn: 45 }, platforms: ALL, source: "parse",
+    why: "Images with alt text aid accessibility, image search, and comprehension.", howToFix: "Add descriptive alt text to every meaningful image, and make sure the page carries enough images (aim for 5+) to show real richness — a single hero shot with alt text is not enough." },
 
   // ── Outreach (0.25) ────────────────────────────────────────────────────────
   { key: "marketplace_presence", pillar: "outreach", label: "Marketplace presence", weight: 0.25, thresholds: { pass: 60, warn: 25 }, platforms: WEB, source: "wire",

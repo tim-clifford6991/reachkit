@@ -23,6 +23,13 @@
 
 ---
 
+## LIVE FINDINGS (2026-07-08, floor-fix re-validation + subagents)
+
+- **Floor fix (PR #28) VERIFIED live:** deep pass 2→3 actions; the new ones are market-derived fails (`content_cadence`, `owned_channels`) now visible to the floor. Honest count = # genuinely-failing signals.
+- **SCORE INSTABILITY (NEW, launch-relevant):** trustmrr scored 86, 86, then **100** across identical scans — `schema_jsonld` flipped fail→pass because the target's fetched HTML varied (JSON-LD present/absent). Our headline swings with the target site's served HTML. Mitigations to weigh: retried/more-robust fetch, treat single fixed-basis-signal flips as `warn` not `fail`, or render JS. Pairs with C3 calibration + a fetch-determinism review.
+- **C5 subagent found 2 real bugs (fixed on its branch):** (1) `scan-requested` onFailure marked a scan `failed` even when a good `report_payload` was already persisted (hid working partial reports); (2) `scan-deepen` onFailure never wrote a terminal status → scan stuck on `synthesizing` forever, blocking future scans. New `lib/scan/terminal-status.ts` (degrade-if-report-exists) + tests. Rate-limit path was already correct (429).
+- **B2 subagent found 1 real bug (fixed on its branch):** `provisionCheckoutUser` re-sent the onboarding email on every Stripe webhook redelivery (non-idempotent). Guarded + tests + `scripts/stripe-e2e.md`.
+
 ## REMAINING-ITEMS EXECUTION PLAN (2026-07-08) — B2 + C1–C5
 
 After Workstream A + B1 + B3 shipped & live-verified, and the market-aware action-floor fix (PR #28), the remaining plan items split into **code-now** (dispatched to parallel subagents, isolated worktrees) and **live-run** (need a prod session + budget; can't be done by a subagent):

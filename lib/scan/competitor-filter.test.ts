@@ -159,6 +159,23 @@ describe("rankCompetitors integration", () => {
     const out = filterRealCompetitors(appComps);
     expect(out.map((c) => c.name)).toEqual(["Habitica", "Streaks"]);
   });
+
+  // C1 (launch-readiness Workstream C): the app-store path has no `selfHost`
+  // (an app-store listing has no bare domain), so the brand-ambiguity guard
+  // relies ENTIRELY on `subjectName` here. This pins that the SAME shared
+  // guard used for web-mode SERP collisions also catches an iTunes-search
+  // homonym — e.g. searching for "Sofa" surfacing a totally unrelated app
+  // that also happens to be named "Sofa" (different developer, different
+  // trackId/URL — see lib/scan/adapters/itunes.test.ts, which shows the raw
+  // adapter does NOT dedupe this on its own).
+  test("app-mode: a same-named DIFFERENT app (no selfHost) is dropped by subjectName collision, a real rival survives", () => {
+    const raw: Competitor[] = [
+      { name: "Sofa", url: "https://apps.apple.com/us/app/sofa-couch-shop/id999999", source: "itunes_search", rank: 1 },
+      { name: "Watchlist+", url: "https://apps.apple.com/us/app/watchlist/id333", source: "itunes_search", rank: 2 },
+    ];
+    const out = rankCompetitors(raw, { subjectName: "Sofa" }); // no selfHost — app mode never has one
+    expect(out.map((c) => c.name)).toEqual(["Watchlist+"]);
+  });
 });
 
 describe("filterRealCompetitors — content-extracted (llm_extracted) names", () => {
