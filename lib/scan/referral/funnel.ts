@@ -31,6 +31,9 @@ export interface QualityReferrer {
   anchor: string;
   /** Which page on the competitor it points to. */
   target: string;
+  /** F4 — referring domain's authority (0–1000) + whether the link is dofollow. */
+  authority?: number | null;
+  dofollow?: boolean | null;
 }
 
 export interface ReferralBreakdown {
@@ -47,6 +50,8 @@ interface RawRef {
   url: string;
   anchor: string;
   target: string;
+  authority?: number | null;
+  dofollow?: boolean | null;
 }
 
 export interface CompetitorDeep extends ScoredEntity {
@@ -203,7 +208,7 @@ async function rawReferrers(domain: string, limit = 40): Promise<RawRef[]> {
     const h = r.referringHost;
     if (!h || h === domain || isNoiseHost(h) || seen.has(h)) continue;
     seen.add(h);
-    out.push({ host: h, url: r.referringUrl, anchor: r.anchorText, target: r.targetUrl });
+    out.push({ host: h, url: r.referringUrl, anchor: r.anchorText, target: r.targetUrl, authority: r.domainRank ?? null, dofollow: r.dofollow ?? null });
     if (out.length >= limit) break;
   }
   return out;
@@ -218,7 +223,7 @@ function buildBreakdown(refs: RawRef[], cats: Map<string, ReferrerCategory>): Re
     byCategory[c] = (byCategory[c] ?? 0) + 1;
     if (isQuality(c)) {
       quality++;
-      if (topQuality.length < 12) topQuality.push({ host: r.host, category: c, url: r.url, anchor: r.anchor, target: r.target });
+      if (topQuality.length < 15) topQuality.push({ host: r.host, category: c, url: r.url, anchor: r.anchor, target: r.target, authority: r.authority ?? null, dofollow: r.dofollow ?? null });
     }
   }
   return { sampled: refs.length, byCategory, topQualityReferrers: topQuality, qualityShare: refs.length ? quality / refs.length : 0 };
