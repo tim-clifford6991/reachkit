@@ -23,5 +23,11 @@ export async function fetchSiteListing(url: string): Promise<{ listing: ListingF
   });
   if (!res.ok) throw new Error(`site fetch ${url} failed: ${res.status}`);
   const html = await res.text();
-  return { listing: parseListingHtml(html, url), raw: html.slice(0, 200_000) };
+  // Capture up to 2MB (was 200KB). The signal parser (persist-signals →
+  // extractHtmlSignals) re-parses this stored copy, and modern SPAs (Next.js/RSC)
+  // stream a large inline payload BEFORE their SEO metadata — live linear.app puts
+  // <title>/<meta>/<canonical> at ~865KB, so a 200KB slice truncated them away and
+  // the whole SEO pillar scored 0 (false "Invisible"). Postgres TOAST compresses
+  // this text heavily, so the real storage cost is small. Sites <2MB keep the full doc.
+  return { listing: parseListingHtml(html, url), raw: html.slice(0, 2_000_000) };
 }
