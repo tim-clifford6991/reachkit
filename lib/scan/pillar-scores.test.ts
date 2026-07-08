@@ -4,7 +4,7 @@
  */
 
 import { describe, expect, test } from "vitest";
-import { pillarRollup } from "./pillar-scores";
+import { pillarRollup, pillarRollupFromRegistry } from "./pillar-scores";
 
 describe("pillarRollup", () => {
   test("orders pillars Content, Outreach, SEO", () => {
@@ -53,5 +53,44 @@ describe("pillarRollup", () => {
     // Only SEO is assessed at 0; it is the weakest.
     expect(weakest?.pillar).toBe("seo");
     expect(weakest?.value).toBe(0);
+  });
+});
+
+describe("pillarRollupFromRegistry", () => {
+  test("registry assessed set drives 'assessed', not value > 0 (Outreach measured)", () => {
+    // Paid scan: all three pillars measured; outreach measured at a real 0.
+    const { pillars } = pillarRollupFromRegistry(
+      { breakdown: { content: 62, outreach: 0, seo: 88 }, assessed: ["content", "outreach", "seo"] },
+      { content: 62, outreach: 0, seo: 88 },
+    );
+    const byPillar = Object.fromEntries(pillars.map((p) => [p.pillar, p]));
+    // Outreach is a MEASURED 0 here — assessed, not "not measured yet".
+    expect(byPillar.outreach!.assessed).toBe(true);
+    expect(byPillar.outreach!.value).toBe(0);
+    expect(byPillar.content!.assessed).toBe(true);
+  });
+
+  test("a pillar absent from the assessed set renders un-assessed even with a value", () => {
+    const { pillars } = pillarRollupFromRegistry(
+      { breakdown: { content: 40, outreach: 0, seo: 70 }, assessed: ["content", "seo"] },
+      null,
+    );
+    const byPillar = Object.fromEntries(pillars.map((p) => [p.pillar, p]));
+    expect(byPillar.outreach!.assessed).toBe(false);
+  });
+
+  test("no registry signals → falls back to the score_breakdown rollup", () => {
+    // reg=null (free/app scan) → identical to pillarRollup(fallback).
+    const fromFallback = pillarRollupFromRegistry(null, { content: 0, outreach: 0, seo: 47 });
+    const direct = pillarRollup({ content: 0, outreach: 0, seo: 47 });
+    expect(fromFallback).toEqual(direct);
+  });
+
+  test("empty assessed set also falls back", () => {
+    const rollup = pillarRollupFromRegistry(
+      { breakdown: { content: 0, outreach: 0, seo: 0 }, assessed: [] },
+      { content: 20, outreach: 30, seo: 55 },
+    );
+    expect(rollup).toEqual(pillarRollup({ content: 20, outreach: 30, seo: 55 }));
   });
 });
