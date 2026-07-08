@@ -14,6 +14,7 @@ import { ScanBudget } from "@/lib/tools/registry";
 import { runFullScan } from "@/lib/scan/full-scan";
 import { emitScanEvent } from "@/lib/scan/progress";
 import { hasDeepReport } from "@/lib/scan/deepen";
+import { handleScanPipelineFailure } from "@/lib/scan/terminal-status";
 import type { PreliminaryFacts } from "@/lib/scan/types";
 
 export const scanDeepen = inngest.createFunction(
@@ -22,9 +23,17 @@ export const scanDeepen = inngest.createFunction(
     retries: 2,
     triggers: [scanDeepenEvent],
     onFailure: async ({ event, error }) => {
+      // BUG FIX (launch-readiness C5): this handler used to only emit the error
+      // event and leave `scans.status` wherever the "deepen" step left it
+      // (typically "synthesizing", set before runFullScan runs) — an ACTIVE
+      // status forever. That both (a) made scan-current/dashboard treat the
+      // app as permanently "scan in flight" (blocking new on-demand scans),
+      // and (b) was inconsistent with scan-requested's failure handling. A
+      // deepen only ever runs on a scan that already has a free report_payload
+      // (the precondition for scan/deepen), so this virtually always degrades
+      // (report preserved) rather than fails.
       const scanId = event.data.event.data.scanId;
-      const message = error instanceof Error ? error.message : String(error);
-      await emitScanEvent(scanId, "error", { message });
+      await handleScanPipelineFailure(scanId, error);
     },
   },
   async ({ event, step }) => {
