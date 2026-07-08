@@ -1,7 +1,7 @@
 # ReachKit — Architecture, Data Flow & Processes
 
 > Living architecture document. Update this as the system evolves.
-> Last updated: 2026-07-07
+> Last updated: 2026-07-08
 
 ReachKit is a single-stack Next.js 16 (App Router) application deployed on Vercel.
 There is no separate backend service — API routes are thin, and all heavy /
@@ -56,9 +56,9 @@ graph TB
     end
 
     subgraph data["🗄️ Supabase (Postgres + RLS + pgvector)"]
-        DBcore["apps · scans · findings · actions<br/>scan_signals · score_snapshots<br/>fact_sheets · scan_events"]
-        DBintel["domain_intel · demand_intel<br/>competitors · keyword_gap<br/>content_plan_item · distribution_plan_item"]
-        DBinfra["users · billing · search_cache<br/>embeddings (pgvector) · pipeline_runs<br/>public_scans (view)"]
+        DBcore["apps · scans (report_payload)<br/>findings · actions · scan_signals<br/>score_snapshots · fact_sheets · scan_events"]
+        DBintel["competitors (selection)<br/>demand_intel (read-through cache)<br/>search_cache (cachedJson blobs)"]
+        DBinfra["users · billing · pipeline_runs<br/>embeddings (pgvector)<br/>public_scans (view)"]
     end
 
     subgraph ext["🌐 External Services"]
@@ -173,7 +173,7 @@ graph LR
     subgraph cadence["📅 Ongoing Cadence — §11"]
         Mon["weekly-refresh<br/>cron Mon 09:00 UTC"] -->|"per paid app"| Refresh["refreshOneApp<br/>re-collect + re-score"]
         Thu["score-pulse<br/>cron Thu 09:00 UTC"] -->|"midweek heartbeat"| Pulse["delta score check"]
-        Refresh --> Plan["/app/plan timeline<br/>content_plan_item<br/>distribution_plan_item"]
+        Refresh --> Plan["/app/plan timeline<br/>actions · scans.report_payload"]
         Pulse --> Plan
     end
 
@@ -183,6 +183,81 @@ graph LR
 
     Dash -.-> cadence
 ```
+
+---
+
+## 4. Data lineage — SOURCE → STORAGE → INTERPRETATION → UI
+
+The map that answers "where does this number come from / why is this screen
+blank?" without re-scanning. Read the per-scan **`/app/diagnostics`** page for the
+live populated/empty state of any given scan.
+
+### 4.1 Per-data-type lineage
+
+| Data | Source | Storage | Interpretation | UI surface |
+|------|--------|---------|----------------|------------|
+| On-site score | HTML fetch + SERP (DataForSEO) | `scans.score_total` / `score_breakdown` | `compute-signals` → fixed-basis `headlineScore` (8 keys) | Dashboard gauge ("On-site readiness") |
+| Pillar bars | 18 `scan_signals` | `scan_signals` | `registryScore` → `pillarRollupFromRegistry` (assessed = signal measured) | Dashboard hero pillars |
+| Market position | off-site signals (backlinks, keywords, presence) | `scans.report_payload.marketPosition` | `marketPositionScore` (cohort-relative) | Dashboard hero ("Market position vs rivals") |
+| Competitors / referrers | DataForSEO backlinks + traffic | `search_cache` (`funnel2:*` cachedJson) + `report_payload` | `gatherFullFunnel` → `buildBreakdown` | Audience → Competitors |
+| Keyword gap | DataForSEO ranked_keywords | `search_cache` (`synth:*`) + `report_payload.market.gap` | `gatherKeywordGap` | Audience → Keywords |
+| Demand / pockets | Reddit/community search + keyword ideas | `search_cache` (`demand-intel:*`) **and** `demand_intel` table | `gatherDemand` | Audience → Customers |
+| Buyer insights | competitor review mining (Tavily) + own reviews/community (2C fallback) | inside the demand payload | `mineCompetitorReviews` | Audience → Customers |
+| Creators | YouTube adapter | `report_payload.creatorsToReach` | `find-creators` (brand-relevance gated) | Audience → Creators |
+| Plan / actions | LLM synthesis | `actions` table + `report_payload.whatToDoThisWeek` | `synthesizeKeyActions` / action generation | Plan · Dashboard "this week" |
+
+### 4.2 The `report_payload` contract (paid report = `scans.report_payload`)
+
+The paid report is **not** a set of joined tables — it is the single
+`scans.report_payload` JSON blob (type `ReportPayload`, `lib/scan/report.ts`),
+plus the `cachedJson` blobs for the streamed `/app/audience/*` intel. Every
+consumer null-coalesces (`?? []`) because reports persisted before a section
+existed won't carry it. Top-level sections and who reads them:
+
+| `report_payload.*` | Reader |
+|--------------------|--------|
+| `whatYouOffer.positioningMirror` | Report · "What you offer" |
+| `whoItsFor.signals` | Audience → Customers |
+| `whereTheyAre.surfaces` / `competitorGap` | Audience → Competitors |
+| `whatToDoThisWeek.{quickWins,medium,longPlay}` | Plan |
+| `score` (`VerifiedScore`) | Dashboard gauge |
+| `marketPosition` | Dashboard hero (paid) |
+| `competitiveLandscape` / `channelOpportunities` / `creatorsToReach` / `strengthsAndWeaknesses` | Audience tabs (light pass) |
+| `market` (`MarketAnalysis`) | Dashboard intel blocks — **supersedes** the four light sections above when present |
+
+> `results-screen` (public `/scan/[id]`) is the **teaser only** — always redacted.
+> The real paid report is the `/app` intel dashboard. That's why paid-only grades
+> (e.g. Market position) live in `DashboardHero`, not the public results screen.
+
+### 4.3 The two cost points
+
+Heavy metered spend (DataForSEO + LLM) fires at exactly two moments — surfaced
+per-scan in `/app/diagnostics` (from `pipeline_runs`):
+
+1. **Deep scan** (`scan/deepen` → `runFullScan`) — profiles an auto-discovered
+   top-5 cohort (backlinks + ranked keywords) + demand sweep. Guarded by
+   `ScanBudget` (`env.scanBudgetCents`).
+2. **Competitor select** (`POST /api/competitors/select` → `gatherSynthesis`) —
+   the full funnel + keyword-gap + demand + synthesis for the user's chosen
+   cohort (~€1.2). If the user re-selects a cohort different from the auto one,
+   this is a *second* cohort profiling (double-cohort cost).
+
+### 4.4 Single-source-of-truth rule (retired dead tables)
+
+Every intel gatherer once wrote a typed table **and** a `cachedJson` blob, but the
+UI only ever read the blobs + `report_payload`. Those typed tables were pure
+write cost. **Rule: intel is canonical in `report_payload` + `cachedJson`; do not
+add a typed per-domain intel table unless something reads it back.**
+
+Retired (migration `20260708120000`): `keyword_gap`, `demand_pocket`,
+`content_plan_item`, `distribution_plan_item`, `cohort_competitor`,
+`domain_intel`, `domain_content_page`.
+
+Kept — and the ONE exception, because it IS read back: **`demand_intel`**, a
+cross-scan read-through cache. On a `demand-intel:*` JSON-cache miss,
+`readDemandIntelFallback` serves a fresher-than-TTL row before paying for a full
+gather (and refuses a row with empty buyer insights so blanks don't persist for
+the 7-day TTL).
 
 ---
 
@@ -201,10 +276,14 @@ graph LR
   `score_snapshots`. `score-full.ts` produces the verified anti-vanity score +
   7-axis radar for the paid pass.
 - **Data layer** — Supabase Postgres with RLS on all tables, `pgvector` for
-  embeddings (via VoyageAI), a JSON `search_cache` layer over DataForSEO, plus
-  typed structured intel tables (`domain_intel`, `demand_intel`, `competitors`,
-  `keyword_gap`, `content_plan_item`, `distribution_plan_item`). `public_scans`
-  is a view feeding the `/gallery` page + landing ticker.
+  embeddings (via VoyageAI), and a JSON `search_cache` layer (the `cachedJson`
+  blobs) over DataForSEO/LLM output. **Single source of truth:** the paid intel
+  UI reads `scans.report_payload` + the `cachedJson` blobs — NOT typed per-domain
+  tables. The only typed intel tables still live are `competitors` (the user's
+  saved selection) and `demand_intel` (a read-through cache; see §4). Seven
+  write-only "dead" intel tables were retired (migration
+  `20260708120000_retire_dead_intel_tables.sql`). `public_scans` is a view
+  feeding the `/gallery` page + landing ticker.
 - **Background cadence** — `weekly-refresh` (cron Mon 09:00 UTC) and
   `score-pulse` (cron Thu 09:00 UTC) drive the recurring §11 cadence that feeds
   the `/app/plan` timeline; `search-cache-cleanup` (cron daily 03:00 UTC) prunes
