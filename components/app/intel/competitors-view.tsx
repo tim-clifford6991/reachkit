@@ -211,7 +211,7 @@ export function CompetitorsBody({ data }: { data: Supply }) {
       .map(({ g, hit }) => ({ gap: g, note: `#${hit.position}` }));
   }, [gaps, sel]);
 
-  const referrerItems = (sel.backlinks?.topQualityReferrers ?? []).slice(0, 12);
+  const referrerItems = (sel.backlinks?.topQualityReferrers ?? []).slice(0, 25);
   // F4 — "referrers they have that you don't": the actionable acquisition gap.
   // When a rival is selected, surface the quality referrers pointing at them whose
   // host never links to you — the concrete outreach targets to pursue.
@@ -279,7 +279,20 @@ export function CompetitorsBody({ data }: { data: Supply }) {
           {sel.isSubject ? `${sel.domain} · you` : sel.domain}
         </span>
 
-        <ReferrerEdgeList label="Top referrers" items={referrerItems} empty="No quality referrers surfaced." />
+        {/* 2D — surface the per-entity footprint we already hold (previously only
+            traffic showed): referring domains, organic keywords, branded search,
+            top pages. Each stat is shown only when the signal is present. */}
+        <EntityStatStrip
+          stats={[
+            { label: "Est. visits / mo", value: sel.monthlyTraffic > 0 ? fmtCompact(sel.monthlyTraffic) : null },
+            { label: "Referring domains", value: sel.mix?.referringDomains ? fmtCompact(sel.mix.referringDomains) : null },
+            { label: "Organic keywords", value: sel.mix?.organicKeywords ? fmtCompact(sel.mix.organicKeywords) : null },
+            { label: "Branded search", value: (sel.brandedSearchVolume ?? 0) > 0 ? `${fmtCompact(sel.brandedSearchVolume!)}/mo` : null },
+            { label: "Top pages", value: (sel.topPagesCount ?? 0) > 0 ? String(sel.topPagesCount) : null },
+          ]}
+        />
+
+        <ReferrerEdgeList label="Top referrers" items={referrerItems} summary={sel.backlinks ?? null} empty="No quality referrers surfaced." />
 
         {/* F4 — the acquisition gap: quality referrers pointing at this rival that
             never link to you. The concrete outreach targets to pursue, each with a
@@ -382,11 +395,51 @@ function CompetitorRow({
 const EDGE_LABEL_STYLE: CSSProperties = { fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--c-band-hard)" };
 const ELLIPSIS: CSSProperties = { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" };
 
-/** R1 — linked quality referrers: external link + category badge, anchor text as a muted caption. */
-function ReferrerEdgeList({ label, items, empty }: { label: string; items: ReferrerItem[]; empty: string }) {
+/** Compact "path" of a URL for display — host is already shown separately, so the
+ *  target line just needs the page it points to (pathname, trimmed). */
+function pagePath(url: string): string {
+  try {
+    const u = new URL(url);
+    const p = (u.pathname + u.search).replace(/\/$/, "");
+    return p && p !== "" ? p : "/";
+  } catch {
+    return url;
+  }
+}
+
+/** 2D — a compact stat strip for the selected entity's public footprint. Renders
+ *  only the stats that have a value (null entries are dropped). */
+function EntityStatStrip({ stats }: { stats: Array<{ label: string; value: string | null }> }) {
+  const shown = stats.filter((s) => s.value !== null);
+  if (shown.length === 0) return null;
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 20px" }}>
+      {shown.map((s) => (
+        <div key={s.label} style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+          <span style={{ fontSize: 9.5, fontFamily: "var(--font-mono)", letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--c-faint)" }}>{s.label}</span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: "var(--c-ink)", fontFamily: "var(--font-mono)" }}>{s.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** R1 — linked quality referrers: external link + category badge + authority/dofollow,
+ *  the target page each backlink earned, anchor text as a muted caption, and a
+ *  header summarising how many referring domains were examined + the quality mix. */
+function ReferrerEdgeList({ label, items, summary, empty }: { label: string; items: ReferrerItem[]; summary?: NonNullable<Entity["backlinks"]> | null; empty: string }) {
+  const topCats = summary
+    ? Object.entries(summary.byCategory).sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0)).slice(0, 3)
+    : [];
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
       <span style={EDGE_LABEL_STYLE}>{label}</span>
+      {summary && summary.sampled > 0 && (
+        <span style={{ fontSize: 11, color: "var(--c-faint)" }}>
+          Examined {summary.sampled} referring domain{summary.sampled === 1 ? "" : "s"} · {Math.round(summary.qualityShare * 100)}% quality
+          {topCats.length > 0 && <> · {topCats.map(([c, n]) => `${c} ${n}`).join(" · ")}</>}
+        </span>
+      )}
       {items.length > 0 ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
           {items.map((r, i) => (
@@ -402,6 +455,10 @@ function ReferrerEdgeList({ label, items, empty }: { label: string; items: Refer
                   <span style={{ fontSize: 10, fontWeight: 700, color: "#1F9D5B", background: "var(--c-tint-green)", padding: "1px 6px", borderRadius: 5, flexShrink: 0 }} title="Passes link authority">dofollow</span>
                 )}
               </div>
+              {/* 2D — the exact page the backlink points to (the most actionable field). */}
+              {r.target && (
+                <EvidenceLink href={r.target} style={{ fontSize: 11.5, color: "var(--c-muted)", minWidth: 0, ...ELLIPSIS }}>→ {pagePath(r.target)}</EvidenceLink>
+              )}
               {r.anchor && <span style={{ fontSize: 11.5, color: "var(--c-faint)", fontStyle: "italic", ...ELLIPSIS }}>linked as &ldquo;{r.anchor}&rdquo;</span>}
             </div>
           ))}

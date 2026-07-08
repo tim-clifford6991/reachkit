@@ -86,8 +86,8 @@ const isQuality = (c: ReferrerCategory) => QUALITY_CATEGORIES.includes(c);
 
 /** Top distinct referrers for a domain (by backlink rank), with the deep link to
  *  the exact referring page. one_per_domain mode → the strongest page per host. */
-async function rawReferrers(domain: string, limit = 40): Promise<RawRef[]> {
-  const refs = await cachedBacklinks(domain, 250);
+async function rawReferrers(domain: string, limit = 60): Promise<RawRef[]> {
+  const refs = await cachedBacklinks(domain, 300);
   const seen = new Set<string>();
   const out: RawRef[] = [];
   for (const r of refs) {
@@ -109,7 +109,7 @@ function buildBreakdown(refs: RawRef[], cats: Map<string, ReferrerCategory>): Re
     byCategory[c] = (byCategory[c] ?? 0) + 1;
     if (isQuality(c)) {
       quality++;
-      if (topQuality.length < 15) topQuality.push({ host: r.host, category: c, url: r.url, anchor: r.anchor, target: r.target, authority: r.authority ?? null, dofollow: r.dofollow ?? null });
+      if (topQuality.length < 30) topQuality.push({ host: r.host, category: c, url: r.url, anchor: r.anchor, target: r.target, authority: r.authority ?? null, dofollow: r.dofollow ?? null });
     }
   }
   return { sampled: refs.length, byCategory, topQualityReferrers: topQuality, qualityShare: refs.length ? quality / refs.length : 0 };

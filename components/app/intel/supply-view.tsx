@@ -15,7 +15,7 @@ interface TrafficLens {
   activities: { content: number; seo: number; outreach: number };
   estimated: boolean;
 }
-interface Entity { domain: string; isSubject?: boolean; monthlyTraffic: number; score: number; band: string; lens?: TrafficLens | null; mix?: { organic: number; referral: number; social: number; direct: number; organicKeywords: number; referringDomains: number; socialMentions: number } | null }
+interface Entity { domain: string; isSubject?: boolean; monthlyTraffic: number; score: number; band: string; lens?: TrafficLens | null; mix?: { organic: number; referral: number; social: number; direct: number; organicKeywords: number; referringDomains: number; socialMentions: number } | null; brandedSearchVolume?: number; topPagesCount?: number }
 interface CompetitorDeep extends Entity { closeness: number; reason: string; backlinks: Backlinks }
 interface Channel { host: string; type: string; action: string; competitorsUsing: number }
 interface Gap { keyword: string; volume: number; bestPosition: number; competitorsRanking: number; competitors: { domain: string; position: number; url: string }[]; opportunity: number }
