@@ -1,7 +1,7 @@
 # ReachKit — Architecture, Data Flow & Processes
 
 > Living architecture document. Update this as the system evolves.
-> Last updated: 2026-07-08
+> Last updated: 2026-07-09
 
 ReachKit is a single-stack Next.js 16 (App Router) application deployed on Vercel.
 There is no separate backend service — API routes are thin, and all heavy /
@@ -196,8 +196,9 @@ live populated/empty state of any given scan.
 
 | Data | Source | Storage | Interpretation | UI surface |
 |------|--------|---------|----------------|------------|
-| On-site score | HTML fetch + SERP (DataForSEO) | `scans.score_total` / `score_breakdown` | `compute-signals` → fixed-basis `headlineScore` (8 keys) | Dashboard gauge ("On-site readiness") |
+| Headline score | HTML fetch + SERP (DataForSEO) | `scans.score_total` / `score_breakdown` (`score_version 3`) | `compute-signals` → 18-signal `registryScore` (weighted avg over assessed pillars) — same number the pillars use, so the gauge == pillar average by construction | Dashboard gauge ("Overall · Content+Outreach+SEO") |
 | Pillar bars | 18 `scan_signals` | `scan_signals` | `registryScore` → `pillarRollupFromRegistry` (assessed = signal measured) | Dashboard hero pillars |
+| Per-scan cost | DataForSEO (real `body.cost`) · Tavily (credits × rate) · Anthropic (tokens) | `scans.dataforseo_cost_cents` / `tavily_cost_cents` / `cost_cents` | `lib/scan/cost-context.ts` (AsyncLocalStorage sink; `costedStep` flushes per Inngest step) | `/app/diagnostics` — per-scan breakdown + "Spend by user" (all users) |
 | Market position | off-site signals (backlinks, keywords, presence) | `scans.report_payload.marketPosition` | `marketPositionScore` (cohort-relative) | Dashboard hero ("Market position vs rivals") |
 | Competitors / referrers | DataForSEO backlinks + traffic | `search_cache` (`funnel2:*` cachedJson) + `report_payload` | `gatherFullFunnel` → `buildBreakdown` | Audience → Competitors |
 | Keyword gap | DataForSEO ranked_keywords | `search_cache` (`synth:*`) + `report_payload.market.gap` | `gatherKeywordGap` | Audience → Keywords |
@@ -250,6 +251,28 @@ the deep-scan cohort light to avoid re-profiling was deliberately **not** adopte
 the deep market analysis needs full backlink profiles, and the caches already
 eliminate the redundant spend.
 
+**External spend is now measured per scan and per user** (`lib/scan/cost-context.ts`).
+DataForSEO returns the exact USD charged in every v3 response envelope (`body.cost`);
+all reads funnel through one `dfsJson(res)` choke point that parses **and** records
+it. Tavily returns no cost (it bills in credits), so it's priced deterministically
+from the request shape (search basic=1 / advanced=2 credits; extract 1 per 5 URLs) ×
+`TAVILY_USD_PER_CREDIT`. An `AsyncLocalStorage` sink attributes cost to the running
+scan from any adapter depth without threading `scanId`; each cost-bearing Inngest
+step (`collect`/`findings`/`free-report`/`full-scan`/`deepen`) runs under `costedStep`
+and additively flushes its delta to `scans.{dataforseo,tavily}_cost_cents`
+(replay-safe; cache hits never reach the adapter so they record nothing). Per-user
+total = LLM + DataForSEO + Tavily summed over `users.app_ids` → `scans.app_id`
+(`loadAllUsersSpend`), shown on the owner-only `/app/diagnostics`.
+
+Cold-scan reality (trustmrr, 2026-07-09, fully cache-purged): **free ≈ $0.10**
+(LLM $0.08 · DataForSEO $0.002 · Tavily $0.016); **paid deep, cumulative ≈ $0.56**
+(LLM $0.15 · **DataForSEO $0.35** · Tavily $0.06). DataForSEO Labs (ranked_keywords /
+relevant_pages / domain_rank_overview across the cohort) is the dominant external
+cost — the old "~€1.2" gather estimate was conservative. **Note: tracking is
+record-only — `ScanBudget`'s cent-caps still bound LLM only; external spend is
+bounded by the tool-call / `MAX_SELECTED` caps, not a € meter.** Wiring external
+spend into `ScanBudget` enforcement is a deferred follow-up.
+
 ### 4.4 Single-source-of-truth rule (retired dead tables)
 
 Every intel gatherer once wrote a typed table **and** a `cachedJson` blob, but the
@@ -276,8 +299,10 @@ the 7-day TTL).
   **Inngest** functions hosted at `/api/inngest`.
 - **Two-tier scan** — a fast, free lightweight report is produced first
   (`lib/scan/free-report.ts`), then `scan/deepen` runs the expensive full pass
-  (`lib/scan/full-scan.ts`) only after payment. The fixed-basis score stays
-  stable across both tiers.
+  (`lib/scan/full-scan.ts`) only after payment. The headline gauge is the
+  **18-signal `registryScore`** (`score_version 3`) on both tiers — the same
+  number the pillar bars use, so free→deep never jumps models (free assesses only
+  the on-site pillars; deep adds the off-site market-position grade alongside).
 - **Scoring engine** — `SIGNAL_REGISTRY` in `lib/scan/signals.ts` drives ~18
   deterministic (no-LLM) signals grouped into 3 weighted pillars
   (**SEO 0.45 / Content 0.30 / Outreach 0.25**), persisted to `scan_signals` +
@@ -299,6 +324,16 @@ the 7-day TTL).
 - **Two funnel paths** — Path A (scan-first): free report → `/scan/[id]/checkout`;
   Path B (trial-direct): `/billing/trial` anonymous checkout with no prior scan.
   Both converge on the Stripe webhook → account provision → magic link.
+- **External-API cost tracking** — DataForSEO + Tavily spend is measured per scan
+  (`lib/scan/cost-context.ts` → `scans.{dataforseo,tavily}_cost_cents`) and rolled
+  up per user (`loadAllUsersSpend`), surfaced on the owner-only `/app/diagnostics`.
+  DataForSEO reports real USD; Tavily is priced from credits × `TAVILY_USD_PER_CREDIT`.
+  Record-only today — not yet enforced against `ScanBudget` (see §4.3).
+- **`/app` soft-nav** — link internal navigation straight to `/app/dashboard`, never
+  the bare `/app` (which server-redirects there). A client soft-nav to a redirecting
+  route aborts its in-flight RSC stream → `Error: Connection closed` in the `(app)`
+  error boundary. `/app/page.tsx` keeps its redirect only as a safety net for direct
+  hits (hard loads redirect cleanly).
 - **Feature flags** — reduced to only `REACHKIT_USE_FIXTURES`, which runs the
   whole pipeline keyless (no external API calls) in dev/test.
 
