@@ -23,6 +23,23 @@
 
 ---
 
+## REMAINING-ITEMS EXECUTION PLAN (2026-07-08) — B2 + C1–C5
+
+After Workstream A + B1 + B3 shipped & live-verified, and the market-aware action-floor fix (PR #28), the remaining plan items split into **code-now** (dispatched to parallel subagents, isolated worktrees) and **live-run** (need a prod session + budget; can't be done by a subagent):
+
+| Item | Code-now (subagent) | Live-run (needs prod) |
+|------|---------------------|------------------------|
+| **B2** Stripe e2e | Audit checkout→webhook→provision→email path; fix bugs; write `scripts/stripe-e2e.md` runbook + tests | Run one test-mode checkout with card 4242…; verify each hop |
+| **C1** iOS/Android | Audit iTunes/RSS adapters + v1 app scoring + brand-leak; add tests | Run one live app-store scan (free+deepen) |
+| **C2** direct paid-fresh scan | Verify tier=full fork runs full-scan in scan-requested; add test | Scan a new domain as a paid user, confirm ≥5 actions + market |
+| **C3** score calibration | Build `scripts/score-calibration.mjs` harness + conservative content-threshold tightening + `docs/score-calibration.md` | Run the harness over 6–10 domains; finalize thresholds to hit monotonic band separation |
+| **C4** retention loop | (n/a — trigger-only) | Manually fire weekly-refresh + score-pulse against the test app; assert watermarks/snapshot |
+| **C5** degraded/abuse | Harden degraded-not-failed + rate-limit→429; add tests | Force an adapter timeout (bad domain)→degraded; >N scans/IP→429 |
+
+Subagents produce reviewed branches; I integrate + PR. The live-run column is a follow-up prod session (each is a short scripted run using `scripts/prelaunch-validate.md`). C4 is trigger-only (no code).
+
+---
+
 
 **Author:** Fable 5 pre-launch review, 2026-07-07 (see `fable_assessment` in the validation JSON)
 **Executor:** Opus — follow this document task by task, in order, with TDD (`superpowers:test-driven-development`) and live verification per the protocol at the bottom.
