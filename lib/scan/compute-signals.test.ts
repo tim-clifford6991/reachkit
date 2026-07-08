@@ -142,3 +142,34 @@ describe("content_depth / media_richness — C3 tightened thresholds", () => {
     expect(media.normalised).toBe(100);
   });
 });
+
+describe("computeScanSignals — cohort-relative SEO market signals (F2)", () => {
+  const base: MarketSignalInputs = { organicKeywords: 340, rankedKeywordCount: 28, referringDomains: 85 };
+
+  it("fails a small footprint against a much larger cohort (trustmrr 340 vs ~5.9k median)", () => {
+    const rows = computeScanSignals("web", goodHtml, components, { ...base, cohortOrganicKeywordsMedian: 5895 });
+    const ok = rows.find((r) => r.signalKey === "organic_keywords")!;
+    expect(ok.normalised!).toBeLessThan(25); // ~13 → fail, not the old ~94 pass
+    expect(ok.state).toBe("fail");
+  });
+
+  it("scores ~50 (parity) when the subject matches the cohort median", () => {
+    const rows = computeScanSignals("web", goodHtml, components, { organicKeywords: 5895, cohortOrganicKeywordsMedian: 5895 });
+    const ok = rows.find((r) => r.signalKey === "organic_keywords")!;
+    expect(ok.normalised!).toBeGreaterThanOrEqual(48);
+    expect(ok.normalised!).toBeLessThanOrEqual(52);
+  });
+
+  it("passes when the subject leads the cohort (>=4x median)", () => {
+    const rows = computeScanSignals("web", goodHtml, components, { organicKeywords: 23600, cohortOrganicKeywordsMedian: 5895 });
+    const ok = rows.find((r) => r.signalKey === "organic_keywords")!;
+    expect(ok.normalised!).toBeGreaterThanOrEqual(95);
+    expect(ok.state).toBe("pass");
+  });
+
+  it("falls back to the absolute log-scale when there is no cohort median (first scan)", () => {
+    const rows = computeScanSignals("web", goodHtml, components, base); // no medians
+    const ok = rows.find((r) => r.signalKey === "organic_keywords")!;
+    expect(ok.normalised!).toBeGreaterThan(80); // logScale(340,500) ≈ 94
+  });
+})

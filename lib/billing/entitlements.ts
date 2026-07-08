@@ -133,6 +133,9 @@ export function redactReportForTier(
   return {
     ...payload,
     whatToDoThisWeek: { quickWins, medium, longPlay },
+    // F2: the off-site "Market position" grade is paid-only value — never leak the
+    // exact number on the free/public teaser.
+    marketPosition: null,
     // Deep sections. The competitive landscape is "tease the question, gate the
     // answer": free keeps WHICH rivals + their mention counts (the proof), but
     // the exact opening text and the creators-to-reach are gated. The other

@@ -24,6 +24,15 @@ export function marketToSignalInputs(
   const self = market.cohort?.self;
   const seo = self?.seo ?? null;
   const channels = self?.channels ?? [];
+
+  // F2 — cohort medians (rivals only) so the SEO market signals score RELATIVE to
+  // the real competitor set. Median is robust to the odd husk domain.
+  const rivals = market.cohort?.competitors ?? [];
+  const median = (vals: Array<number | null | undefined>): number | null => {
+    const a = vals.filter((v): v is number => typeof v === "number" && v > 0).sort((x, y) => x - y);
+    return a.length ? a[Math.floor((a.length - 1) / 2)]! : null;
+  };
+
   return {
     organicKeywords: seo?.organicKeywords ?? null,
     rankedKeywordCount: seo?.rankedKeywords?.length ?? null,
@@ -34,6 +43,9 @@ export function marketToSignalInputs(
     ownedChannelCount: self ? channels.length : null,
     contentPostsPerMonth: self ? channels.reduce((a, c) => Math.max(a, c.cadence?.postsPerMonth ?? 0), 0) : null,
     recentBuzzCount: market.recentBuzz?.length ?? null,
+    cohortOrganicKeywordsMedian: median(rivals.map((r) => r.seo?.organicKeywords)),
+    cohortRankedKeywordsMedian: median(rivals.map((r) => r.seo?.rankedKeywords?.length)),
+    cohortReferringDomainsMedian: median(rivals.map((r) => r.seo?.referringDomains)),
   };
 }
 

@@ -97,6 +97,7 @@ export function toResultsProps(
   return {
     siteLabel,
     score: report.score.total,
+    marketPosition: report.marketPosition?.total ?? null,
     headline: `A ${report.score.total} means real customers are searching — and landing on someone else.`,
     intro:
       "is technically fine. The gap is discoverability: you're absent from the comparison and directory surfaces where your buyers actually decide.",
