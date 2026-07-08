@@ -11,68 +11,9 @@
 import { normalizeHost } from "@/lib/scan/referral/classify";
 import { cohortFor } from "@/lib/scan/cache/cached-adapters";
 import { cachedRankedKeywords } from "@/lib/scan/cache/cached-adapters";
-import { serverDb } from "@/lib/db/client";
-import type { Json } from "@/lib/db/types";
 import type { OnStageCallback } from "@/lib/scan/types";
 
 const WINNING_POSITION = 30; // only count a rival ranking in the top 30 as "winning"
-
-// ---------------------------------------------------------------------------
-// Structured persistence (keyword_gap table)
-// ---------------------------------------------------------------------------
-
-/**
- * Upsert keyword gap rows into `keyword_gap`.
- * Best-effort — any write error is logged and swallowed so it never breaks the
- * gather. Called via `void ...catch(...)` so it doesn't block the return.
- */
-async function persistKeywordGaps(subject: string, cohortKey: string, gaps: KeywordGap[]): Promise<void> {
-  if (gaps.length === 0) return;
-  const db = serverDb();
-  // One run timestamp stamped on every row — reused by the reconciliation delete below
-  // to drop keyword rows superseded by THIS run (stale keywords from prior SERP output).
-  const fetchedAt = new Date().toISOString();
-  const rows = gaps.map((g) => ({
-    subject_domain: subject,
-    cohort_key: cohortKey,
-    keyword: g.keyword,
-    volume: g.volume,
-    subject_position: g.subjectPosition,
-    best_position: g.bestPosition,
-    rival_count: g.competitorsRanking,
-    opportunity: g.opportunity,
-    winning_url: g.competitors[0]?.url ?? null,
-    competitors: g.competitors as unknown as Json,
-    fetched_at: fetchedAt,
-  }));
-  const CHUNK = 100;
-  // Upsert fresh rows FIRST so current data is guaranteed present before any delete.
-  for (let i = 0; i < rows.length; i += CHUNK) {
-    try {
-      const { error } = await db
-        .from("keyword_gap")
-        .upsert(rows.slice(i, i + CHUNK), { onConflict: "subject_domain,cohort_key,keyword" });
-      if (error) console.error(`[keyword_gap] chunk ${i} persist failed: ${error.message}`);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error(`[keyword_gap] chunk ${i} persist failed: ${msg}`);
-    }
-  }
-  // THEN reconcile: drop superseded rows for this (subject, cohort) scope. Safe ordering —
-  // a failed delete leaves harmless extra old rows, never data loss.
-  try {
-    const { error } = await db
-      .from("keyword_gap")
-      .delete()
-      .eq("subject_domain", subject)
-      .eq("cohort_key", cohortKey)
-      .lt("fetched_at", fetchedAt);
-    if (error) console.error(`[keyword_gap] reconcile delete failed: ${error.message}`);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error(`[keyword_gap] reconcile delete failed: ${msg}`);
-  }
-}
 
 /** Brand tokens for the cohort — a founder can't realistically rank for a rival's
  *  brand ("read", "read ai", "cirrusinsight"), so those keywords are not opportunities. */
@@ -142,7 +83,6 @@ export interface KeywordGapResult {
 
 export async function gatherKeywordGap(rawSelf: string, opts: { topN?: number; competitorDomains?: string[]; onStage?: OnStageCallback } = {}): Promise<KeywordGapResult> {
   const self = normalizeHost(rawSelf);
-  const cohortKey = (opts.competitorDomains ?? []).map((d) => d.toLowerCase()).sort().join(",");
   const closest = await cohortFor(self, opts.competitorDomains);
   const cohort = closest.ranked.slice(0, opts.topN ?? 4).map((r) => r.domain);
 
@@ -219,11 +159,6 @@ export async function gatherKeywordGap(rawSelf: string, opts: { topN?: number; c
 
   // Stage fired after computing gaps — carries real count as detail.
   opts.onStage?.({ key: "kw:gaps", label: "Finding keyword gaps", detail: `${result.gaps.length} gaps your rivals win` });
-
-  // Persist structured gap rows (best-effort, never blocks the return).
-  void persistKeywordGaps(self, cohortKey, result.gaps).catch((err) =>
-    console.error("[keyword_gap] persist error:", err),
-  );
 
   return result;
 }

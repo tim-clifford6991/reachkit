@@ -20,7 +20,6 @@ import { MAX_SELECTED } from "@/lib/scan/competitor-selection";
 import { cachedJson, DAY_MS } from "@/lib/scan/cache/external-cache";
 import { fixturesEnabled } from "@/lib/dev/fixtures";
 import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
-import { serverDb } from "@/lib/db/client";
 import type { ContentIntel, ContentEntity, ContentPage, Cluster, ContentType } from "./types";
 import type { OnStageCallback } from "@/lib/scan/types";
 
@@ -302,71 +301,6 @@ async function fetchWordCount(rawUrl: string): Promise<number> {
 }
 
 // ---------------------------------------------------------------------------
-// Structured persistence (domain_content_page table)
-// ---------------------------------------------------------------------------
-
-/**
- * Upsert classified page rows into `domain_content_page`.
- * Best-effort — any write error is logged and swallowed so it never breaks the
- * gather. Called via `void ...catch(...)` so it doesn't block the return.
- */
-async function persistContentPages(entities: ContentEntity[]): Promise<void> {
-  const db = serverDb();
-  // One run timestamp for the whole batch — reused by the per-domain reconciliation
-  // delete below to drop pages superseded by THIS run.
-  const fetchedAt = new Date().toISOString();
-  const rows = entities.flatMap((entity) =>
-    entity.pages.map((page) => ({
-      domain: entity.domain,
-      url: page.url,
-      title: page.title ?? null,
-      content_type: page.contentType,
-      topic_cluster: page.cluster,
-      keyword_count: page.keywordCount,
-      // ETV from DataForSEO is a float; the column is bigint — round to integer.
-      etv: Math.round(page.etv),
-      word_count: page.wordCount,
-      fetched_at: fetchedAt,
-    })),
-  );
-
-  if (rows.length === 0) return;
-
-  // Upsert in chunks of 100 to stay well within Postgres parameter limits.
-  // Fresh rows go in FIRST so current data is guaranteed present before any delete.
-  const CHUNK = 100;
-  for (let i = 0; i < rows.length; i += CHUNK) {
-    try {
-      const { error } = await db
-        .from("domain_content_page")
-        .upsert(rows.slice(i, i + CHUNK), { onConflict: "domain,url" });
-      if (error) console.error(`[domain_content_page] chunk ${i} persist failed: ${error.message}`);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error(`[domain_content_page] chunk ${i} persist failed: ${msg}`);
-    }
-  }
-
-  // THEN reconcile per domain (the table's only scope column — no cohort). For each
-  // domain written this run, drop pages whose url is no longer in the top set. Safe
-  // ordering — a failed delete leaves harmless stale pages, never data loss.
-  const domains = [...new Set(entities.map((e) => e.domain))];
-  for (const domain of domains) {
-    try {
-      const { error } = await db
-        .from("domain_content_page")
-        .delete()
-        .eq("domain", domain)
-        .lt("fetched_at", fetchedAt);
-      if (error) console.error(`[domain_content_page] reconcile delete failed for ${domain}: ${error.message}`);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error(`[domain_content_page] reconcile delete failed for ${domain}: ${msg}`);
-    }
-  }
-}
-
-// ---------------------------------------------------------------------------
 // Main orchestrator
 // ---------------------------------------------------------------------------
 
@@ -489,11 +423,6 @@ export async function gatherContentIntel(
       .sort((a, b) => b.totalPages - a.totalPages);
 
     const result: ContentIntel = { subjectDomain: self, entities, clusters };
-
-    // 8. Persist classified rows to structured storage (best-effort, never blocks).
-    void persistContentPages(entities).catch((err) =>
-      console.error("[content] batch persist error:", err),
-    );
 
     return result;
   });

@@ -118,7 +118,10 @@ function topicTokens(seeds: string[]): Set<string> {
 }
 
 // ---------------------------------------------------------------------------
-// Structured persistence (demand_pocket table)
+// demand_intel — read-through DB cache (a JSON-cache miss falls back to a
+// fresher-than-TTL row before paying for a full gather). This is the ONE intel
+// table that is genuinely read back; the write-only demand_pocket table (and the
+// other 6 dead intel tables) were retired — the UI reads report_payload + caches.
 // ---------------------------------------------------------------------------
 
 const DEMAND_INTEL_TTL_MS = 7 * DAY_MS;
@@ -135,6 +138,25 @@ const DEMAND_INTEL_TTL_MS = 7 * DAY_MS;
  */
 function isEmptyDemandIntel(intel: Pick<DemandIntel, "searchDemand">): boolean {
   return intel.searchDemand.themes.length === 0 && intel.searchDemand.topKeywords.length === 0;
+}
+
+/**
+ * True when buyer insights carry no real signal (every list empty). Used ONLY on
+ * the demand_intel read-back path (not the primary write/JSON-cache predicate): a
+ * previously-cached row with blank buyer insights — e.g. written before the 2C
+ * fallback source existed, when the competitor cohort had no minable reviews —
+ * must NOT be served for the full 7-day TTL. Refusing it forces a fresh gather so
+ * buyer insights repopulate from the subject's own reviews/community threads.
+ * Deliberately narrow: keyword/theme/community data is left to govern caching, so
+ * a rich payload is never thrown away just because buyer reviews were sparse.
+ */
+function buyerInsightsEmpty(bi: BuyerInsights): boolean {
+  return (
+    bi.pains.length === 0 &&
+    bi.lovedFeatures.length === 0 &&
+    bi.personas.length === 0 &&
+    bi.buyerLanguage.length === 0
+  );
 }
 
 /**
@@ -200,62 +222,13 @@ async function readDemandIntelFallback(subject: string, cohortKey: string): Prom
     // read — same emptiness rule as the write path, so callers fall back to a
     // real gather instead of getting a blank Demand page for the full TTL.
     if (isEmptyDemandIntel(reassembled)) return null;
+    // 1B — don't let a stale row with blank buyer insights blank the Customers tab
+    // for the full TTL; fall back to a fresh gather (which uses the 2C fallback).
+    if (buyerInsightsEmpty(reassembled.buyerInsights)) return null;
     return reassembled;
   } catch (err) {
     console.warn(`[demand_intel] fallback read failed: ${err instanceof Error ? err.message : String(err)}`);
     return null;
-  }
-}
-
-/**
- * Upsert demand pocket rows into `demand_pocket`.
- * Best-effort — any write error is logged and swallowed so it never breaks the
- * gather. Called via `void ...catch(...)` inside the cachedJson body.
- */
-async function persistDemandPockets(subject: string, cohortKey: string, pockets: DemandPocket[]): Promise<void> {
-  if (pockets.length === 0) return;
-  const db = serverDb();
-  // One run timestamp stamped on every row — the reconciliation delete below uses
-  // it to remove rows superseded by THIS run (stale surfaces from prior LLM/SERP output).
-  const fetchedAt = new Date().toISOString();
-  const rows = pockets.map((p) => ({
-    subject_domain: subject,
-    cohort_key: cohortKey,
-    surface: p.surface,
-    platform: p.platform,
-    subreddit: p.subreddit,
-    count: p.count,
-    intent_sum: p.intentSum,
-    score: p.score,
-    top_threads: p.topThreads,
-    fetched_at: fetchedAt,
-  }));
-  const CHUNK = 100;
-  // Upsert the fresh rows FIRST so current data is guaranteed present before any delete.
-  for (let i = 0; i < rows.length; i += CHUNK) {
-    try {
-      const { error } = await db
-        .from("demand_pocket")
-        .upsert(rows.slice(i, i + CHUNK), { onConflict: "subject_domain,cohort_key,surface" });
-      if (error) console.error(`[demand_pocket] chunk ${i} persist failed: ${error.message}`);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error(`[demand_pocket] chunk ${i} persist failed: ${msg}`);
-    }
-  }
-  // THEN reconcile: drop superseded rows for this (subject, cohort) scope. Safe ordering —
-  // a failed delete leaves harmless extra old rows, never data loss.
-  try {
-    const { error } = await db
-      .from("demand_pocket")
-      .delete()
-      .eq("subject_domain", subject)
-      .eq("cohort_key", cohortKey)
-      .lt("fetched_at", fetchedAt);
-    if (error) console.error(`[demand_pocket] reconcile delete failed: ${error.message}`);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error(`[demand_pocket] reconcile delete failed: ${msg}`);
   }
 }
 
@@ -345,11 +318,9 @@ export async function gatherDemand(rawSelf: string, opts: { competitorDomains?: 
     buyerInsights,
   };
 
-  // Persist structured demand pocket rows (best-effort, never blocks the return).
-  void persistDemandPockets(self, cohortKey, result.community.pockets).catch((err) =>
-    console.error("[demand_pocket] persist error:", err),
-  );
   // Persist the assembled demand intel itself (best-effort, never blocks the return).
+  // This is a live read-through cache (see readDemandIntelFallback) — NOT a dead
+  // write — so it is retained. The demand_pocket table was write-only and retired.
   void persistDemandIntel(self, cohortKey, result).catch((err) =>
     console.error("[demand_intel] persist error:", err),
   );
