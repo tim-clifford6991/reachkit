@@ -4,7 +4,7 @@ import Link from "next/link";
 import { resolveIntelContext } from "@/lib/app/intel-context";
 import { currentUser } from "@/lib/auth/server";
 import { isOwner } from "@/lib/auth/owner";
-import { loadScanDiagnostics, loadUserSpend, type DataPoint } from "@/lib/app/diagnostics";
+import { loadScanDiagnostics, loadUserSpend, loadAllUsersSpend, type DataPoint } from "@/lib/app/diagnostics";
 import { Card, Badge } from "@/components/app/intel/kit";
 import { buildMetadata } from "@/lib/seo";
 
@@ -32,8 +32,9 @@ function fmtMs(ms: number): string {
   if (ms <= 0) return "—";
   return ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${Math.round(ms)}ms`;
 }
+/** All external vendors (DataForSEO, Tavily) and Anthropic bill in USD. */
 function fmtCents(c: number): string {
-  return `€${(c / 100).toFixed(c < 10 ? 3 : 2)}`;
+  return `$${(c / 100).toFixed(c < 10 ? 3 : 2)}`;
 }
 function fmtDate(iso: string | null): string {
   if (!iso) return "—";
@@ -56,6 +57,8 @@ async function DiagnosticsContent() {
 
   const diag = await loadScanDiagnostics(ctx.appId);
   const spend = viewer ? await loadUserSpend(viewer.user.id) : null;
+  // Owner-only page → safe to show the full unit-economics breakdown across users.
+  const allUsers = await loadAllUsersSpend();
 
   if (!diag) {
     return (
@@ -115,6 +118,48 @@ async function DiagnosticsContent() {
                 <span style={{ fontSize: 16, fontWeight: 600, color: "var(--c-ink)" }}>{k.value}</span>
               </div>
             ))}
+          </div>
+        </Card>
+      )}
+
+      {/* SPEND BY USER — complete cost per user across all their scans (owner-only) */}
+      {allUsers.length > 0 && (
+        <Card title="Spend by user" info="LLM + DataForSEO + Tavily summed over every scan of every app each user owns. Highest spender first.">
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ borderCollapse: "collapse", width: "100%", minWidth: 560 }}>
+              <thead>
+                <tr>
+                  <th style={th}>User</th>
+                  <th style={{ ...th, textAlign: "right" }}>Scans</th>
+                  <th style={{ ...th, textAlign: "right" }}>LLM</th>
+                  <th style={{ ...th, textAlign: "right" }}>DataForSEO</th>
+                  <th style={{ ...th, textAlign: "right" }}>Tavily</th>
+                  <th style={{ ...th, textAlign: "right" }}>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {allUsers.map((u) => (
+                  <tr key={u.userId}>
+                    <td style={{ ...cell, maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.email}</td>
+                    <td style={num}>{u.scanCount}</td>
+                    <td style={num}>{fmtCents(u.llmCostCents)}</td>
+                    <td style={num}>{fmtCents(u.dataforseoCostCents)}</td>
+                    <td style={num}>{fmtCents(u.tavilyCostCents)}</td>
+                    <td style={{ ...num, fontWeight: 700, color: "var(--c-ink)" }}>{fmtCents(u.totalCostCents)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td style={{ ...cell, fontWeight: 700 }}>All users</td>
+                  <td style={{ ...num, fontWeight: 700 }}>{allUsers.reduce((n, u) => n + u.scanCount, 0)}</td>
+                  <td style={{ ...num, fontWeight: 700 }}>{fmtCents(allUsers.reduce((n, u) => n + u.llmCostCents, 0))}</td>
+                  <td style={{ ...num, fontWeight: 700 }}>{fmtCents(allUsers.reduce((n, u) => n + u.dataforseoCostCents, 0))}</td>
+                  <td style={{ ...num, fontWeight: 700 }}>{fmtCents(allUsers.reduce((n, u) => n + u.tavilyCostCents, 0))}</td>
+                  <td style={{ ...num, fontWeight: 700, color: "var(--c-ink)" }}>{fmtCents(allUsers.reduce((n, u) => n + u.totalCostCents, 0))}</td>
+                </tr>
+              </tfoot>
+            </table>
           </div>
         </Card>
       )}

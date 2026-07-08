@@ -78,6 +78,29 @@ export interface UserSpend {
   totalCostCents: number;
 }
 
+/** One row of the per-user spend breakdown (all users). */
+export interface UserSpendRow extends UserSpend {
+  userId: string;
+  email: string;
+}
+
+/** A scan's three cost columns, as selected for spend rollups. */
+type ScanCostRow = { cost_cents: number | null; dataforseo_cost_cents: number | null; tavily_cost_cents: number | null };
+
+function zeroSpend(): UserSpend {
+  return { scanCount: 0, llmCostCents: 0, dataforseoCostCents: 0, tavilyCostCents: 0, totalCostCents: 0 };
+}
+
+/** Fold one scan's costs into an accumulator (mutates + returns it). */
+function foldScanCost(acc: UserSpend, s: ScanCostRow): UserSpend {
+  acc.scanCount += 1;
+  acc.llmCostCents += Number(s.cost_cents ?? 0);
+  acc.dataforseoCostCents += Number(s.dataforseo_cost_cents ?? 0);
+  acc.tavilyCostCents += Number(s.tavily_cost_cents ?? 0);
+  acc.totalCostCents = acc.llmCostCents + acc.dataforseoCostCents + acc.tavilyCostCents;
+  return acc;
+}
+
 /** Classify a section: absent (undefined/null), empty (0-length), else populated. */
 function pointFor(label: string, consumedBy: string, value: unknown): DataPoint {
   if (value === undefined || value === null) return { label, consumedBy, count: null, state: "absent" };
@@ -185,24 +208,49 @@ export async function loadScanDiagnostics(appId: string): Promise<ScanDiagnostic
  * missing user row or empty app list returns a zeroed rollup.
  */
 export async function loadUserSpend(userId: string): Promise<UserSpend> {
-  const zero: UserSpend = { scanCount: 0, llmCostCents: 0, dataforseoCostCents: 0, tavilyCostCents: 0, totalCostCents: 0 };
   const db = serverDb();
   const { data: user } = await db.from("users").select("app_ids").eq("id", userId).maybeSingle();
   const appIds = (user?.app_ids ?? []) as string[];
-  if (appIds.length === 0) return zero;
+  if (appIds.length === 0) return zeroSpend();
 
   const { data: scans } = await db
     .from("scans")
     .select("cost_cents, dataforseo_cost_cents, tavily_cost_cents")
     .in("app_id", appIds);
-  if (!scans || scans.length === 0) return zero;
+  return (scans ?? []).reduce(foldScanCost, zeroSpend());
+}
 
-  return scans.reduce<UserSpend>((acc, s) => {
-    acc.scanCount += 1;
-    acc.llmCostCents += Number(s.cost_cents ?? 0);
-    acc.dataforseoCostCents += Number(s.dataforseo_cost_cents ?? 0);
-    acc.tavilyCostCents += Number(s.tavily_cost_cents ?? 0);
-    acc.totalCostCents = acc.llmCostCents + acc.dataforseoCostCents + acc.tavilyCostCents;
-    return acc;
-  }, { ...zero });
+/**
+ * Complete spend broken down by EVERY user — LLM + DataForSEO + Tavily summed
+ * over all of each user's apps' scans, highest spender first. The owner-only
+ * unit-economics view. One user↔app map (users.app_ids) + one scan query, folded
+ * in memory. Users with no scans appear with a zeroed row so the list is complete.
+ */
+export async function loadAllUsersSpend(): Promise<UserSpendRow[]> {
+  const db = serverDb();
+  const { data: users } = await db.from("users").select("id, email, app_ids");
+  if (!users || users.length === 0) return [];
+
+  // app_id → owning userId (an app id belongs to one user's app_ids list).
+  const appToUser = new Map<string, string>();
+  for (const u of users) for (const appId of (u.app_ids ?? [])) appToUser.set(appId, u.id);
+
+  const byUser = new Map<string, UserSpend>(users.map((u) => [u.id, zeroSpend()]));
+
+  const appIds = [...appToUser.keys()];
+  if (appIds.length > 0) {
+    const { data: scans } = await db
+      .from("scans")
+      .select("app_id, cost_cents, dataforseo_cost_cents, tavily_cost_cents")
+      .in("app_id", appIds);
+    for (const s of scans ?? []) {
+      const uid = appToUser.get(s.app_id);
+      const acc = uid ? byUser.get(uid) : undefined;
+      if (acc) foldScanCost(acc, s);
+    }
+  }
+
+  return users
+    .map((u) => ({ userId: u.id, email: u.email, ...byUser.get(u.id)! }))
+    .sort((a, b) => b.totalCostCents - a.totalCostCents);
 }
