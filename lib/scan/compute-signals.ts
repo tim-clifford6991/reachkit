@@ -79,7 +79,13 @@ const SCORERS: Record<string, (c: Ctx) => Scored> = {
     market?.referringDomains != null ? M(market.referringDomains, logScale(market.referringDomains, 100)) : UNMEASURED,
 
   // Content
-  content_depth: ({ html }) => (html ? M(html.wordCount, logScale(html.wordCount, 600)) : UNMEASURED),
+  // content_depth ref (C3, docs/plans/2026-07-07-launch-readiness.md A6): was 600 —
+  // a log scale means the curve saturates near-max well before the ref value, so
+  // pass(70) was reachable around ~87 words and 100 around ~600. Raised to 900 so
+  // a bare landing page (a few hundred words of hero/nav/footer copy) lands well
+  // short of 100 while genuinely substantive pages (900+ words) still max out.
+  // CONSERVATIVE + PROVISIONAL — needs live re-validation (scripts/score-calibration.mjs).
+  content_depth: ({ html }) => (html ? M(html.wordCount, logScale(html.wordCount, 900)) : UNMEASURED),
   content_cadence: ({ market }) =>
     market?.contentPostsPerMonth != null ? M(market.contentPostsPerMonth, logScale(market.contentPostsPerMonth, 8)) : UNMEASURED,
   owned_channels: ({ market }) =>
@@ -88,8 +94,19 @@ const SCORERS: Record<string, (c: Ctx) => Scored> = {
     html
       ? M(null, (html.openGraph.present ? 40 : 0) + (html.openGraph.hasImage ? 30 : 0) + (html.twitterCard.present ? 30 : 0))
       : UNMEASURED,
-  media_richness: ({ html }) =>
-    html ? M(html.images.count, html.images.count === 0 ? 40 : Math.round(html.images.altCoverage * 100)) : UNMEASURED,
+  // media_richness (C3, A6): was `count===0 ? 40 : altCoverage*100` — a single
+  // well-alt-tagged hero image maxed this at 100, which is not "media richness".
+  // Full credit now also requires enough images to demonstrate real richness;
+  // a thin page with 1-2 images is capped well under 100 even at perfect alt
+  // coverage. CONSERVATIVE + PROVISIONAL — needs live re-validation
+  // (scripts/score-calibration.mjs) against real image-heavy vs. thin sites.
+  media_richness: ({ html }) => {
+    if (!html) return UNMEASURED;
+    const { count, altCoverage } = html.images;
+    if (count === 0) return M(count, 40);
+    const richnessCap = count >= 5 ? 100 : count >= 3 ? 85 : count >= 2 ? 70 : 55;
+    return M(count, Math.round(altCoverage * richnessCap));
+  },
 
   // Outreach
   marketplace_presence: ({ market }) =>

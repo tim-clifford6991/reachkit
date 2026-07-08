@@ -93,7 +93,7 @@ describe("fallbackActionsFromSignals", () => {
     const byTitleFragment = (frag: string) =>
       actions.find((a) => a.title.toLowerCase().includes(frag))!;
     expect(byTitleFragment("canonical").category).toBe("seo_aso");
-    expect(byTitleFragment("300 words").category).toBe("content");
+    expect(byTitleFragment("500 words").category).toBe("content");
     expect(byTitleFragment("marketplace").category).toBe("outreach");
   });
 
