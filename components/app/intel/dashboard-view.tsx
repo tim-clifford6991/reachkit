@@ -196,7 +196,17 @@ function Blocks({ data }: { data: Supply }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       {/* F3 — YOU vs. COMPETITORS + THEIR CHANNEL MIX (one interactive component) */}
       <Card title="You vs. top competitors" meta={`#${rank} of ${ranked.length}`} info="Estimated channel mix from public SEO signals (organic ETV, backlinks, branded search). Not measured analytics. Click a competitor to see their mix.">
-        <div style={{ display: "grid", gap: 22, gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
+        {/* Side-by-side: a 1px rule splits the two halves; when the grid wraps to
+            one column (narrow) the divider is hidden and the halves stack. */}
+        <style>{`
+          .rk-vs-grid { display: grid; gap: 22px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+          .rk-vs-grid > .rk-vs-divider { display: none; }
+          @media (min-width: 640px) {
+            .rk-vs-grid { grid-template-columns: 1fr 1px 1fr; align-items: stretch; }
+            .rk-vs-grid > .rk-vs-divider { display: block; background: var(--c-line); }
+          }
+        `}</style>
+        <div className="rk-vs-grid">
           {/* Left: clickable ranking */}
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             <Eyebrow color="var(--c-faint)">click to inspect →</Eyebrow>
@@ -222,6 +232,9 @@ function Blocks({ data }: { data: Supply }) {
             })}
             <Footer href="/app/supply">See the full cohort →</Footer>
           </div>
+
+          {/* Vertical divider (side-by-side only — see .rk-vs-grid style above). */}
+          <div className="rk-vs-divider" aria-hidden="true" />
 
           {/* Right: channel breakdown for the SELECTED entity */}
           <div>
