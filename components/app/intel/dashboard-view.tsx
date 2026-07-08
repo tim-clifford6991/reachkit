@@ -138,8 +138,18 @@ export function DashboardIntelBlocks() {
 }
 
 function Blocks({ data }: { data: Supply }) {
-  const { subject, competitors } = data.funnel;
-  const gaps = data.keywords.gaps;
+  // Defensive: this subtree renders ONLY in the browser (after the async intel
+  // fetch), so any throw here bubbles to the GLOBAL error boundary ("We hit an
+  // unexpected error") and is invisible to a server curl. A gatherer that resolves
+  // with a partial/degraded shape (missing funnel/keywords.gaps) must degrade to
+  // an empty state, never crash the whole /app/dashboard.
+  const hasSubject = !!data?.funnel?.subject;
+  // Safe fallback keeps every `subject.*` access + hook below from throwing when a
+  // stale/degraded cache blob is missing the subject; the JSX early-returns an
+  // empty notice in that case (after all hooks, so hook order is preserved).
+  const subject = data?.funnel?.subject ?? ({ domain: "", score: 0, monthlyTraffic: 0, lens: null, backlinks: null, mix: null } as unknown as (typeof data)["funnel"]["subject"]);
+  const competitors = data?.funnel?.competitors ?? [];
+  const gaps = data?.keywords?.gaps ?? [];
   const plan = useActionPlan();
 
   const ranked = [{ ...subject, isSubject: true }, ...competitors].sort((a, b) => b.score - a.score);
@@ -169,6 +179,18 @@ function Blocks({ data }: { data: Supply }) {
   const referrers: ReferrerItem[] = selected.backlinks?.topQualityReferrers ?? [];
 
   const topGaps = [...gaps].sort((a, b) => b.opportunity - a.opportunity).slice(0, 6);
+
+  // Degraded/partial intel payload (e.g. a stale cache blob missing the subject):
+  // render a friendly notice instead of crashing the whole dashboard.
+  if (!hasSubject) {
+    return (
+      <Card title="You vs. top competitors">
+        <p style={{ fontSize: 13, color: "var(--c-faint)", margin: 0 }}>
+          Competitive intel isn&apos;t ready for this app yet. Re-run the scan or pick your competitors to populate it.
+        </p>
+      </Card>
+    );
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
