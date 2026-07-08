@@ -31,6 +31,19 @@ describe("SIGNAL_REGISTRY", () => {
   });
 });
 
+describe("content-pillar thresholds (C3, docs/plans/2026-07-07-launch-readiness.md A6)", () => {
+  it("content_depth and media_richness pass/warn bars are the tightened C3 values", () => {
+    // Locks in the intentional tightening so a future edit doesn't silently
+    // drift back toward the old, too-permissive bars without updating
+    // compute-signals.ts's scorers + docs/score-calibration.md in step.
+    // PROVISIONAL: pending live re-validation via scripts/score-calibration.mjs.
+    const contentDepth = SIGNAL_REGISTRY.find((s) => s.key === "content_depth")!;
+    expect(contentDepth.thresholds).toEqual({ pass: 80, warn: 50 });
+    const mediaRichness = SIGNAL_REGISTRY.find((s) => s.key === "media_richness")!;
+    expect(mediaRichness.thresholds).toEqual({ pass: 80, warn: 45 });
+  });
+});
+
 describe("PILLAR_WEIGHTS", () => {
   it("sums to 1.0 (Content .30 / Outreach .25 / SEO .45)", () => {
     expect(PILLAR_WEIGHTS.content + PILLAR_WEIGHTS.outreach + PILLAR_WEIGHTS.seo).toBeCloseTo(1, 5);
