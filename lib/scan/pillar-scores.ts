@@ -51,32 +51,51 @@ function isAssessed(pillar: Pillar, value: number): boolean {
   return pillar === "seo" || value > 0;
 }
 
+/** Shared: derive weakest + estimated-gain from a set of scored pillars. */
+function buildRollup(pillars: PillarScore[]): PillarRollup {
+  const assessed = pillars.filter((p) => p.assessed);
+  const weakest = assessed.length ? assessed.reduce((min, p) => (p.value < min.value ? p : min)) : null;
+  const strongest = assessed.length ? assessed.reduce((max, p) => (p.value > max.value ? p : max)) : null;
+  const estGain =
+    weakest && strongest && strongest.value > weakest.value
+      ? Math.round(PILLAR_WEIGHTS[weakest.pillar] * (strongest.value - weakest.value))
+      : 0;
+  return { pillars, weakest, estGain };
+}
+
 export function pillarRollup(breakdown: ScoreBreakdown | null | undefined): PillarRollup {
   const b: ScoreBreakdown = {
     content: Math.max(0, Math.round(breakdown?.content ?? 0)),
     outreach: Math.max(0, Math.round(breakdown?.outreach ?? 0)),
     seo: Math.max(0, Math.round(breakdown?.seo ?? 0)),
   };
+  return buildRollup(
+    DISPLAY_ORDER.map((pillar) => ({ pillar, label: LABEL[pillar], value: b[pillar], assessed: isAssessed(pillar, b[pillar]) })),
+  );
+}
 
-  const pillars: PillarScore[] = DISPLAY_ORDER.map((pillar) => ({
-    pillar,
-    label: LABEL[pillar],
-    value: b[pillar],
-    assessed: isAssessed(pillar, b[pillar]),
-  }));
-
-  const assessed = pillars.filter((p) => p.assessed);
-  const weakest = assessed.length
-    ? assessed.reduce((min, p) => (p.value < min.value ? p : min))
-    : null;
-  const strongest = assessed.length
-    ? assessed.reduce((max, p) => (p.value > max.value ? p : max))
-    : null;
-
-  const estGain =
-    weakest && strongest && strongest.value > weakest.value
-      ? Math.round(PILLAR_WEIGHTS[weakest.pillar] * (strongest.value - weakest.value))
-      : 0;
-
-  return { pillars, weakest, estGain };
+/**
+ * 1A — pillar rollup from the FULL 18-signal registry breakdown. This is the honest
+ * pillar model: Outreach IS measured on a paid scan (marketplace/community/share-of-
+ * voice signals), so it no longer falsely reads "not measured yet" the way the
+ * on-site-only `score_breakdown` did. `assessed` means "a signal was actually
+ * measured in this pillar", from the registry's own assessed set. Falls back to the
+ * `score_breakdown` rollup when no registry signals exist (free/app scans).
+ */
+export function pillarRollupFromRegistry(
+  reg: { breakdown: ScoreBreakdown; assessed: Pillar[] } | null,
+  fallback: ScoreBreakdown | null | undefined,
+): PillarRollup {
+  if (reg && reg.assessed.length > 0) {
+    const assessedSet = new Set(reg.assessed);
+    return buildRollup(
+      DISPLAY_ORDER.map((pillar) => ({
+        pillar,
+        label: LABEL[pillar],
+        value: Math.max(0, Math.round(reg.breakdown[pillar] ?? 0)),
+        assessed: assessedSet.has(pillar),
+      })),
+    );
+  }
+  return pillarRollup(fallback);
 }

@@ -89,7 +89,14 @@ function entityScore(p: DistributionProfile): number {
 
 const communityMentions = (p: DistributionProfile): number => p.communities.reduce((s, c) => s + (c.mentions ?? 0), 0);
 
-export async function enrichEntity(domain: string, isSubject: boolean): Promise<ScoredEntity> {
+export async function enrichEntity(
+  domain: string,
+  isSubject: boolean,
+  // When the caller has already batch-fetched branded-search volumes for the whole
+  // cohort (funnel), it passes this entity's volume in — avoiding the per-entity
+  // keywords_data call. Undefined → fall back to the single-brand cached fetch.
+  brandedVolume?: number,
+): Promise<ScoredEntity> {
   try {
     // backlinks: true → referring domains populate referral share + fair scoring.
     const profile = await profileDomainCached(domain, { light: true, backlinks: true });
@@ -108,8 +115,10 @@ export async function enrichEntity(domain: string, isSubject: boolean): Promise<
       : null;
 
     // Branded-search volume: proxy for direct/branded traffic channel share.
-    // Best-effort — a missing keywords subscription returns 0, never throws.
-    const brandedSearchVolume = await cachedBrandedSearch(productNameFromHost(domain)).catch(() => 0);
+    // Best-effort — a missing keywords subscription returns 0, never throws. Use the
+    // caller's batched value when supplied (funnel), else fetch this one brand.
+    const brandedSearchVolume =
+      brandedVolume ?? (await cachedBrandedSearch(productNameFromHost(domain)).catch(() => 0));
 
     return {
       domain,

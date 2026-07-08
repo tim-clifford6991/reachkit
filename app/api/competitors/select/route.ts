@@ -11,6 +11,8 @@ import { currentUser } from "@/lib/auth/server";
 import { activeAppId } from "@/lib/app/active-app";
 import { serverDb } from "@/lib/db/client";
 import { saveSelectedCompetitors } from "@/lib/scan/competitor-selection";
+import { resolveCompetitorDomain } from "@/lib/scan/competitor-resolve";
+import { normalizeHost } from "@/lib/scan/referral/classify";
 import { gatherSynthesis } from "@/lib/scan/synthesis/synthesize";
 
 export const maxDuration = 240;
@@ -21,11 +23,20 @@ export async function POST(req: NextRequest) {
   const appId = await activeAppId(viewer.user);
   if (!appId) return NextResponse.json({ error: "no active app" }, { status: 400 });
 
-  const body = (await req.json().catch(() => null)) as { domains?: unknown } | null;
-  const domains = Array.isArray(body?.domains) ? body!.domains.map((d) => String(d)) : [];
+  const body = (await req.json().catch(() => null)) as { domains?: unknown; names?: unknown } | null;
+  const domains = Array.isArray(body?.domains) ? body!.domains.map((d) => String(d)).filter(Boolean) : [];
+  // 2B — name-only picks (competitors we couldn't auto-resolve at candidate time)
+  // are resolved here, on commit. Anything that still won't resolve is simply
+  // dropped (no domain → no intel possible), so the cohort stays clean.
+  const names = Array.isArray(body?.names) ? body!.names.map((n) => String(n)).filter(Boolean) : [];
 
   try {
-    const saved = await saveSelectedCompetitors(appId, domains);
+    const resolvedFromNames = (
+      await Promise.all(names.map((n) => resolveCompetitorDomain(n).catch(() => null)))
+    ).filter((h): h is string => !!h);
+    const allDomains = [...new Set([...domains, ...resolvedFromNames.map((h) => normalizeHost(h))].filter(Boolean))];
+
+    const saved = await saveSelectedCompetitors(appId, allDomains);
 
     const db = serverDb();
     const { data: appRow } = await db.from("apps").select("store_url").eq("id", appId).maybeSingle();

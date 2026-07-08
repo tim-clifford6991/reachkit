@@ -17,7 +17,7 @@ import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
  * Fixtures mode: returns a DETERMINISTIC canned map (stable position derived from
  * each keyword string) so the whole weekly refresh runs keyless.
  */
-export async function rankLookup(keywords: string[], target: string): Promise<Record<string, number>> {
+export async function rankLookup(keywords: string[], target: string, depth = 50): Promise<Record<string, number>> {
   const unique = [...new Set(keywords.map((k) => k.trim()).filter((k) => k.length > 0))];
   if (unique.length === 0) return {};
 
@@ -25,9 +25,11 @@ export async function rankLookup(keywords: string[], target: string): Promise<Re
 
   // Live path: one DataForSEO SERP task per keyword; find where `target` ranks.
   // Live endpoint (the costed exception) mirrors lib/scan/adapters/dataforseo.ts.
+  // `depth` is the SERP page depth: the recurring weekly rank check passes a smaller
+  // depth (cheaper); on-demand action verification keeps the default 50 for accuracy.
   const host = normalizeTarget(target);
   const entries = await Promise.allSettled(
-    unique.map(async (keyword) => [keyword, await rankOne(keyword, host)] as const),
+    unique.map(async (keyword) => [keyword, await rankOne(keyword, host, depth)] as const),
   );
 
   const out: Record<string, number> = {};
@@ -42,7 +44,7 @@ export async function rankLookup(keywords: string[], target: string): Promise<Re
 
 // Returns the 1-based organic position of `host` for `keyword`, or null if it
 // doesn't appear in the fetched depth / on any error.
-async function rankOne(keyword: string, host: string): Promise<number | null> {
+async function rankOne(keyword: string, host: string, depth = 50): Promise<number | null> {
   try {
     const res = await fetchWithTimeout("https://api.dataforseo.com/v3/serp/google/organic/live/advanced", {
       method: "POST",
@@ -54,7 +56,7 @@ async function rankOne(keyword: string, host: string): Promise<number | null> {
         keyword,
         location_code: env.dataforseoLocationCode,
         language_code: env.dataforseoLanguageCode,
-        depth: 50,
+        depth,
       }]),
     }, 15_000);
     if (!res.ok) return null;

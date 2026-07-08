@@ -22,10 +22,17 @@ interface Candidate {
   ratio: number | null;
   sizeRelevant: boolean;
   sizeTier?: SizeTier;
+  /** 2B — discovered by name but not auto-resolved to a domain; still selectable
+   *  (resolved on commit). Keyed by name since it has no domain. */
+  unresolved?: boolean;
 }
 interface Candidates { category: string; ranked: Candidate[]; suggested: string[]; subjectEtv: number }
 
 const MAX = 5;
+
+/** Selection key: the domain when resolved, else a name-scoped key (unresolved
+ *  candidates carry no domain). The picked Set + toggle operate on this key. */
+const keyOf = (c: Candidate) => c.domain || `name:${c.name}`;
 
 type TierFilter = "all" | SizeTier;
 
@@ -117,7 +124,12 @@ export function CompetitorSetup({
   async function save() {
     setSaving(true);
     try {
-      const res = await fetch("/api/competitors/select", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ domains: [...picked] }) });
+      // Split the picked keys: resolved domains vs unresolved names (name:… keys).
+      // The select route resolves the names on commit.
+      const keys = [...picked];
+      const domains = keys.filter((k) => !k.startsWith("name:"));
+      const names = keys.filter((k) => k.startsWith("name:")).map((k) => k.slice(5));
+      const res = await fetch("/api/competitors/select", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ domains, names }) });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       // Embedded in the setup overlay: hand control back to the stepper instead
       // of navigating (the overlay's final step refreshes when it's done).
@@ -192,15 +204,18 @@ export function CompetitorSetup({
               <p className="text-[12px] text-neutral-400 py-3">No candidates in this size tier.</p>
             )}
             {visibleCandidates.map((c) => {
-              const on = picked.has(c.domain);
+              const k = keyOf(c);
+              const on = picked.has(k);
               return (
-                <button key={c.domain} onClick={() => toggle(c.domain)} disabled={!on && picked.size >= MAX}
+                <button key={k} onClick={() => toggle(k)} disabled={!on && picked.size >= MAX}
                   className={`flex w-full items-center gap-3 rounded-lg border p-3 text-left transition ${on ? "border-violet-400 bg-violet-50/50" : "border-neutral-200 hover:border-neutral-300"} disabled:opacity-40`}>
                   <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border ${on ? "border-violet-500 bg-violet-500 text-white" : "border-neutral-300"}`}>{on ? "✓" : ""}</span>
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-2">
-                      <span className="truncate font-medium">{c.domain}</span>
-                      {c.sizeTier
+                      <span className="truncate font-medium">{c.unresolved ? c.name : c.domain}</span>
+                      {c.unresolved
+                        ? <span className="rounded bg-neutral-100 px-1.5 py-0.5 text-[9px] text-neutral-500">name only</span>
+                        : c.sizeTier
                         ? <Badge tone={TIER_TONE[c.sizeTier]}>{TIER_LABELS[c.sizeTier]}</Badge>
                         : (!c.sizeRelevant && <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[9px] text-amber-700">size gap</span>)}
                     </span>
@@ -218,7 +233,7 @@ export function CompetitorSetup({
             <button onClick={save} disabled={saving || picked.size === 0} className="rounded-lg bg-violet-600 px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50">
               {saving ? "Saving & analyzing…" : `Confirm ${picked.size} competitor${picked.size === 1 ? "" : "s"}`}
             </button>
-            <span className="text-[11px] text-neutral-400">{picked.size}/{MAX} selected</span>
+            <span className="text-[11px] text-neutral-400">{picked.size} selected · up to {MAX}</span>
           </div>
         </>
       )}

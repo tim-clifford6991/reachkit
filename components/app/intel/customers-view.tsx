@@ -107,12 +107,16 @@ export function CustomersBody({
         {/* Buyer insights */}
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <Eyebrow>Buyer insights</Eyebrow>
+          {buyerInsights.pains.length + buyerInsights.lovedFeatures.length + buyerInsights.personas.length + buyerInsights.buyerLanguage.length === 0 ? (
+            <Empty>No buyer-review signal for this cohort yet — indie rivals often have no G2/Capterra reviews to mine. We fall back to your own reviews and community threads once a scan surfaces them.</Empty>
+          ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <QuoteGroup label="Pains" items={buyerInsights.pains} color="var(--c-band-invisible)" />
             <QuoteGroup label="Loved features" items={buyerInsights.lovedFeatures} color="var(--c-band-findable)" />
             <QuoteGroup label="Personas" items={buyerInsights.personas} color="#3b6fe0" />
             <QuoteGroup label="Buyer language" items={buyerInsights.buyerLanguage} color="var(--c-action)" />
           </div>
+          )}
           {buyerInsights.sources.length > 0 && (
             <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 2 }}>
               <span style={{ fontSize: 11.5, color: "var(--c-faint)" }}>from {buyerInsights.sources.length} competitor review pages</span>

@@ -2,11 +2,14 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { resolveIntelContext } from "@/lib/app/intel-context";
 import { currentUser } from "@/lib/auth/server";
+import { isOwner } from "@/lib/auth/owner";
 import { entitlementsFor } from "@/lib/billing/entitlements";
 import { serverDb } from "@/lib/db/client";
 import { engagementSummary } from "@/lib/scan/engagement";
 import { scoreHistoryMarkers } from "@/lib/scan/score-history-markers";
-import { pillarRollup, type ScoreBreakdown } from "@/lib/scan/pillar-scores";
+import { pillarRollupFromRegistry, type ScoreBreakdown } from "@/lib/scan/pillar-scores";
+import { registryScore } from "@/lib/scan/registry-score";
+import type { Pillar } from "@/lib/scan/signals";
 import { actionBoard } from "@/lib/scan/action-board";
 import { DashboardHero } from "@/components/app/intel/dashboard-hero";
 import { DashboardIntelBlocks } from "@/components/app/intel/dashboard-view";
@@ -39,7 +42,7 @@ async function DashboardContent() {
   const [{ data: scan }, board] = await Promise.all([
     serverDb()
       .from("scans")
-      .select("score_total, score_breakdown, report_payload")
+      .select("id, score_total, score_breakdown, report_payload")
       .eq("app_id", ctx.appId)
       .not("completed_at", "is", null)
       .not("score_total", "is", null)
@@ -98,7 +101,25 @@ async function DashboardContent() {
     viewer ? entitlementsFor(viewer.user.id) : Promise.resolve(null),
   ]);
 
-  const rollup = pillarRollup(scan.score_breakdown as unknown as ScoreBreakdown | null);
+  // 1A — pillar rollup from the persisted 18-signal registry when a paid scan has
+  // them (so Outreach shows its real market-signal value instead of falsely reading
+  // "not measured yet"); fall back to the on-site `score_breakdown` for free/app scans.
+  const { data: sigRows } = await serverDb()
+    .from("scan_signals")
+    .select("pillar, weight, normalised, state")
+    .eq("scan_id", scan.id);
+  const reg =
+    sigRows && sigRows.length
+      ? registryScore(
+          sigRows.map((r) => ({
+            pillar: r.pillar as Pillar,
+            weight: (r.weight as number | null) ?? 0,
+            normalised: r.normalised as number | null,
+            state: (r.state as string | null) ?? "unmeasured",
+          })),
+        )
+      : null;
+  const rollup = pillarRollupFromRegistry(reg, scan.score_breakdown as unknown as ScoreBreakdown | null);
   // F2 — the paid off-site "Market position" grade, if the deep pass computed one.
   const marketPosition = (scan.report_payload as { marketPosition?: { total?: number } | null } | null)?.marketPosition?.total ?? null;
 
@@ -117,6 +138,11 @@ async function DashboardContent() {
         <WeekPlanPreview board={board} />
       </div>
       <DashboardIntelBlocks />
+      {isOwner(viewer?.user.email) && (
+        <p style={{ marginTop: 18, textAlign: "center", fontSize: 11.5, color: "var(--c-faint)" }}>
+          <Link href="/app/diagnostics" style={{ color: "var(--c-faint)", textDecoration: "none" }}>Scan diagnostics →</Link>
+        </p>
+      )}
     </>
   );
 }

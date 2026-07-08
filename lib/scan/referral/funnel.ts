@@ -14,12 +14,11 @@ import { productNameFromHost } from "@/lib/scan/referral/discover-competitors";
 import { enrichEntity, type ScoredEntity } from "@/lib/scan/referral/intel";
 import { discoverReferralChannels } from "@/lib/scan/referral/discover";
 import { classifyOpportunityPages, type OppChannelType } from "@/lib/scan/referral/classify-pages";
-import { cachedBacklinks, cohortFor } from "@/lib/scan/cache/cached-adapters";
+import { cachedBacklinks, cohortFor, cachedBrandedSearchBatch } from "@/lib/scan/cache/cached-adapters";
 import { MAX_SELECTED } from "@/lib/scan/competitor-selection";
 import { cachedJson, DAY_MS } from "@/lib/scan/cache/external-cache";
 import { classifyReferrers, QUALITY_CATEGORIES, type ReferrerCategory } from "@/lib/scan/referral/classify-referrers";
 import { computeTrafficLens, type TrafficLens } from "@/lib/scan/referral/traffic-lens";
-import { serverDb } from "@/lib/db/client";
 import type { OnStageCallback } from "@/lib/scan/types";
 
 export interface QualityReferrer {
@@ -85,123 +84,10 @@ export interface FunnelResult {
 
 const isQuality = (c: ReferrerCategory) => QUALITY_CATEGORIES.includes(c);
 
-// ---------------------------------------------------------------------------
-// Domain intel persistence — structured typed storage per domain (Task 3)
-// ---------------------------------------------------------------------------
-
-type EntityWithBreakdown = ScoredEntity & { backlinks: ReferralBreakdown };
-
-/**
- * Upsert one row into `domain_intel` for the given entity + referral breakdown.
- * Best-effort — a missing table or write error is logged and silently swallowed
- * so it never breaks the gather.
- */
-async function persistDomainIntel(entity: EntityWithBreakdown): Promise<void> {
-  try {
-    const db = serverDb();
-    // Single row per domain (PK = domain) — the upsert fully overwrites, so no
-    // reconciliation is needed here; just surface any returned write error.
-    const { error } = await db.from("domain_intel").upsert(
-      {
-        domain: entity.domain,
-        organic_etv: Math.round(entity.monthlyTraffic),
-        organic_keywords: entity.mix?.organicKeywords ?? 0,
-        paid_etv: Math.round(entity.paidEtv),
-        // KNOWN-UNKNOWN placeholder: the real paid-keyword count needs an extra paid
-        // DataForSEO call and isn't on ScoredEntity. Column is NOT NULL, so we cannot
-        // write null — this 0 does NOT assert "zero paid keywords". Making it honest
-        // requires a schema change to make the column nullable (out of scope here).
-        paid_keywords: 0,
-        referring_domains: entity.mix?.referringDomains ?? 0,
-        branded_search_volume: entity.brandedSearchVolume,
-        top_pages_count: entity.topPagesCount,
-        quality_share: entity.backlinks.qualityShare,
-        referrer_categories: entity.backlinks.byCategory,
-        traffic_sources: entity.lens?.sources ?? {},
-        growth_activities: entity.lens?.activities ?? {},
-        fetched_at: new Date().toISOString(),
-      },
-      { onConflict: "domain" },
-    );
-    if (error) console.error(`[domain_intel] persist failed for ${entity.domain}: ${error.message}`);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error(`[domain_intel] persist failed for ${entity.domain}: ${msg}`);
-  }
-}
-
-/**
- * Upsert cohort-competitor rows into `cohort_competitor`.
- * Captures the per-cohort relationship: score, band, traffic, closeness, reason,
- * and quality_share. The subject itself gets is_subject=true and closeness=1.
- * Best-effort — a write error is logged and silently swallowed.
- */
-async function persistCohortCompetitors(
-  subjectDomain: string,
-  cohortKey: string,
-  subject: EntityWithBreakdown,
-  competitors: CompetitorDeep[],
-): Promise<void> {
-  try {
-    const db = serverDb();
-    // One run timestamp for the whole batch — reused by the reconciliation delete below.
-    const fetchedAt = new Date().toISOString();
-    const rows = [
-      {
-        subject_domain: subjectDomain,
-        cohort_key: cohortKey,
-        competitor_domain: subject.domain,
-        is_subject: true,
-        score: subject.score,
-        band: subject.band,
-        monthly_traffic: Math.round(subject.monthlyTraffic),
-        closeness: 1,
-        reason: "",
-        quality_share: subject.backlinks.qualityShare,
-        fetched_at: fetchedAt,
-      },
-      ...competitors.map((c) => ({
-        subject_domain: subjectDomain,
-        cohort_key: cohortKey,
-        competitor_domain: c.domain,
-        is_subject: false,
-        score: c.score,
-        band: c.band,
-        monthly_traffic: Math.round(c.monthlyTraffic),
-        closeness: c.closeness,
-        reason: c.reason,
-        quality_share: c.backlinks.qualityShare,
-        fetched_at: fetchedAt,
-      })),
-    ];
-    const CHUNK = 100;
-    // Upsert fresh rows FIRST so current data is guaranteed present before any delete.
-    for (let i = 0; i < rows.length; i += CHUNK) {
-      const { error } = await db
-        .from("cohort_competitor")
-        .upsert(rows.slice(i, i + CHUNK), { onConflict: "subject_domain,cohort_key,competitor_domain" });
-      if (error) console.error(`[cohort_competitor] chunk ${i} persist failed for ${subjectDomain}: ${error.message}`);
-    }
-    // THEN reconcile: drop rows for this (subject, cohort) scope superseded by this run
-    // (e.g. a competitor dropped from the cohort). Safe ordering — a failed delete leaves
-    // harmless extra old rows, never data loss.
-    const { error: delError } = await db
-      .from("cohort_competitor")
-      .delete()
-      .eq("subject_domain", subjectDomain)
-      .eq("cohort_key", cohortKey)
-      .lt("fetched_at", fetchedAt);
-    if (delError) console.error(`[cohort_competitor] reconcile delete failed for ${subjectDomain}: ${delError.message}`);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error(`[cohort_competitor] persist failed for ${subjectDomain}: ${msg}`);
-  }
-}
-
 /** Top distinct referrers for a domain (by backlink rank), with the deep link to
  *  the exact referring page. one_per_domain mode → the strongest page per host. */
-async function rawReferrers(domain: string, limit = 40): Promise<RawRef[]> {
-  const refs = await cachedBacklinks(domain, 250);
+async function rawReferrers(domain: string, limit = 60): Promise<RawRef[]> {
+  const refs = await cachedBacklinks(domain, 300);
   const seen = new Set<string>();
   const out: RawRef[] = [];
   for (const r of refs) {
@@ -223,7 +109,7 @@ function buildBreakdown(refs: RawRef[], cats: Map<string, ReferrerCategory>): Re
     byCategory[c] = (byCategory[c] ?? 0) + 1;
     if (isQuality(c)) {
       quality++;
-      if (topQuality.length < 15) topQuality.push({ host: r.host, category: c, url: r.url, anchor: r.anchor, target: r.target, authority: r.authority ?? null, dofollow: r.dofollow ?? null });
+      if (topQuality.length < 30) topQuality.push({ host: r.host, category: c, url: r.url, anchor: r.anchor, target: r.target, authority: r.authority ?? null, dofollow: r.dofollow ?? null });
     }
   }
   return { sampled: refs.length, byCategory, topQualityReferrers: topQuality, qualityShare: refs.length ? quality / refs.length : 0 };
@@ -304,10 +190,16 @@ export async function gatherFullFunnel(rawSelf: string, opts: { topN?: number; c
   const closest = await cohortFor(self, opts.competitorDomains);
   const cohort = closest.ranked.slice(0, topN).map((r) => r.domain);
 
+  // Batch branded-search volume for the whole cohort in ONE keywords_data call
+  // (was one per entity). Map brand→volume; enrichEntity reads its own from here.
+  const brandName = (d: string) => productNameFromHost(d);
+  const brandVolumes = await cachedBrandedSearchBatch([self, ...cohort].map(brandName)).catch(() => ({} as Record<string, number>));
+  const volFor = (d: string) => brandVolumes[brandName(d).trim().toLowerCase()] ?? 0;
+
   // 2. Subject + competitor scores/traffic/mix, and the raw referrer hosts per competitor.
   const [subject, comps, selfRefs, referrerLists] = await Promise.all([
-    enrichEntity(self, true),
-    Promise.all(cohort.map((d) => enrichEntity(d, false))),
+    enrichEntity(self, true, volFor(self)),
+    Promise.all(cohort.map((d) => enrichEntity(d, false, volFor(d)))),
     rawReferrers(self),
     Promise.all(cohort.map((d) => rawReferrers(d))),
   ]);
@@ -373,14 +265,6 @@ export async function gatherFullFunnel(rawSelf: string, opts: { topN?: number; c
   const keyActions = await synthesizeKeyActions({ subject: subjectWithLens, category: closest.category, competitors: competitorsWithLens, discoveryChannels, channelsMissing });
 
   const funnelSubject = { ...subjectWithLens, category: closest.category, backlinks: selfBacklinks };
-
-  // 6. Persist structured per-domain intel rows + cohort-competitor rows
-  //    (best-effort, never breaks the gather).
-  void Promise.all([
-    persistDomainIntel({ ...funnelSubject }),
-    ...competitorsWithLens.map((c) => persistDomainIntel(c)),
-    persistCohortCompetitors(self, cohortKey, funnelSubject, competitorsWithLens),
-  ]).catch((err) => console.error("[funnel] batch persist error:", err));
 
   return { subject: funnelSubject, category: closest.category, competitors: competitorsWithLens, discoveryChannels, channelsMissing, keyActions };
   });

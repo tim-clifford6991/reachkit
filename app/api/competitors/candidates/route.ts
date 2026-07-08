@@ -41,6 +41,9 @@ interface SeededCandidate {
   etv: number;
   ratio: number | null;
   sizeRelevant: boolean;
+  /** 2B — a discovered competitor we couldn't auto-resolve to a domain. Still
+   *  selectable; the select route resolves it on commit (name-keyed, no domain). */
+  unresolved?: boolean;
 }
 
 /** True when the shared `cc:<host>` cache already holds a fresh result — then
@@ -101,23 +104,36 @@ async function seedFromScan(
 
   // Resolve name-only competitors → domains in parallel, then BACKFILL the row so
   // this cost is paid once (subsequent loads see the host and skip resolution).
+  // 2B — a name we CAN'T resolve is no longer silently dropped: it's surfaced as
+  // an `unresolved` candidate (name-keyed) so the user sees every discovered rival
+  // and can still pick it; the select route resolves it on commit.
+  const seenNames = new Set<string>();
   if (nameOnly.length > 0 && ranked.length < 15) {
     const resolved = await Promise.all(
-      nameOnly.slice(0, 8).map(async (u) => ({ u, host: await resolveCompetitorDomain(u.name) })),
+      nameOnly.slice(0, 10).map(async (u) => ({ u, host: await resolveCompetitorDomain(u.name) })),
     );
     for (const { u, host } of resolved) {
-      if (!host || host === self || seen.has(host)) continue;
-      add(host, u.name);
-      try {
-        await db.from("competitors").update({ competitor_store_url: `https://${host}` }).eq("id", u.id);
-      } catch (e) {
-        console.error("[competitors/candidates] backfill failed (best-effort)", e);
+      if (host && host !== self && !seen.has(host)) {
+        add(host, u.name);
+        try {
+          await db.from("competitors").update({ competitor_store_url: `https://${host}` }).eq("id", u.id);
+        } catch (e) {
+          console.error("[competitors/candidates] backfill failed (best-effort)", e);
+        }
+      } else if (!host) {
+        const key = u.name.trim().toLowerCase();
+        if (key && !seenNames.has(key) && ranked.length < 15) {
+          seenNames.add(key);
+          ranked.push({ domain: "", name: u.name, closeness: 2, reason: "Found during your scan (name only)", etv: 0, ratio: null, sizeRelevant: true, unresolved: true });
+        }
       }
     }
   }
 
   if (ranked.length === 0) return null;
-  return { category: "", blurb: "", subjectEtv: 0, ranked, suggested: ranked.slice(0, 5).map((c) => c.domain) };
+  // Auto-suggest only resolved candidates (an unresolved one has no domain to seed).
+  const suggested = ranked.filter((c) => c.domain).slice(0, 5).map((c) => c.domain);
+  return { category: "", blurb: "", subjectEtv: 0, ranked, suggested };
 }
 
 export async function GET(req: NextRequest) {

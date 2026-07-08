@@ -20,7 +20,7 @@ import { cachedJson, DAY_MS } from "@/lib/scan/cache/external-cache";
 import { gatherFullFunnel } from "@/lib/scan/referral/funnel";
 import { gatherKeywordGap } from "@/lib/scan/referral/keyword-gap";
 import { gatherDemand } from "@/lib/scan/demand/gather";
-import { serverDb } from "@/lib/db/client";
+import { MAX_SELECTED } from "@/lib/scan/competitor-selection";
 import type { OnStageCallback } from "@/lib/scan/types";
 
 export interface ContentPlanItem {
@@ -64,131 +64,22 @@ const str = (v: unknown) => String(v ?? "").trim();
 const arr = (v: unknown): string[] => (Array.isArray(v) ? v.map(String).map((s) => s.trim()).filter(Boolean) : []);
 const prio = (v: unknown): "high" | "medium" | "low" => (["high", "medium", "low"].includes(String(v)) ? (v as "high") : "medium");
 
-// ---------------------------------------------------------------------------
-// Structured persistence (content_plan_item + distribution_plan_item tables)
-// ---------------------------------------------------------------------------
-
-/**
- * Upsert content plan rows into `content_plan_item`.
- * Best-effort — write errors are logged and swallowed so they never break the
- * gather. Called via `void ...catch(...)` inside the cachedJson body.
- */
-async function persistContentPlan(subject: string, cohortKey: string, plan: ContentPlanItem[]): Promise<void> {
-  if (plan.length === 0) return;
-  const db = serverDb();
-  // One run timestamp stamped on every row — reused by the reconciliation delete below
-  // to drop rows superseded by THIS run (stale topics from prior LLM output).
-  const fetchedAt = new Date().toISOString();
-  const rows = plan.map((c) => ({
-    subject_domain: subject,
-    cohort_key: cohortKey,
-    topic: c.topic,
-    format: c.format,
-    depth_target: c.depthTarget,
-    priority: c.priority,
-    est_monthly_volume: c.estMonthlyVolume,
-    buyer_angle: c.buyerAngle,
-    intent: c.intent,
-    target_keywords: c.targetKeywords,
-    brief: c.brief,
-    agent_prompt: c.agentPrompt,
-    evidence: c.evidence,
-    fetched_at: fetchedAt,
-  }));
-  const CHUNK = 100;
-  // Upsert fresh rows FIRST so current data is guaranteed present before any delete.
-  for (let i = 0; i < rows.length; i += CHUNK) {
-    try {
-      const { error } = await db
-        .from("content_plan_item")
-        .upsert(rows.slice(i, i + CHUNK), { onConflict: "subject_domain,cohort_key,topic" });
-      if (error) console.error(`[content_plan_item] chunk ${i} persist failed: ${error.message}`);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error(`[content_plan_item] chunk ${i} persist failed: ${msg}`);
-    }
-  }
-  // THEN reconcile: drop superseded rows for this (subject, cohort) scope. Safe ordering —
-  // a failed delete leaves harmless extra old rows, never data loss.
-  try {
-    const { error } = await db
-      .from("content_plan_item")
-      .delete()
-      .eq("subject_domain", subject)
-      .eq("cohort_key", cohortKey)
-      .lt("fetched_at", fetchedAt);
-    if (error) console.error(`[content_plan_item] reconcile delete failed: ${error.message}`);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error(`[content_plan_item] reconcile delete failed: ${msg}`);
-  }
-}
-
-/**
- * Upsert distribution plan rows into `distribution_plan_item`.
- * Best-effort — write errors are logged and swallowed so they never break the
- * gather. Called via `void ...catch(...)` inside the cachedJson body.
- */
-async function persistDistributionPlan(subject: string, cohortKey: string, plan: DistributionPlanItem[]): Promise<void> {
-  if (plan.length === 0) return;
-  const db = serverDb();
-  // One run timestamp stamped on every row — reused by the reconciliation delete below
-  // to drop rows superseded by THIS run (stale channel/action pairs from prior LLM output).
-  const fetchedAt = new Date().toISOString();
-  const rows = plan.map((d) => ({
-    subject_domain: subject,
-    cohort_key: cohortKey,
-    channel: d.channel,
-    action: d.action,
-    ease: d.ease,
-    impact: d.impact,
-    priority: d.priority,
-    effort: d.effort,
-    target: d.target,
-    target_url: d.targetUrl,
-    why: d.why,
-    evidence: d.evidence,
-    fetched_at: fetchedAt,
-  }));
-  const CHUNK = 100;
-  // Upsert fresh rows FIRST so current data is guaranteed present before any delete.
-  for (let i = 0; i < rows.length; i += CHUNK) {
-    try {
-      const { error } = await db
-        .from("distribution_plan_item")
-        .upsert(rows.slice(i, i + CHUNK), { onConflict: "subject_domain,cohort_key,channel,action" });
-      if (error) console.error(`[distribution_plan_item] chunk ${i} persist failed: ${error.message}`);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error(`[distribution_plan_item] chunk ${i} persist failed: ${msg}`);
-    }
-  }
-  // THEN reconcile: drop superseded rows for this (subject, cohort) scope. Safe ordering —
-  // a failed delete leaves harmless extra old rows, never data loss.
-  try {
-    const { error } = await db
-      .from("distribution_plan_item")
-      .delete()
-      .eq("subject_domain", subject)
-      .eq("cohort_key", cohortKey)
-      .lt("fetched_at", fetchedAt);
-    if (error) console.error(`[distribution_plan_item] reconcile delete failed: ${error.message}`);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error(`[distribution_plan_item] reconcile delete failed: ${msg}`);
-  }
-}
-
 export async function gatherSynthesis(rawSelf: string, opts: { competitorDomains?: string[]; onStage?: OnStageCallback } = {}): Promise<Synthesis> {
   const self = normalizeHost(rawSelf);
-  const cohortKey = (opts.competitorDomains ?? []).map((d) => d.toLowerCase()).sort().join(",");
+  // Cost guard (2A): this is the ~€1.2 metered spend that fires at competitor-select
+  // (backlinks + ranked-keywords + demand per rival). Every downstream gatherer
+  // already caps its cohort at MAX_SELECTED, but bound it HERE too so the most
+  // expensive entry point can never fan out beyond the paid ceiling regardless of
+  // what a caller passes. Per-domain caches de-dupe any overlap with the deep-scan
+  // auto-cohort, so re-selecting an already-profiled rival costs nothing.
+  const co = (opts.competitorDomains ?? []).slice(0, MAX_SELECTED);
+  const cohortKey = co.map((d) => d.toLowerCase()).sort().join(",");
   // Cache the whole synthesis so a repeat is instant (otherwise the three gatherers
   // — incl. the funnel's uncached page-classification — re-run every call). Keyed by
   // the chosen cohort so different selections don't collide.
   return cachedJson(`synth:${self}:${cohortKey}`, 7 * DAY_MS, async () => {
     // Stage fired inside cachedJson body — cold computes only.
     opts.onStage?.({ key: "synthesis:plan", label: "Synthesizing your plan" });
-    const co = opts.competitorDomains;
     const [funnel, kw, demand] = await Promise.all([
       gatherFullFunnel(self, { competitorDomains: co }),
       gatherKeywordGap(self, { competitorDomains: co }),
@@ -201,12 +92,6 @@ export async function gatherSynthesis(rawSelf: string, opts: { competitorDomains
       synthDistribution({ self, cohortKey, category, funnel, demand }),
     ]);
     const summary = await synthSummary({ self, cohortKey, category, demand, kw, funnel, contentPlan, distributionPlan });
-
-    // Persist structured plan rows (best-effort, never blocks the return).
-    void Promise.all([
-      persistContentPlan(self, cohortKey, contentPlan),
-      persistDistributionPlan(self, cohortKey, distributionPlan),
-    ]).catch((err) => console.error("[synthesis] persist error:", err));
 
     return { domain: self, category, summary, contentPlan, distributionPlan };
   });

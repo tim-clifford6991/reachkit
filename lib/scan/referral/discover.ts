@@ -71,7 +71,9 @@ export async function discoverReferralChannels(input: Input): Promise<DiscoverRe
   }
 
   const fetchIntersection = input.fetchIntersectionFn ?? ((targets: string[], opts?: { limit?: number }) => cachedDomainIntersection(targets, opts?.limit ?? 400));
-  const fetchSelfReferrers = input.fetchSelfReferrersFn ?? ((domain: string, opts?: { limit?: number }) => cachedBacklinks(domain, opts?.limit ?? 1000));
+  // Cost dedup: 300 (not 1000) so this reuses the SAME `bl:<self>:300` cache the
+  // funnel's rawReferrers already fills for the subject — no separate paid call.
+  const fetchSelfReferrers = input.fetchSelfReferrersFn ?? ((domain: string, opts?: { limit?: number }) => cachedBacklinks(domain, opts?.limit ?? 300));
   const fetchTraffic = input.fetchTrafficFn ?? realFetchTraffic;
   const self = normalizeHost(input.selfDomain);
 
@@ -79,7 +81,7 @@ export async function discoverReferralChannels(input: Input): Promise<DiscoverRe
   const t0 = Date.now();
   const [{ rows: interRows }, selfRefs] = await Promise.all([
     fetchIntersection(competitorDomains, { limit: input.limit ? input.limit * 10 : 400 }),
-    fetchSelfReferrers(input.selfDomain, { limit: 1000 }),
+    fetchSelfReferrers(input.selfDomain, { limit: 300 }),
   ]);
   const tFetched = Date.now();
 
