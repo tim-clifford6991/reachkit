@@ -37,11 +37,18 @@ export async function createServerSupabase() {
 
 export async function currentUser(): Promise<{ authId: string; user: UsersRow } | null> {
   const supa = await createServerSupabase();
-  const {
-    data: { user },
-    error,
-  } = await supa.auth.getUser();
-  if (error || !user) return null;
+  // On an expired session, supabase-js may *reject* here (not just resolve with
+  // { error }) — e.g. AuthApiError(refresh_token_not_found) when a token refresh
+  // fails. In a Server Component we can't persist rotated cookies (see
+  // createServerSupabase.setAll), so a failed refresh must degrade to
+  // "unauthenticated" and let callers redirect to /login — never surface as an
+  // uncaught error. The middleware (middleware.ts) refreshes sessions in the one
+  // place that CAN write cookies, so this path should be rare.
+  const user = await supa.auth
+    .getUser()
+    .then(({ data, error }) => (error ? null : data.user))
+    .catch(() => null);
+  if (!user) return null;
   // Load the profile row (service-role read keeps this simple + server-only)
   const { data: row } = await serverDb()
     .from("users")

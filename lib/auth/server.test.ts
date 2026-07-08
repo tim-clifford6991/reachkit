@@ -22,6 +22,16 @@ function makeSupabaseClient(getUserResult: {
   };
 }
 
+/** A client whose getUser() *rejects* (as supabase-js does on a failed token
+ * refresh, e.g. refresh_token_not_found) rather than resolving with { error }. */
+function makeThrowingSupabaseClient(err: Error) {
+  return {
+    auth: {
+      getUser: vi.fn().mockRejectedValue(err),
+    },
+  };
+}
+
 function makeServerDb(row: Record<string, unknown> | null) {
   const maybeSingle = vi.fn().mockResolvedValue({ data: row });
   const eq = vi.fn().mockReturnValue({ maybeSingle });
@@ -192,6 +202,41 @@ test("currentUser() returns null when user has no profile row", async () => {
   const result = await currentUser();
 
   expect(result).toBeNull();
+});
+
+// ---------------------------------------------------------------------------
+// currentUser() returns null (does NOT throw) when getUser() rejects
+//
+// Regression guard: on an expired session, supabase-js can *reject* from
+// getUser() with AuthApiError(refresh_token_not_found) instead of resolving
+// with { error }. That must degrade to "unauthenticated" (→ /login), not an
+// uncaught error that hits the app error boundary ("We hit an unexpected error").
+// ---------------------------------------------------------------------------
+
+test("currentUser() returns null when getUser() rejects (refresh_token_not_found)", async () => {
+  vi.resetModules();
+
+  vi.doMock("next/headers", () => ({
+    cookies: vi.fn().mockResolvedValue(makeCookieStore()),
+  }));
+
+  const refreshErr = Object.assign(new Error("Invalid Refresh Token: Refresh Token Not Found"), {
+    __isAuthError: true,
+    status: 400,
+    code: "refresh_token_not_found",
+  });
+  vi.doMock("@supabase/ssr", () => ({
+    createServerClient: vi.fn().mockReturnValue(makeThrowingSupabaseClient(refreshErr)),
+  }));
+
+  vi.doMock("@/lib/db/client", () => ({ serverDb: makeServerDb(null) }));
+
+  vi.doMock("@/lib/config/env", () => ({
+    env: { supabaseUrl: "https://x.supabase.co", supabaseAnonKey: "anon-key" },
+  }));
+
+  const { currentUser } = await import("./server");
+  await expect(currentUser()).resolves.toBeNull();
 });
 
 // ---------------------------------------------------------------------------
