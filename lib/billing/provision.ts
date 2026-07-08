@@ -54,7 +54,15 @@ export async function ensureAuthUser(email: string): Promise<string> {
  * - Sets tier/status when `entitlement` is provided (fixtures path only — in
  *   live mode the `customer.subscription.*` webhook is the source of truth).
  * - Links the scanned app when `scanId` is provided.
- * - Sends the onboarding magic link when `sendMagicLink` is true (default).
+ * - Sends the onboarding magic link when `sendMagicLink` is true (default) —
+ *   but only on the FIRST provisioning of a given Stripe customer. Stripe
+ *   redelivers `checkout.session.completed` at-least-once (retries on a
+ *   non-2xx, or a manual "Resend" from the dashboard), and every redelivery
+ *   re-enters this function with the same `stripeCustomerId`. Without this
+ *   guard each redelivery would re-send the login email — annoying, and on a
+ *   flaky window potentially several emails for one purchase. `ensureAuthUser`
+ *   and the scan-link/deepen calls below are already idempotent no-ops on
+ *   retry; this closes the same gap for the one side effect that wasn't.
  */
 export async function provisionCheckoutUser({
   email,
@@ -73,6 +81,20 @@ export async function provisionCheckoutUser({
 }): Promise<string> {
   const db = serverDb();
   const userId = await ensureAuthUser(email);
+
+  // Idempotency check: has this exact Stripe customer already been bound to
+  // this user? If so, this call is a redelivery of an already-processed event
+  // — skip the magic-link resend below. Only meaningful when the caller passed
+  // a stripeCustomerId (the live webhook path); the fixtures path always sends.
+  let alreadyProvisioned = false;
+  if (stripeCustomerId) {
+    const { data: existing } = await db
+      .from("users")
+      .select("stripe_customer_id")
+      .eq("id", userId)
+      .maybeSingle();
+    alreadyProvisioned = existing?.stripe_customer_id === stripeCustomerId;
+  }
 
   const update: UsersUpdate = {};
   if (stripeCustomerId) update.stripe_customer_id = stripeCustomerId;
@@ -97,7 +119,7 @@ export async function provisionCheckoutUser({
     }
   }
 
-  if (sendMagicLink) {
+  if (sendMagicLink && !alreadyProvisioned) {
     await sendOnboardingMagicLink(email);
   }
 
