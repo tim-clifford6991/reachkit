@@ -44,7 +44,7 @@ async function WelcomeContent({
   // SetupOverlay takes over for anyone whose setup is incomplete.
   const viewer = await currentUser();
   if (viewer) {
-    redirect("/app");
+    redirect("/app/dashboard");
   }
 
   const { session_id } = await searchParams;
