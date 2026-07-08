@@ -18,9 +18,14 @@ import Link from "next/link";
  * → /app → /app/dashboard right after a deploy) shows a scary "hit a snag" that
  * only clears after the user manually retries into the global boundary. We mirror
  * the global boundary's one-shot reload here so it self-heals silently.
+ *
+ * "Connection closed" is the same class of transient failure surfaced differently:
+ * Next aborts the in-flight RSC stream when the soft-nav request races a deploy (or
+ * a network blip), and the aborted fetch bubbles to this boundary. A one-shot reload
+ * re-requests against the live deployment and recovers — matching the skew path.
  */
 const SKEW_RE =
-  /ChunkLoadError|Loading chunk [^ ]+ failed|dynamically imported module|Importing a module script failed|Failed to fetch RSC payload/i;
+  /ChunkLoadError|Loading chunk [^ ]+ failed|dynamically imported module|Importing a module script failed|Failed to fetch RSC payload|Connection closed/i;
 const SKEW_RELOAD_KEY = "rk-skew-reloaded";
 
 export default function AppError({
