@@ -143,9 +143,22 @@ export function PlanTimelineBody({ board, synthesis, domain, score, today: today
                 <h3 style={{ fontFamily: SG, fontWeight: 700, fontSize: 15, color: "var(--c-ink)", margin: 0 }}>
                   {activeDate === todayKey ? "Today" : dayHeading(activeDate)}
                 </h3>
-                <span style={{ fontFamily: JM, fontSize: 11, color: "var(--c-faint)" }}>
-                  {activeEntries.length} {activeEntries.length === 1 ? "action" : "actions"} · ~{activeEntries.reduce((s, e) => s + e.effortMin, 0)} min
-                </span>
+                {(() => {
+                  // Split the day's load so a weekly deep piece (content, ~90 min+)
+                  // reads as focused work rather than a scary daily obligation
+                  // stacked onto the ~10-min daily habit. Most days are just the
+                  // quick post; the deep piece lands once a week.
+                  const quickMin = activeEntries.filter((e) => e.effortMin < 30).reduce((s, e) => s + e.effortMin, 0);
+                  const focusedMin = activeEntries.filter((e) => e.effortMin >= 30).reduce((s, e) => s + e.effortMin, 0);
+                  return (
+                    <span style={{ fontFamily: JM, fontSize: 11, color: "var(--c-faint)" }}>
+                      {activeEntries.length} {activeEntries.length === 1 ? "action" : "actions"}
+                      {focusedMin > 0
+                        ? ` · ~${quickMin} min quick${focusedMin ? ` + ~${focusedMin} min focused piece` : ""}`
+                        : ` · ~${quickMin} min`}
+                    </span>
+                  );
+                })()}
                 {activeDate === todayKey && <span style={{ fontFamily: JM, fontSize: 10.5, fontWeight: 700, color: "var(--c-action)" }}>← start here</span>}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
