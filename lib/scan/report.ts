@@ -140,7 +140,7 @@ export interface ReportPayload {
 // Bucketing helper (§10.3 horizon mix)
 // ---------------------------------------------------------------------------
 
-function bucketActions(actions: ActionCard[]): ReportPayload["whatToDoThisWeek"] {
+export function bucketActions(actions: ActionCard[]): ReportPayload["whatToDoThisWeek"] {
   const quickWins: ActionCard[] = [];
   const medium: ActionCard[] = [];
   const longPlay: ActionCard[] = [];

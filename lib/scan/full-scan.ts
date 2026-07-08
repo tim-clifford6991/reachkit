@@ -40,7 +40,7 @@ import { fillDeterministicDrafts } from "@/lib/scan/action-drafts";
 import { headlineScore } from "@/lib/scan/registry-score";
 import { verifiedScoreFromRegistry } from "@/lib/scan/free-report";
 import type { ScanSignalRow } from "@/lib/scan/compute-signals";
-import { assembleReport, persistReport, type ReportPayload } from "@/lib/scan/report";
+import { assembleReport, persistReport, bucketActions, type ReportPayload } from "@/lib/scan/report";
 import type {
   CompetitiveLandscapeRow,
   ChannelOpportunities,
@@ -616,6 +616,43 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
         await writeMarketSnapshot(ctx.appId, market, new Date().toISOString()).catch((e) =>
           console.error("[full-scan] market snapshot failed (best-effort)", e),
         );
+
+        // 8c. Market-aware re-floor. The §6b floor ran with market:null (this
+        //     analysis hadn't happened yet), so market-derived failing signals
+        //     (organic keywords, ranked positions, comparison pages, content
+        //     cadence, community/marketplace presence) were invisible to it — a
+        //     strong site could floor to only its on-site fixes (live trustmrr:
+        //     2 actions vs 4 final fails). Recompute signals WITH the market and
+        //     top the plan up again, then patch the persisted report's action
+        //     buckets to match. Best-effort — a failure keeps the §6b plan.
+        try {
+          const marketRows = await computeSignalRowsForScan({
+            mode: ctx.mode,
+            storeUrl: ctx.storeUrl,
+            components,
+            market,
+          });
+          const before = plan.length;
+          const refloored = fillDeterministicDrafts(
+            topUpActions(linkSignalKeys(plan, marketRows), marketRows),
+            facts.listing,
+            ctx.storeUrl,
+            ctx.mode,
+          );
+          if (refloored.length > before) {
+            plan = refloored;
+            const rdb = serverDb();
+            const { data } = await rdb.from("scans").select("report_payload").eq("id", ctx.scanId).maybeSingle();
+            const rp = data?.report_payload as unknown as ReportPayload | null;
+            if (rp) {
+              rp.whatToDoThisWeek = bucketActions(plan);
+              await rdb.from("scans").update({ report_payload: rp as unknown as Json }).eq("id", ctx.scanId);
+            }
+            console.warn(`[full-scan] market-aware re-floor grew plan ${before}→${plan.length} for scan ${ctx.scanId}`);
+          }
+        } catch (e) {
+          console.error("[full-scan] market-aware re-floor failed (best-effort)", e);
+        }
       }
       // NOTE: competitive intel is NOT pre-computed here. The user picks their own
       // benchmark competitors on the dashboard; intel is computed once at that point
