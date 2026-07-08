@@ -15,7 +15,7 @@ import { normalizeHost } from "@/lib/scan/referral/classify";
 import { cohortFor, cachedKeywordIdeas } from "@/lib/scan/cache/cached-adapters";
 import { MAX_SELECTED } from "@/lib/scan/competitor-selection";
 import { cachedJson, DAY_MS } from "@/lib/scan/cache/external-cache";
-import { inferProductBrief, type ICP } from "@/lib/scan/demand/brief";
+import { inferProductBrief, type ICP, type ProductDemandBrief } from "@/lib/scan/demand/brief";
 import { mineCompetitorReviews, type BuyerInsights } from "@/lib/scan/demand/reviews";
 import { discoverDemand } from "@/lib/scan/demand/index";
 import type { DemandPocket } from "@/lib/scan/demand/types";
@@ -157,6 +157,36 @@ function buyerInsightsEmpty(bi: BuyerInsights): boolean {
     bi.personas.length === 0 &&
     bi.buyerLanguage.length === 0
   );
+}
+
+/**
+ * 2C — buyer insights derived from data ALREADY gathered (no extra LLM/API cost),
+ * used only when competitor-review mining came back empty (indie rivals with no
+ * G2/Capterra footprint). Grounded, not invented:
+ *   - personas   ← the inferred ICP (who it's for) + the buyer audience
+ *   - pains      ← the product's core problem + the ICP's jobs-to-be-done
+ *   - language   ← verbatim titles of the highest-intent community threads buyers
+ *                  actually posted (the real words they use)
+ *   - lovedFeatures / sources are left empty: those genuinely require reviews, so
+ *     we don't fabricate them.
+ * Returns an empty payload when there's nothing to draw on — the UI then shows its
+ * explicit empty state rather than a half-filled block.
+ */
+function fallbackBuyerInsights(brief: ProductDemandBrief, pockets: DemandPocket[]): BuyerInsights {
+  const dedupe = (xs: string[]) => [...new Set(xs.map((s) => s.trim()).filter(Boolean))];
+  const threadTitles = dedupe(
+    pockets
+      .flatMap((p) => p.topThreads)
+      .sort((a, b) => b.intent - a.intent)
+      .map((t) => t.title),
+  ).slice(0, 6);
+  return {
+    pains: dedupe([brief.problem, ...brief.icp.jobsToBeDone]).slice(0, 6),
+    lovedFeatures: [],
+    personas: dedupe([brief.icp.whoItsFor, brief.audience]),
+    buyerLanguage: threadTitles,
+    sources: [],
+  };
 }
 
 /**
@@ -305,6 +335,14 @@ export async function gatherDemand(rawSelf: string, opts: { competitorDomains?: 
   const onTopic = cleaned.length > 0 ? cleaned : ideas;
   const topKeywords = onTopic.slice(0, 25);
 
+  // 2C — competitor reviews are often empty for indie rivals (no G2/Capterra
+  // presence), which left the Customers tab blank. When so, fall back to buyer
+  // signal we already hold — the inferred ICP + the real questions buyers ask in
+  // the discovered community threads — instead of serving nothing.
+  const effectiveBuyerInsights = buyerInsightsEmpty(buyerInsights)
+    ? fallbackBuyerInsights(brief, demand.pockets)
+    : buyerInsights;
+
   const result: DemandIntel = {
     domain: self,
     category: brief.category,
@@ -315,7 +353,7 @@ export async function gatherDemand(rawSelf: string, opts: { competitorDomains?: 
       themes,
     },
     community: { painQueries: demand.painQueries, pockets: demand.pockets },
-    buyerInsights,
+    buyerInsights: effectiveBuyerInsights,
   };
 
   // Persist the assembled demand intel itself (best-effort, never blocks the return).
