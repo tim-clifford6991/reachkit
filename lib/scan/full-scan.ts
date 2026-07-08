@@ -37,7 +37,7 @@ import { gatherScoreComponents, verifiedScore } from "@/lib/scan/score-full";
 import { persistScanSignals, computeSignalRowsForScan } from "@/lib/scan/persist-signals";
 import { linkSignalKeys, topUpActions, MIN_ACTIONS } from "@/lib/scan/action-linking";
 import { fillDeterministicDrafts } from "@/lib/scan/action-drafts";
-import { headlineScore, marketPositionScore } from "@/lib/scan/registry-score";
+import { registryScore, marketPositionScore } from "@/lib/scan/registry-score";
 import { verifiedScoreFromRegistry } from "@/lib/scan/free-report";
 import type { ScanSignalRow } from "@/lib/scan/compute-signals";
 import { assembleReport, persistReport, bucketActions, type ReportPayload } from "@/lib/scan/report";
@@ -714,14 +714,19 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
         platform: ctx.mode,
       }));
       if (ctx.mode === "web" && payload) {
-        const reg = headlineScore(signalRows);
+        // v3 headline = the FULL 18-signal registry score (weighted avg over the
+        // three assessed pillars), NOT the fixed-basis on-site headlineScore. This
+        // is what the dashboard pillars decompose, so the gauge == the pillar
+        // average (incl. a real Outreach). The off-site cohort grade stays separate
+        // as marketPosition below.
+        const reg = registryScore(signalRows);
         if (reg.assessed.length > 0) {
           await db
             .from("scans")
             .update({
               score_total: reg.total,
               score_breakdown: reg.breakdown as unknown as Json,
-              score_version: 2,
+              score_version: 3,
             })
             .eq("id", ctx.scanId);
           // F2: the off-site "Market position" grade, distinct from the on-site

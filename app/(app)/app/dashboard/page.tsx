@@ -120,13 +120,17 @@ async function DashboardContent() {
         )
       : null;
   const rollup = pillarRollupFromRegistry(reg, scan.score_breakdown as unknown as ScoreBreakdown | null);
+  // The headline gauge shows the SAME registry total the pillars decompose, so the
+  // gauge always equals the pillar weighted-average (fixing the gauge-vs-pillars
+  // incoherence). Falls back to the persisted score_total only when no signals exist.
+  const headline = reg ? reg.total : scan.score_total;
   // F2 — the paid off-site "Market position" grade, if the deep pass computed one.
   const marketPosition = (scan.report_payload as { marketPosition?: { total?: number } | null } | null)?.marketPosition?.total ?? null;
 
   return (
     <>
       <DashboardHero
-        score={scan.score_total}
+        score={headline}
         rollup={rollup}
         history={engagement.history}
         markers={markers}
