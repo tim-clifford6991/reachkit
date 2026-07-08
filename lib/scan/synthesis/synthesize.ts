@@ -20,6 +20,7 @@ import { cachedJson, DAY_MS } from "@/lib/scan/cache/external-cache";
 import { gatherFullFunnel } from "@/lib/scan/referral/funnel";
 import { gatherKeywordGap } from "@/lib/scan/referral/keyword-gap";
 import { gatherDemand } from "@/lib/scan/demand/gather";
+import { MAX_SELECTED } from "@/lib/scan/competitor-selection";
 import type { OnStageCallback } from "@/lib/scan/types";
 
 export interface ContentPlanItem {
@@ -65,14 +66,20 @@ const prio = (v: unknown): "high" | "medium" | "low" => (["high", "medium", "low
 
 export async function gatherSynthesis(rawSelf: string, opts: { competitorDomains?: string[]; onStage?: OnStageCallback } = {}): Promise<Synthesis> {
   const self = normalizeHost(rawSelf);
-  const cohortKey = (opts.competitorDomains ?? []).map((d) => d.toLowerCase()).sort().join(",");
+  // Cost guard (2A): this is the ~€1.2 metered spend that fires at competitor-select
+  // (backlinks + ranked-keywords + demand per rival). Every downstream gatherer
+  // already caps its cohort at MAX_SELECTED, but bound it HERE too so the most
+  // expensive entry point can never fan out beyond the paid ceiling regardless of
+  // what a caller passes. Per-domain caches de-dupe any overlap with the deep-scan
+  // auto-cohort, so re-selecting an already-profiled rival costs nothing.
+  const co = (opts.competitorDomains ?? []).slice(0, MAX_SELECTED);
+  const cohortKey = co.map((d) => d.toLowerCase()).sort().join(",");
   // Cache the whole synthesis so a repeat is instant (otherwise the three gatherers
   // — incl. the funnel's uncached page-classification — re-run every call). Keyed by
   // the chosen cohort so different selections don't collide.
   return cachedJson(`synth:${self}:${cohortKey}`, 7 * DAY_MS, async () => {
     // Stage fired inside cachedJson body — cold computes only.
     opts.onStage?.({ key: "synthesis:plan", label: "Synthesizing your plan" });
-    const co = opts.competitorDomains;
     const [funnel, kw, demand] = await Promise.all([
       gatherFullFunnel(self, { competitorDomains: co }),
       gatherKeywordGap(self, { competitorDomains: co }),

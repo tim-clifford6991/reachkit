@@ -231,16 +231,24 @@ existed won't carry it. Top-level sections and who reads them:
 
 ### 4.3 The two cost points
 
-Heavy metered spend (DataForSEO + LLM) fires at exactly two moments — surfaced
-per-scan in `/app/diagnostics` (from `pipeline_runs`):
+Heavy metered spend (DataForSEO + LLM) fires at exactly two moments. **Both are
+bounded to `MAX_SELECTED` (5) rivals** — the cost is capped, not open-ended:
 
-1. **Deep scan** (`scan/deepen` → `runFullScan`) — profiles an auto-discovered
-   top-5 cohort (backlinks + ranked keywords) + demand sweep. Guarded by
-   `ScanBudget` (`env.scanBudgetCents`).
+1. **Deep scan** (`scan/deepen` → `runFullScan` → `runMarketAnalysis`) — profiles
+   an auto-discovered top-5 cohort (full: backlinks + ranked keywords, needed for
+   the gap/channel analysis) + demand sweep. Runs under `ScanBudget`
+   (`env.scanBudgetCents`). The free pass is a lighter top-3 ETV-only variant.
 2. **Competitor select** (`POST /api/competitors/select` → `gatherSynthesis`) —
-   the full funnel + keyword-gap + demand + synthesis for the user's chosen
-   cohort (~€1.2). If the user re-selects a cohort different from the auto one,
-   this is a *second* cohort profiling (double-cohort cost).
+   the full funnel + keyword-gap + demand + synthesis for the user's chosen cohort
+   (~€1.2). `gatherSynthesis` hard-caps its cohort at `MAX_SELECTED`, and every
+   downstream gatherer (`cohortFor`, `gatherFullFunnel`, `gatherDemand`) caps too.
+
+**Overlap is de-duped by the per-domain caches** (`cc:*`, backlinks, ranked-kw,
+profile): re-selecting a rival the deep scan already profiled costs nothing, so
+the "double-cohort" cost only ever applies to *new* domains the user adds. Making
+the deep-scan cohort light to avoid re-profiling was deliberately **not** adopted —
+the deep market analysis needs full backlink profiles, and the caches already
+eliminate the redundant spend.
 
 ### 4.4 Single-source-of-truth rule (retired dead tables)
 
