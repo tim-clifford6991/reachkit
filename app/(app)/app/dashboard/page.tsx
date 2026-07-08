@@ -39,7 +39,7 @@ async function DashboardContent() {
   const [{ data: scan }, board] = await Promise.all([
     serverDb()
       .from("scans")
-      .select("score_total, score_breakdown")
+      .select("score_total, score_breakdown, report_payload")
       .eq("app_id", ctx.appId)
       .not("completed_at", "is", null)
       .not("score_total", "is", null)
@@ -99,6 +99,8 @@ async function DashboardContent() {
   ]);
 
   const rollup = pillarRollup(scan.score_breakdown as unknown as ScoreBreakdown | null);
+  // F2 — the paid off-site "Market position" grade, if the deep pass computed one.
+  const marketPosition = (scan.report_payload as { marketPosition?: { total?: number } | null } | null)?.marketPosition?.total ?? null;
 
   return (
     <>
@@ -108,6 +110,7 @@ async function DashboardContent() {
         history={engagement.history}
         markers={markers}
         isPaid={entitlements?.active ?? false}
+        marketPosition={marketPosition}
       />
       {/* The plan is what a founder acts on — it reads second, right after the score story. */}
       <div style={{ marginTop: 20 }}>

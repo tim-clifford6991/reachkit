@@ -35,9 +35,12 @@ export interface DashboardHeroProps {
   markers: HistoryMarker[];
   /** Paid users get the plan link; free users get one-click Solo checkout (W6). */
   isPaid: boolean;
+  /** F2 — the off-site "Market position" grade (paid deep pass). Shown beside the
+   *  on-site score so a tidy landing page can't be mistaken for market strength. */
+  marketPosition?: number | null;
 }
 
-export function DashboardHero({ score, rollup, history, markers, isPaid }: DashboardHeroProps) {
+export function DashboardHero({ score, rollup, history, markers, isPaid, marketPosition }: DashboardHeroProps) {
   const band = bandFor(score);
   const assessedCount = rollup.pillars.filter((p) => p.assessed).length;
   const delta =
@@ -50,11 +53,26 @@ export function DashboardHero({ score, rollup, history, markers, isPaid }: Dashb
         <div style={{ display: "flex", flexWrap: "wrap", gap: 28, alignItems: "center" }}>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
             <Gauge score={score} />
+            <span style={{ fontSize: 10.5, fontFamily: JM, color: "var(--c-faint)", letterSpacing: "0.03em" }}>ON-SITE READINESS</span>
             {delta !== null && (
               <span style={{ fontSize: 12, fontFamily: JM, color: delta > 0 ? "var(--c-band-high)" : delta < 0 ? "var(--c-band-invisible)" : "var(--c-faint)" }}>
                 {delta > 0 ? `▲ +${delta}` : delta < 0 ? `▼ ${delta}` : "no change"} since last scan
               </span>
             )}
+            {/* F2 — the honest cohort-relative counterpart to the on-site score. */}
+            {marketPosition != null && (() => {
+              const mb = bandFor(marketPosition);
+              return (
+                <div style={{ marginTop: 8, paddingTop: 10, borderTop: "1px dashed var(--c-line)", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                  <span style={{ fontSize: 10.5, fontFamily: JM, color: "var(--c-faint)", letterSpacing: "0.03em" }}>MARKET POSITION vs RIVALS</span>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                    <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 24, color: mb.color }}>{marketPosition}</span>
+                    <span style={{ fontSize: 11, color: "var(--c-faint)" }}>/ 100 · {mb.label}</span>
+                  </div>
+                  <span style={{ fontSize: 10.5, color: "var(--c-faint)", textAlign: "center", maxWidth: 190, lineHeight: 1.4 }}>Off-site footprint (keywords, backlinks, presence) vs your discovered competitors.</span>
+                </div>
+              );
+            })()}
           </div>
           <div style={{ flex: "1 1 320px", minWidth: 260, display: "flex", flexDirection: "column", gap: 12 }}>
             {rollup.pillars.map((p) => (
