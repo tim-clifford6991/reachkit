@@ -25,7 +25,7 @@ async function LoginFormWithNext({
 }) {
   const [{ next }, viewer] = await Promise.all([searchParams, currentUser()]);
   const safeNext = next && next.startsWith("/") ? next : undefined;
-  if (viewer) redirect(safeNext ?? "/app");
+  if (viewer) redirect(safeNext ?? "/app/dashboard");
   return <LoginForm next={safeNext} />;
 }
 

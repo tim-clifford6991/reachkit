@@ -33,7 +33,7 @@ async function persistOnboarding(formData: FormData): Promise<void> {
 /** Legacy full-page variant: persists, then navigates to the app. */
 export async function saveOnboarding(formData: FormData): Promise<void> {
   await persistOnboarding(formData);
-  redirect("/app");
+  redirect("/app/dashboard");
 }
 
 /**

@@ -163,8 +163,11 @@ export function AppShell(p: AppShellProps) {
       <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", minHeight: "100vh", background: "var(--c-bg2)" }}>
         {/* Sidebar */}
         <aside style={{ background: "var(--c-surface)", borderRight: "1px solid var(--c-line2)", display: "flex", flexDirection: "column", padding: "18px 14px", position: "sticky", top: 0, height: "100vh" }}>
-          {/* Brand → always returns to the dashboard home. */}
-          <Link href="/app" style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 8px 18px", textDecoration: "none", color: "inherit" }}>
+          {/* Brand → always returns to the dashboard home. Link straight to
+              /app/dashboard, NOT /app: /app server-redirects there, and a client
+              soft-nav to a redirecting route aborts its in-flight RSC stream →
+              "Connection closed" caught by the (app) error boundary. */}
+          <Link href="/app/dashboard" style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 8px 18px", textDecoration: "none", color: "inherit" }}>
             <svg width="26" height="26" viewBox="0 0 28 28"><rect width="28" height="28" rx="9" fill="#6E56F7" /><circle cx="14" cy="14" r="1.7" fill="#fff" /><path d="M14 19 A5 5 0 1 1 19 14" stroke="#fff" strokeWidth="1.7" fill="none" strokeLinecap="round" /><path d="M14 23 A9 9 0 1 1 23 14" stroke="#C3B2FF" strokeWidth="1.7" fill="none" strokeLinecap="round" /></svg>
             <span style={{ fontFamily: SG, fontWeight: 700, fontSize: 17 }}>ReachKit</span>
           </Link>

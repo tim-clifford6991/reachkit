@@ -47,7 +47,7 @@ export function MarketingNav({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
           {/* Logged in: one "Dashboard" link + a primary "New scan" CTA (run an
               additional free scan). Logged out: "Log in" + "Analyze my site". */}
           <Link
-            href={isLoggedIn ? "/app" : "/login"}
+            href={isLoggedIn ? "/app/dashboard" : "/login"}
             className={`hidden sm:inline-flex ${focusRing}`}
             style={{ fontSize: 14.5, fontWeight: 600, color: "#3A3744" }}
           >
