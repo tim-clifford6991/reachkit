@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { resolveIntelContext } from "@/lib/app/intel-context";
 import { currentUser } from "@/lib/auth/server";
+import { isOwner } from "@/lib/auth/owner";
 import { entitlementsFor } from "@/lib/billing/entitlements";
 import { serverDb } from "@/lib/db/client";
 import { engagementSummary } from "@/lib/scan/engagement";
@@ -137,6 +138,11 @@ async function DashboardContent() {
         <WeekPlanPreview board={board} />
       </div>
       <DashboardIntelBlocks />
+      {isOwner(viewer?.user.email) && (
+        <p style={{ marginTop: 18, textAlign: "center", fontSize: 11.5, color: "var(--c-faint)" }}>
+          <Link href="/app/diagnostics" style={{ color: "var(--c-faint)", textDecoration: "none" }}>Scan diagnostics →</Link>
+        </p>
+      )}
     </>
   );
 }
