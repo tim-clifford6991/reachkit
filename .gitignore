@@ -49,3 +49,6 @@ ds-bundle/
 .design-sync/ds-src/.reference/
 
 .superpowers/
+
+# agent worktrees (isolation)
+.claude/worktrees/
