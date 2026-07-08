@@ -35,9 +35,9 @@ export const priorityTone = (p: string): Tone => (p === "high" ? "red" : p === "
 export const effortTone = (e: string): Tone => (e === "low" ? "green" : e === "high" ? "red" : "amber");
 export const intentTone = (i: string): Tone => { const v = (i || "").toLowerCase(); return v.startsWith("transaction") ? "green" : v.startsWith("commercial") ? "violet" : "neutral"; };
 
-export function Badge({ tone = "violet", children, style }: { tone?: Tone; children: React.ReactNode; style?: React.CSSProperties }) {
+export function Badge({ tone = "violet", children, style, title }: { tone?: Tone; children: React.ReactNode; style?: React.CSSProperties; title?: string }) {
   const c = TINT[tone];
-  return <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: c.bg, color: c.fg, fontFamily: PJ, fontWeight: 700, fontSize: 11.5, padding: "3px 9px", borderRadius: "var(--radius-xs)", lineHeight: 1.2, whiteSpace: "nowrap", ...style }}>{children}</span>;
+  return <span title={title} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: c.bg, color: c.fg, fontFamily: PJ, fontWeight: 700, fontSize: 11.5, padding: "3px 9px", borderRadius: "var(--radius-xs)", lineHeight: 1.2, whiteSpace: "nowrap", cursor: title ? "help" : undefined, ...style }}>{children}</span>;
 }
 
 // ---------------------------------------------------------------------------
