@@ -113,7 +113,11 @@ export function mergePlanEntries(args: {
     entries.push({
       key: a.id,
       actionId: a.id,
-      kind: a.category === "content" ? "content" : "distribution",
+      // Only genuine OUTREACH (reach out to a venue/person) is a distribution entry
+      // — that's what earns the platform/email "pitch" draft. On-site work (content
+      // AND seo_aso, e.g. "publish keyword-targeted pages") is a CONTENT entry, so it
+      // gets a content draft instead of a nonsensical floating outreach email.
+      kind: a.category === "outreach" ? "distribution" : "content",
       title: a.title,
       why: a.why,
       // A tracked action's structured target (Task: ActionTarget) drives routing;
