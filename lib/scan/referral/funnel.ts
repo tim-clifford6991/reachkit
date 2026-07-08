@@ -14,7 +14,7 @@ import { productNameFromHost } from "@/lib/scan/referral/discover-competitors";
 import { enrichEntity, type ScoredEntity } from "@/lib/scan/referral/intel";
 import { discoverReferralChannels } from "@/lib/scan/referral/discover";
 import { classifyOpportunityPages, type OppChannelType } from "@/lib/scan/referral/classify-pages";
-import { cachedBacklinks, cohortFor } from "@/lib/scan/cache/cached-adapters";
+import { cachedBacklinks, cohortFor, cachedBrandedSearchBatch } from "@/lib/scan/cache/cached-adapters";
 import { MAX_SELECTED } from "@/lib/scan/competitor-selection";
 import { cachedJson, DAY_MS } from "@/lib/scan/cache/external-cache";
 import { classifyReferrers, QUALITY_CATEGORIES, type ReferrerCategory } from "@/lib/scan/referral/classify-referrers";
@@ -190,10 +190,16 @@ export async function gatherFullFunnel(rawSelf: string, opts: { topN?: number; c
   const closest = await cohortFor(self, opts.competitorDomains);
   const cohort = closest.ranked.slice(0, topN).map((r) => r.domain);
 
+  // Batch branded-search volume for the whole cohort in ONE keywords_data call
+  // (was one per entity). Map brand→volume; enrichEntity reads its own from here.
+  const brandName = (d: string) => productNameFromHost(d);
+  const brandVolumes = await cachedBrandedSearchBatch([self, ...cohort].map(brandName)).catch(() => ({} as Record<string, number>));
+  const volFor = (d: string) => brandVolumes[brandName(d).trim().toLowerCase()] ?? 0;
+
   // 2. Subject + competitor scores/traffic/mix, and the raw referrer hosts per competitor.
   const [subject, comps, selfRefs, referrerLists] = await Promise.all([
-    enrichEntity(self, true),
-    Promise.all(cohort.map((d) => enrichEntity(d, false))),
+    enrichEntity(self, true, volFor(self)),
+    Promise.all(cohort.map((d) => enrichEntity(d, false, volFor(d)))),
     rawReferrers(self),
     Promise.all(cohort.map((d) => rawReferrers(d))),
   ]);

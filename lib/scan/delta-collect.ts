@@ -154,7 +154,9 @@ async function collectRank(ctx: ScanContext, watermark: WatermarkBody, facts: Pr
   if (keywords.length === 0) {
     return { kind: "rank", items: [], newWatermark: { ...watermark, topRanks: prev } };
   }
-  const fresh = await rankLookup(keywords, ctx.storeUrl);  // never throws → {} on failure
+  // Weekly rank check: depth 20 (not the default 50) — a cheaper recurring SERP that
+  // still catches meaningful top-of-page movement. Action verification keeps depth 50.
+  const fresh = await rankLookup(keywords, ctx.storeUrl, 20);  // never throws → {} on failure
   const changed = Object.entries(fresh).flatMap(([keyword, to]) => {
     const from = prev[keyword] ?? null;
     return from === to ? [] : [{ keyword, from, to }];
@@ -164,7 +166,7 @@ async function collectRank(ctx: ScanContext, watermark: WatermarkBody, facts: Pr
 
 // A few keywords derived from facts.themes (fallback: listing name/category).
 function rankKeywords(facts: PreliminaryFacts): string[] {
-  const fromThemes = facts.themes.map((t) => t.term).filter((t) => t.length > 0).slice(0, 5);
+  const fromThemes = facts.themes.map((t) => t.term).filter((t) => t.length > 0).slice(0, 3);
   if (fromThemes.length > 0) return fromThemes;
   const fallback: string[] = [];
   if (facts.listing.name) fallback.push(facts.listing.name);

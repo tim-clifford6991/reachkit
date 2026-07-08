@@ -11,7 +11,7 @@ import { env } from "@/lib/config/env";
 import { fixturesEnabled } from "@/lib/dev/fixtures";
 import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
 import { serpAuthHeader } from "@/lib/scan/adapters/dataforseo";
-import { fetchRankedKeywords, fetchRelevantPages } from "@/lib/scan/adapters/dataforseo-ranked-keywords";
+import { cachedRankedKeywords, cachedRelevantPages } from "@/lib/scan/cache/cached-adapters";
 import { toHost } from "./crawl";
 import type { SeoPosture } from "./types";
 
@@ -104,8 +104,14 @@ export async function fetchSeoPosture(
     wantBacklinks
       ? post("https://api.dataforseo.com/v3/backlinks/summary/live", [{ target }])
       : Promise.resolve(null),
-    wantRanked ? fetchRankedKeywords(target) : Promise.resolve([]),
-    wantRanked ? fetchRelevantPages(target) : Promise.resolve([]),
+    // Cost dedup: route through the SHARED rk:/tp: cache (not the raw uncached
+    // fetch) at the SAME limits keyword-gap + content-gather use, so whichever
+    // subsystem runs first for a domain warms the cache and the other hits it —
+    // eliminating the A/B double-fetch of ranked_keywords + relevant_pages per
+    // cohort domain. Limits kept at 50/10 so the profile's rankedKeywords.length
+    // (a scoring input) is unchanged from before this dedup.
+    wantRanked ? cachedRankedKeywords(target, 50) : Promise.resolve([]),
+    wantRanked ? cachedRelevantPages(target, 15) : Promise.resolve([]),
   ]);
 
   if (!overview && !backlinks) return null;

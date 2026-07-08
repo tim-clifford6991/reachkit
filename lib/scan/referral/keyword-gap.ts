@@ -86,9 +86,12 @@ export async function gatherKeywordGap(rawSelf: string, opts: { topN?: number; c
   const closest = await cohortFor(self, opts.competitorDomains);
   const cohort = closest.ranked.slice(0, opts.topN ?? 4).map((r) => r.domain);
 
+  // Limit 50 (was 100) to share the rk:<domain>:50 cache the deep-scan profiler
+  // now warms (cost dedup). Gaps only count rivals in the top 30 (WINNING_POSITION)
+  // and order_by etv desc front-loads value, so rows 51-100 rarely survived anyway.
   const [subjectKw, ...compKwLists] = await Promise.all([
-    cachedRankedKeywords(self, 100),
-    ...cohort.map((d) => cachedRankedKeywords(d, 100)),
+    cachedRankedKeywords(self, 50),
+    ...cohort.map((d) => cachedRankedKeywords(d, 50)),
   ]);
 
   // Subject's best position per keyword.

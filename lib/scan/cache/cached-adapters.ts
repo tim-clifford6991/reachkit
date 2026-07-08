@@ -91,6 +91,33 @@ export function cachedBrandedSearch(brand: string): Promise<number> {
 }
 
 /**
+ * Branded-search volume for MANY brands in ONE keywords_data call. The funnel used
+ * to call `cachedBrandedSearch` once per cohort entity (N+1 keywords_data calls on
+ * a cold cohort); `search_volume/live` already accepts a keyword array, so this
+ * collapses that fan-out to a single billed call. Keyed on the brand set (the funnel
+ * is itself cached per cohort, so the set is stable per app). Returns a
+ * lowercased-brand → volume map; brands with no volume are simply absent (0). 30d.
+ */
+export function cachedBrandedSearchBatch(brands: string[]): Promise<Record<string, number>> {
+  const uniq = [...new Set(brands.map(norm))].filter(Boolean).sort();
+  const key = `bsv:${uniq.join("|")}`;
+  return cachedJson(key, 30 * DAY_MS, async () => {
+    if (uniq.length === 0) return {};
+    const { keywords } = await keywordsData(uniq);
+    const map: Record<string, number> = {};
+    for (const k of keywords) {
+      const v = k.volume ?? 0;
+      if (v > 0) map[norm(k.keyword)] = v;
+    }
+    return map;
+  }, {
+    // An all-zero/empty map is the degraded result (missing subscription, fixtures,
+    // error) — don't cache it for 30d and re-serve false "no branded traffic".
+    isEmpty: (m) => Object.keys(m).length === 0,
+  });
+}
+
+/**
  * The cohort to analyze: the user's CHOSEN competitors when given (onboarding
  * selection), else the auto closeness-ranked set. Category/blurb/subjectEtv come
  * from the (cached) closest result either way.
