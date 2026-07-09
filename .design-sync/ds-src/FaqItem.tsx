@@ -1,3 +1,4 @@
+/* @mirrors components/sections/faq.tsx */
 import * as React from "react";
 
 /** FaqItem — a bordered card with a bold question + a +/− indicator; when open, reveals the muted answer. Renders with no props. */

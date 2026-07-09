@@ -1,3 +1,4 @@
+/* @mirrors components/app/captured/app-shell.tsx */
 import * as React from "react";
 
 /**

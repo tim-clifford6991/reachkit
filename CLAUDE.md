@@ -49,14 +49,34 @@ Each has (or should have) a guard test. Breaking one is a correctness regression
 - **Import paths / conventions** (from `components.json`): `@/components`, ui = `@/components/ui`, utils = `@/lib/utils` (the `cn()` helper = `clsx` + `tailwind-merge` — use it for conditional classes), lib = `@/lib`, hooks = `@/hooks`. shadcn style is **`base-nova`** (Base UI, not Radix); icons are **lucide-react**. Server Components by default (`rsc: true`).
 - **Compose from existing primitives before introducing anything new.** A new component must first be attempted as a composition of the `@/components/ui` primitives + the intel kit + existing design-system components. Only add a genuinely new atomic component when no combination works — and when you do, add it to the kit/inventory and (for Claude Design) `.design-sync/ds-src/` + `INVENTORY.md` in the same change. **Claude Design specifics:** page templates compose existing `ds-src` components (never hand-rolled lookalikes); a component is active only if a Page composes it (else `archived: true` in `layout.mjs`, delete-free); the build regenerates `_ds_manifest.json` and the `_ds_sync.json` sentinel must be re-armed **last** on upload or the pane looks stale. Full workflow in `.design-sync/NOTES.md` + `INVENTORY.md`.
 
+## Consistency harness + Change Protocol (the ratchet — read before changing an invariant, a token, or a boundary)
+
+Architecture and the Claude Design system are kept from drifting by **machine-checked** gates, not prose alone. The rule: **strict adherence, iterate forward, never go backwards.** A gate may be *strengthened*; it may never be weakened to make a regression pass. Non-Claude agents read the same rules via `AGENTS.md` (a pointer to this file).
+
+**The four enforcement layers** (all run in CI; the last three also run on pre-commit):
+
+| Layer | Command | Pins / enforces |
+|---|---|---|
+| Behavioral guard tests | `pnpm test` | Invariants #1 (`registry-score.test.ts`), #5 (`golden-set.eval` via `pnpm eval`), #7 (`algorithm-safety.test.ts`), #8 (`abuse.test.ts`), + scoring guards. |
+| Doc-contract tripwire | `pnpm test` → `lib/scan/documented-invariants.test.ts` | The load-bearing constants restated in this file: headline v4, `FIXED_BASIS_SIGNAL_KEYS` (8), `PILLAR_WEIGHTS`, `MAX_SELECTED`, `MIN_ACTIONS`. |
+| Architecture boundaries | `pnpm check:arch` (`.dependency-cruiser.cjs`) | Layer imports from `docs/architecture.md`: `lib ✗→ app` · scan/llm/billing `✗→ components` · Anthropic SDK only in `lib/llm` · Supabase only in `lib/db`/`lib/auth`/`middleware.ts` · production `✗→` dev scaffolding (`app/design`, `app/test-*`, `app/api/test-*`). |
+| Design parity | `pnpm check:design` (`scripts/check-design-parity.mjs`) | Claude Design ↔ code: every `--c-*` in `app/globals.css` equals `.design-sync/tokens.css` (light+dark); `--c-band-*` equals `SCORE_BANDS` in `score-bands.ts`; every `@mirrors <path>` in `.design-sync/ds-src/*.tsx` resolves to a live file. |
+
+**Design token source of truth.** App tokens live in `app/globals.css` (`@theme` light + `.dark`). The committed DS mirror is **`.design-sync/tokens.css`** (parity-checked; `layout.mjs` copies it into the gitignored `ds-bundle/tokens/tokens.css` on build — it is no longer re-fetched from the remote project). To change a token: edit `app/globals.css` AND `.design-sync/tokens.css` together, then `pnpm check:design`. Score-band colors change only in `score-bands.ts` → mirror into `globals.css` `--c-band-*` (and thus `.design-sync/tokens.css`). New design-system component → add its `ds-src` file with a `/* @mirrors <live-path> */` tag.
+
+**The Change Protocol.** To change an invariant, a token, or a layer boundary *on purpose*, update all of these **in the same commit**: (1) the source constant / token / rule, (2) its guard/parity check, (3) this file (`CLAUDE.md`), (4) `docs/architecture.md` if structural. CI enforces the mechanical half; this protocol names the human half. New invariant → it gets a guard (test, arch rule, or parity check) *before* merge, and this table is updated. Never delete a check without a documented reason in the commit body.
+
+> Node note: `check:arch` runs dependency-cruiser via its programmatic API (`scripts/check-arch.mjs`) so it works on non-LTS node (25) as well as CI's node 22. The `env-only-in-lib/config` invariant is **not** yet an arch rule (env access isn't an import edge; ~10 call sites remain) — a known follow-up.
+
 ## Known open risks (steer around these)
 
 - **Score calibration is unresolved and unenforced** (the one red rule): headline fails band-separation on live data — SPA-fetch→SEO=0 gives false lows, tidy pages give false 100s. `scripts/score-calibration.mts` is a live tool, NOT run in CI.
-- **Dev scaffolding surface** — `app/test-*`, `app/api/test-*`, `app/design/*` must be confirmed gated/removed before prod exposure.
+- **Dev scaffolding surface** — `app/test-*`, `app/api/test-*`, `app/design/*` must be confirmed gated/removed before prod exposure. (`pnpm check:arch` now blocks production code from *importing* them, but does not gate the routes themselves.)
 - **Cohort cache-key stability** — deep-scan vs competitor-select cost de-dup relies entirely on per-domain cache keys; a key drift silently doubles DataForSEO spend.
 - **`audienceProxy` always 0** — the YouTube 2nd `videos.list` call is never made; creator reach is a placeholder.
 
 ## Commands
 
 - `pnpm test` — unit · `pnpm test:int` — integration (needs local Supabase) · `pnpm eval` — golden-set
+- `pnpm check:arch` — layer/import boundaries · `pnpm check:design` — Claude Design ↔ code token/band/mirror parity (the ratchet; see "Consistency harness")
 - `pnpm dev` + `pnpm dev:inngest` — local (Inngest must run alongside)

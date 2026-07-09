@@ -1,3 +1,4 @@
+/* @mirrors components/sections/scan-hero.tsx */
 import * as React from "react";
 import { ScanInput } from "./ScanInput";
 

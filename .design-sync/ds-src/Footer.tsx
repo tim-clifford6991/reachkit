@@ -1,3 +1,4 @@
+/* @mirrors components/sections/footer.tsx */
 import * as React from "react";
 
 /**

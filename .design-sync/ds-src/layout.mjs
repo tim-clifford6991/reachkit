@@ -117,8 +117,13 @@ const renderModPath = resolve(out, ".prerender.mjs");
 }
 const { render } = await import(pathToFileURL(renderModPath).href);
 // Inline the token CSS so each card is fully self-contained (no external
-// stylesheet fetch to depend on inside the sandbox iframe).
-const tokensCss = readFileSync(resolve(out, "tokens", "tokens.css"), "utf8");
+// stylesheet fetch to depend on inside the sandbox iframe). The COMMITTED source
+// of truth is .design-sync/tokens.css (parity-checked against app/globals.css by
+// pnpm check:design); we copy it into ds-bundle/tokens so the bundle stays
+// self-contained — it is no longer re-fetched from the remote project.
+const tokensCss = readFileSync(resolve(here, "..", "tokens.css"), "utf8");
+mkdirSync(resolve(out, "tokens"), { recursive: true });
+writeFileSync(resolve(out, "tokens", "tokens.css"), tokensCss);
 const renderFailures = [];
 
 function extract(name) {

@@ -6,6 +6,12 @@ changes — it's the map that keeps the design system aligned with the product.
 Groups map to the Claude Design pane's `@dsCard group=` sections (set in
 `layout.mjs`'s `META`). Verified against the app 2026-07-09.
 
+> **Machine-checked mirror tags.** A `ds-src` file can carry a `/* @mirrors <live-path> */`
+> tag naming its live counterpart; `pnpm check:design` fails if that path stops
+> resolving (and warns on live components with no mirror). This table stays the
+> human-readable view; the tags are the enforced source. Add a tag when you add a
+> component. See CLAUDE.md → "Consistency harness".
+
 ## Foundations (6) — primitives, used everywhere
 | Component | Mirrors (live) |
 |---|---|

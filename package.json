@@ -13,8 +13,14 @@
     "test:int": "vitest run --config vitest.integration.config.ts",
     "typecheck": "tsc --noEmit",
     "check:bundle": "node scripts/check-bundle.mjs",
+    "check:arch": "node scripts/check-arch.mjs",
+    "check:design": "node scripts/check-design-parity.mjs",
     "test:render": "node scripts/render-smoke.mjs",
-    "eval": "vitest run --config vitest.integration.config.ts tests/eval/golden-set.eval.test.ts"
+    "eval": "vitest run --config vitest.integration.config.ts tests/eval/golden-set.eval.test.ts",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,mjs,cjs}": "eslint"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.1",
@@ -56,9 +62,12 @@
     "@vitest/coverage-v8": "^4.1.8",
     "babel-plugin-react-compiler": "^1.0.0",
     "concurrently": "^10.0.3",
+    "dependency-cruiser": "^18.0.0",
     "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.8",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vite-tsconfig-paths": "^6.1.1",

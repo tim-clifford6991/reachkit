@@ -16,6 +16,7 @@ import { describe, it, expect } from "vitest";
 import { HEADLINE_SCORE_VERSION, FIXED_BASIS_SIGNAL_KEYS } from "./registry-score";
 import { PILLAR_WEIGHTS } from "./signals";
 import { MAX_SELECTED } from "./competitor-selection";
+import { MIN_ACTIONS } from "./action-linking";
 
 describe("documented invariants (keep docs in sync when these change)", () => {
   it("headline score model is v4 — the on-site basis (CLAUDE.md invariant #1, architecture §4.1)", () => {
@@ -46,5 +47,11 @@ describe("documented invariants (keep docs in sync when these change)", () => {
 
   it("competitor cohort cap is 5 (CLAUDE.md invariant #2, architecture §4.3)", () => {
     expect(MAX_SELECTED).toBe(5);
+  });
+
+  it("always-insight action floor is 5 (CLAUDE.md invariant #4)", () => {
+    // The plan is floored to MIN_ACTIONS deterministic fixes so a report is never
+    // empty. If this changes, update CLAUDE.md invariant #4 in the same commit.
+    expect(MIN_ACTIONS).toBe(5);
   });
 });

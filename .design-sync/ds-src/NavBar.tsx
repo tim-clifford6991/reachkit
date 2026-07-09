@@ -1,3 +1,4 @@
+/* @mirrors components/sections/marketing-nav.tsx */
 import * as React from "react";
 
 /**

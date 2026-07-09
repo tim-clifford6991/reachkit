@@ -1,3 +1,4 @@
+/* @mirrors components/sections/pricing-table.tsx */
 import * as React from "react";
 
 export interface PricingTier {
