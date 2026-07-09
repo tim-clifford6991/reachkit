@@ -1,3 +1,4 @@
+/* @mirrors app/(marketing)/compare/page.tsx */
 import * as React from "react";
 import { NavBar } from "./NavBar";
 import { CompareCard } from "./CompareCard";

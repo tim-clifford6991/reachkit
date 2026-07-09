@@ -1,3 +1,4 @@
+/* @mirrors components/app/intel/customers-view.tsx */
 import * as React from "react";
 import { AppShell } from "./AppShell";
 

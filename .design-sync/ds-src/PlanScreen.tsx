@@ -1,3 +1,4 @@
+/* @mirrors components/app/intel/plan-timeline-view.tsx */
 import * as React from "react";
 import { AppShell } from "./AppShell";
 import { PlanItemCard } from "./PlanItemCard";

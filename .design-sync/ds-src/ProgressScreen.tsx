@@ -1,3 +1,4 @@
+/* @mirrors components/app/intel/progress-view.tsx */
 import * as React from "react";
 import { AppShell } from "./AppShell";
 import { ProgressChart } from "./ProgressChart";

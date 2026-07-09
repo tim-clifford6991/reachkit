@@ -1,3 +1,4 @@
+/* @mirrors app/(marketing)/about/page.tsx */
 import * as React from "react";
 import { NavBar } from "./NavBar";
 import { Footer } from "./Footer";

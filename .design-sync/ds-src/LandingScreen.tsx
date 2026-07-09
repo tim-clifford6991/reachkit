@@ -1,3 +1,4 @@
+/* @mirrors components/sections/captured/landing-screen.tsx */
 import * as React from "react";
 import { NavBar } from "./NavBar";
 import { ScanInput } from "./ScanInput";

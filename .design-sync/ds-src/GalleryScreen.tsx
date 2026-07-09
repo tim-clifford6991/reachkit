@@ -1,3 +1,4 @@
+/* @mirrors app/(marketing)/gallery/page.tsx */
 import * as React from "react";
 import { NavBar } from "./NavBar";
 import { ScoreGauge } from "./ScoreGauge";

@@ -1,3 +1,4 @@
+/* @mirrors components/app/intel/competitors-view.tsx */
 import * as React from "react";
 
 /**

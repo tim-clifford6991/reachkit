@@ -1,3 +1,4 @@
+/* @mirrors components/sections/captured/pricing-screen.tsx */
 import * as React from "react";
 import { NavBar } from "./NavBar";
 import { PricingTable } from "./PricingTable";

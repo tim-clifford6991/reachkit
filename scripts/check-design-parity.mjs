@@ -98,15 +98,37 @@ while ((b = bandRe.exec(bandsSrc))) {
 if (bandCount === 0) err("could not parse SCORE_BANDS from lib/scan/score-bands.ts");
 
 // ── C. mirror parity ─────────────────────────────────────────────────────────
+// Every ACTIVE (non-archived) ds-src component must declare a resolving @mirrors
+// tag naming its live counterpart — so the design system can only contain
+// components that reflect something that actually ships. Archived components
+// (layout.mjs META `archived: true`) are exempt: they are retained-but-dead by
+// design. This is the convergence ratchet: a new active component with no live
+// mirror, or a mirror whose live file disappears, fails the build.
 const DS_SRC = ".design-sync/ds-src";
+// Parse the archived set from layout.mjs META. `archived: true` is always placed
+// before the first `}` of each entry, so scanning up to it is sufficient.
+const layoutSrc = readFileSync(p(`${DS_SRC}/layout.mjs`), "utf8");
+const archived = new Set();
+{
+  const metaRe = /([A-Z]\w+):\s*\{([^}]*)\}/g;
+  let mm;
+  while ((mm = metaRe.exec(layoutSrc))) {
+    if (/archived:\s*true/.test(mm[2])) archived.add(mm[1]);
+  }
+}
 const mirroredLive = new Set();
 let taggedCount = 0;
-for (const f of readdirSync(p(DS_SRC)).filter((f) => f.endsWith(".tsx"))) {
+for (const f of readdirSync(p(DS_SRC)).filter((f) => f.endsWith(".tsx") && f !== "index.tsx")) {
+  const name = f.replace(/\.tsx$/, "");
+  if (archived.has(name)) continue; // retained-but-dead — exempt from mirror parity
   const src = readFileSync(p(`${DS_SRC}/${f}`), "utf8");
   const tag = src.match(/@mirrors\s+([^\s*]+)/);
-  if (!tag) continue;
+  if (!tag) {
+    err(`active ds-src has NO @mirrors tag: ${DS_SRC}/${f} — add /* @mirrors <live-path> */ (or /* @mirrors - */ for a primitive), or archive it in layout.mjs META`);
+    continue;
+  }
   const target = tag[1];
-  if (target === "-" || target === "none" || target === "primitive") continue;
+  if (target === "-" || target === "none" || target === "primitive") continue; // documented primitive (no 1:1 live file)
   taggedCount++;
   if (!existsSync(p(target))) {
     err(`mirror BROKEN: ${DS_SRC}/${f} → @mirrors ${target} (live file does not exist)`);

@@ -1,3 +1,4 @@
+/* @mirrors components/report/captured/results-screen.tsx */
 import * as React from "react";
 import { ScoreCard } from "./ScoreCard";
 import { RankedFix } from "./RankedFix";

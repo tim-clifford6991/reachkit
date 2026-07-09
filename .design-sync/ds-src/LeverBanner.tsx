@@ -1,3 +1,4 @@
+/* @mirrors components/app/intel/dashboard-hero.tsx */
 import * as React from "react";
 
 /**

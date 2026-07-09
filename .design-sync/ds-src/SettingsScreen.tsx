@@ -1,3 +1,4 @@
+/* @mirrors components/app/captured/settings-main.tsx */
 import * as React from "react";
 import { AppShell } from "./AppShell";
 import { Button } from "./Button";

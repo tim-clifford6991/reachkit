@@ -1,3 +1,4 @@
+/* @mirrors components/app/setup/setup-overlay.tsx */
 import * as React from "react";
 import { Button } from "./Button";
 import { BrandMark } from "./BrandMark";

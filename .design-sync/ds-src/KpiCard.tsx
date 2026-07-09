@@ -1,3 +1,4 @@
+/* @mirrors components/app/intel/kit.tsx */
 import * as React from "react";
 
 /**

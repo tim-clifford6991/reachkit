@@ -1,3 +1,4 @@
+/* @mirrors components/scan/captured-scanning.tsx */
 import * as React from "react";
 import { NavBar } from "./NavBar";
 import { ScanningRing } from "./ScanningRing";

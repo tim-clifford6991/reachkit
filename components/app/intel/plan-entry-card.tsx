@@ -49,7 +49,7 @@ const SHARE_LABEL: Record<SharePlatform, string> = {
 };
 
 const btnPrimary: React.CSSProperties = {
-  display: "inline-flex", alignItems: "center", gap: 6, background: "var(--c-action)", color: "#fff",
+  display: "inline-flex", alignItems: "center", gap: 6, background: "var(--c-action)", color: "var(--c-on-dark)",
   fontFamily: PJ, fontWeight: 700, fontSize: 11.5, padding: "6px 12px",
   borderRadius: "var(--radius-full)", border: "none", cursor: "pointer", whiteSpace: "nowrap",
 };

@@ -1,3 +1,4 @@
+/* @mirrors app/(marketing)/teardowns/[slug]/page.tsx */
 import * as React from "react";
 import { NavBar } from "./NavBar";
 import { TeardownCard } from "./TeardownCard";

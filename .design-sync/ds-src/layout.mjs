@@ -16,28 +16,28 @@ const META = {
   BrandMark:        { group: "Foundations", render: "{withWordmark:true,size:32}" },
   Button:           { group: "Foundations", render: "{children:'Analyze my site'}" },
   Badge:            { group: "Foundations", render: "{children:'Getting found',tone:'band-fair'}" },
-  ScoreGauge:       { group: "Report",      render: "{score:46}" },
-  ScoreCard:        { group: "Report",      render: "{score:46,headline:'A 46 means real customers are searching — and landing on someone else.',intro:'Nudgi is technically fine. The gap is discoverability.',pillars:[{label:'Content',value:50,note:'room to climb'},{label:'Outreach',value:66,note:'room to climb'},{label:'SEO',value:32,note:'biggest lever'}]}" },
-  RankedFix:        { group: "Report",      render: "{}" },
-  PositioningMirror:{ group: "Report",      render: "{}" },
-  SearchGapTable:   { group: "Report",      render: "{}" },
+  ScoreGauge:       { archived: true, group: "Report",      render: "{score:46}" },
+  ScoreCard:        { archived: true, group: "Report",      render: "{score:46,headline:'A 46 means real customers are searching — and landing on someone else.',intro:'Nudgi is technically fine. The gap is discoverability.',pillars:[{label:'Content',value:50,note:'room to climb'},{label:'Outreach',value:66,note:'room to climb'},{label:'SEO',value:32,note:'biggest lever'}]}" },
+  RankedFix:        { archived: true, group: "Report",      render: "{}" },
+  PositioningMirror:{ archived: true, group: "Report",      render: "{}" },
+  SearchGapTable:   { archived: true, group: "Report",      render: "{}" },
   UnlockBand:       { group: "Report",      render: "{}" },
-  ComparisonTable:  { group: "Marketing",   render: "{tools:['ReachKit','Ahrefs'],rows:[{capability:'Discoverability score',cells:[true,false]},{capability:'Ranked weekly plan',cells:[true,false]},{capability:'Draft copy per fix',cells:[true,'partial']},{capability:'Backlink index',cells:[false,true]}]}" },
+  ComparisonTable:  { archived: true, group: "Marketing",   render: "{tools:['ReachKit','Ahrefs'],rows:[{capability:'Discoverability score',cells:[true,false]},{capability:'Ranked weekly plan',cells:[true,false]},{capability:'Draft copy per fix',cells:[true,'partial']},{capability:'Backlink index',cells:[false,true]}]}" },
   NavBar:           { group: "Marketing",   render: "{}" },
   Footer:           { group: "Marketing",   render: "{}" },
   ScanInput:        { group: "Marketing",   render: "{}" },
-  CompareCard:      { group: "Marketing",   render: "{}" }, // used by CompareScreen (/compare hub)
-  TeardownCard:     { group: "Marketing",   render: "{}" }, // used by TeardownsScreen (/teardowns hub)
+  CompareCard:      { archived: true, group: "Marketing",   render: "{}" }, // used by CompareScreen (/compare hub)
+  TeardownCard:     { archived: true, group: "Marketing",   render: "{}" }, // used by TeardownsScreen (/teardowns hub)
   AppShell:         { group: "App",         render: "{}" },
   KpiCard:          { group: "App",         render: "{delta:'+8'}" },
   ScanningRing:     { group: "App",         render: "{}" },
   Testimonial:      { group: "Marketing",   archived: true, render: "{}" }, // ARCHIVED 2026-07-09: live product uses a logo ticker (company-ticker.tsx), not written customer quotes — no live testimonial surface. Files STAY at Marketing/ (no delete); pane groups it under Archive.
-  FaqItem:          { group: "Marketing",   render: "{}" },
+  FaqItem:          { archived: true, group: "Marketing",   render: "{}" },
   Alert:            { group: "Foundations", archived: true, render: "{tone:'success',title:'Scan complete',children:'Your discoverability score is ready.'}" },
-  FeatureStep:      { group: "Marketing",   render: "{}" },
+  FeatureStep:      { archived: true, group: "Marketing",   render: "{}" },
   TextField:        { group: "Foundations", render: "{hint:'We never share it.'}" },
   Tabs:             { group: "Foundations", archived: true, render: "{}" },
-  PricingTable:     { group: "Marketing",   render: "{}" },
+  PricingTable:     { archived: true, group: "Marketing",   render: "{}" },
   LandingHero:      { group: "Marketing",   archived: true, render: "{}" }, // LandingScreen composes its split hero inline from ScanInput — this single-column hero is unused
   // Full-page screen templates — folders stay in their functional group, but the
   // pane groups them under "Pages" so every app/marketing page is viewable at a glance.
@@ -61,11 +61,11 @@ const META = {
   RoadmapScreen:    { group: "Marketing",   cardGroup: "Pages", render: "{}" },
   StatusScreen:     { group: "Marketing",   cardGroup: "Pages", render: "{}" },
   LegalScreen:      { group: "Marketing",   cardGroup: "Pages", render: "{}" },
-  ChannelDonut:        { group: "App", render: "{centerLabel:'46% Organic',segments:[{label:'Organic',pct:46,visits:'1.86k'},{label:'Direct / brand',pct:24,visits:'970'},{label:'Referral',pct:18,visits:'720'},{label:'Social',pct:12,visits:'480'}]}" },
+  ChannelDonut:        { archived: true, group: "App", render: "{centerLabel:'46% Organic',segments:[{label:'Organic',pct:46,visits:'1.86k'},{label:'Direct / brand',pct:24,visits:'970'},{label:'Referral',pct:18,visits:'720'},{label:'Social',pct:12,visits:'480'}]}" },
   CompetitorEdgePanel: { group: "App", render: "{title:'You vs. top competitors',rows:[{name:'YOU',score:54,isYou:true,scoreColor:'var(--c-band-fair)'},{name:'otter.ai',score:67},{name:'fireflies.ai',score:78},{name:'fathom.video',score:86}]}" },
   PlanItemCard:        { group: "App", render: "{doFirst:true,type:'Outreach',title:'Guest post on 3 podcast-tool roundups',why:'Closes the referral gap vs fathom.video',from:'Outreach pillar · weakest lever',predictedPts:'+9 pts',status:'This week',statusColor:'var(--c-action)'}" },
   LeverBanner:         { group: "App", render: "{pillar:'Outreach',note:'closing the referral & directory gaps is worth the most right now',points:'+9 pts'}" },
-  ProgressChart:       { group: "App", render: "{points:[{x:0,y:38},{x:0.33,y:44},{x:0.66,y:49},{x:1,y:54}],markers:[{wk:'Week 1',score:38,x:0,y:38},{wk:'Week 8',score:54,x:1,y:54}],events:[{wk:'Week 3',date:'',text:'Shipped 3 podcast guest posts'},{wk:'Week 6',date:'',text:'Added comparison landing pages'}]}" },
+  ProgressChart:       { archived: true, group: "App", render: "{points:[{x:0,y:38},{x:0.33,y:44},{x:0.66,y:49},{x:1,y:54}],markers:[{wk:'Week 1',score:38,x:0,y:38},{wk:'Week 8',score:54,x:1,y:54}],events:[{wk:'Week 3',date:'',text:'Shipped 3 podcast guest posts'},{wk:'Week 6',date:'',text:'Added comparison landing pages'}]}" },
 };
 
 // Turn a JS object-literal render string ("{score:46}") into a real object at

@@ -1,3 +1,4 @@
+/* @mirrors components/scan/scan-animation.tsx */
 import * as React from "react";
 
 /**
