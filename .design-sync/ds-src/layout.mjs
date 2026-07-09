@@ -31,7 +31,7 @@ const META = {
   AppShell:         { group: "App",         render: "{}" },
   KpiCard:          { group: "App",         render: "{delta:'+8'}" },
   ScanningRing:     { group: "App",         render: "{}" },
-  Testimonial:      { group: "Marketing",   render: "{}" },
+  Testimonial:      { group: "Marketing",   archived: true, render: "{}" }, // ARCHIVED 2026-07-09: live product uses a logo ticker (company-ticker.tsx), not written customer quotes — no live testimonial surface. Files STAY at Marketing/ (no delete); pane groups it under Archive.
   FaqItem:          { group: "Marketing",   render: "{}" },
   Alert:            { group: "Foundations", render: "{tone:'success',title:'Scan complete',children:'Your discoverability score is ready.'}" },
   FeatureStep:      { group: "Marketing",   render: "{}" },
@@ -112,6 +112,12 @@ function extract(name) {
 let n = 0;
 for (const [name, meta] of Object.entries(META)) {
   const { jsdoc, iface } = extract(name);
+  // The FOLDER stays at the component's original group (so an archived component
+  // keeps its existing project path — re-tagging never requires a delete), while
+  // the @dsCard MARKER (which is what the Design pane groups by) reflects the
+  // archive. So `archived: true` moves a component into the "Archive" pane group
+  // without moving/removing its files. Keep `group` as the real home group.
+  const cardGroup = meta.archived ? "Archive" : meta.group;
   const dir = resolve(out, "components", meta.group, name);
   mkdirSync(dir, { recursive: true });
 
@@ -125,7 +131,7 @@ for (const [name, meta] of Object.entries(META)) {
     markup = `<div style="font:14px var(--font-sans,sans-serif);color:var(--c-muted,#666)">${name} — preview unavailable</div>`;
     renderFailures.push(name + ": " + (e && e.message ? e.message.split("\n")[0] : e));
   }
-  const html = `<!-- @dsCard group="${meta.group}" -->
+  const html = `<!-- @dsCard group="${cardGroup}" -->
 <!doctype html><html><head><meta charset="utf-8">
 <style>
 ${tokensCss}
