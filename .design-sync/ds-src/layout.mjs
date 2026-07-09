@@ -75,6 +75,7 @@ const META = {
   WhySwitch:        { group: "Marketing", render: "{}" },
   Testimonials:     { group: "Marketing", render: "{}" },
   Audience:         { group: "Marketing", render: "{}" },
+  PlanCards:        { group: "Marketing", render: "{}" },
   PricingBlock:     { group: "Marketing", render: "{}" },
   ScoreTravels:     { group: "Marketing", render: "{}" },
   FinalCta:         { group: "Marketing", render: "{}" },
