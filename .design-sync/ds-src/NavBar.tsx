@@ -13,11 +13,11 @@ export interface NavBarProps {
 }
 
 const DEFAULT_LINKS: { label: string; href: string }[] = [
-  { label: "Product", href: "/how-it-works" },
+  { label: "How it works", href: "/how-it-works" },
+  { label: "Scans", href: "/gallery" },
   { label: "Pricing", href: "/pricing" },
-  { label: "Free tools", href: "/tools" },
   { label: "Compare", href: "/compare" },
-  { label: "Teardowns", href: "/teardowns" },
+  { label: "Free tools", href: "/tools" },
 ];
 
 export function NavBar({ links = DEFAULT_LINKS, ctaLabel = "Analyze my site", isLoggedIn = false }: NavBarProps) {
