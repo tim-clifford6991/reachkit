@@ -26,8 +26,8 @@ const META = {
   NavBar:           { group: "Marketing",   render: "{}" },
   Footer:           { group: "Marketing",   render: "{}" },
   ScanInput:        { group: "Marketing",   render: "{}" },
-  CompareCard:      { group: "Marketing",   archived: true, render: "{}" }, // no page composes it (represents the /compare hub — not yet templated)
-  TeardownCard:     { group: "Marketing",   archived: true, render: "{}" }, // no page composes it (represents the /teardowns hub — not yet templated)
+  CompareCard:      { group: "Marketing",   render: "{}" }, // used by CompareScreen (/compare hub)
+  TeardownCard:     { group: "Marketing",   render: "{}" }, // used by TeardownsScreen (/teardowns hub)
   AppShell:         { group: "App",         render: "{}" },
   KpiCard:          { group: "App",         render: "{delta:'+8'}" },
   ScanningRing:     { group: "App",         render: "{}" },
@@ -52,6 +52,15 @@ const META = {
   SettingsScreen:   { group: "App",         cardGroup: "Pages", render: "{}" },
   OnboardingScreen: { group: "App",         cardGroup: "Pages", render: "{}" },
   ScanningScreen:   { group: "Marketing",   cardGroup: "Pages", render: "{}" },
+  GalleryScreen:    { group: "Marketing",   cardGroup: "Pages", render: "{}" },
+  TeardownsScreen:  { group: "Marketing",   cardGroup: "Pages", render: "{}" },
+  CompareScreen:    { group: "Marketing",   cardGroup: "Pages", render: "{}" },
+  AboutScreen:      { group: "Marketing",   cardGroup: "Pages", render: "{}" },
+  ContactScreen:    { group: "Marketing",   cardGroup: "Pages", render: "{}" },
+  ToolsScreen:      { group: "Marketing",   cardGroup: "Pages", render: "{}" },
+  RoadmapScreen:    { group: "Marketing",   cardGroup: "Pages", render: "{}" },
+  StatusScreen:     { group: "Marketing",   cardGroup: "Pages", render: "{}" },
+  LegalScreen:      { group: "Marketing",   cardGroup: "Pages", render: "{}" },
   ChannelDonut:        { group: "App", render: "{centerLabel:'46% Organic',segments:[{label:'Organic',pct:46,visits:'1.86k'},{label:'Direct / brand',pct:24,visits:'970'},{label:'Referral',pct:18,visits:'720'},{label:'Social',pct:12,visits:'480'}]}" },
   CompetitorEdgePanel: { group: "App", render: "{title:'You vs. top competitors',rows:[{name:'YOU',score:54,isYou:true,scoreColor:'var(--c-band-fair)'},{name:'otter.ai',score:67},{name:'fireflies.ai',score:78},{name:'fathom.video',score:86}]}" },
   PlanItemCard:        { group: "App", render: "{doFirst:true,type:'Outreach',title:'Guest post on 3 podcast-tool roundups',why:'Closes the referral gap vs fathom.video',from:'Outreach pillar · weakest lever',predictedPts:'+9 pts',status:'This week',statusColor:'var(--c-action)'}" },
@@ -190,8 +199,11 @@ ${propLines}
 {
   const grp = (name) => META[name].group;
   const cardGroupOf = (m) => m.cardGroup || (m.archived ? "Archive" : m.group);
-  const components = Object.keys(META).map((name) => ({ name, sourcePath: `components/${grp(name)}/${name}/${name}.jsx` }));
-  const cards = Object.entries(META).map(([name, m]) => ({ path: `components/${grp(name)}/${name}/${name}.html`, group: cardGroupOf(m) }));
+  const GROUP_ORDER = { Pages: 0, Foundations: 1, Report: 2, Marketing: 3, App: 4, Archive: 99 };
+  const gord = (name) => GROUP_ORDER[cardGroupOf(META[name])] ?? 50;
+  const orderedNames = Object.keys(META).map((name, i) => [name, i]).sort((a, b) => (gord(a[0]) - gord(b[0])) || (a[1] - b[1])).map((x) => x[0]);
+  const components = orderedNames.map((name) => ({ name, sourcePath: `components/${grp(name)}/${name}/${name}.jsx` }));
+  const cards = orderedNames.map((name) => ({ path: `components/${grp(name)}/${name}/${name}.html`, group: cardGroupOf(META[name]) }));
 
   const tokenKind = (nm) =>
     /^--(font|text|tracking)/.test(nm) ? "font" :

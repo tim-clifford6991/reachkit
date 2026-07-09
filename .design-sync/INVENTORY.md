@@ -54,7 +54,7 @@ Groups map to the Claude Design pane's `@dsCard group=` sections (set in
 | CompareCard | `/compare` hub index card |
 | TeardownCard | `/teardowns` hub index card |
 
-## Archive (6) — retained, not deleted, grouped "Archive" in the pane
+## Archive (4) — retained, not deleted, grouped "Archive" in the pane (shown LAST)
 **Rule (2026-07-09): a component is active only if a Page template composes it.** The 11 Pages use
 exactly 25 atomic components (see the union below); anything else is archived (delete-free — files
 stay at their folder, only the `@dsCard` marker + manifest group flip to "Archive" via `archived: true`).
@@ -64,8 +64,6 @@ stay at their folder, only the `@dsCard` marker + manifest group flip to "Archiv
 | Testimonial | Live product uses a logo ticker, not written quotes. |
 | Alert | No Page composes it. |
 | Tabs | No Page composes it. |
-| CompareCard | Represents the `/compare` hub — not yet templated as a Page. Un-archive when it is. |
-| TeardownCard | Represents the `/teardowns` hub — not yet templated as a Page. Un-archive when it is. |
 | LandingHero | `LandingScreen` composes its split hero inline from `ScanInput`; this single-column hero is unused. |
 
 **25 active atomic components** (the exact union used by the 11 Pages): AppShell, Badge, BrandMark,
@@ -73,7 +71,7 @@ Button, ChannelDonut, ComparisonTable, CompetitorEdgePanel, FaqItem, FeatureStep
 LeverBanner, NavBar, PlanItemCard, PositioningMirror, PricingTable, ProgressChart, RankedFix,
 ScanInput, ScanningRing, ScoreCard, ScoreGauge, SearchGapTable, TextField, UnlockBand.
 
-## Pages (11) — full-page screen templates, grouped "Pages" in the pane
+## Pages (20) — full-page screen templates, grouped "Pages" in the pane (shown FIRST in the pane; Archive shows LAST — ordered via GROUP_ORDER in layout.mjs)
 Compose the components above into a whole page (like the reference `templates/analytics-dashboard`).
 Folders stay in their functional group; `cardGroup: "Pages"` in `layout.mjs` puts them in the Pages
 pane section.
@@ -82,8 +80,9 @@ pane section.
 - **Report/flow:** `ResultsScreen` (free report) · `ScanningScreen` (scan-in-progress)
 - **Marketing:** `LandingScreen` (mirrors the live split-hero + ticker + sections) · `PricingScreen`
 
-**Remaining public content pages to add** (same pattern, lower design-value): gallery, teardowns
-hub, compare hub, about, contact, roadmap, status, tools, legal (privacy/terms).
+- **Public:** `LandingScreen` · `PricingScreen` · `GalleryScreen` · `TeardownsScreen` (uses TeardownCard) · `CompareScreen` (uses CompareCard) · `AboutScreen` · `ContactScreen` · `ToolsScreen` · `RoadmapScreen` · `StatusScreen` · `LegalScreen` (privacy/terms template)
+
+All app + public pages are now templated.
 
 > The `templates/analytics-dashboard` **template** (Design Composer `.dc.html`) is a separate,
 > RETAINED reference — never delete it; it's a component source.
