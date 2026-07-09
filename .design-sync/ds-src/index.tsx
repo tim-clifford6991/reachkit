@@ -39,3 +39,8 @@ import { createRoot as __createRoot } from "react-dom/client";
 export function mount(Comp: any, props: any, el: any) {
   __createRoot(el).render(__React.createElement(Comp, props));
 }
+export { PlanScreen } from "./PlanScreen";
+export { CompetitorsScreen } from "./CompetitorsScreen";
+export { ProgressScreen } from "./ProgressScreen";
+export { LandingScreen } from "./LandingScreen";
+export { PricingScreen } from "./PricingScreen";

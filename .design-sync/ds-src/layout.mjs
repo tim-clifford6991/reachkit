@@ -39,8 +39,15 @@ const META = {
   Tabs:             { group: "Foundations", render: "{}" },
   PricingTable:     { group: "Marketing",   render: "{}" },
   LandingHero:      { group: "Marketing",   render: "{}" },
-  ResultsScreen:    { group: "Report",      render: "{}" },
-  DashboardScreen:  { group: "App",         render: "{}" },
+  // Full-page screen templates — folders stay in their functional group, but the
+  // pane groups them under "Pages" so every app/marketing page is viewable at a glance.
+  ResultsScreen:    { group: "Report",      cardGroup: "Pages", render: "{}" },
+  DashboardScreen:  { group: "App",         cardGroup: "Pages", render: "{}" },
+  PlanScreen:       { group: "App",         cardGroup: "Pages", render: "{}" },
+  CompetitorsScreen:{ group: "App",         cardGroup: "Pages", render: "{}" },
+  ProgressScreen:   { group: "App",         cardGroup: "Pages", render: "{}" },
+  LandingScreen:    { group: "Marketing",   cardGroup: "Pages", render: "{}" },
+  PricingScreen:    { group: "Marketing",   cardGroup: "Pages", render: "{}" },
   ChannelDonut:        { group: "App", render: "{centerLabel:'46% Organic',segments:[{label:'Organic',pct:46,visits:'1.86k'},{label:'Direct / brand',pct:24,visits:'970'},{label:'Referral',pct:18,visits:'720'},{label:'Social',pct:12,visits:'480'}]}" },
   CompetitorEdgePanel: { group: "App", render: "{title:'You vs. top competitors',rows:[{name:'YOU',score:54,isYou:true,scoreColor:'var(--c-band-fair)'},{name:'otter.ai',score:67},{name:'fireflies.ai',score:78},{name:'fathom.video',score:86}]}" },
   PlanItemCard:        { group: "App", render: "{doFirst:true,type:'Outreach',title:'Guest post on 3 podcast-tool roundups',why:'Closes the referral gap vs fathom.video',from:'Outreach pillar · weakest lever',predictedPts:'+9 pts',status:'This week',statusColor:'var(--c-action)'}" },
@@ -112,12 +119,13 @@ function extract(name) {
 let n = 0;
 for (const [name, meta] of Object.entries(META)) {
   const { jsdoc, iface } = extract(name);
-  // The FOLDER stays at the component's original group (so an archived component
-  // keeps its existing project path — re-tagging never requires a delete), while
-  // the @dsCard MARKER (which is what the Design pane groups by) reflects the
-  // archive. So `archived: true` moves a component into the "Archive" pane group
-  // without moving/removing its files. Keep `group` as the real home group.
-  const cardGroup = meta.archived ? "Archive" : meta.group;
+  // The FOLDER stays at the component's `group` (so re-tagging a component's PANE
+  // group never requires a delete — the existing project path is overwritten in
+  // place), while the @dsCard MARKER (what the Design pane groups by) can differ:
+  //   • `cardGroup: "Pages"` → full-page screens show under a "Pages" pane section
+  //     while their files stay at components/<group>/… (no move, no delete).
+  //   • `archived: true`     → shorthand for cardGroup "Archive".
+  const cardGroup = meta.cardGroup || (meta.archived ? "Archive" : meta.group);
   const dir = resolve(out, "components", meta.group, name);
   mkdirSync(dir, { recursive: true });
 
@@ -168,6 +176,68 @@ ${propLines}
   writeFileSync(resolve(dir, name + ".jsx"), `export const ${name} = (typeof window !== "undefined" && window.ReachKitDS ? window.ReachKitDS.${name} : undefined);\n`);
   n++;
 }
+
+// ---- _ds_manifest.json — the card index the Design pane actually reads. The
+// design-sync CLI normally compiles this; we regenerate it here so a direct
+// DesignSync upload is never stale (that's what made new cards / re-grouped cards
+// invisible in the pane). Cards + components come from META (so pane groups —
+// incl. "Pages" and "Archive" — always match the @dsCard markers); tokens are
+// parsed from the SAME tokens.css; the Analytics Dashboard template is PRESERVED. ----
+{
+  const grp = (name) => META[name].group;
+  const cardGroupOf = (m) => m.cardGroup || (m.archived ? "Archive" : m.group);
+  const components = Object.keys(META).map((name) => ({ name, sourcePath: `components/${grp(name)}/${name}/${name}.jsx` }));
+  const cards = Object.entries(META).map(([name, m]) => ({ path: `components/${grp(name)}/${name}/${name}.html`, group: cardGroupOf(m) }));
+
+  const tokenKind = (nm) =>
+    /^--(font|text|tracking)/.test(nm) ? "font" :
+    /^--radius/.test(nm) ? "radius" :
+    /^--spacing/.test(nm) ? "spacing" :
+    /^--elevation/.test(nm) ? "shadow" : "color";
+  const tokens = [];
+  let scope = null;
+  for (const raw of tokensCss.split("\n")) {
+    const line = raw.trim();
+    if (/^:root\s*\{/.test(line)) scope = null;
+    else if (/^\.dark\s*\{/.test(line)) scope = ".dark";
+    const noComment = line.replace(/\/\*.*?\*\//g, "");
+    const re = /(--[a-z0-9-]+)\s*:\s*([^;]+);/gi;
+    let mm;
+    while ((mm = re.exec(noComment))) {
+      const t = { name: mm[1], value: mm[2].trim(), kind: tokenKind(mm[1]), definedIn: "tokens/tokens.css" };
+      if (scope) t.scope = scope;
+      tokens.push(t);
+    }
+  }
+
+  const manifest = {
+    namespace: "ReachKitDesignSystem_819c77",
+    components,
+    startingPoints: [],
+    cards,
+    templates: [{
+      name: "Analytics Dashboard",
+      description: "Redesigned ReachKit discoverability dashboard built on the real supply→demand→synthesis→plan model: score (SEO/Content/Outreach), Supply×Demand diagnosis, and the synthesized Content Plan + Distributi",
+      folder: "templates/analytics-dashboard",
+      entryPath: "templates/analytics-dashboard/AnalyticsDashboard.dc.html",
+      thumbnail: { path: "templates/analytics-dashboard/.thumbnail", kind: "captured" },
+    }],
+    hasThumbnailHtml: false,
+    globalCssPaths: ["tokens/tokens.css", "_ds_bundle.css", "styles.css"],
+    tokens,
+    themes: [{ selector: ".dark", label: "Dark" }],
+    fonts: [],
+    brandFonts: [
+      { family: "Space Grotesk", status: "ok", tokens: ["--font-display"], path: "tokens/tokens.css" },
+      { family: "Plus Jakarta Sans", status: "ok", tokens: ["--font-sans"], path: "tokens/tokens.css" },
+      { family: "JetBrains Mono", status: "ok", tokens: ["--font-mono"], path: "tokens/tokens.css" },
+    ],
+    source: "design-sync-cli",
+  };
+  writeFileSync(resolve(out, "_ds_manifest.json"), JSON.stringify(manifest) + "\n");
+  console.log(`wrote _ds_manifest.json (${cards.length} cards, groups: ${[...new Set(cards.map((c) => c.group))].join(", ")})`);
+}
+
 console.log("generated layout for", n, "components across groups:", [...new Set(Object.values(META).map((m) => m.group))].join(", "));
 if (renderFailures.length) {
   console.log("\n⚠ static prerender FAILED for " + renderFailures.length + " component(s):");

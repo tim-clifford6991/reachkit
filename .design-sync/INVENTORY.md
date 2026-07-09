@@ -59,6 +59,23 @@ Groups map to the Claude Design pane's `@dsCard group=` sections (set in
 |---|---|
 | Testimonial | The live product uses a **logo ticker** (`company-ticker.tsx`), not written customer quotes — no live testimonial surface. Files stay at `components/Marketing/Testimonial/`; only the `@dsCard` marker is "Archive" (set via `archived: true` in `layout.mjs`, so no delete and it survives rebuilds). Kept for future reuse.
 
+## Pages (7) — full-page screen templates, grouped "Pages" in the pane
+Compose the components above into a whole page (like the reference `templates/analytics-dashboard`).
+Folders stay in their functional group; `cardGroup: "Pages"` in `layout.mjs` puts them in the Pages
+pane section. `DashboardScreen` · `ResultsScreen` · `PlanScreen` · `CompetitorsScreen` ·
+`ProgressScreen` · `LandingScreen` · `PricingScreen`. **Remaining app pages to add** (same pattern):
+Customers, Settings.
+
+> The `templates/analytics-dashboard` **template** (Design Composer `.dc.html`) is a separate,
+> RETAINED reference — never delete it; it's a component source.
+
+## The build regenerates `_ds_manifest.json`
+`layout.mjs` writes `_ds_manifest.json` (the card index the Design pane reads) from `META` +
+`tokens.css` on every build — so a direct `DesignSync` upload is never stale. Full rebuild =
+`build.mjs` → `layout.mjs`; upload the changed component dirs + `_ds_manifest.json` + `_ds_sync.json`
+(sentinel LAST — it re-arms the pane's re-index). If the pane looks stale, the manifest or sentinel
+wasn't re-uploaded.
+
 ## How to archive / un-archive (delete-free)
 In `layout.mjs`'s `META`, add `archived: true` to a component's entry (keep its real
 `group`). Rebuild — the files stay at their `components/<group>/…` path, only the
