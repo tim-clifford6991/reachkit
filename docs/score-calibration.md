@@ -7,10 +7,13 @@ A6 content-threshold item in `docs/plans/2026-07-07-launch-readiness.md`.
 ## Why this exists
 
 The live trustmrr.com scan (evidence baseline in the launch-readiness plan) scored
-**86/100** with **Content 100/100**. The v2 headline is computed deterministically
-(`lib/scan/registry-score.ts`) from the fixed 8-signal on-site basis
-(`FIXED_BASIS_SIGNAL_KEYS`) defined over the 18-signal registry
-(`lib/scan/signals.ts`, scored by `lib/scan/compute-signals.ts`). Of the 3 fixed-basis
+**86/100** with **Content 100/100**. The headline (`score_version 4` — see CLAUDE.md
+invariant #1) is computed deterministically (`lib/scan/registry-score.ts`,
+`headlineScore`) from the fixed 8-signal on-site basis (`FIXED_BASIS_SIGNAL_KEYS`)
+defined over the 18-signal registry (`lib/scan/signals.ts`, scored by
+`lib/scan/compute-signals.ts`). This calibration is directly load-bearing under v4:
+because the headline IS the on-site basis, an inflatable on-site signal inflates the
+headline itself (under the retired v3, off-site signals diluted it). Of the 3 fixed-basis
 Content signals (`content_depth`, `social_share_tags`, `media_richness`), all three
 maxed out on a merely decent landing page — a single well-tagged hero image and a few
 hundred words of hero/nav/footer copy were enough to hit the ceiling. That reads as

@@ -6,7 +6,7 @@ This file is the **rules of engagement** — the invariants and hard rules that 
 
 - **`docs/architecture.md`** — living structural doc (3 Mermaid diagrams: system, scan sequence, billing). Verified accurate 2026-07-08.
 - **`docs/score-calibration.md`** — scoring bands + the open calibration problem.
-- **Interactive process/invariant map** — https://claude.ai/code/artifact/e2b1232f-a7fb-4071-9bf4-627740998700 (clickable nodes + the invariant enforcement ledger; snapshot, regenerate when stages/caps/guards change).
+- **Interactive process/invariant map** — https://claude.ai/code/artifact/e2b1232f-a7fb-4071-9bf4-627740998700 (clickable nodes + the invariant enforcement ledger). ⚠️ STALE SNAPSHOT (pre 2026-07-09): does not reflect the v4 on-site headline, external-cost tracking, or the `/app` nav fix — treat this file + `docs/architecture.md` as authoritative over the artifact; regenerate the artifact when convenient.
 
 ## Anchor files (start here)
 
@@ -21,7 +21,7 @@ This file is the **rules of engagement** — the invariants and hard rules that 
 
 ## Invariants — do not break these
 
-Each has (or should have) a guard test. Breaking one is a correctness regression, not a style nit.
+Each has (or should have) a guard test. Breaking one is a correctness regression, not a style nit. The load-bearing constants these restate (headline version, fixed-basis keys, pillar weights, `MAX_SELECTED`) are pinned by `lib/scan/documented-invariants.test.ts` — a change there is your signal to update this file + `docs/architecture.md` in the SAME commit.
 
 1. **Free↔paid headline stability.** The headline gauge is `headlineScore` — `registryScore` over the **FIXED on-site basis** (`FIXED_BASIS_SIGNAL_KEYS`: the 8 HTML signals title/meta/schema/canonical/headings + content_depth/social_share/media). Those 8 are measured identically from the page HTML on free AND paid, so the number is **identical free↔paid — it never moves on upgrade** — and it equals the on-site pillar bars the dashboard shows (gauge == pillar average). `score_version 4` (2026-07-09). Off-site strength (keyword footprint, backlinks, marketplace/community/press) is NEVER in the headline — it is the separate **`marketPositionScore`** grade. Outreach has no on-site signal, so it is measured off-site only (in Market Position), not the headline. Guard: `registry-score.test.ts` asserts `headlineFromRows`/`headlineScore` give the same number with and without deep signals — on the REAL persisted path (full-scan 10a + free-report both call `headlineScore`). **History note:** PR #36 briefly made the headline `registryScore(all 18)` (v3), which folded off-site signals in and dropped the score on upgrade (free 74 → paid 66); v4 reverted the headline to the on-site basis and fixed the pillar bars to match.
 2. **Cost caps (`ScanBudget`).** 60 tool-calls; cents free 15 / full 250 / weekly 120; `BudgetExceededError` on breach. Both heavy cost points (deep scan + competitor-select) bounded to `MAX_SELECTED=5` rivals, de-duped only by per-domain caches. NB: `ScanBudget` cents track **LLM only**; DataForSEO + Tavily spend is now *measured* per scan/user (`scans.{dataforseo,tavily}_cost_cents`, `lib/scan/cost-context.ts`) but **not** yet enforced against the cap — external spend is bounded only by the tool-call / `MAX_SELECTED` caps (see `docs/architecture.md` §4.3).
