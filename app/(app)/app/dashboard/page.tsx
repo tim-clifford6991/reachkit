@@ -8,7 +8,7 @@ import { serverDb } from "@/lib/db/client";
 import { engagementSummary } from "@/lib/scan/engagement";
 import { scoreHistoryMarkers } from "@/lib/scan/score-history-markers";
 import { pillarRollupFromRegistry, type ScoreBreakdown } from "@/lib/scan/pillar-scores";
-import { registryScore } from "@/lib/scan/registry-score";
+import { headlineScore } from "@/lib/scan/registry-score";
 import type { Pillar } from "@/lib/scan/signals";
 import { actionBoard } from "@/lib/scan/action-board";
 import { DashboardHero } from "@/components/app/intel/dashboard-hero";
@@ -101,17 +101,21 @@ async function DashboardContent() {
     viewer ? entitlementsFor(viewer.user.id) : Promise.resolve(null),
   ]);
 
-  // 1A — pillar rollup from the persisted 18-signal registry when a paid scan has
-  // them (so Outreach shows its real market-signal value instead of falsely reading
-  // "not measured yet"); fall back to the on-site `score_breakdown` for free/app scans.
+  // Pillar rollup + gauge from the FIXED on-site basis (headlineScore) — the 8 HTML
+  // signals measured identically free↔paid. The gauge shows the SAME on-site total
+  // the pillars decompose (gauge == pillar average), and it does NOT move when the
+  // paid deep pass measures off-site signals — those are the separate Market
+  // Position grade below. Outreach has no on-site signal, so it reads "measured
+  // off-site" (see Market position); Content + SEO carry the on-site headline.
   const { data: sigRows } = await serverDb()
     .from("scan_signals")
-    .select("pillar, weight, normalised, state")
+    .select("signal_key, pillar, weight, normalised, state")
     .eq("scan_id", scan.id);
   const reg =
     sigRows && sigRows.length
-      ? registryScore(
+      ? headlineScore(
           sigRows.map((r) => ({
+            signalKey: (r.signal_key as string | null) ?? undefined,
             pillar: r.pillar as Pillar,
             weight: (r.weight as number | null) ?? 0,
             normalised: r.normalised as number | null,
@@ -120,9 +124,7 @@ async function DashboardContent() {
         )
       : null;
   const rollup = pillarRollupFromRegistry(reg, scan.score_breakdown as unknown as ScoreBreakdown | null);
-  // The headline gauge shows the SAME registry total the pillars decompose, so the
-  // gauge always equals the pillar weighted-average (fixing the gauge-vs-pillars
-  // incoherence). Falls back to the persisted score_total only when no signals exist.
+  // Falls back to the persisted score_total only when no signals exist.
   const headline = reg ? reg.total : scan.score_total;
   // F2 — the paid off-site "Market position" grade, if the deep pass computed one.
   const marketPosition = (scan.report_payload as { marketPosition?: { total?: number } | null } | null)?.marketPosition?.total ?? null;

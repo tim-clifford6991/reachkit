@@ -150,7 +150,7 @@ export async function scoreHistory(appId: string): Promise<ScoreHistoryPoint[]> 
   const db = serverDb();
   const { data, error } = await db
     .from("score_snapshots")
-    .select("taken_at, total, breakdown")
+    .select("taken_at, total, breakdown, score_version")
     .eq("app_id", appId)
     .order("taken_at", { ascending: true, nullsFirst: false });
   // Resilient (see weeklyStreak): degrade to an empty trend rather than crashing
@@ -160,7 +160,26 @@ export async function scoreHistory(appId: string): Promise<ScoreHistoryPoint[]> 
     return [];
   }
 
-  return (data ?? []).map((row) => ({
+  const rows = data ?? [];
+  // Only plot points from the CURRENT scoring model. score_version changes rebase
+  // the number (e.g. the v3→v4 on-site headline moved a site 66→74 for scoring
+  // reasons, not real change), so mixing versions on one line would draw a
+  // scoring-model migration as a real discoverability cliff. Show the newest
+  // version's points only — the trend restarts cleanly at a model change rather
+  // than lying about a drop the founder never caused.
+  const latestVersion = rows.reduce<number | null>(
+    (max, r) => {
+      const v = (r as { score_version?: number | null }).score_version ?? null;
+      return v != null && (max == null || v > max) ? v : max;
+    },
+    null,
+  );
+  const sameVersion =
+    latestVersion == null
+      ? rows
+      : rows.filter((r) => ((r as { score_version?: number | null }).score_version ?? latestVersion) === latestVersion);
+
+  return sameVersion.map((row) => ({
     takenAt: row.taken_at,
     total: row.total,
     breakdown: row.breakdown as ScoreHistoryPoint["breakdown"],

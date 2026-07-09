@@ -37,7 +37,7 @@ import { gatherScoreComponents, verifiedScore } from "@/lib/scan/score-full";
 import { persistScanSignals, computeSignalRowsForScan } from "@/lib/scan/persist-signals";
 import { linkSignalKeys, topUpActions, MIN_ACTIONS } from "@/lib/scan/action-linking";
 import { fillDeterministicDrafts } from "@/lib/scan/action-drafts";
-import { registryScore, marketPositionScore } from "@/lib/scan/registry-score";
+import { headlineScore, marketPositionScore, HEADLINE_SCORE_VERSION } from "@/lib/scan/registry-score";
 import { verifiedScoreFromRegistry } from "@/lib/scan/free-report";
 import type { ScanSignalRow } from "@/lib/scan/compute-signals";
 import { assembleReport, persistReport, bucketActions, type ReportPayload } from "@/lib/scan/report";
@@ -686,8 +686,8 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
       .eq("id", ctx.scanId);
     if (scoreErr) throw scoreErr;
 
-    // 10a. Persist the 18-signal contributions, then flip the WEB headline to the
-    //      v2 registry score (patches scans + report_payload.score so the gauge,
+    // 10a. Persist the 18-signal contributions, then set the WEB headline to the
+    //      v4 on-site score (patches scans + report_payload.score so the gauge,
     //      bars and radar agree). Best-effort: a failure leaves the v1 score intact.
     try {
       const { data: persisted } = await db
@@ -714,19 +714,20 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
         platform: ctx.mode,
       }));
       if (ctx.mode === "web" && payload) {
-        // v3 headline = the FULL 18-signal registry score (weighted avg over the
-        // three assessed pillars), NOT the fixed-basis on-site headlineScore. This
-        // is what the dashboard pillars decompose, so the gauge == the pillar
-        // average (incl. a real Outreach). The off-site cohort grade stays separate
-        // as marketPosition below.
-        const reg = registryScore(signalRows);
-        if (reg.assessed.length > 0) {
+        // v4 headline = registryScore over the FIXED on-site basis ONLY
+        // (headlineScore) — the 8 HTML signals measured identically on free and
+        // paid, so the headline is stable free→paid and equals the on-site pillar
+        // bars the dashboard shows. The deep pass's off-site strength (keyword
+        // footprint, backlinks, marketplace/community/press) is NOT in the headline
+        // — it is the separate `marketPosition` grade below.
+        const head = headlineScore(signalRows);
+        if (head.assessed.length > 0) {
           await db
             .from("scans")
             .update({
-              score_total: reg.total,
-              score_breakdown: reg.breakdown as unknown as Json,
-              score_version: 3,
+              score_total: head.total,
+              score_breakdown: head.breakdown as unknown as Json,
+              score_version: HEADLINE_SCORE_VERSION,
             })
             .eq("id", ctx.scanId);
           // F2: the off-site "Market position" grade, distinct from the on-site
@@ -735,7 +736,7 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
           const marketPosition = mp.assessed.length > 0
             ? { total: mp.total, breakdown: mp.breakdown, assessed: mp.assessed }
             : null;
-          await persistReport(ctx.scanId, { ...payload, score: verifiedScoreFromRegistry(reg), marketPosition });
+          await persistReport(ctx.scanId, { ...payload, score: verifiedScoreFromRegistry(head), marketPosition });
         }
       }
     } catch (e) {

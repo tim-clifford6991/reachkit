@@ -101,7 +101,7 @@ import { computeSignalRowsForScan, persistScanSignals } from "./persist-signals"
 import { fallbackActionsFromSignals } from "./fallback-actions";
 import { fillDeterministicDrafts } from "./action-drafts";
 import { writeScanScoreSnapshot, rollupScanCost } from "./scan-telemetry";
-import { registryScore } from "./registry-score";
+import { headlineScore, HEADLINE_SCORE_VERSION } from "./registry-score";
 import { discoverabilityScore } from "./score";
 import { persistReport } from "./report";
 import type { ScoreComponents } from "./score-full";
@@ -148,15 +148,16 @@ export async function runFreeReport(ctx: ScanContext, facts: PreliminaryFacts): 
   });
   await persistScanSignals({ mode: ctx.mode, storeUrl: ctx.storeUrl, scanId: ctx.scanId, components: ZERO_COMPONENTS, market: null });
 
-  // Headline v3 = the 18-signal registry score (weighted avg over the assessed
-  // pillars) for web, so the free gauge equals its pillar breakdown and there's no
-  // model switch (and no 98→66 jump) when the scan is later deepened. On a free
-  // scan only on-site pillars are assessed (market null → off-site unmeasured).
+  // Headline v4 = registryScore over the FIXED on-site basis (headlineScore) for
+  // web — the 8 HTML signals measured identically on free and paid, so the free
+  // gauge EXACTLY equals the number the paid deep pass will show (no free→paid
+  // jump) and equals its own on-site pillar bars. Off-site strength appears only
+  // later, as the separate paid "Market position" grade — never in the headline.
   // v1 findings score for app (no HTML), and the same v1 fallback when a web scan
   // has no usable HTML to assess.
-  let scoreVersion = 3;
+  let scoreVersion = HEADLINE_SCORE_VERSION;
   let score: VerifiedScore;
-  const reg: RegistryScore = ctx.mode === "web" ? registryScore(signalRows) : { total: 0, breakdown: { content: 0, outreach: 0, seo: 0 }, assessed: [] };
+  const reg: RegistryScore = ctx.mode === "web" ? headlineScore(signalRows) : { total: 0, breakdown: { content: 0, outreach: 0, seo: 0 }, assessed: [] };
   if (ctx.mode === "web" && reg.assessed.length > 0) {
     score = verifiedScoreFromRegistry(reg);
   } else {

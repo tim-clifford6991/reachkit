@@ -21,6 +21,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { currentUser } from "@/lib/auth/server";
+import { assertPaid, EntitlementError } from "@/lib/billing/entitlements";
 import { activeAppId } from "@/lib/app/active-app";
 import { serverDb } from "@/lib/db/client";
 import { getSelectedCompetitors } from "@/lib/scan/competitor-selection";
@@ -59,6 +60,16 @@ function fallbackItem(topic: string, angle?: string): ContentPlanItem {
 export async function POST(req: NextRequest) {
   const viewer = await currentUser();
   if (!viewer) return NextResponse.json({ message: "authentication required" }, { status: 401 });
+
+  // Content drafting is a paid surface (runs a metered Sonnet generation) — gate it
+  // like its siblings /api/distribute/draft and /api/action/[id]/complete. Without
+  // this any authenticated FREE user could generate drafts (cost + entitlement leak).
+  try {
+    await assertPaid(viewer.user.id);
+  } catch (e) {
+    if (e instanceof EntitlementError) return NextResponse.json({ message: "upgrade required" }, { status: 402 });
+    return NextResponse.json({ message: "entitlement check failed" }, { status: 500 });
+  }
 
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ message: "missing or invalid topic" }, { status: 400 });
