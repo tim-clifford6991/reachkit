@@ -76,6 +76,8 @@ const META = {
   Testimonials:     { group: "Marketing", render: "{}" },
   Audience:         { group: "Marketing", render: "{}" },
   PlanCards:        { group: "Marketing", render: "{}" },
+  PageHeader:       { group: "Foundations", render: "{eyebrow:'About',title:'Built for founders who ship'}" },
+  ComingSoon:       { group: "Marketing", render: "{eyebrow:'Roadmap',title:'Where ReachKit is headed',blurb:'A public roadmap is in the works.'}" },
   PricingBlock:     { group: "Marketing", render: "{}" },
   ScoreTravels:     { group: "Marketing", render: "{}" },
   FinalCta:         { group: "Marketing", render: "{}" },

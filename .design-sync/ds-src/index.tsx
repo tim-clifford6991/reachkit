@@ -39,6 +39,8 @@ export { WhySwitch } from "./WhySwitch";
 export { Testimonials } from "./Testimonials";
 export { Audience } from "./Audience";
 export { PlanCards } from "./PlanCards";
+export { PageHeader } from "./PageHeader";
+export { ComingSoon } from "./ComingSoon";
 export { PricingBlock } from "./PricingBlock";
 export { ScoreTravels } from "./ScoreTravels";
 export { FinalCta } from "./FinalCta";

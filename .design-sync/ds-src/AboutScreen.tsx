@@ -1,32 +1,37 @@
 /* @mirrors app/(marketing)/about/page.tsx */
 import * as React from "react";
 import { NavBar } from "./NavBar";
+import { PageHeader } from "./PageHeader";
 import { Footer } from "./Footer";
 
 /**
- * AboutScreen — the public About page (`/about`): NavBar, a hero, the mission prose,
- * and the "why we built it" note, then the footer. A standard marketing content page.
+ * AboutScreen — the `/about` page: NavBar, a left-aligned PageHeader ("About" ·
+ * "Built for founders who ship, not agencies who bill"), the mission prose (three
+ * paragraphs) with the two CTAs, then the footer. Mirrors the live inline page.
  */
 export interface AboutScreenProps {
   _unused?: never;
 }
 
-const SECTION: React.CSSProperties = { maxWidth: 720, margin: "0 auto", padding: "0 24px" };
+const btn = (primary: boolean): React.CSSProperties => ({
+  fontFamily: "var(--font-sans)", fontWeight: 600, fontSize: 14, borderRadius: 10, padding: "11px 20px", textDecoration: "none",
+  color: primary ? "var(--c-on-dark)" : "var(--c-ink)", background: primary ? "var(--c-action)" : "var(--c-surface)", border: primary ? "1px solid transparent" : "1px solid var(--c-line)",
+});
 
 export function AboutScreen() {
   return (
-    <div style={{ background: "var(--c-bg)", fontFamily: "var(--font-sans)", color: "var(--c-ink)" }}>
+    <div style={{ background: "var(--c-surface)", fontFamily: "var(--font-sans)", color: "var(--c-ink)" }}>
       <NavBar />
-      <div style={{ background: "radial-gradient(900px 360px at 50% -10%, var(--c-soft), transparent 70%)" }}>
-        <div style={{ ...SECTION, padding: "56px 24px 24px", textAlign: "center" }}>
-          <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "clamp(2rem, 4.5vw, 3.2rem)", letterSpacing: "-0.02em", lineHeight: 1.05, margin: 0 }}>The distribution system for solo founders</h1>
+      <PageHeader eyebrow="About" title="Built for founders who ship, not agencies who bill" />
+      <div style={{ maxWidth: 1180, margin: "0 auto", padding: "32px 28px 28px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 18, maxWidth: 720 }}>
+          <p style={{ fontSize: 17.5, lineHeight: 1.5, color: "var(--c-muted)", margin: 0 }}>Most products don&apos;t fail because they&apos;re bad. They fail because nobody can find them. The people who&apos;d love your app are searching — they just land on someone else&apos;s listing instead of yours.</p>
+          <p style={{ fontSize: 17.5, lineHeight: 1.5, color: "var(--c-muted)", margin: 0 }}>ReachKit exists to close that gap. Paste a URL and you get a Discoverability Score, an honest read on who your page actually speaks to, the searches you&apos;re invisible for, and a ranked list of fixes — grounded in your live page, not generic advice. Then a weekly engine keeps you moving and verifies each change actually shipped.</p>
+          <p style={{ fontSize: 17.5, lineHeight: 1.5, color: "var(--c-muted)", margin: 0 }}>It&apos;s made by <span style={{ color: "var(--c-ink)", fontWeight: 600 }}>Tim Clifford</span>, a solo founder who got tired of distribution being a black box you either ignore or pay an agency a fortune to manage. The goal is simple: make getting found a thing you can do yourself, a little every week.</p>
         </div>
-      </div>
-      <div style={{ ...SECTION, padding: "24px 24px 64px", display: "flex", flexDirection: "column", gap: 20, fontSize: 16.5, lineHeight: 1.7, color: "var(--c-muted)" }}>
-        <p style={{ margin: 0 }}>Great products die undiscovered every day. Not because they're bad — because being <em>findable</em> is a full-time job the founder never has time for.</p>
-        <p style={{ margin: 0 }}>ReachKit scans your live site the way a customer's search would, scores how discoverable you are across Content, Outreach and SEO, and turns the gaps into a small, ranked weekly plan — with the drafts written for you. No dashboards to babysit. No auto-posting that gets you shadow-banned. Just the next right move.</p>
-        <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-lg)", padding: "20px 24px", color: "var(--c-ink)", fontSize: 15.5 }}>
-          <strong style={{ fontFamily: "var(--font-display)" }}>Why we built it:</strong> we watched too many indie tools with real customers lose to worse products that were simply easier to find. ReachKit is the unfair advantage we wished we'd had.
+        <div style={{ marginTop: 32, display: "flex", flexWrap: "wrap", gap: 12 }}>
+          <a href="/scan" style={btn(true)}>Scan your product</a>
+          <a href="/gallery" style={btn(false)}>Browse the scans</a>
         </div>
       </div>
       <Footer />
