@@ -11,6 +11,7 @@
 import { normalizeHost } from "@/lib/scan/referral/classify";
 import { cohortFor } from "@/lib/scan/cache/cached-adapters";
 import { cachedRankedKeywords } from "@/lib/scan/cache/cached-adapters";
+import { MAX_SELECTED } from "@/lib/scan/competitor-selection";
 import type { OnStageCallback } from "@/lib/scan/types";
 
 const WINNING_POSITION = 30; // only count a rival ranking in the top 30 as "winning"
@@ -84,7 +85,10 @@ export interface KeywordGapResult {
 export async function gatherKeywordGap(rawSelf: string, opts: { topN?: number; competitorDomains?: string[]; onStage?: OnStageCallback } = {}): Promise<KeywordGapResult> {
   const self = normalizeHost(rawSelf);
   const closest = await cohortFor(self, opts.competitorDomains);
-  const cohort = closest.ranked.slice(0, opts.topN ?? 4).map((r) => r.domain);
+  // Default to MAX_SELECTED (5) so the keyword-gap cohort matches the funnel /
+  // synthesis cohort — otherwise the 5th selected rival gets referrer data but no
+  // keyword-gap data ("No keyword-gap data surfaced" when the user selects it).
+  const cohort = closest.ranked.slice(0, opts.topN ?? MAX_SELECTED).map((r) => r.domain);
 
   // Limit 50 (was 100) to share the rk:<domain>:50 cache the deep-scan profiler
   // now warms (cost dedup). Gaps only count rivals in the top 30 (WINNING_POSITION)

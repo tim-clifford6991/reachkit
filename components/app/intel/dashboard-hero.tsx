@@ -53,7 +53,7 @@ export function DashboardHero({ score, rollup, history, markers, isPaid, marketP
         <div style={{ display: "flex", flexWrap: "wrap", gap: 28, alignItems: "center" }}>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
             <Gauge score={score} />
-            <span style={{ fontSize: 10.5, fontFamily: JM, color: "var(--c-faint)", letterSpacing: "0.03em" }} title="Your overall discoverability — the weighted average of the Content, Outreach and SEO pillars below.">OVERALL · CONTENT+OUTREACH+SEO</span>
+            <span style={{ fontSize: 10.5, fontFamily: JM, color: "var(--c-faint)", letterSpacing: "0.03em" }} title="Your on-site discoverability readiness — the weighted average of the on-site Content & SEO signals on your page. This number is identical on the free and paid scans and never moves on upgrade. How you actually stack up off-site (keyword footprint, backlinks, marketplace/community presence) is the separate Market Position grade.">ON-SITE READINESS</span>
             {delta !== null && (
               <span style={{ fontSize: 12, fontFamily: JM, color: delta > 0 ? "var(--c-band-high)" : delta < 0 ? "var(--c-band-invisible)" : "var(--c-faint)" }}>
                 {delta > 0 ? `▲ +${delta}` : delta < 0 ? `▼ ${delta}` : "no change"} since last scan

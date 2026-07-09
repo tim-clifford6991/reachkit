@@ -6,6 +6,7 @@ import {
   headlineScore,
   marketPositionScore,
   FIXED_BASIS_SIGNAL_KEYS,
+  HEADLINE_SCORE_VERSION,
   type RegistryScoreRow,
 } from "./registry-score";
 import type { VerifiedScore } from "./score-full";
@@ -82,20 +83,26 @@ describe("applyRegistryScore", () => {
 
 describe("headlineFromRows", () => {
   const v1 = { total: 18, breakdown: { content: 0, outreach: 0, seo: 40 } };
-  const measured = [row("seo", 1, 80), row("content", 1, 60)];
 
-  it("uses the v2 registry score (version 2) for web with measured signals", () => {
-    const h = headlineFromRows("web", v1, measured);
-    expect(h.version).toBe(2);
-    expect(h.total).toBe(registryScore(measured).total);
+  it("scores web over the fixed on-site basis (version 4) and equals headlineScore", () => {
+    const h = headlineFromRows("web", v1, FIXED_ROWS);
+    expect(h.version).toBe(HEADLINE_SCORE_VERSION);
+    expect(h.total).toBe(headlineScore(FIXED_ROWS).total);
+  });
+
+  it("is stable free→paid: deep signals never move the headline", () => {
+    const free = headlineFromRows("web", v1, FIXED_ROWS);
+    const paid = headlineFromRows("web", v1, [...FIXED_ROWS, ...DEEP_ROWS]);
+    expect(paid.total).toBe(free.total);
+    expect(paid.breakdown).toEqual(free.breakdown);
   });
 
   it("keeps v1 (version 1) for app platforms", () => {
-    expect(headlineFromRows("ios", v1, measured)).toEqual({ ...v1, version: 1 });
+    expect(headlineFromRows("ios", v1, FIXED_ROWS)).toEqual({ ...v1, version: 1 });
   });
 
   it("keeps v1 for web when nothing measured", () => {
-    const h = headlineFromRows("web", v1, [row("seo", 1, null)]);
+    const h = headlineFromRows("web", v1, [sig("title_tag", "seo", 0.1, null)]);
     expect(h).toEqual({ ...v1, version: 1 });
   });
 });

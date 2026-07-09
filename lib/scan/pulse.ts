@@ -124,9 +124,15 @@ export async function runScorePulse(
     await persistScanSignals({ scanId: scanRow.id, mode, storeUrl: app.store_url, components, market: null });
     const { data } = await db
       .from("scan_signals")
-      .select("pillar, weight, normalised, state")
+      .select("signal_key, pillar, weight, normalised, state")
       .eq("scan_id", scanRow.id);
-    rows = (data ?? []) as RegistryScoreRow[];
+    rows = (data ?? []).map((r) => ({
+      signalKey: (r.signal_key as string | null) ?? undefined,
+      pillar: r.pillar as RegistryScoreRow["pillar"],
+      weight: (r.weight as number | null) ?? 0,
+      normalised: r.normalised as number | null,
+      state: (r.state as string | null) ?? "unmeasured",
+    }));
   } catch (e) {
     console.error("[pulse] persistScanSignals failed (best-effort)", e);
   }

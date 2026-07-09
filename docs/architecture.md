@@ -196,10 +196,10 @@ live populated/empty state of any given scan.
 
 | Data | Source | Storage | Interpretation | UI surface |
 |------|--------|---------|----------------|------------|
-| Headline score | HTML fetch + SERP (DataForSEO) | `scans.score_total` / `score_breakdown` (`score_version 3`) | `compute-signals` → 18-signal `registryScore` (weighted avg over assessed pillars) — same number the pillars use, so the gauge == pillar average by construction | Dashboard gauge ("Overall · Content+Outreach+SEO") |
-| Pillar bars | 18 `scan_signals` | `scan_signals` | `registryScore` → `pillarRollupFromRegistry` (assessed = signal measured) | Dashboard hero pillars |
+| Headline score | HTML fetch (page only — no off-site) | `scans.score_total` / `score_breakdown` (`score_version 4`) | `compute-signals` → `headlineScore` = `registryScore` over the FIXED 8 on-site signals (`FIXED_BASIS_SIGNAL_KEYS`). Identical free↔paid (never moves on upgrade); equals the on-site pillar bars | Dashboard gauge ("On-site readiness") |
+| Pillar bars | on-site `scan_signals` | `scan_signals` | `headlineScore` → `pillarRollupFromRegistry`; Content + SEO assessed on-site, Outreach reads "off-site → Market Position" (no on-site signal) | Dashboard hero pillars |
+| Market position | off-site `scan_signals` (keyword footprint, backlinks, marketplace/community/press) | `scans.report_payload.marketPosition` | `marketPositionScore` = `registryScore` over the NON-fixed (off-site) signals, cohort-relative where rivals exist | Dashboard hero ("Market position vs rivals"), paid only |
 | Per-scan cost | DataForSEO (real `body.cost`) · Tavily (credits × rate) · Anthropic (tokens) | `scans.dataforseo_cost_cents` / `tavily_cost_cents` / `cost_cents` | `lib/scan/cost-context.ts` (AsyncLocalStorage sink; `costedStep` flushes per Inngest step) | `/app/diagnostics` — per-scan breakdown + "Spend by user" (all users) |
-| Market position | off-site signals (backlinks, keywords, presence) | `scans.report_payload.marketPosition` | `marketPositionScore` (cohort-relative) | Dashboard hero ("Market position vs rivals") |
 | Competitors / referrers | DataForSEO backlinks + traffic | `search_cache` (`funnel2:*` cachedJson) + `report_payload` | `gatherFullFunnel` → `buildBreakdown` | Audience → Competitors |
 | Keyword gap | DataForSEO ranked_keywords | `search_cache` (`synth:*`) + `report_payload.market.gap` | `gatherKeywordGap` | Audience → Keywords |
 | Demand / pockets | Reddit/community search + keyword ideas | `search_cache` (`demand-intel:*`) **and** `demand_intel` table | `gatherDemand` | Audience → Customers |
@@ -299,10 +299,13 @@ the 7-day TTL).
   **Inngest** functions hosted at `/api/inngest`.
 - **Two-tier scan** — a fast, free lightweight report is produced first
   (`lib/scan/free-report.ts`), then `scan/deepen` runs the expensive full pass
-  (`lib/scan/full-scan.ts`) only after payment. The headline gauge is the
-  **18-signal `registryScore`** (`score_version 3`) on both tiers — the same
-  number the pillar bars use, so free→deep never jumps models (free assesses only
-  the on-site pillars; deep adds the off-site market-position grade alongside).
+  (`lib/scan/full-scan.ts`) only after payment. The headline gauge is
+  **`headlineScore`** — the fixed on-site basis (`score_version 4`) — measured
+  identically from page HTML on both tiers, so the number is stable free→paid and
+  equals the on-site pillar bars. The deep pass's off-site strength surfaces as the
+  separate **Market Position** grade, never in the headline. (PR #36 briefly made
+  the headline the full 18-signal `registryScore`, which dropped the score on
+  upgrade — v4 reverted that; see §4.1.)
 - **Scoring engine** — `SIGNAL_REGISTRY` in `lib/scan/signals.ts` drives ~18
   deterministic (no-LLM) signals grouped into 3 weighted pillars
   (**SEO 0.45 / Content 0.30 / Outreach 0.25**), persisted to `scan_signals` +

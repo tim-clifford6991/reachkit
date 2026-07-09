@@ -10,14 +10,26 @@
 import { PILLAR_WEIGHTS, type Pillar } from "./signals";
 import type { Platform } from "./router";
 import type { VerifiedScore } from "./score-full";
-import type { ScanSignalRow } from "./compute-signals";
 
 export interface RegistryScoreRow {
+  /** The signal key (e.g. "title_tag") — REQUIRED to select the on-site headline
+   *  basis. Optional only for legacy callers; headlineFromRows degrades safely. */
+  signalKey?: string;
   pillar: Pillar;
   weight: number;
   normalised: number | null;
   state: string;
 }
+
+/**
+ * The persisted headline score model. v4 (2026-07-09): the headline is the FIXED
+ * on-site basis (`headlineScore`) — identical free↔paid, and equal to the pillar
+ * bars the dashboard shows — with all off-site strength living in the separate
+ * `marketPositionScore` grade. v3 (retired) folded off-site signals into the
+ * headline, which moved the number on upgrade (free 74 → paid 66). See
+ * docs/architecture.md §4.1 and CLAUDE.md invariant #1.
+ */
+export const HEADLINE_SCORE_VERSION = 4;
 
 export interface RegistryScore {
   total: number;
@@ -98,9 +110,15 @@ export interface Headline {
 }
 
 /**
- * The headline score to persist: the v2 registry score for WEB scans that have
- * measured signals (score_version 2), otherwise the v1 verified score (version 1).
- * App platforms stay on v1 until the app-platform signal set ships.
+ * The headline score to persist for a WEB scan: `registryScore` over the FIXED
+ * on-site basis ONLY (`FIXED_BASIS_SIGNAL_KEYS`) — so it's identical whether the
+ * scan measured off-site signals or not, and never moves free→paid (v4). Off-site
+ * strength is the separate `marketPositionScore` grade, not the headline. App
+ * platforms stay on v1 until the app-platform signal set ships.
+ *
+ * Requires `signalKey` on the rows to select the basis; if absent (legacy rows),
+ * degrades to scoring over whatever rows were passed (callers that read back
+ * `market:null` signals are already effectively on-site).
  */
 export function headlineFromRows(
   mode: Platform,
@@ -108,9 +126,11 @@ export function headlineFromRows(
   rows: RegistryScoreRow[],
 ): Headline {
   if (mode !== "web") return { ...v1, version: 1 };
-  const v2 = registryScore(rows);
-  if (v2.assessed.length === 0) return { ...v1, version: 1 };
-  return { total: v2.total, breakdown: v2.breakdown, version: 2 };
+  const onSite = rows.filter((r) => r.signalKey != null && FIXED_BASIS_SIGNAL_KEYS.includes(r.signalKey));
+  const basis = onSite.length > 0 ? onSite : rows; // defensive: legacy rows without signalKey
+  const h = registryScore(basis);
+  if (h.assessed.length === 0) return { ...v1, version: 1 };
+  return { total: h.total, breakdown: h.breakdown, version: HEADLINE_SCORE_VERSION };
 }
 
 /**
@@ -131,9 +151,9 @@ export const FIXED_BASIS_SIGNAL_KEYS: readonly string[] = [
  * 8-signal subset. Same signals → same number, regardless of what deep signals a
  * paid scan additionally measured.
  */
-export function headlineScore(rows: ScanSignalRow[]): RegistryScore {
+export function headlineScore(rows: RegistryScoreRow[]): RegistryScore {
   const fixed = rows
-    .filter((r) => FIXED_BASIS_SIGNAL_KEYS.includes(r.signalKey))
+    .filter((r) => r.signalKey != null && FIXED_BASIS_SIGNAL_KEYS.includes(r.signalKey))
     .map((r) => ({ pillar: r.pillar, weight: r.weight, normalised: r.normalised, state: r.state }));
   return registryScore(fixed);
 }
@@ -148,9 +168,9 @@ export function headlineScore(rows: ScanSignalRow[]): RegistryScore {
  * the deep pass is the first time these are measured. Returns `assessed: []` when
  * none are measured (free scan) — callers then omit the grade.
  */
-export function marketPositionScore(rows: ScanSignalRow[]): RegistryScore {
+export function marketPositionScore(rows: RegistryScoreRow[]): RegistryScore {
   const offSite = rows
-    .filter((r) => !FIXED_BASIS_SIGNAL_KEYS.includes(r.signalKey))
+    .filter((r) => r.signalKey != null && !FIXED_BASIS_SIGNAL_KEYS.includes(r.signalKey))
     .map((r) => ({ pillar: r.pillar, weight: r.weight, normalised: r.normalised, state: r.state }));
   return registryScore(offSite);
 }
