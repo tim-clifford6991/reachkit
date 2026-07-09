@@ -38,7 +38,7 @@ const META = {
   TextField:        { group: "Foundations", render: "{hint:'We never share it.'}" },
   Tabs:             { group: "Foundations", archived: true, render: "{}" },
   PricingTable:     { archived: true, group: "Marketing",   render: "{}" },
-  LandingHero:      { group: "Marketing",   archived: true, render: "{}" }, // LandingScreen composes its split hero inline from ScanInput — this single-column hero is unused
+  LandingHero:      { group: "Marketing",   render: "{}" }, // the shared ScanHero (mirrors scan-hero.tsx); composed by LandingScreen
   // Full-page screen templates — folders stay in their functional group, but the
   // pane groups them under "Pages" so every app/marketing page is viewable at a glance.
   ResultsScreen:    { group: "Report",      cardGroup: "Pages", render: "{}" },
@@ -66,6 +66,18 @@ const META = {
   PlanItemCard:        { group: "App", render: "{doFirst:true,type:'Outreach',title:'Guest post on 3 podcast-tool roundups',why:'Closes the referral gap vs fathom.video',from:'Outreach pillar · weakest lever',predictedPts:'+9 pts',status:'This week',statusColor:'var(--c-action)'}" },
   LeverBanner:         { group: "App", render: "{pillar:'Outreach',note:'closing the referral & directory gaps is worth the most right now',points:'+9 pts'}" },
   ProgressChart:       { archived: true, group: "App", render: "{points:[{x:0,y:38},{x:0.33,y:44},{x:0.66,y:49},{x:1,y:54}],markers:[{wk:'Week 1',score:38,x:0,y:38},{wk:'Week 8',score:54,x:1,y:54}],events:[{wk:'Week 3',date:'',text:'Shipped 3 podcast guest posts'},{wk:'Week 6',date:'',text:'Added comparison landing pages'}]}" },
+  // Landing-page section components — each is a slice of the live "/" that
+  // LandingScreen composes (mirrors components/sections/*).
+  CompanyTicker:    { group: "Marketing", render: "{}" },
+  StorySection:     { group: "Marketing", render: "{}" },
+  HowItWorks:       { group: "Marketing", render: "{}" },
+  ActionEngine:     { group: "Marketing", render: "{}" },
+  WhySwitch:        { group: "Marketing", render: "{}" },
+  Testimonials:     { group: "Marketing", render: "{}" },
+  Audience:         { group: "Marketing", render: "{}" },
+  PricingBlock:     { group: "Marketing", render: "{}" },
+  ScoreTravels:     { group: "Marketing", render: "{}" },
+  FinalCta:         { group: "Marketing", render: "{}" },
 };
 
 // Turn a JS object-literal render string ("{score:46}") into a real object at

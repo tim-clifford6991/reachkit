@@ -23,7 +23,10 @@ Groups map to the Claude Design pane's `@dsCard group=` sections (set in
 > components are exempt. Tags are the enforced source; this table is the
 > human-readable view. See CLAUDE.md → "Consistency harness".
 
-Counts: **34 active** (14 atomic + 20 Page templates) · **17 archived** · 51 total.
+Counts: **45 active** (25 atomic + 20 Page templates) · **16 archived** · 61 total.
+
+### Landing-page section components (11) — each a slice of the live "/" that `LandingScreen` composes
+`LandingHero` (→ `scan-hero.tsx`) · `CompanyTicker` (→ `company-ticker.tsx`) · `StorySection` · `HowItWorks` · `ActionEngine` · `WhySwitch` · `Testimonials` · `Audience` · `PricingBlock` · `ScoreTravels` · `FinalCta` (the last nine → the live captured `landing-html.ts`). `LandingScreen` is a thin composition: `NavBar → LandingHero → CompanyTicker → StorySection → HowItWorks → ActionEngine → WhySwitch → Testimonials → Audience → PricingBlock → ScoreTravels → FinalCta → Footer`.
 
 ## Active atomic (14)
 | Component | Group | Mirrors (live) — `@mirrors` |
@@ -57,10 +60,9 @@ atoms are dead). Exempt from `@mirrors` enforcement.
 
 | Component | Why archived |
 |---|---|
-| Testimonial | Live product uses a logo ticker (`company-ticker.tsx`), not written quotes. |
+| Testimonial | Superseded by the active `Testimonials` landing section (the live logo ticker is `company-ticker.tsx`; this single-quote card is unused). |
 | Alert | No live standalone `Alert` component. |
 | Tabs | No live standalone `Tabs` component. |
-| LandingHero | `LandingScreen` composes its split hero inline from `ScanInput`; unused. |
 | ScoreGauge | `report/score-gauge.tsx` not reachable (superseded by captured results-screen). |
 | ScoreCard | `report/executive-summary.tsx` not reachable. |
 | RankedFix | `report/action-plan-section.tsx` not reachable. |
