@@ -44,3 +44,7 @@ export { CompetitorsScreen } from "./CompetitorsScreen";
 export { ProgressScreen } from "./ProgressScreen";
 export { LandingScreen } from "./LandingScreen";
 export { PricingScreen } from "./PricingScreen";
+export { CustomersScreen } from "./CustomersScreen";
+export { SettingsScreen } from "./SettingsScreen";
+export { OnboardingScreen } from "./OnboardingScreen";
+export { ScanningScreen } from "./ScanningScreen";

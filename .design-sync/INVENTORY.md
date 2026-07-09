@@ -59,12 +59,17 @@ Groups map to the Claude Design pane's `@dsCard group=` sections (set in
 |---|---|
 | Testimonial | The live product uses a **logo ticker** (`company-ticker.tsx`), not written customer quotes — no live testimonial surface. Files stay at `components/Marketing/Testimonial/`; only the `@dsCard` marker is "Archive" (set via `archived: true` in `layout.mjs`, so no delete and it survives rebuilds). Kept for future reuse.
 
-## Pages (7) — full-page screen templates, grouped "Pages" in the pane
+## Pages (11) — full-page screen templates, grouped "Pages" in the pane
 Compose the components above into a whole page (like the reference `templates/analytics-dashboard`).
 Folders stay in their functional group; `cardGroup: "Pages"` in `layout.mjs` puts them in the Pages
-pane section. `DashboardScreen` · `ResultsScreen` · `PlanScreen` · `CompetitorsScreen` ·
-`ProgressScreen` · `LandingScreen` · `PricingScreen`. **Remaining app pages to add** (same pattern):
-Customers, Settings.
+pane section.
+- **App:** `DashboardScreen` (v4) · `CompetitorsScreen` · `CustomersScreen` · `PlanScreen` ·
+  `ProgressScreen` · `SettingsScreen` · `OnboardingScreen` (setup overlay)
+- **Report/flow:** `ResultsScreen` (free report) · `ScanningScreen` (scan-in-progress)
+- **Marketing:** `LandingScreen` (mirrors the live split-hero + ticker + sections) · `PricingScreen`
+
+**Remaining public content pages to add** (same pattern, lower design-value): gallery, teardowns
+hub, compare hub, about, contact, roadmap, status, tools, legal (privacy/terms).
 
 > The `templates/analytics-dashboard` **template** (Design Composer `.dc.html`) is a separate,
 > RETAINED reference — never delete it; it's a component source.
