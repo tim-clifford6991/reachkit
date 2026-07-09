@@ -26,19 +26,19 @@ const META = {
   NavBar:           { group: "Marketing",   render: "{}" },
   Footer:           { group: "Marketing",   render: "{}" },
   ScanInput:        { group: "Marketing",   render: "{}" },
-  CompareCard:      { group: "Marketing",   render: "{}" },
-  TeardownCard:     { group: "Marketing",   render: "{}" },
+  CompareCard:      { group: "Marketing",   archived: true, render: "{}" }, // no page composes it (represents the /compare hub — not yet templated)
+  TeardownCard:     { group: "Marketing",   archived: true, render: "{}" }, // no page composes it (represents the /teardowns hub — not yet templated)
   AppShell:         { group: "App",         render: "{}" },
   KpiCard:          { group: "App",         render: "{delta:'+8'}" },
   ScanningRing:     { group: "App",         render: "{}" },
   Testimonial:      { group: "Marketing",   archived: true, render: "{}" }, // ARCHIVED 2026-07-09: live product uses a logo ticker (company-ticker.tsx), not written customer quotes — no live testimonial surface. Files STAY at Marketing/ (no delete); pane groups it under Archive.
   FaqItem:          { group: "Marketing",   render: "{}" },
-  Alert:            { group: "Foundations", render: "{tone:'success',title:'Scan complete',children:'Your discoverability score is ready.'}" },
+  Alert:            { group: "Foundations", archived: true, render: "{tone:'success',title:'Scan complete',children:'Your discoverability score is ready.'}" },
   FeatureStep:      { group: "Marketing",   render: "{}" },
   TextField:        { group: "Foundations", render: "{hint:'We never share it.'}" },
-  Tabs:             { group: "Foundations", render: "{}" },
+  Tabs:             { group: "Foundations", archived: true, render: "{}" },
   PricingTable:     { group: "Marketing",   render: "{}" },
-  LandingHero:      { group: "Marketing",   render: "{}" },
+  LandingHero:      { group: "Marketing",   archived: true, render: "{}" }, // LandingScreen composes its split hero inline from ScanInput — this single-column hero is unused
   // Full-page screen templates — folders stay in their functional group, but the
   // pane groups them under "Pages" so every app/marketing page is viewable at a glance.
   ResultsScreen:    { group: "Report",      cardGroup: "Pages", render: "{}" },

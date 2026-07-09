@@ -54,10 +54,24 @@ Groups map to the Claude Design pane's `@dsCard group=` sections (set in
 | CompareCard | `/compare` hub index card |
 | TeardownCard | `/teardowns` hub index card |
 
-## Archive (1) — retained, not deleted, grouped "Archive" in the pane
-| Component | Why archived |
+## Archive (6) — retained, not deleted, grouped "Archive" in the pane
+**Rule (2026-07-09): a component is active only if a Page template composes it.** The 11 Pages use
+exactly 25 atomic components (see the union below); anything else is archived (delete-free — files
+stay at their folder, only the `@dsCard` marker + manifest group flip to "Archive" via `archived: true`).
+
+| Component | Why archived (not used by any Page) |
 |---|---|
-| Testimonial | The live product uses a **logo ticker** (`company-ticker.tsx`), not written customer quotes — no live testimonial surface. Files stay at `components/Marketing/Testimonial/`; only the `@dsCard` marker is "Archive" (set via `archived: true` in `layout.mjs`, so no delete and it survives rebuilds). Kept for future reuse.
+| Testimonial | Live product uses a logo ticker, not written quotes. |
+| Alert | No Page composes it. |
+| Tabs | No Page composes it. |
+| CompareCard | Represents the `/compare` hub — not yet templated as a Page. Un-archive when it is. |
+| TeardownCard | Represents the `/teardowns` hub — not yet templated as a Page. Un-archive when it is. |
+| LandingHero | `LandingScreen` composes its split hero inline from `ScanInput`; this single-column hero is unused. |
+
+**25 active atomic components** (the exact union used by the 11 Pages): AppShell, Badge, BrandMark,
+Button, ChannelDonut, ComparisonTable, CompetitorEdgePanel, FaqItem, FeatureStep, Footer, KpiCard,
+LeverBanner, NavBar, PlanItemCard, PositioningMirror, PricingTable, ProgressChart, RankedFix,
+ScanInput, ScanningRing, ScoreCard, ScoreGauge, SearchGapTable, TextField, UnlockBand.
 
 ## Pages (11) — full-page screen templates, grouped "Pages" in the pane
 Compose the components above into a whole page (like the reference `templates/analytics-dashboard`).
