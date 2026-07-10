@@ -1,66 +1,62 @@
 /* @mirrors components/app/setup/setup-overlay.tsx */
 import * as React from "react";
-import { Button } from "./Button";
-import { BrandMark } from "./BrandMark";
 
 /**
- * OnboardingScreen — the setup overlay (`setup-overlay.tsx`) shown over /app until
- * setup completes. Three steps: Profile → Competitors → Calculating. This card shows
- * the Competitors step (step 2 of 3): the discovered rivals the founder confirms or
- * deselects before the deep gather runs. A slim "Step n of 3" progress header sits on
- * top. Composes Button + BrandMark. Renders fully with no props.
+ * OnboardingScreen — the first-run setup overlay (`setup-overlay.tsx`): a blurred
+ * full-screen dialog with a "Step n of 3 · {label}" progress header and a
+ * Sign-out escape, showing the Profile step (name + distribution goal + ICP).
+ * Mirrors the live setup overlay (step 1).
  */
 export interface OnboardingScreenProps {
   _unused?: never;
 }
 
-const JM = "var(--font-mono)";
-const RIVALS = [
-  { name: "otter.ai", host: "otter.ai", on: true },
-  { name: "Fireflies", host: "fireflies.ai", on: true },
-  { name: "Fathom", host: "fathom.video", on: true },
-  { name: "Grain", host: "grain.com", on: false },
-  { name: "tl;dv", host: "tldv.io", on: false },
+const SG = "var(--font-display)", JM = "var(--font-mono)";
+const STEP = 1, STEPS = ["Profile", "Competitors", "Your data"];
+const GOALS = [
+  "More signups / installs",
+  "Launch on Product Hunt / Hacker News",
+  "Rank for key search terms",
+  "Find creators & communities to reach",
+  "Not sure yet — show me what works",
 ];
+
+const field: React.CSSProperties = { width: "100%", background: "var(--c-bg)", border: "1px solid var(--c-line)", borderRadius: 10, padding: "10px 12px", fontSize: 14, color: "var(--c-ink)", outline: "none", fontFamily: "var(--font-sans)" };
+const label: React.CSSProperties = { fontSize: 13, fontWeight: 600, color: "var(--c-ink)", display: "block", marginBottom: 6 };
 
 export function OnboardingScreen() {
   return (
-    <div style={{ position: "relative", minHeight: 620, background: "var(--c-bg2)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: "var(--font-sans)" }}>
-      {/* backdrop */}
-      <div style={{ position: "absolute", inset: 0, background: "rgba(22,20,31,0.42)" }} />
-      {/* modal */}
-      <div style={{ position: "relative", width: "100%", maxWidth: 560, background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-xl)", boxShadow: "var(--elevation-lg)", padding: "26px 28px", display: "flex", flexDirection: "column", gap: 20 }}>
-        {/* progress header */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <BrandMark size={22} />
-            <span style={{ fontFamily: JM, fontSize: 11.5, fontWeight: 700, letterSpacing: "0.04em", color: "var(--c-muted)" }}>STEP 2 OF 3 · CONFIRM COMPETITORS</span>
+    <div style={{ position: "relative", minHeight: 700, display: "flex", alignItems: "center", justifyContent: "center", padding: 40, background: "color-mix(in oklab, var(--c-bg2) 88%, transparent)", fontFamily: "var(--font-sans)", color: "var(--c-ink)" }}>
+      <form style={{ position: "absolute", top: 22, right: 26 }}><button style={{ fontFamily: "var(--font-sans)", fontSize: 13, color: "var(--c-muted)", background: "transparent", border: "1px solid var(--c-line)", borderRadius: 8, padding: "6px 12px", cursor: "pointer" }}>Sign out</button></form>
+      <div style={{ width: "min(720px, 100%)", background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-xl)", boxShadow: "0 30px 80px -30px rgba(40,33,84,0.4)", padding: 40 }}>
+        <div style={{ marginBottom: 28 }}>
+          <div style={{ fontFamily: JM, fontSize: 12, color: "var(--c-faint)", marginBottom: 10 }}>Step {STEP} of 3 · {STEPS[STEP - 1]}</div>
+          <div style={{ display: "flex", gap: 6 }}>{STEPS.map((_, i) => <span key={i} style={{ width: 26, height: 4, borderRadius: 999, background: i < STEP ? "var(--c-action)" : "var(--c-fill)" }} />)}</div>
+        </div>
+
+        <div style={{ fontFamily: JM, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--c-action)" }}>Welcome to ReachKit</div>
+        <h1 style={{ fontFamily: SG, fontWeight: 700, fontSize: 28, letterSpacing: "-0.02em", margin: "10px 0 8px" }}>Let&apos;s set up your engine</h1>
+        <p style={{ fontSize: 15, lineHeight: 1.5, color: "var(--c-muted)", margin: "0 0 26px", maxWidth: 520 }}>Two quick things so every recommendation is grounded in what you actually want to achieve. Takes about a minute.</p>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+          <div><label style={label}>What should we call you?</label><input readOnly placeholder="Your name" style={field} /></div>
+          <div>
+            <label style={label}>What&apos;s your primary distribution goal right now?</label>
+            <select style={{ ...field, appearance: "none" }} defaultValue="">
+              <option value="" disabled>Choose a focus…</option>
+              {GOALS.map((g) => <option key={g}>{g}</option>)}
+            </select>
           </div>
-          <div style={{ display: "flex", gap: 5 }}>
-            {[1, 2, 3].map((i) => (
-              <div key={i} style={{ flex: 1, height: 4, borderRadius: 3, background: i <= 2 ? "var(--c-action)" : "var(--c-fill)" }} />
-            ))}
+          <div>
+            <label style={label}>Who&apos;s your ideal customer? (we detected these — edit freely)</label>
+            <div style={{ fontSize: 12, color: "var(--c-faint)", margin: "-2px 0 6px" }}>One trait per line. This grounds your competitive and channel analysis.</div>
+            <textarea readOnly rows={3} defaultValue={"solo founders\nindie developers\nproductivity enthusiasts"} style={{ ...field, resize: "none", lineHeight: 1.5 }} />
           </div>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 22, letterSpacing: "-0.01em", margin: 0 }}>These look like your competitors</h2>
-          <p style={{ fontSize: 14, color: "var(--c-muted)", margin: 0, lineHeight: 1.5 }}>We found these from your category. Keep the real rivals — we'll analyse how each one gets found.</p>
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {RIVALS.map((r) => (
-            <label key={r.host} style={{ display: "flex", alignItems: "center", gap: 12, border: `1px solid ${r.on ? "var(--c-action)" : "var(--c-line)"}`, background: r.on ? "var(--c-soft)" : "var(--c-surface)", borderRadius: "var(--radius-md)", padding: "11px 14px", cursor: "pointer" }}>
-              <span style={{ width: 18, height: 18, borderRadius: 5, border: `1.5px solid ${r.on ? "var(--c-action)" : "var(--c-line)"}`, background: r.on ? "var(--c-action)" : "transparent", color: "#fff", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{r.on ? "✓" : ""}</span>
-              <span style={{ fontSize: 14, fontWeight: 600, color: "var(--c-ink)" }}>{r.name}</span>
-              <span style={{ fontFamily: JM, fontSize: 12, color: "var(--c-faint)" }}>{r.host}</span>
-            </label>
-          ))}
-        </div>
-
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <Button variant="primary">Analyse 3 competitors →</Button>
-          <span style={{ fontSize: 12, color: "var(--c-faint)" }}>You can change these any time.</span>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginTop: 26 }}>
+          <span style={{ fontSize: 12.5, color: "var(--c-faint)" }}>Next: pick your competitors</span>
+          <button style={{ fontFamily: "var(--font-sans)", fontWeight: 600, fontSize: 14, color: "var(--c-on-dark)", background: "var(--c-action)", border: "none", borderRadius: "var(--radius-lg)", padding: "11px 22px", cursor: "pointer" }}>Continue →</button>
         </div>
       </div>
     </div>

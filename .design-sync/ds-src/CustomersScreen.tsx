@@ -1,113 +1,97 @@
 /* @mirrors components/app/intel/customers-view.tsx */
 import * as React from "react";
 import { AppShell } from "./AppShell";
+import { Card, Eyebrow, Badge } from "./IntelKit";
 
 /**
- * CustomersScreen — the in-app Audience → Customers view
- * (`/app/audience/customers`): the AppShell chrome wrapping "who your buyers are
- * and where they feel the pain". Mirrors `customers-view.tsx` — the ICP + jobs, the
- * demand themes, "Where they hang out" (real community threads with evidence links),
- * and the buyer-insight quote groups (Pains / Loved / Personas / Buyer language),
- * each honestly labelled or shown as an explicit empty state. Renders fully with no props.
+ * CustomersScreen — the `/app/audience/customers` page: a single "Who your buyers
+ * are" card with the ICP→JTBD strip, jobs/use-cases chips, demand themes (with
+ * volume + intent), where-they-hang-out, and buyer insights (Pains / Loved
+ * features / Personas / Buyer language). Composes the shared IntelKit. Mirrors
+ * the live customers-view.
  */
 export interface CustomersScreenProps {
-  appName?: string;
+  _unused?: never;
 }
 
 const JM = "var(--font-mono)";
+const intentTone = (i: string) => (i.startsWith("transaction") ? "green" : i.startsWith("commercial") ? "violet" : "neutral") as "green" | "violet" | "neutral";
+
+const THEMES = [
+  { theme: "otter alternative", kw: 4, vol: "2.4k", intent: "commercial" },
+  { theme: "free meeting notes", kw: 6, vol: "5.1k", intent: "informational" },
+  { theme: "ai notetaker for zoom", kw: 3, vol: "1.8k", intent: "transactional" },
+];
+const POCKETS = [{ name: "r/productivity", threads: 12 }, { name: "Indie Hackers", threads: 8 }, { name: "r/SaaS", threads: 6 }];
+const INSIGHTS: { title: string; color: string; items: string[] }[] = [
+  { title: "Pains", color: "var(--c-band-invisible)", items: ["Manual note-taking eats my focus", "I forget the follow-ups after a call"] },
+  { title: "Loved features", color: "var(--c-band-findable)", items: ["Accurate transcripts", "Auto-sends recap to Slack"] },
+  { title: "Personas", color: "var(--c-action)", items: ["Sales-led founders", "Remote team leads"] },
+  { title: "Buyer language", color: "var(--c-band-fair)", items: ["“action items”", "“meeting recap”"] },
+];
 
 function InfoBox({ label, value }: { label: string; value: string }) {
-  return (
-    <div style={{ flex: "1 1 240px", background: "var(--c-bg2)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-md)", padding: "16px 18px", display: "flex", flexDirection: "column", gap: 6 }}>
-      <span style={{ fontFamily: JM, fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--c-faint)" }}>{label}</span>
-      <span style={{ fontSize: 14, color: "var(--c-ink)", fontWeight: 600, lineHeight: 1.4 }}>{value}</span>
-    </div>
-  );
+  return <div style={{ flex: 1, background: "var(--c-bg2)", border: "1px solid var(--c-line)", borderRadius: 12, padding: 14 }}><div style={{ fontFamily: JM, fontSize: 10.5, textTransform: "uppercase", color: "var(--c-faint)" }}>{label}</div><div style={{ fontSize: 14, fontWeight: 600, color: "var(--c-ink)", marginTop: 4 }}>{value}</div></div>;
 }
-function Eyebrow({ children }: { children: React.ReactNode }) {
-  return <span style={{ fontFamily: JM, fontSize: 10.5, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--c-faint)" }}>{children}</span>;
-}
-function Chips({ items }: { items: string[] }) {
-  return (
-    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-      {items.map((u, i) => <span key={i} style={{ fontSize: 13, fontWeight: 600, color: "var(--c-ink)", background: "var(--c-fill)", padding: "7px 13px", borderRadius: "var(--radius-full)" }}>{u}</span>)}
-    </div>
-  );
-}
-function QuoteGroup({ label, items, color }: { label: string; items: string[]; color: string }) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <Eyebrow>{label}</Eyebrow>
-      {items.map((b, i) => (
-        <div key={i} style={{ display: "flex", gap: 11, alignItems: "flex-start", fontSize: 13.5, color: "var(--c-ink)", lineHeight: 1.5 }}>
-          <span style={{ color, fontWeight: 700, fontFamily: "var(--font-display)", flex: "0 0 auto" }}>&ldquo;</span>
-          <span>{b}</span>
-        </div>
-      ))}
-    </div>
-  );
+function Chips({ title, items }: { title: string; items: string[] }) {
+  return <div><Eyebrow>{title}</Eyebrow><div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>{items.map((i) => <span key={i} style={{ fontSize: 13, background: "var(--c-fill)", color: "var(--c-ink)", borderRadius: 999, padding: "4px 11px" }}>{i}</span>)}</div></div>;
 }
 
-export function CustomersScreen({ appName = "nudgi.ai" }: CustomersScreenProps) {
+export function CustomersScreen() {
   return (
-    <AppShell
-      active="audCust"
-      headerTitle="Customers"
-      headerSub={`Who your buyer is & where they ask · ${appName}`}
-      user={{ name: "Nadia L.", sub: `${appName} · solo founder` }}
-    >
-      <div style={{ maxWidth: "var(--spacing-content-max)", margin: "0 auto", fontFamily: "var(--font-sans)" }}>
-        <section style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-xl)", padding: "26px 30px", boxShadow: "var(--elevation-md)", display: "flex", flexDirection: "column", gap: 24 }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-            <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, color: "var(--c-ink)", margin: 0 }}>Who your buyers are</h3>
-            <span style={{ fontFamily: JM, fontSize: 11.5, color: "var(--c-muted)" }}>· AI meeting notetakers</span>
+    <AppShell active="audCust" headerTitle="Customers" headerSub="Who your buyer is, what they search, and where they ask." user={{ name: "Nadia L.", sub: "nudgi.ai · solo founder" }}>
+      <Card title="Who your buyers are" meta="AI meeting notetakers">
+        <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+          <div style={{ fontSize: 13, color: "var(--c-muted)" }}>Distilled from category search demand, buyer communities, and competitor reviews.</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <InfoBox label="ICP" value="Solo founders & small teams who run lots of calls" />
+            <span style={{ color: "var(--c-faint)", fontSize: 20 }}>→</span>
+            <InfoBox label="Job to be done" value="Never lose an action item from a meeting" />
           </div>
+          <Chips title="Jobs to be done" items={["Never lose an action item", "Share recaps without rewatching", "Search past calls by topic"]} />
+          <Chips title="Use cases" items={["Sales call recaps", "User interview notes", "Standup summaries"]} />
 
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-            <InfoBox label="ICP" value="Solo founders & small teams running back-to-back calls" />
-            <InfoBox label="Job to be done" value="Never lose an action item from a meeting again" />
-          </div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-            <Eyebrow>Use cases</Eyebrow>
-            <Chips items={["Sales call follow-ups", "Standup notes", "User-interview synthesis", "Client recaps"]} />
-          </div>
-
-          {/* Demand themes */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+          <div>
             <Eyebrow>Demand themes</Eyebrow>
-            <Chips items={["“otter.ai alternative”", "“meeting notes app”", "“ai transcription accurate”", "“record zoom automatically”"]} />
-          </div>
-
-          {/* Where they hang out */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <Eyebrow>Where they hang out</Eyebrow>
-            {[
-              { surface: "r/productivity", n: 6, quote: "What's the most accurate AI notetaker that isn't Otter?" },
-              { surface: "r/SaaS", n: 4, quote: "Otter keeps mangling names on sales calls — alternatives?" },
-              { surface: "Indie Hackers", n: 3, quote: "Cheapest transcription that auto-joins Zoom?" },
-            ].map((p, i) => (
-              <div key={i} style={{ border: "1px solid var(--c-line)", borderRadius: "var(--radius-md)", padding: "12px 14px", display: "flex", flexDirection: "column", gap: 4 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: "var(--c-ink)" }}>{p.surface}</span>
-                  <span style={{ fontFamily: JM, fontSize: 11, color: "var(--c-faint)" }}>{p.n} buyer threads</span>
-                  <span style={{ marginLeft: "auto", fontSize: 11.5, color: "var(--c-action)", fontWeight: 600 }}>→ in your plan</span>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}>
+              {THEMES.map((t) => (
+                <div key={t.theme} style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", background: "var(--c-bg2)", border: "1px solid var(--c-line)", borderRadius: 10, padding: "10px 14px" }}>
+                  <span style={{ flex: 1, fontSize: 14, fontWeight: 600, minWidth: 160 }}>{t.theme}</span>
+                  <span style={{ fontFamily: JM, fontSize: 12, color: "var(--c-faint)" }}>{t.kw} keywords</span>
+                  <span style={{ fontFamily: JM, fontSize: 12, color: "var(--c-muted)" }}>{t.vol}/mo</span>
+                  <Badge tone={intentTone(t.intent)}>{t.intent}</Badge>
                 </div>
-                <span style={{ fontSize: 12.5, color: "var(--c-muted)", fontStyle: "italic" }}>&ldquo;{p.quote}&rdquo;</span>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
 
-          {/* Buyer insights */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <Eyebrow>Buyer insights</Eyebrow>
-            <QuoteGroup label="Pains" items={["Inaccurate on non-native accents", "Pricing jumps hard after the free tier"]} color="var(--c-band-invisible)" />
-            <QuoteGroup label="Loved features" items={["Auto-join calendar meetings", "Searchable transcript history"]} color="var(--c-band-findable)" />
-            <QuoteGroup label="Personas" items={["Founder-led sales", "UX researchers", "Consultants billing by call"]} color="#3b6fe0" />
-            <span style={{ fontSize: 11.5, color: "var(--c-faint)" }}>from 4 competitor review pages</span>
+          <div>
+            <Eyebrow>Where they hang out</Eyebrow>
+            <div style={{ fontSize: 12.5, color: "var(--c-muted)", margin: "6px 0 10px" }}>Highest-intent threads where buyers raise the problem unprompted.</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+              {POCKETS.map((p) => (
+                <div key={p.name} style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 10, padding: "10px 14px" }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 600 }}>{p.name}</div>
+                  <div style={{ fontFamily: JM, fontSize: 11, color: "var(--c-faint)", marginTop: 2 }}>{p.threads} buyer threads · → in your plan</div>
+                </div>
+              ))}
+            </div>
           </div>
-        </section>
-      </div>
+
+          <div>
+            <Eyebrow>Buyer insights</Eyebrow>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginTop: 12 }}>
+              {INSIGHTS.map((g) => (
+                <div key={g.title}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: g.color, marginBottom: 8 }}>{g.title}</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>{g.items.map((i) => <div key={i} style={{ fontSize: 13, color: "var(--c-muted)", lineHeight: 1.4 }}>{i}</div>)}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ fontSize: 12, color: "var(--c-faint)", marginTop: 14 }}>from 4 competitor review pages · <span style={{ color: "var(--c-action)" }}>g2.com ↗</span> <span style={{ color: "var(--c-action)" }}>capterra.com ↗</span></div>
+          </div>
+        </div>
+      </Card>
     </AppShell>
   );
 }
