@@ -44,11 +44,13 @@ const FIXES = [
 ];
 const INTENDED = ["habit tracking", "productivity", "wellness"];
 const ACTUAL = ["mood journal", "self-care app", "daily check-in"];
+// Free teaser (PR B): the subject's OWN not-winning searches — real ranks (#N),
+// no rival data (that's the paid reveal). All rows show a subject position.
 const GAP_ROWS = [
-  { query: "habit tracker vs [rival]", volume: "2,400/mo", rank: "Not ranking", ranked: false, opp: "High", oppC: { bg: "var(--c-tint-red)", fg: "var(--c-band-invisible)" } },
   { query: "best habit tracker 2026", volume: "8,100/mo", rank: "#42", ranked: true, opp: "High", oppC: { bg: "var(--c-tint-red)", fg: "var(--c-band-invisible)" } },
-  { query: "free habit tracker template", volume: "3,300/mo", rank: "Not ranking", ranked: false, opp: "Med", oppC: { bg: "var(--c-tint-amber)", fg: "var(--c-band-fair)" } },
-  { query: "habit app for adhd", volume: "1,200/mo", rank: "Not ranking", ranked: false, opp: "Med", oppC: { bg: "var(--c-tint-amber)", fg: "var(--c-band-fair)" } },
+  { query: "free habit tracker template", volume: "3,300/mo", rank: "#18", ranked: true, opp: "High", oppC: { bg: "var(--c-tint-red)", fg: "var(--c-band-invisible)" } },
+  { query: "habit tracker for adhd", volume: "2,400/mo", rank: "#12", ranked: true, opp: "High", oppC: { bg: "var(--c-tint-red)", fg: "var(--c-band-invisible)" } },
+  { query: "daily habit app", volume: "1,200/mo", rank: "#7", ranked: true, opp: "Med", oppC: { bg: "var(--c-tint-amber)", fg: "var(--c-band-fair)" } },
 ];
 
 const CARD: React.CSSProperties = { background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16 };
@@ -140,7 +142,7 @@ export function ResultsScreen() {
 
         {/* Search Gap Analysis */}
         <h2 style={H2}>Search Gap Analysis</h2>
-        <p style={SUB}>High-intent queries your buyers use — where you&apos;re invisible.</p>
+        <p style={SUB}>High-volume searches where you already rank — but not in the top 3, where the clicks go.</p>
         <div style={{ ...CARD, overflow: "hidden" }}>
           <div style={{ display: "grid", gridTemplateColumns: "2.2fr 1fr 1fr 0.9fr", background: "var(--c-bg2)", padding: "11px 16px", fontFamily: JM, fontSize: 11, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--c-faint)" }}>
             <span>Query</span><span>Volume / mo</span><span>Your rank</span><span>Opportunity</span>

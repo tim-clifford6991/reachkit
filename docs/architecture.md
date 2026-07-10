@@ -450,8 +450,11 @@ actions, budget 120¢) · `score-pulse` (Thu 09:00) → free own-site recompute 
 
 The §6 findings are the diagnosis; this is the cure. **Sequenced into 4 PRs.** Two
 hard cost gates are acceptance criteria on *every* PR (measured via
-`/app/diagnostics` per-scan cost + the `[scan-complete]` log): **free scan ≤ $0.10**,
-**paid deep scan ≤ ~$1.00** cumulative. A PR that breaches either is not done.
+`/app/diagnostics` per-scan cost + the `[scan-complete]` log): **free scan ≤ ~$0.18**
+(raised from $0.10 by decision 2026-07-10 to fund PR B's one subject-only
+`ranked_keywords` call — the real free keyword-gap "wow" was judged worth ~+$0.06;
+rivals' ranks stay a paid reveal), **paid deep scan ≤ ~$1.00** cumulative. A PR that
+breaches either is not done.
 UI-visible PRs (B, C) require a **Claude Design sync** (edit live component → update
 `.design-sync/ds-src` mirror → `build.mjs`+`layout.mjs` → `/design-sync` → `pnpm
 bless:design`) in the same change, per CLAUDE.md "Keeping Claude Design and the code
@@ -460,8 +463,8 @@ in EXACT sync".
 | PR | Scope (§6 items) | UI? | Cost effect | Sync |
 |---|---|---|---|---|
 | **A — Trust + gate** ✅ *landed 2026-07-10* | #4 model-computed impact (`recomputeActionImpacts`/`modelledImpact` in `action-linking.ts`, wired at both floor points in `full-scan.ts`; `verify.ts` `observed_delta` now stores the REAL new−prior gauge movement) · #5 per-category floor in prod (`ensurePerCategoryFloor`) · #6 `assertPaid` on `/api/app/intel(+/stream)` + `/api/competitors/{select,candidates}` | numbers only, no structure | neutral (removes a leak → *reduces* rogue spend) | none |
-| **B — Free "wow"** | #1 one bounded off-site proof on free — top-3 keyword-gap rows. **Cost-safe rule: reuse the SERP/competitor data `collect` already fetched + at most ONE cheap keyword call; if it can't fit the $0.10 gate, ship a blurred/partial rival-comparison as the upgrade tease rather than computing the full gap.** #2 (align effort clamp 90 ↔ bucket 120 so long-term wins exist) rides along | `ResultsScreen` teaser + pillars | must stay ≤ $0.10 — the binding constraint | **yes** |
-| **C — One plan model** | #3 make report `bucketActions` a *view* of `plan-schedule.ts`; bucket by time-to-payoff not time-to-do | `/app/plan` + dashboard "this week" | neutral | **yes** |
+| **B — Free "wow"** | #1 real off-site proof on free — a genuine keyword-gap from ONE subject-only DataForSEO `ranked_keywords` call (decision 2026-07-10). Free shows "searches with volume where you rank poorly / not at all"; **rivals' ranks stay locked (paid reveal).** Redaction keeps a top-N free slice of `market.gap.keywordGap` instead of emptying it | `ResultsScreen` teaser + pillars | must stay ≤ ~$0.18 — the binding constraint (live-measure before merge) | **yes** |
+| **C — One plan model** | #3 make report `bucketActions` a *view* of `plan-schedule.ts`; bucket by time-to-payoff not time-to-do · #2 align effort clamp 90 ↔ bucket 120 so long-term wins exist (moved here — it's a plan-model concern) | `/app/plan` + dashboard "this week" | neutral | **yes** |
 | **D — Cohort/demand dedup** | #9 one canonical cohort (reconcile `facts.competitors` ↔ `discoverCompetitorsSmart`, computed once, reused by demand/gap/synthesis/actions) · #10 one `discoverDemand` per scan · #11 thread computed signal rows (no 3× recompute) · #12 unify the two action writers | none | **reduces** paid cost (fewer duplicate gathers) | none |
 
 Guards added by PR A (ratchet): `action-linking.test.ts` (`recomputeActionImpacts`,

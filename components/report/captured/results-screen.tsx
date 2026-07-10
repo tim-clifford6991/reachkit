@@ -295,7 +295,7 @@ export function ResultsScreen(p: ResultsScreenProps) {
 
           {/* Search Gap Analysis */}
           <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: 20, letterSpacing: "-0.01em", margin: "32px 0 6px" }}>Search Gap Analysis</h2>
-          <p style={{ fontSize: 14, color: "var(--c-faint)", margin: "0 0 14px" }}>High-intent queries your buyers use — where you&apos;re invisible.</p>
+          <p style={{ fontSize: 14, color: "var(--c-faint)", margin: "0 0 14px" }}>High-volume searches where you already rank — but not in the top 3, where the clicks go.</p>
           <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16, overflow: "hidden" }}>
             <div style={{ display: "grid", gridTemplateColumns: "2.2fr 1fr 1fr 0.9fr", padding: "13px 22px", borderBottom: "1px solid var(--c-line2)", fontSize: 11.5, fontWeight: 700, letterSpacing: "0.04em", color: "var(--c-faint)", textTransform: "uppercase", background: "var(--c-bg2)" }}>
               <span>Query</span><span>Volume / mo</span><span>Your rank</span><span>Opportunity</span>
