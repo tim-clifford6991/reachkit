@@ -39,7 +39,7 @@ function ProofCard() {
           <span style={{ width: 11, height: 11, borderRadius: 999, background: "#FEBC2E" }} />
           <span style={{ width: 11, height: 11, borderRadius: 999, background: "#28C840" }} />
         </span>
-        <span style={{ fontFamily: JM, fontSize: 12, color: "var(--c-faint)", background: "var(--c-fill)", borderRadius: 7, padding: "5px 12px" }}>app.reachkit.io/scan/bloom.io</span>
+        <span style={{ fontFamily: JM, fontSize: 12, color: "var(--c-faint)", background: "var(--c-fill)", borderRadius: 7, padding: "5px 12px" }}>reachkit.app/scan/bloom.io</span>
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 24, padding: "24px 26px" }}>
         <div style={{ flex: "0 1 216px", minWidth: 196, textAlign: "center" }}>

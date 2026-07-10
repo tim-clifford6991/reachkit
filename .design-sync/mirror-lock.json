@@ -5,7 +5,7 @@
   },
   "ActionEngine": {
     "mirror": "components/sections/captured/landing-html.ts",
-    "hash": "e926e6ff4e17e58a"
+    "hash": "91d28dd8343c6c62"
   },
   "AppShell": {
     "mirror": "components/app/captured/app-shell.tsx",
@@ -13,7 +13,7 @@
   },
   "Audience": {
     "mirror": "components/sections/captured/landing-html.ts",
-    "hash": "e926e6ff4e17e58a"
+    "hash": "91d28dd8343c6c62"
   },
   "Badge": {
     "mirror": "components/app/intel/kit.tsx",
@@ -57,7 +57,7 @@
   },
   "FinalCta": {
     "mirror": "components/sections/captured/landing-html.ts",
-    "hash": "e926e6ff4e17e58a"
+    "hash": "91d28dd8343c6c62"
   },
   "Footer": {
     "mirror": "components/sections/footer.tsx",
@@ -69,7 +69,7 @@
   },
   "HowItWorks": {
     "mirror": "components/sections/captured/landing-html.ts",
-    "hash": "e926e6ff4e17e58a"
+    "hash": "91d28dd8343c6c62"
   },
   "IntelKit": {
     "mirror": "components/app/intel/kit.tsx",
@@ -81,7 +81,7 @@
   },
   "LandingHero": {
     "mirror": "components/sections/scan-hero.tsx",
-    "hash": "e934b4540b5c8ab7"
+    "hash": "9a8900b3d396eaec"
   },
   "LandingScreen": {
     "mirror": "components/sections/captured/landing-screen.tsx",
@@ -117,7 +117,7 @@
   },
   "PricingBlock": {
     "mirror": "components/sections/captured/landing-html.ts",
-    "hash": "e926e6ff4e17e58a"
+    "hash": "91d28dd8343c6c62"
   },
   "PricingScreen": {
     "mirror": "components/sections/captured/pricing-screen.tsx",
@@ -137,7 +137,7 @@
   },
   "ScanInput": {
     "mirror": "components/sections/scan-hero.tsx",
-    "hash": "e934b4540b5c8ab7"
+    "hash": "9a8900b3d396eaec"
   },
   "ScanningRing": {
     "mirror": "components/scan/scan-animation.tsx",
@@ -149,7 +149,7 @@
   },
   "ScoreTravels": {
     "mirror": "components/sections/captured/landing-html.ts",
-    "hash": "e926e6ff4e17e58a"
+    "hash": "91d28dd8343c6c62"
   },
   "SettingsScreen": {
     "mirror": "components/app/captured/settings-main.tsx",
@@ -161,7 +161,7 @@
   },
   "StorySection": {
     "mirror": "components/sections/captured/landing-html.ts",
-    "hash": "e926e6ff4e17e58a"
+    "hash": "91d28dd8343c6c62"
   },
   "TeardownsScreen": {
     "mirror": "app/(marketing)/teardowns/[slug]/page.tsx",
@@ -169,7 +169,7 @@
   },
   "Testimonials": {
     "mirror": "components/sections/captured/landing-html.ts",
-    "hash": "e926e6ff4e17e58a"
+    "hash": "91d28dd8343c6c62"
   },
   "ToolsScreen": {
     "mirror": "app/(marketing)/tools/page.tsx",
@@ -185,6 +185,6 @@
   },
   "WhySwitch": {
     "mirror": "components/sections/captured/landing-html.ts",
-    "hash": "e926e6ff4e17e58a"
+    "hash": "91d28dd8343c6c62"
   }
 }
