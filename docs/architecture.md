@@ -1,7 +1,7 @@
 # ReachKit — Architecture, Data Flow & Processes
 
 > Living architecture document. Update this as the system evolves.
-> Last updated: 2026-07-09
+> Last updated: 2026-07-10 (added §5 step-by-step scan logic + §6 inefficiency ledger)
 
 ReachKit is a single-stack Next.js 16 (App Router) application deployed on Vercel.
 There is no separate backend service — API routes are thin, and all heavy /
@@ -289,6 +289,186 @@ cross-scan read-through cache. On a `demand-intel:*` JSON-cache miss,
 `readDemandIntelFallback` serves a fresher-than-TTL row before paying for a full
 gather (and refuses a row with empty buyer insights so blanks don't persist for
 the 7-day TTL).
+
+---
+
+## 5. Scan pipeline — step-by-step logic (free vs deep)
+
+> Traced from code 2026-07-10 (`scan-requested.ts`, `scan-deepen.ts`, `full-scan.ts`,
+> `free-report.ts`, `collect.ts`, `findings-pipeline.ts`). The **free** and **deep**
+> passes share one collect+findings prefix and one report renderer; they diverge at
+> the report step. The paid scan and the deepening scan are the *same* work
+> (`runFullScan`) reached from two triggers.
+
+### 5.1 FREE pass — `scan/requested` with `tier="free"` (the lead magnet)
+
+Purpose: an immediate on-site "wow". Runs entirely on the **already-fetched page
+HTML** — no market/demand/keyword external spend, no LLM action generation.
+
+| # | Step (Inngest) | Does | Cost |
+|---|---|---|---|
+| 1 | `collect` (`scan-requested.ts:44`) | `runCollect` → `getListing` (**site HTML fetch** = the sole source for the 8 headline signals + domain age), `getReviews` (**Tavily** `"{host} reviews"`), `findCompetitors` (**DataForSEO SERP + ProductHunt + Tavily**), then `extractCompetitorNames` (**Haiku**) to recover real names → `facts.competitors` | 3 external calls + 1 Haiku |
+| 2 | `findings` (`:99`) | `runExtract` (Haiku fact sheets: positioning, review_themes, competitor_gap — **keyword_data skipped**, no keyword docs on free) → `runSynth` (**Sonnet** findings + positioning mirror) → v1 `discoverabilityScore` written to `score_total` | 3–4 Haiku + 1 Sonnet |
+| 3 | `free-report` (`:147`) | `runFreeReport`: compute 18 signal rows over HTML (`ZERO_COMPONENTS`, off-site all `unmeasured`) → **`headlineScore`** over the 8 `FIXED_BASIS_SIGNAL_KEYS` (`score_version 4`, overwrites step-2 v1 score) → `fallbackActionsFromSignals` (**deterministic**, no LLM) → `buildFreeReport` (deep sections empty, `competitorGap` = names with `them:0/you:0`) | pure compute |
+| 4 | `done` (`:218`) | emit done, status `done` | — |
+
+Render: `/scan/[id]` → `PublicReport` → **always** `redactReportForTier(payload,"free")`
+→ `ResultsScreen`. Free "wow" surface = score gauge + band, 3 pillar bars, top-3
+ranked fixes (locked-count + worth), positioning gap, a search-gap table, unlock CTA
++ shareable badge. **Caveat (see §6):** Outreach pillar is always `unmeasured` on
+free and the keyword-gap table + Market Position are paid-only, so the teaser's most
+persuasive off-site surfaces render empty.
+
+Free budget: `ScanBudget{ maxToolCalls:60, budgetCents:15 }`. Abuse: 10 scans /
+IP-hash / hour, 15-min in-flight dedupe (`abuse.ts`). Cold-scan cost ≈ **$0.10**.
+
+### 5.2 DEEP / PAID pass — `runFullScan` (`full-scan.ts:485`)
+
+Reached two ways, same code: **(a)** `scan/requested` with `tier="full"` (paid viewer
+scans fresh), **(b)** `scan/deepen` via `ensureDeepScan` — flips `scans.tier→full`,
+reuses stored `preliminary_facts` (no re-collect), fired from Stripe checkout
+provisioning (`provision.ts:116`) or a paid viewer re-opening a free scan
+(`scan/route.ts:58`). Idempotent via `hasDeepReport` (sentinel `scans.deepened_at`).
+
+Ordered steps (all skipped on free): 1 `runFullCollect` (keywords/communities/creators,
+seeded from `facts.competitors`, cap 5) · 2 re-extract `keyword_data` only · 3 read
+findings · 4 grounding readers (persisted data, reused for assembly) · 5
+`generateActions` (**Haiku**, over-generate ≥3/category) or cold-start · 6 `runCriticGate`
+→ `algorithmSafety` (§11) · 7 verified score · 8 action floor to `MIN_ACTIONS=5`
+(`market:null`) · 9 deep report readers · 10 assemble + persist · 11
+**`attachMarketAnalysis`** (`profileCohort` auto-discovers a *second*, SEO-derived
+cohort + `discoverDemand` 8-query pain sweep + keyword gap + plan + news) · 12 market
+snapshot · 13 **market-aware re-floor** (recompute signals *with* market, top up plan
+again) · 14 `persistActions` (delete+insert) · 15 score flip: `deepened_at`,
+`persistScanSignals`, `headlineScore` (v4, identical to free), `marketPositionScore`
+(off-site grade) · 16 snapshots + `seedMonitors` + emit. Cumulative cold cost ≈ **$0.56**
+(DataForSEO $0.35 dominant).
+
+### 5.3 The score/plan model both passes share
+
+- **Headline** = `registryScore` over the 8 fixed on-site signals only → identical
+  free↔paid (invariant #1). **Market Position** = `registryScore` over the *other* 10
+  off-site signals → paid only. No LLM in scoring; all deltas deterministic **except**
+  action `expectedOutcome.delta` (see §6).
+- **Short vs long** is derived at assembly by **`bucketActions`** purely from
+  `effortMin` (quickWins <30 / medium 30–120 / longPlay >120 min). A *second*,
+  separate sequencer — **`plan-schedule.ts`** (the `/app/plan` timeline) — paces
+  actions over a rolling 30-day horizon (weekly budget 300 min, ≤4/week). These are
+  two independent notions of "the plan."
+
+### 5.4 Ongoing cadence
+
+`weekly-refresh` (Mon 09:00) → `runWeeklyRefresh` (delta refresh, **appends**
+actions, budget 120¢) · `score-pulse` (Thu 09:00) → free own-site recompute ·
+`action/verify` → re-score snapshot after a user marks an action done.
+
+---
+
+## 6. Known inefficiencies & simplification ledger
+
+> Surfaced by a full code crawl 2026-07-10. Ordered by impact on the two macro
+> goals: **free = instant off-site "wow"**, **paid = trustworthy short+long-term
+> actions that move the score over time**. Not yet actioned — this is the map.
+
+### 6.1 Macro gaps (the value line is misplaced)
+
+1. **Free under-delivers its own promise.** The 8 headline signals contain **zero
+   Outreach signals** (5 SEO on-site + 3 Content), so free shows SEO+Content only;
+   Outreach renders "Not measured". The keyword-gap table (`market.gap.keywordGap`)
+   and Market Position are computed only on the deep pass, so the single most
+   persuasive surface — *"buyers search X, your rivals rank, you don't"* — is entirely
+   paid-gated and the free teaser renders it empty (`to-results-props.ts:90,100`).
+   **Fix direction:** give free ONE bounded off-site proof (e.g. top-3 keyword-gap
+   rows) — either a small metered DataForSEO call on free or reuse of the SERP/
+   competitor data already fetched in `collect`.
+2. **"Long-term wins" bucket is unreachable by real actions.** LLM `effortMin` is
+   clamped to ≤90 (`actions.ts:123`) but `longPlay` requires >120 (`report.ts:159`),
+   so *no generated action can ever be a long play* — `longPlay` only ever holds
+   deterministic `new`-source floor cards (180 min). Align the thresholds and/or
+   bucket by **time-to-payoff**, not time-to-do, so paid gets a genuine short↔long mix.
+3. **Two competing "plan" models.** `bucketActions` (effort buckets in the report)
+   and `plan-schedule.ts` (the 30-day timeline) are independent. Collapse to one:
+   make the report buckets a *view* of the scheduled plan.
+
+### 6.2 Trust / correctness
+
+4. **LLM-invented impact points.** `generateActions` asks the model for
+   `expectedOutcome.delta: <integer 1–15>` (`prompts.ts:241`) — ungrounded — while
+   floor cards compute `delta = pillarWeight × signalWeight × (100−normalised)`
+   (`fallback-actions.ts`). The same field means "real modelled points" for one and
+   "a number the model picked" for the other, and both **sort the action board**
+   (`action-board.ts:139`). Worse, on verification the invented delta is stored as
+   `observed_delta` though nothing was observed (`verify.ts:234`); the real gauge moves
+   from a full recompute. **Fix:** compute every delta from the signal model; drop the
+   LLM's number.
+5. **Per-category floor (invariant #5) is enforced only in the eval harness**, not in
+   the production persist path (`full-scan.ts` → `topUpActions`). A scan whose weak
+   signals cluster in one pillar could ship a category with zero actions.
+
+### 6.3 Entitlement / cost-safety leaks
+
+6. **`/api/app/intel` + `/api/app/intel/stream` have no `assertPaid`** — only an auth
+   check (`intel/route.ts:25`). An authenticated-but-inactive user with competitors
+   selected can pull the full unredacted keyword-gap / content-plan / thread-level
+   demand data the free teaser strips — and trigger fresh DataForSEO/Tavily/LLM spend.
+   Highest-severity finding; every sibling paid API calls `assertPaid`, these don't.
+   (`/api/action`, `/api/competitors/*`, `/api/app/voice` share the auth-only pattern.)
+7. **`ScanBudget` cent-cap doesn't bound what the docs claim.** Invariant #2 says
+   "cents track LLM only," but `callModel` never calls `budget.charge` — only
+   DataForSEO/Tavily tool calls charge a hardcoded `cents:1`. So `BudgetExceededError`
+   can never trip on LLM overspend, and the 15¢/250¢ caps bound a slice of *external*
+   tool count, not LLM. Reconcile the doc or wire real LLM cost into the budget.
+8. **Dormant trial infra.** `entitlementsFor` honours `status==="trialing"` and the
+   webhook wires `trial_will_end`, but both checkout builders set **no**
+   `trial_period_days` ("charged immediately"). No subscription ever reaches
+   `trialing`; the trial code is unused. `EntitlementError` also returns 403 on
+   `/distribute/draft` vs 402 everywhere else.
+
+### 6.4 Duplicated / redundant work
+
+9. **Two competitor sets, never reconciled.** Free collect builds `facts.competitors`
+   via `extractCompetitorNames` (LLM); the deep market pass **ignores it** and
+   auto-discovers its own cohort via `discoverCompetitorsSmart` (DataForSEO
+   domain-intersection). One scan reasons over two different rival sets; de-dup is
+   per-domain cache only, not logical.
+10. **`discoverDemand` runs twice, billed twice.** Deep pass (`gap/run.ts:45`) and
+    competitor-select `gatherSynthesis→gatherDemand` (`demand/gather.ts:318`) both run
+    the community pain sweep for the same subject; the cohort is profiled up to **3×**
+    (`profileCohort`, `cohortFor`, `gatherFullFunnel`). Caches blunt external spend;
+    the LLM clustering is fresh each path.
+11. **Signals recomputed 3× per deep pass** (§6b floor, market-aware re-floor,
+    `persistScanSignals`) and **twice on free** (`computeSignalRowsForScan` then
+    `persistScanSignals` re-derives). Thread the computed rows through instead.
+12. **Two divergent action writers.** `persistActions` (deep) does delete+insert,
+    wiping action lifecycle state on re-deepen; `weekly-refresh` appends+dedups AND
+    drops `signal_keys`/`target` (`refresh.ts:544`), so weekly actions can't be
+    signal-attributed or scheduled. Unify.
+13. **`audienceProxy` always 0** — the YouTube 2nd `videos.list` call is never made;
+    creator reach is a placeholder.
+
+### 6.5 Forward plan (approved 2026-07-10) — iterate forward, don't re-diagnose
+
+The §6 findings are the diagnosis; this is the cure. **Sequenced into 4 PRs.** Two
+hard cost gates are acceptance criteria on *every* PR (measured via
+`/app/diagnostics` per-scan cost + the `[scan-complete]` log): **free scan ≤ $0.10**,
+**paid deep scan ≤ ~$1.00** cumulative. A PR that breaches either is not done.
+UI-visible PRs (B, C) require a **Claude Design sync** (edit live component → update
+`.design-sync/ds-src` mirror → `build.mjs`+`layout.mjs` → `/design-sync` → `pnpm
+bless:design`) in the same change, per CLAUDE.md "Keeping Claude Design and the code
+in EXACT sync".
+
+| PR | Scope (§6 items) | UI? | Cost effect | Sync |
+|---|---|---|---|---|
+| **A — Trust + gate** | #4 model-computed impact (drop LLM `delta`, compute from signal shortfall everywhere; fix `observed_delta`; re-sort board) · #5 per-category floor in prod · #6 `assertPaid` on `/api/app/intel(+/stream)` + sibling auth-only routes | numbers only, no structure | neutral (removes a leak → *reduces* rogue spend) | none (labels only; bless if any card copy changes) |
+| **B — Free "wow"** | #1 one bounded off-site proof on free — top-3 keyword-gap rows. **Cost-safe rule: reuse the SERP/competitor data `collect` already fetched + at most ONE cheap keyword call; if it can't fit the $0.10 gate, ship a blurred/partial rival-comparison as the upgrade tease rather than computing the full gap.** #2 (align effort clamp 90 ↔ bucket 120 so long-term wins exist) rides along | `ResultsScreen` teaser + pillars | must stay ≤ $0.10 — the binding constraint | **yes** |
+| **C — One plan model** | #3 make report `bucketActions` a *view* of `plan-schedule.ts`; bucket by time-to-payoff not time-to-do | `/app/plan` + dashboard "this week" | neutral | **yes** |
+| **D — Cohort/demand dedup** | #9 one canonical cohort (reconcile `facts.competitors` ↔ `discoverCompetitorsSmart`, computed once, reused by demand/gap/synthesis/actions) · #10 one `discoverDemand` per scan · #11 thread computed signal rows (no 3× recompute) · #12 unify the two action writers | none | **reduces** paid cost (fewer duplicate gathers) | none |
+
+Order rationale: A first — smallest, cost-neutral, and honest impact numbers are a
+prerequisite for B and C both surfacing deltas. D last — pure dedup/refactor, safe to
+land once behaviour is settled. #7 (ScanBudget LLM-cents doc vs reality) and #8
+(dormant trial infra) are reconciliation notes, folded into whichever PR touches that
+file; #13 (`audienceProxy`) stays deferred.
 
 ---
 
