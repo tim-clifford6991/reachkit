@@ -43,6 +43,18 @@ describe("buildFreeTeaser", () => {
     expect(out).toEqual({ rows: [], total: 0 });
   });
 
+  it("drops deep-SERP incidental rankings (position > 20 = noise, not a real gap)", () => {
+    // e.g. a review-aggregator ranking #66 for a huge other-brand term.
+    const out = buildFreeTeaser([
+      kw("spanglish translator", 66, 550000), // incidental → excluded
+      kw("blotato", 74, 27100), // incidental → excluded
+      kw("cometly", 8, 60500), // page-1, close → kept
+      kw("trimrx", 20, 40500), // boundary (<=20) → kept
+    ]);
+    expect(out.rows.map((r) => r.keyword)).toEqual(["cometly", "trimrx"]);
+    expect(out.total).toBe(2);
+  });
+
   it("ignores zero-volume and unranked (position 0) rows", () => {
     const out = buildFreeTeaser([kw("a", 0, 5000), kw("b", 9, 0), kw("c", 9, 1200)]);
     expect(out.rows.map((r) => r.keyword)).toEqual(["c"]);

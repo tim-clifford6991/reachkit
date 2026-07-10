@@ -37,6 +37,14 @@ export interface FreeKeywordTeaserResult {
 /** Positions 1..WINNING_POSITION count as "already winning" — only front-page-ish
  *  ranks. A high-volume term where you sit below this is a real, honest gap. */
 const WINNING_POSITION = 3;
+/** Upper bound on a "meaningful" position. Beyond this the domain isn't really
+ *  competing — it's an INCIDENTAL ranking (a listicle / "X alternatives" / brand
+ *  mention on page 4+), which for review-aggregator sites floods the teaser with
+ *  irrelevant high-volume other-brand terms ("spanglish translator #66"). Keeping
+ *  only positions 4..20 surfaces genuine "on page 1–2, close but not winning"
+ *  opportunities. (Rival-brand filtering — as the paid gap does via brand tokens +
+ *  cross-rival consensus — is a follow-up; a subject-only call can't do consensus.) */
+const MAX_MEANINGFUL_POSITION = 20;
 /** Rows shown in the teaser (the public renderer slices further). */
 const TOP_ROWS = 6;
 
@@ -60,7 +68,7 @@ export function buildFreeTeaser(kw: RankedKeyword[]): FreeKeywordTeaserResult {
   }
 
   const notWinning = [...best.entries()]
-    .filter(([, v]) => v.position > WINNING_POSITION)
+    .filter(([, v]) => v.position > WINNING_POSITION && v.position <= MAX_MEANINGFUL_POSITION)
     .map(([keyword, v]) => ({ keyword, volume: v.volume, yourPosition: v.position }))
     .sort((a, b) => b.volume - a.volume);
 

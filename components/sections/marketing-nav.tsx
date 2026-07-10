@@ -49,7 +49,7 @@ export function MarketingNav({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
           <Link
             href={isLoggedIn ? "/app/dashboard" : "/login"}
             className={`hidden sm:inline-flex ${focusRing}`}
-            style={{ fontSize: 14.5, fontWeight: 600, color: "#3A3744" }}
+            style={{ fontSize: 14.5, fontWeight: 600, color: "var(--c-muted)" }}
           >
             {isLoggedIn ? "Dashboard" : "Log in"}
           </Link>
