@@ -298,10 +298,10 @@ export function assembleReport(input: {
         confidence: f.confidence,
       })),
     },
-    // Attach when we learned ANYTHING — rankings OR category demand — so a site that
-    // ranks for nothing still renders the "0 keywords, but your category gets X/mo"
-    // zero-state instead of hiding the section.
-    ...(searchVisibility && (searchVisibility.keywordsRanked > 0 || searchVisibility.categoryDemand > 0) ? { searchVisibility } : {}),
+    // Attach whenever the gather ran (free web scans always pass it) so a site that
+    // ranks for NOTHING still renders the "Google ranks you for 0 searches" zero-state
+    // instead of hiding the section. The caller passes undefined for non-web.
+    ...(searchVisibility ? { searchVisibility } : {}),
   };
 }
 

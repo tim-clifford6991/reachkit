@@ -241,22 +241,22 @@ function isCategoryRelevant(keyword: string, vocab: { brandTokens: Set<string>; 
   return classify(keyword, vocab.brandTokens, vocab.categoryVocab) === "category";
 }
 
-/** Seeds for the keyword_ideas call: prefer the real, specific category phrases the
- *  subject already ranks for (best signal); fall back to / augment with salient
- *  vocabulary tokens so a site with ZERO rankings still gets a category-demand read. */
-function buildCategorySeeds(sv: SearchVisibility, vocab: { categoryVocab: Set<string> }, seedText: string[]): string[] {
+/** Seeds for the keyword_ideas call — ONLY the subject's real, specific category
+ *  phrases (the terms it already ranks for). We deliberately do NOT seed from single
+ *  broad vocabulary tokens ("revenue", "saas", "meeting"): keyword_ideas expands those
+ *  into unrelated high-volume noise ("walmart revenue", "fomc meeting"), which would
+ *  fabricate a category-demand number. Multi-word seeds keep the expansion on-topic.
+ *  A site that ranks for no category term yields no seeds → we honestly show no demand
+ *  figure rather than invent one. */
+function buildCategorySeeds(sv: SearchVisibility): string[] {
   const seeds = new Set<string>();
   for (const g of sv.categoryGap) seeds.add(g.keyword.toLowerCase());
   for (const w of sv.categoryWonKeywords) seeds.add(w);
-  // Multi-word phrases from the site's own prose are the most specific fallback.
-  for (const s of seedText) {
-    const words = (s.toLowerCase().match(/[a-z0-9]+/g) ?? []).filter((w) => w.length >= 4 && !STOPWORDS.has(w));
-    for (let i = 0; i < words.length - 1 && seeds.size < 12; i++) {
-      if (vocab.categoryVocab.has(words[i]!) || vocab.categoryVocab.has(words[i + 1]!)) seeds.add(`${words[i]} ${words[i + 1]}`);
-    }
-  }
-  for (const t of vocab.categoryVocab) { if (seeds.size >= 12) break; if (t.length >= 4) seeds.add(t); }
-  return [...seeds].slice(0, 12);
+  // Keep the specific ones (multi-word, or a distinctive single token ≥5 chars);
+  // drop bare common words that would broaden the expansion.
+  return [...seeds]
+    .filter((s) => s.includes(" ") || s.replace(/[^a-z0-9]/g, "").length >= 5)
+    .slice(0, 10);
 }
 
 const DEMAND_CAP_ROWS = 40;
@@ -269,10 +269,21 @@ export function computeCategoryDemand(
   ideas: KeywordIdea[],
   vocab: { brandTokens: Set<string>; categoryVocab: Set<string> },
   sv: SearchVisibility,
+  seeds: string[] = [],
 ): Pick<SearchVisibility, "categoryDemand" | "categoryCaptureRate" | "categoryOpportunities"> {
+  const seedPhrases = seeds.filter((s) => s.includes(" "));
+  // Demand-relevant = contains one of the subject's actual category PHRASES, or
+  // shares ≥2 category tokens. A single shared common word ("revenue") is NOT enough
+  // — that's the noise gate ("walmart revenue" shares only "revenue" → excluded).
+  const demandRelevant = (keyword: string): boolean => {
+    const k = keyword.toLowerCase();
+    if (seedPhrases.some((s) => k.includes(s))) return true;
+    const toks = k.match(/[a-z0-9]+/g) ?? [];
+    return toks.filter((t) => vocab.categoryVocab.has(t)).length >= 2;
+  };
   const byKw = new Map<string, number>();
   for (const i of ideas) {
-    if (i.volume <= 0 || !isCategoryRelevant(i.keyword, vocab)) continue;
+    if (i.volume <= 0 || !isCategoryRelevant(i.keyword, vocab) || !demandRelevant(i.keyword)) continue;
     byKw.set(i.keyword.toLowerCase(), Math.max(byKw.get(i.keyword.toLowerCase()) ?? 0, i.volume));
   }
   const top = [...byKw.entries()].map(([keyword, volume]) => ({ keyword, volume }))
@@ -305,9 +316,9 @@ export async function gatherFreeSearchVisibility(rawSelf: string, seedText: stri
     const vocab = buildVocab(self, seedText);
     const kw = await cachedRankedKeywords(self, 50).catch(() => [] as RankedKeyword[]);
     const sv = computeSearchVisibility(kw, vocab);
-    const seeds = buildCategorySeeds(sv, vocab, seedText);
+    const seeds = buildCategorySeeds(sv);
     const ideas = seeds.length > 0 ? await cachedKeywordIdeas(seeds, 200).catch(() => [] as KeywordIdea[]) : [];
-    return { ...sv, ...computeCategoryDemand(ideas, vocab, sv) };
+    return { ...sv, ...computeCategoryDemand(ideas, vocab, sv, seeds) };
   } catch {
     return EMPTY;
   }

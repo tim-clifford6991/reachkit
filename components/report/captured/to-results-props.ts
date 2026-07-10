@@ -140,7 +140,9 @@ export function toResultsProps(
   const demandStr = sv ? sv.categoryDemand.toLocaleString() : "";
   const headline = searchVisibility
     ? searchVisibility.keywordsRanked === 0
-      ? `Google ranks you for nothing yet — and your category gets ${demandStr} searches a month, all going to someone else.`
+      ? searchVisibility.categoryDemand > 0
+        ? `Google ranks you for nothing yet — and your category gets ${demandStr} searches a month, all going to someone else.`
+        : `Google ranks you for nothing yet — you're invisible in the searches your buyers make.`
       : searchVisibility.categoryDemand > 0 && searchVisibility.categoryCaptureRate < 15
         ? `Your category gets ${demandStr} searches a month — and you capture just ${searchVisibility.categoryCaptureRate}% of it.`
         : searchVisibility.offTopicPct >= 55

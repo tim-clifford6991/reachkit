@@ -208,7 +208,9 @@ export function ResultsScreen(p: ResultsScreenProps) {
                     </div>
                     <div style={{ marginTop: 4, fontSize: 11, lineHeight: 1.4, color: "var(--c-faint)", fontFamily: JM, maxWidth: 210 }}>
                       {sv.keywordsRanked === 0
-                        ? `Google ranks you for 0 searches. Your category gets ${sv.categoryDemand.toLocaleString()}/mo — you capture none of it.`
+                        ? sv.categoryDemand > 0
+                          ? `Google ranks you for 0 searches. Your category gets ${sv.categoryDemand.toLocaleString()}/mo — you capture none of it.`
+                          : `Google ranks you for 0 searches — you're invisible in organic search.`
                         : sv.categoryDemand > 0
                           ? `You capture ${sv.categoryCaptureRate}% of your category's ${sv.categoryDemand.toLocaleString()} searches/mo.`
                           : sv.offTopicPct >= 40
@@ -341,12 +343,23 @@ export function ResultsScreen(p: ResultsScreenProps) {
           {/* Search Visibility — your category's demand + how much you actually capture */}
           <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: 20, letterSpacing: "-0.01em", margin: "32px 0 6px" }}>Your category, and how much of it you own</h2>
           <p style={{ fontSize: 14, color: "var(--c-faint)", margin: "0 0 14px" }}>How much your buyers are searching, how much of it you capture, and who&apos;s taking the rest.</p>
+          {/* Zero-state — the site ranks for nothing. This IS the insight (never hide
+              it): a young product is invisible in organic search. */}
+          {p.searchVisibility && p.searchVisibility.keywordsRanked === 0 && (() => {
+            const sv = p.searchVisibility!;
+            return (
+              <div style={{ background: "var(--c-tint-red)", borderLeft: "3px solid #E5484D", borderRadius: "0 12px 12px 0", padding: "18px 20px", marginBottom: 14, fontSize: 14.5, lineHeight: 1.6, color: "#3A3744" }}>
+                <strong style={{ fontFamily: SG, fontSize: 16 }}>Google ranks you for 0 searches.</strong><br />
+                You&apos;re invisible in organic search — buyers can&apos;t find you unless they already type your name
+                {sv.categoryDemand > 0 ? `, while ${sv.categoryDemand.toLocaleString()} searches a month in your category go to everyone else` : ""}. That&apos;s the single biggest thing standing between you and inbound demand.
+              </div>
+            );
+          })()}
           {/* Category demand + capture (free): the real market size (keyword_ideas) and
-              your share of it — works even at zero rankings (the sharpest hook). */}
+              your share of it. */}
           {p.searchVisibility && p.searchVisibility.categoryDemand > 0 && (() => {
             const sv = p.searchVisibility!;
             const cap = Math.max(0, Math.min(100, sv.categoryCaptureRate));
-            const zero = sv.keywordsRanked === 0;
             const comps = (p.competitors ?? []).slice(0, 5);
             return (
               <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16, padding: "20px 22px", marginBottom: 14 }}>
@@ -362,11 +375,6 @@ export function ResultsScreen(p: ResultsScreenProps) {
                   <span><strong style={{ color: cap < 15 ? "#E5484D" : "#1F9D5B" }}>You capture {cap}%</strong></span>
                   <span style={{ color: "var(--c-faint)" }}>{100 - cap}% goes to competitors &amp; unclaimed demand</span>
                 </div>
-                {zero && (
-                  <div style={{ marginTop: 14, padding: "12px 14px", background: "var(--c-tint-red)", borderLeft: "3px solid #E5484D", borderRadius: "0 10px 10px 0", fontSize: 13.5, lineHeight: 1.55, color: "#3A3744" }}>
-                    <strong>Google ranks you for 0 searches.</strong> You&apos;re invisible in organic search — buyers can&apos;t find you unless they already know your name, while {sv.categoryDemand.toLocaleString()} monthly searches in your category go to everyone else.
-                  </div>
-                )}
                 {comps.length > 0 && (
                   <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--c-line2)", fontSize: 13, color: "var(--c-muted)" }}>
                     Buyers compare you to <strong style={{ color: "var(--c-ink)" }}>{comps.join(", ")}</strong>. <span style={{ color: "var(--c-action)", fontWeight: 600 }}>Unlock to see how much of your category each one takes →</span>
