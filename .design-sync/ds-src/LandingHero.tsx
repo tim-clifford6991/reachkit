@@ -102,8 +102,8 @@ export function LandingHero() {
             Every claim grounded in your live page.
           </span>
           <h1 style={{ fontFamily: SG, fontWeight: 700, fontSize: "clamp(1.7rem, 3vw, 40px)", lineHeight: 1.14, letterSpacing: "-0.035em", margin: "22px 0 0" }}>
-            <span style={{ display: "block" }}>Your competitors are being</span>
-            <span style={{ display: "block" }}>found.{" "}<span style={{ display: "inline-block", fontStyle: "italic", color: "var(--c-ink)", background: "color-mix(in oklab, var(--c-action) 20%, var(--c-surface))", padding: "0.02em 0.22em", borderRadius: "0.14em" }}>You aren&apos;t.</span></span>
+            <span style={{ display: "block" }}>Your competitors are</span>
+            <span style={{ display: "block" }}>being found.{" "}<span style={{ fontStyle: "italic", color: "var(--c-action)" }}>You aren&apos;t.</span></span>
           </h1>
           <p style={{ fontSize: 19, lineHeight: 1.55, color: "var(--c-muted)", maxWidth: 620, margin: "18px 0 0" }}>
             Paste your URL. In under a minute ReachKit reads your live page the way a buyer&apos;s search does — then shows you the searches your rivals win, the score that measures the gap, and the ranked fixes that close it.

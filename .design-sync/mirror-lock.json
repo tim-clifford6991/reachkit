@@ -81,7 +81,7 @@
   },
   "LandingHero": {
     "mirror": "components/sections/scan-hero.tsx",
-    "hash": "5d1d6f1f28d6c67a"
+    "hash": "e934b4540b5c8ab7"
   },
   "LandingScreen": {
     "mirror": "components/sections/captured/landing-screen.tsx",
@@ -137,7 +137,7 @@
   },
   "ScanInput": {
     "mirror": "components/sections/scan-hero.tsx",
-    "hash": "5d1d6f1f28d6c67a"
+    "hash": "e934b4540b5c8ab7"
   },
   "ScanningRing": {
     "mirror": "components/scan/scan-animation.tsx",
@@ -174,6 +174,10 @@
   "ToolsScreen": {
     "mirror": "app/(marketing)/tools/page.tsx",
     "hash": "39a9b34d1d377047"
+  },
+  "TrafficByChannel": {
+    "mirror": "components/app/intel/dashboard-view.tsx",
+    "hash": "7e6708a3f4fe12c7"
   },
   "UnlockBand": {
     "mirror": "components/report/captured/unlock-button.tsx",
