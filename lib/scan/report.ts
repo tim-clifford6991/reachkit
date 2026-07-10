@@ -12,6 +12,7 @@ import type { VerifiedScore } from "@/lib/scan/score-full";
 import type { Platform } from "@/lib/scan/router";
 import type { MarketAnalysis } from "@/lib/scan/gap";
 import type { FreeKeywordTeaserRow } from "@/lib/scan/free-keyword-teaser";
+import { SIGNAL_REGISTRY } from "@/lib/scan/signals";
 import { buildCaption } from "@/lib/badge/score-card";
 import { serverDb } from "@/lib/db/client";
 
@@ -108,13 +109,13 @@ export interface ReportPayload {
       gap?: string;
     }>;
   };
-  /** Q4 — What to do this week (bucketed by effort) */
+  /** Q4 — What to do this week (bucketed by time-to-PAYOFF, PR C / §6 #2/#3) */
   whatToDoThisWeek: {
-    /** effortMin < 30 — §10.3 quick wins */
+    /** On-page content/SEO fixes that move the score as soon as they ship. */
     quickWins: ActionCard[];
-    /** effortMin 30..120 — medium horizon */
+    /** Off-site groundwork that pays off over a few weeks (wire-source signals). */
     medium: ActionCard[];
-    /** effortMin > 120 — long play */
+    /** Slow-compounding plays — outreach, backlinks, earned media (weeks+). */
     longPlay: ActionCard[];
   };
   score: VerifiedScore;
@@ -154,19 +155,42 @@ export interface ReportPayload {
 // Bucketing helper (§10.3 horizon mix)
 // ---------------------------------------------------------------------------
 
+type Horizon = "quick" | "medium" | "long";
+
+/**
+ * Time-to-PAYOFF horizon for an action (PR C, §6 #2/#3) — replaces the old
+ * time-to-DO (effortMin) split so the short/long mix reflects WHEN the score
+ * actually moves, and "long-term wins" genuinely exist. (The old effort-based
+ * split could never populate longPlay: LLM `effortMin` is clamped to ≤90 but the
+ * bucket needed >120, so every generated card fell in quick/medium.)
+ *
+ *  - Outreach pays off slowly — relationships, backlinks, community seeding → long.
+ *  - Cards addressing earned-media / off-site signals (source "new": referring
+ *    domains, press) → long; other off-site "wire" signals (keywords, presence,
+ *    cadence) → medium.
+ *  - On-page content + SEO fixes move the score as soon as they ship → quick,
+ *    unless the model estimated real hands-on effort (≥30 min) → medium.
+ */
+export function horizonFor(action: ActionCard): Horizon {
+  if (action.category === "outreach") return "long";
+  const sources = (action.signalKeys ?? [])
+    .map((k) => SIGNAL_REGISTRY.find((d) => d.key === k)?.source)
+    .filter((s): s is NonNullable<typeof s> => !!s);
+  if (sources.includes("new")) return "long";
+  if (sources.includes("wire")) return "medium";
+  return action.effortMin < 30 ? "quick" : "medium";
+}
+
 export function bucketActions(actions: ActionCard[]): ReportPayload["whatToDoThisWeek"] {
   const quickWins: ActionCard[] = [];
   const medium: ActionCard[] = [];
   const longPlay: ActionCard[] = [];
 
   for (const action of actions) {
-    if (action.effortMin < 30) {
-      quickWins.push(action);
-    } else if (action.effortMin <= 120) {
-      medium.push(action);
-    } else {
-      longPlay.push(action);
-    }
+    const h = horizonFor(action);
+    if (h === "quick") quickWins.push(action);
+    else if (h === "medium") medium.push(action);
+    else longPlay.push(action);
   }
 
   return { quickWins, medium, longPlay };

@@ -85,138 +85,70 @@ function makeCard(effortMin: number, overrides: Partial<ActionCard> = {}): Actio
 // Action bucketing (§10.3)
 // ---------------------------------------------------------------------------
 
-describe("assembleReport — action bucketing by effortMin", () => {
-  test("effortMin < 30 goes to quickWins", () => {
-    const card = makeCard(15);
-    const report = assembleReport({
-      mode: "ios",
-      generatedAt: "2026-07-01T00:00:00Z",
-      positioningMirror: POSITIONING_MIRROR,
-      findings: [SAMPLE_FINDING],
-      icpSignals: ["streak consistency"],
-      surfaces: SURFACES,
-      competitorGap: COMPETITOR_GAP,
-      actions: [card],
-      score: SAMPLE_SCORE,
-    });
+describe("assembleReport — action bucketing by time-to-payoff (PR C)", () => {
+  const base = {
+    mode: "web" as const,
+    generatedAt: "2026-07-01T00:00:00Z",
+    positioningMirror: POSITIONING_MIRROR,
+    findings: [],
+    icpSignals: [],
+    surfaces: [],
+    competitorGap: [],
+    score: SAMPLE_SCORE,
+  };
 
+  test("an on-page content fix with quick effort → quickWins (pays off on ship)", () => {
+    // content card, no off-site signalKeys, effort < 30.
+    const report = assembleReport({ ...base, actions: [makeCard(15)] });
     expect(report.whatToDoThisWeek.quickWins).toHaveLength(1);
     expect(report.whatToDoThisWeek.medium).toHaveLength(0);
     expect(report.whatToDoThisWeek.longPlay).toHaveLength(0);
-    expect(report.whatToDoThisWeek.quickWins[0]?.title).toBe("Action at 15min");
   });
 
-  test("effortMin === 29 goes to quickWins (boundary)", () => {
-    const card = makeCard(29);
-    const report = assembleReport({
-      mode: "web",
-      generatedAt: "2026-07-01T00:00:00Z",
-      positioningMirror: POSITIONING_MIRROR,
-      findings: [],
-      icpSignals: [],
-      surfaces: [],
-      competitorGap: [],
-      actions: [card],
-      score: SAMPLE_SCORE,
-    });
-    expect(report.whatToDoThisWeek.quickWins).toHaveLength(1);
-    expect(report.whatToDoThisWeek.medium).toHaveLength(0);
-  });
-
-  test("effortMin === 30 goes to medium (boundary)", () => {
-    const card = makeCard(30);
-    const report = assembleReport({
-      mode: "web",
-      generatedAt: "2026-07-01T00:00:00Z",
-      positioningMirror: POSITIONING_MIRROR,
-      findings: [],
-      icpSignals: [],
-      surfaces: [],
-      competitorGap: [],
-      actions: [card],
-      score: SAMPLE_SCORE,
-    });
+  test("an on-page fix with real hands-on effort (≥30) → medium, never longPlay", () => {
+    // The old effort split sent 240min to longPlay; on-page fixes now pay off fast
+    // regardless of effort, so this is medium.
+    const report = assembleReport({ ...base, actions: [makeCard(240)] });
     expect(report.whatToDoThisWeek.quickWins).toHaveLength(0);
     expect(report.whatToDoThisWeek.medium).toHaveLength(1);
     expect(report.whatToDoThisWeek.longPlay).toHaveLength(0);
   });
 
-  test("effortMin === 120 goes to medium (boundary)", () => {
-    const card = makeCard(120);
+  test("outreach ALWAYS → longPlay regardless of effort (slow-compounding)", () => {
+    const report = assembleReport({ ...base, actions: [makeCard(10, { category: "outreach" })] });
+    expect(report.whatToDoThisWeek.longPlay).toHaveLength(1);
+    expect(report.whatToDoThisWeek.quickWins).toHaveLength(0);
+  });
+
+  test("a card addressing an earned-media (source 'new') signal → longPlay", () => {
     const report = assembleReport({
-      mode: "web",
-      generatedAt: "2026-07-01T00:00:00Z",
-      positioningMirror: POSITIONING_MIRROR,
-      findings: [],
-      icpSignals: [],
-      surfaces: [],
-      competitorGap: [],
-      actions: [card],
-      score: SAMPLE_SCORE,
+      ...base,
+      actions: [makeCard(10, { category: "seo_aso", signalKeys: ["referring_domains"] })],
+    });
+    expect(report.whatToDoThisWeek.longPlay).toHaveLength(1);
+  });
+
+  test("a card addressing an off-site 'wire' signal → medium even at low effort", () => {
+    const report = assembleReport({
+      ...base,
+      actions: [makeCard(10, { category: "seo_aso", signalKeys: ["organic_keywords"] })],
     });
     expect(report.whatToDoThisWeek.medium).toHaveLength(1);
-    expect(report.whatToDoThisWeek.longPlay).toHaveLength(0);
-  });
-
-  test("effortMin === 121 goes to longPlay (boundary)", () => {
-    const card = makeCard(121);
-    const report = assembleReport({
-      mode: "web",
-      generatedAt: "2026-07-01T00:00:00Z",
-      positioningMirror: POSITIONING_MIRROR,
-      findings: [],
-      icpSignals: [],
-      surfaces: [],
-      competitorGap: [],
-      actions: [card],
-      score: SAMPLE_SCORE,
-    });
-    expect(report.whatToDoThisWeek.medium).toHaveLength(0);
-    expect(report.whatToDoThisWeek.longPlay).toHaveLength(1);
-  });
-
-  test("effortMin > 120 goes to longPlay", () => {
-    const card = makeCard(240);
-    const report = assembleReport({
-      mode: "android",
-      generatedAt: "2026-07-01T00:00:00Z",
-      positioningMirror: POSITIONING_MIRROR,
-      findings: [SAMPLE_FINDING],
-      icpSignals: [],
-      surfaces: [],
-      competitorGap: [],
-      actions: [card],
-      score: SAMPLE_SCORE,
-    });
-
     expect(report.whatToDoThisWeek.quickWins).toHaveLength(0);
-    expect(report.whatToDoThisWeek.medium).toHaveLength(0);
-    expect(report.whatToDoThisWeek.longPlay).toHaveLength(1);
   });
 
-  test("mixed-effort actions land in the right buckets", () => {
+  test("a real mix spreads across all three payoff horizons", () => {
     const actions = [
-      makeCard(10),  // quickWin
-      makeCard(20),  // quickWin
-      makeCard(45),  // medium
-      makeCard(90),  // medium
-      makeCard(180), // longPlay
+      makeCard(10), // content quick → quick
+      makeCard(45), // content, real effort → medium
+      makeCard(10, { category: "seo_aso", signalKeys: ["organic_keywords"] }), // wire → medium
+      makeCard(20, { category: "outreach" }), // outreach → long
+      makeCard(15, { category: "seo_aso", signalKeys: ["referring_domains"] }), // new → long
     ];
-    const report = assembleReport({
-      mode: "ios",
-      generatedAt: "2026-07-01T00:00:00Z",
-      positioningMirror: POSITIONING_MIRROR,
-      findings: [SAMPLE_FINDING],
-      icpSignals: ["signal-a"],
-      surfaces: SURFACES,
-      competitorGap: COMPETITOR_GAP,
-      actions,
-      score: SAMPLE_SCORE,
-    });
-
-    expect(report.whatToDoThisWeek.quickWins).toHaveLength(2);
+    const report = assembleReport({ ...base, actions });
+    expect(report.whatToDoThisWeek.quickWins).toHaveLength(1);
     expect(report.whatToDoThisWeek.medium).toHaveLength(2);
-    expect(report.whatToDoThisWeek.longPlay).toHaveLength(1);
+    expect(report.whatToDoThisWeek.longPlay).toHaveLength(2);
   });
 });
 

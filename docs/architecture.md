@@ -350,11 +350,14 @@ again) · 14 `persistActions` (delete+insert) · 15 score flip: `deepened_at`,
   free↔paid (invariant #1). **Market Position** = `registryScore` over the *other* 10
   off-site signals → paid only. No LLM in scoring; all deltas deterministic **except**
   action `expectedOutcome.delta` (see §6).
-- **Short vs long** is derived at assembly by **`bucketActions`** purely from
-  `effortMin` (quickWins <30 / medium 30–120 / longPlay >120 min). A *second*,
-  separate sequencer — **`plan-schedule.ts`** (the `/app/plan` timeline) — paces
-  actions over a rolling 30-day horizon (weekly budget 300 min, ≤4/week). These are
-  two independent notions of "the plan."
+- **Short vs long** is derived at assembly by **`bucketActions`** from **time-to-
+  PAYOFF** (PR C, `horizonFor`): outreach + earned-media (`new`-source) → longPlay;
+  other off-site (`wire`) → medium; on-page content/SEO → quickWins (medium if the
+  model estimated real effort). This replaced the old time-to-DO (`effortMin`) split,
+  which could never populate longPlay (LLM effort clamped ≤90 < the >120 bucket).
+  A *second* sequencer — **`plan-schedule.ts`** (the `/app/plan` timeline) — paces
+  actions over a rolling 30-day calendar (weekly budget 300 min, ≤4/week); it is a
+  different *view* (dated calendar) of the same actions, deliberately not merged.
 
 ### 5.4 Ongoing cadence
 
@@ -463,8 +466,8 @@ in EXACT sync".
 | PR | Scope (§6 items) | UI? | Cost effect | Sync |
 |---|---|---|---|---|
 | **A — Trust + gate** ✅ *landed 2026-07-10* | #4 model-computed impact (`recomputeActionImpacts`/`modelledImpact` in `action-linking.ts`, wired at both floor points in `full-scan.ts`; `verify.ts` `observed_delta` now stores the REAL new−prior gauge movement) · #5 per-category floor in prod (`ensurePerCategoryFloor`) · #6 `assertPaid` on `/api/app/intel(+/stream)` + `/api/competitors/{select,candidates}` | numbers only, no structure | neutral (removes a leak → *reduces* rogue spend) | none |
-| **B — Free "wow"** | #1 real off-site proof on free — a genuine keyword-gap from ONE subject-only DataForSEO `ranked_keywords` call (decision 2026-07-10). Free shows "searches with volume where you rank poorly / not at all"; **rivals' ranks stay locked (paid reveal).** Redaction keeps a top-N free slice of `market.gap.keywordGap` instead of emptying it | `ResultsScreen` teaser + pillars | must stay ≤ ~$0.18 — the binding constraint (live-measure before merge) | **yes** |
-| **C — One plan model** | #3 make report `bucketActions` a *view* of `plan-schedule.ts`; bucket by time-to-payoff not time-to-do · #2 align effort clamp 90 ↔ bucket 120 so long-term wins exist (moved here — it's a plan-model concern) | `/app/plan` + dashboard "this week" | neutral | **yes** |
+| **B — Free "wow"** ⚠️ *landed 2026-07-10, live-cost check pending* | #1 real proof on free — a genuine keyword gap from ONE subject-only DataForSEO `ranked_keywords` call (`lib/scan/free-keyword-teaser.ts` → `report_payload.freeKeywordTeaser`). Free shows high-volume searches where the subject ranks but **not in the top 3**; **rivals' ranks stay locked (paid reveal)** — the teaser never touches competitor domains. `to-results-props` falls back to it; redaction shows a top-4 slice. `ResultsScreen` copy + ds-src mirror synced | `ResultsScreen` teaser | ≤ ~$0.18 — **VERIFY LIVE** (`REACHKIT_USE_FIXTURES=false`) before merge; fixtures return `[]` so CI can't measure it | **done** |
+| **C — One plan model** ✅ *landed 2026-07-10* | #3/#2 `bucketActions` now buckets by **time-to-payoff** (`horizonFor` in `report.ts`): outreach + earned-media → longPlay, off-site `wire` → medium, on-page → quick. Makes "long-term wins" real (the old effort split could never fill longPlay) and moots the clamp/bucket mismatch. **Literal merge with `plan-schedule.ts` deliberately NOT done** — the report's 3-bucket horizon and the dated calendar are different views of the same actions | dashboard "this week" ordering only (structure unchanged → no card redesign) | neutral | none needed (bucketing logic, not layout) |
 | **D — Cohort/demand dedup** | #9 one canonical cohort (reconcile `facts.competitors` ↔ `discoverCompetitorsSmart`, computed once, reused by demand/gap/synthesis/actions) · #10 one `discoverDemand` per scan · #11 thread computed signal rows (no 3× recompute) · #12 unify the two action writers | none | **reduces** paid cost (fewer duplicate gathers) | none |
 
 Guards added by PR A (ratchet): `action-linking.test.ts` (`recomputeActionImpacts`,
