@@ -1,0 +1,190 @@
+{
+  "AboutScreen": {
+    "mirror": "app/(marketing)/about/page.tsx",
+    "hash": "20730a7c03f1255f"
+  },
+  "ActionEngine": {
+    "mirror": "components/sections/captured/landing-html.ts",
+    "hash": "e926e6ff4e17e58a"
+  },
+  "AppShell": {
+    "mirror": "components/app/captured/app-shell.tsx",
+    "hash": "331970a58a7bcc14"
+  },
+  "Audience": {
+    "mirror": "components/sections/captured/landing-html.ts",
+    "hash": "e926e6ff4e17e58a"
+  },
+  "Badge": {
+    "mirror": "components/app/intel/kit.tsx",
+    "hash": "f66ca29b67fa1a97"
+  },
+  "BrandMark": {
+    "mirror": "components/brand/logo.tsx",
+    "hash": "8917141d6c95c1bf"
+  },
+  "ComingSoon": {
+    "mirror": "components/sections/coming-soon.tsx",
+    "hash": "90291e0d2fdd5910"
+  },
+  "CompanyTicker": {
+    "mirror": "components/sections/company-ticker.tsx",
+    "hash": "e7adc59aea9dac4a"
+  },
+  "CompareScreen": {
+    "mirror": "app/(marketing)/compare/page.tsx",
+    "hash": "b80c5fb44f2edce8"
+  },
+  "CompetitorEdgePanel": {
+    "mirror": "components/app/intel/competitors-view.tsx",
+    "hash": "3347d8598ed66595"
+  },
+  "CompetitorsScreen": {
+    "mirror": "components/app/intel/competitors-view.tsx",
+    "hash": "3347d8598ed66595"
+  },
+  "ContactScreen": {
+    "mirror": "app/(marketing)/contact/page.tsx",
+    "hash": "4391a2a62add1a37"
+  },
+  "CustomersScreen": {
+    "mirror": "components/app/intel/customers-view.tsx",
+    "hash": "bd0e44f01252a41c"
+  },
+  "DashboardScreen": {
+    "mirror": "components/app/intel/dashboard-hero.tsx",
+    "hash": "8eda4e6803782fed"
+  },
+  "FinalCta": {
+    "mirror": "components/sections/captured/landing-html.ts",
+    "hash": "e926e6ff4e17e58a"
+  },
+  "Footer": {
+    "mirror": "components/sections/footer.tsx",
+    "hash": "79512e67ca0d3898"
+  },
+  "GalleryScreen": {
+    "mirror": "app/(marketing)/gallery/page.tsx",
+    "hash": "004ae83ba50e32c5"
+  },
+  "HowItWorks": {
+    "mirror": "components/sections/captured/landing-html.ts",
+    "hash": "e926e6ff4e17e58a"
+  },
+  "IntelKit": {
+    "mirror": "components/app/intel/kit.tsx",
+    "hash": "f66ca29b67fa1a97"
+  },
+  "KpiCard": {
+    "mirror": "components/app/intel/kit.tsx",
+    "hash": "f66ca29b67fa1a97"
+  },
+  "LandingHero": {
+    "mirror": "components/sections/scan-hero.tsx",
+    "hash": "e934b4540b5c8ab7"
+  },
+  "LandingScreen": {
+    "mirror": "components/sections/captured/landing-screen.tsx",
+    "hash": "d3949adfcf755c56"
+  },
+  "LegalScreen": {
+    "mirror": "app/(marketing)/privacy/page.tsx",
+    "hash": "f895429da98cc372"
+  },
+  "LeverBanner": {
+    "mirror": "components/app/intel/dashboard-hero.tsx",
+    "hash": "8eda4e6803782fed"
+  },
+  "NavBar": {
+    "mirror": "components/sections/marketing-nav.tsx",
+    "hash": "135f97e6c81a6f82"
+  },
+  "OnboardingScreen": {
+    "mirror": "components/app/setup/setup-overlay.tsx",
+    "hash": "b695195d6ebee355"
+  },
+  "PlanCards": {
+    "mirror": "components/sections/captured/pricing-html.ts",
+    "hash": "cef6a4863f5afa9d"
+  },
+  "PlanItemCard": {
+    "mirror": "components/app/intel/plan-entry-card.tsx",
+    "hash": "65dd52972ccbd5d4"
+  },
+  "PlanScreen": {
+    "mirror": "components/app/intel/plan-timeline-view.tsx",
+    "hash": "3d71ed24bf3fa001"
+  },
+  "PricingBlock": {
+    "mirror": "components/sections/captured/landing-html.ts",
+    "hash": "e926e6ff4e17e58a"
+  },
+  "PricingScreen": {
+    "mirror": "components/sections/captured/pricing-screen.tsx",
+    "hash": "c43bd79719f5b1a5"
+  },
+  "ProgressScreen": {
+    "mirror": "components/app/intel/progress-view.tsx",
+    "hash": "595b157bce2e7459"
+  },
+  "ResultsScreen": {
+    "mirror": "components/report/captured/results-screen.tsx",
+    "hash": "089b8411cd6d54dc"
+  },
+  "RoadmapScreen": {
+    "mirror": "app/(marketing)/roadmap/page.tsx",
+    "hash": "b5a5ab720cc1b5af"
+  },
+  "ScanInput": {
+    "mirror": "components/sections/scan-hero.tsx",
+    "hash": "e934b4540b5c8ab7"
+  },
+  "ScanningRing": {
+    "mirror": "components/scan/scan-animation.tsx",
+    "hash": "b47f078fe5a12e5e"
+  },
+  "ScanningScreen": {
+    "mirror": "components/scan/captured-scanning.tsx",
+    "hash": "a500aec40e322dbf"
+  },
+  "ScoreTravels": {
+    "mirror": "components/sections/captured/landing-html.ts",
+    "hash": "e926e6ff4e17e58a"
+  },
+  "SettingsScreen": {
+    "mirror": "components/app/captured/settings-main.tsx",
+    "hash": "6adea69a75ef2f4d"
+  },
+  "StatusScreen": {
+    "mirror": "app/(marketing)/status/page.tsx",
+    "hash": "722a63a461746716"
+  },
+  "StorySection": {
+    "mirror": "components/sections/captured/landing-html.ts",
+    "hash": "e926e6ff4e17e58a"
+  },
+  "TeardownsScreen": {
+    "mirror": "app/(marketing)/teardowns/[slug]/page.tsx",
+    "hash": "db6dee0f0f0722ef"
+  },
+  "Testimonials": {
+    "mirror": "components/sections/captured/landing-html.ts",
+    "hash": "e926e6ff4e17e58a"
+  },
+  "ToolsScreen": {
+    "mirror": "app/(marketing)/tools/page.tsx",
+    "hash": "39a9b34d1d377047"
+  },
+  "TrafficByChannel": {
+    "mirror": "components/app/intel/dashboard-view.tsx",
+    "hash": "7e6708a3f4fe12c7"
+  },
+  "UnlockBand": {
+    "mirror": "components/report/captured/unlock-button.tsx",
+    "hash": "b7b6c84abecc4f2d"
+  },
+  "WhySwitch": {
+    "mirror": "components/sections/captured/landing-html.ts",
+    "hash": "e926e6ff4e17e58a"
+  }
+}

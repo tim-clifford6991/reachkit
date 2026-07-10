@@ -107,7 +107,7 @@ export function PaywallScreen({
               plan="solo"
               fallbackHref="/app/billing"
               style={{
-                background: "var(--c-action)", color: "#fff", border: "none", borderRadius: "var(--radius-md)",
+                background: "var(--c-action)", color: "var(--c-on-dark)", border: "none", borderRadius: "var(--radius-md)",
                 padding: "12px 28px", fontFamily: PJ, fontSize: 14.5, fontWeight: 600, cursor: "pointer", minWidth: 220,
               }}
             >

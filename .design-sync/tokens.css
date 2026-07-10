@@ -1,0 +1,125 @@
+/* ReachKit design tokens — "Refined Violet" (Palette A).
+ *
+ * ⚠ COMMITTED SOURCE OF TRUTH for the design system's --c-* seam.
+ * `ds-bundle/tokens/tokens.css` (gitignored) is a COPY of this file — the
+ * pipeline copies it in (see .design-sync/NOTES.md), it is no longer re-fetched
+ * from the remote Claude Design project. Keep this file in lockstep with the
+ * app's canonical tokens in `app/globals.css` (the `--c-*` block): every --c-*
+ * here must equal its globals.css counterpart, and the score bands must equal
+ * SCORE_BANDS in `lib/scan/score-bands.ts`. This is enforced by
+ * `scripts/check-design-parity.mjs` (pnpm check:design) — a change here that
+ * drifts from the app fails CI. See CLAUDE.md → "Consistency harness".
+ *
+ * Fonts: Space Grotesk (display), Plus Jakarta Sans (body), JetBrains Mono
+ * (numbers / scores / code) — loaded from Google Fonts so the bundle is
+ * self-contained for the design agent.
+ */
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap");
+
+:root {
+  color-scheme: light;
+
+  /* Type families */
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* ── Semantic palette (LIGHT) ─────────────────────────────────────────── */
+  --c-bg: #FFFFFF;          /* page background */
+  --c-bg2: #FAFAFC;         /* faint app canvas / raised sections */
+  --c-surface: #FFFFFF;     /* cards / panels */
+  --c-ink: #16141F;         /* primary text */
+  --c-muted: #57536A;       /* secondary text */
+  --c-faint: #9A97A5;       /* tertiary text / labels */
+  --c-line: #ECEAF3;        /* hairline border */
+  --c-line2: #EEEDF3;       /* secondary hairline */
+  --c-fill: #F4F2FA;        /* soft neutral fill (chips, tracks) */
+  --c-action: #6E56F7;      /* primary action (violet) */
+  --c-action-hover: #5B43E6; /* DS-only helper (app uses --color-accent-hover) */
+  --c-soft: #F2EEFF;        /* action tint (chips, active nav) */
+  --c-dark: #322E4A;        /* dark band / score-card surface */
+  --c-dark2: #47416B;       /* dark band gradient end */
+  --c-on-dark: #FFFFFF;     /* text on dark / action surfaces (stays light) */
+  --c-on-dark-muted: #B7B4C4;
+  --c-glass: rgba(255,255,255,0.82);
+  --c-tint-violet: #FAF8FF; --c-tint-violet-line: #ECE7FB;
+  --c-tint-orange: #FFFAF6; --c-tint-orange-line: #F0E4DA;
+  --c-tint-red: #FDF6F6;
+  --c-tint-green: #EAF7EF; --c-tint-amber: #FFF4E0; --c-tint-blue: #EAF1FF;
+
+  /* Score-band accents (semantic, NOT themed by mode). Values are copied
+     verbatim from SCORE_BANDS in lib/scan/score-bands.ts (the single source of
+     truth) so the DS preview renders the EXACT gauge/report band colors. */
+  --c-band-invisible: oklch(0.60 0.20 23);   /* 0–29   Invisible */
+  --c-band-hard: oklch(0.65 0.17 47);        /* 30–49  Hard to find */
+  --c-band-fair: oklch(0.70 0.13 75);        /* 50–69  Fair — room to climb */
+  --c-band-findable: oklch(0.62 0.13 153);   /* 70–84  Findable */
+  --c-band-high: oklch(0.52 0.12 155);       /* 85–100 Highly discoverable */
+
+  /* ── Surface / text aliases used by some components (--color-*) ────────── */
+  --color-bg: #FAFAFC;
+  --color-surface: #FFFFFF;
+  --color-fg: #16141F;
+  --color-muted: #57536A;
+  --color-accent: #6E56F7;
+  --color-accent-fg: #FFFFFF;
+  --hairline: #ECEAF3;
+
+  /* ── Rounding ─────────────────────────────────────────────────────────── */
+  --radius-xs: 0.375rem;   /* 6px  — tiny chips / inline tags */
+  --radius-sm: 0.625rem;   /* 10px */
+  --radius-md: 0.875rem;   /* 14px — cards */
+  --radius-lg: 0.75rem;    /* 12px — inputs / buttons / selects */
+  --radius-xl: 1rem;       /* 16px — cards / panels */
+  --radius-2xl: 1.125rem;  /* 18px — large / marketing cards */
+  --radius-full: 9999px;   /* pills, avatars */
+
+  /* ── Spacing ──────────────────────────────────────────────────────────── */
+  --spacing-content-max: 72rem;
+  --spacing-content-x: clamp(1.5rem, 5vw, 3rem);
+
+  /* ── Type scale ───────────────────────────────────────────────────────── */
+  --text-xs: 0.75rem;  --text-sm: 0.875rem; --text-base: 1rem;
+  --text-lg: 1.125rem; --text-xl: 1.25rem;  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem; --text-display: clamp(2.5rem, 6vw, 4.5rem);
+  --tracking-display: -0.022em;
+
+  /* ── Elevation ────────────────────────────────────────────────────────── */
+  --elevation-md: 0 8px 24px -16px rgba(40, 33, 84, 0.12);
+  --elevation-lg: 0 16px 44px -26px rgba(40, 33, 84, 0.30);
+  --elevation-glow: 0 18px 50px -22px rgba(110, 86, 247, 0.40);
+}
+
+/* ═══ DARK — violet-tinted near-black; only the mode-dependent tokens flip ═══ */
+.dark {
+  color-scheme: dark;
+
+  --c-bg: #0E0D14;
+  --c-bg2: #14131C;
+  --c-surface: #1A1824;
+  --c-ink: #F3F2F7;
+  --c-muted: #A9A5B7;
+  --c-faint: #6F6B7E;
+  --c-line: #2A2735;
+  --c-line2: #2A2735;
+  --c-fill: #232029;
+  --c-action: #8B73FF;
+  --c-action-hover: #9D88FF;
+  --c-soft: #251F3D;
+  --c-dark: #232029;
+  --c-dark2: #322E3E;
+  --c-on-dark: #FFFFFF;      /* stays light across modes (mirrors globals.css .dark) */
+  --c-on-dark-muted: #B7B4C4;
+  --c-glass: rgba(16,14,22,0.82);
+  --c-tint-violet: #211D33; --c-tint-violet-line: #312B49;
+  --c-tint-orange: #2A2017; --c-tint-orange-line: #3C2F21;
+  --c-tint-red: #2E1C1C;
+  --c-tint-green: #16271F; --c-tint-amber: #2A2113; --c-tint-blue: #16213A;
+
+  --color-bg: #14131C;
+  --color-surface: #1A1824;
+  --color-fg: #F3F2F7;
+  --color-muted: #A9A5B7;
+  --color-accent: #8B73FF;
+  --hairline: #2A2735;
+}

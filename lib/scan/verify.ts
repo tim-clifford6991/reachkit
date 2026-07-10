@@ -85,6 +85,19 @@ function rankKeywords(expectedOutcome: Json | null, title: string): string[] {
   return t.length > 0 ? [t] : [];
 }
 
+/** Safely read `{ scoreComponent, delta }` off the persisted `expected_outcome`
+ *  Json blob (stored by full-scan's persistActions). Degrades to nulls. */
+function expectedFields(eo: Json | null): { scoreComponent: string | null; predicted: number | null } {
+  if (eo !== null && typeof eo === "object" && !Array.isArray(eo)) {
+    const o = eo as Record<string, unknown>;
+    return {
+      scoreComponent: typeof o["scoreComponent"] === "string" ? o["scoreComponent"] : null,
+      predicted: typeof o["delta"] === "number" ? o["delta"] : null,
+    };
+  }
+  return { scoreComponent: null, predicted: null };
+}
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -221,8 +234,10 @@ async function markVerifiedAndRecordOutcome(action: LoadedAction, signal: string
   if (updErr) throw updErr;
 
   // Idempotent outcome (unique index on outcomes(action_id) → re-run = no dup).
-  // observed_delta carries the action's expected_outcome (the "what we expected
-  // to move" record the moat is built from).
+  // observed_delta is written PROVISIONALLY here (prediction only, delta:null);
+  // snapshotScore overwrites `delta` with the REAL measured movement (new gauge −
+  // prior gauge) once the post-completion re-score is known (§6 #4 — the column
+  // must hold what was OBSERVED, not what we expected).
   const { error: outErr } = await db
     .from("outcomes")
     .upsert(
@@ -230,7 +245,7 @@ async function markVerifiedAndRecordOutcome(action: LoadedAction, signal: string
         action_id: action.id,
         app_id: action.appId,
         verified_signal: signal,
-        observed_delta: action.expectedOutcome,
+        observed_delta: { ...expectedFields(action.expectedOutcome), delta: null } as unknown as Json,
       },
       { onConflict: "action_id" },
     );
@@ -295,6 +310,18 @@ async function snapshotScore(action: LoadedAction): Promise<void> {
   }
   const headline = headlineFromRows(ctx.mode, score, rows);
 
+  // §6 #4: capture the app's PRIOR gauge total BEFORE inserting the new snapshot,
+  // so the real observed movement can replace the provisional prediction in
+  // outcomes.observed_delta below.
+  const { data: prevSnap } = await db
+    .from("score_snapshots")
+    .select("total")
+    .eq("app_id", action.appId)
+    .order("taken_at", { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
+  const prevTotal = typeof prevSnap?.total === "number" ? prevSnap.total : null;
+
   // History row so the score timeline shows the bump. action_id marks it as an
   // action-completion marker on the score-history chart.
   const { error: snapErr } = await db.from("score_snapshots").insert({
@@ -307,6 +334,20 @@ async function snapshotScore(action: LoadedAction): Promise<void> {
     action_id: action.id,
   });
   if (snapErr) throw snapErr;
+
+  // §6 #4: overwrite observed_delta with the REAL measured movement (new − prior
+  // gauge). Best-effort — a telemetry write must never fail a completed verify.
+  try {
+    const observed = prevTotal === null ? null : Math.round(headline.total - prevTotal);
+    await db
+      .from("outcomes")
+      .update({
+        observed_delta: { ...expectedFields(action.expectedOutcome), delta: observed } as unknown as Json,
+      })
+      .eq("action_id", action.id);
+  } catch (e) {
+    console.error("[verify] observed_delta update failed (best-effort)", e);
+  }
 }
 
 // coerceFacts moved to lib/scan/pulse.ts — shared by the verify snapshot and

@@ -58,6 +58,8 @@ import { collectDeltas } from "@/lib/scan/delta-collect";
 import { generateActions } from "@/lib/llm/actions";
 import { runCriticGate } from "@/lib/llm/critic";
 import { algorithmSafety } from "@/lib/scan/algorithm-safety";
+import { linkSignalKeys, recomputeActionImpacts } from "@/lib/scan/action-linking";
+import type { ScanSignalRow } from "@/lib/scan/compute-signals";
 import { gatherScoreComponents, verifiedScore } from "@/lib/scan/score-full";
 import { persistScanSignals } from "@/lib/scan/persist-signals";
 import { headlineFromRows, type RegistryScoreRow } from "@/lib/scan/registry-score";
@@ -516,6 +518,34 @@ async function appendActions(
 
   const db = serverDb();
 
+  // §6 #12 — parity with full-scan's writer: attach signalKeys + recompute honest
+  // model deltas so weekly actions are signal-attributable and schedulable (the
+  // old weekly writer dropped signal_keys entirely and kept the LLM's guessed
+  // delta). Best-effort: read the per-signal rows the deep scan persisted for this
+  // scan; if absent, fall back to the raw safe set (no linkage, unchanged behaviour).
+  let linked = safe;
+  try {
+    const { data: sigRows } = await db
+      .from("scan_signals")
+      .select("signal_key, pillar, weight, normalised, state")
+      .eq("scan_id", ctx.scanId);
+    if (sigRows && sigRows.length > 0) {
+      const rows2: ScanSignalRow[] = sigRows.map((r) => ({
+        signalKey: r.signal_key as string,
+        pillar: r.pillar as ScanSignalRow["pillar"],
+        weight: (r.weight as number | null) ?? 0,
+        normalised: r.normalised as number | null,
+        state: (r.state as ScanSignalRow["state"]) ?? "unmeasured",
+        rawValue: null,
+        contribution: null,
+        platform: ctx.mode,
+      }));
+      linked = recomputeActionImpacts(linkSignalKeys(safe, rows2), rows2);
+    }
+  } catch (e) {
+    console.error("[refresh] signal-link/recompute failed (best-effort)", e);
+  }
+
   // Existing non-done action titles for this app — the dedup key. (The Task-10
   // cron also guards once-per-week; this is the in-function idempotency so a
   // manual re-run in the same week never double-appends.)
@@ -534,7 +564,7 @@ async function appendActions(
   // De-dupe within the batch too, so two freshly-generated cards with the same
   // title can't both insert.
   const seenThisRun = new Set<string>();
-  const toInsert = safe.filter((a) => {
+  const toInsert = linked.filter((a) => {
     if (existingTitles.has(a.title) || seenThisRun.has(a.title)) return false;
     seenThisRun.add(a.title);
     return true;
@@ -557,6 +587,10 @@ async function appendActions(
     expected_outcome: a.expectedOutcome as unknown as Json,
     score_component: a.expectedOutcome.scoreComponent,
     verification: a.verification as unknown as Json,
+    // §6 #12 — parity with full-scan's persistActions: keep signal linkage (so
+    // the plan timeline can schedule + attribute the action) and the routing target.
+    signal_keys: a.signalKeys ?? [],
+    target: (a.target ?? null) as unknown as Json,
   }));
 
   const { error: insErr } = await db.from("actions").insert(rows);

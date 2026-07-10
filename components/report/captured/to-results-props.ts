@@ -86,13 +86,31 @@ export function toResultsProps(
   const intendedTags = Array.from(new Set([...splitTags(pm.listingSays), ...icpSignals.flatMap(splitTags)])).slice(0, 5);
   const actualTags = Array.from(new Set(splitTags(pm.reviewsValue))).slice(0, 5);
 
-  // Search-gap rows from market keyword-gap (present on deep/paid scans).
+  // Search-gap rows. Paid deep scans carry the rival keyword-gap
+  // (`market.gap.keywordGap`); FREE web scans carry the subject-only teaser
+  // (`freeKeywordTeaser` — high-volume searches where you rank but aren't winning,
+  // no rival data). Prefer the paid gap; fall back to the free teaser.
   const kg = report.market?.gap?.keywordGap ?? [];
-  const gapRows: GapRow[] = kg.slice(0, 4).map((k) => {
-    const vol = typeof k.volume === "number" ? k.volume.toLocaleString() : String(k.volume ?? "—");
-    const opp = k.volume >= 2000 ? "High" : k.volume >= 500 ? "Med" : "Low";
-    return { query: k.keyword, volume: `${vol}`, rank: "Not ranking", ranked: false, opp };
-  });
+  const teaser = report.freeKeywordTeaser ?? [];
+  const oppFor = (v: number) => (v >= 2000 ? "High" : v >= 500 ? "Med" : "Low");
+  let gapRows: GapRow[];
+  let gapCount: number;
+  if (kg.length > 0) {
+    gapRows = kg.slice(0, 4).map((k) => {
+      const vol = typeof k.volume === "number" ? k.volume.toLocaleString() : String(k.volume ?? "—");
+      return { query: k.keyword, volume: `${vol}`, rank: "Not ranking", ranked: false, opp: oppFor(k.volume) };
+    });
+    gapCount = kg.length;
+  } else {
+    gapRows = teaser.slice(0, 4).map((k) => ({
+      query: k.keyword,
+      volume: k.volume.toLocaleString(),
+      rank: `#${k.yourPosition}`,
+      ranked: true,
+      opp: oppFor(k.volume),
+    }));
+    gapCount = report.freeKeywordTeaserTotal ?? teaser.length;
+  }
 
   return {
     siteLabel,
@@ -109,6 +127,6 @@ export function toResultsProps(
     actualTags,
     mirrorGap: pm.gap,
     gapRows,
-    gapTotal: totalGapQueries ?? (kg.length || gapRows.length),
+    gapTotal: totalGapQueries ?? (gapCount || gapRows.length),
   };
 }

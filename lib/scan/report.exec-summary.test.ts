@@ -45,8 +45,10 @@ describe("buildExecutiveSummary", () => {
     expect(ex.topCompetitors.map((c) => c.domain)).toEqual(["rival-a.com", "rival-b.com"]);
     expect(ex.topCompetitors[0]!.organicKeywords).toBeNull();
     expect(ex.traffic).toBeNull();
-    // Quick wins = the two effortMin<30 actions (capped at 2).
-    expect(ex.quickWins).toEqual(["Write a launch post", "DM 5 creators"]);
+    // Quick wins now bucket by time-to-PAYOFF (PR C): "Write a launch post" is an
+    // on-page fix that pays off on ship. "DM 5 creators" is outreach → a
+    // slow-compounding long play, so it is no longer a quick win.
+    expect(ex.quickWins).toEqual(["Write a launch post"]);
     // Biggest gap falls back to the rival we're losing to (them>you).
     expect(ex.biggestGap).toBe("Close the gap with rival-a.com");
   });

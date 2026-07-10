@@ -1,56 +1,76 @@
+/* @mirrors components/app/intel/progress-view.tsx */
 import * as React from "react";
 import { AppShell } from "./AppShell";
-import { ProgressChart } from "./ProgressChart";
-import { KpiCard } from "./KpiCard";
+import { Card, Badge } from "./IntelKit";
 
 /**
- * ProgressScreen — the in-app Progress view (`/app/progress`): the AppShell chrome
- * wrapping the "Discoverability over time" story. Mirrors `progress-view.tsx` — the
- * score trend with verified-fix milestone dots + the streak/current/best KPIs. The
- * trend plots a SINGLE score_version only (a model rebase is never drawn as a real
- * cliff — see engagement.ts scoreHistory). Composes ProgressChart + KpiCard.
- * Renders fully with no props.
+ * ProgressScreen — the `/app/progress` page: the "Discoverability over time"
+ * trend (with the pillar overlay legend + verified-fix markers), the "Why it
+ * moved" signal-diff card, and the "What changed" changelog. Composes the shared
+ * IntelKit. Mirrors the live progress-view.
  */
 export interface ProgressScreenProps {
-  appName?: string;
+  _unused?: never;
 }
 
-export function ProgressScreen({ appName = "nudgi.ai" }: ProgressScreenProps) {
-  return (
-    <AppShell
-      active="history"
-      headerTitle="Progress"
-      headerSub={`Your Discoverability Score over time · ${appName}`}
-      user={{ name: "Nadia L.", sub: `${appName} · solo founder` }}
-    >
-      <div style={{ maxWidth: "var(--spacing-content-max)", margin: "0 auto", display: "flex", flexDirection: "column", gap: 20, fontFamily: "var(--font-sans)" }}>
-        {/* KPI ROW */}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 14 }}>
-          <div style={{ flex: "1 1 180px" }}><KpiCard label="On-site readiness" value="74" delta="+6" deltaDirection="up" note="since last scan" /></div>
-          <div style={{ flex: "1 1 180px" }}><KpiCard label="Market position" value="31" delta="+4" deltaDirection="up" note="vs rivals" /></div>
-          <div style={{ flex: "1 1 180px" }}><KpiCard label="Weekly streak" value="3 wks" note="fixes shipped" /></div>
-        </div>
+const JM = "var(--font-mono)";
+const stateColor = (s: string) => (s === "pass" ? "var(--c-band-findable)" : s === "warn" ? "var(--c-band-fair)" : s === "fail" ? "var(--c-band-invisible)" : "var(--c-faint)");
 
-        {/* TREND */}
-        <section style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-lg)", padding: "22px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-            <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, color: "var(--c-ink)", margin: 0 }}>Discoverability over time</h3>
-            <span style={{ fontSize: 12.5, color: "var(--c-muted)" }}>Your on-site readiness at each scan. Dots mark a verified fix that moved the score.</span>
+const WHY = [
+  { pillar: "SEO", signal: "Schema markup", from: "fail", to: "pass", delta: "+4.0" },
+  { pillar: "Content", signal: "Content depth", from: "warn", to: "pass", delta: "+2.5" },
+  { pillar: "Outreach", signal: "Directory presence", from: "fail", to: "warn", delta: "+1.5" },
+];
+const CHANGES = [
+  { date: "Jul 8", label: "Verified: Added FAQ schema to pricing", delta: "+4", up: true },
+  { date: "Jul 3", label: "Verified: Claimed G2 + Capterra listings", delta: "+3", up: true },
+  { date: "Jun 28", label: "Baseline scan — nudgi.ai", delta: null, up: true },
+];
+
+export function ProgressScreen() {
+  return (
+    <AppShell active="history" headerTitle="Progress" headerSub="Your Discoverability Score over time and what moved it." user={{ name: "Nadia L.", sub: "nudgi.ai · solo founder" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        <Card title="Discoverability over time" info="Your Discoverability Score at each scan. Dots mark a verified fix that moved the score.">
+          <svg viewBox="0 0 820 240" width="100%" height="220" preserveAspectRatio="none" aria-hidden="true">
+            <defs><linearGradient id="rkProgress" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--c-action)" stopOpacity="0.2" /><stop offset="100%" stopColor="var(--c-action)" stopOpacity="0" /></linearGradient></defs>
+            {[60, 120, 180].map((y) => <line key={y} x1="0" y1={y} x2="820" y2={y} stroke="var(--c-line)" strokeWidth="1" strokeDasharray="4 6" />)}
+            <path d="M0,190 L205,168 L410,150 L615,120 L820,96 L820,240 L0,240 Z" fill="url(#rkProgress)" />
+            <path d="M0,190 L205,168 L410,150 L615,120 L820,96" fill="none" stroke="var(--c-action)" strokeWidth="3" />
+            {[[205, 168], [615, 120]].map(([x, y]) => <circle key={x} cx={x} cy={y} r="5.5" fill="var(--c-action)" stroke="var(--c-surface)" strokeWidth="2" />)}
+          </svg>
+          <div style={{ display: "flex", gap: 16, marginTop: 8, fontFamily: JM, fontSize: 11, color: "var(--c-faint)" }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><span style={{ width: 9, height: 9, borderRadius: 3, background: "var(--c-band-findable)" }} /> Content</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><span style={{ width: 9, height: 9, borderRadius: 3, background: "var(--c-action)" }} /> Outreach</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><span style={{ width: 9, height: 9, borderRadius: 3, background: "var(--c-band-hard)" }} /> SEO</span>
+            <span style={{ marginLeft: "auto" }}>dots = a fix shipped</span>
           </div>
-          <ProgressChart
-            points={[
-              { x: 0, y: 52 }, { x: 1, y: 55 }, { x: 2, y: 61 }, { x: 3, y: 62 }, { x: 4, y: 68 }, { x: 5, y: 74 },
-            ]}
-            markers={[
-              { wk: "wk 3", score: 62, x: 3, y: 62 },
-              { wk: "wk 5", score: 74, x: 5, y: 74 },
-            ]}
-            events={[
-              { wk: "wk 5", date: "8 Jul", text: "Published otter.ai comparison page" },
-              { wk: "wk 3", date: "24 Jun", text: "Added JSON-LD + fixed meta descriptions" },
-            ]}
-          />
-        </section>
+        </Card>
+
+        <Card title="Why it moved" info="Signal-level changes between your two most recent scans — the concrete reasons your score shifted.">
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {WHY.map((w) => (
+              <div key={w.signal} style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                <Badge tone="neutral">{w.pillar}</Badge>
+                <span style={{ flex: 1, fontSize: 13.5, minWidth: 140 }}>{w.signal}</span>
+                <span style={{ fontFamily: JM, fontSize: 12.5 }}><span style={{ color: stateColor(w.from) }}>{w.from}</span> → <span style={{ color: stateColor(w.to) }}>{w.to}</span></span>
+                <span style={{ fontFamily: JM, fontSize: 13, fontWeight: 700, color: "var(--c-band-high)", width: 64, textAlign: "right" }}>{w.delta} pts</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card title="What changed">
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {CHANGES.map((c) => (
+              <div key={c.label} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <span style={{ fontFamily: JM, fontSize: 12, color: "var(--c-faint)", width: 54 }}>{c.date}</span>
+                <span style={{ flex: 1, fontSize: 13.5 }}>{c.label}</span>
+                {c.delta && <Badge tone="green">+{c.delta.replace("+", "")}</Badge>}
+              </div>
+            ))}
+          </div>
+        </Card>
       </div>
     </AppShell>
   );

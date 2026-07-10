@@ -35,7 +35,7 @@ import { runCriticGate } from "@/lib/llm/critic";
 import { algorithmSafety } from "@/lib/scan/algorithm-safety";
 import { gatherScoreComponents, verifiedScore } from "@/lib/scan/score-full";
 import { persistScanSignals, computeSignalRowsForScan } from "@/lib/scan/persist-signals";
-import { linkSignalKeys, topUpActions, MIN_ACTIONS } from "@/lib/scan/action-linking";
+import { linkSignalKeys, topUpActions, recomputeActionImpacts, ensurePerCategoryFloor, MIN_ACTIONS } from "@/lib/scan/action-linking";
 import { fillDeterministicDrafts } from "@/lib/scan/action-drafts";
 import { headlineScore, marketPositionScore, HEADLINE_SCORE_VERSION } from "@/lib/scan/registry-score";
 import { verifiedScoreFromRegistry } from "@/lib/scan/free-report";
@@ -560,6 +560,13 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
       plan = topUpActions(plan, signalRows);
       // A3: fill the deterministic JSON-LD draft on any schema card missing one.
       plan = fillDeterministicDrafts(plan, facts.listing, ctx.storeUrl, ctx.mode);
+      // §6 #4: overwrite every card's LLM-guessed `expectedOutcome.delta` with the
+      // model-computed shortfall of the signals it links to, so the "+N pts" shown
+      // and sorted on equals real modelled score movement (floor cards unchanged).
+      plan = recomputeActionImpacts(plan, signalRows);
+      // §6 #5: guarantee invariant #5 (per-category floor) at runtime, not just in
+      // the eval — every pillar with recoverable points keeps ≥1 action.
+      plan = ensurePerCategoryFloor(plan, signalRows);
       if (plan.length > before) {
         console.warn(
           `[full-scan] plan had ${before} critic-passed action(s) for scan ${ctx.scanId} — floored to ${plan.length} (MIN_ACTIONS=${MIN_ACTIONS}) with signal-derived baseline fixes`,
@@ -633,11 +640,20 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
             market,
           });
           const before = plan.length;
-          const refloored = fillDeterministicDrafts(
-            topUpActions(linkSignalKeys(plan, marketRows), marketRows),
-            facts.listing,
-            ctx.storeUrl,
-            ctx.mode,
+          // §6 #4/#5: recompute impacts against the market-aware signal rows too
+          // (off-site cards get their real modelled delta once market signals are
+          // measured), then re-assert the per-category floor with those rows.
+          const refloored = ensurePerCategoryFloor(
+            recomputeActionImpacts(
+              fillDeterministicDrafts(
+                topUpActions(linkSignalKeys(plan, marketRows), marketRows),
+                facts.listing,
+                ctx.storeUrl,
+                ctx.mode,
+              ),
+              marketRows,
+            ),
+            marketRows,
           );
           if (refloored.length > before) {
             plan = refloored;

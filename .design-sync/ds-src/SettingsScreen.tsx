@@ -1,65 +1,77 @@
+/* @mirrors components/app/captured/settings-main.tsx */
 import * as React from "react";
 import { AppShell } from "./AppShell";
-import { Button } from "./Button";
-import { TextField } from "./TextField";
-import { Badge } from "./Badge";
+import { Card, Badge } from "./IntelKit";
 
 /**
- * SettingsScreen — the in-app Settings view (`/app/settings`): the AppShell chrome
- * wrapping the product-URL field, the current plan card (Free / Solo / Growth with
- * its upgrade CTA), and the self-service billing link. Mirrors `settings/page.tsx`.
- * Composes Button / TextField / Badge. Renders fully with no props.
+ * SettingsScreen — the `/app/settings` page: the Plan card (violet panel + manage
+ * billing / upgrade), the Tracked product card (avatar + product URL form), the
+ * Scoring card (version / signals / auto-scan / digest), and the Account card
+ * (delete). Composes the shared IntelKit. Mirrors the live settings-main.
  */
 export interface SettingsScreenProps {
-  appName?: string;
+  _unused?: never;
 }
 
-const JM = "var(--font-mono)";
+const SG = "var(--font-display)", JM = "var(--font-mono)";
 
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
+const SCORING: [string, React.ReactNode][] = [
+  ["Score version", "v3 · deterministic"],
+  ["Signals tracked", "18 across 3 pillars"],
+  ["Weekly auto-scan", <span key="a" style={{ color: "var(--c-band-findable)", fontWeight: 600 }}>On</span>],
+  ["Email score digest", <span key="d" style={{ color: "var(--c-band-findable)", fontWeight: 600 }}>On</span>],
+];
+
+export function SettingsScreen() {
   return (
-    <section style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-lg)", padding: "22px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
-      <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, color: "var(--c-ink)", margin: 0 }}>{title}</h3>
-      {children}
-    </section>
-  );
-}
-
-export function SettingsScreen({ appName = "nudgi.ai" }: SettingsScreenProps) {
-  return (
-    <AppShell
-      active="settings"
-      headerTitle="Settings"
-      headerSub={`Your product & plan · ${appName}`}
-      user={{ name: "Nadia L.", sub: `${appName} · solo founder` }}
-    >
-      <div style={{ maxWidth: 720, margin: "0 auto", display: "flex", flexDirection: "column", gap: 20, fontFamily: "var(--font-sans)" }}>
-        {/* PRODUCT */}
-        <Card title="Product">
-          <TextField label="Product URL" placeholder="https://your-site.com" value="https://nudgi.ai" hint="We re-scan this on your weekly refresh." />
-          <div style={{ display: "flex", gap: 10 }}>
-            <Button variant="primary">Save</Button>
-            <Button variant="ghost">Re-scan now</Button>
-          </div>
-        </Card>
-
-        {/* PLAN */}
+    <AppShell active="settings" headerTitle="Settings" headerSub="Your plan, tracked product, and account." user={{ name: "Nadia L.", sub: "nudgi.ai · solo founder" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 18, maxWidth: 720 }}>
+        {/* Plan */}
         <Card title="Plan">
-          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-            <Badge tone="band-fair">Solo</Badge>
-            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              <span style={{ fontSize: 15, fontWeight: 700, color: "var(--c-ink)" }}>Solo · $59/mo</span>
-              <span style={{ fontSize: 12.5, color: "var(--c-muted)" }}>1 product · weekly re-scan · 20-keyword depth</span>
+          <div style={{ background: "var(--c-tint-violet)", border: "1px solid var(--c-tint-violet-line)", borderRadius: 12, padding: 18 }}>
+            <div style={{ fontFamily: SG, fontWeight: 700, fontSize: 16, color: "var(--c-action)" }}>Solo</div>
+            <div style={{ fontSize: 13.5, color: "var(--c-muted)", marginTop: 4 }}>Solo · $59/mo — 1 product · weekly re-scan · 20-keyword depth</div>
+            <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+              <button style={{ fontFamily: "var(--font-sans)", fontWeight: 600, fontSize: 13, color: "var(--c-ink)", background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 8, padding: "8px 14px", cursor: "pointer" }}>Manage billing</button>
+              <button style={{ fontFamily: "var(--font-sans)", fontWeight: 600, fontSize: 13, color: "var(--c-on-dark)", background: "var(--c-action)", border: "none", borderRadius: 8, padding: "8px 14px", cursor: "pointer" }}>Upgrade to Growth</button>
             </div>
-            <div style={{ marginLeft: "auto" }}><Button variant="secondary">Upgrade to Growth</Button></div>
           </div>
         </Card>
 
-        {/* BILLING */}
-        <Card title="Billing">
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 13.5, color: "var(--c-muted)" }}>Manage your subscription, payment method, and invoices in the billing portal.</span>
-            <Button variant="secondary">Open billing portal →</Button>
+        {/* Tracked product */}
+        <Card title="Tracked product">
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <span style={{ width: 40, height: 40, borderRadius: 10, background: "linear-gradient(135deg, var(--c-action), color-mix(in oklab, var(--c-action), white 20%))", color: "var(--c-on-dark)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontFamily: SG }}>N</span>
+            <div style={{ flex: 1 }}><div style={{ fontWeight: 600, fontSize: 14 }}>nudgi.ai</div><div style={{ fontSize: 12.5, color: "var(--c-faint)" }}>Web · scanned 2 days ago</div></div>
+            <Badge tone="green">data fresh</Badge>
+          </div>
+          <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--c-line)" }}>
+            <label style={{ fontSize: 12.5, fontWeight: 600, color: "var(--c-muted)" }}>Product URL</label>
+            <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+              <input readOnly defaultValue="nudgi.ai" placeholder="example.com" style={{ flex: 1, background: "var(--c-bg)", border: "1px solid var(--c-line)", borderRadius: 10, padding: "9px 12px", fontSize: 14, color: "var(--c-ink)", outline: "none" }} />
+              <button style={{ fontFamily: "var(--font-sans)", fontWeight: 600, fontSize: 13, color: "var(--c-on-dark)", background: "var(--c-action)", border: "none", borderRadius: 10, padding: "9px 18px", cursor: "pointer" }}>Save</button>
+            </div>
+          </div>
+        </Card>
+
+        {/* Scoring */}
+        <Card title="Scoring">
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            {SCORING.map(([l, v], i) => (
+              <div key={l} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "11px 0", borderTop: i === 0 ? "none" : "1px solid var(--c-line2)" }}>
+                <span style={{ fontSize: 13.5, color: "var(--c-muted)" }}>{l}</span>
+                <span style={{ fontFamily: JM, fontSize: 13, color: "var(--c-ink)" }}>{v}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        {/* Account */}
+        <Card title="Account">
+          <div style={{ background: "var(--c-tint-red)", borderRadius: 12, padding: 18 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: "var(--c-band-invisible)" }}>Delete account</div>
+            <p style={{ fontSize: 13.5, color: "var(--c-muted)", margin: "6px 0 12px" }}>Permanently remove your account and tracked data. We&apos;ll confirm by email.</p>
+            <a href="mailto:hello@reachkit.app?subject=Delete my ReachKit account" style={{ display: "inline-block", fontSize: 13, fontWeight: 600, color: "var(--c-band-invisible)", background: "var(--c-surface)", border: "1px solid var(--c-tint-red)", borderRadius: 8, padding: "8px 14px", textDecoration: "none" }}>Delete account</a>
           </div>
         </Card>
       </div>

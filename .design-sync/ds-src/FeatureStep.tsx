@@ -1,3 +1,4 @@
+/* @mirrors components/sections/how-it-works-scroll.tsx */
 import * as React from "react";
 
 /** FeatureStep — a "how it works" step: a violet number badge + display title + muted body. Renders with no props. */

@@ -71,8 +71,11 @@ export function buildFreeReport(args: {
   findings: Finding[];
   actions: ActionCard[];
   score: VerifiedScore;
+  /** PR B — subject-only keyword-gap teaser (free web scans). */
+  freeKeywordTeaser?: FreeKeywordTeaserRow[];
+  freeKeywordTeaserTotal?: number;
 }): ReportPayload {
-  const { mode, generatedAt, facts, positioningMirror, findings, actions, score } = args;
+  const { mode, generatedAt, facts, positioningMirror, findings, actions, score, freeKeywordTeaser, freeKeywordTeaserTotal } = args;
   const icpSignals = (facts.themes ?? []).map((t) => t.term).filter(Boolean).slice(0, 6);
   const competitorGap = (facts.competitors ?? [])
     .filter((c) => typeof c.name === "string" && c.name.length > 0)
@@ -87,6 +90,8 @@ export function buildFreeReport(args: {
     competitorGap,
     actions,
     score,
+    freeKeywordTeaser,
+    freeKeywordTeaserTotal,
     // deep sections omitted → assembleReport defaults them to empty
   });
 }
@@ -103,6 +108,7 @@ import { fillDeterministicDrafts } from "./action-drafts";
 import { writeScanScoreSnapshot, rollupScanCost } from "./scan-telemetry";
 import { headlineScore, HEADLINE_SCORE_VERSION } from "./registry-score";
 import { discoverabilityScore } from "./score";
+import { gatherFreeKeywordTeaser, type FreeKeywordTeaserRow } from "./free-keyword-teaser";
 import { persistReport } from "./report";
 import type { ScoreComponents } from "./score-full";
 import type { Json } from "@/lib/db/types";
@@ -172,6 +178,12 @@ export async function runFreeReport(ctx: ScanContext, facts: PreliminaryFacts): 
     ctx.mode,
   );
 
+  // PR B — the free "wow": one subject-only ranked_keywords call surfaces the
+  // high-volume searches where the subject ranks but isn't winning. Web only;
+  // best-effort (an empty/failed teaser just omits the section). Rivals' ranks
+  // stay a paid reveal (this gather never touches competitor domains).
+  const teaser = ctx.mode === "web" ? await gatherFreeKeywordTeaser(ctx.storeUrl) : { rows: [], total: 0 };
+
   const payload = buildFreeReport({
     mode: ctx.mode,
     generatedAt: new Date().toISOString(),
@@ -180,6 +192,8 @@ export async function runFreeReport(ctx: ScanContext, facts: PreliminaryFacts): 
     findings,
     actions,
     score,
+    freeKeywordTeaser: teaser.rows,
+    freeKeywordTeaserTotal: teaser.total,
   });
 
   await persistReport(ctx.scanId, payload);

@@ -52,7 +52,10 @@ export function publicReportProps(
     payload.whatToDoThisWeek.quickWins.length +
     payload.whatToDoThisWeek.medium.length +
     payload.whatToDoThisWeek.longPlay.length;
-  const fullGapQueries = payload.market?.gap?.keywordGap?.length ?? 0;
+  // Paid rival gap count, else the free subject-only teaser total (PR B) — so the
+  // free teaser can say "unlock N more" from the full pre-redaction count.
+  const fullGapQueries =
+    (payload.market?.gap?.keywordGap?.length ?? 0) || (payload.freeKeywordTeaserTotal ?? 0);
 
   const resultsProps: ResultsScreenProps = {
     ...toResultsProps(report, brand?.host ?? "your site", fullActions, fullGapQueries),

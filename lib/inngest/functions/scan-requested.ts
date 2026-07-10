@@ -12,10 +12,13 @@ import { handleScanPipelineFailure } from "@/lib/scan/terminal-status";
 import { costedStep } from "@/lib/scan/scan-telemetry";
 import type { Json } from "@/lib/db/types";
 
-/** Cheap free-track ceiling (collect + findings ONLY — the market/demand sweep is
- *  paid-tier). The deep paid pass uses the full `env.scanBudgetCents`. Kept low
- *  and cache-funded — popular competitor domains are profiled once and shared. */
-const FREE_SCAN_BUDGET_CENTS = 15;
+/** Cheap free-track ceiling (collect + findings + the PR B subject-only
+ *  ranked_keywords teaser — the market/demand sweep is still paid-tier). The deep
+ *  paid pass uses the full `env.scanBudgetCents`. Raised 15→20 (decision
+ *  2026-07-10, free ≤ ~$0.18) for headroom on the one ranked_keywords call; the
+ *  REAL $ ceiling is the cost-context measure (`scans.dataforseo_cost_cents`), not
+ *  this coarse tool-call cent proxy — verify free stays ≤ ~$0.18 live. */
+const FREE_SCAN_BUDGET_CENTS = 20;
 type ScanTier = "free" | "full";
 function budgetCentsForTier(tier: ScanTier): number {
   return tier === "full" ? env.scanBudgetCents : FREE_SCAN_BUDGET_CENTS;

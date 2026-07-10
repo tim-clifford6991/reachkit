@@ -1,3 +1,4 @@
+/* @mirrors components/app/intel/plan-entry-card.tsx */
 import * as React from "react";
 
 /**

@@ -121,7 +121,7 @@ export function WeekPlanPreview({ board, today: todayProp }: { board: ActionBoar
         )}
         <Link
           href="/app/plan"
-          style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6, background: "var(--c-action)", color: "#fff", fontFamily: PJ, fontWeight: 700, fontSize: 12, padding: "8px 14px", borderRadius: "var(--radius-full)", textDecoration: "none", whiteSpace: "nowrap" }}
+          style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6, background: "var(--c-action)", color: "var(--c-on-dark)", fontFamily: PJ, fontWeight: 700, fontSize: 12, padding: "8px 14px", borderRadius: "var(--radius-full)", textDecoration: "none", whiteSpace: "nowrap" }}
         >
           Open your plan →
         </Link>

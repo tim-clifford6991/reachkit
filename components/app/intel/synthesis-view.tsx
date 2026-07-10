@@ -84,7 +84,7 @@ function Body({ data, isPaid }: { data: Synthesis; isPaid: boolean }) {
       ) : (
         // Free-user teaser → one-click Solo checkout (W6), styled to match
         // ActionButton exactly; /app/billing only as the error fallback.
-        <CheckoutButton plan="solo" pendingLabel="Redirecting…" style={{ display: "inline-block", background: "var(--c-action)", color: "var(--c-on-dark)", fontFamily: "Plus Jakarta Sans", fontWeight: 600, fontSize: 13, padding: "9px 16px", borderRadius: "var(--radius-lg)", border: "none" }}>
+        <CheckoutButton plan="solo" pendingLabel="Redirecting…" style={{ display: "inline-block", background: "var(--c-action)", color: "var(--c-on-dark)", fontFamily: "var(--font-sans)", fontWeight: 600, fontSize: 13, padding: "9px 16px", borderRadius: "var(--radius-lg)", border: "none" }}>
           Unlock the full plan →
         </CheckoutButton>
       )}
