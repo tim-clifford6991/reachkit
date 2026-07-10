@@ -76,7 +76,7 @@ function FixRow({ action, rank }: { action: ActionCard; rank: number }) {
       </div>
       <div style={{ textAlign: "right", flex: "none" }}>
         <div style={{ fontSize: 11, color: "var(--c-faint)", fontWeight: 600 }}>Predicted</div>
-        <div style={{ fontFamily: "var(--font-mono)", fontWeight: 700, fontSize: 18, color: "#1F9D5B" }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontWeight: 700, fontSize: 18, color: "var(--color-success)" }}>
           +{delta}
         </div>
       </div>
@@ -118,7 +118,7 @@ export function TopFixesPreview({ whatToDoThisWeek }: { whatToDoThisWeek: Report
           <div
             style={{
               background: "var(--c-surface)",
-              border: "1px dashed #D9D6E4",
+              border: "1px dashed var(--c-line)",
               borderRadius: 14,
               padding: "18px 20px",
               display: "flex",

@@ -38,8 +38,6 @@ const FREE_PREVIEW_THEMES = 1;
 /** Market teaser slice sizes for the free report. */
 const FREE_PREVIEW_COMPETITORS = 3;
 const FREE_PREVIEW_POCKETS = 5;
-/** PR B — free keyword-gap teaser rows shown on the public report. */
-const FREE_PREVIEW_KEYWORD_TEASER = 4;
 
 // ---------------------------------------------------------------------------
 // DB-backed entitlement resolution
@@ -151,10 +149,9 @@ export function redactReportForTier(
     // + the channel matrix + share-of-voice), with the paid payoff gated
     // (backlink detail, thread excerpts, the ranked distribution plan).
     market: redactMarket(payload.market),
-    // PR B — the free keyword-gap teaser IS meant for the free view (it's the
-    // subject's own not-winning searches, no rival data). Show a top slice; keep
-    // the full total so the renderer can say "unlock N more".
-    freeKeywordTeaser: (payload.freeKeywordTeaser ?? []).slice(0, FREE_PREVIEW_KEYWORD_TEASER),
+    // iteration 2 — Search Visibility IS the free-tier value (subject-only footprint
+    // split + category gap, no rival data), so it passes through to the free view
+    // via the `...payload` spread above. Nothing to gate here.
   };
 }
 

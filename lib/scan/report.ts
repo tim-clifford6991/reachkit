@@ -11,7 +11,7 @@ import type { PositioningMirror, Finding, ActionCard } from "@/lib/llm/types";
 import type { VerifiedScore } from "@/lib/scan/score-full";
 import type { Platform } from "@/lib/scan/router";
 import type { MarketAnalysis } from "@/lib/scan/gap";
-import type { FreeKeywordTeaserRow } from "@/lib/scan/free-keyword-teaser";
+import type { SearchVisibility } from "@/lib/scan/search-visibility";
 import { SIGNAL_REGISTRY } from "@/lib/scan/signals";
 import { buildCaption } from "@/lib/badge/score-card";
 import { serverDb } from "@/lib/db/client";
@@ -142,13 +142,13 @@ export interface ReportPayload {
   // competitiveLandscape/channelOpportunities/creators sections when present.
   market?: MarketAnalysis;
 
-  // ── Free keyword-gap teaser (PR B) — subject-only searches with real volume
-  // where the subject is NOT winning. Populated on FREE web scans (one cheap
-  // ranked_keywords call); the paid report uses `market.gap.keywordGap` (rivals)
-  // instead. Rival ranks are never in here by construction — they stay paid.
-  freeKeywordTeaser?: FreeKeywordTeaserRow[];
-  /** Total not-winning searches found (drives the "unlock N more" count). */
-  freeKeywordTeaserTotal?: number;
+  // ── Free-tier Search Visibility (iteration 2) — the honest conversion metric,
+  // computed from the ONE subject-only ranked_keywords call. Splits the domain's
+  // organic footprint into brand / category / off-topic so the free report can
+  // lead with the real gap ("90% of your visibility is other companies' brands")
+  // instead of the on-site score that reads as "you're winning". Free web scans
+  // only; the paid report uses `market` (rival cohort) instead.
+  searchVisibility?: SearchVisibility;
 }
 
 // ---------------------------------------------------------------------------
@@ -247,9 +247,8 @@ export function assembleReport(input: {
   channelOpportunities?: ChannelOpportunities;
   creatorsToReach?: CreatorReach[];
   reviewThemes?: { strengths: ReviewTheme[]; weaknesses: ReviewTheme[]; mixed: ReviewTheme[] };
-  /** Free-tier subject-only keyword-gap teaser (PR B) — populated on free web scans. */
-  freeKeywordTeaser?: FreeKeywordTeaserRow[];
-  freeKeywordTeaserTotal?: number;
+  /** Free-tier Search Visibility (iteration 2) — populated on free web scans. */
+  searchVisibility?: SearchVisibility;
 }): ReportPayload {
   const {
     mode,
@@ -265,8 +264,7 @@ export function assembleReport(input: {
     channelOpportunities = { keywordClusters: [], communitiesByEngagement: [] },
     creatorsToReach = [],
     reviewThemes = { strengths: [], weaknesses: [], mixed: [] },
-    freeKeywordTeaser,
-    freeKeywordTeaserTotal,
+    searchVisibility,
   } = input;
 
   return {
@@ -300,9 +298,7 @@ export function assembleReport(input: {
         confidence: f.confidence,
       })),
     },
-    ...(freeKeywordTeaser && freeKeywordTeaser.length > 0
-      ? { freeKeywordTeaser, freeKeywordTeaserTotal: freeKeywordTeaserTotal ?? freeKeywordTeaser.length }
-      : {}),
+    ...(searchVisibility && searchVisibility.keywordsRanked > 0 ? { searchVisibility } : {}),
   };
 }
 

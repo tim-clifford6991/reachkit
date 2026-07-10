@@ -89,6 +89,19 @@ export interface ResultsScreenProps {
   /** F2 — off-site "Market position" grade (paid-only; null on free/public). Shown
    *  beside the on-site headline so a tidy landing page can't imply market strength. */
   marketPosition?: number | null;
+  /** Free-tier Search Visibility (iteration 2) — the honest gap beside the on-site
+   *  score: how much of the domain's real search footprint is its category vs just
+   *  other companies' brand names. Null on paid (uses market position instead). */
+  searchVisibility?: {
+    score: number;
+    keywordsRanked: number;
+    estMonthlyVisits: number;
+    brandPct: number;
+    categoryPct: number;
+    offTopicPct: number;
+    offTopicExamples: string[];
+    categoryWins: number;
+  } | null;
   /** Embedded inside the app shell: drop the full-page bg + outer padding + the
    *  ReachKit banner header (the shell already provides chrome + spacing). */
   embedded?: boolean;
@@ -170,6 +183,28 @@ export function ResultsScreen(p: ResultsScreenProps) {
                       <span style={{ fontSize: 11.5, fontWeight: 700, color: mp.fg, background: mp.bg, padding: "2px 8px", borderRadius: 6, fontFamily: SG }}>{mp.label}</span>
                     </div>
                     <div style={{ marginTop: 4, fontSize: 11, lineHeight: 1.4, color: "var(--c-faint)", fontFamily: JM, maxWidth: 200 }}>Off-site footprint (keywords, backlinks, presence) measured against your discovered competitors.</div>
+                  </div>
+                );
+              })()}
+              {/* Search Visibility (free) — the honest gap beside the on-site score.
+                  A tidy page can score 98 yet win almost no real category search;
+                  this shows how much of the footprint is just other brands' names. */}
+              {p.marketPosition == null && p.searchVisibility && (() => {
+                const sv = p.searchVisibility!;
+                const c = bandViz(sv.score);
+                return (
+                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px dashed var(--c-line2)" }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--c-faint)", marginBottom: 4 }}>Search visibility</div>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                      <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 22, color: c.fg }}>{sv.score}</span>
+                      <span style={{ fontSize: 11, color: "var(--c-faint)" }}>/ 100</span>
+                      <span style={{ fontSize: 11.5, fontWeight: 700, color: c.fg, background: c.bg, padding: "2px 8px", borderRadius: 6, fontFamily: SG }}>{c.label}</span>
+                    </div>
+                    <div style={{ marginTop: 4, fontSize: 11, lineHeight: 1.4, color: "var(--c-faint)", fontFamily: JM, maxWidth: 210 }}>
+                      {sv.offTopicPct >= 40
+                        ? `${sv.offTopicPct}% of your search traffic is other companies' brand names — not your category.`
+                        : `How much real category search you actually win — not just your own brand.`}
+                    </div>
                   </div>
                 );
               })()}
@@ -293,9 +328,41 @@ export function ResultsScreen(p: ResultsScreenProps) {
             <div style={{ marginTop: 18, padding: "16px 18px", background: "var(--c-tint-red)", borderLeft: "3px solid #E5484D", borderRadius: "0 10px 10px 0", fontSize: 14.5, lineHeight: 1.55, color: "#3A3744" }}>{p.mirrorGap}</div>
           </div>
 
-          {/* Search Gap Analysis */}
-          <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: 20, letterSpacing: "-0.01em", margin: "32px 0 6px" }}>Search Gap Analysis</h2>
-          <p style={{ fontSize: 14, color: "var(--c-faint)", margin: "0 0 14px" }}>High-volume searches where you already rank — but not in the top 3, where the clicks go.</p>
+          {/* Search Visibility — where your organic footprint actually comes from */}
+          <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: 20, letterSpacing: "-0.01em", margin: "32px 0 6px" }}>Where your search traffic comes from</h2>
+          <p style={{ fontSize: 14, color: "var(--c-faint)", margin: "0 0 14px" }}>Your page is clean — but ranking isn&apos;t the same as being found for what your buyers search.</p>
+          {/* Footprint split (free): brand vs your category vs other companies' names.
+              For a directory/aggregator this exposes that most "traffic" is incidental. */}
+          {p.searchVisibility && p.searchVisibility.keywordsRanked > 0 && (() => {
+            const sv = p.searchVisibility!;
+            const seg = (label: string, pct: number, color: string) => pct > 0 ? (
+              <div key={label} title={`${label}: ${pct}%`} style={{ width: `${pct}%`, background: color }} />
+            ) : null;
+            return (
+              <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16, padding: "18px 22px", marginBottom: 14 }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 18, marginBottom: 14 }}>
+                  <div><div style={{ fontFamily: JM, fontWeight: 700, fontSize: 20 }}>{sv.keywordsRanked}</div><div style={{ fontSize: 11.5, color: "var(--c-faint)" }}>keywords ranked</div></div>
+                  <div><div style={{ fontFamily: JM, fontWeight: 700, fontSize: 20 }}>~{sv.estMonthlyVisits.toLocaleString()}</div><div style={{ fontSize: 11.5, color: "var(--c-faint)" }}>est. visits / mo</div></div>
+                  <div><div style={{ fontFamily: JM, fontWeight: 700, fontSize: 20, color: sv.categoryPct < 25 ? "#E5484D" : "var(--c-ink)" }}>{sv.categoryPct}%</div><div style={{ fontSize: 11.5, color: "var(--c-faint)" }}>your category</div></div>
+                </div>
+                <div style={{ display: "flex", height: 12, borderRadius: 6, overflow: "hidden", background: "var(--c-fill)" }}>
+                  {seg("Your brand", sv.brandPct, "var(--c-action)")}
+                  {seg("Your category", sv.categoryPct, "#1F9D5B")}
+                  {seg("Other companies' names", sv.offTopicPct, "#E5A23B")}
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 14, marginTop: 10, fontSize: 11.5, color: "var(--c-faint)", fontFamily: JM }}>
+                  <span><span style={{ color: "var(--c-action)" }}>■</span> your brand {sv.brandPct}%</span>
+                  <span><span style={{ color: "#1F9D5B" }}>■</span> your category {sv.categoryPct}%</span>
+                  <span><span style={{ color: "#E5A23B" }}>■</span> other companies&apos; names {sv.offTopicPct}%</span>
+                </div>
+                {sv.offTopicExamples.length > 0 && sv.offTopicPct >= 40 && (
+                  <div style={{ marginTop: 14, padding: "12px 14px", background: "var(--c-tint-orange)", borderLeft: "3px solid #E0731C", borderRadius: "0 10px 10px 0", fontSize: 13.5, lineHeight: 1.55, color: "#3A3744" }}>
+                    You rank for high-volume searches like <strong>{sv.offTopicExamples.map((e) => `“${e}”`).join(", ")}</strong> — but those are <em>other companies&apos;</em> names, not searches for what you do. Your buyers aren&apos;t finding you; they&apos;re finding everyone else on your pages.
+                  </div>
+                )}
+              </div>
+            );
+          })()}
           <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16, overflow: "hidden" }}>
             <div style={{ display: "grid", gridTemplateColumns: "2.2fr 1fr 1fr 0.9fr", padding: "13px 22px", borderBottom: "1px solid var(--c-line2)", fontSize: 11.5, fontWeight: 700, letterSpacing: "0.04em", color: "var(--c-faint)", textTransform: "uppercase", background: "var(--c-bg2)" }}>
               <span>Query</span><span>Volume / mo</span><span>Your rank</span><span>Opportunity</span>

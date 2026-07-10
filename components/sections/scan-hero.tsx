@@ -93,7 +93,7 @@ export function ScanHero({
           <div className="rkh-copy">
             {/* Short enough to stay on ONE line in the 46% column — a wrapped
                 pill ("…evidence." dangling) reads broken. */}
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 8, fontFamily: JM, fontSize: 12.5, fontWeight: 600, letterSpacing: "0.04em", color: "var(--c-action)", background: "var(--c-surface)", border: "1px solid #E7E0FB", borderRadius: 999, padding: "7px 15px", whiteSpace: "nowrap" }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8, fontFamily: JM, fontSize: 12.5, fontWeight: 600, letterSpacing: "0.04em", color: "var(--c-action)", background: "var(--c-surface)", border: "1px solid var(--c-tint-violet-line)", borderRadius: 999, padding: "7px 15px", whiteSpace: "nowrap" }}>
               <span style={{ width: 6, height: 6, borderRadius: 999, background: "var(--c-action)", flexShrink: 0 }} />
               Every claim grounded in your live page.
             </span>

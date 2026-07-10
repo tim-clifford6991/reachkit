@@ -78,7 +78,7 @@ export function ScanInput({ autoFocus = true }: { autoFocus?: boolean } = {}) {
           alignItems: "center",
           gap: 8,
           background: "var(--c-surface)",
-          border: `1px solid ${state.status === "error" ? "#E5484D" : "var(--c-line)"}`,
+          border: `1px solid ${state.status === "error" ? "var(--color-danger)" : "var(--c-line)"}`,
           borderRadius: 14,
           padding: "7px 7px 7px 18px",
           boxShadow: "0 1px 2px oklch(0.20 0.01 290 / 0.04)",
@@ -124,7 +124,7 @@ export function ScanInput({ autoFocus = true }: { autoFocus?: boolean } = {}) {
         </button>
       </div>
       {state.status === "error" && (
-        <p id="scan-error" className="mt-2 text-xs" style={{ color: "#E5484D" }} role="alert">
+        <p id="scan-error" className="mt-2 text-xs" style={{ color: "var(--color-danger)" }} role="alert">
           {state.message}
         </p>
       )}

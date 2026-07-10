@@ -29,8 +29,8 @@ import type { ActionBoard, BoardAction } from "@/lib/scan/action-board";
 import type { Synthesis } from "./synthesis-view";
 
 const SG = "var(--font-display)", PJ = "var(--font-sans)", JM = "var(--font-mono)";
-const VERIFYING_COLOR = "#C98A12";
-const VERIFIED_COLOR = "#1F9D5B";
+const VERIFYING_COLOR = "var(--color-warning)";
+const VERIFIED_COLOR = "var(--color-success)";
 
 function fmtPts(n: number): string {
   const v = Number.isInteger(n) ? String(n) : n.toFixed(1);
@@ -112,7 +112,7 @@ export function PlanTimelineBody({ board, synthesis, domain, score, today: today
               <span style={{ fontFamily: JM, fontSize: 22, fontWeight: 700, lineHeight: 1, color: "var(--c-action)" }}>{score.total}</span>
               <Eyebrow>Score</Eyebrow>
               {score.delta !== 0 && (
-                <span style={{ fontFamily: JM, fontSize: 12, fontWeight: 700, color: score.delta > 0 ? VERIFIED_COLOR : "#E5484D" }}>
+                <span style={{ fontFamily: JM, fontSize: 12, fontWeight: 700, color: score.delta > 0 ? VERIFIED_COLOR : "var(--color-danger)" }}>
                   {fmtPts(score.delta)}
                 </span>
               )}
@@ -122,7 +122,7 @@ export function PlanTimelineBody({ board, synthesis, domain, score, today: today
           <Stat label="Verifying" value={board.verifying.length} color={board.verifying.length > 0 ? VERIFYING_COLOR : undefined} />
           <Stat label="Verified" value={board.done.length} color={board.done.length > 0 ? VERIFIED_COLOR : undefined} />
           {verifiedPts !== null && (
-            <span style={{ marginLeft: "auto", fontFamily: JM, fontSize: 13, fontWeight: 700, color: verifiedPts >= 0 ? VERIFIED_COLOR : "#E5484D" }}>
+            <span style={{ marginLeft: "auto", fontFamily: JM, fontSize: 13, fontWeight: 700, color: verifiedPts >= 0 ? VERIFIED_COLOR : "var(--color-danger)" }}>
               {fmtPts(verifiedPts)} verified on your score
             </span>
           )}

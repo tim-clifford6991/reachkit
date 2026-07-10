@@ -67,7 +67,7 @@ export default function ToolsPage() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 18 }}>
           {TOOLS.map((t) => (
             <Link key={t.name} href={t.href} style={{ textDecoration: "none" }}>
-              <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "var(--c-surface)", border: "1px solid #D9CEFB", borderRadius: 16, padding: "24px 24px 22px" }}>
+              <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "var(--c-surface)", border: "1px solid var(--c-tint-violet-line)", borderRadius: 16, padding: "24px 24px 22px" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
                   <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: 17, letterSpacing: "-0.01em", color: "var(--c-ink)", margin: 0 }}>{t.name}</h2>
                   <span style={{ flex: "0 0 auto", fontFamily: JM, fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", padding: "4px 9px", borderRadius: 999, background: "var(--c-soft)", color: "var(--c-action)" }}>Free</span>

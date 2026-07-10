@@ -45,7 +45,7 @@ function ScanError() {
   return (
     <div style={{ maxWidth: 448, margin: "0 auto", display: "flex", flexDirection: "column", alignItems: "center", gap: 20, padding: "80px 24px", textAlign: "center", fontFamily: PJ }}>
       <span
-        style={{ width: 48, height: 48, display: "grid", placeItems: "center", borderRadius: "50%", background: "var(--c-tint-red)", color: "#E5484D" }}
+        style={{ width: 48, height: 48, display: "grid", placeItems: "center", borderRadius: "50%", background: "var(--c-tint-red)", color: "var(--color-danger)" }}
         aria-hidden
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -74,7 +74,7 @@ function PartialResult({ host }: { host: string | null }) {
   return (
     <div style={{ maxWidth: 448, margin: "0 auto", display: "flex", flexDirection: "column", alignItems: "center", gap: 20, padding: "80px 24px", textAlign: "center", fontFamily: PJ }}>
       <span
-        style={{ width: 48, height: 48, display: "grid", placeItems: "center", borderRadius: "50%", background: "var(--c-tint-red)", color: "#E5484D" }}
+        style={{ width: 48, height: 48, display: "grid", placeItems: "center", borderRadius: "50%", background: "var(--c-tint-red)", color: "var(--color-danger)" }}
         aria-hidden
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none">

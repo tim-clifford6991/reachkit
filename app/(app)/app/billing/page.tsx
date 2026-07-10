@@ -147,7 +147,7 @@ async function BillingContent() {
               <span
                 style={{
                   background: "var(--c-tint-green)",
-                  color: "#1F9D5B",
+                  color: "var(--color-success)",
                   fontFamily: JM,
                   fontSize: 12,
                   fontWeight: 600,

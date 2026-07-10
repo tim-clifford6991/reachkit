@@ -87,11 +87,12 @@ export function toResultsProps(
   const actualTags = Array.from(new Set(splitTags(pm.reviewsValue))).slice(0, 5);
 
   // Search-gap rows. Paid deep scans carry the rival keyword-gap
-  // (`market.gap.keywordGap`); FREE web scans carry the subject-only teaser
-  // (`freeKeywordTeaser` — high-volume searches where you rank but aren't winning,
-  // no rival data). Prefer the paid gap; fall back to the free teaser.
+  // (`market.gap.keywordGap`); FREE web scans carry the honest subject-only
+  // category gap (`searchVisibility.categoryGap` — YOUR category terms where you're
+  // not winning, with other-brand noise stripped). Prefer the paid gap.
   const kg = report.market?.gap?.keywordGap ?? [];
-  const teaser = report.freeKeywordTeaser ?? [];
+  const sv = report.searchVisibility ?? null;
+  const catGap = sv?.categoryGap ?? [];
   const oppFor = (v: number) => (v >= 2000 ? "High" : v >= 500 ? "Med" : "Low");
   let gapRows: GapRow[];
   let gapCount: number;
@@ -102,21 +103,48 @@ export function toResultsProps(
     });
     gapCount = kg.length;
   } else {
-    gapRows = teaser.slice(0, 4).map((k) => ({
+    gapRows = catGap.slice(0, 4).map((k) => ({
       query: k.keyword,
       volume: k.volume.toLocaleString(),
       rank: `#${k.yourPosition}`,
       ranked: true,
       opp: oppFor(k.volume),
     }));
-    gapCount = report.freeKeywordTeaserTotal ?? teaser.length;
+    gapCount = catGap.length;
   }
+
+  // Search Visibility panel (free-tier honest gap metric) — passed to the hero so
+  // the report leads with the real story, not the tidy on-site score.
+  const searchVisibility = sv && sv.keywordsRanked > 0
+    ? {
+        score: sv.score,
+        keywordsRanked: sv.keywordsRanked,
+        estMonthlyVisits: sv.estMonthlyVisits,
+        brandPct: sv.brandPct,
+        categoryPct: sv.categoryPct,
+        offTopicPct: sv.offTopicPct,
+        offTopicExamples: sv.offTopicExamples,
+        categoryWins: sv.categoryWins,
+      }
+    : null;
+
+  // Coherent headline (was the incoherent "a 98 means customers land on someone
+  // else"). Lead with the real gap when we measured it: a clean page with most of
+  // its search visibility in OTHER companies' brand names is the honest hook.
+  const headline = searchVisibility
+    ? searchVisibility.offTopicPct >= 55
+      ? `Your page is clean — but ${searchVisibility.offTopicPct}% of your search visibility is other companies' brand names, not yours.`
+      : searchVisibility.score < 30
+        ? `Your page is technically strong, but you're barely visible for the searches your buyers actually make.`
+        : `You're on the board in search — but leaving real category traffic on the table.`
+    : `${report.score.total}/100 on-site readiness. The gap that matters is where buyers search — and that's below.`;
 
   return {
     siteLabel,
     score: report.score.total,
     marketPosition: report.marketPosition?.total ?? null,
-    headline: `A ${report.score.total} means real customers are searching — and landing on someone else.`,
+    searchVisibility,
+    headline,
     intro:
       "is technically fine. The gap is discoverability: you're absent from the comparison and directory surfaces where your buyers actually decide.",
     pillars,

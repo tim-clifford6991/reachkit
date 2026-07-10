@@ -267,7 +267,7 @@ function TeardownSections({ teardown }: { teardown: Teardown }) {
                 style={{
                   fontSize: 16,
                   lineHeight: 1.6,
-                  color: "#3A3744",
+                  color: "var(--c-muted)",
                 }}
               >
                 {para}

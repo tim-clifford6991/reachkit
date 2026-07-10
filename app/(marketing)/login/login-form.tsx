@@ -44,9 +44,9 @@ export function LoginForm({ next }: { next?: string }) {
 
   if (state.status === "sent") {
     return (
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 12, borderRadius: 12, border: "1px solid color-mix(in oklab, #1f9d5b 25%, transparent)", background: "var(--c-tint-green)", padding: "16px 20px" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 12, borderRadius: 12, border: "1px solid color-mix(in oklab, var(--color-success) 25%, transparent)", background: "var(--c-tint-green)", padding: "16px 20px" }}>
         <span
-          style={{ marginTop: 2, display: "grid", width: 20, height: 20, flexShrink: 0, placeItems: "center", borderRadius: "50%", background: "#1f9d5b", color: "var(--c-on-dark)", fontSize: 12 }}
+          style={{ marginTop: 2, display: "grid", width: 20, height: 20, flexShrink: 0, placeItems: "center", borderRadius: "50%", background: "var(--color-success)", color: "var(--c-on-dark)", fontSize: 12 }}
           aria-hidden
         >
           ✓
@@ -88,7 +88,7 @@ export function LoginForm({ next }: { next?: string }) {
         className="h-[50px] w-full min-w-0 rounded-[12px] border bg-white px-4 text-base font-medium text-[var(--c-ink)] outline-none transition-colors placeholder:text-[var(--c-faint)] focus-visible:border-[var(--c-action)] focus-visible:ring-4 focus-visible:ring-[var(--c-action)]/15 disabled:opacity-60 border-[var(--c-line)]"
       />
       {state.status === "error" && (
-        <p style={{ fontSize: 14, color: "#e5484d", margin: 0 }} role="alert">
+        <p style={{ fontSize: 14, color: "var(--color-danger)", margin: 0 }} role="alert">
           {state.message}
         </p>
       )}

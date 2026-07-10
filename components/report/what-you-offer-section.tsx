@@ -64,7 +64,7 @@ export function WhatYouOfferSection({
               <div className="flex flex-wrap gap-2">
                 <span
                   className="text-[13px] font-semibold"
-                  style={{ background: "var(--c-surface)", border: "1px solid #E2DEF0", color: "#3A3744", padding: "6px 12px", borderRadius: 8 }}
+                  style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", color: "var(--c-ink)", padding: "6px 12px", borderRadius: 8 }}
                 >
                   {pm.listingSays}
                 </span>
@@ -74,14 +74,14 @@ export function WhatYouOfferSection({
             <div style={{ border: "1px solid var(--c-tint-orange-line)", background: "var(--c-tint-orange)", borderRadius: 12, padding: 18 }}>
               <div
                 className="mb-3 text-xs font-bold uppercase"
-                style={{ color: "#E0731C", letterSpacing: "0.04em" }}
+                style={{ color: "var(--color-warning)", letterSpacing: "0.04em" }}
               >
                 Your page actually reads as
               </div>
               <div className="flex flex-wrap gap-2">
                 <span
                   className="text-[13px] font-semibold"
-                  style={{ background: "var(--c-surface)", border: "1px solid #F0E0D2", color: "#3A3744", padding: "6px 12px", borderRadius: 8 }}
+                  style={{ background: "var(--c-surface)", border: "1px solid var(--c-tint-orange-line)", color: "var(--c-ink)", padding: "6px 12px", borderRadius: 8 }}
                 >
                   {pm.reviewsValue}
                 </span>
@@ -95,11 +95,11 @@ export function WhatYouOfferSection({
               marginTop: 18,
               padding: "16px 18px",
               background: unlocked ? "var(--c-tint-red)" : "var(--fill-subtle)",
-              borderLeft: unlocked ? "3px solid #E5484D" : "3px solid var(--hairline)",
+              borderLeft: unlocked ? "3px solid var(--color-danger)" : "3px solid var(--hairline)",
               borderRadius: "0 10px 10px 0",
               fontSize: "14.5px",
               lineHeight: 1.55,
-              color: "#3A3744",
+              color: "var(--c-ink)",
             }}
           >
             {pm.gap}

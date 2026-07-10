@@ -471,7 +471,7 @@ function ReferrerEdgeList({ label, items, summary, empty }: { label: string; ite
                   <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, fontWeight: 700, color: "var(--c-faint)", flexShrink: 0, cursor: "help" }} title={DR_HELP}>DR&nbsp;{r.authority}</span>
                 )}
                 {r.dofollow === true && (
-                  <span style={{ fontSize: 10, fontWeight: 700, color: "#1F9D5B", background: "var(--c-tint-green)", padding: "1px 6px", borderRadius: 5, flexShrink: 0, cursor: "help" }} title={DOFOLLOW_HELP}>dofollow</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: "var(--color-success)", background: "var(--c-tint-green)", padding: "1px 6px", borderRadius: 5, flexShrink: 0, cursor: "help" }} title={DOFOLLOW_HELP}>dofollow</span>
                 )}
               </div>
               {/* 2D — the exact page the backlink points to (the most actionable field). */}

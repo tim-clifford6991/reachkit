@@ -71,11 +71,10 @@ export function buildFreeReport(args: {
   findings: Finding[];
   actions: ActionCard[];
   score: VerifiedScore;
-  /** PR B — subject-only keyword-gap teaser (free web scans). */
-  freeKeywordTeaser?: FreeKeywordTeaserRow[];
-  freeKeywordTeaserTotal?: number;
+  /** iteration 2 — subject-only Search Visibility (free web scans). */
+  searchVisibility?: SearchVisibility;
 }): ReportPayload {
-  const { mode, generatedAt, facts, positioningMirror, findings, actions, score, freeKeywordTeaser, freeKeywordTeaserTotal } = args;
+  const { mode, generatedAt, facts, positioningMirror, findings, actions, score, searchVisibility } = args;
   const icpSignals = (facts.themes ?? []).map((t) => t.term).filter(Boolean).slice(0, 6);
   const competitorGap = (facts.competitors ?? [])
     .filter((c) => typeof c.name === "string" && c.name.length > 0)
@@ -90,8 +89,7 @@ export function buildFreeReport(args: {
     competitorGap,
     actions,
     score,
-    freeKeywordTeaser,
-    freeKeywordTeaserTotal,
+    searchVisibility,
     // deep sections omitted → assembleReport defaults them to empty
   });
 }
@@ -108,7 +106,7 @@ import { fillDeterministicDrafts } from "./action-drafts";
 import { writeScanScoreSnapshot, rollupScanCost } from "./scan-telemetry";
 import { headlineScore, HEADLINE_SCORE_VERSION } from "./registry-score";
 import { discoverabilityScore } from "./score";
-import { gatherFreeKeywordTeaser, type FreeKeywordTeaserRow } from "./free-keyword-teaser";
+import { gatherFreeSearchVisibility, type SearchVisibility } from "./search-visibility";
 import { persistReport } from "./report";
 import type { ScoreComponents } from "./score-full";
 import type { Json } from "@/lib/db/types";
@@ -178,11 +176,17 @@ export async function runFreeReport(ctx: ScanContext, facts: PreliminaryFacts): 
     ctx.mode,
   );
 
-  // PR B — the free "wow": one subject-only ranked_keywords call surfaces the
-  // high-volume searches where the subject ranks but isn't winning. Web only;
-  // best-effort (an empty/failed teaser just omits the section). Rivals' ranks
-  // stay a paid reveal (this gather never touches competitor domains).
-  const teaser = ctx.mode === "web" ? await gatherFreeKeywordTeaser(ctx.storeUrl) : { rows: [], total: 0 };
+  // iteration 2 — the free "wow": one subject-only ranked_keywords call → Search
+  // Visibility (brand/category/off-topic split of what the site actually ranks
+  // for). The seed vocabulary is the site's OWN language (its ICP themes + what
+  // its listing says) so category searches are told apart from other-brand noise.
+  // Web only; best-effort. Rivals stay a paid reveal (never touches competitors).
+  const seedText = [
+    ...(facts.themes ?? []).map((t) => t.term).filter(Boolean),
+    positioningMirror.listingSays ?? "",
+    positioningMirror.reviewsValue ?? "",
+  ].filter((s) => s.length > 0);
+  const searchVisibility = ctx.mode === "web" ? await gatherFreeSearchVisibility(ctx.storeUrl, seedText) : undefined;
 
   const payload = buildFreeReport({
     mode: ctx.mode,
@@ -192,8 +196,7 @@ export async function runFreeReport(ctx: ScanContext, facts: PreliminaryFacts): 
     findings,
     actions,
     score,
-    freeKeywordTeaser: teaser.rows,
-    freeKeywordTeaserTotal: teaser.total,
+    searchVisibility,
   });
 
   await persistReport(ctx.scanId, payload);

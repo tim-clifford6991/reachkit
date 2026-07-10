@@ -22,7 +22,6 @@ import { CapturedUnlockButton } from "@/components/report/captured/unlock-button
 import { brandFromUrl } from "@/lib/brand/logo";
 import { articleLd, SITE } from "@/lib/seo";
 import type { ReportPayload } from "@/lib/scan/report";
-import { BadgeEmbed } from "./badge-embed";
 
 // ---------------------------------------------------------------------------
 // Pure wiring — extracted so the redaction + props mapping is unit-testable
@@ -52,10 +51,10 @@ export function publicReportProps(
     payload.whatToDoThisWeek.quickWins.length +
     payload.whatToDoThisWeek.medium.length +
     payload.whatToDoThisWeek.longPlay.length;
-  // Paid rival gap count, else the free subject-only teaser total (PR B) — so the
-  // free teaser can say "unlock N more" from the full pre-redaction count.
+  // Paid rival gap count, else the free subject-only category-gap count (iteration
+  // 2) — so the teaser can say "unlock N more" from the full pre-redaction count.
   const fullGapQueries =
-    (payload.market?.gap?.keywordGap?.length ?? 0) || (payload.freeKeywordTeaserTotal ?? 0);
+    (payload.market?.gap?.keywordGap?.length ?? 0) || (payload.searchVisibility?.categoryGap?.length ?? 0);
 
   const resultsProps: ResultsScreenProps = {
     ...toResultsProps(report, brand?.host ?? "your site", fullActions, fullGapQueries),
@@ -88,7 +87,7 @@ export function PublicReport({
   storeUrl: string;
   payload: ReportPayload;
 }): JSX.Element {
-  const { resultsProps, badgeTotal, jsonLd } = publicReportProps(payload, slug, storeUrl);
+  const { resultsProps, jsonLd } = publicReportProps(payload, slug, storeUrl);
 
   return (
     <>
@@ -104,9 +103,19 @@ export function PublicReport({
           report lives in the authenticated app, never here. */}
       <ResultsScreen {...resultsProps} unlockButton={<CapturedUnlockButton scanId={scanId} />} />
 
-      {/* §22 Growth loop: badge embed (kept below the captured screen). */}
+      {/* Close on conversion: a pricing CTA (replaces the low-intent "copy your
+          badge" snippet — a share embed doesn't move a founder to pay). */}
       <div className="mx-auto max-w-2xl px-4 pb-16">
-        <BadgeEmbed slug={slug} total={badgeTotal} />
+        <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 18, padding: "26px 28px", textAlign: "center" }}>
+          <div style={{ fontFamily: "Space Grotesk", fontWeight: 700, fontSize: 20, color: "var(--c-ink)", marginBottom: 6 }}>Close the gap before your rivals widen it</div>
+          <p style={{ fontSize: 14.5, color: "var(--c-muted)", margin: "0 auto 18px", maxWidth: 440, lineHeight: 1.55 }}>
+            The full scan shows the exact category searches you&apos;re missing, which rivals win them, and a week-by-week plan to take them — with your score tracked as you ship.
+          </p>
+          <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+            <CapturedUnlockButton scanId={scanId} />
+            <a href="/pricing" style={{ fontFamily: "Plus Jakarta Sans", fontWeight: 600, fontSize: 14.5, color: "var(--c-action)", background: "var(--c-surface)", border: "1.5px solid var(--c-tint-violet-line)", borderRadius: 10, padding: "12px 22px", textDecoration: "none" }}>See plans &amp; pricing →</a>
+          </div>
+        </div>
       </div>
     </>
   );
