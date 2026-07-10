@@ -81,7 +81,7 @@ export function PlanBuildingHero({ stages }: { stages: IntelStage[] }) {
           {rows.map((r) => (
             <div key={r.key} style={{ display: "flex", alignItems: "center", gap: 10, opacity: r.state === "pending" ? 0.45 : 1, transition: "opacity 0.3s ease" }}>
               {r.state === "done" ? (
-                <span style={{ width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 12, fontWeight: 700, color: "#fff", background: "var(--c-action)", borderRadius: "var(--radius-full)" }}>✓</span>
+                <span style={{ width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 12, fontWeight: 700, color: "var(--c-on-dark)", background: "var(--c-action)", borderRadius: "var(--radius-full)" }}>✓</span>
               ) : r.state === "active" ? (
                 <span style={{ width: 18, height: 18, borderRadius: "var(--radius-full)", border: "2px solid var(--c-soft)", borderTopColor: "var(--c-action)", animation: "spin 0.8s linear infinite", display: "inline-block", flexShrink: 0 }} />
               ) : (

@@ -103,10 +103,10 @@ export function ScanHero({
                 on line 2 in a solid marker from the CENTRAL palette (color-mix on
                 var(--c-action) onto the surface — no new colour). ShipFast idiom. */}
             <h1 className="rkh-h1" style={{ fontFamily: SG, fontWeight: 700, lineHeight: 1.14, letterSpacing: "-0.035em", margin: "22px 0 0" } as React.CSSProperties}>
-              <span style={{ display: "block", whiteSpace: "nowrap" }}>Your competitors are being</span>
+              <span style={{ display: "block", whiteSpace: "nowrap" }}>Your competitors are</span>
               <span style={{ display: "block", whiteSpace: "nowrap" }}>
-                found.{" "}
-                <span style={{ display: "inline-block", fontStyle: "italic", color: "var(--c-ink)", background: "color-mix(in oklab, var(--c-action) 20%, var(--c-surface))", padding: "0.02em 0.22em", borderRadius: "0.14em" }}>You aren&apos;t.</span>
+                being found.{" "}
+                <span style={{ fontStyle: "italic", color: "var(--c-action)" }}>You aren&apos;t.</span>
               </span>
             </h1>
 

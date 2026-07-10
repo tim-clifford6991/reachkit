@@ -1,3 +1,4 @@
+/* @mirrors components/report/captured/unlock-button.tsx */
 import * as React from "react";
 
 /**

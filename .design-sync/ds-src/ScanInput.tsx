@@ -1,3 +1,4 @@
+/* @mirrors components/sections/scan-hero.tsx */
 import * as React from "react";
 
 /**
@@ -14,10 +15,10 @@ export interface ScanInputProps {
 }
 
 export function ScanInput({
-  placeholder = "yoursite.com or App Store link",
+  placeholder = "yourdomain.com",
   defaultValue,
   buttonLabel = "Analyze my site",
-  note = "Free scan · no signup · ~90 seconds",
+  note = "",
   size = "lg",
 }: ScanInputProps) {
   const lg = size === "lg";

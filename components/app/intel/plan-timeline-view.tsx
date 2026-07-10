@@ -333,7 +333,7 @@ function PlanCalendar({ days, today, activeDate, onSelect }: {
                     >
                       <span style={{
                         fontFamily: JM, fontSize: 10.5, fontWeight: 700, lineHeight: 1,
-                        color: isToday ? "#fff" : "var(--c-faint)",
+                        color: isToday ? "var(--c-on-dark)" : "var(--c-faint)",
                         background: isToday ? "var(--c-action)" : "transparent",
                         borderRadius: "var(--radius-full)", padding: isToday ? "3px 6px" : "3px 0",
                         alignSelf: "flex-start",
@@ -402,7 +402,7 @@ function LifecycleRow({ action, state }: { action: BoardAction; state: "verifyin
         {state === "verifying" && action.predictedDelta !== null && (
           <span style={{ fontFamily: JM, fontSize: 12, color: "var(--c-action)", whiteSpace: "nowrap" }}>{fmtPts(action.predictedDelta)} predicted</span>
         )}
-        <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, color: "#fff", background: pill.color, padding: "2px 8px", borderRadius: "var(--radius-full)" }}>{pill.label}</span>
+        <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, color: "var(--c-on-dark)", background: pill.color, padding: "2px 8px", borderRadius: "var(--radius-full)" }}>{pill.label}</span>
       </button>
 
       {open && (

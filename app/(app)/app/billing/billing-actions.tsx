@@ -21,7 +21,7 @@ type ButtonState = "idle" | "loading" | "error";
 // Design tokens — Claude Design mockup spec (literal hex, matching captured app)
 // ---------------------------------------------------------------------------
 
-const SG = "Space Grotesk", JM = "JetBrains Mono", PJ = "Plus Jakarta Sans";
+const SG = "var(--font-display)", JM = "var(--font-mono)", PJ = "var(--font-sans)";
 const INK = "var(--c-ink)", BODY = "var(--c-muted)", FAINT = "var(--c-faint)", VIOLET = "var(--c-action)";
 const CARD_BORDER = "var(--c-line)";
 

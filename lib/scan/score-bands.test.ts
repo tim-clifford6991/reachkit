@@ -6,7 +6,7 @@ describe("SCORE_BANDS", () => {
     expect(SCORE_BANDS.map((b) => [b.min, b.max, b.label])).toEqual([
       [0, 29, "Invisible"],
       [30, 49, "Hard to find"],
-      [50, 69, "Fair — room to climb"],
+      [50, 69, "Fair"],
       [70, 84, "Findable"],
       [85, 100, "Highly discoverable"],
     ]);
@@ -29,8 +29,8 @@ describe("bandFor", () => {
     expect(bandFor(29).label).toBe("Invisible");
     expect(bandFor(30).label).toBe("Hard to find");
     expect(bandFor(49).label).toBe("Hard to find");
-    expect(bandFor(50).label).toBe("Fair — room to climb");
-    expect(bandFor(69).label).toBe("Fair — room to climb");
+    expect(bandFor(50).label).toBe("Fair");
+    expect(bandFor(69).label).toBe("Fair");
     expect(bandFor(70).label).toBe("Findable");
     expect(bandFor(84).label).toBe("Findable");
     expect(bandFor(85).label).toBe("Highly discoverable");

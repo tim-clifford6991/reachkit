@@ -1,3 +1,4 @@
+/* @mirrors components/brand/logo.tsx */
 import * as React from "react";
 
 export interface BrandMarkProps {
