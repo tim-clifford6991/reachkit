@@ -81,6 +81,7 @@ const META = {
   PricingBlock:     { group: "Marketing", render: "{}" },
   ScoreTravels:     { group: "Marketing", render: "{}" },
   FinalCta:         { group: "Marketing", render: "{}" },
+  TrafficByChannel: { group: "App", render: "{}" },
 };
 
 // Turn a JS object-literal render string ("{score:46}") into a real object at

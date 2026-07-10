@@ -1,7 +1,8 @@
 /* @mirrors components/app/intel/dashboard-hero.tsx */
 import * as React from "react";
 import { AppShell } from "./AppShell";
-import { Card, Gauge, Bar, Badge, Eyebrow, HeroCard, Donut, KpiRow, Kpi, bandFor } from "./IntelKit";
+import { Card, Gauge, Bar, Badge, Eyebrow, HeroCard, bandFor } from "./IntelKit";
+import { TrafficByChannel } from "./TrafficByChannel";
 
 /**
  * DashboardScreen — the `/app/dashboard` page inside the AppShell: the
@@ -18,8 +19,6 @@ export interface DashboardScreenProps {
 const JM = "var(--font-mono)", SG = "var(--font-display)";
 
 const PILLARS = [{ label: "Content", value: 56 }, { label: "Outreach", value: 29 }, { label: "SEO", value: 54 }];
-const RIVALS = [{ name: "You", score: 47, you: true }, { name: "otter.ai", score: 67 }, { name: "fireflies.ai", score: 78 }, { name: "fathom.video", score: 86 }];
-const CHANNELS = [{ label: "Organic", pct: 46, color: "var(--c-action)" }, { label: "Direct / brand", pct: 24, color: "var(--c-band-findable)" }, { label: "Referral", pct: 18, color: "var(--c-band-fair)" }, { label: "Social", pct: 12, color: "var(--c-band-hard)" }];
 const GAPS = [
   { kw: "habit tracker vs otter", vol: "2,400", rivals: 3 },
   { kw: "best habit tracker 2026", vol: "8,100", rivals: 4 },
@@ -95,29 +94,8 @@ export function DashboardScreen() {
           </div>
         </Card>
 
-        {/* You vs competitors */}
-        <Card title="You vs. top competitors" meta="#4 of 5" info="Estimated channel mix from public SEO signals. Click a competitor to see their mix.">
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1px 1fr", gap: 24 }}>
-            <div>
-              <Eyebrow>click to inspect →</Eyebrow>
-              <div style={{ display: "flex", flexDirection: "column", gap: 9, marginTop: 12 }}>
-                {RIVALS.map((r) => (
-                  <div key={r.name} style={{ display: "flex", alignItems: "center", gap: 10, background: r.you ? "var(--c-soft)" : "transparent", borderRadius: 8, padding: "4px 8px" }}>
-                    <span style={{ width: 90, fontSize: 13, fontWeight: r.you ? 700 : 500, color: r.you ? "var(--c-action)" : "var(--c-ink)" }}>{r.name}</span>
-                    <Bar value={r.score} color={bandFor(r.score).color} />
-                    <span style={{ width: 26, textAlign: "right", fontFamily: JM, fontWeight: 700, fontSize: 13, color: bandFor(r.score).color }}>{r.score}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div style={{ background: "var(--c-line)" }} />
-            <div>
-              <Eyebrow>Your traffic by channel</Eyebrow>
-              <div style={{ marginTop: 12 }}><Donut segments={CHANNELS} centerLabel="46%" centerSub="Organic" /></div>
-              <div style={{ marginTop: 16 }}><KpiRow><Kpi label="Est. visits / mo" value="1.86k" /><Kpi label="Referring domains" value="42" /></KpiRow></div>
-            </div>
-          </div>
-        </Card>
+        {/* Traffic by channel — the cleaner analytics-dashboard component */}
+        <TrafficByChannel />
 
         {/* Keyword gap */}
         <Card title="Keyword gap" info="High-volume terms rivals rank for that you don't. Expand a row to see who ranks where.">

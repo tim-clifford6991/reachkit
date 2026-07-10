@@ -27,6 +27,7 @@ export { LandingHero } from "./LandingHero";
 export { ResultsScreen } from "./ResultsScreen";
 export { DashboardScreen } from "./DashboardScreen";
 export { ChannelDonut } from "./ChannelDonut";
+export { TrafficByChannel } from "./TrafficByChannel";
 export { CompetitorEdgePanel } from "./CompetitorEdgePanel";
 export { PlanItemCard } from "./PlanItemCard";
 export { LeverBanner } from "./LeverBanner";
