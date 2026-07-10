@@ -21,8 +21,9 @@
  */
 
 import type { RankedKeyword } from "@/lib/scan/adapters/dataforseo-ranked-keywords";
+import type { KeywordIdea } from "@/lib/scan/adapters/dataforseo-keyword-ideas";
 import { normalizeHost } from "@/lib/scan/referral/classify";
-import { cachedRankedKeywords } from "@/lib/scan/cache/cached-adapters";
+import { cachedRankedKeywords, cachedKeywordIdeas } from "@/lib/scan/cache/cached-adapters";
 
 export type KeywordClass = "brand" | "category" | "offtopic";
 
@@ -39,6 +40,11 @@ export interface CategoryGapRow {
   volume: number;
   /** Subject's best position for this category term (they rank, but not winning). */
   yourPosition: number;
+}
+
+export interface DemandRow {
+  keyword: string;
+  volume: number;
 }
 
 export interface SearchVisibility {
@@ -60,6 +66,23 @@ export interface SearchVisibility {
   offTopicExamples: string[];
   /** Count of category terms you already WIN (top 3) — usually small/zero. */
   categoryWins: number;
+
+  // ── Category demand (one extra keyword_ideas call, ~$0.02) — the size of the
+  // market you're in and how much of it you actually capture. Works even at 0
+  // rankings (seeded from your own vocabulary), so a brand-new site still gets a
+  // real "your category gets X searches/mo, you capture 0%" insight.
+  /** Total monthly searches across your category (Σ volume of category keyword ideas). 0 = unknown. */
+  categoryDemand: number;
+  /** 0–100: your share of that demand (est. category searches you capture ÷ demand). */
+  categoryCaptureRate: number;
+  /** High-demand category searches you do NOT win — the real, sizeable opportunity
+   *  (bigger than your own tiny rankings; drawn from category demand, not just what
+   *  you already rank for). */
+  categoryOpportunities: DemandRow[];
+  /** Internal: est. monthly category searches you currently capture (numerator). */
+  categoryCapturedSearches: number;
+  /** Internal: category terms you already rank top-3 for (dedup for opportunities). */
+  categoryWonKeywords: string[];
 }
 
 const STOPWORDS = new Set([
@@ -133,6 +156,8 @@ export function computeSearchVisibility(
     score: 0, keywordsRanked: 0, estMonthlyVisits: 0,
     brandPct: 0, categoryPct: 0, offTopicPct: 0,
     categoryGap: [], offTopicExamples: [], categoryWins: 0,
+    categoryDemand: 0, categoryCaptureRate: 0, categoryOpportunities: [],
+    categoryCapturedSearches: 0, categoryWonKeywords: [],
   };
   if (kw.length === 0) return empty;
 
@@ -164,6 +189,12 @@ export function computeSearchVisibility(
   const strength = category.reduce((s, r) => s + categoryContribution(r), 0);
   const score = Math.round(100 * Math.min(1, strength / CATEGORY_TARGET));
 
+  // Est. category searches you actually capture: volume × position quality (a #1
+  // ranking captures ~all its volume; a #20 captures almost none).
+  const posQuality = (pos: number) => Math.max(0, Math.min(1, (21 - pos) / 20));
+  const categoryCapturedSearches = Math.round(category.reduce((s, r) => s + r.volume * posQuality(r.position), 0));
+  const categoryWonKeywords = category.filter((r) => r.position <= WINNING_POSITION).map((r) => r.keyword.toLowerCase());
+
   const categoryGap = category
     .filter((r) => r.position > WINNING_POSITION)
     .sort((a, b) => b.volume - a.volume)
@@ -186,6 +217,13 @@ export function computeSearchVisibility(
     categoryGap,
     offTopicExamples,
     categoryWins: category.filter((r) => r.position <= WINNING_POSITION).length,
+    // Category-demand fields are filled by the gather (needs the keyword_ideas call);
+    // defaults here keep computeSearchVisibility pure + usable stand-alone.
+    categoryDemand: 0,
+    categoryCaptureRate: 0,
+    categoryOpportunities: [],
+    categoryCapturedSearches,
+    categoryWonKeywords,
   };
 }
 
@@ -193,20 +231,83 @@ const EMPTY: SearchVisibility = {
   score: 0, keywordsRanked: 0, estMonthlyVisits: 0,
   brandPct: 0, categoryPct: 0, offTopicPct: 0,
   categoryGap: [], offTopicExamples: [], categoryWins: 0,
+  categoryDemand: 0, categoryCaptureRate: 0, categoryOpportunities: [],
+  categoryCapturedSearches: 0, categoryWonKeywords: [],
 };
 
+/** True when a keyword is on-topic for the subject's category (shares its vocab,
+ *  not its brand) — the same test used to classify the subject's own rankings. */
+function isCategoryRelevant(keyword: string, vocab: { brandTokens: Set<string>; categoryVocab: Set<string> }): boolean {
+  return classify(keyword, vocab.brandTokens, vocab.categoryVocab) === "category";
+}
+
+/** Seeds for the keyword_ideas call: prefer the real, specific category phrases the
+ *  subject already ranks for (best signal); fall back to / augment with salient
+ *  vocabulary tokens so a site with ZERO rankings still gets a category-demand read. */
+function buildCategorySeeds(sv: SearchVisibility, vocab: { categoryVocab: Set<string> }, seedText: string[]): string[] {
+  const seeds = new Set<string>();
+  for (const g of sv.categoryGap) seeds.add(g.keyword.toLowerCase());
+  for (const w of sv.categoryWonKeywords) seeds.add(w);
+  // Multi-word phrases from the site's own prose are the most specific fallback.
+  for (const s of seedText) {
+    const words = (s.toLowerCase().match(/[a-z0-9]+/g) ?? []).filter((w) => w.length >= 4 && !STOPWORDS.has(w));
+    for (let i = 0; i < words.length - 1 && seeds.size < 12; i++) {
+      if (vocab.categoryVocab.has(words[i]!) || vocab.categoryVocab.has(words[i + 1]!)) seeds.add(`${words[i]} ${words[i + 1]}`);
+    }
+  }
+  for (const t of vocab.categoryVocab) { if (seeds.size >= 12) break; if (t.length >= 4) seeds.add(t); }
+  return [...seeds].slice(0, 12);
+}
+
+const DEMAND_CAP_ROWS = 40;
+const OPPORTUNITY_ROWS = 6;
+
+/** Category demand = Σ volume of the on-topic keyword ideas (capped to the top rows
+ *  so a long tail can't inflate it); capture rate = your captured category searches
+ *  ÷ that demand; opportunities = the biggest category searches you don't already win. */
+export function computeCategoryDemand(
+  ideas: KeywordIdea[],
+  vocab: { brandTokens: Set<string>; categoryVocab: Set<string> },
+  sv: SearchVisibility,
+): Pick<SearchVisibility, "categoryDemand" | "categoryCaptureRate" | "categoryOpportunities"> {
+  const byKw = new Map<string, number>();
+  for (const i of ideas) {
+    if (i.volume <= 0 || !isCategoryRelevant(i.keyword, vocab)) continue;
+    byKw.set(i.keyword.toLowerCase(), Math.max(byKw.get(i.keyword.toLowerCase()) ?? 0, i.volume));
+  }
+  const top = [...byKw.entries()].map(([keyword, volume]) => ({ keyword, volume }))
+    .sort((a, b) => b.volume - a.volume)
+    .slice(0, DEMAND_CAP_ROWS);
+  const categoryDemand = top.reduce((s, r) => s + r.volume, 0);
+  const categoryCaptureRate = categoryDemand > 0
+    ? Math.min(100, Math.round((100 * sv.categoryCapturedSearches) / categoryDemand))
+    : 0;
+  const won = new Set(sv.categoryWonKeywords);
+  const categoryOpportunities = top
+    .filter((r) => !won.has(r.keyword))
+    .slice(0, OPPORTUNITY_ROWS)
+    .map((r) => ({ keyword: r.keyword, volume: r.volume }));
+  return { categoryDemand, categoryCaptureRate, categoryOpportunities };
+}
+
 /**
- * Free-scan gather: ONE subject-only `ranked_keywords` call → Search Visibility.
- * `seedText` is the subject's own vocabulary (its themes + positioning prose) used
- * to tell category searches from other-brand noise. Fixtures-safe (adapter → [] →
- * zeroed) and best-effort (never throws; the free report ships regardless).
+ * Free-scan gather: ONE `ranked_keywords` call (your footprint) + ONE `keyword_ideas`
+ * call (your category's total demand) → Search Visibility. `seedText` is the subject's
+ * own vocabulary (themes + positioning prose) — used both to tell category searches
+ * from other-brand noise AND to seed the demand read. Crucially, it still fetches
+ * category demand when the site ranks for NOTHING, so a brand-new site gets a real
+ * "your category gets X searches/mo, you capture 0%" insight instead of a blank.
+ * Fixtures-safe (adapters → [] → zeroed) and best-effort (never throws).
  */
 export async function gatherFreeSearchVisibility(rawSelf: string, seedText: string[]): Promise<SearchVisibility> {
   try {
     const self = normalizeHost(rawSelf);
-    const kw = await cachedRankedKeywords(self, 50);
-    if (kw.length === 0) return EMPTY;
-    return computeSearchVisibility(kw, buildVocab(self, seedText));
+    const vocab = buildVocab(self, seedText);
+    const kw = await cachedRankedKeywords(self, 50).catch(() => [] as RankedKeyword[]);
+    const sv = computeSearchVisibility(kw, vocab);
+    const seeds = buildCategorySeeds(sv, vocab, seedText);
+    const ideas = seeds.length > 0 ? await cachedKeywordIdeas(seeds, 200).catch(() => [] as KeywordIdea[]) : [];
+    return { ...sv, ...computeCategoryDemand(ideas, vocab, sv) };
   } catch {
     return EMPTY;
   }

@@ -298,7 +298,10 @@ export function assembleReport(input: {
         confidence: f.confidence,
       })),
     },
-    ...(searchVisibility && searchVisibility.keywordsRanked > 0 ? { searchVisibility } : {}),
+    // Attach when we learned ANYTHING — rankings OR category demand — so a site that
+    // ranks for nothing still renders the "0 keywords, but your category gets X/mo"
+    // zero-state instead of hiding the section.
+    ...(searchVisibility && (searchVisibility.keywordsRanked > 0 || searchVisibility.categoryDemand > 0) ? { searchVisibility } : {}),
   };
 }
 

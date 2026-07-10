@@ -101,7 +101,13 @@ export interface ResultsScreenProps {
     offTopicPct: number;
     offTopicExamples: string[];
     categoryWins: number;
+    /** Total monthly searches in the category (keyword_ideas). */
+    categoryDemand: number;
+    /** 0–100: your share of that demand. */
+    categoryCaptureRate: number;
   } | null;
+  /** Real competitor names we discovered (the compare-set). Per-rival share is paid. */
+  competitors?: string[];
   /** Embedded inside the app shell: drop the full-page bg + outer padding + the
    *  ReachKit banner header (the shell already provides chrome + spacing). */
   embedded?: boolean;
@@ -201,9 +207,13 @@ export function ResultsScreen(p: ResultsScreenProps) {
                       <span style={{ fontSize: 11.5, fontWeight: 700, color: c.fg, background: c.bg, padding: "2px 8px", borderRadius: 6, fontFamily: SG }}>{c.label}</span>
                     </div>
                     <div style={{ marginTop: 4, fontSize: 11, lineHeight: 1.4, color: "var(--c-faint)", fontFamily: JM, maxWidth: 210 }}>
-                      {sv.offTopicPct >= 40
-                        ? `${sv.offTopicPct}% of your search traffic is other companies' brand names — not your category.`
-                        : `How much real category search you actually win — not just your own brand.`}
+                      {sv.keywordsRanked === 0
+                        ? `Google ranks you for 0 searches. Your category gets ${sv.categoryDemand.toLocaleString()}/mo — you capture none of it.`
+                        : sv.categoryDemand > 0
+                          ? `You capture ${sv.categoryCaptureRate}% of your category's ${sv.categoryDemand.toLocaleString()} searches/mo.`
+                          : sv.offTopicPct >= 40
+                            ? `${sv.offTopicPct}% of your search traffic is other companies' brand names — not your category.`
+                            : `How much real category search you actually win — not just your own brand.`}
                     </div>
                   </div>
                 );
@@ -328,9 +338,43 @@ export function ResultsScreen(p: ResultsScreenProps) {
             <div style={{ marginTop: 18, padding: "16px 18px", background: "var(--c-tint-red)", borderLeft: "3px solid #E5484D", borderRadius: "0 10px 10px 0", fontSize: 14.5, lineHeight: 1.55, color: "#3A3744" }}>{p.mirrorGap}</div>
           </div>
 
-          {/* Search Visibility — where your organic footprint actually comes from */}
-          <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: 20, letterSpacing: "-0.01em", margin: "32px 0 6px" }}>Where your search traffic comes from</h2>
-          <p style={{ fontSize: 14, color: "var(--c-faint)", margin: "0 0 14px" }}>Your page is clean — but ranking isn&apos;t the same as being found for what your buyers search.</p>
+          {/* Search Visibility — your category's demand + how much you actually capture */}
+          <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: 20, letterSpacing: "-0.01em", margin: "32px 0 6px" }}>Your category, and how much of it you own</h2>
+          <p style={{ fontSize: 14, color: "var(--c-faint)", margin: "0 0 14px" }}>How much your buyers are searching, how much of it you capture, and who&apos;s taking the rest.</p>
+          {/* Category demand + capture (free): the real market size (keyword_ideas) and
+              your share of it — works even at zero rankings (the sharpest hook). */}
+          {p.searchVisibility && p.searchVisibility.categoryDemand > 0 && (() => {
+            const sv = p.searchVisibility!;
+            const cap = Math.max(0, Math.min(100, sv.categoryCaptureRate));
+            const zero = sv.keywordsRanked === 0;
+            const comps = (p.competitors ?? []).slice(0, 5);
+            return (
+              <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16, padding: "20px 22px", marginBottom: 14 }}>
+                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: 10, marginBottom: 12 }}>
+                  <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 26 }}>{sv.categoryDemand.toLocaleString()}</span>
+                  <span style={{ fontSize: 13.5, color: "var(--c-muted)" }}>searches/mo across your category</span>
+                </div>
+                {/* Capture bar: you vs. the rest (competitors + unclaimed) */}
+                <div style={{ display: "flex", height: 14, borderRadius: 7, overflow: "hidden", background: "var(--c-fill)" }}>
+                  <div title={`You capture ${cap}%`} style={{ width: `${Math.max(cap, 1.5)}%`, background: cap < 15 ? "#E5484D" : "#1F9D5B" }} />
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontSize: 12.5, color: "var(--c-muted)" }}>
+                  <span><strong style={{ color: cap < 15 ? "#E5484D" : "#1F9D5B" }}>You capture {cap}%</strong></span>
+                  <span style={{ color: "var(--c-faint)" }}>{100 - cap}% goes to competitors &amp; unclaimed demand</span>
+                </div>
+                {zero && (
+                  <div style={{ marginTop: 14, padding: "12px 14px", background: "var(--c-tint-red)", borderLeft: "3px solid #E5484D", borderRadius: "0 10px 10px 0", fontSize: 13.5, lineHeight: 1.55, color: "#3A3744" }}>
+                    <strong>Google ranks you for 0 searches.</strong> You&apos;re invisible in organic search — buyers can&apos;t find you unless they already know your name, while {sv.categoryDemand.toLocaleString()} monthly searches in your category go to everyone else.
+                  </div>
+                )}
+                {comps.length > 0 && (
+                  <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--c-line2)", fontSize: 13, color: "var(--c-muted)" }}>
+                    Buyers compare you to <strong style={{ color: "var(--c-ink)" }}>{comps.join(", ")}</strong>. <span style={{ color: "var(--c-action)", fontWeight: 600 }}>Unlock to see how much of your category each one takes →</span>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
           {/* Footprint split (free): brand vs your category vs other companies' names.
               For a directory/aggregator this exposes that most "traffic" is incidental. */}
           {p.searchVisibility && p.searchVisibility.keywordsRanked > 0 && (() => {
@@ -357,7 +401,7 @@ export function ResultsScreen(p: ResultsScreenProps) {
                 </div>
                 {sv.offTopicExamples.length > 0 && sv.offTopicPct >= 40 && (
                   <div style={{ marginTop: 14, padding: "12px 14px", background: "var(--c-tint-orange)", borderLeft: "3px solid #E0731C", borderRadius: "0 10px 10px 0", fontSize: 13.5, lineHeight: 1.55, color: "#3A3744" }}>
-                    You rank for high-volume searches like <strong>{sv.offTopicExamples.map((e) => `“${e}”`).join(", ")}</strong> — but those are <em>other companies&apos;</em> names, not searches for what you do. Your buyers aren&apos;t finding you; they&apos;re finding everyone else on your pages.
+                    You also rank for other brands&apos; names like <strong>{sv.offTopicExamples.map((e) => `“${e}”`).join(", ")}</strong> — often companies you list or mention. That&apos;s real traffic, but it isn&apos;t buyers searching for what <em>you</em> do.
                   </div>
                 )}
               </div>

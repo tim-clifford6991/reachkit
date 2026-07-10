@@ -92,7 +92,6 @@ export function toResultsProps(
   // not winning, with other-brand noise stripped). Prefer the paid gap.
   const kg = report.market?.gap?.keywordGap ?? [];
   const sv = report.searchVisibility ?? null;
-  const catGap = sv?.categoryGap ?? [];
   const oppFor = (v: number) => (v >= 2000 ? "High" : v >= 500 ? "Med" : "Low");
   let gapRows: GapRow[];
   let gapCount: number;
@@ -103,40 +102,50 @@ export function toResultsProps(
     });
     gapCount = kg.length;
   } else {
-    gapRows = catGap.slice(0, 4).map((k) => ({
+    // FREE: the demand-derived opportunities — the biggest searches in your category
+    // that you don't win (real market demand, not just your own tiny near-misses).
+    const opps = sv?.categoryOpportunities ?? [];
+    gapRows = opps.slice(0, 4).map((k) => ({
       query: k.keyword,
       volume: k.volume.toLocaleString(),
-      rank: `#${k.yourPosition}`,
-      ranked: true,
+      rank: "Not winning",
+      ranked: false,
       opp: oppFor(k.volume),
     }));
-    gapCount = catGap.length;
+    gapCount = opps.length;
   }
 
-  // Search Visibility panel (free-tier honest gap metric) — passed to the hero so
-  // the report leads with the real story, not the tidy on-site score.
-  const searchVisibility = sv && sv.keywordsRanked > 0
+  // Search Visibility panel — shown whenever we learned ANYTHING (rankings OR
+  // category demand), so a site that ranks for nothing still leads with the real
+  // gap ("your category gets X/mo, you capture 0%") instead of the tidy on-site score.
+  const svShown = sv && (sv.keywordsRanked > 0 || sv.categoryDemand > 0);
+  const searchVisibility = svShown
     ? {
-        score: sv.score,
-        keywordsRanked: sv.keywordsRanked,
-        estMonthlyVisits: sv.estMonthlyVisits,
-        brandPct: sv.brandPct,
-        categoryPct: sv.categoryPct,
-        offTopicPct: sv.offTopicPct,
-        offTopicExamples: sv.offTopicExamples,
-        categoryWins: sv.categoryWins,
+        score: sv!.score,
+        keywordsRanked: sv!.keywordsRanked,
+        estMonthlyVisits: sv!.estMonthlyVisits,
+        brandPct: sv!.brandPct,
+        categoryPct: sv!.categoryPct,
+        offTopicPct: sv!.offTopicPct,
+        offTopicExamples: sv!.offTopicExamples,
+        categoryWins: sv!.categoryWins,
+        categoryDemand: sv!.categoryDemand,
+        categoryCaptureRate: sv!.categoryCaptureRate,
       }
     : null;
 
   // Coherent headline (was the incoherent "a 98 means customers land on someone
-  // else"). Lead with the real gap when we measured it: a clean page with most of
-  // its search visibility in OTHER companies' brand names is the honest hook.
+  // else"). Lead with the real gap: no rankings at all is the sharpest hook; then a
+  // low category-capture; then the other-brands story.
+  const demandStr = sv ? sv.categoryDemand.toLocaleString() : "";
   const headline = searchVisibility
-    ? searchVisibility.offTopicPct >= 55
-      ? `Your page is clean — but ${searchVisibility.offTopicPct}% of your search visibility is other companies' brand names, not yours.`
-      : searchVisibility.score < 30
-        ? `Your page is technically strong, but you're barely visible for the searches your buyers actually make.`
-        : `You're on the board in search — but leaving real category traffic on the table.`
+    ? searchVisibility.keywordsRanked === 0
+      ? `Google ranks you for nothing yet — and your category gets ${demandStr} searches a month, all going to someone else.`
+      : searchVisibility.categoryDemand > 0 && searchVisibility.categoryCaptureRate < 15
+        ? `Your category gets ${demandStr} searches a month — and you capture just ${searchVisibility.categoryCaptureRate}% of it.`
+        : searchVisibility.offTopicPct >= 55
+          ? `Your page is clean — but ${searchVisibility.offTopicPct}% of your search visibility is other companies' brand names, not yours.`
+          : `You're on the board in search — but leaving real category traffic on the table.`
     : `${report.score.total}/100 on-site readiness. The gap that matters is where buyers search — and that's below.`;
 
   return {
@@ -144,6 +153,12 @@ export function toResultsProps(
     score: report.score.total,
     marketPosition: report.marketPosition?.total ?? null,
     searchVisibility,
+    // Real competitor names we discovered (the compare-set) — their per-rival
+    // category share is the paid unlock; free just names who buyers weigh you against.
+    competitors: (report.whereTheyAre?.competitorGap ?? [])
+      .map((c) => c.competitor)
+      .filter((n): n is string => typeof n === "string" && n.length > 0)
+      .slice(0, 6),
     headline,
     intro:
       "is technically fine. The gap is discoverability: you're absent from the comparison and directory surfaces where your buyers actually decide.",
