@@ -15,6 +15,7 @@
  */
 import { NextRequest } from "next/server";
 import { currentUser } from "@/lib/auth/server";
+import { assertPaid, EntitlementError } from "@/lib/billing/entitlements";
 import { activeAppId } from "@/lib/app/active-app";
 import { serverDb } from "@/lib/db/client";
 import { getSelectedCompetitors } from "@/lib/scan/competitor-selection";
@@ -52,6 +53,17 @@ export async function GET(req: NextRequest) {
       status: 401,
       headers: { "Content-Type": "application/json" },
     });
+  }
+
+  // Paid entitlement — same gate as the non-stream route (§6 #6). Returned as a
+  // proper HTTP error before the stream opens (mirrors the 401 handling above), so
+  // an unentitled caller can never start a metered gather.
+  try {
+    await assertPaid(viewer.user.id);
+  } catch (e) {
+    const status = e instanceof EntitlementError ? 402 : 500;
+    const error = e instanceof EntitlementError ? "upgrade required" : "unexpected entitlement error";
+    return new Response(JSON.stringify({ error }), { status, headers: { "Content-Type": "application/json" } });
   }
 
   const layer = req.nextUrl.searchParams.get("layer") ?? "supply";

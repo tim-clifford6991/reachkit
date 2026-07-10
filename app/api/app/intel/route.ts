@@ -10,6 +10,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth/server";
+import { assertPaid, EntitlementError } from "@/lib/billing/entitlements";
 import { activeAppId } from "@/lib/app/active-app";
 import { serverDb } from "@/lib/db/client";
 import { getSelectedCompetitors } from "@/lib/scan/competitor-selection";
@@ -24,6 +25,17 @@ export const maxDuration = 240;
 export async function GET(req: NextRequest) {
   const viewer = await currentUser();
   if (!viewer) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+
+  // Paid entitlement — this feed returns the FULL unredacted deep intel (keyword
+  // gap, content plan, thread-level demand) AND triggers metered DataForSEO/Tavily/
+  // LLM spend, so it must be gated exactly like its sibling paid routes. The /app
+  // UI paywall hides the pages but does NOT protect this API (§6 #6).
+  try {
+    await assertPaid(viewer.user.id);
+  } catch (e) {
+    if (e instanceof EntitlementError) return NextResponse.json({ error: "upgrade required" }, { status: 402 });
+    return NextResponse.json({ error: "unexpected entitlement error" }, { status: 500 });
+  }
 
   const layer = req.nextUrl.searchParams.get("layer") ?? "supply";
   const appId = await activeAppId(viewer.user);

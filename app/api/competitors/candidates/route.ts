@@ -20,6 +20,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth/server";
+import { assertPaid, EntitlementError } from "@/lib/billing/entitlements";
 import { activeAppId } from "@/lib/app/active-app";
 import { serverDb } from "@/lib/db/client";
 import { normalizeHost } from "@/lib/scan/referral/classify";
@@ -139,6 +140,14 @@ async function seedFromScan(
 export async function GET(req: NextRequest) {
   const viewer = await currentUser();
   if (!viewer) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+  // Paid entitlement — the cold path runs DataForSEO competitor discovery; gate it
+  // like the rest of the paid onboarding surface (§6 #6).
+  try {
+    await assertPaid(viewer.user.id);
+  } catch (e) {
+    if (e instanceof EntitlementError) return NextResponse.json({ error: "upgrade required" }, { status: 402 });
+    return NextResponse.json({ error: "unexpected entitlement error" }, { status: 500 });
+  }
   const domain = req.nextUrl.searchParams.get("domain")?.trim();
   if (!domain) return NextResponse.json({ error: "domain required" }, { status: 400 });
   const fresh = req.nextUrl.searchParams.get("refresh") === "1";

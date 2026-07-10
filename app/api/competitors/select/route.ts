@@ -8,6 +8,7 @@
  */
 import { NextRequest, NextResponse, after } from "next/server";
 import { currentUser } from "@/lib/auth/server";
+import { assertPaid, EntitlementError } from "@/lib/billing/entitlements";
 import { activeAppId } from "@/lib/app/active-app";
 import { serverDb } from "@/lib/db/client";
 import { saveSelectedCompetitors } from "@/lib/scan/competitor-selection";
@@ -20,6 +21,15 @@ export const maxDuration = 240;
 export async function POST(req: NextRequest) {
   const viewer = await currentUser();
   if (!viewer) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+  // Paid entitlement — this route pre-computes the full cohort intel via
+  // gatherSynthesis in after() (~€1 of DataForSEO/Tavily/LLM). Gating it closes a
+  // cost + entitlement leak: the /app paywall hid the picker but not this API (§6 #6).
+  try {
+    await assertPaid(viewer.user.id);
+  } catch (e) {
+    if (e instanceof EntitlementError) return NextResponse.json({ error: "upgrade required" }, { status: 402 });
+    return NextResponse.json({ error: "unexpected entitlement error" }, { status: 500 });
+  }
   const appId = await activeAppId(viewer.user);
   if (!appId) return NextResponse.json({ error: "no active app" }, { status: 400 });
 
