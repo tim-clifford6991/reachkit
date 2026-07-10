@@ -18,7 +18,8 @@
  *
  * See CLAUDE.md → "Consistency harness + Change Protocol".
  */
-import { readFileSync, readdirSync, existsSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 
@@ -117,6 +118,7 @@ const archived = new Set();
   }
 }
 const mirroredLive = new Set();
+const activeMirrors = []; // { name, target } for the freshness check
 let taggedCount = 0;
 for (const f of readdirSync(p(DS_SRC)).filter((f) => f.endsWith(".tsx") && f !== "index.tsx")) {
   const name = f.replace(/\.tsx$/, "");
@@ -134,7 +136,35 @@ for (const f of readdirSync(p(DS_SRC)).filter((f) => f.endsWith(".tsx") && f !==
     err(`mirror BROKEN: ${DS_SRC}/${f} → @mirrors ${target} (live file does not exist)`);
   } else {
     mirroredLive.add(resolve(ROOT, target));
+    activeMirrors.push({ name, target });
   }
+}
+
+// ── D. mirror freshness (content drift) ──────────────────────────────────────
+// @mirrors proves the live file EXISTS; it can't prove the DS card still matches
+// the live component's CONTENT. This lock pins a hash of each mirrored live file
+// at the moment its DS mirror was last reconciled. When a live component changes,
+// its DS mirror is flagged STALE until someone reviews it and re-blesses the lock
+// (`pnpm bless:design`). Warn, don't fail: a live edit shouldn't block unrelated
+// work — but the staleness is now visible in every CI + pre-commit run.
+const LOCK = ".design-sync/mirror-lock.json";
+const bless = process.argv.includes("--bless");
+const hashOf = (rel) => createHash("sha256").update(readFileSync(p(rel))).digest("hex").slice(0, 16);
+const lock = existsSync(p(LOCK)) ? JSON.parse(readFileSync(p(LOCK), "utf8")) : {};
+const nextLock = {};
+let staleCount = 0;
+for (const { name, target } of activeMirrors) {
+  const h = hashOf(target);
+  nextLock[name] = { mirror: target, hash: h };
+  if (!bless && lock[name] && lock[name].hash !== h) {
+    staleCount++;
+    warn(`mirror STALE: live ${target} changed since ${name} was last reconciled — review the DS card, update .design-sync/ds-src/${name}.tsx, then \`pnpm bless:design\` and re-run /design-sync.`);
+  }
+}
+if (bless) {
+  writeFileSync(p(LOCK), JSON.stringify(nextLock, null, 2) + "\n");
+  console.log(`blessed ${LOCK} — ${Object.keys(nextLock).length} mirrors pinned.`);
+  process.exit(0);
 }
 
 // Coverage gap (warning): live components with no design mirror.

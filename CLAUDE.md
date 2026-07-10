@@ -49,6 +49,22 @@ Each has (or should have) a guard test. Breaking one is a correctness regression
 - **Import paths / conventions** (from `components.json`): `@/components`, ui = `@/components/ui`, utils = `@/lib/utils` (the `cn()` helper = `clsx` + `tailwind-merge` — use it for conditional classes), lib = `@/lib`, hooks = `@/hooks`. shadcn style is **`base-nova`** (Base UI, not Radix); icons are **lucide-react**. Server Components by default (`rsc: true`).
 - **Compose from existing primitives before introducing anything new.** A new component must first be attempted as a composition of the `@/components/ui` primitives + the intel kit + existing design-system components. Only add a genuinely new atomic component when no combination works — and when you do, add it to the kit/inventory and (for Claude Design) `.design-sync/ds-src/` + `INVENTORY.md` in the same change. **Claude Design specifics (reality-first):** the DS must reflect what actually SHIPS 1:1. A `ds-src` component is **active** only if its live counterpart is reachable from a real page — every active one carries a resolving `/* @mirrors <live-path> */` tag (primitives use `-`), enforced by `pnpm check:design`. Anything whose live counterpart is dead/unreachable is **archived** (`archived: true` in `layout.mjs`, delete-free — files stay, pane groups under Archive, exempt from mirror enforcement); NEVER `delete_files` to archive. Un-archiving requires giving it a resolving `@mirrors` or the check fails. The build regenerates `_ds_manifest.json` and the `_ds_sync.json` sentinel must be re-armed **last** on upload or the pane looks stale. Full workflow in `.design-sync/NOTES.md` + `INVENTORY.md`.
 
+### Keeping Claude Design and the code in EXACT sync
+
+**Direction of truth: code → Claude Design, never the reverse.** The app is the source of truth. Each `ds-src` component is a hand-authored mirror of a live file (its `@mirrors` target); the Claude Design project is a *rendered copy* built from `ds-src` and uploaded via `/design-sync`. **A change made only in the Claude Design pane is NOT real and is overwritten on the next upload** — use the pane for viewing/sharing/exploration only.
+
+**To change a design for real, edit in Claude Code, then re-sync:**
+- **Design language (colours, fonts, radii, spacing):** edit `app/globals.css` (`@theme` + `.dark`) AND `.design-sync/tokens.css` together — one token change propagates to the whole app + DS. `pnpm check:design` fails if the two drift.
+- **A component/page's structure or copy:** edit the **live** component first (that's the product), then update its `ds-src` mirror to match, then rebuild + upload. Both in the same change.
+- **Then push to the pane:** `node .design-sync/ds-src/build.mjs && node .design-sync/ds-src/layout.mjs`, run `/design-sync` (scoped to the changed `components/<Group>/**` + `_ds_manifest.json`, sentinel `_ds_sync.json` **last**), and `pnpm bless:design`.
+
+**Three layers keep them matching:**
+1. **Token/band parity** — `--c-*` in globals.css == `.design-sync/tokens.css`; `--c-band-*` == `SCORE_BANDS`. Hard-fails `check:design`.
+2. **Mirror existence** — every active `ds-src` must carry a resolving `@mirrors`. Hard-fails.
+3. **Mirror freshness** (content drift) — `.design-sync/mirror-lock.json` pins a hash of each mirrored live file at last reconcile. When a live component changes, `check:design` prints `mirror STALE: live X changed since <Component> …` (a WARNING, so it never blocks unrelated work) until you review the DS card, update the `ds-src`, re-upload, and `pnpm bless:design`. This is the signal that a DS card needs re-syncing.
+
+`@mirrors` proves the file exists; the freshness lock is what catches "the live component changed but its DS mirror didn't." Full workflow: `.design-sync/NOTES.md` + `INVENTORY.md`.
+
 ## Consistency harness + Change Protocol (the ratchet — read before changing an invariant, a token, or a boundary)
 
 Architecture and the Claude Design system are kept from drifting by **machine-checked** gates, not prose alone. The rule: **strict adherence, iterate forward, never go backwards.** A gate may be *strengthened*; it may never be weakened to make a regression pass. Non-Claude agents read the same rules via `AGENTS.md` (a pointer to this file).
@@ -60,7 +76,7 @@ Architecture and the Claude Design system are kept from drifting by **machine-ch
 | Behavioral guard tests | `pnpm test` | Invariants #1 (`registry-score.test.ts`), #5 (`golden-set.eval` via `pnpm eval`), #7 (`algorithm-safety.test.ts`), #8 (`abuse.test.ts`), + scoring guards. |
 | Doc-contract tripwire | `pnpm test` → `lib/scan/documented-invariants.test.ts` | The load-bearing constants restated in this file: headline v4, `FIXED_BASIS_SIGNAL_KEYS` (8), `PILLAR_WEIGHTS`, `MAX_SELECTED`, `MIN_ACTIONS`. |
 | Architecture boundaries | `pnpm check:arch` (`.dependency-cruiser.cjs`) | Layer imports from `docs/architecture.md`: `lib ✗→ app` · scan/llm/billing `✗→ components` · Anthropic SDK only in `lib/llm` · Supabase only in `lib/db`/`lib/auth`/`middleware.ts` · production `✗→` dev scaffolding (`app/design`, `app/test-*`, `app/api/test-*`). |
-| Design parity | `pnpm check:design` (`scripts/check-design-parity.mjs`) | Claude Design ↔ code: every `--c-*` in `app/globals.css` equals `.design-sync/tokens.css` (light+dark); `--c-band-*` equals `SCORE_BANDS` in `score-bands.ts`; **every ACTIVE `ds-src` must declare a resolving `/* @mirrors <live-path> */`** (primitives use `-`; archived components are exempt). |
+| Design parity | `pnpm check:design` (`scripts/check-design-parity.mjs`) | Claude Design ↔ code: every `--c-*` in `app/globals.css` equals `.design-sync/tokens.css` (light+dark); `--c-band-*` equals `SCORE_BANDS`; **every ACTIVE `ds-src` must declare a resolving `/* @mirrors <live-path> */`** (primitives `-`; archived exempt); and **mirror freshness** — warns (via `.design-sync/mirror-lock.json`) when a mirrored live file changed but its DS card didn't. Re-bless with `pnpm bless:design`. |
 
 **Design token source of truth.** App tokens live in `app/globals.css` (`@theme` light + `.dark`). The committed DS mirror is **`.design-sync/tokens.css`** (parity-checked; `layout.mjs` copies it into the gitignored `ds-bundle/tokens/tokens.css` on build — it is no longer re-fetched from the remote project). To change a token: edit `app/globals.css` AND `.design-sync/tokens.css` together, then `pnpm check:design`. Score-band colors change only in `score-bands.ts` → mirror into `globals.css` `--c-band-*` (and thus `.design-sync/tokens.css`). New design-system component → add its `ds-src` file with a `/* @mirrors <live-path> */` tag.
 
@@ -78,5 +94,5 @@ Architecture and the Claude Design system are kept from drifting by **machine-ch
 ## Commands
 
 - `pnpm test` — unit · `pnpm test:int` — integration (needs local Supabase) · `pnpm eval` — golden-set
-- `pnpm check:arch` — layer/import boundaries · `pnpm check:design` — Claude Design ↔ code token/band/mirror parity (the ratchet; see "Consistency harness")
+- `pnpm check:arch` — layer/import boundaries · `pnpm check:design` — Claude Design ↔ code token/band/mirror parity + freshness · `pnpm bless:design` — re-pin mirror-lock after reconciling a DS card (the ratchet; see "Consistency harness" + "Keeping Claude Design and the code in EXACT sync")
 - `pnpm dev` + `pnpm dev:inngest` — local (Inngest must run alongside)
