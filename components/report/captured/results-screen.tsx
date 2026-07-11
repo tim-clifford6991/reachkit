@@ -26,13 +26,20 @@ function arc(fromDeg: number, toDeg: number) {
   return `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${R} ${R} 0 ${large} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`;
 }
 
-/** Mockup band → {label, fg, bg} using exact mockup hex. */
+/** Band → {label, fg, bg}: labels from SCORE_BANDS (single source of truth —
+ *  the long conversion variant where one exists); fg/bg keep the exact mockup
+ *  hex ramp so shipped visuals don't move. */
+const BAND_VIZ: Record<string, { fg: string; bg: string }> = {
+  invisible: { fg: "#E5484D", bg: "var(--c-tint-red)" },
+  hard: { fg: "#E0731C", bg: "var(--c-tint-orange)" },
+  fair: { fg: "#C98A12", bg: "var(--c-tint-amber)" },
+  findable: { fg: "#1F9D5B", bg: "var(--c-tint-green)" },
+  high: { fg: "#0E7A48", bg: "var(--c-tint-green)" },
+};
 function bandViz(score: number) {
-  if (score < 30) return { label: "Invisible", fg: "#E5484D", bg: "var(--c-tint-red)" };
-  if (score < 50) return { label: "Hard to find", fg: "#E0731C", bg: "var(--c-tint-orange)" };
-  if (score < 70) return { label: "Fair — room to climb", fg: "#C98A12", bg: "var(--c-tint-amber)" };
-  if (score < 85) return { label: "Findable", fg: "#1F9D5B", bg: "var(--c-tint-green)" };
-  return { label: "Highly discoverable", fg: "#0E7A48", bg: "var(--c-tint-green)" };
+  const b = bandFor(score);
+  const viz = BAND_VIZ[b.key] ?? { fg: "#C98A12", bg: "var(--c-tint-amber)" };
+  return { label: b.longLabel ?? b.label, fg: viz.fg, bg: viz.bg };
 }
 // pillar value → bar color (mockup ramp)
 function pillarColor(v: number) {

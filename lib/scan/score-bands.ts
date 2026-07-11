@@ -16,16 +16,18 @@ export interface ScoreBand {
   min: number;
   /** Inclusive upper bound (0–100). */
   max: number;
-  /** Plain-English label shown beside the numeral. */
+  /** Plain-English label shown beside the numeral (compact surfaces). */
   label: string;
   /** OKLCH color for ring/zone/text. */
   color: string;
+  /** Longer conversion-surface variant of the label (gauge hero). Falls back to `label`. */
+  longLabel?: string;
 }
 
 export const SCORE_BANDS: readonly ScoreBand[] = [
   { key: "invisible", min: 0, max: 29, label: "Invisible", color: "oklch(0.60 0.20 23)" },
   { key: "hard", min: 30, max: 49, label: "Hard to find", color: "oklch(0.65 0.17 47)" },
-  { key: "fair", min: 50, max: 69, label: "Fair", color: "oklch(0.70 0.13 75)" },
+  { key: "fair", min: 50, max: 69, label: "Fair", color: "oklch(0.70 0.13 75)", longLabel: "Fair — room to climb" },
   { key: "findable", min: 70, max: 84, label: "Findable", color: "oklch(0.62 0.13 153)" },
   { key: "high", min: 85, max: 100, label: "Highly discoverable", color: "oklch(0.52 0.12 155)" },
 ] as const;
