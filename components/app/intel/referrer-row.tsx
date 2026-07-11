@@ -8,7 +8,6 @@
  */
 import { useState } from "react";
 import { Badge, Bar, EvidenceLink } from "@/components/app/intel/kit";
-import { InfoTip } from "@/components/ui/info-tip";
 import { fmtCompact } from "@/components/app/intel/shared";
 
 export type ReferrerLike = {
@@ -32,7 +31,12 @@ export function ReferrerRow({ r, maxEtv }: { r: ReferrerLike; maxEtv: number }) 
         {/* platform reach bar (honest) */}
         <span>{typeof r.etv === "number" ? <Bar value={r.etv} max={Math.max(1, maxEtv)} /> : <span style={{ fontSize: 10, color: "var(--c-faint)" }}>—</span>}</span>
         <span style={{ fontSize: 11, fontFamily: "JetBrains Mono", textAlign: "right", color: "var(--c-muted)" }}>
-          {typeof r.etv === "number" && <InfoTip term="Platform reach">~{fmtCompact(r.etv)}</InfoTip>}
+          {typeof r.etv === "number" && (
+            <span
+              title="That site's own monthly organic traffic — how big the venue is, not measured click-through to this rival."
+              style={{ cursor: "help", borderBottom: "1px dotted var(--c-faint)" }}
+            >~{fmtCompact(r.etv)}</span>
+          )}
         </span>
         <span title={r.dofollow ? "dofollow" : "nofollow"} style={{ fontSize: 11, color: r.dofollow ? "var(--c-band-findable)" : "var(--c-faint)" }}>●</span>
       </div>

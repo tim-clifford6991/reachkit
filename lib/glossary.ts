@@ -17,6 +17,4 @@ export const GLOSSARY: Record<string, string> = {
   "Organic keywords": "How many distinct search queries your site already ranks for.",
   "Keyword gaps": "Queries your rivals rank for that you don't — ready-made content targets.",
   "Signals passing": "How many of the 18 measured discoverability signals are in good shape.",
-  "Platform reach":
-    "That site's own monthly organic traffic — how big the venue is, not measured click-through to this rival.",
 };

@@ -133,7 +133,7 @@
   },
   "ReferrerRow": {
     "mirror": "components/app/intel/referrer-row.tsx",
-    "hash": "79b06f12a63d07a7"
+    "hash": "70844e22ad7f033a"
   },
   "ResultsScreen": {
     "mirror": "components/report/captured/results-screen.tsx",
