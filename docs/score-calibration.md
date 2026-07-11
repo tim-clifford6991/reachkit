@@ -95,7 +95,7 @@ Per the launch-readiness plan's C3 task:
    |---|---|
    | Invisible | 0–29 |
    | Hard to find | 30–49 |
-   | **Fair — room to climb** | **50–69** |
+   | **Fair** | **50–69** |
    | Findable | 70–84 |
    | Highly discoverable | 85–100 |
 

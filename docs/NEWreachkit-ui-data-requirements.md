@@ -29,7 +29,7 @@ The single most important lesson from the research: **DR, DA, Authority Score, C
 ### 1.1 Score display — the gauge `[MUST]`
 - Render the score as a **radial gauge (0–100)** with a single large numeral, not a progress bar. This is the hero of both the report and the dashboard.
 - Always pair the number with a **qualifying band label** in plain English. Define five bands and use them everywhere the score appears:
-  - 0–29 **Invisible** · 30–49 **Hard to find** · 50–69 **Fair — room to climb** · 70–84 **Findable** · 85–100 **Highly discoverable**
+  - 0–29 **Invisible** · 30–49 **Hard to find** · 50–69 **Fair** · 70–84 **Findable** · 85–100 **Highly discoverable**
 - Below the gauge, **three pillar sub-scores** (Content / Outreach / SEO) as mini-gauges or horizontal segmented bars, each 0–100. (The live homepage already implies this; make it real and consistent.)
 - `[MUST]` Semantic color, never color-alone: band drives color (red→amber→green), but the **band label and the numeral always carry the meaning** for accessibility (WCAG AA contrast; colorblind-safe palette).
 
