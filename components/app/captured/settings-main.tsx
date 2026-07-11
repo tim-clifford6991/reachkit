@@ -6,6 +6,7 @@
 import { CheckoutButton } from "@/components/app/checkout-button";
 import { ManageBillingButton } from "@/components/app/manage-billing-button";
 import { ProductUrlForm } from "./settings-product-url-form";
+import { AddProductForm } from "./settings-add-product-form";
 
 const SG = "Space Grotesk", JM = "JetBrains Mono", PJ = "Plus Jakarta Sans";
 const SUPPORT_EMAIL = "hello@reachkit.app";
@@ -77,8 +78,12 @@ export function SettingsMain(p: SettingsMainProps) {
           </div>
           {p.dataFresh && <span style={{ fontSize: 12, fontWeight: 600, color: "#1F9D5B", background: "var(--c-tint-green)", padding: "4px 10px", borderRadius: 7 }}>data fresh</span>}
         </div>
-        {p.appId && (
+        {p.appId ? (
           <ProductUrlForm appId={p.appId} initialUrl={p.storeUrl ?? ""} />
+        ) : (
+          // Zero-app state: every intel page redirects here, so this form is the
+          // ONLY way to attach a first product (Path B checkout / provisioning miss).
+          <AddProductForm />
         )}
       </Card>
       <Card title="Scoring">

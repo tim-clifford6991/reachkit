@@ -27,6 +27,7 @@ import { serverDb } from "@/lib/db/client";
 import { classifyUrl } from "@/lib/scan/router";
 import { normalizeHost } from "@/lib/scan/referral/classify";
 import { switchTrackedProduct } from "@/lib/app/switch-product";
+import { addFirstTrackedProduct } from "@/lib/app/add-first-product";
 import { ACTIVE_APP_COOKIE } from "@/lib/app/active-app";
 
 export type UpdateProductUrlResult =
@@ -102,4 +103,54 @@ export async function updateProductUrl(
   revalidatePath("/app/settings");
   revalidatePath("/app");
   return { ok: true, switched: false, host: nextHost };
+}
+
+export type AddFirstProductResult = { ok: true; host: string } | { ok: false; error: string };
+
+/**
+ * Attach a zero-app user's FIRST tracked product. Every intel page redirects
+ * app-less users to Settings, and updateProductUrl can only edit an app you
+ * already own — without this action a paid user provisioned with no app
+ * (Path B direct checkout, or any provisioning miss) was hard-stuck in a
+ * redirect loop (live-hit 2026-07-11).
+ */
+export async function addFirstProduct(formData: FormData): Promise<AddFirstProductResult> {
+  let userId: string;
+  let appIds: string[];
+  try {
+    const { user } = await requireUser();
+    userId = user.id;
+    appIds = user.app_ids ?? [];
+  } catch {
+    return { ok: false, error: "You need to be signed in to do that." };
+  }
+
+  if (appIds.length > 0) {
+    return { ok: false, error: "You're already tracking a product — edit its URL above instead." };
+  }
+
+  const raw = String(formData.get("store_url") ?? "").trim();
+  if (!raw) {
+    return { ok: false, error: "Enter a URL." };
+  }
+
+  let routed: { platform: "ios" | "android" | "web"; url: string };
+  try {
+    routed = classifyUrl(raw);
+  } catch {
+    return { ok: false, error: "That doesn't look like a valid URL." };
+  }
+
+  let newAppId: string;
+  try {
+    ({ newAppId } = await addFirstTrackedProduct(userId, routed.url, routed.platform));
+  } catch {
+    return { ok: false, error: "Couldn't add your product — please try again." };
+  }
+
+  (await cookies()).set(ACTIVE_APP_COOKIE, newAppId, { path: "/", sameSite: "lax" });
+  revalidatePath("/app/settings");
+  revalidatePath("/app");
+  revalidatePath("/app/dashboard");
+  return { ok: true, host: normalizeHost(routed.url) };
 }
