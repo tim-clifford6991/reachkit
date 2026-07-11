@@ -410,11 +410,12 @@ describe("scan-public-consolidation", () => {
       permanent: true,
     });
 
-    // All three are permanent (301) redirects, not temporary — the old
+    // All are permanent (301) redirects, not temporary — the old
     // routes are retired for good, not just re-pointed for a migration window.
     for (const r of redirects) {
       expect(r.permanent).toBe(true);
     }
-    expect(redirects.length).toBe(3);
+    // 3 scan-URL consolidations + /teardowns → /gallery.
+    expect(redirects.length).toBe(4);
   });
 });

@@ -321,11 +321,12 @@ test(
     for (const row of findingRows ?? []) {
       expect(row.basis).toBe("probability_based");
       expect(Number(row.confidence)).toBeLessThanOrEqual(0.6);
-      // The degraded finding does NOT fabricate a real source — its evidence
-      // excerpt is the explicit "(no evidence available)" placeholder.
+      // The degraded finding does NOT fabricate a real external source — its
+      // evidence is either the parse-error placeholder or derived from the
+      // user's OWN site ("positioning", the always-insight fallback in synth.ts).
       const body = row.body as { evidence?: Array<{ source?: string }> };
       const sources = (body.evidence ?? []).map((e) => e.source ?? "");
-      expect(sources.every((s) => s === "parse_error" || s.length === 0)).toBe(true);
+      expect(sources.every((s) => s === "parse_error" || s === "positioning" || s.length === 0)).toBe(true);
     }
   },
   90_000,

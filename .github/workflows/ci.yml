@@ -24,3 +24,31 @@ jobs:
         run: pnpm build
       - name: Bundle budget
         run: pnpm check:bundle
+  eval-integration:
+    # Golden-set eval (invariant #5's named guard) + integration tests against a
+    # real local Supabase stack. Fixture mode — no API secrets required.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - uses: supabase/setup-cli@v1
+        with: { version: latest }
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Start local Supabase (applies migrations)
+        run: supabase start
+      - name: Write test env from local stack
+        run: |
+          eval "$(supabase status -o env | grep -E '^(API_URL|ANON_KEY|SERVICE_ROLE_KEY)=')"
+          {
+            echo "SUPABASE_URL=$API_URL"
+            echo "SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "REACHKIT_USE_FIXTURES=true"
+          } > .env.local
+      - name: Golden-set eval
+        run: pnpm eval
+      - name: Integration tests
+        run: pnpm test:int

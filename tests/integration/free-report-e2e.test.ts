@@ -166,8 +166,9 @@ test(
     expect(report["channelOpportunities"]).toEqual({ keywordClusters: [], communitiesByEngagement: [] });
     expect(report["creatorsToReach"]).toEqual([]);
 
-    // A real site_fetch HTML row measures several fixed-basis signals → v2 (registry) headline.
-    expect(finalScan.score_version).toBe(2);
+    // The persisted headline is the v5 unified Discoverability Score
+    // (geomean of on-page readiness × search presence — CLAUDE.md invariant #1).
+    expect(finalScan.score_version).toBe(5);
 
     // Score parity: the report's score total equals the persisted headline score_total.
     expect(reportScore["total"]).toBe(finalScan.score_total);
