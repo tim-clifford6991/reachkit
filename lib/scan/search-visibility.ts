@@ -21,9 +21,8 @@
  */
 
 import type { RankedKeyword } from "@/lib/scan/adapters/dataforseo-ranked-keywords";
-import type { KeywordIdea } from "@/lib/scan/adapters/dataforseo-keyword-ideas";
 import { normalizeHost } from "@/lib/scan/referral/classify";
-import { cachedRankedKeywords, cachedKeywordIdeas } from "@/lib/scan/cache/cached-adapters";
+import { cachedRankedKeywords, cachedKeywordVolumes } from "@/lib/scan/cache/cached-adapters";
 
 export type KeywordClass = "brand" | "category" | "offtopic";
 
@@ -235,12 +234,6 @@ const EMPTY: SearchVisibility = {
   categoryCapturedSearches: 0, categoryWonKeywords: [],
 };
 
-/** True when a keyword is on-topic for the subject's category (shares its vocab,
- *  not its brand) — the same test used to classify the subject's own rankings. */
-function isCategoryRelevant(keyword: string, vocab: { brandTokens: Set<string>; categoryVocab: Set<string> }): boolean {
-  return classify(keyword, vocab.brandTokens, vocab.categoryVocab) === "category";
-}
-
 const isSpecificSeed = (s: string) => s.includes(" ") || s.replace(/[^a-z0-9]/g, "").length >= 5;
 
 /** Seeds for the keyword_ideas call. PREFER the LLM-authored category phrases (the
@@ -258,42 +251,32 @@ export function buildCategorySeeds(sv: SearchVisibility, llmSeeds: string[]): st
   return [...seeds].filter(isSpecificSeed).slice(0, 10);
 }
 
-const DEMAND_CAP_ROWS = 40;
 const OPPORTUNITY_ROWS = 6;
 
-/** Category demand = Σ volume of the on-topic keyword ideas (capped to the top rows
- *  so a long tail can't inflate it); capture rate = your captured category searches
- *  ÷ that demand; opportunities = the biggest category searches you don't already win. */
+/**
+ * Category demand from the EXACT volumes of the LLM's category seed phrases (via
+ * google_ads/search_volume — no keyword_ideas expansion, so no off-topic noise like
+ * "google calendar"/"walmart revenue"). demand = Σ seed volume; capture rate = your
+ * captured category searches ÷ that demand; opportunities = the category searches
+ * you don't already win. The LLM named the category; DataForSEO supplies the volume.
+ */
 export function computeCategoryDemand(
-  ideas: KeywordIdea[],
-  vocab: { brandTokens: Set<string>; categoryVocab: Set<string> },
+  seedVolumes: Array<{ keyword: string; volume: number }>,
   sv: SearchVisibility,
-  seeds: string[] = [],
 ): Pick<SearchVisibility, "categoryDemand" | "categoryCaptureRate" | "categoryOpportunities"> {
-  const seedPhrases = seeds.filter((s) => s.includes(" "));
-  // Demand-relevant = contains one of the subject's actual category PHRASES, or
-  // shares ≥2 category tokens. A single shared common word ("revenue") is NOT enough
-  // — that's the noise gate ("walmart revenue" shares only "revenue" → excluded).
-  const demandRelevant = (keyword: string): boolean => {
-    const k = keyword.toLowerCase();
-    if (seedPhrases.some((s) => k.includes(s))) return true;
-    const toks = k.match(/[a-z0-9]+/g) ?? [];
-    return toks.filter((t) => vocab.categoryVocab.has(t)).length >= 2;
-  };
   const byKw = new Map<string, number>();
-  for (const i of ideas) {
-    if (i.volume <= 0 || !isCategoryRelevant(i.keyword, vocab) || !demandRelevant(i.keyword)) continue;
-    byKw.set(i.keyword.toLowerCase(), Math.max(byKw.get(i.keyword.toLowerCase()) ?? 0, i.volume));
+  for (const r of seedVolumes) {
+    if (r.volume <= 0) continue;
+    const k = r.keyword.toLowerCase();
+    byKw.set(k, Math.max(byKw.get(k) ?? 0, r.volume));
   }
-  const top = [...byKw.entries()].map(([keyword, volume]) => ({ keyword, volume }))
-    .sort((a, b) => b.volume - a.volume)
-    .slice(0, DEMAND_CAP_ROWS);
-  const categoryDemand = top.reduce((s, r) => s + r.volume, 0);
+  const rows = [...byKw.entries()].map(([keyword, volume]) => ({ keyword, volume })).sort((a, b) => b.volume - a.volume);
+  const categoryDemand = rows.reduce((s, r) => s + r.volume, 0);
   const categoryCaptureRate = categoryDemand > 0
     ? Math.min(100, Math.round((100 * sv.categoryCapturedSearches) / categoryDemand))
     : 0;
   const won = new Set(sv.categoryWonKeywords);
-  const categoryOpportunities = top
+  const categoryOpportunities = rows
     .filter((r) => !won.has(r.keyword))
     .slice(0, OPPORTUNITY_ROWS)
     .map((r) => ({ keyword: r.keyword, volume: r.volume }));
@@ -328,8 +311,9 @@ export async function gatherFreeSearchVisibility(
     const kw = await cachedRankedKeywords(self, 50).catch(() => [] as RankedKeyword[]);
     const sv = computeSearchVisibility(kw, vocab);
     const seeds = buildCategorySeeds(sv, llmCategorySeeds);
-    const ideas = seeds.length > 0 ? await cachedKeywordIdeas(seeds, 200).catch(() => [] as KeywordIdea[]) : [];
-    return { ...sv, ...computeCategoryDemand(ideas, vocab, sv, seeds) };
+    // Measure the EXACT volume of the category seed phrases (no expansion noise).
+    const seedVolumes = seeds.length > 0 ? await cachedKeywordVolumes(seeds).catch(() => []) : [];
+    return { ...sv, ...computeCategoryDemand(seedVolumes, sv) };
   } catch {
     return EMPTY;
   }

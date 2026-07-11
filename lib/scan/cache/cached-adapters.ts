@@ -12,6 +12,7 @@ import { fetchBacklinks, fetchDomainIntersection, type IntersectionRow } from "@
 import { fetchRankedKeywords, fetchRelevantPages, type RankedKeyword, type TopPage } from "@/lib/scan/adapters/dataforseo-ranked-keywords";
 import { fetchKeywordIdeas, type KeywordIdea } from "@/lib/scan/adapters/dataforseo-keyword-ideas";
 import { keywordsData } from "@/lib/scan/adapters/keywords";
+import type { KeywordRow } from "@/lib/scan/types";
 import {
   discoverClosestCompetitors,
   discoverCompetitors,
@@ -44,6 +45,21 @@ export function cachedKeywordIdeas(seeds: string[], limit = 200): Promise<Keywor
   // fetchKeywordIdeas returns [] on !res.ok / timeout / fixtures — don't cache
   // that transient-failure poison for 30d.
   return cachedJson(key, 30 * DAY_MS, () => fetchKeywordIdeas(seeds, limit), { isEmpty: (ideas) => ideas.length === 0 });
+}
+
+/** EXACT monthly search volume for a set of phrases (google_ads/search_volume).
+ *  Unlike keyword_ideas this does NOT expand into related terms, so it measures the
+ *  precise category phrases with no off-topic noise. Keyed on the sorted set. 30d. */
+export function cachedKeywordVolumes(seeds: string[]): Promise<KeywordRow[]> {
+  const key = `kv:${[...seeds].map(norm).sort().join("|")}`;
+  return cachedJson(
+    key,
+    30 * DAY_MS,
+    async () => {
+      try { return (await keywordsData(seeds)).keywords; } catch { return []; }
+    },
+    { isEmpty: (rows) => rows.length === 0 },
+  );
 }
 
 /** Cross-competitor backlink intersection. Keyed on the sorted target set. 30d. */

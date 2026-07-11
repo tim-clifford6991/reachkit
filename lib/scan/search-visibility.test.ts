@@ -6,7 +6,6 @@
 import { describe, it, expect } from "vitest";
 import { computeSearchVisibility, buildVocab, computeCategoryDemand, buildCategorySeeds } from "./search-visibility";
 import type { RankedKeyword } from "@/lib/scan/adapters/dataforseo-ranked-keywords";
-import type { KeywordIdea } from "@/lib/scan/adapters/dataforseo-keyword-ideas";
 
 const kw = (keyword: string, position: number, volume: number, etv: number): RankedKeyword => ({
   keyword, position, volume, etv, url: "https://trustmrr.com/x",
@@ -84,26 +83,21 @@ describe("computeSearchVisibility — a healthy category presence scores higher"
   });
 });
 
-describe("computeCategoryDemand (category size + your share)", () => {
-  const idea = (keyword: string, volume: number): KeywordIdea => ({ keyword, volume, intent: null });
+describe("computeCategoryDemand (from exact seed-phrase volumes)", () => {
   const vocab = buildVocab("acme.com", ["startup revenue mrr saas verification"]);
 
-  it("sums on-topic demand, computes capture rate, and lists opportunities you don't win", () => {
-    const ideas = [
-      idea("startup revenue tools", 5000), // category, not won → opportunity
-      idea("mrr verification", 3000), // category, not won → opportunity
-      idea("startup mrr", 1000), // category, WON below → excluded from opportunities
-      idea("cometly pricing", 40000), // off-topic → excluded from demand entirely
+  it("sums seed volumes, computes capture rate, and lists opportunities you don't win", () => {
+    const seedVolumes = [
+      { keyword: "startup revenue tools", volume: 5000 }, // not won → opportunity
+      { keyword: "mrr verification", volume: 3000 }, // not won → opportunity
+      { keyword: "startup mrr", volume: 1000 }, // WON below → excluded from opportunities
     ];
     const sv = computeSearchVisibility(
       [{ keyword: "startup mrr", position: 2, volume: 1000, etv: 300, url: "u" }],
       vocab,
     );
-    const d = computeCategoryDemand(ideas, vocab, sv);
-    // demand = only the on-topic ideas (cometly excluded): 5000+3000+1000
+    const d = computeCategoryDemand(seedVolumes, sv);
     expect(d.categoryDemand).toBe(9000);
-    // off-topic huge term never inflates category demand
-    expect(d.categoryDemand).toBeLessThan(40000);
     // opportunities exclude the term you already win ("startup mrr")
     expect(d.categoryOpportunities.map((o) => o.keyword)).toEqual(["startup revenue tools", "mrr verification"]);
     expect(d.categoryCaptureRate).toBeGreaterThanOrEqual(0);
@@ -111,12 +105,17 @@ describe("computeCategoryDemand (category size + your share)", () => {
   });
 
   it("zero-rankings site still gets a real category-demand number (capture 0%)", () => {
-    const ideas = [idea("startup revenue tools", 8000), idea("mrr saas", 2000)];
+    const seedVolumes = [{ keyword: "startup revenue tools", volume: 8000 }, { keyword: "mrr saas", volume: 2000 }];
     const sv = computeSearchVisibility([], vocab); // ranks for nothing
-    const d = computeCategoryDemand(ideas, vocab, sv);
+    const d = computeCategoryDemand(seedVolumes, sv);
     expect(d.categoryDemand).toBe(10000);
     expect(d.categoryCaptureRate).toBe(0); // captures none of it
     expect(d.categoryOpportunities.length).toBeGreaterThan(0);
+  });
+
+  it("ignores zero-volume seeds", () => {
+    const d = computeCategoryDemand([{ keyword: "a", volume: 0 }, { keyword: "b", volume: 500 }], computeSearchVisibility([], vocab));
+    expect(d.categoryDemand).toBe(500);
   });
 });
 
