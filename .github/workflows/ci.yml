@@ -33,8 +33,13 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
+      # Pinned to the locally-verified CLI: `latest` (2.109+) starts a stack with
+      # new-format sb_publishable_/sb_secret_ keys where the legacy
+      # SERVICE_ROLE_KEY emitted by `status -o env` lacks service-role privileges
+      # → "permission denied for table apps" in every DB-backed test. Bump this
+      # pin deliberately, together with the key-mapping step below.
       - uses: supabase/setup-cli@v1
-        with: { version: latest }
+        with: { version: 2.26.9 }
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Start local Supabase (applies migrations)

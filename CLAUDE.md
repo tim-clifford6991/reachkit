@@ -98,6 +98,7 @@ Architecture and the Claude Design system are kept from drifting by **machine-ch
 - **Dev scaffolding surface** — `app/api/test-*` routes are runtime-gated via `blockInProd()` (404 in production); the `app/test-*` PAGES are not runtime-gated (they only call the gated APIs, but confirm removal/gating before broad prod exposure). `pnpm check:arch` blocks production code from *importing* any of them.
 - **Cohort cache-key stability** — deep-scan vs competitor-select cost de-dup relies entirely on per-domain cache keys; a key drift silently doubles DataForSEO spend.
 - **`audienceProxy` always 0** — the YouTube 2nd `videos.list` call is never made; creator reach is a placeholder.
+- **4 (app) pages over the 275 KB bundle budget** (dashboard, plan, audience×2 — grew during the 2026-07-10/11 free-report work and were merged on red CI). Pinned in `KNOWN_OVERAGES_KB` (`scripts/check-bundle.mjs`) so the gate bites again; the real reduction (defer chart kit / dynamic() heavy intel components) is an open follow-up. Never add entries to that baseline.
 
 ## Commands
 

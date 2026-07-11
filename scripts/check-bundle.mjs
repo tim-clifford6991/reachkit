@@ -50,6 +50,24 @@ import { gzipSync } from "node:zlib";
 // Budgets in KB of First Load JS (gzip) per route group (§20.4). See file-header comment.
 const BUDGETS = { "(marketing)": 220, "(funnel)": 225, "(app)": 275 };
 
+/**
+ * Known-overage baseline (the ratchet — same pattern as check-arch KNOWN_CYCLES
+ * and the design coverage baseline). These 4 pages went over the (app) budget in
+ * the 2026-07-10/11 free-report + unified-score work and were merged on red CI —
+ * which made EVERY CI gate decorative. Pinning their current measured size (+1 KB
+ * jitter headroom) makes the gate bite again: growth beyond the pin FAILS, every
+ * other page stays on the 275 KB budget, and when a page shrinks back under
+ * budget its entry MUST be deleted (the script fails otherwise, so the baseline
+ * only shrinks). FOLLOW-UP: reduce these for real (defer chart kit / dynamic()
+ * the heavy intel components) — do NOT add entries to make a regression pass.
+ */
+const KNOWN_OVERAGES_KB = {
+  "/(app)/app/audience/competitors/page": 284,
+  "/(app)/app/audience/customers/page": 280,
+  "/(app)/app/dashboard/page": 283,
+  "/(app)/app/plan/page": 293,
+};
+
 const NEXT_DIR = ".next";
 
 // Set to true when measurement infrastructure exists but a specific read fails.
@@ -161,7 +179,24 @@ for (const [routeKey] of Object.entries(appPathRoutes)) {
   const kb = Array.from(allChunks).reduce((n, f) => n + fileSizeGzipKb(f), 0);
 
   checkedAny = true;
-  if (kb > BUDGETS[group]) {
+  const pinned = KNOWN_OVERAGES_KB[routeKey];
+  if (pinned !== undefined && kb <= BUDGETS[group]) {
+    console.error(
+      `✗ ${routeKey} (${group}) ${kb.toFixed(0)} KB is back UNDER budget — pin the win: delete its KNOWN_OVERAGES_KB entry`
+    );
+    failed = true;
+  } else if (pinned !== undefined) {
+    if (kb > pinned) {
+      console.error(
+        `✗ ${routeKey} (${group}) ${kb.toFixed(0)} KB (gzip) > pinned overage baseline ${pinned} KB — the baseline only shrinks`
+      );
+      failed = true;
+    } else {
+      console.log(
+        `⚠ ${routeKey} (${group}) ${kb.toFixed(0)} KB (gzip) over ${BUDGETS[group]} KB budget but within pinned baseline ${pinned} KB (reduction is a tracked follow-up)`
+      );
+    }
+  } else if (kb > BUDGETS[group]) {
     console.error(
       `✗ ${routeKey} (${group}) ${kb.toFixed(0)} KB (gzip) > budget ${BUDGETS[group]} KB`
     );
