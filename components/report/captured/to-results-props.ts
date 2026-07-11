@@ -112,6 +112,7 @@ export function toResultsProps(
   const searchVisibility = sv
     ? {
         score: sv.score,
+        onPageReadiness: sv.onPageReadiness ?? report.score.total,
         keywordsRanked: sv.keywordsRanked,
         estMonthlyVisits: sv.estMonthlyVisits,
         brandPct: sv.brandPct,

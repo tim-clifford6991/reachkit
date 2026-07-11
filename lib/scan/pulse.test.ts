@@ -49,7 +49,12 @@ beforeEach(() => {
   vi.doMock("@/lib/db/raw-documents", () => ({ upsertRawDocument }));
   vi.doMock("@/lib/scan/score-full", () => ({ gatherScoreComponents, verifiedScore }));
   vi.doMock("@/lib/scan/persist-signals", () => ({ persistScanSignals }));
-  vi.doMock("@/lib/scan/registry-score", () => ({ headlineFromRows }));
+  // unifiedHeadline is a passthrough here: the mock scan has no report_payload, so
+  // search presence is null → the pulse leaves the on-page headline unchanged.
+  vi.doMock("@/lib/scan/registry-score", () => ({
+    headlineFromRows,
+    unifiedHeadline: (h: unknown) => h,
+  }));
   vi.doMock("@/lib/config/env", () => ({ env: { scanBudgetCents: 150 } }));
   vi.doMock("@/lib/tools/registry", () => ({ ScanBudget: class { constructor(_: unknown) {} } }));
 });

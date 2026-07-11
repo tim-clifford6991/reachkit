@@ -38,9 +38,13 @@ export interface DashboardHeroProps {
   /** F2 — the off-site "Market position" grade (paid deep pass). Shown beside the
    *  on-site score so a tidy landing page can't be mistaken for market strength. */
   marketPosition?: number | null;
+  /** v5 — the two drivers of the unified gauge (on-page readiness × search presence),
+   *  shown beneath it so a low score next to strong pillars reads as intentional. */
+  onPageReadiness?: number | null;
+  searchPresence?: number | null;
 }
 
-export function DashboardHero({ score, rollup, history, markers, isPaid, marketPosition }: DashboardHeroProps) {
+export function DashboardHero({ score, rollup, history, markers, isPaid, marketPosition, onPageReadiness, searchPresence }: DashboardHeroProps) {
   const band = bandFor(score);
   const assessedCount = rollup.pillars.filter((p) => p.assessed).length;
   const delta =
@@ -53,7 +57,17 @@ export function DashboardHero({ score, rollup, history, markers, isPaid, marketP
         <div style={{ display: "flex", flexWrap: "wrap", gap: 28, alignItems: "center" }}>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
             <Gauge score={score} />
-            <span style={{ fontSize: 10.5, fontFamily: JM, color: "var(--c-faint)", letterSpacing: "0.03em" }} title="Your on-site discoverability readiness — the weighted average of the on-site Content & SEO signals on your page. This number is identical on the free and paid scans and never moves on upgrade. How you actually stack up off-site (keyword footprint, backlinks, marketplace/community presence) is the separate Market Position grade.">ON-SITE READINESS</span>
+            <span style={{ fontSize: 10.5, fontFamily: JM, color: "var(--c-faint)", letterSpacing: "0.03em" }} title="Your unified Discoverability Score — the geometric mean of on-page readiness (your page build quality) and search presence (how findable you are in search). BOTH must be strong: a flawless page nobody finds still scores low. Identical on the free and paid scans — it never moves on upgrade. How you stack up off-site vs rivals (keyword footprint, backlinks, marketplace/community presence) is the separate Market Position grade.">DISCOVERABILITY</span>
+            {/* The two drivers of the unified gauge — so a low score next to strong
+                on-page pillars reads as intentional (search presence is the gap),
+                not broken. Only when both halves are known (v5 web scans). */}
+            {onPageReadiness != null && searchPresence != null && (
+              <div style={{ display: "flex", gap: 10, fontSize: 10.5, fontFamily: JM, color: "var(--c-faint)" }}>
+                <span title="How well your page is built (on-site signals).">On-page <strong style={{ color: bandFor(onPageReadiness).color }}>{onPageReadiness}</strong></span>
+                <span style={{ color: "var(--c-line)" }}>·</span>
+                <span title="How findable you are in search.">Search <strong style={{ color: bandFor(searchPresence).color }}>{searchPresence}</strong></span>
+              </div>
+            )}
             {delta !== null && (
               <span style={{ fontSize: 12, fontFamily: JM, color: delta > 0 ? "var(--c-band-high)" : delta < 0 ? "var(--c-band-invisible)" : "var(--c-faint)" }}>
                 {delta > 0 ? `▲ +${delta}` : delta < 0 ? `▼ ${delta}` : "no change"} since last scan

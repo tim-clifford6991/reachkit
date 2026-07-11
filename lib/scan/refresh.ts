@@ -62,7 +62,7 @@ import { linkSignalKeys, recomputeActionImpacts } from "@/lib/scan/action-linkin
 import type { ScanSignalRow } from "@/lib/scan/compute-signals";
 import { gatherScoreComponents, verifiedScore } from "@/lib/scan/score-full";
 import { persistScanSignals } from "@/lib/scan/persist-signals";
-import { headlineFromRows, type RegistryScoreRow } from "@/lib/scan/registry-score";
+import { headlineFromRows, unifiedHeadline, type RegistryScoreRow } from "@/lib/scan/registry-score";
 import { competitorDiscoveryLoop } from "@/lib/scan/loops";
 import { rankCompetitors } from "@/lib/scan/competitors";
 import { upsertRawDocument } from "@/lib/db/raw-documents";
@@ -672,7 +672,11 @@ async function writeScoreSnapshot(
   } catch (e) {
     console.error("[refresh] persistScanSignals failed (best-effort)", e);
   }
-  const headline = headlineFromRows(ctx.mode, score, rows);
+  // v5: reuse the persisted search-presence score so the weekly point lands on the
+  // unified Discoverability scale (not the on-page-only headline).
+  const { data: rpRow } = await db.from("scans").select("report_payload").eq("id", ctx.scanId).maybeSingle();
+  const searchPresence = (rpRow?.report_payload as { searchVisibility?: { score?: number } } | null)?.searchVisibility?.score ?? null;
+  const headline = unifiedHeadline(headlineFromRows(ctx.mode, score, rows), searchPresence);
 
   const { error } = await db.from("score_snapshots").insert({
     app_id: ctx.appId,

@@ -8,7 +8,7 @@ import { serverDb } from "@/lib/db/client";
 import { engagementSummary } from "@/lib/scan/engagement";
 import { scoreHistoryMarkers } from "@/lib/scan/score-history-markers";
 import { pillarRollupFromRegistry, type ScoreBreakdown } from "@/lib/scan/pillar-scores";
-import { headlineScore } from "@/lib/scan/registry-score";
+import { headlineScore, discoverabilityScore } from "@/lib/scan/registry-score";
 import type { Pillar } from "@/lib/scan/signals";
 import { actionBoard } from "@/lib/scan/action-board";
 import { DashboardHero } from "@/components/app/intel/dashboard-hero";
@@ -124,8 +124,18 @@ async function DashboardContent() {
         )
       : null;
   const rollup = pillarRollupFromRegistry(reg, scan.score_breakdown as unknown as ScoreBreakdown | null);
-  // Falls back to the persisted score_total only when no signals exist.
-  const headline = reg ? reg.total : scan.score_total;
+  // The gauge is the UNIFIED Discoverability Score (v5) — the SAME number the free
+  // report + persisted `score_total`/trend show, so the score never jumps between
+  // surfaces. reg.total is the on-page *driver* (the pillars decompose it); we fold
+  // in the persisted search-presence half via the geomean. Falls back to the
+  // persisted score_total when no live signals exist.
+  const searchPresence =
+    (scan.report_payload as { searchVisibility?: { score?: number } | null } | null)?.searchVisibility?.score ?? null;
+  const headline = reg
+    ? searchPresence != null
+      ? discoverabilityScore(reg.total, searchPresence)
+      : reg.total
+    : scan.score_total;
   // F2 — the paid off-site "Market position" grade, if the deep pass computed one.
   const marketPosition = (scan.report_payload as { marketPosition?: { total?: number } | null } | null)?.marketPosition?.total ?? null;
 
@@ -138,6 +148,8 @@ async function DashboardContent() {
         markers={markers}
         isPaid={entitlements?.active ?? false}
         marketPosition={marketPosition}
+        onPageReadiness={reg ? reg.total : null}
+        searchPresence={searchPresence}
       />
       {/* The plan is what a founder acts on — it reads second, right after the score story. */}
       <div style={{ marginTop: 20 }}>

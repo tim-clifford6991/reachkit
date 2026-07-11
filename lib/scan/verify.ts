@@ -29,7 +29,7 @@ import { trackRank } from "@/lib/scan/tools/track-rank";
 import { gatherScoreComponents, verifiedScore } from "@/lib/scan/score-full";
 import { coerceFacts, refreshSiteCrawl } from "@/lib/scan/pulse";
 import { persistScanSignals } from "@/lib/scan/persist-signals";
-import { headlineFromRows, type RegistryScoreRow } from "@/lib/scan/registry-score";
+import { headlineFromRows, unifiedHeadline, type RegistryScoreRow } from "@/lib/scan/registry-score";
 import { hostname } from "@/lib/scan/url";
 import type { ScanContext } from "@/lib/scan/pipeline";
 import type { ToolContext } from "@/lib/tools/registry";
@@ -264,13 +264,16 @@ async function snapshotScore(action: LoadedAction): Promise<void> {
   // itself is gathered from the app's verified outcomes + its preliminary facts.
   const { data: scanRow } = await db
     .from("scans")
-    .select("id, preliminary_facts")
+    .select("id, preliminary_facts, report_payload")
     .eq("app_id", action.appId)
     .order("started_at", { ascending: false, nullsFirst: false })
     .limit(1)
     .maybeSingle();
 
   const facts: PreliminaryFacts = coerceFacts(scanRow?.preliminary_facts ?? null, action.platform);
+  // v5: search presence is ~stable short-term (an on-page fix doesn't change
+  // rankings), so reuse the persisted score → the snapshot lands on the unified scale.
+  const searchPresence = (scanRow?.report_payload as { searchVisibility?: { score?: number } } | null)?.searchVisibility?.score ?? null;
 
   const ctx: ScanContext = {
     scanId: scanRow?.id ?? action.id,
@@ -308,7 +311,7 @@ async function snapshotScore(action: LoadedAction): Promise<void> {
       console.error("[verify] persistScanSignals failed (best-effort)", e);
     }
   }
-  const headline = headlineFromRows(ctx.mode, score, rows);
+  const headline = unifiedHeadline(headlineFromRows(ctx.mode, score, rows), searchPresence);
 
   // §6 #4: capture the app's PRIOR gauge total BEFORE inserting the new snapshot,
   // so the real observed movement can replace the provisional prediction in

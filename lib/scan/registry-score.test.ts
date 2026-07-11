@@ -5,8 +5,11 @@ import {
   headlineFromRows,
   headlineScore,
   marketPositionScore,
+  unifiedHeadline,
+  discoverabilityScore,
   FIXED_BASIS_SIGNAL_KEYS,
   HEADLINE_SCORE_VERSION,
+  DISCOVERABILITY_SCORE_VERSION,
   type RegistryScoreRow,
 } from "./registry-score";
 import type { VerifiedScore } from "./score-full";
@@ -104,6 +107,34 @@ describe("headlineFromRows", () => {
   it("keeps v1 for web when nothing measured", () => {
     const h = headlineFromRows("web", v1, [sig("title_tag", "seo", 0.1, null)]);
     expect(h).toEqual({ ...v1, version: 1 });
+  });
+});
+
+describe("unifiedHeadline (v5 — the Discoverability Score shown to the user)", () => {
+  const v1 = { total: 18, breakdown: { content: 0, outreach: 0, seo: 40 } };
+
+  it("combines the on-page headline with search presence into the geomean (version 5)", () => {
+    const onPage = headlineFromRows("web", v1, FIXED_ROWS); // v4 on-page driver
+    const unified = unifiedHeadline(onPage, 4);
+    expect(unified.version).toBe(DISCOVERABILITY_SCORE_VERSION);
+    expect(unified.total).toBe(discoverabilityScore(onPage.total, 4));
+    // the on-page breakdown bars are preserved (drivers, not folded away).
+    expect(unified.breakdown).toEqual(onPage.breakdown);
+  });
+
+  it("is stable free↔paid: same on-page + same search presence → same unified score", () => {
+    // BOTH inputs compute identically on free and paid, so the number never moves on
+    // upgrade (unlike the retired v3 that folded off-site signals into the headline).
+    const freeOnPage = headlineFromRows("web", v1, FIXED_ROWS);
+    const paidOnPage = headlineFromRows("web", v1, [...FIXED_ROWS, ...DEEP_ROWS]);
+    expect(unifiedHeadline(paidOnPage, 12).total).toBe(unifiedHeadline(freeOnPage, 12).total);
+  });
+
+  it("leaves app-platform (v1) and null-search-presence headlines unchanged", () => {
+    const app = { ...v1, version: 1 };
+    expect(unifiedHeadline(app, 30)).toEqual(app); // v1 never unified
+    const web = headlineFromRows("web", v1, FIXED_ROWS);
+    expect(unifiedHeadline(web, null)).toEqual(web); // no persisted search presence → on-page only
   });
 });
 

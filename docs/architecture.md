@@ -196,8 +196,9 @@ live populated/empty state of any given scan.
 
 | Data | Source | Storage | Interpretation | UI surface |
 |------|--------|---------|----------------|------------|
-| Headline score | HTML fetch (page only — no off-site) | `scans.score_total` / `score_breakdown` (`score_version 4`) | `compute-signals` → `headlineScore` = `registryScore` over the FIXED 8 on-site signals (`FIXED_BASIS_SIGNAL_KEYS`). Identical free↔paid (never moves on upgrade); equals the on-site pillar bars | Dashboard gauge ("On-site readiness") |
-| Pillar bars | on-site `scan_signals` | `scan_signals` | `headlineScore` → `pillarRollupFromRegistry`; Content + SEO assessed on-site, Outreach reads "off-site → Market Position" (no on-site signal) | Dashboard hero pillars |
+| **Discoverability Score (headline, v5)** | HTML fetch (on-page) **×** ONE `ranked_keywords` call (search presence) — both free-computable | `scans.score_total` (`score_version 5`) | `discoverabilityScore(onPageReadiness, searchPresence)` = **geomean** of (a) `headlineScore` = `registryScore` over the FIXED 8 on-site signals (`FIXED_BASIS_SIGNAL_KEYS`) and (b) `searchVisibility.score`. Both drivers identical free↔paid → **the unified number never moves on upgrade**. Geometric so BOTH must be strong (a tidy page invisible in search reads low, e.g. 98 × 4 → 20). `searchPresence` floored at 1 | Dashboard/report gauge + **two driver bars** ("On-page readiness" · "Search presence") |
+| On-page readiness (driver) | HTML fetch (page only — no off-site) | `scans.score_breakdown`, `report_payload.searchVisibility.onPageReadiness` | `compute-signals` → `headlineScore` = `registryScore` over the FIXED 8 on-site signals. UNCHANGED from v4 (still `HEADLINE_SCORE_VERSION=4`) | First driver bar; the on-site pillar bars |
+| Pillar bars | on-site `scan_signals` | `scan_signals` | `headlineScore` → `pillarRollupFromRegistry`; Content + SEO assessed on-site, Outreach reads "off-site → Market Position" (no on-site signal) | Dashboard hero pillars (paid) |
 | Market position | off-site `scan_signals` (keyword footprint, backlinks, marketplace/community/press) | `scans.report_payload.marketPosition` | `marketPositionScore` = `registryScore` over the NON-fixed (off-site) signals, cohort-relative where rivals exist | Dashboard hero ("Market position vs rivals"), paid only |
 | **Search Visibility (free "wow")** | ONE subject `ranked_keywords` (footprint) + ONE `search_volume` on the **LLM-authored category seed phrases** (`lib/llm/synth.ts` `categorySeeds`) | `report_payload.searchVisibility` (`search_cache` `rk:*`/`kv:*`) | `lib/scan/search-visibility.ts`: classify footprint brand/category/off-topic; **category demand = Σ exact volume of the LLM category seeds** (no keyword_ideas expansion noise); **capture = the SV score**; opportunities = category seeds you don't rank top-3 for. Works at 0 rankings (zero-state). ~$0.02 extra, ≤ ~15¢ free | Free report `/scan/[id]` "Your category, and how much of it you own" + hero SV panel |
 | Audience tags | LLM synth (`intendedAudience`/`actualAudience` on `positioningMirror`) | `findings_payload` → `report_payload.whatYouOffer.positioningMirror` | LLM-authored (replaced the old `splitTags` prose-chopping) | Free report "Positioning Mirror" |
@@ -313,7 +314,7 @@ subject-only DataForSEO calls (`ranked_keywords` + `search_volume`) to compute
 |---|---|---|---|
 | 1 | `collect` (`scan-requested.ts:44`) | `runCollect` → `getListing` (**site HTML fetch** = the sole source for the 8 headline signals + domain age), `getReviews` (**Tavily** `"{host} reviews"`), `findCompetitors` (**DataForSEO SERP + ProductHunt + Tavily**), then `extractCompetitorNames` (**Haiku**) to recover real names → `facts.competitors` | 3 external calls + 1 Haiku |
 | 2 | `findings` (`:99`) | `runExtract` (Haiku fact sheets) → `runSynth` (**Sonnet**): positioning mirror + findings + **`categorySeeds` (head category search phrases) + `intendedAudience`/`actualAudience`** (LLM-authored, persisted to `findings_payload`) → v1 score | 3–4 Haiku + 1 Sonnet |
-| 3 | `free-report` (`:147`) | `runFreeReport`: `headlineScore` over the 8 `FIXED_BASIS_SIGNAL_KEYS` (`score_version 4`) → `fallbackActionsFromSignals` → **`gatherFreeSearchVisibility`** (`ranked_keywords` footprint + `search_volume` on the LLM `categorySeeds` → `report_payload.searchVisibility`) → `buildFreeReport` | + ~2 DataForSEO calls (~$0.04) |
+| 3 | `free-report` (`:147`) | `runFreeReport`: `headlineScore` over the 8 `FIXED_BASIS_SIGNAL_KEYS` (on-page driver) → **`gatherFreeSearchVisibility`** (`ranked_keywords` footprint + `search_volume` on the LLM `categorySeeds` → `report_payload.searchVisibility`) → **`discoverabilityScore(head, sv.score)` persisted as `score_total` (`score_version 5`)** → `fallbackActionsFromSignals` → `buildFreeReport` | + ~2 DataForSEO calls (~$0.04) |
 | 4 | `done` (`:218`) | emit done, status `done` | — |
 
 Render: `/scan/[id]` → `PublicReport` → **always** `redactReportForTier(payload,"free")`
@@ -344,7 +345,7 @@ findings · 4 grounding readers (persisted data, reused for assembly) · 5
 cohort + `discoverDemand` 8-query pain sweep + keyword gap + plan + news) · 12 market
 snapshot · 13 **market-aware re-floor** (recompute signals *with* market, top up plan
 again) · 14 `persistActions` (delete+insert) · 15 score flip: `deepened_at`,
-`persistScanSignals`, `headlineScore` (v4, identical to free), `marketPositionScore`
+`persistScanSignals`, `discoverabilityScore(headlineScore, searchVisibility.score)` (v5, identical to free — 10a reuses persisted `searchVisibility`), `marketPositionScore`
 (off-site grade) · 16 snapshots + `seedMonitors` + emit. Cumulative cold cost ≈ **$0.56**
 (DataForSEO $0.35 dominant).
 
@@ -514,13 +515,16 @@ file; #13 (`audienceProxy`) stays deferred.
   **Inngest** functions hosted at `/api/inngest`.
 - **Two-tier scan** — a fast, free lightweight report is produced first
   (`lib/scan/free-report.ts`), then `scan/deepen` runs the expensive full pass
-  (`lib/scan/full-scan.ts`) only after payment. The headline gauge is
-  **`headlineScore`** — the fixed on-site basis (`score_version 4`) — measured
-  identically from page HTML on both tiers, so the number is stable free→paid and
-  equals the on-site pillar bars. The deep pass's off-site strength surfaces as the
-  separate **Market Position** grade, never in the headline. (PR #36 briefly made
-  the headline the full 18-signal `registryScore`, which dropped the score on
-  upgrade — v4 reverted that; see §4.1.)
+  (`lib/scan/full-scan.ts`) only after payment. The headline gauge is the
+  **unified Discoverability Score** (`score_version 5`) = `discoverabilityScore` =
+  geomean of **on-page readiness** (`headlineScore`, the fixed on-site basis) **×**
+  **search presence** (`searchVisibility.score`). Both drivers are free-computable
+  and measured identically on both tiers, so the number is stable free→paid — but
+  it's honest: a tidy page invisible in search scores low (98 × 4 → 20). The deep
+  pass's off-site cohort strength surfaces as the separate **Market Position**
+  grade, never in the headline. (v4 was on-page-only — stable but dishonestly high
+  for unfound sites; PR #36's v3 folded in *paid-only* off-site signals and dropped
+  the score on upgrade. v5 folds in only the *free* search-presence half. See §4.1.)
 - **Scoring engine** — `SIGNAL_REGISTRY` in `lib/scan/signals.ts` drives ~18
   deterministic (no-LLM) signals grouped into 3 weighted pillars
   (**SEO 0.45 / Content 0.30 / Outreach 0.25**), persisted to `scan_signals` +

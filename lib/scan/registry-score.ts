@@ -31,6 +31,32 @@ export interface RegistryScoreRow {
  */
 export const HEADLINE_SCORE_VERSION = 4;
 
+/**
+ * v5 (2026-07-11): the headline is the UNIFIED **Discoverability Score** —
+ * `discoverabilityScore` = geometric mean of **on-page readiness** (the v4
+ * `headlineScore`, 8 on-site signals) × **search presence** (the free-tier
+ * `searchVisibility.score`, from `ranked_keywords`). Both inputs are computed on
+ * BOTH tiers, so the number is still identical free↔paid (never moves on upgrade)
+ * — but it's now HONEST: a flawless page nobody finds scores low (a tidy landing
+ * page can't read 98 while it's invisible in search). The two drivers are shown
+ * beneath the gauge. Off-site cohort strength stays the separate
+ * `marketPositionScore` grade. See CLAUDE.md invariant #1 + docs/architecture.md.
+ */
+export const DISCOVERABILITY_SCORE_VERSION = 5;
+
+/**
+ * The unified Discoverability Score: geometric mean of on-page readiness and search
+ * presence, both 0–100. Geometric (not arithmetic) so BOTH must be strong — a great
+ * page with no search presence, or strong rankings on a broken page, both score low.
+ * `searchPresence` is floored at 1 so a well-built but wholly-unfound site reads a
+ * low single digit rather than a hard 0 (which looks like an error). PURE.
+ */
+export function discoverabilityScore(onPageReadiness: number, searchPresence: number): number {
+  const onPage = Math.max(0, Math.min(100, onPageReadiness));
+  const search = Math.max(1, Math.min(100, searchPresence));
+  return Math.round(Math.sqrt(onPage * search));
+}
+
 export interface RegistryScore {
   total: number;
   breakdown: { content: number; outreach: number; seo: number };
@@ -107,6 +133,19 @@ export interface Headline {
   total: number;
   breakdown: { content: number; outreach: number; seo: number };
   version: number;
+}
+
+/**
+ * Combine an on-page `Headline` with the persisted search-presence score into the
+ * v5 unified total — the single place the score-over-time writers (verify / refresh
+ * / pulse) turn the recomputed on-page score into the same Discoverability Score the
+ * scan persisted, so the trend line never mixes scales. `searchPresence` is the
+ * persisted `report_payload.searchVisibility.score` (null on app platforms / legacy
+ * scans → falls back to the on-page headline unchanged).
+ */
+export function unifiedHeadline(headline: Headline, searchPresence: number | null | undefined): Headline {
+  if (headline.version === 1 || searchPresence == null) return headline;
+  return { ...headline, total: discoverabilityScore(headline.total, searchPresence), version: DISCOVERABILITY_SCORE_VERSION };
 }
 
 /**

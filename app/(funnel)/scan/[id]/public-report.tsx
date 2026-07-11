@@ -88,6 +88,7 @@ export function PublicReport({
   payload: ReportPayload;
 }): JSX.Element {
   const { resultsProps, jsonLd } = publicReportProps(payload, slug, storeUrl);
+  resultsProps.scanId = scanId;
 
   return (
     <>
