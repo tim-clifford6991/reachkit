@@ -4,7 +4,7 @@ import Link from "next/link";
 import { resolveIntelContext } from "@/lib/app/intel-context";
 import { currentUser } from "@/lib/auth/server";
 import { isOwner } from "@/lib/auth/owner";
-import { loadScanDiagnostics, loadUserSpend, loadAllUsersSpend, type DataPoint } from "@/lib/app/diagnostics";
+import { loadScanDiagnostics, loadUserSpend, loadAllUsersSpend, loadMonthlySpend, type DataPoint } from "@/lib/app/diagnostics";
 import { Card, Badge } from "@/components/app/intel/kit";
 import { buildMetadata } from "@/lib/seo";
 
@@ -59,6 +59,7 @@ async function DiagnosticsContent() {
   const spend = viewer ? await loadUserSpend(viewer.user.id) : null;
   // Owner-only page → safe to show the full unit-economics breakdown across users.
   const allUsers = await loadAllUsersSpend();
+  const monthly = await loadMonthlySpend();
 
   if (!diag) {
     return (
@@ -159,6 +160,40 @@ async function DiagnosticsContent() {
                   <td style={{ ...num, fontWeight: 700, color: "var(--c-ink)" }}>{fmtCents(allUsers.reduce((n, u) => n + u.totalCostCents, 0))}</td>
                 </tr>
               </tfoot>
+            </table>
+          </div>
+        </Card>
+      )}
+
+      {/* MONTHLY SPEND — persisted user_spend_monthly view (time-windowed history) */}
+      {monthly.length > 0 && (
+        <Card title="Monthly spend by user" info="From the user_spend_monthly view — per-user cost bucketed by month, so spend trends are visible over time (the tables above are all-time totals).">
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ borderCollapse: "collapse", width: "100%", minWidth: 620 }}>
+              <thead>
+                <tr>
+                  <th style={th}>Month</th>
+                  <th style={th}>User</th>
+                  <th style={{ ...th, textAlign: "right" }}>Scans</th>
+                  <th style={{ ...th, textAlign: "right" }}>LLM</th>
+                  <th style={{ ...th, textAlign: "right" }}>DataForSEO</th>
+                  <th style={{ ...th, textAlign: "right" }}>Tavily</th>
+                  <th style={{ ...th, textAlign: "right" }}>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {monthly.map((m) => (
+                  <tr key={`${m.month}-${m.userId}`}>
+                    <td style={{ ...cell, fontFamily: JM, whiteSpace: "nowrap" }}>{m.month ? m.month.slice(0, 7) : "—"}</td>
+                    <td style={{ ...cell, maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.email ?? m.userId.slice(0, 8)}</td>
+                    <td style={num}>{m.scans}</td>
+                    <td style={num}>{fmtCents(m.llmCents)}</td>
+                    <td style={num}>{fmtCents(m.dataforseoCents)}</td>
+                    <td style={num}>{fmtCents(m.tavilyCents)}</td>
+                    <td style={{ ...num, fontWeight: 700, color: "var(--c-ink)" }}>{fmtCents(m.totalCents)}</td>
+                  </tr>
+                ))}
+              </tbody>
             </table>
           </div>
         </Card>

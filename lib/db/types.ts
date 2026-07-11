@@ -18,9 +18,9 @@ export type Database = {
       graphql: {
         Args: {
           operationName?: string
-          extensions?: Json
-          variables?: Json
           query?: string
+          variables?: Json
+          extensions?: Json
         }
         Returns: Json
       }
@@ -119,6 +119,13 @@ export type Database = {
             foreignKeyName: "actions_scan_id_fkey"
             columns: ["scan_id"]
             isOneToOne: false
+            referencedRelation: "public_scans"
+            referencedColumns: ["scan_id"]
+          },
+          {
+            foreignKeyName: "actions_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: false
             referencedRelation: "scans"
             referencedColumns: ["id"]
           },
@@ -192,6 +199,39 @@ export type Database = {
           },
         ]
       }
+      demand_intel: {
+        Row: {
+          buyer_insights: Json | null
+          category: string | null
+          cohort_key: string
+          community: Json | null
+          fetched_at: string
+          icp: Json | null
+          search_demand: Json | null
+          subject_domain: string
+        }
+        Insert: {
+          buyer_insights?: Json | null
+          category?: string | null
+          cohort_key?: string
+          community?: Json | null
+          fetched_at?: string
+          icp?: Json | null
+          search_demand?: Json | null
+          subject_domain: string
+        }
+        Update: {
+          buyer_insights?: Json | null
+          category?: string | null
+          cohort_key?: string
+          community?: Json | null
+          fetched_at?: string
+          icp?: Json | null
+          search_demand?: Json | null
+          subject_domain?: string
+        }
+        Relationships: []
+      }
       distribution_profiles: {
         Row: {
           crawled_at: string
@@ -207,39 +247,6 @@ export type Database = {
           crawled_at?: string
           domain?: string
           profile?: Json
-        }
-        Relationships: []
-      }
-      demand_intel: {
-        Row: {
-          subject_domain: string
-          cohort_key: string
-          category: string | null
-          icp: Json | null
-          search_demand: Json | null
-          community: Json | null
-          buyer_insights: Json | null
-          fetched_at: string
-        }
-        Insert: {
-          subject_domain: string
-          cohort_key?: string
-          category?: string | null
-          icp?: Json | null
-          search_demand?: Json | null
-          community?: Json | null
-          buyer_insights?: Json | null
-          fetched_at?: string
-        }
-        Update: {
-          subject_domain?: string
-          cohort_key?: string
-          category?: string | null
-          icp?: Json | null
-          search_demand?: Json | null
-          community?: Json | null
-          buyer_insights?: Json | null
-          fetched_at?: string
         }
         Relationships: []
       }
@@ -317,6 +324,13 @@ export type Database = {
             foreignKeyName: "evidence_scan_id_fkey"
             columns: ["scan_id"]
             isOneToOne: false
+            referencedRelation: "public_scans"
+            referencedColumns: ["scan_id"]
+          },
+          {
+            foreignKeyName: "evidence_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: false
             referencedRelation: "scans"
             referencedColumns: ["id"]
           },
@@ -390,6 +404,13 @@ export type Database = {
           scan_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "findings_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: false
+            referencedRelation: "public_scans"
+            referencedColumns: ["scan_id"]
+          },
           {
             foreignKeyName: "findings_scan_id_fkey"
             columns: ["scan_id"]
@@ -550,6 +571,13 @@ export type Database = {
             foreignKeyName: "pipeline_runs_scan_id_fkey"
             columns: ["scan_id"]
             isOneToOne: false
+            referencedRelation: "public_scans"
+            referencedColumns: ["scan_id"]
+          },
+          {
+            foreignKeyName: "pipeline_runs_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: false
             referencedRelation: "scans"
             referencedColumns: ["id"]
           },
@@ -618,6 +646,13 @@ export type Database = {
             foreignKeyName: "scan_events_scan_id_fkey"
             columns: ["scan_id"]
             isOneToOne: false
+            referencedRelation: "public_scans"
+            referencedColumns: ["scan_id"]
+          },
+          {
+            foreignKeyName: "scan_events_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: false
             referencedRelation: "scans"
             referencedColumns: ["id"]
           },
@@ -664,6 +699,13 @@ export type Database = {
           weight?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "scan_signals_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: false
+            referencedRelation: "public_scans"
+            referencedColumns: ["scan_id"]
+          },
           {
             foreignKeyName: "scan_signals_scan_id_fkey"
             columns: ["scan_id"]
@@ -806,6 +848,13 @@ export type Database = {
             foreignKeyName: "score_snapshots_scan_id_fkey"
             columns: ["scan_id"]
             isOneToOne: false
+            referencedRelation: "public_scans"
+            referencedColumns: ["scan_id"]
+          },
+          {
+            foreignKeyName: "score_snapshots_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: false
             referencedRelation: "scans"
             referencedColumns: ["id"]
           },
@@ -902,6 +951,19 @@ export type Database = {
           },
         ]
       }
+      user_spend_monthly: {
+        Row: {
+          dataforseo_cents: number | null
+          email: string | null
+          llm_cents: number | null
+          month: string | null
+          scans: number | null
+          tavily_cents: number | null
+          total_cents: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       binary_quantize: {
@@ -962,14 +1024,14 @@ export type Database = {
       }
       match_embeddings: {
         Args: {
-          match_count: number
-          p_app_id?: string
           query: string
+          match_count: number
           p_subject_type?: string
+          p_app_id?: string
         }
         Returns: {
-          similarity: number
           content: string
+          similarity: number
         }[]
       }
       sparsevec_out: {

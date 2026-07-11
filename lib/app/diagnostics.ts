@@ -226,6 +226,44 @@ export async function loadUserSpend(userId: string): Promise<UserSpend> {
  * unit-economics view. One user↔app map (users.app_ids) + one scan query, folded
  * in memory. Users with no scans appear with a zeroed row so the list is complete.
  */
+/** One month × user row from the `user_spend_monthly` view (owner-only surface). */
+export interface MonthlySpendRow {
+  userId: string;
+  email: string | null;
+  month: string | null; // ISO month bucket; null = user has no scans
+  scans: number;
+  llmCents: number;
+  dataforseoCents: number;
+  tavilyCents: number;
+  totalCents: number;
+}
+
+/**
+ * Per-user MONTHLY spend from the persisted `user_spend_monthly` view —
+ * time-windowed history the in-memory rollups can't give. Newest month first,
+ * highest spender first within a month. Rows with no scans are dropped.
+ */
+export async function loadMonthlySpend(): Promise<MonthlySpendRow[]> {
+  const db = serverDb();
+  const { data } = await db
+    .from("user_spend_monthly")
+    .select("*")
+    .order("month", { ascending: false });
+  return (data ?? [])
+    .filter((r) => r.month !== null)
+    .map((r) => ({
+      userId: r.user_id ?? "",
+      email: r.email,
+      month: r.month,
+      scans: Number(r.scans ?? 0),
+      llmCents: Number(r.llm_cents ?? 0),
+      dataforseoCents: Number(r.dataforseo_cents ?? 0),
+      tavilyCents: Number(r.tavily_cents ?? 0),
+      totalCents: Number(r.total_cents ?? 0),
+    }))
+    .sort((a, b) => (a.month === b.month ? b.totalCents - a.totalCents : (b.month ?? "").localeCompare(a.month ?? "")));
+}
+
 export async function loadAllUsersSpend(): Promise<UserSpendRow[]> {
   const db = serverDb();
   const { data: users } = await db.from("users").select("id, email, app_ids");
