@@ -37,7 +37,8 @@ import { gatherScoreComponents, verifiedScore } from "@/lib/scan/score-full";
 import { persistScanSignals, computeSignalRowsForScan } from "@/lib/scan/persist-signals";
 import { linkSignalKeys, topUpActions, recomputeActionImpacts, ensurePerCategoryFloor, MIN_ACTIONS } from "@/lib/scan/action-linking";
 import { fillDeterministicDrafts } from "@/lib/scan/action-drafts";
-import { headlineScore, marketPositionScore, HEADLINE_SCORE_VERSION } from "@/lib/scan/registry-score";
+import { headlineScore, marketPositionScore, HEADLINE_SCORE_VERSION, discoverabilityScore as unifiedDiscoverability, DISCOVERABILITY_SCORE_VERSION } from "@/lib/scan/registry-score";
+import { gatherFreeSearchVisibility } from "@/lib/scan/search-visibility";
 import { verifiedScoreFromRegistry } from "@/lib/scan/free-report";
 import type { ScanSignalRow } from "@/lib/scan/compute-signals";
 import { assembleReport, persistReport, bucketActions, type ReportPayload } from "@/lib/scan/report";
@@ -708,10 +709,11 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
     try {
       const { data: persisted } = await db
         .from("scans")
-        .select("report_payload")
+        .select("report_payload, findings_payload")
         .eq("id", ctx.scanId)
         .maybeSingle();
       const payload = persisted?.report_payload as unknown as ReportPayload | null;
+      const fpForSeeds = persisted?.findings_payload as { categorySeeds?: unknown } | null;
       const market = payload?.market ?? null;
       await persistScanSignals({ scanId: ctx.scanId, mode: ctx.mode, storeUrl: ctx.storeUrl, components, market });
 
@@ -738,12 +740,27 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
         // — it is the separate `marketPosition` grade below.
         const head = headlineScore(signalRows);
         if (head.assessed.length > 0) {
+          // v5 UNIFIED Discoverability Score = geomean(on-page readiness × search
+          // presence). Compute the SAME free-tier Search Visibility here (cache-hits
+          // the free pass's `ranked_keywords`, so ~free) so the number is identical
+          // free↔paid but honest. Best-effort — a failure keeps the on-page score.
+          const catSeeds = Array.isArray((fpForSeeds as { categorySeeds?: unknown })?.categorySeeds)
+            ? ((fpForSeeds as { categorySeeds: unknown[] }).categorySeeds.filter((s): s is string => typeof s === "string"))
+            : [];
+          const seedText = [
+            ...(facts.themes ?? []).map((t) => t.term).filter(Boolean),
+            positioningMirror.listingSays ?? "",
+            positioningMirror.reviewsValue ?? "",
+          ].filter((s) => s.length > 0);
+          const sv = await gatherFreeSearchVisibility(ctx.storeUrl, seedText, catSeeds).catch(() => null);
+          if (sv) sv.onPageReadiness = head.total;
+          const unified = unifiedDiscoverability(head.total, sv?.score ?? 0);
           await db
             .from("scans")
             .update({
-              score_total: head.total,
+              score_total: unified,
               score_breakdown: head.breakdown as unknown as Json,
-              score_version: HEADLINE_SCORE_VERSION,
+              score_version: DISCOVERABILITY_SCORE_VERSION,
             })
             .eq("id", ctx.scanId);
           // F2: the off-site "Market position" grade, distinct from the on-site
@@ -752,7 +769,12 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
           const marketPosition = mp.assessed.length > 0
             ? { total: mp.total, breakdown: mp.breakdown, assessed: mp.assessed }
             : null;
-          await persistReport(ctx.scanId, { ...payload, score: verifiedScoreFromRegistry(head), marketPosition });
+          await persistReport(ctx.scanId, {
+            ...payload,
+            score: { ...verifiedScoreFromRegistry(head), total: unified },
+            marketPosition,
+            ...(sv ? { searchVisibility: sv } : {}),
+          });
         }
       }
     } catch (e) {

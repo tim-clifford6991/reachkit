@@ -47,8 +47,12 @@ export interface DemandRow {
 }
 
 export interface SearchVisibility {
-  /** 0–100 heroable gap metric — how much real category search you actually win. */
+  /** 0–100 heroable gap metric — how much real category search you actually win.
+   *  This is the "search presence" driver of the unified Discoverability Score. */
   score: number;
+  /** The "on-page readiness" driver (the 8-signal on-site score) — set by the
+   *  caller so the free report can show both halves of the geomean beneath the gauge. */
+  onPageReadiness?: number;
   /** Total keywords the domain ranks for (in the sampled set). */
   keywordsRanked: number;
   /** Estimated monthly organic visits (Σ etv), rounded. */

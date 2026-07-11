@@ -104,7 +104,7 @@ import { computeSignalRowsForScan, persistScanSignals } from "./persist-signals"
 import { fallbackActionsFromSignals } from "./fallback-actions";
 import { fillDeterministicDrafts } from "./action-drafts";
 import { writeScanScoreSnapshot, rollupScanCost } from "./scan-telemetry";
-import { headlineScore, HEADLINE_SCORE_VERSION } from "./registry-score";
+import { headlineScore, HEADLINE_SCORE_VERSION, discoverabilityScore as unifiedDiscoverability, DISCOVERABILITY_SCORE_VERSION } from "./registry-score";
 import { discoverabilityScore } from "./score";
 import { gatherFreeSearchVisibility, type SearchVisibility } from "./search-visibility";
 import { persistReport } from "./report";
@@ -189,6 +189,16 @@ export async function runFreeReport(ctx: ScanContext, facts: PreliminaryFacts): 
     positioningMirror.reviewsValue ?? "",
   ].filter((s) => s.length > 0);
   const searchVisibility = ctx.mode === "web" ? await gatherFreeSearchVisibility(ctx.storeUrl, seedText, categorySeeds) : undefined;
+
+  // v5 UNIFIED Discoverability Score = geomean(on-page readiness × search presence).
+  // Both drivers are computed on free (on-site signals + ranked_keywords), so the
+  // number is still identical free↔paid — but honest: a flawless page nobody finds
+  // scores low. The two drivers are carried on `searchVisibility` for the hero.
+  if (ctx.mode === "web" && reg.assessed.length > 0 && searchVisibility) {
+    searchVisibility.onPageReadiness = reg.total;
+    score = { ...score, total: unifiedDiscoverability(reg.total, searchVisibility.score) };
+    scoreVersion = DISCOVERABILITY_SCORE_VERSION;
+  }
 
   const payload = buildFreeReport({
     mode: ctx.mode,

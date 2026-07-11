@@ -13,7 +13,12 @@
  * (+ the score-model memory) in the SAME change, then update the expectation here.
  */
 import { describe, it, expect } from "vitest";
-import { HEADLINE_SCORE_VERSION, FIXED_BASIS_SIGNAL_KEYS } from "./registry-score";
+import {
+  HEADLINE_SCORE_VERSION,
+  DISCOVERABILITY_SCORE_VERSION,
+  FIXED_BASIS_SIGNAL_KEYS,
+  discoverabilityScore,
+} from "./registry-score";
 import { PILLAR_WEIGHTS } from "./signals";
 import { MAX_SELECTED } from "./competitor-selection";
 import { MIN_ACTIONS } from "./action-linking";
@@ -21,6 +26,22 @@ import { MIN_ACTIONS } from "./action-linking";
 describe("documented invariants (keep docs in sync when these change)", () => {
   it("headline score model is v4 — the on-site basis (CLAUDE.md invariant #1, architecture §4.1)", () => {
     expect(HEADLINE_SCORE_VERSION).toBe(4);
+  });
+
+  it("unified Discoverability Score model is v5 — geomean(on-page, search) (CLAUDE.md invariant #1)", () => {
+    expect(DISCOVERABILITY_SCORE_VERSION).toBe(5);
+  });
+
+  it("discoverabilityScore is the geometric mean of its two drivers (never above either alone)", () => {
+    // Geometric mean: √(onPage × search). BOTH must be strong. A flawless page
+    // nobody finds (98 × 4) reads low; equal drivers return that same value.
+    expect(discoverabilityScore(98, 4)).toBe(Math.round(Math.sqrt(98 * 4))); // 20
+    expect(discoverabilityScore(80, 80)).toBe(80);
+    expect(discoverabilityScore(100, 100)).toBe(100);
+    // search floored at 1 (never a hard 0 that reads as an error) — clamped inputs.
+    expect(discoverabilityScore(100, 0)).toBe(10);
+    // the mean can never exceed the weaker driver's ceiling by much: it's ≤ max.
+    expect(discoverabilityScore(98, 4)).toBeLessThan(98);
   });
 
   it("the fixed on-site headline basis is exactly the 8 HTML signals (CLAUDE.md invariant #1)", () => {

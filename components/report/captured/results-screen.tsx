@@ -11,6 +11,7 @@ import type { ReactNode } from "react";
 import type { ReportPayload } from "@/lib/scan/report";
 import { bandFor } from "@/lib/scan/score-bands";
 import { CapturedShareButton } from "./share-button";
+import { UnlockLink } from "./unlock-link";
 
 // ── helpers ─────────────────────────────────────────────────────────────────
 const CX = 100, CY = 100, R = 88.5, START = 40, SWEEP = 280;
@@ -32,16 +33,6 @@ function bandViz(score: number) {
   if (score < 70) return { label: "Fair — room to climb", fg: "#C98A12", bg: "var(--c-tint-amber)" };
   if (score < 85) return { label: "Findable", fg: "#1F9D5B", bg: "var(--c-tint-green)" };
   return { label: "Highly discoverable", fg: "#0E7A48", bg: "var(--c-tint-green)" };
-}
-// The headline score is the ON-SITE readiness basis (page build quality), NOT a
-// discoverability verdict — so scope the chip label to build quality. This resolves
-// the "98 · Highly discoverable" vs "Search visibility · Invisible" contradiction:
-// a clean page (high on-site) can still be invisible in search.
-function onsiteLabel(score: number): string {
-  if (score >= 85) return "Well-built page";
-  if (score >= 65) return "Solid build";
-  if (score >= 45) return "Some on-page gaps";
-  return "Needs work";
 }
 // pillar value → bar color (mockup ramp)
 function pillarColor(v: number) {
@@ -88,6 +79,9 @@ export interface ResultsScreenProps {
   siteHost?: string;
   /** When set, the "Share score" button opens the interactive share modal. */
   slug?: string;
+  /** Scan id — threads the anonymous Stripe checkout into every inline "unlock"
+   *  CTA across the report (via UnlockLink). Absent on the design/demo render. */
+  scanId?: string;
   /** Custom unlock-CTA button (e.g. start-trial / upgrade). Falls back to a
    *  static button. */
   unlockButton?: ReactNode;
@@ -104,6 +98,9 @@ export interface ResultsScreenProps {
    *  other companies' brand names. Null on paid (uses market position instead). */
   searchVisibility?: {
     score: number;
+    /** The on-page readiness driver (v4 headlineScore) — the OTHER half of the
+     *  unified Discoverability Score, shown as the second driver bar. */
+    onPageReadiness: number;
     keywordsRanked: number;
     estMonthlyVisits: number;
     brandPct: number;
@@ -165,23 +162,16 @@ export function ResultsScreen(p: ResultsScreenProps) {
                 <text x="100" y="107.2" textAnchor="middle" style={{ font: `700 40px ${JM}, monospace`, fill: "var(--c-ink)" }}>{p.score}</text>
                 <text x="100" y="126.2" textAnchor="middle" style={{ font: `600 11px ${JM}, monospace`, fill: "var(--c-faint)", letterSpacing: 1 }}>/ 100</text>
               </svg>
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: band.bg, color: band.fg, fontWeight: 700, fontSize: 13, padding: "5px 13px", borderRadius: 8, marginTop: 8, fontFamily: SG }}>{p.hideUnlock ? band.label : onsiteLabel(p.score)}</div>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: band.bg, color: band.fg, fontWeight: 700, fontSize: 13, padding: "5px 13px", borderRadius: 8, marginTop: 8, fontFamily: SG }}>{band.label}</div>
               {(() => {
-                // Basis honesty: name what the score is measured from so an on-site
-                // headline is never mistaken for a full market-wide verdict. Free
-                // scans always carry the upgrade hook; a fully-measured paid scan
-                // stays silent.
-                const total = p.pillars.length;
-                const measuredCount = p.pillars.filter((pil) => pil.measured !== false).length;
-                const note = !p.hideUnlock
-                  ? measuredCount < total
-                    ? `Measured on ${measuredCount} of ${total} growth surfaces — off-site reach unlocks with the full scan`
-                    : "On-site readiness — off-site reach unlocks with the full scan"
-                  : measuredCount < total
-                    ? `Measured on ${measuredCount} of ${total} growth surfaces`
-                    : null;
+                // The unified Discoverability Score = how findable you actually are
+                // (page quality × search presence). Name that so the number reads as
+                // intentional, not a page-tidiness score.
+                const note = p.searchVisibility
+                  ? "How findable you actually are — your page quality × your presence in search."
+                  : "On-page readiness. Search presence unlocks with the full scan.";
                 return note ? (
-                  <div style={{ marginTop: 8, fontSize: 11.5, lineHeight: 1.45, color: "var(--c-faint)", fontFamily: JM, maxWidth: 190 }}>{note}</div>
+                  <div style={{ marginTop: 8, fontSize: 11.5, lineHeight: 1.45, color: "var(--c-faint)", fontFamily: JM, maxWidth: 200 }}>{note}</div>
                 ) : null;
               })()}
               {/* F2 — Market position: the honest cohort-relative grade beside the
@@ -198,34 +188,6 @@ export function ResultsScreen(p: ResultsScreenProps) {
                       <span style={{ fontSize: 11.5, fontWeight: 700, color: mp.fg, background: mp.bg, padding: "2px 8px", borderRadius: 6, fontFamily: SG }}>{mp.label}</span>
                     </div>
                     <div style={{ marginTop: 4, fontSize: 11, lineHeight: 1.4, color: "var(--c-faint)", fontFamily: JM, maxWidth: 200 }}>Off-site footprint (keywords, backlinks, presence) measured against your discovered competitors.</div>
-                  </div>
-                );
-              })()}
-              {/* Search Visibility (free) — the honest gap beside the on-site score.
-                  A tidy page can score 98 yet win almost no real category search;
-                  this shows how much of the footprint is just other brands' names. */}
-              {p.marketPosition == null && p.searchVisibility && (() => {
-                const sv = p.searchVisibility!;
-                const c = bandViz(sv.score);
-                return (
-                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px dashed var(--c-line2)" }}>
-                    <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--c-faint)", marginBottom: 4 }}>Search visibility</div>
-                    <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-                      <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 22, color: c.fg }}>{sv.score}</span>
-                      <span style={{ fontSize: 11, color: "var(--c-faint)" }}>/ 100</span>
-                      <span style={{ fontSize: 11.5, fontWeight: 700, color: c.fg, background: c.bg, padding: "2px 8px", borderRadius: 6, fontFamily: SG }}>{c.label}</span>
-                    </div>
-                    <div style={{ marginTop: 4, fontSize: 11, lineHeight: 1.4, color: "var(--c-faint)", fontFamily: JM, maxWidth: 210 }}>
-                      {sv.keywordsRanked === 0
-                        ? sv.categoryDemand > 0
-                          ? `Google ranks you for 0 searches. Your category gets ${sv.categoryDemand.toLocaleString()}/mo — you capture none of it.`
-                          : `Google ranks you for 0 searches — you're invisible in organic search.`
-                        : sv.categoryDemand > 0
-                          ? `You capture ${sv.categoryCaptureRate}% of your category's ${sv.categoryDemand.toLocaleString()} searches/mo.`
-                          : sv.offTopicPct >= 40
-                            ? `${sv.offTopicPct}% of your search traffic is other companies' brand names — not your category.`
-                            : `How much real category search you actually win — not just your own brand.`}
-                    </div>
                   </div>
                 );
               })()}
@@ -251,6 +213,39 @@ export function ResultsScreen(p: ResultsScreenProps) {
               <p style={{ fontSize: 15, lineHeight: 1.6, color: "var(--c-muted)", margin: "0 0 14px" }}>
                 {p.siteLabel} {p.intro}
               </p>
+              {/* The two drivers of the unified Discoverability Score. Showing them
+                  beside the gauge makes the geometric mean legible: a great page
+                  (on-page readiness high) that nobody finds (search presence low)
+                  is WHY the headline is low — no more "98 vs Invisible" whiplash.
+                  Paid scans (no free searchVisibility) keep the 3 on-page pillars. */}
+              {p.searchVisibility ? (() => {
+                const drivers = [
+                  { label: "On-page readiness", value: p.searchVisibility!.onPageReadiness, note: "how well your page is built" },
+                  { label: "Search presence", value: p.searchVisibility!.score, note: "how findable you are in search" },
+                ];
+                return (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
+                    {drivers.map((d) => {
+                      const c = pillarColor(d.value);
+                      return (
+                        <div key={d.label}>
+                          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 5 }}>
+                            <span style={{ fontSize: 13.5, fontWeight: 600 }}>{d.label}</span>
+                            <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 15, color: c }}>{d.value}<span style={{ fontSize: 11, color: "var(--c-faint)", fontWeight: 500 }}>/100</span></span>
+                          </div>
+                          <div style={{ height: 8, borderRadius: 5, background: "var(--c-fill)", overflow: "hidden" }}>
+                            <div style={{ height: "100%", borderRadius: 5, width: `${d.value}%`, background: c }} />
+                          </div>
+                          <div style={{ marginTop: 4, fontSize: 11.5, color: "var(--c-faint)", fontFamily: JM }}>{d.note}</div>
+                        </div>
+                      );
+                    })}
+                    <div style={{ fontSize: 12, lineHeight: 1.5, color: "var(--c-muted)", fontFamily: JM, paddingTop: 4, borderTop: "1px dashed var(--c-line2)", marginTop: 2 }}>
+                      Your score multiplies both — a flawless page nobody finds still scores low. <strong style={{ color: "var(--c-fg)" }}>Search presence is your gap.</strong>
+                    </div>
+                  </div>
+                );
+              })() : (
               <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
                 {p.pillars.map((pil) => {
                   const c = pillarColor(pil.value);
@@ -279,84 +274,9 @@ export function ResultsScreen(p: ResultsScreenProps) {
                   );
                 })}
               </div>
+              )}
             </div>
           </div>
-
-          {/* Top ranked fixes */}
-          <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: 20, letterSpacing: "-0.01em", margin: "32px 0 6px" }}>{p.fixes.length > 0 ? `Your top ${p.fixes.length} ranked fixes` : "Your ranked fixes"}</h2>
-          <p style={{ fontSize: 14, color: "var(--c-faint)", margin: "0 0 14px" }}>
-            {/* Tier-aware: the old copy hardcoded "Free scans show X of Y" for
-                every viewer, mislabeling paid reports. */}
-            Ordered by expected score impact.{!p.hideUnlock && ` Free scans show ${p.fixes.length} of ${p.fixes.length + p.lockedCount}.`}
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {/* Graceful floor for already-persisted reports with an empty action
-                plan — never render a bare "top 0 fixes" section. */}
-            {p.fixes.length === 0 && p.lockedCount === 0 && (
-              <div style={{ background: "var(--c-surface)", border: "1px dashed #D9D6E4", borderRadius: 14, padding: "18px 20px", fontSize: 14, color: "var(--c-faint)" }}>
-                We couldn&apos;t rank fixes for this scan. The pillar bars above show where you&apos;re weakest — re-run the scan to regenerate a full action plan.
-              </div>
-            )}
-            {p.fixes.map((f) => {
-              const ec = effortColors(f.effort);
-              return (
-                <div key={f.rank} style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 14, padding: "18px 20px", display: "flex", alignItems: "flex-start", gap: 16 }}>
-                  <span style={{ width: 30, height: 30, borderRadius: 8, background: ec.bg, color: ec.fg, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: JM, flex: "0 0 auto" }}>{f.rank}</span>
-                  <div style={{ flex: "1 1 0%" }}>
-                    <div style={{ fontWeight: 600, fontSize: 15.5 }}>{f.title}</div>
-                    <div style={{ fontSize: 13.5, color: "var(--c-faint)", marginTop: 3 }}>{f.why}</div>
-                    <div style={{ display: "flex", gap: 7, marginTop: 10 }}>
-                      <span style={{ fontSize: 11.5, fontWeight: 600, color: ec.fg, background: ec.bg, padding: "3px 9px", borderRadius: 6 }}>{f.effort}</span>
-                      <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--c-muted)", background: "var(--c-fill)", padding: "3px 9px", borderRadius: 6 }}>{f.pillar}</span>
-                    </div>
-                  </div>
-                  <div style={{ textAlign: "right", flex: "0 0 auto" }}>
-                    <div style={{ fontSize: 11, color: "var(--c-faint)", fontWeight: 600 }}>Predicted</div>
-                    <div style={{ fontFamily: JM, fontWeight: 700, fontSize: 18, color: "#1F9D5B" }}>+{f.pred}</div>
-                  </div>
-                </div>
-              );
-            })}
-            {p.lockedCount > 0 && (
-              <div style={{ position: "relative", background: "var(--c-surface)", border: "1px dashed #D9D6E4", borderRadius: 14, padding: "18px 20px", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
-                <span style={{ fontSize: 14, fontWeight: 600, color: "var(--c-faint)" }}>🔒 {p.lockedCount} more ranked fixes — worth an estimated +{p.lockedWorth} — unlock with a free account</span>
-              </div>
-            )}
-          </div>
-
-          {/* Positioning Mirror — LLM-authored audience tags (never prose-split junk);
-              the whole section hides if there's genuinely nothing to show. */}
-          {(p.intendedTags.length > 0 || p.actualTags.length > 0 || (p.mirrorGap && p.mirrorGap.trim().length > 0)) && (
-            <>
-              <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: 20, letterSpacing: "-0.01em", margin: "32px 0 6px" }}>Positioning Mirror</h2>
-              <p style={{ fontSize: 14, color: "var(--c-faint)", margin: "0 0 14px" }}>Who you think you target, vs. who your page actually reads as.</p>
-              <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16, padding: 24 }}>
-                {(p.intendedTags.length > 0 || p.actualTags.length > 0) && (
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-                    <div style={{ border: "1px solid var(--c-tint-violet-line)", background: "var(--c-tint-violet)", borderRadius: 12, padding: 18 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--c-action)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 12 }}>You think you target</div>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                        {p.intendedTags.length > 0 ? p.intendedTags.map((t) => (
-                          <span key={t} style={{ fontSize: 13, fontWeight: 600, background: "var(--c-surface)", border: "1px solid #E2DEF0", color: "#3A3744", padding: "6px 12px", borderRadius: 8 }}>{t}</span>
-                        )) : <span style={{ fontSize: 13, color: "var(--c-faint)" }}>—</span>}
-                      </div>
-                    </div>
-                    <div style={{ border: "1px solid var(--c-tint-orange-line)", background: "var(--c-tint-orange)", borderRadius: 12, padding: 18 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "#E0731C", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 12 }}>Your page actually reads as</div>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                        {p.actualTags.length > 0 ? p.actualTags.map((t) => (
-                          <span key={t} style={{ fontSize: 13, fontWeight: 600, background: "var(--c-surface)", border: "1px solid #F0E0D2", color: "#3A3744", padding: "6px 12px", borderRadius: 8 }}>{t}</span>
-                        )) : <span style={{ fontSize: 13, color: "var(--c-faint)" }}>—</span>}
-                      </div>
-                    </div>
-                  </div>
-                )}
-                {p.mirrorGap && p.mirrorGap.trim().length > 0 && (
-                  <div style={{ marginTop: 18, padding: "16px 18px", background: "var(--c-tint-red)", borderLeft: "3px solid #E5484D", borderRadius: "0 10px 10px 0", fontSize: 14.5, lineHeight: 1.55, color: "#3A3744" }}>{p.mirrorGap}</div>
-                )}
-              </div>
-            </>
-          )}
 
           {/* Search Visibility — your category's demand + how much you actually capture */}
           <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: 20, letterSpacing: "-0.01em", margin: "32px 0 6px" }}>Your category, and how much of it you own</h2>
@@ -395,7 +315,7 @@ export function ResultsScreen(p: ResultsScreenProps) {
                 </div>
                 {comps.length > 0 && (
                   <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--c-line2)", fontSize: 13, color: "var(--c-muted)" }}>
-                    Buyers compare you to <strong style={{ color: "var(--c-ink)" }}>{comps.join(", ")}</strong>. <span style={{ color: "var(--c-action)", fontWeight: 600 }}>Unlock to see how much of your category each one takes →</span>
+                    Buyers compare you to <strong style={{ color: "var(--c-ink)" }}>{comps.join(", ")}</strong>. <UnlockLink scanId={p.scanId}>Unlock to see how much of your category each one takes →</UnlockLink>
                   </div>
                 )}
               </div>
@@ -433,43 +353,117 @@ export function ResultsScreen(p: ResultsScreenProps) {
               </div>
             );
           })()}
-          <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16, overflow: "hidden" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "2.2fr 1fr 1fr 0.9fr", padding: "13px 22px", borderBottom: "1px solid var(--c-line2)", fontSize: 11.5, fontWeight: 700, letterSpacing: "0.04em", color: "var(--c-faint)", textTransform: "uppercase", background: "var(--c-bg2)" }}>
-              <span>Query</span><span>Volume / mo</span><span>Your rank</span><span>Opportunity</span>
-            </div>
-            {/* Empty rows: on the FREE page this is a paid feature, not a
-                failure — tease it. Only the PAID view (hideUnlock) with genuinely
-                no data shows the honest "not available" copy. */}
-            {p.gapRows.length === 0 && (
-              !p.hideUnlock ? (
-                <div style={{ padding: "18px 22px", fontSize: 14, lineHeight: 1.55, color: "#3A3744", background: "var(--c-tint-violet)" }}>
-                  🔒 Keyword-gap analysis is part of the full scan — the buyer queries where rivals outrank you, ranked by opportunity
-                  {p.gapTotal > 0 ? ` (${p.gapTotal} found on this scan)` : ""}. <span style={{ fontWeight: 700, color: "var(--c-action)" }}>Unlock with a free account →</span>
+          {/* Biggest opportunity — we promote the single HIGHEST-value category
+              search you don't win (sorted by volume upstream), framed by the score
+              lever it moves, instead of a flat Low/Med/High table that buried the
+              big win under tiny near-misses. The rest are teased behind checkout. */}
+          {(() => {
+            const top = p.gapRows[0];
+            if (!top) {
+              // No parsed opportunities — tease the paid keyword-gap plan (free), or
+              // stay honest on a paid report with genuinely no data.
+              return !p.hideUnlock ? (
+                <div style={{ background: "var(--c-tint-violet)", border: "1px solid var(--c-tint-violet-line)", borderRadius: 16, padding: "18px 22px", fontSize: 14, lineHeight: 1.55, color: "#3A3744" }}>
+                  🔒 The full keyword-gap plan{p.gapTotal > 0 ? ` (${p.gapTotal} queries)` : ""} — every buyer search where rivals outrank you, ranked by opportunity. <UnlockLink scanId={p.scanId}>Unlock the plan to win them →</UnlockLink>
                 </div>
               ) : p.gapTotal === 0 ? (
-                <div style={{ padding: "18px 22px", fontSize: 14, color: "var(--c-faint)" }}>
+                <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16, padding: "18px 22px", fontSize: 14, color: "var(--c-faint)" }}>
                   Search-gap data wasn&apos;t available for this scan — keyword rankings could not be measured for this site yet.
                 </div>
-              ) : null
-            )}
-            {p.gapRows.map((g, i) => (
-              <div key={i} style={{ display: "grid", gridTemplateColumns: "2.2fr 1fr 1fr 0.9fr", padding: "14px 22px", borderBottom: "1px solid var(--c-fill)", alignItems: "center" }}>
-                <span style={{ fontSize: 14, fontWeight: 600 }}>{g.query}</span>
-                <span style={{ fontFamily: JM, fontSize: 13, color: "#3A3744" }}>{g.volume}</span>
-                <span style={{ fontFamily: JM, fontSize: 13, color: g.ranked ? "#3A3744" : "#E5484D" }}>{g.rank}</span>
-                <span><span style={{ fontSize: 11.5, fontWeight: 700, color: oppColors(g.opp).fg, background: oppColors(g.opp).bg, padding: "3px 10px", borderRadius: 6 }}>{g.opp}</span></span>
+              ) : null;
+            }
+            const more = Math.max(0, p.gapTotal - 1);
+            const oc = oppColors(top.opp);
+            return (
+              <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16, padding: "22px 24px" }}>
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--c-action)", marginBottom: 10 }}>Your biggest untapped opportunity</div>
+                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12, marginBottom: 14 }}>
+                  <span style={{ fontFamily: SG, fontWeight: 700, fontSize: 22, letterSpacing: "-0.01em" }}>{top.query}</span>
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: oc.fg, background: oc.bg, padding: "3px 10px", borderRadius: 6 }}>{top.opp} opportunity</span>
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 26 }}>
+                  <div><div style={{ fontFamily: JM, fontWeight: 700, fontSize: 22 }}>{top.volume}</div><div style={{ fontSize: 11.5, color: "var(--c-faint)" }}>searches / mo</div></div>
+                  <div><div style={{ fontFamily: JM, fontWeight: 700, fontSize: 22, color: "#E5484D" }}>{top.rank}</div><div style={{ fontSize: 11.5, color: "var(--c-faint)" }}>where you are today</div></div>
+                </div>
+                <div style={{ marginTop: 16, padding: "13px 15px", background: "var(--c-bg2)", borderRadius: 10, fontSize: 13.5, lineHeight: 1.55, color: "var(--c-muted)" }}>
+                  Winning this term lifts your <strong style={{ color: "var(--c-fg)" }}>Search presence</strong> — the weaker half of your Discoverability Score.
+                  {more > 0 && <> There {more === 1 ? "is" : "are"} <strong style={{ color: "var(--c-fg)" }}>{more} more</strong> like it in your category.</>}
+                </div>
+                {!p.hideUnlock && (
+                  <div style={{ marginTop: 14, textAlign: "center", fontSize: 14, fontWeight: 600 }}>
+                    <UnlockLink scanId={p.scanId}>🔒 Unlock all {p.gapTotal} category {p.gapTotal === 1 ? "opportunity" : "opportunities"} + the plan to win them →</UnlockLink>
+                  </div>
+                )}
               </div>
-            ))}
-            {/* Tier-aware footer: no "unlock" upsell on a paid report, and no
-                "Showing 0 of 0 queries" when there is no data (empty state above). */}
-            {p.gapRows.length > 0 && p.gapTotal > 0 && (
-              <div style={{ padding: "14px 22px", textAlign: "center", fontSize: 13, fontWeight: 600, color: "var(--c-action)", background: "var(--c-tint-violet)", cursor: "pointer" }}>
-                {p.hideUnlock
-                  ? `Showing ${p.gapRows.length} of ${p.gapTotal} queries`
-                  : `Showing ${p.gapRows.length} of ${p.gapTotal} queries — unlock full depth →`}
+            );
+          })()}
+
+          {/* Top ranked fixes */}
+          <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: 20, letterSpacing: "-0.01em", margin: "32px 0 6px" }}>{p.fixes.length > 0 ? `Your top ${p.fixes.length} ranked fixes` : "Your ranked fixes"}</h2>
+          <p style={{ fontSize: 14, color: "var(--c-faint)", margin: "0 0 14px" }}>
+            {/* Tier-aware: the old copy hardcoded "Free scans show X of Y" for
+                every viewer, mislabeling paid reports. */}
+            Ordered by expected score impact.{!p.hideUnlock && ` Free scans show ${p.fixes.length} of ${p.fixes.length + p.lockedCount}.`}
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {/* Graceful floor for already-persisted reports with an empty action
+                plan — never render a bare "top 0 fixes" section. */}
+            {p.fixes.length === 0 && p.lockedCount === 0 && (
+              <div style={{ background: "var(--c-surface)", border: "1px dashed #D9D6E4", borderRadius: 14, padding: "18px 20px", fontSize: 14, color: "var(--c-faint)" }}>
+                We couldn&apos;t rank fixes for this scan. The pillar bars above show where you&apos;re weakest — re-run the scan to regenerate a full action plan.
+              </div>
+            )}
+            {p.fixes.map((f) => {
+              const ec = effortColors(f.effort);
+              return (
+                <div key={f.rank} style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 14, padding: "18px 20px", display: "flex", alignItems: "flex-start", gap: 16 }}>
+                  <span style={{ width: 30, height: 30, borderRadius: 8, background: ec.bg, color: ec.fg, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: JM, flex: "0 0 auto" }}>{f.rank}</span>
+                  <div style={{ flex: "1 1 0%" }}>
+                    <div style={{ fontWeight: 600, fontSize: 15.5 }}>{f.title}</div>
+                    <div style={{ fontSize: 13.5, color: "var(--c-faint)", marginTop: 3 }}>{f.why}</div>
+                    <div style={{ display: "flex", gap: 7, marginTop: 10 }}>
+                      <span style={{ fontSize: 11.5, fontWeight: 600, color: ec.fg, background: ec.bg, padding: "3px 9px", borderRadius: 6 }}>{f.effort}</span>
+                      <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--c-muted)", background: "var(--c-fill)", padding: "3px 9px", borderRadius: 6 }}>{f.pillar}</span>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "right", flex: "0 0 auto" }}>
+                    <div style={{ fontSize: 11, color: "var(--c-faint)", fontWeight: 600 }}>Predicted</div>
+                    <div style={{ fontFamily: JM, fontWeight: 700, fontSize: 18, color: "#1F9D5B" }}>+{f.pred}</div>
+                  </div>
+                </div>
+              );
+            })}
+            {p.lockedCount > 0 && (
+              <div style={{ position: "relative", background: "var(--c-surface)", border: "1px dashed #D9D6E4", borderRadius: 14, padding: "18px 20px", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+                <span style={{ fontSize: 14, fontWeight: 600, color: "var(--c-faint)" }}>🔒 {p.lockedCount} more ranked fixes — worth an estimated +{p.lockedWorth} — <UnlockLink scanId={p.scanId}>unlock the full plan →</UnlockLink></span>
               </div>
             )}
           </div>
+
+          {/* Positioning Mirror — reworked (was two heavy chip columns that read as
+              garbage and buried the point). Now the GAP insight leads; the intended
+              vs actual audience is a single compact "aim → reads as" line beneath it,
+              de-emphasised. Hides entirely if there's genuinely nothing to show. */}
+          {(p.intendedTags.length > 0 || p.actualTags.length > 0 || (p.mirrorGap && p.mirrorGap.trim().length > 0)) && (
+            <>
+              <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: 20, letterSpacing: "-0.01em", margin: "32px 0 6px" }}>Positioning Mirror</h2>
+              <p style={{ fontSize: 14, color: "var(--c-faint)", margin: "0 0 14px" }}>Whether your page reads as the audience you actually want.</p>
+              <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16, padding: 24 }}>
+                {p.mirrorGap && p.mirrorGap.trim().length > 0 && (
+                  <div style={{ padding: "16px 18px", background: "var(--c-tint-red)", borderLeft: "3px solid #E5484D", borderRadius: "0 10px 10px 0", fontSize: 15, lineHeight: 1.6, color: "#3A3744" }}>{p.mirrorGap}</div>
+                )}
+                {(p.intendedTags.length > 0 || p.actualTags.length > 0) && (
+                  <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px 14px", marginTop: p.mirrorGap && p.mirrorGap.trim().length > 0 ? 16 : 0, fontSize: 13.5 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--c-faint)" }}>You aim for</span>
+                    <span style={{ fontWeight: 600, color: "var(--c-action)" }}>{p.intendedTags.length > 0 ? p.intendedTags.join(", ") : "—"}</span>
+                    <span style={{ color: "var(--c-faint)" }}>→</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--c-faint)" }}>Your page reads as</span>
+                    <span style={{ fontWeight: 600, color: "#E0731C" }}>{p.actualTags.length > 0 ? p.actualTags.join(", ") : "—"}</span>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
 
           {/* Evidence footnote */}
           <div style={{ marginTop: 24, display: "flex", alignItems: "center", gap: 10, fontSize: 12.5, color: "var(--c-faint)", fontFamily: JM }}>

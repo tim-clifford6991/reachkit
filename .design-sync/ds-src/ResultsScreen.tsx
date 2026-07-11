@@ -3,11 +3,14 @@ import * as React from "react";
 
 /**
  * ResultsScreen — the free-scan report rendered at /scan/[id]: a context bar
- * (free scan · site + Share), the hero card (280° gauge + band + headline +
- * pillar bars + basis note), the top ranked fixes with the locked teaser, the
- * Positioning Mirror (you-think vs page-reads + gap), the Search Gap Analysis
- * table, the evidence footnote, and the unlock CTA band. Mirrors the live
- * captured report (`components/report/captured/results-screen.tsx`).
+ * (free scan · site + Share), the hero card (280° gauge showing the UNIFIED
+ * Discoverability Score + band + headline + its TWO driver bars: on-page
+ * readiness × search presence), the "Your category, and how much of it you own"
+ * money-shot lifted directly under the score, the promoted single biggest
+ * opportunity (not a flat table), the top ranked fixes with a clickable unlock
+ * teaser, the reworked Positioning Mirror (gap insight leads, compact aim→reads-as
+ * line), the evidence footnote, and the unlock CTA band. Mirrors the live captured
+ * report (`components/report/captured/results-screen.tsx`).
  */
 export interface ResultsScreenProps {
   _unused?: never;
@@ -28,18 +31,16 @@ function band(score: number) {
   if (score < 85) return { label: "Findable", fg: "var(--c-band-findable)", bg: "var(--c-tint-green)" };
   return { label: "Highly discoverable", fg: "var(--c-band-high)", bg: "var(--c-tint-green)" };
 }
-// The headline score is ON-SITE readiness (page build quality), not a discoverability
-// verdict — the chip is scoped to build quality so it can't contradict the Search
-// Visibility gap below ("Well-built page" next to "Invisible in search").
-const onsiteLabel = (s: number) => (s >= 85 ? "Well-built page" : s >= 65 ? "Solid build" : s >= 45 ? "Some on-page gaps" : "Needs work");
 const pillarColor = (v: number) => (v < 30 ? "var(--c-band-invisible)" : v < 50 ? "var(--c-band-hard)" : v < 70 ? "var(--c-band-fair)" : "var(--c-band-findable)");
 
-const SCORE = 47;
+// v5 unified Discoverability Score = geomean of the two drivers. A tidy page (high
+// on-page) that nobody finds (low search presence) reads low — the whole point.
+const ON_PAGE = 72, SEARCH = 40;
+const SCORE = Math.round(Math.sqrt(ON_PAGE * SEARCH)); // 54 — "Fair"
 const SITE = "bloom.io";
-const PILLARS = [
-  { label: "Content", value: 56, note: "room to climb" },
-  { label: "Outreach", value: 29, note: "biggest lever" },
-  { label: "SEO", value: 54, note: "needs work" },
+const DRIVERS = [
+  { label: "On-page readiness", value: ON_PAGE, note: "how well your page is built" },
+  { label: "Search presence", value: SEARCH, note: "how findable you are in search" },
 ];
 const FIXES = [
   { rank: 1, title: "Publish 3 “bloom vs [rival]” comparison pages", why: "Buyers run these head-to-head searches today and land on rivals' pages.", effort: "Medium", pillar: "Content", pred: 6, ec: { bg: "var(--c-tint-amber)", fg: "var(--c-band-fair)" } },
@@ -48,18 +49,14 @@ const FIXES = [
 ];
 const INTENDED = ["habit tracking", "productivity", "wellness"];
 const ACTUAL = ["mood journal", "self-care app", "daily check-in"];
-// Free teaser (PR B): the subject's OWN not-winning searches — real ranks (#N),
-// no rival data (that's the paid reveal). All rows show a subject position.
-const GAP_ROWS = [
-  { query: "best habit tracker 2026", volume: "8,100/mo", rank: "#42", ranked: true, opp: "High", oppC: { bg: "var(--c-tint-red)", fg: "var(--c-band-invisible)" } },
-  { query: "free habit tracker template", volume: "3,300/mo", rank: "#18", ranked: true, opp: "High", oppC: { bg: "var(--c-tint-red)", fg: "var(--c-band-invisible)" } },
-  { query: "habit tracker for adhd", volume: "2,400/mo", rank: "#12", ranked: true, opp: "High", oppC: { bg: "var(--c-tint-red)", fg: "var(--c-band-invisible)" } },
-  { query: "daily habit app", volume: "1,200/mo", rank: "#7", ranked: true, opp: "Med", oppC: { bg: "var(--c-tint-amber)", fg: "var(--c-band-fair)" } },
-];
+// The single biggest category search the site doesn't win (promoted, not a table).
+const TOP_OPP = { query: "best habit tracker 2026", volume: "8,100", rank: "Not winning", opp: "High", oppC: { bg: "var(--c-tint-red)", fg: "var(--c-band-invisible)" } };
+const OPP_TOTAL = 14;
 
 const CARD: React.CSSProperties = { background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16 };
 const H2: React.CSSProperties = { fontFamily: SG, fontWeight: 700, fontSize: 20, letterSpacing: "-0.01em", margin: "32px 0 6px" };
 const SUB: React.CSSProperties = { fontSize: 14, color: "var(--c-faint)", margin: "0 0 12px" };
+const UNLOCK: React.CSSProperties = { color: "var(--c-action)", fontWeight: 700, textDecoration: "underline", textUnderlineOffset: 2, cursor: "pointer" };
 
 export function ResultsScreen() {
   const b = band(SCORE);
@@ -75,7 +72,7 @@ export function ResultsScreen() {
           </button>
         </div>
 
-        {/* Hero card */}
+        {/* Hero card — ONE unified score + its two drivers (no more "98 vs Invisible") */}
         <div style={{ ...CARD, borderRadius: 20, padding: 32, boxShadow: "0 16px 44px -26px rgba(40,33,84,0.3)", display: "grid", gridTemplateColumns: "auto 1fr", gap: 34, alignItems: "center" }}>
           <div style={{ textAlign: "center" }}>
             <svg width="200" height="200" viewBox="0 0 200 200" style={{ display: "block" }} aria-hidden="true">
@@ -84,22 +81,67 @@ export function ResultsScreen() {
               <text x="100" y="106" textAnchor="middle" style={{ font: `700 40px ${JM}, monospace`, fill: "var(--c-ink)" }}>{SCORE}</text>
               <text x="100" y="126" textAnchor="middle" style={{ font: `600 11px ${JM}, monospace`, fill: "var(--c-faint)", letterSpacing: 1 }}>/ 100</text>
             </svg>
-            <span style={{ display: "inline-block", background: b.bg, color: b.fg, fontWeight: 700, fontSize: 13, padding: "5px 13px", borderRadius: 8, fontFamily: SG, marginTop: 4 }}>{onsiteLabel(SCORE)}</span>
-            <div style={{ fontSize: 11.5, color: "var(--c-faint)", fontFamily: JM, maxWidth: 190, margin: "10px auto 0" }}>On-site readiness — off-site reach unlocks with the full scan</div>
+            <span style={{ display: "inline-block", background: b.bg, color: b.fg, fontWeight: 700, fontSize: 13, padding: "5px 13px", borderRadius: 8, fontFamily: SG, marginTop: 4 }}>{b.label}</span>
+            <div style={{ fontSize: 11.5, color: "var(--c-faint)", fontFamily: JM, maxWidth: 200, margin: "10px auto 0" }}>How findable you actually are — your page quality × your presence in search.</div>
           </div>
           <div>
-            <h1 style={{ fontFamily: SG, fontWeight: 700, fontSize: 26, letterSpacing: "-0.02em", margin: "0 0 6px" }}>A {SCORE} means real customers are searching — and landing on someone else.</h1>
+            <h1 style={{ fontFamily: SG, fontWeight: 700, fontSize: 26, letterSpacing: "-0.02em", margin: "0 0 6px" }}>Your category gets 12,400 searches a month — and you capture just 8% of it.</h1>
             <p style={{ fontSize: 15, lineHeight: 1.6, color: "var(--c-muted)", margin: "0 0 18px" }}>{SITE} is technically fine. The gap is discoverability: you&apos;re absent from the comparison and directory surfaces where your buyers actually decide.</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
-              {PILLARS.map((p) => (
-                <div key={p.label} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <span style={{ width: 74, fontSize: 13, fontWeight: 600 }}>{p.label}</span>
-                  <span style={{ flex: 1, height: 8, borderRadius: 5, background: "var(--c-fill)", overflow: "hidden" }}><span style={{ display: "block", height: "100%", width: `${p.value}%`, background: pillarColor(p.value) }} /></span>
-                  <span style={{ width: 78, fontSize: 12.5, color: "var(--c-muted)" }}>{p.note}</span>
-                  <span style={{ width: 28, textAlign: "right", fontFamily: JM, fontWeight: 700, fontSize: 14, color: pillarColor(p.value) }}>{p.value}</span>
+            {/* The two drivers of the unified score */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
+              {DRIVERS.map((d) => (
+                <div key={d.label}>
+                  <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 5 }}>
+                    <span style={{ fontSize: 13.5, fontWeight: 600 }}>{d.label}</span>
+                    <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 15, color: pillarColor(d.value) }}>{d.value}<span style={{ fontSize: 11, color: "var(--c-faint)", fontWeight: 500 }}>/100</span></span>
+                  </div>
+                  <div style={{ height: 8, borderRadius: 5, background: "var(--c-fill)", overflow: "hidden" }}><div style={{ height: "100%", borderRadius: 5, width: `${d.value}%`, background: pillarColor(d.value) }} /></div>
+                  <div style={{ marginTop: 4, fontSize: 11.5, color: "var(--c-faint)", fontFamily: JM }}>{d.note}</div>
                 </div>
               ))}
+              <div style={{ fontSize: 12, lineHeight: 1.5, color: "var(--c-muted)", fontFamily: JM, paddingTop: 4, borderTop: "1px dashed var(--c-line2)", marginTop: 2 }}>
+                Your score multiplies both — a flawless page nobody finds still scores low. <strong style={{ color: "var(--c-ink)" }}>Search presence is your gap.</strong>
+              </div>
             </div>
+          </div>
+        </div>
+
+        {/* Your category, and how much of it you own — LIFTED directly under the score */}
+        <h2 style={H2}>Your category, and how much of it you own</h2>
+        <p style={SUB}>How much your buyers are searching, how much of it you capture, and who&apos;s taking the rest.</p>
+        <div style={{ ...CARD, padding: "20px 22px", marginBottom: 14 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: 10, marginBottom: 12 }}>
+            <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 26 }}>12,400</span>
+            <span style={{ fontSize: 13.5, color: "var(--c-muted)" }}>searches/mo across your category</span>
+          </div>
+          <div style={{ display: "flex", height: 14, borderRadius: 7, overflow: "hidden", background: "var(--c-fill)" }}>
+            <div style={{ width: "8%", background: "var(--c-band-invisible)" }} />
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontSize: 12.5, color: "var(--c-muted)" }}>
+            <span style={{ fontWeight: 700, color: "var(--c-band-invisible)" }}>You capture 8%</span>
+            <span style={{ color: "var(--c-faint)" }}>92% goes to competitors &amp; unclaimed demand</span>
+          </div>
+          <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--c-line2)", fontSize: 13, color: "var(--c-muted)" }}>
+            Buyers compare you to <strong style={{ color: "var(--c-ink)" }}>Streaks, Habitica, Way of Life</strong>. <span style={UNLOCK}>Unlock to see how much of your category each one takes →</span>
+          </div>
+        </div>
+        {/* Biggest opportunity — the single highest-value search you don't win,
+            framed by the score lever it moves (not a flat Low/Med/High table). */}
+        <div style={{ ...CARD, padding: "22px 24px" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--c-action)", marginBottom: 10 }}>Your biggest untapped opportunity</div>
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12, marginBottom: 14 }}>
+            <span style={{ fontFamily: SG, fontWeight: 700, fontSize: 22, letterSpacing: "-0.01em" }}>{TOP_OPP.query}</span>
+            <span style={{ fontSize: 11.5, fontWeight: 700, color: TOP_OPP.oppC.fg, background: TOP_OPP.oppC.bg, padding: "3px 10px", borderRadius: 6 }}>{TOP_OPP.opp} opportunity</span>
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 26 }}>
+            <div><div style={{ fontFamily: JM, fontWeight: 700, fontSize: 22 }}>{TOP_OPP.volume}</div><div style={{ fontSize: 11.5, color: "var(--c-faint)" }}>searches / mo</div></div>
+            <div><div style={{ fontFamily: JM, fontWeight: 700, fontSize: 22, color: "var(--c-band-invisible)" }}>{TOP_OPP.rank}</div><div style={{ fontSize: 11.5, color: "var(--c-faint)" }}>where you are today</div></div>
+          </div>
+          <div style={{ marginTop: 16, padding: "13px 15px", background: "var(--c-bg2)", borderRadius: 10, fontSize: 13.5, lineHeight: 1.55, color: "var(--c-muted)" }}>
+            Winning this term lifts your <strong style={{ color: "var(--c-ink)" }}>Search presence</strong> — the weaker half of your Discoverability Score. There are <strong style={{ color: "var(--c-ink)" }}>{OPP_TOTAL - 1} more</strong> like it in your category.
+          </div>
+          <div style={{ marginTop: 14, textAlign: "center", fontSize: 14, fontWeight: 600 }}>
+            <span style={UNLOCK}>🔒 Unlock all {OPP_TOTAL} category opportunities + the plan to win them →</span>
           </div>
         </div>
 
@@ -124,60 +166,22 @@ export function ResultsScreen() {
               </div>
             </div>
           ))}
-          <div style={{ border: "1px dashed var(--c-line2)", borderRadius: 14, padding: "16px 20px", fontSize: 14, fontWeight: 600, color: "var(--c-faint)" }}>🔒 5 more ranked fixes — worth an estimated +21 — unlock with a free account</div>
+          <div style={{ border: "1px dashed var(--c-line2)", borderRadius: 14, padding: "16px 20px", fontSize: 14, fontWeight: 600, color: "var(--c-faint)" }}>🔒 5 more ranked fixes — worth an estimated +21 — <span style={UNLOCK}>unlock the full plan →</span></div>
         </div>
 
-        {/* Positioning Mirror */}
+        {/* Positioning Mirror — reworked: gap insight leads, audience is a compact
+            aim→reads-as line (no more two heavy chip columns). */}
         <h2 style={H2}>Positioning Mirror</h2>
-        <p style={SUB}>Who you think you target, vs. who your page actually reads as.</p>
+        <p style={SUB}>Whether your page reads as the audience you actually want.</p>
         <div style={{ ...CARD, padding: 24 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-            <div style={{ border: "1px solid var(--c-tint-violet-line)", background: "var(--c-tint-violet)", borderRadius: 12, padding: 18 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--c-action)", letterSpacing: "0.04em", textTransform: "uppercase", marginBottom: 10 }}>You think you target</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>{INTENDED.map((t) => <span key={t} style={{ fontSize: 13, background: "var(--c-surface)", border: "1px solid var(--c-tint-violet-line)", color: "var(--c-ink)", borderRadius: 999, padding: "4px 11px" }}>{t}</span>)}</div>
-            </div>
-            <div style={{ border: "1px solid var(--c-tint-orange-line)", background: "var(--c-tint-orange)", borderRadius: 12, padding: 18 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--c-band-hard)", letterSpacing: "0.04em", textTransform: "uppercase", marginBottom: 10 }}>Your page actually reads as</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>{ACTUAL.map((t) => <span key={t} style={{ fontSize: 13, background: "var(--c-surface)", border: "1px solid var(--c-tint-orange-line)", color: "var(--c-ink)", borderRadius: 999, padding: "4px 11px" }}>{t}</span>)}</div>
-            </div>
+          <div style={{ background: "var(--c-tint-red)", borderLeft: "3px solid var(--c-band-invisible)", borderRadius: "0 10px 10px 0", padding: "16px 18px", fontSize: 15, lineHeight: 1.6, color: "var(--c-ink)" }}>Buyers searching for a habit tracker never see themselves in your page — it reads as a mood journal, so you lose them before the comparison.</div>
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px 14px", marginTop: 16, fontSize: 13.5 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--c-faint)" }}>You aim for</span>
+            <span style={{ fontWeight: 600, color: "var(--c-action)" }}>{INTENDED.join(", ")}</span>
+            <span style={{ color: "var(--c-faint)" }}>→</span>
+            <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--c-faint)" }}>Your page reads as</span>
+            <span style={{ fontWeight: 600, color: "var(--c-band-hard)" }}>{ACTUAL.join(", ")}</span>
           </div>
-          <div style={{ marginTop: 16, background: "var(--c-tint-red)", borderLeft: "3px solid var(--c-band-invisible)", borderRadius: "0 10px 10px 0", padding: "12px 16px", fontSize: 14.5, color: "var(--c-ink)" }}>Buyers searching for a habit tracker never see themselves in your page — it reads as a mood journal, so you lose them before the comparison.</div>
-        </div>
-
-        {/* Your category, and how much of it you own — the conversion "money shot":
-            real category demand (from the LLM's category seeds' exact search volume)
-            + your capture (= Search Visibility score) + named rivals (per-rival share
-            is the paid unlock) + the brand/category/other-brands footprint split. */}
-        <h2 style={H2}>Your category, and how much of it you own</h2>
-        <p style={SUB}>How much your buyers are searching, how much of it you capture, and who&apos;s taking the rest.</p>
-        <div style={{ ...CARD, padding: "20px 22px", marginBottom: 14 }}>
-          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: 10, marginBottom: 12 }}>
-            <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 26 }}>12,400</span>
-            <span style={{ fontSize: 13.5, color: "var(--c-muted)" }}>searches/mo across your category</span>
-          </div>
-          <div style={{ display: "flex", height: 14, borderRadius: 7, overflow: "hidden", background: "var(--c-fill)" }}>
-            <div style={{ width: "8%", background: "var(--c-band-invisible)" }} />
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontSize: 12.5, color: "var(--c-muted)" }}>
-            <span style={{ fontWeight: 700, color: "var(--c-band-invisible)" }}>You capture 8%</span>
-            <span style={{ color: "var(--c-faint)" }}>92% goes to competitors &amp; unclaimed demand</span>
-          </div>
-          <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--c-line2)", fontSize: 13, color: "var(--c-muted)" }}>
-            Buyers compare you to <strong style={{ color: "var(--c-ink)" }}>Streaks, Habitica, Way of Life</strong>. <span style={{ color: "var(--c-action)", fontWeight: 600 }}>Unlock to see how much of your category each one takes →</span>
-          </div>
-        </div>
-        <div style={{ ...CARD, overflow: "hidden" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "2.2fr 1fr 1fr 0.9fr", background: "var(--c-bg2)", padding: "11px 16px", fontFamily: JM, fontSize: 11, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--c-faint)" }}>
-            <span>Query</span><span>Volume / mo</span><span>Your rank</span><span>Opportunity</span>
-          </div>
-          {GAP_ROWS.map((g) => (
-            <div key={g.query} style={{ display: "grid", gridTemplateColumns: "2.2fr 1fr 1fr 0.9fr", padding: "12px 16px", borderTop: "1px solid var(--c-fill)", alignItems: "center" }}>
-              <span style={{ fontSize: 14, fontWeight: 600 }}>{g.query}</span>
-              <span style={{ fontFamily: JM, fontSize: 13, color: "var(--c-muted)" }}>{g.volume}</span>
-              <span style={{ fontFamily: JM, fontSize: 13, color: "var(--c-band-invisible)" }}>Not winning</span>
-              <span style={{ justifySelf: "start", fontSize: 11.5, fontWeight: 700, borderRadius: 6, padding: "3px 8px", color: g.oppC.fg, background: g.oppC.bg }}>{g.opp}</span>
-            </div>
-          ))}
         </div>
 
         {/* Evidence footnote */}
@@ -192,7 +196,7 @@ export function ResultsScreen() {
             <h3 style={{ color: "var(--c-on-dark)", fontFamily: SG, fontWeight: 700, fontSize: 22, margin: 0 }}>Get the full growth playbook + weekly tracking</h3>
             <p style={{ color: "var(--c-on-dark-muted)", maxWidth: 430, margin: "8px 0 0", fontSize: 14, lineHeight: 1.5 }}>Ready-to-ship drafts, competitor &amp; keyword-gap intel, the full 18-signal breakdown, and weekly score tracking as you ship.</p>
           </div>
-          <button style={{ background: "var(--c-surface)", color: "var(--c-ink)", borderRadius: 10, padding: "13px 24px", border: "none", fontFamily: "var(--font-sans)", fontWeight: 700, fontSize: 15, cursor: "pointer", whiteSpace: "nowrap" }}>Unlock full report →</button>
+          <button style={{ background: "var(--c-surface)", color: "var(--c-ink)", borderRadius: 10, padding: "13px 24px", border: "none", fontFamily: "var(--font-sans)", fontWeight: 700, fontSize: 15, cursor: "pointer", whiteSpace: "nowrap" }}>Unlock the full report →</button>
         </div>
       </div>
     </main>

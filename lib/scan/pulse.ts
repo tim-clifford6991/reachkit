@@ -24,7 +24,7 @@ import { fetchSiteListing } from "@/lib/scan/adapters/site-fetch";
 import { upsertRawDocument } from "@/lib/db/raw-documents";
 import { gatherScoreComponents, verifiedScore } from "@/lib/scan/score-full";
 import { persistScanSignals } from "@/lib/scan/persist-signals";
-import { headlineFromRows, type RegistryScoreRow } from "@/lib/scan/registry-score";
+import { headlineFromRows, unifiedHeadline, type RegistryScoreRow } from "@/lib/scan/registry-score";
 import type { ScanContext } from "@/lib/scan/pipeline";
 import type { PreliminaryFacts } from "@/lib/scan/types";
 import type { Json } from "@/lib/db/types";
@@ -137,7 +137,11 @@ export async function runScorePulse(
     console.error("[pulse] persistScanSignals failed (best-effort)", e);
   }
 
-  const headline = headlineFromRows(mode, score, rows);
+  // v5: reuse the persisted search-presence score → the midweek pulse point lands on
+  // the unified Discoverability scale.
+  const { data: rpRow } = await db.from("scans").select("report_payload").eq("id", scanRow.id).maybeSingle();
+  const searchPresence = (rpRow?.report_payload as { searchVisibility?: { score?: number } } | null)?.searchVisibility?.score ?? null;
+  const headline = unifiedHeadline(headlineFromRows(mode, score, rows), searchPresence);
   const { error } = await db.from("score_snapshots").insert({
     app_id: appId,
     total: headline.total,
