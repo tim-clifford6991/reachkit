@@ -20,6 +20,9 @@ import { cachedJson, DAY_MS } from "@/lib/scan/cache/external-cache";
 import { classifyReferrers, QUALITY_CATEGORIES, type ReferrerCategory } from "@/lib/scan/referral/classify-referrers";
 import { computeTrafficLens, type TrafficLens } from "@/lib/scan/referral/traffic-lens";
 import type { OnStageCallback } from "@/lib/scan/types";
+import { channelStrengthFor, type ChannelGroup, type StrengthBucket } from "@/lib/scan/referral/channel-strength";
+import { enrichReferrers } from "@/lib/scan/referral/referrer-enrich";
+import { fetchTrafficForHosts } from "@/lib/scan/adapters/dataforseo-traffic";
 
 export interface QualityReferrer {
   host: string;
@@ -85,6 +88,8 @@ export interface FunnelResult {
   discoveryChannels: Partial<Record<ReferrerCategory, number>>;
   channelsMissing: ActionableChannel[];
   keyActions: KeyAction[];
+  /** WS1 — per-domain quality-channel strength for the gap-map matrix (incl. subject). */
+  channelStrength: Record<string, Record<ChannelGroup, StrengthBucket>>;
 }
 
 const isQuality = (c: ReferrerCategory) => QUALITY_CATEGORIES.includes(c);
@@ -180,6 +185,20 @@ Return ONLY a JSON array:
   }
 }
 
+/** WS1 — attach platform reach + relevance to every entity's referrers and
+ *  compute the per-domain channel-strength matrix. Pure; reach is pre-fetched. */
+export function applyFunnelEnrichment(result: FunnelResult, reach: Map<string, number>): FunnelResult {
+  const enrichBreakdown = (bd: ReferralBreakdown): ReferralBreakdown => ({
+    ...bd,
+    topQualityReferrers: enrichReferrers(bd.topQualityReferrers, reach),
+  });
+  const subject = { ...result.subject, backlinks: enrichBreakdown(result.subject.backlinks) };
+  const competitors = result.competitors.map((c) => ({ ...c, backlinks: enrichBreakdown(c.backlinks) }));
+  const channelStrength: FunnelResult["channelStrength"] = {};
+  for (const e of [subject, ...competitors]) channelStrength[e.domain] = channelStrengthFor(e.backlinks.byCategory);
+  return { ...result, subject, competitors, channelStrength };
+}
+
 export async function gatherFullFunnel(rawSelf: string, opts: { topN?: number; competitorDomains?: string[]; onStage?: OnStageCallback } = {}): Promise<FunnelResult> {
   const self = normalizeHost(rawSelf);
   const topN = opts.topN ?? MAX_SELECTED;
@@ -269,8 +288,23 @@ export async function gatherFullFunnel(rawSelf: string, opts: { topN?: number; c
   // 5. Key actions grounded in discovery channels.
   const keyActions = await synthesizeKeyActions({ subject: subjectWithLens, category: closest.category, competitors: competitorsWithLens, discoveryChannels, channelsMissing });
 
-  const funnelSubject = { ...subjectWithLens, category: closest.category, backlinks: selfBacklinks };
+  const preliminary: FunnelResult = {
+    subject: { ...subjectWithLens, category: closest.category, backlinks: selfBacklinks },
+    category: closest.category,
+    competitors: competitorsWithLens,
+    discoveryChannels,
+    channelsMissing,
+    keyActions,
+    channelStrength: {},
+  };
 
-  return { subject: funnelSubject, category: closest.category, competitors: competitorsWithLens, discoveryChannels, channelsMissing, keyActions };
+  // WS1 — one bulk reach call for every quality-referrer host across the cohort.
+  // Runs inside costedIntelStep (the /api/app/intel cost context); fixtures/no-keys
+  // → empty map → etv stays null (degrade, never invent).
+  const reachHosts = [...new Set(
+    [preliminary.subject, ...preliminary.competitors].flatMap((e) => e.backlinks.topQualityReferrers.map((r) => r.host)),
+  )];
+  const reach = await fetchTrafficForHosts(reachHosts);
+  return applyFunnelEnrichment(preliminary, reach);
   });
 }
