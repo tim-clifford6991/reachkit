@@ -16,6 +16,7 @@
  * Pure helpers are exported for tests; network/LLM calls are fixtures-aware.
  */
 
+import { env } from "@/lib/config/env";
 import { callModel } from "@/lib/llm/anthropic";
 import { extractJson } from "@/lib/llm/json";
 import { fixturesEnabled } from "@/lib/dev/fixtures";
@@ -35,9 +36,8 @@ import {
 const PROPOSE_MODEL = "claude-sonnet-4-6" as const;
 const MAX_LLM_VERIFY = 8;
 
-const DEBUG = process.env.PROFILE_DEBUG === "1";
 function debug(...args: unknown[]): void {
-  if (DEBUG) console.log("[discover]", ...args);
+  if (env.profileDebug) console.log("[discover]", ...args);
 }
 
 export interface ProductInfo {

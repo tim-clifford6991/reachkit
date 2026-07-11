@@ -7,8 +7,10 @@
  * fails closed in prod rather than exposing internals to every signed-in user.
  */
 
+import { env } from "@/lib/config/env";
+
 function ownerEmails(): string[] {
-  return (process.env.REACHKIT_OWNER_EMAILS ?? "")
+  return env.ownerEmails
     .split(",")
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean);

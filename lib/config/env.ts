@@ -55,6 +55,11 @@ const schema = z.object({
   // cost accounting (DataForSEO returns real USD, so it needs no such rate).
   // Default ≈ Tavily pay-as-you-go ($8 / 1,000 credits); override per plan.
   TAVILY_USD_PER_CREDIT: z.coerce.number().nonnegative().default(0.008),
+  // Owner allowlist for internal-only surfaces (/app/diagnostics). Empty →
+  // owner tools are dev-only and fail closed in production (lib/auth/owner.ts).
+  REACHKIT_OWNER_EMAILS: z.string().optional().default(""),
+  // Verbose logging for the cohort-profile discovery pass.
+  PROFILE_DEBUG: z.string().optional().transform((v) => v === "1"),
   // The only feature flag: keyless fixtures mode for tests / local dev.
   REACHKIT_USE_FIXTURES: z.string().optional().transform((v) => v === "true"),
 }).superRefine((val, ctx) => {
@@ -85,6 +90,8 @@ export function parseEnv(src: NodeJS.ProcessEnv) {
     dataforseoLocationCode: p.DATAFORSEO_LOCATION_CODE, dataforseoLanguageCode: p.DATAFORSEO_LANGUAGE_CODE,
     tavilyUsdPerCredit: p.TAVILY_USD_PER_CREDIT,
     useFixtures: p.REACHKIT_USE_FIXTURES,
+    ownerEmails: p.REACHKIT_OWNER_EMAILS,
+    profileDebug: p.PROFILE_DEBUG,
     appUrl: p.APP_URL,
     stripeSecretKey: p.STRIPE_SECRET_KEY,
     stripeWebhookSecret: p.STRIPE_WEBHOOK_SECRET,

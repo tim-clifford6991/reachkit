@@ -86,7 +86,7 @@ Architecture and the Claude Design system are kept from drifting by **machine-ch
 
 **The Change Protocol.** To change an invariant, a token, or a layer boundary *on purpose*, update all of these **in the same commit**: (1) the source constant / token / rule, (2) its guard/parity check, (3) this file (`CLAUDE.md`), (4) `docs/architecture.md` if structural. CI enforces the mechanical half; this protocol names the human half. New invariant → it gets a guard (test, arch rule, or parity check) *before* merge, and this table is updated. Never delete a check without a documented reason in the commit body.
 
-> Node note: `check:arch` runs dependency-cruiser via its programmatic API (`scripts/check-arch.mjs`) so it works on non-LTS node (25) as well as CI's node 22. The `env-only-in-lib/config` invariant is **not** yet an arch rule (env access isn't an import edge; ~10 call sites remain) — a known follow-up.
+> Node note: `check:arch` runs dependency-cruiser via its programmatic API (`scripts/check-arch.mjs`) so it works on non-LTS node (25) as well as CI's node 22. The `env-only-in-lib/config` invariant is enforced by ESLint (`no-restricted-syntax` in `eslint.config.mjs`, via lint-staged pre-commit + `pnpm lint` in CI): all env access goes through `lib/config/env.ts`; only `NODE_ENV`, `NEXT_PUBLIC_*` (build-time inlined) and `VERCEL_*` (platform-injected) may be read as literals. `check:arch` additionally pins the circular-dependency baseline (`KNOWN_CYCLES` — new cycles fail; fixed cycles must be removed to pin the win).
 
 ## Known open risks (steer around these)
 
