@@ -86,17 +86,22 @@ Architecture and the Claude Design system are kept from drifting by **machine-ch
 
 **The Change Protocol.** To change an invariant, a token, or a layer boundary *on purpose*, update all of these **in the same commit**: (1) the source constant / token / rule, (2) its guard/parity check, (3) this file (`CLAUDE.md`), (4) `docs/architecture.md` if structural. CI enforces the mechanical half; this protocol names the human half. New invariant → it gets a guard (test, arch rule, or parity check) *before* merge, and this table is updated. Never delete a check without a documented reason in the commit body.
 
+**The Feedback Protocol.**
+1. **User feedback is always made durable.** A correction or preference from the user is recorded where it survives the session: a rule in this file when it's a way of working, an invariant + guard when it's load-bearing behavior, `docs/architecture.md` when it's structural, memory otherwise. "Noted" without a durable write is not taking it on board.
+2. **Contradictions are raised, never silently resolved.** When a new instruction conflicts with a documented invariant, hard rule, or protocol here, surface the conflict explicitly — quote the existing rule and the new instruction — and ask which wins before proceeding. Never silently comply (that breaks the ratchet) and never silently ignore (that breaks trust). If the new instruction wins, apply the Change Protocol: rule, guard, and docs updated in the same commit.
+
 > Node note: `check:arch` runs dependency-cruiser via its programmatic API (`scripts/check-arch.mjs`) so it works on non-LTS node (25) as well as CI's node 22. The `env-only-in-lib/config` invariant is enforced by ESLint (`no-restricted-syntax` in `eslint.config.mjs`, via lint-staged pre-commit + `pnpm lint` in CI): all env access goes through `lib/config/env.ts`; only `NODE_ENV`, `NEXT_PUBLIC_*` (build-time inlined) and `VERCEL_*` (platform-injected) may be read as literals. `check:arch` additionally pins the circular-dependency baseline (`KNOWN_CYCLES` — new cycles fail; fixed cycles must be removed to pin the win).
 
 ## Known open risks (steer around these)
 
 - **Score calibration is unresolved and unenforced** (the one red rule): headline fails band-separation on live data — SPA-fetch→SEO=0 gives false lows, tidy pages give false 100s. `scripts/score-calibration.mts` is a live tool, NOT run in CI.
-- **Dev scaffolding surface** — `app/test-*`, `app/api/test-*`, `app/design/*` must be confirmed gated/removed before prod exposure. (`pnpm check:arch` now blocks production code from *importing* them, but does not gate the routes themselves.)
+- **Dev scaffolding surface** — `app/api/test-*` routes are runtime-gated via `blockInProd()` (404 in production); the `app/test-*` PAGES are not runtime-gated (they only call the gated APIs, but confirm removal/gating before broad prod exposure). `pnpm check:arch` blocks production code from *importing* any of them.
 - **Cohort cache-key stability** — deep-scan vs competitor-select cost de-dup relies entirely on per-domain cache keys; a key drift silently doubles DataForSEO spend.
 - **`audienceProxy` always 0** — the YouTube 2nd `videos.list` call is never made; creator reach is a placeholder.
 
 ## Commands
 
-- `pnpm test` — unit · `pnpm test:int` — integration (needs local Supabase) · `pnpm eval` — golden-set
-- `pnpm check:arch` — layer/import boundaries · `pnpm check:design` — Claude Design ↔ code token/band/mirror parity + freshness · `pnpm bless:design` — re-pin mirror-lock after reconciling a DS card (the ratchet; see "Consistency harness" + "Keeping Claude Design and the code in EXACT sync")
+- `pnpm test` — unit (also runs pre-commit) · `pnpm test:int` — integration (needs local Supabase) · `pnpm eval` — eval suite: golden-set (invariant #5) + v5 free↔paid parity (invariant #1); both run on every PR via the CI `eval-integration` job (spins up local Supabase in fixtures mode)
+- `pnpm check:arch` — layer/import boundaries + the circular-dependency baseline (`KNOWN_CYCLES` in `scripts/check-arch.mjs` — only ever shrinks) · `pnpm lint` — includes the env-only-in-lib/config rule · `pnpm check:design` — Claude Design ↔ code token/band/mirror parity + freshness + the coverage baseline (`.design-sync/coverage-baseline.json` — only ever shrinks) · `pnpm bless:design [-- <Component…>]` — re-pin mirror-lock after reconciling a DS card; enumerates every re-pin, scope it to named cards when possible
+- Cost transparency: every cost-bearing caller runs under `costedStep`/`costedIntelStep` (guard `app/api/costed-routes.test.ts`); external soft caps + alert thresholds live in `lib/config/env.ts` (`EXTERNAL_SCAN_CAP_CENTS_*`, `COST_ALERT_*`); the owner-only `/app/diagnostics` shows per-scan stage costs, all-time + monthly per-user spend (`user_spend_monthly` view), and the cost-alerts strip
 - `pnpm dev` + `pnpm dev:inngest` — local (Inngest must run alongside)
