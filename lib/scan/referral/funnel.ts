@@ -33,6 +33,11 @@ export interface QualityReferrer {
   /** F4 — referring domain's authority (0–1000) + whether the link is dofollow. */
   authority?: number | null;
   dofollow?: boolean | null;
+  /** WS1 — the referring host's own organic ETV ("platform reach"), null when
+   *  the reach call is unavailable (fixtures/no keys/failure). NOT click-through. */
+  etv?: number | null;
+  /** WS1 — "low" = tiny + low-authority referrer (shown muted), else "core". */
+  relevance?: "core" | "low";
 }
 
 export interface ReferralBreakdown {
