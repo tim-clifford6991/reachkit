@@ -3,7 +3,7 @@
  * WS1 — one-line referrer row for the Competitors detail. The host links to its
  * SOURCE page (where the backlink lives) so a click never lands on a rival's dead
  * target (the fellow.ai→producthunt 404 case). "Platform reach" is the referring
- * host's own organic traffic (info-tip clarifies: not measured click-through).
+ * host's own organic traffic (a native title clarifies: not measured click-through).
  * Low-relevance referrers render muted but are never dropped.
  */
 import { useState } from "react";

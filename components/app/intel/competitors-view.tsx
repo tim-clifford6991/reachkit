@@ -290,7 +290,7 @@ export function CompetitorsBody({ data }: { data: Supply }) {
         <Card title={`Where ${sel.isSubject ? "you get" : sel.domain + " gets"} found`} style={{ padding: 0, background: "transparent", border: "none", boxShadow: "none" }}>
           {sortedRefs.length > 0 ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              {sortedRefs.map((r, i) => <ReferrerRow key={i} r={r} maxEtv={maxEtv} />)}
+              {sortedRefs.map((r, i) => <ReferrerRow key={r.host} r={r} maxEtv={maxEtv} />)}
             </div>
           ) : (
             <span style={{ fontSize: 12.5, color: "var(--c-faint)" }}>No quality referrers surfaced.</span>
