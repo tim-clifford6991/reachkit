@@ -29,6 +29,8 @@ export { DashboardScreen } from "./DashboardScreen";
 export { ChannelDonut } from "./ChannelDonut";
 export { TrafficByChannel } from "./TrafficByChannel";
 export { CompetitorEdgePanel } from "./CompetitorEdgePanel";
+export { CompetitorGapMap } from "./CompetitorGapMap";
+export { ReferrerRow } from "./ReferrerRow";
 export { PlanItemCard } from "./PlanItemCard";
 export { LeverBanner } from "./LeverBanner";
 export { ProgressChart } from "./ProgressChart";

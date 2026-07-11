@@ -39,6 +39,10 @@
     "mirror": "components/app/intel/competitors-view.tsx",
     "hash": "55855d5204735046"
   },
+  "CompetitorGapMap": {
+    "mirror": "components/app/intel/competitor-gap-map.tsx",
+    "hash": "8dfad5eb2e38e183"
+  },
   "CompetitorsScreen": {
     "mirror": "components/app/intel/competitors-view.tsx",
     "hash": "55855d5204735046"
@@ -126,6 +130,10 @@
   "ProgressScreen": {
     "mirror": "components/app/intel/progress-view.tsx",
     "hash": "595b157bce2e7459"
+  },
+  "ReferrerRow": {
+    "mirror": "components/app/intel/referrer-row.tsx",
+    "hash": "70844e22ad7f033a"
   },
   "ResultsScreen": {
     "mirror": "components/report/captured/results-screen.tsx",

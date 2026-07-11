@@ -10,9 +10,18 @@
  */
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useIntel, IntelShell, fmtCompact } from "@/components/app/intel/shared";
-import { Card, Badge, bandFor, Expand, EvidenceLink } from "@/components/app/intel/kit";
+import { Card, Badge, Expand, EvidenceLink } from "@/components/app/intel/kit";
 import type { Supply } from "@/components/app/intel/supply-view";
+
+// Code-split — these two are new to the /app bundle graph (ReferrerRow pulls in
+// the Base UI Tooltip via InfoTip) and were pushing every /app route's shared
+// chunk over its pinned bundle-budget baseline. Splitting them out of the
+// eager entry keeps the matrix + referrer table working exactly the same
+// (client components rendered after data loads) without growing First Load JS.
+const CompetitorGapMap = dynamic(() => import("@/components/app/intel/competitor-gap-map").then((m) => m.CompetitorGapMap), { ssr: false });
+const ReferrerRow = dynamic(() => import("@/components/app/intel/referrer-row").then((m) => m.ReferrerRow), { ssr: false });
 
 export function CompetitorsView() {
   const { data, loading, error, stages } = useIntel<Supply>("supply");
@@ -28,7 +37,6 @@ type Gap = Supply["keywords"]["gaps"][number];
 type Channel = Supply["funnel"]["channelsMissing"][number];
 type ContentEntity = NonNullable<Supply["content"]>["entities"][number];
 type ContentPage = ContentEntity["pages"][number];
-type ReferrerItem = NonNullable<Entity["backlinks"]>["topQualityReferrers"][number];
 
 // ---------------------------------------------------------------------------
 // Keyword-gap "add to plan" chips — POSTs a content action against the
@@ -112,7 +120,6 @@ const CATEGORY_HELP: Record<string, string> = {
   other: "Other — a link that doesn't fit the main discovery channels.",
 };
 const categoryTitle = (c: string) => CATEGORY_HELP[c] ?? `Referrer type: ${c}`;
-const DOFOLLOW_HELP = "Dofollow — this link passes SEO authority to the page it points to (a nofollow link doesn't). Dofollow links from strong domains are the most valuable.";
 const DR_HELP = "Domain Rating (0–1000) — the referring site's own authority. Higher = a more valuable, harder-to-earn link.";
 
 /** The chip pair: static "→ in plan" pill once the action exists, else a clickable "＋ add". */
@@ -138,28 +145,6 @@ function AddToPlanChip({ title, category, why, plan }: { title: string; category
   );
 }
 
-// ---------------------------------------------------------------------------
-// Pillar-health proxy — the Supply payload doesn't carry a per-competitor
-// SEO/Content/Outreach breakdown (that granular pillar scoring only runs for
-// the scanned subject). We derive three directionally-honest proxies from
-// data that IS present on every entity, so the dots reflect real differences
-// rather than three copies of the same score:
-//   SEO       → the entity's overall score (traffic/backlink driven)
-//   Content   → page count in the cohort's content-effectiveness lens,
-//               relative to the busiest entity (falls back to score if the
-//               `content` layer wasn't gathered)
-//   Outreach  → backlink quality share (topQualityReferrers / total sampled)
-// ---------------------------------------------------------------------------
-interface PillarDot { value: number; color: string }
-
-function pillarDots(entity: Entity, contentPagesByDomain: Map<string, number>, maxContentPages: number): PillarDot[] {
-  const seo = entity.score;
-  const contentCount = contentPagesByDomain.get(entity.domain);
-  const content = contentCount != null && maxContentPages > 0 ? Math.round((contentCount / maxContentPages) * 100) : entity.score;
-  const outreach = entity.backlinks && entity.backlinks.sampled >= 3 ? Math.round(entity.backlinks.qualityShare * 100) : entity.score;
-  return [seo, content, outreach].map((v) => ({ value: v, color: bandFor(v).color }));
-}
-
 /** Best-effort path extraction so page lists read like the template's "/templates" rather than a full URL. */
 function pathOf(url: string): string {
   try {
@@ -171,23 +156,16 @@ function pathOf(url: string): string {
 }
 
 export function CompetitorsBody({ data }: { data: Supply }) {
-  const { subject, competitors, channelsMissing } = data.funnel;
+  const { subject, competitors, channelsMissing, channelStrength } = data.funnel;
   const gaps = data.keywords.gaps;
-  const [selected, setSelected] = useState(0); // index into `all` — 0 = you
   const plan = useActionPlan();
-
-  const contentPagesByDomain = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const e of data.content?.entities ?? []) m.set(e.domain, e.pages.length);
-    return m;
-  }, [data.content]);
-  const maxContentPages = useMemo(() => Math.max(0, ...Array.from(contentPagesByDomain.values())), [contentPagesByDomain]);
 
   const all: (Entity & { isSubject: boolean })[] = useMemo(
     () => [{ ...subject, isSubject: true }, ...competitors.map((c) => ({ ...c, isSubject: false }))],
     [subject, competitors],
   );
-  const sel = all[selected] ?? all[0]!;
+  const [selected, setSelected] = useState(subject.domain);
+  const sel = all.find((e) => e.domain === selected) ?? all[0]!;
 
   // Top pages for the selected entity, from the content-effectiveness lens (if gathered).
   const selEntity = useMemo(() => data.content?.entities.find((e) => e.domain === sel.domain), [data.content, sel.domain]);
@@ -227,13 +205,21 @@ export function CompetitorsBody({ data }: { data: Supply }) {
       .map(({ g, hit }) => ({ gap: g, note: `#${hit.position}` }));
   }, [gaps, sel]);
 
-  const referrerItems = (sel.backlinks?.topQualityReferrers ?? []).slice(0, 25);
-  // F4 — "referrers they have that you don't": the actionable acquisition gap.
-  // When a rival is selected, surface the quality referrers pointing at them whose
-  // host never links to you — the concrete outreach targets to pursue.
+  // Referrer table — the hero: every quality referrer for the selected entity,
+  // ranked by platform reach (etv).
+  const refs = sel.backlinks?.topQualityReferrers ?? [];
+  const maxEtv = Math.max(1, ...refs.map((r) => r.etv ?? 0));
+  const sortedRefs = refs.slice().sort((a, b) => (b.etv ?? 0) - (a.etv ?? 0));
+
+  // "Referrers to pursue" — the actionable acquisition gap, noise-filtered to
+  // core relevance: quality referrers pointing at the selected rival whose host
+  // never links to the subject, excluding "low" relevance matches.
   const subjectRefHosts = new Set((subject.backlinks?.topQualityReferrers ?? []).map((r) => r.host));
-  const referrerGap = !sel.isSubject
-    ? (sel.backlinks?.topQualityReferrers ?? []).filter((r) => !subjectRefHosts.has(r.host)).slice(0, 8)
+  const pursue = !sel.isSubject
+    ? refs
+        .filter((r) => !subjectRefHosts.has(r.host) && r.relevance !== "low")
+        .sort((a, b) => (b.etv ?? 0) - (a.etv ?? 0))
+        .slice(0, 8)
     : [];
 
   // "Their edge → your move": lead with the rival's single strongest gap
@@ -251,7 +237,7 @@ export function CompetitorsBody({ data }: { data: Supply }) {
     ? "Your baseline. Pick a rival above to see what powers their referral engine — and the move that answers it."
     : bestGapHit
       ? `Ranks #${bestGapHit.hit.position} for "${bestGapHit.g.keyword}" (${fmtCompact(bestGapHit.g.volume)}/mo) — a keyword you don't rank for at all.`
-      : `Pulls ${fmtCompact(sel.monthlyTraffic)}/mo with ${referrerItems.length ? `referrers like ${referrerItems[0]!.host}` : "a stronger backlink profile"} — worth studying their acquisition mix.`;
+      : `Pulls ${fmtCompact(sel.monthlyTraffic)}/mo with ${sortedRefs.length ? `referrers like ${sortedRefs[0]!.host}` : "a stronger backlink profile"} — worth studying their acquisition mix.`;
   const moveLabel = !sel.isSubject && bestGapHit ? `Counter: target "${bestGapHit.g.keyword}" — in your plan` : null;
 
   // R4 — concrete edge moves: when a rival is selected, prefer the channels
@@ -259,32 +245,21 @@ export function CompetitorsBody({ data }: { data: Supply }) {
   const edgeMoves: Channel[] = !sel.isSubject ? channelsMissing.slice(0, 3) : [];
 
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 16, alignItems: "flex-start" }}>
-      <Card
-        title="Competitors"
-        info="Pick a rival to see what powers their referral engine — and the move that answers it."
-        // Narrow, sticky rail: the rival list is short but the detail panel is tall,
-        // so pinning the list (instead of leaving dead space beside it) keeps it in
-        // view while you read the detail, and gives the detail the wider column.
-        style={{ flex: "1 1 340px", position: "sticky", top: 16, alignSelf: "flex-start" }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 13, flexWrap: "wrap", marginTop: -6, marginBottom: 10 }}>
-          <span style={{ fontSize: 12.5, color: "var(--c-muted)" }}>Pick one to inspect</span>
-          <PillarLegendItem label="SEO" />
-          <PillarLegendItem label="Content" />
-          <PillarLegendItem label="Outreach" />
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--c-faint)" }}>dot color = pillar health</span>
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {all.map((e, i) => (
-            <CompetitorRow key={e.domain} e={e} selected={i === selected} onSelect={() => setSelected(i)} dots={pillarDots(e, contentPagesByDomain, maxContentPages)} />
-          ))}
-        </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* The matrix IS the selector — replaces the old left rail. Column
+          headers are clickable; the selected column drives every panel below. */}
+      <Card title="Competitors" info="Click a rival column to focus the detail below.">
+        <CompetitorGapMap
+          entities={all.map((e) => ({ domain: e.domain, isSubject: e.isSubject }))}
+          channelStrength={channelStrength ?? {}}
+          selected={selected}
+          onSelect={setSelected}
+        />
       </Card>
 
+      {/* Full-width focused detail for the selected entity — no second nav rail. */}
       <div
         style={{
-          flex: "2 1 460px",
           background: "var(--c-tint-orange)",
           border: "1px solid var(--c-tint-orange-line)",
           borderRadius: "var(--radius-xl)",
@@ -311,15 +286,24 @@ export function CompetitorsBody({ data }: { data: Supply }) {
           ]}
         />
 
-        <ReferrerEdgeList label="Top referrers" items={referrerItems} summary={sel.backlinks ?? null} empty="No quality referrers surfaced." />
+        {/* Referrer table — the hero. */}
+        <Card title={`Where ${sel.isSubject ? "you get" : sel.domain + " gets"} found`} style={{ padding: 0, background: "transparent", border: "none", boxShadow: "none" }}>
+          {sortedRefs.length > 0 ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              {sortedRefs.map((r, i) => <ReferrerRow key={r.host} r={r} maxEtv={maxEtv} />)}
+            </div>
+          ) : (
+            <span style={{ fontSize: 12.5, color: "var(--c-faint)" }}>No quality referrers surfaced.</span>
+          )}
+        </Card>
 
         {/* F4 — the acquisition gap: quality referrers pointing at this rival that
-            never link to you. The concrete outreach targets to pursue, each with a
-            real add-to-plan (outreach action) chip. */}
-        {referrerGap.length > 0 && (
+            never link to you (core relevance only). The concrete outreach targets
+            to pursue, each with a real add-to-plan (outreach action) chip. */}
+        {pursue.length > 0 && (
           <div style={{ display: "flex", flexDirection: "column", gap: 8, borderTop: "1px solid var(--c-tint-orange-line)", paddingTop: 14 }}>
-            <span style={EDGE_LABEL_STYLE}>Referrers to pursue · they have, you don&apos;t ({referrerGap.length})</span>
-            {referrerGap.map((r, i) => {
+            <span style={EDGE_LABEL_STYLE}>Referrers to pursue · they have, you don&apos;t ({pursue.length})</span>
+            {pursue.map((r, i) => {
               const title = `Reach out to ${r.host} for a backlink`;
               return (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}>
@@ -360,71 +344,8 @@ export function CompetitorsBody({ data }: { data: Supply }) {
   );
 }
 
-function PillarLegendItem({ label }: { label: string }) {
-  return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--c-muted)" }}>
-      <span style={{ width: 9, height: 9, borderRadius: "var(--radius-full)", background: "var(--c-faint)" }} />
-      {label}
-    </span>
-  );
-}
-
-function CompetitorRow({
-  e,
-  selected,
-  onSelect,
-  dots,
-}: {
-  e: Entity & { isSubject: boolean };
-  selected: boolean;
-  onSelect: () => void;
-  dots: PillarDot[];
-}) {
-  const band = bandFor(e.score);
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={onSelect}
-      onKeyDown={(ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); onSelect(); } }}
-      style={{
-        display: "flex", alignItems: "center", gap: 14, padding: "13px 16px", borderRadius: "var(--radius-md)",
-        border: `1.5px solid ${selected ? "var(--c-action)" : "var(--c-line)"}`,
-        background: selected ? "var(--c-soft)" : e.isSubject ? "var(--c-bg2)" : "var(--c-surface)",
-        cursor: "pointer",
-      }}
-    >
-      <span style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 9, fontSize: 14.5, fontWeight: 700, color: "var(--c-ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-        {e.domain}
-        {e.isSubject && <Badge tone="violet">you · baseline</Badge>}
-      </span>
-      <span style={{ display: "inline-flex", gap: 5, flexShrink: 0 }}>
-        {dots.map((d, i) => <span key={i} style={{ width: 13, height: 13, borderRadius: "var(--radius-full)", background: d.color }} />)}
-      </span>
-      <span style={{ fontFamily: "var(--font-mono)", fontSize: 16, fontWeight: 700, color: band.color, minWidth: 30, textAlign: "right", flexShrink: 0 }}>{e.score}</span>
-      {selected && (
-        <svg viewBox="0 0 24 24" fill="none" stroke="var(--c-action)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 16, height: 16, flexShrink: 0 }}>
-          <path d="M9 6l6 6-6 6" />
-        </svg>
-      )}
-    </div>
-  );
-}
-
 const EDGE_LABEL_STYLE: CSSProperties = { fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--c-band-hard)" };
 const ELLIPSIS: CSSProperties = { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" };
-
-/** Compact "path" of a URL for display — host is already shown separately, so the
- *  target line just needs the page it points to (pathname, trimmed). */
-function pagePath(url: string): string {
-  try {
-    const u = new URL(url);
-    const p = (u.pathname + u.search).replace(/\/$/, "");
-    return p && p !== "" ? p : "/";
-  } catch {
-    return url;
-  }
-}
 
 /** 2D — a compact stat strip for the selected entity's public footprint. Renders
  *  only the stats that have a value (null entries are dropped). */
@@ -439,52 +360,6 @@ function EntityStatStrip({ stats }: { stats: Array<{ label: string; value: strin
           <span style={{ fontSize: 14, fontWeight: 600, color: "var(--c-ink)", fontFamily: "var(--font-mono)" }}>{s.value}</span>
         </div>
       ))}
-    </div>
-  );
-}
-
-/** R1 — linked quality referrers: external link + category badge + authority/dofollow,
- *  the target page each backlink earned, anchor text as a muted caption, and a
- *  header summarising how many referring domains were examined + the quality mix. */
-function ReferrerEdgeList({ label, items, summary, empty }: { label: string; items: ReferrerItem[]; summary?: NonNullable<Entity["backlinks"]> | null; empty: string }) {
-  const topCats = summary
-    ? Object.entries(summary.byCategory).sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0)).slice(0, 3)
-    : [];
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-      <span style={EDGE_LABEL_STYLE}>{label}</span>
-      {summary && summary.sampled > 0 && (
-        <span style={{ fontSize: 11, color: "var(--c-faint)" }}>
-          Examined {summary.sampled} referring domain{summary.sampled === 1 ? "" : "s"} · {Math.round(summary.qualityShare * 100)}% quality
-          {topCats.length > 0 && <> · {topCats.map(([c, n]) => `${c} ${n}`).join(" · ")}</>}
-        </span>
-      )}
-      {items.length > 0 ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-          {items.map((r, i) => (
-            <div key={i} style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}>
-                <EvidenceLink href={r.url} style={{ fontSize: 13.5, fontWeight: 600, minWidth: 0, ...ELLIPSIS }}>{r.host}</EvidenceLink>
-                <Badge tone="neutral" title={categoryTitle(r.category)}>{r.category}</Badge>
-                {/* F4 — authority (domain rank 0–1000) + dofollow, when the backlinks API returned them. */}
-                {typeof r.authority === "number" && r.authority > 0 && (
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, fontWeight: 700, color: "var(--c-faint)", flexShrink: 0, cursor: "help" }} title={DR_HELP}>DR&nbsp;{r.authority}</span>
-                )}
-                {r.dofollow === true && (
-                  <span style={{ fontSize: 10, fontWeight: 700, color: "var(--color-success)", background: "var(--c-tint-green)", padding: "1px 6px", borderRadius: 5, flexShrink: 0, cursor: "help" }} title={DOFOLLOW_HELP}>dofollow</span>
-                )}
-              </div>
-              {/* 2D — the exact page the backlink points to (the most actionable field). */}
-              {r.target && (
-                <EvidenceLink href={r.target} style={{ fontSize: 11.5, color: "var(--c-muted)", minWidth: 0, ...ELLIPSIS }}>→ {pagePath(r.target)}</EvidenceLink>
-              )}
-              {r.anchor && <span style={{ fontSize: 11.5, color: "var(--c-faint)", fontStyle: "italic", ...ELLIPSIS }}>linked as &ldquo;{r.anchor}&rdquo;</span>}
-            </div>
-          ))}
-        </div>
-      ) : (
-        <span style={{ fontSize: 12.5, color: "var(--c-faint)" }}>{empty}</span>
-      )}
     </div>
   );
 }

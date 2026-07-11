@@ -8,7 +8,7 @@ import { useMemo, useState } from "react";
 import { useIntel, IntelShell, fmt, fmtCompact } from "@/components/app/intel/shared";
 import { Card, Kpi, KpiRow, Badge, Eyebrow, Gauge, Donut, HBars, Bar, DataTable, Tabs, Expand, EvidenceLink, bandFor, PALETTE, type Segment } from "@/components/app/intel/kit";
 
-interface Backlinks { topQualityReferrers: { host: string; category: string; url: string; anchor?: string; target?: string; authority?: number | null; dofollow?: boolean | null }[]; byCategory: Record<string, number>; qualityShare: number; sampled: number }
+interface Backlinks { topQualityReferrers: { host: string; category: string; url: string; anchor?: string; target?: string; authority?: number | null; dofollow?: boolean | null; etv?: number | null; relevance?: "core" | "low" }[]; byCategory: Record<string, number>; qualityShare: number; sampled: number }
 /** Two-lens supply view — ESTIMATES from public SEO signals, not measured analytics. */
 interface TrafficLens {
   sources: { organic: number; paid: number; referral: number; social: number; direct: number; email: number };
@@ -28,7 +28,7 @@ interface ContentCluster { label: string; totalPages: number; coveredBy: string[
 interface ContentIntel { subjectDomain: string; entities: ContentEntity[]; clusters: ContentCluster[] }
 
 export interface Supply {
-  funnel: { subject: Entity & { category: string; backlinks?: Backlinks }; category: string; competitors: CompetitorDeep[]; discoveryChannels: Record<string, number>; channelsMissing: Channel[] };
+  funnel: { subject: Entity & { category: string; backlinks?: Backlinks }; category: string; competitors: CompetitorDeep[]; discoveryChannels: Record<string, number>; channelsMissing: Channel[]; channelStrength?: Record<string, Record<string, "hi" | "med" | "lo" | "absent">> };
   keywords: { gaps: Gap[] };
   content?: ContentIntel;
 }
