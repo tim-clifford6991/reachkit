@@ -26,28 +26,31 @@ import type { Database } from "@/lib/db/types";
 export async function updateSession(request: NextRequest): Promise<NextResponse> {
   let supabaseResponse = NextResponse.next({ request });
 
-  const supabase = createServerClient<Database>(env.supabaseUrl, env.supabaseAnonKey, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll();
-      },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-        supabaseResponse = NextResponse.next({ request });
-        cookiesToSet.forEach(({ name, value, options }) =>
-          supabaseResponse.cookies.set(name, value, options),
-        );
-      },
-    },
-  });
-
-  // Refresh the session. A dead/absent session is not an error here — the app's
-  // own auth gates (currentUser → redirect to /login) handle the unauthenticated
-  // case; middleware must never 500 on it.
+  // FAIL-OPEN, whole body: middleware runs on EVERY page, so any throw here
+  // (env parse included — prod logs showed zod failing on missing SUPABASE_*
+  // in deployments without the env targeted, 500ing every matched page) must
+  // degrade to "proceed unauthenticated", never take the site down. The app's
+  // own auth gates (currentUser → /login redirect) handle the rest.
   try {
+    const supabase = createServerClient<Database>(env.supabaseUrl, env.supabaseAnonKey, {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+          supabaseResponse = NextResponse.next({ request });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options),
+          );
+        },
+      },
+    });
+
+    // Refresh the session. A dead/absent session is not an error here.
     await supabase.auth.getUser();
-  } catch {
-    /* refresh failed (e.g. refresh_token_not_found) — fall through unauthenticated */
+  } catch (e) {
+    console.error("[middleware] session refresh skipped (fail-open)", e instanceof Error ? e.message : e);
   }
 
   return supabaseResponse;
