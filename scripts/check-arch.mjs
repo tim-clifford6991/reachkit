@@ -23,6 +23,23 @@ const result = await cruise(TARGETS, {
   validate: true,
 });
 
+/**
+ * Circular-dependency baseline (the ratchet): the no-circular rule stays at
+ * `warn` severity in .dependency-cruiser.cjs, but this pinned set makes it
+ * bite — a NEW cycle fails the gate, and a FIXED cycle also fails until it is
+ * removed here, so the baseline only ever shrinks. Never add to this list to
+ * make a regression pass (CLAUDE.md → "strict adherence, iterate forward").
+ */
+const KNOWN_CYCLES = new Set([
+  "components/report/section-nav-active.tsx → components/report/section-nav.tsx",
+  "lib/badge/score-card.ts → lib/scan/report.ts",
+  "lib/llm/check-link.ts → lib/llm/prompts.ts",
+  "lib/llm/competitor-names.ts → lib/scan/pipeline.ts",
+  "lib/llm/prompts.ts → lib/llm/grounding.ts",
+  "lib/scan/collect.ts → lib/scan/facts.ts",
+  "lib/scan/collect.ts → lib/scan/pipeline.ts",
+]);
+
 const out = result.output ?? result;
 const violations = out.summary?.violations ?? [];
 const errors = violations.filter((v) => v.rule.severity === "error");
@@ -34,6 +51,25 @@ if (warns.length) {
   console.log("architecture warnings:");
   for (const v of warns) console.log(fmt(v));
   console.log("");
+}
+
+// --- circular-dependency ratchet -------------------------------------------
+const cycleEdges = new Set(
+  violations.filter((v) => v.rule.name === "no-circular").map((v) => `${v.from} → ${v.to}`),
+);
+const newCycles = [...cycleEdges].filter((e) => !KNOWN_CYCLES.has(e));
+const fixedCycles = [...KNOWN_CYCLES].filter((e) => !cycleEdges.has(e));
+if (newCycles.length) {
+  console.error(`architecture FAILED — ${newCycles.length} NEW circular dependenc${newCycles.length === 1 ? "y" : "ies"} (not in the pinned baseline):`);
+  for (const e of newCycles) console.error(`  ✗ [no-circular] ${e}`);
+  console.error("\nBreak the cycle. Do NOT add it to KNOWN_CYCLES — the baseline only shrinks.");
+  process.exit(1);
+}
+if (fixedCycles.length) {
+  console.error(`architecture FAILED — ${fixedCycles.length} baseline cycle(s) no longer exist:`);
+  for (const e of fixedCycles) console.error(`  ✓ [no-circular] ${e} (fixed!)`);
+  console.error("\nGood news — pin the win: remove these entries from KNOWN_CYCLES in scripts/check-arch.mjs so they can never come back.");
+  process.exit(1);
 }
 if (errors.length) {
   console.error(`architecture FAILED — ${errors.length} boundary violation(s):`);
