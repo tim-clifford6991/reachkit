@@ -30,10 +30,19 @@ export type ExternalVendor = "dataforseo" | "tavily";
 export interface CostSink {
   dataforseo: number;
   tavily: number;
+  /**
+   * External soft cap, USD (invariant #2). When the DFS+Tavily running total
+   * crosses it, `breached` flips true — recording NEVER throws (a mid-adapter
+   * throw risks corrupt partials; #9 handles them but clean degradation is
+   * better). Callers poll `externalCapBreached()` BEFORE each expensive step
+   * group and skip remaining external enrichment on breach.
+   */
+  capUsd?: number;
+  breached: boolean;
 }
 
-export function newCostSink(): CostSink {
-  return { dataforseo: 0, tavily: 0 };
+export function newCostSink(capUsd?: number): CostSink {
+  return { dataforseo: 0, tavily: 0, capUsd, breached: false };
 }
 
 const storage = new AsyncLocalStorage<CostSink>();
@@ -53,6 +62,22 @@ export function recordExternalCost(vendor: ExternalVendor, usd: number): void {
   const sink = storage.getStore();
   if (!sink) return;
   sink[vendor] += usd;
+  if (sink.capUsd !== undefined && !sink.breached && sink.dataforseo + sink.tavily >= sink.capUsd) {
+    sink.breached = true;
+    console.warn(
+      `[cost-context] external soft cap breached: $${(sink.dataforseo + sink.tavily).toFixed(4)} >= $${sink.capUsd.toFixed(2)} — remaining external enrichment will degrade`,
+    );
+  }
+}
+
+/**
+ * True when the active sink's external soft cap has been crossed. Checked
+ * BEFORE expensive step groups (market analysis, synthesis sub-gathers) so a
+ * runaway scan degrades to the existing zero-state/partial paths instead of
+ * spending without bound. Always false outside a cost context.
+ */
+export function externalCapBreached(): boolean {
+  return storage.getStore()?.breached ?? false;
 }
 
 /**

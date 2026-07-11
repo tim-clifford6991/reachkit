@@ -20,6 +20,7 @@ import {
   discoverabilityScore,
 } from "./registry-score";
 import { PILLAR_WEIGHTS } from "./signals";
+import { parseEnv } from "@/lib/config/env";
 import { MAX_SELECTED } from "./competitor-selection";
 import { MIN_ACTIONS } from "./action-linking";
 
@@ -68,6 +69,18 @@ describe("documented invariants (keep docs in sync when these change)", () => {
 
   it("competitor cohort cap is 5 (CLAUDE.md invariant #2, architecture §4.3)", () => {
     expect(MAX_SELECTED).toBe(5);
+  });
+
+  it("external soft-cap defaults are free 25¢ / paid 150¢ (CLAUDE.md invariant #2, architecture §4.3)", () => {
+    // Zod defaults, asserted via a bare parse (no env override in unit tests).
+    const parsed = parseEnv({
+      SUPABASE_URL: "http://localhost:54321",
+      SUPABASE_ANON_KEY: "x",
+      SUPABASE_SERVICE_ROLE_KEY: "x",
+      REACHKIT_USE_FIXTURES: "true",
+    } as unknown as NodeJS.ProcessEnv);
+    expect(parsed.externalScanCapCentsFree).toBe(25);
+    expect(parsed.externalScanCapCentsFull).toBe(150);
   });
 
   it("always-insight action floor is 5 (CLAUDE.md invariant #4)", () => {

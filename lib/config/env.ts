@@ -50,6 +50,11 @@ const schema = z.object({
   WEEKLY_REFRESH_BUDGET_CENTS: z.coerce.number().int().positive().default(120),
   DATAFORSEO_LOCATION_CODE: z.coerce.number().int().default(2840), // US
   DATAFORSEO_LANGUAGE_CODE: z.string().default("en"),
+  // External-spend soft caps (invariant #2): per-scan ceiling on cumulative
+  // DataForSEO + Tavily USD (in cents). On breach the pipeline DEGRADES (skips
+  // remaining external enrichment) — it never throws mid-step.
+  EXTERNAL_SCAN_CAP_CENTS_FREE: z.coerce.number().int().positive().default(25),
+  EXTERNAL_SCAN_CAP_CENTS_FULL: z.coerce.number().int().positive().default(150),
   // Tavily bills in credits, not dollars, and returns no cost in its response.
   // This is the $/credit rate for our plan, used to price each call for per-scan
   // cost accounting (DataForSEO returns real USD, so it needs no such rate).
@@ -85,6 +90,8 @@ export function parseEnv(src: NodeJS.ProcessEnv) {
     tavilyApiKey: p.TAVILY_API_KEY, resendApiKey: p.RESEND_API_KEY,
     posthogKey: p.POSTHOG_KEY, posthogHost: p.POSTHOG_HOST, scanBudgetCents: p.SCAN_BUDGET_CENTS,
     weeklyRefreshBudgetCents: p.WEEKLY_REFRESH_BUDGET_CENTS,
+    externalScanCapCentsFree: p.EXTERNAL_SCAN_CAP_CENTS_FREE,
+    externalScanCapCentsFull: p.EXTERNAL_SCAN_CAP_CENTS_FULL,
     productHuntToken: p.PRODUCT_HUNT_TOKEN, youtubeApiKey: p.YOUTUBE_API_KEY,
     voyageApiKey: p.VOYAGE_API_KEY,
     dataforseoLocationCode: p.DATAFORSEO_LOCATION_CODE, dataforseoLanguageCode: p.DATAFORSEO_LANGUAGE_CODE,

@@ -1,4 +1,5 @@
 import { serverDb } from "@/lib/db/client";
+import { env } from "@/lib/config/env";
 import { newCostSink, runInCostContext } from "@/lib/scan/cost-context";
 import { flushExternalCost } from "@/lib/scan/scan-telemetry";
 import { emitScanEvent } from "@/lib/scan/progress";
@@ -39,7 +40,9 @@ export async function costedIntelStep<T>(
 ): Promise<T> {
   const scanId = await latestScanIdForApp(appId);
   if (!scanId) return fn();
-  const sink = newCostSink();
+  // Full-tier soft cap: intel routes are paid surfaces (invariant #2). Fresh sink
+  // per call — the cap bounds THIS gather; cumulative spend is alerted separately.
+  const sink = newCostSink(env.externalScanCapCentsFull / 100);
   try {
     return await runInCostContext(sink, fn);
   } finally {

@@ -129,7 +129,9 @@ async function refreshOneApp(appId: string): Promise<AppRefreshSummary> {
 
   // costedStep: the refresh's DataForSEO/Tavily spend (rank lookups, alternates)
   // flushes onto the latest scan row — recurring spend must never be untracked.
-  const result = await costedStep(latestScanId, () => runWeeklyRefresh(ctx));
+  const result = await costedStep(latestScanId, () => runWeeklyRefresh(ctx), {
+    capCents: env.externalScanCapCentsFull,
+  });
 
   // The weekly digest log the feed UI reads, anchored on the latest scan id.
   await emitScanEvent(latestScanId, "refresh", {

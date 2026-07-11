@@ -119,7 +119,9 @@ export async function POST(
 
   try {
     // costedStep: manual-refresh external spend flushes onto the latest scan row.
-    const result = await costedStep(scanRow.id, () => runWeeklyRefresh(ctx));
+    const result = await costedStep(scanRow.id, () => runWeeklyRefresh(ctx), {
+      capCents: env.externalScanCapCentsFull,
+    });
     return NextResponse.json(result);
   } catch (e) {
     console.error("app/[id]/refresh POST error", e);

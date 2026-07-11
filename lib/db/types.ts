@@ -17,10 +17,10 @@ export type Database = {
     Functions: {
       graphql: {
         Args: {
-          operationName?: string
           query?: string
-          variables?: Json
           extensions?: Json
+          variables?: Json
+          operationName?: string
         }
         Returns: Json
       }
@@ -724,6 +724,7 @@ export type Database = {
           created_at: string
           dataforseo_cost_cents: number
           deepened_at: string | null
+          external_cap_hit_at: string | null
           findings_payload: Json | null
           id: string
           ip_hash: string | null
@@ -746,6 +747,7 @@ export type Database = {
           created_at?: string
           dataforseo_cost_cents?: number
           deepened_at?: string | null
+          external_cap_hit_at?: string | null
           findings_payload?: Json | null
           id?: string
           ip_hash?: string | null
@@ -768,6 +770,7 @@ export type Database = {
           created_at?: string
           dataforseo_cost_cents?: number
           deepened_at?: string | null
+          external_cap_hit_at?: string | null
           findings_payload?: Json | null
           id?: string
           ip_hash?: string | null
@@ -1024,10 +1027,10 @@ export type Database = {
       }
       match_embeddings: {
         Args: {
-          query: string
-          match_count: number
-          p_subject_type?: string
           p_app_id?: string
+          p_subject_type?: string
+          match_count: number
+          query: string
         }
         Returns: {
           content: string

@@ -79,7 +79,7 @@ export const scanDeepen = inngest.createFunction(
         },
         facts,
       );
-    }));
+    }, { capCents: env.externalScanCapCentsFull }));
 
     await step.run("done", async () => {
       await emitScanEvent(scanId, "done", { scanId });

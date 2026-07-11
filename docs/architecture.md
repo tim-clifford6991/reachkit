@@ -263,18 +263,29 @@ from the request shape (search basic=1 / advanced=2 credits; extract 1 per 5 URL
 scan from any adapter depth without threading `scanId`; each cost-bearing Inngest
 step (`collect`/`findings`/`free-report`/`full-scan`/`deepen`) runs under `costedStep`
 and additively flushes its delta to `scans.{dataforseo,tavily}_cost_cents`
-(replay-safe; cache hits never reach the adapter so they record nothing). Per-user
+(replay-safe; cache hits never reach the adapter so they record nothing). The
+recurring + interactive callers are costed too: weekly/manual refresh via
+`costedStep` on the latest scan row, and the four intel/competitor routes via
+`costedIntelStep` (`lib/app/latest-scan.ts` — also emits a source-tagged
+`intel-spend` scan event when real spend occurred). Guard:
+`app/api/costed-routes.test.ts` fails if any caller drops its wrapper. Per-user
 total = LLM + DataForSEO + Tavily summed over `users.app_ids` → `scans.app_id`
-(`loadAllUsersSpend`), shown on the owner-only `/app/diagnostics`.
+(`loadAllUsersSpend`) plus the month-bucketed `user_spend_monthly` view, shown on
+the owner-only `/app/diagnostics`.
 
 Cold-scan reality (trustmrr, 2026-07-09, fully cache-purged): **free ≈ $0.10**
 (LLM $0.08 · DataForSEO $0.002 · Tavily $0.016); **paid deep, cumulative ≈ $0.56**
 (LLM $0.15 · **DataForSEO $0.35** · Tavily $0.06). DataForSEO Labs (ranked_keywords /
 relevant_pages / domain_rank_overview across the cohort) is the dominant external
-cost — the old "~€1.2" gather estimate was conservative. **Note: tracking is
-record-only — `ScanBudget`'s cent-caps still bound LLM only; external spend is
-bounded by the tool-call / `MAX_SELECTED` caps, not a € meter.** Wiring external
-spend into `ScanBudget` enforcement is a deferred follow-up.
+cost — the old "~€1.2" gather estimate was conservative. **External spend is now
+SOFT-CAPPED per scan** (invariant #2): `EXTERNAL_SCAN_CAP_CENTS_FREE=25` /
+`EXTERNAL_SCAN_CAP_CENTS_FULL=150`. The cap is cumulative across steps
+(`costedStep` subtracts already-flushed spend from each step's headroom). On
+breach `recordExternalCost` flips the sink's `breached` flag — it **never
+throws** (degrade, never invent); `runFullScan` checks `externalCapBreached()`
+before the market pass and skips it (the existing `market:null` degraded path
+renders), and the scan row is stamped `external_cap_hit_at` on flush. LLM spend
+remains bounded by `ScanBudget`'s cent-caps + the tool-call ceiling.
 
 ### 4.4 Single-source-of-truth rule (retired dead tables)
 
@@ -550,7 +561,8 @@ file; #13 (`audienceProxy`) stays deferred.
   (`lib/scan/cost-context.ts` → `scans.{dataforseo,tavily}_cost_cents`) and rolled
   up per user (`loadAllUsersSpend`), surfaced on the owner-only `/app/diagnostics`.
   DataForSEO reports real USD; Tavily is priced from credits × `TAVILY_USD_PER_CREDIT`.
-  Record-only today — not yet enforced against `ScanBudget` (see §4.3).
+  Soft-capped per scan (free 25¢ / paid 150¢) — breach degrades the pipeline and
+  stamps `scans.external_cap_hit_at` (see §4.3).
 - **`/app` soft-nav** — link internal navigation straight to `/app/dashboard`, never
   the bare `/app` (which server-redirects there). A client soft-nav to a redirecting
   route aborts its in-flight RSC stream → `Error: Connection closed` in the `(app)`
