@@ -136,11 +136,15 @@ const OFFTOPIC_EXAMPLES = 3;
  *  category rankings = a healthy category footprint). Tunable. */
 const CATEGORY_TARGET = 6;
 
+/** SERP position → share of clicks captured (a #1 ranking captures ~all its volume,
+ *  a #20 almost none). pos1→1, pos21+→0. */
+function posQuality(pos: number): number {
+  return Math.max(0, Math.min(1, (21 - pos) / 20));
+}
+
 /** Per-keyword category strength: volume-weighted (capped) × position quality. */
 function categoryContribution(k: ClassifiedKeyword): number {
-  const volWeight = Math.min(1, k.volume / 1000); // a 1k+/mo term counts fully
-  const posQuality = Math.max(0, Math.min(1, (21 - k.position) / 20)); // pos1→1, pos21+→0
-  return volWeight * posQuality;
+  return Math.min(1, k.volume / 1000) * posQuality(k.position); // a 1k+/mo term counts fully
 }
 
 /**
@@ -188,9 +192,7 @@ export function computeSearchVisibility(
   const strength = category.reduce((s, r) => s + categoryContribution(r), 0);
   const score = Math.round(100 * Math.min(1, strength / CATEGORY_TARGET));
 
-  // Est. category searches you actually capture: volume × position quality (a #1
-  // ranking captures ~all its volume; a #20 captures almost none).
-  const posQuality = (pos: number) => Math.max(0, Math.min(1, (21 - pos) / 20));
+  // Est. category searches you actually capture: volume × position quality.
   const categoryCapturedSearches = Math.round(category.reduce((s, r) => s + r.volume * posQuality(r.position), 0));
   const categoryWonKeywords = category.filter((r) => r.position <= WINNING_POSITION).map((r) => r.keyword.toLowerCase());
 
@@ -263,6 +265,7 @@ const OPPORTUNITY_ROWS = 6;
 export function computeCategoryDemand(
   seedVolumes: Array<{ keyword: string; volume: number }>,
   sv: SearchVisibility,
+  rankByKeyword: Map<string, number>,
 ): Pick<SearchVisibility, "categoryDemand" | "categoryCaptureRate" | "categoryOpportunities"> {
   const byKw = new Map<string, number>();
   for (const r of seedVolumes) {
@@ -272,12 +275,14 @@ export function computeCategoryDemand(
   }
   const rows = [...byKw.entries()].map(([keyword, volume]) => ({ keyword, volume })).sort((a, b) => b.volume - a.volume);
   const categoryDemand = rows.reduce((s, r) => s + r.volume, 0);
-  const categoryCaptureRate = categoryDemand > 0
-    ? Math.min(100, Math.round((100 * sv.categoryCapturedSearches) / categoryDemand))
-    : 0;
-  const won = new Set(sv.categoryWonKeywords);
+  // Capture = your Search Visibility score (how well you rank for your category) —
+  // a real, differentiated 0–100 computed from your OWN category rankings. Avoids
+  // the unit-mismatch of dividing broad category ETV by narrow seed volumes.
+  const categoryCaptureRate = sv.score;
+  // Opportunities = the category searches you are NOT already winning (not ranked
+  // top 3 for the exact phrase), highest-volume first.
   const categoryOpportunities = rows
-    .filter((r) => !won.has(r.keyword))
+    .filter((r) => { const pos = rankByKeyword.get(r.keyword); return pos === undefined || pos > WINNING_POSITION; })
     .slice(0, OPPORTUNITY_ROWS)
     .map((r) => ({ keyword: r.keyword, volume: r.volume }));
   return { categoryDemand, categoryCaptureRate, categoryOpportunities };
@@ -310,10 +315,19 @@ export async function gatherFreeSearchVisibility(
     }
     const kw = await cachedRankedKeywords(self, 50).catch(() => [] as RankedKeyword[]);
     const sv = computeSearchVisibility(kw, vocab);
+    // Best position the subject holds per keyword — used to tell which category seeds
+    // it already wins vs which are open opportunities.
+    const rankByKeyword = new Map<string, number>();
+    for (const k of kw) {
+      if (k.position <= 0) continue;
+      const key = k.keyword.toLowerCase();
+      const cur = rankByKeyword.get(key);
+      if (cur === undefined || k.position < cur) rankByKeyword.set(key, k.position);
+    }
     const seeds = buildCategorySeeds(sv, llmCategorySeeds);
     // Measure the EXACT volume of the category seed phrases (no expansion noise).
     const seedVolumes = seeds.length > 0 ? await cachedKeywordVolumes(seeds).catch(() => []) : [];
-    return { ...sv, ...computeCategoryDemand(seedVolumes, sv) };
+    return { ...sv, ...computeCategoryDemand(seedVolumes, sv, rankByKeyword) };
   } catch {
     return EMPTY;
   }

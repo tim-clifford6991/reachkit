@@ -86,35 +86,38 @@ describe("computeSearchVisibility — a healthy category presence scores higher"
 describe("computeCategoryDemand (from exact seed-phrase volumes)", () => {
   const vocab = buildVocab("acme.com", ["startup revenue mrr saas verification"]);
 
-  it("sums seed volumes, computes capture rate, and lists opportunities you don't win", () => {
+  it("sums seed volumes, uses SV score as capture, lists the seeds you don't win", () => {
     const seedVolumes = [
-      { keyword: "startup revenue tools", volume: 5000 }, // not won → opportunity
-      { keyword: "mrr verification", volume: 3000 }, // not won → opportunity
-      { keyword: "startup mrr", volume: 1000 }, // WON below → excluded from opportunities
+      { keyword: "startup revenue tools", volume: 5000 }, // not ranked → opportunity
+      { keyword: "mrr verification", volume: 3000 }, // not ranked → opportunity
+      { keyword: "startup mrr", volume: 1000 }, // ranked #2 → won → excluded from opportunities
     ];
     const sv = computeSearchVisibility(
       [{ keyword: "startup mrr", position: 2, volume: 1000, etv: 300, url: "u" }],
       vocab,
     );
-    const d = computeCategoryDemand(seedVolumes, sv);
+    const rankByKeyword = new Map([["startup mrr", 2]]);
+    const d = computeCategoryDemand(seedVolumes, sv, rankByKeyword);
     expect(d.categoryDemand).toBe(9000);
-    // opportunities exclude the term you already win ("startup mrr")
+    expect(d.categoryCaptureRate).toBe(sv.score); // capture = Search Visibility score
     expect(d.categoryOpportunities.map((o) => o.keyword)).toEqual(["startup revenue tools", "mrr verification"]);
-    expect(d.categoryCaptureRate).toBeGreaterThanOrEqual(0);
-    expect(d.categoryCaptureRate).toBeLessThanOrEqual(100);
   });
 
-  it("zero-rankings site still gets a real category-demand number (capture 0%)", () => {
+  it("zero-rankings site: demand is real, capture = 0, all seeds are opportunities", () => {
     const seedVolumes = [{ keyword: "startup revenue tools", volume: 8000 }, { keyword: "mrr saas", volume: 2000 }];
-    const sv = computeSearchVisibility([], vocab); // ranks for nothing
-    const d = computeCategoryDemand(seedVolumes, sv);
+    const sv = computeSearchVisibility([], vocab); // ranks for nothing → sv.score 0
+    const d = computeCategoryDemand(seedVolumes, sv, new Map());
     expect(d.categoryDemand).toBe(10000);
-    expect(d.categoryCaptureRate).toBe(0); // captures none of it
-    expect(d.categoryOpportunities.length).toBeGreaterThan(0);
+    expect(d.categoryCaptureRate).toBe(0);
+    expect(d.categoryOpportunities.length).toBe(2);
   });
 
   it("ignores zero-volume seeds", () => {
-    const d = computeCategoryDemand([{ keyword: "a", volume: 0 }, { keyword: "b", volume: 500 }], computeSearchVisibility([], vocab));
+    const d = computeCategoryDemand(
+      [{ keyword: "a", volume: 0 }, { keyword: "b", volume: 500 }],
+      computeSearchVisibility([], vocab),
+      new Map(),
+    );
     expect(d.categoryDemand).toBe(500);
   });
 });
