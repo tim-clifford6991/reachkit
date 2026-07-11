@@ -118,7 +118,16 @@ function isValidSampleAction(a: unknown): a is SampleAction {
   );
 }
 
-function parseSynthResult(text: string): SynthResult | null {
+/** Sanitise an LLM string array: keep non-empty trimmed strings, cap the count. */
+function strArray(v: unknown, cap: number): string[] {
+  if (!Array.isArray(v)) return [];
+  return v
+    .map((x) => (typeof x === "string" ? x.trim() : ""))
+    .filter((s) => s.length >= 2 && s.length <= 60)
+    .slice(0, cap);
+}
+
+export function parseSynthResult(text: string): SynthResult | null {
   let parsed: unknown;
   try {
     parsed = JSON.parse(extractJson(text));
@@ -132,6 +141,13 @@ function parseSynthResult(text: string): SynthResult | null {
   const mirror: PositioningMirror = isValidPositioningMirror(obj["positioningMirror"])
     ? obj["positioningMirror"]
     : DEGRADED_MIRROR;
+  // Attach LLM-authored audience tags (optional) onto the mirror, sanitised.
+  const pm = (obj["positioningMirror"] ?? {}) as Record<string, unknown>;
+  const intendedAudience = strArray(pm["intendedAudience"], 5);
+  const actualAudience = strArray(pm["actualAudience"], 5);
+  if (intendedAudience.length > 0) mirror.intendedAudience = intendedAudience;
+  if (actualAudience.length > 0) mirror.actualAudience = actualAudience;
+  const categorySeeds = strArray(obj["categorySeeds"], 5);
 
   const rawFindings = Array.isArray(obj["findings"]) ? (obj["findings"] as unknown[]) : [];
   const validFindings: Finding[] = rawFindings.filter(isValidFinding).map((f) => ({
@@ -145,7 +161,7 @@ function parseSynthResult(text: string): SynthResult | null {
     ? obj["sampleAction"]
     : DEGRADED_SAMPLE_ACTION;
 
-  return { positioningMirror: mirror, findings, sampleAction };
+  return { positioningMirror: mirror, findings, sampleAction, categorySeeds };
 }
 
 // ---------------------------------------------------------------------------

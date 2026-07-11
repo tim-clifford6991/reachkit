@@ -435,3 +435,43 @@ describe("runSynth — fixture mode", () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// parseSynthResult — LLM-authored category seeds + audience tags (coherence pass)
+// ---------------------------------------------------------------------------
+describe("parseSynthResult — categorySeeds + audience", () => {
+  test("extracts sanitised categorySeeds and intended/actual audience", async () => {
+    const { parseSynthResult } = await import("./synth");
+    const json = JSON.stringify({
+      positioningMirror: {
+        listingSays: "A verified SaaS revenue database and acquisition marketplace",
+        reviewsValue: "Users praise the Stripe-verified revenue data",
+        gap: "The anti-fraud angle is buried",
+        intendedAudience: ["indie SaaS founders", "  ", "bootstrappers"],
+        actualAudience: ["data-driven acquirers"],
+      },
+      categorySeeds: ["buy saas business", "startups for sale", "x"],
+      findings: [
+        { category: "content", claim: "c", basis: "evidence_based", confidence: 0.5, evidence: [{ excerpt: "e", source: "positioning" }] },
+      ],
+      sampleAction: { category: "content", title: "t", why: "w", draft: "d" },
+    });
+    const r = parseSynthResult(json)!;
+    expect(r.positioningMirror.intendedAudience).toEqual(["indie SaaS founders", "bootstrappers"]); // blank dropped
+    expect(r.positioningMirror.actualAudience).toEqual(["data-driven acquirers"]);
+    // "x" (1 char) dropped; real phrases kept
+    expect(r.categorySeeds).toEqual(["buy saas business", "startups for sale"]);
+  });
+
+  test("legacy output without the new fields still parses (backward compat)", async () => {
+    const { parseSynthResult } = await import("./synth");
+    const json = JSON.stringify({
+      positioningMirror: { listingSays: "a", reviewsValue: "b", gap: "c" },
+      findings: [{ category: "content", claim: "c", basis: "evidence_based", confidence: 0.5, evidence: [{ excerpt: "e", source: "positioning" }] }],
+      sampleAction: { category: "content", title: "t", why: "w", draft: "d" },
+    });
+    const r = parseSynthResult(json)!;
+    expect(r.categorySeeds).toEqual([]);
+    expect(r.positioningMirror.intendedAudience).toBeUndefined();
+  });
+});

@@ -69,22 +69,13 @@ export function toResultsProps(
 
   const pm = report.whatYouOffer.positioningMirror;
 
-  // Multi-tag audience derivation: split positioning prose into distinct chips
-  // (on commas / semicolons / "and" / "&" / "·"), trim, drop tiny fragments, and
-  // fold in the ICP signals as additional "intended" tags. Caps at 5 chips.
-  const splitTags = (text: string | null | undefined): string[] => {
-    if (!text) return [];
-    return text
-      .split(/[,;·]|\band\b|&|•/gi)
-      .map((t) => t.trim().replace(/^(for|to|the|a)\s+/i, "").replace(/[.\s]+$/, "").trim())
-      .filter((t) => t.length >= 3 && t.length <= 40);
-  };
-  const icpSignals = (report.whoItsFor?.signals ?? [])
-    .map((s) => (typeof s === "string" ? s : (s as { label?: string })?.label ?? ""))
-    .filter((s): s is string => !!s);
-
-  const intendedTags = Array.from(new Set([...splitTags(pm.listingSays), ...icpSignals.flatMap(splitTags)])).slice(0, 5);
-  const actualTags = Array.from(new Set(splitTags(pm.reviewsValue))).slice(0, 5);
+  // Clean LLM-authored audience tags — who the page is written FOR vs who it reads
+  // AS. Replaces the old naive prose-splitting that produced garbage chips
+  // ("trustmrr", "updated hourly —"). Empty when a legacy report predates the field.
+  const cleanTags = (tags: string[] | undefined): string[] =>
+    (tags ?? []).filter((t) => typeof t === "string" && t.trim().length >= 2).map((t) => t.trim()).slice(0, 5);
+  const intendedTags = cleanTags(pm.intendedAudience);
+  const actualTags = cleanTags(pm.actualAudience);
 
   // Search-gap rows. Paid deep scans carry the rival keyword-gap
   // (`market.gap.keywordGap`); FREE web scans carry the honest subject-only
@@ -115,22 +106,20 @@ export function toResultsProps(
     gapCount = opps.length;
   }
 
-  // Search Visibility panel — shown whenever we learned ANYTHING (rankings OR
-  // category demand), so a site that ranks for nothing still leads with the real
-  // gap ("your category gets X/mo, you capture 0%") instead of the tidy on-site score.
-  const svShown = sv && (sv.keywordsRanked > 0 || sv.categoryDemand > 0);
-  const searchVisibility = svShown
+  // Search Visibility panel — shown whenever the gather ran (ONE gate, mirrors
+  // report.ts). Even a site that ranks for NOTHING renders here (the zero-state),
+  // so we never show an empty "Your category" header.
+  const searchVisibility = sv
     ? {
-        score: sv!.score,
-        keywordsRanked: sv!.keywordsRanked,
-        estMonthlyVisits: sv!.estMonthlyVisits,
-        brandPct: sv!.brandPct,
-        categoryPct: sv!.categoryPct,
-        offTopicPct: sv!.offTopicPct,
-        offTopicExamples: sv!.offTopicExamples,
-        categoryWins: sv!.categoryWins,
-        categoryDemand: sv!.categoryDemand,
-        categoryCaptureRate: sv!.categoryCaptureRate,
+        score: sv.score,
+        keywordsRanked: sv.keywordsRanked,
+        estMonthlyVisits: sv.estMonthlyVisits,
+        brandPct: sv.brandPct,
+        categoryPct: sv.categoryPct,
+        offTopicPct: sv.offTopicPct,
+        categoryWins: sv.categoryWins,
+        categoryDemand: sv.categoryDemand,
+        categoryCaptureRate: sv.categoryCaptureRate,
       }
     : null;
 

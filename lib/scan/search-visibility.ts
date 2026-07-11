@@ -241,22 +241,21 @@ function isCategoryRelevant(keyword: string, vocab: { brandTokens: Set<string>; 
   return classify(keyword, vocab.brandTokens, vocab.categoryVocab) === "category";
 }
 
-/** Seeds for the keyword_ideas call — ONLY the subject's real, specific category
- *  phrases (the terms it already ranks for). We deliberately do NOT seed from single
- *  broad vocabulary tokens ("revenue", "saas", "meeting"): keyword_ideas expands those
- *  into unrelated high-volume noise ("walmart revenue", "fomc meeting"), which would
- *  fabricate a category-demand number. Multi-word seeds keep the expansion on-topic.
- *  A site that ranks for no category term yields no seeds → we honestly show no demand
- *  figure rather than invent one. */
-function buildCategorySeeds(sv: SearchVisibility): string[] {
+const isSpecificSeed = (s: string) => s.includes(" ") || s.replace(/[^a-z0-9]/g, "").length >= 5;
+
+/** Seeds for the keyword_ideas call. PREFER the LLM-authored category phrases (the
+ *  site's REAL market, e.g. "buy saas business") — they're specific, multi-word, and
+ *  work even at zero rankings. Fall back to the subject's own category-ranked phrases
+ *  only when the LLM gave none. We never seed from single broad vocabulary tokens
+ *  ("revenue", "saas"): keyword_ideas expands those into unrelated high-volume noise
+ *  ("walmart revenue"), which would fabricate demand. */
+export function buildCategorySeeds(sv: SearchVisibility, llmSeeds: string[]): string[] {
+  const llm = llmSeeds.map((s) => s.trim().toLowerCase()).filter(isSpecificSeed);
+  if (llm.length > 0) return [...new Set(llm)].slice(0, 8);
   const seeds = new Set<string>();
   for (const g of sv.categoryGap) seeds.add(g.keyword.toLowerCase());
   for (const w of sv.categoryWonKeywords) seeds.add(w);
-  // Keep the specific ones (multi-word, or a distinctive single token ≥5 chars);
-  // drop bare common words that would broaden the expansion.
-  return [...seeds]
-    .filter((s) => s.includes(" ") || s.replace(/[^a-z0-9]/g, "").length >= 5)
-    .slice(0, 10);
+  return [...seeds].filter(isSpecificSeed).slice(0, 10);
 }
 
 const DEMAND_CAP_ROWS = 40;
@@ -310,13 +309,25 @@ export function computeCategoryDemand(
  * "your category gets X searches/mo, you capture 0%" insight instead of a blank.
  * Fixtures-safe (adapters → [] → zeroed) and best-effort (never throws).
  */
-export async function gatherFreeSearchVisibility(rawSelf: string, seedText: string[]): Promise<SearchVisibility> {
+export async function gatherFreeSearchVisibility(
+  rawSelf: string,
+  seedText: string[],
+  llmCategorySeeds: string[] = [],
+): Promise<SearchVisibility> {
   try {
     const self = normalizeHost(rawSelf);
     const vocab = buildVocab(self, seedText);
+    // The LLM authoritatively identified the category, so fold its seed tokens into
+    // the category vocabulary — ideas about the real market are then recognised as
+    // category-relevant even if the on-page prose didn't use those exact words.
+    for (const s of llmCategorySeeds) {
+      for (const t of s.toLowerCase().match(/[a-z0-9]+/g) ?? []) {
+        if (t.length >= 3 && !STOPWORDS.has(t) && !vocab.brandTokens.has(t)) vocab.categoryVocab.add(t);
+      }
+    }
     const kw = await cachedRankedKeywords(self, 50).catch(() => [] as RankedKeyword[]);
     const sv = computeSearchVisibility(kw, vocab);
-    const seeds = buildCategorySeeds(sv);
+    const seeds = buildCategorySeeds(sv, llmCategorySeeds);
     const ideas = seeds.length > 0 ? await cachedKeywordIdeas(seeds, 200).catch(() => [] as KeywordIdea[]) : [];
     return { ...sv, ...computeCategoryDemand(ideas, vocab, sv, seeds) };
   } catch {

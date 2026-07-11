@@ -306,8 +306,11 @@ Return ONLY this JSON (no markdown, no code fences):
   "positioningMirror": {
     "listingSays": "<1–2 sentences: what the listing claims or emphasises>",
     "reviewsValue": "<1–2 sentences: what users actually praise or complain about in reviews>",
-    "gap": "<1–2 sentences: the key disconnect between listing claims and review reality. When the COMPETITOR GAP SHEET names competitors, name at least ONE of them and state the concrete angle where the subject wins or loses vs that rival>"
+    "gap": "<1–2 sentences: the key disconnect between listing claims and review reality. When the COMPETITOR GAP SHEET names competitors, name at least ONE of them and state the concrete angle where the subject wins or loses vs that rival>",
+    "intendedAudience": ["<2–4 word audience descriptor the page is written FOR>", "..."],
+    "actualAudience": ["<2–4 word audience the page/reviews actually read AS>", "..."]
   },
+  "categorySeeds": ["<a real search phrase a buyer would type for this PRODUCT CATEGORY>", "..."],
   "findings": [
     {
       "category": "content" | "outreach" | "seo_aso",
@@ -332,6 +335,8 @@ Rules:
 - Each finding must have ≥1 evidence item with a verbatim excerpt from the fact sheets above.
 - sampleAction: EXACTLY 1 item, choose the highest-confidence category.
 - positioningMirror.gap: prefer a concrete, named contrast — cite a competitor from the COMPETITOR GAP SHEET when one exists (never one you know from outside the sheets). Only fall back to a competitor-free disconnect when the sheet lists none.
+- intendedAudience / actualAudience: 2–4 SHORT audience descriptors each (e.g. "indie SaaS founders", "data-driven acquirers"). These are PEOPLE, not features — never the brand name, a keyword, or a phrase like "updated hourly".
+- categorySeeds: 3–5 real search phrases for the product's CATEGORY / market — what a buyer types into Google to find a tool like this (e.g. for a SaaS-acquisition marketplace: "buy saas business", "startups for sale", "acquire saas company"). NOT the brand name, NOT a competitor's name, NOT a feature. These seed keyword research, so they must be genuine multi-word search phrases a real person would use. If the category is genuinely unclear from the sheets, return fewer rather than guessing.
 - Do not invent data not present in the fact sheets.`;
 }
 

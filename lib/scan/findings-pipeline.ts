@@ -89,6 +89,10 @@ export async function runFindings(
       sampleAction: synth.sampleAction as unknown as Json,
       findings: synth.findings as unknown as Json,
       score: score as unknown as Json,
+      // PR: LLM-authored category seeds → seed keyword_ideas in the free report so
+      // category-demand is measured against the REAL market, not the subject's
+      // narrow rankings.
+      categorySeeds: (synth.categorySeeds ?? []) as unknown as Json,
     };
 
     const { error: scansErr } = await db

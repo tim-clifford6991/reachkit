@@ -4,7 +4,7 @@
  * adversarial case: clean site, tiny category, ~90% other-brand visibility.
  */
 import { describe, it, expect } from "vitest";
-import { computeSearchVisibility, buildVocab, computeCategoryDemand } from "./search-visibility";
+import { computeSearchVisibility, buildVocab, computeCategoryDemand, buildCategorySeeds } from "./search-visibility";
 import type { RankedKeyword } from "@/lib/scan/adapters/dataforseo-ranked-keywords";
 import type { KeywordIdea } from "@/lib/scan/adapters/dataforseo-keyword-ideas";
 
@@ -117,5 +117,31 @@ describe("computeCategoryDemand (category size + your share)", () => {
     expect(d.categoryDemand).toBe(10000);
     expect(d.categoryCaptureRate).toBe(0); // captures none of it
     expect(d.categoryOpportunities.length).toBeGreaterThan(0);
+  });
+});
+
+describe("buildCategorySeeds — LLM seeds are authoritative", () => {
+  it("prefers the LLM's clean category phrases over the subject's own rankings", () => {
+    const sv = computeSearchVisibility(
+      [{ keyword: "startup mrr", position: 2, volume: 90, etv: 27, url: "u" }],
+      buildVocab("acme.com", ["startup mrr revenue"]),
+    );
+    const seeds = buildCategorySeeds(sv, ["buy saas business", "startups for sale"]);
+    expect(seeds).toEqual(["buy saas business", "startups for sale"]);
+  });
+
+  it("falls back to the subject's category rankings when the LLM gave none", () => {
+    const sv = computeSearchVisibility(
+      [{ keyword: "startup mrr", position: 2, volume: 90, etv: 27, url: "u" }],
+      buildVocab("acme.com", ["startup mrr revenue"]),
+    );
+    const seeds = buildCategorySeeds(sv, []);
+    expect(seeds).toContain("startup mrr");
+  });
+
+  it("drops single broad tokens that would broaden keyword_ideas into noise", () => {
+    const sv = computeSearchVisibility([], buildVocab("acme.com", ["revenue"]));
+    // "saas" (4 chars, single word) is dropped; "buy saas tools" (phrase) kept.
+    expect(buildCategorySeeds(sv, ["saas", "buy saas tools"])).toEqual(["buy saas tools"]);
   });
 });

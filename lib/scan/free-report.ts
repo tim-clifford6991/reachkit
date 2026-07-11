@@ -139,9 +139,11 @@ export async function runFreeReport(ctx: ScanContext, facts: PreliminaryFacts): 
   const fp = (data?.findings_payload ?? null) as {
     findings?: Finding[];
     positioningMirror?: PositioningMirror;
+    categorySeeds?: string[];
   } | null;
   const findings = Array.isArray(fp?.findings) ? fp.findings : [];
   const positioningMirror = fp?.positioningMirror ?? { listingSays: "", reviewsValue: "", gap: "" };
+  const categorySeeds = Array.isArray(fp?.categorySeeds) ? fp!.categorySeeds.filter((s): s is string => typeof s === "string") : [];
 
   // Wave-A signals from already-persisted HTML (market null → deep signals unmeasured).
   const signalRows = await computeSignalRowsForScan({
@@ -186,7 +188,7 @@ export async function runFreeReport(ctx: ScanContext, facts: PreliminaryFacts): 
     positioningMirror.listingSays ?? "",
     positioningMirror.reviewsValue ?? "",
   ].filter((s) => s.length > 0);
-  const searchVisibility = ctx.mode === "web" ? await gatherFreeSearchVisibility(ctx.storeUrl, seedText) : undefined;
+  const searchVisibility = ctx.mode === "web" ? await gatherFreeSearchVisibility(ctx.storeUrl, seedText, categorySeeds) : undefined;
 
   const payload = buildFreeReport({
     mode: ctx.mode,

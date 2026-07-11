@@ -33,6 +33,16 @@ function bandViz(score: number) {
   if (score < 85) return { label: "Findable", fg: "#1F9D5B", bg: "var(--c-tint-green)" };
   return { label: "Highly discoverable", fg: "#0E7A48", bg: "var(--c-tint-green)" };
 }
+// The headline score is the ON-SITE readiness basis (page build quality), NOT a
+// discoverability verdict — so scope the chip label to build quality. This resolves
+// the "98 · Highly discoverable" vs "Search visibility · Invisible" contradiction:
+// a clean page (high on-site) can still be invisible in search.
+function onsiteLabel(score: number): string {
+  if (score >= 85) return "Well-built page";
+  if (score >= 65) return "Solid build";
+  if (score >= 45) return "Some on-page gaps";
+  return "Needs work";
+}
 // pillar value → bar color (mockup ramp)
 function pillarColor(v: number) {
   if (v < 30) return "#E5484D";
@@ -99,7 +109,6 @@ export interface ResultsScreenProps {
     brandPct: number;
     categoryPct: number;
     offTopicPct: number;
-    offTopicExamples: string[];
     categoryWins: number;
     /** Total monthly searches in the category (keyword_ideas). */
     categoryDemand: number;
@@ -156,7 +165,7 @@ export function ResultsScreen(p: ResultsScreenProps) {
                 <text x="100" y="107.2" textAnchor="middle" style={{ font: `700 40px ${JM}, monospace`, fill: "var(--c-ink)" }}>{p.score}</text>
                 <text x="100" y="126.2" textAnchor="middle" style={{ font: `600 11px ${JM}, monospace`, fill: "var(--c-faint)", letterSpacing: 1 }}>/ 100</text>
               </svg>
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: band.bg, color: band.fg, fontWeight: 700, fontSize: 13, padding: "5px 13px", borderRadius: 8, marginTop: 8, fontFamily: SG }}>{band.label}</div>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: band.bg, color: band.fg, fontWeight: 700, fontSize: 13, padding: "5px 13px", borderRadius: 8, marginTop: 8, fontFamily: SG }}>{p.hideUnlock ? band.label : onsiteLabel(p.score)}</div>
               {(() => {
                 // Basis honesty: name what the score is measured from so an on-site
                 // headline is never mistaken for a full market-wide verdict. Free
@@ -315,30 +324,39 @@ export function ResultsScreen(p: ResultsScreenProps) {
             )}
           </div>
 
-          {/* Positioning Mirror */}
-          <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: 20, letterSpacing: "-0.01em", margin: "32px 0 6px" }}>Positioning Mirror</h2>
-          <p style={{ fontSize: 14, color: "var(--c-faint)", margin: "0 0 14px" }}>Who you think you target, vs. who your page actually reads as.</p>
-          <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16, padding: 24 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-              <div style={{ border: "1px solid var(--c-tint-violet-line)", background: "var(--c-tint-violet)", borderRadius: 12, padding: 18 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--c-action)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 12 }}>You think you target</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {p.intendedTags.map((t) => (
-                    <span key={t} style={{ fontSize: 13, fontWeight: 600, background: "var(--c-surface)", border: "1px solid #E2DEF0", color: "#3A3744", padding: "6px 12px", borderRadius: 8 }}>{t}</span>
-                  ))}
-                </div>
+          {/* Positioning Mirror — LLM-authored audience tags (never prose-split junk);
+              the whole section hides if there's genuinely nothing to show. */}
+          {(p.intendedTags.length > 0 || p.actualTags.length > 0 || (p.mirrorGap && p.mirrorGap.trim().length > 0)) && (
+            <>
+              <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: 20, letterSpacing: "-0.01em", margin: "32px 0 6px" }}>Positioning Mirror</h2>
+              <p style={{ fontSize: 14, color: "var(--c-faint)", margin: "0 0 14px" }}>Who you think you target, vs. who your page actually reads as.</p>
+              <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16, padding: 24 }}>
+                {(p.intendedTags.length > 0 || p.actualTags.length > 0) && (
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+                    <div style={{ border: "1px solid var(--c-tint-violet-line)", background: "var(--c-tint-violet)", borderRadius: 12, padding: 18 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--c-action)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 12 }}>You think you target</div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                        {p.intendedTags.length > 0 ? p.intendedTags.map((t) => (
+                          <span key={t} style={{ fontSize: 13, fontWeight: 600, background: "var(--c-surface)", border: "1px solid #E2DEF0", color: "#3A3744", padding: "6px 12px", borderRadius: 8 }}>{t}</span>
+                        )) : <span style={{ fontSize: 13, color: "var(--c-faint)" }}>—</span>}
+                      </div>
+                    </div>
+                    <div style={{ border: "1px solid var(--c-tint-orange-line)", background: "var(--c-tint-orange)", borderRadius: 12, padding: 18 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#E0731C", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 12 }}>Your page actually reads as</div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                        {p.actualTags.length > 0 ? p.actualTags.map((t) => (
+                          <span key={t} style={{ fontSize: 13, fontWeight: 600, background: "var(--c-surface)", border: "1px solid #F0E0D2", color: "#3A3744", padding: "6px 12px", borderRadius: 8 }}>{t}</span>
+                        )) : <span style={{ fontSize: 13, color: "var(--c-faint)" }}>—</span>}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {p.mirrorGap && p.mirrorGap.trim().length > 0 && (
+                  <div style={{ marginTop: 18, padding: "16px 18px", background: "var(--c-tint-red)", borderLeft: "3px solid #E5484D", borderRadius: "0 10px 10px 0", fontSize: 14.5, lineHeight: 1.55, color: "#3A3744" }}>{p.mirrorGap}</div>
+                )}
               </div>
-              <div style={{ border: "1px solid var(--c-tint-orange-line)", background: "var(--c-tint-orange)", borderRadius: 12, padding: 18 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#E0731C", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 12 }}>Your page actually reads as</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {p.actualTags.map((t) => (
-                    <span key={t} style={{ fontSize: 13, fontWeight: 600, background: "var(--c-surface)", border: "1px solid #F0E0D2", color: "#3A3744", padding: "6px 12px", borderRadius: 8 }}>{t}</span>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div style={{ marginTop: 18, padding: "16px 18px", background: "var(--c-tint-red)", borderLeft: "3px solid #E5484D", borderRadius: "0 10px 10px 0", fontSize: 14.5, lineHeight: 1.55, color: "#3A3744" }}>{p.mirrorGap}</div>
-          </div>
+            </>
+          )}
 
           {/* Search Visibility — your category's demand + how much you actually capture */}
           <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: 20, letterSpacing: "-0.01em", margin: "32px 0 6px" }}>Your category, and how much of it you own</h2>
@@ -407,9 +425,9 @@ export function ResultsScreen(p: ResultsScreenProps) {
                   <span><span style={{ color: "#1F9D5B" }}>■</span> your category {sv.categoryPct}%</span>
                   <span><span style={{ color: "#E5A23B" }}>■</span> other companies&apos; names {sv.offTopicPct}%</span>
                 </div>
-                {sv.offTopicExamples.length > 0 && sv.offTopicPct >= 40 && (
+                {sv.offTopicPct >= 40 && (
                   <div style={{ marginTop: 14, padding: "12px 14px", background: "var(--c-tint-orange)", borderLeft: "3px solid #E0731C", borderRadius: "0 10px 10px 0", fontSize: 13.5, lineHeight: 1.55, color: "#3A3744" }}>
-                    You also rank for other brands&apos; names like <strong>{sv.offTopicExamples.map((e) => `“${e}”`).join(", ")}</strong> — often companies you list or mention. That&apos;s real traffic, but it isn&apos;t buyers searching for what <em>you</em> do.
+                    Most of your search traffic comes from <strong>other companies&apos; names you list or mention</strong> — real visits, but not buyers searching for what <em>you</em> do. Only <strong>{sv.categoryPct}%</strong> is your own category.
                   </div>
                 )}
               </div>

@@ -13,7 +13,16 @@ export interface Finding {
   confidence: number;
   evidence: FindingEvidence[];
 }
-export interface PositioningMirror { listingSays: string; reviewsValue: string; gap: string; }
+export interface PositioningMirror {
+  listingSays: string;
+  reviewsValue: string;
+  gap: string;
+  /** LLM-authored audience tags — who the page is written FOR (intended) vs who it
+   *  actually reads AS. Replaces the old prose-splitting chip derivation. Optional
+   *  for backward-compat with reports persisted before this field existed. */
+  intendedAudience?: string[];
+  actualAudience?: string[];
+}
 export interface SampleAction {
   category: "content" | "outreach" | "seo_aso";
   title: string;
@@ -24,6 +33,12 @@ export interface SynthResult {
   positioningMirror: PositioningMirror;
   findings: Finding[];
   sampleAction: SampleAction;
+  /** 3–5 clean category keyword-phrases naming the site's ACTUAL market (e.g.
+   *  "buy saas business", "ai meeting reminders"). Used to seed keyword_ideas so
+   *  category-demand is measured against the real category, not the subject's own
+   *  narrow rankings. The LLM only identifies the category; volumes come from
+   *  DataForSEO (no fabricated numbers). Optional for backward-compat. */
+  categorySeeds?: string[];
 }
 
 // ---------------------------------------------------------------------------
