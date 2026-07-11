@@ -39,6 +39,10 @@
     "mirror": "components/app/intel/competitors-view.tsx",
     "hash": "55855d5204735046"
   },
+  "CompetitorGapMap": {
+    "mirror": "components/app/intel/competitor-gap-map.tsx",
+    "hash": "8dfad5eb2e38e183"
+  },
   "CompetitorsScreen": {
     "mirror": "components/app/intel/competitors-view.tsx",
     "hash": "55855d5204735046"
