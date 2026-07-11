@@ -73,7 +73,7 @@ Each has (or should have) a guard test. Breaking one is a correctness regression
 
 Architecture and the Claude Design system are kept from drifting by **machine-checked** gates, not prose alone. The rule: **strict adherence, iterate forward, never go backwards.** A gate may be *strengthened*; it may never be weakened to make a regression pass. Non-Claude agents read the same rules via `AGENTS.md` (a pointer to this file).
 
-**The four enforcement layers** (all run in CI; the last three also run on pre-commit):
+**The four enforcement layers** (ALL run in CI AND on pre-commit — the unit suite is ~5s):
 
 | Layer | Command | Pins / enforces |
 |---|---|---|
