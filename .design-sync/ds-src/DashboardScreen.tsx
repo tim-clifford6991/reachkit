@@ -39,7 +39,16 @@ export function DashboardScreen() {
           <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 32, alignItems: "center" }}>
             <div>
               <Gauge score={47} size={190} />
-              <div style={{ fontFamily: JM, fontSize: 10.5, color: "var(--c-faint)", textAlign: "center", marginTop: 8 }}>ON-SITE READINESS</div>
+              {/* v5: the gauge is the UNIFIED Discoverability Score (geomean of the
+                  two drivers) — same number the free report + trend show. The driver
+                  mini-stats make a low score next to strong pillars read as
+                  intentional (search presence is the gap), not broken. */}
+              <div style={{ fontFamily: JM, fontSize: 10.5, color: "var(--c-faint)", textAlign: "center", marginTop: 8 }}>DISCOVERABILITY</div>
+              <div style={{ display: "flex", justifyContent: "center", gap: 10, fontSize: 10.5, fontFamily: JM, color: "var(--c-faint)", marginTop: 5 }}>
+                <span>On-page <strong style={{ color: "var(--c-band-fair)" }}>62</strong></span>
+                <span style={{ color: "var(--c-line)" }}>·</span>
+                <span>Search <strong style={{ color: "var(--c-band-hard)" }}>36</strong></span>
+              </div>
               <div style={{ fontSize: 12.5, color: "var(--c-band-high)", textAlign: "center", marginTop: 6 }}>▲ +6 since last scan</div>
               <div style={{ borderTop: "1px dashed var(--c-line2)", marginTop: 14, paddingTop: 12, textAlign: "center" }}>
                 <Eyebrow>Market position vs rivals</Eyebrow>

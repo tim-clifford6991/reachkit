@@ -53,7 +53,7 @@
   },
   "DashboardScreen": {
     "mirror": "components/app/intel/dashboard-hero.tsx",
-    "hash": "8eda4e6803782fed"
+    "hash": "227ffe5a9337b701"
   },
   "FinalCta": {
     "mirror": "components/sections/captured/landing-html.ts",
@@ -93,7 +93,7 @@
   },
   "LeverBanner": {
     "mirror": "components/app/intel/dashboard-hero.tsx",
-    "hash": "8eda4e6803782fed"
+    "hash": "227ffe5a9337b701"
   },
   "NavBar": {
     "mirror": "components/sections/marketing-nav.tsx",
@@ -129,7 +129,7 @@
   },
   "ResultsScreen": {
     "mirror": "components/report/captured/results-screen.tsx",
-    "hash": "91d2dd0c364b362e"
+    "hash": "da4b43b7d27b5924"
   },
   "RoadmapScreen": {
     "mirror": "app/(marketing)/roadmap/page.tsx",
