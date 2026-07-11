@@ -374,8 +374,9 @@ describe("scan-public-consolidation", () => {
 
   test("public-report.tsx never imports currentUser/entitlementsFor — no code path can leak a paid viewer's drafts", async () => {
     const fs = await import("node:fs/promises");
+    const { resolve } = await import("node:path");
     const src = await fs.readFile(
-      "/Users/timclifford/Projects/ReachKit/app/(funnel)/scan/[id]/public-report.tsx",
+      resolve(process.cwd(), "app/(funnel)/scan/[id]/public-report.tsx"),
       "utf8",
     );
     expect(src).not.toMatch(/import[^;]*\bcurrentUser\b/);
