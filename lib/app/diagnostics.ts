@@ -226,6 +226,60 @@ export async function loadUserSpend(userId: string): Promise<UserSpend> {
  * unit-economics view. One user↔app map (users.app_ids) + one scan query, folded
  * in memory. Users with no scans appear with a zeroed row so the list is complete.
  */
+/** A persisted cost alert (scan_events type=cost-alert) or a cap-hit stamp. */
+export interface CostAlert {
+  scanId: string;
+  kind: "cost-alert" | "cap-hit";
+  scope: string; // "scan" | "user-daily" | "external-cap"
+  cents: number | null;
+  thresholdCents: number | null;
+  at: string | null;
+}
+
+/**
+ * Recent cost alerts across ALL scans (owner-only): persisted `cost-alert`
+ * events plus scans whose external soft cap was hit. Newest first, capped at 20.
+ */
+export async function loadCostAlerts(): Promise<CostAlert[]> {
+  const db = serverDb();
+  const [{ data: events }, { data: capHits }] = await Promise.all([
+    db
+      .from("scan_events")
+      .select("scan_id, payload, created_at")
+      .eq("type", "cost-alert")
+      .order("created_at", { ascending: false })
+      .limit(20),
+    db
+      .from("scans")
+      .select("id, external_cap_hit_at")
+      .not("external_cap_hit_at", "is", null)
+      .order("external_cap_hit_at", { ascending: false })
+      .limit(20),
+  ]);
+  const alerts: CostAlert[] = [
+    ...(events ?? []).map((e) => {
+      const p = (e.payload ?? {}) as { scope?: string; cents?: number; thresholdCents?: number };
+      return {
+        scanId: e.scan_id,
+        kind: "cost-alert" as const,
+        scope: p.scope ?? "scan",
+        cents: p.cents ?? null,
+        thresholdCents: p.thresholdCents ?? null,
+        at: e.created_at,
+      };
+    }),
+    ...(capHits ?? []).map((s) => ({
+      scanId: s.id,
+      kind: "cap-hit" as const,
+      scope: "external-cap",
+      cents: null,
+      thresholdCents: null,
+      at: s.external_cap_hit_at,
+    })),
+  ];
+  return alerts.sort((a, b) => (b.at ?? "").localeCompare(a.at ?? "")).slice(0, 20);
+}
+
 /** One month × user row from the `user_spend_monthly` view (owner-only surface). */
 export interface MonthlySpendRow {
   userId: string;

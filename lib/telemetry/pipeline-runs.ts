@@ -1,4 +1,6 @@
 import { serverDb } from "@/lib/db/client";
+import { env } from "@/lib/config/env";
+import { emitScanEvent } from "@/lib/scan/progress";
 
 // Per-MTok USD rates. PLACEHOLDER — confirm exact Haiku 4.5 / Sonnet 4.6 rates against the
 // `claude-api` skill before launch. The cost MATH and model routing are what Cycle 0 locks; the
@@ -59,4 +61,96 @@ export async function checkScanCostOverrun(scanId: string, thresholdCents = 150)
     );
   }
   return total;
+}
+
+/**
+ * Persist a `cost-alert` scan event (deduped: one per scan+scope) so alerts
+ * survive past the log window and surface on /app/diagnostics. Best-effort.
+ */
+async function persistCostAlert(
+  scanId: string,
+  scope: "scan" | "user-daily",
+  cents: number,
+  thresholdCents: number,
+): Promise<void> {
+  try {
+    const db = serverDb();
+    const { data: existing } = await db
+      .from("scan_events")
+      .select("id, payload")
+      .eq("scan_id", scanId)
+      .eq("type", "cost-alert")
+      .limit(50);
+    if ((existing ?? []).some((e) => (e.payload as { scope?: string } | null)?.scope === scope)) return;
+    await emitScanEvent(scanId, "cost-alert", { scope, cents, thresholdCents });
+  } catch (e) {
+    console.error("[cost-alert] persist failed (best-effort)", e);
+  }
+}
+
+/**
+ * ALL-IN per-scan cost alert (LLM + DataForSEO + Tavily — the number that
+ * actually hits the bill, unlike `checkScanCostOverrun` which is LLM-only).
+ * Observe-only: console + a persisted `cost-alert` event; never breaks a scan.
+ * Returns the all-in total in cents.
+ */
+export async function checkAllInCostOverrun(scanId: string): Promise<number> {
+  try {
+    const { data } = await serverDb()
+      .from("scans")
+      .select("cost_cents, dataforseo_cost_cents, tavily_cost_cents")
+      .eq("id", scanId)
+      .maybeSingle();
+    const total =
+      Number(data?.cost_cents ?? 0) +
+      Number(data?.dataforseo_cost_cents ?? 0) +
+      Number(data?.tavily_cost_cents ?? 0);
+    if (total > env.costAlertScanCents) {
+      console.error(`[cost-alert] scan ${scanId} all-in cost ${Math.round(total)}¢ > ${env.costAlertScanCents}¢`);
+      await persistCostAlert(scanId, "scan", Math.round(total), env.costAlertScanCents);
+    }
+    return total;
+  } catch (e) {
+    console.error("[cost-alert] all-in check failed (best-effort)", e);
+    return 0;
+  }
+}
+
+/**
+ * Per-user DAILY all-in alert: sums the last 24h of scans across every app the
+ * owning user has. Anchored on the scan that triggered the check (its app →
+ * owning user via users.app_ids). Observe-only, deduped per scan.
+ */
+export async function checkUserDailyCostOverrun(scanId: string): Promise<void> {
+  try {
+    const db = serverDb();
+    const { data: scanRow } = await db.from("scans").select("app_id").eq("id", scanId).maybeSingle();
+    if (!scanRow?.app_id) return;
+    const { data: owner } = await db
+      .from("users")
+      .select("id, app_ids")
+      .contains("app_ids", [scanRow.app_id])
+      .limit(1)
+      .maybeSingle();
+    const appIds = (owner?.app_ids ?? []) as string[];
+    if (!owner || appIds.length === 0) return;
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { data: scans } = await db
+      .from("scans")
+      .select("cost_cents, dataforseo_cost_cents, tavily_cost_cents")
+      .in("app_id", appIds)
+      .gte("started_at", since);
+    const total = (scans ?? []).reduce(
+      (n, s) => n + Number(s.cost_cents ?? 0) + Number(s.dataforseo_cost_cents ?? 0) + Number(s.tavily_cost_cents ?? 0),
+      0,
+    );
+    if (total > env.costAlertUserDailyCents) {
+      console.error(
+        `[cost-alert] user ${owner.id} 24h all-in cost ${Math.round(total)}¢ > ${env.costAlertUserDailyCents}¢`,
+      );
+      await persistCostAlert(scanId, "user-daily", Math.round(total), env.costAlertUserDailyCents);
+    }
+  } catch (e) {
+    console.error("[cost-alert] user-daily check failed (best-effort)", e);
+  }
 }

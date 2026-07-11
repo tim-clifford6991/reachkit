@@ -53,7 +53,7 @@ import type {
 import { seedMonitors } from "@/lib/scan/monitors";
 import { getFreshFactSheet, factSheetSubjectType } from "@/lib/scan/fact-sheets";
 import { parseKeywords } from "@/lib/scan/adapters/keywords";
-import { checkScanCostOverrun } from "@/lib/telemetry/pipeline-runs";
+import { checkScanCostOverrun, checkAllInCostOverrun, checkUserDailyCostOverrun } from "@/lib/telemetry/pipeline-runs";
 import { emitScanEvent } from "@/lib/scan/progress";
 import { attachMarketAnalysis, writeMarketSnapshot } from "@/lib/scan/market";
 import { externalCapBreached } from "@/lib/scan/cost-context";
@@ -812,10 +812,13 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
       console.error("[full-scan] deep score snapshot failed (best-effort)", e);
     }
 
-    // 10c. §13 cost-overrun alert — best-effort telemetry marker. The report is
+    // 10c. §13 cost-overrun alerts — best-effort telemetry markers. The report is
     //      already persisted, so a hot scan is logged but never breaks the run.
+    //      LLM-only (legacy) + all-in (LLM+DFS+Tavily) + the user's 24h total.
     try {
       await checkScanCostOverrun(ctx.scanId);
+      await checkAllInCostOverrun(ctx.scanId);
+      await checkUserDailyCostOverrun(ctx.scanId);
     } catch {
       // observe-only: never let the cost check fail the scan
     }

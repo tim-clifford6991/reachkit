@@ -3,6 +3,7 @@ import { env } from "@/lib/config/env";
 import { newCostSink, runInCostContext } from "@/lib/scan/cost-context";
 import { flushExternalCost } from "@/lib/scan/scan-telemetry";
 import { emitScanEvent } from "@/lib/scan/progress";
+import { checkAllInCostOverrun, checkUserDailyCostOverrun } from "@/lib/telemetry/pipeline-runs";
 
 /**
  * The app's most recent scan id — the anchor row for cost attribution and
@@ -54,6 +55,9 @@ export async function costedIntelStep<T>(
         dataforseoUsd: sink.dataforseo,
         tavilyUsd: sink.tavily,
       }).catch((e) => console.error("[latest-scan] intel-spend event failed (best-effort)", e));
+      // Observe-only cost alerts (all-in + user's 24h total) — fire-and-forget.
+      checkAllInCostOverrun(scanId).catch(() => {});
+      checkUserDailyCostOverrun(scanId).catch(() => {});
     }
   }
 }

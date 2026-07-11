@@ -4,7 +4,7 @@ import Link from "next/link";
 import { resolveIntelContext } from "@/lib/app/intel-context";
 import { currentUser } from "@/lib/auth/server";
 import { isOwner } from "@/lib/auth/owner";
-import { loadScanDiagnostics, loadUserSpend, loadAllUsersSpend, loadMonthlySpend, type DataPoint } from "@/lib/app/diagnostics";
+import { loadScanDiagnostics, loadUserSpend, loadAllUsersSpend, loadMonthlySpend, loadCostAlerts, type DataPoint } from "@/lib/app/diagnostics";
 import { Card, Badge } from "@/components/app/intel/kit";
 import { buildMetadata } from "@/lib/seo";
 
@@ -60,6 +60,7 @@ async function DiagnosticsContent() {
   // Owner-only page → safe to show the full unit-economics breakdown across users.
   const allUsers = await loadAllUsersSpend();
   const monthly = await loadMonthlySpend();
+  const alerts = await loadCostAlerts();
 
   if (!diag) {
     return (
@@ -77,6 +78,24 @@ async function DiagnosticsContent() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* ALERTS — persisted cost alerts + external-cap hits (empty strip = healthy) */}
+      {alerts.length > 0 && (
+        <Card title="Cost alerts" info="Persisted cost-alert events (per-scan all-in / per-user daily thresholds) and scans whose external soft cap was hit and degraded.">
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {alerts.map((a, i) => (
+              <div key={`${a.scanId}-${a.scope}-${i}`} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12.5 }}>
+                <Badge tone={a.kind === "cap-hit" ? "amber" : "red"}>{a.scope}</Badge>
+                <span style={{ fontFamily: JM, fontSize: 11.5 }}>{a.scanId.slice(0, 8)}</span>
+                <span style={{ color: "var(--c-muted)" }}>
+                  {a.cents !== null ? `${fmtCents(a.cents)} > ${fmtCents(a.thresholdCents ?? 0)} threshold` : "external cap hit — scan degraded"}
+                </span>
+                <span style={{ marginLeft: "auto", color: "var(--c-faint)", fontSize: 11 }}>{fmtDate(a.at)}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
       {/* HEADER — scan identity + totals */}
       <Card title="Scan diagnostics" meta={diag.scan.mode ?? undefined}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 24 }}>

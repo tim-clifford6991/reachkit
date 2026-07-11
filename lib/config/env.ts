@@ -55,6 +55,10 @@ const schema = z.object({
   // remaining external enrichment) — it never throws mid-step.
   EXTERNAL_SCAN_CAP_CENTS_FREE: z.coerce.number().int().positive().default(25),
   EXTERNAL_SCAN_CAP_CENTS_FULL: z.coerce.number().int().positive().default(150),
+  // Cost-alert thresholds (observe-only; console + a persisted `cost-alert`
+  // scan event surfaced on /app/diagnostics — never breaks a scan).
+  COST_ALERT_SCAN_CENTS: z.coerce.number().int().positive().default(150),
+  COST_ALERT_USER_DAILY_CENTS: z.coerce.number().int().positive().default(500),
   // Tavily bills in credits, not dollars, and returns no cost in its response.
   // This is the $/credit rate for our plan, used to price each call for per-scan
   // cost accounting (DataForSEO returns real USD, so it needs no such rate).
@@ -92,6 +96,8 @@ export function parseEnv(src: NodeJS.ProcessEnv) {
     weeklyRefreshBudgetCents: p.WEEKLY_REFRESH_BUDGET_CENTS,
     externalScanCapCentsFree: p.EXTERNAL_SCAN_CAP_CENTS_FREE,
     externalScanCapCentsFull: p.EXTERNAL_SCAN_CAP_CENTS_FULL,
+    costAlertScanCents: p.COST_ALERT_SCAN_CENTS,
+    costAlertUserDailyCents: p.COST_ALERT_USER_DAILY_CENTS,
     productHuntToken: p.PRODUCT_HUNT_TOKEN, youtubeApiKey: p.YOUTUBE_API_KEY,
     voyageApiKey: p.VOYAGE_API_KEY,
     dataforseoLocationCode: p.DATAFORSEO_LOCATION_CODE, dataforseoLanguageCode: p.DATAFORSEO_LANGUAGE_CODE,

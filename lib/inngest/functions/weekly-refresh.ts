@@ -24,6 +24,7 @@ import { env } from "@/lib/config/env";
 import { ScanBudget } from "@/lib/tools/registry";
 import { runWeeklyRefresh } from "@/lib/scan/refresh";
 import { costedStep } from "@/lib/scan/scan-telemetry";
+import { checkAllInCostOverrun, checkUserDailyCostOverrun } from "@/lib/telemetry/pipeline-runs";
 import { emitScanEvent } from "@/lib/scan/progress";
 import type { ScanContext } from "@/lib/scan/pipeline";
 
@@ -132,6 +133,9 @@ async function refreshOneApp(appId: string): Promise<AppRefreshSummary> {
   const result = await costedStep(latestScanId, () => runWeeklyRefresh(ctx), {
     capCents: env.externalScanCapCentsFull,
   });
+  // Observe-only cost alerts on the refreshed spend — fire-and-forget.
+  checkAllInCostOverrun(latestScanId).catch(() => {});
+  checkUserDailyCostOverrun(latestScanId).catch(() => {});
 
   // The weekly digest log the feed UI reads, anchored on the latest scan id.
   await emitScanEvent(latestScanId, "refresh", {
