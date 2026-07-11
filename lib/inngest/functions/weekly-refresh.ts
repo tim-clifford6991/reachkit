@@ -23,6 +23,7 @@ import { serverDb } from "@/lib/db/client";
 import { env } from "@/lib/config/env";
 import { ScanBudget } from "@/lib/tools/registry";
 import { runWeeklyRefresh } from "@/lib/scan/refresh";
+import { costedStep } from "@/lib/scan/scan-telemetry";
 import { emitScanEvent } from "@/lib/scan/progress";
 import type { ScanContext } from "@/lib/scan/pipeline";
 
@@ -126,7 +127,9 @@ async function refreshOneApp(appId: string): Promise<AppRefreshSummary> {
     budget: new ScanBudget({ maxToolCalls: 60, budgetCents: env.weeklyRefreshBudgetCents }),
   };
 
-  const result = await runWeeklyRefresh(ctx);
+  // costedStep: the refresh's DataForSEO/Tavily spend (rank lookups, alternates)
+  // flushes onto the latest scan row — recurring spend must never be untracked.
+  const result = await costedStep(latestScanId, () => runWeeklyRefresh(ctx));
 
   // The weekly digest log the feed UI reads, anchored on the latest scan id.
   await emitScanEvent(latestScanId, "refresh", {

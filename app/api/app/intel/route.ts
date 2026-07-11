@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth/server";
 import { assertPaid, EntitlementError } from "@/lib/billing/entitlements";
 import { activeAppId } from "@/lib/app/active-app";
+import { costedIntelStep } from "@/lib/app/latest-scan";
 import { serverDb } from "@/lib/db/client";
 import { getSelectedCompetitors } from "@/lib/scan/competitor-selection";
 import { gatherFullFunnel } from "@/lib/scan/referral/funnel";
@@ -51,15 +52,21 @@ export async function GET(req: NextRequest) {
 
   const co = competitors;
   try {
-    if (layer === "demand") return NextResponse.json(await gatherDemand(domain, { competitorDomains: co }));
-    if (layer === "synthesis") return NextResponse.json(await gatherSynthesis(domain, { competitorDomains: co }));
-    // supply
-    const [funnel, keywords, content] = await Promise.all([
-      gatherFullFunnel(domain, { competitorDomains: co }),
-      gatherKeywordGap(domain, { competitorDomains: co }),
-      gatherContentIntel(domain, { competitorDomains: co }),
-    ]);
-    return NextResponse.json({ funnel, keywords, content });
+    // costedIntelStep: cold-path DataForSEO/Tavily spend is attributed to the
+    // app's latest scan row + tagged `intel-spend` (CLAUDE.md invariant #2).
+    return NextResponse.json(
+      await costedIntelStep(appId, "intel", async () => {
+        if (layer === "demand") return gatherDemand(domain, { competitorDomains: co });
+        if (layer === "synthesis") return gatherSynthesis(domain, { competitorDomains: co });
+        // supply
+        const [funnel, keywords, content] = await Promise.all([
+          gatherFullFunnel(domain, { competitorDomains: co }),
+          gatherKeywordGap(domain, { competitorDomains: co }),
+          gatherContentIntel(domain, { competitorDomains: co }),
+        ]);
+        return { funnel, keywords, content };
+      }),
+    );
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "failed" }, { status: 500 });
   }

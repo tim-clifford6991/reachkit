@@ -36,7 +36,16 @@ export interface WatermarkBody {
   knownCompetitors?: string[];       // competitors monitor (names)
 }
 
-export type ScanEventType = "artifact" | "facts" | "findings" | "report" | "refresh" | "done" | "error";
+export type ScanEventType =
+  | "artifact"
+  | "facts"
+  | "findings"
+  | "report"
+  | "refresh"
+  | "intel-spend" // interactive intel gather spent external USD (source-tagged)
+  | "cost-alert" // a cost threshold was crossed (scope-tagged)
+  | "done"
+  | "error";
 export interface ScanEvent { type: ScanEventType; payload: Record<string, unknown>; }
 
 /** A progress checkpoint emitted by cold-compute gatherers. */

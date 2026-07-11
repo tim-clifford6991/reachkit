@@ -5,6 +5,7 @@ import { serverDb } from "@/lib/db/client";
 import { env } from "@/lib/config/env";
 import { ScanBudget } from "@/lib/tools/registry";
 import { runWeeklyRefresh } from "@/lib/scan/refresh";
+import { costedStep } from "@/lib/scan/scan-telemetry";
 import { isoWeekStart } from "@/lib/inngest/functions/weekly-refresh";
 import type { ScanContext } from "@/lib/scan/pipeline";
 
@@ -117,7 +118,8 @@ export async function POST(
   };
 
   try {
-    const result = await runWeeklyRefresh(ctx);
+    // costedStep: manual-refresh external spend flushes onto the latest scan row.
+    const result = await costedStep(scanRow.id, () => runWeeklyRefresh(ctx));
     return NextResponse.json(result);
   } catch (e) {
     console.error("app/[id]/refresh POST error", e);

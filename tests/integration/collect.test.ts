@@ -131,6 +131,7 @@ test(
         ],
         raw: { mock: true },
       }),
+      parseTavilyContent: () => "",
     }));
     vi.doMock("@/lib/scan/adapters/site-fetch", () => ({
       fetchSiteListing: async () => ({

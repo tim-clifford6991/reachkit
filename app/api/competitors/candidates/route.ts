@@ -22,6 +22,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth/server";
 import { assertPaid, EntitlementError } from "@/lib/billing/entitlements";
 import { activeAppId } from "@/lib/app/active-app";
+import { costedIntelStep } from "@/lib/app/latest-scan";
 import { serverDb } from "@/lib/db/client";
 import { normalizeHost } from "@/lib/scan/referral/classify";
 import { resolveCompetitorDomain } from "@/lib/scan/competitor-resolve";
@@ -178,7 +179,12 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const result = await cachedClosestCompetitors(self);
+    // costedIntelStep: the cold discovery path spends DataForSEO/Tavily —
+    // attribute it to the viewer's latest scan row (CLAUDE.md invariant #2).
+    const appId = await activeAppId(viewer.user);
+    const result = appId
+      ? await costedIntelStep(appId, "candidates", () => cachedClosestCompetitors(self))
+      : await cachedClosestCompetitors(self);
     return NextResponse.json(result);
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "failed" }, { status: 500 });

@@ -10,6 +10,7 @@ import { NextRequest, NextResponse, after } from "next/server";
 import { currentUser } from "@/lib/auth/server";
 import { assertPaid, EntitlementError } from "@/lib/billing/entitlements";
 import { activeAppId } from "@/lib/app/active-app";
+import { costedIntelStep } from "@/lib/app/latest-scan";
 import { serverDb } from "@/lib/db/client";
 import { saveSelectedCompetitors } from "@/lib/scan/competitor-selection";
 import { resolveCompetitorDomain } from "@/lib/scan/competitor-resolve";
@@ -58,7 +59,11 @@ export async function POST(req: NextRequest) {
     if (storeUrl && saved.length > 0) {
       after(async () => {
         try {
-          await gatherSynthesis(storeUrl, { competitorDomains: saved });
+          // costedIntelStep: this pre-compute is the single heaviest interactive
+          // spend point (~€1 cold) — attribute it (CLAUDE.md invariant #2).
+          await costedIntelStep(appId, "select", () =>
+            gatherSynthesis(storeUrl, { competitorDomains: saved }),
+          );
         } catch (e) {
           console.error("[competitors/select] pre-compute failed (best-effort)", e);
         }

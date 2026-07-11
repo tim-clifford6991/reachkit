@@ -17,6 +17,7 @@ import { NextRequest } from "next/server";
 import { currentUser } from "@/lib/auth/server";
 import { assertPaid, EntitlementError } from "@/lib/billing/entitlements";
 import { activeAppId } from "@/lib/app/active-app";
+import { costedIntelStep } from "@/lib/app/latest-scan";
 import { serverDb } from "@/lib/db/client";
 import { getSelectedCompetitors } from "@/lib/scan/competitor-selection";
 import { gatherFullFunnel } from "@/lib/scan/referral/funnel";
@@ -111,13 +112,15 @@ export async function GET(req: NextRequest) {
       const onStage = (s: StageEvent) => send({ type: "stage", ...s });
 
       try {
-        let payload: unknown;
-
-        if (layer === "demand") {
-          payload = await gatherDemand(domain, { competitorDomains: co, onStage });
-        } else if (layer === "synthesis") {
-          payload = await gatherSynthesis(domain, { competitorDomains: co, onStage });
-        } else {
+        // costedIntelStep: cold-path external spend attributes to the latest
+        // scan row + `intel-spend` event (CLAUDE.md invariant #2).
+        const payload: unknown = await costedIntelStep(appId, "intel-stream", async () => {
+          if (layer === "demand") {
+            return gatherDemand(domain, { competitorDomains: co, onStage });
+          }
+          if (layer === "synthesis") {
+            return gatherSynthesis(domain, { competitorDomains: co, onStage });
+          }
           // supply (default) — three gatherers run in parallel; each fires onStage
           // independently so progress events from all three interleave naturally.
           const [funnel, keywords, content] = await Promise.all([
@@ -125,8 +128,8 @@ export async function GET(req: NextRequest) {
             gatherKeywordGap(domain, { competitorDomains: co, onStage }),
             gatherContentIntel(domain, { competitorDomains: co, onStage }),
           ]);
-          payload = { funnel, keywords, content };
-        }
+          return { funnel, keywords, content };
+        });
 
         send({ type: "done", payload });
       } catch (e) {
