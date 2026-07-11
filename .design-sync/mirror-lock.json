@@ -131,6 +131,10 @@
     "mirror": "components/app/intel/progress-view.tsx",
     "hash": "595b157bce2e7459"
   },
+  "ReferrerRow": {
+    "mirror": "components/app/intel/referrer-row.tsx",
+    "hash": "79b06f12a63d07a7"
+  },
   "ResultsScreen": {
     "mirror": "components/report/captured/results-screen.tsx",
     "hash": "773a541df0dda55b"
