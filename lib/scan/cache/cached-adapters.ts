@@ -56,7 +56,15 @@ export function cachedKeywordVolumes(seeds: string[]): Promise<KeywordRow[]> {
     key,
     30 * DAY_MS,
     async () => {
-      try { return (await keywordsData(seeds)).keywords; } catch { return []; }
+      // google_ads/search_volume flakes intermittently (timeout / transient 5xx);
+      // retry once before giving up so category demand isn't silently lost.
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const rows = (await keywordsData(seeds)).keywords;
+          if (rows.length > 0) return rows;
+        } catch { /* transient — retry once, then fall through to [] */ }
+      }
+      return [];
     },
     { isEmpty: (rows) => rows.length === 0 },
   );

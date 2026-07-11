@@ -1,7 +1,7 @@
 # ReachKit — Architecture, Data Flow & Processes
 
 > Living architecture document. Update this as the system evolves.
-> Last updated: 2026-07-10 (added §5 step-by-step scan logic + §6 inefficiency ledger)
+> Last updated: 2026-07-11 (free-report conversion redesign: Search Visibility §6.0)
 
 ReachKit is a single-stack Next.js 16 (App Router) application deployed on Vercel.
 There is no separate backend service — API routes are thin, and all heavy /
@@ -199,6 +199,8 @@ live populated/empty state of any given scan.
 | Headline score | HTML fetch (page only — no off-site) | `scans.score_total` / `score_breakdown` (`score_version 4`) | `compute-signals` → `headlineScore` = `registryScore` over the FIXED 8 on-site signals (`FIXED_BASIS_SIGNAL_KEYS`). Identical free↔paid (never moves on upgrade); equals the on-site pillar bars | Dashboard gauge ("On-site readiness") |
 | Pillar bars | on-site `scan_signals` | `scan_signals` | `headlineScore` → `pillarRollupFromRegistry`; Content + SEO assessed on-site, Outreach reads "off-site → Market Position" (no on-site signal) | Dashboard hero pillars |
 | Market position | off-site `scan_signals` (keyword footprint, backlinks, marketplace/community/press) | `scans.report_payload.marketPosition` | `marketPositionScore` = `registryScore` over the NON-fixed (off-site) signals, cohort-relative where rivals exist | Dashboard hero ("Market position vs rivals"), paid only |
+| **Search Visibility (free "wow")** | ONE subject `ranked_keywords` (footprint) + ONE `search_volume` on the **LLM-authored category seed phrases** (`lib/llm/synth.ts` `categorySeeds`) | `report_payload.searchVisibility` (`search_cache` `rk:*`/`kv:*`) | `lib/scan/search-visibility.ts`: classify footprint brand/category/off-topic; **category demand = Σ exact volume of the LLM category seeds** (no keyword_ideas expansion noise); **capture = the SV score**; opportunities = category seeds you don't rank top-3 for. Works at 0 rankings (zero-state). ~$0.02 extra, ≤ ~15¢ free | Free report `/scan/[id]` "Your category, and how much of it you own" + hero SV panel |
+| Audience tags | LLM synth (`intendedAudience`/`actualAudience` on `positioningMirror`) | `findings_payload` → `report_payload.whatYouOffer.positioningMirror` | LLM-authored (replaced the old `splitTags` prose-chopping) | Free report "Positioning Mirror" |
 | Per-scan cost | DataForSEO (real `body.cost`) · Tavily (credits × rate) · Anthropic (tokens) | `scans.dataforseo_cost_cents` / `tavily_cost_cents` / `cost_cents` | `lib/scan/cost-context.ts` (AsyncLocalStorage sink; `costedStep` flushes per Inngest step) | `/app/diagnostics` — per-scan breakdown + "Spend by user" (all users) |
 | Competitors / referrers | DataForSEO backlinks + traffic | `search_cache` (`funnel2:*` cachedJson) + `report_payload` | `gatherFullFunnel` → `buildBreakdown` | Audience → Competitors |
 | Keyword gap | DataForSEO ranked_keywords | `search_cache` (`synth:*`) + `report_payload.market.gap` | `gatherKeywordGap` | Audience → Keywords |
@@ -302,14 +304,16 @@ the 7-day TTL).
 
 ### 5.1 FREE pass — `scan/requested` with `tier="free"` (the lead magnet)
 
-Purpose: an immediate on-site "wow". Runs entirely on the **already-fetched page
-HTML** — no market/demand/keyword external spend, no LLM action generation.
+Purpose: a conversion-driving "wow" that reveals a credible search gap. On-site score
+is measured from the already-fetched HTML; the free report ALSO makes two cheap
+subject-only DataForSEO calls (`ranked_keywords` + `search_volume`) to compute
+**Search Visibility** — the conversion engine (§6.5). Total ≤ ~15¢/scan.
 
 | # | Step (Inngest) | Does | Cost |
 |---|---|---|---|
 | 1 | `collect` (`scan-requested.ts:44`) | `runCollect` → `getListing` (**site HTML fetch** = the sole source for the 8 headline signals + domain age), `getReviews` (**Tavily** `"{host} reviews"`), `findCompetitors` (**DataForSEO SERP + ProductHunt + Tavily**), then `extractCompetitorNames` (**Haiku**) to recover real names → `facts.competitors` | 3 external calls + 1 Haiku |
-| 2 | `findings` (`:99`) | `runExtract` (Haiku fact sheets: positioning, review_themes, competitor_gap — **keyword_data skipped**, no keyword docs on free) → `runSynth` (**Sonnet** findings + positioning mirror) → v1 `discoverabilityScore` written to `score_total` | 3–4 Haiku + 1 Sonnet |
-| 3 | `free-report` (`:147`) | `runFreeReport`: compute 18 signal rows over HTML (`ZERO_COMPONENTS`, off-site all `unmeasured`) → **`headlineScore`** over the 8 `FIXED_BASIS_SIGNAL_KEYS` (`score_version 4`, overwrites step-2 v1 score) → `fallbackActionsFromSignals` (**deterministic**, no LLM) → `buildFreeReport` (deep sections empty, `competitorGap` = names with `them:0/you:0`) | pure compute |
+| 2 | `findings` (`:99`) | `runExtract` (Haiku fact sheets) → `runSynth` (**Sonnet**): positioning mirror + findings + **`categorySeeds` (head category search phrases) + `intendedAudience`/`actualAudience`** (LLM-authored, persisted to `findings_payload`) → v1 score | 3–4 Haiku + 1 Sonnet |
+| 3 | `free-report` (`:147`) | `runFreeReport`: `headlineScore` over the 8 `FIXED_BASIS_SIGNAL_KEYS` (`score_version 4`) → `fallbackActionsFromSignals` → **`gatherFreeSearchVisibility`** (`ranked_keywords` footprint + `search_volume` on the LLM `categorySeeds` → `report_payload.searchVisibility`) → `buildFreeReport` | + ~2 DataForSEO calls (~$0.04) |
 | 4 | `done` (`:218`) | emit done, status `done` | — |
 
 Render: `/scan/[id]` → `PublicReport` → **always** `redactReportForTier(payload,"free")`
@@ -373,9 +377,29 @@ actions, budget 120¢) · `score-pulse` (Thu 09:00) → free own-site recompute 
 > goals: **free = instant off-site "wow"**, **paid = trustworthy short+long-term
 > actions that move the score over time**. Not yet actioned — this is the map.
 
+### 6.0 Free report — conversion redesign ✅ SHIPPED 2026-07-11
+
+Item #1 below (free under-delivers) is **resolved**. The free report is now a
+conversion funnel built on **Search Visibility** (`lib/scan/search-visibility.ts`):
+the LLM (`synth.ts`) names the site's category (`categorySeeds`) + audience tags;
+`ranked_keywords` gives the footprint (brand / category / other-brands split);
+`search_volume` on the seeds gives **real category demand**; capture = the SV score;
+opportunities = the category searches you don't win; rivals are named with a
+per-rival-share paid tease. Works for every use case — verified live by headless
+render on **trustmrr.com** (directory: 590/mo, own 4%, "88% other brands"),
+**nudgi.ai** (0-rankings zero-state: "Google ranks you for 0 · category 23,610/mo"),
+and **cal.com** (leader: SV 85). Coherence fixes: killed the `splitTags` garbage
+(LLM audience tags), one Search-Visibility gate (zero-state renders), off-topic
+noise removed, hero no longer contradicts itself ("Well-built page" not "Highly
+discoverable"). **Rule: never fabricate a number** — the LLM identifies the
+category, DataForSEO supplies volumes; when a call flakes we degrade, never invent.
+≤ ~15¢/scan. **Verification is by headless render of the live page, not the DB
+payload** (the process fix — DB-only checking is what let the drift through).
+
 ### 6.1 Macro gaps (the value line is misplaced)
 
-1. **Free under-delivers its own promise.** The 8 headline signals contain **zero
+1. ~~**Free under-delivers its own promise.**~~ ✅ **RESOLVED** (§6.0). The 8 headline
+   signals contain **zero
    Outreach signals** (5 SEO on-site + 3 Content), so free shows SEO+Content only;
    Outreach renders "Not measured". The keyword-gap table (`market.gap.keywordGap`)
    and Market Position are computed only on the deep pass, so the single most

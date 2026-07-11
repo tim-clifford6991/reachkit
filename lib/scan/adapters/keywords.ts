@@ -33,6 +33,7 @@ export async function keywordsData(seeds: string[]): Promise<{ keywords: Keyword
         },
       ]),
     },
+    20_000,
   );
   if (!res.ok) throw new Error(`dataforseo keywords failed: ${res.status}`);
   const body = (await dfsJson(res)) as unknown;

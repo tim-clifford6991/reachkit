@@ -14,6 +14,7 @@ This file is the **rules of engagement** — the invariants and hard rules that 
 |---|---|
 | Scan orchestration spine | `lib/scan/full-scan.ts` |
 | Scoring | `lib/scan/registry-score.ts`, `lib/scan/signals.ts`, `lib/scan/compute-signals.ts` |
+| Free report = the conversion surface | `lib/scan/search-visibility.ts` (Search Visibility), `components/report/captured/{to-results-props.ts,results-screen.tsx}` (render), `lib/scan/free-report.ts` |
 | Cache-poison guards | `lib/scan/demand/gather.ts` |
 | Billing redaction / gating | `lib/billing/entitlements.ts` |
 | Config: the one flag + all keys | `lib/config/env.ts` |
@@ -39,6 +40,7 @@ Each has (or should have) a guard test. Breaking one is a correctness regression
 ## Hard rules for working in this repo
 
 - **Always live-test with `REACHKIT_USE_FIXTURES=false` before trusting a change.** Fixtures + eval + code-review all MASK real-adapter / LLM-on-mixed-content bugs (they return canned clean data). The `linear.app=22` SPA-fetch failure was invisible to the fixture suite.
+- **The free report is the conversion surface — verify it by RENDERING the live page, not the DB payload.** Checking `report_payload` in the DB let real render bugs ship (garbage positioning chips, a zero-state that never rendered, a self-contradicting hero). After a free-report change: deploy, scan a directory + a 0-ranking new product + a normal SaaS, then headless-render each (`chrome --headless --dump-dom --virtual-time-budget`) and read the actual text. **Never fabricate a number** — the LLM identifies the category (`categorySeeds`), DataForSEO supplies the volumes; when a call flakes, degrade (footprint/zero-state), never invent (the "fomc meeting"/keyword_ideas-expansion lesson). Free budget ≤ ~15¢/scan.
 - **Never run `pnpm build` while `next dev` is running** — it corrupts `.next` and looks like "no changes / stale UI".
 - **`report_payload` is one JSON blob and older reports predate sections** — every consumer must null-coalesce (`?? []`). Don't add a typed per-domain intel table unless something reads it back (`demand_intel` is the one kept read-through cache; 7 write-only tables were retired).
 - **`REACHKIT_USE_FIXTURES` is the only feature flag.** Owner-gated surfaces use `REACHKIT_OWNER_EMAILS`.
