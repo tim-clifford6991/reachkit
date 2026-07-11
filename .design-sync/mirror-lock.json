@@ -37,11 +37,11 @@
   },
   "CompetitorEdgePanel": {
     "mirror": "components/app/intel/competitors-view.tsx",
-    "hash": "3347d8598ed66595"
+    "hash": "55855d5204735046"
   },
   "CompetitorsScreen": {
     "mirror": "components/app/intel/competitors-view.tsx",
-    "hash": "3347d8598ed66595"
+    "hash": "55855d5204735046"
   },
   "ContactScreen": {
     "mirror": "app/(marketing)/contact/page.tsx",
@@ -81,7 +81,7 @@
   },
   "LandingHero": {
     "mirror": "components/sections/scan-hero.tsx",
-    "hash": "9a8900b3d396eaec"
+    "hash": "aeaca293ffb4d340"
   },
   "LandingScreen": {
     "mirror": "components/sections/captured/landing-screen.tsx",
@@ -97,7 +97,7 @@
   },
   "NavBar": {
     "mirror": "components/sections/marketing-nav.tsx",
-    "hash": "135f97e6c81a6f82"
+    "hash": "fc6901fb6e87f0b2"
   },
   "OnboardingScreen": {
     "mirror": "components/app/setup/setup-overlay.tsx",
@@ -113,7 +113,7 @@
   },
   "PlanScreen": {
     "mirror": "components/app/intel/plan-timeline-view.tsx",
-    "hash": "3d71ed24bf3fa001"
+    "hash": "0cf17960a17311a3"
   },
   "PricingBlock": {
     "mirror": "components/sections/captured/landing-html.ts",
@@ -129,7 +129,7 @@
   },
   "ResultsScreen": {
     "mirror": "components/report/captured/results-screen.tsx",
-    "hash": "089b8411cd6d54dc"
+    "hash": "91d2dd0c364b362e"
   },
   "RoadmapScreen": {
     "mirror": "app/(marketing)/roadmap/page.tsx",
@@ -137,7 +137,7 @@
   },
   "ScanInput": {
     "mirror": "components/sections/scan-hero.tsx",
-    "hash": "9a8900b3d396eaec"
+    "hash": "aeaca293ffb4d340"
   },
   "ScanningRing": {
     "mirror": "components/scan/scan-animation.tsx",
@@ -145,7 +145,7 @@
   },
   "ScanningScreen": {
     "mirror": "components/scan/captured-scanning.tsx",
-    "hash": "a500aec40e322dbf"
+    "hash": "65f3d5a0897e7813"
   },
   "ScoreTravels": {
     "mirror": "components/sections/captured/landing-html.ts",
@@ -165,7 +165,7 @@
   },
   "TeardownsScreen": {
     "mirror": "app/(marketing)/teardowns/[slug]/page.tsx",
-    "hash": "db6dee0f0f0722ef"
+    "hash": "6f8a558ea3a038db"
   },
   "Testimonials": {
     "mirror": "components/sections/captured/landing-html.ts",
@@ -173,7 +173,7 @@
   },
   "ToolsScreen": {
     "mirror": "app/(marketing)/tools/page.tsx",
-    "hash": "39a9b34d1d377047"
+    "hash": "59176d69bbafae6b"
   },
   "TrafficByChannel": {
     "mirror": "components/app/intel/dashboard-view.tsx",

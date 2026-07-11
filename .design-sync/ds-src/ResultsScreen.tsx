@@ -28,6 +28,10 @@ function band(score: number) {
   if (score < 85) return { label: "Findable", fg: "var(--c-band-findable)", bg: "var(--c-tint-green)" };
   return { label: "Highly discoverable", fg: "var(--c-band-high)", bg: "var(--c-tint-green)" };
 }
+// The headline score is ON-SITE readiness (page build quality), not a discoverability
+// verdict — the chip is scoped to build quality so it can't contradict the Search
+// Visibility gap below ("Well-built page" next to "Invisible in search").
+const onsiteLabel = (s: number) => (s >= 85 ? "Well-built page" : s >= 65 ? "Solid build" : s >= 45 ? "Some on-page gaps" : "Needs work");
 const pillarColor = (v: number) => (v < 30 ? "var(--c-band-invisible)" : v < 50 ? "var(--c-band-hard)" : v < 70 ? "var(--c-band-fair)" : "var(--c-band-findable)");
 
 const SCORE = 47;
@@ -80,7 +84,7 @@ export function ResultsScreen() {
               <text x="100" y="106" textAnchor="middle" style={{ font: `700 40px ${JM}, monospace`, fill: "var(--c-ink)" }}>{SCORE}</text>
               <text x="100" y="126" textAnchor="middle" style={{ font: `600 11px ${JM}, monospace`, fill: "var(--c-faint)", letterSpacing: 1 }}>/ 100</text>
             </svg>
-            <span style={{ display: "inline-block", background: b.bg, color: b.fg, fontWeight: 700, fontSize: 13, padding: "5px 13px", borderRadius: 8, fontFamily: SG, marginTop: 4 }}>{b.label}</span>
+            <span style={{ display: "inline-block", background: b.bg, color: b.fg, fontWeight: 700, fontSize: 13, padding: "5px 13px", borderRadius: 8, fontFamily: SG, marginTop: 4 }}>{onsiteLabel(SCORE)}</span>
             <div style={{ fontSize: 11.5, color: "var(--c-faint)", fontFamily: JM, maxWidth: 190, margin: "10px auto 0" }}>On-site readiness — off-site reach unlocks with the full scan</div>
           </div>
           <div>
@@ -140,9 +144,28 @@ export function ResultsScreen() {
           <div style={{ marginTop: 16, background: "var(--c-tint-red)", borderLeft: "3px solid var(--c-band-invisible)", borderRadius: "0 10px 10px 0", padding: "12px 16px", fontSize: 14.5, color: "var(--c-ink)" }}>Buyers searching for a habit tracker never see themselves in your page — it reads as a mood journal, so you lose them before the comparison.</div>
         </div>
 
-        {/* Search Gap Analysis */}
-        <h2 style={H2}>Search Gap Analysis</h2>
-        <p style={SUB}>High-volume searches where you already rank — but not in the top 3, where the clicks go.</p>
+        {/* Your category, and how much of it you own — the conversion "money shot":
+            real category demand (from the LLM's category seeds' exact search volume)
+            + your capture (= Search Visibility score) + named rivals (per-rival share
+            is the paid unlock) + the brand/category/other-brands footprint split. */}
+        <h2 style={H2}>Your category, and how much of it you own</h2>
+        <p style={SUB}>How much your buyers are searching, how much of it you capture, and who&apos;s taking the rest.</p>
+        <div style={{ ...CARD, padding: "20px 22px", marginBottom: 14 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: 10, marginBottom: 12 }}>
+            <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 26 }}>12,400</span>
+            <span style={{ fontSize: 13.5, color: "var(--c-muted)" }}>searches/mo across your category</span>
+          </div>
+          <div style={{ display: "flex", height: 14, borderRadius: 7, overflow: "hidden", background: "var(--c-fill)" }}>
+            <div style={{ width: "8%", background: "var(--c-band-invisible)" }} />
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontSize: 12.5, color: "var(--c-muted)" }}>
+            <span style={{ fontWeight: 700, color: "var(--c-band-invisible)" }}>You capture 8%</span>
+            <span style={{ color: "var(--c-faint)" }}>92% goes to competitors &amp; unclaimed demand</span>
+          </div>
+          <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--c-line2)", fontSize: 13, color: "var(--c-muted)" }}>
+            Buyers compare you to <strong style={{ color: "var(--c-ink)" }}>Streaks, Habitica, Way of Life</strong>. <span style={{ color: "var(--c-action)", fontWeight: 600 }}>Unlock to see how much of your category each one takes →</span>
+          </div>
+        </div>
         <div style={{ ...CARD, overflow: "hidden" }}>
           <div style={{ display: "grid", gridTemplateColumns: "2.2fr 1fr 1fr 0.9fr", background: "var(--c-bg2)", padding: "11px 16px", fontFamily: JM, fontSize: 11, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--c-faint)" }}>
             <span>Query</span><span>Volume / mo</span><span>Your rank</span><span>Opportunity</span>
@@ -151,11 +174,10 @@ export function ResultsScreen() {
             <div key={g.query} style={{ display: "grid", gridTemplateColumns: "2.2fr 1fr 1fr 0.9fr", padding: "12px 16px", borderTop: "1px solid var(--c-fill)", alignItems: "center" }}>
               <span style={{ fontSize: 14, fontWeight: 600 }}>{g.query}</span>
               <span style={{ fontFamily: JM, fontSize: 13, color: "var(--c-muted)" }}>{g.volume}</span>
-              <span style={{ fontFamily: JM, fontSize: 13, color: g.ranked ? "var(--c-muted)" : "var(--c-band-invisible)" }}>{g.rank}</span>
+              <span style={{ fontFamily: JM, fontSize: 13, color: "var(--c-band-invisible)" }}>Not winning</span>
               <span style={{ justifySelf: "start", fontSize: 11.5, fontWeight: 700, borderRadius: 6, padding: "3px 8px", color: g.oppC.fg, background: g.oppC.bg }}>{g.opp}</span>
             </div>
           ))}
-          <div style={{ padding: "11px 16px", background: "var(--c-tint-violet)", fontSize: 13, fontWeight: 600, color: "var(--c-action)" }}>Showing {GAP_ROWS.length} of 12 queries — unlock full depth →</div>
         </div>
 
         {/* Evidence footnote */}
