@@ -50,11 +50,25 @@ const schema = z.object({
   WEEKLY_REFRESH_BUDGET_CENTS: z.coerce.number().int().positive().default(120),
   DATAFORSEO_LOCATION_CODE: z.coerce.number().int().default(2840), // US
   DATAFORSEO_LANGUAGE_CODE: z.string().default("en"),
+  // External-spend soft caps (invariant #2): per-scan ceiling on cumulative
+  // DataForSEO + Tavily USD (in cents). On breach the pipeline DEGRADES (skips
+  // remaining external enrichment) — it never throws mid-step.
+  EXTERNAL_SCAN_CAP_CENTS_FREE: z.coerce.number().int().positive().default(25),
+  EXTERNAL_SCAN_CAP_CENTS_FULL: z.coerce.number().int().positive().default(150),
+  // Cost-alert thresholds (observe-only; console + a persisted `cost-alert`
+  // scan event surfaced on /app/diagnostics — never breaks a scan).
+  COST_ALERT_SCAN_CENTS: z.coerce.number().int().positive().default(150),
+  COST_ALERT_USER_DAILY_CENTS: z.coerce.number().int().positive().default(500),
   // Tavily bills in credits, not dollars, and returns no cost in its response.
   // This is the $/credit rate for our plan, used to price each call for per-scan
   // cost accounting (DataForSEO returns real USD, so it needs no such rate).
   // Default ≈ Tavily pay-as-you-go ($8 / 1,000 credits); override per plan.
   TAVILY_USD_PER_CREDIT: z.coerce.number().nonnegative().default(0.008),
+  // Owner allowlist for internal-only surfaces (/app/diagnostics). Empty →
+  // owner tools are dev-only and fail closed in production (lib/auth/owner.ts).
+  REACHKIT_OWNER_EMAILS: z.string().optional().default(""),
+  // Verbose logging for the cohort-profile discovery pass.
+  PROFILE_DEBUG: z.string().optional().transform((v) => v === "1"),
   // The only feature flag: keyless fixtures mode for tests / local dev.
   REACHKIT_USE_FIXTURES: z.string().optional().transform((v) => v === "true"),
 }).superRefine((val, ctx) => {
@@ -80,11 +94,17 @@ export function parseEnv(src: NodeJS.ProcessEnv) {
     tavilyApiKey: p.TAVILY_API_KEY, resendApiKey: p.RESEND_API_KEY,
     posthogKey: p.POSTHOG_KEY, posthogHost: p.POSTHOG_HOST, scanBudgetCents: p.SCAN_BUDGET_CENTS,
     weeklyRefreshBudgetCents: p.WEEKLY_REFRESH_BUDGET_CENTS,
+    externalScanCapCentsFree: p.EXTERNAL_SCAN_CAP_CENTS_FREE,
+    externalScanCapCentsFull: p.EXTERNAL_SCAN_CAP_CENTS_FULL,
+    costAlertScanCents: p.COST_ALERT_SCAN_CENTS,
+    costAlertUserDailyCents: p.COST_ALERT_USER_DAILY_CENTS,
     productHuntToken: p.PRODUCT_HUNT_TOKEN, youtubeApiKey: p.YOUTUBE_API_KEY,
     voyageApiKey: p.VOYAGE_API_KEY,
     dataforseoLocationCode: p.DATAFORSEO_LOCATION_CODE, dataforseoLanguageCode: p.DATAFORSEO_LANGUAGE_CODE,
     tavilyUsdPerCredit: p.TAVILY_USD_PER_CREDIT,
     useFixtures: p.REACHKIT_USE_FIXTURES,
+    ownerEmails: p.REACHKIT_OWNER_EMAILS,
+    profileDebug: p.PROFILE_DEBUG,
     appUrl: p.APP_URL,
     stripeSecretKey: p.STRIPE_SECRET_KEY,
     stripeWebhookSecret: p.STRIPE_WEBHOOK_SECRET,

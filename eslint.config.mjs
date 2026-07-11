@@ -18,6 +18,33 @@ const eslintConfig = defineConfig([
     "ds-bundle/**",
     ".design-sync/**",
   ]),
+  // env-only-in-lib/config (CLAUDE.md consistency harness): all env access goes
+  // through lib/config/env.ts. Exempt as literals: NODE_ENV and NEXT_PUBLIC_*
+  // (Next.js inlines these at build time — routing them through env.ts would
+  // break client bundles).
+  {
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            "MemberExpression[object.object.name='process'][object.property.name='env'][property.name=/^(?!NODE_ENV$|NEXT_PUBLIC_|VERCEL_)/]",
+          message:
+            "Read env through lib/config/env.ts (CLAUDE.md: env-only-in-lib/config). Only NODE_ENV, NEXT_PUBLIC_* (build-time inlined) and VERCEL_* (platform-injected) may be read as literals.",
+        },
+      ],
+    },
+  },
+  {
+    files: [
+      "lib/config/**",
+      "**/*.test.*",
+      "tests/**",
+      "scripts/**",
+      "vitest*.config.ts",
+    ],
+    rules: { "no-restricted-syntax": "off" },
+  },
 ]);
 
 export default eslintConfig;

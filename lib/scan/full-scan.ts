@@ -53,9 +53,10 @@ import type {
 import { seedMonitors } from "@/lib/scan/monitors";
 import { getFreshFactSheet, factSheetSubjectType } from "@/lib/scan/fact-sheets";
 import { parseKeywords } from "@/lib/scan/adapters/keywords";
-import { checkScanCostOverrun } from "@/lib/telemetry/pipeline-runs";
+import { checkScanCostOverrun, checkAllInCostOverrun, checkUserDailyCostOverrun } from "@/lib/telemetry/pipeline-runs";
 import { emitScanEvent } from "@/lib/scan/progress";
 import { attachMarketAnalysis, writeMarketSnapshot } from "@/lib/scan/market";
+import { externalCapBreached } from "@/lib/scan/cost-context";
 import { writeScanScoreSnapshot, rollupScanCost } from "@/lib/scan/scan-telemetry";
 import { countMentions } from "@/lib/scan/competitor-mentions";
 import { normalizeName } from "@/lib/scan/competitor-filter";
@@ -613,7 +614,14 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
     //     web-only (domain-centric). Best-effort: the core report is already
     //     persisted, so a market-analysis failure is logged but never breaks the
     //     scan. Patches `report_payload.market` when it succeeds.
-    if (ctx.mode === "web") {
+    if (ctx.mode === "web" && externalCapBreached()) {
+      // External soft cap (invariant #2): the scan's DFS+Tavily spend already
+      // crossed the cap, so skip the market pass — the heaviest remaining
+      // external fan-out. The core report is persisted; market:null renders
+      // via the existing degraded path. Stamped on the scan by flushExternalCost.
+      console.warn("[full-scan] external cap breached — skipping market analysis (degraded)");
+    }
+    if (ctx.mode === "web" && !externalCapBreached()) {
       const market = await attachMarketAnalysis(ctx.scanId, ctx.storeUrl).catch((e) => {
         console.error("[full-scan] market analysis failed (best-effort)", e);
         return null;
@@ -804,10 +812,13 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
       console.error("[full-scan] deep score snapshot failed (best-effort)", e);
     }
 
-    // 10c. §13 cost-overrun alert — best-effort telemetry marker. The report is
+    // 10c. §13 cost-overrun alerts — best-effort telemetry markers. The report is
     //      already persisted, so a hot scan is logged but never breaks the run.
+    //      LLM-only (legacy) + all-in (LLM+DFS+Tavily) + the user's 24h total.
     try {
       await checkScanCostOverrun(ctx.scanId);
+      await checkAllInCostOverrun(ctx.scanId);
+      await checkUserDailyCostOverrun(ctx.scanId);
     } catch {
       // observe-only: never let the cost check fail the scan
     }

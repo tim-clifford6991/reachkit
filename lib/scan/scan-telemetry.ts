@@ -31,12 +31,12 @@ const toCents = (usd: number) => Math.round(usd * 100 * 1e4) / 1e4;
 export async function flushExternalCost(scanId: string, sink: CostSink): Promise<void> {
   const dfs = toCents(sink.dataforseo);
   const tavily = toCents(sink.tavily);
-  if (dfs === 0 && tavily === 0) return;
+  if (dfs === 0 && tavily === 0 && !sink.breached) return;
   try {
     const db = serverDb();
     const { data } = await db
       .from("scans")
-      .select("dataforseo_cost_cents, tavily_cost_cents")
+      .select("dataforseo_cost_cents, tavily_cost_cents, external_cap_hit_at")
       .eq("id", scanId)
       .maybeSingle();
     await db
@@ -44,10 +44,28 @@ export async function flushExternalCost(scanId: string, sink: CostSink): Promise
       .update({
         dataforseo_cost_cents: Number(data?.dataforseo_cost_cents ?? 0) + dfs,
         tavily_cost_cents: Number(data?.tavily_cost_cents ?? 0) + tavily,
+        // Soft-cap stamp (invariant #2): first breach wins; visible on /app/diagnostics.
+        ...(sink.breached && !data?.external_cap_hit_at
+          ? { external_cap_hit_at: new Date().toISOString() }
+          : {}),
       })
       .eq("id", scanId);
   } catch (e) {
     console.error("[scan-telemetry] external cost flush failed (best-effort)", e);
+  }
+}
+
+/** The scan's already-flushed external spend, in cents. Best-effort (0 on error). */
+async function flushedExternalCents(scanId: string): Promise<number> {
+  try {
+    const { data } = await serverDb()
+      .from("scans")
+      .select("dataforseo_cost_cents, tavily_cost_cents")
+      .eq("id", scanId)
+      .maybeSingle();
+    return Number(data?.dataforseo_cost_cents ?? 0) + Number(data?.tavily_cost_cents ?? 0);
+  } catch {
+    return 0;
   }
 }
 
@@ -56,9 +74,27 @@ export async function flushExternalCost(scanId: string, sink: CostSink): Promise
  * delta to the scan row. Per-step + additive so it's replay-safe (a memoized step
  * doesn't re-run; a failed+retried step re-spends and re-adds — both correct).
  * `.finally` flushes even when the body throws, so pre-failure spend is recorded.
+ *
+ * `capCents` (invariant #2 soft cap) is a PER-SCAN ceiling: the sink's headroom
+ * is the cap minus what earlier steps already flushed onto the scan row, so the
+ * cap holds cumulatively across steps. On breach the sink flips `breached`
+ * (never throws); the pipeline's checkpoints (`externalCapBreached`) then skip
+ * remaining external enrichment, and the scan row is stamped on flush.
  */
-export function costedStep<T>(scanId: string, fn: () => Promise<T>): Promise<T> {
-  const sink = newCostSink();
+export async function costedStep<T>(
+  scanId: string,
+  fn: () => Promise<T>,
+  opts: { capCents?: number } = {},
+): Promise<T> {
+  let capUsd: number | undefined;
+  let preBreached = false;
+  if (opts.capCents !== undefined) {
+    const remaining = opts.capCents - (await flushedExternalCents(scanId));
+    capUsd = Math.max(0, remaining) / 100;
+    preBreached = remaining <= 0;
+  }
+  const sink = newCostSink(capUsd);
+  if (preBreached) sink.breached = true;
   return runInCostContext(sink, fn).finally(() => flushExternalCost(scanId, sink));
 }
 

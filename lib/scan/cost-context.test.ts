@@ -6,6 +6,7 @@ import {
   recordDataForSeoCost,
   recordTavilyCost,
   tavilyCredits,
+  externalCapBreached,
 } from "./cost-context";
 
 describe("cost-context", () => {
@@ -73,6 +74,35 @@ describe("cost-context", () => {
       expect(tavilyCredits("extract", { urlCount: 5 })).toBe(1);
       expect(tavilyCredits("extract", { urlCount: 6 })).toBe(2);
       expect(tavilyCredits("extract", { urlCount: 11, depth: "advanced" })).toBe(6);
+    });
+  });
+
+  describe("external soft cap (invariant #2 — degrade, never throw)", () => {
+    it("flips breached when cumulative spend crosses the cap — and NEVER throws", async () => {
+      const sink = newCostSink(0.1); // 10¢ cap
+      await runInCostContext(sink, async () => {
+        recordExternalCost("dataforseo", 0.06);
+        expect(externalCapBreached()).toBe(false);
+        expect(() => recordExternalCost("tavily", 0.05)).not.toThrow(); // crosses 0.10
+        expect(externalCapBreached()).toBe(true);
+        // Recording continues after breach (spend stays measured, just flagged).
+        recordExternalCost("dataforseo", 0.02);
+      });
+      expect(sink.breached).toBe(true);
+      expect(sink.dataforseo).toBeCloseTo(0.08, 10);
+    });
+
+    it("no cap configured → never breaches", async () => {
+      const sink = newCostSink();
+      await runInCostContext(sink, async () => {
+        recordExternalCost("dataforseo", 999);
+        expect(externalCapBreached()).toBe(false);
+      });
+      expect(sink.breached).toBe(false);
+    });
+
+    it("externalCapBreached is false outside any context", () => {
+      expect(externalCapBreached()).toBe(false);
     });
   });
 

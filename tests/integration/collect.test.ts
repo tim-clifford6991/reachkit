@@ -113,6 +113,7 @@ test(
         serpResultCount: 42_000,
         raw: { mock: true },
       }),
+      parseSerpContent: () => "",
     }));
     vi.doMock("@/lib/scan/adapters/product-hunt", () => ({
       fetchPhByName: async () => ({
@@ -130,6 +131,7 @@ test(
         ],
         raw: { mock: true },
       }),
+      parseTavilyContent: () => "",
     }));
     vi.doMock("@/lib/scan/adapters/site-fetch", () => ({
       fetchSiteListing: async () => ({

@@ -162,8 +162,32 @@ for (const { name, target } of activeMirrors) {
   }
 }
 if (bless) {
-  writeFileSync(p(LOCK), JSON.stringify(nextLock, null, 2) + "\n");
-  console.log(`blessed ${LOCK} — ${Object.keys(nextLock).length} mirrors pinned.`);
+  // Transparent bless: enumerate exactly what is being re-pinned, and support
+  // scoping to named components (`pnpm bless:design -- ResultsScreen …`) so a
+  // whole-lock bless can't silently swallow unreviewed drift on other cards.
+  const scopeArgs = process.argv.slice(process.argv.indexOf("--bless") + 1).filter((a) => !a.startsWith("-"));
+  const scoped = scopeArgs.length > 0;
+  const outLock = {};
+  const rePinned = [];
+  for (const [name, entry] of Object.entries(nextLock)) {
+    const prior = lock[name];
+    const changed = !prior || prior.hash !== entry.hash;
+    if (scoped && changed && !scopeArgs.includes(name)) {
+      // Out of scope — keep the OLD pin so its staleness stays visible.
+      outLock[name] = prior ?? entry;
+      continue;
+    }
+    outLock[name] = entry;
+    if (changed) rePinned.push(`  bless: ${name} (${entry.mirror} ${prior ? `${prior.hash} → ` : "new pin "}${entry.hash})`);
+  }
+  writeFileSync(p(LOCK), JSON.stringify(outLock, null, 2) + "\n");
+  if (rePinned.length) {
+    console.log(`re-pinned ${rePinned.length} mirror(s):`);
+    for (const line of rePinned) console.log(line);
+  } else {
+    console.log("nothing to re-pin — lock already matches the live tree.");
+  }
+  console.log(`blessed ${LOCK} — ${Object.keys(outLock).length} mirrors pinned${scoped ? ` (scoped to: ${scopeArgs.join(", ")})` : ""}.`);
   process.exit(0);
 }
 
@@ -189,6 +213,24 @@ if (uncovered.length) {
   warn(`${uncovered.length} live component(s) in [${COVER_GLOBS.join(", ")}] have no @mirrors design mirror (coverage gap):`);
   for (const u of uncovered.slice(0, 12)) warn(`    · ${u}`);
   if (uncovered.length > 12) warn(`    · …and ${uncovered.length - 12} more`);
+}
+
+// Coverage ratchet: the uncovered count is pinned and may only shrink. A new
+// live component in a covered glob must ship with a DS mirror (or the baseline
+// consciously raised — which the Change Protocol forbids without a documented
+// reason). When coverage improves, lower the baseline to pin the win.
+const COVERAGE_BASELINE = ".design-sync/coverage-baseline.json";
+const baseline = existsSync(p(COVERAGE_BASELINE))
+  ? JSON.parse(readFileSync(p(COVERAGE_BASELINE), "utf8"))
+  : null;
+if (baseline && typeof baseline.uncovered === "number") {
+  if (uncovered.length > baseline.uncovered) {
+    err(
+      `design coverage REGRESSED: ${uncovered.length} unmirrored live component(s) > pinned baseline ${baseline.uncovered} (${COVERAGE_BASELINE}). New components in [${COVER_GLOBS.join(", ")}] must ship with a ds-src @mirrors card.`,
+    );
+  } else if (uncovered.length < baseline.uncovered) {
+    warn(`design coverage improved (${uncovered.length} < baseline ${baseline.uncovered}) — lower "uncovered" in ${COVERAGE_BASELINE} to ${uncovered.length} to pin the win.`);
+  }
 }
 
 // ── report ───────────────────────────────────────────────────────────────────

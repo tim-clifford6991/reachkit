@@ -374,8 +374,9 @@ describe("scan-public-consolidation", () => {
 
   test("public-report.tsx never imports currentUser/entitlementsFor — no code path can leak a paid viewer's drafts", async () => {
     const fs = await import("node:fs/promises");
+    const { resolve } = await import("node:path");
     const src = await fs.readFile(
-      "/Users/timclifford/Projects/ReachKit/app/(funnel)/scan/[id]/public-report.tsx",
+      resolve(process.cwd(), "app/(funnel)/scan/[id]/public-report.tsx"),
       "utf8",
     );
     expect(src).not.toMatch(/import[^;]*\bcurrentUser\b/);
@@ -410,11 +411,12 @@ describe("scan-public-consolidation", () => {
       permanent: true,
     });
 
-    // All three are permanent (301) redirects, not temporary — the old
+    // All are permanent (301) redirects, not temporary — the old
     // routes are retired for good, not just re-pointed for a migration window.
     for (const r of redirects) {
       expect(r.permanent).toBe(true);
     }
-    expect(redirects.length).toBe(3);
+    // 3 scan-URL consolidations + /teardowns → /gallery.
+    expect(redirects.length).toBe(4);
   });
 });

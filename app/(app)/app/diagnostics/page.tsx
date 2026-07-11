@@ -4,7 +4,7 @@ import Link from "next/link";
 import { resolveIntelContext } from "@/lib/app/intel-context";
 import { currentUser } from "@/lib/auth/server";
 import { isOwner } from "@/lib/auth/owner";
-import { loadScanDiagnostics, loadUserSpend, loadAllUsersSpend, type DataPoint } from "@/lib/app/diagnostics";
+import { loadScanDiagnostics, loadUserSpend, loadAllUsersSpend, loadMonthlySpend, loadCostAlerts, type DataPoint } from "@/lib/app/diagnostics";
 import { Card, Badge } from "@/components/app/intel/kit";
 import { buildMetadata } from "@/lib/seo";
 
@@ -59,6 +59,8 @@ async function DiagnosticsContent() {
   const spend = viewer ? await loadUserSpend(viewer.user.id) : null;
   // Owner-only page → safe to show the full unit-economics breakdown across users.
   const allUsers = await loadAllUsersSpend();
+  const monthly = await loadMonthlySpend();
+  const alerts = await loadCostAlerts();
 
   if (!diag) {
     return (
@@ -76,6 +78,24 @@ async function DiagnosticsContent() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* ALERTS — persisted cost alerts + external-cap hits (empty strip = healthy) */}
+      {alerts.length > 0 && (
+        <Card title="Cost alerts" info="Persisted cost-alert events (per-scan all-in / per-user daily thresholds) and scans whose external soft cap was hit and degraded.">
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {alerts.map((a, i) => (
+              <div key={`${a.scanId}-${a.scope}-${i}`} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12.5 }}>
+                <Badge tone={a.kind === "cap-hit" ? "amber" : "red"}>{a.scope}</Badge>
+                <span style={{ fontFamily: JM, fontSize: 11.5 }}>{a.scanId.slice(0, 8)}</span>
+                <span style={{ color: "var(--c-muted)" }}>
+                  {a.cents !== null ? `${fmtCents(a.cents)} > ${fmtCents(a.thresholdCents ?? 0)} threshold` : "external cap hit — scan degraded"}
+                </span>
+                <span style={{ marginLeft: "auto", color: "var(--c-faint)", fontSize: 11 }}>{fmtDate(a.at)}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
       {/* HEADER — scan identity + totals */}
       <Card title="Scan diagnostics" meta={diag.scan.mode ?? undefined}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 24 }}>
@@ -159,6 +179,40 @@ async function DiagnosticsContent() {
                   <td style={{ ...num, fontWeight: 700, color: "var(--c-ink)" }}>{fmtCents(allUsers.reduce((n, u) => n + u.totalCostCents, 0))}</td>
                 </tr>
               </tfoot>
+            </table>
+          </div>
+        </Card>
+      )}
+
+      {/* MONTHLY SPEND — persisted user_spend_monthly view (time-windowed history) */}
+      {monthly.length > 0 && (
+        <Card title="Monthly spend by user" info="From the user_spend_monthly view — per-user cost bucketed by month, so spend trends are visible over time (the tables above are all-time totals).">
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ borderCollapse: "collapse", width: "100%", minWidth: 620 }}>
+              <thead>
+                <tr>
+                  <th style={th}>Month</th>
+                  <th style={th}>User</th>
+                  <th style={{ ...th, textAlign: "right" }}>Scans</th>
+                  <th style={{ ...th, textAlign: "right" }}>LLM</th>
+                  <th style={{ ...th, textAlign: "right" }}>DataForSEO</th>
+                  <th style={{ ...th, textAlign: "right" }}>Tavily</th>
+                  <th style={{ ...th, textAlign: "right" }}>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {monthly.map((m) => (
+                  <tr key={`${m.month}-${m.userId}`}>
+                    <td style={{ ...cell, fontFamily: JM, whiteSpace: "nowrap" }}>{m.month ? m.month.slice(0, 7) : "—"}</td>
+                    <td style={{ ...cell, maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.email ?? m.userId.slice(0, 8)}</td>
+                    <td style={num}>{m.scans}</td>
+                    <td style={num}>{fmtCents(m.llmCents)}</td>
+                    <td style={num}>{fmtCents(m.dataforseoCents)}</td>
+                    <td style={num}>{fmtCents(m.tavilyCents)}</td>
+                    <td style={{ ...num, fontWeight: 700, color: "var(--c-ink)" }}>{fmtCents(m.totalCents)}</td>
+                  </tr>
+                ))}
+              </tbody>
             </table>
           </div>
         </Card>

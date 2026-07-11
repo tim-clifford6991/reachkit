@@ -17,7 +17,7 @@
     "check:design": "node scripts/check-design-parity.mjs",
     "bless:design": "node scripts/check-design-parity.mjs --bless",
     "test:render": "node scripts/render-smoke.mjs",
-    "eval": "vitest run --config vitest.integration.config.ts tests/eval/golden-set.eval.test.ts",
+    "eval": "vitest run --config vitest.integration.config.ts tests/eval",
     "prepare": "husky"
   },
   "lint-staged": {

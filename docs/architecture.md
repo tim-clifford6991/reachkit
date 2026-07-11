@@ -58,7 +58,7 @@ graph TB
     subgraph data["🗄️ Supabase (Postgres + RLS + pgvector)"]
         DBcore["apps · scans (report_payload)<br/>findings · actions · scan_signals<br/>score_snapshots · fact_sheets · scan_events"]
         DBintel["competitors (selection)<br/>demand_intel (read-through cache)<br/>search_cache (cachedJson blobs)"]
-        DBinfra["users · billing · pipeline_runs<br/>embeddings (pgvector)<br/>public_scans (view)"]
+        DBinfra["users (billing state on-row) · pipeline_runs<br/>embeddings (pgvector) · public_scans (view)<br/>outcomes · evidence · raw_documents<br/>market_snapshots · monitors · distribution_profiles"]
     end
 
     subgraph ext["🌐 External Services"]
@@ -162,7 +162,7 @@ sequenceDiagram
 ```mermaid
 graph LR
     subgraph funnel["💳 Payment-First Funnel"]
-        Report["Free scan report"] -->|"upgrade"| Checkout["/billing/checkout<br/>Stripe (7-day trial)"]
+        Report["Free scan report"] -->|"upgrade"| Checkout["/billing/checkout<br/>Stripe (charged immediately)"]
         Checkout --> StripeCo["Stripe Checkout"]
         StripeCo -->|"webhook"| WH["/billing/webhook"]
         WH -->|"create user + account"| Users["users table"]
@@ -200,7 +200,7 @@ live populated/empty state of any given scan.
 | On-page readiness (driver) | HTML fetch (page only — no off-site) | `scans.score_breakdown`, `report_payload.searchVisibility.onPageReadiness` | `compute-signals` → `headlineScore` = `registryScore` over the FIXED 8 on-site signals. UNCHANGED from v4 (still `HEADLINE_SCORE_VERSION=4`) | First driver bar; the on-site pillar bars |
 | Pillar bars | on-site `scan_signals` | `scan_signals` | `headlineScore` → `pillarRollupFromRegistry`; Content + SEO assessed on-site, Outreach reads "off-site → Market Position" (no on-site signal) | Dashboard hero pillars (paid) |
 | Market position | off-site `scan_signals` (keyword footprint, backlinks, marketplace/community/press) | `scans.report_payload.marketPosition` | `marketPositionScore` = `registryScore` over the NON-fixed (off-site) signals, cohort-relative where rivals exist | Dashboard hero ("Market position vs rivals"), paid only |
-| **Search Visibility (free "wow")** | ONE subject `ranked_keywords` (footprint) + ONE `search_volume` on the **LLM-authored category seed phrases** (`lib/llm/synth.ts` `categorySeeds`) | `report_payload.searchVisibility` (`search_cache` `rk:*`/`kv:*`) | `lib/scan/search-visibility.ts`: classify footprint brand/category/off-topic; **category demand = Σ exact volume of the LLM category seeds** (no keyword_ideas expansion noise); **capture = the SV score**; opportunities = category seeds you don't rank top-3 for. Works at 0 rankings (zero-state). ~$0.02 extra, ≤ ~15¢ free | Free report `/scan/[id]` "Your category, and how much of it you own" + hero SV panel |
+| **Search Visibility (free "wow")** | ONE subject `ranked_keywords` (footprint) + ONE `search_volume` on the **LLM-authored category seed phrases** (`lib/llm/synth.ts` `categorySeeds`) | `report_payload.searchVisibility` (`search_cache` `rk:*`/`kv:*`) | `lib/scan/search-visibility.ts`: classify footprint brand/category/off-topic; **category demand = Σ exact volume of the LLM category seeds** (no keyword_ideas expansion noise); **capture = the SV score**; opportunities = category seeds you don't rank top-3 for. Works at 0 rankings (zero-state). ~$0.02 extra, ≤ ~20¢ free | Free report `/scan/[id]` "Your category, and how much of it you own" + hero SV panel |
 | Audience tags | LLM synth (`intendedAudience`/`actualAudience` on `positioningMirror`) | `findings_payload` → `report_payload.whatYouOffer.positioningMirror` | LLM-authored (replaced the old `splitTags` prose-chopping) | Free report "Positioning Mirror" |
 | Per-scan cost | DataForSEO (real `body.cost`) · Tavily (credits × rate) · Anthropic (tokens) | `scans.dataforseo_cost_cents` / `tavily_cost_cents` / `cost_cents` | `lib/scan/cost-context.ts` (AsyncLocalStorage sink; `costedStep` flushes per Inngest step) | `/app/diagnostics` — per-scan breakdown + "Spend by user" (all users) |
 | Competitors / referrers | DataForSEO backlinks + traffic | `search_cache` (`funnel2:*` cachedJson) + `report_payload` | `gatherFullFunnel` → `buildBreakdown` | Audience → Competitors |
@@ -263,18 +263,29 @@ from the request shape (search basic=1 / advanced=2 credits; extract 1 per 5 URL
 scan from any adapter depth without threading `scanId`; each cost-bearing Inngest
 step (`collect`/`findings`/`free-report`/`full-scan`/`deepen`) runs under `costedStep`
 and additively flushes its delta to `scans.{dataforseo,tavily}_cost_cents`
-(replay-safe; cache hits never reach the adapter so they record nothing). Per-user
+(replay-safe; cache hits never reach the adapter so they record nothing). The
+recurring + interactive callers are costed too: weekly/manual refresh via
+`costedStep` on the latest scan row, and the four intel/competitor routes via
+`costedIntelStep` (`lib/app/latest-scan.ts` — also emits a source-tagged
+`intel-spend` scan event when real spend occurred). Guard:
+`app/api/costed-routes.test.ts` fails if any caller drops its wrapper. Per-user
 total = LLM + DataForSEO + Tavily summed over `users.app_ids` → `scans.app_id`
-(`loadAllUsersSpend`), shown on the owner-only `/app/diagnostics`.
+(`loadAllUsersSpend`) plus the month-bucketed `user_spend_monthly` view, shown on
+the owner-only `/app/diagnostics`.
 
 Cold-scan reality (trustmrr, 2026-07-09, fully cache-purged): **free ≈ $0.10**
 (LLM $0.08 · DataForSEO $0.002 · Tavily $0.016); **paid deep, cumulative ≈ $0.56**
 (LLM $0.15 · **DataForSEO $0.35** · Tavily $0.06). DataForSEO Labs (ranked_keywords /
 relevant_pages / domain_rank_overview across the cohort) is the dominant external
-cost — the old "~€1.2" gather estimate was conservative. **Note: tracking is
-record-only — `ScanBudget`'s cent-caps still bound LLM only; external spend is
-bounded by the tool-call / `MAX_SELECTED` caps, not a € meter.** Wiring external
-spend into `ScanBudget` enforcement is a deferred follow-up.
+cost — the old "~€1.2" gather estimate was conservative. **External spend is now
+SOFT-CAPPED per scan** (invariant #2): `EXTERNAL_SCAN_CAP_CENTS_FREE=25` /
+`EXTERNAL_SCAN_CAP_CENTS_FULL=150`. The cap is cumulative across steps
+(`costedStep` subtracts already-flushed spend from each step's headroom). On
+breach `recordExternalCost` flips the sink's `breached` flag — it **never
+throws** (degrade, never invent); `runFullScan` checks `externalCapBreached()`
+before the market pass and skips it (the existing `market:null` degraded path
+renders), and the scan row is stamped `external_cap_hit_at` on flush. LLM spend
+remains bounded by `ScanBudget`'s cent-caps + the tool-call ceiling.
 
 ### 4.4 Single-source-of-truth rule (retired dead tables)
 
@@ -308,7 +319,7 @@ the 7-day TTL).
 Purpose: a conversion-driving "wow" that reveals a credible search gap. On-site score
 is measured from the already-fetched HTML; the free report ALSO makes two cheap
 subject-only DataForSEO calls (`ranked_keywords` + `search_volume`) to compute
-**Search Visibility** — the conversion engine (§6.5). Total ≤ ~15¢/scan.
+**Search Visibility** — the conversion engine (§6.5). Total ≤ ~20¢/scan.
 
 | # | Step (Inngest) | Does | Cost |
 |---|---|---|---|
@@ -324,7 +335,7 @@ ranked fixes (locked-count + worth), positioning gap, a search-gap table, unlock
 free and the keyword-gap table + Market Position are paid-only, so the teaser's most
 persuasive off-site surfaces render empty.
 
-Free budget: `ScanBudget{ maxToolCalls:60, budgetCents:15 }`. Abuse: 10 scans /
+Free budget: `ScanBudget{ maxToolCalls:60, budgetCents:20 }` (`FREE_SCAN_BUDGET_CENTS`, raised 15→20 for Search Visibility). Abuse: 10 scans /
 IP-hash / hour, 15-min in-flight dedupe (`abuse.ts`). Cold-scan cost ≈ **$0.10**.
 
 ### 5.2 DEEP / PAID pass — `runFullScan` (`full-scan.ts:485`)
@@ -394,7 +405,7 @@ and **cal.com** (leader: SV 85). Coherence fixes: killed the `splitTags` garbage
 noise removed, hero no longer contradicts itself ("Well-built page" not "Highly
 discoverable"). **Rule: never fabricate a number** — the LLM identifies the
 category, DataForSEO supplies volumes; when a call flakes we degrade, never invent.
-≤ ~15¢/scan. **Verification is by headless render of the live page, not the DB
+≤ ~20¢/scan. **Verification is by headless render of the live page, not the DB
 payload** (the process fix — DB-only checking is what let the drift through).
 
 ### 6.1 Macro gaps (the value line is misplaced)
@@ -429,22 +440,20 @@ payload** (the process fix — DB-only checking is what let the drift through).
    `observed_delta` though nothing was observed (`verify.ts:234`); the real gauge moves
    from a full recompute. **Fix:** compute every delta from the signal model; drop the
    LLM's number.
-5. **Per-category floor (invariant #5) is enforced only in the eval harness**, not in
-   the production persist path (`full-scan.ts` → `topUpActions`). A scan whose weak
-   signals cluster in one pillar could ship a category with zero actions.
+5. ~~**Per-category floor (invariant #5) is enforced only in the eval harness**~~ —
+   ✅ RESOLVED by PR A (2026-07-10): `ensurePerCategoryFloor` is runtime-wired in
+   `full-scan.ts` at both floor points (see §6.5 PR A row + CLAUDE.md invariant #5).
 
 ### 6.3 Entitlement / cost-safety leaks
 
-6. **`/api/app/intel` + `/api/app/intel/stream` have no `assertPaid`** — only an auth
-   check (`intel/route.ts:25`). An authenticated-but-inactive user with competitors
-   selected can pull the full unredacted keyword-gap / content-plan / thread-level
-   demand data the free teaser strips — and trigger fresh DataForSEO/Tavily/LLM spend.
-   Highest-severity finding; every sibling paid API calls `assertPaid`, these don't.
-   (`/api/action`, `/api/competitors/*`, `/api/app/voice` share the auth-only pattern.)
+6. ~~**`/api/app/intel` + `/api/app/intel/stream` have no `assertPaid`**~~ —
+   ✅ RESOLVED by PR A (2026-07-10): `assertPaid` now guards `/api/app/intel`,
+   `/api/app/intel/stream`, `/api/competitors/select`, `/api/competitors/candidates`
+   (CLAUDE.md invariant #5b; source tripwire `app/api/entitlement-gates.test.ts`).
 7. **`ScanBudget` cent-cap doesn't bound what the docs claim.** Invariant #2 says
    "cents track LLM only," but `callModel` never calls `budget.charge` — only
    DataForSEO/Tavily tool calls charge a hardcoded `cents:1`. So `BudgetExceededError`
-   can never trip on LLM overspend, and the 15¢/250¢ caps bound a slice of *external*
+   can never trip on LLM overspend, and the 20¢/250¢ caps bound a slice of *external*
    tool count, not LLM. Reconcile the doc or wire real LLM cost into the budget.
 8. **Dormant trial infra.** `entitlementsFor` honours `status==="trialing"` and the
    webhook wires `trial_will_end`, but both checkout builders set **no**
@@ -491,7 +500,7 @@ in EXACT sync".
 | PR | Scope (§6 items) | UI? | Cost effect | Sync |
 |---|---|---|---|---|
 | **A — Trust + gate** ✅ *landed 2026-07-10* | #4 model-computed impact (`recomputeActionImpacts`/`modelledImpact` in `action-linking.ts`, wired at both floor points in `full-scan.ts`; `verify.ts` `observed_delta` now stores the REAL new−prior gauge movement) · #5 per-category floor in prod (`ensurePerCategoryFloor`) · #6 `assertPaid` on `/api/app/intel(+/stream)` + `/api/competitors/{select,candidates}` | numbers only, no structure | neutral (removes a leak → *reduces* rogue spend) | none |
-| **B — Free "wow"** ⚠️ *landed 2026-07-10, live-cost check pending* | #1 real proof on free — a genuine keyword gap from ONE subject-only DataForSEO `ranked_keywords` call (`lib/scan/free-keyword-teaser.ts` → `report_payload.freeKeywordTeaser`). Free shows high-volume searches where the subject ranks but **not in the top 3**; **rivals' ranks stay locked (paid reveal)** — the teaser never touches competitor domains. `to-results-props` falls back to it; redaction shows a top-4 slice. `ResultsScreen` copy + ds-src mirror synced | `ResultsScreen` teaser | ≤ ~$0.18 — **VERIFY LIVE** (`REACHKIT_USE_FIXTURES=false`) before merge; fixtures return `[]` so CI can't measure it | **done** |
+| **B — Free "wow"** ✅ *superseded 2026-07-11* | #1 real proof on free. The original keyword-teaser implementation (`lib/scan/free-keyword-teaser.ts` → `report_payload.freeKeywordTeaser`) was **deleted and superseded by Search Visibility** (`lib/scan/search-visibility.ts` → `report_payload.searchVisibility`, §6.0): same ONE subject-only `ranked_keywords` primitive, but scored (capture %) and category-seed-grounded; rivals' ranks still locked to paid | `ResultsScreen` SV hero | ≤ ~$0.18 measured live | **done** |
 | **C — One plan model** ✅ *landed 2026-07-10* | #3/#2 `bucketActions` now buckets by **time-to-payoff** (`horizonFor` in `report.ts`): outreach + earned-media → longPlay, off-site `wire` → medium, on-page → quick. Makes "long-term wins" real (the old effort split could never fill longPlay) and moots the clamp/bucket mismatch. **Literal merge with `plan-schedule.ts` deliberately NOT done** — the report's 3-bucket horizon and the dated calendar are different views of the same actions | dashboard "this week" ordering only (structure unchanged → no card redesign) | neutral | none needed (bucketing logic, not layout) |
 | **D — Cohort/demand dedup** 🟡 *#12 landed 2026-07-10; #9/#10/#11 deferred* | ✅ #12 unified the action writers — `refresh.ts` now links signals + recomputes honest deltas + persists `signal_keys`/`target` (parity with `persistActions`), so weekly actions are schedulable + attributable. ⏸️ #9 one canonical cohort, #10 one `discoverDemand`/scan, #11 no 3× signal recompute — **DEFERRED**: these refactor the paid billing path and MUST be live-verified (`REACHKIT_USE_FIXTURES=false`, a real paid deep scan) before trusting — shipping them blind risks the very cost regressions this plan targets | none | #12 neutral; #9/#10 reduce paid cost when done | none |
 
@@ -544,13 +553,16 @@ file; #13 (`audienceProxy`) stays deferred.
   the `/app/plan` timeline; `search-cache-cleanup` (cron daily 03:00 UTC) prunes
   `search_cache` rows older than 30 days.
 - **Two funnel paths** — Path A (scan-first): free report → `/scan/[id]/checkout`;
-  Path B (trial-direct): `/billing/trial` anonymous checkout with no prior scan.
+  Path B (direct checkout): `/billing/trial` anonymous checkout with no prior scan —
+  "trial" is a legacy route name only; there is **no free trial** (`checkout.ts` sets no
+  `trial_period_days`; plans are charged immediately).
   Both converge on the Stripe webhook → account provision → magic link.
 - **External-API cost tracking** — DataForSEO + Tavily spend is measured per scan
   (`lib/scan/cost-context.ts` → `scans.{dataforseo,tavily}_cost_cents`) and rolled
   up per user (`loadAllUsersSpend`), surfaced on the owner-only `/app/diagnostics`.
   DataForSEO reports real USD; Tavily is priced from credits × `TAVILY_USD_PER_CREDIT`.
-  Record-only today — not yet enforced against `ScanBudget` (see §4.3).
+  Soft-capped per scan (free 25¢ / paid 150¢) — breach degrades the pipeline and
+  stamps `scans.external_cap_hit_at` (see §4.3).
 - **`/app` soft-nav** — link internal navigation straight to `/app/dashboard`, never
   the bare `/app` (which server-redirects there). A client soft-nav to a redirecting
   route aborts its in-flight RSC stream → `Error: Connection closed` in the `(app)`

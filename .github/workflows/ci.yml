@@ -24,3 +24,43 @@ jobs:
         run: pnpm build
       - name: Bundle budget
         run: pnpm check:bundle
+  eval-integration:
+    # Golden-set eval (invariant #5's named guard) + integration tests against a
+    # real local Supabase stack. Fixture mode — no API secrets required.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      # Pinned to the locally-verified CLI: `latest` (2.109+) starts a stack with
+      # new-format sb_publishable_/sb_secret_ keys where the legacy
+      # SERVICE_ROLE_KEY emitted by `status -o env` lacks service-role privileges
+      # → "permission denied for table apps" in every DB-backed test. Bump this
+      # pin deliberately, together with the key-mapping step below.
+      - uses: supabase/setup-cli@v1
+        with: { version: 2.26.9 }
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Start local Supabase (applies migrations)
+        run: supabase start
+      - name: Write test env from local stack
+        # Dummy paid keys: some integration tests deliberately run with
+        # REACHKIT_USE_FIXTURES=false (degraded-paths, refresh real-mode cases)
+        # with every adapter mocked — env.ts's zod parse still requires the paid
+        # keys to be non-empty in that mode. The values are never used.
+        run: |
+          eval "$(supabase status -o env | grep -E '^(API_URL|ANON_KEY|SERVICE_ROLE_KEY)=')"
+          {
+            echo "SUPABASE_URL=$API_URL"
+            echo "SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "REACHKIT_USE_FIXTURES=true"
+            for k in ANTHROPIC_API_KEY DATAFORSEO_LOGIN DATAFORSEO_PASSWORD TAVILY_API_KEY RESEND_API_KEY PRODUCT_HUNT_TOKEN YOUTUBE_API_KEY VOYAGE_API_KEY; do
+              echo "$k=ci-dummy-never-used"
+            done
+          } > .env.local
+      - name: Golden-set eval
+        run: pnpm eval
+      - name: Integration tests
+        run: pnpm test:int

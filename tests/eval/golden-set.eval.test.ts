@@ -1,8 +1,13 @@
 /**
- * Golden-set eval gate (Task 14 — R1 quality gate).
+ * Golden-set eval gate — invariant #5's named guard (CLAUDE.md).
  *
- * Runs all 5 reference fixtures through the full deterministic pipeline and
- * asserts that the mean score ≥ 0.7 (R1 pass threshold).
+ * Runs 5 reference fixtures through the REAL deterministic pipeline stages
+ * (critic gate → algorithm safety → verified score → report assembly) and
+ * asserts: mean rubric score ≥ 0.7, ≥ minActions safe actions per fixture, and
+ * the per-category floor (every expected active category keeps ≥1 surviving
+ * safe action after the §11 cap). Runs on every PR via the CI eval-integration
+ * job. Its sibling `v5-parity.eval.test.ts` guards invariant #1 on the
+ * persisted free↔paid path.
  *
  * Run with: pnpm eval
  *

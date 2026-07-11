@@ -5,6 +5,8 @@ import { serverDb } from "@/lib/db/client";
 import { env } from "@/lib/config/env";
 import { ScanBudget } from "@/lib/tools/registry";
 import { runWeeklyRefresh } from "@/lib/scan/refresh";
+import { costedStep } from "@/lib/scan/scan-telemetry";
+import { checkAllInCostOverrun, checkUserDailyCostOverrun } from "@/lib/telemetry/pipeline-runs";
 import { isoWeekStart } from "@/lib/inngest/functions/weekly-refresh";
 import type { ScanContext } from "@/lib/scan/pipeline";
 
@@ -117,7 +119,13 @@ export async function POST(
   };
 
   try {
-    const result = await runWeeklyRefresh(ctx);
+    // costedStep: manual-refresh external spend flushes onto the latest scan row.
+    const result = await costedStep(scanRow.id, () => runWeeklyRefresh(ctx), {
+      capCents: env.externalScanCapCentsFull,
+    });
+    // Observe-only cost alerts on the refreshed spend — fire-and-forget.
+    checkAllInCostOverrun(scanRow.id).catch(() => {});
+    checkUserDailyCostOverrun(scanRow.id).catch(() => {});
     return NextResponse.json(result);
   } catch (e) {
     console.error("app/[id]/refresh POST error", e);

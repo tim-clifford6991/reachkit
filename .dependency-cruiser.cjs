@@ -7,9 +7,9 @@
  * that the current tree violates is forbidden — strengthen forward, never break
  * the baseline (see CLAUDE.md → "Consistency harness + Change Protocol").
  *
- * Note: the "env only in lib/config/env.ts" invariant is NOT enforced here —
- * process.env access is not an import edge (10 call sites read it today). Tracked
- * as a follow-up; enforce via an eslint no-process-env pass once those are moved.
+ * Note: the "env only in lib/config/env.ts" invariant is enforced by ESLint
+ * (no-restricted-syntax in eslint.config.mjs), not here — process.env access is
+ * not an import edge. NODE_ENV / NEXT_PUBLIC_* / VERCEL_* literals are exempt.
  */
 const TESTS = "\\.(test|spec)\\.(ts|tsx)$";
 

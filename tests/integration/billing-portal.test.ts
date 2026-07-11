@@ -44,7 +44,9 @@ test(
     const userId = await seedUser(`demo-${Date.now()}`);
     try {
       const result = await createPortalSession(userId);
-      expect(result.url).toBe(`${env.appUrl}/app/billing?portal=demo`);
+      // Default return path is /app (safeReturnPath fallback) — the portal
+      // returns to the surface the user opened it from, not a hard-coded page.
+      expect(result.url).toBe(`${env.appUrl}/app?portal=demo`);
     } finally {
       await deleteUser(userId);
     }

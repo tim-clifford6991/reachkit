@@ -24,6 +24,11 @@ function budgetCentsForTier(tier: ScanTier): number {
   return tier === "full" ? env.scanBudgetCents : FREE_SCAN_BUDGET_CENTS;
 }
 
+/** External DFS+Tavily soft cap for the tier (invariant #2 — degrade, never throw). */
+function externalCapCentsForTier(tier: ScanTier): number {
+  return tier === "full" ? env.externalScanCapCentsFull : env.externalScanCapCentsFree;
+}
+
 export const scanRequested = inngest.createFunction(
   {
     id: "scan-requested",
@@ -44,6 +49,8 @@ export const scanRequested = inngest.createFunction(
     // Step 1: collect — load scan + app, run pipeline, persist facts.
     // Also reads `scans.tier`: the two-track split runs the heavy full-scan step
     // only for 'full' (paid); 'free' stops after findings (the cheap teaser).
+    // Tier is unknown until the row loads inside the step → cap at the full-tier
+    // ceiling here; the tier-exact cap applies from the findings step onward.
     const { facts, tier } = await step.run("collect", () => costedStep(scanId, async () => {
       const db = serverDb();
 
@@ -96,7 +103,7 @@ export const scanRequested = inngest.createFunction(
       await emitScanEvent(scanId, "facts", collectedFacts as unknown as Record<string, unknown>);
 
       return { facts: collectedFacts, tier: scanTier };
-    }));
+    }, { capCents: env.externalScanCapCentsFull }));
 
     // Step 2: findings — run extract→synth→score, persist findings + score, emit findings event
     await step.run("findings", () => costedStep(scanId, async () => {
@@ -141,7 +148,7 @@ export const scanRequested = inngest.createFunction(
         },
         facts,
       );
-    }));
+    }, { capCents: externalCapCentsForTier(tier) }));
 
     // Step 2b: free-report — free scans get a lightweight report_payload (score +
     // positioning + findings + signal-derived baseline fixes; deep sections empty)
@@ -165,7 +172,7 @@ export const scanRequested = inngest.createFunction(
           { scanId, appId: scanRow.app_id, mode: app.platform, storeUrl: app.store_url, budget },
           facts,
         );
-      }));
+      }, { capCents: env.externalScanCapCentsFree }));
     }
 
     // Step 3: full-scan — heavy collect + actions + Critic + verified score + report.
@@ -207,7 +214,7 @@ export const scanRequested = inngest.createFunction(
           },
           facts,
         );
-      }));
+      }, { capCents: env.externalScanCapCentsFull }));
     }
 
     // NOTE (2026-07-04, W5): the free tier previously ran a "light-market" step
