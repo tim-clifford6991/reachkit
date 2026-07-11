@@ -99,6 +99,9 @@ Per the launch-readiness plan's C3 task:
    | Findable | 70–84 |
    | Highly discoverable | 85–100 |
 
+   (The gauge hero renders the fair band's long conversion variant — "Fair — room
+   to climb" — via `SCORE_BANDS[].longLabel`; compact surfaces use `label`.)
+
 3. **`trustmrr.com` lands Content < 100** on a fresh re-scan, unless it genuinely maxes
    the tightened bars (900+ words of real copy, 5+ fully alt-tagged images, and
    `social_share_tags` still at 100).
