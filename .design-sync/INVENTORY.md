@@ -42,14 +42,16 @@ Counts: **45 active** (25 atomic + 20 Page templates) · **16 archived** · 61 t
 | AppShell | App | `components/app/captured/app-shell.tsx` sidebar chrome |
 | KpiCard | App | `components/app/intel/kit.tsx` metric tiles |
 | ScanningRing | App | `components/scan/scan-animation.tsx` |
-| CompetitorEdgePanel | App | `components/app/intel/competitors-view.tsx` "You vs" |
+| CompetitorEdgePanel | App | `components/app/intel/competitors-view.tsx` "their edge → your move" callout |
+| CompetitorGapMap | App | `components/app/intel/competitor-gap-map.tsx` column-major gap matrix (also the rival selector) |
+| ReferrerRow | App | `components/app/intel/referrer-row.tsx` one-line referrer with expandable detail |
 | PlanItemCard | App | `components/app/intel/plan-entry-card.tsx` weekly action |
 | LeverBanner | App | `components/app/intel/dashboard-hero.tsx` weakest-pillar callout |
 
 ## Pages (20) — full-page Screen templates (`cardGroup: "Pages"`, shown FIRST)
 Each mirrors a real live route/screen (via `@mirrors`). Screens are self-contained
 templates; they need not compose active atoms at build time.
-- **App:** `DashboardScreen`→`app/intel/dashboard-hero.tsx` · `CompetitorsScreen`→`competitors-view.tsx` · `CustomersScreen`→`customers-view.tsx` · `PlanScreen`→`plan-timeline-view.tsx` · `ProgressScreen`→`progress-view.tsx` · `SettingsScreen`→`app/captured/settings-main.tsx` · `OnboardingScreen`→`app/setup/setup-overlay.tsx`
+- **App:** `DashboardScreen`→`app/intel/dashboard-hero.tsx` · `CompetitorsScreen`→`competitors-view.tsx` (REBUILT: no left rail — the gap-map matrix on top doubles as the rival selector, full-width detail below: stat strip → referrer rows → "referrers to pursue" → top pages/keywords → "their edge → your move") · `CustomersScreen`→`customers-view.tsx` · `PlanScreen`→`plan-timeline-view.tsx` · `ProgressScreen`→`progress-view.tsx` · `SettingsScreen`→`app/captured/settings-main.tsx` · `OnboardingScreen`→`app/setup/setup-overlay.tsx`
 - **Report / flow:** `ResultsScreen`→`report/captured/results-screen.tsx` · `ScanningScreen`→`scan/captured-scanning.tsx`
 - **Marketing:** `LandingScreen`→`sections/captured/landing-screen.tsx` · `PricingScreen`→`sections/captured/pricing-screen.tsx` · `GalleryScreen` · `TeardownsScreen` · `CompareScreen` · `AboutScreen` · `ContactScreen` · `ToolsScreen` · `RoadmapScreen` · `StatusScreen` · `LegalScreen` — each `@mirrors` its `app/(marketing)/*` route.
 

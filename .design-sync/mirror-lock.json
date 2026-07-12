@@ -37,15 +37,15 @@
   },
   "CompetitorEdgePanel": {
     "mirror": "components/app/intel/competitors-view.tsx",
-    "hash": "55855d5204735046"
+    "hash": "dbde9516a5c859ef"
   },
   "CompetitorGapMap": {
     "mirror": "components/app/intel/competitor-gap-map.tsx",
-    "hash": "8dfad5eb2e38e183"
+    "hash": "598b73cadc8ed437"
   },
   "CompetitorsScreen": {
     "mirror": "components/app/intel/competitors-view.tsx",
-    "hash": "55855d5204735046"
+    "hash": "dbde9516a5c859ef"
   },
   "ContactScreen": {
     "mirror": "app/(marketing)/contact/page.tsx",
@@ -133,7 +133,7 @@
   },
   "ReferrerRow": {
     "mirror": "components/app/intel/referrer-row.tsx",
-    "hash": "70844e22ad7f033a"
+    "hash": "1baa85eec6f046ea"
   },
   "ResultsScreen": {
     "mirror": "components/report/captured/results-screen.tsx",
