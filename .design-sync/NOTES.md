@@ -1,5 +1,22 @@
 # ReachKit design-sync notes
 
+## WS1 Competitors redesign reconcile 2026-07-12
+Live Competitors page was rebuilt (browsing-first: gap-map matrix that doubles as
+the competitor selector + full-width detail; the old second left rail removed).
+Two NEW atomic mirrors added during the build (coverage ratchet forced them
+inline): `CompetitorGapMap` (@mirrors `competitor-gap-map.tsx`) and `ReferrerRow`
+(@mirrors `referrer-row.tsx`). After the live gap-map went **column-major** (one
+surround per selected column, not per-cell) and ReferrerRow swapped InfoTip →
+native `title` (bundle: keep Base UI Tooltip out of the `(app)` chunk), all four
+Competitor mirrors were reconciled to match and re-blessed: `CompetitorGapMap`,
+`ReferrerRow`, `CompetitorEdgePanel` + `CompetitorsScreen` (both @mirrors
+`competitors-view.tsx`). `pnpm check:design` = 0 STALE + parity OK; INVENTORY.md
+updated. **Setup reference for future changes: the pipeline below ("Adding a
+component = 4 edits" + `build.mjs`→`layout.mjs`→`bless:design`→`/design-sync`) is
+the canonical how-to; CLAUDE.md's "Keeping Claude Design and the code in EXACT
+sync" is the governing rule.**
+
+
 ReachKit is a **Next.js app**, not a packaged component library — no Storybook,
 no compiled component `dist/`, no `exports`. The standard package-shape converter
 cannot run. We **hand-author** the Claude Design layout from standalone, adapted
