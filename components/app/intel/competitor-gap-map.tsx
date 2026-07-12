@@ -1,9 +1,13 @@
 "use client";
 /**
- * WS1 — the Competitors gap-map. Rows = the 5 quality channel groups, columns =
- * you + rivals, colour = strength; a RED/absent cell in the "you" column where a
- * rival is strong is the honest "you're not here" signal. Column headers ARE the
- * competitor selector (click to focus) — this replaces the old left rail.
+ * WS1 — the Competitors gap-map. Columns = you + rivals, rows = the 5 quality
+ * channel groups, colour = strength; a RED/absent cell in the "you" column where
+ * a rival is strong is the honest "you're not here" signal. Column headers ARE
+ * the competitor selector (click to focus) — this replaces the old left rail.
+ *
+ * Laid out column-major (a flex column per entity) so the SELECTED entity gets a
+ * single surround around its whole column — header + all its cells — rather than
+ * an outline drawn around each individual cell.
  */
 import { Eyebrow } from "@/components/app/intel/kit";
 
@@ -22,6 +26,10 @@ const CELL: Record<string, { bg: string; fg: string; txt: string }> = {
   absent: { bg: "var(--c-band-invisible)", fg: "#fff", txt: "None" },
 };
 
+const HEADER_H = 30;
+const CELL_H = 24;
+const LABEL_W = 120;
+
 export function CompetitorGapMap(props: {
   entities: { domain: string; isSubject?: boolean }[];
   channelStrength: Record<string, Record<string, string>>;
@@ -29,69 +37,71 @@ export function CompetitorGapMap(props: {
   onSelect: (domain: string) => void;
 }) {
   const { entities, channelStrength, selected, onSelect } = props;
-  const cols = `120px repeat(${entities.length}, minmax(64px, 1fr))`;
   return (
     <div>
       <Eyebrow>Gap map — where you&apos;re absent · click a rival to focus</Eyebrow>
-      <div style={{ display: "grid", gridTemplateColumns: cols, gap: 4, marginTop: 8 }}>
-        <span />
-        {entities.map((e) => (
-          <button
-            key={e.domain}
-            type="button"
-            onClick={() => onSelect(e.domain)}
-            aria-pressed={e.domain === selected}
-            title={e.isSubject ? "You" : e.domain}
-            style={{
-              fontFamily: "Plus Jakarta Sans", fontSize: 11.5, fontWeight: e.domain === selected ? 700 : 600,
-              padding: "6px 4px", borderRadius: "8px 8px 0 0", cursor: "pointer", textAlign: "center",
-              border: "1px solid " + (e.domain === selected ? "var(--c-action)" : "transparent"), borderBottom: "none",
-              color: e.domain === selected ? "#fff" : e.isSubject ? "var(--c-action)" : "var(--c-muted)",
-              background: e.domain === selected ? "var(--c-action)" : "transparent",
-              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-            }}
-          >
-            {e.isSubject ? "You" : e.domain.replace(/^www\./, "")}
-          </button>
-        ))}
-        {GROUPS.map((g) => (
-          <GroupRow key={g.key} g={g} entities={entities} channelStrength={channelStrength} selected={selected} />
-        ))}
+      <div style={{ display: "flex", gap: 4, marginTop: 8, overflowX: "auto" }}>
+        {/* Row-label column — a transparent 2px border + 2px padding mirrors the
+            entity columns' box model so the label cells line up with the data cells. */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: "0 0 auto", width: LABEL_W, border: "2px solid transparent", padding: 2 }}>
+          <div style={{ height: HEADER_H }} />
+          {GROUPS.map((g) => (
+            <div key={g.key} style={{ height: CELL_H, display: "flex", alignItems: "center", fontSize: 11.5, color: "var(--c-muted)" }}>
+              {g.label}
+            </div>
+          ))}
+        </div>
+        {/* One flex column per entity — the whole column carries the selection
+            border, so the surround wraps header + every cell as a single box. */}
+        {entities.map((e) => {
+          const isSel = e.domain === selected;
+          return (
+            <div
+              key={e.domain}
+              style={{
+                display: "flex", flexDirection: "column", gap: 4, flex: "1 1 0%", minWidth: 64,
+                border: "2px solid " + (isSel ? "var(--c-action)" : "transparent"),
+                borderRadius: 8, padding: 2,
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => onSelect(e.domain)}
+                aria-pressed={isSel}
+                title={e.isSubject ? "You" : e.domain}
+                style={{
+                  height: HEADER_H, width: "100%", fontFamily: "Plus Jakarta Sans", fontSize: 11.5,
+                  fontWeight: isSel ? 700 : 600, borderRadius: 6, cursor: "pointer", textAlign: "center", border: "none",
+                  color: isSel ? "#fff" : e.isSubject ? "var(--c-action)" : "var(--c-muted)",
+                  background: isSel ? "var(--c-action)" : "transparent",
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                }}
+              >
+                {e.isSubject ? "You" : e.domain.replace(/^www\./, "")}
+              </button>
+              {GROUPS.map((g) => {
+                const bucket = channelStrength[e.domain]?.[g.key] ?? "absent";
+                const c = CELL[bucket] ?? CELL.absent!;
+                return (
+                  <div
+                    key={g.key}
+                    title={`${e.isSubject ? "You" : e.domain} · ${g.label}: ${c.txt}`}
+                    style={{
+                      height: CELL_H, borderRadius: 5, display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 9.5, color: c.fg, background: c.bg,
+                    }}
+                  >
+                    {c.txt}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
       </div>
       <p style={{ fontSize: 11.5, color: "var(--c-faint)", marginTop: 6 }}>
         Red in <b>your</b> column where a rival is strong = the highest-value channels to enter.
       </p>
     </div>
-  );
-}
-
-function GroupRow(props: {
-  g: { key: string; label: string };
-  entities: { domain: string; isSubject?: boolean }[];
-  channelStrength: Record<string, Record<string, string>>;
-  selected: string;
-}) {
-  const { g, entities, channelStrength, selected } = props;
-  return (
-    <>
-      <span style={{ fontSize: 11.5, color: "var(--c-muted)", display: "flex", alignItems: "center" }}>{g.label}</span>
-      {entities.map((e) => {
-        const bucket = channelStrength[e.domain]?.[g.key] ?? "absent";
-        const c = CELL[bucket] ?? CELL.absent!;
-        return (
-          <div
-            key={e.domain}
-            title={`${e.isSubject ? "You" : e.domain} · ${g.label}: ${c.txt}`}
-            style={{
-              height: 24, borderRadius: 5, display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 9.5, color: c.fg, background: c.bg,
-              outline: e.domain === selected ? "2px solid var(--c-action)" : "none", outlineOffset: -2,
-            }}
-          >
-            {c.txt}
-          </div>
-        );
-      })}
-    </>
   );
 }
