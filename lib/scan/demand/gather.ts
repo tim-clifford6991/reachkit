@@ -181,7 +181,9 @@ function fallbackBuyerInsights(brief: ProductDemandBrief, pockets: DemandPocket[
       .map((t) => t.title),
   ).slice(0, 6);
   return {
-    pains: dedupe([brief.problem, ...brief.icp.jobsToBeDone]).slice(0, 6),
+    // Minimal shape fix for the WS2 PainInsight[] change (Task 3); Task 4 covers
+    // fuller gather.ts consumer updates.
+    pains: dedupe([brief.problem, ...brief.icp.jobsToBeDone]).slice(0, 6).map((text) => ({ text })),
     lovedFeatures: [],
     personas: dedupe([brief.icp.whoItsFor, brief.audience]),
     buyerLanguage: threadTitles,
