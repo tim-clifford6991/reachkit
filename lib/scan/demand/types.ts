@@ -55,7 +55,7 @@ export interface DemandPocket {
   /** Ranking score (recency-weighted intent density × reach). */
   score: number;
   /** A few representative threads to engage (freshest, highest-intent first). */
-  topThreads: Array<{ title: string; url: string; intent: number; publishedAt: string | null; theme: string }>;
+  topThreads: Array<{ title: string; url: string; intent: number; publishedAt: string | null; theme: string; activity?: import("@/lib/scan/adapters/thread-activity").ThreadActivity | null }>;
 }
 
 export interface DemandResult {
