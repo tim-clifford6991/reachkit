@@ -20,7 +20,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { Card } from "@/components/app/intel/kit";
 import { useIntel, IntelShell } from "@/components/app/intel/shared";
-import { PlanEntryCard, type EntryDetail } from "@/components/app/intel/plan-entry-card";
+import { type EntryDetail } from "@/components/app/intel/plan-entry-card";
 import { KIND_STYLE, kindOfAction } from "@/components/app/intel/plan-kind-style";
 import {
   buildPlanDays, buildDailyPostAngles, localDateKey, topThreeByHorizon,
@@ -41,6 +41,17 @@ const VERIFIED_COLOR = "var(--color-success)";
 const PlanBuildingHero = dynamic(
   () => import("@/components/app/intel/plan-building").then((m) => m.PlanBuildingHero),
   { ssr: false, loading: () => <PlanBuildingHeroSkeleton /> },
+);
+
+// PlanEntryCard is the heaviest below-the-calendar piece (draft/venue/share
+// execution UI + its distribute deps). It only renders inside the selected-day
+// panel, never above the fold, so next/dynamic (ssr:false) keeps its module and
+// transitive imports out of the plan page's First Load JS. The 120px sized
+// placeholder matches a collapsed card's footprint so the panel doesn't jump
+// while the chunk fetches.
+const PlanEntryCard = dynamic(
+  () => import("@/components/app/intel/plan-entry-card").then((m) => m.PlanEntryCard),
+  { ssr: false, loading: () => <div style={{ height: 120 }} /> },
 );
 
 function PlanBuildingHeroSkeleton() {
