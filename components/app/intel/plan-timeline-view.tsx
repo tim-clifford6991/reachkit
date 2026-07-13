@@ -16,7 +16,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Card, Eyebrow } from "@/components/app/intel/kit";
+import { Card } from "@/components/app/intel/kit";
 import { useIntel, IntelShell } from "@/components/app/intel/shared";
 import { PlanEntryCard, type EntryDetail } from "@/components/app/intel/plan-entry-card";
 import { PlanBuildingHero } from "@/components/app/intel/plan-building";
@@ -96,9 +96,12 @@ export function PlanTimelineBody({ board, synthesis, domain, score, today: today
   }, [synthesis]);
 
   const [selected, setSelected] = useState<string | null>(null);
-  // Default focus: today if it has work, else the first scheduled day.
+  // Default focus: today if it has work, else the first scheduled day. Once the
+  // founder explicitly picks a day (including a past day with nothing on it —
+  // greyed but clickable), that pick wins outright: `selected` isn't gated on
+  // `byDate.has(...)` so an empty day can still become the active panel.
   const todayKey = localDateKey(today);
-  const activeDate = selected && byDate.has(selected) ? selected : byDate.has(todayKey) ? todayKey : days[0]?.date ?? null;
+  const activeDate = selected ?? (byDate.has(todayKey) ? todayKey : days[0]?.date ?? null);
   const activeEntries: PlanEntry[] = activeDate ? byDate.get(activeDate) ?? [] : [];
 
   const openCount = days.reduce((s, d) => s + d.entries.length, 0);
@@ -107,31 +110,37 @@ export function PlanTimelineBody({ board, synthesis, domain, score, today: today
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      {/* Summary strip — the whole plan at a glance, score first: working the
-          plan is how the number moves, and the number lives where the work is. */}
-      <Card style={{ padding: "16px 22px" }}>
-        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 32 }}>
-          {score && (
+      {/* Slim status strip — one line, calendar-first: the plan itself (the
+          calendar) is the main event, this is just orientation above it. */}
+      <div style={{
+        display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: 20,
+        padding: "9px 16px", border: "1px solid var(--c-line)", borderRadius: "var(--radius-lg)", background: "var(--c-surface)",
+      }}>
+        {score && (
+          <>
             <span style={{ display: "inline-flex", alignItems: "baseline", gap: 8 }}>
-              <span style={{ fontFamily: JM, fontSize: 22, fontWeight: 700, lineHeight: 1, color: "var(--c-action)" }}>{score.total}</span>
-              <Eyebrow>Score</Eyebrow>
+              <span style={{ fontFamily: JM, fontSize: 18, fontWeight: 800, lineHeight: 1, color: "var(--c-action)" }}>{score.total}</span>
+              <span style={{ fontSize: 12.5, color: "var(--c-muted)" }}>Discoverability</span>
               {score.delta !== 0 && (
-                <span style={{ fontFamily: JM, fontSize: 12, fontWeight: 700, color: score.delta > 0 ? VERIFIED_COLOR : "var(--color-danger)" }}>
+                <span style={{ fontFamily: JM, fontSize: 11.5, fontWeight: 700, color: score.delta > 0 ? VERIFIED_COLOR : "var(--color-danger)" }}>
                   {fmtPts(score.delta)}
                 </span>
               )}
             </span>
-          )}
-          <Stat label="To do" value={openCount} />
-          <Stat label="Verifying" value={board.verifying.length} color={board.verifying.length > 0 ? VERIFYING_COLOR : undefined} />
-          <Stat label="Verified" value={board.done.length} color={board.done.length > 0 ? VERIFIED_COLOR : undefined} />
+            <span aria-hidden style={{ color: "var(--c-line)" }}>·</span>
+          </>
+        )}
+        <StripStat label="to do" value={openCount} />
+        <StripStat label="verifying" value={board.verifying.length} color={board.verifying.length > 0 ? VERIFYING_COLOR : undefined} />
+        <span style={{ fontSize: 12.5, color: "var(--c-muted)" }}>
+          <span style={{ fontFamily: JM, fontWeight: 700, color: board.done.length > 0 ? VERIFIED_COLOR : "var(--c-ink)" }}>{board.done.length}</span> verified
           {verifiedPts !== null && (
-            <span style={{ marginLeft: "auto", fontFamily: JM, fontSize: 13, fontWeight: 700, color: verifiedPts >= 0 ? VERIFIED_COLOR : "var(--color-danger)" }}>
-              {fmtPts(verifiedPts)} verified on your score
+            <span style={{ marginLeft: 6, fontFamily: JM, fontWeight: 700, color: verifiedPts >= 0 ? VERIFIED_COLOR : "var(--color-danger)" }}>
+              {fmtPts(verifiedPts)}
             </span>
           )}
-        </div>
-      </Card>
+        </span>
+      </div>
 
       {/* The calendar — the plan laid out day by day, starting today */}
       {days.length === 0 ? (
@@ -147,7 +156,7 @@ export function PlanTimelineBody({ board, synthesis, domain, score, today: today
                 <h3 style={{ fontFamily: SG, fontWeight: 700, fontSize: 15, color: "var(--c-ink)", margin: 0 }}>
                   {activeDate === todayKey ? "Today" : dayHeading(activeDate)}
                 </h3>
-                {(() => {
+                {activeEntries.length > 0 && (() => {
                   // Split the day's load so a weekly deep piece (content, ~90 min+)
                   // reads as focused work rather than a scary daily obligation
                   // stacked onto the ~10-min daily habit. Most days are just the
@@ -165,9 +174,20 @@ export function PlanTimelineBody({ board, synthesis, domain, score, today: today
                 })()}
                 {activeDate === todayKey && <span style={{ fontFamily: JM, fontSize: 10.5, fontWeight: 700, color: "var(--c-action)" }}>← start here</span>}
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {activeEntries.map((e) => <PlanEntryCard key={e.key} entry={e} domain={domain} detail={detailFor(e)} />)}
-              </div>
+              {activeEntries.length > 0 ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {activeEntries.map((e) => <PlanEntryCard key={e.key} entry={e} domain={domain} detail={detailFor(e)} />)}
+                </div>
+              ) : (
+                <div style={{
+                  padding: "20px 16px", textAlign: "center", border: "1px dashed var(--c-line)", borderRadius: "var(--radius-lg)",
+                  fontSize: 12.5, color: "var(--c-faint)",
+                }}>
+                  {activeDate !== null && activeDate < todayKey
+                    ? "Nothing was scheduled for this day."
+                    : "Nothing scheduled for this day yet."}
+                </div>
+              )}
             </section>
           )}
         </>
@@ -315,23 +335,25 @@ function PlanCalendar({ days, today, activeDate, onSelect }: {
                   const isToday = key === todayKey;
                   const isActive = key === activeDate;
                   const isPast = key < todayKey;
-                  const clickable = entries.length > 0;
+                  // Every day is clickable — past days included, greyed via
+                  // opacity but still selectable so the founder can review what
+                  // was (or wasn't) scheduled on a day that's already gone.
                   return (
                     <div
                       key={key}
-                      role={clickable ? "button" : undefined}
-                      tabIndex={clickable ? 0 : undefined}
-                      onClick={clickable ? () => onSelect(key) : undefined}
-                      onKeyDown={clickable ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(key); } } : undefined}
-                      aria-label={clickable ? `${dayHeading(key)} — ${entries.length} ${entries.length === 1 ? "action" : "actions"}` : undefined}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => onSelect(key)}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(key); } }}
+                      aria-label={`${dayHeading(key)} — ${entries.length} ${entries.length === 1 ? "action" : "actions"}`}
                       style={{
                         minHeight: 54,
                         border: `1px solid ${isActive ? "var(--c-action)" : "var(--c-line)"}`,
                         borderRadius: "var(--radius-md)",
                         background: isActive ? "var(--c-soft)" : "var(--c-surface)",
                         padding: "4px 5px 5px",
-                        opacity: isPast && !clickable ? 0.45 : 1,
-                        cursor: clickable ? "pointer" : "default",
+                        opacity: isPast ? 0.5 : 1,
+                        cursor: "pointer",
                         display: "flex", flexDirection: "column", gap: 3, minWidth: 0,
                       }}
                     >
@@ -453,11 +475,10 @@ function LifecycleRow({ action, state }: { action: BoardAction; state: "verifyin
   );
 }
 
-function Stat({ label, value, color }: { label: string; value: number; color?: string }) {
+function StripStat({ label, value, color }: { label: string; value: number; color?: string }) {
   return (
-    <span style={{ display: "inline-flex", alignItems: "baseline", gap: 8 }}>
-      <span style={{ fontFamily: JM, fontSize: 22, fontWeight: 700, lineHeight: 1, color: color ?? "var(--c-ink)" }}>{value}</span>
-      <Eyebrow>{label}</Eyebrow>
+    <span style={{ fontSize: 12.5, color: "var(--c-muted)" }}>
+      <span style={{ fontFamily: JM, fontWeight: 700, color: color ?? "var(--c-ink)" }}>{value}</span> {label}
     </span>
   );
 }
