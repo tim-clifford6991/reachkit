@@ -22,7 +22,7 @@ import { PlanEntryCard, type EntryDetail } from "@/components/app/intel/plan-ent
 import { PlanBuildingHero } from "@/components/app/intel/plan-building";
 import { KIND_STYLE, kindOfAction } from "@/components/app/intel/plan-kind-style";
 import {
-  buildPlanDays, buildDailyPostAngles, localDateKey,
+  buildPlanDays, buildDailyPostAngles, localDateKey, topThreeByHorizon,
   type PlanEntry, type ScheduledDay, type ThreadReplyInput,
 } from "@/lib/scan/plan-schedule";
 import type { ActionBoard, BoardAction } from "@/lib/scan/action-board";
@@ -104,6 +104,24 @@ export function PlanTimelineBody({ board, synthesis, domain, score, today: today
   const activeDate = selected ?? (byDate.has(todayKey) ? todayKey : days[0]?.date ?? null);
   const activeEntries: PlanEntry[] = activeDate ? byDate.get(activeDate) ?? [] : [];
 
+  // The headline is always the day's top 3 — one per impact horizon
+  // (short/medium/long), backfilled when a horizon is empty. Anything left
+  // over stays reachable behind a "more" toggle rather than silently dropped.
+  const headlineEntries = useMemo(() => topThreeByHorizon(activeEntries), [activeEntries]);
+  const extraEntries = useMemo(
+    () => { const picked = new Set(headlineEntries.map((e) => e.key)); return activeEntries.filter((e) => !picked.has(e.key)); },
+    [activeEntries, headlineEntries],
+  );
+  // Reset the "more" toggle when the founder switches days — adjusted during
+  // render (React's recommended reset-on-prop-change pattern) rather than in
+  // an effect, so there's no extra render pass / no setState-in-effect lint.
+  const [showMore, setShowMore] = useState(false);
+  const [showMoreForDate, setShowMoreForDate] = useState(activeDate);
+  if (showMoreForDate !== activeDate) {
+    setShowMoreForDate(activeDate);
+    setShowMore(false);
+  }
+
   const openCount = days.reduce((s, d) => s + d.entries.length, 0);
   const measured = board.done.filter((a) => a.actualDelta !== null);
   const verifiedPts = measured.length > 0 ? measured.reduce((s, a) => s + (a.actualDelta ?? 0), 0) : null;
@@ -176,7 +194,22 @@ export function PlanTimelineBody({ board, synthesis, domain, score, today: today
               </div>
               {activeEntries.length > 0 ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {activeEntries.map((e) => <PlanEntryCard key={e.key} entry={e} domain={domain} detail={detailFor(e)} />)}
+                  {headlineEntries.map((e) => <PlanEntryCard key={e.key} entry={e} domain={domain} detail={detailFor(e)} />)}
+                  {extraEntries.length > 0 && (
+                    <>
+                      {showMore && extraEntries.map((e) => <PlanEntryCard key={e.key} entry={e} domain={domain} detail={detailFor(e)} />)}
+                      <button
+                        type="button"
+                        onClick={() => setShowMore((s) => !s)}
+                        style={{
+                          alignSelf: "flex-start", background: "none", border: "none", padding: "2px 0",
+                          fontFamily: JM, fontSize: 11, fontWeight: 700, color: "var(--c-action)", cursor: "pointer",
+                        }}
+                      >
+                        {showMore ? "▾ show fewer" : `▸ +${extraEntries.length} more scheduled today`}
+                      </button>
+                    </>
+                  )}
                 </div>
               ) : (
                 <div style={{
