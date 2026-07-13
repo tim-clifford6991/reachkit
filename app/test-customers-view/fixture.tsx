@@ -82,7 +82,7 @@ export function TestCustomersFixture() {
           <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 20, color: "var(--c-ink)", margin: 0 }}>Customers view — fixture preview</h1>
           <p style={{ fontSize: 12.5, color: "var(--c-muted)", margin: "4px 0 0" }}>Hardcoded sample data, no auth or live fetch — for styling review only.</p>
         </div>
-        <CustomersBody data={SAMPLE} planTargetsOverride={[{ target: "r/SaaS", channel: "community" }]} />
+        <CustomersBody data={SAMPLE} />
       </div>
     </main>
   );
