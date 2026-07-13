@@ -16,7 +16,7 @@ import { cohortFor, cachedKeywordIdeas } from "@/lib/scan/cache/cached-adapters"
 import { MAX_SELECTED } from "@/lib/scan/competitor-selection";
 import { cachedJson, DAY_MS } from "@/lib/scan/cache/external-cache";
 import { inferProductBrief, type ICP, type ProductDemandBrief } from "@/lib/scan/demand/brief";
-import { mineCompetitorReviews, type BuyerInsights } from "@/lib/scan/demand/reviews";
+import { mineCompetitorReviews, normalizePains, type BuyerInsights, type PainInsight } from "@/lib/scan/demand/reviews";
 import { discoverDemand } from "@/lib/scan/demand/index";
 import type { DemandPocket } from "@/lib/scan/demand/types";
 import type { KeywordIdea } from "@/lib/scan/adapters/dataforseo-keyword-ideas";
@@ -172,7 +172,7 @@ function buyerInsightsEmpty(bi: BuyerInsights): boolean {
  * Returns an empty payload when there's nothing to draw on — the UI then shows its
  * explicit empty state rather than a half-filled block.
  */
-function fallbackBuyerInsights(brief: ProductDemandBrief, pockets: DemandPocket[]): BuyerInsights {
+export function fallbackBuyerInsights(brief: ProductDemandBrief, pockets: DemandPocket[]): BuyerInsights {
   const dedupe = (xs: string[]) => [...new Set(xs.map((s) => s.trim()).filter(Boolean))];
   const threadTitles = dedupe(
     pockets
@@ -180,10 +180,9 @@ function fallbackBuyerInsights(brief: ProductDemandBrief, pockets: DemandPocket[
       .sort((a, b) => b.intent - a.intent)
       .map((t) => t.title),
   ).slice(0, 6);
+  const pains: PainInsight[] = dedupe([brief.problem, ...brief.icp.jobsToBeDone]).slice(0, 6).map((text) => ({ text }));
   return {
-    // Minimal shape fix for the WS2 PainInsight[] change (Task 3); Task 4 covers
-    // fuller gather.ts consumer updates.
-    pains: dedupe([brief.problem, ...brief.icp.jobsToBeDone]).slice(0, 6).map((text) => ({ text })),
+    pains,
     lovedFeatures: [],
     personas: dedupe([brief.icp.whoItsFor, brief.audience]),
     buyerLanguage: threadTitles,
@@ -249,6 +248,10 @@ async function readDemandIntelFallback(subject: string, cohortKey: string): Prom
       community: data.community as unknown as DemandIntel["community"],
       buyerInsights: data.buyer_insights as unknown as BuyerInsights,
     };
+    // Legacy-cached rows (`demand_intel` predates the PainInsight[] shape) may
+    // still carry `pains: string[]`; normalise BEFORE the emptiness checks below
+    // so both see the reassembled shape.
+    reassembled.buyerInsights = { ...reassembled.buyerInsights, pains: normalizePains(reassembled.buyerInsights.pains) };
     // A previously-poisoned row (written before this predicate existed, or
     // written by a since-fixed-but-still-empty gather) must never satisfy a
     // read — same emptiness rule as the write path, so callers fall back to a
@@ -355,7 +358,12 @@ export async function gatherDemand(rawSelf: string, opts: { competitorDomains?: 
       themes,
     },
     community: { painQueries: demand.painQueries, pockets: demand.pockets },
-    buyerInsights: effectiveBuyerInsights,
+    // Choke point: effectiveBuyerInsights may carry legacy `pains: string[]` from
+    // a stale `reviews:*` cache (60-day TTL, predates PainInsight[]). Normalise
+    // here so the DemandIntel returned/persisted from THIS function ALWAYS has
+    // PainInsight[] — every downstream consumer (persistence + synthesis) relies
+    // on this single assembly point instead of re-normalising itself.
+    buyerInsights: { ...effectiveBuyerInsights, pains: normalizePains(effectiveBuyerInsights.pains) },
   };
 
   // Persist the assembled demand intel itself (best-effort, never blocks the return).
