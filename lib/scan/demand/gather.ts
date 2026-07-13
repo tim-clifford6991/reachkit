@@ -267,6 +267,45 @@ async function readDemandIntelFallback(subject: string, cohortKey: string): Prom
   }
 }
 
+/**
+ * Cache-ONLY read of the top buyer-intent demand threads, for the plan page's
+ * quick-win reply entries. A plain `demand_intel` select — never a gather, never
+ * an LLM/DataForSEO call — so it's safe on every plan-page load. Returns []
+ * on a cold cache, a stale row, or any read error rather than paying for a
+ * fresh gather: progressive enhancement, never a fresh-gather trigger.
+ */
+export async function readCachedTopThreads(
+  rawSelf: string,
+  competitorDomains: string[],
+  limit = 5,
+): Promise<{ title: string; url: string; intent: number }[]> {
+  try {
+    const self = normalizeHost(rawSelf);
+    const cohortKey = competitorDomains.map((d) => d.toLowerCase()).sort().join(",");
+    const db = serverDb();
+    const { data } = await db
+      .from("demand_intel")
+      .select("community, fetched_at")
+      .eq("subject_domain", self)
+      .eq("cohort_key", cohortKey)
+      .maybeSingle();
+    if (!data?.community || !data.fetched_at) return [];
+    if (Date.now() - new Date(data.fetched_at).getTime() >= DEMAND_INTEL_TTL_MS) return [];
+    const community = data.community as unknown as DemandIntel["community"];
+    const pockets = community?.pockets ?? [];
+    type Thread = DemandPocket["topThreads"][number];
+    return pockets
+      .flatMap((p) => p.topThreads ?? [])
+      .filter((t): t is Thread => !!t?.url && !!t?.title)
+      .sort((a, b) => (b.intent ?? 0) - (a.intent ?? 0))
+      .slice(0, limit)
+      .map((t) => ({ title: t.title, url: t.url, intent: t.intent ?? 0 }));
+  } catch (err) {
+    console.warn(`[demand_intel] top-threads read failed: ${err instanceof Error ? err.message : String(err)}`);
+    return [];
+  }
+}
+
 export async function gatherDemand(rawSelf: string, opts: { competitorDomains?: string[]; onStage?: OnStageCallback } = {}): Promise<DemandIntel> {
   const self = normalizeHost(rawSelf);
   const cohortKey = (opts.competitorDomains ?? []).map((d) => d.toLowerCase()).sort().join(",");

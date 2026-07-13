@@ -23,7 +23,7 @@ import { PlanBuildingHero } from "@/components/app/intel/plan-building";
 import { KIND_STYLE, kindOfAction } from "@/components/app/intel/plan-kind-style";
 import {
   buildPlanDays, buildDailyPostAngles, localDateKey,
-  type PlanEntry, type ScheduledDay,
+  type PlanEntry, type ScheduledDay, type ThreadReplyInput,
 } from "@/lib/scan/plan-schedule";
 import type { ActionBoard, BoardAction } from "@/lib/scan/action-board";
 import type { Synthesis } from "./synthesis-view";
@@ -39,24 +39,27 @@ function fmtPts(n: number): string {
 
 export interface PlanScore { total: number; delta: number }
 
-export function PlanTimelineView({ board, domain, score }: { board: ActionBoard; domain: string; score?: PlanScore | null }) {
+export function PlanTimelineView({ board, domain, score, threadReplies }: { board: ActionBoard; domain: string; score?: PlanScore | null; threadReplies?: ThreadReplyInput[] }) {
   const { data, loading, error, stages } = useIntel<Synthesis>("synthesis");
   // Cold build (stages streaming) → the proof-of-work experience: the founder
   // watches competitors, ICP, demand, and the plan get built, step by step.
   if (loading && stages.length > 0) return <PlanBuildingHero stages={stages} />;
   return (
     <IntelShell loading={loading} error={error} hasData={!!data} stages={stages}>
-      {data && <PlanTimelineBody board={board} synthesis={data} domain={domain || data.domain} score={score} />}
+      {data && <PlanTimelineBody board={board} synthesis={data} domain={domain || data.domain} score={score} threadReplies={threadReplies} />}
     </IntelShell>
   );
 }
 
-export function PlanTimelineBody({ board, synthesis, domain, score, today: todayProp }: { board: ActionBoard; synthesis: Synthesis; domain: string; score?: PlanScore | null; today?: Date }) {
+export function PlanTimelineBody({ board, synthesis, domain, score, today: todayProp, threadReplies }: { board: ActionBoard; synthesis: Synthesis; domain: string; score?: PlanScore | null; today?: Date; threadReplies?: ThreadReplyInput[] }) {
   // Stable "today" for the lifetime of the view (fixture pages inject one).
   const [today] = useState(() => todayProp ?? new Date());
 
   // The rolling 30-day plan — one shared builder (also drives the dashboard
   // preview): pace, place on days from today, fill the daily-post habit.
+  // `threadReplies` is cache-warm demand data the page loaded alongside the
+  // board (never a fresh gather) — optional, so an empty/absent list just
+  // means no reply quick-wins this render, never a fabricated one.
   const days: ScheduledDay[] = useMemo(
     () => buildPlanDays({
       board,
@@ -64,8 +67,9 @@ export function PlanTimelineBody({ board, synthesis, domain, score, today: today
       content: synthesis.contentPlan,
       distribution: synthesis.distributionPlan,
       today,
+      threadReplies,
     }),
-    [board, synthesis, today],
+    [board, synthesis, today, threadReplies],
   );
 
   const byDate = useMemo(() => new Map(days.map((d) => [d.date, d.entries])), [days]);

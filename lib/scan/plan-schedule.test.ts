@@ -14,9 +14,15 @@ import {
   byScheduleOrder,
   buildDailyPostAngles,
   addDailyPosts,
+  topThreeByHorizon,
+  buildThreadReplyEntries,
+  addThreadReplies,
+  buildPlanDays,
   CONTENT_EFFORT_MIN,
   DAILY_POST_HORIZON_DAYS,
+  THREAD_REPLY_EFFORT_MIN,
   type PlanEntry,
+  type ScheduledDay,
 } from "./plan-schedule";
 import type { BoardAction } from "./action-board";
 
@@ -281,5 +287,166 @@ describe("daily posts — content as a habit", () => {
       distribution: [],
     });
     expect(merged).toHaveLength(0);
+  });
+});
+
+describe("topThreeByHorizon", () => {
+  // horizon reminders: kind "post" → short; kind "content" → medium;
+  // kind "distribution" + channel "community" (or effortMin<=6) → short;
+  // kind "distribution" otherwise → long.
+  const post = entry({ key: "post", title: "Post", kind: "post", priority: "high" });
+  const content = entry({ key: "content", title: "Content", kind: "content", priority: "medium" });
+  const longPlay = entry({ key: "long", title: "Long", kind: "distribution", channel: "directory", effortMin: 60, priority: "medium" });
+  const quickReply = entry({ key: "reply", title: "Reply", kind: "distribution", channel: "community", effortMin: 4, priority: "high" });
+
+  test("one entry per horizon, returned in short/medium/long order", () => {
+    const picked = topThreeByHorizon([longPlay, content, quickReply]);
+    expect(picked.map((e) => e.key)).toEqual(["reply", "content", "long"]);
+  });
+
+  test("within a horizon, the highest-priority entry wins (byScheduleOrder)", () => {
+    const lowReply = entry({ key: "low-reply", title: "Low reply", kind: "distribution", channel: "community", priority: "low" });
+    const picked = topThreeByHorizon([lowReply, quickReply, content, longPlay]);
+    // quickReply (high) beats lowReply (low) for the short slot.
+    expect(picked.map((e) => e.key)).toEqual(["reply", "content", "long"]);
+  });
+
+  test("an empty horizon backfills from the remaining highest-priority entries", () => {
+    // Two "short" candidates, no medium/long entries at all.
+    const secondShort = entry({ key: "short2", title: "Short2", kind: "post", priority: "high" });
+    const picked = topThreeByHorizon([post, secondShort]);
+    expect(picked.map((e) => e.key).sort()).toEqual(["post", "short2"]);
+    expect(picked).toHaveLength(2);
+  });
+
+  test("fewer than 3 entries total returns all of them", () => {
+    expect(topThreeByHorizon([post])).toHaveLength(1);
+    expect(topThreeByHorizon([])).toHaveLength(0);
+  });
+
+  test("never returns more than 3 even with many candidates", () => {
+    const many = Array.from({ length: 6 }, (_, i) =>
+      entry({ key: `d${i}`, title: `D${i}`, kind: "distribution", channel: "directory", effortMin: 60, priority: "medium" }),
+    );
+    expect(topThreeByHorizon(many)).toHaveLength(3);
+  });
+
+  test("deterministic regardless of input order", () => {
+    const a = topThreeByHorizon([longPlay, content, quickReply, post]);
+    const b = topThreeByHorizon([post, quickReply, content, longPlay]);
+    expect(a.map((e) => e.key)).toEqual(b.map((e) => e.key));
+  });
+});
+
+describe("buildThreadReplyEntries — quick-win replies from REAL demand threads", () => {
+  test("ranks by intent (desc) and shapes the PlanEntry per spec", () => {
+    const entries = buildThreadReplyEntries([
+      { title: "How do I get my SaaS discovered on Google?", url: "https://reddit.com/r/SaaS/1", intent: 0.4 },
+      { title: "Anyone struggling with search visibility for their product", url: "https://reddit.com/r/startups/2", intent: 0.9 },
+    ]);
+    expect(entries.map((e) => e.targetUrl)).toEqual(["https://reddit.com/r/startups/2", "https://reddit.com/r/SaaS/1"]);
+    const top = entries[0]!;
+    expect(top).toMatchObject({
+      kind: "distribution",
+      channel: "community",
+      effortMin: THREAD_REPLY_EFFORT_MIN,
+      priority: "high",
+      draft: null,
+      tracked: false,
+      evidence: "https://reddit.com/r/startups/2",
+      why: "A buyer is describing your problem unprompted — a genuine, helpful reply puts you in front of them.",
+    });
+    expect(top.title).toBe("Reply to: Anyone struggling with search visibility for their product");
+  });
+
+  test("truncates a long thread title to 60 chars in the entry title", () => {
+    const longTitle = "A".repeat(80);
+    const [entryOut] = buildThreadReplyEntries([{ title: longTitle, url: "https://reddit.com/r/x/1" }]);
+    expect(entryOut!.title.length).toBeLessThanOrEqual("Reply to: ".length + 60);
+  });
+
+  test("dedupes by url and caps at the limit", () => {
+    const threads = Array.from({ length: 8 }, (_, i) => ({ title: `Thread ${i}`, url: `https://reddit.com/${i}`, intent: i }));
+    const entries = buildThreadReplyEntries([...threads, threads[0]!], { limit: 3 });
+    expect(entries).toHaveLength(3);
+    expect(new Set(entries.map((e) => e.targetUrl)).size).toBe(3);
+  });
+
+  test("skips threads whose derived title is already an existing action (no duplicate work)", () => {
+    const thread = { title: "Already actioned thread", url: "https://reddit.com/r/x/1" };
+    const entries = buildThreadReplyEntries([thread], { excludeTitles: new Set(["Reply to: Already actioned thread"]) });
+    expect(entries).toHaveLength(0);
+  });
+
+  test("HONESTY: no threads in → no entries out, nothing invented", () => {
+    expect(buildThreadReplyEntries([])).toEqual([]);
+  });
+
+  test("drops threads missing a title or url — nothing to reply to", () => {
+    const entries = buildThreadReplyEntries([
+      { title: "", url: "https://reddit.com/r/x/1" },
+      { title: "No url", url: "" },
+    ] as { title: string; url: string }[]);
+    expect(entries).toHaveLength(0);
+  });
+});
+
+describe("addThreadReplies — at most 1 reply/day, right after the daily post", () => {
+  const reply = (key: string): PlanEntry => entry({ key, title: key, kind: "distribution", channel: "community", effortMin: 4, priority: "high" });
+  const dayWithPost = (date: string): ScheduledDay => ({
+    date,
+    entries: [entry({ key: `post:${date}`, title: "Daily post", kind: "post" })],
+  });
+
+  test("injects one reply per day, right after the post, consuming the queue in order", () => {
+    const days = [dayWithPost("2026-07-08"), dayWithPost("2026-07-09")];
+    const out = addThreadReplies(days, [reply("r1"), reply("r2"), reply("r3")]);
+    expect(out[0]!.entries.map((e) => e.key)).toEqual([`post:2026-07-08`, "r1"]);
+    expect(out[1]!.entries.map((e) => e.key)).toEqual([`post:2026-07-09`, "r2"]);
+  });
+
+  test("once the reply queue is exhausted, later days pass through untouched", () => {
+    const days = [dayWithPost("2026-07-08"), dayWithPost("2026-07-09")];
+    const out = addThreadReplies(days, [reply("r1")]);
+    expect(out[0]!.entries.map((e) => e.key)).toEqual([`post:2026-07-08`, "r1"]);
+    expect(out[1]!.entries.map((e) => e.key)).toEqual([`post:2026-07-09`]);
+  });
+
+  test("no replies → days pass through unchanged (no fabrication)", () => {
+    const days = [dayWithPost("2026-07-08")];
+    expect(addThreadReplies(days, [])).toEqual(days);
+  });
+
+  test("a day with no post gets the reply at the front", () => {
+    const days = [{ date: "2026-07-08", entries: [entry({ key: "d1", title: "Distro" })] }];
+    const out = addThreadReplies(days, [reply("r1")]);
+    expect(out[0]!.entries.map((e) => e.key)).toEqual(["r1", "d1"]);
+  });
+});
+
+describe("buildPlanDays — threadReplies wiring (progressive enhancement)", () => {
+  const wednesday = new Date(2026, 6, 8);
+  const emptyBoard = { open: [], retry: [], verifying: [], done: [] };
+
+  test("omitting threadReplies behaves exactly as before (additive/optional)", () => {
+    const withOmitted = buildPlanDays({ board: emptyBoard, category: "SaaS", content: [], distribution: [], today: wednesday });
+    const withEmpty = buildPlanDays({ board: emptyBoard, category: "SaaS", content: [], distribution: [], today: wednesday, threadReplies: [] });
+    expect(withOmitted).toEqual(withEmpty);
+  });
+
+  test("real threads surface as a reply entry on the plan", () => {
+    const days = buildPlanDays({
+      board: emptyBoard,
+      category: "SaaS",
+      content: [],
+      distribution: [],
+      today: wednesday,
+      threadReplies: [{ title: "Buyers asking for exactly this", url: "https://reddit.com/r/SaaS/9", intent: 0.8 }],
+    });
+    const allEntries = days.flatMap((d) => d.entries);
+    const replyEntry = allEntries.find((e) => e.targetUrl === "https://reddit.com/r/SaaS/9");
+    expect(replyEntry).toBeDefined();
+    expect(replyEntry!.title).toBe("Reply to: Buyers asking for exactly this");
+    expect(replyEntry!.draft).toBeNull();
   });
 });
