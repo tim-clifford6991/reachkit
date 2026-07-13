@@ -23,12 +23,12 @@ Groups map to the Claude Design pane's `@dsCard group=` sections (set in
 > components are exempt. Tags are the enforced source; this table is the
 > human-readable view. See CLAUDE.md → "Consistency harness".
 
-Counts: **45 active** (25 atomic + 20 Page templates) · **16 archived** · 61 total.
+Counts: **49 active** (29 atomic + 20 Page templates) · **16 archived** · 65 total.
 
 ### Landing-page section components (11) — each a slice of the live "/" that `LandingScreen` composes
 `LandingHero` (→ `scan-hero.tsx`) · `CompanyTicker` (→ `company-ticker.tsx`) · `StorySection` · `HowItWorks` · `ActionEngine` · `WhySwitch` · `Testimonials` · `Audience` · `PricingBlock` · `ScoreTravels` · `FinalCta` (the last nine → the live captured `landing-html.ts`). `LandingScreen` is a thin composition: `NavBar → LandingHero → CompanyTicker → StorySection → HowItWorks → ActionEngine → WhySwitch → Testimonials → Audience → PricingBlock → ScoreTravels → FinalCta → Footer`.
 
-## Active atomic (14)
+## Active atomic (19)
 | Component | Group | Mirrors (live) — `@mirrors` |
 |---|---|---|
 | BrandMark | Foundations | `components/brand/logo.tsx` |
@@ -47,11 +47,15 @@ Counts: **45 active** (25 atomic + 20 Page templates) · **16 archived** · 61 t
 | ReferrerRow | App | `components/app/intel/referrer-row.tsx` one-line referrer with expandable detail |
 | PlanItemCard | App | `components/app/intel/plan-entry-card.tsx` weekly action |
 | LeverBanner | App | `components/app/intel/dashboard-hero.tsx` weakest-pillar callout |
+| EvidenceDrawer | App | `components/app/intel/evidence-drawer.tsx` universal drill-down panel (keyword/theme/thread/pain) |
+| IntentRecencyMap | App | `components/app/intel/intent-recency-map.tsx` intent×recency dot-plot of buyer threads |
+| BuyerThreadFeed | App | `components/app/intel/buyer-thread-feed.tsx` filterable buyer-thread feed beneath the map |
+| PainBars | App | `components/app/intel/pain-bars.tsx` mention-ranked buyer-pain frequency bars |
 
 ## Pages (20) — full-page Screen templates (`cardGroup: "Pages"`, shown FIRST)
 Each mirrors a real live route/screen (via `@mirrors`). Screens are self-contained
 templates; they need not compose active atoms at build time.
-- **App:** `DashboardScreen`→`app/intel/dashboard-hero.tsx` · `CompetitorsScreen`→`competitors-view.tsx` (REBUILT: no left rail — the gap-map matrix on top doubles as the rival selector, full-width detail below: stat strip → referrer rows → "referrers to pursue" → top pages/keywords → "their edge → your move") · `CustomersScreen`→`customers-view.tsx` · `PlanScreen`→`plan-timeline-view.tsx` · `ProgressScreen`→`progress-view.tsx` · `SettingsScreen`→`app/captured/settings-main.tsx` · `OnboardingScreen`→`app/setup/setup-overlay.tsx`
+- **App:** `DashboardScreen`→`app/intel/dashboard-hero.tsx` · `CompetitorsScreen`→`competitors-view.tsx` (REBUILT: no left rail — the gap-map matrix on top doubles as the rival selector, full-width detail below: stat strip → referrer rows → "referrers to pursue" → top pages/keywords → "their edge → your move") · `CustomersScreen`→`customers-view.tsx` (REBUILT WS2: three analytical rows — "Who your buyer is" | "Demand themes" (top), full-width "Where they hang out" (`IntentRecencyMap` + `BuyerThreadFeed`), full-width "Top buyer pains" (`PainBars`); every data point opens the shared `EvidenceDrawer`) · `PlanScreen`→`plan-timeline-view.tsx` · `ProgressScreen`→`progress-view.tsx` · `SettingsScreen`→`app/captured/settings-main.tsx` · `OnboardingScreen`→`app/setup/setup-overlay.tsx`
 - **Report / flow:** `ResultsScreen`→`report/captured/results-screen.tsx` · `ScanningScreen`→`scan/captured-scanning.tsx`
 - **Marketing:** `LandingScreen`→`sections/captured/landing-screen.tsx` · `PricingScreen`→`sections/captured/pricing-screen.tsx` · `GalleryScreen` · `TeardownsScreen` · `CompareScreen` · `AboutScreen` · `ContactScreen` · `ToolsScreen` · `RoadmapScreen` · `StatusScreen` · `LegalScreen` — each `@mirrors` its `app/(marketing)/*` route.
 

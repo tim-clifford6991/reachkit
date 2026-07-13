@@ -57,7 +57,7 @@
   },
   "CustomersScreen": {
     "mirror": "components/app/intel/customers-view.tsx",
-    "hash": "bd0e44f01252a41c"
+    "hash": "75c3b80fd7ca44ba"
   },
   "DashboardScreen": {
     "mirror": "components/app/intel/dashboard-hero.tsx",
