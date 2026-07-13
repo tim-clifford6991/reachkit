@@ -7,7 +7,8 @@
  * click-through-to-evidence:
  *   1. Who your buyer is (compact ICP → JTBD + use-case chips) | Demand
  *      themes (each theme + its sample keywords as drawer-opening chips).
- *   2. Where they hang out — the intent×recency map + the full thread feed.
+ *   2. Where they hang out — the buyer-intent map + the full thread feed,
+ *      ranked by intent (thread dates are unavailable for most surfaces).
  *   3. Top buyer pains — mention-ranked bars with expandable evidence.
  * Built strictly on the intel kit (`--c-*` tokens).
  */
@@ -61,7 +62,7 @@ export function CustomersBody({ data }: { data: Demand }) {
         </div>
 
         {/* Row 2 — where they hang out */}
-        <Card title="Where they hang out" info="Intent × recency across every surfaced buyer thread; click any dot or row for evidence.">
+        <Card title="Where they hang out" info="Every surfaced buyer thread, ranked by buyer intent; click any dot or row for evidence.">
           <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
             <IntentRecencyMap pockets={data.community.pockets} />
             <BuyerThreadFeed pockets={data.community.pockets} />
