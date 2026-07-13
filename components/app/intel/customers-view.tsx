@@ -10,7 +10,7 @@
  */
 import { useIntel, IntelShell, fmtCompact } from "@/components/app/intel/shared";
 import { Card, Eyebrow, Badge, EvidenceLink, intentTone } from "@/components/app/intel/kit";
-import { WhereBuyersAsk } from "@/components/app/intel/demand-view";
+import { WhereBuyersAsk, normalizePains } from "@/components/app/intel/demand-view";
 import type { Demand, Theme } from "@/components/app/intel/demand-view";
 import type { Synthesis } from "@/components/app/intel/synthesis-view";
 
@@ -111,7 +111,7 @@ export function CustomersBody({
             <Empty>No buyer-review signal for this cohort yet — indie rivals often have no G2/Capterra reviews to mine. We fall back to your own reviews and community threads once a scan surfaces them.</Empty>
           ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <QuoteGroup label="Pains" items={buyerInsights.pains} color="var(--c-band-invisible)" />
+            <QuoteGroup label="Pains" items={normalizePains(buyerInsights.pains).map((p) => p.text)} color="var(--c-band-invisible)" />
             <QuoteGroup label="Loved features" items={buyerInsights.lovedFeatures} color="var(--c-band-findable)" />
             <QuoteGroup label="Personas" items={buyerInsights.personas} color="#3b6fe0" />
             <QuoteGroup label="Buyer language" items={buyerInsights.buyerLanguage} color="var(--c-action)" />
