@@ -10,7 +10,8 @@ import { PlanItemCard } from "./PlanItemCard";
  * tall summary card), the calendar at the TOP (past days greyed but still
  * clickable), the selected day's TOP 3 actions across impact horizons
  * (Quick win / This week / Compounding — one per horizon, via
- * `PlanItemCard`), a "Generate more actions" control + "Higher-impact only"
+ * `PlanItemCard`), a "Generate more actions" control (label doesn't say "for
+ * today" — §11-scheduled adds often land on future days) + "Higher-impact only"
  * toggle beneath the day panel, the rhythm note, and the Verifying/Done
  * lifecycle cards. Sample data: a nudgi.ai plan (Reddit reply quick-win,
  * comparison-content "this week", directory listing "compounding").
@@ -177,7 +178,7 @@ export function PlanScreen() {
                 padding: "9px 15px", borderRadius: "var(--radius-lg)", border: "none", cursor: "pointer",
               }}
             >
-              ✨ Generate more actions for today
+              ✨ Generate more actions
             </button>
             <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--c-muted)" }}>
               <span style={{ width: 14, height: 14, borderRadius: 3, border: "1px solid var(--c-line)", display: "inline-block" }} />

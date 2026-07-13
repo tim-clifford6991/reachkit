@@ -17,10 +17,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { Card } from "@/components/app/intel/kit";
 import { useIntel, IntelShell } from "@/components/app/intel/shared";
 import { PlanEntryCard, type EntryDetail } from "@/components/app/intel/plan-entry-card";
-import { PlanBuildingHero } from "@/components/app/intel/plan-building";
 import { KIND_STYLE, kindOfAction } from "@/components/app/intel/plan-kind-style";
 import {
   buildPlanDays, buildDailyPostAngles, localDateKey, topThreeByHorizon,
@@ -32,6 +32,24 @@ import type { Synthesis } from "./synthesis-view";
 const SG = "var(--font-display)", PJ = "var(--font-sans)", JM = "var(--font-mono)";
 const VERIFYING_COLOR = "var(--color-warning)";
 const VERIFIED_COLOR = "var(--color-success)";
+
+// Cold-build proof-of-work screen only shows while the very first synthesis
+// gather is streaming (`stages.length > 0`) — most page loads never render it
+// at all. next/dynamic (ssr:false) keeps its module out of the plan page's
+// First Load JS; the sized placeholder below matches its card footprint so
+// there's no layout shift while the chunk fetches.
+const PlanBuildingHero = dynamic(
+  () => import("@/components/app/intel/plan-building").then((m) => m.PlanBuildingHero),
+  { ssr: false, loading: () => <PlanBuildingHeroSkeleton /> },
+);
+
+function PlanBuildingHeroSkeleton() {
+  return (
+    <div style={{ display: "flex", justifyContent: "center", padding: "40px 16px 72px" }}>
+      <div style={{ width: "100%", maxWidth: 560, minHeight: 360, background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-xl)" }} />
+    </div>
+  );
+}
 
 function fmtPts(n: number): string {
   const v = Number.isInteger(n) ? String(n) : n.toFixed(1);
@@ -284,7 +302,7 @@ function GenerateMoreControl() {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [higherImpactOnly, setHigherImpactOnly] = useState(false);
-  const [notice, setNotice] = useState<{ kind: "empty" | "error"; text: string } | null>(null);
+  const [notice, setNotice] = useState<{ kind: "empty" | "error" | "success"; text: string } | null>(null);
 
   const generate = useCallback(async () => {
     setPending(true);
@@ -306,6 +324,10 @@ function GenerateMoreControl() {
       } else {
         // The new rows now exist in the `actions` table — re-run the server
         // component so the board it reads picks them up on this same page.
+        // They're §11-scheduled, so they often land on future calendar days
+        // rather than today — without an explicit notice the button can look
+        // inert even though it worked, so say what happened.
+        setNotice({ kind: "success", text: `Added ${added.length} action${added.length === 1 ? "" : "s"} to your plan` });
         router.refresh();
       }
     } catch {
@@ -315,10 +337,11 @@ function GenerateMoreControl() {
     }
   }, [higherImpactOnly, router]);
 
-  // The friendly "nothing new" notice is transient — it clears itself so it
-  // doesn't linger as stale chrome under the panel.
+  // The friendly "nothing new" and success notices are transient — they clear
+  // themselves so they don't linger as stale chrome under the panel. The
+  // error notice stays until the founder retries.
   useEffect(() => {
-    if (!notice || notice.kind !== "empty") return;
+    if (!notice || notice.kind === "error") return;
     const t = setTimeout(() => setNotice(null), 6000);
     return () => clearTimeout(t);
   }, [notice]);
@@ -338,7 +361,7 @@ function GenerateMoreControl() {
             cursor: pending ? "default" : "pointer", opacity: pending ? 0.7 : 1,
           }}
         >
-          {pending ? "Generating…" : "✨ Generate more actions for today"}
+          {pending ? "Generating…" : "✨ Generate more actions"}
         </button>
         <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--c-muted)", cursor: "pointer" }}>
           <input
