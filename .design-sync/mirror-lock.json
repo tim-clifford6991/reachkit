@@ -119,6 +119,10 @@
     "mirror": "components/app/setup/setup-overlay.tsx",
     "hash": "b695195d6ebee355"
   },
+  "PainBars": {
+    "mirror": "components/app/intel/pain-bars.tsx",
+    "hash": "d312bf61a6113737"
+  },
   "PlanCards": {
     "mirror": "components/sections/captured/pricing-html.ts",
     "hash": "cef6a4863f5afa9d"
