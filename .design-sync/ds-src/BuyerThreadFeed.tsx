@@ -5,41 +5,46 @@ import * as React from "react";
  * BuyerThreadFeed — the complete, filterable, keyboard-accessible feed of
  * buyer threads beneath IntentRecencyMap's dot plot: a surface chip + title
  * (a real focusable button, opening the EvidenceDrawer live) + intent badge
- * + relative date + engagement (`▲score · N comments`), shown ONLY when
- * real activity data was fetched — never a fabricated "0". Filter chips
- * (All / 🔥 high-intent / last-30d) drive a live "N shown" count. The live
- * component opens `useEvidenceDrawer()` on row click; this mirror has no
- * Provider in the sandbox, so its sample rows render as plain static
- * buttons (no-op onClick) with the same visual language and a fixed sample
- * dataset, matching the self-contained-mirror convention used by
- * `IntentRecencyMap`/`EvidenceDrawer`.
+ * + (relative date, when available) + (engagement `▲score · N comments`,
+ * when available) — never a fabricated placeholder for either. Ranked by
+ * buyer intent (descending), NOT by date: thread dates are unavailable for
+ * Reddit-scoped demand (Reddit 403s server-side; SERP has no timestamps),
+ * so several sample rows below intentionally omit `rel` to show the honest,
+ * date-absent state. Filter chips (All / 🔥 high-intent) drive a live
+ * "N shown" count. The live component opens `useEvidenceDrawer()` on row
+ * click; this mirror has no Provider in the sandbox, so its sample rows
+ * render as plain static buttons (no-op onClick) with the same visual
+ * language and a fixed sample dataset, matching the self-contained-mirror
+ * convention used by `IntentRecencyMap`/`EvidenceDrawer`.
  */
 type SampleThread = {
   surface: string;
   title: string;
   intent?: number;
   activity?: { score: number; comments: number } | null;
-  rel: string;
+  rel?: string;
 };
 
 const PALETTE = ["#6E56F7", "#1f9d5b", "#e0731c", "#3b6fe0", "#c98a12", "#e5484d"];
 const COLOUR_FOR: Record<string, string> = { "r/SaaS": PALETTE[0], "r/startups": PALETTE[1], "r/Entrepreneur": PALETTE[2], "r/marketing": PALETTE[3] };
 
+// Ranked by intent, descending — matching the live sort. `rel` is omitted
+// on most rows (Reddit-scoped threads have no publishable date); the one
+// dated row shows the conditional-render path still works when a date IS
+// available (e.g. a SERP-sourced surface).
 const SAMPLE: SampleThread[] = [
+  { surface: "r/marketing", title: "What tools do you use to see WHERE buyers are discussing your category?", intent: 0.91, activity: { score: 67, comments: 22 } },
   { surface: "r/SaaS", title: "Anyone found a good alternative for tracking backlinks without the Ahrefs price tag?", intent: 0.86, rel: "2d ago", activity: { score: 41, comments: 18 } },
-  { surface: "r/startups", title: "How do you actually get your first 100 customers to find you organically?", intent: 0.72, rel: "6d ago", activity: { score: 12, comments: 4 } },
-  { surface: "r/Entrepreneur", title: "SEO feels like a black box — is it even worth it pre-revenue?", intent: 0.45, rel: "3w ago", activity: null },
-  { surface: "r/marketing", title: "What tools do you use to see WHERE buyers are discussing your category?", intent: 0.91, rel: "1mo ago", activity: { score: 67, comments: 22 } },
-  { surface: "r/SaaS", title: "Discoverability > design for early-stage SaaS?", intent: 0.3, rel: "2mo ago", activity: null },
+  { surface: "r/startups", title: "How do you actually get your first 100 customers to find you organically?", intent: 0.72, activity: { score: 12, comments: 4 } },
+  { surface: "r/Entrepreneur", title: "SEO feels like a black box — is it even worth it pre-revenue?", intent: 0.45, activity: null },
+  { surface: "r/SaaS", title: "Discoverability > design for early-stage SaaS?", intent: 0.3, activity: null },
 ];
 
-type Filter = "all" | "high-intent" | "recent";
+type Filter = "all" | "high-intent";
 const FILTERS: { key: Filter; label: string }[] = [
   { key: "all", label: "All" },
   { key: "high-intent", label: "🔥 High intent" },
-  { key: "recent", label: "Last 30 days" },
 ];
-const RECENT_SET = new Set(["2d ago", "6d ago", "3w ago"]);
 
 const fmt = (n: number) => new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(n ?? 0);
 
@@ -47,7 +52,6 @@ export function BuyerThreadFeed() {
   const [filter, setFilter] = React.useState<Filter>("all");
   const filtered = SAMPLE.filter((t) => {
     if (filter === "high-intent") return typeof t.intent === "number" && t.intent >= 0.8;
-    if (filter === "recent") return RECENT_SET.has(t.rel);
     return true;
   });
 
@@ -77,7 +81,7 @@ export function BuyerThreadFeed() {
             );
           })}
         </div>
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--c-faint)", flexShrink: 0 }}>{filtered.length} shown</span>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--c-faint)", flexShrink: 0 }}>{filtered.length} shown · ranked by buyer intent</span>
       </div>
 
       <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 2, maxHeight: 420, overflowY: "auto" }}>
@@ -123,7 +127,9 @@ export function BuyerThreadFeed() {
                 </span>
               )}
 
-              <span style={{ flexShrink: 0, fontSize: 11, color: "var(--c-faint)" }}>{t.rel}</span>
+              {t.rel && (
+                <span style={{ flexShrink: 0, fontSize: 11, color: "var(--c-faint)" }}>{t.rel}</span>
+              )}
 
               {t.activity != null && (
                 <span style={{ flexShrink: 0, fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--c-faint)" }}>
