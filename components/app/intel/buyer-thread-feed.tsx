@@ -8,12 +8,20 @@
  * access to each thread." Each row opens the same EvidenceDrawer subject the
  * map does, so clicking a dot or a row lands on identical evidence.
  *
+ * Ranked by buyer intent (descending), NOT by date. Thread dates are
+ * unavailable for our Reddit-scoped demand (Reddit 403s server-side; SERP
+ * has no timestamps), so a "newest first" sort was silently unsorted and a
+ * "Last 30 days" filter could never match anything. Intent is the real
+ * per-thread signal we have — this feed is intent-first by design.
+ *
  * Filter chips are a plain local `useState<Filter>` (no URL/query-param
  * sync — this is a page-local view control, not a shareable state) with a
  * live "N shown" count that updates as filters change. Engagement
  * (`▲score · N comments`) renders ONLY when `activity` is present on a
- * thread — never a fabricated "0" or em-dash placeholder (same honesty
- * rule as EvidenceDrawer's ThreadEvidence branch).
+ * thread, and date renders ONLY when `publishedAt` is present — never a
+ * fabricated "0" or em-dash placeholder (same honesty rule as
+ * EvidenceDrawer's ThreadEvidence branch). Both will simply be absent for
+ * Reddit-scoped threads, which is honest, not a bug.
  */
 import * as React from "react";
 import { useMemo, useState } from "react";
@@ -25,14 +33,12 @@ import { Badge, EvidenceLink } from "@/components/app/intel/kit";
 type Thread = Pocket["topThreads"][number] & { surface: string };
 
 const HIGH_INTENT_THRESHOLD = 0.8;
-const LAST_30D_MS = 30 * 86_400_000;
 
-type Filter = "all" | "high-intent" | "recent";
+type Filter = "all" | "high-intent";
 
 const FILTERS: { key: Filter; label: string }[] = [
   { key: "all", label: "All" },
   { key: "high-intent", label: "🔥 High intent" },
-  { key: "recent", label: "Last 30 days" },
 ];
 
 // Stable surface → colour, matching the intel kit's Badge tone family (the
@@ -52,13 +58,6 @@ function colourFor(surface: string): string {
   return PALETTE[hashStr(surface) % PALETTE.length] ?? fallback;
 }
 
-function isRecent(publishedAt?: string | null): boolean {
-  if (!publishedAt) return false;
-  const t = Date.parse(publishedAt);
-  if (Number.isNaN(t)) return false;
-  return Date.now() - t <= LAST_30D_MS;
-}
-
 const fmt = (n: number) => new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(n ?? 0);
 
 export function BuyerThreadFeed({ pockets }: { pockets: Pocket[] }): React.JSX.Element {
@@ -66,22 +65,25 @@ export function BuyerThreadFeed({ pockets }: { pockets: Pocket[] }): React.JSX.E
   const [filter, setFilter] = useState<Filter>("all");
 
   const threads = useMemo<Thread[]>(() => {
-    const flat = pockets.flatMap((p) => p.topThreads.map((t) => ({ ...t, surface: p.surface })));
-    return [...flat].sort((a, b) => {
-      const ta = a.publishedAt ? Date.parse(a.publishedAt) : Number.NaN;
-      const tb = b.publishedAt ? Date.parse(b.publishedAt) : Number.NaN;
-      const va = Number.isNaN(ta) ? -Infinity : ta;
-      const vb = Number.isNaN(tb) ? -Infinity : tb;
-      return vb - va; // newest first, undated (NaN → -Infinity) last
-    });
+    const flat: Thread[] = pockets.flatMap((p) => p.topThreads.map((t) => ({ ...t, surface: p.surface })));
+    // Index-tag before sorting so the tie-break is stable across engines,
+    // then rank by buyer intent descending (the real per-thread signal —
+    // publishedAt is unavailable for Reddit-scoped demand).
+    return flat
+      .map((t, i) => ({ t, i }))
+      .sort((a, b) => {
+        const ia = typeof a.t.intent === "number" ? a.t.intent : -Infinity;
+        const ib = typeof b.t.intent === "number" ? b.t.intent : -Infinity;
+        if (ib !== ia) return ib - ia;
+        return a.i - b.i; // stable tie-break
+      })
+      .map((x) => x.t);
   }, [pockets]);
 
   const filtered = useMemo(() => {
     switch (filter) {
       case "high-intent":
         return threads.filter((t) => typeof t.intent === "number" && t.intent >= HIGH_INTENT_THRESHOLD);
-      case "recent":
-        return threads.filter((t) => isRecent(t.publishedAt));
       default:
         return threads;
     }
@@ -121,7 +123,7 @@ export function BuyerThreadFeed({ pockets }: { pockets: Pocket[] }): React.JSX.E
           })}
         </div>
         <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--c-faint)", flexShrink: 0 }}>
-          {filtered.length} shown
+          {filtered.length} shown · ranked by buyer intent
         </span>
       </div>
 

@@ -2,9 +2,18 @@
 
 /**
  * IntentRecencyMap — "where they hang out": a canvas dot-plot of buyer
- * threads. x = recency (older ← → newer), y = intent (↑), colour = surface
- * (stable hash → palette), a ring marks high-intent (>= .8) threads.
- * Clicking a dot opens that thread in the EvidenceDrawer.
+ * threads, x = buyer intent (0 → 1, low ← → high), y = a gentle vertical
+ * jitter (a horizontal beeswarm) purely to separate overlapping dots,
+ * colour = surface (stable hash → palette), a ring marks high-intent
+ * (>= .8) threads. Clicking a dot opens that thread in the EvidenceDrawer.
+ *
+ * Intent is the primary, meaningful axis: it's the one signal we reliably
+ * have for every thread (LLM-scored 0–1). Thread `publishedAt` (recency) is
+ * NOT plotted — Reddit 403s server-side and DataForSEO SERP returns no
+ * timestamps for the vast majority of the Reddit-scoped demand set, so a
+ * recency axis piles almost every dot into one degenerate column. Where a
+ * thread DOES carry a date (rare — HN), it still surfaces in the evidence
+ * drawer on click, just not on the map.
  *
  * Canvas only (no chart lib, bundle budget) — a plain <canvas> sized to its
  * container, devicePixelRatio-aware, redrawn on resize AND on light/dark
@@ -21,12 +30,13 @@ import { useEvidenceDrawer } from "@/components/app/intel/evidence-drawer";
 
 type Thread = Pocket["topThreads"][number] & { surface: string };
 
-const MAX_AGE_DAYS = 180; // oldest column — threads older than this still plot, clamped left
 const PAD = 28; // px inside the canvas reserved for gridline margins
 const DOT_R = 4;
 const HIGH_INTENT_R = 6;
 const HIGH_INTENT_THRESHOLD = 0.8;
 const HIT_R = 11; // click hit-test radius in CSS px
+const BIN_PX = 9; // beeswarm collision-bin width (CSS px) along the intent axis
+const JITTER_STEP = DOT_R * 2 + 3; // vertical spacing between stacked dots in the same bin
 
 // Stable surface → colour palette. Matches the intel kit's Badge tone fg
 // colours (already tuned readable in both themes) so surfaces read as the
@@ -43,13 +53,6 @@ function colourFor(surface: string): string {
   const fallback = PALETTE[PALETTE.length - 1] ?? "#57536A";
   if (!surface) return fallback;
   return PALETTE[hashStr(surface) % PALETTE.length] ?? fallback;
-}
-
-function ageDays(publishedAt?: string | null): number | null {
-  if (!publishedAt) return null;
-  const t = Date.parse(publishedAt);
-  if (Number.isNaN(t)) return null;
-  return Math.max(0, (Date.now() - t) / 86_400_000);
 }
 
 interface Plotted {
@@ -124,8 +127,11 @@ export function IntentRecencyMap({ pockets }: { pockets: Pocket[] }): React.JSX.
 
     const plotW = Math.max(1, size.w - PAD * 2);
     const plotH = Math.max(1, size.h - PAD * 2);
+    const centerY = PAD + plotH / 2;
 
-    // Gridlines — 4x3 faint grid.
+    // Gridlines — vertical only (0 / .25 / .5 / .75 / 1 intent columns) plus
+    // a faint centre baseline. There is no meaningful y-axis to grid against
+    // (y is jitter, not data), so horizontal bands would be misleading.
     ctx.strokeStyle = line;
     ctx.lineWidth = 1;
     for (let i = 0; i <= 4; i++) {
@@ -135,28 +141,32 @@ export function IntentRecencyMap({ pockets }: { pockets: Pocket[] }): React.JSX.
       ctx.lineTo(x, PAD + plotH);
       ctx.stroke();
     }
-    for (let i = 0; i <= 3; i++) {
-      const y = PAD + (plotH * i) / 3;
-      ctx.beginPath();
-      ctx.moveTo(PAD, y);
-      ctx.lineTo(PAD + plotW, y);
-      ctx.stroke();
-    }
+    ctx.beginPath();
+    ctx.moveTo(PAD, centerY);
+    ctx.lineTo(PAD + plotW, centerY);
+    ctx.stroke();
 
+    // Beeswarm: bucket threads by their intent x-position, then stack dots
+    // in each bucket alternating above/below centre so overlapping intent
+    // scores fan out instead of piling on top of each other.
+    const bins = new Map<number, number>(); // bin index -> dots placed so far
     const plotted: Plotted[] = threads.map((t) => {
-      const age = ageDays(t.publishedAt);
-      const frac = age === null ? 1 : Math.min(1, age / MAX_AGE_DAYS); // 1 = oldest/unknown
-      const x = PAD + (1 - frac) * plotW;
       const intent = typeof t.intent === "number" ? Math.max(0, Math.min(1, t.intent)) : 0.4;
-      const y = PAD + (1 - intent) * plotH;
+      const x = PAD + intent * plotW;
       const high = typeof t.intent === "number" && t.intent >= HIGH_INTENT_THRESHOLD;
+      const bin = Math.round(x / BIN_PX);
+      const seq = bins.get(bin) ?? 0;
+      bins.set(bin, seq + 1);
+      // 0, +1, -1, +2, -2, ... spreads a bin's dots symmetrically around centre
+      const side = seq % 2 === 0 ? 1 : -1;
+      const rank = Math.ceil(seq / 2);
+      const offset = side * rank * JITTER_STEP;
+      const y = Math.max(PAD + DOT_R, Math.min(PAD + plotH - DOT_R, centerY + offset));
       return { x, y, r: high ? HIGH_INTENT_R : DOT_R, high, colour: colourFor(t.surface), thread: t };
     });
     plottedRef.current = plotted;
 
     for (const p of plotted) {
-      const dim = p.thread.publishedAt == null;
-      ctx.globalAlpha = dim ? 0.55 : 1;
       if (p.high) {
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r + 3, 0, Math.PI * 2);
@@ -172,7 +182,6 @@ export function IntentRecencyMap({ pockets }: { pockets: Pocket[] }): React.JSX.
       ctx.strokeStyle = surface;
       ctx.stroke();
     }
-    ctx.globalAlpha = 1;
   }, [size, threads]);
 
   useEffect(() => { draw(); }, [draw, themeTick]);
@@ -217,17 +226,13 @@ export function IntentRecencyMap({ pockets }: { pockets: Pocket[] }): React.JSX.
           onClick={onClick}
           onMouseMove={onMouseMove}
           role="img"
-          aria-label="Scatter plot of buyer threads by recency and intent; use the list below for keyboard access to each thread."
+          aria-label="Beeswarm plot of buyer threads by buyer intent; use the list below for keyboard access to each thread."
           style={{ display: "block", width: "100%" }}
         />
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--c-faint)", marginTop: 4, textTransform: "uppercase", letterSpacing: "0.04em" }}>
-        <span>older</span>
-        <span>recency →</span>
-        <span>newer</span>
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--c-faint)", marginTop: 2, textTransform: "uppercase", letterSpacing: "0.04em" }}>
-        <span>↑ intent</span>
+        <span>lower intent</span>
+        <span>higher intent →</span>
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 14px", marginTop: 10 }}>
         {surfaces.map((s) => (
