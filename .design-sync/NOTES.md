@@ -1,5 +1,38 @@
 # ReachKit design-sync notes
 
+## WS3 Plan-page redesign reconcile + WS2.1 customers caption 2026-07-13
+Live Plan page (`components/app/intel/plan-timeline-view.tsx`) was redesigned:
+(a) the old tall summary card was replaced by a slim one-line status strip
+(`score · N to do · N verifying · N verified +Δ`); (b) the month calendar
+moved to the TOP, above the selected-day panel; (c) past days in the grid are
+greyed (opacity) but remain clickable, not disabled; (d) the selected-day
+panel now headlines the TOP 3 actions across impact horizons — one each of
+Quick win (short) / This week (medium) / Compounding (long), backfilled when a
+horizon is empty, with anything extra behind a "+N more scheduled today"
+toggle; (e) a "Generate more actions for today" button + "Higher-impact only"
+checkbox sit under the day panel (POSTs `/api/app/plan/generate`). Reconciled
+`PlanScreen.tsx` (@mirrors `plan-timeline-view.tsx`) to this shape with
+realistic nudgi.ai sample data: a Reddit reply quick-win ("Best AI notetaker
+for Zoom calls?", ~6 min, community channel), a comparison-content "this week"
+piece ("nudgi vs otter.ai", ~90 min), and a directory-listing "compounding"
+action (~20 min). `PlanItemCard.tsx` (@mirrors `plan-entry-card.tsx`) gained a
+second badge — the horizon pill (blue/violet/green matching
+`plan-kind-style.ts`'s `HORIZON_STYLE`, reproduced locally as ds-src can't
+import from `lib/`) — plus `channel`, `effortMin`, `priority`, and `openLabel`
+props so thread-reply cards render a specific "Open in Reddit →" button
+instead of the generic "Draft this post". `layout.mjs`'s `PlanItemCard` render
+default was updated to the new required props (`kind`, `horizon`, `effortMin`)
+— the old props shape caused a static-prerender failure until fixed.
+Also closed the one outstanding WS2.1 item: `CustomersScreen.tsx`'s "Where
+they hang out" caption updated to the live intent-ranked wording ("Every
+surfaced buyer thread, ranked by buyer intent; click any dot or row for
+evidence.") — dates/recency removed from the copy per the live component's
+own header comment ("ranked by intent — thread dates are unavailable for most
+surfaces"). `INVENTORY.md` updated (PlanItemCard + PlanScreen entries
+rewritten to describe the WS3 shape). `pnpm check:design` = 0 STALE + parity
+OK after `bless:design` (3 mirrors re-pinned: CustomersScreen, PlanItemCard,
+PlanScreen).
+
 ## WS2 Customers redesign reconcile 2026-07-13
 Live Customers page (`components/app/intel/customers-view.tsx`) was rebuilt into
 three analytical rows, every data point wired into the shared `EvidenceDrawer`:
