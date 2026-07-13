@@ -59,6 +59,10 @@
     "mirror": "components/app/intel/dashboard-hero.tsx",
     "hash": "227ffe5a9337b701"
   },
+  "EvidenceDrawer": {
+    "mirror": "components/app/intel/evidence-drawer.tsx",
+    "hash": "4a9b292473804dd7"
+  },
   "FinalCta": {
     "mirror": "components/sections/captured/landing-html.ts",
     "hash": "91d28dd8343c6c62"
