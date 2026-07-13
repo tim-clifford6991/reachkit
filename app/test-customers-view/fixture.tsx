@@ -66,7 +66,7 @@ const SAMPLE: Demand = {
     ],
   },
   buyerInsights: {
-    pains: ["Manual note-taking eats into follow-up time", "Notes are scattered across reps' personal docs", "Hard to onboard new reps onto an account's history"],
+    pains: [{ text: "Manual note-taking eats into follow-up time" }, { text: "Notes are scattered across reps' personal docs" }, { text: "Hard to onboard new reps onto an account's history" }],
     lovedFeatures: ["Auto-generated summaries land in Slack within a minute", "CRM sync means no copy-pasting"],
     personas: ["Sales development rep", "Account executive", "Customer success manager"],
     buyerLanguage: ["\"Just works in the background\"", "\"Never miss a commitment again\""],
