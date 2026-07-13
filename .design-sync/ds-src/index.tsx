@@ -32,6 +32,7 @@ export { CompetitorEdgePanel } from "./CompetitorEdgePanel";
 export { CompetitorGapMap } from "./CompetitorGapMap";
 export { ReferrerRow } from "./ReferrerRow";
 export { EvidenceDrawer } from "./EvidenceDrawer";
+export { IntentRecencyMap } from "./IntentRecencyMap";
 export { PlanItemCard } from "./PlanItemCard";
 export { LeverBanner } from "./LeverBanner";
 export { ProgressChart } from "./ProgressChart";
