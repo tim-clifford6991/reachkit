@@ -6,11 +6,12 @@
  * stage degrades gracefully so a partial sweep still yields pockets.
  */
 
-import type { ProductBrief, DemandHit, DemandResult } from "./types";
+import type { ProductBrief, DemandHit, DemandResult, DemandPocket } from "./types";
 import { generatePainQueries } from "./queries";
 import { searchDemand } from "./search";
 import { classifyHits } from "./classify";
 import { clusterIntoPockets } from "./pockets";
+import { fetchThreadActivity, type ThreadActivity } from "@/lib/scan/adapters/thread-activity";
 
 export type { ProductBrief, DemandHit, DemandResult, ClassifiedHit, DemandPocket } from "./types";
 export { generatePainQueries, normalizePainQueries } from "./queries";
@@ -30,6 +31,29 @@ export function dedupeHits(hits: DemandHit[]): DemandHit[] {
   return out;
 }
 
+/** WS2 — attach pre-fetched engagement to each pocket's threads by URL. Pure;
+ *  a thread absent from the map stays activity:null (never invented). */
+export function attachActivity(pockets: DemandPocket[], byUrl: Map<string, ThreadActivity>): DemandPocket[] {
+  return pockets.map((p) => ({
+    ...p,
+    topThreads: p.topThreads.map((t) => ({ ...t, activity: byUrl.get(t.url) ?? null })),
+  }));
+}
+
+/** Bounded, best-effort engagement fetch for the shown top threads. Free (public
+ *  APIs); concurrency-capped; every failure degrades to no-count. */
+async function enrichPocketActivity(pockets: DemandPocket[]): Promise<DemandPocket[]> {
+  const urls = [...new Set(pockets.flatMap((p) => p.topThreads.map((t) => t.url)))].slice(0, 40);
+  const byUrl = new Map<string, ThreadActivity>();
+  const CONCURRENCY = 5;
+  for (let i = 0; i < urls.length; i += CONCURRENCY) {
+    const chunk = urls.slice(i, i + CONCURRENCY);
+    const results = await Promise.all(chunk.map((u) => fetchThreadActivity(u).catch(() => null)));
+    chunk.forEach((u, j) => { const a = results[j]; if (a) byUrl.set(u, a); });
+  }
+  return attachActivity(pockets, byUrl);
+}
+
 export async function discoverDemand(
   brief: ProductBrief,
   opts: {
@@ -40,6 +64,13 @@ export async function discoverDemand(
      *  insights — the lever for finding MANY subreddits + threads. Each carries a
      *  `theme` so results can be classified by it in the UI. */
     seedQueries?: Array<{ query: string; theme: string }>;
+    /** Fetch per-thread engagement (upvotes/comments) for the shown top threads.
+     *  Costs ~40 extra HTTP fetches (Reddit/HN), so it's opt-in and only worth
+     *  paying for a caller that actually DISPLAYS + caches the pockets (the free
+     *  Demand tab, via `gatherDemand`). The paid market pass (`runMarketAnalysis`)
+     *  discards `topThreads`/activity entirely and is NOT cached — enriching there
+     *  is pure wasted latency. Default false. */
+    enrichActivity?: boolean;
   } = {},
 ): Promise<DemandResult> {
   const queryCap = opts.queryCap ?? 10;
@@ -67,7 +98,8 @@ export async function discoverDemand(
   // threads — and "what tool should I use" alternative-shopping — are filtered out.
   const problemContext = `${brief.problem}${brief.audience ? ` — the person is ${brief.audience}` : ""}`;
   const classified = await classifyHits(problemContext, hits, { scanId });
-  const pockets = clusterIntoPockets(classified);
+  const clustered = clusterIntoPockets(classified);
+  const pockets = opts.enrichActivity === true ? await enrichPocketActivity(clustered) : clustered;
 
   return {
     painQueries: painQueries.map((p) => p.query),

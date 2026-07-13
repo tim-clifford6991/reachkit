@@ -1,5 +1,31 @@
 # ReachKit design-sync notes
 
+## WS2 Customers redesign reconcile 2026-07-13
+Live Customers page (`components/app/intel/customers-view.tsx`) was rebuilt into
+three analytical rows, every data point wired into the shared `EvidenceDrawer`:
+(1) two columns — "Who your buyer is" (compact ICP→JTBD + use-case chips) |
+"Demand themes" (each theme = name + volume + intent, sample keywords as chips
+beneath); (2) full-width "Where they hang out" = the intent×recency map
+(`IntentRecencyMap`) over the filterable buyer-thread feed (`BuyerThreadFeed`);
+(3) full-width "Top buyer pains" = mention-ranked frequency bars (`PainBars`).
+Four NEW atomic mirrors were added for this build (already present in `ds-src`
++ wired into `build.mjs`/`layout.mjs`/`index.tsx` before this reconcile pass):
+`EvidenceDrawer`, `IntentRecencyMap`, `BuyerThreadFeed`, `PainBars` — each a
+static-markup mirror of its live client-only counterpart (the live components
+draw to canvas / use client state; the DS sandbox only pre-renders static
+markup via `renderToStaticMarkup`, so each mirror ships a representative fixed
+sample dataset with the same visual language, documented in its own header
+comment). This pass reconciled the one remaining STALE mirror,
+`CustomersScreen.tsx` (@mirrors `customers-view.tsx`), rewriting it to compose
+the three-row layout (reusing `IntentRecencyMap`/`BuyerThreadFeed`/`PainBars`
+directly, plus `Card`/`Eyebrow`/`Badge` from `IntelKit`) with realistic
+meeting-AI-buyer sample data (nudgi.ai ICP, demand themes with per-theme
+keywords, r/SaaS + Indie Hackers threads with dates/engagement, mention-counted
+pains with sources). `INVENTORY.md` updated: the 4 atomics added as ACTIVE with
+their `@mirrors`, `CustomersScreen`'s page entry rewritten to describe the
+redesign, atomic count corrected 14→19. `pnpm check:design` = 0 STALE + parity
+OK after `bless:design`.
+
 ## WS1 Competitors redesign reconcile 2026-07-12
 Live Competitors page was rebuilt (browsing-first: gap-map matrix that doubles as
 the competitor selector + full-width detail; the old second left rail removed).

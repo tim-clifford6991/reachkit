@@ -42,6 +42,9 @@ describe("discoverDemand (wiring)", () => {
       ),
       intentLabelToScore: vi.fn(),
     }));
+    vi.doMock("@/lib/scan/adapters/thread-activity", () => ({
+      fetchThreadActivity: vi.fn().mockResolvedValue(null),
+    }));
 
     const { discoverDemand } = await import("./index");
     const res = await discoverDemand({

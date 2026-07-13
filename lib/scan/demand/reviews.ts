@@ -14,9 +14,17 @@ import { cachedJson, DAY_MS } from "@/lib/scan/cache/external-cache";
 
 const REVIEW_SITES = ["g2.com", "capterra.com", "producthunt.com", "trustpilot.com", "getapp.com", "softwareadvice.com"];
 
+/** A mined buyer pain with (when known) the exact review it came from. */
+export interface PainInsight {
+  text: string;
+  quote?: string;
+  sourceUrl?: string;
+  mentions?: number;
+}
+
 export interface BuyerInsights {
-  /** What buyers complain about / unmet needs. */
-  pains: string[];
+  /** What buyers complain about / unmet needs, each with source provenance when known. */
+  pains: PainInsight[];
   /** What buyers love (table-stakes + delighters). */
   lovedFeatures: string[];
   /** Who the buyers are (roles, company types, contexts). */
@@ -29,6 +37,33 @@ export interface BuyerInsights {
 
 const EMPTY: BuyerInsights = { pains: [], lovedFeatures: [], personas: [], buyerLanguage: [], sources: [] };
 const arr = (v: unknown): string[] => (Array.isArray(v) ? v.map(String).map((s) => s.trim()).filter(Boolean) : []);
+
+/**
+ * Accepts either legacy `pains: string[]` (older cached/persisted payloads) or the
+ * new `PainInsight[]` shape, and normalises both into `PainInsight[]`. Used on
+ * read-back so consumers never have to branch on the stored shape themselves.
+ */
+export function normalizePains(raw: unknown): PainInsight[] {
+  if (!Array.isArray(raw)) return [];
+  const out: PainInsight[] = [];
+  for (const item of raw) {
+    if (typeof item === "string") {
+      const t = item.trim();
+      if (t) out.push({ text: t });
+    } else if (item && typeof item === "object" && typeof (item as { text?: unknown }).text === "string") {
+      const o = item as Record<string, unknown>;
+      const text = String(o.text).trim();
+      if (!text) continue;
+      out.push({
+        text,
+        quote: typeof o.quote === "string" && o.quote.trim() ? o.quote.trim() : undefined,
+        sourceUrl: typeof o.sourceUrl === "string" && /^https?:\/\//i.test(o.sourceUrl) ? o.sourceUrl : undefined,
+        mentions: typeof o.mentions === "number" ? o.mentions : undefined,
+      });
+    }
+  }
+  return out;
+}
 
 export async function mineCompetitorReviews(competitors: string[], category: string): Promise<BuyerInsights> {
   const cohort = [...new Set(competitors.map((c) => c.toLowerCase()))].slice(0, 3);
@@ -55,13 +90,13 @@ export async function mineCompetitorReviews(competitors: string[], category: str
     //    return empty content — which silently zeroed buyer insights even though we
     //    found real review pages. So ALSO use the search-result snippets, which
     //    always come back and carry verbatim review excerpts. Snippets are the floor.
-    const snippetText = reviewResults
-      .map((r) => `${r.title}\n${r.content}`.trim())
-      .filter(Boolean)
-      .join("\n\n");
+    // Label each excerpt with a short [S#] tag → the LLM cites which the pain came from.
+    const labelled = reviewResults.slice(0, 12).map((r, i) => ({ tag: `S${i + 1}`, url: r.url, text: `${r.title}\n${r.content}`.trim() }));
+    const sourceByTag = new Map(labelled.map((l) => [l.tag, l.url]));
+    const snippetText = labelled.filter((l) => l.text).map((l) => `[${l.tag}] ${l.text}`).join("\n\n");
     const extracted = await tavilyExtract(urls).catch(() => []);
     const extractText = extracted.map((e) => e.content).filter(Boolean).join("\n\n");
-    const text = [extractText, snippetText].filter(Boolean).join("\n\n").slice(0, 14_000);
+    const text = [snippetText, extractText].filter(Boolean).join("\n\n").slice(0, 14_000);
     if (!text.trim()) return { ...EMPTY, sources: urls };
 
     // 3. Distill buyer evidence.
@@ -69,26 +104,35 @@ export async function mineCompetitorReviews(competitors: string[], category: str
       const { text: out } = await callModel({
         model: "claude-haiku-4-5-20251001",
         system: "You distill SaaS buyer evidence from review text into structured demand signal. Return only JSON.",
-        prompt: `Below is review text for products in the "${category}" category. Extract what the WHOLE CATEGORY's buyers reveal — pains, what they love, who they are, and the words they use.
+        prompt: `Below is review text for products in the "${category}" category, labelled with [S#] source tags. Extract what the WHOLE CATEGORY's buyers reveal — pains, what they love, who they are, and the words they use.
 
 REVIEWS:
 ${text}
 
 Return ONLY this JSON:
 {
-  "pains": ["<unmet needs / complaints buyers raise>"],
+  "pains": [ { "text": "<unmet need / complaint>", "quote": "<short verbatim phrase>", "source": "<the [S#] tag of the excerpt it came from>", "mentions": <integer: how many of the provided [S#] excerpts raise this pain> } ],
   "lovedFeatures": ["<what buyers value most>"],
   "personas": ["<who the buyers are — roles, team types, contexts>"],
   "buyerLanguage": ["<verbatim phrases buyers use to describe the problem/solution>"]
 }
-Each list 4–8 items, specific and grounded in the text.`,
+Each list 4–8 items, specific and grounded in the text. Every pain MUST cite the "source" tag of the excerpt it was drawn from.`,
         scanId: null,
         stage: "extract",
         maxTokens: 2048,
       });
       const p = JSON.parse(extractJson(out)) as Record<string, unknown>;
+      const rawPains = Array.isArray(p.pains) ? p.pains : [];
+      const pains: PainInsight[] = rawPains.map((x) => {
+        const o = (x ?? {}) as Record<string, unknown>;
+        const text = String(o.text ?? "").trim();
+        if (!text) return null;
+        const tag = String(o.source ?? "").trim().toUpperCase();
+        const mentions = typeof o.mentions === "number" && o.mentions > 0 ? Math.round(o.mentions) : undefined;
+        return { text, quote: typeof o.quote === "string" ? o.quote.trim() || undefined : undefined, sourceUrl: sourceByTag.get(tag), mentions };
+      }).filter(Boolean).slice(0, 8) as PainInsight[];
       return {
-        pains: arr(p.pains).slice(0, 8),
+        pains,
         lovedFeatures: arr(p.lovedFeatures).slice(0, 8),
         personas: arr(p.personas).slice(0, 8),
         buyerLanguage: arr(p.buyerLanguage).slice(0, 8),

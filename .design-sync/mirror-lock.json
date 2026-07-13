@@ -23,6 +23,10 @@
     "mirror": "components/brand/logo.tsx",
     "hash": "8917141d6c95c1bf"
   },
+  "BuyerThreadFeed": {
+    "mirror": "components/app/intel/buyer-thread-feed.tsx",
+    "hash": "a83d3048fa485bc9"
+  },
   "ComingSoon": {
     "mirror": "components/sections/coming-soon.tsx",
     "hash": "90291e0d2fdd5910"
@@ -53,11 +57,15 @@
   },
   "CustomersScreen": {
     "mirror": "components/app/intel/customers-view.tsx",
-    "hash": "bd0e44f01252a41c"
+    "hash": "75c3b80fd7ca44ba"
   },
   "DashboardScreen": {
     "mirror": "components/app/intel/dashboard-hero.tsx",
     "hash": "227ffe5a9337b701"
+  },
+  "EvidenceDrawer": {
+    "mirror": "components/app/intel/evidence-drawer.tsx",
+    "hash": "93e70ee0dd374e2f"
   },
   "FinalCta": {
     "mirror": "components/sections/captured/landing-html.ts",
@@ -78,6 +86,10 @@
   "IntelKit": {
     "mirror": "components/app/intel/kit.tsx",
     "hash": "f66ca29b67fa1a97"
+  },
+  "IntentRecencyMap": {
+    "mirror": "components/app/intel/intent-recency-map.tsx",
+    "hash": "a013d22240287645"
   },
   "KpiCard": {
     "mirror": "components/app/intel/kit.tsx",
@@ -106,6 +118,10 @@
   "OnboardingScreen": {
     "mirror": "components/app/setup/setup-overlay.tsx",
     "hash": "b695195d6ebee355"
+  },
+  "PainBars": {
+    "mirror": "components/app/intel/pain-bars.tsx",
+    "hash": "429b21df38266f40"
   },
   "PlanCards": {
     "mirror": "components/sections/captured/pricing-html.ts",

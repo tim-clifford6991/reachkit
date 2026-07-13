@@ -8,14 +8,30 @@ import { useMemo, useState } from "react";
 import { useIntel, IntelShell, fmt, fmtCompact } from "@/components/app/intel/shared";
 import { Card, HeroCard, Eyebrow, Kpi, KpiRow, Badge, Donut, HBars, DataTable, Tabs, EvidenceLink, intentTone, type Segment, type BarDatum, type Tone } from "@/components/app/intel/kit";
 
+export interface ThreadActivity { score: number; comments: number }
+export interface PainInsight { text: string; quote?: string; sourceUrl?: string; mentions?: number }
 export interface Theme { theme: string; totalVolume: number; intent: string; sampleKeywords: string[] }
-export interface Pocket { surface: string; platform: string; count: number; intentSum?: number; topThreads: { title: string; url: string; intent?: number; publishedAt?: string | null; theme: string }[] }
+export interface Pocket { surface: string; platform: string; count: number; intentSum?: number; topThreads: { title: string; url: string; intent?: number; publishedAt?: string | null; theme: string; activity?: ThreadActivity | null }[] }
 export interface Demand {
   category: string;
   icp: { whoItsFor: string; jobsToBeDone: string[]; useCases: string[] };
   searchDemand: { totalAddressableVolume: number; themes: Theme[]; topKeywords: { keyword: string; volume: number; intent: string | null }[] };
   community: { pockets: Pocket[] };
-  buyerInsights: { pains: string[]; lovedFeatures: string[]; personas: string[]; buyerLanguage: string[]; sources: string[] };
+  buyerInsights: { pains: PainInsight[]; lovedFeatures: string[]; personas: string[]; buyerLanguage: string[]; sources: string[] };
+}
+
+/** Accept legacy string[] pains AND new PainInsight[] (older report_payload/demand_intel blobs). */
+export function normalizePains(raw: unknown): PainInsight[] {
+  if (!Array.isArray(raw)) return [];
+  const out: PainInsight[] = [];
+  for (const it of raw) {
+    if (typeof it === "string") { const t = it.trim(); if (t) out.push({ text: t }); }
+    else if (it && typeof it === "object" && typeof (it as { text?: unknown }).text === "string") {
+      const o = it as Record<string, unknown>; const text = String(o.text).trim(); if (!text) continue;
+      out.push({ text, quote: typeof o.quote === "string" ? o.quote : undefined, sourceUrl: typeof o.sourceUrl === "string" && /^https?:\/\//i.test(o.sourceUrl) ? o.sourceUrl : undefined, mentions: typeof o.mentions === "number" ? o.mentions : undefined });
+    }
+  }
+  return out;
 }
 
 const intentColor = (i: string) => { const v = (i || "").toLowerCase(); return v.startsWith("transaction") ? "#46a758" : v.startsWith("commercial") ? "var(--c-action)" : "var(--c-faint)"; };
@@ -81,7 +97,7 @@ function Body({ data }: { data: Demand }) {
 
       <Card title="Buyer insights" meta={`from ${buyerInsights.sources.length} competitor review pages`}>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <Cluster title="Pains" items={buyerInsights.pains} tone="red" />
+          <Cluster title="Pains" items={normalizePains(buyerInsights.pains).map((p) => p.text)} tone="red" />
           <Cluster title="Loved" items={buyerInsights.lovedFeatures} tone="green" />
           <Cluster title="Personas" items={buyerInsights.personas} tone="blue" />
           <Cluster title="Buyer language" items={buyerInsights.buyerLanguage} tone="violet" />

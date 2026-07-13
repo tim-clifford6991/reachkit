@@ -20,6 +20,7 @@ import { cachedJson, DAY_MS } from "@/lib/scan/cache/external-cache";
 import { gatherFullFunnel } from "@/lib/scan/referral/funnel";
 import { gatherKeywordGap } from "@/lib/scan/referral/keyword-gap";
 import { gatherDemand } from "@/lib/scan/demand/gather";
+import { normalizePains } from "@/lib/scan/demand/reviews";
 import { MAX_SELECTED } from "@/lib/scan/competitor-selection";
 import type { OnStageCallback } from "@/lib/scan/types";
 
@@ -106,7 +107,7 @@ async function synthContent(i: {
 }): Promise<ContentPlanItem[]> {
   const themes = i.demand.searchDemand.themes.slice(0, 8).map((t) => `- ${t.theme} (${t.totalVolume}/mo, ${t.intent}): ${t.sampleKeywords.join(", ")}`).join("\n");
   const gaps = i.kw.gaps.slice(0, 15).map((g) => `- "${g.keyword}" (${g.volume}/mo, ${g.competitorsRanking} rivals); winning page e.g. ${g.competitors[0]?.domain} #${g.competitors[0]?.position} ${g.competitors[0]?.url ?? ""}`).join("\n");
-  const pains = i.demand.buyerInsights.pains.slice(0, 6).join("; ");
+  const pains = normalizePains(i.demand.buyerInsights.pains).slice(0, 6).map((p) => p.text).join("; ");
   const language = i.demand.buyerInsights.buyerLanguage.slice(0, 6).join("; ");
   // Include cohortKey — the plan is built from THIS cohort's demand/gaps, so a
   // competitor change must not serve the old cohort's plan.

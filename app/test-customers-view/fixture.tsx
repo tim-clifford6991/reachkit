@@ -66,7 +66,7 @@ const SAMPLE: Demand = {
     ],
   },
   buyerInsights: {
-    pains: ["Manual note-taking eats into follow-up time", "Notes are scattered across reps' personal docs", "Hard to onboard new reps onto an account's history"],
+    pains: [{ text: "Manual note-taking eats into follow-up time" }, { text: "Notes are scattered across reps' personal docs" }, { text: "Hard to onboard new reps onto an account's history" }],
     lovedFeatures: ["Auto-generated summaries land in Slack within a minute", "CRM sync means no copy-pasting"],
     personas: ["Sales development rep", "Account executive", "Customer success manager"],
     buyerLanguage: ["\"Just works in the background\"", "\"Never miss a commitment again\""],
@@ -82,7 +82,7 @@ export function TestCustomersFixture() {
           <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 20, color: "var(--c-ink)", margin: 0 }}>Customers view — fixture preview</h1>
           <p style={{ fontSize: 12.5, color: "var(--c-muted)", margin: "4px 0 0" }}>Hardcoded sample data, no auth or live fetch — for styling review only.</p>
         </div>
-        <CustomersBody data={SAMPLE} planTargetsOverride={[{ target: "r/SaaS", channel: "community" }]} />
+        <CustomersBody data={SAMPLE} />
       </div>
     </main>
   );
