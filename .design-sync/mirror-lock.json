@@ -65,7 +65,7 @@
   },
   "EvidenceDrawer": {
     "mirror": "components/app/intel/evidence-drawer.tsx",
-    "hash": "4a9b292473804dd7"
+    "hash": "93e70ee0dd374e2f"
   },
   "FinalCta": {
     "mirror": "components/sections/captured/landing-html.ts",
