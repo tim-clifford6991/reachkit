@@ -75,7 +75,7 @@ export function PainBars() {
                   className="pain-bar-fill"
                   style={{
                     height: "100%", width: `${pct}%`, borderRadius: "var(--radius-full)",
-                    background: "linear-gradient(90deg, var(--c-action), var(--c-action))",
+                    background: "var(--c-action)",
                     opacity: 0.85, transition: "width 240ms ease",
                   }}
                 />

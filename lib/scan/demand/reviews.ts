@@ -111,7 +111,7 @@ ${text}
 
 Return ONLY this JSON:
 {
-  "pains": [ { "text": "<unmet need / complaint>", "quote": "<short verbatim phrase>", "source": "<the [S#] tag of the excerpt it came from>" } ],
+  "pains": [ { "text": "<unmet need / complaint>", "quote": "<short verbatim phrase>", "source": "<the [S#] tag of the excerpt it came from>", "mentions": <integer: how many of the provided [S#] excerpts raise this pain> } ],
   "lovedFeatures": ["<what buyers value most>"],
   "personas": ["<who the buyers are — roles, team types, contexts>"],
   "buyerLanguage": ["<verbatim phrases buyers use to describe the problem/solution>"]
@@ -128,7 +128,8 @@ Each list 4–8 items, specific and grounded in the text. Every pain MUST cite t
         const text = String(o.text ?? "").trim();
         if (!text) return null;
         const tag = String(o.source ?? "").trim().toUpperCase();
-        return { text, quote: typeof o.quote === "string" ? o.quote.trim() || undefined : undefined, sourceUrl: sourceByTag.get(tag) };
+        const mentions = typeof o.mentions === "number" && o.mentions > 0 ? Math.round(o.mentions) : undefined;
+        return { text, quote: typeof o.quote === "string" ? o.quote.trim() || undefined : undefined, sourceUrl: sourceByTag.get(tag), mentions };
       }).filter(Boolean).slice(0, 8) as PainInsight[];
       return {
         pains,

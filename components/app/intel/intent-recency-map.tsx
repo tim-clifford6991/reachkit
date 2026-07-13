@@ -176,11 +176,6 @@ export function IntentRecencyMap({ pockets }: { pockets: Pocket[] }): React.JSX.
   }, [size, threads]);
 
   useEffect(() => { draw(); }, [draw, themeTick]);
-  useEffect(() => {
-    const onResize = () => draw();
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, [draw]);
 
   const nearestHit = useCallback((clientX: number, clientY: number): Plotted | null => {
     const canvas = canvasRef.current;

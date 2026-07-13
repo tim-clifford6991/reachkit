@@ -64,6 +64,13 @@ export async function discoverDemand(
      *  insights — the lever for finding MANY subreddits + threads. Each carries a
      *  `theme` so results can be classified by it in the UI. */
     seedQueries?: Array<{ query: string; theme: string }>;
+    /** Fetch per-thread engagement (upvotes/comments) for the shown top threads.
+     *  Costs ~40 extra HTTP fetches (Reddit/HN), so it's opt-in and only worth
+     *  paying for a caller that actually DISPLAYS + caches the pockets (the free
+     *  Demand tab, via `gatherDemand`). The paid market pass (`runMarketAnalysis`)
+     *  discards `topThreads`/activity entirely and is NOT cached — enriching there
+     *  is pure wasted latency. Default false. */
+    enrichActivity?: boolean;
   } = {},
 ): Promise<DemandResult> {
   const queryCap = opts.queryCap ?? 10;
@@ -91,7 +98,8 @@ export async function discoverDemand(
   // threads — and "what tool should I use" alternative-shopping — are filtered out.
   const problemContext = `${brief.problem}${brief.audience ? ` — the person is ${brief.audience}` : ""}`;
   const classified = await classifyHits(problemContext, hits, { scanId });
-  const pockets = await enrichPocketActivity(clusterIntoPockets(classified));
+  const clustered = clusterIntoPockets(classified);
+  const pockets = opts.enrichActivity === true ? await enrichPocketActivity(clustered) : clustered;
 
   return {
     painQueries: painQueries.map((p) => p.query),

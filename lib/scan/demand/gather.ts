@@ -321,7 +321,10 @@ export async function gatherDemand(rawSelf: string, opts: { competitorDomains?: 
   // generic theme keywords or competitor-review pains: those drift off-topic to
   // unrelated category threads and lose the context of what THIS product does.
   const demand = await cachedJson(`demand:${self}:${cohortKey}`, 30 * DAY_MS, () =>
-    discoverDemand({ brand: brief.brand, problem: brief.problem, audience: brief.audience, valueProp: brief.valueProp }, { queryCap: 10, maxHits: 80 }),
+    discoverDemand(
+      { brand: brief.brand, problem: brief.problem, audience: brief.audience, valueProp: brief.valueProp },
+      { queryCap: 10, maxHits: 80, enrichActivity: true },
+    ),
   );
 
   // Community pockets are now available — fire with real count.

@@ -28,7 +28,7 @@ export function normalizePains(raw: unknown): PainInsight[] {
     if (typeof it === "string") { const t = it.trim(); if (t) out.push({ text: t }); }
     else if (it && typeof it === "object" && typeof (it as { text?: unknown }).text === "string") {
       const o = it as Record<string, unknown>; const text = String(o.text).trim(); if (!text) continue;
-      out.push({ text, quote: typeof o.quote === "string" ? o.quote : undefined, sourceUrl: typeof o.sourceUrl === "string" ? o.sourceUrl : undefined, mentions: typeof o.mentions === "number" ? o.mentions : undefined });
+      out.push({ text, quote: typeof o.quote === "string" ? o.quote : undefined, sourceUrl: typeof o.sourceUrl === "string" && /^https?:\/\//i.test(o.sourceUrl) ? o.sourceUrl : undefined, mentions: typeof o.mentions === "number" ? o.mentions : undefined });
     }
   }
   return out;
