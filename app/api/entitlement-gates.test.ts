@@ -20,6 +20,7 @@ const COST_BEARING_AUTHED_ROUTES = [
   "app/api/app/intel/stream/route.ts",
   "app/api/competitors/select/route.ts",
   "app/api/competitors/candidates/route.ts",
+  "app/api/app/plan/generate/route.ts",
 ];
 
 describe("entitlement gates (§6 #6 — ratchet)", () => {

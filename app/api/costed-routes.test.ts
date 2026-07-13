@@ -21,6 +21,7 @@ const COSTED_CALLERS: Array<{ rel: string; wrapper: RegExp }> = [
   { rel: "app/api/app/intel/stream/route.ts", wrapper: /costedIntelStep\s*\(/ },
   { rel: "app/api/competitors/select/route.ts", wrapper: /costedIntelStep\s*\(/ },
   { rel: "app/api/competitors/candidates/route.ts", wrapper: /costedIntelStep\s*\(/ },
+  { rel: "app/api/app/plan/generate/route.ts", wrapper: /costedIntelStep\s*\(/ },
 ];
 
 describe("cost attribution (invariant #2 — ratchet)", () => {

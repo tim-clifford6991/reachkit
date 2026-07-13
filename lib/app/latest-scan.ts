@@ -36,7 +36,7 @@ export async function latestScanIdForApp(appId: string): Promise<string | null> 
  */
 export async function costedIntelStep<T>(
   appId: string,
-  source: "intel" | "intel-stream" | "select" | "candidates",
+  source: "intel" | "intel-stream" | "select" | "candidates" | "plan-generate",
   fn: () => Promise<T>,
 ): Promise<T> {
   const scanId = await latestScanIdForApp(appId);
