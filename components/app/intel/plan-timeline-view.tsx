@@ -14,7 +14,8 @@
  * "what to do".
  */
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Card } from "@/components/app/intel/kit";
 import { useIntel, IntelShell } from "@/components/app/intel/shared";
@@ -221,6 +222,7 @@ export function PlanTimelineBody({ board, synthesis, domain, score, today: today
                     : "Nothing scheduled for this day yet."}
                 </div>
               )}
+              <GenerateMoreControl />
             </section>
           )}
         </>
@@ -266,6 +268,94 @@ export function PlanTimelineBody({ board, synthesis, domain, score, today: today
           Verified wins land on your Progress timeline &rarr;
         </Link>
       </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Generate more — POSTs /api/app/plan/generate (Task 4: paid + costed, cache-
+// warm in the common path since it reuses the same synthesis gather the
+// Plans/Synthesis intel pages already trigger) and, on success, refreshes the
+// server-loaded board via `router.refresh()` so the new pending actions land
+// on the calendar without a full reload.
+// ---------------------------------------------------------------------------
+
+function GenerateMoreControl() {
+  const router = useRouter();
+  const [pending, setPending] = useState(false);
+  const [higherImpactOnly, setHigherImpactOnly] = useState(false);
+  const [notice, setNotice] = useState<{ kind: "empty" | "error"; text: string } | null>(null);
+
+  const generate = useCallback(async () => {
+    setPending(true);
+    setNotice(null);
+    try {
+      const res = await fetch("/api/app/plan/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ higherImpactOnly }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setNotice({ kind: "error", text: "Couldn't generate right now — try again." });
+        return;
+      }
+      const added = Array.isArray(json?.added) ? json.added : [];
+      if (added.length === 0) {
+        setNotice({ kind: "empty", text: "You're on top of it — your next scan surfaces more." });
+      } else {
+        // The new rows now exist in the `actions` table — re-run the server
+        // component so the board it reads picks them up on this same page.
+        router.refresh();
+      }
+    } catch {
+      setNotice({ kind: "error", text: "Couldn't generate right now — try again." });
+    } finally {
+      setPending(false);
+    }
+  }, [higherImpactOnly, router]);
+
+  // The friendly "nothing new" notice is transient — it clears itself so it
+  // doesn't linger as stale chrome under the panel.
+  useEffect(() => {
+    if (!notice || notice.kind !== "empty") return;
+    const t = setTimeout(() => setNotice(null), 6000);
+    return () => clearTimeout(t);
+  }, [notice]);
+
+  return (
+    <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px dashed var(--c-line)", display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 14 }}>
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => void generate()}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            background: "var(--c-action)", color: "var(--c-on-dark)",
+            fontFamily: PJ, fontWeight: 600, fontSize: 12.5, lineHeight: 1,
+            padding: "9px 15px", borderRadius: "var(--radius-lg)", border: "none",
+            cursor: pending ? "default" : "pointer", opacity: pending ? 0.7 : 1,
+          }}
+        >
+          {pending ? "Generating…" : "✨ Generate more actions for today"}
+        </button>
+        <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--c-muted)", cursor: "pointer" }}>
+          <input
+            type="checkbox"
+            checked={higherImpactOnly}
+            onChange={(e) => setHigherImpactOnly(e.target.checked)}
+            disabled={pending}
+            style={{ width: 14, height: 14, accentColor: "var(--c-action)" }}
+          />
+          Higher-impact only
+        </label>
+      </div>
+      {notice && (
+        <p role="status" style={{ margin: 0, fontSize: 12, lineHeight: 1.5, color: notice.kind === "error" ? "var(--color-danger)" : "var(--c-muted)" }}>
+          {notice.text}
+        </p>
+      )}
     </div>
   );
 }
