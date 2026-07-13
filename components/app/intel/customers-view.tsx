@@ -16,9 +16,22 @@ import { Card, Eyebrow, Badge, intentTone } from "@/components/app/intel/kit";
 import { normalizePains } from "@/components/app/intel/demand-view";
 import type { Demand, Theme } from "@/components/app/intel/demand-view";
 import { EvidenceDrawerProvider, useEvidenceDrawer } from "@/components/app/intel/evidence-drawer";
-import { IntentRecencyMap } from "@/components/app/intel/intent-recency-map";
-import { BuyerThreadFeed } from "@/components/app/intel/buyer-thread-feed";
-import { PainBars } from "@/components/app/intel/pain-bars";
+import dynamic from "next/dynamic";
+
+// Heavy client-only leaves — dynamic-imported so they leave the initial bundle
+// (holds the audience/customers page under its pinned bundle budget).
+const IntentRecencyMap = dynamic(
+  () => import("@/components/app/intel/intent-recency-map").then((m) => m.IntentRecencyMap),
+  { ssr: false, loading: () => <div style={{ height: 200 }} /> }
+);
+const BuyerThreadFeed = dynamic(
+  () => import("@/components/app/intel/buyer-thread-feed").then((m) => m.BuyerThreadFeed),
+  { ssr: false, loading: () => <div style={{ height: 120 }} /> }
+);
+const PainBars = dynamic(
+  () => import("@/components/app/intel/pain-bars").then((m) => m.PainBars),
+  { ssr: false, loading: () => <div style={{ height: 120 }} /> }
+);
 
 const JM = "var(--font-mono)";
 
@@ -56,7 +69,14 @@ export function CustomersBody({ data }: { data: Demand }) {
         </Card>
 
         {/* Row 3 — top buyer pains */}
-        <Card title="Top buyer pains" meta={`from ${data.buyerInsights.sources.length} competitor review pages`}>
+        <Card
+          title="Top buyer pains"
+          meta={
+            data.buyerInsights.sources.length > 0
+              ? `from ${data.buyerInsights.sources.length} competitor review pages`
+              : undefined
+          }
+        >
           <PainBars pains={normalizePains(data.buyerInsights.pains)} sources={data.buyerInsights.sources} />
         </Card>
       </div>
