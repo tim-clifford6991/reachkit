@@ -7,10 +7,12 @@ function mockFetch(status: number, body: unknown) {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("fetchThreadActivity", () => {
-  it("parses a Reddit thread's score + comments from <url>.json", async () => {
-    vi.stubGlobal("fetch", mockFetch(200, [{ data: { children: [{ data: { score: 42, num_comments: 7 } }] } }, {}]));
+  it("returns null for Reddit (unauthenticated 403 gate); does not fetch", async () => {
+    const mockFetchFn = vi.fn();
+    vi.stubGlobal("fetch", mockFetchFn);
     const a = await fetchThreadActivity("https://www.reddit.com/r/SaaS/comments/abc/title/");
-    expect(a).toEqual({ score: 42, comments: 7 });
+    expect(a).toBeNull();
+    expect(mockFetchFn).not.toHaveBeenCalled();
   });
   it("parses a Hacker News item's points + descendants from Firebase", async () => {
     vi.stubGlobal("fetch", mockFetch(200, { score: 128, descendants: 33 }));
@@ -23,8 +25,8 @@ describe("fetchThreadActivity", () => {
   });
   it("returns null on non-200 and on malformed json, never throws", async () => {
     vi.stubGlobal("fetch", mockFetch(503, {}));
-    expect(await fetchThreadActivity("https://www.reddit.com/r/x/comments/1/t/")).toBeNull();
+    expect(await fetchThreadActivity("https://news.ycombinator.com/item?id=12345")).toBeNull();
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => { throw new Error("bad"); } } as unknown as Response));
-    expect(await fetchThreadActivity("https://www.reddit.com/r/x/comments/1/t/")).toBeNull();
+    expect(await fetchThreadActivity("https://news.ycombinator.com/item?id=12345")).toBeNull();
   });
 });

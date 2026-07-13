@@ -11,21 +11,8 @@ export interface ThreadActivity {
   comments: number;
 }
 
-// Reddit requires a descriptive UA or it 429s the default agent.
-const UA = "ReachKit/1.0 (+https://reachkit.app)";
-
 function hostOf(url: string): string {
   try { return new URL(url).hostname.replace(/^www\./, "").toLowerCase(); } catch { return ""; }
-}
-
-async function reddit(url: string): Promise<ThreadActivity | null> {
-  const jsonUrl = url.replace(/\/?(\?.*)?$/, "") + ".json";
-  const res = await fetchWithTimeout(jsonUrl, { headers: { "user-agent": UA, accept: "application/json" } }, 6000);
-  if (!res.ok) return null;
-  const body = (await res.json()) as Array<{ data?: { children?: Array<{ data?: { score?: number; num_comments?: number } }> } }>;
-  const d = body?.[0]?.data?.children?.[0]?.data;
-  if (!d || typeof d.score !== "number") return null;
-  return { score: d.score, comments: typeof d.num_comments === "number" ? d.num_comments : 0 };
 }
 
 async function hackerNews(url: string): Promise<ThreadActivity | null> {
@@ -41,7 +28,9 @@ async function hackerNews(url: string): Promise<ThreadActivity | null> {
 export async function fetchThreadActivity(url: string): Promise<ThreadActivity | null> {
   try {
     const h = hostOf(url);
-    if (h === "reddit.com" || h.endsWith(".reddit.com")) return await reddit(url);
+    // Reddit blocks unauthenticated server reads (403, Responsible Builder gate) — needs OAuth
+    // (deferred; see memory reachkit-reddit-demand-data-gap). Skip to avoid wasted 403 round-trips.
+    if (h === "reddit.com" || h.endsWith(".reddit.com")) return null;
     if (h === "news.ycombinator.com") return await hackerNews(url);
     return null;
   } catch {
