@@ -33,6 +33,7 @@ export { CompetitorGapMap } from "./CompetitorGapMap";
 export { ReferrerRow } from "./ReferrerRow";
 export { EvidenceDrawer } from "./EvidenceDrawer";
 export { IntentRecencyMap } from "./IntentRecencyMap";
+export { BuyerThreadFeed } from "./BuyerThreadFeed";
 export { PlanItemCard } from "./PlanItemCard";
 export { LeverBanner } from "./LeverBanner";
 export { ProgressChart } from "./ProgressChart";

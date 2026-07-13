@@ -67,6 +67,7 @@ const META = {
   ReferrerRow:         { group: "App", render: "{r:{host:'producthunt.com',category:'Launch',url:'https://producthunt.com/posts/example',target:'/products/example',anchor:'check out Example',authority:78,dofollow:true,etv:184000,relevance:'core'},maxEtv:184000}" },
   EvidenceDrawer:      { group: "App", render: "{}" },
   IntentRecencyMap:    { group: "App", render: "{}" },
+  BuyerThreadFeed:     { group: "App", render: "{}" },
   PlanItemCard:        { group: "App", render: "{doFirst:true,type:'Outreach',title:'Guest post on 3 podcast-tool roundups',why:'Closes the referral gap vs fathom.video',from:'Outreach pillar · weakest lever',predictedPts:'+9 pts',status:'This week',statusColor:'var(--c-action)'}" },
   LeverBanner:         { group: "App", render: "{pillar:'Outreach',note:'closing the referral & directory gaps is worth the most right now',points:'+9 pts'}" },
   ProgressChart:       { archived: true, group: "App", render: "{points:[{x:0,y:38},{x:0.33,y:44},{x:0.66,y:49},{x:1,y:54}],markers:[{wk:'Week 1',score:38,x:0,y:38},{wk:'Week 8',score:54,x:1,y:54}],events:[{wk:'Week 3',date:'',text:'Shipped 3 podcast guest posts'},{wk:'Week 6',date:'',text:'Added comparison landing pages'}]}" },
