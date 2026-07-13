@@ -79,9 +79,9 @@ export interface DistributionPlanItemLike {
 }
 
 /** Effort → minutes, matching the weekly-plan buckets. */
-export const EFFORT_MIN: Record<string, number> = { low: 15, medium: 60, high: 180 };
+export const EFFORT_MIN: Record<string, number> = { low: 8, medium: 20, high: 45 };
 /** Writing a real content piece is long-play work. */
-export const CONTENT_EFFORT_MIN = 150;
+export const CONTENT_EFFORT_MIN = 45;
 
 const PRIORITY_RANK: Record<string, number> = { high: 0, medium: 1, low: 2 };
 const asPriority = (p: string): "high" | "medium" | "low" =>
@@ -437,7 +437,7 @@ export function addDailyPosts(
       channel: "x",
       target: "X (Twitter)",
       targetUrl: null,
-      effortMin: 10,
+      effortMin: 3,
       priority: "high",
       predictedDelta: null,
       draft: null,

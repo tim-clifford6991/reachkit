@@ -84,7 +84,7 @@ describe("mergePlanEntries", () => {
       content: [],
       distribution: [{ action: "Post in r/SaaS", channel: "community", target: "r/SaaS", targetUrl: "https://reddit.com/r/SaaS", effort: "low", priority: "high" }],
     });
-    expect(merged[0]).toMatchObject({ kind: "distribution", effortMin: 15, targetUrl: "https://reddit.com/r/SaaS", channel: "community" });
+    expect(merged[0]).toMatchObject({ kind: "distribution", effortMin: 8, targetUrl: "https://reddit.com/r/SaaS", channel: "community" });
   });
 
   test("a tracked action's ActionTarget populates the plan entry's channel/target/targetUrl", () => {
