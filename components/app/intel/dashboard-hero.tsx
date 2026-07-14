@@ -77,7 +77,7 @@ export function DashboardHero({ score, rollup, history, markers, isPaid, marketP
             {marketPosition != null && (() => {
               const mb = bandFor(marketPosition);
               return (
-                <div style={{ marginTop: 8, paddingTop: 10, borderTop: "1px dashed var(--c-line)", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                <div id="market-position" style={{ marginTop: 8, paddingTop: 10, borderTop: "1px dashed var(--c-line)", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
                   <span style={{ fontSize: 10.5, fontFamily: JM, color: "var(--c-faint)", letterSpacing: "0.03em" }}>MARKET POSITION vs RIVALS</span>
                   <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
                     <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 24, color: mb.color }}>{marketPosition}</span>
@@ -97,6 +97,13 @@ export function DashboardHero({ score, rollup, history, markers, isPaid, marketP
                     <div style={{ flex: 1 }}><Bar value={p.value} color={bandFor(p.value).color} /></div>
                     <span style={{ width: 30, flexShrink: 0, textAlign: "right", fontFamily: JM, fontSize: 13, color: "var(--c-ink)" }}>{p.value}</span>
                   </>
+                ) : p.pillar === "outreach" ? (
+                  // Outreach has no on-site signal — its strength is measured OFF-SITE
+                  // as Market Position (the block above, ~line 80). Point there instead
+                  // of reading as broken/incomplete.
+                  <a href="#market-position" style={{ flex: 1, fontSize: 12, fontStyle: "italic", color: "var(--c-action)", textDecoration: "none" }}>
+                    measured off-site → Market Position
+                  </a>
                 ) : (
                   <span style={{ flex: 1, fontSize: 12, fontStyle: "italic", color: "var(--c-faint)" }}>not measured yet</span>
                 )}
