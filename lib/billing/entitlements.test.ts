@@ -1,5 +1,35 @@
 import { describe, it, expect } from "vitest";
-import { redactReportForTier } from "./entitlements";
+import { redactReportForTier, isSubscriptionActive } from "./entitlements";
+
+// Payment-failed grace + no-trial semantics (launch P2). Grace defaults to 3
+// days (env.billingGraceDays) in the test env.
+describe("isSubscriptionActive", () => {
+  const periodEnd = "2026-07-01T00:00:00Z";
+  const end = Date.parse(periodEnd);
+  const DAY = 24 * 60 * 60 * 1000;
+  const GRACE = 3;
+
+  it("active → true", () => {
+    expect(isSubscriptionActive("active", null, GRACE, end + 999 * DAY)).toBe(true);
+  });
+  it("trialing → false (no trial exists; never grants access)", () => {
+    expect(isSubscriptionActive("trialing", periodEnd, GRACE, end - DAY)).toBe(false);
+  });
+  it("past_due within the grace window → true", () => {
+    expect(isSubscriptionActive("past_due", periodEnd, GRACE, end + 2 * DAY)).toBe(true); // 2 < 3 days
+  });
+  it("past_due past the grace window → false", () => {
+    expect(isSubscriptionActive("past_due", periodEnd, GRACE, end + 4 * DAY)).toBe(false); // 4 > 3 days
+  });
+  it("past_due with no period end → false", () => {
+    expect(isSubscriptionActive("past_due", null, GRACE, end)).toBe(false);
+  });
+  it("canceled / unpaid / null → false", () => {
+    for (const s of ["canceled", "unpaid", null]) {
+      expect(isSubscriptionActive(s, periodEnd, GRACE, end)).toBe(false);
+    }
+  });
+});
 import type { ReportPayload } from "@/lib/scan/report";
 import type { ActionCard } from "@/lib/llm/types";
 

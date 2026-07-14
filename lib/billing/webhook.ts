@@ -3,8 +3,6 @@ import { serverDb } from "@/lib/db/client";
 import { priceMap, stripeClient } from "@/lib/billing/stripe";
 import { tierForPriceId } from "@/lib/billing/tiers";
 import { ensureAuthUser, provisionCheckoutUser } from "@/lib/billing/provision";
-import { sendTrialEndingEmail } from "@/lib/email/resend";
-import { env } from "@/lib/config/env";
 import type { Database } from "@/lib/db/types";
 
 type UsersUpdate = Database["public"]["Tables"]["users"]["Update"];
@@ -22,17 +20,30 @@ type UsersUpdate = Database["public"]["Tables"]["users"]["Update"];
  *   - customer.subscription.created      → set status/period/tier/sub id
  *   - customer.subscription.updated      → set status/period/tier/sub id
  *   - customer.subscription.deleted      → tier=free, status=canceled
- *   - customer.subscription.trial_will_end → send the pre-charge reminder email
- * Any other event type is a no-op.
+ * Any other event type is a no-op. There is NO trial (checkout charges
+ * immediately), so `trial_will_end` is intentionally unhandled.
  *
  * If no user row resolves for a customer (and the event isn't eligible for a
  * defensive create), we log and return (never throw) so the webhook still 200s
  * and Stripe stops retrying a non-actionable event.
+ *
+ * `checkout.session.completed` has SIDE EFFECTS (account create, magic-link
+ * email) that are NOT idempotent, so it's gated by an `event.id` ledger. We
+ * MARK-AFTER-SUCCESS: skip if already recorded, else provision, THEN record.
+ * That way a provisioning failure is NOT recorded, so Stripe's retry re-runs it
+ * (self-heals) rather than being permanently skipped — the intolerable "charged
+ * but never provisioned" outcome. The reopened concurrency window (two
+ * deliveries both provisioning) is the tolerable case: `provisionCheckoutUser`
+ * is create-or-find idempotent. The subscription upserts are pure
+ * last-write-wins from Stripe state and need no gate.
  */
 export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
   switch (event.type) {
     case "checkout.session.completed":
+      if (await alreadyProcessed(event.id)) return;
       await onCheckoutCompleted(event.data.object);
+      // Record only after provisioning succeeded (throws above skip this).
+      await recordProcessed(event.id);
       return;
     case "customer.subscription.created":
     case "customer.subscription.updated":
@@ -41,12 +52,36 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
     case "customer.subscription.deleted":
       await onSubscriptionDeleted(event.data.object);
       return;
-    case "customer.subscription.trial_will_end":
-      await onTrialWillEnd(event.data.object);
-      return;
     default:
       // Unhandled event type — no-op.
       return;
+  }
+}
+
+/**
+ * Has this event id been fully processed already? On a DB error we fail OPEN
+ * (return false → re-provision), since a duplicate provision is tolerable but a
+ * dropped one isn't.
+ */
+async function alreadyProcessed(eventId: string): Promise<boolean> {
+  const { data, error } = await serverDb()
+    .from("processed_stripe_events")
+    .select("event_id")
+    .eq("event_id", eventId)
+    .maybeSingle();
+  if (error) {
+    console.error(`[stripe webhook] idempotency ledger read failed for ${eventId} — proceeding`, error.message);
+    return false;
+  }
+  return !!data;
+}
+
+/** Record `eventId` as processed. A `23505` conflict means a concurrent
+ *  delivery already recorded it (both provisioned — tolerable) → ignore. */
+async function recordProcessed(eventId: string): Promise<void> {
+  const { error } = await serverDb().from("processed_stripe_events").insert({ event_id: eventId });
+  if (error && error.code !== "23505") {
+    console.error(`[stripe webhook] failed to record processed event ${eventId}`, error.message);
   }
 }
 
@@ -149,52 +184,6 @@ async function onSubscriptionDeleted(sub: Stripe.Subscription): Promise<void> {
   };
 
   await updateUserByCustomer(customer, update, "customer.subscription.deleted");
-}
-
-// ---------------------------------------------------------------------------
-// customer.subscription.trial_will_end → pre-charge reminder email.
-//
-// Stripe fires this ~3 days before the trial converts. We resolve the user's
-// email by stripe_customer_id and send a reminder linking to the billing page
-// (manage / cancel in one click). No users-table write. Never throws: a missing
-// user or a failed send is logged so the webhook still 200s.
-// ---------------------------------------------------------------------------
-async function onTrialWillEnd(sub: Stripe.Subscription): Promise<void> {
-  const customer = customerId(sub.customer);
-  if (!customer) {
-    console.warn("[stripe webhook] trial_will_end without a resolvable customer — ignoring", {
-      subscriptionId: sub.id,
-    });
-    return;
-  }
-
-  const { data: user, error } = await serverDb()
-    .from("users")
-    .select("email")
-    .eq("stripe_customer_id", customer)
-    .maybeSingle();
-
-  if (error) {
-    console.error(
-      `[stripe webhook] trial_will_end: lookup failed for customer ${customer}`,
-      error.message,
-    );
-    return;
-  }
-  if (!user?.email) {
-    console.warn(`[stripe webhook] trial_will_end: no user/email for customer ${customer} — ignoring`);
-    return;
-  }
-
-  try {
-    await sendTrialEndingEmail({
-      to: user.email,
-      trialEndsAt: periodEndIso(sub.trial_end ?? undefined),
-      manageUrl: `${env.appUrl}/app/billing`,
-    });
-  } catch (e) {
-    console.error(`[stripe webhook] trial_will_end: failed to send reminder to ${user.email}`, e);
-  }
 }
 
 // ---------------------------------------------------------------------------

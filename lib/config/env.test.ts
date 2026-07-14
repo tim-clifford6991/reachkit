@@ -16,10 +16,12 @@ test("parseEnv returns typed config when all keys supplied (fixtures off)", asyn
     TAVILY_API_KEY: "t", RESEND_API_KEY: "r", POSTHOG_KEY: "ph", POSTHOG_HOST: "https://app.posthog.com",
     SCAN_BUDGET_CENTS: "150", PRODUCT_HUNT_TOKEN: "ph", YOUTUBE_API_KEY: "yt",
     VOYAGE_API_KEY: "vy", INNGEST_SIGNING_KEY: "signkey_test",
+    STRIPE_SECRET_KEY: "sk_test", STRIPE_WEBHOOK_SECRET: "whsec_test", STRIPE_PRICE_SOLO: "price_test",
   } as unknown as NodeJS.ProcessEnv);
   expect(cfg.scanBudgetCents).toBe(150);
   expect(cfg.anthropicApiKey).toBe("k");
   expect(cfg.inngestSigningKey).toBe("signkey_test");
+  expect(cfg.billingGraceDays).toBe(3);
   expect(cfg.useFixtures).toBe(false);
 });
 

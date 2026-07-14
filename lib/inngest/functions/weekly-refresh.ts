@@ -30,7 +30,10 @@ import type { ScanContext } from "@/lib/scan/pipeline";
 
 // Active-paid selection: paid tiers whose subscription is live.
 const PAID_TIERS = ["solo", "growth"] as const;
-const ACTIVE_STATUSES = ["active", "trialing"] as const;
+// "trialing" is impossible (no trial); "past_due" is intentionally EXCLUDED —
+// a failed-payment account keeps dashboard access during grace (entitlements)
+// but we do NOT spend on its weekly refresh/pulse until payment recovers.
+const ACTIVE_STATUSES = ["active"] as const;
 
 type Platform = ScanContext["mode"];
 function isPlatform(p: string): p is Platform {

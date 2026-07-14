@@ -11,15 +11,16 @@ import type Stripe from "stripe";
 // Returns the spies so tests can assert the captured update payload + the
 // column/value the update was keyed on.
 // ---------------------------------------------------------------------------
-function makeServerDb(lookupRow: { id: string } | null) {
+function makeServerDb(lookupRow: { id: string } | null, opts: { alreadySeen?: boolean } = {}) {
   const captured: { update: Record<string, unknown> | null; eqArgs: [string, unknown] | null } = {
     update: null,
     eqArgs: null,
   };
 
+  // --- users chain: select(...).eq(...).maybeSingle() + update(...).eq(...) ---
   const maybeSingle = vi.fn().mockResolvedValue({ data: lookupRow, error: null });
-
-  // update(...).eq(...) → resolves to { error: null }, capturing both.
+  const selectEq = vi.fn().mockReturnValue({ maybeSingle });
+  const select = vi.fn().mockReturnValue({ eq: selectEq });
   const updateEq = vi.fn((col: string, val: unknown) => {
     captured.eqArgs = [col, val];
     return Promise.resolve({ error: null });
@@ -29,14 +30,20 @@ function makeServerDb(lookupRow: { id: string } | null) {
     return { eq: updateEq };
   });
 
-  // select(...).eq(...).maybeSingle() for the customer lookup.
-  const selectEq = vi.fn().mockReturnValue({ maybeSingle });
-  const select = vi.fn().mockReturnValue({ eq: selectEq });
+  // --- ledger chain (processed_stripe_events): select(...).eq(...).maybeSingle()
+  //     for alreadyProcessed, insert(...) for recordProcessed. `alreadySeen`
+  //     models a redelivery whose event id is already recorded. ---
+  const ledgerMaybeSingle = vi.fn().mockResolvedValue({ data: opts.alreadySeen ? { event_id: "seen" } : null, error: null });
+  const ledgerSelectEq = vi.fn().mockReturnValue({ maybeSingle: ledgerMaybeSingle });
+  const ledgerSelect = vi.fn().mockReturnValue({ eq: ledgerSelectEq });
+  const insert = vi.fn().mockResolvedValue({ error: null });
 
-  const from = vi.fn().mockReturnValue({ select, update });
+  const from = vi.fn((table: string) =>
+    table === "processed_stripe_events" ? { select: ledgerSelect, insert } : { select, update },
+  );
   const serverDb = vi.fn().mockReturnValue({ from });
 
-  return { serverDb, captured, spies: { from, select, selectEq, maybeSingle, update, updateEq } };
+  return { serverDb, captured, spies: { from, select, selectEq, maybeSingle, update, updateEq, insert, ledgerSelectEq } };
 }
 
 const PRICE_MAP = { solo: "price_solo_123", growth: "price_growth_456" };
@@ -187,67 +194,57 @@ test("handleStripeEvent: subscription event with no matching user is a no-op (no
 });
 
 // ---------------------------------------------------------------------------
-// customer.subscription.trial_will_end → reminder email, no users-table write.
+// Idempotency ledger: a redelivered checkout.session.completed runs provisioning
+// only once (first-see wins; unique-violation on redelivery → skipped).
 // ---------------------------------------------------------------------------
-test("handleStripeEvent: trial_will_end emails the resolved user a pre-charge reminder", async () => {
-  const db = makeServerDb({ id: "user-9", email: "founder@acme.com" } as unknown as { id: string });
-  const sendTrialEndingEmail = vi.fn().mockResolvedValue(undefined);
+test("handleStripeEvent: a redelivered (already-recorded) checkout.session.completed skips provisioning", async () => {
+  const db = makeServerDb(null, { alreadySeen: true });
 
   vi.doMock("@/lib/billing/stripe", () => ({ priceMap: () => PRICE_MAP }));
   vi.doMock("@/lib/db/client", () => ({ serverDb: db.serverDb }));
-  vi.doMock("@/lib/email/resend", () => ({ sendTrialEndingEmail }));
-  vi.doMock("@/lib/config/env", () => ({ env: { appUrl: "https://reachkit.app" } }));
 
   const { handleStripeEvent } = await import("./webhook");
 
-  const trialEndUnix = Math.floor(Date.UTC(2026, 5, 23) / 1000);
   const event = {
-    type: "customer.subscription.trial_will_end",
+    id: "evt_dupe",
+    type: "checkout.session.completed",
     data: {
-      object: {
-        id: "sub_trial",
-        customer: "cus_trial",
-        status: "trialing",
-        trial_end: trialEndUnix,
-        items: { data: [] },
-      },
+      object: { id: "cs_dupe", metadata: { userId: "user-3" }, client_reference_id: null, customer: "cus_dupe", subscription: "sub_dupe" },
     },
   } as unknown as Stripe.Event;
 
   await handleStripeEvent(event);
 
-  // Looked the user up by customer; never wrote to the users table.
-  expect(db.spies.selectEq).toHaveBeenCalledWith("stripe_customer_id", "cus_trial");
+  // Already recorded → provisioning (the users update) never ran, and we did NOT
+  // re-record.
+  expect(db.spies.ledgerSelectEq).toHaveBeenCalledWith("event_id", "evt_dupe");
   expect(db.spies.update).not.toHaveBeenCalled();
-
-  // Sent to the resolved email with the billing manage URL + ISO trial end.
-  expect(sendTrialEndingEmail).toHaveBeenCalledWith({
-    to: "founder@acme.com",
-    trialEndsAt: new Date(trialEndUnix * 1000).toISOString(),
-    manageUrl: "https://reachkit.app/app/billing",
-  });
+  expect(db.spies.insert).not.toHaveBeenCalled();
 });
 
-test("handleStripeEvent: trial_will_end with no matching user sends nothing (no throw)", async () => {
-  const db = makeServerDb(null);
-  const sendTrialEndingEmail = vi.fn().mockResolvedValue(undefined);
-
+test("handleStripeEvent: mark-AFTER-success — a first delivery that fails provisioning is NOT recorded (Stripe retry self-heals)", async () => {
+  const db = makeServerDb({ id: "user-3" }); // not yet seen
   vi.doMock("@/lib/billing/stripe", () => ({ priceMap: () => PRICE_MAP }));
   vi.doMock("@/lib/db/client", () => ({ serverDb: db.serverDb }));
-  vi.doMock("@/lib/email/resend", () => ({ sendTrialEndingEmail }));
-  vi.doMock("@/lib/config/env", () => ({ env: { appUrl: "https://reachkit.app" } }));
+  // Provisioning throws (transient failure on a brand-new customer).
+  vi.doMock("@/lib/billing/provision", () => ({
+    provisionCheckoutUser: vi.fn().mockRejectedValue(new Error("auth admin transient failure")),
+    ensureAuthUser: vi.fn(),
+  }));
 
   const { handleStripeEvent } = await import("./webhook");
 
   const event = {
-    type: "customer.subscription.trial_will_end",
-    data: {
-      object: { id: "sub_x", customer: "cus_none", status: "trialing", trial_end: null, items: { data: [] } },
-    },
+    id: "evt_fail",
+    type: "checkout.session.completed",
+    // payment-first shape (no metadata.userId) → goes through provisionCheckoutUser
+    data: { object: { id: "cs_fail", metadata: {}, client_reference_id: null, customer: "cus_fail", subscription: "sub_fail", customer_details: { email: "new@buyer.com" } } },
   } as unknown as Stripe.Event;
 
-  await expect(handleStripeEvent(event)).resolves.toBeUndefined();
-  expect(sendTrialEndingEmail).not.toHaveBeenCalled();
+  // The throw propagates (route returns 500 → Stripe retries)...
+  await expect(handleStripeEvent(event)).rejects.toThrow(/transient/);
+  // ...and CRUCIALLY the event was NOT recorded as processed.
+  expect(db.spies.insert).not.toHaveBeenCalled();
 });
 
 // ---------------------------------------------------------------------------
