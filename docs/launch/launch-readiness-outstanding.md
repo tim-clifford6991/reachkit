@@ -28,7 +28,7 @@ Each item is tagged **[NEW]** (surfaced by this audit) or **[KNOWN]** (already i
 
 ### Data / migrations
 
-- **[KNOWN→VERIFY] Destructive + additive migrations must be confirmed applied to prod before deploy.** `20260708120000_retire_dead_intel_tables.sql` is `DROP TABLE … CASCADE` on 7 tables (irreversible). The cost-column set (`…_scans_external_api_cost`, `…_cost_event_types`, `…_user_spend_monthly_view`, `…_external_cap_hit`) is **read by live code** (`costedStep`, `/app/diagnostics`); if unapplied, prod errors at runtime. Memory flags PR#39 cost columns as possibly unapplied. **No down-migrations exist → no rollback story.**
+- ~~**[KNOWN→VERIFY] Destructive + additive migrations must be confirmed applied to prod.**~~ ✅ **VERIFIED APPLIED — P5 (2026-07-15).** Checked prod `kleepxxddbcnfsfwudoe` live via `information_schema`: 7 retired intel tables gone (0 remaining), all 3 `scans` cost columns present, `user_spend_monthly` view present, `processed_stripe_events` + `scan_consent_at` + `actions.scheduled_for` present. **Nothing pending.** Rollback story now documented → `docs/launch/rollback-runbook.md` (forward-only migrations → PITR restore; the verify query is in the runbook). (PITR toggle itself is an owner-action, see P2.)
 
 ---
 
@@ -61,8 +61,8 @@ Each item is tagged **[NEW]** (surfaced by this audit) or **[KNOWN]** (already i
 
 ### Testing (masks the exact bugs CLAUDE.md warns about)
 
-- **[NEW] No E2E render test of the conversion surface.** `free-report-e2e.test.ts` asserts only the persisted `report_payload` — the DB-payload-not-render pattern the hard rule warns masks garbage chips/dead zero-states/self-contradicting heroes. The results *screen* is never rendered in a test. No Playwright/Cypress at all.
-- **[NEW] Live-mode is never exercised in CI.** Every job runs `REACHKIT_USE_FIXTURES=true`; the two live tests are `describe.skipIf` (never run). Fixtures hid the `linear.app` SPA-fetch bug — the hard rule's whole point.
+- ~~**[NEW] No E2E render test of the conversion surface.**~~ ✅ **RESOLVED — P5 (2026-07-15).** `components/report/captured/results-screen.render.test.tsx` renders the actual `ResultsScreen` React tree to HTML (via `renderToStaticMarkup` — the repo's component-render idiom; no Playwright/jsdom, matching the deliberate "no browser dep" choice) for the three named scenarios — directory, 0-ranking new product, normal SaaS — asserting the rendered TEXT has no garbage tokens, the zero-state renders, and the hero is coherent (not self-contradicting). Runs in the standard `pnpm test` (every CI run). Exercises the full `ReportPayload → toResultsProps → ResultsScreen` chain.
+- ~~**[NEW] Live-mode is never exercised in CI.**~~ ✅ **RESOLVED — P5.** New `live-smoke` CI job (`.github/workflows/ci.yml`) runs the two live tests with `REACHKIT_USE_FIXTURES=false` against real adapters. **Opt-in + non-blocking:** `workflow_dispatch`-only (never on push/PR) + `continue-on-error`, since it needs real API secrets and spends real budget. Owner-action: add the referenced repo secrets, then run it from the Actions tab.
 
 ---
 
@@ -71,10 +71,10 @@ Each item is tagged **[NEW]** (surfaced by this audit) or **[KNOWN]** (already i
 - **[NEW] Email deliverability unverified in code.** SPF/DKIM/DMARC for `reachkit.app` live only in runbooks. If DNS auth isn't live, magic-links (the *sole* login path) hit spam → activation blocked. Verify live before launch.
 - **[NEW] SEO canonicals depend on runtime env.** `lib/seo.ts` falls back to `localhost:3000` if `NEXT_PUBLIC_SITE_URL`/`VERCEL_PROJECT_PRODUCTION_URL` unset — a misconfigured deploy poisons every canonical/OG URL.
 - **[NEW] Revenue funnel is uninstrumented.** `email_gate_viewed`/`email_submitted` helpers have no call sites; no upgrade/paywall/checkout events; billing webhook captures nothing. You can't measure conversion.
-- **[NEW] No DB backup / PITR / rollback story documented.** Forward-only migrations; a bad DROP is unrecoverable without a manual restore. Confirm Supabase PITR is on and document the runbook.
+- **[NEW] No DB backup / PITR / rollback story documented.** ✅ **RUNBOOK DONE — P5** (`docs/launch/rollback-runbook.md`: deploy rollback, bad-migration PITR restore, apply-migration procedure). ⏳ **OWNER-ACTION:** confirm Supabase **PITR is ON** for `kleepxxddbcnfsfwudoe` (Dashboard → Database → Backups) — it's a paid add-on, not on by default; without it recovery granularity is a full day, not a timestamp.
 - **[NEW] No social proof.** Landing leans on a favicon marquee explicitly labelled "until real testimonials exist" — weak credibility for a paid upsell.
 - **[NEW] No blog/docs/changelog surface.** For a *discoverability* tool, the absence of an editorial/organic-content surface is an on-brand credibility + SEO gap.
-- **[NEW] No `seed.sql`.** Fresh prod DB relies entirely on migrations + auth-trigger. Confirm no reference/lookup data (tiers, price mapping) is assumed present.
+- ~~**[NEW] No `seed.sql`.**~~ ✅ **CONFIRMED NO-OP — P5.** Tiers/limits (`TIER_LIMITS`) + price mapping are code constants + env price IDs, not DB rows — no reference/lookup table is read anywhere. A fresh prod DB needs only migrations + the `handle_new_user` auth trigger. No `seed.sql` required.
 - **[NEW] Missing `global-error.tsx` and route-level `loading.tsx`.** Root-layout render errors fall through unstyled; no Suspense skeletons.
 - **[NEW] `app/design/*` sample routes reachable in prod** (robots-disallowed but publicly loadable). Minor surface-area risk.
 - **[NEW] No receipt/invoice email on successful charge** (only magic-link + trial-ending). Stripe may cover this — verify.
