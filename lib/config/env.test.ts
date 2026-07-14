@@ -15,11 +15,25 @@ test("parseEnv returns typed config when all keys supplied (fixtures off)", asyn
     ANTHROPIC_API_KEY: "k", DATAFORSEO_LOGIN: "l", DATAFORSEO_PASSWORD: "p",
     TAVILY_API_KEY: "t", RESEND_API_KEY: "r", POSTHOG_KEY: "ph", POSTHOG_HOST: "https://app.posthog.com",
     SCAN_BUDGET_CENTS: "150", PRODUCT_HUNT_TOKEN: "ph", YOUTUBE_API_KEY: "yt",
-    VOYAGE_API_KEY: "vy",
+    VOYAGE_API_KEY: "vy", INNGEST_SIGNING_KEY: "signkey_test",
   } as unknown as NodeJS.ProcessEnv);
   expect(cfg.scanBudgetCents).toBe(150);
   expect(cfg.anthropicApiKey).toBe("k");
+  expect(cfg.inngestSigningKey).toBe("signkey_test");
   expect(cfg.useFixtures).toBe(false);
+});
+
+test("parseEnv throws when INNGEST_SIGNING_KEY is missing and fixtures mode is off", async () => {
+  const { parseEnv } = await import("./env");
+  expect(() =>
+    parseEnv({
+      SUPABASE_URL: "https://x.supabase.co", SUPABASE_ANON_KEY: "a", SUPABASE_SERVICE_ROLE_KEY: "s",
+      ANTHROPIC_API_KEY: "k", DATAFORSEO_LOGIN: "l", DATAFORSEO_PASSWORD: "p",
+      TAVILY_API_KEY: "t", RESEND_API_KEY: "r", PRODUCT_HUNT_TOKEN: "ph", YOUTUBE_API_KEY: "yt",
+      VOYAGE_API_KEY: "vy",
+      // INNGEST_SIGNING_KEY intentionally absent
+    } as unknown as NodeJS.ProcessEnv),
+  ).toThrow(/INNGEST_SIGNING_KEY/);
 });
 
 test("parseEnv succeeds with blank paid keys when REACHKIT_USE_FIXTURES=true", async () => {

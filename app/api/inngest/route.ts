@@ -1,5 +1,12 @@
 import { serve } from "inngest/next";
 import { inngest } from "@/lib/inngest/client";
+
+// Signature verification: `serve()` reads INNGEST_SIGNING_KEY from process.env
+// and verifies every invocation with it. lib/config/env.ts REQUIRES that key in
+// production (PAID_KEYS) — enforced at the first env access on any real request —
+// so a prod deploy missing it fails rather than serving this endpoint unsigned.
+// (Not forced at module load: that would run during `next build` page-data
+// collection, where the key isn't set, and break the build.)
 import { scanDemo } from "@/lib/inngest/functions/scan-demo";
 import { scanRequested } from "@/lib/inngest/functions/scan-requested";
 import { scanDeepen } from "@/lib/inngest/functions/scan-deepen";

@@ -10,6 +10,41 @@ const nextConfig: NextConfig = {
     // app/globals.css and components/report/discoverability-score.tsx.
     viewTransition: true,
   },
+  async headers() {
+    // Baseline security headers on every response. CSP starts Report-Only (it
+    // observes violations without breaking the app — inline styles/scripts,
+    // PostHog, Stripe redirects); tighten + enforce in a follow-up. The rest are
+    // safe to enforce immediately.
+    const csp = [
+      "default-src 'self'",
+      "base-uri 'self'",
+      "object-src 'none'",
+      "frame-ancestors 'none'",
+      "img-src 'self' data: https:",
+      "font-src 'self' data:",
+      "style-src 'self' 'unsafe-inline'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      "connect-src 'self' https:",
+      "form-action 'self' https://checkout.stripe.com https://billing.stripe.com",
+      "frame-src https://checkout.stripe.com https://js.stripe.com",
+    ].join("; ");
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "Content-Security-Policy-Report-Only", value: csp },
+          // No `preload` yet — it's a hard-to-unwind commitment that every
+          // current+future *.reachkit.app subdomain is HTTPS-only forever. Add
+          // it deliberately once that's certain.
+          { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), browsing-topics=()" },
+        ],
+      },
+    ];
+  },
   async redirects() {
     return [
       {

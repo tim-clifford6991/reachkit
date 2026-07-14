@@ -43,16 +43,29 @@ export function hashIp(ip: string): string {
   return createHash("sha256").update(ip).digest("hex");
 }
 
-/** Best-effort client IP from proxy headers, else `"unknown"`. */
+/**
+ * Best-effort client IP, else `"unknown"`. Used as a rate-limit key, so it must
+ * be a TRUSTED source, not one the client can forge:
+ *   - `x-vercel-forwarded-for` / `x-real-ip` are set by Vercel's edge and it
+ *     STRIPS any client-supplied copy — these are trustworthy.
+ *   - the left-most `x-forwarded-for` entry is CLIENT-CONTROLLED (Vercel appends
+ *     the real IP; it never removes a spoofed leading one), so an attacker could
+ *     rotate it to dodge the per-IP limit. It's the last-resort fallback only
+ *     (off-Vercel / local), never preferred.
+ */
 export function ipFromRequest(req: NextRequest): string {
-  const xff = req.headers.get("x-forwarded-for");
-  if (xff) {
-    // x-forwarded-for can be a comma-separated chain; the client is first.
-    const first = xff.split(",")[0]?.trim();
+  const vercel = req.headers.get("x-vercel-forwarded-for");
+  if (vercel) {
+    const first = vercel.split(",")[0]?.trim();
     if (first) return first;
   }
   const real = req.headers.get("x-real-ip");
   if (real) return real.trim();
+  const xff = req.headers.get("x-forwarded-for");
+  if (xff) {
+    const first = xff.split(",")[0]?.trim();
+    if (first) return first;
+  }
   return "unknown";
 }
 
