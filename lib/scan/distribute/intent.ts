@@ -55,17 +55,18 @@ function subName(s: string): string {
 export function stripSharedUrl(text: string, url: string): string {
   if (!text || !url) return text.trim();
   const bare = url.replace(/\/+$/, "");
-  // Match the link whether the draft wrote it with or without a trailing slash,
-  // regardless of how it was passed. Longest form first so the fuller match wins.
-  const variants = [url, bare, `${bare}/`]
-    .filter((v, i, a) => v && a.indexOf(v) === i)
-    .sort((a, b) => b.length - a.length);
-  let out = text;
-  for (const v of variants) out = out.split(v).join("");
-  return out
+  const esc = bare.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  // Remove a STANDALONE occurrence of the link (with an optional trailing slash
+  // and one adjacent whitespace char so the seam closes cleanly). The negative
+  // lookahead is load-bearing: it refuses to match when the link is the prefix
+  // of a DEEPER same-host URL ("https://me.com/pricing") or a longer domain
+  // ("me.com.au") — those are real links in the body and must survive. Only the
+  // bare homepage link the composer re-appends gets stripped.
+  const re = new RegExp(`\\s?${esc}/?(?![\\w/?#.\\-])`, "g");
+  return text
+    .replace(re, "")
     .replace(/[ \t]+$/gm, "")
     .replace(/\n{3,}/g, "\n\n")
-    .replace(/[ \t]{2,}/g, " ")
     .trim();
 }
 

@@ -53,6 +53,14 @@ import type { ActionCard, ActionTarget, ActionTargetChannel } from "@/lib/llm/ty
  * add-to-plan lifecycle, never auto-sent/auto-posted.
  */
 
+/** Return `s` only if it is a real calendar date (round-trips through Date);
+ *  null otherwise. Guards the `scheduled_for` date-column insert. */
+function validCalendarDate(s: string | undefined): string | null {
+  if (!s) return null;
+  const d = new Date(`${s}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s ? s : null;
+}
+
 const Body = z.object({
   higherImpactOnly: z.boolean().optional(),
   // The founder's LOCAL calendar day ("YYYY-MM-DD"), so the generated actions
@@ -149,8 +157,11 @@ export async function POST(req: NextRequest) {
   const higherImpactOnly = parsed.success ? (parsed.data.higherImpactOnly ?? false) : false;
   // Pin generated actions to the founder's today (their local date, or the
   // server's UTC date as a safe fallback) so they land on the day they asked.
-  const scheduledFor =
-    (parsed.success && parsed.data.today) || new Date().toISOString().slice(0, 10);
+  // The regex passes well-formed-but-impossible dates ("2026-13-45"); validate
+  // as a REAL calendar date so a broken client degrades to the server date
+  // rather than 500ing on the date-column insert.
+  const scheduledFor = validCalendarDate(parsed.success ? parsed.data.today : undefined)
+    ?? new Date().toISOString().slice(0, 10);
 
   const appId = await activeAppId(viewer.user);
   if (!appId) return NextResponse.json({ message: "no active app" }, { status: 400 });

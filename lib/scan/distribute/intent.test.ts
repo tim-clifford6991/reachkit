@@ -67,6 +67,15 @@ describe("stripSharedUrl", () => {
   it("leaves text without the url untouched", () => {
     expect(stripSharedUrl("no link here", "https://me.com")).toBe("no link here");
   });
+  it("does NOT mangle a deeper same-host link or a longer domain (boundary-aware)", () => {
+    // The homepage url is passed, but the body links a subpage — must survive.
+    expect(stripSharedUrl("See https://me.com/pricing for plans", "https://me.com")).toBe("See https://me.com/pricing for plans");
+    expect(stripSharedUrl("Read https://me.com/blog/post-1", "https://me.com")).toBe("Read https://me.com/blog/post-1");
+    expect(stripSharedUrl("via https://me.com.au now", "https://me.com")).toBe("via https://me.com.au now");
+  });
+  it("still strips the standalone homepage link mid-sentence, closing the seam", () => {
+    expect(stripSharedUrl("a https://me.com b", "https://me.com")).toBe("a b");
+  });
 });
 
 describe("deliveryMode", () => {
