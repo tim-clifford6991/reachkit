@@ -363,7 +363,7 @@ export function DesignDemo({ rootClassName, active, name, tagline }: DesignDemoP
         </h2>
         <div className="grid gap-5 sm:grid-cols-3">
           {[
-            { name: "Free", price: "$0", note: "forever", feats: ["One scan", "Full report", "3 sample actions"], hi: false },
+            { name: "Free", price: "€0", note: "forever", feats: ["One scan", "Full report", "3 sample actions"], hi: false },
             { name: "Solo", price: "€59", note: "/ month", feats: ["Weekly queue", "Draft copy", "Verification", "Score history"], hi: true },
             { name: "Growth", price: "€129", note: "/ month", feats: ["3 apps", "Deeper tracking", "Priority support"], hi: false },
           ].map((t) => (

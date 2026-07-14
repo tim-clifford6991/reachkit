@@ -64,7 +64,7 @@ const TIER_DETAILS: Record<
 > = {
   free: {
     label: "Free",
-    price: "$0",
+    price: "€0",
     description: "One scan, 3 sample actions, no queue.",
     features: [
       "One discoverability scan",
