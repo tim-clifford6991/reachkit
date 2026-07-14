@@ -15,7 +15,10 @@ import { serverDb } from "@/lib/db/client";
 import { runScorePulse } from "@/lib/scan/pulse";
 
 const PAID_TIERS = ["solo", "growth"] as const;
-const ACTIVE_STATUSES = ["active", "trialing"] as const;
+// "trialing" is impossible (no trial); "past_due" is intentionally EXCLUDED —
+// a failed-payment account keeps dashboard access during grace (entitlements)
+// but we do NOT spend on its weekly refresh/pulse until payment recovers.
+const ACTIVE_STATUSES = ["active"] as const;
 
 /** Deduped app ids belonging to every active paid user (weekly-refresh idiom). */
 async function activePaidAppIds(): Promise<string[]> {

@@ -28,18 +28,22 @@ type UsersUpdate = Database["public"]["Tables"]["users"]["Update"];
  * and Stripe stops retrying a non-actionable event.
  *
  * `checkout.session.completed` has SIDE EFFECTS (account create, magic-link
- * email) that are NOT idempotent, so it's gated by a first-see `event.id` ledger
- * (`markEventProcessed`). The subscription upserts are pure last-write-wins from
- * Stripe state and converge on redelivery, so they need no gate.
+ * email) that are NOT idempotent, so it's gated by an `event.id` ledger. We
+ * MARK-AFTER-SUCCESS: skip if already recorded, else provision, THEN record.
+ * That way a provisioning failure is NOT recorded, so Stripe's retry re-runs it
+ * (self-heals) rather than being permanently skipped — the intolerable "charged
+ * but never provisioned" outcome. The reopened concurrency window (two
+ * deliveries both provisioning) is the tolerable case: `provisionCheckoutUser`
+ * is create-or-find idempotent. The subscription upserts are pure
+ * last-write-wins from Stripe state and need no gate.
  */
 export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
   switch (event.type) {
     case "checkout.session.completed":
-      // Redelivery/concurrent guard: only the first sighting of this event id
-      // runs provisioning (create account, send email).
-      if (await markEventProcessed(event.id)) {
-        await onCheckoutCompleted(event.data.object);
-      }
+      if (await alreadyProcessed(event.id)) return;
+      await onCheckoutCompleted(event.data.object);
+      // Record only after provisioning succeeded (throws above skip this).
+      await recordProcessed(event.id);
       return;
     case "customer.subscription.created":
     case "customer.subscription.updated":
@@ -55,25 +59,30 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
 }
 
 /**
- * Insert `eventId` into the idempotency ledger; return true only on the FIRST
- * insert (this instance owns the side effects), false on conflict (already
- * processed → skip). On a DB error we fail OPEN (return true) so a transient
- * ledger outage doesn't drop a real checkout — at worst a duplicate provision,
- * which `provisionCheckoutUser` already tolerates (create-or-find).
+ * Has this event id been fully processed already? On a DB error we fail OPEN
+ * (return false → re-provision), since a duplicate provision is tolerable but a
+ * dropped one isn't.
  */
-async function markEventProcessed(eventId: string): Promise<boolean> {
+async function alreadyProcessed(eventId: string): Promise<boolean> {
   const { data, error } = await serverDb()
     .from("processed_stripe_events")
-    .insert({ event_id: eventId })
     .select("event_id")
+    .eq("event_id", eventId)
     .maybeSingle();
   if (error) {
-    // 23505 unique_violation = already processed → skip. Any other error → fail open.
-    if (error.code === "23505") return false;
-    console.error(`[stripe webhook] idempotency ledger write failed for ${eventId} — proceeding`, error.message);
-    return true;
+    console.error(`[stripe webhook] idempotency ledger read failed for ${eventId} — proceeding`, error.message);
+    return false;
   }
   return !!data;
+}
+
+/** Record `eventId` as processed. A `23505` conflict means a concurrent
+ *  delivery already recorded it (both provisioned — tolerable) → ignore. */
+async function recordProcessed(eventId: string): Promise<void> {
+  const { error } = await serverDb().from("processed_stripe_events").insert({ event_id: eventId });
+  if (error && error.code !== "23505") {
+    console.error(`[stripe webhook] failed to record processed event ${eventId}`, error.message);
+  }
 }
 
 // ---------------------------------------------------------------------------

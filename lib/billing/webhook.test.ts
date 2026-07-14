@@ -11,15 +11,16 @@ import type Stripe from "stripe";
 // Returns the spies so tests can assert the captured update payload + the
 // column/value the update was keyed on.
 // ---------------------------------------------------------------------------
-function makeServerDb(lookupRow: { id: string } | null, ledgerConflict = false) {
+function makeServerDb(lookupRow: { id: string } | null, opts: { alreadySeen?: boolean } = {}) {
   const captured: { update: Record<string, unknown> | null; eqArgs: [string, unknown] | null } = {
     update: null,
     eqArgs: null,
   };
 
+  // --- users chain: select(...).eq(...).maybeSingle() + update(...).eq(...) ---
   const maybeSingle = vi.fn().mockResolvedValue({ data: lookupRow, error: null });
-
-  // update(...).eq(...) → resolves to { error: null }, capturing both.
+  const selectEq = vi.fn().mockReturnValue({ maybeSingle });
+  const select = vi.fn().mockReturnValue({ eq: selectEq });
   const updateEq = vi.fn((col: string, val: unknown) => {
     captured.eqArgs = [col, val];
     return Promise.resolve({ error: null });
@@ -29,23 +30,20 @@ function makeServerDb(lookupRow: { id: string } | null, ledgerConflict = false) 
     return { eq: updateEq };
   });
 
-  // select(...).eq(...).maybeSingle() for the customer lookup.
-  const selectEq = vi.fn().mockReturnValue({ maybeSingle });
-  const select = vi.fn().mockReturnValue({ eq: selectEq });
+  // --- ledger chain (processed_stripe_events): select(...).eq(...).maybeSingle()
+  //     for alreadyProcessed, insert(...) for recordProcessed. `alreadySeen`
+  //     models a redelivery whose event id is already recorded. ---
+  const ledgerMaybeSingle = vi.fn().mockResolvedValue({ data: opts.alreadySeen ? { event_id: "seen" } : null, error: null });
+  const ledgerSelectEq = vi.fn().mockReturnValue({ maybeSingle: ledgerMaybeSingle });
+  const ledgerSelect = vi.fn().mockReturnValue({ eq: ledgerSelectEq });
+  const insert = vi.fn().mockResolvedValue({ error: null });
 
-  // insert(...).select(...).maybeSingle() for the idempotency ledger. Default:
-  // first-see (data present) → provisioning runs. `ledgerConflict:true` models a
-  // redelivery (unique-violation) → provisioning skipped.
-  const insertMaybeSingle = vi.fn().mockResolvedValue(
-    ledgerConflict ? { data: null, error: { code: "23505" } } : { data: { event_id: "evt" }, error: null },
+  const from = vi.fn((table: string) =>
+    table === "processed_stripe_events" ? { select: ledgerSelect, insert } : { select, update },
   );
-  const insertSelect = vi.fn().mockReturnValue({ maybeSingle: insertMaybeSingle });
-  const insert = vi.fn().mockReturnValue({ select: insertSelect });
-
-  const from = vi.fn().mockReturnValue({ select, update, insert });
   const serverDb = vi.fn().mockReturnValue({ from });
 
-  return { serverDb, captured, spies: { from, select, selectEq, maybeSingle, update, updateEq, insert } };
+  return { serverDb, captured, spies: { from, select, selectEq, maybeSingle, update, updateEq, insert, ledgerSelectEq } };
 }
 
 const PRICE_MAP = { solo: "price_solo_123", growth: "price_growth_456" };
@@ -199,8 +197,8 @@ test("handleStripeEvent: subscription event with no matching user is a no-op (no
 // Idempotency ledger: a redelivered checkout.session.completed runs provisioning
 // only once (first-see wins; unique-violation on redelivery → skipped).
 // ---------------------------------------------------------------------------
-test("handleStripeEvent: a redelivered checkout.session.completed skips provisioning (idempotent)", async () => {
-  const db = makeServerDb(null, /* ledgerConflict */ true);
+test("handleStripeEvent: a redelivered (already-recorded) checkout.session.completed skips provisioning", async () => {
+  const db = makeServerDb(null, { alreadySeen: true });
 
   vi.doMock("@/lib/billing/stripe", () => ({ priceMap: () => PRICE_MAP }));
   vi.doMock("@/lib/db/client", () => ({ serverDb: db.serverDb }));
@@ -217,10 +215,36 @@ test("handleStripeEvent: a redelivered checkout.session.completed skips provisio
 
   await handleStripeEvent(event);
 
-  // Ledger insert attempted, but the conflict means provisioning (the users
-  // update) never ran.
-  expect(db.spies.insert).toHaveBeenCalledWith({ event_id: "evt_dupe" });
+  // Already recorded → provisioning (the users update) never ran, and we did NOT
+  // re-record.
+  expect(db.spies.ledgerSelectEq).toHaveBeenCalledWith("event_id", "evt_dupe");
   expect(db.spies.update).not.toHaveBeenCalled();
+  expect(db.spies.insert).not.toHaveBeenCalled();
+});
+
+test("handleStripeEvent: mark-AFTER-success — a first delivery that fails provisioning is NOT recorded (Stripe retry self-heals)", async () => {
+  const db = makeServerDb({ id: "user-3" }); // not yet seen
+  vi.doMock("@/lib/billing/stripe", () => ({ priceMap: () => PRICE_MAP }));
+  vi.doMock("@/lib/db/client", () => ({ serverDb: db.serverDb }));
+  // Provisioning throws (transient failure on a brand-new customer).
+  vi.doMock("@/lib/billing/provision", () => ({
+    provisionCheckoutUser: vi.fn().mockRejectedValue(new Error("auth admin transient failure")),
+    ensureAuthUser: vi.fn(),
+  }));
+
+  const { handleStripeEvent } = await import("./webhook");
+
+  const event = {
+    id: "evt_fail",
+    type: "checkout.session.completed",
+    // payment-first shape (no metadata.userId) → goes through provisionCheckoutUser
+    data: { object: { id: "cs_fail", metadata: {}, client_reference_id: null, customer: "cus_fail", subscription: "sub_fail", customer_details: { email: "new@buyer.com" } } },
+  } as unknown as Stripe.Event;
+
+  // The throw propagates (route returns 500 → Stripe retries)...
+  await expect(handleStripeEvent(event)).rejects.toThrow(/transient/);
+  // ...and CRUCIALLY the event was NOT recorded as processed.
+  expect(db.spies.insert).not.toHaveBeenCalled();
 });
 
 // ---------------------------------------------------------------------------
