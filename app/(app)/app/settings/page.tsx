@@ -16,9 +16,9 @@ import { buildMetadata } from "@/lib/seo";
 export const metadata = buildMetadata({ title: "Settings", path: "/app/settings" });
 
 const PLAN: Record<string, { title: string; desc: string; upgrade: string | null; upgradePlan: "solo" | "growth" | null }> = {
-  free: { title: "Free · $0", desc: "1 free scan · upgrade for weekly tracking", upgrade: "Upgrade", upgradePlan: "solo" },
-  solo: { title: "Solo · $59/mo", desc: "1 product · weekly re-scan · 20-keyword depth", upgrade: "Upgrade to Growth", upgradePlan: "growth" },
-  growth: { title: "Growth · $129/mo", desc: "3 products · weekly re-scan · 50-keyword depth", upgrade: null, upgradePlan: null },
+  free: { title: "Free · €0", desc: "1 free scan · upgrade for weekly tracking", upgrade: "Upgrade", upgradePlan: "solo" },
+  solo: { title: "Solo · €59/mo", desc: "1 product · weekly re-scan · 20-keyword depth", upgrade: "Upgrade to Growth", upgradePlan: "growth" },
+  growth: { title: "Growth · €129/mo", desc: "3 products · weekly re-scan · 50-keyword depth", upgrade: null, upgradePlan: null },
 };
 
 async function SettingsContent() {

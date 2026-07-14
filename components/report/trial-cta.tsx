@@ -23,8 +23,8 @@ interface TrialCtaProps {
 }
 
 const PLANS: Array<{ id: "solo" | "growth"; label: string; price: string; blurb: string }> = [
-  { id: "solo", label: "Solo", price: "$59/mo", blurb: "1 app · weekly refresh" },
-  { id: "growth", label: "Growth", price: "$129/mo", blurb: "3 apps · deeper tracking" },
+  { id: "solo", label: "Solo", price: "€59/mo", blurb: "1 app · weekly refresh" },
+  { id: "growth", label: "Growth", price: "€129/mo", blurb: "3 apps · deeper tracking" },
 ];
 
 export function TrialCta({ scanId, className }: TrialCtaProps) {

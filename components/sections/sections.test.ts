@@ -212,7 +212,7 @@ describe("PricingTable — tier structure", () => {
   const tiers: PricingTier[] = [
     {
       name: "Free",
-      price: "$0",
+      price: "€0",
       period: "forever",
       description: "One scan.",
       features: ["Discoverability scan", "Score out of 100"],
@@ -220,7 +220,7 @@ describe("PricingTable — tier structure", () => {
     },
     {
       name: "Solo",
-      price: "$29",
+      price: "€59",
       period: "/ month",
       description: "1 app, weekly queue.",
       features: ["Everything in Free", "Weekly queue"],

@@ -12,7 +12,7 @@ export const metadata: Metadata = buildMetadata({
 // The landing is now the Claude Design page imported 1:1 (server-rendered
 // captured HTML + hydrated scan input / nav). Keeps the SEO JSON-LD.
 export default function HomePage() {
-  const appLd = softwareApplicationLd({ name: SITE.name, url: SITE.url, priceUsd: 0 });
+  const appLd = softwareApplicationLd({ name: SITE.name, url: SITE.url, price: 0 });
   const orgLd = organizationLd();
   return (
     <>

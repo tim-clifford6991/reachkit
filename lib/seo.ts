@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { CURRENCY } from "@/lib/billing/pricing";
 
 // Resolve the canonical site URL so OG images + canonical tags point at the
 // domain the page is actually served from. Without this, metadataBase pinned to
@@ -48,14 +49,14 @@ export function buildMetadata(opts: { title: string; description?: string; path:
   };
 }
 
-export function softwareApplicationLd(o: { name: string; url: string; priceUsd: number }) {
+export function softwareApplicationLd(o: { name: string; url: string; price: number }) {
   return {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     name: o.name,
     applicationCategory: "BusinessApplication",
     url: o.url,
-    offers: { "@type": "Offer", price: String(o.priceUsd), priceCurrency: "USD" },
+    offers: { "@type": "Offer", price: String(o.price), priceCurrency: CURRENCY.code },
   } as const;
 }
 
@@ -95,17 +96,17 @@ export function organizationLd() {
 export interface OfferTier {
   /** Tier name, e.g. "Solo" */
   name: string;
-  /** Price in USD (0 for the free tier) */
-  priceUsd: number;
+  /** Price in the site currency (EUR), whole units (0 for the free tier) */
+  price: number;
   /** One-line tier description */
   description: string;
 }
 
 /**
- * Product JSON-LD with one Offer per pricing tier — Solo $59 / Growth $129.
+ * Product JSON-LD with one Offer per pricing tier — Solo €59 / Growth €129.
  *
  * Emitted on /pricing so search + AI crawlers can read the full price ladder
- * (not just a single price point). Each Offer carries its USD price + a stable
+ * (not just a single price point). Each Offer carries its EUR price + a stable
  * billing increment so the structured data mirrors the visible table.
  */
 export function offerLd(o: { name: string; url: string; tiers: readonly OfferTier[] }) {
@@ -124,16 +125,16 @@ export function offerLd(o: { name: string; url: string; tiers: readonly OfferTie
       "@type": "Offer" as const,
       name: t.name,
       description: t.description,
-      price: String(t.priceUsd),
-      priceCurrency: "USD",
+      price: String(t.price),
+      priceCurrency: CURRENCY.code,
       url: o.url,
       availability: "https://schema.org/InStock",
-      ...(t.priceUsd > 0
+      ...(t.price > 0
         ? {
             priceSpecification: {
               "@type": "UnitPriceSpecification" as const,
-              price: String(t.priceUsd),
-              priceCurrency: "USD",
+              price: String(t.price),
+              priceCurrency: CURRENCY.code,
               billingIncrement: 1,
               unitText: "MONTH",
             },
