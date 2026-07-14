@@ -12,6 +12,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { AppSwitcher, type SwitcherApp } from "./app-switcher-menu";
 import { CheckoutButton } from "@/components/app/checkout-button";
+import { SignOutButton } from "@/components/app/sign-out-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 const SG = "Space Grotesk", PJ = "Plus Jakarta Sans", JM = "JetBrains Mono";
@@ -219,11 +220,9 @@ export function AppShell(p: AppShellProps) {
               <div style={{ fontWeight: 600, fontSize: 13 }}>{p.userName}</div>
               <div style={{ fontSize: 11.5, color: "var(--c-faint)" }}>{p.userRole}</div>
             </div>
-            {/* POST (not a GET link) — the route is POST-only, and a GET link
-                would let prefetch/hover sign the user out. */}
-            <form action="/auth/signout" method="post" style={{ display: "flex" }}>
-              <button type="submit" title="Sign out" style={{ color: "var(--c-faint)", cursor: "pointer", fontSize: 15, background: "none", border: "none", padding: 0, lineHeight: 1 }}>⏻</button>
-            </form>
+            {/* Labelled "Sign out" + an are-you-sure confirm (WS6). Still a POST
+                under the hood — see SignOutButton. */}
+            <SignOutButton />
           </div>
         </aside>
 
