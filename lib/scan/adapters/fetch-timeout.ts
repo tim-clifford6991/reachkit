@@ -7,8 +7,11 @@
  * SSRF defence (the fetcher takes attacker-supplied URLs — a scan target):
  *   1. Scheme + literal-host check on the initial URL (`assertPublicHttpUrl`).
  *   2. DNS resolution of the host, every resolved A/AAAA re-checked against the
- *      blocked ranges (`resolveAndAssertPublic`) — closes the "attacker.com with
- *      an A-record pointing at 169.254.169.254" rebind class.
+ *      blocked ranges (`resolveAndAssertPublic`) — closes the STATIC case
+ *      ("attacker.com's A-record points at 169.254.169.254"). It only REDUCES
+ *      time-of-use rebind (a 0-TTL record that answers public to our lookup and
+ *      private to undici's connect): the resolved IP is not pinned to the
+ *      connection. True closure needs connect-by-pinned-IP — tracked follow-up.
  *   3. Manual redirect handling — a 3xx `Location` to a private target is
  *      re-validated (scheme + literal + DNS) BEFORE it is followed, so a public
  *      URL can't 302 into cloud metadata.
@@ -67,6 +70,15 @@ export function isBlockedIp(ip: string): boolean {
   if (/^f[cd][0-9a-f]{2}:/.test(host)) return true;
   // fe80::/10 link-local.
   if (/^fe[89ab][0-9a-f]:/.test(host)) return true;
+  // fec0::/10 site-local (deprecated, but block for defence-in-depth).
+  if (/^fe[cdef][0-9a-f]:/.test(host)) return true;
+  // ::/96 IPv4-compatible (`::127.0.0.1` → `::7f00:1`) and 64:ff9b::/96 NAT64,
+  // both of which embed an IPv4 in the low 32 bits — recover it and re-check.
+  const embedded = host.match(/^(?:64:ff9b|0*)::([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+  if (embedded) {
+    const hi = parseInt(embedded[1]!, 16);
+    if (isBlockedIpv4((hi >> 8) & 0xff, hi & 0xff)) return true;
+  }
 
   return false;
 }

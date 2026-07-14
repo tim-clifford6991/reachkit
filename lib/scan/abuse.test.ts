@@ -37,11 +37,16 @@ describe("hashIp", () => {
 });
 
 describe("ipFromRequest", () => {
-  test("prefers the first x-forwarded-for entry", () => {
-    expect(ipFromRequest(reqWith({ "x-forwarded-for": "1.2.3.4, 5.6.7.8" }))).toBe("1.2.3.4");
+  test("prefers the Vercel-trusted x-vercel-forwarded-for over a spoofable x-forwarded-for", () => {
+    // Security: the left-most x-forwarded-for is client-controlled and must NOT
+    // win over Vercel's trusted header, or the rate-limit key is forgeable.
+    expect(
+      ipFromRequest(reqWith({ "x-vercel-forwarded-for": "203.0.113.7", "x-forwarded-for": "1.1.1.1" })),
+    ).toBe("203.0.113.7");
   });
-  test("falls back to x-real-ip", () => {
+  test("falls back to x-real-ip, then x-forwarded-for", () => {
     expect(ipFromRequest(reqWith({ "x-real-ip": "9.9.9.9" }))).toBe("9.9.9.9");
+    expect(ipFromRequest(reqWith({ "x-forwarded-for": "1.2.3.4, 5.6.7.8" }))).toBe("1.2.3.4");
   });
   test("returns 'unknown' when no proxy headers are present", () => {
     expect(ipFromRequest(reqWith({}))).toBe("unknown");

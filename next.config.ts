@@ -33,7 +33,10 @@ const nextConfig: NextConfig = {
         source: "/:path*",
         headers: [
           { key: "Content-Security-Policy-Report-Only", value: csp },
-          { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
+          // No `preload` yet — it's a hard-to-unwind commitment that every
+          // current+future *.reachkit.app subdomain is HTTPS-only forever. Add
+          // it deliberately once that's certain.
+          { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
           { key: "X-Frame-Options", value: "DENY" },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
