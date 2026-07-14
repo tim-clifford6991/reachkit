@@ -106,3 +106,13 @@ Score calibration (unresolved, unenforced) · 4 bundle-budget overages · `audie
 4. **Observability: error backend + health check + kill switch + alert delivery** — so you can *see* the launch.
 5. **Confirm migrations applied + backups/PITR on** — before any prod deploy.
 6. **E2E render test of the free report + one live-mode smoke** — close the fixture blind spot.
+
+---
+
+## Post-Phase-1 tracked follow-ups (from the 2026-07-14 security audit)
+
+Phase 1 shipped (PR #61); these residuals were judged acceptable for launch by the audit and are tracked here:
+- **DNS-rebind is reduced, not closed.** `resolveAndAssertPublic` checks resolved IPs but does not PIN them for the connection, so a 0-TTL time-of-use rebind survives. True closure = connect-by-pinned-IP (undici `Agent` `lookup` hook). Low exploitability; follow-up.
+- **Auth rate-limiter is in-memory (per instance).** Effective ceiling ≈ limit × instances; Supabase's own per-email OTP limit backstops it. Move to a shared store (Postgres counter like `assertRateLimit`, or Upstash) when abuse warrants.
+- **Per-email cap ignores plus/dot aliases** (`victim+1@gmail.com`); Supabase shares this blind spot. Minor.
+- **MAX_REDIRECTS=5** (was undici's ~20) — watch live scans for legitimate long redirect chains failing.
