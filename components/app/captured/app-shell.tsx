@@ -8,11 +8,27 @@
  */
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { AppSwitcher, type SwitcherApp } from "./app-switcher-menu";
 import { CheckoutButton } from "@/components/app/checkout-button";
 import { ThemeToggle } from "@/components/theme-toggle";
+
+// Sign-out is a client control (native-confirm + POST form). app-shell renders
+// on EVERY /app route, and the leanest page (/app/competitors) sits at exactly
+// the 275 KB app-group budget — so its JS must NOT be in the shared first-load
+// chunk. Dynamic-import it (its interactive JS becomes a lazy chunk); the
+// loading fallback paints the SAME labelled "Sign out" affordance so there's no
+// layout shift and the label is visible on first paint.
+const SignOutButton = dynamic(() => import("@/components/app/sign-out-button").then((m) => m.SignOutButton), {
+  ssr: false,
+  loading: () => (
+    <span aria-hidden="true" style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "var(--c-faint)", fontFamily: "var(--font-sans)", fontSize: 12.5, fontWeight: 600, lineHeight: 1, whiteSpace: "nowrap" }}>
+      <span style={{ fontSize: 14 }}>⏻</span>Sign out
+    </span>
+  ),
+});
 
 const SG = "Space Grotesk", PJ = "Plus Jakarta Sans", JM = "JetBrains Mono";
 
@@ -219,11 +235,9 @@ export function AppShell(p: AppShellProps) {
               <div style={{ fontWeight: 600, fontSize: 13 }}>{p.userName}</div>
               <div style={{ fontSize: 11.5, color: "var(--c-faint)" }}>{p.userRole}</div>
             </div>
-            {/* POST (not a GET link) — the route is POST-only, and a GET link
-                would let prefetch/hover sign the user out. */}
-            <form action="/auth/signout" method="post" style={{ display: "flex" }}>
-              <button type="submit" title="Sign out" style={{ color: "var(--c-faint)", cursor: "pointer", fontSize: 15, background: "none", border: "none", padding: 0, lineHeight: 1 }}>⏻</button>
-            </form>
+            {/* Labelled "Sign out" + an are-you-sure confirm (WS6). Still a POST
+                under the hood — see SignOutButton. */}
+            <SignOutButton />
           </div>
         </aside>
 
