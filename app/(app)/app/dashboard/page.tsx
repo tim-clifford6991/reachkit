@@ -13,7 +13,7 @@ import type { Pillar } from "@/lib/scan/signals";
 import { actionBoard } from "@/lib/scan/action-board";
 import { DashboardHero } from "@/components/app/intel/dashboard-hero";
 import { DashboardIntelBlocks } from "@/components/app/intel/dashboard-view";
-import { WeekPlanPreview } from "@/components/app/intel/week-plan-preview";
+import { WeekPlanPreviewLazy as WeekPlanPreview } from "@/components/app/week-plan-preview-lazy";
 import { ScanCurrentButton } from "@/components/app/scan-current-button";
 import { buildMetadata } from "@/lib/seo";
 
