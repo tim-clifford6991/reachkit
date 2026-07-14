@@ -23,7 +23,7 @@ import { useIntel, IntelShell } from "@/components/app/intel/shared";
 import { type EntryDetail } from "@/components/app/intel/plan-entry-card";
 import { KIND_STYLE, kindOfAction } from "@/components/app/intel/plan-kind-style";
 import {
-  buildPlanDays, buildDailyPostAngles, localDateKey, topThreeByHorizon,
+  buildPlanDaysWithReplies, buildDailyPostAngles, localDateKey, topThreeByHorizon,
   type PlanEntry, type ScheduledDay, type ThreadReplyInput,
 } from "@/lib/scan/plan-schedule";
 import type { ActionBoard, BoardAction } from "@/lib/scan/action-board";
@@ -91,7 +91,7 @@ export function PlanTimelineBody({ board, synthesis, domain, score, today: today
   // board (never a fresh gather) — optional, so an empty/absent list just
   // means no reply quick-wins this render, never a fabricated one.
   const days: ScheduledDay[] = useMemo(
-    () => buildPlanDays({
+    () => buildPlanDaysWithReplies({
       board,
       category: synthesis.category,
       content: synthesis.contentPlan,

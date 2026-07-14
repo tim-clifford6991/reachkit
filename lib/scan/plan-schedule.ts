@@ -605,10 +605,6 @@ export function buildPlanDays(args: {
   content: ContentPlanItemLike[];
   distribution: DistributionPlanItemLike[];
   today: Date;
-  /** Top buyer-intent demand threads (from `community.pockets[].topThreads`),
-   *  cache-warm only — see the plan page's demand read. Optional/additive:
-   *  omitted or empty means no reply entries, never a fabricated one. */
-  threadReplies?: ThreadReplyInput[];
 }): ScheduledDay[] {
   const allActions = [...args.board.open, ...args.board.retry, ...args.board.verifying, ...args.board.done];
   const allActionTitles = new Set(allActions.map((a) => a.title));
@@ -630,8 +626,30 @@ export function buildPlanDays(args: {
     contentPlan: args.content,
     distribution: args.distribution,
   });
-  const withPosts = addDailyPosts(scheduled, angles, args.today, { postedDates });
+  return addDailyPosts(scheduled, angles, args.today, { postedDates });
+}
 
-  const replyEntries = buildThreadReplyEntries(args.threadReplies ?? [], { excludeTitles: allActionTitles });
-  return addThreadReplies(withPosts, replyEntries, { maxPerDay: 1 });
+/**
+ * The plan page's build: `buildPlanDays` PLUS buyer-intent thread-reply
+ * quick-wins woven into each day. Kept SEPARATE from `buildPlanDays` so the
+ * dashboard's week preview (which imports `buildPlanDays` but never renders
+ * replies) doesn't pull the reply builders into its bundle chunk. PURE.
+ * `threadReplies` is cache-warm demand data (`community.pockets[].topThreads`);
+ * omitted or empty means no reply entries, never a fabricated one.
+ */
+export function buildPlanDaysWithReplies(args: {
+  board: PlanBoardLike;
+  category: string;
+  content: ContentPlanItemLike[];
+  distribution: DistributionPlanItemLike[];
+  today: Date;
+  threadReplies?: ThreadReplyInput[];
+}): ScheduledDay[] {
+  const days = buildPlanDays(args);
+  if (!args.threadReplies?.length) return days;
+  const allActionTitles = new Set(
+    [...args.board.open, ...args.board.retry, ...args.board.verifying, ...args.board.done].map((a) => a.title),
+  );
+  const replyEntries = buildThreadReplyEntries(args.threadReplies, { excludeTitles: allActionTitles });
+  return addThreadReplies(days, replyEntries, { maxPerDay: 1 });
 }

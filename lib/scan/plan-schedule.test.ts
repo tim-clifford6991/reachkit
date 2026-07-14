@@ -18,6 +18,7 @@ import {
   buildThreadReplyEntries,
   addThreadReplies,
   buildPlanDays,
+  buildPlanDaysWithReplies,
   CONTENT_EFFORT_MIN,
   DAILY_POST_HORIZON_DAYS,
   THREAD_REPLY_EFFORT_MIN,
@@ -424,18 +425,20 @@ describe("addThreadReplies — at most 1 reply/day, right after the daily post",
   });
 });
 
-describe("buildPlanDays — threadReplies wiring (progressive enhancement)", () => {
+describe("buildPlanDaysWithReplies — threadReplies wiring (progressive enhancement)", () => {
   const wednesday = new Date(2026, 6, 8);
   const emptyBoard = { open: [], retry: [], verifying: [], done: [] };
 
-  test("omitting threadReplies behaves exactly as before (additive/optional)", () => {
-    const withOmitted = buildPlanDays({ board: emptyBoard, category: "SaaS", content: [], distribution: [], today: wednesday });
-    const withEmpty = buildPlanDays({ board: emptyBoard, category: "SaaS", content: [], distribution: [], today: wednesday, threadReplies: [] });
+  test("omitting threadReplies equals the base buildPlanDays (additive/optional)", () => {
+    const base = buildPlanDays({ board: emptyBoard, category: "SaaS", content: [], distribution: [], today: wednesday });
+    const withOmitted = buildPlanDaysWithReplies({ board: emptyBoard, category: "SaaS", content: [], distribution: [], today: wednesday });
+    const withEmpty = buildPlanDaysWithReplies({ board: emptyBoard, category: "SaaS", content: [], distribution: [], today: wednesday, threadReplies: [] });
     expect(withOmitted).toEqual(withEmpty);
+    expect(withOmitted).toEqual(base);
   });
 
   test("real threads surface as a reply entry on the plan", () => {
-    const days = buildPlanDays({
+    const days = buildPlanDaysWithReplies({
       board: emptyBoard,
       category: "SaaS",
       content: [],
