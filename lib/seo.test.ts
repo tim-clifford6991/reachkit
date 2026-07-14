@@ -1,10 +1,11 @@
 import { expect, test } from "vitest";
 import { softwareApplicationLd, buildMetadata, SITE } from "./seo";
 
-test("softwareApplicationLd emits valid schema.org shape", () => {
-  const ld = softwareApplicationLd({ name: "ReachKit", url: "https://reachkit.app", priceUsd: 29 });
+test("softwareApplicationLd emits valid schema.org shape in EUR", () => {
+  const ld = softwareApplicationLd({ name: "ReachKit", url: "https://reachkit.app", price: 59 });
   expect(ld["@type"]).toBe("SoftwareApplication");
-  expect(ld.offers.price).toBe("29");
+  expect(ld.offers.price).toBe("59");
+  expect(ld.offers.priceCurrency).toBe("EUR");
 });
 test("buildMetadata sets canonical + OG title", () => {
   const m = buildMetadata({ title: "Pricing", path: "/pricing" });

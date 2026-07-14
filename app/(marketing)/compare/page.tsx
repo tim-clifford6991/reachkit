@@ -114,7 +114,7 @@ export default function ComparePage() {
           </Link>
         </div>
         <p style={{ fontFamily: JM, fontSize: 12, color: "var(--c-faint)", margin: "14px 0 0" }}>
-          Free scan · then $59/mo Solo or $129/mo Growth
+          Free scan · then €59/mo Solo or €129/mo Growth
         </p>
       </section>
     </main>

@@ -7,14 +7,14 @@ export const PRICING_HTML = `<main style="max-width: 1080px; margin: 0px auto; p
     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; align-items: stretch;">
       <div style="border: 1px solid var(--c-line); border-radius: 18px; padding: 28px; background: var(--c-surface); display: flex; flex-direction: column;">
         <div style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 18px;">Free scan</div>
-        <div style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 40px; margin: 12px 0px 2px;">$0</div>
+        <div style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 40px; margin: 12px 0px 2px;">€0</div>
         <div style="font-size: 13px; color: var(--c-faint); margin-bottom: 18px;">one-time, no card</div>
         <div style="display: flex; flex-direction: column; gap: 9px; font-size: 14px; color: var(--c-muted); flex: 1 1 0%;"><div>✓ Your Discoverability Score</div><div>✓ 3 pillar sub-scores</div><div>✓ Top 3 ranked fixes</div><div>✓ Positioning Mirror</div></div>
         <button class="scp3" style="margin-top: 20px; font-family: &quot;Plus Jakarta Sans&quot;; font-weight: 600; font-size: 14.5px; color: var(--c-ink); background: var(--c-surface); border: 1.5px solid var(--c-line); border-radius: 10px; padding: 11px; cursor: pointer;">Scan my site</button>
       </div>
       <div style="border: 1px solid var(--c-line); border-radius: 18px; padding: 28px; background: var(--c-surface); display: flex; flex-direction: column;">
         <div style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 18px;">Solo</div>
-        <div style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 40px; margin: 12px 0px 2px;">$59<span style="font-size: 16px; color: var(--c-faint); font-weight: 600;">/mo</span></div>
+        <div style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 40px; margin: 12px 0px 2px;">€59<span style="font-size: 16px; color: var(--c-faint); font-weight: 600;">/mo</span></div>
         <div style="font-size: 13px; color: var(--c-faint); margin-bottom: 18px;">for one product</div>
         <div style="display: flex; flex-direction: column; gap: 9px; font-size: 14px; color: var(--c-muted); flex: 1 1 0%;"><div>✓ Everything in Free, unlocked</div><div>✓ Weekly re-scan + score history</div><div>✓ Verified action engine</div><div>✓ Full 18-signal breakdown</div><div>✓ 20-keyword rank depth</div></div>
         <button class="scp3" style="margin-top: 20px; font-family: &quot;Plus Jakarta Sans&quot;; font-weight: 600; font-size: 14.5px; color: var(--c-ink); background: var(--c-surface); border: 1.5px solid var(--c-line); border-radius: 10px; padding: 11px; cursor: pointer;">Start Solo</button>
@@ -22,7 +22,7 @@ export const PRICING_HTML = `<main style="max-width: 1080px; margin: 0px auto; p
       <div style="border: 2px solid var(--c-action); border-radius: 18px; padding: 28px; background: var(--c-surface); display: flex; flex-direction: column; position: relative; box-shadow: rgba(110, 86, 247, 0.5) 0px 20px 50px -24px;">
         <div style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--c-action); color: rgb(255, 255, 255); font-size: 11.5px; font-weight: 700; padding: 4px 12px; border-radius: 7px; letter-spacing: 0.03em;">MOST POPULAR</div>
         <div style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 18px; color: var(--c-action);">Growth</div>
-        <div style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 40px; margin: 12px 0px 2px;">$129<span style="font-size: 16px; color: var(--c-faint); font-weight: 600;">/mo</span></div>
+        <div style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 40px; margin: 12px 0px 2px;">€129<span style="font-size: 16px; color: var(--c-faint); font-weight: 600;">/mo</span></div>
         <div style="font-size: 13px; color: var(--c-faint); margin-bottom: 18px;">up to 3 products</div>
         <div style="display: flex; flex-direction: column; gap: 9px; font-size: 14px; color: var(--c-muted); flex: 1 1 0%;"><div>✓ Everything in Solo</div><div>✓ Track 3 products</div><div>✓ 50-keyword rank depth</div><div>✓ Shareable score cards</div><div>✓ One-click public teardowns</div></div>
         <button class="scp2" style="margin-top: 20px; font-family: &quot;Plus Jakarta Sans&quot;; font-weight: 700; font-size: 14.5px; color: rgb(255, 255, 255); background: var(--c-action); border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; border-radius: 10px; padding: 12px; cursor: pointer;">Start Growth</button>

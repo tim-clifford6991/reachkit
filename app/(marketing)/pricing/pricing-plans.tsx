@@ -11,6 +11,7 @@
 
 import { TierCard } from "@/components/sections/pricing-table";
 import type { PricingTier } from "@/components/sections/pricing-table";
+import { tierByPlan, fmtPrice, annualPerMonth } from "@/lib/billing/pricing";
 import { PricingCheckoutLinks } from "./pricing-checkout-links";
 
 type Interval = "month" | "year";
@@ -26,10 +27,15 @@ interface PlanDef {
   annual: { price: string; period: string; note: string };
 }
 
+// Prices come from the single source (`lib/billing/pricing.ts`); this file owns
+// only the plan's copy (description, features, badge).
+const solo = tierByPlan("solo");
+const growth = tierByPlan("growth");
+
 const PLANS: readonly PlanDef[] = [
   {
     plan: "solo",
-    name: "Solo",
+    name: solo.name,
     description: "1 product, weekly action queue, drafts, monitoring.",
     features: [
       "Weekly action queue",
@@ -40,12 +46,12 @@ const PLANS: readonly PlanDef[] = [
     ],
     highlighted: true,
     badge: "Most popular",
-    monthly: { price: "$59", period: "/ month" },
-    annual: { price: "$590", period: "/ year", note: "≈ $49/mo · 2 months free" },
+    monthly: { price: fmtPrice(solo.monthly), period: "/ month" },
+    annual: { price: fmtPrice(solo.annual), period: "/ year", note: `≈ ${fmtPrice(annualPerMonth(solo.annual))}/mo · 2 months free` },
   },
   {
     plan: "growth",
-    name: "Growth",
+    name: growth.name,
     description: "3 products, higher quotas, deeper rank tracking.",
     features: [
       "Everything in Solo",
@@ -54,8 +60,8 @@ const PLANS: readonly PlanDef[] = [
       "50 keyword rank-depth",
       "Priority support",
     ],
-    monthly: { price: "$129", period: "/ month" },
-    annual: { price: "$1,290", period: "/ year", note: "≈ $108/mo · 2 months free" },
+    monthly: { price: fmtPrice(growth.monthly), period: "/ month" },
+    annual: { price: fmtPrice(growth.annual), period: "/ year", note: `≈ ${fmtPrice(annualPerMonth(growth.annual))}/mo · 2 months free` },
   },
 ];
 

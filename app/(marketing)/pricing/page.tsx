@@ -9,18 +9,18 @@ import { PricingScreen } from "@/components/sections/captured/pricing-screen";
 export const metadata = buildMetadata({
   title: "Pricing — ReachKit",
   description:
-    "Your first scan is free. From $59/mo to turn the report into a weekly action engine — or save two months with annual billing. No lock-in.",
+    "Your first scan is free. From €59/mo to turn the report into a weekly action engine — or save two months with annual billing. No lock-in.",
   path: "/pricing",
 });
 
 export default function PricingPage() {
-  const appLd = softwareApplicationLd({ name: SITE.name, url: SITE.url, priceUsd: 59 });
+  const appLd = softwareApplicationLd({ name: SITE.name, url: SITE.url, price: 59 });
   const productLd = offerLd({
     name: `${SITE.name} subscription`,
     url: `${SITE.url}/pricing`,
     tiers: [
-      { name: "Solo", priceUsd: 59, description: "1 product, weekly queue, drafts, monitoring." },
-      { name: "Growth", priceUsd: 129, description: "3 products, higher quotas, deeper rank tracking." },
+      { name: "Solo", price: 59, description: "1 product, weekly queue, drafts, monitoring." },
+      { name: "Growth", price: 129, description: "3 products, higher quotas, deeper rank tracking." },
     ],
   });
 

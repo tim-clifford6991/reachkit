@@ -1,7 +1,7 @@
 /**
  * PricingTable — §21.1 marketing section
  *
- * Reusable section wrapping the three tier cards (Solo $59 / Growth $129).
+ * Reusable section wrapping the three tier cards (Solo €59 / Growth €129).
  * The existing /pricing page composes this section.
  *
  * CTA slots are passed as ReactNode per tier so the page can inject either
@@ -18,7 +18,7 @@ import type { ReactNode } from "react";
 
 export interface PricingTier {
   name: string;
-  /** Formatted price string: "$59", "$129", etc. */
+  /** Formatted price string: "€59", "€129", etc. */
   price: string;
   /** Period label: "forever", "/ month", etc. */
   period: string;

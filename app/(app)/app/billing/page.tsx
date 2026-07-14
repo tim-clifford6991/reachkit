@@ -74,7 +74,7 @@ const TIER_DETAILS: Record<
   },
   solo: {
     label: "Solo",
-    price: "$59/mo",
+    price: "€59/mo",
     description: "1 app, weekly queue, monitoring, score history.",
     features: [
       "1 app tracked",
@@ -86,7 +86,7 @@ const TIER_DETAILS: Record<
   },
   growth: {
     label: "Growth",
-    price: "$129/mo",
+    price: "€129/mo",
     description: "3 apps, higher quotas, deeper rank tracking.",
     features: [
       "3 apps tracked",
@@ -292,8 +292,8 @@ function TierComparisonTable({ currentTier }: { currentTier: Tier }) {
                   {t === "free"
                     ? "Free"
                     : t === "solo"
-                    ? "Solo $59"
-                    : "Growth $129"}
+                    ? "Solo €59"
+                    : "Growth €129"}
                 </th>
               ))}
             </tr>

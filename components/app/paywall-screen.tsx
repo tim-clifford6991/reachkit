@@ -111,7 +111,7 @@ export function PaywallScreen({
                 padding: "12px 28px", fontFamily: PJ, fontSize: 14.5, fontWeight: 600, cursor: "pointer", minWidth: 220,
               }}
             >
-              {isResume ? "Resume plan" : "Activate — Solo $59/mo"}
+              {isResume ? "Resume plan" : "Activate — Solo €59/mo"}
             </CheckoutButton>
             {hasBillingAccount && (
               <button
