@@ -7,11 +7,21 @@ import { CURRENCY } from "@/lib/billing/pricing";
 // the share preview shows no image. Priority:
 //   1. NEXT_PUBLIC_SITE_URL  (set this to the production/custom domain)
 //   2. VERCEL_PROJECT_PRODUCTION_URL  (auto-provided stable production alias)
-//   3. localhost (dev)
+//   3. VERCEL_URL  (the per-deployment URL — correct for preview deploys)
+//   4. dev → localhost; prod → the known prod domain (NEVER localhost)
+//
+// P6 SEO guard: in production the `localhost` fallback would poison EVERY
+// canonical/OG URL on a misconfigured deploy (blank NEXT_PUBLIC_SITE_URL + not on
+// Vercel). Production must never emit localhost, so it falls back to the known
+// production domain instead. On Vercel, VERCEL_PROJECT_PRODUCTION_URL is always
+// present, so this last resort only guards a genuinely broken deploy.
+// NEXT_PUBLIC_/VERCEL_ vars are read as literals so Next inlines them for the browser.
+const PROD_SITE_URL = "https://reachkit.app";
 const SITE_URL = (
   process.env.NEXT_PUBLIC_SITE_URL ||
   (process.env.VERCEL_PROJECT_PRODUCTION_URL && `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`) ||
-  "http://localhost:3000"
+  (process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}`) ||
+  (process.env.NODE_ENV === "production" ? PROD_SITE_URL : "http://localhost:3000")
 ).replace(/\/+$/, "");
 
 export const SITE = { url: SITE_URL, name: "ReachKit" } as const;

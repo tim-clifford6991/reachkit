@@ -69,15 +69,15 @@ Each item is tagged **[NEW]** (surfaced by this audit) or **[KNOWN]** (already i
 ## 🟡 P2 — Should-fix / polish before scale
 
 - **[NEW] Email deliverability unverified in code.** SPF/DKIM/DMARC for `reachkit.app` live only in runbooks. If DNS auth isn't live, magic-links (the *sole* login path) hit spam → activation blocked. Verify live before launch.
-- **[NEW] SEO canonicals depend on runtime env.** `lib/seo.ts` falls back to `localhost:3000` if `NEXT_PUBLIC_SITE_URL`/`VERCEL_PROJECT_PRODUCTION_URL` unset — a misconfigured deploy poisons every canonical/OG URL.
+- ~~**[NEW] SEO canonicals depend on runtime env.**~~ ✅ **RESOLVED — P6 (2026-07-15).** `lib/seo.ts` now adds `VERCEL_URL` as a tier and, crucially, **never falls back to `localhost` in production** — a misconfigured prod deploy uses the known prod domain (`https://reachkit.app`) instead of poisoning every canonical/OG URL. `NEXT_PUBLIC_*`/`VERCEL_*` still read as literals (Next inlines them). Guard: `lib/seo.test.ts` (prod ≠ localhost; dev still localhost).
 - **[NEW] Revenue funnel is uninstrumented.** `email_gate_viewed`/`email_submitted` helpers have no call sites; no upgrade/paywall/checkout events; billing webhook captures nothing. You can't measure conversion.
 - **[NEW] No DB backup / PITR / rollback story documented.** Forward-only migrations; a bad DROP is unrecoverable without a manual restore. Confirm Supabase PITR is on and document the runbook.
 - **[NEW] No social proof.** Landing leans on a favicon marquee explicitly labelled "until real testimonials exist" — weak credibility for a paid upsell.
 - **[NEW] No blog/docs/changelog surface.** For a *discoverability* tool, the absence of an editorial/organic-content surface is an on-brand credibility + SEO gap.
 - **[NEW] No `seed.sql`.** Fresh prod DB relies entirely on migrations + auth-trigger. Confirm no reference/lookup data (tiers, price mapping) is assumed present.
 - **[NEW] Missing `global-error.tsx` and route-level `loading.tsx`.** Root-layout render errors fall through unstyled; no Suspense skeletons.
-- **[NEW] `app/design/*` sample routes reachable in prod** (robots-disallowed but publicly loadable). Minor surface-area risk.
-- **[NEW] No receipt/invoice email on successful charge** (only magic-link + trial-ending). Stripe may cover this — verify.
+- ~~**[NEW] `app/design/*` sample routes reachable in prod**~~ ✅ **RESOLVED — P6.** `middleware.ts` `isDevOnlyPath` 404s `/design`, `/design/*` and `/test-*` in production at one chokepoint. Now pinned by a guard: `middleware.test.ts` (dev-scaffolding matched; real routes like `/designer`/`/testimonials` NOT matched).
+- **[NEW] No receipt/invoice email on successful charge** (only magic-link). ⏳ **OWNER-ACTION (no code) — P6.** Stripe subscription payments auto-generate invoices and email receipts **when "Successful payments" customer emails are ON** (Dashboard → Settings → Customer emails). Not exposed via API to verify programmatically; **Tim to confirm the toggle**. No app-side receipt code added (Stripe covers it).
 - **[MEDIUM] Service-role client (`serverDb()`) bypasses RLS broadly.** RLS is complete (all 24 tables gated — good) but is defence-in-depth only; confirm no user-controlled `.eq()` filters run through `serverDb()`.
 
 ---
