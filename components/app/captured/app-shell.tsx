@@ -49,7 +49,7 @@ function isGroup(n: NavItem | NavGroup): n is NavGroup {
 const TITLES: Record<string, string> = {
   "/app/dashboard": "Dashboard",
   "/app/audience/competitors": "Competitors", "/app/audience/customers": "Customers",
-  "/app/progress": "Progress",
+  "/app/progress": "History",
   "/app/settings": "Settings", "/app/billing": "Billing",
   "/app/audience": "Audience", "/app/plan": "Plan",
 };

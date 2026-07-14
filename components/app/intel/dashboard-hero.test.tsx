@@ -41,6 +41,13 @@ describe("DashboardHero pillar rows", () => {
     expect(html).toContain("not measured yet");
   });
 
+  it("does NOT point Outreach at Market Position when there's no Market Position (free/pre-deep-pass): no dead #market-position link, honest 'not measured yet'", () => {
+    const html = renderToStaticMarkup(<DashboardHero {...baseProps} marketPosition={null} />);
+    expect(html).not.toContain("measured off-site");
+    expect(html).not.toContain("#market-position");
+    expect(html).toContain("not measured yet");
+  });
+
   it("anchors the Market Position block with id=\"market-position\" when it renders", () => {
     const html = renderToStaticMarkup(<DashboardHero {...baseProps} />);
     expect(html).toContain('id="market-position"');

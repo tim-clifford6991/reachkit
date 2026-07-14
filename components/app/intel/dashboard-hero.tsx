@@ -101,10 +101,14 @@ export function DashboardHero({ score, rollup, history, markers, isPaid, marketP
                     <div style={{ flex: 1 }}><Bar value={p.value} color={bandFor(p.value).color} /></div>
                     <span style={{ width: 30, flexShrink: 0, textAlign: "right", fontFamily: JM, fontSize: 13, color: "var(--c-ink)" }}>{p.value}</span>
                   </>
-                ) : p.pillar === "outreach" ? (
+                ) : p.pillar === "outreach" && marketPosition != null ? (
                   // Outreach has no on-site signal — its strength is measured OFF-SITE
-                  // as Market Position (the block above, ~line 80). Point there instead
-                  // of reading as broken/incomplete.
+                  // as Market Position. Point there instead of reading as broken —
+                  // but ONLY when the deep pass actually produced a Market Position
+                  // (paid, post-deep-pass). When it's null (free / pre-deep-pass)
+                  // Outreach genuinely isn't measured yet, so fall through to the
+                  // honest "not measured yet" (and never link to a #market-position
+                  // block that isn't rendered).
                   <a href="#market-position" style={{ flex: 1, fontSize: 12, fontStyle: "italic", color: "var(--c-action)", textDecoration: "none" }}>
                     measured off-site → Market Position
                   </a>
