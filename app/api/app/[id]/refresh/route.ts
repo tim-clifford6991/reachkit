@@ -61,6 +61,14 @@ export async function POST(
     return NextResponse.json({ error: "unexpected entitlement error" }, { status: 500 });
   }
 
+  // 3.5 Kill switch (P4): a paused deploy refuses on-demand refreshes too.
+  if (!env.scanningEnabled) {
+    return NextResponse.json(
+      { error: "Scanning is temporarily paused. Please try again shortly." },
+      { status: 503 },
+    );
+  }
+
   // 4. Reconstruct context from the app + its latest scan, then refresh.
   const db = serverDb();
 

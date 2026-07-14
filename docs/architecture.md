@@ -522,6 +522,20 @@ file; #13 (`audienceProxy`) stays deferred.
 - **Single stack, no separate backend** — everything runs on Vercel as Next.js
   App Router (Fluid Compute). API routes are thin; heavy work is offloaded to
   **Inngest** functions hosted at `/api/inngest`.
+- **Observability (launch P4)** — server errors report to PostHog error tracking
+  via `lib/analytics-server.ts` (`posthog-node`, server `POSTHOG_KEY`, fail-safe
+  no-op when unconfigured): `captureServerException` is wired into the shared scan
+  pipeline-failure handler (`lib/scan/terminal-status.ts`) + every Inngest
+  `onFailure`. Client render errors report through the consent-gated client
+  `captureException` from the three error boundaries (`app/error.tsx`,
+  `app/(app)/error.tsx`, `app/global-error.tsx`). `GET /api/health` is the
+  DB-reachability probe. `SCANNING_ENABLED=false` is the runtime kill switch at
+  the scan entrypoints (HTTP `/api/scan` + `/api/app/[id]/refresh` → 503; the
+  weekly-refresh + score-pulse crons skip their fan-out). Cost alerts fan out from
+  `persistCostAlert` to a PostHog `cost_alert` event + optional
+  `COST_ALERT_WEBHOOK_URL`. Conversion funnel: `scan_started` → `scan_facts_shown`
+  → `scan_findings_shown` → `paywall_viewed` → `checkout_started` (client) →
+  `subscription_activated` (server, from the Stripe webhook).
 - **Two-tier scan** — a fast, free lightweight report is produced first
   (`lib/scan/free-report.ts`), then `scan/deepen` runs the expensive full pass
   (`lib/scan/full-scan.ts`) only after payment. The headline gauge is the

@@ -12,7 +12,9 @@
 
 import { inngest } from "@/lib/inngest/client";
 import { serverDb } from "@/lib/db/client";
+import { env } from "@/lib/config/env";
 import { runScorePulse } from "@/lib/scan/pulse";
+import { captureServerException } from "@/lib/analytics-server";
 
 const PAID_TIERS = ["solo", "growth"] as const;
 // "trialing" is impossible (no trial); "past_due" is intentionally EXCLUDED —
@@ -60,8 +62,18 @@ export const scorePulse = inngest.createFunction(
     id: "score-pulse",
     retries: 1,
     triggers: [{ cron: "0 9 * * 4" }],
+    onFailure: async ({ error }) => {
+      // Cron fan-out; per-app steps isolate individual failures, so a top-level
+      // failure is the selection query itself. Report for ops visibility (P4).
+      const message = error instanceof Error ? error.message : String(error);
+      console.error("[score-pulse] run failed:", message);
+      await captureServerException(error, { source: "inngest:score-pulse" });
+    },
   },
   async ({ step }) => {
+    // Kill switch (P4): a paused deploy skips the midweek pulse fan-out too.
+    if (!env.scanningEnabled) return { paused: true, apps: 0, pulsed: 0, skipped: 0 };
+
     const appIds = await step.run("list-active-paid-apps", activePaidAppIds);
 
     const results: { appId: string; skipped: boolean; total?: number }[] = [];

@@ -16,6 +16,7 @@
 
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
+import { funnel } from "@/lib/analytics";
 
 export function CheckoutButton({
   plan = "solo",
@@ -42,6 +43,7 @@ export function CheckoutButton({
 
   const start = useCallback(async () => {
     setPending(true);
+    funnel.checkoutStarted({ plan, source: "app" });
     try {
       const res = await fetch("/api/billing/checkout", {
         method: "POST",
