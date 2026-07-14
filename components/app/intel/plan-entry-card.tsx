@@ -25,11 +25,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge, CopyButton, EvidenceLink, priorityTone } from "@/components/app/intel/kit";
-import { KIND_STYLE } from "@/components/app/intel/plan-kind-style";
+import { KIND_STYLE, HORIZON_STYLE } from "@/components/app/intel/plan-kind-style";
 import { buildShareUrl, deliveryMode, type SharePlatform } from "@/lib/scan/distribute/intent";
 import { COACH_GUIDES } from "@/lib/scan/distribute/coach";
 import { inferExecutionRoute, type ExecutionRoute } from "@/lib/scan/distribute/platform-map";
 import { hostname } from "@/lib/scan/url";
+import { horizonForEntry, HORIZON_LABEL } from "@/lib/scan/plan-horizon";
 import type { PlanEntry } from "@/lib/scan/plan-schedule";
 import type { ActionTargetChannel } from "@/lib/llm/types";
 import type { Content, Dist } from "./synthesis-view";
@@ -86,6 +87,18 @@ export function PlanEntryCard({ entry, domain, detail }: { entry: PlanEntry; dom
     : entry.kind === "post"
       ? { kind: "share", platform: "x" } // the daily post: X composer, prefilled
       : null;
+
+  const horizon = horizonForEntry(entry);
+
+  // Thread-reply quick-wins (built by buildThreadReplyEntries, keyed "reply:{url}")
+  // carry a SPECIFIC existing thread to reply IN, not a venue to submit a new post
+  // to — inferExecutionRoute's platform-name sniffing (e.g. "reddit" in the URL)
+  // would otherwise route these through buildShareUrl's generic .../submit
+  // composer, which opens a blank new-post form instead of the actual thread.
+  // The draft still comes from the SAME generate()/`/api/distribute/draft` flow
+  // as every other distribution entry — only the "Open" destination differs.
+  const isThreadReply = entry.kind === "distribution" && entry.key.startsWith("reply:");
+  const threadLabel = entry.targetUrl && hostname(entry.targetUrl).includes("reddit.com") ? "in Reddit" : "thread";
 
   // -- Track in the plan (idempotent: the API dedupes + enriches) ------------
   const track = useCallback(async (withDraft?: { title?: string; text: string }): Promise<string | null> => {
@@ -255,12 +268,13 @@ export function PlanEntryCard({ entry, domain, detail }: { entry: PlanEntry; dom
           </button>
         ) : (
           <>
-            {route?.kind === "share" && (
+            {isThreadReply && entry.targetUrl ? (
+              <button type="button" onClick={openVenue} style={btnPrimary}>Open {threadLabel} →</button>
+            ) : route?.kind === "share" ? (
               <button type="button" onClick={openComposer} style={btnPrimary}>Open {SHARE_LABEL[route.platform]} →</button>
-            )}
-            {route?.kind === "coach" && entry.targetUrl && (
+            ) : route?.kind === "coach" && entry.targetUrl ? (
               <button type="button" onClick={openVenue} style={btnPrimary}>Open {entry.target ?? "venue"} →</button>
-            )}
+            ) : null}
             <CopyButton text={[draft.title, draft.text].filter(Boolean).join("\n\n")} label="Copy" />
             <button type="button" onClick={() => void generate()} style={{ background: "none", border: "none", fontSize: 11, color: "var(--c-muted)", cursor: "pointer", padding: 0 }}>↻ redraft</button>
           </>
@@ -276,7 +290,7 @@ export function PlanEntryCard({ entry, domain, detail }: { entry: PlanEntry; dom
           drafting is a paid feature — <a href="/pricing" style={{ color: "var(--c-action)" }}>upgrade</a>
         </p>
       )}
-      {draft && showDraft && route?.kind === "share" && deliveryMode(route.platform) === "url-only" && (
+      {!isThreadReply && draft && showDraft && route?.kind === "share" && deliveryMode(route.platform) === "url-only" && (
         <p style={{ fontSize: 10.5, color: "var(--c-faint)", fontStyle: "italic", margin: "6px 0 0" }}>
           {SHARE_LABEL[route.platform]} doesn&apos;t accept prefilled text — copy the draft, then paste it into the composer.
         </p>
@@ -290,6 +304,9 @@ export function PlanEntryCard({ entry, domain, detail }: { entry: PlanEntry; dom
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
         <span style={{ display: "inline-block", fontFamily: PJ, fontSize: 10.5, fontWeight: 700, color: kindStyle.fg, background: kindStyle.bg, padding: "3px 9px", borderRadius: "var(--radius-full)", whiteSpace: "nowrap" }}>
           {entry.kind === "distribution" && entry.channel ? entry.channel : kindStyle.label}
+        </span>
+        <span style={{ display: "inline-block", fontFamily: PJ, fontSize: 10.5, fontWeight: 700, color: HORIZON_STYLE[horizon].fg, background: HORIZON_STYLE[horizon].bg, padding: "3px 9px", borderRadius: "var(--radius-full)", whiteSpace: "nowrap" }}>
+          {HORIZON_LABEL[horizon]}
         </span>
         <Badge tone={priorityTone(entry.priority)}>{entry.priority}</Badge>
         <span style={{ fontFamily: JM, fontSize: 10.5, color: "var(--c-faint)" }}>~{entry.effortMin} min</span>

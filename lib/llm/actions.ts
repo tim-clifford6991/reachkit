@@ -120,7 +120,7 @@ function isValidActionCard(c: unknown): c is ActionCard {
 /** Minimum sensible effort for any tracked action (a real task takes >0 min). */
 export const ACTION_EFFORT_MIN = 5;
 /** Ceiling per action — beyond this the plan should split it into steps. */
-export const ACTION_EFFORT_MAX = 90;
+export const ACTION_EFFORT_MAX = 60;
 
 /** Clamp an effort estimate into the plan's bite-sized window; NaN → the min. */
 export function clampEffort(min: number): number {

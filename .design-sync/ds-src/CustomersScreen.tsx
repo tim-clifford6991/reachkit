@@ -12,8 +12,10 @@ import { PainBars } from "./PainBars";
  *   1. Two columns — "Who your buyer is" (compact ICP→JTBD + use-case chips)
  *      | "Demand themes" (each theme = name + volume + intent, with its
  *      sample keywords as chips beneath, all click-through-to-evidence).
- *   2. Full-width "Where they hang out" — the intent×recency map over the
- *      filterable buyer-thread feed.
+ *   2. Full-width "Where they hang out" — the buyer-intent map over the
+ *      filterable buyer-thread feed, ranked by intent (WS2.1: dates/recency
+ *      dropped from the caption — thread dates are unavailable for most
+ *      surfaces, so the copy no longer implies a recency ranking).
  *   3. Full-width "Top buyer pains" — mention-ranked frequency bars.
  * Composes the shared IntelKit + the three new atomic mirrors
  * (IntentRecencyMap, BuyerThreadFeed, PainBars); EvidenceDrawer is the
@@ -126,7 +128,7 @@ export function CustomersScreen() {
         </div>
 
         {/* Row 2 — where they hang out */}
-        <Card title="Where they hang out" info="Intent × recency across every surfaced buyer thread; click any dot or row for evidence.">
+        <Card title="Where they hang out" info="Every surfaced buyer thread, ranked by buyer intent; click any dot or row for evidence.">
           <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
             <IntentRecencyMap />
             <BuyerThreadFeed />

@@ -3,6 +3,7 @@ import { resolveIntelContext } from "@/lib/app/intel-context";
 import { actionBoard } from "@/lib/scan/action-board";
 import { scoreDelta } from "@/lib/scan/weekly-plan";
 import { serverDb } from "@/lib/db/client";
+import { readCachedTopThreads } from "@/lib/scan/demand/gather";
 import { CompetitorSetup } from "@/components/app/intel/competitor-setup";
 import { PlanTimelineView } from "@/components/app/intel/plan-timeline-view";
 import { buildMetadata } from "@/lib/seo";
@@ -34,7 +35,11 @@ async function PlanContent() {
 
   // Board + the two latest score snapshots (cheap reads) — the strip shows the
   // live score and its most recent movement right where the work happens.
-  const [board, { data: snaps }] = await Promise.all([
+  // `readCachedTopThreads` is a plain `demand_intel` select — cache-ONLY, never
+  // a fresh demand gather — so it's as cheap as the other two and safe to
+  // always run: on a cold cache it just returns [] and the plan renders with
+  // no thread-reply entries (progressive enhancement, never fabricated).
+  const [board, { data: snaps }, threadReplies] = await Promise.all([
     actionBoard(ctx.appId),
     serverDb()
       .from("score_snapshots")
@@ -42,9 +47,10 @@ async function PlanContent() {
       .eq("app_id", ctx.appId)
       .order("taken_at", { ascending: false, nullsFirst: false })
       .limit(2),
+    readCachedTopThreads(ctx.domain, ctx.competitors, 5),
   ]);
   const latest = snaps?.[0];
   const score = latest ? { total: latest.total, delta: scoreDelta(snaps ?? []) } : null;
 
-  return <PlanTimelineView board={board} domain={ctx.domain} score={score} />;
+  return <PlanTimelineView board={board} domain={ctx.domain} score={score} threadReplies={threadReplies} />;
 }

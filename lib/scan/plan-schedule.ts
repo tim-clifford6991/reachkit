@@ -18,6 +18,7 @@
  */
 
 import type { BoardAction } from "@/lib/scan/action-board";
+import { horizonForEntry, type Horizon } from "@/lib/scan/plan-horizon";
 
 // ---------------------------------------------------------------------------
 // Entry model — the common shape every plan surface item normalizes into.
@@ -79,9 +80,9 @@ export interface DistributionPlanItemLike {
 }
 
 /** Effort → minutes, matching the weekly-plan buckets. */
-export const EFFORT_MIN: Record<string, number> = { low: 15, medium: 60, high: 180 };
+export const EFFORT_MIN: Record<string, number> = { low: 8, medium: 20, high: 45 };
 /** Writing a real content piece is long-play work. */
-export const CONTENT_EFFORT_MIN = 150;
+export const CONTENT_EFFORT_MIN = 45;
 
 const PRIORITY_RANK: Record<string, number> = { high: 0, medium: 1, low: 2 };
 const asPriority = (p: string): "high" | "medium" | "low" =>
@@ -220,6 +221,42 @@ export function byScheduleOrder(a: PlanEntry, b: PlanEntry): number {
   if (ad !== bd) return bd - ad;
   if (a.effortMin !== b.effortMin) return a.effortMin - b.effortMin;
   return a.title < b.title ? -1 : a.title > b.title ? 1 : 0;
+}
+
+const HORIZON_ORDER: Horizon[] = ["short", "medium", "long"];
+
+/**
+ * The day's headline 3: one entry per impact horizon (short/medium/long, in
+ * that order) where the day has one, backfilled from the remaining
+ * highest-priority entries when a horizon is empty. PURE + deterministic
+ * (relies on `byScheduleOrder`'s total ordering, which always tie-breaks on
+ * title). Never more than 3, never fewer than `min(3, entries.length)`.
+ */
+export function topThreeByHorizon(entries: PlanEntry[]): PlanEntry[] {
+  const byHorizon = new Map<Horizon, PlanEntry[]>(HORIZON_ORDER.map((h) => [h, []]));
+  for (const e of entries) byHorizon.get(horizonForEntry(e))!.push(e);
+  for (const h of HORIZON_ORDER) byHorizon.get(h)!.sort(byScheduleOrder);
+
+  const picked: PlanEntry[] = [];
+  const pickedKeys = new Set<string>();
+  for (const h of HORIZON_ORDER) {
+    const top = byHorizon.get(h)![0];
+    if (top) {
+      picked.push(top);
+      pickedKeys.add(top.key);
+    }
+  }
+
+  if (picked.length < 3) {
+    const remaining = entries.filter((e) => !pickedKeys.has(e.key)).sort(byScheduleOrder);
+    for (const e of remaining) {
+      if (picked.length >= 3) break;
+      picked.push(e);
+      pickedKeys.add(e.key);
+    }
+  }
+
+  return picked.slice(0, 3);
 }
 
 /**
@@ -437,7 +474,7 @@ export function addDailyPosts(
       channel: "x",
       target: "X (Twitter)",
       targetUrl: null,
-      effortMin: 10,
+      effortMin: 3,
       priority: "high",
       predictedDelta: null,
       draft: null,
@@ -453,6 +490,95 @@ export function addDailyPosts(
   return [...byDate.entries()]
     .sort(([a], [b]) => (a < b ? -1 : 1))
     .map(([date, entries]) => ({ date, entries }));
+}
+
+// ---------------------------------------------------------------------------
+// Thread replies — quick-win entries built from REAL demand threads (community
+// pockets a buyer is already posting in). Never invented: an empty/absent
+// `threads` input yields zero entries, and the plan renders exactly as before.
+// ---------------------------------------------------------------------------
+
+/** The minimal thread shape the builder needs — a loose match to
+ *  `DemandPocket["topThreads"]` entries so callers can pass them straight through. */
+export interface ThreadReplyInput {
+  title: string;
+  url: string;
+  intent?: number;
+}
+
+/** A quick-win community reply is always this cheap — reading + a genuine
+ *  reply, not a research project. */
+export const THREAD_REPLY_EFFORT_MIN = 4;
+
+/**
+ * Turn the highest-intent demand threads into `PlanEntry` quick-win replies.
+ * PURE: sorts by intent (desc), drops threads without a real url/title, dedupes
+ * by url, skips any thread whose derived title already matches a tracked/shipped
+ * action (`excludeTitles`), and caps at `limit`.
+ */
+export function buildThreadReplyEntries(
+  threads: ThreadReplyInput[],
+  opts: { limit?: number; excludeTitles?: ReadonlySet<string> } = {},
+): PlanEntry[] {
+  const limit = opts.limit ?? 5;
+  const excludeTitles = opts.excludeTitles ?? new Set<string>();
+
+  const ranked = [...threads]
+    .filter((t) => !!t.url && !!t.title)
+    .sort((a, b) => (b.intent ?? 0) - (a.intent ?? 0));
+
+  const entries: PlanEntry[] = [];
+  const seenUrls = new Set<string>();
+  for (const t of ranked) {
+    if (entries.length >= limit) break;
+    if (seenUrls.has(t.url)) continue;
+    const title = `Reply to: ${trunc(t.title, 60)}`;
+    if (excludeTitles.has(title)) continue;
+    seenUrls.add(t.url);
+    entries.push({
+      key: `reply:${t.url}`,
+      actionId: null,
+      kind: "distribution",
+      title,
+      why: "A buyer is describing your problem unprompted — a genuine, helpful reply puts you in front of them.",
+      channel: "community",
+      target: null,
+      targetUrl: t.url,
+      effortMin: THREAD_REPLY_EFFORT_MIN,
+      priority: "high",
+      predictedDelta: null,
+      draft: null,
+      tracked: false,
+      evidence: t.url,
+    });
+  }
+  return entries;
+}
+
+/**
+ * Inject at most `maxPerDay` (default 1) thread-reply entries into each day's
+ * short slot — right after the daily post ritual, ahead of the rest of the
+ * day's work, since a reply is the quickest win available. Consumes `replies`
+ * in order (freshest/highest-intent first → today), so once the queue runs
+ * out later days pass through untouched. Mutates nothing.
+ */
+export function addThreadReplies(
+  days: ScheduledDay[],
+  replies: PlanEntry[],
+  opts: { maxPerDay?: number } = {},
+): ScheduledDay[] {
+  if (replies.length === 0) return days;
+  const maxPerDay = opts.maxPerDay ?? 1;
+  const queue = [...replies];
+
+  return days.map((day) => {
+    if (queue.length === 0) return day;
+    const take = queue.splice(0, maxPerDay);
+    const postIdx = day.entries.findIndex((e) => e.kind === "post");
+    const entries = [...day.entries];
+    entries.splice(postIdx === -1 ? 0 : postIdx + 1, 0, ...take);
+    return { ...day, entries };
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -481,9 +607,10 @@ export function buildPlanDays(args: {
   today: Date;
 }): ScheduledDay[] {
   const allActions = [...args.board.open, ...args.board.retry, ...args.board.verifying, ...args.board.done];
+  const allActionTitles = new Set(allActions.map((a) => a.title));
   const entries = mergePlanEntries({
     openActions: [...args.board.open, ...args.board.retry],
-    allActionTitles: new Set(allActions.map((a) => a.title)),
+    allActionTitles,
     content: args.content,
     distribution: args.distribution,
   });
@@ -500,4 +627,29 @@ export function buildPlanDays(args: {
     distribution: args.distribution,
   });
   return addDailyPosts(scheduled, angles, args.today, { postedDates });
+}
+
+/**
+ * The plan page's build: `buildPlanDays` PLUS buyer-intent thread-reply
+ * quick-wins woven into each day. Kept SEPARATE from `buildPlanDays` so the
+ * dashboard's week preview (which imports `buildPlanDays` but never renders
+ * replies) doesn't pull the reply builders into its bundle chunk. PURE.
+ * `threadReplies` is cache-warm demand data (`community.pockets[].topThreads`);
+ * omitted or empty means no reply entries, never a fabricated one.
+ */
+export function buildPlanDaysWithReplies(args: {
+  board: PlanBoardLike;
+  category: string;
+  content: ContentPlanItemLike[];
+  distribution: DistributionPlanItemLike[];
+  today: Date;
+  threadReplies?: ThreadReplyInput[];
+}): ScheduledDay[] {
+  const days = buildPlanDays(args);
+  if (!args.threadReplies?.length) return days;
+  const allActionTitles = new Set(
+    [...args.board.open, ...args.board.retry, ...args.board.verifying, ...args.board.done].map((a) => a.title),
+  );
+  const replyEntries = buildThreadReplyEntries(args.threadReplies, { excludeTitles: allActionTitles });
+  return addThreadReplies(days, replyEntries, { maxPerDay: 1 });
 }

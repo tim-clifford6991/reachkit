@@ -14,16 +14,17 @@
  * "what to do".
  */
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Card, Eyebrow } from "@/components/app/intel/kit";
+import dynamic from "next/dynamic";
+import { Card } from "@/components/app/intel/kit";
 import { useIntel, IntelShell } from "@/components/app/intel/shared";
-import { PlanEntryCard, type EntryDetail } from "@/components/app/intel/plan-entry-card";
-import { PlanBuildingHero } from "@/components/app/intel/plan-building";
+import { type EntryDetail } from "@/components/app/intel/plan-entry-card";
 import { KIND_STYLE, kindOfAction } from "@/components/app/intel/plan-kind-style";
 import {
-  buildPlanDays, buildDailyPostAngles, localDateKey,
-  type PlanEntry, type ScheduledDay,
+  buildPlanDaysWithReplies, buildDailyPostAngles, localDateKey, topThreeByHorizon,
+  type PlanEntry, type ScheduledDay, type ThreadReplyInput,
 } from "@/lib/scan/plan-schedule";
 import type { ActionBoard, BoardAction } from "@/lib/scan/action-board";
 import type { Synthesis } from "./synthesis-view";
@@ -32,6 +33,35 @@ const SG = "var(--font-display)", PJ = "var(--font-sans)", JM = "var(--font-mono
 const VERIFYING_COLOR = "var(--color-warning)";
 const VERIFIED_COLOR = "var(--color-success)";
 
+// Cold-build proof-of-work screen only shows while the very first synthesis
+// gather is streaming (`stages.length > 0`) — most page loads never render it
+// at all. next/dynamic (ssr:false) keeps its module out of the plan page's
+// First Load JS; the sized placeholder below matches its card footprint so
+// there's no layout shift while the chunk fetches.
+const PlanBuildingHero = dynamic(
+  () => import("@/components/app/intel/plan-building").then((m) => m.PlanBuildingHero),
+  { ssr: false, loading: () => <PlanBuildingHeroSkeleton /> },
+);
+
+// PlanEntryCard is the heaviest below-the-calendar piece (draft/venue/share
+// execution UI + its distribute deps). It only renders inside the selected-day
+// panel, never above the fold, so next/dynamic (ssr:false) keeps its module and
+// transitive imports out of the plan page's First Load JS. The 120px sized
+// placeholder matches a collapsed card's footprint so the panel doesn't jump
+// while the chunk fetches.
+const PlanEntryCard = dynamic(
+  () => import("@/components/app/intel/plan-entry-card").then((m) => m.PlanEntryCard),
+  { ssr: false, loading: () => <div style={{ height: 120 }} /> },
+);
+
+function PlanBuildingHeroSkeleton() {
+  return (
+    <div style={{ display: "flex", justifyContent: "center", padding: "40px 16px 72px" }}>
+      <div style={{ width: "100%", maxWidth: 560, minHeight: 360, background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-xl)" }} />
+    </div>
+  );
+}
+
 function fmtPts(n: number): string {
   const v = Number.isInteger(n) ? String(n) : n.toFixed(1);
   return `${n > 0 ? "+" : ""}${v} pts`;
@@ -39,33 +69,37 @@ function fmtPts(n: number): string {
 
 export interface PlanScore { total: number; delta: number }
 
-export function PlanTimelineView({ board, domain, score }: { board: ActionBoard; domain: string; score?: PlanScore | null }) {
+export function PlanTimelineView({ board, domain, score, threadReplies }: { board: ActionBoard; domain: string; score?: PlanScore | null; threadReplies?: ThreadReplyInput[] }) {
   const { data, loading, error, stages } = useIntel<Synthesis>("synthesis");
   // Cold build (stages streaming) → the proof-of-work experience: the founder
   // watches competitors, ICP, demand, and the plan get built, step by step.
   if (loading && stages.length > 0) return <PlanBuildingHero stages={stages} />;
   return (
     <IntelShell loading={loading} error={error} hasData={!!data} stages={stages}>
-      {data && <PlanTimelineBody board={board} synthesis={data} domain={domain || data.domain} score={score} />}
+      {data && <PlanTimelineBody board={board} synthesis={data} domain={domain || data.domain} score={score} threadReplies={threadReplies} />}
     </IntelShell>
   );
 }
 
-export function PlanTimelineBody({ board, synthesis, domain, score, today: todayProp }: { board: ActionBoard; synthesis: Synthesis; domain: string; score?: PlanScore | null; today?: Date }) {
+export function PlanTimelineBody({ board, synthesis, domain, score, today: todayProp, threadReplies }: { board: ActionBoard; synthesis: Synthesis; domain: string; score?: PlanScore | null; today?: Date; threadReplies?: ThreadReplyInput[] }) {
   // Stable "today" for the lifetime of the view (fixture pages inject one).
   const [today] = useState(() => todayProp ?? new Date());
 
   // The rolling 30-day plan — one shared builder (also drives the dashboard
   // preview): pace, place on days from today, fill the daily-post habit.
+  // `threadReplies` is cache-warm demand data the page loaded alongside the
+  // board (never a fresh gather) — optional, so an empty/absent list just
+  // means no reply quick-wins this render, never a fabricated one.
   const days: ScheduledDay[] = useMemo(
-    () => buildPlanDays({
+    () => buildPlanDaysWithReplies({
       board,
       category: synthesis.category,
       content: synthesis.contentPlan,
       distribution: synthesis.distributionPlan,
       today,
+      threadReplies,
     }),
-    [board, synthesis, today],
+    [board, synthesis, today, threadReplies],
   );
 
   const byDate = useMemo(() => new Map(days.map((d) => [d.date, d.entries])), [days]);
@@ -92,10 +126,31 @@ export function PlanTimelineBody({ board, synthesis, domain, score, today: today
   }, [synthesis]);
 
   const [selected, setSelected] = useState<string | null>(null);
-  // Default focus: today if it has work, else the first scheduled day.
+  // Default focus: today if it has work, else the first scheduled day. Once the
+  // founder explicitly picks a day (including a past day with nothing on it —
+  // greyed but clickable), that pick wins outright: `selected` isn't gated on
+  // `byDate.has(...)` so an empty day can still become the active panel.
   const todayKey = localDateKey(today);
-  const activeDate = selected && byDate.has(selected) ? selected : byDate.has(todayKey) ? todayKey : days[0]?.date ?? null;
+  const activeDate = selected ?? (byDate.has(todayKey) ? todayKey : days[0]?.date ?? null);
   const activeEntries: PlanEntry[] = activeDate ? byDate.get(activeDate) ?? [] : [];
+
+  // The headline is always the day's top 3 — one per impact horizon
+  // (short/medium/long), backfilled when a horizon is empty. Anything left
+  // over stays reachable behind a "more" toggle rather than silently dropped.
+  const headlineEntries = useMemo(() => topThreeByHorizon(activeEntries), [activeEntries]);
+  const extraEntries = useMemo(
+    () => { const picked = new Set(headlineEntries.map((e) => e.key)); return activeEntries.filter((e) => !picked.has(e.key)); },
+    [activeEntries, headlineEntries],
+  );
+  // Reset the "more" toggle when the founder switches days — adjusted during
+  // render (React's recommended reset-on-prop-change pattern) rather than in
+  // an effect, so there's no extra render pass / no setState-in-effect lint.
+  const [showMore, setShowMore] = useState(false);
+  const [showMoreForDate, setShowMoreForDate] = useState(activeDate);
+  if (showMoreForDate !== activeDate) {
+    setShowMoreForDate(activeDate);
+    setShowMore(false);
+  }
 
   const openCount = days.reduce((s, d) => s + d.entries.length, 0);
   const measured = board.done.filter((a) => a.actualDelta !== null);
@@ -103,31 +158,37 @@ export function PlanTimelineBody({ board, synthesis, domain, score, today: today
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      {/* Summary strip — the whole plan at a glance, score first: working the
-          plan is how the number moves, and the number lives where the work is. */}
-      <Card style={{ padding: "16px 22px" }}>
-        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 32 }}>
-          {score && (
+      {/* Slim status strip — one line, calendar-first: the plan itself (the
+          calendar) is the main event, this is just orientation above it. */}
+      <div style={{
+        display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: 20,
+        padding: "9px 16px", border: "1px solid var(--c-line)", borderRadius: "var(--radius-lg)", background: "var(--c-surface)",
+      }}>
+        {score && (
+          <>
             <span style={{ display: "inline-flex", alignItems: "baseline", gap: 8 }}>
-              <span style={{ fontFamily: JM, fontSize: 22, fontWeight: 700, lineHeight: 1, color: "var(--c-action)" }}>{score.total}</span>
-              <Eyebrow>Score</Eyebrow>
+              <span style={{ fontFamily: JM, fontSize: 18, fontWeight: 800, lineHeight: 1, color: "var(--c-action)" }}>{score.total}</span>
+              <span style={{ fontSize: 12.5, color: "var(--c-muted)" }}>Discoverability</span>
               {score.delta !== 0 && (
-                <span style={{ fontFamily: JM, fontSize: 12, fontWeight: 700, color: score.delta > 0 ? VERIFIED_COLOR : "var(--color-danger)" }}>
+                <span style={{ fontFamily: JM, fontSize: 11.5, fontWeight: 700, color: score.delta > 0 ? VERIFIED_COLOR : "var(--color-danger)" }}>
                   {fmtPts(score.delta)}
                 </span>
               )}
             </span>
-          )}
-          <Stat label="To do" value={openCount} />
-          <Stat label="Verifying" value={board.verifying.length} color={board.verifying.length > 0 ? VERIFYING_COLOR : undefined} />
-          <Stat label="Verified" value={board.done.length} color={board.done.length > 0 ? VERIFIED_COLOR : undefined} />
+            <span aria-hidden style={{ color: "var(--c-line)" }}>·</span>
+          </>
+        )}
+        <StripStat label="to do" value={openCount} />
+        <StripStat label="verifying" value={board.verifying.length} color={board.verifying.length > 0 ? VERIFYING_COLOR : undefined} />
+        <span style={{ fontSize: 12.5, color: "var(--c-muted)" }}>
+          <span style={{ fontFamily: JM, fontWeight: 700, color: board.done.length > 0 ? VERIFIED_COLOR : "var(--c-ink)" }}>{board.done.length}</span> verified
           {verifiedPts !== null && (
-            <span style={{ marginLeft: "auto", fontFamily: JM, fontSize: 13, fontWeight: 700, color: verifiedPts >= 0 ? VERIFIED_COLOR : "var(--color-danger)" }}>
-              {fmtPts(verifiedPts)} verified on your score
+            <span style={{ marginLeft: 6, fontFamily: JM, fontWeight: 700, color: verifiedPts >= 0 ? VERIFIED_COLOR : "var(--color-danger)" }}>
+              {fmtPts(verifiedPts)}
             </span>
           )}
-        </div>
-      </Card>
+        </span>
+      </div>
 
       {/* The calendar — the plan laid out day by day, starting today */}
       {days.length === 0 ? (
@@ -143,7 +204,7 @@ export function PlanTimelineBody({ board, synthesis, domain, score, today: today
                 <h3 style={{ fontFamily: SG, fontWeight: 700, fontSize: 15, color: "var(--c-ink)", margin: 0 }}>
                   {activeDate === todayKey ? "Today" : dayHeading(activeDate)}
                 </h3>
-                {(() => {
+                {activeEntries.length > 0 && (() => {
                   // Split the day's load so a weekly deep piece (content, ~90 min+)
                   // reads as focused work rather than a scary daily obligation
                   // stacked onto the ~10-min daily habit. Most days are just the
@@ -161,9 +222,36 @@ export function PlanTimelineBody({ board, synthesis, domain, score, today: today
                 })()}
                 {activeDate === todayKey && <span style={{ fontFamily: JM, fontSize: 10.5, fontWeight: 700, color: "var(--c-action)" }}>← start here</span>}
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {activeEntries.map((e) => <PlanEntryCard key={e.key} entry={e} domain={domain} detail={detailFor(e)} />)}
-              </div>
+              {activeEntries.length > 0 ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {headlineEntries.map((e) => <PlanEntryCard key={e.key} entry={e} domain={domain} detail={detailFor(e)} />)}
+                  {extraEntries.length > 0 && (
+                    <>
+                      {showMore && extraEntries.map((e) => <PlanEntryCard key={e.key} entry={e} domain={domain} detail={detailFor(e)} />)}
+                      <button
+                        type="button"
+                        onClick={() => setShowMore((s) => !s)}
+                        style={{
+                          alignSelf: "flex-start", background: "none", border: "none", padding: "2px 0",
+                          fontFamily: JM, fontSize: 11, fontWeight: 700, color: "var(--c-action)", cursor: "pointer",
+                        }}
+                      >
+                        {showMore ? "▾ show fewer" : `▸ +${extraEntries.length} more scheduled today`}
+                      </button>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div style={{
+                  padding: "20px 16px", textAlign: "center", border: "1px dashed var(--c-line)", borderRadius: "var(--radius-lg)",
+                  fontSize: 12.5, color: "var(--c-faint)",
+                }}>
+                  {activeDate !== null && activeDate < todayKey
+                    ? "Nothing was scheduled for this day."
+                    : "Nothing scheduled for this day yet."}
+                </div>
+              )}
+              <GenerateMoreControl />
             </section>
           )}
         </>
@@ -209,6 +297,99 @@ export function PlanTimelineBody({ board, synthesis, domain, score, today: today
           Verified wins land on your Progress timeline &rarr;
         </Link>
       </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Generate more — POSTs /api/app/plan/generate (Task 4: paid + costed, cache-
+// warm in the common path since it reuses the same synthesis gather the
+// Plans/Synthesis intel pages already trigger) and, on success, refreshes the
+// server-loaded board via `router.refresh()` so the new pending actions land
+// on the calendar without a full reload.
+// ---------------------------------------------------------------------------
+
+function GenerateMoreControl() {
+  const router = useRouter();
+  const [pending, setPending] = useState(false);
+  const [higherImpactOnly, setHigherImpactOnly] = useState(false);
+  const [notice, setNotice] = useState<{ kind: "empty" | "error" | "success"; text: string } | null>(null);
+
+  const generate = useCallback(async () => {
+    setPending(true);
+    setNotice(null);
+    try {
+      const res = await fetch("/api/app/plan/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ higherImpactOnly }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setNotice({ kind: "error", text: "Couldn't generate right now — try again." });
+        return;
+      }
+      const added = Array.isArray(json?.added) ? json.added : [];
+      if (added.length === 0) {
+        setNotice({ kind: "empty", text: "You're on top of it — your next scan surfaces more." });
+      } else {
+        // The new rows now exist in the `actions` table — re-run the server
+        // component so the board it reads picks them up on this same page.
+        // They're §11-scheduled, so they often land on future calendar days
+        // rather than today — without an explicit notice the button can look
+        // inert even though it worked, so say what happened.
+        setNotice({ kind: "success", text: `Added ${added.length} action${added.length === 1 ? "" : "s"} to your plan` });
+        router.refresh();
+      }
+    } catch {
+      setNotice({ kind: "error", text: "Couldn't generate right now — try again." });
+    } finally {
+      setPending(false);
+    }
+  }, [higherImpactOnly, router]);
+
+  // The friendly "nothing new" and success notices are transient — they clear
+  // themselves so they don't linger as stale chrome under the panel. The
+  // error notice stays until the founder retries.
+  useEffect(() => {
+    if (!notice || notice.kind === "error") return;
+    const t = setTimeout(() => setNotice(null), 6000);
+    return () => clearTimeout(t);
+  }, [notice]);
+
+  return (
+    <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px dashed var(--c-line)", display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 14 }}>
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => void generate()}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            background: "var(--c-action)", color: "var(--c-on-dark)",
+            fontFamily: PJ, fontWeight: 600, fontSize: 12.5, lineHeight: 1,
+            padding: "9px 15px", borderRadius: "var(--radius-lg)", border: "none",
+            cursor: pending ? "default" : "pointer", opacity: pending ? 0.7 : 1,
+          }}
+        >
+          {pending ? "Generating…" : "✨ Generate more actions"}
+        </button>
+        <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--c-muted)", cursor: "pointer" }}>
+          <input
+            type="checkbox"
+            checked={higherImpactOnly}
+            onChange={(e) => setHigherImpactOnly(e.target.checked)}
+            disabled={pending}
+            style={{ width: 14, height: 14, accentColor: "var(--c-action)" }}
+          />
+          Higher-impact only
+        </label>
+      </div>
+      {notice && (
+        <p role="status" style={{ margin: 0, fontSize: 12, lineHeight: 1.5, color: notice.kind === "error" ? "var(--color-danger)" : "var(--c-muted)" }}>
+          {notice.text}
+        </p>
+      )}
     </div>
   );
 }
@@ -311,23 +492,25 @@ function PlanCalendar({ days, today, activeDate, onSelect }: {
                   const isToday = key === todayKey;
                   const isActive = key === activeDate;
                   const isPast = key < todayKey;
-                  const clickable = entries.length > 0;
+                  // Every day is clickable — past days included, greyed via
+                  // opacity but still selectable so the founder can review what
+                  // was (or wasn't) scheduled on a day that's already gone.
                   return (
                     <div
                       key={key}
-                      role={clickable ? "button" : undefined}
-                      tabIndex={clickable ? 0 : undefined}
-                      onClick={clickable ? () => onSelect(key) : undefined}
-                      onKeyDown={clickable ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(key); } } : undefined}
-                      aria-label={clickable ? `${dayHeading(key)} — ${entries.length} ${entries.length === 1 ? "action" : "actions"}` : undefined}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => onSelect(key)}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(key); } }}
+                      aria-label={`${dayHeading(key)} — ${entries.length} ${entries.length === 1 ? "action" : "actions"}`}
                       style={{
                         minHeight: 54,
                         border: `1px solid ${isActive ? "var(--c-action)" : "var(--c-line)"}`,
                         borderRadius: "var(--radius-md)",
                         background: isActive ? "var(--c-soft)" : "var(--c-surface)",
                         padding: "4px 5px 5px",
-                        opacity: isPast && !clickable ? 0.45 : 1,
-                        cursor: clickable ? "pointer" : "default",
+                        opacity: isPast ? 0.5 : 1,
+                        cursor: "pointer",
                         display: "flex", flexDirection: "column", gap: 3, minWidth: 0,
                       }}
                     >
@@ -449,11 +632,10 @@ function LifecycleRow({ action, state }: { action: BoardAction; state: "verifyin
   );
 }
 
-function Stat({ label, value, color }: { label: string; value: number; color?: string }) {
+function StripStat({ label, value, color }: { label: string; value: number; color?: string }) {
   return (
-    <span style={{ display: "inline-flex", alignItems: "baseline", gap: 8 }}>
-      <span style={{ fontFamily: JM, fontSize: 22, fontWeight: 700, lineHeight: 1, color: color ?? "var(--c-ink)" }}>{value}</span>
-      <Eyebrow>{label}</Eyebrow>
+    <span style={{ fontSize: 12.5, color: "var(--c-muted)" }}>
+      <span style={{ fontFamily: JM, fontWeight: 700, color: color ?? "var(--c-ink)" }}>{value}</span> {label}
     </span>
   );
 }
