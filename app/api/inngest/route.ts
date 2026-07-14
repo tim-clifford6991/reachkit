@@ -1,12 +1,12 @@
 import { serve } from "inngest/next";
 import { inngest } from "@/lib/inngest/client";
-import { env } from "@/lib/config/env";
 
-// Force the env parse when this route module loads. lib/config/env.ts now
-// REQUIRES INNGEST_SIGNING_KEY in production, so a prod deploy missing it throws
-// here instead of serving an unauthenticated invocation endpoint. `serve()`
-// reads the key from process.env automatically to verify invocation signatures.
-void env.inngestSigningKey;
+// Signature verification: `serve()` reads INNGEST_SIGNING_KEY from process.env
+// and verifies every invocation with it. lib/config/env.ts REQUIRES that key in
+// production (PAID_KEYS) — enforced at the first env access on any real request —
+// so a prod deploy missing it fails rather than serving this endpoint unsigned.
+// (Not forced at module load: that would run during `next build` page-data
+// collection, where the key isn't set, and break the build.)
 import { scanDemo } from "@/lib/inngest/functions/scan-demo";
 import { scanRequested } from "@/lib/inngest/functions/scan-requested";
 import { scanDeepen } from "@/lib/inngest/functions/scan-deepen";
