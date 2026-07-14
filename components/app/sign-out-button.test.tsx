@@ -14,9 +14,9 @@ describe("SignOutButton (WS6)", () => {
     expect(html).toContain('method="post"');
   });
 
-  it("does not sign out on initial render — the confirm dialog is closed", () => {
-    // The destructive copy only appears once the dialog opens; the initial
-    // static markup is just the trigger + hidden form.
-    expect(html).not.toContain("need your email to sign back in");
+  it("the trigger is a type=button (submit only happens after confirm)", () => {
+    // The button must NOT be a submit button — it submits the form only after
+    // window.confirm() passes, so a stray click can't sign the user out.
+    expect(html).toContain('type="button"');
   });
 });

@@ -2,36 +2,35 @@
 
 /**
  * The sidebar sign-out control (WS6). Replaces the bare `⏻` power glyph with a
- * LABELLED "Sign out" button that opens an are-you-sure confirmation before
- * actually signing out — so a stray click in the footer can't drop the session.
+ * LABELLED "Sign out" button that asks for confirmation before signing out —
+ * so a stray click in the footer can't drop the session.
  *
  * Security is preserved: sign-out is still a POST to `/auth/signout` (never a
- * GET link that prefetch/hover could fire). The confirm's "Sign out" button
- * submits a hidden POST form; "Cancel" just closes the dialog.
+ * GET link that prefetch/hover could fire). On confirm the hidden POST form is
+ * submitted; on cancel nothing happens.
  *
- * The confirm dialog is dynamically imported (it pulls the Base UI Dialog
- * primitive) so it stays out of the shared app-shell first-load chunk — this
- * control renders on every /app route.
+ * The confirmation is the browser-native `confirm()` DELIBERATELY: this control
+ * renders in `app-shell` on EVERY /app route, and the leanest app page
+ * (/app/competitors) sits at exactly the 275 KB app-group budget with zero
+ * headroom — a styled dialog's client machinery (state + the Base UI Dialog)
+ * tips it over the ratchet. A native confirm adds ~zero bytes. Revisit with a
+ * styled dialog if/when the app bundle is reduced (tracked follow-up).
  */
 
-import { useRef, useState } from "react";
-import dynamic from "next/dynamic";
-
-const SignOutConfirm = dynamic(() => import("./sign-out-confirm").then((m) => m.SignOutConfirm), { ssr: false });
+import { useRef } from "react";
 
 export function SignOutButton() {
-  const [open, setOpen] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
   return (
-    <>
-      {/* POST-only sign-out (hidden) — submitted on confirm. A GET link would let
-          prefetch/hover sign the user out; keep it a form. */}
-      <form ref={formRef} action="/auth/signout" method="post" style={{ display: "none" }} aria-hidden="true" />
-
+    <form ref={formRef} action="/auth/signout" method="post" style={{ display: "flex" }}>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          if (window.confirm("Sign out of ReachKit? You'll need your email to sign back in.")) {
+            formRef.current?.submit();
+          }
+        }}
         style={{
           display: "inline-flex", alignItems: "center", gap: 6,
           color: "var(--c-faint)", cursor: "pointer", background: "none", border: "none",
@@ -42,10 +41,6 @@ export function SignOutButton() {
         <span aria-hidden="true" style={{ fontSize: 14 }}>⏻</span>
         Sign out
       </button>
-
-      {open && (
-        <SignOutConfirm onCancel={() => setOpen(false)} onConfirm={() => formRef.current?.submit()} />
-      )}
-    </>
+    </form>
   );
 }
