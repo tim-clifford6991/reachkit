@@ -55,6 +55,10 @@ import type { ActionCard, ActionTarget, ActionTargetChannel } from "@/lib/llm/ty
 
 const Body = z.object({
   higherImpactOnly: z.boolean().optional(),
+  // The founder's LOCAL calendar day ("YYYY-MM-DD"), so the generated actions
+  // pin to the same "today" their plan renders (the server clock/timezone may
+  // differ). Validated; falls back to the server date when absent/malformed.
+  today: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 });
 
 /** Bounded — a single "generate more" click never floods the plan. */
@@ -143,6 +147,10 @@ export async function POST(req: NextRequest) {
   const raw = await req.json().catch(() => ({}));
   const parsed = Body.safeParse(raw ?? {});
   const higherImpactOnly = parsed.success ? (parsed.data.higherImpactOnly ?? false) : false;
+  // Pin generated actions to the founder's today (their local date, or the
+  // server's UTC date as a safe fallback) so they land on the day they asked.
+  const scheduledFor =
+    (parsed.success && parsed.data.today) || new Date().toISOString().slice(0, 10);
 
   const appId = await activeAppId(viewer.user);
   if (!appId) return NextResponse.json({ message: "no active app" }, { status: 400 });
@@ -216,6 +224,9 @@ export async function POST(req: NextRequest) {
         draft_requires_edit: true,
         effort_min: c.effortMin,
         target: (c.target ?? null) as Json | null,
+        // Pin to the founder's today so "generate more" lands on the day they
+        // asked, not paced across the week (bypasses the scheduler).
+        scheduled_for: scheduledFor,
       }));
 
       const { data: inserted, error: insErr } = await db

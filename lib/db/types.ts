@@ -49,6 +49,7 @@ export type Database = {
           expected_outcome: Json | null
           id: string
           scan_id: string | null
+          scheduled_for: string | null
           score_component: string | null
           signal_keys: string[]
           status: string
@@ -73,6 +74,7 @@ export type Database = {
           expected_outcome?: Json | null
           id?: string
           scan_id?: string | null
+          scheduled_for?: string | null
           score_component?: string | null
           signal_keys?: string[]
           status?: string
@@ -97,6 +99,7 @@ export type Database = {
           expected_outcome?: Json | null
           id?: string
           scan_id?: string | null
+          scheduled_for?: string | null
           score_component?: string | null
           signal_keys?: string[]
           status?: string

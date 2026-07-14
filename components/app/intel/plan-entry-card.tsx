@@ -58,6 +58,10 @@ const btnGhost: React.CSSProperties = {
   background: "transparent", border: "1px solid var(--c-line)", borderRadius: "var(--radius-full)",
   padding: "4px 12px", fontFamily: PJ, fontSize: 11.5, fontWeight: 600, color: "var(--c-ink)", cursor: "pointer",
 };
+// The "Open →" affordances are real hyperlinks (anchors), not window.open
+// buttons — so the founder can middle-click, right-click "open in new tab",
+// see the destination on hover, and reach them by keyboard like any link.
+const linkPrimary: React.CSSProperties = { ...btnPrimary, textDecoration: "none" };
 
 export function PlanEntryCard({ entry, domain, detail }: { entry: PlanEntry; domain: string; detail?: EntryDetail }) {
   const router = useRouter();
@@ -168,19 +172,22 @@ export function PlanEntryCard({ entry, domain, detail }: { entry: PlanEntry; dom
     }
   }, [entry, route, domain, productUrl, draft]);
 
-  // -- Handoff ----------------------------------------------------------------
-  const openComposer = useCallback(() => {
-    if (!route || route.kind !== "share" || !draft) return;
-    void track(draft);
-    const shareUrl = buildShareUrl(route.platform, { text: draft.text, url: productUrl, title: draft.title, subreddit: route.subreddit });
-    window.open(shareUrl, "_blank", "noopener,noreferrer");
-  }, [route, draft, productUrl, track]);
+  // -- Handoff — the "Open →" affordances are real <a href> links (see the
+  // action row). These are their click side-effects only: record that the
+  // founder acted, then let the browser follow the href (target=_blank). We
+  // never preventDefault, so middle-click / right-click "open in new tab" all
+  // work like any hyperlink.
+  const composerHref = route?.kind === "share" && draft
+    ? buildShareUrl(route.platform, { text: draft.text, url: productUrl, title: draft.title, subreddit: route.subreddit })
+    : undefined;
 
-  const openVenue = useCallback(() => {
-    if (!entry.targetUrl) return;
+  const onOpenComposer = useCallback(() => {
+    if (draft) void track(draft);
+  }, [draft, track]);
+
+  const onOpenVenue = useCallback(() => {
     void track(draft ?? undefined);
-    window.open(entry.targetUrl, "_blank", "noopener,noreferrer");
-  }, [entry.targetUrl, draft, track]);
+  }, [draft, track]);
 
   // -- Done → verify ----------------------------------------------------------
   const markDone = useCallback(async () => {
@@ -269,11 +276,11 @@ export function PlanEntryCard({ entry, domain, detail }: { entry: PlanEntry; dom
         ) : (
           <>
             {isThreadReply && entry.targetUrl ? (
-              <button type="button" onClick={openVenue} style={btnPrimary}>Open {threadLabel} →</button>
-            ) : route?.kind === "share" ? (
-              <button type="button" onClick={openComposer} style={btnPrimary}>Open {SHARE_LABEL[route.platform]} →</button>
+              <a href={entry.targetUrl} target="_blank" rel="noopener noreferrer" onClick={onOpenVenue} style={linkPrimary}>Open {threadLabel} →</a>
+            ) : route?.kind === "share" && composerHref ? (
+              <a href={composerHref} target="_blank" rel="noopener noreferrer" onClick={onOpenComposer} style={linkPrimary}>Open {SHARE_LABEL[route.platform]} →</a>
             ) : route?.kind === "coach" && entry.targetUrl ? (
-              <button type="button" onClick={openVenue} style={btnPrimary}>Open {entry.target ?? "venue"} →</button>
+              <a href={entry.targetUrl} target="_blank" rel="noopener noreferrer" onClick={onOpenVenue} style={linkPrimary}>Open {entry.target ?? "venue"} →</a>
             ) : null}
             <CopyButton text={[draft.title, draft.text].filter(Boolean).join("\n\n")} label="Copy" />
             <button type="button" onClick={() => void generate()} style={{ background: "none", border: "none", fontSize: 11, color: "var(--c-muted)", cursor: "pointer", padding: 0 }}>↻ redraft</button>

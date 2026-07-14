@@ -251,7 +251,7 @@ export function PlanTimelineBody({ board, synthesis, domain, score, today: today
                     : "Nothing scheduled for this day yet."}
                 </div>
               )}
-              <GenerateMoreControl />
+              <GenerateMoreControl todayKey={todayKey} />
             </section>
           )}
         </>
@@ -309,7 +309,7 @@ export function PlanTimelineBody({ board, synthesis, domain, score, today: today
 // on the calendar without a full reload.
 // ---------------------------------------------------------------------------
 
-function GenerateMoreControl() {
+function GenerateMoreControl({ todayKey }: { todayKey: string }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [higherImpactOnly, setHigherImpactOnly] = useState(false);
@@ -322,7 +322,9 @@ function GenerateMoreControl() {
       const res = await fetch("/api/app/plan/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ higherImpactOnly }),
+        // Send our local day so the new actions pin to the same "today" this
+        // plan renders (the server timezone may differ).
+        body: JSON.stringify({ higherImpactOnly, today: todayKey }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -333,12 +335,10 @@ function GenerateMoreControl() {
       if (added.length === 0) {
         setNotice({ kind: "empty", text: "You're on top of it — your next scan surfaces more." });
       } else {
-        // The new rows now exist in the `actions` table — re-run the server
-        // component so the board it reads picks them up on this same page.
-        // They're §11-scheduled, so they often land on future calendar days
-        // rather than today — without an explicit notice the button can look
-        // inert even though it worked, so say what happened.
-        setNotice({ kind: "success", text: `Added ${added.length} action${added.length === 1 ? "" : "s"} to your plan` });
+        // The new rows exist in `actions`, pinned to today — re-run the server
+        // component so the board it reads picks them up and they appear in
+        // today's list on this same page (no full reload).
+        setNotice({ kind: "success", text: `Added ${added.length} action${added.length === 1 ? "" : "s"} to today` });
         router.refresh();
       }
     } catch {
@@ -346,7 +346,7 @@ function GenerateMoreControl() {
     } finally {
       setPending(false);
     }
-  }, [higherImpactOnly, router]);
+  }, [higherImpactOnly, todayKey, router]);
 
   // The friendly "nothing new" and success notices are transient — they clear
   // themselves so they don't linger as stale chrome under the panel. The

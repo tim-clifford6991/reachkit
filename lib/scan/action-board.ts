@@ -65,6 +65,9 @@ export interface BoardAction {
   effortMin: number | null;
   /** Structured execution target (venue/recipient), null for legacy/on-site actions. */
   target: ActionTarget | null;
+  /** Pinned calendar day ("YYYY-MM-DD") when the founder scheduled it explicitly
+   *  (e.g. "generate more for today"); null = paced by the scheduler. */
+  scheduledFor: string | null;
 }
 
 /** Open-queue order: biggest predicted Δ first; actions without a prediction sink last. */
@@ -99,7 +102,7 @@ export async function actionBoard(appId: string): Promise<ActionBoard> {
   const [{ data: actions }, { data: snaps }] = await Promise.all([
     db
       .from("actions")
-      .select("id, title, category, why, status, verify_state, expected_outcome, created_at, draft, verify_url, effort_min, target")
+      .select("id, title, category, why, status, verify_state, expected_outcome, created_at, draft, verify_url, effort_min, target, scheduled_for")
       .eq("app_id", appId),
     db
       .from("score_snapshots")
@@ -134,6 +137,7 @@ export async function actionBoard(appId: string): Promise<ActionBoard> {
       verifyUrl: (a.verify_url as string | null) ?? null,
       effortMin: (a.effort_min as number | null) ?? null,
       target: (a.target as ActionTarget | null) ?? null,
+      scheduledFor: (a.scheduled_for as string | null) ?? null,
     });
   }
   board.open.sort(byPredictedDeltaDesc);

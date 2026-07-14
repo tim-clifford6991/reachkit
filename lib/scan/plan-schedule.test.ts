@@ -19,6 +19,7 @@ import {
   addThreadReplies,
   buildPlanDays,
   buildPlanDaysWithReplies,
+  placePinnedEntries,
   CONTENT_EFFORT_MIN,
   DAILY_POST_HORIZON_DAYS,
   THREAD_REPLY_EFFORT_MIN,
@@ -39,6 +40,7 @@ function boardAction(overrides: Partial<BoardAction> & { id: string; title: stri
     verifyUrl: null,
     effortMin: null,
     target: null,
+    scheduledFor: null,
     ...overrides,
   };
 }
@@ -99,7 +101,7 @@ describe("mergePlanEntries", () => {
       openActions: [{
         id: "a1", title: "Post in r/productivity", category: "outreach", why: null,
         predictedDelta: 3, actualDelta: null, createdAt: "2026-07-01", verifiedAt: null,
-        draft: null, verifyUrl: null, effortMin: 30,
+        draft: null, verifyUrl: null, effortMin: 30, scheduledFor: null,
         target: { channel: "community", label: "r/productivity", url: "https://reddit.com/r/productivity" },
       }],
       allActionTitles: new Set(["Post in r/productivity"]),
@@ -116,7 +118,7 @@ describe("mergePlanEntries", () => {
       openActions: [{
         id: "a2", title: "Fix title tag", category: "seo", why: null,
         predictedDelta: null, actualDelta: null, createdAt: "2026-07-01", verifiedAt: null,
-        draft: null, verifyUrl: "https://example.com", effortMin: 20, target: null,
+        draft: null, verifyUrl: "https://example.com", effortMin: 20, target: null, scheduledFor: null,
       }],
       allActionTitles: new Set(["Fix title tag"]),
       content: [], distribution: [],
@@ -422,6 +424,50 @@ describe("addThreadReplies — at most 1 reply/day, right after the daily post",
     const days = [{ date: "2026-07-08", entries: [entry({ key: "d1", title: "Distro" })] }];
     const out = addThreadReplies(days, [reply("r1")]);
     expect(out[0]!.entries.map((e) => e.key)).toEqual(["r1", "d1"]);
+  });
+});
+
+describe("placePinnedEntries — scheduledFor pins to a day, bypassing the pacer", () => {
+  const wednesday = new Date(2026, 6, 8); // 2026-07-08
+  const pinnedEntry = (over: Partial<PlanEntry> & { key: string; scheduledFor: string }): PlanEntry => ({
+    actionId: "a", kind: "distribution", title: "t", why: null, channel: null, target: null,
+    targetUrl: null, effortMin: 10, priority: "high", predictedDelta: null, draft: null,
+    tracked: true, evidence: null, ...over,
+  });
+
+  test("lands on its exact day, creating the day if absent", () => {
+    const days = placePinnedEntries([], [pinnedEntry({ key: "k1", scheduledFor: "2026-07-08" })], wednesday);
+    expect(days).toHaveLength(1);
+    expect(days[0]!.date).toBe("2026-07-08");
+    expect(days[0]!.entries.map((e) => e.key)).toEqual(["k1"]);
+  });
+
+  test("a past pin is clamped to today (never schedules into the past)", () => {
+    const days = placePinnedEntries([], [pinnedEntry({ key: "k1", scheduledFor: "2026-07-01" })], wednesday);
+    expect(days[0]!.date).toBe("2026-07-08");
+  });
+
+  test("appends to an existing day and stays date-sorted; empty pins is a no-op", () => {
+    expect(placePinnedEntries([{ date: "2026-07-08", entries: [] }], [], wednesday)).toEqual([{ date: "2026-07-08", entries: [] }]);
+    const existing: ScheduledDay[] = [{ date: "2026-07-10", entries: [] }, { date: "2026-07-08", entries: [{ key: "x" } as PlanEntry] }];
+    const days = placePinnedEntries(existing, [pinnedEntry({ key: "k1", scheduledFor: "2026-07-08" })], wednesday);
+    expect(days.map((d) => d.date)).toEqual(["2026-07-08", "2026-07-10"]);
+    expect(days[0]!.entries.map((e) => e.key)).toEqual(["x", "k1"]);
+  });
+});
+
+describe("buildPlanDays — a pinned tracked action lands on today, not paced", () => {
+  const wednesday = new Date(2026, 6, 8);
+  const todayKey = "2026-07-08";
+
+  test("scheduledFor=today puts the action on today's entries", () => {
+    const board = {
+      open: [boardAction({ id: "gen1", title: "Launch on X", category: "outreach", scheduledFor: todayKey, effortMin: 10 })],
+      retry: [], verifying: [], done: [],
+    };
+    const days = buildPlanDays({ board, category: "SaaS", content: [], distribution: [], today: wednesday });
+    const today = days.find((d) => d.date === todayKey);
+    expect(today?.entries.some((e) => e.actionId === "gen1")).toBe(true);
   });
 });
 
