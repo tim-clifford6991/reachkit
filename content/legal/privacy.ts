@@ -44,11 +44,20 @@ export const privacy: LegalDocument = {
       ],
       list: [
         "Supabase — database, authentication, and storage for your account and scan data.",
+        "Vercel — application hosting and content delivery (processes all requests to the service).",
         "Stripe — subscription billing and payment processing.",
         "Anthropic — the language model that generates report copy and draft actions from your scan inputs.",
         "DataForSEO — keyword, ranking, and search-visibility data used during a scan.",
+        "Tavily — web-search and content retrieval used to enrich competitor and demand analysis during a scan.",
+        "Inngest — background-job orchestration that runs the multi-step scan pipeline.",
         "Resend — transactional email delivery (magic links and account email).",
-        "PostHog — privacy-conscious product analytics.",
+        "PostHog — privacy-conscious product analytics (only after you accept analytics cookies).",
+      ],
+    },
+    {
+      heading: "Data Processing Agreement",
+      body: [
+        "We maintain Data Processing Agreements with our sub-processors. If you require a DPA for your own compliance, contact us at the address below and we'll provide one.",
       ],
     },
     {

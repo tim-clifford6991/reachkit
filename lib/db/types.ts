@@ -749,6 +749,7 @@ export type Database = {
           preliminary_facts: Json | null
           rank_data_fetched_at: string | null
           report_payload: Json | null
+          scan_consent_at: string | null
           score_breakdown: Json | null
           score_total: number | null
           score_version: number
@@ -772,6 +773,7 @@ export type Database = {
           preliminary_facts?: Json | null
           rank_data_fetched_at?: string | null
           report_payload?: Json | null
+          scan_consent_at?: string | null
           score_breakdown?: Json | null
           score_total?: number | null
           score_version?: number
@@ -795,6 +797,7 @@ export type Database = {
           preliminary_facts?: Json | null
           rank_data_fetched_at?: string | null
           report_payload?: Json | null
+          scan_consent_at?: string | null
           score_breakdown?: Json | null
           score_total?: number | null
           score_version?: number

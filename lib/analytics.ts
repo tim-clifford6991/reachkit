@@ -8,6 +8,16 @@ type PostHogInstance = import("posthog-js").PostHog;
 
 let ph: PostHogInstance | null = null;
 
+/** localStorage key persisting the visitor's analytics-cookie choice. */
+export const CONSENT_KEY = "rk_analytics_consent";
+
+/** The stored consent decision, or null if the visitor hasn't chosen yet. */
+export function consentChoice(): "granted" | "denied" | null {
+  if (typeof window === "undefined") return null;
+  const v = window.localStorage.getItem(CONSENT_KEY);
+  return v === "granted" || v === "denied" ? v : null;
+}
+
 async function client(): Promise<PostHogInstance | null> {
   if (typeof window === "undefined") return null;                 // SSR: no-op
   const key = process.env.NEXT_PUBLIC_POSTHOG_KEY;
@@ -17,14 +27,35 @@ async function client(): Promise<PostHogInstance | null> {
     posthog.init(key, {
       api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://us.i.posthog.com",
       capture_pageview: false,
+      // GDPR/ePrivacy: capture NOTHING until the visitor accepts analytics
+      // cookies. grantConsent() opts in; before that every capture() is a no-op.
+      opt_out_capturing_by_default: true,
     });
     ph = posthog;
+    // Re-apply a previously-granted choice across page loads.
+    if (consentChoice() === "granted") ph.opt_in_capturing();
   }
   return ph;
 }
 
 export function capture(event: string, props?: Record<string, unknown>) {
+  // Fast path: never even load posthog-js before consent is granted.
+  if (consentChoice() !== "granted") return;
   void client().then((c) => c?.capture(event, props));
+}
+
+/** Accept analytics cookies: persist + opt in (starts capturing). */
+export function grantConsent(): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(CONSENT_KEY, "granted");
+  void client().then((c) => c?.opt_in_capturing());
+}
+
+/** Reject analytics cookies: persist + opt out (stays silent). */
+export function revokeConsent(): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(CONSENT_KEY, "denied");
+  void client().then((c) => c?.opt_out_capturing());
 }
 
 // ---------------------------------------------------------------------------
