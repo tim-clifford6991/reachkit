@@ -8,10 +8,16 @@
  * Security is preserved: sign-out is still a POST to `/auth/signout` (never a
  * GET link that prefetch/hover could fire). The confirm's "Sign out" button
  * submits a hidden POST form; "Cancel" just closes the dialog.
+ *
+ * The confirm dialog is dynamically imported (it pulls the Base UI Dialog
+ * primitive) so it stays out of the shared app-shell first-load chunk — this
+ * control renders on every /app route.
  */
 
 import { useRef, useState } from "react";
-import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import dynamic from "next/dynamic";
+
+const SignOutConfirm = dynamic(() => import("./sign-out-confirm").then((m) => m.SignOutConfirm), { ssr: false });
 
 export function SignOutButton() {
   const [open, setOpen] = useState(false);
@@ -37,30 +43,9 @@ export function SignOutButton() {
         Sign out
       </button>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogTitle>Sign out?</DialogTitle>
-          <DialogDescription>
-            You&apos;ll be signed out of ReachKit. You&apos;ll need your email to sign back in.
-          </DialogDescription>
-          <DialogFooter>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="inline-flex items-center justify-center rounded-full border border-[var(--c-line)] px-4 py-2 text-sm font-semibold text-[var(--c-ink)] hover:bg-[var(--c-fill)]"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={() => formRef.current?.submit()}
-              className="inline-flex items-center justify-center rounded-full bg-[var(--c-action)] px-4 py-2 text-sm font-semibold text-[var(--c-on-dark)] hover:opacity-90"
-            >
-              Sign out
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {open && (
+        <SignOutConfirm onCancel={() => setOpen(false)} onConfirm={() => formRef.current?.submit()} />
+      )}
     </>
   );
 }
