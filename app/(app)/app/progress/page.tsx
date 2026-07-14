@@ -8,7 +8,7 @@ import { signalChanges } from "@/lib/scan/signal-diff";
 import { ProgressView } from "@/components/app/intel/progress-view";
 import { buildMetadata } from "@/lib/seo";
 
-export const metadata = buildMetadata({ title: "Progress", path: "/app/progress" });
+export const metadata = buildMetadata({ title: "History", path: "/app/progress" });
 
 /**
  * Progress — the Discoverability Score history: a large annotated trend chart

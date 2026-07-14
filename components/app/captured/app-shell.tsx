@@ -34,7 +34,7 @@ const NAV: (NavItem | NavGroup)[] = [
   { label: "Plan", badge: true, href: "/app/plan", icon: (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3 8-8" /><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9" /></svg>
   ) },
-  { label: "Progress", href: "/app/progress", icon: (
+  { label: "History", href: "/app/progress", icon: (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 17 9 11 13 15 21 6" /><polyline points="14 6 21 6 21 13" /></svg>
   ) },
   { label: "Settings", href: "/app/settings", icon: (
