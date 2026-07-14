@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { createServerSupabase } from "@/lib/auth/server";
+import { hashIp, ipFromRequest } from "@/lib/scan/abuse";
+import { rateLimitAllow, MAGIC_LINK_PER_IP, MAGIC_LINK_PER_EMAIL } from "@/lib/auth/rate-limit";
 
 /**
  * POST /api/auth/magic-link — send a passwordless sign-in link.
@@ -16,6 +18,18 @@ export async function POST(req: NextRequest) {
 
   if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
     return NextResponse.json({ message: "Enter a valid email address." }, { status: 400 });
+  }
+
+  // Rate-limit BOTH the sender IP (enumeration / spraying many addresses) and
+  // the target email (bombing one inbox). Deny if either ceiling is hit — a
+  // magic link is the sole login path, so its abuse surface is real.
+  const ipHash = hashIp(ipFromRequest(req));
+  const emailKey = email.toLowerCase();
+  if (
+    !rateLimitAllow(`magic-link:ip:${ipHash}`, MAGIC_LINK_PER_IP) ||
+    !rateLimitAllow(`magic-link:email:${emailKey}`, MAGIC_LINK_PER_EMAIL)
+  ) {
+    return NextResponse.json({ message: "Too many requests — please wait a bit and try again." }, { status: 429 });
   }
 
   const supa = await createServerSupabase();

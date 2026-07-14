@@ -16,6 +16,10 @@ const PAID_KEYS = [
   "PRODUCT_HUNT_TOKEN",
   "YOUTUBE_API_KEY",
   "VOYAGE_API_KEY",
+  // Signing key for the Inngest serve endpoint — without it the
+  // function-invocation endpoint (/api/inngest) is unauthenticated. Required in
+  // prod so a misconfigured deploy fails at boot, not silently open.
+  "INNGEST_SIGNING_KEY",
 ] as const;
 
 const schema = z.object({
@@ -43,6 +47,7 @@ const schema = z.object({
   // Analytics — fully optional
   POSTHOG_KEY: z.string().optional().default(""),
   POSTHOG_HOST: z.string().optional().default(""),
+  INNGEST_SIGNING_KEY: z.string().optional().default(""),
   APP_URL: z.string().optional().default("http://localhost:3000"),
   SCAN_BUDGET_CENTS: z.coerce.number().int().positive().default(250),
   // Weekly delta-refresh ceiling — cheaper than a first scan; the refresh re-runs
@@ -103,6 +108,7 @@ export function parseEnv(src: NodeJS.ProcessEnv) {
     dataforseoLocationCode: p.DATAFORSEO_LOCATION_CODE, dataforseoLanguageCode: p.DATAFORSEO_LANGUAGE_CODE,
     tavilyUsdPerCredit: p.TAVILY_USD_PER_CREDIT,
     useFixtures: p.REACHKIT_USE_FIXTURES,
+    inngestSigningKey: p.INNGEST_SIGNING_KEY,
     ownerEmails: p.REACHKIT_OWNER_EMAILS,
     profileDebug: p.PROFILE_DEBUG,
     appUrl: p.APP_URL,
