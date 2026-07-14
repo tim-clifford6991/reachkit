@@ -197,7 +197,14 @@ const walk = (dir) => {
   const abs = p(dir);
   if (!existsSync(abs)) return [];
   return readdirSync(abs, { withFileTypes: true }).flatMap((d) =>
-    d.isDirectory() ? walk(`${dir}/${d.name}`) : d.name.endsWith(".tsx") ? [`${dir}/${d.name}`] : [],
+    d.isDirectory()
+      ? walk(`${dir}/${d.name}`)
+      : // A live UI component — never a test file (a *.test.tsx is not a
+        // component and has no sensible DS mirror; counting it inflated the
+        // coverage gap).
+        d.name.endsWith(".tsx") && !d.name.includes(".test.")
+        ? [`${dir}/${d.name}`]
+        : [],
   );
 };
 const uncovered = [];
