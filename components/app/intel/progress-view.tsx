@@ -16,16 +16,15 @@ import { SCORE_BANDS } from "@/lib/scan/score-bands";
 import type { ScoreHistoryPoint } from "@/lib/scan/engagement";
 import type { HistoryMarker } from "@/lib/scan/score-history-markers";
 import type { SignalChange } from "@/lib/scan/signal-diff";
+import type { ProgressEvent } from "@/lib/scan/progress-events";
 
 const JM = "var(--font-mono)";
 
-export interface ProgressEvent {
-  label: string;
-  date: string;
-  delta?: number;
-  /** When set, "What changed" renders this row as a plan deep-link. */
-  href?: string;
-}
+// Single-sourced in lib/scan/progress-events.ts (the pure builder shared by
+// this page and the dashboard recap) — re-exported here so every existing
+// `import { ProgressEvent } from "@/components/app/intel/progress-view"` keeps
+// working.
+export type { ProgressEvent } from "@/lib/scan/progress-events";
 
 export interface ProgressViewProps {
   history: ScoreHistoryPoint[];
