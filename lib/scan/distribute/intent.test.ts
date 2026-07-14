@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildShareUrl, deliveryMode } from "./intent";
+import { buildShareUrl, deliveryMode, stripSharedUrl } from "./intent";
 
 describe("buildShareUrl", () => {
   it("X: text + url + hashtags, encoded", () => {
@@ -41,6 +41,40 @@ describe("buildShareUrl", () => {
   it("Telegram + Threads carry url + text", () => {
     expect(buildShareUrl("telegram", { url: "https://me.com", text: "hi" })).toContain("t.me/share/url?");
     expect(buildShareUrl("threads", { text: "hi", url: "https://me.com" })).toContain("threads.net/intent/post?");
+  });
+
+  it("X: link the draft already carries on its own line is NOT duplicated (only the url param remains)", () => {
+    // The real bug: draft ends with the product link AND we pass it as `url` →
+    // "https://nudgi.ai https://nudgi.ai". The body copy must be stripped.
+    const u = new URL(
+      buildShareUrl("x", { text: "Great tip about launching.\n\nhttps://nudgi.ai", url: "https://nudgi.ai" }),
+    );
+    expect(u.searchParams.get("text")).toBe("Great tip about launching.");
+    expect(u.searchParams.get("url")).toBe("https://nudgi.ai");
+  });
+});
+
+describe("stripSharedUrl", () => {
+  it("removes the url (trailing-slash + protocol variants) and tidies whitespace", () => {
+    expect(stripSharedUrl("Check it out https://me.com/", "https://me.com")).toBe("Check it out");
+    expect(stripSharedUrl("Body\n\nhttps://me.com", "https://me.com")).toBe("Body");
+    expect(stripSharedUrl("a https://me.com b", "https://me.com")).toBe("a b");
+  });
+  it("no-ops when text or url is empty", () => {
+    expect(stripSharedUrl("just text", "")).toBe("just text");
+    expect(stripSharedUrl("", "https://me.com")).toBe("");
+  });
+  it("leaves text without the url untouched", () => {
+    expect(stripSharedUrl("no link here", "https://me.com")).toBe("no link here");
+  });
+  it("does NOT mangle a deeper same-host link or a longer domain (boundary-aware)", () => {
+    // The homepage url is passed, but the body links a subpage — must survive.
+    expect(stripSharedUrl("See https://me.com/pricing for plans", "https://me.com")).toBe("See https://me.com/pricing for plans");
+    expect(stripSharedUrl("Read https://me.com/blog/post-1", "https://me.com")).toBe("Read https://me.com/blog/post-1");
+    expect(stripSharedUrl("via https://me.com.au now", "https://me.com")).toBe("via https://me.com.au now");
+  });
+  it("still strips the standalone homepage link mid-sentence, closing the seam", () => {
+    expect(stripSharedUrl("a https://me.com b", "https://me.com")).toBe("a b");
   });
 });
 

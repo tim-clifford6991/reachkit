@@ -173,7 +173,7 @@ test("POST /api/app/plan/generate: paid viewer with un-actioned recommendations 
   });
   vi.doMock("@/lib/scan/action-board", () => ({ actionBoard: vi.fn(async () => EMPTY_BOARD) }));
 
-  const res = await postGenerate();
+  const res = await postGenerate({ today: "2026-07-14" });
   const json = await res.json();
 
   expect(res.status).toBe(200);
@@ -189,6 +189,8 @@ test("POST /api/app/plan/generate: paid viewer with un-actioned recommendations 
   expect(insertedRows).toHaveLength(4);
   expect(insertedRows.every((r) => r.status === "pending")).toBe(true);
   expect(insertedRows.every((r) => r.draft === null && r.draft_requires_edit === true)).toBe(true);
+  // Pinned to the founder's today so "generate more" lands on today's list.
+  expect(insertedRows.every((r) => r.scheduled_for === "2026-07-14")).toBe(true);
   // Impact honesty: no scan_signals row exists (latestScanIdForApp → null) →
   // every card's delta degrades to 0, never a fabricated LLM number.
   expect(insertedRows.every((r) => (r.expected_outcome as { delta: number }).delta === 0)).toBe(true);

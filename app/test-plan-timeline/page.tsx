@@ -24,13 +24,13 @@ const SYNTHESIS: Synthesis = {
 
 const BOARD: ActionBoard = {
   open: [
-    { id: "a1", title: "Fix your meta description", category: "seo", why: "Buyers see a truncated pitch in results.", predictedDelta: 4, actualDelta: null, createdAt: "2026-07-01T00:00:00Z", verifiedAt: null, draft: "New meta: Notably turns every call into searchable notes.", verifyUrl: "https://notably.app", effortMin: 15, target: null },
+    { id: "a1", title: "Fix your meta description", category: "seo", why: "Buyers see a truncated pitch in results.", predictedDelta: 4, actualDelta: null, createdAt: "2026-07-01T00:00:00Z", verifiedAt: null, draft: "New meta: Notably turns every call into searchable notes.", verifyUrl: "https://notably.app", effortMin: 15, target: null, scheduledFor: null },
   ],
   verifying: [
-    { id: "a2", title: "Publish the pricing page", category: "content", why: "Buyers bounce when they can't find a price.", predictedDelta: 3, actualDelta: null, createdAt: "2026-06-24T00:00:00Z", verifiedAt: null, draft: "# Pricing\n\nSimple, honest tiers: Free scan, Solo $59/mo, Growth $129/mo.", verifyUrl: "https://notably.app/pricing", effortMin: 60, target: null },
+    { id: "a2", title: "Publish the pricing page", category: "content", why: "Buyers bounce when they can't find a price.", predictedDelta: 3, actualDelta: null, createdAt: "2026-06-24T00:00:00Z", verifiedAt: null, draft: "# Pricing\n\nSimple, honest tiers: Free scan, Solo $59/mo, Growth $129/mo.", verifyUrl: "https://notably.app/pricing", effortMin: 60, target: null, scheduledFor: null },
   ],
   done: [
-    { id: "a3", title: "Add structured data", category: "seo", why: null, predictedDelta: 5, actualDelta: 6, createdAt: "2026-06-17T00:00:00Z", verifiedAt: "2026-06-20T00:00:00Z", draft: null, verifyUrl: "https://notably.app", effortMin: null, target: null },
+    { id: "a3", title: "Add structured data", category: "seo", why: null, predictedDelta: 5, actualDelta: 6, createdAt: "2026-06-17T00:00:00Z", verifiedAt: "2026-06-20T00:00:00Z", draft: null, verifyUrl: "https://notably.app", effortMin: null, target: null, scheduledFor: null },
   ],
   retry: [],
 };

@@ -48,6 +48,10 @@ export interface PlanEntry {
   tracked: boolean;
   /** The evidence line this recommendation cites — never a black box. */
   evidence: string | null;
+  /** Pinned calendar day ("YYYY-MM-DD"): when set, the entry lands on exactly
+   *  this day (bypassing the pacer) — e.g. "generate more for today". Null =
+   *  paced. Only tracked actions can be pinned. */
+  scheduledFor?: string | null;
 }
 
 export interface ScheduledWeek {
@@ -133,6 +137,7 @@ export function mergePlanEntries(args: {
       draft: a.draft,
       tracked: true,
       evidence: null,
+      scheduledFor: a.scheduledFor ?? null,
     });
   }
 
@@ -377,6 +382,28 @@ export function scheduleToDays(weeks: ScheduledWeek[], today: Date): ScheduledDa
     .map(([date, entries]) => ({ date, entries }));
 }
 
+/**
+ * Drop each pinned entry onto its exact `scheduledFor` day, bypassing the
+ * pacer — the founder asked for it on that day (e.g. "generate more for
+ * today"). A pin in the past is clamped to today (we never schedule into the
+ * past, matching `scheduleToDays`). Creates the day if absent, keeps the list
+ * date-sorted, and dedupes by key. PURE.
+ */
+export function placePinnedEntries(days: ScheduledDay[], pinned: PlanEntry[], today: Date): ScheduledDay[] {
+  if (pinned.length === 0) return days;
+  const todayKey = localDateKey(today);
+  const byDate = new Map<string, PlanEntry[]>(days.map((d) => [d.date, [...d.entries]]));
+  for (const e of pinned) {
+    const day = e.scheduledFor && e.scheduledFor >= todayKey ? e.scheduledFor : todayKey;
+    const list = byDate.get(day) ?? [];
+    if (!list.some((x) => x.key === e.key)) list.push(e);
+    byDate.set(day, list);
+  }
+  return [...byDate.entries()]
+    .sort(([a], [b]) => (a < b ? -1 : 1))
+    .map(([date, entries]) => ({ date, entries }));
+}
+
 // ---------------------------------------------------------------------------
 // Daily posts — content as a habit, not an event.
 // ---------------------------------------------------------------------------
@@ -614,7 +641,12 @@ export function buildPlanDays(args: {
     content: args.content,
     distribution: args.distribution,
   });
-  const scheduled = scheduleToDays(schedulePlan(entries), args.today);
+  // Pinned entries (scheduledFor set — e.g. "generate more for today") land on
+  // their exact day; everything else is paced. Partition so the pacer never
+  // also places a pinned entry.
+  const pinned = entries.filter((e) => e.scheduledFor);
+  const unpinned = entries.filter((e) => !e.scheduledFor);
+  const scheduled = placePinnedEntries(scheduleToDays(schedulePlan(unpinned), args.today), pinned, args.today);
 
   const postedDates = new Set(
     allActions

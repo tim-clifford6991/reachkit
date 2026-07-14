@@ -43,6 +43,33 @@ function subName(s: string): string {
   return s.replace(/^\/?r\//i, "").trim();
 }
 
+/**
+ * Remove the share `url` from the draft `text` so a composer that appends the
+ * link as its own field doesn't render it twice ("https://x https://x"). The
+ * draft prompt asks the model to put the link on its own last line, and we ALSO
+ * pass it as the composer's dedicated url param — this de-dupes at the single
+ * choke point every intent builder shares. Strips the full URL (protocol
+ * variants, with/without trailing slash), longest form first, then tidies the
+ * whitespace/newlines it leaves behind. PURE.
+ */
+export function stripSharedUrl(text: string, url: string): string {
+  if (!text || !url) return text.trim();
+  const bare = url.replace(/\/+$/, "");
+  const esc = bare.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  // Remove a STANDALONE occurrence of the link (with an optional trailing slash
+  // and one adjacent whitespace char so the seam closes cleanly). The negative
+  // lookahead is load-bearing: it refuses to match when the link is the prefix
+  // of a DEEPER same-host URL ("https://me.com/pricing") or a longer domain
+  // ("me.com.au") — those are real links in the body and must survive. Only the
+  // bare homepage link the composer re-appends gets stripped.
+  const re = new RegExp(`\\s?${esc}/?(?![\\w/?#.\\-])`, "g");
+  return text
+    .replace(re, "")
+    .replace(/[ \t]+$/gm, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 /** How the UI should present a platform: prefilled intent vs URL-only vs coach. */
 export function deliveryMode(platform: SharePlatform): "intent" | "url-only" {
   // LinkedIn + Facebook killed text prefill to fight spam — URL only; the UI
@@ -55,8 +82,11 @@ export function deliveryMode(platform: SharePlatform): "intent" | "url-only" {
  * platform (callers pass a typed SharePlatform).
  */
 export function buildShareUrl(platform: SharePlatform, p: SharePayload): string {
-  const text = p.text ?? "";
   const url = p.url ?? "";
+  // De-dupe: composers below append `url` as their own field, so any copy of it
+  // the draft already carries (the model puts the link on its own last line)
+  // must be stripped or it renders twice.
+  const text = stripSharedUrl(p.text ?? "", url);
   switch (platform) {
     case "x": {
       const params = new URLSearchParams();
