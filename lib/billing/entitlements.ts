@@ -14,6 +14,7 @@ import type { MarketAnalysis } from "@/lib/scan/gap";
 import type { DistributionProfile } from "@/lib/scan/profile";
 import type { DemandPocket } from "@/lib/scan/demand/types";
 import { serverDb } from "@/lib/db/client";
+import { env } from "@/lib/config/env";
 
 export class EntitlementError extends Error {
   constructor(msg = "upgrade required") {
@@ -47,23 +48,49 @@ const FREE_PREVIEW_POCKETS = 5;
  * Resolve a user's entitlements from their `users` row.
  *
  * - `tier` is coerced via `isTier` (unknown → "free").
- * - `active` is true only for a paid tier whose subscription is live
- *   ("active" or "trialing").
+ * - `active` is true for a paid tier whose subscription is `"active"`, OR
+ *   `"past_due"` still within the payment-failed GRACE window (so a recoverable
+ *   failed charge doesn't instantly lock the user out — the #1 involuntary-churn
+ *   cause). There is NO trial: checkout charges immediately, so `"trialing"` is
+ *   never granted access.
  */
 export async function entitlementsFor(userId: string): Promise<Entitlements> {
   const { data: row } = await serverDb()
     .from("users")
-    .select("tier, subscription_status")
+    .select("tier, subscription_status, current_period_end")
     .eq("id", userId)
     .maybeSingle();
 
   const rawTier = row?.tier ?? "free";
   const tier: Tier = isTier(rawTier) ? rawTier : "free";
   const status = row?.subscription_status ?? null;
-  const active =
-    isPaid(tier) && (status === "active" || status === "trialing");
+  const active = isPaid(tier) && isSubscriptionActive(status, row?.current_period_end ?? null, env.billingGraceDays);
 
   return { tier, limits: TIER_LIMITS[tier], active };
+}
+
+/**
+ * Is a subscription in a state that grants access? PURE (grace days injected) +
+ * exported for tests.
+ * - `"active"` → yes.
+ * - `"past_due"` → yes ONLY while within the grace window (period end +
+ *   `graceDays`), so a transient failed renewal keeps access instead of
+ *   revoking instantly. Out of grace → no.
+ * - anything else (incl. `"trialing"`, `"canceled"`, `"unpaid"`, null) → no.
+ */
+export function isSubscriptionActive(
+  status: string | null,
+  currentPeriodEnd: string | null,
+  graceDays: number,
+  now: number = Date.now(),
+): boolean {
+  if (status === "active") return true;
+  if (status === "past_due") {
+    if (!currentPeriodEnd) return false;
+    const end = new Date(currentPeriodEnd).getTime();
+    return Number.isFinite(end) && now < end + graceDays * 24 * 60 * 60 * 1000;
+  }
+  return false;
 }
 
 /** Throw `EntitlementError` unless the user has an active paid subscription. */

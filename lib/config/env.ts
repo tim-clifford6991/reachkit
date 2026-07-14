@@ -22,6 +22,15 @@ const PAID_KEYS = [
   "INNGEST_SIGNING_KEY",
 ] as const;
 
+// The money-path keys: required in prod so a deploy missing them fails at boot
+// instead of silently at checkout/webhook time. Separate from PAID_KEYS so the
+// intent is clear (these gate real charges, not vendor calls).
+const STRIPE_REQUIRED_KEYS = [
+  "STRIPE_SECRET_KEY",
+  "STRIPE_WEBHOOK_SECRET",
+  "STRIPE_PRICE_SOLO",
+] as const;
+
 const schema = z.object({
   SUPABASE_URL: z.string().url(),
   SUPABASE_ANON_KEY: z.string().min(1),
@@ -48,6 +57,9 @@ const schema = z.object({
   POSTHOG_KEY: z.string().optional().default(""),
   POSTHOG_HOST: z.string().optional().default(""),
   INNGEST_SIGNING_KEY: z.string().optional().default(""),
+  // Days after a subscription's period end that a `past_due` (failed renewal)
+  // still keeps access — the payment-failed grace window (no trial exists).
+  BILLING_GRACE_DAYS: z.coerce.number().int().nonnegative().default(3),
   APP_URL: z.string().optional().default("http://localhost:3000"),
   SCAN_BUDGET_CENTS: z.coerce.number().int().positive().default(250),
   // Weekly delta-refresh ceiling — cheaper than a first scan; the refresh re-runs
@@ -79,7 +91,7 @@ const schema = z.object({
 }).superRefine((val, ctx) => {
   // superRefine receives transformed values: val.REACHKIT_USE_FIXTURES is a boolean.
   if (!val.REACHKIT_USE_FIXTURES) {
-    for (const key of PAID_KEYS) {
+    for (const key of [...PAID_KEYS, ...STRIPE_REQUIRED_KEYS]) {
       if (!val[key]) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -109,6 +121,7 @@ export function parseEnv(src: NodeJS.ProcessEnv) {
     tavilyUsdPerCredit: p.TAVILY_USD_PER_CREDIT,
     useFixtures: p.REACHKIT_USE_FIXTURES,
     inngestSigningKey: p.INNGEST_SIGNING_KEY,
+    billingGraceDays: p.BILLING_GRACE_DAYS,
     ownerEmails: p.REACHKIT_OWNER_EMAILS,
     profileDebug: p.PROFILE_DEBUG,
     appUrl: p.APP_URL,
