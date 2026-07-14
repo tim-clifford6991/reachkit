@@ -19,6 +19,7 @@ import { bandFor } from "@/components/app/intel/bands";
 import type { PillarRollup } from "@/lib/scan/pillar-scores";
 import type { ScoreHistoryPoint } from "@/lib/scan/engagement";
 import type { HistoryMarker } from "@/lib/scan/score-history-markers";
+import type { ProgressEvent } from "@/lib/scan/progress-events";
 
 const JM = "var(--font-mono)";
 
@@ -42,9 +43,12 @@ export interface DashboardHeroProps {
    *  shown beneath it so a low score next to strong pillars reads as intentional. */
   onPageReadiness?: number | null;
   searchPresence?: number | null;
+  /** WS4 — the merged verified-fix + market-alert changelog, newest first, for the
+   *  compact "What's changed lately" recap beside the trend. */
+  events?: ProgressEvent[];
 }
 
-export function DashboardHero({ score, rollup, history, markers, isPaid, marketPosition, onPageReadiness, searchPresence }: DashboardHeroProps) {
+export function DashboardHero({ score, rollup, history, markers, isPaid, marketPosition, onPageReadiness, searchPresence, events = [] }: DashboardHeroProps) {
   const band = bandFor(score);
   const assessedCount = rollup.pillars.filter((p) => p.assessed).length;
   const delta =
@@ -117,10 +121,60 @@ export function DashboardHero({ score, rollup, history, markers, isPaid, marketP
         </div>
       </Card>
 
-      {/* SCORE OVER TIME */}
-      <Card title="Discoverability over time" info="Your Discoverability Score at each scan. Dots mark a verified fix that moved the score.">
-        <ScoreTrend history={history} markers={markers} />
-      </Card>
+      {/* SCORE OVER TIME + RECENT CHANGES — half-width trend beside a compact
+          changelog recap, both deep-linking to the full Progress page. */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: 20 }}>
+        <Card title="Discoverability over time" info="Your Discoverability Score at each scan. Dots mark a verified fix that moved the score.">
+          <ScoreTrend history={history} markers={markers} />
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--c-line)", textAlign: "right" }}>
+            <Link href="/app/progress" style={{ fontSize: 12, fontWeight: 600, color: "var(--c-action)", textDecoration: "none" }}>
+              Full history →
+            </Link>
+          </div>
+        </Card>
+        <Card title="What's changed lately">
+          <RecentChangesRecap events={events} />
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+/** Compact top-3 changelog recap beside the trend — the same events feed as
+ *  the full Progress page (`buildProgressEvents`), just truncated. */
+export function RecentChangesRecap({ events }: { events: ProgressEvent[] }) {
+  if (events.length === 0) {
+    return (
+      <p style={{ margin: 0, fontSize: 13, color: "var(--c-faint)" }}>
+        Your changelog builds as you ship &amp; verify fixes.
+      </p>
+    );
+  }
+
+  const top = events.slice(0, 3);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 10 }}>
+        {top.map((e, i) => (
+          <li key={i}>
+            <Link href={e.href ?? "/app/progress"} style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
+              <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: "var(--c-ink)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{e.label}</span>
+              {e.delta != null && (
+                <span style={{ flexShrink: 0, fontSize: 12, fontFamily: JM, color: e.delta > 0 ? "var(--c-band-high)" : e.delta < 0 ? "var(--c-band-invisible)" : "var(--c-faint)" }}>
+                  {e.delta > 0 ? `▲ +${e.delta}` : e.delta < 0 ? `▼ ${e.delta}` : "no change"}
+                </span>
+              )}
+              <span style={{ flexShrink: 0, fontSize: 11.5, fontFamily: JM, color: "var(--c-faint)" }}>{fmtDate(e.date)}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+      <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--c-line)", textAlign: "right" }}>
+        <Link href="/app/progress" style={{ fontSize: 12, fontWeight: 600, color: "var(--c-action)", textDecoration: "none" }}>
+          See all →
+        </Link>
+      </div>
     </div>
   );
 }

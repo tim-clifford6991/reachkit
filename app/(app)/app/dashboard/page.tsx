@@ -7,6 +7,7 @@ import { entitlementsFor } from "@/lib/billing/entitlements";
 import { serverDb } from "@/lib/db/client";
 import { engagementSummary } from "@/lib/scan/engagement";
 import { scoreHistoryMarkers } from "@/lib/scan/score-history-markers";
+import { buildProgressEvents } from "@/lib/scan/progress-events";
 import { pillarRollupFromRegistry, type ScoreBreakdown } from "@/lib/scan/pillar-scores";
 import { headlineScore, discoverabilityScore } from "@/lib/scan/registry-score";
 import type { Pillar } from "@/lib/scan/signals";
@@ -95,11 +96,22 @@ async function DashboardContent() {
   // Tier gate for the hero CTA: paid → plan link; free → one-click Solo
   // checkout (W6). resolveIntelContext already redirected unauthenticated users.
   const viewer = await currentUser();
-  const [engagement, markers, entitlements] = await Promise.all([
+  const [engagement, markers, entitlements, marketSnapshots] = await Promise.all([
     engagementSummary(ctx.appId),
     scoreHistoryMarkers(ctx.appId),
     viewer ? entitlementsFor(viewer.user.id) : Promise.resolve(null),
+    serverDb()
+      .from("market_snapshots")
+      .select("taken_at, summary")
+      .eq("app_id", ctx.appId)
+      .order("taken_at", { ascending: false })
+      .limit(2),
   ]);
+  const events = buildProgressEvents({
+    history: engagement.history,
+    markers,
+    marketSnapshots: marketSnapshots.data ?? [],
+  });
 
   // Pillar rollup + gauge from the FIXED on-site basis (headlineScore) — the 8 HTML
   // signals measured identically free↔paid. The gauge shows the SAME on-site total
@@ -150,6 +162,7 @@ async function DashboardContent() {
         marketPosition={marketPosition}
         onPageReadiness={reg ? reg.total : null}
         searchPresence={searchPresence}
+        events={events}
       />
       {/* The plan is what a founder acts on — it reads second, right after the score story. */}
       <div style={{ marginTop: 20 }}>

@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { DashboardHero, type DashboardHeroProps } from "./dashboard-hero";
+import { DashboardHero, RecentChangesRecap, type DashboardHeroProps } from "./dashboard-hero";
 import type { PillarRollup } from "@/lib/scan/pillar-scores";
+import type { ProgressEvent } from "@/lib/scan/progress-events";
 
 // Outreach unassessed (measured off-site, not "not measured yet") + SEO unassessed
 // (genuinely awaiting a scan, keeps "not measured yet"). SEO is normally always
@@ -43,5 +44,32 @@ describe("DashboardHero pillar rows", () => {
   it("anchors the Market Position block with id=\"market-position\" when it renders", () => {
     const html = renderToStaticMarkup(<DashboardHero {...baseProps} />);
     expect(html).toContain('id="market-position"');
+  });
+});
+
+describe("RecentChangesRecap", () => {
+  const events: ProgressEvent[] = [
+    { label: "First event", date: "2026-07-10T00:00:00Z", delta: 4, href: "/app/plan" },
+    { label: "Second event", date: "2026-07-09T00:00:00Z", delta: -2 },
+    { label: "Third event", date: "2026-07-08T00:00:00Z" },
+    { label: "Fourth event", date: "2026-07-07T00:00:00Z" },
+    { label: "Fifth event", date: "2026-07-06T00:00:00Z" },
+  ];
+
+  it("renders exactly the top 3 event labels + a See all link when events exist", () => {
+    const html = renderToStaticMarkup(<RecentChangesRecap events={events} />);
+    expect(html).toContain("First event");
+    expect(html).toContain("Second event");
+    expect(html).toContain("Third event");
+    expect(html).not.toContain("Fourth event");
+    expect(html).not.toContain("Fifth event");
+    expect(html).toContain("See all");
+    expect(html).toContain("/app/progress");
+  });
+
+  it("renders the zero-state copy and no See all link when there are no events", () => {
+    const html = renderToStaticMarkup(<RecentChangesRecap events={[]} />);
+    expect(html).toContain("Your changelog builds as you ship");
+    expect(html).not.toContain("See all");
   });
 });
