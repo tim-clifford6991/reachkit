@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { resolveIntelContext } from "@/lib/app/intel-context";
-import { CompetitorSetup } from "@/components/app/intel/competitor-setup";
+import { CompetitorSetupLazy as CompetitorSetup } from "@/components/app/competitor-setup-lazy";
 import { buildMetadata } from "@/lib/seo";
 
 export const metadata = buildMetadata({ title: "Competitors", path: "/app/competitors" });
