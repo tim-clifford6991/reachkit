@@ -6,9 +6,31 @@ const findExistingScanForApp = vi.fn();
 vi.mock("@/lib/scan/abuse", () => ({ findAppByUrl: (...a: unknown[]) => findAppByUrl(...a), findExistingScanForApp: (...a: unknown[]) => findExistingScanForApp(...a) }));
 
 const scanRow = vi.fn();
+// serverDb mock covering BOTH the users lookup and the scans lookup.
+let userRow: { tier: string; app_ids: string[] } | null = null;
+const setUser = (u: { tier: string; app_ids: string[] }) => { userRow = u; };
+const inserted: Record<string, unknown[]> = { apps: [], scans: [] };
 vi.mock("@/lib/db/client", () => ({
-  serverDb: () => ({ from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => scanRow() }) }) }) }),
+  serverDb: () => ({
+    from: (table: string) => ({
+      select: () => ({
+        eq: () => ({ maybeSingle: async () => (table === "users" ? { data: userRow } : scanRow()) }),
+      }),
+      insert: (row: Record<string, unknown>) => {
+        inserted[table]?.push(row);
+        return { select: () => ({ single: async () => ({ data: { id: `${table}-new` }, error: null }) }) };
+      },
+      update: () => ({ eq: async () => ({ error: null }) }),
+    }),
+  }),
 }));
+vi.mock("@/lib/billing/entitlements", () => ({ entitlementsFor: async () => ({ active: userRow?.tier !== "free" }) }));
+vi.mock("@/lib/inngest/client", () => ({ inngest: { send: vi.fn(async () => ({})) } }));
+vi.mock("@/lib/scan/deepen", () => ({ ensureDeepScan: vi.fn(async () => true) }));
+// The unit runner has no full env (no SUPABASE_* etc.), same as app/api/scan/route.test.ts —
+// stub it statically so env.scanningEnabled never triggers the real parseEnv/zod validation.
+const envMock: { scanningEnabled: boolean } = { scanningEnabled: true };
+vi.mock("@/lib/config/env", () => ({ env: envMock }));
 
 const NOW = new Date("2026-07-15T12:00:00Z");
 const daysAgo = (d: number) => new Date(NOW.getTime() - d * 86_400_000).toISOString();
@@ -85,5 +107,41 @@ describe("URL canonicalisation contract (classify BEFORE resolve)", () => {
     const { resolveProductScan } = await import("./add-product");
     await resolveProductScan(classifyUrl("WWW.Nudgi.AI/x?q=1").url, { paid: true, now: NOW });
     expect(findAppByUrl).toHaveBeenCalledWith("https://nudgi.ai/");
+  });
+});
+
+describe("addTrackedProduct (cap · already-tracked · paused)", () => {
+  // Call history on the shared vi.fn() mocks (findAppByUrl etc.) otherwise carries
+  // over from the earlier describe blocks above — clearAllMocks only resets call
+  // records, not the mockResolvedValue implementations each test sets explicitly.
+  beforeEach(() => { vi.clearAllMocks(); });
+
+  it("refuses at the tier cap WITHOUT creating anything (no silent untracked scan)", async () => {
+    const { addTrackedProduct, AddProductError } = await import("./add-product");
+    setUser({ tier: "growth", app_ids: ["a", "b", "c"] }); // growth cap = 3
+    await expect(addTrackedProduct("u1", "https://new.com/")).rejects.toMatchObject({ code: "cap" });
+    expect(findAppByUrl).not.toHaveBeenCalled();
+  });
+
+  it("refuses a URL the user already tracks (no slot burned, no spend)", async () => {
+    const { addTrackedProduct } = await import("./add-product");
+    setUser({ tier: "growth", app_ids: ["app1"] });
+    findAppByUrl.mockResolvedValue("app1");
+    await expect(addTrackedProduct("u1", "https://x.com/")).rejects.toMatchObject({ code: "already_tracked" });
+  });
+
+  it("refuses when SCANNING_ENABLED=false (P4 kill switch holds here too)", async () => {
+    envMock.scanningEnabled = false;
+    const { addTrackedProduct } = await import("./add-product");
+    setUser({ tier: "growth", app_ids: [] });
+    await expect(addTrackedProduct("u1", "https://x.com/")).rejects.toMatchObject({ code: "paused" });
+    envMock.scanningEnabled = true; // restore — the mock object is shared across this file's tests
+  });
+
+  it("a FREE zero-app user CAN add their first product (no assertPaid regression)", async () => {
+    const { addTrackedProduct } = await import("./add-product");
+    setUser({ tier: "free", app_ids: [] }); // free cap = 1
+    findAppByUrl.mockResolvedValue(null);
+    await expect(addTrackedProduct("u1", "https://x.com/")).resolves.toMatchObject({ appId: expect.any(String) });
   });
 });
