@@ -59,7 +59,13 @@ export async function POST(req: NextRequest) {
   const plan = await resolveProductScan(routed.url, { paid: viewerIsPaid });
   if (plan.kind === "deepen" || plan.kind === "attach") {
     if (viewer) await linkScanToUser(plan.scanId, viewer.user.id);
-    if (viewerIsPaid && plan.kind === "deepen") await ensureDeepScan(plan.scanId);
+    // A paid viewer landing on EITHER a done-but-reusable scan (deepen) OR a
+    // scan that's already in flight (attach) must still get deepened — an
+    // in-flight scan with no viewer watching it can finish on the free track
+    // and never be re-upgraded (Finding 2, code review 2026-07-15).
+    // ensureDeepScan is idempotent (lib/scan/deepen.ts): a no-op if the deep
+    // pass already ran, safe to call from either branch.
+    if (viewerIsPaid) await ensureDeepScan(plan.scanId);
     const slug = slugForScan({ storeUrl: routed.url, platform: routed.platform, scanId: plan.scanId });
     return NextResponse.json({ scan_id: plan.scanId, slug, deduped: true });
   }

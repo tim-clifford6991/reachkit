@@ -111,6 +111,11 @@ export async function addTrackedProduct(userId: string, rawUrl: string): Promise
   } else {
     appId = plan.appId;   // attach — a scan is already running; watch it
     scanId = plan.scanId;
+    // A paid viewer attaching to an in-flight scan must still get it deepened
+    // — otherwise it finishes on the free track and nothing ever re-triggers
+    // an upgrade (Finding 2, code review 2026-07-15). ensureDeepScan is
+    // idempotent (lib/scan/deepen.ts): a no-op once the deep pass has run.
+    if (paid) await ensureDeepScan(plan.scanId);
   }
 
   // Re-read + re-assert the cap immediately before the write (check-then-act race).

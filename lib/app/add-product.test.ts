@@ -1,5 +1,6 @@
 // lib/app/add-product.test.ts
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { ensureDeepScan } from "@/lib/scan/deepen";
 
 const findAppByUrl = vi.fn();
 const findExistingScanForApp = vi.fn();
@@ -175,5 +176,31 @@ describe("addTrackedProduct (cap · already-tracked · paused)", () => {
     // Invariant: paid user's scan must be tier=full, never tier=free
     expect(inserted.scans).toHaveLength(1);
     expect(inserted.scans[0]).toMatchObject({ tier: "full" });
+  });
+
+  // Finding 2 (code review 2026-07-15): a paid viewer ATTACHing to a scan
+  // that's already IN-FLIGHT for this app must still get it deepened —
+  // otherwise the scan finishes on the free track and the paid dashboard
+  // renders free-tier data permanently, with nothing left to re-trigger an
+  // upgrade. `ensureDeepScan` is documented idempotent (lib/scan/deepen.ts),
+  // so calling it here is always safe.
+  it("a PAID viewer ATTACHing to an in-flight scan triggers ensureDeepScan", async () => {
+    const { addTrackedProduct } = await import("./add-product");
+    setUser({ tier: "growth", app_ids: [] }); // growth cap = 3, tier !== "free" → active: true
+    findAppByUrl.mockResolvedValue("app1");
+    findExistingScanForApp.mockResolvedValue("scan1");
+    scanRow.mockReturnValue({ data: { status: "collecting", created_at: new Date().toISOString() } }); // in-flight ⇒ attach
+    await expect(addTrackedProduct("u1", "https://x.com/")).resolves.toEqual({ appId: "app1", scanId: "scan1" });
+    expect(ensureDeepScan).toHaveBeenCalledWith("scan1");
+  });
+
+  it("a FREE viewer ATTACHing to an in-flight scan does NOT trigger ensureDeepScan", async () => {
+    const { addTrackedProduct } = await import("./add-product");
+    setUser({ tier: "free", app_ids: [] }); // free ⇒ active: false
+    findAppByUrl.mockResolvedValue("app1");
+    findExistingScanForApp.mockResolvedValue("scan1");
+    scanRow.mockReturnValue({ data: { status: "collecting", created_at: new Date().toISOString() } });
+    await expect(addTrackedProduct("u1", "https://x.com/")).resolves.toEqual({ appId: "app1", scanId: "scan1" });
+    expect(ensureDeepScan).not.toHaveBeenCalled();
   });
 });
