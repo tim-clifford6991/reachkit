@@ -18,7 +18,7 @@ const DEFAULT_TAGLINE =
 
 const DEFAULT_COLUMNS: NonNullable<FooterProps["columns"]> = [
   { heading: "Product", items: [{ label: "Scan your app", href: "/scan" }, { label: "How it works", href: "/how-it-works" }, { label: "Pricing", href: "/pricing" }, { label: "Free tools", href: "/tools" }, { label: "Roadmap", href: "/roadmap" }] },
-  { heading: "Resources", items: [{ label: "Scans", href: "/gallery" }, { label: "Status", href: "/status" }] },
+  { heading: "Resources", items: [{ label: "Gallery", href: "/gallery" }, { label: "Status", href: "/status" }] },
   { heading: "Compare", items: [{ label: "vs Ahrefs", href: "/compare/ahrefs" }, { label: "vs Semrush", href: "/compare/semrush" }, { label: "vs SparkToro", href: "/compare/sparktoro" }, { label: "vs ChatGPT", href: "/compare/chatgpt" }, { label: "All comparisons", href: "/compare" }] },
   { heading: "Company", items: [{ label: "About", href: "/about" }, { label: "Contact", href: "/contact" }, { label: "Affiliates", href: "/affiliates" }, { label: "Log in", href: "/login" }] },
 ];

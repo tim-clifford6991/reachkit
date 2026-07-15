@@ -5,7 +5,7 @@ import { PageHeader } from "./PageHeader";
 import { Footer } from "./Footer";
 
 /**
- * GalleryScreen — the `/gallery` ("Scans") page: NavBar, a centred PageHeader
+ * GalleryScreen — the `/gallery` page: NavBar, a centred PageHeader
  * ("Discoverability analyses" · "Every scan is public") with two buttons, the
  * "Public scans" count heading + a search box, and a grid of public scan cards
  * (favicon + host + score, "Discoverability scan: {host}", blurb, CTA). Mirrors

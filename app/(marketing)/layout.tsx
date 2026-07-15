@@ -29,7 +29,7 @@ const FOOTER_CONTENT: FooterContent = {
     {
       heading: "Resources",
       items: [
-        { label: "Scans", href: "/gallery" },
+        { label: "Gallery", href: "/gallery" },
         { label: "Status", href: "/status" },
       ],
     },

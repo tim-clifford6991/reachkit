@@ -14,7 +14,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 
 const LINKS = [
   { label: "How it works", href: "/how-it-works" },
-  { label: "Scans", href: "/gallery" },
+  { label: "Gallery", href: "/gallery" },
   { label: "Pricing", href: "/pricing" },
   { label: "Compare", href: "/compare" },
   { label: "Free tools", href: "/tools" },
