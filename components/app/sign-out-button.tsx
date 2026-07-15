@@ -23,7 +23,9 @@ export function SignOutButton() {
   const formRef = useRef<HTMLFormElement>(null);
 
   return (
-    <form ref={formRef} action="/auth/signout" method="post" style={{ display: "flex" }}>
+    // flexShrink:0 — this control sits beside a truncating name in the sidebar
+    // footer; the NAME must give way, never the sign-out affordance.
+    <form ref={formRef} action="/auth/signout" method="post" style={{ display: "flex", flexShrink: 0 }}>
       <button
         type="button"
         onClick={() => {

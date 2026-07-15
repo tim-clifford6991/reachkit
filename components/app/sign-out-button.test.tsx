@@ -19,4 +19,12 @@ describe("SignOutButton (WS6)", () => {
     // window.confirm() passes, so a stray click can't sign the user out.
     expect(html).toContain('type="button"');
   });
+
+  it("does not shrink — the sidebar name truncates instead (2026-07-15 layout fix)", () => {
+    // It sits beside a long, unbreakable userName in the sidebar footer. Without
+    // flexShrink:0 the name wins the flex negotiation and squashes/collides with
+    // the control (the reported "formatted poorly" bug). The name gives way, not
+    // the sign-out affordance.
+    expect(html).toMatch(/flex-shrink:\s*0/);
+  });
 });

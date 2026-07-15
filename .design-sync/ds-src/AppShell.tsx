@@ -160,12 +160,20 @@ export function AppShell({
             <NavItem icon={ICON_PROGRESS} label="Progress" active={activeKey === "history"} />
             <NavItem icon={ICON_SETTINGS} label="Settings" active={activeKey === "settings"} />
           </nav>
-          <div style={{ marginTop: "auto", display: "flex", alignItems: "center", gap: 11, padding: "14px 8px 4px", borderTop: "1px solid var(--c-line)" }}>
-            <span style={{ width: 34, height: 34, borderRadius: "var(--radius-full)", background: "var(--c-soft)", color: "var(--c-action)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13, flex: "0 0 auto" }}>{initials}</span>
-            <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.3, minWidth: 0 }}>
-              <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--c-ink)" }}>{resolvedUser.name}</span>
-              <span style={{ fontSize: 12, color: "var(--c-faint)" }}>{resolvedUser.sub}</span>
+          {/* User footer — mirrors the live sidebar footer 1:1, including the
+              labelled Sign out (WS6) that this card previously omitted, and the
+              2026-07-15 layout fix: the identity block TRUNCATES (a long
+              userName has no natural break) while Sign out never shrinks, so the
+              name gives way instead of colliding with the control. */}
+          <div style={{ marginTop: "auto", display: "flex", alignItems: "center", gap: 8, padding: "10px 8px", borderTop: "1px solid var(--c-line2)" }}>
+            <span style={{ flexShrink: 0, width: 30, height: 30, borderRadius: "var(--radius-full)", background: "var(--c-soft)", color: "var(--c-action)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13 }}>{initials}</span>
+            <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.3, flex: "1 1 0%", minWidth: 0 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--c-ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{resolvedUser.name}</span>
+              <span style={{ fontSize: 11.5, color: "var(--c-faint)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{resolvedUser.sub}</span>
             </div>
+            <span style={{ display: "inline-flex", flexShrink: 0, alignItems: "center", gap: 6, color: "var(--c-faint)", fontFamily: "var(--font-sans)", fontSize: 12.5, fontWeight: 600, lineHeight: 1, whiteSpace: "nowrap" }}>
+              <span style={{ fontSize: 14 }}>⏻</span>Sign out
+            </span>
           </div>
         </aside>
         <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>

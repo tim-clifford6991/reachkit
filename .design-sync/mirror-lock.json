@@ -9,7 +9,7 @@
   },
   "AppShell": {
     "mirror": "components/app/captured/app-shell.tsx",
-    "hash": "331970a58a7bcc14"
+    "hash": "c3b8653d94b5d899"
   },
   "Audience": {
     "mirror": "components/sections/captured/landing-html.ts",

@@ -24,7 +24,9 @@ import { ThemeToggle } from "@/components/theme-toggle";
 const SignOutButton = dynamic(() => import("@/components/app/sign-out-button").then((m) => m.SignOutButton), {
   ssr: false,
   loading: () => (
-    <span aria-hidden="true" style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "var(--c-faint)", fontFamily: "var(--font-sans)", fontSize: 12.5, fontWeight: 600, lineHeight: 1, whiteSpace: "nowrap" }}>
+    // Must mirror SignOutButton's box EXACTLY (incl. flexShrink:0) so the
+    // footer doesn't reflow when the real control hydrates in.
+    <span aria-hidden="true" style={{ display: "inline-flex", flexShrink: 0, alignItems: "center", gap: 6, color: "var(--c-faint)", fontFamily: "var(--font-sans)", fontSize: 12.5, fontWeight: 600, lineHeight: 1, whiteSpace: "nowrap" }}>
       <span style={{ fontSize: 14 }}>⏻</span>Sign out
     </span>
   ),
@@ -228,12 +230,17 @@ export function AppShell(p: AppShellProps) {
               ))}
             </div>
           )}
-          {/* User footer */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 8, borderTop: "1px solid var(--c-line2)" }}>
-            <span style={{ width: 30, height: 30, borderRadius: "50%", background: "#E7E2FF", color: "var(--c-action)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13 }}>{p.userInitials}</span>
+          {/* User footer. The identity block MUST truncate: a long userName
+              (e.g. "Timclifford101") has no natural break, so without an
+              ellipsis it expands the flex item and collides with the fixed-width
+              Sign out control. minWidth:0 alone doesn't truncate — the text
+              needs the overflow/ellipsis/nowrap trio, and Sign out needs
+              flexShrink:0 so it's the name that gives way, never the control. */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 8px", borderTop: "1px solid var(--c-line2)" }}>
+            <span style={{ flexShrink: 0, width: 30, height: 30, borderRadius: "50%", background: "#E7E2FF", color: "var(--c-action)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13 }}>{p.userInitials}</span>
             <div style={{ flex: "1 1 0%", minWidth: 0 }}>
-              <div style={{ fontWeight: 600, fontSize: 13 }}>{p.userName}</div>
-              <div style={{ fontSize: 11.5, color: "var(--c-faint)" }}>{p.userRole}</div>
+              <div title={p.userName} style={{ fontWeight: 600, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.userName}</div>
+              <div style={{ fontSize: 11.5, color: "var(--c-faint)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.userRole}</div>
             </div>
             {/* Labelled "Sign out" + an are-you-sure confirm (WS6). Still a POST
                 under the hood — see SignOutButton. */}
