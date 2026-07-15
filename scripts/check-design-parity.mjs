@@ -22,6 +22,7 @@ import { readFileSync, readdirSync, existsSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
+import { missingLabels } from "./lib/ds-labels.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const p = (rel) => resolve(ROOT, rel);
@@ -189,6 +190,77 @@ if (bless) {
   }
   console.log(`blessed ${LOCK} — ${Object.keys(outLock).length} mirrors pinned${scoped ? ` (scoped to: ${scopeArgs.join(", ")})` : ""}.`);
   process.exit(0);
+}
+
+// ── Label drift (HARD) ───────────────────────────────────────────────────────
+// The freshness lock above only answers "did the live file move since we
+// blessed?" — it is structurally blind to a mirror that was NEVER accurate, or
+// one blessed WHILE divergent (`--bless` re-pins a hash; it verifies nothing).
+// That blindness let the AppShell card keep rendering "Progress" long after the
+// live nav was renamed "History", while check:design reported OK.
+//
+// This compares CONTENT: every user-visible label in a live component must
+// actually be RENDERED by the card(s) mirroring it. Rendered — not source: a
+// source match is satisfied by code (`activeKey === "history"` "contains"
+// History). Rendered text comes from `.design-sync/card-labels.json`, distilled
+// from the prerender at DS build (gen-card-labels.mjs) and committed, so this
+// runs in CI with no DS build. A bless cannot silence it.
+//
+// It is NECESSARY, NOT SUFFICIENT: it catches renamed/removed copy, not a card
+// whose layout has diverged. Visual fidelity still needs human review.
+const CARD_LABELS = ".design-sync/card-labels.json";
+const DRIFT_BASELINE = ".design-sync/label-drift-baseline.json";
+if (existsSync(p(CARD_LABELS))) {
+  const cards = JSON.parse(readFileSync(p(CARD_LABELS), "utf8"));
+
+  // Staleness: a card edited without a rebuild would leave the manifest
+  // describing the OLD render. Fail loudly rather than check a stale artifact.
+  const stale = activeMirrors
+    .filter(({ name }) => cards[name] && cards[name].srcHash !== hashOf(`${DS_SRC}/${name}.tsx`))
+    .map(({ name }) => name);
+  if (stale.length) {
+    err(
+      `${CARD_LABELS} is STALE for: ${stale.join(", ")} — these ds-src cards changed since the manifest was generated. Rebuild: node .design-sync/ds-src/build.mjs && node .design-sync/ds-src/layout.mjs && node scripts/gen-card-labels.mjs`,
+    );
+  }
+
+  // Union the rendered text of every card mirroring a given live file (several
+  // cards legitimately cover one file — e.g. 9 landing sections).
+  const byTarget = new Map();
+  for (const { name, target } of activeMirrors) {
+    if (!byTarget.has(target)) byTarget.set(target, []);
+    byTarget.get(target).push(name);
+  }
+
+  const drift = {};
+  let totalMissing = 0;
+  for (const [target, names] of byTarget) {
+    const rendered = names.map((n) => cards[n]?.text ?? "").join(" ");
+    if (!rendered.trim()) continue; // no prerender for these cards — skip
+    const missing = missingLabels(readFileSync(p(target), "utf8"), rendered);
+    if (missing.length) {
+      drift[target] = missing.length;
+      totalMissing += missing.length;
+      warn(
+        `label DRIFT: ${names.join("+")} do not render ${missing.length} live label(s) from ${target}: ${missing.slice(0, 5).join(" · ")}${missing.length > 5 ? " …" : ""}`,
+      );
+    }
+  }
+
+  const db = existsSync(p(DRIFT_BASELINE)) ? JSON.parse(readFileSync(p(DRIFT_BASELINE), "utf8")) : null;
+  if (db && typeof db.missing === "number") {
+    if (totalMissing > db.missing) {
+      err(
+        `label DRIFT REGRESSED: ${totalMissing} unrendered live label(s) > pinned baseline ${db.missing} (${DRIFT_BASELINE}). A live label was renamed/added without updating its DS card. Reconcile the card (then rebuild + gen-card-labels), or — only if genuinely intended — raise the pin with a reason in the commit body.`,
+      );
+    } else if (totalMissing < db.missing) {
+      warn(`label drift improved (${totalMissing} < baseline ${db.missing}) — lower "missing" in ${DRIFT_BASELINE} to ${totalMissing} to pin the win.`);
+    }
+  }
+  if (process.argv.includes("--pin-drift")) {
+    writeFileSync(p(DRIFT_BASELINE), JSON.stringify({ missing: totalMissing, byTarget: drift }, null, 2) + "\n");
+    console.log(`pinned ${DRIFT_BASELINE} — missing=${totalMissing}`);
+  }
 }
 
 // Coverage gap (warning): live components with no design mirror.
