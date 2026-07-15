@@ -4,6 +4,14 @@
  * ScanningScreen — the captured "scanning" screen (ReachKit.dc.html): a violet
  * spinner with a live %, headline, and a step-log card. Design-adopted to the
  * app's REAL narrative steps (state + label) and host. 1:1 styling.
+ *
+ * `embedded` (added for the in-shell dashboard progress view, spec §4 of
+ * 2026-07-15-add-product-onboarding-design.md): swaps the full-page 100vh
+ * `<main>` + gradient backdrop for a plain block that drops in place inside the
+ * app shell's own content column — the sidebar/switcher stay live around it.
+ * Everything else (spinner, headline, checklist card) is byte-identical; the
+ * default (`embedded=false`) path is unchanged, so the funnel's live scan page
+ * (app/(funnel)/scan/[id]/scan-stream.tsx) renders exactly as before.
  */
 
 // Canonical font vars (next/font in the root layout) — no per-page font loading.
@@ -11,38 +19,51 @@ const SG = "var(--font-display)", JM = "var(--font-mono)";
 
 export interface ScanStep { state: "done" | "active" | "pending"; label: string }
 
-export function ScanningScreen({ host, steps }: { host: string | null; steps: ScanStep[] }) {
+export function ScanningScreen({ host, steps, embedded = false }: { host: string | null; steps: ScanStep[]; embedded?: boolean }) {
   const done = steps.filter((s) => s.state === "done").length;
   const pct = steps.length ? Math.round((done / steps.length) * 100) : 0;
+  const body = (
+    <div style={{ width: "min(560px, 92vw)", textAlign: "center", padding: 32 }}>
+      <div style={{ position: "relative", width: 120, height: 120, margin: "0 auto 28px" }}>
+        <div style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "3px solid var(--c-tint-violet-line)" }} />
+        <div style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "3px solid", borderColor: "var(--c-action) transparent transparent", animation: "rk-spin 1s linear infinite" }} />
+        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: JM, fontWeight: 700, fontSize: 26, color: "var(--c-action)" }}>{pct}%</div>
+      </div>
+      <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: 26, letterSpacing: "-0.02em", margin: 0, color: "var(--c-ink)" }}>Scanning {host ?? "your site"}</h2>
+      <p style={{ fontSize: 15, color: "var(--c-faint)", margin: "8px 0 28px" }}>Reading your page the way a customer&apos;s search does…</p>
+      <div style={{ textAlign: "left", background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 14, padding: 10, boxShadow: "rgba(40,33,84,0.18) 0px 10px 30px -12px" }}>
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          {steps.map((s, i) => {
+            const active = s.state === "active";
+            const isDone = s.state === "done";
+            return (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 12px", borderRadius: 10, background: active ? "var(--c-soft)" : "transparent", opacity: s.state === "pending" ? 0.4 : 1, transition: "0.25s" }}>
+                <div style={{ width: 20, height: 20, borderRadius: "50%", flex: "0 0 auto", display: "flex", alignItems: "center", justifyContent: "center", background: isDone || active ? "var(--c-action)" : "var(--c-line)", color: "#fff", fontSize: 12, fontWeight: 700 }}>
+                  {isDone ? "✓" : active ? <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--c-surface)", animation: "rk-pulse 1s ease infinite" }} /> : null}
+                </div>
+                <span style={{ fontSize: 14, fontWeight: active || isDone ? 600 : 500, color: active || isDone ? "var(--c-ink)" : "var(--c-faint)" }}>{s.label}</span>
+                {active && <span style={{ marginLeft: "auto", fontFamily: JM, fontSize: 12, color: "var(--c-action)" }}>…</span>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+
+  if (embedded) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center" }}>
+        <style>{`@keyframes rk-spin{to{transform:rotate(360deg)}}@keyframes rk-pulse{0%,100%{opacity:1}50%{opacity:.35}}`}</style>
+        {body}
+      </div>
+    );
+  }
+
   return (
     <main style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "radial-gradient(900px 500px at 50% 30%, var(--c-soft), var(--c-bg))" }}>
       <style>{`@keyframes rk-spin{to{transform:rotate(360deg)}}@keyframes rk-pulse{0%,100%{opacity:1}50%{opacity:.35}}`}</style>
-      <div style={{ width: "min(560px, 92vw)", textAlign: "center", padding: 32 }}>
-        <div style={{ position: "relative", width: 120, height: 120, margin: "0 auto 28px" }}>
-          <div style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "3px solid var(--c-tint-violet-line)" }} />
-          <div style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "3px solid", borderColor: "var(--c-action) transparent transparent", animation: "rk-spin 1s linear infinite" }} />
-          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: JM, fontWeight: 700, fontSize: 26, color: "var(--c-action)" }}>{pct}%</div>
-        </div>
-        <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: 26, letterSpacing: "-0.02em", margin: 0, color: "var(--c-ink)" }}>Scanning {host ?? "your site"}</h2>
-        <p style={{ fontSize: 15, color: "var(--c-faint)", margin: "8px 0 28px" }}>Reading your page the way a customer&apos;s search does…</p>
-        <div style={{ textAlign: "left", background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 14, padding: 10, boxShadow: "rgba(40,33,84,0.18) 0px 10px 30px -12px" }}>
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            {steps.map((s, i) => {
-              const active = s.state === "active";
-              const isDone = s.state === "done";
-              return (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 12px", borderRadius: 10, background: active ? "var(--c-soft)" : "transparent", opacity: s.state === "pending" ? 0.4 : 1, transition: "0.25s" }}>
-                  <div style={{ width: 20, height: 20, borderRadius: "50%", flex: "0 0 auto", display: "flex", alignItems: "center", justifyContent: "center", background: isDone || active ? "var(--c-action)" : "var(--c-line)", color: "#fff", fontSize: 12, fontWeight: 700 }}>
-                    {isDone ? "✓" : active ? <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--c-surface)", animation: "rk-pulse 1s ease infinite" }} /> : null}
-                  </div>
-                  <span style={{ fontSize: 14, fontWeight: active || isDone ? 600 : 500, color: active || isDone ? "var(--c-ink)" : "var(--c-faint)" }}>{s.label}</span>
-                  {active && <span style={{ marginLeft: "auto", fontFamily: JM, fontSize: 12, color: "var(--c-action)" }}>…</span>}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
+      {body}
     </main>
   );
 }

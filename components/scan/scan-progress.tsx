@@ -23,6 +23,7 @@ export function ScanProgress({
   deep = false,
   findingsReady,
   reportReady,
+  embedded = false,
 }: {
   artifacts: string[];
   productName?: string | null;
@@ -36,6 +37,8 @@ export function ScanProgress({
   findingsReady: boolean;
   /** Report persisted (closes the deep `report` step; free scans never reach it). */
   reportReady: boolean;
+  /** Render in place inside a host layout (e.g. the app shell) instead of a full-page takeover. */
+  embedded?: boolean;
 }) {
   const confirmed = new Set<string>(artifacts);
   if (findingsReady) confirmed.add("__findings__");
@@ -50,5 +53,11 @@ export function ScanProgress({
   );
 
   void productName;
-  return <ScanningScreen host={host ?? null} steps={steps.map((s) => ({ state: s.state, label: s.label }))} />;
+  return (
+    <ScanningScreen
+      host={host ?? null}
+      steps={steps.map((s) => ({ state: s.state, label: s.label }))}
+      embedded={embedded}
+    />
+  );
 }
