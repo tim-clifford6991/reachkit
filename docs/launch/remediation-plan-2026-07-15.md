@@ -121,7 +121,7 @@ Branch: `launch/honest-storefront` off main. Every live-file edit in Tasks 1.1�
 - [ ] **Step 1:** Replace the FAQ answer at `pricing-html.ts:107` (currently "A weighted sum of 18 signals…") with copy that matches the shipped v5 unified score:
 
 ```html
-<div style="font-size: 14px; line-height: 1.6; color: var(--c-muted);"><span class="sc-interp">Two 0–100 drivers multiplied together: on-page readiness (18 measured signals across your site) and search presence (your real ranked keywords). Both have to be strong — a perfect page nobody finds still scores low. Both drivers are broken out in your report.</span></div>
+<div style="font-size: 14px; line-height: 1.6; color: var(--c-muted);"><span class="sc-interp">Two 0–100 drivers multiplied together: on-page readiness (8 on-site fundamentals of your page) and search presence (your real ranked keywords). Both have to be strong — a perfect page nobody finds still scores low. Both drivers are broken out in your report.</span></div>
 ```
 
 - [ ] **Step 2:** Sweep for other stale descriptions: `grep -rn "weighted sum" components/ content/ .design-sync/ds-src/` → fix every hit with the same sentence. (`results-screen.tsx:478` "18 signals" footnote is CORRECT — 18 signals exist in the breakdown — leave it.)

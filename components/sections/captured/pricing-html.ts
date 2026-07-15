@@ -104,7 +104,7 @@ export const PRICING_HTML = `<main style="max-width: 1080px; margin: 0px auto; p
         </div>
         <div style="border: 1px solid var(--c-line); border-radius: 14px; padding: 22px; background: var(--c-surface);">
           <div style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 16px; margin-bottom: 8px;"><span class="sc-interp">How is the Discoverability Score calculated?</span></div>
-          <div style="font-size: 14px; line-height: 1.6; color: var(--c-muted);"><span class="sc-interp">Two 0–100 drivers multiplied together: on-page readiness (18 measured signals across your site) and search presence (your real ranked keywords). Both have to be strong — a perfect page nobody finds still scores low. Both drivers are broken out in your report.</span></div>
+          <div style="font-size: 14px; line-height: 1.6; color: var(--c-muted);"><span class="sc-interp">Two 0–100 drivers multiplied together: on-page readiness (8 on-site fundamentals of your page) and search presence (your real ranked keywords). Both have to be strong — a perfect page nobody finds still scores low. Both drivers are broken out in your report.</span></div>
         </div>
         <div style="border: 1px solid var(--c-line); border-radius: 14px; padding: 22px; background: var(--c-surface);">
           <div style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 16px; margin-bottom: 8px;"><span class="sc-interp">Can I cancel anytime?</span></div>
