@@ -12,9 +12,12 @@
  * shouldBlockSetup (lib/app/setup-state.ts), renders the blocking
  * <SetupOverlay/> over the inert shell ONLY for a genuine first run — the
  * per-user profile step, or a competitor pick on the user's ONLY app. With 2+
- * apps the overlay never blocks: an additional product's competitor pick
- * renders in-page on that app's own dashboard instead, so a healthy product
- * #1 is never inerted by product #2's setup.
+ * apps the overlay never blocks, so a healthy product #1 is never inerted by
+ * product #2's setup. That product still gets its pick in-page: CompetitorSetup
+ * renders inline on /app/plan and /app/audience/* whenever the active app has
+ * no cohort, and unconditionally on /app/competitors — which the dashboard's
+ * empty intel state links to ("Choose competitors"). The dashboard itself links
+ * to the picker; it does not embed it.
  */
 
 import { Suspense } from "react";
@@ -119,8 +122,10 @@ async function SidebarData({ children }: { children: React.ReactNode }) {
   // see shouldBlockSetup below. In short: "competitors" only blocks on the
   // user's ONLY app (genuine first run). With 2+ apps it never blocks — a
   // freshly-added product's completed scan seeding its own competitor pick
-  // must not inert a healthy product #1; that pick renders as the normal
-  // cheap post-scan beat on that app's own dashboard instead.
+  // must not inert a healthy product #1. That pick is still reached in-page,
+  // as the normal cheap post-scan beat: CompetitorSetup renders inline on
+  // /app/plan and /app/audience/* when the active app has no cohort, and
+  // /app/competitors always shows it.
   let setupState: "profile" | "competitors" | "ready" = "ready";
   if (!user.onboarded_at) {
     setupState = "profile";
