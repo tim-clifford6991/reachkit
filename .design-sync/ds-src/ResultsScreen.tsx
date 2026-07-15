@@ -37,6 +37,10 @@ const pillarColor = (v: number) => (v < 30 ? "var(--c-band-invisible)" : v < 50 
 // on-page) that nobody finds (low search presence) reads low — the whole point.
 const ON_PAGE = 72, SEARCH = 40;
 const SCORE = Math.round(Math.sqrt(ON_PAGE * SEARCH)); // 54 — "Fair"
+// Names whichever driver is actually weaker (search here: 40 < 72) — an
+// unconditional "Search presence is your gap." would contradict the bars
+// whenever on-page is the lower driver instead.
+const WEAKER_DRIVER = ON_PAGE < SEARCH ? "On-page readiness" : "Search presence";
 const SITE = "bloom.io";
 const DRIVERS = [
   { label: "On-page readiness", value: ON_PAGE, note: "how well your page is built" },
@@ -86,7 +90,13 @@ export function ResultsScreen() {
           </div>
           <div>
             <h1 style={{ fontFamily: SG, fontWeight: 700, fontSize: 26, letterSpacing: "-0.02em", margin: "0 0 6px" }}>Your category gets 12,400 searches a month — and you capture just 8% of it.</h1>
-            <p style={{ fontSize: 15, lineHeight: 1.6, color: "var(--c-muted)", margin: "0 0 18px" }}>{SITE} has real on-page gaps holding it back. The plan below starts with the fixes that matter most.</p>
+            {/* ON_PAGE (72) >= 60 → the intro credits the on-page driver, never
+                the unified SCORE (54) — the intro gates on onPageReadiness so
+                a tidy page nobody finds can't be told it "has real on-page
+                gaps" beside its own high on-page bar (live fix: the intro's
+                gate in to-results-props.ts reads onPageReadiness, not the
+                mixed unified total). */}
+            <p style={{ fontSize: 15, lineHeight: 1.6, color: "var(--c-muted)", margin: "0 0 18px" }}>{SITE} is in decent on-page shape. The plan below focuses on where you can still gain ground.</p>
             {/* The two drivers of the unified score */}
             <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
               {DRIVERS.map((d) => (
@@ -100,7 +110,7 @@ export function ResultsScreen() {
                 </div>
               ))}
               <div style={{ fontSize: 12, lineHeight: 1.5, color: "var(--c-muted)", fontFamily: JM, paddingTop: 4, borderTop: "1px dashed var(--c-line2)", marginTop: 2 }}>
-                Your score multiplies both — a flawless page nobody finds still scores low. <strong style={{ color: "var(--c-ink)" }}>Search presence is your gap.</strong>
+                Your score multiplies both — a flawless page nobody finds still scores low. <strong style={{ color: "var(--c-ink)" }}>{WEAKER_DRIVER} is your gap.</strong>
               </div>
             </div>
           </div>

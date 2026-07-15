@@ -236,6 +236,14 @@ export function ResultsScreen(p: ResultsScreenProps) {
                   { label: "On-page readiness", value: p.searchVisibility!.onPageReadiness, note: "how well your page is built" },
                   { label: "Search presence", value: p.searchVisibility!.score, note: "how findable you are in search" },
                 ];
+                // Name whichever driver is actually weaker — an unconditional
+                // "Search presence is your gap." contradicts the bars directly
+                // above it whenever on-page readiness is the lower of the two
+                // (MINOR 4: e.g. an established brand with strong search but a
+                // weak page).
+                const weakerDriver = p.searchVisibility!.onPageReadiness < p.searchVisibility!.score
+                  ? "On-page readiness"
+                  : "Search presence";
                 return (
                   <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
                     {drivers.map((d) => {
@@ -254,7 +262,7 @@ export function ResultsScreen(p: ResultsScreenProps) {
                       );
                     })}
                     <div style={{ fontSize: 12, lineHeight: 1.5, color: "var(--c-muted)", fontFamily: JM, paddingTop: 4, borderTop: "1px dashed var(--c-line2)", marginTop: 2 }}>
-                      Your score multiplies both — a flawless page nobody finds still scores low. <strong style={{ color: "var(--c-fg)" }}>Search presence is your gap.</strong>
+                      Your score multiplies both — a flawless page nobody finds still scores low. <strong style={{ color: "var(--c-fg)" }}>{weakerDriver} is your gap.</strong>
                     </div>
                   </div>
                 );

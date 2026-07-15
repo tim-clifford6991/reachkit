@@ -69,6 +69,17 @@ export function toResultsProps(
 
   const pm = report.whatYouOffer.positioningMirror;
 
+  // The intro owns ONLY the on-page story (the headline above owns search), so
+  // it must gate on the ON-PAGE driver — never `report.score.total`, which on
+  // every v5 web report is the UNIFIED geomean of on-page × search. Gating the
+  // on-page claim on the mixed number produces exactly the contradiction this
+  // split exists to prevent: a flawless page (on-page 98) invisible in search
+  // (search 4, unified ~20) would render "has real on-page gaps" three lines
+  // above its own 98/100 on-page driver bar. Falls back to `score.total` only
+  // when there's no free searchVisibility (paid reports use the 3 on-page
+  // pillar bars instead, where `score.total` IS the on-page-only number).
+  const onPageForIntro = report.searchVisibility?.onPageReadiness ?? report.score.total;
+
   // Clean LLM-authored audience tags — who the page is written FOR vs who it reads
   // AS. Replaces the old naive prose-splitting that produced garbage chips
   // ("trustmrr", "updated hourly —"). Empty when a legacy report predates the field.
@@ -153,7 +164,7 @@ export function toResultsProps(
       .slice(0, 6),
     headline,
     intro:
-      report.score.total >= 60
+      onPageForIntro >= 60
         ? "is in decent on-page shape. The plan below focuses on where you can still gain ground."
         : "has real on-page gaps holding it back. The plan below starts with the fixes that matter most.",
     pillars,

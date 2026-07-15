@@ -33,7 +33,7 @@ type CompGap = ReportPayload["whereTheyAre"]["competitorGap"][number];
 
 function sv(over: Partial<SearchVisibility> = {}): SearchVisibility {
   return {
-    score: 20,
+    score: 46,
     onPageReadiness: 80,
     keywordsRanked: 12,
     estMonthlyVisits: 400,
@@ -122,19 +122,30 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
     expect(html).toContain("capture just 9%"); // honest, coherent hero (not "you're winning")
     expect(html).toContain("Ahrefs"); // discovered competitor names render
     expect(html).toMatch(PRICE_LINE_RE); // unlock band states the price up front (Task 1.4)
-    // score.total 61 >= 60 → the intro must say the page is in decent on-page
-    // shape (never the unconditional, unverifiable "is technically fine"), and
-    // make NO search claim — the headline above owns the search story, so an
-    // intro search claim could directly contradict it (e.g. an "on the board in
-    // search" headline over a "search is your bigger gap" intro).
+    // onPageReadiness (80, from sv()'s default) >= 60 → the intro must say the
+    // page is in decent on-page shape (never the unconditional, unverifiable
+    // "is technically fine"), and make NO search claim — the headline above
+    // owns the search story, so an intro search claim could directly
+    // contradict it (e.g. an "on the board in search" headline over a "search
+    // is your bigger gap" intro). Gated on onPageReadiness, NOT score.total
+    // (61) — the unified geomean the two would otherwise be confused for
+    // (Critical 1).
     expect(html).toContain("is in decent on-page shape. The plan below focuses on where you can still gain ground.");
+    // Search (46) is the weaker driver here (< onPageReadiness 80) → MINOR 4.
+    expect(html).toContain("Search presence is your gap.");
   });
 
   it("0-ranking new product: invisible in search → zero-state hero, no broken artifacts", () => {
     const r = report({
+      // score.total (18) must be geomean-consistent with the two drivers below:
+      // round(sqrt(onPageReadiness 54 × search 6)) = round(sqrt(324)) = 18. The
+      // weak on-page driver (54 < 60) is what makes the "has real on-page gaps"
+      // intro copy TRUE in this fixture (Critical 1 fix: the intro now gates on
+      // onPageReadiness, not the unified score.total).
       score: { total: 18, breakdown: { content: 20, outreach: 10, seo: 15 }, radar: [], basis: "verified" },
       searchVisibility: sv({
-        score: 1,
+        score: 6,
+        onPageReadiness: 54,
         keywordsRanked: 0,
         estMonthlyVisits: 0,
         brandPct: 0,
@@ -166,6 +177,11 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
 
   it("directory: tidy page but visibility is other brands' names → honest 'brand names' hero, not a false 88 win", () => {
     const r = report({
+      // score.total (88) is geomean-consistent: round(sqrt(onPageReadiness 98 ×
+      // search 79)) = round(sqrt(7742)) = 88. Tidy on-page (98, matches the
+      // content:95 breakdown) + a decent absolute category-keyword strength (79)
+      // despite most of the raw ranked-keyword traffic (by volume) being other
+      // companies' names (offTopicPct 72%) — those are independent measures.
       score: {
         total: 88,
         breakdown: { content: 95, outreach: 20, seo: 90 },
@@ -176,7 +192,7 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
         ],
         basis: "verified",
       },
-      searchVisibility: sv({ score: 12, keywordsRanked: 250, offTopicPct: 72, categoryDemand: 0, categoryCaptureRate: 3 }),
+      searchVisibility: sv({ score: 79, onPageReadiness: 98, keywordsRanked: 250, offTopicPct: 72, categoryDemand: 0, categoryCaptureRate: 3 }),
       whereTheyAre: { surfaces: [], competitorGap: [comp("G2")] },
     });
     const html = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r, "somedir.com", 3, 8)} />);
@@ -197,8 +213,11 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
     // could get a headline opening "Your page is clean" directly above the
     // "has real on-page gaps" intro. The headline must make NO on-page claim.
     const r = report({
+      // score.total (34) geomean-consistent: round(sqrt(onPageReadiness 45 ×
+      // search 26)) = round(sqrt(1170)) = 34. onPageReadiness 45 < 60 → the
+      // intro's "has real on-page gaps" claim is TRUE in this fixture.
       score: { total: 34, breakdown: { content: 30, outreach: 25, seo: 45 }, radar: [], basis: "verified" },
-      searchVisibility: sv({ keywordsRanked: 120, offTopicPct: 68, categoryDemand: 0, categoryCaptureRate: 0 }),
+      searchVisibility: sv({ score: 26, onPageReadiness: 45, keywordsRanked: 120, offTopicPct: 68, categoryDemand: 0, categoryCaptureRate: 0 }),
     });
     const html = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r, "weakpage.com", 0, 0)} scanId="scan-offtopic" />);
 
@@ -206,5 +225,79 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
     expect(html).toContain("68% of the searches you rank for are other companies");
     expect(html).toContain("has real on-page gaps");
     expect(html).not.toContain("page is clean");
+    // Search is the weaker driver here (26 < 45) → the driver-summary line
+    // should name search, not on-page, as the gap (MINOR 4).
+    expect(html).toContain("Search presence is your gap.");
+  });
+
+  it("trustmrr-shape: flawless on-page, near-invisible in search → unified total is low, but the intro must credit the strong on-page driver (Critical 1)", () => {
+    // The flagship honesty case the whole branch exists for: a beautifully-built
+    // page (onPageReadiness 98) that almost nobody finds (search 4) — unified
+    // total = round(sqrt(98 * 4)) = round(sqrt(392)) = 20. Gating the intro on
+    // `score.total` (20 < 60) would falsely claim "has real on-page gaps"
+    // directly beside a 98/100 on-page driver bar. Gating on onPageReadiness
+    // (98 >= 60) is the fix: the intro must credit the on-page driver and the
+    // headline (search-only) owns the low-total story instead.
+    const r = report({
+      score: { total: 20, breakdown: { content: 98, outreach: 90, seo: 97 }, radar: [], basis: "verified" },
+      searchVisibility: sv({
+        score: 4,
+        onPageReadiness: 98,
+        keywordsRanked: 15,
+        estMonthlyVisits: 40,
+        brandPct: 60,
+        categoryPct: 10,
+        offTopicPct: 30,
+        categoryWins: 0,
+        categoryDemand: 3000,
+        categoryCaptureRate: 2,
+        categoryOpportunities: [{ keyword: "trust badge widget", volume: 2200 }],
+        categoryCapturedSearches: 40,
+      }),
+    });
+    const html = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r, "trustmrr.com", 0, 0)} scanId="scan-trustmrr" />);
+
+    assertNoGarbage(html, "trustmrr-shape");
+    expect(html).toContain("trustmrr.com");
+    expect(html).toContain(">20<"); // the unified gauge score still reads low
+    expect(html).toContain(">98<"); // the on-page driver bar reads high
+    expect(html).toContain("is in decent on-page shape. The plan below focuses on where you can still gain ground.");
+    expect(html).not.toContain("has real on-page gaps");
+    // On-page (98) dwarfs search (4) → search is unambiguously the weaker
+    // driver (MINOR 4).
+    expect(html).toContain("Search presence is your gap.");
+  });
+
+  it("established brand, weak page: on-page IS the weaker driver → the summary names on-page, not search (MINOR 4 converse)", () => {
+    // Mirrors the review's converse example: on-page 40, search 70 → unified
+    // total = round(sqrt(40 * 70)) = round(sqrt(2800)) = 53. Search (70) beats
+    // on-page (40) here, so the bolded driver-summary line must say "On-page
+    // readiness is your gap." — asserting the unconditional "Search presence is
+    // your gap." would be a direct contradiction of the bars shown above it.
+    const r = report({
+      score: { total: 53, breakdown: { content: 35, outreach: 45, seo: 40 }, radar: [], basis: "verified" },
+      searchVisibility: sv({
+        score: 70,
+        onPageReadiness: 40,
+        keywordsRanked: 300,
+        estMonthlyVisits: 9000,
+        brandPct: 55,
+        categoryPct: 35,
+        offTopicPct: 10,
+        categoryWins: 4,
+        categoryDemand: 20000,
+        categoryCaptureRate: 22,
+        categoryOpportunities: [{ keyword: "enterprise workflow tool", volume: 6000 }],
+        categoryCapturedSearches: 4400,
+      }),
+    });
+    const html = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r, "oldbrand.com", 0, 0)} scanId="scan-oldbrand" />);
+
+    assertNoGarbage(html, "on-page-is-the-gap");
+    expect(html).toContain("oldbrand.com");
+    expect(html).toContain(">53<");
+    expect(html).toContain("has real on-page gaps"); // onPageReadiness 40 < 60
+    expect(html).toContain("On-page readiness is your gap.");
+    expect(html).not.toContain("Search presence is your gap.");
   });
 });
