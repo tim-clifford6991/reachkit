@@ -21,13 +21,12 @@ const SECTION: React.CSSProperties = { maxWidth: 1080, margin: "0 auto", padding
 const COMPARE: { feature: string; cells: [string, string, string] }[] = [
   { feature: "Discoverability Score + 3 pillars", cells: ["✓", "✓", "✓"] },
   { feature: "Positioning Mirror", cells: ["✓", "✓", "✓"] },
-  { feature: "Ranked fixes", cells: ["Top 3", "All 7", "All 7"] },
+  { feature: "Ranked fixes", cells: ["Top 3", "Full plan (up to 8)", "Full plan (up to 8)"] },
   { feature: "Full 18-signal breakdown", cells: ["—", "✓", "✓"] },
   { feature: "Weekly re-scan + score history", cells: ["—", "✓", "✓"] },
   { feature: "Verified action engine", cells: ["—", "✓", "✓"] },
   { feature: "Keyword rank depth", cells: ["—", "20", "50"] },
   { feature: "Products tracked", cells: ["1", "1", "3"] },
-  { feature: "Shareable score cards", cells: ["—", "—", "✓"] },
 ];
 const COLS = "1.6fr 1fr 1fr 1fr";
 

@@ -86,7 +86,7 @@ export function ResultsScreen() {
           </div>
           <div>
             <h1 style={{ fontFamily: SG, fontWeight: 700, fontSize: 26, letterSpacing: "-0.02em", margin: "0 0 6px" }}>Your category gets 12,400 searches a month — and you capture just 8% of it.</h1>
-            <p style={{ fontSize: 15, lineHeight: 1.6, color: "var(--c-muted)", margin: "0 0 18px" }}>{SITE} is technically fine. The gap is discoverability: you&apos;re absent from the comparison and directory surfaces where your buyers actually decide.</p>
+            <p style={{ fontSize: 15, lineHeight: 1.6, color: "var(--c-muted)", margin: "0 0 18px" }}>{SITE} has real on-page gaps holding it back. The plan below starts with the fixes that matter most.</p>
             {/* The two drivers of the unified score */}
             <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
               {DRIVERS.map((d) => (
@@ -196,7 +196,13 @@ export function ResultsScreen() {
             <h3 style={{ color: "var(--c-on-dark)", fontFamily: SG, fontWeight: 700, fontSize: 22, margin: 0 }}>Get the full growth playbook + weekly tracking</h3>
             <p style={{ color: "var(--c-on-dark-muted)", maxWidth: 430, margin: "8px 0 0", fontSize: 14, lineHeight: 1.5 }}>Ready-to-ship drafts, competitor &amp; keyword-gap intel, the full 18-signal breakdown, and weekly score tracking as you ship.</p>
           </div>
-          <button style={{ background: "var(--c-surface)", color: "var(--c-ink)", borderRadius: 10, padding: "13px 24px", border: "none", fontFamily: "var(--font-sans)", fontWeight: 700, fontSize: 15, cursor: "pointer", whiteSpace: "nowrap" }}>Unlock the full report →</button>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+            <button style={{ background: "var(--c-surface)", color: "var(--c-ink)", borderRadius: 10, padding: "13px 24px", border: "none", fontFamily: "var(--font-sans)", fontWeight: 700, fontSize: 15, cursor: "pointer", whiteSpace: "nowrap" }}>Unlock the full report →</button>
+            {/* Price stated up front on the unlock CTA (from lib/billing/pricing.ts's
+                tierByPlan/fmtPrice on the live report — never learned only inside
+                Stripe Checkout). */}
+            <span style={{ fontFamily: JM, fontSize: 12.5, color: "#B7B4C4" }}>€59/mo · cancel anytime</span>
+          </div>
         </div>
       </div>
     </main>

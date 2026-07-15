@@ -27,7 +27,7 @@ const SG = "var(--font-display)";
 export const DEFAULT_TIERS: Tier[] = [
   { name: "Free scan", price: "$0", sub: "one-time, no card", cta: "Scan my site", features: ["Your Discoverability Score", "3 pillar sub-scores", "Top 3 ranked fixes", "Positioning Mirror"] },
   { name: "Solo", price: "$59", per: "/mo", sub: "for one product", cta: "Start Solo", features: ["Everything in Free, unlocked", "Weekly re-scan + score history", "Verified action engine", "Full 18-signal breakdown", "20-keyword rank depth"] },
-  { name: "Growth", price: "$129", per: "/mo", sub: "up to 3 products", cta: "Start Growth", popular: true, features: ["Everything in Solo", "Track 3 products", "50-keyword rank depth", "Shareable score cards", "One-click public teardowns"] },
+  { name: "Growth", price: "$129", per: "/mo", sub: "up to 3 products", cta: "Start Growth", popular: true, features: ["Everything in Solo", "Track 3 products", "50-keyword rank depth"] },
 ];
 
 function TierCard({ t }: { t: Tier }) {

@@ -1,5 +1,5 @@
 {
-  "missing": 60,
+  "missing": 59,
   "byTarget": {
     "components/sections/captured/landing-html.ts": 7,
     "components/app/captured/app-shell.tsx": 1,
@@ -10,7 +10,7 @@
     "components/app/intel/dashboard-hero.tsx": 2,
     "components/app/intel/intent-recency-map.tsx": 1,
     "components/app/intel/pain-bars.tsx": 1,
-    "components/sections/captured/pricing-html.ts": 11,
+    "components/sections/captured/pricing-html.ts": 10,
     "components/app/intel/plan-entry-card.tsx": 11,
     "components/app/intel/plan-timeline-view.tsx": 2,
     "components/app/intel/progress-view.tsx": 2,
