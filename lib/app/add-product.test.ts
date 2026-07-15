@@ -23,6 +23,10 @@ const setUser = (u: { tier: string; app_ids: string[] }) => {
   userRereadOverride = undefined;
 };
 const inserted: Record<string, unknown[]> = { apps: [], scans: [] };
+// Tracks every `.update(patch)` call per table (e.g. the users.app_ids link
+// write, and — the defect this file's newest test proves — the scans row
+// getting stamped terminal when inngest.send fails after insert).
+const updated: Record<string, unknown[]> = { apps: [], scans: [], users: [] };
 vi.mock("@/lib/db/client", () => ({
   serverDb: () => ({
     from: (table: string) => ({
@@ -40,7 +44,10 @@ vi.mock("@/lib/db/client", () => ({
         inserted[table]?.push(row);
         return { select: () => ({ single: async () => ({ data: { id: `${table}-new` }, error: null }) }) };
       },
-      update: () => ({ eq: async () => ({ error: null }) }),
+      update: (patch: Record<string, unknown>) => {
+        updated[table]?.push(patch);
+        return { eq: async () => ({ error: null }) };
+      },
     }),
   }),
 }));
@@ -252,5 +259,46 @@ describe("addTrackedProduct (cap · already-tracked · paused)", () => {
     scanRow.mockReturnValue({ data: { status: "collecting", created_at: new Date().toISOString() } });
     await expect(addTrackedProduct("u1", "https://x.com/")).resolves.toEqual({ appId: "app1", scanId: "scan1" });
     expect(ensureDeepScan).not.toHaveBeenCalled();
+  });
+
+  // THE DEFECT this test proves: `startScan`'s scan-row INSERT failure is
+  // guarded (returns null; app still links), but the very next line —
+  // `inngest.send` — was UNGUARDED. A rejected send (exactly what CI sees:
+  // ECONNREFUSED, no Inngest dev server) propagated out of `addTrackedProduct`
+  // and the caller reported "Couldn't add your product" for a product that
+  // WAS successfully created + linked (spec §6: "Scan trigger fails → App is
+  // still created + linked... Never strand a paid slot on a transient Inngest
+  // blip"). The naive fix (swallow + return the scanId) is ALSO wrong: the
+  // `scans` row would sit at status:"queued" forever with nothing to process
+  // it, and the dashboard's in-flight query (`not in (done,failed,degraded)`)
+  // would render it as a permanent fake "Scanning…" spinner. So this test
+  // asserts the full honest contract: app linked, scanId null, AND the
+  // orphaned row stamped terminal (not left "queued").
+  it("inngest.send FAILS on a fresh add → app still linked, scanId null, orphan scan row marked terminal (not a fake spinner)", async () => {
+    const { addTrackedProduct } = await import("./add-product");
+    const { inngest } = await import("@/lib/inngest/client");
+    setUser({ tier: "growth", app_ids: [] }); // growth cap = 3, tier !== "free" → active: true
+    findAppByUrl.mockResolvedValue(null); // fresh — new app + new scan row
+    inserted.scans = [];
+    inserted.apps = [];
+    updated.users = [];
+    updated.scans = [];
+    vi.mocked(inngest.send).mockRejectedValueOnce(new Error("connect ECONNREFUSED 127.0.0.1:8288"));
+
+    const result = await addTrackedProduct("u1", "https://boom.com/");
+
+    expect(result.scanId).toBeNull();
+    expect(result.appId).toBeTruthy();
+    // The app row WAS created and the link write WAS made — never strand a slot.
+    expect(inserted.apps).toHaveLength(1);
+    expect(updated.users).toHaveLength(1);
+    // The scans row WAS inserted (status:"queued" at creation)...
+    expect(inserted.scans).toHaveLength(1);
+    expect(inserted.scans[0]).toMatchObject({ status: "queued" });
+    // ...but because nothing will ever process it, it must be stamped
+    // terminal so the dashboard's in-flight query excludes it and falls
+    // through to the normal retry affordance instead of a fake spinner.
+    expect(updated.scans).toHaveLength(1);
+    expect(updated.scans[0]).toMatchObject({ status: "failed" });
   });
 });

@@ -131,14 +131,14 @@ export async function addTrackedProduct(userId: string, rawUrl: string): Promise
     scanId = await startScan(appId, paid);
   } else if (plan.kind === "deepen") {
     scanId = plan.scanId;
-    if (paid) await ensureDeepScan(plan.scanId); // flips tier→full, emits scan/deepen
+    if (paid) await safeEnsureDeepScan(plan.scanId, "deepen"); // flips tier→full, emits scan/deepen
   } else {
     scanId = plan.scanId; // attach — a scan is already running; watch it
     // A paid viewer attaching to an in-flight scan must still get it deepened
     // — otherwise it finishes on the free track and nothing ever re-triggers
     // an upgrade (Finding 2, code review 2026-07-15). ensureDeepScan is
     // idempotent (lib/scan/deepen.ts): a no-op once the deep pass has run.
-    if (paid) await ensureDeepScan(plan.scanId);
+    if (paid) await safeEnsureDeepScan(plan.scanId, "attach");
   }
 
   return { appId, scanId };
@@ -151,6 +151,39 @@ async function startScan(appId: string, paid: boolean): Promise<string | null> {
     console.error("[add-product] scan row insert failed", scan.error?.message);
     return null; // app still links; the dashboard offers retry (never strand a slot)
   }
-  await inngest.send({ name: "scan/requested", data: { scanId: scan.data.id } });
+  try {
+    await inngest.send({ name: "scan/requested", data: { scanId: scan.data.id } });
+  } catch (err) {
+    console.error("[add-product] scan/requested send failed", err instanceof Error ? err.message : err);
+    // The row exists but nothing will ever process it. Leaving status:"queued"
+    // would render a permanent fake "Scanning…" spinner on the dashboard — its
+    // in-flight query only excludes done/failed/degraded (app/(app)/app/
+    // dashboard/page.tsx). This scan never wrote a report_payload (the
+    // pipeline never even started), so per the established terminal-status
+    // idiom (lib/scan/terminal-status.ts: degraded when a report already
+    // exists to preserve, failed when there's genuinely nothing to show) the
+    // honest value here is "failed" — the dashboard falls through to its
+    // normal empty-state retry CTA instead of a fake spinner.
+    const { error: updateErr } = await serverDb().from("scans").update({ status: "failed" }).eq("id", scan.data.id);
+    if (updateErr) console.error("[add-product] failed to mark orphaned scan row as failed", updateErr.message);
+    return null; // app still links; the dashboard offers retry (never strand a slot)
+  }
   return scan.data.id;
+}
+
+/**
+ * `ensureDeepScan` can throw the same way `startScan`'s send could (a
+ * transient Inngest blip). Unlike `startScan`, the scan row here is NOT ours
+ * to mark failed — it's an existing scan (already "done" for `deepen`, or
+ * already running for `attach`) that the dashboard already renders correctly
+ * on its own terms. A failed trigger just means the paid deep pass doesn't
+ * kick off this time; degrade by logging and moving on, never strand the
+ * (already-linked) app behind a thrown error for something that already works.
+ */
+async function safeEnsureDeepScan(scanId: string, from: "deepen" | "attach"): Promise<void> {
+  try {
+    await ensureDeepScan(scanId);
+  } catch (err) {
+    console.error(`[add-product] ensureDeepScan failed (${from})`, err instanceof Error ? err.message : err);
+  }
 }
