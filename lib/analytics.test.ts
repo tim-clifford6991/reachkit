@@ -42,4 +42,20 @@ describe("analytics consent (launch P3)", () => {
     revokeConsent();
     expect(() => capture("test_event", { a: 1 })).not.toThrow();
   });
+
+  it("captureException (P4) is consent-gated and never throws from a boundary", async () => {
+    const { captureException, revokeConsent } = await import("./analytics");
+    revokeConsent();
+    expect(() => captureException(new Error("boom"), { boundary: "root" })).not.toThrow();
+    expect(() => captureException("string error")).not.toThrow();
+  });
+
+  it("funnel exposes the payment-first conversion helpers (P4), all no-op pre-consent", async () => {
+    const { funnel, revokeConsent } = await import("./analytics");
+    revokeConsent();
+    expect(typeof funnel.paywallViewed).toBe("function");
+    expect(typeof funnel.checkoutStarted).toBe("function");
+    expect(() => funnel.paywallViewed({ scan_id: "s1" })).not.toThrow();
+    expect(() => funnel.checkoutStarted({ plan: "solo", source: "report" })).not.toThrow();
+  });
 });

@@ -24,8 +24,12 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Surface to the console / any attached error reporter.
+    // Surface to the console / any attached error reporter. Dynamic import keeps
+    // lib/analytics out of the shared first-load chunk (this is the root boundary).
     console.error(error);
+    void import("@/lib/analytics").then((m) =>
+      m.captureException(error, { boundary: "root", digest: error.digest }),
+    );
 
     // One-shot auto-recovery for deployment skew: reload once per session when
     // the error looks like a stale-build asset failure. The sessionStorage flag

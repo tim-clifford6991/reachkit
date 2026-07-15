@@ -7,9 +7,9 @@ import { CheckoutButton } from "@/components/app/checkout-button";
 import { ManageBillingButton } from "@/components/app/manage-billing-button";
 import { ProductUrlForm } from "./settings-product-url-form";
 import { AddProductForm } from "./settings-add-product-form";
+import { AccountDeleteLazy } from "./account-delete-lazy";
 
 const SG = "Space Grotesk", JM = "JetBrains Mono", PJ = "Plus Jakarta Sans";
-const SUPPORT_EMAIL = "hello@reachkit.app";
 
 export interface SettingsMainProps {
   planTitle: string;
@@ -102,43 +102,27 @@ export function SettingsMain(p: SettingsMainProps) {
         </div>
       </Card>
       <Card title="Account">
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 12,
-            flexWrap: "wrap",
-            padding: "14px 16px",
-            background: "var(--c-tint-red)",
-            border: "1px solid var(--c-line)",
-            borderRadius: 12,
-          }}
-        >
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 14, color: "var(--c-ink)" }}>Delete account</div>
-            <div style={{ fontSize: 12.5, color: "var(--c-muted)", marginTop: 2 }}>
-              Permanently remove your account and tracked data. We&apos;ll confirm by email.
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {/* Data export (GDPR portability) — a plain link; the route streams a
+              JSON attachment, so no client JS is needed here. */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", padding: "14px 16px", background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 12 }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 14, color: "var(--c-ink)" }}>Export my data</div>
+              <div style={{ fontSize: 12.5, color: "var(--c-muted)", marginTop: 2 }}>
+                Download everything we hold about your account as a JSON file.
+              </div>
             </div>
+            <a
+              href="/api/app/account/export"
+              style={{ flexShrink: 0, fontFamily: PJ, fontWeight: 600, fontSize: 13, color: "var(--c-action)", background: "var(--c-surface)", border: "1px solid var(--c-tint-violet-line)", borderRadius: 8, padding: "8px 14px", textDecoration: "none", whiteSpace: "nowrap" }}
+            >
+              Export my data
+            </a>
           </div>
-          <a
-            href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("Delete my ReachKit account")}`}
-            style={{
-              flexShrink: 0,
-              fontFamily: PJ,
-              fontWeight: 600,
-              fontSize: 13,
-              color: "#B23B3B",
-              background: "#fff",
-              border: "1px solid #E8C6C6",
-              borderRadius: 8,
-              padding: "8px 14px",
-              textDecoration: "none",
-              whiteSpace: "nowrap",
-            }}
-          >
-            Delete account
-          </a>
+          {/* Danger zone — hard delete with typed confirmation (client island). */}
+          <div style={{ padding: "14px 16px", background: "var(--c-tint-red)", border: "1px solid var(--c-line)", borderRadius: 12 }}>
+            <AccountDeleteLazy />
+          </div>
         </div>
       </Card>
     </div>

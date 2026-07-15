@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { env } from "@/lib/config/env";
 import { serverDb } from "@/lib/db/client";
 import { classifyUrl } from "@/lib/scan/router";
 import { inngest } from "@/lib/inngest/client";
@@ -23,6 +24,15 @@ import {
 const Body = z.object({ store_url: z.string().min(4), scan_consent: z.boolean().optional() });
 
 export async function POST(req: NextRequest) {
+  // Kill switch (P4): pause all new scans without a redeploy when a scan
+  // dependency (Anthropic / DataForSEO / Tavily) is degraded.
+  if (!env.scanningEnabled) {
+    return NextResponse.json(
+      { error: "Scanning is temporarily paused. Please try again shortly." },
+      { status: 503 },
+    );
+  }
+
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "store_url required" }, { status: 400 });
   let routed;

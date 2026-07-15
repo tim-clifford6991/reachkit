@@ -1,6 +1,7 @@
 import { serverDb } from "@/lib/db/client";
 import { env } from "@/lib/config/env";
 import { emitScanEvent } from "@/lib/scan/progress";
+import { captureServerEvent } from "@/lib/analytics-server";
 
 // Per-MTok USD rates. PLACEHOLDER — confirm exact Haiku 4.5 / Sonnet 4.6 rates against the
 // `claude-api` skill before launch. The cost MATH and model routing are what Cycle 0 locks; the
@@ -83,8 +84,44 @@ async function persistCostAlert(
       .limit(50);
     if ((existing ?? []).some((e) => (e.payload as { scope?: string } | null)?.scope === scope)) return;
     await emitScanEvent(scanId, "cost-alert", { scope, cents, thresholdCents });
+    // Deliver the alert off-box (P4): this is the deduped first-sight of a
+    // breach, so it's the one place to fan out without spamming.
+    await deliverCostAlert(scanId, scope, cents, thresholdCents);
   } catch (e) {
     console.error("[cost-alert] persist failed (best-effort)", e);
+  }
+}
+
+/**
+ * Fan a cost alert out to real delivery channels (P4): a PostHog server event
+ * (always, when analytics is configured) and an optional webhook POST
+ * (`COST_ALERT_WEBHOOK_URL`, e.g. a Slack incoming webhook). Best-effort — a
+ * delivery failure must never break the scan or the persist above.
+ */
+async function deliverCostAlert(
+  scanId: string,
+  scope: "scan" | "user-daily",
+  cents: number,
+  thresholdCents: number,
+): Promise<void> {
+  await captureServerEvent("cost_alert", `scan:${scanId}`, { scope, cents, thresholdCents, scan_id: scanId });
+
+  const url = env.costAlertWebhookUrl;
+  if (!url) return;
+  try {
+    await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        text: `⚠️ ReachKit cost alert (${scope}): scan ${scanId} hit ${cents}¢ > ${thresholdCents}¢`,
+        scan_id: scanId,
+        scope,
+        cents,
+        threshold_cents: thresholdCents,
+      }),
+    });
+  } catch (e) {
+    console.error("[cost-alert] webhook delivery failed (best-effort)", e);
   }
 }
 

@@ -8,6 +8,9 @@ import { afterEach, expect, test, vi } from "vitest";
 // tests/integration/scan-route.test.ts, minus the real-DB happy path.
 vi.mock("@/lib/inngest/client", () => ({ inngest: { send: vi.fn(async () => ({})) } }));
 vi.mock("@/lib/auth/server", () => ({ currentUser: vi.fn(async () => null) }));
+// The route reads env.scanningEnabled (P4 kill switch) at the top; the unit
+// runner has no full env, so stub it ON (scanning enabled).
+vi.mock("@/lib/config/env", () => ({ env: { scanningEnabled: true } }));
 
 const assertRateLimitMock = vi.fn();
 vi.mock("@/lib/scan/abuse", async () => {

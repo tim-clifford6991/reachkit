@@ -37,6 +37,11 @@ export default function AppError({
 }) {
   useEffect(() => {
     console.error("[app/error]", error);
+    // Dynamic import keeps lib/analytics out of the app-group shared chunk
+    // (this boundary loads on every /app route; the group is bundle-budgeted).
+    void import("@/lib/analytics").then((m) =>
+      m.captureException(error, { boundary: "app", digest: error.digest }),
+    );
     // One-shot auto-recovery for deployment skew (stale-build asset/RSC failure):
     // reload once per session so the user never sees the error page for a transient
     // build mismatch. sessionStorage flag prevents a reload loop if it persists.
