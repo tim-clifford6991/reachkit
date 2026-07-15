@@ -325,7 +325,31 @@ describe("addTrackedProduct (cap · already-tracked · paused)", () => {
   });
 });
 ```
-`setUser` is a helper the implementer adds to the existing `serverDb` mock: it makes `from("users").select("tier, app_ids").eq("id").maybeSingle()` return the given row.
+Add this helper + mock to the top of the file (it replaces the Task-1 `serverDb` mock, which only covered `scans`):
+
+```ts
+// serverDb mock covering BOTH the users lookup and the scans lookup.
+let userRow: { tier: string; app_ids: string[] } | null = null;
+const setUser = (u: { tier: string; app_ids: string[] }) => { userRow = u; };
+const inserted: Record<string, unknown[]> = { apps: [], scans: [] };
+vi.mock("@/lib/db/client", () => ({
+  serverDb: () => ({
+    from: (table: string) => ({
+      select: () => ({
+        eq: () => ({ maybeSingle: async () => (table === "users" ? { data: userRow } : scanRow()) }),
+      }),
+      insert: (row: Record<string, unknown>) => {
+        inserted[table]?.push(row);
+        return { select: () => ({ single: async () => ({ data: { id: `${table}-new` }, error: null }) }) };
+      },
+      update: () => ({ eq: async () => ({ error: null }) }),
+    }),
+  }),
+}));
+vi.mock("@/lib/billing/entitlements", () => ({ entitlementsFor: async () => ({ active: userRow?.tier !== "free" }) }));
+vi.mock("@/lib/inngest/client", () => ({ inngest: { send: vi.fn(async () => ({})) } }));
+vi.mock("@/lib/scan/deepen", () => ({ ensureDeepScan: vi.fn(async () => true) }));
+```
 
 - [ ] **Step 2: Run test to verify it fails**
 
