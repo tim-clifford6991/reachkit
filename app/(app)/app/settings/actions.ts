@@ -105,7 +105,9 @@ export async function updateProductUrl(
   return { ok: true, switched: false, host: nextHost };
 }
 
-export type AddFirstProductResult = { ok: true; host: string } | { ok: false; error: string };
+export type AddFirstProductResult =
+  | { ok: true; host: string; scanId: string | null }
+  | { ok: false; error: string };
 
 /**
  * Attach a zero-app user's FIRST tracked product. Every intel page redirects
@@ -144,17 +146,12 @@ export async function addFirstProduct(formData: FormData): Promise<AddFirstProdu
     return { ok: false, error: "Enter a URL." };
   }
 
-  let routed: { platform: "ios" | "android" | "web"; url: string };
-  try {
-    routed = classifyUrl(raw);
-  } catch {
-    return { ok: false, error: "That doesn't look like a valid URL." };
-  }
-
   let newAppId: string;
+  let scanId: string | null;
   try {
-    const { appId } = await addTrackedProduct(userId, routed.url);
+    const { appId, scanId: startedScanId } = await addTrackedProduct(userId, raw);
     newAppId = appId;
+    scanId = startedScanId;
   } catch (e) {
     if (e instanceof AddProductError) return { ok: false, error: e.message };
     return { ok: false, error: "Couldn't add your product — please try again." };
@@ -164,5 +161,5 @@ export async function addFirstProduct(formData: FormData): Promise<AddFirstProdu
   revalidatePath("/app/settings");
   revalidatePath("/app");
   revalidatePath("/app/dashboard");
-  return { ok: true, host: normalizeHost(routed.url) };
+  return { ok: true, host: normalizeHost(raw), scanId };
 }
