@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { env } from "@/lib/config/env";
 import { fixturesEnabled } from "@/lib/dev/fixtures";
 import { recordPipelineRun, anthropicCostCents } from "@/lib/telemetry/pipeline-runs";
+import { currentScanId } from "@/lib/scan/cost-context";
 import type { ModelId } from "@/lib/telemetry/pipeline-runs";
 
 type Stage = "extract" | "synth" | "critic" | "format";
@@ -10,6 +11,13 @@ export async function callModel(args: {
   model: ModelId;
   system: string;
   prompt: string;
+  /**
+   * The scan to bill this call to. Pass `null` to inherit the ambient costed
+   * step's scanId (`currentScanId()`) — every call inside `costedStep` /
+   * `costedIntelStep` therefore attributes automatically, without threading a
+   * scanId through every generator signature. Only a call made outside ANY
+   * costed step stays unattributed (invariant #2).
+   */
   scanId: string | null;
   stage: Stage;
   maxTokens?: number;
@@ -46,7 +54,10 @@ export async function callModel(args: {
   // exits before this point, records no row, and is correct — Anthropic does not bill
   // failed requests and there are no token counts to record.
   await recordPipelineRun({
-    scanId: args.scanId,
+    // Fall back to the ambient costed step (invariant #2): a caller that passes
+    // no scanId still bills the scan it is running under, so LLM spend can never
+    // silently become an unattributable `scan_id = NULL` row.
+    scanId: args.scanId ?? currentScanId(),
     stage: args.stage,
     model: args.model,
     tokensIn: inputTokens,

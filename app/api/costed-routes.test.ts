@@ -22,6 +22,12 @@ const COSTED_CALLERS: Array<{ rel: string; wrapper: RegExp }> = [
   { rel: "app/api/competitors/select/route.ts", wrapper: /costedIntelStep\s*\(/ },
   { rel: "app/api/competitors/candidates/route.ts", wrapper: /costedIntelStep\s*\(/ },
   { rel: "app/api/app/plan/generate/route.ts", wrapper: /costedIntelStep\s*\(/ },
+  // Paid LLM drafts. Before 2026-07-15 these ran OUTSIDE any cost context and
+  // their generators call `callModel({ scanId: null })` — so every draft spent
+  // real Anthropic money that landed in `pipeline_runs` with `scan_id = NULL`:
+  // attributable to no scan, and therefore to no user.
+  { rel: "app/api/content-draft/route.ts", wrapper: /costedIntelStep\s*\(/ },
+  { rel: "app/api/distribute/draft/route.ts", wrapper: /costedIntelStep\s*\(/ },
 ];
 
 describe("cost attribution (invariant #2 — ratchet)", () => {

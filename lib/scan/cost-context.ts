@@ -39,10 +39,17 @@ export interface CostSink {
    */
   capUsd?: number;
   breached: boolean;
+  /**
+   * The scan this spend belongs to (invariant #2). External (DataForSEO/Tavily)
+   * cost flushes to it via the sink; LLM cost reaches it via `currentScanId()`,
+   * which lets `callModel` attribute WITHOUT threading a scanId through every
+   * generator signature. Null only outside a costed step.
+   */
+  scanId: string | null;
 }
 
-export function newCostSink(capUsd?: number): CostSink {
-  return { dataforseo: 0, tavily: 0, capUsd, breached: false };
+export function newCostSink(capUsd?: number, scanId: string | null = null): CostSink {
+  return { dataforseo: 0, tavily: 0, capUsd, breached: false, scanId };
 }
 
 const storage = new AsyncLocalStorage<CostSink>();
@@ -50,6 +57,20 @@ const storage = new AsyncLocalStorage<CostSink>();
 /** Run `fn` with `sink` as the active cost context; adapter costs accrue into it. */
 export function runInCostContext<T>(sink: CostSink, fn: () => Promise<T>): Promise<T> {
   return storage.run(sink, fn);
+}
+
+/**
+ * The active costed step's scanId, or null outside one (invariant #2).
+ *
+ * This is what lets LLM spend attribute without threading `scanId` through ~15
+ * generator signatures: `callModel` falls back to this when a caller passes no
+ * explicit scanId. Before this existed, every `callModel({ scanId: null })` —
+ * the content/distribution drafts and the whole synthesis gather — wrote a
+ * `pipeline_runs` row with `scan_id = NULL`: real money, attributable to no scan
+ * and therefore to no user.
+ */
+export function currentScanId(): string | null {
+  return storage.getStore()?.scanId ?? null;
 }
 
 /**

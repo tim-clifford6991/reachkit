@@ -93,7 +93,8 @@ export async function costedStep<T>(
     capUsd = Math.max(0, remaining) / 100;
     preBreached = remaining <= 0;
   }
-  const sink = newCostSink(capUsd);
+  // scanId into the sink → LLM spend inside this step attributes via currentScanId().
+  const sink = newCostSink(capUsd, scanId);
   if (preBreached) sink.breached = true;
   return runInCostContext(sink, fn).finally(() => flushExternalCost(scanId, sink));
 }
