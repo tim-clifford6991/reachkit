@@ -44,6 +44,25 @@ export function capture(event: string, props?: Record<string, unknown>) {
   void client().then((c) => c?.capture(event, props));
 }
 
+/**
+ * Report a client-side error to PostHog error tracking (P4). Consent-gated like
+ * capture() — only fires after the visitor accepts analytics — and best-effort:
+ * it must never throw from inside an error boundary. The reliable backbone for
+ * prod exceptions is the SERVER capture (`lib/analytics-server.ts`); this adds
+ * browser-side render/runtime errors when consent allows.
+ */
+export function captureException(error: unknown, props?: Record<string, unknown>) {
+  if (consentChoice() !== "granted") return;
+  void client().then((c) => {
+    try {
+      const err = error instanceof Error ? error : new Error(String(error));
+      c?.captureException?.(err, props);
+    } catch {
+      /* observability must never throw */
+    }
+  });
+}
+
 /** Accept analytics cookies: persist + opt in (starts capturing). */
 export function grantConsent(): void {
   if (typeof window === "undefined") return;
@@ -77,20 +96,26 @@ function findingsShown(props: { scan_id: string; score: number }) {
   capture("scan_findings_shown", props);
 }
 
-/** Fired when the email gate mounts / becomes visible (moment 4). */
-function gateViewed(props: { scan_id: string }) {
-  capture("email_gate_viewed", props);
+/** Fired when the paywall (TrialCta) becomes visible on the free report (moment 4). */
+function paywallViewed(props: { scan_id?: string }) {
+  capture("paywall_viewed", props);
 }
 
-/** Fired in EmailGate on a successful POST /claim (moment 5). */
-function emailSubmitted(props: { scan_id: string }) {
-  capture("email_submitted", props);
+/**
+ * Fired when the user starts Stripe checkout — from the free-report paywall OR
+ * the in-app upgrade CTA (moment 5). `subscription_activated` (the conversion)
+ * is captured server-side from the Stripe webhook, so it can't be spoofed or
+ * lost to a client redirect. (Replaces the old email-gate helpers, which the
+ * payment-first funnel superseded — the email step is now Stripe's.)
+ */
+function checkoutStarted(props: { plan: string; scan_id?: string; source: "report" | "app" }) {
+  capture("checkout_started", props);
 }
 
 export const funnel = {
   scanStarted,
   factsShown,
   findingsShown,
-  gateViewed,
-  emailSubmitted,
+  paywallViewed,
+  checkoutStarted,
 } as const;

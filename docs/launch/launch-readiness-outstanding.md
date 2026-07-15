@@ -41,10 +41,10 @@ Each item is tagged **[NEW]** (surfaced by this audit) or **[KNOWN]** (already i
 
 ### Observability (currently blind in prod)
 
-- **[NEW] No error-tracking backend wired.** Zero `captureException`/Sentry; PostHog is client-only (no `posthog-node`). Server errors, API throws, and Inngest failures never leave the process except as `console.error`. `app/error.tsx:31` only logs. You cannot see prod exceptions outside Vercel's raw log stream.
-- **[NEW] No health-check / uptime endpoint.** Nothing for an external monitor to poll.
-- **[NEW] No kill switch for scanning.** If Anthropic/DataForSEO/Tavily breaks, the only mitigation is a redeploy — no runtime flag to pause scans.
-- **[NEW] Cost alerts have no delivery channel.** Logic exists (per-scan/per-user caps, thresholds, `/app/diagnostics` strip) but delivery is console + in-app only — no Slack/email/push. A cost spike at 3am is invisible.
+- ~~**[NEW] No error-tracking backend wired.**~~ ✅ **RESOLVED — P4 (2026-07-15).** `lib/analytics-server.ts` (`posthog-node`) `captureServerException` wired into the shared scan-pipeline failure handler (`handleScanPipelineFailure` → covers `scan-requested` + `scan-deepen`) and every Inngest `onFailure` (verify-action, weekly-refresh, search-cache-cleanup + new ones on score-pulse & scan-demo). Client boundaries (`app/error.tsx`, `app/(app)/error.tsx`, new `app/global-error.tsx`) call the consent-gated client `captureException`. Fail-safe: no-op when PostHog unconfigured, never throws.
+- ~~**[NEW] No health-check / uptime endpoint.**~~ ✅ **RESOLVED — P4.** `GET /api/health` — DB reachability + build info (commit/region), 200/503, `no-store`, prod-exempt.
+- ~~**[NEW] No kill switch for scanning.**~~ ✅ **RESOLVED — P4.** `SCANNING_ENABLED` env (default ON; only literal `"false"` disables) gates the HTTP scan entrypoint (`/api/scan` → 503), the on-demand refresh (`/api/app/[id]/refresh` → 503), and skips the weekly-refresh + score-pulse cron fan-outs.
+- ~~**[NEW] Cost alerts have no delivery channel.**~~ ✅ **RESOLVED — P4.** `persistCostAlert` (the deduped first-sight) now fans out a PostHog `cost_alert` server event + an optional `COST_ALERT_WEBHOOK_URL` POST (e.g. Slack), on top of console + the persisted scan event. Best-effort.
 
 ### Billing
 
@@ -70,12 +70,12 @@ Each item is tagged **[NEW]** (surfaced by this audit) or **[KNOWN]** (already i
 
 - **[NEW] Email deliverability unverified in code.** SPF/DKIM/DMARC for `reachkit.app` live only in runbooks. If DNS auth isn't live, magic-links (the *sole* login path) hit spam → activation blocked. Verify live before launch.
 - **[NEW] SEO canonicals depend on runtime env.** `lib/seo.ts` falls back to `localhost:3000` if `NEXT_PUBLIC_SITE_URL`/`VERCEL_PROJECT_PRODUCTION_URL` unset — a misconfigured deploy poisons every canonical/OG URL.
-- **[NEW] Revenue funnel is uninstrumented.** `email_gate_viewed`/`email_submitted` helpers have no call sites; no upgrade/paywall/checkout events; billing webhook captures nothing. You can't measure conversion.
+- ~~**[NEW] Revenue funnel is uninstrumented.**~~ ✅ **RESOLVED — P4.** The dormant email-gate helpers were repurposed to the payment-first surface: `funnel.paywallViewed` (TrialCta mount) + `funnel.checkoutStarted` (TrialCta + in-app CheckoutButton), and the billing webhook now emits a server-side `subscription_activated` (event.id-deduped → once per purchase). With the already-wired `scan_started`/`scan_facts_shown`/`scan_findings_shown`, the full funnel is measurable.
 - **[NEW] No DB backup / PITR / rollback story documented.** Forward-only migrations; a bad DROP is unrecoverable without a manual restore. Confirm Supabase PITR is on and document the runbook.
 - **[NEW] No social proof.** Landing leans on a favicon marquee explicitly labelled "until real testimonials exist" — weak credibility for a paid upsell.
 - **[NEW] No blog/docs/changelog surface.** For a *discoverability* tool, the absence of an editorial/organic-content surface is an on-brand credibility + SEO gap.
 - **[NEW] No `seed.sql`.** Fresh prod DB relies entirely on migrations + auth-trigger. Confirm no reference/lookup data (tiers, price mapping) is assumed present.
-- **[NEW] Missing `global-error.tsx` and route-level `loading.tsx`.** Root-layout render errors fall through unstyled; no Suspense skeletons.
+- ~~**[NEW] Missing `global-error.tsx` and route-level `loading.tsx`.**~~ ✅ **RESOLVED — P4.** Added `app/global-error.tsx` (root render-crash boundary with its own document shell + token-with-fallback styling + error capture) and `app/(app)/app/loading.tsx` (in-shell content skeleton). Other routes keep their existing per-page Suspense fallbacks.
 - **[NEW] `app/design/*` sample routes reachable in prod** (robots-disallowed but publicly loadable). Minor surface-area risk.
 - **[NEW] No receipt/invoice email on successful charge** (only magic-link + trial-ending). Stripe may cover this — verify.
 - **[MEDIUM] Service-role client (`serverDb()`) bypasses RLS broadly.** RLS is complete (all 24 tables gated — good) but is defence-in-depth only; confirm no user-controlled `.eq()` filters run through `serverDb()`.

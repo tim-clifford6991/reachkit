@@ -21,6 +21,7 @@
 import { inngest } from "@/lib/inngest/client";
 import { serverDb } from "@/lib/db/client";
 import { env } from "@/lib/config/env";
+import { captureServerException } from "@/lib/analytics-server";
 import { ScanBudget } from "@/lib/tools/registry";
 import { runWeeklyRefresh } from "@/lib/scan/refresh";
 import { costedStep } from "@/lib/scan/scan-telemetry";
@@ -170,9 +171,14 @@ export const weeklyRefresh = inngest.createFunction(
       // itself (e.g. the active-paid query). Log it for ops visibility.
       const message = error instanceof Error ? error.message : String(error);
       console.error("[weekly-refresh] run failed:", message);
+      await captureServerException(error, { source: "inngest:weekly-refresh" });
     },
   },
   async ({ step }) => {
+    // Kill switch (P4): a paused deploy skips the scheduled fan-out entirely so
+    // we never spend against degraded scan dependencies.
+    if (!env.scanningEnabled) return { paused: true, apps: 0, refreshed: 0, skipped: 0, summaries: [] };
+
     // Fan-out set: the active paid apps. Memoized in a step so a replay does not
     // re-query and the per-app steps below get a stable list.
     const appIds = await step.run("collect-active-paid-apps", activePaidAppIds);

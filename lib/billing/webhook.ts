@@ -3,6 +3,7 @@ import { serverDb } from "@/lib/db/client";
 import { priceMap, stripeClient } from "@/lib/billing/stripe";
 import { tierForPriceId } from "@/lib/billing/tiers";
 import { ensureAuthUser, provisionCheckoutUser } from "@/lib/billing/provision";
+import { captureServerEvent } from "@/lib/analytics-server";
 import type { Database } from "@/lib/db/types";
 
 type UsersUpdate = Database["public"]["Tables"]["users"]["Update"];
@@ -109,6 +110,9 @@ async function onCheckoutCompleted(session: Stripe.Checkout.Session): Promise<vo
       { stripe_customer_id: customer, stripe_subscription_id: subscription },
       "checkout.session.completed",
     );
+    // Funnel conversion (P4): checkout.session.completed is deduped by the
+    // event.id ledger, so this fires exactly once per purchase.
+    await captureServerEvent("subscription_activated", legacyUserId, { source: "in-app-upgrade" });
     return;
   }
 
@@ -122,13 +126,19 @@ async function onCheckoutCompleted(session: Stripe.Checkout.Session): Promise<vo
     return;
   }
 
-  await provisionCheckoutUser({
+  const userId = await provisionCheckoutUser({
     email,
     scanId,
     stripeCustomerId: customer,
     stripeSubscriptionId: subscription,
     // Tier/status are set by the subscription.* event, not here.
     sendMagicLink: true,
+  });
+
+  // Funnel conversion (P4): fires once per purchase (event.id-deduped).
+  await captureServerEvent("subscription_activated", userId, {
+    source: "payment-first",
+    ...(scanId ? { scan_id: scanId } : {}),
   });
 }
 

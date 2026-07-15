@@ -12,8 +12,9 @@
  * Solo/Growth selectable; charged at checkout (no free trial).
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { toast } from "sonner";
+import { funnel } from "@/lib/analytics";
 
 interface TrialCtaProps {
   /** When present, the scanned app is linked to the new account (Path A). */
@@ -31,8 +32,14 @@ export function TrialCta({ scanId, className }: TrialCtaProps) {
   const [plan, setPlan] = useState<"solo" | "growth">("solo");
   const [loading, setLoading] = useState(false);
 
+  // Funnel moment 4: the paywall is on screen.
+  useEffect(() => {
+    funnel.paywallViewed({ scan_id: scanId });
+  }, [scanId]);
+
   const start = useCallback(async () => {
     setLoading(true);
+    funnel.checkoutStarted({ plan, scan_id: scanId, source: "report" });
     try {
       const endpoint = scanId ? `/api/scan/${scanId}/checkout` : "/api/billing/trial";
       const res = await fetch(endpoint, {

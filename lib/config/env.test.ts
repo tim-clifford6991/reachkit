@@ -23,6 +23,23 @@ test("parseEnv returns typed config when all keys supplied (fixtures off)", asyn
   expect(cfg.inngestSigningKey).toBe("signkey_test");
   expect(cfg.billingGraceDays).toBe(3);
   expect(cfg.useFixtures).toBe(false);
+  // Observability (P4): kill switch defaults ON; webhook default blank.
+  expect(cfg.scanningEnabled).toBe(true);
+  expect(cfg.costAlertWebhookUrl).toBe("");
+});
+
+test("SCANNING_ENABLED kill switch: only the literal 'false' disables scanning", async () => {
+  const { parseEnv } = await import("./env");
+  const base = {
+    SUPABASE_URL: "https://x.supabase.co", SUPABASE_ANON_KEY: "a", SUPABASE_SERVICE_ROLE_KEY: "s",
+    REACHKIT_USE_FIXTURES: "true",
+  } as unknown as NodeJS.ProcessEnv;
+  expect(parseEnv(base).scanningEnabled).toBe(true); // unset → ON
+  expect(parseEnv({ ...base, SCANNING_ENABLED: "true" }).scanningEnabled).toBe(true);
+  expect(parseEnv({ ...base, SCANNING_ENABLED: "false" }).scanningEnabled).toBe(false);
+  expect(parseEnv({ ...base, COST_ALERT_WEBHOOK_URL: "https://hooks.example/x" }).costAlertWebhookUrl).toBe(
+    "https://hooks.example/x",
+  );
 });
 
 test("parseEnv throws when INNGEST_SIGNING_KEY is missing and fixtures mode is off", async () => {

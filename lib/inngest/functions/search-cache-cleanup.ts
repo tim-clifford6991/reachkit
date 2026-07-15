@@ -20,6 +20,7 @@
 
 import { inngest } from "@/lib/inngest/client";
 import { serverDb } from "@/lib/db/client";
+import { captureServerException } from "@/lib/analytics-server";
 
 // 30 days — comfortably past the 14-day read TTL so live entries are safe.
 const RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
@@ -63,6 +64,7 @@ export const searchCacheCleanup = inngest.createFunction(
       // Cron has no originating event; a top-level failure is the prune itself.
       const message = error instanceof Error ? error.message : String(error);
       console.error("[search-cache-cleanup] run failed:", message);
+      await captureServerException(error, { source: "inngest:search-cache-cleanup" });
     },
   },
   async ({ step }) => {

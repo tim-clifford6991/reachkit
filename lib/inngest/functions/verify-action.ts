@@ -10,6 +10,7 @@
 
 import { inngest, actionVerifyRequestedEvent } from "@/lib/inngest/client";
 import { runActionVerification } from "@/lib/scan/verify";
+import { captureServerException } from "@/lib/analytics-server";
 
 export const actionVerifyRequested = inngest.createFunction(
   {
@@ -20,6 +21,7 @@ export const actionVerifyRequested = inngest.createFunction(
       const actionId = event.data.event.data.actionId;
       const message = error instanceof Error ? error.message : String(error);
       console.error(`[action-verify] run failed for action ${actionId}: ${message}`);
+      await captureServerException(error, { source: "inngest:action-verify", extra: { actionId } });
     },
   },
   async ({ event, step }) => {
