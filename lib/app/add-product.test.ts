@@ -156,6 +156,21 @@ describe("addTrackedProduct (cap · already-tracked · paused)", () => {
     const { addTrackedProduct } = await import("./add-product");
     setUser({ tier: "free", app_ids: [] }); // free cap = 1
     findAppByUrl.mockResolvedValue(null);
+    inserted.scans = []; // Clear before the test
     await expect(addTrackedProduct("u1", "https://x.com/")).resolves.toMatchObject({ appId: expect.any(String) });
+    // Invariant: free user's scan must be tier=free, never tier=full
+    expect(inserted.scans).toHaveLength(1);
+    expect(inserted.scans[0]).toMatchObject({ tier: "free" });
+  });
+
+  it("a PAID user gets scan tier=full on product add", async () => {
+    const { addTrackedProduct } = await import("./add-product");
+    setUser({ tier: "growth", app_ids: [] }); // growth cap = 3, tier !== "free" → active: true
+    findAppByUrl.mockResolvedValue(null);
+    inserted.scans = []; // Clear before the test
+    await expect(addTrackedProduct("u1", "https://x.com/")).resolves.toMatchObject({ appId: expect.any(String) });
+    // Invariant: paid user's scan must be tier=full, never tier=free
+    expect(inserted.scans).toHaveLength(1);
+    expect(inserted.scans[0]).toMatchObject({ tier: "full" });
   });
 });
