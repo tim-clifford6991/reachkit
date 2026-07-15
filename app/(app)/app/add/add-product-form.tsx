@@ -39,7 +39,7 @@ export function AddProductForm() {
         }}
       />
       {state.error && (
-        <div role="alert" style={{ fontFamily: PJ, fontSize: 12.5, color: "#e5484d" }}>
+        <div role="alert" style={{ fontFamily: PJ, fontSize: 12.5, color: "var(--color-danger)" }}>
           {state.error}
         </div>
       )}
