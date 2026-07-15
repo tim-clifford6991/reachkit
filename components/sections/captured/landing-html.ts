@@ -141,22 +141,6 @@ export const LANDING_HTML = `<main>
           </div>
       </div>
     </section>
-    <section style="max-width: 1180px; margin: 0px auto; padding: 64px 28px;">
-      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
-        <div data-stagger="1" class="rk-reveal" style="border: 1px solid var(--c-line); border-radius: 16px; padding: 24px; background: var(--c-surface); transition-delay: 0ms;">
-          <p style="font-size: 15px; line-height: 1.6; color: rgb(31, 29, 41); margin: 0px 0px 16px;">"I'd been guessing for a year. ReachKit gave me a 41 and three fixes. Two weeks later I was at 58 and actually getting signups from search."</p>
-          <div style="display: flex; align-items: center; gap: 10px;"><span style="width: 34px; height: 34px; border-radius: 50%; background: var(--c-soft); color: var(--c-action); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px;">MK</span><div><div style="font-weight: 600; font-size: 13.5px;">Mara K.</div><div style="font-size: 12px; color: var(--c-faint);">founder, indie SaaS</div></div></div>
-        </div>
-        <div data-stagger="1" class="rk-reveal" style="border: 1px solid var(--c-line); border-radius: 16px; padding: 24px; background: var(--c-surface); transition-delay: 85ms;">
-          <p style="font-size: 15px; line-height: 1.6; color: rgb(31, 29, 41); margin: 0px 0px 16px;">"The verification is the whole thing. It re-checked my page and told me my schema was malformed. No other tool caught that."</p>
-          <div style="display: flex; align-items: center; gap: 10px;"><span style="width: 34px; height: 34px; border-radius: 50%; background: rgb(255, 230, 214); color: rgb(201, 138, 18); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px;">DT</span><div><div style="font-weight: 600; font-size: 13.5px;">Devon T.</div><div style="font-size: 12px; color: var(--c-faint);">solo, dev tools</div></div></div>
-        </div>
-        <div data-stagger="1" class="rk-reveal" style="border: 1px solid var(--c-line); border-radius: 16px; padding: 24px; background: var(--c-surface); transition-delay: 170ms;">
-          <p style="font-size: 15px; line-height: 1.6; color: rgb(31, 29, 41); margin: 0px 0px 16px;">"One number my whole roadmap rallies around. I share my score card every Friday — it's become my accountability ritual."</p>
-          <div style="display: flex; align-items: center; gap: 10px;"><span style="width: 34px; height: 34px; border-radius: 50%; background: rgb(214, 240, 226); color: rgb(31, 157, 91); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px;">AR</span><div><div style="font-weight: 600; font-size: 13.5px;">Avi R.</div><div style="font-size: 12px; color: var(--c-faint);">founder, fintech</div></div></div>
-        </div>
-      </div>
-    </section>
     <section style="max-width: 1180px; margin: 0px auto; padding: 20px 28px 30px;">
       <div style="text-align: center; margin-bottom: 34px;">
         <div style="font-size: 13px; font-weight: 700; letter-spacing: 0.08em; color: var(--c-action); text-transform: uppercase;">Built for you</div>
