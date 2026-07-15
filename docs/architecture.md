@@ -538,6 +538,34 @@ Guards added by PR A (ratchet): `action-linking.test.ts` (`recomputeActionImpact
 (source-level tripwire — fails if any of the 4 cost-bearing authed routes drops its
 `assertPaid`).
 
+### Source tripwires — and the helper that keeps them honest (2026-07-15)
+
+Several invariants are enforced by **source tripwires**: tests that read a source
+file and assert it calls a required symbol. They exist because the thing being
+protected is *structural* — "this route must be wrapped in `costedStep`", "this
+caller must go through the shared policy" — and a behavioural test can't see a
+caller that quietly stops calling.
+
+| Tripwire | Pins |
+|---|---|
+| `app/api/costed-routes.test.ts` | Every cost-bearing route runs under `costedStep`/`costedIntelStep` (invariant #2). |
+| `app/api/entitlement-gates.test.ts` | The 4 cost-bearing authed routes call `assertPaid` (invariant #5b). |
+| `app/api/add-product-policy.test.ts` | `/api/scan` + `addTrackedProduct` both resolve through `resolveProductScan` — the ONE dedupe policy — and `addFirstTrackedProduct` stays retired. |
+| `app/api/no-scan-ejection.test.ts` | No `app/(app)/**` or `components/app/**` surface links to `/scan/` (a paid user must never be ejected into the entitlement-blind `PublicReport`). |
+
+**All positive-call tripwires MUST assert via `expectCallsSymbol` (`lib/testing/tripwire.ts`).**
+A hand-rolled `readFileSync` + `toMatch(/symbol/)` is how this repo shipped two
+**vacuous** guards: `lib/app/add-product.ts` *defines* `resolveProductScan`, so a
+whole-file match was true by construction; and the route half passed 3/3 with the
+real call deleted and only the import left. The helper blanks comments/strings,
+brace-matches the named function's own body (`within`), demands a real call, and
+**throws** rather than let you assert a symbol against a file that defines it —
+the vacuum is structurally impossible, not merely discouraged. Its self-test
+(`lib/testing/tripwire.test.ts`) reproduces the exact false-negative that shipped.
+
+`lib/testing/` is test-support only and is imported by tests (app→lib, allowed by
+`check:arch`). It must never be imported by production code.
+
 Order rationale: A first — smallest, cost-neutral, and honest impact numbers are a
 prerequisite for B and C both surfacing deltas. D last — pure dedup/refactor, safe to
 land once behaviour is settled. #7 (ScanBudget LLM-cents doc vs reality) and #8

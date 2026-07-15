@@ -30,6 +30,14 @@ module.exports = {
       to: { path: "^components/" },
     },
     {
+      name: "no-prod-to-test-support",
+      comment:
+        "lib/testing/ is test-support only (expectCallsSymbol — the source-tripwire helper). Production code must never import it. Only *.test.ts(x) may. architecture.md → 'Source tripwires'.",
+      severity: "error",
+      from: { pathNot: TESTS },
+      to: { path: "^lib/testing/" },
+    },
+    {
       name: "anthropic-only-in-llm",
       comment: "The Anthropic SDK is an adapter — importable only from lib/llm/ (AI is always isolated behind an adapter). CLAUDE.md.",
       severity: "error",

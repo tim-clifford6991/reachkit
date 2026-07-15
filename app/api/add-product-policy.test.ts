@@ -4,156 +4,39 @@
  * find-or-created while addFirstTrackedProduct always inserted — and that
  * disagreement produced nudgi.ai's incoherent state (paid dashboard over an
  * anonymous free scan). Source tripwire, same idiom as costed-routes.test.ts.
+ *
+ * Both assertions below go through `expectCallsSymbol` (lib/testing/tripwire.ts)
+ * rather than a hand-rolled whole-file `toMatch`. A whole-file substring check
+ * is vacuous by construction here: `lib/app/add-product.ts` is where
+ * `resolveProductScan` is DEFINED (`export async function resolveProductScan(...)`),
+ * so /resolveProductScan/ matches that file no matter what `addTrackedProduct`
+ * actually does — mutation-proved (Finding 4, code review 2026-07-15): removing
+ * the real `resolveProductScan(...)` CALL from route.ts's POST handler and
+ * leaving only the import still passed the old whole-file check 3/3.
+ * `expectCallsSymbol` closes this structurally: it refuses to assert against a
+ * file that defines the symbol unless scoped with `within`, and `within` isolates
+ * just that one function's own brace-matched body (comments/strings blanked), so
+ * neither the definition line nor a stray import/comment elsewhere in the file
+ * can satisfy it.
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { expectCallsSymbol } from "@/lib/testing/tripwire";
 
 const ROUTE_FILE = "app/api/scan/route.ts";
 const ADD_PRODUCT_FILE = "lib/app/add-product.ts";
 
 describe("single product-resolution policy (ratchet)", () => {
-  // A whole-file substring check is vacuous by construction: `import {
-  // resolveProductScan } from "@/lib/app/add-product"` alone satisfies
-  // /resolveProductScan/ with no call site anywhere in the file — mutation-
-  // proved (Finding 4, code review 2026-07-15): removing the actual
-  // `resolveProductScan(...)` CALL from route.ts's POST handler and leaving
-  // only the import still passed this assertion 3/3 before this fix.
-  //
-  // So — symmetric with the addTrackedProduct check below — this isolates
-  // POST's OWN function body (brace-matched, comments/strings blanked) and
-  // asserts THAT text calls resolveProductScan(...). route.ts declares
-  // `export async function POST(req: NextRequest) { ... }`; extractFunctionBody
-  // matches on the bare `function POST(` substring regardless of the `export
-  // async` prefix, so it applies unmodified.
   it(`${ROUTE_FILE}: POST's body calls resolveProductScan(...)`, () => {
-    const src = readFileSync(resolve(process.cwd(), ROUTE_FILE), "utf8");
-    const body = extractFunctionBody(src, "POST");
-    expect(
-      body,
-      "POST must call resolveProductScan(...) itself — never its own dedupe/staleness logic",
-    ).toMatch(/resolveProductScan\s*\(/);
+    expect(() => expectCallsSymbol(ROUTE_FILE, "resolveProductScan", { within: "POST" })).not.toThrow();
   });
 
-  // `lib/app/add-product.ts` is where resolveProductScan is DEFINED
-  // (`export async function resolveProductScan(...)`), so a whole-file substring
-  // check is vacuous by construction — the file matches /resolveProductScan/ no
-  // matter what addTrackedProduct actually does; it could never detect
-  // addTrackedProduct drifting back to its own inline dedupe/insert logic (the
-  // exact bug this policy replaces) while resolveProductScan sits unused a few
-  // lines above it.
-  //
-  // So this isolates addTrackedProduct's OWN function body — brace-matched, with
-  // comments/strings blanked out so a stray mention can't fake a hit — and
-  // asserts THAT text calls resolveProductScan(...). The definition line
-  // (`export async function resolveProductScan(...)`) lives before
-  // addTrackedProduct in the file and is never part of the extracted range, so
-  // it cannot satisfy this on its own; nor can an import or a comment.
   it(`${ADD_PRODUCT_FILE}: addTrackedProduct's body calls resolveProductScan(...)`, () => {
-    const src = readFileSync(resolve(process.cwd(), ADD_PRODUCT_FILE), "utf8");
-    const body = extractFunctionBody(src, "addTrackedProduct");
-    expect(
-      body,
-      "addTrackedProduct must call resolveProductScan(...) itself — never re-implement dedupe/staleness inline",
-    ).toMatch(/resolveProductScan\s*\(/);
+    expect(() => expectCallsSymbol(ADD_PRODUCT_FILE, "resolveProductScan", { within: "addTrackedProduct" })).not.toThrow();
   });
 
   it("addFirstTrackedProduct is gone (its always-insert contradicted the policy)", () => {
     expect(() => readFileSync(resolve(process.cwd(), "lib/app/add-first-product.ts"), "utf8")).toThrow();
   });
 });
-
-// --- helpers -----------------------------------------------------------
-
-/**
- * Blank out comments and string/template-literal contents (preserving length
- * and newlines, so indices from the original source still line up), so a
- * brace counter only ever sees real code — and a comment or string mentioning
- * a function name can never masquerade as a call site.
- */
-function stripNoise(src: string): string {
-  let out = "";
-  let i = 0;
-  while (i < src.length) {
-    const ch = src[i];
-    const next = src[i + 1];
-    if (ch === "/" && next === "/") {
-      while (i < src.length && src[i] !== "\n") { out += " "; i++; }
-      continue;
-    }
-    if (ch === "/" && next === "*") {
-      out += "  ";
-      i += 2;
-      while (i < src.length && !(src[i] === "*" && src[i + 1] === "/")) {
-        out += src[i] === "\n" ? "\n" : " ";
-        i++;
-      }
-      out += "  ";
-      i += 2;
-      continue;
-    }
-    if (ch === '"' || ch === "'" || ch === "`") {
-      const quote = ch;
-      out += " ";
-      i++;
-      while (i < src.length && src[i] !== quote) {
-        if (src[i] === "\\") { out += "  "; i += 2; continue; }
-        out += src[i] === "\n" ? "\n" : " ";
-        i++;
-      }
-      out += " ";
-      i++;
-      continue;
-    }
-    out += ch;
-    i++;
-  }
-  return out;
-}
-
-/**
- * Extract the body of a top-level `function <name>(...) { ... }` declaration
- * by brace-matching (tolerant of a return-type annotation that itself
- * contains a balanced `{...}`, e.g. `Promise<{ appId: string }>`), so the
- * result survives reordering, comments, and reformatting elsewhere in the
- * file — it only cares about this one function's own braces.
- */
-function extractFunctionBody(src: string, functionName: string): string {
-  const clean = stripNoise(src);
-  const sigMatch = new RegExp(`function\\s+${functionName}\\s*\\(`).exec(clean);
-  if (!sigMatch) throw new Error(`could not find "function ${functionName}(" in source`);
-
-  // Walk past the parameter list (parens only — object-typed params like
-  // `opts: { paid: boolean }` don't confuse this since braces are ignored here).
-  let i = sigMatch.index + sigMatch[0].length;
-  let parenDepth = 1;
-  while (i < clean.length && parenDepth > 0) {
-    if (clean[i] === "(") parenDepth++;
-    else if (clean[i] === ")") parenDepth--;
-    i++;
-  }
-
-  // Walk past an optional return-type annotation to the body's opening brace.
-  // Track angle-bracket depth so a brace inside `Promise<{ ... }>` isn't
-  // mistaken for the body start.
-  let angleDepth = 0;
-  let bodyStart = -1;
-  while (i < clean.length) {
-    if (clean[i] === "<") angleDepth++;
-    else if (clean[i] === ">") angleDepth = Math.max(0, angleDepth - 1);
-    else if (clean[i] === "{" && angleDepth === 0) { bodyStart = i; break; }
-    i++;
-  }
-  if (bodyStart === -1) throw new Error(`could not find body of ${functionName}`);
-
-  let depth = 0;
-  let j = bodyStart;
-  for (; j < clean.length; j++) {
-    if (clean[j] === "{") depth++;
-    else if (clean[j] === "}") {
-      depth--;
-      if (depth === 0) { j++; break; }
-    }
-  }
-  return clean.slice(bodyStart, j);
-}
