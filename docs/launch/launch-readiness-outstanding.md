@@ -28,7 +28,7 @@ Each item is tagged **[NEW]** (surfaced by this audit) or **[KNOWN]** (already i
 
 ### Data / migrations
 
-- ~~**[KNOWN→VERIFY] Destructive + additive migrations must be confirmed applied to prod.**~~ ✅ **VERIFIED APPLIED — P5 (2026-07-15).** Checked prod `kleepxxddbcnfsfwudoe` live via `information_schema`: 7 retired intel tables gone (0 remaining), all 3 `scans` cost columns present, `user_spend_monthly` view present, `processed_stripe_events` + `scan_consent_at` + `actions.scheduled_for` present. **Nothing pending.** Rollback story now documented → `docs/launch/rollback-runbook.md` (forward-only migrations → PITR restore; the verify query is in the runbook). (PITR toggle itself is an owner-action, see P2.)
+- ~~**[KNOWN→VERIFY] Destructive + additive migrations must be confirmed applied to prod.**~~ ✅ **VERIFIED APPLIED — P5 (2026-07-15).** Checked prod `kleepxxddbcnfsfwudoe` live via `information_schema`: 7 retired intel tables gone (0 remaining), all 3 `scans` cost columns present, `user_spend_monthly` view present, `processed_stripe_events` + `scan_consent_at` + `actions.scheduled_for` present. **Nothing pending.** Rollback story now documented → `docs/launch/rollback-runbook.md` (forward-only migrations → PITR restore; the verify query is in the runbook). (PITR is deliberately OFF — see P2; the runbook's §3.1 pre-migration dump is the safeguard.)
 
 ---
 
@@ -41,10 +41,10 @@ Each item is tagged **[NEW]** (surfaced by this audit) or **[KNOWN]** (already i
 
 ### Observability (currently blind in prod)
 
-- **[NEW] No error-tracking backend wired.** Zero `captureException`/Sentry; PostHog is client-only (no `posthog-node`). Server errors, API throws, and Inngest failures never leave the process except as `console.error`. `app/error.tsx:31` only logs. You cannot see prod exceptions outside Vercel's raw log stream.
-- **[NEW] No health-check / uptime endpoint.** Nothing for an external monitor to poll.
-- **[NEW] No kill switch for scanning.** If Anthropic/DataForSEO/Tavily breaks, the only mitigation is a redeploy — no runtime flag to pause scans.
-- **[NEW] Cost alerts have no delivery channel.** Logic exists (per-scan/per-user caps, thresholds, `/app/diagnostics` strip) but delivery is console + in-app only — no Slack/email/push. A cost spike at 3am is invisible.
+- ~~**[NEW] No error-tracking backend wired.**~~ ✅ **RESOLVED — P4 (2026-07-15).** `lib/analytics-server.ts` (`posthog-node`) `captureServerException` wired into the shared scan-pipeline failure handler (`handleScanPipelineFailure` → covers `scan-requested` + `scan-deepen`) and every Inngest `onFailure` (verify-action, weekly-refresh, search-cache-cleanup + new ones on score-pulse & scan-demo). Client boundaries (`app/error.tsx`, `app/(app)/error.tsx`, new `app/global-error.tsx`) call the consent-gated client `captureException`. Fail-safe: no-op when PostHog unconfigured, never throws.
+- ~~**[NEW] No health-check / uptime endpoint.**~~ ✅ **RESOLVED — P4.** `GET /api/health` — DB reachability + build info (commit/region), 200/503, `no-store`, prod-exempt.
+- ~~**[NEW] No kill switch for scanning.**~~ ✅ **RESOLVED — P4.** `SCANNING_ENABLED` env (default ON; only literal `"false"` disables) gates the HTTP scan entrypoint (`/api/scan` → 503), the on-demand refresh (`/api/app/[id]/refresh` → 503), and skips the weekly-refresh + score-pulse cron fan-outs.
+- ~~**[NEW] Cost alerts have no delivery channel.**~~ ✅ **RESOLVED — P4.** `persistCostAlert` (the deduped first-sight) now fans out a PostHog `cost_alert` server event + an optional `COST_ALERT_WEBHOOK_URL` POST (e.g. Slack), on top of console + the persisted scan event. Best-effort.
 
 ### Billing
 
@@ -57,7 +57,7 @@ Each item is tagged **[NEW]** (surfaced by this audit) or **[KNOWN]** (already i
 - **[NEW] Incomplete subprocessor list.** Privacy page omits **Tavily, Inngest, and Vercel** (all data processors). GDPR Art. 28 transparency gap; no DPA link.
 - **[NEW] Transactional emails lack CAN-SPAM footer** — no physical address, no unsubscribe (magic-link, scan-ready, trial emails).
 - **[NEW] No consent gate before scanning third-party URLs** — no "you own/are authorised for this URL" checkbox; only a Terms clause + rate-limit protect an abuse/liability surface.
-- **[NEW] No automated GDPR data export/deletion.** Deletion is a `mailto:`; no self-serve erase/export endpoint — SLA risk against the rights the Privacy Policy promises.
+- ~~**[NEW] No automated GDPR data export/deletion.**~~ ✅ **RESOLVED — P3b (2026-07-15).** Self-serve `GET /api/app/account/export` (whole-account JSON) + `POST /api/app/account/delete` (irreversible hard-delete: cancel Stripe → delete `auth.users` → delete `scans` by `claim_email` → delete `apps` (cascades subtree) → delete `users` row). Settings `mailto:` replaced by an export link + a typed-confirmation delete panel (lazy client island, bundle-safe). Guards: `tests/integration/account-{delete,export}.test.ts`. Shared caches left untouched by design. See `docs/architecture.md` §3.
 
 ### Testing (masks the exact bugs CLAUDE.md warns about)
 
@@ -68,16 +68,16 @@ Each item is tagged **[NEW]** (surfaced by this audit) or **[KNOWN]** (already i
 
 ## 🟡 P2 — Should-fix / polish before scale
 
-- **[NEW] Email deliverability unverified in code.** SPF/DKIM/DMARC for `reachkit.app` live only in runbooks. If DNS auth isn't live, magic-links (the *sole* login path) hit spam → activation blocked. Verify live before launch.
-- **[NEW] SEO canonicals depend on runtime env.** `lib/seo.ts` falls back to `localhost:3000` if `NEXT_PUBLIC_SITE_URL`/`VERCEL_PROJECT_PRODUCTION_URL` unset — a misconfigured deploy poisons every canonical/OG URL.
-- **[NEW] Revenue funnel is uninstrumented.** `email_gate_viewed`/`email_submitted` helpers have no call sites; no upgrade/paywall/checkout events; billing webhook captures nothing. You can't measure conversion.
+- ~~**[NEW] Email deliverability unverified in code.**~~ ✅ **RESOLVED (owner, 2026-07-15).** Resend configured for `reachkit.app` with SPF/DKIM/DMARC DNS records live and verified. Magic-link (the sole login path) now sends authenticated.
+- ~~**[NEW] SEO canonicals depend on runtime env.**~~ ✅ **RESOLVED — P6 (2026-07-15).** `lib/seo.ts` now adds `VERCEL_URL` as a tier and, crucially, **never falls back to `localhost` in production** — a misconfigured prod deploy uses the known prod domain (`https://reachkit.app`) instead of poisoning every canonical/OG URL. `NEXT_PUBLIC_*`/`VERCEL_*` still read as literals (Next inlines them). Guard: `lib/seo.test.ts` (prod ≠ localhost; dev still localhost).
+- ~~**[NEW] Revenue funnel is uninstrumented.**~~ ✅ **RESOLVED — P4.** The dormant email-gate helpers were repurposed to the payment-first surface: `funnel.paywallViewed` (TrialCta mount) + `funnel.checkoutStarted` (TrialCta + in-app CheckoutButton), and the billing webhook now emits a server-side `subscription_activated` (event.id-deduped → once per purchase). With the already-wired `scan_started`/`scan_facts_shown`/`scan_findings_shown`, the full funnel is measurable.
 - ~~**[NEW] No DB backup / PITR / rollback story documented.**~~ ✅ **RESOLVED — P5** (`docs/launch/rollback-runbook.md`). **PITR DECIDED OFF (owner, 2026-07-15)** — ~$100/mo add-on, Supabase spend already a concern. Accepted consequence: recovery floor is the Pro plan's **daily backup** (~24h worst-case data loss), no timestamp restore. Operative safeguard is therefore §3.1 — take a targeted `pg_dump` of affected tables **before** any `DROP`/`TRUNCATE`/destructive `ALTER` migration. **Revisit PITR once there are paying users** whose lost day of scans/plan would be a real cost.
 - **[NEW] No social proof.** Landing leans on a favicon marquee explicitly labelled "until real testimonials exist" — weak credibility for a paid upsell.
 - **[NEW] No blog/docs/changelog surface.** For a *discoverability* tool, the absence of an editorial/organic-content surface is an on-brand credibility + SEO gap.
 - ~~**[NEW] No `seed.sql`.**~~ ✅ **CONFIRMED NO-OP — P5.** Tiers/limits (`TIER_LIMITS`) + price mapping are code constants + env price IDs, not DB rows — no reference/lookup table is read anywhere. A fresh prod DB needs only migrations + the `handle_new_user` auth trigger. No `seed.sql` required.
-- **[NEW] Missing `global-error.tsx` and route-level `loading.tsx`.** Root-layout render errors fall through unstyled; no Suspense skeletons.
-- **[NEW] `app/design/*` sample routes reachable in prod** (robots-disallowed but publicly loadable). Minor surface-area risk.
-- **[NEW] No receipt/invoice email on successful charge** (only magic-link + trial-ending). Stripe may cover this — verify.
+- ~~**[NEW] Missing `global-error.tsx` and route-level `loading.tsx`.**~~ ✅ **RESOLVED — P4.** Added `app/global-error.tsx` (root render-crash boundary with its own document shell + token-with-fallback styling + error capture) and `app/(app)/app/loading.tsx` (in-shell content skeleton). Other routes keep their existing per-page Suspense fallbacks.
+- ~~**[NEW] `app/design/*` sample routes reachable in prod**~~ ✅ **RESOLVED — P6.** `middleware.ts` `isDevOnlyPath` 404s `/design`, `/design/*` and `/test-*` in production at one chokepoint. Now pinned by a guard: `middleware.test.ts` (dev-scaffolding matched; real routes like `/designer`/`/testimonials` NOT matched).
+- ~~**[NEW] No receipt/invoice email on successful charge**~~ ✅ **RESOLVED — P6 (owner, 2026-07-15).** Stripe "Successful payments" customer emails **toggled ON in live mode** — subscription charges now auto-send an invoice receipt. No app-side receipt code needed.
 - **[MEDIUM] Service-role client (`serverDb()`) bypasses RLS broadly.** RLS is complete (all 24 tables gated — good) but is defence-in-depth only; confirm no user-controlled `.eq()` filters run through `serverDb()`.
 
 ---

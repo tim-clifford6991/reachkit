@@ -44,6 +44,8 @@ function makeDbMock(insertedScanRows: Record<string, unknown>[]) {
 }
 
 function mockCommonCollaborators() {
+  // The route reads env.scanningEnabled (P4 kill switch) at the top; stub it ON.
+  vi.doMock("@/lib/config/env", () => ({ env: { scanningEnabled: true } }));
   vi.doMock("@/lib/inngest/client", () => ({ inngest: { send: vi.fn(async () => ({})) } }));
   vi.doMock("@/lib/scan/abuse", () => ({
     AbuseError: class AbuseError extends Error {},

@@ -24,6 +24,7 @@
 
 import { serverDb } from "@/lib/db/client";
 import { emitScanEvent } from "@/lib/scan/progress";
+import { captureServerException } from "@/lib/analytics-server";
 
 /**
  * The terminal status to persist for a scan whose pipeline function is
@@ -58,6 +59,10 @@ export async function handleScanPipelineFailure(
 ): Promise<void> {
   const message = error instanceof Error ? error.message : String(error);
   await emitScanEvent(scanId, "error", { message });
+  // Report the pipeline failure to error tracking (P4) — this is the biggest
+  // prod blind spot: a scan that exhausts its Inngest retries fails in the
+  // background where only Vercel raw logs would otherwise show it.
+  await captureServerException(error, { source: "inngest:scan-pipeline", extra: { scanId } });
   const status = await terminalStatusForFailure(scanId);
   const { error: updateErr } = await serverDb()
     .from("scans")

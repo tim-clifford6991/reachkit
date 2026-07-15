@@ -9,7 +9,7 @@ import { updateSession } from "@/lib/auth/middleware";
  * choke point) rather than gating ~20 pages individually. No real route starts
  * with `/design` or `/test-`, so a prefix match is safe.
  */
-function isDevOnlyPath(pathname: string): boolean {
+export function isDevOnlyPath(pathname: string): boolean {
   return (
     pathname === "/design" ||
     pathname.startsWith("/design/") ||

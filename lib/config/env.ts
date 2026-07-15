@@ -57,6 +57,16 @@ const schema = z.object({
   POSTHOG_KEY: z.string().optional().default(""),
   POSTHOG_HOST: z.string().optional().default(""),
   INNGEST_SIGNING_KEY: z.string().optional().default(""),
+  // Observability kill switch (P4): set to "false" to pause all new scans at the
+  // entrypoints (a friendly "scans paused" state) without a redeploy — the
+  // mitigation when Anthropic/DataForSEO/Tavily is degraded. Any other value
+  // (or unset) keeps scanning ON.
+  SCANNING_ENABLED: z.string().optional().transform((v) => v !== "false"),
+  // Optional delivery channel for cost alerts (P4): a webhook (e.g. Slack
+  // incoming-webhook) that receives a JSON POST when a per-scan / per-user cost
+  // cap is breached, in addition to console + the persisted scan event. Blank →
+  // no webhook (console + PostHog only).
+  COST_ALERT_WEBHOOK_URL: z.string().optional().default(""),
   // Days after a subscription's period end that a `past_due` (failed renewal)
   // still keeps access — the payment-failed grace window (no trial exists).
   BILLING_GRACE_DAYS: z.coerce.number().int().nonnegative().default(3),
@@ -115,6 +125,8 @@ export function parseEnv(src: NodeJS.ProcessEnv) {
     externalScanCapCentsFull: p.EXTERNAL_SCAN_CAP_CENTS_FULL,
     costAlertScanCents: p.COST_ALERT_SCAN_CENTS,
     costAlertUserDailyCents: p.COST_ALERT_USER_DAILY_CENTS,
+    costAlertWebhookUrl: p.COST_ALERT_WEBHOOK_URL,
+    scanningEnabled: p.SCANNING_ENABLED,
     productHuntToken: p.PRODUCT_HUNT_TOKEN, youtubeApiKey: p.YOUTUBE_API_KEY,
     voyageApiKey: p.VOYAGE_API_KEY,
     dataforseoLocationCode: p.DATAFORSEO_LOCATION_CODE, dataforseoLanguageCode: p.DATAFORSEO_LANGUAGE_CODE,
