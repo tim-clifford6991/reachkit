@@ -9,9 +9,16 @@
  * Renders as an accessible inline button styled like an action link. When no
  * scanId is available (e.g. the design/demo render), it degrades to a plain
  * non-interactive span so the copy still reads.
+ *
+ * Fires `checkoutStarted` on click (MINOR 7) — every inline "unlock" teaser
+ * across the report starts the identical checkout POST as
+ * CapturedUnlockButton, but previously did so silently, undercounting
+ * moment-5 conversions initiated from inline teasers rather than the main
+ * unlock band/CTA.
  */
 
 import { useState, type ReactNode } from "react";
+import { funnel } from "@/lib/analytics";
 
 export function UnlockLink({
   scanId,
@@ -31,6 +38,7 @@ export function UnlockLink({
   async function start() {
     if (loading) return;
     setLoading(true);
+    funnel.checkoutStarted({ plan, scan_id: scanId, source: "report" });
     try {
       const res = await fetch(`/api/scan/${scanId}/checkout`, {
         method: "POST",
