@@ -213,8 +213,8 @@ it("does not call a weak page 'technically fine' (directory scenario, low on-pag
 ```ts
     intro:
       report.score.total >= 60
-        ? "is in decent on-page shape. The bigger gap is discoverability — showing up in the places your buyers actually search."
-        : "has real on-page gaps holding it back — and the bigger gap is showing up in the places your buyers actually search.",
+        ? "is in decent on-page shape. The plan below focuses on where you can still gain ground."
+        : "has real on-page gaps holding it back. The plan below starts with the fixes that matter most.",
 ```
 
 (Threshold 60 matches the existing headline banding above at `to-results-props.ts:140-141`; the unverifiable "comparison and directory surfaces" claim is dropped in both branches.)

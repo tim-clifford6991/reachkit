@@ -154,8 +154,8 @@ export function toResultsProps(
     headline,
     intro:
       report.score.total >= 60
-        ? "is in decent on-page shape. The bigger gap is discoverability — showing up in the places your buyers actually search."
-        : "has real on-page gaps holding it back — and the bigger gap is showing up in the places your buyers actually search.",
+        ? "is in decent on-page shape. The plan below focuses on where you can still gain ground."
+        : "has real on-page gaps holding it back. The plan below starts with the fixes that matter most.",
     pillars,
     fixes,
     lockedCount: rest.length || Math.max(0, fullTotal - fixes.length),

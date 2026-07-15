@@ -123,8 +123,11 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
     expect(html).toContain("Ahrefs"); // discovered competitor names render
     expect(html).toMatch(PRICE_LINE_RE); // unlock band states the price up front (Task 1.4)
     // score.total 61 >= 60 → the intro must say the page is in decent on-page
-    // shape (never the unconditional, unverifiable "is technically fine").
-    expect(html).toContain("is in decent on-page shape");
+    // shape (never the unconditional, unverifiable "is technically fine"), and
+    // make NO search claim — the headline above owns the search story, so an
+    // intro search claim could directly contradict it (e.g. an "on the board in
+    // search" headline over a "search is your bigger gap" intro).
+    expect(html).toContain("is in decent on-page shape. The plan below focuses on where you can still gain ground.");
   });
 
   it("0-ranking new product: invisible in search → zero-state hero, no broken artifacts", () => {
@@ -154,10 +157,11 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
     // A brand-new invisible product must NOT get the "on the board in search" hero.
     expect(html).not.toContain("on the board in search");
     // score.total 18 < 60 → a weak page must never be called "technically
-    // fine" (unconditional today, false here, and the dropped "absent from
-    // comparison and directory surfaces" claim was evidence-free anyway).
+    // fine" (the old copy was unconditional, false here, and its "absent from
+    // comparison and directory surfaces" claim was evidence-free). The intro
+    // also makes no search claim — the headline owns the search story.
     expect(html).not.toContain("is technically fine");
-    expect(html).toContain("has real on-page gaps");
+    expect(html).toContain("has real on-page gaps holding it back. The plan below starts with the fixes that matter most.");
   });
 
   it("directory: tidy page but visibility is other brands' names → honest 'brand names' hero, not a false 88 win", () => {
