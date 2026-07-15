@@ -69,3 +69,21 @@ describe("resolveProductScan (invariant: ONE dedupe/staleness policy)", () => {
     expect(await resolveProductScan("https://x.com/", { paid: false, now: NOW })).toEqual({ kind: "attach", appId: "app1", scanId: "scan1" });
   });
 });
+
+import { classifyUrl } from "@/lib/scan/router";
+
+describe("URL canonicalisation contract (classify BEFORE resolve)", () => {
+  it("every variant of one domain canonicalises to ONE app key", () => {
+    const variants = ["nudgi.ai", "https://nudgi.ai", "https://nudgi.ai/", "https://www.nudgi.ai/", "HTTPS://WWW.Nudgi.AI/pricing?utm=x"];
+    const canon = variants.map((v) => classifyUrl(v).url);
+    expect(new Set(canon).size).toBe(1);
+    expect(canon[0]).toBe("https://nudgi.ai/");
+  });
+
+  it("resolveProductScan is called with the CANONICAL url, so lookups can't miss", async () => {
+    findAppByUrl.mockResolvedValue(null);
+    const { resolveProductScan } = await import("./add-product");
+    await resolveProductScan(classifyUrl("WWW.Nudgi.AI/x?q=1").url, { paid: true, now: NOW });
+    expect(findAppByUrl).toHaveBeenCalledWith("https://nudgi.ai/");
+  });
+});
