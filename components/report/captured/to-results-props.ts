@@ -136,7 +136,7 @@ export function toResultsProps(
       : searchVisibility.categoryDemand > 0 && searchVisibility.categoryCaptureRate < 15
         ? `Your category gets ${demandStr} searches a month — and you capture just ${searchVisibility.categoryCaptureRate}% of it.`
         : searchVisibility.offTopicPct >= 55
-          ? `Your page is clean — but ${searchVisibility.offTopicPct}% of your search visibility is other companies' brand names, not yours.`
+          ? `${searchVisibility.offTopicPct}% of the searches you rank for are other companies' brand names, not yours.`
           : `You're on the board in search — but leaving real category traffic on the table.`
     : `${report.score.total}/100 on-site readiness. The gap that matters is where buyers search — and that's below.`;
 

@@ -186,7 +186,25 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
     expect(html).toContain(">88<");
     // The tidy 88 must read as the honest gap, not a "you're winning" headline —
     // the high band label and the honest search-gap hero coexist coherently.
-    expect(html).toContain("72% of your search visibility");
+    expect(html).toContain("72% of the searches you rank for");
     expect(html).toContain("other companies"); // the honest "not your traffic" framing
+  });
+
+  it("low on-page + off-topic search visibility: headline owns ONLY the search story, intro ONLY the on-page story — no contradiction", () => {
+    // Previously-contradictory pairing: the off-topic headline branch gates only
+    // on search-side fields (keywordsRanked > 0, offTopicPct >= 55,
+    // categoryDemand <= 0), independent of score.total — so a weak page (< 60)
+    // could get a headline opening "Your page is clean" directly above the
+    // "has real on-page gaps" intro. The headline must make NO on-page claim.
+    const r = report({
+      score: { total: 34, breakdown: { content: 30, outreach: 25, seo: 45 }, radar: [], basis: "verified" },
+      searchVisibility: sv({ keywordsRanked: 120, offTopicPct: 68, categoryDemand: 0, categoryCaptureRate: 0 }),
+    });
+    const html = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r, "weakpage.com", 0, 0)} scanId="scan-offtopic" />);
+
+    assertNoGarbage(html, "low-score off-topic");
+    expect(html).toContain("68% of the searches you rank for are other companies");
+    expect(html).toContain("has real on-page gaps");
+    expect(html).not.toContain("page is clean");
   });
 });
