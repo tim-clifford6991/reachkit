@@ -2,14 +2,21 @@
 import * as React from "react";
 
 /**
- * AppShell — ReachKit's dashboard chrome: a fixed left sidebar (brand mark,
- * grouped icon+label nav with an active pill, user footer) + a header (title +
- * subtitle + "Re-scan now") wrapping a content slot. Nav structure mirrors the
- * live app shell: a top-level "Dashboard" item; a grouped "Audience" section
- * (Competitors, Customers); a top-level "Plan" item with an action-count badge;
- * "Progress"; "Settings". The item/group matching `active` gets the violet
+ * AppShell — ReachKit's dashboard chrome: a fixed left sidebar (brand mark, the
+ * app switcher, grouped icon+label nav with an active pill, a side card, and the
+ * user footer with Sign out) + a header (title + subtitle + "Re-scan now")
+ * wrapping a content slot. Nav mirrors the live shell: "Dashboard"; a grouped
+ * "Audience" (Competitors, Customers); "Plan" with an action-count badge;
+ * "History"; "Settings". The item/group matching `active` gets the violet
  * `--c-soft` / `--c-action` pill. Purely presentational — no click handling,
  * no internal state. Renders fully with no props.
+ *
+ * Reconciled 2026-07-15 after the card was found drifted: it said "Progress"
+ * (renamed "History" in WS4) and omitted the app switcher, the side card and
+ * Sign out entirely. It read GREEN throughout, because mirror-lock only watches
+ * whether the LIVE file moved and `--bless` re-pins without verifying anything.
+ * The label-drift gate (scripts/lib/ds-labels.mjs) now compares this card's
+ * RENDERED text against the live component's labels, so that can't recur.
  */
 export interface AppShellProps {
   /** @deprecated use `active` — key of the highlighted nav item/group */
@@ -31,6 +38,14 @@ export interface AppShellProps {
   user?: { name: string; sub: string };
   headerTitle?: string;
   headerSub?: string;
+  /** Tracked product shown in the app switcher. */
+  appName?: string;
+  appInitial?: string;
+  /** Plan label under the product name in the switcher. */
+  plan?: string;
+  /** Side card above the user footer (next auto-scan / upgrade nudge). */
+  sideCardTitle?: string;
+  sideCardSub?: string;
   children?: React.ReactNode;
 }
 
@@ -124,6 +139,11 @@ export function AppShell({
   user,
   headerTitle,
   headerSub,
+  appName = "nudgi.ai",
+  appInitial = "N",
+  plan = "Growth",
+  sideCardTitle = "Next auto-scan in 4 days",
+  sideCardSub = "Weekly tracking keeps your score current.",
   children,
 }: AppShellProps) {
   const activeKey = active ?? "dashboard";
@@ -150,6 +170,17 @@ export function AppShell({
             </svg>
             <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 19, color: "var(--c-ink)", letterSpacing: "-0.01em" }}>ReachKit</span>
           </div>
+          {/* App switcher — the live shell's product selector sits between the
+              brand and the nav. This card omitted it entirely, which is why the
+              multi-app model was invisible in the DS. */}
+          <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 8px", marginBottom: 14, border: "1px solid var(--c-line)", borderRadius: "var(--radius-lg)", background: "var(--c-surface)" }}>
+            <span style={{ flex: "0 0 auto", width: 28, height: 28, borderRadius: 7, background: "linear-gradient(135deg, var(--c-action), #9A88FF)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: "var(--font-display)" }}>{appInitial}</span>
+            <div style={{ flex: "1 1 0%", minWidth: 0 }}>
+              <div style={{ fontWeight: 600, fontSize: 13.5, color: "var(--c-ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{appName}</div>
+              <div style={{ fontSize: 11.5, color: "var(--c-faint)" }}>{plan}</div>
+            </div>
+            <span style={{ flex: "0 0 auto", color: "var(--c-faint)", fontSize: 11 }}>▾</span>
+          </div>
           <nav style={{ display: "flex", flexDirection: "column", gap: 3 }}>
             <NavItem icon={ICON_DASHBOARD} label="Dashboard" active={activeKey === "dashboard"} />
             <NavGroup icon={ICON_AUDIENCE} label="Audience" groupActive={isReportGroup}>
@@ -157,15 +188,26 @@ export function AppShell({
               <NavSubItem label="Customers" active={isAudCust} />
             </NavGroup>
             <NavItem icon={ICON_PLAN} label="Plan" active={isPlan} badge={3} />
-            <NavItem icon={ICON_PROGRESS} label="Progress" active={activeKey === "history"} />
+            {/* "History" — renamed from "Progress" in WS4. The card kept saying
+                "Progress" for weeks because mirror-lock only watches whether the
+                LIVE file moved, and a bless re-pins without verifying. */}
+            <NavItem icon={ICON_PROGRESS} label="History" active={activeKey === "history"} />
             <NavItem icon={ICON_SETTINGS} label="Settings" active={activeKey === "settings"} />
           </nav>
+          {/* Side card — the live shell shows the next-auto-scan (paid) or an
+              upgrade CTA above the user footer. */}
+          <div style={{ marginTop: "auto" }}>
+            <div style={{ background: "linear-gradient(150deg, var(--c-dark), var(--c-dark2))", borderRadius: 13, padding: 15, color: "#fff", marginBottom: 10 }}>
+              <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14.5 }}>{sideCardTitle}</div>
+              <div style={{ fontSize: 12, color: "#B7B4C4", marginTop: 5 }}>{sideCardSub}</div>
+            </div>
+          </div>
           {/* User footer — mirrors the live sidebar footer 1:1, including the
               labelled Sign out (WS6) that this card previously omitted, and the
               2026-07-15 layout fix: the identity block TRUNCATES (a long
               userName has no natural break) while Sign out never shrinks, so the
               name gives way instead of colliding with the control. */}
-          <div style={{ marginTop: "auto", display: "flex", alignItems: "center", gap: 8, padding: "10px 8px", borderTop: "1px solid var(--c-line2)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 8px", borderTop: "1px solid var(--c-line2)" }}>
             <span style={{ flexShrink: 0, width: 30, height: 30, borderRadius: "var(--radius-full)", background: "var(--c-soft)", color: "var(--c-action)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13 }}>{initials}</span>
             <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.3, flex: "1 1 0%", minWidth: 0 }}>
               <span style={{ fontSize: 13, fontWeight: 600, color: "var(--c-ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{resolvedUser.name}</span>
