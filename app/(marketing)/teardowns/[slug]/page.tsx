@@ -239,6 +239,31 @@ function ScorePanel({ teardown }: { teardown: Teardown }) {
           {formatDate(teardown.lastVerified)}
         </time>
       </p>
+
+      {/* Provenance (IMPORTANT 3, launch/honest-storefront): this score is a
+          hand-assigned editorial estimate against our public rubric, not a
+          live scan — and it can drift from what the product would measure
+          today (score models evolve). Disclosing that beside the number is
+          the same "never fabricate, always disclose" standard the product
+          itself is held to. */}
+      <p
+        className="mt-2"
+        style={{
+          fontFamily: JM,
+          fontSize: 11,
+          lineHeight: 1.5,
+          color: "var(--c-faint)",
+        }}
+      >
+        Editorial estimate from our public rubric at time of writing —{" "}
+        <Link
+          href="/scan"
+          style={{ color: "var(--c-action)", textDecoration: "underline" }}
+        >
+          run a free scan
+        </Link>{" "}
+        for the live score.
+      </p>
     </div>
   );
 }
