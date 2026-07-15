@@ -9,7 +9,15 @@
  *
  * Run: INNGEST_SIGNING_KEY=local-dummy pnpm test:int tests/integration/add-product.test.ts
  */
-import { afterAll, expect, test } from "vitest";
+import { afterAll, expect, test, vi } from "vitest";
+// CI runs local Supabase but no Inngest dev server (:8288), so the real
+// transport always ECONNREFUSEs there — same reason scan-route.test.ts mocks it.
+// What this file verifies is the SUPABASE-side contract (app created, linked,
+// scan row at the viewer's tier), not Inngest's delivery. The transport FAILING
+// is covered where it belongs: lib/app/add-product.test.ts asserts a rejecting
+// send degrades honestly (no throw, scanId null, app still linked, row marked
+// failed) — so mocking here hides nothing.
+vi.mock("@/lib/inngest/client", () => ({ inngest: { send: vi.fn(async () => ({})) } }));
 import { serverDb } from "@/lib/db/client";
 import { addTrackedProduct, AddProductError } from "@/lib/app/add-product";
 
