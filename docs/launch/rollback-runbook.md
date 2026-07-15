@@ -4,8 +4,11 @@ _Last verified 2026-07-15 against prod Supabase `kleepxxddbcnfsfwudoe`._
 
 Migrations here are **forward-only** — there are no down-migrations. A destructive
 migration (e.g. `20260708120000_retire_dead_intel_tables.sql`, `DROP TABLE … CASCADE`
-on 7 tables) is **irreversible by re-running SQL**; recovery is a point-in-time
-restore. This runbook is the recovery story that gap implies.
+on 7 tables) is **irreversible by re-running SQL**; recovery means restoring a backup.
+PITR is deliberately OFF (§4), so the recovery floor is the **last daily backup**
+(~24h of possible data loss) and the real safeguard is taking a targeted dump
+**before** any destructive migration (§3.1). This runbook is the recovery story
+those constraints imply.
 
 ## 1. Prod migration state — VERIFIED APPLIED (2026-07-15)
 
@@ -41,17 +44,38 @@ Fastest path — no data risk:
 
 ## 3. Rolling back a bad MIGRATION (data corruption / bad DROP)
 
-There are no down-migrations, so:
+There are no down-migrations **and PITR is deliberately OFF** (§4), so the recovery
+floor is the last **daily backup** — expect **up to ~24h of data loss**. Plan
+accordingly:
 
 1. **Stop writes** — set `SCANNING_ENABLED=false` and, if needed, pause the Inngest crons, so no new data lands mid-restore.
-2. **Point-in-time restore (PITR)** — Supabase Dashboard → Database → Backups → restore to a timestamp **just before** the bad migration ran. This is the only way to recover a `DROP TABLE`.
-3. Restoring rewinds the WHOLE database to that timestamp — any legitimate writes after it are lost. Choose the timestamp deliberately and communicate the data-loss window.
-4. Re-apply only the good migrations after the restore point (via Supabase MCP `apply_migration` or the CLI), verify with the §1 query, then re-enable scanning.
+2. **Restore the most recent daily backup** — Supabase Dashboard → Database → Backups → the latest daily snapshot **before** the bad migration ran → Restore. This is the only way to recover a `DROP TABLE`.
+3. Restoring rewinds the WHOLE database to that snapshot. Everything written since it is gone — there is no timestamp-level rewind without PITR. Communicate the data-loss window.
+4. Re-apply only the good migrations (via Supabase MCP `apply_migration` or the CLI), verify with the §1 query, then re-enable scanning.
 
-## 4. Backups / PITR — OWNER-ACTION (verify before launch)
+### 3.1 The mitigation that replaces PITR: snapshot BEFORE you destroy
 
-- **Confirm PITR is ON** for `kleepxxddbcnfsfwudoe` (Dashboard → Database → Backups). PITR is a paid add-on and is **not** enabled by default on all plans — without it, only daily logical backups exist and the recovery granularity is a full day, not a timestamp. This is Tim's toggle to confirm.
-- Note the retention window (e.g. 7 days) — it bounds how far back §3 can restore.
+Because the recovery floor is a whole day, the discipline moves **forward** of the
+migration. Before applying any migration containing `DROP`, `TRUNCATE`, or a
+destructive `ALTER`:
+
+1. Take an on-demand backup (Dashboard → Database → Backups → the daily backup is
+   scheduled, so for anything risky use `pg_dump` of the affected tables), e.g.:
+   ```bash
+   pg_dump "$SUPABASE_DB_URL" -t public.<table> --data-only --column-inserts > /tmp/<table>-$(date +%F).sql
+   ```
+2. Keep the dump until the change is verified in prod.
+3. Only then apply the migration.
+
+This is cheap, targeted, and gives a real undo for exactly the class of change that
+PITR would otherwise cover.
+
+## 4. Backups / PITR — DECIDED: PITR stays OFF (2026-07-15)
+
+- The org (`timclifford`) is on **Pro**, which includes **daily backups (~7-day retention)** — that's the safety net.
+- **PITR is deliberately NOT enabled**: it's a ~$100/mo add-on and Supabase spend is already a concern. Owner decision, 2026-07-15.
+- **Consequence, accepted:** no timestamp-level restore. Worst-case recovery loses up to ~24h of scans/reports/accounts. For a pre-launch product with no productive users, that trade is reasonable — **revisit once there are paying users whose data loss would be unacceptable** (a day of a paying customer's scans + plan is a real cost).
+- Because of this, §3.1 (snapshot before destructive migrations) is the operative safeguard, not a nice-to-have.
 
 ## 5. Applying pending migrations to prod (when there ARE any)
 

@@ -74,6 +74,12 @@ jobs:
     # real API secrets and spends real budget, so it must never run on push/PR.
     # To use: add the repo secrets referenced below, then run this workflow from
     # the Actions tab. Each live test self-skips if its preconditions aren't met.
+    #
+    # ⚠️ STRIPE_SECRET_KEY MUST BE A TEST-MODE KEY (sk_test_). The funnel test is
+    # NOT read-only — it calls createAnonymousCheckout, which creates a real
+    # Checkout Session in whatever account the key points at (and sends a real
+    # Resend onboarding email). Pair it with a TEST-mode STRIPE_PRICE_SOLO: a live
+    # price id does not resolve under a test key.
     if: ${{ github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     continue-on-error: true

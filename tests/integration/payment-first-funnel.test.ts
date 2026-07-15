@@ -2,17 +2,23 @@
  * Live payment-first funnel test (run manually with real keys):
  *   npm run test:int tests/integration/payment-first-funnel.test.ts
  *
- * Uses .env.local (live Stripe key, local Supabase, real Resend). It does NOT
- * create any charge — Stripe Checkout completion happens on Stripe's hosted page
- * which can't be driven headlessly. Instead it:
- *   1. validates the live Stripe config (read-only price retrieve),
+ * Uses .env.local (Stripe key, local Supabase, real Resend). It does NOT create any
+ * charge — Stripe Checkout completion happens on Stripe's hosted page which can't be
+ * driven headlessly. Instead it:
+ *   1. validates the Stripe config (read-only price retrieve),
  *   2. creates a real (unpaid) anonymous checkout session and asserts its params,
  *   3. drives the webhook end-to-end (checkout.session.completed →
  *      customer.subscription.created) against local Supabase, asserting the
- *      account is created, the scanned app linked, and tier=trialing,
+ *      account is created, the scanned app linked, and tier=solo/status=active,
  *   4. confirms the onboarding magic-link generation works (token_hash flow).
  *
- * Step 3 sends a real onboarding email via Resend to TEST_EMAIL.
+ * ⚠️ USE A TEST-MODE STRIPE KEY (sk_test_). This is NOT read-only: step 2 creates a
+ * real Checkout Session object in whatever account the key points at, and step 3
+ * sends a real onboarding email via Resend to TEST_EMAIL. Pair the test key with a
+ * TEST-mode STRIPE_PRICE_SOLO — a live price id doesn't resolve under a test key.
+ *
+ * There is no trial anywhere (removed in launch P2): checkout charges immediately,
+ * so the live subscription status is "active", never "trialing".
  */
 
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
@@ -80,11 +86,11 @@ test("live Stripe config — Solo price resolves and is a monthly recurring pric
   expect(price.recurring?.interval).toBe("month");
 });
 
-test("anonymous checkout creates a real session with the scan metadata + 7-day trial", async () => {
+test("anonymous checkout creates a real session carrying the scan metadata (charged immediately, no trial)", async () => {
   const { url } = await createAnonymousCheckout({ scanId: state.scanId, plan: "solo" });
   expect(url).toContain("stripe.com");
 
-  // Pull the session back out of the URL and verify it carries our metadata + trial.
+  // Pull the session back out of the URL and verify it carries our metadata.
   const sessionId = new URL(url).pathname.split("/").pop()?.split("#")[0] ?? "";
   // Checkout URLs embed the session id after /c/pay/ ; fall back to listing the latest.
   const session = sessionId.startsWith("cs_")
@@ -93,8 +99,9 @@ test("anonymous checkout creates a real session with the scan metadata + 7-day t
 
   expect(session?.metadata?.scanId).toBe(state.scanId);
   expect(session?.metadata?.plan).toBe("solo");
-  // The retrieved Session doesn't echo subscription_data.trial_period_days, but
-  // mode=subscription confirms the trial-bearing flow was created.
+  // A retrieved Session does NOT echo subscription_data, so trial-absence isn't
+  // observable here — that's pinned by the unit tests (checkout/entitlements).
+  // mode=subscription is what this live call can honestly confirm.
   expect(session?.mode).toBe("subscription");
 }, 20_000);
 
@@ -133,7 +140,7 @@ test("webhook provisions the account, links the scanned app, and sends the magic
   expect(user!.stripe_subscription_id).toBe(subId);
 }, 20_000);
 
-test("subscription event sets tier=solo / status=trialing (resolved by customer id)", async () => {
+test("subscription event sets tier=solo / status=active (resolved by customer id)", async () => {
   const db = serverDb();
   const { data: pre } = await db
     .from("users")
@@ -148,7 +155,10 @@ test("subscription event sets tier=solo / status=trialing (resolved by customer 
       object: {
         id: `sub_rktest_${Date.now()}`,
         customer: pre!.stripe_customer_id,
-        status: "trialing",
+        // P2 removed the trial entirely — checkout charges immediately, so the
+        // status a real subscription.created carries is "active", never "trialing"
+        // (entitlements no longer treats trialing as active either).
+        status: "active",
         items: {
           data: [{ price: { id: priceIdFor("solo", "month") }, current_period_end: nowSec + 7 * 86400 }],
         },
@@ -165,7 +175,7 @@ test("subscription event sets tier=solo / status=trialing (resolved by customer 
     .single();
 
   expect(user!.tier).toBe("solo");
-  expect(user!.subscription_status).toBe("trialing");
+  expect(user!.subscription_status).toBe("active");
   expect(user!.current_period_end).toBeTruthy();
 });
 
