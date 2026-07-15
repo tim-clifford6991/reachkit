@@ -96,7 +96,9 @@ function findingsShown(props: { scan_id: string; score: number }) {
   capture("scan_findings_shown", props);
 }
 
-/** Fired when the paywall (TrialCta) becomes visible on the free report (moment 4). */
+/** Fired when the paywall (CapturedUnlockButton, on the real rendered free
+ *  report) becomes visible (moment 4). Deduped per scanId at the call site
+ *  since the report renders more than one unlock-button instance per view. */
 function paywallViewed(props: { scan_id?: string }) {
   capture("paywall_viewed", props);
 }
