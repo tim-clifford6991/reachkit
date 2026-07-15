@@ -153,7 +153,9 @@ export function toResultsProps(
       .slice(0, 6),
     headline,
     intro:
-      "is technically fine. The gap is discoverability: you're absent from the comparison and directory surfaces where your buyers actually decide.",
+      report.score.total >= 60
+        ? "is in decent on-page shape. The bigger gap is discoverability — showing up in the places your buyers actually search."
+        : "has real on-page gaps holding it back — and the bigger gap is showing up in the places your buyers actually search.",
     pillars,
     fixes,
     lockedCount: rest.length || Math.max(0, fullTotal - fixes.length),
