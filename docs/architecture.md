@@ -270,6 +270,19 @@ the deep-scan cohort light to avoid re-profiling was deliberately **not** adopte
 the deep market analysis needs full backlink profiles, and the caches already
 eliminate the redundant spend.
 
+**LLM spend attributes through the SAME context (2026-07-15).** `callModel`
+(`lib/llm/anthropic.ts`) records a `pipeline_runs` row per call, keyed by scanId —
+but the scanId was an explicit argument, and many generators passed
+`scanId: null` (both draft generators, the whole synthesis gather, referral
+funnel). Those wrote `pipeline_runs.scan_id = NULL`: **real Anthropic money that
+rolled up to no scan and therefore to no user.** The cost sink now carries the
+scanId and `currentScanId()` exposes it, so `callModel` falls back to the ambient
+costed step (`args.scanId ?? currentScanId()`). Consequence: wrapping a route in
+`costedStep`/`costedIntelStep` now attributes its **LLM *and* data** spend in one
+move — which is why the two paid draft routes (`/api/content-draft`,
+`/api/distribute/draft`) are now wrapped and pinned in the `costed-routes` tripwire.
+Guard: `lib/scan/cost-context.scanid.test.ts`.
+
 **External spend is now measured per scan and per user** (`lib/scan/cost-context.ts`).
 DataForSEO returns the exact USD charged in every v3 response envelope (`body.cost`);
 all reads funnel through one `dfsJson(res)` choke point that parses **and** records

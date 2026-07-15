@@ -23,6 +23,7 @@ import { z } from "zod";
 import { currentUser } from "@/lib/auth/server";
 import { assertPaid, EntitlementError } from "@/lib/billing/entitlements";
 import { activeAppId } from "@/lib/app/active-app";
+import { costedIntelStep } from "@/lib/app/latest-scan";
 import { serverDb } from "@/lib/db/client";
 import { getSelectedCompetitors } from "@/lib/scan/competitor-selection";
 import { gatherSynthesis, type ContentPlanItem } from "@/lib/scan/synthesis/synthesize";
@@ -113,7 +114,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ draft: openMatch.draft, requiresEdit: true, actionId: openMatch.id as string });
   }
 
-  const { markdown } = await generateContentDraft(item);
+  // Invariant #2: the draft is a paid LLM call — run it under a cost context so
+  // the spend bills this app's latest scan (and rolls up to the owning user)
+  // instead of writing an unattributable `pipeline_runs.scan_id = NULL` row.
+  const { markdown } = await costedIntelStep(appId, "content-draft", () =>
+    generateContentDraft(item),
+  );
 
   // Store on the action (update the open one, else create it) so the draft
   // travels into the worked queue — not just returned to this view.

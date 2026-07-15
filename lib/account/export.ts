@@ -45,16 +45,18 @@ export async function exportAccount(userId: string): Promise<AccountExport> {
   const appIds = user.app_ids ?? [];
 
   // Scans: owned via app_ids OR claimed by this user's email (matches delete).
-  const scanFilter = appIds.length > 0
-    ? `app_id.in.(${appIds.join(",")}),claim_email.eq.${user.email}`
-    : `claim_email.eq.${user.email}`;
-
-  const [apps, scans, actions, competitors, monitors, outcomes, scoreSnapshots, marketSnapshots] =
+  // Deliberately TWO parameterized queries merged in code rather than one
+  // `.or("…claim_email.eq.<email>")` filter string: building that filter by
+  // interpolation lets any PostgREST-special character in a stored email (`,`
+  // `(` `)`) corrupt the filter. `.eq()`/`.in()` are parameterized and can't.
+  // (lib/account/delete.ts already used .eq() — this keeps the pair consistent.)
+  const [apps, ownedScans, claimedScans, actions, competitors, monitors, outcomes, scoreSnapshots, marketSnapshots] =
     await Promise.all([
       appIds.length > 0
         ? db.from("apps").select("*").in("id", appIds)
         : Promise.resolve({ data: [] as Row<"apps">[] }),
-      db.from("scans").select("*").or(scanFilter),
+      appIds.length > 0 ? db.from("scans").select("*").in("app_id", appIds) : emptyRows<"scans">(),
+      db.from("scans").select("*").eq("claim_email", user.email),
       appIds.length > 0 ? db.from("actions").select("*").in("app_id", appIds) : emptyRows<"actions">(),
       appIds.length > 0 ? db.from("competitors").select("*").in("app_id", appIds) : emptyRows<"competitors">(),
       appIds.length > 0 ? db.from("monitors").select("*").in("app_id", appIds) : emptyRows<"monitors">(),
@@ -63,12 +65,17 @@ export async function exportAccount(userId: string): Promise<AccountExport> {
       appIds.length > 0 ? db.from("market_snapshots").select("*").in("app_id", appIds) : emptyRows<"market_snapshots">(),
     ]);
 
+  // Merge the owned + claimed scan sets, de-duped by id (a scan can be both).
+  const scansById = new Map<string, Row<"scans">>();
+  for (const row of [...(ownedScans.data ?? []), ...(claimedScans.data ?? [])]) {
+    scansById.set(row.id, row);
+  }
+
   return {
-    // eslint-disable-next-line react-hooks/purity -- server route: one value per request
     exportedAt: new Date().toISOString(),
     user,
     apps: apps.data ?? [],
-    scans: scans.data ?? [],
+    scans: [...scansById.values()],
     actions: actions.data ?? [],
     competitors: competitors.data ?? [],
     monitors: monitors.data ?? [],

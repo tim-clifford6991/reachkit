@@ -36,14 +36,15 @@ export async function latestScanIdForApp(appId: string): Promise<string | null> 
  */
 export async function costedIntelStep<T>(
   appId: string,
-  source: "intel" | "intel-stream" | "select" | "candidates" | "plan-generate",
+  source: "intel" | "intel-stream" | "select" | "candidates" | "plan-generate" | "content-draft" | "distribute-draft",
   fn: () => Promise<T>,
 ): Promise<T> {
   const scanId = await latestScanIdForApp(appId);
   if (!scanId) return fn();
   // Full-tier soft cap: intel routes are paid surfaces (invariant #2). Fresh sink
   // per call — the cap bounds THIS gather; cumulative spend is alerted separately.
-  const sink = newCostSink(env.externalScanCapCentsFull / 100);
+  // scanId into the sink → LLM spend attributes via currentScanId() too.
+  const sink = newCostSink(env.externalScanCapCentsFull / 100, scanId);
   try {
     return await runInCostContext(sink, fn);
   } finally {
