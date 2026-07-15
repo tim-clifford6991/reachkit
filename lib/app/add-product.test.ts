@@ -133,6 +133,9 @@ describe("addTrackedProduct (cap · already-tracked · paused)", () => {
   it("refuses at the tier cap WITHOUT creating anything (no silent untracked scan)", async () => {
     const { addTrackedProduct, AddProductError } = await import("./add-product");
     setUser({ tier: "growth", app_ids: ["a", "b", "c"] }); // growth cap = 3
+    // Assert the TYPE as well as the code: toMatchObject alone would accept any
+    // bare object carrying code:"cap", not the AddProductError callers catch on.
+    await expect(addTrackedProduct("u1", "https://new.com/")).rejects.toThrow(AddProductError);
     await expect(addTrackedProduct("u1", "https://new.com/")).rejects.toMatchObject({ code: "cap" });
     expect(findAppByUrl).not.toHaveBeenCalled();
   });
