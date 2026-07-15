@@ -1,5 +1,5 @@
 name: CI
-on: { push: { branches: [main] }, pull_request: {} }
+on: { push: { branches: [main] }, pull_request: {}, workflow_dispatch: {} }
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -64,3 +64,57 @@ jobs:
         run: pnpm eval
       - name: Integration tests
         run: pnpm test:int
+  live-smoke:
+    # Opt-in LIVE-mode smoke (REACHKIT_USE_FIXTURES=false). The fixture suite +
+    # eval + code-review all MASK real-adapter / LLM-on-mixed-content bugs
+    # (CLAUDE.md hard rule — the linear.app SPA-fetch failure was invisible to
+    # fixtures). This runs the two live-only tests against real adapters.
+    #
+    # MANUAL ONLY (workflow_dispatch) + non-blocking (continue-on-error): it needs
+    # real API secrets and spends real budget, so it must never run on push/PR.
+    # To use: add the repo secrets referenced below, then run this workflow from
+    # the Actions tab. Each live test self-skips if its preconditions aren't met.
+    #
+    # ⚠️ STRIPE_SECRET_KEY MUST BE A TEST-MODE KEY (sk_test_). The funnel test is
+    # NOT read-only — it calls createAnonymousCheckout, which creates a real
+    # Checkout Session in whatever account the key points at (and sends a real
+    # Resend onboarding email). Pair it with a TEST-mode STRIPE_PRICE_SOLO: a live
+    # price id does not resolve under a test key.
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - uses: supabase/setup-cli@v1
+        with: { version: 2.26.9 }
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Start local Supabase (applies migrations)
+        run: supabase start
+      - name: Write live env from secrets
+        run: |
+          eval "$(supabase status -o env | grep -E '^(API_URL|ANON_KEY|SERVICE_ROLE_KEY)=')"
+          {
+            echo "SUPABASE_URL=$API_URL"
+            echo "SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "REACHKIT_USE_FIXTURES=false"
+            echo "RUN_REFERRAL=true"
+            echo "ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}"
+            echo "DATAFORSEO_LOGIN=${{ secrets.DATAFORSEO_LOGIN }}"
+            echo "DATAFORSEO_PASSWORD=${{ secrets.DATAFORSEO_PASSWORD }}"
+            echo "TAVILY_API_KEY=${{ secrets.TAVILY_API_KEY }}"
+            echo "RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}"
+            echo "PRODUCT_HUNT_TOKEN=${{ secrets.PRODUCT_HUNT_TOKEN }}"
+            echo "YOUTUBE_API_KEY=${{ secrets.YOUTUBE_API_KEY }}"
+            echo "VOYAGE_API_KEY=${{ secrets.VOYAGE_API_KEY }}"
+            echo "INNGEST_SIGNING_KEY=${{ secrets.INNGEST_SIGNING_KEY }}"
+            echo "STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}"
+            echo "STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}"
+            echo "STRIPE_PRICE_SOLO=${{ secrets.STRIPE_PRICE_SOLO }}"
+          } > .env.local
+      - name: Live smoke (payment-first funnel + reverse-referral)
+        run: pnpm test:int tests/integration/payment-first-funnel.test.ts tests/integration/referral-discovery.test.ts
