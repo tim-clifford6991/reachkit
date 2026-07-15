@@ -21,6 +21,13 @@ import { toResultsProps } from "./to-results-props";
 import type { ReportPayload } from "@/lib/scan/report";
 import type { SearchVisibility } from "@/lib/scan/search-visibility";
 import type { ActionCard } from "@/lib/llm/types";
+import { tierByPlan, fmtPrice } from "@/lib/billing/pricing";
+
+// The unlock band must state the price up front (Task 1.4 — visitors used to
+// learn the price only inside Stripe Checkout). Built from the same pricing
+// source the component reads, so a price change can't silently break this
+// copy-vs-code parity check (never assert the raw number twice).
+const PRICE_LINE_RE = new RegExp(`${fmtPrice(tierByPlan("solo").monthly)}/mo.*cancel anytime`);
 
 type CompGap = ReportPayload["whereTheyAre"]["competitorGap"][number];
 
@@ -114,6 +121,7 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
     expect(html).toContain(">61<"); // the gauge score renders
     expect(html).toContain("capture just 9%"); // honest, coherent hero (not "you're winning")
     expect(html).toContain("Ahrefs"); // discovered competitor names render
+    expect(html).toMatch(PRICE_LINE_RE); // unlock band states the price up front (Task 1.4)
   });
 
   it("0-ranking new product: invisible in search → zero-state hero, no broken artifacts", () => {

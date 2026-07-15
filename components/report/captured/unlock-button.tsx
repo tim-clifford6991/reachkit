@@ -5,16 +5,30 @@
  * the mockup's white button. Starts the anonymous paid checkout for the funnel
  * (Stripe → email → magic link). No free trial — the free scan is the only free
  * capability; unlocking the full report is a paid plan, charged immediately.
+ *
+ * This is the REAL rendered unlock surface on the live free report (wired in
+ * via `unlockButton` from `app/(funnel)/scan/[id]/public-report.tsx`) — the
+ * paywall-funnel events used to be wired to `TrialCta`, which has zero
+ * usages, so the top of the paid funnel never fired in production. Moved
+ * here (Task 1.4) so `paywallViewed`/`checkoutStarted` fire from the surface
+ * that actually renders.
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { funnel } from "@/lib/analytics";
 
 export function CapturedUnlockButton({ scanId, plan = "solo" }: { scanId: string; plan?: "solo" | "growth" }) {
   const [loading, setLoading] = useState(false);
 
+  // Funnel moment 4: the paywall is on screen.
+  useEffect(() => {
+    funnel.paywallViewed({ scan_id: scanId });
+  }, [scanId]);
+
   async function start() {
     if (loading) return;
     setLoading(true);
+    funnel.checkoutStarted({ plan, scan_id: scanId, source: "report" });
     try {
       const res = await fetch(`/api/scan/${scanId}/checkout`, {
         method: "POST",

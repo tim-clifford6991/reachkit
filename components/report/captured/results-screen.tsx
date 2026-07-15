@@ -10,6 +10,7 @@
 import type { ReactNode } from "react";
 import type { ReportPayload } from "@/lib/scan/report";
 import { bandFor } from "@/lib/scan/score-bands";
+import { tierByPlan, fmtPrice } from "@/lib/billing/pricing";
 import { CapturedShareButton } from "./share-button";
 import { UnlockLink } from "./unlock-link";
 
@@ -62,6 +63,11 @@ function oppColors(opp: string) {
 }
 
 const SG = "Space Grotesk", PJ = "Plus Jakarta Sans", JM = "JetBrains Mono";
+
+/** Price stated up front on the unlock CTA — visitors used to first learn the
+ *  price inside Stripe Checkout. Reads from the single pricing source
+ *  (`lib/billing/pricing.ts`) so it can never drift from what Checkout charges. */
+const PRICE_LINE = `${fmtPrice(tierByPlan("solo").monthly)}/mo · cancel anytime`;
 
 export interface Pillar { label: string; value: number; note: string; measured?: boolean }
 export interface Fix { rank: number; title: string; why: string; effort: string; pillar: string; pred: number }
@@ -489,9 +495,12 @@ export function ResultsScreen(p: ResultsScreenProps) {
                   ? "Plus ready-to-ship drafts, your competitor & keyword-gap intel, the full 18-signal breakdown, and score tracking as you fix each one."
                   : "Ready-to-ship drafts, competitor & keyword-gap intel, the full 18-signal breakdown, and weekly score tracking as you ship.")}</p>
               </div>
-              {p.unlockButton ?? (
-                <button style={{ fontFamily: PJ, fontWeight: 700, fontSize: 15, color: "var(--c-ink)", background: "var(--c-surface)", border: "none", borderRadius: 10, padding: "13px 24px", cursor: "pointer", whiteSpace: "nowrap" }}>Unlock full report →</button>
-              )}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                {p.unlockButton ?? (
+                  <button style={{ fontFamily: PJ, fontWeight: 700, fontSize: 15, color: "var(--c-ink)", background: "var(--c-surface)", border: "none", borderRadius: 10, padding: "13px 24px", cursor: "pointer", whiteSpace: "nowrap" }}>Unlock full report →</button>
+                )}
+                <span style={{ fontFamily: JM, fontSize: 12.5, color: "#B7B4C4" }}>{PRICE_LINE}</span>
+              </div>
             </div>
           )}
         </div>
