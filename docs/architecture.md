@@ -184,6 +184,22 @@ graph LR
     Dash -.-> cadence
 ```
 
+**Account lifecycle — self-serve export + hard-delete (launch P3b).** Settings offers
+`GET /api/app/account/export` (whole-account JSON, `lib/account/export.ts`) and
+`POST /api/app/account/delete` (irreversible hard-delete, `lib/account/delete.ts`).
+Both target `requireUser().user.id` only — never a body/param — so a user can only
+act on themselves. **Deletion is an explicit orchestration, not a DB cascade:** the
+user↔apps link is the `users.app_ids[]` ARRAY (no FK), so deleting a `users` row
+cascades to nothing. `deleteAccount` therefore (1) cancels the Stripe sub first
+(never orphan a live sub billing a deleted account), (2) deletes the `auth.users`
+row via the Admin API (no FK from `public.users`), (3) deletes `scans` by
+`claim_email` (PII orphan — a scan claimed by the user whose app was never added to
+`app_ids`), (4) deletes the `apps` in `app_ids` which CASCADE the whole app→scan
+subtree, (5) deletes the `users` row. Global shared caches (`raw_documents`,
+`fact_sheets`, `demand_intel`, `distribution_profiles`, `search_cache`,
+`processed_stripe_events`, NULL-app `embeddings`) are content/domain-keyed cross-user
+data and are deliberately untouched. Guards: `tests/integration/account-{delete,export}.test.ts`.
+
 ---
 
 ## 4. Data lineage — SOURCE → STORAGE → INTERPRETATION → UI
