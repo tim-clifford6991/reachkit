@@ -113,7 +113,7 @@
   },
   "NavBar": {
     "mirror": "components/sections/marketing-nav.tsx",
-    "hash": "fc6901fb6e87f0b2"
+    "hash": "c36acf2a5940e28b"
   },
   "OnboardingScreen": {
     "mirror": "components/app/setup/setup-overlay.tsx",

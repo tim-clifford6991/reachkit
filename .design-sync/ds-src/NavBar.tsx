@@ -14,7 +14,7 @@ export interface NavBarProps {
 
 const DEFAULT_LINKS: { label: string; href: string }[] = [
   { label: "How it works", href: "/how-it-works" },
-  { label: "Scans", href: "/gallery" },
+  { label: "Gallery", href: "/gallery" },
   { label: "Pricing", href: "/pricing" },
   { label: "Compare", href: "/compare" },
   { label: "Free tools", href: "/tools" },
