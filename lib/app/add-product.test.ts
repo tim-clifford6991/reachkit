@@ -1,5 +1,5 @@
 // lib/app/add-product.test.ts
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const findAppByUrl = vi.fn();
 const findExistingScanForApp = vi.fn();
@@ -29,8 +29,18 @@ vi.mock("@/lib/inngest/client", () => ({ inngest: { send: vi.fn(async () => ({})
 vi.mock("@/lib/scan/deepen", () => ({ ensureDeepScan: vi.fn(async () => true) }));
 // The unit runner has no full env (no SUPABASE_* etc.), same as app/api/scan/route.test.ts —
 // stub it statically so env.scanningEnabled never triggers the real parseEnv/zod validation.
-const envMock: { scanningEnabled: boolean } = { scanningEnabled: true };
-vi.mock("@/lib/config/env", () => ({ env: envMock }));
+// vi.mock factories are hoisted above every other declaration in this file, so the
+// mutable flag the paused test flips is created via vi.hoisted (not a plain `const`
+// the factory just happens to close over) and read through a GETTER on every access —
+// a plain property snapshot captured once at mock-creation time would freeze at
+// `true` forever, and the "kill switch holds" test below would pass for the wrong
+// reason no matter what env.scanningEnabled is actually set to.
+const { envState } = vi.hoisted(() => ({ envState: { scanningEnabled: true } }));
+vi.mock("@/lib/config/env", () => ({
+  env: {
+    get scanningEnabled() { return envState.scanningEnabled; },
+  },
+}));
 
 const NOW = new Date("2026-07-15T12:00:00Z");
 const daysAgo = (d: number) => new Date(NOW.getTime() - d * 86_400_000).toISOString();
@@ -115,6 +125,10 @@ describe("addTrackedProduct (cap · already-tracked · paused)", () => {
   // over from the earlier describe blocks above — clearAllMocks only resets call
   // records, not the mockResolvedValue implementations each test sets explicitly.
   beforeEach(() => { vi.clearAllMocks(); });
+  // Unconditional restore (not just an inline reset at the end of the paused test
+  // below) — if the paused test's own assertion ever failed, an inline-only reset
+  // would never run and every test after it would silently inherit a paused env.
+  afterEach(() => { envState.scanningEnabled = true; });
 
   it("refuses at the tier cap WITHOUT creating anything (no silent untracked scan)", async () => {
     const { addTrackedProduct, AddProductError } = await import("./add-product");
@@ -131,11 +145,11 @@ describe("addTrackedProduct (cap · already-tracked · paused)", () => {
   });
 
   it("refuses when SCANNING_ENABLED=false (P4 kill switch holds here too)", async () => {
-    envMock.scanningEnabled = false;
+    envState.scanningEnabled = false;
     const { addTrackedProduct } = await import("./add-product");
     setUser({ tier: "growth", app_ids: [] });
     await expect(addTrackedProduct("u1", "https://x.com/")).rejects.toMatchObject({ code: "paused" });
-    envMock.scanningEnabled = true; // restore — the mock object is shared across this file's tests
+    // restore is unconditional via afterEach above, not inline here — see comment on it.
   });
 
   it("a FREE zero-app user CAN add their first product (no assertPaid regression)", async () => {
