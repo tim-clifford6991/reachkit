@@ -210,8 +210,6 @@ export const LANDING_HTML = `<main>
             <div>✓ Everything in Solo</div>
             <div>✓ Track 3 products</div>
             <div>✓ 50-keyword rank depth</div>
-            <div>✓ Shareable score cards</div>
-            <div>✓ One-click public teardowns</div>
           </div>
           <button class="scp2" style="margin-top: 20px; font-family: &quot;Plus Jakarta Sans&quot;; font-weight: 700; font-size: 14.5px; color: rgb(255, 255, 255); background: var(--c-action); border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; border-radius: 10px; padding: 12px; cursor: pointer;">Start Growth</button>
         </div>

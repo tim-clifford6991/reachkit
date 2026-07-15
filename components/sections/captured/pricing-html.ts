@@ -24,7 +24,7 @@ export const PRICING_HTML = `<main style="max-width: 1080px; margin: 0px auto; p
         <div style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 18px; color: var(--c-action);">Growth</div>
         <div style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 40px; margin: 12px 0px 2px;">€129<span style="font-size: 16px; color: var(--c-faint); font-weight: 600;">/mo</span></div>
         <div style="font-size: 13px; color: var(--c-faint); margin-bottom: 18px;">up to 3 products</div>
-        <div style="display: flex; flex-direction: column; gap: 9px; font-size: 14px; color: var(--c-muted); flex: 1 1 0%;"><div>✓ Everything in Solo</div><div>✓ Track 3 products</div><div>✓ 50-keyword rank depth</div><div>✓ Shareable score cards</div><div>✓ One-click public teardowns</div></div>
+        <div style="display: flex; flex-direction: column; gap: 9px; font-size: 14px; color: var(--c-muted); flex: 1 1 0%;"><div>✓ Everything in Solo</div><div>✓ Track 3 products</div><div>✓ 50-keyword rank depth</div></div>
         <button class="scp2" style="margin-top: 20px; font-family: &quot;Plus Jakarta Sans&quot;; font-weight: 700; font-size: 14.5px; color: rgb(255, 255, 255); background: var(--c-action); border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; border-radius: 10px; padding: 12px; cursor: pointer;">Start Growth</button>
       </div>
     </div>
@@ -46,8 +46,8 @@ export const PRICING_HTML = `<main style="max-width: 1080px; margin: 0px auto; p
         <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; padding: 13px 22px; border-bottom: 1px solid var(--c-fill); align-items: center; font-size: 14px;">
           <span style="font-weight: 600; color: var(--c-muted);"><span class="sc-interp">Ranked fixes</span></span>
           <span style="text-align: center; font-family: &quot;JetBrains Mono&quot;; font-size: 13px; color: var(--c-muted);"><span class="sc-interp">Top 3</span></span>
-          <span style="text-align: center; font-family: &quot;JetBrains Mono&quot;; font-size: 13px; color: var(--c-muted);"><span class="sc-interp">All 7</span></span>
-          <span style="text-align: center; font-family: &quot;JetBrains Mono&quot;; font-size: 13px; font-weight: 700; color: var(--c-muted);"><span class="sc-interp">All 7</span></span>
+          <span style="text-align: center; font-family: &quot;JetBrains Mono&quot;; font-size: 13px; color: var(--c-muted);"><span class="sc-interp">Full plan (up to 8)</span></span>
+          <span style="text-align: center; font-family: &quot;JetBrains Mono&quot;; font-size: 13px; font-weight: 700; color: var(--c-muted);"><span class="sc-interp">Full plan (up to 8)</span></span>
         </div>
         <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; padding: 13px 22px; border-bottom: 1px solid var(--c-fill); align-items: center; font-size: 14px;">
           <span style="font-weight: 600; color: var(--c-muted);"><span class="sc-interp">Full 18-signal breakdown</span></span>
@@ -78,18 +78,6 @@ export const PRICING_HTML = `<main style="max-width: 1080px; margin: 0px auto; p
           <span style="text-align: center; font-family: &quot;JetBrains Mono&quot;; font-size: 13px; color: var(--c-muted);"><span class="sc-interp">1 scan</span></span>
           <span style="text-align: center; font-family: &quot;JetBrains Mono&quot;; font-size: 13px; color: var(--c-muted);"><span class="sc-interp">1</span></span>
           <span style="text-align: center; font-family: &quot;JetBrains Mono&quot;; font-size: 13px; font-weight: 700; color: var(--c-muted);"><span class="sc-interp">3</span></span>
-        </div>
-        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; padding: 13px 22px; border-bottom: 1px solid var(--c-fill); align-items: center; font-size: 14px;">
-          <span style="font-weight: 600; color: var(--c-muted);"><span class="sc-interp">Shareable score cards</span></span>
-          <span style="text-align: center; font-family: &quot;JetBrains Mono&quot;; font-size: 13px; color: rgb(203, 200, 214);"><span class="sc-interp">—</span></span>
-          <span style="text-align: center; font-family: &quot;JetBrains Mono&quot;; font-size: 13px; color: rgb(203, 200, 214);"><span class="sc-interp">—</span></span>
-          <span style="text-align: center; font-family: &quot;JetBrains Mono&quot;; font-size: 13px; font-weight: 700; color: var(--c-action);"><span class="sc-interp">✓</span></span>
-        </div>
-        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; padding: 13px 22px; border-bottom: 1px solid var(--c-fill); align-items: center; font-size: 14px;">
-          <span style="font-weight: 600; color: var(--c-muted);"><span class="sc-interp">One-click public teardowns</span></span>
-          <span style="text-align: center; font-family: &quot;JetBrains Mono&quot;; font-size: 13px; color: rgb(203, 200, 214);"><span class="sc-interp">—</span></span>
-          <span style="text-align: center; font-family: &quot;JetBrains Mono&quot;; font-size: 13px; color: rgb(203, 200, 214);"><span class="sc-interp">—</span></span>
-          <span style="text-align: center; font-family: &quot;JetBrains Mono&quot;; font-size: 13px; font-weight: 700; color: var(--c-action);"><span class="sc-interp">✓</span></span>
         </div>
     </div>
     <h2 style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 24px; letter-spacing: -0.02em; margin: 54px 0px 18px; text-align: center;">Questions, answered</h2>
