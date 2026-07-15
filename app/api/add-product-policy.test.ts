@@ -4,17 +4,6 @@
  * find-or-created while addFirstTrackedProduct always inserted — and that
  * disagreement produced nudgi.ai's incoherent state (paid dashboard over an
  * anonymous free scan). Source tripwire, same idiom as costed-routes.test.ts.
- *
- * NOTE on scope: the plan (docs/superpowers/plans/2026-07-15-add-product-onboarding.md)
- * also pins "addFirstTrackedProduct is gone" here, but that retirement is Task 6's
- * job (it deletes lib/app/add-first-product.ts and rewires
- * app/(app)/app/settings/actions.ts onto addTrackedProduct — neither is in this
- * task's file list). Asserting that now would fail for a reason outside this
- * task's scope, not because the shared-policy convergence regressed. Once Task 6
- * lands, add:
- *   it("addFirstTrackedProduct is gone (its always-insert contradicted the policy)", () => {
- *     expect(() => readFileSync(resolve(process.cwd(), "lib/app/add-first-product.ts"), "utf8")).toThrow();
- *   });
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -50,6 +39,10 @@ describe("single product-resolution policy (ratchet)", () => {
       body,
       "addTrackedProduct must call resolveProductScan(...) itself — never re-implement dedupe/staleness inline",
     ).toMatch(/resolveProductScan\s*\(/);
+  });
+
+  it("addFirstTrackedProduct is gone (its always-insert contradicted the policy)", () => {
+    expect(() => readFileSync(resolve(process.cwd(), "lib/app/add-first-product.ts"), "utf8")).toThrow();
   });
 });
 

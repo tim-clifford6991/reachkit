@@ -27,7 +27,7 @@ import { serverDb } from "@/lib/db/client";
 import { classifyUrl } from "@/lib/scan/router";
 import { normalizeHost } from "@/lib/scan/referral/classify";
 import { switchTrackedProduct } from "@/lib/app/switch-product";
-import { addFirstTrackedProduct } from "@/lib/app/add-first-product";
+import { addTrackedProduct, AddProductError } from "@/lib/app/add-product";
 import { ACTIVE_APP_COOKIE } from "@/lib/app/active-app";
 
 export type UpdateProductUrlResult =
@@ -113,6 +113,16 @@ export type AddFirstProductResult = { ok: true; host: string } | { ok: false; er
  * already own — without this action a paid user provisioned with no app
  * (Path B direct checkout, or any provisioning miss) was hard-stuck in a
  * redirect loop (live-hit 2026-07-11).
+ *
+ * Delegates to `addTrackedProduct` — the single shared product-resolution
+ * policy (spec 2026-07-15) also used by `/api/scan` and `/app/add`. The
+ * lib this used to call, `addFirstTrackedProduct`, always inserted a fresh
+ * app with NO dedupe and started NO scan, leaving "the new, unscanned app"
+ * occupying the user's tracked slot — a zero-app user adding here landed on
+ * an empty dashboard. `addTrackedProduct` always resolves through the shared
+ * dedupe/staleness policy and always produces a scan (`scanId` can still be
+ * `null` if the scan-row insert itself failed — the app still links and the
+ * dashboard offers a retry; that is not an error to swallow).
  */
 export async function addFirstProduct(formData: FormData): Promise<AddFirstProductResult> {
   let userId: string;
@@ -143,8 +153,10 @@ export async function addFirstProduct(formData: FormData): Promise<AddFirstProdu
 
   let newAppId: string;
   try {
-    ({ newAppId } = await addFirstTrackedProduct(userId, routed.url, routed.platform));
-  } catch {
+    const { appId } = await addTrackedProduct(userId, routed.url);
+    newAppId = appId;
+  } catch (e) {
+    if (e instanceof AddProductError) return { ok: false, error: e.message };
     return { ok: false, error: "Couldn't add your product — please try again." };
   }
 
