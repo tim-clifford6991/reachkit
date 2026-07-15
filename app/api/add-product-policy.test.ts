@@ -13,9 +13,26 @@ const ROUTE_FILE = "app/api/scan/route.ts";
 const ADD_PRODUCT_FILE = "lib/app/add-product.ts";
 
 describe("single product-resolution policy (ratchet)", () => {
-  it(`${ROUTE_FILE} resolves products through resolveProductScan`, () => {
+  // A whole-file substring check is vacuous by construction: `import {
+  // resolveProductScan } from "@/lib/app/add-product"` alone satisfies
+  // /resolveProductScan/ with no call site anywhere in the file — mutation-
+  // proved (Finding 4, code review 2026-07-15): removing the actual
+  // `resolveProductScan(...)` CALL from route.ts's POST handler and leaving
+  // only the import still passed this assertion 3/3 before this fix.
+  //
+  // So — symmetric with the addTrackedProduct check below — this isolates
+  // POST's OWN function body (brace-matched, comments/strings blanked) and
+  // asserts THAT text calls resolveProductScan(...). route.ts declares
+  // `export async function POST(req: NextRequest) { ... }`; extractFunctionBody
+  // matches on the bare `function POST(` substring regardless of the `export
+  // async` prefix, so it applies unmodified.
+  it(`${ROUTE_FILE}: POST's body calls resolveProductScan(...)`, () => {
     const src = readFileSync(resolve(process.cwd(), ROUTE_FILE), "utf8");
-    expect(src, `${ROUTE_FILE} must use resolveProductScan — never its own dedupe/staleness logic`).toMatch(/resolveProductScan/);
+    const body = extractFunctionBody(src, "POST");
+    expect(
+      body,
+      "POST must call resolveProductScan(...) itself — never its own dedupe/staleness logic",
+    ).toMatch(/resolveProductScan\s*\(/);
   });
 
   // `lib/app/add-product.ts` is where resolveProductScan is DEFINED
