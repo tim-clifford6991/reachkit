@@ -9,13 +9,32 @@ vi.mock("@/lib/scan/abuse", () => ({ findAppByUrl: (...a: unknown[]) => findAppB
 const scanRow = vi.fn();
 // serverDb mock covering BOTH the users lookup and the scans lookup.
 let userRow: { tier: string; app_ids: string[] } | null = null;
-const setUser = (u: { tier: string; app_ids: string[] }) => { userRow = u; };
+// addTrackedProduct reads the "users" row TWICE: once at the top (the initial
+// cap check) and once again as the re-read/re-assert immediately before the
+// link write (the check-then-act race guard). By default both reads return
+// the same `userRow` — set `userRereadOverride` to make the SECOND read (and
+// only the second) diverge, simulating a concurrent add that landed between
+// the two reads (Finding 3, code review 2026-07-15).
+let userReadCount = 0;
+let userRereadOverride: { tier: string; app_ids: string[] } | null | undefined;
+const setUser = (u: { tier: string; app_ids: string[] }) => {
+  userRow = u;
+  userReadCount = 0;
+  userRereadOverride = undefined;
+};
 const inserted: Record<string, unknown[]> = { apps: [], scans: [] };
 vi.mock("@/lib/db/client", () => ({
   serverDb: () => ({
     from: (table: string) => ({
       select: () => ({
-        eq: () => ({ maybeSingle: async () => (table === "users" ? { data: userRow } : scanRow()) }),
+        eq: () => ({
+          maybeSingle: async () => {
+            if (table !== "users") return scanRow();
+            userReadCount++;
+            if (userReadCount >= 2 && userRereadOverride !== undefined) return { data: userRereadOverride };
+            return { data: userRow };
+          },
+        }),
       }),
       insert: (row: Record<string, unknown>) => {
         inserted[table]?.push(row);
@@ -176,6 +195,37 @@ describe("addTrackedProduct (cap · already-tracked · paused)", () => {
     // Invariant: paid user's scan must be tier=full, never tier=free
     expect(inserted.scans).toHaveLength(1);
     expect(inserted.scans[0]).toMatchObject({ tier: "full" });
+  });
+
+  // Finding 3 (code review 2026-07-15): the cap re-read/re-assert (the
+  // check-then-act race guard immediately before the link write) must trip
+  // BEFORE any cost-bearing call (startScan/ensureDeepScan) — never after.
+  // Simulates a concurrent add landing between the initial cap check and the
+  // re-read: the re-read now reports the account already at cap. Invariant
+  // #2 (CLAUDE.md) requires every cost-bearing call attribute back to a user
+  // via users.app_ids — a refusal here must spend NOTHING, so the refusal
+  // path must insert NO scans row.
+  it("re-read trips the cap → refuses WITHOUT inserting a scans row (no orphaned spend)", async () => {
+    const { addTrackedProduct, AddProductError } = await import("./add-product");
+    setUser({ tier: "growth", app_ids: ["a", "b"] }); // growth cap = 3; 2 < 3 passes the INITIAL check
+    findAppByUrl.mockResolvedValue(null); // fresh app — app-row creation isn't cost-bearing
+    inserted.scans = [];
+    inserted.apps = [];
+    // The re-read (2nd "users" select) reports a 3rd app landed concurrently.
+    userRereadOverride = { tier: "growth", app_ids: ["a", "b", "c"] };
+    // A single call only (not the double-call pattern used above) — the mock's
+    // userReadCount is call-order-sensitive, and a 2nd invocation would consume
+    // the override on ITS OWN top-level read too, no longer isolating the
+    // re-read path this test exists to prove.
+    let caught: unknown;
+    try {
+      await addTrackedProduct("u1", "https://new.com/");
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(AddProductError);
+    expect(caught).toMatchObject({ code: "cap" });
+    expect(inserted.scans).toHaveLength(0);
   });
 
   // Finding 2 (code review 2026-07-15): a paid viewer ATTACHing to a scan
