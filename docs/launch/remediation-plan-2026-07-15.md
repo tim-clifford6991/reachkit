@@ -491,7 +491,9 @@ These seven tasks come from a pattern the review exposed: **every internal drift
 
 **Interfaces:** Consumes env: `STRIPE_SECRET_KEY`, `STRIPE_PRICE_SOLO`, `STRIPE_PRICE_GROWTH`, `STRIPE_PRICE_SOLO_ANNUAL`, `STRIPE_PRICE_GROWTH_ANNUAL` (annuals optional — skip when blank), optional `POSTHOG_KEY`. Produces: exit 0 = live config matches code expectations; exit 1 with a sectioned failure report.
 
-- [ ] **Step 1: Write the script.** Structure mirrors `scripts/check-design-parity.mjs` (numbered sections, accumulate failures, print all, exit non-zero at the end — never die on the first check so one run reports everything):
+> ✅ **Shipped (PR `launch/p6-live-config`, 2026-07-16):** script + `pnpm check:live` + CI wiring + CLAUDE.md docs. **Live-run precondition still open:** the first real run needs Task 0.1 done (webhook repointed) AND the `STRIPE_LIVE_READONLY_KEY` + `STRIPE_PRICE_SOLO_LIVE`/`STRIPE_PRICE_GROWTH_LIVE` repo secrets created (before Task 0.1, section 2 fails — which proves the check works).
+
+- [x] **Step 1: Write the script.** Structure mirrors `scripts/check-design-parity.mjs` (numbered sections, accumulate failures, print all, exit non-zero at the end — never die on the first check so one run reports everything):
 
 ```ts
 import Stripe from "stripe";
@@ -566,8 +568,8 @@ console.log(`\n${failures.length} failure(s), ${warnings.length} warning(s)`);
 if (failures.length) process.exit(1);
 ```
 
-- [ ] **Step 2:** `package.json` scripts: add `"check:live": "tsx scripts/check-live-config.mts"`. Run locally with live keys exported → all sections green (Task 0.1 must be done first; before it, section 2 fails — which proves the check works).
-- [ ] **Step 3:** Append to the `live-smoke` job in `ci.yml` (same secrets context):
+- [x] **Step 2:** `package.json` scripts: add `"check:live": "npx --yes tsx scripts/check-live-config.mts"` (tsx is not a devDep — mirrors how the other `.mts` scripts are invoked). Local live run still pending (see the precondition note above).
+- [x] **Step 3:** Append to the `live-smoke` job in `ci.yml` (same secrets context — shipped with `STRIPE_PRICE_*_LIVE` secrets, since the job's unsuffixed price secrets are test-mode and would never resolve under the live key):
 
 ```yaml
       - name: Live config drift check
@@ -579,8 +581,8 @@ if (failures.length) process.exit(1);
 ```
 
   ⚠️ Note the live-smoke secrets are deliberately `sk_test_` (see program notes) — the drift check needs the LIVE key to see the live webhook endpoint. Add a **separate** `STRIPE_LIVE_READONLY_KEY` repo secret using a Stripe **restricted key** (Dashboard → API keys → Create restricted key: read-only on Webhook Endpoints + Prices, nothing else) and pass THAT as `STRIPE_SECRET_KEY` to this step. A read-only restricted key means CI can never charge/refund anyone.
-- [ ] **Step 4:** Document in `CLAUDE.md` Commands section (one line: `pnpm check:live` — cloud-config drift tripwire, needs live read-only Stripe key) and add the row to the enforcement-layers table (Change Protocol: new gate ⇒ documented in the same commit).
-- [ ] **Step 5:** Commit: `git commit -am "ci: live-config drift tripwire — Stripe endpoint/prices, Inngest sync, prod health, EUR surface"`
+- [x] **Step 4:** Document in `CLAUDE.md` Commands section (one line: `pnpm check:live` — cloud-config drift tripwire, needs live read-only Stripe key) and add the row to the enforcement-layers table (Change Protocol: new gate ⇒ documented in the same commit).
+- [x] **Step 5:** Commit: `git commit -am "ci: live-config drift tripwire — Stripe endpoint/prices, Inngest sync, prod health, EUR surface"`
 
 ### Task 6.2 [OWNER, ~10 min] External uptime monitor
 
@@ -684,7 +686,7 @@ expect(sessionParams.consent_collection).toEqual({ terms_of_service: "required" 
 **Files:**
 - Create: `docs/launch/validation-criteria.md`
 
-- [ ] **Step 1:** Create the doc from this skeleton — **the numbers below are proposed defaults for Tim to edit, not measurements**; they assume cold/community traffic (indie-hackers, PH, Reddit), not paid ads:
+- [x] **Step 1:** Create the doc from this skeleton (✅ `docs/launch/validation-criteria.md`, PR `launch/p6-live-config`) — **the numbers below are proposed defaults for Tim to edit, not measurements**; they assume cold/community traffic (indie-hackers, PH, Reddit), not paid ads:
 
 ```markdown
 # Validation criteria — decided BEFORE launch traffic
