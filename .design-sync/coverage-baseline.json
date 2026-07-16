@@ -1,4 +1,4 @@
 {
   "comment": "Design-mirror coverage ratchet (scripts/check-design-parity.mjs): number of live components in the covered globs WITHOUT a ds-src @mirrors card. May only shrink — check:design fails if it grows. Lower it when coverage improves.",
-  "uncovered": 53
+  "uncovered": 52
 }
