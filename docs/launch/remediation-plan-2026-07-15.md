@@ -649,14 +649,14 @@ export const billingReconcile = inngest.createFunction(
 - Modify: `content/legal/terms.ts` (billing/withdrawal clause)
 - Test: `lib/billing/checkout.test.ts` (assert both creators set `consent_collection`)
 
-- [ ] **Step 1: Failing test** — in `lib/billing/checkout.test.ts`, for each creator assert the session params include:
+- [x] **Step 1: Failing test** — in `lib/billing/checkout.test.ts`, for each creator assert the session params include:
 
 ```ts
 expect(sessionParams.consent_collection).toEqual({ terms_of_service: "required" });
 ```
 
 (Match the file's existing test idiom for capturing the params passed to `stripe.checkout.sessions.create` — it already asserts trial absence the same way.)
-- [ ] **Step 2:** Run → FAIL. Implement: add to BOTH `sessions.create` param objects:
+- [x] **Step 2:** Run → FAIL. Implement: add to BOTH `sessions.create` param objects:
 
 ```ts
       // EU CRD: explicit ToS consent at checkout — the Terms carry the
@@ -664,7 +664,7 @@ expect(sessionParams.consent_collection).toEqual({ terms_of_service: "required" 
       consent_collection: { terms_of_service: "required" },
 ```
 
-- [ ] **Step 3:** Add to `content/legal/terms.ts`, in the billing section:
+- [x] **Step 3:** Add to `content/legal/terms.ts`, in the billing section: *(shipped as §4a so the load-bearing §11 numbering stays stable)*
 
 ```ts
       {
@@ -677,7 +677,7 @@ expect(sessionParams.consent_collection).toEqual({ terms_of_service: "required" 
 ```
 
 - [ ] **Step 4 [OWNER]:** Stripe Dashboard → Settings → Business → Public details → set **Terms of service URL** = `https://reachkit.app/terms` (and Privacy = `https://reachkit.app/privacy`). Without this, `consent_collection.terms_of_service` makes checkout error — which is why the code change and the dashboard setting must land together; verify immediately after via one test-mode checkout page load.
-- [ ] **Step 5:** Tests pass; the Phase-4 live run doubles as the end-to-end verification (checkout page shows the ToS checkbox). Commit: `git commit -am "feat(billing): EU withdrawal-right consent at checkout + Terms clause"`
+- [x] **Step 5:** Tests pass; the Phase-4 live run doubles as the end-to-end verification (checkout page shows the ToS checkbox). Commit: `git commit -am "feat(billing): EU withdrawal-right consent at checkout + Terms clause"` — ⚠️ merge-gated on Step 4: without the Stripe Dashboard ToS URL, `consent_collection` makes live checkout error.
 
 ### Task 6.5 [OWNER decides numbers; agent scaffolds] Define "validated" before traffic arrives
 
