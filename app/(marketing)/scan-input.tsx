@@ -16,7 +16,6 @@ type InputState =
 export function ScanInput({ autoFocus = true }: { autoFocus?: boolean } = {}) {
   const router = useRouter();
   const [url, setUrl] = useState("");
-  const [consented, setConsented] = useState(false);
   const [state, setState] = useState<InputState>({ status: "idle" });
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -24,13 +23,6 @@ export function ScanInput({ autoFocus = true }: { autoFocus?: boolean } = {}) {
     e.preventDefault();
     const storeUrl = url.trim();
     if (!storeUrl) return;
-
-    // Authorisation gate: the scanner fetches a third-party URL, so the visitor
-    // must affirm they own or are authorised to scan it.
-    if (!consented) {
-      setState({ status: "error", message: "Please confirm you own or are authorised to scan this URL." });
-      return;
-    }
 
     setState({ status: "loading" });
 
@@ -47,7 +39,7 @@ export function ScanInput({ autoFocus = true }: { autoFocus?: boolean } = {}) {
       const res = await fetch("/api/scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ store_url: storeUrl, scan_consent: true }),
+        body: JSON.stringify({ store_url: storeUrl }),
       });
 
       if (!res.ok) {
@@ -131,19 +123,6 @@ export function ScanInput({ autoFocus = true }: { autoFocus?: boolean } = {}) {
           )}
         </button>
       </div>
-      <label style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 10, fontSize: 12.5, lineHeight: 1.45, color: "var(--c-muted)", cursor: "pointer" }}>
-        <input
-          type="checkbox"
-          checked={consented}
-          onChange={(e) => {
-            setConsented(e.target.checked);
-            if (state.status === "error") setState({ status: "idle" });
-          }}
-          style={{ marginTop: 2, flex: "0 0 auto", accentColor: "var(--c-action)" }}
-          aria-label="I own or am authorised to scan this URL"
-        />
-        <span>I own or am authorised to scan this URL.</span>
-      </label>
       {state.status === "error" && (
         <p id="scan-error" className="mt-2 text-xs" style={{ color: "var(--color-danger)" }} role="alert">
           {state.message}
