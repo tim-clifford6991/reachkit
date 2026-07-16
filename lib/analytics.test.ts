@@ -50,6 +50,27 @@ describe("analytics consent (launch P3)", () => {
     expect(() => captureException("string error")).not.toThrow();
   });
 
+  it("trackPageview is a no-op before consent (never loads posthog)", async () => {
+    const { trackPageview, revokeConsent } = await import("./analytics");
+    revokeConsent();
+    expect(() => trackPageview()).not.toThrow();
+  });
+
+  it("grantConsent captures the suppressed initial $pageview (live finding: zero pageviews ever)", async () => {
+    vi.stubEnv("NEXT_PUBLIC_POSTHOG_KEY", "phc_test");
+    const optIn = vi.fn();
+    const captureSpy = vi.fn();
+    vi.doMock("posthog-js", () => ({
+      default: { init: vi.fn(), opt_in_capturing: optIn, opt_out_capturing: vi.fn(), capture: captureSpy },
+    }));
+    const { grantConsent } = await import("./analytics");
+    grantConsent();
+    await vi.waitFor(() => expect(optIn).toHaveBeenCalled());
+    expect(captureSpy).toHaveBeenCalledWith("$pageview");
+    vi.doUnmock("posthog-js");
+    vi.unstubAllEnvs();
+  });
+
   it("funnel exposes the payment-first conversion helpers (P4), all no-op pre-consent", async () => {
     const { funnel, revokeConsent } = await import("./analytics");
     revokeConsent();

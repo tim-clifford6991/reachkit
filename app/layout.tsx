@@ -26,6 +26,7 @@ const jetbrainsMono = JetBrains_Mono({
 import { ThemeProvider } from "@/components/motion/theme-provider";
 import { LazyToaster } from "@/components/ui/lazy-toaster";
 import { LazyCookieBanner } from "@/components/consent/lazy-cookie-banner";
+import { PageviewTracker } from "@/components/analytics/pageview-tracker";
 import { SITE } from "@/lib/seo";
 import "./globals.css";
 
@@ -53,6 +54,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {children}
             <LazyToaster />
             <LazyCookieBanner />
+            <PageviewTracker />
           </ThemeProvider>
         </NuqsAdapter>
       </body>
