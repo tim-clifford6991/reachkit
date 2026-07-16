@@ -8,9 +8,16 @@
  * The primary app is users.app_ids[0]. If app_ids is empty, the dashboard
  * page shows an empty state linking to / to run a scan.
  *
- * First-run gate: computes setupState (profile → competitors → ready) and,
- * until "ready", renders the blocking <SetupOverlay/> over the inert shell —
- * the entire app is locked until onboarding + competitor selection complete.
+ * First-run gate: computes setupState (profile → competitors → ready) and, via
+ * shouldBlockSetup (lib/app/setup-state.ts), renders the blocking
+ * <SetupOverlay/> over the inert shell ONLY for a genuine first run — the
+ * per-user profile step, or a competitor pick on the user's ONLY app. With 2+
+ * apps the overlay never blocks, so a healthy product #1 is never inerted by
+ * product #2's setup. That product still gets its pick in-page: CompetitorSetup
+ * renders inline on /app/plan and /app/audience/* whenever the active app has
+ * no cohort, and unconditionally on /app/competitors — which the dashboard's
+ * empty intel state links to ("Choose competitors"). The dashboard itself links
+ * to the picker; it does not embed it.
  */
 
 import { Suspense } from "react";
@@ -21,6 +28,7 @@ import { serverDb } from "@/lib/db/client";
 import type { ReportPayload } from "@/lib/scan/report";
 import type { Tier } from "@/lib/billing/tiers";
 import { activeAppId, userApps } from "@/lib/app/active-app";
+import { shouldBlockSetup } from "@/lib/app/setup-state";
 import { getSelectedCompetitors } from "@/lib/scan/competitor-selection";
 import { CommandPalette } from "@/components/app/command-palette";
 import { AppShell } from "@/components/app/captured/app-shell";
@@ -103,15 +111,21 @@ async function SidebarData({ children }: { children: React.ReactNode }) {
   }
 
   // ── Setup gate ─────────────────────────────────────────────────────────────
-  // The blocking first-run sequence. "profile" until saveOnboarding sets
-  // `onboarded_at`; then "competitors" until the active app has a confirmed
-  // benchmark cohort (same source resolveIntelContext reads); else "ready".
-  // Users with no *completed scan* can't pick competitors — there are no
-  // candidates to benchmark against yet — so they're "ready" and the dashboard's
-  // empty state points them at the first scan. This is also what keeps a
-  // freshly-switched product (new app, no scan) out of the discovery overlay:
-  // its single on-demand scan seeds the candidates, and the competitor pick
-  // becomes the normal cheap post-scan beat.
+  // The state machine. "profile" until saveOnboarding sets `onboarded_at`;
+  // then "competitors" until the active app has a confirmed benchmark cohort
+  // (same source resolveIntelContext reads); else "ready". Users with no
+  // *completed scan* can't pick competitors — there are no candidates to
+  // benchmark against yet — so they're "ready" and the dashboard's empty state
+  // points them at the first scan.
+  //
+  // Whether this state actually BLOCKS the whole app is a separate question —
+  // see shouldBlockSetup below. In short: "competitors" only blocks on the
+  // user's ONLY app (genuine first run). With 2+ apps it never blocks — a
+  // freshly-added product's completed scan seeding its own competitor pick
+  // must not inert a healthy product #1. That pick is still reached in-page,
+  // as the normal cheap post-scan beat: CompetitorSetup renders inline on
+  // /app/plan and /app/audience/* when the active app has no cohort, and
+  // /app/competitors always shows it.
   let setupState: "profile" | "competitors" | "ready" = "ready";
   if (!user.onboarded_at) {
     setupState = "profile";
@@ -182,11 +196,19 @@ async function SidebarData({ children }: { children: React.ReactNode }) {
     </AppShell>
   );
 
-  // Setup not complete → the SetupOverlay locks the WHOLE app. The shell still
-  // renders behind it (inert, hidden from AT, unclickable) so completing setup
-  // feels like unlocking the dashboard in place. The ⌘K palette only mounts once
-  // the app is unlocked. Sign-out stays possible from inside the overlay.
-  if (setupState !== "ready") {
+  // The overlay is FIRST-RUN only (see lib/app/setup-state.ts): it locks the
+  // WHOLE app, so it may only fire for the profile step (per-user, mandatory)
+  // or a competitor pick on the user's ONLY app. With 2+ apps a "competitors"
+  // state never blocks — product #2's setup must not inert product #1. The
+  // shell still renders behind the overlay (inert, hidden from AT,
+  // unclickable) so completing setup feels like unlocking the dashboard in
+  // place. The ⌘K palette only mounts once the app is unlocked. Sign-out
+  // stays possible from inside the overlay.
+  const appCount = (user.app_ids ?? []).length;
+  if (
+    setupState !== "ready" &&
+    shouldBlockSetup({ onboardedAt: user.onboarded_at as string | null, setupState, appCount })
+  ) {
     return (
       <>
         <div inert aria-hidden style={{ pointerEvents: "none", userSelect: "none" }}>

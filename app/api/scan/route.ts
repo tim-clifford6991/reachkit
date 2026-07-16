@@ -9,14 +9,8 @@ import { linkScanToUser } from "@/lib/auth/profile";
 import { entitlementsFor } from "@/lib/billing/entitlements";
 import { ensureDeepScan } from "@/lib/scan/deepen";
 import { slugForScan } from "@/lib/scan/scan-slug";
-import {
-  AbuseError,
-  assertRateLimit,
-  findAppByUrl,
-  findExistingScanForApp,
-  hashIp,
-  ipFromRequest,
-} from "@/lib/scan/abuse";
+import { resolveProductScan } from "@/lib/app/add-product";
+import { AbuseError, assertRateLimit, hashIp, ipFromRequest } from "@/lib/scan/abuse";
 
 // `scan_consent` is accepted-but-ignored for backwards compatibility: the
 // authorisation checkbox was removed 2026-07-16 (scans read only public data;
@@ -60,20 +54,24 @@ export async function POST(req: NextRequest) {
   }
   const scanTier: "free" | "full" = viewerIsPaid ? "full" : "free";
 
-  // Find-or-create the app by URL. One scan per app (dedupe): if a scan already
-  // exists, return it instead of creating a duplicate or re-running the pipeline.
-  let appId = await findAppByUrl(routed.url);
-  if (appId) {
-    const existingScanId = await findExistingScanForApp(appId);
-    if (existingScanId) {
-      if (viewer) await linkScanToUser(existingScanId, viewer.user.id);
-      // A paid viewer opening a previously-free scan gets it deepened (idempotent).
-      if (viewerIsPaid) await ensureDeepScan(existingScanId);
-      // Personal, run-once URL: the same link always lands on the same scan.
-      const slug = slugForScan({ storeUrl: routed.url, platform: routed.platform, scanId: existingScanId });
-      return NextResponse.json({ scan_id: existingScanId, slug, deduped: true });
-    }
-  } else {
+  // Resolve what this URL means through the ONE shared policy (spec 2026-07-15)
+  // so the public scan route and the in-app add can never disagree again.
+  const plan = await resolveProductScan(routed.url, { paid: viewerIsPaid });
+  if (plan.kind === "deepen" || plan.kind === "attach") {
+    if (viewer) await linkScanToUser(plan.scanId, viewer.user.id);
+    // A paid viewer landing on EITHER a done-but-reusable scan (deepen) OR a
+    // scan that's already in flight (attach) must still get deepened — an
+    // in-flight scan with no viewer watching it can finish on the free track
+    // and never be re-upgraded (Finding 2, code review 2026-07-15).
+    // ensureDeepScan is idempotent (lib/scan/deepen.ts): a no-op if the deep
+    // pass already ran, safe to call from either branch.
+    if (viewerIsPaid) await ensureDeepScan(plan.scanId);
+    const slug = slugForScan({ storeUrl: routed.url, platform: routed.platform, scanId: plan.scanId });
+    return NextResponse.json({ scan_id: plan.scanId, slug, deduped: true });
+  }
+  // fresh | rescan → fall through to create the scan row below.
+  let appId = plan.kind === "rescan" ? plan.appId : null;
+  if (!appId) {
     const app = await db.from("apps").insert({ store_url: routed.url, platform: routed.platform }).select("id").single();
     if (app.error) return NextResponse.json({ error: app.error.message }, { status: 500 });
     appId = app.data.id;

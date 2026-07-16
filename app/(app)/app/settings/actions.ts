@@ -21,10 +21,9 @@
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { requireUser } from "@/lib/auth/server";
-import { classifyUrl } from "@/lib/scan/router";
 import { normalizeHost } from "@/lib/scan/referral/classify";
 import { updateProductUrlForUser } from "@/lib/app/update-product-url";
-import { addFirstTrackedProduct } from "@/lib/app/add-first-product";
+import { addTrackedProduct, AddProductError } from "@/lib/app/add-product";
 import { ACTIVE_APP_COOKIE } from "@/lib/app/active-app";
 
 export type UpdateProductUrlResult =
@@ -76,7 +75,9 @@ export async function updateProductUrl(
   return { ok: true, switched: false, host: result.host };
 }
 
-export type AddFirstProductResult = { ok: true; host: string } | { ok: false; error: string };
+export type AddFirstProductResult =
+  | { ok: true; host: string; scanId: string | null }
+  | { ok: false; error: string };
 
 /**
  * Attach a zero-app user's FIRST tracked product. Every intel page redirects
@@ -84,6 +85,16 @@ export type AddFirstProductResult = { ok: true; host: string } | { ok: false; er
  * already own — without this action a paid user provisioned with no app
  * (Path B direct checkout, or any provisioning miss) was hard-stuck in a
  * redirect loop (live-hit 2026-07-11).
+ *
+ * Delegates to `addTrackedProduct` — the single shared product-resolution
+ * policy (spec 2026-07-15) also used by `/api/scan` and `/app/add`. The
+ * lib this used to call, `addFirstTrackedProduct`, always inserted a fresh
+ * app with NO dedupe and started NO scan, leaving "the new, unscanned app"
+ * occupying the user's tracked slot — a zero-app user adding here landed on
+ * an empty dashboard. `addTrackedProduct` always resolves through the shared
+ * dedupe/staleness policy and always produces a scan (`scanId` can still be
+ * `null` if the scan-row insert itself failed — the app still links and the
+ * dashboard offers a retry; that is not an error to swallow).
  */
 export async function addFirstProduct(formData: FormData): Promise<AddFirstProductResult> {
   let userId: string;
@@ -105,17 +116,14 @@ export async function addFirstProduct(formData: FormData): Promise<AddFirstProdu
     return { ok: false, error: "Enter a URL." };
   }
 
-  let routed: { platform: "ios" | "android" | "web"; url: string };
-  try {
-    routed = classifyUrl(raw);
-  } catch {
-    return { ok: false, error: "That doesn't look like a valid URL." };
-  }
-
   let newAppId: string;
+  let scanId: string | null;
   try {
-    ({ newAppId } = await addFirstTrackedProduct(userId, routed.url, routed.platform));
-  } catch {
+    const { appId, scanId: startedScanId } = await addTrackedProduct(userId, raw);
+    newAppId = appId;
+    scanId = startedScanId;
+  } catch (e) {
+    if (e instanceof AddProductError) return { ok: false, error: e.message };
     return { ok: false, error: "Couldn't add your product — please try again." };
   }
 
@@ -123,5 +131,5 @@ export async function addFirstProduct(formData: FormData): Promise<AddFirstProdu
   revalidatePath("/app/settings");
   revalidatePath("/app");
   revalidatePath("/app/dashboard");
-  return { ok: true, host: normalizeHost(routed.url) };
+  return { ok: true, host: normalizeHost(raw), scanId };
 }

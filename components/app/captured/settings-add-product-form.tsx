@@ -16,7 +16,7 @@ const PJ = "Plus Jakarta Sans";
 export function AddProductForm() {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [added, setAdded] = useState<string | null>(null);
+  const [added, setAdded] = useState<{ host: string; scanId: string | null } | null>(null);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -24,18 +24,29 @@ export function AddProductForm() {
     setError(null);
     startTransition(async () => {
       const res = await addFirstProduct(fd);
-      if (res.ok) setAdded(res.host);
+      if (res.ok) setAdded({ host: res.host, scanId: res.scanId });
       else setError(res.error);
     });
   }
 
   if (added) {
+    // scanId is null when the scan-row insert itself failed (rare) — the app
+    // still links, but no scan is actually running, so don't claim it is.
     return (
       <p style={{ fontFamily: PJ, fontSize: 13, color: "var(--c-ink)", marginTop: 14 }}>
-        Now tracking <strong>{added}</strong>.{" "}
-        <Link href="/app/dashboard" style={{ color: "var(--c-action)", fontWeight: 600 }}>
-          Run its first scan →
-        </Link>
+        Now tracking <strong>{added.host}</strong>.{" "}
+        {added.scanId ? (
+          <>
+            Its first scan is already underway —{" "}
+            <Link href="/app/dashboard" style={{ color: "var(--c-action)", fontWeight: 600 }}>
+              watch progress →
+            </Link>
+          </>
+        ) : (
+          <Link href="/app/dashboard" style={{ color: "var(--c-action)", fontWeight: 600 }}>
+            Head to the dashboard to start its first scan →
+          </Link>
+        )}
       </p>
     );
   }

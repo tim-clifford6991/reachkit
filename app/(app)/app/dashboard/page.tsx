@@ -12,10 +12,12 @@ import { pillarRollupFromRegistry, type ScoreBreakdown } from "@/lib/scan/pillar
 import { headlineScore, discoverabilityScore } from "@/lib/scan/registry-score";
 import type { Pillar } from "@/lib/scan/signals";
 import { actionBoard } from "@/lib/scan/action-board";
+import { hostname } from "@/lib/scan/url";
 import { DashboardHero } from "@/components/app/intel/dashboard-hero";
 import { DashboardIntelBlocks } from "@/components/app/intel/dashboard-view";
 import { WeekPlanPreviewLazy as WeekPlanPreview } from "@/components/app/week-plan-preview-lazy";
 import { ScanCurrentButton } from "@/components/app/scan-current-button";
+import { DashboardScanProgressLazy as DashboardScanProgress } from "@/components/app/dashboard-scan-progress-lazy";
 import { buildMetadata } from "@/lib/seo";
 
 export const metadata = buildMetadata({ title: "Dashboard", path: "/app/dashboard" });
@@ -57,33 +59,43 @@ async function DashboardContent() {
   // card (actions can arrive via "Add to plan" chips before a scan) and the
   // intel blocks (which don't depend on a scan) still render below the notice.
   if (!scan || scan.score_total == null) {
-    // Is a scan already running (e.g. just triggered from here)? If so, invite
-    // the user to watch it; otherwise offer the one-click on-demand scan.
+    // Is a scan already running (e.g. just triggered from here, or from
+    // /app/add)? If so, render its live progress IN SHELL — never eject to the
+    // entitlement-blind public /scan/<id> page (see docs/superpowers/specs/
+    // 2026-07-15-add-product-onboarding-design.md §4). Otherwise offer the
+    // one-click on-demand scan.
     const { data: inflight } = await serverDb()
       .from("scans")
-      .select("id")
+      .select("id, tier")
       .eq("app_id", ctx.appId)
       .not("status", "in", "(done,failed,degraded)")
       .order("started_at", { ascending: false, nullsFirst: true })
       .limit(1)
       .maybeSingle();
+
+    if (inflight) {
+      return (
+        <>
+          <DashboardScanProgress
+            scanId={inflight.id}
+            tier={inflight.tier === "full" ? "full" : "free"}
+            host={ctx.domain ? hostname(ctx.domain) : null}
+          />
+          <div style={{ marginTop: 20 }}>
+            <WeekPlanPreview board={board} />
+          </div>
+          <DashboardIntelBlocks />
+        </>
+      );
+    }
+
     const CTA_STYLE = { marginTop: 6, background: "var(--c-action)", color: "var(--c-on-dark)", fontFamily: "var(--font-sans)", fontWeight: 600, fontSize: 13, padding: "8px 14px", borderRadius: "var(--radius-lg)", textDecoration: "none", border: "none" } as const;
     return (
       <>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "48px 24px", textAlign: "center", border: "1px dashed var(--c-line)", borderRadius: "var(--radius-xl)", background: "var(--c-surface)" }}>
-          {inflight ? (
-            <>
-              <p style={{ fontSize: 14, fontWeight: 600, color: "var(--c-ink)", margin: 0 }}>Scanning your product…</p>
-              <p style={{ fontSize: 12.5, color: "var(--c-muted)", margin: 0, maxWidth: 360 }}>Your score, competitors, and plan appear here the moment it finishes.</p>
-              <Link href={`/scan/${inflight.id}`} style={CTA_STYLE}>Watch progress →</Link>
-            </>
-          ) : (
-            <>
-              <p style={{ fontSize: 14, fontWeight: 600, color: "var(--c-ink)", margin: 0 }}>Your Discoverability Score appears here after your first scan.</p>
-              <p style={{ fontSize: 12.5, color: "var(--c-muted)", margin: 0, maxWidth: 360 }}>One scan reads your live page — score, pillar breakdown, competitors, and your biggest lever.</p>
-              <ScanCurrentButton style={CTA_STYLE} />
-            </>
-          )}
+          <p style={{ fontSize: 14, fontWeight: 600, color: "var(--c-ink)", margin: 0 }}>Your Discoverability Score appears here after your first scan.</p>
+          <p style={{ fontSize: 12.5, color: "var(--c-muted)", margin: 0, maxWidth: 360 }}>One scan reads your live page — score, pillar breakdown, competitors, and your biggest lever.</p>
+          <ScanCurrentButton style={CTA_STYLE} />
         </div>
         <div style={{ marginTop: 20 }}>
           <WeekPlanPreview board={board} />

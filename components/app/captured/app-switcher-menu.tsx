@@ -97,7 +97,7 @@ export function AppSwitcher({
               </CheckoutButton>
             ) : (
               <Link
-                href={canAddApp ? "/scan" : "/app/billing"}
+                href={canAddApp ? "/app/add" : "/app/billing"}
                 onClick={() => setOpen(false)}
                 style={{ display: "flex", alignItems: "center", gap: 8, borderRadius: 8, padding: "8px 10px", textDecoration: "none", fontFamily: PJ, fontSize: 13, fontWeight: 600, color: "var(--c-action)" }}
               >
