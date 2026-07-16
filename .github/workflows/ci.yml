@@ -56,7 +56,7 @@ jobs:
             echo "SUPABASE_ANON_KEY=$ANON_KEY"
             echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
             echo "REACHKIT_USE_FIXTURES=true"
-            for k in ANTHROPIC_API_KEY DATAFORSEO_LOGIN DATAFORSEO_PASSWORD TAVILY_API_KEY RESEND_API_KEY PRODUCT_HUNT_TOKEN YOUTUBE_API_KEY VOYAGE_API_KEY INNGEST_SIGNING_KEY STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET STRIPE_PRICE_SOLO; do
+            for k in ANTHROPIC_API_KEY DATAFORSEO_LOGIN DATAFORSEO_PASSWORD TAVILY_API_KEY RESEND_API_KEY PRODUCT_HUNT_TOKEN YOUTUBE_API_KEY VOYAGE_API_KEY INNGEST_SIGNING_KEY STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET STRIPE_PRICE_SOLO STRIPE_PRICE_GROWTH; do
               echo "$k=ci-dummy-never-used"
             done
           } > .env.local
@@ -115,6 +115,9 @@ jobs:
             echo "STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}"
             echo "STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}"
             echo "STRIPE_PRICE_SOLO=${{ secrets.STRIPE_PRICE_SOLO }}"
+            # Required-in-prod since the 2026-07-15 launch review; a TEST-mode
+            # Growth price id, same rule as STRIPE_PRICE_SOLO above.
+            echo "STRIPE_PRICE_GROWTH=${{ secrets.STRIPE_PRICE_GROWTH }}"
           } > .env.local
       - name: Live smoke (payment-first funnel + reverse-referral)
         run: pnpm test:int tests/integration/payment-first-funnel.test.ts tests/integration/referral-discovery.test.ts

@@ -29,6 +29,9 @@ const STRIPE_REQUIRED_KEYS = [
   "STRIPE_SECRET_KEY",
   "STRIPE_WEBHOOK_SECRET",
   "STRIPE_PRICE_SOLO",
+  // Growth is sold on /pricing — a deploy missing its price id must fail at
+  // boot, not silently at the Growth checkout button (launch review 2026-07-15).
+  "STRIPE_PRICE_GROWTH",
 ] as const;
 
 const schema = z.object({
