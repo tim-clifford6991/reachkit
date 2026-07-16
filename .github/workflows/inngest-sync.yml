@@ -19,8 +19,11 @@ jobs:
     steps:
       - name: Re-sync Inngest functions
         env:
-          # Stable prod alias; override with a repo variable if the domain changes.
-          SYNC_URL: ${{ vars.INNGEST_SYNC_URL || 'https://reachkit-pi.vercel.app' }}
+          # Canonical prod domain; override with a repo variable if it changes.
+          # reachkit-pi.vercel.app is DEAD (308 → reachkit.app, curl doesn't
+          # follow) — it silently failed every deploy-triggered sync until
+          # 2026-07-16, the same drift class as the Stripe-webhook finding.
+          SYNC_URL: ${{ vars.INNGEST_SYNC_URL || 'https://reachkit.app' }}
         run: |
           echo "Re-syncing Inngest at ${SYNC_URL}/api/inngest"
           # Retry a few times — the deployment alias can lag a few seconds behind

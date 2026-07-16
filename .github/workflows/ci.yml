@@ -1,6 +1,36 @@
 name: CI
 on: { push: { branches: [main] }, pull_request: {}, workflow_dispatch: {} }
 jobs:
+  # Inngest Cloud auto-sync-on-deploy has silently gone stale TWICE
+  # (2026-07-08 pre-launch, 2026-07-15 after P4's onFailure edits) — newer
+  # functions just drop out of Cloud with no error anywhere. This job makes
+  # the documented manual fix (PUT /api/inngest) automatic: after every push
+  # to main it waits for prod to actually serve the new commit, then forces a
+  # re-registration and asserts it succeeded. Failing loudly here (prod never
+  # picked up the commit, or the PUT errored) is the desired signal.
+  inngest-sync:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for prod to serve this commit, then force Inngest re-sync
+        run: |
+          LIVE=""
+          for i in $(seq 1 60); do
+            LIVE=$(curl -sf https://reachkit.app/api/health | jq -r .commit || echo "")
+            [ "$LIVE" = "${GITHUB_SHA::7}" ] && break
+            sleep 15
+          done
+          if [ "$LIVE" != "${GITHUB_SHA::7}" ]; then
+            echo "::error::prod never reached ${GITHUB_SHA::7} (still serving '$LIVE') — deploy stuck or health broken"
+            exit 1
+          fi
+          RESP=$(curl -sf -X PUT https://reachkit.app/api/inngest)
+          echo "$RESP"
+          echo "$RESP" | jq -e '.message == "Successfully registered"'
+          # modified:true here means auto-sync HAD drifted and this PUT healed
+          # it — worth seeing in the log, not a failure.
+          echo "$RESP" | jq -r 'if .modified then "::warning::Inngest was stale — this sync repaired it" else "Inngest registration was already current" end'
+
   build:
     runs-on: ubuntu-latest
     steps:
@@ -56,7 +86,7 @@ jobs:
             echo "SUPABASE_ANON_KEY=$ANON_KEY"
             echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
             echo "REACHKIT_USE_FIXTURES=true"
-            for k in ANTHROPIC_API_KEY DATAFORSEO_LOGIN DATAFORSEO_PASSWORD TAVILY_API_KEY RESEND_API_KEY PRODUCT_HUNT_TOKEN YOUTUBE_API_KEY VOYAGE_API_KEY INNGEST_SIGNING_KEY STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET STRIPE_PRICE_SOLO; do
+            for k in ANTHROPIC_API_KEY DATAFORSEO_LOGIN DATAFORSEO_PASSWORD TAVILY_API_KEY RESEND_API_KEY PRODUCT_HUNT_TOKEN YOUTUBE_API_KEY VOYAGE_API_KEY INNGEST_SIGNING_KEY STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET STRIPE_PRICE_SOLO STRIPE_PRICE_GROWTH; do
               echo "$k=ci-dummy-never-used"
             done
           } > .env.local
@@ -115,6 +145,46 @@ jobs:
             echo "STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}"
             echo "STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}"
             echo "STRIPE_PRICE_SOLO=${{ secrets.STRIPE_PRICE_SOLO }}"
+            # Required-in-prod since the 2026-07-15 launch review; a TEST-mode
+            # Growth price id, same rule as STRIPE_PRICE_SOLO above.
+            echo "STRIPE_PRICE_GROWTH=${{ secrets.STRIPE_PRICE_GROWTH }}"
           } > .env.local
       - name: Live smoke (payment-first funnel + reverse-referral)
         run: pnpm test:int tests/integration/payment-first-funnel.test.ts tests/integration/referral-discovery.test.ts
+      - name: Score calibration (band-separation measurement — the open red rule)
+        # Non-enforcing measurement (Task 5.3, remediation plan 2026-07-15):
+        # score calibration is still the one unresolved red rule; this makes the
+        # band-separation report one click instead of a forgotten local script.
+        # --http: score+band are scraped from the public /scan/<slug> <title> —
+        # this job's SUPABASE_* env points at the LOCAL stack, never at the
+        # target's DB. tsx is not a repo dep; npx --yes matches the
+        # dev:inngest idiom. Runs even if the smoke tests above failed
+        # (if: always() — the measurement is independent of them).
+        if: always()
+        run: npx --yes tsx scripts/score-calibration.mts --base-url=https://reachkit.app --http | tee score-calibration-report.txt
+      - name: Upload score-calibration report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: score-calibration-report
+          path: score-calibration-report.txt
+          if-no-files-found: ignore
+      # Cloud-config drift tripwire (launch remediation 6.1): asserts the LIVE
+      # Stripe webhook endpoint targets reachkit.app with the 4 handled events,
+      # live prices resolve/active/EUR/no-trial, Inngest registration is
+      # current, and prod health + the €59 pricing surface are up.
+      #
+      # ⚠️ This step needs a LIVE-mode key (the job's STRIPE_SECRET_KEY above is
+      # deliberately sk_test_) — but a RESTRICTED read-only one:
+      # STRIPE_LIVE_READONLY_KEY = Stripe Dashboard → API keys → Create
+      # restricted key (read-only on Webhook Endpoints + Prices, nothing else).
+      # A read-only key means CI can never charge or refund anyone. The price
+      # secrets are the LIVE ids (`_LIVE` suffix — the unsuffixed
+      # STRIPE_PRICE_SOLO/GROWTH secrets above are test-mode and would never
+      # resolve under a live key).
+      - name: Live config drift check
+        run: pnpm check:live
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_LIVE_READONLY_KEY }}
+          STRIPE_PRICE_SOLO: ${{ secrets.STRIPE_PRICE_SOLO_LIVE }}
+          STRIPE_PRICE_GROWTH: ${{ secrets.STRIPE_PRICE_GROWTH_LIVE }}

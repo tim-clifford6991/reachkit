@@ -10,6 +10,7 @@
 import type { ReactNode } from "react";
 import type { ReportPayload } from "@/lib/scan/report";
 import { bandFor } from "@/lib/scan/score-bands";
+import { tierByPlan, fmtPrice } from "@/lib/billing/pricing";
 import { CapturedShareButton } from "./share-button";
 import { UnlockLink } from "./unlock-link";
 
@@ -62,6 +63,11 @@ function oppColors(opp: string) {
 }
 
 const SG = "Space Grotesk", PJ = "Plus Jakarta Sans", JM = "JetBrains Mono";
+
+/** Price stated up front on the unlock CTA — visitors used to first learn the
+ *  price inside Stripe Checkout. Reads from the single pricing source
+ *  (`lib/billing/pricing.ts`) so it can never drift from what Checkout charges. */
+const PRICE_LINE = `${fmtPrice(tierByPlan("solo").monthly)}/mo · cancel anytime`;
 
 export interface Pillar { label: string; value: number; note: string; measured?: boolean }
 export interface Fix { rank: number; title: string; why: string; effort: string; pillar: string; pred: number }
@@ -230,6 +236,14 @@ export function ResultsScreen(p: ResultsScreenProps) {
                   { label: "On-page readiness", value: p.searchVisibility!.onPageReadiness, note: "how well your page is built" },
                   { label: "Search presence", value: p.searchVisibility!.score, note: "how findable you are in search" },
                 ];
+                // Name whichever driver is actually weaker — an unconditional
+                // "Search presence is your gap." contradicts the bars directly
+                // above it whenever on-page readiness is the lower of the two
+                // (MINOR 4: e.g. an established brand with strong search but a
+                // weak page).
+                const weakerDriver = p.searchVisibility!.onPageReadiness < p.searchVisibility!.score
+                  ? "On-page readiness"
+                  : "Search presence";
                 return (
                   <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
                     {drivers.map((d) => {
@@ -248,7 +262,7 @@ export function ResultsScreen(p: ResultsScreenProps) {
                       );
                     })}
                     <div style={{ fontSize: 12, lineHeight: 1.5, color: "var(--c-muted)", fontFamily: JM, paddingTop: 4, borderTop: "1px dashed var(--c-line2)", marginTop: 2 }}>
-                      Your score multiplies both — a flawless page nobody finds still scores low. <strong style={{ color: "var(--c-fg)" }}>Search presence is your gap.</strong>
+                      Your score multiplies both — a flawless page nobody finds still scores low. <strong style={{ color: "var(--c-fg)" }}>{weakerDriver} is your gap.</strong>
                     </div>
                   </div>
                 );
@@ -442,7 +456,12 @@ export function ResultsScreen(p: ResultsScreenProps) {
             })}
             {p.lockedCount > 0 && (
               <div style={{ position: "relative", background: "var(--c-surface)", border: "1px dashed #D9D6E4", borderRadius: 14, padding: "18px 20px", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
-                <span style={{ fontSize: 14, fontWeight: 600, color: "var(--c-faint)" }}>🔒 {p.lockedCount} more ranked fixes — worth an estimated +{p.lockedWorth} — <UnlockLink scanId={p.scanId}>unlock the full plan →</UnlockLink></span>
+                {/* lockedWorth can legitimately be 0 (zero-delta cards, or a
+                    lockedCount derived from totalActions with no rest rows) —
+                    "worth an estimated +0" reads as broken, so the worth clause
+                    only renders when there's a real number behind it
+                    (housekeeping, remediation plan 2026-07-15 Task 5.4). */}
+                <span style={{ fontSize: 14, fontWeight: 600, color: "var(--c-faint)" }}>🔒 {p.lockedCount} more ranked fixes{p.lockedWorth > 0 ? <> — worth an estimated +{p.lockedWorth}</> : null} — <UnlockLink scanId={p.scanId}>unlock the full plan →</UnlockLink></span>
               </div>
             )}
           </div>
@@ -489,9 +508,12 @@ export function ResultsScreen(p: ResultsScreenProps) {
                   ? "Plus ready-to-ship drafts, your competitor & keyword-gap intel, the full 18-signal breakdown, and score tracking as you fix each one."
                   : "Ready-to-ship drafts, competitor & keyword-gap intel, the full 18-signal breakdown, and weekly score tracking as you ship.")}</p>
               </div>
-              {p.unlockButton ?? (
-                <button style={{ fontFamily: PJ, fontWeight: 700, fontSize: 15, color: "var(--c-ink)", background: "var(--c-surface)", border: "none", borderRadius: 10, padding: "13px 24px", cursor: "pointer", whiteSpace: "nowrap" }}>Unlock full report →</button>
-              )}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                {p.unlockButton ?? (
+                  <button style={{ fontFamily: PJ, fontWeight: 700, fontSize: 15, color: "var(--c-ink)", background: "var(--c-surface)", border: "none", borderRadius: 10, padding: "13px 24px", cursor: "pointer", whiteSpace: "nowrap" }}>Unlock full report →</button>
+                )}
+                <span style={{ fontFamily: JM, fontSize: 12.5, color: "#B7B4C4" }}>{PRICE_LINE}</span>
+              </div>
             </div>
           )}
         </div>

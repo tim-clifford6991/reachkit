@@ -1,20 +1,18 @@
 /**
- * LandingScreen — the Claude Design landing page. The hero is now the SHARED
- * <ScanHero/> (same component as /scan, so the "analyze my site" experience is
- * identical everywhere); the rest of the page is the captured HTML below the hero
- * (server-rendered for SEO/LCP, interactivity hydrated by LandingHydrate).
+ * LandingScreen — the Claude Design landing page. The hero is the SHARED
+ * <ScanHero/> (same component as /scan) and the closing band is the SHARED
+ * <LandingFinalCta/> (a real ScanInput — the bottom CTA works in place);
+ * between them sits the captured HTML (server-rendered for SEO/LCP,
+ * interactivity hydrated by LandingHydrate).
  */
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { LANDING_HTML } from "./landing-html";
 import { LandingHydrate } from "./landing-hydrate";
+import { LandingFinalCta } from "./landing-final-cta";
 import { ScanHero } from "@/components/sections/scan-hero";
 import { CompanyTicker } from "@/components/sections/company-ticker";
 import { listScannedCompanies } from "@/lib/marketing/scanned-companies";
-
-// Everything after the captured hero (the first <section>…</section>), minus the
-// wrapping <main>. ScanHero replaces the captured hero.
-const REST_HTML = LANDING_HTML.slice(LANDING_HTML.indexOf("</section>") + "</section>".length).replace(/<\/main>\s*$/, "");
 
 async function CompanyTickerSection() {
   // Defer to request time (uncached DB read → needs runtime env, must reflect
@@ -43,7 +41,11 @@ export function LandingScreen() {
           </Suspense>
         }
       />
-      <div id="rk-landing" dangerouslySetInnerHTML={{ __html: REST_HTML }} />
+      <div id="rk-landing" dangerouslySetInnerHTML={{ __html: LANDING_HTML }} />
+      {/* Closing CTA band — a REAL scan input (shared ScanInput), so the bottom
+          "Analyze my site" works in place instead of being a dead captured
+          button (autoFocus stays false; only the hero grabs focus). */}
+      <LandingFinalCta />
       <LandingHydrate />
     </>
   );

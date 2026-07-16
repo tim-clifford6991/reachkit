@@ -9,7 +9,7 @@ import { PricingScreen } from "@/components/sections/captured/pricing-screen";
 export const metadata = buildMetadata({
   title: "Pricing — ReachKit",
   description:
-    "Your first scan is free. From €59/mo to turn the report into a weekly action engine — or save two months with annual billing. No lock-in.",
+    "Your first scan is free. From €59/mo to turn the report into a weekly action engine. No lock-in.",
   path: "/pricing",
 });
 

@@ -37,6 +37,10 @@ const pillarColor = (v: number) => (v < 30 ? "var(--c-band-invisible)" : v < 50 
 // on-page) that nobody finds (low search presence) reads low — the whole point.
 const ON_PAGE = 72, SEARCH = 40;
 const SCORE = Math.round(Math.sqrt(ON_PAGE * SEARCH)); // 54 — "Fair"
+// Names whichever driver is actually weaker (search here: 40 < 72) — an
+// unconditional "Search presence is your gap." would contradict the bars
+// whenever on-page is the lower driver instead.
+const WEAKER_DRIVER = ON_PAGE < SEARCH ? "On-page readiness" : "Search presence";
 const SITE = "bloom.io";
 const DRIVERS = [
   { label: "On-page readiness", value: ON_PAGE, note: "how well your page is built" },
@@ -86,7 +90,13 @@ export function ResultsScreen() {
           </div>
           <div>
             <h1 style={{ fontFamily: SG, fontWeight: 700, fontSize: 26, letterSpacing: "-0.02em", margin: "0 0 6px" }}>Your category gets 12,400 searches a month — and you capture just 8% of it.</h1>
-            <p style={{ fontSize: 15, lineHeight: 1.6, color: "var(--c-muted)", margin: "0 0 18px" }}>{SITE} is technically fine. The gap is discoverability: you&apos;re absent from the comparison and directory surfaces where your buyers actually decide.</p>
+            {/* ON_PAGE (72) >= 60 → the intro credits the on-page driver, never
+                the unified SCORE (54) — the intro gates on onPageReadiness so
+                a tidy page nobody finds can't be told it "has real on-page
+                gaps" beside its own high on-page bar (live fix: the intro's
+                gate in to-results-props.ts reads onPageReadiness, not the
+                mixed unified total). */}
+            <p style={{ fontSize: 15, lineHeight: 1.6, color: "var(--c-muted)", margin: "0 0 18px" }}>{SITE} is in decent on-page shape. The plan below focuses on where you can still gain ground.</p>
             {/* The two drivers of the unified score */}
             <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
               {DRIVERS.map((d) => (
@@ -100,7 +110,7 @@ export function ResultsScreen() {
                 </div>
               ))}
               <div style={{ fontSize: 12, lineHeight: 1.5, color: "var(--c-muted)", fontFamily: JM, paddingTop: 4, borderTop: "1px dashed var(--c-line2)", marginTop: 2 }}>
-                Your score multiplies both — a flawless page nobody finds still scores low. <strong style={{ color: "var(--c-ink)" }}>Search presence is your gap.</strong>
+                Your score multiplies both — a flawless page nobody finds still scores low. <strong style={{ color: "var(--c-ink)" }}>{WEAKER_DRIVER} is your gap.</strong>
               </div>
             </div>
           </div>
@@ -166,6 +176,9 @@ export function ResultsScreen() {
               </div>
             </div>
           ))}
+          {/* Live renders the "worth an estimated +N" clause only when
+              lockedWorth > 0 (never "+0" — housekeeping 2026-07-16); this
+              demo's worth is 21, so the clause renders here. */}
           <div style={{ border: "1px dashed var(--c-line2)", borderRadius: 14, padding: "16px 20px", fontSize: 14, fontWeight: 600, color: "var(--c-faint)" }}>🔒 5 more ranked fixes — worth an estimated +21 — <span style={UNLOCK}>unlock the full plan →</span></div>
         </div>
 
@@ -196,7 +209,13 @@ export function ResultsScreen() {
             <h3 style={{ color: "var(--c-on-dark)", fontFamily: SG, fontWeight: 700, fontSize: 22, margin: 0 }}>Get the full growth playbook + weekly tracking</h3>
             <p style={{ color: "var(--c-on-dark-muted)", maxWidth: 430, margin: "8px 0 0", fontSize: 14, lineHeight: 1.5 }}>Ready-to-ship drafts, competitor &amp; keyword-gap intel, the full 18-signal breakdown, and weekly score tracking as you ship.</p>
           </div>
-          <button style={{ background: "var(--c-surface)", color: "var(--c-ink)", borderRadius: 10, padding: "13px 24px", border: "none", fontFamily: "var(--font-sans)", fontWeight: 700, fontSize: 15, cursor: "pointer", whiteSpace: "nowrap" }}>Unlock the full report →</button>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+            <button style={{ background: "var(--c-surface)", color: "var(--c-ink)", borderRadius: 10, padding: "13px 24px", border: "none", fontFamily: "var(--font-sans)", fontWeight: 700, fontSize: 15, cursor: "pointer", whiteSpace: "nowrap" }}>Unlock the full report →</button>
+            {/* Price stated up front on the unlock CTA (from lib/billing/pricing.ts's
+                tierByPlan/fmtPrice on the live report — never learned only inside
+                Stripe Checkout). */}
+            <span style={{ fontFamily: JM, fontSize: 12.5, color: "#B7B4C4" }}>€59/mo · cancel anytime</span>
+          </div>
         </div>
       </div>
     </main>

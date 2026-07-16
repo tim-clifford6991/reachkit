@@ -17,6 +17,7 @@ test("parseEnv returns typed config when all keys supplied (fixtures off)", asyn
     SCAN_BUDGET_CENTS: "150", PRODUCT_HUNT_TOKEN: "ph", YOUTUBE_API_KEY: "yt",
     VOYAGE_API_KEY: "vy", INNGEST_SIGNING_KEY: "signkey_test",
     STRIPE_SECRET_KEY: "sk_test", STRIPE_WEBHOOK_SECRET: "whsec_test", STRIPE_PRICE_SOLO: "price_test",
+    STRIPE_PRICE_GROWTH: "price_growth_test",
   } as unknown as NodeJS.ProcessEnv);
   expect(cfg.scanBudgetCents).toBe(150);
   expect(cfg.anthropicApiKey).toBe("k");
@@ -40,6 +41,22 @@ test("SCANNING_ENABLED kill switch: only the literal 'false' disables scanning",
   expect(parseEnv({ ...base, COST_ALERT_WEBHOOK_URL: "https://hooks.example/x" }).costAlertWebhookUrl).toBe(
     "https://hooks.example/x",
   );
+});
+
+test("parseEnv throws when STRIPE_PRICE_GROWTH is missing and fixtures mode is off", async () => {
+  // Growth is sold on /pricing — a deploy missing its price id must fail at
+  // boot, not silently at the Growth checkout button (launch review 2026-07-15).
+  const { parseEnv } = await import("./env");
+  expect(() =>
+    parseEnv({
+      SUPABASE_URL: "https://x.supabase.co", SUPABASE_ANON_KEY: "a", SUPABASE_SERVICE_ROLE_KEY: "s",
+      ANTHROPIC_API_KEY: "k", DATAFORSEO_LOGIN: "l", DATAFORSEO_PASSWORD: "p",
+      TAVILY_API_KEY: "t", RESEND_API_KEY: "r", PRODUCT_HUNT_TOKEN: "ph", YOUTUBE_API_KEY: "yt",
+      VOYAGE_API_KEY: "vy", INNGEST_SIGNING_KEY: "signkey_test",
+      STRIPE_SECRET_KEY: "sk_test", STRIPE_WEBHOOK_SECRET: "whsec_test", STRIPE_PRICE_SOLO: "price_test",
+      // STRIPE_PRICE_GROWTH intentionally absent
+    } as unknown as NodeJS.ProcessEnv),
+  ).toThrow(/STRIPE_PRICE_GROWTH/);
 });
 
 test("parseEnv throws when INNGEST_SIGNING_KEY is missing and fixtures mode is off", async () => {

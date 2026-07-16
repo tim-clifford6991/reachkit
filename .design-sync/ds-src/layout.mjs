@@ -79,7 +79,7 @@ const META = {
   HowItWorks:       { group: "Marketing", render: "{}" },
   ActionEngine:     { group: "Marketing", render: "{}" },
   WhySwitch:        { group: "Marketing", render: "{}" },
-  Testimonials:     { group: "Marketing", render: "{}" },
+  Testimonials:     { group: "Marketing", render: "{}", archived: true },
   Audience:         { group: "Marketing", render: "{}" },
   PlanCards:        { group: "Marketing", render: "{}" },
   PageHeader:       { group: "Foundations", render: "{eyebrow:'About',title:'Built for founders who ship'}" },

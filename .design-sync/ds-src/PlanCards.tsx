@@ -2,8 +2,8 @@
 import * as React from "react";
 
 /**
- * PlanCards — the shared three-tier plan grid (Free scan $0 · Solo $59 · Growth
- * $129, Growth flagged MOST POPULAR) used by BOTH the landing pricing preview
+ * PlanCards — the shared three-tier plan grid (Free scan €0 · Solo €59 · Growth
+ * €129, Solo flagged MOST POPULAR) used by BOTH the landing pricing preview
  * (`PricingBlock`) and the `/pricing` page (`PricingScreen`), so the plans,
  * prices and features are defined ONCE. Mirrors the plan cards in the live
  * pricing markup.
@@ -25,9 +25,9 @@ export interface Tier {
 const SG = "var(--font-display)";
 
 export const DEFAULT_TIERS: Tier[] = [
-  { name: "Free scan", price: "$0", sub: "one-time, no card", cta: "Scan my site", features: ["Your Discoverability Score", "3 pillar sub-scores", "Top 3 ranked fixes", "Positioning Mirror"] },
-  { name: "Solo", price: "$59", per: "/mo", sub: "for one product", cta: "Start Solo", features: ["Everything in Free, unlocked", "Weekly re-scan + score history", "Verified action engine", "Full 18-signal breakdown", "20-keyword rank depth"] },
-  { name: "Growth", price: "$129", per: "/mo", sub: "up to 3 products", cta: "Start Growth", popular: true, features: ["Everything in Solo", "Track 3 products", "50-keyword rank depth", "Shareable score cards", "One-click public teardowns"] },
+  { name: "Free scan", price: "€0", sub: "one-time, no card", cta: "Scan my site", features: ["Your Discoverability Score", "3 pillar sub-scores", "Top 3 ranked fixes", "Positioning Mirror"] },
+  { name: "Solo", price: "€59", per: "/mo", sub: "for one product", cta: "Start Solo", popular: true, features: ["Everything in Free, unlocked", "Weekly re-scan + score history", "Verified action engine", "Full 18-signal breakdown", "20-keyword rank depth"] },
+  { name: "Growth", price: "€129", per: "/mo", sub: "up to 3 products", cta: "Start Growth", features: ["Everything in Solo", "Track 3 products", "50-keyword rank depth"] },
 ];
 
 function TierCard({ t }: { t: Tier }) {

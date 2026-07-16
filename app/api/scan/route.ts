@@ -12,9 +12,9 @@ import { slugForScan } from "@/lib/scan/scan-slug";
 import { resolveProductScan } from "@/lib/app/add-product";
 import { AbuseError, assertRateLimit, hashIp, ipFromRequest } from "@/lib/scan/abuse";
 
-// `scan_consent` is the "I own/authorised to scan this URL" affirmation from the
-// public scan input (owner re-scans from the app don't send it). Optional here;
-// the UI enforces the gate. We record the timestamp when it's affirmed.
+// `scan_consent` is accepted-but-ignored for backwards compatibility: the
+// authorisation checkbox was removed 2026-07-16 (scans read only public data;
+// owner decision). The `scans.scan_consent_at` column stays, unwritten.
 const Body = z.object({ store_url: z.string().min(4), scan_consent: z.boolean().optional() });
 
 export async function POST(req: NextRequest) {
@@ -79,7 +79,6 @@ export async function POST(req: NextRequest) {
 
   const scan = await db.from("scans").insert({
     app_id: appId, status: "queued", ip_hash: ipHash, tier: scanTier,
-    scan_consent_at: parsed.data.scan_consent ? new Date().toISOString() : null,
   }).select("id").single();
   if (scan.error) return NextResponse.json({ error: scan.error.message }, { status: 500 });
   if (viewer) await linkScanToUser(scan.data.id, viewer.user.id);

@@ -4,29 +4,25 @@
  * Settings server actions (Wave D launch ops — minimum-viable user management).
  *
  * updateProductUrl: lets the app owner change the tracked product URL
- * (apps.store_url). Reuses `classifyUrl` — the same normalizer the scan
- * intake (`app/api/scan/route.ts`) uses — so "example.com" becomes
- * "https://example.com" and App/Play Store links reclassify `platform`
- * automatically.
+ * (apps.store_url). The auth boundary (requireUser + ownership) plus
+ * cookies/revalidation live here; the data mutation is
+ * `updateProductUrlForUser` (`lib/app/update-product-url.ts`) so the
+ * integration suite can exercise it directly — same split as `deleteAccount`.
  *
- * Two cases, keyed on whether the HOST changed:
- *   - Same host (a correction — e.g. adding a `/pricing` path): update
- *     `store_url` in place and keep all existing intel; the next scan uses the
- *     tweaked URL. Cheap, non-destructive.
- *   - Different host (a genuine product switch): `switchTrackedProduct` mints a
- *     fresh app and repoints the tracked slot, so the old product's mismatched
- *     scans/competitors/plan are no longer shown. NOTHING expensive fires — no
- *     re-onboarding, no automatic scan. The dashboard's "no scan yet" empty
- *     state then invites a single on-demand scan of the new product.
+ * Three cases (see the helper for detail):
+ *   - Same host, sole owner: in-place correction, keep existing intel.
+ *   - Same host, SHARED row (2+ users track this app — normal since the attach
+ *     path, PR #72): fork to a fresh row so a co-owner can never mutate the
+ *     product another user tracks (security review 2026-07-15).
+ *   - Different host (a genuine product switch): fresh app + repoint the slot.
+ *     NOTHING expensive fires — no re-onboarding, no automatic scan.
  */
 
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { requireUser } from "@/lib/auth/server";
-import { serverDb } from "@/lib/db/client";
-import { classifyUrl } from "@/lib/scan/router";
 import { normalizeHost } from "@/lib/scan/referral/classify";
-import { switchTrackedProduct } from "@/lib/app/switch-product";
+import { updateProductUrlForUser } from "@/lib/app/update-product-url";
 import { addTrackedProduct, AddProductError } from "@/lib/app/add-product";
 import { ACTIVE_APP_COOKIE } from "@/lib/app/active-app";
 
@@ -59,50 +55,24 @@ export async function updateProductUrl(
     return { ok: false, error: "Enter a URL." };
   }
 
-  let routed: { platform: "ios" | "android" | "web"; url: string };
-  try {
-    routed = classifyUrl(raw);
-  } catch {
-    return { ok: false, error: "That doesn't look like a valid URL." };
+  const result = await updateProductUrlForUser(userId, appId, raw);
+  if (!result.ok) {
+    return result;
   }
 
-  const db = serverDb();
-  const { data: appRow } = await db.from("apps").select("store_url").eq("id", appId).maybeSingle();
-  const currentHost = appRow?.store_url ? normalizeHost(appRow.store_url) : "";
-  const nextHost = normalizeHost(routed.url);
-  const isSwitch = !!currentHost && !!nextHost && currentHost !== nextHost;
-
-  if (isSwitch) {
-    // Different product → fresh app + repoint the tracked slot. Old intel is
-    // left behind (unreferenced), no scan/onboarding runs.
-    let newAppId: string;
-    try {
-      ({ newAppId } = await switchTrackedProduct(userId, appId, routed.url, routed.platform));
-    } catch {
-      return { ok: false, error: "Couldn't switch product — please try again." };
-    }
+  if (result.switched && result.newAppId) {
     // Point the active-app selection at the new slot so the dashboard shows it
     // immediately (Growth users especially, where app_ids[0] may be another app).
-    (await cookies()).set(ACTIVE_APP_COOKIE, newAppId, { path: "/", sameSite: "lax" });
+    (await cookies()).set(ACTIVE_APP_COOKIE, result.newAppId, { path: "/", sameSite: "lax" });
     revalidatePath("/app/settings");
     revalidatePath("/app");
     revalidatePath("/app/dashboard");
-    return { ok: true, switched: true, host: nextHost };
-  }
-
-  // Same host → in-place correction, keep existing intel.
-  const { error } = await db
-    .from("apps")
-    .update({ store_url: routed.url, platform: routed.platform })
-    .eq("id", appId);
-
-  if (error) {
-    return { ok: false, error: "Couldn't save — please try again." };
+    return { ok: true, switched: true, host: result.host };
   }
 
   revalidatePath("/app/settings");
   revalidatePath("/app");
-  return { ok: true, switched: false, host: nextHost };
+  return { ok: true, switched: false, host: result.host };
 }
 
 export type AddFirstProductResult =

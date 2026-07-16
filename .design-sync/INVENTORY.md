@@ -26,7 +26,7 @@ Groups map to the Claude Design pane's `@dsCard group=` sections (set in
 Counts: **49 active** (29 atomic + 20 Page templates) · **16 archived** · 65 total.
 
 ### Landing-page section components (11) — each a slice of the live "/" that `LandingScreen` composes
-`LandingHero` (→ `scan-hero.tsx`) · `CompanyTicker` (→ `company-ticker.tsx`) · `StorySection` · `HowItWorks` · `ActionEngine` · `WhySwitch` · `Testimonials` · `Audience` · `PricingBlock` · `ScoreTravels` · `FinalCta` (the last nine → the live captured `landing-html.ts`). `LandingScreen` is a thin composition: `NavBar → LandingHero → CompanyTicker → StorySection → HowItWorks → ActionEngine → WhySwitch → Testimonials → Audience → PricingBlock → ScoreTravels → FinalCta → Footer`.
+`LandingHero` (→ `scan-hero.tsx`) · `CompanyTicker` (→ `company-ticker.tsx`) · `StorySection` · `HowItWorks` · `ActionEngine` · `WhySwitch` · `Testimonials` · `Audience` · `PricingBlock` · `ScoreTravels` (the last eight → the live captured `landing-html.ts`) · `FinalCta` (→ `landing-final-cta.tsx` — the closing band was lifted out of the captured HTML 2026-07-16 so its CTA is the REAL shared ScanInput, not a dead captured button). `LandingScreen` is a thin composition: `NavBar → LandingHero → CompanyTicker → StorySection → HowItWorks → ActionEngine → WhySwitch → Testimonials → Audience → PricingBlock → ScoreTravels → FinalCta → Footer`.
 
 ## Active atomic (19)
 | Component | Group | Mirrors (live) — `@mirrors` |

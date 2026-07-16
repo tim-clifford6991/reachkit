@@ -21,12 +21,19 @@ import { toResultsProps } from "./to-results-props";
 import type { ReportPayload } from "@/lib/scan/report";
 import type { SearchVisibility } from "@/lib/scan/search-visibility";
 import type { ActionCard } from "@/lib/llm/types";
+import { tierByPlan, fmtPrice } from "@/lib/billing/pricing";
+
+// The unlock band must state the price up front (Task 1.4 — visitors used to
+// learn the price only inside Stripe Checkout). Built from the same pricing
+// source the component reads, so a price change can't silently break this
+// copy-vs-code parity check (never assert the raw number twice).
+const PRICE_LINE_RE = new RegExp(`${fmtPrice(tierByPlan("solo").monthly)}/mo.*cancel anytime`);
 
 type CompGap = ReportPayload["whereTheyAre"]["competitorGap"][number];
 
 function sv(over: Partial<SearchVisibility> = {}): SearchVisibility {
   return {
-    score: 20,
+    score: 46,
     onPageReadiness: 80,
     keywordsRanked: 12,
     estMonthlyVisits: 400,
@@ -114,13 +121,31 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
     expect(html).toContain(">61<"); // the gauge score renders
     expect(html).toContain("capture just 9%"); // honest, coherent hero (not "you're winning")
     expect(html).toContain("Ahrefs"); // discovered competitor names render
+    expect(html).toMatch(PRICE_LINE_RE); // unlock band states the price up front (Task 1.4)
+    // onPageReadiness (80, from sv()'s default) >= 60 → the intro must say the
+    // page is in decent on-page shape (never the unconditional, unverifiable
+    // "is technically fine"), and make NO search claim — the headline above
+    // owns the search story, so an intro search claim could directly
+    // contradict it (e.g. an "on the board in search" headline over a "search
+    // is your bigger gap" intro). Gated on onPageReadiness, NOT score.total
+    // (61) — the unified geomean the two would otherwise be confused for
+    // (Critical 1).
+    expect(html).toContain("is in decent on-page shape. The plan below focuses on where you can still gain ground.");
+    // Search (46) is the weaker driver here (< onPageReadiness 80) → MINOR 4.
+    expect(html).toContain("Search presence is your gap.");
   });
 
   it("0-ranking new product: invisible in search → zero-state hero, no broken artifacts", () => {
     const r = report({
+      // score.total (18) must be geomean-consistent with the two drivers below:
+      // round(sqrt(onPageReadiness 54 × search 6)) = round(sqrt(324)) = 18. The
+      // weak on-page driver (54 < 60) is what makes the "has real on-page gaps"
+      // intro copy TRUE in this fixture (Critical 1 fix: the intro now gates on
+      // onPageReadiness, not the unified score.total).
       score: { total: 18, breakdown: { content: 20, outreach: 10, seo: 15 }, radar: [], basis: "verified" },
       searchVisibility: sv({
-        score: 1,
+        score: 6,
+        onPageReadiness: 54,
         keywordsRanked: 0,
         estMonthlyVisits: 0,
         brandPct: 0,
@@ -142,10 +167,21 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
     expect(html).toContain("ranks you for nothing yet"); // the 0-ranking hero
     // A brand-new invisible product must NOT get the "on the board in search" hero.
     expect(html).not.toContain("on the board in search");
+    // score.total 18 < 60 → a weak page must never be called "technically
+    // fine" (the old copy was unconditional, false here, and its "absent from
+    // comparison and directory surfaces" claim was evidence-free). The intro
+    // also makes no search claim — the headline owns the search story.
+    expect(html).not.toContain("is technically fine");
+    expect(html).toContain("has real on-page gaps holding it back. The plan below starts with the fixes that matter most.");
   });
 
   it("directory: tidy page but visibility is other brands' names → honest 'brand names' hero, not a false 88 win", () => {
     const r = report({
+      // score.total (88) is geomean-consistent: round(sqrt(onPageReadiness 98 ×
+      // search 79)) = round(sqrt(7742)) = 88. Tidy on-page (98, matches the
+      // content:95 breakdown) + a decent absolute category-keyword strength (79)
+      // despite most of the raw ranked-keyword traffic (by volume) being other
+      // companies' names (offTopicPct 72%) — those are independent measures.
       score: {
         total: 88,
         breakdown: { content: 95, outreach: 20, seo: 90 },
@@ -156,7 +192,7 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
         ],
         basis: "verified",
       },
-      searchVisibility: sv({ score: 12, keywordsRanked: 250, offTopicPct: 72, categoryDemand: 0, categoryCaptureRate: 3 }),
+      searchVisibility: sv({ score: 79, onPageReadiness: 98, keywordsRanked: 250, offTopicPct: 72, categoryDemand: 0, categoryCaptureRate: 3 }),
       whereTheyAre: { surfaces: [], competitorGap: [comp("G2")] },
     });
     const html = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r, "somedir.com", 3, 8)} />);
@@ -166,7 +202,134 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
     expect(html).toContain(">88<");
     // The tidy 88 must read as the honest gap, not a "you're winning" headline —
     // the high band label and the honest search-gap hero coexist coherently.
-    expect(html).toContain("72% of your search visibility");
+    expect(html).toContain("72% of the searches you rank for");
     expect(html).toContain("other companies"); // the honest "not your traffic" framing
+  });
+
+  it("low on-page + off-topic search visibility: headline owns ONLY the search story, intro ONLY the on-page story — no contradiction", () => {
+    // Previously-contradictory pairing: the off-topic headline branch gates only
+    // on search-side fields (keywordsRanked > 0, offTopicPct >= 55,
+    // categoryDemand <= 0), independent of score.total — so a weak page (< 60)
+    // could get a headline opening "Your page is clean" directly above the
+    // "has real on-page gaps" intro. The headline must make NO on-page claim.
+    const r = report({
+      // score.total (34) geomean-consistent: round(sqrt(onPageReadiness 45 ×
+      // search 26)) = round(sqrt(1170)) = 34. onPageReadiness 45 < 60 → the
+      // intro's "has real on-page gaps" claim is TRUE in this fixture.
+      score: { total: 34, breakdown: { content: 30, outreach: 25, seo: 45 }, radar: [], basis: "verified" },
+      searchVisibility: sv({ score: 26, onPageReadiness: 45, keywordsRanked: 120, offTopicPct: 68, categoryDemand: 0, categoryCaptureRate: 0 }),
+    });
+    const html = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r, "weakpage.com", 0, 0)} scanId="scan-offtopic" />);
+
+    assertNoGarbage(html, "low-score off-topic");
+    expect(html).toContain("68% of the searches you rank for are other companies");
+    expect(html).toContain("has real on-page gaps");
+    expect(html).not.toContain("page is clean");
+    // Search is the weaker driver here (26 < 45) → the driver-summary line
+    // should name search, not on-page, as the gap (MINOR 4).
+    expect(html).toContain("Search presence is your gap.");
+  });
+
+  it("trustmrr-shape: flawless on-page, near-invisible in search → unified total is low, but the intro must credit the strong on-page driver (Critical 1)", () => {
+    // The flagship honesty case the whole branch exists for: a beautifully-built
+    // page (onPageReadiness 98) that almost nobody finds (search 4) — unified
+    // total = round(sqrt(98 * 4)) = round(sqrt(392)) = 20. Gating the intro on
+    // `score.total` (20 < 60) would falsely claim "has real on-page gaps"
+    // directly beside a 98/100 on-page driver bar. Gating on onPageReadiness
+    // (98 >= 60) is the fix: the intro must credit the on-page driver and the
+    // headline (search-only) owns the low-total story instead.
+    const r = report({
+      score: { total: 20, breakdown: { content: 98, outreach: 90, seo: 97 }, radar: [], basis: "verified" },
+      searchVisibility: sv({
+        score: 4,
+        onPageReadiness: 98,
+        keywordsRanked: 15,
+        estMonthlyVisits: 40,
+        brandPct: 60,
+        categoryPct: 10,
+        offTopicPct: 30,
+        categoryWins: 0,
+        categoryDemand: 3000,
+        categoryCaptureRate: 2,
+        categoryOpportunities: [{ keyword: "trust badge widget", volume: 2200 }],
+        categoryCapturedSearches: 40,
+      }),
+    });
+    const html = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r, "trustmrr.com", 0, 0)} scanId="scan-trustmrr" />);
+
+    assertNoGarbage(html, "trustmrr-shape");
+    expect(html).toContain("trustmrr.com");
+    expect(html).toContain(">20<"); // the unified gauge score still reads low
+    expect(html).toContain(">98<"); // the on-page driver bar reads high
+    expect(html).toContain("is in decent on-page shape. The plan below focuses on where you can still gain ground.");
+    expect(html).not.toContain("has real on-page gaps");
+    // On-page (98) dwarfs search (4) → search is unambiguously the weaker
+    // driver (MINOR 4).
+    expect(html).toContain("Search presence is your gap.");
+  });
+
+  it("locked band with zero worth: omits the 'worth an estimated +N' clause instead of rendering '+0'", () => {
+    // Real scans have shipped cards carrying delta 0 (the positive-filter
+    // fallback in toResultsProps exists because of them). With 4 zero-delta
+    // actions: 3 render as fixes, 1 is locked → lockedCount 1, lockedWorth 0.
+    // "worth an estimated +0" reads as broken; the clause must vanish while the
+    // count + unlock CTA stay.
+    const r = report({
+      whatToDoThisWeek: {
+        quickWins: [action("Fix titles", 0), action("Add schema", 0)],
+        medium: [action("Write comparison page", 0), action("Pitch a directory", 0)],
+        longPlay: [],
+      },
+    });
+    const html = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r, "zeroworth.dev", 4, 0)} scanId="scan-zeroworth" />);
+
+    assertNoGarbage(html, "zero locked worth");
+    expect(html).toContain("1 more ranked fixes"); // the locked band still renders
+    expect(html).not.toContain("worth an estimated"); // …without the +0 clause
+    expect(html).toContain("unlock the full plan");
+
+    // And the clause still renders when the worth is real (guard the guard).
+    const r2 = report({
+      whatToDoThisWeek: {
+        quickWins: [action("Fix titles", 6), action("Add schema", 5)],
+        medium: [action("Write comparison page", 4), action("Pitch a directory", 3)],
+        longPlay: [],
+      },
+    });
+    const html2 = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r2, "worth.dev", 4, 0)} scanId="scan-worth" />);
+    expect(html2).toContain("worth an estimated +3");
+  });
+
+  it("established brand, weak page: on-page IS the weaker driver → the summary names on-page, not search (MINOR 4 converse)", () => {
+    // Mirrors the review's converse example: on-page 40, search 70 → unified
+    // total = round(sqrt(40 * 70)) = round(sqrt(2800)) = 53. Search (70) beats
+    // on-page (40) here, so the bolded driver-summary line must say "On-page
+    // readiness is your gap." — asserting the unconditional "Search presence is
+    // your gap." would be a direct contradiction of the bars shown above it.
+    const r = report({
+      score: { total: 53, breakdown: { content: 35, outreach: 45, seo: 40 }, radar: [], basis: "verified" },
+      searchVisibility: sv({
+        score: 70,
+        onPageReadiness: 40,
+        keywordsRanked: 300,
+        estMonthlyVisits: 9000,
+        brandPct: 55,
+        categoryPct: 35,
+        offTopicPct: 10,
+        categoryWins: 4,
+        categoryDemand: 20000,
+        categoryCaptureRate: 22,
+        categoryOpportunities: [{ keyword: "enterprise workflow tool", volume: 6000 }],
+        categoryCapturedSearches: 4400,
+      }),
+    });
+    const html = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r, "oldbrand.com", 0, 0)} scanId="scan-oldbrand" />);
+
+    assertNoGarbage(html, "on-page-is-the-gap");
+    expect(html).toContain("oldbrand.com");
+    expect(html).toContain(">53<");
+    expect(html).toContain("has real on-page gaps"); // onPageReadiness 40 < 60
+    expect(html).toContain("On-page readiness is your gap.");
+    expect(html).not.toContain("Search presence is your gap.");
   });
 });

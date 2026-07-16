@@ -624,9 +624,9 @@ file; #13 (`audienceProxy`) stays deferred.
   the `/app/plan` timeline; `search-cache-cleanup` (cron daily 03:00 UTC) prunes
   `search_cache` rows older than 30 days.
 - **Two funnel paths** — Path A (scan-first): free report → `/scan/[id]/checkout`;
-  Path B (direct checkout): `/billing/trial` anonymous checkout with no prior scan —
-  "trial" is a legacy route name only; there is **no free trial** (`checkout.ts` sets no
-  `trial_period_days`; plans are charged immediately).
+  Path B (direct checkout): `/billing/checkout/anonymous` anonymous checkout with no
+  prior scan (renamed from the legacy `/billing/trial` 2026-07-16; there is **no free
+  trial** — `checkout.ts` sets no `trial_period_days`; plans are charged immediately).
   Both converge on the Stripe webhook → account provision → magic link.
 - **External-API cost tracking** — DataForSEO + Tavily spend is measured per scan
   (`lib/scan/cost-context.ts` → `scans.{dataforseo,tavily}_cost_cents`) and rolled

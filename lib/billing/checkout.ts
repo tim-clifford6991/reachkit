@@ -58,6 +58,9 @@ export async function createAnonymousCheckout({
     client_reference_id: scanId,
     // No free trial — the free scan is the only free capability. Paid plans are
     // charged immediately at checkout.
+    // EU CRD: explicit ToS consent at checkout — the Terms carry the
+    // immediate-performance / withdrawal-waiver clause (Task 6.4).
+    consent_collection: { terms_of_service: "required" },
     success_url: `${env.appUrl}/welcome?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: cancelUrl,
   });
@@ -148,6 +151,9 @@ export async function createCheckout({
     client_reference_id: userId,
     metadata: { userId, plan, interval },
     // No free trial — paid plans are charged immediately at checkout.
+    // EU CRD: explicit ToS consent at checkout — the Terms carry the
+    // immediate-performance / withdrawal-waiver clause (Task 6.4).
+    consent_collection: { terms_of_service: "required" },
     success_url: `${env.appUrl}/app?upgraded=1`,
     cancel_url: cancelUrl,
   });

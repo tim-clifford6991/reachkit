@@ -5,7 +5,7 @@
   },
   "ActionEngine": {
     "mirror": "components/sections/captured/landing-html.ts",
-    "hash": "91d28dd8343c6c62"
+    "hash": "94f34cef630f0d42"
   },
   "AppShell": {
     "mirror": "components/app/captured/app-shell.tsx",
@@ -13,7 +13,7 @@
   },
   "Audience": {
     "mirror": "components/sections/captured/landing-html.ts",
-    "hash": "91d28dd8343c6c62"
+    "hash": "94f34cef630f0d42"
   },
   "Badge": {
     "mirror": "components/app/intel/kit.tsx",
@@ -68,8 +68,8 @@
     "hash": "93e70ee0dd374e2f"
   },
   "FinalCta": {
-    "mirror": "components/sections/captured/landing-html.ts",
-    "hash": "91d28dd8343c6c62"
+    "mirror": "components/sections/captured/landing-final-cta.tsx",
+    "hash": "d7b8250d86fc2eee"
   },
   "Footer": {
     "mirror": "components/sections/footer.tsx",
@@ -81,7 +81,7 @@
   },
   "HowItWorks": {
     "mirror": "components/sections/captured/landing-html.ts",
-    "hash": "91d28dd8343c6c62"
+    "hash": "94f34cef630f0d42"
   },
   "IntelKit": {
     "mirror": "components/app/intel/kit.tsx",
@@ -101,7 +101,7 @@
   },
   "LandingScreen": {
     "mirror": "components/sections/captured/landing-screen.tsx",
-    "hash": "d3949adfcf755c56"
+    "hash": "ed8fe47ebea53860"
   },
   "LegalScreen": {
     "mirror": "app/(marketing)/privacy/page.tsx",
@@ -125,7 +125,7 @@
   },
   "PlanCards": {
     "mirror": "components/sections/captured/pricing-html.ts",
-    "hash": "cef6a4863f5afa9d"
+    "hash": "e07f81ba5558bece"
   },
   "PlanItemCard": {
     "mirror": "components/app/intel/plan-entry-card.tsx",
@@ -137,7 +137,7 @@
   },
   "PricingBlock": {
     "mirror": "components/sections/captured/landing-html.ts",
-    "hash": "91d28dd8343c6c62"
+    "hash": "94f34cef630f0d42"
   },
   "PricingScreen": {
     "mirror": "components/sections/captured/pricing-screen.tsx",
@@ -153,7 +153,7 @@
   },
   "ResultsScreen": {
     "mirror": "components/report/captured/results-screen.tsx",
-    "hash": "773a541df0dda55b"
+    "hash": "bbad23e076f87067"
   },
   "RoadmapScreen": {
     "mirror": "app/(marketing)/roadmap/page.tsx",
@@ -173,7 +173,7 @@
   },
   "ScoreTravels": {
     "mirror": "components/sections/captured/landing-html.ts",
-    "hash": "91d28dd8343c6c62"
+    "hash": "94f34cef630f0d42"
   },
   "SettingsScreen": {
     "mirror": "components/app/captured/settings-main.tsx",
@@ -185,7 +185,7 @@
   },
   "StorySection": {
     "mirror": "components/sections/captured/landing-html.ts",
-    "hash": "91d28dd8343c6c62"
+    "hash": "94f34cef630f0d42"
   },
   "TeardownsScreen": {
     "mirror": "app/(marketing)/teardowns/[slug]/page.tsx",
@@ -193,7 +193,7 @@
   },
   "Testimonials": {
     "mirror": "components/sections/captured/landing-html.ts",
-    "hash": "91d28dd8343c6c62"
+    "hash": "94f34cef630f0d42"
   },
   "ToolsScreen": {
     "mirror": "app/(marketing)/tools/page.tsx",
@@ -209,6 +209,6 @@
   },
   "WhySwitch": {
     "mirror": "components/sections/captured/landing-html.ts",
-    "hash": "91d28dd8343c6c62"
+    "hash": "94f34cef630f0d42"
   }
 }
