@@ -56,7 +56,7 @@ Each item is tagged **[NEW]** (surfaced by this audit) or **[KNOWN]** (already i
 
 - **[NEW] Incomplete subprocessor list.** Privacy page omits **Tavily, Inngest, and Vercel** (all data processors). GDPR Art. 28 transparency gap; no DPA link.
 - **[NEW] Transactional emails lack CAN-SPAM footer** — no physical address, no unsubscribe (magic-link, scan-ready, trial emails).
-- **[NEW] No consent gate before scanning third-party URLs** — no "you own/are authorised for this URL" checkbox; only a Terms clause + rate-limit protect an abuse/liability surface.
+- ~~**[NEW] No consent gate before scanning third-party URLs**~~ ⛔ **CLOSED AS WON'T-DO — owner decision (2026-07-16).** P3a (#63) added an "I own or am authorised to scan this URL" checkbox; Tim removed it 2026-07-16: scans read only public data, and the checkbox added friction to the conversion surface without real legal weight. The Terms clause + rate limit remain the protection. `scans.scan_consent_at` column stays in the schema, unwritten. **Do not re-add the checkbox.**
 - ~~**[NEW] No automated GDPR data export/deletion.**~~ ✅ **RESOLVED — P3b (2026-07-15).** Self-serve `GET /api/app/account/export` (whole-account JSON) + `POST /api/app/account/delete` (irreversible hard-delete: cancel Stripe → delete `auth.users` → delete `scans` by `claim_email` → delete `apps` (cascades subtree) → delete `users` row). Settings `mailto:` replaced by an export link + a typed-confirmation delete panel (lazy client island, bundle-safe). Guards: `tests/integration/account-{delete,export}.test.ts`. Shared caches left untouched by design. See `docs/architecture.md` §3.
 
 ### Testing (masks the exact bugs CLAUDE.md warns about)

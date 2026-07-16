@@ -169,3 +169,22 @@ jobs:
           name: score-calibration-report
           path: score-calibration-report.txt
           if-no-files-found: ignore
+      # Cloud-config drift tripwire (launch remediation 6.1): asserts the LIVE
+      # Stripe webhook endpoint targets reachkit.app with the 4 handled events,
+      # live prices resolve/active/EUR/no-trial, Inngest registration is
+      # current, and prod health + the €59 pricing surface are up.
+      #
+      # ⚠️ This step needs a LIVE-mode key (the job's STRIPE_SECRET_KEY above is
+      # deliberately sk_test_) — but a RESTRICTED read-only one:
+      # STRIPE_LIVE_READONLY_KEY = Stripe Dashboard → API keys → Create
+      # restricted key (read-only on Webhook Endpoints + Prices, nothing else).
+      # A read-only key means CI can never charge or refund anyone. The price
+      # secrets are the LIVE ids (`_LIVE` suffix — the unsuffixed
+      # STRIPE_PRICE_SOLO/GROWTH secrets above are test-mode and would never
+      # resolve under a live key).
+      - name: Live config drift check
+        run: pnpm check:live
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_LIVE_READONLY_KEY }}
+          STRIPE_PRICE_SOLO: ${{ secrets.STRIPE_PRICE_SOLO_LIVE }}
+          STRIPE_PRICE_GROWTH: ${{ secrets.STRIPE_PRICE_GROWTH_LIVE }}
