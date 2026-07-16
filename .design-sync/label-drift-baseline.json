@@ -1,7 +1,6 @@
 {
-  "missing": 59,
+  "missing": 52,
   "byTarget": {
-    "components/sections/captured/landing-html.ts": 7,
     "components/app/captured/app-shell.tsx": 1,
     "components/app/intel/kit.tsx": 2,
     "components/app/intel/buyer-thread-feed.tsx": 2,
