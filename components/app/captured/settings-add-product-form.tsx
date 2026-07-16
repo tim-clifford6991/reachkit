@@ -89,7 +89,7 @@ export function AddProductForm() {
         </button>
       </div>
       {error && (
-        <p role="alert" style={{ fontFamily: PJ, fontSize: 12.5, color: "#e5484d", margin: 0 }}>
+        <p role="alert" style={{ fontFamily: PJ, fontSize: 12.5, color: "var(--color-danger)", margin: 0 }}>
           {error}
         </p>
       )}

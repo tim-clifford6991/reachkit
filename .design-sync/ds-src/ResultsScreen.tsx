@@ -176,6 +176,9 @@ export function ResultsScreen() {
               </div>
             </div>
           ))}
+          {/* Live renders the "worth an estimated +N" clause only when
+              lockedWorth > 0 (never "+0" — housekeeping 2026-07-16); this
+              demo's worth is 21, so the clause renders here. */}
           <div style={{ border: "1px dashed var(--c-line2)", borderRadius: 14, padding: "16px 20px", fontSize: 14, fontWeight: 600, color: "var(--c-faint)" }}>🔒 5 more ranked fixes — worth an estimated +21 — <span style={UNLOCK}>unlock the full plan →</span></div>
         </div>
 

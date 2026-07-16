@@ -9,12 +9,16 @@ import {
 } from "@/lib/scan/abuse";
 
 /**
- * POST /api/billing/trial — payment-first trial checkout, Path B (trial-direct).
+ * POST /api/billing/checkout/anonymous — payment-first checkout, Path B
+ * (direct checkout; formerly /api/billing/trial — renamed 2026-07-16, the
+ * trial itself was removed in P2/#62 and plans charge immediately).
  *
  * Public (no auth, no scan): the pricing table / marketing CTA posts here so a
- * user can start the trial without ever running a free scan. The account is
- * created from the Stripe-collected email after payment, and the user runs their
- * first scan from inside the dashboard. Rate-limited per IP.
+ * user can subscribe without ever running a free scan. The account is created
+ * from the Stripe-collected email after payment, and the user runs their first
+ * scan from inside the dashboard. Rate-limited per IP. The authed sibling
+ * (`../route.ts`) is the in-app upgrade path; this one is anonymous —
+ * `createAnonymousCheckout` collects the email in Stripe.
  */
 const Body = z.object({
   plan: z.enum(["solo", "growth"]).default("solo"),
@@ -44,7 +48,7 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json({ url });
   } catch (e) {
-    console.error("billing/trial POST error", e);
+    console.error("billing/checkout/anonymous POST error", e);
     return NextResponse.json({ error: "failed to create checkout session" }, { status: 500 });
   }
 }

@@ -268,6 +268,38 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
     expect(html).toContain("Search presence is your gap.");
   });
 
+  it("locked band with zero worth: omits the 'worth an estimated +N' clause instead of rendering '+0'", () => {
+    // Real scans have shipped cards carrying delta 0 (the positive-filter
+    // fallback in toResultsProps exists because of them). With 4 zero-delta
+    // actions: 3 render as fixes, 1 is locked → lockedCount 1, lockedWorth 0.
+    // "worth an estimated +0" reads as broken; the clause must vanish while the
+    // count + unlock CTA stay.
+    const r = report({
+      whatToDoThisWeek: {
+        quickWins: [action("Fix titles", 0), action("Add schema", 0)],
+        medium: [action("Write comparison page", 0), action("Pitch a directory", 0)],
+        longPlay: [],
+      },
+    });
+    const html = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r, "zeroworth.dev", 4, 0)} scanId="scan-zeroworth" />);
+
+    assertNoGarbage(html, "zero locked worth");
+    expect(html).toContain("1 more ranked fixes"); // the locked band still renders
+    expect(html).not.toContain("worth an estimated"); // …without the +0 clause
+    expect(html).toContain("unlock the full plan");
+
+    // And the clause still renders when the worth is real (guard the guard).
+    const r2 = report({
+      whatToDoThisWeek: {
+        quickWins: [action("Fix titles", 6), action("Add schema", 5)],
+        medium: [action("Write comparison page", 4), action("Pitch a directory", 3)],
+        longPlay: [],
+      },
+    });
+    const html2 = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r2, "worth.dev", 4, 0)} scanId="scan-worth" />);
+    expect(html2).toContain("worth an estimated +3");
+  });
+
   it("established brand, weak page: on-page IS the weaker driver → the summary names on-page, not search (MINOR 4 converse)", () => {
     // Mirrors the review's converse example: on-page 40, search 70 → unified
     // total = round(sqrt(40 * 70)) = round(sqrt(2800)) = 53. Search (70) beats
