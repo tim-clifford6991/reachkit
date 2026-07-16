@@ -5,7 +5,7 @@
   },
   "ActionEngine": {
     "mirror": "components/sections/captured/landing-html.ts",
-    "hash": "2733d5b5b211145b"
+    "hash": "94f34cef630f0d42"
   },
   "AppShell": {
     "mirror": "components/app/captured/app-shell.tsx",
@@ -13,7 +13,7 @@
   },
   "Audience": {
     "mirror": "components/sections/captured/landing-html.ts",
-    "hash": "2733d5b5b211145b"
+    "hash": "94f34cef630f0d42"
   },
   "Badge": {
     "mirror": "components/app/intel/kit.tsx",
@@ -81,7 +81,7 @@
   },
   "HowItWorks": {
     "mirror": "components/sections/captured/landing-html.ts",
-    "hash": "2733d5b5b211145b"
+    "hash": "94f34cef630f0d42"
   },
   "IntelKit": {
     "mirror": "components/app/intel/kit.tsx",
@@ -125,7 +125,7 @@
   },
   "PlanCards": {
     "mirror": "components/sections/captured/pricing-html.ts",
-    "hash": "d0f60f1b44399056"
+    "hash": "e07f81ba5558bece"
   },
   "PlanItemCard": {
     "mirror": "components/app/intel/plan-entry-card.tsx",
@@ -137,7 +137,7 @@
   },
   "PricingBlock": {
     "mirror": "components/sections/captured/landing-html.ts",
-    "hash": "2733d5b5b211145b"
+    "hash": "94f34cef630f0d42"
   },
   "PricingScreen": {
     "mirror": "components/sections/captured/pricing-screen.tsx",
@@ -173,7 +173,7 @@
   },
   "ScoreTravels": {
     "mirror": "components/sections/captured/landing-html.ts",
-    "hash": "2733d5b5b211145b"
+    "hash": "94f34cef630f0d42"
   },
   "SettingsScreen": {
     "mirror": "components/app/captured/settings-main.tsx",
@@ -185,7 +185,7 @@
   },
   "StorySection": {
     "mirror": "components/sections/captured/landing-html.ts",
-    "hash": "2733d5b5b211145b"
+    "hash": "94f34cef630f0d42"
   },
   "TeardownsScreen": {
     "mirror": "app/(marketing)/teardowns/[slug]/page.tsx",
@@ -193,7 +193,7 @@
   },
   "Testimonials": {
     "mirror": "components/sections/captured/landing-html.ts",
-    "hash": "2733d5b5b211145b"
+    "hash": "94f34cef630f0d42"
   },
   "ToolsScreen": {
     "mirror": "app/(marketing)/tools/page.tsx",
@@ -209,6 +209,6 @@
   },
   "WhySwitch": {
     "mirror": "components/sections/captured/landing-html.ts",
-    "hash": "2733d5b5b211145b"
+    "hash": "94f34cef630f0d42"
   }
 }
