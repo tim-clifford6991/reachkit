@@ -63,11 +63,29 @@ export function captureException(error: unknown, props?: Record<string, unknown>
   });
 }
 
+/**
+ * Consent-gated pageview. `capture_pageview` is OFF in init (the automatic one
+ * would fire pre-consent and be dropped), so pageviews are captured manually:
+ * PageviewTracker (root layout) fires this on every App Router path change,
+ * and grantConsent() fires it once for the page the visitor accepted on —
+ * without that, the landing pageview is silently lost and PostHog shows a
+ * site with funnel events but zero traffic (live finding, 2026-07-17).
+ * posthog-js attaches $current_url/$host itself at capture time.
+ */
+export function trackPageview(): void {
+  capture("$pageview");
+}
+
 /** Accept analytics cookies: persist + opt in (starts capturing). */
 export function grantConsent(): void {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(CONSENT_KEY, "granted");
-  void client().then((c) => c?.opt_in_capturing());
+  void client().then((c) => {
+    c?.opt_in_capturing();
+    // The automatic init-time pageview was suppressed pre-consent — capture
+    // the page the visitor is on now so the session starts with traffic.
+    c?.capture("$pageview");
+  });
 }
 
 /** Reject analytics cookies: persist + opt out (stays silent). */
