@@ -1,6 +1,36 @@
 name: CI
 on: { push: { branches: [main] }, pull_request: {}, workflow_dispatch: {} }
 jobs:
+  # Inngest Cloud auto-sync-on-deploy has silently gone stale TWICE
+  # (2026-07-08 pre-launch, 2026-07-15 after P4's onFailure edits) — newer
+  # functions just drop out of Cloud with no error anywhere. This job makes
+  # the documented manual fix (PUT /api/inngest) automatic: after every push
+  # to main it waits for prod to actually serve the new commit, then forces a
+  # re-registration and asserts it succeeded. Failing loudly here (prod never
+  # picked up the commit, or the PUT errored) is the desired signal.
+  inngest-sync:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for prod to serve this commit, then force Inngest re-sync
+        run: |
+          LIVE=""
+          for i in $(seq 1 60); do
+            LIVE=$(curl -sf https://reachkit.app/api/health | jq -r .commit || echo "")
+            [ "$LIVE" = "${GITHUB_SHA::7}" ] && break
+            sleep 15
+          done
+          if [ "$LIVE" != "${GITHUB_SHA::7}" ]; then
+            echo "::error::prod never reached ${GITHUB_SHA::7} (still serving '$LIVE') — deploy stuck or health broken"
+            exit 1
+          fi
+          RESP=$(curl -sf -X PUT https://reachkit.app/api/inngest)
+          echo "$RESP"
+          echo "$RESP" | jq -e '.message == "Successfully registered"'
+          # modified:true here means auto-sync HAD drifted and this PUT healed
+          # it — worth seeing in the log, not a failure.
+          echo "$RESP" | jq -r 'if .modified then "::warning::Inngest was stale — this sync repaired it" else "Inngest registration was already current" end'
+
   build:
     runs-on: ubuntu-latest
     steps:
