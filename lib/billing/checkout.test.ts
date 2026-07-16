@@ -66,7 +66,7 @@ test("createAnonymousCheckout: session requires ToS consent (EU withdrawal waive
   await createAnonymousCheckout({ scanId: "scan-1", plan: "solo" });
 
   expect(s.sessionsCreate).toHaveBeenCalledTimes(1);
-  const sessionParams = s.created[0];
+  const sessionParams = s.created[0]!;
   // EU CRD: explicit ToS consent at checkout (the Terms carry the
   // immediate-performance / withdrawal-waiver clause).
   expect(sessionParams.consent_collection).toEqual({ terms_of_service: "required" });
@@ -94,7 +94,7 @@ test("createCheckout: session requires ToS consent (EU withdrawal waiver) and st
   await createCheckout({ userId: "user-1", plan: "growth" });
 
   expect(s.sessionsCreate).toHaveBeenCalledTimes(1);
-  const sessionParams = s.created[0];
+  const sessionParams = s.created[0]!;
   expect(sessionParams.consent_collection).toEqual({ terms_of_service: "required" });
   expect(sessionParams.subscription_data).toBeUndefined();
   expect(sessionParams.mode).toBe("subscription");
