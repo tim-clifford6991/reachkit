@@ -56,11 +56,11 @@ const captured = [
 ] as const;
 
 const hrefsOf = (html: string) =>
-  [...html.matchAll(/href="([^"]*)"/g)].map((m) => m[1]);
+  [...html.matchAll(/href="([^"]*)"/g)].map((m) => m[1]!);
 
 const buttonTextsOf = (html: string) =>
   [...html.matchAll(/<button[^>]*>([\s\S]*?)<\/button>/g)].map((m) =>
-    m[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(),
+    m[1]!.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(),
   );
 
 describe("captured HTML — no dead links or CTAs", () => {
