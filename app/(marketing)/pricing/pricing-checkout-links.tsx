@@ -3,9 +3,10 @@
 /**
  * PricingCheckoutLinks — client CTA button for the pricing page (Path B).
  *
- * Payment-first: POST /api/billing/trial → anonymous Stripe checkout (Stripe →
- * Email → Magic Link). No prior scan or login needed — the account is created
- * after payment and the user runs their first scan from the dashboard.
+ * Payment-first: POST /api/billing/checkout/anonymous → anonymous Stripe
+ * checkout (Stripe → Email → Magic Link). No prior scan or login needed — the
+ * account is created after payment and the user runs their first scan from
+ * the dashboard.
  *
  * Native HTML only — keeps (marketing) bundle under 200 KB gzip budget.
  */
@@ -32,7 +33,7 @@ export function PricingCheckoutLinks({
   const handleClick = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/billing/trial", {
+      const res = await fetch("/api/billing/checkout/anonymous", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ plan, interval }),
