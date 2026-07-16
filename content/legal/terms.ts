@@ -10,7 +10,7 @@ export const terms: LegalDocument = {
   title: "Terms of Service",
   intro:
     "The agreement between you and ReachKit when you use the product. Plain language, no surprises.",
-  lastUpdated: "2026-06-13",
+  lastUpdated: "2026-07-16",
   sections: [
     {
       heading: "1. The service",
@@ -40,6 +40,18 @@ export const terms: LegalDocument = {
       heading: "4. Subscriptions & billing",
       body: [
         "Scanning is free. Paid plans are billed in advance on a recurring basis through Stripe at the price shown at checkout. You can cancel at any time; your plan remains active until the end of the current billing period and is not renewed after that. Except where required by law, payments already made are non-refundable. We may change pricing with reasonable notice; changes never apply to a period you have already paid for.",
+      ],
+    },
+    {
+      // EU Consumer Rights Directive art. 9 & 16(m): the withdrawal right on a
+      // digital service lapses early only with explicit consent to immediate
+      // performance + acknowledgment — collected via Stripe Checkout's required
+      // ToS consent checkbox (Task 6.4). Numbered "4a" so the load-bearing
+      // section numbering (§11 no-auto-send) stays stable.
+      heading: "4a. Right of withdrawal (EU consumers)",
+      body: [
+        "By subscribing you expressly request that we begin providing the service immediately, and you acknowledge that once your report and action plan have been fully delivered, you lose your statutory 14-day right of withdrawal. If you withdraw before the service has been fully performed, we refund the proportion not yet provided.",
+        "Independently of the above, plans are month-to-month: you can cancel at any time from the billing portal and keep access until the end of the paid period.",
       ],
     },
     {
