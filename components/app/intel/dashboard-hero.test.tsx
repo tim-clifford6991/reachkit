@@ -41,11 +41,14 @@ describe("DashboardHero pillar rows", () => {
     expect(html).toContain("not measured yet");
   });
 
-  it("does NOT point Outreach at Market Position when there's no Market Position (free/pre-deep-pass): no dead #market-position link, honest 'not measured yet'", () => {
-    const html = renderToStaticMarkup(<DashboardHero {...baseProps} marketPosition={null} />);
-    expect(html).not.toContain("measured off-site");
-    expect(html).not.toContain("#market-position");
-    expect(html).toContain("not measured yet");
+  it("does NOT point Outreach at a dead #market-position link when there's no Market Position — the row says what produces the grade per tier (owner report 2026-07-17)", () => {
+    const free = renderToStaticMarkup(<DashboardHero {...baseProps} marketPosition={null} isPaid={false} />);
+    expect(free).not.toContain("#market-position");
+    expect(free).toContain("measured off-site — part of the full report");
+
+    const paid = renderToStaticMarkup(<DashboardHero {...baseProps} marketPosition={null} isPaid={true} />);
+    expect(paid).not.toContain("#market-position");
+    expect(paid).toContain("measured off-site — appears after your next re-scan");
   });
 
   it("anchors the Market Position block with id=\"market-position\" when it renders", () => {

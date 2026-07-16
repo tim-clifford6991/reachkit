@@ -105,13 +105,17 @@ export function DashboardHero({ score, rollup, history, markers, isPaid, marketP
                   // Outreach has no on-site signal — its strength is measured OFF-SITE
                   // as Market Position. Point there instead of reading as broken —
                   // but ONLY when the deep pass actually produced a Market Position
-                  // (paid, post-deep-pass). When it's null (free / pre-deep-pass)
-                  // Outreach genuinely isn't measured yet, so fall through to the
-                  // honest "not measured yet" (and never link to a #market-position
-                  // block that isn't rendered).
+                  // (paid, post-deep-pass). When it's null the row must not dead-end
+                  // (owner report 2026-07-17: a Growth account on a never-deepened
+                  // scan read "not measured yet" with no way forward) — say what
+                  // produces the grade for the viewer's tier instead.
                   <a href="#market-position" style={{ flex: 1, fontSize: 12, fontStyle: "italic", color: "var(--c-action)", textDecoration: "none" }}>
                     measured off-site → Market Position
                   </a>
+                ) : p.pillar === "outreach" ? (
+                  <span style={{ flex: 1, fontSize: 12, fontStyle: "italic", color: "var(--c-faint)" }}>
+                    {isPaid ? "measured off-site — appears after your next re-scan" : "measured off-site — part of the full report"}
+                  </span>
                 ) : (
                   <span style={{ flex: 1, fontSize: 12, fontStyle: "italic", color: "var(--c-faint)" }}>not measured yet</span>
                 )}
