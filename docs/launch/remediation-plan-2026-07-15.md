@@ -380,7 +380,7 @@ Branch: `launch/p2-hardening` off main.
 
 **Why:** `attach` (PR #72) makes multi-owner `apps` rows the norm; the same-host in-place `store_url` update lets any co-owner mutate the row the victim also tracks.
 
-- [ ] **Step 1: Write the failing integration test:**
+- [x] **Step 1: Write the failing integration test:**
 
 ```ts
 import { describe, it, expect } from "vitest";
@@ -409,8 +409,8 @@ describe("updateProductUrl on a shared apps row", () => {
 
 (If `updateProductUrl` has no user-id-parameterized inner helper, extract one — `updateProductUrlForUser(userId, appId, url)` — and have the server action call it after `requireUser()`; that refactor is part of this task and mirrors how `deleteAccount` is structured for testability.)
 
-- [ ] **Step 2:** `pnpm test:int -- shared-app-fork` → FAIL (in-place mutation changes the shared row today).
-- [ ] **Step 3: Implement** — in the same-host branch of `updateProductUrl`, before the in-place update:
+- [x] **Step 2:** `pnpm test:int -- shared-app-fork` → FAIL (in-place mutation changes the shared row today).
+- [x] **Step 3: Implement** — in the same-host branch of `updateProductUrl`, before the in-place update:
 
 ```ts
   // A shared `apps` row (two users tracking the same URL — normal since the
@@ -430,15 +430,15 @@ describe("updateProductUrl on a shared apps row", () => {
   }
 ```
 
-- [ ] **Step 4:** Test → PASS; full `pnpm test` + `pnpm test:int` green.
-- [ ] **Step 5:** Commit: `git commit -am "fix(settings): fork shared apps rows on URL edit — co-owner can no longer mutate another user's product"`
+- [x] **Step 4:** Test → PASS; full `pnpm test` + `pnpm test:int` green.
+- [x] **Step 5:** Commit: `git commit -am "fix(settings): fork shared apps rows on URL edit — co-owner can no longer mutate another user's product"`
 
 ### Task 5.2 Revoke public EXECUTE on `handle_new_user()`
 
 **Files:**
 - Create: `supabase/migrations/<timestamp>_revoke_handle_new_user_execute.sql`
 
-- [ ] **Step 1:** Migration content:
+- [x] **Step 1:** Migration content:
 
 ```sql
 -- handle_new_user() is an auth-trigger helper (SECURITY DEFINER). It must not
@@ -448,25 +448,25 @@ describe("updateProductUrl on a shared apps row", () => {
 revoke execute on function public.handle_new_user() from anon, authenticated;
 ```
 
-- [ ] **Step 2:** Apply locally (`supabase db reset` or `supabase migration up`), run `pnpm test:int` → green (auth-trigger integration test still passes → trigger unaffected).
+- [x] **Step 2:** Apply locally (`supabase db reset` or `supabase migration up`), run `pnpm test:int` → green (auth-trigger integration test still passes → trigger unaffected). *(Shipped SQL strengthened: also revokes PUBLIC — Postgres default-grants function EXECUTE to PUBLIC and anon/authenticated inherit it, so the narrower revoke was verified locally to be a no-op.)*
 - [ ] **Step 3:** Apply to prod via the Supabase MCP `apply_migration` (⛔ prod DB access needs Tim's explicit authorization — request it, name the project). Re-run `get_advisors` → WARN gone.
-- [ ] **Step 4:** Commit the migration file: `git commit -am "fix(db): revoke anon/authenticated EXECUTE on handle_new_user (advisor WARN)"`
+- [x] **Step 4:** Commit the migration file: `git commit -am "fix(db): revoke anon/authenticated EXECUTE on handle_new_user (advisor WARN)"`
 
 ### Task 5.3 Score calibration into CI (non-blocking)
 
 **Files:**
 - Modify: `.github/workflows/ci.yml` (the existing `live-smoke` job)
 
-- [ ] **Step 1:** Add a step to the existing opt-in `live-smoke` job (workflow_dispatch-only, continue-on-error — it already has real secrets and a spend budget) that runs `pnpm tsx scripts/score-calibration.mts` and uploads its output as an artifact. This doesn't "enforce" band separation (still the open red rule) but makes the measurement one click instead of a forgotten local script.
-- [ ] **Step 2:** Commit: `git commit -am "ci(live-smoke): run score-calibration and publish the report artifact"`
+- [x] **Step 1:** Add a step to the existing opt-in `live-smoke` job (workflow_dispatch-only, continue-on-error — it already has real secrets and a spend budget) that runs `pnpm tsx scripts/score-calibration.mts` and uploads its output as an artifact. This doesn't "enforce" band separation (still the open red rule) but makes the measurement one click instead of a forgotten local script. *(Shipped as `npx --yes tsx … --base-url=https://reachkit.app --http` — tsx is not a repo dependency, and the job's SUPABASE_\* env is the local CI stack, so DB mode would read the wrong database.)*
+- [x] **Step 2:** Commit: `git commit -am "ci(live-smoke): run score-calibration and publish the report artifact"`
 
 ### Task 5.4 Housekeeping sweep
 
 **Files:** `components/**/trial-cta.tsx` (delete — its funnel job moved in Task 1.4), `lib/email/resend.ts` (`sendTrialEndingEmail` remnants if any; delete `sendScanReadyEmail` dead code + its tests), `app/api/billing/trial/` → rename dir to `checkout` with the route file unchanged, plus every caller (`grep -rn "billing/trial" app components lib`) and `pricing-checkout-links.tsx:6,35` comments; `components/report/captured/to-results-props.ts:67,159` (guard the "+0 pts" locked-worth: when `lockedWorth === 0`, omit the "worth an estimated +N pts" clause rather than rendering +0); the two Settings forms' raw `#e5484d` → `var(--color-danger)`.
 
-- [ ] **Step 1:** For the route rename: `git mv app/api/billing/trial app/api/billing/checkout`, update all callers found by the grep, run `pnpm vitest run app/api/costed-routes.test.ts app/api/entitlement-gates.test.ts` — if either tripwire pins the old path, update the pinned list in the SAME commit (Change Protocol: this is a deliberate rename, gates updated with source).
-- [ ] **Step 2:** Each deletion: `grep -rn "<symbol>" app components lib` → zero non-test references before deleting; delete symbol + its tests together.
-- [ ] **Step 3:** `pnpm test && pnpm lint && pnpm check:arch && pnpm check:design` green. Commit per logical unit (rename / dead code / +0 pts / tokens).
+- [x] **Step 1:** For the route rename: `git mv app/api/billing/trial app/api/billing/checkout`, update all callers found by the grep, run `pnpm vitest run app/api/costed-routes.test.ts app/api/entitlement-gates.test.ts` — if either tripwire pins the old path, update the pinned list in the SAME commit (Change Protocol: this is a deliberate rename, gates updated with source). *(Shipped as `app/api/billing/checkout/anonymous` — `app/api/billing/checkout` already existed as the authed in-app upgrade route, which this plan step missed; neither tripwire pinned the old path.)*
+- [x] **Step 2:** Each deletion: `grep -rn "<symbol>" app components lib` → zero non-test references before deleting; delete symbol + its tests together.
+- [x] **Step 3:** `pnpm test && pnpm lint && pnpm check:arch && pnpm check:design` green. Commit per logical unit (rename / dead code / +0 pts / tokens).
 
 ### Task 5.5 [OWNER] Close PR #46
 

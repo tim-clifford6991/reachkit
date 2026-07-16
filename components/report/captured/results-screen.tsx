@@ -456,7 +456,12 @@ export function ResultsScreen(p: ResultsScreenProps) {
             })}
             {p.lockedCount > 0 && (
               <div style={{ position: "relative", background: "var(--c-surface)", border: "1px dashed #D9D6E4", borderRadius: 14, padding: "18px 20px", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
-                <span style={{ fontSize: 14, fontWeight: 600, color: "var(--c-faint)" }}>🔒 {p.lockedCount} more ranked fixes — worth an estimated +{p.lockedWorth} — <UnlockLink scanId={p.scanId}>unlock the full plan →</UnlockLink></span>
+                {/* lockedWorth can legitimately be 0 (zero-delta cards, or a
+                    lockedCount derived from totalActions with no rest rows) —
+                    "worth an estimated +0" reads as broken, so the worth clause
+                    only renders when there's a real number behind it
+                    (housekeeping, remediation plan 2026-07-15 Task 5.4). */}
+                <span style={{ fontSize: 14, fontWeight: 600, color: "var(--c-faint)" }}>🔒 {p.lockedCount} more ranked fixes{p.lockedWorth > 0 ? <> — worth an estimated +{p.lockedWorth}</> : null} — <UnlockLink scanId={p.scanId}>unlock the full plan →</UnlockLink></span>
               </div>
             )}
           </div>

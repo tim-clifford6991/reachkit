@@ -151,6 +151,24 @@ jobs:
           } > .env.local
       - name: Live smoke (payment-first funnel + reverse-referral)
         run: pnpm test:int tests/integration/payment-first-funnel.test.ts tests/integration/referral-discovery.test.ts
+      - name: Score calibration (band-separation measurement — the open red rule)
+        # Non-enforcing measurement (Task 5.3, remediation plan 2026-07-15):
+        # score calibration is still the one unresolved red rule; this makes the
+        # band-separation report one click instead of a forgotten local script.
+        # --http: score+band are scraped from the public /scan/<slug> <title> —
+        # this job's SUPABASE_* env points at the LOCAL stack, never at the
+        # target's DB. tsx is not a repo dep; npx --yes matches the
+        # dev:inngest idiom. Runs even if the smoke tests above failed
+        # (if: always() — the measurement is independent of them).
+        if: always()
+        run: npx --yes tsx scripts/score-calibration.mts --base-url=https://reachkit.app --http | tee score-calibration-report.txt
+      - name: Upload score-calibration report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: score-calibration-report
+          path: score-calibration-report.txt
+          if-no-files-found: ignore
       # Cloud-config drift tripwire (launch remediation 6.1): asserts the LIVE
       # Stripe webhook endpoint targets reachkit.app with the 4 handled events,
       # live prices resolve/active/EUR/no-trial, Inngest registration is

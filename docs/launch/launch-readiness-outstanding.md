@@ -36,7 +36,7 @@ Each item is tagged **[NEW]** (surfaced by this audit) or **[KNOWN]** (already i
 
 ### Security
 
-- **[NEW] Auth/magic-link routes are not rate-limited.** `app/api/auth/magic-link/route.ts` calls `signInWithOtp` with only email-format validation. Enables email bombing of any address, Supabase auth-quota exhaustion, and sender-reputation damage. (Only `/api/scan`, `/checkout`, `/billing/trial` use `assertRateLimit`.)
+- **[NEW] Auth/magic-link routes are not rate-limited.** `app/api/auth/magic-link/route.ts` calls `signInWithOtp` with only email-format validation. Enables email bombing of any address, Supabase auth-quota exhaustion, and sender-reputation damage. (Only `/api/scan`, `/checkout`, `/billing/checkout/anonymous` use `assertRateLimit`.)
 - **[NEW] Inngest endpoint auth depends on an env var being set.** `app/api/inngest/route.ts:15` uses `serve()` with no explicit `signingKey`; signature verification only happens if `INNGEST_SIGNING_KEY` is present in prod. If unset, the function-invocation endpoint is unauthenticated. Assert it's required in prod.
 
 ### Observability (currently blind in prod)
