@@ -313,27 +313,26 @@ git commit -m "fix(app): the cap error's exits both exist now — removal shippe
 
 > **Invariant #1 is NOT changed by this workstream.** If any task here would move a persisted `score_total`, **stop** and re-open the Change Protocol. Render only.
 
-### Task 4.1: Delete the Outreach bar (it can never render)
+### Task 4.1: 🔴 BLOCKED — the Outreach bar. Do not execute without the C1 ruling.
 
-**Files:** `components/app/intel/dashboard-hero.tsx:96-123`; test `components/app/intel/dashboard-hero.test.tsx`
+**See `plans/2026-07-17-MERGE-CONTRACT-three-plans.md` § C1.**
 
-`headlineScore` filters to `FIXED_BASIS_SIGNAL_KEYS` — 5 SEO + 3 content, **zero outreach** (`lib/scan/signals.ts:45-82`) — so `outreach.assessed` is **always false**. The row is permanently dead copy; 735dbae reworded the dead-end text instead of removing the branch.
+**This task was WRONG as first written and is retained only so the error isn't repeated.** It said *"delete the Outreach bar — it can never render"*, on the premise that `headlineScore` filters to `FIXED_BASIS_SIGNAL_KEYS` (5 SEO + 3 content, zero outreach) so `outreach.assessed` is always false.
 
-- [ ] **Step 1: Write the failing test**
+**The premise is false.** Verified 2026-07-17 against `scan_signals` for resend's **free** scan `14533748…`:
 
-```ts
-it("renders no Outreach pillar bar — the fixed basis has zero outreach signals", () => {
-  render(<DashboardHero {...baseProps} rollup={rollupWithOutreachUnassessed} />);
-  expect(screen.queryByText(/outreach/i)).toBeNull();
-  expect(screen.queryByText(/measured off-site/i)).toBeNull();
-});
+```
+outreach | fail       | 1 row  | comparison_pages     ← MEASURED, and FAILING
+outreach | unmeasured | 4 rows | community_presence, marketplace_presence, press_mentions, share_of_voice
 ```
 
-- [ ] **Step 2: Run it — expect FAIL** (`measured off-site` currently renders)
-- [ ] **Step 3:** Remove the `p.pillar === "outreach"` branches; render only assessed pillars.
-- [ ] **Step 4: Run — expect PASS**
-- [ ] **Step 5:** Mutation-prove: restore the branch → test FAILS. Revert.
-- [ ] **Step 6: Commit** — `git add` explicit paths; `fix(dashboard): delete the Outreach bar — structurally unrenderable, not mis-worded`
+`comparison_pages` (`pillar: outreach`, weight 0.15, `lib/scan/signals.ts:92`) **is measured on a free scan and it fails**. The bar is unrenderable only because the dashboard decomposes the *headline's* fixed basis, which excludes it by design (invariant #1). Deleting the bar would **hide a real failing signal** — and would silently pre-empt Plan B's deferred item on the same disagreement.
+
+That is the `735dbae` class repeating: reword/remove a dead row without asking **why** it's dead. The real class is that the pillar bars present as *"your pillars"* while decomposing a basis that is deliberately on-page-only, so any measured off-site signal is invisible by construction.
+
+- [ ] **Step 1: Get the C1 ruling** (merge contract § C1 — options 1/2/3; recommendation is 3, or 1 with Plan B's deferred item closed in the same release).
+- [ ] **Step 2: Adopt Plan B §6's `Measured` contract** rather than inventing a parallel basis label (merge contract § S3).
+- [ ] **Step 3:** Implement the ruling TDD, guard mutation-proven, DS mirrors diffed (Task 4.5).
 
 ### Task 4.2: Market Position into the header, framed "vs rivals"
 
