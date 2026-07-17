@@ -59,7 +59,7 @@ function Body({ data }: { data: Demand }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <KpiRow>
-        <Kpi label="Addressable searches" value={fmtCompact(searchDemand.totalAddressableVolume)} sub="monthly, category-wide" />
+        <Kpi label="Addressable demand" value={fmtCompact(searchDemand.totalAddressableVolume)} sub="monthly, category-wide" />
         <Kpi label="Buying intent" value={`${bottom}%`} sub="commercial + transactional" />
         <Kpi label="Demand themes" value={themes.length} sub="distinct buyer needs" />
         <Kpi label="Community threads" value={threads} sub={`across ${community.pockets.length} surfaces`} />

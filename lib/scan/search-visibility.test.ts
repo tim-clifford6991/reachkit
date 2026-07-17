@@ -215,3 +215,28 @@ describe("free-scan copy honesty (guards G4, G6)", () => {
     expect(src).not.toMatch(/\d+-signal\b/i);
   });
 });
+
+describe("free↔paid demand vocabulary (guard G7)", () => {
+  // §1.9: the bare phrase "monthly searches" labelled FOUR different computations
+  // across the demand surfaces — free Σ seed volumes, paid Σ keyword_ideas, Σ
+  // content-plan volume, and a pre-filter raw total. A user upgrading saw three
+  // different answers to one question with no reconciliation. Each concept now has
+  // ONE distinct, scoped label: "Category demand" (free), "Addressable demand"
+  // (demand tab), "across your content plan" (synthesis). The ambiguous collision
+  // phrase is retired from every PRODUCTION demand-render surface; a fifth variant
+  // must pick a scoped label, not re-introduce the ambiguity.
+  const DEMAND_SURFACES = [
+    "components/report/captured/results-screen.tsx", // free report (Category demand)
+    "components/app/intel/demand-view.tsx", // paid demand tab (Addressable demand)
+    "components/app/intel/synthesis-view.tsx", // paid strategy (Volume opportunity)
+    "lib/scan/demand/gather.ts", // the progress toast (a detail, not a metric)
+  ];
+
+  it("G7: no production demand surface labels a value with the bare 'monthly searches'", () => {
+    for (const f of DEMAND_SURFACES) {
+      const src = readFileSync(resolve(process.cwd(), f), "utf8")
+        .replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, ""); // strip comments — they may legitimately explain the fix
+      expect(src, `${f} must not label a value "monthly searches" (§1.9 collision phrase)`).not.toMatch(/monthly searches/i);
+    }
+  });
+});

@@ -332,9 +332,12 @@ export async function gatherDemand(rawSelf: string, opts: { competitorDomains?: 
     mineCompetitorReviews(competitors, brief.category),
   ]);
 
-  // Keyword volume is now available; fire the stage with real total-addressable-volume.
-  const totalRawVolume = rawIdeas.reduce((s, k) => s + k.volume, 0);
-  opts.onStage?.({ key: "demand:keywords", label: "Sizing keyword demand", detail: `${totalRawVolume.toLocaleString()} monthly searches` });
+  // Keyword ideas are in; fire the stage. The detail is a PROGRESS count (how many
+  // raw ideas we're sizing), NOT a metric: the raw pre-filter volume is not the
+  // addressable demand — it still contains the off-category noise we drop below —
+  // so it must not be labelled "monthly searches" (§1.9 / G7). One vocabulary:
+  // "Addressable demand" is the filtered total the Demand tab renders, nothing here.
+  opts.onStage?.({ key: "demand:keywords", label: "Sizing keyword demand", detail: `${rawIdeas.length.toLocaleString()} keyword ideas` });
 
   // Keep only ideas containing a DISTINCTIVE term (drops generic-SaaS + dictionary
   // noise like "preparation meaning"). But the model's coreTerms are often abstract
