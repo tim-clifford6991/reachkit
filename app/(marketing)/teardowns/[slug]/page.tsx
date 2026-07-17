@@ -18,6 +18,13 @@ import type { Teardown } from "@/content/teardowns";
 // Static params
 // ---------------------------------------------------------------------------
 
+// Teardowns are a fixed editorial set (content/teardowns/*.ts) — no on-demand
+// slugs. Without this, an unknown slug takes Next's on-demand-params path,
+// which under Cache Components 500s ("Invalid revalidate configuration
+// provided: 0 < 1") before notFound() can produce the 404 (live-hit
+// 2026-07-17 on /teardowns/notion during the post-DNS-migration sweep).
+export const dynamicParams = false;
+
 export function generateStaticParams(): { slug: string }[] {
   return teardownSlugs.map((slug) => ({ slug }));
 }
