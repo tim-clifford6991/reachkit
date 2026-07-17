@@ -147,6 +147,22 @@ describe("URL canonicalisation contract (classify BEFORE resolve)", () => {
   });
 });
 
+describe("capMessage (the at-cap copy may only name exits that EXIST)", () => {
+  it("offers upgrade + remove below the top tier", async () => {
+    const { capMessage } = await import("./add-product");
+    const msg = capMessage({ tier: "solo", count: 1, cap: 1 });
+    expect(msg).toMatch(/upgrade/i);
+    expect(msg).toMatch(/remove one in settings/i);
+  });
+
+  it("NEVER offers an upgrade on growth — it is the top tier (the 735dbae dead-exit class)", async () => {
+    const { capMessage } = await import("./add-product");
+    const msg = capMessage({ tier: "growth", count: 3, cap: 3 });
+    expect(msg).not.toMatch(/upgrade/i);
+    expect(msg).toMatch(/remove one in settings/i);
+  });
+});
+
 describe("addTrackedProduct (cap · already-tracked · paused)", () => {
   // Call history on the shared vi.fn() mocks (findAppByUrl etc.) otherwise carries
   // over from the earlier describe blocks above — clearAllMocks only resets call

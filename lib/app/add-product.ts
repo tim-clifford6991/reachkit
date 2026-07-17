@@ -51,6 +51,24 @@ export async function resolveProductScan(
   return ageDays <= SCAN_STALE_DAYS ? { kind: "deepen", appId, scanId } : { kind: "rescan", appId };
 }
 
+/**
+ * The at-cap message. Extracted + exported so the guard asserts the REAL string,
+ * not a copy of it. It must only ever name exits that EXIST:
+ *   - "remove one in Settings" — real since `removeTrackedProduct` shipped.
+ *   - "upgrade" — real ONLY below the top tier. `growth` is the top tier, so
+ *     offering an upgrade there is a dead end, the same class as the Outreach row
+ *     that 735dbae reworded instead of removing. Conditional on `canUpgrade`.
+ */
+export function capMessage(args: { tier: keyof typeof TIER_LIMITS; count: number; cap: number }): string {
+  const canUpgrade = args.tier !== "growth";
+  return (
+    `You're tracking ${args.count} of ${args.cap} products on ${args.tier}. ` +
+    (canUpgrade
+      ? "Upgrade for more, or remove one in Settings to add another."
+      : "Remove one in Settings to add another.")
+  );
+}
+
 export class AddProductError extends Error {
   constructor(public code: "cap" | "already_tracked" | "invalid_url" | "paused", message: string) {
     super(message);
@@ -83,7 +101,7 @@ export async function addTrackedProduct(userId: string, rawUrl: string): Promise
   const cap = TIER_LIMITS[tier].apps;
   // Cap FIRST — before any lookup/create/spend. (linkScanToUser fails silently here.)
   if (appIds.length >= cap) {
-    throw new AddProductError("cap", `You're tracking ${appIds.length} of ${cap} products on ${tier}. Upgrade or remove one to add another.`);
+    throw new AddProductError("cap", capMessage({ tier, count: appIds.length, cap }));
   }
 
   const { active: paid } = await entitlementsFor(userId);
@@ -112,7 +130,7 @@ export async function addTrackedProduct(userId: string, rawUrl: string): Promise
   const { data: fresh } = await db.from("users").select("app_ids").eq("id", userId).maybeSingle();
   const nowIds: string[] = fresh?.app_ids ?? [];
   if (!nowIds.includes(appId)) {
-    if (nowIds.length >= cap) throw new AddProductError("cap", `You're tracking ${nowIds.length} of ${cap} products on ${tier}.`);
+    if (nowIds.length >= cap) throw new AddProductError("cap", capMessage({ tier, count: nowIds.length, cap }));
 
     // ORDER IS LOAD-BEARING: link BEFORE any setActiveApp — setActiveApp
     // silently no-ops when the appId isn't yet in app_ids (PR #68 ownership

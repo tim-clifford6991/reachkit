@@ -24,6 +24,7 @@ import { requireUser } from "@/lib/auth/server";
 import { normalizeHost } from "@/lib/scan/referral/classify";
 import { updateProductUrlForUser } from "@/lib/app/update-product-url";
 import { addTrackedProduct, AddProductError } from "@/lib/app/add-product";
+import { removeTrackedProduct, RemoveProductError } from "@/lib/app/remove-product";
 import { ACTIVE_APP_COOKIE } from "@/lib/app/active-app";
 
 export type UpdateProductUrlResult =
@@ -132,4 +133,42 @@ export async function addFirstProduct(formData: FormData): Promise<AddFirstProdu
   revalidatePath("/app");
   revalidatePath("/app/dashboard");
   return { ok: true, host: normalizeHost(raw), scanId };
+}
+
+export type RemoveProductResult = { ok: true } | { ok: false; error: string };
+
+/**
+ * Stop tracking a product. The action the cap error ("remove one in Settings")
+ * promised long before any code delivered it — until now the only path that
+ * shrank `users.app_ids` was deleting the whole account.
+ *
+ * Delegates to `removeTrackedProduct` (unlink only — `apps` rows are shared by
+ * URL, never deleted here). If the removed app was the ACTIVE one, clear the
+ * cookie so the dashboard falls back to another tracked app (or the empty state)
+ * instead of pointing at an app the user no longer tracks.
+ */
+export async function removeProduct(appId: string): Promise<RemoveProductResult> {
+  let userId: string;
+  try {
+    const { user } = await requireUser();
+    userId = user.id;
+  } catch {
+    return { ok: false, error: "You need to be signed in to do that." };
+  }
+
+  try {
+    await removeTrackedProduct(userId, appId);
+  } catch (e) {
+    if (e instanceof RemoveProductError) return { ok: false, error: e.message };
+    return { ok: false, error: "Couldn't remove that product — please try again." };
+  }
+
+  const jar = await cookies();
+  if (jar.get(ACTIVE_APP_COOKIE)?.value === appId) {
+    jar.delete(ACTIVE_APP_COOKIE);
+  }
+  revalidatePath("/app/settings");
+  revalidatePath("/app");
+  revalidatePath("/app/dashboard");
+  return { ok: true };
 }
