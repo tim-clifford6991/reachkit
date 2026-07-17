@@ -1,5 +1,79 @@
 import { describe, it, expect } from "vitest";
-import { STEP_SCRIPT, computeStepStates, labelFor } from "./scan-narrative";
+import {
+  STEP_SCRIPT,
+  DEEP_STEPS,
+  computeStepStates,
+  labelFor,
+  scanProgressPct,
+  PROGRESS_CEILING,
+} from "./scan-narrative";
+
+// ---------------------------------------------------------------------------
+// Progress percentage. Every case here is anchored to a MEASURED prod timing
+// (2026-07-17) — these are the exact moments the old `done / steps.length`
+// number froze or lied.
+// ---------------------------------------------------------------------------
+describe("scanProgressPct", () => {
+  const FREE_TOTAL = STEP_SCRIPT.length; // 9
+  const DEEP_TOTAL = STEP_SCRIPT.length + DEEP_STEPS.length; // 12
+
+  it("100 is RESERVED for actually-complete — never reached while running", () => {
+    // The deep pass confirms ALL 12 steps at "Finalising your report" (t+89.3s)
+    // while the market pass still has ~47s to run. The old math read exactly 100
+    // here, then froze there for a third of the scan.
+    const midPipeline = scanProgressPct({
+      stepsDone: DEEP_TOTAL,
+      stepsTotal: DEEP_TOTAL,
+      elapsedS: 89.3,
+      deep: true,
+      complete: false,
+    });
+    expect(midPipeline).toBeLessThanOrEqual(PROGRESS_CEILING);
+    expect(midPipeline).toBeLessThan(100);
+
+    expect(
+      scanProgressPct({ stepsDone: DEEP_TOTAL, stepsTotal: DEEP_TOTAL, elapsedS: 136.4, deep: true, complete: true }),
+    ).toBe(100);
+  });
+
+  it("KEEPS MOVING through the deep pass's 47s dead zone (t+89.3s → t+136.4s)", () => {
+    // Not one artifact is emitted between "Finalising your report" and `done`.
+    // Event-driven progress is frozen by definition; time-driven is not.
+    const at89 = scanProgressPct({ stepsDone: 11, stepsTotal: DEEP_TOTAL, elapsedS: 89.3, deep: true, complete: false });
+    const at136 = scanProgressPct({ stepsDone: 11, stepsTotal: DEEP_TOTAL, elapsedS: 136.4, deep: true, complete: false });
+    expect(at136).toBeGreaterThan(at89);
+  });
+
+  it("KEEPS MOVING through the free scan's 22.4s synth call (t+14.3s → t+36.8s)", () => {
+    // One runSynth call is 56% of a 40.2s free scan, with zero events inside it.
+    const at14 = scanProgressPct({ stepsDone: 7, stepsTotal: FREE_TOTAL, elapsedS: 14.3, deep: false, complete: false });
+    const at36 = scanProgressPct({ stepsDone: 7, stepsTotal: FREE_TOTAL, elapsedS: 36.8, deep: false, complete: false });
+    expect(at36).toBeGreaterThan(at14);
+  });
+
+  it("is monotonic in elapsed time — the bar never goes backwards", () => {
+    let prev = -1;
+    for (let t = 0; t <= 200; t += 5) {
+      const p = scanProgressPct({ stepsDone: 3, stepsTotal: DEEP_TOTAL, elapsedS: t, deep: true, complete: false });
+      expect(p).toBeGreaterThanOrEqual(prev);
+      prev = p;
+    }
+  });
+
+  it("the checklist ratchets FORWARD — a fast scan is pulled ahead of the time curve", () => {
+    const timeOnly = scanProgressPct({ stepsDone: 0, stepsTotal: FREE_TOTAL, elapsedS: 5, deep: false, complete: false });
+    const ratcheted = scanProgressPct({ stepsDone: 7, stepsTotal: FREE_TOTAL, elapsedS: 5, deep: false, complete: false });
+    expect(ratcheted).toBeGreaterThan(timeOnly);
+  });
+
+  it("never shows a dead 0, and never exceeds the ceiling on an overrunning scan", () => {
+    expect(scanProgressPct({ stepsDone: 0, stepsTotal: FREE_TOTAL, elapsedS: 0, deep: false, complete: false })).toBeGreaterThan(0);
+    // A scan running 10x over budget still must not claim done.
+    expect(
+      scanProgressPct({ stepsDone: 0, stepsTotal: DEEP_TOTAL, elapsedS: 1400, deep: true, complete: false }),
+    ).toBeLessThanOrEqual(PROGRESS_CEILING);
+  });
+});
 
 describe("scan narrative", () => {
   it("step 1 is active at start, rest pending; nothing done", () => {

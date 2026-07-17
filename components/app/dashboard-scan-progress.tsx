@@ -34,11 +34,27 @@ export function DashboardScanProgress({
   scanId,
   tier,
   host = null,
+  sinceId = 0,
+  refreshing = false,
+  startedAt = null,
 }: {
   scanId: string;
   /** Two-track split, mirroring the funnel: 'full' scans run the deep pass. */
   tier: "free" | "full";
   host?: string | null;
+  /**
+   * Resume cursor — the id of the last TERMINAL event that predates this run
+   * (server-computed). `scan_events` is append-only per scan id and one scan can
+   * run twice against it (free pass, then paid deepen), so tailing from 0
+   * replays the earlier run's `done`: the client would settle instantly, refresh,
+   * find the scan still in flight, re-render, and replay that same `done` —
+   * an infinite refresh loop. Resuming here yields exactly this run's events.
+   */
+  sinceId?: number;
+  /** This app already has a score on screen — a re-scan/deepen, not a first run. */
+  refreshing?: boolean;
+  /** `scans.started_at` (ISO) — the time-based progress curve's real anchor. */
+  startedAt?: string | null;
 }) {
   const router = useRouter();
   const [artifacts, setArtifacts] = useState<string[]>([]);
@@ -50,7 +66,7 @@ export function DashboardScanProgress({
   useEffect(() => {
     let cancelled = false;
     let settled = false;
-    let lastId = 0;
+    let lastId = sinceId;
     let reconnects = 0;
     let es: EventSource | null = null;
     let watchdog: ReturnType<typeof setTimeout> | null = null;
@@ -124,7 +140,7 @@ export function DashboardScanProgress({
 
     connect();
     return cleanup;
-  }, [scanId]);
+  }, [scanId, sinceId]);
 
   // Pipeline is DONE — reveal the real dashboard in place.
   useEffect(() => {
@@ -182,6 +198,8 @@ export function DashboardScanProgress({
       findingsReady={findingsReady}
       reportReady={reportReady}
       embedded
+      refreshing={refreshing}
+      startedAt={startedAt}
     />
   );
 }

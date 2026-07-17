@@ -7,10 +7,24 @@ import * as React from "react";
  * subhead, and the step-log card (the real narrative: loading homepage →
  * reading hero → counting CTAs → reviews → rivals → positioning → compare →
  * score → snapshot). Mirrors `components/scan/captured-scanning.tsx`.
+ *
+ * `pct` is PASSED IN, not derived. The live component used to compute
+ * `done / steps.length` here — that froze the ring for the whole 22.4s synth
+ * call on a free scan and the 47.1s market pass on a deep one, and showed 100%
+ * with a third of the scan still to run. It is now time-based with the checklist
+ * as a forward-only ratchet (components/scan/scan-narrative.ts → scanProgressPct),
+ * and this screen just renders the number.
+ *
+ * `refreshing` is the re-scan/deepen variant: the app already shows a score, so
+ * the copy says so instead of implying a first run.
  */
 export interface ScanningScreenProps {
   host?: string;
   steps?: { state: "done" | "active" | "pending"; label: string }[];
+  /** 0–100. 100 means DONE — the in-flight ceiling is 95. */
+  pct?: number;
+  /** Re-scan/deepen over an app that already has a score on screen. */
+  refreshing?: boolean;
 }
 
 const SG = "var(--font-display)", JM = "var(--font-mono)";
@@ -32,9 +46,7 @@ const DEFAULT_STEPS: NonNullable<ScanningScreenProps["steps"]> = [
   { state: "pending", label: "Building your snapshot" },
 ];
 
-export function ScanningScreen({ host = "bloom.io", steps = DEFAULT_STEPS }: ScanningScreenProps) {
-  const done = steps.filter((s) => s.state === "done").length;
-  const pct = Math.round((done / steps.length) * 100);
+export function ScanningScreen({ host = "bloom.io", steps = DEFAULT_STEPS, pct = 58, refreshing = false }: ScanningScreenProps) {
   return (
     <main style={{ minHeight: 620, display: "flex", alignItems: "center", justifyContent: "center", padding: 40, background: "radial-gradient(900px 500px at 50% 30%, var(--c-soft), var(--c-bg))", fontFamily: "var(--font-sans)", color: "var(--c-ink)" }}>
       <style>{CSS}</style>
@@ -44,8 +56,8 @@ export function ScanningScreen({ host = "bloom.io", steps = DEFAULT_STEPS }: Sca
           <div style={{ position: "absolute", inset: 0, borderRadius: 999, border: "3px solid", borderColor: "var(--c-action) transparent transparent", animation: "rk-spin 1s linear infinite" }} />
           <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: JM, fontWeight: 700, fontSize: 26, color: "var(--c-action)" }}>{pct}%</div>
         </div>
-        <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: 26, letterSpacing: "-0.02em", margin: 0 }}>Scanning {host}</h2>
-        <p style={{ fontSize: 15, color: "var(--c-faint)", margin: "8px 0 28px" }}>Reading your page the way a customer&apos;s search does…</p>
+        <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: 26, letterSpacing: "-0.02em", margin: 0 }}>{refreshing ? "Refreshing" : "Scanning"} {host}</h2>
+        <p style={{ fontSize: 15, color: "var(--c-faint)", margin: "8px 0 28px" }}>{refreshing ? "Your current score stays below while this runs…" : "Reading your page the way a customer’s search does…"}</p>
         <div style={{ textAlign: "left", background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 14, padding: 10, boxShadow: "0 10px 30px -12px rgba(40,33,84,0.18)", display: "flex", flexDirection: "column" }}>
           {steps.map((s) => {
             const on = s.state === "done" || s.state === "active";
