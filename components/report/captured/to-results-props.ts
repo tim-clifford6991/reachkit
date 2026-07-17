@@ -142,6 +142,7 @@ export function toResultsProps(
         offTopicPct: sv.offTopicPct,
         categoryWins: sv.categoryWins,
         categoryDemand: sv.categoryDemand,
+        categoryPhrases: sv.categoryPhrases,
       }
     : null;
 

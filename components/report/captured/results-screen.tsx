@@ -138,6 +138,8 @@ export interface ResultsScreenProps {
     categoryWins: number;
     /** Total monthly searches in the category (Σ named seed-phrase volumes). */
     categoryDemand: number;
+    /** Every named category phrase + its volume — so categoryDemand reconciles (G4). */
+    categoryPhrases: { keyword: string; volume: number }[];
   } | null;
   /** Real competitor names we discovered (the compare-set). Per-rival share is paid. */
   competitors?: string[];
@@ -350,13 +352,24 @@ export function ResultsScreen(p: ResultsScreenProps) {
                   <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 26 }}>{sv.categoryDemand.toLocaleString()}</span>
                   <span style={{ fontSize: 13.5, color: "var(--c-muted)" }}>searches/mo across your category</span>
                 </div>
-                <div style={{ fontSize: 13.5, color: "var(--c-muted)", marginBottom: 4 }}>
+                <div style={{ fontSize: 13.5, color: "var(--c-muted)", marginBottom: 10 }}>
                   {wins > 0 ? (
                     <>You rank in the top 3 for <strong style={{ color: "#1F9D5B" }}>{wins}</strong> of your category&apos;s searches.</>
                   ) : (
                     <><strong style={{ color: "#E5484D" }}>You don&apos;t rank in the top 3</strong> for any of your category&apos;s searches yet.</>
                   )}
                 </div>
+                {/* G4: itemise the phrases behind the demand total, so "N searches/mo"
+                    is reconcilable against its named parts (was a mystery number). */}
+                {sv.categoryPhrases.length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 10px", fontSize: 12.5, color: "var(--c-faint)", fontFamily: JM }}>
+                    {sv.categoryPhrases.slice(0, 8).map((ph) => (
+                      <span key={ph.keyword} style={{ background: "var(--c-fill)", borderRadius: 6, padding: "2px 8px" }}>
+                        {ph.keyword} <span style={{ color: "var(--c-muted)", fontWeight: 600 }}>{ph.volume.toLocaleString()}</span>
+                      </span>
+                    ))}
+                  </div>
+                )}
                 {comps.length > 0 && (
                   <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--c-line2)", fontSize: 13, color: "var(--c-muted)" }}>
                     Buyers compare you to <strong style={{ color: "var(--c-ink)" }}>{comps.join(", ")}</strong>. <UnlockLink scanId={p.scanId}>Unlock to see how much of your category each one takes →</UnlockLink>
@@ -436,7 +449,13 @@ export function ResultsScreen(p: ResultsScreenProps) {
                   <div><div style={{ fontFamily: JM, fontWeight: 700, fontSize: 22, color: "#E5484D" }}>{top.rank}</div><div style={{ fontSize: 11.5, color: "var(--c-faint)" }}>where you are today</div></div>
                 </div>
                 <div style={{ marginTop: 16, padding: "13px 15px", background: "var(--c-bg2)", borderRadius: 10, fontSize: 13.5, lineHeight: 1.55, color: "var(--c-muted)" }}>
-                  Winning this term lifts your <strong style={{ color: "var(--c-fg)" }}>Search presence</strong> — the weaker half of your Discoverability Score.
+                  {/* G5: "the weaker half" is CONDITIONAL — search presence is the
+                      stronger half on 40% of prod scans (on-page 48 / search 100 etc.).
+                      Only claim it when search presence is actually the lower driver. */}
+                  Winning this term lifts your <strong style={{ color: "var(--c-fg)" }}>Search presence</strong>
+                  {p.searchVisibility && p.searchVisibility.score < p.searchVisibility.onPageReadiness
+                    ? <> — the weaker half of your Discoverability Score.</>
+                    : <>.</>}
                   {more > 0 && <> There {more === 1 ? "is" : "are"} <strong style={{ color: "var(--c-fg)" }}>{more} more</strong> like it in your category.</>}
                 </div>
                 {!p.hideUnlock && (
@@ -523,7 +542,10 @@ export function ResultsScreen(p: ResultsScreenProps) {
           {/* Evidence footnote */}
           <div style={{ marginTop: 24, display: "flex", alignItems: "center", gap: 10, fontSize: 12.5, color: "var(--c-faint)", fontFamily: JM }}>
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#1F9D5B", display: "inline-block" }} />
-            Scanned {p.siteLabel} just now · 18 signals · every claim links to extracted evidence
+            {/* G6: no hardcoded signal count. The free scan MEASURES ~9 signals, not
+                18 (the registry size) — claiming "18 signals" over-stated what we
+                analyzed about YOU. The evidence claim below is true without a number. */}
+            Scanned {p.siteLabel} just now · every claim links to extracted evidence
           </div>
 
           {/* Unlock CTA */}
@@ -534,8 +556,8 @@ export function ResultsScreen(p: ResultsScreenProps) {
                   ? `Unlock ${p.lockedCount} more ranked fix${p.lockedCount === 1 ? "" : "es"} + the full playbook`
                   : "Get the full growth playbook + weekly tracking")}</h3>
                 <p style={{ fontSize: 14.5, color: "#B7B4C4", margin: 0, maxWidth: 430 }}>{p.unlockSub ?? (p.lockedCount > 0
-                  ? "Plus ready-to-ship drafts, your competitor & keyword-gap intel, the full 18-signal breakdown, and score tracking as you fix each one."
-                  : "Ready-to-ship drafts, competitor & keyword-gap intel, the full 18-signal breakdown, and weekly score tracking as you ship.")}</p>
+                  ? "Plus ready-to-ship drafts, your competitor & keyword-gap intel, the full signal breakdown, and score tracking as you fix each one."
+                  : "Ready-to-ship drafts, competitor & keyword-gap intel, the full signal breakdown, and weekly score tracking as you ship.")}</p>
               </div>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
                 {p.unlockButton ?? (
