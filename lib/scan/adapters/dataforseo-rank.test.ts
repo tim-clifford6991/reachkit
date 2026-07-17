@@ -1,9 +1,11 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { findPosition, normalizeTarget } from "./dataforseo-rank";
+import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
+import { makeFixtureProvider } from "@/lib/dev/fixtures";
 
 afterEach(() => {
   vi.unstubAllEnvs();
-  vi.doUnmock("@/lib/dev/fixtures");
+  resetFixtures();
   vi.resetModules();
 });
 
@@ -43,8 +45,7 @@ test("findPosition tolerates a malformed/empty body", () => {
 // path ran it would throw, so passing proves the short-circuit.
 test("rankLookup in fixtures mode returns a deterministic position map (1..50)", async () => {
   vi.resetModules();
-  const { fixtureRankMap } = await import("@/lib/dev/fixtures");
-  vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => true, fixtureRankMap }));
+  installFixtures(makeFixtureProvider()); // provider.rankMap IS fixtureRankMap
   const { rankLookup } = await import("./dataforseo-rank");
 
   const a = await rankLookup(["habit tracker app", "daily habit tracker"], "nudgi.app");
@@ -60,7 +61,7 @@ test("rankLookup in fixtures mode returns a deterministic position map (1..50)",
 
 test("rankLookup returns {} for empty keyword list without touching the network", async () => {
   vi.resetModules();
-  vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => true, fixtureRankMap: () => ({}) }));
+  installFixtures({ ...makeFixtureProvider(), rankMap: () => ({}) });
   const { rankLookup } = await import("./dataforseo-rank");
   expect(await rankLookup([], "nudgi.app")).toEqual({});
   expect(await rankLookup(["", "   "], "nudgi.app")).toEqual({});

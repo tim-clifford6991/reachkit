@@ -10,8 +10,14 @@
  *   - Fixture mode: draft embeddings inserted for this app (callEmbed + insertEmbeddings called)
  */
 
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { ActionCard } from "@/lib/llm/types";
+import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
+import { makeFixtureProvider } from "@/lib/dev/fixtures";
+
+// Fixture mode is driven by the injected seam; reset it after every test so a
+// provider installed by one test never leaks into the next.
+afterEach(() => resetFixtures());
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -101,7 +107,7 @@ describe("algorithmSafety — outreach cap", () => {
   });
 
   test("8 outreach actions are trimmed to the 5 highest-confidence", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => true }));
+    installFixtures(makeFixtureProvider());
     vi.doMock("@/lib/llm/embed", () => ({
       callEmbed: vi.fn().mockResolvedValue([]),
     }));
@@ -142,7 +148,7 @@ describe("algorithmSafety — outreach cap", () => {
   });
 
   test("≤5 outreach cards are unchanged by the cap", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => true }));
+    installFixtures(makeFixtureProvider());
     vi.doMock("@/lib/llm/embed", () => ({
       callEmbed: vi.fn().mockResolvedValue([]),
     }));
@@ -187,7 +193,7 @@ describe("algorithmSafety — per-surface dedup", () => {
   });
 
   test("two outreach actions sharing a source host → only the higher-confidence survives", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => true }));
+    installFixtures(makeFixtureProvider());
     vi.doMock("@/lib/llm/embed", () => ({
       callEmbed: vi.fn().mockResolvedValue([]),
     }));
@@ -234,7 +240,7 @@ describe("algorithmSafety — per-surface dedup", () => {
   });
 
   test("two outreach actions with different hosts both survive", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => true }));
+    installFixtures(makeFixtureProvider());
     vi.doMock("@/lib/llm/embed", () => ({
       callEmbed: vi.fn().mockResolvedValue([]),
     }));
@@ -282,7 +288,7 @@ describe("algorithmSafety — per-surface dedup", () => {
   // survive — previously extractHost() treated the label as a host, collapsing
   // them and silently dropping a whole action category.
   test("two outreach actions with distinct URLs sharing a provenance label both survive", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => true }));
+    installFixtures(makeFixtureProvider());
     vi.doMock("@/lib/llm/embed", () => ({
       callEmbed: vi.fn().mockResolvedValue([]),
     }));
@@ -340,7 +346,7 @@ describe("algorithmSafety — draftRequiresEdit forced true", () => {
   });
 
   test("cards with draftRequiresEdit:false have it forced to true on output", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => true }));
+    installFixtures(makeFixtureProvider());
     vi.doMock("@/lib/llm/embed", () => ({
       callEmbed: vi.fn().mockResolvedValue([]),
     }));
@@ -366,7 +372,7 @@ describe("algorithmSafety — draftRequiresEdit forced true", () => {
   });
 
   test("all returned cards always have draftRequiresEdit true", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => true }));
+    installFixtures(makeFixtureProvider());
     vi.doMock("@/lib/llm/embed", () => ({
       callEmbed: vi.fn().mockResolvedValue([]),
     }));
@@ -405,7 +411,7 @@ describe("algorithmSafety — fixture mode (no LLM rewrite)", () => {
   });
 
   test("a generic draft is kept as-is (flagged but NOT rewritten) in fixture mode", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => true }));
+    installFixtures(makeFixtureProvider());
     vi.doMock("@/lib/llm/embed", () => ({
       callEmbed: vi.fn().mockResolvedValue(
         Array.from({ length: 1 }, () => Array(1024).fill(0.01)),
@@ -437,7 +443,7 @@ describe("algorithmSafety — fixture mode (no LLM rewrite)", () => {
   });
 
   test("fixture mode: draft embeddings are stored (deleteEmbeddingsForApp + insertEmbeddings called)", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => true }));
+    installFixtures(makeFixtureProvider());
 
     const mockVec = Array(1024).fill(0.01);
     const callEmbedMock = vi.fn().mockResolvedValue([mockVec]);
@@ -485,7 +491,6 @@ describe("algorithmSafety — live mode generic-tell rewrite (mocked)", () => {
   });
 
   test("a generic draft triggers a Haiku rewrite; less-generic result is kept", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/llm/embed", () => ({
       callEmbed: vi.fn().mockResolvedValue([Array(1024).fill(0.01)]),
     }));
@@ -526,7 +531,6 @@ describe("algorithmSafety — live mode generic-tell rewrite (mocked)", () => {
   });
 
   test("if rewrite is MORE generic, the original draft is kept", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/llm/embed", () => ({
       callEmbed: vi.fn().mockResolvedValue([Array(1024).fill(0.01)]),
     }));
@@ -573,7 +577,7 @@ describe("algorithmSafety — null draft cards are unaffected", () => {
   });
 
   test("seo_aso card with null draft passes through all checks unchanged", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => true }));
+    installFixtures(makeFixtureProvider());
     vi.doMock("@/lib/llm/embed", () => ({
       callEmbed: vi.fn().mockResolvedValue([]),
     }));

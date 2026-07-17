@@ -1,5 +1,8 @@
-import { beforeEach, describe, expect, test, vi } from "vitest";
-import { fixtureEmbed } from "@/lib/dev/fixtures";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { fixtureEmbed, makeFixtureProvider } from "@/lib/dev/fixtures";
+import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
+
+afterEach(() => resetFixtures());
 
 // ---------------------------------------------------------------------------
 // fixtureEmbed — determinism and shape
@@ -54,10 +57,7 @@ describe("callEmbed in fixtures mode", () => {
   });
 
   test("returns fixtureEmbed output without any fetch call", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({
-      fixturesEnabled: () => true,
-      fixtureEmbed: (texts: string[]) => texts.map(() => Array(1024).fill(0.1)),
-    }));
+    installFixtures({ ...makeFixtureProvider(), embed: (texts: string[]) => texts.map(() => Array(1024).fill(0.1)) });
 
     const fetchSpy = vi.spyOn(globalThis, "fetch");
 
@@ -72,10 +72,7 @@ describe("callEmbed in fixtures mode", () => {
   });
 
   test("in fixtures mode result matches fixtureEmbed directly", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({
-      fixturesEnabled: () => true,
-      fixtureEmbed,
-    }));
+    installFixtures(makeFixtureProvider());
 
     const { callEmbed } = await import("./embed");
     const direct = fixtureEmbed(["near text", "far text"]);
@@ -95,10 +92,6 @@ describe("callEmbed in live mode", () => {
   test("POSTs to Voyage and maps data[].embedding", async () => {
     const mockEmbedding = Array.from({ length: 1024 }, (_, i) => i / 1024);
 
-    vi.doMock("@/lib/dev/fixtures", () => ({
-      fixturesEnabled: () => false,
-      fixtureEmbed,
-    }));
     vi.doMock("@/lib/config/env", () => ({
       env: { voyageApiKey: "test-key", useFixtures: false },
     }));
@@ -129,10 +122,6 @@ describe("callEmbed in live mode", () => {
   });
 
   test("throws when Voyage returns non-ok status", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({
-      fixturesEnabled: () => false,
-      fixtureEmbed,
-    }));
     vi.doMock("@/lib/config/env", () => ({
       env: { voyageApiKey: "bad-key", useFixtures: false },
     }));

@@ -11,7 +11,7 @@
 
 import { callModel } from "@/lib/llm/anthropic";
 import { extractJson } from "@/lib/llm/json";
-import { fixturesEnabled } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 import type { DemandHit, ClassifiedHit } from "./types";
 
 const MODEL = "claude-haiku-4-5-20251001" as const;
@@ -88,7 +88,7 @@ export async function classifyHits(
   opts: { scanId?: string | null } = {},
 ): Promise<ClassifiedHit[]> {
   if (hits.length === 0) return [];
-  if (fixturesEnabled()) {
+  if (fixtures()) {
     return hits.map((h) => ({ ...h, isBuyerPain: false, intent: 0 }));
   }
 

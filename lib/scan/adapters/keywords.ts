@@ -1,7 +1,7 @@
 import type { KeywordRow } from "@/lib/scan/types";
 import { env } from "@/lib/config/env";
 import { serpAuthHeader, dfsJson } from "./dataforseo";
-import { fixturesEnabled, fixtureKeywords } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
 
 export function parseKeywords(body: unknown): KeywordRow[] {
@@ -16,7 +16,7 @@ export function parseKeywords(body: unknown): KeywordRow[] {
 }
 
 export async function keywordsData(seeds: string[]): Promise<{ keywords: KeywordRow[]; raw: unknown }> {
-  if (fixturesEnabled()) return fixtureKeywords(seeds);
+  const _f = fixtures(); if (_f) return _f.keywords(seeds);
   const res = await fetchWithTimeout(
     "https://api.dataforseo.com/v3/keywords_data/google_ads/search_volume/live",
     {

@@ -8,7 +8,7 @@
  */
 
 import { env } from "@/lib/config/env";
-import { fixturesEnabled } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
 import { serpAuthHeader, dfsJson } from "@/lib/scan/adapters/dataforseo";
 import { callModel } from "@/lib/llm/anthropic";
@@ -151,7 +151,7 @@ export async function filterProductCompetitors(
   opts: { scanId?: string | null } = {},
 ): Promise<string[]> {
   if (domains.length === 0) return [];
-  if (fixturesEnabled()) return domains;
+  if (fixtures()) return domains;
   try {
     const { text } = await callModel({
       model: MODEL,
@@ -191,7 +191,7 @@ export async function discoverProductCompetitors(
  * failure) returns []. Never throws.
  */
 export async function discoverCompetitorDomains(domain: string, topN = 5): Promise<string[]> {
-  if (fixturesEnabled()) return [];
+  if (fixtures()) return [];
   const target = toHost(domain);
   try {
     const res = await fetchWithTimeout(

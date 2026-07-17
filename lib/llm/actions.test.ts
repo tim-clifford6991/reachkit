@@ -1,4 +1,8 @@
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { beforeEach, afterEach, describe, expect, test, vi } from "vitest";
+import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
+import { makeFixtureProvider } from "@/lib/dev/fixtures";
+
+afterEach(() => resetFixtures());
 import type { ActionCard, Finding } from "./types";
 import { clampEffort, ACTION_EFFORT_MIN, ACTION_EFFORT_MAX, coerceCardForTest } from "./actions";
 import { buildActionsPrompt } from "./prompts";
@@ -155,7 +159,6 @@ describe("generateActions — normal path", () => {
   });
 
   test("returns at least one card per category (content, outreach, seo_aso)", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/scan/fact-sheets", () => ({
       getFreshFactSheet: makeGetFreshFactSheetMock(),
       factSheetSubjectType: () => "app",
@@ -199,7 +202,6 @@ describe("generateActions — normal path", () => {
   });
 
   test("callModel called with model=claude-haiku-4-5-20251001, stage=format, maxTokens=4096", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/scan/fact-sheets", () => ({
       getFreshFactSheet: makeGetFreshFactSheetMock(),
       factSheetSubjectType: () => "app",
@@ -240,7 +242,6 @@ describe("generateActions — normal path", () => {
   });
 
   test("getFreshFactSheet called for all 4 kinds", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     const getFreshMock = makeGetFreshFactSheetMock();
     vi.doMock("@/lib/scan/fact-sheets", () => ({
       getFreshFactSheet: getFreshMock,
@@ -285,7 +286,6 @@ describe("generateActions — draftRequiresEdit invariant", () => {
   });
 
   test("draftRequiresEdit is always true, even if model returns false", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/scan/fact-sheets", () => ({
       getFreshFactSheet: makeGetFreshFactSheetMock(),
       factSheetSubjectType: () => "app",
@@ -330,7 +330,6 @@ describe("generateActions — confidence clamping", () => {
   });
 
   test("confidence value of 99 is clamped to 1", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/scan/fact-sheets", () => ({
       getFreshFactSheet: makeGetFreshFactSheetMock(),
       factSheetSubjectType: () => "app",
@@ -366,7 +365,6 @@ describe("generateActions — confidence clamping", () => {
   });
 
   test("confidence value of -5 is clamped to 0", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/scan/fact-sheets", () => ({
       getFreshFactSheet: makeGetFreshFactSheetMock(),
       factSheetSubjectType: () => "app",
@@ -411,7 +409,6 @@ describe("generateActions — malformed JSON degrades without throwing", () => {
   });
 
   test("malformed JSON response returns non-empty degraded set (no throw)", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/scan/fact-sheets", () => ({
       getFreshFactSheet: makeGetFreshFactSheetMock(),
       factSheetSubjectType: () => "app",
@@ -448,7 +445,6 @@ describe("generateActions — malformed JSON degrades without throwing", () => {
   });
 
   test("non-array JSON response returns degraded set (no throw)", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/scan/fact-sheets", () => ({
       getFreshFactSheet: makeGetFreshFactSheetMock(),
       factSheetSubjectType: () => "app",
@@ -479,7 +475,6 @@ describe("generateActions — malformed JSON degrades without throwing", () => {
   });
 
   test("callModel throwing returns degraded set (no throw)", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/scan/fact-sheets", () => ({
       getFreshFactSheet: makeGetFreshFactSheetMock(),
       factSheetSubjectType: () => "app",
@@ -510,7 +505,6 @@ describe("generateActions — malformed JSON degrades without throwing", () => {
   });
 
   test("array with all malformed cards returns degraded set", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/scan/fact-sheets", () => ({
       getFreshFactSheet: makeGetFreshFactSheetMock(),
       factSheetSubjectType: () => "app",
@@ -554,7 +548,6 @@ describe("generateActions — evidenceIds invariant", () => {
   });
 
   test("evidenceIds is always [] regardless of model output", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/scan/fact-sheets", () => ({
       getFreshFactSheet: makeGetFreshFactSheetMock(),
       factSheetSubjectType: () => "app",
@@ -599,7 +592,6 @@ describe("generateActions — verification.state invariant", () => {
   });
 
   test("verification.state is always 'pending' regardless of model output", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/scan/fact-sheets", () => ({
       getFreshFactSheet: makeGetFreshFactSheetMock(),
       factSheetSubjectType: () => "app",
@@ -655,10 +647,7 @@ describe("generateActions — fixture mode", () => {
       makeCard("seo_aso"),
     ];
 
-    vi.doMock("@/lib/dev/fixtures", () => ({
-      fixturesEnabled: () => true,
-      fixtureActions: () => FIXTURE_CARDS,
-    }));
+    installFixtures({ ...makeFixtureProvider(), actions: () => FIXTURE_CARDS });
     vi.doMock("@/lib/scan/fact-sheets", () => ({
       getFreshFactSheet: getFreshMock,
       factSheetSubjectType: () => "app",
@@ -678,10 +667,7 @@ describe("generateActions — fixture mode", () => {
   });
 
   test("fixture mode result has ≥1 card per category", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({
-      fixturesEnabled: () => true,
-      fixtureActions: () => [makeCard("content"), makeCard("outreach"), makeCard("seo_aso")],
-    }));
+    installFixtures({ ...makeFixtureProvider(), actions: () => [makeCard("content"), makeCard("outreach"), makeCard("seo_aso")] });
     vi.doMock("@/lib/scan/fact-sheets", () => ({
       getFreshFactSheet: vi.fn(),
       factSheetSubjectType: () => "app",
@@ -749,7 +735,6 @@ describe("generateActions — markdown fence stripping", () => {
   });
 
   test("strips markdown code fences if model wraps JSON in ```json ... ```", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/scan/fact-sheets", () => ({
       getFreshFactSheet: makeGetFreshFactSheetMock(),
       factSheetSubjectType: () => "app",

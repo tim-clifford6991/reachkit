@@ -13,7 +13,7 @@
 import { createHash } from "node:crypto";
 import type { NextRequest } from "next/server";
 import { serverDb } from "@/lib/db/client";
-import { fixturesEnabled } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 
 /** Max scans permitted per IP within the rolling window (1 hour). */
 export const RATE_LIMIT = 10;
@@ -131,7 +131,7 @@ export async function findExistingScanForApp(appId: string): Promise<string | nu
  */
 export async function assertRateLimit(ipHash: string): Promise<void> {
   // Generous local/dev: never block fixture runs.
-  if (fixturesEnabled()) return;
+  if (fixtures()) return;
   // Don't collapse everyone behind a header-stripping proxy into one bucket.
   if (ipHash === UNKNOWN_IP_HASH) return;
 

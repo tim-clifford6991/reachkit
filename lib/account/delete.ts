@@ -27,7 +27,7 @@
  */
 
 import { serverDb } from "@/lib/db/client";
-import { fixturesEnabled } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 import { assertStripeConfigured, stripeClient } from "@/lib/billing/stripe";
 
 export class AccountNotFoundError extends Error {
@@ -69,7 +69,7 @@ export async function deleteAccount(userId: string): Promise<DeleteAccountResult
   // 2. Cancel the Stripe subscription first. Never orphan a live sub on a
   //    deleted account. Tolerate an already-gone sub; abort on any other error.
   let canceledSubscription = false;
-  if (subscriptionId && !fixturesEnabled()) {
+  if (subscriptionId && !fixtures()) {
     assertStripeConfigured();
     try {
       await stripeClient().subscriptions.cancel(subscriptionId);

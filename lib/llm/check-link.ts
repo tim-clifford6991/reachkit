@@ -11,7 +11,7 @@
 import { parse } from "node-html-parser";
 import type { ToolDefinition } from "@/lib/tools/registry";
 import { callModel } from "@/lib/llm/anthropic";
-import { fixturesEnabled } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 import { ENTAIL_SYSTEM, buildEntailPrompt } from "@/lib/llm/prompts";
 import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
 
@@ -74,7 +74,7 @@ export const checkLink: ToolDefinition<CheckLinkArgs, CheckLinkResult> = {
 
   async run(args, ctx) {
     // Fixture short-circuit — no fetch, no LLM
-    if (fixturesEnabled()) {
+    if (fixtures()) {
       return { entails: true, reason: "fixtures: assumed entailed" };
     }
 

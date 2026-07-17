@@ -5,19 +5,23 @@
  * - charges the budget once (1 toolCall, 0 cents)
  * - tool metadata: name=track_rank, klass=D
  */
-import { beforeEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
+import { makeFixtureProvider } from "@/lib/dev/fixtures";
 
 beforeEach(() => {
   vi.resetModules();
   vi.unstubAllGlobals();
 });
 
+afterEach(() => resetFixtures());
+
 // ---------------------------------------------------------------------------
 // Fixture mode — deterministic, non-empty ranks map, no network
 // ---------------------------------------------------------------------------
 
 test("track_rank returns a deterministic non-empty ranks map for the given keywords (fixtures)", async () => {
-  vi.doMock("@/lib/config/env", () => ({ env: { useFixtures: true } }));
+  installFixtures(makeFixtureProvider());
   // fetch must never be hit in fixtures mode
   const fetchMock = vi.fn();
   vi.stubGlobal("fetch", fetchMock);
@@ -43,7 +47,7 @@ test("track_rank returns a deterministic non-empty ranks map for the given keywo
 
   // Deterministic: a second run with the same inputs yields an identical map
   vi.resetModules();
-  vi.doMock("@/lib/config/env", () => ({ env: { useFixtures: true } }));
+  // the installed provider persists across resetModules (globalThis-backed seam)
   const { trackRank: trackRank2 } = await import("./track-rank");
   const budget2 = new ScanBudget({ maxToolCalls: 60, budgetCents: 150 });
   const out2 = await trackRank2.run({ keywords, target }, { scanId: "s2", mode: "web", budget: budget2 });
@@ -55,7 +59,7 @@ test("track_rank returns a deterministic non-empty ranks map for the given keywo
 // ---------------------------------------------------------------------------
 
 test("track_rank charges 1 tool call and 0 cents", async () => {
-  vi.doMock("@/lib/config/env", () => ({ env: { useFixtures: true } }));
+  installFixtures(makeFixtureProvider());
 
   const { trackRank } = await import("./track-rank");
   const { ScanBudget } = await import("@/lib/tools/registry");
@@ -103,7 +107,6 @@ test("track_rank returns whatever rankLookup yields", async () => {
 // ---------------------------------------------------------------------------
 
 test("track_rank has name=track_rank and klass=D", async () => {
-  vi.doMock("@/lib/config/env", () => ({ env: { useFixtures: true } }));
   const { trackRank } = await import("./track-rank");
   expect(trackRank.name).toBe("track_rank");
   expect(trackRank.klass).toBe("D");

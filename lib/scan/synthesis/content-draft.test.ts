@@ -9,8 +9,10 @@
  *   - generateContentDraft (live): returns the §11-scrubbed draft, always
  *     requiresEdit true.
  */
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { ContentPlanItem } from "./synthesize";
+import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
+import { makeFixtureProvider } from "@/lib/dev/fixtures";
 
 function item(overrides: Partial<ContentPlanItem> = {}): ContentPlanItem {
   return {
@@ -34,6 +36,8 @@ beforeEach(() => {
   vi.resetModules();
 });
 
+afterEach(() => resetFixtures());
+
 describe("buildContentDraftPrompt", () => {
   test("includes topic, keywords, depth and the edit-before-publish rule", async () => {
     const { buildContentDraftPrompt } = await import("./content-draft");
@@ -48,7 +52,7 @@ describe("buildContentDraftPrompt", () => {
 
 describe("generateContentDraft — fixtures mode", () => {
   test("returns a labelled stub, requiresEdit true, no paid call", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => true }));
+    installFixtures(makeFixtureProvider());
     const callModel = vi.fn();
     vi.doMock("@/lib/llm/anthropic", () => ({ callModel }));
 
@@ -63,7 +67,6 @@ describe("generateContentDraft — fixtures mode", () => {
 
 describe("generateContentDraft — live mode", () => {
   test("returns the scrubbed draft, always requiresEdit true", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     // A specific, cliché-free draft — the §11 scrub leaves it unchanged.
     const specific =
       "# Picking a habit tracker that sticks\n\nMost people quit their tracker by day 12. " +
@@ -84,7 +87,6 @@ describe("generateContentDraft — live mode", () => {
   });
 
   test("a max_tokens cut-off is continued and stitched — never shipped truncated", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     const part1 = "# Email deliverability\n\nMajor ISPs offer feedback loops (F";
     const part2 = "BLs) that report spam complaints back to you. Register for each one.";
     const callModel = vi
@@ -105,7 +107,6 @@ describe("generateContentDraft — live mode", () => {
   });
 
   test("continuation stops after the safety cap even if the model keeps hitting max_tokens", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     const callModel = vi.fn().mockResolvedValue({
       text: "chunk. This is specific prose about SPF records and DNS lookups.",
       usage: { inputTokens: 10, outputTokens: 20 },
@@ -122,7 +123,6 @@ describe("generateContentDraft — live mode", () => {
 
 describe("scrubGenericTells — truncation guard", () => {
   test("a truncated rewrite never replaces the draft", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     // Cliché-laden long draft (≥2 tells → rewrite path taken).
     const original =
       "In today's fast-paced world, our seamless solution is a game-changer. " +
@@ -145,7 +145,6 @@ describe("scrubGenericTells — truncation guard", () => {
   });
 
   test("rewrite token budget scales with the draft size", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     const original =
       "In today's fast-paced world, leverage our seamless game-changer platform. ".repeat(400); // ~29k chars
     const callModel = vi.fn().mockResolvedValue({

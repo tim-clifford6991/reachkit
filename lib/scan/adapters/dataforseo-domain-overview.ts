@@ -16,7 +16,7 @@
  */
 
 import { env } from "@/lib/config/env";
-import { fixturesEnabled } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
 import { serpAuthHeader, dfsJson } from "@/lib/scan/adapters/dataforseo";
 
@@ -61,7 +61,7 @@ export function parseDomainOverview(body: unknown): DomainOverview | null {
 
 /** Fetch a domain's true organic footprint. null in fixtures / on any failure. */
 export async function fetchDomainOverview(target: string): Promise<DomainOverview | null> {
-  if (fixturesEnabled()) return null;
+  if (fixtures()) return null;
   try {
     const res = await fetchWithTimeout(
       "https://api.dataforseo.com/v3/dataforseo_labs/google/domain_rank_overview/live",

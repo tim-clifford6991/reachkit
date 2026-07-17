@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
+import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
+import { makeFixtureProvider } from "@/lib/dev/fixtures";
 
-// Mockable surface: fixtures flag + the service-role db client. The db mock
-// returns a deferred result so each test resolves the count it wants.
-const fixturesEnabledMock = vi.fn<() => boolean>(() => false);
+// Mockable surface: the service-role db client. The db mock returns a deferred
+// result so each test resolves the count it wants. Fixture mode is driven by the
+// injected seam (installFixtures), not a flag mock.
 let nextCount: number | null = 0;
 let nextError: { message: string } | null = null;
 const gteMock = vi.fn(async () => ({ count: nextCount, error: nextError }));
@@ -10,7 +12,6 @@ const eqMock = vi.fn(() => ({ gte: gteMock }));
 const selectMock = vi.fn(() => ({ eq: eqMock }));
 const fromMock = vi.fn(() => ({ select: selectMock }));
 
-vi.mock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => fixturesEnabledMock() }));
 vi.mock("@/lib/db/client", () => ({ serverDb: () => ({ from: fromMock }) }));
 
 const { hashIp, ipFromRequest, assertRateLimit, AbuseError, RATE_LIMIT } = await import("./abuse");
@@ -21,7 +22,7 @@ function reqWith(headers: Record<string, string>): import("next/server").NextReq
 
 afterEach(() => {
   vi.clearAllMocks();
-  fixturesEnabledMock.mockReturnValue(false);
+  resetFixtures();
   nextCount = 0;
   nextError = null;
 });
@@ -79,7 +80,7 @@ describe("assertRateLimit counting", () => {
 
 describe("assertRateLimit skips", () => {
   test("fixtures mode skips the limit regardless of count (no query issued)", async () => {
-    fixturesEnabledMock.mockReturnValue(true);
+    installFixtures(makeFixtureProvider());
     nextCount = RATE_LIMIT * 100;
     await expect(assertRateLimit(hashIp("1.2.3.4"))).resolves.toBeUndefined();
     expect(fromMock).not.toHaveBeenCalled();

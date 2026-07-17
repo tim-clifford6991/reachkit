@@ -9,7 +9,7 @@
  */
 
 import { env } from "@/lib/config/env";
-import { fixturesEnabled } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
 
 export type ChannelRef =
@@ -75,7 +75,7 @@ async function ytGet(path: string): Promise<unknown | null> {
  * unresolvable channel → []. Never throws.
  */
 export async function youtubeChannelDates(channelUrl: string): Promise<string[]> {
-  if (fixturesEnabled() || !env.youtubeApiKey) return [];
+  if (fixtures() || !env.youtubeApiKey) return [];
   const ref = parseChannelRef(channelUrl);
   if (!ref) return [];
 

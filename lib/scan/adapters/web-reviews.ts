@@ -1,5 +1,5 @@
 import { env } from "@/lib/config/env";
-import { fixturesEnabled } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
 import { recordTavilyCost } from "@/lib/scan/cost-context";
 
@@ -65,7 +65,7 @@ export function reviewCountFromSnippets(snippets: string[]): number {
 }
 
 export async function fetchWebReviews(subject: string): Promise<{ snippets: string[]; raw: unknown }> {
-  if (fixturesEnabled()) return { snippets: [], raw: { skipped: "fixtures" } };
+  if (fixtures()) return { snippets: [], raw: { skipped: "fixtures" } };
   try {
     const res = await fetchWithTimeout("https://api.tavily.com/search", {
       method: "POST",

@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { env } from "@/lib/config/env";
-import { fixturesEnabled } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 import { recordPipelineRun, anthropicCostCents } from "@/lib/telemetry/pipeline-runs";
 import { currentScanId } from "@/lib/scan/cost-context";
 import type { ModelId } from "@/lib/telemetry/pipeline-runs";
@@ -30,7 +30,7 @@ export async function callModel(args: {
   stopReason: string | null;
 }> {
   // Fixtures mode makes zero paid calls; LLM-derived fields are intentionally empty in this mode.
-  if (fixturesEnabled()) return { text: "", usage: { inputTokens: 0, outputTokens: 0 }, stopReason: null };
+  if (fixtures()) return { text: "", usage: { inputTokens: 0, outputTokens: 0 }, stopReason: null };
   const client = new Anthropic({ apiKey: env.anthropicApiKey });
   const started = performance.now();
 

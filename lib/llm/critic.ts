@@ -15,7 +15,7 @@
 import { callModel } from "@/lib/llm/anthropic";
 import { checkLink } from "@/lib/llm/check-link";
 import { CRITIC_SYSTEM, buildCriticPrompt } from "@/lib/llm/prompts";
-import { fixturesEnabled } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 import { recordPipelineRun } from "@/lib/telemetry/pipeline-runs";
 import type { ActionCard } from "@/lib/llm/types";
 import type { ScanContext } from "@/lib/scan/pipeline";
@@ -150,7 +150,7 @@ export async function runCritic(ctx: ScanContext, card: ActionCard, skipLlm = fa
   // deterministic checks suffice and we avoid ~3 Sonnet calls per card). ---
   let currentCard = card;
 
-  if (!fixturesEnabled() && !skipLlm) {
+  if (!fixtures() && !skipLlm) {
     const factContext = buildFactContext(card);
     let llmResponse: CriticLlmResponse | null = null;
 

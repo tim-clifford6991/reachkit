@@ -1,5 +1,5 @@
 import { env } from "@/lib/config/env";
-import { fixtureEmbed, fixturesEnabled } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
 
 /**
@@ -11,8 +11,9 @@ import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
  * In production mode POSTs to Voyage AI (`voyage-3`, 1024-dim).
  */
 export async function callEmbed(texts: string[]): Promise<number[][]> {
-  if (fixturesEnabled()) {
-    return fixtureEmbed(texts);
+  const _f = fixtures();
+  if (_f) {
+    return _f.embed(texts);
   }
 
   const res = await fetchWithTimeout("https://api.voyageai.com/v1/embeddings", {

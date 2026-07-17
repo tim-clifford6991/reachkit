@@ -1,6 +1,6 @@
 import { Resend } from "resend";
 import { env } from "@/lib/config/env";
-import { fixturesEnabled } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 
 const FROM = "ReachKit <reports@reachkit.app>";
 
@@ -22,7 +22,7 @@ export async function sendMagicLinkEmail({
   to: string;
   link: string;
 }): Promise<void> {
-  if (fixturesEnabled()) {
+  if (fixtures()) {
     console.log("[email:fixture] magic-link →", { to, link });
     return;
   }

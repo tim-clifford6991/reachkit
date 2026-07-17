@@ -1,6 +1,6 @@
 import type { Competitor } from "@/lib/scan/types";
 import { env } from "@/lib/config/env";
-import { fixturesEnabled, fixtureSerp } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
 import { recordDataForSeoCost } from "@/lib/scan/cost-context";
 
@@ -46,7 +46,7 @@ export function parseSerpContent(body: unknown): string {
 
 // Live SERP — used only for the 10s screen (Live is the costed exception; Standard queue is the default elsewhere).
 export async function liveSerpAlternatives(productName: string): Promise<{ competitors: Competitor[]; serpResultCount: number; raw: unknown }> {
-  if (fixturesEnabled()) return fixtureSerp(productName);
+  const _f = fixtures(); if (_f) return _f.serp(productName);
   const res = await fetchWithTimeout("https://api.dataforseo.com/v3/serp/google/organic/live/advanced", {
     method: "POST",
     headers: { Authorization: serpAuthHeader(env.dataforseoLogin, env.dataforseoPassword), "content-type": "application/json" },

@@ -16,7 +16,7 @@
  * Prompt is pure/testable; the LLM call is fixtures-aware.
  */
 import { callModel } from "@/lib/llm/anthropic";
-import { fixturesEnabled } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 import { scrubGenericTells } from "@/lib/scan/algorithm-safety";
 import type { ContentPlanItem } from "./synthesize";
 
@@ -68,7 +68,7 @@ const MAX_CONTINUATIONS = 2;
  * max_tokens, so the draft always ends where the article ends.
  */
 export async function generateContentDraft(item: ContentPlanItem): Promise<ContentDraft> {
-  if (fixturesEnabled()) {
+  if (fixtures()) {
     return {
       markdown: `# [draft] ${item.topic}\n\n_${item.format || "article"} · ${item.depthTarget || ""}_`,
       requiresEdit: true,

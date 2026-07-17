@@ -1,5 +1,5 @@
 import type { Competitor } from "@/lib/scan/types";
-import { fixturesEnabled, fixturePh } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 
 type PhNode = { name: string; votesCount: number; url: string; reviewsCount: number };
 
@@ -13,7 +13,8 @@ export function parsePhPosts(data: unknown, productName: string): { selfUpvotes:
 }
 
 export async function fetchPhByName(productName: string): Promise<{ selfUpvotes: number; neighbours: Competitor[]; raw: unknown }> {
-  if (fixturesEnabled()) return fixturePh(productName);
+  const _f = fixtures();
+  if (_f) return _f.ph(productName);
   // Product Hunt API v2's `posts` field has NO reliable free-text search — the
   // old `query` argument made the API error outright ("Field 'posts' doesn't
   // accept argument 'query'"). More importantly, looking a product up by name

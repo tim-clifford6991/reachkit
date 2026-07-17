@@ -8,7 +8,7 @@
  */
 
 import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
-import { fixturesEnabled } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 import { computeCadence } from "./cadence";
 import { sitemapsFromRobots, parseSitemap, defaultSitemapCandidates, looksLikeBlogPost } from "./sitemap";
 import { feedUrlsFromHtml, parseFeedDates, defaultFeedCandidates } from "./feeds";
@@ -99,7 +99,7 @@ export async function crawlContentChannels(
   domain: string,
   nowMs: number = Date.now(),
 ): Promise<ContentChannel[]> {
-  if (fixturesEnabled()) return [];
+  if (fixtures()) return [];
   const host = toHost(domain);
 
   const [robots, homepage] = await Promise.all([

@@ -6,7 +6,11 @@
  * - charges budget (1 toolCall, 0 cents)
  * - persists raw_document + records pipeline_run
  */
-import { expect, test, vi } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
+import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
+import { makeFixtureProvider } from "@/lib/dev/fixtures";
+
+afterEach(() => resetFixtures());
 
 // ---------------------------------------------------------------------------
 // Fixture mode — no network
@@ -20,10 +24,7 @@ test("find_communities in fixture mode returns fixtureCommunities without networ
     { source: "hn", title: "Show HN: a habit tracker", url: "https://news.ycombinator.com/item?id=2", engagement: 55 },
   ];
 
-  vi.doMock("@/lib/dev/fixtures", () => ({
-    fixturesEnabled: () => true,
-    fixtureCommunities: () => FIXTURE_COMMUNITIES,
-  }));
+  installFixtures({ ...makeFixtureProvider(), communities: () => FIXTURE_COMMUNITIES });
   vi.doMock("@/lib/scan/adapters/hn-algolia", () => ({
     hnSearch: async () => { throw new Error("should not be called"); },
   }));
@@ -55,9 +56,6 @@ test("find_communities in fixture mode returns fixtureCommunities without networ
 test("find_communities returns HN results in live mode", async () => {
   vi.resetModules();
 
-  vi.doMock("@/lib/dev/fixtures", () => ({
-    fixturesEnabled: () => false,
-  }));
   vi.doMock("@/lib/scan/adapters/hn-algolia", () => ({
     hnSearch: async () => ([
       { source: "hn", title: "HN post", url: "https://hn.com/1", engagement: 100 },
@@ -90,9 +88,6 @@ test("find_communities returns HN results in live mode", async () => {
 test("find_communities degrades to an empty list when HN throws", async () => {
   vi.resetModules();
 
-  vi.doMock("@/lib/dev/fixtures", () => ({
-    fixturesEnabled: () => false,
-  }));
   vi.doMock("@/lib/scan/adapters/hn-algolia", () => ({
     hnSearch: async () => { throw new Error("HN 500"); },
   }));
@@ -122,9 +117,6 @@ test("find_communities degrades to an empty list when HN throws", async () => {
 test("find_communities charges 1 tool call and 0 cents", async () => {
   vi.resetModules();
 
-  vi.doMock("@/lib/dev/fixtures", () => ({
-    fixturesEnabled: () => false,
-  }));
   vi.doMock("@/lib/scan/adapters/hn-algolia", () => ({
     hnSearch: async () => [],
   }));
@@ -157,9 +149,6 @@ test("find_communities persists raw doc with sourceType=communities", async () =
 
   const upsertRawDocument = vi.fn(async () => ({ id: 42, deduped: false }));
 
-  vi.doMock("@/lib/dev/fixtures", () => ({
-    fixturesEnabled: () => false,
-  }));
   vi.doMock("@/lib/scan/adapters/hn-algolia", () => ({
     hnSearch: async () => [],
   }));
@@ -191,9 +180,6 @@ test("find_communities records a pipeline_run row with stage=tool", async () => 
 
   const recordPipelineRun = vi.fn(async () => {});
 
-  vi.doMock("@/lib/dev/fixtures", () => ({
-    fixturesEnabled: () => false,
-  }));
   vi.doMock("@/lib/scan/adapters/hn-algolia", () => ({
     hnSearch: async () => [],
   }));
@@ -227,9 +213,6 @@ test("find_communities uses subjectType=app in app mode", async () => {
 
   const upsertRawDocument = vi.fn(async () => ({ id: 1, deduped: false }));
 
-  vi.doMock("@/lib/dev/fixtures", () => ({
-    fixturesEnabled: () => false,
-  }));
   vi.doMock("@/lib/scan/adapters/hn-algolia", () => ({
     hnSearch: async () => [],
   }));

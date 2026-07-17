@@ -1,5 +1,9 @@
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { ReviewThemesSheet, PositioningSheet, CompetitorGapSheet, KeywordSheet } from "./types";
+import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
+import { makeFixtureProvider } from "@/lib/dev/fixtures";
+
+afterEach(() => resetFixtures());
 
 // ---------------------------------------------------------------------------
 // Canned model responses
@@ -105,7 +109,6 @@ describe("runExtract — normal path", () => {
 
   test("calls upsertFactSheet for all 4 kinds with parsed bodies", async () => {
     vi.doMock("@/lib/db/client", () => ({ serverDb: makeDbMock(CANNED_RAW_DOCS) }));
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     const callModelMock = makeCallModelMock();
     vi.doMock("@/lib/llm/anthropic", () => ({ callModel: callModelMock }));
     const upsertMock = vi.fn().mockResolvedValue({ id: 1 });
@@ -142,7 +145,6 @@ describe("runExtract — normal path", () => {
 
   test("callModel is called with stage=extract and scanId from ctx", async () => {
     vi.doMock("@/lib/db/client", () => ({ serverDb: makeDbMock(CANNED_RAW_DOCS) }));
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     const callModelMock = makeCallModelMock();
     vi.doMock("@/lib/llm/anthropic", () => ({ callModel: callModelMock }));
     vi.doMock("@/lib/scan/fact-sheets", () => ({ upsertFactSheet: vi.fn().mockResolvedValue({ id: 1 }), factSheetSubjectType: (mode: string) => mode === "web" ? "web" : "app" }));
@@ -166,7 +168,6 @@ describe("runExtract — malformed JSON degrades to empty sheets (no throw)", ()
 
   test("malformed callModel response writes empty sheets for all kinds", async () => {
     vi.doMock("@/lib/db/client", () => ({ serverDb: makeDbMock(CANNED_RAW_DOCS) }));
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     // Return unparseable text for every call
     vi.doMock("@/lib/llm/anthropic", () => ({ callModel: makeCallModelMock("NOT JSON {{{{") }));
     const upsertMock = vi.fn().mockResolvedValue({ id: 1 });
@@ -197,7 +198,6 @@ describe("runExtract — missing source does NOT cache an empty sheet (invariant
     // Only listing + competitor + keyword docs — no reviews.
     const docsWithoutReviews = CANNED_RAW_DOCS.filter((d) => d.source_type !== "app_store_rss");
     vi.doMock("@/lib/db/client", () => ({ serverDb: makeDbMock(docsWithoutReviews) }));
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     const callModelMock = makeCallModelMock();
     vi.doMock("@/lib/llm/anthropic", () => ({ callModel: callModelMock }));
     const upsertMock = vi.fn().mockResolvedValue({ id: 1 });
@@ -228,18 +228,18 @@ describe("runExtract — fixture mode", () => {
 
   test("fixture mode writes canned fixture sheets WITHOUT calling callModel", async () => {
     vi.doMock("@/lib/db/client", () => ({ serverDb: makeDbMock(CANNED_RAW_DOCS) }));
-    vi.doMock("@/lib/dev/fixtures", () => ({
-      fixturesEnabled: () => true,
-      fixtureExtract: (kind: string) => {
+    installFixtures({
+      ...makeFixtureProvider(),
+      extract: (kind: string) => {
         switch (kind) {
           case "review_themes":  return CANNED_REVIEW_THEMES;
           case "positioning":    return CANNED_POSITIONING;
           case "competitor_gap": return CANNED_COMPETITOR_GAP;
           case "keyword_data":   return CANNED_KEYWORD_SHEET;
-          default: return {};
+          default:               return CANNED_KEYWORD_SHEET;
         }
       },
-    }));
+    });
     const callModelMock = vi.fn();
     vi.doMock("@/lib/llm/anthropic", () => ({ callModel: callModelMock }));
     const upsertMock = vi.fn().mockResolvedValue({ id: 1 });

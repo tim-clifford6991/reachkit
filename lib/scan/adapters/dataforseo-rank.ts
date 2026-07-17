@@ -1,7 +1,6 @@
 import { env } from "@/lib/config/env";
-import { fixturesEnabled } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 import { serpAuthHeader, dfsJson } from "@/lib/scan/adapters/dataforseo";
-import { fixtureRankMap } from "@/lib/dev/fixtures";
 import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
 
 /**
@@ -21,7 +20,7 @@ export async function rankLookup(keywords: string[], target: string, depth = 50)
   const unique = [...new Set(keywords.map((k) => k.trim()).filter((k) => k.length > 0))];
   if (unique.length === 0) return {};
 
-  if (fixturesEnabled()) return fixtureRankMap(unique, target);
+  const _f = fixtures(); if (_f) return _f.rankMap(unique, target);
 
   // Live path: one DataForSEO SERP task per keyword; find where `target` ranks.
   // Live endpoint (the costed exception) mirrors lib/scan/adapters/dataforseo.ts.

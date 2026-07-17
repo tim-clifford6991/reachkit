@@ -1,6 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { buildCompetitorNamesPrompt, parseCompetitorNames } from "./competitor-names";
 import type { ScanContext } from "@/lib/scan/pipeline";
+import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
+import { makeFixtureProvider } from "@/lib/dev/fixtures";
 
 describe("competitor-names", () => {
   it("prompt anchors to the subject category and forbids off-category / same-name products", () => {
@@ -78,9 +80,12 @@ describe("extractCompetitorNames (never-throws contract)", () => {
     vi.resetModules();
   });
 
+  afterEach(() => {
+    resetFixtures();
+  });
+
   it("returns [] when content is blank — no callModel call", async () => {
     const callModelMock = vi.fn();
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/llm/anthropic", () => ({ callModel: callModelMock }));
     const { extractCompetitorNames } = await import("./competitor-names");
     expect(await extractCompetitorNames(ctx, { ...input, content: "   " })).toEqual([]);
@@ -89,7 +94,7 @@ describe("extractCompetitorNames (never-throws contract)", () => {
 
   it("returns [] under fixtures — no callModel call", async () => {
     const callModelMock = vi.fn();
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => true }));
+    installFixtures(makeFixtureProvider());
     vi.doMock("@/lib/llm/anthropic", () => ({ callModel: callModelMock }));
     const { extractCompetitorNames } = await import("./competitor-names");
     expect(await extractCompetitorNames(ctx, input)).toEqual([]);
@@ -97,14 +102,12 @@ describe("extractCompetitorNames (never-throws contract)", () => {
   });
 
   it("returns [] when callModel rejects — degrades, never throws", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/llm/anthropic", () => ({ callModel: vi.fn().mockRejectedValue(new Error("rate limit")) }));
     const { extractCompetitorNames } = await import("./competitor-names");
     expect(await extractCompetitorNames(ctx, input)).toEqual([]);
   });
 
   it("parses real names end-to-end on a valid model response", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/llm/anthropic", () => ({
       callModel: vi.fn().mockResolvedValue({ text: '{"competitors":[{"name":"Flippa"},{"name":"Empire Flippers"}]}' }),
     }));

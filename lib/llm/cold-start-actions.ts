@@ -18,8 +18,9 @@
  *                      same Critic → algorithmSafety gate as any other plan.
  */
 
-import { fixturesEnabled, fixtureColdStartActions, coldStartActionsFrom } from "@/lib/dev/fixtures";
+import { coldStartActionsFrom } from "@/lib/dev/fixtures";
 import type { ColdStartSeed } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 import { getFreshFactSheet, factSheetSubjectType } from "@/lib/scan/fact-sheets";
 import type { ScanContext } from "@/lib/scan/pipeline";
 import type { PreliminaryFacts } from "@/lib/scan/types";
@@ -125,8 +126,9 @@ export async function generateColdStartActions(
   grounding: ActionGrounding = EMPTY_GROUNDING,
 ): Promise<ActionCard[]> {
   // Fixture path — deterministic, no derivation, no I/O.
-  if (fixturesEnabled()) {
-    return fixtureColdStartActions();
+  const _f = fixtures();
+  if (_f) {
+    return _f.coldStartActions();
   }
 
   // Live path — template-driven from facts + the real positioning sheet (for an

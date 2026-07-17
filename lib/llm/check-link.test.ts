@@ -1,4 +1,8 @@
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { beforeEach, afterEach, describe, expect, test, vi } from "vitest";
+import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
+import { makeFixtureProvider } from "@/lib/dev/fixtures";
+
+afterEach(() => resetFixtures());
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -277,7 +281,7 @@ describe("checkLink — fixture mode", () => {
     const callModelMock = vi.fn();
     const fetchMock = vi.fn();
 
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => true }));
+    installFixtures(makeFixtureProvider());
     vi.doMock("@/lib/llm/anthropic", () => ({ callModel: callModelMock }));
     vi.stubGlobal("fetch", fetchMock);
 

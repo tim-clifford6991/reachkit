@@ -4,7 +4,7 @@
  * ~0; a backlink on a high-traffic page is a real funnel. Up to 1000 hosts/call.
  */
 import { env } from "@/lib/config/env";
-import { fixturesEnabled } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
 import { serpAuthHeader, dfsJson } from "@/lib/scan/adapters/dataforseo";
 
@@ -28,7 +28,7 @@ export function parseTrafficEstimation(body: unknown): Map<string, number> {
 /** Map host → estimated monthly organic traffic value. Empty map on failure. */
 export async function fetchTrafficForHosts(hosts: string[]): Promise<Map<string, number>> {
   // Fixtures mode makes zero paid calls — return the same empty shape as the keyless path.
-  if (fixturesEnabled()) return new Map();
+  if (fixtures()) return new Map();
   if (hosts.length === 0 || !env.dataforseoLogin || !env.dataforseoPassword) return new Map();
   try {
     const res = await fetchWithTimeout(

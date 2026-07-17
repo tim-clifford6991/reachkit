@@ -10,8 +10,15 @@
  *   - Fixture mode: runCriticGate(fixtureActions()) → all pass, no network calls
  */
 
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { ActionCard } from "./types";
+import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
+import { makeFixtureProvider } from "@/lib/dev/fixtures";
+
+// Every test either installs a fixture provider (fixture mode → LLM/check_link
+// skipped) or expects none (live LLM path); reset the injected seam after each
+// so an installed provider never leaks into a live-path test.
+afterEach(() => resetFixtures());
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -67,7 +74,7 @@ describe("runCritic — deterministic rule rejections", () => {
 
   test("rule 1: card with 1 evidence item fails 'evidence'", async () => {
     // Fixture mode ON so LLM/check_link are skipped
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => true }));
+    installFixtures(makeFixtureProvider());
     vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
       recordPipelineRun: vi.fn().mockResolvedValue(undefined),
     }));
@@ -86,7 +93,7 @@ describe("runCritic — deterministic rule rejections", () => {
   });
 
   test("rule 1: card with 2 items but same sourceType fails 'evidence'", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => true }));
+    installFixtures(makeFixtureProvider());
     vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
       recordPipelineRun: vi.fn().mockResolvedValue(undefined),
     }));
@@ -106,7 +113,7 @@ describe("runCritic — deterministic rule rejections", () => {
   });
 
   test("rule 3: missing/invalid deadline fails 'deadline'", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => true }));
+    installFixtures(makeFixtureProvider());
     vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
       recordPipelineRun: vi.fn().mockResolvedValue(undefined),
     }));
@@ -121,7 +128,7 @@ describe("runCritic — deterministic rule rejections", () => {
   });
 
   test("rule 3: effortMin=0 fails 'effort'", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => true }));
+    installFixtures(makeFixtureProvider());
     vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
       recordPipelineRun: vi.fn().mockResolvedValue(undefined),
     }));
@@ -137,7 +144,7 @@ describe("runCritic — deterministic rule rejections", () => {
 
   // Fix M1: NaN delta fails rule 4
   test("M1: delta: NaN fails rule 4 (expected_outcome)", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => true }));
+    installFixtures(makeFixtureProvider());
     vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
       recordPipelineRun: vi.fn().mockResolvedValue(undefined),
     }));
@@ -154,7 +161,7 @@ describe("runCritic — deterministic rule rejections", () => {
   });
 
   test("rule 5a: content card with null draft fails 'draft_missing'", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => true }));
+    installFixtures(makeFixtureProvider());
     vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
       recordPipelineRun: vi.fn().mockResolvedValue(undefined),
     }));
@@ -169,7 +176,7 @@ describe("runCritic — deterministic rule rejections", () => {
   });
 
   test("rule 5a: outreach card with null draft fails 'draft_missing'", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => true }));
+    installFixtures(makeFixtureProvider());
     vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
       recordPipelineRun: vi.fn().mockResolvedValue(undefined),
     }));
@@ -184,7 +191,7 @@ describe("runCritic — deterministic rule rejections", () => {
   });
 
   test("rule 5a: seo_aso card with null draft PASSES (seo exemption)", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => true }));
+    installFixtures(makeFixtureProvider());
     vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
       recordPipelineRun: vi.fn().mockResolvedValue(undefined),
     }));
@@ -198,7 +205,7 @@ describe("runCritic — deterministic rule rejections", () => {
   });
 
   test("rule 7a: probability_based with confidence 0.8 fails 'confidence_cap'", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => true }));
+    installFixtures(makeFixtureProvider());
     vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
       recordPipelineRun: vi.fn().mockResolvedValue(undefined),
     }));
@@ -213,7 +220,7 @@ describe("runCritic — deterministic rule rejections", () => {
   });
 
   test("rule 7a: probability_based with confidence 0.6 PASSES", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => true }));
+    installFixtures(makeFixtureProvider());
     vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
       recordPipelineRun: vi.fn().mockResolvedValue(undefined),
     }));
@@ -227,7 +234,7 @@ describe("runCritic — deterministic rule rejections", () => {
   });
 
   test("rule 9: draftRequiresEdit=false fails 'draft_requires_edit'", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => true }));
+    installFixtures(makeFixtureProvider());
     vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
       recordPipelineRun: vi.fn().mockResolvedValue(undefined),
     }));
@@ -243,7 +250,7 @@ describe("runCritic — deterministic rule rejections", () => {
   });
 
   test("well-formed card passes all deterministic checks in fixture mode", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => true }));
+    installFixtures(makeFixtureProvider());
     vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
       recordPipelineRun: vi.fn().mockResolvedValue(undefined),
     }));
@@ -268,7 +275,6 @@ describe("runCritic — LLM checks (mocked callModel)", () => {
   });
 
   test("rule 2: non-specific card fails 'specificity'", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
       recordPipelineRun: vi.fn().mockResolvedValue(undefined),
     }));
@@ -292,7 +298,6 @@ describe("runCritic — LLM checks (mocked callModel)", () => {
   });
 
   test("rule 5b: draft not citing a fact fails 'draft_cites_fact'", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
       recordPipelineRun: vi.fn().mockResolvedValue(undefined),
     }));
@@ -316,7 +321,6 @@ describe("runCritic — LLM checks (mocked callModel)", () => {
   });
 
   test("rule 8: newcomer-hostile community fails 'audience_honest'", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
       recordPipelineRun: vi.fn().mockResolvedValue(undefined),
     }));
@@ -340,7 +344,6 @@ describe("runCritic — LLM checks (mocked callModel)", () => {
   });
 
   test("all LLM checks pass → card passes (no LLM-failed rules)", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
       recordPipelineRun: vi.fn().mockResolvedValue(undefined),
     }));
@@ -364,7 +367,6 @@ describe("runCritic — LLM checks (mocked callModel)", () => {
   });
 
   test("LLM returns revised card — revised card is returned in result", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
       recordPipelineRun: vi.fn().mockResolvedValue(undefined),
     }));
@@ -407,7 +409,6 @@ describe("runCritic — LLM checks (mocked callModel)", () => {
     // The old guard checked `!== undefined`, so null slipped through and
     // `revised.evidence` threw — crashing runFullScan and forcing 45s Inngest
     // retries that burned cost and never completed the scan.
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
       recordPipelineRun: vi.fn().mockResolvedValue(undefined),
     }));
@@ -447,7 +448,6 @@ describe("runCritic — check_link (rule 7b, mocked)", () => {
   });
 
   test("rule 7b: non-entailing link fails 'entailment'", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
       recordPipelineRun: vi.fn().mockResolvedValue(undefined),
     }));
@@ -482,7 +482,6 @@ describe("runCritic — check_link (rule 7b, mocked)", () => {
   });
 
   test("rule 7b: entailing link PASSES entailment", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
       recordPipelineRun: vi.fn().mockResolvedValue(undefined),
     }));
@@ -514,7 +513,6 @@ describe("runCritic — check_link (rule 7b, mocked)", () => {
   });
 
   test("non-http evidence sources are NOT checked via check_link", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
       recordPipelineRun: vi.fn().mockResolvedValue(undefined),
     }));
@@ -556,7 +554,6 @@ describe("criticGateCard — reject/revise loop", () => {
   });
 
   test("card that passes on second attempt (after revision) is returned as 'pass'", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
       recordPipelineRun: vi.fn().mockResolvedValue(undefined),
     }));
@@ -600,7 +597,6 @@ describe("criticGateCard — reject/revise loop", () => {
   });
 
   test("after maxRetries exhausted with only fixable fails, card is DROPPED", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
       recordPipelineRun: vi.fn().mockResolvedValue(undefined),
     }));
@@ -626,7 +622,7 @@ describe("criticGateCard — reject/revise loop", () => {
   });
 
   test("after maxRetries with only evidence/confidence_cap fails → card is DOWNGRADED not dropped", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => true })); // fixture → no LLM
+    installFixtures(makeFixtureProvider()); // fixture → no LLM
     vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
       recordPipelineRun: vi.fn().mockResolvedValue(undefined),
     }));
@@ -647,7 +643,6 @@ describe("criticGateCard — reject/revise loop", () => {
 
   // Fix C1: mixed specificity+evidence → dropped, NOT downgraded
   test("C1: card failing [specificity, evidence] (LLM keeps specificity failing) → DROPPED not downgraded", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
       recordPipelineRun: vi.fn().mockResolvedValue(undefined),
     }));
@@ -679,7 +674,7 @@ describe("criticGateCard — reject/revise loop", () => {
 
   // Fix I1: card failing ONLY evidence → downgraded with no fabricated evidence
   test("I1: card failing only [evidence] → DOWNGRADED, confidence ≤0.6, evidence array unchanged", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => true })); // fixture → no LLM
+    installFixtures(makeFixtureProvider()); // fixture → no LLM
     vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
       recordPipelineRun: vi.fn().mockResolvedValue(undefined),
     }));
@@ -703,7 +698,6 @@ describe("criticGateCard — reject/revise loop", () => {
 
   // Fix I3: hard fail (effortMin=0) + fixable fail → dropped, early break (minimal LLM calls)
   test("I3: card with hard fail (effortMin=0) → dropped with 0 LLM calls (early break)", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
     vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
       recordPipelineRun: vi.fn().mockResolvedValue(undefined),
     }));
@@ -739,7 +733,7 @@ describe("runCriticGate — source diversity rule (6)", () => {
   });
 
   test("4 of 5 cards sharing one dominant sourceType drops the excess down to 30%", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => true })); // skip LLM
+    installFixtures(makeFixtureProvider()); // skip LLM
     vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
       recordPipelineRun: vi.fn().mockResolvedValue(undefined),
     }));
@@ -802,7 +796,7 @@ describe("runCriticGate — source diversity rule (6)", () => {
   });
 
   test("well-distributed cards (2 each from 2+ types) pass diversity check", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => true }));
+    installFixtures(makeFixtureProvider());
     vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
       recordPipelineRun: vi.fn().mockResolvedValue(undefined),
     }));
@@ -856,11 +850,8 @@ describe("runCriticGate — fixture mode passes all fixture cards keyless", () =
     vi.doMock("@/lib/llm/check-link", () => ({
       checkLink: { name: "check_link", klass: "L", run: checkLinkRunMock },
     }));
-    // Provide both fixturesEnabled and fixtureActions on the mock so critic.ts can import both
-    vi.doMock("@/lib/dev/fixtures", async (importOriginal) => {
-      const actual = await importOriginal<typeof import("@/lib/dev/fixtures")>();
-      return { ...actual, fixturesEnabled: () => true };
-    });
+    // Install a fixture provider so critic's seam check (`!fixtures()`) skips the LLM.
+    installFixtures(makeFixtureProvider());
 
     const { fixtureActions } = await import("@/lib/dev/fixtures");
     const { runCriticGate } = await import("./critic");
@@ -895,10 +886,7 @@ describe("runCriticGate — fixture mode passes all fixture cards keyless", () =
     vi.doMock("@/lib/llm/check-link", () => ({
       checkLink: { name: "check_link", klass: "L", run: vi.fn() },
     }));
-    vi.doMock("@/lib/dev/fixtures", async (importOriginal) => {
-      const actual = await importOriginal<typeof import("@/lib/dev/fixtures")>();
-      return { ...actual, fixturesEnabled: () => true };
-    });
+    installFixtures(makeFixtureProvider());
 
     const { fixtureActions } = await import("@/lib/dev/fixtures");
     const { runCriticGate } = await import("./critic");

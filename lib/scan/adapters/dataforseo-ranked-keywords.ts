@@ -9,7 +9,7 @@
  */
 
 import { env } from "@/lib/config/env";
-import { fixturesEnabled } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
 import { serpAuthHeader, dfsJson } from "@/lib/scan/adapters/dataforseo";
 
@@ -104,7 +104,7 @@ async function postLabs(path: string, payload: unknown): Promise<unknown | null>
 
 /** Fetch the top ranked keywords for a domain (full pass only). [] in fixtures. */
 export async function fetchRankedKeywords(target: string, limit = 50): Promise<RankedKeyword[]> {
-  if (fixturesEnabled()) return [];
+  if (fixtures()) return [];
   const body = await postLabs("ranked_keywords/live", [
     {
       target,
@@ -119,7 +119,7 @@ export async function fetchRankedKeywords(target: string, limit = 50): Promise<R
 
 /** Fetch the top organic pages for a domain (full pass only). [] in fixtures. */
 export async function fetchRelevantPages(target: string, limit = 10): Promise<TopPage[]> {
-  if (fixturesEnabled()) return [];
+  if (fixtures()) return [];
   const body = await postLabs("relevant_pages/live", [
     { target, location_code: env.dataforseoLocationCode, language_code: env.dataforseoLanguageCode, limit },
   ]);

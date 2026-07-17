@@ -4,7 +4,11 @@
  * - calls keywordsData and returns keywords
  * - persists raw doc + records pipeline run
  */
-import { expect, test, vi } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
+import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
+import { makeFixtureProvider } from "@/lib/dev/fixtures";
+
+afterEach(() => resetFixtures());
 
 test("search_keywords charges budget 1 tool call and returns keywords", async () => {
   vi.resetModules();
@@ -17,9 +21,7 @@ test("search_keywords charges budget 1 tool call and returns keywords", async ()
   vi.doMock("@/lib/scan/adapters/keywords", () => ({
     keywordsData: async () => ({ keywords: mockKeywords, raw: { fixture: true } }),
   }));
-  vi.doMock("@/lib/dev/fixtures", () => ({
-    fixturesEnabled: () => true,
-  }));
+  installFixtures(makeFixtureProvider());
   vi.doMock("@/lib/db/raw-documents", () => ({
     upsertRawDocument: async () => ({ id: 1, deduped: false }),
   }));
@@ -46,9 +48,7 @@ test("search_keywords charges 0 cents in fixture mode", async () => {
   vi.doMock("@/lib/scan/adapters/keywords", () => ({
     keywordsData: async () => ({ keywords: [], raw: {} }),
   }));
-  vi.doMock("@/lib/dev/fixtures", () => ({
-    fixturesEnabled: () => true,
-  }));
+  installFixtures(makeFixtureProvider());
   vi.doMock("@/lib/db/raw-documents", () => ({
     upsertRawDocument: async () => ({ id: 1, deduped: false }),
   }));
@@ -76,9 +76,7 @@ test("search_keywords persists raw doc with sourceType dataforseo_keywords", asy
   vi.doMock("@/lib/scan/adapters/keywords", () => ({
     keywordsData: async () => ({ keywords: [], raw: { fixture: true } }),
   }));
-  vi.doMock("@/lib/dev/fixtures", () => ({
-    fixturesEnabled: () => true,
-  }));
+  installFixtures(makeFixtureProvider());
   vi.doMock("@/lib/db/raw-documents", () => ({ upsertRawDocument }));
   vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
     recordPipelineRun: async () => {},
@@ -110,9 +108,7 @@ test("search_keywords records a pipeline_run row", async () => {
   vi.doMock("@/lib/scan/adapters/keywords", () => ({
     keywordsData: async () => ({ keywords: [], raw: {} }),
   }));
-  vi.doMock("@/lib/dev/fixtures", () => ({
-    fixturesEnabled: () => true,
-  }));
+  installFixtures(makeFixtureProvider());
   vi.doMock("@/lib/db/raw-documents", () => ({
     upsertRawDocument: async () => ({ id: 1, deduped: false }),
   }));

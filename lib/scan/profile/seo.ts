@@ -8,7 +8,7 @@
  */
 
 import { env } from "@/lib/config/env";
-import { fixturesEnabled } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
 import { serpAuthHeader, dfsJson } from "@/lib/scan/adapters/dataforseo";
 import { cachedRankedKeywords, cachedRelevantPages } from "@/lib/scan/cache/cached-adapters";
@@ -87,7 +87,7 @@ export async function fetchSeoPosture(
   domain: string,
   opts: { light?: boolean; backlinks?: boolean } = {},
 ): Promise<SeoPosture | null> {
-  if (fixturesEnabled()) return null;
+  if (fixtures()) return null;
   const target = toHost(domain);
   // Backlinks subscription is now live (trial). Off by default to keep the free
   // scan cheap; callers that need referring-domains (traffic mix, fair competitor

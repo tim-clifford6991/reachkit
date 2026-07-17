@@ -6,7 +6,11 @@
  * - charges budget (1 toolCall, 0 cents)
  * - persists raw_document (sourceType=youtube) + records pipeline_run (stage=tool)
  */
-import { expect, test, vi } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
+import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
+import { makeFixtureProvider } from "@/lib/dev/fixtures";
+
+afterEach(() => resetFixtures());
 
 // ---------------------------------------------------------------------------
 // Fixture mode — no network, no env key
@@ -20,10 +24,7 @@ test("find_creators in fixture mode returns fixtureCreators without network", as
     { name: "Best Habitify Alternatives", url: "https://www.youtube.com/watch?v=fix_2", audienceProxy: 0, coveredCompetitor: "Habitify" },
   ];
 
-  vi.doMock("@/lib/dev/fixtures", () => ({
-    fixturesEnabled: () => true,
-    fixtureCreators: () => FIXTURE_CREATORS,
-  }));
+  installFixtures({ ...makeFixtureProvider(), creators: () => FIXTURE_CREATORS });
   vi.doMock("@/lib/scan/adapters/youtube", () => ({
     youtubeSearch: async () => { throw new Error("should not be called"); },
   }));
@@ -54,9 +55,6 @@ test("find_creators in fixture mode returns fixtureCreators without network", as
 test("find_creators merges YouTube results for multiple competitors", async () => {
   vi.resetModules();
 
-  vi.doMock("@/lib/dev/fixtures", () => ({
-    fixturesEnabled: () => false,
-  }));
   vi.doMock("@/lib/scan/adapters/youtube", () => ({
     youtubeSearch: async (_query: string, competitor: string) => ([
       { name: `${competitor} Reviewer`, url: `https://www.youtube.com/watch?v=v_${competitor}`, audienceProxy: 0, coveredCompetitor: competitor },
@@ -90,9 +88,6 @@ test("find_creators merges YouTube results for multiple competitors", async () =
 test("find_creators survives when one competitor search throws (allSettled isolation)", async () => {
   vi.resetModules();
 
-  vi.doMock("@/lib/dev/fixtures", () => ({
-    fixturesEnabled: () => false,
-  }));
   vi.doMock("@/lib/scan/adapters/youtube", () => ({
     youtubeSearch: async (_query: string, competitor: string) => {
       if (competitor === "Streaks") throw new Error("YouTube 429");
@@ -127,9 +122,6 @@ test("find_creators survives when one competitor search throws (allSettled isola
 test("find_creators charges 1 tool call and 0 cents", async () => {
   vi.resetModules();
 
-  vi.doMock("@/lib/dev/fixtures", () => ({
-    fixturesEnabled: () => false,
-  }));
   vi.doMock("@/lib/scan/adapters/youtube", () => ({
     youtubeSearch: async () => [],
   }));
@@ -162,9 +154,6 @@ test("find_creators persists raw doc with sourceType=youtube", async () => {
 
   const upsertRawDocument = vi.fn(async () => ({ id: 42, deduped: false }));
 
-  vi.doMock("@/lib/dev/fixtures", () => ({
-    fixturesEnabled: () => false,
-  }));
   vi.doMock("@/lib/scan/adapters/youtube", () => ({
     youtubeSearch: async () => [],
   }));
@@ -196,9 +185,6 @@ test("find_creators records a pipeline_run row with stage=tool", async () => {
 
   const recordPipelineRun = vi.fn(async () => {});
 
-  vi.doMock("@/lib/dev/fixtures", () => ({
-    fixturesEnabled: () => false,
-  }));
   vi.doMock("@/lib/scan/adapters/youtube", () => ({
     youtubeSearch: async () => [],
   }));
@@ -232,9 +218,6 @@ test("find_creators uses subjectType=app in app mode", async () => {
 
   const upsertRawDocument = vi.fn(async () => ({ id: 1, deduped: false }));
 
-  vi.doMock("@/lib/dev/fixtures", () => ({
-    fixturesEnabled: () => false,
-  }));
   vi.doMock("@/lib/scan/adapters/youtube", () => ({
     youtubeSearch: async () => [],
   }));
@@ -265,10 +248,7 @@ test("find_creators uses subjectType=app in app mode", async () => {
 test("find_creators fixture mode also charges 1 tool call", async () => {
   vi.resetModules();
 
-  vi.doMock("@/lib/dev/fixtures", () => ({
-    fixturesEnabled: () => true,
-    fixtureCreators: () => [],
-  }));
+  installFixtures({ ...makeFixtureProvider(), creators: () => [] });
   vi.doMock("@/lib/scan/adapters/youtube", () => ({
     youtubeSearch: async () => { throw new Error("should not be called"); },
   }));

@@ -12,7 +12,7 @@ import { callModel } from "@/lib/llm/anthropic";
 import { extractJson } from "@/lib/llm/json";
 import { SYNTH_SYSTEM, buildSynthPrompt } from "@/lib/llm/prompts";
 import { getFreshFactSheet, factSheetSubjectType } from "@/lib/scan/fact-sheets";
-import { fixturesEnabled, fixtureSynth } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 import type { ScanContext } from "@/lib/scan/pipeline";
 import type {
   SynthResult,
@@ -187,8 +187,9 @@ async function readSheet<T>(
 // ---------------------------------------------------------------------------
 export async function runSynth(ctx: ScanContext): Promise<SynthResult> {
   // Fixture path — no LLM call, no fact-sheet reads
-  if (fixturesEnabled()) {
-    return fixtureSynth();
+  const _f = fixtures();
+  if (_f) {
+    return _f.synth();
   }
 
   // Read the 4 fact sheets (degrade gracefully on missing/expired sheets)
