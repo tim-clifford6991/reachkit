@@ -101,8 +101,27 @@ const schema = z.object({
   PROFILE_DEBUG: z.string().optional().transform((v) => v === "1"),
   // The only feature flag: keyless fixtures mode for tests / local dev.
   REACHKIT_USE_FIXTURES: z.string().optional().transform((v) => v === "true"),
+  // Carried into superRefine ONLY to forbid fixtures in production. Not returned
+  // from parseEnv. `NODE_ENV` is a permitted literal (lib/config/** exempt).
+  NODE_ENV: z.string().optional(),
 }).superRefine((val, ctx) => {
   // superRefine receives transformed values: val.REACHKIT_USE_FIXTURES is a boolean.
+
+  // HARD FLOOR: fixtures mode must NEVER be enabled in production. fixturesEnabled()
+  // is `return env.useFixtures` with no NODE_ENV guard of its own, so a single
+  // mistyped Vercel env var would, in prod, hand out free tier upgrades to any
+  // user (lib/billing/checkout.ts writes tier+active straight to the row), turn
+  // off rate limiting (lib/scan/abuse.ts), skip Stripe cancellation on delete,
+  // and print magic links to logs. Refuse the misconfiguration at the parse.
+  if (val.REACHKIT_USE_FIXTURES && val.NODE_ENV === "production") {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["REACHKIT_USE_FIXTURES"],
+      message:
+        "REACHKIT_USE_FIXTURES must never be true in production — it disables billing, rate limiting, and auth guards. It is a test/dev-only seam.",
+    });
+  }
+
   if (!val.REACHKIT_USE_FIXTURES) {
     for (const key of [...PAID_KEYS, ...STRIPE_REQUIRED_KEYS]) {
       if (!val[key]) {

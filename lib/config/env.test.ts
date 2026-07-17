@@ -87,6 +87,32 @@ test("parseEnv succeeds with blank paid keys when REACHKIT_USE_FIXTURES=true", a
   expect(cfg.productHuntToken).toBe("");
 });
 
+test("parseEnv HARD-FAILS when REACHKIT_USE_FIXTURES=true in production (fixtures must never ship)", async () => {
+  const { parseEnv } = await import("./env");
+  // fixtures mode + NODE_ENV=production is the catastrophic misconfiguration:
+  // fixturesEnabled() has no NODE_ENV guard of its own, so one mistyped Vercel
+  // env var would give free tier upgrades to any user, rate limiting off, and
+  // magic links printed to logs — in production. The parse must refuse it.
+  expect(() =>
+    parseEnv({
+      SUPABASE_URL: "https://x.supabase.co", SUPABASE_ANON_KEY: "a", SUPABASE_SERVICE_ROLE_KEY: "s",
+      REACHKIT_USE_FIXTURES: "true",
+      NODE_ENV: "production",
+    } as unknown as NodeJS.ProcessEnv),
+  ).toThrow(/REACHKIT_USE_FIXTURES/);
+});
+
+test("parseEnv still ALLOWS fixtures in development and test (the intended use)", async () => {
+  const { parseEnv } = await import("./env");
+  const base = {
+    SUPABASE_URL: "https://x.supabase.co", SUPABASE_ANON_KEY: "a", SUPABASE_SERVICE_ROLE_KEY: "s",
+    REACHKIT_USE_FIXTURES: "true",
+  } as unknown as NodeJS.ProcessEnv;
+  expect(parseEnv({ ...base, NODE_ENV: "development" }).useFixtures).toBe(true);
+  expect(parseEnv({ ...base, NODE_ENV: "test" }).useFixtures).toBe(true);
+  expect(parseEnv(base).useFixtures).toBe(true); // NODE_ENV unset → allowed
+});
+
 test("parseEnv throws when paid key is blank and fixtures mode is off", async () => {
   const { parseEnv } = await import("./env");
   // All paid keys present EXCEPT ANTHROPIC_API_KEY — must throw naming the missing key
