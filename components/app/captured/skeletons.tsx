@@ -37,14 +37,7 @@ function Card({ children, style }: { children: ReactNode; style?: CSSProperties 
  * — otherwise the loading state alone forces a >360px layout on a phone (the
  * skeleton is user-visible, so its overflow is real).
  */
-const SHELL_SKELETON_CSS = `
-.rk-skel-shell{display:grid;grid-template-columns:1fr;min-height:100vh}
-.rk-skel-aside{display:none}
-@media (min-width:1024px){
-  .rk-skel-shell{grid-template-columns:240px 1fr}
-  .rk-skel-aside{display:flex}
-}
-`;
+const SHELL_SKELETON_CSS = `.rk-skel-shell{display:grid;grid-template-columns:1fr;min-height:100vh}.rk-skel-aside{display:none}@media (min-width:1024px){.rk-skel-shell{grid-template-columns:240px 1fr}.rk-skel-aside{display:flex}}`;
 
 export function ShellSkeleton({ children }: { children: ReactNode }) {
   return (

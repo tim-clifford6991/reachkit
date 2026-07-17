@@ -421,18 +421,9 @@ const CHIP_STYLE = KIND_STYLE;
  * their click/keyboard selection. Reuses the `byDate` grouping already computed
  * for the grid — no JS, no horizontal scroll.
  */
-const CAL_CSS = `
-.rk-cal-month{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
-.rk-cal-day{display:flex;flex-direction:column;gap:3px;min-width:0;min-height:54px;padding:4px 5px 5px}
-.rk-cal-chip{font-size:9.5px;line-height:1.25;border-radius:var(--radius-sm);padding:2px 5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-@media (max-width: 640px){
-  .rk-cal-month{display:flex;flex-direction:column;gap:6px}
-  .rk-cal-wd,.rk-cal-blank,.rk-cal-day--empty:not(.rk-cal-day--today){display:none}
-  .rk-cal-day{flex-direction:row;align-items:center;flex-wrap:wrap;gap:8px;min-height:0;padding:9px 11px}
-  .rk-cal-daynum{align-self:center;font-size:12px;min-width:22px}
-  .rk-cal-chip{font-size:12px;white-space:normal;overflow:visible;text-overflow:clip;padding:3px 8px}
-}
-`;
+// Minified for the same reason as SHELL_CSS: template-literal contents ship
+// verbatim, and /app/plan also sits on a pinned bundle baseline.
+const CAL_CSS = `.rk-cal-month{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}.rk-cal-day{display:flex;flex-direction:column;gap:3px;min-width:0;min-height:54px;padding:4px 5px 5px}.rk-cal-chip{font-size:9.5px;line-height:1.25;border-radius:var(--radius-sm);padding:2px 5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}@media (max-width:640px){.rk-cal-month{display:flex;flex-direction:column;gap:6px}.rk-cal-wd,.rk-cal-blank,.rk-cal-day--empty:not(.rk-cal-day--today){display:none}.rk-cal-day{flex-direction:row;align-items:center;flex-wrap:wrap;gap:8px;min-height:0;padding:9px 11px}.rk-cal-daynum{align-self:center;font-size:12px;min-width:22px}.rk-cal-chip{font-size:12px;white-space:normal;overflow:visible;text-overflow:clip;padding:3px 8px}}`;
 
 function PlanCalendar({ days, today, activeDate, onSelect }: {
   days: ScheduledDay[];
