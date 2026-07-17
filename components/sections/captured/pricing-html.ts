@@ -4,7 +4,7 @@ export const PRICING_HTML = `<main style="max-width: 1080px; margin: 0px auto; p
       <h1 style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 42px; letter-spacing: -0.03em; margin: 12px 0px 0px;">One number. Then a short, verified list.</h1>
       <p style="font-size: 17px; color: var(--c-muted); margin: 12px auto 0px; max-width: 540px;">Your first scan is free. Track it weekly when you're ready to move. Cancel in one click.</p>
     </div>
-    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; align-items: stretch;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 18px; align-items: stretch;">
       <div style="border: 1px solid var(--c-line); border-radius: 18px; padding: 28px; background: var(--c-surface); display: flex; flex-direction: column;">
         <div style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 18px;">Free scan</div>
         <div style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 40px; margin: 12px 0px 2px;">€0</div>
@@ -81,7 +81,7 @@ export const PRICING_HTML = `<main style="max-width: 1080px; margin: 0px auto; p
         </div>
     </div>
     <h2 style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 24px; letter-spacing: -0.02em; margin: 54px 0px 18px; text-align: center;">Questions, answered</h2>
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px;">
         <div style="border: 1px solid var(--c-line); border-radius: 14px; padding: 22px; background: var(--c-surface);">
           <div style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 16px; margin-bottom: 8px;"><span class="sc-interp">Do I need a credit card for the free scan?</span></div>
           <div style="font-size: 14px; line-height: 1.6; color: var(--c-muted);"><span class="sc-interp">No. Your first scan and full report preview are free with no card — you only add payment when you want weekly tracking.</span></div>

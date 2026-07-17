@@ -28,8 +28,8 @@ export function MarketingNav({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
       style={{ position: "sticky", top: 0, zIndex: 50, background: "var(--c-glass)", backdropFilter: "blur(14px)", borderBottom: "1px solid var(--c-line2)" }}
     >
       <nav
-        className="mx-auto flex items-center gap-[30px]"
-        style={{ maxWidth: 1180, padding: "14px 28px" }}
+        className="mx-auto flex items-center gap-3 py-3.5 sm:gap-[30px]"
+        style={{ maxWidth: 1180, paddingInline: "clamp(16px, 4vw, 28px)" }}
         aria-label="Primary"
       >
         <Link href="/" className={`shrink-0 rounded-lg ${focusRing}`} aria-label="ReachKit home">
@@ -42,7 +42,7 @@ export function MarketingNav({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
 
         <div className="flex-1" />
 
-        <div className="flex items-center gap-3.5">
+        <div className="flex items-center gap-2 sm:gap-3.5">
           <ThemeToggle className="size-8" />
           {/* Logged in: one "Dashboard" link + a primary "New scan" CTA (run an
               additional free scan). Logged out: "Log in" + "Analyze my site". */}

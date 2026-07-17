@@ -41,6 +41,26 @@ export function LandingScreen() {
           </Suspense>
         }
       />
+      {/* Mobile responsiveness for the captured landing HTML. The HTML uses
+          inline styles (which beat any stylesheet rule), so the two grids that
+          can't be collapsed with a pure intrinsic auto-fit — the asymmetric
+          "score travels" band (1fr auto) and the 4-col comparison table — carry
+          class hooks and are overridden here at mobile widths. `!important` is
+          required and correct: it is the only way a stylesheet can win over the
+          captured inline `grid-template-columns`, and it is scoped to a mobile
+          media query so desktop is untouched. The other landing grids collapse
+          via inline auto-fit and need no rule here. */}
+      <style>{`
+        #rk-landing .rk-travel { grid-template-columns: 1fr auto; }
+        @media (max-width: 767px) {
+          #rk-landing .rk-travel { grid-template-columns: 1fr !important; justify-items: start; }
+        }
+        @media (max-width: 640px) {
+          #rk-landing .rk-cmp-row { grid-template-columns: repeat(3, 1fr) !important; }
+          #rk-landing .rk-cmp-feat { grid-column: 1 / -1; text-align: left !important; padding-bottom: 2px !important; }
+          #rk-landing .rk-cmp-feat:empty { display: none; }
+        }
+      `}</style>
       <div id="rk-landing" dangerouslySetInnerHTML={{ __html: LANDING_HTML }} />
       {/* Closing CTA band — a REAL scan input (shared ScanInput), so the bottom
           "Analyze my site" works in place instead of being a dead captured

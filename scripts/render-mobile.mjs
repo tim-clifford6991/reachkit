@@ -195,12 +195,15 @@ const OVERFLOW_EXPR = `(() => {
     const r = el.getBoundingClientRect();
     let cls = '';
     try { cls = (el.getAttribute('class') || '').slice(0, 70); } catch (e) {}
+    let text = '';
+    try { text = (el.textContent || '').replace(/\\s+/g, ' ').trim().slice(0, 42); } catch (e) {}
     return {
       tag: el.tagName.toLowerCase(),
       id: el.id || '',
       cls,
       right: Math.round(r.right),
       width: Math.round(r.width),
+      text,
     };
   };
   outermost.sort((a, b) => b.getBoundingClientRect().right - a.getBoundingClientRect().right);
@@ -414,7 +417,8 @@ async function main() {
       for (const o of f.measure.offenders) {
         const cls = o.cls ? `.${o.cls.split(/\s+/).join(".")}` : "";
         const id = o.id ? `#${o.id}` : "";
-        console.error(`      ↳ <${o.tag}${id}${cls}>  right=${o.right}px width=${o.width}px`);
+        const txt = o.text ? `  “${o.text}”` : "";
+        console.error(`      ↳ <${o.tag}${id}${cls}>  right=${o.right}px width=${o.width}px${txt}`);
       }
     }
     process.exit(1);
