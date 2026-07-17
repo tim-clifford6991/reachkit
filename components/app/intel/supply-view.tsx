@@ -76,7 +76,7 @@ function Body({ data }: { data: Supply }) {
         <Kpi label="Keyword gaps" value={gaps.length} sub="rivals rank, you don't" />
       </KpiRow>
 
-      <div style={{ display: "grid", gap: 20, gridTemplateColumns: "minmax(0,1fr) 320px" }}>
+      <div style={{ display: "grid", gap: 20, gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))" }}>
         <Card title="Cohort standing" meta={data.funnel.category}>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 20, alignItems: "center" }}>
             <Gauge score={subject.score} sub={gapToLeader > 0 ? `${gapToLeader} behind leader` : "you lead"} />
@@ -462,6 +462,9 @@ function ContentEngine({ intel, subjectDomain }: { intel: ContentIntel; subjectD
       >
         <DataTable
           cols="minmax(0,2fr) 90px minmax(0,1fr) 70px 80px"
+          // 240px of fixed tracks + two flexible columns: below ~560px the
+          // flexible ones collapse to slivers, so scroll the table instead.
+          minWidth={560}
           head={["Page", "Type", "Cluster", "Keywords", "ETV"]}
           rows={topPages.map((p) => [
             <EvidenceLink key={p.url} href={p.url} style={{ fontSize: 13, ...(p.isSubject ? { color: "var(--c-action)" } : {}) }}>

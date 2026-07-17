@@ -72,9 +72,13 @@ export function SettingsMain(p: SettingsMainProps) {
       <Card title="Tracked product">
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <span style={{ width: 34, height: 34, borderRadius: 9, background: "linear-gradient(135deg, var(--c-action), #9A88FF)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontFamily: SG }}>{p.appInitial}</span>
-          <div style={{ flex: "1 1 0%" }}>
+          {/* minWidth:0 + overflowWrap: productMeta carries the store URL, which
+              has no spaces — so its min-content is the whole string, and a flex
+              child's default min-width:auto would hold this row at that width
+              (361px), forcing a wider layout than a 360px screen. */}
+          <div style={{ flex: "1 1 0%", minWidth: 0 }}>
             <div style={{ fontWeight: 600, fontSize: 14 }}>{p.appName}</div>
-            <div style={{ fontSize: 12.5, color: "var(--c-faint)" }}>{p.productMeta}</div>
+            <div style={{ fontSize: 12.5, color: "var(--c-faint)", overflowWrap: "anywhere" }}>{p.productMeta}</div>
           </div>
           {p.dataFresh && <span style={{ fontSize: 12, fontWeight: 600, color: "#1F9D5B", background: "var(--c-tint-green)", padding: "4px 10px", borderRadius: 7 }}>data fresh</span>}
         </div>

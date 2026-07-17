@@ -36,7 +36,10 @@
  *   pnpm test:mobile
  *   BASE_URL=http://localhost:4000 pnpm test:mobile
  *   MOBILE_WIDTHS=390,360,320 pnpm test:mobile
- *   MOBILE_APP_ROUTES=1 MOBILE_AUTH_COOKIE='sb-...=...' pnpm test:mobile   # authed /app/* too
+ *   # authed /app/* too. MOBILE_AUTH_URL is a magic-link confirm URL whose
+ *   # redirect chain sets the session cookie; mint one with
+ *   # `node scripts/dev-auth-session.mjs` (local Supabase only):
+ *   MOBILE_APP_ROUTES=1 MOBILE_AUTH_URL='http://localhost:3000/auth/confirm?...' pnpm test:mobile
  *
  * EXIT CODES
  *   0 — every route fits at every width
@@ -147,7 +150,14 @@ class CDP {
 // secondary signal for routes without the clip.
 const OVERFLOW_EXPR = `(() => {
   const de = document.documentElement;
-  const iw = window.innerWidth;
+  // CRITICAL: measure against documentElement.clientWidth, NOT window.innerWidth.
+  // With "width=device-width, initial-scale=1", a page whose content overflows
+  // makes Chrome EXPAND the layout viewport, so window.innerWidth grows to match
+  // the overflow (e.g. 425 on a 360px device) — using it as the reference makes
+  // this check unfalsifiable on exactly the pages that are broken. clientWidth
+  // (like visualViewport.width) stays at the real device width.
+  const iw = de.clientWidth;
+  const layoutW = window.innerWidth;
   const scrollW = Math.max(de.scrollWidth, document.body ? document.body.scrollWidth : 0);
   const tol = ${OVERFLOW_TOLERANCE};
   // An offender is EXCLUDED when its spill is intentional, not broken layout:
@@ -163,14 +173,23 @@ const OVERFLOW_EXPR = `(() => {
   //    under 3x.) This drops the favicon marquee without hiding real breakage.
   const isExcluded = (el) => {
     // Walk the element itself and every ancestor up to <body>. Excluded if any
-    // of them is decorative, a marquee-scale rail (>3x viewport wide), or —
-    // for ancestors only — a real horizontal scroller (overflow-x scroll/auto).
+    // of them is decorative, a marquee-scale rail (>3x viewport wide), a
+    // viewport-sized fixed overlay, or — for ancestors only — a real horizontal
+    // scroller (overflow-x scroll/auto).
     let node = el;
     while (node && node !== document.body) {
       const cs = getComputedStyle(node);
+      const w = node.getBoundingClientRect().width;
       if (node.getAttribute && node.getAttribute('aria-hidden') === 'true') return true;
       if ((cs.position === 'absolute' || cs.position === 'fixed') && cs.pointerEvents === 'none') return true;
-      if (node.getBoundingClientRect().width > iw * 3) return true;
+      if (w > iw * 3) return true;
+      // A position:fixed element sizes to the ICB (window.innerWidth), which on a
+      // scrolling document includes the classic scrollbar that clientWidth
+      // excludes. Such an element IS the viewport, not content overflowing it —
+      // flagging it would be a phantom "scrollbar-width" failure on every page
+      // with a fixed overlay. Only exclude while it is viewport-sized; a fixed
+      // element genuinely WIDER than the ICB is still real breakage.
+      if (cs.position === 'fixed' && w <= window.innerWidth + 1) return true;
       if (node !== el && (cs.overflowX === 'scroll' || cs.overflowX === 'auto')) return true;
       node = node.parentElement;
     }
@@ -208,7 +227,7 @@ const OVERFLOW_EXPR = `(() => {
   };
   outermost.sort((a, b) => b.getBoundingClientRect().right - a.getBoundingClientRect().right);
   const worst = outermost.reduce((m, el) => Math.max(m, el.getBoundingClientRect().right - iw), 0);
-  return { iw, scrollW, worst: Math.round(worst), offenders: outermost.slice(0, 8).map(describe) };
+  return { iw, layoutW, scrollW, worst: Math.round(worst), path: location.pathname, offenders: outermost.slice(0, 8).map(describe) };
 })()`;
 
 // ---------------------------------------------------------------------------
@@ -266,8 +285,10 @@ function buildRoutes(scanId) {
     { path: "/teardowns" },
     { path: "/teardowns/bearable" },
     { path: "/privacy" },
-    { path: "/login" },
   ];
+  // /login only measures itself while signed OUT — an authed session redirects
+  // it to /app/dashboard, so it would silently re-measure the dashboard.
+  if (!process.env.MOBILE_AUTH_URL) routes.push({ path: "/login" });
   if (scanId) {
     routes.push({ path: `/scan/${scanId}/results` });
     routes.push({ path: `/report/${scanId}` });
@@ -278,7 +299,13 @@ function buildRoutes(scanId) {
       "/app/plan",
       "/app/audience/competitors",
       "/app/audience/customers",
+      "/app/supply",
+      "/app/demand",
+      "/app/synthesis",
       "/app/progress",
+      "/app/settings",
+      "/app/billing",
+      "/app/add",
       "/app/diagnostics",
     ]) {
       routes.push({ path: p, authed: true });
@@ -331,31 +358,31 @@ async function main() {
     await cdp.send("Page.enable", {}, sessionId);
     await cdp.send("Runtime.enable", {}, sessionId);
     await cdp.send("Network.enable", {}, sessionId);
+    // Real phones use zero-width OVERLAY scrollbars. Headless Chrome draws a
+    // classic ~16px one on any document that scrolls, and window.innerWidth
+    // INCLUDES it while documentElement.clientWidth excludes it. That 16px then
+    // leaks into every position:fixed element (they size to the ICB), producing
+    // a phantom "16px overflow" on scrolling pages. Hiding scrollbars makes the
+    // emulation match a device. (The --hide-scrollbars launch flag is ignored
+    // under --headless=new; this CDP command is the one that actually applies.)
+    await cdp.send("Emulation.setScrollbarsHidden", { hidden: true }, sessionId);
 
-    const authCookie = process.env.MOBILE_AUTH_COOKIE;
+    // Authenticate ONCE up front: navigating the magic-link confirm URL runs a
+    // redirect chain that sets the session cookie on this browser context, so
+    // every later /app/* navigation is authed. Mint one with
+    // `node scripts/dev-auth-session.mjs`.
+    if (process.env.MOBILE_AUTH_URL) {
+      const loaded = cdp.waitForEvent("Page.loadEventFired", sessionId, 25_000).catch(() => null);
+      await cdp.send("Page.navigate", { url: process.env.MOBILE_AUTH_URL }, sessionId);
+      await loaded;
+      await wait(1500);
+      console.log("[auth] session cookie established via MOBILE_AUTH_URL");
+    }
 
     console.log(`\nMeasuring ${routes.length} route(s) at ${WIDTHS.length} width(s)...\n`);
 
     for (const route of routes) {
       const url = `${BASE_URL}${route.path}`;
-
-      if (route.authed && authCookie) {
-        // Set each "name=value" pair from the provided cookie header for this host.
-        const host = new URL(BASE_URL).hostname;
-        for (const pair of authCookie.split(";")) {
-          const eq = pair.indexOf("=");
-          if (eq === -1) continue;
-          const name = pair.slice(0, eq).trim();
-          const value = pair.slice(eq + 1).trim();
-          if (name) {
-            try {
-              await cdp.send("Network.setCookie", { name, value, domain: host, path: "/" }, sessionId);
-            } catch {
-              /* best-effort */
-            }
-          }
-        }
-      }
 
       for (const width of WIDTHS) {
         await cdp.send(
@@ -371,18 +398,46 @@ async function main() {
           await cdp.send("Page.navigate", { url }, sessionId);
           await loaded;
           await wait(1200); // settle: hydration, client components, ssr:false imports
-          const { result, exceptionDetails } = await cdp.send(
-            "Runtime.evaluate",
-            { expression: OVERFLOW_EXPR, returnByValue: true, awaitPromise: false },
-            sessionId
-          );
-          if (exceptionDetails) error = `eval error: ${exceptionDetails.text ?? "unknown"}`;
-          else measure = result.value;
+          // A client-side redirect can swap the document out from under the
+          // eval (documentElement momentarily null). Retry rather than report a
+          // phantom failure — a real error still surfaces on the last attempt.
+          for (let attempt = 0; attempt < 3; attempt++) {
+            const { result, exceptionDetails } = await cdp.send(
+              "Runtime.evaluate",
+              { expression: OVERFLOW_EXPR, returnByValue: true, awaitPromise: false },
+              sessionId
+            );
+            if (!exceptionDetails && result?.value) {
+              measure = result.value;
+              error = null;
+              break;
+            }
+            const desc = exceptionDetails?.exception?.description ?? exceptionDetails?.text ?? "no value returned";
+            error = `eval error: ${desc}`;
+            await wait(800);
+          }
         } catch (err) {
           error = err.message;
         }
 
-        const pass = !error && measure != null && measure.offenders.length === 0 && measure.scrollW <= measure.iw + OVERFLOW_TOLERANCE;
+        // An auth-gated route that bounced to /login renders a page that
+        // trivially fits — reporting that as a PASS would be a vacuous green
+        // (the guard would "verify" a login screen, not the dashboard). Treat a
+        // redirect away from an authed target as a hard error instead.
+        if (!error && measure && route.authed && /^\/(login|auth)\b/.test(measure.path)) {
+          error = `not authenticated — landed on ${measure.path} instead of ${route.path}. Mint a FRESH single-use link (node scripts/dev-auth-session.mjs) and set MOBILE_AUTH_URL.`;
+        }
+
+        // The verdict is element geometry vs the real screen width
+        // (documentElement.clientWidth): any content box whose right edge passes
+        // it is breakage a user sees. `scrollW` and `layoutW` are reported for
+        // context but deliberately NOT part of the verdict — both are inflated by
+        // the classic scrollbar headless draws on scrolling documents (innerWidth
+        // includes it, clientWidth doesn't), which made them fire a phantom
+        // ~16px failure on any page with a fixed overlay. The rect check is what
+        // actually caught every real defect (the 240px app rail, the footer's
+        // 624px grid, the 280px landing card, the unwrappable host).
+        const pass = !error && measure != null && measure.offenders.length === 0;
         results.push({ path: route.path, width, pass, error, measure });
       }
     }
@@ -400,6 +455,8 @@ async function main() {
     let detail;
     if (r.error) detail = `error: ${r.error}`;
     else if (r.pass) detail = `fits vp ${r.measure.iw}px`;
+    else if (r.measure.layoutW > r.measure.iw + OVERFLOW_TOLERANCE)
+      detail = `page forces a ${r.measure.layoutW}px layout on a ${r.measure.iw}px screen (${r.measure.offenders.length} element(s) spill, worst +${r.measure.worst}px)`;
     else detail = `${r.measure.offenders.length} element(s) spill past vp ${r.measure.iw}px (worst +${r.measure.worst}px)`;
     console.log(`${r.path.padEnd(pad)}  ${String(r.width).padStart(3)}px  ${r.pass ? "  ✓   " : "  ✗   "}  ${detail}`);
   }

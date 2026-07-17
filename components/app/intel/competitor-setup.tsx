@@ -150,7 +150,10 @@ export function CompetitorSetup({
 
   return (
     <div className="mx-auto max-w-2xl py-10">
-      <div className="text-[10px] font-mono uppercase tracking-widest text-violet-500">Set up · {domain}</div>
+      {/* break-all: `domain` is a full store URL with no spaces, so its
+          min-content is the whole string — on a 360px screen that alone forced a
+          376px layout. break-all (not break-words) is what actually lets it wrap. */}
+      <div className="text-[10px] font-mono break-all uppercase tracking-widest text-violet-500">Set up · {domain}</div>
       <h1 className="mt-1 text-2xl font-semibold tracking-tight">Who are you up against?</h1>
       <p className="mt-1 text-sm text-neutral-500">We ranked the closest matches. Pick up to {MAX} — your whole report (supply, demand, plans) benchmarks against exactly these.</p>
 

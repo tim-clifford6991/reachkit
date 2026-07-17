@@ -31,10 +31,26 @@ function Card({ children, style }: { children: ReactNode; style?: CSSProperties 
 // Shell (sidebar + header) — wraps the per-tab content skeleton
 // ---------------------------------------------------------------------------
 
+/**
+ * Mirrors AppShell's responsive rail: below 1024px the real shell collapses the
+ * sidebar into a closed drawer, so this fallback must hide its sidebar block too
+ * — otherwise the loading state alone forces a >360px layout on a phone (the
+ * skeleton is user-visible, so its overflow is real).
+ */
+const SHELL_SKELETON_CSS = `
+.rk-skel-shell{display:grid;grid-template-columns:1fr;min-height:100vh}
+.rk-skel-aside{display:none}
+@media (min-width:1024px){
+  .rk-skel-shell{grid-template-columns:240px 1fr}
+  .rk-skel-aside{display:flex}
+}
+`;
+
 export function ShellSkeleton({ children }: { children: ReactNode }) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", minHeight: "100vh", background: "var(--c-bg2)" }}>
-      <aside style={{ background: "var(--c-surface)", borderRight: "1px solid var(--c-line2)", display: "flex", flexDirection: "column", padding: "18px 14px", height: "100vh", position: "sticky", top: 0 }}>
+    <div className="rk-skel-shell" style={{ background: "var(--c-bg2)" }}>
+      <style>{SHELL_SKELETON_CSS}</style>
+      <aside className="rk-skel-aside" style={{ background: "var(--c-surface)", borderRight: "1px solid var(--c-line2)", flexDirection: "column", padding: "18px 14px", height: "100vh", position: "sticky", top: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 8px 18px" }}>
           <Box w={26} h={26} r={9} />
           <Box w={74} h={14} />
@@ -71,7 +87,7 @@ export function ShellSkeleton({ children }: { children: ReactNode }) {
 
 export function DashboardSkeleton() {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "minmax(300px, 360px) 1fr", gap: 20, alignItems: "start" }}>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))", gap: 20, alignItems: "start" }}>
       <Card style={{ padding: "28px 26px" }}>
         <div style={{ display: "flex", justifyContent: "center", padding: "8px 0 18px" }}>
           <Box w={200} h={200} r={999} />
@@ -134,7 +150,7 @@ export function HistorySkeleton() {
         <Box w={130} h={16} style={{ marginBottom: 18 }} />
         <Box h={150} r={10} />
       </Card>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 260px), 1fr))", gap: 18 }}>
         {[0, 1].map((i) => (
           <Card key={i} style={{ minHeight: 130 }}>
             <Box w={120} h={15} style={{ marginBottom: 14 }} />

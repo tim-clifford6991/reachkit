@@ -74,7 +74,7 @@ function Body({ data }: { data: Demand }) {
         </div>
       </HeroCard>
 
-      <div style={{ display: "grid", gap: 20, gridTemplateColumns: "minmax(0,1fr) 300px" }}>
+      <div style={{ display: "grid", gap: 20, gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))" }}>
         <Card title="Demand themes" info="Search keywords grouped into buyer needs, sized by monthly volume. Color = intent.">
           {themeBars.length ? <HBars data={themeBars} format={fmtCompact} /> : <Empty>Thin search demand.</Empty>}
         </Card>

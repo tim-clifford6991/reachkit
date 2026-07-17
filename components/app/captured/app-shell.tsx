@@ -10,7 +10,7 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppSwitcher, type SwitcherApp } from "./app-switcher-menu";
 import { CheckoutButton } from "@/components/app/checkout-button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -33,6 +33,41 @@ const SignOutButton = dynamic(() => import("@/components/app/sign-out-button").t
 });
 
 const SG = "Space Grotesk", PJ = "Plus Jakarta Sans", JM = "JetBrains Mono";
+
+/**
+ * Responsive shell. The 240px rail is desktop-only: below 1024px it becomes an
+ * off-canvas drawer (the app is data-dense — a fixed rail on a phone left the
+ * content column ~120px wide and forced a 425px layout onto a 360px screen).
+ *
+ * All the layout switching is CSS, driven by one `is-open` class, so the only JS
+ * this adds to the shared /app first-load chunk is a single useState — no
+ * useMediaQuery, no drawer library. (app-shell renders on EVERY /app route and
+ * four of those pages already sit at the bundle budget.)
+ *
+ * These properties live here rather than inline because inline styles cannot
+ * express a media query — and they'd beat this stylesheet if they stayed.
+ */
+const SHELL_CSS = `
+.rk-shell{display:grid;grid-template-columns:1fr;min-height:100vh}
+.rk-shell-nav{position:fixed;inset:0 auto 0 0;width:min(84vw,268px);height:100vh;z-index:40;transform:translateX(-100%);visibility:hidden;transition:transform .2s var(--ease-in-out,ease),visibility .2s;overflow-y:auto}
+.rk-shell-nav.is-open{transform:translateX(0);visibility:visible}
+.rk-shell-backdrop{position:fixed;inset:0;background:rgba(12,10,24,.5);z-index:30;border:0;padding:0;cursor:pointer}
+.rk-shell-burger{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;border:1px solid var(--c-line2);background:var(--c-surface);color:var(--c-ink);cursor:pointer;flex-shrink:0}
+.rk-shell-head{padding:12px 16px}
+.rk-shell-body{padding:20px 16px 48px}
+@media (min-width:640px){
+  .rk-shell-head{padding:15px 28px}
+  .rk-shell-body{padding:28px 32px 64px}
+}
+@media (min-width:1024px){
+  .rk-shell{grid-template-columns:240px 1fr}
+  .rk-shell-nav{position:sticky;top:0;inset-inline:auto;width:auto;height:100vh;transform:none;visibility:visible;transition:none;z-index:auto}
+  .rk-shell-burger,.rk-shell-backdrop{display:none}
+}
+@media (prefers-reduced-motion: reduce){
+  .rk-shell-nav{transition:none}
+}
+`;
 
 interface NavLeaf { label: string; href: string; }
 interface NavItem extends NavLeaf { badge?: boolean; icon: React.ReactNode; }
@@ -166,6 +201,16 @@ function NavGroupRow({ group, pathname, actionsCount }: { group: NavGroup; pathn
 
 export function AppShell(p: AppShellProps) {
   const pathname = usePathname() || "/app";
+  // Mobile drawer. The ONLY state the responsive shell needs — CSS does the rest.
+  const [navOpen, setNavOpen] = useState(false);
+  useEffect(() => {
+    if (!navOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setNavOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [navOpen]);
   const sub = SUBPAGES[pathname];
   const activeLeaf =
     [...LEAF_HREFS].sort((a, b) => b.length - a.length).find((href) => pathname === href || pathname.startsWith(href + "/")) ?? "/app/dashboard";
@@ -178,9 +223,35 @@ export function AppShell(p: AppShellProps) {
 
   return (
     <div style={{ fontFamily: `${PJ}, sans-serif`, color: "var(--c-ink)", minHeight: "100vh" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", minHeight: "100vh", background: "var(--c-bg2)" }}>
-        {/* Sidebar */}
-        <aside style={{ background: "var(--c-surface)", borderRight: "1px solid var(--c-line2)", display: "flex", flexDirection: "column", padding: "18px 14px", position: "sticky", top: 0, height: "100vh" }}>
+      <style>{SHELL_CSS}</style>
+      <div className="rk-shell" style={{ background: "var(--c-bg2)" }}>
+        {/* Backdrop — only rendered while the mobile drawer is open; CSS hides it
+            at >=1024px where the rail is permanent. */}
+        {navOpen && (
+          <button
+            type="button"
+            className="rk-shell-backdrop"
+            aria-label="Close navigation"
+            onClick={() => setNavOpen(false)}
+          />
+        )}
+        {/* Sidebar — a permanent rail at >=1024px, an off-canvas drawer below.
+            A closed drawer is hidden via CSS `visibility:hidden` (see SHELL_CSS)
+            rather than an aria-hidden prop: the server can't know the viewport,
+            so a prop would also hide the *desktop* rail from assistive tech.
+            visibility takes it out of the a11y tree on mobile and the >=1024px
+            media query restores it. */}
+        <aside
+          id="rk-app-nav"
+          className={`rk-shell-nav${navOpen ? " is-open" : ""}`}
+          // Delegated so every link (incl. nested group children) closes the
+          // drawer on navigate without threading a handler through each one.
+          // Scoped to real links so expanding a nav GROUP doesn't close it.
+          onClick={(e) => {
+            if ((e.target as HTMLElement).closest("a")) setNavOpen(false);
+          }}
+          style={{ background: "var(--c-surface)", borderRight: "1px solid var(--c-line2)", display: "flex", flexDirection: "column", padding: "18px 14px" }}
+        >
           {/* Brand → always returns to the dashboard home. Link straight to
               /app/dashboard, NOT /app: /app server-redirects there, and a client
               soft-nav to a redirecting route aborts its in-flight RSC stream →
@@ -250,8 +321,21 @@ export function AppShell(p: AppShellProps) {
 
         {/* Content column */}
         <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-          <header style={{ background: "var(--c-glass)", backdropFilter: "blur(10px)", borderBottom: "1px solid var(--c-line2)", padding: "15px 28px", display: "flex", alignItems: "center", gap: 18, position: "sticky", top: 0, zIndex: 20 }}>
-            <div>
+          <header className="rk-shell-head" style={{ background: "var(--c-glass)", backdropFilter: "blur(10px)", borderBottom: "1px solid var(--c-line2)", display: "flex", alignItems: "center", gap: 12, position: "sticky", top: 0, zIndex: 20 }}>
+            {/* Drawer toggle — CSS-hidden at >=1024px where the rail is permanent. */}
+            <button
+              type="button"
+              className="rk-shell-burger"
+              aria-label="Open navigation"
+              aria-expanded={navOpen}
+              aria-controls="rk-app-nav"
+              onClick={() => setNavOpen(true)}
+            >
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
+            <div style={{ minWidth: 0 }}>
               {sub ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <Link href={sub.parent} style={{ fontFamily: SG, fontWeight: 700, fontSize: 20, letterSpacing: "-0.01em", color: "var(--c-faint)", textDecoration: "none" }}>{TITLES[sub.parent]}</Link>
@@ -277,7 +361,7 @@ export function AppShell(p: AppShellProps) {
               width) so all tabs share identical structure; the sticky header
               above is the single page header. */}
           <div style={{ overflow: "auto" }}>
-            <div style={{ maxWidth: 1440, width: "100%", margin: "0 auto", padding: "28px 32px 64px" }}>{p.children}</div>
+            <div className="rk-shell-body" style={{ maxWidth: 1440, width: "100%", margin: "0 auto" }}>{p.children}</div>
           </div>
         </div>
       </div>
