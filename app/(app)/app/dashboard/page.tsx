@@ -37,12 +37,41 @@ export default function DashboardPage() {
   );
 }
 
+/**
+ * Id of the most recent terminal (`done`/`error`) event for a scan, or 0.
+ *
+ * The progress stream's resume cursor. `scan_events` is append-only PER SCAN ID
+ * and a scan can run more than once against that id (the free pass, then the
+ * paid deepen), so the log holds a `done` from the earlier run. Everything after
+ * that id is exactly the current run.
+ */
+async function lastTerminalEventId(scanId: string): Promise<number> {
+  const { data } = await serverDb()
+    .from("scan_events")
+    .select("id")
+    .eq("scan_id", scanId)
+    .in("type", ["done", "error"])
+    .order("id", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return (data?.id as number | undefined) ?? 0;
+}
+
 async function DashboardContent() {
   const ctx = await resolveIntelContext("/app/dashboard");
 
-  // The scan (score hero) and the plan board ("what to do this week") are
+  // The scan (score hero), the plan board, and "is a scan running RIGHT NOW" are
   // independent reads — fetch them together.
-  const [{ data: scan }, board] = await Promise.all([
+  //
+  // The in-flight read is deliberately INDEPENDENT of the completed scan. It used
+  // to live inside the `score_total == null` branch, which asks "was this app EVER
+  // scanned?" — not "is a scan running?". Those diverge for every RE-scan and every
+  // deepen of an already-scored app: the row already has a score, so the branch was
+  // structurally unreachable and the progress UI could never render. That shipped:
+  // adding a product with an existing free scan (resolveProductScan → `deepen`) ran
+  // an ~80s deep pass with ZERO feedback while the stale free report sat on screen —
+  // reported as "it did not process" when in fact it processed perfectly.
+  const [{ data: scan }, board, { data: inflight }] = await Promise.all([
     serverDb()
       .from("scans")
       .select("id, score_total, score_breakdown, report_payload")
@@ -53,26 +82,33 @@ async function DashboardContent() {
       .limit(1)
       .maybeSingle(),
     actionBoard(ctx.appId),
+    serverDb()
+      .from("scans")
+      .select("id, tier, started_at")
+      .eq("app_id", ctx.appId)
+      .not("status", "in", "(done,failed,degraded)")
+      .order("started_at", { ascending: false, nullsFirst: true })
+      .limit(1)
+      .maybeSingle(),
   ]);
+
+  // Resume cursor for the progress stream. `scan_events` accumulates ACROSS runs
+  // for one scan id (a deepen appends to the free scan's event log), so tailing
+  // from 0 replays the PREVIOUS run's terminal `done` — the client would settle
+  // instantly, refresh, find the scan still in flight, re-render progress, and
+  // replay that same `done` again: an infinite refresh loop. Resume from the last
+  // terminal event instead, so the client sees exactly this run's events.
+  const sinceId = inflight ? await lastTerminalEventId(inflight.id) : 0;
 
   // No completed scan yet — the score story has nothing to show, but the plan
   // card (actions can arrive via "Add to plan" chips before a scan) and the
   // intel blocks (which don't depend on a scan) still render below the notice.
   if (!scan || scan.score_total == null) {
-    // Is a scan already running (e.g. just triggered from here, or from
-    // /app/add)? If so, render its live progress IN SHELL — never eject to the
+    // A scan is already running (e.g. just triggered from here, or from
+    // /app/add) — render its live progress IN SHELL, never eject to the
     // entitlement-blind public /scan/<id> page (see docs/superpowers/specs/
     // 2026-07-15-add-product-onboarding-design.md §4). Otherwise offer the
     // one-click on-demand scan.
-    const { data: inflight } = await serverDb()
-      .from("scans")
-      .select("id, tier")
-      .eq("app_id", ctx.appId)
-      .not("status", "in", "(done,failed,degraded)")
-      .order("started_at", { ascending: false, nullsFirst: true })
-      .limit(1)
-      .maybeSingle();
-
     if (inflight) {
       return (
         <>
@@ -80,6 +116,8 @@ async function DashboardContent() {
             scanId={inflight.id}
             tier={inflight.tier === "full" ? "full" : "free"}
             host={ctx.domain ? hostname(ctx.domain) : null}
+            sinceId={sinceId}
+            startedAt={inflight.started_at}
           />
           <div style={{ marginTop: 20 }}>
             <WeekPlanPreview board={board} />
@@ -165,6 +203,23 @@ async function DashboardContent() {
 
   return (
     <>
+      {/* A scan is running over an app that ALREADY has a score — a re-scan or a
+          paid deepen. Show it. The hero below stays readable (it's real, just
+          about to be superseded) rather than being replaced by a spinner, but the
+          user is never again left staring at stale numbers with no indication
+          that work is happening. */}
+      {inflight && (
+        <div style={{ marginBottom: 20 }}>
+          <DashboardScanProgress
+            scanId={inflight.id}
+            tier={inflight.tier === "full" ? "full" : "free"}
+            host={ctx.domain ? hostname(ctx.domain) : null}
+            sinceId={sinceId}
+            startedAt={inflight.started_at}
+            refreshing
+          />
+        </div>
+      )}
       <DashboardHero
         score={headline}
         rollup={rollup}

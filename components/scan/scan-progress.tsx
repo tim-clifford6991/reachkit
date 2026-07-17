@@ -1,6 +1,7 @@
 "use client";
 
-import { useScanNarrative } from "./scan-narrative";
+import { useMemo } from "react";
+import { useScanNarrative, scanProgressPct, useElapsedSeconds } from "./scan-narrative";
 import { ScanChecklist } from "./scan-checklist";
 import { ScanAnimation } from "./scan-animation";
 import { ScanningScreen } from "./captured-scanning";
@@ -24,6 +25,8 @@ export function ScanProgress({
   findingsReady,
   reportReady,
   embedded = false,
+  refreshing = false,
+  startedAt = null,
 }: {
   artifacts: string[];
   productName?: string | null;
@@ -39,6 +42,16 @@ export function ScanProgress({
   reportReady: boolean;
   /** Render in place inside a host layout (e.g. the app shell) instead of a full-page takeover. */
   embedded?: boolean;
+  /** The app already shows a score — this is a re-scan/deepen, not a first run. */
+  refreshing?: boolean;
+  /**
+   * `scans.started_at` (ISO). The progress curve is time-based, so it needs the
+   * REAL start — not mount time. They differ whenever the view renders mid-scan
+   * (the dashboard re-rendering into a deepen that began ~80s ago); anchoring on
+   * mount would restart the bar at 0 and read as though nothing had happened.
+   * Falls back to mount for the funnel, where the user just submitted.
+   */
+  startedAt?: string | null;
 }) {
   const confirmed = new Set<string>(artifacts);
   if (findingsReady) confirmed.add("__findings__");
@@ -52,12 +65,28 @@ export function ScanProgress({
     deep,
   );
 
+  // Pure: parse only. null → useElapsedSeconds anchors on mount.
+  const startedAtMs = useMemo(() => {
+    const t = startedAt ? Date.parse(startedAt) : NaN;
+    return Number.isFinite(t) ? t : null;
+  }, [startedAt]);
+  const elapsedS = useElapsedSeconds(startedAtMs, running);
+  const pct = scanProgressPct({
+    stepsDone: steps.filter((s) => s.state === "done").length,
+    stepsTotal: steps.length,
+    elapsedS,
+    deep,
+    complete: !running,
+  });
+
   void productName;
   return (
     <ScanningScreen
       host={host ?? null}
       steps={steps.map((s) => ({ state: s.state, label: s.label }))}
       embedded={embedded}
+      pct={pct}
+      refreshing={refreshing}
     />
   );
 }
