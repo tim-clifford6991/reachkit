@@ -64,3 +64,24 @@ describe("buildFreeReport", () => {
     expect(report.whereTheyAre.competitorGap.map((g) => g.competitor)).toContain("Rival A");
   });
 });
+
+// Regression guard (Phase 4 / C-WS3): runFreeReport used to emit ZERO scan events,
+// so the free scan went silent through its final stage AND never emitted a `report`
+// event — the funnel's reportReady handoff (handoff.ts) then stalled on the live
+// view until the `done` step boundary, despite report_payload already being
+// persisted. It must emit progress (the footprint artifact) and the `report` event.
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { expectCallsSymbol } from "@/lib/testing/tripwire";
+
+describe("free report progress (ratchet)", () => {
+  it("runFreeReport emits scan events — never silent again", () => {
+    expect(() => expectCallsSymbol("lib/scan/free-report.ts", "emitScanEvent", { within: "runFreeReport" })).not.toThrow();
+  });
+
+  it("runFreeReport emits a `report` event so the funnel hands off at report, not `done`", () => {
+    const src = readFileSync(resolve(process.cwd(), "lib/scan/free-report.ts"), "utf8");
+    // The report-event emission is the load-bearing handoff trigger for free scans.
+    expect(src).toMatch(/emitScanEvent\([^)]*"report"/);
+  });
+});
