@@ -2,15 +2,26 @@ import { describe, it, expect } from "vitest";
 import { parseWebReviewSnippets, filterSubjectSnippets, reviewCountFromSnippets } from "./web-reviews";
 
 describe("parseWebReviewSnippets", () => {
-  it("extracts review-bearing snippets from a Tavily-style body (answer + results)", () => {
+  it("extracts review-bearing snippets from the RESULTS only", () => {
     const body = {
       answer: "Users praise Acquire's vetted listings; some cite high fees.",
       results: [{ title: "Acquire reviews — Trustpilot", url: "https://trustpilot.com/acquire", content: "4.2/5 from 380 reviews. Great support." }],
     };
     const out = parseWebReviewSnippets(body);
-    expect(out.length).toBeGreaterThanOrEqual(2);
-    expect(out.join(" ")).toMatch(/vetted listings/);
     expect(out.join(" ")).toMatch(/380 reviews/);
+  });
+
+  it("NEVER treats Tavily's synthesized `answer` as a review snippet (grounding honesty)", () => {
+    // Tavily's `answer` is LLM-synthesized prose, not a real review. Laundering it
+    // as review #1 is what produced invented reviews for the unlaunched reachkit.app
+    // (scan 6d49d58e, 2026-07-16). It must never enter the snippet stream.
+    const out = parseWebReviewSnippets({
+      answer: "Users consistently praise ReachKit for being user-friendly.",
+      results: [{ content: "Real snippet from a real page about reachkit." }],
+    });
+    expect(out).not.toContain("Users consistently praise ReachKit for being user-friendly.");
+    expect(out.join(" ")).not.toMatch(/consistently praise/);
+    expect(out).toEqual(["— Real snippet from a real page about reachkit."]);
   });
 
   it("returns [] for an empty / null body (never throws)", () => {

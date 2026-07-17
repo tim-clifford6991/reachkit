@@ -13,9 +13,12 @@ import { recordTavilyCost } from "@/lib/scan/cost-context";
  * Never throws: any failure degrades to an empty result and the scan continues.
  */
 export function parseWebReviewSnippets(body: unknown): string[] {
-  const b = (body ?? {}) as { answer?: string; results?: Array<{ title?: string; content?: string }> };
+  // ONLY real result snippets. Tavily's `answer` is LLM-synthesized prose, not a
+  // review — laundering it as review #1 (the old `if (b.answer) out.push`) is what
+  // produced invented reviews for the unlaunched reachkit.app (scan 6d49d58e).
+  // Grounding honesty (invariant #11): never treat generated text as evidence.
+  const b = (body ?? {}) as { results?: Array<{ title?: string; content?: string }> };
   const out: string[] = [];
-  if (b.answer) out.push(b.answer);
   for (const r of b.results ?? []) {
     const s = `${r.title ?? ""} — ${r.content ?? ""}`.trim();
     if (s.length > 3) out.push(s);
@@ -67,7 +70,9 @@ export async function fetchWebReviews(subject: string): Promise<{ snippets: stri
     const res = await fetchWithTimeout("https://api.tavily.com/search", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ api_key: env.tavilyApiKey, query: `${subject} reviews`, max_results: 5, include_answer: true }),
+      // No include_answer: we stop paying Tavily to generate prose we now discard
+      // (parseWebReviewSnippets ignores `answer`).
+      body: JSON.stringify({ api_key: env.tavilyApiKey, query: `${subject} reviews`, max_results: 5 }),
     });
     if (!res.ok) return { snippets: [], raw: null };
     recordTavilyCost("search", env.tavilyUsdPerCredit, { depth: "basic" });
