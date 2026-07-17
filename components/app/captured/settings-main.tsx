@@ -7,9 +7,21 @@ import { CheckoutButton } from "@/components/app/checkout-button";
 import { ManageBillingButton } from "@/components/app/manage-billing-button";
 import { ProductUrlForm } from "./settings-product-url-form";
 import { AddProductForm } from "./settings-add-product-form";
+import { RemoveProductButton } from "./settings-remove-product-button";
 import { AccountDeleteLazy } from "./account-delete-lazy";
 
 const SG = "Space Grotesk", JM = "JetBrains Mono", PJ = "Plus Jakarta Sans";
+
+/** One tracked product row. The ACTIVE product also gets the inline URL editor. */
+export interface TrackedProduct {
+  appId: string;
+  name: string;
+  initial: string;
+  meta: string;
+  dataFresh: boolean;
+  storeUrl: string | null;
+  isActive: boolean;
+}
 
 export interface SettingsMainProps {
   planTitle: string;
@@ -20,13 +32,8 @@ export interface SettingsMainProps {
   /** Paid users (active subscription) get the "Manage billing" portal button
    *  right here, so billing is fully self-contained on Settings. */
   isPaid: boolean;
-  appName: string;
-  appInitial: string;
-  productMeta: string;
-  dataFresh: boolean;
-  /** Present when the user has a tracked app — enables the product-URL editor. */
-  appId: string | null;
-  storeUrl: string | null;
+  /** Every tracked product. Empty → the zero-app add form. */
+  products: TrackedProduct[];
 }
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
@@ -69,25 +76,37 @@ export function SettingsMain(p: SettingsMainProps) {
           </div>
         </div>
       </Card>
-      <Card title="Tracked product">
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ width: 34, height: 34, borderRadius: 9, background: "linear-gradient(135deg, var(--c-action), #9A88FF)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontFamily: SG }}>{p.appInitial}</span>
-          {/* minWidth:0 + overflowWrap: productMeta carries the store URL, which
-              has no spaces — so its min-content is the whole string, and a flex
-              child's default min-width:auto would hold this row at that width
-              (361px), forcing a wider layout than a 360px screen. */}
-          <div style={{ flex: "1 1 0%", minWidth: 0 }}>
-            <div style={{ fontWeight: 600, fontSize: 14 }}>{p.appName}</div>
-            <div style={{ fontSize: 12.5, color: "var(--c-faint)", overflowWrap: "anywhere" }}>{p.productMeta}</div>
-          </div>
-          {p.dataFresh && <span style={{ fontSize: 12, fontWeight: 600, color: "#1F9D5B", background: "var(--c-tint-green)", padding: "4px 10px", borderRadius: 7 }}>data fresh</span>}
-        </div>
-        {p.appId ? (
-          <ProductUrlForm appId={p.appId} initialUrl={p.storeUrl ?? ""} />
-        ) : (
+      <Card title={p.products.length > 1 ? "Tracked products" : "Tracked product"}>
+        {p.products.length === 0 ? (
           // Zero-app state: every intel page redirects here, so this form is the
           // ONLY way to attach a first product (Path B checkout / provisioning miss).
           <AddProductForm />
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {p.products.map((prod, i) => (
+              <div key={prod.appId} style={{ paddingTop: i === 0 ? 0 : 16, borderTop: i === 0 ? "none" : "1px solid var(--c-line)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <span style={{ width: 34, height: 34, borderRadius: 9, background: "linear-gradient(135deg, var(--c-action), #9A88FF)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontFamily: SG, flexShrink: 0 }}>{prod.initial}</span>
+                  {/* minWidth:0 + overflowWrap: meta carries the store URL, which
+                      has no spaces — so its min-content is the whole string, and a
+                      flex child's default min-width:auto would hold this row at that
+                      width, forcing a wider layout than a 360px screen. */}
+                  <div style={{ flex: "1 1 0%", minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: 14, display: "flex", alignItems: "center", gap: 8 }}>
+                      {prod.name}
+                      {prod.isActive && <span style={{ fontSize: 11, fontWeight: 600, color: "var(--c-action)", background: "var(--c-tint-violet)", padding: "2px 7px", borderRadius: 6 }}>active</span>}
+                    </div>
+                    <div style={{ fontSize: 12.5, color: "var(--c-faint)", overflowWrap: "anywhere" }}>{prod.meta}</div>
+                  </div>
+                  {prod.dataFresh && <span style={{ fontSize: 12, fontWeight: 600, color: "#1F9D5B", background: "var(--c-tint-green)", padding: "4px 10px", borderRadius: 7, flexShrink: 0 }}>data fresh</span>}
+                  <RemoveProductButton appId={prod.appId} appName={prod.name} />
+                </div>
+                {/* The active product keeps the inline URL editor — that's the one
+                    the dashboard is showing and the user is most likely correcting. */}
+                {prod.isActive && <ProductUrlForm appId={prod.appId} initialUrl={prod.storeUrl ?? ""} />}
+              </div>
+            ))}
+          </div>
         )}
       </Card>
       <Card title="Scoring">

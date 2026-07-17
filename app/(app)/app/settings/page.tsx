@@ -9,7 +9,7 @@ import { currentUser } from "@/lib/auth/server";
 import { entitlementsFor } from "@/lib/billing/entitlements";
 import { activeAppId } from "@/lib/app/active-app";
 import { serverDb } from "@/lib/db/client";
-import { SettingsMain } from "@/components/app/captured/settings-main";
+import { SettingsMain, type TrackedProduct } from "@/components/app/captured/settings-main";
 import { SettingsSkeleton } from "@/components/app/captured/skeletons";
 import { buildMetadata } from "@/lib/seo";
 
@@ -30,22 +30,48 @@ async function SettingsContent() {
   const plan = PLAN[tier] ?? PLAN.free!;
 
   const primaryAppId = await activeAppId(user);
-  let appName = "your site";
-  let storeUrl: string | null = null;
-  let productMeta = "No scans yet";
-  let dataFresh = false;
-  if (primaryAppId) {
+  const appIds: string[] = user.app_ids ?? [];
+
+  // eslint-disable-next-line react-hooks/purity -- server component: single render per request, Date.now is deterministic per-request
+  const nowMs = Date.now();
+  const freshnessMeta = (iso: string | null): { meta: string; fresh: boolean } => {
+    if (!iso) return { meta: "No scans yet", fresh: false };
+    const d = Math.floor((nowMs - new Date(iso).getTime()) / 86_400_000);
+    return {
+      meta: `Web · last fetched ${d <= 0 ? "today" : d === 1 ? "yesterday" : `${d} days ago`}`,
+      fresh: d <= 7,
+    };
+  };
+
+  // Every tracked product (growth: up to 3), so each can be removed — the exit
+  // the at-cap error promises. Batched: one apps read + one latest-scan read per
+  // app (≤3), rather than N round-trips through the page.
+  const products: TrackedProduct[] = [];
+  if (appIds.length > 0) {
     const db = serverDb();
-    const { data: appRow } = await db.from("apps").select("name, store_url").eq("id", primaryAppId).maybeSingle();
-    appName = appRow?.name ?? appRow?.store_url ?? "your site";
-    storeUrl = appRow?.store_url ?? null;
-    const { data: scanRow } = await db.from("scans").select("completed_at").eq("app_id", primaryAppId).order("completed_at", { ascending: false }).limit(1).maybeSingle();
-    const iso = scanRow?.completed_at as string | null;
-    if (iso) {
-      // eslint-disable-next-line react-hooks/purity -- server component: single render per request, Date.now is deterministic per-request
-      const d = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
-      productMeta = `Web · last fetched ${d <= 0 ? "today" : d === 1 ? "yesterday" : `${d} days ago`}`;
-      dataFresh = d <= 7;
+    const { data: appRows } = await db.from("apps").select("id, name, store_url").in("id", appIds);
+    const byId = new Map((appRows ?? []).map((a) => [a.id as string, a]));
+    for (const appId of appIds) {
+      const appRow = byId.get(appId);
+      if (!appRow) continue;
+      const name = (appRow.name as string | null) ?? (appRow.store_url as string | null) ?? "your site";
+      const { data: scanRow } = await db
+        .from("scans")
+        .select("completed_at")
+        .eq("app_id", appId)
+        .order("completed_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const { meta, fresh } = freshnessMeta(scanRow?.completed_at as string | null);
+      products.push({
+        appId,
+        name,
+        initial: name.charAt(0).toUpperCase(),
+        meta,
+        dataFresh: fresh,
+        storeUrl: (appRow.store_url as string | null) ?? null,
+        isActive: appId === primaryAppId,
+      });
     }
   }
 
@@ -56,12 +82,7 @@ async function SettingsContent() {
       upgradeLabel={plan.upgrade}
       upgradePlan={plan.upgradePlan}
       isPaid={ent.active}
-      appName={appName}
-      appInitial={appName.charAt(0).toUpperCase()}
-      productMeta={productMeta}
-      dataFresh={dataFresh}
-      appId={primaryAppId}
-      storeUrl={storeUrl}
+      products={products}
     />
   );
 }
