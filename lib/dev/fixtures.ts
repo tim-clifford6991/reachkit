@@ -2,9 +2,19 @@ import type { Competitor, Community, Creator, KeywordRow, ReviewItem, TimedCommu
 import type { ReviewThemesSheet, PositioningSheet, CompetitorGapSheet, KeywordSheet, SynthResult, ActionCard, ActionCardEvidence } from "@/lib/llm/types";
 import type { FactSheetKind } from "@/lib/scan/fact-sheets";
 import { env } from "@/lib/config/env";
+import { fixtures, type FixtureProvider } from "@/lib/scan/fixture-seam";
 
+/**
+ * TRANSITIONAL (Phase 8 migration to the injected seam): honour BOTH the legacy env
+ * flag AND an installed provider, so already-migrated tests (`installFixtures`) and
+ * not-yet-migrated tests (`REACHKIT_USE_FIXTURES`) both pass while subsystems move
+ * over one PR at a time. In production BOTH are false — `env.useFixtures` is
+ * hard-failed at parse (Phase 0) and nothing calls `installFixtures`. The env half
+ * is deleted in the final Phase 8 cleanup, after which fixtures are ONLY the
+ * injected seam and production reads zero flags.
+ */
 export function fixturesEnabled(): boolean {
-  return env.useFixtures;
+  return env.useFixtures || fixtures() !== null;
 }
 
 // Realistic canned data so the funnel is demoable without keys.
@@ -768,4 +778,32 @@ export function coldStartActionsFrom(seed: ColdStartSeed): ActionCard[] {
   }
 
   return cards;
+}
+
+/**
+ * Build a `FixtureProvider` backed by the canned data above — the ONE bridge from
+ * the fixture DATA (this file, imported ONLY by test setup) to the prod-importable
+ * seam. Tests do `installFixtures(makeFixtureProvider())`; production never imports
+ * this module (enforced by the `production ✗→ lib/dev` arch rule), so it can never
+ * serve fixtures. See `lib/scan/fixture-seam.ts`.
+ */
+export function makeFixtureProvider(): FixtureProvider {
+  return {
+    serp: fixtureSerp,
+    tavily: fixtureTavily,
+    ph: fixturePh,
+    communities: fixtureCommunities,
+    creators: fixtureCreators,
+    keywords: fixtureKeywords,
+    extract: fixtureExtract,
+    embed: fixtureEmbed,
+    synth: fixtureSynth,
+    rankMap: fixtureRankMap,
+    reviewDelta: fixtureReviewDelta,
+    rankDelta: fixtureRankDelta,
+    threadDelta: fixtureThreadDelta,
+    competitorDelta: fixtureCompetitorDelta,
+    actions: fixtureActions,
+    coldStartActions: fixtureColdStartActions,
+  };
 }
