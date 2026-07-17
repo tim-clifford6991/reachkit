@@ -58,11 +58,18 @@ export interface ScanDiagnostics {
   marketPositionScore: number | null;
   /** LLM cost (sum of pipeline_runs) — the Anthropic spend. */
   totalCostCents: number;
-  /** External metered spend for this scan (DataForSEO real USD; Tavily from credits). */
+  /** External metered spend for THIS scan's pipeline run(s) only (the run_* columns:
+   *  DataForSEO real USD; Tavily from credits) — "what did this scan cost". Excludes
+   *  post-scan interactive intel + weekly-refresh spend (C-COST / R2). */
   dataforseoCostCents: number;
   tavilyCostCents: number;
-  /** LLM + DataForSEO + Tavily — the true all-in cost of this scan. */
+  /** LLM + this-run DataForSEO + Tavily — the true all-in cost of this scan RUN. */
   allInCostCents: number;
+  /** LIFETIME external spend attributed to this scan ROW since — post-scan intel +
+   *  weekly-refresh flush onto the app's latest row, so this is > the per-run figure
+   *  above. Answers "what has this app cost since?", distinct from "what did this
+   *  scan cost". The soft cap reads this lifetime figure (invariant #2). */
+  lifetimeExternalCostCents: number;
   totalDurationMs: number;
   stages: StageRun[];
   dataMap: DataPoint[];
@@ -143,7 +150,7 @@ export async function loadScanDiagnostics(appId: string): Promise<ScanDiagnostic
   const db = serverDb();
   const { data: scan } = await db
     .from("scans")
-    .select("id, status, started_at, completed_at, deepened_at, score_total, report_payload, dataforseo_cost_cents, tavily_cost_cents")
+    .select("id, status, started_at, completed_at, deepened_at, score_total, report_payload, dataforseo_cost_cents, tavily_cost_cents, run_dataforseo_cost_cents, run_tavily_cost_cents")
     .eq("app_id", appId)
     .order("completed_at", { ascending: false, nullsFirst: false })
     .limit(1)
@@ -177,8 +184,13 @@ export async function loadScanDiagnostics(appId: string): Promise<ScanDiagnostic
   }));
 
   const llmCostCents = stages.reduce((n, s) => n + s.costCents, 0);
-  const dataforseoCostCents = Number(scan.dataforseo_cost_cents ?? 0);
-  const tavilyCostCents = Number(scan.tavily_cost_cents ?? 0);
+  // Per-SCAN cost reads the run_* columns (this scan's pipeline passes only) — NOT
+  // the lifetime accumulator, which also absorbs post-scan intel + weekly-refresh
+  // spend flushed onto the latest row (the C-COST/R2 misread this fixes). The
+  // lifetime figure is surfaced separately as "attributed since".
+  const dataforseoCostCents = Number(scan.run_dataforseo_cost_cents ?? 0);
+  const tavilyCostCents = Number(scan.run_tavily_cost_cents ?? 0);
+  const lifetimeExternalCostCents = Number(scan.dataforseo_cost_cents ?? 0) + Number(scan.tavily_cost_cents ?? 0);
 
   return {
     scan: {
@@ -195,6 +207,7 @@ export async function loadScanDiagnostics(appId: string): Promise<ScanDiagnostic
     dataforseoCostCents,
     tavilyCostCents,
     allInCostCents: llmCostCents + dataforseoCostCents + tavilyCostCents,
+    lifetimeExternalCostCents,
     totalDurationMs: stages.reduce((n, s) => n + s.durationMs, 0),
     stages,
     dataMap: buildDataMap(payload),

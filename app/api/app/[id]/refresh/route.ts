@@ -130,6 +130,7 @@ export async function POST(
     // costedStep: manual-refresh external spend flushes onto the latest scan row.
     const result = await costedStep(scanRow.id, () => runWeeklyRefresh(ctx), {
       capCents: env.externalScanCapCentsFull,
+      phase: "post-scan", // manual refresh — lifetime accumulator only, not this scan's run cost
     });
     // Observe-only cost alerts on the refreshed spend — fire-and-forget.
     checkAllInCostOverrun(scanRow.id).catch(() => {});

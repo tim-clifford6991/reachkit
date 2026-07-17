@@ -48,7 +48,9 @@ export async function costedIntelStep<T>(
   try {
     return await runInCostContext(sink, fn);
   } finally {
-    await flushExternalCost(scanId, sink);
+    // "post-scan": interactive intel spend lands in the lifetime accumulator only,
+    // never in the anchor row's per-run cost (it isn't part of that scan's passes).
+    await flushExternalCost(scanId, sink, "post-scan");
     if (sink.dataforseo > 0 || sink.tavily > 0) {
       // Best-effort tag — never fail the gather over telemetry.
       emitScanEvent(scanId, "intel-spend", {
