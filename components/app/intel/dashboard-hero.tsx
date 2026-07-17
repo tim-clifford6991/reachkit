@@ -32,6 +32,9 @@ function fmtDate(iso: string): string {
 export interface DashboardHeroProps {
   score: number;
   rollup: PillarRollup;
+  /** Measured-signal count per pillar (from the full scan_signals set) — the basis
+   *  shown beside each bar (R1). A pillar with 0 measured signals is omitted. */
+  measuredByPillar?: Record<"content" | "outreach" | "seo", number>;
   history: ScoreHistoryPoint[];
   markers: HistoryMarker[];
   /** Paid users get the plan link; free users get one-click Solo checkout (W6). */
@@ -48,7 +51,7 @@ export interface DashboardHeroProps {
   events?: ProgressEvent[];
 }
 
-export function DashboardHero({ score, rollup, history, markers, isPaid, marketPosition, onPageReadiness, searchPresence, events = [] }: DashboardHeroProps) {
+export function DashboardHero({ score, rollup, measuredByPillar, history, markers, isPaid, marketPosition, onPageReadiness, searchPresence, events = [] }: DashboardHeroProps) {
   const band = bandFor(score);
   const assessedCount = rollup.pillars.filter((p) => p.assessed).length;
   const delta =
@@ -92,35 +95,27 @@ export function DashboardHero({ score, rollup, history, markers, isPaid, marketP
               );
             })()}
           </div>
+          {/* Measured signals by pillar (R1). Renders a bar for every pillar with
+              ≥1 MEASURED signal — Content/SEO always, Outreach when a signal like
+              comparison_pages was measured. A pillar with 0 measured signals is
+              OMITTED entirely (never a "not measured yet" dead-end). Each bar
+              carries its basis (the measured-signal count). These decompose the
+              measured set, NOT the gauge — the gauge is the unified score above. */}
           <div style={{ flex: "1 1 320px", minWidth: 260, display: "flex", flexDirection: "column", gap: 12 }}>
-            {rollup.pillars.map((p) => (
-              <div key={p.pillar} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <span style={{ width: 76, flexShrink: 0, fontSize: 12.5, color: "var(--c-muted)" }}>{p.label}</span>
-                {p.assessed ? (
-                  <>
+            <span style={{ fontSize: 10.5, fontFamily: JM, color: "var(--c-faint)", letterSpacing: "0.03em" }}>MEASURED SIGNALS BY PILLAR</span>
+            {rollup.pillars
+              .filter((p) => p.assessed && (measuredByPillar?.[p.pillar] ?? 1) > 0)
+              .map((p) => {
+                const n = measuredByPillar?.[p.pillar];
+                return (
+                  <div key={p.pillar} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <span style={{ width: 76, flexShrink: 0, fontSize: 12.5, color: "var(--c-muted)" }}>{p.label}</span>
                     <div style={{ flex: 1 }}><Bar value={p.value} color={bandFor(p.value).color} /></div>
                     <span style={{ width: 30, flexShrink: 0, textAlign: "right", fontFamily: JM, fontSize: 13, color: "var(--c-ink)" }}>{p.value}</span>
-                  </>
-                ) : p.pillar === "outreach" && marketPosition != null ? (
-                  // Outreach has no on-site signal — its strength is measured OFF-SITE
-                  // as Market Position. Point there instead of reading as broken —
-                  // but ONLY when the deep pass actually produced a Market Position
-                  // (paid, post-deep-pass). When it's null the row must not dead-end
-                  // (owner report 2026-07-17: a Growth account on a never-deepened
-                  // scan read "not measured yet" with no way forward) — say what
-                  // produces the grade for the viewer's tier instead.
-                  <a href="#market-position" style={{ flex: 1, fontSize: 12, fontStyle: "italic", color: "var(--c-action)", textDecoration: "none" }}>
-                    measured off-site → Market Position
-                  </a>
-                ) : p.pillar === "outreach" ? (
-                  <span style={{ flex: 1, fontSize: 12, fontStyle: "italic", color: "var(--c-faint)" }}>
-                    {isPaid ? "measured off-site — appears after your next re-scan" : "measured off-site — part of the full report"}
-                  </span>
-                ) : (
-                  <span style={{ flex: 1, fontSize: 12, fontStyle: "italic", color: "var(--c-faint)" }}>not measured yet</span>
-                )}
-              </div>
-            ))}
+                    {n != null && <span style={{ width: 62, flexShrink: 0, textAlign: "right", fontSize: 10.5, color: "var(--c-faint)" }}>{n} measured</span>}
+                  </div>
+                );
+              })}
           </div>
         </div>
 
@@ -206,8 +201,12 @@ function LeverBanner({ rollup, assessedCount, isPaid }: { rollup: PillarRollup; 
             <>
               <strong>{weakest.label}</strong> is your lowest-scoring pillar at{" "}
               <span style={{ fontFamily: JM }}>{weakest.value}</span>/100.
+              {/* estGain is in ON-PAGE-READINESS points (pillar weight × gap), so it
+                  lifts the on-page DRIVER — NOT "+N to your score". The gauge is a
+                  geomean, so with weak search presence a higher on-page barely moves
+                  it; claiming score-points here was the misleading currency (R1). */}
               {estGain > 0 && (
-                <> Closing that gap could add <span style={{ fontFamily: JM, color: "var(--c-action)", fontWeight: 700 }}>~+{estGain} pts</span> to your score.</>
+                <> Closing that gap could lift your <span style={{ color: "var(--c-action)", fontWeight: 700 }}>on-page readiness</span> by <span style={{ fontFamily: JM, color: "var(--c-action)", fontWeight: 700 }}>~+{estGain} pts</span>.</>
               )}
             </>
           )}

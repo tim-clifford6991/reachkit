@@ -18,7 +18,7 @@ export interface DashboardScreenProps {
 
 const JM = "var(--font-mono)", SG = "var(--font-display)";
 
-const PILLARS = [{ label: "Content", value: 56 }, { label: "Outreach", value: 29 }, { label: "SEO", value: 54 }];
+const PILLARS = [{ label: "Content", value: 56, measured: 3 }, { label: "Outreach", value: 29, measured: 1 }, { label: "SEO", value: 54, measured: 5 }];
 const GAPS = [
   { kw: "habit tracker vs otter", vol: "2,400", rivals: 3 },
   { kw: "best habit tracker 2026", vol: "8,100", rivals: 4 },
@@ -57,18 +57,20 @@ export function DashboardScreen() {
               </div>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
+              <span style={{ fontSize: 10.5, fontFamily: JM, color: "var(--c-faint)", letterSpacing: "0.03em" }}>MEASURED SIGNALS BY PILLAR</span>
               {PILLARS.map((p) => (
                 <div key={p.label} style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <span style={{ width: 74, fontSize: 13, color: "var(--c-muted)" }}>{p.label}</span>
                   <Bar value={p.value} color={bandFor(p.value).color} />
                   <span style={{ width: 28, textAlign: "right", fontFamily: JM, fontWeight: 700, fontSize: 14, color: bandFor(p.value).color }}>{p.value}</span>
+                  <span style={{ width: 62, textAlign: "right", fontSize: 10.5, color: "var(--c-faint)" }}>{p.measured} measured</span>
                 </div>
               ))}
             </div>
           </div>
           <HeroCard style={{ marginTop: 20 }}>
             <Eyebrow color="var(--c-action)">Your biggest lever</Eyebrow>
-            <p style={{ fontSize: 14, color: "var(--c-ink)", margin: "8px 0 12px", lineHeight: 1.5 }}>Outreach is your lowest-scoring pillar at 29/100. Closing that gap could add ~+9 pts to your score.</p>
+            <p style={{ fontSize: 14, color: "var(--c-ink)", margin: "8px 0 12px", lineHeight: 1.5 }}>Outreach is your lowest-scoring pillar at 29/100. Closing that gap could lift your on-page readiness by ~+9 pts.</p>
             <a href="/app/plan" style={{ display: "inline-block", fontFamily: "var(--font-sans)", fontWeight: 600, fontSize: 13.5, color: "var(--c-on-dark)", background: "var(--c-action)", borderRadius: "var(--radius-lg)", padding: "9px 16px", textDecoration: "none" }}>See your plan →</a>
           </HeroCard>
         </Card>

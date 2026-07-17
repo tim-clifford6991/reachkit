@@ -9,7 +9,7 @@ import { engagementSummary } from "@/lib/scan/engagement";
 import { scoreHistoryMarkers } from "@/lib/scan/score-history-markers";
 import { buildProgressEvents } from "@/lib/scan/progress-events";
 import { pillarRollupFromRegistry, type ScoreBreakdown } from "@/lib/scan/pillar-scores";
-import { headlineScore, discoverabilityScore } from "@/lib/scan/registry-score";
+import { headlineScore, registryScore, discoverabilityScore } from "@/lib/scan/registry-score";
 import type { Pillar } from "@/lib/scan/signals";
 import { actionBoard } from "@/lib/scan/action-board";
 import { hostname } from "@/lib/scan/url";
@@ -163,29 +163,31 @@ async function DashboardContent() {
     marketSnapshots: marketSnapshots.data ?? [],
   });
 
-  // Pillar rollup + gauge from the FIXED on-site basis (headlineScore) — the 8 HTML
-  // signals measured identically free↔paid. The gauge shows the SAME on-site total
-  // the pillars decompose (gauge == pillar average), and it does NOT move when the
-  // paid deep pass measures off-site signals — those are the separate Market
-  // Position grade below. Outreach has no on-site signal, so it reads "measured
-  // off-site" (see Market position); Content + SEO carry the on-site headline.
+  // The GAUGE's on-page driver is the FIXED on-site basis (headlineScore) — the 8
+  // HTML signals measured identically free↔paid, so the gauge never jumps on
+  // upgrade (invariant #1). The PILLAR BARS are a separate, honest decomposition of
+  // ALL measured signals (registryScore over the full set): Content/SEO measured
+  // values are identical to the fixed basis (unmeasured signals are excluded either
+  // way), and Outreach now shows its measured signal (e.g. comparison_pages) instead
+  // of dead-ending on "measured off-site" (R1, 2026-07-17). A pillar with ZERO
+  // measured signals is omitted, never rendered as "not measured yet".
   const { data: sigRows } = await serverDb()
     .from("scan_signals")
     .select("signal_key, pillar, weight, normalised, state")
     .eq("scan_id", scan.id);
-  const reg =
-    sigRows && sigRows.length
-      ? headlineScore(
-          sigRows.map((r) => ({
-            signalKey: (r.signal_key as string | null) ?? undefined,
-            pillar: r.pillar as Pillar,
-            weight: (r.weight as number | null) ?? 0,
-            normalised: r.normalised as number | null,
-            state: (r.state as string | null) ?? "unmeasured",
-          })),
-        )
-      : null;
-  const rollup = pillarRollupFromRegistry(reg, scan.score_breakdown as unknown as ScoreBreakdown | null);
+  const rows = (sigRows ?? []).map((r) => ({
+    signalKey: (r.signal_key as string | null) ?? undefined,
+    pillar: r.pillar as Pillar,
+    weight: (r.weight as number | null) ?? 0,
+    normalised: r.normalised as number | null,
+    state: (r.state as string | null) ?? "unmeasured",
+  }));
+  const reg = rows.length ? headlineScore(rows) : null; // gauge on-page driver (fixed basis)
+  const regFull = rows.length ? registryScore(rows) : null; // pillar bars (full measured set)
+  // Measured-signal count per pillar — the basis shown beside each bar.
+  const measuredByPillar: Record<Pillar, number> = { content: 0, outreach: 0, seo: 0 };
+  for (const r of rows) if (r.state !== "unmeasured") measuredByPillar[r.pillar] = (measuredByPillar[r.pillar] ?? 0) + 1;
+  const rollup = pillarRollupFromRegistry(regFull, scan.score_breakdown as unknown as ScoreBreakdown | null);
   // The gauge is the UNIFIED Discoverability Score (v5) — the SAME number the free
   // report + persisted `score_total`/trend show, so the score never jumps between
   // surfaces. reg.total is the on-page *driver* (the pillars decompose it); we fold
@@ -223,6 +225,7 @@ async function DashboardContent() {
       <DashboardHero
         score={headline}
         rollup={rollup}
+        measuredByPillar={measuredByPillar}
         history={engagement.history}
         markers={markers}
         isPaid={entitlements?.active ?? false}

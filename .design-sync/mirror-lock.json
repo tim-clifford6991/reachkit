@@ -61,7 +61,7 @@
   },
   "DashboardScreen": {
     "mirror": "components/app/intel/dashboard-hero.tsx",
-    "hash": "227ffe5a9337b701"
+    "hash": "9845e3a7b159349a"
   },
   "EvidenceDrawer": {
     "mirror": "components/app/intel/evidence-drawer.tsx",
@@ -109,7 +109,7 @@
   },
   "LeverBanner": {
     "mirror": "components/app/intel/dashboard-hero.tsx",
-    "hash": "227ffe5a9337b701"
+    "hash": "9845e3a7b159349a"
   },
   "NavBar": {
     "mirror": "components/sections/marketing-nav.tsx",
