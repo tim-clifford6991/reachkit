@@ -30,51 +30,51 @@ export const PRICING_HTML = `<main style="max-width: 1080px; margin: 0px auto; p
     </div>
     <h2 style="font-family: &quot;Space Grotesk&quot;; font-weight: 700; font-size: 24px; letter-spacing: -0.02em; margin: 54px 0px 18px; text-align: center;">Compare every plan</h2>
     <div style="border: 1px solid var(--c-line); border-radius: 16px; overflow: hidden; background: var(--c-surface);">
-      <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; padding: 14px 22px; border-bottom: 1px solid var(--c-line2); background: var(--c-bg2); font-size: 12px; font-weight: 700; letter-spacing: 0.03em; color: var(--c-faint); text-transform: uppercase;"><span>Feature</span><span style="text-align: center;">Free</span><span style="text-align: center; color: var(--c-action);">Solo</span><span style="text-align: center;">Growth</span></div>
-        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; padding: 13px 22px; border-bottom: 1px solid var(--c-fill); align-items: center; font-size: 14px;">
-          <span style="font-weight: 600; color: var(--c-muted);"><span class="sc-interp">Discoverability Score + 3 pillars</span></span>
+      <div class="rk-cmp-row" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; padding: 14px 22px; border-bottom: 1px solid var(--c-line2); background: var(--c-bg2); font-size: 12px; font-weight: 700; letter-spacing: 0.03em; color: var(--c-faint); text-transform: uppercase;"><span class="rk-cmp-feat">Feature</span><span style="text-align: center;">Free</span><span style="text-align: center; color: var(--c-action);">Solo</span><span style="text-align: center;">Growth</span></div>
+        <div class="rk-cmp-row" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; padding: 13px 22px; border-bottom: 1px solid var(--c-fill); align-items: center; font-size: 14px;">
+          <span class="rk-cmp-feat" style="font-weight: 600; color: var(--c-muted);"><span class="sc-interp">Discoverability Score + 3 pillars</span></span>
           <span style="text-align: center; font-family: &quot;JetBrains Mono&quot;; font-size: 13px; color: rgb(31, 157, 91);"><span class="sc-interp">✓</span></span>
           <span style="text-align: center; font-family: &quot;JetBrains Mono&quot;; font-size: 13px; color: rgb(31, 157, 91);"><span class="sc-interp">✓</span></span>
           <span style="text-align: center; font-family: &quot;JetBrains Mono&quot;; font-size: 13px; font-weight: 700; color: var(--c-action);"><span class="sc-interp">✓</span></span>
         </div>
-        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; padding: 13px 22px; border-bottom: 1px solid var(--c-fill); align-items: center; font-size: 14px;">
-          <span style="font-weight: 600; color: var(--c-muted);"><span class="sc-interp">Positioning Mirror</span></span>
+        <div class="rk-cmp-row" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; padding: 13px 22px; border-bottom: 1px solid var(--c-fill); align-items: center; font-size: 14px;">
+          <span class="rk-cmp-feat" style="font-weight: 600; color: var(--c-muted);"><span class="sc-interp">Positioning Mirror</span></span>
           <span style="text-align: center; font-family: &quot;JetBrains Mono&quot;; font-size: 13px; color: rgb(31, 157, 91);"><span class="sc-interp">✓</span></span>
           <span style="text-align: center; font-family: &quot;JetBrains Mono&quot;; font-size: 13px; color: rgb(31, 157, 91);"><span class="sc-interp">✓</span></span>
           <span style="text-align: center; font-family: &quot;JetBrains Mono&quot;; font-size: 13px; font-weight: 700; color: var(--c-action);"><span class="sc-interp">✓</span></span>
         </div>
-        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; padding: 13px 22px; border-bottom: 1px solid var(--c-fill); align-items: center; font-size: 14px;">
-          <span style="font-weight: 600; color: var(--c-muted);"><span class="sc-interp">Ranked fixes</span></span>
+        <div class="rk-cmp-row" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; padding: 13px 22px; border-bottom: 1px solid var(--c-fill); align-items: center; font-size: 14px;">
+          <span class="rk-cmp-feat" style="font-weight: 600; color: var(--c-muted);"><span class="sc-interp">Ranked fixes</span></span>
           <span style="text-align: center; font-family: &quot;JetBrains Mono&quot;; font-size: 13px; color: var(--c-muted);"><span class="sc-interp">Top 3</span></span>
           <span style="text-align: center; font-family: &quot;JetBrains Mono&quot;; font-size: 13px; color: var(--c-muted);"><span class="sc-interp">Full plan (up to 8)</span></span>
           <span style="text-align: center; font-family: &quot;JetBrains Mono&quot;; font-size: 13px; font-weight: 700; color: var(--c-muted);"><span class="sc-interp">Full plan (up to 8)</span></span>
         </div>
-        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; padding: 13px 22px; border-bottom: 1px solid var(--c-fill); align-items: center; font-size: 14px;">
-          <span style="font-weight: 600; color: var(--c-muted);"><span class="sc-interp">Full 18-signal breakdown</span></span>
+        <div class="rk-cmp-row" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; padding: 13px 22px; border-bottom: 1px solid var(--c-fill); align-items: center; font-size: 14px;">
+          <span class="rk-cmp-feat" style="font-weight: 600; color: var(--c-muted);"><span class="sc-interp">Full 18-signal breakdown</span></span>
           <span style="text-align: center; font-family: &quot;JetBrains Mono&quot;; font-size: 13px; color: rgb(203, 200, 214);"><span class="sc-interp">—</span></span>
           <span style="text-align: center; font-family: &quot;JetBrains Mono&quot;; font-size: 13px; color: rgb(31, 157, 91);"><span class="sc-interp">✓</span></span>
           <span style="text-align: center; font-family: &quot;JetBrains Mono&quot;; font-size: 13px; font-weight: 700; color: var(--c-action);"><span class="sc-interp">✓</span></span>
         </div>
-        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; padding: 13px 22px; border-bottom: 1px solid var(--c-fill); align-items: center; font-size: 14px;">
-          <span style="font-weight: 600; color: var(--c-muted);"><span class="sc-interp">Weekly re-scan + score history</span></span>
+        <div class="rk-cmp-row" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; padding: 13px 22px; border-bottom: 1px solid var(--c-fill); align-items: center; font-size: 14px;">
+          <span class="rk-cmp-feat" style="font-weight: 600; color: var(--c-muted);"><span class="sc-interp">Weekly re-scan + score history</span></span>
           <span style="text-align: center; font-family: &quot;JetBrains Mono&quot;; font-size: 13px; color: rgb(203, 200, 214);"><span class="sc-interp">—</span></span>
           <span style="text-align: center; font-family: &quot;JetBrains Mono&quot;; font-size: 13px; color: rgb(31, 157, 91);"><span class="sc-interp">✓</span></span>
           <span style="text-align: center; font-family: &quot;JetBrains Mono&quot;; font-size: 13px; font-weight: 700; color: var(--c-action);"><span class="sc-interp">✓</span></span>
         </div>
-        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; padding: 13px 22px; border-bottom: 1px solid var(--c-fill); align-items: center; font-size: 14px;">
-          <span style="font-weight: 600; color: var(--c-muted);"><span class="sc-interp">Verified action engine</span></span>
+        <div class="rk-cmp-row" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; padding: 13px 22px; border-bottom: 1px solid var(--c-fill); align-items: center; font-size: 14px;">
+          <span class="rk-cmp-feat" style="font-weight: 600; color: var(--c-muted);"><span class="sc-interp">Verified action engine</span></span>
           <span style="text-align: center; font-family: &quot;JetBrains Mono&quot;; font-size: 13px; color: rgb(203, 200, 214);"><span class="sc-interp">—</span></span>
           <span style="text-align: center; font-family: &quot;JetBrains Mono&quot;; font-size: 13px; color: rgb(31, 157, 91);"><span class="sc-interp">✓</span></span>
           <span style="text-align: center; font-family: &quot;JetBrains Mono&quot;; font-size: 13px; font-weight: 700; color: var(--c-action);"><span class="sc-interp">✓</span></span>
         </div>
-        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; padding: 13px 22px; border-bottom: 1px solid var(--c-fill); align-items: center; font-size: 14px;">
-          <span style="font-weight: 600; color: var(--c-muted);"><span class="sc-interp">Keyword rank depth</span></span>
+        <div class="rk-cmp-row" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; padding: 13px 22px; border-bottom: 1px solid var(--c-fill); align-items: center; font-size: 14px;">
+          <span class="rk-cmp-feat" style="font-weight: 600; color: var(--c-muted);"><span class="sc-interp">Keyword rank depth</span></span>
           <span style="text-align: center; font-family: &quot;JetBrains Mono&quot;; font-size: 13px; color: var(--c-muted);"><span class="sc-interp">—</span></span>
           <span style="text-align: center; font-family: &quot;JetBrains Mono&quot;; font-size: 13px; font-weight: 700; color: var(--c-muted);"><span class="sc-interp">20</span></span>
           <span style="text-align: center; font-family: &quot;JetBrains Mono&quot;; font-size: 13px; color: var(--c-muted);"><span class="sc-interp">50</span></span>
         </div>
-        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; padding: 13px 22px; border-bottom: 1px solid var(--c-fill); align-items: center; font-size: 14px;">
-          <span style="font-weight: 600; color: var(--c-muted);"><span class="sc-interp">Products tracked</span></span>
+        <div class="rk-cmp-row" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; padding: 13px 22px; border-bottom: 1px solid var(--c-fill); align-items: center; font-size: 14px;">
+          <span class="rk-cmp-feat" style="font-weight: 600; color: var(--c-muted);"><span class="sc-interp">Products tracked</span></span>
           <span style="text-align: center; font-family: &quot;JetBrains Mono&quot;; font-size: 13px; color: var(--c-muted);"><span class="sc-interp">1 scan</span></span>
           <span style="text-align: center; font-family: &quot;JetBrains Mono&quot;; font-size: 13px; font-weight: 700; color: var(--c-muted);"><span class="sc-interp">1</span></span>
           <span style="text-align: center; font-family: &quot;JetBrains Mono&quot;; font-size: 13px; color: var(--c-muted);"><span class="sc-interp">3</span></span>

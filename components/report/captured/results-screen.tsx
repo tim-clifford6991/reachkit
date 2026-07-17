@@ -64,6 +64,18 @@ function oppColors(opp: string) {
 
 const SG = "Space Grotesk", PJ = "Plus Jakarta Sans", JM = "JetBrains Mono";
 
+/** Responsive rules for the captured report, scoped to its own class hooks.
+ *  Base is the mobile-safe single column; >=768px restores the desktop
+ *  gauge-beside-copy hero. Kept as a scoped <style> (not inline styles) because
+ *  inline styles cannot express a media query. */
+const RESULTS_CSS = `
+.rk-report-hero{grid-template-columns:1fr}
+.rk-wrap-any{overflow-wrap:anywhere;min-width:0}
+@media (min-width:768px){
+  .rk-report-hero{grid-template-columns:auto 1fr}
+}
+`;
+
 /** Price stated up front on the unlock CTA — visitors used to first learn the
  *  price inside Stripe Checkout. Reads from the single pricing source
  *  (`lib/billing/pricing.ts`) so it can never drift from what Checkout charges. */
@@ -144,6 +156,12 @@ export function ResultsScreen(p: ResultsScreenProps) {
         rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
       />
+      {/* Mobile: the hero is a gauge + copy row on desktop; below 768px it
+          stacks so the copy column isn't crushed to nothing beside the 200px
+          gauge. `rk-wrap-any` lets a long unbroken host (a domain has no spaces,
+          so its min-content is the whole string) wrap instead of forcing the
+          column wider than the screen — the real overflow this report hit. */}
+      <style>{RESULTS_CSS}</style>
       <main style={{ ...(p.embedded ? {} : { background: "var(--c-bg2)", minHeight: "100vh" }), fontFamily: PJ, color: "var(--c-ink)" }}>
         <div style={{ maxWidth: p.embedded ? "100%" : "var(--spacing-content-max)", margin: "0 auto", padding: p.embedded ? 0 : "32px clamp(24px, 4vw, 48px) 70px" }}>
           {/* Report context bar (standalone only) — the global nav already
@@ -151,7 +169,7 @@ export function ResultsScreen(p: ResultsScreenProps) {
               Share, no duplicate logo. The app shell provides its own header. */}
           {!p.embedded && (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, marginBottom: 20 }}>
-            <span style={{ fontFamily: JM, fontSize: 12.5, color: "var(--c-faint)" }}>{p.hideUnlock ? "full report" : "free scan"} · {p.siteLabel}</span>
+            <span className="rk-wrap-any" style={{ fontFamily: JM, fontSize: 12.5, color: "var(--c-faint)" }}>{p.hideUnlock ? "full report" : "free scan"} · {p.siteLabel}</span>
             {p.slug ? (
               <CapturedShareButton slug={p.slug} score={p.score} bandLabel={band.label} siteLabel={p.siteLabel} />
             ) : (
@@ -167,9 +185,9 @@ export function ResultsScreen(p: ResultsScreenProps) {
           )}
 
           {/* Hero: gauge + headline + pillars */}
-          <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 20, padding: 32, boxShadow: "rgba(40, 33, 84, 0.3) 0px 16px 44px -26px", display: "grid", gridTemplateColumns: "auto 1fr", gap: 34, alignItems: "center" }}>
+          <div className="rk-report-hero" style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 20, padding: "clamp(20px, 5vw, 32px)", boxShadow: "rgba(40, 33, 84, 0.3) 0px 16px 44px -26px", display: "grid", gap: 34, alignItems: "center" }}>
             <div style={{ textAlign: "center" }}>
-              <svg width="200" height="200" viewBox="0 0 200 200" style={{ display: "block", ["viewTransitionName" as string]: "score-circle" }}>
+              <svg viewBox="0 0 200 200" style={{ display: "block", width: "100%", height: "auto", maxWidth: 200, margin: "0 auto", ["viewTransitionName" as string]: "score-circle" }}>
                 <path d={track} fill="none" stroke="#EEECF5" strokeWidth="15" strokeLinecap="round" />
                 <path d={fill} fill="none" stroke={band.fg} strokeWidth="15" strokeLinecap="round" />
                 <text x="100" y="107.2" textAnchor="middle" style={{ font: `700 40px ${JM}, monospace`, fill: "var(--c-ink)" }}>{p.score}</text>
@@ -218,12 +236,12 @@ export function ResultsScreen(p: ResultsScreenProps) {
                     style={{ width: 36, height: 36, borderRadius: 9, border: "1px solid var(--c-line)", background: "var(--c-surface)", objectFit: "contain", flex: "0 0 auto" }}
                   />
                   {p.siteHost && (
-                    <span style={{ fontFamily: JM, fontSize: 13, fontWeight: 600, color: "var(--c-muted)" }}>{p.siteHost}</span>
+                    <span className="rk-wrap-any" style={{ fontFamily: JM, fontSize: 13, fontWeight: 600, color: "var(--c-muted)" }}>{p.siteHost}</span>
                   )}
                 </div>
               )}
               <h1 style={{ fontFamily: SG, fontWeight: 700, fontSize: 26, letterSpacing: "-0.02em", margin: "0 0 6px" }}>{p.headline}</h1>
-              <p style={{ fontSize: 15, lineHeight: 1.6, color: "var(--c-muted)", margin: "0 0 14px" }}>
+              <p className="rk-wrap-any" style={{ fontSize: 15, lineHeight: 1.6, color: "var(--c-muted)", margin: "0 0 14px" }}>
                 {p.siteLabel} {p.intro}
               </p>
               {/* The two drivers of the unified Discoverability Score. Showing them
