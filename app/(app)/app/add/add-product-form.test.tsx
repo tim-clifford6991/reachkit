@@ -28,7 +28,7 @@ vi.mock("@/lib/app/set-active-app", () => ({ setActiveApp: vi.fn() }));
 describe("AddProductForm", () => {
   it("renders a labeled url field and an enabled submit button, no error initially", async () => {
     const { AddProductForm } = await import("./add-product-form");
-    const html = renderToStaticMarkup(<AddProductForm />);
+    const html = renderToStaticMarkup(<AddProductForm onAdded={() => {}} />);
     expect(html).toContain("Product website");
     expect(html).toContain('name="url"');
     expect(html).toContain("Add product");
@@ -37,7 +37,7 @@ describe("AddProductForm", () => {
 
   it("submit is enabled (not stuck pending) on first render", async () => {
     const { AddProductForm } = await import("./add-product-form");
-    const html = renderToStaticMarkup(<AddProductForm />);
+    const html = renderToStaticMarkup(<AddProductForm onAdded={() => {}} />);
     expect(html).not.toContain("disabled=\"\"");
   });
 
@@ -45,7 +45,7 @@ describe("AddProductForm", () => {
     // Guards the CLAUDE.md "tokens only, never raw hex" rule for the one
     // element most likely to regress toward a literal color during a tweak.
     const { AddProductForm } = await import("./add-product-form");
-    const html = renderToStaticMarkup(<AddProductForm />);
+    const html = renderToStaticMarkup(<AddProductForm onAdded={() => {}} />);
     const buttonStyleMatch = html.match(/<button[^>]*style="([^"]*)"/);
     expect(buttonStyleMatch).not.toBeNull();
     expect(buttonStyleMatch![1]).not.toMatch(/#[0-9a-fA-F]{3,6}/);

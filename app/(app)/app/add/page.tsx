@@ -1,30 +1,22 @@
 /**
- * /app/add — add a tracked product from INSIDE the app.
+ * /app/add — add a tracked product from INSIDE the app, as one cohesive flow:
+ * URL → scanning → competitors → dashboard (owner report 2026-07-17: the old
+ * flow redirected straight to the dashboard and left the competitor pick to a
+ * later banner, so onboarding felt "disconnected").
  *
  * Replaces the switcher's old link to the PUBLIC /scan page, which pushed a
- * paying user to /scan/{slug} — an entitlement-blind PublicReport that always
- * redacts to free and always shows an "Unlock full report" CTA, for a product
- * they already pay for. PublicReport is deliberately public-safe; we route
- * around it rather than weaken it.
+ * paying user to an entitlement-blind PublicReport (always redacted to free,
+ * always an "Unlock full report" CTA) for a product they already pay for.
+ * PublicReport is deliberately public-safe; we route around it, never weaken it.
  *
  * Not assertPaid-gated (see actions.ts) — a free zero-app user reaching this
  * page can still add their first product, same as Settings does today.
  */
 import { buildMetadata } from "@/lib/seo";
-import { AddProductForm } from "./add-product-form";
+import { AddFlow } from "./add-flow";
 
 export const metadata = buildMetadata({ title: "Add a product", path: "/app/add" });
 
 export default function AddProductPage() {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8, maxWidth: 640 }}>
-      <p style={{ fontFamily: "var(--font-sans)", fontSize: 14, color: "var(--c-muted)", margin: 0 }}>
-        We&apos;ll scan it and start tracking its discoverability. This takes about a minute — you can keep using
-        your other products while it runs.
-      </p>
-      <div style={{ marginTop: 10 }}>
-        <AddProductForm />
-      </div>
-    </div>
-  );
+  return <AddFlow />;
 }
