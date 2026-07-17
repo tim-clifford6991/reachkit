@@ -4,12 +4,12 @@
  * SSR: fully server-rendered — no ssr:false wrappers here.
  * JSON-LD: Article + Author (E-E-A-T) emitted in <head>.
  * generateStaticParams: builds all 5 slugs at build time.
- * notFound(): called for unknown slugs.
+ * Unknown slugs redirect("/") — see the comment at the guard.
  */
 
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import { buildMetadata, articleLd, SITE } from "@/lib/seo";
 import { teardownBySlug, teardownSlugs } from "@/content/teardowns";
 import type { Teardown } from "@/content/teardowns";
@@ -17,13 +17,6 @@ import type { Teardown } from "@/content/teardowns";
 // ---------------------------------------------------------------------------
 // Static params
 // ---------------------------------------------------------------------------
-
-// Teardowns are a fixed editorial set (content/teardowns/*.ts) — no on-demand
-// slugs. Without this, an unknown slug takes Next's on-demand-params path,
-// which under Cache Components 500s ("Invalid revalidate configuration
-// provided: 0 < 1") before notFound() can produce the 404 (live-hit
-// 2026-07-17 on /teardowns/notion during the post-DNS-migration sweep).
-export const dynamicParams = false;
 
 export function generateStaticParams(): { slug: string }[] {
   return teardownSlugs.map((slug) => ({ slug }));
@@ -375,7 +368,14 @@ export default async function TeardownSlugPage(props: {
   const teardown = teardownBySlug(slug);
 
   if (!teardown) {
-    notFound();
+    // Unknown slug. notFound() here 500s under Cache Components ("Invalid
+    // revalidate configuration provided: 0 < 1" — the not-found boundary
+    // crashes on the on-demand-params render path; live-hit 2026-07-17 on
+    // /teardowns/notion; `dynamicParams = false` is not an option because
+    // segment-config exports are rejected under cacheComponents). Teardowns
+    // are a fixed editorial set, so redirect probes to the landing page —
+    // no 500, no orphan URL.
+    redirect("/");
   }
 
   const canonicalUrl = `${SITE.url}/teardowns/${slug}`;
