@@ -126,8 +126,14 @@ export function ResultsScreen() {
           </div>
           {/* No "You capture X%" bar — captureRate was the search score under a second
               label (guard G1). We state the real, reconcilable count instead. */}
-          <div style={{ fontSize: 13.5, color: "var(--c-muted)", marginBottom: 4 }}>
+          <div style={{ fontSize: 13.5, color: "var(--c-muted)", marginBottom: 10 }}>
             <strong style={{ color: "var(--c-band-invisible)" }}>You don&apos;t rank in the top 3</strong> for any of your category&apos;s searches yet.
+          </div>
+          {/* G4: the named phrases behind the demand total, so it reconciles. */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 10px", fontSize: 12.5, color: "var(--c-faint)", fontFamily: JM }}>
+            {[["email api", "590"], ["email delivery service", "590"], ["transactional email api", "70"]].map(([k, v]) => (
+              <span key={k} style={{ background: "var(--c-fill)", borderRadius: 6, padding: "2px 8px" }}>{k} <span style={{ color: "var(--c-muted)", fontWeight: 600 }}>{v}</span></span>
+            ))}
           </div>
           <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--c-line2)", fontSize: 13, color: "var(--c-muted)" }}>
             Buyers compare you to <strong style={{ color: "var(--c-ink)" }}>Streaks, Habitica, Way of Life</strong>. <span style={UNLOCK}>Unlock to see how much of your category each one takes →</span>
@@ -218,7 +224,7 @@ export function ResultsScreen() {
         {/* Evidence footnote */}
         <div style={{ marginTop: 24, display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: "var(--c-faint)", fontFamily: JM }}>
           <span style={{ width: 6, height: 6, borderRadius: 999, background: "var(--c-band-findable)" }} />
-          Scanned {SITE} just now · 18 signals · every claim links to extracted evidence
+          Scanned {SITE} just now · every claim links to extracted evidence
         </div>
 
         {/* Unlock band */}

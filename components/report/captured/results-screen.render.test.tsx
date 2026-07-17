@@ -48,6 +48,11 @@ function sv(over: Partial<SearchVisibility> = {}): SearchVisibility {
       { keyword: "photo gallery website", volume: 4400 },
       { keyword: "portfolio builder", volume: 900 },
     ],
+    categoryPhrases: [
+      { keyword: "photo gallery website", volume: 4400 },
+      { keyword: "portfolio builder", volume: 900 },
+      { keyword: "photo hosting", volume: 2700 },
+    ],
     categoryWonKeywords: [],
     ...over,
   };
@@ -328,5 +333,42 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
     expect(html).toContain("has real on-page gaps"); // onPageReadiness 40 < 60
     expect(html).toContain("On-page readiness is your gap.");
     expect(html).not.toContain("Search presence is your gap.");
+  });
+
+  // G5: "the weaker half" is CONDITIONAL. Search presence is the STRONGER half on
+  // ~40% of prod scans; the claim must vanish then, or we tell those users to fix
+  // their strongest driver.
+  it("G5: omits 'the weaker half' when search presence is the STRONGER driver", () => {
+    const r = report({
+      score: { total: 70, breakdown: { content: 50, outreach: 40, seo: 55 }, radar: [], basis: "verified" },
+      // search 92 > on-page 60 → search is the STRONGER half.
+      searchVisibility: sv({ score: 92, onPageReadiness: 60, keywordsRanked: 300, footprintComplete: true, categoryDemand: 8000 }),
+      whatToDoThisWeek: { quickWins: [action("Add meta descriptions", 6)], medium: [], longPlay: [] },
+    });
+    const html = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r, "strong.com", 2, 8)} scanId="s" />);
+    expect(html).toContain("lifts your <strong"); // the opportunity blurb still renders
+    expect(html).not.toContain("the weaker half of your Discoverability Score");
+  });
+
+  it("G5: KEEPS 'the weaker half' when search presence IS the weaker driver", () => {
+    const r = report({
+      score: { total: 40, breakdown: { content: 70, outreach: 40, seo: 65 }, radar: [], basis: "verified" },
+      searchVisibility: sv({ score: 20, onPageReadiness: 85, keywordsRanked: 40, footprintComplete: true, categoryDemand: 8000 }),
+      whatToDoThisWeek: { quickWins: [action("Add meta descriptions", 6)], medium: [], longPlay: [] },
+    });
+    const html = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r, "weak.com", 2, 8)} scanId="s" />);
+    expect(html).toContain("the weaker half of your Discoverability Score");
+  });
+
+  // G4: the demand total is reconcilable — its named phrases render alongside it.
+  it("G4: renders the category phrases behind the demand total", () => {
+    const r = report({
+      searchVisibility: sv({ keywordsRanked: 40, footprintComplete: true, categoryDemand: 8000 }),
+      whatToDoThisWeek: { quickWins: [action("x", 5)], medium: [], longPlay: [] },
+    });
+    const html = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r, "acme.com", 2, 8)} scanId="s" />);
+    expect(html).toContain("searches/mo across your category");
+    expect(html).toContain("photo hosting"); // a phrase from categoryPhrases renders
+    expect(html).toContain("2,700"); // ...with its volume, so the total reconciles
   });
 });

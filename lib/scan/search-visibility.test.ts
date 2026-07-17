@@ -162,7 +162,7 @@ describe("free-scan number honesty (guards G1, G2)", () => {
     const sv: SearchVisibility = {
       score: 5, keywordsRanked: 2100, estMonthlyVisits: 100, footprintComplete: true,
       brandPct: 10, categoryPct: 20, offTopicPct: 70, categoryGap: [], offTopicExamples: [],
-      categoryWins: 0, categoryDemand: 1000, categoryOpportunities: [], categoryWonKeywords: [],
+      categoryWins: 0, categoryDemand: 1000, categoryOpportunities: [], categoryPhrases: [], categoryWonKeywords: [],
     };
     // @ts-expect-error — categoryCaptureRate is deleted; referencing it must not typecheck.
     expect(sv.categoryCaptureRate).toBeUndefined();
@@ -189,5 +189,29 @@ describe("free-scan number honesty (guards G1, G2)", () => {
       buildVocab("acme.com", ["x category"]),
     );
     expect(sampleOnly.footprintComplete).toBe(false); // sample → must be disclosed
+  });
+});
+
+describe("free-scan copy honesty (guards G4, G6)", () => {
+  it("G4: categoryDemand reconciles — it is exactly Σ categoryPhrases volumes", () => {
+    const seedVolumes = [
+      { keyword: "email api", volume: 590 },
+      { keyword: "email delivery service", volume: 590 },
+      { keyword: "transactional email api", volume: 70 },
+    ];
+    const d = computeCategoryDemand(seedVolumes, new Map());
+    const sumOfParts = d.categoryPhrases.reduce((s, p) => s + p.volume, 0);
+    expect(d.categoryDemand).toBe(sumOfParts); // the total IS the sum of its named parts
+    expect(d.categoryDemand).toBe(1250);
+    expect(d.categoryPhrases.map((p) => p.keyword)).toContain("email api");
+  });
+
+  it("G6 (source): results-screen contains NO hardcoded signal count (`N signals`/`N-signal`)", () => {
+    // "18 signals" over-stated what a free scan measures (~9). The count must be
+    // computed or absent, never a literal. Source tripwire.
+    const src = readFileSync(resolve(process.cwd(), "components/report/captured/results-screen.tsx"), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, ""); // strip comments
+    expect(src).not.toMatch(/\d+\s*signals?\b/i);
+    expect(src).not.toMatch(/\d+-signal\b/i);
   });
 });

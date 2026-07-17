@@ -91,6 +91,10 @@ export interface SearchVisibility {
    *  (bigger than your own tiny rankings; drawn from category demand, not just what
    *  you already rank for). */
   categoryOpportunities: DemandRow[];
+  /** EVERY named category seed phrase with its volume — so `categoryDemand` (their
+   *  sum) is RECONCILABLE by the reader (guard G4). The old report itemised only the
+   *  unwon subset, so "1,250 searches" could never be checked against its parts. */
+  categoryPhrases: DemandRow[];
   /** Internal: category terms you already rank top-3 for (dedup for opportunities). */
   categoryWonKeywords: string[];
   // DELETED 2026-07-17 (free-scan honesty): `categoryCaptureRate` was
@@ -176,7 +180,7 @@ export function computeSearchVisibility(
     score: 0, keywordsRanked: 0, estMonthlyVisits: 0, footprintComplete: false,
     brandPct: 0, categoryPct: 0, offTopicPct: 0,
     categoryGap: [], offTopicExamples: [], categoryWins: 0,
-    categoryDemand: 0, categoryOpportunities: [], categoryWonKeywords: [],
+    categoryDemand: 0, categoryOpportunities: [], categoryPhrases: [], categoryWonKeywords: [],
   };
   if (kw.length === 0) return empty;
 
@@ -241,6 +245,7 @@ export function computeSearchVisibility(
     // defaults here keep computeSearchVisibility pure + usable stand-alone.
     categoryDemand: 0,
     categoryOpportunities: [],
+    categoryPhrases: [],
     categoryWonKeywords,
   };
 }
@@ -249,7 +254,7 @@ const EMPTY: SearchVisibility = {
   score: 0, keywordsRanked: 0, estMonthlyVisits: 0, footprintComplete: false,
   brandPct: 0, categoryPct: 0, offTopicPct: 0,
   categoryGap: [], offTopicExamples: [], categoryWins: 0,
-  categoryDemand: 0, categoryOpportunities: [], categoryWonKeywords: [],
+  categoryDemand: 0, categoryOpportunities: [], categoryPhrases: [], categoryWonKeywords: [],
 };
 
 const isSpecificSeed = (s: string) => s.includes(" ") || s.replace(/[^a-z0-9]/g, "").length >= 5;
@@ -281,7 +286,7 @@ const OPPORTUNITY_ROWS = 6;
 export function computeCategoryDemand(
   seedVolumes: Array<{ keyword: string; volume: number }>,
   rankByKeyword: Map<string, number>,
-): Pick<SearchVisibility, "categoryDemand" | "categoryOpportunities"> {
+): Pick<SearchVisibility, "categoryDemand" | "categoryOpportunities" | "categoryPhrases"> {
   const byKw = new Map<string, number>();
   for (const r of seedVolumes) {
     if (r.volume <= 0) continue;
@@ -297,7 +302,10 @@ export function computeCategoryDemand(
     .filter((r) => { const pos = rankByKeyword.get(r.keyword); return pos === undefined || pos > WINNING_POSITION; })
     .slice(0, OPPORTUNITY_ROWS)
     .map((r) => ({ keyword: r.keyword, volume: r.volume }));
-  return { categoryDemand, categoryOpportunities };
+  // G4: carry EVERY phrase (won + unwon) so categoryDemand === Σ categoryPhrases —
+  // the reader can reconcile "1,250 searches" against its named parts.
+  const categoryPhrases = rows.map((r) => ({ keyword: r.keyword, volume: r.volume }));
+  return { categoryDemand, categoryOpportunities, categoryPhrases };
 }
 
 /**
