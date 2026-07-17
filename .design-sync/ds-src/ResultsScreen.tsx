@@ -89,7 +89,7 @@ export function ResultsScreen() {
             <div style={{ fontSize: 11.5, color: "var(--c-faint)", fontFamily: JM, maxWidth: 200, margin: "10px auto 0" }}>How findable you actually are — your page quality × your presence in search.</div>
           </div>
           <div>
-            <h1 style={{ fontFamily: SG, fontWeight: 700, fontSize: 26, letterSpacing: "-0.02em", margin: "0 0 6px" }}>Your category gets 12,400 searches a month — and you capture just 8% of it.</h1>
+            <h1 style={{ fontFamily: SG, fontWeight: 700, fontSize: 26, letterSpacing: "-0.02em", margin: "0 0 6px" }}>Your category gets 12,400 searches a month — and you&apos;re barely visible for any of them.</h1>
             {/* ON_PAGE (72) >= 60 → the intro credits the on-page driver, never
                 the unified SCORE (54) — the intro gates on onPageReadiness so
                 a tidy page nobody finds can't be told it "has real on-page
@@ -118,22 +118,40 @@ export function ResultsScreen() {
 
         {/* Your category, and how much of it you own — LIFTED directly under the score */}
         <h2 style={H2}>Your category, and how much of it you own</h2>
-        <p style={SUB}>How much your buyers are searching, how much of it you capture, and who&apos;s taking the rest.</p>
+        <p style={SUB}>How much your buyers are searching, and how many of those terms you actually win.</p>
         <div style={{ ...CARD, padding: "20px 22px", marginBottom: 14 }}>
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: 10, marginBottom: 12 }}>
             <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 26 }}>12,400</span>
             <span style={{ fontSize: 13.5, color: "var(--c-muted)" }}>searches/mo across your category</span>
           </div>
-          <div style={{ display: "flex", height: 14, borderRadius: 7, overflow: "hidden", background: "var(--c-fill)" }}>
-            <div style={{ width: "8%", background: "var(--c-band-invisible)" }} />
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontSize: 12.5, color: "var(--c-muted)" }}>
-            <span style={{ fontWeight: 700, color: "var(--c-band-invisible)" }}>You capture 8%</span>
-            <span style={{ color: "var(--c-faint)" }}>92% goes to competitors &amp; unclaimed demand</span>
+          {/* No "You capture X%" bar — captureRate was the search score under a second
+              label (guard G1). We state the real, reconcilable count instead. */}
+          <div style={{ fontSize: 13.5, color: "var(--c-muted)", marginBottom: 4 }}>
+            <strong style={{ color: "var(--c-band-invisible)" }}>You don&apos;t rank in the top 3</strong> for any of your category&apos;s searches yet.
           </div>
           <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--c-line2)", fontSize: 13, color: "var(--c-muted)" }}>
             Buyers compare you to <strong style={{ color: "var(--c-ink)" }}>Streaks, Habitica, Way of Life</strong>. <span style={UNLOCK}>Unlock to see how much of your category each one takes →</span>
           </div>
+        </div>
+        {/* Footprint: TRUE totals (domain_rank_overview) + the traffic split, which
+            is a SAMPLE of your top-ranked terms — disclosed as such (guard G3). */}
+        <div style={{ ...CARD, padding: "18px 22px", marginBottom: 14 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 18, marginBottom: 14 }}>
+            <div><div style={{ fontFamily: JM, fontWeight: 700, fontSize: 20 }}>2,100</div><div style={{ fontSize: 11.5, color: "var(--c-faint)" }}>keywords ranked</div></div>
+            <div><div style={{ fontFamily: JM, fontWeight: 700, fontSize: 20 }}>~28,530</div><div style={{ fontSize: 11.5, color: "var(--c-faint)" }}>est. visits / mo</div></div>
+            <div><div style={{ fontFamily: JM, fontWeight: 700, fontSize: 20, color: "var(--c-band-invisible)" }}>20%</div><div style={{ fontSize: 11.5, color: "var(--c-faint)" }}>category (top terms)</div></div>
+          </div>
+          <div style={{ display: "flex", height: 12, borderRadius: 6, overflow: "hidden", background: "var(--c-fill)" }}>
+            <div style={{ width: "30%", background: "var(--c-action)" }} />
+            <div style={{ width: "20%", background: "#1F9D5B" }} />
+            <div style={{ width: "50%", background: "#E5A23B" }} />
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 14, marginTop: 10, fontSize: 11.5, color: "var(--c-faint)", fontFamily: JM }}>
+            <span><span style={{ color: "var(--c-action)" }}>■</span> your brand 30%</span>
+            <span><span style={{ color: "#1F9D5B" }}>■</span> your category 20%</span>
+            <span><span style={{ color: "#E5A23B" }}>■</span> other companies&apos; names 50%</span>
+          </div>
+          <div style={{ marginTop: 6, fontSize: 11, color: "var(--c-faint)" }}>Traffic split across your top-ranked terms.</div>
         </div>
         {/* Biggest opportunity — the single highest-value search you don't win,
             framed by the score lever it moves (not a flat Low/Med/High table). */}

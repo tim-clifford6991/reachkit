@@ -126,16 +126,18 @@ export interface ResultsScreenProps {
     /** The on-page readiness driver (v4 headlineScore) — the OTHER half of the
      *  unified Discoverability Score, shown as the second driver bar. */
     onPageReadiness: number;
+    /** TRUE total when `footprintComplete`, else the top-sample count (labelled). */
     keywordsRanked: number;
     estMonthlyVisits: number;
+    /** Whether keywordsRanked/estMonthlyVisits are true domain totals or a sample. */
+    footprintComplete: boolean;
+    /** Traffic split — ALWAYS over the top ranked terms (a sample), labelled as such. */
     brandPct: number;
     categoryPct: number;
     offTopicPct: number;
     categoryWins: number;
-    /** Total monthly searches in the category (keyword_ideas). */
+    /** Total monthly searches in the category (Σ named seed-phrase volumes). */
     categoryDemand: number;
-    /** 0–100: your share of that demand. */
-    categoryCaptureRate: number;
   } | null;
   /** Real competitor names we discovered (the compare-set). Per-rival share is paid. */
   competitors?: string[];
@@ -332,11 +334,15 @@ export function ResultsScreen(p: ResultsScreenProps) {
               </div>
             );
           })()}
-          {/* Category demand + capture (free): the real market size (keyword_ideas) and
-              your share of it. */}
+          {/* Category demand (free): the real market size (Σ named seed-phrase
+              volumes) and how many of those terms you actually win. NO capture bar
+              — the old "You capture {cap}%" was the search score under a second
+              label (categoryCaptureRate === score), a metric aliased to another
+              metric (guard G1). We state the two REAL, reconcilable numbers instead:
+              the category demand, and the count of category terms you rank top-3 for. */}
           {p.searchVisibility && p.searchVisibility.categoryDemand > 0 && (() => {
             const sv = p.searchVisibility!;
-            const cap = Math.max(0, Math.min(100, sv.categoryCaptureRate));
+            const wins = Math.max(0, sv.categoryWins);
             const comps = (p.competitors ?? []).slice(0, 5);
             return (
               <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16, padding: "20px 22px", marginBottom: 14 }}>
@@ -344,13 +350,12 @@ export function ResultsScreen(p: ResultsScreenProps) {
                   <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 26 }}>{sv.categoryDemand.toLocaleString()}</span>
                   <span style={{ fontSize: 13.5, color: "var(--c-muted)" }}>searches/mo across your category</span>
                 </div>
-                {/* Capture bar: you vs. the rest (competitors + unclaimed) */}
-                <div style={{ display: "flex", height: 14, borderRadius: 7, overflow: "hidden", background: "var(--c-fill)" }}>
-                  <div title={`You capture ${cap}%`} style={{ width: `${Math.max(cap, 1.5)}%`, background: cap < 15 ? "#E5484D" : "#1F9D5B" }} />
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontSize: 12.5, color: "var(--c-muted)" }}>
-                  <span><strong style={{ color: cap < 15 ? "#E5484D" : "#1F9D5B" }}>You capture {cap}%</strong></span>
-                  <span style={{ color: "var(--c-faint)" }}>{100 - cap}% goes to competitors &amp; unclaimed demand</span>
+                <div style={{ fontSize: 13.5, color: "var(--c-muted)", marginBottom: 4 }}>
+                  {wins > 0 ? (
+                    <>You rank in the top 3 for <strong style={{ color: "#1F9D5B" }}>{wins}</strong> of your category&apos;s searches.</>
+                  ) : (
+                    <><strong style={{ color: "#E5484D" }}>You don&apos;t rank in the top 3</strong> for any of your category&apos;s searches yet.</>
+                  )}
                 </div>
                 {comps.length > 0 && (
                   <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--c-line2)", fontSize: 13, color: "var(--c-muted)" }}>
@@ -370,9 +375,13 @@ export function ResultsScreen(p: ResultsScreenProps) {
             return (
               <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16, padding: "18px 22px", marginBottom: 14 }}>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 18, marginBottom: 14 }}>
-                  <div><div style={{ fontFamily: JM, fontWeight: 700, fontSize: 20 }}>{sv.keywordsRanked}</div><div style={{ fontSize: 11.5, color: "var(--c-faint)" }}>keywords ranked</div></div>
-                  <div><div style={{ fontFamily: JM, fontWeight: 700, fontSize: 20 }}>~{sv.estMonthlyVisits.toLocaleString()}</div><div style={{ fontSize: 11.5, color: "var(--c-faint)" }}>est. visits / mo</div></div>
-                  <div><div style={{ fontFamily: JM, fontWeight: 700, fontSize: 20, color: sv.categoryPct < 25 ? "#E5484D" : "var(--c-ink)" }}>{sv.categoryPct}%</div><div style={{ fontSize: 11.5, color: "var(--c-faint)" }}>your category</div></div>
+                  {/* keywordsRanked/estMonthlyVisits are TRUE domain totals when
+                      footprintComplete (domain_rank_overview); on the degraded
+                      fallback they're the top-ranked sample — labelled so, never a
+                      cap dressed as a total (the old "50" lie). */}
+                  <div><div style={{ fontFamily: JM, fontWeight: 700, fontSize: 20 }}>{sv.keywordsRanked.toLocaleString()}</div><div style={{ fontSize: 11.5, color: "var(--c-faint)" }}>{sv.footprintComplete ? "keywords ranked" : "top keywords ranked"}</div></div>
+                  <div><div style={{ fontFamily: JM, fontWeight: 700, fontSize: 20 }}>~{sv.estMonthlyVisits.toLocaleString()}</div><div style={{ fontSize: 11.5, color: "var(--c-faint)" }}>{sv.footprintComplete ? "est. visits / mo" : "est. visits / mo (top terms)"}</div></div>
+                  <div><div style={{ fontFamily: JM, fontWeight: 700, fontSize: 20, color: sv.categoryPct < 25 ? "#E5484D" : "var(--c-ink)" }}>{sv.categoryPct}%</div><div style={{ fontSize: 11.5, color: "var(--c-faint)" }}>category (top terms)</div></div>
                 </div>
                 <div style={{ display: "flex", height: 12, borderRadius: 6, overflow: "hidden", background: "var(--c-fill)" }}>
                   {seg("Your brand", sv.brandPct, "var(--c-action)")}
@@ -384,6 +393,8 @@ export function ResultsScreen(p: ResultsScreenProps) {
                   <span><span style={{ color: "#1F9D5B" }}>■</span> your category {sv.categoryPct}%</span>
                   <span><span style={{ color: "#E5A23B" }}>■</span> other companies&apos; names {sv.offTopicPct}%</span>
                 </div>
+                {/* G3: the split is a SAMPLE (top ranked terms by traffic) — disclose it. */}
+                <div style={{ marginTop: 6, fontSize: 11, color: "var(--c-faint)" }}>Traffic split across your top-ranked terms.</div>
                 {sv.offTopicPct >= 40 && (
                   <div style={{ marginTop: 14, padding: "12px 14px", background: "var(--c-tint-orange)", borderLeft: "3px solid #E0731C", borderRadius: "0 10px 10px 0", fontSize: 13.5, lineHeight: 1.55, color: "#3A3744" }}>
                     Most of your search traffic comes from <strong>other companies&apos; names you list or mention</strong> — real visits, but not buyers searching for what <em>you</em> do. Only <strong>{sv.categoryPct}%</strong> is your own category.

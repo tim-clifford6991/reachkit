@@ -35,7 +35,7 @@ function sv(over: Partial<SearchVisibility> = {}): SearchVisibility {
   return {
     score: 46,
     onPageReadiness: 80,
-    keywordsRanked: 12,
+    keywordsRanked: 12, footprintComplete: true,
     estMonthlyVisits: 400,
     brandPct: 30,
     categoryPct: 20,
@@ -44,12 +44,10 @@ function sv(over: Partial<SearchVisibility> = {}): SearchVisibility {
     offTopicExamples: [],
     categoryWins: 1,
     categoryDemand: 8000,
-    categoryCaptureRate: 8,
     categoryOpportunities: [
       { keyword: "photo gallery website", volume: 4400 },
       { keyword: "portfolio builder", volume: 900 },
     ],
-    categoryCapturedSearches: 100,
     categoryWonKeywords: [],
     ...over,
   };
@@ -106,7 +104,7 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
   it("normal SaaS: mid score, real category demand, competitors → coherent low-capture hero", () => {
     const r = report({
       score: { total: 61, breakdown: { content: 70, outreach: 40, seo: 65 }, radar: [], basis: "verified" },
-      searchVisibility: sv({ keywordsRanked: 40, categoryDemand: 12000, categoryCaptureRate: 9 }),
+      searchVisibility: sv({ keywordsRanked: 40, footprintComplete: true, categoryDemand: 12000, }),
       whereTheyAre: { surfaces: [], competitorGap: [comp("Ahrefs"), comp("Semrush")] },
       whatToDoThisWeek: {
         quickWins: [action("Add meta descriptions", 6)],
@@ -119,7 +117,12 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
     assertNoGarbage(html, "normal SaaS");
     expect(html).toContain("acme.com"); // site label rendered
     expect(html).toContain(">61<"); // the gauge score renders
-    expect(html).toContain("capture just 9%"); // honest, coherent hero (not "you're winning")
+    // The "you capture just X%" line is GONE — captureRate was the score under a
+    // second label. The honest hero states the real category demand + the true
+    // ranked count (footprintComplete), never a fabricated capture percentage.
+    expect(html).not.toMatch(/capture just \d+%/i);
+    expect(html).not.toMatch(/You capture \d+%/i);
+    expect(html).toContain("searches/mo across your category");
     expect(html).toContain("Ahrefs"); // discovered competitor names render
     expect(html).toMatch(PRICE_LINE_RE); // unlock band states the price up front (Task 1.4)
     // onPageReadiness (80, from sv()'s default) >= 60 → the intro must say the
@@ -146,16 +149,14 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
       searchVisibility: sv({
         score: 6,
         onPageReadiness: 54,
-        keywordsRanked: 0,
+        keywordsRanked: 0, footprintComplete: true,
         estMonthlyVisits: 0,
         brandPct: 0,
         categoryPct: 0,
         offTopicPct: 0,
         categoryWins: 0,
         categoryDemand: 5400,
-        categoryCaptureRate: 0,
         categoryOpportunities: [{ keyword: "habit tracker app", volume: 3200 }],
-        categoryCapturedSearches: 0,
       }),
       whatToDoThisWeek: { quickWins: [], medium: [], longPlay: [] },
     });
@@ -192,7 +193,7 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
         ],
         basis: "verified",
       },
-      searchVisibility: sv({ score: 79, onPageReadiness: 98, keywordsRanked: 250, offTopicPct: 72, categoryDemand: 0, categoryCaptureRate: 3 }),
+      searchVisibility: sv({ score: 79, onPageReadiness: 98, keywordsRanked: 250, footprintComplete: true, offTopicPct: 72, categoryDemand: 0, }),
       whereTheyAre: { surfaces: [], competitorGap: [comp("G2")] },
     });
     const html = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r, "somedir.com", 3, 8)} />);
@@ -217,7 +218,7 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
       // search 26)) = round(sqrt(1170)) = 34. onPageReadiness 45 < 60 → the
       // intro's "has real on-page gaps" claim is TRUE in this fixture.
       score: { total: 34, breakdown: { content: 30, outreach: 25, seo: 45 }, radar: [], basis: "verified" },
-      searchVisibility: sv({ score: 26, onPageReadiness: 45, keywordsRanked: 120, offTopicPct: 68, categoryDemand: 0, categoryCaptureRate: 0 }),
+      searchVisibility: sv({ score: 26, onPageReadiness: 45, keywordsRanked: 120, footprintComplete: true, offTopicPct: 68, categoryDemand: 0, }),
     });
     const html = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r, "weakpage.com", 0, 0)} scanId="scan-offtopic" />);
 
@@ -243,16 +244,14 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
       searchVisibility: sv({
         score: 4,
         onPageReadiness: 98,
-        keywordsRanked: 15,
+        keywordsRanked: 15, footprintComplete: true,
         estMonthlyVisits: 40,
         brandPct: 60,
         categoryPct: 10,
         offTopicPct: 30,
         categoryWins: 0,
         categoryDemand: 3000,
-        categoryCaptureRate: 2,
         categoryOpportunities: [{ keyword: "trust badge widget", volume: 2200 }],
-        categoryCapturedSearches: 40,
       }),
     });
     const html = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r, "trustmrr.com", 0, 0)} scanId="scan-trustmrr" />);
@@ -311,16 +310,14 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
       searchVisibility: sv({
         score: 70,
         onPageReadiness: 40,
-        keywordsRanked: 300,
+        keywordsRanked: 300, footprintComplete: true,
         estMonthlyVisits: 9000,
         brandPct: 55,
         categoryPct: 35,
         offTopicPct: 10,
         categoryWins: 4,
         categoryDemand: 20000,
-        categoryCaptureRate: 22,
         categoryOpportunities: [{ keyword: "enterprise workflow tool", volume: 6000 }],
-        categoryCapturedSearches: 4400,
       }),
     });
     const html = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r, "oldbrand.com", 0, 0)} scanId="scan-oldbrand" />);

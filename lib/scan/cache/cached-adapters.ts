@@ -10,6 +10,7 @@
 import { cachedJson, DAY_MS } from "@/lib/scan/cache/external-cache";
 import { fetchBacklinks, fetchDomainIntersection, type IntersectionRow } from "@/lib/scan/adapters/dataforseo-backlinks";
 import { fetchRankedKeywords, fetchRelevantPages, type RankedKeyword, type TopPage } from "@/lib/scan/adapters/dataforseo-ranked-keywords";
+import { fetchDomainOverview, type DomainOverview } from "@/lib/scan/adapters/dataforseo-domain-overview";
 import { fetchKeywordIdeas, type KeywordIdea } from "@/lib/scan/adapters/dataforseo-keyword-ideas";
 import { keywordsData } from "@/lib/scan/adapters/keywords";
 import type { KeywordRow } from "@/lib/scan/types";
@@ -32,6 +33,15 @@ export function cachedBacklinks(target: string, limit = 250): Promise<Referrer[]
 /** Ranked keywords for a domain (keyword, position, volume, etv, url). 14d. */
 export function cachedRankedKeywords(domain: string, limit = 100): Promise<RankedKeyword[]> {
   return cachedJson(`rk:${norm(domain)}:${limit}`, 14 * DAY_MS, () => fetchRankedKeywords(domain, limit));
+}
+
+/** TRUE organic footprint totals (count + ETV) for a domain. 14d. `null` is the
+ *  degraded result (no subscription / fixtures / bad shape) — don't cache it, so a
+ *  transient miss doesn't pin a false "no footprint" for 14d and the caller can
+ *  fall back to the top-sample. Same TTL as ranked_keywords → both cache-hit on the
+ *  paid deep-pass re-run (no double spend). */
+export function cachedDomainOverview(domain: string): Promise<DomainOverview | null> {
+  return cachedJson(`do:${norm(domain)}`, 14 * DAY_MS, () => fetchDomainOverview(domain), { isEmpty: (o) => o === null });
 }
 
 /** Top organic pages for a domain. 14d. */
