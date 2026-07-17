@@ -22,7 +22,7 @@
 
 import type { RankedKeyword } from "@/lib/scan/adapters/dataforseo-ranked-keywords";
 import { normalizeHost } from "@/lib/scan/referral/classify";
-import { cachedRankedKeywords, cachedKeywordVolumes } from "@/lib/scan/cache/cached-adapters";
+import { cachedRankedKeywords, cachedKeywordVolumes, cachedDomainOverview } from "@/lib/scan/cache/cached-adapters";
 
 export type KeywordClass = "brand" | "category" | "offtopic";
 
@@ -53,11 +53,20 @@ export interface SearchVisibility {
   /** The "on-page readiness" driver (the 8-signal on-site score) — set by the
    *  caller so the free report can show both halves of the geomean beneath the gauge. */
   onPageReadiness?: number;
-  /** Total keywords the domain ranks for (in the sampled set). */
+  /** TRUE total keywords the domain ranks for (domain_rank_overview) when
+   *  `footprintComplete`; otherwise the top-sample count (`ranked_keywords` limit)
+   *  as a labelled fallback. It must NEVER be silently the API cap rendered as a
+   *  total — that was the shipped lie (resend showed 50, truly ranks for 2,100). */
   keywordsRanked: number;
-  /** Estimated monthly organic visits (Σ etv), rounded. */
+  /** TRUE total estimated monthly organic visits (Σ etv over ALL keywords) when
+   *  `footprintComplete`; otherwise the top-sample sum, labelled. */
   estMonthlyVisits: number;
-  /** Share of estimated traffic by class (0–100, summing ~100). */
+  /** Whether keywordsRanked/estMonthlyVisits are the TRUE domain totals
+   *  (`domain_rank_overview` succeeded) or the top-sample fallback. The renderer
+   *  must disclose the sample basis when this is false. */
+  footprintComplete: boolean;
+  /** Share of estimated traffic by class (0–100, summing ~100). ALWAYS a SAMPLE —
+   *  computed over the top ranked_keywords only — so the UI must label it as such. */
   brandPct: number;
   categoryPct: number;
   offTopicPct: number;
@@ -74,18 +83,22 @@ export interface SearchVisibility {
   // market you're in and how much of it you actually capture. Works even at 0
   // rankings (seeded from your own vocabulary), so a brand-new site still gets a
   // real "your category gets X searches/mo, you capture 0%" insight.
-  /** Total monthly searches across your category (Σ volume of category keyword ideas). 0 = unknown. */
+  /** Total monthly searches across your category (Σ volume of the NAMED category
+   *  seed phrases). 0 = unknown. The phrases themselves are `categoryOpportunities`
+   *  + `categoryWonKeywords`, so the total is reconcilable by the reader. */
   categoryDemand: number;
-  /** 0–100: your share of that demand (est. category searches you capture ÷ demand). */
-  categoryCaptureRate: number;
   /** High-demand category searches you do NOT win — the real, sizeable opportunity
    *  (bigger than your own tiny rankings; drawn from category demand, not just what
    *  you already rank for). */
   categoryOpportunities: DemandRow[];
-  /** Internal: est. monthly category searches you currently capture (numerator). */
-  categoryCapturedSearches: number;
   /** Internal: category terms you already rank top-3 for (dedup for opportunities). */
   categoryWonKeywords: string[];
+  // DELETED 2026-07-17 (free-scan honesty): `categoryCaptureRate` was
+  // `= sv.score` — the search-presence score rendered a SECOND time under a
+  // "you capture X%" label (identical in 10/10 prod scans). A metric may never be
+  // an alias of another metric (guard G1). `categoryCapturedSearches` was its
+  // internal, unit-incoherent numerator (category ETV vs seed volumes, off by up
+  // to 1,308×) and fed nothing external — deleted with it.
 }
 
 const STOPWORDS = new Set([
@@ -160,11 +173,10 @@ export function computeSearchVisibility(
   vocab: { brandTokens: Set<string>; categoryVocab: Set<string> },
 ): SearchVisibility {
   const empty: SearchVisibility = {
-    score: 0, keywordsRanked: 0, estMonthlyVisits: 0,
+    score: 0, keywordsRanked: 0, estMonthlyVisits: 0, footprintComplete: false,
     brandPct: 0, categoryPct: 0, offTopicPct: 0,
     categoryGap: [], offTopicExamples: [], categoryWins: 0,
-    categoryDemand: 0, categoryCaptureRate: 0, categoryOpportunities: [],
-    categoryCapturedSearches: 0, categoryWonKeywords: [],
+    categoryDemand: 0, categoryOpportunities: [], categoryWonKeywords: [],
   };
   if (kw.length === 0) return empty;
 
@@ -196,8 +208,6 @@ export function computeSearchVisibility(
   const strength = category.reduce((s, r) => s + categoryContribution(r), 0);
   const score = Math.round(100 * Math.min(1, strength / CATEGORY_TARGET));
 
-  // Est. category searches you actually capture: volume × position quality.
-  const categoryCapturedSearches = Math.round(category.reduce((s, r) => s + r.volume * posQuality(r.position), 0));
   const categoryWonKeywords = category.filter((r) => r.position <= WINNING_POSITION).map((r) => r.keyword.toLowerCase());
 
   const categoryGap = category
@@ -214,8 +224,13 @@ export function computeSearchVisibility(
 
   return {
     score,
+    // SAMPLE totals — computeSearchVisibility only sees the top ranked_keywords.
+    // gatherFreeSearchVisibility overrides these with the TRUE domain totals when
+    // domain_rank_overview succeeds (and sets footprintComplete). Standalone/tests
+    // get the honest sample with footprintComplete:false.
     keywordsRanked: rows.length,
     estMonthlyVisits: Math.round(totalEtv),
+    footprintComplete: false,
     brandPct: pct(etvOf("brand")),
     categoryPct: pct(etvOf("category")),
     offTopicPct: pct(etvOf("offtopic")),
@@ -225,19 +240,16 @@ export function computeSearchVisibility(
     // Category-demand fields are filled by the gather (needs the keyword_ideas call);
     // defaults here keep computeSearchVisibility pure + usable stand-alone.
     categoryDemand: 0,
-    categoryCaptureRate: 0,
     categoryOpportunities: [],
-    categoryCapturedSearches,
     categoryWonKeywords,
   };
 }
 
 const EMPTY: SearchVisibility = {
-  score: 0, keywordsRanked: 0, estMonthlyVisits: 0,
+  score: 0, keywordsRanked: 0, estMonthlyVisits: 0, footprintComplete: false,
   brandPct: 0, categoryPct: 0, offTopicPct: 0,
   categoryGap: [], offTopicExamples: [], categoryWins: 0,
-  categoryDemand: 0, categoryCaptureRate: 0, categoryOpportunities: [],
-  categoryCapturedSearches: 0, categoryWonKeywords: [],
+  categoryDemand: 0, categoryOpportunities: [], categoryWonKeywords: [],
 };
 
 const isSpecificSeed = (s: string) => s.includes(" ") || s.replace(/[^a-z0-9]/g, "").length >= 5;
@@ -268,9 +280,8 @@ const OPPORTUNITY_ROWS = 6;
  */
 export function computeCategoryDemand(
   seedVolumes: Array<{ keyword: string; volume: number }>,
-  sv: SearchVisibility,
   rankByKeyword: Map<string, number>,
-): Pick<SearchVisibility, "categoryDemand" | "categoryCaptureRate" | "categoryOpportunities"> {
+): Pick<SearchVisibility, "categoryDemand" | "categoryOpportunities"> {
   const byKw = new Map<string, number>();
   for (const r of seedVolumes) {
     if (r.volume <= 0) continue;
@@ -279,17 +290,14 @@ export function computeCategoryDemand(
   }
   const rows = [...byKw.entries()].map(([keyword, volume]) => ({ keyword, volume })).sort((a, b) => b.volume - a.volume);
   const categoryDemand = rows.reduce((s, r) => s + r.volume, 0);
-  // Capture = your Search Visibility score (how well you rank for your category) —
-  // a real, differentiated 0–100 computed from your OWN category rankings. Avoids
-  // the unit-mismatch of dividing broad category ETV by narrow seed volumes.
-  const categoryCaptureRate = sv.score;
   // Opportunities = the category searches you are NOT already winning (not ranked
-  // top 3 for the exact phrase), highest-volume first.
+  // top 3 for the exact phrase), highest-volume first. (No captureRate — it was the
+  // score under a second label; deleted, guard G1.)
   const categoryOpportunities = rows
     .filter((r) => { const pos = rankByKeyword.get(r.keyword); return pos === undefined || pos > WINNING_POSITION; })
     .slice(0, OPPORTUNITY_ROWS)
     .map((r) => ({ keyword: r.keyword, volume: r.volume }));
-  return { categoryDemand, categoryCaptureRate, categoryOpportunities };
+  return { categoryDemand, categoryOpportunities };
 }
 
 /**
@@ -317,8 +325,21 @@ export async function gatherFreeSearchVisibility(
         if (t.length >= 3 && !STOPWORDS.has(t) && !vocab.brandTokens.has(t)) vocab.categoryVocab.add(t);
       }
     }
-    const kw = await cachedRankedKeywords(self, 50).catch(() => [] as RankedKeyword[]);
+    // The top ranked_keywords sample (for the brand/category/off-topic split) AND
+    // the TRUE domain totals (domain_rank_overview, +~1.2¢) in parallel. The sample
+    // powers classification; the overview gives the honest keywordsRanked/ETV that
+    // replace the capped-50 lie.
+    const [kw, overview] = await Promise.all([
+      cachedRankedKeywords(self, 50).catch(() => [] as RankedKeyword[]),
+      cachedDomainOverview(self).catch(() => null),
+    ]);
     const sv = computeSearchVisibility(kw, vocab);
+    // Override the SAMPLE totals with the TRUE domain totals when available.
+    if (overview) {
+      sv.keywordsRanked = overview.organicKeywords;
+      sv.estMonthlyVisits = Math.round(overview.organicEtv);
+      sv.footprintComplete = true;
+    }
     // Best position the subject holds per keyword — used to tell which category seeds
     // it already wins vs which are open opportunities.
     const rankByKeyword = new Map<string, number>();
@@ -331,7 +352,7 @@ export async function gatherFreeSearchVisibility(
     const seeds = buildCategorySeeds(sv, llmCategorySeeds);
     // Measure the EXACT volume of the category seed phrases (no expansion noise).
     const seedVolumes = seeds.length > 0 ? await cachedKeywordVolumes(seeds).catch(() => []) : [];
-    return { ...sv, ...computeCategoryDemand(seedVolumes, sv, rankByKeyword) };
+    return { ...sv, ...computeCategoryDemand(seedVolumes, rankByKeyword) };
   } catch {
     return EMPTY;
   }

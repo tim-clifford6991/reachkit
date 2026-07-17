@@ -136,12 +136,12 @@ export function toResultsProps(
         onPageReadiness: sv.onPageReadiness ?? report.score.total,
         keywordsRanked: sv.keywordsRanked,
         estMonthlyVisits: sv.estMonthlyVisits,
+        footprintComplete: sv.footprintComplete,
         brandPct: sv.brandPct,
         categoryPct: sv.categoryPct,
         offTopicPct: sv.offTopicPct,
         categoryWins: sv.categoryWins,
         categoryDemand: sv.categoryDemand,
-        categoryCaptureRate: sv.categoryCaptureRate,
       }
     : null;
 
@@ -149,13 +149,18 @@ export function toResultsProps(
   // else"). Lead with the real gap: no rankings at all is the sharpest hook; then a
   // low category-capture; then the other-brands story.
   const demandStr = sv ? sv.categoryDemand.toLocaleString() : "";
+  // Honest headline. The old branch said "you capture just {categoryCaptureRate}%"
+  // — but categoryCaptureRate WAS the search-presence score under a second label
+  // (identical in 10/10 prod scans), so it read as a fabricated capture percentage.
+  // Deleted; we lead with the real signal instead: the category demand (true seed
+  // volumes) and a LOW search-presence score, without relabelling the score as a %.
   const headline = searchVisibility
     ? searchVisibility.keywordsRanked === 0
       ? searchVisibility.categoryDemand > 0
         ? `Google ranks you for nothing yet — and your category gets ${demandStr} searches a month, all going to someone else.`
         : `Google ranks you for nothing yet — you're invisible in the searches your buyers make.`
-      : searchVisibility.categoryDemand > 0 && searchVisibility.categoryCaptureRate < 15
-        ? `Your category gets ${demandStr} searches a month — and you capture just ${searchVisibility.categoryCaptureRate}% of it.`
+      : searchVisibility.categoryDemand > 0 && searchVisibility.score < 30
+        ? `Your category gets ${demandStr} searches a month — and you're barely visible for any of them.`
         : searchVisibility.offTopicPct >= 55
           ? `${searchVisibility.offTopicPct}% of the searches you rank for are other companies' brand names, not yours.`
           : `You're on the board in search — but leaving real category traffic on the table.`

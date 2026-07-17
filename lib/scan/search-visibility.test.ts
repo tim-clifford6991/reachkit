@@ -97,25 +97,23 @@ describe("computeCategoryDemand (from exact seed-phrase volumes)", () => {
       vocab,
     );
     const rankByKeyword = new Map([["startup mrr", 2]]);
-    const d = computeCategoryDemand(seedVolumes, sv, rankByKeyword);
+    const d = computeCategoryDemand(seedVolumes, rankByKeyword);
     expect(d.categoryDemand).toBe(9000);
-    expect(d.categoryCaptureRate).toBe(sv.score); // capture = Search Visibility score
+    // categoryCaptureRate is GONE (it was === score, a metric aliased to another).
     expect(d.categoryOpportunities.map((o) => o.keyword)).toEqual(["startup revenue tools", "mrr verification"]);
+    expect(sv.score).toBeGreaterThanOrEqual(0); // sv still computes a real score
   });
 
-  it("zero-rankings site: demand is real, capture = 0, all seeds are opportunities", () => {
+  it("zero-rankings site: demand is real, all seeds are opportunities", () => {
     const seedVolumes = [{ keyword: "startup revenue tools", volume: 8000 }, { keyword: "mrr saas", volume: 2000 }];
-    const sv = computeSearchVisibility([], vocab); // ranks for nothing → sv.score 0
-    const d = computeCategoryDemand(seedVolumes, sv, new Map());
+    const d = computeCategoryDemand(seedVolumes, new Map());
     expect(d.categoryDemand).toBe(10000);
-    expect(d.categoryCaptureRate).toBe(0);
     expect(d.categoryOpportunities.length).toBe(2);
   });
 
   it("ignores zero-volume seeds", () => {
     const d = computeCategoryDemand(
       [{ keyword: "a", volume: 0 }, { keyword: "b", volume: 500 }],
-      computeSearchVisibility([], vocab),
       new Map(),
     );
     expect(d.categoryDemand).toBe(500);
@@ -145,5 +143,51 @@ describe("buildCategorySeeds — LLM seeds are authoritative", () => {
     const sv = computeSearchVisibility([], buildVocab("acme.com", ["revenue"]));
     // "saas" (4 chars, single word) is dropped; "buy saas tools" (phrase) kept.
     expect(buildCategorySeeds(sv, ["saas", "buy saas tools"])).toEqual(["buy saas tools"]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Guard class G1/G2 (free-scan number honesty). These make the shipped lies
+// un-representable: a metric may not be an ALIAS of another metric, and a total
+// may not be the API FETCH LIMIT dressed up as a measurement.
+// ---------------------------------------------------------------------------
+import type { SearchVisibility } from "./search-visibility";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
+describe("free-scan number honesty (guards G1, G2)", () => {
+  it("G1: the SearchVisibility type carries NO categoryCaptureRate / categoryCapturedSearches field", () => {
+    // These were `= sv.score` (G1: a metric aliased to another) and its incoherent
+    // internal numerator. A type-level assertion: the fields must not exist.
+    const sv: SearchVisibility = {
+      score: 5, keywordsRanked: 2100, estMonthlyVisits: 100, footprintComplete: true,
+      brandPct: 10, categoryPct: 20, offTopicPct: 70, categoryGap: [], offTopicExamples: [],
+      categoryWins: 0, categoryDemand: 1000, categoryOpportunities: [], categoryWonKeywords: [],
+    };
+    // @ts-expect-error — categoryCaptureRate is deleted; referencing it must not typecheck.
+    expect(sv.categoryCaptureRate).toBeUndefined();
+    // @ts-expect-error — categoryCapturedSearches is deleted.
+    expect(sv.categoryCapturedSearches).toBeUndefined();
+  });
+
+  it("G1 (source): no metric is DECLARED as an alias of another (`= sv.score`) or the incoherent numerator", () => {
+    // The exact shipped defect was `const categoryCaptureRate = sv.score`. Pin the
+    // absence of the CODE (declaration/assignment), not any mention — the DELETED
+    // comment legitimately names the fields it explains.
+    const src = readFileSync(resolve(process.cwd(), "lib/scan/search-visibility.ts"), "utf8");
+    expect(src).not.toMatch(/\bcategoryCaptureRate\s*=/); // no assignment/declaration
+    expect(src).not.toMatch(/const\s+categoryCapturedSearches\b/); // no re-introduction of the numerator
+  });
+
+  it("G2: keywordsRanked comes from the domain total (footprintComplete), not the 50-cap sample", () => {
+    // A domain that truly ranks for 2,100 must NOT render 50 (the ranked_keywords
+    // limit). computeSearchVisibility alone yields the sample with footprintComplete
+    // FALSE; the gather overrides with the true total and sets it true. So the flag
+    // is the honesty contract: a "complete" footprint is never the fetch cap.
+    const sampleOnly = computeSearchVisibility(
+      [{ keyword: "x", position: 3, volume: 100, etv: 50, url: "u" }],
+      buildVocab("acme.com", ["x category"]),
+    );
+    expect(sampleOnly.footprintComplete).toBe(false); // sample → must be disclosed
   });
 });
