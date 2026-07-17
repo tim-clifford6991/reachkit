@@ -22,6 +22,7 @@
 
 import type { RankedKeyword } from "@/lib/scan/adapters/dataforseo-ranked-keywords";
 import { normalizeHost } from "@/lib/scan/referral/classify";
+import { brandTokensFor, isBrandKeyword } from "@/lib/scan/referral/brand-keywords";
 import { cachedRankedKeywords, cachedKeywordVolumes, cachedDomainOverview } from "@/lib/scan/cache/cached-adapters";
 
 export type KeywordClass = "brand" | "category" | "offtopic";
@@ -125,27 +126,20 @@ function tokens(text: string): string[] {
  *   (which shares nothing with the subject's vocabulary) is off-topic.
  */
 export function buildVocab(domain: string, seedText: string[]): { brandTokens: Set<string>; categoryVocab: Set<string> } {
-  const label = domain.replace(/^www\./, "").split(".")[0]?.toLowerCase() ?? "";
-  const brandTokens = new Set<string>();
-  if (label.length >= 3) brandTokens.add(label);
-  // Split a camel/compound brand ("trustmrr") into parts if they read as words.
-  for (const part of label.split(/[^a-z0-9]+/)) if (part.length >= 3) brandTokens.add(part);
-
+  // Brand tokens come from the ONE shared detector (also used by the paid keyword
+  // gap), so a keyword is judged "brand" identically everywhere — no more forked
+  // brand logic that can drift between the two engines (RC1).
+  const brandTokens = brandTokensFor([domain]);
   const categoryVocab = new Set<string>();
   for (const s of seedText) for (const t of tokens(s)) if (!brandTokens.has(t)) categoryVocab.add(t);
   return { brandTokens, categoryVocab };
 }
 
 function classify(keyword: string, brandTokens: Set<string>, categoryVocab: Set<string>): KeywordClass {
-  const toks: string[] = keyword.toLowerCase().match(/[a-z0-9]+/g) ?? [];
-  const joined = keyword.toLowerCase().replace(/[^a-z0-9]/g, "");
-  // Brand: any token is a brand token, or the whole phrase collapses to the brand
-  // label (handles "trust mrr" → "trustmrr").
-  for (const b of brandTokens) {
-    if (toks.includes(b)) return "brand";
-    if (b.length >= 6 && joined.includes(b)) return "brand";
-  }
+  // Brand via the shared detector (exact-token or distinctive-substring match).
+  if (isBrandKeyword(keyword, brandTokens)) return "brand";
   // Category: shares a meaningful topic token with the subject's own vocabulary.
+  const toks: string[] = keyword.toLowerCase().match(/[a-z0-9]+/g) ?? [];
   for (const t of toks) if (categoryVocab.has(t)) return "category";
   return "offtopic";
 }
