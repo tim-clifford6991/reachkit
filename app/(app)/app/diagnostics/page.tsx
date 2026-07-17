@@ -105,9 +105,10 @@ async function DiagnosticsContent() {
             { label: "ON-SITE SCORE", value: diag.onSiteScore ?? "—" },
             { label: "MARKET POSITION", value: diag.marketPositionScore ?? "—" },
             { label: "LLM COST", value: fmtCents(diag.totalCostCents) },
-            { label: "DATAFORSEO", value: fmtCents(diag.dataforseoCostCents) },
-            { label: "TAVILY", value: fmtCents(diag.tavilyCostCents) },
-            { label: "ALL-IN COST", value: fmtCents(diag.allInCostCents) },
+            { label: "DATAFORSEO (RUN)", value: fmtCents(diag.dataforseoCostCents) },
+            { label: "TAVILY (RUN)", value: fmtCents(diag.tavilyCostCents) },
+            { label: "ALL-IN (THIS RUN)", value: fmtCents(diag.allInCostCents) },
+            { label: "EXT. ATTRIBUTED SINCE", value: fmtCents(diag.lifetimeExternalCostCents) },
             { label: "PIPELINE TIME", value: fmtMs(diag.totalDurationMs) },
             { label: "DEEPENED", value: diag.scan.deepenedAt ? "yes" : "no" },
           ].map((k) => (
@@ -119,6 +120,11 @@ async function DiagnosticsContent() {
         </div>
         <p style={{ marginTop: 14, fontSize: 11.5, color: "var(--c-faint)" }}>
           Started {fmtDate(diag.scan.startedAt)} · Completed {fmtDate(diag.scan.completedAt)}
+        </p>
+        <p style={{ marginTop: 6, fontSize: 11, color: "var(--c-faint)" }}>
+          <strong>(RUN)</strong> = this scan&apos;s own pipeline passes. <strong>Attributed since</strong> is the lifetime external
+          spend on this scan row — it also absorbs post-scan intel gathers + weekly refreshes that flush onto the app&apos;s
+          latest row, so it grows after the scan finishes. The soft cap reads the lifetime figure.
         </p>
       </Card>
 

@@ -749,6 +749,8 @@ export type Database = {
           preliminary_facts: Json | null
           rank_data_fetched_at: string | null
           report_payload: Json | null
+          run_dataforseo_cost_cents: number
+          run_tavily_cost_cents: number
           scan_consent_at: string | null
           score_breakdown: Json | null
           score_total: number | null
@@ -773,6 +775,8 @@ export type Database = {
           preliminary_facts?: Json | null
           rank_data_fetched_at?: string | null
           report_payload?: Json | null
+          run_dataforseo_cost_cents?: number
+          run_tavily_cost_cents?: number
           scan_consent_at?: string | null
           score_breakdown?: Json | null
           score_total?: number | null
@@ -797,6 +801,8 @@ export type Database = {
           preliminary_facts?: Json | null
           rank_data_fetched_at?: string | null
           report_payload?: Json | null
+          run_dataforseo_cost_cents?: number
+          run_tavily_cost_cents?: number
           scan_consent_at?: string | null
           score_breakdown?: Json | null
           score_total?: number | null

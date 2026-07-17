@@ -160,6 +160,7 @@ async function refreshOneApp(appId: string): Promise<AppRefreshSummary> {
   // flushes onto the latest scan row — recurring spend must never be untracked.
   const result = await costedStep(latestScanId, () => runWeeklyRefresh(ctx), {
     capCents: env.externalScanCapCentsFull,
+    phase: "post-scan", // recurring cron spend — lifetime accumulator only, not this scan's run cost
   });
   // Observe-only cost alerts on the refreshed spend — fire-and-forget.
   checkAllInCostOverrun(latestScanId).catch(() => {});

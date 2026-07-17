@@ -20,6 +20,20 @@ import type { Json } from "@/lib/db/types";
 const toCents = (usd: number) => Math.round(usd * 100 * 1e4) / 1e4;
 
 /**
+ * Which spend a flush represents:
+ *  - "run"       — the scan's OWN pipeline passes (free + deep). Lands in BOTH the
+ *                  lifetime columns AND the per-run columns.
+ *  - "post-scan" — interactive intel gathers + the weekly-refresh cron, which flush
+ *                  onto the app's *latest* scan row. Lands in the lifetime columns
+ *                  ONLY, so it never inflates "what did this scan cost".
+ * A mis-tag only skews the REPORTING split (run vs lifetime) — never the lifetime
+ * accumulator, the cap (which reads lifetime), or money. `costedStep` defaults to
+ * "run" (its 5 pipeline sites are the majority); the 2 refresh sites + every
+ * `costedIntelStep` pass "post-scan" explicitly. Guard: `app/api/costed-routes.test.ts`.
+ */
+export type CostPhase = "run" | "post-scan";
+
+/**
  * Additively flush a step's accumulated external-API spend onto the scan row.
  * Called at the END of each cost-bearing Inngest step (inside the step, so it's
  * memoized with the step and replay-safe). Additive because a scan's spend
@@ -27,8 +41,11 @@ const toCents = (usd: number) => Math.round(usd * 100 * 1e4) / 1e4;
  * own AsyncLocalStorage sink. Best-effort — telemetry must never fail a scan.
  *
  * Steps for one scan run sequentially, so the read-modify-write is race-free.
+ *
+ * `phase` decides whether the delta also lands in the per-run columns (see
+ * `CostPhase`). The lifetime columns and the cap-breach stamp are phase-agnostic.
  */
-export async function flushExternalCost(scanId: string, sink: CostSink): Promise<void> {
+export async function flushExternalCost(scanId: string, sink: CostSink, phase: CostPhase = "run"): Promise<void> {
   const dfs = toCents(sink.dataforseo);
   const tavily = toCents(sink.tavily);
   if (dfs === 0 && tavily === 0 && !sink.breached) return;
@@ -36,14 +53,24 @@ export async function flushExternalCost(scanId: string, sink: CostSink): Promise
     const db = serverDb();
     const { data } = await db
       .from("scans")
-      .select("dataforseo_cost_cents, tavily_cost_cents, external_cap_hit_at")
+      .select("dataforseo_cost_cents, tavily_cost_cents, run_dataforseo_cost_cents, run_tavily_cost_cents, external_cap_hit_at")
       .eq("id", scanId)
       .maybeSingle();
     await db
       .from("scans")
       .update({
+        // Lifetime accumulator — EVERY flush lands here ("what has this app cost
+        // since?"). Unchanged; the soft cap reads it.
         dataforseo_cost_cents: Number(data?.dataforseo_cost_cents ?? 0) + dfs,
         tavily_cost_cents: Number(data?.tavily_cost_cents ?? 0) + tavily,
+        // Per-run columns — only the scan's OWN pipeline passes ("what did this scan
+        // cost?"). Post-scan intel/refresh flushes ("post-scan") skip these.
+        ...(phase === "run"
+          ? {
+              run_dataforseo_cost_cents: Number(data?.run_dataforseo_cost_cents ?? 0) + dfs,
+              run_tavily_cost_cents: Number(data?.run_tavily_cost_cents ?? 0) + tavily,
+            }
+          : {}),
         // Soft-cap stamp (invariant #2): first breach wins; visible on /app/diagnostics.
         ...(sink.breached && !data?.external_cap_hit_at
           ? { external_cap_hit_at: new Date().toISOString() }
@@ -84,7 +111,7 @@ async function flushedExternalCents(scanId: string): Promise<number> {
 export async function costedStep<T>(
   scanId: string,
   fn: () => Promise<T>,
-  opts: { capCents?: number } = {},
+  opts: { capCents?: number; phase?: CostPhase } = {},
 ): Promise<T> {
   let capUsd: number | undefined;
   let preBreached = false;
@@ -96,7 +123,9 @@ export async function costedStep<T>(
   // scanId into the sink → LLM spend inside this step attributes via currentScanId().
   const sink = newCostSink(capUsd, scanId);
   if (preBreached) sink.breached = true;
-  return runInCostContext(sink, fn).finally(() => flushExternalCost(scanId, sink));
+  // Default "run": the 5 scan-pipeline sites are the majority. The 2 refresh sites
+  // pass phase:"post-scan" so their recurring spend never inflates per-run cost.
+  return runInCostContext(sink, fn).finally(() => flushExternalCost(scanId, sink, opts.phase ?? "run"));
 }
 
 /** Roll the scan's total pipeline cost onto `scans.cost_cents` (rounded cents). */
