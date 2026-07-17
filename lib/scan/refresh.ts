@@ -68,7 +68,7 @@ import { rankCompetitors } from "@/lib/scan/competitors";
 import { upsertRawDocument } from "@/lib/db/raw-documents";
 import { recordPipelineRun } from "@/lib/telemetry/pipeline-runs";
 import { factSheetSubjectType, getFreshFactSheet } from "@/lib/scan/fact-sheets";
-import { fixturesEnabled, fixtureSynth } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 import type { ScanContext } from "@/lib/scan/pipeline";
 import type { DeltaResult } from "@/lib/scan/delta-collect";
 import type {
@@ -259,7 +259,7 @@ function fixtureDigest(kind: MonitorKind, count: number): string {
 
 async function digestKind(ctx: ScanContext, delta: DeltaResult): Promise<string> {
   const count = delta.items.length;
-  if (fixturesEnabled()) {
+  if (fixtures()) {
     return fixtureDigest(delta.kind, count);
   }
 
@@ -412,8 +412,9 @@ async function synthNovelFindings(
 
   // Fixture path: deterministic findings (no Sonnet call). Tag them as derived
   // from the weekly refresh so they are clearly fresh-signal findings.
-  if (fixturesEnabled()) {
-    return fixtureSynth().findings;
+  const _f = fixtures();
+  if (_f) {
+    return _f.synth().findings;
   }
 
   const subjectType = factSheetSubjectType(ctx.mode);
@@ -492,7 +493,7 @@ async function storeFindingEmbeddings(ctx: ScanContext, findings: Finding[]): Pr
         appId: ctx.appId,
         content: f.claim,
         embedding: vecs[i] ?? [],
-        model: fixturesEnabled() ? "fixture" : "voyage-3",
+        model: fixtures() ? "fixture" : "voyage-3",
         modelVersion: "1",
       })),
     );

@@ -11,7 +11,7 @@
 
 import { callModel } from "@/lib/llm/anthropic";
 import { extractJson } from "@/lib/llm/json";
-import { fixturesEnabled } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 import { scrubGenericTells } from "@/lib/scan/algorithm-safety";
 import type { SharePlatform, CoachPlatform } from "./intent";
 
@@ -92,7 +92,7 @@ export function parseDraft(raw: string): Draft {
 
 /** Generate a platform-native draft. Fixtures-mode returns a labelled stub. */
 export async function generateDraft(ctx: DraftContext): Promise<Draft> {
-  if (fixturesEnabled()) {
+  if (fixtures()) {
     return { text: `[draft:${ctx.platform}] ${ctx.angle}` };
   }
   const { text } = await callModel({

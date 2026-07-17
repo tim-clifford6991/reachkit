@@ -8,7 +8,7 @@
  */
 
 import { env } from "@/lib/config/env";
-import { fixturesEnabled } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
 import { serpAuthHeader, dfsJson } from "@/lib/scan/adapters/dataforseo";
 import { searchCacheKey, getCachedSearch, putCachedSearch } from "@/lib/scan/search-cache";
@@ -106,7 +106,7 @@ export async function searchDemand(
   query: string,
   opts: { redditOnly?: boolean; depth?: number; recency?: RecencyWindow } = {},
 ): Promise<DemandHit[]> {
-  if (fixturesEnabled()) return [];
+  if (fixtures()) return [];
 
   // Reddit-scoped by default: it's the highest-signal "buyers asking" surface
   // (open web search yields blogs/marketing, not real problem-talk). Coverage

@@ -3,7 +3,9 @@
  * - parseKeywords maps fields from a DataForSEO keywords_data/google_ads/search_volume/live response
  * - keywordsData returns fixture data when fixturesEnabled()=true (no network call)
  */
-import { expect, test, describe, beforeEach, vi } from "vitest";
+import { expect, test, describe, beforeEach, afterEach, vi } from "vitest";
+import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
+import { makeFixtureProvider } from "@/lib/dev/fixtures";
 
 // ---------------------------------------------------------------------------
 // parseKeywords — pure unit test, no mocking needed
@@ -66,11 +68,9 @@ describe("keywordsData short-circuits to fixture when fixturesEnabled()=true", (
 
   beforeEach(() => {
     vi.resetModules();
-    vi.doMock("@/lib/dev/fixtures", () => ({
-      fixturesEnabled: () => true,
-      fixtureKeywords: (_seeds: string[]) => KEYWORDS_FIXTURE,
-    }));
+    installFixtures({ ...makeFixtureProvider(), keywords: (_seeds: string[]) => KEYWORDS_FIXTURE });
   });
+  afterEach(() => resetFixtures());
 
   test("returns fixture without making a network call", async () => {
     // fetch is NOT stubbed — if the adapter calls fetch, vitest will error

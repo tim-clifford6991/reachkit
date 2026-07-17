@@ -19,7 +19,7 @@
 import { env } from "@/lib/config/env";
 import { callModel } from "@/lib/llm/anthropic";
 import { extractJson } from "@/lib/llm/json";
-import { fixturesEnabled } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
 import { liveSerpAlternatives } from "@/lib/scan/adapters/dataforseo";
 import { searchCacheKey, cachedSearch } from "@/lib/scan/search-cache";
@@ -134,7 +134,7 @@ export async function proposeCompetitors(
   product: ProductInfo,
   opts: { count?: number; scanId?: string | null } = {},
 ): Promise<Array<{ name: string; domain: string | null }>> {
-  if (fixturesEnabled()) return [];
+  if (fixtures()) return [];
   try {
     const { text } = await callModel({
       model: PROPOSE_MODEL,
@@ -151,7 +151,7 @@ export async function proposeCompetitors(
 
 /** Domains from an "alternatives to {name}" SERP (a market signal). Cached. */
 export async function alternativesDomains(name: string): Promise<string[]> {
-  if (fixturesEnabled()) return [];
+  if (fixtures()) return [];
   try {
     return await cachedSearch(searchCacheKey("alternatives", name.toLowerCase()), async () => {
       const { competitors } = await liveSerpAlternatives(name);
@@ -166,7 +166,7 @@ export async function alternativesDomains(name: string): Promise<string[]> {
 
 /** Whether a domain resolves to a live site (the "verify" step). Fixtures → true. */
 export async function resolveDomainLive(host: string): Promise<boolean> {
-  if (fixturesEnabled()) return true;
+  if (fixtures()) return true;
   try {
     const res = await fetchWithTimeout(
       `https://${host}/`,

@@ -38,6 +38,14 @@ module.exports = {
       to: { path: "^lib/testing/" },
     },
     {
+      name: "no-prod-to-dev-fixtures",
+      comment:
+        "lib/dev/ is the fixtures/dev module (canned test data). Production must never import it — fixtures are an injected TEST SEAM (lib/scan/fixture-seam.ts): tests call installFixtures(makeFixtureProvider()); production calls fixtures(), null in prod. The REACHKIT_USE_FIXTURES flag was deleted in Phase 8. Only *.test.ts(x) and lib/dev itself may import lib/dev. CLAUDE.md → 'There are NO product feature flags'.",
+      severity: "error",
+      from: { pathNot: [TESTS, "^lib/dev/"] },
+      to: { path: "^lib/dev/" },
+    },
+    {
       name: "anthropic-only-in-llm",
       comment: "The Anthropic SDK is an adapter — importable only from lib/llm/ (AI is always isolated behind an adapter). CLAUDE.md.",
       severity: "error",

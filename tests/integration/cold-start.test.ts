@@ -12,12 +12,16 @@
  * Run with: pnpm test:int tests/integration/cold-start.test.ts
  */
 
-import { expect, test, vi } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
+import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
+import { makeFixtureProvider } from "@/lib/dev/fixtures";
 import { serverDb } from "@/lib/db/client";
 import { ScanBudget } from "@/lib/tools/registry";
 import type { ScanContext } from "@/lib/scan/pipeline";
 import type { PreliminaryFacts } from "@/lib/scan/types";
 import type { Json } from "@/lib/db/types";
+
+afterEach(() => resetFixtures());
 
 // ---------------------------------------------------------------------------
 // Seed helper — app + scan with a findings_payload the full scan reads.
@@ -118,7 +122,7 @@ test(
   "Cold Start full scan persists the validation-through-distribution queue (prob_based, ≤0.6, pivot card, survives the gate)",
   async () => {
     vi.resetModules();
-    vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
+    installFixtures(makeFixtureProvider());
     const { runFullScan } = await import("@/lib/scan/full-scan");
 
     const storeUrl = `https://apps.apple.com/us/app/newhabit/id${Date.now()}`;
@@ -176,7 +180,7 @@ test(
   "non-Cold-Start full scan still produces the standard action set (no pivot card)",
   async () => {
     vi.resetModules();
-    vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
+    installFixtures(makeFixtureProvider());
     const { runFullScan } = await import("@/lib/scan/full-scan");
 
     const storeUrl = `https://apps.apple.com/us/app/habits/id${Date.now()}`;

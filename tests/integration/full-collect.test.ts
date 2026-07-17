@@ -9,11 +9,16 @@
  * Run with: pnpm test:int tests/integration/full-collect.test.ts
  */
 
-import { expect, test, vi } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
+import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
+import { makeFixtureProvider } from "@/lib/dev/fixtures";
 import { serverDb } from "@/lib/db/client";
 import { ScanBudget } from "@/lib/tools/registry";
 import type { ScanContext } from "@/lib/scan/pipeline";
 import type { PreliminaryFacts } from "@/lib/scan/types";
+
+// Reset the injected fixture provider after each test so it never leaks.
+afterEach(() => resetFixtures());
 
 // ---------------------------------------------------------------------------
 // Seed helper
@@ -78,7 +83,7 @@ test(
     vi.resetModules();
 
     // Enable fixtures via env stub — must be done before module import
-    vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
+    installFixtures(makeFixtureProvider());
 
     // Dynamic import so the env stub is picked up by fixturesEnabled()
     const { runFullCollect } = await import("@/lib/scan/full-collect");
@@ -149,7 +154,7 @@ test(
   async () => {
     vi.resetModules();
 
-    vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
+    installFixtures(makeFixtureProvider());
 
     const capturedArgs: Array<{ seeds?: string[]; topic?: string; competitors?: string[] }> = [];
 

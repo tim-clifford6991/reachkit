@@ -35,13 +35,7 @@ import type {
   TimedCommunity,
   WatermarkBody,
 } from "@/lib/scan/types";
-import {
-  fixturesEnabled,
-  fixtureCompetitorDelta,
-  fixtureRankDelta,
-  fixtureReviewDelta,
-  fixtureThreadDelta,
-} from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 import { fetchAppReviews } from "@/lib/scan/adapters/app-store-rss";
 import { appIdFromUrl, fetchItunesCompetitors } from "@/lib/scan/adapters/itunes";
 import { rankLookup } from "@/lib/scan/adapters/dataforseo-rank";
@@ -111,8 +105,9 @@ async function collectOne(
 async function collectReviews(ctx: ScanContext, watermark: WatermarkBody): Promise<DeltaResult> {
   const lastReviewId = watermark.lastReviewId ?? null;
 
-  if (fixturesEnabled()) {
-    const { items, newestId } = fixtureReviewDelta();
+  const _f = fixtures();
+  if (_f) {
+    const { items, newestId } = _f.reviewDelta();
     if (lastReviewId == null) {
       // baseline — set marker, emit nothing
       return { kind: "reviews", items: [], newWatermark: { ...watermark, lastReviewId: newestId } };
@@ -145,8 +140,9 @@ async function collectReviews(ctx: ScanContext, watermark: WatermarkBody): Promi
 async function collectRank(ctx: ScanContext, watermark: WatermarkBody, facts: PreliminaryFacts): Promise<DeltaResult> {
   const prev = watermark.topRanks ?? {};
 
-  if (fixturesEnabled()) {
-    const { changed, fresh } = fixtureRankDelta(prev);
+  const _f = fixtures();
+  if (_f) {
+    const { changed, fresh } = _f.rankDelta(prev);
     return { kind: "rank", items: changed, newWatermark: { ...watermark, topRanks: fresh } };
   }
 
@@ -180,8 +176,9 @@ function rankKeywords(facts: PreliminaryFacts): string[] {
 async function collectThreads(ctx: ScanContext, watermark: WatermarkBody, facts: PreliminaryFacts): Promise<DeltaResult> {
   const lastThreadAt = watermark.lastThreadAt ?? null;
 
-  if (fixturesEnabled()) {
-    const { items, newestAt } = fixtureThreadDelta();
+  const _f = fixtures();
+  if (_f) {
+    const { items, newestAt } = _f.threadDelta();
     if (lastThreadAt == null) {
       return { kind: "threads", items: [], newWatermark: { ...watermark, lastThreadAt: newestAt } };
     }
@@ -214,8 +211,9 @@ function threadTopic(facts: PreliminaryFacts): string {
 async function collectCompetitors(ctx: ScanContext, watermark: WatermarkBody, facts: PreliminaryFacts): Promise<DeltaResult> {
   const known = watermark.knownCompetitors ?? [];
 
-  if (fixturesEnabled()) {
-    const { newNames, found } = fixtureCompetitorDelta(known);
+  const _f = fixtures();
+  if (_f) {
+    const { newNames, found } = _f.competitorDelta(known);
     return { kind: "competitors", items: newNames, newWatermark: { ...watermark, knownCompetitors: unionNames(known, found) } };
   }
 

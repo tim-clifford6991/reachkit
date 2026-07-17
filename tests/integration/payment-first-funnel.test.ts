@@ -31,7 +31,7 @@ import { handleStripeEvent } from "@/lib/billing/webhook";
 
 // Live-only: needs a real Stripe key + local Supabase. Auto-skips otherwise
 // (e.g. fixtures mode / CI without keys) so it never breaks an automated run.
-const RUN_LIVE = !env.useFixtures && env.stripeSecretKey.startsWith("sk_");
+const RUN_LIVE = env.stripeSecretKey.startsWith("sk_");
 
 // Gmail ignores +tags, so this lands in the real inbox but is identifiable.
 const TEST_EMAIL = "timclifford101+rk-funnel-test@gmail.com";

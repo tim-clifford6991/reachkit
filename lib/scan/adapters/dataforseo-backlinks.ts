@@ -6,7 +6,7 @@
  * Parser is pure/defensive; fetch degrades to [] on any failure (never throws).
  */
 import { env } from "@/lib/config/env";
-import { fixturesEnabled } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
 import { serpAuthHeader, dfsJson } from "@/lib/scan/adapters/dataforseo";
 import { normalizeHost } from "@/lib/scan/referral/classify";
@@ -36,7 +36,7 @@ export async function fetchDomainIntersection(
   opts: { limit?: number; returnRaw?: boolean } = {},
 ): Promise<{ rows: IntersectionRow[]; raw?: unknown }> {
   // Fixtures mode makes zero paid calls — return the same empty shape as the keyless path.
-  if (fixturesEnabled()) return { rows: [] };
+  if (fixtures()) return { rows: [] };
   if (!env.dataforseoLogin || !env.dataforseoPassword || targets.length < 2) return { rows: [] };
   const targetMap: Record<string, string> = {};
   targets.forEach((t, i) => (targetMap[String(i + 1)] = t));
@@ -123,7 +123,7 @@ export function parseBacklinks(body: unknown): Referrer[] {
 /** Top backlinks for a domain (one per referring domain, strongest first). Returns [] on failure. */
 export async function fetchBacklinks(domain: string, opts: { limit?: number } = {}): Promise<Referrer[]> {
   // Fixtures mode makes zero paid calls — return the same empty shape as the keyless path.
-  if (fixturesEnabled()) return [];
+  if (fixtures()) return [];
   if (!env.dataforseoLogin || !env.dataforseoPassword) return [];
   try {
     const res = await fetchWithTimeout(

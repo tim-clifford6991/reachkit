@@ -9,7 +9,7 @@
 
 import { callModel } from "@/lib/llm/anthropic";
 import { extractJson } from "@/lib/llm/json";
-import { fixturesEnabled } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 import type { ProductBrief } from "./types";
 
 const MODEL = "claude-haiku-4-5-20251001" as const;
@@ -84,7 +84,7 @@ export async function generatePainQueries(
   opts: { count?: number; scanId?: string | null } = {},
 ): Promise<Array<{ query: string; theme: string }>> {
   const count = opts.count ?? 10;
-  if (fixturesEnabled()) return [];
+  if (fixtures()) return [];
   try {
     const { text } = await callModel({
       model: MODEL,

@@ -1,14 +1,15 @@
 /**
- * Adapter gating tests: when REACHKIT_USE_FIXTURES=true the paid adapters must
- * return the canned fixture data WITHOUT touching the network.
+ * Adapter gating tests: when a fixture provider is installed the paid adapters
+ * must return the canned fixture data WITHOUT touching the network.
  *
- * Strategy: vi.doMock "@/lib/dev/fixtures" so fixturesEnabled() returns true and
- * the fixture providers return deterministic canned data, then dynamically
- * import the adapters so they pick up the mock.  fetch is NOT stubbed — if any
- * adapter called fetch it would throw/hang, so the test passing proves the
- * short-circuit is in place.
+ * Strategy: installFixtures() a provider whose serp/tavily/ph return deterministic
+ * canned data, then dynamically import the adapters so they read it via the seam.
+ * fetch is NOT stubbed — if any adapter called fetch it would throw/hang, so the
+ * test passing proves the short-circuit is in place.
  */
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
+import { makeFixtureProvider } from "@/lib/dev/fixtures";
 
 const SERP_FIXTURE = {
   competitors: [
@@ -31,13 +32,14 @@ const PH_FIXTURE = {
 describe("paid adapters short-circuit to fixtures when fixturesEnabled()=true", () => {
   beforeEach(() => {
     vi.resetModules();
-    vi.doMock("@/lib/dev/fixtures", () => ({
-      fixturesEnabled: () => true,
-      fixtureSerp: () => SERP_FIXTURE,
-      fixtureTavily: () => TAVILY_FIXTURE,
-      fixturePh: () => PH_FIXTURE,
-    }));
+    installFixtures({
+      ...makeFixtureProvider(),
+      serp: () => SERP_FIXTURE,
+      tavily: () => TAVILY_FIXTURE,
+      ph: () => PH_FIXTURE,
+    });
   });
+  afterEach(() => resetFixtures());
 
   test("liveSerpAlternatives returns fixture without network call", async () => {
     const { liveSerpAlternatives } = await import("./dataforseo");

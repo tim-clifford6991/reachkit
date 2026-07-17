@@ -1,6 +1,6 @@
 import type { ToolDefinition } from "@/lib/tools/registry";
 import type { Community } from "@/lib/scan/types";
-import { fixturesEnabled, fixtureCommunities } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 import { hnSearch } from "@/lib/scan/adapters/hn-algolia";
 import { upsertRawDocument } from "@/lib/db/raw-documents";
 import { recordPipelineRun } from "@/lib/telemetry/pipeline-runs";
@@ -21,9 +21,10 @@ export const findCommunities: ToolDefinition<FindCommunitiesArgs, FindCommunitie
     const t0 = Date.now();
 
     // Fixture short-circuit — before any fetch
-    if (fixturesEnabled()) {
+    const _f = fixtures();
+    if (_f) {
       ctx.budget.charge({ toolCalls: 1, cents: 0 });
-      const communities = fixtureCommunities(args.topic);
+      const communities = _f.communities(args.topic);
       await upsertRawDocument({
         subjectType: ctx.mode === "web" ? "web" : "app",
         subjectKey: args.subjectKey,

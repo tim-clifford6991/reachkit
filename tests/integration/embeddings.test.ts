@@ -7,13 +7,14 @@
  * Forces fixtures mode via vi.mock so no Voyage API key is needed.
  * fixtureEmbed produces deterministic 1024-dim vectors for semantic assertions.
  */
-import { expect, test, vi } from "vitest";
+import { expect, test, beforeEach, afterEach } from "vitest";
+import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
+import { makeFixtureProvider } from "@/lib/dev/fixtures";
 
-// Force fixtures mode before any module under test is imported.
-vi.mock("@/lib/dev/fixtures", async (importOriginal) => {
-  const original = await importOriginal<typeof import("@/lib/dev/fixtures")>();
-  return { ...original, fixturesEnabled: () => true };
-});
+// Force fixtures mode via the injected seam so callEmbed returns the deterministic
+// embed fixture (no Voyage API key needed).
+beforeEach(() => installFixtures(makeFixtureProvider()));
+afterEach(() => resetFixtures());
 
 import { callEmbed } from "@/lib/llm/embed";
 import { insertEmbeddings, searchSimilar } from "@/lib/scan/embeddings";

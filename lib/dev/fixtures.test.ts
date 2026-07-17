@@ -63,21 +63,3 @@ describe("fixture providers return valid Competitor shapes", async () => {
     expect(r.competitors[0]?.name).toContain("Nudgi");
   });
 });
-
-describe("fixturesEnabled() reflects the env flag", () => {
-  beforeEach(() => {
-    vi.resetModules();
-  });
-
-  test("returns false when env.useFixtures is false", async () => {
-    vi.doMock("@/lib/config/env", () => ({ env: { useFixtures: false } }));
-    const { fixturesEnabled } = await import("./fixtures");
-    expect(fixturesEnabled()).toBe(false);
-  });
-
-  test("returns true when env.useFixtures is true", async () => {
-    vi.doMock("@/lib/config/env", () => ({ env: { useFixtures: true } }));
-    const { fixturesEnabled } = await import("./fixtures");
-    expect(fixturesEnabled()).toBe(true);
-  });
-});

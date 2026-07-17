@@ -9,7 +9,9 @@
  * - charges the budget once in live mode
  * - tool metadata: name=verify_action, klass=D
  */
-import { beforeEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
+import { makeFixtureProvider } from "@/lib/dev/fixtures";
 
 // fetchSourceText (reused from check-link) runs the response body through
 // node-html-parser and returns the <body> text, so mocked bodies wrap content
@@ -31,12 +33,14 @@ beforeEach(() => {
   vi.unstubAllGlobals();
 });
 
+afterEach(() => resetFixtures());
+
 // ---------------------------------------------------------------------------
 // Fixture mode — verified:true, no fetch
 // ---------------------------------------------------------------------------
 
 test("verify_action in fixture mode returns verified:true without fetch", async () => {
-  vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => true }));
+  installFixtures(makeFixtureProvider());
   const fetchMock = vi.fn();
   vi.stubGlobal("fetch", fetchMock);
 
@@ -59,7 +63,6 @@ test("verify_action in fixture mode returns verified:true without fetch", async 
 // ---------------------------------------------------------------------------
 
 test("verify_action live: 200 + body containing expect → verified:true", async () => {
-  vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
   mockFetch({
     ok: true,
     body: "<html><body><h1>HabitKit — Daily Habit Tracker</h1><p>Build lasting habits.</p></body></html>",
@@ -79,7 +82,6 @@ test("verify_action live: 200 + body containing expect → verified:true", async
 });
 
 test("verify_action live: expect match is case-insensitive", async () => {
-  vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
   mockFetch({
     ok: true,
     body: "<html><body><p>Build Lasting Habits With HabitKit.</p></body></html>",
@@ -102,7 +104,6 @@ test("verify_action live: expect match is case-insensitive", async () => {
 // ---------------------------------------------------------------------------
 
 test("verify_action live: 200 + no expect arg → verified:true (page live)", async () => {
-  vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
   mockFetch({
     ok: true,
     body: "<html><body><p>Some real, non-trivial page content lives here.</p></body></html>",
@@ -126,7 +127,6 @@ test("verify_action live: 200 + no expect arg → verified:true (page live)", as
 // ---------------------------------------------------------------------------
 
 test("verify_action live (fail-closed): 200 + body NOT containing expect → verified:false", async () => {
-  vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
   mockFetch({
     ok: true,
     body: "<html><body><p>Completely unrelated content about gardening.</p></body></html>",
@@ -146,7 +146,6 @@ test("verify_action live (fail-closed): 200 + body NOT containing expect → ver
 });
 
 test("verify_action live (fail-closed): non-200 → verified:false", async () => {
-  vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
   mockFetch({ ok: false, body: "<html><body><p>Not found</p></body></html>" });
 
   const { verifyAction } = await import("./verify-action");
@@ -163,7 +162,6 @@ test("verify_action live (fail-closed): non-200 → verified:false", async () =>
 });
 
 test("verify_action live (fail-closed): fetch throws → verified:false", async () => {
-  vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
   mockFetch("throw");
 
   const { verifyAction } = await import("./verify-action");
@@ -180,7 +178,6 @@ test("verify_action live (fail-closed): fetch throws → verified:false", async 
 });
 
 test("verify_action live (fail-closed): empty body → verified:false", async () => {
-  vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
   mockFetch({ ok: true, body: "<html><body></body></html>" });
 
   const { verifyAction } = await import("./verify-action");
@@ -201,7 +198,6 @@ test("verify_action live (fail-closed): empty body → verified:false", async ()
 // ---------------------------------------------------------------------------
 
 test("verify_action charges 1 tool call and 0 cents in live mode", async () => {
-  vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
   mockFetch({ ok: true, body: "<html><body><p>Live page content.</p></body></html>" });
 
   const { verifyAction } = await import("./verify-action");
@@ -222,7 +218,6 @@ test("verify_action charges 1 tool call and 0 cents in live mode", async () => {
 // ---------------------------------------------------------------------------
 
 test("verify_action has name=verify_action and klass=D", async () => {
-  vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
   const { verifyAction } = await import("./verify-action");
   expect(verifyAction.name).toBe("verify_action");
   expect(verifyAction.klass).toBe("D");

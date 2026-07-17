@@ -10,11 +10,13 @@
  * Run: RUN_REFERRAL=true pnpm test:int tests/integration/referral-discovery.test.ts
  *   REF_SELF=savvycal.com REF_COMPETITORS="cal.com,calendly.com,acuityscheduling.com" ...
  */
-process.env.REACHKIT_USE_FIXTURES = "true";
+installFixtures(makeFixtureProvider());
 
 const RUN_REFERRAL = process.env.RUN_REFERRAL === "true";
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
+import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
+import { makeFixtureProvider } from "@/lib/dev/fixtures";
 import { fetchDomainIntersection, fetchBacklinks } from "@/lib/scan/adapters/dataforseo-backlinks";
 import { fetchTrafficForHosts } from "@/lib/scan/adapters/dataforseo-traffic";
 import { classifyReferrer, isUbiquitousHost, normalizeHost } from "@/lib/scan/referral/classify";
@@ -24,6 +26,9 @@ const COMPETITORS = (process.env.REF_COMPETITORS || "cal.com,calendly.com,acuity
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
+
+// Reset the injected fixture provider after each test so it never leaks.
+afterEach(() => resetFixtures());
 
 describe.skipIf(!RUN_REFERRAL)("reverse-referral (LIVE, corrected)", () => {
   it(

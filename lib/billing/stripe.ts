@@ -1,10 +1,10 @@
 import Stripe from "stripe";
 import { env } from "@/lib/config/env";
-import { fixturesEnabled } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 
 /** Throws if Stripe is not configured and fixtures are not enabled. */
 export function assertStripeConfigured(): void {
-  if (env.stripeSecretKey === "" && !fixturesEnabled()) {
+  if (env.stripeSecretKey === "" && !fixtures()) {
     throw new Error(
       "Stripe is not configured: STRIPE_SECRET_KEY is required in non-fixtures mode.",
     );

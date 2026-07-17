@@ -10,7 +10,7 @@
  */
 
 import type { ToolDefinition } from "@/lib/tools/registry";
-import { fixturesEnabled } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 import { fetchSourceText } from "@/lib/llm/check-link";
 
 export interface VerifyActionArgs {
@@ -28,7 +28,7 @@ export const verifyAction: ToolDefinition<VerifyActionArgs, VerifyActionResult> 
   klass: "D",
   async run(args, ctx) {
     // Fixture short-circuit — no fetch, so the keyless verification flow completes.
-    if (fixturesEnabled()) {
+    if (fixtures()) {
       return { verified: true, reason: "fixture" };
     }
 

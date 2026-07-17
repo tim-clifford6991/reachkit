@@ -6,6 +6,8 @@
  * params, error propagation, fixture short-circuit) to the surviving sender.
  */
 import { beforeEach, expect, test, vi } from "vitest";
+import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
+import { makeFixtureProvider } from "@/lib/dev/fixtures";
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -35,9 +37,7 @@ test("non-fixture: emails.send is called with correct from/to/subject/body", asy
     }
     return { Resend: MockResend };
   });
-  vi.doMock("@/lib/dev/fixtures", () => ({
-    fixturesEnabled: () => false,
-  }));
+  // no provider installed → fixtures() is null → the real Resend send path runs
   vi.doMock("@/lib/config/env", () => ({
     env: { resendApiKey: "test-resend-key", appUrl: "http://localhost:3000" },
   }));
@@ -76,9 +76,7 @@ test("non-fixture: rejects when resend returns an error object", async () => {
     }
     return { Resend: MockResend };
   });
-  vi.doMock("@/lib/dev/fixtures", () => ({
-    fixturesEnabled: () => false,
-  }));
+  // no provider installed → fixtures() is null → the real Resend send path runs
   vi.doMock("@/lib/config/env", () => ({
     env: { resendApiKey: "bad-key", appUrl: "http://localhost:3000" },
   }));
@@ -104,9 +102,7 @@ test("fixture mode: emails.send is not called; console.log is called", async () 
     }
     return { Resend: MockResend };
   });
-  vi.doMock("@/lib/dev/fixtures", () => ({
-    fixturesEnabled: () => true,
-  }));
+  installFixtures(makeFixtureProvider()); // provider present → fixtures() truthy → logs, doesn't send
   vi.doMock("@/lib/config/env", () => ({
     env: { resendApiKey: "", appUrl: "http://localhost:3000" },
   }));
@@ -125,5 +121,5 @@ test("fixture mode: emails.send is not called; console.log is called", async () 
   logSpy.mockRestore();
 });
 
-// Keep beforeEach isolated (resetModules is per-test above)
-beforeEach(() => {});
+// Reset the fixture seam before each test so provider state never leaks (resetModules is per-test above)
+beforeEach(() => resetFixtures());

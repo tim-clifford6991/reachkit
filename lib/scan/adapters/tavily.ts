@@ -1,6 +1,6 @@
 import type { Competitor } from "@/lib/scan/types";
 import { env } from "@/lib/config/env";
-import { fixturesEnabled, fixtureTavily } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
 import { recordTavilyCost } from "@/lib/scan/cost-context";
 
@@ -22,7 +22,8 @@ export function parseTavilyContent(body: unknown): string {
 }
 
 export async function tavilyAlternatives(productName: string): Promise<{ competitors: Competitor[]; raw: unknown }> {
-  if (fixturesEnabled()) return fixtureTavily(productName);
+  const _f = fixtures();
+  if (_f) return _f.tavily(productName);
   const res = await fetchWithTimeout("https://api.tavily.com/search", {
     method: "POST", headers: { "content-type": "application/json" },
     body: JSON.stringify({ api_key: env.tavilyApiKey, query: `alternatives to ${productName}`, max_results: 5, include_answer: true }),
@@ -72,7 +73,7 @@ export function parseTavilyResults(body: unknown): TavilyResult[] {
  * to [] on any failure (best-effort enrichment, never a hard dependency).
  */
 export async function tavilySearch(query: string, opts: TavilySearchOptions = {}): Promise<TavilyResult[]> {
-  if (fixturesEnabled()) return [];
+  if (fixtures()) return [];
   try {
     const res = await fetchWithTimeout("https://api.tavily.com/search", {
       method: "POST",
@@ -106,7 +107,7 @@ export function parseTavilyExtract(body: unknown): Array<{ url: string; content:
 
 /** Extract clean full-page content for a set of URLs. [] in fixtures / on failure. */
 export async function tavilyExtract(urls: string[]): Promise<Array<{ url: string; content: string }>> {
-  if (fixturesEnabled() || urls.length === 0) return [];
+  if (fixtures() || urls.length === 0) return [];
   try {
     const res = await fetchWithTimeout("https://api.tavily.com/extract", {
       method: "POST",

@@ -1,5 +1,5 @@
 import { serverDb } from "@/lib/db/client";
-import { fixturesEnabled } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 import { env } from "@/lib/config/env";
 import { assertStripeConfigured, stripeClient } from "@/lib/billing/stripe";
 import { safeReturnPath } from "@/lib/billing/return-path";
@@ -34,7 +34,7 @@ export async function createPortalSession(
   // ---------------------------------------------------------------------------
   // Fixture path — no Stripe; return the demo billing URL.
   // ---------------------------------------------------------------------------
-  if (fixturesEnabled()) {
+  if (fixtures()) {
     return { url: `${returnUrl}${returnUrl.includes("?") ? "&" : "?"}portal=demo` };
   }
 

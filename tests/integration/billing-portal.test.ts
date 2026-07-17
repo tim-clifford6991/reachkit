@@ -8,6 +8,8 @@
  */
 
 import { expect, test, vi, afterEach } from "vitest";
+import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
+import { makeFixtureProvider } from "@/lib/dev/fixtures";
 import { serverDb } from "@/lib/db/client";
 import { env } from "@/lib/config/env";
 
@@ -32,12 +34,13 @@ async function deleteUser(id: string): Promise<void> {
 afterEach(() => {
   vi.unstubAllEnvs();
   vi.resetModules();
+  resetFixtures();
 });
 
 test(
   "createPortalSession (fixtures) returns the demo portal url",
   async () => {
-    vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
+    installFixtures(makeFixtureProvider());
 
     const { createPortalSession } = await import("@/lib/billing/portal");
 

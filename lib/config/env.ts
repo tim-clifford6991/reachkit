@@ -1,11 +1,10 @@
 import { z } from "zod";
 
 /**
- * Paid/keyed vars: optional with blank default so fixtures mode needs no keys.
- * The superRefine below enforces non-empty when REACHKIT_USE_FIXTURES is false.
- *
- * Note: superRefine runs AFTER field transforms, so val.REACHKIT_USE_FIXTURES is
- * the transformed boolean (true/false), not the raw string "true"/"false".
+ * Paid/keyed vars: optional with a blank default so dev/test need no keys (tests
+ * inject canned data via the fixture seam). The superRefine below enforces
+ * non-empty ONLY when `NODE_ENV === "production"` — so a misconfigured prod deploy
+ * fails at boot. (Was gated on the deleted `REACHKIT_USE_FIXTURES` flag; Phase 8.)
  */
 const PAID_KEYS = [
   "ANTHROPIC_API_KEY",
@@ -99,36 +98,26 @@ const schema = z.object({
   REACHKIT_OWNER_EMAILS: z.string().optional().default(""),
   // Verbose logging for the cohort-profile discovery pass.
   PROFILE_DEBUG: z.string().optional().transform((v) => v === "1"),
-  // The only feature flag: keyless fixtures mode for tests / local dev.
-  REACHKIT_USE_FIXTURES: z.string().optional().transform((v) => v === "true"),
-  // Carried into superRefine ONLY to forbid fixtures in production. Not returned
-  // from parseEnv. `NODE_ENV` is a permitted literal (lib/config/** exempt).
+  // `NODE_ENV` gates whether the paid/Stripe keys are REQUIRED (production only).
+  // This used to be gated on the `REACHKIT_USE_FIXTURES` flag, deleted in Phase 8:
+  // fixtures are now an injected TEST SEAM (`lib/scan/fixture-seam.ts`) that
+  // production can NEVER enable, so there is no product flag left to read — and no
+  // "one mistyped Vercel var upgrades everyone" blast radius. `NODE_ENV` is a
+  // permitted literal (lib/config/** is exempt from the env-only lint rule).
   NODE_ENV: z.string().optional(),
 }).superRefine((val, ctx) => {
-  // superRefine receives transformed values: val.REACHKIT_USE_FIXTURES is a boolean.
-
-  // HARD FLOOR: fixtures mode must NEVER be enabled in production. fixturesEnabled()
-  // is `return env.useFixtures` with no NODE_ENV guard of its own, so a single
-  // mistyped Vercel env var would, in prod, hand out free tier upgrades to any
-  // user (lib/billing/checkout.ts writes tier+active straight to the row), turn
-  // off rate limiting (lib/scan/abuse.ts), skip Stripe cancellation on delete,
-  // and print magic links to logs. Refuse the misconfiguration at the parse.
-  if (val.REACHKIT_USE_FIXTURES && val.NODE_ENV === "production") {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["REACHKIT_USE_FIXTURES"],
-      message:
-        "REACHKIT_USE_FIXTURES must never be true in production — it disables billing, rate limiting, and auth guards. It is a test/dev-only seam.",
-    });
-  }
-
-  if (!val.REACHKIT_USE_FIXTURES) {
+  // The money-path + paid-vendor keys must be present in PRODUCTION so a
+  // misconfigured deploy fails at boot, not silently at checkout/scan time. Dev and
+  // test run without them — tests serve canned data via the injected fixture seam
+  // (installFixtures), and local dev may too. (Was: "required unless
+  // REACHKIT_USE_FIXTURES=true"; the flag is gone, the intent is unchanged.)
+  if (val.NODE_ENV === "production") {
     for (const key of [...PAID_KEYS, ...STRIPE_REQUIRED_KEYS]) {
       if (!val[key]) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: [key],
-          message: `${key} is required unless REACHKIT_USE_FIXTURES=true`,
+          message: `${key} is required in production`,
         });
       }
     }
@@ -153,7 +142,6 @@ export function parseEnv(src: NodeJS.ProcessEnv) {
     voyageApiKey: p.VOYAGE_API_KEY,
     dataforseoLocationCode: p.DATAFORSEO_LOCATION_CODE, dataforseoLanguageCode: p.DATAFORSEO_LANGUAGE_CODE,
     tavilyUsdPerCredit: p.TAVILY_USD_PER_CREDIT,
-    useFixtures: p.REACHKIT_USE_FIXTURES,
     inngestSigningKey: p.INNGEST_SIGNING_KEY,
     billingGraceDays: p.BILLING_GRACE_DAYS,
     ownerEmails: p.REACHKIT_OWNER_EMAILS,

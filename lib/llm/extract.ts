@@ -4,7 +4,7 @@ import { callModel } from "@/lib/llm/anthropic";
 import { extractJson } from "@/lib/llm/json";
 import { parseListingHtml } from "@/lib/scan/adapters/site-fetch";
 import { upsertFactSheet, factSheetSubjectType } from "@/lib/scan/fact-sheets";
-import { fixturesEnabled, fixtureExtract } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 import {
   reviewThemesPrompt,
   positioningPrompt,
@@ -132,7 +132,7 @@ export async function runExtract(ctx: ScanContext, kinds?: FactSheetKind[]): Pro
   const competitorRows = rows.filter((r) => (COMPETITOR_SOURCES as readonly string[]).includes(r.source_type));
   const keywordRows = rows.filter((r) => (KEYWORD_SOURCES as readonly string[]).includes(r.source_type));
 
-  const fixtures = fixturesEnabled();
+  const usingFixtures = fixtures() !== null;
   // `kinds` lets the full-scan re-extract refresh ONLY keyword_data instead of
   // re-reading the (expensive) site HTML for every sheet a second time.
   const want = (k: FactSheetKind) => !kinds || kinds.includes(k);
@@ -145,13 +145,13 @@ export async function runExtract(ctx: ScanContext, kinds?: FactSheetKind[]): Pro
   // 3. For each requested kind: either use fixture or call model, then upsert
   const jobs: Promise<void>[] = [];
   if (want("review_themes"))
-    jobs.push(extractKind<ReviewThemesSheet>(ctx, "review_themes", reviewRows, (docs) => reviewThemesPrompt(formatDocBodies(docs)), EMPTY_REVIEW_THEMES, fixtures));
+    jobs.push(extractKind<ReviewThemesSheet>(ctx, "review_themes", reviewRows, (docs) => reviewThemesPrompt(formatDocBodies(docs)), EMPTY_REVIEW_THEMES, usingFixtures));
   if (want("positioning"))
-    jobs.push(extractKind<PositioningSheet>(ctx, "positioning", listingRows, (docs) => positioningPrompt(formatDocBodies(docs)), positioningFloor, fixtures));
+    jobs.push(extractKind<PositioningSheet>(ctx, "positioning", listingRows, (docs) => positioningPrompt(formatDocBodies(docs)), positioningFloor, usingFixtures));
   if (want("competitor_gap"))
-    jobs.push(extractKind<CompetitorGapSheet>(ctx, "competitor_gap", competitorRows, (docs) => competitorGapPrompt(formatDocBodies(docs)), EMPTY_COMPETITOR_GAP, fixtures));
+    jobs.push(extractKind<CompetitorGapSheet>(ctx, "competitor_gap", competitorRows, (docs) => competitorGapPrompt(formatDocBodies(docs)), EMPTY_COMPETITOR_GAP, usingFixtures));
   if (want("keyword_data"))
-    jobs.push(extractKind<KeywordSheet>(ctx, "keyword_data", keywordRows, (docs) => keywordDataPrompt(formatDocBodies(docs)), EMPTY_KEYWORD_SHEET, fixtures));
+    jobs.push(extractKind<KeywordSheet>(ctx, "keyword_data", keywordRows, (docs) => keywordDataPrompt(formatDocBodies(docs)), EMPTY_KEYWORD_SHEET, usingFixtures));
   await Promise.all(jobs);
 }
 
@@ -161,13 +161,13 @@ async function extractKind<T>(
   docs: RawDocRow[],
   buildPrompt: (docs: RawDocRow[]) => string,
   emptySheet: T,
-  fixtures: boolean,
+  usingFixtures: boolean,
 ): Promise<void> {
   let body: T;
 
-  if (fixtures) {
+  if (usingFixtures) {
     // Fixture path: return canned body without any LLM call
-    body = fixtureExtract(kind) as T;
+    body = fixtures()!.extract(kind) as T;
   } else if (docs.length === 0) {
     // INVARIANT #3: never cache an empty sheet. No source docs → skip the upsert
     // entirely. synth's read-back falls back to the same empty shape

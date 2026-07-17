@@ -1,5 +1,5 @@
 import { serverDb } from "@/lib/db/client";
-import { fixturesEnabled } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 import { env } from "@/lib/config/env";
 import { provisionCheckoutUser } from "@/lib/billing/provision";
 import { safeReturnPath } from "@/lib/billing/return-path";
@@ -35,7 +35,7 @@ export async function createAnonymousCheckout({
 
   // Fixtures path — no Stripe, no webhook. Provision the account inline so the
   // funnel is demoable keyless, then drop the user at /welcome.
-  if (fixturesEnabled()) {
+  if (fixtures()) {
     const email = `fixture+${scanId ?? "direct"}@reachkit.dev`;
     await provisionCheckoutUser({
       email,
@@ -86,7 +86,7 @@ export async function createCheckout({
   // ---------------------------------------------------------------------------
   // Fixture path — no Stripe; directly upgrade the user row for demo/test.
   // ---------------------------------------------------------------------------
-  if (fixturesEnabled()) {
+  if (fixtures()) {
     const { error } = await serverDb()
       .from("users")
       .update({ tier: plan, subscription_status: "active" })

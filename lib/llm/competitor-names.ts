@@ -2,7 +2,7 @@ import type { Competitor } from "@/lib/scan/types";
 import type { ScanContext } from "@/lib/scan/pipeline";
 import { callModel } from "@/lib/llm/anthropic";
 import { extractJson } from "@/lib/llm/json";
-import { fixturesEnabled } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 import { NON_PRODUCT_NAMES } from "@/lib/scan/competitor-filter";
 
 const MODEL = "claude-haiku-4-5-20251001" as const;
@@ -71,7 +71,7 @@ export async function extractCompetitorNames(
   input: CompetitorNameInput,
 ): Promise<Competitor[]> {
   if (!input.content.trim()) return [];
-  if (fixturesEnabled()) return []; // fixtures already provide a clean competitor set
+  if (fixtures()) return []; // fixtures already provide a clean competitor set
   try {
     const { text } = await callModel({
       model: MODEL,

@@ -16,14 +16,18 @@
  *   - Local Supabase running (same as other integration tests)
  */
 
-import { expect, test, vi } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
+import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
+import { makeFixtureProvider } from "@/lib/dev/fixtures";
 import type { GoldenSetResult } from "@/lib/eval/types";
 
 // ---------------------------------------------------------------------------
 // Force fixture mode so critic/embed gates run deterministically (no API keys)
 // ---------------------------------------------------------------------------
 
-vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
+installFixtures(makeFixtureProvider());
+
+afterEach(() => resetFixtures());
 
 test(
   "golden-set: mean ≥ 0.7, 5 fixtures, each ≥ minActions safe actions AND ≥1 per expected category",

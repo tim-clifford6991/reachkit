@@ -11,10 +11,14 @@
  *
  * Fixture mode (deterministic search-visibility, no keys) + local Supabase.
  */
-import { expect, test, vi } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
+import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
+import { makeFixtureProvider } from "@/lib/dev/fixtures";
 import type { Json } from "@/lib/db/types";
 
-vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
+installFixtures(makeFixtureProvider());
+
+afterEach(() => resetFixtures());
 
 const STORE_URL = `https://v5-parity.example.com/${Date.now()}`;
 

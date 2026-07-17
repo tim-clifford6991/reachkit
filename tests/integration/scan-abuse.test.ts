@@ -15,7 +15,7 @@
  * Run with: pnpm test:int tests/integration/scan-abuse.test.ts
  */
 
-import { afterAll, beforeEach, describe, expect, test, vi } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { serverDb } from "@/lib/db/client";
 import {
   AbuseError,
@@ -25,7 +25,8 @@ import {
   findExistingScanForApp,
   hashIp,
 } from "@/lib/scan/abuse";
-import * as fixtures from "@/lib/dev/fixtures";
+import { makeFixtureProvider } from "@/lib/dev/fixtures";
+import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
 
 const createdAppIds: string[] = [];
 
@@ -77,6 +78,8 @@ async function countScansForApp(appId: string): Promise<number> {
 beforeEach(() => {
   vi.restoreAllMocks();
 });
+
+afterEach(() => resetFixtures()); // never leak an installed provider between tests
 
 afterAll(async () => {
   const db = serverDb();
@@ -205,7 +208,7 @@ describe("per-IP rate limit", () => {
   // the REAL behavior regardless of the ambient REACHKIT_USE_FIXTURES in
   // .env.local. Mirrors the "fixture/dev escape" block, which mocks it true.
   beforeEach(() => {
-    vi.spyOn(fixtures, "fixturesEnabled").mockReturnValue(false);
+    resetFixtures(); // no provider → fixtures() is null → REAL rate limiting, regardless of ambient flag
   });
 
   test(
@@ -244,7 +247,7 @@ describe("fixture/dev escape", () => {
   test(
     "assertRateLimit resolves regardless of count when fixtures are enabled",
     async () => {
-      vi.spyOn(fixtures, "fixturesEnabled").mockReturnValue(true);
+      installFixtures(makeFixtureProvider()); // provider present → fixtures() truthy → rate limit skipped
       const ipHash = hashIp(`fixture-${Date.now()}-${Math.random()}`);
       const appId = await seedApp(`https://fixture-${Date.now()}.example.com/app`);
       for (let i = 0; i < RATE_LIMIT + 3; i++) await seedScan(appId, ipHash);

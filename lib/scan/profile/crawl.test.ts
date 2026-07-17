@@ -1,5 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { toHost } from "./crawl";
+import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
+import { makeFixtureProvider } from "@/lib/dev/fixtures";
 
 describe("toHost", () => {
   it("normalizes domains and URLs to a bare host (www stripped)", () => {
@@ -12,9 +14,10 @@ describe("toHost", () => {
 
 describe("crawlContentChannels (fixtures short-circuit)", () => {
   beforeEach(() => vi.resetModules());
+  afterEach(() => resetFixtures());
 
   it("returns [] in fixtures mode (no network)", async () => {
-    vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => true }));
+    installFixtures(makeFixtureProvider());
     const fetchSpy = vi.fn();
     vi.doMock("@/lib/scan/adapters/fetch-timeout", () => ({ fetchWithTimeout: fetchSpy }));
     const { crawlContentChannels } = await import("./crawl");

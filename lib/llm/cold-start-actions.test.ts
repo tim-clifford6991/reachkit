@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { coldStartActionsFrom, fixtureColdStartActions } from "@/lib/dev/fixtures";
+import { coldStartActionsFrom } from "./cold-start-actions";
+import { fixtureColdStartActions, makeFixtureProvider } from "@/lib/dev/fixtures";
+import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
 import type { PreliminaryFacts } from "@/lib/scan/types";
 import type { ScanContext } from "@/lib/scan/pipeline";
 
@@ -24,6 +26,7 @@ const fakeCtx = { scanId: "s", appId: "a", storeUrl: "https://nudgi.app", mode: 
 afterEach(() => {
   vi.unstubAllEnvs();
   vi.resetModules();
+  resetFixtures();
 });
 
 // ---------------------------------------------------------------------------
@@ -108,14 +111,13 @@ describe("fixtureColdStartActions", () => {
 });
 
 describe("generateColdStartActions", () => {
-  // Mock only fixturesEnabled (keeps it off the real env parser); keep the real
-  // builders so the cards are genuinely the ones the generator produces.
+  // Drive the fixture short-circuit via the injected seam (install a provider for
+  // fixtures mode, reset it for the live path); keep the real builders so the
+  // cards are genuinely the ones the generator produces.
   async function importWith(fixtures: boolean): Promise<typeof import("@/lib/llm/cold-start-actions").generateColdStartActions> {
     vi.resetModules();
-    vi.doMock("@/lib/dev/fixtures", async () => {
-      const actual = await vi.importActual<typeof import("@/lib/dev/fixtures")>("@/lib/dev/fixtures");
-      return { ...actual, fixturesEnabled: () => fixtures };
-    });
+    if (fixtures) installFixtures(makeFixtureProvider());
+    else resetFixtures();
     const mod = await import("@/lib/llm/cold-start-actions");
     return mod.generateColdStartActions;
   }

@@ -11,7 +11,7 @@ import { callModel } from "@/lib/llm/anthropic";
 import { ACTIONS_SYSTEM, buildActionsPrompt } from "@/lib/llm/prompts";
 import { type ActionGrounding, EMPTY_GROUNDING } from "@/lib/llm/grounding";
 import { getFreshFactSheet, factSheetSubjectType } from "@/lib/scan/fact-sheets";
-import { fixturesEnabled, fixtureActions } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 import { serverDb } from "@/lib/db/client";
 import type { ScanContext } from "@/lib/scan/pipeline";
 import type {
@@ -255,8 +255,9 @@ export async function generateActions(
   grounding: ActionGrounding = EMPTY_GROUNDING,
 ): Promise<ActionCard[]> {
   // Fixture path — no LLM call, no DB reads
-  if (fixturesEnabled()) {
-    return fixtureActions();
+  const _f = fixtures();
+  if (_f) {
+    return _f.actions();
   }
 
   // Read the 4 fact sheets in parallel

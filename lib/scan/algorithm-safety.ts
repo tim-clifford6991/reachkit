@@ -16,7 +16,7 @@
 
 import { callModel } from "@/lib/llm/anthropic";
 import { callEmbed } from "@/lib/llm/embed";
-import { fixturesEnabled } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 import {
   insertEmbeddings,
   deleteEmbeddingsForApp,
@@ -156,7 +156,7 @@ export async function scrubGenericTells(
   if (initialScore < GENERIC_THRESHOLD) return draft;
 
   // Fixtures mode: deterministic detection only — no paid rewrite.
-  if (fixturesEnabled()) return draft;
+  if (fixtures()) return draft;
 
   let rewritten: string;
   try {
@@ -219,7 +219,7 @@ async function applyDivergenceCheck(
   // searchSimilar set contains only OTHER apps' drafts (true cross-customer divergence);
   // the same drafts are re-inserted at the end of this function (delete→insert = no dup,
   // safe for retries).
-  if (!fixturesEnabled()) {
+  if (!fixtures()) {
     try {
       await deleteEmbeddingsForApp(ctx.appId, "draft");
     } catch {
@@ -237,7 +237,7 @@ async function applyDivergenceCheck(
 
     let isDivergent = false;
 
-    if (!fixturesEnabled()) {
+    if (!fixtures()) {
       // Search for similar drafts from OTHER apps. This app's own drafts were just
       // deleted above, so any match here is genuinely from a different customer.
       try {
@@ -279,7 +279,7 @@ async function applyDivergenceCheck(
   // that delete (to keep the divergence search a pure fixture no-op), so we delete
   // now to stay idempotent across re-runs (delete then insert = no duplicates).
   try {
-    if (fixturesEnabled()) {
+    if (fixtures()) {
       await deleteEmbeddingsForApp(ctx.appId, "draft");
     }
 
@@ -307,7 +307,7 @@ async function applyDivergenceCheck(
           appId: ctx.appId,
           content: x.card.draft,
           embedding: finalVecs[i] ?? [],
-          model: fixturesEnabled() ? "fixture" : "voyage-3",
+          model: fixtures() ? "fixture" : "voyage-3",
           modelVersion: "1",
         })),
       );

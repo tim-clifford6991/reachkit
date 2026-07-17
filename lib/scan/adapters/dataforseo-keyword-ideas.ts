@@ -8,7 +8,7 @@
  * buyer's own words. Parser is pure/defensive; fetch is fixtures-aware.
  */
 import { env } from "@/lib/config/env";
-import { fixturesEnabled } from "@/lib/dev/fixtures";
+import { fixtures } from "@/lib/scan/fixture-seam";
 import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
 import { serpAuthHeader, dfsJson } from "@/lib/scan/adapters/dataforseo";
 
@@ -48,7 +48,7 @@ export function parseKeywordIdeas(body: unknown): KeywordIdea[] {
 /** Fetch keyword ideas seeded from category terms. [] in fixtures / on failure. */
 export async function fetchKeywordIdeas(seeds: string[], limit = 200): Promise<KeywordIdea[]> {
   const keywords = seeds.map((s) => s.trim().toLowerCase()).filter(Boolean).slice(0, 20);
-  if (fixturesEnabled() || keywords.length === 0 || !env.dataforseoLogin) return [];
+  if (fixtures() || keywords.length === 0 || !env.dataforseoLogin) return [];
   try {
     const res = await fetchWithTimeout(
       "https://api.dataforseo.com/v3/dataforseo_labs/google/keyword_ideas/live",
