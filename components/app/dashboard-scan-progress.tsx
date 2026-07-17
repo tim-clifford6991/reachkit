@@ -25,7 +25,7 @@
  * component, in the (app) layout — never touched here, so product #1 stays
  * one click away while this watches product #2.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ScanEvent } from "@/lib/scan/types";
 import { ScanProgress } from "@/components/scan/scan-progress";
@@ -37,6 +37,7 @@ export function DashboardScanProgress({
   sinceId = 0,
   refreshing = false,
   startedAt = null,
+  onFacts,
 }: {
   scanId: string;
   /** Two-track split, mirroring the funnel: 'full' scans run the deep pass. */
@@ -55,6 +56,15 @@ export function DashboardScanProgress({
   refreshing?: boolean;
   /** `scans.started_at` (ISO) — the time-based progress curve's real anchor. */
   startedAt?: string | null;
+  /**
+   * When set, the PARENT owns navigation: this fires once the `facts` event
+   * lands (page read + competitors discovered, ~t+8s) and suppresses the
+   * auto-refresh-on-`done` below. The /app/add flow uses it to advance to the
+   * competitor pick while the scan keeps running in the background — the
+   * competitor candidates are seeded from collect (already done by `facts`),
+   * so the pick never waits on the deep pass.
+   */
+  onFacts?: () => void;
 }) {
   const router = useRouter();
   const [artifacts, setArtifacts] = useState<string[]>([]);
@@ -62,6 +72,15 @@ export function DashboardScanProgress({
   const [reportReady, setReportReady] = useState(false);
   const [done, setDone] = useState(false);
   const [failed, setFailed] = useState(false);
+
+  // Ref, not a dep: the SSE effect must not re-subscribe when a parent passes a
+  // fresh onFacts closure each render. Synced in an effect (never during render —
+  // react-hooks/refs). Fired at most once (the `facts` event is emitted once per
+  // run; on a replayed run we resume past the prior terminal).
+  const onFactsRef = useRef(onFacts);
+  useEffect(() => {
+    onFactsRef.current = onFacts;
+  }, [onFacts]);
 
   useEffect(() => {
     let cancelled = false;
@@ -93,6 +112,7 @@ export function DashboardScanProgress({
         setArtifacts((a) => [...a, String(e.payload["label"] ?? "working")]);
       } else if (e.type === "facts") {
         settled = true;
+        onFactsRef.current?.();
       } else if (e.type === "findings") {
         settled = true;
         setFindingsReady(true);
@@ -142,10 +162,12 @@ export function DashboardScanProgress({
     return cleanup;
   }, [scanId, sinceId]);
 
-  // Pipeline is DONE — reveal the real dashboard in place.
+  // Pipeline is DONE — reveal the real dashboard in place. Suppressed when the
+  // parent owns navigation via onFacts (the /app/add flow advances to the
+  // competitor pick at `facts` and routes itself; a refresh here would fight it).
   useEffect(() => {
-    if (done) router.refresh();
-  }, [done, router]);
+    if (done && !onFacts) router.refresh();
+  }, [done, onFacts, router]);
 
   if (failed) {
     return (

@@ -1,19 +1,17 @@
 // app/(app)/app/add/actions.test.ts
 //
 // addProduct is the in-shell server action for /app/add. It ORCHESTRATES —
-// auth, then addTrackedProduct (Task 3, already covers cap/already-tracked/
-// paused/URL-canonicalisation), then setActiveApp, then redirect. This file
-// pins the orchestration contract only: it does not re-test addTrackedProduct's
-// own policy (lib/app/add-product.test.ts owns that).
+// auth, then addTrackedProduct (already covers cap/already-tracked/paused/
+// URL-canonicalisation), then setActiveApp — and RETURNS the result so the
+// client 3-step flow (AddFlow) can advance (URL → scanning → competitors). It
+// no longer redirects on success. This file pins the orchestration contract
+// only; lib/app/add-product.test.ts owns the policy.
 //
-// Every dependency is mocked so this file never touches real env/Supabase —
-// same isolation approach as lib/app/add-product.test.ts.
+// Every dependency is mocked so this file never touches real env/Supabase.
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// next/navigation's real redirect() throws to abort rendering; mock it the
-// same way so `addProduct` genuinely stops executing at the call site (this
-// is what makes the ordering assertions below meaningful, not just "was it
-// called with these args").
+// Only the UNAUTHENTICATED path still redirects (to /login). Mock it to throw,
+// matching Next's real abort-on-redirect, so we can assert that path.
 class RedirectSignal extends Error {
   constructor(public path: string) {
     super(`REDIRECT:${path}`);
@@ -54,11 +52,11 @@ vi.mock("@/lib/app/add-product", () => ({
 const setActiveAppMock = vi.fn();
 vi.mock("@/lib/app/set-active-app", () => ({ setActiveApp: (...a: unknown[]) => setActiveAppMock(...a) }));
 
-function fd(url?: string): FormData {
-  const f = new FormData();
-  if (url !== undefined) f.set("url", url);
-  return f;
-}
+const entitlementsForMock = vi.fn();
+vi.mock("@/lib/billing/entitlements", () => ({ entitlementsFor: (...a: unknown[]) => entitlementsForMock(...a) }));
+
+// classifyUrl + hostname are pure — use the REAL ones so the host the flow
+// hands to CompetitorSetup is the genuine canonicalisation, not a mock's guess.
 
 describe("addProduct server action (orchestration contract)", () => {
   beforeEach(() => {
@@ -66,32 +64,25 @@ describe("addProduct server action (orchestration contract)", () => {
     redirectMock.mockImplementation((path: string) => {
       throw new RedirectSignal(path);
     });
+    entitlementsForMock.mockResolvedValue({ active: false });
   });
 
   it("empty url → inline error, never touches auth or the executor", async () => {
     const { addProduct } = await import("./actions");
-    const result = await addProduct({ error: null }, fd(""));
-    expect(result).toEqual({ error: "Enter your product's website address." });
+    expect(await addProduct("")).toEqual({ ok: false, error: "Enter your product's website address." });
     expect(requireUserMock).not.toHaveBeenCalled();
     expect(addTrackedProductMock).not.toHaveBeenCalled();
   });
 
   it("whitespace-only url also counts as empty", async () => {
     const { addProduct } = await import("./actions");
-    const result = await addProduct({ error: null }, fd("   "));
-    expect(result).toEqual({ error: "Enter your product's website address." });
-  });
-
-  it("missing url field entirely → inline error (form.get returns null)", async () => {
-    const { addProduct } = await import("./actions");
-    const result = await addProduct({ error: null }, fd());
-    expect(result).toEqual({ error: "Enter your product's website address." });
+    expect(await addProduct("   ")).toEqual({ ok: false, error: "Enter your product's website address." });
   });
 
   it("unauthenticated → redirects to /login with a return path, never calls the executor", async () => {
     requireUserMock.mockRejectedValue(new AuthErrorMock());
     const { addProduct } = await import("./actions");
-    await expect(addProduct({ error: null }, fd("example.com"))).rejects.toBeInstanceOf(RedirectSignal);
+    await expect(addProduct("example.com")).rejects.toBeInstanceOf(RedirectSignal);
     expect(redirectMock).toHaveBeenCalledWith("/login?next=/app/add");
     expect(addTrackedProductMock).not.toHaveBeenCalled();
   });
@@ -99,71 +90,75 @@ describe("addProduct server action (orchestration contract)", () => {
   it("a non-AuthError from requireUser propagates uncaught (never mis-swallowed as a form error)", async () => {
     requireUserMock.mockRejectedValue(new Error("db unreachable"));
     const { addProduct } = await import("./actions");
-    await expect(addProduct({ error: null }, fd("example.com"))).rejects.toThrow("db unreachable");
+    await expect(addProduct("example.com")).rejects.toThrow("db unreachable");
     expect(redirectMock).not.toHaveBeenCalled();
   });
 
-  it("trims the submitted url before handing it to addTrackedProduct", async () => {
+  it("trims the url before addTrackedProduct, and returns the CANONICAL host for the competitor step", async () => {
     requireUserMock.mockResolvedValue({ user: { id: "u1" } });
     addTrackedProductMock.mockResolvedValue({ appId: "app-1", scanId: "scan-1" });
     const { addProduct } = await import("./actions");
-    await expect(addProduct({ error: null }, fd("  example.com  "))).rejects.toBeInstanceOf(RedirectSignal);
-    expect(addTrackedProductMock).toHaveBeenCalledWith("u1", "example.com");
+    const res = await addProduct("  HTTPS://WWW.Example.com/pricing?utm=x  ");
+    expect(addTrackedProductMock).toHaveBeenCalledWith("u1", "HTTPS://WWW.Example.com/pricing?utm=x");
+    // hostname(classifyUrl(...).url) — www stripped, lowercased, path dropped.
+    expect(res).toMatchObject({ ok: true, appId: "app-1", scanId: "scan-1", host: "example.com" });
   });
 
-  it("AddProductError's message becomes the inline form error verbatim (code→copy mapping)", async () => {
+  it("paid viewer → result carries paid:true so the scanning step runs the deep narrative", async () => {
+    requireUserMock.mockResolvedValue({ user: { id: "u1" } });
+    addTrackedProductMock.mockResolvedValue({ appId: "app-1", scanId: "scan-1" });
+    entitlementsForMock.mockResolvedValue({ active: true });
+    const { addProduct } = await import("./actions");
+    expect(await addProduct("example.com")).toMatchObject({ ok: true, paid: true });
+  });
+
+  it("AddProductError's message becomes the inline error verbatim, and NO app is activated", async () => {
     requireUserMock.mockResolvedValue({ user: { id: "u1" } });
     addTrackedProductMock.mockRejectedValue(
-      new AddProductErrorMock("cap", "You're tracking 3 of 3 products on growth. Upgrade or remove one to add another."),
+      new AddProductErrorMock("cap", "You're tracking 3 of 3 products on growth. Remove one in Settings to add another."),
     );
     const { addProduct } = await import("./actions");
-    const result = await addProduct({ error: null }, fd("example.com"));
-    expect(result).toEqual({ error: "You're tracking 3 of 3 products on growth. Upgrade or remove one to add another." });
+    expect(await addProduct("example.com")).toEqual({
+      ok: false,
+      error: "You're tracking 3 of 3 products on growth. Remove one in Settings to add another.",
+    });
     expect(setActiveAppMock).not.toHaveBeenCalled();
-    expect(redirectMock).not.toHaveBeenCalled();
   });
 
-  it("already_tracked AddProductError also surfaces inline, never a redirect", async () => {
+  it("already_tracked AddProductError also surfaces inline", async () => {
     requireUserMock.mockResolvedValue({ user: { id: "u1" } });
     addTrackedProductMock.mockRejectedValue(new AddProductErrorMock("already_tracked", "You're already tracking this product."));
     const { addProduct } = await import("./actions");
-    const result = await addProduct({ error: null }, fd("example.com"));
-    expect(result).toEqual({ error: "You're already tracking this product." });
+    expect(await addProduct("example.com")).toEqual({ ok: false, error: "You're already tracking this product." });
   });
 
-  it("an unexpected (non-AddProductError) failure degrades to generic copy and logs, never leaks internals", async () => {
+  it("an unexpected failure degrades to generic copy and logs, never leaks internals", async () => {
     requireUserMock.mockResolvedValue({ user: { id: "u1" } });
     addTrackedProductMock.mockRejectedValue(new Error("ECONNREFUSED 5432"));
     const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const { addProduct } = await import("./actions");
-    const result = await addProduct({ error: null }, fd("example.com"));
-    expect(result).toEqual({ error: "Couldn't add that product. Please try again." });
+    expect(await addProduct("example.com")).toEqual({ ok: false, error: "Couldn't add that product. Please try again." });
     expect(errSpy).toHaveBeenCalled();
     errSpy.mockRestore();
   });
 
-  it("ORDERING IS LOAD-BEARING: activates the app BEFORE redirecting (never after)", async () => {
+  it("ORDERING IS LOAD-BEARING: activates the app BEFORE returning ok (setActiveApp no-ops for an unlinked app)", async () => {
     requireUserMock.mockResolvedValue({ user: { id: "u1" } });
     addTrackedProductMock.mockResolvedValue({ appId: "app-42", scanId: "scan-1" });
     const order: string[] = [];
-    setActiveAppMock.mockImplementation(async (id: string) => {
-      order.push(`activate:${id}`);
-    });
-    redirectMock.mockImplementation((path: string) => {
-      order.push(`redirect:${path}`);
-      throw new RedirectSignal(path);
-    });
+    setActiveAppMock.mockImplementation(async (id: string) => void order.push(`activate:${id}`));
     const { addProduct } = await import("./actions");
-    await expect(addProduct({ error: null }, fd("example.com"))).rejects.toBeInstanceOf(RedirectSignal);
-    expect(order).toEqual(["activate:app-42", "redirect:/app/dashboard"]);
+    const res = await addProduct("example.com");
+    expect(order).toEqual(["activate:app-42"]);
+    expect(res).toMatchObject({ ok: true, appId: "app-42" });
   });
 
-  it("a null scanId (scan insert failed) is NOT an error — the app still links and the user still lands on the dashboard", async () => {
+  it("a null scanId (scan insert failed) is returned as-is — NOT an error; AddFlow lands on the dashboard", async () => {
     requireUserMock.mockResolvedValue({ user: { id: "u1" } });
     addTrackedProductMock.mockResolvedValue({ appId: "app-42", scanId: null });
     const { addProduct } = await import("./actions");
-    await expect(addProduct({ error: null }, fd("example.com"))).rejects.toBeInstanceOf(RedirectSignal);
+    const res = await addProduct("example.com");
     expect(setActiveAppMock).toHaveBeenCalledWith("app-42");
-    expect(redirectMock).toHaveBeenCalledWith("/app/dashboard");
+    expect(res).toMatchObject({ ok: true, appId: "app-42", scanId: null });
   });
 });

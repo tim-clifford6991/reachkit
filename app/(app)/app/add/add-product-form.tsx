@@ -1,22 +1,34 @@
 "use client";
 
 /**
- * AddProductForm — the /app/add client form. Same
- * useActionState + inline-error pattern the app already uses for other
- * server-action forms (see components/app/captured/settings-*-form.tsx),
- * bound to the addProduct server action.
+ * AddProductForm — the URL step of the /app/add flow. useTransition + the
+ * result-returning `addProduct` action (it no longer redirects — /app/add is a
+ * client-driven 3-step flow, so the parent AddFlow owns navigation and advances
+ * on the returned result).
  */
 
-import { useActionState } from "react";
-import { addProduct, type AddState } from "./actions";
+import { useState, useTransition } from "react";
+import { addProduct, type AddResult } from "./actions";
 
 const PJ = "var(--font-sans)";
 
-export function AddProductForm() {
-  const [state, action, pending] = useActionState<AddState, FormData>(addProduct, { error: null });
+export function AddProductForm({ onAdded }: { onAdded: (result: Extract<AddResult, { ok: true }>) => void }) {
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const url = String(new FormData(e.currentTarget).get("url") ?? "");
+    setError(null);
+    startTransition(async () => {
+      const res = await addProduct(url);
+      if (res.ok) onAdded(res);
+      else setError(res.error);
+    });
+  }
 
   return (
-    <form action={action} style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 520 }}>
+    <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 520 }}>
       <label htmlFor="url" style={{ fontFamily: PJ, fontSize: 13, fontWeight: 600, color: "var(--c-ink)" }}>
         Product website
       </label>
@@ -38,9 +50,9 @@ export function AddProductForm() {
           outline: "none",
         }}
       />
-      {state.error && (
+      {error && (
         <div role="alert" style={{ fontFamily: PJ, fontSize: 12.5, color: "var(--color-danger)" }}>
-          {state.error}
+          {error}
         </div>
       )}
       <button
