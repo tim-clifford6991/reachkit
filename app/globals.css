@@ -539,3 +539,62 @@
     50%      { transform: translate3d(2%, -3%, 0) scale(1.06); }
   }
 }
+
+/* ═══ App shell — responsive chrome ═════════════════════════════════════════
+ * Lives here, NOT as an injected <style> in app-shell.tsx, for two reasons:
+ * (1) a template literal's contents ship verbatim inside the shared /app JS
+ *     chunk on EVERY app route — and four of those pages sit exactly on their
+ *     pinned bundle baseline, which only ever shrinks (see check-bundle.mjs);
+ * (2) it's real CSS: parsed natively and cached, instead of a JS string
+ *     re-injected per render.
+ * The mobile rule is the DEFAULT and desktop is the override, so the phone
+ * layout never depends on a media query landing.
+ *
+ * Mobile (<1024px): one column; the sidebar is an off-canvas drawer toggled by
+ * the `is-open` class (visibility, not display — so a closed drawer leaves the
+ * a11y tree while the DESKTOP rail, which the server can't distinguish, stays
+ * reachable). >=1024px: the permanent 240px rail, no burger/backdrop.
+ * Paired with components/app/captured/app-shell.tsx + skeletons.tsx.
+ * ══════════════════════════════════════════════════════════════════════════ */
+.rk-shell { display: grid; grid-template-columns: 1fr; min-height: 100vh; }
+.rk-shell-nav {
+  position: fixed; inset: 0 auto 0 0; width: min(84vw, 268px); height: 100vh;
+  z-index: 40; transform: translateX(-100%); visibility: hidden;
+  transition: transform 0.2s var(--ease-in-out, ease), visibility 0.2s;
+  overflow-y: auto;
+}
+.rk-shell-nav.is-open { transform: translateX(0); visibility: visible; }
+.rk-shell-backdrop {
+  position: fixed; inset: 0; background: rgba(12, 10, 24, 0.5);
+  z-index: 30; border: 0; padding: 0; cursor: pointer;
+}
+.rk-shell-burger {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: var(--radius-sm);
+  border: 1px solid var(--c-line2); background: var(--c-surface);
+  color: var(--c-ink); cursor: pointer; flex-shrink: 0;
+}
+.rk-shell-head { padding: 12px 16px; }
+.rk-shell-body { padding: 20px 16px 48px; }
+/* Skeleton shell mirrors the same collapse, or the loading state alone forces a
+   wide layout on a phone (it is user-visible, so that overflow is real). */
+.rk-skel-shell { display: grid; grid-template-columns: 1fr; min-height: 100vh; }
+.rk-skel-aside { display: none; }
+
+@media (min-width: 640px) {
+  .rk-shell-head { padding: 15px 28px; }
+  .rk-shell-body { padding: 28px 32px 64px; }
+}
+@media (min-width: 1024px) {
+  .rk-shell { grid-template-columns: 240px 1fr; }
+  .rk-shell-nav {
+    position: sticky; top: 0; inset-inline: auto; width: auto; height: 100vh;
+    transform: none; visibility: visible; transition: none; z-index: auto;
+  }
+  .rk-shell-burger, .rk-shell-backdrop { display: none; }
+  .rk-skel-shell { grid-template-columns: 240px 1fr; }
+  .rk-skel-aside { display: flex; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rk-shell-nav { transition: none; }
+}

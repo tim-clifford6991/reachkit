@@ -34,27 +34,6 @@ const SignOutButton = dynamic(() => import("@/components/app/sign-out-button").t
 
 const SG = "Space Grotesk", PJ = "Plus Jakarta Sans", JM = "JetBrains Mono";
 
-/**
- * Responsive shell. The 240px rail is desktop-only: below 1024px it becomes an
- * off-canvas drawer (the app is data-dense — a fixed rail on a phone left the
- * content column ~120px wide and forced a 425px layout onto a 360px screen).
- *
- * All the layout switching is CSS, driven by one `is-open` class, so the only JS
- * this adds to the shared /app first-load chunk is a single useState — no
- * useMediaQuery, no drawer library. (app-shell renders on EVERY /app route and
- * four of those pages already sit at the bundle budget.)
- *
- * These properties live here rather than inline because inline styles cannot
- * express a media query — and they'd beat this stylesheet if they stayed.
- *
- * Kept MINIFIED on purpose: a template literal's contents ship verbatim (the
- * minifier does not touch them), and this string rides the shared /app chunk on
- * every route — four of which sit at their pinned bundle baseline. Readability
- * lives in this comment; the bytes do not.
- * Layout: mobile = 1 column + off-canvas nav (hidden via `visibility` so it
- * leaves the a11y tree); >=1024px = the permanent 240px rail, no burger.
- */
-const SHELL_CSS = `.rk-shell{display:grid;grid-template-columns:1fr;min-height:100vh}.rk-shell-nav{position:fixed;inset:0 auto 0 0;width:min(84vw,268px);height:100vh;z-index:40;transform:translateX(-100%);visibility:hidden;transition:transform .2s var(--ease-in-out,ease),visibility .2s;overflow-y:auto}.rk-shell-nav.is-open{transform:translateX(0);visibility:visible}.rk-shell-backdrop{position:fixed;inset:0;background:rgba(12,10,24,.5);z-index:30;border:0;padding:0;cursor:pointer}.rk-shell-burger{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;border:1px solid var(--c-line2);background:var(--c-surface);color:var(--c-ink);cursor:pointer;flex-shrink:0}.rk-shell-head{padding:12px 16px}.rk-shell-body{padding:20px 16px 48px}@media (min-width:640px){.rk-shell-head{padding:15px 28px}.rk-shell-body{padding:28px 32px 64px}}@media (min-width:1024px){.rk-shell{grid-template-columns:240px 1fr}.rk-shell-nav{position:sticky;top:0;inset-inline:auto;width:auto;height:100vh;transform:none;visibility:visible;transition:none;z-index:auto}.rk-shell-burger,.rk-shell-backdrop{display:none}}@media (prefers-reduced-motion:reduce){.rk-shell-nav{transition:none}}`;
 
 interface NavLeaf { label: string; href: string; }
 interface NavItem extends NavLeaf { badge?: boolean; icon: React.ReactNode; }
@@ -210,7 +189,6 @@ export function AppShell(p: AppShellProps) {
 
   return (
     <div style={{ fontFamily: `${PJ}, sans-serif`, color: "var(--c-ink)", minHeight: "100vh" }}>
-      <style>{SHELL_CSS}</style>
       <div className="rk-shell" style={{ background: "var(--c-bg2)" }}>
         {/* Backdrop — only rendered while the mobile drawer is open; CSS hides it
             at >=1024px where the rail is permanent. */}
@@ -223,7 +201,7 @@ export function AppShell(p: AppShellProps) {
           />
         )}
         {/* Sidebar — a permanent rail at >=1024px, an off-canvas drawer below.
-            A closed drawer is hidden via CSS `visibility:hidden` (see SHELL_CSS)
+            A closed drawer is hidden via CSS `visibility:hidden` (app/globals.css)
             rather than an aria-hidden prop: the server can't know the viewport,
             so a prop would also hide the *desktop* rail from assistive tech.
             visibility takes it out of the a11y tree on mobile and the >=1024px
