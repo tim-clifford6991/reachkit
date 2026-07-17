@@ -4,51 +4,70 @@ import { DashboardHero, RecentChangesRecap, type DashboardHeroProps } from "./da
 import type { PillarRollup } from "@/lib/scan/pillar-scores";
 import type { ProgressEvent } from "@/lib/scan/progress-events";
 
-// Outreach unassessed (measured off-site, not "not measured yet") + SEO unassessed
-// (genuinely awaiting a scan, keeps "not measured yet"). SEO is normally always
-// assessed in real data, but the render logic only branches on `p.assessed` /
-// `p.pillar`, so this exercises both unassessed-render paths in one pass.
+// R1 (2026-07-17): pillar bars decompose the MEASURED set. Content + SEO measured;
+// Outreach measured (e.g. comparison_pages) so it renders a real bar; a pillar with
+// ZERO measured signals is OMITTED (never "not measured yet").
 const rollup: PillarRollup = {
   pillars: [
-    { pillar: "content", label: "Content", value: 0, assessed: false },
-    { pillar: "outreach", label: "Outreach", value: 0, assessed: false },
-    { pillar: "seo", label: "SEO", value: 0, assessed: false },
+    { pillar: "content", label: "Content", value: 74, assessed: true },
+    { pillar: "outreach", label: "Outreach", value: 12, assessed: true },
+    { pillar: "seo", label: "SEO", value: 60, assessed: true },
   ],
-  weakest: null,
-  estGain: 0,
+  weakest: { pillar: "outreach", label: "Outreach", value: 12, assessed: true },
+  estGain: 6,
 };
 
 const baseProps: DashboardHeroProps = {
   score: 42,
   rollup,
+  measuredByPillar: { content: 3, outreach: 1, seo: 5 },
   history: [],
   markers: [],
   isPaid: false,
   marketPosition: 31,
-  onPageReadiness: null,
-  searchPresence: null,
+  onPageReadiness: 66,
+  searchPresence: 0,
 };
 
-describe("DashboardHero pillar rows", () => {
-  it("points the unassessed Outreach pillar at Market Position instead of 'not measured yet'", () => {
+describe("DashboardHero pillar rows (R1)", () => {
+  it("renders a bar for a MEASURED Outreach pillar — never the 'measured off-site' dead-end", () => {
     const html = renderToStaticMarkup(<DashboardHero {...baseProps} />);
-    expect(html).toContain("measured off-site");
-    expect(html).toContain("#market-position");
+    expect(html).toContain("Outreach");
+    expect(html).not.toContain("measured off-site");
+    expect(html).not.toContain("not measured yet");
   });
 
-  it("keeps 'not measured yet' for other unassessed pillars (content/seo)", () => {
+  it("shows each bar's basis — the measured-signal count", () => {
     const html = renderToStaticMarkup(<DashboardHero {...baseProps} />);
-    expect(html).toContain("not measured yet");
+    expect(html).toContain("1 measured"); // outreach: comparison_pages
+    expect(html).toContain("5 measured"); // seo
   });
 
-  it("does NOT point Outreach at a dead #market-position link when there's no Market Position — the row says what produces the grade per tier (owner report 2026-07-17)", () => {
-    const free = renderToStaticMarkup(<DashboardHero {...baseProps} marketPosition={null} isPaid={false} />);
-    expect(free).not.toContain("#market-position");
-    expect(free).toContain("measured off-site — part of the full report");
+  it("OMITS a pillar with zero measured signals (never a dead-end row)", () => {
+    const props: DashboardHeroProps = {
+      ...baseProps,
+      rollup: {
+        pillars: [
+          { pillar: "content", label: "Content", value: 74, assessed: true },
+          { pillar: "outreach", label: "Outreach", value: 0, assessed: false },
+          { pillar: "seo", label: "SEO", value: 60, assessed: true },
+        ],
+        weakest: { pillar: "seo", label: "SEO", value: 60, assessed: true },
+        estGain: 3,
+      },
+      measuredByPillar: { content: 3, outreach: 0, seo: 5 },
+    };
+    const html = renderToStaticMarkup(<DashboardHero {...props} />);
+    // Outreach has no measured signal → omitted from the bars (but "Outreach" may
+    // still appear in the Market Position label, so assert the ROW dead-ends are gone).
+    expect(html).not.toContain("not measured yet");
+    expect(html).not.toContain("measured off-site");
+  });
 
-    const paid = renderToStaticMarkup(<DashboardHero {...baseProps} marketPosition={null} isPaid={true} />);
-    expect(paid).not.toContain("#market-position");
-    expect(paid).toContain("measured off-site — appears after your next re-scan");
+  it("frames the lever gain as ON-PAGE READINESS, not 'pts to your score' (geomean honesty)", () => {
+    const html = renderToStaticMarkup(<DashboardHero {...baseProps} history={[{ total: 42, takenAt: "2026-07-01T00:00:00Z" }, { total: 42, takenAt: "2026-07-08T00:00:00Z" }]} />);
+    expect(html).toContain("on-page readiness");
+    expect(html).not.toMatch(/\+\d+ pts<\/span> to your score/);
   });
 
   it("anchors the Market Position block with id=\"market-position\" when it renders", () => {
