@@ -51,7 +51,14 @@ export interface FixtureProvider {
   coldStartActions(): ActionCard[];
 }
 
-let _provider: FixtureProvider | null = null;
+// Backed by globalThis (a `Symbol.for` key), NOT a module-level variable, on
+// purpose: integration tests call `vi.resetModules()` to get fresh module graphs,
+// which would wipe a module-level singleton — and then the adapter (a different
+// module instance) would read `null` even though the test installed a provider.
+// globalThis survives `resetModules`, so `installFixtures` and the adapter that
+// reads `fixtures()` always share ONE provider regardless of module identity.
+const KEY = Symbol.for("reachkit.fixture-provider");
+type Holder = { [KEY]?: FixtureProvider | null };
 
 /**
  * Install a fixture provider for the duration of a test. Production never calls
@@ -59,12 +66,12 @@ let _provider: FixtureProvider | null = null;
  * `resetFixtures()` in `afterEach` so state never leaks across tests.
  */
 export function installFixtures(provider: FixtureProvider): void {
-  _provider = provider;
+  (globalThis as Holder)[KEY] = provider;
 }
 
 /** Remove any installed provider (test teardown). */
 export function resetFixtures(): void {
-  _provider = null;
+  (globalThis as Holder)[KEY] = null;
 }
 
 /**
@@ -72,5 +79,5 @@ export function resetFixtures(): void {
  * returns the fixture when this is non-null, else makes its real call.
  */
 export function fixtures(): FixtureProvider | null {
-  return _provider;
+  return (globalThis as Holder)[KEY] ?? null;
 }
