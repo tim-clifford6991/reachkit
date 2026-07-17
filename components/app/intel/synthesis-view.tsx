@@ -56,7 +56,7 @@ function Body({ data, isPaid }: { data: Synthesis; isPaid: boolean }) {
       </HeroCard>
 
       <KpiRow>
-        <Kpi label="Volume opportunity" value={fmtCompact(totalVol)} sub="monthly searches in reach" />
+        <Kpi label="Volume opportunity" value={fmtCompact(totalVol)} sub="across your content plan" />
         <Kpi label="Content pieces" value={contentPlan.length} sub="to write" />
         <Kpi label="Distribution actions" value={distributionPlan.length} sub="channels to work" />
         <Kpi label="High priority" value={high} sub="do these first" />

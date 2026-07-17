@@ -9,6 +9,7 @@
  * Heavy-ish (1 Labs ranked_keywords call per domain). Test-only.
  */
 import { normalizeHost } from "@/lib/scan/referral/classify";
+import { brandTokensFor, isBrandKeyword } from "@/lib/scan/referral/brand-keywords";
 import { cohortFor } from "@/lib/scan/cache/cached-adapters";
 import { cachedRankedKeywords } from "@/lib/scan/cache/cached-adapters";
 import { MAX_SELECTED } from "@/lib/scan/competitor-selection";
@@ -16,30 +17,12 @@ import type { OnStageCallback } from "@/lib/scan/types";
 
 const WINNING_POSITION = 30; // only count a rival ranking in the top 30 as "winning"
 
-/** Brand tokens for the cohort — a founder can't realistically rank for a rival's
- *  brand ("read", "read ai", "cirrusinsight"), so those keywords are not opportunities. */
-function brandTokens(domains: string[]): Set<string> {
-  const t = new Set<string>();
-  for (const d of domains) {
-    const label = d.replace(/^www\./, "").split(".")[0]?.toLowerCase();
-    if (label && label.length >= 3) {
-      t.add(label);
-      t.add(label.replace(/[^a-z0-9]/g, ""));
-    }
-  }
-  return t;
-}
-
-function isBrandKeyword(keyword: string, brands: Set<string>): boolean {
-  const kw = keyword.toLowerCase();
-  const words = kw.split(/\s+/);
-  const joined = kw.replace(/[\s.\-_]/g, "");
-  for (const b of brands) {
-    if (words.includes(b)) return true; // exact word, e.g. "read ai"
-    if (b.length >= 5 && joined.includes(b)) return true; // substring for distinctive brands
-  }
-  return false;
-}
+// Brand detection (a founder can't realistically rank for a rival's brand
+// "read ai"/"cirrusinsight", so those keywords are not opportunities) comes from
+// the ONE shared detector in `./brand-keywords` — the same one the free footprint
+// classifier uses, so the two engines can never disagree about what "brand" means
+// (RC1). The local forks that used to live here (a different tokenizer + a ≥5
+// substring threshold) are deleted.
 
 export interface CompetitorRank {
   domain: string;
@@ -106,7 +89,7 @@ export async function gatherKeywordGap(rawSelf: string, opts: { topN?: number; c
     if (cur == null || k.position < cur) subjectPos.set(k.keyword, k.position);
   }
 
-  const brands = brandTokens([self, ...cohort]);
+  const brands = brandTokensFor([self, ...cohort]);
 
   // Aggregate competitor rankings per keyword (best position per competitor).
   const agg = new Map<string, { volume: number; comps: Map<string, { position: number; url: string }> }>();
