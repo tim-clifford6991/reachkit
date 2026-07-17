@@ -7,14 +7,24 @@ name: Inngest Sync
 # current functions using its own INNGEST_SIGNING_KEY — idempotent, no secrets here.
 on:
   deployment_status:
+  # Heartbeat: dashboard redeploys (env-var changes etc.) create a NEW Vercel
+  # deployment with NO GitHub event at all — invisible to both the push- and
+  # deployment-triggered syncs (live-hit 2026-07-17: an env redeploy left
+  # Inngest stale for ~12h). The schedule bounds EVERY drift source to ≤30 min.
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
 
 jobs:
   resync:
-    # Only on a SUCCESSFUL PRODUCTION deployment (Vercel emits deployment_status).
+    # Deployment events: only a SUCCESSFUL PRODUCTION deployment. Schedule and
+    # manual dispatch always run (the PUT is idempotent and free).
     if: >-
-      github.event.deployment_status.state == 'success' &&
-      (github.event.deployment_status.environment == 'Production' ||
-       github.event.deployment_status.environment == 'production')
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.deployment_status.state == 'success' &&
+       (github.event.deployment_status.environment == 'Production' ||
+        github.event.deployment_status.environment == 'production'))
     runs-on: ubuntu-latest
     steps:
       - name: Re-sync Inngest functions

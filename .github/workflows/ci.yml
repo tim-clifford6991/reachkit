@@ -12,15 +12,27 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history — needed for the superseded-deploy ancestry check
       - name: Wait for prod to serve this commit, then force Inngest re-sync
         run: |
           LIVE=""
           for i in $(seq 1 60); do
             LIVE=$(curl -sf https://reachkit.app/api/health | jq -r .commit || echo "")
             [ "$LIVE" = "${GITHUB_SHA::7}" ] && break
+            # Back-to-back merges make Vercel skip intermediate builds: prod
+            # jumps straight to a NEWER commit and this sha never ships. That
+            # is success, not failure (the 2026-07-16 merge chain failed 2 of
+            # 3 runs this way) — detect it via ancestry and sync anyway.
+            if [ -n "$LIVE" ] && git cat-file -e "$LIVE^{commit}" 2>/dev/null \
+               && git merge-base --is-ancestor "$GITHUB_SHA" "$LIVE" 2>/dev/null; then
+              echo "prod serves $LIVE, which contains ${GITHUB_SHA::7} — this deploy was superseded by a newer merge; syncing against the newer deploy"
+              break
+            fi
             sleep 15
           done
-          if [ "$LIVE" != "${GITHUB_SHA::7}" ]; then
+          if [ "$LIVE" != "${GITHUB_SHA::7}" ] && ! { git cat-file -e "$LIVE^{commit}" 2>/dev/null && git merge-base --is-ancestor "$GITHUB_SHA" "$LIVE" 2>/dev/null; }; then
             echo "::error::prod never reached ${GITHUB_SHA::7} (still serving '$LIVE') — deploy stuck or health broken"
             exit 1
           fi

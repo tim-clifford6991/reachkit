@@ -102,24 +102,30 @@ async function onCheckoutCompleted(session: Stripe.Checkout.Session): Promise<vo
   const legacyUserId = session.metadata?.userId ?? null;
   const customer = customerId(session.customer);
   const subscription = subscriptionId(session.subscription);
-
-  // Legacy authenticated upgrade path — unchanged behaviour.
-  if (legacyUserId) {
-    await updateUserById(
-      legacyUserId,
-      { stripe_customer_id: customer, stripe_subscription_id: subscription },
-      "checkout.session.completed",
-    );
-    // Funnel conversion (P4): checkout.session.completed is deduped by the
-    // event.id ledger, so this fires exactly once per purchase.
-    await captureServerEvent("subscription_activated", legacyUserId, { source: "in-app-upgrade" });
-    return;
-  }
-
-  // Payment-first funnel.
   const scanId = session.metadata?.scanId ?? session.client_reference_id ?? null;
-  const email = session.customer_details?.email ?? session.customer_email ?? null;
-  if (!email) {
+
+  // ONE provisioning policy for both checkout shapes. These used to be two
+  // branches, and they DRIFTED: the legacy branch bound the Stripe ids and
+  // returned — never reaching provisionCheckoutUser, the only caller of
+  // ensureDeepScan. So a logged-in free user upgrading from the paywall got no
+  // deep pass, ever, and nothing re-triggered it: they paid and kept a free
+  // report. The two shapes differ ONLY in how the user is resolved and whether
+  // a login email is owed; everything after that is identical, so it lives in
+  // one place now (cf. resolveProductScan retiring the /api/scan vs
+  // addFirstTrackedProduct dedupe split).
+  //
+  //   - Legacy in-app upgrade (metadata.userId): the user exists and is already
+  //     logged in → resolve by id, never email them a login link. Carries no
+  //     scanId; deepenOwnedScans finds their scan by ownership.
+  //   - Payment-first (anonymous): no user yet → create-or-find from the
+  //     Stripe-collected email and send the onboarding link. Account creation
+  //     MUST happen here so the following subscription.* event (which resolves
+  //     by stripe_customer_id) can set tier/status.
+  const email = legacyUserId
+    ? null
+    : (session.customer_details?.email ?? session.customer_email ?? null);
+
+  if (!legacyUserId && !email) {
     console.warn("[stripe webhook] checkout.session.completed without an email — ignoring", {
       sessionId: session.id,
     });
@@ -127,17 +133,19 @@ async function onCheckoutCompleted(session: Stripe.Checkout.Session): Promise<vo
   }
 
   const userId = await provisionCheckoutUser({
+    userId: legacyUserId,
     email,
     scanId,
     stripeCustomerId: customer,
     stripeSubscriptionId: subscription,
     // Tier/status are set by the subscription.* event, not here.
-    sendMagicLink: true,
+    sendMagicLink: !legacyUserId,
   });
 
-  // Funnel conversion (P4): fires once per purchase (event.id-deduped).
+  // Funnel conversion (P4): checkout.session.completed is deduped by the
+  // event.id ledger, so this fires exactly once per purchase.
   await captureServerEvent("subscription_activated", userId, {
-    source: "payment-first",
+    source: legacyUserId ? "in-app-upgrade" : "payment-first",
     ...(scanId ? { scan_id: scanId } : {}),
   });
 }
@@ -220,17 +228,6 @@ function subscriptionId(
 function periodEndIso(unixSeconds: number | undefined): string | null {
   if (typeof unixSeconds !== "number") return null;
   return new Date(unixSeconds * 1000).toISOString();
-}
-
-async function updateUserById(
-  userId: string,
-  update: UsersUpdate,
-  source: string,
-): Promise<void> {
-  const { error } = await serverDb().from("users").update(update).eq("id", userId);
-  if (error) {
-    console.error(`[stripe webhook] ${source}: failed to update user ${userId}`, error.message);
-  }
 }
 
 /** Resolve the user by stripe_customer_id, then apply the update by id. */
