@@ -23,7 +23,7 @@ const DEFAULT_LINKS: { label: string; href: string }[] = [
 export function NavBar({ links = DEFAULT_LINKS, ctaLabel = "Analyze my site", isLoggedIn = false }: NavBarProps) {
   return (
     <header style={{ position: "sticky", top: 0, zIndex: 50, background: "var(--c-glass)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", borderBottom: "1px solid var(--c-line)" }}>
-      <nav aria-label="Primary" style={{ maxWidth: 1180, margin: "0 auto", padding: "14px 28px", display: "flex", alignItems: "center", gap: 30 }}>
+      <nav aria-label="Primary" style={{ maxWidth: 1180, margin: "0 auto", paddingInline: "clamp(16px, 4vw, 28px)", paddingBlock: 14, display: "flex", alignItems: "center", gap: 30 }}>
         <a href="/" aria-label="ReachKit home" style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0, textDecoration: "none", color: "var(--c-ink)" }}>
           <svg width={26} height={26} viewBox="0 0 28 28" fill="none">
             <rect width="28" height="28" rx="9" fill="#6E56F7" />

@@ -410,6 +410,21 @@ function dayHeading(dateKey: string): string {
 // cards, and lifecycle rows must always match.
 const CHIP_STYLE = KIND_STYLE;
 
+/**
+ * Below 640px the month grid becomes a vertical AGENDA.
+ *
+ * Seven columns on a phone leaves ~46px per day, which truncates every action to
+ * an unreadable stub ("Ti…", "P…"). The calendar is a day PICKER — the selected
+ * day's actions render in full underneath — so a stub carries no information.
+ * The agenda lists only days that actually have actions (date + readable titles);
+ * blank lead cells, the weekday header, and empty days are dropped. Days keep
+ * their click/keyboard selection. Reuses the `byDate` grouping already computed
+ * for the grid — no JS, no horizontal scroll.
+ */
+// Minified for the same reason as SHELL_CSS: template-literal contents ship
+// verbatim, and /app/plan also sits on a pinned bundle baseline.
+const CAL_CSS = `.rk-cal-month{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}.rk-cal-day{display:flex;flex-direction:column;gap:3px;min-width:0;min-height:54px;padding:4px 5px 5px}.rk-cal-chip{font-size:9.5px;line-height:1.25;border-radius:var(--radius-sm);padding:2px 5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}@media (max-width:640px){.rk-cal-month{display:flex;flex-direction:column;gap:6px}.rk-cal-wd,.rk-cal-blank,.rk-cal-day--empty:not(.rk-cal-day--today){display:none}.rk-cal-day{flex-direction:row;align-items:center;flex-wrap:wrap;gap:8px;min-height:0;padding:9px 11px}.rk-cal-daynum{align-self:center;font-size:12px;min-width:22px}.rk-cal-chip{font-size:12px;white-space:normal;overflow:visible;text-overflow:clip;padding:3px 8px}}`;
+
 function PlanCalendar({ days, today, activeDate, onSelect }: {
   days: ScheduledDay[];
   today: Date;
@@ -468,6 +483,7 @@ function PlanCalendar({ days, today, activeDate, onSelect }: {
         </span>
       </div>
 
+      <style>{CAL_CSS}</style>
       {/* Slides — transform paging, one month per viewport width */}
       <div style={{ overflow: "hidden" }}>
         <div style={{ display: "flex", transform: `translateX(-${slide * 100}%)`, transition: "transform 0.3s ease" }}>
@@ -481,12 +497,15 @@ function PlanCalendar({ days, today, activeDate, onSelect }: {
           ];
           return (
             <div key={`${year}-${month}`} style={{ flex: "0 0 100%", minWidth: 0 }} aria-hidden={months[slide] !== undefined && !(months[slide]!.year === year && months[slide]!.month === month)}>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 5 }}>
+              {/* Layout lives in CAL_CSS, not inline: inline styles beat any
+                  stylesheet rule, so the mobile agenda could never override an
+                  inline `display:grid`. Only dynamic/state styles stay inline. */}
+              <div className="rk-cal-month">
                 {WEEKDAYS.map((w) => (
-                  <span key={w} style={{ fontFamily: JM, fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--c-faint)", padding: "0 4px" }}>{w}</span>
+                  <span key={w} className="rk-cal-wd" style={{ fontFamily: JM, fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--c-faint)", padding: "0 4px" }}>{w}</span>
                 ))}
                 {cells.map((dayNum, i) => {
-                  if (dayNum === null) return <span key={`b${i}`} />;
+                  if (dayNum === null) return <span key={`b${i}`} className="rk-cal-blank" />;
                   const key = localDateKey(new Date(year, month, dayNum));
                   const entries = byDate.get(key) ?? [];
                   const isToday = key === todayKey;
@@ -500,21 +519,19 @@ function PlanCalendar({ days, today, activeDate, onSelect }: {
                       key={key}
                       role="button"
                       tabIndex={0}
+                      className={`rk-cal-day${entries.length === 0 ? " rk-cal-day--empty" : ""}${isToday ? " rk-cal-day--today" : ""}`}
                       onClick={() => onSelect(key)}
                       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(key); } }}
                       aria-label={`${dayHeading(key)} — ${entries.length} ${entries.length === 1 ? "action" : "actions"}`}
                       style={{
-                        minHeight: 54,
                         border: `1px solid ${isActive ? "var(--c-action)" : "var(--c-line)"}`,
                         borderRadius: "var(--radius-md)",
                         background: isActive ? "var(--c-soft)" : "var(--c-surface)",
-                        padding: "4px 5px 5px",
                         opacity: isPast ? 0.5 : 1,
                         cursor: "pointer",
-                        display: "flex", flexDirection: "column", gap: 3, minWidth: 0,
                       }}
                     >
-                      <span style={{
+                      <span className="rk-cal-daynum" style={{
                         fontFamily: JM, fontSize: 10.5, fontWeight: 700, lineHeight: 1,
                         color: isToday ? "var(--c-on-dark)" : "var(--c-faint)",
                         background: isToday ? "var(--c-action)" : "transparent",
@@ -524,11 +541,9 @@ function PlanCalendar({ days, today, activeDate, onSelect }: {
                         {dayNum}
                       </span>
                       {entries.slice(0, 2).map((e) => (
-                        <span key={e.key} title={e.title} style={{
-                          fontFamily: PJ, fontSize: 9.5, fontWeight: 600, lineHeight: 1.25,
+                        <span key={e.key} title={e.title} className="rk-cal-chip" style={{
+                          fontFamily: PJ, fontWeight: 600,
                           color: CHIP_STYLE[e.kind].fg, background: CHIP_STYLE[e.kind].bg,
-                          borderRadius: "var(--radius-sm)", padding: "2px 5px",
-                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                         }}>
                           {e.title}
                         </span>

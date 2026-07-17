@@ -122,8 +122,14 @@ export function Footer({ content }: FooterProps) {
             )}
           </div>
 
-          {/* Nav columns */}
-          <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(columns.length, 4)}, minmax(120px, 1fr))`, gap: "32px 48px", flex: "1 1 480px", maxWidth: 720 }}>
+          {/* Nav columns — auto-fit so the four columns wrap to 2-up then 1-up
+              on narrow screens instead of holding a fixed 4-wide min-content
+              (4×120 + gaps = 624px) that overflows a phone. `minWidth: 0` is
+              load-bearing: a flex child defaults to min-width:auto (= its grid's
+              min-content), which would pin the whole block wide and defeat the
+              reflow; 0 lets it shrink so auto-fit can actually drop columns.
+              Stays 4-across on desktop where the 720px cap gives each room. */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "32px 48px", flex: "1 1 320px", minWidth: 0, maxWidth: 720 }}>
             {columns.map((col) => (
               <nav key={col.heading} aria-label={col.heading}>
                 <p style={{ ...MONO_LABEL, margin: "0 0 12px" }}>{col.heading}</p>

@@ -77,7 +77,7 @@ export function ResultsScreen() {
         </div>
 
         {/* Hero card — ONE unified score + its two drivers (no more "98 vs Invisible") */}
-        <div style={{ ...CARD, borderRadius: 20, padding: 32, boxShadow: "0 16px 44px -26px rgba(40,33,84,0.3)", display: "grid", gridTemplateColumns: "auto 1fr", gap: 34, alignItems: "center" }}>
+        <div style={{ ...CARD, borderRadius: 20, padding: "clamp(20px, 5vw, 32px)", boxShadow: "0 16px 44px -26px rgba(40,33,84,0.3)", display: "grid", gridTemplateColumns: "auto 1fr", gap: 34, alignItems: "center" }}>
           <div style={{ textAlign: "center" }}>
             <svg width="200" height="200" viewBox="0 0 200 200" style={{ display: "block" }} aria-hidden="true">
               <path d={arc(1)} fill="none" stroke="var(--c-fill)" strokeWidth="15" strokeLinecap="round" />

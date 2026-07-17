@@ -195,17 +195,29 @@ export function Quadrant({ items, legend }: { items: QuadrantItem[]; legend?: { 
 // ---------------------------------------------------------------------------
 // DataTable — generic grid table (ds-src/SearchGapTable.tsx idiom)
 // ---------------------------------------------------------------------------
-export function DataTable({ cols, head, rows }: { cols: string; head: React.ReactNode[]; rows: React.ReactNode[][] }) {
+/**
+ * `cols` is a caller-supplied grid track list, usually with fixed-px columns
+ * (e.g. supply-view's "minmax(0,2fr) 90px minmax(0,1fr) 70px 80px"). On a phone
+ * those tracks can't all fit, so `minWidth` lets a caller declare the width the
+ * table needs and the wrapper scrolls it horizontally instead of crushing every
+ * column into unreadable slivers. A swipeable table is the right call here (it's
+ * dense reference data), unlike the marketing comparison tables which restack.
+ */
+export function DataTable({ cols, head, rows, minWidth }: { cols: string; head: React.ReactNode[]; rows: React.ReactNode[][]; minWidth?: number }) {
   return (
     <div style={{ ...CARD, borderRadius: "var(--radius-lg)", overflow: "hidden" }}>
-      <div style={{ display: "grid", gridTemplateColumns: cols, padding: "11px 16px", borderBottom: "1px solid var(--c-line)", fontFamily: PJ, fontSize: 11, fontWeight: 700, letterSpacing: "0.04em", color: "var(--c-faint)", textTransform: "uppercase", background: "var(--c-fill)" }}>
-        {head.map((h, i) => <span key={i}>{h}</span>)}
-      </div>
-      {rows.map((r, i) => (
-        <div key={i} style={{ display: "grid", gridTemplateColumns: cols, padding: "11px 16px", borderBottom: i < rows.length - 1 ? "1px solid var(--c-fill)" : "none", alignItems: "center", fontFamily: PJ, fontSize: 13.5, color: "var(--c-ink)" }}>
-          {r.map((cell, j) => <span key={j} style={{ minWidth: 0 }}>{cell}</span>)}
+      <div style={{ overflowX: "auto" }}>
+        <div style={{ minWidth }}>
+          <div style={{ display: "grid", gridTemplateColumns: cols, padding: "11px 16px", borderBottom: "1px solid var(--c-line)", fontFamily: PJ, fontSize: 11, fontWeight: 700, letterSpacing: "0.04em", color: "var(--c-faint)", textTransform: "uppercase", background: "var(--c-fill)" }}>
+            {head.map((h, i) => <span key={i}>{h}</span>)}
+          </div>
+          {rows.map((r, i) => (
+            <div key={i} style={{ display: "grid", gridTemplateColumns: cols, padding: "11px 16px", borderBottom: i < rows.length - 1 ? "1px solid var(--c-fill)" : "none", alignItems: "center", fontFamily: PJ, fontSize: 13.5, color: "var(--c-ink)" }}>
+              {r.map((cell, j) => <span key={j} style={{ minWidth: 0 }}>{cell}</span>)}
+            </div>
+          ))}
         </div>
-      ))}
+      </div>
     </div>
   );
 }

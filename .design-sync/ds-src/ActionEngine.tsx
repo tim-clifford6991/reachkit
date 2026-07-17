@@ -29,7 +29,7 @@ const POINTS = [
 export function ActionEngine() {
   return (
     <section style={{ background: "var(--c-dark)", color: "var(--c-on-dark)" }}>
-      <div style={{ maxWidth: 1180, margin: "0 auto", padding: "70px 28px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 54, alignItems: "center" }}>
+      <div style={{ maxWidth: 1180, margin: "0 auto", padding: "70px 28px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))", gap: 54, alignItems: "center" }}>
         <div>
           <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.08em", color: ACCENT, textTransform: "uppercase" }}>The verified action engine</div>
           <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: 38, letterSpacing: "-0.03em", lineHeight: 1.1, margin: "14px 0 0" }}>It doesn&apos;t just tell you.<br />It checks your work.</h2>

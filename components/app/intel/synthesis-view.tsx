@@ -62,7 +62,7 @@ function Body({ data, isPaid }: { data: Synthesis; isPaid: boolean }) {
         <Kpi label="High priority" value={high} sub="do these first" />
       </KpiRow>
 
-      <div style={{ display: "grid", gap: 20, gridTemplateColumns: "300px minmax(0,1fr)" }}>
+      <div style={{ display: "grid", gap: 20, gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))" }}>
         <Card title="Priority mix" info="How much of each plan is urgent.">
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <div><Eyebrow>Content</Eyebrow><div style={{ marginTop: 6 }}><Donut segments={prioSegs(contentPlan)} size={104} thickness={13} centerLabel={String(contentPlan.length)} /></div></div>

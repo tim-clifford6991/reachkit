@@ -26,7 +26,7 @@ export function Audience() {
         <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.08em", color: "var(--c-action)", textTransform: "uppercase" }}>Built for you</div>
         <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: 34, letterSpacing: "-0.03em", margin: "12px 0 0" }}>For founders who&apos;d rather ship than study SEO</h2>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 200px), 1fr))", gap: 16 }}>
         {CARDS.map((c) => (
           <div key={c.n} style={{ border: "1px solid var(--c-line)", borderRadius: 16, padding: 22, background: "var(--c-surface)" }}>
             <div style={{ width: 38, height: 38, borderRadius: 10, background: "var(--c-soft)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: JM, fontWeight: 700, color: "var(--c-action)", fontSize: 14 }}>{c.n}</div>
