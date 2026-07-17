@@ -25,7 +25,6 @@ import type { GoldenSetResult } from "@/lib/eval/types";
 // Force fixture mode so critic/embed gates run deterministically (no API keys)
 // ---------------------------------------------------------------------------
 
-vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
 installFixtures(makeFixtureProvider());
 
 afterEach(() => resetFixtures());

@@ -130,7 +130,6 @@ test(
     // Force fixtures mode before importing the function (the env Proxy memoizes
     // on first read, so reset modules + stub + dynamic import, à la refresh.test.ts).
     vi.resetModules();
-    vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
     installFixtures(makeFixtureProvider());
     const { weeklyRefresh }: { weeklyRefresh: typeof WeeklyRefreshFn } = await import(
       "@/lib/inngest/functions/weekly-refresh"

@@ -29,7 +29,6 @@ import { makeFixtureProvider } from "@/lib/dev/fixtures";
 import type { ListingFacts, Competitor, ReviewItem } from "@/lib/scan/types";
 
 // Fixture mode ON for the whole file — keyless extract/synth/actions/critic/embed/email.
-vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
 installFixtures(makeFixtureProvider());
 
 const APP_URL = "https://apps.apple.com/us/app/reachkit-e2e-fixture/id9000000001";

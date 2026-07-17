@@ -47,7 +47,6 @@ afterEach(() => {
 test(
   "createCheckout (fixtures) upgrades user to solo, returns demo url",
   async () => {
-    vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
     installFixtures(makeFixtureProvider());
 
     const { createCheckout } = await import("@/lib/billing/checkout");
@@ -80,7 +79,6 @@ test(
 test(
   "createCheckout (fixtures) upgrades user to growth, returns demo url",
   async () => {
-    vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
     installFixtures(makeFixtureProvider());
 
     const { createCheckout } = await import("@/lib/billing/checkout");

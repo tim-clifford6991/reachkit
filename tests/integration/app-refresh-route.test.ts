@@ -135,7 +135,6 @@ test(
   "manual refresh (paid owner): gating passes and runWeeklyRefresh returns a RefreshResult",
   async () => {
     vi.resetModules();
-    vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
     installFixtures(makeFixtureProvider());
     const { runWeeklyRefresh } = await import("@/lib/scan/refresh");
 

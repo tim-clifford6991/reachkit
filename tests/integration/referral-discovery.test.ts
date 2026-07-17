@@ -10,7 +10,6 @@
  * Run: RUN_REFERRAL=true pnpm test:int tests/integration/referral-discovery.test.ts
  *   REF_SELF=savvycal.com REF_COMPETITORS="cal.com,calendly.com,acuityscheduling.com" ...
  */
-process.env.REACHKIT_USE_FIXTURES = "true";
 installFixtures(makeFixtureProvider());
 
 const RUN_REFERRAL = process.env.RUN_REFERRAL === "true";

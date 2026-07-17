@@ -24,7 +24,6 @@ import type { Json } from "@/lib/db/types";
 // Fixture mode ON, matching sibling integration tests — no code path here
 // actually calls the LLM, but this keeps the file consistent with the rest
 // of the suite in case a transitive import ever grows a fixtures check.
-vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
 installFixtures(makeFixtureProvider());
 
 const STORE_URL = `https://freereport-e2e.example.com/${Date.now()}`;

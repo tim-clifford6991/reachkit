@@ -150,7 +150,6 @@ function makeCtx(appId: string, scanId: string, storeUrl: string): ScanContext {
 test(
   "runActionVerification (fixtures) verifies a url action, writes an outcome, and moves the score",
   async () => {
-    vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
     installFixtures(makeFixtureProvider());
     vi.resetModules();
     const { runActionVerification } = await import("@/lib/scan/verify");
@@ -216,7 +215,6 @@ test(
 test(
   "runActionVerification is idempotent — re-running writes no duplicate outcome",
   async () => {
-    vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
     installFixtures(makeFixtureProvider());
     vi.resetModules();
     const { runActionVerification } = await import("@/lib/scan/verify");
@@ -250,7 +248,6 @@ test(
 test(
   "gatherScoreComponents preserves the zero-outcome baseline exactly",
   async () => {
-    vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
     installFixtures(makeFixtureProvider());
     vi.resetModules();
     const { gatherScoreComponents } = await import("@/lib/scan/score-full");

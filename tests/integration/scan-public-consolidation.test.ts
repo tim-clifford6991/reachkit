@@ -38,7 +38,6 @@ import type { MarketAnalysis } from "@/lib/scan/gap";
 import type { DistributionProfile, SeoPosture } from "@/lib/scan/profile";
 import type { DemandPocket } from "@/lib/scan/demand";
 
-vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
 installFixtures(makeFixtureProvider());
 
 beforeEach(() => {

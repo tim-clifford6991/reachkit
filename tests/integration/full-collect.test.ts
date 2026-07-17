@@ -83,7 +83,6 @@ test(
     vi.resetModules();
 
     // Enable fixtures via env stub — must be done before module import
-    vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
     installFixtures(makeFixtureProvider());
 
     // Dynamic import so the env stub is picked up by fixturesEnabled()
@@ -155,7 +154,6 @@ test(
   async () => {
     vi.resetModules();
 
-    vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
     installFixtures(makeFixtureProvider());
 
     const capturedArgs: Array<{ seeds?: string[]; topic?: string; competitors?: string[] }> = [];

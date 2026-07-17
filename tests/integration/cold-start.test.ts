@@ -122,7 +122,6 @@ test(
   "Cold Start full scan persists the validation-through-distribution queue (prob_based, ≤0.6, pivot card, survives the gate)",
   async () => {
     vi.resetModules();
-    vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
     installFixtures(makeFixtureProvider());
     const { runFullScan } = await import("@/lib/scan/full-scan");
 
@@ -181,7 +180,6 @@ test(
   "non-Cold-Start full scan still produces the standard action set (no pivot card)",
   async () => {
     vi.resetModules();
-    vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
     installFixtures(makeFixtureProvider());
     const { runFullScan } = await import("@/lib/scan/full-scan");
 

@@ -63,7 +63,6 @@ afterEach(() => {
 
 test("collectDeltas (fixtures, baseline) returns 4 advanced DeltaResults; rank/threads/competitors non-empty", async () => {
   vi.resetModules();
-  vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
   installFixtures(makeFixtureProvider());
 
   const { collectDeltas } = await import("@/lib/scan/delta-collect");
@@ -97,7 +96,6 @@ test("collectDeltas (fixtures, baseline) returns 4 advanced DeltaResults; rank/t
 
 test("collectDeltas (fixtures) yields non-empty rank/threads/competitors once past baseline", async () => {
   vi.resetModules();
-  vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
   installFixtures(makeFixtureProvider());
 
   const { collectDeltas } = await import("@/lib/scan/delta-collect");
@@ -125,7 +123,6 @@ test("collectDeltas (fixtures) yields non-empty rank/threads/competitors once pa
 
 test("a watermark already at latest yields empty items for that kind (no re-emit)", async () => {
   vi.resetModules();
-  vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
   installFixtures(makeFixtureProvider());
 
   const { collectDeltas } = await import("@/lib/scan/delta-collect");
@@ -165,7 +162,6 @@ test("collectDeltas never throws when a collector's adapter rejects (degrades to
   // Run the LIVE (non-fixtures) path so the reviews collector actually calls the
   // adapter we mock to reject. Stub PAID keys so env validation passes regardless
   // of .env.local contents.
-  vi.stubEnv("REACHKIT_USE_FIXTURES", "false");
   resetFixtures();
   for (const k of [
     "ANTHROPIC_API_KEY", "DATAFORSEO_LOGIN", "DATAFORSEO_PASSWORD", "TAVILY_API_KEY",
@@ -197,7 +193,6 @@ test("collectDeltas never throws when a collector's adapter rejects (degrades to
 
 test("collectDeltas preserves input order and tolerates an unknown kind", async () => {
   vi.resetModules();
-  vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
   installFixtures(makeFixtureProvider());
 
   const { collectDeltas } = await import("@/lib/scan/delta-collect");

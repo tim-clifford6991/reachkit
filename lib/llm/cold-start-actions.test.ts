@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { coldStartActionsFrom, fixtureColdStartActions, makeFixtureProvider } from "@/lib/dev/fixtures";
+import { coldStartActionsFrom } from "./cold-start-actions";
+import { fixtureColdStartActions, makeFixtureProvider } from "@/lib/dev/fixtures";
 import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
 import type { PreliminaryFacts } from "@/lib/scan/types";
 import type { ScanContext } from "@/lib/scan/pipeline";

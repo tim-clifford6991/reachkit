@@ -40,7 +40,6 @@ afterEach(() => {
 test(
   "createPortalSession (fixtures) returns the demo portal url",
   async () => {
-    vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
     installFixtures(makeFixtureProvider());
 
     const { createPortalSession } = await import("@/lib/billing/portal");

@@ -112,7 +112,6 @@ test(
   "populates scan_signals + reports the v1-vs-v2 score calibration",
   async () => {
     vi.resetModules();
-    vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
     installFixtures(makeFixtureProvider());
     vi.stubEnv("REACHKIT_MARKET_ANALYSIS", "false"); // skip the keyed market pipeline
     const { runFullScan } = await import("@/lib/scan/full-scan");

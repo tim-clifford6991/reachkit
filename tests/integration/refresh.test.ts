@@ -166,7 +166,6 @@ test(
   "runWeeklyRefresh (fixtures) writes a score snapshot, advances watermarks, appends deduped actions, logs a refresh run",
   async () => {
     vi.resetModules();
-    vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
     installFixtures(makeFixtureProvider());
 
     const { runWeeklyRefresh } = await import("@/lib/scan/refresh");
@@ -263,7 +262,6 @@ test(
   "runWeeklyRefresh (fixtures, monitors at latest) is a cheap no-op: noOp:true, costCents:0, no actions",
   async () => {
     vi.resetModules();
-    vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
     installFixtures(makeFixtureProvider());
 
     const { runWeeklyRefresh } = await import("@/lib/scan/refresh");
@@ -316,7 +314,6 @@ test(
     // real pgvector. We mock callEmbed (deterministic fixture vectors → a guaranteed
     // ~1.0 self-match if the app's own drafts were left in the index) and callModel
     // (so a divergence-triggered rewrite is observable and never hits Anthropic).
-    vi.stubEnv("REACHKIT_USE_FIXTURES", "false");
     resetFixtures();
 
     const { fixtureEmbed } = await import("@/lib/dev/fixtures");
@@ -432,7 +429,6 @@ async function runRefreshWithForcedNovelty(
   vi.resetModules();
   // NON-fixtures so markNovelty/synthNovelFindings take the real (mocked-call)
   // path rather than the fixture short-circuit.
-  vi.stubEnv("REACHKIT_USE_FIXTURES", "false");
   resetFixtures();
 
   // Force a non-empty delta regardless of the (real) adapters: collectDeltas is

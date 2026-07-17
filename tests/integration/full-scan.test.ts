@@ -114,7 +114,6 @@ test(
   "runFullScan (fixtures mode) writes a four-question report + actions and is idempotent",
   async () => {
     vi.resetModules();
-    vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
     installFixtures(makeFixtureProvider());
 
     // Dynamic import so the env stub is picked up by fixturesEnabled()

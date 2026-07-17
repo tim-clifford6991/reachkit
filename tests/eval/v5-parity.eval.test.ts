@@ -16,7 +16,6 @@ import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
 import { makeFixtureProvider } from "@/lib/dev/fixtures";
 import type { Json } from "@/lib/db/types";
 
-vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
 installFixtures(makeFixtureProvider());
 
 afterEach(() => resetFixtures());
