@@ -100,6 +100,7 @@ export function buildFreeReport(args: {
 
 import type { ScanContext } from "./pipeline";
 import { serverDb } from "@/lib/db/client";
+import { emitScanEvent } from "./progress";
 import { computeSignalRowsForScan, persistScanSignals } from "./persist-signals";
 import { fallbackActionsFromSignals } from "./fallback-actions";
 import { fillDeterministicDrafts } from "./action-drafts";
@@ -188,6 +189,10 @@ export async function runFreeReport(ctx: ScanContext, facts: PreliminaryFacts): 
     positioningMirror.listingSays ?? "",
     positioningMirror.reviewsValue ?? "",
   ].filter((s) => s.length > 0);
+  // Make the footprint gather VISIBLE — it's the free report's most valuable data
+  // (the whole Search Visibility panel) and was the last silent stretch of the
+  // scan. An artifact keeps the progress alive through the DataForSEO round-trips.
+  if (ctx.mode === "web") await emitScanEvent(ctx.scanId, "artifact", { label: "Checking your search footprint" });
   const searchVisibility = ctx.mode === "web" ? await gatherFreeSearchVisibility(ctx.storeUrl, seedText, categorySeeds) : undefined;
 
   // v5 UNIFIED Discoverability Score = geomean(on-page readiness × search presence).
@@ -212,6 +217,14 @@ export async function runFreeReport(ctx: ScanContext, facts: PreliminaryFacts): 
   });
 
   await persistReport(ctx.scanId, payload);
+
+  // Hand off to the report the MOMENT it's renderable — not at the later `done`
+  // step boundary. The funnel's handoff waits on `reportReady` (a `report`/`done`
+  // event); free never emitted `report`, so it stalled on the live view until
+  // `done`, making the handoff.ts comment ("free scans reach reportReady too")
+  // aspirational. This makes it true: report_payload is persisted above, so the
+  // client can swap to <PublicReport> now.
+  await emitScanEvent(ctx.scanId, "report", { free: true });
 
   const { error } = await db
     .from("scans")
