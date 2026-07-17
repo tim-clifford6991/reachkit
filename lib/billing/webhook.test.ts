@@ -248,6 +248,90 @@ test("handleStripeEvent: mark-AFTER-success — a first delivery that fails prov
 });
 
 // ---------------------------------------------------------------------------
+// BOTH checkout shapes provision through the SAME policy (regression guard).
+//
+// These were two branches and they drifted: the legacy branch bound the Stripe
+// ids and returned WITHOUT reaching provisionCheckoutUser — the only caller of
+// ensureDeepScan. A logged-in free user upgrading from the paywall therefore
+// got no deep pass, ever, and nothing re-triggered it: they paid and kept a
+// free report. Neither shape may skip provisioning again.
+// ---------------------------------------------------------------------------
+test("handleStripeEvent: the LEGACY in-app upgrade provisions (and so deepens) — never a bare id-bind", async () => {
+  const db = makeServerDb({ id: "user-1" });
+  const provisionCheckoutUser = vi.fn().mockResolvedValue("user-1");
+
+  vi.doMock("@/lib/billing/stripe", () => ({ priceMap: () => PRICE_MAP }));
+  vi.doMock("@/lib/db/client", () => ({ serverDb: db.serverDb }));
+  vi.doMock("@/lib/analytics-server", () => ({ captureServerEvent: vi.fn() }));
+  vi.doMock("@/lib/billing/provision", () => ({ provisionCheckoutUser, ensureAuthUser: vi.fn() }));
+
+  const { handleStripeEvent } = await import("./webhook");
+
+  await handleStripeEvent({
+    id: "evt_legacy",
+    type: "checkout.session.completed",
+    data: {
+      object: {
+        id: "cs_legacy",
+        metadata: { userId: "user-1", plan: "solo", interval: "month" },
+        client_reference_id: "user-1",
+        customer: "cus_legacy",
+        subscription: "sub_legacy",
+        customer_details: { email: "founder@acme.com" },
+      },
+    },
+  } as unknown as Stripe.Event);
+
+  // The legacy shape MUST go through the shared policy — that is what deepens.
+  expect(provisionCheckoutUser).toHaveBeenCalledOnce();
+  expect(provisionCheckoutUser).toHaveBeenCalledWith(
+    expect.objectContaining({
+      userId: "user-1",
+      stripeCustomerId: "cus_legacy",
+      stripeSubscriptionId: "sub_legacy",
+      // ...but is already logged in, so it is never emailed a login link.
+      sendMagicLink: false,
+    }),
+  );
+});
+
+test("handleStripeEvent: the PAYMENT-FIRST checkout provisions from email and owes a magic link", async () => {
+  const db = makeServerDb(null);
+  const provisionCheckoutUser = vi.fn().mockResolvedValue("user-2");
+
+  vi.doMock("@/lib/billing/stripe", () => ({ priceMap: () => PRICE_MAP }));
+  vi.doMock("@/lib/db/client", () => ({ serverDb: db.serverDb }));
+  vi.doMock("@/lib/analytics-server", () => ({ captureServerEvent: vi.fn() }));
+  vi.doMock("@/lib/billing/provision", () => ({ provisionCheckoutUser, ensureAuthUser: vi.fn() }));
+
+  const { handleStripeEvent } = await import("./webhook");
+
+  await handleStripeEvent({
+    id: "evt_pf",
+    type: "checkout.session.completed",
+    data: {
+      object: {
+        id: "cs_pf",
+        metadata: { scanId: "scan-9" },
+        client_reference_id: "scan-9",
+        customer: "cus_pf",
+        subscription: "sub_pf",
+        customer_details: { email: "new@buyer.com" },
+      },
+    },
+  } as unknown as Stripe.Event);
+
+  expect(provisionCheckoutUser).toHaveBeenCalledWith(
+    expect.objectContaining({
+      userId: null,
+      email: "new@buyer.com",
+      scanId: "scan-9",
+      sendMagicLink: true,
+    }),
+  );
+});
+
+// ---------------------------------------------------------------------------
 // Unhandled event type → no-op (no db access).
 // ---------------------------------------------------------------------------
 test("handleStripeEvent: unhandled event type is a no-op", async () => {

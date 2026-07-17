@@ -65,6 +65,7 @@ export async function ensureAuthUser(email: string): Promise<string> {
  *   retry; this closes the same gap for the one side effect that wasn't.
  */
 export async function provisionCheckoutUser({
+  userId: knownUserId = null,
   email,
   scanId,
   stripeCustomerId,
@@ -72,7 +73,11 @@ export async function provisionCheckoutUser({
   entitlement,
   sendMagicLink = true,
 }: {
-  email: string;
+  /** Pre-resolved user (legacy in-app upgrade, `metadata.userId`). When absent
+   *  the account is created-or-found from `email` (payment-first funnel). */
+  userId?: string | null;
+  /** Required unless `userId` is given — the payment-first funnel has only this. */
+  email?: string | null;
   scanId?: string | null;
   stripeCustomerId?: string | null;
   stripeSubscriptionId?: string | null;
@@ -80,21 +85,28 @@ export async function provisionCheckoutUser({
   sendMagicLink?: boolean;
 }): Promise<string> {
   const db = serverDb();
-  const userId = await ensureAuthUser(email);
-
-  // Idempotency check: has this exact Stripe customer already been bound to
-  // this user? If so, this call is a redelivery of an already-processed event
-  // — skip the magic-link resend below. Only meaningful when the caller passed
-  // a stripeCustomerId (the live webhook path); the fixtures path always sends.
-  let alreadyProvisioned = false;
-  if (stripeCustomerId) {
-    const { data: existing } = await db
-      .from("users")
-      .select("stripe_customer_id")
-      .eq("id", userId)
-      .maybeSingle();
-    alreadyProvisioned = existing?.stripe_customer_id === stripeCustomerId;
+  if (!knownUserId && !email) {
+    throw new Error("provisionCheckoutUser: one of userId or email is required");
   }
+  const userId = knownUserId ?? (await ensureAuthUser(email as string));
+
+  // Has the onboarding link already gone out? This reads a RECORDED fact, never
+  // a proxy. It used to infer "redelivery" from `stripe_customer_id` already
+  // being bound — but the sibling `customer.subscription.*` handler ALSO binds
+  // that column (webhook.ts, defensive create) while explicitly deferring the
+  // email to us ("No magic link is sent here — the checkout.session.completed
+  // handler owns that"). Stripe doesn't guarantee ordering, so a
+  // subscription-first delivery made us read a bound column, conclude
+  // "redelivery", and send nothing: each half assumed the other would, and the
+  // user paid and could never log in. "Did ensureAuthUser create the account?"
+  // is poisoned identically (the defensive create calls it too) — both proxies
+  // are unreliable, so we record the fact instead of inferring it.
+  const { data: existing } = await db
+    .from("users")
+    .select("onboarding_link_sent_at")
+    .eq("id", userId)
+    .maybeSingle();
+  const linkAlreadySent = existing?.onboarding_link_sent_at != null;
 
   const update: UsersUpdate = {};
   if (stripeCustomerId) update.stripe_customer_id = stripeCustomerId;
@@ -111,19 +123,76 @@ export async function provisionCheckoutUser({
   if (scanId) {
     try {
       await linkScanToUser(scanId, userId);
-      // Two-track split: the scan ran the cheap free teaser. Now that the user
-      // has paid, deepen it (idempotent) to produce the full report.
-      await ensureDeepScan(scanId);
     } catch (e) {
-      console.error("[provision] linkScanToUser/ensureDeepScan failed", e);
+      console.error("[provision] linkScanToUser failed", e);
     }
   }
 
-  if (sendMagicLink && !alreadyProvisioned) {
+  // ONE deepen policy for every checkout shape. The payment-first funnel knows
+  // its scanId; the legacy in-app upgrade carries none (metadata is
+  // { userId, plan, interval }), so the target can only be what the user OWNS.
+  // Deepening by ownership covers both without a per-path branch — which is why
+  // the legacy path silently never deepened at all before this.
+  await deepenOwnedScans(userId);
+
+  // `email` is always present on the payment-first shape (the only one that
+  // opts into a link); the legacy shape resolves by id and passes false.
+  if (sendMagicLink && !linkAlreadySent && email) {
     await sendOnboardingMagicLink(email);
+    // Record the send BEFORE the next delivery can race us to it.
+    const { error } = await db
+      .from("users")
+      .update({ onboarding_link_sent_at: new Date().toISOString() })
+      .eq("id", userId);
+    if (error) console.error("[provision] failed to record onboarding_link_sent_at", error.message);
   }
 
   return userId;
+}
+
+/**
+ * Deepen every scan this user owns that hasn't had the deep pass yet.
+ *
+ * The SINGLE post-checkout deepen policy — the deliberate mirror of
+ * `resolveProductScan` (lib/app/add-product.ts), which exists because two
+ * dedupe paths drifted apart. The same drift had happened here: only the
+ * payment-first branch deepened (via its session scanId), so a logged-in free
+ * user upgrading from the paywall got NO deep pass, ever, and nothing
+ * re-triggered it — their paid dashboard rendered free data.
+ *
+ * Idempotent by construction: `ensureDeepScan` no-ops once `deepened_at` is
+ * stamped, so already-deep scans cost nothing and redelivery is safe. Failures
+ * degrade (logged, never thrown): a checkout must never 500 because a deepen
+ * couldn't be queued — the webhook's mark-after-success ledger would then
+ * replay the whole provisioning.
+ */
+async function deepenOwnedScans(userId: string): Promise<void> {
+  const db = serverDb();
+  try {
+    const { data: user } = await db.from("users").select("app_ids").eq("id", userId).maybeSingle();
+    const appIds: string[] = user?.app_ids ?? [];
+    if (appIds.length === 0) return;
+
+    const { data: scans } = await db
+      .from("scans")
+      .select("id, app_id, completed_at")
+      .in("app_id", appIds)
+      .not("completed_at", "is", null)
+      .order("completed_at", { ascending: false });
+
+    // Latest completed scan per app — that's the one the dashboard renders.
+    const latestByApp = new Map<string, string>();
+    for (const s of scans ?? []) {
+      const appId = s.app_id as string;
+      if (!latestByApp.has(appId)) latestByApp.set(appId, s.id as string);
+    }
+
+    for (const scanId of latestByApp.values()) {
+      await ensureDeepScan(scanId);
+    }
+  } catch (e) {
+    console.error("[provision] deepenOwnedScans failed", e);
+  }
 }
 
 /**

@@ -914,6 +914,7 @@ export type Database = {
           icp_confirmed: Json | null
           id: string
           onboarded_at: string | null
+          onboarding_link_sent_at: string | null
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           subscription_status: string | null
@@ -930,6 +931,7 @@ export type Database = {
           icp_confirmed?: Json | null
           id?: string
           onboarded_at?: string | null
+          onboarding_link_sent_at?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_status?: string | null
@@ -946,6 +948,7 @@ export type Database = {
           icp_confirmed?: Json | null
           id?: string
           onboarded_at?: string | null
+          onboarding_link_sent_at?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_status?: string | null

@@ -24,6 +24,7 @@ import { env } from "@/lib/config/env";
 import { captureServerException } from "@/lib/analytics-server";
 import { ScanBudget } from "@/lib/tools/registry";
 import { runWeeklyRefresh } from "@/lib/scan/refresh";
+import { ensureDeepScan } from "@/lib/scan/deepen";
 import { costedStep } from "@/lib/scan/scan-telemetry";
 import { checkAllInCostOverrun, checkUserDailyCostOverrun } from "@/lib/telemetry/pipeline-runs";
 import { emitScanEvent } from "@/lib/scan/progress";
@@ -123,6 +124,29 @@ async function refreshOneApp(appId: string): Promise<AppRefreshSummary> {
   if (!scanRow) return { appId, skipped: true };
 
   const latestScanId = scanRow.id;
+
+  // SELF-HEAL: a paid user's tracked app must never sit on a non-deep scan.
+  //
+  // This fan-out is already, by construction, exactly the set of ACTIVE PAID
+  // apps — so reaching here means the invariant applies. `ensureDeepScan` is
+  // idempotent (no-ops once `deepened_at` is stamped), so the healthy fleet
+  // costs nothing; only a genuinely stranded app spends.
+  //
+  // Why this exists: the deepen used to be triggered ONLY by a checkout event,
+  // so any path that left a paid user on free data stranded them PERMANENTLY —
+  // an existing subscriber never sees another checkout to re-trigger it. That
+  // shipped: nudgi.ai sat tier='free', deepened_at=null on a paying growth
+  // account for 6 days, rendering free data under a paid dashboard, and nothing
+  // in the system would ever have repaired it. Fixing the checkout policy
+  // (lib/billing/provision.ts → deepenOwnedScans) only covers users who upgrade
+  // from now on; this covers the ones the class already broke, and any future
+  // drift, within 7 days. Degrade, never throw: a failed deepen must not abort
+  // this app's refresh (or, via the step, the rest of the fleet).
+  try {
+    await ensureDeepScan(latestScanId);
+  } catch (e) {
+    console.error(`[weekly-refresh] self-heal deepen failed for scan ${latestScanId}`, e);
+  }
 
   const ctx: ScanContext = {
     scanId: latestScanId,
