@@ -85,8 +85,18 @@ export function toResultsProps(
   // ("trustmrr", "updated hourly —"). Empty when a legacy report predates the field.
   const cleanTags = (tags: string[] | undefined): string[] =>
     (tags ?? []).filter((t) => typeof t === "string" && t.trim().length >= 2).map((t) => t.trim()).slice(0, 5);
-  const intendedTags = cleanTags(pm.intendedAudience);
-  const actualTags = cleanTags(pm.actualAudience);
+
+  // GROUNDING (invariant #11): the Positioning Mirror is a reviews-vs-listing
+  // comparison. `actualAudience` ("who the page reads AS") is derived from reviews;
+  // when there are none, the synth guard leaves it empty — and without it there is
+  // no mirror, only the listing describing itself. Omit the WHOLE section rather
+  // than render "Your page reads as —" or (worse) tags invented from fabricated
+  // reviews (reachkit.app, scan 6d49d58e). Omission is the honest degrade; a
+  // "no reviews found" zero-state would be a claim about the internet we can't make.
+  const actualTagsRaw = cleanTags(pm.actualAudience);
+  const mirrorGrounded = actualTagsRaw.length > 0;
+  const intendedTags = mirrorGrounded ? cleanTags(pm.intendedAudience) : [];
+  const actualTags = mirrorGrounded ? actualTagsRaw : [];
 
   // Search-gap rows. Paid deep scans carry the rival keyword-gap
   // (`market.gap.keywordGap`); FREE web scans carry the honest subject-only
@@ -173,7 +183,9 @@ export function toResultsProps(
     lockedWorth,
     intendedTags,
     actualTags,
-    mirrorGap: pm.gap,
+    // The gap is the intended-vs-actual mismatch — meaningless (and ungrounded)
+    // without the review-derived `actual`. Blank it when the mirror isn't grounded.
+    mirrorGap: mirrorGrounded ? pm.gap : "",
     gapRows,
     gapTotal: totalGapQueries ?? (gapCount || gapRows.length),
   };

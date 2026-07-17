@@ -305,7 +305,7 @@ Return ONLY this JSON (no markdown, no code fences):
 {
   "positioningMirror": {
     "listingSays": "<1–2 sentences: what the listing claims or emphasises>",
-    "reviewsValue": "<1–2 sentences: what users actually praise or complain about in reviews>",
+    "reviewsValue": "<1–2 sentences on what users praise or complain about — EMPTY STRING \"\" if the review sheet is empty. NEVER infer reviews from the listing or invent them.>",
     "gap": "<1–2 sentences: the key disconnect between listing claims and review reality. When the COMPETITOR GAP SHEET names competitors, name at least ONE of them and state the concrete angle where the subject wins or loses vs that rival>",
     "intendedAudience": ["<2–4 word audience descriptor the page is written FOR>", "..."],
     "actualAudience": ["<2–4 word audience the page/reviews actually read AS>", "..."]

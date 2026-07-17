@@ -55,6 +55,50 @@ function report(overrides: Partial<ReportPayload> = {}): ReportPayload {
   };
 }
 
+describe("toResultsProps — positioning mirror grounding (invariant #11)", () => {
+  it("omits the mirror (empty tags + gap) when actualAudience is empty — never renders an ungrounded 'Your page reads as —'", () => {
+    // No review grounding → the mirror is not a mirror. The old render showed
+    // "Your page reads as —" (a dash placeholder) or, worse, invented tags from
+    // fabricated reviews (reachkit.app, scan 6d49d58e). Omission is the honest degrade.
+    const p = toResultsProps(
+      report({
+        whatYouOffer: {
+          positioningMirror: {
+            listingSays: "A discoverability engine",
+            reviewsValue: "", // wiped by the synth grounding guard
+            actualAudience: [], // no reviews → no "reads as"
+            intendedAudience: ["founders"],
+            gap: "The page over-promises",
+          },
+        },
+      }),
+      "reachkit.app",
+    );
+    expect(p.actualTags).toEqual([]);
+    expect(p.intendedTags).toEqual([]);
+    expect(p.mirrorGap).toBe("");
+  });
+
+  it("KEEPS the mirror when actualAudience is grounded (no over-correction)", () => {
+    const p = toResultsProps(
+      report({
+        whatYouOffer: {
+          positioningMirror: {
+            listingSays: "Photo tools",
+            reviewsValue: "fast galleries",
+            actualAudience: ["speed-focused creators"],
+            intendedAudience: ["creators"],
+            gap: "gap text",
+          },
+        },
+      }),
+      "bloom.io",
+    );
+    expect(p.actualTags).toEqual(["speed-focused creators"]);
+    expect(p.mirrorGap).toBe("gap text");
+  });
+});
+
 describe("toResultsProps — fixes", () => {
   it("ranks positive-delta actions by delta and previews 3", () => {
     const p = toResultsProps(

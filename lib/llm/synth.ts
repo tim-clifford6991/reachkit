@@ -225,5 +225,21 @@ export async function runSynth(ctx: ScanContext): Promise<SynthResult> {
   }
 
   const parsed = parseSynthResult(text);
-  return parsed ?? buildDegradedResult(positioningBody);
+  if (!parsed) return buildDegradedResult(positioningBody);
+
+  // GROUNDING (invariant #11): the review sheet is the ONLY evidence for the
+  // positioning mirror's review claims. When it has zero themes, the mirror must
+  // be empty — never a plausible synthesis. The extract layer already refuses to
+  // invent reviews (prompts.ts:62 "If there are no reviews, return { themes: [] }");
+  // this closes the same guard at synth, where a fabricated paragraph otherwise
+  // passes parseSynthResult (it validates types, not grounding). This is the fix
+  // for the invented reviews on the unlaunched reachkit.app (scan 6d49d58e).
+  if (reviewThemesBody.themes.length === 0) {
+    parsed.positioningMirror = {
+      ...parsed.positioningMirror,
+      reviewsValue: "",
+      actualAudience: [],
+    };
+  }
+  return parsed;
 }
