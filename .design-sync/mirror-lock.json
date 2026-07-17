@@ -169,7 +169,7 @@
   },
   "ScanningScreen": {
     "mirror": "components/scan/captured-scanning.tsx",
-    "hash": "65f3d5a0897e7813"
+    "hash": "f0501952e250e366"
   },
   "ScoreTravels": {
     "mirror": "components/sections/captured/landing-html.ts",

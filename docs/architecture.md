@@ -619,6 +619,15 @@ file; #13 (`audienceProxy`) stays deferred.
   write-only "dead" intel tables were retired (migration
   `20260708120000_retire_dead_intel_tables.sql`). `public_scans` is a view
   feeding the `/gallery` page + landing ticker.
+- **The gallery keeps EVERY scan on purpose — do not "clean up" test/free/low rows.**
+  (Owner decision, 2026-07-17.) `public_scans` deliberately carries test scans, free
+  scans and low scorers: **volume is the credibility**, so a fuller gallery is the
+  goal, not a tidier one. A low score for our OWN product is *honest reality for an
+  early startup*, not a bug to hide — `reachkit.app` sits there at 9/100 next to
+  `plausible.io` at 96 by choice. This is written here because the instinct on
+  seeing those rows is to delete them, and that instinct is wrong: pruning the
+  gallery is a REGRESSION. If a scan must be hidden, that is a new product
+  requirement needing its own decision — never a cleanup pass.
 - **Background cadence** — `weekly-refresh` (cron Mon 09:00 UTC) and
   `score-pulse` (cron Thu 09:00 UTC) drive the recurring §11 cadence that feeds
   the `/app/plan` timeline; `search-cache-cleanup` (cron daily 03:00 UTC) prunes
