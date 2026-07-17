@@ -188,13 +188,13 @@ describe("runExtract — malformed JSON degrades to empty sheets (no throw)", ()
   });
 });
 
-describe("runExtract — missing source degrades to empty sheet", () => {
+describe("runExtract — missing source does NOT cache an empty sheet (invariant #3)", () => {
   beforeEach(() => {
     vi.resetModules();
   });
 
-  test("when no review rows exist, review_themes is written as empty sheet without calling callModel for it", async () => {
-    // Only listing + competitor + keyword docs — no reviews
+  test("when no review rows exist, review_themes is NOT upserted — never cache an empty sheet", async () => {
+    // Only listing + competitor + keyword docs — no reviews.
     const docsWithoutReviews = CANNED_RAW_DOCS.filter((d) => d.source_type !== "app_store_rss");
     vi.doMock("@/lib/db/client", () => ({ serverDb: makeDbMock(docsWithoutReviews) }));
     vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
@@ -207,13 +207,16 @@ describe("runExtract — missing source degrades to empty sheet", () => {
     const ctx = await makeScanCtx();
     await runExtract(ctx);
 
-    // Still writes all 4 kinds
-    expect(upsertMock).toHaveBeenCalledTimes(4);
+    // invariant #3: an empty sheet is never persisted. The 3 kinds WITH docs
+    // upsert; review_themes (zero docs) is skipped entirely, so synth reads back
+    // the {themes:[]} fallback rather than a cached blank that could later be
+    // served as if it were real. This is the same guard demand-intel has.
     const calls = upsertMock.mock.calls as Array<[Parameters<typeof upsertMock>[0]]>;
-    // review_themes is an empty sheet because source is absent
-    expect(calls.find((c) => c[0].kind === "review_themes")?.[0].body).toEqual({ themes: [] });
+    const kinds = calls.map((c) => c[0].kind);
+    expect(kinds).not.toContain("review_themes");
+    expect(upsertMock).toHaveBeenCalledTimes(3);
 
-    // callModel was NOT called for reviews (only 3 remaining sources)
+    // callModel was NOT called for reviews (only 3 remaining sources).
     expect(callModelMock).toHaveBeenCalledTimes(3);
   });
 });

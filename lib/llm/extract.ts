@@ -169,8 +169,14 @@ async function extractKind<T>(
     // Fixture path: return canned body without any LLM call
     body = fixtureExtract(kind) as T;
   } else if (docs.length === 0) {
-    // No source documents: write empty/degraded sheet
-    body = emptySheet;
+    // INVARIANT #3: never cache an empty sheet. No source docs → skip the upsert
+    // entirely. synth's read-back falls back to the same empty shape
+    // (readSheet default), so downstream sees {themes:[]}/{competitors:[]}/… WITHOUT
+    // a stale blank row that a later read could serve as if it were measured. This
+    // is the guard demand-intel already has (isEmptyDemandIntel), applied to
+    // fact_sheets — and half of the fix for the invented reachkit.app reviews:
+    // an empty review sheet must not exist to be synthesized from.
+    return;
   } else {
     // Call Haiku and parse defensively
     try {
