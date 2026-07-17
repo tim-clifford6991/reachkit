@@ -21,7 +21,9 @@
  * LOCAL ONLY (needs local Supabase). Run with:
  *   pnpm test:int tests/integration/scan-public-consolidation.test.ts
  */
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
+import { makeFixtureProvider } from "@/lib/dev/fixtures";
 import type { Json } from "@/lib/db/types";
 import type {
   ReportPayload,
@@ -37,10 +39,13 @@ import type { DistributionProfile, SeoPosture } from "@/lib/scan/profile";
 import type { DemandPocket } from "@/lib/scan/demand";
 
 vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
+installFixtures(makeFixtureProvider());
 
 beforeEach(() => {
   vi.resetModules();
 });
+
+afterEach(() => resetFixtures());
 
 const STORE_URL = `https://scan-consolidation-fixture-${Date.now()}.example.com`;
 

@@ -15,7 +15,9 @@
  * LOCAL ONLY (needs local Supabase). Run with:
  *   pnpm test:int tests/integration/free-report-e2e.test.ts
  */
-import { beforeEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
+import { makeFixtureProvider } from "@/lib/dev/fixtures";
 import type { Finding, PositioningMirror, ScoreResult } from "@/lib/llm/types";
 import type { Json } from "@/lib/db/types";
 
@@ -23,6 +25,7 @@ import type { Json } from "@/lib/db/types";
 // actually calls the LLM, but this keeps the file consistent with the rest
 // of the suite in case a transitive import ever grows a fixtures check.
 vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
+installFixtures(makeFixtureProvider());
 
 const STORE_URL = `https://freereport-e2e.example.com/${Date.now()}`;
 
@@ -52,6 +55,8 @@ const SAMPLE_HTML = `
 beforeEach(() => {
   vi.resetModules();
 });
+
+afterEach(() => resetFixtures());
 
 test(
   "runFreeReport (web): persists a lightweight report_payload with fixed-basis score, empty deep sections, and score parity",

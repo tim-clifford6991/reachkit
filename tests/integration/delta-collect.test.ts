@@ -12,6 +12,8 @@
  */
 
 import { afterEach, expect, test, vi } from "vitest";
+import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
+import { makeFixtureProvider } from "@/lib/dev/fixtures";
 import { ScanBudget } from "@/lib/tools/registry";
 import type { ScanContext } from "@/lib/scan/pipeline";
 import type { PreliminaryFacts, WatermarkBody } from "@/lib/scan/types";
@@ -56,11 +58,13 @@ afterEach(() => {
   vi.unstubAllEnvs();
   vi.resetModules();
   vi.restoreAllMocks();
+  resetFixtures();
 });
 
 test("collectDeltas (fixtures, baseline) returns 4 advanced DeltaResults; rank/threads/competitors non-empty", async () => {
   vi.resetModules();
   vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
+  installFixtures(makeFixtureProvider());
 
   const { collectDeltas } = await import("@/lib/scan/delta-collect");
 
@@ -94,6 +98,7 @@ test("collectDeltas (fixtures, baseline) returns 4 advanced DeltaResults; rank/t
 test("collectDeltas (fixtures) yields non-empty rank/threads/competitors once past baseline", async () => {
   vi.resetModules();
   vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
+  installFixtures(makeFixtureProvider());
 
   const { collectDeltas } = await import("@/lib/scan/delta-collect");
 
@@ -121,6 +126,7 @@ test("collectDeltas (fixtures) yields non-empty rank/threads/competitors once pa
 test("a watermark already at latest yields empty items for that kind (no re-emit)", async () => {
   vi.resetModules();
   vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
+  installFixtures(makeFixtureProvider());
 
   const { collectDeltas } = await import("@/lib/scan/delta-collect");
   const { fixtureReviewDelta, fixtureRankDelta, fixtureThreadDelta, fixtureCompetitorDelta } =
@@ -160,6 +166,7 @@ test("collectDeltas never throws when a collector's adapter rejects (degrades to
   // adapter we mock to reject. Stub PAID keys so env validation passes regardless
   // of .env.local contents.
   vi.stubEnv("REACHKIT_USE_FIXTURES", "false");
+  resetFixtures();
   for (const k of [
     "ANTHROPIC_API_KEY", "DATAFORSEO_LOGIN", "DATAFORSEO_PASSWORD", "TAVILY_API_KEY",
     "RESEND_API_KEY", "PRODUCT_HUNT_TOKEN", "YOUTUBE_API_KEY", "VOYAGE_API_KEY",
@@ -191,6 +198,7 @@ test("collectDeltas never throws when a collector's adapter rejects (degrades to
 test("collectDeltas preserves input order and tolerates an unknown kind", async () => {
   vi.resetModules();
   vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
+  installFixtures(makeFixtureProvider());
 
   const { collectDeltas } = await import("@/lib/scan/delta-collect");
 

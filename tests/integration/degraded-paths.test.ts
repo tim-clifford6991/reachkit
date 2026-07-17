@@ -29,7 +29,9 @@
  *   pnpm test:int tests/integration/degraded-paths.test.ts
  */
 
-import { beforeEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
+import { makeFixtureProvider } from "@/lib/dev/fixtures";
 import { createClient } from "@supabase/supabase-js";
 import type { Json } from "@/lib/db/types";
 import type { ScanContext } from "@/lib/scan/pipeline";
@@ -47,7 +49,10 @@ beforeEach(() => {
   // Fixtures OFF for every test: we want the REAL degrade paths to run, not the
   // fixture short-circuits in extract/synth/actions/algorithm-safety.
   vi.stubEnv("REACHKIT_USE_FIXTURES", "false");
+  resetFixtures();
 });
+
+afterEach(() => resetFixtures());
 
 // ---------------------------------------------------------------------------
 // Seed helpers
@@ -494,6 +499,7 @@ test(
   "missing findings_payload → full-scan still assembles a four-question report",
   async () => {
     vi.stubEnv("REACHKIT_USE_FIXTURES", "true"); // isolate: only findings_payload is absent
+    installFixtures(makeFixtureProvider());
 
     const storeUrl = `https://apps.apple.com/us/app/habits/id${Date.now()}6`;
     const appId = await seedApp(storeUrl, "ios");

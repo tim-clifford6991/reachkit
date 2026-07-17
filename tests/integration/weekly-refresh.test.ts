@@ -15,6 +15,8 @@
  */
 
 import { afterEach, expect, test, vi } from "vitest";
+import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
+import { makeFixtureProvider } from "@/lib/dev/fixtures";
 import { InngestTestEngine } from "@inngest/test";
 import { serverDb } from "@/lib/db/client";
 import type { weeklyRefresh as WeeklyRefreshFn } from "@/lib/inngest/functions/weekly-refresh";
@@ -24,6 +26,7 @@ import type { Json } from "@/lib/db/types";
 afterEach(() => {
   vi.unstubAllEnvs();
   vi.resetModules();
+  resetFixtures();
 });
 
 // ---------------------------------------------------------------------------
@@ -128,6 +131,7 @@ test(
     // on first read, so reset modules + stub + dynamic import, à la refresh.test.ts).
     vi.resetModules();
     vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
+    installFixtures(makeFixtureProvider());
     const { weeklyRefresh }: { weeklyRefresh: typeof WeeklyRefreshFn } = await import(
       "@/lib/inngest/functions/weekly-refresh"
     );

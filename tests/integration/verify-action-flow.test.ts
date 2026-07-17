@@ -20,6 +20,8 @@
  */
 
 import { expect, test, vi, afterEach } from "vitest";
+import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
+import { makeFixtureProvider } from "@/lib/dev/fixtures";
 import { serverDb } from "@/lib/db/client";
 import { ScanBudget } from "@/lib/tools/registry";
 import type { ScanContext } from "@/lib/scan/pipeline";
@@ -33,6 +35,7 @@ import type { Json } from "@/lib/db/types";
 afterEach(() => {
   vi.unstubAllEnvs();
   vi.resetModules();
+  resetFixtures();
 });
 
 // ---------------------------------------------------------------------------
@@ -148,6 +151,7 @@ test(
   "runActionVerification (fixtures) verifies a url action, writes an outcome, and moves the score",
   async () => {
     vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
+    installFixtures(makeFixtureProvider());
     vi.resetModules();
     const { runActionVerification } = await import("@/lib/scan/verify");
     const { gatherScoreComponents } = await import("@/lib/scan/score-full");
@@ -213,6 +217,7 @@ test(
   "runActionVerification is idempotent — re-running writes no duplicate outcome",
   async () => {
     vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
+    installFixtures(makeFixtureProvider());
     vi.resetModules();
     const { runActionVerification } = await import("@/lib/scan/verify");
 
@@ -246,6 +251,7 @@ test(
   "gatherScoreComponents preserves the zero-outcome baseline exactly",
   async () => {
     vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
+    installFixtures(makeFixtureProvider());
     vi.resetModules();
     const { gatherScoreComponents } = await import("@/lib/scan/score-full");
 

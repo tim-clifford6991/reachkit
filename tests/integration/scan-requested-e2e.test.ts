@@ -23,11 +23,14 @@
  * LOCAL ONLY (needs local Supabase). Run with:
  *   pnpm test:int tests/integration/scan-requested-e2e.test.ts
  */
-import { beforeEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
+import { makeFixtureProvider } from "@/lib/dev/fixtures";
 import type { ListingFacts, Competitor, ReviewItem } from "@/lib/scan/types";
 
 // Fixture mode ON for the whole file — keyless extract/synth/actions/critic/embed/email.
 vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
+installFixtures(makeFixtureProvider());
 
 const APP_URL = "https://apps.apple.com/us/app/reachkit-e2e-fixture/id9000000001";
 
@@ -56,6 +59,9 @@ const CANNED_REVIEWS: ReviewItem[] = [
 beforeEach(() => {
   vi.resetModules();
 });
+
+// Reset the injected fixture provider after each test so it never leaks.
+afterEach(() => resetFixtures());
 
 test(
   "scan/requested e2e (fixtures) — all 5 steps → report_payload + done event + actions + monitors",

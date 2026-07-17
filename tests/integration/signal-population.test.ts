@@ -12,7 +12,9 @@
  */
 
 import { writeFileSync } from "node:fs";
-import { expect, test, vi } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
+import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
+import { makeFixtureProvider } from "@/lib/dev/fixtures";
 import { serverDb } from "@/lib/db/client";
 import { upsertRawDocument } from "@/lib/db/raw-documents";
 import { ScanBudget } from "@/lib/tools/registry";
@@ -20,6 +22,8 @@ import { registryScore, type RegistryScoreRow } from "@/lib/scan/registry-score"
 import type { ScanContext } from "@/lib/scan/pipeline";
 import type { PreliminaryFacts } from "@/lib/scan/types";
 import type { Json } from "@/lib/db/types";
+
+afterEach(() => resetFixtures());
 
 const RICH_HTML = `<!doctype html><html lang="en"><head>
 <title>Acme — the simplest habit tracker for iOS and web</title>
@@ -109,6 +113,7 @@ test(
   async () => {
     vi.resetModules();
     vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
+    installFixtures(makeFixtureProvider());
     vi.stubEnv("REACHKIT_MARKET_ANALYSIS", "false"); // skip the keyed market pipeline
     const { runFullScan } = await import("@/lib/scan/full-scan");
 

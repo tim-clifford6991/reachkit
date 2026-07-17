@@ -17,6 +17,8 @@
  */
 
 import { afterAll, afterEach, expect, test, vi } from "vitest";
+import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
+import { makeFixtureProvider } from "@/lib/dev/fixtures";
 import { serverDb } from "@/lib/db/client";
 import { assertPaid, EntitlementError } from "@/lib/billing/entitlements";
 import { ScanBudget } from "@/lib/tools/registry";
@@ -29,6 +31,7 @@ const createdUserIds: string[] = [];
 afterEach(() => {
   vi.unstubAllEnvs();
   vi.resetModules();
+  resetFixtures();
 });
 
 afterAll(async () => {
@@ -133,6 +136,7 @@ test(
   async () => {
     vi.resetModules();
     vi.stubEnv("REACHKIT_USE_FIXTURES", "true");
+    installFixtures(makeFixtureProvider());
     const { runWeeklyRefresh } = await import("@/lib/scan/refresh");
 
     const { appId, scanId } = await seedApp(
