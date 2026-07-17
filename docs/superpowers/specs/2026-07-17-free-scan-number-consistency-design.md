@@ -422,10 +422,16 @@ serve the ~5% who convert.
 
 ## 10. Open questions (for the merge)
 
-1. **`domain_rank_overview` `[VERIFY]`** — confirm response shape (`metrics.organic.count` /
-   `.etv`), live cost, and whether it supersedes `bulk_traffic_estimation` for the subject.
-   If it doesn't return a true count, WS1 falls back to: render true ETV, drop the
-   keyword count entirely rather than ship the 50.
+1. **`domain_rank_overview` `[VERIFY]`** — ✅ **RESOLVED 2026-07-17 (live).** The endpoint
+   works at **~1.2¢** (`cost: 0.01212`) and returns a **true keyword count + true ETV** — so
+   WS1 does NOT need the fallback. **Path correction (the plan's assumption was wrong):** the
+   metrics are at **`result[0].items[0].metrics.organic`**, NOT `result[0].metrics.organic`.
+   Live for `resend.com` (location 2840, lang en): `organic.count = 2100`, `organic.etv = 28529.8`,
+   `organic.pos_1 = 87`, `organic.is_new = 1409`. So the adapter reads
+   `tasks[0].result[0].items[0].metrics.organic.{count,etv,pos_1,pos_2_3,pos_4_10,…}`. The
+   current free report shows `keywordsRanked = 50` (the API cap) for this same domain — the
+   true number is **2,100**. `count`/`etv` are both present, so WS1 renders both; the
+   "drop the keyword count" fallback is unused.
 2. **What replaces the "capture" bar?** Deleting it (§6.1) leaves a hole in the panel's
    middle. Proposal: "your category phrases, and where you sit on each" — a real,
    itemised, reconcilable table built from `Demand.phrases`. Needs a design pass.
