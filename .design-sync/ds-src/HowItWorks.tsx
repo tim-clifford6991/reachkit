@@ -19,7 +19,7 @@ const STEPS = [
 export function HowItWorks() {
   return (
     <section style={{ maxWidth: 1180, margin: "0 auto", padding: "40px 28px 56px" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 22 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: 22 }}>
         {STEPS.map((s) => (
           <div key={s.n} style={{ border: "1px solid var(--c-line)", borderRadius: 16, padding: 26, background: "var(--c-surface)" }}>
             <div style={{ width: 42, height: 42, borderRadius: 11, background: "var(--c-soft)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-mono)", fontWeight: 700, color: "var(--c-action)", fontSize: 16 }}>{s.n}</div>

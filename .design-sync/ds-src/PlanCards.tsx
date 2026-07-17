@@ -47,7 +47,7 @@ function TierCard({ t }: { t: Tier }) {
 
 export function PlanCards({ tiers = DEFAULT_TIERS }: PlanCardsProps) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 18, alignItems: "stretch" }}>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))", gap: 18, alignItems: "stretch" }}>
       {tiers.map((t) => <TierCard key={t.name} t={t} />)}
     </div>
   );

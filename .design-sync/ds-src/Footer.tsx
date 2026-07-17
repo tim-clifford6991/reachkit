@@ -56,7 +56,7 @@ export function Footer({ tagline = DEFAULT_TAGLINE, columns = DEFAULT_COLUMNS, c
               ))}
             </div>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(110px, 1fr))", gap: "32px 40px", flex: "2 1 460px", maxWidth: 720 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "32px 40px", flex: "1 1 320px", minWidth: 0, maxWidth: 720 }}>
             {columns.map((col) => (
               <nav key={col.heading} aria-label={col.heading}>
                 <p style={eyebrow}>{col.heading}</p>
