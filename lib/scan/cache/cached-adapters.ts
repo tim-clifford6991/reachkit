@@ -16,9 +16,7 @@ import { keywordsData } from "@/lib/scan/adapters/keywords";
 import type { KeywordRow } from "@/lib/scan/types";
 import {
   discoverClosestCompetitors,
-  discoverCompetitors,
   type ClosestCompetitorsResult,
-  type DiscoverCompetitorsResult,
 } from "@/lib/scan/referral/discover-competitors";
 import type { Referrer } from "@/lib/scan/referral/types";
 import { MAX_SELECTED } from "@/lib/scan/competitor-selection";
@@ -99,11 +97,13 @@ export function cachedClosestCompetitors(self: string): Promise<ClosestCompetito
   return cachedJson(`cc:${norm(self)}`, 14 * DAY_MS, () => discoverClosestCompetitors(self), { isEmpty: (r) => r.ranked.length === 0 });
 }
 
-/** Size-banded competitors (for the referral-channel cohort). 14d. */
-export function cachedDiscoverCompetitors(self: string): Promise<DiscoverCompetitorsResult> {
-  // domains=[] means discovery degraded — don't cache an empty cohort for 14d.
-  return cachedJson(`dc:${norm(self)}`, 14 * DAY_MS, () => discoverCompetitors(self), { isEmpty: (r) => r.domains.length === 0 });
-}
+// `cachedDiscoverCompetitors` (the size-banded `dc:*` cohort) was DELETED here
+// 2026-07-17 (N1/G9): it had ZERO live consumers — the production scan pipeline and
+// every intel route use the closeness-ranked cohort (`cachedClosestCompetitors` /
+// `cohortFor`) exclusively. A cost-bearing wrapper nobody renders from is pure
+// waste ("never pay for data you don't render"). Its inner `discoverCompetitors`
+// survives only behind the prod-gated `app/api/test-preview` dev route. Guard: the
+// G9 ledger below fails if a wrapper is ever added without a live consumer.
 
 /**
  * Branded-search monthly volume for `brand` (Google Ads search_volume/live).
