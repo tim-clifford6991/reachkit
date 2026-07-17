@@ -313,26 +313,37 @@ git commit -m "fix(app): the cap error's exits both exist now — removal shippe
 
 > **Invariant #1 is NOT changed by this workstream.** If any task here would move a persisted `score_total`, **stop** and re-open the Change Protocol. Render only.
 
-### Task 4.1: 🔴 BLOCKED — the Outreach bar. Do not execute without the C1 ruling.
+### Task 4.1: Pillar bars render per-pillar when measured, each with its basis (ruling R1)
 
-**See `plans/2026-07-17-MERGE-CONTRACT-three-plans.md` § C1.**
+**Files:** `components/app/intel/dashboard-hero.tsx`, `app/(app)/app/dashboard/page.tsx` (the `rollup` it builds); test `components/app/intel/dashboard-hero.test.tsx`. **Depends on Plan B §6's `Measured` type existing** (merge order Phase 5 > Phase 3).
 
-**This task was WRONG as first written and is retained only so the error isn't repeated.** It said *"delete the Outreach bar — it can never render"*, on the premise that `headlineScore` filters to `FIXED_BASIS_SIGNAL_KEYS` (5 SEO + 3 content, zero outreach) so `outreach.assessed` is always false.
+**The class (why the first version of this task was wrong).** The bars present as *"your pillars"* but decompose `headlineScore`'s FIXED 8-key basis — deliberately on-page-only (invariant #1). So a genuinely-measured off-site signal is invisible by construction. Verified 2026-07-17, resend free scan `14533748…`: `pillar=outreach, state=fail, signal_key=comparison_pages` — **measured, and failing** — yet absent from the bars. Deleting the Outreach bar (the original Task 4.1) would have *hidden* that failure. The fix is to drive a bar's presence off **whether we measured the pillar**, not off which basis a different number uses.
 
-**The premise is false.** Verified 2026-07-17 against `scan_signals` for resend's **free** scan `14533748…`:
+**Invariant #1 unchanged:** the gauge stays `discoverabilityScore` over the fixed basis. Only the *bars* change — they decompose the full measured `scan_signals` set, which is a presentational read, not a score change.
 
+- [ ] **Step 1: Failing test**
+
+```ts
+it("renders a pillar bar for every pillar with ≥1 measured signal, with its basis", () => {
+  // resend's real shape: content 3/5 measured, seo 5/8, outreach 1/5 (comparison_pages: fail)
+  render(<DashboardHero {...baseProps} pillars={measuredPillarsFixture} />);
+  expect(screen.getByText(/outreach/i)).toBeInTheDocument();
+  expect(screen.getByText(/comparison pages/i)).toBeInTheDocument();
+  expect(screen.getByText(/1 of 5 measured/i)).toBeInTheDocument(); // the basis is disclosed
+});
+
+it("omits a pillar with zero measured signals (never an empty 'not measured yet' row)", () => {
+  render(<DashboardHero {...baseProps} pillars={pillarsWithOutreachUnmeasured} />);
+  expect(screen.queryByText(/outreach/i)).toBeNull();
+});
 ```
-outreach | fail       | 1 row  | comparison_pages     ← MEASURED, and FAILING
-outreach | unmeasured | 4 rows | community_presence, marketplace_presence, press_mentions, share_of_voice
-```
 
-`comparison_pages` (`pillar: outreach`, weight 0.15, `lib/scan/signals.ts:92`) **is measured on a free scan and it fails**. The bar is unrenderable only because the dashboard decomposes the *headline's* fixed basis, which excludes it by design (invariant #1). Deleting the bar would **hide a real failing signal** — and would silently pre-empt Plan B's deferred item on the same disagreement.
-
-That is the `735dbae` class repeating: reword/remove a dead row without asking **why** it's dead. The real class is that the pillar bars present as *"your pillars"* while decomposing a basis that is deliberately on-page-only, so any measured off-site signal is invisible by construction.
-
-- [ ] **Step 1: Get the C1 ruling** (merge contract § C1 — options 1/2/3; recommendation is 3, or 1 with Plan B's deferred item closed in the same release).
-- [ ] **Step 2: Adopt Plan B §6's `Measured` contract** rather than inventing a parallel basis label (merge contract § S3).
-- [ ] **Step 3:** Implement the ruling TDD, guard mutation-proven, DS mirrors diffed (Task 4.5).
+- [ ] **Step 2: Run — expect FAIL** (today outreach never renders even when measured)
+- [ ] **Step 3:** Build the pillar rows from the full `scan_signals` set (a new read in `page.tsx`, or extend the existing `sigRows` read at `page.tsx:134-137`), each carrying its measured-count basis per Plan B §6's `Measured`. Render bar iff `measuredCount > 0`. Do **not** invent a basis label — import Plan B's.
+- [ ] **Step 4: Run — expect PASS**
+- [ ] **Step 5:** Mutation-prove: force `measuredCount = 0` for outreach in the fixture → the "renders outreach" test FAILS; force it to always render → the "omits" test FAILS. Revert.
+- [ ] **Step 6:** Verify the rendered effect on the live dashboard (a scan with a failing `comparison_pages`), not the source.
+- [ ] **Step 7: Commit** — explicit paths; `fix(dashboard): pillar bars show every MEASURED pillar with its basis (R1)`
 
 ### Task 4.2: Market Position into the header, framed "vs rivals"
 
