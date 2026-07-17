@@ -628,6 +628,26 @@ file; #13 (`audienceProxy`) stays deferred.
   prior scan (renamed from the legacy `/billing/trial` 2026-07-16; there is **no free
   trial** — `checkout.ts` sets no `trial_period_days`; plans are charged immediately).
   Both converge on the Stripe webhook → account provision → magic link.
+- **ONE post-checkout provisioning policy** (2026-07-17) — `checkout.session.completed`
+  has two *shapes*, never two branches: the **legacy in-app upgrade** (`metadata.userId`,
+  from `createCheckout`; user exists and is logged in → resolve by id, `sendMagicLink:false`,
+  carries no `scanId`) and the **payment-first funnel** (anonymous; create-or-find from the
+  Stripe email → `sendMagicLink:true`). Both then run the *same* `provisionCheckoutUser`:
+  bind ids → link the session scan (if any) → **`deepenOwnedScans(userId)`** → conditional
+  link. Two things this fixes, both invisible from the symptoms:
+  - The branches had drifted so only the payment-first one deepened — the legacy branch
+    returned before `provisionCheckoutUser`, the sole caller of `ensureDeepScan`. A
+    logged-in free user upgrading from the paywall got **no deep pass, ever**. The legacy
+    checkout carries no `scanId`, so the deepen target must be resolved by **ownership**
+    (latest completed scan per tracked app, `ensureDeepScan`-idempotent).
+  - The onboarding magic link is gated on the **recorded** `users.onboarding_link_sent_at`,
+    never inferred. It used to infer "redelivery" from `stripe_customer_id` being bound —
+    but `customer.subscription.*`'s defensive create binds that column too while deferring
+    the email to the checkout handler. Stripe does not guarantee ordering, so a
+    subscription-first delivery meant **neither half sent it**: paid, no way to log in.
+    (`ensureAuthUser`-created-the-account is poisoned identically — both proxies lie.)
+  Guards: `webhook.test.ts` (both shapes provision), `provision.test.ts` (ownership deepen,
+  the subscription-first race, caller opt-out) — all mutation-proven.
 - **External-API cost tracking** — DataForSEO + Tavily spend is measured per scan
   (`lib/scan/cost-context.ts` → `scans.{dataforseo,tavily}_cost_cents`) and rolled
   up per user (`loadAllUsersSpend`), surfaced on the owner-only `/app/diagnostics`.

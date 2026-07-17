@@ -10,12 +10,15 @@ import { beforeEach, expect, test, vi } from "vitest";
 function makeServerDb({
   createUserResult,
   existingStripeCustomerId = null,
+  onboardingLinkSentAt = null,
 }: {
   createUserResult: {
     data: { user: { id: string } } | null;
     error: { message: string } | null;
   };
   existingStripeCustomerId?: string | null;
+  /** NULL = the onboarding link has never been sent (the send-and-stamp trigger). */
+  onboardingLinkSentAt?: string | null;
 }) {
   const createUser = vi.fn().mockResolvedValue(createUserResult);
   const generateLink = vi.fn().mockResolvedValue({
@@ -23,9 +26,13 @@ function makeServerDb({
     error: null,
   });
 
-  const selectMaybeSingle = vi
-    .fn()
-    .mockResolvedValue({ data: { stripe_customer_id: existingStripeCustomerId }, error: null });
+  const selectMaybeSingle = vi.fn().mockResolvedValue({
+    data: {
+      stripe_customer_id: existingStripeCustomerId,
+      onboarding_link_sent_at: onboardingLinkSentAt,
+    },
+    error: null,
+  });
   const selectEq = vi.fn().mockReturnValue({ maybeSingle: selectMaybeSingle });
   const select = vi.fn().mockReturnValue({ eq: selectEq });
 
@@ -81,27 +88,33 @@ test("provisionCheckoutUser sends the onboarding magic link on first provisionin
 });
 
 // ---------------------------------------------------------------------------
-// Webhook redelivery — this exact Stripe customer is already bound to the
-// resolved user → skip resending the magic link, but still (idempotently)
-// bind the ids again.
+// Webhook redelivery — the onboarding link was ALREADY SENT (recorded fact) →
+// skip resending it, but still (idempotently) bind the ids again.
+//
+// The trigger is `onboarding_link_sent_at`, NOT `stripe_customer_id`. See the
+// race test below for why the old proxy was wrong.
 // ---------------------------------------------------------------------------
-test("provisionCheckoutUser skips the magic-link resend on a redelivered event for an already-bound customer", async () => {
+test("provisionCheckoutUser skips the magic-link resend once the link has already been sent", async () => {
   const db = makeServerDb({
     createUserResult: { data: null, error: { message: "User already registered" } },
-    existingStripeCustomerId: "cus_existing", // already bound — this is a retry
+    existingStripeCustomerId: "cus_existing",
+    onboardingLinkSentAt: "2026-07-17T10:00:00.000Z", // already sent — this is a retry
   });
   const sendMagicLinkEmail = vi.fn().mockResolvedValue(undefined);
 
   // ensureAuthUser falls back to the existing-row lookup when createUser
   // reports "already registered". Reuse the same select/maybeSingle mock to
   // resolve { id: "user-1" } for that email lookup too.
-  db.spies.selectMaybeSingle.mockImplementation(() => {
-    // First call (inside ensureAuthUser's existing-row fallback) resolves the
-    // user id by email; second call (the idempotency check) resolves the
-    // currently-bound stripe_customer_id. Both share the same email->id shape
-    // closely enough for this mock: return whichever fields the caller reads.
-    return Promise.resolve({ data: { id: "user-1", stripe_customer_id: "cus_existing" }, error: null });
-  });
+  db.spies.selectMaybeSingle.mockImplementation(() =>
+    Promise.resolve({
+      data: {
+        id: "user-1",
+        stripe_customer_id: "cus_existing",
+        onboarding_link_sent_at: "2026-07-17T10:00:00.000Z",
+      },
+      error: null,
+    }),
+  );
 
   vi.doMock("@/lib/db/client", () => ({ serverDb: db.serverDb }));
   vi.doMock("@/lib/config/env", () => ({ env: { appUrl: "https://reachkit.app" } }));
@@ -123,6 +136,132 @@ test("provisionCheckoutUser skips the magic-link resend on a redelivered event f
   expect(db.spies.update).toHaveBeenCalledWith(
     expect.objectContaining({ stripe_customer_id: "cus_existing", stripe_subscription_id: "sub_existing" }),
   );
+});
+
+// ---------------------------------------------------------------------------
+// THE RACE (regression guard). Stripe does not guarantee event ordering. When
+// `customer.subscription.*` lands FIRST, its defensive create
+// (resolveOrCreateUserForCustomer → ensureAuthUser) already made the account
+// AND bound `stripe_customer_id` — while explicitly deferring the email:
+// "No magic link is sent here — the checkout.session.completed handler owns
+// that". The old idempotency proxy then read that bound column, concluded
+// "redelivery", and sent nothing. Each half assumed the other would send it,
+// so the user paid and could never log in.
+//
+// The link has NOT been sent (onboarding_link_sent_at IS NULL) — so it must go.
+// ---------------------------------------------------------------------------
+test("provisionCheckoutUser sends the magic link when a subscription-first race already bound the customer id", async () => {
+  const db = makeServerDb({
+    createUserResult: { data: null, error: { message: "User already registered" } },
+    existingStripeCustomerId: "cus_raced", // bound by the defensive create, NOT by us
+    onboardingLinkSentAt: null, // ...but nobody has ever sent the link
+  });
+  const sendMagicLinkEmail = vi.fn().mockResolvedValue(undefined);
+
+  db.spies.selectMaybeSingle.mockImplementation(() =>
+    Promise.resolve({
+      data: { id: "user-1", stripe_customer_id: "cus_raced", onboarding_link_sent_at: null },
+      error: null,
+    }),
+  );
+
+  vi.doMock("@/lib/db/client", () => ({ serverDb: db.serverDb }));
+  vi.doMock("@/lib/config/env", () => ({ env: { appUrl: "https://reachkit.app" } }));
+  vi.doMock("@/lib/email/resend", () => ({ sendMagicLinkEmail }));
+
+  const { provisionCheckoutUser } = await import("./provision");
+
+  await provisionCheckoutUser({
+    email: "founder@acme.com",
+    stripeCustomerId: "cus_raced",
+    stripeSubscriptionId: "sub_raced",
+    sendMagicLink: true,
+  });
+
+  expect(sendMagicLinkEmail).toHaveBeenCalledOnce();
+  // ...and the send is RECORDED, so the next redelivery skips it.
+  expect(db.spies.update).toHaveBeenCalledWith(
+    expect.objectContaining({ onboarding_link_sent_at: expect.any(String) }),
+  );
+});
+
+// ---------------------------------------------------------------------------
+// THE DEEPEN POLICY (regression guard). The legacy in-app upgrade carries NO
+// scanId (metadata is { userId, plan, interval }), so a scanId-driven deepen
+// silently never ran for it: a logged-in free user upgrading from the paywall
+// kept a free report forever. Deepening by OWNERSHIP covers both shapes.
+// ---------------------------------------------------------------------------
+test("provisionCheckoutUser deepens the user's owned scans even with no scanId (legacy in-app upgrade)", async () => {
+  const ensureDeepScan = vi.fn().mockResolvedValue(true);
+
+  // users: select("app_ids") → one tracked app. scans: the latest completed
+  // scan for it, plus an older one that must NOT be deepened.
+  const usersMaybeSingle = vi.fn().mockResolvedValue({
+    data: { id: "user-1", app_ids: ["app-1"], onboarding_link_sent_at: null },
+    error: null,
+  });
+  const usersSelect = vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ maybeSingle: usersMaybeSingle }) });
+  const usersUpdate = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
+
+  const scansOrder = vi.fn().mockResolvedValue({
+    data: [
+      { id: "scan-new", app_id: "app-1", completed_at: "2026-07-17T00:00:00Z" },
+      { id: "scan-old", app_id: "app-1", completed_at: "2026-07-01T00:00:00Z" },
+    ],
+    error: null,
+  });
+  const scansNot = vi.fn().mockReturnValue({ order: scansOrder });
+  const scansIn = vi.fn().mockReturnValue({ not: scansNot });
+  const scansSelect = vi.fn().mockReturnValue({ in: scansIn });
+
+  const from = vi.fn((table: string) =>
+    table === "scans" ? { select: scansSelect } : { select: usersSelect, update: usersUpdate },
+  );
+  const serverDb = vi.fn().mockReturnValue({ from, auth: { admin: { createUser: vi.fn(), generateLink: vi.fn() } } });
+
+  vi.doMock("@/lib/db/client", () => ({ serverDb }));
+  vi.doMock("@/lib/config/env", () => ({ env: { appUrl: "https://reachkit.app" } }));
+  vi.doMock("@/lib/email/resend", () => ({ sendMagicLinkEmail: vi.fn() }));
+  vi.doMock("@/lib/scan/deepen", () => ({ ensureDeepScan }));
+  vi.doMock("@/lib/auth/profile", () => ({ linkScanToUser: vi.fn() }));
+
+  const { provisionCheckoutUser } = await import("./provision");
+
+  await provisionCheckoutUser({
+    userId: "user-1", // legacy shape: pre-resolved, no email, no scanId
+    stripeCustomerId: "cus_inapp",
+    sendMagicLink: false,
+  });
+
+  // Only the LATEST completed scan per app — not every historical scan.
+  expect(ensureDeepScan).toHaveBeenCalledOnce();
+  expect(ensureDeepScan).toHaveBeenCalledWith("scan-new");
+});
+
+// ---------------------------------------------------------------------------
+// The legacy in-app upgrade is already logged in — it must never be emailed a
+// login link, regardless of the recorded state.
+// ---------------------------------------------------------------------------
+test("provisionCheckoutUser never sends a link when the caller opts out (legacy in-app upgrade)", async () => {
+  const db = makeServerDb({
+    createUserResult: { data: { user: { id: "user-1" } }, error: null },
+    onboardingLinkSentAt: null,
+  });
+  const sendMagicLinkEmail = vi.fn().mockResolvedValue(undefined);
+
+  vi.doMock("@/lib/db/client", () => ({ serverDb: db.serverDb }));
+  vi.doMock("@/lib/config/env", () => ({ env: { appUrl: "https://reachkit.app" } }));
+  vi.doMock("@/lib/email/resend", () => ({ sendMagicLinkEmail }));
+
+  const { provisionCheckoutUser } = await import("./provision");
+
+  await provisionCheckoutUser({
+    email: "founder@acme.com",
+    stripeCustomerId: "cus_inapp",
+    sendMagicLink: false,
+  });
+
+  expect(sendMagicLinkEmail).not.toHaveBeenCalled();
 });
 
 // ---------------------------------------------------------------------------
