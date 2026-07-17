@@ -94,6 +94,66 @@ jobs:
         run: pnpm eval
       - name: Integration tests
         run: pnpm test:int
+  mobile-smoke:
+    # Mobile horizontal-overflow guard (scripts/render-mobile.mjs). render-smoke
+    # renders at desktop viewport with --dump-dom (static markup, no layout) and
+    # cannot see that a page overflows a phone; the globals.css html{overflow-x:
+    # clip} guard hides the spill from scrollWidth. This job loads each key route
+    # at 390px + 360px over CDP and FAILS if any content element spills past the
+    # viewport. Built server + Chrome required, so it runs here, never pre-commit.
+    #
+    # ⚠️ NON-BLOCKING (continue-on-error) UNTIL the mobile-readiness work lands.
+    # The guard is deliberately introduced RED — it must be seen failing on the
+    # current layout to prove it bites (CLAUDE.md: "a guard you have not SEEN FAIL
+    # is not a guard"). Each mobile phase flips a set of routes green; when the
+    # last phase is merged, DELETE `continue-on-error` below to make it a hard
+    # gate (a strengthening ratchet — never weaken it back).
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - uses: supabase/setup-cli@v1
+        with: { version: 2.26.9 }
+      - uses: browser-actions/setup-chrome@v1
+        id: setup-chrome
+        with: { chrome-version: stable }
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Start local Supabase (applies migrations)
+        run: supabase start
+      - name: Write test env from local stack
+        # Same dummy-paid-keys pattern as eval-integration: env.ts's zod parse
+        # requires the paid keys to be non-empty; the values are never used at
+        # render time (fixtures mode). Without them the pages hit the env
+        # ZodError boundary instead of their real layout.
+        run: |
+          eval "$(supabase status -o env | grep -E '^(API_URL|ANON_KEY|SERVICE_ROLE_KEY)=')"
+          {
+            echo "SUPABASE_URL=$API_URL"
+            echo "SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "REACHKIT_USE_FIXTURES=true"
+            for k in ANTHROPIC_API_KEY DATAFORSEO_LOGIN DATAFORSEO_PASSWORD TAVILY_API_KEY RESEND_API_KEY PRODUCT_HUNT_TOKEN YOUTUBE_API_KEY VOYAGE_API_KEY INNGEST_SIGNING_KEY STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET STRIPE_PRICE_SOLO STRIPE_PRICE_GROWTH; do
+              echo "$k=ci-dummy-never-used"
+            done
+          } > .env.local
+      - name: Build
+        run: pnpm build
+      - name: Start server
+        run: |
+          pnpm start > /tmp/rk-start.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -sf -o /dev/null http://localhost:3000/ && break
+            sleep 2
+          done
+      - name: Mobile overflow guard (390px + 360px)
+        env:
+          CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path }}
+          BASE_URL: http://localhost:3000
+        run: pnpm test:mobile
   live-smoke:
     # Opt-in LIVE-mode smoke (REACHKIT_USE_FIXTURES=false). The fixture suite +
     # eval + code-review all MASK real-adapter / LLM-on-mixed-content bugs
