@@ -102,14 +102,16 @@ jobs:
     # at 390px + 360px over CDP and FAILS if any content element spills past the
     # viewport. Built server + Chrome required, so it runs here, never pre-commit.
     #
-    # ⚠️ NON-BLOCKING (continue-on-error) UNTIL the mobile-readiness work lands.
-    # The guard is deliberately introduced RED — it must be seen failing on the
-    # current layout to prove it bites (CLAUDE.md: "a guard you have not SEEN FAIL
-    # is not a guard"). Each mobile phase flips a set of routes green; when the
-    # last phase is merged, DELETE `continue-on-error` below to make it a hard
-    # gate (a strengthening ratchet — never weaken it back).
+    # BLOCKING. Introduced non-blocking and deliberately RED (a guard must be seen
+    # failing to prove it bites — CLAUDE.md), then flipped to a hard gate once
+    # every route rendered clean at 390px + 360px. It only ever strengthens: never
+    # re-add continue-on-error to make a regression pass — fix the layout instead.
+    #
+    # Covers the public + report routes. The authenticated /app/* routes need a
+    # session (MOBILE_APP_ROUTES=1 + MOBILE_AUTH_URL, a magic link minted by
+    # scripts/dev-auth-session.mjs against local Supabase) — run those locally; a
+    # seeded-session CI variant is a tracked follow-up.
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
