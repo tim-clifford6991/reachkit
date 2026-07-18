@@ -45,6 +45,10 @@ export interface CategoryGapRow {
 export interface DemandRow {
   keyword: string;
   volume: number;
+  /** The subject's best organic position for this term, when they rank for it at
+   *  all (undefined = not ranking). Lets an opportunity show "you're #12 for X"
+   *  instead of a bare "not winning" — the meaningful discovery. */
+  yourPosition?: number;
 }
 
 export interface SearchVisibility {
@@ -96,6 +100,16 @@ export interface SearchVisibility {
    *  sum) is RECONCILABLE by the reader (guard G4). The old report itemised only the
    *  unwon subset, so "1,250 searches" could never be checked against its parts. */
   categoryPhrases: DemandRow[];
+  /** The subject's REAL category rankings — every category term it ranks for
+   *  (won + not-won), highest-volume first, with volume + position. Derived from
+   *  the SAME `ranked_keywords` call the footprint uses (NO extra data call), so
+   *  the category demand can reflect the actual market the site competes in
+   *  (SpaceX ranks #12 for "space", 368k/mo) instead of only the LLM's seed
+   *  phrases. This is the "reality" half of the scale-invariant demand merge —
+   *  it dominates for established sites and is empty for a 0-ranking new site
+   *  (which then falls back to the seed volumes). Feeds `categoryPhrases` /
+   *  `categoryOpportunities` (both rendered), so it is never write-only. */
+  categoryRanked: CategoryGapRow[];
   /** Internal: category terms you already rank top-3 for (dedup for opportunities). */
   categoryWonKeywords: string[];
   // DELETED 2026-07-17 (free-scan honesty): `categoryCaptureRate` was
@@ -147,6 +161,10 @@ function classify(keyword: string, brandTokens: Set<string>, categoryVocab: Set<
 const WINNING_POSITION = 3;
 const CATEGORY_GAP_ROWS = 6;
 const OFFTOPIC_EXAMPLES = 3;
+/** How many of the subject's real category rankings to carry into the demand
+ *  merge (won + not-won, highest-volume first). Bounded so the payload stays lean
+ *  and a huge footprint can't sum into an incoherent "demand". */
+const CATEGORY_RANKED_ROWS = 15;
 /** Rough "full marks" target for category strength (≈ this many solid, sizable
  *  category rankings = a healthy category footprint). Tunable. */
 const CATEGORY_TARGET = 6;
@@ -174,7 +192,7 @@ export function computeSearchVisibility(
     score: 0, keywordsRanked: 0, estMonthlyVisits: 0, footprintComplete: false,
     brandPct: 0, categoryPct: 0, offTopicPct: 0,
     categoryGap: [], offTopicExamples: [], categoryWins: 0,
-    categoryDemand: 0, categoryOpportunities: [], categoryPhrases: [], categoryWonKeywords: [],
+    categoryDemand: 0, categoryOpportunities: [], categoryPhrases: [], categoryRanked: [], categoryWonKeywords: [],
   };
   if (kw.length === 0) return empty;
 
@@ -214,6 +232,15 @@ export function computeSearchVisibility(
     .slice(0, CATEGORY_GAP_ROWS)
     .map((r) => ({ keyword: r.keyword, volume: r.volume, yourPosition: r.position }));
 
+  // The subject's REAL category rankings (won + not-won), highest-volume first —
+  // the "reality" input to the scale-invariant demand merge (gather). Derived
+  // from the same classified rows as the score; adding it does NOT touch `score`.
+  const categoryRanked = category
+    .slice()
+    .sort((a, b) => b.volume - a.volume)
+    .slice(0, CATEGORY_RANKED_ROWS)
+    .map((r) => ({ keyword: r.keyword.toLowerCase(), volume: r.volume, yourPosition: r.position }));
+
   const offTopicExamples = rows
     .filter((r) => r.klass === "offtopic")
     .sort((a, b) => b.volume - a.volume)
@@ -235,6 +262,7 @@ export function computeSearchVisibility(
     categoryGap,
     offTopicExamples,
     categoryWins: category.filter((r) => r.position <= WINNING_POSITION).length,
+    categoryRanked,
     // Category-demand fields are filled by the gather (needs the keyword_ideas call);
     // defaults here keep computeSearchVisibility pure + usable stand-alone.
     categoryDemand: 0,
@@ -248,7 +276,7 @@ const EMPTY: SearchVisibility = {
   score: 0, keywordsRanked: 0, estMonthlyVisits: 0, footprintComplete: false,
   brandPct: 0, categoryPct: 0, offTopicPct: 0,
   categoryGap: [], offTopicExamples: [], categoryWins: 0,
-  categoryDemand: 0, categoryOpportunities: [], categoryPhrases: [], categoryWonKeywords: [],
+  categoryDemand: 0, categoryOpportunities: [], categoryPhrases: [], categoryRanked: [], categoryWonKeywords: [],
 };
 
 const isSpecificSeed = (s: string) => s.includes(" ") || s.replace(/[^a-z0-9]/g, "").length >= 5;
@@ -269,36 +297,65 @@ export function buildCategorySeeds(sv: SearchVisibility, llmSeeds: string[]): st
 }
 
 const OPPORTUNITY_ROWS = 6;
+/** How many merged category terms define the demand total + itemised phrases.
+ *  Bounded so an established site's huge footprint sums into a coherent headline
+ *  (the top of the category), and so `categoryDemand === Σ categoryPhrases`
+ *  reconciles against a readable list (G4). */
+const CATEGORY_DEMAND_ROWS = 8;
 
 /**
- * Category demand from the EXACT volumes of the LLM's category seed phrases (via
- * google_ads/search_volume — no keyword_ideas expansion, so no off-topic noise like
- * "google calendar"/"walmart revenue"). demand = Σ seed volume; capture rate = your
- * captured category searches ÷ that demand; opportunities = the category searches
- * you don't already win. The LLM named the category; DataForSEO supplies the volume.
+ * Category demand — the size of the market the subject competes in — built by
+ * MERGING two sources we ALREADY have (no extra data call):
+ *   1. `categoryRanked` — the subject's REAL category rankings (volume + position),
+ *      classified from the one `ranked_keywords` call. This is the reality that
+ *      dominates for an established site (SpaceX ranks #12 for "space", 368k/mo).
+ *   2. `seedVolumes` — the EXACT volumes of the LLM's category seed phrases (via
+ *      google_ads/search_volume, no keyword_ideas expansion → no off-topic noise).
+ *      This is the framing that WORKS AT ZERO RANKINGS, so a brand-new site still
+ *      gets a real "your category gets X searches/mo" insight.
+ * ONE scale-invariant rule: dedup by keyword (max volume, best known position),
+ * rank by volume, take the top N. A big site's real rankings dominate the merge;
+ * a 0-ranking site falls back to the seeds — no big-vs-small special case. Fixes
+ * the SpaceX class where the demand was Σ(2 narrow LLM seeds) = 8,170 while the
+ * site actually ranks in a category worth hundreds of thousands of searches/mo.
+ * `position` (from the ranked data or `rankByKeyword`) rides through so an
+ * opportunity can render "you're #12 for X", the meaningful discovery.
  */
 export function computeCategoryDemand(
   seedVolumes: Array<{ keyword: string; volume: number }>,
   rankByKeyword: Map<string, number>,
+  categoryRanked: DemandRow[] = [],
 ): Pick<SearchVisibility, "categoryDemand" | "categoryOpportunities" | "categoryPhrases"> {
-  const byKw = new Map<string, number>();
-  for (const r of seedVolumes) {
-    if (r.volume <= 0) continue;
-    const k = r.keyword.toLowerCase();
-    byKw.set(k, Math.max(byKw.get(k) ?? 0, r.volume));
-  }
-  const rows = [...byKw.entries()].map(([keyword, volume]) => ({ keyword, volume })).sort((a, b) => b.volume - a.volume);
+  const byKw = new Map<string, { keyword: string; volume: number; position?: number }>();
+  const add = (rawKeyword: string, volume: number, position?: number) => {
+    if (volume <= 0) return;
+    const keyword = rawKeyword.toLowerCase();
+    const pos = position ?? rankByKeyword.get(keyword);
+    const cur = byKw.get(keyword);
+    if (!cur) {
+      byKw.set(keyword, { keyword, volume, position: pos });
+    } else {
+      cur.volume = Math.max(cur.volume, volume);
+      if (pos !== undefined && (cur.position === undefined || pos < cur.position)) cur.position = pos;
+    }
+  };
+  // Reality first (carries position), then the LLM seeds fill in / cover zero-rank sites.
+  for (const r of categoryRanked) add(r.keyword, r.volume, r.yourPosition);
+  for (const r of seedVolumes) add(r.keyword, r.volume);
+
+  const rows = [...byKw.values()].sort((a, b) => b.volume - a.volume).slice(0, CATEGORY_DEMAND_ROWS);
   const categoryDemand = rows.reduce((s, r) => s + r.volume, 0);
-  // Opportunities = the category searches you are NOT already winning (not ranked
-  // top 3 for the exact phrase), highest-volume first. (No captureRate — it was the
-  // score under a second label; deleted, guard G1.)
+  // Opportunities = the demand you are NOT already winning (not ranked top 3, or
+  // not ranking at all), highest-volume first — now the site's genuine big
+  // near-misses, not just the seed phrases. (No captureRate — it was the score
+  // under a second label; deleted, guard G1.)
   const categoryOpportunities = rows
-    .filter((r) => { const pos = rankByKeyword.get(r.keyword); return pos === undefined || pos > WINNING_POSITION; })
+    .filter((r) => r.position === undefined || r.position > WINNING_POSITION)
     .slice(0, OPPORTUNITY_ROWS)
-    .map((r) => ({ keyword: r.keyword, volume: r.volume }));
-  // G4: carry EVERY phrase (won + unwon) so categoryDemand === Σ categoryPhrases —
-  // the reader can reconcile "1,250 searches" against its named parts.
-  const categoryPhrases = rows.map((r) => ({ keyword: r.keyword, volume: r.volume }));
+    .map((r) => ({ keyword: r.keyword, volume: r.volume, yourPosition: r.position }));
+  // G4: itemise EXACTLY the rows summed into the total, so categoryDemand === Σ
+  // categoryPhrases — the reader can reconcile the headline against its named parts.
+  const categoryPhrases = rows.map((r) => ({ keyword: r.keyword, volume: r.volume, yourPosition: r.position }));
   return { categoryDemand, categoryOpportunities, categoryPhrases };
 }
 
@@ -354,7 +411,10 @@ export async function gatherFreeSearchVisibility(
     const seeds = buildCategorySeeds(sv, llmCategorySeeds);
     // Measure the EXACT volume of the category seed phrases (no expansion noise).
     const seedVolumes = seeds.length > 0 ? await cachedKeywordVolumes(seeds).catch(() => []) : [];
-    return { ...sv, ...computeCategoryDemand(seedVolumes, rankByKeyword) };
+    // Merge the site's REAL category rankings (sv.categoryRanked — from the SAME
+    // ranked_keywords call, no extra spend) with the seed volumes, so demand +
+    // opportunities reflect the actual market for big AND small sites alike.
+    return { ...sv, ...computeCategoryDemand(seedVolumes, rankByKeyword, sv.categoryRanked) };
   } catch {
     return EMPTY;
   }

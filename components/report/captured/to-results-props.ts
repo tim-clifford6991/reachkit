@@ -115,15 +115,22 @@ export function toResultsProps(
     gapCount = kg.length;
   } else {
     // FREE: the demand-derived opportunities — the biggest searches in your category
-    // that you don't win (real market demand, not just your own tiny near-misses).
+    // that you don't win, MERGED from your real category rankings + category demand
+    // (not just the LLM seeds). Each carries your actual position when you rank for
+    // it, so "where you are today" reads "#12" (a real, discoverable near-miss)
+    // rather than a bare "Not winning". `yourPosition` is optional and absent on
+    // pre-2026-07-18 payloads → "Not ranking" (no crash; null-coalesce rule).
     const opps = sv?.categoryOpportunities ?? [];
-    gapRows = opps.slice(0, 4).map((k) => ({
-      query: k.keyword,
-      volume: k.volume.toLocaleString(),
-      rank: "Not winning",
-      ranked: false,
-      opp: oppFor(k.volume),
-    }));
+    gapRows = opps.slice(0, 4).map((k) => {
+      const ranks = typeof k.yourPosition === "number";
+      return {
+        query: k.keyword,
+        volume: k.volume.toLocaleString(),
+        rank: ranks ? `#${k.yourPosition}` : "Not ranking",
+        ranked: ranks,
+        opp: oppFor(k.volume),
+      };
+    });
     gapCount = opps.length;
   }
 

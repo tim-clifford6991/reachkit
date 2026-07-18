@@ -120,6 +120,67 @@ describe("computeCategoryDemand (from exact seed-phrase volumes)", () => {
   });
 });
 
+// The scale-invariant demand merge (2026-07-18) — fixes the SpaceX class where
+// demand was Σ(2 narrow LLM seeds) = 8,170 while the site actually ranks in a
+// category worth hundreds of thousands of searches/mo (it ranks #12 for "space",
+// 368k). ONE rule for big + small: the site's REAL category rankings
+// (sv.categoryRanked, from the same ranked_keywords call — no new spend) MERGE
+// with the seed volumes; real rankings dominate for a big site, seeds fill in /
+// cover a 0-ranking new site.
+describe("computeCategoryDemand — merges the REAL category footprint (scale-invariant)", () => {
+  // A SpaceX-shaped footprint: high-volume category terms it ranks for but hasn't
+  // won, plus one it HAS won, plus a brand term and an off-topic term.
+  const SPACEX_VOCAB = buildVocab("spacex.com", ["rocket launch space exploration commercial spaceflight starship"]);
+  const SPACEX_KW: RankedKeyword[] = [
+    kw("space", 12, 368000, 5000),              // category, big near-miss
+    kw("space launch system", 10, 110000, 800), // category, near-miss
+    kw("rocket launch", 4, 74000, 900),         // category, near-miss (pos 4 > 3)
+    kw("starship", 1, 50000, 4000),             // category, WON (pos 1) → not an opportunity
+    kw("spacex", 1, 200000, 8000),              // brand
+    kw("dragon", 5, 30000, 500),                // off-topic (no vocab token)
+  ];
+
+  it("computeSearchVisibility exposes the real category rankings (volume + position), highest-volume first", () => {
+    const sv = computeSearchVisibility(SPACEX_KW, SPACEX_VOCAB);
+    expect(sv.categoryRanked[0]).toEqual({ keyword: "space", volume: 368000, yourPosition: 12 });
+    expect(sv.categoryRanked.map((r) => r.keyword)).toEqual(["space", "space launch system", "rocket launch", "starship"]);
+    // Brand + off-topic terms are NOT category rankings.
+    expect(sv.categoryRanked.map((r) => r.keyword)).not.toContain("spacex");
+    expect(sv.categoryRanked.map((r) => r.keyword)).not.toContain("dragon");
+  });
+
+  it("demand + opportunities reflect the REAL footprint, not the 2 narrow seeds (the SpaceX fix)", () => {
+    const sv = computeSearchVisibility(SPACEX_KW, SPACEX_VOCAB);
+    const rankByKeyword = new Map(SPACEX_KW.map((k) => [k.keyword.toLowerCase(), k.position] as const));
+    // The LLM's thin seed — the ONLY category signal in the old design.
+    const seedVolumes = [{ keyword: "launch services", volume: 8100 }];
+    const d = computeCategoryDemand(seedVolumes, rankByKeyword, sv.categoryRanked);
+
+    // demand is the real category (~610k), NOT the 8,100 seed.
+    expect(d.categoryDemand).toBe(368000 + 110000 + 74000 + 50000 + 8100);
+    expect(d.categoryDemand).toBeGreaterThan(500000);
+
+    // the biggest opportunity is the real near-miss WITH its position — the discovery.
+    expect(d.categoryOpportunities[0]).toEqual({ keyword: "space", volume: 368000, yourPosition: 12 });
+    // a WON term (starship, pos 1) is never an opportunity.
+    expect(d.categoryOpportunities.map((o) => o.keyword)).not.toContain("starship");
+    // the thin seed is dwarfed, not the headline.
+    expect(d.categoryOpportunities[0]?.keyword).not.toBe("launch services");
+
+    // G4 still holds: the total is exactly the sum of its named parts.
+    expect(d.categoryDemand).toBe(d.categoryPhrases.reduce((s, p) => s + p.volume, 0));
+  });
+
+  it("scale-invariance: a 0-ranking site falls back to the seeds (categoryRanked empty)", () => {
+    const seedVolumes = [{ keyword: "launch services", volume: 8100 }, { keyword: "commercial space launch", volume: 70 }];
+    const d = computeCategoryDemand(seedVolumes, new Map(), []); // no footprint
+    expect(d.categoryDemand).toBe(8170); // identical to the seed-only behaviour
+    expect(d.categoryOpportunities.map((o) => o.keyword)).toEqual(["launch services", "commercial space launch"]);
+    // No rankings → no position on the opportunities.
+    expect(d.categoryOpportunities.every((o) => o.yourPosition === undefined)).toBe(true);
+  });
+});
+
 describe("buildCategorySeeds — LLM seeds are authoritative", () => {
   it("prefers the LLM's clean category phrases over the subject's own rankings", () => {
     const sv = computeSearchVisibility(
@@ -162,7 +223,7 @@ describe("free-scan number honesty (guards G1, G2)", () => {
     const sv: SearchVisibility = {
       score: 5, keywordsRanked: 2100, estMonthlyVisits: 100, footprintComplete: true,
       brandPct: 10, categoryPct: 20, offTopicPct: 70, categoryGap: [], offTopicExamples: [],
-      categoryWins: 0, categoryDemand: 1000, categoryOpportunities: [], categoryPhrases: [], categoryWonKeywords: [],
+      categoryWins: 0, categoryDemand: 1000, categoryOpportunities: [], categoryPhrases: [], categoryRanked: [], categoryWonKeywords: [],
     };
     // @ts-expect-error — categoryCaptureRate is deleted; referencing it must not typecheck.
     expect(sv.categoryCaptureRate).toBeUndefined();
