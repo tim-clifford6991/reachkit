@@ -26,6 +26,7 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
 import { makeFixtureProvider } from "@/lib/dev/fixtures";
+import { env } from "@/lib/config/env";
 import type { ListingFacts, Competitor, ReviewItem } from "@/lib/scan/types";
 
 // Fixture mode ON for the whole file — keyless extract/synth/actions/critic/embed/email.
@@ -62,30 +63,37 @@ beforeEach(() => {
 // Reset the injected fixture provider after each test so it never leaks.
 afterEach(() => resetFixtures());
 
+/** Mock ONLY the two network adapters the collect-step D-tools use, with canned
+ *  data, so the tools run their REAL persistence without hitting the network.
+ *  Shared by the full-path and free-path e2e tests. */
+function mockCollectAdapters() {
+  vi.doMock("@/lib/scan/adapters/itunes", () => ({
+    appIdFromUrl: (url: string) => {
+      const m = url.match(/id(\d+)/);
+      if (!m) throw new Error(`no app id in ${url}`);
+      return m[1] as string;
+    },
+    fetchItunesListing: vi.fn().mockResolvedValue({
+      listing: CANNED_LISTING,
+      rating: 4.7,
+      ratingCount: 2800,
+      raw: { fixture: true, listing: CANNED_LISTING },
+    }),
+    fetchItunesCompetitors: vi.fn().mockResolvedValue(CANNED_COMPETITORS),
+  }));
+  vi.doMock("@/lib/scan/adapters/app-store-rss", () => ({
+    parseRssPage: () => CANNED_REVIEWS,
+    fetchAppReviews: vi.fn().mockResolvedValue(CANNED_REVIEWS),
+  }));
+}
+
 test(
   "scan/requested e2e (fixtures) — all 5 steps → report_payload + done event + actions + monitors",
   async () => {
     // Mock ONLY the network adapters used by the collect-step D-tools. The tools
     // themselves run their real persistence (upsertRawDocument) + telemetry so
     // raw_documents / pipeline_runs are written exactly as in production.
-    vi.doMock("@/lib/scan/adapters/itunes", () => ({
-      appIdFromUrl: (url: string) => {
-        const m = url.match(/id(\d+)/);
-        if (!m) throw new Error(`no app id in ${url}`);
-        return m[1] as string;
-      },
-      fetchItunesListing: vi.fn().mockResolvedValue({
-        listing: CANNED_LISTING,
-        rating: 4.7,
-        ratingCount: 2800,
-        raw: { fixture: true, listing: CANNED_LISTING },
-      }),
-      fetchItunesCompetitors: vi.fn().mockResolvedValue(CANNED_COMPETITORS),
-    }));
-    vi.doMock("@/lib/scan/adapters/app-store-rss", () => ({
-      parseRssPage: () => CANNED_REVIEWS,
-      fetchAppReviews: vi.fn().mockResolvedValue(CANNED_REVIEWS),
-    }));
+    mockCollectAdapters();
 
     // Dynamic import AFTER mocking so transitive modules pick up the mocks + env stub.
     const { InngestTestEngine } = await import("@inngest/test");
@@ -206,4 +214,77 @@ test(
     }
   },
   180_000, // mocked collect + fixture findings/full-scan — generous ceiling
+);
+
+test(
+  "scan/requested e2e (fixtures) — a FREE scan runs the lightweight path only: tier stays 'free', NO deep pass, cost ≤ free cap",
+  async () => {
+    // OPERATIONAL GUARD (C3, "the app is operational, every build"): the whole
+    // reason this program exists. A scan submitted FREE must run collect →
+    // findings → free-report and STOP — never the deep full-scan pass. The deep
+    // pass is what a paid /app/add (or checkout) triggers, and it is what a
+    // "free" cardpointers.com scan wrongly ran (66¢, tier flipped to full,
+    // auto-tracked, 2026-07-18). Here we drive the REAL scanRequested function
+    // with a tier:"free" scan and assert the deep-pass artefacts are ABSENT.
+    mockCollectAdapters();
+
+    const { InngestTestEngine } = await import("@inngest/test");
+    const { serverDb } = await import("@/lib/db/client");
+    const { scanRequested } = await import("@/lib/inngest/functions/scan-requested");
+
+    const db = serverDb();
+
+    const { data: appRow, error: appErr } = await db
+      .from("apps")
+      .insert({ store_url: `${APP_URL}-free`, platform: "ios", name: "ReachKit E2E Fixture (free)" })
+      .select("id")
+      .single();
+    expect(appErr).toBeNull();
+    if (!appRow) throw new Error("No app row returned");
+    const appId = appRow.id as string;
+
+    const { data: scanRow, error: scanErr } = await db
+      .from("scans")
+      .insert({ app_id: appId, status: "queued", tier: "free" }) // <-- FREE
+      .select("id")
+      .single();
+    expect(scanErr).toBeNull();
+    if (!scanRow) throw new Error("No scan row returned");
+    const scanId = scanRow.id as string;
+
+    // Drive the REAL function; the sender stamps tier onto the event (Part B).
+    const engine = new InngestTestEngine({ function: scanRequested });
+    const { result } = await engine.execute({
+      events: [{ name: "scan/requested", data: { scanId, tier: "free" } }],
+    });
+    expect(result).toMatchObject({ ok: true, factsMode: "ios" });
+
+    // The free scan produced a renderable teaser and finished cleanly.
+    const { data: scanFinal, error: scanFinalErr } = await db
+      .from("scans")
+      .select("status, tier, deepened_at, report_payload, dataforseo_cost_cents, tavily_cost_cents")
+      .eq("id", scanId)
+      .single();
+    expect(scanFinalErr).toBeNull();
+    if (!scanFinal) throw new Error("No scan row after execution");
+
+    expect(scanFinal.status).toBe("done");
+    expect(scanFinal.report_payload).not.toBeNull(); // the free teaser rendered
+
+    // THE INVARIANT — the free scan never became a deep/full scan:
+    expect(scanFinal.tier).toBe("free"); // tier never flipped
+    expect(scanFinal.deepened_at).toBeNull(); // the deep-pass sentinel (full-scan.ts:706) never ran
+
+    // No deep-pass artefacts: full-scan is the ONLY writer of monitors + actions.
+    const { data: monitorRows } = await db.from("monitors").select("id").eq("app_id", appId);
+    expect((monitorRows ?? []).length).toBe(0); // deep pass seeds the 4 weekly monitors; free does not
+    const { data: actionRows } = await db.from("actions").select("id").eq("scan_id", scanId);
+    expect((actionRows ?? []).length).toBe(0); // deep pass persists the Critic plan; free does not
+
+    // Cost stays within the FREE ceiling (fixtures spend ~0; a regression that
+    // ran full work here would blow past it — the cardpointers 66¢ class).
+    const external = Number(scanFinal.dataforseo_cost_cents ?? 0) + Number(scanFinal.tavily_cost_cents ?? 0);
+    expect(external).toBeLessThanOrEqual(env.externalScanCapCentsFree);
+  },
+  180_000,
 );

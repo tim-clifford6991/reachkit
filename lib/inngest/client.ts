@@ -1,8 +1,13 @@
 import { Inngest, eventType, staticSchema } from "inngest";
 
 // Typed event definitions (v4 style: eventType + staticSchema instead of EventSchemas)
+// `tier` is stamped by the sender (it's fixed at scan-row insert) so the collect
+// step's external soft cap can be the TIER ceiling from the very first call —
+// otherwise a free scan's collect runs under the 150¢ full cap (the free 25¢ cap
+// only engaged from the findings step onward). Optional for backwards-compat with
+// any in-flight event mid-deploy (the collect step degrades to the full cap then).
 export const scanRequestedEvent = eventType("scan/requested", {
-  schema: staticSchema<{ scanId: string }>(),
+  schema: staticSchema<{ scanId: string; tier?: "free" | "full" }>(),
 });
 
 export const scanDemoRequestedEvent = eventType("scan/demo.requested", {

@@ -164,13 +164,14 @@ export async function addTrackedProduct(userId: string, rawUrl: string): Promise
 
 /** Insert a scan row at the viewer's tier and kick the pipeline. Mirrors /api/scan. */
 async function startScan(appId: string, paid: boolean): Promise<string | null> {
-  const scan = await serverDb().from("scans").insert({ app_id: appId, status: "queued", tier: paid ? "full" : "free" }).select("id").single();
+  const tier: "free" | "full" = paid ? "full" : "free";
+  const scan = await serverDb().from("scans").insert({ app_id: appId, status: "queued", tier }).select("id").single();
   if (scan.error || !scan.data) {
     console.error("[add-product] scan row insert failed", scan.error?.message);
     return null; // app still links; the dashboard offers retry (never strand a slot)
   }
   try {
-    await inngest.send({ name: "scan/requested", data: { scanId: scan.data.id } });
+    await inngest.send({ name: "scan/requested", data: { scanId: scan.data.id, tier } });
   } catch (err) {
     console.error("[add-product] scan/requested send failed", err instanceof Error ? err.message : err);
     // The row exists but nothing will ever process it. Leaving status:"queued"
