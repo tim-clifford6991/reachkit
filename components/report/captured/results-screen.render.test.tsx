@@ -53,6 +53,7 @@ function sv(over: Partial<SearchVisibility> = {}): SearchVisibility {
       { keyword: "portfolio builder", volume: 900 },
       { keyword: "photo hosting", volume: 2700 },
     ],
+    categoryRanked: [],
     categoryWonKeywords: [],
     ...over,
   };
@@ -285,7 +286,8 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
       brandPct: 30, categoryPct: 20, offTopicPct: 50,
       categoryGap: [], offTopicExamples: [], categoryWins: 0,
       categoryDemand: 8000, categoryOpportunities: [], categoryWonKeywords: [],
-      // deliberately NO footprintComplete, NO categoryPhrases — they postdate this payload.
+      // deliberately NO footprintComplete, NO categoryPhrases, NO categoryRanked —
+      // they postdate this payload. The render must tolerate their absence.
     } as unknown as SearchVisibility;
     const r = report({ searchVisibility: legacySv });
     const html = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r, "reflect.app", 2, 8)} scanId="scan-legacy" />);
