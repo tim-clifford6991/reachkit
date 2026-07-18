@@ -30,7 +30,15 @@ export function cachedBacklinks(target: string, limit = 250): Promise<Referrer[]
 
 /** Ranked keywords for a domain (keyword, position, volume, etv, url). 14d. */
 export function cachedRankedKeywords(domain: string, limit = 100): Promise<RankedKeyword[]> {
-  return cachedJson(`rk:${norm(domain)}:${limit}`, 14 * DAY_MS, () => fetchRankedKeywords(domain, limit));
+  // `fetchRankedKeywords` NEVER throws — it returns [] on a transient DataForSEO
+  // 5xx/timeout. Without this guard that [] is cached for 14 DAYS (invariant #3,
+  // don't-cache-empties), which craters the free search-presence score to 0 →
+  // "Google ranks you for 0 searches / invisible" for a site that ranks, and
+  // desyncs against the (guarded) domain_rank_overview true totals. Every sibling
+  // wrapper here has this guard; this one was missing it.
+  return cachedJson(`rk:${norm(domain)}:${limit}`, 14 * DAY_MS, () => fetchRankedKeywords(domain, limit), {
+    isEmpty: (kw) => kw.length === 0,
+  });
 }
 
 /** TRUE organic footprint totals (count + ETV) for a domain. 14d. `null` is the

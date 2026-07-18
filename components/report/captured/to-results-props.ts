@@ -136,13 +136,19 @@ export function toResultsProps(
         onPageReadiness: sv.onPageReadiness ?? report.score.total,
         keywordsRanked: sv.keywordsRanked,
         estMonthlyVisits: sv.estMonthlyVisits,
-        footprintComplete: sv.footprintComplete,
+        // `footprintComplete` + `categoryPhrases` were added in the free-scan number-
+        // honesty work (WS1/WS2). `report_payload` is one JSON blob and OLDER scans
+        // predate these fields — every consumer MUST null-coalesce or the render
+        // crashes `undefined.length` on a pre-WS2 payload (live: a 2026-07-12
+        // reflect.app scan re-rendered on the WS2 build → TypeError). Default false
+        // (old payloads were the capped-50 sample) and [] (no reconcilable phrases).
+        footprintComplete: sv.footprintComplete ?? false,
         brandPct: sv.brandPct,
         categoryPct: sv.categoryPct,
         offTopicPct: sv.offTopicPct,
         categoryWins: sv.categoryWins,
         categoryDemand: sv.categoryDemand,
-        categoryPhrases: sv.categoryPhrases,
+        categoryPhrases: sv.categoryPhrases ?? [],
       }
     : null;
 

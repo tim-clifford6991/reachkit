@@ -272,6 +272,27 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
     expect(html).toContain("Search presence is your gap.");
   });
 
+  it("LEGACY payload (predates a report_payload section) renders without crashing — the null-coalesce rule, machine-enforced", () => {
+    // WHY THIS EXISTS (the process gap that shipped a live crash): report_payload is
+    // ONE JSON blob and OLDER scans predate fields added later (WS1's footprintComplete,
+    // WS2's categoryPhrases). Every other render test builds the CURRENT shape via sv(),
+    // so a consumer that forgot `?? []` on a new field is invisible — true by
+    // construction. A 2026-07-12 reflect.app scan re-rendered on the WS2 build crashed
+    // `undefined.length` at the categoryPhrases chips. This renders a PRE-WS2 payload
+    // (categoryDemand > 0 so that exact block renders) and asserts it does NOT throw.
+    const legacySv = {
+      score: 46, onPageReadiness: 80, keywordsRanked: 50, estMonthlyVisits: 400,
+      brandPct: 30, categoryPct: 20, offTopicPct: 50,
+      categoryGap: [], offTopicExamples: [], categoryWins: 0,
+      categoryDemand: 8000, categoryOpportunities: [], categoryWonKeywords: [],
+      // deliberately NO footprintComplete, NO categoryPhrases — they postdate this payload.
+    } as unknown as SearchVisibility;
+    const r = report({ searchVisibility: legacySv });
+    const html = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r, "reflect.app", 2, 8)} scanId="scan-legacy" />);
+    expect(html).toContain("searches/mo across your category"); // the demand block rendered
+    assertNoGarbage(html, "legacy payload");
+  });
+
   it("locked band with zero worth: omits the 'worth an estimated +N' clause instead of rendering '+0'", () => {
     // Real scans have shipped cards carrying delta 0 (the positive-filter
     // fallback in toResultsProps exists because of them). With 4 zero-delta
