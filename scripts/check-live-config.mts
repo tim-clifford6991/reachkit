@@ -146,6 +146,60 @@ const pricingHtml = await fetch(`${PROD}/pricing`)
 if (!pricingHtml.includes("€59")) fail("/pricing does not render €59 — price copy or deploy drift");
 else ok("/pricing renders €59");
 
+// ── 6. Live free-scan operational smoke (OPT-IN) ──────────────────────────
+// The owner's "part of every build that we can SCAN, that the whole app is
+// operational" ask, as a REAL-adapter live check (CLAUDE.md "always live-test
+// against real adapters" finally gets a machine home). OFF by default: it POSTs
+// a real anonymous scan to prod → spends ~20¢ and creates a prod scan row, so it
+// only runs when explicitly enabled. An anonymous scan is 'free' by construction
+// (the paid→free tier invariant on the public surface is guarded DETERMINISTICALLY
+// every build by app/api/scan/route.tier.test.ts + the free-path e2e in
+// tests/integration/scan-requested-e2e.test.ts — live-testing the authed-paid
+// path would spend a real DEEP scan on the owner's account, so it is not smoked
+// here). This section verifies the pipeline reaches `done` on real adapters.
+if (process.env.LIVE_SCAN_SMOKE === "1") {
+  console.log("6. live free-scan smoke (opt-in — spends ~20¢, creates a prod scan row)");
+  const SMOKE_URL = process.env.LIVE_SCAN_SMOKE_URL ?? "https://example.com";
+  try {
+    const started = await fetch(`${PROD}/api/scan`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ store_url: SMOKE_URL }),
+    }).then((r) => r.json());
+    const scanId: string | undefined = started?.scan_id;
+    if (!scanId) {
+      fail(`/api/scan did not return a scan_id: ${JSON.stringify(started)}`);
+    } else {
+      // Tail the SSE stream until a terminal `done`/`error` or a 120s bound.
+      const controller = new AbortController();
+      const deadline = setTimeout(() => controller.abort(), 120_000);
+      let done = false;
+      let errored = false;
+      try {
+        const res = await fetch(`${PROD}/api/scan/${scanId}/stream`, { signal: controller.signal });
+        const reader = res.body?.getReader();
+        const dec = new TextDecoder();
+        let buf = "";
+        while (reader) {
+          const { value, done: streamDone } = await reader.read();
+          if (streamDone) break;
+          buf += dec.decode(value, { stream: true });
+          if (/"type"\s*:\s*"done"/.test(buf)) { done = true; break; }
+          if (/"type"\s*:\s*"error"/.test(buf)) { errored = true; break; }
+        }
+      } catch { /* aborted on the 120s timeout → treated as not-done below */ }
+      clearTimeout(deadline);
+      if (done) ok(`free scan ${scanId} reached 'done' — pipeline operational on real adapters`);
+      else if (errored) fail(`free scan ${scanId} emitted an error event`);
+      else fail(`free scan ${scanId} did not reach 'done' within 120s (pipeline stalled?)`);
+    }
+  } catch (e) {
+    fail(`live free-scan smoke failed: ${e instanceof Error ? e.message : e}`);
+  }
+} else {
+  console.log("6. live free-scan smoke — SKIPPED (set LIVE_SCAN_SMOKE=1 to run; spends ~20¢, creates a prod scan row)");
+}
+
 // ── verdict ────────────────────────────────────────────────────────────────
 console.log(`\n${failures.length} failure(s), ${warnings.length} warning(s)`);
 for (const f of failures) console.log(`  FAIL: ${f}`);
