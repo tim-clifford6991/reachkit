@@ -46,11 +46,18 @@ export const scanRequested = inngest.createFunction(
   async ({ event, step }) => {
     const { scanId } = event.data;
 
+    // The sender stamps the tier onto the event (fixed at scan-row insert), so the
+    // collect step's external soft cap is the TIER ceiling from the first call — a
+    // free scan's collect no longer runs under the 150¢ full cap (that hole let a
+    // "free" scan overspend its 25¢ ceiling in collect: competitor discovery +
+    // Tavily/DFS + an LLM all run there). Falls back to the full ceiling only for a
+    // legacy in-flight event with no tier (degrade-safe during a deploy). The DB row
+    // remains the source of truth for the free/full BRANCH below.
+    const eventTier: ScanTier = event.data.tier === "free" ? "free" : "full";
+
     // Step 1: collect — load scan + app, run pipeline, persist facts.
     // Also reads `scans.tier`: the two-track split runs the heavy full-scan step
     // only for 'full' (paid); 'free' stops after findings (the cheap teaser).
-    // Tier is unknown until the row loads inside the step → cap at the full-tier
-    // ceiling here; the tier-exact cap applies from the findings step onward.
     const { facts, tier } = await step.run("collect", () => costedStep(scanId, async () => {
       const db = serverDb();
 
@@ -103,7 +110,7 @@ export const scanRequested = inngest.createFunction(
       await emitScanEvent(scanId, "facts", collectedFacts as unknown as Record<string, unknown>);
 
       return { facts: collectedFacts, tier: scanTier };
-    }, { capCents: env.externalScanCapCentsFull }));
+    }, { capCents: externalCapCentsForTier(eventTier) }));
 
     // Step 2: findings — run extract→synth→score, persist findings + score, emit findings event
     await step.run("findings", () => costedStep(scanId, async () => {

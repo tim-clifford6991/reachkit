@@ -69,7 +69,7 @@ export async function POST(): Promise<NextResponse> {
   }
 
   await linkScanToUser(scan.id, userId);
-  await inngest.send({ name: "scan/requested", data: { scanId: scan.id } });
+  await inngest.send({ name: "scan/requested", data: { scanId: scan.id, tier } });
 
   const slug = slugForScan({ storeUrl: app.store_url, platform: app.platform, scanId: scan.id });
   return NextResponse.json({ scan_id: scan.id, slug });
