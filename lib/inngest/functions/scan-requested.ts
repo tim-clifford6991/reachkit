@@ -10,6 +10,7 @@ import { emitScanEvent } from "@/lib/scan/progress";
 import { scanCostCents } from "@/lib/telemetry/pipeline-runs";
 import { handleScanPipelineFailure } from "@/lib/scan/terminal-status";
 import { costedStep } from "@/lib/scan/scan-telemetry";
+import { externalCapCentsFor, type ScanTier } from "@/lib/scan/scan-caps";
 import type { Json } from "@/lib/db/types";
 
 /** Cheap free-track ceiling (collect + findings + the PR B subject-only
@@ -19,14 +20,8 @@ import type { Json } from "@/lib/db/types";
  *  REAL $ ceiling is the cost-context measure (`scans.dataforseo_cost_cents`), not
  *  this coarse tool-call cent proxy — verify free stays ≤ ~$0.18 live. */
 const FREE_SCAN_BUDGET_CENTS = 20;
-type ScanTier = "free" | "full";
 function budgetCentsForTier(tier: ScanTier): number {
   return tier === "full" ? env.scanBudgetCents : FREE_SCAN_BUDGET_CENTS;
-}
-
-/** External DFS+Tavily soft cap for the tier (invariant #2 — degrade, never throw). */
-function externalCapCentsForTier(tier: ScanTier): number {
-  return tier === "full" ? env.externalScanCapCentsFull : env.externalScanCapCentsFree;
 }
 
 export const scanRequested = inngest.createFunction(
@@ -110,7 +105,7 @@ export const scanRequested = inngest.createFunction(
       await emitScanEvent(scanId, "facts", collectedFacts as unknown as Record<string, unknown>);
 
       return { facts: collectedFacts, tier: scanTier };
-    }, { capCents: externalCapCentsForTier(eventTier) }));
+    }, { capCents: externalCapCentsFor("collect", eventTier) }));
 
     // Step 2: findings — run extract→synth→score, persist findings + score, emit findings event
     await step.run("findings", () => costedStep(scanId, async () => {
@@ -155,7 +150,7 @@ export const scanRequested = inngest.createFunction(
         },
         facts,
       );
-    }, { capCents: externalCapCentsForTier(tier) }));
+    }, { capCents: externalCapCentsFor("findings", tier) }));
 
     // Step 2b: free-report — free scans get a lightweight report_payload (score +
     // positioning + findings + signal-derived baseline fixes; deep sections empty)
@@ -179,7 +174,7 @@ export const scanRequested = inngest.createFunction(
           { scanId, appId: scanRow.app_id, mode: app.platform, storeUrl: app.store_url, budget },
           facts,
         );
-      }, { capCents: env.externalScanCapCentsFree }));
+      }, { capCents: externalCapCentsFor("free-report", tier) }));
     }
 
     // Step 3: full-scan — heavy collect + actions + Critic + verified score + report.
@@ -221,7 +216,7 @@ export const scanRequested = inngest.createFunction(
           },
           facts,
         );
-      }, { capCents: env.externalScanCapCentsFull }));
+      }, { capCents: externalCapCentsFor("full-scan", tier) }));
     }
 
     // NOTE (2026-07-04, W5): the free tier previously ran a "light-market" step
