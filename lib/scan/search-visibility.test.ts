@@ -165,7 +165,7 @@ describe("computeCategoryDemand — merges the REAL category footprint (scale-in
     // a WON term (starship, pos 1) is never an opportunity.
     expect(d.categoryOpportunities.map((o) => o.keyword)).not.toContain("starship");
     // the thin seed is dwarfed, not the headline.
-    expect(d.categoryOpportunities[0].keyword).not.toBe("launch services");
+    expect(d.categoryOpportunities[0]?.keyword).not.toBe("launch services");
 
     // G4 still holds: the total is exactly the sum of its named parts.
     expect(d.categoryDemand).toBe(d.categoryPhrases.reduce((s, p) => s + p.volume, 0));
