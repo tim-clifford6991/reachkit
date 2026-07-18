@@ -128,9 +128,10 @@ sequenceDiagram
     participant SSE as /scan/[id]/stream
 
     U->>API: submit store/site URL
-    API->>DB: insert apps + scans (status=queued)
-    API->>ING: send "scan/requested" {scanId}
+    API->>DB: insert apps + scans (status=queued, tier=free ALWAYS)
+    API->>ING: send "scan/requested" {scanId, tier}
     API-->>U: redirect → /scan/[id]
+    Note over U,API: The PUBLIC surface is a free preview for EVERYONE (incl. paid<br/>viewers): tier=free, no deepen, no enrol (invariant #12). Deep<br/>scans + tracking are /app/add + checkout provision only.
 
     U->>SSE: subscribe (Server-Sent Events)
 
@@ -147,7 +148,8 @@ sequenceDiagram
     Note over U,SSE: Free score + report visible immediately
 
     U->>API: clicks upgrade → Stripe checkout
-    API->>ING: ensureDeepScan → send "scan/deepen"
+    Note over API,ING: Deepen originates from checkout provision (or /app/add),<br/>NOT the public scan route: ensureDeepScan → "scan/deepen"
+    API->>ING: (via webhook/provision) ensureDeepScan → send "scan/deepen"
     ING->>P: runFullScan (heavy pass)
     P->>EXT: deeper competitor + demand + keyword intel
     P->>LLM: deep synthesis + action generation
@@ -369,11 +371,13 @@ IP-hash / hour, 15-min in-flight dedupe (`abuse.ts`). Cold-scan cost ≈ **$0.10
 
 ### 5.2 DEEP / PAID pass — `runFullScan` (`full-scan.ts:485`)
 
-Reached two ways, same code: **(a)** `scan/requested` with `tier="full"` (paid viewer
-scans fresh), **(b)** `scan/deepen` via `ensureDeepScan` — flips `scans.tier→full`,
-reuses stored `preliminary_facts` (no re-collect), fired from Stripe checkout
-provisioning (`provision.ts:116`) or a paid viewer re-opening a free scan
-(`scan/route.ts:58`). Idempotent via `hasDeepReport` (sentinel `scans.deepened_at`).
+Reached two ways, same code: **(a)** `scan/requested` with `tier="full"` — from the
+**in-app** paths only (`/app/add`'s `startScan`, `/api/app/scan-current`); the PUBLIC
+`/api/scan` is always `tier="free"` (invariant #12), **(b)** `scan/deepen` via
+`ensureDeepScan` — flips `scans.tier→full`, reuses stored `preliminary_facts` (no
+re-collect), fired from Stripe checkout provisioning (`provision.ts:116`) or the
+in-app `/app/add` deepen/attach. Idempotent via `hasDeepReport` (sentinel
+`scans.deepened_at`).
 
 Ordered steps (all skipped on free): 1 `runFullCollect` (keywords/communities/creators,
 seeded from `facts.competitors`, cap 5) · 2 re-extract `keyword_data` only · 3 read
