@@ -1,0 +1,30 @@
+{
+  "domain": "https://resend.com/",
+  "note": "CLEAN SaaS baseline. Brand 'resend' ranks #1; real category is email API / send emails; competitor 'sendgrid' + tech 'nextjs' + word-confusion 'meaning resent' are off-topic. The classifier should get this RIGHT (it's the healthy control).",
+  "seedText": [
+    "reviews", "com", "similar", "sites", "resend", "review", "our", "account", "email", "can", "trustpilot", "with",
+    "Resend positions itself as the best way to reach humans instead of spam folders, offering a simple, elegant interface for sending transactional and marketing emails at scale with easy SDK integration across multiple frameworks.",
+    "Users genuinely praise the developer experience and dashboard simplicity, but a meaningful portion of reviews surface serious concerns around account suspensions without notice, non-existent human support for edge cases, and no compensation or clear resolution for service disruptions."
+  ],
+  "llmCategorySeeds": ["transactional email API", "email delivery service", "developer email tool", "email API"],
+  "rankedKeywords": [
+    { "keyword": "meaning resent", "position": 111, "volume": 90500, "etv": 190.1 },
+    { "keyword": "sendgrid", "position": 87, "volume": 49500, "etv": 103.9 },
+    { "keyword": "next js", "position": 32, "volume": 49500, "etv": 103.9 },
+    { "keyword": "nextjs", "position": 45, "volume": 49500, "etv": 103.9 },
+    { "keyword": "resending", "position": 9, "volume": 40500, "etv": 1036.8 },
+    { "keyword": "resend", "position": 1, "volume": 40500, "etv": 12312.0 },
+    { "keyword": "send emails", "position": 3, "volume": 4400, "etv": 712.8 },
+    { "keyword": "resend email", "position": 1, "volume": 3600, "etv": 1094.4 },
+    { "keyword": "react-email", "position": 4, "volume": 1600, "etv": 105.4 },
+    { "keyword": "resend api", "position": 1, "volume": 1900, "etv": 577.6 },
+    { "keyword": "email sending", "position": 4, "volume": 1000, "etv": 65.9 },
+    { "keyword": "resend pricing", "position": 1, "volume": 1000, "etv": 304.0 },
+    { "keyword": "how to resend an email in gmail", "position": 5, "volume": 880, "etv": 142.6 },
+    { "keyword": "resend api key", "position": 1, "volume": 720, "etv": 218.9 },
+    { "keyword": "resend code", "position": 1, "volume": 590, "etv": 179.4 },
+    { "keyword": "email api", "position": 2, "volume": 480, "etv": 145.9 },
+    { "keyword": "resend login", "position": 1, "volume": 390, "etv": 118.6 },
+    { "keyword": "resend email api", "position": 1, "volume": 260, "etv": 79.0 }
+  ]
+}

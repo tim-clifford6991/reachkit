@@ -1,0 +1,26 @@
+{
+  "domain": "https://savvycal.com/",
+  "note": "SMALL scheduling tool whose top-50 footprint is ~ENTIRELY incidental 'what time is it in <place>' timezone lookups (it shows timezones). NONE of these is its category (scheduling). They get MISCLASSIFIED as category via the generic token 'time' in its vocab (live: categoryPct 98%). Correct result: timezone queries are OFF-TOPIC; category is small; the opportunity is a real scheduling term, never 'what time is it in hawaii'.",
+  "seedText": [
+    "savvycal", "scheduling", "with", "calendar", "your", "review", "love", "web", "interface", "features", "integration", "multiple",
+    "The listing positions SavvyCal as a beautifully designed scheduling tool that respects both parties' time, emphasizing a gorgeous week-view interface, calendar overlay, and team scheduling modes for over 2,000 happy customers.",
+    "Users consistently praise the calendar overlay feature and clean UX, but flag a steep learning curve during onboarding as a notable friction point."
+  ],
+  "llmCategorySeeds": ["scheduling software", "appointment booking", "meeting scheduler", "calendar booking tool"],
+  "rankedKeywords": [
+    { "keyword": "what time is it california", "position": 7, "volume": 550000, "etv": 25795.0 },
+    { "keyword": "what time in hawaii", "position": 6, "volume": 368000, "etv": 24251.2 },
+    { "keyword": "what is time now in hawaii", "position": 4, "volume": 368000, "etv": 59616.0 },
+    { "keyword": "what time is in japan", "position": 7, "volume": 368000, "etv": 17259.2 },
+    { "keyword": "japan tokyo time", "position": 5, "volume": 301000, "etv": 29287.3 },
+    { "keyword": "time japan tokyo", "position": 6, "volume": 301000, "etv": 19835.9 },
+    { "keyword": "time in usa hawaii", "position": 4, "volume": 246000, "etv": 39852.0 },
+    { "keyword": "what time london england", "position": 6, "volume": 246000, "etv": 16211.4 },
+    { "keyword": "hawaii time", "position": 5, "volume": 246000, "etv": 23935.8 },
+    { "keyword": "hawaii times", "position": 5, "volume": 246000, "etv": 23935.8 },
+    { "keyword": "time for south korea", "position": 4, "volume": 201000, "etv": 32562.0 },
+    { "keyword": "what time in las vegas nv", "position": 4, "volume": 165000, "etv": 26730.0 },
+    { "keyword": "what is chicago time now", "position": 5, "volume": 165000, "etv": 16054.5 },
+    { "keyword": "present time dubai", "position": 3, "volume": 110000, "etv": 17820.0 }
+  ]
+}
