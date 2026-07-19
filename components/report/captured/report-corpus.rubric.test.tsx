@@ -213,6 +213,81 @@ describe("corpus: x.com — mega-brand footprint (post-macro-rule; Part C residu
     expect(html).toContain("youtube");
     expect(html).toContain("youcine");
   });
+  // Review fix (IMPORTANT C, Part C): this capture predates the fetchDegraded
+  // field entirely (absent from the JSON) — the props boundary defaults it to
+  // false, so the honest degrade disclosure must never appear on a payload
+  // that never carried it.
+  it("carries no fetchDegraded — the disclosure line does not render", () => {
+    expect(html).not.toMatch(/couldn(?:'|’|&#x27;)t fully read this page/);
+  });
+});
+
+// ── Part C review fix (IMPORTANT C, corpus-first) — the fetchDegraded shape ─
+//
+// CONSTRUCTED, NOT a verbatim capture. Part C's honest degrade-state field
+// (`fetchDegraded`) postdates every payload above — none of the 6 real
+// captures were scanned through the escalation path, so there is no real
+// prod payload carrying it yet to capture. Per the corpus's OWN manifest rule
+// ("fixtures are captured verbatim, never hand-authored — the react-email
+// lesson"), a hand-authored fixture must NOT be added to
+// lib/scan/fixtures/report-corpus/ or counted toward MIN_FIXTURES/the
+// manifest's file-count check; it lives in this separate, clearly-labeled
+// describe block instead.
+//
+// This layers TWO synthetic things onto the REAL x.com capture (the
+// mega-brand SPA-fetch site Part C's escalation targets): `fetchDegraded:
+// true`, and a non-empty `positioningMirror.listingSays` (x.com's real
+// capture already has an EMPTY listingSays, which would make the "identity
+// line is blanked" assertion vacuously true even without the belt fix in
+// to-results-props.ts — a stale, non-empty mirror is the actual case the
+// belt guards against, e.g. a refresh persisting an older good mirror over a
+// scan whose LATEST fetch degraded). Everything else is the real capture, so
+// the render still exercises the REAL public path against otherwise-real
+// data.
+//
+// TODO (post-merge, per CLAUDE.md "always live-test against REAL adapters"):
+// once Part C is live-verified, a fresh x.com scan should be captured
+// (`pnpm capture:report`) and this block retired in favor of the real
+// re-capture asserting the same expectations, tightened per the corpus's
+// tighten-only discipline (the note this fixture's own capture anticipates).
+describe("corpus (CONSTRUCTED variant, review fix — not a verbatim capture): fetchDegraded shape", () => {
+  const xcomFixture = FIXTURES.find((f) => f.domain === "x.com")!;
+  // No apostrophe — renderToStaticMarkup HTML-escapes `'` to `&#x27;`, so a
+  // literal apostrophe in this string would make `.not.toContain` trivially
+  // true regardless of whether the belt actually stripped anything (a
+  // vacuous check, the exact trap CLAUDE.md's guard-honesty rule warns
+  // about) — verified: this text WAS caught red by the mutation proof below.
+  const STALE_MIRROR_TEXT = "X is the place where the world goes to talk about what is happening right now.";
+  const degradedVariant: CorpusFixture = {
+    ...xcomFixture,
+    domain: "x.com (constructed: fetchDegraded)",
+    reportPayload: {
+      ...xcomFixture.reportPayload,
+      fetchDegraded: true,
+      whatYouOffer: {
+        ...xcomFixture.reportPayload.whatYouOffer,
+        positioningMirror: {
+          ...xcomFixture.reportPayload.whatYouOffer.positioningMirror,
+          listingSays: STALE_MIRROR_TEXT,
+        },
+      },
+    },
+  };
+  const html = render(degradedVariant);
+
+  it("renders the honest 'couldn't fully read this page' disclosure", () => {
+    expect(html).toMatch(/We couldn(?:'|’|&#x27;)t fully read this page \(it renders in the browser\)\. On-page findings may be incomplete\./);
+  });
+
+  it("identityLine is blanked even though positioningMirror.listingSays is non-empty (the belt)", () => {
+    expect(html).not.toContain(STALE_MIRROR_TEXT);
+    expect(html).not.toContain("the place where the world goes");
+  });
+
+  it("still passes the rubric (R1–R6) with fetchDegraded layered onto real data", () => {
+    const violations = runReportRubric(degradedVariant.reportPayload, html);
+    expect(violations, violations.map((v) => `[${v.rule}] ${v.message}`).join("\n")).toEqual([]);
+  });
 });
 
 describe("corpus: spacex.com — the 8,170-demand class control (post-fix)", () => {

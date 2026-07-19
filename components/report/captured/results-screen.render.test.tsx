@@ -642,6 +642,16 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
     expect(html).toMatch(/We couldn(?:'|’|&#x27;)t fully read this page \(it renders in the browser\)\. On-page findings may be incomplete\./);
   });
 
+  // Review fix (IMPORTANT B, the belt): the default `report()` helper carries
+  // a real positioningMirror.listingSays ("Photo tools for creators") — a
+  // STALE mirror, exactly the shape a refresh could persist over an older
+  // good scan before a later fetch degraded. The degrade line must render
+  // ALONE, never alongside a confident-looking identity claim.
+  it("fetchDegraded: the identity line is blanked even when a stale positioningMirror exists (belt)", () => {
+    const html = renderPublicReport(report({ fetchDegraded: true }));
+    expect(html).not.toContain("Photo tools for creators");
+  });
+
   it("fetchDegraded absent/false: the disclosure does NOT render", () => {
     const htmlAbsent = renderPublicReport(report());
     expect(htmlAbsent).not.toMatch(/couldn(?:'|’|&#x27;)t fully read this page/);

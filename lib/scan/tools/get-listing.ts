@@ -5,7 +5,7 @@ import { appIdFromUrl, fetchItunesListing } from "@/lib/scan/adapters/itunes";
 import { fetchSiteListing } from "@/lib/scan/adapters/site-fetch";
 import { fetchDomainAgeYears } from "@/lib/scan/adapters/domain-age";
 import { tavilyExtract } from "@/lib/scan/adapters/tavily";
-import { isGarbageFetch, visibleTextFromHtml } from "@/lib/scan/fetch-quality";
+import { isGarbageFetch, visibleTextFromHtml, bareHostOf } from "@/lib/scan/fetch-quality";
 import { upsertRawDocument } from "@/lib/db/raw-documents";
 import { recordPipelineRun } from "@/lib/telemetry/pipeline-runs";
 import { hostname } from "@/lib/scan/url";
@@ -19,6 +19,45 @@ import { hostname } from "@/lib/scan/url";
  *  present — see its `LISTING_SOURCES` replace-semantics. */
 export const SITE_FETCH_ESCALATED = "site_fetch_escalated";
 
+/** Review fix (IMPORTANT B) — a marker row for the "escalation was attempted
+ *  and STILL failed" case. Carries no real content (there is none to carry —
+ *  don't-cache-empties), but its mere presence tells the extract layer
+ *  (`lib/llm/extract.ts`'s `effectiveListingRows`) that the raw `site_fetch`
+ *  garbage HTML for this subject must NOT feed the positioning/identity
+ *  extract either — without this marker, a garbage fetch whose escalation
+ *  also failed would still leak its near-empty/shell HTML into the prompt
+ *  and the non-LLM floor, exactly the dilution the escalated-replace rule
+ *  exists to prevent for the SUCCESS case. */
+export const SITE_FETCH_DEGRADED = "site_fetch_degraded";
+
+/**
+ * Review fix (CRITICAL A) — derive a page name/title from a successful
+ * escalation's rendered content, so `listing.name` (and therefore
+ * `facts.listing.name` → `brandNames`) can recover even when the raw fetch's
+ * `<title>` was garbage. Verified against `parseTavilyExtract`
+ * (adapters/tavily.ts): Tavily's /extract endpoint returns only
+ * `{url, raw_content}` — NO title/metadata field — so the name must come from
+ * the content itself: the first markdown H1 (`# ...`) if the rendered page
+ * has one, else the first non-empty line IF it's short enough to plausibly be
+ * a title (≤120 chars — a longer first line is prose/a sentence, not a
+ * title, and is skipped rather than truncated into something misleading).
+ * Pure; returns null when nothing title-shaped is derivable.
+ */
+export function deriveEscalatedName(content: string): string | null {
+  const lines = content
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
+  const h1 = lines.find((l) => /^#\s+\S/.test(l));
+  if (h1) {
+    const name = h1.replace(/^#\s+/, "").trim();
+    if (name.length > 0) return name;
+  }
+  const first = lines[0];
+  if (first && !first.startsWith("#") && first.length <= 120) return first;
+  return null;
+}
+
 /**
  * Part C — when the site fetch returned a GARBAGE capture (a JS-shell/SPA
  * bootstrap page — `isGarbageFetch`), make ONE Tavily Extract call for the
@@ -30,7 +69,10 @@ export const SITE_FETCH_ESCALATED = "site_fetch_escalated";
  *
  * Returns `fetchDegraded: true` only when escalation was attempted AND still
  * produced nothing usable — never for a healthy fetch (garbage=false skips
- * this entirely, budget/cost untouched).
+ * this entirely, budget/cost untouched). On success, `escalatedName` carries
+ * a derived name ONLY when it is non-trivial (non-empty and not merely the
+ * bare host) — the caller REPLACES `listing.name` with it, never any other
+ * listing field (CRITICAL A: don't fabricate what wasn't derived).
  */
 async function escalateIfGarbage(args: {
   storeUrl: string;
@@ -40,7 +82,7 @@ async function escalateIfGarbage(args: {
   host: string;
   mode: "web";
   budget: { charge: (use: { toolCalls: number; cents: number }) => void };
-}): Promise<{ fetchDegraded: boolean }> {
+}): Promise<{ fetchDegraded: boolean; escalatedName?: string }> {
   const text = visibleTextFromHtml(args.rawHtml);
   const garbage = isGarbageFetch({ html: args.rawHtml, text, title: args.listingName, host: args.host });
   if (!garbage) return { fetchDegraded: false };
@@ -55,7 +97,16 @@ async function escalateIfGarbage(args: {
 
   if (stillGarbage) {
     // Don't-cache-empties (invariant #3): a garbage escalation result is
-    // never persisted as if it were good content.
+    // never persisted as if it were good content. IMPORTANT B: persist the
+    // degrade MARKER instead, so the extract layer can exclude the raw
+    // site_fetch garbage row too (it would otherwise still leak in).
+    await upsertRawDocument({
+      subjectType: "web",
+      subjectKey: args.subjectKey,
+      sourceType: SITE_FETCH_DEGRADED,
+      body: { fetchDegraded: true },
+      mode: args.mode,
+    });
     return { fetchDegraded: true };
   }
 
@@ -67,7 +118,13 @@ async function escalateIfGarbage(args: {
     body: content,
     mode: args.mode,
   });
-  return { fetchDegraded: false };
+
+  const derivedName = deriveEscalatedName(content);
+  const bareHost = bareHostOf(args.host);
+  const nameIsTrivial =
+    !derivedName || derivedName.length === 0 || derivedName.toLowerCase() === bareHost;
+
+  return { fetchDegraded: false, escalatedName: nameIsTrivial ? undefined : derivedName! };
 }
 
 export interface GetListingArgs {
@@ -95,7 +152,7 @@ export const getListing: ToolDefinition<GetListingArgs, GetListingResult> = {
         fetchDomainAgeYears(host),
       ]);
 
-      const listing: ListingFacts =
+      let listing: ListingFacts =
         siteSettled.status === "fulfilled"
           ? siteSettled.value.listing
           : { name: host, category: null, description: null };
@@ -141,6 +198,12 @@ export const getListing: ToolDefinition<GetListingArgs, GetListingResult> = {
           budget: ctx.budget,
         });
         fetchDegraded = result.fetchDegraded;
+        // CRITICAL A — the escalated page's derived name REPLACES listing.name
+        // (only name; no other listing field is fabricated) so downstream
+        // brand detection (facts.listing.name → brandNames) can recover.
+        if (result.escalatedName) {
+          listing = { ...listing, name: result.escalatedName };
+        }
       }
 
       await recordPipelineRun({

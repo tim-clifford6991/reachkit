@@ -280,6 +280,35 @@ describe("runExtract — Part C: site_fetch_escalated REPLACES the raw site_fetc
     });
   });
 
+  test("review fix (IMPORTANT B): a site_fetch_degraded marker excludes the raw garbage row too — no LLM call, no cached sheet", async () => {
+    // Escalation was attempted and STILL failed (get-listing.ts persists the
+    // marker instead of a "site_fetch_escalated" row). The raw garbage
+    // site_fetch row must be excluded from the positioning extract exactly
+    // as if a good escalation existed — invariant #3 (don't-cache-empties):
+    // once site_fetch is filtered out, there are zero listing docs, so
+    // extractKind must skip the upsert entirely rather than cache an empty
+    // positioning sheet.
+    const docsWithDegradedMarker = [
+      { id: 10, source_type: "site_fetch", subject_key: STORE_URL, body: `<html><body><p>GARBAGE_SHELL_MARKER</p></body></html>` },
+      { id: 12, source_type: "site_fetch_degraded", subject_key: STORE_URL, body: { fetchDegraded: true } },
+    ];
+    vi.doMock("@/lib/db/client", () => ({ serverDb: makeDbMock(docsWithDegradedMarker as unknown as typeof CANNED_RAW_DOCS) }));
+    const callModelMock = vi.fn();
+    vi.doMock("@/lib/llm/anthropic", () => ({ callModel: callModelMock }));
+    const upsertMock = vi.fn().mockResolvedValue({ id: 1 });
+    vi.doMock("@/lib/scan/fact-sheets", () => ({ upsertFactSheet: upsertMock, factSheetSubjectType: (mode: string) => mode === "web" ? "web" : "app" }));
+
+    const { runExtract } = await import("./extract");
+    const ctx = await makeScanCtx();
+    await runExtract(ctx, ["positioning"]);
+
+    // No listing docs survive the filter → no LLM call, no upsert (empty
+    // sheet is never cached) — the raw garbage HTML never reached the prompt.
+    expect(callModelMock).not.toHaveBeenCalled();
+    const calls = upsertMock.mock.calls as Array<[Parameters<typeof upsertMock>[0]]>;
+    expect(calls.some((c) => c[0].kind === "positioning")).toBe(false);
+  });
+
   test("without an escalated row, positioning behaves exactly as before (real HTML parsed)", async () => {
     // Regression guard: LISTING_SOURCES growing to include site_fetch_escalated
     // must not change behavior when no such row exists for the subject.

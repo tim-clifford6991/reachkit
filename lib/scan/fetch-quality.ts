@@ -37,6 +37,14 @@ export interface GarbageFetchInput {
  *  downstream signal (SEO, identity, positioning) to be measured honestly. */
 const MIN_TEXT_CHARS = 400;
 
+/** Trim/lowercase/www-strip a host for a like-for-like comparison against a
+ *  resolved title or a derived name. Single source of truth — used both by
+ *  `isGarbageFetch`'s title==host check and by the escalation's "is this
+ *  derived name trivial" check (get-listing.ts), so the two never drift. */
+export function bareHostOf(host: string): string {
+  return (host ?? "").trim().toLowerCase().replace(/^www\./, "");
+}
+
 /**
  * Marker 1 — the near-universal CSR `<noscript>` fallback text every
  * Create-React-App / Vite / Vue-CLI / Angular bootstrap ships verbatim
@@ -92,7 +100,7 @@ export function isGarbageFetch(input: GarbageFetchInput): boolean {
 
   if (input.title !== undefined) {
     const title = input.title.trim().toLowerCase();
-    const host = (input.host ?? "").trim().toLowerCase().replace(/^www\./, "");
+    const host = bareHostOf(input.host);
     if (title.length === 0) return true;
     if (host.length > 0 && title === host) return true;
   }

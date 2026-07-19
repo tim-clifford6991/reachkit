@@ -26,6 +26,7 @@ import type {
 } from "@/lib/llm/types";
 import type { ScanContext } from "@/lib/scan/pipeline";
 import type { FactSheetKind } from "@/lib/scan/fact-sheets";
+import { SITE_FETCH_ESCALATED, SITE_FETCH_DEGRADED } from "@/lib/scan/tools/get-listing";
 
 const MODEL = "claude-haiku-4-5-20251001" as const;
 
@@ -35,7 +36,10 @@ const REVIEW_SOURCES = Object.freeze(["app_store_rss", "web_reviews"] as const);
 // text (get-listing.ts), written only when the raw site_fetch HTML was garbage
 // (a JS-shell page) and the escalation itself was non-garbage. See
 // `effectiveListingRows` below for the REPLACE (not additive) semantics.
-const LISTING_SOURCES = Object.freeze(["itunes", "site_fetch", "site_fetch_escalated"] as const);
+// NOTE: SITE_FETCH_DEGRADED is deliberately NOT in this list — it is a
+// content-free marker row (get-listing.ts), consumed only by
+// `effectiveListingRows` below to decide exclusion, never fed to a prompt.
+const LISTING_SOURCES = Object.freeze(["itunes", "site_fetch", SITE_FETCH_ESCALATED] as const);
 const COMPETITOR_SOURCES = Object.freeze(["dataforseo_serp", "itunes_search", "tavily", "product_hunt"] as const);
 const KEYWORD_SOURCES = Object.freeze(["dataforseo_keywords"] as const);
 
@@ -65,15 +69,30 @@ function safeJsonParse(text: string): unknown {
  * near-empty garbage text dilute/contradict the good escalated content instead
  * of being replaced by it. "itunes" (app mode) is never affected.
  *
+ * Review fix (IMPORTANT B) — the EXCLUSIONARY half: when escalation was
+ * attempted and STILL failed (a "site_fetch_degraded" marker row exists —
+ * get-listing.ts), the raw "site_fetch" row is dropped here too, even though
+ * no escalated replacement exists. Without this, a garbage fetch whose
+ * escalation also failed would still feed its near-empty/shell HTML into the
+ * positioning prompt and non-LLM floor — the identity line would then render
+ * a garbage-derived guess ALONGSIDE the honest `fetchDegraded` disclosure,
+ * contradicting it. Takes the FULL unfiltered row set (not just the
+ * LISTING_SOURCES-filtered rows) because the degraded marker's source_type is
+ * deliberately excluded from LISTING_SOURCES.
+ *
  * NOTE: this does NOT touch `persist-signals.ts`'s `readSubjectHtml`, which
  * reads `source_type = "site_fetch"` directly and always measures the 8 on-page
  * HTML signals from the REAL fetched HTML — a JS-shell site genuinely lacks
  * server-rendered signals, which is honest measurement, not a bug this papers
  * over (documented boundary, task brief §3).
  */
-function effectiveListingRows(listingRows: RawDocRow[]): RawDocRow[] {
-  const hasEscalated = listingRows.some((r) => r.source_type === "site_fetch_escalated");
-  return hasEscalated ? listingRows.filter((r) => r.source_type !== "site_fetch") : listingRows;
+function effectiveListingRows(rows: RawDocRow[]): RawDocRow[] {
+  const listingRows = rows.filter((r) => (LISTING_SOURCES as readonly string[]).includes(r.source_type));
+  const hasEscalated = rows.some((r) => r.source_type === SITE_FETCH_ESCALATED);
+  const hasDegradedMarker = rows.some((r) => r.source_type === SITE_FETCH_DEGRADED);
+  return hasEscalated || hasDegradedMarker
+    ? listingRows.filter((r) => r.source_type !== "site_fetch")
+    : listingRows;
 }
 
 // Non-LLM positioning floor: derive a basic positioning from the fetched site
@@ -176,11 +195,11 @@ export async function runExtract(ctx: ScanContext, kinds?: FactSheetKind[]): Pro
 
   // 2. Group by source category
   const reviewRows = rows.filter((r) => (REVIEW_SOURCES as readonly string[]).includes(r.source_type));
-  // Part C REPLACE semantics — drops the raw "site_fetch" row when a good
-  // "site_fetch_escalated" row exists for this subject (effectiveListingRows).
-  const listingRows = effectiveListingRows(
-    rows.filter((r) => (LISTING_SOURCES as readonly string[]).includes(r.source_type)),
-  );
+  // Part C REPLACE/EXCLUDE semantics — drops the raw "site_fetch" row when a
+  // good "site_fetch_escalated" row exists OR the escalation failed
+  // ("site_fetch_degraded" marker) for this subject (effectiveListingRows).
+  // Passes the FULL row set — the degraded marker isn't in LISTING_SOURCES.
+  const listingRows = effectiveListingRows(rows);
   const competitorRows = rows.filter((r) => (COMPETITOR_SOURCES as readonly string[]).includes(r.source_type));
   const keywordRows = rows.filter((r) => (KEYWORD_SOURCES as readonly string[]).includes(r.source_type));
 

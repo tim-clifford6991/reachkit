@@ -223,7 +223,19 @@ export function toResultsProps(
   // MINOR polish: only append an ellipsis when the string was ACTUALLY cut —
   // a bare 160-char slice with no ellipsis reads as a sentence that just stops.
   const rawIdentity = (pm.listingSays ?? "").trim();
-  const identityLine = rawIdentity.length > 160 ? rawIdentity.slice(0, 159) + "…" : rawIdentity;
+  // Review fix (IMPORTANT B, the belt) — a degraded fetch must never show an
+  // identity line, even a STALE one from a payload whose positioningMirror
+  // was captured before this scan's fetch failed (e.g. a refresh persisting
+  // `fetchDegraded` over an older good mirror). The exclusionary extract-side
+  // fix (lib/llm/extract.ts) already prevents a NEW garbage/degraded scan
+  // from producing a mirror at all; this is the second, independent layer —
+  // the degrade line must render ALONE, never alongside a confident-looking
+  // (possibly stale) identity claim.
+  const identityLine = report.fetchDegraded
+    ? ""
+    : rawIdentity.length > 160
+      ? rawIdentity.slice(0, 159) + "…"
+      : rawIdentity;
 
   return {
     siteLabel,

@@ -8,6 +8,14 @@
  * escalation does neither and sets the degrade flag); and that the
  * escalation's Tavily cost is recorded under the ambient cost context
  * (invariant #2), never for a healthy fetch that never escalates.
+ *
+ * Review fixes:
+ *  CRITICAL A — a good escalation's derived name REPLACES `listing.name`
+ *  (so `facts.listing.name` → brandNames can recover), unless the derived
+ *  name is trivial (empty or the bare host).
+ *  IMPORTANT B — a still-garbage escalation persists a `site_fetch_degraded`
+ *  marker row (consumed by lib/llm/extract.ts's effectiveListingRows to
+ *  exclude the raw garbage HTML from the positioning/identity extract too).
  */
 import { afterEach, describe, expect, test, vi } from "vitest";
 
@@ -42,6 +50,30 @@ const HEALTHY_HTML = `<!doctype html>
 
 const GOOD_ESCALATED_TEXT = "Real rendered page content. ".repeat(30); // > 400 chars, no shell markers
 const STILL_GARBAGE_TEXT = "short";
+
+// CRITICAL A fixtures — a realistic Tavily Extract markdown body carrying a
+// derivable H1 title, and one whose only derivable "title" is the bare host
+// (must NOT override listing.name — a trivial derived name is no better than
+// what's already there).
+const GOOD_ESCALATED_WITH_TITLE = `# Acme — Project Tracking for Small Teams
+
+Acme is a lightweight project tracker built for small teams who are tired of
+heavyweight tools. Plan your sprint in minutes, track issues without the
+ceremony, and see exactly what's blocking your release. Thousands of teams
+use Acme every day to ship faster, with less overhead than the big
+enterprise suites. Try it free for 14 days, no credit card required — set up
+takes under five minutes and your whole team can be planning sprints by the
+end of the afternoon.`;
+
+const GOOD_ESCALATED_TRIVIAL_TITLE = `# x.com
+
+Real rendered page content that is long enough to clear the garbage-fetch
+length floor but whose only derivable title-shaped line is literally the
+bare host itself, which must not be treated as a real recovered brand name.
+Padding this out further so the visible text comfortably clears 400 chars
+for the re-check the escalation performs on its own content, since the
+detector re-runs on exactly this rendered text with no separate title field
+to fall back on.`;
 
 function budgetOf() {
   return import("@/lib/tools/registry").then(
@@ -161,6 +193,94 @@ describe("get_listing — non-garbage-replacement rule", () => {
     );
 
     expect(out.extras.fetchDegraded).toBe(true);
+  });
+});
+
+describe("get_listing — CRITICAL A: escalated title REPLACES listing.name", () => {
+  test("a GOOD escalation with a derivable H1 REPLACES listing.name", async () => {
+    vi.resetModules();
+    const tavilyExtract = vi.fn(async (urls: string[]) => [{ url: urls[0]!, content: GOOD_ESCALATED_WITH_TITLE }]);
+    mockCommon({ siteHtml: GARBAGE_HTML, siteName: HOST, tavilyExtract });
+
+    const { getListing } = await import("./get-listing");
+    const budget = await budgetOf();
+    const out = await getListing.run(
+      { storeUrl: STORE_URL, subjectKey: STORE_URL },
+      { scanId: "s6", mode: "web", budget },
+    );
+
+    expect(out.listing.name).toBe("Acme — Project Tracking for Small Teams");
+    // Only the name is replaced — no other listing field is fabricated.
+    expect(out.listing.category).toBeNull();
+    expect(out.listing.description).toBeNull();
+  });
+
+  test("a derived name that is TRIVIAL (equals the bare host) does NOT override listing.name", async () => {
+    vi.resetModules();
+    const tavilyExtract = vi.fn(async (urls: string[]) => [{ url: urls[0]!, content: GOOD_ESCALATED_TRIVIAL_TITLE }]);
+    mockCommon({ siteHtml: GARBAGE_HTML, siteName: HOST, tavilyExtract });
+
+    const { getListing } = await import("./get-listing");
+    const budget = await budgetOf();
+    const out = await getListing.run(
+      { storeUrl: STORE_URL, subjectKey: STORE_URL },
+      { scanId: "s7", mode: "web", budget },
+    );
+
+    // The escalated H1 is "x.com" — the bare host — so listing.name stays
+    // whatever the (fixture-supplied) original name was, unmodified.
+    expect(out.listing.name).toBe(HOST);
+  });
+
+  test("a GOOD escalation with no derivable title (no H1, first line too long) leaves listing.name unchanged", async () => {
+    vi.resetModules();
+    // GOOD_ESCALATED_TEXT is one long repeated line with no H1 and no
+    // newlines — deriveEscalatedName must return null, not a mangled guess.
+    const tavilyExtract = vi.fn(async (urls: string[]) => [{ url: urls[0]!, content: GOOD_ESCALATED_TEXT }]);
+    mockCommon({ siteHtml: GARBAGE_HTML, siteName: HOST, tavilyExtract });
+
+    const { getListing } = await import("./get-listing");
+    const budget = await budgetOf();
+    const out = await getListing.run(
+      { storeUrl: STORE_URL, subjectKey: STORE_URL },
+      { scanId: "s8", mode: "web", budget },
+    );
+
+    expect(out.listing.name).toBe(HOST);
+  });
+});
+
+describe("get_listing — IMPORTANT B: still-garbage escalation persists an exclusionary marker", () => {
+  test("a STILL-GARBAGE escalation persists a site_fetch_degraded marker row", async () => {
+    vi.resetModules();
+    const tavilyExtract = vi.fn(async (urls: string[]) => [{ url: urls[0]!, content: STILL_GARBAGE_TEXT }]);
+    mockCommon({ siteHtml: GARBAGE_HTML, siteName: HOST, tavilyExtract });
+
+    const { getListing } = await import("./get-listing");
+    const { upsertRawDocument } = await import("@/lib/db/raw-documents");
+    const budget = await budgetOf();
+    await getListing.run({ storeUrl: STORE_URL, subjectKey: STORE_URL }, { scanId: "s9", mode: "web", budget });
+
+    const calls = (upsertRawDocument as ReturnType<typeof vi.fn>).mock.calls as Array<[Record<string, unknown>]>;
+    const markerCall = calls.find((c) => c[0].sourceType === "site_fetch_degraded");
+    expect(markerCall).toBeDefined();
+    expect(markerCall?.[0].subjectType).toBe("web");
+  });
+
+  test("a HEALTHY fetch persists NO degraded marker", async () => {
+    vi.resetModules();
+    const tavilyExtract = vi.fn(async () => {
+      throw new Error("should not be called");
+    });
+    mockCommon({ siteHtml: HEALTHY_HTML, siteName: "Acme — Project tracking for small teams", tavilyExtract });
+
+    const { getListing } = await import("./get-listing");
+    const { upsertRawDocument } = await import("@/lib/db/raw-documents");
+    const budget = await budgetOf();
+    await getListing.run({ storeUrl: STORE_URL, subjectKey: STORE_URL }, { scanId: "s10", mode: "web", budget });
+
+    const calls = (upsertRawDocument as ReturnType<typeof vi.fn>).mock.calls as Array<[Record<string, unknown>]>;
+    expect(calls.some((c) => c[0].sourceType === "site_fetch_degraded")).toBe(false);
   });
 });
 
