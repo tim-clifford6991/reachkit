@@ -1,0 +1,167 @@
+{
+  "domain": "reachkit.app",
+  "siteUrl": "https://reachkit.app/",
+  "archetype": "zero-ranking",
+  "scanId": "0cd95c58-d2ca-4395-b722-21ca54493b15",
+  "tier": "free",
+  "capturedAt": "2026-07-19",
+  "note": "reachkit.app pre-launch (2026-07-19): the genuinely-empty-inputs fixture that makes R3 non-vacuous (0 rankings, no wins, no off-topic examples). The fabricated-reviews incident (invariant #11) happened on THIS site. KNOWN RESIDUAL pinned as-is: the positioningMirror/actualAudience content is grounded in WRONG-SUBJECT reviews (the reachkit.ai cold-email tool — Apollo.io/Reply.io/Instantly.ai). ROOT-CAUSED (2026-07-19 evening): this scan served a policy-v2 CACHED review_themes sheet (fact_sheets id 110) built from an earlier batch that carried no conflicting domain token, so WS-A v2's brand-token fallback kept Capterra/GetApp's name-keyed listings of the other product. WS-A v3 (attribution macro rule + GROUNDING_POLICY_VERSION=3) closes the class and invalidates the poisoned sheet; a re-captured post-v3 scan should show NO mirror (actualAudience empty) — tighten then.",
+  "reportPayload": {
+    "mode": "web",
+    "score": {
+      "basis": "verified",
+      "radar": [
+        { "axis": "Content", "value": 72, "active": true, "assessed": true },
+        { "axis": "Outreach", "value": 0, "active": true, "assessed": false },
+        { "axis": "SEO/ASO", "value": 100, "active": true, "assessed": true },
+        { "axis": "Ads", "value": 0, "active": false, "assessed": false },
+        { "axis": "Partnerships", "value": 0, "active": false, "assessed": false },
+        { "axis": "PR", "value": 0, "active": false, "assessed": false },
+        { "axis": "Positioning", "value": 0, "active": false, "assessed": false }
+      ],
+      "total": 9,
+      "breakdown": { "seo": 100, "content": 72, "outreach": 0 }
+    },
+    "whoItsFor": {
+      "signals": ["scan", "com", "discoverability", "view", "cal", "savvycal"],
+      "summary": "Buyers who value scan, com, discoverability. Reviews confirm: \"Users consistently praise the tool's user-friendly interface, ease of use, strong customer support, and comprehensive feature set, with high overall satisfaction and recommendation rates.\"."
+    },
+    "generatedAt": "2026-07-19T15:51:13.420Z",
+    "whatYouOffer": {
+      "positioningMirror": {
+        "gap": "The listing emphasizes SEO discovery and search visibility gaps for solo founders, yet competitor comparisons (e.g., vs. Apollo.io and Reply.io) position Reachkit as a cold email and reply management tool with AI warmup and IMAP inbox infrastructure—a significant disconnect suggesting the product's actual positioning may be sales/email-focused rather than SEO-focused as the listing claims.",
+        "listingSays": "Reachkit is a SEO/search visibility tool designed for solo founders, identifying competitor-winning searches they don't rank for and providing a single Discoverability Score with actionable, prioritized fixes that verify impact before updating the score.",
+        "reviewsValue": "Users consistently praise the tool's user-friendly interface, ease of use, strong customer support, and comprehensive feature set, with high overall satisfaction and recommendation rates.",
+        "actualAudience": ["Cold email and sales outreach users", "Sales professionals seeking deliverability", "Email-first engagement teams"],
+        "intendedAudience": ["Solo founders and bootstrapped startups", "Search-focused indie makers", "Founders without marketing budgets"]
+      }
+    },
+    "whereTheyAre": {
+      "surfaces": [],
+      "competitorGap": [
+        { "you": 0, "them": 0, "dimension": "community presence", "competitor": "Cold Email Automation Platforms" },
+        { "you": 0, "them": 0, "dimension": "community presence", "competitor": "Instantly.ai" },
+        { "you": 0, "them": 0, "dimension": "community presence", "competitor": "Apollo.io" },
+        { "you": 0, "them": 0, "dimension": "community presence", "competitor": "Dripify" },
+        { "you": 0, "them": 0, "dimension": "community presence", "competitor": "Reply.io" }
+      ]
+    },
+    "creatorsToReach": [],
+    "searchVisibility": {
+      "score": 0,
+      "brandPct": 0,
+      "categoryGap": [],
+      "categoryPct": 0,
+      "offTopicPct": 0,
+      "categoryWins": 0,
+      "categoryDemand": 111620,
+      "categoryRanked": [],
+      "keywordsRanked": 0,
+      "categoryPhrases": [
+        { "volume": 110000, "keyword": "seo tools" },
+        { "volume": 1300, "keyword": "competitor analysis tools" },
+        { "volume": 320, "keyword": "keyword ranking tracker" }
+      ],
+      "onPageReadiness": 89,
+      "estMonthlyVisits": 0,
+      "offTopicExamples": [],
+      "footprintComplete": false,
+      "categoryWonKeywords": [],
+      "categoryOpportunities": [
+        { "volume": 110000, "keyword": "seo tools" },
+        { "volume": 1300, "keyword": "competitor analysis tools" },
+        { "volume": 320, "keyword": "keyword ranking tracker" }
+      ]
+    },
+    "whatToDoThisWeek": {
+      "medium": [
+        {
+          "why": "110,000 searches/mo in your category — you don't rank for it yet. Winning it lifts the Search-presence half of your score.",
+          "basis": "probability_based",
+          "draft": null,
+          "title": "Create or strengthen a page targeting \"seo tools\"",
+          "target": null,
+          "category": "seo_aso",
+          "evidence": [],
+          "effortMin": 120,
+          "confidence": 0.5,
+          "signalKeys": [],
+          "evidenceIds": [],
+          "verification": { "state": "pending", "method": "self_report" },
+          "expectedOutcome": { "delta": 30, "scoreComponent": "seo" },
+          "draftRequiresEdit": true,
+          "suggestedDeadline": "2026-08-09"
+        },
+        {
+          "why": "1,300 searches/mo in your category — you don't rank for it yet. Winning it lifts the Search-presence half of your score.",
+          "basis": "probability_based",
+          "draft": null,
+          "title": "Create or strengthen a page targeting \"competitor analysis tools\"",
+          "target": null,
+          "category": "seo_aso",
+          "evidence": [],
+          "effortMin": 120,
+          "confidence": 0.5,
+          "signalKeys": [],
+          "evidenceIds": [],
+          "verification": { "state": "pending", "method": "self_report" },
+          "expectedOutcome": { "delta": 30, "scoreComponent": "seo" },
+          "draftRequiresEdit": true,
+          "suggestedDeadline": "2026-08-09"
+        }
+      ],
+      "longPlay": [
+        {
+          "why": "Comparison pages is failing (0/100 on this scan). \"X vs Y\" and \"alternatives\" pages capture high-intent comparison searches.",
+          "basis": "probability_based",
+          "draft": null,
+          "title": "Publish honest comparison pages against the rivals buyers weigh you against",
+          "target": null,
+          "category": "outreach",
+          "evidence": [],
+          "effortMin": 45,
+          "confidence": 0.5,
+          "signalKeys": ["comparison_pages"],
+          "evidenceIds": [],
+          "verification": { "state": "pending", "method": "self_report" },
+          "expectedOutcome": { "delta": 4, "scoreComponent": "outreach" },
+          "draftRequiresEdit": true,
+          "suggestedDeadline": "2026-08-02"
+        }
+      ],
+      "quickWins": [
+        {
+          "why": "Media & alt coverage is failing (0/100 on this scan). Images with alt text aid accessibility, image search, and comprehension.",
+          "basis": "probability_based",
+          "draft": null,
+          "title": "Add descriptive alt text to every meaningful image, and make sure the page carries enough images (aim for 5+) to show real richness — a single hero shot with alt text is not enough",
+          "target": null,
+          "category": "content",
+          "evidence": [],
+          "effortMin": 20,
+          "confidence": 0.5,
+          "signalKeys": ["media_richness"],
+          "evidenceIds": [],
+          "verification": { "state": "pending", "method": "self_report" },
+          "expectedOutcome": { "delta": 5, "scoreComponent": "content" },
+          "draftRequiresEdit": true,
+          "suggestedDeadline": "2026-08-02"
+        }
+      ]
+    },
+    "channelOpportunities": { "keywordClusters": [], "communitiesByEngagement": [] },
+    "competitiveLandscape": [],
+    "strengthsAndWeaknesses": {
+      "mixed": [],
+      "strengths": [],
+      "weaknesses": [],
+      "diagnostics": [
+        {
+          "claim": "Your strongest discoverability lever right now is your own page: lead with one specific outcome and your highest-intent keyword in the title and first screen.",
+          "category": "content",
+          "confidence": 0.4
+        }
+      ]
+    }
+  }
+}

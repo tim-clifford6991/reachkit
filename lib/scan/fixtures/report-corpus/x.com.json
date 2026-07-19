@@ -1,0 +1,198 @@
+{
+  "domain": "x.com",
+  "siteUrl": "https://x.com/",
+  "archetype": "pathological",
+  "scanId": "84cb04f1-83e0-43f0-96e7-b07a94f64c06",
+  "tier": "free",
+  "capturedAt": "2026-07-19",
+  "note": "x.com (2026-07-19): the mega-brand-footprint control post-macro-rule — no 'google is your opportunity' class survives (opportunities are real category terms). KNOWN RESIDUAL pinned as-is: brandPct 0 (its brand is unrecoverable because the SPA fetch fed the extract garbage — Part C fetch-layer fix pending); tighten when Part C lands. offTopicExamples name real off-topic giants (youtube, porn hub) — honest but blunt; flagged to the owner.",
+  "reportPayload": {
+    "mode": "web",
+    "score": {
+      "basis": "verified",
+      "radar": [
+        { "axis": "Content", "value": 49, "active": true, "assessed": true },
+        { "axis": "Outreach", "value": 0, "active": true, "assessed": false },
+        { "axis": "SEO/ASO", "value": 0, "active": true, "assessed": true },
+        { "axis": "Ads", "value": 0, "active": false, "assessed": false },
+        { "axis": "Partnerships", "value": 0, "active": false, "assessed": false },
+        { "axis": "PR", "value": 0, "active": false, "assessed": false },
+        { "axis": "Positioning", "value": 0, "active": false, "assessed": false }
+      ],
+      "total": 4,
+      "breakdown": { "seo": 0, "content": 49, "outreach": 0 }
+    },
+    "whoItsFor": {
+      "signals": ["reviews", "com", "platform", "our", "www", "not"],
+      "summary": "Buyers who value reviews, com, platform. Reviews confirm: \"Users report severe issues with account suspensions without clear cause, unresponsive support, confusing interface, inconsistent moderation policies, and problematic content. A minority found educational and entertainment value.\"."
+    },
+    "generatedAt": "2026-07-19T15:52:31.952Z",
+    "whatYouOffer": {
+      "positioningMirror": {
+        "gap": "The platform claims no explicit value propositions in its listing, yet reviews reveal deep user dissatisfaction around moderation transparency, support responsiveness, and interface usability. Against Bluesky's positioning on user control and customizable algorithms, X lacks clear differentiation in content discovery or onboarding ease; against Threads' mainstream integration and scale, X suffers from perceived unfair account policies and deteriorating trust.",
+        "listingSays": "",
+        "reviewsValue": "Users report severe issues with account suspensions without clear cause, unresponsive support, confusing interface, inconsistent moderation policies, and problematic content. A minority found educational and entertainment value.",
+        "actualAudience": ["Frustrated suspended users", "Platform critics and skeptics", "Users tolerating deteriorating experience"],
+        "intendedAudience": ["Public discourse participants", "News and trend followers", "Content creators and broadcasters"]
+      }
+    },
+    "whereTheyAre": {
+      "surfaces": [],
+      "competitorGap": [
+        { "you": 0, "them": 0, "dimension": "community presence", "competitor": "Bluesky" },
+        { "you": 0, "them": 0, "dimension": "community presence", "competitor": "Threads" },
+        { "you": 0, "them": 0, "dimension": "community presence", "competitor": "Mastodon" },
+        { "you": 0, "them": 0, "dimension": "community presence", "competitor": "Substack Notes" },
+        { "you": 0, "them": 0, "dimension": "community presence", "competitor": "CounterSocial" }
+      ]
+    },
+    "creatorsToReach": [],
+    "searchVisibility": {
+      "score": 0,
+      "brandPct": 0,
+      "categoryGap": [],
+      "categoryPct": 0,
+      "marketTiers": [
+        {
+          "tier": "broad",
+          "demand": 33170,
+          "phrases": [
+            { "volume": 33100, "keyword": "social networking" },
+            { "volume": 70, "keyword": "digital communication platforms" }
+          ],
+          "bestPosition": null
+        },
+        {
+          "tier": "niche",
+          "demand": 70,
+          "phrases": [{ "volume": 70, "keyword": "decentralized social networks" }],
+          "bestPosition": null
+        }
+      ],
+      "offTopicPct": 100,
+      "categoryWins": 0,
+      "categoryDemand": 18110,
+      "categoryRanked": [],
+      "keywordsRanked": 15060115,
+      "categoryPhrases": [
+        { "volume": 18100, "keyword": "social media platform" },
+        { "volume": 10, "keyword": "microblogging service" }
+      ],
+      "onPageReadiness": 20,
+      "estMonthlyVisits": 373756642,
+      "offTopicExamples": ["youtube", "youcine", "porn hub"],
+      "footprintComplete": true,
+      "categoryWonKeywords": [],
+      "categoryOpportunities": [
+        { "volume": 18100, "keyword": "social media platform" },
+        { "volume": 10, "keyword": "microblogging service" }
+      ]
+    },
+    "whatToDoThisWeek": {
+      "medium": [
+        {
+          "why": "18,100 searches/mo in your category — you don't rank for it yet. Winning it lifts the Search-presence half of your score.",
+          "basis": "probability_based",
+          "draft": null,
+          "title": "Create or strengthen a page targeting \"social media platform\"",
+          "target": null,
+          "category": "seo_aso",
+          "evidence": [],
+          "effortMin": 120,
+          "confidence": 0.5,
+          "signalKeys": [],
+          "evidenceIds": [],
+          "verification": { "state": "pending", "method": "self_report" },
+          "expectedOutcome": { "delta": 14, "scoreComponent": "seo" },
+          "draftRequiresEdit": true,
+          "suggestedDeadline": "2026-08-09"
+        },
+        {
+          "why": "10 searches/mo in your category — you don't rank for it yet. Winning it lifts the Search-presence half of your score.",
+          "basis": "probability_based",
+          "draft": null,
+          "title": "Create or strengthen a page targeting \"microblogging service\"",
+          "target": null,
+          "category": "seo_aso",
+          "evidence": [],
+          "effortMin": 120,
+          "confidence": 0.5,
+          "signalKeys": [],
+          "evidenceIds": [],
+          "verification": { "state": "pending", "method": "self_report" },
+          "expectedOutcome": { "delta": 14, "scoreComponent": "seo" },
+          "draftRequiresEdit": true,
+          "suggestedDeadline": "2026-08-09"
+        },
+        {
+          "why": "Title tag is failing (0/100 on this scan). Your title is the single strongest on-page ranking and click signal.",
+          "basis": "probability_based",
+          "draft": null,
+          "title": "Write a 30–60 character title with your primary keyword near the front",
+          "target": null,
+          "category": "seo_aso",
+          "evidence": [],
+          "effortMin": 45,
+          "confidence": 0.5,
+          "signalKeys": ["title_tag"],
+          "evidenceIds": [],
+          "verification": { "state": "pending", "method": "self_report" },
+          "expectedOutcome": { "delta": 5, "scoreComponent": "seo" },
+          "draftRequiresEdit": true,
+          "suggestedDeadline": "2026-08-02"
+        },
+        {
+          "why": "Meta description is failing (0/100 on this scan). The description shapes your search snippet and click-through rate.",
+          "basis": "probability_based",
+          "draft": null,
+          "title": "Add a 120–160 character description that states the value and a reason to click",
+          "target": null,
+          "category": "seo_aso",
+          "evidence": [],
+          "effortMin": 45,
+          "confidence": 0.5,
+          "signalKeys": ["meta_description"],
+          "evidenceIds": [],
+          "verification": { "state": "pending", "method": "self_report" },
+          "expectedOutcome": { "delta": 5, "scoreComponent": "seo" },
+          "draftRequiresEdit": true,
+          "suggestedDeadline": "2026-08-02"
+        }
+      ],
+      "longPlay": [],
+      "quickWins": [
+        {
+          "why": "Structured data is failing (0/100 on this scan). JSON-LD/schema.org lets search engines render rich results for your page.",
+          "basis": "probability_based",
+          "draft": "<script type=\"application/ld+json\">\n{\n  \"@context\": \"https://schema.org\",\n  \"@type\": \"SoftwareApplication\",\n  \"name\": \"x.com\",\n  \"url\": \"https://x.com/\",\n  \"applicationCategory\": \"BusinessApplication\",\n  \"operatingSystem\": \"Web\"\n}\n</script>",
+          "title": "Add a JSON-LD block (SoftwareApplication, Product, or Organization)",
+          "target": null,
+          "category": "seo_aso",
+          "evidence": [],
+          "effortMin": 20,
+          "confidence": 0.5,
+          "signalKeys": ["schema_jsonld"],
+          "evidenceIds": [],
+          "verification": { "state": "pending", "method": "self_report" },
+          "expectedOutcome": { "delta": 5, "scoreComponent": "seo" },
+          "draftRequiresEdit": true,
+          "suggestedDeadline": "2026-08-02"
+        }
+      ]
+    },
+    "channelOpportunities": { "keywordClusters": [], "communitiesByEngagement": [] },
+    "competitiveLandscape": [],
+    "strengthsAndWeaknesses": {
+      "mixed": [],
+      "strengths": [],
+      "weaknesses": [],
+      "diagnostics": [
+        {
+          "claim": "Your strongest discoverability lever right now is your own page: lead with one specific outcome and your highest-intent keyword in the title and first screen.",
+          "category": "content",
+          "confidence": 0.4
+        }
+      ]
+    }
+  }
+}

@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
   parseWebReviewSnippets,
-  filterSubjectSnippets,
   reviewCountFromSnippets,
   filterSubjectResults,
   dropDomainConflicts,
@@ -41,38 +40,9 @@ describe("parseWebReviewSnippets", () => {
   });
 });
 
-describe("filterSubjectSnippets (brand-ambiguity hard rule)", () => {
-  it("drops a same-named different product's reviews (nudgi.ai vs 'Nudge AI' clinical tool)", () => {
-    const snippets = [
-      "Nudge AI is an AI-powered tool for clinical documentation, praised for automating CPT note creation.",
-      "nudgi.ai reviews — users say it nails meeting prep and attendee briefings.",
-    ];
-    const out = filterSubjectSnippets(snippets, "nudgi.ai");
-    expect(out).toEqual(["nudgi.ai reviews — users say it nails meeting prep and attendee briefings."]);
-  });
-
-  it("keeps subject reviews referenced by host (acquire.com), ignores www.", () => {
-    const snippets = ["Acquire.com reviews on Trustpilot: 4.2/5 from 380 reviews."];
-    expect(filterSubjectSnippets(snippets, "www.acquire.com")).toEqual(snippets);
-  });
-
-  it("returns [] when nothing references the subject", () => {
-    expect(filterSubjectSnippets(["Some other product entirely."], "nudgi.ai")).toEqual([]);
-  });
-
-  it("keeps reviews that reference the brand name, not just the full host (Stripe)", () => {
-    const out = filterSubjectSnippets(
-      ["Stripe Reviews 2026 — verified pros & cons.", "My experience with Stripe has been positive."],
-      "stripe.com",
-    );
-    expect(out).toHaveLength(2); // was 0 before brand-token matching ("1 review for Stripe" bug)
-  });
-
-  it("falls back to the full host when the brand token is too short to be safe", () => {
-    // brand token "go" (<4 chars) → require the full host so it doesn't match everything
-    expect(filterSubjectSnippets(["Go is a programming language."], "go.com")).toEqual([]);
-  });
-});
+// `filterSubjectSnippets` was deleted in v3 (no production caller; its bare
+// brand-token matching was the attribution hole). Its brand-ambiguity duties
+// live in `filterSubjectResults` below.
 
 // Real-shape payload from prod scan 4093f1c9 (2026-07-19): the subject is
 // reachkit.app but every result is about reachkit.AI (a different product) or an
@@ -97,13 +67,53 @@ describe("filterSubjectResults — domain-conflict subject validation (WS-A)", (
     expect(filterSubjectResults(CONTESTED_BATCH, "reachkit.app")).toEqual([]);
   });
 
-  it("keeps genuine reviews when no conflicting domain appears (the Stripe class)", () => {
+  it("v3: a bare brand-NAME match is never attribution — a name-keyed platform result with no domain evidence is dropped, a domain-keyed one is kept (Stripe)", () => {
+    // v2 kept the G2 result via the brand-token fallback ("uncontested batch").
+    // That fallback is exactly what shipped reachkit.AI's reviews as
+    // reachkit.app's (poisoned sheet, fact_sheets id 110) — at the snippet
+    // level a name-only page about a same-named different product is
+    // indistinguishable from a genuine one, so it cannot count as evidence.
+    // Trustpilot keys products by DOMAIN, so genuine coverage still survives.
     const body = {
       results: [
         { url: "https://www.g2.com/products/stripe/reviews", title: "Stripe Reviews", content: "Stripe is easy to integrate and the docs are great." },
+        { url: "https://www.trustpilot.com/review/stripe.com", title: "Stripe Reviews | stripe.com", content: "Rated 3.2/5 from 12,000 reviews." },
       ],
     };
-    expect(filterSubjectResults(body, "stripe.com")).toHaveLength(1);
+    const kept = filterSubjectResults(body, "stripe.com");
+    expect(kept).toHaveLength(1);
+    expect(kept[0]).toContain("12,000 reviews");
+  });
+
+  it("v3 REGRESSION (the live batch that poisoned fact_sheets id 110): name-keyed platform listings of the OTHER product + the subject's own site → []", () => {
+    // Verbatim shapes from the real Tavily batch (raw_documents, 2026-07-19
+    // 15:50): Capterra/GetApp key by NAME so reachkit.AI's listings carry no
+    // domain token at all; salesforge names "ReachKit AI" only as prose; the
+    // subject's own /gallery page is marketing, not a review. Under v2 a batch
+    // like this with no conflicting domain token was "uncontested" and the
+    // brand-token fallback kept the platform listings → "Features 5/5" themes
+    // for an unlaunched product, cached under a fresh policy stamp.
+    const body = {
+      results: [
+        { url: "https://www.capterra.com/p/10029405/Reachkit", title: "Reachkit Software Pricing, Alternatives & More 2026", content: "Based on 2 user reviews 5.0. Reachkit is a user friendly tool, very clear and effective. It's easy and fun to use." },
+        { url: "https://www.getapp.ie/software/2081334/reachkit", title: "Reachkit Price, Reviews & Ratings | GetApp Ireland 2026", content: "Customer Service 5.0 (2) Money 5/5 Features 5/5 Ease of Use 5/5 Customer Support 5/5 100% recommended this app" },
+        { url: "https://www.salesforge.ai/directory/sales-tools/reachkit", title: "ReachKit Overview (2026) – Features, Pros, Cons & Pricing", content: "ReachKit AI is an AI-powered email outreach and inbox management platform designed to enhance cold email campaigns." },
+        { url: "https://reachkit.app/gallery", title: "Public Scans — Discoverability Analyses — ReachKit", content: "Every site we scan gets a permanent, public discoverability report — the score, the positioning gap, and the fixes that move it." },
+      ],
+    };
+    expect(filterSubjectResults(body, "reachkit.app")).toEqual([]);
+  });
+
+  it("v3: a result hosted ON the subject's own domain is never a review (self-marketing cannot launder into evidence)", () => {
+    const body = {
+      results: [
+        { url: "https://www.reachkit.app/pricing", title: "ReachKit pricing — reachkit.app", content: "Every claim grounded in your live page." },
+        { url: "https://thirdparty.example.com/roundup", title: "Tools roundup", content: "We tried reachkit.app and liked the score breakdown." },
+      ],
+    };
+    const kept = filterSubjectResults(body, "reachkit.app");
+    expect(kept).toHaveLength(1);
+    expect(kept[0]).toContain("roundup");
   });
 
   it("in a contested batch, keeps only results that explicitly reference the subject host", () => {

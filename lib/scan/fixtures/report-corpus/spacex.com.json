@@ -1,0 +1,219 @@
+{
+  "domain": "spacex.com",
+  "siteUrl": "https://spacex.com/",
+  "archetype": "pathological",
+  "scanId": "3cd24f30-0fcd-4c76-97dd-b42fe10880d0",
+  "tier": "free",
+  "capturedAt": "2026-07-18",
+  "note": "spacex (2026-07-18): the 8,170-demand class control POST-fix — real category rankings merged into demand (categoryDemand 1,336,500 = Σ its 8 categoryPhrases exactly), opportunities carry yourPosition (#12 for 'space'), 3 top-3 wins render as the wins strip with no '+N more' (wins == chips). On-page (26) is the weaker driver while search presence is 100 — pins the R5 converse.",
+  "reportPayload": {
+    "mode": "web",
+    "score": {
+      "basis": "verified",
+      "radar": [
+        { "axis": "Content", "value": 30, "active": true, "assessed": true },
+        { "axis": "Outreach", "value": 0, "active": true, "assessed": false },
+        { "axis": "SEO/ASO", "value": 24, "active": true, "assessed": true },
+        { "axis": "Ads", "value": 0, "active": false, "assessed": false },
+        { "axis": "Partnerships", "value": 0, "active": false, "assessed": false },
+        { "axis": "PR", "value": 0, "active": false, "assessed": false },
+        { "axis": "Positioning", "value": 0, "active": false, "assessed": false }
+      ],
+      "total": 51,
+      "breakdown": { "seo": 24, "content": 30, "outreach": 0 }
+    },
+    "whoItsFor": {
+      "signals": ["spacex", "com", "https", "www", "best", "reviews"],
+      "summary": "Buyers who value spacex, com, https. Reviews confirm: \"Users praise innovation and technological achievement, citing reliable reusable rockets and a bold vision for mass space exploration, though overall satisfaction is rated only average at 3/5 on Trustpilot, with some frustration around regulatory and environmental delays.\"."
+    },
+    "generatedAt": "2026-07-18T22:15:56.901Z",
+    "whatYouOffer": {
+      "positioningMirror": {
+        "gap": "The listing communicates nothing about the product's unique strengths, leaving a significant disconnect with the user-level excitement around reusable rockets and exploration vision. Compared to Rocket Lab, which focuses narrowly on small-to-medium lift, the subject could win on integrated end-to-end space infrastructure combining launch, satellite operations, and connectivity — but this advantage is entirely absent from the listing.",
+        "listingSays": "The listing sheet provides no explicit claims or value propositions, placing the product only in the 'Utilities' category with no stated differentiators or messaging.",
+        "reviewsValue": "Users praise innovation and technological achievement, citing reliable reusable rockets and a bold vision for mass space exploration, though overall satisfaction is rated only average at 3/5 on Trustpilot, with some frustration around regulatory and environmental delays.",
+        "actualAudience": ["space-curious general public", "launch service prospects", "broadband connectivity seekers", "regulatory-aware industry observers"],
+        "intendedAudience": ["commercial space buyers", "government space agencies", "satellite operators", "institutional mission planners"]
+      }
+    },
+    "whereTheyAre": {
+      "surfaces": [],
+      "competitorGap": [
+        { "you": 0, "them": 0, "dimension": "community presence", "competitor": "Blue Origin" },
+        { "you": 0, "them": 0, "dimension": "community presence", "competitor": "Rocket Lab" },
+        { "you": 0, "them": 0, "dimension": "community presence", "competitor": "United Launch Alliance" },
+        { "you": 0, "them": 0, "dimension": "community presence", "competitor": "Firefly Aerospace" },
+        { "you": 0, "them": 0, "dimension": "community presence", "competitor": "Isar Aerospace" }
+      ]
+    },
+    "creatorsToReach": [],
+    "searchVisibility": {
+      "score": 100,
+      "brandPct": 54,
+      "categoryGap": [
+        { "volume": 368000, "keyword": "space", "yourPosition": 12 },
+        { "volume": 110000, "keyword": "rocket launch today", "yourPosition": 4 },
+        { "volume": 110000, "keyword": "rocketship launch today", "yourPosition": 4 },
+        { "volume": 110000, "keyword": "space launch system", "yourPosition": 10 },
+        { "volume": 74000, "keyword": "rocket launch", "yourPosition": 4 },
+        { "volume": 74000, "keyword": "space and rockets", "yourPosition": 7 }
+      ],
+      "categoryPct": 24,
+      "offTopicPct": 22,
+      "categoryWins": 3,
+      "categoryDemand": 1336500,
+      "categoryRanked": [
+        { "volume": 450000, "keyword": "space exploration technologies", "yourPosition": 2 },
+        { "volume": 368000, "keyword": "space", "yourPosition": 12 },
+        { "volume": 110000, "keyword": "rocket launch today", "yourPosition": 4 },
+        { "volume": 110000, "keyword": "rocketship launch today", "yourPosition": 4 },
+        { "volume": 110000, "keyword": "space launch system", "yourPosition": 10 },
+        { "volume": 74000, "keyword": "rocket launch", "yourPosition": 4 },
+        { "volume": 74000, "keyword": "space and rockets", "yourPosition": 7 },
+        { "volume": 40500, "keyword": "launch at vandenberg", "yourPosition": 3 },
+        { "volume": 27100, "keyword": "dragon space ship", "yourPosition": 2 },
+        { "volume": 22200, "keyword": "space launch", "yourPosition": 4 }
+      ],
+      "keywordsRanked": 40357,
+      "categoryPhrases": [
+        { "volume": 450000, "keyword": "space exploration technologies", "yourPosition": 2 },
+        { "volume": 368000, "keyword": "space", "yourPosition": 12 },
+        { "volume": 110000, "keyword": "rocket launch today", "yourPosition": 4 },
+        { "volume": 110000, "keyword": "rocketship launch today", "yourPosition": 4 },
+        { "volume": 110000, "keyword": "space launch system", "yourPosition": 10 },
+        { "volume": 74000, "keyword": "rocket launch", "yourPosition": 4 },
+        { "volume": 74000, "keyword": "space and rockets", "yourPosition": 7 },
+        { "volume": 40500, "keyword": "launch at vandenberg", "yourPosition": 3 }
+      ],
+      "onPageReadiness": 26,
+      "estMonthlyVisits": 1772003,
+      "offTopicExamples": ["dragon", "mars on mars", "rocket launched today"],
+      "footprintComplete": true,
+      "categoryWonKeywords": ["space exploration technologies", "dragon space ship", "launch at vandenberg"],
+      "categoryOpportunities": [
+        { "volume": 368000, "keyword": "space", "yourPosition": 12 },
+        { "volume": 110000, "keyword": "rocket launch today", "yourPosition": 4 },
+        { "volume": 110000, "keyword": "rocketship launch today", "yourPosition": 4 },
+        { "volume": 110000, "keyword": "space launch system", "yourPosition": 10 },
+        { "volume": 74000, "keyword": "rocket launch", "yourPosition": 4 },
+        { "volume": 74000, "keyword": "space and rockets", "yourPosition": 7 }
+      ]
+    },
+    "whatToDoThisWeek": {
+      "medium": [],
+      "longPlay": [
+        {
+          "why": "Comparison pages is failing (0/100 on this scan). \"X vs Y\" and \"alternatives\" pages capture high-intent comparison searches.",
+          "basis": "probability_based",
+          "draft": null,
+          "title": "Publish honest comparison pages against the rivals buyers weigh you against",
+          "target": null,
+          "category": "outreach",
+          "evidence": [],
+          "effortMin": 45,
+          "confidence": 0.5,
+          "signalKeys": ["comparison_pages"],
+          "evidenceIds": [],
+          "verification": { "state": "pending", "method": "self_report" },
+          "expectedOutcome": { "delta": 4, "scoreComponent": "outreach" },
+          "draftRequiresEdit": true,
+          "suggestedDeadline": "2026-08-01"
+        }
+      ],
+      "quickWins": [
+        {
+          "why": "Content depth is failing (0/100 on this scan). Thin pages rarely rank; substantive copy earns relevance and trust.",
+          "basis": "probability_based",
+          "draft": null,
+          "title": "Expand the page past ~500 words of real, specific copy — thin templated pages plateau below this bar",
+          "target": null,
+          "category": "content",
+          "evidence": [],
+          "effortMin": 20,
+          "confidence": 0.5,
+          "signalKeys": ["content_depth"],
+          "evidenceIds": [],
+          "verification": { "state": "pending", "method": "self_report" },
+          "expectedOutcome": { "delta": 8, "scoreComponent": "content" },
+          "draftRequiresEdit": true,
+          "suggestedDeadline": "2026-08-01"
+        },
+        {
+          "why": "Structured data is failing (0/100 on this scan). JSON-LD/schema.org lets search engines render rich results for your page.",
+          "basis": "probability_based",
+          "draft": "<script type=\"application/ld+json\">\n{\n  \"@context\": \"https://schema.org\",\n  \"@type\": \"SoftwareApplication\",\n  \"name\": \"SpaceX\",\n  \"url\": \"https://spacex.com/\",\n  \"applicationCategory\": \"BusinessApplication\",\n  \"operatingSystem\": \"Web\",\n  \"description\": \"SpaceX designs, manufactures and launches advanced rockets and spacecraft. The company was founded in 2002 to revolutionize space technology, with the ultimate goal of enabling people to live on other planets.\"\n}\n</script>",
+          "title": "Add a JSON-LD block (SoftwareApplication, Product, or Organization)",
+          "target": null,
+          "category": "seo_aso",
+          "evidence": [],
+          "effortMin": 20,
+          "confidence": 0.5,
+          "signalKeys": ["schema_jsonld"],
+          "evidenceIds": [],
+          "verification": { "state": "pending", "method": "self_report" },
+          "expectedOutcome": { "delta": 5, "scoreComponent": "seo" },
+          "draftRequiresEdit": true,
+          "suggestedDeadline": "2026-08-01"
+        },
+        {
+          "why": "Heading structure is failing (0/100 on this scan). One clear H1 plus H2/H3 sub-heads tells search engines what the page covers.",
+          "basis": "probability_based",
+          "draft": null,
+          "title": "Use exactly one H1 and structure sections with H2/H3 sub-headings",
+          "target": null,
+          "category": "seo_aso",
+          "evidence": [],
+          "effortMin": 20,
+          "confidence": 0.5,
+          "signalKeys": ["heading_structure"],
+          "evidenceIds": [],
+          "verification": { "state": "pending", "method": "self_report" },
+          "expectedOutcome": { "delta": 5, "scoreComponent": "seo" },
+          "draftRequiresEdit": true,
+          "suggestedDeadline": "2026-08-01"
+        },
+        {
+          "why": "Canonical URL is failing (0/100 on this scan). A canonical tag prevents duplicate-content dilution of your ranking.",
+          "basis": "probability_based",
+          "draft": null,
+          "title": "Add <link rel=\"canonical\"> pointing at the preferred URL",
+          "target": null,
+          "category": "seo_aso",
+          "evidence": [],
+          "effortMin": 20,
+          "confidence": 0.5,
+          "signalKeys": ["canonical_url"],
+          "evidenceIds": [],
+          "verification": { "state": "pending", "method": "self_report" },
+          "expectedOutcome": { "delta": 4, "scoreComponent": "seo" },
+          "draftRequiresEdit": true,
+          "suggestedDeadline": "2026-08-01"
+        }
+      ]
+    },
+    "channelOpportunities": { "keywordClusters": [], "communitiesByEngagement": [] },
+    "competitiveLandscape": [],
+    "strengthsAndWeaknesses": {
+      "mixed": [],
+      "strengths": [],
+      "weaknesses": [],
+      "diagnostics": [
+        {
+          "claim": "The product has strong user-level narrative equity around reusable rocketry and mass space exploration, but no positioning content captures or converts this enthusiasm into differentiated value messaging that would resonate with commercial buyers.",
+          "category": "content",
+          "confidence": 0.78
+        },
+        {
+          "claim": "Regulatory and environmental delay frustrations surfacing in review themes represent an outreach opportunity to frame the product's infrastructure scale and operational track record as proof of resilience for prospective commercial and government partners.",
+          "category": "outreach",
+          "confidence": 0.65
+        },
+        {
+          "claim": "The competitor gap analysis reveals that no rival currently offers integrated end-to-end space infrastructure combining launch, satellite operations, and connectivity in one platform — this multi-capability positioning is an unoccupied keyword and content territory worth targeting.",
+          "category": "seo_aso",
+          "confidence": 0.72
+        }
+      ]
+    }
+  }
+}
