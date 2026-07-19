@@ -164,6 +164,31 @@ describe("report-rubric engine honesty — every rule FIRES on a violating input
     expect(v.some((x) => x.message.includes("nothing yet"))).toBe(true);
   });
 
+  it("R6 fires on an inverted BROAD rung (rendered bridge line with no broad tier bigger than the hero)", () => {
+    // Default payload has no valid broad tier → the bridge line is ungrounded.
+    const html = cleanHtml() + "<div>Your category, where the plan below starts:</div>";
+    const v = runReportRubric(payload(), html, only("R6"));
+    expect(v.some((x) => x.message.includes("inverted ladder"))).toBe(true);
+  });
+
+  it("R6 fires on the converse — a valid broad tier whose rung silently dropped", () => {
+    const p = payload({
+      searchVisibility: sv({
+        marketTiers: [{ tier: "broad", phrases: [{ keyword: "software", volume: 90000 }], demand: 90000, bestPosition: null }],
+      }),
+    });
+    const v = runReportRubric(p, cleanHtml(p), only("R6"));
+    expect(v.some((x) => x.message.includes("silent drop"))).toBe(true);
+  });
+
+  it("R3 off-topic grounding mirrors the explicit-terms curation (all-explicit examples ground nothing)", () => {
+    const p = payload({
+      searchVisibility: sv({ keywordsRanked: 100, offTopicPct: 60, offTopicExamples: ["porn hub"] }),
+    });
+    // No example copy rendered AND none required — the curated set is empty.
+    expect(runReportRubric(p, cleanHtml(p), only("R3"))).toEqual([]);
+  });
+
   it("suppressions skip exactly the named rule and nothing else", () => {
     const html = cleanHtml() + "<div>undefined</div>";
     expect(runReportRubric(payload(), html, { suppress: ["R1"] })).toEqual([]);

@@ -15,13 +15,22 @@ import { recordTavilyCost } from "@/lib/scan/cost-context";
  * v1 = pre-WS-A implicit (Tavily's synthesized `answer` could leak in as a
  *      "review", and any snippet mentioning the subject's name was kept).
  * v2 = WS-A: `parseWebReviewSnippets` drops `answer` outright, and
- *      `filterSubjectSnippets`/`dropDomainConflicts` require the snippet to
- *      actually reference the subject's own host — a same-named different
- *      product's reviews can no longer pollute the sheet.
+ *      `filterSubjectResults` drops same-brand different-domain results; a
+ *      CONTESTED batch additionally required per-result subject-host evidence.
+ * v3 = attribution macro rule (2026-07-19 evening). A v2 sheet was poisoned
+ *      LIVE (fact_sheets id 110, subject reachkit.app): the batch that built it
+ *      happened to carry NO conflicting domain token — Capterra/GetApp key
+ *      products by NAME ("…/software/2081334/reachkit"), so reachkit.AI's
+ *      listings sailed through as "uncontested" and the brand-token fallback
+ *      kept them. The class: a bare brand-NAME match is never attribution.
+ *      v3 requires DOMAIN-LEVEL subject evidence on every kept result and
+ *      drops the contested/uncontested split entirely (one rule, no branch);
+ *      results hosted ON the subject's own domain are also dropped — the
+ *      subject talking about itself is not a review.
  *
  * Bump this whenever the grounding rule for review evidence tightens again.
  */
-export const GROUNDING_POLICY_VERSION = 2;
+export const GROUNDING_POLICY_VERSION = 3;
 
 /**
  * Best-effort web review snippets. Web mode collects no first-party reviews, so we
@@ -46,25 +55,11 @@ export function parseWebReviewSnippets(body: unknown): string[] {
   return out;
 }
 
-/**
- * Brand-ambiguity hard rule for web reviews: a `"{host} reviews"` search can fuzzy-
- * match a same-named DIFFERENT product (e.g. "nudgi.ai reviews" → "Nudge AI", a
- * clinical-documentation tool). Keep only snippets that actually reference the
- * subject's full host, so a different product's reviews can never pollute the
- * subject's themes/insight. Errs toward dropping — brand-safety over coverage.
- */
-export function filterSubjectSnippets(snippets: string[], subjectHost: string): string[] {
-  const host = subjectHost.toLowerCase().replace(/^www\./, "");
-  if (!host) return [];
-  // Match the distinctive BRAND token ("stripe", "nudgi") — that's how real reviews
-  // reference a product ("Stripe", not "stripe.com"). Requiring the full host dropped
-  // almost every genuine review (the "1 review for Stripe" bug). The token still
-  // blocks a same-named DIFFERENT product ("Nudge AI" lacks "nudgi"). Fall back to the
-  // full host when the token is too short to be safe (a 2–3 char token matches anything).
-  const brand = host.split(".")[0] ?? host;
-  const needle = brand.length >= 4 ? brand : host;
-  return snippets.filter((s) => s.toLowerCase().includes(needle));
-}
+// `filterSubjectSnippets` (the WS-A v2 string-level brand-token filter) was
+// DELETED in v3: it had no production caller (fetchWebReviews routes through
+// `filterSubjectResults`), and its bare brand-name matching is exactly the
+// attribution hole v3 closes — keeping it around invites the next caller to
+// reintroduce the class.
 
 type TavilyResult = { url?: string; title?: string; content?: string };
 
@@ -81,16 +76,28 @@ export function referencedDomains(r: TavilyResult): string[] {
 }
 
 /**
- * WS-A (2026-07-19): brand-ambiguity, domain-conflict edition. The token filter
- * above (`filterSubjectSnippets`) cannot tell reachkit.app from reachkit.AI —
- * both contain "reachkit" — so a contested brand shipped another company's
- * reviews (prod scan 4093f1c9). Rule, per RESULT:
- *   1. A result referencing a same-brand DIFFERENT domain is dropped outright.
- *   2. If ANY result in the batch shows such a conflict, the brand is contested:
- *      every kept result must then reference the subject's own host explicitly.
- *   3. Otherwise (uncontested batch) the existing brand-token match stands, so
- *      genuine "Stripe is great" reviews survive (the 1-review-for-Stripe bug).
- * Errs toward dropping — grounding honesty (#11) over coverage.
+ * WS-A v3 (2026-07-19): the attribution macro rule. WS-A v2's domain-conflict
+ * gate only bit when a conflicting same-brand DOMAIN appeared in the batch —
+ * but review platforms key products by NAME (capterra.com/p/…/Reachkit,
+ * getapp.ie/software/…/reachkit), so a batch that happened to carry no domain
+ * token read as "uncontested" and the brand-token fallback shipped reachkit.AI's
+ * "Features 5/5" as reachkit.app's reviews (poisoned sheet, fact_sheets id 110).
+ * A blocklist of platforms would be the anti-pattern CLAUDE.md forbids; the
+ * class fix is structural — attribution, per RESULT, no batch-state branch:
+ *   1. Referencing a same-brand DIFFERENT domain → dropped (unchanged).
+ *   2. Hosted ON the subject's own domain → dropped. The subject's own pages
+ *      are marketing, not reviews — without this, the domain-anchored query
+ *      launders the subject's own site copy into "review" evidence.
+ *   3. Kept ONLY with explicit domain-level subject evidence (the subject's
+ *      host in the result's url/title/content). A bare brand-NAME match is
+ *      never attribution — a name-keyed platform page about a same-named
+ *      different product is indistinguishable from a genuine one at the
+ *      snippet level, so an unverifiable result is not evidence.
+ * Cost: genuine name-only snippets ("Stripe is great" on a G2 page that never
+ * writes stripe.com) are now dropped too — domain-keyed results (Trustpilot
+ * keys by domain) still survive. Errs toward dropping, three times documented:
+ * grounding honesty (#11) over coverage. "0 reviews found" renders nothing
+ * (rubric R3); someone else's 5/5 renders a lie.
  */
 export function filterSubjectResults(body: unknown, subjectHost: string): string[] {
   const host = subjectHost.toLowerCase().replace(/^www\./, "");
@@ -101,15 +108,16 @@ export function filterSubjectResults(body: unknown, subjectHost: string): string
   const conflicts = (r: TavilyResult): boolean =>
     referencedDomains(r).some((d) => d !== host && (d.split(".")[0] ?? d) === brand);
   const referencesSubject = (r: TavilyResult): boolean => referencedDomains(r).includes(host);
+  const selfHosted = (r: TavilyResult): boolean => {
+    try {
+      return new URL(r.url ?? "").hostname.toLowerCase().replace(/^www\./, "") === host;
+    } catch {
+      return false;
+    }
+  };
 
-  const contested = results.some(conflicts);
-  const needle = brand.length >= 4 ? brand : host;
   return results
-    .filter((r) => {
-      if (conflicts(r)) return false;
-      if (contested) return referencesSubject(r);
-      return `${r.title ?? ""} — ${r.content ?? ""}`.toLowerCase().includes(needle);
-    })
+    .filter((r) => !conflicts(r) && !selfHosted(r) && referencesSubject(r))
     .map((r) => `${r.title ?? ""} — ${r.content ?? ""}`.trim())
     .filter((s) => s.length > 3);
 }
@@ -124,6 +132,14 @@ export function filterSubjectResults(body: unknown, subjectHost: string): string
  * (a same-brand different-domain product's press can get rendered as "what's
  * been said about your space" and inflate `recentBuzzCount`, a real market
  * signal). Errs toward dropping — grounding honesty (#11) over coverage.
+ *
+ * DELIBERATE ASYMMETRY vs `filterSubjectResults` v3: news keeps the v2
+ * conflict-drop/contested semantics and does NOT require per-result domain
+ * evidence, because press almost never writes a domain ("Stripe launches X")
+ * and buzz feeds an aggregate COUNT on a paid surface — while reviews feed
+ * verbatim QUOTES rendered as the subject's own users on the free conversion
+ * surface. Quotes need attribution; counts tolerate the weaker gate. If a
+ * wrong-subject buzz incident ever ships, tighten this to the v3 rule too.
  */
 export function dropDomainConflicts<T extends TavilyResult>(results: T[], subjectHost: string): T[] {
   const host = subjectHost.toLowerCase().replace(/^www\./, "");

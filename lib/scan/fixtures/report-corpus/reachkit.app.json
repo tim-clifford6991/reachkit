@@ -5,7 +5,7 @@
   "scanId": "0cd95c58-d2ca-4395-b722-21ca54493b15",
   "tier": "free",
   "capturedAt": "2026-07-19",
-  "note": "reachkit.app pre-launch (2026-07-19): the genuinely-empty-inputs fixture that makes R3 non-vacuous (0 rankings, no wins, no off-topic examples). The fabricated-reviews incident (invariant #11) happened on THIS site. KNOWN RESIDUAL pinned as-is: the positioningMirror/actualAudience content is grounded in WRONG-SUBJECT reviews (the reachkit.ai cold-email tool — Apollo.io/Reply.io/Instantly.ai), captured before the WS-A subject-validation fully propagated; tighten when a post-WS-A scan is re-captured.",
+  "note": "reachkit.app pre-launch (2026-07-19): the genuinely-empty-inputs fixture that makes R3 non-vacuous (0 rankings, no wins, no off-topic examples). The fabricated-reviews incident (invariant #11) happened on THIS site. KNOWN RESIDUAL pinned as-is: the positioningMirror/actualAudience content is grounded in WRONG-SUBJECT reviews (the reachkit.ai cold-email tool — Apollo.io/Reply.io/Instantly.ai). ROOT-CAUSED (2026-07-19 evening): this scan served a policy-v2 CACHED review_themes sheet (fact_sheets id 110) built from an earlier batch that carried no conflicting domain token, so WS-A v2's brand-token fallback kept Capterra/GetApp's name-keyed listings of the other product. WS-A v3 (attribution macro rule + GROUNDING_POLICY_VERSION=3) closes the class and invalidates the poisoned sheet; a re-captured post-v3 scan should show NO mirror (actualAudience empty) — tighten then.",
   "reportPayload": {
     "mode": "web",
     "score": {

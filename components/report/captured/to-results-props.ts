@@ -7,6 +7,7 @@
  */
 
 import type { ReportPayload } from "@/lib/scan/report";
+import { renderableExamples } from "@/lib/scan/explicit-terms";
 import type { ResultsScreenProps, Fix, GapRow } from "./results-screen";
 
 const PILLAR_NOTE = (v: number, isMin: boolean) =>
@@ -170,8 +171,16 @@ export function toResultsProps(
         // boundary, same discipline as the `?? []` rule) rather than trust the
         // type — a legacy JSON blob can contain a string the current type
         // doesn't, and the renderer must never show a rung this design retired.
+        // Corpus finding (getapp.com, 2026-07-19): a pre-Task-B persisted
+        // payload can carry an INVERTED broad rung — demand BELOW the category
+        // hero (broad 10 above a hero of 30). The lib-level inversion guard
+        // (`computeMarketTiers`) never emits one going forward but cannot clean
+        // already-persisted rows, so the props boundary enforces it too: a
+        // "broad" rung that isn't actually bigger than the category is dropped,
+        // same discipline as the `medium` filter above it. Rubric R6 pins this.
         marketTiers: (sv.marketTiers ?? [])
           .filter((t) => (t.tier as string) === "broad" || (t.tier as string) === "niche")
+          .filter((t) => (t.tier as string) !== "broad" || t.demand > sv.categoryDemand)
           .map((t) => ({
             tier: t.tier,
             label: t.phrases[0]?.keyword ?? "",
@@ -183,7 +192,10 @@ export function toResultsProps(
           .filter((r) => typeof r.yourPosition === "number" && r.yourPosition <= 3)
           .slice(0, 3)
           .map((r) => ({ keyword: r.keyword, volume: r.volume, yourPosition: r.yourPosition as number })),
-        offTopicExamples: (sv.offTopicExamples ?? []).slice(0, 3),
+        // Editorial curation (corpus finding: x.com rendered `"porn hub"` as a
+        // named example): explicit terms never render as examples; the split
+        // percentages still count them — only the NAMED examples are curated.
+        offTopicExamples: renderableExamples(sv.offTopicExamples).slice(0, 3),
       }
     : null;
 

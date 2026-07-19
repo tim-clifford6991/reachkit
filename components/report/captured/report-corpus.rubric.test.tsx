@@ -73,7 +73,7 @@ const SUPPRESSIONS: Record<string, string[]> = {};
 // ── Manifest — the only-grows floor ─────────────────────────────────────────
 const MIN_FIXTURES = 6;
 const REQUIRED_ARCHETYPES = ["directory", "zero-ranking", "normal-saas", "pathological"];
-const MIN_RUBRIC_RULES = 5;
+const MIN_RUBRIC_RULES = 6; // raised from 5 when R6 (ladder sanity) landed — the floor only rises
 
 function render(fx: CorpusFixture): string {
   const { resultsProps } = publicReportProps(fx.reportPayload, `corpus-${fx.domain}`, fx.siteUrl);
@@ -130,12 +130,14 @@ describe("corpus: getapp.com — directory whose footprint is other companies' n
   it("the ≥40% off-topic warning names the actual incidental keywords", () => {
     expect(html).toContain("amcs");
   });
-  // KNOWN ISSUE (found capturing this corpus, 2026-07-19): this pre-Task-B
-  // payload persists an INVERTED broad rung (broad demand 10 above a hero of
-  // 30) — the inversion guard lives in `computeMarketTiers` and cannot clean
-  // an already-persisted payload; the props boundary only filters "medium".
-  // Not asserted either way so the eventual fix lands without corpus churn;
-  // when it lands, TIGHTEN: expect the broad rung absent here.
+  // TIGHTENED (2026-07-19 evening, the fix the KNOWN ISSUE note promised):
+  // this pre-Task-B payload persists an INVERTED broad rung (broad demand 10
+  // below the hero's 30). The props boundary now drops it (same discipline as
+  // the `medium` filter) and rubric R6 pins the rule both ways.
+  it("the persisted INVERTED broad rung (10 below the hero's 30) never renders", () => {
+    expect(html).not.toContain("b2b software market");
+    expect(html).not.toContain("Your category, where the plan below starts:");
+  });
 });
 
 describe("corpus: reachkit.app — the 0-ranking new product (the invariant-#11 site)", () => {
@@ -201,6 +203,15 @@ describe("corpus: x.com — mega-brand footprint (post-macro-rule; Part C residu
     expect(html).toContain("33,170");
     expect(html).toContain("social networking");
     expect(html).toContain("decentralized social networks");
+  });
+  // TIGHTENED (2026-07-19 evening): explicit terms are payload-grounded but
+  // never rendered as NAMED examples on the conversion surface — the split
+  // percentages still count them (`renderableExamples`, shared with the
+  // rubric's R3 grounding predicate so render and rubric can't disagree).
+  it("explicit off-topic examples are curated out; clean ones still render", () => {
+    expect(html).not.toContain("porn hub");
+    expect(html).toContain("youtube");
+    expect(html).toContain("youcine");
   });
 });
 

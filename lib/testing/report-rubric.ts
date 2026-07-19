@@ -28,6 +28,7 @@ import { parse } from "node-html-parser";
 import type { ReportPayload } from "@/lib/scan/report";
 import { redactReportForTier } from "@/lib/billing/entitlements";
 import { tierByPlan } from "@/lib/billing/pricing";
+import { renderableExamples } from "@/lib/scan/explicit-terms";
 
 export interface RubricViolation {
   rule: string;
@@ -261,11 +262,13 @@ const SECTION_RULES: SectionRule[] = [
   {
     id: "off-topic-examples",
     marker: "e.g. you rank for",
+    // Mirrors the render boundary's editorial curation (`renderableExamples`):
+    // a payload whose only examples are explicit terms grounds NO example copy.
     grounded: (p) =>
       !!p.searchVisibility &&
       p.searchVisibility.keywordsRanked > 0 &&
       p.searchVisibility.offTopicPct >= 40 &&
-      (p.searchVisibility.offTopicExamples ?? []).length > 0,
+      renderableExamples(p.searchVisibility.offTopicExamples).length > 0,
   },
   {
     id: "positioning-mirror",
@@ -416,12 +419,48 @@ const r5ComparativeCopy: RubricRule = {
 };
 
 // ---------------------------------------------------------------------------
+// R6 — ladder sanity: a BROAD rung must actually be broader than the category
+// ---------------------------------------------------------------------------
+
+const r6LadderSanity: RubricRule = {
+  id: "R6",
+  title: "a BROAD ladder rung renders only when its demand exceeds the category hero (no inverted ladder)",
+  check: (payload, html) => {
+    const text = visibleText(html);
+    const violations: RubricViolation[] = [];
+    const sv = payload.searchVisibility;
+    // The bridge line renders ONLY under a surviving broad rung
+    // (results-screen.tsx `broadTier`). Corpus finding (getapp.com legacy
+    // payload): a persisted broad rung of 10 rendered ABOVE a hero of 30 —
+    // the lib-level inversion guard can't clean persisted rows, so the props
+    // boundary filters it and this rule pins that both ways.
+    const marker = "Your category, where the plan below starts:";
+    const rendered = text.includes(marker);
+    const validBroad =
+      !!sv && sv.categoryDemand > 0 && (sv.marketTiers ?? []).some((t) => t.tier === "broad" && t.demand > sv.categoryDemand);
+    if (rendered && !validBroad) {
+      violations.push({
+        rule: "R6",
+        message: "a BROAD rung rendered but the payload has no broad tier bigger than the category hero — an inverted ladder is dishonest, drop the rung",
+      });
+    }
+    if (!rendered && validBroad) {
+      violations.push({
+        rule: "R6",
+        message: "the payload carries a valid broad tier (demand > category hero) but the BROAD rung did not render — a silent drop",
+      });
+    }
+    return violations;
+  },
+};
+
+// ---------------------------------------------------------------------------
 // Registry + runner
 // ---------------------------------------------------------------------------
 
 /** Every rubric rule, in priority order. The corpus test pins this list's
  *  length as an only-grows floor — deleting a rule is a ratchet violation. */
-export const RUBRIC_RULES: RubricRule[] = [r1NoGarbage, r2NumberBasis, r3EmptyInputNoSection, r4TeaserParity, r5ComparativeCopy];
+export const RUBRIC_RULES: RubricRule[] = [r1NoGarbage, r2NumberBasis, r3EmptyInputNoSection, r4TeaserParity, r5ComparativeCopy, r6LadderSanity];
 
 export interface RubricOptions {
   /** Rule ids to skip for a fixture — a named, only-shrinks list in the corpus
