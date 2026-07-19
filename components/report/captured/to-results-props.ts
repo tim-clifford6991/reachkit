@@ -160,17 +160,25 @@ export function toResultsProps(
         // FINAL-REVIEW FIX: a rung's `demand` is the SUM of every phrase priced
         // for it, but the render used to label it with ONLY `phrases[0].keyword`
         // — so a multi-phrase rung's number looked like it belonged to a single
-        // phrase that didn't add up to it (live: medium rung 113,620 labeled
-        // "seo tools", alone only 110,000). Pass every phrase through so the
+        // phrase that didn't add up to it. Pass every phrase through so the
         // renderer can itemise the rest as chips (the same G4 idiom already used
         // for `categoryPhrases`) and the number visually reconciles to its parts.
-        marketTiers: (sv.marketTiers ?? []).map((t) => ({
-          tier: t.tier,
-          label: t.phrases[0]?.keyword ?? "",
-          demand: t.demand,
-          bestPosition: t.bestPosition,
-          phrases: t.phrases.map((ph) => ({ keyword: ph.keyword, volume: ph.volume })),
-        })),
+        // Task B (2026-07-19, ladder restructure): MEDIUM was dropped from the
+        // ladder — `computeMarketTiers` no longer emits it, but an OLDER
+        // persisted `report_payload` may still carry a `medium` rung from
+        // before this change. Defensively filter it out here (at the props
+        // boundary, same discipline as the `?? []` rule) rather than trust the
+        // type — a legacy JSON blob can contain a string the current type
+        // doesn't, and the renderer must never show a rung this design retired.
+        marketTiers: (sv.marketTiers ?? [])
+          .filter((t) => (t.tier as string) === "broad" || (t.tier as string) === "niche")
+          .map((t) => ({
+            tier: t.tier,
+            label: t.phrases[0]?.keyword ?? "",
+            demand: t.demand,
+            bestPosition: t.bestPosition,
+            phrases: t.phrases.map((ph) => ({ keyword: ph.keyword, volume: ph.volume })),
+          })),
         winsRows: (sv.categoryRanked ?? [])
           .filter((r) => typeof r.yourPosition === "number" && r.yourPosition <= 3)
           .slice(0, 3)

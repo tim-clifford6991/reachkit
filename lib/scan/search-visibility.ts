@@ -112,11 +112,19 @@ export interface SearchVisibility {
   categoryRanked: CategoryGapRow[];
   /** Internal: category terms you already rank top-3 for (dedup for opportunities). */
   categoryWonKeywords: string[];
-  /** M2 (2026-07-19): the broad/medium market ladder — "this is a big industry,
-   *  this is the category you compete in" — priced from the SAME single
-   *  keyword-volumes call as the category seeds. BROAD + MEDIUM only; the niche
-   *  rung is deliberately NOT here — it IS the existing category-demand card
-   *  above (one concept, one name — G7). Additive + absent on legacy payloads. */
+  /** Task B (2026-07-19, ladder restructure): the market ladder — "this is a
+   *  big industry" (BROAD) above the category-demand hero, and a cheap NICHE
+   *  rung below it. The MEDIUM rung was dropped entirely: the category-demand
+   *  hero (categorySeeds + real rankings, `computeCategoryDemand`) already IS
+   *  the tool-category altitude, so a separate medium rung could only
+   *  duplicate it (a live scan showed "seo tools" priced in BOTH the medium
+   *  rung and the category hero — visibly double-counted). At most
+   *  `[broad?, niche?]`: BROAD only renders when its priced demand EXCEEDS the
+   *  category demand (an inverted ladder — broad sitting BELOW the category —
+   *  is dropped rather than rendered dishonestly); phrases already counted in
+   *  the category-demand set (or in NICHE) are excluded from BROAD so no
+   *  phrase is ever double-counted across rungs. Additive + absent on legacy
+   *  payloads. */
   marketTiers?: MarketTier[];
   // DELETED 2026-07-17 (free-scan honesty): `categoryCaptureRate` was
   // `= sv.score` — the search-presence score rendered a SECOND time under a
@@ -506,33 +514,53 @@ export function computeCategoryDemand(
 }
 
 export interface MarketTier {
-  tier: "broad" | "medium";
+  tier: "broad" | "niche";
   phrases: DemandRow[];
   demand: number;
   bestPosition: number | null;
 }
 
 /**
- * M2 (2026-07-19): the broad/medium market ladder — "this is a big industry,
- * this is the category you compete in" — priced from the SAME single
- * search_volume request as the category seeds (the tier phrases are merged into
- * that one call's keyword list; request-billed, so phrase count is cost-free).
- * The NICHE rung is deliberately NOT computed here: it IS the existing
- * category-demand card (one concept, one name — G7). Standing per rung comes
- * only from the real rank map (the one ranked_keywords call) — never invented.
- * Feeds NOTHING into sv.score (invariant #1).
+ * Task B (2026-07-19, ladder restructure — data-grounded rungs, not synonym
+ * labels): priced from the SAME single search_volume request as the category
+ * seeds (the tier phrases are merged into that one call's keyword list;
+ * request-billed, so phrase count is cost-free). The MEDIUM rung is dropped
+ * entirely — `tierSeeds.medium` is accepted (callers still persist it) but
+ * never priced and never sent to the volumes call ("never pay for data you
+ * don't render", per-field). At most `[broad?, niche?]`:
+ *
+ *   - **Cross-rung dedup**: a phrase already in the CATEGORY phrase set
+ *     (`categoryPhrases`, lowercased) is excluded from BOTH broad and niche —
+ *     it's already counted in the category-demand hero, so a rung must not
+ *     re-render it (a live scan showed "seo tools" priced in a rung AND the
+ *     hero, visibly double-counted). A phrase seeded in BOTH broad and niche
+ *     keeps NICHE only (niche priced first; broad's price excludes niche's
+ *     own keywords).
+ *   - **Inversion guard**: BROAD only renders when its priced demand STRICTLY
+ *     EXCEEDS `categoryDemand` — an inverted ladder (a "broad" rung sized
+ *     below the category it's supposed to sit above — a live scan showed
+ *     broad 5,200 ≤ category 112,420) is dropped rather than rendered
+ *     dishonestly (degrade, never invent a false hierarchy).
+ *   - **Niche rung**: renders whenever ≥1 phrase prices > 0 after dedup — no
+ *     further gate (it's a cheap, additional rung, not claimed "biggest").
+ *
+ * Standing per rung comes only from the real rank map (the one
+ * ranked_keywords call) — never invented. Feeds NOTHING into sv.score
+ * (invariant #1).
  */
 export function computeMarketTiers(
   tierSeeds: { broad: string[]; medium: string[]; niche: string[] },
   volumesByKeyword: Map<string, number>,
   rankByKeyword: Map<string, number>,
+  categoryPhrases: DemandRow[] = [],
+  categoryDemand: number = 0,
 ): MarketTier[] {
-  const mk = (tier: MarketTier["tier"], seeds: string[]): MarketTier => {
+  const price = (seeds: string[], exclude: Set<string>) => {
     const seen = new Set<string>();
     const phrases: DemandRow[] = [];
     for (const raw of seeds) {
       const keyword = raw.toLowerCase().trim();
-      if (!keyword || seen.has(keyword)) continue;
+      if (!keyword || seen.has(keyword) || exclude.has(keyword)) continue;
       seen.add(keyword);
       const volume = volumesByKeyword.get(keyword) ?? 0;
       if (volume <= 0) continue;
@@ -541,13 +569,28 @@ export function computeMarketTiers(
     phrases.sort((a, b) => b.volume - a.volume);
     const positions = phrases.map((p) => p.yourPosition).filter((p): p is number => typeof p === "number");
     return {
-      tier,
       phrases,
       demand: phrases.reduce((s, p) => s + p.volume, 0), // G4-per-tier by construction
       bestPosition: positions.length ? Math.min(...positions) : null,
     };
   };
-  return [mk("broad", tierSeeds.broad), mk("medium", tierSeeds.medium)].filter((t) => t.phrases.length > 0);
+
+  const categorySet = new Set(categoryPhrases.map((p) => p.keyword.toLowerCase().trim()));
+  // Niche priced FIRST (excluding only the category set) so a phrase seeded in
+  // both broad and niche is resolved in niche's favour; broad then excludes
+  // both the category set AND niche's own priced keywords.
+  const nicheResult = price(tierSeeds.niche, categorySet);
+  const broadExclude = new Set([...categorySet, ...nicheResult.phrases.map((p) => p.keyword)]);
+  const broadResult = price(tierSeeds.broad, broadExclude);
+
+  const tiers: MarketTier[] = [];
+  if (broadResult.phrases.length > 0 && broadResult.demand > categoryDemand) {
+    tiers.push({ tier: "broad", ...broadResult });
+  }
+  if (nicheResult.phrases.length > 0) {
+    tiers.push({ tier: "niche", ...nicheResult });
+  }
+  return tiers;
 }
 
 /**
@@ -615,20 +658,26 @@ export async function gatherFreeSearchVisibility(
       if (cur === undefined || k.position < cur) rankByKeyword.set(key, k.position);
     }
     const seeds = buildCategorySeeds(sv, llmCategorySeeds);
-    // ONE volumes request prices the category seeds AND the ladder's tier phrases
-    // (request-billed — merging keywords adds no cost and no latency).
-    const tierPhrases = tierSeeds ? [...tierSeeds.broad, ...tierSeeds.medium] : [];
+    // ONE volumes request prices the category seeds AND the ladder's BROAD +
+    // NICHE tier phrases (request-billed — merging keywords adds no cost and no
+    // latency). MEDIUM is dropped from the ladder entirely (never priced, never
+    // sent here) — "never pay for data you don't render", per-field.
+    const tierPhrases = tierSeeds ? [...tierSeeds.broad, ...tierSeeds.niche] : [];
     const allSeeds = [...new Set([...seeds, ...tierPhrases.map((s) => s.toLowerCase().trim())].filter(Boolean))].slice(0, 16);
     const seedVolumes = allSeeds.length > 0 ? await cachedKeywordVolumes(allSeeds).catch(() => []) : [];
     const volumesByKeyword = new Map(seedVolumes.map((r) => [r.keyword.toLowerCase(), r.volume]));
-    // Demand hero (niche/category rung): UNCHANGED — only the ORIGINAL category
-    // seeds feed it, so the persisted demand story doesn't move under the ladder.
+    // Demand hero (category rung): UNCHANGED — only the ORIGINAL category seeds
+    // feed it, so the persisted demand story doesn't move under the ladder.
     const catVolumes = seedVolumes.filter((r) => seeds.includes(r.keyword.toLowerCase()));
     // Merge the site's REAL category rankings (sv.categoryRanked — from the SAME
     // ranked_keywords call, no extra spend) with the seed volumes, so demand +
     // opportunities reflect the actual market for big AND small sites alike.
     const demand = computeCategoryDemand(catVolumes, rankByKeyword, sv.categoryRanked);
-    const marketTiers = tierSeeds ? computeMarketTiers(tierSeeds, volumesByKeyword, rankByKeyword) : undefined;
+    // computeMarketTiers runs AFTER computeCategoryDemand — the dedup + inversion
+    // guard need the category phrase set + demand total it just produced.
+    const marketTiers = tierSeeds
+      ? computeMarketTiers(tierSeeds, volumesByKeyword, rankByKeyword, demand.categoryPhrases, demand.categoryDemand)
+      : undefined;
     return { ...sv, ...demand, ...(marketTiers && marketTiers.length > 0 ? { marketTiers } : {}) };
   } catch {
     return EMPTY;

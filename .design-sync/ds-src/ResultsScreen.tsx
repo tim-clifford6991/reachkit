@@ -49,18 +49,22 @@ const SITE = "bloom.io";
 // R1 (2026-07-19) — the listing's own self-description, rendered as a small
 // line before the headline.
 const IDENTITY_LINE = "Habit and mood tracking for people building daily routines.";
-// M3 (2026-07-19) — the broad/medium market ladder. Demand is NOT monotonic
-// across rungs by design (keyword volumes don't obey concept hierarchy), so
-// this states each rung's label + number + standing, never "biggest market".
-// FINAL-REVIEW FIX (2026-07-19): a rung's number is the SUM of every phrase
-// priced for it, but showing only its top phrase as the label made the number
-// look like it belonged to that phrase alone (live: a medium rung read
-// 113,620 labeled "seo tools", which alone is only 110,000). MEDIUM here
-// demos a multi-phrase rung so its chips row (itemising the rest) is mirrored.
+// Task B (2026-07-19, ladder restructure) — at most [broad?, niche?]. MEDIUM
+// is gone: it duplicated the category-demand hero at the same altitude (a
+// live scan showed "seo tools" priced in BOTH the medium rung and the hero,
+// visibly double-counted). BROAD renders ABOVE the hero only when its priced
+// demand EXCEEDS the hero's (the inversion guard — an inverted ladder, broad
+// sized below the category it sits above, degrades to omitted rather than
+// rendering dishonestly). NICHE is a cheap additional rung rendered AFTER the
+// hero's own phrase chips. FINAL-REVIEW FIX (2026-07-19): a rung's number is
+// the SUM of every phrase priced for it, but showing only its top phrase as
+// the label made the number look like it belonged to that phrase alone —
+// NICHE here demos a multi-phrase rung so its chips row (itemising the rest)
+// is mirrored.
 const MARKET_TIERS = [
   { tier: "broad" as const, label: "productivity software", demand: 90500, bestPosition: null as number | null, phrases: [{ keyword: "productivity software", volume: 90500 }] },
-  { tier: "medium" as const, label: "habit tracker app", demand: 8820, bestPosition: 34 as number | null, phrases: [{ keyword: "habit tracker app", volume: 8100 }, { keyword: "daily habit app", volume: 720 }] },
 ];
+const NICHE_TIER = { tier: "niche" as const, label: "habit tracker app", demand: 8820, bestPosition: 34 as number | null, phrases: [{ keyword: "habit tracker app", volume: 8100 }, { keyword: "daily habit app", volume: 720 }] };
 // WS-D (2026-07-19) — categoryRanked rows the subject already ranks top-3
 // for, shown alongside the gap so the report isn't gaps-only. FINAL-REVIEW FIX:
 // the wins SENTENCE below states a count (3) higher than this strip's rows —
@@ -159,9 +163,11 @@ export function ResultsScreen() {
         <h2 style={H2}>Your category, and how much of it you own</h2>
         <p style={SUB}>How much your buyers are searching, and how many of those terms you actually win.</p>
         <div style={{ ...CARD, padding: "20px 22px", marginBottom: 14 }}>
-          {/* M3 (2026-07-19): the broad/medium market ladder, ahead of the
-              category-demand number — "this is the industry, this is the
-              category you compete in". Rungs are NOT claimed monotonic. */}
+          {/* Task B (2026-07-19): the BROAD rung, ahead of the category-demand
+              hero — "this is the industry, this is the category you compete
+              in". Only renders when its priced demand exceeds the hero's
+              (inversion guard); MEDIUM never renders anywhere (it duplicated
+              this very hero). */}
           <div style={{ marginBottom: 14, borderBottom: "1px solid var(--c-line2)", paddingBottom: 12 }}>
             {MARKET_TIERS.map((t) => (
               <div key={t.tier}>
@@ -171,25 +177,16 @@ export function ResultsScreen() {
                   <span style={{ fontFamily: JM, color: "var(--c-muted)" }}>{t.demand.toLocaleString()} searches/mo</span>
                   <span style={{ fontFamily: JM, fontWeight: 700, color: t.bestPosition != null ? "var(--c-band-fair)" : "var(--c-band-invisible)" }}>{t.bestPosition != null ? `best #${t.bestPosition}` : "not ranking"}</span>
                 </div>
-                {/* FINAL-REVIEW FIX: itemise every phrase behind a multi-phrase
-                    rung — same idiom as the categoryPhrases chips below — so
-                    the rung's total visually reconciles to its parts. */}
-                {t.phrases.length > 1 && (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 10px", fontSize: 12.5, color: "var(--c-faint)", fontFamily: JM, padding: "2px 0 4px 66px" }}>
-                    {t.phrases.map((ph) => (
-                      <span key={ph.keyword} style={{ background: "var(--c-fill)", borderRadius: 6, padding: "2px 8px" }}>{ph.keyword} <span style={{ color: "var(--c-muted)", fontWeight: 600 }}>{ph.volume.toLocaleString()}</span></span>
-                    ))}
-                  </div>
-                )}
               </div>
             ))}
-            <div style={{ fontSize: 12, color: "var(--c-faint)", marginTop: 6 }}>Your niche, where the plan below starts:</div>
+            <div style={{ fontSize: 12, color: "var(--c-faint)", marginTop: 6 }}>Your category, where the plan below starts:</div>
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: 10, marginBottom: 12 }}>
-            {/* MINOR polish: this card IS the ladder's third (niche) rung — give
-                it the same uppercase pill the BROAD/MEDIUM rungs use above, so
-                the ladder reads as one consistent 3-rung structure. */}
-            <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--c-faint)", width: 58 }}>niche</span>
+            {/* The hero's own identity pill — "this IS the category you
+                compete in" — always renders, independent of whether the
+                BROAD rung above it survived the inversion guard. Was
+                mislabeled NICHE (its seeds are deliberately HEAD terms). */}
+            <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--c-faint)" }}>YOUR CATEGORY</span>
             <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 26 }}>12,400</span>
             <span style={{ fontSize: 13.5, color: "var(--c-muted)" }}>searches/mo across your category</span>
           </div>
@@ -216,6 +213,28 @@ export function ResultsScreen() {
             {[["email api", "590"], ["email delivery service", "590"], ["transactional email api", "70"]].map(([k, v]) => (
               <span key={k} style={{ background: "var(--c-fill)", borderRadius: 6, padding: "2px 8px" }}>{k} <span style={{ color: "var(--c-muted)", fontWeight: 600 }}>{v}</span></span>
             ))}
+          </div>
+          {/* Task B (2026-07-19): the NICHE rung — a cheap additional altitude,
+              rendered AFTER the hero's own phrase chips (before the rivalry
+              line below). No inversion guard: it never claims to be the
+              "biggest" market, just an additional, narrower one worth naming.
+              FINAL-REVIEW FIX: itemise every phrase behind a multi-phrase rung
+              — same idiom as the categoryPhrases chips above — so its total
+              visually reconciles to its parts. */}
+          <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px dashed var(--c-line2)" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: 8, fontSize: 13, padding: "3px 0" }}>
+              <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--c-faint)", width: 58 }}>{NICHE_TIER.tier}</span>
+              <span style={{ fontWeight: 600, flex: "1 1 140px" }}>{NICHE_TIER.label}</span>
+              <span style={{ fontFamily: JM, color: "var(--c-muted)" }}>{NICHE_TIER.demand.toLocaleString()} searches/mo</span>
+              <span style={{ fontFamily: JM, fontWeight: 700, color: NICHE_TIER.bestPosition != null ? "var(--c-band-fair)" : "var(--c-band-invisible)" }}>{NICHE_TIER.bestPosition != null ? `best #${NICHE_TIER.bestPosition}` : "not ranking"}</span>
+            </div>
+            {NICHE_TIER.phrases.length > 1 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 10px", fontSize: 12.5, color: "var(--c-faint)", fontFamily: JM, padding: "2px 0 4px 66px" }}>
+                {NICHE_TIER.phrases.map((ph) => (
+                  <span key={ph.keyword} style={{ background: "var(--c-fill)", borderRadius: 6, padding: "2px 8px" }}>{ph.keyword} <span style={{ color: "var(--c-muted)", fontWeight: 600 }}>{ph.volume.toLocaleString()}</span></span>
+                ))}
+              </div>
+            )}
           </div>
           {/* WS-E (2026-07-19): both rivalry states render live now — a scan
               with zero discovered rivals used to drop the "someone is
