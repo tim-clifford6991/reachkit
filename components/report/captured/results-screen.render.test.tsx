@@ -64,6 +64,16 @@ function comp(name: string): CompGap {
   return { competitor: name, dimension: "organic", them: 100, you: 10 };
 }
 
+// Renders through the REAL public path (redactReportForTier "free" +
+// fullGapQueries + toResultsProps + ResultsScreen) via the same
+// `publicReportProps` helper `public-report.tsx`'s server component calls —
+// so a new field's free-tier redaction behavior is exercised, not just its
+// props mapping (WS-D/M3/R1 new cases below use this).
+function renderPublicReport(payload: ReportPayload): string {
+  const { resultsProps } = publicReportProps(payload, "test-slug", "https://example.com");
+  return renderToStaticMarkup(<ResultsScreen {...resultsProps} scanId="scan-test" />);
+}
+
 function action(title: string, delta: number): ActionCard {
   return {
     category: "content",
@@ -285,10 +295,12 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
     const legacySv = {
       score: 46, onPageReadiness: 80, keywordsRanked: 50, estMonthlyVisits: 400,
       brandPct: 30, categoryPct: 20, offTopicPct: 50,
-      categoryGap: [], offTopicExamples: [], categoryWins: 0,
+      categoryGap: [], categoryWins: 0,
       categoryDemand: 8000, categoryOpportunities: [], categoryWonKeywords: [],
-      // deliberately NO footprintComplete, NO categoryPhrases, NO categoryRanked —
-      // they postdate this payload. The render must tolerate their absence.
+      // deliberately NO footprintComplete, NO categoryPhrases, NO categoryRanked,
+      // NO marketTiers, NO offTopicExamples — they postdate this payload (the
+      // last three are this task's M3/WS-D fields, 2026-07-19). The render
+      // must tolerate their absence.
     } as unknown as SearchVisibility;
     const r = report({ searchVisibility: legacySv });
     const html = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r, "reflect.app", 2, 8)} scanId="scan-legacy" />);
@@ -429,5 +441,54 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
     // would hide the whole unlock band rather than surface a wrong number, which
     // would let `not.toMatch(/all\s+0/)` pass for the wrong reason.
     expect(html).toContain("win all 4 opportunities");
+  });
+
+  // M3 (2026-07-19): the broad/medium market ladder — "this is the industry,
+  // this is the category you compete in" — priced from the same single
+  // keyword-volumes call as the category seeds. Standing (bestPosition) comes
+  // from the real rank map, never invented. Demand is NOT claimed monotonic
+  // across rungs (a live prod scan showed broad 5,200 < medium 113,620 —
+  // keyword volumes don't obey concept hierarchy), so the render asserts only
+  // the tier labels + numbers, never comparative "biggest market" copy.
+  it("renders the broad/medium market ladder with per-rung standing (M3)", () => {
+    const html = renderPublicReport(report({ searchVisibility: sv({
+      marketTiers: [
+        { tier: "broad", phrases: [{ keyword: "marketing software", volume: 550000 }], demand: 550000, bestPosition: null },
+        { tier: "medium", phrases: [{ keyword: "seo tools", volume: 74000, yourPosition: 12 }], demand: 74000, bestPosition: 12 },
+      ],
+    }) }));
+    expect(html).toContain("marketing software");
+    expect(html).toContain("550,000");
+    expect(html).toContain("#12");
+  });
+
+  // WS-D (2026-07-19): "you already win" strip — categoryRanked rows where the
+  // subject already ranks top-3, so the report doesn't ONLY show gaps.
+  it("renders the 'you already win' strip from categoryRanked top-3 (WS-D)", () => {
+    const html = renderPublicReport(report({ searchVisibility: sv({
+      categoryRanked: [{ keyword: "discoverability tool", volume: 2400, yourPosition: 2 }],
+      categoryWins: 1,
+    }) }));
+    expect(html).toContain("discoverability tool");
+    expect(html).toContain("#2");
+  });
+
+  // WS-D (2026-07-19): named off-topic examples — the >=40% warning used to
+  // assert only a bare percentage; naming the actual keywords ("spanglish
+  // translator") makes the "not your traffic" claim concrete and checkable.
+  it("names the off-topic examples inside the warning (WS-D)", () => {
+    const html = renderPublicReport(report({ searchVisibility: sv({
+      keywordsRanked: 900, offTopicPct: 60, categoryPct: 15, brandPct: 25,
+      offTopicExamples: ["spanglish translator", "cometly"],
+    }) }));
+    expect(html).toContain("spanglish translator");
+  });
+
+  // R1 (2026-07-19): identity strip — the listing's own self-description
+  // (`positioningMirror.listingSays`), rendered as a small line before the
+  // headline so the reader has the subject's own words alongside the score.
+  it("renders the identity strip from listingSays (R1)", () => {
+    const html = renderPublicReport(report({ whatYouOffer: { positioningMirror: { listingSays: "SEO analytics for solo founders.", reviewsValue: "", gap: "" } } }));
+    expect(html).toContain("SEO analytics for solo founders.");
   });
 });

@@ -87,6 +87,10 @@ export interface GapRow { query: string; volume: string; rank: string; ranked: b
 
 export interface ResultsScreenProps {
   siteLabel: string;
+  /** R1 (2026-07-19) — the listing's own self-description (`positioningMirror.
+   *  listingSays`), rendered as a small line before the headline. Absent/empty
+   *  on a degraded scan (guard: `p.identityLine ?` — never render a blank line). */
+  identityLine?: string;
   score: number;
   headline: string;
   intro: string; // sentence after the headline (without the site label, which is prepended)
@@ -140,6 +144,17 @@ export interface ResultsScreenProps {
     categoryDemand: number;
     /** Every named category phrase + its volume — so categoryDemand reconciles (G4). */
     categoryPhrases: { keyword: string; volume: number }[];
+    /** M3 (2026-07-19) — the broad/medium market ladder. Demand is NOT
+     *  monotonic across rungs (keyword volumes don't obey concept hierarchy —
+     *  a live scan showed broad 5,200 < medium 113,620), so the render states
+     *  each rung's label + number + standing and never claims "biggest market". */
+    marketTiers: { tier: "broad" | "medium"; label: string; demand: number; bestPosition: number | null }[];
+    /** WS-D (2026-07-19) — categoryRanked rows the subject already ranks
+     *  top-3 for, so the report shows wins alongside gaps. */
+    winsRows: { keyword: string; volume: number; yourPosition: number }[];
+    /** WS-D (2026-07-19) — a few named off-topic keywords, so the >=40%
+     *  warning is concrete ("e.g. you rank for 'spanglish translator'"). */
+    offTopicExamples: string[];
   } | null;
   /** Real competitor names we discovered (the compare-set). Per-rival share is paid. */
   competitors?: string[];
@@ -244,6 +259,9 @@ export function ResultsScreen(p: ResultsScreenProps) {
                   )}
                 </div>
               )}
+              {p.identityLine ? (
+                <div style={{ fontSize: 12.5, color: "var(--c-faint)", margin: "0 0 8px", lineHeight: 1.5 }} className="rk-wrap-any">{p.identityLine}</div>
+              ) : null}
               <h1 style={{ fontFamily: SG, fontWeight: 700, fontSize: 26, letterSpacing: "-0.02em", margin: "0 0 6px" }}>{p.headline}</h1>
               <p className="rk-wrap-any" style={{ fontSize: 15, lineHeight: 1.6, color: "var(--c-muted)", margin: "0 0 14px" }}>
                 {p.siteLabel} {p.intro}
@@ -348,6 +366,25 @@ export function ResultsScreen(p: ResultsScreenProps) {
             const comps = (p.competitors ?? []).slice(0, 5);
             return (
               <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16, padding: "20px 22px", marginBottom: 14 }}>
+                {/* M3 (2026-07-19): the broad/medium market ladder — "this is the
+                    industry, this is the category you compete in". Demand is NOT
+                    monotonic across rungs (keyword volumes don't obey concept
+                    hierarchy — a live scan showed broad 5,200 < medium 113,620),
+                    so this states each rung's label + number + standing and never
+                    claims a rung is "your biggest market". */}
+                {(sv.marketTiers ?? []).length > 0 && (
+                  <div style={{ marginBottom: 14, borderBottom: "1px solid var(--c-line2)", paddingBottom: 12 }}>
+                    {(sv.marketTiers ?? []).map((t) => (
+                      <div key={t.tier} style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: 8, fontSize: 13, padding: "3px 0" }}>
+                        <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--c-faint)", width: 58 }}>{t.tier}</span>
+                        <span style={{ fontWeight: 600, flex: "1 1 140px", minWidth: 0 }} className="rk-wrap-any">{t.label}</span>
+                        <span style={{ fontFamily: JM, color: "var(--c-muted)" }}>{t.demand.toLocaleString()} searches/mo</span>
+                        <span style={{ fontFamily: JM, fontWeight: 700, color: t.bestPosition != null ? "#C98A12" : "#E5484D" }}>{t.bestPosition != null ? `best #${t.bestPosition}` : "not ranking"}</span>
+                      </div>
+                    ))}
+                    <div style={{ fontSize: 12, color: "var(--c-faint)", marginTop: 6 }}>Your niche, where the plan below starts:</div>
+                  </div>
+                )}
                 <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: 10, marginBottom: 12 }}>
                   <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 26 }}>{sv.categoryDemand.toLocaleString()}</span>
                   <span style={{ fontSize: 13.5, color: "var(--c-muted)" }}>searches/mo across your category</span>
@@ -359,6 +396,18 @@ export function ResultsScreen(p: ResultsScreenProps) {
                     <><strong style={{ color: "#E5484D" }}>You don&apos;t rank in the top 3</strong> for any of your category&apos;s searches yet.</>
                   )}
                 </div>
+                {/* WS-D (2026-07-19): the "you already win" strip — categoryRanked
+                    rows the subject already ranks top-3 for, so the report shows
+                    wins alongside gaps, not gaps only. */}
+                {(sv.winsRows ?? []).length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 10px", fontSize: 12.5, fontFamily: JM, marginBottom: 10 }}>
+                    {(sv.winsRows ?? []).map((w) => (
+                      <span key={w.keyword} style={{ background: "var(--c-tint-green)", color: "#0E7A48", borderRadius: 6, padding: "2px 8px", fontWeight: 600 }}>
+                        #{w.yourPosition} {w.keyword} <span style={{ fontWeight: 700 }}>{w.volume.toLocaleString()}</span>
+                      </span>
+                    ))}
+                  </div>
+                )}
                 {/* G4: itemise the phrases behind the demand total, so "N searches/mo"
                     is reconcilable against its named parts (was a mystery number). */}
                 {sv.categoryPhrases.length > 0 && (
@@ -411,6 +460,12 @@ export function ResultsScreen(p: ResultsScreenProps) {
                 {sv.offTopicPct >= 40 && (
                   <div style={{ marginTop: 14, padding: "12px 14px", background: "var(--c-tint-orange)", borderLeft: "3px solid #E0731C", borderRadius: "0 10px 10px 0", fontSize: 13.5, lineHeight: 1.55, color: "#3A3744" }}>
                     Most of your search traffic comes from <strong>other companies&apos; names you list or mention</strong> — real visits, but not buyers searching for what <em>you</em> do. Only <strong>{sv.categoryPct}%</strong> is your own category.
+                    {/* WS-D (2026-07-19): names the actual off-topic keywords, so
+                        the "other companies' names" claim is concrete, not just a
+                        percentage. */}
+                    {(sv.offTopicExamples ?? []).length > 0 && (
+                      <> e.g. you rank for <strong>{(sv.offTopicExamples ?? []).map((ex) => `"${ex}"`).join(", ")}</strong>.</>
+                    )}
                   </div>
                 )}
               </div>

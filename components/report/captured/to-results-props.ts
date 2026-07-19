@@ -156,6 +156,18 @@ export function toResultsProps(
         categoryWins: sv.categoryWins,
         categoryDemand: sv.categoryDemand,
         categoryPhrases: sv.categoryPhrases ?? [],
+        // WS-D/M3 (2026-07-19) — all additive, all legacy-defaulted (?? [] rule):
+        marketTiers: (sv.marketTiers ?? []).map((t) => ({
+          tier: t.tier,
+          label: t.phrases[0]?.keyword ?? "",
+          demand: t.demand,
+          bestPosition: t.bestPosition,
+        })),
+        winsRows: (sv.categoryRanked ?? [])
+          .filter((r) => typeof r.yourPosition === "number" && r.yourPosition <= 3)
+          .slice(0, 3)
+          .map((r) => ({ keyword: r.keyword, volume: r.volume, yourPosition: r.yourPosition as number })),
+        offTopicExamples: (sv.offTopicExamples ?? []).slice(0, 3),
       }
     : null;
 
@@ -182,6 +194,7 @@ export function toResultsProps(
 
   return {
     siteLabel,
+    identityLine: (pm.listingSays ?? "").trim().slice(0, 160),
     score: report.score.total,
     marketPosition: report.marketPosition?.total ?? null,
     searchVisibility,

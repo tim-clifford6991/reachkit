@@ -42,6 +42,22 @@ const SCORE = Math.round(Math.sqrt(ON_PAGE * SEARCH)); // 54 — "Fair"
 // whenever on-page is the lower driver instead.
 const WEAKER_DRIVER = ON_PAGE < SEARCH ? "On-page readiness" : "Search presence";
 const SITE = "bloom.io";
+// R1 (2026-07-19) — the listing's own self-description, rendered as a small
+// line before the headline.
+const IDENTITY_LINE = "Habit and mood tracking for people building daily routines.";
+// M3 (2026-07-19) — the broad/medium market ladder. Demand is NOT monotonic
+// across rungs by design (keyword volumes don't obey concept hierarchy), so
+// this states each rung's label + number + standing, never "biggest market".
+const MARKET_TIERS = [
+  { tier: "broad" as const, label: "productivity software", demand: 90500, bestPosition: null as number | null },
+  { tier: "medium" as const, label: "habit tracker app", demand: 8100, bestPosition: 34 as number | null },
+];
+// WS-D (2026-07-19) — categoryRanked rows the subject already ranks top-3
+// for, shown alongside the gap so the report isn't gaps-only.
+const WINS_ROWS = [{ keyword: "habit journal app", volume: 720, yourPosition: 2 }];
+// WS-D (2026-07-19) — a few named off-topic keywords, so the >=40% warning
+// is concrete rather than a bare percentage.
+const OFFTOPIC_EXAMPLES = ["spanglish translator", "cometly"];
 const DRIVERS = [
   { label: "On-page readiness", value: ON_PAGE, note: "how well your page is built" },
   { label: "Search presence", value: SEARCH, note: "how findable you are in search" },
@@ -89,6 +105,7 @@ export function ResultsScreen() {
             <div style={{ fontSize: 11.5, color: "var(--c-faint)", fontFamily: JM, maxWidth: 200, margin: "10px auto 0" }}>How findable you actually are — your page quality × your presence in search.</div>
           </div>
           <div>
+            <div style={{ fontSize: 12.5, color: "var(--c-faint)", margin: "0 0 8px", lineHeight: 1.5 }}>{IDENTITY_LINE}</div>
             <h1 style={{ fontFamily: SG, fontWeight: 700, fontSize: 26, letterSpacing: "-0.02em", margin: "0 0 6px" }}>Your category gets 12,400 searches a month — and you&apos;re barely visible for any of them.</h1>
             {/* ON_PAGE (72) >= 60 → the intro credits the on-page driver, never
                 the unified SCORE (54) — the intro gates on onPageReadiness so
@@ -120,6 +137,20 @@ export function ResultsScreen() {
         <h2 style={H2}>Your category, and how much of it you own</h2>
         <p style={SUB}>How much your buyers are searching, and how many of those terms you actually win.</p>
         <div style={{ ...CARD, padding: "20px 22px", marginBottom: 14 }}>
+          {/* M3 (2026-07-19): the broad/medium market ladder, ahead of the
+              category-demand number — "this is the industry, this is the
+              category you compete in". Rungs are NOT claimed monotonic. */}
+          <div style={{ marginBottom: 14, borderBottom: "1px solid var(--c-line2)", paddingBottom: 12 }}>
+            {MARKET_TIERS.map((t) => (
+              <div key={t.tier} style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: 8, fontSize: 13, padding: "3px 0" }}>
+                <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--c-faint)", width: 58 }}>{t.tier}</span>
+                <span style={{ fontWeight: 600, flex: "1 1 140px" }}>{t.label}</span>
+                <span style={{ fontFamily: JM, color: "var(--c-muted)" }}>{t.demand.toLocaleString()} searches/mo</span>
+                <span style={{ fontFamily: JM, fontWeight: 700, color: t.bestPosition != null ? "var(--c-band-fair)" : "var(--c-band-invisible)" }}>{t.bestPosition != null ? `best #${t.bestPosition}` : "not ranking"}</span>
+              </div>
+            ))}
+            <div style={{ fontSize: 12, color: "var(--c-faint)", marginTop: 6 }}>Your niche, where the plan below starts:</div>
+          </div>
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: 10, marginBottom: 12 }}>
             <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 26 }}>12,400</span>
             <span style={{ fontSize: 13.5, color: "var(--c-muted)" }}>searches/mo across your category</span>
@@ -127,7 +158,14 @@ export function ResultsScreen() {
           {/* No "You capture X%" bar — captureRate was the search score under a second
               label (guard G1). We state the real, reconcilable count instead. */}
           <div style={{ fontSize: 13.5, color: "var(--c-muted)", marginBottom: 10 }}>
-            <strong style={{ color: "var(--c-band-invisible)" }}>You don&apos;t rank in the top 3</strong> for any of your category&apos;s searches yet.
+            You rank in the top 3 for <strong style={{ color: "var(--c-band-findable)" }}>1</strong> of your category&apos;s searches.
+          </div>
+          {/* WS-D (2026-07-19): the "you already win" strip — categoryRanked
+              rows you already rank top-3 for, so gaps aren't the whole story. */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 10px", fontSize: 12.5, fontFamily: JM, marginBottom: 10 }}>
+            {WINS_ROWS.map((w) => (
+              <span key={w.keyword} style={{ background: "var(--c-tint-green)", color: "var(--c-band-high)", borderRadius: 6, padding: "2px 8px", fontWeight: 600 }}>#{w.yourPosition} {w.keyword} <span style={{ fontWeight: 700 }}>{w.volume.toLocaleString()}</span></span>
+            ))}
           </div>
           {/* G4: the named phrases behind the demand total, so it reconciles. */}
           <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 10px", fontSize: 12.5, color: "var(--c-faint)", fontFamily: JM }}>
@@ -158,6 +196,12 @@ export function ResultsScreen() {
             <span><span style={{ color: "#E5A23B" }}>■</span> other companies&apos; names 50%</span>
           </div>
           <div style={{ marginTop: 6, fontSize: 11, color: "var(--c-faint)" }}>Traffic split across your top-ranked terms.</div>
+          {/* offTopicPct (50%) >= 40 — the honest "not your traffic" warning,
+              now naming the actual off-topic keywords (WS-D, 2026-07-19). */}
+          <div style={{ marginTop: 14, padding: "12px 14px", background: "var(--c-tint-orange)", borderLeft: "3px solid var(--c-band-hard)", borderRadius: "0 10px 10px 0", fontSize: 13.5, lineHeight: 1.55, color: "var(--c-ink)" }}>
+            Most of your search traffic comes from <strong>other companies&apos; names you list or mention</strong> — real visits, but not buyers searching for what <em>you</em> do. Only <strong>20%</strong> is your own category.
+            {" "}e.g. you rank for <strong>{OFFTOPIC_EXAMPLES.map((ex) => `"${ex}"`).join(", ")}</strong>.
+          </div>
         </div>
         {/* Biggest opportunity — the single highest-value search you don't win,
             framed by the score lever it moves (not a flat Low/Med/High table). */}
