@@ -3,7 +3,7 @@ import { z } from "zod";
 import { currentUser } from "@/lib/auth/server";
 import { assertPaid, EntitlementError } from "@/lib/billing/entitlements";
 import { activeAppId } from "@/lib/app/active-app";
-import { costedIntelStep, latestScanIdForApp } from "@/lib/app/latest-scan";
+import { costedIntelStep, latestScanIdForApp, subjectBrandNamesForApp } from "@/lib/app/latest-scan";
 import { serverDb } from "@/lib/db/client";
 import type { Json } from "@/lib/db/types";
 import { getSelectedCompetitors } from "@/lib/scan/competitor-selection";
@@ -176,8 +176,10 @@ export async function POST(req: NextRequest) {
       const competitors = await getSelectedCompetitors(appId);
       // Cache-only: the SAME cached synthesis the Synthesis/Plans intel pages
       // read (gatherSynthesis is itself cached 7d by domain+cohort) — a warm
-      // cache means this whole step costs nothing extra.
-      const synth = await gatherSynthesis(domain, { competitorDomains: competitors });
+      // cache means this whole step costs nothing extra. RC1 parity: same
+      // subject-brand-name fold-in as /api/app/intel, for a cold cache miss.
+      const brandNames = await subjectBrandNamesForApp(appId);
+      const synth = await gatherSynthesis(domain, { competitorDomains: competitors, brandNames });
 
       const board = await actionBoard(appId);
       const existingTitles = new Set(

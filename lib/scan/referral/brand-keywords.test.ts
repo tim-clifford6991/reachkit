@@ -12,11 +12,33 @@
  * move a persisted score. So the shared detector IS free's brand logic, now also
  * used by paid (whose gap filter is a render, not a persisted score).
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { expectCallsSymbol } from "@/lib/testing/tripwire";
 import { brandTokensFor, isBrandKeyword } from "./brand-keywords";
+
+// Mocked once for the engine-level RC1 parity test below (`gatherKeywordGap`
+// with `brandNames`) — none of the other (pure) tests in this file touch the
+// network/cache layer, so this has no effect on them.
+vi.mock("@/lib/scan/cache/cached-adapters", () => ({
+  cohortFor: vi.fn(async (self: string, override?: string[]) => ({
+    category: "test",
+    ranked: (override ?? []).map((d) => ({
+      domain: d, name: d, closeness: 5, reason: "(selected)", etv: 0, ratio: null, sizeRelevant: true, sizeTier: "similar" as const,
+    })),
+    suggested: [],
+  })),
+  cachedRankedKeywords: vi.fn(async (domain: string) => {
+    if (domain === "rival.com") {
+      return [
+        { keyword: "twitter integration guide", position: 5, volume: 1000, etv: 300, url: "https://rival.com/x" },
+        { keyword: "social scheduling tips", position: 8, volume: 800, etv: 200, url: "https://rival.com/y" },
+      ];
+    }
+    return []; // the subject itself ranks for nothing in this fixture
+  }),
+}));
 
 describe("brandTokensFor", () => {
   it("takes the domain label as a brand token", () => {
@@ -45,6 +67,38 @@ describe("brandTokensFor", () => {
 
   it("strips a leading www. before taking the label", () => {
     expect(brandTokensFor(["www.trustmrr.com"]).has("trustmrr")).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// RC1 parity fix (2026-07-19): commit 7de65fc threaded the subject's REAL name
+// (facts.listing.name) into the FREE classifier's brand vocabulary via
+// `brandTokensFor(domains, names)`, but the PAID keyword-gap engine
+// (keyword-gap.ts) still called `brandTokensFor([self, ...cohort])` with no
+// names — so a subject whose domain label is unusable/wrong (x.com's real
+// brand is "twitter", not "x") had ITS OWN brand queries counted as a rival's
+// gap keyword on the paid Supply page even after the free report was fixed.
+// This is the ONE function both engines call — no re-implementation, so a
+// names arg added here is automatically available to (and, below, proven used
+// by) both.
+// ---------------------------------------------------------------------------
+describe("brandTokensFor(domains, names) — the subject's real name joins the brand vocabulary (RC1 parity)", () => {
+  it("folds a name's tokens into the brand set even when the domain label is unusable", () => {
+    // "x.com" -> label "x", dropped by the length>=3 floor — the domain alone
+    // gives NO brand token. The name recovers it.
+    const brands = brandTokensFor(["x.com"], ["Twitter / X"]);
+    expect(brands.has("twitter")).toBe(true);
+  });
+
+  it("a generic word in the name does not itself become a brand token", () => {
+    // "Platform" must not turn every ordinary "platform" query into a brand hit.
+    const brands = brandTokensFor(["x.com"], ["Twitter Platform"]);
+    expect(brands.has("twitter")).toBe(true);
+    expect(brands.has("platform")).toBe(false);
+  });
+
+  it("names is optional — omitting it is unchanged from the old 1-arg call", () => {
+    expect([...brandTokensFor(["trustmrr.com"])]).toEqual([...brandTokensFor(["trustmrr.com"], [])]);
   });
 });
 
@@ -102,5 +156,30 @@ describe("one brand detector — both engines share this module (RC1 guard)", ()
       expect(src).not.toMatch(/function\s+brandTokens\b/); // the old paid fork
       expect(src).not.toMatch(/function\s+isBrandKeyword\b/); // any re-forked local copy
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// RC1 parity fix, engine level: `gatherKeywordGap` must thread its caller's
+// `brandNames` into `brandTokensFor` exactly like `classifyFootprint` does —
+// proving the WIRING, not just that `brandTokensFor` itself supports a names
+// arg (the unit tests above already prove that in isolation).
+// ---------------------------------------------------------------------------
+describe("gatherKeywordGap threads brandNames into brandTokensFor (RC1 parity, engine level)", () => {
+  it("WITHOUT brandNames: a rival's 'twitter' keyword is misread as an opportunity gap", async () => {
+    const { gatherKeywordGap } = await import("./keyword-gap");
+    const result = await gatherKeywordGap("x.com", { competitorDomains: ["rival.com"] });
+    const gapKeywords = result.gaps.map((g) => g.keyword);
+    expect(gapKeywords).toContain("twitter integration guide");
+  });
+
+  it("WITH brandNames ['Twitter / X']: the same keyword is filtered as the subject's OWN brand, not a gap", async () => {
+    const { gatherKeywordGap } = await import("./keyword-gap");
+    const result = await gatherKeywordGap("x.com", { competitorDomains: ["rival.com"], brandNames: ["Twitter / X"] });
+    const gapKeywords = result.gaps.map((g) => g.keyword);
+    expect(gapKeywords).not.toContain("twitter integration guide");
+    // A genuine, non-brand rival gap keyword still survives — the fix filters
+    // brand noise, it doesn't blank the whole gap list.
+    expect(gapKeywords).toContain("social scheduling tips");
   });
 });

@@ -65,7 +65,7 @@ const str = (v: unknown) => String(v ?? "").trim();
 const arr = (v: unknown): string[] => (Array.isArray(v) ? v.map(String).map((s) => s.trim()).filter(Boolean) : []);
 const prio = (v: unknown): "high" | "medium" | "low" => (["high", "medium", "low"].includes(String(v)) ? (v as "high") : "medium");
 
-export async function gatherSynthesis(rawSelf: string, opts: { competitorDomains?: string[]; onStage?: OnStageCallback } = {}): Promise<Synthesis> {
+export async function gatherSynthesis(rawSelf: string, opts: { competitorDomains?: string[]; onStage?: OnStageCallback; brandNames?: string[] } = {}): Promise<Synthesis> {
   const self = normalizeHost(rawSelf);
   // Cost guard (2A): this is the ~€1.2 metered spend that fires at competitor-select
   // (backlinks + ranked-keywords + demand per rival). Every downstream gatherer
@@ -83,7 +83,7 @@ export async function gatherSynthesis(rawSelf: string, opts: { competitorDomains
     opts.onStage?.({ key: "synthesis:plan", label: "Synthesizing your plan" });
     const [funnel, kw, demand] = await Promise.all([
       gatherFullFunnel(self, { competitorDomains: co }),
-      gatherKeywordGap(self, { competitorDomains: co }),
+      gatherKeywordGap(self, { competitorDomains: co, brandNames: opts.brandNames }),
       gatherDemand(self, { competitorDomains: co }),
     ]);
     const category = demand.category || funnel.category;

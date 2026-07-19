@@ -22,7 +22,7 @@
 
 import type { RankedKeyword } from "@/lib/scan/adapters/dataforseo-ranked-keywords";
 import { normalizeHost } from "@/lib/scan/referral/classify";
-import { brandTokensFor, isBrandKeyword } from "@/lib/scan/referral/brand-keywords";
+import { brandTokensFor, isBrandKeyword, tokens, GENERIC_TOKENS, STOPWORDS } from "@/lib/scan/referral/brand-keywords";
 import { cachedRankedKeywords, cachedKeywordVolumes, cachedDomainOverview } from "@/lib/scan/cache/cached-adapters";
 
 export type KeywordClass = "brand" | "category" | "offtopic";
@@ -134,36 +134,12 @@ export interface SearchVisibility {
   // to 1,308×) and fed nothing external — deleted with it.
 }
 
-const STOPWORDS = new Set([
-  "the", "and", "for", "with", "your", "you", "our", "are", "was", "how", "why",
-  "what", "who", "best", "top", "app", "apps", "tool", "tools", "software", "online",
-  "free", "new", "get", "com", "www", "http", "https", "vs", "review", "reviews",
-]);
-
-/** Break a phrase into meaningful lowercase tokens (len ≥ 3, non-stopword). */
-function tokens(text: string): string[] {
-  return (text.toLowerCase().match(/[a-z0-9]+/g) ?? []).filter((t) => t.length >= 3 && !STOPWORDS.has(t));
-}
-
-// A single generic token must NEVER define a subject's category on its own — a
-// ubiquitous word matches thousands of unrelated queries (savvycal's whole
-// footprint became "category" because "time" was in its prose, so every
-// "what time is it in hawaii" matched). These are allowed to define the category
-// ONLY when the LLM's OWN category seeds used them (so "time" IS a time-tracker's
-// category but not savvycal's; "space" IS SpaceX's; "search" IS a search tool's).
-const GENERIC_TOKENS = new Set([
-  "time", "news", "search", "video", "videos", "image", "images", "photo", "photos",
-  "web", "site", "sites", "home", "page", "pages", "live", "today", "tomorrow", "world",
-  "similar", "account", "accounts", "features", "feature", "technology", "tech", "platform",
-  "media", "digital", "mobile", "global", "local", "data", "info", "information", "guide",
-  "help", "list", "service", "interface", "integration", "multiple", "assets", "content",
-  "price", "pricing", "login", "sign", "register", "download", "update", "version", "meaning",
-  // "system" joins the platform/interface/integration family of generic product
-  // descriptors — added by the calibration corpus (spacex "space launch system":
-  // "system" has no vocabulary evidence of its own, but is exactly the same class
-  // of generic qualifier as the tokens already above it).
-  "system",
-]);
+// STOPWORDS, tokens(), and GENERIC_TOKENS now live in `./referral/brand-keywords`
+// (the ONE shared brand/vocab-token module — RC1) and are imported above. They
+// used to be defined here; moved so `brandTokensFor`'s subject-name folding
+// (used by both this free classifier AND the paid keyword-gap filter) shares
+// the exact same tokenizer + generic-word list instead of each engine keeping
+// its own copy that can silently drift.
 
 // Ubiquitous other-brands / entities. A mid-market subject ranks for these only
 // INCIDENTALLY (x.com ranks #9 for "google"), so they are never its own category:
@@ -223,26 +199,24 @@ export function buildVocab(
 ): { brandTokens: Set<string>; categoryVocab: Set<string> } {
   // Brand tokens come from the ONE shared detector (also used by the paid keyword
   // gap), so a keyword is judged "brand" identically everywhere — no more forked
-  // brand logic that can drift between the two engines (RC1).
-  const brandTokens = brandTokensFor([domain]);
+  // brand logic that can drift between the two engines (RC1). `brandTokensFor`
+  // itself folds `brandNames` in (filtering generic words) — this call site does
+  // NOT re-implement that loop, so the free classifier and the paid keyword-gap
+  // filter (which calls the exact same function with ITS OWN brandNames) can
+  // never disagree about what counts as the subject's brand.
+  //
   // The subject's REAL name (`facts.listing.name` — the page's own extracted
-  // title/product name) joins the brand vocabulary too. The domain label alone
-  // is often unusable ("x.com" -> "x", a single character) or simply wrong
-  // (a renamed/rebranded product), so a subject whose page yields a real name
-  // ("Twitter / X") gets "twitter" recognised as ITS brand, not lost. Generic
-  // words in a listing name ("Platform", "App") must not become brand tokens.
-  // This ALSO IS the mega-brand exemption (PR-5, Part C class): `classify()`
-  // checks brand membership BEFORE the mega-brand check, so any MEGA_BRAND_TOKENS
-  // member that is also a subject brand token (e.g. "twitter") is matched here
-  // first and never reaches the off-topic mega-brand rule — no separate
-  // exemption code path is needed, and none should be added (it would be
-  // unreachable given this order — see the "guard honesty" rule in CLAUDE.md).
-  for (const name of brandNames) {
-    for (const t of tokens(name)) {
-      if (GENERIC_TOKENS.has(t)) continue;
-      brandTokens.add(t);
-    }
-  }
+  // title/product name) matters because the domain label alone is often
+  // unusable ("x.com" -> "x", a single character) or simply wrong (a renamed/
+  // rebranded product), so a subject whose page yields a real name
+  // ("Twitter / X") gets "twitter" recognised as ITS brand, not lost. This ALSO
+  // IS the mega-brand exemption (PR-5, Part C class): `classify()` checks brand
+  // membership BEFORE the mega-brand check, so any MEGA_BRAND_TOKENS member
+  // that is also a subject brand token (e.g. "twitter") is matched here first
+  // and never reaches the off-topic mega-brand rule — no separate exemption
+  // code path is needed, and none should be added (it would be unreachable
+  // given this order — see the "guard honesty" rule in CLAUDE.md).
+  const brandTokens = brandTokensFor([domain], brandNames);
   // Distinctive category tokens the LLM's OWN category identification used — the
   // corroboration set. A generic / mega-brand token is allowed to DEFINE the
   // category only if it appears here (so "time" defines a time-tracker but not

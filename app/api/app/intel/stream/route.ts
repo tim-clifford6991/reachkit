@@ -17,7 +17,7 @@ import { NextRequest } from "next/server";
 import { currentUser } from "@/lib/auth/server";
 import { assertPaid, EntitlementError } from "@/lib/billing/entitlements";
 import { activeAppId } from "@/lib/app/active-app";
-import { costedIntelStep } from "@/lib/app/latest-scan";
+import { costedIntelStep, subjectBrandNamesForApp } from "@/lib/app/latest-scan";
 import { serverDb } from "@/lib/db/client";
 import { getSelectedCompetitors } from "@/lib/scan/competitor-selection";
 import { gatherFullFunnel } from "@/lib/scan/referral/funnel";
@@ -96,6 +96,8 @@ export async function GET(req: NextRequest) {
   }
 
   const co = competitors;
+  // RC1 parity: same subject-brand-name fold-in as the non-stream route.
+  const brandNames = await subjectBrandNamesForApp(appId);
 
   // Flipped by the stream's cancel() when the client disconnects, so post-disconnect
   // send() calls become no-ops instead of throwing on an enqueue to a dead controller.
@@ -119,13 +121,13 @@ export async function GET(req: NextRequest) {
             return gatherDemand(domain, { competitorDomains: co, onStage });
           }
           if (layer === "synthesis") {
-            return gatherSynthesis(domain, { competitorDomains: co, onStage });
+            return gatherSynthesis(domain, { competitorDomains: co, onStage, brandNames });
           }
           // supply (default) — three gatherers run in parallel; each fires onStage
           // independently so progress events from all three interleave naturally.
           const [funnel, keywords, content] = await Promise.all([
             gatherFullFunnel(domain, { competitorDomains: co, onStage }),
-            gatherKeywordGap(domain, { competitorDomains: co, onStage }),
+            gatherKeywordGap(domain, { competitorDomains: co, onStage, brandNames }),
             gatherContentIntel(domain, { competitorDomains: co, onStage }),
           ]);
           return { funnel, keywords, content };

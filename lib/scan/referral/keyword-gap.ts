@@ -65,7 +65,7 @@ export interface KeywordGapResult {
   shared: SharedKeyword[];
 }
 
-export async function gatherKeywordGap(rawSelf: string, opts: { topN?: number; competitorDomains?: string[]; onStage?: OnStageCallback } = {}): Promise<KeywordGapResult> {
+export async function gatherKeywordGap(rawSelf: string, opts: { topN?: number; competitorDomains?: string[]; onStage?: OnStageCallback; brandNames?: string[] } = {}): Promise<KeywordGapResult> {
   const self = normalizeHost(rawSelf);
   const closest = await cohortFor(self, opts.competitorDomains);
   // Default to MAX_SELECTED (5) so the keyword-gap cohort matches the funnel /
@@ -89,7 +89,14 @@ export async function gatherKeywordGap(rawSelf: string, opts: { topN?: number; c
     if (cur == null || k.position < cur) subjectPos.set(k.keyword, k.position);
   }
 
-  const brands = brandTokensFor([self, ...cohort]);
+  // `opts.brandNames` (facts.listing.name — the subject's REAL captured name)
+  // joins the brand vocabulary too, via the ONE shared fold-in in `brandTokensFor`
+  // itself — the exact call the free footprint classifier makes with ITS OWN
+  // brandNames, so the two engines can never drift on what "brand" means (RC1).
+  // Without this, a subject whose domain label is unusable/wrong (x.com's real
+  // brand is "twitter", not "x") had its own brand queries counted as a RIVAL's
+  // gap keyword here even after the free classifier was fixed.
+  const brands = brandTokensFor([self, ...cohort], opts.brandNames ?? []);
 
   // Aggregate competitor rankings per keyword (best position per competitor).
   const agg = new Map<string, { volume: number; comps: Map<string, { position: number; url: string }> }>();

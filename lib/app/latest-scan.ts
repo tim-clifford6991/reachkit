@@ -25,6 +25,35 @@ export async function latestScanIdForApp(appId: string): Promise<string | null> 
 }
 
 /**
+ * The subject's REAL captured name(s) (`facts.listing.name`) for an app's
+ * latest scan — the same value the scan pipeline threads into
+ * `gatherFreeSearchVisibility`/`classifyFootprint` so the free brand
+ * classifier recognises a subject whose domain label is unusable or wrong
+ * (x.com's real brand is "twitter", not "x"). The interactive paid intel
+ * routes (`/api/app/intel`, its stream twin, `/api/competitors/select`,
+ * plan-generate, content-draft) only have the app's `store_url` in scope, not
+ * `facts` — so, like `verify.ts`/`pulse.ts`/`refresh.ts`, they read it back off
+ * the scan row's persisted `preliminary_facts` (RC1: this is what lets
+ * `gatherKeywordGap`'s `brandNames` match the free classifier's without a
+ * second, forked source of the subject's name). Never throws — an app with no
+ * scan yet, or a scan with no persisted facts, degrades to `[]` (brandTokensFor's
+ * own default), never a fabricated name.
+ */
+export async function subjectBrandNamesForApp(appId: string): Promise<string[]> {
+  const { data, error } = await serverDb()
+    .from("scans")
+    .select("preliminary_facts")
+    .eq("app_id", appId)
+    .order("started_at", { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
+  if (error || !data?.preliminary_facts) return [];
+  const facts = data.preliminary_facts as { listing?: { name?: unknown } } | null;
+  const name = typeof facts?.listing?.name === "string" ? facts.listing.name.trim() : "";
+  return name ? [name] : [];
+}
+
+/**
  * Run an interactive intel gather under a cost context anchored on the app's
  * latest scan row: external DataForSEO/Tavily spend flushes onto that row, and
  * when real spend occurred (i.e. the gather wasn't a pure cache hit) an
