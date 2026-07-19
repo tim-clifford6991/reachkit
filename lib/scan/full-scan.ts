@@ -29,6 +29,8 @@
 import { serverDb } from "@/lib/db/client";
 import { runFullCollect } from "@/lib/scan/full-collect";
 import { runExtract } from "@/lib/llm/extract";
+import { runSynth, SYNTH_MODEL_FULL } from "@/lib/llm/synth";
+import type { SynthResult } from "@/lib/llm/types";
 import { generateActions } from "@/lib/llm/actions";
 import { generateColdStartActions } from "@/lib/llm/cold-start-actions";
 import { runCriticGate } from "@/lib/llm/critic";
@@ -77,31 +79,40 @@ const TOP_COMMUNITIES = 12;
 const EMPTY_MIRROR: PositioningMirror = { listingSays: "", reviewsValue: "", gap: "" };
 
 // ---------------------------------------------------------------------------
-// findings_payload reader — degrade gracefully if absent / malformed
+// Deep synth persist — the deep pass re-runs the FULL synth (the findings step
+// ran a lite Haiku teaser: mirror + seeds only, which does not carry the
+// findings the paid action plan is built from). Overwrite the teaser in the
+// findings table + findings_payload with the full synth output, preserving the
+// v1 score the findings step wrote.
 // ---------------------------------------------------------------------------
-async function readFindingsPayload(
-  scanId: string,
-): Promise<{ findings: Finding[]; positioningMirror: PositioningMirror }> {
+async function persistDeepSynth(scanId: string, synth: SynthResult): Promise<void> {
   const db = serverDb();
-  const { data, error } = await db
-    .from("scans")
-    .select("findings_payload")
-    .eq("id", scanId)
-    .single();
+  // Idempotent under Inngest step retries: delete then re-insert the findings rows.
+  const { error: delErr } = await db.from("findings").delete().eq("scan_id", scanId);
+  if (delErr) throw delErr;
+  const rows = synth.findings.map((f) => ({
+    scan_id: scanId,
+    category: f.category,
+    basis: f.basis,
+    confidence: Math.max(0, Math.min(1, Number(f.confidence))),
+    body: { claim: f.claim, evidence: f.evidence } as unknown as Json,
+    evidence_ids: [] as number[],
+  }));
+  if (rows.length > 0) {
+    const { error } = await db.from("findings").insert(rows);
+    if (error) throw error;
+  }
+  const { data } = await db.from("scans").select("findings_payload").eq("id", scanId).single();
+  const existing = (data?.findings_payload ?? {}) as Record<string, unknown>;
+  const merged = {
+    ...existing,
+    positioningMirror: synth.positioningMirror,
+    findings: synth.findings,
+    sampleAction: synth.sampleAction,
+    categorySeeds: synth.categorySeeds ?? existing["categorySeeds"] ?? [],
+  };
+  const { error } = await db.from("scans").update({ findings_payload: merged as unknown as Json }).eq("id", scanId);
   if (error) throw error;
-
-  const payload = (data?.findings_payload ?? null) as {
-    findings?: unknown;
-    positioningMirror?: unknown;
-  } | null;
-
-  const findings = Array.isArray(payload?.findings) ? (payload.findings as Finding[]) : [];
-  const mirror =
-    payload?.positioningMirror !== undefined && payload.positioningMirror !== null
-      ? (payload.positioningMirror as PositioningMirror)
-      : EMPTY_MIRROR;
-
-  return { findings, positioningMirror: mirror };
 }
 
 // ---------------------------------------------------------------------------
@@ -494,8 +505,14 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
     //    the (expensive) site HTML for no benefit (those sources didn't change).
     await runExtract(ctx, ["keyword_data"]);
 
-    // 3. Findings + positioning mirror from the Cycle 2 findings pipeline
-    const { findings, positioningMirror } = await readFindingsPayload(ctx.scanId);
+    // 3. FULL synth (Sonnet) — the findings step ran a lite Haiku TEASER (mirror +
+    //    seeds only), so the deep pass OWNS the full synthesis its action plan is
+    //    built FROM (generateActions below reads `findings`). Regenerate + persist,
+    //    overwriting the teaser in findings_payload + the findings table.
+    await emitScanEvent(ctx.scanId, "artifact", { label: "Analysing your positioning & gaps" });
+    const synth = await runSynth(ctx, { model: SYNTH_MODEL_FULL });
+    await persistDeepSynth(ctx.scanId, synth);
+    const { findings, positioningMirror } = synth;
 
     // 4. Ground the generator in the ALREADY-COLLECTED market data (named
     //    competitors with community-mention counts, communities ranked by
