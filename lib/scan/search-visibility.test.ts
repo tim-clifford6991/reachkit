@@ -4,7 +4,7 @@
  * adversarial case: clean site, tiny category, ~90% other-brand visibility.
  */
 import { describe, it, expect } from "vitest";
-import { computeSearchVisibility, buildVocab, computeCategoryDemand, buildCategorySeeds } from "./search-visibility";
+import { computeSearchVisibility, buildVocab, computeCategoryDemand, buildCategorySeeds, computeMarketTiers } from "./search-visibility";
 import type { RankedKeyword } from "@/lib/scan/adapters/dataforseo-ranked-keywords";
 
 const kw = (keyword: string, position: number, volume: number, etv: number): RankedKeyword => ({
@@ -215,6 +215,7 @@ describe("buildCategorySeeds — LLM seeds are authoritative", () => {
 import type { SearchVisibility } from "./search-visibility";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { expectCallsSymbol, stripNoise, extractFunctionBody } from "@/lib/testing/tripwire";
 
 describe("free-scan number honesty (guards G1, G2)", () => {
   it("G1: the SearchVisibility type carries NO categoryCaptureRate / categoryCapturedSearches field", () => {
@@ -299,5 +300,60 @@ describe("free↔paid demand vocabulary (guard G7)", () => {
         .replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, ""); // strip comments — they may legitimately explain the fix
       expect(src, `${f} must not label a value "monthly searches" (§1.9 collision phrase)`).not.toMatch(/monthly searches/i);
     }
+  });
+});
+
+describe("computeMarketTiers (M2) — the broad/medium market ladder", () => {
+  const volumes = new Map([
+    ["marketing software", 550000],
+    ["seo tools", 74000],
+    ["rank tracking software", 1600],
+  ]);
+  const ranks = new Map([["seo tools", 12]]);
+
+  it("each tier's demand reconciles EXACTLY to its rendered phrases (G4-per-tier)", () => {
+    const tiers = computeMarketTiers(
+      { broad: ["marketing software"], medium: ["seo tools", "rank tracking software"], niche: ["x"] },
+      volumes,
+      ranks,
+    );
+    for (const t of tiers) {
+      expect(t.demand).toBe(t.phrases.reduce((s, p) => s + p.volume, 0));
+      expect(t.phrases.length).toBeGreaterThan(0);
+    }
+    expect(tiers.map((t) => t.tier)).toEqual(["broad", "medium"]); // niche never emitted
+  });
+
+  it("standing comes from the REAL rank map — never invented", () => {
+    const tiers = computeMarketTiers({ broad: ["marketing software"], medium: ["seo tools"], niche: [] }, volumes, ranks);
+    expect(tiers.find((t) => t.tier === "broad")!.bestPosition).toBeNull();
+    expect(tiers.find((t) => t.tier === "medium")!.bestPosition).toBe(12);
+  });
+
+  it("a tier whose phrases all price to 0 volume is omitted (degrade, never render a hollow rung)", () => {
+    const tiers = computeMarketTiers({ broad: ["zzz unknown"], medium: ["seo tools"], niche: [] }, volumes, ranks);
+    expect(tiers.map((t) => t.tier)).toEqual(["medium"]);
+  });
+});
+
+describe("M2 paid parity — the deep pass threads tier seeds too", () => {
+  // Without this, a paid upgrade REGENERATES searchVisibility via
+  // gatherFreeSearchVisibility without marketTiers and the ladder silently
+  // vanishes on upgrade. expectCallsSymbol alone (existence of the call)
+  // isn't enough to catch a dropped 4th argument, so this pins the exact
+  // call-site ARITY (3 commas → 4 args) inside runFullScan's own
+  // brace-matched, comment/string-stripped body — a naive whole-file
+  // substring check would be satisfied by an unrelated mention elsewhere.
+  it("full-scan.ts: runFullScan calls gatherFreeSearchVisibility(...) with a 4th (tier-seeds) argument", () => {
+    expect(() => expectCallsSymbol("lib/scan/full-scan.ts", "gatherFreeSearchVisibility", { within: "runFullScan" })).not.toThrow();
+
+    const src = readFileSync(resolve(process.cwd(), "lib/scan/full-scan.ts"), "utf8");
+    const clean = stripNoise(src);
+    const body = extractFunctionBody(clean, "runFullScan", "lib/scan/full-scan.ts");
+    const call = /gatherFreeSearchVisibility\(([^)]*)\)/.exec(body);
+    expect(call, "expected a gatherFreeSearchVisibility(...) call inside runFullScan").not.toBeNull();
+    const args = call![1]!;
+    const argCount = args.split(",").length;
+    expect(argCount, `expected 4 args (rawSelf, seedText, catSeeds, tierSeeds) — got: ${args}`).toBe(4);
   });
 });

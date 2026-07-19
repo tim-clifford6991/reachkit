@@ -112,6 +112,12 @@ export interface SearchVisibility {
   categoryRanked: CategoryGapRow[];
   /** Internal: category terms you already rank top-3 for (dedup for opportunities). */
   categoryWonKeywords: string[];
+  /** M2 (2026-07-19): the broad/medium market ladder — "this is a big industry,
+   *  this is the category you compete in" — priced from the SAME single
+   *  keyword-volumes call as the category seeds. BROAD + MEDIUM only; the niche
+   *  rung is deliberately NOT here — it IS the existing category-demand card
+   *  above (one concept, one name — G7). Additive + absent on legacy payloads. */
+  marketTiers?: MarketTier[];
   // DELETED 2026-07-17 (free-scan honesty): `categoryCaptureRate` was
   // `= sv.score` — the search-presence score rendered a SECOND time under a
   // "you capture X%" label (identical in 10/10 prod scans). A metric may never be
@@ -419,6 +425,51 @@ export function computeCategoryDemand(
   return { categoryDemand, categoryOpportunities, categoryPhrases };
 }
 
+export interface MarketTier {
+  tier: "broad" | "medium";
+  phrases: DemandRow[];
+  demand: number;
+  bestPosition: number | null;
+}
+
+/**
+ * M2 (2026-07-19): the broad/medium market ladder — "this is a big industry,
+ * this is the category you compete in" — priced from the SAME single
+ * search_volume request as the category seeds (the tier phrases are merged into
+ * that one call's keyword list; request-billed, so phrase count is cost-free).
+ * The NICHE rung is deliberately NOT computed here: it IS the existing
+ * category-demand card (one concept, one name — G7). Standing per rung comes
+ * only from the real rank map (the one ranked_keywords call) — never invented.
+ * Feeds NOTHING into sv.score (invariant #1).
+ */
+export function computeMarketTiers(
+  tierSeeds: { broad: string[]; medium: string[]; niche: string[] },
+  volumesByKeyword: Map<string, number>,
+  rankByKeyword: Map<string, number>,
+): MarketTier[] {
+  const mk = (tier: MarketTier["tier"], seeds: string[]): MarketTier => {
+    const seen = new Set<string>();
+    const phrases: DemandRow[] = [];
+    for (const raw of seeds) {
+      const keyword = raw.toLowerCase().trim();
+      if (!keyword || seen.has(keyword)) continue;
+      seen.add(keyword);
+      const volume = volumesByKeyword.get(keyword) ?? 0;
+      if (volume <= 0) continue;
+      phrases.push({ keyword, volume, yourPosition: rankByKeyword.get(keyword) });
+    }
+    phrases.sort((a, b) => b.volume - a.volume);
+    const positions = phrases.map((p) => p.yourPosition).filter((p): p is number => typeof p === "number");
+    return {
+      tier,
+      phrases,
+      demand: phrases.reduce((s, p) => s + p.volume, 0), // G4-per-tier by construction
+      bestPosition: positions.length ? Math.min(...positions) : null,
+    };
+  };
+  return [mk("broad", tierSeeds.broad), mk("medium", tierSeeds.medium)].filter((t) => t.phrases.length > 0);
+}
+
 /**
  * Free-scan gather: ONE `ranked_keywords` call (your footprint) + ONE `keyword_ideas`
  * call (your category's total demand) → Search Visibility. `seedText` is the subject's
@@ -454,6 +505,7 @@ export async function gatherFreeSearchVisibility(
   rawSelf: string,
   seedText: string[],
   llmCategorySeeds: string[] = [],
+  tierSeeds?: { broad: string[]; medium: string[]; niche: string[] },
 ): Promise<SearchVisibility> {
   try {
     const self = normalizeHost(rawSelf);
@@ -483,12 +535,21 @@ export async function gatherFreeSearchVisibility(
       if (cur === undefined || k.position < cur) rankByKeyword.set(key, k.position);
     }
     const seeds = buildCategorySeeds(sv, llmCategorySeeds);
-    // Measure the EXACT volume of the category seed phrases (no expansion noise).
-    const seedVolumes = seeds.length > 0 ? await cachedKeywordVolumes(seeds).catch(() => []) : [];
+    // ONE volumes request prices the category seeds AND the ladder's tier phrases
+    // (request-billed — merging keywords adds no cost and no latency).
+    const tierPhrases = tierSeeds ? [...tierSeeds.broad, ...tierSeeds.medium] : [];
+    const allSeeds = [...new Set([...seeds, ...tierPhrases.map((s) => s.toLowerCase().trim())].filter(Boolean))].slice(0, 16);
+    const seedVolumes = allSeeds.length > 0 ? await cachedKeywordVolumes(allSeeds).catch(() => []) : [];
+    const volumesByKeyword = new Map(seedVolumes.map((r) => [r.keyword.toLowerCase(), r.volume]));
+    // Demand hero (niche/category rung): UNCHANGED — only the ORIGINAL category
+    // seeds feed it, so the persisted demand story doesn't move under the ladder.
+    const catVolumes = seedVolumes.filter((r) => seeds.includes(r.keyword.toLowerCase()));
     // Merge the site's REAL category rankings (sv.categoryRanked — from the SAME
     // ranked_keywords call, no extra spend) with the seed volumes, so demand +
     // opportunities reflect the actual market for big AND small sites alike.
-    return { ...sv, ...computeCategoryDemand(seedVolumes, rankByKeyword, sv.categoryRanked) };
+    const demand = computeCategoryDemand(catVolumes, rankByKeyword, sv.categoryRanked);
+    const marketTiers = tierSeeds ? computeMarketTiers(tierSeeds, volumesByKeyword, rankByKeyword) : undefined;
+    return { ...sv, ...demand, ...(marketTiers && marketTiers.length > 0 ? { marketTiers } : {}) };
   } catch {
     return EMPTY;
   }
