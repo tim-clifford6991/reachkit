@@ -772,14 +772,15 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
           const catSeeds = Array.isArray((fpForSeeds as { categorySeeds?: unknown })?.categorySeeds)
             ? ((fpForSeeds as { categorySeeds: unknown[] }).categorySeeds.filter((s): s is string => typeof s === "string"))
             : [];
-          // M2 paid parity: thread the SAME broad/medium market-tier seeds the free
+          // M2 paid parity: thread the SAME broad/niche market-tier seeds the free
           // pass would use, sourced from the same findings_payload.marketTiers — so
           // the ladder doesn't silently vanish when a scan is deepened post-upgrade.
-          const rawTiers = (fpForSeeds as { marketTiers?: { broad?: unknown; medium?: unknown; niche?: unknown } | null })?.marketTiers;
+          // An OLDER persisted findings_payload may still carry a `medium` key
+          // (pre bb6ef07/this fix) — it is simply never read here.
+          const rawTiers = (fpForSeeds as { marketTiers?: { broad?: unknown; niche?: unknown } | null })?.marketTiers;
           const marketTierSeeds = rawTiers && typeof rawTiers === "object"
             ? {
                 broad: Array.isArray(rawTiers.broad) ? rawTiers.broad.filter((s): s is string => typeof s === "string") : [],
-                medium: Array.isArray(rawTiers.medium) ? rawTiers.medium.filter((s): s is string => typeof s === "string") : [],
                 niche: Array.isArray(rawTiers.niche) ? rawTiers.niche.filter((s): s is string => typeof s === "string") : [],
               }
             : undefined;

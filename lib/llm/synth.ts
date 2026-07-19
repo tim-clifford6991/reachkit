@@ -161,14 +161,15 @@ export function parseLiteSynth(obj: unknown): SynthResult {
   if (actualAudience.length > 0) mirror.actualAudience = actualAudience;
   const categorySeeds = strArray(o["categorySeeds"], 5);
 
-  // M1: labeled broad/medium/niche market-tier seeds (optional — absent on
-  // legacy output). Same sanitisation as categorySeeds, capped at 4 per tier.
+  // M1: labeled broad/niche market-tier seeds (optional — absent on legacy
+  // output). Same sanitisation as categorySeeds, capped at 4 per tier. A
+  // `medium` key may still be present on an older/legacy synth object — it is
+  // simply ignored (never priced/rendered since bb6ef07 removed that rung).
   const tiersRaw = (o["marketTiers"] ?? null) as Record<string, unknown> | null;
   const marketTiers: MarketTierSeeds | undefined =
     tiersRaw && typeof tiersRaw === "object"
       ? {
           broad: strArray(tiersRaw["broad"], 4),
-          medium: strArray(tiersRaw["medium"], 4),
           niche: strArray(tiersRaw["niche"], 4),
         }
       : undefined;

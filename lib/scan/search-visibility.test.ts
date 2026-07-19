@@ -317,9 +317,9 @@ describe("computeMarketTiers (Task B, 2026-07-19) — the broad/niche ladder, me
   ]);
   const ranks = new Map([["seo tools", 12]]);
 
-  it("each tier's demand reconciles EXACTLY to its rendered phrases, medium seeds never priced (G4-per-tier)", () => {
+  it("each tier's demand reconciles EXACTLY to its rendered phrases (G4-per-tier)", () => {
     const tiers = computeMarketTiers(
-      { broad: ["marketing software"], medium: ["seo tools", "rank tracking software"], niche: ["rank tracking software"] },
+      { broad: ["marketing software"], niche: ["rank tracking software"] },
       volumes,
       ranks,
       [],
@@ -330,26 +330,23 @@ describe("computeMarketTiers (Task B, 2026-07-19) — the broad/niche ladder, me
       expect(t.phrases.length).toBeGreaterThan(0);
     }
     expect(tiers.map((t) => t.tier)).toEqual(["broad", "niche"]); // medium never emitted, ever
-    // "seo tools" was ONLY seeded via medium (ignored) — it must never price
-    // into any rung even though it has a real volume in the map.
-    expect(tiers.flatMap((t) => t.phrases.map((p) => p.keyword))).not.toContain("seo tools");
   });
 
   it("standing comes from the REAL rank map — never invented", () => {
-    const tiers = computeMarketTiers({ broad: ["marketing software"], medium: [], niche: ["seo tools"] }, volumes, ranks, [], 0);
+    const tiers = computeMarketTiers({ broad: ["marketing software"], niche: ["seo tools"] }, volumes, ranks, [], 0);
     expect(tiers.find((t) => t.tier === "broad")!.bestPosition).toBeNull();
     expect(tiers.find((t) => t.tier === "niche")!.bestPosition).toBe(12);
   });
 
   it("a tier whose phrases all price to 0 volume is omitted (degrade, never render a hollow rung)", () => {
-    const tiers = computeMarketTiers({ broad: ["zzz unknown"], medium: [], niche: ["seo tools"] }, volumes, ranks, [], 0);
+    const tiers = computeMarketTiers({ broad: ["zzz unknown"], niche: ["seo tools"] }, volumes, ranks, [], 0);
     expect(tiers.map((t) => t.tier)).toEqual(["niche"]);
   });
 
   it("cross-rung dedup: a phrase already in the category phrase set never appears in a rung", () => {
     const categoryPhrases = [{ keyword: "seo tools", volume: 74000 }];
     const tiers = computeMarketTiers(
-      { broad: ["marketing software", "seo tools"], medium: [], niche: ["seo tools"] },
+      { broad: ["marketing software", "seo tools"], niche: ["seo tools"] },
       volumes,
       ranks,
       categoryPhrases,
@@ -362,7 +359,7 @@ describe("computeMarketTiers (Task B, 2026-07-19) — the broad/niche ladder, me
 
   it("cross-rung dedup: a phrase seeded in BOTH broad and niche keeps niche only", () => {
     const tiers = computeMarketTiers(
-      { broad: ["marketing software", "rank tracking software"], medium: [], niche: ["rank tracking software"] },
+      { broad: ["marketing software", "rank tracking software"], niche: ["rank tracking software"] },
       volumes,
       ranks,
       [],
@@ -377,17 +374,17 @@ describe("computeMarketTiers (Task B, 2026-07-19) — the broad/niche ladder, me
   it("inversion guard: broad rung is DROPPED when its priced demand does not exceed category demand", () => {
     // "seo tools" alone prices to 74,000 — below a 112,420 category demand, the
     // reachkit.app live shape (broad 5,200 <= category 112,420, inverted).
-    const tiers = computeMarketTiers({ broad: ["seo tools"], medium: [], niche: [] }, volumes, ranks, [], 112420);
+    const tiers = computeMarketTiers({ broad: ["seo tools"], niche: [] }, volumes, ranks, [], 112420);
     expect(tiers.find((t) => t.tier === "broad")).toBeUndefined();
   });
 
   it("inversion guard: EQUAL broad/category demand is also dropped (≤, not <)", () => {
-    const tiers = computeMarketTiers({ broad: ["seo tools"], medium: [], niche: [] }, volumes, ranks, [], 74000);
+    const tiers = computeMarketTiers({ broad: ["seo tools"], niche: [] }, volumes, ranks, [], 74000);
     expect(tiers.find((t) => t.tier === "broad")).toBeUndefined();
   });
 
   it("inversion guard: broad rung RENDERS when its priced demand exceeds category demand", () => {
-    const tiers = computeMarketTiers({ broad: ["marketing software"], medium: [], niche: [] }, volumes, ranks, [], 112420);
+    const tiers = computeMarketTiers({ broad: ["marketing software"], niche: [] }, volumes, ranks, [], 112420);
     expect(tiers.find((t) => t.tier === "broad")).toBeDefined();
   });
 });

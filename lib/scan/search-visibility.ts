@@ -525,9 +525,9 @@ export interface MarketTier {
  * labels): priced from the SAME single search_volume request as the category
  * seeds (the tier phrases are merged into that one call's keyword list;
  * request-billed, so phrase count is cost-free). The MEDIUM rung is dropped
- * entirely — `tierSeeds.medium` is accepted (callers still persist it) but
- * never priced and never sent to the volumes call ("never pay for data you
- * don't render", per-field). At most `[broad?, niche?]`:
+ * entirely — the medium rung is no longer generated, parsed, or accepted
+ * anywhere in the pipeline ("never pay for data you don't render", per-field).
+ * At most `[broad?, niche?]`:
  *
  *   - **Cross-rung dedup**: a phrase already in the CATEGORY phrase set
  *     (`categoryPhrases`, lowercased) is excluded from BOTH broad and niche —
@@ -549,7 +549,7 @@ export interface MarketTier {
  * (invariant #1).
  */
 export function computeMarketTiers(
-  tierSeeds: { broad: string[]; medium: string[]; niche: string[] },
+  tierSeeds: { broad: string[]; niche: string[] },
   volumesByKeyword: Map<string, number>,
   rankByKeyword: Map<string, number>,
   categoryPhrases: DemandRow[] = [],
@@ -628,7 +628,7 @@ export async function gatherFreeSearchVisibility(
   rawSelf: string,
   seedText: string[],
   llmCategorySeeds: string[] = [],
-  tierSeeds?: { broad: string[]; medium: string[]; niche: string[] },
+  tierSeeds?: { broad: string[]; niche: string[] },
 ): Promise<SearchVisibility> {
   try {
     const self = normalizeHost(rawSelf);
