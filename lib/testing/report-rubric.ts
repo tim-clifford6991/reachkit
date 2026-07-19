@@ -118,7 +118,15 @@ export function renderedNumbers(html: string): Array<{ value: number; context: s
  *  (c) every ARRAY LENGTH recursively (counts like gapTotal render as lengths);
  *  (d) the named render derivations below, each tied to its renderer source.
  */
-export function derivableNumbers(payload: ReportPayload): Map<number, string> {
+/** The payload-agnostic half of the derivable set — (a) numeric values, (b)
+ *  numeric tokens in strings, (c) array lengths, recursively over ANY JSON.
+ *  Extracted so surface-specific rubrics (the paid intel/hero rubric) reuse the
+ *  identical walk instead of forking it. Number values also register the
+ *  integers that common render formattings produce from them: `Math.round(v)`
+ *  and the compact mantissa (`fmtCompact` renders 12400 as "12.4K", from which
+ *  the extractor reads 12 — a derivable rendering of a real value, not a
+ *  fabrication). */
+export function derivableNumbersFromJson(root: unknown): Map<number, string> {
   const out = new Map<number, string>();
   const add = (value: number, source: string) => {
     if (Number.isFinite(value) && !out.has(value)) out.set(value, source);
@@ -127,6 +135,9 @@ export function derivableNumbers(payload: ReportPayload): Map<number, string> {
   const walk = (node: unknown, path: string): void => {
     if (typeof node === "number") {
       add(node, `payload value at ${path}`);
+      add(Math.round(node), `Math.round of payload value at ${path}`);
+      if (node >= 1000) add(Math.floor(node / 1000), `compact-mantissa (…K) of payload value at ${path}`);
+      if (node >= 1_000_000) add(Math.floor(node / 1_000_000), `compact-mantissa (…M) of payload value at ${path}`);
       return;
     }
     if (typeof node === "string") {
@@ -144,7 +155,15 @@ export function derivableNumbers(payload: ReportPayload): Map<number, string> {
       for (const [k, v] of Object.entries(node)) walk(v, path ? `${path}.${k}` : k);
     }
   };
-  walk(payload, "");
+  walk(root, "");
+  return out;
+}
+
+export function derivableNumbers(payload: ReportPayload): Map<number, string> {
+  const out = derivableNumbersFromJson(payload);
+  const add = (value: number, source: string) => {
+    if (Number.isFinite(value) && !out.has(value)) out.set(value, source);
+  };
 
   // (d) Named render derivations — each names its renderer source expression.
   add(100, 'the "/ 100" gauge + driver-bar denominator (results-screen.tsx)');
@@ -472,4 +491,61 @@ export interface RubricOptions {
 export function runReportRubric(payload: ReportPayload, html: string, opts: RubricOptions = {}): RubricViolation[] {
   const suppress = new Set(opts.suppress ?? []);
   return RUBRIC_RULES.filter((r) => !suppress.has(r.id)).flatMap((r) => r.check(payload, html));
+}
+
+// ---------------------------------------------------------------------------
+// Intel rubric — the PAID surface's rules (R1 + R2i), data-shape agnostic
+// ---------------------------------------------------------------------------
+
+export interface IntelRubricRule {
+  id: string;
+  title: string;
+  check: (data: unknown, html: string, extra: Map<number, string>) => RubricViolation[];
+}
+
+/** R1 verbatim — garbage detection is payload-agnostic. */
+const r1Intel: IntelRubricRule = {
+  id: "R1",
+  title: r1NoGarbage.title,
+  check: (_data, html) =>
+    GARBAGE_TOKENS.filter((g) => html.includes(g)).map((g) => ({
+      rule: "R1",
+      message: `rendered HTML contains "${g}" — a value threaded into JSX was undefined/NaN/an unstringified object`,
+    })),
+};
+
+/** R2i — every rendered number ≥10 on a paid intel surface derives from the
+ *  DATA that drove the render (the generic JSON walk over the exact props/
+ *  supply object passed to the component) plus caller-named derivations, each
+ *  of which must name its renderer source expression (anti-vacuity — a bare
+ *  literal with no source is forbidden). */
+const r2iIntelNumberBasis: IntelRubricRule = {
+  id: "R2i",
+  title: "every rendered number ≥10 on the intel surface derives from its driving data",
+  check: (data, html, extra) => {
+    const derivable = derivableNumbersFromJson(data);
+    for (const [v, s] of extra) if (!derivable.has(v)) derivable.set(v, s);
+    derivable.set(100, 'the "/ 100" gauge denominator (dashboard-hero.tsx)');
+    const violations: RubricViolation[] = [];
+    for (const { value, context } of renderedNumbers(html)) {
+      if (!derivable.has(value)) {
+        violations.push({ rule: "R2i", message: `rendered number ${value} has no basis in the driving data — context: “…${context}…”` });
+      }
+    }
+    return violations;
+  },
+};
+
+/** Paid-surface rule set — its length is pinned only-grows by the paid corpus
+ *  test, independent of the free RUBRIC_RULES floor. */
+export const INTEL_RUBRIC_RULES: IntelRubricRule[] = [r1Intel, r2iIntelNumberBasis];
+
+export function runIntelRubric(
+  data: unknown,
+  html: string,
+  opts: RubricOptions & { extraDerivations?: Map<number, string> } = {},
+): RubricViolation[] {
+  const suppress = new Set(opts.suppress ?? []);
+  const extra = opts.extraDerivations ?? new Map<number, string>();
+  return INTEL_RUBRIC_RULES.filter((r) => !suppress.has(r.id)).flatMap((r) => r.check(data, html, extra));
 }

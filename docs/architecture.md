@@ -1,7 +1,7 @@
 # ReachKit — Architecture, Data Flow & Processes
 
 > Living architecture document. Update this as the system evolves.
-> Last updated: 2026-07-11 (free-report conversion redesign: Search Visibility §6.0)
+> Last updated: 2026-07-20 (acceptance harness §7 · market ladder · run_* cost split · WS-A v3 attribution · reader-map corrections). Behavior requirements live in `docs/REQUIREMENTS.md`; rules of engagement in `CLAUDE.md`.
 
 ReachKit is a single-stack Next.js 16 (App Router) application deployed on Vercel.
 There is no separate backend service — API routes are thin, and all heavy /
@@ -218,7 +218,7 @@ live populated/empty state of any given scan.
 | On-page readiness (driver) | HTML fetch (page only — no off-site) | `scans.score_breakdown`, `report_payload.searchVisibility.onPageReadiness` | `compute-signals` → `headlineScore` = `registryScore` over the FIXED 8 on-site signals. UNCHANGED from v4 (still `HEADLINE_SCORE_VERSION=4`) | First driver bar; the on-site pillar bars |
 | Pillar bars | on-site `scan_signals` | `scan_signals` | `headlineScore` → `pillarRollupFromRegistry`; Content + SEO assessed on-site, Outreach reads "off-site → Market Position" (no on-site signal) | Dashboard hero pillars (paid) |
 | Market position | off-site `scan_signals` (keyword footprint, backlinks, marketplace/community/press) | `scans.report_payload.marketPosition` | `marketPositionScore` = `registryScore` over the NON-fixed (off-site) signals, cohort-relative where rivals exist | Dashboard hero ("Market position vs rivals"), paid only |
-| **Search Visibility (free "wow")** | ONE subject `ranked_keywords` (footprint SAMPLE, top 50) + ONE `domain_rank_overview` (**TRUE** total keywords + organic ETV → `footprintComplete`) + ONE `search_volume` on the **LLM-authored category seed phrases** (`lib/llm/synth.ts` `categorySeeds`) | `report_payload.searchVisibility` (`search_cache` `rk:*`/`do:*`/`kv:*`) | `lib/scan/search-visibility.ts`: classify footprint brand/category/off-topic via the **shared** brand detector (`referral/brand-keywords.ts`, one detector for free + the paid keyword gap — RC1); **category demand = Σ exact volume of the LLM category seeds** (no keyword_ideas expansion noise), **every phrase rendered so the total reconciles** (G4); opportunities = category seeds you don't rank top-3 for. **No `capture` field** — it was the SV score aliased under a "you capture X%" label, deleted (G1). Sample %s carry `footprintComplete=false` (G2/G3). Works at 0 rankings (zero-state). ~$0.03 extra, ≤ ~20¢ free | Free report `/scan/[id]` hero SV panel + reconcilable category-demand phrases |
+| **Search Visibility (free "wow")** | ONE subject `ranked_keywords` (footprint SAMPLE, top 50) + ONE `domain_rank_overview` (**TRUE** total keywords + organic ETV → `footprintComplete`) + ONE `search_volume` on the **LLM-authored category seed phrases** (`lib/llm/synth.ts` `categorySeeds`) | `report_payload.searchVisibility` (`search_cache` `rk:*`/`do:*`/`kv:*`) | `lib/scan/search-visibility.ts`: classify footprint brand/category/off-topic via the **shared** brand detector (`lib/scan/referral/brand-keywords.ts`, one detector for free + the paid keyword gap — RC1); **category demand = Σ exact volume of the LLM category seeds** (no keyword_ideas expansion noise), **every phrase rendered so the total reconciles** (G4); opportunities = category seeds you don't rank top-3 for. **No `capture` field** — it was the SV score aliased under a "you capture X%" label, deleted (G1). Sample %s carry `footprintComplete=false` (G2/G3). Works at 0 rankings (zero-state). ~$0.03 extra, ≤ ~20¢ free | Free report `/scan/[id]` hero SV panel + reconcilable category-demand phrases |
 | Audience tags | LLM synth (`intendedAudience`/`actualAudience` on `positioningMirror`) | `findings_payload` → `report_payload.whatYouOffer.positioningMirror` | LLM-authored (replaced the old `splitTags` prose-chopping) | Free report "Positioning Mirror" |
 | Per-scan cost | DataForSEO (real `body.cost`) · Tavily (credits × rate) · Anthropic (tokens) | `scans.dataforseo_cost_cents` / `tavily_cost_cents` / `cost_cents` | `lib/scan/cost-context.ts` (AsyncLocalStorage sink; `costedStep` flushes per Inngest step) | `/app/diagnostics` — per-scan breakdown + "Spend by user" (all users) |
 | Competitors / referrers | DataForSEO backlinks + traffic | `search_cache` (`funnel2:*` cachedJson) + `report_payload` | `gatherFullFunnel` → `buildBreakdown` | Audience → Competitors |
@@ -245,7 +245,8 @@ existed won't carry it. Top-level sections and who reads them:
 | `score` (`VerifiedScore`) | Dashboard gauge |
 | `marketPosition` | Dashboard hero (paid) |
 | `competitiveLandscape` / `channelOpportunities` / `creatorsToReach` / `strengthsAndWeaknesses` | Audience tabs (light pass) |
-| `market` (`MarketAnalysis`) | Dashboard intel blocks — **supersedes** the four light sections above when present |
+| `market` (`MarketAnalysis`) | Read by: the public teaser's keyword-gap rows + gap totals (`to-results-props.ts` prefers `market.gap.keywordGap`), the market-aware action re-floor, and the diagnostics data map. The paid dashboard's live market/gap rendering comes from the **streamed intel supply layer** (`/api/app/intel` → intel-kit views), NOT from a dedicated market component — `MarketAnalysisSections` was orphaned (no page imported it) and was deleted 2026-07-20. |
+| `searchVisibility.marketTiers` (2026-07-19 ladder) | The market ladder: at most a BROAD rung (renders only when its priced demand exceeds the category hero — inversion guard in `computeMarketTiers`, re-enforced at the props boundary for legacy payloads, pinned by rubric R6) and a NICHE rung, each reconciling to its priced phrases (G10). Seeds come from the lite synth's labeled tier phrases, priced in the same single `search_volume` call — no extra cost. |
 
 > `results-screen` (public `/scan/[id]`) is the **teaser only** — always redacted.
 > The real paid report is the `/app` intel dashboard. That's why paid-only grades
@@ -303,6 +304,16 @@ recurring + interactive callers are costed too: weekly/manual refresh via
 total = LLM + DataForSEO + Tavily summed over `users.app_ids` → `scans.app_id`
 (`loadAllUsersSpend`) plus the month-bucketed `user_spend_monthly` view, shown on
 the owner-only `/app/diagnostics`.
+
+**Per-RUN vs lifetime spend split (2026-07-17, C-COST/R2).** `scans` carries TWO
+families of cost columns: `run_dataforseo_cost_cents`/`run_tavily_cost_cents`
+hold the spend of *this scan's own pipeline passes*, while the original
+`dataforseo_cost_cents`/`tavily_cost_cents` are lifetime accumulators that also
+absorb post-scan intel + weekly refresh (those callers tag `phase:"post-scan"`).
+Migration `supabase/migrations/20260717130000_scans_run_cost_columns.sql`;
+`lib/app/diagnostics.ts` reads both so per-scan stage costs no longer
+over-report. The external soft cap (G8) fires on a genuine single-RUN
+overspend, never on the lifetime accumulator. Guard: `lib/scan/scan-telemetry.test.ts`.
 
 Cold-scan reality (trustmrr, 2026-07-09, fully cache-purged): **free ≈ $0.10**
 (LLM $0.08 · DataForSEO $0.002 · Tavily $0.016); **paid deep, cumulative ≈ $0.56**
@@ -512,8 +523,8 @@ payload** (the process fix — DB-only checking is what let the drift through).
    auto-discovers its own cohort via `discoverCompetitorsSmart` (DataForSEO
    domain-intersection). One scan reasons over two different rival sets; de-dup is
    per-domain cache only, not logical.
-10. **`discoverDemand` runs twice, billed twice.** Deep pass (`gap/run.ts:45`) and
-    competitor-select `gatherSynthesis→gatherDemand` (`demand/gather.ts:318`) both run
+10. **`discoverDemand` runs twice, billed twice.** Deep pass (`lib/scan/gap/run.ts:45`) and
+    competitor-select `gatherSynthesis→gatherDemand` (`lib/scan/demand/gather.ts:318`) both run
     the community pain sweep for the same subject; the cohort is profiled up to **3×**
     (`profileCohort`, `cohortFor`, `gatherFullFunnel`). Caches blunt external spend;
     the LLM clustering is fresh each path.
@@ -544,7 +555,7 @@ in EXACT sync".
 | PR | Scope (§6 items) | UI? | Cost effect | Sync |
 |---|---|---|---|---|
 | **A — Trust + gate** ✅ *landed 2026-07-10* | #4 model-computed impact (`recomputeActionImpacts`/`modelledImpact` in `action-linking.ts`, wired at both floor points in `full-scan.ts`; `verify.ts` `observed_delta` now stores the REAL new−prior gauge movement) · #5 per-category floor in prod (`ensurePerCategoryFloor`) · #6 `assertPaid` on `/api/app/intel(+/stream)` + `/api/competitors/{select,candidates}` | numbers only, no structure | neutral (removes a leak → *reduces* rogue spend) | none |
-| **B — Free "wow"** ✅ *superseded 2026-07-11* | #1 real proof on free. The original keyword-teaser implementation (`lib/scan/free-keyword-teaser.ts` → `report_payload.freeKeywordTeaser`) was **deleted and superseded by Search Visibility** (`lib/scan/search-visibility.ts` → `report_payload.searchVisibility`, §6.0): same ONE subject-only `ranked_keywords` primitive, but scored (capture %) and category-seed-grounded; rivals' ranks still locked to paid | `ResultsScreen` SV hero | ≤ ~$0.18 measured live | **done** |
+| **B — Free "wow"** ✅ *superseded 2026-07-11* | #1 real proof on free. The original keyword-teaser implementation (*lib/scan/free-keyword-teaser.ts* → `report_payload.freeKeywordTeaser`) was **deleted and superseded by Search Visibility** (`lib/scan/search-visibility.ts` → `report_payload.searchVisibility`, §6.0): same ONE subject-only `ranked_keywords` primitive, but scored (capture %) and category-seed-grounded; rivals' ranks still locked to paid | `ResultsScreen` SV hero | ≤ ~$0.18 measured live | **done** |
 | **C — One plan model** ✅ *landed 2026-07-10* | #3/#2 `bucketActions` now buckets by **time-to-payoff** (`horizonFor` in `report.ts`): outreach + earned-media → longPlay, off-site `wire` → medium, on-page → quick. Makes "long-term wins" real (the old effort split could never fill longPlay) and moots the clamp/bucket mismatch. **Literal merge with `plan-schedule.ts` deliberately NOT done** — the report's 3-bucket horizon and the dated calendar are different views of the same actions | dashboard "this week" ordering only (structure unchanged → no card redesign) | neutral | none needed (bucketing logic, not layout) |
 | **D — Cohort/demand dedup** 🟡 *#12 landed 2026-07-10; #9/#10/#11 deferred* | ✅ #12 unified the action writers — `refresh.ts` now links signals + recomputes honest deltas + persists `signal_keys`/`target` (parity with `persistActions`), so weekly actions are schedulable + attributable. ⏸️ #9 one canonical cohort, #10 one `discoverDemand`/scan, #11 no 3× signal recompute — **DEFERRED**: these refactor the paid billing path and MUST be live-verified (`REACHKIT_USE_FIXTURES=false`, a real paid deep scan) before trusting — shipping them blind risks the very cost regressions this plan targets | none | #12 neutral; #9/#10 reduce paid cost when done | none |
 
@@ -686,13 +697,43 @@ file; #13 (`audienceProxy`) stays deferred.
 - **Feature flags** — reduced to only `REACHKIT_USE_FIXTURES`, which runs the
   whole pipeline keyless (no external API calls) in dev/test.
 
+## 7. The acceptance harness — the corpus-first loop
+
+Every honesty gate before 2026-07-19 was created AFTER a failure shipped and was
+found by the owner reading live renders. The acceptance harness moves that
+review to pre-merge, on every `pnpm test`, over REAL captured data:
+
+- **Classification corpus** — `lib/scan/classification-corpus.test.ts` runs the
+  ONE production classifier (`classifyFootprint`) over real captured footprints
+  (`lib/scan/fixtures/classification-corpus/*.json`) and asserts the
+  brand/category/off-topic split is honest. Expectations only tighten.
+- **Report corpus + rubric (R1–R6)** — real `report_payload`s
+  (`lib/scan/fixtures/report-corpus/*.json`, frozen verbatim via
+  `pnpm capture:report <scanId>`) render through the REAL public path
+  (`publicReportProps` → free redaction → `ResultsScreen`) and are checked by
+  the engine `lib/testing/report-rubric.ts`: no garbage (R1) · every rendered
+  number ≥10 derives from the payload (R2) · empty input ⇒ no section, grounded
+  input ⇒ section, both directions (R3) · teaser counts equal their rendered
+  collection, never 0 (R4) · comparative copy only when true (R5) · no inverted
+  market ladder (R6). Test: `components/report/captured/report-corpus.rubric.test.tsx`.
+- **Ratchet mechanics** — fixture count, required archetypes, and rule count are
+  only-grows floors; per-fixture suppressions only shrink; every rule is
+  self-tested to fire AND mutation-proven against a real fixture.
+- **The loop** — a requirement enters via the Requirement Intake Protocol
+  (`CLAUDE.md`; template `docs/superpowers/templates/requirement-intake.md`),
+  updates `docs/REQUIREMENTS.md`, declares its corpus expectation FIRST
+  (watched fail), then the implementation lands. Owner decisions surface as
+  `OPEN(O-n)` rows in `docs/REQUIREMENTS.md` §0.
+- **Capture provenance** — fixtures name their prod scanId + capture date; the
+  corpus is the durable record even after prod scan rows are pruned.
+
 ## Directory map (high level)
 
 | Path | Responsibility |
 |------|----------------|
 | `app/(marketing)` | Public site: landing, /scan, /gallery, /pricing, tools, teardowns |
 | `app/(funnel)` | Scan report + payment/email/magic-link wall |
-| `app/(app)` | Gated product dashboard (plan, demand, supply, synthesis, competitors, billing) |
+| `app/(app)` | Gated product app: dashboard, add, onboarding, plan(+content/distribution), plans, demand, supply, synthesis, competitors, audience (competitors/customers), progress, billing, settings, diagnostics (owner-only) |
 | `app/api` | Thin API routes (scan, billing, auth, competitors, action, inngest host) |
 | `lib/scan` | Scan pipeline, scoring engine, adapters, deepen gate, reports |
 | `lib/scan/adapters` | External data collectors (DataForSEO, Tavily, iTunes, HN, PH, YouTube, X, web-reviews) |
