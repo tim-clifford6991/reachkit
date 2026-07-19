@@ -24,6 +24,8 @@ export function assembleFacts(
     themes: extractThemes(data.reviews),
     // Cycle 1 lists the sources QUERIED; §6's measured-density drop is Cycle 3.
     sourcesUsed: isWeb ? ["site_fetch", "dataforseo_serp", "product_hunt", "domain_age"] : ["itunes", "app_store_rss"],
+    // Part C — web mode only; app mode never runs the site-fetch garbage check.
+    fetchDegraded: isWeb ? (data.extras.fetchDegraded ?? false) : false,
     coldStart: false, // set just below from the assembled facts (§4.3)
   };
   // §4.3 — flag Cold Start from the fully-assembled facts; persists via scans.preliminary_facts.

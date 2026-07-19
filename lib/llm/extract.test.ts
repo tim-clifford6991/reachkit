@@ -221,6 +221,84 @@ describe("runExtract — missing source does NOT cache an empty sheet (invariant
   });
 });
 
+describe("runExtract — Part C: site_fetch_escalated REPLACES the raw site_fetch HTML", () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  test("positioning prompt uses the escalated text, NOT the raw site_fetch HTML, when both rows exist", async () => {
+    const RAW_HTML_MARKER = "UNIQUE_RAW_HTML_SHELL_MARKER";
+    const ESCALATED_MARKER = "UNIQUE_ESCALATED_TEXT_MARKER";
+    const docsWithEscalation = [
+      // The raw (garbage-shell-shaped) site_fetch row — still present in
+      // raw_documents (append-only), but must NOT reach the prompt once a
+      // good escalation exists for the same subject.
+      { id: 10, source_type: "site_fetch", subject_key: STORE_URL, body: `<html><body><p>${RAW_HTML_MARKER}</p></body></html>` },
+      { id: 11, source_type: "site_fetch_escalated", subject_key: STORE_URL, body: `${ESCALATED_MARKER} — real rendered page content.` },
+    ];
+    vi.doMock("@/lib/db/client", () => ({ serverDb: makeDbMock(docsWithEscalation as unknown as typeof CANNED_RAW_DOCS) }));
+    const capturedPrompts: string[] = [];
+    const callModelMock = vi.fn().mockImplementation(async (args: { prompt: string }) => {
+      capturedPrompts.push(args.prompt);
+      return { text: JSON.stringify(CANNED_POSITIONING), usage: { inputTokens: 10, outputTokens: 5 } };
+    });
+    vi.doMock("@/lib/llm/anthropic", () => ({ callModel: callModelMock }));
+    const upsertMock = vi.fn().mockResolvedValue({ id: 1 });
+    vi.doMock("@/lib/scan/fact-sheets", () => ({ upsertFactSheet: upsertMock, factSheetSubjectType: (mode: string) => mode === "web" ? "web" : "app" }));
+
+    const { runExtract } = await import("./extract");
+    const ctx = await makeScanCtx();
+    await runExtract(ctx, ["positioning"]);
+
+    expect(callModelMock).toHaveBeenCalledTimes(1);
+    const prompt = capturedPrompts[0] ?? "";
+    expect(prompt).toContain(ESCALATED_MARKER);
+    expect(prompt).not.toContain(RAW_HTML_MARKER);
+  });
+
+  test("positioning floor (non-LLM) also prefers the escalated text over the raw HTML", async () => {
+    const docsWithEscalation = [
+      { id: 10, source_type: "site_fetch", subject_key: STORE_URL, body: `<html><head><title>Wrong Name</title></head><body></body></html>` },
+      { id: 11, source_type: "site_fetch_escalated", subject_key: STORE_URL, body: "The real product name\nA real value prop, from the rendered page." },
+    ];
+    vi.doMock("@/lib/db/client", () => ({ serverDb: makeDbMock(docsWithEscalation as unknown as typeof CANNED_RAW_DOCS) }));
+    // Malformed model output forces the floor to be what's actually persisted.
+    vi.doMock("@/lib/llm/anthropic", () => ({ callModel: makeCallModelMock("NOT JSON {{{{") }));
+    const upsertMock = vi.fn().mockResolvedValue({ id: 1 });
+    vi.doMock("@/lib/scan/fact-sheets", () => ({ upsertFactSheet: upsertMock, factSheetSubjectType: (mode: string) => mode === "web" ? "web" : "app" }));
+
+    const { runExtract } = await import("./extract");
+    const ctx = await makeScanCtx();
+    await runExtract(ctx, ["positioning"]);
+
+    const calls = upsertMock.mock.calls as Array<[Parameters<typeof upsertMock>[0]]>;
+    const posCall = calls.find((c) => c[0].kind === "positioning")?.[0];
+    expect(posCall?.body).toEqual({
+      category: "",
+      claims: ["The real product name"],
+      valueProps: ["A real value prop, from the rendered page."],
+    });
+  });
+
+  test("without an escalated row, positioning behaves exactly as before (real HTML parsed)", async () => {
+    // Regression guard: LISTING_SOURCES growing to include site_fetch_escalated
+    // must not change behavior when no such row exists for the subject.
+    vi.doMock("@/lib/db/client", () => ({ serverDb: makeDbMock(CANNED_RAW_DOCS) }));
+    const callModelMock = makeCallModelMock();
+    vi.doMock("@/lib/llm/anthropic", () => ({ callModel: callModelMock }));
+    const upsertMock = vi.fn().mockResolvedValue({ id: 1 });
+    vi.doMock("@/lib/scan/fact-sheets", () => ({ upsertFactSheet: upsertMock, factSheetSubjectType: (mode: string) => mode === "web" ? "web" : "app" }));
+
+    const { runExtract } = await import("./extract");
+    const ctx = await makeScanCtx();
+    await runExtract(ctx);
+
+    const calls = upsertMock.mock.calls as Array<[Parameters<typeof upsertMock>[0]]>;
+    const posCall = calls.find((c) => c[0].kind === "positioning")?.[0];
+    expect(posCall?.body).toEqual(CANNED_POSITIONING);
+  });
+});
+
 describe("runExtract — fixture mode", () => {
   beforeEach(() => {
     vi.resetModules();

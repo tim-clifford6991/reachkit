@@ -132,6 +132,15 @@ export function ResultsScreen() {
           </div>
           <div>
             <div style={{ fontSize: 12.5, color: "var(--c-faint)", margin: "0 0 8px", lineHeight: 1.5 }}>{IDENTITY_LINE}</div>
+            {/* Part C (2026-07-19) — a JS-shell fetch our one Tavily Extract
+                escalation also couldn't recover degrades to this honest line,
+                in the SAME identity-strip slot, replacing false-confidence
+                findings framing. Demo shows the healthy IDENTITY_LINE above
+                (the common case); this note discloses the exact copy shown
+                live when `fetchDegraded` is true. */}
+            <div style={{ fontSize: 11.5, color: "var(--c-faint)", fontStyle: "italic", margin: "0 0 4px" }}>
+              fetchDegraded (unreadable page) → the identity line above is replaced with: "We couldn&apos;t fully read this page (it renders in the browser). On-page findings may be incomplete."
+            </div>
             <h1 style={{ fontFamily: SG, fontWeight: 700, fontSize: 26, letterSpacing: "-0.02em", margin: "0 0 6px" }}>Your category gets 12,400 searches a month — and you&apos;re barely visible for any of them.</h1>
             {/* ON_PAGE (72) >= 60 → the intro credits the on-page driver, never
                 the unified SCORE (54) — the intro gates on onPageReadiness so

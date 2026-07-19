@@ -622,6 +622,7 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
       channelOpportunities,
       creatorsToReach,
       reviewThemes,
+      fetchDegraded: facts.fetchDegraded,
     });
 
     // 8. Persist the report payload

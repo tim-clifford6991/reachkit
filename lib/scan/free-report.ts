@@ -90,6 +90,7 @@ export function buildFreeReport(args: {
     actions,
     score,
     searchVisibility,
+    fetchDegraded: facts.fetchDegraded,
     // deep sections omitted → assembleReport defaults them to empty
   });
 }

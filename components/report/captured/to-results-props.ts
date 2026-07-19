@@ -228,6 +228,10 @@ export function toResultsProps(
   return {
     siteLabel,
     identityLine,
+    // Part C — honest fetch-quality degrade state. `?? false` per the
+    // report_payload rule: an older/legacy persisted report never carried
+    // this field at all.
+    fetchDegraded: report.fetchDegraded ?? false,
     score: report.score.total,
     marketPosition: report.marketPosition?.total ?? null,
     searchVisibility,

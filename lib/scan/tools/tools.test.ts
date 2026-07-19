@@ -298,10 +298,13 @@ test("findCompetitors (android) REJECTS — appIdFromUrl throws unguarded in the
 
 test("getListing (web) charges 2 calls and returns domainAgeYears in extras", async () => {
   vi.resetModules();
+  // Healthy, content-rich HTML (Part C: `<html></html>` alone is a GARBAGE
+  // capture — near-zero visible text — and would trigger the fetch-escalation
+  // path this test isn't about; that path is covered in get-listing.test.ts).
   vi.doMock("@/lib/scan/adapters/site-fetch", () => ({
     fetchSiteListing: async () => ({
       listing: { name: "Nudgi", category: null, description: "A nudge app" },
-      raw: "<html></html>",
+      raw: `<html><head><title>Nudgi — habit nudges</title></head><body><p>${"Gentle reminders that build habits, one nudge at a time. ".repeat(10)}</p></body></html>`,
     }),
   }));
   vi.doMock("@/lib/scan/adapters/domain-age", () => ({
@@ -313,6 +316,11 @@ test("getListing (web) charges 2 calls and returns domainAgeYears in extras", as
   vi.doMock("@/lib/telemetry/pipeline-runs", () => ({
     recordPipelineRun: async () => {},
   }));
+  // An earlier test in this file `vi.doMock`'d this path without exporting
+  // `tavilyExtract` — that registration survives `vi.resetModules()`. Not
+  // reached by a healthy fetch (no escalation), but unmock explicitly so this
+  // test can't silently start depending on load order.
+  vi.doUnmock("@/lib/scan/adapters/tavily");
   const { getListing } = await import("./get-listing");
   const { ScanBudget } = await import("@/lib/tools/registry");
   const budget = new ScanBudget({ maxToolCalls: 60, budgetCents: 150 });
@@ -322,6 +330,7 @@ test("getListing (web) charges 2 calls and returns domainAgeYears in extras", as
   );
   expect(out.listing.name).toBe("Nudgi");
   expect(out.extras.domainAgeYears).toBe(3);
+  expect(out.extras.fetchDegraded).toBe(false);
   expect(budget.callsMade).toBe(2);
   expect(budget.spentCents).toBe(0);
 });
