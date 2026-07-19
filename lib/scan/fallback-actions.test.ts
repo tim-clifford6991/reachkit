@@ -11,12 +11,19 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { fallbackActionsFromSignals, MAX_FALLBACK_ACTIONS } from "./fallback-actions";
+import {
+  fallbackActionsFromSignals,
+  MAX_FALLBACK_ACTIONS,
+  opportunityActionsFromSearch,
+  MAX_OPPORTUNITY_ACTIONS,
+} from "./fallback-actions";
 import { SIGNAL_REGISTRY, PILLAR_WEIGHTS } from "./signals";
 import { assembleReport } from "./report";
 import { redactReportForTier } from "@/lib/billing/entitlements";
 import { toResultsProps } from "@/components/report/captured/to-results-props";
 import type { ScanSignalRow } from "./compute-signals";
+import { CATEGORY_TARGET } from "./search-visibility";
+import { discoverabilityScore as unifiedDiscoverability } from "./registry-score";
 
 function row(
   signalKey: string,
@@ -142,5 +149,46 @@ describe("fallbackActionsFromSignals", () => {
     const now = new Date("2026-07-03T00:00:00Z");
     expect(fallbackActionsFromSignals(rows, now)).toEqual(fallbackActionsFromSignals(rows, now));
     expect(fallbackActionsFromSignals(rows, now)[0]!.suggestedDeadline).toBe("2026-07-17");
+  });
+});
+
+describe("opportunityActionsFromSearch (WS-C)", () => {
+  const sv = {
+    score: 0,
+    onPageReadiness: 89,
+    categoryOpportunities: [
+      { keyword: "rank tracking software", volume: 1600, yourPosition: undefined },
+      { keyword: "competitor analysis tools", volume: 1300, yourPosition: 12 },
+      { keyword: "seo analytics software", volume: 260, yourPosition: undefined },
+    ],
+  };
+
+  it("emits ≤ MAX_OPPORTUNITY_ACTIONS cards, each naming the REAL phrase + real standing", () => {
+    const cards = opportunityActionsFromSearch(sv, new Date("2026-07-19"));
+    expect(cards).toHaveLength(MAX_OPPORTUNITY_ACTIONS);
+    expect(cards[0]!.title).toContain('"rank tracking software"');
+    expect(cards[0]!.why).toContain("1,600");
+    expect(cards[1]!.why).toContain("#12");
+    for (const c of cards) {
+      expect(c.draft).toBeNull();
+      expect(c.draftRequiresEdit).toBe(true);
+      expect(c.basis).toBe("probability_based");
+    }
+  });
+
+  it("delta is the score-model recomputation (one category win = one CATEGORY_TARGET step), never a free-chosen number (5a)", () => {
+    const [card] = opportunityActionsFromSearch(sv, new Date("2026-07-19"));
+    const expected = Math.max(
+      1,
+      Math.round(
+        unifiedDiscoverability(89, Math.min(100, 0 + 100 / CATEGORY_TARGET)) -
+          unifiedDiscoverability(89, Math.max(1, 0)),
+      ),
+    );
+    expect(card!.expectedOutcome.delta).toBe(expected);
+  });
+
+  it("no opportunities → no cards (degrade, never invent)", () => {
+    expect(opportunityActionsFromSearch({ score: 50, onPageReadiness: 80, categoryOpportunities: [] })).toEqual([]);
   });
 });

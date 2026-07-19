@@ -102,7 +102,7 @@ import type { ScanContext } from "./pipeline";
 import { serverDb } from "@/lib/db/client";
 import { emitScanEvent } from "./progress";
 import { computeSignalRowsForScan, persistScanSignals } from "./persist-signals";
-import { fallbackActionsFromSignals } from "./fallback-actions";
+import { fallbackActionsFromSignals, opportunityActionsFromSearch, MAX_FALLBACK_ACTIONS } from "./fallback-actions";
 import { fillDeterministicDrafts } from "./action-drafts";
 import { writeScanScoreSnapshot, rollupScanCost } from "./scan-telemetry";
 import { headlineScore, HEADLINE_SCORE_VERSION, discoverabilityScore as unifiedDiscoverability, DISCOVERABILITY_SCORE_VERSION } from "./registry-score";
@@ -176,13 +176,6 @@ export async function runFreeReport(ctx: ScanContext, facts: PreliminaryFacts): 
     scoreVersion = 1;
   }
 
-  const actions = fillDeterministicDrafts(
-    fallbackActionsFromSignals(signalRows),
-    facts.listing,
-    ctx.storeUrl,
-    ctx.mode,
-  );
-
   // iteration 2 — the free "wow": one subject-only ranked_keywords call → Search
   // Visibility (brand/category/off-topic split of what the site actually ranks
   // for). The seed vocabulary is the site's OWN language (its ICP themes + what
@@ -210,6 +203,24 @@ export async function runFreeReport(ctx: ScanContext, facts: PreliminaryFacts): 
     score = { ...score, total: unifiedDiscoverability(reg.total, searchVisibility.score) };
     scoreVersion = DISCOVERABILITY_SCORE_VERSION;
   }
+
+  // Plan: opportunity-targeted cards FIRST (they speak to the search story the
+  // page just told), then the weakest-signal baseline fixes; capped at the floor
+  // max so the free plan stays 3–5 tight cards.
+  const opportunityCards =
+    searchVisibility
+      ? opportunityActionsFromSearch({
+          score: searchVisibility.score,
+          onPageReadiness: searchVisibility.onPageReadiness ?? reg.total,
+          categoryOpportunities: searchVisibility.categoryOpportunities ?? [],
+        })
+      : [];
+  const actions = fillDeterministicDrafts(
+    [...opportunityCards, ...fallbackActionsFromSignals(signalRows)].slice(0, MAX_FALLBACK_ACTIONS),
+    facts.listing,
+    ctx.storeUrl,
+    ctx.mode,
+  );
 
   const payload = buildFreeReport({
     mode: ctx.mode,

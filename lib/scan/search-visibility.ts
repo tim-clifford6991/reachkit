@@ -232,8 +232,10 @@ const OFFTOPIC_EXAMPLES = 3;
  *  and a huge footprint can't sum into an incoherent "demand". */
 const CATEGORY_RANKED_ROWS = 15;
 /** Rough "full marks" target for category strength (≈ this many solid, sizable
- *  category rankings = a healthy category footprint). Tunable. */
-const CATEGORY_TARGET = 6;
+ *  category rankings = a healthy category footprint). Tunable. Exported so
+ *  WS-C's opportunity actions (fallback-actions.ts) can recompute the same
+ *  one-category-win score-model step the search-visibility strength uses. */
+export const CATEGORY_TARGET = 6;
 
 /** SERP position → share of clicks captured (a #1 ranking captures ~all its volume,
  *  a #20 almost none). pos1→1, pos21+→0. */
