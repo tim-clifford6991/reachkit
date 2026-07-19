@@ -150,6 +150,11 @@ const GENERIC_TOKENS = new Set([
   "media", "digital", "mobile", "global", "local", "data", "info", "information", "guide",
   "help", "list", "service", "interface", "integration", "multiple", "assets", "content",
   "price", "pricing", "login", "sign", "register", "download", "update", "version", "meaning",
+  // "system" joins the platform/interface/integration family of generic product
+  // descriptors — added by the calibration corpus (spacex "space launch system":
+  // "system" has no vocabulary evidence of its own, but is exactly the same class
+  // of generic qualifier as the tokens already above it).
+  "system",
 ]);
 
 // Ubiquitous other-brands / entities. A mid-market subject ranks for these only
@@ -227,16 +232,66 @@ export function buildVocab(
   return { brandTokens, categoryVocab };
 }
 
+/** Light, symmetric singular/plural + gerund fold so "rockets" (a seed's own
+ *  prose) and "rocket" (a real query token) — or "sending" and "send" — read as
+ *  the SAME token when checking vocabulary support. Deliberately tiny (no real
+ *  stemmer): it exists only to stop ordinary inflection from masquerading as an
+ *  "unsupported token" under the stricter rule below. Domain-agnostic — it has
+ *  no knowledge of any subject, so it cannot be a per-domain special case. */
+function stem(t: string): string {
+  if (t.length > 5 && t.endsWith("ing")) return t.slice(0, -3);
+  if (t.length > 4 && /(ches|shes|xes|zes|ses)$/.test(t)) return t.slice(0, -2);
+  if (t.length > 4 && t.endsWith("ies")) return `${t.slice(0, -3)}y`;
+  if (t.length > 3 && t.endsWith("s") && !t.endsWith("ss")) return t.slice(0, -1);
+  return t;
+}
+
+/** A token counts as "vocab-supported" when it (or its stem) is literally in
+ *  the subject's category vocabulary, or (or its stem) is the subject's own
+ *  brand token. Scans `categoryVocab` for a stem match too, so a seed's plural
+ *  ("rockets") corroborates a query's singular ("rocket") and vice versa —
+ *  without mutating `categoryVocab` itself (kept exact for the existing
+ *  `.has()` unit tests / debug surfaces). */
+function isVocabSupported(t: string, brandTokens: Set<string>, categoryVocab: Set<string>): boolean {
+  if (categoryVocab.has(t) || brandTokens.has(t)) return true;
+  const st = stem(t);
+  if (st !== t && (categoryVocab.has(st) || brandTokens.has(st))) return true;
+  for (const v of categoryVocab) if (stem(v) === st) return true;
+  return false;
+}
+
+/**
+ * THE MACRO RULE (2026-07-19, Part A2): a keyword classifies CATEGORY only
+ * when EVERY non-generic token of the phrase is supported — by the subject's
+ * own vocabulary (incl. LLM-seed corroboration) or GENERIC_TOKENS. One
+ * unsupported token anywhere forecloses category, structurally — no
+ * blocklist entry is needed for the next unlisted entity ("fox news" via a
+ * corroborated "news"; "what time is it in hawaii" via a corroborated
+ * "time"): the OTHER content word ("fox"/"hawaii") was never actually
+ * evidenced as this subject's category, and the old any-shared-token rule
+ * let it ride along on one word that was. A keyword whose tokens are ALL
+ * merely generic (zero real vocabulary evidence) is also not category — a
+ * ubiquitous phrase must not universally match every subject that ranks for it.
+ */
 function classify(keyword: string, brandTokens: Set<string>, categoryVocab: Set<string>): KeywordClass {
   // Brand via the shared detector (exact-token or distinctive-substring match).
   if (isBrandKeyword(keyword, brandTokens)) return "brand";
   // A ubiquitous other-brand/entity is off-topic outright — a subject ranks for
   // these incidentally, never as its own category (x.com #9 for "google").
   if (isMegaBrandKeyword(keyword)) return "offtopic";
-  // Category: shares a meaningful topic token with the subject's own vocabulary.
-  const toks: string[] = keyword.toLowerCase().match(/[a-z0-9]+/g) ?? [];
-  for (const t of toks) if (categoryVocab.has(t)) return "category";
-  return "offtopic";
+  // Category: EVERY non-generic token must be supported, and at least one must
+  // be REAL vocabulary support (not merely generic) — see rule doc above.
+  const toks = tokens(keyword); // the same stopword/length normalization buildVocab uses
+  if (toks.length === 0) return "offtopic"; // nothing meaningful left to judge
+  let anyVocabSupported = false;
+  for (const t of toks) {
+    const vocabSupported = isVocabSupported(t, brandTokens, categoryVocab);
+    if (vocabSupported) { anyVocabSupported = true; continue; }
+    const st = stem(t);
+    if (GENERIC_TOKENS.has(t) || GENERIC_TOKENS.has(st)) continue; // allowed to ride, but doesn't count as evidence
+    return "offtopic"; // an unsupported, non-generic token forecloses category
+  }
+  return anyVocabSupported ? "category" : "offtopic";
 }
 
 const WINNING_POSITION = 3;

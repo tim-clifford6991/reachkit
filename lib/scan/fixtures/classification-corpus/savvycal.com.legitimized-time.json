@@ -1,0 +1,27 @@
+{
+  "domain": "https://savvycal.com/",
+  "note": "Part A2 (2026-07-19): reproduces the savvycal class with 'time' LEGITIMIZED as a corroborated category token (the LLM named 'real-time availability' as a category seed), so the OLD any-shared-token rule's pollutant filter alone can no longer save this fixture — 'time' is now genuine vocab. The macro rule (ALL non-generic tokens must be supported) must still keep every timezone lookup off-topic, because the geo token ('hawaii'/'tokyo'/'japan'/'korea'/'vegas'/'chicago'/'dubai'/'california'/'england'/'usa') is never supported. This is the distinct, NEW mechanism the classification-corpus.test.ts previously never exercised (the plain savvycal.com.json fixture passes only because 'time' is uncorroborated there).",
+  "seedText": [
+    "savvycal", "scheduling", "with", "calendar", "your", "review", "love", "web", "interface", "features", "integration", "multiple",
+    "The listing positions SavvyCal as a beautifully designed scheduling tool that respects both parties' time, emphasizing a gorgeous week-view interface, calendar overlay, and team scheduling modes for over 2,000 happy customers.",
+    "Users consistently praise the calendar overlay feature and clean UX, but flag a steep learning curve during onboarding as a notable friction point."
+  ],
+  "llmCategorySeeds": ["scheduling software", "real-time availability", "meeting scheduler", "calendar booking tool"],
+  "rankedKeywords": [
+    { "keyword": "what time is it california", "position": 7, "volume": 550000, "etv": 25795.0 },
+    { "keyword": "what time in hawaii", "position": 6, "volume": 368000, "etv": 24251.2 },
+    { "keyword": "what is time now in hawaii", "position": 4, "volume": 368000, "etv": 59616.0 },
+    { "keyword": "what time is in japan", "position": 7, "volume": 368000, "etv": 17259.2 },
+    { "keyword": "japan tokyo time", "position": 5, "volume": 301000, "etv": 29287.3 },
+    { "keyword": "time japan tokyo", "position": 6, "volume": 301000, "etv": 19835.9 },
+    { "keyword": "time in usa hawaii", "position": 4, "volume": 246000, "etv": 39852.0 },
+    { "keyword": "what time london england", "position": 6, "volume": 246000, "etv": 16211.4 },
+    { "keyword": "hawaii time", "position": 5, "volume": 246000, "etv": 23935.8 },
+    { "keyword": "hawaii times", "position": 5, "volume": 246000, "etv": 23935.8 },
+    { "keyword": "time for south korea", "position": 4, "volume": 201000, "etv": 32562.0 },
+    { "keyword": "what time in las vegas nv", "position": 4, "volume": 165000, "etv": 26730.0 },
+    { "keyword": "what is chicago time now", "position": 5, "volume": 165000, "etv": 16054.5 },
+    { "keyword": "present time dubai", "position": 3, "volume": 110000, "etv": 17820.0 },
+    { "keyword": "real-time availability calendar", "position": 2, "volume": 1200, "etv": 480.0 }
+  ]
+}

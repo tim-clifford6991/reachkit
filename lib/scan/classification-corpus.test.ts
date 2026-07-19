@@ -5,6 +5,7 @@ import xcom from "./fixtures/classification-corpus/x.com.json";
 import xcomLegitimizedNews from "./fixtures/classification-corpus/x.com.legitimized-news.json";
 import resend from "./fixtures/classification-corpus/resend.com.json";
 import savvycal from "./fixtures/classification-corpus/savvycal.com.json";
+import savvycalLegitimizedTime from "./fixtures/classification-corpus/savvycal.com.legitimized-time.json";
 import spacex from "./fixtures/classification-corpus/spacex.com.json";
 
 // ---------------------------------------------------------------------------
@@ -95,6 +96,28 @@ describe("corpus: savvycal.com — footprint is ~all incidental timezone lookups
   });
   it("the biggest opportunity is not a timezone lookup", () => {
     expect(/\btime\b|hawaii|tokyo/.test(categoryOpportunities[0]?.keyword ?? "")).toBe(false);
+  });
+});
+
+describe("corpus: savvycal.com (legitimized-time seeds) — the macro rule's OWN mechanism, reproducing the 'fox news' class generically", () => {
+  // The plain savvycal.com.json fixture above passes even under the OLD
+  // any-shared-token rule, because "time" is never corroborated there (the
+  // pollutant filter alone blocks it). This variant legitimizes "time" via an
+  // LLM category seed ("real-time availability") — same mechanism that let
+  // "news" ride "fox news" into category — so ONLY the macro rule (every
+  // non-generic token must be supported; "hawaii"/"tokyo"/"japan"/etc. never
+  // are) keeps every timezone lookup off-topic. Part A2 (2026-07-19).
+  const { category, categoryOpportunities } = run(savvycalLegitimizedTime as Corpus);
+  it("'time' is genuinely corroborated (the real category term IS category)", () => {
+    expect(category.has("real-time availability calendar"), `category had: ${[...category].join(", ")}`).toBe(true);
+  });
+  it("every timezone lookup stays off-topic even with 'time' legitimized — the unsupported geo token forecloses category", () => {
+    for (const k of category) {
+      expect(/hawaii|tokyo|japan|korea|vegas|chicago|dubai|california|england|usa/.test(k), `"${k}" must not be savvycal category`).toBe(false);
+    }
+  });
+  it("the biggest opportunity is not a timezone lookup", () => {
+    expect(/hawaii|tokyo|japan/.test(categoryOpportunities[0]?.keyword ?? "")).toBe(false);
   });
 });
 

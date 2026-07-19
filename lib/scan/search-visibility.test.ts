@@ -395,9 +395,13 @@ describe("mega-brand matching is phrase-blind (the 'fox news' class, live scan a
     // "fox" alone (e.g. "fox sports") and "news" alone (e.g. "world news today")
     // must not be treated as the mega-brand — only the adjacent PAIR "fox news"
     // (or a token that IS itself a stored entry, like "cnn") is off-topic.
+    // Under the macro rule (Part A2) EVERY non-generic token must be supported,
+    // so "fox" now needs real vocabulary evidence — supplied honestly here via
+    // the site's OWN positioning prose (this sports-news aggregator genuinely
+    // covers Fox Sports content), not a rule-level special case.
     const sv = classifyFootprint(
       "sportsnews.com",
-      ["daily sports news and scores"],
+      ["daily sports news and scores, including fox sports highlights"],
       ["sports news roundup"],
       [
         rk("fox sports scores", 4, 500, 200),
@@ -409,3 +413,46 @@ describe("mega-brand matching is phrase-blind (the 'fox news' class, live scan a
     expect(category.has("world news today")).toBe(true);
   });
 });
+
+// ---------------------------------------------------------------------------
+// THE MACRO RULE (2026-07-19, Part A2): a curated MEGA_BRAND_TOKENS blocklist
+// can never enumerate the world's entities — the "fox news"/"what time is it
+// in hawaii" class recurs for ANY unlisted proper noun that happens to share
+// one corroborated generic token with the subject's vocabulary. The rule
+// change: category requires EVERY non-generic token of the keyword to be
+// supported (subject vocab, a corroborated LLM-seed token, or GENERIC_TOKENS)
+// — one unsupported token anywhere in the phrase forecloses category,
+// structurally, with no blocklist entry needed for the new entity.
+// ---------------------------------------------------------------------------
+describe("classification requires ALL non-generic tokens supported (the macro rule, no blocklist needed)", () => {
+  // A time-tracking product whose OWN seed corroborates "time" into its
+  // category vocabulary — exactly the mechanism that let "news" ride "fox
+  // news" into category. Reproduces the class generically (no MEGA_BRAND_TOKENS
+  // entry exists for "hawaii"/"tokyo" — there cannot be one for every place name).
+  const sv = classifyFootprint(
+    "chronotrack.com",
+    ["accurate time tracking software for distributed teams"],
+    ["time tracking software", "employee time clock"],
+    [
+      rk2("time tracking app", 2, 5000, 2000), // real category — both tokens supported
+      rk2("employee time clock", 3, 2000, 800), // real category — corroborated + vocab
+      rk2("what time is it in hawaii", 5, 550000, 90000), // "time" corroborated, "hawaii" is NOT
+      rk2("time zone converter tokyo", 6, 300000, 40000), // "time" corroborated, "tokyo" is NOT
+    ],
+  );
+  const category = new Set(sv.categoryRanked.map((r) => r.keyword));
+
+  it("a keyword with one corroborated-generic token + one wholly unsupported token is OFFTOPIC, not category", () => {
+    expect(category.has("what time is it in hawaii"), "hawaii is unsupported — must not ride 'time' into category").toBe(false);
+    expect(category.has("time zone converter tokyo"), "tokyo is unsupported — must not ride 'time' into category").toBe(false);
+  });
+
+  it("the subject's REAL category terms (all tokens supported) are unaffected", () => {
+    expect(category.has("time tracking app")).toBe(true);
+    expect(category.has("employee time clock")).toBe(true);
+  });
+});
+
+function rk2(keyword: string, position: number, volume: number, etv: number): RankedKeyword {
+  return { keyword, position, volume, etv, url: "https://chronotrack.com/x" };
+}
