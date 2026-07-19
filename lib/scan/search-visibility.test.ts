@@ -4,7 +4,7 @@
  * adversarial case: clean site, tiny category, ~90% other-brand visibility.
  */
 import { describe, it, expect } from "vitest";
-import { computeSearchVisibility, buildVocab, computeCategoryDemand, buildCategorySeeds, computeMarketTiers } from "./search-visibility";
+import { computeSearchVisibility, buildVocab, computeCategoryDemand, buildCategorySeeds, computeMarketTiers, classifyFootprint } from "./search-visibility";
 import type { RankedKeyword } from "@/lib/scan/adapters/dataforseo-ranked-keywords";
 
 const kw = (keyword: string, position: number, volume: number, etv: number): RankedKeyword => ({
@@ -355,5 +355,57 @@ describe("M2 paid parity — the deep pass threads tier seeds too", () => {
     const args = call![1]!;
     const argCount = args.split(",").length;
     expect(argCount, `expected 4 args (rawSelf, seedText, catSeeds, tierSeeds) — got: ${args}`).toBe(4);
+  });
+});
+
+describe("mega-brand matching is phrase-blind (the 'fox news' class, live scan aae8a31d)", () => {
+  // MEGA_BRAND_TOKENS stores multi-word entities as ONE concatenated token
+  // ("foxnews", "nypost", "nytimes") because a token-by-token check can only ever
+  // compare single tokens. Tokenizing the keyword "fox news" gives ["fox","news"] —
+  // neither of which is "foxnews" — so the entry was structurally unreachable via
+  // the two-word phrase real users search for. Reproduces today's live inputs: the
+  // lite synth's marketTiers prompt legitimized "news" as a corroborated category
+  // token via the seed "real-time news feed", which (pre-fix) let "fox news" ride
+  // that legitimized generic token straight into "category".
+  const rk = (keyword: string, position: number, volume: number, etv: number): RankedKeyword => ({
+    keyword, position, volume, etv, url: "https://x.com/x",
+  });
+
+  it("joins adjacent tokens (bigram) so a multi-word entity name matches: fox+news=foxnews", () => {
+    const sv = classifyFootprint(
+      "x.com",
+      ["a real-time news feed and microblogging platform"],
+      ["real-time news feed", "microblogging platform", "social media network"],
+      [
+        rk("fox news", 8, 37200000, 1744680),
+        rk("cnn", 10, 20400000, 1344360),
+        rk("microblogging platform", 5, 1000, 500),
+        rk("social media network", 6, 900, 450),
+      ],
+    );
+    const category = new Set(sv.categoryRanked.map((r) => r.keyword));
+    expect(category.has("fox news"), "fox news must NOT ride the legitimized 'news' token into category").toBe(false);
+    expect(category.has("cnn"), "cnn must stay off-topic").toBe(false);
+    // The legitimately-named categories must be unaffected by the mega-brand fix.
+    expect(category.has("microblogging platform")).toBe(true);
+    expect(category.has("social media network")).toBe(true);
+  });
+
+  it("a keyword that is ONLY a fragment of a mega-brand bigram (not the full pair) is unaffected", () => {
+    // "fox" alone (e.g. "fox sports") and "news" alone (e.g. "world news today")
+    // must not be treated as the mega-brand — only the adjacent PAIR "fox news"
+    // (or a token that IS itself a stored entry, like "cnn") is off-topic.
+    const sv = classifyFootprint(
+      "sportsnews.com",
+      ["daily sports news and scores"],
+      ["sports news roundup"],
+      [
+        rk("fox sports scores", 4, 500, 200),
+        rk("world news today", 6, 400, 150),
+      ],
+    );
+    const category = new Set(sv.categoryRanked.map((r) => r.keyword));
+    expect(category.has("fox sports scores")).toBe(true);
+    expect(category.has("world news today")).toBe(true);
   });
 });

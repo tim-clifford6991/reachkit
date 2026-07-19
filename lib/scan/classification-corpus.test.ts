@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { classifyFootprint, computeCategoryDemand } from "./search-visibility";
 import type { RankedKeyword } from "@/lib/scan/adapters/dataforseo-ranked-keywords";
 import xcom from "./fixtures/classification-corpus/x.com.json";
+import xcomLegitimizedNews from "./fixtures/classification-corpus/x.com.legitimized-news.json";
 import resend from "./fixtures/classification-corpus/resend.com.json";
 import savvycal from "./fixtures/classification-corpus/savvycal.com.json";
 import spacex from "./fixtures/classification-corpus/spacex.com.json";
@@ -59,6 +60,28 @@ describe("corpus: x.com — a giant whose footprint is ~entirely other mega-bran
   it("the biggest 'opportunity' is not a mega-brand (no 'google is your opportunity')", () => {
     const top = categoryOpportunities[0]?.keyword ?? "";
     expect(MEGA_BRANDS).not.toContain(top);
+  });
+});
+
+describe("corpus: x.com (legitimized-news seeds) — the 'fox news' class, reproducing live scan aae8a31d", () => {
+  // Today's live inputs: the lite synth's marketTiers prompt emitted "real-time
+  // news feed" as a category seed, which corroborates the generic token "news"
+  // into x.com's category vocabulary. Before the bigram-join fix, that legitimized
+  // "news" let the multi-word keyword "fox news" ride into "category" (its tokens
+  // ["fox","news"] never match the stored concatenated entry "foxnews"). The class
+  // fix must hold even with "news" legitimized, and must NOT demote x.com's real,
+  // legitimately-named categories ("microblogging platform", "social media network").
+  const { category, categoryOpportunities } = run(xcomLegitimizedNews as Corpus);
+  it("no mega-brand — including the multi-word 'fox news' — is classified as x.com's category", () => {
+    for (const b of MEGA_BRANDS) expect(category.has(b), `"${b}" must NOT be x.com category`).toBe(false);
+  });
+  it("the biggest 'opportunity' is not a mega-brand (no 'fox news is your opportunity')", () => {
+    const top = categoryOpportunities[0]?.keyword ?? "";
+    expect(MEGA_BRANDS).not.toContain(top);
+  });
+  it("x.com's real, legitimately-named categories stay category", () => {
+    expect(category.has("microblogging platform"), `category had: ${[...category].join(", ")}`).toBe(true);
+    expect(category.has("social media network"), `category had: ${[...category].join(", ")}`).toBe(true);
   });
 });
 

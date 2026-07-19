@@ -172,10 +172,25 @@ function isCategoryPollutant(t: string): boolean {
   return GENERIC_TOKENS.has(t) || MEGA_BRAND_TOKENS.has(t);
 }
 
-/** A keyword that IS a ubiquitous other-brand/entity — off-topic outright. */
+/** A keyword that IS a ubiquitous other-brand/entity — off-topic outright.
+ *  MEGA_BRAND_TOKENS stores multi-word names as ONE concatenated token
+ *  ("foxnews", "nypost", "nytimes"), so a single-token check alone can never
+ *  match the multi-word phrase real users search ("fox news" tokenizes to
+ *  ["fox","news"] — neither token alone is "foxnews"), leaving every
+ *  multi-word entry dead. Fix: also join ADJACENT tokens (bigram, and
+ *  trigram for the rare 3-word name) and re-check the concatenation. Pure,
+ *  deterministic, self-contained — retokenizes the raw keyword fresh so it
+ *  does not depend on the stopword-filtered `tokens()` used for vocab. */
 function isMegaBrandKeyword(keyword: string): boolean {
   const toks = keyword.toLowerCase().match(/[a-z0-9]+/g) ?? [];
-  return toks.some((t) => MEGA_BRAND_TOKENS.has(t));
+  if (toks.some((t) => MEGA_BRAND_TOKENS.has(t))) return true;
+  for (let i = 0; i < toks.length - 1; i++) {
+    if (MEGA_BRAND_TOKENS.has(toks[i] + toks[i + 1])) return true;
+  }
+  for (let i = 0; i < toks.length - 2; i++) {
+    if (MEGA_BRAND_TOKENS.has(toks[i] + toks[i + 1] + toks[i + 2])) return true;
+  }
+  return false;
 }
 
 /**
