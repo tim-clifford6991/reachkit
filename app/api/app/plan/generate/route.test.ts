@@ -119,6 +119,7 @@ function mockCommonCollaborators(insertedRows: Record<string, unknown>[]) {
     // the wrapper itself is pinned by app/api/costed-routes.test.ts.
     costedIntelStep: vi.fn(async (_appId: string, _source: string, fn: () => unknown) => fn()),
     latestScanIdForApp: vi.fn(async () => null), // no persisted scan_signals → honest delta:0
+    subjectBrandNamesForApp: vi.fn(async () => []), // RC1 parity fold-in — no scan facts in this unit fixture
   }));
   vi.doMock("@/lib/scan/competitor-selection", () => ({
     getSelectedCompetitors: vi.fn(async () => ["rival.com"]),

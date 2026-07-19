@@ -270,7 +270,7 @@ export function ResultsScreen() {
           {/* offTopicPct (50%) >= 40 — the honest "not your traffic" warning,
               now naming the actual off-topic keywords (WS-D, 2026-07-19). */}
           <div style={{ marginTop: 14, padding: "12px 14px", background: "var(--c-tint-orange)", borderLeft: "3px solid var(--c-band-hard)", borderRadius: "0 10px 10px 0", fontSize: 13.5, lineHeight: 1.55, color: "var(--c-ink)" }}>
-            Most of your search traffic comes from <strong>other companies&apos; names you list or mention</strong> — real visits, but not buyers searching for what <em>you</em> do. Only <strong>20%</strong> is your own category.
+            Most of your search traffic comes from <strong>searches for other companies&apos; names</strong> — real visits, but not buyers looking for what <em>you</em> do. Only <strong>20%</strong> is your own category.
             {" "}e.g. you rank for <strong>{OFFTOPIC_EXAMPLES.map((ex) => `"${ex}"`).join(", ")}</strong>.
           </div>
         </div>

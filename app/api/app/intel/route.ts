@@ -12,7 +12,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth/server";
 import { assertPaid, EntitlementError } from "@/lib/billing/entitlements";
 import { activeAppId } from "@/lib/app/active-app";
-import { costedIntelStep } from "@/lib/app/latest-scan";
+import { costedIntelStep, subjectBrandNamesForApp } from "@/lib/app/latest-scan";
 import { serverDb } from "@/lib/db/client";
 import { getSelectedCompetitors } from "@/lib/scan/competitor-selection";
 import { gatherFullFunnel } from "@/lib/scan/referral/funnel";
@@ -51,17 +51,23 @@ export async function GET(req: NextRequest) {
   if (competitors.length === 0) return NextResponse.json({ error: "no competitors selected", needsOnboarding: true }, { status: 409 });
 
   const co = competitors;
+  // RC1 parity: the subject's REAL captured name (facts.listing.name, read back
+  // off the latest scan row — this route has no `facts` in scope) joins the
+  // brand vocabulary for keyword-gap exactly like the free classifier already
+  // does, so a subject whose domain label is unusable/wrong isn't shown its own
+  // brand queries as a "rival's gap" opportunity.
+  const brandNames = await subjectBrandNamesForApp(appId);
   try {
     // costedIntelStep: cold-path DataForSEO/Tavily spend is attributed to the
     // app's latest scan row + tagged `intel-spend` (CLAUDE.md invariant #2).
     return NextResponse.json(
       await costedIntelStep(appId, "intel", async () => {
         if (layer === "demand") return gatherDemand(domain, { competitorDomains: co });
-        if (layer === "synthesis") return gatherSynthesis(domain, { competitorDomains: co });
+        if (layer === "synthesis") return gatherSynthesis(domain, { competitorDomains: co, brandNames });
         // supply
         const [funnel, keywords, content] = await Promise.all([
           gatherFullFunnel(domain, { competitorDomains: co }),
-          gatherKeywordGap(domain, { competitorDomains: co }),
+          gatherKeywordGap(domain, { competitorDomains: co, brandNames }),
           gatherContentIntel(domain, { competitorDomains: co }),
         ]);
         return { funnel, keywords, content };

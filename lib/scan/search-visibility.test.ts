@@ -393,11 +393,16 @@ describe("M2 paid parity — the deep pass threads tier seeds too", () => {
   // Without this, a paid upgrade REGENERATES searchVisibility via
   // gatherFreeSearchVisibility without marketTiers and the ladder silently
   // vanishes on upgrade. expectCallsSymbol alone (existence of the call)
-  // isn't enough to catch a dropped 4th argument, so this pins the exact
-  // call-site ARITY (3 commas → 4 args) inside runFullScan's own
-  // brace-matched, comment/string-stripped body — a naive whole-file
-  // substring check would be satisfied by an unrelated mention elsewhere.
-  it("full-scan.ts: runFullScan calls gatherFreeSearchVisibility(...) with a 4th (tier-seeds) argument", () => {
+  // isn't enough to catch a dropped argument, so this pins the exact
+  // call-site ARITY inside runFullScan's own brace-matched,
+  // comment/string-stripped body — a naive whole-file substring check would
+  // be satisfied by an unrelated mention elsewhere.
+  // PR-5 (2026-07-19): a 5th argument (brandNames, `facts.listing.name`) was
+  // added so the brand vocabulary isn't limited to the domain label alone —
+  // bumped 4 -> 5 here too, so a dropped brandNames arg on the paid path
+  // (silently reverting x.com-class subjects to brandPct 0 on upgrade) fails
+  // the same way a dropped tierSeeds arg already did.
+  it("full-scan.ts: runFullScan calls gatherFreeSearchVisibility(...) with a 5th (brandNames) argument", () => {
     expect(() => expectCallsSymbol("lib/scan/full-scan.ts", "gatherFreeSearchVisibility", { within: "runFullScan" })).not.toThrow();
 
     const src = readFileSync(resolve(process.cwd(), "lib/scan/full-scan.ts"), "utf8");
@@ -407,7 +412,7 @@ describe("M2 paid parity — the deep pass threads tier seeds too", () => {
     expect(call, "expected a gatherFreeSearchVisibility(...) call inside runFullScan").not.toBeNull();
     const args = call![1]!;
     const argCount = args.split(",").length;
-    expect(argCount, `expected 4 args (rawSelf, seedText, catSeeds, tierSeeds) — got: ${args}`).toBe(4);
+    expect(argCount, `expected 5 args (rawSelf, seedText, catSeeds, tierSeeds, brandNames) — got: ${args}`).toBe(5);
   });
 });
 
@@ -509,3 +514,102 @@ describe("classification requires ALL non-generic tokens supported (the macro ru
 function rk2(keyword: string, position: number, volume: number, etv: number): RankedKeyword {
   return { keyword, position, volume, etv, url: "https://chronotrack.com/x" };
 }
+
+// ---------------------------------------------------------------------------
+// PR-5 (2026-07-19): the brand≠domain class. Live evidence: x.com scans read
+// "your brand 0% / other companies' names 100%" because brand tokens derive
+// ONLY from the domain ("x.com" -> unusable "x", 1 char, dropped by
+// brandTokensFor's len>=3 floor) — the subject's REAL brand ("twitter") is
+// unrecognised AND sits in MEGA_BRAND_TOKENS, so x.com's own brand queries
+// count as "other companies' names". Fix: `facts.listing.name` (the subject's
+// REAL captured name) joins the brand vocabulary via classifyFootprint's own
+// signature (no side channel — the corpus fixture below exercises the exact
+// same path).
+// ---------------------------------------------------------------------------
+describe("PR-5: subject brand names join the brand vocabulary (the brand≠domain class)", () => {
+  const rows: RankedKeyword[] = [
+    kw("twitter", 1, 16600000, 5046400),
+    kw("twitter login", 2, 500000, 150000),
+    kw("google", 9, 101000000, 3413800), // ubiquitous other-brand, off-topic regardless
+    kw("microblogging platform", 5, 1000, 500), // the subject's real category term
+  ];
+  const seedText = ["a microblogging platform for real-time updates"];
+  const llmSeeds = ["microblogging platform"];
+
+  it("WITHOUT brandNames: 'twitter' is unrecognised as brand — mistaken for another company's name", () => {
+    const sv = classifyFootprint("x.com", seedText, llmSeeds, rows);
+    expect(sv.brandPct).toBe(0);
+    expect(sv.offTopicExamples).toContain("twitter");
+  });
+
+  it("WITH brandNames ['Twitter / X']: 'twitter…' rows classify BRAND, brandPct > 0", () => {
+    const sv = classifyFootprint("x.com", seedText, llmSeeds, rows, ["Twitter / X"]);
+    expect(sv.brandPct).toBeGreaterThan(0);
+    expect(sv.offTopicExamples).not.toContain("twitter");
+    expect(sv.offTopicExamples).not.toContain("twitter login");
+  });
+
+  it("mega-brand exemption: a subject brand token that IS a MEGA_BRAND_TOKENS member (e.g. 'twitter') is never off-topic for its own scan", () => {
+    // Direct proof the exemption bites: without brandNames "twitter" (alone) is
+    // mega-brand off-topic; with brandNames it is the subject's own brand.
+    const without = classifyFootprint("x.com", seedText, llmSeeds, [kw("twitter", 1, 16600000, 5046400)]);
+    const withBrand = classifyFootprint("x.com", seedText, llmSeeds, [kw("twitter", 1, 16600000, 5046400)], ["Twitter / X"]);
+    expect(without.brandPct).toBe(0);
+    expect(withBrand.brandPct).toBeGreaterThan(0);
+  });
+
+  it("invariant #1: brand-vs-offtopic reassignment does NOT touch category strength — score is unchanged with/without brandNames", () => {
+    const without = classifyFootprint("x.com", seedText, llmSeeds, rows);
+    const withBrand = classifyFootprint("x.com", seedText, llmSeeds, rows, ["Twitter / X"]);
+    expect(withBrand.score).toBe(without.score);
+    // Sanity: the reassignment DID actually move brandPct (else this proves nothing).
+    expect(withBrand.brandPct).not.toBe(without.brandPct);
+  });
+
+  it("a generic word in the listing name does not itself become a brand token", () => {
+    // "Platform" is a GENERIC_TOKEN — a listing name like "Twitter Platform"
+    // must not let every generic "platform" query become brand.
+    const sv = classifyFootprint("x.com", seedText, llmSeeds, rows, ["Twitter Platform"]);
+    // "microblogging platform" still classifies on ITS OWN vocab support
+    // (llm seed corroboration), not because "platform" became a brand token.
+    expect(sv.categoryRanked.map((r) => r.keyword)).toContain("microblogging platform");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Fix 3 (PR-5): offTopicExamples is a PRESENTATION rule — which 3 of N real,
+// honest off-topic keywords we choose to PRINT on the conversion surface. A
+// live footprint can rank for adult-site terms via MEGA_BRAND_TOKENS entries
+// ("pornhub", "onlyfans", "chaturbate") — real, true data, but not fit to
+// quote verbatim on a public page. The underlying klass/percentages are
+// UNCHANGED; only the printed EXAMPLES are filtered.
+// ---------------------------------------------------------------------------
+describe("offTopicExamples: NSFW/profane candidates are never selected for display (Fix 3)", () => {
+  const vocab = buildVocab("cleansaas.com", ["startup analytics dashboard for founders"]);
+
+  it("skips an NSFW candidate even when it is the HIGHEST-volume off-topic row", () => {
+    const rows: RankedKeyword[] = [
+      kw("pornhub", 5, 50000000, 900000), // NSFW, huge volume — must not be printed
+      kw("cometly", 8, 60500, 1901.8), // clean off-topic, smaller volume
+      kw("shipfast", 13, 720, 8.1), // clean off-topic
+    ];
+    const v = computeSearchVisibility(rows, vocab);
+    expect(v.offTopicExamples).not.toContain("pornhub");
+    expect(v.offTopicExamples).toContain("cometly");
+    expect(v.offTopicExamples).toContain("shipfast");
+    // The DATA (percentages) still reflect the NSFW row honestly — only the
+    // printed examples are filtered, never the underlying split.
+    expect(v.offTopicPct).toBeGreaterThan(0);
+  });
+
+  it("renders NO examples (never a fabricated substitute) when every off-topic candidate is NSFW", () => {
+    const rows: RankedKeyword[] = [
+      kw("pornhub", 5, 50000000, 900000),
+      kw("onlyfans", 6, 20000000, 400000),
+    ];
+    const v = computeSearchVisibility(rows, vocab);
+    expect(v.offTopicExamples).toEqual([]);
+    // The warning still stands on its percentages even with zero named examples.
+    expect(v.offTopicPct).toBeGreaterThan(0);
+  });
+});

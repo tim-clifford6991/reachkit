@@ -22,7 +22,7 @@
 
 import type { RankedKeyword } from "@/lib/scan/adapters/dataforseo-ranked-keywords";
 import { normalizeHost } from "@/lib/scan/referral/classify";
-import { brandTokensFor, isBrandKeyword } from "@/lib/scan/referral/brand-keywords";
+import { brandTokensFor, isBrandKeyword, tokens, GENERIC_TOKENS, STOPWORDS } from "@/lib/scan/referral/brand-keywords";
 import { cachedRankedKeywords, cachedKeywordVolumes, cachedDomainOverview } from "@/lib/scan/cache/cached-adapters";
 
 export type KeywordClass = "brand" | "category" | "offtopic";
@@ -134,36 +134,12 @@ export interface SearchVisibility {
   // to 1,308×) and fed nothing external — deleted with it.
 }
 
-const STOPWORDS = new Set([
-  "the", "and", "for", "with", "your", "you", "our", "are", "was", "how", "why",
-  "what", "who", "best", "top", "app", "apps", "tool", "tools", "software", "online",
-  "free", "new", "get", "com", "www", "http", "https", "vs", "review", "reviews",
-]);
-
-/** Break a phrase into meaningful lowercase tokens (len ≥ 3, non-stopword). */
-function tokens(text: string): string[] {
-  return (text.toLowerCase().match(/[a-z0-9]+/g) ?? []).filter((t) => t.length >= 3 && !STOPWORDS.has(t));
-}
-
-// A single generic token must NEVER define a subject's category on its own — a
-// ubiquitous word matches thousands of unrelated queries (savvycal's whole
-// footprint became "category" because "time" was in its prose, so every
-// "what time is it in hawaii" matched). These are allowed to define the category
-// ONLY when the LLM's OWN category seeds used them (so "time" IS a time-tracker's
-// category but not savvycal's; "space" IS SpaceX's; "search" IS a search tool's).
-const GENERIC_TOKENS = new Set([
-  "time", "news", "search", "video", "videos", "image", "images", "photo", "photos",
-  "web", "site", "sites", "home", "page", "pages", "live", "today", "tomorrow", "world",
-  "similar", "account", "accounts", "features", "feature", "technology", "tech", "platform",
-  "media", "digital", "mobile", "global", "local", "data", "info", "information", "guide",
-  "help", "list", "service", "interface", "integration", "multiple", "assets", "content",
-  "price", "pricing", "login", "sign", "register", "download", "update", "version", "meaning",
-  // "system" joins the platform/interface/integration family of generic product
-  // descriptors — added by the calibration corpus (spacex "space launch system":
-  // "system" has no vocabulary evidence of its own, but is exactly the same class
-  // of generic qualifier as the tokens already above it).
-  "system",
-]);
+// STOPWORDS, tokens(), and GENERIC_TOKENS now live in `./referral/brand-keywords`
+// (the ONE shared brand/vocab-token module — RC1) and are imported above. They
+// used to be defined here; moved so `brandTokensFor`'s subject-name folding
+// (used by both this free classifier AND the paid keyword-gap filter) shares
+// the exact same tokenizer + generic-word list instead of each engine keeping
+// its own copy that can silently drift.
 
 // Ubiquitous other-brands / entities. A mid-market subject ranks for these only
 // INCIDENTALLY (x.com ranks #9 for "google"), so they are never its own category:
@@ -219,11 +195,28 @@ export function buildVocab(
   domain: string,
   seedText: string[],
   llmCategorySeeds: string[] = [],
+  brandNames: string[] = [],
 ): { brandTokens: Set<string>; categoryVocab: Set<string> } {
   // Brand tokens come from the ONE shared detector (also used by the paid keyword
   // gap), so a keyword is judged "brand" identically everywhere — no more forked
-  // brand logic that can drift between the two engines (RC1).
-  const brandTokens = brandTokensFor([domain]);
+  // brand logic that can drift between the two engines (RC1). `brandTokensFor`
+  // itself folds `brandNames` in (filtering generic words) — this call site does
+  // NOT re-implement that loop, so the free classifier and the paid keyword-gap
+  // filter (which calls the exact same function with ITS OWN brandNames) can
+  // never disagree about what counts as the subject's brand.
+  //
+  // The subject's REAL name (`facts.listing.name` — the page's own extracted
+  // title/product name) matters because the domain label alone is often
+  // unusable ("x.com" -> "x", a single character) or simply wrong (a renamed/
+  // rebranded product), so a subject whose page yields a real name
+  // ("Twitter / X") gets "twitter" recognised as ITS brand, not lost. This ALSO
+  // IS the mega-brand exemption (PR-5, Part C class): `classify()` checks brand
+  // membership BEFORE the mega-brand check, so any MEGA_BRAND_TOKENS member
+  // that is also a subject brand token (e.g. "twitter") is matched here first
+  // and never reaches the off-topic mega-brand rule — no separate exemption
+  // code path is needed, and none should be added (it would be unreachable
+  // given this order — see the "guard honesty" rule in CLAUDE.md).
+  const brandTokens = brandTokensFor([domain], brandNames);
   // Distinctive category tokens the LLM's OWN category identification used — the
   // corroboration set. A generic / mega-brand token is allowed to DEFINE the
   // category only if it appears here (so "time" defines a time-tracker but not
@@ -308,6 +301,26 @@ function classify(keyword: string, brandTokens: Set<string>, categoryVocab: Set<
     return "offtopic"; // an unsupported, non-generic token forecloses category
   }
   return anyVocabSupported ? "category" : "offtopic";
+}
+
+// Fix 3 (PR-5): a PRESENTATION rule, not a data rule. `offTopicExamples` picks
+// which 3 of N real, honest off-topic keywords to PRINT on the conversion
+// surface (a live scan can rank for adult-site terms via MEGA_BRAND_TOKENS
+// entries like "pornhub"/"onlyfans"/"chaturbate" — real, true data). The
+// underlying klass/percentages are UNCHANGED — this only chooses which
+// candidates are fit to display verbatim as quoted examples. If every
+// off-topic candidate is denylisted, render none; the warning still stands on
+// its percentages alone (never a fabricated substitute example).
+const NSFW_EXAMPLE_DENYLIST = new Set([
+  "porn", "pornhub", "xxx", "sex", "nude", "naked", "nsfw", "onlyfans", "xvideos",
+  "xnxx", "chaturbate", "hentai", "escort", "escorts", "camgirl", "camgirls",
+]);
+
+/** True when a keyword contains an NSFW/profane token — excluded from the
+ *  PRINTED example list only (see NSFW_EXAMPLE_DENYLIST above). */
+function isNsfwExample(keyword: string): boolean {
+  const toks = keyword.toLowerCase().match(/[a-z0-9]+/g) ?? [];
+  return toks.some((t) => NSFW_EXAMPLE_DENYLIST.has(t));
 }
 
 const WINNING_POSITION = 3;
@@ -396,7 +409,7 @@ export function computeSearchVisibility(
     .map((r) => ({ keyword: r.keyword.toLowerCase(), volume: r.volume, yourPosition: r.position }));
 
   const offTopicExamples = rows
-    .filter((r) => r.klass === "offtopic")
+    .filter((r) => r.klass === "offtopic" && !isNsfwExample(r.keyword))
     .sort((a, b) => b.volume - a.volume)
     .slice(0, OFFTOPIC_EXAMPLES)
     .map((r) => r.keyword);
@@ -615,12 +628,16 @@ export function classifyFootprint(
   seedText: string[],
   llmCategorySeeds: string[],
   kw: RankedKeyword[],
+  brandNames: string[] = [],
 ): SearchVisibility {
   const self = normalizeHost(rawSelf);
   // buildVocab now takes the LLM seeds directly: it folds their tokens into the
   // category vocabulary AND uses them as the corroboration set that lets a generic
   // / mega-brand token define the category only when the LLM actually named it.
-  const vocab = buildVocab(self, seedText, llmCategorySeeds);
+  // `brandNames` (facts.listing.name — the subject's REAL captured name) joins
+  // the brand vocabulary too, so a rebranded/mismatched-domain subject (x.com's
+  // real brand is "twitter", not the unusable domain label "x") is recognised.
+  const vocab = buildVocab(self, seedText, llmCategorySeeds, brandNames);
   return computeSearchVisibility(kw, vocab);
 }
 
@@ -629,6 +646,11 @@ export async function gatherFreeSearchVisibility(
   seedText: string[],
   llmCategorySeeds: string[] = [],
   tierSeeds?: { broad: string[]; niche: string[] },
+  /** The subject's REAL name(s) — `facts.listing.name` — threaded through so the
+   *  brand vocabulary is not limited to the domain label alone (PR-5, the
+   *  brand≠domain class: "x.com" -> unusable "x", real brand "twitter" unrecognised
+   *  and mistaken for "other companies' names"). Zero new calls — deterministic. */
+  brandNames: string[] = [],
 ): Promise<SearchVisibility> {
   try {
     const self = normalizeHost(rawSelf);
@@ -641,7 +663,7 @@ export async function gatherFreeSearchVisibility(
       cachedDomainOverview(self).catch(() => null),
     ]);
     // Classify via the ONE shared path (also exercised by the corpus guard).
-    const sv = classifyFootprint(rawSelf, seedText, llmCategorySeeds, kw);
+    const sv = classifyFootprint(rawSelf, seedText, llmCategorySeeds, kw, brandNames);
     // Override the SAMPLE totals with the TRUE domain totals when available.
     if (overview) {
       sv.keywordsRanked = overview.organicKeywords;

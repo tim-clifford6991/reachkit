@@ -789,7 +789,11 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
             positioningMirror.listingSays ?? "",
             positioningMirror.reviewsValue ?? "",
           ].filter((s) => s.length > 0);
-          const sv = await gatherFreeSearchVisibility(ctx.storeUrl, seedText, catSeeds, marketTierSeeds).catch(() => null);
+          // PR-5: thread the subject's REAL name (facts.listing.name) so the
+          // brand vocabulary isn't limited to the domain label alone (the
+          // brand≠domain class — "x.com" -> unusable "x").
+          const brandNames = facts.listing.name ? [facts.listing.name] : [];
+          const sv = await gatherFreeSearchVisibility(ctx.storeUrl, seedText, catSeeds, marketTierSeeds, brandNames).catch(() => null);
           if (sv) sv.onPageReadiness = head.total;
           const unified = unifiedDiscoverability(head.total, sv?.score ?? 0);
           await db

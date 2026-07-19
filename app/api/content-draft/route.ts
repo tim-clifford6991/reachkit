@@ -23,7 +23,7 @@ import { z } from "zod";
 import { currentUser } from "@/lib/auth/server";
 import { assertPaid, EntitlementError } from "@/lib/billing/entitlements";
 import { activeAppId } from "@/lib/app/active-app";
-import { costedIntelStep } from "@/lib/app/latest-scan";
+import { costedIntelStep, subjectBrandNamesForApp } from "@/lib/app/latest-scan";
 import { serverDb } from "@/lib/db/client";
 import { getSelectedCompetitors } from "@/lib/scan/competitor-selection";
 import { gatherSynthesis, type ContentPlanItem } from "@/lib/scan/synthesis/synthesize";
@@ -92,7 +92,10 @@ export async function POST(req: NextRequest) {
   // "Generate draft" always produces a draft instead of 404ing.
   let item: ContentPlanItem;
   try {
-    const synthesis = await gatherSynthesis(domain, { competitorDomains: competitors });
+    // RC1 parity: same subject-brand-name fold-in as /api/app/intel, for a cold
+    // cache miss (the common path is a cache hit off an already-correct warm run).
+    const brandNames = await subjectBrandNamesForApp(appId);
+    const synthesis = await gatherSynthesis(domain, { competitorDomains: competitors, brandNames });
     item = synthesis.contentPlan.find((c) => c.topic === topic) ?? fallbackItem(topic, angle);
   } catch {
     // Synthesis unavailable (cohort not selected / gather failed) — still draft

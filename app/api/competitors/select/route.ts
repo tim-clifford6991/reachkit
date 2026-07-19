@@ -10,7 +10,7 @@ import { NextRequest, NextResponse, after } from "next/server";
 import { currentUser } from "@/lib/auth/server";
 import { assertPaid, EntitlementError } from "@/lib/billing/entitlements";
 import { activeAppId } from "@/lib/app/active-app";
-import { costedIntelStep } from "@/lib/app/latest-scan";
+import { costedIntelStep, subjectBrandNamesForApp } from "@/lib/app/latest-scan";
 import { serverDb } from "@/lib/db/client";
 import { saveSelectedCompetitors } from "@/lib/scan/competitor-selection";
 import { resolveCompetitorDomain } from "@/lib/scan/competitor-resolve";
@@ -59,10 +59,12 @@ export async function POST(req: NextRequest) {
     if (storeUrl && saved.length > 0) {
       after(async () => {
         try {
+          // RC1 parity: same subject-brand-name fold-in as /api/app/intel.
+          const brandNames = await subjectBrandNamesForApp(appId);
           // costedIntelStep: this pre-compute is the single heaviest interactive
           // spend point (~€1 cold) — attribute it (CLAUDE.md invariant #2).
           await costedIntelStep(appId, "select", () =>
-            gatherSynthesis(storeUrl, { competitorDomains: saved }),
+            gatherSynthesis(storeUrl, { competitorDomains: saved, brandNames }),
           );
         } catch (e) {
           console.error("[competitors/select] pre-compute failed (best-effort)", e);
