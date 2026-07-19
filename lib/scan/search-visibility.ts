@@ -131,6 +131,47 @@ function tokens(text: string): string[] {
   return (text.toLowerCase().match(/[a-z0-9]+/g) ?? []).filter((t) => t.length >= 3 && !STOPWORDS.has(t));
 }
 
+// A single generic token must NEVER define a subject's category on its own — a
+// ubiquitous word matches thousands of unrelated queries (savvycal's whole
+// footprint became "category" because "time" was in its prose, so every
+// "what time is it in hawaii" matched). These are allowed to define the category
+// ONLY when the LLM's OWN category seeds used them (so "time" IS a time-tracker's
+// category but not savvycal's; "space" IS SpaceX's; "search" IS a search tool's).
+const GENERIC_TOKENS = new Set([
+  "time", "news", "search", "video", "videos", "image", "images", "photo", "photos",
+  "web", "site", "sites", "home", "page", "pages", "live", "today", "tomorrow", "world",
+  "similar", "account", "accounts", "features", "feature", "technology", "tech", "platform",
+  "media", "digital", "mobile", "global", "local", "data", "info", "information", "guide",
+  "help", "list", "service", "interface", "integration", "multiple", "assets", "content",
+  "price", "pricing", "login", "sign", "register", "download", "update", "version", "meaning",
+]);
+
+// Ubiquitous other-brands / entities. A mid-market subject ranks for these only
+// INCIDENTALLY (x.com ranks #9 for "google"), so they are never its own category:
+// a token here is dropped from category vocab unless the LLM seeds used it, and a
+// keyword containing one is classified off-topic outright. The corpus guard
+// (classification-corpus.test.ts) catches new ones — add them here.
+const MEGA_BRAND_TOKENS = new Set([
+  "google", "youtube", "youcine", "facebook", "instagram", "twitter", "tiktok", "reddit",
+  "twitch", "snapchat", "pinterest", "linkedin", "whatsapp", "telegram", "discord", "tumblr",
+  "yahoo", "bing", "amazon", "netflix", "spotify", "hulu", "disney", "paypal", "venmo", "ebay",
+  "usps", "ups", "fedex", "irs", "walmart", "target", "costco", "starbucks", "mcdonalds",
+  "subway", "dominos", "chipotle", "espn", "cnn", "foxnews", "bbc", "msnbc", "nypost",
+  "nytimes", "reuters", "onlyfans", "pornhub", "chaturbate", "wikipedia", "gmail", "outlook",
+  "att", "verizon", "chase", "aliexpress", "temu", "shein", "roblox", "minecraft",
+]);
+
+/** A token that may not define the subject's category unless the LLM seeds used it. */
+function isCategoryPollutant(t: string): boolean {
+  return GENERIC_TOKENS.has(t) || MEGA_BRAND_TOKENS.has(t);
+}
+
+/** A keyword that IS a ubiquitous other-brand/entity — off-topic outright. */
+function isMegaBrandKeyword(keyword: string): boolean {
+  const toks = keyword.toLowerCase().match(/[a-z0-9]+/g) ?? [];
+  return toks.some((t) => MEGA_BRAND_TOKENS.has(t));
+}
+
 /**
  * Build the brand tokens + category vocabulary that drive classification.
  * - brandTokens: the domain label + its split forms ("trustmrr", "trust", "mrr"…)
@@ -139,19 +180,38 @@ function tokens(text: string): string[] {
  *   prose), MINUS the brand label — so "startup mrr" is category but "cometly"
  *   (which shares nothing with the subject's vocabulary) is off-topic.
  */
-export function buildVocab(domain: string, seedText: string[]): { brandTokens: Set<string>; categoryVocab: Set<string> } {
+export function buildVocab(
+  domain: string,
+  seedText: string[],
+  llmCategorySeeds: string[] = [],
+): { brandTokens: Set<string>; categoryVocab: Set<string> } {
   // Brand tokens come from the ONE shared detector (also used by the paid keyword
   // gap), so a keyword is judged "brand" identically everywhere — no more forked
   // brand logic that can drift between the two engines (RC1).
   const brandTokens = brandTokensFor([domain]);
-  const categoryVocab = new Set<string>();
-  for (const s of seedText) for (const t of tokens(s)) if (!brandTokens.has(t)) categoryVocab.add(t);
+  // Distinctive category tokens the LLM's OWN category identification used — the
+  // corroboration set. A generic / mega-brand token is allowed to DEFINE the
+  // category only if it appears here (so "time" defines a time-tracker but not
+  // savvycal, "space" defines SpaceX, and "google" defines no one).
+  const seedTokens = new Set<string>();
+  for (const s of llmCategorySeeds) for (const t of tokens(s)) if (!brandTokens.has(t)) seedTokens.add(t);
+  const categoryVocab = new Set<string>(seedTokens);
+  for (const s of seedText) {
+    for (const t of tokens(s)) {
+      if (brandTokens.has(t)) continue;
+      if (isCategoryPollutant(t) && !seedTokens.has(t)) continue; // drop generic / other-brand noise
+      categoryVocab.add(t);
+    }
+  }
   return { brandTokens, categoryVocab };
 }
 
 function classify(keyword: string, brandTokens: Set<string>, categoryVocab: Set<string>): KeywordClass {
   // Brand via the shared detector (exact-token or distinctive-substring match).
   if (isBrandKeyword(keyword, brandTokens)) return "brand";
+  // A ubiquitous other-brand/entity is off-topic outright — a subject ranks for
+  // these incidentally, never as its own category (x.com #9 for "google").
+  if (isMegaBrandKeyword(keyword)) return "offtopic";
   // Category: shares a meaningful topic token with the subject's own vocabulary.
   const toks: string[] = keyword.toLowerCase().match(/[a-z0-9]+/g) ?? [];
   for (const t of toks) if (categoryVocab.has(t)) return "category";
@@ -368,6 +428,28 @@ export function computeCategoryDemand(
  * "your category gets X searches/mo, you capture 0%" insight instead of a blank.
  * Fixtures-safe (adapters → [] → zeroed) and best-effort (never throws).
  */
+/**
+ * The ONE classification path: (identity + vocab sources + ranked keywords) →
+ * the brand/category/off-topic split. Shared by the live gather AND the
+ * calibration corpus guard (`classification-corpus.test.ts`) so what CI asserts
+ * on real captured footprints is EXACTLY what production runs — no forked replica
+ * (RC1 discipline). Pure. The gather layers the true-total override + demand merge
+ * on top of this.
+ */
+export function classifyFootprint(
+  rawSelf: string,
+  seedText: string[],
+  llmCategorySeeds: string[],
+  kw: RankedKeyword[],
+): SearchVisibility {
+  const self = normalizeHost(rawSelf);
+  // buildVocab now takes the LLM seeds directly: it folds their tokens into the
+  // category vocabulary AND uses them as the corroboration set that lets a generic
+  // / mega-brand token define the category only when the LLM actually named it.
+  const vocab = buildVocab(self, seedText, llmCategorySeeds);
+  return computeSearchVisibility(kw, vocab);
+}
+
 export async function gatherFreeSearchVisibility(
   rawSelf: string,
   seedText: string[],
@@ -375,15 +457,6 @@ export async function gatherFreeSearchVisibility(
 ): Promise<SearchVisibility> {
   try {
     const self = normalizeHost(rawSelf);
-    const vocab = buildVocab(self, seedText);
-    // The LLM authoritatively identified the category, so fold its seed tokens into
-    // the category vocabulary — ideas about the real market are then recognised as
-    // category-relevant even if the on-page prose didn't use those exact words.
-    for (const s of llmCategorySeeds) {
-      for (const t of s.toLowerCase().match(/[a-z0-9]+/g) ?? []) {
-        if (t.length >= 3 && !STOPWORDS.has(t) && !vocab.brandTokens.has(t)) vocab.categoryVocab.add(t);
-      }
-    }
     // The top ranked_keywords sample (for the brand/category/off-topic split) AND
     // the TRUE domain totals (domain_rank_overview, +~1.2¢) in parallel. The sample
     // powers classification; the overview gives the honest keywordsRanked/ETV that
@@ -392,7 +465,8 @@ export async function gatherFreeSearchVisibility(
       cachedRankedKeywords(self, 50).catch(() => [] as RankedKeyword[]),
       cachedDomainOverview(self).catch(() => null),
     ]);
-    const sv = computeSearchVisibility(kw, vocab);
+    // Classify via the ONE shared path (also exercised by the corpus guard).
+    const sv = classifyFootprint(rawSelf, seedText, llmCategorySeeds, kw);
     // Override the SAMPLE totals with the TRUE domain totals when available.
     if (overview) {
       sv.keywordsRanked = overview.organicKeywords;

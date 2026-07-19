@@ -1,0 +1,30 @@
+{
+  "domain": "https://spacex.com/",
+  "note": "The 'it works' control at scale: brand 'spacex' + a REAL space/rocket category footprint. The classifier should keep brand as brand, space/rocket/starship/launch as category, and NOT collapse the category to the 2-3 narrow LLM seeds (the demand-merge already reads categoryRanked). 'tesla' (in seedText) and 'mars on mars' are edges.",
+  "seedText": [
+    "spacex", "com", "https", "www", "best", "reviews", "image", "tesla", "assets", "not", "sxcontent", "azureedge",
+    "The listing sheet provides no explicit claims or value propositions, placing the product only in the 'Utilities' category with no stated differentiators or messaging.",
+    "Users praise innovation and technological achievement, citing reliable reusable rockets and a bold vision for mass space exploration, though overall satisfaction is rated only average at 3/5 on Trustpilot, with some frustration around regulatory and environmental delays."
+  ],
+  "llmCategorySeeds": ["launch services", "satellite connectivity", "space infrastructure", "reusable rockets"],
+  "rankedKeywords": [
+    { "keyword": "dragon", "position": 11, "volume": 550000, "etv": 18590.0 },
+    { "keyword": "spacex", "position": 2, "volume": 450000, "etv": 136800.0 },
+    { "keyword": "space exploration technologies", "position": 2, "volume": 450000, "etv": 136800.0 },
+    { "keyword": "space", "position": 12, "volume": 368000, "etv": 12438.4 },
+    { "keyword": "mars on mars", "position": 6, "volume": 368000, "etv": 24251.2 },
+    { "keyword": "spacex launch", "position": 1, "volume": 165000, "etv": 50160.0 },
+    { "keyword": "starship", "position": 2, "volume": 110000, "etv": 33440.0 },
+    { "keyword": "space launch system", "position": 10, "volume": 110000, "etv": 5159.0 },
+    { "keyword": "rocket launch today", "position": 4, "volume": 110000, "etv": 17820.0 },
+    { "keyword": "rocket launch", "position": 4, "volume": 74000, "etv": 7200.2 },
+    { "keyword": "rocket launches", "position": 3, "volume": 74000, "etv": 7200.2 },
+    { "keyword": "space and rockets", "position": 7, "volume": 74000, "etv": 4876.6 },
+    { "keyword": "spacex starship", "position": 2, "volume": 40500, "etv": 12312.0 },
+    { "keyword": "launch at vandenberg", "position": 3, "volume": 40500, "etv": 6561.0 },
+    { "keyword": "dragon capsule spacex", "position": 1, "volume": 27100, "etv": 8238.4 },
+    { "keyword": "spacex news", "position": 4, "volume": 22200, "etv": 6748.8 },
+    { "keyword": "spacex careers", "position": 1, "volume": 18100, "etv": 5502.4 },
+    { "keyword": "spacex jobs", "position": 1, "volume": 14800, "etv": 4499.2 }
+  ]
+}
