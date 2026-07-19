@@ -4,7 +4,7 @@
  * adversarial case: clean site, tiny category, ~90% other-brand visibility.
  */
 import { describe, it, expect } from "vitest";
-import { computeSearchVisibility, buildVocab, computeCategoryDemand, buildCategorySeeds, computeMarketTiers, classifyFootprint } from "./search-visibility";
+import { computeSearchVisibility, buildVocab, computeCategoryDemand, buildCategorySeeds, computeMarketTiers, classifyFootprint, stem } from "./search-visibility";
 import type { RankedKeyword } from "@/lib/scan/adapters/dataforseo-ranked-keywords";
 
 const kw = (keyword: string, position: number, volume: number, etv: number): RankedKeyword => ({
@@ -27,6 +27,12 @@ const TRUSTMRR: RankedKeyword[] = [
 const VOCAB = buildVocab("trustmrr.com", [
   "verified startup revenue database acquisition marketplace saas mrr",
 ]);
+
+describe("stem — the STOPWORDS footgun guard", () => {
+  it("never strips 'news' down to the stopword 'new' — keeps the original token", () => {
+    expect(stem("news")).toBe("news");
+  });
+});
 
 describe("buildVocab", () => {
   it("treats the domain label as brand and the topic words as category vocab", () => {

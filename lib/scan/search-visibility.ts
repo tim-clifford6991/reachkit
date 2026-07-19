@@ -182,18 +182,19 @@ function isCategoryPollutant(t: string): boolean {
  *  ("foxnews", "nypost", "nytimes"), so a single-token check alone can never
  *  match the multi-word phrase real users search ("fox news" tokenizes to
  *  ["fox","news"] — neither token alone is "foxnews"), leaving every
- *  multi-word entry dead. Fix: also join ADJACENT tokens (bigram, and
- *  trigram for the rare 3-word name) and re-check the concatenation. Pure,
- *  deterministic, self-contained — retokenizes the raw keyword fresh so it
- *  does not depend on the stopword-filtered `tokens()` used for vocab. */
+ *  multi-word entry dead. Fix: also join ADJACENT tokens (bigram) and
+ *  re-check the concatenation. No trigram join — every current
+ *  MEGA_BRAND_TOKENS entry is a single word or a 2-word join, so a 3-word
+ *  loop is dead code (YAGNI); add it back only alongside a real 3-word
+ *  entity entry + a covering test. Pure, deterministic, self-contained —
+ *  retokenizes the raw keyword fresh so it does not depend on the
+ *  stopword-filtered `tokens()` used for vocab. */
 function isMegaBrandKeyword(keyword: string): boolean {
   const toks = keyword.toLowerCase().match(/[a-z0-9]+/g) ?? [];
   if (toks.some((t) => MEGA_BRAND_TOKENS.has(t))) return true;
   for (let i = 0; i < toks.length - 1; i++) {
-    if (MEGA_BRAND_TOKENS.has(toks[i] + toks[i + 1])) return true;
-  }
-  for (let i = 0; i < toks.length - 2; i++) {
-    if (MEGA_BRAND_TOKENS.has(toks[i] + toks[i + 1] + toks[i + 2])) return true;
+    const a = toks[i], b = toks[i + 1];
+    if (a && b && MEGA_BRAND_TOKENS.has(a + b)) return true;
   }
   return false;
 }
@@ -238,12 +239,19 @@ export function buildVocab(
  *  stemmer): it exists only to stop ordinary inflection from masquerading as an
  *  "unsupported token" under the stricter rule below. Domain-agnostic — it has
  *  no knowledge of any subject, so it cannot be a per-domain special case. */
-function stem(t: string): string {
-  if (t.length > 5 && t.endsWith("ing")) return t.slice(0, -3);
-  if (t.length > 4 && /(ches|shes|xes|zes|ses)$/.test(t)) return t.slice(0, -2);
-  if (t.length > 4 && t.endsWith("ies")) return `${t.slice(0, -3)}y`;
-  if (t.length > 3 && t.endsWith("s") && !t.endsWith("ss")) return t.slice(0, -1);
-  return t;
+export function stem(t: string): string {
+  let s = t;
+  if (s.length > 5 && s.endsWith("ing")) s = s.slice(0, -3);
+  else if (s.length > 4 && /(ches|shes|xes|zes|ses)$/.test(s)) s = s.slice(0, -2);
+  else if (s.length > 4 && s.endsWith("ies")) s = `${s.slice(0, -3)}y`;
+  else if (s.length > 3 && s.endsWith("s") && !s.endsWith("ss")) s = s.slice(0, -1);
+  // Guard: a stem that collapses into a STOPWORD or below the meaningful-token
+  // length floor (3, matching `tokens()`) is not a real stem — it's an
+  // over-aggressive strip that happens to be harmless today only because
+  // STOPWORDS filters it before it can corrupt vocab matching ("news" → "new").
+  // Keep the ORIGINAL token rather than ship a silently-wrong stem.
+  if (s !== t && (STOPWORDS.has(s) || s.length < 3)) return t;
+  return s;
 }
 
 /** A token counts as "vocab-supported" when it (or its stem) is literally in

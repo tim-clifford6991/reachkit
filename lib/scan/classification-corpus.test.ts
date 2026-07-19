@@ -17,6 +17,11 @@ import spacex from "./fixtures/classification-corpus/spacex.com.json";
 // ("google" as the "biggest opportunity", brand 0%) shipped. A new misleading
 // result → add its domain here with the correct expected split; expectations only
 // tighten, never weaken (the ratchet). Fixtures in ./fixtures/classification-corpus/.
+// Fixture `seedText` must be the subject's REAL captured prose — an incomplete
+// seedText ships false OFF-TOPIC flips for the subject's own sub-brands (the
+// react-email lesson, 2026-07-19: the hand-authored resend.com fixture omitted
+// the site's own prose about "React Email", so "react-email" wrongly foreclosed
+// to off-topic for want of vocab support that the real page actually provides).
 // ---------------------------------------------------------------------------
 
 // The captured fixtures omit the per-keyword ranking `url` (classification never
@@ -134,6 +139,20 @@ describe("corpus: resend.com — the clean SaaS control (must stay right)", () =
     expect(category.has("sendgrid")).toBe(false);
     expect(category.has("next js")).toBe(false);
     expect(category.has("meaning resent")).toBe(false);
+  });
+  // React Email is Resend's OWN flagship sub-product (its own page's prose says
+  // so — "seamlessly integrates with React Email", "loving the development
+  // experience of React Email"), so the keyword "react-email" (tokens
+  // ["react","email"]) must classify as Resend's category, not off-topic. This
+  // was the INVERSE of the usual bug class: not a false CATEGORY (a mega-brand/
+  // generic token riding in), but a false OFF-TOPIC — the hand-authored fixture
+  // seedText omitted the site's own captured prose about its sub-brand, so
+  // "react" had zero vocab support and the macro rule (every non-generic token
+  // must be supported) correctly-per-its-rule but WRONGLY-per-reality forecloses
+  // category. Fixed by making seedText capture-accurate, not by special-casing
+  // the classifier.
+  it("'react-email' (Resend's own sub-product) classifies as category, not off-topic", () => {
+    expect(category.has("react-email"), `category had: ${[...category].join(", ")}`).toBe(true);
   });
 });
 
