@@ -3,6 +3,10 @@
 > **Status:** Flow definition + backward gap map, approved in principle by Tim (2026-07-19; flow "super awesome", tiered market added same day); WS-A (P0) flagged for immediate fix. This file supersedes the earlier flat workstream list — same items, organized under the flow they serve.
 > **Owner's goal:** the free scan is an immediate free *scout* of the user's **app, industry, market, and competitors** — "this is a big industry, this is a big market I'm competing in, this is what my competitors are doing — and I want to pay to understand at a deeper level what they're doing to win." Every datum we pay for is shown; competitor *intel* stays paid-only.
 > **Method constraint:** fix the class, keep the process simple. The 4-step pipeline (collect → findings → free-report → done) keeps its shape — this phase changes what we **validate, synthesize, render, and tease**, not the pipeline.
+>
+> **Implementation status (2026-07-19):** **WS-A** ✅ merged PR #110 (`b99f11a`) · **M1 / M2 / WS-C** ✅ merged PR #111 (`8671ba9`) · **WS-B / WS-D / M3 / R1 / WS-E / R2** ✅ this PR (PR-3, `429f15e` teaser-count+opportunity rows, `98140a6` market ladder+wins strip+off-topic examples+identity strip, `d404dd0` rivalry both states+R2 vocabulary sweep, DS mirrors + G10 guard). **D1** (SERP-grounded tier winners) remains an **open decision**, not implemented.
+
+
 
 ## 1. The ideal flow — six stages, one narrative
 
@@ -21,6 +25,7 @@ flowchart LR
 
 **S1 Recognition — "it understood my app." (trust anchor; no tease)**
 Data: site fetch (SPA-hardened — Part C dependency) + Tavily reviews **subject-validated** (WS-A). Assessed: positioning/audience extract + HTML signals. Synthesized: one-line identity + tiered market labels (M1). Rendered: identity strip under the gauge — *"SEO analytics for solo founders — a niche of SEO tooling, inside marketing software"* — and the Positioning Mirror only when grounded.
+*Status: WS-A ✅ PR #110; identity strip (R1) ✅ this PR.*
 
 **S2 Market — the broad → medium → niche ladder (Tim, 2026-07-19).**
 Every app sits in nested markets: ReachKit is a *marketing app* (broad, millions of searches/mo) → *SEO/rank-tracking tooling* (medium) → *discoverability for solo founders* (niche). The ideal render is a three-rung ladder, each rung: tier label · demand · **your standing on that rung** (best position or "not ranking"):
@@ -30,18 +35,23 @@ Every app sits in nested markets: ReachKit is a *marketing app* (broad, millions
 > Niche — rank tracking for solo founders — ~1.9k/mo — you: #9 for one term
 
 Mechanics, honest by construction: the lite synth (M1) emits **labeled seed phrases per tier** (~3 broad / ~4 medium / ~4 niche — LLM names phrases, NEVER volumes); the same ONE `search_volume` request prices all of them (request-billed — phrase count is cost-free); per-tier demand = Σ that tier's rendered phrases (**G4 per tier**); the user's standing per rung comes from the ALREADY-fetched `ranked_keywords`/`categoryRanked` matched against each tier's phrases (M2) — no new call. The niche rung keeps today's scale-invariant merge (real rankings dominate; 0-ranking sites fall back to seeds). The existing single `categoryDemand` stays the niche/category rung; broad/medium are additive context, feed **nothing** into `sv.score` (invariant #1 untouched). Story the ladder tells: *big industry → your realistic beachhead → where you actually stand at each altitude.* Promotion: none yet.
+*Status: M1/M2 (data+assess) ✅ PR #111; M3 (ladder UI) ✅ this PR.*
 
 **S3 Position — "where I stand, good and bad."**
 Data: the ONE `ranked_keywords` + `domain_rank_overview` (unchanged). Rendered: driver bars, footprint split, **"you already win" strip** (`categoryRanked` top-3), gaps, **named** off-topic examples (WS-D). Soft tease: full signal breakdown.
+*Status: WS-D ✅ this PR.*
 
 **S4 Rivalry — "who's taking the rest — at each tier."**
 Free, grounded, zero new cost: the **discovered** rival names (invariant #6: discovery-only) are the *niche* rung's rivals — *"Buyers compare you to X, Y, Z — and rivals are taking the searches above."* Honest no-rivals degrade (WS-E). Broad/medium tiers: naming their dominators requires SERP ground truth — LLM-naming rivals is forbidden (invariant #6) — so per rung it is either **D1(b)** (one SERP on the rung's top phrase names its real winners) or a **tease**: *"unlock: who dominates SEO tooling, and every search each one wins."* THE tease of the page lives here.
+*Status: WS-E (both rivalry states) ✅ this PR. D1 (SERP-grounded broad/medium winners) still OPEN — not implemented.*
 
 **S5 Action — "my first concrete moves."**
 No new data. 3–5 fixes where **#1 names a real phrase + your position** from `categoryOpportunities` (WS-C, deterministic, impact-honest per 5a — derived delta or none, never invented); niche-rung opportunities naturally rank first (the beachhead). Teaser counts come from the SAME rows rendered (WS-B — kills "Unlock all 0"). Tease: "N more fixes + ready-to-ship drafts + weekly tracking."
+*Status: WS-C ✅ PR #111; WS-B (teaser count + rows 2-4) ✅ this PR.*
 
 **S6 Bridge — one promise, one vocabulary (R2).**
 *Free tells you what's true; paid tells you what rivals do about it and what you do next, verified weekly.* Every UnlockLink phrases its lock as the paid continuation of ITS stage; the closing band unifies: *"The full scan shows what each rival does to win every search worth taking — with a weekly verified plan as you ship."*
+*Status: R2 (vocabulary sweep) ✅ this PR.*
 
 ## 2. Backward map — implemented process vs the six stages (the gap ledger)
 

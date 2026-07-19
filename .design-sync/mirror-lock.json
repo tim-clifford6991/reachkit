@@ -153,7 +153,7 @@
   },
   "ResultsScreen": {
     "mirror": "components/report/captured/results-screen.tsx",
-    "hash": "0c9c6d31f4b53804"
+    "hash": "9a2aada24259d57e"
   },
   "RoadmapScreen": {
     "mirror": "app/(marketing)/roadmap/page.tsx",

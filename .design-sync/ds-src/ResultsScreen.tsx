@@ -7,7 +7,11 @@ import * as React from "react";
  * Discoverability Score + band + headline + its TWO driver bars: on-page
  * readiness × search presence), the "Your category, and how much of it you own"
  * money-shot lifted directly under the score, the promoted single biggest
- * opportunity (not a flat table), the top ranked fixes with a clickable unlock
+ * opportunity (not a flat table) plus its rows 2-4 and teaser count (WS-B/WS-D,
+ * G10 — the teaser count derives from the SAME rows rendered here, never a
+ * sibling metric), the "buyers compare you to" rivalry line in BOTH its states
+ * (rivals found → names + per-rival teaser; none found → an honest "someone is
+ * winning" degrade, WS-E), the top ranked fixes with a clickable unlock
  * teaser, the reworked Positioning Mirror (gap insight leads, compact aim→reads-as
  * line), the evidence footnote, and the unlock CTA band. Mirrors the live captured
  * report (`components/report/captured/results-screen.tsx`).
@@ -72,6 +76,16 @@ const ACTUAL = ["mood journal", "self-care app", "daily check-in"];
 // The single biggest category search the site doesn't win (promoted, not a table).
 const TOP_OPP = { query: "best habit tracker 2026", volume: "8,100", rank: "Not winning", opp: "High", oppC: { bg: "var(--c-tint-red)", fg: "var(--c-band-invisible)" } };
 const OPP_TOTAL = 14;
+// WS-B/WS-D (2026-07-19): opportunity rows 2-4, shown beneath the promoted top
+// row (previously only the single top row rendered). G10: the teaser count is
+// derived from THESE SAME rows (OPP_TOTAL - shown.length), never a sibling
+// metric or a bare "OPP_TOTAL - 1".
+const MORE_OPP_ROWS = [
+  { query: "habit tracker for adhd", volume: "2,900", rank: "#14" },
+  { query: "best habit app 2026", volume: "1,300", rank: "Not winning" },
+  { query: "daily habit tracker free", volume: "880", rank: "#22" },
+];
+const MORE_OPP = OPP_TOTAL - (1 + MORE_OPP_ROWS.length);
 
 const CARD: React.CSSProperties = { background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16 };
 const H2: React.CSSProperties = { fontFamily: SG, fontWeight: 700, fontSize: 20, letterSpacing: "-0.01em", margin: "32px 0 6px" };
@@ -173,8 +187,16 @@ export function ResultsScreen() {
               <span key={k} style={{ background: "var(--c-fill)", borderRadius: 6, padding: "2px 8px" }}>{k} <span style={{ color: "var(--c-muted)", fontWeight: 600 }}>{v}</span></span>
             ))}
           </div>
+          {/* WS-E (2026-07-19): both rivalry states render live now — a scan
+              with zero discovered rivals used to drop the "someone is
+              winning" insight entirely instead of degrading. Demo shows the
+              common "found" case; the note below is the exact copy shown
+              live when no rivals are discovered. */}
           <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--c-line2)", fontSize: 13, color: "var(--c-muted)" }}>
-            Buyers compare you to <strong style={{ color: "var(--c-ink)" }}>Streaks, Habitica, Way of Life</strong>. <span style={UNLOCK}>Unlock to see how much of your category each one takes →</span>
+            Buyers compare you to <strong style={{ color: "var(--c-ink)" }}>Streaks, Habitica, Way of Life</strong> — and rivals are taking the searches above. <span style={UNLOCK}>Unlock to see how each one ranks, why they win, and how much of your category each takes →</span>
+          </div>
+          <div style={{ marginTop: 8, fontSize: 11.5, color: "var(--c-faint)", fontStyle: "italic" }}>
+            No rivals discovered → degrades to: "Someone is winning these searches today. <span style={UNLOCK}>The full scan discovers who&apos;s winning these searches and what they do to rank →</span>"
           </div>
         </div>
         {/* Footprint: TRUE totals (domain_rank_overview) + the traffic split, which
@@ -216,10 +238,26 @@ export function ResultsScreen() {
             <div><div style={{ fontFamily: JM, fontWeight: 700, fontSize: 22, color: "var(--c-band-invisible)" }}>{TOP_OPP.rank}</div><div style={{ fontSize: 11.5, color: "var(--c-faint)" }}>where you are today</div></div>
           </div>
           <div style={{ marginTop: 16, padding: "13px 15px", background: "var(--c-bg2)", borderRadius: 10, fontSize: 13.5, lineHeight: 1.55, color: "var(--c-muted)" }}>
-            Winning this term lifts your <strong style={{ color: "var(--c-ink)" }}>Search presence</strong> — the weaker half of your Discoverability Score. There are <strong style={{ color: "var(--c-ink)" }}>{OPP_TOTAL - 1} more</strong> like it in your category.
+            Winning this term lifts your <strong style={{ color: "var(--c-ink)" }}>Search presence</strong> — the weaker half of your Discoverability Score. There are <strong style={{ color: "var(--c-ink)" }}>{MORE_OPP} more</strong> like it in your category.
+          </div>
+          {/* WS-B/WS-D (2026-07-19): rows 2-4, not just the promoted top row. */}
+          <div style={{ marginTop: 14, borderTop: "1px solid var(--c-line2)", paddingTop: 4 }}>
+            {MORE_OPP_ROWS.map((row) => (
+              <div key={row.query} style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: 10, padding: "8px 0", borderBottom: "1px solid var(--c-line2)", fontSize: 13.5 }}>
+                <span style={{ fontFamily: SG, fontWeight: 600, flex: "1 1 160px", minWidth: 0 }} className="rk-wrap-any">{row.query}</span>
+                <span style={{ fontFamily: JM, color: "var(--c-muted)" }}>{row.volume}/mo</span>
+                <span style={{ fontFamily: JM, fontWeight: 700, color: "var(--c-band-invisible)" }}>{row.rank}</span>
+              </div>
+            ))}
           </div>
           <div style={{ marginTop: 14, textAlign: "center", fontSize: 14, fontWeight: 600 }}>
-            <span style={UNLOCK}>🔒 Unlock all {OPP_TOTAL} category opportunities + the plan to win them →</span>
+            <span style={UNLOCK}>🔒 Unlock the plan to win all {OPP_TOTAL} opportunities — pages, drafts, and weekly tracking →</span>
+          </div>
+          {/* R2 (2026-07-19): when no opportunities parse at all, the card
+              degrades to this keyword-gap tease instead of the promoted row
+              above — never invents a fake top opportunity. */}
+          <div style={{ marginTop: 10, fontSize: 11.5, color: "var(--c-faint)", fontStyle: "italic" }}>
+            No opportunities parsed → degrades to: "🔒 The full keyword-gap plan ({OPP_TOTAL} queries) — every buyer search where rivals outrank you, ranked by opportunity. <span style={UNLOCK}>Unlock to see who wins them and how →</span>"
           </div>
         </div>
 
