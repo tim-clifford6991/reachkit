@@ -419,3 +419,26 @@ export async function gatherFreeSearchVisibility(
     return EMPTY;
   }
 }
+
+/**
+ * L1 overlap: warm the DOMAIN-ONLY footprint cache (`ranked_keywords` +
+ * `domain_overview`) so a LATER `gatherFreeSearchVisibility` (the free-report
+ * step) — or the deep pass — reads a cache HIT instead of re-fetching. Called
+ * CONCURRENTLY with the LLM findings stage, so the ~3–13s DataForSEO tail
+ * overlaps synth instead of running serially after it. Uses the SAME keys as the
+ * gather (`normalizeHost` + limit 50) so the later call actually hits.
+ *
+ * Cost-neutral: the calls happen once and are cached; nothing new is fetched
+ * (the free-report / deep pass would have made these exact calls anyway).
+ * Best-effort: NEVER throws — a warm failure just means the later call re-fetches
+ * (no worse than today). `keyword_volumes` is NOT warmed here (it needs the
+ * synth's `categorySeeds`, which don't exist yet at findings time).
+ */
+export async function warmFootprintCache(rawSelf: string): Promise<void> {
+  try {
+    const self = normalizeHost(rawSelf);
+    await Promise.allSettled([cachedRankedKeywords(self, 50), cachedDomainOverview(self)]);
+  } catch {
+    // best-effort — the gather re-fetches on a miss
+  }
+}
