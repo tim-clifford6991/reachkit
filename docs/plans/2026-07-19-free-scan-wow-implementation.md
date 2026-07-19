@@ -675,7 +675,9 @@ git add app/\(funnel\)/scan/\[id\]/public-report.tsx components/report/captured/
 git commit -m "fix(free-report): teaser count from the rendered rows + visible opportunity rows 2-4 (WS-B/WS-D)"
 ```
 
----### Task 6: WS-D + M3 + R1 — market ladder, wins strip, off-topic examples, identity strip
+---
+
+### Task 6: WS-D + M3 + R1 — market ladder, wins strip, off-topic examples, identity strip
 
 **Files:**
 - Modify: `components/report/captured/to-results-props.ts` (map new fields, all defaulted)

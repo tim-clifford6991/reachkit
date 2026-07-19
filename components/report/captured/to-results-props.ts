@@ -156,6 +156,26 @@ export function toResultsProps(
         categoryWins: sv.categoryWins,
         categoryDemand: sv.categoryDemand,
         categoryPhrases: sv.categoryPhrases ?? [],
+        // WS-D/M3 (2026-07-19) — all additive, all legacy-defaulted (?? [] rule).
+        // FINAL-REVIEW FIX: a rung's `demand` is the SUM of every phrase priced
+        // for it, but the render used to label it with ONLY `phrases[0].keyword`
+        // — so a multi-phrase rung's number looked like it belonged to a single
+        // phrase that didn't add up to it (live: medium rung 113,620 labeled
+        // "seo tools", alone only 110,000). Pass every phrase through so the
+        // renderer can itemise the rest as chips (the same G4 idiom already used
+        // for `categoryPhrases`) and the number visually reconciles to its parts.
+        marketTiers: (sv.marketTiers ?? []).map((t) => ({
+          tier: t.tier,
+          label: t.phrases[0]?.keyword ?? "",
+          demand: t.demand,
+          bestPosition: t.bestPosition,
+          phrases: t.phrases.map((ph) => ({ keyword: ph.keyword, volume: ph.volume })),
+        })),
+        winsRows: (sv.categoryRanked ?? [])
+          .filter((r) => typeof r.yourPosition === "number" && r.yourPosition <= 3)
+          .slice(0, 3)
+          .map((r) => ({ keyword: r.keyword, volume: r.volume, yourPosition: r.yourPosition as number })),
+        offTopicExamples: (sv.offTopicExamples ?? []).slice(0, 3),
       }
     : null;
 
@@ -180,8 +200,14 @@ export function toResultsProps(
           : `You're on the board in search — but leaving real category traffic on the table.`
     : `${report.score.total}/100 on-site readiness. The gap that matters is where buyers search — and that's below.`;
 
+  // MINOR polish: only append an ellipsis when the string was ACTUALLY cut —
+  // a bare 160-char slice with no ellipsis reads as a sentence that just stops.
+  const rawIdentity = (pm.listingSays ?? "").trim();
+  const identityLine = rawIdentity.length > 160 ? rawIdentity.slice(0, 159) + "…" : rawIdentity;
+
   return {
     siteLabel,
+    identityLine,
     score: report.score.total,
     marketPosition: report.marketPosition?.total ?? null,
     searchVisibility,

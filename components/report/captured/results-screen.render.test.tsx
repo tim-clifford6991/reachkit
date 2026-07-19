@@ -22,6 +22,7 @@ import type { ReportPayload } from "@/lib/scan/report";
 import type { SearchVisibility } from "@/lib/scan/search-visibility";
 import type { ActionCard } from "@/lib/llm/types";
 import { tierByPlan, fmtPrice } from "@/lib/billing/pricing";
+import { publicReportProps } from "@/app/(funnel)/scan/[id]/public-report";
 
 // The unlock band must state the price up front (Task 1.4 — visitors used to
 // learn the price only inside Stripe Checkout). Built from the same pricing
@@ -61,6 +62,16 @@ function sv(over: Partial<SearchVisibility> = {}): SearchVisibility {
 
 function comp(name: string): CompGap {
   return { competitor: name, dimension: "organic", them: 100, you: 10 };
+}
+
+// Renders through the REAL public path (redactReportForTier "free" +
+// fullGapQueries + toResultsProps + ResultsScreen) via the same
+// `publicReportProps` helper `public-report.tsx`'s server component calls —
+// so a new field's free-tier redaction behavior is exercised, not just its
+// props mapping (WS-D/M3/R1 new cases below use this).
+function renderPublicReport(payload: ReportPayload): string {
+  const { resultsProps } = publicReportProps(payload, "test-slug", "https://example.com");
+  return renderToStaticMarkup(<ResultsScreen {...resultsProps} scanId="scan-test" />);
 }
 
 function action(title: string, delta: number): ActionCard {
@@ -284,12 +295,19 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
     const legacySv = {
       score: 46, onPageReadiness: 80, keywordsRanked: 50, estMonthlyVisits: 400,
       brandPct: 30, categoryPct: 20, offTopicPct: 50,
-      categoryGap: [], offTopicExamples: [], categoryWins: 0,
+      categoryGap: [], categoryWins: 0,
       categoryDemand: 8000, categoryOpportunities: [], categoryWonKeywords: [],
-      // deliberately NO footprintComplete, NO categoryPhrases, NO categoryRanked —
-      // they postdate this payload. The render must tolerate their absence.
+      // deliberately NO footprintComplete, NO categoryPhrases, NO categoryRanked,
+      // NO marketTiers, NO offTopicExamples — they postdate this payload (the
+      // last three are this task's M3/WS-D fields, 2026-07-19). The render
+      // must tolerate their absence.
     } as unknown as SearchVisibility;
-    const r = report({ searchVisibility: legacySv });
+    // Task 6 review hygiene addition: also omit positioningMirror.listingSays
+    // (the identity-strip field, added after this shape shipped) so the
+    // strip's `?? ""` defaulting at the props boundary is pinned by this
+    // legacy scenario like every other new render field.
+    const legacyMirror = { reviewsValue: "fast galleries", gap: "gap" } as unknown as ReportPayload["whatYouOffer"]["positioningMirror"];
+    const r = report({ whatYouOffer: { positioningMirror: legacyMirror }, searchVisibility: legacySv });
     const html = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r, "reflect.app", 2, 8)} scanId="scan-legacy" />);
     expect(html).toContain("searches/mo across your category"); // the demand block rendered
     assertNoGarbage(html, "legacy payload");
@@ -393,5 +411,205 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
     expect(html).toContain("searches/mo across your category");
     expect(html).toContain("photo hosting"); // a phrase from categoryPhrases renders
     expect(html).toContain("2,700"); // ...with its volume, so the total reconciles
+  });
+
+  // WS-B (2026-07-19): the teaser count must derive from the SAME collection the
+  // opportunity rows are drawn from. Before this fix, `fullGapQueries` in
+  // public-report.tsx only looked at `market.gap.keywordGap` (empty on a free
+  // report) and `searchVisibility.categoryGap` (empty by construction for a
+  // 0-ranking site) — never `categoryOpportunities`, the actual source of the
+  // rendered rows — so a real scan (4093f1c9) rendered "🔒 Unlock all 0 category
+  // opportunities" beside 4 real opportunity rows. Goes through the exact public
+  // path (redactReportForTier + fullGapQueries + toResultsProps + ResultsScreen)
+  // via `publicReportProps`, the same helper `public-report.tsx`'s server
+  // component calls.
+  it("teaser count derives from the SAME rows rendered — 'Unlock all 0' is impossible (WS-B)", () => {
+    const payload = report({
+      searchVisibility: sv({
+        keywordsRanked: 0,
+        categoryGap: [],
+        categoryOpportunities: [
+          { keyword: "rank tracking software", volume: 1600 },
+          { keyword: "competitor analysis tools", volume: 1300 },
+          { keyword: "marketing analytics platform", volume: 320 },
+          { keyword: "seo analytics software", volume: 260 },
+        ],
+      }),
+    });
+    const { resultsProps } = publicReportProps(payload, "opp-site", "https://opp-site.com");
+    const html = renderToStaticMarkup(<ResultsScreen {...resultsProps} scanId="scan-ws-b" />);
+
+    expect(html).not.toMatch(/all\s+0\s+category/i);
+    expect(html).toContain("competitor analysis tools"); // row 2 is VISIBLE now
+    // Pin the actual count the CTA states — not just the absence of "0". If the
+    // count derivation regresses to 0, the conditional `gapTotal > 0` guard
+    // would hide the whole unlock band rather than surface a wrong number, which
+    // would let `not.toMatch(/all\s+0/)` pass for the wrong reason.
+    expect(html).toContain("win all 4 opportunities");
+  });
+
+  // M3 (2026-07-19): the broad/medium market ladder — "this is the industry,
+  // this is the category you compete in" — priced from the same single
+  // keyword-volumes call as the category seeds. Standing (bestPosition) comes
+  // from the real rank map, never invented. Demand is NOT claimed monotonic
+  // across rungs (a live prod scan showed broad 5,200 < medium 113,620 —
+  // keyword volumes don't obey concept hierarchy), so the render asserts only
+  // the tier labels + numbers, never comparative "biggest market" copy.
+  it("renders the broad/medium market ladder with per-rung standing (M3)", () => {
+    const html = renderPublicReport(report({ searchVisibility: sv({
+      marketTiers: [
+        { tier: "broad", phrases: [{ keyword: "marketing software", volume: 550000 }], demand: 550000, bestPosition: null },
+        { tier: "medium", phrases: [{ keyword: "seo tools", volume: 74000, yourPosition: 12 }], demand: 74000, bestPosition: 12 },
+      ],
+    }) }));
+    expect(html).toContain("marketing software");
+    expect(html).toContain("550,000");
+    expect(html).toContain("#12");
+  });
+
+  // WS-D (2026-07-19): "you already win" strip — categoryRanked rows where the
+  // subject already ranks top-3, so the report doesn't ONLY show gaps.
+  it("renders the 'you already win' strip from categoryRanked top-3 (WS-D)", () => {
+    const html = renderPublicReport(report({ searchVisibility: sv({
+      categoryRanked: [{ keyword: "discoverability tool", volume: 2400, yourPosition: 2 }],
+      categoryWins: 1,
+    }) }));
+    expect(html).toContain("discoverability tool");
+    expect(html).toContain("#2");
+  });
+
+  // WS-D (2026-07-19): named off-topic examples — the >=40% warning used to
+  // assert only a bare percentage; naming the actual keywords ("spanglish
+  // translator") makes the "not your traffic" claim concrete and checkable.
+  it("names the off-topic examples inside the warning (WS-D)", () => {
+    const html = renderPublicReport(report({ searchVisibility: sv({
+      keywordsRanked: 900, offTopicPct: 60, categoryPct: 15, brandPct: 25,
+      offTopicExamples: ["spanglish translator", "cometly"],
+    }) }));
+    expect(html).toContain("spanglish translator");
+  });
+
+  // R1 (2026-07-19): identity strip — the listing's own self-description
+  // (`positioningMirror.listingSays`), rendered as a small line before the
+  // headline so the reader has the subject's own words alongside the score.
+  it("renders the identity strip from listingSays (R1)", () => {
+    const html = renderPublicReport(report({ whatYouOffer: { positioningMirror: { listingSays: "SEO analytics for solo founders.", reviewsValue: "", gap: "" } } }));
+    expect(html).toContain("SEO analytics for solo founders.");
+  });
+
+  // WS-E (2026-07-19): rivalry — both states, inside the category-demand card.
+  // Discovered rival NAMES are free (the compare-set); per-rival intel (how
+  // each one ranks, why they win, category share) is the paid tease. Live prod
+  // evidence: when discovery finds no rivals (reachkit.app), the line used to
+  // vanish entirely — the honest degrade tease replaces silence with the one
+  // tease vocabulary (free = what's true; paid = what rivals do about it).
+  it("rivals found → names them and teases per-rival intel (WS-E)", () => {
+    const html = renderPublicReport(report({
+      searchVisibility: sv({ categoryDemand: 8000 }),
+      whereTheyAre: { surfaces: [], competitorGap: [comp("SavvyCal"), comp("Calendly")] },
+    }));
+    expect(html).toContain("SavvyCal");
+    expect(html).toMatch(/how each one ranks/i);
+  });
+
+  it("no rivals found → honest degrade tease, no invention (WS-E)", () => {
+    const html = renderPublicReport(report({
+      searchVisibility: sv({ categoryDemand: 8000 }),
+      whereTheyAre: { surfaces: [], competitorGap: [] },
+    }));
+    // renderToStaticMarkup HTML-escapes the JSX &apos; to the &#x27; entity, so
+    // the match must account for the entity, not a literal quote character.
+    expect(html).toMatch(/discovers who(?:'|’|&#x27;)s winning these searches/i);
+    expect(html).not.toMatch(/Buyers compare you to\s*</); // no empty comma-list sentence
+  });
+
+  // FINAL-REVIEW FIX: a market-ladder rung's number is the SUM of every phrase
+  // DataForSEO priced for that tier (`computeMarketTiers`), but the rung used to
+  // render only `phrases[0].keyword` as its label — so a rung whose total was
+  // Σ(2+ phrases) LOOKED like it belonged to a single phrase that didn't add up
+  // to it (live: medium rung 113,620 labeled "seo tools", which alone is only
+  // 110,000). Fix: itemise every phrase behind a multi-phrase rung as chips
+  // (the same G4 idiom already used for `categoryPhrases`), so the number
+  // visually reconciles to its parts.
+  it("ITEMIZE: a multi-phrase ladder rung renders EVERY phrase as a chip, so its total reconciles", () => {
+    const html = renderPublicReport(report({ searchVisibility: sv({
+      marketTiers: [
+        { tier: "broad", phrases: [{ keyword: "marketing software", volume: 550000 }], demand: 550000, bestPosition: null },
+        { tier: "medium", phrases: [
+          { keyword: "seo tools", volume: 110000 },
+          { keyword: "rank tracking software", volume: 1600 },
+        ], demand: 111600, bestPosition: null },
+      ],
+    }) }));
+    expect(html).toContain("111,600"); // the rung total
+    expect(html).toContain("seo tools");
+    expect(html).toContain("110,000"); // top phrase's OWN volume, distinct from the rung total
+    expect(html).toContain("rank tracking software"); // the second phrase — invisible before this fix
+    expect(html).toContain("1,600");
+    // The single-phrase broad rung must NOT grow a chips row it doesn't need.
+    const broadIdx = html.indexOf("marketing software");
+    const mediumIdx = html.indexOf("seo tools");
+    expect(broadIdx).toBeGreaterThanOrEqual(0);
+    expect(mediumIdx).toBeGreaterThan(broadIdx);
+  });
+
+  // FINAL-REVIEW FIX: the wins SENTENCE ("you rank in the top 3 for N of your
+  // category's searches") is uncapped, but the wins CHIPS below it are the
+  // volume-capped categoryRanked top-15, filtered to top-3, sliced to 3 — so
+  // the sentence can claim more wins than the chips show, with no disclosure
+  // that the chips are a partial view.
+  it("wins disclosure: '+N more' renders when categoryWins outstrips the rendered wins strip", () => {
+    const html = renderPublicReport(report({ searchVisibility: sv({
+      categoryRanked: [
+        { keyword: "term one", volume: 500, yourPosition: 1 },
+        { keyword: "term two", volume: 400, yourPosition: 2 },
+      ],
+      categoryWins: 5,
+    }) }));
+    expect(html).toContain("+3 more");
+  });
+
+  it("wins disclosure: omitted when categoryWins equals the rendered wins strip count", () => {
+    const html = renderPublicReport(report({ searchVisibility: sv({
+      categoryRanked: [
+        { keyword: "term one", volume: 500, yourPosition: 1 },
+        { keyword: "term two", volume: 400, yourPosition: 2 },
+      ],
+      categoryWins: 2,
+    }) }));
+    expect(html).not.toMatch(/\+\d+ more/);
+  });
+
+  // MINOR polish: identityLine truncation only appends an ellipsis when it
+  // ACTUALLY truncated the string — a 160-char cut with no ellipsis reads as a
+  // sentence that just stops.
+  it("identityLine adds an ellipsis only when it actually truncates", () => {
+    const long = "x".repeat(200);
+    const html = renderPublicReport(report({ whatYouOffer: { positioningMirror: { listingSays: long, reviewsValue: "", gap: "" } } }));
+    expect(html).toContain("x".repeat(159) + "…");
+    expect(html).not.toContain("x".repeat(160) + " ");
+
+    const short = "A short, complete sentence.";
+    const html2 = renderPublicReport(report({ whatYouOffer: { positioningMirror: { listingSays: short, reviewsValue: "", gap: "" } } }));
+    expect(html2).toContain(short);
+    expect(html2).not.toContain(short + "…");
+  });
+
+  // MINOR polish: the category-demand card's hero line gets a NICHE pill (same
+  // uppercase pill style as the BROAD/MEDIUM ladder rungs above it) so the
+  // ladder's third rung is visually consistent — its own closing line already
+  // calls this card "Your niche".
+  it("shows a NICHE pill on the category-demand hero line when the ladder rendered above it", () => {
+    const html = renderPublicReport(report({ searchVisibility: sv({
+      marketTiers: [
+        { tier: "broad", phrases: [{ keyword: "marketing software", volume: 550000 }], demand: 550000, bestPosition: null },
+      ],
+    }) }));
+    expect(html).toMatch(/NICHE/);
+  });
+
+  it("omits the NICHE pill when there's no ladder to be consistent with", () => {
+    const html = renderPublicReport(report({ searchVisibility: sv({ marketTiers: [] }) }));
+    expect(html).not.toMatch(/NICHE/);
   });
 });
