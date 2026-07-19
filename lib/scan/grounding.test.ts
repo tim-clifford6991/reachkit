@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
+import { filterSubjectResults } from "./adapters/web-reviews";
 
 /**
  * INVARIANT #11 — grounding honesty. No synthesized field may assert evidence we
@@ -100,5 +101,16 @@ describe("grounding: empty review sheet → empty mirror (invariant #11)", () =>
 
     // Real reviews present → the synthesized value is kept.
     expect(result.positioningMirror.reviewsValue).toMatch(/consistently praise/);
+  });
+});
+
+describe("grounding: domain-conflict subject validation feeds the empty-sheet path (WS-A, invariant #11)", () => {
+  test("a contested-brand review batch yields ZERO snippets → empty sheet → no mirror (WS-A, scan 4093f1c9 class)", () => {
+    expect(
+      filterSubjectResults(
+        { results: [{ url: "https://www.trustpilot.com/review/reachkit.ai", title: "Reachkit", content: "5/5" }] },
+        "reachkit.app",
+      ),
+    ).toEqual([]);
   });
 });
