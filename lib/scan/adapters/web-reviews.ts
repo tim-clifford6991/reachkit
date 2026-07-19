@@ -46,6 +46,82 @@ export function filterSubjectSnippets(snippets: string[], subjectHost: string): 
   return snippets.filter((s) => s.toLowerCase().includes(needle));
 }
 
+type TavilyResult = { url?: string; title?: string; content?: string };
+
+/** Every host-shaped token a result references (its URL + text), www-stripped.
+ *  Review platforms key products by domain (trustpilot.com/review/<domain>), so
+ *  the URL is the strongest subject evidence a result carries. */
+export function referencedDomains(r: TavilyResult): string[] {
+  const text = `${r.url ?? ""} ${r.title ?? ""} ${r.content ?? ""}`.toLowerCase();
+  const found = new Set<string>();
+  for (const m of text.matchAll(/([a-z0-9][a-z0-9-]*(?:\.[a-z0-9-]+)*\.[a-z]{2,})/g)) {
+    found.add((m[1] ?? "").replace(/^www\./, ""));
+  }
+  return [...found];
+}
+
+/**
+ * WS-A (2026-07-19): brand-ambiguity, domain-conflict edition. The token filter
+ * above (`filterSubjectSnippets`) cannot tell reachkit.app from reachkit.AI —
+ * both contain "reachkit" — so a contested brand shipped another company's
+ * reviews (prod scan 4093f1c9). Rule, per RESULT:
+ *   1. A result referencing a same-brand DIFFERENT domain is dropped outright.
+ *   2. If ANY result in the batch shows such a conflict, the brand is contested:
+ *      every kept result must then reference the subject's own host explicitly.
+ *   3. Otherwise (uncontested batch) the existing brand-token match stands, so
+ *      genuine "Stripe is great" reviews survive (the 1-review-for-Stripe bug).
+ * Errs toward dropping — grounding honesty (#11) over coverage.
+ */
+export function filterSubjectResults(body: unknown, subjectHost: string): string[] {
+  const host = subjectHost.toLowerCase().replace(/^www\./, "");
+  if (!host) return [];
+  const brand = host.split(".")[0] ?? host;
+  const results = ((body ?? {}) as { results?: TavilyResult[] }).results ?? [];
+
+  const conflicts = (r: TavilyResult): boolean =>
+    referencedDomains(r).some((d) => d !== host && (d.split(".")[0] ?? d) === brand);
+  const referencesSubject = (r: TavilyResult): boolean => referencedDomains(r).includes(host);
+
+  const contested = results.some(conflicts);
+  const needle = brand.length >= 4 ? brand : host;
+  return results
+    .filter((r) => {
+      if (conflicts(r)) return false;
+      if (contested) return referencesSubject(r);
+      return `${r.title ?? ""} — ${r.content ?? ""}`.toLowerCase().includes(needle);
+    })
+    .map((r) => `${r.title ?? ""} — ${r.content ?? ""}`.trim())
+    .filter((s) => s.length > 3);
+}
+
+/**
+ * Same domain-conflict rule as `filterSubjectResults` (WS-A, 2026-07-19), but
+ * returns the ORIGINAL result objects instead of formatted title/content strings
+ * — for callers that need to keep other fields (url, publishedDate, …) alongside
+ * the filtered set. First reuse found in the class sweep: `runMarketAnalysis`'s
+ * "recent buzz" pass (`gap/run.ts`) runs a Tavily NEWS search keyed on the
+ * subject's own product NAME — exactly as brand-ambiguous as the reviews search
+ * (a same-brand different-domain product's press can get rendered as "what's
+ * been said about your space" and inflate `recentBuzzCount`, a real market
+ * signal). Errs toward dropping — grounding honesty (#11) over coverage.
+ */
+export function dropDomainConflicts<T extends TavilyResult>(results: T[], subjectHost: string): T[] {
+  const host = subjectHost.toLowerCase().replace(/^www\./, "");
+  if (!host) return [];
+  const brand = host.split(".")[0] ?? host;
+
+  const conflicts = (r: T): boolean =>
+    referencedDomains(r).some((d) => d !== host && (d.split(".")[0] ?? d) === brand);
+  const referencesSubject = (r: T): boolean => referencedDomains(r).includes(host);
+
+  const contested = results.some(conflicts);
+  return results.filter((r) => {
+    if (conflicts(r)) return false;
+    if (contested) return referencesSubject(r);
+    return true;
+  });
+}
+
 /**
  * Largest "<n> reviews"/"<n> ratings" figure found across the snippets, else 0.
  * Lets a web scan surface a real review count (Capterra/G2 page summaries embed
@@ -77,8 +153,8 @@ export async function fetchWebReviews(subject: string): Promise<{ snippets: stri
     if (!res.ok) return { snippets: [], raw: null };
     recordTavilyCost("search", env.tavilyUsdPerCredit, { depth: "basic" });
     const body = await res.json();
-    // Only keep snippets that actually reference the subject host (brand-safety).
-    return { snippets: filterSubjectSnippets(parseWebReviewSnippets(body), subject), raw: body };
+    // Only keep snippets provably about THIS subject (domain-conflict rule, WS-A).
+    return { snippets: filterSubjectResults(body, subject), raw: body };
   } catch {
     return { snippets: [], raw: null };
   }

@@ -9,6 +9,7 @@
 import { profileCohort, type Cohort } from "@/lib/scan/profile";
 import { discoverDemand, type DemandResult } from "@/lib/scan/demand";
 import { tavilySearch } from "@/lib/scan/adapters/tavily";
+import { dropDomainConflicts } from "@/lib/scan/adapters/web-reviews";
 import { analyzeGap } from "./analyze";
 import { buildPlan, type DistributionPlan } from "./plan";
 import type { GapAnalysis } from "./types";
@@ -63,8 +64,13 @@ export async function runMarketAnalysis(
       timeRange: "month",
       maxResults: 5,
     });
-    if (news.length > 0) {
-      recentBuzz = news.map((n) => ({ title: n.title, url: n.url, publishedDate: n.publishedDate }));
+    // Subject-validate (WS-A class sweep, 2026-07-19): a news search keyed on the
+    // product's own NAME is exactly as brand-ambiguous as the reviews search — a
+    // same-brand different-domain product's press must not be attributed to this
+    // subject's "recent buzz" (or its recentBuzzCount market signal).
+    const clean = dropDomainConflicts(news, domain);
+    if (clean.length > 0) {
+      recentBuzz = clean.map((n) => ({ title: n.title, url: n.url, publishedDate: n.publishedDate }));
     }
   }
 
