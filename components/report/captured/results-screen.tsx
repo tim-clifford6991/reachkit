@@ -144,12 +144,13 @@ export interface ResultsScreenProps {
     categoryDemand: number;
     /** Every named category phrase + its volume — so categoryDemand reconciles (G4). */
     categoryPhrases: { keyword: string; volume: number }[];
-    /** M3 (2026-07-19) — the broad/medium market ladder. Demand is NOT
-     *  monotonic across rungs (keyword volumes don't obey concept hierarchy —
-     *  a live scan showed broad 5,200 < medium 113,620), so the render states
-     *  each rung's label + number + standing and never claims "biggest market". */
+    /** Task B (2026-07-19, ladder restructure) — at most `[broad?, niche?]`.
+     *  BROAD renders ABOVE the category-demand hero (only when its demand
+     *  exceeds the hero's, per the inversion guard); NICHE renders BELOW the
+     *  hero's own phrase chips. MEDIUM is never present here — it duplicated
+     *  the hero (the SAME concept at the SAME altitude) and was dropped. */
     marketTiers: {
-      tier: "broad" | "medium";
+      tier: "broad" | "niche";
       label: string;
       demand: number;
       bestPosition: number | null;
@@ -373,54 +374,52 @@ export function ResultsScreen(p: ResultsScreenProps) {
             const sv = p.searchVisibility!;
             const wins = Math.max(0, sv.categoryWins);
             const comps = (p.competitors ?? []).slice(0, 5);
+            // Task B (2026-07-19, ladder restructure): at most one BROAD (above
+            // the hero) and one NICHE (below the hero's own phrase chips) rung.
+            // MEDIUM never renders — it duplicated this very hero.
+            const broadTier = (sv.marketTiers ?? []).find((t) => t.tier === "broad");
+            const nicheTier = (sv.marketTiers ?? []).find((t) => t.tier === "niche");
+            const tierRow = (t: NonNullable<typeof broadTier>) => (
+              <div key={t.tier}>
+                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: 8, fontSize: 13, padding: "3px 0" }}>
+                  <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--c-faint)", width: 58 }}>{t.tier}</span>
+                  <span style={{ fontWeight: 600, flex: "1 1 140px", minWidth: 0 }} className="rk-wrap-any">{t.label}</span>
+                  <span style={{ fontFamily: JM, color: "var(--c-muted)" }}>{t.demand.toLocaleString()} searches/mo</span>
+                  <span style={{ fontFamily: JM, fontWeight: 700, color: t.bestPosition != null ? "#C98A12" : "#E5484D" }}>{t.bestPosition != null ? `best #${t.bestPosition}` : "not ranking"}</span>
+                </div>
+                {/* FINAL-REVIEW FIX: a rung's number is the SUM of every phrase
+                    priced for it, but showing only phrases[0] as the label made
+                    the number look like it belonged to that one phrase alone.
+                    Itemise the rest as chips — same idiom as the categoryPhrases
+                    chips below — so the total reconciles. */}
+                {t.phrases.length > 1 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 10px", fontSize: 12.5, color: "var(--c-faint)", fontFamily: JM, padding: "2px 0 4px 66px" }}>
+                    {t.phrases.map((ph) => (
+                      <span key={ph.keyword} style={{ background: "var(--c-fill)", borderRadius: 6, padding: "2px 8px" }}>
+                        {ph.keyword} <span style={{ color: "var(--c-muted)", fontWeight: 600 }}>{ph.volume.toLocaleString()}</span>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
             return (
               <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16, padding: "20px 22px", marginBottom: 14 }}>
-                {/* M3 (2026-07-19): the broad/medium market ladder — "this is the
-                    industry, this is the category you compete in". Demand is NOT
-                    monotonic across rungs (keyword volumes don't obey concept
-                    hierarchy — a live scan showed broad 5,200 < medium 113,620),
-                    so this states each rung's label + number + standing and never
-                    claims a rung is "your biggest market". */}
-                {(sv.marketTiers ?? []).length > 0 && (
+                {/* BROAD rung — "this is the big industry" — only when the
+                    lib-level inversion guard let it survive (its priced demand
+                    exceeds the category hero's; an inverted ladder is dropped,
+                    never rendered dishonestly). */}
+                {broadTier && (
                   <div style={{ marginBottom: 14, borderBottom: "1px solid var(--c-line2)", paddingBottom: 12 }}>
-                    {(sv.marketTiers ?? []).map((t) => (
-                      <div key={t.tier}>
-                        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: 8, fontSize: 13, padding: "3px 0" }}>
-                          <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--c-faint)", width: 58 }}>{t.tier}</span>
-                          <span style={{ fontWeight: 600, flex: "1 1 140px", minWidth: 0 }} className="rk-wrap-any">{t.label}</span>
-                          <span style={{ fontFamily: JM, color: "var(--c-muted)" }}>{t.demand.toLocaleString()} searches/mo</span>
-                          <span style={{ fontFamily: JM, fontWeight: 700, color: t.bestPosition != null ? "#C98A12" : "#E5484D" }}>{t.bestPosition != null ? `best #${t.bestPosition}` : "not ranking"}</span>
-                        </div>
-                        {/* FINAL-REVIEW FIX: a rung's number is the SUM of every
-                            phrase priced for it, but showing only phrases[0] as
-                            the label made the number look like it belonged to
-                            that one phrase alone (live: medium rung 113,620
-                            labeled "seo tools", which alone is only 110,000).
-                            Itemise the rest as chips — same idiom as the
-                            categoryPhrases chips below — so the total reconciles. */}
-                        {t.phrases.length > 1 && (
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 10px", fontSize: 12.5, color: "var(--c-faint)", fontFamily: JM, padding: "2px 0 4px 66px" }}>
-                            {t.phrases.map((ph) => (
-                              <span key={ph.keyword} style={{ background: "var(--c-fill)", borderRadius: 6, padding: "2px 8px" }}>
-                                {ph.keyword} <span style={{ color: "var(--c-muted)", fontWeight: 600 }}>{ph.volume.toLocaleString()}</span>
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                    <div style={{ fontSize: 12, color: "var(--c-faint)", marginTop: 6 }}>Your niche, where the plan below starts:</div>
+                    {tierRow(broadTier)}
+                    <div style={{ fontSize: 12, color: "var(--c-faint)", marginTop: 6 }}>Your category, where the plan below starts:</div>
                   </div>
                 )}
                 <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: 10, marginBottom: 12 }}>
-                  {/* MINOR polish: this card IS the ladder's third (niche) rung —
-                      its own closing line above already calls it "Your niche".
-                      Give it the same uppercase pill the BROAD/MEDIUM rungs use
-                      so the ladder reads as one consistent 3-rung structure,
-                      only when the ladder actually rendered above it. */}
-                  {(sv.marketTiers ?? []).length > 0 && (
-                    <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--c-faint)", width: 58 }}>NICHE</span>
-                  )}
+                  {/* The hero's own identity pill — "this IS the category you
+                      compete in" — independent of whichever sibling rungs
+                      render, so it always states the concept plainly. */}
+                  <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--c-faint)" }}>YOUR CATEGORY</span>
                   <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 26 }}>{sv.categoryDemand.toLocaleString()}</span>
                   <span style={{ fontSize: 13.5, color: "var(--c-muted)" }}>searches/mo across your category</span>
                 </div>
@@ -460,6 +459,15 @@ export function ResultsScreen(p: ResultsScreenProps) {
                         {ph.keyword} <span style={{ color: "var(--c-muted)", fontWeight: 600 }}>{ph.volume.toLocaleString()}</span>
                       </span>
                     ))}
+                  </div>
+                )}
+                {/* NICHE rung — a cheap, additional altitude rendered AFTER the
+                    hero's own phrase chips (before the rivalry line). No
+                    inversion guard: it doesn't claim to be the "biggest"
+                    market, just an additional, narrower one worth naming. */}
+                {nicheTier && (
+                  <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px dashed var(--c-line2)" }}>
+                    {tierRow(nicheTier)}
                   </div>
                 )}
                 {/* WS-E (2026-07-19): both rivalry states, not just the found

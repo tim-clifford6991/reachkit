@@ -448,23 +448,45 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
     expect(html).toContain("win all 4 opportunities");
   });
 
-  // M3 (2026-07-19): the broad/medium market ladder — "this is the industry,
-  // this is the category you compete in" — priced from the same single
-  // keyword-volumes call as the category seeds. Standing (bestPosition) comes
-  // from the real rank map, never invented. Demand is NOT claimed monotonic
-  // across rungs (a live prod scan showed broad 5,200 < medium 113,620 —
-  // keyword volumes don't obey concept hierarchy), so the render asserts only
-  // the tier labels + numbers, never comparative "biggest market" copy.
-  it("renders the broad/medium market ladder with per-rung standing (M3)", () => {
+  // Task B (2026-07-19, ladder restructure): the MEDIUM rung is gone — at most
+  // [broad?, niche?]. BROAD renders ABOVE the hero with its own standing (from
+  // the real rank map, never invented) and the bridge line now reads "Your
+  // category, where the plan below starts:" (was "Your niche…", which was
+  // wrong — the hero IS the category, not a niche).
+  it("renders the BROAD rung above the hero with per-rung standing, and the category bridge line", () => {
     const html = renderPublicReport(report({ searchVisibility: sv({
       marketTiers: [
-        { tier: "broad", phrases: [{ keyword: "marketing software", volume: 550000 }], demand: 550000, bestPosition: null },
-        { tier: "medium", phrases: [{ keyword: "seo tools", volume: 74000, yourPosition: 12 }], demand: 74000, bestPosition: 12 },
+        { tier: "broad", phrases: [{ keyword: "marketing software", volume: 550000, yourPosition: 12 }], demand: 550000, bestPosition: 12 },
       ],
     }) }));
     expect(html).toContain("marketing software");
     expect(html).toContain("550,000");
     expect(html).toContain("#12");
+    expect(html).toContain("Your category, where the plan below starts:");
+    expect(html).not.toMatch(/Your niche, where the plan below starts/i);
+  });
+
+  it("renders the NICHE rung AFTER the hero's own phrase chips, before the rivalry line", () => {
+    const html = renderPublicReport(report({ searchVisibility: sv({
+      marketTiers: [
+        { tier: "niche", phrases: [{ keyword: "photo scheduling tool", volume: 900, yourPosition: 4 }], demand: 900, bestPosition: 4 },
+      ],
+    }) }));
+    expect(html).toContain("photo scheduling tool");
+    expect(html).toContain("#4");
+    expect(html).toMatch(/niche/i); // the rung's tier label — CSS uppercases it, HTML text is lowercase
+    const heroPhraseIdx = html.indexOf("photo gallery website"); // a categoryPhrases entry from sv()
+    const nicheIdx = html.indexOf("photo scheduling tool");
+    const rivalryIdx = html.indexOf("Someone is winning these searches today");
+    expect(heroPhraseIdx).toBeGreaterThan(-1);
+    expect(rivalryIdx).toBeGreaterThan(-1);
+    expect(nicheIdx).toBeGreaterThan(heroPhraseIdx);
+    expect(nicheIdx).toBeLessThan(rivalryIdx);
+  });
+
+  it("no niche tier → no NICHE rung rendered at all", () => {
+    const html = renderPublicReport(report({ searchVisibility: sv({ marketTiers: [] }) }));
+    expect(html).not.toMatch(/NICHE/);
   });
 
   // WS-D (2026-07-19): "you already win" strip — categoryRanked rows where the
@@ -527,30 +549,30 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
   // DataForSEO priced for that tier (`computeMarketTiers`), but the rung used to
   // render only `phrases[0].keyword` as its label — so a rung whose total was
   // Σ(2+ phrases) LOOKED like it belonged to a single phrase that didn't add up
-  // to it (live: medium rung 113,620 labeled "seo tools", which alone is only
-  // 110,000). Fix: itemise every phrase behind a multi-phrase rung as chips
-  // (the same G4 idiom already used for `categoryPhrases`), so the number
-  // visually reconciles to its parts.
-  it("ITEMIZE: a multi-phrase ladder rung renders EVERY phrase as a chip, so its total reconciles", () => {
+  // to it. Fix: itemise every phrase behind a multi-phrase rung as chips (the
+  // same G4 idiom already used for `categoryPhrases`), so the number visually
+  // reconciles to its parts. Task B: BROAD (above hero) and NICHE (below hero)
+  // each get their own multi-phrase itemisation independently.
+  it("ITEMIZE: a multi-phrase ladder rung (broad AND niche) renders EVERY phrase as a chip, so each total reconciles", () => {
     const html = renderPublicReport(report({ searchVisibility: sv({
       marketTiers: [
         { tier: "broad", phrases: [{ keyword: "marketing software", volume: 550000 }], demand: 550000, bestPosition: null },
-        { tier: "medium", phrases: [
+        { tier: "niche", phrases: [
           { keyword: "seo tools", volume: 110000 },
           { keyword: "rank tracking software", volume: 1600 },
         ], demand: 111600, bestPosition: null },
       ],
     }) }));
-    expect(html).toContain("111,600"); // the rung total
+    expect(html).toContain("111,600"); // the niche rung total
     expect(html).toContain("seo tools");
     expect(html).toContain("110,000"); // top phrase's OWN volume, distinct from the rung total
     expect(html).toContain("rank tracking software"); // the second phrase — invisible before this fix
     expect(html).toContain("1,600");
-    // The single-phrase broad rung must NOT grow a chips row it doesn't need.
+    // BROAD (above hero) must render before NICHE (below hero's own chips).
     const broadIdx = html.indexOf("marketing software");
-    const mediumIdx = html.indexOf("seo tools");
+    const nicheIdx = html.indexOf("seo tools");
     expect(broadIdx).toBeGreaterThanOrEqual(0);
-    expect(mediumIdx).toBeGreaterThan(broadIdx);
+    expect(nicheIdx).toBeGreaterThan(broadIdx);
   });
 
   // FINAL-REVIEW FIX: the wins SENTENCE ("you rank in the top 3 for N of your
@@ -595,21 +617,36 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
     expect(html2).not.toContain(short + "…");
   });
 
-  // MINOR polish: the category-demand card's hero line gets a NICHE pill (same
-  // uppercase pill style as the BROAD/MEDIUM ladder rungs above it) so the
-  // ladder's third rung is visually consistent — its own closing line already
-  // calls this card "Your niche".
-  it("shows a NICHE pill on the category-demand hero line when the ladder rendered above it", () => {
-    const html = renderPublicReport(report({ searchVisibility: sv({
-      marketTiers: [
-        { tier: "broad", phrases: [{ keyword: "marketing software", volume: 550000 }], demand: 550000, bestPosition: null },
-      ],
+  // Task B (2026-07-19, ladder restructure): the hero's pill was mislabeled
+  // NICHE — its own seeds are deliberately HEAD terms, not a niche. It's
+  // relabeled YOUR CATEGORY and is now the hero's own identity, so it always
+  // renders — independent of whether a BROAD rung survived the inversion
+  // guard above it (the reachkit.app live case: broad dropped, hero pill
+  // still reads YOUR CATEGORY).
+  it("always shows the YOUR CATEGORY pill on the hero, with or without a broad rung above it", () => {
+    const withBroad = renderPublicReport(report({ searchVisibility: sv({
+      marketTiers: [{ tier: "broad", phrases: [{ keyword: "marketing software", volume: 550000 }], demand: 550000, bestPosition: null }],
     }) }));
-    expect(html).toMatch(/NICHE/);
+    expect(withBroad).toMatch(/YOUR CATEGORY/);
+
+    const withoutBroad = renderPublicReport(report({ searchVisibility: sv({ marketTiers: [] }) }));
+    expect(withoutBroad).toMatch(/YOUR CATEGORY/);
   });
 
-  it("omits the NICHE pill when there's no ladder to be consistent with", () => {
-    const html = renderPublicReport(report({ searchVisibility: sv({ marketTiers: [] }) }));
-    expect(html).not.toMatch(/NICHE/);
+  // Legacy persisted marketTiers (from before this design) may still carry a
+  // "medium" rung — the defensive filter at the props boundary must drop it,
+  // not just the lib's `computeMarketTiers` (which never emits one going
+  // forward, but can't retroactively clean an already-persisted payload).
+  it("legacy persisted marketTiers carrying a 'medium' rung renders WITHOUT it (defensive filter)", () => {
+    const legacyTiers = [
+      { tier: "broad", phrases: [{ keyword: "marketing software", volume: 550000 }], demand: 550000, bestPosition: null },
+      { tier: "medium", phrases: [{ keyword: "seo tools", volume: 74000, yourPosition: 12 }], demand: 74000, bestPosition: 12 },
+    ] as unknown as SearchVisibility["marketTiers"];
+    const r = report({ searchVisibility: sv({ marketTiers: legacyTiers }) });
+    const html = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r, "legacy-medium.dev", 2, 8)} scanId="scan-legacy-medium" />);
+    expect(html).toContain("marketing software");
+    expect(html).not.toContain("seo tools"); // the medium rung must never render
+    expect(html).not.toMatch(/MEDIUM/);
+    assertNoGarbage(html, "legacy medium rung");
   });
 });

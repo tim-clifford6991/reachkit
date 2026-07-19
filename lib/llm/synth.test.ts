@@ -466,21 +466,19 @@ describe("parseSynthResult — categorySeeds + audience", () => {
 // parseLiteSynth — market-tier seeds (M1)
 // ---------------------------------------------------------------------------
 describe("parseLiteSynth — marketTiers", () => {
-  it("parses marketTiers (broad/medium/niche) and caps each at 4", async () => {
+  it("parses marketTiers (broad/niche) and caps each at 4", async () => {
     const { parseLiteSynth } = await import("./synth");
     const out = parseLiteSynth({
       positioningMirror: { listingSays: "x", reviewsValue: "", gap: "" },
       categorySeeds: ["rank tracking software"],
       marketTiers: {
         broad: ["marketing software", "marketing tools"],
-        medium: ["seo tools", "rank tracking software", "seo analytics", "serp tracker", "extra-over-cap"],
-        niche: ["seo tools for solo founders"],
+        niche: ["seo tools for solo founders", "extra1", "extra2", "extra3", "extra-over-cap"],
       },
     });
     expect(out.marketTiers).toEqual({
       broad: ["marketing software", "marketing tools"],
-      medium: ["seo tools", "rank tracking software", "seo analytics", "serp tracker"],
-      niche: ["seo tools for solo founders"],
+      niche: ["seo tools for solo founders", "extra1", "extra2", "extra3"],
     });
   });
 
@@ -488,5 +486,23 @@ describe("parseLiteSynth — marketTiers", () => {
     const { parseLiteSynth } = await import("./synth");
     const out = parseLiteSynth({ positioningMirror: { listingSays: "x", reviewsValue: "", gap: "" }, categorySeeds: ["a"] });
     expect(out.marketTiers).toBeUndefined();
+  });
+
+  it("a LEGACY synth object with a stray `medium` key still parses fine — medium is simply ignored, never a parse error", async () => {
+    const { parseLiteSynth } = await import("./synth");
+    const out = parseLiteSynth({
+      positioningMirror: { listingSays: "x", reviewsValue: "", gap: "" },
+      categorySeeds: ["rank tracking software"],
+      marketTiers: {
+        broad: ["marketing software"],
+        medium: ["seo tools", "rank tracking software"], // legacy rung — dropped
+        niche: ["seo tools for solo founders"],
+      },
+    });
+    expect(out.marketTiers).toEqual({
+      broad: ["marketing software"],
+      niche: ["seo tools for solo founders"],
+    });
+    expect((out.marketTiers as unknown as { medium?: unknown }).medium).toBeUndefined();
   });
 });

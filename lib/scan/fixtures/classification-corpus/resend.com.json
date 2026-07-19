@@ -4,7 +4,9 @@
   "seedText": [
     "reviews", "com", "similar", "sites", "resend", "review", "our", "account", "email", "can", "trustpilot", "with",
     "Resend positions itself as the best way to reach humans instead of spam folders, offering a simple, elegant interface for sending transactional and marketing emails at scale with easy SDK integration across multiple frameworks.",
-    "Users genuinely praise the developer experience and dashboard simplicity, but a meaningful portion of reviews surface serious concerns around account suspensions without notice, non-existent human support for edge cases, and no compensation or clear resolution for service disruptions."
+    "Users genuinely praise the developer experience and dashboard simplicity, but a meaningful portion of reviews surface serious concerns around account suspensions without notice, non-existent human support for edge cases, and no compensation or clear resolution for service disruptions.",
+    "Their product is visually stunning and seamlessly integrates with React Email.",
+    "We are loving the development experience of React Email - not having to leave my dev environment to develop new emails is a game-changer."
   ],
   "llmCategorySeeds": ["transactional email API", "email delivery service", "developer email tool", "email API"],
   "rankedKeywords": [

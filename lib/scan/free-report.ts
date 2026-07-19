@@ -141,13 +141,16 @@ export async function runFreeReport(ctx: ScanContext, facts: PreliminaryFacts): 
     findings?: Finding[];
     positioningMirror?: PositioningMirror;
     categorySeeds?: string[];
-    marketTiers?: { broad?: string[]; medium?: string[]; niche?: string[] };
+    // NOTE: an OLDER persisted findings_payload may still carry a `medium` key
+    // (pre bb6ef07/this fix) — it is simply never read here; structural typing
+    // tolerates the extra field on read-back.
+    marketTiers?: { broad?: string[]; niche?: string[] };
   } | null;
   const findings = Array.isArray(fp?.findings) ? fp.findings : [];
   const positioningMirror = fp?.positioningMirror ?? { listingSays: "", reviewsValue: "", gap: "" };
   const categorySeeds = Array.isArray(fp?.categorySeeds) ? fp!.categorySeeds.filter((s): s is string => typeof s === "string") : [];
   const marketTierSeeds = fp?.marketTiers && typeof fp.marketTiers === "object"
-    ? { broad: fp.marketTiers.broad ?? [], medium: fp.marketTiers.medium ?? [], niche: fp.marketTiers.niche ?? [] }
+    ? { broad: fp.marketTiers.broad ?? [], niche: fp.marketTiers.niche ?? [] }
     : undefined;
 
   // Wave-A signals from already-persisted HTML (market null → deep signals unmeasured).

@@ -112,11 +112,19 @@ export interface SearchVisibility {
   categoryRanked: CategoryGapRow[];
   /** Internal: category terms you already rank top-3 for (dedup for opportunities). */
   categoryWonKeywords: string[];
-  /** M2 (2026-07-19): the broad/medium market ladder — "this is a big industry,
-   *  this is the category you compete in" — priced from the SAME single
-   *  keyword-volumes call as the category seeds. BROAD + MEDIUM only; the niche
-   *  rung is deliberately NOT here — it IS the existing category-demand card
-   *  above (one concept, one name — G7). Additive + absent on legacy payloads. */
+  /** Task B (2026-07-19, ladder restructure): the market ladder — "this is a
+   *  big industry" (BROAD) above the category-demand hero, and a cheap NICHE
+   *  rung below it. The MEDIUM rung was dropped entirely: the category-demand
+   *  hero (categorySeeds + real rankings, `computeCategoryDemand`) already IS
+   *  the tool-category altitude, so a separate medium rung could only
+   *  duplicate it (a live scan showed "seo tools" priced in BOTH the medium
+   *  rung and the category hero — visibly double-counted). At most
+   *  `[broad?, niche?]`: BROAD only renders when its priced demand EXCEEDS the
+   *  category demand (an inverted ladder — broad sitting BELOW the category —
+   *  is dropped rather than rendered dishonestly); phrases already counted in
+   *  the category-demand set (or in NICHE) are excluded from BROAD so no
+   *  phrase is ever double-counted across rungs. Additive + absent on legacy
+   *  payloads. */
   marketTiers?: MarketTier[];
   // DELETED 2026-07-17 (free-scan honesty): `categoryCaptureRate` was
   // `= sv.score` — the search-presence score rendered a SECOND time under a
@@ -150,6 +158,11 @@ const GENERIC_TOKENS = new Set([
   "media", "digital", "mobile", "global", "local", "data", "info", "information", "guide",
   "help", "list", "service", "interface", "integration", "multiple", "assets", "content",
   "price", "pricing", "login", "sign", "register", "download", "update", "version", "meaning",
+  // "system" joins the platform/interface/integration family of generic product
+  // descriptors — added by the calibration corpus (spacex "space launch system":
+  // "system" has no vocabulary evidence of its own, but is exactly the same class
+  // of generic qualifier as the tokens already above it).
+  "system",
 ]);
 
 // Ubiquitous other-brands / entities. A mid-market subject ranks for these only
@@ -172,10 +185,26 @@ function isCategoryPollutant(t: string): boolean {
   return GENERIC_TOKENS.has(t) || MEGA_BRAND_TOKENS.has(t);
 }
 
-/** A keyword that IS a ubiquitous other-brand/entity — off-topic outright. */
+/** A keyword that IS a ubiquitous other-brand/entity — off-topic outright.
+ *  MEGA_BRAND_TOKENS stores multi-word names as ONE concatenated token
+ *  ("foxnews", "nypost", "nytimes"), so a single-token check alone can never
+ *  match the multi-word phrase real users search ("fox news" tokenizes to
+ *  ["fox","news"] — neither token alone is "foxnews"), leaving every
+ *  multi-word entry dead. Fix: also join ADJACENT tokens (bigram) and
+ *  re-check the concatenation. No trigram join — every current
+ *  MEGA_BRAND_TOKENS entry is a single word or a 2-word join, so a 3-word
+ *  loop is dead code (YAGNI); add it back only alongside a real 3-word
+ *  entity entry + a covering test. Pure, deterministic, self-contained —
+ *  retokenizes the raw keyword fresh so it does not depend on the
+ *  stopword-filtered `tokens()` used for vocab. */
 function isMegaBrandKeyword(keyword: string): boolean {
   const toks = keyword.toLowerCase().match(/[a-z0-9]+/g) ?? [];
-  return toks.some((t) => MEGA_BRAND_TOKENS.has(t));
+  if (toks.some((t) => MEGA_BRAND_TOKENS.has(t))) return true;
+  for (let i = 0; i < toks.length - 1; i++) {
+    const a = toks[i], b = toks[i + 1];
+    if (a && b && MEGA_BRAND_TOKENS.has(a + b)) return true;
+  }
+  return false;
 }
 
 /**
@@ -212,16 +241,73 @@ export function buildVocab(
   return { brandTokens, categoryVocab };
 }
 
+/** Light, symmetric singular/plural + gerund fold so "rockets" (a seed's own
+ *  prose) and "rocket" (a real query token) — or "sending" and "send" — read as
+ *  the SAME token when checking vocabulary support. Deliberately tiny (no real
+ *  stemmer): it exists only to stop ordinary inflection from masquerading as an
+ *  "unsupported token" under the stricter rule below. Domain-agnostic — it has
+ *  no knowledge of any subject, so it cannot be a per-domain special case. */
+export function stem(t: string): string {
+  let s = t;
+  if (s.length > 5 && s.endsWith("ing")) s = s.slice(0, -3);
+  else if (s.length > 4 && /(ches|shes|xes|zes|ses)$/.test(s)) s = s.slice(0, -2);
+  else if (s.length > 4 && s.endsWith("ies")) s = `${s.slice(0, -3)}y`;
+  else if (s.length > 3 && s.endsWith("s") && !s.endsWith("ss")) s = s.slice(0, -1);
+  // Guard: a stem that collapses into a STOPWORD or below the meaningful-token
+  // length floor (3, matching `tokens()`) is not a real stem — it's an
+  // over-aggressive strip that happens to be harmless today only because
+  // STOPWORDS filters it before it can corrupt vocab matching ("news" → "new").
+  // Keep the ORIGINAL token rather than ship a silently-wrong stem.
+  if (s !== t && (STOPWORDS.has(s) || s.length < 3)) return t;
+  return s;
+}
+
+/** A token counts as "vocab-supported" when it (or its stem) is literally in
+ *  the subject's category vocabulary, or (or its stem) is the subject's own
+ *  brand token. Scans `categoryVocab` for a stem match too, so a seed's plural
+ *  ("rockets") corroborates a query's singular ("rocket") and vice versa —
+ *  without mutating `categoryVocab` itself (kept exact for the existing
+ *  `.has()` unit tests / debug surfaces). */
+function isVocabSupported(t: string, brandTokens: Set<string>, categoryVocab: Set<string>): boolean {
+  if (categoryVocab.has(t) || brandTokens.has(t)) return true;
+  const st = stem(t);
+  if (st !== t && (categoryVocab.has(st) || brandTokens.has(st))) return true;
+  for (const v of categoryVocab) if (stem(v) === st) return true;
+  return false;
+}
+
+/**
+ * THE MACRO RULE (2026-07-19, Part A2): a keyword classifies CATEGORY only
+ * when EVERY non-generic token of the phrase is supported — by the subject's
+ * own vocabulary (incl. LLM-seed corroboration) or GENERIC_TOKENS. One
+ * unsupported token anywhere forecloses category, structurally — no
+ * blocklist entry is needed for the next unlisted entity ("fox news" via a
+ * corroborated "news"; "what time is it in hawaii" via a corroborated
+ * "time"): the OTHER content word ("fox"/"hawaii") was never actually
+ * evidenced as this subject's category, and the old any-shared-token rule
+ * let it ride along on one word that was. A keyword whose tokens are ALL
+ * merely generic (zero real vocabulary evidence) is also not category — a
+ * ubiquitous phrase must not universally match every subject that ranks for it.
+ */
 function classify(keyword: string, brandTokens: Set<string>, categoryVocab: Set<string>): KeywordClass {
   // Brand via the shared detector (exact-token or distinctive-substring match).
   if (isBrandKeyword(keyword, brandTokens)) return "brand";
   // A ubiquitous other-brand/entity is off-topic outright — a subject ranks for
   // these incidentally, never as its own category (x.com #9 for "google").
   if (isMegaBrandKeyword(keyword)) return "offtopic";
-  // Category: shares a meaningful topic token with the subject's own vocabulary.
-  const toks: string[] = keyword.toLowerCase().match(/[a-z0-9]+/g) ?? [];
-  for (const t of toks) if (categoryVocab.has(t)) return "category";
-  return "offtopic";
+  // Category: EVERY non-generic token must be supported, and at least one must
+  // be REAL vocabulary support (not merely generic) — see rule doc above.
+  const toks = tokens(keyword); // the same stopword/length normalization buildVocab uses
+  if (toks.length === 0) return "offtopic"; // nothing meaningful left to judge
+  let anyVocabSupported = false;
+  for (const t of toks) {
+    const vocabSupported = isVocabSupported(t, brandTokens, categoryVocab);
+    if (vocabSupported) { anyVocabSupported = true; continue; }
+    const st = stem(t);
+    if (GENERIC_TOKENS.has(t) || GENERIC_TOKENS.has(st)) continue; // allowed to ride, but doesn't count as evidence
+    return "offtopic"; // an unsupported, non-generic token forecloses category
+  }
+  return anyVocabSupported ? "category" : "offtopic";
 }
 
 const WINNING_POSITION = 3;
@@ -428,33 +514,53 @@ export function computeCategoryDemand(
 }
 
 export interface MarketTier {
-  tier: "broad" | "medium";
+  tier: "broad" | "niche";
   phrases: DemandRow[];
   demand: number;
   bestPosition: number | null;
 }
 
 /**
- * M2 (2026-07-19): the broad/medium market ladder — "this is a big industry,
- * this is the category you compete in" — priced from the SAME single
- * search_volume request as the category seeds (the tier phrases are merged into
- * that one call's keyword list; request-billed, so phrase count is cost-free).
- * The NICHE rung is deliberately NOT computed here: it IS the existing
- * category-demand card (one concept, one name — G7). Standing per rung comes
- * only from the real rank map (the one ranked_keywords call) — never invented.
- * Feeds NOTHING into sv.score (invariant #1).
+ * Task B (2026-07-19, ladder restructure — data-grounded rungs, not synonym
+ * labels): priced from the SAME single search_volume request as the category
+ * seeds (the tier phrases are merged into that one call's keyword list;
+ * request-billed, so phrase count is cost-free). The MEDIUM rung is dropped
+ * entirely — the medium rung is no longer generated, parsed, or accepted
+ * anywhere in the pipeline ("never pay for data you don't render", per-field).
+ * At most `[broad?, niche?]`:
+ *
+ *   - **Cross-rung dedup**: a phrase already in the CATEGORY phrase set
+ *     (`categoryPhrases`, lowercased) is excluded from BOTH broad and niche —
+ *     it's already counted in the category-demand hero, so a rung must not
+ *     re-render it (a live scan showed "seo tools" priced in a rung AND the
+ *     hero, visibly double-counted). A phrase seeded in BOTH broad and niche
+ *     keeps NICHE only (niche priced first; broad's price excludes niche's
+ *     own keywords).
+ *   - **Inversion guard**: BROAD only renders when its priced demand STRICTLY
+ *     EXCEEDS `categoryDemand` — an inverted ladder (a "broad" rung sized
+ *     below the category it's supposed to sit above — a live scan showed
+ *     broad 5,200 ≤ category 112,420) is dropped rather than rendered
+ *     dishonestly (degrade, never invent a false hierarchy).
+ *   - **Niche rung**: renders whenever ≥1 phrase prices > 0 after dedup — no
+ *     further gate (it's a cheap, additional rung, not claimed "biggest").
+ *
+ * Standing per rung comes only from the real rank map (the one
+ * ranked_keywords call) — never invented. Feeds NOTHING into sv.score
+ * (invariant #1).
  */
 export function computeMarketTiers(
-  tierSeeds: { broad: string[]; medium: string[]; niche: string[] },
+  tierSeeds: { broad: string[]; niche: string[] },
   volumesByKeyword: Map<string, number>,
   rankByKeyword: Map<string, number>,
+  categoryPhrases: DemandRow[] = [],
+  categoryDemand: number = 0,
 ): MarketTier[] {
-  const mk = (tier: MarketTier["tier"], seeds: string[]): MarketTier => {
+  const price = (seeds: string[], exclude: Set<string>) => {
     const seen = new Set<string>();
     const phrases: DemandRow[] = [];
     for (const raw of seeds) {
       const keyword = raw.toLowerCase().trim();
-      if (!keyword || seen.has(keyword)) continue;
+      if (!keyword || seen.has(keyword) || exclude.has(keyword)) continue;
       seen.add(keyword);
       const volume = volumesByKeyword.get(keyword) ?? 0;
       if (volume <= 0) continue;
@@ -463,13 +569,28 @@ export function computeMarketTiers(
     phrases.sort((a, b) => b.volume - a.volume);
     const positions = phrases.map((p) => p.yourPosition).filter((p): p is number => typeof p === "number");
     return {
-      tier,
       phrases,
       demand: phrases.reduce((s, p) => s + p.volume, 0), // G4-per-tier by construction
       bestPosition: positions.length ? Math.min(...positions) : null,
     };
   };
-  return [mk("broad", tierSeeds.broad), mk("medium", tierSeeds.medium)].filter((t) => t.phrases.length > 0);
+
+  const categorySet = new Set(categoryPhrases.map((p) => p.keyword.toLowerCase().trim()));
+  // Niche priced FIRST (excluding only the category set) so a phrase seeded in
+  // both broad and niche is resolved in niche's favour; broad then excludes
+  // both the category set AND niche's own priced keywords.
+  const nicheResult = price(tierSeeds.niche, categorySet);
+  const broadExclude = new Set([...categorySet, ...nicheResult.phrases.map((p) => p.keyword)]);
+  const broadResult = price(tierSeeds.broad, broadExclude);
+
+  const tiers: MarketTier[] = [];
+  if (broadResult.phrases.length > 0 && broadResult.demand > categoryDemand) {
+    tiers.push({ tier: "broad", ...broadResult });
+  }
+  if (nicheResult.phrases.length > 0) {
+    tiers.push({ tier: "niche", ...nicheResult });
+  }
+  return tiers;
 }
 
 /**
@@ -507,7 +628,7 @@ export async function gatherFreeSearchVisibility(
   rawSelf: string,
   seedText: string[],
   llmCategorySeeds: string[] = [],
-  tierSeeds?: { broad: string[]; medium: string[]; niche: string[] },
+  tierSeeds?: { broad: string[]; niche: string[] },
 ): Promise<SearchVisibility> {
   try {
     const self = normalizeHost(rawSelf);
@@ -537,20 +658,26 @@ export async function gatherFreeSearchVisibility(
       if (cur === undefined || k.position < cur) rankByKeyword.set(key, k.position);
     }
     const seeds = buildCategorySeeds(sv, llmCategorySeeds);
-    // ONE volumes request prices the category seeds AND the ladder's tier phrases
-    // (request-billed — merging keywords adds no cost and no latency).
-    const tierPhrases = tierSeeds ? [...tierSeeds.broad, ...tierSeeds.medium] : [];
+    // ONE volumes request prices the category seeds AND the ladder's BROAD +
+    // NICHE tier phrases (request-billed — merging keywords adds no cost and no
+    // latency). MEDIUM is dropped from the ladder entirely (never priced, never
+    // sent here) — "never pay for data you don't render", per-field.
+    const tierPhrases = tierSeeds ? [...tierSeeds.broad, ...tierSeeds.niche] : [];
     const allSeeds = [...new Set([...seeds, ...tierPhrases.map((s) => s.toLowerCase().trim())].filter(Boolean))].slice(0, 16);
     const seedVolumes = allSeeds.length > 0 ? await cachedKeywordVolumes(allSeeds).catch(() => []) : [];
     const volumesByKeyword = new Map(seedVolumes.map((r) => [r.keyword.toLowerCase(), r.volume]));
-    // Demand hero (niche/category rung): UNCHANGED — only the ORIGINAL category
-    // seeds feed it, so the persisted demand story doesn't move under the ladder.
+    // Demand hero (category rung): UNCHANGED — only the ORIGINAL category seeds
+    // feed it, so the persisted demand story doesn't move under the ladder.
     const catVolumes = seedVolumes.filter((r) => seeds.includes(r.keyword.toLowerCase()));
     // Merge the site's REAL category rankings (sv.categoryRanked — from the SAME
     // ranked_keywords call, no extra spend) with the seed volumes, so demand +
     // opportunities reflect the actual market for big AND small sites alike.
     const demand = computeCategoryDemand(catVolumes, rankByKeyword, sv.categoryRanked);
-    const marketTiers = tierSeeds ? computeMarketTiers(tierSeeds, volumesByKeyword, rankByKeyword) : undefined;
+    // computeMarketTiers runs AFTER computeCategoryDemand — the dedup + inversion
+    // guard need the category phrase set + demand total it just produced.
+    const marketTiers = tierSeeds
+      ? computeMarketTiers(tierSeeds, volumesByKeyword, rankByKeyword, demand.categoryPhrases, demand.categoryDemand)
+      : undefined;
     return { ...sv, ...demand, ...(marketTiers && marketTiers.length > 0 ? { marketTiers } : {}) };
   } catch {
     return EMPTY;

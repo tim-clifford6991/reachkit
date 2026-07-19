@@ -4,7 +4,7 @@
  * adversarial case: clean site, tiny category, ~90% other-brand visibility.
  */
 import { describe, it, expect } from "vitest";
-import { computeSearchVisibility, buildVocab, computeCategoryDemand, buildCategorySeeds, computeMarketTiers } from "./search-visibility";
+import { computeSearchVisibility, buildVocab, computeCategoryDemand, buildCategorySeeds, computeMarketTiers, classifyFootprint, stem } from "./search-visibility";
 import type { RankedKeyword } from "@/lib/scan/adapters/dataforseo-ranked-keywords";
 
 const kw = (keyword: string, position: number, volume: number, etv: number): RankedKeyword => ({
@@ -27,6 +27,12 @@ const TRUSTMRR: RankedKeyword[] = [
 const VOCAB = buildVocab("trustmrr.com", [
   "verified startup revenue database acquisition marketplace saas mrr",
 ]);
+
+describe("stem — the STOPWORDS footgun guard", () => {
+  it("never strips 'news' down to the stopword 'new' — keeps the original token", () => {
+    expect(stem("news")).toBe("news");
+  });
+});
 
 describe("buildVocab", () => {
   it("treats the domain label as brand and the topic words as category vocab", () => {
@@ -303,7 +309,7 @@ describe("free↔paid demand vocabulary (guard G7)", () => {
   });
 });
 
-describe("computeMarketTiers (M2) — the broad/medium market ladder", () => {
+describe("computeMarketTiers (Task B, 2026-07-19) — the broad/niche ladder, medium dropped", () => {
   const volumes = new Map([
     ["marketing software", 550000],
     ["seo tools", 74000],
@@ -313,26 +319,73 @@ describe("computeMarketTiers (M2) — the broad/medium market ladder", () => {
 
   it("each tier's demand reconciles EXACTLY to its rendered phrases (G4-per-tier)", () => {
     const tiers = computeMarketTiers(
-      { broad: ["marketing software"], medium: ["seo tools", "rank tracking software"], niche: ["x"] },
+      { broad: ["marketing software"], niche: ["rank tracking software"] },
       volumes,
       ranks,
+      [],
+      0,
     );
     for (const t of tiers) {
       expect(t.demand).toBe(t.phrases.reduce((s, p) => s + p.volume, 0));
       expect(t.phrases.length).toBeGreaterThan(0);
     }
-    expect(tiers.map((t) => t.tier)).toEqual(["broad", "medium"]); // niche never emitted
+    expect(tiers.map((t) => t.tier)).toEqual(["broad", "niche"]); // medium never emitted, ever
   });
 
   it("standing comes from the REAL rank map — never invented", () => {
-    const tiers = computeMarketTiers({ broad: ["marketing software"], medium: ["seo tools"], niche: [] }, volumes, ranks);
+    const tiers = computeMarketTiers({ broad: ["marketing software"], niche: ["seo tools"] }, volumes, ranks, [], 0);
     expect(tiers.find((t) => t.tier === "broad")!.bestPosition).toBeNull();
-    expect(tiers.find((t) => t.tier === "medium")!.bestPosition).toBe(12);
+    expect(tiers.find((t) => t.tier === "niche")!.bestPosition).toBe(12);
   });
 
   it("a tier whose phrases all price to 0 volume is omitted (degrade, never render a hollow rung)", () => {
-    const tiers = computeMarketTiers({ broad: ["zzz unknown"], medium: ["seo tools"], niche: [] }, volumes, ranks);
-    expect(tiers.map((t) => t.tier)).toEqual(["medium"]);
+    const tiers = computeMarketTiers({ broad: ["zzz unknown"], niche: ["seo tools"] }, volumes, ranks, [], 0);
+    expect(tiers.map((t) => t.tier)).toEqual(["niche"]);
+  });
+
+  it("cross-rung dedup: a phrase already in the category phrase set never appears in a rung", () => {
+    const categoryPhrases = [{ keyword: "seo tools", volume: 74000 }];
+    const tiers = computeMarketTiers(
+      { broad: ["marketing software", "seo tools"], niche: ["seo tools"] },
+      volumes,
+      ranks,
+      categoryPhrases,
+      0,
+    );
+    const allKeywords = tiers.flatMap((t) => t.phrases.map((p) => p.keyword));
+    expect(allKeywords).not.toContain("seo tools");
+    expect(allKeywords).toContain("marketing software");
+  });
+
+  it("cross-rung dedup: a phrase seeded in BOTH broad and niche keeps niche only", () => {
+    const tiers = computeMarketTiers(
+      { broad: ["marketing software", "rank tracking software"], niche: ["rank tracking software"] },
+      volumes,
+      ranks,
+      [],
+      0,
+    );
+    const broadT = tiers.find((t) => t.tier === "broad")!;
+    const nicheT = tiers.find((t) => t.tier === "niche")!;
+    expect(nicheT.phrases.some((p) => p.keyword === "rank tracking software")).toBe(true);
+    expect(broadT.phrases.some((p) => p.keyword === "rank tracking software")).toBe(false);
+  });
+
+  it("inversion guard: broad rung is DROPPED when its priced demand does not exceed category demand", () => {
+    // "seo tools" alone prices to 74,000 — below a 112,420 category demand, the
+    // reachkit.app live shape (broad 5,200 <= category 112,420, inverted).
+    const tiers = computeMarketTiers({ broad: ["seo tools"], niche: [] }, volumes, ranks, [], 112420);
+    expect(tiers.find((t) => t.tier === "broad")).toBeUndefined();
+  });
+
+  it("inversion guard: EQUAL broad/category demand is also dropped (≤, not <)", () => {
+    const tiers = computeMarketTiers({ broad: ["seo tools"], niche: [] }, volumes, ranks, [], 74000);
+    expect(tiers.find((t) => t.tier === "broad")).toBeUndefined();
+  });
+
+  it("inversion guard: broad rung RENDERS when its priced demand exceeds category demand", () => {
+    const tiers = computeMarketTiers({ broad: ["marketing software"], niche: [] }, volumes, ranks, [], 112420);
+    expect(tiers.find((t) => t.tier === "broad")).toBeDefined();
   });
 });
 
@@ -357,3 +410,102 @@ describe("M2 paid parity — the deep pass threads tier seeds too", () => {
     expect(argCount, `expected 4 args (rawSelf, seedText, catSeeds, tierSeeds) — got: ${args}`).toBe(4);
   });
 });
+
+describe("mega-brand matching is phrase-blind (the 'fox news' class, live scan aae8a31d)", () => {
+  // MEGA_BRAND_TOKENS stores multi-word entities as ONE concatenated token
+  // ("foxnews", "nypost", "nytimes") because a token-by-token check can only ever
+  // compare single tokens. Tokenizing the keyword "fox news" gives ["fox","news"] —
+  // neither of which is "foxnews" — so the entry was structurally unreachable via
+  // the two-word phrase real users search for. Reproduces today's live inputs: the
+  // lite synth's marketTiers prompt legitimized "news" as a corroborated category
+  // token via the seed "real-time news feed", which (pre-fix) let "fox news" ride
+  // that legitimized generic token straight into "category".
+  const rk = (keyword: string, position: number, volume: number, etv: number): RankedKeyword => ({
+    keyword, position, volume, etv, url: "https://x.com/x",
+  });
+
+  it("joins adjacent tokens (bigram) so a multi-word entity name matches: fox+news=foxnews", () => {
+    const sv = classifyFootprint(
+      "x.com",
+      ["a real-time news feed and microblogging platform"],
+      ["real-time news feed", "microblogging platform", "social media network"],
+      [
+        rk("fox news", 8, 37200000, 1744680),
+        rk("cnn", 10, 20400000, 1344360),
+        rk("microblogging platform", 5, 1000, 500),
+        rk("social media network", 6, 900, 450),
+      ],
+    );
+    const category = new Set(sv.categoryRanked.map((r) => r.keyword));
+    expect(category.has("fox news"), "fox news must NOT ride the legitimized 'news' token into category").toBe(false);
+    expect(category.has("cnn"), "cnn must stay off-topic").toBe(false);
+    // The legitimately-named categories must be unaffected by the mega-brand fix.
+    expect(category.has("microblogging platform")).toBe(true);
+    expect(category.has("social media network")).toBe(true);
+  });
+
+  it("a keyword that is ONLY a fragment of a mega-brand bigram (not the full pair) is unaffected", () => {
+    // "fox" alone (e.g. "fox sports") and "news" alone (e.g. "world news today")
+    // must not be treated as the mega-brand — only the adjacent PAIR "fox news"
+    // (or a token that IS itself a stored entry, like "cnn") is off-topic.
+    // Under the macro rule (Part A2) EVERY non-generic token must be supported,
+    // so "fox" now needs real vocabulary evidence — supplied honestly here via
+    // the site's OWN positioning prose (this sports-news aggregator genuinely
+    // covers Fox Sports content), not a rule-level special case.
+    const sv = classifyFootprint(
+      "sportsnews.com",
+      ["daily sports news and scores, including fox sports highlights"],
+      ["sports news roundup"],
+      [
+        rk("fox sports scores", 4, 500, 200),
+        rk("world news today", 6, 400, 150),
+      ],
+    );
+    const category = new Set(sv.categoryRanked.map((r) => r.keyword));
+    expect(category.has("fox sports scores")).toBe(true);
+    expect(category.has("world news today")).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// THE MACRO RULE (2026-07-19, Part A2): a curated MEGA_BRAND_TOKENS blocklist
+// can never enumerate the world's entities — the "fox news"/"what time is it
+// in hawaii" class recurs for ANY unlisted proper noun that happens to share
+// one corroborated generic token with the subject's vocabulary. The rule
+// change: category requires EVERY non-generic token of the keyword to be
+// supported (subject vocab, a corroborated LLM-seed token, or GENERIC_TOKENS)
+// — one unsupported token anywhere in the phrase forecloses category,
+// structurally, with no blocklist entry needed for the new entity.
+// ---------------------------------------------------------------------------
+describe("classification requires ALL non-generic tokens supported (the macro rule, no blocklist needed)", () => {
+  // A time-tracking product whose OWN seed corroborates "time" into its
+  // category vocabulary — exactly the mechanism that let "news" ride "fox
+  // news" into category. Reproduces the class generically (no MEGA_BRAND_TOKENS
+  // entry exists for "hawaii"/"tokyo" — there cannot be one for every place name).
+  const sv = classifyFootprint(
+    "chronotrack.com",
+    ["accurate time tracking software for distributed teams"],
+    ["time tracking software", "employee time clock"],
+    [
+      rk2("time tracking app", 2, 5000, 2000), // real category — both tokens supported
+      rk2("employee time clock", 3, 2000, 800), // real category — corroborated + vocab
+      rk2("what time is it in hawaii", 5, 550000, 90000), // "time" corroborated, "hawaii" is NOT
+      rk2("time zone converter tokyo", 6, 300000, 40000), // "time" corroborated, "tokyo" is NOT
+    ],
+  );
+  const category = new Set(sv.categoryRanked.map((r) => r.keyword));
+
+  it("a keyword with one corroborated-generic token + one wholly unsupported token is OFFTOPIC, not category", () => {
+    expect(category.has("what time is it in hawaii"), "hawaii is unsupported — must not ride 'time' into category").toBe(false);
+    expect(category.has("time zone converter tokyo"), "tokyo is unsupported — must not ride 'time' into category").toBe(false);
+  });
+
+  it("the subject's REAL category terms (all tokens supported) are unaffected", () => {
+    expect(category.has("time tracking app")).toBe(true);
+    expect(category.has("employee time clock")).toBe(true);
+  });
+});
+
+function rk2(keyword: string, position: number, volume: number, etv: number): RankedKeyword {
+  return { keyword, position, volume, etv, url: "https://chronotrack.com/x" };
+}
