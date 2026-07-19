@@ -518,14 +518,17 @@ test(
     const report = await readReport(scanId);
     expectFourQuestionReport(report);
 
-    // Q1 positioning mirror degraded to the EMPTY shape (no findings_payload to
-    // source it from) — honest blanks, not fabricated copy.
+    // The deep pass now OWNS the synth (runFullScan re-runs runSynth on Sonnet and
+    // persistDeepSynth writes it), so a MISSING findings_payload is no longer a
+    // degraded path — full-scan REGENERATES the positioning mirror + findings itself
+    // (2026-07-19). Previously the deep pass READ findings_payload, so a missing one
+    // blanked the mirror; that coupling is gone. Here (fixtures) the mirror is sourced
+    // from the regenerated fixture synth, so it is POPULATED, and the report assembles.
     const whatYouOffer = report["whatYouOffer"] as {
       positioningMirror: { listingSays: string; reviewsValue: string; gap: string };
     };
-    expect(whatYouOffer.positioningMirror.listingSays).toBe("");
-    expect(whatYouOffer.positioningMirror.reviewsValue).toBe("");
-    expect(whatYouOffer.positioningMirror.gap).toBe("");
+    expect(typeof whatYouOffer.positioningMirror.listingSays).toBe("string");
+    expect(whatYouOffer.positioningMirror.listingSays.length).toBeGreaterThan(0); // regenerated, not the old empty shape
   },
   90_000,
 );
