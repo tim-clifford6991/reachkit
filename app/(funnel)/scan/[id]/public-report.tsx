@@ -51,10 +51,14 @@ export function publicReportProps(
     payload.whatToDoThisWeek.quickWins.length +
     payload.whatToDoThisWeek.medium.length +
     payload.whatToDoThisWeek.longPlay.length;
-  // Paid rival gap count, else the free subject-only category-gap count (iteration
-  // 2) — so the teaser can say "unlock N more" from the full pre-redaction count.
+  // The teaser count must be the SAME collection the opportunity section renders
+  // (paid rival gap when present, else the free category opportunities) — the old
+  // categoryGap source is empty by construction for 0-ranking sites, which
+  // rendered "Unlock all 0 category opportunities" live (scan 4093f1c9, WS-B).
   const fullGapQueries =
-    (payload.market?.gap?.keywordGap?.length ?? 0) || (payload.searchVisibility?.categoryGap?.length ?? 0);
+    (payload.market?.gap?.keywordGap?.length ?? 0) ||
+    (payload.searchVisibility?.categoryOpportunities?.length ?? 0) ||
+    (payload.searchVisibility?.categoryGap?.length ?? 0);
 
   const resultsProps: ResultsScreenProps = {
     ...toResultsProps(report, brand?.host ?? "your site", fullActions, fullGapQueries),

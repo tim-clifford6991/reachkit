@@ -435,7 +435,7 @@ export function ResultsScreen(p: ResultsScreenProps) {
                 </div>
               ) : null;
             }
-            const more = Math.max(0, p.gapTotal - 1);
+            const more = Math.max(0, p.gapTotal - Math.min(p.gapRows.length, 4));
             const oc = oppColors(top.opp);
             return (
               <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16, padding: "22px 24px" }}>
@@ -458,9 +458,22 @@ export function ResultsScreen(p: ResultsScreenProps) {
                     : <>.</>}
                   {more > 0 && <> There {more === 1 ? "is" : "are"} <strong style={{ color: "var(--c-fg)" }}>{more} more</strong> like it in your category.</>}
                 </div>
-                {!p.hideUnlock && (
+                {p.gapRows.length > 1 && (
+                  <div style={{ marginTop: 14, borderTop: "1px solid var(--c-line2)", paddingTop: 4 }}>
+                    {p.gapRows.slice(1, 4).map((row) => (
+                      <div key={row.query} style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: 10, padding: "8px 0", borderBottom: "1px solid var(--c-line2)", fontSize: 13.5 }}>
+                        <span style={{ fontFamily: SG, fontWeight: 600, flex: "1 1 160px", minWidth: 0 }} className="rk-wrap-any">{row.query}</span>
+                        <span style={{ fontFamily: JM, color: "var(--c-muted)" }}>{row.volume}/mo</span>
+                        <span style={{ fontFamily: JM, fontWeight: 700, color: row.ranked ? "#C98A12" : "#E5484D" }}>{row.rank}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {!p.hideUnlock && p.gapTotal > 0 && (
                   <div style={{ marginTop: 14, textAlign: "center", fontSize: 14, fontWeight: 600 }}>
-                    <UnlockLink scanId={p.scanId}>🔒 Unlock all {p.gapTotal} category {p.gapTotal === 1 ? "opportunity" : "opportunities"} + the plan to win them →</UnlockLink>
+                    <UnlockLink scanId={p.scanId}>
+                      🔒 Unlock the plan to win {p.gapTotal === 1 ? "this opportunity" : `all ${p.gapTotal} opportunities`} — pages, drafts, and weekly tracking →
+                    </UnlockLink>
                   </div>
                 )}
               </div>

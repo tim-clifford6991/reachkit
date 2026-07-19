@@ -22,6 +22,7 @@ import type { ReportPayload } from "@/lib/scan/report";
 import type { SearchVisibility } from "@/lib/scan/search-visibility";
 import type { ActionCard } from "@/lib/llm/types";
 import { tierByPlan, fmtPrice } from "@/lib/billing/pricing";
+import { publicReportProps } from "@/app/(funnel)/scan/[id]/public-report";
 
 // The unlock band must state the price up front (Task 1.4 — visitors used to
 // learn the price only inside Stripe Checkout). Built from the same pricing
@@ -393,5 +394,40 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
     expect(html).toContain("searches/mo across your category");
     expect(html).toContain("photo hosting"); // a phrase from categoryPhrases renders
     expect(html).toContain("2,700"); // ...with its volume, so the total reconciles
+  });
+
+  // WS-B (2026-07-19): the teaser count must derive from the SAME collection the
+  // opportunity rows are drawn from. Before this fix, `fullGapQueries` in
+  // public-report.tsx only looked at `market.gap.keywordGap` (empty on a free
+  // report) and `searchVisibility.categoryGap` (empty by construction for a
+  // 0-ranking site) — never `categoryOpportunities`, the actual source of the
+  // rendered rows — so a real scan (4093f1c9) rendered "🔒 Unlock all 0 category
+  // opportunities" beside 4 real opportunity rows. Goes through the exact public
+  // path (redactReportForTier + fullGapQueries + toResultsProps + ResultsScreen)
+  // via `publicReportProps`, the same helper `public-report.tsx`'s server
+  // component calls.
+  it("teaser count derives from the SAME rows rendered — 'Unlock all 0' is impossible (WS-B)", () => {
+    const payload = report({
+      searchVisibility: sv({
+        keywordsRanked: 0,
+        categoryGap: [],
+        categoryOpportunities: [
+          { keyword: "rank tracking software", volume: 1600 },
+          { keyword: "competitor analysis tools", volume: 1300 },
+          { keyword: "marketing analytics platform", volume: 320 },
+          { keyword: "seo analytics software", volume: 260 },
+        ],
+      }),
+    });
+    const { resultsProps } = publicReportProps(payload, "opp-site", "https://opp-site.com");
+    const html = renderToStaticMarkup(<ResultsScreen {...resultsProps} scanId="scan-ws-b" />);
+
+    expect(html).not.toMatch(/all\s+0\s+category/i);
+    expect(html).toContain("competitor analysis tools"); // row 2 is VISIBLE now
+    // Pin the actual count the CTA states — not just the absence of "0". If the
+    // count derivation regresses to 0, the conditional `gapTotal > 0` guard
+    // would hide the whole unlock band rather than surface a wrong number, which
+    // would let `not.toMatch(/all\s+0/)` pass for the wrong reason.
+    expect(html).toContain("win all 4 opportunities");
   });
 });
