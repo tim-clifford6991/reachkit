@@ -83,31 +83,46 @@ export function visibleTextFromHtml(html: string): string {
 }
 
 /**
- * True when the fetched content is unusable for downstream measurement — the
- * page is GARBAGE when any of:
- *   1. visible text < 400 chars (functionally blank)
- *   2. `title` (trimmed/lowercased) is empty, or equals the bare host
- *      (www-stripped) — the page never resolved past "this is just the URL"
- *   3. a known JS-shell marker is present in the raw HTML
+ * True when the fetched content is unusable for downstream measurement.
+ *
+ * CALIBRATION FIX (CI-caught, 2026-07-20 — the "acme.example" class): short
+ * visible text is NEVER sufficient on its own to call a page garbage. A
+ * small-but-legitimate landing page (a real, non-host `<title>`, a couple of
+ * paragraphs) is not a JS shell — real minimal pages exist. The eval-
+ * integration suite mocked exactly this shape (`<html><title>Acme</title>
+ * </html>`, ~4 visible chars) and the old length-alone rule flagged it
+ * garbage, triggering an escalation that had no business running.
+ *
+ * The page is GARBAGE only when there is actual SHELL EVIDENCE:
+ *   1. `title` (when provided — see below), trimmed/lowercased, is empty or
+ *      equals the bare host (www-stripped) — the page never resolved past
+ *      "this is just the URL".
+ *   2. a known JS-shell marker is present in the raw HTML/content.
+ * Short text (< 400 chars) is a CORROBORATING signal only — real evidence
+ * (1) or (2) doesn't need it, and its absence doesn't manufacture evidence
+ * that isn't there.
  *
  * `title` is optional — omit it when re-validating content that has no title
- * concept (the escalated Tavily Extract text); only the length + marker
- * checks apply in that case.
+ * concept at all (the escalated Tavily Extract text, which is rendered
+ * markdown with no `<title>` field). In that ONE case there is no title-
+ * based evidence to fall back on, so length is promoted back to a direct
+ * trigger — an empty/near-empty escalation result must still read as
+ * unusable (don't-cache-empties), and this is the only place `MIN_TEXT_CHARS`
+ * still gates the verdict by itself.
  */
 export function isGarbageFetch(input: GarbageFetchInput): boolean {
   const text = (input.text ?? "").trim();
-  if (text.length < MIN_TEXT_CHARS) return true;
+  const html = input.html ?? "";
+  const hasShellMarker = ENABLE_JS_MARKER.test(html) || EMPTY_MOUNT_DIV_RE.test(html);
 
-  if (input.title !== undefined) {
-    const title = input.title.trim().toLowerCase();
-    const host = bareHostOf(input.host);
-    if (title.length === 0) return true;
-    if (host.length > 0 && title === host) return true;
+  if (input.title === undefined) {
+    if (text.length < MIN_TEXT_CHARS) return true;
+    return hasShellMarker;
   }
 
-  const html = input.html ?? "";
-  if (ENABLE_JS_MARKER.test(html)) return true;
-  if (EMPTY_MOUNT_DIV_RE.test(html)) return true;
+  const title = input.title.trim().toLowerCase();
+  const host = bareHostOf(input.host);
+  const titleIsBlankOrBareHost = title.length === 0 || (host.length > 0 && title === host);
 
-  return false;
+  return titleIsBlankOrBareHost || hasShellMarker;
 }

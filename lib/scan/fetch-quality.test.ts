@@ -117,15 +117,38 @@ describe("isGarbageFetch — the primary site-fetch check (html + text + title +
     expect(isGarbageFetch({ html: "<html></html>", text: "x".repeat(500), title: "", host: "acme.io" })).toBe(true);
   });
 
-  test("visible text under 400 chars → garbage even with a real, distinct title", () => {
+  // CLASS FIX (CI-caught 2026-07-20, the "acme.example" bug): short text
+  // alone must NEVER trigger garbage when the title is real and distinct
+  // from the host. The eval-integration suite mocks EXACTLY this shape —
+  // `<html><title>Acme</title></html>`, ~4 visible chars — for a
+  // small-but-legitimate page, and the old length-alone rule flagged it
+  // garbage, triggering an escalation that had no business running. Real
+  // minimal landing pages exist; short text is corroborating, not a trigger.
+  test("short text WITH a real, distinct title is NOT garbage (the minimal-real-page class)", () => {
     expect(
-      isGarbageFetch({ html: "<html></html>", text: "short", title: "Acme — Real Title", host: "acme.io" }),
-    ).toBe(true);
+      isGarbageFetch({
+        html: "<html><title>Acme</title></html>",
+        text: "Acme",
+        title: "Acme",
+        host: "acme.example",
+      }),
+    ).toBe(false);
   });
 
-  test("exactly at the 400-char boundary is NOT garbage (< 400 is the rule, not <=)", () => {
-    const text = "a".repeat(400); // 400 chars exactly, no trim-affecting whitespace
-    expect(text.length).toBe(400);
+  test("short text stays NOT garbage even with no other content at all, given a real title", () => {
+    expect(
+      isGarbageFetch({ html: "<html></html>", text: "short", title: "Acme — Real Title", host: "acme.io" }),
+    ).toBe(false);
+  });
+
+  // The 400-char length rule no longer applies at all once a title is
+  // provided (see the escalated-content describe block below for the ONE
+  // path where it still gates directly) — this fixture proves a page can be
+  // arbitrarily short of it and still read as healthy, given real shell
+  // evidence is absent.
+  test("well under the old 400-char floor, still NOT garbage (length plays no role once titled)", () => {
+    const text = "Acme.";
+    expect(text.length).toBeLessThan(400);
     expect(isGarbageFetch({ html: "<html></html>", text, title: "Acme — Real Title", host: "acme.io" })).toBe(false);
   });
 
@@ -207,6 +230,22 @@ describe("isGarbageFetch — re-checking escalated (Tavily Extract) content: tit
 
   test("escalated content that itself contains a shell marker is still garbage without a title", () => {
     const text = "You need to enable JavaScript to run this app. " + "padding ".repeat(60);
+    expect(isGarbageFetch({ html: text, text, host: HOST })).toBe(true);
+  });
+
+  // The 400-char length rule is promoted back to a direct trigger ONLY here
+  // — there is no title to check, so emptiness/shortness IS the shell
+  // evidence for re-validating an escalation result (don't-cache-empties).
+  // This is the one surviving home for the old title-defined boundary test
+  // (moved here since length no longer gates the title-defined path at all).
+  test("exactly at the 400-char boundary is NOT garbage without a title (< 400 is the rule, not <=)", () => {
+    const text = "a".repeat(400); // 400 chars exactly, no trim-affecting whitespace
+    expect(text.length).toBe(400);
+    expect(isGarbageFetch({ html: text, text, host: HOST })).toBe(false);
+  });
+
+  test("399 chars without a title IS garbage (length is the ONLY available evidence here)", () => {
+    const text = "a".repeat(399);
     expect(isGarbageFetch({ html: text, text, host: HOST })).toBe(true);
   });
 });

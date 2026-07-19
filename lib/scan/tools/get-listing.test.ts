@@ -250,6 +250,38 @@ describe("get_listing — CRITICAL A: escalated title REPLACES listing.name", ()
   });
 });
 
+describe("get_listing — escalation resilience: an escalation EXCEPTION must not discard the original listing", () => {
+  // CI-caught 2026-07-20, alongside the false-positive garbage fix above: a
+  // garbage-triggered escalation whose `tavilyExtract` call THROWS (adapter
+  // error, or — as reproduced live — a test/caller that mocks the tavily
+  // module without that export) was uncaught inside `escalateIfGarbage`.
+  // `getListing.run` had no try/catch around it, so the rejection propagated
+  // out of the tool entirely; the ONLY caller (collect.ts) backstops the
+  // whole tool with a `.catch` that replaces the ENTIRE listing with a bare
+  // hostname stub — discarding the GOOD name/category/description the site
+  // fetch already recovered, not just failing to improve on it.
+  test("tavilyExtract throwing during escalation still returns the ORIGINAL listing.name, not a rejection", async () => {
+    vi.resetModules();
+    const tavilyExtract = vi.fn(async () => {
+      throw new Error("adapter blew up");
+    });
+    mockCommon({ siteHtml: GARBAGE_HTML, siteName: "Original Real Name", tavilyExtract });
+
+    const { getListing } = await import("./get-listing");
+    const budget = await budgetOf();
+    const out = await getListing.run(
+      { storeUrl: STORE_URL, subjectKey: STORE_URL },
+      { scanId: "s11", mode: "web", budget },
+    );
+
+    // The tool call itself must resolve (not reject) and keep the name the
+    // site fetch already recovered — an escalation failure degrades, it
+    // never destroys already-good identity data.
+    expect(out.listing.name).toBe("Original Real Name");
+    expect(out.extras.fetchDegraded).toBe(true);
+  });
+});
+
 describe("get_listing — IMPORTANT B: still-garbage escalation persists an exclusionary marker", () => {
   test("a STILL-GARBAGE escalation persists a site_fetch_degraded marker row", async () => {
     vi.resetModules();

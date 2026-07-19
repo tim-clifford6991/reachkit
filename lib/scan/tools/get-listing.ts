@@ -188,21 +188,37 @@ export const getListing: ToolDefinition<GetListingArgs, GetListingResult> = {
       // SUCCEEDED but returned unusable (JS-shell) content.
       let fetchDegraded = false;
       if (siteSettled.status === "fulfilled") {
-        const result = await escalateIfGarbage({
-          storeUrl: args.storeUrl,
-          subjectKey: args.subjectKey,
-          rawHtml: siteSettled.value.raw,
-          listingName: listing.name,
-          host,
-          mode: ctx.mode,
-          budget: ctx.budget,
-        });
-        fetchDegraded = result.fetchDegraded;
-        // CRITICAL A — the escalated page's derived name REPLACES listing.name
-        // (only name; no other listing field is fabricated) so downstream
-        // brand detection (facts.listing.name → brandNames) can recover.
-        if (result.escalatedName) {
-          listing = { ...listing, name: result.escalatedName };
+        // Second defect (CI-caught alongside the false-positive garbage
+        // flag, 2026-07-20): escalation is a BEST-EFFORT recovery attempt —
+        // an exception anywhere inside it (the Tavily call, or the marker
+        // persist) must never propagate. `getListing`'s only caller
+        // (collect.ts) wraps the WHOLE tool in a `.catch` backstop that
+        // replaces the entire listing with a bare-hostname stub — so an
+        // uncaught escalation failure was silently discarding the GOOD
+        // original title/category/description the site fetch already
+        // recovered, not just failing to improve on it. The original
+        // `listing` (already assigned above from the successful site fetch)
+        // must survive; a failed escalation degrades honestly instead.
+        try {
+          const result = await escalateIfGarbage({
+            storeUrl: args.storeUrl,
+            subjectKey: args.subjectKey,
+            rawHtml: siteSettled.value.raw,
+            listingName: listing.name,
+            host,
+            mode: ctx.mode,
+            budget: ctx.budget,
+          });
+          fetchDegraded = result.fetchDegraded;
+          // CRITICAL A — the escalated page's derived name REPLACES
+          // listing.name (only name; no other listing field is fabricated)
+          // so downstream brand detection (facts.listing.name → brandNames)
+          // can recover.
+          if (result.escalatedName) {
+            listing = { ...listing, name: result.escalatedName };
+          }
+        } catch {
+          fetchDegraded = true;
         }
       }
 
