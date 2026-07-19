@@ -455,12 +455,63 @@ const r6LadderSanity: RubricRule = {
 };
 
 // ---------------------------------------------------------------------------
+// R7 — LLM-authored prose never carries an unmeasured quantitative claim
+// (the trustmrr "180,000 monthly visitors" class)
+// ---------------------------------------------------------------------------
+
+/** A digit-run of 3+ consecutive digits — "180,000" (via its "180"/"000"
+ *  groups), "45,000+", "500,000". Deliberately catches nothing smaller (a
+ *  rank "#12" or "top 5" is not a claim about scale). */
+const R7_DIGIT_RUN_RE = /\d{3,}/;
+
+/** Splits `text` into sentences — mirrors `splitSentences` in
+ *  to-results-props.ts exactly (incl. protecting decimal points like "2.5
+ *  million" from being read as a sentence terminator: a naive split
+ *  fractures "…45,000+ options and 2.5 million user reviews." into "…and 2."
+ *  + "5 million user reviews.", and the surviving fragment loses its
+ *  digit-run — the real getapp.com corpus bug this rule exists to catch), so
+ *  the rubric can assert the scrub actually held on the RENDERED html. */
+const DIGIT_SENTENCE_SENTINEL = "\u0001";
+function digitLadenSentences(text: string | undefined): string[] {
+  if (!text) return [];
+  const protectedText = text.replace(/(\d)\.(\d)/g, `$1${DIGIT_SENTENCE_SENTINEL}$2`);
+  return (protectedText.match(/[^.!?]+[.!?]*/g) ?? [])
+    .map((s) => s.split(DIGIT_SENTENCE_SENTINEL).join(".").trim())
+    .filter((s) => s.length > 0 && R7_DIGIT_RUN_RE.test(s));
+}
+
+const r7NoNumeralClaimsInLlmProse: RubricRule = {
+  id: "R7",
+  title: "LLM-authored prose (identity line, mirror gap, mirror audience tags) never renders an unmeasured 3+ digit-run number",
+  check: (payload, html) => {
+    const text = visibleText(html);
+    const violations: RubricViolation[] = [];
+    const pm = payload.whatYouOffer?.positioningMirror;
+    const candidates = [
+      ...digitLadenSentences(pm?.listingSays),
+      ...digitLadenSentences(pm?.gap),
+      ...(pm?.actualAudience ?? []).filter((t) => R7_DIGIT_RUN_RE.test(t)),
+      ...(pm?.intendedAudience ?? []).filter((t) => R7_DIGIT_RUN_RE.test(t)),
+    ];
+    for (const s of candidates) {
+      if (s.length >= 4 && text.includes(s)) {
+        violations.push({
+          rule: "R7",
+          message: `LLM-authored prose "${s}" carries an unmeasured 3+ digit-run number and rendered verbatim — the trustmrr "180,000 monthly visitors" class`,
+        });
+      }
+    }
+    return violations;
+  },
+};
+
+// ---------------------------------------------------------------------------
 // Registry + runner
 // ---------------------------------------------------------------------------
 
 /** Every rubric rule, in priority order. The corpus test pins this list's
  *  length as an only-grows floor — deleting a rule is a ratchet violation. */
-export const RUBRIC_RULES: RubricRule[] = [r1NoGarbage, r2NumberBasis, r3EmptyInputNoSection, r4TeaserParity, r5ComparativeCopy, r6LadderSanity];
+export const RUBRIC_RULES: RubricRule[] = [r1NoGarbage, r2NumberBasis, r3EmptyInputNoSection, r4TeaserParity, r5ComparativeCopy, r6LadderSanity, r7NoNumeralClaimsInLlmProse];
 
 export interface RubricOptions {
   /** Rule ids to skip for a fixture — a named, only-shrinks list in the corpus

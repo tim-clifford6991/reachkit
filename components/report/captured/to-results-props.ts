@@ -16,6 +16,42 @@ const PILLAR_NOTE = (v: number, isMin: boolean) =>
 const CATEGORY_LABEL: Record<string, string> = { content: "Content", outreach: "Outreach", seo_aso: "SEO" };
 const effortLabel = (min: number) => (min < 30 ? "Quick" : min <= 120 ? "Medium" : "Deep");
 
+// E3 — numeral guard on rendered LLM prose (the trustmrr "180,000 monthly
+// visitors" class): an LLM-authored field (`identityLine`, `mirrorGap`, the
+// mirror's audience tags) must never carry a quantitative claim we didn't
+// measure — presenting an unverified third-party number as our own finding is
+// the defect, not the underlying data (which is left untouched everywhere
+// else). Deterministic scrub at THIS props boundary: drop any SENTENCE
+// carrying a digit-run of 3+ consecutive digits (≥100, incl. "180,000" via
+// its "180"/"000" groups, "45,000+"). Never applied to measured numbers
+// (demand, volumes, percentages) — those are template strings, not LLM prose.
+const DIGIT_RUN_RE = /\d{3,}/;
+/** Splits `text` into sentences (kept, incl. trailing punctuation + leading
+ *  whitespace). Protects decimal points ("2.5 million") from being read as a
+ *  sentence terminator first — a naive split fractures "…with 45,000+
+ *  options and 2.5 million user reviews." into "…and 2." + "5 million user
+ *  reviews.", and the surviving fragment loses its digit-run entirely (real
+ *  corpus finding: getapp.com's "2.5 million user reviews, backed by 16+
+ *  years" leaked past the scrub exactly this way on the first pass). */
+const NUMERAL_GUARD_SENTINEL = "\u0001";
+function splitSentences(text: string): string[] {
+  const protectedText = text.replace(/(\d)\.(\d)/g, `$1${NUMERAL_GUARD_SENTINEL}$2`);
+  return (protectedText.match(/[^.!?]+[.!?]*/g) ?? []).map((s) => s.split(NUMERAL_GUARD_SENTINEL).join("."));
+}
+/** Drops any sentence carrying an unmeasured 3+-digit-run number. Emptying
+ *  the field is expected and handled by the existing #11 omission machinery
+ *  downstream (identityLine `?`, mirrorGrounded `.length > 0`). */
+function scrubNumerals(text: string): string {
+  return splitSentences(text)
+    .filter((s) => !DIGIT_RUN_RE.test(s))
+    .join("")
+    .trim();
+}
+/** Same scrub applied per-tag (a tag IS the whole "sentence"). */
+function scrubNumeralTags(tags: string[]): string[] {
+  return tags.filter((t) => !DIGIT_RUN_RE.test(t));
+}
+
 export function toResultsProps(
   report: ReportPayload,
   siteLabel: string,
@@ -84,8 +120,10 @@ export function toResultsProps(
   // Clean LLM-authored audience tags — who the page is written FOR vs who it reads
   // AS. Replaces the old naive prose-splitting that produced garbage chips
   // ("trustmrr", "updated hourly —"). Empty when a legacy report predates the field.
+  // E3: also scrub any tag carrying an unmeasured 3+-digit-run number — a
+  // rendered tag is short, mirror-kit LLM prose exactly like identityLine.
   const cleanTags = (tags: string[] | undefined): string[] =>
-    (tags ?? []).filter((t) => typeof t === "string" && t.trim().length >= 2).map((t) => t.trim()).slice(0, 5);
+    scrubNumeralTags((tags ?? []).filter((t) => typeof t === "string" && t.trim().length >= 2).map((t) => t.trim()).slice(0, 5));
 
   // GROUNDING (invariant #11): the Positioning Mirror is a reviews-vs-listing
   // comparison. `actualAudience` ("who the page reads AS") is derived from reviews;
@@ -222,7 +260,9 @@ export function toResultsProps(
 
   // MINOR polish: only append an ellipsis when the string was ACTUALLY cut —
   // a bare 160-char slice with no ellipsis reads as a sentence that just stops.
-  const rawIdentity = (pm.listingSays ?? "").trim();
+  // E3: scrub BEFORE truncation — a dropped sentence must not just eat into
+  // the 160-char budget, it must never appear at all.
+  const rawIdentity = scrubNumerals((pm.listingSays ?? "").trim());
   // Review fix (IMPORTANT B, the belt) — a degraded fetch must never show an
   // identity line, even a STALE one from a payload whose positioningMirror
   // was captured before this scan's fetch failed (e.g. a refresh persisting
@@ -266,7 +306,9 @@ export function toResultsProps(
     actualTags,
     // The gap is the intended-vs-actual mismatch — meaningless (and ungrounded)
     // without the review-derived `actual`. Blank it when the mirror isn't grounded.
-    mirrorGap: mirrorGrounded ? pm.gap : "",
+    // E3: scrub the gap sentence too — the gap is LLM-authored prose exactly
+    // like identityLine, just derived from a different comparison.
+    mirrorGap: mirrorGrounded ? scrubNumerals(pm.gap) : "",
     gapRows,
     gapTotal: totalGapQueries ?? (gapCount || gapRows.length),
   };

@@ -7,6 +7,7 @@ import {
   isAggregatorHost,
   isNameCollision,
   looksLikeListicle,
+  looksLikeSentenceName,
 } from "./competitor-filter";
 import { rankCompetitors } from "./competitors";
 
@@ -95,6 +96,45 @@ describe("filterRealCompetitors", () => {
   test("falls back to the host brand when a kept result has an empty name", () => {
     const raw: Competitor[] = [{ name: "", url: "https://doneapp.io", source: "tavily", rank: 1 }];
     expect(filterRealCompetitors(raw)[0]?.name).toBe("Doneapp");
+  });
+
+  // E4 (live defect: x.com scan 05e64108) — an article headline surfaced as a
+  // rival NAME. A competitor name is never a sentence/headline.
+  test("drops the verbatim live defect string as a candidate name", () => {
+    const raw: Competitor[] = [
+      { name: "How users can leave Twitter / X", url: "", source: "llm_extracted", rank: 1 },
+    ];
+    expect(filterRealCompetitors(raw)).toEqual([]);
+  });
+});
+
+describe("looksLikeSentenceName (E4 — a rival name is never a sentence/headline)", () => {
+  test.each([
+    // the verbatim live defect (x.com scan 05e64108)
+    ["How users can leave Twitter / X", true],
+    // (a) > 4 words
+    ["The Best Five Tools For Teams", true],
+    // (b) interrogative / how-to start
+    ["Why teams switch from Slack", true],
+    ["What is the best CRM", true],
+    ["When to migrate off Heroku", true],
+    ["Where founders find customers", true],
+    ["Who competes with Stripe", true],
+    ["Top rated project tools", true],
+    ["Best free CRM software", true],
+    // (c) sentence punctuation beyond a single trailing "."
+    ["Is this the one? Read more", true],
+    ["Great tool, highly rated", true],
+    ["A guide: getting started", true],
+    ["Amazing! Try it now", true],
+    // real product names must survive
+    ["Focusmate", false],
+    ["Habitica", false],
+    ["Node.js", false],
+    ["Streaks", false],
+    ["Mailgun", false],
+  ])("looksLikeSentenceName(%s) -> %s", (name, expected) => {
+    expect(looksLikeSentenceName(name)).toBe(expected);
   });
 });
 

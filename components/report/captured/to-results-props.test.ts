@@ -159,6 +159,85 @@ describe("toResultsProps — search gap total", () => {
   });
 });
 
+describe("toResultsProps — numeral guard (E3, the trustmrr \"180,000 monthly visitors\" class)", () => {
+  it("drops a digit-laden SENTENCE from identityLine, keeping the clean rest (the real getapp.com defect)", () => {
+    const p = toResultsProps(
+      report({
+        whatYouOffer: {
+          positioningMirror: {
+            listingSays: "GetApp is a large software directory with 45,000+ options. It helps buyers compare software.",
+            reviewsValue: "",
+            gap: "",
+          },
+        },
+      }),
+      "getapp.com",
+    );
+    expect(p.identityLine).not.toContain("45,000");
+    expect(p.identityLine).toContain("It helps buyers compare software.");
+  });
+
+  it("blanks identityLine entirely when its ONLY sentence carries the unmeasured number", () => {
+    const p = toResultsProps(
+      report({
+        whatYouOffer: {
+          positioningMirror: { listingSays: "Trusted by 180,000 monthly visitors.", reviewsValue: "", gap: "" },
+        },
+      }),
+      "trustmrr.com",
+    );
+    expect(p.identityLine).toBe("");
+  });
+
+  it("scrubs a digit-laden mirrorGap", () => {
+    const p = toResultsProps(
+      report({
+        whatYouOffer: {
+          positioningMirror: {
+            listingSays: "x",
+            reviewsValue: "y",
+            actualAudience: ["solo founders"],
+            intendedAudience: ["teams"],
+            gap: "Reviews say it grew to 500,000 users, but the page reads as a hobby project.",
+          },
+        },
+      }),
+      "acme.com",
+    );
+    expect(p.mirrorGap).toBe("");
+  });
+
+  it("drops a digit-laden audience tag but keeps clean siblings", () => {
+    const p = toResultsProps(
+      report({
+        whatYouOffer: {
+          positioningMirror: {
+            listingSays: "x",
+            reviewsValue: "y",
+            actualAudience: ["500,000 happy users", "solo founders"],
+            intendedAudience: ["teams"],
+            gap: "gap",
+          },
+        },
+      }),
+      "acme.com",
+    );
+    expect(p.actualTags).toEqual(["solo founders"]);
+  });
+
+  it("leaves small numbers (ranks, counts under 100) untouched — the scrub targets 3+ digit runs only", () => {
+    const p = toResultsProps(
+      report({
+        whatYouOffer: {
+          positioningMirror: { listingSays: "One of the top 5 tools for photographers.", reviewsValue: "", gap: "" },
+        },
+      }),
+      "acme.com",
+    );
+    expect(p.identityLine).toBe("One of the top 5 tools for photographers.");
+  });
+});
+
 describe("toResultsProps — pillar measurement (A6)", () => {
   const radar = [
     { axis: "Content", value: 100, active: true, assessed: true },
