@@ -419,11 +419,27 @@ export function ResultsScreen(p: ResultsScreenProps) {
                     ))}
                   </div>
                 )}
-                {comps.length > 0 && (
+                {/* WS-E (2026-07-19): both rivalry states, not just the found
+                    case. Discovered rival NAMES are free (the compare-set);
+                    per-rival intel — how each one ranks, why they win, how
+                    much of the category they take — is the paid unlock. Live
+                    prod evidence: when discovery finds no rivals (reachkit.app),
+                    this line used to vanish entirely, silently dropping the
+                    "someone is winning these searches" insight. The no-rivals
+                    branch degrades to an honest tease instead of inventing
+                    names we didn't discover, and only shows on free (paid
+                    already has the answer). */}
+                {comps.length > 0 ? (
                   <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--c-line2)", fontSize: 13, color: "var(--c-muted)" }}>
-                    Buyers compare you to <strong style={{ color: "var(--c-ink)" }}>{comps.join(", ")}</strong>. <UnlockLink scanId={p.scanId}>Unlock to see how much of your category each one takes →</UnlockLink>
+                    Buyers compare you to <strong style={{ color: "var(--c-ink)" }}>{comps.join(", ")}</strong> — and rivals are taking the searches above.{" "}
+                    <UnlockLink scanId={p.scanId}>Unlock to see how each one ranks, why they win, and how much of your category each takes →</UnlockLink>
                   </div>
-                )}
+                ) : !p.hideUnlock ? (
+                  <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--c-line2)", fontSize: 13, color: "var(--c-muted)" }}>
+                    Someone is winning these searches today.{" "}
+                    <UnlockLink scanId={p.scanId}>The full scan discovers who&apos;s winning these searches and what they do to rank →</UnlockLink>
+                  </div>
+                ) : null}
               </div>
             );
           })()}
@@ -482,7 +498,7 @@ export function ResultsScreen(p: ResultsScreenProps) {
               // stay honest on a paid report with genuinely no data.
               return !p.hideUnlock ? (
                 <div style={{ background: "var(--c-tint-violet)", border: "1px solid var(--c-tint-violet-line)", borderRadius: 16, padding: "18px 22px", fontSize: 14, lineHeight: 1.55, color: "#3A3744" }}>
-                  🔒 The full keyword-gap plan{p.gapTotal > 0 ? ` (${p.gapTotal} queries)` : ""} — every buyer search where rivals outrank you, ranked by opportunity. <UnlockLink scanId={p.scanId}>Unlock the plan to win them →</UnlockLink>
+                  🔒 The full keyword-gap plan{p.gapTotal > 0 ? ` (${p.gapTotal} queries)` : ""} — every buyer search where rivals outrank you, ranked by opportunity. <UnlockLink scanId={p.scanId}>Unlock to see who wins them and how →</UnlockLink>
                 </div>
               ) : p.gapTotal === 0 ? (
                 <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16, padding: "18px 22px", fontSize: 14, color: "var(--c-faint)" }}>

@@ -302,7 +302,12 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
       // last three are this task's M3/WS-D fields, 2026-07-19). The render
       // must tolerate their absence.
     } as unknown as SearchVisibility;
-    const r = report({ searchVisibility: legacySv });
+    // Task 6 review hygiene addition: also omit positioningMirror.listingSays
+    // (the identity-strip field, added after this shape shipped) so the
+    // strip's `?? ""` defaulting at the props boundary is pinned by this
+    // legacy scenario like every other new render field.
+    const legacyMirror = { reviewsValue: "fast galleries", gap: "gap" } as unknown as ReportPayload["whatYouOffer"]["positioningMirror"];
+    const r = report({ whatYouOffer: { positioningMirror: legacyMirror }, searchVisibility: legacySv });
     const html = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r, "reflect.app", 2, 8)} scanId="scan-legacy" />);
     expect(html).toContain("searches/mo across your category"); // the demand block rendered
     assertNoGarbage(html, "legacy payload");
@@ -490,5 +495,31 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
   it("renders the identity strip from listingSays (R1)", () => {
     const html = renderPublicReport(report({ whatYouOffer: { positioningMirror: { listingSays: "SEO analytics for solo founders.", reviewsValue: "", gap: "" } } }));
     expect(html).toContain("SEO analytics for solo founders.");
+  });
+
+  // WS-E (2026-07-19): rivalry — both states, inside the category-demand card.
+  // Discovered rival NAMES are free (the compare-set); per-rival intel (how
+  // each one ranks, why they win, category share) is the paid tease. Live prod
+  // evidence: when discovery finds no rivals (reachkit.app), the line used to
+  // vanish entirely — the honest degrade tease replaces silence with the one
+  // tease vocabulary (free = what's true; paid = what rivals do about it).
+  it("rivals found → names them and teases per-rival intel (WS-E)", () => {
+    const html = renderPublicReport(report({
+      searchVisibility: sv({ categoryDemand: 8000 }),
+      whereTheyAre: { surfaces: [], competitorGap: [comp("SavvyCal"), comp("Calendly")] },
+    }));
+    expect(html).toContain("SavvyCal");
+    expect(html).toMatch(/how each one ranks/i);
+  });
+
+  it("no rivals found → honest degrade tease, no invention (WS-E)", () => {
+    const html = renderPublicReport(report({
+      searchVisibility: sv({ categoryDemand: 8000 }),
+      whereTheyAre: { surfaces: [], competitorGap: [] },
+    }));
+    // renderToStaticMarkup HTML-escapes the JSX &apos; to the &#x27; entity, so
+    // the match must account for the entity, not a literal quote character.
+    expect(html).toMatch(/discovers who(?:'|’|&#x27;)s winning these searches/i);
+    expect(html).not.toMatch(/Buyers compare you to\s*</); // no empty comma-list sentence
   });
 });
