@@ -500,6 +500,18 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
     expect(html).toContain("#2");
   });
 
+  // PR-5 (2026-07-19): the >=40% warning used to assert an unverified
+  // mechanism — "other companies' names you list or mention" — for a
+  // platform/aggregator those rankings come from user-generated content, not
+  // anything the SITE itself lists or mentions. The copy is now
+  // mechanism-neutral: it names the fact (searches for other companies'
+  // names) without asserting how the site came to rank for them.
+  it("the off-topic warning is mechanism-neutral — no 'you list or mention' claim", () => {
+    const html = renderPublicReport(report({ searchVisibility: sv({ offTopicPct: 60, categoryPct: 15 }) }));
+    expect(html).toContain("searches for other companies");
+    expect(html).not.toContain("you list or mention");
+  });
+
   // WS-D (2026-07-19): named off-topic examples — the >=40% warning used to
   // assert only a bare percentage; naming the actual keywords ("spanglish
   // translator") makes the "not your traffic" claim concrete and checkable.

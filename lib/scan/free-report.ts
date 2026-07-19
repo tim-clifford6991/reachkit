@@ -193,8 +193,12 @@ export async function runFreeReport(ctx: ScanContext, facts: PreliminaryFacts): 
   // (the whole Search Visibility panel) and was the last silent stretch of the
   // scan. An artifact keeps the progress alive through the DataForSEO round-trips.
   if (ctx.mode === "web") await emitScanEvent(ctx.scanId, "artifact", { label: "Checking your search footprint" });
+  // PR-5: thread the subject's REAL name (facts.listing.name) so the brand
+  // vocabulary isn't limited to the domain label alone (the brand≠domain
+  // class — "x.com" -> unusable "x", the real brand "twitter" unrecognised).
+  const brandNames = facts.listing.name ? [facts.listing.name] : [];
   const searchVisibility = ctx.mode === "web"
-    ? await gatherFreeSearchVisibility(ctx.storeUrl, seedText, categorySeeds, marketTierSeeds)
+    ? await gatherFreeSearchVisibility(ctx.storeUrl, seedText, categorySeeds, marketTierSeeds, brandNames)
     : undefined;
 
   // v5 UNIFIED Discoverability Score = geomean(on-page readiness × search presence).

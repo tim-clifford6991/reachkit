@@ -526,7 +526,7 @@ export function ResultsScreen(p: ResultsScreenProps) {
                 <div style={{ marginTop: 6, fontSize: 11, color: "var(--c-faint)" }}>Traffic split across your top-ranked terms.</div>
                 {sv.offTopicPct >= 40 && (
                   <div style={{ marginTop: 14, padding: "12px 14px", background: "var(--c-tint-orange)", borderLeft: "3px solid #E0731C", borderRadius: "0 10px 10px 0", fontSize: 13.5, lineHeight: 1.55, color: "#3A3744" }}>
-                    Most of your search traffic comes from <strong>other companies&apos; names you list or mention</strong> — real visits, but not buyers searching for what <em>you</em> do. Only <strong>{sv.categoryPct}%</strong> is your own category.
+                    Most of your search traffic comes from <strong>searches for other companies&apos; names</strong> — real visits, but not buyers looking for what <em>you</em> do. Only <strong>{sv.categoryPct}%</strong> is your own category.
                     {/* WS-D (2026-07-19): names the actual off-topic keywords, so
                         the "other companies' names" claim is concrete, not just a
                         percentage. */}

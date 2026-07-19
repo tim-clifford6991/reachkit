@@ -3,6 +3,7 @@ import { classifyFootprint, computeCategoryDemand } from "./search-visibility";
 import type { RankedKeyword } from "@/lib/scan/adapters/dataforseo-ranked-keywords";
 import xcom from "./fixtures/classification-corpus/x.com.json";
 import xcomLegitimizedNews from "./fixtures/classification-corpus/x.com.legitimized-news.json";
+import xcomSubjectBrandTwitter from "./fixtures/classification-corpus/x.com.subject-brand-twitter.json";
 import resend from "./fixtures/classification-corpus/resend.com.json";
 import savvycal from "./fixtures/classification-corpus/savvycal.com.json";
 import savvycalLegitimizedTime from "./fixtures/classification-corpus/savvycal.com.legitimized-time.json";
@@ -33,11 +34,19 @@ interface Corpus {
   seedText: string[];
   llmCategorySeeds: string[];
   rankedKeywords: CorpusKw[];
+  /** PR-5 (2026-07-19): the subject's REAL captured name(s) — `facts.listing.name`
+   *  — threaded through classifyFootprint's OWN signature (no side channel), so
+   *  this corpus exercises EXACTLY the production path. Optional: most fixtures'
+   *  domain label is already a usable brand token; only x.com needs it, and even
+   *  then only in an honest "post-Part-C shape" variant (see x.com.subject-brand-
+   *  twitter.json) — x.com's REAL captured title today is literal garbage
+   *  ("x.com"), so the plain x.com fixtures gain no brandNames. */
+  brandNames?: string[];
 }
 
 /** Run the real classification + opportunity computation over a corpus fixture. */
 function run(fx: Corpus) {
-  const sv = classifyFootprint(fx.domain, fx.seedText, fx.llmCategorySeeds, fx.rankedKeywords as unknown as RankedKeyword[]);
+  const sv = classifyFootprint(fx.domain, fx.seedText, fx.llmCategorySeeds, fx.rankedKeywords as unknown as RankedKeyword[], fx.brandNames ?? []);
   const rankByKeyword = new Map<string, number>();
   for (const k of fx.rankedKeywords) {
     const key = k.keyword.toLowerCase();
@@ -88,6 +97,33 @@ describe("corpus: x.com (legitimized-news seeds) — the 'fox news' class, repro
   it("x.com's real, legitimately-named categories stay category", () => {
     expect(category.has("microblogging platform"), `category had: ${[...category].join(", ")}`).toBe(true);
     expect(category.has("social media network"), `category had: ${[...category].join(", ")}`).toBe(true);
+  });
+});
+
+describe("corpus: x.com POST-PART-C shape (subject brand name recovered) — PR-5 the brand≠domain class", () => {
+  // Live evidence (2026-07-19): x.com scans read "your brand 0% / other
+  // companies' names 100%" — brand tokens derive ONLY from the domain
+  // ("x.com" -> unusable "x"), so the real brand ("twitter") is unrecognised
+  // AND sits in MEGA_BRAND_TOKENS, so x.com's own brand queries counted as
+  // "other companies' names". This fixture simulates the shape once Part C
+  // (a separate, not-yet-built fix) recovers the real page title/name and
+  // threads it through as `brandNames` — proving THIS fix (the brand
+  // vocabulary + mega-brand exemption) is correct on an honest input, while
+  // x.com's own fixtures (no usable real title yet) stay unchanged.
+  const { sv, category, categoryOpportunities } = run(xcomSubjectBrandTwitter as Corpus);
+
+  it("'twitter' queries classify BRAND, not 'other companies' names' (brandPct > 0)", () => {
+    expect(sv.brandPct).toBeGreaterThan(0);
+  });
+
+  it("'twitter' itself is never a category ranking or the 'biggest opportunity' (it's the subject's OWN brand)", () => {
+    expect(category.has("twitter")).toBe(false);
+    const top = categoryOpportunities[0]?.keyword ?? "";
+    expect(top).not.toBe("twitter");
+  });
+
+  it("every OTHER mega-brand still classifies off-topic — the exemption applies ONLY to the subject's own brand token", () => {
+    for (const b of MEGA_BRANDS) expect(category.has(b), `"${b}" must NOT be x.com category`).toBe(false);
   });
 });
 
