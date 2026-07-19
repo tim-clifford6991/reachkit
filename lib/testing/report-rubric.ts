@@ -385,9 +385,10 @@ const r5ComparativeCopy: RubricRule = {
         violations.push({ rule: "R5", message: `"${stronger} is your gap." contradicts the driver bars (on-page ${onPage} vs search ${sv.score})` });
       }
 
-      // "the weaker half" (G5): only when search presence is genuinely the
-      // lower driver — and always then, whenever an opportunity row rendered.
-      const weakerHalf = text.includes("the weaker half of your Discoverability Score");
+      // "your weaker half" (G5, E2 facts-first copy): only when search
+      // presence is genuinely the lower driver — and always then, whenever an
+      // opportunity row rendered.
+      const weakerHalf = text.includes("your weaker half");
       const searchIsWeaker = sv.score < onPage;
       if (weakerHalf && !searchIsWeaker) {
         violations.push({ rule: "R5", message: `"the weaker half" rendered but search presence (${sv.score}) is not below on-page readiness (${onPage})` });

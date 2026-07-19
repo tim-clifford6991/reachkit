@@ -73,7 +73,7 @@ function cleanHtml(p: ReportPayload = payload()): string {
     <p><strong>${weaker} is your gap.</strong></p>
     <span>${s.categoryDemand.toLocaleString()}</span><span>searches/mo across your category</span>
     <div>You rank in the top 3 for ${s.categoryWins} of your category's searches.</div>
-    ${hasOppRow ? `<div>Winning this term lifts your Search presence${searchIsWeaker ? " — the weaker half of your Discoverability Score." : "."}</div>` : ""}
+    ${hasOppRow ? `<div>Winning this lifts Search presence${searchIsWeaker ? " — your weaker half." : "."}</div>` : ""}
     <div>Someone is winning these searches today.</div>
   </main>`;
 }

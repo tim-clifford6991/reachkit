@@ -391,18 +391,18 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
       whatToDoThisWeek: { quickWins: [action("Add meta descriptions", 6)], medium: [], longPlay: [] },
     });
     const html = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r, "strong.com", 2, 8)} scanId="s" />);
-    expect(html).toContain("lifts your <strong"); // the opportunity blurb still renders
-    expect(html).not.toContain("the weaker half of your Discoverability Score");
+    expect(html).toContain("Winning this lifts"); // the opportunity blurb still renders
+    expect(html).not.toContain("your weaker half");
   });
 
-  it("G5: KEEPS 'the weaker half' when search presence IS the weaker driver", () => {
+  it("G5: KEEPS 'your weaker half' when search presence IS the weaker driver", () => {
     const r = report({
       score: { total: 40, breakdown: { content: 70, outreach: 40, seo: 65 }, radar: [], basis: "verified" },
       searchVisibility: sv({ score: 20, onPageReadiness: 85, keywordsRanked: 40, footprintComplete: true, categoryDemand: 8000 }),
       whatToDoThisWeek: { quickWins: [action("Add meta descriptions", 6)], medium: [], longPlay: [] },
     });
     const html = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r, "weak.com", 2, 8)} scanId="s" />);
-    expect(html).toContain("the weaker half of your Discoverability Score");
+    expect(html).toContain("your weaker half");
   });
 
   // G4: the demand total is reconcilable — its named phrases render alongside it.
@@ -493,6 +493,37 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
     expect(html).not.toMatch(/NICHE/);
   });
 
+  // E1 (2026-07-20, three-card market split, Tim: "two/three individual UI
+  // components side by side"). Replaces the ladder ROWS + in-card hero
+  // arrangement with sibling cards — BROAD | YOUR CATEGORY | NICHE — in the
+  // intrinsic-collapse grid idiom (dashboard-hero.tsx's `repeat(auto-fit,
+  // minmax(min(100%, 240px), 1fr))`, no media query needed).
+  it("renders the three-card grid: BROAD + YOUR CATEGORY + NICHE as sibling cards in ONE intrinsic-collapse grid", () => {
+    const html = renderPublicReport(report({ searchVisibility: sv({
+      marketTiers: [
+        { tier: "broad", phrases: [{ keyword: "marketing software", volume: 550000 }], demand: 550000, bestPosition: 12 },
+        { tier: "niche", phrases: [{ keyword: "photo scheduling tool", volume: 900 }], demand: 900, bestPosition: 4 },
+      ],
+    }) }));
+    // The intrinsic-collapse grid idiom — no media query, mobile-safe by construction.
+    expect(html).toContain('grid-template-columns:repeat(auto-fit, minmax(min(100%, 240px), 1fr))');
+    expect(html).toMatch(/BROAD/);
+    expect(html).toMatch(/YOUR CATEGORY/);
+    expect(html).toMatch(/NICHE/);
+    // BROAD and NICHE cards each name their own phrase even with only ONE
+    // priced phrase — there is no separate "label" line in the card design,
+    // so the phrase chip IS how the card says what it's the demand FOR.
+    expect(html).toContain("marketing software");
+    expect(html).toContain("photo scheduling tool");
+  });
+
+  it("BROAD/NICHE cards render only when their rung exists; YOUR CATEGORY always renders when categoryDemand > 0", () => {
+    const noRungs = renderPublicReport(report({ searchVisibility: sv({ marketTiers: [] }) }));
+    expect(noRungs).not.toMatch(/BROAD/);
+    expect(noRungs).not.toMatch(/NICHE/);
+    expect(noRungs).toMatch(/YOUR CATEGORY/);
+  });
+
   // WS-D (2026-07-19): "you already win" strip — categoryRanked rows where the
   // subject already ranks top-3, so the report doesn't ONLY show gaps.
   it("renders the 'you already win' strip from categoryRanked top-3 (WS-D)", () => {
@@ -508,11 +539,14 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
   // mechanism — "other companies' names you list or mention" — for a
   // platform/aggregator those rankings come from user-generated content, not
   // anything the SITE itself lists or mentions. The copy is now
-  // mechanism-neutral: it names the fact (searches for other companies'
-  // names) without asserting how the site came to rank for them.
-  it("the off-topic warning is mechanism-neutral — no 'you list or mention' claim", () => {
+  // mechanism-neutral: it names the fact (other companies' names) without
+  // asserting how the site came to rank for them. E2 (facts-first copy sweep,
+  // 2026-07-20) tersened it further: numbers lead, the "real visits… what you
+  // do" clause is gone.
+  it("the off-topic warning is mechanism-neutral, facts-first — no 'you list or mention' claim", () => {
     const html = renderPublicReport(report({ searchVisibility: sv({ offTopicPct: 60, categoryPct: 15 }) }));
-    expect(html).toContain("searches for other companies");
+    // renderToStaticMarkup HTML-escapes the JSX &apos; to the &#x27; entity.
+    expect(html).toMatch(/60% of your search traffic is other companies(?:'|’|&#x27;)? names — not buyers looking for you\./);
     expect(html).not.toContain("you list or mention");
   });
 

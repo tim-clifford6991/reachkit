@@ -128,7 +128,7 @@ export function ResultsScreen() {
               <text x="100" y="126" textAnchor="middle" style={{ font: `600 11px ${JM}, monospace`, fill: "var(--c-faint)", letterSpacing: 1 }}>/ 100</text>
             </svg>
             <span style={{ display: "inline-block", background: b.bg, color: b.fg, fontWeight: 700, fontSize: 13, padding: "5px 13px", borderRadius: 8, fontFamily: SG, marginTop: 4 }}>{b.label}</span>
-            <div style={{ fontSize: 11.5, color: "var(--c-faint)", fontFamily: JM, maxWidth: 200, margin: "10px auto 0" }}>How findable you actually are — your page quality × your presence in search.</div>
+            <div style={{ fontSize: 11.5, color: "var(--c-faint)", fontFamily: JM, maxWidth: 200, margin: "10px auto 0" }}>Page quality × search presence.</div>
           </div>
           <div>
             <div style={{ fontSize: 12.5, color: "var(--c-faint)", margin: "0 0 8px", lineHeight: 1.5 }}>{IDENTITY_LINE}</div>
@@ -162,7 +162,7 @@ export function ResultsScreen() {
                 </div>
               ))}
               <div style={{ fontSize: 12, lineHeight: 1.5, color: "var(--c-muted)", fontFamily: JM, paddingTop: 4, borderTop: "1px dashed var(--c-line2)", marginTop: 2 }}>
-                Your score multiplies both — a flawless page nobody finds still scores low. <strong style={{ color: "var(--c-ink)" }}>{WEAKER_DRIVER} is your gap.</strong>
+                Your score multiplies both. <strong style={{ color: "var(--c-ink)" }}>{WEAKER_DRIVER} is your gap.</strong>
               </div>
             </div>
           </div>
@@ -170,92 +170,101 @@ export function ResultsScreen() {
 
         {/* Your category, and how much of it you own — LIFTED directly under the score */}
         <h2 style={H2}>Your category, and how much of it you own</h2>
-        <p style={SUB}>How much your buyers are searching, and how many of those terms you actually win.</p>
-        <div style={{ ...CARD, padding: "20px 22px", marginBottom: 14 }}>
-          {/* Task B (2026-07-19): the BROAD rung, ahead of the category-demand
-              hero — "this is the industry, this is the category you compete
-              in". Only renders when its priced demand exceeds the hero's
-              (inversion guard); MEDIUM never renders anywhere (it duplicated
-              this very hero). */}
-          <div style={{ marginBottom: 14, borderBottom: "1px solid var(--c-line2)", paddingBottom: 12 }}>
-            {MARKET_TIERS.map((t) => (
-              <div key={t.tier}>
-                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: 8, fontSize: 13, padding: "3px 0" }}>
-                  <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--c-faint)", width: 58 }}>{t.tier}</span>
-                  <span style={{ fontWeight: 600, flex: "1 1 140px" }}>{t.label}</span>
-                  <span style={{ fontFamily: JM, color: "var(--c-muted)" }}>{t.demand.toLocaleString()} searches/mo</span>
-                  <span style={{ fontFamily: JM, fontWeight: 700, color: t.bestPosition != null ? "var(--c-band-fair)" : "var(--c-band-invisible)" }}>{t.bestPosition != null ? `best #${t.bestPosition}` : "not ranking"}</span>
-                </div>
+        <p style={SUB}>What buyers search, what you capture, who takes the rest.</p>
+        {/* E1 (2026-07-20, three-card market split, Tim: "two/three individual
+            UI components side by side"). Replaces the old ladder ROWS + in-card
+            hero arrangement with sibling cards — BROAD | YOUR CATEGORY | NICHE
+            — in the intrinsic-collapse grid idiom (dashboard-hero.tsx's
+            `repeat(auto-fit, minmax(min(100%, 240px), 1fr))`, no media query
+            needed — mobile-safe by construction). BROAD only renders when its
+            priced demand exceeds the category hero's (inversion guard); NICHE
+            has no such guard (it never claims to be the "biggest" market).
+            Every rung's phrase(s) are always itemised as chips (G4/R2) — with
+            no separate "label" line in the card design, the chip IS how a
+            card says WHAT its demand number is for. */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))", gap: 14, marginBottom: 14 }}>
+          {MARKET_TIERS.map((t) => (
+            <div key={t.tier} style={CARD}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 10 }}>
+                <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.05em", color: "var(--c-faint)" }}>{t.tier.toUpperCase()}</span>
+                <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 13, color: t.bestPosition != null ? "var(--c-band-fair)" : "var(--c-band-invisible)" }}>{t.bestPosition != null ? `best #${t.bestPosition}` : "not ranking"}</span>
               </div>
-            ))}
-            <div style={{ fontSize: 12, color: "var(--c-faint)", marginTop: 6 }}>Your category, where the plan below starts:</div>
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: 10, marginBottom: 12 }}>
-            {/* The hero's own identity pill — "this IS the category you
-                compete in" — always renders, independent of whether the
-                BROAD rung above it survived the inversion guard. Was
-                mislabeled NICHE (its seeds are deliberately HEAD terms). */}
-            <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--c-faint)" }}>YOUR CATEGORY</span>
-            <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 26 }}>12,400</span>
-            <span style={{ fontSize: 13.5, color: "var(--c-muted)" }}>searches/mo across your category</span>
-          </div>
-          {/* No "You capture X%" bar — captureRate was the search score under a second
-              label (guard G1). We state the real, reconcilable count instead. */}
-          <div style={{ fontSize: 13.5, color: "var(--c-muted)", marginBottom: 10 }}>
-            You rank in the top 3 for <strong style={{ color: "var(--c-band-findable)" }}>{CATEGORY_WINS}</strong> of your category&apos;s searches.
-          </div>
-          {/* WS-D (2026-07-19): the "you already win" strip — categoryRanked
-              rows you already rank top-3 for, so gaps aren't the whole story.
-              FINAL-REVIEW FIX: the sentence above states CATEGORY_WINS (3),
-              higher than this capped strip's rows (1) — the "+N more" chip
-              discloses that the strip is a partial view of that count. */}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 10px", fontSize: 12.5, fontFamily: JM, marginBottom: 10 }}>
-            {WINS_ROWS.map((w) => (
-              <span key={w.keyword} style={{ background: "var(--c-tint-green)", color: "var(--c-band-high)", borderRadius: 6, padding: "2px 8px", fontWeight: 600 }}>#{w.yourPosition} {w.keyword} <span style={{ fontWeight: 700 }}>{w.volume.toLocaleString()}</span></span>
-            ))}
-            {CATEGORY_WINS > WINS_ROWS.length && (
-              <span style={{ color: "var(--c-faint)", fontWeight: 600, padding: "2px 4px" }}>+{CATEGORY_WINS - WINS_ROWS.length} more</span>
-            )}
-          </div>
-          {/* G4: the named phrases behind the demand total, so it reconciles. */}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 10px", fontSize: 12.5, color: "var(--c-faint)", fontFamily: JM }}>
-            {[["email api", "590"], ["email delivery service", "590"], ["transactional email api", "70"]].map(([k, v]) => (
-              <span key={k} style={{ background: "var(--c-fill)", borderRadius: 6, padding: "2px 8px" }}>{k} <span style={{ color: "var(--c-muted)", fontWeight: 600 }}>{v}</span></span>
-            ))}
-          </div>
-          {/* Task B (2026-07-19): the NICHE rung — a cheap additional altitude,
-              rendered AFTER the hero's own phrase chips (before the rivalry
-              line below). No inversion guard: it never claims to be the
-              "biggest" market, just an additional, narrower one worth naming.
-              FINAL-REVIEW FIX: itemise every phrase behind a multi-phrase rung
-              — same idiom as the categoryPhrases chips above — so its total
-              visually reconciles to its parts. */}
-          <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px dashed var(--c-line2)" }}>
-            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: 8, fontSize: 13, padding: "3px 0" }}>
-              <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--c-faint)", width: 58 }}>{NICHE_TIER.tier}</span>
-              <span style={{ fontWeight: 600, flex: "1 1 140px" }}>{NICHE_TIER.label}</span>
-              <span style={{ fontFamily: JM, color: "var(--c-muted)" }}>{NICHE_TIER.demand.toLocaleString()} searches/mo</span>
-              <span style={{ fontFamily: JM, fontWeight: 700, color: NICHE_TIER.bestPosition != null ? "var(--c-band-fair)" : "var(--c-band-invisible)" }}>{NICHE_TIER.bestPosition != null ? `best #${NICHE_TIER.bestPosition}` : "not ranking"}</span>
-            </div>
-            {NICHE_TIER.phrases.length > 1 && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 10px", fontSize: 12.5, color: "var(--c-faint)", fontFamily: JM, padding: "2px 0 4px 66px" }}>
-                {NICHE_TIER.phrases.map((ph) => (
+              <div style={{ fontFamily: JM, fontWeight: 700, fontSize: 22 }}>{t.demand.toLocaleString()}</div>
+              <div style={{ fontSize: 12.5, color: "var(--c-muted)" }}>searches/mo</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 10px", fontSize: 12.5, color: "var(--c-faint)", fontFamily: JM, marginTop: 10 }}>
+                {t.phrases.map((ph) => (
                   <span key={ph.keyword} style={{ background: "var(--c-fill)", borderRadius: 6, padding: "2px 8px" }}>{ph.keyword} <span style={{ color: "var(--c-muted)", fontWeight: 600 }}>{ph.volume.toLocaleString()}</span></span>
                 ))}
               </div>
-            )}
+              {/* Only the BROAD card carries the bridge to the category card
+                  beside it — the reader's eye moves broad → category → niche. */}
+              <div style={{ fontSize: 11.5, color: "var(--c-faint)", marginTop: 10, paddingTop: 10, borderTop: "1px dashed var(--c-line2)" }}>Your category, where the plan below starts: →</div>
+            </div>
+          ))}
+          {/* YOUR CATEGORY card — the hero's own identity, independent of
+              whichever sibling rungs render. Its "standing" is the wins/red
+              line + wins strip (not a single best-position — the category
+              aggregates many phrases, unlike a single-rung best position). */}
+          <div style={CARD}>
+            <div style={{ marginBottom: 10 }}>
+              <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.05em", color: "var(--c-faint)" }}>YOUR CATEGORY</span>
+            </div>
+            <div style={{ fontFamily: JM, fontWeight: 700, fontSize: 26 }}>12,400</div>
+            <div style={{ fontSize: 13, color: "var(--c-muted)", marginBottom: 10 }}>searches/mo across your category</div>
+            {/* No "You capture X%" bar — captureRate was the search score under a second
+                label (guard G1). We state the real, reconcilable count instead. */}
+            <div style={{ fontSize: 13, color: "var(--c-muted)", marginBottom: 8 }}>
+              You rank in the top 3 for <strong style={{ color: "var(--c-band-findable)" }}>{CATEGORY_WINS}</strong> of your category&apos;s searches.
+            </div>
+            {/* WS-D (2026-07-19): the "you already win" strip — categoryRanked
+                rows you already rank top-3 for, so gaps aren't the whole story.
+                FINAL-REVIEW FIX: the sentence above states CATEGORY_WINS (3),
+                higher than this capped strip's rows (1) — the "+N more" chip
+                discloses that the strip is a partial view of that count. */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 10px", fontSize: 12.5, fontFamily: JM, marginBottom: 10 }}>
+              {WINS_ROWS.map((w) => (
+                <span key={w.keyword} style={{ background: "var(--c-tint-green)", color: "var(--c-band-high)", borderRadius: 6, padding: "2px 8px", fontWeight: 600 }}>#{w.yourPosition} {w.keyword} <span style={{ fontWeight: 700 }}>{w.volume.toLocaleString()}</span></span>
+              ))}
+              {CATEGORY_WINS > WINS_ROWS.length && (
+                <span style={{ color: "var(--c-faint)", fontWeight: 600, padding: "2px 4px" }}>+{CATEGORY_WINS - WINS_ROWS.length} more</span>
+              )}
+            </div>
+            {/* G4: the named phrases behind the demand total, so it reconciles. */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 10px", fontSize: 12.5, color: "var(--c-faint)", fontFamily: JM }}>
+              {[["email api", "590"], ["email delivery service", "590"], ["transactional email api", "70"]].map(([k, v]) => (
+                <span key={k} style={{ background: "var(--c-fill)", borderRadius: 6, padding: "2px 8px" }}>{k} <span style={{ color: "var(--c-muted)", fontWeight: 600 }}>{v}</span></span>
+              ))}
+            </div>
           </div>
-          {/* WS-E (2026-07-19): both rivalry states render live now — a scan
-              with zero discovered rivals used to drop the "someone is
-              winning" insight entirely instead of degrading. Demo shows the
-              common "found" case; the note below is the exact copy shown
-              live when no rivals are discovered. */}
-          <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--c-line2)", fontSize: 13, color: "var(--c-muted)" }}>
-            Buyers compare you to <strong style={{ color: "var(--c-ink)" }}>Streaks, Habitica, Way of Life</strong> — and rivals are taking the searches above. <span style={UNLOCK}>Unlock to see how each one ranks, why they win, and how much of your category each takes →</span>
+          {/* NICHE card — a cheap additional altitude, rendered as the third
+              sibling card. No inversion guard: it never claims to be the
+              "biggest" market, just an additional, narrower one worth naming. */}
+          <div style={CARD}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 10 }}>
+              <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.05em", color: "var(--c-faint)" }}>{NICHE_TIER.tier.toUpperCase()}</span>
+              <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 13, color: NICHE_TIER.bestPosition != null ? "var(--c-band-fair)" : "var(--c-band-invisible)" }}>{NICHE_TIER.bestPosition != null ? `best #${NICHE_TIER.bestPosition}` : "not ranking"}</span>
+            </div>
+            <div style={{ fontFamily: JM, fontWeight: 700, fontSize: 22 }}>{NICHE_TIER.demand.toLocaleString()}</div>
+            <div style={{ fontSize: 12.5, color: "var(--c-muted)" }}>searches/mo</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 10px", fontSize: 12.5, color: "var(--c-faint)", fontFamily: JM, marginTop: 10 }}>
+              {NICHE_TIER.phrases.map((ph) => (
+                <span key={ph.keyword} style={{ background: "var(--c-fill)", borderRadius: 6, padding: "2px 8px" }}>{ph.keyword} <span style={{ color: "var(--c-muted)", fontWeight: 600 }}>{ph.volume.toLocaleString()}</span></span>
+              ))}
+            </div>
           </div>
-          <div style={{ marginTop: 8, fontSize: 11.5, color: "var(--c-faint)", fontStyle: "italic" }}>
-            No rivals discovered → degrades to: "Someone is winning these searches today. <span style={UNLOCK}>The full scan discovers who&apos;s winning these searches and what they do to rank →</span>"
-          </div>
+        </div>
+        {/* WS-E (2026-07-19): both rivalry states render live now — a scan
+            with zero discovered rivals used to drop the "someone is
+            winning" insight entirely instead of degrading. Demo shows the
+            common "found" case; the note below is the exact copy shown
+            live when no rivals are discovered. Sits BELOW the three-card
+            grid — it's not tied to any one rung, it's about the category
+            as a whole. */}
+        <div style={{ ...CARD, marginBottom: 14, fontSize: 13, color: "var(--c-muted)" }}>
+          Buyers compare you to <strong style={{ color: "var(--c-ink)" }}>Streaks, Habitica, Way of Life</strong> — and rivals are taking the searches above. <span style={UNLOCK}>Unlock to see how each one ranks, why they win, and how much of your category each takes →</span>
+        </div>
+        <div style={{ marginTop: -6, marginBottom: 14, fontSize: 11.5, color: "var(--c-faint)", fontStyle: "italic" }}>
+          No rivals discovered → degrades to: "Someone is winning these searches today. <span style={UNLOCK}>The full scan discovers who&apos;s winning these searches and what they do to rank →</span>"
         </div>
         {/* Footprint: TRUE totals (domain_rank_overview) + the traffic split, which
             is a SAMPLE of your top-ranked terms — disclosed as such (guard G3). */}
@@ -277,9 +286,11 @@ export function ResultsScreen() {
           </div>
           <div style={{ marginTop: 6, fontSize: 11, color: "var(--c-faint)" }}>Traffic split across your top-ranked terms.</div>
           {/* offTopicPct (50%) >= 40 — the honest "not your traffic" warning,
-              now naming the actual off-topic keywords (WS-D, 2026-07-19). */}
+              naming the actual off-topic keywords (WS-D, 2026-07-19). E2
+              (facts-first copy sweep, 2026-07-20): the number leads, the
+              "real visits… what you do" clause is gone. */}
           <div style={{ marginTop: 14, padding: "12px 14px", background: "var(--c-tint-orange)", borderLeft: "3px solid var(--c-band-hard)", borderRadius: "0 10px 10px 0", fontSize: 13.5, lineHeight: 1.55, color: "var(--c-ink)" }}>
-            Most of your search traffic comes from <strong>searches for other companies&apos; names</strong> — real visits, but not buyers looking for what <em>you</em> do. Only <strong>20%</strong> is your own category.
+            50% of your search traffic is other companies&apos; names — not buyers looking for you.
             {" "}e.g. you rank for <strong>{OFFTOPIC_EXAMPLES.map((ex) => `"${ex}"`).join(", ")}</strong>.
           </div>
         </div>
@@ -296,7 +307,7 @@ export function ResultsScreen() {
             <div><div style={{ fontFamily: JM, fontWeight: 700, fontSize: 22, color: "var(--c-band-invisible)" }}>{TOP_OPP.rank}</div><div style={{ fontSize: 11.5, color: "var(--c-faint)" }}>where you are today</div></div>
           </div>
           <div style={{ marginTop: 16, padding: "13px 15px", background: "var(--c-bg2)", borderRadius: 10, fontSize: 13.5, lineHeight: 1.55, color: "var(--c-muted)" }}>
-            Winning this term lifts your <strong style={{ color: "var(--c-ink)" }}>Search presence</strong> — the weaker half of your Discoverability Score. There are <strong style={{ color: "var(--c-ink)" }}>{MORE_OPP} more</strong> like it in your category.
+            Winning this lifts <strong style={{ color: "var(--c-ink)" }}>Search presence</strong> — your weaker half. There are <strong style={{ color: "var(--c-ink)" }}>{MORE_OPP} more</strong> like it in your category.
           </div>
           {/* WS-B/WS-D (2026-07-19): rows 2-4, not just the promoted top row. */}
           <div style={{ marginTop: 14, borderTop: "1px solid var(--c-line2)", paddingTop: 4 }}>
