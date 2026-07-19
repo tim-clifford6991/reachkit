@@ -1,0 +1,115 @@
+{
+  "domain": "getapp.com",
+  "siteUrl": "https://getapp.com/",
+  "archetype": "directory",
+  "scanId": "b9c3d50f-06d2-406f-b1af-80a99491ea84",
+  "tier": "free",
+  "capturedAt": "2026-07-19",
+  "note": "Live directory/aggregator scan (2026-07-19, pre-Task-B pipeline). offTopicPct 100 — its footprint is other companies' names, pinning the honest brand-names framing. Payload carries a persisted LEGACY 'medium' marketTiers rung (the props-boundary defensive filter must drop it) AND an INVERTED broad rung (broad demand 10 < hero 30) from before the lib-level inversion guard — see the per-fixture expectations.",
+  "reportPayload": {
+    "mode": "web",
+    "score": {
+      "basis": "verified",
+      "radar": [
+        { "axis": "Content", "value": 70, "active": true, "assessed": true },
+        { "axis": "Outreach", "value": 0, "active": true, "assessed": true },
+        { "axis": "SEO/ASO", "value": 25, "active": true, "assessed": true },
+        { "axis": "Ads", "value": 0, "active": false, "assessed": false },
+        { "axis": "Partnerships", "value": 0, "active": false, "assessed": false },
+        { "axis": "PR", "value": 0, "active": false, "assessed": false },
+        { "axis": "Positioning", "value": 0, "active": false, "assessed": false }
+      ],
+      "total": 32,
+      "breakdown": { "seo": 25, "content": 70, "outreach": 0 }
+    },
+    "whoItsFor": {
+      "signals": ["reviews", "getapp", "software", "review", "management", "vendors"],
+      "summary": "Buyers who value reviews, getapp, software. Reviews confirm: \"Users praise the broad software catalog and long track record, but report serious concerns about review fraud, unverified content moderation, and the platform's poor Trustpilot rating (2.2/5).\"."
+    },
+    "generatedAt": "2026-07-19T14:31:10.737Z",
+    "whatYouOffer": {
+      "positioningMirror": {
+        "gap": "GetApp claims to be a trusted software discovery platform, but reviews expose weak review verification and fraud management. Competitors like G2 and Capterra offer deeper categorization, outbound discovery tools, and stricter review validation—advantages GetApp has not demonstrated in its listing.",
+        "listingSays": "GetApp is a large software directory with 45,000+ options and 2.5 million user reviews, backed by 16+ years of market presence.",
+        "reviewsValue": "Users praise the broad software catalog and long track record, but report serious concerns about review fraud, unverified content moderation, and the platform's poor Trustpilot rating (2.2/5).",
+        "actualAudience": ["users questioning review authenticity", "skeptics of platform governance", "vendors gaming the review system"],
+        "intendedAudience": ["software buyers seeking broad discovery", "business decision-makers comparing tools", "IT professionals evaluating software"]
+      }
+    },
+    "whereTheyAre": {
+      "surfaces": [],
+      "competitorGap": [
+        { "you": 0, "them": 0, "dimension": "community presence", "competitor": "AlternativeTo" },
+        { "you": 0, "them": 0, "dimension": "community presence", "competitor": "Slant" },
+        { "you": 0, "them": 0, "dimension": "community presence", "competitor": "TrustRadius" },
+        { "you": 0, "them": 0, "dimension": "community presence", "competitor": "SourceForge" },
+        { "you": 0, "them": 0, "dimension": "community presence", "competitor": "SoftwareSuggest" }
+      ]
+    },
+    "creatorsToReach": [],
+    "searchVisibility": {
+      "score": 0,
+      "brandPct": 0,
+      "categoryGap": [],
+      "categoryPct": 0,
+      "marketTiers": [
+        { "tier": "broad", "demand": 10, "phrases": [{ "volume": 10, "keyword": "b2b software market" }], "bestPosition": null },
+        { "tier": "medium", "demand": 30, "phrases": [{ "volume": 30, "keyword": "software review platforms" }], "bestPosition": null }
+      ],
+      "offTopicPct": 100,
+      "categoryWins": 0,
+      "categoryDemand": 30,
+      "categoryRanked": [],
+      "keywordsRanked": 120578,
+      "categoryPhrases": [
+        { "volume": 20, "keyword": "software comparison tool" },
+        { "volume": 10, "keyword": "business software directory" }
+      ],
+      "estMonthlyVisits": 605177,
+      "offTopicExamples": ["amcs", "sheets", "cash apps"],
+      "footprintComplete": true,
+      "categoryWonKeywords": [],
+      "categoryOpportunities": [
+        { "volume": 20, "keyword": "software comparison tool" },
+        { "volume": 10, "keyword": "business software directory" }
+      ]
+    },
+    "whatToDoThisWeek": {
+      "medium": [],
+      "longPlay": [
+        {
+          "why": "Comparison pages is failing (0/100 on this scan). \"X vs Y\" and \"alternatives\" pages capture high-intent comparison searches.",
+          "basis": "probability_based",
+          "draft": null,
+          "title": "Publish honest comparison pages against the rivals buyers weigh you against",
+          "target": null,
+          "category": "outreach",
+          "evidence": [],
+          "effortMin": 45,
+          "confidence": 0.5,
+          "signalKeys": ["comparison_pages"],
+          "evidenceIds": [],
+          "verification": { "state": "pending", "method": "self_report" },
+          "expectedOutcome": { "delta": 4, "scoreComponent": "outreach" },
+          "draftRequiresEdit": true,
+          "suggestedDeadline": "2026-08-02"
+        }
+      ],
+      "quickWins": []
+    },
+    "channelOpportunities": { "keywordClusters": [], "communitiesByEngagement": [] },
+    "competitiveLandscape": [],
+    "strengthsAndWeaknesses": {
+      "mixed": [],
+      "strengths": [],
+      "weaknesses": [],
+      "diagnostics": [
+        {
+          "claim": "Your strongest discoverability lever right now is your own page: lead with one specific outcome and your highest-intent keyword in the title and first screen.",
+          "category": "content",
+          "confidence": 0.4
+        }
+      ]
+    }
+  }
+}

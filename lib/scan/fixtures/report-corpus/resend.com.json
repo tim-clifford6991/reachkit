@@ -1,0 +1,157 @@
+{
+  "domain": "resend.com",
+  "siteUrl": "https://resend.com/",
+  "archetype": "normal-saas",
+  "scanId": "14533748-9d8f-4783-94b4-63ade4884cce",
+  "tier": "free",
+  "capturedAt": "2026-07-17",
+  "note": "Clean SaaS control (2026-07-17). Payload PREDATES the 2026-07-19 ladder/wins/off-topic render fields (no marketTiers, no categoryRanked, no categoryPhrases, no footprintComplete) and still carries the RETIRED pre-G1 aliases (categoryCaptureRate, categoryCapturedSearches) — verbatim, so this fixture doubles as growing legacy-payload coverage for the ??[]-at-the-props-boundary rule.",
+  "reportPayload": {
+    "mode": "web",
+    "score": {
+      "basis": "verified",
+      "radar": [
+        { "axis": "Content", "value": 100, "active": true, "assessed": true },
+        { "axis": "Outreach", "value": 0, "active": true, "assessed": false },
+        { "axis": "SEO/ASO", "value": 84, "active": true, "assessed": true },
+        { "axis": "Ads", "value": 0, "active": false, "assessed": false },
+        { "axis": "Partnerships", "value": 0, "active": false, "assessed": false },
+        { "axis": "PR", "value": 0, "active": false, "assessed": false },
+        { "axis": "Positioning", "value": 0, "active": false, "assessed": false }
+      ],
+      "total": 85,
+      "breakdown": { "seo": 84, "content": 100, "outreach": 0 }
+    },
+    "whoItsFor": {
+      "signals": ["reviews", "com", "similar", "sites", "resend", "review"],
+      "summary": "Buyers who value reviews, com, similar. Reviews confirm: \"Users genuinely praise the developer experience and dashboard simplicity, but a meaningful portion of reviews surface serious concerns around account suspensions without notice, non-existent human support for edge cases, and no compensation or clear resolution for service disruptions.\"."
+    },
+    "generatedAt": "2026-07-17T11:55:15.239Z",
+    "whatYouOffer": {
+      "positioningMirror": {
+        "gap": "The listing promises reliability and trust for a company's most important emails, yet compared to Postmark — which the competitor sheet notes offers 'human support on all plans' and 'deeper troubleshooting tools' — Resend's support gap is a concrete vulnerability that undermines its core reliability claim.",
+        "listingSays": "Resend positions itself as the best way to reach humans instead of spam folders, offering a simple, elegant interface for sending transactional and marketing emails at scale with easy SDK integration across multiple frameworks.",
+        "reviewsValue": "Users genuinely praise the developer experience and dashboard simplicity, but a meaningful portion of reviews surface serious concerns around account suspensions without notice, non-existent human support for edge cases, and no compensation or clear resolution for service disruptions.",
+        "actualAudience": ["early-stage indie developers", "small SaaS builders", "developer hobbyists", "solo technical founders"],
+        "intendedAudience": ["modern web developers", "developer-led SaaS teams", "startup founders", "full-stack engineers"]
+      }
+    },
+    "whereTheyAre": {
+      "surfaces": [],
+      "competitorGap": [
+        { "you": 0, "them": 0, "dimension": "community presence", "competitor": "Mailgun" },
+        { "you": 0, "them": 0, "dimension": "community presence", "competitor": "Postmark" },
+        { "you": 0, "them": 0, "dimension": "community presence", "competitor": "Plunk" },
+        { "you": 0, "them": 0, "dimension": "community presence", "competitor": "Brevo" },
+        { "you": 0, "them": 0, "dimension": "community presence", "competitor": "Ahasend" }
+      ]
+    },
+    "creatorsToReach": [],
+    "searchVisibility": {
+      "score": 81,
+      "brandPct": 86,
+      "categoryGap": [
+        { "volume": 1600, "keyword": "react email", "yourPosition": 4 },
+        { "volume": 1600, "keyword": "react-email", "yourPosition": 4 },
+        { "volume": 1000, "keyword": "email sending", "yourPosition": 4 }
+      ],
+      "categoryPct": 9,
+      "offTopicPct": 5,
+      "categoryWins": 3,
+      "categoryDemand": 1250,
+      "keywordsRanked": 50,
+      "onPageReadiness": 90,
+      "estMonthlyVisits": 24551,
+      "offTopicExamples": ["meaning resent", "next js", "nextjs"],
+      "categoryCaptureRate": 81,
+      "categoryWonKeywords": ["resent email", "send emails", "email api"],
+      "categoryOpportunities": [
+        { "volume": 590, "keyword": "email delivery service" },
+        { "volume": 70, "keyword": "transactional email api" }
+      ],
+      "categoryCapturedSearches": 11406
+    },
+    "whatToDoThisWeek": {
+      "medium": [
+        {
+          "why": "Title tag is below par (60/100 on this scan). Your title is the single strongest on-page ranking and click signal.",
+          "basis": "probability_based",
+          "draft": null,
+          "title": "Write a 30–60 character title with your primary keyword near the front",
+          "target": null,
+          "category": "seo_aso",
+          "evidence": [],
+          "effortMin": 45,
+          "confidence": 0.5,
+          "signalKeys": ["title_tag"],
+          "evidenceIds": [],
+          "verification": { "state": "pending", "method": "self_report" },
+          "expectedOutcome": { "delta": 2, "scoreComponent": "seo" },
+          "draftRequiresEdit": true,
+          "suggestedDeadline": "2026-07-31"
+        },
+        {
+          "why": "Meta description is below par (60/100 on this scan). The description shapes your search snippet and click-through rate.",
+          "basis": "probability_based",
+          "draft": null,
+          "title": "Add a 120–160 character description that states the value and a reason to click",
+          "target": null,
+          "category": "seo_aso",
+          "evidence": [],
+          "effortMin": 45,
+          "confidence": 0.5,
+          "signalKeys": ["meta_description"],
+          "evidenceIds": [],
+          "verification": { "state": "pending", "method": "self_report" },
+          "expectedOutcome": { "delta": 2, "scoreComponent": "seo" },
+          "draftRequiresEdit": true,
+          "suggestedDeadline": "2026-07-31"
+        }
+      ],
+      "longPlay": [
+        {
+          "why": "Comparison pages is failing (0/100 on this scan). \"X vs Y\" and \"alternatives\" pages capture high-intent comparison searches.",
+          "basis": "probability_based",
+          "draft": null,
+          "title": "Publish honest comparison pages against the rivals buyers weigh you against",
+          "target": null,
+          "category": "outreach",
+          "evidence": [],
+          "effortMin": 45,
+          "confidence": 0.5,
+          "signalKeys": ["comparison_pages"],
+          "evidenceIds": [],
+          "verification": { "state": "pending", "method": "self_report" },
+          "expectedOutcome": { "delta": 4, "scoreComponent": "outreach" },
+          "draftRequiresEdit": true,
+          "suggestedDeadline": "2026-07-31"
+        }
+      ],
+      "quickWins": []
+    },
+    "channelOpportunities": { "keywordClusters": [], "communitiesByEngagement": [] },
+    "competitiveLandscape": [],
+    "strengthsAndWeaknesses": {
+      "mixed": [],
+      "strengths": [],
+      "weaknesses": [],
+      "diagnostics": [
+        {
+          "claim": "Resend's strongest authentic differentiator — a clean, developer-focused experience with React email and TypeScript support — is praised in reviews but under-leveraged in positioning content; publishing framework-specific integration guides (Next.js, Remix, Nuxt) would reinforce this advantage and attract developers searching for framework-native solutions.",
+          "category": "content",
+          "confidence": 0.82
+        },
+        {
+          "claim": "Negative review signals around account suspension and absent human support represent a churn and trust risk; a proactive outreach sequence targeting at-risk or newly onboarded accounts — acknowledging the support gap and offering a clear escalation path — could meaningfully improve retention and word-of-mouth.",
+          "category": "outreach",
+          "confidence": 0.78
+        },
+        {
+          "claim": "Resend's positioning page focuses on broad claims like 'emails at scale' but does not anchor to high-intent category search terms; optimising landing page copy and meta content around 'transactional email api' and 'email delivery service' — the natural head terms buyers use — would improve organic discoverability against rivals like Mailgun and Postmark.",
+          "category": "seo_aso",
+          "confidence": 0.74
+        }
+      ]
+    }
+  }
+}

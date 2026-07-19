@@ -1,0 +1,196 @@
+{
+  "domain": "savvycal.com",
+  "siteUrl": "https://savvycal.com/",
+  "archetype": "pathological",
+  "scanId": "04a73ec5-f8d8-40cc-85f1-8c2326e28717",
+  "tier": "free",
+  "capturedAt": "2026-07-19",
+  "note": "savvycal (2026-07-19, post-macro-rule): footprint dominated by incidental timezone lookups (offTopicPct 100, offTopicExamples are 'what time is it…' queries). Pins that the classifier fixes hold at the RENDER level — no timezone lookup renders as category or opportunity. Hero demand 11,620 reconciles to its 4 phrases; broad rung 18,820 reconciles to its 2 phrases and exceeds the hero (no inversion).",
+  "reportPayload": {
+    "mode": "web",
+    "score": {
+      "basis": "verified",
+      "radar": [
+        { "axis": "Content", "value": 59, "active": true, "assessed": true },
+        { "axis": "Outreach", "value": 0, "active": true, "assessed": false },
+        { "axis": "SEO/ASO", "value": 40, "active": true, "assessed": true },
+        { "axis": "Ads", "value": 0, "active": false, "assessed": false },
+        { "axis": "Partnerships", "value": 0, "active": false, "assessed": false },
+        { "axis": "PR", "value": 0, "active": false, "assessed": false },
+        { "axis": "Positioning", "value": 0, "active": false, "assessed": false }
+      ],
+      "total": 7,
+      "breakdown": { "seo": 40, "content": 59, "outreach": 0 }
+    },
+    "whoItsFor": {
+      "signals": ["savvycal", "scheduling", "your", "review", "with", "web"],
+      "summary": "Buyers who value savvycal, scheduling, your. Reviews confirm: \"Users consistently praise the clean, modern interface, calendar overlay feature, and seamless multi-calendar integration. The main complaint is a steep learning curve during onboarding that requires time to understand how features work.\"."
+    },
+    "generatedAt": "2026-07-19T15:44:15.200Z",
+    "whatYouOffer": {
+      "positioningMirror": {
+        "gap": "While the listing emphasizes a personalized, collaborative scheduling experience that reduces friction for invitees, SavvyCal's onboarding complexity contradicts this ease-of-use promise. Versus Calendly's generic, widely-used links that force users to toggle calendars, SavvyCal wins on invitee experience and visual clarity—but only after users overcome its own setup friction.",
+        "listingSays": "SavvyCal is a beautiful, user-friendly scheduling software that replaces inefficient click-based scheduling with a high-fidelity week view and calendar overlay, enabling recipients to see their own events while booking. It offers team scheduling, custom branding, and focus-time protection.",
+        "reviewsValue": "Users consistently praise the clean, modern interface, calendar overlay feature, and seamless multi-calendar integration. The main complaint is a steep learning curve during onboarding that requires time to understand how features work.",
+        "actualAudience": ["Design-forward users", "Tech-savvy early adopters", "Multi-calendar power users"],
+        "intendedAudience": ["Teams valuing collaboration", "Meeting-heavy professionals", "Scheduling-conscious managers"]
+      }
+    },
+    "whereTheyAre": {
+      "surfaces": [],
+      "competitorGap": [
+        { "you": 0, "them": 0, "dimension": "community presence", "competitor": "Calendly" },
+        { "you": 0, "them": 0, "dimension": "community presence", "competitor": "Doodle" },
+        { "you": 0, "them": 0, "dimension": "community presence", "competitor": "Cal.com" },
+        { "you": 0, "them": 0, "dimension": "community presence", "competitor": "Koalendar" },
+        { "you": 0, "them": 0, "dimension": "community presence", "competitor": "Acuity Scheduling" }
+      ]
+    },
+    "creatorsToReach": [],
+    "searchVisibility": {
+      "score": 0,
+      "brandPct": 0,
+      "categoryGap": [],
+      "categoryPct": 0,
+      "marketTiers": [
+        {
+          "tier": "broad",
+          "demand": 18820,
+          "phrases": [
+            { "volume": 18100, "keyword": "productivity software" },
+            { "volume": 720, "keyword": "calendar management" }
+          ],
+          "bestPosition": null
+        }
+      ],
+      "offTopicPct": 100,
+      "categoryWins": 0,
+      "categoryDemand": 11620,
+      "categoryRanked": [],
+      "keywordsRanked": 32324,
+      "categoryPhrases": [
+        { "volume": 4400, "keyword": "scheduling software" },
+        { "volume": 3600, "keyword": "meeting scheduler" },
+        { "volume": 2900, "keyword": "appointment booking" },
+        { "volume": 720, "keyword": "calendar scheduling tool" }
+      ],
+      "onPageReadiness": 48,
+      "estMonthlyVisits": 9503961,
+      "offTopicExamples": ["what time is it at california", "what time is it california", "what is time now in hawaii"],
+      "footprintComplete": true,
+      "categoryWonKeywords": [],
+      "categoryOpportunities": [
+        { "volume": 4400, "keyword": "scheduling software" },
+        { "volume": 3600, "keyword": "meeting scheduler" },
+        { "volume": 2900, "keyword": "appointment booking" },
+        { "volume": 720, "keyword": "calendar scheduling tool" }
+      ]
+    },
+    "whatToDoThisWeek": {
+      "medium": [
+        {
+          "why": "4,400 searches/mo in your category — you don't rank for it yet. Winning it lifts the Search-presence half of your score.",
+          "basis": "probability_based",
+          "draft": null,
+          "title": "Create or strengthen a page targeting \"scheduling software\"",
+          "target": null,
+          "category": "seo_aso",
+          "evidence": [],
+          "effortMin": 120,
+          "confidence": 0.5,
+          "signalKeys": [],
+          "evidenceIds": [],
+          "verification": { "state": "pending", "method": "self_report" },
+          "expectedOutcome": { "delta": 21, "scoreComponent": "seo" },
+          "draftRequiresEdit": true,
+          "suggestedDeadline": "2026-08-09"
+        },
+        {
+          "why": "3,600 searches/mo in your category — you don't rank for it yet. Winning it lifts the Search-presence half of your score.",
+          "basis": "probability_based",
+          "draft": null,
+          "title": "Create or strengthen a page targeting \"meeting scheduler\"",
+          "target": null,
+          "category": "seo_aso",
+          "evidence": [],
+          "effortMin": 120,
+          "confidence": 0.5,
+          "signalKeys": [],
+          "evidenceIds": [],
+          "verification": { "state": "pending", "method": "self_report" },
+          "expectedOutcome": { "delta": 21, "scoreComponent": "seo" },
+          "draftRequiresEdit": true,
+          "suggestedDeadline": "2026-08-09"
+        },
+        {
+          "why": "Meta description is failing (0/100 on this scan). The description shapes your search snippet and click-through rate.",
+          "basis": "probability_based",
+          "draft": null,
+          "title": "Add a 120–160 character description that states the value and a reason to click",
+          "target": null,
+          "category": "seo_aso",
+          "evidence": [],
+          "effortMin": 45,
+          "confidence": 0.5,
+          "signalKeys": ["meta_description"],
+          "evidenceIds": [],
+          "verification": { "state": "pending", "method": "self_report" },
+          "expectedOutcome": { "delta": 5, "scoreComponent": "seo" },
+          "draftRequiresEdit": true,
+          "suggestedDeadline": "2026-08-02"
+        }
+      ],
+      "longPlay": [],
+      "quickWins": [
+        {
+          "why": "Structured data is failing (0/100 on this scan). JSON-LD/schema.org lets search engines render rich results for your page.",
+          "basis": "probability_based",
+          "draft": "<script type=\"application/ld+json\">\n{\n  \"@context\": \"https://schema.org\",\n  \"@type\": \"SoftwareApplication\",\n  \"name\": \"Scheduling Software Everyone Will Love · SavvyCal\",\n  \"url\": \"https://savvycal.com/\",\n  \"applicationCategory\": \"BusinessApplication\",\n  \"operatingSystem\": \"Web\",\n  \"description\": \"The fresh way to find a time to meet.\"\n}\n</script>",
+          "title": "Add a JSON-LD block (SoftwareApplication, Product, or Organization)",
+          "target": null,
+          "category": "seo_aso",
+          "evidence": [],
+          "effortMin": 20,
+          "confidence": 0.5,
+          "signalKeys": ["schema_jsonld"],
+          "evidenceIds": [],
+          "verification": { "state": "pending", "method": "self_report" },
+          "expectedOutcome": { "delta": 5, "scoreComponent": "seo" },
+          "draftRequiresEdit": true,
+          "suggestedDeadline": "2026-08-02"
+        },
+        {
+          "why": "Media & alt coverage is failing (0/100 on this scan). Images with alt text aid accessibility, image search, and comprehension.",
+          "basis": "probability_based",
+          "draft": null,
+          "title": "Add descriptive alt text to every meaningful image, and make sure the page carries enough images (aim for 5+) to show real richness — a single hero shot with alt text is not enough",
+          "target": null,
+          "category": "content",
+          "evidence": [],
+          "effortMin": 20,
+          "confidence": 0.5,
+          "signalKeys": ["media_richness"],
+          "evidenceIds": [],
+          "verification": { "state": "pending", "method": "self_report" },
+          "expectedOutcome": { "delta": 5, "scoreComponent": "content" },
+          "draftRequiresEdit": true,
+          "suggestedDeadline": "2026-08-02"
+        }
+      ]
+    },
+    "channelOpportunities": { "keywordClusters": [], "communitiesByEngagement": [] },
+    "competitiveLandscape": [],
+    "strengthsAndWeaknesses": {
+      "mixed": [],
+      "strengths": [],
+      "weaknesses": [],
+      "diagnostics": [
+        {
+          "claim": "Your strongest discoverability lever right now is your own page: lead with one specific outcome and your highest-intent keyword in the title and first screen.",
+          "category": "content",
+          "confidence": 0.4
+        }
+      ]
+    }
+  }
+}
