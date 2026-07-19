@@ -383,14 +383,20 @@ Return ONLY this JSON (no markdown, no code fences):
     "intendedAudience": ["<2–4 word audience descriptor the page is written FOR>", "..."],
     "actualAudience": ["<2–4 word audience the page/reviews actually read AS>", "..."]
   },
-  "categorySeeds": ["<a real, broad head search phrase a buyer would type for this PRODUCT CATEGORY>", "..."]
+  "categorySeeds": ["<a real, broad head search phrase a buyer would type for this PRODUCT CATEGORY>", "..."],
+  "marketTiers": {
+    "broad": ["<the umbrella INDUSTRY head term, e.g. 'marketing software'>", "..."],
+    "medium": ["<the product's TOOL-CATEGORY head terms, e.g. 'seo tools', 'rank tracking software'>", "..."],
+    "niche": ["<the specific wedge incl. audience, e.g. 'seo tools for solo founders'>", "..."]
+  }
 }
 
 Rules:
 - positioningMirror.gap: prefer a concrete, named contrast — cite a competitor from the COMPETITOR GAP SHEET when one exists (never one you know from outside the sheets). Only fall back to a competitor-free disconnect when the sheet lists none.
 - intendedAudience / actualAudience: 2–4 SHORT audience descriptors each (e.g. "indie SaaS founders", "data-driven acquirers"). These are PEOPLE, not features — never the brand name, a keyword, or a phrase like "updated hourly".
 - categorySeeds: 3–5 SHORT, HIGH-VOLUME head category search terms — the common, broad way buyers search for a tool in this space, usually 2–3 words (e.g. "scheduling software", "appointment booking"). PREFER the broad head term over long-tail phrasings. NOT the brand name, NOT a competitor's name, NOT a feature. If the category is genuinely unclear, return fewer rather than guessing.
-- Do NOT output findings, sampleAction, or any other field — only positioningMirror and categorySeeds.
+- marketTiers: the SAME kind of real head search phrases, at three market altitudes — broad = the industry umbrella (1–2 phrases), medium = the tool category (2–4), niche = the specific wedge including the audience (1–3). NEVER volumes, NEVER the brand, NEVER a competitor name. If an altitude is genuinely unclear, return an empty array for it rather than guessing.
+- Do NOT output findings, sampleAction, or any other field — only positioningMirror, categorySeeds, and marketTiers.
 - Do not invent data not present in the fact sheets.`;
 }
 

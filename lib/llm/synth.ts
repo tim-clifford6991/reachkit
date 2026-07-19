@@ -24,7 +24,10 @@ import type {
   PositioningSheet,
   CompetitorGapSheet,
   KeywordSheet,
+  MarketTierSeeds,
 } from "@/lib/llm/types";
+
+export type { MarketTierSeeds } from "@/lib/llm/types";
 
 /** The deep (paid) synth: Sonnet writes the findings the paid action plan is built
  *  FROM (generateActions), so it stays on the stronger model. */
@@ -137,6 +140,54 @@ function strArray(v: unknown, cap: number): string[] {
     .slice(0, cap);
 }
 
+/**
+ * Pure parse of an already-decoded synth object (no JSON.parse/extractJson) — the
+ * SAME parse shared by the full and lite synth (the lite call just omits
+ * findings/sampleAction, which degrade to safe defaults). Exported so tests can
+ * exercise parsing directly against an object, and named for the lite path since
+ * that's the free-tier surface M1 (market-tier seeds) lands on.
+ */
+export function parseLiteSynth(obj: unknown): SynthResult {
+  const o = (typeof obj === "object" && obj !== null ? obj : {}) as Record<string, unknown>;
+
+  const mirror: PositioningMirror = isValidPositioningMirror(o["positioningMirror"])
+    ? o["positioningMirror"]
+    : DEGRADED_MIRROR;
+  // Attach LLM-authored audience tags (optional) onto the mirror, sanitised.
+  const pm = (o["positioningMirror"] ?? {}) as Record<string, unknown>;
+  const intendedAudience = strArray(pm["intendedAudience"], 5);
+  const actualAudience = strArray(pm["actualAudience"], 5);
+  if (intendedAudience.length > 0) mirror.intendedAudience = intendedAudience;
+  if (actualAudience.length > 0) mirror.actualAudience = actualAudience;
+  const categorySeeds = strArray(o["categorySeeds"], 5);
+
+  // M1: labeled broad/medium/niche market-tier seeds (optional — absent on
+  // legacy output). Same sanitisation as categorySeeds, capped at 4 per tier.
+  const tiersRaw = (o["marketTiers"] ?? null) as Record<string, unknown> | null;
+  const marketTiers: MarketTierSeeds | undefined =
+    tiersRaw && typeof tiersRaw === "object"
+      ? {
+          broad: strArray(tiersRaw["broad"], 4),
+          medium: strArray(tiersRaw["medium"], 4),
+          niche: strArray(tiersRaw["niche"], 4),
+        }
+      : undefined;
+
+  const rawFindings = Array.isArray(o["findings"]) ? (o["findings"] as unknown[]) : [];
+  const validFindings: Finding[] = rawFindings.filter(isValidFinding).map((f) => ({
+    ...f,
+    // Clamp confidence to [0, 1] so values like 99 don't overflow numeric(3,2)
+    confidence: Math.max(0, Math.min(1, Number(f.confidence))),
+  }));
+  const findings: Finding[] = validFindings.length > 0 ? validFindings : [DEGRADED_FINDING];
+
+  const sampleAction: SampleAction = isValidSampleAction(o["sampleAction"])
+    ? o["sampleAction"]
+    : DEGRADED_SAMPLE_ACTION;
+
+  return { positioningMirror: mirror, findings, sampleAction, categorySeeds, marketTiers };
+}
+
 export function parseSynthResult(text: string): SynthResult | null {
   let parsed: unknown;
   try {
@@ -146,32 +197,7 @@ export function parseSynthResult(text: string): SynthResult | null {
   }
 
   if (typeof parsed !== "object" || parsed === null) return null;
-  const obj = parsed as Record<string, unknown>;
-
-  const mirror: PositioningMirror = isValidPositioningMirror(obj["positioningMirror"])
-    ? obj["positioningMirror"]
-    : DEGRADED_MIRROR;
-  // Attach LLM-authored audience tags (optional) onto the mirror, sanitised.
-  const pm = (obj["positioningMirror"] ?? {}) as Record<string, unknown>;
-  const intendedAudience = strArray(pm["intendedAudience"], 5);
-  const actualAudience = strArray(pm["actualAudience"], 5);
-  if (intendedAudience.length > 0) mirror.intendedAudience = intendedAudience;
-  if (actualAudience.length > 0) mirror.actualAudience = actualAudience;
-  const categorySeeds = strArray(obj["categorySeeds"], 5);
-
-  const rawFindings = Array.isArray(obj["findings"]) ? (obj["findings"] as unknown[]) : [];
-  const validFindings: Finding[] = rawFindings.filter(isValidFinding).map((f) => ({
-    ...f,
-    // Clamp confidence to [0, 1] so values like 99 don't overflow numeric(3,2)
-    confidence: Math.max(0, Math.min(1, Number(f.confidence))),
-  }));
-  const findings: Finding[] = validFindings.length > 0 ? validFindings : [DEGRADED_FINDING];
-
-  const sampleAction: SampleAction = isValidSampleAction(obj["sampleAction"])
-    ? obj["sampleAction"]
-    : DEGRADED_SAMPLE_ACTION;
-
-  return { positioningMirror: mirror, findings, sampleAction, categorySeeds };
+  return parseLiteSynth(parsed);
 }
 
 // ---------------------------------------------------------------------------

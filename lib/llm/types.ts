@@ -29,6 +29,17 @@ export interface SampleAction {
   why: string;
   draft: string;
 }
+/** M1: the lite synth's market-ladder seeds — the SAME kind of real head search
+ *  phrases as categorySeeds, split across three market altitudes (broad industry
+ *  umbrella, medium tool-category, niche audience wedge). A LATER task prices these
+ *  via the existing single volumes call and renders the ladder; this type only
+ *  carries the LLM's labeled phrases. `categorySeeds` semantics are UNCHANGED. */
+export interface MarketTierSeeds {
+  broad: string[];
+  medium: string[];
+  niche: string[];
+}
+
 export interface SynthResult {
   positioningMirror: PositioningMirror;
   findings: Finding[];
@@ -39,6 +50,9 @@ export interface SynthResult {
    *  narrow rankings. The LLM only identifies the category; volumes come from
    *  DataForSEO (no fabricated numbers). Optional for backward-compat. */
   categorySeeds?: string[];
+  /** M1: labeled broad/medium/niche market-tier seeds from the lite synth.
+   *  Optional — absent on legacy/full-synth output. */
+  marketTiers?: MarketTierSeeds;
 }
 
 // ---------------------------------------------------------------------------

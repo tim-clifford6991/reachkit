@@ -98,6 +98,10 @@ export async function runFindings(
       // category-demand is measured against the REAL market, not the subject's
       // narrow rankings.
       categorySeeds: (synth.categorySeeds ?? []) as unknown as Json,
+      // M1: labeled broad/medium/niche market-tier seeds from the lite synth —
+      // categorySeeds is UNCHANGED (still feeds the persisted v5 score story); this
+      // is the raw material a later task prices via the existing volumes call.
+      marketTiers: (synth.marketTiers ?? null) as unknown as Json,
     };
 
     const { error: scansErr } = await db
