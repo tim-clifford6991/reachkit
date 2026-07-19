@@ -15,7 +15,7 @@
  * enforced by the `production ✗→ lib/dev` architecture rule.
  */
 import type { Competitor, Community, Creator, KeywordRow, ReviewItem, TimedCommunity } from "@/lib/scan/types";
-import type { FactSheetKind } from "@/lib/scan/fact-sheets";
+import type { FactSheetKind } from "@/lib/scan/fact-sheet-kind";
 import type {
   ReviewThemesSheet,
   PositioningSheet,

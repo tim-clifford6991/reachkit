@@ -22,6 +22,8 @@
 import { SIGNAL_REGISTRY, PILLAR_WEIGHTS, type Pillar, type SignalSource } from "./signals";
 import type { ScanSignalRow } from "./compute-signals";
 import type { ActionCard } from "@/lib/llm/types";
+import { discoverabilityScore as unifiedDiscoverability } from "./registry-score";
+import { CATEGORY_TARGET } from "./search-visibility";
 
 /** Max baseline fixes emitted by the floor. */
 export const MAX_FALLBACK_ACTIONS = 5;
@@ -94,5 +96,50 @@ export function fallbackActionsFromSignals(
     confidence: 0.5,
     target: null, // signal-derived baseline fixes carry no WHO/WHERE
     signalKeys: [def.key], // exact 1:1 linkage — this fix addresses this signal
+  }));
+}
+
+/** Max opportunity-targeted cards emitted from the free footprint's category
+ *  opportunities. */
+export const MAX_OPPORTUNITY_ACTIONS = 2;
+
+/**
+ * WS-C (2026-07-19): the free plan's #1 fix must speak to the page's own
+ * diagnosis. These cards are DETERMINISTIC (no LLM, no new data): each names a
+ * real category search the site doesn't win (keyword/volume/position already in
+ * the payload). Impact honesty (invariant 5a): the delta is RECOMPUTED from the
+ * score model — winning one category term moves the search-presence driver by
+ * one CATEGORY_TARGET step, and the delta is the unified-gauge movement that
+ * step produces. Never a free-chosen number.
+ */
+export function opportunityActionsFromSearch(
+  input: { score: number; onPageReadiness: number; categoryOpportunities: Array<{ keyword: string; volume: number; yourPosition?: number }> },
+  now: Date = new Date(),
+): ActionCard[] {
+  const { score, onPageReadiness } = input;
+  if (onPageReadiness <= 0) return [];
+  const opps = (input.categoryOpportunities ?? []).slice(0, MAX_OPPORTUNITY_ACTIONS);
+  const deadline = new Date(now.getTime() + 21 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+  const before = unifiedDiscoverability(onPageReadiness, Math.max(1, score));
+  const after = unifiedDiscoverability(onPageReadiness, Math.min(100, score + 100 / CATEGORY_TARGET));
+  const delta = Math.max(1, Math.round(after - before));
+  return opps.map((o) => ({
+    category: "seo_aso",
+    title: `Create or strengthen a page targeting "${o.keyword}"`,
+    why: `${o.volume.toLocaleString()} searches/mo in your category — ${
+      typeof o.yourPosition === "number" ? `you're #${o.yourPosition} today; top 3 is the goal` : "you don't rank for it yet"
+    }. Winning it lifts the Search-presence half of your score.`,
+    evidenceIds: [],
+    evidence: [],
+    effortMin: 120,
+    suggestedDeadline: deadline,
+    expectedOutcome: { scoreComponent: "seo", delta },
+    draft: null,
+    draftRequiresEdit: true,
+    verification: { method: "self_report", state: "pending" },
+    basis: "probability_based",
+    confidence: 0.5,
+    target: null,
+    signalKeys: [],
   }));
 }

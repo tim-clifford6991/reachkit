@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, test, vi } from "vitest";
 import type { SynthResult, FindingEvidence } from "./types";
 import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
 import { makeFixtureProvider } from "@/lib/dev/fixtures";
@@ -459,5 +459,34 @@ describe("parseSynthResult — categorySeeds + audience", () => {
     const r = parseSynthResult(json)!;
     expect(r.categorySeeds).toEqual([]);
     expect(r.positioningMirror.intendedAudience).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// parseLiteSynth — market-tier seeds (M1)
+// ---------------------------------------------------------------------------
+describe("parseLiteSynth — marketTiers", () => {
+  it("parses marketTiers (broad/medium/niche) and caps each at 4", async () => {
+    const { parseLiteSynth } = await import("./synth");
+    const out = parseLiteSynth({
+      positioningMirror: { listingSays: "x", reviewsValue: "", gap: "" },
+      categorySeeds: ["rank tracking software"],
+      marketTiers: {
+        broad: ["marketing software", "marketing tools"],
+        medium: ["seo tools", "rank tracking software", "seo analytics", "serp tracker", "extra-over-cap"],
+        niche: ["seo tools for solo founders"],
+      },
+    });
+    expect(out.marketTiers).toEqual({
+      broad: ["marketing software", "marketing tools"],
+      medium: ["seo tools", "rank tracking software", "seo analytics", "serp tracker"],
+      niche: ["seo tools for solo founders"],
+    });
+  });
+
+  it("legacy synth output without marketTiers parses with marketTiers undefined", async () => {
+    const { parseLiteSynth } = await import("./synth");
+    const out = parseLiteSynth({ positioningMirror: { listingSays: "x", reviewsValue: "", gap: "" }, categorySeeds: ["a"] });
+    expect(out.marketTiers).toBeUndefined();
   });
 });

@@ -4,6 +4,26 @@ import { fetchWithTimeout } from "@/lib/scan/adapters/fetch-timeout";
 import { recordTavilyCost } from "@/lib/scan/cost-context";
 
 /**
+ * Grounding-policy version for review-derived fact sheets. This is the class fix
+ * for the cache-poisoning bug: a fact sheet cached under an OLDER policy is stale
+ * evidence even if it hasn't expired, because the RULES that decided what counts
+ * as grounded evidence changed underneath it. `lib/scan/fact-sheets.ts` stamps
+ * this onto `review_themes` writes and rejects a cached sheet on read-back whose
+ * stamp doesn't match — a policy bump here invalidates every prior sheet without
+ * a migration or a manual purge.
+ *
+ * v1 = pre-WS-A implicit (Tavily's synthesized `answer` could leak in as a
+ *      "review", and any snippet mentioning the subject's name was kept).
+ * v2 = WS-A: `parseWebReviewSnippets` drops `answer` outright, and
+ *      `filterSubjectSnippets`/`dropDomainConflicts` require the snippet to
+ *      actually reference the subject's own host — a same-named different
+ *      product's reviews can no longer pollute the sheet.
+ *
+ * Bump this whenever the grounding rule for review evidence tightens again.
+ */
+export const GROUNDING_POLICY_VERSION = 2;
+
+/**
  * Best-effort web review snippets. Web mode collects no first-party reviews, so we
  * mine review-bearing text from a `"{subject} reviews"` search (Trustpilot/G2/etc.
  * snippets) to feed the review_themes extract — turning "0 reviews" into real
