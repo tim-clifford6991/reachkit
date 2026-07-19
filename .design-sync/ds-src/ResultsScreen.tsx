@@ -52,12 +52,20 @@ const IDENTITY_LINE = "Habit and mood tracking for people building daily routine
 // M3 (2026-07-19) — the broad/medium market ladder. Demand is NOT monotonic
 // across rungs by design (keyword volumes don't obey concept hierarchy), so
 // this states each rung's label + number + standing, never "biggest market".
+// FINAL-REVIEW FIX (2026-07-19): a rung's number is the SUM of every phrase
+// priced for it, but showing only its top phrase as the label made the number
+// look like it belonged to that phrase alone (live: a medium rung read
+// 113,620 labeled "seo tools", which alone is only 110,000). MEDIUM here
+// demos a multi-phrase rung so its chips row (itemising the rest) is mirrored.
 const MARKET_TIERS = [
-  { tier: "broad" as const, label: "productivity software", demand: 90500, bestPosition: null as number | null },
-  { tier: "medium" as const, label: "habit tracker app", demand: 8100, bestPosition: 34 as number | null },
+  { tier: "broad" as const, label: "productivity software", demand: 90500, bestPosition: null as number | null, phrases: [{ keyword: "productivity software", volume: 90500 }] },
+  { tier: "medium" as const, label: "habit tracker app", demand: 8820, bestPosition: 34 as number | null, phrases: [{ keyword: "habit tracker app", volume: 8100 }, { keyword: "daily habit app", volume: 720 }] },
 ];
 // WS-D (2026-07-19) — categoryRanked rows the subject already ranks top-3
-// for, shown alongside the gap so the report isn't gaps-only.
+// for, shown alongside the gap so the report isn't gaps-only. FINAL-REVIEW FIX:
+// the wins SENTENCE below states a count (3) higher than this strip's rows —
+// so the demo mirrors the "+N more" disclosure that discloses the strip is partial.
+const CATEGORY_WINS = 3;
 const WINS_ROWS = [{ keyword: "habit journal app", volume: 720, yourPosition: 2 }];
 // WS-D (2026-07-19) — a few named off-topic keywords, so the >=40% warning
 // is concrete rather than a bare percentage.
@@ -156,30 +164,52 @@ export function ResultsScreen() {
               category you compete in". Rungs are NOT claimed monotonic. */}
           <div style={{ marginBottom: 14, borderBottom: "1px solid var(--c-line2)", paddingBottom: 12 }}>
             {MARKET_TIERS.map((t) => (
-              <div key={t.tier} style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: 8, fontSize: 13, padding: "3px 0" }}>
-                <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--c-faint)", width: 58 }}>{t.tier}</span>
-                <span style={{ fontWeight: 600, flex: "1 1 140px" }}>{t.label}</span>
-                <span style={{ fontFamily: JM, color: "var(--c-muted)" }}>{t.demand.toLocaleString()} searches/mo</span>
-                <span style={{ fontFamily: JM, fontWeight: 700, color: t.bestPosition != null ? "var(--c-band-fair)" : "var(--c-band-invisible)" }}>{t.bestPosition != null ? `best #${t.bestPosition}` : "not ranking"}</span>
+              <div key={t.tier}>
+                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: 8, fontSize: 13, padding: "3px 0" }}>
+                  <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--c-faint)", width: 58 }}>{t.tier}</span>
+                  <span style={{ fontWeight: 600, flex: "1 1 140px" }}>{t.label}</span>
+                  <span style={{ fontFamily: JM, color: "var(--c-muted)" }}>{t.demand.toLocaleString()} searches/mo</span>
+                  <span style={{ fontFamily: JM, fontWeight: 700, color: t.bestPosition != null ? "var(--c-band-fair)" : "var(--c-band-invisible)" }}>{t.bestPosition != null ? `best #${t.bestPosition}` : "not ranking"}</span>
+                </div>
+                {/* FINAL-REVIEW FIX: itemise every phrase behind a multi-phrase
+                    rung — same idiom as the categoryPhrases chips below — so
+                    the rung's total visually reconciles to its parts. */}
+                {t.phrases.length > 1 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 10px", fontSize: 12.5, color: "var(--c-faint)", fontFamily: JM, padding: "2px 0 4px 66px" }}>
+                    {t.phrases.map((ph) => (
+                      <span key={ph.keyword} style={{ background: "var(--c-fill)", borderRadius: 6, padding: "2px 8px" }}>{ph.keyword} <span style={{ color: "var(--c-muted)", fontWeight: 600 }}>{ph.volume.toLocaleString()}</span></span>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
             <div style={{ fontSize: 12, color: "var(--c-faint)", marginTop: 6 }}>Your niche, where the plan below starts:</div>
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: 10, marginBottom: 12 }}>
+            {/* MINOR polish: this card IS the ladder's third (niche) rung — give
+                it the same uppercase pill the BROAD/MEDIUM rungs use above, so
+                the ladder reads as one consistent 3-rung structure. */}
+            <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--c-faint)", width: 58 }}>niche</span>
             <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 26 }}>12,400</span>
             <span style={{ fontSize: 13.5, color: "var(--c-muted)" }}>searches/mo across your category</span>
           </div>
           {/* No "You capture X%" bar — captureRate was the search score under a second
               label (guard G1). We state the real, reconcilable count instead. */}
           <div style={{ fontSize: 13.5, color: "var(--c-muted)", marginBottom: 10 }}>
-            You rank in the top 3 for <strong style={{ color: "var(--c-band-findable)" }}>1</strong> of your category&apos;s searches.
+            You rank in the top 3 for <strong style={{ color: "var(--c-band-findable)" }}>{CATEGORY_WINS}</strong> of your category&apos;s searches.
           </div>
           {/* WS-D (2026-07-19): the "you already win" strip — categoryRanked
-              rows you already rank top-3 for, so gaps aren't the whole story. */}
+              rows you already rank top-3 for, so gaps aren't the whole story.
+              FINAL-REVIEW FIX: the sentence above states CATEGORY_WINS (3),
+              higher than this capped strip's rows (1) — the "+N more" chip
+              discloses that the strip is a partial view of that count. */}
           <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 10px", fontSize: 12.5, fontFamily: JM, marginBottom: 10 }}>
             {WINS_ROWS.map((w) => (
               <span key={w.keyword} style={{ background: "var(--c-tint-green)", color: "var(--c-band-high)", borderRadius: 6, padding: "2px 8px", fontWeight: 600 }}>#{w.yourPosition} {w.keyword} <span style={{ fontWeight: 700 }}>{w.volume.toLocaleString()}</span></span>
             ))}
+            {CATEGORY_WINS > WINS_ROWS.length && (
+              <span style={{ color: "var(--c-faint)", fontWeight: 600, padding: "2px 4px" }}>+{CATEGORY_WINS - WINS_ROWS.length} more</span>
+            )}
           </div>
           {/* G4: the named phrases behind the demand total, so it reconciles. */}
           <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 10px", fontSize: 12.5, color: "var(--c-faint)", fontFamily: JM }}>

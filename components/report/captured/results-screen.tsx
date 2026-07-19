@@ -148,7 +148,16 @@ export interface ResultsScreenProps {
      *  monotonic across rungs (keyword volumes don't obey concept hierarchy —
      *  a live scan showed broad 5,200 < medium 113,620), so the render states
      *  each rung's label + number + standing and never claims "biggest market". */
-    marketTiers: { tier: "broad" | "medium"; label: string; demand: number; bestPosition: number | null }[];
+    marketTiers: {
+      tier: "broad" | "medium";
+      label: string;
+      demand: number;
+      bestPosition: number | null;
+      /** FINAL-REVIEW FIX: every phrase priced into this rung's `demand` sum —
+       *  so a multi-phrase rung can itemise the rest as chips and its number
+       *  reconciles to its parts (the same G4 idiom as `categoryPhrases`). */
+      phrases: { keyword: string; volume: number }[];
+    }[];
     /** WS-D (2026-07-19) — categoryRanked rows the subject already ranks
      *  top-3 for, so the report shows wins alongside gaps. */
     winsRows: { keyword: string; volume: number; yourPosition: number }[];
@@ -375,17 +384,43 @@ export function ResultsScreen(p: ResultsScreenProps) {
                 {(sv.marketTiers ?? []).length > 0 && (
                   <div style={{ marginBottom: 14, borderBottom: "1px solid var(--c-line2)", paddingBottom: 12 }}>
                     {(sv.marketTiers ?? []).map((t) => (
-                      <div key={t.tier} style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: 8, fontSize: 13, padding: "3px 0" }}>
-                        <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--c-faint)", width: 58 }}>{t.tier}</span>
-                        <span style={{ fontWeight: 600, flex: "1 1 140px", minWidth: 0 }} className="rk-wrap-any">{t.label}</span>
-                        <span style={{ fontFamily: JM, color: "var(--c-muted)" }}>{t.demand.toLocaleString()} searches/mo</span>
-                        <span style={{ fontFamily: JM, fontWeight: 700, color: t.bestPosition != null ? "#C98A12" : "#E5484D" }}>{t.bestPosition != null ? `best #${t.bestPosition}` : "not ranking"}</span>
+                      <div key={t.tier}>
+                        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: 8, fontSize: 13, padding: "3px 0" }}>
+                          <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--c-faint)", width: 58 }}>{t.tier}</span>
+                          <span style={{ fontWeight: 600, flex: "1 1 140px", minWidth: 0 }} className="rk-wrap-any">{t.label}</span>
+                          <span style={{ fontFamily: JM, color: "var(--c-muted)" }}>{t.demand.toLocaleString()} searches/mo</span>
+                          <span style={{ fontFamily: JM, fontWeight: 700, color: t.bestPosition != null ? "#C98A12" : "#E5484D" }}>{t.bestPosition != null ? `best #${t.bestPosition}` : "not ranking"}</span>
+                        </div>
+                        {/* FINAL-REVIEW FIX: a rung's number is the SUM of every
+                            phrase priced for it, but showing only phrases[0] as
+                            the label made the number look like it belonged to
+                            that one phrase alone (live: medium rung 113,620
+                            labeled "seo tools", which alone is only 110,000).
+                            Itemise the rest as chips — same idiom as the
+                            categoryPhrases chips below — so the total reconciles. */}
+                        {t.phrases.length > 1 && (
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 10px", fontSize: 12.5, color: "var(--c-faint)", fontFamily: JM, padding: "2px 0 4px 66px" }}>
+                            {t.phrases.map((ph) => (
+                              <span key={ph.keyword} style={{ background: "var(--c-fill)", borderRadius: 6, padding: "2px 8px" }}>
+                                {ph.keyword} <span style={{ color: "var(--c-muted)", fontWeight: 600 }}>{ph.volume.toLocaleString()}</span>
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     ))}
                     <div style={{ fontSize: 12, color: "var(--c-faint)", marginTop: 6 }}>Your niche, where the plan below starts:</div>
                   </div>
                 )}
                 <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: 10, marginBottom: 12 }}>
+                  {/* MINOR polish: this card IS the ladder's third (niche) rung —
+                      its own closing line above already calls it "Your niche".
+                      Give it the same uppercase pill the BROAD/MEDIUM rungs use
+                      so the ladder reads as one consistent 3-rung structure,
+                      only when the ladder actually rendered above it. */}
+                  {(sv.marketTiers ?? []).length > 0 && (
+                    <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--c-faint)", width: 58 }}>NICHE</span>
+                  )}
                   <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 26 }}>{sv.categoryDemand.toLocaleString()}</span>
                   <span style={{ fontSize: 13.5, color: "var(--c-muted)" }}>searches/mo across your category</span>
                 </div>
@@ -406,6 +441,14 @@ export function ResultsScreen(p: ResultsScreenProps) {
                         #{w.yourPosition} {w.keyword} <span style={{ fontWeight: 700 }}>{w.volume.toLocaleString()}</span>
                       </span>
                     ))}
+                    {/* FINAL-REVIEW FIX: the wins SENTENCE above ("you rank in the
+                        top 3 for N…") is uncapped, but these chips are the
+                        volume-capped categoryRanked top-15 filtered to top-3 and
+                        sliced to 3 — so the sentence's N can exceed the chips
+                        shown, with no disclosure that the strip is partial. */}
+                    {wins > (sv.winsRows ?? []).length && (
+                      <span style={{ color: "var(--c-faint)", fontWeight: 600, padding: "2px 4px" }}>+{wins - (sv.winsRows ?? []).length} more</span>
+                    )}
                   </div>
                 )}
                 {/* G4: itemise the phrases behind the demand total, so "N searches/mo"

@@ -522,4 +522,94 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
     expect(html).toMatch(/discovers who(?:'|’|&#x27;)s winning these searches/i);
     expect(html).not.toMatch(/Buyers compare you to\s*</); // no empty comma-list sentence
   });
+
+  // FINAL-REVIEW FIX: a market-ladder rung's number is the SUM of every phrase
+  // DataForSEO priced for that tier (`computeMarketTiers`), but the rung used to
+  // render only `phrases[0].keyword` as its label — so a rung whose total was
+  // Σ(2+ phrases) LOOKED like it belonged to a single phrase that didn't add up
+  // to it (live: medium rung 113,620 labeled "seo tools", which alone is only
+  // 110,000). Fix: itemise every phrase behind a multi-phrase rung as chips
+  // (the same G4 idiom already used for `categoryPhrases`), so the number
+  // visually reconciles to its parts.
+  it("ITEMIZE: a multi-phrase ladder rung renders EVERY phrase as a chip, so its total reconciles", () => {
+    const html = renderPublicReport(report({ searchVisibility: sv({
+      marketTiers: [
+        { tier: "broad", phrases: [{ keyword: "marketing software", volume: 550000 }], demand: 550000, bestPosition: null },
+        { tier: "medium", phrases: [
+          { keyword: "seo tools", volume: 110000 },
+          { keyword: "rank tracking software", volume: 1600 },
+        ], demand: 111600, bestPosition: null },
+      ],
+    }) }));
+    expect(html).toContain("111,600"); // the rung total
+    expect(html).toContain("seo tools");
+    expect(html).toContain("110,000"); // top phrase's OWN volume, distinct from the rung total
+    expect(html).toContain("rank tracking software"); // the second phrase — invisible before this fix
+    expect(html).toContain("1,600");
+    // The single-phrase broad rung must NOT grow a chips row it doesn't need.
+    const broadIdx = html.indexOf("marketing software");
+    const mediumIdx = html.indexOf("seo tools");
+    expect(broadIdx).toBeGreaterThanOrEqual(0);
+    expect(mediumIdx).toBeGreaterThan(broadIdx);
+  });
+
+  // FINAL-REVIEW FIX: the wins SENTENCE ("you rank in the top 3 for N of your
+  // category's searches") is uncapped, but the wins CHIPS below it are the
+  // volume-capped categoryRanked top-15, filtered to top-3, sliced to 3 — so
+  // the sentence can claim more wins than the chips show, with no disclosure
+  // that the chips are a partial view.
+  it("wins disclosure: '+N more' renders when categoryWins outstrips the rendered wins strip", () => {
+    const html = renderPublicReport(report({ searchVisibility: sv({
+      categoryRanked: [
+        { keyword: "term one", volume: 500, yourPosition: 1 },
+        { keyword: "term two", volume: 400, yourPosition: 2 },
+      ],
+      categoryWins: 5,
+    }) }));
+    expect(html).toContain("+3 more");
+  });
+
+  it("wins disclosure: omitted when categoryWins equals the rendered wins strip count", () => {
+    const html = renderPublicReport(report({ searchVisibility: sv({
+      categoryRanked: [
+        { keyword: "term one", volume: 500, yourPosition: 1 },
+        { keyword: "term two", volume: 400, yourPosition: 2 },
+      ],
+      categoryWins: 2,
+    }) }));
+    expect(html).not.toMatch(/\+\d+ more/);
+  });
+
+  // MINOR polish: identityLine truncation only appends an ellipsis when it
+  // ACTUALLY truncated the string — a 160-char cut with no ellipsis reads as a
+  // sentence that just stops.
+  it("identityLine adds an ellipsis only when it actually truncates", () => {
+    const long = "x".repeat(200);
+    const html = renderPublicReport(report({ whatYouOffer: { positioningMirror: { listingSays: long, reviewsValue: "", gap: "" } } }));
+    expect(html).toContain("x".repeat(159) + "…");
+    expect(html).not.toContain("x".repeat(160) + " ");
+
+    const short = "A short, complete sentence.";
+    const html2 = renderPublicReport(report({ whatYouOffer: { positioningMirror: { listingSays: short, reviewsValue: "", gap: "" } } }));
+    expect(html2).toContain(short);
+    expect(html2).not.toContain(short + "…");
+  });
+
+  // MINOR polish: the category-demand card's hero line gets a NICHE pill (same
+  // uppercase pill style as the BROAD/MEDIUM ladder rungs above it) so the
+  // ladder's third rung is visually consistent — its own closing line already
+  // calls this card "Your niche".
+  it("shows a NICHE pill on the category-demand hero line when the ladder rendered above it", () => {
+    const html = renderPublicReport(report({ searchVisibility: sv({
+      marketTiers: [
+        { tier: "broad", phrases: [{ keyword: "marketing software", volume: 550000 }], demand: 550000, bestPosition: null },
+      ],
+    }) }));
+    expect(html).toMatch(/NICHE/);
+  });
+
+  it("omits the NICHE pill when there's no ladder to be consistent with", () => {
+    const html = renderPublicReport(report({ searchVisibility: sv({ marketTiers: [] }) }));
+    expect(html).not.toMatch(/NICHE/);
+  });
 });
