@@ -1,43 +1,67 @@
 import { describe, expect, it } from "vitest";
-import { synthModelForTier, SYNTH_MODEL_FREE, SYNTH_MODEL_FULL } from "./synth";
+import { SYNTH_MODEL_FREE, SYNTH_MODEL_FULL } from "./synth";
+import { SYNTH_SYSTEM_LITE, buildSynthPromptLite, buildSynthPrompt } from "./prompts";
 import { anthropicCostCents } from "@/lib/telemetry/pipeline-runs";
 import { expectCallsSymbol } from "@/lib/testing/tripwire";
 
 // ---------------------------------------------------------------------------
-// GUARD — the synth model is tier-aware: free runs Haiku 4.5 (fast/cheap teaser,
-// the free report renders only the mirror + seeds); paid runs Sonnet (the deep
-// report's action plan is built FROM these findings). Mutation-proven: flip the
-// free branch to Sonnet and the "free → Haiku" + "free is cheaper" tests fail.
+// GUARD — the two-tier synth: the FREE findings step runs a LITE Haiku teaser
+// (positioning mirror + category seeds only); the DEEP pass re-runs the FULL
+// Sonnet synth that the paid action plan is built from. Mutation-proven below.
 // ---------------------------------------------------------------------------
 
-describe("synthModelForTier — free runs Haiku, paid runs Sonnet", () => {
-  it("free → Haiku 4.5", () => {
-    expect(synthModelForTier("free")).toBe(SYNTH_MODEL_FREE);
+describe("synth models", () => {
+  it("free teaser = Haiku 4.5, deep = Sonnet, and they are distinct", () => {
     expect(SYNTH_MODEL_FREE).toBe("claude-haiku-4-5-20251001");
-  });
-
-  it("full → Sonnet", () => {
-    expect(synthModelForTier("full")).toBe(SYNTH_MODEL_FULL);
     expect(SYNTH_MODEL_FULL).toBe("claude-sonnet-4-6");
-  });
-
-  it("the free and paid synth models are distinct", () => {
     expect(SYNTH_MODEL_FREE).not.toBe(SYNTH_MODEL_FULL);
   });
 
-  it("the free synth model is genuinely CHEAPER on the same workload (not just different)", () => {
-    // A representative synth call: ~1,900 input fact-sheet tokens, ~800 output.
-    const free = anthropicCostCents(synthModelForTier("free"), 1900, 800);
-    const paid = anthropicCostCents(synthModelForTier("full"), 1900, 800);
-    expect(free).toBeLessThan(paid);
+  it("the free teaser model is genuinely CHEAPER on the same workload", () => {
+    const free = anthropicCostCents(SYNTH_MODEL_FREE, 1900, 300);
+    const deep = anthropicCostCents(SYNTH_MODEL_FULL, 1900, 300);
+    expect(free).toBeLessThan(deep);
   });
 });
 
-describe("the free scan actually routes synth through the tier selector", () => {
-  it("the scan-requested findings step calls synthModelForTier", () => {
-    // Effect-checking source tripwire: the findings step must derive its synth
-    // model from the tier (not hard-code one), or a free scan silently runs the
-    // expensive model. `expectCallsSymbol` requires a real call, not an import.
-    expectCallsSymbol("lib/inngest/functions/scan-requested.ts", "synthModelForTier");
+describe("the lite prompt generates ONLY the two rendered fields (render-only)", () => {
+  const lite = buildSynthPromptLite(
+    { reviewThemes: "{}", positioning: "{}", competitorGap: "{}" },
+    { storeUrl: "https://acme.com/" },
+  );
+  it("asks for positioningMirror + categorySeeds", () => {
+    expect(lite).toContain("positioningMirror");
+    expect(lite).toContain("categorySeeds");
+  });
+  it("does NOT ask for findings or sampleAction (the tokens the free report discards)", () => {
+    // The full prompt requests these; the lite one must not — that's the ~800→~280
+    // output-token cut that makes the free synth ~4s instead of ~12s.
+    expect(lite).not.toContain('"findings"');
+    expect(lite).not.toContain('"sampleAction"');
+    // sanity: the FULL prompt DOES ask for them (so the assertion isn't vacuous)
+    const full = buildSynthPrompt(
+      { reviewThemes: "{}", positioning: "{}", competitorGap: "{}", keywordData: "{}" },
+      { storeUrl: "https://acme.com/" },
+    );
+    expect(full).toContain('"findings"');
+    expect(full).toContain('"sampleAction"');
+  });
+  it("lite uses its own leaner system prompt (not the 'EXACTLY 3 findings' one)", () => {
+    expect(SYNTH_SYSTEM_LITE).not.toContain("EXACTLY 3 findings");
+  });
+});
+
+describe("wiring — free findings step is lite, deep pass re-runs the full synth", () => {
+  it("the findings step runs runFindings (the lite Haiku teaser is passed there)", () => {
+    // The findings step must pass { synthModel: SYNTH_MODEL_FREE, lite: true } — a
+    // source tripwire that it routes the free teaser, not the full model.
+    expectCallsSymbol("lib/inngest/functions/scan-requested.ts", "runFindings");
+  });
+  it("the deep pass re-runs runSynth (it must OWN the full synth, not reuse the teaser)", () => {
+    // If the deep pass ever stops calling runSynth it would build the paid action
+    // plan from the lite teaser's empty findings — this guards that regression.
+    // Scoped to runFullScan's own body (full-scan.ts DEFINES persistDeepSynth).
+    expectCallsSymbol("lib/scan/full-scan.ts", "runSynth", { within: "runFullScan" });
+    expectCallsSymbol("lib/scan/full-scan.ts", "persistDeepSynth", { within: "runFullScan" });
   });
 });

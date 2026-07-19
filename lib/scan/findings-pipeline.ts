@@ -24,7 +24,7 @@ import type { Json } from "@/lib/db/types";
 export async function runFindings(
   ctx: ScanContext,
   facts: PreliminaryFacts,
-  opts: { synthModel?: ModelId } = {},
+  opts: { synthModel?: ModelId; lite?: boolean } = {},
 ): Promise<void> {
   try {
     // 1. Extract — runs LLM on raw_documents and writes fact_sheets.
@@ -56,7 +56,7 @@ export async function runFindings(
     //    only renders the mirror + seeds); paid runs Sonnet (the deep report's
     //    action plan is built FROM these findings). Default = Sonnet.
     await emitScanEvent(ctx.scanId, "artifact", { label: "Comparing you to your competitors" });
-    const synth = await runSynth(ctx, { model: opts.synthModel });
+    const synth = await runSynth(ctx, { model: opts.synthModel, lite: opts.lite });
 
     // 3. Score — uses preliminary facts + keyword fact sheet
     await emitScanEvent(ctx.scanId, "artifact", { label: "Scoring your discoverability" });
