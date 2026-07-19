@@ -4,6 +4,7 @@ import { env } from "@/lib/config/env";
 import { ScanBudget } from "@/lib/tools/registry";
 import { runCollect } from "@/lib/scan/pipeline";
 import { runFindings } from "@/lib/scan/findings-pipeline";
+import { synthModelForTier } from "@/lib/llm/synth";
 import { runFreeReport } from "@/lib/scan/free-report";
 import { runFullScan } from "@/lib/scan/full-scan";
 import { emitScanEvent } from "@/lib/scan/progress";
@@ -149,6 +150,9 @@ export const scanRequested = inngest.createFunction(
           budget,
         },
         facts,
+        // free → Haiku synth (fast/cheap teaser), full → Sonnet (the paid deep
+        // report's action plan is built from these findings). See synth.ts.
+        { synthModel: synthModelForTier(tier) },
       );
     }, { capCents: externalCapCentsFor("findings", tier) }));
 

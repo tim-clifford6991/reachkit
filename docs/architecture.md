@@ -355,7 +355,7 @@ subject-only DataForSEO calls (`ranked_keywords` + `search_volume`) to compute
 | # | Step (Inngest) | Does | Cost |
 |---|---|---|---|
 | 1 | `collect` (`scan-requested.ts:44`) | `runCollect` → `getListing` (**site HTML fetch** = the sole source for the 8 headline signals + domain age), `getReviews` (**Tavily** `"{host} reviews"`), `findCompetitors` (**DataForSEO SERP + ProductHunt + Tavily**), then `extractCompetitorNames` (**Haiku**) to recover real names → `facts.competitors` | 3 external calls + 1 Haiku |
-| 2 | `findings` (`:99`) | `runExtract` (Haiku fact sheets) → `runSynth` (**Sonnet**): positioning mirror + findings + **`categorySeeds` (head category search phrases) + `intendedAudience`/`actualAudience`** (LLM-authored, persisted to `findings_payload`) → v1 score | 3–4 Haiku + 1 Sonnet |
+| 2 | `findings` (`:99`) | `runExtract` (Haiku fact sheets) → `runSynth` (**tier-aware model**, `synthModelForTier`: free → **Haiku 4.5**, paid → **Sonnet**): positioning mirror + findings + **`categorySeeds` (head category search phrases) + `intendedAudience`/`actualAudience`** (LLM-authored, persisted to `findings_payload`) → v1 score | 3–4 Haiku + 1 synth |
 | 3 | `free-report` (`:147`) | `runFreeReport`: `headlineScore` over the 8 `FIXED_BASIS_SIGNAL_KEYS` (on-page driver) → **`gatherFreeSearchVisibility`** (`ranked_keywords` footprint + `search_volume` on the LLM `categorySeeds` → `report_payload.searchVisibility`) → **`discoverabilityScore(head, sv.score)` persisted as `score_total` (`score_version 5`)** → `fallbackActionsFromSignals` → `buildFreeReport` | + ~2 DataForSEO calls (~$0.04) |
 | 4 | `done` (`:218`) | emit done, status `done` | — |
 
@@ -378,6 +378,16 @@ Reached two ways, same code: **(a)** `scan/requested` with `tier="full"` — fro
 re-collect), fired from Stripe checkout provisioning (`provision.ts:116`) or the
 in-app `/app/add` deepen/attach. Idempotent via `hasDeepReport` (sentinel
 `scans.deepened_at`).
+
+**Synth-model note (2026-07-19):** the deep pass **reuses the free scan's
+`findings_payload`** (it re-extracts only `keyword_data`, not synth) and feeds those
+findings into `generateActions` (`:528`). Because the free findings step now runs
+synth on **Haiku** (`synthModelForTier`), a scan deepened *from a free scan* builds
+its paid action plan from Haiku-authored findings; a **paid-from-start** scan
+(`tier="full"` at the findings step) uses **Sonnet**. If the paid plan must always
+be Sonnet regardless of entry, the deep pass should re-run the full Sonnet synth
+before `generateActions` (follow-up — deliberately not done yet, pending the Haiku
+quality A/B).
 
 Ordered steps (all skipped on free): 1 `runFullCollect` (keywords/communities/creators,
 seeded from `facts.competitors`, cap 5) · 2 re-extract `keyword_data` only · 3 read

@@ -14,6 +14,7 @@ import { SYNTH_SYSTEM, buildSynthPrompt } from "@/lib/llm/prompts";
 import { getFreshFactSheet, factSheetSubjectType } from "@/lib/scan/fact-sheets";
 import { fixtures } from "@/lib/scan/fixture-seam";
 import type { ScanContext } from "@/lib/scan/pipeline";
+import type { ModelId } from "@/lib/telemetry/pipeline-runs";
 import type {
   SynthResult,
   Finding,
@@ -25,7 +26,20 @@ import type {
   KeywordSheet,
 } from "@/lib/llm/types";
 
-const MODEL = "claude-sonnet-4-6" as const;
+/** The deep (paid) synth: Sonnet writes the findings the paid action plan is built
+ *  FROM (generateActions), so it stays on the stronger model. */
+export const SYNTH_MODEL_FULL: ModelId = "claude-sonnet-4-6";
+/** The free-tier synth: Haiku 4.5. Measured on THIS pipeline it runs ~2× faster
+ *  (≈92 vs ≈45 tok/s) and ~3× cheaper ($1/$5 vs $3/$15 per MTok) than Sonnet —
+ *  and the free report only renders the positioning mirror + category seeds, so
+ *  the stronger model is spent where it isn't shown. Paid keeps Sonnet. */
+export const SYNTH_MODEL_FREE: ModelId = "claude-haiku-4-5-20251001";
+
+/** Which model runs synth for a scan tier. free → Haiku, full → Sonnet. Guard:
+ *  lib/llm/synth.model.test.ts (mutation-proven). */
+export function synthModelForTier(tier: "free" | "full"): ModelId {
+  return tier === "free" ? SYNTH_MODEL_FREE : SYNTH_MODEL_FULL;
+}
 
 // ---------------------------------------------------------------------------
 // Minimal valid fallback when JSON parsing fails
@@ -185,7 +199,8 @@ async function readSheet<T>(
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
-export async function runSynth(ctx: ScanContext): Promise<SynthResult> {
+export async function runSynth(ctx: ScanContext, opts: { model?: ModelId } = {}): Promise<SynthResult> {
+  const model = opts.model ?? SYNTH_MODEL_FULL;
   // Fixture path — no LLM call, no fact-sheet reads
   const _f = fixtures();
   if (_f) {
@@ -213,7 +228,7 @@ export async function runSynth(ctx: ScanContext): Promise<SynthResult> {
   let text: string;
   try {
     const result = await callModel({
-      model: MODEL,
+      model,
       system: SYNTH_SYSTEM,
       prompt,
       scanId: ctx.scanId,
