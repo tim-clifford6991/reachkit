@@ -26,12 +26,20 @@ import type {
 } from "@/lib/llm/types";
 import type { ScanContext } from "@/lib/scan/pipeline";
 import type { FactSheetKind } from "@/lib/scan/fact-sheets";
+import { SITE_FETCH_ESCALATED, SITE_FETCH_DEGRADED } from "@/lib/scan/tools/get-listing";
 
 const MODEL = "claude-haiku-4-5-20251001" as const;
 
 // Source type groupings
 const REVIEW_SOURCES = Object.freeze(["app_store_rss", "web_reviews"] as const);
-const LISTING_SOURCES = Object.freeze(["itunes", "site_fetch"] as const);
+// Part C — "site_fetch_escalated" is the ONE Tavily Extract fallback's rendered
+// text (get-listing.ts), written only when the raw site_fetch HTML was garbage
+// (a JS-shell page) and the escalation itself was non-garbage. See
+// `effectiveListingRows` below for the REPLACE (not additive) semantics.
+// NOTE: SITE_FETCH_DEGRADED is deliberately NOT in this list — it is a
+// content-free marker row (get-listing.ts), consumed only by
+// `effectiveListingRows` below to decide exclusion, never fed to a prompt.
+const LISTING_SOURCES = Object.freeze(["itunes", "site_fetch", SITE_FETCH_ESCALATED] as const);
 const COMPETITOR_SOURCES = Object.freeze(["dataforseo_serp", "itunes_search", "tavily", "product_hunt"] as const);
 const KEYWORD_SOURCES = Object.freeze(["dataforseo_keywords"] as const);
 
@@ -53,11 +61,63 @@ function safeJsonParse(text: string): unknown {
   }
 }
 
+/**
+ * Part C — REPLACE (not additive) semantics: when a "site_fetch_escalated" row
+ * exists for this subject, the raw "site_fetch" HTML row is dropped from what
+ * feeds the identity/extract/synth path. The escalation only exists because the
+ * raw HTML was garbage (a JS-shell capture) — feeding BOTH would let the
+ * near-empty garbage text dilute/contradict the good escalated content instead
+ * of being replaced by it. "itunes" (app mode) is never affected.
+ *
+ * Review fix (IMPORTANT B) — the EXCLUSIONARY half: when escalation was
+ * attempted and STILL failed (a "site_fetch_degraded" marker row exists —
+ * get-listing.ts), the raw "site_fetch" row is dropped here too, even though
+ * no escalated replacement exists. Without this, a garbage fetch whose
+ * escalation also failed would still feed its near-empty/shell HTML into the
+ * positioning prompt and non-LLM floor — the identity line would then render
+ * a garbage-derived guess ALONGSIDE the honest `fetchDegraded` disclosure,
+ * contradicting it. Takes the FULL unfiltered row set (not just the
+ * LISTING_SOURCES-filtered rows) because the degraded marker's source_type is
+ * deliberately excluded from LISTING_SOURCES.
+ *
+ * NOTE: this does NOT touch `persist-signals.ts`'s `readSubjectHtml`, which
+ * reads `source_type = "site_fetch"` directly and always measures the 8 on-page
+ * HTML signals from the REAL fetched HTML — a JS-shell site genuinely lacks
+ * server-rendered signals, which is honest measurement, not a bug this papers
+ * over (documented boundary, task brief §3).
+ */
+function effectiveListingRows(rows: RawDocRow[]): RawDocRow[] {
+  const listingRows = rows.filter((r) => (LISTING_SOURCES as readonly string[]).includes(r.source_type));
+  const hasEscalated = rows.some((r) => r.source_type === SITE_FETCH_ESCALATED);
+  const hasDegradedMarker = rows.some((r) => r.source_type === SITE_FETCH_DEGRADED);
+  return hasEscalated || hasDegradedMarker
+    ? listingRows.filter((r) => r.source_type !== "site_fetch")
+    : listingRows;
+}
+
 // Non-LLM positioning floor: derive a basic positioning from the fetched site
 // (title / meta description / h1) so a LIVE app ALWAYS yields some real insight
 // even if the extract LLM is unavailable (e.g. no credits) or returns nothing —
-// the "always give insight when the app is live" rule.
+// the "always give insight when the app is live" rule. Handles BOTH shapes:
+// real HTML (site_fetch — parsed via parseListingHtml) and the Part C escalated
+// plain text (site_fetch_escalated — already-rendered text, no tags to parse).
 function buildPositioningFloor(listingRows: RawDocRow[], storeUrl: string): PositioningSheet {
+  const escalatedDoc = listingRows.find(
+    (r) => r.source_type === "site_fetch_escalated" && typeof r.body === "string",
+  );
+  if (escalatedDoc) {
+    const text = (escalatedDoc.body as string).trim();
+    if (text.length === 0) return EMPTY_POSITIONING;
+    // Already-rendered text/markdown, not HTML — no <title>/<meta> to parse.
+    // Same "always some real insight" floor, text-shaped: first line as the
+    // claim, next as a value prop.
+    const lines = text.split(/\n+/).map((l) => l.trim()).filter(Boolean);
+    const claims = lines.slice(0, 1);
+    const valueProps = lines.slice(1, 2);
+    if (claims.length === 0) return EMPTY_POSITIONING;
+    return { category: "", claims, valueProps };
+  }
+
   const siteDoc = listingRows.find(
     (r) => r.source_type === "site_fetch" && typeof r.body === "string",
   );
@@ -93,13 +153,20 @@ function htmlToText(html: string): string {
 
 // Format rows as a plain text block for injection into a prompt. `site_fetch`
 // bodies are raw HTML — reduce them to capped visible text first.
+// `site_fetch_escalated` (Part C) is ALREADY rendered plain text/markdown (the
+// Tavily Extract fallback) — pass it through as-is, capped the same way, no
+// HTML stripping needed (there are no tags to strip).
 function formatDocBodies(rows: RawDocRow[]): string {
   return rows
     .map((row, i) => {
-      const body =
-        row.source_type === "site_fetch" && typeof row.body === "string"
-          ? htmlToText(row.body)
-          : JSON.stringify(row.body, null, 2);
+      let body: string;
+      if (row.source_type === "site_fetch" && typeof row.body === "string") {
+        body = htmlToText(row.body);
+      } else if (row.source_type === "site_fetch_escalated" && typeof row.body === "string") {
+        body = row.body.slice(0, SITE_TEXT_CAP);
+      } else {
+        body = JSON.stringify(row.body, null, 2);
+      }
       return `[${i + 1}] source: ${row.source_type}\n${body}`;
     })
     .join("\n\n");
@@ -128,7 +195,11 @@ export async function runExtract(ctx: ScanContext, kinds?: FactSheetKind[]): Pro
 
   // 2. Group by source category
   const reviewRows = rows.filter((r) => (REVIEW_SOURCES as readonly string[]).includes(r.source_type));
-  const listingRows = rows.filter((r) => (LISTING_SOURCES as readonly string[]).includes(r.source_type));
+  // Part C REPLACE/EXCLUDE semantics — drops the raw "site_fetch" row when a
+  // good "site_fetch_escalated" row exists OR the escalation failed
+  // ("site_fetch_degraded" marker) for this subject (effectiveListingRows).
+  // Passes the FULL row set — the degraded marker isn't in LISTING_SOURCES.
+  const listingRows = effectiveListingRows(rows);
   const competitorRows = rows.filter((r) => (COMPETITOR_SOURCES as readonly string[]).includes(r.source_type));
   const keywordRows = rows.filter((r) => (KEYWORD_SOURCES as readonly string[]).includes(r.source_type));
 

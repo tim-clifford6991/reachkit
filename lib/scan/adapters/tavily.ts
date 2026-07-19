@@ -112,7 +112,12 @@ export async function tavilyExtract(urls: string[]): Promise<Array<{ url: string
     const res = await fetchWithTimeout("https://api.tavily.com/extract", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ api_key: env.tavilyApiKey, urls }),
+      // Review fix (MINOR D) — spec parity: "basic" is the cheaper/faster
+      // extract depth (vs "advanced"), matching this call's ONE-shot fallback
+      // use (get-listing.ts's escalateIfGarbage). No behavior change is
+      // exercised in unit tests (no live call) — the adapter's existing
+      // try/catch + `!res.ok` handling covers any API rejection identically.
+      body: JSON.stringify({ api_key: env.tavilyApiKey, urls, extract_depth: "basic" }),
     });
     if (!res.ok) return [];
     recordTavilyCost("extract", env.tavilyUsdPerCredit, { urlCount: urls.length });

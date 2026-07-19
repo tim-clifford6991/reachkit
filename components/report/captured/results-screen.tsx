@@ -91,6 +91,12 @@ export interface ResultsScreenProps {
    *  listingSays`), rendered as a small line before the headline. Absent/empty
    *  on a degraded scan (guard: `p.identityLine ?` — never render a blank line). */
   identityLine?: string;
+  /** Part C (2026-07-19) — true when the site fetch returned a JS-shell/garbage
+   *  capture AND the one Tavily Extract escalation also failed/was garbage
+   *  (`report_payload.fetchDegraded`). Renders one honest line in the
+   *  identity-strip slot instead of implying confident findings over a page we
+   *  never actually read. Defaults to `false` at the props boundary. */
+  fetchDegraded?: boolean;
   score: number;
   headline: string;
   intro: string; // sentence after the headline (without the site label, which is prepended)
@@ -271,6 +277,15 @@ export function ResultsScreen(p: ResultsScreenProps) {
               )}
               {p.identityLine ? (
                 <div style={{ fontSize: 12.5, color: "var(--c-faint)", margin: "0 0 8px", lineHeight: 1.5 }} className="rk-wrap-any">{p.identityLine}</div>
+              ) : null}
+              {/* Part C — honest degrade state: the fetch was unreadable (a
+                  JS-shell page) and our one Tavily Extract fallback also
+                  couldn't recover it. Replaces false-confidence findings
+                  framing with a plain disclosure, in the identity-strip slot. */}
+              {p.fetchDegraded ? (
+                <div style={{ fontSize: 12.5, color: "var(--c-band-hard)", margin: "0 0 8px", lineHeight: 1.5 }} className="rk-wrap-any">
+                  We couldn&apos;t fully read this page (it renders in the browser). On-page findings may be incomplete.
+                </div>
               ) : null}
               <h1 style={{ fontFamily: SG, fontWeight: 700, fontSize: 26, letterSpacing: "-0.02em", margin: "0 0 6px" }}>{p.headline}</h1>
               <p className="rk-wrap-any" style={{ fontSize: 15, lineHeight: 1.6, color: "var(--c-muted)", margin: "0 0 14px" }}>

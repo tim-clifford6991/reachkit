@@ -149,6 +149,13 @@ export interface ReportPayload {
   // instead of the on-site score that reads as "you're winning". Free web scans
   // only; the paid report uses `market` (rival cohort) instead.
   searchVisibility?: SearchVisibility;
+
+  // ── Part C — honest fetch-quality degrade state. True when the site fetch
+  // returned a JS-shell/garbage capture AND the one Tavily Extract escalation
+  // also failed/was garbage (`facts.fetchDegraded`, set in collect). Optional:
+  // reports persisted before this feature won't carry it (null-coalesce `??
+  // false` at the render props boundary, per the report_payload rule).
+  fetchDegraded?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -249,6 +256,8 @@ export function assembleReport(input: {
   reviewThemes?: { strengths: ReviewTheme[]; weaknesses: ReviewTheme[]; mixed: ReviewTheme[] };
   /** Free-tier Search Visibility (iteration 2) — populated on free web scans. */
   searchVisibility?: SearchVisibility;
+  /** Part C — `facts.fetchDegraded`, passed through by the caller. */
+  fetchDegraded?: boolean;
 }): ReportPayload {
   const {
     mode,
@@ -265,6 +274,7 @@ export function assembleReport(input: {
     creatorsToReach = [],
     reviewThemes = { strengths: [], weaknesses: [], mixed: [] },
     searchVisibility,
+    fetchDegraded,
   } = input;
 
   return {
@@ -302,6 +312,9 @@ export function assembleReport(input: {
     // ranks for NOTHING still renders the "Google ranks you for 0 searches" zero-state
     // instead of hiding the section. The caller passes undefined for non-web.
     ...(searchVisibility ? { searchVisibility } : {}),
+    // Part C — only attach when true, so an older/app-mode report's shape stays
+    // unchanged (the `?? false` at the render props boundary handles absence).
+    ...(fetchDegraded ? { fetchDegraded } : {}),
   };
 }
 

@@ -305,11 +305,15 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
     // Task 6 review hygiene addition: also omit positioningMirror.listingSays
     // (the identity-strip field, added after this shape shipped) so the
     // strip's `?? ""` defaulting at the props boundary is pinned by this
-    // legacy scenario like every other new render field.
+    // legacy scenario like every other new render field. Part C adds another:
+    // `fetchDegraded` (report.ts) also postdates this payload shape — the base
+    // `report()` helper never sets it, so this scenario stays a true legacy
+    // omission; `?? false` at the props boundary must hold without a throw.
     const legacyMirror = { reviewsValue: "fast galleries", gap: "gap" } as unknown as ReportPayload["whatYouOffer"]["positioningMirror"];
     const r = report({ whatYouOffer: { positioningMirror: legacyMirror }, searchVisibility: legacySv });
     const html = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r, "reflect.app", 2, 8)} scanId="scan-legacy" />);
     expect(html).toContain("searches/mo across your category"); // the demand block rendered
+    expect(html).not.toMatch(/couldn(?:'|’|&#x27;)t fully read this page/); // fetchDegraded defaults to false, never garbage
     assertNoGarbage(html, "legacy payload");
   });
 
@@ -627,6 +631,33 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
     const html2 = renderPublicReport(report({ whatYouOffer: { positioningMirror: { listingSays: short, reviewsValue: "", gap: "" } } }));
     expect(html2).toContain(short);
     expect(html2).not.toContain(short + "…");
+  });
+
+  // Part C (2026-07-19) — the honest fetch-degrade disclosure. Renders in the
+  // identity-strip slot (replacing false-confidence findings framing) when the
+  // site fetch was garbage AND the one Tavily Extract escalation also failed.
+  it("fetchDegraded: renders the honest 'couldn't fully read this page' disclosure", () => {
+    const html = renderPublicReport(report({ fetchDegraded: true }));
+    // renderToStaticMarkup HTML-escapes the JSX &apos; to the &#x27; entity.
+    expect(html).toMatch(/We couldn(?:'|’|&#x27;)t fully read this page \(it renders in the browser\)\. On-page findings may be incomplete\./);
+  });
+
+  // Review fix (IMPORTANT B, the belt): the default `report()` helper carries
+  // a real positioningMirror.listingSays ("Photo tools for creators") — a
+  // STALE mirror, exactly the shape a refresh could persist over an older
+  // good scan before a later fetch degraded. The degrade line must render
+  // ALONE, never alongside a confident-looking identity claim.
+  it("fetchDegraded: the identity line is blanked even when a stale positioningMirror exists (belt)", () => {
+    const html = renderPublicReport(report({ fetchDegraded: true }));
+    expect(html).not.toContain("Photo tools for creators");
+  });
+
+  it("fetchDegraded absent/false: the disclosure does NOT render", () => {
+    const htmlAbsent = renderPublicReport(report());
+    expect(htmlAbsent).not.toMatch(/couldn(?:'|’|&#x27;)t fully read this page/);
+
+    const htmlFalse = renderPublicReport(report({ fetchDegraded: false }));
+    expect(htmlFalse).not.toMatch(/couldn(?:'|’|&#x27;)t fully read this page/);
   });
 
   // Task B (2026-07-19, ladder restructure): the hero's pill was mislabeled

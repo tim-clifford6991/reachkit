@@ -19,6 +19,14 @@ export interface PreliminaryFacts {
   webProxy: WebProxy | null;      // web mode only
   themes: ThemeCount[];
   sourcesUsed: string[];
+  // Part C — true when the site fetch was garbage (a JS-shell page) AND the
+  // one Tavily Extract escalation also failed/was garbage. Web mode only;
+  // false/absent for app mode and for a healthy fetch. Flows into
+  // `report_payload.fetchDegraded` at assembly (report.ts). Optional so the
+  // many hand-built PreliminaryFacts fixtures elsewhere don't all need
+  // updating — `assembleFacts` (the one real construction site) always sets
+  // it explicitly.
+  fetchDegraded?: boolean;
   // §4.3 Cold Start: true when the subject has little/no footprint (pre-revenue,
   // pre-launch) — flips the full scan onto the validation-through-distribution queue.
   // Computed by isColdStart() in lib/scan/cold-start.ts when facts are assembled.
