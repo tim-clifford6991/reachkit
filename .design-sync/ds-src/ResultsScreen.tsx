@@ -7,17 +7,26 @@ import * as React from "react";
  * Discoverability Score + band + headline + its TWO driver bars: on-page
  * readiness × search presence + the Overview hero stat — the CATEGORY size),
  * the P3 (2026-07-20, data board) SIX-SECTION BOARD: Category (broad) + Niche
- * (specific) MarketCards side by side, the "buyers compare you to" rivalry
- * line in BOTH its states (rivals found → names + per-rival teaser; none
- * found → an honest "someone is winning" degrade, WS-E), the Opportunity
- * section (the niche's own gap keywords by volume), the top ranked fixes with
- * a clickable unlock teaser, the reworked Positioning Mirror (gap insight
- * leads, compact aim→reads-as line), the evidence footnote, and the unlock
- * CTA band. A payload whose categoryCard isn't yet grounded (pre-P2 / legacy)
- * falls back to the OLD three-tier ladder + footprint-split render instead —
- * documented as a note below, not duplicated as a second full demo (the DS
- * shows the CANONICAL going-forward experience; every new scan carries a
- * ready categoryCard). Mirrors the live captured report
+ * (specific) MarketCards side by side, a terse "Compared to: {names}" rivalry
+ * tease in BOTH its states (rivals found → names + unlock; none found → an
+ * honest "See who's winning these searches" degrade, WS-E), the Opportunity
+ * section (the niche's own gap keywords by volume), the top ranked fixes (2
+ * shown + up to 2 blurred locked-preview rows + the "N more" band), the
+ * evidence footnote, and ONE consolidated unlock CTA. A payload whose
+ * categoryCard isn't yet grounded (pre-P2 / legacy) falls back to the OLD
+ * three-tier ladder + footprint-split render instead — documented as a note
+ * below, not duplicated as a second full demo (the DS shows the CANONICAL
+ * going-forward experience; every new scan carries a ready categoryCard).
+ *
+ * P4 (2026-07-20, data-driven terseness — Tim's critical directive): the
+ * Positioning Mirror (a full LLM prose paragraph) is REMOVED from the free
+ * board entirely; every section subtitle SENTENCE is gone (short pill/title
+ * labels only); fix cards drop their "why" reasoning sentence (title + a
+ * delta chip only); the rivalry line is a bare keyword tease; the two
+ * separate upgrade CTAs (this band + public-report.tsx's own card) collapse
+ * into ONE terse "Unlock the full plan" component, matching the approved
+ * wireframe (https://claude.ai/code/artifact/47e3c03c-b3f8-49c3-a1bc-
+ * 58279eb49ba0). Mirrors the live captured report
  * (`components/report/captured/results-screen.tsx`).
  */
 export interface ResultsScreenProps {
@@ -83,13 +92,17 @@ const DRIVERS = [
   { label: "On-page readiness", value: ON_PAGE, note: "how well your page is built" },
   { label: "Search presence", value: SEARCH, note: "how findable you are in search" },
 ];
+// P4 (2026-07-20, terseness): 2 shown fixes — no "why" reasoning sentence
+// (title + effort/pillar keyword chips + a delta chip only). LOCKED_PREVIEW
+// is the "2+2" paywall tease: up to 2 MORE real fix cards, rendered blurred.
 const FIXES = [
-  { rank: 1, title: "Publish 3 “bloom vs [rival]” comparison pages", why: "Buyers run these head-to-head searches today and land on rivals' pages.", effort: "Medium", pillar: "Content", pred: 6, ec: { bg: "var(--c-tint-amber)", fg: "var(--c-band-fair)" } },
-  { rank: 2, title: "Claim your G2 + Capterra listings", why: "Directory presence is a ranking and trust signal you're missing.", effort: "Quick", pillar: "Outreach", pred: 5, ec: { bg: "var(--c-tint-blue)", fg: "var(--c-action)" } },
-  { rank: 3, title: "Add FAQ schema to your pricing page", why: "Structured data wins rich results for high-intent queries.", effort: "Quick", pillar: "SEO", pred: 4, ec: { bg: "var(--c-tint-green)", fg: "var(--c-band-findable)" } },
+  { rank: 1, title: "Publish 3 “bloom vs [rival]” comparison pages", effort: "Medium", pillar: "Content", pred: 6, ec: { bg: "var(--c-tint-amber)", fg: "var(--c-band-fair)" } },
+  { rank: 2, title: "Claim your G2 + Capterra listings", effort: "Quick", pillar: "Outreach", pred: 5, ec: { bg: "var(--c-tint-blue)", fg: "var(--c-action)" } },
 ];
-const INTENDED = ["habit tracking", "productivity", "wellness"];
-const ACTUAL = ["mood journal", "self-care app", "daily check-in"];
+const LOCKED_PREVIEW = [
+  { rank: 3, title: "Add FAQ schema to your pricing page", pred: 4 },
+  { rank: 4, title: "Fix thin meta descriptions across 6 pages", pred: 3 },
+];
 
 const CARD: React.CSSProperties = { background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16 };
 const H2: React.CSSProperties = { fontFamily: SG, fontWeight: 700, fontSize: 20, letterSpacing: "-0.01em", margin: "32px 0 6px" };
@@ -168,9 +181,21 @@ export function ResultsScreen() {
           </div>
         </div>
 
-        {/* Your category, and how much of it you own — LIFTED directly under the score */}
+        {/* Alt-state notes for the hero — this demo shows the common free/
+            searchVisibility-present case; the paid + zero-ranking states are
+            documented (exact live copy), not duplicated as full demos. */}
+        <div style={{ marginTop: -6, marginBottom: 6, fontSize: 11.5, color: "var(--c-faint)", fontStyle: "italic" }}>
+          Paid report (marketPosition present) → the gauge column also shows a &quot;<strong>Market position vs rivals</strong>&quot; grade beneath a dashed divider — the off-site cohort strength vs discovered competitors.
+        </div>
+        <div style={{ marginTop: -6, marginBottom: 6, fontSize: 11.5, color: "var(--c-faint)", fontStyle: "italic" }}>
+          Paid report, no free searchVisibility → the two driver bars are replaced by 3 on-page pillar bars; an unmeasured pillar renders &quot;unlock to measure&quot; / &quot;<strong>Not yet</strong>&quot;, never a false 0/100 it never earned.
+        </div>
+        <div style={{ marginTop: -6, marginBottom: 14, fontSize: 11.5, color: "var(--c-faint)", fontStyle: "italic" }}>
+          keywordsRanked 0 → &quot;<strong>Google ranks you for 0 searches.</strong>&quot; replaces the category-demand zero-state above the card grid — invisible in organic search IS the insight, never hidden.
+        </div>
+
+        {/* Your category, and how much of it you own */}
         <h2 style={H2}>Your category, and how much of it you own</h2>
-        <p style={SUB}>What buyers search, what you capture, who takes the rest.</p>
         {/* P3 (2026-07-20, data board §2-3): ONE reusable MarketCard, used
             TWICE — Category (broad) and Niche (specific) — in the
             intrinsic-collapse grid idiom (dashboard-hero.tsx's
@@ -194,9 +219,12 @@ export function ResultsScreen() {
             <div style={{ fontSize: 11, fontWeight: 600, color: "var(--c-faint)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "12px 0 7px" }}>You rank top 3 for</div>
             {/* "None yet." — the single most useful thing the card can say
                 (savvycal.com ranks for ZERO scheduling terms, live): an
-                honest hook, never a blank. */}
+                honest hook, never a blank. P4 (2026-07-20, terseness): the
+                old trailing sentence ("You don't rank for a single term in
+                your own category.") is gone — the bare label is the whole
+                point, data not description. */}
             <div style={{ fontSize: 12.5, color: "var(--c-muted)", background: "var(--c-tint-red)", borderLeft: "3px solid var(--c-band-invisible)", borderRadius: "0 8px 8px 0", padding: "8px 11px" }}>
-              <strong style={{ color: "var(--c-band-invisible)" }}>None yet.</strong> You don&apos;t rank for a single term in your own category.
+              <strong style={{ color: "var(--c-band-invisible)" }}>None yet.</strong>
             </div>
             <div style={{ fontSize: 11, fontWeight: 600, color: "var(--c-faint)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "12px 0 7px" }}>You don&apos;t rank for</div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -240,17 +268,24 @@ export function ResultsScreen() {
         <div style={{ marginTop: -6, marginBottom: 14, fontSize: 11.5, color: "var(--c-faint)", fontStyle: "italic" }}>
           Niche demand genuinely 0 (0 priced phrases) → the niche card still renders its real label, replacing the rank/gap sections with: "No measurable niche demand yet — your niche is still small or emerging."
         </div>
-        {/* WS-E (2026-07-19): both rivalry states render live now — a scan
-            with zero discovered rivals used to drop the "someone is
-            winning" insight entirely instead of degrading. Demo shows the
-            common "found" case; the note below is the exact copy shown
-            live when no rivals are discovered. Sits BELOW the card grid —
-            it's not tied to either card, it's about the category as a whole. */}
-        <div style={{ ...CARD, marginBottom: 14, fontSize: 13, color: "var(--c-muted)" }}>
-          Buyers compare you to <strong style={{ color: "var(--c-ink)" }}>Streaks, Habitica, Way of Life</strong> — and rivals are taking the searches above. <span style={UNLOCK}>Unlock to see how each one ranks, why they win, and how much of your category each takes →</span>
+        {/* WS-E (2026-07-19) / P4 (2026-07-20, terseness): both rivalry
+            states render live now — a scan with zero discovered rivals used
+            to drop the "someone is winning" insight entirely instead of
+            degrading. The old prose ("…and rivals are taking the searches
+            above. Unlock to see how each one ranks, why they win…") is gone
+            — a bare keyword tease: real competitor NAMES (the one deliberate
+            deviation from the wireframe's 6 sections — kept as a strong,
+            honest paid hook) + a bare unlock link. Demo shows the common
+            "found" case; the note below is the exact copy shown live when no
+            rivals are discovered. Sits BELOW the card grid — it's not tied to
+            either card, it's about the category as a whole. */}
+        <div style={{ ...CARD, marginBottom: 14, fontSize: 13, color: "var(--c-muted)", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <span style={{ fontFamily: JM, fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--c-faint)" }}>Compared to</span>
+          <strong style={{ color: "var(--c-ink)" }}>Streaks, Habitica, Way of Life</strong>
+          <span style={UNLOCK}>🔒 unlock →</span>
         </div>
         <div style={{ marginTop: -6, marginBottom: 14, fontSize: 11.5, color: "var(--c-faint)", fontStyle: "italic" }}>
-          No rivals discovered → degrades to: "Someone is winning these searches today. <span style={UNLOCK}>The full scan discovers who&apos;s winning these searches and what they do to rank →</span>"
+          No rivals discovered → degrades to: &quot;<span style={UNLOCK}>🔒 See who&apos;s winning these searches →</span>&quot;
         </div>
         {/* P3 (data board §4): Opportunity — the NICHE's own gap keywords,
             100% real positions + DataForSEO volumes, zero LLM, by volume.
@@ -288,25 +323,34 @@ export function ResultsScreen() {
           Legacy payload (no categoryCard) → falls back to the pre-P2 three-tier ladder ("You rank in the top 3 for N of your category&apos;s searches.") + the footprint-split bar ("Traffic split across your top-ranked terms.") + the promoted "Your biggest untapped opportunity" card (degrading to "Unlock to see who wins them and how →" when nothing parses) instead of the board above (don&apos;t crash, don&apos;t blank).
         </div>
 
-        {/* Ranked fixes */}
+        {/* Ranked fixes — P4 (2026-07-20, terseness): no subtitle sentence
+            ("Ordered by expected score impact. Free scans show N of M." is
+            gone — the cards + the "N more" band already say it). */}
         <h2 style={H2}>Your top {FIXES.length} ranked fixes</h2>
-        <p style={SUB}>Ordered by expected score impact. Free scans show {FIXES.length} of {FIXES.length + 5}.</p>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {FIXES.map((f) => (
-            <div key={f.rank} style={{ ...CARD, borderRadius: 14, padding: "18px 20px", display: "flex", gap: 16, alignItems: "flex-start" }}>
+            <div key={f.rank} style={{ ...CARD, borderRadius: 14, padding: "18px 20px", display: "flex", gap: 16, alignItems: "center" }}>
               <span style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: f.ec.bg, color: f.ec.fg, fontFamily: JM, fontWeight: 700 }}>{f.rank}</span>
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 600, fontSize: 15.5 }}>{f.title}</div>
-                <div style={{ fontSize: 13.5, color: "var(--c-faint)", margin: "3px 0 8px" }}>{f.why}</div>
-                <div style={{ display: "flex", gap: 8 }}>
+                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                   <span style={{ fontSize: 11.5, fontWeight: 600, borderRadius: 6, padding: "3px 8px", color: f.ec.fg, background: f.ec.bg }}>{f.effort}</span>
                   <span style={{ fontSize: 11.5, fontWeight: 600, borderRadius: 6, padding: "3px 8px", color: "var(--c-muted)", background: "var(--c-fill)" }}>{f.pillar}</span>
                 </div>
               </div>
               <div style={{ textAlign: "right", flexShrink: 0 }}>
-                <div style={{ fontSize: 11, color: "var(--c-faint)", fontWeight: 600 }}>Predicted</div>
                 <div style={{ fontFamily: JM, fontWeight: 700, fontSize: 18, color: "var(--c-band-findable)" }}>+{f.pred}</div>
               </div>
+            </div>
+          ))}
+          {/* P4 "2+2" deliverable: up to 2 blurred locked-preview rows —
+              real rank-3/4 title + delta when the plan carries them, a
+              content-free skeleton bar otherwise (never a fabricated title). */}
+          {LOCKED_PREVIEW.map((f) => (
+            <div key={f.rank} aria-hidden="true" style={{ ...CARD, borderRadius: 14, padding: "18px 20px", display: "flex", gap: 16, alignItems: "center", filter: "blur(3px)", opacity: 0.55, userSelect: "none" }}>
+              <span style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--c-fill)", color: "var(--c-faint)", fontFamily: JM, fontWeight: 700 }}>{f.rank}</span>
+              <div style={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: 15.5 }}>{f.title}</div>
+              <div style={{ fontFamily: JM, fontWeight: 700, fontSize: 18, color: "var(--c-band-findable)", flexShrink: 0 }}>+{f.pred}</div>
             </div>
           ))}
           {/* Live renders the "worth an estimated +N" clause only when
@@ -315,20 +359,11 @@ export function ResultsScreen() {
           <div style={{ border: "1px dashed var(--c-line2)", borderRadius: 14, padding: "16px 20px", fontSize: 14, fontWeight: 600, color: "var(--c-faint)" }}>🔒 5 more ranked fixes — worth an estimated +21 — <span style={UNLOCK}>unlock the full plan →</span></div>
         </div>
 
-        {/* Positioning Mirror — reworked: gap insight leads, audience is a compact
-            aim→reads-as line (no more two heavy chip columns). */}
-        <h2 style={H2}>Positioning Mirror</h2>
-        <p style={SUB}>Whether your page reads as the audience you actually want.</p>
-        <div style={{ ...CARD, padding: 24 }}>
-          <div style={{ background: "var(--c-tint-red)", borderLeft: "3px solid var(--c-band-invisible)", borderRadius: "0 10px 10px 0", padding: "16px 18px", fontSize: 15, lineHeight: 1.6, color: "var(--c-ink)" }}>Buyers searching for a habit tracker never see themselves in your page — it reads as a mood journal, so you lose them before the comparison.</div>
-          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px 14px", marginTop: 16, fontSize: 13.5 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--c-faint)" }}>You aim for</span>
-            <span style={{ fontWeight: 600, color: "var(--c-action)" }}>{INTENDED.join(", ")}</span>
-            <span style={{ color: "var(--c-faint)" }}>→</span>
-            <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--c-faint)" }}>Your page reads as</span>
-            <span style={{ fontWeight: 600, color: "var(--c-band-hard)" }}>{ACTUAL.join(", ")}</span>
-          </div>
-        </div>
+        {/* P4 (2026-07-20, terseness): Positioning Mirror REMOVED from the
+            free board — a full LLM prose paragraph, the single worst prose
+            violation, and it isn't in the approved wireframe. Render removal
+            only — the underlying data (intendedTags/actualTags/mirrorGap)
+            still flows through to-results-props.ts unchanged. */}
 
         {/* Evidence footnote */}
         <div style={{ marginTop: 24, display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: "var(--c-faint)", fontFamily: JM }}>
@@ -336,14 +371,22 @@ export function ResultsScreen() {
           Scanned {SITE} just now · every claim links to extracted evidence
         </div>
 
-        {/* Unlock band */}
-        <div style={{ marginTop: 18, background: "linear-gradient(135deg, var(--c-dark), var(--c-dark2))", borderRadius: 18, padding: "30px 32px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 20 }}>
-          <div>
-            <h3 style={{ color: "var(--c-on-dark)", fontFamily: SG, fontWeight: 700, fontSize: 22, margin: 0 }}>Get the full growth playbook + weekly tracking</h3>
-            <p style={{ color: "var(--c-on-dark-muted)", maxWidth: 430, margin: "8px 0 0", fontSize: 14, lineHeight: 1.5 }}>Ready-to-ship drafts, competitor &amp; keyword-gap intel, the full 18-signal breakdown, and weekly score tracking as you ship.</p>
+        {/* P4 (2026-07-20, terseness): ONE upgrade component, matching the
+            approved wireframe exactly — title + 3 keyword features (mono,
+            stacked) + button + price. Replaces the old two-paragraph
+            title/subtitle marketing sentences AND the second, separate
+            "Close the gap before your rivals widen it" CTA card that
+            public-report.tsx used to stack below this — the two CTAs the
+            brief calls out to collapse into one. */}
+        <div style={{ marginTop: 18, background: "linear-gradient(135deg, var(--c-dark), var(--c-dark2))", borderRadius: 18, padding: "30px 32px", textAlign: "center" }}>
+          <h3 style={{ color: "var(--c-on-dark)", fontFamily: SG, fontWeight: 700, fontSize: 22, margin: "0 0 16px" }}>Unlock the full plan</h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, fontFamily: JM, fontSize: 13, color: "var(--c-on-dark-muted)", marginBottom: 20 }}>
+            <span>Daily fix calendar</span>
+            <span>Weekly rank tracking</span>
+            <span>Distribution &amp; outreach</span>
           </div>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-            <button style={{ background: "var(--c-surface)", color: "var(--c-ink)", borderRadius: 10, padding: "13px 24px", border: "none", fontFamily: "var(--font-sans)", fontWeight: 700, fontSize: 15, cursor: "pointer", whiteSpace: "nowrap" }}>Unlock the full report →</button>
+            <button style={{ background: "var(--c-surface)", color: "var(--c-ink)", borderRadius: 10, padding: "13px 24px", border: "none", fontFamily: "var(--font-sans)", fontWeight: 700, fontSize: 15, cursor: "pointer", whiteSpace: "nowrap" }}>Unlock →</button>
             {/* Price stated up front on the unlock CTA (from lib/billing/pricing.ts's
                 tierByPlan/fmtPrice on the live report — never learned only inside
                 Stripe Checkout). */}

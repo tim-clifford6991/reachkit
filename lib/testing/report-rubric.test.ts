@@ -76,7 +76,7 @@ function cleanHtml(p: ReportPayload = payload()): string {
     <span>${s.categoryDemand.toLocaleString()}</span><span>searches/mo across your category</span>
     <div>You rank in the top 3 for ${s.categoryWins} of your category's searches.</div>
     ${hasOppRow ? `<div>Winning this lifts Search presence${searchIsWeaker ? " — your weaker half." : "."}</div>` : ""}
-    <div>Someone is winning these searches today.</div>
+    <div>See who's winning these searches</div>
   </main>`;
 }
 
@@ -119,7 +119,7 @@ describe("report-rubric engine honesty — every rule FIRES on a violating input
 
   it("R3 fires when a section renders from an empty input (fabricated-reviews class)", () => {
     // competitorGap is EMPTY but the rivalry names line rendered anyway.
-    const html = cleanHtml().replace("Someone is winning these searches today.", "Buyers compare you to <strong>MadeUp Inc</strong>");
+    const html = cleanHtml().replace("See who's winning these searches", "Compared to <strong>MadeUp Inc</strong>");
     const v = runReportRubric(payload(), html, only("R3"));
     expect(v.some((x) => x.message.includes("rivalry-names") && x.message.includes("ungrounded"))).toBe(true);
   });
@@ -237,6 +237,55 @@ describe("report-rubric engine honesty — every rule FIRES on a violating input
     });
     // No example copy rendered AND none required — the curated set is empty.
     expect(runReportRubric(p, cleanHtml(p), only("R3"))).toEqual([]);
+  });
+
+  // P4 (2026-07-20) — R8 terseness self-tests, same discipline as R1–R7:
+  // proven to FIRE on a crafted violating input before the corpus test relies
+  // on it biting real payloads.
+  it("R8 fires when 'Positioning Mirror' renders verbatim", () => {
+    const html = cleanHtml() + "<h2>Positioning Mirror</h2>";
+    const v = runReportRubric(payload(), html, only("R8"));
+    expect(v.some((x) => x.message.includes("Positioning Mirror"))).toBe(true);
+  });
+
+  it("R8 fires when a section-subtitle sentence renders verbatim", () => {
+    const html = cleanHtml() + "<p>What buyers search, what you capture, who takes the rest.</p>";
+    const v = runReportRubric(payload(), html, only("R8"));
+    expect(v.some((x) => x.message.includes("what you capture"))).toBe(true);
+  });
+
+  it("R8 fires when a fix card's why-sentence renders verbatim", () => {
+    const withActions = payload({
+      whatToDoThisWeek: {
+        quickWins: [
+          {
+            category: "content",
+            title: "Add schema",
+            why: "Structured data wins rich results for high-intent queries.",
+            evidenceIds: [],
+            evidence: [],
+            effortMin: 20,
+            suggestedDeadline: "2026-07-20",
+            expectedOutcome: { scoreComponent: "content", delta: 4 },
+            draft: null,
+            draftRequiresEdit: true,
+            verification: { method: "self_report", state: "pending" },
+            basis: "probability_based",
+            confidence: 0.5,
+            target: null,
+          },
+        ],
+        medium: [],
+        longPlay: [],
+      },
+    });
+    const html = cleanHtml(withActions) + "<div>Structured data wins rich results for high-intent queries.</div>";
+    const v = runReportRubric(withActions, html, only("R8"));
+    expect(v.some((x) => x.message.includes("Structured data wins rich results"))).toBe(true);
+  });
+
+  it("R8 passes clean HTML with no banned prose and no why-sentences rendered", () => {
+    expect(runReportRubric(payload(), cleanHtml(), only("R8"))).toEqual([]);
   });
 
   it("suppressions skip exactly the named rule and nothing else", () => {

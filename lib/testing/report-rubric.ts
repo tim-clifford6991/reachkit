@@ -174,7 +174,10 @@ export function derivableNumbers(payload: ReportPayload): Map<number, string> {
   add(fullActions, "Σ action buckets — the “show N of TOTAL” teaser total (public-report.tsx fullActions)");
   const redacted = redactReportForTier(payload, "free").whatToDoThisWeek;
   const shownActions = redacted.quickWins.length + redacted.medium.length + redacted.longPlay.length;
-  add(Math.max(0, fullActions - Math.min(shownActions, 3)), "fullActions − rendered fixes — the locked-fixes teaser count (to-results-props.ts lockedCount)");
+  // P4 (2026-07-20): 2 fixes shown, not 3 — the third card's "why" prose is
+  // gone, so 2 terse cards are enough (the up-to-2 blurred locked-preview
+  // rows are a separate, non-numeric visual tease, not counted here).
+  add(Math.max(0, fullActions - Math.min(shownActions, 2)), "fullActions − rendered fixes — the locked-fixes teaser count (to-results-props.ts lockedCount)");
 
   const sv = payload.searchVisibility;
   const kgLen = payload.market?.gap?.keywordGap?.length ?? 0;
@@ -241,10 +244,6 @@ const r2NumberBasis: RubricRule = {
 // R3 — empty input ⇒ no section (invariant #11 at report level)
 // ---------------------------------------------------------------------------
 
-/** Mirrors to-results-props.ts `cleanTags` — the mirror-grounding gate. */
-const cleanTags = (tags: string[] | undefined): string[] =>
-  (tags ?? []).filter((t) => typeof t === "string" && t.trim().length >= 2);
-
 /** Mirrors `marketCardReady` (results-screen.tsx) EXACTLY — a card is
  *  renderable only when it carries priced, grounded phrases (rankedTop3 ∪
  *  gaps), never an empty "0 searches/mo, None yet, None yet" shell. This is
@@ -267,15 +266,21 @@ interface SectionRule {
 
 const SECTION_RULES: SectionRule[] = [
   {
+    // P4 (2026-07-20, terseness): marker updated from "Buyers compare you to"
+    // — the old prose sentence ("…and rivals are taking the searches above.
+    // Unlock to see how each one ranks, why they win…") is gone; the rivalry
+    // teaser is now a bare "Compared to: {names}" keyword tease.
     id: "rivalry-names",
-    marker: "Buyers compare you to",
+    marker: "Compared to",
     grounded: (p) =>
       (p.searchVisibility?.categoryDemand ?? 0) > 0 &&
       (p.whereTheyAre?.competitorGap ?? []).some((c) => typeof c.competitor === "string" && c.competitor.length > 0),
   },
   {
+    // P4: marker updated from "Someone is winning these searches today." to
+    // the new terse degrade tease's own text.
     id: "rivalry-degrade-tease",
-    marker: "Someone is winning these searches today.",
+    marker: "See who's winning these searches",
     grounded: (p) =>
       (p.searchVisibility?.categoryDemand ?? 0) > 0 &&
       !(p.whereTheyAre?.competitorGap ?? []).some((c) => typeof c.competitor === "string" && c.competitor.length > 0),
@@ -308,11 +313,10 @@ const SECTION_RULES: SectionRule[] = [
       renderableExamples(p.searchVisibility.offTopicExamples).length > 0 &&
       !marketCardReady(p.searchVisibility.categoryCard),
   },
-  {
-    id: "positioning-mirror",
-    marker: "Positioning Mirror",
-    grounded: (p) => cleanTags(p.whatYouOffer.positioningMirror.actualAudience).length > 0,
-  },
+  // "positioning-mirror" removed (P4, 2026-07-20): the section is now REMOVED
+  // from the free board unconditionally (never gated on grounding) — R8 below
+  // asserts it never renders, for any payload, rather than pairing a marker
+  // with a grounding predicate that can no longer be satisfied.
   {
     id: "wins-sentence",
     // The PRE-P2 ladder's own "YOUR CATEGORY" card sentence — MarketCard (P3)
@@ -411,7 +415,8 @@ const r4TeaserParity: RubricRule = {
     const fullActions = acts.quickWins.length + acts.medium.length + acts.longPlay.length;
     const redacted = redactReportForTier(payload, "free").whatToDoThisWeek;
     const shownActions = redacted.quickWins.length + redacted.medium.length + redacted.longPlay.length;
-    const expectedLocked = Math.max(0, fullActions - Math.min(shownActions, 3));
+    // P4 (2026-07-20): 2 fixes shown, not 3 (see the derivableNumbers() comment above).
+    const expectedLocked = Math.max(0, fullActions - Math.min(shownActions, 2));
     for (const m of text.matchAll(/(\d[\d,]*) more ranked fixes/g)) {
       const n = Number((m[1] ?? "").replace(/,/g, ""));
       if (n === 0 || n !== expectedLocked) {
@@ -589,12 +594,75 @@ const r7NoNumeralClaimsInLlmProse: RubricRule = {
 };
 
 // ---------------------------------------------------------------------------
+// R8 — the free board is DATA-DRIVEN, not description-driven (P4, 2026-07-20)
+//
+// Tim's critical P4 directive: the free board is titles + minor keywords +
+// numbers ONLY, never long LLM-generated sentences. Three concrete bans, each
+// a shipped violation on the live board before this phase:
+//  (a) Positioning Mirror — a full LLM prose paragraph — is REMOVED from the
+//      free board entirely (unconditional, not payload-gated — see the
+//      SECTION_RULES note above where its old grounded entry was removed).
+//  (b) a fix card's `why` sentence (the LLM's reasoning paragraph) never
+//      renders — only the title + a delta chip.
+//  (c) section-subtitle SENTENCES (as opposed to short pill/title labels)
+//      never render.
+// ---------------------------------------------------------------------------
+
+/** Exact sentences that were the shipped prose violations this phase closes.
+ *  Unconditional — never gated on payload grounding, because these are
+ *  STRUCTURAL removals (the section/sentence is gone from the component),
+ *  not inputs that can legitimately ground different copy. */
+const BANNED_PROSE = [
+  "Positioning Mirror",
+  "Whether your page reads as the audience you actually want.",
+  "What buyers search, what you capture, who takes the rest.",
+  "Ordered by expected score impact.",
+  "You don't rank for a single term in your own category.",
+  "and rivals are taking the searches above",
+  "Unlock to see how each one ranks, why they win",
+];
+
+const r8Terseness: RubricRule = {
+  id: "R8",
+  title: "the free board is data-driven — no LLM why-sentences, no Positioning Mirror, no section subtitles (P4)",
+  check: (payload, html) => {
+    const text = visibleText(html);
+    const violations: RubricViolation[] = [];
+
+    for (const banned of BANNED_PROSE) {
+      if (text.includes(banned)) {
+        violations.push({
+          rule: "R8",
+          message: `banned prose rendered verbatim: "${banned}" — the free board is titles + minor keywords + numbers only, no long sentences`,
+        });
+      }
+    }
+
+    // A fix card's `why` (the LLM's reasoning sentence) must never render —
+    // checked against every action in the FULL payload (not just the shown
+    // preview), so a locked-preview card leaking a why-sentence is caught too.
+    const acts = payload.whatToDoThisWeek;
+    const allActions = [...acts.quickWins, ...acts.medium, ...acts.longPlay];
+    for (const a of allActions) {
+      if (a.why && a.why.trim().length > 0 && text.includes(a.why)) {
+        violations.push({
+          rule: "R8",
+          message: `fix card's why-sentence rendered verbatim: "${a.why}" — terse cards show the title + a delta chip, never the reasoning sentence`,
+        });
+      }
+    }
+
+    return violations;
+  },
+};
+
+// ---------------------------------------------------------------------------
 // Registry + runner
 // ---------------------------------------------------------------------------
 
 /** Every rubric rule, in priority order. The corpus test pins this list's
  *  length as an only-grows floor — deleting a rule is a ratchet violation. */
-export const RUBRIC_RULES: RubricRule[] = [r1NoGarbage, r2NumberBasis, r3EmptyInputNoSection, r4TeaserParity, r5ComparativeCopy, r6LadderSanity, r7NoNumeralClaimsInLlmProse];
+export const RUBRIC_RULES: RubricRule[] = [r1NoGarbage, r2NumberBasis, r3EmptyInputNoSection, r4TeaserParity, r5ComparativeCopy, r6LadderSanity, r7NoNumeralClaimsInLlmProse, r8Terseness];
 
 export interface RubricOptions {
   /** Rule ids to skip for a fixture — a named, only-shrinks list in the corpus

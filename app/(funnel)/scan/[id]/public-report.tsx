@@ -105,23 +105,14 @@ export function PublicReport({
 
       {/* Captured "results" screen 1:1, wired to the free-redacted payload.
           No hideUnlock: the locked band + upgrade CTA always show — the paid
-          report lives in the authenticated app, never here. */}
+          report lives in the authenticated app, never here.
+          P4 (2026-07-20, terseness): the second, separate "Close the gap
+          before your rivals widen it" CTA card that used to stack below this
+          used to duplicate the ResultsScreen's own Unlock CTA (two upgrade
+          asks, one paragraph each) — collapsed into the ONE terse "Unlock the
+          full plan" component inside ResultsScreen (the brief's explicit
+          "collapse the two stacked CTAs into one" ask). */}
       <ResultsScreen {...resultsProps} unlockButton={<CapturedUnlockButton scanId={scanId} />} />
-
-      {/* Close on conversion: a pricing CTA (replaces the low-intent "copy your
-          badge" snippet — a share embed doesn't move a founder to pay). */}
-      <div className="mx-auto max-w-2xl px-4 pb-16">
-        <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 18, padding: "26px 28px", textAlign: "center" }}>
-          <div style={{ fontFamily: "Space Grotesk", fontWeight: 700, fontSize: 20, color: "var(--c-ink)", marginBottom: 6 }}>Close the gap before your rivals widen it</div>
-          <p style={{ fontSize: 14.5, color: "var(--c-muted)", margin: "0 auto 18px", maxWidth: 440, lineHeight: 1.55 }}>
-            The full scan shows the exact category searches you&apos;re missing, which rivals win them, and a week-by-week plan to take them — with your score tracked as you ship.
-          </p>
-          <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-            <CapturedUnlockButton scanId={scanId} />
-            <a href="/pricing" style={{ fontFamily: "Plus Jakarta Sans", fontWeight: 600, fontSize: 14.5, color: "var(--c-action)", background: "var(--c-surface)", border: "1.5px solid var(--c-tint-violet-line)", borderRadius: 10, padding: "12px 22px", textDecoration: "none" }}>See plans &amp; pricing →</a>
-          </div>
-        </div>
-      </div>
     </>
   );
 }

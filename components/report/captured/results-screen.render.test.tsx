@@ -373,7 +373,7 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
   it("locked band with zero worth: omits the 'worth an estimated +N' clause instead of rendering '+0'", () => {
     // Real scans have shipped cards carrying delta 0 (the positive-filter
     // fallback in toResultsProps exists because of them). With 4 zero-delta
-    // actions: 3 render as fixes, 1 is locked → lockedCount 1, lockedWorth 0.
+    // actions: P4 shows 2 as fixes, 2 are locked → lockedCount 2, lockedWorth 0.
     // "worth an estimated +0" reads as broken; the clause must vanish while the
     // count + unlock CTA stay.
     const r = report({
@@ -386,11 +386,13 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
     const html = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r, "zeroworth.dev", 4, 0)} scanId="scan-zeroworth" />);
 
     assertNoGarbage(html, "zero locked worth");
-    expect(html).toContain("1 more ranked fixes"); // the locked band still renders
+    expect(html).toContain("2 more ranked fixes"); // the locked band still renders
     expect(html).not.toContain("worth an estimated"); // …without the +0 clause
     expect(html).toContain("unlock the full plan");
 
     // And the clause still renders when the worth is real (guard the guard).
+    // fixes = [Fix titles(6), Add schema(5)]; rest = [Write comparison page(4),
+    // Pitch a directory(3)] → lockedWorth = 4 + 3 = 7.
     const r2 = report({
       whatToDoThisWeek: {
         quickWins: [action("Fix titles", 6), action("Add schema", 5)],
@@ -399,7 +401,7 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
       },
     });
     const html2 = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r2, "worth.dev", 4, 0)} scanId="scan-worth" />);
-    expect(html2).toContain("worth an estimated +3");
+    expect(html2).toContain("worth an estimated +7");
   });
 
   it("established brand, weak page: on-page IS the weaker driver → the summary names on-page, not search (MINOR 4 converse)", () => {
@@ -534,7 +536,7 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
     expect(html).toMatch(/niche/i); // the rung's tier label — CSS uppercases it, HTML text is lowercase
     const heroPhraseIdx = html.indexOf("photo gallery website"); // a categoryPhrases entry from sv()
     const nicheIdx = html.indexOf("photo scheduling tool");
-    const rivalryIdx = html.indexOf("Someone is winning these searches today");
+    const rivalryIdx = html.indexOf("See who");
     expect(heroPhraseIdx).toBeGreaterThan(-1);
     expect(rivalryIdx).toBeGreaterThan(-1);
     expect(nicheIdx).toBeGreaterThan(heroPhraseIdx);
@@ -628,24 +630,30 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
   // evidence: when discovery finds no rivals (reachkit.app), the line used to
   // vanish entirely — the honest degrade tease replaces silence with the one
   // tease vocabulary (free = what's true; paid = what rivals do about it).
-  it("rivals found → names them and teases per-rival intel (WS-E)", () => {
+  // P4 (2026-07-20, terseness): the old prose ("Buyers compare you to X — and
+  // rivals are taking the searches above. Unlock to see how each one ranks,
+  // why they win…") is gone — a bare "Compared to: {names}" keyword tease,
+  // per the brief's one allowed wireframe deviation (real names kept, prose dropped).
+  it("rivals found → names them as a terse keyword tease (P4)", () => {
     const html = renderPublicReport(report({
       searchVisibility: sv({ categoryDemand: 8000 }),
       whereTheyAre: { surfaces: [], competitorGap: [comp("SavvyCal"), comp("Calendly")] },
     }));
     expect(html).toContain("SavvyCal");
-    expect(html).toMatch(/how each one ranks/i);
+    expect(html).toContain("Compared to");
+    expect(html).not.toContain("and rivals are taking the searches above");
+    expect(html).not.toContain("Unlock to see how each one ranks, why they win");
   });
 
-  it("no rivals found → honest degrade tease, no invention (WS-E)", () => {
+  it("no rivals found → honest degrade tease, no invention, no prose (WS-E, P4)", () => {
     const html = renderPublicReport(report({
       searchVisibility: sv({ categoryDemand: 8000 }),
       whereTheyAre: { surfaces: [], competitorGap: [] },
     }));
     // renderToStaticMarkup HTML-escapes the JSX &apos; to the &#x27; entity, so
     // the match must account for the entity, not a literal quote character.
-    expect(html).toMatch(/discovers who(?:'|’|&#x27;)s winning these searches/i);
-    expect(html).not.toMatch(/Buyers compare you to\s*</); // no empty comma-list sentence
+    expect(html).toMatch(/See who(?:'|’|&#x27;)s winning these searches/i);
+    expect(html).not.toContain("Compared to"); // no empty comma-list tease
   });
 
   // FINAL-REVIEW FIX: a market-ladder rung's number is the SUM of every phrase

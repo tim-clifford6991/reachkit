@@ -128,7 +128,7 @@ function MarketCard({ kind, card }: { kind: "category" | "niche"; card: MarketCa
         </div>
       ) : (
         <div style={{ fontSize: 12.5, color: "var(--c-muted)", background: "var(--c-tint-red)", borderLeft: "3px solid #E5484D", borderRadius: "0 8px 8px 0", padding: "8px 11px" }}>
-          <b style={{ color: "#E5484D" }}>None yet.</b>{kind === "category" ? " You don't rank for a single term in your own category." : ""}
+          <b style={{ color: "#E5484D" }}>None yet.</b>
         </div>
       )}
 
@@ -209,6 +209,13 @@ export interface ResultsScreenProps {
   intro: string; // sentence after the headline (without the site label, which is prepended)
   pillars: Pillar[];
   fixes: Fix[];
+  /** P4 (2026-07-20) — up to 2 real fix cards (rank/title/delta) for the
+   *  blurred locked-preview rows between `fixes` and the "N more" band, drawn
+   *  from whatever the (already free-redacted) plan carries beyond the shown
+   *  cards. `?? []` at the props boundary — absent on any payload/caller that
+   *  predates P4. A blurred slot beyond this array's length renders as a
+   *  content-free skeleton, never a fabricated title. */
+  lockedPreview?: Fix[];
   lockedCount: number;
   lockedWorth: number;
   intendedTags: string[];
@@ -227,9 +234,6 @@ export interface ResultsScreenProps {
   /** Custom unlock-CTA button (e.g. start-trial / upgrade). Falls back to a
    *  static button. */
   unlockButton?: ReactNode;
-  /** Title/subtitle for the unlock band (defaults to the free-teaser copy). */
-  unlockTitle?: string;
-  unlockSub?: string;
   /** Hide the unlock band entirely (e.g. a fully-unlocked paid report). */
   hideUnlock?: boolean;
   /** F2 — off-site "Market position" grade (paid-only; null on free/public). Shown
@@ -507,8 +511,7 @@ export function ResultsScreen(p: ResultsScreenProps) {
           </div>
 
           {/* Search Visibility — your category's demand + how much you actually capture */}
-          <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: 20, letterSpacing: "-0.01em", margin: "32px 0 6px" }}>Your category, and how much of it you own</h2>
-          <p style={{ fontSize: 14, color: "var(--c-faint)", margin: "0 0 14px" }}>What buyers search, what you capture, who takes the rest.</p>
+          <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: 20, letterSpacing: "-0.01em", margin: "32px 0 14px" }}>Your category, and how much of it you own</h2>
           {/* Zero-state — the site ranks for nothing. This IS the insight (never hide
               it): a young product is invisible in organic search. */}
           {p.searchVisibility && p.searchVisibility.keywordsRanked === 0 && (() => {
@@ -562,15 +565,23 @@ export function ResultsScreen(p: ResultsScreenProps) {
             // Discovered rival NAMES are free (the compare-set); per-rival intel
             // is the paid unlock. Shared by BOTH the new and legacy branches
             // below (P3 DRY fix — was duplicated per-branch pre-P3).
+            // P4 (2026-07-20, terseness): the old copy was two prose sentences
+            // ("and rivals are taking the searches above" / "Unlock to see how
+            // each one ranks, why they win, and how much of your category each
+            // takes"). Data-driven per Tim's directive: a keyword-only tease —
+            // the compare-set NAMES (real, free) + a bare unlock link. This is
+            // the one deliberate deviation from the wireframe's 6 sections (it
+            // has no rivalry section at all) — kept because the names are a
+            // strong, honest paid hook and dropping them loses real signal.
             const rivalryTeaser = comps.length > 0 ? (
-              <div style={{ ...CARD_STYLE, marginBottom: 14, fontSize: 13, color: "var(--c-muted)" }}>
-                Buyers compare you to <strong style={{ color: "var(--c-ink)" }}>{comps.join(", ")}</strong> — and rivals are taking the searches above.{" "}
-                <UnlockLink scanId={p.scanId}>Unlock to see how each one ranks, why they win, and how much of your category each takes →</UnlockLink>
+              <div style={{ ...CARD_STYLE, marginBottom: 14, fontSize: 13, color: "var(--c-muted)", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <span style={{ fontFamily: JM, fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--c-faint)" }}>Compared to</span>
+                <strong className="rk-wrap-any" style={{ color: "var(--c-ink)" }}>{comps.join(", ")}</strong>
+                <UnlockLink scanId={p.scanId}>🔒 unlock →</UnlockLink>
               </div>
             ) : !p.hideUnlock ? (
               <div style={{ ...CARD_STYLE, marginBottom: 14, fontSize: 13, color: "var(--c-muted)" }}>
-                Someone is winning these searches today.{" "}
-                <UnlockLink scanId={p.scanId}>The full scan discovers who&apos;s winning these searches and what they do to rank →</UnlockLink>
+                <UnlockLink scanId={p.scanId}>🔒 See who&apos;s winning these searches →</UnlockLink>
               </div>
             ) : null;
 
@@ -853,13 +864,11 @@ export function ResultsScreen(p: ResultsScreenProps) {
             );
           })()}
 
-          {/* Top ranked fixes */}
-          <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: 20, letterSpacing: "-0.01em", margin: "32px 0 6px" }}>{p.fixes.length > 0 ? `Your top ${p.fixes.length} ranked fixes` : "Your ranked fixes"}</h2>
-          <p style={{ fontSize: 14, color: "var(--c-faint)", margin: "0 0 14px" }}>
-            {/* Tier-aware: the old copy hardcoded "Free scans show X of Y" for
-                every viewer, mislabeling paid reports. */}
-            Ordered by expected score impact.{!p.hideUnlock && ` Free scans show ${p.fixes.length} of ${p.fixes.length + p.lockedCount}.`}
-          </p>
+          {/* Top ranked fixes — P4 (2026-07-20, terseness): dropped the "Ordered
+              by expected score impact. Free scans show N of M." subtitle
+              sentence (the count is now conveyed by the cards themselves: 2
+              shown + up to 2 blurred-locked previews + the "N more" band). */}
+          <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: 20, letterSpacing: "-0.01em", margin: "32px 0 14px" }}>{p.fixes.length > 0 ? `Your top ${p.fixes.length} ranked fixes` : "Your ranked fixes"}</h2>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {/* Graceful floor for already-persisted reports with an empty action
                 plan — never render a bare "top 0 fixes" section. */}
@@ -868,22 +877,59 @@ export function ResultsScreen(p: ResultsScreenProps) {
                 We couldn&apos;t rank fixes for this scan. The pillar bars above show where you&apos;re weakest — re-run the scan to regenerate a full action plan.
               </div>
             )}
+            {/* P4 terse fix card: rank tile · title · effort/pillar keyword chips ·
+                +N delta. The old "why" sentence (a full LLM-generated reasoning
+                paragraph) is GONE — Tim's directive: titles + minor keywords +
+                numbers only, no long sentences. */}
             {p.fixes.map((f) => {
               const ec = effortColors(f.effort);
               return (
-                <div key={f.rank} style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 14, padding: "18px 20px", display: "flex", alignItems: "flex-start", gap: 16 }}>
+                <div key={f.rank} style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 14, padding: "18px 20px", display: "flex", alignItems: "center", gap: 16 }}>
                   <span style={{ width: 30, height: 30, borderRadius: 8, background: ec.bg, color: ec.fg, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: JM, flex: "0 0 auto" }}>{f.rank}</span>
-                  <div style={{ flex: "1 1 0%" }}>
-                    <div style={{ fontWeight: 600, fontSize: 15.5 }}>{f.title}</div>
-                    <div style={{ fontSize: 13.5, color: "var(--c-faint)", marginTop: 3 }}>{f.why}</div>
-                    <div style={{ display: "flex", gap: 7, marginTop: 10 }}>
+                  <div style={{ flex: "1 1 0%", minWidth: 0 }}>
+                    <div className="rk-wrap-any" style={{ fontWeight: 600, fontSize: 15.5 }}>{f.title}</div>
+                    <div style={{ display: "flex", gap: 7, marginTop: 8 }}>
                       <span style={{ fontSize: 11.5, fontWeight: 600, color: ec.fg, background: ec.bg, padding: "3px 9px", borderRadius: 6 }}>{f.effort}</span>
                       <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--c-muted)", background: "var(--c-fill)", padding: "3px 9px", borderRadius: 6 }}>{f.pillar}</span>
                     </div>
                   </div>
                   <div style={{ textAlign: "right", flex: "0 0 auto" }}>
-                    <div style={{ fontSize: 11, color: "var(--c-faint)", fontWeight: 600 }}>Predicted</div>
                     <div style={{ fontFamily: JM, fontWeight: 700, fontSize: 18, color: "#1F9D5B" }}>+{f.pred}</div>
+                  </div>
+                </div>
+              );
+            })}
+            {/* P4 "2+2" deliverable: up to 2 blurred locked-preview rows between
+                the shown fixes and the "N more" band, matching the wireframe's
+                paywall tease. Uses REAL rank-3/4 data when the (already
+                free-redacted) plan carries it (`p.lockedPreview`); a slot with
+                no real data behind it renders as a content-free skeleton bar —
+                honest ("there is more, unlock it"), never a fabricated title
+                (invariant #11 — this phase does not widen the free-preview
+                action count, so a genuine title for every blurred slot isn't
+                always available). */}
+            {Math.min(2, p.lockedCount) > 0 && Array.from({ length: Math.min(2, p.lockedCount) }).map((_, i) => {
+              const real = (p.lockedPreview ?? [])[i];
+              return (
+                <div
+                  key={`locked-preview-${i}`}
+                  aria-hidden="true"
+                  style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 14, padding: "18px 20px", display: "flex", alignItems: "center", gap: 16, filter: "blur(3px)", opacity: 0.55, userSelect: "none", pointerEvents: "none" }}
+                >
+                  <span style={{ width: 30, height: 30, borderRadius: 8, background: "var(--c-fill)", color: "var(--c-faint)", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: JM, flex: "0 0 auto" }}>{p.fixes.length + i + 1}</span>
+                  <div style={{ flex: "1 1 0%", minWidth: 0 }}>
+                    {real ? (
+                      <div className="rk-wrap-any" style={{ fontWeight: 600, fontSize: 15.5 }}>{real.title}</div>
+                    ) : (
+                      <div style={{ height: 15, width: "72%", borderRadius: 4, background: "var(--c-fill)" }} />
+                    )}
+                  </div>
+                  <div style={{ textAlign: "right", flex: "0 0 auto" }}>
+                    {real ? (
+                      <div style={{ fontFamily: JM, fontWeight: 700, fontSize: 18, color: "#1F9D5B" }}>+{real.pred}</div>
+                    ) : (
+                      <div style={{ height: 18, width: 30, borderRadius: 4, background: "var(--c-fill)" }} />
+                    )}
                   </div>
                 </div>
               );
@@ -900,30 +946,13 @@ export function ResultsScreen(p: ResultsScreenProps) {
             )}
           </div>
 
-          {/* Positioning Mirror — reworked (was two heavy chip columns that read as
-              garbage and buried the point). Now the GAP insight leads; the intended
-              vs actual audience is a single compact "aim → reads as" line beneath it,
-              de-emphasised. Hides entirely if there's genuinely nothing to show. */}
-          {(p.intendedTags.length > 0 || p.actualTags.length > 0 || (p.mirrorGap && p.mirrorGap.trim().length > 0)) && (
-            <>
-              <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: 20, letterSpacing: "-0.01em", margin: "32px 0 6px" }}>Positioning Mirror</h2>
-              <p style={{ fontSize: 14, color: "var(--c-faint)", margin: "0 0 14px" }}>Whether your page reads as the audience you actually want.</p>
-              <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16, padding: 24 }}>
-                {p.mirrorGap && p.mirrorGap.trim().length > 0 && (
-                  <div style={{ padding: "16px 18px", background: "var(--c-tint-red)", borderLeft: "3px solid #E5484D", borderRadius: "0 10px 10px 0", fontSize: 15, lineHeight: 1.6, color: "#3A3744" }}>{p.mirrorGap}</div>
-                )}
-                {(p.intendedTags.length > 0 || p.actualTags.length > 0) && (
-                  <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px 14px", marginTop: p.mirrorGap && p.mirrorGap.trim().length > 0 ? 16 : 0, fontSize: 13.5 }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--c-faint)" }}>You aim for</span>
-                    <span style={{ fontWeight: 600, color: "var(--c-action)" }}>{p.intendedTags.length > 0 ? p.intendedTags.join(", ") : "—"}</span>
-                    <span style={{ color: "var(--c-faint)" }}>→</span>
-                    <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--c-faint)" }}>Your page reads as</span>
-                    <span style={{ fontWeight: 600, color: "#E0731C" }}>{p.actualTags.length > 0 ? p.actualTags.join(", ") : "—"}</span>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
+          {/* P4 (2026-07-20, terseness): Positioning Mirror REMOVED from the free
+              board — it was the single worst prose violation (a full LLM
+              paragraph, "The listing emphasizes…") and isn't in the approved
+              wireframe. This is a RENDER removal only: `intendedTags` /
+              `actualTags` / `mirrorGap` still flow through `toResultsProps`
+              unchanged (paid /app may still consume them) — nothing upstream
+              was touched, per invariant #11's grounding work staying intact. */}
 
           {/* Evidence footnote */}
           <div style={{ marginTop: 24, display: "flex", alignItems: "center", gap: 10, fontSize: 12.5, color: "var(--c-faint)", fontFamily: JM }}>
@@ -934,20 +963,25 @@ export function ResultsScreen(p: ResultsScreenProps) {
             Scanned {p.siteLabel} just now · every claim links to extracted evidence
           </div>
 
-          {/* Unlock CTA */}
+          {/* P4 (2026-07-20, terseness): ONE upgrade component, matching the
+              wireframe exactly — title + 3 keyword features (mono, stacked) +
+              button + price. Replaces the old two-paragraph title/subtitle
+              (dynamic marketing sentences describing what's inside) AND the
+              second, separate "Close the gap before your rivals widen it" CTA
+              card that public-report.tsx stacked below this one — the two
+              CTAs the brief calls out to collapse into one. Price stays (a
+              number, not prose — "stated up front" per the original decision). */}
           {!p.hideUnlock && (
-            <div style={{ marginTop: 18, background: "linear-gradient(135deg, var(--c-dark), var(--c-dark2))", borderRadius: 18, padding: "30px 32px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}>
-              <div>
-                <h3 style={{ fontFamily: SG, fontWeight: 700, fontSize: 22, color: "#fff", margin: "0 0 6px" }}>{p.unlockTitle ?? (p.lockedCount > 0
-                  ? `Unlock ${p.lockedCount} more ranked fix${p.lockedCount === 1 ? "" : "es"} + the full playbook`
-                  : "Get the full growth playbook + weekly tracking")}</h3>
-                <p style={{ fontSize: 14.5, color: "#B7B4C4", margin: 0, maxWidth: 430 }}>{p.unlockSub ?? (p.lockedCount > 0
-                  ? "Plus ready-to-ship drafts, your competitor & keyword-gap intel, the full signal breakdown, and score tracking as you fix each one."
-                  : "Ready-to-ship drafts, competitor & keyword-gap intel, the full signal breakdown, and weekly score tracking as you ship.")}</p>
+            <div style={{ marginTop: 18, background: "linear-gradient(135deg, var(--c-dark), var(--c-dark2))", borderRadius: 18, padding: "30px 32px", textAlign: "center" }}>
+              <h3 style={{ fontFamily: SG, fontWeight: 700, fontSize: 22, color: "#fff", margin: "0 0 16px" }}>Unlock the full plan</h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, fontFamily: JM, fontSize: 13, color: "#D8D5E6", marginBottom: 20 }}>
+                <span>Daily fix calendar</span>
+                <span>Weekly rank tracking</span>
+                <span>Distribution &amp; outreach</span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
                 {p.unlockButton ?? (
-                  <button style={{ fontFamily: PJ, fontWeight: 700, fontSize: 15, color: "var(--c-ink)", background: "var(--c-surface)", border: "none", borderRadius: 10, padding: "13px 24px", cursor: "pointer", whiteSpace: "nowrap" }}>Unlock full report →</button>
+                  <button style={{ fontFamily: PJ, fontWeight: 700, fontSize: 15, color: "var(--c-ink)", background: "var(--c-surface)", border: "none", borderRadius: 10, padding: "13px 24px", cursor: "pointer", whiteSpace: "nowrap" }}>Unlock →</button>
                 )}
                 <span style={{ fontFamily: JM, fontSize: 12.5, color: "#B7B4C4" }}>{PRICE_LINE}</span>
               </div>
