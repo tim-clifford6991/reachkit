@@ -3,9 +3,23 @@
  * trustmrr.com's REAL ranked-keyword footprint (a startup-revenue directory), the
  * adversarial case: clean site, tiny category, ~90% other-brand visibility.
  */
-import { describe, it, expect } from "vitest";
-import { computeSearchVisibility, buildVocab, computeCategoryDemand, buildCategorySeeds, computeMarketTiers, classifyFootprint, stem } from "./search-visibility";
+import { describe, it, expect, vi } from "vitest";
 import type { RankedKeyword } from "@/lib/scan/adapters/dataforseo-ranked-keywords";
+
+// Mocked ONLY for the invariant-#1 gather-level test below (every other test in
+// this file exercises pure functions and never touches the network/cache
+// layer). Spied so a single test can control the 3 calls `gatherFreeSearchVisibility`
+// makes without hitting DataForSEO.
+const gatherRankedSpy = vi.fn(async (..._a: unknown[]) => [] as RankedKeyword[]);
+const gatherOverviewSpy = vi.fn(async (..._a: unknown[]) => null as null);
+const gatherVolumesSpy = vi.fn(async (..._a: unknown[]) => [] as Array<{ keyword: string; volume: number }>);
+vi.mock("@/lib/scan/cache/cached-adapters", () => ({
+  cachedRankedKeywords: (...a: unknown[]) => gatherRankedSpy(...a),
+  cachedDomainOverview: (...a: unknown[]) => gatherOverviewSpy(...a),
+  cachedKeywordVolumes: (...a: unknown[]) => gatherVolumesSpy(...a),
+}));
+
+import { computeSearchVisibility, buildVocab, computeCategoryDemand, buildCategorySeeds, computeMarketTiers, classifyFootprint, gatherFreeSearchVisibility, stem } from "./search-visibility";
 
 const kw = (keyword: string, position: number, volume: number, etv: number): RankedKeyword => ({
   keyword, position, volume, etv, url: "https://trustmrr.com/x",
@@ -240,18 +254,39 @@ describe("computeCategoryDemand grounding (task-G, 2026-07-20) — no LLM-guesse
     expect(d.categoryDemand).toBe(165000); // unfiltered — same as today's behaviour
   });
 
-  it("invariant #1: grounding categoryDemand does not touch sv.score (computed separately, from classified rows)", () => {
-    const vocab = buildVocab("trustmrr.com", ["verified startup revenue database acquisition marketplace saas mrr"]);
-    const sv = computeSearchVisibility(TRUSTMRR, vocab);
-    const scoreBefore = sv.score;
-    computeCategoryDemand(
-      [{ keyword: "business intelligence platform", volume: 165000 }],
-      emptyRanks,
-      trustmrrCategoryRanked,
-    );
-    // computeCategoryDemand is pure — calling it cannot mutate a previously
-    // computed sv.score. Assert the field the render reads is unchanged.
-    expect(sv.score).toBe(scoreBefore);
+  // Review fix (2026-07-20, Minor finding): the old version of this test called
+  // `computeCategoryDemand` and then asserted a PREVIOUSLY-computed, entirely
+  // separate `sv.score` was unchanged — but `computeCategoryDemand` doesn't
+  // even receive `sv` as an argument, so there was no way for the call to
+  // touch it. The assertion was true by construction and could never fail.
+  // This version instead drives the REAL production merge path —
+  // `gatherFreeSearchVisibility`, which is what actually stitches
+  // `computeCategoryDemand`'s output onto the classified `sv` object
+  // (`{ ...sv, ...demand, ... }` in `search-visibility.ts`) — and compares its
+  // returned score against classifying the identical rows/vocab directly, with
+  // no demand/merge involved at all. A regression that let the merge clobber
+  // `score` (an errant `score` key on the demand object, the spread order
+  // flipped, or a stray direct `sv.score = …` mutation) would make this fail.
+  it("invariant #1: the categoryDemand grounding merge (the REAL gather pipeline) never touches sv.score", async () => {
+    gatherRankedSpy.mockResolvedValueOnce(TRUSTMRR);
+    gatherOverviewSpy.mockResolvedValueOnce(null);
+    gatherVolumesSpy.mockResolvedValueOnce([
+      { keyword: "business intelligence platform", volume: 165000 }, // ungrounded — must be dropped from demand, must not move score
+      { keyword: "startup marketplace", volume: 50 },
+      { keyword: "startup revenue", volume: 30 },
+    ]);
+    const seedText = ["verified startup revenue database acquisition marketplace saas mrr"];
+    const llmCategorySeeds = ["business intelligence platform", "startup marketplace", "startup revenue"];
+
+    const gathered = await gatherFreeSearchVisibility("trustmrr.com", seedText, llmCategorySeeds);
+
+    // The grounding actually ran (not a no-op stand-in for the real thing).
+    expect(gathered.categoryPhrases.map((p) => p.keyword)).not.toContain("business intelligence platform");
+
+    // …and it did not touch score: classifying the SAME rows/vocab directly —
+    // no demand, no merge — produces the identical score the gather returned.
+    const expected = classifyFootprint("trustmrr.com", seedText, llmCategorySeeds, TRUSTMRR, []);
+    expect(gathered.score).toBe(expected.score);
   });
 });
 
@@ -742,6 +777,38 @@ describe("classification requires ALL non-generic tokens supported (the macro ru
     const cat = new Set(svWithGeo.categoryRanked.map((r) => r.keyword));
     expect(cat.has("time in hi"), "the 2-char geo token 'hi' must not be silently dropped").toBe(false);
     expect(cat.has("time tracking app")).toBe(true); // the fix must not over-drop real category terms
+  });
+
+  // Task-G review fix (2026-07-20, Critical finding, reproduced live against an
+  // email-capture SaaS): keeping 2-char tokens (the fix above, so "hi" survives)
+  // also stopped "in" from being silently dropped — but SHORT_STOPWORDS never
+  // listed "in" as a filler word, so a legitimate category phrase using "in" as
+  // grammatical filler ("opt in form builder", "log in", "built in") now
+  // requires "in" ITSELF to be vocab-supported under the macro rule, which no
+  // real subject vocabulary provides for a bare function word. That forecloses
+  // the whole phrase to off-topic even though every CONTENT token ("opt",
+  // "form", "builder") is fully supported. Fix: complete the closed set of
+  // 2-char English function words in SHORT_STOPWORDS ("in", "or", "ok"), so
+  // "in" is filtered out of tokens() the same way "at"/"to"/"on" already are —
+  // while "hi" (Hawaii, CONTENT) stays a real token, per the test above.
+  it("'opt in form builder' — 'in' as grammatical filler — classifies CATEGORY when its content tokens are supported", () => {
+    // Deliberately keeps "in" OUT of the seed text/LLM seeds (which use "opt
+    // into" / "opt form builder", never the bare word "in") so the vocabulary
+    // never accidentally corroborates "in" itself — the ONLY thing standing
+    // between "opt in form builder" and category must be SHORT_STOPWORDS,
+    // not incidental seed overlap.
+    const svOptIn = classifyFootprint(
+      "capturely.com",
+      ["a drag and drop form builder that lets visitors opt into your email list"],
+      ["opt form builder", "email capture widget"],
+      [
+        rk2("opt in form builder", 3, 2400, 900), // "opt"/"form"/"builder" supported; "in" is pure filler
+        rk2("email capture widget", 4, 1800, 600),
+      ],
+    );
+    const cat = new Set(svOptIn.categoryRanked.map((r) => r.keyword));
+    expect(cat.has("opt in form builder"), "a filler 'in' must not foreclose an otherwise fully-supported category phrase").toBe(true);
+    expect(cat.has("email capture widget")).toBe(true);
   });
 });
 

@@ -35,16 +35,36 @@
  *  pure function word — regressing legitimate category phrases that happen
  *  to contain one. Deliberately excludes any 2-char word that plausibly
  *  functions as CONTENT in a search query — an abbreviation, initial, or
- *  (per the bug this fixes) a geo/state code: "hi" (Hawaii), "ca"
- *  (California), "ny" (New York), "ok" (Oklahoma), "or" (Oregon) etc. are NOT
- *  listed here on purpose, even though several double as common English
- *  function words too — that ambiguity is inherent to 2-letter English, not
- *  something a stopword list can fully resolve, and the KNOWN residual is
- *  that a legitimate category phrase using one of these AS a function word
- *  (rare in commercial search queries) could now be foreclosed by it. */
+ *  a geo/state code: "hi" (Hawaii), "ca" (California), "ny" (New York) etc.
+ *  are NOT listed here on purpose, even though a couple of these double as
+ *  (rare, informal) English words too — that ambiguity is inherent to
+ *  2-letter English, not something a stopword list can fully resolve, and the
+ *  KNOWN residual is that a legitimate category phrase using one of THESE
+ *  remaining tokens as a function word (rarer in commercial search queries
+ *  than "in"/"or"/"ok") could still be foreclosed by it.
+ *
+ *  Review fix (2026-07-20, Critical finding on this same class): the set
+ *  above was still missing three everyday closed-class function words — "in"
+ *  (preposition: "opt IN form builder", "log IN", "built IN"), "or"
+ *  (coordinating conjunction: "sign up OR log in"), and "ok" (discourse
+ *  particle/interjection: "is this OK to use"). Their absence meant those
+ *  extremely common filler words now had to be individually vocab-supported
+ *  by the classify() macro rule (added by the SAME change that lowered the
+ *  token floor to 2 chars) — which no real subject vocabulary ever provides
+ *  for a bare function word — foreclosing otherwise fully-supported category
+ *  phrases to off-topic (reproduced live: an email-capture SaaS's own "opt in
+ *  form builder" went off-topic). Audited against the closed set of common
+ *  2-char English function words/particles (of/to/at/an/is/it/be/by/as/on/up/
+ *  we/he/so/no/if/do/my/me/us/am + in/or/ok) — every member of that list is
+ *  now present. "or" and "ok" ALSO double as US state codes (Oregon,
+ *  Oklahoma) — same inherent 2-letter-English ambiguity as "hi"/"ca"/"ny"
+ *  above, and the same KNOWN residual applies to them now that they've moved
+ *  into this list: a state-code use of "or"/"ok" as a phrase's only content
+ *  token will incorrectly be treated as filler. That trade favors the far
+ *  more common function-word reading. */
 const SHORT_STOPWORDS = new Set([
-  "am", "an", "as", "at", "be", "by", "do", "go", "he", "if", "is", "it",
-  "me", "my", "no", "of", "on", "so", "to", "up", "us", "we",
+  "am", "an", "as", "at", "be", "by", "do", "go", "he", "if", "in", "is", "it",
+  "me", "my", "no", "of", "ok", "on", "or", "so", "to", "up", "us", "we",
 ]);
 
 export const STOPWORDS = new Set([
