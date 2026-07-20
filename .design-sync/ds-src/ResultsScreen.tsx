@@ -316,11 +316,22 @@ export function ResultsScreen() {
         {/* Legacy note — a payload captured before P2 (categoryCard never
             grounded) falls back to the OLD BROAD | CATEGORY | NICHE ladder +
             the brand/category/other-companies footprint-split bar + the
-            "biggest untapped opportunity" promoted card, unchanged from
-            before this redesign. Documented (with the exact live copy, so the
-            label-drift gate stays green), not duplicated as a second demo. */}
+            "biggest untapped opportunity" promoted card. Documented (with the
+            exact live copy, so the label-drift gate stays green), not
+            duplicated as a second demo.
+            Review fix (2026-07-20): this fallback branch was found still
+            rendering full LLM-ish prose sentences after P4 stripped the NEW
+            board — closed by tersing it to match: the YOUR CATEGORY card's
+            "You rank in the top 3 for N…" sentence is now a bare "top 3 × N"
+            / "not ranking" chip beside the pill (same idiom as the sibling
+            broad/niche cards' `standing()`), and the "biggest untapped
+            opportunity" callout's explainer paragraph ("Winning this lifts
+            Search presence — your weaker half. There are N more like it in
+            your category.") is gone outright — the query/volume/rank chips
+            above it already carry that meaning; a bare "🔒 +N more" chip is
+            all that survives of the "N more" count. */}
         <div style={{ marginBottom: 14, fontSize: 11.5, color: "var(--c-faint)", fontStyle: "italic" }}>
-          Legacy payload (no categoryCard) → falls back to the pre-P2 three-tier ladder ("You rank in the top 3 for N of your category&apos;s searches.") + the footprint-split bar ("Traffic split across your top-ranked terms.") + the promoted "Your biggest untapped opportunity" card (degrading to "Unlock to see who wins them and how →" when nothing parses) instead of the board above (don&apos;t crash, don&apos;t blank).
+          Legacy payload (no categoryCard) → falls back to the pre-P2 three-tier ladder (YOUR CATEGORY card shows a terse "top 3 × N" / "not ranking" chip beside the pill, no sentence) + the footprint-split bar ("Traffic split across your top-ranked terms.") + the promoted "Your biggest untapped opportunity" card (query + volume + rank chips, a bare "🔒 +N more" chip, no explainer sentence; degrading to "Unlock to see who wins them and how →" when nothing parses) instead of the board above (don&apos;t crash, don&apos;t blank).
         </div>
 
         {/* Ranked fixes — P4 (2026-07-20, terseness): no subtitle sentence

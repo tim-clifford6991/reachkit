@@ -379,7 +379,13 @@ describe("corpus: spacex.com — the 8,170-demand class control (post-fix)", () 
   });
   it("wins strip: 3 wins, 3 chips, so no '+N more' disclosure", () => {
     expect(html).toContain("#2 space exploration technologies");
-    expect(html).not.toMatch(/\+\d+ more/);
+    // Scoped to the YOUR CATEGORY card specifically (review fix, 2026-07-20:
+    // the legacy opportunity block below it now ALSO renders its own terse
+    // "+N more" chip for the locked gap rows — a real, unrelated tease — so a
+    // page-wide regex would false-positive on that chip instead of proving
+    // anything about the wins strip this test names).
+    const categoryCardBlock = html.slice(html.indexOf("searches/mo across your category"), html.indexOf("Your biggest untapped opportunity"));
+    expect(categoryCardBlock).not.toMatch(/\+\d+ more/);
   });
 });
 

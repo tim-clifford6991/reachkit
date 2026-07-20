@@ -63,19 +63,24 @@ function payload(over: Partial<ReportPayload> = {}): ReportPayload {
 }
 
 /** HTML that satisfies every rule for the default payload() above — the clean
- *  baseline each firing test perturbs. */
+ *  baseline each firing test perturbs.
+ *
+ *  Review fix (2026-07-20): dropped the two legacy sentences this baseline
+ *  used to include ("You rank in the top 3 for N of your category's
+ *  searches." and "Winning this lifts Search presence — your weaker half.")
+ *  — both are now BANNED_PROSE (R8) and their SECTION_RULES/R5 entries were
+ *  removed, so a "clean" baseline that still rendered them would fail R8
+ *  outright. The terse chip form (`top 3 × N` / `not ranking`, `+N more`)
+ *  that replaces them in results-screen.tsx carries no sentence to assert
+ *  here — R8's own corpus test covers that render directly. */
 function cleanHtml(p: ReportPayload = payload()): string {
   const s = p.searchVisibility!;
   const onPage = s.onPageReadiness ?? p.score.total;
   const weaker = onPage < s.score ? "On-page readiness" : "Search presence";
-  const searchIsWeaker = s.score < onPage;
-  const hasOppRow = (s.categoryOpportunities?.length ?? 0) > 0;
   return `<main>
     <p>site.com is in decent on-page shape. The plan below focuses on where you can still gain ground.</p>
     <p><strong>${weaker} is your gap.</strong></p>
     <span>${s.categoryDemand.toLocaleString()}</span><span>searches/mo across your category</span>
-    <div>You rank in the top 3 for ${s.categoryWins} of your category's searches.</div>
-    ${hasOppRow ? `<div>Winning this lifts Search presence${searchIsWeaker ? " — your weaker half." : "."}</div>` : ""}
     <div>See who's winning these searches</div>
   </main>`;
 }
@@ -286,6 +291,36 @@ describe("report-rubric engine honesty — every rule FIRES on a violating input
 
   it("R8 passes clean HTML with no banned prose and no why-sentences rendered", () => {
     expect(runReportRubric(payload(), cleanHtml(), only("R8"))).toEqual([]);
+  });
+
+  // Review fix (2026-07-20): P4 stripped prose from the NEW six-section board
+  // branch but left the LEGACY market-tier fallback branch (categoryCard
+  // absent) rendering full sentences unchanged — verified to be 100% of the
+  // real corpus fixtures. Each legacy sentence gets its own firing self-test,
+  // same discipline as the Positioning Mirror / why-sentence cases above.
+  it("R8 fires when the legacy 'weaker half' opportunity explainer renders verbatim", () => {
+    const html = cleanHtml() + "<div>Winning this lifts Search presence — your weaker half.</div>";
+    const v = runReportRubric(payload(), html, only("R8"));
+    expect(v.some((x) => x.message.includes("Winning this lifts"))).toBe(true);
+    expect(v.some((x) => x.message.includes("weaker half"))).toBe(true);
+  });
+
+  it("R8 fires when the legacy 'N more like it in your category' sentence renders verbatim", () => {
+    const html = cleanHtml() + "<div>There are 3 more like it in your category.</div>";
+    const v = runReportRubric(payload(), html, only("R8"));
+    expect(v.some((x) => x.message.includes("more like it in your category"))).toBe(true);
+  });
+
+  it("R8 fires when the legacy 'YOUR CATEGORY' wins sentence renders verbatim", () => {
+    const html = cleanHtml() + "<div>You rank in the top 3 for 4 of your category's searches.</div>";
+    const v = runReportRubric(payload(), html, only("R8"));
+    expect(v.some((x) => x.message.includes("You rank in the top 3 for"))).toBe(true);
+  });
+
+  it("R8 fires when the legacy 'Someone is winning these searches today' sentence renders verbatim", () => {
+    const html = cleanHtml() + "<div>Someone is winning these searches today. <a>The full scan discovers who's winning these searches and what they do to rank →</a></div>";
+    const v = runReportRubric(payload(), html, only("R8"));
+    expect(v.some((x) => x.message.includes("Someone is winning these searches today"))).toBe(true);
   });
 
   it("suppressions skip exactly the named rule and nothing else", () => {

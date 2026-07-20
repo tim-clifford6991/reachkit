@@ -435,29 +435,31 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
     expect(html).not.toContain("Search presence is your gap.");
   });
 
-  // G5: "the weaker half" is CONDITIONAL. Search presence is the STRONGER half on
-  // ~40% of prod scans; the claim must vanish then, or we tell those users to fix
-  // their strongest driver.
-  it("G5: omits 'the weaker half' when search presence is the STRONGER driver", () => {
-    const r = report({
+  // G5/R8 (P4 review fix, 2026-07-20): "Winning this lifts Search presence —
+  // your weaker half." was the legacy branch's own prose violation — REMOVED
+  // unconditionally now (the query/volume/rank chips above it already carry
+  // the meaning), so it must never render regardless of which driver is
+  // weaker. Supersedes the old two G5 tests that asserted the sentence was
+  // merely conditional — it's gone outright now.
+  it("P4 review fix: the 'weaker half' explainer sentence never renders, on either driver imbalance", () => {
+    const strong = report({
       score: { total: 70, breakdown: { content: 50, outreach: 40, seo: 55 }, radar: [], basis: "verified" },
       // search 92 > on-page 60 → search is the STRONGER half.
       searchVisibility: sv({ score: 92, onPageReadiness: 60, keywordsRanked: 300, footprintComplete: true, categoryDemand: 8000 }),
       whatToDoThisWeek: { quickWins: [action("Add meta descriptions", 6)], medium: [], longPlay: [] },
     });
-    const html = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r, "strong.com", 2, 8)} scanId="s" />);
-    expect(html).toContain("Winning this lifts"); // the opportunity blurb still renders
-    expect(html).not.toContain("your weaker half");
-  });
+    const htmlStrong = renderToStaticMarkup(<ResultsScreen {...toResultsProps(strong, "strong.com", 2, 8)} scanId="s" />);
+    expect(htmlStrong).not.toContain("Winning this lifts");
+    expect(htmlStrong).not.toContain("weaker half");
 
-  it("G5: KEEPS 'your weaker half' when search presence IS the weaker driver", () => {
-    const r = report({
+    const weak = report({
       score: { total: 40, breakdown: { content: 70, outreach: 40, seo: 65 }, radar: [], basis: "verified" },
       searchVisibility: sv({ score: 20, onPageReadiness: 85, keywordsRanked: 40, footprintComplete: true, categoryDemand: 8000 }),
       whatToDoThisWeek: { quickWins: [action("Add meta descriptions", 6)], medium: [], longPlay: [] },
     });
-    const html = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r, "weak.com", 2, 8)} scanId="s" />);
-    expect(html).toContain("your weaker half");
+    const htmlWeak = renderToStaticMarkup(<ResultsScreen {...toResultsProps(weak, "weak.com", 2, 8)} scanId="s" />);
+    expect(htmlWeak).not.toContain("Winning this lifts");
+    expect(htmlWeak).not.toContain("weaker half");
   });
 
   // G4: the demand total is reconcilable — its named phrases render alongside it.

@@ -699,20 +699,21 @@ export function ResultsScreen(p: ResultsScreenProps) {
                   {broadTier && tierCard("broad", broadTier)}
                   {/* YOUR CATEGORY card — the hero's own identity, independent of
                       whichever sibling rungs render, so it always states the
-                      concept plainly. Its "standing" is the wins/red line + wins
-                      strip (not a single best-position — the category aggregates
-                      many phrases, unlike a single-rung best position). */}
+                      concept plainly. Its "standing" is a terse top-3-count chip
+                      (P4 review fix, 2026-07-20: was a full sentence — "You rank
+                      in the top 3 for N of your category's searches." — the
+                      winsRows chips below already itemise WHICH terms, so the
+                      header only needs the count, matching `standing()`'s
+                      pill+chip idiom used by the sibling broad/niche cards). */}
                   <div style={CARD_STYLE}>
-                    <div style={{ marginBottom: 10 }}>{pill("YOUR CATEGORY")}</div>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 10 }}>
+                      {pill("YOUR CATEGORY")}
+                      <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 13, color: wins > 0 ? "#1F9D5B" : "#E5484D" }}>
+                        {wins > 0 ? `top 3 × ${wins}` : "not ranking"}
+                      </span>
+                    </div>
                     <div style={{ fontFamily: JM, fontWeight: 700, fontSize: 26 }}>{sv.categoryDemand.toLocaleString()}</div>
                     <div style={{ fontSize: 13, color: "var(--c-muted)", marginBottom: 10 }}>searches/mo across your category</div>
-                    <div style={{ fontSize: 13, color: "var(--c-muted)", marginBottom: 8 }}>
-                      {wins > 0 ? (
-                        <>You rank in the top 3 for <strong style={{ color: "#1F9D5B" }}>{wins}</strong> of your category&apos;s searches.</>
-                      ) : (
-                        <><strong style={{ color: "#E5484D" }}>You don&apos;t rank in the top 3</strong> for any of your category&apos;s searches yet.</>
-                      )}
-                    </div>
                     {/* WS-D (2026-07-19): the "you already win" strip — categoryRanked
                         rows the subject already ranks top-3 for, so the card shows
                         wins alongside gaps, not gaps only. */}
@@ -829,19 +830,15 @@ export function ResultsScreen(p: ResultsScreenProps) {
                   <div><div style={{ fontFamily: JM, fontWeight: 700, fontSize: 22 }}>{top.volume}</div><div style={{ fontSize: 11.5, color: "var(--c-faint)" }}>searches / mo</div></div>
                   <div><div style={{ fontFamily: JM, fontWeight: 700, fontSize: 22, color: "#E5484D" }}>{top.rank}</div><div style={{ fontSize: 11.5, color: "var(--c-faint)" }}>where you are today</div></div>
                 </div>
-                <div style={{ marginTop: 16, padding: "13px 15px", background: "var(--c-bg2)", borderRadius: 10, fontSize: 13.5, lineHeight: 1.55, color: "var(--c-muted)" }}>
-                  {/* G5: "your weaker half" is CONDITIONAL — search presence is the
-                      stronger half on 40% of prod scans (on-page 48 / search 100 etc.).
-                      Only claim it when search presence is actually the lower driver.
-                      E2 (facts-first copy sweep, 2026-07-20): "Winning this term lifts
-                      your Search presence" tersened to "Winning this lifts Search
-                      presence" — same fact, fewer words. */}
-                  Winning this lifts <strong style={{ color: "var(--c-fg)" }}>Search presence</strong>
-                  {p.searchVisibility && p.searchVisibility.score < p.searchVisibility.onPageReadiness
-                    ? <> — your weaker half.</>
-                    : <>.</>}
-                  {more > 0 && <> There {more === 1 ? "is" : "are"} <strong style={{ color: "var(--c-fg)" }}>{more} more</strong> like it in your category.</>}
-                </div>
+                {/* P4 review fix (2026-07-20): the old block here was two prose
+                    sentences ("Winning this lifts Search presence — your weaker
+                    half." + "There are N more like it in your category.") — the
+                    query/volume/rank chips above already carry that meaning.
+                    Dropped entirely; the "+N more" count (still real, still
+                    derivable — R2/R4) survives as a bare chip, no sentence. */}
+                {more > 0 && (
+                  <div style={{ marginTop: 14, fontSize: 12.5, fontFamily: JM, fontWeight: 600, color: "var(--c-faint)" }}>🔒 +{more} more</div>
+                )}
                 {p.gapRows.length > 1 && (
                   <div style={{ marginTop: 14, borderTop: "1px solid var(--c-line2)", paddingTop: 4 }}>
                     {p.gapRows.slice(1, 4).map((row) => (
