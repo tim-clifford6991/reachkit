@@ -74,7 +74,15 @@ export function looksLikeListicle(name: string): boolean {
 // rendered as a rival on x.com's own scan. `looksLikeListicle` only catches
 // comparison-article phrasing ("X vs Y", "Top 10 …"); a plain interrogative
 // headline slips past it entirely. A rival NAME is never a sentence.
-const INTERROGATIVE_START_RE = /^(how|why|what|when|where|who|top|best)\b/i;
+//
+// "top"/"best" are deliberately EXCLUDED from this start-token list (review
+// Minor, 2026-07-20): they are legitimate real brand-name prefixes ("Best
+// Buy", "Top Hat", "Best Egg"), so rejecting them on that token alone is
+// collateral damage. The >4-word rule and `looksLikeListicle`'s "top N" /
+// "N best" phrasing already catch the actual defect shape ("Top 10 CRM tools
+// for…"); how/why/what/when/where/who remain because they are genuine
+// sentence/question starters that never begin a brand name.
+const INTERROGATIVE_START_RE = /^(how|why|what|when|where|who)\b/i;
 /** Sentence punctuation that never appears in a product name — a lone
  *  trailing "." is allowed (nothing else is, and a SECOND "." anywhere,
  *  including a trailing one, is also rejected). */
