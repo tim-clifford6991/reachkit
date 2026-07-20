@@ -534,6 +534,60 @@ export interface MarketTier {
 }
 
 /**
+ * PR-8 (2026-07-20, the trustmrr "business intelligence platforms" class): the
+ * non-generic token vocabulary of the subject's REAL in-category rankings
+ * (`categoryRanked` — classified from the SAME `ranked_keywords` call the
+ * footprint uses, never the LLM's tier-seed guesses). This is the corroboration
+ * set a tier phrase must share a token with to be treated as evidenced. Reuses
+ * the ONE shared `tokens()` + `GENERIC_TOKENS` from `./referral/brand-keywords`
+ * (RC1) — no forked tokenizer/generic-list for this third grounding site.
+ */
+function groundedCategoryTokens(categoryRanked: DemandRow[]): Set<string> {
+  const set = new Set<string>();
+  for (const r of categoryRanked) {
+    for (const t of tokens(r.keyword)) {
+      if (GENERIC_TOKENS.has(t)) continue; // a generic word alone proves nothing
+      set.add(t);
+    }
+  }
+  return set;
+}
+
+/** A tier phrase is grounded iff the subject ranks for it EXACTLY, or it shares
+ *  ≥1 non-generic token with the subject's real in-category rankings. Ungrounded
+ *  = an LLM guess with no ranking evidence — dropped (degrade, never invent). */
+function isTierPhraseGrounded(
+  phrase: string,
+  groundedTokens: Set<string>,
+  rankByKeyword: Map<string, number>,
+): boolean {
+  const keyword = phrase.toLowerCase().trim();
+  if (rankByKeyword.has(keyword)) return true; // the subject ranks for this exact phrase
+  for (const t of tokens(phrase)) {
+    if (GENERIC_TOKENS.has(t)) continue;
+    if (groundedTokens.has(t)) return true;
+  }
+  return false;
+}
+
+/** Exported so the gather can apply the SAME grounding rule BEFORE the volumes
+ *  request — pricing (and therefore paying for) only phrases that already pass
+ *  token-corroboration against `categoryRanked` ("never pay for data you don't
+ *  render", per-field). `computeMarketTiers` re-applies the identical filter
+ *  internally so it stays correct as a pure, standalone function (unit-tested
+ *  directly with raw ungrounded seeds) — the two calls are redundant by design,
+ *  not duplicated logic (both route through this one function). */
+export function groundTierSeeds(
+  seeds: string[],
+  categoryRanked: DemandRow[],
+  rankByKeyword: Map<string, number>,
+): string[] {
+  if (categoryRanked.length === 0) return []; // no ranking evidence of the subject's market at all
+  const groundedTokens = groundedCategoryTokens(categoryRanked);
+  return seeds.filter((s) => isTierPhraseGrounded(s, groundedTokens, rankByKeyword));
+}
+
+/**
  * Task B (2026-07-19, ladder restructure — data-grounded rungs, not synonym
  * labels): priced from the SAME single search_volume request as the category
  * seeds (the tier phrases are merged into that one call's keyword list;
@@ -542,6 +596,16 @@ export interface MarketTier {
  * anywhere in the pipeline ("never pay for data you don't render", per-field).
  * At most `[broad?, niche?]`:
  *
+ *   - **Grounding (PR-8, 2026-07-20)**: a phrase renders only when it is
+ *     CORROBORATED by the subject's real rankings — it ranks for the exact
+ *     phrase, or shares ≥1 non-generic token with a `categoryRanked` keyword
+ *     (real classified-category rankings, NOT the LLM's tier-seed guess). This
+ *     is the trustmrr class: "business intelligence platforms" priced to a
+ *     REAL 880/mo but trustmrr neither ranks for it nor shares a token with its
+ *     real category (mrr/startup/app/revenue) — real number, fabricated
+ *     relevance. When `categoryRanked` is EMPTY (no real in-category rankings
+ *     at all), the whole ladder is omitted — we have no ranking evidence of
+ *     the subject's market, so we assert none (degrade, never invent).
  *   - **Cross-rung dedup**: a phrase already in the CATEGORY phrase set
  *     (`categoryPhrases`, lowercased) is excluded from BOTH broad and niche —
  *     it's already counted in the category-demand hero, so a rung must not
@@ -567,7 +631,13 @@ export function computeMarketTiers(
   rankByKeyword: Map<string, number>,
   categoryPhrases: DemandRow[] = [],
   categoryDemand: number = 0,
+  categoryRanked: DemandRow[] = [],
 ): MarketTier[] {
+  // No real in-category rankings at all -> no evidence of the subject's market,
+  // so no broad/niche ladder is asserted (degrade, never invent).
+  if (categoryRanked.length === 0) return [];
+  const groundedTokens = groundedCategoryTokens(categoryRanked);
+
   const price = (seeds: string[], exclude: Set<string>) => {
     const seen = new Set<string>();
     const phrases: DemandRow[] = [];
@@ -575,6 +645,7 @@ export function computeMarketTiers(
       const keyword = raw.toLowerCase().trim();
       if (!keyword || seen.has(keyword) || exclude.has(keyword)) continue;
       seen.add(keyword);
+      if (!isTierPhraseGrounded(keyword, groundedTokens, rankByKeyword)) continue; // ungrounded — an LLM guess with no ranking evidence
       const volume = volumesByKeyword.get(keyword) ?? 0;
       if (volume <= 0) continue;
       phrases.push({ keyword, volume, yourPosition: rankByKeyword.get(keyword) });
@@ -680,11 +751,24 @@ export async function gatherFreeSearchVisibility(
       if (cur === undefined || k.position < cur) rankByKeyword.set(key, k.position);
     }
     const seeds = buildCategorySeeds(sv, llmCategorySeeds);
+    // PR-8 (2026-07-20): ground the tier phrases BEFORE they're priced — only a
+    // phrase corroborated by the subject's REAL category rankings (`sv.categoryRanked`,
+    // available here at zero extra cost) is worth a volume lookup at all. An
+    // ungrounded LLM guess ("business intelligence platforms" for trustmrr) is
+    // dropped here, not fetched then discarded — "never pay for data you don't
+    // render", per-field. `computeMarketTiers` re-applies the identical rule so it
+    // stays correct standalone; this pre-filter only saves the wasted fetch.
+    const groundedTierSeeds = tierSeeds
+      ? {
+          broad: groundTierSeeds(tierSeeds.broad, sv.categoryRanked, rankByKeyword),
+          niche: groundTierSeeds(tierSeeds.niche, sv.categoryRanked, rankByKeyword),
+        }
+      : undefined;
     // ONE volumes request prices the category seeds AND the ladder's BROAD +
     // NICHE tier phrases (request-billed — merging keywords adds no cost and no
     // latency). MEDIUM is dropped from the ladder entirely (never priced, never
     // sent here) — "never pay for data you don't render", per-field.
-    const tierPhrases = tierSeeds ? [...tierSeeds.broad, ...tierSeeds.niche] : [];
+    const tierPhrases = groundedTierSeeds ? [...groundedTierSeeds.broad, ...groundedTierSeeds.niche] : [];
     const allSeeds = [...new Set([...seeds, ...tierPhrases.map((s) => s.toLowerCase().trim())].filter(Boolean))].slice(0, 16);
     const seedVolumes = allSeeds.length > 0 ? await cachedKeywordVolumes(allSeeds).catch(() => []) : [];
     const volumesByKeyword = new Map(seedVolumes.map((r) => [r.keyword.toLowerCase(), r.volume]));
@@ -696,9 +780,12 @@ export async function gatherFreeSearchVisibility(
     // opportunities reflect the actual market for big AND small sites alike.
     const demand = computeCategoryDemand(catVolumes, rankByKeyword, sv.categoryRanked);
     // computeMarketTiers runs AFTER computeCategoryDemand — the dedup + inversion
-    // guard need the category phrase set + demand total it just produced.
-    const marketTiers = tierSeeds
-      ? computeMarketTiers(tierSeeds, volumesByKeyword, rankByKeyword, demand.categoryPhrases, demand.categoryDemand)
+    // guard need the category phrase set + demand total it just produced. Pass
+    // the ALREADY-GROUNDED seeds (pre-filtered above, pre-fetch) plus
+    // sv.categoryRanked so the pure function's own grounding check is a no-op
+    // here (defense-in-depth) rather than a second live filter.
+    const marketTiers = groundedTierSeeds
+      ? computeMarketTiers(groundedTierSeeds, volumesByKeyword, rankByKeyword, demand.categoryPhrases, demand.categoryDemand, sv.categoryRanked)
       : undefined;
     return { ...sv, ...demand, ...(marketTiers && marketTiers.length > 0 ? { marketTiers } : {}) };
   } catch {

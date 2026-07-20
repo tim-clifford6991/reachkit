@@ -316,6 +316,17 @@ describe("computeMarketTiers (Task B, 2026-07-19) — the broad/niche ladder, me
     ["rank tracking software", 1600],
   ]);
   const ranks = new Map([["seo tools", 12]]);
+  // PR-8 grounding: every phrase below must be corroborated by SOME real-ranking
+  // evidence. "seo tools" is grounded by the exact-rank map above; "marketing
+  // software" and "rank tracking software" are grounded here via a shared
+  // non-generic token ("marketing" / "rank"+"tracker") with the subject's REAL
+  // category rankings — standing in for a real categoryRanked fixture so these
+  // pre-existing ladder-mechanics tests aren't ALSO asserting the grounding rule
+  // (that has its own describe block below).
+  const groundedCategoryRanked = [
+    { keyword: "marketing tool", volume: 5000, yourPosition: 5 },
+    { keyword: "rank tracker", volume: 3000, yourPosition: 8 },
+  ];
 
   it("each tier's demand reconciles EXACTLY to its rendered phrases (G4-per-tier)", () => {
     const tiers = computeMarketTiers(
@@ -324,6 +335,7 @@ describe("computeMarketTiers (Task B, 2026-07-19) — the broad/niche ladder, me
       ranks,
       [],
       0,
+      groundedCategoryRanked,
     );
     for (const t of tiers) {
       expect(t.demand).toBe(t.phrases.reduce((s, p) => s + p.volume, 0));
@@ -333,13 +345,27 @@ describe("computeMarketTiers (Task B, 2026-07-19) — the broad/niche ladder, me
   });
 
   it("standing comes from the REAL rank map — never invented", () => {
-    const tiers = computeMarketTiers({ broad: ["marketing software"], niche: ["seo tools"] }, volumes, ranks, [], 0);
+    const tiers = computeMarketTiers(
+      { broad: ["marketing software"], niche: ["seo tools"] },
+      volumes,
+      ranks,
+      [],
+      0,
+      groundedCategoryRanked,
+    );
     expect(tiers.find((t) => t.tier === "broad")!.bestPosition).toBeNull();
     expect(tiers.find((t) => t.tier === "niche")!.bestPosition).toBe(12);
   });
 
   it("a tier whose phrases all price to 0 volume is omitted (degrade, never render a hollow rung)", () => {
-    const tiers = computeMarketTiers({ broad: ["zzz unknown"], niche: ["seo tools"] }, volumes, ranks, [], 0);
+    const tiers = computeMarketTiers(
+      { broad: ["zzz unknown"], niche: ["seo tools"] },
+      volumes,
+      ranks,
+      [],
+      0,
+      groundedCategoryRanked,
+    );
     expect(tiers.map((t) => t.tier)).toEqual(["niche"]);
   });
 
@@ -351,6 +377,7 @@ describe("computeMarketTiers (Task B, 2026-07-19) — the broad/niche ladder, me
       ranks,
       categoryPhrases,
       0,
+      groundedCategoryRanked,
     );
     const allKeywords = tiers.flatMap((t) => t.phrases.map((p) => p.keyword));
     expect(allKeywords).not.toContain("seo tools");
@@ -364,6 +391,7 @@ describe("computeMarketTiers (Task B, 2026-07-19) — the broad/niche ladder, me
       ranks,
       [],
       0,
+      groundedCategoryRanked,
     );
     const broadT = tiers.find((t) => t.tier === "broad")!;
     const nicheT = tiers.find((t) => t.tier === "niche")!;
@@ -374,18 +402,108 @@ describe("computeMarketTiers (Task B, 2026-07-19) — the broad/niche ladder, me
   it("inversion guard: broad rung is DROPPED when its priced demand does not exceed category demand", () => {
     // "seo tools" alone prices to 74,000 — below a 112,420 category demand, the
     // reachkit.app live shape (broad 5,200 <= category 112,420, inverted).
-    const tiers = computeMarketTiers({ broad: ["seo tools"], niche: [] }, volumes, ranks, [], 112420);
+    const tiers = computeMarketTiers({ broad: ["seo tools"], niche: [] }, volumes, ranks, [], 112420, groundedCategoryRanked);
     expect(tiers.find((t) => t.tier === "broad")).toBeUndefined();
   });
 
   it("inversion guard: EQUAL broad/category demand is also dropped (≤, not <)", () => {
-    const tiers = computeMarketTiers({ broad: ["seo tools"], niche: [] }, volumes, ranks, [], 74000);
+    const tiers = computeMarketTiers({ broad: ["seo tools"], niche: [] }, volumes, ranks, [], 74000, groundedCategoryRanked);
     expect(tiers.find((t) => t.tier === "broad")).toBeUndefined();
   });
 
   it("inversion guard: broad rung RENDERS when its priced demand exceeds category demand", () => {
-    const tiers = computeMarketTiers({ broad: ["marketing software"], niche: [] }, volumes, ranks, [], 112420);
+    const tiers = computeMarketTiers(
+      { broad: ["marketing software"], niche: [] },
+      volumes,
+      ranks,
+      [],
+      112420,
+      groundedCategoryRanked,
+    );
     expect(tiers.find((t) => t.tier === "broad")).toBeDefined();
+  });
+});
+
+describe("computeMarketTiers grounding (PR-8, 2026-07-20) — no LLM-guessed markets (the trustmrr class)", () => {
+  // VERIFIED live trustmrr.com data (raw DataForSEO cache bodies, task-F brief):
+  // the LLM's broad tier-seed "business intelligence platforms" priced to a REAL
+  // 880/mo, but trustmrr does not rank for it and is not a BI platform — it
+  // shares zero non-generic token with trustmrr's REAL category rankings (mrr /
+  // startup / app / revenue). Real number, fabricated relevance — the same
+  // LLM-hallucination class as the classifier macro rule, one layer up.
+  const trustmrrCategoryRanked = [
+    { keyword: "mrr startup", volume: 90, yourPosition: 2 },
+    { keyword: "startup mrr", volume: 90, yourPosition: 2 },
+    { keyword: "mrr app", volume: 70, yourPosition: 1 },
+    { keyword: "startup revenue", volume: 30, yourPosition: 2 },
+  ];
+  const trustmrrVolumes = new Map([
+    ["business intelligence platforms", 880],
+    ["startup acquisition software", 0],
+  ]);
+  const emptyRanks = new Map<string, number>();
+
+  it("an ungrounded broad phrase is DROPPED even though its volume is real (trustmrr 'business intelligence platforms')", () => {
+    const tiers = computeMarketTiers(
+      { broad: ["business intelligence platforms", "startup acquisition software"], niche: [] },
+      trustmrrVolumes,
+      emptyRanks,
+      [],
+      0,
+      trustmrrCategoryRanked,
+    );
+    const allPhrases = tiers.flatMap((t) => t.phrases.map((p) => p.keyword));
+    expect(allPhrases).not.toContain("business intelligence platforms");
+  });
+
+  it("positive control: a broad phrase sharing a non-generic token with categoryRanked SURVIVES (must not over-drop)", () => {
+    // SpaceX-shaped: categoryRanked has "rocket launch" + "space launch system"
+    // (real rankings); a broad seed "space exploration" shares "space" -> kept.
+    const spacexCategoryRanked = [
+      { keyword: "rocket launch", volume: 74000, yourPosition: 4 },
+      { keyword: "space launch system", volume: 110000, yourPosition: 10 },
+    ];
+    const volumes = new Map([["space exploration", 40000]]);
+    const tiers = computeMarketTiers(
+      { broad: ["space exploration"], niche: [] },
+      volumes,
+      emptyRanks,
+      [],
+      0,
+      spacexCategoryRanked,
+    );
+    const broad = tiers.find((t) => t.tier === "broad");
+    expect(broad).toBeDefined();
+    expect(broad!.phrases.map((p) => p.keyword)).toContain("space exploration");
+  });
+
+  it("a phrase the subject ranks for EXACTLY is grounded even with zero token overlap", () => {
+    const volumes = new Map([["totally unrelated phrase", 500]]);
+    const ranks = new Map([["totally unrelated phrase", 5]]);
+    const tiers = computeMarketTiers(
+      { broad: ["totally unrelated phrase"], niche: [] },
+      volumes,
+      ranks,
+      [],
+      0,
+      trustmrrCategoryRanked,
+    );
+    const broad = tiers.find((t) => t.tier === "broad");
+    expect(broad!.phrases.map((p) => p.keyword)).toContain("totally unrelated phrase");
+  });
+
+  it("empty categoryRanked -> the WHOLE ladder is omitted (no ranking evidence of the subject's market at all)", () => {
+    const volumes = new Map([["marketing software", 550000]]);
+    const ranks = new Map([["marketing software", 3]]); // even an exact rank match
+    const tiers = computeMarketTiers(
+      { broad: ["marketing software"], niche: ["marketing software"] },
+      volumes,
+      ranks,
+      [],
+      0,
+      [], // no real in-category rankings — degrade, never invent
+    );
+    expect(tiers).toEqual([]);
   });
 });
 
