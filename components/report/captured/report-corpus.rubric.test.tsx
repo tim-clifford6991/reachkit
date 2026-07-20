@@ -321,3 +321,227 @@ describe("corpus: spacex.com — the 8,170-demand class control (post-fix)", () 
     expect(html).not.toMatch(/\+\d+ more/);
   });
 });
+
+// ── Data board P3 review fix (2026-07-20, corpus-first) — the six-section board ─
+//
+// CONSTRUCTED, NOT verbatim captures. `categoryCard`/`nicheCard` (P2) and
+// `aggregatedPct`/`aggregatedExamples` (P1) postdate every payload above —
+// none of the 6 real captures ran through the P1/P2 pipeline, so there is no
+// real prod payload carrying them yet to capture (no live Supabase access
+// from this environment either). Per the corpus's OWN manifest rule ("never
+// hand-authored, added to lib/scan/fixtures/report-corpus/"), these variants
+// are NOT added as fixture files and are NOT counted toward MIN_FIXTURES —
+// same precedent as the `fetchDegraded` CONSTRUCTED block above: real base
+// payload, one field layered on top, clearly labelled, own describe block.
+//
+// The numbers are the LIVE P2 data verified on prod the same day this phase
+// was speced (2026-07-20, task-P3-brief.md): reachkit.app "SEO and marketing
+// tools" 112,900 / niche "SEO gap analysis for founders" 1,300; savvycal.com
+// "Scheduling software" 3,350,000 / niche "Collaborative team scheduling"
+// 240; x.com "Social media platforms" 168,820 / niche 350; trustmrr.com
+// "Business Marketplace & Acquisition" 2,240,000 / niche 0 + aggregatedPct
+// 78. trustmrr.com has no real base fixture in this corpus (only getapp.com
+// covers the "directory" archetype) — its variant layers trustmrr's numbers
+// onto getapp.com's real base (also a real directory scan), simulating the
+// aggregation-strip case rather than claiming it as getapp's own data.
+//
+// TODO (post-merge, per CLAUDE.md "always live-test against REAL adapters"):
+// once a fresh scan of each domain is available on prod, `pnpm capture:report`
+// should replace these constructs with real captures and this block retired,
+// same as the fetchDegraded block's own TODO above.
+function marketCard(over: { label: string; demand: number; rankedTop3?: { keyword: string; volume: number; yourPosition?: number }[]; gaps?: { keyword: string; volume: number }[] }) {
+  const rankedTop3 = over.rankedTop3 ?? [];
+  const gaps = over.gaps ?? [];
+  // `phrases` is rankedTop3 ∪ gaps exactly (the same partition
+  // `splitRankedGaps`/`computeCategoryLadder` produces) — computed here so
+  // every constructed card is internally consistent (CategoryLadderCard's
+  // `demand` reconciles to `phrases`), never hand-duplicated per call site.
+  return { label: over.label, demand: over.demand, phrases: [...rankedTop3, ...gaps], rankedTop3, gaps };
+}
+
+describe("data board P3 (CONSTRUCTED variants, corpus-first — not verbatim captures): the six-section board", () => {
+  const reachkitFixture = FIXTURES.find((f) => f.domain === "reachkit.app")!;
+  const savvycalFixture = FIXTURES.find((f) => f.domain === "savvycal.com")!;
+  const xcomFixture = FIXTURES.find((f) => f.domain === "x.com")!;
+  const getappFixture = FIXTURES.find((f) => f.domain === "getapp.com")!;
+
+  const reachkitP3: CorpusFixture = {
+    ...reachkitFixture,
+    domain: "reachkit.app (constructed: P3 category/niche cards)",
+    reportPayload: {
+      ...reachkitFixture.reportPayload,
+      searchVisibility: {
+        ...reachkitFixture.reportPayload.searchVisibility!,
+        categoryCard: marketCard({
+          label: "SEO and marketing tools",
+          demand: 112900,
+          gaps: [{ keyword: "seo tools", volume: 71600 }, { keyword: "seo software", volume: 41300 }],
+        }),
+        nicheCard: marketCard({
+          label: "SEO gap analysis for founders",
+          demand: 1300,
+          gaps: [{ keyword: "seo gap analysis", volume: 1300 }],
+        }),
+      },
+    },
+  };
+
+  const savvycalP3: CorpusFixture = {
+    ...savvycalFixture,
+    domain: "savvycal.com (constructed: P3 category/niche cards)",
+    reportPayload: {
+      ...savvycalFixture.reportPayload,
+      searchVisibility: {
+        ...savvycalFixture.reportPayload.searchVisibility!,
+        categoryCard: marketCard({
+          label: "Scheduling software",
+          demand: 3350000,
+          gaps: [{ keyword: "scheduling software", volume: 1900000 }, { keyword: "online scheduling tool", volume: 1450000 }],
+        }),
+        nicheCard: marketCard({
+          label: "Collaborative team scheduling",
+          demand: 240,
+          gaps: [{ keyword: "team scheduling software", volume: 240 }],
+        }),
+      },
+    },
+  };
+
+  const xcomP3: CorpusFixture = {
+    ...xcomFixture,
+    domain: "x.com (constructed: P3 category/niche cards)",
+    reportPayload: {
+      ...xcomFixture.reportPayload,
+      searchVisibility: {
+        ...xcomFixture.reportPayload.searchVisibility!,
+        categoryCard: marketCard({
+          label: "Social media platforms",
+          demand: 168820,
+          gaps: [{ keyword: "social media platform", volume: 98820 }, { keyword: "social networking site", volume: 70000 }],
+        }),
+        nicheCard: marketCard({
+          label: "decentralized social networks",
+          demand: 350,
+          gaps: [{ keyword: "decentralized social networks", volume: 350 }],
+        }),
+      },
+    },
+  };
+
+  // The directory-pattern case (D3): trustmrr.com's verified live numbers,
+  // layered onto getapp.com's real base (also a directory scan — see the
+  // block comment above for why trustmrr itself has no base fixture here).
+  // Niche demand is genuinely 0 (no grounded niche phrase cleared pricing) —
+  // the niche card must NOT render (marketCardReady false), and the
+  // aggregation strip must fire (aggregatedPct 78 ≥ 40).
+  const directoryP3: CorpusFixture = {
+    ...getappFixture,
+    domain: "getapp.com (constructed: P3 directory pattern, trustmrr.com live numbers)",
+    reportPayload: {
+      ...getappFixture.reportPayload,
+      searchVisibility: {
+        ...getappFixture.reportPayload.searchVisibility!,
+        categoryCard: marketCard({
+          label: "Business Marketplace & Acquisition",
+          demand: 2240000,
+          gaps: [{ keyword: "business marketplace", volume: 1240000 }, { keyword: "startup acquisition marketplace", volume: 1000000 }],
+        }),
+        nicheCard: marketCard({ label: "MRR verification for acquirers", demand: 0 }), // 0 grounded phrases — genuinely empty
+        aggregatedPct: 78,
+        aggregatedExamples: ["cometly", "trimrx", "spanglish translator"],
+        offTopicPct: 5, // residual noise, now that aggregatedPct owns the directory share (D3)
+      },
+    },
+  };
+
+  const P3_VARIANTS = [
+    { name: "reachkit.app", fx: reachkitP3, categoryDemand: "112,900", nicheDemand: "1,300", categoryLabel: "SEO and marketing tools", nicheLabel: "SEO gap analysis for founders" },
+    { name: "savvycal.com", fx: savvycalP3, categoryDemand: "3,350,000", nicheDemand: "240", categoryLabel: "Scheduling software", nicheLabel: "Collaborative team scheduling" },
+    { name: "x.com", fx: xcomP3, categoryDemand: "168,820", nicheDemand: "350", categoryLabel: "Social media platforms", nicheLabel: "decentralized social networks" },
+  ];
+
+  for (const v of P3_VARIANTS) {
+    describe(`${v.name}: the six-section board renders`, () => {
+      const html = render(v.fx);
+      it("renders the Overview hero stat (the CATEGORY size, the large number)", () => {
+        expect(html).toContain(v.categoryDemand);
+        // renderToStaticMarkup HTML-escapes the apostrophe in "you're" to
+        // &#x27; — split the check either side of it (same idiom as the
+        // fetchDegraded STALE_MIRROR_TEXT comment above).
+        expect(html).toContain("searches/mo in your market");
+        expect(html).toContain("in a real category");
+      });
+      it("renders the Category card (large) and the Niche card (small) as two DISTINCT numbers", () => {
+        expect(html).toContain(v.categoryLabel);
+        expect(html).toContain(v.nicheLabel);
+        expect(html).toContain(v.nicheDemand);
+        // Never the same number twice under two different labels (G1's spirit).
+        expect(v.categoryDemand).not.toBe(v.nicheDemand);
+      });
+      it("the Opportunity section (niche gaps) renders — 'Opportunity · your niche'", () => {
+        expect(html).toContain("Opportunity · your niche");
+      });
+      it("the LEGACY 'biggest untapped opportunity' callout is superseded, not duplicated", () => {
+        expect(html).not.toContain("Your biggest untapped opportunity");
+      });
+      it("the aggregation strip does NOT render — this is a normal SaaS/mega-brand footprint, not a directory", () => {
+        expect(html).not.toContain("your directory engine, not lost buyers");
+        expect(html).not.toContain("DIRECTORY PATTERN DETECTED");
+      });
+      it("the pre-P2 ladder hero ('searches/mo across your category') is superseded, not duplicated", () => {
+        expect(html).not.toContain("searches/mo across your category");
+      });
+      it("passes the full rubric (R1–R7) with categoryCard/nicheCard layered onto real data", () => {
+        const violations = runReportRubric(v.fx.reportPayload, html);
+        expect(violations, violations.map((x) => `[${x.rule}] ${x.message}`).join("\n")).toEqual([]);
+      });
+    });
+  }
+
+  describe("getapp.com (directory pattern, trustmrr.com live numbers): the aggregation strip", () => {
+    const html = render(directoryP3);
+    it("the DIRECTORY PATTERN strip renders with the real aggregatedPct + named examples", () => {
+      expect(html).toContain("DIRECTORY PATTERN DETECTED");
+      expect(html).toContain("78%");
+      expect(html).toContain("your directory engine, not lost buyers");
+      expect(html).toContain("cometly");
+      expect(html).toContain("trimrx");
+    });
+    it("the Category card renders (2,240,000, large) but the Niche card is OMITTED — niche demand is genuinely 0", () => {
+      expect(html).toContain("2,240,000");
+      // renderToStaticMarkup HTML-escapes "&" to &amp; in text — split the
+      // label check either side of it.
+      expect(html).toContain("Business Marketplace");
+      expect(html).toContain("Acquisition");
+      expect(html).not.toContain("MRR verification for acquirers");
+    });
+    it("the Opportunity section is OMITTED too — no niche card, nothing to itemise (invariant #11)", () => {
+      expect(html).not.toContain("Opportunity · your niche");
+    });
+    it("passes the full rubric (R1–R7)", () => {
+      const violations = runReportRubric(directoryP3.reportPayload, html);
+      expect(violations, violations.map((x) => `[${x.rule}] ${x.message}`).join("\n")).toEqual([]);
+    });
+  });
+
+  describe("mutation proof: the aggregation-strip conditional is directory-only (≥40%)", () => {
+    it("savvycal.com and x.com (aggregatedPct 0, unset) never render the strip even though other blocks are active", () => {
+      expect(render(savvycalP3)).not.toContain("DIRECTORY PATTERN DETECTED");
+      expect(render(xcomP3)).not.toContain("DIRECTORY PATTERN DETECTED");
+    });
+    it("the SAME getapp.com base with aggregatedPct dropped to 39 (just under the floor) drops the strip", () => {
+      const justUnder: CorpusFixture = {
+        ...directoryP3,
+        reportPayload: { ...directoryP3.reportPayload, searchVisibility: { ...directoryP3.reportPayload.searchVisibility!, aggregatedPct: 39 } },
+      };
+      expect(render(justUnder)).not.toContain("DIRECTORY PATTERN DETECTED");
+    });
+    it("the SAME base at exactly 40 renders the strip (the floor is inclusive)", () => {
+      const atFloor: CorpusFixture = {
+        ...directoryP3,
+        reportPayload: { ...directoryP3.reportPayload, searchVisibility: { ...directoryP3.reportPayload.searchVisibility!, aggregatedPct: 40 } },
+      };
+      expect(render(atFloor)).toContain("DIRECTORY PATTERN DETECTED");
+    });
+  });
+});

@@ -301,10 +301,15 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
       categoryDemand: 8000, categoryOpportunities: [], categoryWonKeywords: [],
       // deliberately NO footprintComplete, NO categoryPhrases, NO categoryRanked,
       // NO marketTiers, NO offTopicExamples, NO aggregatedPct/aggregatedExamples
-      // (D3, data board P1, 2026-07-20) — they all postdate this payload. The
-      // render must tolerate their absence; aggregatedPct/aggregatedExamples
-      // are data-only this phase (defaulted `?? 0`/`?? []` in to-results-props.ts)
-      // and not rendered, so this scenario just pins that the default holds.
+      // (D3, data board P1, 2026-07-20), NO categoryCard/nicheCard (data board
+      // P2/P3, 2026-07-20) — they all postdate this payload. The render must
+      // tolerate their absence: aggregatedPct/aggregatedExamples default
+      // `?? 0`/`?? []` (below the 40% aggregation-strip floor, so it doesn't
+      // render); categoryCard/nicheCard default `?? null`, so `marketCardReady`
+      // is false and the SIX-SECTION BOARD (P3) does not render at all — the
+      // renderer falls back to the pre-P2 market-tier ladder below, which is
+      // exactly what this test asserts (`toContain("searches/mo across your
+      // category")`, the ladder's own hero line).
     } as unknown as SearchVisibility;
     // Task 6 review hygiene addition: also omit positioningMirror.listingSays
     // (the identity-strip field, added after this shape shipped) so the

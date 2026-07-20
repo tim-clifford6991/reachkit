@@ -85,6 +85,80 @@ export interface Pillar { label: string; value: number; note: string; measured?:
 export interface Fix { rank: number; title: string; why: string; effort: string; pillar: string; pred: number }
 export interface GapRow { query: string; volume: string; rank: string; ranked: boolean; opp: string }
 
+/** Data-board P3 — the shape `<MarketCard>` renders. Mirrors
+ *  `CategoryLadderCard` (lib/scan/search-visibility.ts) field-for-field but is
+ *  declared locally (not imported) so this captured component keeps its
+ *  existing discipline of taking only inline prop shapes, same as
+ *  `searchVisibility.marketTiers` above. */
+export interface MarketCardData {
+  label: string;
+  demand: number;
+  rankedTop3: { keyword: string; volume: number; yourPosition?: number }[];
+  gaps: { keyword: string; volume: number; yourPosition?: number }[];
+}
+
+const MARKET_CARD_STYLE: CSSProperties = { background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16, padding: "18px 20px", minWidth: 0 };
+
+/** ONE reusable card for BOTH "Your Category" (broad) and "Your Niche"
+ *  (specific) — sections 2 and 3 of the six-section data board (P3). DRY per
+ *  the brief: identical structure, different pill/tint/zero-state copy. Every
+ *  number renders straight off `card` (part of the persisted payload), so R2
+ *  (report-rubric.ts) is satisfied for free — no derivation to register. */
+function MarketCard({ kind, card }: { kind: "category" | "niche"; card: MarketCardData }) {
+  const pill = kind === "category"
+    ? { label: "YOUR CATEGORY", bg: "var(--c-tint-violet)", fg: "var(--c-action)" }
+    : { label: "YOUR NICHE", bg: "var(--c-tint-amber)", fg: "#C98A12" };
+  return (
+    <div style={MARKET_CARD_STYLE}>
+      <span style={{ fontFamily: JM, fontSize: 10.5, fontWeight: 700, letterSpacing: "0.08em", padding: "3px 9px", borderRadius: 999, background: pill.bg, color: pill.fg }}>{pill.label}</span>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8, margin: "10px 0 2px" }}>
+        <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 26 }}>{card.demand.toLocaleString()}</span>
+        <span style={{ fontSize: 12, color: "var(--c-muted)" }}>searches / mo</span>
+      </div>
+      <div className="rk-wrap-any" style={{ fontSize: 13, color: "var(--c-muted)", marginBottom: 12 }}>{card.label}</div>
+
+      <div style={{ fontSize: 11, fontWeight: 600, color: "var(--c-faint)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "12px 0 7px" }}>You rank top 3 for</div>
+      {card.rankedTop3.length > 0 ? (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {card.rankedTop3.map((r) => (
+            <span key={r.keyword} className="rk-wrap-any" style={{ fontFamily: JM, fontSize: 11.5, padding: "4px 9px", borderRadius: 7, background: "var(--c-tint-green)", color: "#1F9D5B", display: "inline-flex", gap: 6, alignItems: "baseline" }}>
+              <b style={{ color: "#1F9D5B" }}>#{r.yourPosition}</b> {r.keyword} <b>{r.volume.toLocaleString()}</b>
+            </span>
+          ))}
+        </div>
+      ) : (
+        <div style={{ fontSize: 12.5, color: "var(--c-muted)", background: "var(--c-tint-red)", borderLeft: "3px solid #E5484D", borderRadius: "0 8px 8px 0", padding: "8px 11px" }}>
+          <b style={{ color: "#E5484D" }}>None yet.</b>{kind === "category" ? " You don't rank for a single term in your own category." : ""}
+        </div>
+      )}
+
+      {card.gaps.length > 0 && (
+        <>
+          <div style={{ fontSize: 11, fontWeight: 600, color: "var(--c-faint)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "12px 0 7px" }}>You don&apos;t rank for</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {card.gaps.slice(0, 6).map((g) => (
+              <span key={g.keyword} className="rk-wrap-any" style={{ fontFamily: JM, fontSize: 11.5, padding: "4px 9px", borderRadius: 7, background: "var(--c-fill)", color: "var(--c-muted)" }}>
+                {g.keyword} <b style={{ color: "var(--c-ink)" }}>{g.volume.toLocaleString()}</b>
+              </span>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/** A card is renderable when it actually carries priced, grounded phrases —
+ *  never an empty "0 searches/mo, None yet, None yet" shell (invariant #11:
+ *  degrade, never invent an empty section). `demand` alone can't gate this on
+ *  its own (a card could theoretically have 0 demand and 0 phrases at once,
+ *  or a >0 demand with every phrase landing in one bucket) — checking the
+ *  actual phrase count (rankedTop3 ∪ gaps, the same partition
+ *  `computeCategoryLadder`'s `splitRankedGaps` produces) is the real signal. */
+function marketCardReady(card: MarketCardData | null | undefined): card is MarketCardData {
+  return !!card && card.rankedTop3.length + card.gaps.length > 0;
+}
+
 export interface ResultsScreenProps {
   siteLabel: string;
   /** R1 (2026-07-19) — the listing's own self-description (`positioningMirror.
@@ -144,6 +218,14 @@ export interface ResultsScreenProps {
     /** Traffic split — ALWAYS over the top ranked terms (a sample), labelled as such. */
     brandPct: number;
     categoryPct: number;
+    /** D3/P3 (2026-07-20, data board) — share of traffic on third-party
+     *  entity pages (directory/aggregator listings). Drives the aggregation
+     *  strip below the hero when material (≥40). `?? 0` at the props
+     *  boundary — absent on any payload captured before P1. */
+    aggregatedPct: number;
+    /** A few named third-party entities the aggregation strip cites as
+     *  evidence (e.g. ["cometly", "trimrx"]). `?? []` at the props boundary. */
+    aggregatedExamples: string[];
     offTopicPct: number;
     categoryWins: number;
     /** Total monthly searches in the category (Σ named seed-phrase volumes). */
@@ -171,6 +253,14 @@ export interface ResultsScreenProps {
     /** WS-D (2026-07-19) — a few named off-topic keywords, so the >=40%
      *  warning is concrete ("e.g. you rank for 'spanglish translator'"). */
     offTopicExamples: string[];
+    /** P2/P3 (2026-07-20, data board) — the CATEGORY (broad, laddered-large)
+     *  and NICHE (specific, small-is-honest) cards `<MarketCard>` renders as
+     *  sections 2+3 of the six-section board. `null`/absent on any payload
+     *  captured before P2 (or when the synth had no `categoryNiche` seed) —
+     *  the renderer falls back to the pre-P2 market-tier ladder render below
+     *  (legacy safety: don't crash, don't blank). */
+    categoryCard?: MarketCardData | null;
+    nicheCard?: MarketCardData | null;
   } | null;
   /** Real competitor names we discovered (the compare-set). Per-rival share is paid. */
   competitors?: string[];
@@ -335,6 +425,19 @@ export function ResultsScreen(p: ResultsScreenProps) {
                     <div style={{ fontSize: 12, lineHeight: 1.5, color: "var(--c-muted)", fontFamily: JM, paddingTop: 4, borderTop: "1px dashed var(--c-line2)", marginTop: 2 }}>
                       Your score multiplies both. <strong style={{ color: "var(--c-fg)" }}>{weakerDriver} is your gap.</strong>
                     </div>
+                    {/* P3 (data board §1, Overview): the hero stat — the
+                        CATEGORY size, laddered-large and grounded (D2). Only
+                        when categoryCard actually carries a priced phrase
+                        (never an empty "0 searches/mo" claim) — mirrors the
+                        `categoryCardReady` gate the section below uses, so
+                        the hero and the cards agree on whether P2 data is
+                        usable for this payload. */}
+                    {marketCardReady(p.searchVisibility!.categoryCard) && (
+                      <div style={{ marginTop: 2, paddingTop: 12, borderTop: "1px solid var(--c-line2)", display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+                        <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 26 }}>{p.searchVisibility!.categoryCard.demand.toLocaleString()}</span>
+                        <span style={{ fontSize: 12, color: "var(--c-muted)" }}>searches/mo in your market — you&apos;re in a real category</span>
+                      </div>
+                    )}
                   </div>
                 );
               })() : (
@@ -389,16 +492,95 @@ export function ResultsScreen(p: ResultsScreenProps) {
               </div>
             );
           })()}
-          {/* Category demand (free): the real market size (Σ named seed-phrase
-              volumes) and how many of those terms you actually win. NO capture bar
-              — the old "You capture {cap}%" was the search score under a second
-              label (categoryCaptureRate === score), a metric aliased to another
-              metric (guard G1). We state the two REAL, reconcilable numbers instead:
-              the category demand, and the count of category terms you rank top-3 for. */}
-          {p.searchVisibility && p.searchVisibility.categoryDemand > 0 && (() => {
+          {/* P3 (data board, D3) — the aggregation strip: reframes a
+              directory/aggregator's traffic as its OWN engine ("names of
+              companies you list") instead of the old scolding "not buyers
+              looking for you". Independent of categoryCard — aggregatedPct is
+              a P1 field computed unconditionally, so this renders in BOTH the
+              new six-section board and the legacy branch below it. `?? 0` at
+              the props boundary keeps any pre-P1 payload silently under the
+              40% floor (no crash, no strip). */}
+          {p.searchVisibility && p.searchVisibility.aggregatedPct >= 40 && (() => {
             const sv = p.searchVisibility!;
-            const wins = Math.max(0, sv.categoryWins);
+            const examples = (sv.aggregatedExamples ?? []).slice(0, 3);
+            return (
+              <div style={{ background: "var(--c-fill)", border: "1px solid var(--c-line)", borderRadius: 16, padding: "16px 20px", marginBottom: 14 }}>
+                <span style={{ fontFamily: JM, fontSize: 10.5, fontWeight: 700, letterSpacing: "0.08em", color: "var(--c-muted)" }}>DIRECTORY PATTERN DETECTED</span>
+                <div style={{ fontSize: 13, color: "var(--c-muted)", marginTop: 9, lineHeight: 1.55 }}>
+                  <b style={{ fontFamily: JM, color: "var(--c-ink)" }}>{sv.aggregatedPct}%</b> of your traffic is the names of companies you list
+                  {examples.length > 0 && <> (<i className="rk-wrap-any">{examples.join(", ")}</i>)</>} — your directory engine, not lost buyers.
+                </div>
+              </div>
+            );
+          })()}
+          {/* Category demand (free): the real market size and how many of those
+              terms you actually win. Once a payload carries a READY categoryCard
+              (P2 — real priced phrases, never an empty shell: `marketCardReady`),
+              this renders the six-section board's Category/Niche/Opportunity
+              (sections 2-4, the wireframe at docs/plans/2026-07-20-free-scan-
+              databoard.md §3). A legacy payload (categoryCard absent/ungrounded)
+              falls through to the pre-P2 market-tier ladder, UNCHANGED — the
+              brief's "don't crash, don't blank" legacy-safety rule. */}
+          {p.searchVisibility && (() => {
+            const sv = p.searchVisibility!;
             const comps = (p.competitors ?? []).slice(0, 5);
+            const CARD_STYLE: CSSProperties = { background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16, padding: "18px 20px" };
+            // WS-E (2026-07-19): both rivalry states, not just the found case.
+            // Discovered rival NAMES are free (the compare-set); per-rival intel
+            // is the paid unlock. Shared by BOTH the new and legacy branches
+            // below (P3 DRY fix — was duplicated per-branch pre-P3).
+            const rivalryTeaser = comps.length > 0 ? (
+              <div style={{ ...CARD_STYLE, marginBottom: 14, fontSize: 13, color: "var(--c-muted)" }}>
+                Buyers compare you to <strong style={{ color: "var(--c-ink)" }}>{comps.join(", ")}</strong> — and rivals are taking the searches above.{" "}
+                <UnlockLink scanId={p.scanId}>Unlock to see how each one ranks, why they win, and how much of your category each takes →</UnlockLink>
+              </div>
+            ) : !p.hideUnlock ? (
+              <div style={{ ...CARD_STYLE, marginBottom: 14, fontSize: 13, color: "var(--c-muted)" }}>
+                Someone is winning these searches today.{" "}
+                <UnlockLink scanId={p.scanId}>The full scan discovers who&apos;s winning these searches and what they do to rank →</UnlockLink>
+              </div>
+            ) : null;
+
+            // ── P3: the NEW six-section board (sections 2-4) ──────────────
+            if (marketCardReady(sv.categoryCard)) {
+              const categoryCard = sv.categoryCard!;
+              const nicheCard = marketCardReady(sv.nicheCard) ? sv.nicheCard! : null;
+              return (
+                <>
+                  {/* The intrinsic-collapse grid idiom (dashboard-hero.tsx): the
+                      category + niche cards side by side, collapsing to one
+                      column with NO media query — mobile-safe by construction
+                      (the CI-blocking mobile gate needs nothing extra here). */}
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))", gap: 14, marginBottom: 14 }}>
+                    <MarketCard kind="category" card={categoryCard} />
+                    {nicheCard && <MarketCard kind="niche" card={nicheCard} />}
+                  </div>
+                  {sv.categoryDemand > 0 && rivalryTeaser}
+                  {/* Opportunity — section 4: the niche's OWN gap keywords (real
+                      demand + real positions, zero LLM), by volume — "where the
+                      searches are, and you're not there." Omitted entirely when
+                      the niche has nothing to show (invariant #11: an empty
+                      input renders no section, never an empty list). */}
+                  {nicheCard && nicheCard.gaps.length > 0 && (
+                    <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16, padding: "18px 20px", marginBottom: 14 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: "#C98A12", marginBottom: 4 }}>Opportunity · your niche</div>
+                      <div style={{ fontSize: 12.5, color: "var(--c-faint)", marginBottom: 10 }}>Where the searches are — and you&apos;re not there.</div>
+                      {nicheCard.gaps.slice(0, 5).map((row) => (
+                        <div key={row.keyword} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "9px 0", borderBottom: "1px solid var(--c-line2)", fontSize: 13 }}>
+                          <span className="rk-wrap-any" style={{ fontWeight: 600, minWidth: 0 }}>{row.keyword}</span>
+                          <span style={{ fontFamily: JM, color: "var(--c-muted)", fontSize: 12.5, whiteSpace: "nowrap" }}>{row.volume.toLocaleString()} / mo</span>
+                          <span style={{ fontFamily: JM, fontWeight: 700, color: "#E5484D", fontSize: 12, whiteSpace: "nowrap" }}>not ranking</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              );
+            }
+
+            // ── Legacy fallback: the pre-P2 market-tier ladder, UNCHANGED ──
+            if (sv.categoryDemand <= 0) return null;
+            const wins = Math.max(0, sv.categoryWins);
             // Task B (2026-07-19, ladder restructure): at most one BROAD and one
             // NICHE rung. MEDIUM never renders — it duplicated the category hero.
             const broadTier = (sv.marketTiers ?? []).find((t) => t.tier === "broad");
@@ -407,7 +589,6 @@ export function ResultsScreen(p: ResultsScreenProps) {
             // E1 (2026-07-20, three-card market split, Tim: "two/three individual
             // UI components side by side"). Replaces the old ladder ROWS + in-card
             // hero arrangement with sibling cards — BROAD | YOUR CATEGORY | NICHE.
-            const CARD_STYLE: CSSProperties = { background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16, padding: "18px 20px" };
             const pill = (label: string) => (
               <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.05em", color: "var(--c-faint)" }}>{label}</span>
             );
@@ -502,34 +683,15 @@ export function ResultsScreen(p: ResultsScreenProps) {
                   </div>
                   {nicheTier && tierCard("niche", nicheTier)}
                 </div>
-                {/* WS-E (2026-07-19): both rivalry states, not just the found
-                    case. Discovered rival NAMES are free (the compare-set);
-                    per-rival intel — how each one ranks, why they win, how
-                    much of the category they take — is the paid unlock. Live
-                    prod evidence: when discovery finds no rivals (reachkit.app),
-                    this line used to vanish entirely, silently dropping the
-                    "someone is winning these searches" insight. The no-rivals
-                    branch degrades to an honest tease instead of inventing
-                    names we didn't discover, and only shows on free (paid
-                    already has the answer). Sits BELOW the three-card grid — it's
-                    not tied to any one rung, it's about the category as a whole. */}
-                {comps.length > 0 ? (
-                  <div style={{ ...CARD_STYLE, marginBottom: 14, fontSize: 13, color: "var(--c-muted)" }}>
-                    Buyers compare you to <strong style={{ color: "var(--c-ink)" }}>{comps.join(", ")}</strong> — and rivals are taking the searches above.{" "}
-                    <UnlockLink scanId={p.scanId}>Unlock to see how each one ranks, why they win, and how much of your category each takes →</UnlockLink>
-                  </div>
-                ) : !p.hideUnlock ? (
-                  <div style={{ ...CARD_STYLE, marginBottom: 14, fontSize: 13, color: "var(--c-muted)" }}>
-                    Someone is winning these searches today.{" "}
-                    <UnlockLink scanId={p.scanId}>The full scan discovers who&apos;s winning these searches and what they do to rank →</UnlockLink>
-                  </div>
-                ) : null}
+                {rivalryTeaser}
               </>
             );
           })()}
           {/* Footprint split (free): brand vs your category vs other companies' names.
-              For a directory/aggregator this exposes that most "traffic" is incidental. */}
-          {p.searchVisibility && p.searchVisibility.keywordsRanked > 0 && (() => {
+              For a directory/aggregator this exposes that most "traffic" is incidental.
+              P3: superseded by the category/niche MarketCards + the aggregation strip
+              above once a payload carries a ready categoryCard — legacy-only below. */}
+          {p.searchVisibility && p.searchVisibility.keywordsRanked > 0 && !marketCardReady(p.searchVisibility.categoryCard) && (() => {
             const sv = p.searchVisibility!;
             const seg = (label: string, pct: number, color: string) => pct > 0 ? (
               <div key={label} title={`${label}: ${pct}%`} style={{ width: `${pct}%`, background: color }} />
@@ -578,8 +740,12 @@ export function ResultsScreen(p: ResultsScreenProps) {
           {/* Biggest opportunity — we promote the single HIGHEST-value category
               search you don't win (sorted by volume upstream), framed by the score
               lever it moves, instead of a flat Low/Med/High table that buried the
-              big win under tiny near-misses. The rest are teased behind checkout. */}
-          {(() => {
+              big win under tiny near-misses. The rest are teased behind checkout.
+              P3: superseded by the "Opportunity · your niche" section (rendered
+              above, inside the categoryCard branch) once a payload's categoryCard
+              is ready — the wireframe's six sections have exactly ONE opportunity
+              section, never two competing framings back to back. Legacy-only. */}
+          {!marketCardReady(p.searchVisibility?.categoryCard) && (() => {
             const top = p.gapRows[0];
             if (!top) {
               // No parsed opportunities — tease the paid keyword-gap plan (free), or

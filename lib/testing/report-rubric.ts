@@ -245,6 +245,18 @@ const r2NumberBasis: RubricRule = {
 const cleanTags = (tags: string[] | undefined): string[] =>
   (tags ?? []).filter((t) => typeof t === "string" && t.trim().length >= 2);
 
+/** Mirrors `marketCardReady` (results-screen.tsx) EXACTLY — a card is
+ *  renderable only when it carries priced, grounded phrases (rankedTop3 ∪
+ *  gaps), never an empty "0 searches/mo, None yet, None yet" shell. This is
+ *  also the branch selector: whenever the CATEGORY card is ready, the six-
+ *  section board (P3) supersedes the pre-P2 market-tier ladder, so every
+ *  SECTION_RULE below that only fires in the legacy branch must condition on
+ *  `!marketCardReady(sv.categoryCard)` too, or R3 fails on a new-path payload
+ *  ("grounded but did not render") the moment its categoryCard is populated. */
+function marketCardReady(card: { rankedTop3: unknown[]; gaps: unknown[] } | null | undefined): boolean {
+  return !!card && card.rankedTop3.length + card.gaps.length > 0;
+}
+
 interface SectionRule {
   id: string;
   /** Copy that renders ONLY inside this section (matched on visible text). */
@@ -275,19 +287,26 @@ const SECTION_RULES: SectionRule[] = [
   },
   {
     id: "category-demand-hero",
+    // The PRE-P2 market-tier ladder's own hero line — superseded by the P3
+    // "category-card-hero" rule below once a payload carries a ready
+    // categoryCard (results-screen.tsx renders the six-section board instead).
     marker: "searches/mo across your category",
-    grounded: (p) => (p.searchVisibility?.categoryDemand ?? 0) > 0,
+    grounded: (p) => (p.searchVisibility?.categoryDemand ?? 0) > 0 && !marketCardReady(p.searchVisibility?.categoryCard),
   },
   {
     id: "off-topic-examples",
     marker: "e.g. you rank for",
     // Mirrors the render boundary's editorial curation (`renderableExamples`):
     // a payload whose only examples are explicit terms grounds NO example copy.
+    // Superseded by the P3 aggregation strip once categoryCard is ready — the
+    // old brand/category/off-topic footprint-split block (which this marker
+    // lives inside) no longer renders on the new-board path.
     grounded: (p) =>
       !!p.searchVisibility &&
       p.searchVisibility.keywordsRanked > 0 &&
       p.searchVisibility.offTopicPct >= 40 &&
-      renderableExamples(p.searchVisibility.offTopicExamples).length > 0,
+      renderableExamples(p.searchVisibility.offTopicExamples).length > 0 &&
+      !marketCardReady(p.searchVisibility.categoryCard),
   },
   {
     id: "positioning-mirror",
@@ -296,8 +315,39 @@ const SECTION_RULES: SectionRule[] = [
   },
   {
     id: "wins-sentence",
+    // The PRE-P2 ladder's own "YOUR CATEGORY" card sentence — MarketCard (P3)
+    // uses a different rowlabel ("You rank top 3 for"), so this marker is
+    // legacy-branch-only too.
     marker: "You rank in the top 3 for",
-    grounded: (p) => (p.searchVisibility?.categoryDemand ?? 0) > 0 && (p.searchVisibility?.categoryWins ?? 0) > 0,
+    grounded: (p) =>
+      (p.searchVisibility?.categoryDemand ?? 0) > 0 &&
+      (p.searchVisibility?.categoryWins ?? 0) > 0 &&
+      !marketCardReady(p.searchVisibility?.categoryCard),
+  },
+  {
+    id: "category-card-hero",
+    // P3 (data board §1, Overview): the hero stat, grounded on the LADDERED
+    // categoryCard demand (a different number from the legacy categoryDemand
+    // field above — the two coexist by design, see search-visibility.ts).
+    marker: "in your market — you're in a real category",
+    grounded: (p) => marketCardReady(p.searchVisibility?.categoryCard) && (p.searchVisibility?.categoryCard?.demand ?? 0) > 0,
+  },
+  {
+    id: "opportunity-niche",
+    // P3 (data board §4): the niche's own gap keywords, by volume.
+    marker: "Opportunity · your niche",
+    grounded: (p) => {
+      const sv = p.searchVisibility;
+      return marketCardReady(sv?.categoryCard) && marketCardReady(sv?.nicheCard) && (sv?.nicheCard?.gaps.length ?? 0) > 0;
+    },
+  },
+  {
+    id: "directory-strip",
+    // P3/D3: the aggregation strip — reframes a directory/aggregator's
+    // footprint as its own engine. Independent of categoryCard (aggregatedPct
+    // is unconditional, P1), so this rule has no categoryCard condition.
+    marker: "your directory engine, not lost buyers",
+    grounded: (p) => (p.searchVisibility?.aggregatedPct ?? 0) >= 40,
   },
 ];
 
@@ -413,7 +463,12 @@ const r5ComparativeCopy: RubricRule = {
         violations.push({ rule: "R5", message: `"the weaker half" rendered but search presence (${sv.score}) is not below on-page readiness (${onPage})` });
       }
       const kgLen = payload.market?.gap?.keywordGap?.length ?? 0;
-      const hasOppRow = kgLen > 0 || (sv.categoryOpportunities?.length ?? 0) > 0;
+      // "the weaker half" lives ONLY inside the legacy "Your biggest untapped
+      // opportunity" block (results-screen.tsx) — P3 supersedes it with the
+      // "Opportunity · your niche" section once categoryCard is ready, which
+      // has no such framing (plain phrase/volume/"not ranking" rows, per the
+      // wireframe). So the clause is expected only on the legacy branch.
+      const hasOppRow = (kgLen > 0 || (sv.categoryOpportunities?.length ?? 0) > 0) && !marketCardReady(sv.categoryCard);
       if (!weakerHalf && searchIsWeaker && hasOppRow) {
         violations.push({ rule: "R5", message: `search presence (${sv.score}) is the weaker driver and an opportunity rendered, but "the weaker half" clause is missing` });
       }
@@ -456,8 +511,16 @@ const r6LadderSanity: RubricRule = {
     // boundary filters it and this rule pins that both ways.
     const marker = "Your category, where the plan below starts:";
     const rendered = text.includes(marker);
+    // P3: the bridge line lives INSIDE the legacy ladder branch — once a
+    // payload's categoryCard is ready, results-screen.tsx renders the P3
+    // six-section board instead and this bridge never appears, regardless of
+    // marketTiers still being present in the payload (both are computed
+    // together going forward, search-visibility.ts `gatherFreeSearchVisibility`).
     const validBroad =
-      !!sv && sv.categoryDemand > 0 && (sv.marketTiers ?? []).some((t) => t.tier === "broad" && t.demand > sv.categoryDemand);
+      !!sv &&
+      sv.categoryDemand > 0 &&
+      !marketCardReady(sv.categoryCard) &&
+      (sv.marketTiers ?? []).some((t) => t.tier === "broad" && t.demand > sv.categoryDemand);
     if (rendered && !validBroad) {
       violations.push({
         rule: "R6",
