@@ -30,7 +30,7 @@ import { serverDb } from "@/lib/db/client";
 import { runFullCollect } from "@/lib/scan/full-collect";
 import { runExtract } from "@/lib/llm/extract";
 import { runSynth, SYNTH_MODEL_FULL } from "@/lib/llm/synth";
-import type { SynthResult } from "@/lib/llm/types";
+import type { SynthResult, CategoryNicheSeeds } from "@/lib/llm/types";
 import { generateActions } from "@/lib/llm/actions";
 import { generateColdStartActions } from "@/lib/llm/cold-start-actions";
 import { runCriticGate } from "@/lib/llm/critic";
@@ -739,7 +739,7 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
         .eq("id", ctx.scanId)
         .maybeSingle();
       const payload = persisted?.report_payload as unknown as ReportPayload | null;
-      const fpForSeeds = persisted?.findings_payload as { categorySeeds?: unknown; marketTiers?: unknown } | null;
+      const fpForSeeds = persisted?.findings_payload as { categorySeeds?: unknown; marketTiers?: unknown; categoryNiche?: unknown } | null;
       const market = payload?.market ?? null;
       await persistScanSignals({ scanId: ctx.scanId, mode: ctx.mode, storeUrl: ctx.storeUrl, components, market });
 
@@ -785,6 +785,14 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
                 niche: Array.isArray(rawTiers.niche) ? rawTiers.niche.filter((s): s is string => typeof s === "string") : [],
               }
             : undefined;
+          // P2 (2026-07-20, data board) paid parity: thread the SAME
+          // category/niche seed the free pass would use, sourced from the
+          // same findings_payload.categoryNiche — so categoryCard/nicheCard
+          // don't silently vanish when a scan is deepened post-upgrade
+          // (the same parity discipline as marketTierSeeds above).
+          const rawCategoryNiche = (fpForSeeds as { categoryNiche?: unknown })?.categoryNiche;
+          const categoryNicheSeeds: CategoryNicheSeeds | undefined =
+            rawCategoryNiche && typeof rawCategoryNiche === "object" ? (rawCategoryNiche as CategoryNicheSeeds) : undefined;
           const seedText = [
             ...(facts.themes ?? []).map((t) => t.term).filter(Boolean),
             positioningMirror.listingSays ?? "",
@@ -794,7 +802,7 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
           // brand vocabulary isn't limited to the domain label alone (the
           // brand≠domain class — "x.com" -> unusable "x").
           const brandNames = facts.listing.name ? [facts.listing.name] : [];
-          const sv = await gatherFreeSearchVisibility(ctx.storeUrl, seedText, catSeeds, marketTierSeeds, brandNames).catch(() => null);
+          const sv = await gatherFreeSearchVisibility(ctx.storeUrl, seedText, catSeeds, marketTierSeeds, brandNames, categoryNicheSeeds).catch(() => null);
           if (sv) sv.onPageReadiness = head.total;
           const unified = unifiedDiscoverability(head.total, sv?.score ?? 0);
           await db

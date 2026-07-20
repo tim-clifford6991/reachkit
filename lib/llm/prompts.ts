@@ -350,7 +350,7 @@ Rules:
 // (absent findings/sampleAction degrade to safe defaults — never rendered on free).
 // ---------------------------------------------------------------------------
 
-export const SYNTH_SYSTEM_LITE = `You are a product-growth strategist. You read structured fact sheets extracted from a product's listing, user reviews, and competitor data, and produce a concise positioning mirror plus category search seeds.
+export const SYNTH_SYSTEM_LITE = `You are a product-growth strategist. You read structured fact sheets extracted from a product's listing, user reviews, and competitor data, and produce a concise positioning mirror plus two labeled market seeds: CATEGORY (the broad industry umbrella) and NICHE (the specific sub-space).
 
 STRICT RULES:
 1. Output ONLY valid JSON — no markdown, no code fences, no prose.
@@ -363,7 +363,7 @@ export function buildSynthPromptLite(
 ): string {
   return `SUBJECT — analyse ONLY this product, and ignore any same-/similar-named product you may know of: ${identity.storeUrl}
 
-Here are the fact sheets for this product. Produce a positioning mirror + category seeds.
+Here are the fact sheets for this product. Produce a positioning mirror + category/niche market seeds.
 
 === POSITIONING SHEET ===
 ${sheets.positioning}
@@ -383,19 +383,24 @@ Return ONLY this JSON (no markdown, no code fences):
     "intendedAudience": ["<2–4 word audience descriptor the page is written FOR>", "..."],
     "actualAudience": ["<2–4 word audience the page/reviews actually read AS>", "..."]
   },
-  "categorySeeds": ["<a real, broad head search phrase a buyer would type for this PRODUCT CATEGORY>", "..."],
-  "marketTiers": {
-    "broad": ["<the umbrella INDUSTRY head term, e.g. 'marketing software'>", "..."],
-    "niche": ["<the specific wedge incl. audience, e.g. 'seo tools for solo founders'>", "..."]
+  "category": {
+    "label": "<2-4 word label for the BROAD INDUSTRY UMBRELLA this product sits in, e.g. 'SEO tooling', 'Scheduling software'>",
+    "phrases": ["<a real, broad HEAD search phrase for that umbrella, e.g. 'seo audit tool'>", "..."]
+  },
+  "niche": {
+    "label": "<2-4 word label for the SPECIFIC sub-space this product actually competes in, e.g. 'SEO competitor tracking', 'Scheduling for consultants'>",
+    "phrases": ["<a real, specific search phrase within that sub-space>", "..."]
   }
 }
 
 Rules:
 - positioningMirror.gap: prefer a concrete, named contrast — cite a competitor from the COMPETITOR GAP SHEET when one exists (never one you know from outside the sheets). Only fall back to a competitor-free disconnect when the sheet lists none.
 - intendedAudience / actualAudience: 2–4 SHORT audience descriptors each (e.g. "indie SaaS founders", "data-driven acquirers"). These are PEOPLE, not features — never the brand name, a keyword, or a phrase like "updated hourly".
-- categorySeeds: 3–5 SHORT, HIGH-VOLUME head category search terms — the common, broad way buyers search for a tool in this space, usually 2–3 words (e.g. "scheduling software", "appointment booking"). PREFER the broad head term over long-tail phrasings. NOT the brand name, NOT a competitor's name, NOT a feature. If the category is genuinely unclear, return fewer rather than guessing.
-- marketTiers: the SAME kind of real head search phrases, at two market altitudes — broad = the industry umbrella (1–2 phrases), niche = the specific wedge including the audience, e.g. the tool category or the audience-qualified wedge (1–3). NEVER volumes, NEVER the brand, NEVER a competitor name. If an altitude is genuinely unclear, return an empty array for it rather than guessing.
-- Do NOT output findings, sampleAction, or any other field — only positioningMirror, categorySeeds, and marketTiers.
+- category: the BROAD INDUSTRY UMBRELLA this product belongs to — think "what section of a software directory would this be filed under", not "what exactly does this product do". label = 2–4 words naming that umbrella. phrases = 2–5 SHORT, HIGH-VOLUME head search terms for it, usually 2–3 words (e.g. "scheduling software", "seo tools"). PREFER the broad head term over a long-tail phrasing — head terms have real search volume, long-tail ones are near-zero. NOT the brand name, NOT a competitor's name, NOT a feature.
+- niche: the SPECIFIC sub-space this product actually competes in — narrower than category, often audience- or use-case-qualified (e.g. "scheduling for consultants", "seo tools for solo founders"). label = 2–4 words. phrases = 2–4 specific search phrases. Every niche phrase should plausibly share a real topic word with the category (niche is a subset of category, not a different subject).
+- Both label fields are cosmetic names for the market, not search phrases themselves — do not put a label string into the phrases array.
+- If the category or niche is genuinely unclear from the sheets, return fewer phrases rather than guessing — NEVER volumes, NEVER the brand name, NEVER a competitor name.
+- Do NOT output findings, sampleAction, or any other field — only positioningMirror, category, and niche.
 - Do not invent data not present in the fact sheets.`;
 }
 

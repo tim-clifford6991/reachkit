@@ -14,7 +14,7 @@
 
 import type { Platform } from "./router";
 import type { PreliminaryFacts } from "./types";
-import type { Finding, PositioningMirror, ActionCard, ScoreResult } from "@/lib/llm/types";
+import type { Finding, PositioningMirror, ActionCard, ScoreResult, CategoryNicheSeeds } from "@/lib/llm/types";
 import type { RegistryScore } from "./registry-score";
 import type { VerifiedScore, RadarAxis } from "./score-full";
 import { assembleReport, type ReportPayload } from "./report";
@@ -146,6 +146,12 @@ export async function runFreeReport(ctx: ScanContext, facts: PreliminaryFacts): 
     // (pre bb6ef07/this fix) — it is simply never read here; structural typing
     // tolerates the extra field on read-back.
     marketTiers?: { broad?: string[]; niche?: string[] };
+    // P2 (2026-07-20, data board): the two-label category/niche seed. Absent
+    // on any payload persisted before this change (report_payload one-JSON-
+    // blob rule) — `categoryNiche` stays undefined and the gather simply
+    // computes no categoryCard/nicheCard (?? defaulting, same discipline as
+    // every other optional findings_payload field).
+    categoryNiche?: CategoryNicheSeeds | null;
   } | null;
   const findings = Array.isArray(fp?.findings) ? fp.findings : [];
   const positioningMirror = fp?.positioningMirror ?? { listingSays: "", reviewsValue: "", gap: "" };
@@ -153,6 +159,8 @@ export async function runFreeReport(ctx: ScanContext, facts: PreliminaryFacts): 
   const marketTierSeeds = fp?.marketTiers && typeof fp.marketTiers === "object"
     ? { broad: fp.marketTiers.broad ?? [], niche: fp.marketTiers.niche ?? [] }
     : undefined;
+  const categoryNicheSeeds: CategoryNicheSeeds | undefined =
+    fp?.categoryNiche && typeof fp.categoryNiche === "object" ? fp.categoryNiche : undefined;
 
   // Wave-A signals from already-persisted HTML (market null → deep signals unmeasured).
   const signalRows = await computeSignalRowsForScan({
@@ -199,7 +207,7 @@ export async function runFreeReport(ctx: ScanContext, facts: PreliminaryFacts): 
   // class — "x.com" -> unusable "x", the real brand "twitter" unrecognised).
   const brandNames = facts.listing.name ? [facts.listing.name] : [];
   const searchVisibility = ctx.mode === "web"
-    ? await gatherFreeSearchVisibility(ctx.storeUrl, seedText, categorySeeds, marketTierSeeds, brandNames)
+    ? await gatherFreeSearchVisibility(ctx.storeUrl, seedText, categorySeeds, marketTierSeeds, brandNames, categoryNicheSeeds)
     : undefined;
 
   // v5 UNIFIED Discoverability Score = geomean(on-page readiness × search presence).

@@ -25,6 +25,8 @@ import type {
   CompetitorGapSheet,
   KeywordSheet,
   MarketTierSeeds,
+  CategoryNicheSeeds,
+  LadderSeeds,
 } from "@/lib/llm/types";
 
 export type { MarketTierSeeds } from "@/lib/llm/types";
@@ -159,20 +161,55 @@ export function parseLiteSynth(obj: unknown): SynthResult {
   const actualAudience = strArray(pm["actualAudience"], 5);
   if (intendedAudience.length > 0) mirror.intendedAudience = intendedAudience;
   if (actualAudience.length > 0) mirror.actualAudience = actualAudience;
-  const categorySeeds = strArray(o["categorySeeds"], 5);
+  // P2 (2026-07-20, data board): the two-label category/niche seed. Parsed
+  // independently of the legacy `categorySeeds`/`marketTiers` keys below — a
+  // synth object may carry EITHER shape (new prompt output) OR the old flat
+  // shape (a stale cached call, an older test fixture) and both parse safely
+  // through this ONE function, never a forked parser (RC1).
+  const parseLadderSeeds = (v: unknown): LadderSeeds | null => {
+    if (typeof v !== "object" || v === null) return null;
+    const o2 = v as Record<string, unknown>;
+    const label = typeof o2["label"] === "string" ? o2["label"].trim().slice(0, 60) : "";
+    const phrases = strArray(o2["phrases"], 6);
+    if (!label && phrases.length === 0) return null;
+    return { label, phrases };
+  };
+  const categoryRaw = parseLadderSeeds(o["category"]);
+  const nicheRaw = parseLadderSeeds(o["niche"]);
+  const categoryNiche: CategoryNicheSeeds | undefined =
+    categoryRaw && nicheRaw ? { category: categoryRaw, niche: nicheRaw } : undefined;
+
+  // categorySeeds: legacy top-level key wins when present (a truly old cached
+  // payload); otherwise DERIVED from categoryNiche.category.phrases so
+  // consumers that haven't migrated to read categoryNiche directly (yet) keep
+  // working unchanged (CLAUDE.md "fix the class, keep the process simple" —
+  // one parse, not a second code path per consumer).
+  const legacyCategorySeeds = strArray(o["categorySeeds"], 5);
+  const categorySeeds = legacyCategorySeeds.length > 0 ? legacyCategorySeeds : (categoryNiche?.category.phrases ?? []);
 
   // M1: labeled broad/niche market-tier seeds (optional — absent on legacy
   // output). Same sanitisation as categorySeeds, capped at 4 per tier. A
   // `medium` key may still be present on an older/legacy synth object — it is
   // simply ignored (never priced/rendered since bb6ef07 removed that rung).
+  // P2: when the LLM output carries the new category/niche shape and no
+  // legacy `marketTiers` key, DERIVE the same broad/niche seed shape from it
+  // (broad←category.phrases, niche←niche.phrases) — back-compat for the
+  // existing `computeMarketTiers` ladder/render pathway, which is untouched
+  // by P2 (it renders TODAY; the new laddered categoryCard/nicheCard is a
+  // data-only addition this phase, P3 renders it).
   const tiersRaw = (o["marketTiers"] ?? null) as Record<string, unknown> | null;
-  const marketTiers: MarketTierSeeds | undefined =
+  const legacyMarketTiers: MarketTierSeeds | undefined =
     tiersRaw && typeof tiersRaw === "object"
       ? {
           broad: strArray(tiersRaw["broad"], 4),
           niche: strArray(tiersRaw["niche"], 4),
         }
       : undefined;
+  const marketTiers: MarketTierSeeds | undefined =
+    legacyMarketTiers ??
+    (categoryNiche
+      ? { broad: categoryNiche.category.phrases.slice(0, 4), niche: categoryNiche.niche.phrases.slice(0, 4) }
+      : undefined);
 
   const rawFindings = Array.isArray(o["findings"]) ? (o["findings"] as unknown[]) : [];
   const validFindings: Finding[] = rawFindings.filter(isValidFinding).map((f) => ({
@@ -186,7 +223,7 @@ export function parseLiteSynth(obj: unknown): SynthResult {
     ? o["sampleAction"]
     : DEGRADED_SAMPLE_ACTION;
 
-  return { positioningMirror: mirror, findings, sampleAction, categorySeeds, marketTiers };
+  return { positioningMirror: mirror, findings, sampleAction, categorySeeds, marketTiers, categoryNiche };
 }
 
 export function parseSynthResult(text: string): SynthResult | null {

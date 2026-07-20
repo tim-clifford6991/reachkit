@@ -21,6 +21,7 @@
  */
 
 import type { RankedKeyword } from "@/lib/scan/adapters/dataforseo-ranked-keywords";
+import type { CategoryNicheSeeds } from "@/lib/llm/types";
 import { normalizeHost } from "@/lib/scan/referral/classify";
 import { brandTokensFor, isBrandKeyword, tokens, GENERIC_TOKENS, STOPWORDS, stem } from "@/lib/scan/referral/brand-keywords";
 
@@ -177,6 +178,20 @@ export interface SearchVisibility {
    *  phrase is ever double-counted across rungs. Additive + absent on legacy
    *  payloads. */
   marketTiers?: MarketTier[];
+  /** P2 (2026-07-20, data board): the CATEGORY card — the broad industry
+   *  umbrella, LADDERED UP to a large, grounded number when the LLM's own
+   *  head phrases price too small (D2, Tim's rule: a small category is a
+   *  too-narrow definition, not an honest result — never fabricated, see
+   *  `computeCategoryLadder`). Data-only this phase (P3 renders it); optional
+   *  — absent when the synth gave no `categoryNiche` seed (legacy payload or
+   *  a synth that degraded before producing labels). */
+  categoryCard?: CategoryLadderCard;
+  /** P2: the NICHE card — the specific sub-space, NICHE ⊆ CATEGORY by
+   *  construction (every phrase shares a non-generic token with the
+   *  category's own vocabulary). May be, and often is, small — never
+   *  laddered. Data-only this phase; optional, same absence rule as
+   *  `categoryCard`. */
+  nicheCard?: CategoryLadderCard;
   // DELETED 2026-07-17 (free-scan honesty): `categoryCaptureRate` was
   // `= sv.score` — the search-presence score rendered a SECOND time under a
   // "you capture X%" label (identical in 10/10 prod scans). A metric may never be
@@ -508,6 +523,14 @@ const CATEGORY_RANKED_ROWS = 15;
  *  WS-C's opportunity actions (fallback-actions.ts) can recompute the same
  *  one-category-win score-model step the search-visibility strength uses. */
 export const CATEGORY_TARGET = 6;
+/** Cap on the single `cachedKeywordVolumes` batch (request-billed — every
+ *  phrase in the array is one price lookup, but the request itself is free
+ *  regardless of count, so this bounds request SIZE, not cost). Raised from
+ *  16 (P2, 2026-07-20) to make room for the category/niche card seeds + their
+ *  ladder candidates (`ladderCandidates` can add several broader forms per
+ *  category phrase) alongside the existing category-demand seeds + market
+ *  tier phrases — still one call, still no new spend. */
+const MAX_VOLUME_SEEDS = 40;
 
 /** SERP position → share of clicks captured (a #1 ranking captures ~all its volume,
  *  a #20 almost none). pos1→1, pos21+→0. */
@@ -768,6 +791,230 @@ export function computeCategoryDemand(
   return { categoryDemand, categoryOpportunities, categoryPhrases };
 }
 
+// ---------------------------------------------------------------------------
+// P2 (2026-07-20, data board): the CATEGORY/NICHE ladder. CATEGORY is the
+// broad industry umbrella and must be LARGE (Tim's rule, D2 in
+// docs/plans/2026-07-20-free-scan-databoard.md) — a grounded category number
+// below the floor is a symptom of a too-narrow LLM phrase, not an honest
+// result, so it is laddered UP (broader forms of the SAME phrase, never a
+// different phrase) until a grounded broader form clears the floor or the
+// ladder is exhausted. NICHE stays specific and may be small, and is
+// contained in CATEGORY by construction (shares a real vocabulary token).
+// Reuses the SAME grounding helpers (`isTierPhraseGrounded`,
+// `groundedCategoryTokens`) the existing broad/niche market-tier ladder
+// already uses (RC1 — no forked grounding logic for a third mechanism).
+// ---------------------------------------------------------------------------
+
+/** The minimum "this reads as a real, large industry" monthly-search total a
+ *  CATEGORY card may report. Calibrated against the classification corpus
+ *  (reachkit → "seo" ~40.5k, savvycal → "scheduling" ~33.1k, x.com →
+ *  "social" ~673k, trustmrr → "startup" ~40.5k all clear it comfortably;
+ *  see `search-visibility.test.ts`'s `computeCategoryLadder` suite and
+ *  task-P2-report.md for the calibration record). Starting value per the
+ *  approved plan (docs/plans/2026-07-20-free-scan-databoard.md §"CATEGORY_FLOOR");
+ *  raise it only after re-running the corpus to confirm every real-industry
+ *  fixture still clears it — the floor exists to catch a too-narrow LLM
+ *  phrase, not to force a genuine micro-niche to lie (an exhausted ladder
+ *  keeps the small, honest number rather than fabricate a bigger one). */
+export const CATEGORY_FLOOR = 10_000;
+
+export interface CategoryLadderCard {
+  /** The LLM's cosmetic label for this altitude (e.g. "SEO tooling") — never
+   *  itself a priced search phrase. */
+  label: string;
+  /** Σ volume of `phrases` — reconciles exactly to them (the G4 idiom). For
+   *  CATEGORY, this is the LARGE, laddered number when laddering fired. */
+  demand: number;
+  /** The priced, grounded phrases that sum to `demand`. For a laddered
+   *  CATEGORY, this is the single accepted broader term (summing multiple
+   *  different-altitude phrases would double-count overlapping volume). */
+  phrases: DemandRow[];
+  /** `phrases` the subject already ranks top-3 for — usually small/zero. */
+  rankedTop3: DemandRow[];
+  /** `phrases` the subject does NOT rank top-3 for, highest-volume first. */
+  gaps: DemandRow[];
+}
+
+/** Enumerate every contiguous window of `phrase`'s tokens shorter than the
+ *  original — "dropping leading/trailing qualifier tokens" (never a middle
+ *  token, so a candidate is always a real, readable sub-phrase). Ordered
+ *  longest-first (closest to the original = least broadened), so within one
+ *  phrase's candidate list the ladder naturally tries the narrowest
+ *  broadening before the widest. "seo analytics tools" (3 tokens) →
+ *  ["seo analytics", "analytics tools", "seo", "analytics", "tools"]. A
+ *  single-token phrase has no broader form (`[]`). Pure, deterministic —
+ *  splits on whitespace only (grounding/generic-token filtering happens
+ *  separately, via the shared `tokens()`/`GENERIC_TOKENS`, when a candidate
+ *  is evaluated — see `computeCategoryLadder`). */
+export function ladderCandidates(phrase: string): string[] {
+  const toks = phrase.toLowerCase().trim().split(/\s+/).filter(Boolean);
+  if (toks.length <= 1) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (let len = toks.length - 1; len >= 1; len--) {
+    for (let start = 0; start + len <= toks.length; start++) {
+      const cand = toks.slice(start, start + len).join(" ");
+      if (!seen.has(cand)) {
+        seen.add(cand);
+        out.push(cand);
+      }
+    }
+  }
+  return out;
+}
+
+/** Split a priced phrase list into "already winning" (top-3) vs "the gap"
+ *  (everything else, highest-volume first) — shared by CATEGORY and NICHE
+ *  cards so the two never drift on what counts as "ranked". */
+function splitRankedGaps(phrases: DemandRow[]): { rankedTop3: DemandRow[]; gaps: DemandRow[] } {
+  const isTop3 = (p: DemandRow) => typeof p.yourPosition === "number" && p.yourPosition <= WINNING_POSITION;
+  const rankedTop3 = phrases.filter(isTop3);
+  const gaps = phrases.filter((p) => !isTop3(p)).slice().sort((a, b) => b.volume - a.volume);
+  return { rankedTop3, gaps };
+}
+
+/** Price + attach position for one keyword, or `null` when it has no priced
+ *  volume (never fabricate a phantom row for an unpriced/zero-volume term). */
+function priceCardPhrase(
+  keyword: string,
+  volumesByKeyword: Map<string, number>,
+  rankByKeyword: Map<string, number>,
+): DemandRow | null {
+  const kw = keyword.toLowerCase().trim();
+  if (!kw) return null;
+  const volume = volumesByKeyword.get(kw) ?? 0;
+  if (volume <= 0) return null;
+  return { keyword: kw, volume, yourPosition: rankByKeyword.get(kw) };
+}
+
+/**
+ * Build the CATEGORY (broad, laddered-to-large) and NICHE (specific, small-
+ * is-honest) cards from the LLM's two label+phrase seeds. Pure — every
+ * candidate phrase is assumed already priced by the caller (the ONE
+ * `cachedKeywordVolumes` batch — request-billed, so pricing every ladder
+ * candidate up front costs nothing extra) and passed in via
+ * `volumesByKeyword`; this function only grounds, ladders, and splits by
+ * real rank.
+ *
+ * Grounding: a category/ladder candidate is accepted when it shares a
+ * stemmed non-generic token with EITHER the subject's real category
+ * rankings (`categoryRanked`) OR the LLM's own niche phrases — the SAME
+ * `isTierPhraseGrounded` helper the existing broad/niche market-tier ladder
+ * uses (RC1). This is also the LADDER GUARD: since the check is "shares a
+ * token with real rankings or niche vocabulary", a candidate that has
+ * broadened past every one of those tokens (a token-less industry-wide
+ * generic like "software"/"tools" — both are STOPWORDS and tokenize to
+ * nothing at all, so they can NEVER pass; a real but unrelated word like
+ * "widgets" tokenizes but shares nothing) is structurally rejected, never a
+ * separate bolt-on check. NICHE phrases are grounded ONLY against
+ * `categoryRanked` (not against niche's own vocabulary — that would be
+ * self-referential, since niche vocabulary is built FROM the niche phrases
+ * being checked) and separately required to be CONTAINED in category (share
+ * a token with the category's own pre-ladder vocabulary) — the ⊆ guarantee.
+ *
+ * When `categoryRanked` is EMPTY (a 0-ranking/brand-new site — no ranking
+ * evidence to ground against at all), every check degrades to accept-all —
+ * the same "degrade to best-effort, not to nothing" rule
+ * `computeCategoryDemand`/`computeMarketTiers` already apply.
+ */
+export function computeCategoryLadder(
+  categoryNiche: CategoryNicheSeeds,
+  volumesByKeyword: Map<string, number>,
+  rankByKeyword: Map<string, number>,
+  categoryRanked: DemandRow[] = [],
+): { categoryCard: CategoryLadderCard; nicheCard: CategoryLadderCard } {
+  const priced = (keyword: string) => priceCardPhrase(keyword, volumesByKeyword, rankByKeyword);
+
+  const hasEvidence = categoryRanked.length > 0;
+  const realTokens = hasEvidence ? groundedCategoryTokens(categoryRanked) : new Set<string>();
+  // Niche's OWN vocabulary, used ONLY as corroboration for CATEGORY/ladder
+  // candidates (an external signal there) — never to ground niche's own
+  // phrases against themselves (that would be circular: every phrase
+  // trivially "shares a token" with a set built from itself).
+  const nicheVocabTokens = groundedCategoryTokens(categoryNiche.niche.phrases.map((p) => ({ keyword: p, volume: 0 })));
+  const categoryGuardTokens = new Set<string>([...realTokens, ...nicheVocabTokens]);
+
+  const groundedForCategory = (p: string): boolean => !hasEvidence || isTierPhraseGrounded(p, categoryGuardTokens, rankByKeyword);
+  const groundedForNiche = (p: string): boolean => !hasEvidence || isTierPhraseGrounded(p, realTokens, rankByKeyword);
+
+  // ── CATEGORY ──────────────────────────────────────────────────────────
+  const dedupCategory = [...new Set(categoryNiche.category.phrases.map((p) => p.toLowerCase().trim()).filter(Boolean))];
+  const groundedCategoryPhrases = dedupCategory.filter(groundedForCategory);
+  const categoryRows = groundedCategoryPhrases.map(priced).filter((r): r is DemandRow => r !== null);
+  const baseDemand = categoryRows.reduce((s, r) => s + r.volume, 0);
+
+  let finalPhrases = categoryRows;
+  let finalDemand = baseDemand;
+
+  if (finalDemand < CATEGORY_FLOOR) {
+    // Ladder up: enumerate broader forms of EVERY grounded category phrase,
+    // then accept the BROADEST (fewest tokens) grounded+floor-clearing
+    // candidate — "broadest" because D2 wants MAXIMUM honest breadth, not
+    // the minimum broadening that merely clears the bar. Ties (same token
+    // count) break on higher volume, then lexical order — deterministic.
+    const candidates = [...new Set(groundedCategoryPhrases.flatMap((p) => ladderCandidates(p)))];
+    const qualifying = candidates
+      .filter(groundedForCategory)
+      .map((c) => priced(c))
+      .filter((r): r is DemandRow => r !== null && r.volume >= CATEGORY_FLOOR)
+      .sort((a, b) => {
+        const byLen = a.keyword.split(/\s+/).length - b.keyword.split(/\s+/).length;
+        if (byLen !== 0) return byLen;
+        if (b.volume !== a.volume) return b.volume - a.volume;
+        return a.keyword.localeCompare(b.keyword);
+      });
+    if (qualifying.length > 0) {
+      finalPhrases = [qualifying[0]!];
+      finalDemand = qualifying[0]!.volume;
+    }
+    // else: exhausted — keep the original (small, honest) category demand
+    // rather than force a lie (D2, "genuine micro-niches aren't forced to lie").
+  }
+
+  const categorySplit = splitRankedGaps(finalPhrases);
+  const categoryCard: CategoryLadderCard = {
+    label: categoryNiche.category.label,
+    demand: finalDemand,
+    phrases: finalPhrases,
+    rankedTop3: categorySplit.rankedTop3,
+    gaps: categorySplit.gaps,
+  };
+
+  // ── NICHE ─────────────────────────────────────────────────────────────
+  // Contained in CATEGORY: shares a non-generic stemmed token with the
+  // category's OWN (pre-ladder) grounded vocabulary — checked against the
+  // pre-ladder phrase set so a category that laddered down to one broad term
+  // can't accidentally starve niche containment of the vocabulary that
+  // justified the ladder in the first place.
+  const categoryVocabSource = groundedCategoryPhrases.length > 0 ? groundedCategoryPhrases : dedupCategory;
+  const categoryVocabTokens = groundedCategoryTokens(categoryVocabSource.map((p) => ({ keyword: p, volume: 0 })));
+  const containedInCategory = (p: string): boolean => {
+    if (categoryVocabTokens.size === 0) return true; // no category vocab evidence at all — degrade to accept
+    for (const t of tokens(p)) {
+      const st = stem(t);
+      if (GENERIC_TOKENS.has(st)) continue;
+      if (categoryVocabTokens.has(st)) return true;
+    }
+    return false;
+  };
+
+  const dedupNiche = [...new Set(categoryNiche.niche.phrases.map((p) => p.toLowerCase().trim()).filter(Boolean))];
+  const nicheRows = dedupNiche
+    .filter((p) => groundedForNiche(p) && containedInCategory(p))
+    .map(priced)
+    .filter((r): r is DemandRow => r !== null);
+  const nicheSplit = splitRankedGaps(nicheRows);
+  const nicheCard: CategoryLadderCard = {
+    label: categoryNiche.niche.label,
+    demand: nicheRows.reduce((s, r) => s + r.volume, 0),
+    phrases: nicheRows,
+    rankedTop3: nicheSplit.rankedTop3,
+    gaps: nicheSplit.gaps,
+  };
+
+  return { categoryCard, nicheCard };
+}
+
 export interface MarketTier {
   tier: "broad" | "niche";
   phrases: DemandRow[];
@@ -980,6 +1227,13 @@ export async function gatherFreeSearchVisibility(
    *  brand≠domain class: "x.com" -> unusable "x", real brand "twitter" unrecognised
    *  and mistaken for "other companies' names"). Zero new calls — deterministic. */
   brandNames: string[] = [],
+  /** P2 (2026-07-20, data board): the lite synth's two-label category/niche
+   *  seed (`SynthResult.categoryNiche`) — builds `categoryCard`/`nicheCard`
+   *  via `computeCategoryLadder`. Optional/absent on a legacy synth payload;
+   *  when absent, no cards are computed (no behaviour change). Zero new data
+   *  call — its phrases + ladder candidates ride the SAME `cachedKeywordVolumes`
+   *  batch as `seeds`/`tierPhrases` below. */
+  categoryNicheSeeds?: CategoryNicheSeeds,
 ): Promise<SearchVisibility> {
   try {
     const self = normalizeHost(rawSelf);
@@ -1027,7 +1281,24 @@ export async function gatherFreeSearchVisibility(
     // latency). MEDIUM is dropped from the ladder entirely (never priced, never
     // sent here) — "never pay for data you don't render", per-field.
     const tierPhrases = groundedTierSeeds ? [...groundedTierSeeds.broad, ...groundedTierSeeds.niche] : [];
-    const allSeeds = [...new Set([...seeds, ...tierPhrases.map((s) => s.toLowerCase().trim())].filter(Boolean))].slice(0, 16);
+    // P2: the category/niche card seeds + their LADDER candidates (broader
+    // forms of each category phrase — see `ladderCandidates`) join the SAME
+    // batch. Enumerated up front from the RAW (not-yet-grounded) category
+    // phrases — grounding happens after pricing, in `computeCategoryLadder`
+    // — because this is the one request-billed batch where an extra priced
+    // phrase costs nothing (never a second call).
+    const cardSeeds = categoryNicheSeeds
+      ? [
+          ...categoryNicheSeeds.category.phrases,
+          ...categoryNicheSeeds.niche.phrases,
+          ...categoryNicheSeeds.category.phrases.flatMap((p) => ladderCandidates(p)),
+        ]
+      : [];
+    const allSeeds = [
+      ...new Set(
+        [...seeds, ...tierPhrases, ...cardSeeds].map((s) => s.toLowerCase().trim()).filter(Boolean),
+      ),
+    ].slice(0, MAX_VOLUME_SEEDS);
     const seedVolumes = allSeeds.length > 0 ? await cachedKeywordVolumes(allSeeds).catch(() => []) : [];
     const volumesByKeyword = new Map(seedVolumes.map((r) => [r.keyword.toLowerCase(), r.volume]));
     // Demand hero (category rung): UNCHANGED — only the ORIGINAL category seeds
@@ -1045,7 +1316,19 @@ export async function gatherFreeSearchVisibility(
     const marketTiers = groundedTierSeeds
       ? computeMarketTiers(groundedTierSeeds, volumesByKeyword, rankByKeyword, demand.categoryPhrases, demand.categoryDemand, sv.categoryRanked)
       : undefined;
-    return { ...sv, ...demand, ...(marketTiers && marketTiers.length > 0 ? { marketTiers } : {}) };
+    // P2: the laddered CATEGORY card (large, grounded) + the specific NICHE
+    // card. Presentation-only — built from `volumesByKeyword`/`rankByKeyword`/
+    // `sv.categoryRanked`, never fed back into `sv.score` (invariant #1; the
+    // spread order below never assigns a `score` key from this object).
+    const cards = categoryNicheSeeds
+      ? computeCategoryLadder(categoryNicheSeeds, volumesByKeyword, rankByKeyword, sv.categoryRanked)
+      : null;
+    return {
+      ...sv,
+      ...demand,
+      ...(marketTiers && marketTiers.length > 0 ? { marketTiers } : {}),
+      ...(cards ? { categoryCard: cards.categoryCard, nicheCard: cards.nicheCard } : {}),
+    };
   } catch {
     return EMPTY;
   }

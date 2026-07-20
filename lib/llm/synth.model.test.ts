@@ -6,8 +6,10 @@ import { expectCallsSymbol } from "@/lib/testing/tripwire";
 
 // ---------------------------------------------------------------------------
 // GUARD — the two-tier synth: the FREE findings step runs a LITE Haiku teaser
-// (positioning mirror + category seeds only); the DEEP pass re-runs the FULL
-// Sonnet synth that the paid action plan is built from. Mutation-proven below.
+// (positioning mirror + category/niche market seeds only, P2 2026-07-20 — see
+// docs/plans/2026-07-20-free-scan-databoard.md); the DEEP pass re-runs the
+// FULL Sonnet synth that the paid action plan is built from. Mutation-proven
+// below.
 // ---------------------------------------------------------------------------
 
 describe("synth models", () => {
@@ -29,9 +31,10 @@ describe("the lite prompt generates ONLY the two rendered fields (render-only)",
     { reviewThemes: "{}", positioning: "{}", competitorGap: "{}" },
     { storeUrl: "https://acme.com/" },
   );
-  it("asks for positioningMirror + categorySeeds", () => {
+  it("asks for positioningMirror + category/niche market seeds", () => {
     expect(lite).toContain("positioningMirror");
-    expect(lite).toContain("categorySeeds");
+    expect(lite).toContain('"category"');
+    expect(lite).toContain('"niche"');
   });
   it("does NOT ask for findings or sampleAction (the tokens the free report discards)", () => {
     // The full prompt requests these; the lite one must not — that's the ~800→~280

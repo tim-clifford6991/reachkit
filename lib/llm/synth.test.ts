@@ -506,3 +506,80 @@ describe("parseLiteSynth — marketTiers", () => {
     expect((out.marketTiers as unknown as { medium?: unknown }).medium).toBeUndefined();
   });
 });
+
+// ---------------------------------------------------------------------------
+// parseLiteSynth — category/niche labeled seeds (P2, 2026-07-20, data board)
+// ---------------------------------------------------------------------------
+describe("parseLiteSynth — category/niche (P2 data board)", () => {
+  it("parses the new category/niche shape into categoryNiche", async () => {
+    const { parseLiteSynth } = await import("./synth");
+    const out = parseLiteSynth({
+      positioningMirror: { listingSays: "x", reviewsValue: "", gap: "" },
+      category: { label: "SEO tooling", phrases: ["seo audit tool", "website seo checker"] },
+      niche: { label: "SEO competitor tracking", phrases: ["seo competitor tracking", "  ", "x"] },
+    });
+    expect(out.categoryNiche).toEqual({
+      category: { label: "SEO tooling", phrases: ["seo audit tool", "website seo checker"] },
+      // blank dropped; "x" (1 char) dropped by strArray's length>=2 floor
+      niche: { label: "SEO competitor tracking", phrases: ["seo competitor tracking"] },
+    });
+  });
+
+  it("derives back-compat categorySeeds from categoryNiche.category.phrases when no legacy categorySeeds key is present", async () => {
+    const { parseLiteSynth } = await import("./synth");
+    const out = parseLiteSynth({
+      positioningMirror: { listingSays: "x", reviewsValue: "", gap: "" },
+      category: { label: "Scheduling software", phrases: ["online scheduling tool", "meeting scheduler app"] },
+      niche: { label: "Scheduling for consultants", phrases: ["consultant scheduling tool"] },
+    });
+    expect(out.categorySeeds).toEqual(["online scheduling tool", "meeting scheduler app"]);
+  });
+
+  it("derives back-compat marketTiers {broad,niche} from categoryNiche when no legacy marketTiers key is present", async () => {
+    const { parseLiteSynth } = await import("./synth");
+    const out = parseLiteSynth({
+      positioningMirror: { listingSays: "x", reviewsValue: "", gap: "" },
+      category: { label: "Scheduling software", phrases: ["online scheduling tool"] },
+      niche: { label: "Scheduling for consultants", phrases: ["consultant scheduling tool"] },
+    });
+    expect(out.marketTiers).toEqual({
+      broad: ["online scheduling tool"],
+      niche: ["consultant scheduling tool"],
+    });
+  });
+
+  it("a LEGACY top-level categorySeeds/marketTiers key WINS over any derivation (both parse independently, no cross-clobber)", async () => {
+    const { parseLiteSynth } = await import("./synth");
+    const out = parseLiteSynth({
+      positioningMirror: { listingSays: "x", reviewsValue: "", gap: "" },
+      categorySeeds: ["legacy category seed"],
+      marketTiers: { broad: ["legacy broad"], niche: ["legacy niche"] },
+      category: { label: "SEO tooling", phrases: ["seo audit tool"] },
+      niche: { label: "SEO competitor tracking", phrases: ["seo competitor tracking"] },
+    });
+    expect(out.categorySeeds).toEqual(["legacy category seed"]);
+    expect(out.marketTiers).toEqual({ broad: ["legacy broad"], niche: ["legacy niche"] });
+    // categoryNiche still parses independently — the data board reads THIS, not the legacy fields.
+    expect(out.categoryNiche).toEqual({
+      category: { label: "SEO tooling", phrases: ["seo audit tool"] },
+      niche: { label: "SEO competitor tracking", phrases: ["seo competitor tracking"] },
+    });
+  });
+
+  it("legacy synth output without category/niche parses with categoryNiche undefined (parse-safe)", async () => {
+    const { parseLiteSynth } = await import("./synth");
+    const out = parseLiteSynth({ positioningMirror: { listingSays: "x", reviewsValue: "", gap: "" }, categorySeeds: ["legacy seed"] });
+    expect(out.categoryNiche).toBeUndefined();
+    expect(out.categorySeeds).toEqual(["legacy seed"]); // legacy field untouched
+  });
+
+  it("a category/niche object with an empty label and no phrases parses as absent, not a broken half-object", async () => {
+    const { parseLiteSynth } = await import("./synth");
+    const out = parseLiteSynth({
+      positioningMirror: { listingSays: "x", reviewsValue: "", gap: "" },
+      category: { label: "", phrases: [] },
+      niche: { label: "", phrases: [] },
+    });
+    expect(out.categoryNiche).toBeUndefined();
+  });
+});
