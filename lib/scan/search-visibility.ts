@@ -22,7 +22,14 @@
 
 import type { RankedKeyword } from "@/lib/scan/adapters/dataforseo-ranked-keywords";
 import { normalizeHost } from "@/lib/scan/referral/classify";
-import { brandTokensFor, isBrandKeyword, tokens, GENERIC_TOKENS, STOPWORDS } from "@/lib/scan/referral/brand-keywords";
+import { brandTokensFor, isBrandKeyword, tokens, GENERIC_TOKENS, STOPWORDS, stem } from "@/lib/scan/referral/brand-keywords";
+
+// Re-exported for existing import sites (`import { stem } from "./search-visibility"`,
+// e.g. this file's own test suite) — the canonical definition now lives in
+// `referral/brand-keywords.ts` alongside `tokens()`/`GENERIC_TOKENS`, so the
+// classifier's vocab-support check AND the tier-grounding overlap check route
+// through the SAME stemmer (see that file's doc comment, PR-9 2026-07-20).
+export { stem };
 import { cachedRankedKeywords, cachedKeywordVolumes, cachedDomainOverview } from "@/lib/scan/cache/cached-adapters";
 
 export type KeywordClass = "brand" | "category" | "offtopic";
@@ -232,27 +239,6 @@ export function buildVocab(
     }
   }
   return { brandTokens, categoryVocab };
-}
-
-/** Light, symmetric singular/plural + gerund fold so "rockets" (a seed's own
- *  prose) and "rocket" (a real query token) — or "sending" and "send" — read as
- *  the SAME token when checking vocabulary support. Deliberately tiny (no real
- *  stemmer): it exists only to stop ordinary inflection from masquerading as an
- *  "unsupported token" under the stricter rule below. Domain-agnostic — it has
- *  no knowledge of any subject, so it cannot be a per-domain special case. */
-export function stem(t: string): string {
-  let s = t;
-  if (s.length > 5 && s.endsWith("ing")) s = s.slice(0, -3);
-  else if (s.length > 4 && /(ches|shes|xes|zes|ses)$/.test(s)) s = s.slice(0, -2);
-  else if (s.length > 4 && s.endsWith("ies")) s = `${s.slice(0, -3)}y`;
-  else if (s.length > 3 && s.endsWith("s") && !s.endsWith("ss")) s = s.slice(0, -1);
-  // Guard: a stem that collapses into a STOPWORD or below the meaningful-token
-  // length floor (3, matching `tokens()`) is not a real stem — it's an
-  // over-aggressive strip that happens to be harmless today only because
-  // STOPWORDS filters it before it can corrupt vocab matching ("news" → "new").
-  // Keep the ORIGINAL token rather than ship a silently-wrong stem.
-  if (s !== t && (STOPWORDS.has(s) || s.length < 3)) return t;
-  return s;
 }
 
 /** A token counts as "vocab-supported" when it (or its stem) is literally in
@@ -541,21 +527,36 @@ export interface MarketTier {
  * set a tier phrase must share a token with to be treated as evidenced. Reuses
  * the ONE shared `tokens()` + `GENERIC_TOKENS` from `./referral/brand-keywords`
  * (RC1) — no forked tokenizer/generic-list for this third grounding site.
+ *
+ * PR-9 (2026-07-20, the "platform"/"platforms" class): tokens are STEMMED
+ * before the generic-check AND before entering the set. Un-stemmed, a plural
+ * generic word ("platforms") that isn't ALSO separately listed in
+ * `GENERIC_TOKENS` (which only lists "platform") sailed through as if it were
+ * real vocabulary evidence — the same bug as `isTierPhraseGrounded` below, and
+ * the fix is the same one function shared with the classifier's
+ * `isVocabSupported`, not a second wordlist entry that only fixes THIS plural
+ * and leaves the next one (gerund, another plural) still exploitable.
  */
 function groundedCategoryTokens(categoryRanked: DemandRow[]): Set<string> {
   const set = new Set<string>();
   for (const r of categoryRanked) {
     for (const t of tokens(r.keyword)) {
-      if (GENERIC_TOKENS.has(t)) continue; // a generic word alone proves nothing
-      set.add(t);
+      const st = stem(t);
+      if (GENERIC_TOKENS.has(st)) continue; // a generic word (or its stem) alone proves nothing
+      set.add(st);
     }
   }
   return set;
 }
 
 /** A tier phrase is grounded iff the subject ranks for it EXACTLY, or it shares
- *  ≥1 non-generic token with the subject's real in-category rankings. Ungrounded
- *  = an LLM guess with no ranking evidence — dropped (degrade, never invent). */
+ *  ≥1 non-generic (STEMMED — PR-9) token with the subject's real in-category
+ *  rankings. Ungrounded = an LLM guess with no ranking evidence — dropped
+ *  (degrade, never invent). Both sides of the overlap compare STEMMED tokens
+ *  (see `groundedCategoryTokens`), so "platforms" (this phrase) and "platform"
+ *  (a generic vocabulary word) collapse to the SAME generic stem and neither
+ *  can pass the other off as real category evidence — structural, not a
+ *  singular/plural pair someone has to remember to add to `GENERIC_TOKENS`. */
 function isTierPhraseGrounded(
   phrase: string,
   groundedTokens: Set<string>,
@@ -564,8 +565,9 @@ function isTierPhraseGrounded(
   const keyword = phrase.toLowerCase().trim();
   if (rankByKeyword.has(keyword)) return true; // the subject ranks for this exact phrase
   for (const t of tokens(phrase)) {
-    if (GENERIC_TOKENS.has(t)) continue;
-    if (groundedTokens.has(t)) return true;
+    const st = stem(t);
+    if (GENERIC_TOKENS.has(st)) continue;
+    if (groundedTokens.has(st)) return true;
   }
   return false;
 }

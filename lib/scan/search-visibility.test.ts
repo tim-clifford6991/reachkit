@@ -456,6 +456,32 @@ describe("computeMarketTiers grounding (PR-8, 2026-07-20) — no LLM-guessed mar
     expect(allPhrases).not.toContain("business intelligence platforms");
   });
 
+  // PR-9 (2026-07-20, the "platform"/"platforms" class, code-review finding):
+  // the overlap check tokenized without stemming, so "platforms" (in the
+  // subject's REAL category ranking "saas platforms") and "platforms" (in the
+  // hallucinated broad tier-seed) matched as literal-equal strings — but
+  // "platform" (singular) is ALREADY in GENERIC_TOKENS as a word that alone
+  // proves nothing; its plural "platforms" was NOT separately listed, so the
+  // exact same generic word in its plural form sailed through as if it were
+  // real evidence. A wordlist fix (add "platforms" to GENERIC_TOKENS) patches
+  // this ONE plural and leaves the next one (any other generic noun's plural,
+  // or a gerund) exploitable the same way. This test is the reviewer's exact
+  // live repro and must pass via STEMMING, not a new list entry.
+  it("a broad phrase sharing ONLY the plural of a generic word ('platforms') with categoryRanked is NOT grounded (stemming, not a wordlist entry)", () => {
+    const categoryRanked = [{ keyword: "saas platforms", volume: 500, yourPosition: 5 }];
+    const volumes = new Map([["business intelligence platforms", 300]]);
+    const tiers = computeMarketTiers(
+      { broad: ["business intelligence platforms"], niche: [] },
+      volumes,
+      emptyRanks,
+      [],
+      0,
+      categoryRanked,
+    );
+    const allPhrases = tiers.flatMap((t) => t.phrases.map((p) => p.keyword));
+    expect(allPhrases).not.toContain("business intelligence platforms");
+  });
+
   it("positive control: a broad phrase sharing a non-generic token with categoryRanked SURVIVES (must not over-drop)", () => {
     // SpaceX-shaped: categoryRanked has "rocket launch" + "space launch system"
     // (real rankings); a broad seed "space exploration" shares "space" -> kept.
