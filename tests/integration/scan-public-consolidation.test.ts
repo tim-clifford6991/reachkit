@@ -353,7 +353,7 @@ describe("scan-public-consolidation", () => {
 
       // --- resultsProps: pre-redaction locked-count totals are exposed even
       // though the underlying report data is gated.
-      expect(resultsProps.lockedCount).toBe(3); // 6 full actions - 3 shown
+      expect(resultsProps.lockedCount).toBe(4); // 6 full actions - 2 shown (data board P4: wireframe shows 2 fixes + blurred rest)
       expect(resultsProps.gapRows).toEqual([]); // redacted keyword-gap rows are empty
       expect(resultsProps.gapTotal).toBe(4); // but the FULL pre-redaction count is exposed
 
