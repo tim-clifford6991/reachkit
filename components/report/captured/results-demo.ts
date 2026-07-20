@@ -12,10 +12,16 @@ export const RESULTS_DEMO: ResultsScreenProps = {
     { label: "Outreach", value: 29, note: "biggest lever" },
     { label: "SEO", value: 54, note: "missing schema" },
   ],
+  // P4 (2026-07-20, terseness): 2 shown fixes, no "why" reasoning sentence —
+  // titles + effort/pillar keyword chips + a delta chip only. lockedPreview
+  // demos the "2+2" paywall tease (up to 2 more real fix cards, blurred).
   fixes: [
     { rank: 1, title: 'Publish 3 "bloom vs [rival]" comparison pages', why: "Captures high-intent buyers comparing you to Habitify & Streaks — queries you don't appear for today.", effort: "Deep", pillar: "Content", pred: 6 },
     { rank: 2, title: "Add FAQ + product schema to your pricing page", why: "Unlocks rich results and makes you eligible for AI answer citations. Pure code change.", effort: "$0 fix", pillar: "SEO", pred: 4 },
+  ],
+  lockedPreview: [
     { rank: 3, title: "Claim & optimize your G2 + Capterra listings", why: "High-authority directories you're completely absent from. Competitors rank here.", effort: "Quick", pillar: "Outreach", pred: 4 },
+    { rank: 4, title: "Fix thin meta descriptions across 12 pages", why: "12 pages ship generic meta descriptions — an easy on-page win.", effort: "Quick", pillar: "SEO", pred: 3 },
   ],
   lockedCount: 4,
   lockedWorth: 13,

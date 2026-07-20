@@ -75,7 +75,7 @@ const SUPPRESSIONS: Record<string, string[]> = {};
 // ── Manifest — the only-grows floor ─────────────────────────────────────────
 const MIN_FIXTURES = 6;
 const REQUIRED_ARCHETYPES = ["directory", "zero-ranking", "normal-saas", "pathological"];
-const MIN_RUBRIC_RULES = 7; // raised from 6 when R7 (numeral guard, E3) landed — the floor only rises
+const MIN_RUBRIC_RULES = 8; // raised from 7 when R8 (terseness, P4) landed — the floor only rises
 
 function render(fx: CorpusFixture): string {
   const { resultsProps } = publicReportProps(fx.reportPayload, `corpus-${fx.domain}`, fx.siteUrl);
@@ -109,12 +109,73 @@ describe("report-corpus manifest (only grows)", () => {
 
 describe("report-corpus rubric — every captured payload renders clean through the REAL public path", () => {
   for (const fx of FIXTURES) {
-    it(`${fx.domain} (${fx.archetype}): R1–R5 hold`, () => {
+    it(`${fx.domain} (${fx.archetype}): R1–R8 hold`, () => {
       const html = render(fx);
       const violations = runReportRubric(fx.reportPayload, html, { suppress: SUPPRESSIONS[fx.domain] ?? [] });
       expect(violations, violations.map((v) => `[${v.rule}] ${v.message}`).join("\n")).toEqual([]);
     });
   }
+});
+
+// ── P4 (2026-07-20) — the terseness ratchet: written FIRST, before the
+// implementation, per the Change Protocol's corpus-first discipline. Every
+// assertion here failed on the pre-P4 board (the prose R8 exists to strip)
+// and must hold on every REAL captured payload, not just a synthetic one.
+describe("P4 terseness — the free board is data-driven (titles + keywords + numbers), never long sentences", () => {
+  for (const fx of FIXTURES) {
+    it(`${fx.domain}: Positioning Mirror never renders (was the worst prose violation)`, () => {
+      const html = render(fx);
+      expect(html).not.toContain("Positioning Mirror");
+      expect(html).not.toContain("Whether your page reads as the audience you actually want.");
+    });
+
+    it(`${fx.domain}: no fix card renders its LLM why-sentence`, () => {
+      const html = render(fx);
+      const acts = fx.reportPayload.whatToDoThisWeek;
+      for (const a of [...acts.quickWins, ...acts.medium, ...acts.longPlay]) {
+        if (a.why && a.why.trim().length > 0) {
+          expect(html, `${fx.domain}: fix why-sentence "${a.why}" must not render verbatim`).not.toContain(a.why);
+        }
+      }
+    });
+
+    it(`${fx.domain}: section-subtitle sentences are absent`, () => {
+      const html = render(fx);
+      expect(html).not.toContain("What buyers search, what you capture, who takes the rest.");
+      expect(html).not.toContain("Ordered by expected score impact.");
+      expect(html).not.toMatch(/Free scans show \d+ of \d+\./);
+    });
+
+    it(`${fx.domain}: the category zero-state is "None yet." only, no trailing sentence`, () => {
+      const html = render(fx);
+      expect(html).not.toContain("You don't rank for a single term in your own category.");
+    });
+
+    it(`${fx.domain}: the rivalry line (when it renders) is a keyword tease, never the old prose`, () => {
+      const html = render(fx);
+      expect(html).not.toContain("and rivals are taking the searches above");
+      expect(html).not.toContain("Unlock to see how each one ranks, why they win");
+    });
+
+    it(`${fx.domain}: exactly ONE upgrade CTA renders ("Unlock the full plan")`, () => {
+      const html = render(fx);
+      const matches = html.match(/Unlock the full plan/g) ?? [];
+      // hideUnlock is always false on the public path, so every corpus
+      // fixture must carry exactly one — never zero (both CTAs deleted) and
+      // never two (the collapse didn't happen).
+      expect(matches.length).toBe(1);
+      // The retired second CTA card's own heading must never render either.
+      expect(html).not.toContain("Close the gap before your rivals widen it");
+    });
+  }
+
+  // Mutation-proof idiom (documented, not re-run here — see the docblock at
+  // the top of this file's "MUTATION-PROVEN" list): re-adding any ONE of the
+  // BANNED_PROSE strings in report-rubric.ts to results-screen.tsx flips the
+  // "R1–R8 hold" test above red for every fixture that renders that section —
+  // verified live during this phase (positioning-mirror block restored →
+  // getapp.com/reachkit.app/resend.com/savvycal.com/x.com/spacex.com all failed
+  // R8; reverted → green).
 });
 
 // ── Per-fixture expectations — hand-written, tighten-only (corpus idiom) ────
@@ -318,7 +379,13 @@ describe("corpus: spacex.com — the 8,170-demand class control (post-fix)", () 
   });
   it("wins strip: 3 wins, 3 chips, so no '+N more' disclosure", () => {
     expect(html).toContain("#2 space exploration technologies");
-    expect(html).not.toMatch(/\+\d+ more/);
+    // Scoped to the YOUR CATEGORY card specifically (review fix, 2026-07-20:
+    // the legacy opportunity block below it now ALSO renders its own terse
+    // "+N more" chip for the locked gap rows — a real, unrelated tease — so a
+    // page-wide regex would false-positive on that chip instead of proving
+    // anything about the wins strip this test names).
+    const categoryCardBlock = html.slice(html.indexOf("searches/mo across your category"), html.indexOf("Your biggest untapped opportunity"));
+    expect(categoryCardBlock).not.toMatch(/\+\d+ more/);
   });
 });
 

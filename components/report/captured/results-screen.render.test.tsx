@@ -373,7 +373,7 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
   it("locked band with zero worth: omits the 'worth an estimated +N' clause instead of rendering '+0'", () => {
     // Real scans have shipped cards carrying delta 0 (the positive-filter
     // fallback in toResultsProps exists because of them). With 4 zero-delta
-    // actions: 3 render as fixes, 1 is locked → lockedCount 1, lockedWorth 0.
+    // actions: P4 shows 2 as fixes, 2 are locked → lockedCount 2, lockedWorth 0.
     // "worth an estimated +0" reads as broken; the clause must vanish while the
     // count + unlock CTA stay.
     const r = report({
@@ -386,11 +386,13 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
     const html = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r, "zeroworth.dev", 4, 0)} scanId="scan-zeroworth" />);
 
     assertNoGarbage(html, "zero locked worth");
-    expect(html).toContain("1 more ranked fixes"); // the locked band still renders
+    expect(html).toContain("2 more ranked fixes"); // the locked band still renders
     expect(html).not.toContain("worth an estimated"); // …without the +0 clause
     expect(html).toContain("unlock the full plan");
 
     // And the clause still renders when the worth is real (guard the guard).
+    // fixes = [Fix titles(6), Add schema(5)]; rest = [Write comparison page(4),
+    // Pitch a directory(3)] → lockedWorth = 4 + 3 = 7.
     const r2 = report({
       whatToDoThisWeek: {
         quickWins: [action("Fix titles", 6), action("Add schema", 5)],
@@ -399,7 +401,7 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
       },
     });
     const html2 = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r2, "worth.dev", 4, 0)} scanId="scan-worth" />);
-    expect(html2).toContain("worth an estimated +3");
+    expect(html2).toContain("worth an estimated +7");
   });
 
   it("established brand, weak page: on-page IS the weaker driver → the summary names on-page, not search (MINOR 4 converse)", () => {
@@ -433,29 +435,31 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
     expect(html).not.toContain("Search presence is your gap.");
   });
 
-  // G5: "the weaker half" is CONDITIONAL. Search presence is the STRONGER half on
-  // ~40% of prod scans; the claim must vanish then, or we tell those users to fix
-  // their strongest driver.
-  it("G5: omits 'the weaker half' when search presence is the STRONGER driver", () => {
-    const r = report({
+  // G5/R8 (P4 review fix, 2026-07-20): "Winning this lifts Search presence —
+  // your weaker half." was the legacy branch's own prose violation — REMOVED
+  // unconditionally now (the query/volume/rank chips above it already carry
+  // the meaning), so it must never render regardless of which driver is
+  // weaker. Supersedes the old two G5 tests that asserted the sentence was
+  // merely conditional — it's gone outright now.
+  it("P4 review fix: the 'weaker half' explainer sentence never renders, on either driver imbalance", () => {
+    const strong = report({
       score: { total: 70, breakdown: { content: 50, outreach: 40, seo: 55 }, radar: [], basis: "verified" },
       // search 92 > on-page 60 → search is the STRONGER half.
       searchVisibility: sv({ score: 92, onPageReadiness: 60, keywordsRanked: 300, footprintComplete: true, categoryDemand: 8000 }),
       whatToDoThisWeek: { quickWins: [action("Add meta descriptions", 6)], medium: [], longPlay: [] },
     });
-    const html = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r, "strong.com", 2, 8)} scanId="s" />);
-    expect(html).toContain("Winning this lifts"); // the opportunity blurb still renders
-    expect(html).not.toContain("your weaker half");
-  });
+    const htmlStrong = renderToStaticMarkup(<ResultsScreen {...toResultsProps(strong, "strong.com", 2, 8)} scanId="s" />);
+    expect(htmlStrong).not.toContain("Winning this lifts");
+    expect(htmlStrong).not.toContain("weaker half");
 
-  it("G5: KEEPS 'your weaker half' when search presence IS the weaker driver", () => {
-    const r = report({
+    const weak = report({
       score: { total: 40, breakdown: { content: 70, outreach: 40, seo: 65 }, radar: [], basis: "verified" },
       searchVisibility: sv({ score: 20, onPageReadiness: 85, keywordsRanked: 40, footprintComplete: true, categoryDemand: 8000 }),
       whatToDoThisWeek: { quickWins: [action("Add meta descriptions", 6)], medium: [], longPlay: [] },
     });
-    const html = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r, "weak.com", 2, 8)} scanId="s" />);
-    expect(html).toContain("your weaker half");
+    const htmlWeak = renderToStaticMarkup(<ResultsScreen {...toResultsProps(weak, "weak.com", 2, 8)} scanId="s" />);
+    expect(htmlWeak).not.toContain("Winning this lifts");
+    expect(htmlWeak).not.toContain("weaker half");
   });
 
   // G4: the demand total is reconcilable — its named phrases render alongside it.
@@ -534,7 +538,7 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
     expect(html).toMatch(/niche/i); // the rung's tier label — CSS uppercases it, HTML text is lowercase
     const heroPhraseIdx = html.indexOf("photo gallery website"); // a categoryPhrases entry from sv()
     const nicheIdx = html.indexOf("photo scheduling tool");
-    const rivalryIdx = html.indexOf("Someone is winning these searches today");
+    const rivalryIdx = html.indexOf("See who");
     expect(heroPhraseIdx).toBeGreaterThan(-1);
     expect(rivalryIdx).toBeGreaterThan(-1);
     expect(nicheIdx).toBeGreaterThan(heroPhraseIdx);
@@ -595,12 +599,17 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
   // mechanism-neutral: it names the fact (other companies' names) without
   // asserting how the site came to rank for them. E2 (facts-first copy sweep,
   // 2026-07-20) tersened it further: numbers lead, the "real visits… what you
-  // do" clause is gone.
-  it("the off-topic warning is mechanism-neutral, facts-first — no 'you list or mention' claim", () => {
+  // do" clause is gone. P4 review fix (2026-07-20, "not buyers looking for
+  // you" — the last prose sibling): the whole sentence is gone — a terse
+  // "other companies' names {pct}%" label chip replaces it (R8 BANNED_PROSE
+  // now pins both retired wordings so neither can come back).
+  it("the off-topic warning is a terse data chip — no 'you list or mention' or 'not buyers looking for you' claim", () => {
     const html = renderPublicReport(report({ searchVisibility: sv({ offTopicPct: 60, categoryPct: 15 }) }));
-    // renderToStaticMarkup HTML-escapes the JSX &apos; to the &#x27; entity.
-    expect(html).toMatch(/60% of your search traffic is other companies(?:'|’|&#x27;)? names — not buyers looking for you\./);
+    expect(html).toContain("other companies");
+    expect(html).toContain("60%");
     expect(html).not.toContain("you list or mention");
+    expect(html).not.toContain("not buyers looking for you");
+    expect(html).not.toMatch(/of your search traffic is other companies/);
   });
 
   // WS-D (2026-07-19): named off-topic examples — the >=40% warning used to
@@ -628,24 +637,30 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
   // evidence: when discovery finds no rivals (reachkit.app), the line used to
   // vanish entirely — the honest degrade tease replaces silence with the one
   // tease vocabulary (free = what's true; paid = what rivals do about it).
-  it("rivals found → names them and teases per-rival intel (WS-E)", () => {
+  // P4 (2026-07-20, terseness): the old prose ("Buyers compare you to X — and
+  // rivals are taking the searches above. Unlock to see how each one ranks,
+  // why they win…") is gone — a bare "Compared to: {names}" keyword tease,
+  // per the brief's one allowed wireframe deviation (real names kept, prose dropped).
+  it("rivals found → names them as a terse keyword tease (P4)", () => {
     const html = renderPublicReport(report({
       searchVisibility: sv({ categoryDemand: 8000 }),
       whereTheyAre: { surfaces: [], competitorGap: [comp("SavvyCal"), comp("Calendly")] },
     }));
     expect(html).toContain("SavvyCal");
-    expect(html).toMatch(/how each one ranks/i);
+    expect(html).toContain("Compared to");
+    expect(html).not.toContain("and rivals are taking the searches above");
+    expect(html).not.toContain("Unlock to see how each one ranks, why they win");
   });
 
-  it("no rivals found → honest degrade tease, no invention (WS-E)", () => {
+  it("no rivals found → honest degrade tease, no invention, no prose (WS-E, P4)", () => {
     const html = renderPublicReport(report({
       searchVisibility: sv({ categoryDemand: 8000 }),
       whereTheyAre: { surfaces: [], competitorGap: [] },
     }));
     // renderToStaticMarkup HTML-escapes the JSX &apos; to the &#x27; entity, so
     // the match must account for the entity, not a literal quote character.
-    expect(html).toMatch(/discovers who(?:'|’|&#x27;)s winning these searches/i);
-    expect(html).not.toMatch(/Buyers compare you to\s*</); // no empty comma-list sentence
+    expect(html).toMatch(/See who(?:'|’|&#x27;)s winning these searches/i);
+    expect(html).not.toContain("Compared to"); // no empty comma-list tease
   });
 
   // FINAL-REVIEW FIX: a market-ladder rung's number is the SUM of every phrase

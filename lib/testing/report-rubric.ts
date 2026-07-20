@@ -174,7 +174,10 @@ export function derivableNumbers(payload: ReportPayload): Map<number, string> {
   add(fullActions, "Σ action buckets — the “show N of TOTAL” teaser total (public-report.tsx fullActions)");
   const redacted = redactReportForTier(payload, "free").whatToDoThisWeek;
   const shownActions = redacted.quickWins.length + redacted.medium.length + redacted.longPlay.length;
-  add(Math.max(0, fullActions - Math.min(shownActions, 3)), "fullActions − rendered fixes — the locked-fixes teaser count (to-results-props.ts lockedCount)");
+  // P4 (2026-07-20): 2 fixes shown, not 3 — the third card's "why" prose is
+  // gone, so 2 terse cards are enough (the up-to-2 blurred locked-preview
+  // rows are a separate, non-numeric visual tease, not counted here).
+  add(Math.max(0, fullActions - Math.min(shownActions, 2)), "fullActions − rendered fixes — the locked-fixes teaser count (to-results-props.ts lockedCount)");
 
   const sv = payload.searchVisibility;
   const kgLen = payload.market?.gap?.keywordGap?.length ?? 0;
@@ -241,10 +244,6 @@ const r2NumberBasis: RubricRule = {
 // R3 — empty input ⇒ no section (invariant #11 at report level)
 // ---------------------------------------------------------------------------
 
-/** Mirrors to-results-props.ts `cleanTags` — the mirror-grounding gate. */
-const cleanTags = (tags: string[] | undefined): string[] =>
-  (tags ?? []).filter((t) => typeof t === "string" && t.trim().length >= 2);
-
 /** Mirrors `marketCardReady` (results-screen.tsx) EXACTLY — a card is
  *  renderable only when it carries priced, grounded phrases (rankedTop3 ∪
  *  gaps), never an empty "0 searches/mo, None yet, None yet" shell. This is
@@ -267,15 +266,21 @@ interface SectionRule {
 
 const SECTION_RULES: SectionRule[] = [
   {
+    // P4 (2026-07-20, terseness): marker updated from "Buyers compare you to"
+    // — the old prose sentence ("…and rivals are taking the searches above.
+    // Unlock to see how each one ranks, why they win…") is gone; the rivalry
+    // teaser is now a bare "Compared to: {names}" keyword tease.
     id: "rivalry-names",
-    marker: "Buyers compare you to",
+    marker: "Compared to",
     grounded: (p) =>
       (p.searchVisibility?.categoryDemand ?? 0) > 0 &&
       (p.whereTheyAre?.competitorGap ?? []).some((c) => typeof c.competitor === "string" && c.competitor.length > 0),
   },
   {
+    // P4: marker updated from "Someone is winning these searches today." to
+    // the new terse degrade tease's own text.
     id: "rivalry-degrade-tease",
-    marker: "Someone is winning these searches today.",
+    marker: "See who's winning these searches",
     grounded: (p) =>
       (p.searchVisibility?.categoryDemand ?? 0) > 0 &&
       !(p.whereTheyAre?.competitorGap ?? []).some((c) => typeof c.competitor === "string" && c.competitor.length > 0),
@@ -295,7 +300,12 @@ const SECTION_RULES: SectionRule[] = [
   },
   {
     id: "off-topic-examples",
-    marker: "e.g. you rank for",
+    // P4 review fix (2026-07-20): marker updated from "e.g. you rank for" —
+    // the sentence it lived in ("N% of your search traffic is other
+    // companies' names — not buyers looking for you. e.g. you rank for…")
+    // is gone; the terse chip now appends "· e.g. "term1", "term2"" after
+    // the base percentage label.
+    marker: "· e.g.",
     // Mirrors the render boundary's editorial curation (`renderableExamples`):
     // a payload whose only examples are explicit terms grounds NO example copy.
     // Superseded by the P3 aggregation strip once categoryCard is ready — the
@@ -308,22 +318,17 @@ const SECTION_RULES: SectionRule[] = [
       renderableExamples(p.searchVisibility.offTopicExamples).length > 0 &&
       !marketCardReady(p.searchVisibility.categoryCard),
   },
-  {
-    id: "positioning-mirror",
-    marker: "Positioning Mirror",
-    grounded: (p) => cleanTags(p.whatYouOffer.positioningMirror.actualAudience).length > 0,
-  },
-  {
-    id: "wins-sentence",
-    // The PRE-P2 ladder's own "YOUR CATEGORY" card sentence — MarketCard (P3)
-    // uses a different rowlabel ("You rank top 3 for"), so this marker is
-    // legacy-branch-only too.
-    marker: "You rank in the top 3 for",
-    grounded: (p) =>
-      (p.searchVisibility?.categoryDemand ?? 0) > 0 &&
-      (p.searchVisibility?.categoryWins ?? 0) > 0 &&
-      !marketCardReady(p.searchVisibility?.categoryCard),
-  },
+  // "positioning-mirror" removed (P4, 2026-07-20): the section is now REMOVED
+  // from the free board unconditionally (never gated on grounding) — R8 below
+  // asserts it never renders, for any payload, rather than pairing a marker
+  // with a grounding predicate that can no longer be satisfied.
+  // "wins-sentence" removed (P4 review fix, 2026-07-20): the legacy "YOUR
+  // CATEGORY" card's full sentence ("You rank in the top 3 for N of your
+  // category's searches." / "You don't rank in the top 3 for any of your
+  // category's searches yet.") is now REMOVED from the free board
+  // unconditionally, same treatment as "positioning-mirror" above — a terse
+  // "top 3 × N" / "not ranking" chip replaces it (results-screen.tsx). R8
+  // below asserts both sentence variants never render, for any payload.
   {
     id: "category-card-hero",
     // P3 (data board §1, Overview): the hero stat, grounded on the LADDERED
@@ -411,7 +416,8 @@ const r4TeaserParity: RubricRule = {
     const fullActions = acts.quickWins.length + acts.medium.length + acts.longPlay.length;
     const redacted = redactReportForTier(payload, "free").whatToDoThisWeek;
     const shownActions = redacted.quickWins.length + redacted.medium.length + redacted.longPlay.length;
-    const expectedLocked = Math.max(0, fullActions - Math.min(shownActions, 3));
+    // P4 (2026-07-20): 2 fixes shown, not 3 (see the derivableNumbers() comment above).
+    const expectedLocked = Math.max(0, fullActions - Math.min(shownActions, 2));
     for (const m of text.matchAll(/(\d[\d,]*) more ranked fixes/g)) {
       const n = Number((m[1] ?? "").replace(/,/g, ""));
       if (n === 0 || n !== expectedLocked) {
@@ -454,24 +460,14 @@ const r5ComparativeCopy: RubricRule = {
         violations.push({ rule: "R5", message: `"${stronger} is your gap." contradicts the driver bars (on-page ${onPage} vs search ${sv.score})` });
       }
 
-      // "your weaker half" (G5, E2 facts-first copy): only when search
-      // presence is genuinely the lower driver — and always then, whenever an
-      // opportunity row rendered.
-      const weakerHalf = text.includes("your weaker half");
-      const searchIsWeaker = sv.score < onPage;
-      if (weakerHalf && !searchIsWeaker) {
-        violations.push({ rule: "R5", message: `"the weaker half" rendered but search presence (${sv.score}) is not below on-page readiness (${onPage})` });
-      }
-      const kgLen = payload.market?.gap?.keywordGap?.length ?? 0;
-      // "the weaker half" lives ONLY inside the legacy "Your biggest untapped
-      // opportunity" block (results-screen.tsx) — P3 supersedes it with the
-      // "Opportunity · your niche" section once categoryCard is ready, which
-      // has no such framing (plain phrase/volume/"not ranking" rows, per the
-      // wireframe). So the clause is expected only on the legacy branch.
-      const hasOppRow = (kgLen > 0 || (sv.categoryOpportunities?.length ?? 0) > 0) && !marketCardReady(sv.categoryCard);
-      if (!weakerHalf && searchIsWeaker && hasOppRow) {
-        violations.push({ rule: "R5", message: `search presence (${sv.score}) is the weaker driver and an opportunity rendered, but "the weaker half" clause is missing` });
-      }
+      // "your weaker half" (G5, E2 facts-first copy) REMOVED (P4 review fix,
+      // 2026-07-20): the legacy "Your biggest untapped opportunity" block's
+      // explainer sentence ("Winning this lifts Search presence — your weaker
+      // half.") is gone unconditionally — the query/volume/rank chips above it
+      // already carry the meaning (results-screen.tsx). This conditional
+      // "must render when search is weaker" assertion is obsolete now that the
+      // clause can never render for any payload; R8's BANNED_PROSE entry
+      // ("weaker half") is the permanent guard against it coming back.
 
       // The 0-ranking headline claim must be literally true.
       if (text.includes("ranks you for nothing yet") && sv.keywordsRanked !== 0) {
@@ -589,12 +585,105 @@ const r7NoNumeralClaimsInLlmProse: RubricRule = {
 };
 
 // ---------------------------------------------------------------------------
+// R8 — the free board is DATA-DRIVEN, not description-driven (P4, 2026-07-20)
+//
+// Tim's critical P4 directive: the free board is titles + minor keywords +
+// numbers ONLY, never long LLM-generated sentences. Three concrete bans, each
+// a shipped violation on the live board before this phase:
+//  (a) Positioning Mirror — a full LLM prose paragraph — is REMOVED from the
+//      free board entirely (unconditional, not payload-gated — see the
+//      SECTION_RULES note above where its old grounded entry was removed).
+//  (b) a fix card's `why` sentence (the LLM's reasoning paragraph) never
+//      renders — only the title + a delta chip.
+//  (c) section-subtitle SENTENCES (as opposed to short pill/title labels)
+//      never render.
+//
+// Review-fix wave (2026-07-20): P4 stripped prose from the NEW six-section
+// board branch but left the LEGACY market-tier fallback branch (rendered
+// when `categoryCard` is absent — 0-ranking sites, synth failures, old
+// payloads; VERIFIED to be 100% of the real corpus fixtures, since they all
+// predate P2) rendering full sentences unchanged. Closing the class, not the
+// case: the bans below cover BOTH branches, so the ratchet catches whichever
+// path a given payload takes, not just the new board's own copy.
+// ---------------------------------------------------------------------------
+
+/** Exact sentences (or unambiguous sentence fragments) that were the shipped
+ *  prose violations this phase closes. Unconditional — never gated on
+ *  payload grounding, because these are STRUCTURAL removals (the section/
+ *  sentence is gone from the component), not inputs that can legitimately
+ *  ground different copy. */
+const BANNED_PROSE = [
+  "Positioning Mirror",
+  "Whether your page reads as the audience you actually want.",
+  "What buyers search, what you capture, who takes the rest.",
+  "Ordered by expected score impact.",
+  "You don't rank for a single term in your own category.",
+  "and rivals are taking the searches above",
+  "Unlock to see how each one ranks, why they win",
+  // Review-fix wave: the legacy market-tier branch's own prose (see the
+  // block comment above). "Winning this lifts"/"weaker half" catch both the
+  // pre-E2 wording ("Winning this term lifts your Search presence — the
+  // weaker half of your Discoverability Score.") and the post-E2 tersened-
+  // but-still-a-sentence wording ("Winning this lifts Search presence —
+  // your weaker half.") that shipped on the legacy branch.
+  "Winning this lifts",
+  "Winning this term lifts",
+  "weaker half",
+  "more like it in your category",
+  "You rank in the top 3 for",
+  "You don't rank in the top 3",
+  "Someone is winning these searches today",
+  "The full scan discovers who's winning these searches",
+  // P4 review fix (2026-07-20): the legacy footprint-split block's own
+  // "not buyers looking for you" sentence — verified live-rendering on
+  // directories (getapp.com: offTopicPct 100, aggregatedPct below the
+  // newer strip's floor so this old sentence fired instead). The split
+  // bar + percentage chips + named examples already carry the same data.
+  "not buyers looking for you",
+  "of your search traffic is other companies",
+];
+
+const r8Terseness: RubricRule = {
+  id: "R8",
+  title: "the free board is data-driven — no LLM why-sentences, no Positioning Mirror, no section subtitles (P4)",
+  check: (payload, html) => {
+    const text = visibleText(html);
+    const violations: RubricViolation[] = [];
+
+    for (const banned of BANNED_PROSE) {
+      if (text.includes(banned)) {
+        violations.push({
+          rule: "R8",
+          message: `banned prose rendered verbatim: "${banned}" — the free board is titles + minor keywords + numbers only, no long sentences`,
+        });
+      }
+    }
+
+    // A fix card's `why` (the LLM's reasoning sentence) must never render —
+    // checked against every action in the FULL payload (not just the shown
+    // preview), so a locked-preview card leaking a why-sentence is caught too.
+    const acts = payload.whatToDoThisWeek;
+    const allActions = [...acts.quickWins, ...acts.medium, ...acts.longPlay];
+    for (const a of allActions) {
+      if (a.why && a.why.trim().length > 0 && text.includes(a.why)) {
+        violations.push({
+          rule: "R8",
+          message: `fix card's why-sentence rendered verbatim: "${a.why}" — terse cards show the title + a delta chip, never the reasoning sentence`,
+        });
+      }
+    }
+
+    return violations;
+  },
+};
+
+// ---------------------------------------------------------------------------
 // Registry + runner
 // ---------------------------------------------------------------------------
 
 /** Every rubric rule, in priority order. The corpus test pins this list's
  *  length as an only-grows floor — deleting a rule is a ratchet violation. */
-export const RUBRIC_RULES: RubricRule[] = [r1NoGarbage, r2NumberBasis, r3EmptyInputNoSection, r4TeaserParity, r5ComparativeCopy, r6LadderSanity, r7NoNumeralClaimsInLlmProse];
+export const RUBRIC_RULES: RubricRule[] = [r1NoGarbage, r2NumberBasis, r3EmptyInputNoSection, r4TeaserParity, r5ComparativeCopy, r6LadderSanity, r7NoNumeralClaimsInLlmProse, r8Terseness];
 
 export interface RubricOptions {
   /** Rule ids to skip for a fixture — a named, only-shrinks list in the corpus

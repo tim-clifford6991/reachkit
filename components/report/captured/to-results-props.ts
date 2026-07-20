@@ -7,6 +7,7 @@
  */
 
 import type { ReportPayload } from "@/lib/scan/report";
+import type { ActionCard } from "@/lib/llm/types";
 import { renderableExamples } from "@/lib/scan/explicit-terms";
 import type { ResultsScreenProps, Fix, GapRow } from "./results-screen";
 
@@ -92,17 +93,36 @@ export function toResultsProps(
   const positive = ranked.filter((a) => (a.expectedOutcome?.delta ?? 0) > 0);
   const allActions = positive.length > 0 ? positive : ranked;
 
-  const fixes: Fix[] = allActions.slice(0, 3).map((a, i) => ({
-    rank: i + 1,
+  // P4 (2026-07-20, data board terseness): the wireframe shows 2 shown fixes,
+  // not 3 — the third card's "why" prose is gone, so the card itself is
+  // terser and 2 is enough to prove the plan without crowding the paywall
+  // tease. `rest` (everything beyond the 2 shown) feeds BOTH the up-to-2
+  // real blurred locked-preview cards AND the "N more" band's worth total.
+  const toFix = (a: ActionCard, rank: number): Fix => ({
+    rank,
     title: a.title,
     why: a.why,
     effort: effortLabel(a.effortMin),
     pillar: CATEGORY_LABEL[a.category] ?? a.category,
     pred: a.expectedOutcome?.delta ?? 0,
-  }));
-  const rest = allActions.slice(3);
+  });
+  const SHOWN_FIXES = 2;
+  const fixes: Fix[] = allActions.slice(0, SHOWN_FIXES).map((a, i) => toFix(a, i + 1));
+  const rest = allActions.slice(SHOWN_FIXES);
+  const lockedPreview: Fix[] = rest.slice(0, 2).map((a, i) => toFix(a, fixes.length + i + 1));
   const lockedWorth = rest.reduce((s, a) => s + (a.expectedOutcome?.delta ?? 0), 0);
   const fullTotal = totalActions ?? allActions.length;
+  // P4 fix: previously `rest.length || Math.max(0, fullTotal - fixes.length)`
+  // — that shortcut relied on `rest` being EMPTY whenever `allActions` was
+  // already free-redaction-truncated (true back when SHOWN_FIXES(3) matched
+  // FREE_PREVIEW_ACTIONS(3) exactly: a redacted array of ≤3 sliced at 3 left
+  // nothing). With SHOWN_FIXES now 2, a redacted 3-action array slices to a
+  // NON-empty 1-item `rest`, so the `||` incorrectly reported "1 more" instead
+  // of the true withheld total — caught by the R4 rubric test on every real
+  // corpus fixture. `fullTotal` already accounts for BOTH cases (the caller
+  // passes the pre-redaction total; it defaults to allActions.length when
+  // there's no redaction), so it is always the correct basis on its own.
+  const lockedCount = Math.max(0, fullTotal - fixes.length);
 
   const pm = report.whatYouOffer.positioningMirror;
 
@@ -314,7 +334,8 @@ export function toResultsProps(
         : "has real on-page gaps holding it back. The plan below starts with the fixes that matter most.",
     pillars,
     fixes,
-    lockedCount: rest.length || Math.max(0, fullTotal - fixes.length),
+    lockedPreview,
+    lockedCount,
     lockedWorth,
     intendedTags,
     actualTags,
