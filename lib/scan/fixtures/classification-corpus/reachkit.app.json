@@ -1,0 +1,10 @@
+{
+  "domain": "reachkit.app",
+  "note": "P1 review fix (2026-07-20): the missing reachkit ≈0-aggregation control the plan named twice (docs/plans/2026-07-20-free-scan-databoard.md lines 31/71: 'Corpus: trustmrr/getapp high aggregated, savvycal/reachkit ~0'). REAL data, not fabricated — verified via Supabase MCP (project kleepxxddbcnfsfwudoe): `search_cache` key `rk:reachkit.app:50` (captured 2026-07-16) holds a genuinely EMPTY ranked_keywords array — reachkit.app is pre-launch with zero real search rankings, confirmed independently by the persisted report `lib/scan/fixtures/report-corpus/reachkit.app.json` (searchVisibility.keywordsRanked:0, categoryRanked:[], brandPct:0) and the `cc:reachkit.app` competitor-discovery cache (subjectEtv:0). rankedKeywords is therefore [] here — the real, current state, not a placeholder. seedText/llmCategorySeeds are the real captured blurb + category label from `cc:reachkit.app` (category: 'Website SEO audit and competitive analysis tool for founders'), included for completeness even though an empty ranked_keywords input short-circuits classifyFootprint to a zeroed SearchVisibility regardless of vocab.",
+  "seedText": [
+    "The distribution system for solo founders — ReachKit — Paste your website or product link and get a free discoverability report — SEO gaps, positioning blind spots, and ranked action steps in under two minutes.",
+    "Website SEO audit and competitive analysis tool for founders"
+  ],
+  "llmCategorySeeds": ["seo audit tool", "discoverability report", "competitor gap analysis"],
+  "rankedKeywords": []
+}

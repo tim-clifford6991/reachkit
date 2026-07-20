@@ -12,6 +12,12 @@ import spacex from "./fixtures/classification-corpus/spacex.com.json";
 // whose footprint IS the AGGREGATED dimension (see each fixture's own note).
 import trustmrr from "./fixtures/classification-corpus/trustmrr.com.json";
 import getapp from "./fixtures/classification-corpus/getapp.com.json";
+// P1 review fix (2026-07-20): the missing reachkit ≈0-aggregation control
+// (REAL data — reachkit.app genuinely has zero rankings, verified via Supabase
+// MCP; see the fixture's own note) + the blog/docs false-positive class
+// (CONSTRUCTED, clearly labeled — see the fixture's own note).
+import reachkit from "./fixtures/classification-corpus/reachkit.app.json";
+import blogHeavySaas from "./fixtures/classification-corpus/blog-heavy-saas.constructed.json";
 
 // ---------------------------------------------------------------------------
 // CALIBRATION RATCHET — runs the REAL classifier (classifyFootprint, the same
@@ -304,5 +310,53 @@ describe("corpus: getapp.com — the second directory control, a DIFFERENT URL s
 
   it("aggregatedExamples names real listed software (amcs, a real getapp listing)", () => {
     expect(sv.aggregatedExamples.length).toBeGreaterThan(0);
+  });
+});
+
+// P1 review fix (2026-07-20): the reachkit ≈0-aggregation control the plan
+// named twice but no fixture existed for (see the fixture's own note for the
+// Supabase MCP verification that this is reachkit.app's REAL current state —
+// pre-launch, genuinely zero rankings — not a placeholder).
+describe("corpus: reachkit.app — the real ≈0 control (pre-launch, genuinely zero rankings)", () => {
+  const { sv } = run(reachkit as Corpus);
+
+  it("aggregatedPct is 0 — no rankings means no directory listings to detect", () => {
+    expect(sv.aggregatedPct).toBe(0);
+  });
+
+  it("normal brand/category expectations for a zero-ranking site: everything honestly zero, nothing fabricated", () => {
+    expect(sv.brandPct).toBe(0);
+    expect(sv.categoryPct).toBe(0);
+    expect(sv.keywordsRanked).toBe(0);
+    expect(sv.categoryRanked).toEqual([]);
+  });
+});
+
+// P1 review fix (2026-07-20, the blog/docs false-positive class): a normal
+// SaaS's own /blog/<slug> section structurally matches the URL-template
+// signal exactly like a real directory (>=N_TEMPLATE distinct-slug rows on
+// the SAME container) — live-verified by review to wrongly reclassify
+// off-topic blog-post titles as "directory listings". This fixture is
+// CONSTRUCTED (not a real capture — see its own note) specifically to prove
+// the entity-shape requirement keeps topic-shaped headlines in the residual
+// off-topic bucket even when the URL-template signal alone would have fired.
+describe("corpus: flowdeskapp.com (CONSTRUCTED) — a normal SaaS's own /blog section must NOT become 'aggregated'", () => {
+  const { sv } = run(blogHeavySaas as Corpus);
+
+  it("aggregatedPct stays ≈0 — the blog posts are topic phrases, not third-party entity listings", () => {
+    expect(sv.aggregatedPct).toBeLessThan(5);
+  });
+
+  it("the blog posts stay in the residual off-topic bucket instead (that's where 5 unrelated topic posts belong)", () => {
+    expect(sv.offTopicPct).toBeGreaterThan(60);
+  });
+
+  it("no blog post title is ever named as an 'aggregated' (directory-listing) example", () => {
+    expect(sv.aggregatedExamples).toEqual([]);
+  });
+
+  it("the site's real brand + category rows are untouched by the fix (still classify normally)", () => {
+    expect(sv.brandPct).toBeGreaterThan(0);
+    expect(sv.categoryPct).toBeGreaterThan(0);
   });
 });

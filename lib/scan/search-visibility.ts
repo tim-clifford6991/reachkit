@@ -43,7 +43,12 @@ import { cachedRankedKeywords, cachedKeywordVolumes, cachedDomainOverview } from
 // footprint. Detected by a BATCH pass over all rows' URLs in
 // `computeSearchVisibility` (see `entityListingTemplates`) — never inside the
 // per-keyword `classify()`, which only sees one keyword string at a time and
-// cannot see the repeated URL shape that is the actual evidence.
+// cannot see the repeated URL shape that is the actual evidence. P1 review
+// fix (2026-07-20): the URL template alone is NOT sufficient — a blog/docs
+// section (`/blog/<slug>`, distinct slugs, N_TEMPLATE+ rows) has the same
+// structural shape as a directory listing. A row also needs to be
+// ENTITY-shaped (see `isEntityShapedKeyword`) — a short name, not a
+// topic/question/comparison headline — before it moves out of `offtopic`.
 export type KeywordClass = "brand" | "category" | "aggregated" | "offtopic";
 
 export interface ClassifiedKeyword {
@@ -400,6 +405,57 @@ function pathContainer(url: string): { container: string; slug: string } | null 
 }
 
 /**
+ * P1 review fix (2026-07-20, the blog/docs false-positive class): topic/
+ * question/comparison/listicle markers. A phrase carrying ANY of these is a
+ * TOPIC headline ("how to make sourdough bread", "best hiking boots 2026"),
+ * never a directory-listing ENTITY name — checked against the RAW tokens
+ * (before `tokens()`'s stopword filter), because several of these words
+ * ("how", "why", "what", "who", "best", "top", "vs", "review", "to") are
+ * THEMSELVES stopwords/generic and would otherwise vanish before this check
+ * ever saw them.
+ */
+const TOPIC_MARKER_TOKENS = new Set([
+  "how", "what", "why", "when", "where", "who", "best", "top", "vs", "versus",
+  "guide", "tutorial", "review", "reviews", "ideas", "tips", "to",
+]);
+
+/**
+ * P1 review fix (2026-07-20): live-verified false positive — a normal SaaS
+ * with ≥4 off-topic `/blog/<slug>` posts (distinct slugs) cleared the OLD
+ * purely-structural `entityListingTemplates` bar and got reclassified
+ * `aggregated`, so a blog post title ("how to make sourdough bread") rendered
+ * as a "directory listing". The URL-template signal alone can't tell "a
+ * directory of THIRD-PARTY ENTITIES" from "our own /blog section ranking for
+ * TOPICS" — both are N_TEMPLATE+ rows on a repeated 2-segment container with
+ * distinct slugs. This is the SECOND, REQUIRED signal: the ranked keyword
+ * itself must be ENTITY-shaped (a company/product/person NAME), not a
+ * natural-language TOPIC phrase. A row is `aggregated` only when BOTH the URL
+ * template AND this keyword shape agree (see the D3 batch pass below) — this
+ * ALSO re-protects x.com belt-and-braces (its mega-brand hits aren't on a
+ * listing template at all, so signal (a) already fails there; the AND makes
+ * the guarantee robust rather than accidental).
+ *
+ * ENTITY: short (≤3 meaningful tokens), carries no `TOPIC_MARKER_TOKENS`
+ * word, and is not majority generic vocabulary (`GENERIC_TOKENS`) — "cometly",
+ * "spanglish translator", "notion", "career hound", "sign up genius".
+ * TOPIC (stays noise, never aggregated): "how to make sourdough bread",
+ * "best hiking boots 2026", "remote work burnout signs" (4 meaningful
+ * tokens — too long to be a name), "calendar scheduling guide" (carries the
+ * "guide" marker). Pure, deterministic — reuses the ONE shared tokenizer +
+ * generic-word list (RC1), no forked vocabulary logic.
+ */
+function isEntityShapedKeyword(keyword: string): boolean {
+  const rawTokens = keyword.toLowerCase().match(/[a-z0-9]+/g) ?? [];
+  if (rawTokens.length === 0) return false;
+  if (rawTokens.some((t) => TOPIC_MARKER_TOKENS.has(t))) return false; // topic/question/comparison/listicle marker
+  const meaningful = tokens(keyword); // the shared stopword-filtered tokenizer
+  if (meaningful.length === 0 || meaningful.length > 3) return false; // too long to be a name
+  const genericCount = meaningful.filter((t) => GENERIC_TOKENS.has(t)).length;
+  if (genericCount * 2 > meaningful.length) return false; // majority generic vocabulary, not a distinctive name
+  return true;
+}
+
+/**
  * D3 batch pass (needs ALL rows' URLs at once, so it runs in
  * `computeSearchVisibility` AFTER per-keyword `classify()`, never inside it):
  * which URL containers are genuine entity-listing templates. This is the
@@ -513,6 +569,12 @@ export function computeSearchVisibility(
   if (templates.size > 0) {
     for (const r of rows) {
       if (r.klass !== "offtopic") continue;
+      // P1 review fix: BOTH signals required — the structural URL template
+      // AND the keyword itself must be entity-shaped, not a topic headline
+      // (see `isEntityShapedKeyword`'s doc comment for the blog/docs class
+      // this closes). A row stays in the residual `offtopic` noise bucket
+      // when either signal is missing.
+      if (!isEntityShapedKeyword(r.keyword)) continue;
       const parsed = pathContainer(r.url);
       if (parsed && templates.has(parsed.container)) r.klass = "aggregated";
     }
