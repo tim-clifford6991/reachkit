@@ -21,11 +21,20 @@ vi.mock("@/lib/scan/cache/cached-adapters", () => ({
 
 import { computeSearchVisibility, buildVocab, computeCategoryDemand, buildCategorySeeds, computeMarketTiers, classifyFootprint, gatherFreeSearchVisibility, stem } from "./search-visibility";
 
-const kw = (keyword: string, position: number, volume: number, etv: number): RankedKeyword => ({
-  keyword, position, volume, etv, url: "https://trustmrr.com/x",
+// Default url is a single-segment placeholder ("/x") — deliberately NEVER a
+// 2+-segment URL template match (see `pathContainer` in search-visibility.ts),
+// so every EXISTING test in this file that doesn't care about the D3
+// aggregated-dimension split keeps its pre-P1 behaviour unchanged unless it
+// opts in with a real per-row url (5th arg).
+const kw = (keyword: string, position: number, volume: number, etv: number, url = "https://trustmrr.com/x"): RankedKeyword => ({
+  keyword, position, volume, etv, url,
 });
 
-// A representative slice of trustmrr.com's live ranked keywords.
+// A representative slice of trustmrr.com's live ranked keywords, url-less
+// (placeholder path) — used by tests that predate/are indifferent to the D3
+// aggregated split. `TRUSTMRR_REAL_URLS` below is the SAME keyword set with
+// its REAL per-entity URLs (verified live capture, search_cache
+// `rk:trustmrr.com:50`, 2026-07-11) for the D3-specific tests.
 const TRUSTMRR: RankedKeyword[] = [
   // off-topic — other companies' names (the bulk of the footprint)
   kw("spanglish translator", 66, 550000, 1155), kw("cometly", 8, 60500, 1901.8),
@@ -36,6 +45,31 @@ const TRUSTMRR: RankedKeyword[] = [
   // category — real topic terms (it ranks well, but tiny volume)
   kw("startup mrr", 2, 90, 27.4), kw("mrr app", 1, 70, 21.3),
   kw("mrr saas", 2, 50, 15.2), kw("startup revenue", 2, 30, 9.1),
+];
+
+// D3 (2026-07-20, data board P1): the SAME 12 rows, but with their REAL
+// trustmrr.com ranking-page URLs (verified live capture, search_cache
+// `rk:trustmrr.com:50`, 2026-07-11 — trustmrr's own directory pattern is
+// `/startup/<slug>`; "shipfast" isn't in that specific 50-row capture, so its
+// URL is CONSTRUCTED in the same real, verified pattern and documented as
+// such here, not a live-captured row). Brand + category terms rank on the
+// homepage ("/", single segment — never a template match); the off-topic
+// entity names rank on individual `/startup/<slug>` listing pages.
+const TRUSTMRR_REAL_URLS: RankedKeyword[] = [
+  kw("spanglish translator", 66, 550000, 1155, "https://trustmrr.com/startup/spanglishtranslator-app"),
+  kw("cometly", 8, 60500, 1901.8, "https://trustmrr.com/startup/cometly"),
+  kw("trimrx", 20, 40500, 133.6, "https://trustmrr.com/startup/trimrx"),
+  // CONSTRUCTED (not in the live-captured 50-row sample) — same real /startup/<slug> pattern.
+  kw("shipfast", 13, 720, 8.1, "https://trustmrr.com/startup/shipfast"),
+  // Only 1 row under "founder" (below N_TEMPLATE) — stays residual noise, not aggregated.
+  kw("marc lou", 11, 590, 8.9, "https://trustmrr.com/founder/marclou"),
+  kw("mealslash", 5, 5400, 253.3, "https://trustmrr.com/startup/mealslash-llc"),
+  kw("trustmrr", 1, 1600, 486.4, "https://trustmrr.com/"),
+  kw("trust mrr", 1, 480, 145.9, "https://trustmrr.com/"),
+  kw("startup mrr", 2, 90, 27.4, "https://trustmrr.com/"),
+  kw("mrr app", 1, 70, 21.3, "https://trustmrr.com/"),
+  kw("mrr saas", 2, 50, 15.2, "https://trustmrr.com/"),
+  kw("startup revenue", 2, 30, 9.1, "https://trustmrr.com/"),
 ];
 
 const VOCAB = buildVocab("trustmrr.com", [
@@ -80,6 +114,74 @@ describe("computeSearchVisibility (trustmrr — the aggregator case)", () => {
   it("reports a real footprint (keywords + est. visits)", () => {
     expect(v.keywordsRanked).toBeGreaterThan(0);
     expect(v.estMonthlyVisits).toBeGreaterThan(0);
+  });
+});
+
+// D3 (2026-07-20, data board P1): with REAL per-entity URLs present, the old
+// "off-topic dominates" framing above is what D3 REPLACES — most of
+// trustmrr's "off-topic" traffic is not noise, it's THIRD-PARTY ENTITY
+// listings (the startups it directories). This is the corpus-first
+// expectation the brief asked to write FIRST, watch fail (pre-implementation
+// it would have read aggregatedPct === 0, offTopicPct > 70 — the OLD
+// numbers), then implement against.
+describe("computeSearchVisibility (trustmrr — D3 AGGREGATED dimension, real URLs)", () => {
+  const v = computeSearchVisibility(TRUSTMRR_REAL_URLS, VOCAB);
+
+  it("aggregatedPct is HIGH — most of the footprint is directory-listed entity names", () => {
+    expect(v.aggregatedPct).toBeGreaterThan(70);
+  });
+
+  it("residual offTopicPct (genuine noise) is near 0 — only 'marc lou' (1 founder-profile row) remains", () => {
+    expect(v.offTopicPct).toBeLessThan(5);
+  });
+
+  it("aggregatedExamples names the listed entities (cometly, not marc lou)", () => {
+    expect(v.aggregatedExamples).toContain("cometly");
+    expect(v.aggregatedExamples).not.toContain("marc lou"); // below N_TEMPLATE, stays noise
+  });
+
+  it("offTopicExamples no longer names directory listings — 'cometly'/'spanglish translator' moved to aggregatedExamples", () => {
+    expect(v.offTopicExamples).not.toContain("cometly");
+    expect(v.offTopicExamples).not.toContain("spanglish translator");
+  });
+
+  it("categoryPct is UNCHANGED from the no-url-data version — the aggregated split never touches category rows (invariant #1)", () => {
+    const withoutUrls = computeSearchVisibility(TRUSTMRR, VOCAB);
+    expect(v.categoryPct).toBe(withoutUrls.categoryPct);
+  });
+
+  it("sv.score is IDENTICAL whether or not URL data (and therefore the aggregated split) is present — the direct invariant #1 proof", () => {
+    const withoutUrls = computeSearchVisibility(TRUSTMRR, VOCAB);
+    // withoutUrls never detects a template (placeholder single-segment url), so
+    // its offtopic bucket never splits — proving the split, when it DOES fire,
+    // changes nothing about `score` (score is computed from category rows only,
+    // never from offtopic/aggregated).
+    expect(withoutUrls.aggregatedPct).toBe(0);
+    expect(v.aggregatedPct).toBeGreaterThan(0); // the split DID fire here
+    expect(v.score).toBe(withoutUrls.score); // yet the score is identical
+  });
+
+  it("brandPct is also unchanged — only offtopic rows are ever reclassified", () => {
+    const withoutUrls = computeSearchVisibility(TRUSTMRR, VOCAB);
+    expect(v.brandPct).toBe(withoutUrls.brandPct);
+  });
+
+  // MUTATION PROOF (brief requirement): disabling the URL-template reclassify
+  // must collapse trustmrr's aggregatedPct back to 0 — i.e. this assertion
+  // reproduces exactly what `git diff --stat` + a manual revert of the
+  // `entityListingTemplates`/`pathContainer` wiring in computeSearchVisibility
+  // was verified to do during implementation (see task-P1-report.md for the
+  // recorded before/after run). This test pins the NON-mutated (fixed) state
+  // so a future regression that silently disables the pass fails here too.
+  it("(mutation-proof anchor) aggregatedPct depends on the URL-template pass actually running", () => {
+    // Same rows, but url stripped to "" (simulating the pass being disabled /
+    // never seeing real URLs) — must behave exactly like the no-url fixture.
+    const urlless = computeSearchVisibility(
+      TRUSTMRR_REAL_URLS.map((k) => ({ ...k, url: "" })),
+      VOCAB,
+    );
+    expect(urlless.aggregatedPct).toBe(0);
+    expect(v.aggregatedPct).toBeGreaterThan(70); // the real, non-mutated behaviour
   });
 });
 
@@ -332,7 +434,7 @@ describe("free-scan number honesty (guards G1, G2)", () => {
     // internal numerator. A type-level assertion: the fields must not exist.
     const sv: SearchVisibility = {
       score: 5, keywordsRanked: 2100, estMonthlyVisits: 100, footprintComplete: true,
-      brandPct: 10, categoryPct: 20, offTopicPct: 70, categoryGap: [], offTopicExamples: [],
+      brandPct: 10, categoryPct: 20, aggregatedPct: 0, offTopicPct: 70, categoryGap: [], offTopicExamples: [], aggregatedExamples: [],
       categoryWins: 0, categoryDemand: 1000, categoryOpportunities: [], categoryPhrases: [], categoryRanked: [], categoryWonKeywords: [],
     };
     // @ts-expect-error — categoryCaptureRate is deleted; referencing it must not typecheck.

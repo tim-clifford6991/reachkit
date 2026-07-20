@@ -40,9 +40,11 @@ function sv(over: Partial<SearchVisibility> = {}): SearchVisibility {
     estMonthlyVisits: 400,
     brandPct: 30,
     categoryPct: 20,
+    aggregatedPct: 0,
     offTopicPct: 50,
     categoryGap: [],
     offTopicExamples: [],
+    aggregatedExamples: [],
     categoryWins: 1,
     categoryDemand: 8000,
     categoryOpportunities: [
@@ -298,9 +300,11 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
       categoryGap: [], categoryWins: 0,
       categoryDemand: 8000, categoryOpportunities: [], categoryWonKeywords: [],
       // deliberately NO footprintComplete, NO categoryPhrases, NO categoryRanked,
-      // NO marketTiers, NO offTopicExamples — they postdate this payload (the
-      // last three are this task's M3/WS-D fields, 2026-07-19). The render
-      // must tolerate their absence.
+      // NO marketTiers, NO offTopicExamples, NO aggregatedPct/aggregatedExamples
+      // (D3, data board P1, 2026-07-20) — they all postdate this payload. The
+      // render must tolerate their absence; aggregatedPct/aggregatedExamples
+      // are data-only this phase (defaulted `?? 0`/`?? []` in to-results-props.ts)
+      // and not rendered, so this scenario just pins that the default holds.
     } as unknown as SearchVisibility;
     // Task 6 review hygiene addition: also omit positioningMirror.listingSays
     // (the identity-strip field, added after this shape shipped) so the

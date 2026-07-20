@@ -191,6 +191,15 @@ export function toResultsProps(
         footprintComplete: sv.footprintComplete ?? false,
         brandPct: sv.brandPct,
         categoryPct: sv.categoryPct,
+        // D3 (2026-07-20, data board P1): aggregatedPct/aggregatedExamples are
+        // the new AGGREGATED footprint dimension (directory/aggregator listing
+        // share, peeled out of offTopicPct — see search-visibility.ts). DATA
+        // ONLY this phase: defaulted here for legacy-payload safety (the
+        // report_payload one-blob rule — a pre-P1 persisted scan predates these
+        // fields) but NOT added to ResultsScreenProps / rendered anywhere yet;
+        // that's P3.
+        aggregatedPct: sv.aggregatedPct ?? 0,
+        aggregatedExamples: sv.aggregatedExamples ?? [],
         offTopicPct: sv.offTopicPct,
         categoryWins: sv.categoryWins,
         categoryDemand: sv.categoryDemand,
