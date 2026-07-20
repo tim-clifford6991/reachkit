@@ -41,6 +41,30 @@ export interface MarketTierSeeds {
   niche: string[];
 }
 
+/** P2 (2026-07-20, data board): one altitude's LLM-authored seed — a LABEL
+ *  (cosmetic, e.g. "SEO tooling") plus candidate head PHRASES. Phrases only —
+ *  never volumes; DataForSEO prices them, the LLM never fabricates a number. */
+export interface LadderSeeds {
+  label: string;
+  phrases: string[];
+}
+
+/** P2 (2026-07-20, data board): the lite synth's two-label market seeds —
+ *  CATEGORY (the broad industry umbrella the gather must ladder to LARGE, D2)
+ *  and NICHE (the specific sub-space, may stay small). Replaces the flat
+ *  `categorySeeds` + `marketTiers{broad,niche}` shape with an explicit label
+ *  per altitude: the gather needs the label to name the card (P3 render) and
+ *  needs category vs niche kept distinct (not two anonymous phrase lists) so
+ *  it can enforce niche ⊆ category and ladder ONLY the category side.
+ *  `categorySeeds`/`marketTiers` remain on `SynthResult` as DERIVED
+ *  back-compat fields (see `parseLiteSynth`) for consumers not yet migrated
+ *  to read this field directly — they are never independently authored by the
+ *  LLM once this field is present. */
+export interface CategoryNicheSeeds {
+  category: LadderSeeds;
+  niche: LadderSeeds;
+}
+
 export interface SynthResult {
   positioningMirror: PositioningMirror;
   findings: Finding[];
@@ -49,12 +73,20 @@ export interface SynthResult {
    *  "buy saas business", "ai meeting reminders"). Used to seed keyword_ideas so
    *  category-demand is measured against the real category, not the subject's own
    *  narrow rankings. The LLM only identifies the category; volumes come from
-   *  DataForSEO (no fabricated numbers). Optional for backward-compat. */
+   *  DataForSEO (no fabricated numbers). Optional for backward-compat. DERIVED
+   *  from `categoryNiche.category.phrases` when the LLM output carries the new
+   *  shape and no legacy `categorySeeds` key (see `parseLiteSynth`). */
   categorySeeds?: string[];
   /** M1: labeled broad/niche market-tier seeds from the lite synth (medium
    *  removed — see MarketTierSeeds). Optional — absent on legacy/full-synth
-   *  output. */
+   *  output. DERIVED from `categoryNiche` (broad←category.phrases,
+   *  niche←niche.phrases) when the LLM output carries the new shape and no
+   *  legacy `marketTiers` key (see `parseLiteSynth`). */
   marketTiers?: MarketTierSeeds;
+  /** P2 (2026-07-20, data board): the LLM's two-label category/niche seed —
+   *  see `CategoryNicheSeeds`. Optional — absent on legacy synth output (older
+   *  prompt shape, or the full/deep synth which doesn't emit it). */
+  categoryNiche?: CategoryNicheSeeds;
 }
 
 // ---------------------------------------------------------------------------

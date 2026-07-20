@@ -19,7 +19,13 @@ vi.mock("@/lib/scan/cache/cached-adapters", () => ({
   cachedKeywordVolumes: (...a: unknown[]) => gatherVolumesSpy(...a),
 }));
 
-import { computeSearchVisibility, buildVocab, computeCategoryDemand, buildCategorySeeds, computeMarketTiers, classifyFootprint, gatherFreeSearchVisibility, stem } from "./search-visibility";
+import {
+  computeSearchVisibility, buildVocab, computeCategoryDemand, buildCategorySeeds, computeMarketTiers,
+  classifyFootprint, gatherFreeSearchVisibility, stem, computeCategoryLadder, ladderCandidates, CATEGORY_FLOOR,
+  essentialLadderCandidates,
+} from "./search-visibility";
+import { tokens, GENERIC_TOKENS } from "@/lib/scan/referral/brand-keywords";
+import type { CategoryNicheSeeds } from "@/lib/llm/types";
 
 // Default url is a single-segment placeholder ("/x") — deliberately NEVER a
 // 2+-segment URL template match (see `pathContainer` in search-visibility.ts),
@@ -392,6 +398,371 @@ describe("computeCategoryDemand grounding (task-G, 2026-07-20) — no LLM-guesse
   });
 });
 
+// ---------------------------------------------------------------------------
+// computeCategoryLadder (P2, 2026-07-20, data board) — CATEGORY is the broad
+// umbrella and must be LARGE (Tim's rule): a grounded category demand below
+// CATEGORY_FLOOR is laddered UP by dropping leading/trailing qualifier tokens
+// from the LLM's category phrases until a grounded broader form clears the
+// floor, never past a term that loses every real/niche token (the guard).
+// NICHE stays specific and may be small; every niche phrase must share a
+// non-generic token with the category (⊆ by construction).
+// ---------------------------------------------------------------------------
+describe("computeCategoryLadder — CATEGORY must be LARGE, never fabricated (D2)", () => {
+  /** A niche phrase shares a real, non-generic token with SOME category phrase
+   *  — the corpus-level ⊆ check, independent of the implementation. */
+  function nicheIsContainedInCategory(nichePhrase: string, categoryPhrases: string[]): boolean {
+    const nicheToks = new Set(tokens(nichePhrase).map(stem).filter((t) => !GENERIC_TOKENS.has(t)));
+    return categoryPhrases.some((c) => tokens(c).map(stem).some((t) => !GENERIC_TOKENS.has(t) && nicheToks.has(t)));
+  }
+
+  describe("ladderCandidates — broader forms by dropping leading/trailing qualifier tokens", () => {
+    it("enumerates every contiguous window shorter than the original phrase, longest first", () => {
+      expect(ladderCandidates("seo analytics tools")).toEqual([
+        "seo analytics", "analytics tools", "seo", "analytics", "tools",
+      ]);
+    });
+    it("a single-token phrase has no broader form", () => {
+      expect(ladderCandidates("seo")).toEqual([]);
+    });
+  });
+
+  it("reachkit.app: a tiny grounded SEO category ladders to a LARGE umbrella ('seo')", () => {
+    const categoryRanked = [
+      { keyword: "seo audit tool", volume: 2400, yourPosition: 15 },
+      { keyword: "seo scan", volume: 1300, yourPosition: 22 },
+    ];
+    const categoryNiche: CategoryNicheSeeds = {
+      category: { label: "SEO tooling", phrases: ["seo audit tool", "website seo checker"] },
+      niche: { label: "SEO competitor tracking", phrases: ["seo competitor tracking", "compare seo rivals"] },
+    };
+    const volumesByKeyword = new Map<string, number>([
+      ["seo audit tool", 90],
+      ["website seo checker", 200],
+      ["seo", 40500], // the ladder candidate that clears the floor
+      ["seo competitor tracking", 70],
+      ["compare seo rivals", 20],
+    ]);
+    const rankByKeyword = new Map<string, number>();
+
+    const { categoryCard, nicheCard } = computeCategoryLadder(categoryNiche, volumesByKeyword, rankByKeyword, categoryRanked);
+
+    // D2, the machine-checked version of Tim's rule: category is LARGE.
+    expect(categoryCard.demand).toBeGreaterThanOrEqual(CATEGORY_FLOOR);
+    expect(categoryCard.demand).toBe(40500);
+    expect(categoryCard.phrases.map((p) => p.keyword)).toEqual(["seo"]);
+    expect(categoryCard.label).toBe("SEO tooling");
+    // Not the tiny unladdered 90+200 = 290.
+    expect(categoryCard.demand).not.toBe(290);
+
+    // Niche stays small and honest.
+    expect(nicheCard.demand).toBeLessThan(CATEGORY_FLOOR);
+    expect(nicheCard.demand).toBe(90); // 70 + 20
+    expect(nicheCard.label).toBe("SEO competitor tracking");
+    for (const p of nicheCard.phrases) {
+      expect(nicheIsContainedInCategory(p.keyword, categoryNiche.category.phrases)).toBe(true);
+    }
+  });
+
+  it("savvycal.com: scheduling category ladders to a LARGE umbrella ('scheduling')", () => {
+    const categoryRanked = [
+      { keyword: "appointment scheduling tool", volume: 110, yourPosition: 8 },
+      { keyword: "meeting scheduler", volume: 320, yourPosition: 14 },
+    ];
+    const categoryNiche: CategoryNicheSeeds = {
+      category: { label: "Scheduling software", phrases: ["online scheduling tool", "meeting scheduler app"] },
+      niche: { label: "Scheduling for consultants", phrases: ["consultant scheduling tool", "client booking calendar"] },
+    };
+    const volumesByKeyword = new Map<string, number>([
+      ["online scheduling tool", 110],
+      ["meeting scheduler app", 90],
+      ["scheduling", 33100], // the ladder candidate that clears the floor
+      ["consultant scheduling tool", 40],
+      ["client booking calendar", 20],
+    ]);
+    const rankByKeyword = new Map<string, number>();
+
+    const { categoryCard, nicheCard } = computeCategoryLadder(categoryNiche, volumesByKeyword, rankByKeyword, categoryRanked);
+
+    expect(categoryCard.demand).toBeGreaterThanOrEqual(CATEGORY_FLOOR);
+    expect(categoryCard.phrases.map((p) => p.keyword)).toEqual(["scheduling"]);
+    // savvycal ranks for ZERO scheduling terms in this fixture — a real hook (0 top-3).
+    expect(categoryCard.rankedTop3).toEqual([]);
+    expect(nicheCard.demand).toBeLessThan(CATEGORY_FLOOR);
+  });
+
+  it("x.com: social-media category ladders to a huge umbrella ('social')", () => {
+    const categoryRanked = [
+      { keyword: "social media platform", volume: 9900, yourPosition: 5 },
+      { keyword: "microblogging app", volume: 720, yourPosition: 3 },
+    ];
+    const categoryNiche: CategoryNicheSeeds = {
+      category: { label: "Social media", phrases: ["social networking site", "microblogging platform"] },
+      niche: { label: "Microblogging for public figures", phrases: ["microblogging service"] },
+    };
+    const volumesByKeyword = new Map<string, number>([
+      ["social networking site", 480],
+      ["microblogging platform", 90],
+      ["social", 673000], // the ladder candidate that clears the floor — "hundreds of thousands"
+      ["microblogging service", 320],
+    ]);
+    const rankByKeyword = new Map<string, number>();
+
+    const { categoryCard, nicheCard } = computeCategoryLadder(categoryNiche, volumesByKeyword, rankByKeyword, categoryRanked);
+
+    expect(categoryCard.demand).toBeGreaterThanOrEqual(CATEGORY_FLOOR);
+    expect(categoryCard.demand).toBe(673000);
+    expect(categoryCard.phrases.map((p) => p.keyword)).toEqual(["social"]);
+    expect(nicheCard.demand).toBeLessThan(CATEGORY_FLOOR);
+    expect(nicheCard.phrases.map((p) => p.keyword)).toContain("microblogging service");
+  });
+
+  it("trustmrr.com: the tiny (90/mo) real category ladders to a LARGE grounded umbrella, not left tiny — niche keeps the small real MRR terms", () => {
+    // VERIFIED live rankings (task-P2 brief): "startup revenue" #2, "mrr startup" #2.
+    const categoryRanked = [
+      { keyword: "mrr startup", volume: 90, yourPosition: 2 },
+      { keyword: "startup mrr", volume: 90, yourPosition: 2 },
+      { keyword: "mrr app", volume: 70, yourPosition: 1 },
+      { keyword: "startup revenue", volume: 30, yourPosition: 2 },
+    ];
+    const categoryNiche: CategoryNicheSeeds = {
+      category: { label: "Startup tools", phrases: ["mrr tracking tool", "startup revenue tools"] },
+      niche: { label: "MRR verification", phrases: ["mrr verification tool", "startup revenue verification"] },
+    };
+    const volumesByKeyword = new Map<string, number>([
+      ["mrr tracking tool", 90],
+      ["startup revenue tools", 40],
+      ["startup", 40500], // the ladder candidate that clears the floor
+      ["mrr verification tool", 20],
+      ["startup revenue verification", 10],
+    ]);
+    const rankByKeyword = new Map<string, number>();
+
+    const { categoryCard, nicheCard } = computeCategoryLadder(categoryNiche, volumesByKeyword, rankByKeyword, categoryRanked);
+
+    expect(categoryCard.demand).toBeGreaterThanOrEqual(CATEGORY_FLOOR);
+    // Not the tiny unladdered 90+40 = 130 (the shipped-dishonest class this fixes).
+    expect(categoryCard.demand).not.toBe(130);
+    expect(categoryCard.phrases.map((p) => p.keyword)).toEqual(["startup"]);
+    // Niche keeps the small real MRR terms — honest, no fabrication.
+    expect(nicheCard.demand).toBe(30);
+    expect(nicheCard.phrases.map((p) => p.keyword).sort()).toEqual(["mrr verification tool", "startup revenue verification"]);
+  });
+
+  it("no ladder needed when the grounded category head phrases already clear the floor", () => {
+    const categoryRanked = [{ keyword: "email api", volume: 12000, yourPosition: 4 }];
+    const categoryNiche: CategoryNicheSeeds = {
+      category: { label: "Email APIs", phrases: ["email api", "transactional email api"] },
+      niche: { label: "Email API for developers", phrases: ["email api for developers"] },
+    };
+    const volumesByKeyword = new Map<string, number>([
+      ["email api", 9000],
+      ["transactional email api", 1500],
+      ["email api for developers", 40],
+    ]);
+    const rankByKeyword = new Map<string, number>([["email api", 2]]);
+
+    const { categoryCard } = computeCategoryLadder(categoryNiche, volumesByKeyword, rankByKeyword, categoryRanked);
+
+    // Already ≥ floor (9000+1500=10500) — the ORIGINAL multi-phrase list is kept, not collapsed to one term.
+    expect(categoryCard.demand).toBe(10500);
+    expect(categoryCard.phrases.map((p) => p.keyword).sort()).toEqual(["email api", "transactional email api"]);
+    expect(categoryCard.rankedTop3.map((p) => p.keyword)).toEqual(["email api"]);
+  });
+
+  it("ladder-over-broaden guard: a huge token-less generic ladder candidate is REJECTED even though its volume clears the floor", () => {
+    // "invoice automation widgets" (tiny, 50/mo) would ladder to 1-token "widgets"
+    // (999,999/mo) — but "widgets" shares NO token with the real rankings or the
+    // niche phrases, so it must be rejected; the algorithm falls back to the
+    // next-broadest QUALIFYING candidate, "invoice automation" (still ≥ floor).
+    const categoryRanked = [{ keyword: "invoice automation", volume: 200, yourPosition: 5 }];
+    const categoryNiche: CategoryNicheSeeds = {
+      category: { label: "Invoicing tools", phrases: ["invoice automation widgets"] },
+      niche: { label: "Invoice reminders", phrases: ["invoice automation reminders"] },
+    };
+    const volumesByKeyword = new Map<string, number>([
+      ["invoice automation widgets", 50],
+      ["widgets", 999999], // huge but token-less — must be REJECTED by the guard
+      ["invoice automation", 15000], // the correct, guarded pick
+      ["invoice automation reminders", 30],
+    ]);
+    const rankByKeyword = new Map<string, number>();
+
+    const { categoryCard } = computeCategoryLadder(categoryNiche, volumesByKeyword, rankByKeyword, categoryRanked);
+
+    expect(categoryCard.phrases.map((p) => p.keyword)).not.toContain("widgets");
+    expect(categoryCard.demand).not.toBe(999999);
+    expect(categoryCard.phrases.map((p) => p.keyword)).toEqual(["invoice automation"]);
+    expect(categoryCard.demand).toBe(15000);
+  });
+
+  it("exhausted ladder (no candidate clears the floor): stays small and honest — a genuine micro-niche is not forced to lie", () => {
+    const categoryRanked = [{ keyword: "artisan quill repair", volume: 40, yourPosition: 3 }];
+    const categoryNiche: CategoryNicheSeeds = {
+      category: { label: "Artisan quill repair", phrases: ["artisan quill repair service"] },
+      niche: { label: "Vintage fountain pen quill repair", phrases: ["vintage fountain pen quill repair"] },
+    };
+    const volumesByKeyword = new Map<string, number>([
+      ["artisan quill repair service", 40],
+      ["artisan quill repair", 60],
+      ["quill repair", 90],
+      ["artisan quill", 20],
+      ["artisan", 30],
+      ["quill", 50],
+      ["repair", 40], // "repair" is real vocab here but still tiny — genuinely small market
+      ["vintage fountain pen quill repair", 10],
+    ]);
+    const rankByKeyword = new Map<string, number>();
+
+    const { categoryCard } = computeCategoryLadder(categoryNiche, volumesByKeyword, rankByKeyword, categoryRanked);
+
+    // Nothing clears CATEGORY_FLOOR — degrade to the original small, honest number.
+    expect(categoryCard.demand).toBeLessThan(CATEGORY_FLOOR);
+    expect(categoryCard.demand).toBe(40);
+    expect(categoryCard.phrases.map((p) => p.keyword)).toEqual(["artisan quill repair service"]);
+  });
+
+  it("no ranking evidence at all (0-ranking new site): degrades to unfiltered LLM phrases rather than asserting nothing", () => {
+    const categoryNiche: CategoryNicheSeeds = {
+      category: { label: "AI meeting notes", phrases: ["ai meeting notes app"] },
+      niche: { label: "AI notes for sales calls", phrases: ["ai sales call notes"] },
+    };
+    const volumesByKeyword = new Map<string, number>([
+      ["ai meeting notes app", 12100],
+      ["ai sales call notes", 320],
+    ]);
+    const rankByKeyword = new Map<string, number>();
+
+    const { categoryCard, nicheCard } = computeCategoryLadder(categoryNiche, volumesByKeyword, rankByKeyword, []);
+
+    expect(categoryCard.demand).toBe(12100);
+    expect(nicheCard.demand).toBe(320);
+  });
+
+  it("invariant #1: categoryCard/nicheCard are presentation only — never feed sv.score", async () => {
+    gatherRankedSpy.mockResolvedValueOnce(TRUSTMRR);
+    gatherOverviewSpy.mockResolvedValueOnce(null);
+    gatherVolumesSpy.mockResolvedValueOnce([
+      { keyword: "mrr tracking tool", volume: 90 },
+      { keyword: "mrr", volume: 40500 }, // ladder candidate of "mrr tracking tool"
+      { keyword: "mrr verification tool", volume: 20 },
+    ]);
+    const seedText = ["verified startup revenue database acquisition marketplace saas mrr"];
+    const llmCategorySeeds = ["mrr tracking tool"];
+    const categoryNiche: CategoryNicheSeeds = {
+      category: { label: "Startup tools", phrases: ["mrr tracking tool"] },
+      niche: { label: "MRR verification", phrases: ["mrr verification tool"] },
+    };
+
+    const gathered = await gatherFreeSearchVisibility("trustmrr.com", seedText, llmCategorySeeds, undefined, [], categoryNiche);
+
+    // The ladder actually ran (not a no-op stand-in).
+    expect(gathered.categoryCard?.demand).toBeGreaterThanOrEqual(CATEGORY_FLOOR);
+
+    // …and it did not touch score: classifying the SAME rows/vocab directly —
+    // no ladder, no cards — produces the identical score the gather returned.
+    const expected = classifyFootprint("trustmrr.com", seedText, llmCategorySeeds, TRUSTMRR, []);
+    expect(gathered.score).toBe(expected.score);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// P2 review fix (2026-07-20): the missing boundary guard. At realistic MAX
+// phrase counts the unique phrase set headed for the ONE `cachedKeywordVolumes`
+// batch reaches ~60+ — well past the OLD 40-item cap — and the OLD assembly
+// order (`[...seeds, ...tierPhrases, ...cardSeeds]`, cardSeeds LAST, and within
+// each phrase's ladder candidates the single-token broadest form generated
+// LAST) silently dropped up to 10 of 16 single-token ladder candidates: the
+// exact terms that clear CATEGORY_FLOOR. `computeCategoryLadder` then read a
+// truncated `volumesByKeyword`, found the floor-clearing umbrella term absent,
+// and wrongly reported "ladder exhausted" — the CATEGORY-must-be-LARGE
+// guarantee (D2) silently failing at scale. This guard prices the actual
+// batch a live scan sends and asserts every essential phrase survives.
+// ---------------------------------------------------------------------------
+describe("gatherFreeSearchVisibility — the volumes batch never truncates essential card-seed phrases (P2 review fix)", () => {
+  it("at realistic MAX phrase counts (6 category, 6 niche, 8 tier) every category phrase, niche phrase, and single-token ladder candidate rides the priced batch — only lower-priority legacy phrases may be cut", async () => {
+    gatherRankedSpy.mockResolvedValueOnce(TRUSTMRR);
+    gatherOverviewSpy.mockResolvedValueOnce(null);
+    gatherVolumesSpy.mockResolvedValueOnce([]); // volumes content is irrelevant here — only the REQUEST shape is under test
+
+    // 6 category phrases, 6 tokens each, deliberately DISTINCT vocabulary
+    // across phrases (worst case for the ladder — no token sharing means no
+    // free dedup) — realistic upper end of "usually 2-3 words" (synth.ts
+    // prompt) but within the hard 6-phrase LadderSeeds.phrases cap.
+    const categoryPhrases = [
+      "seo keyword audit checker report tool",
+      "calendar meeting booking scheduler event widget",
+      "social content post publisher schedule panel",
+      "growth funnel metrics tracker insight suite",
+      "invoice billing payment ledger record system",
+      "helpdesk ticket queue routing escalation manager",
+    ];
+    // 6 niche phrases (hard cap) — content irrelevant to grounding here, this
+    // test is about batch truncation, not the grounding guard (covered above).
+    const nichePhrases = [
+      "seo audit reporting for digital agencies",
+      "booking scheduler for solo consultants",
+      "content publisher for indie creators",
+      "funnel insight dashboards for founders",
+      "invoice ledger tracking for freelancers",
+      "ticket escalation flows for support teams",
+    ];
+    const categoryNiche: CategoryNicheSeeds = {
+      category: { label: "Ops tooling", phrases: categoryPhrases },
+      niche: { label: "Ops tooling for small teams", phrases: nichePhrases },
+    };
+    // 8 market-tier phrases (broad 4 + niche 4, the M1 hard cap) — grounded
+    // against TRUSTMRR's real category rows (exact-rank match or a shared
+    // mrr/startup token), same family as the existing invariant-#1 test.
+    const tierSeeds = {
+      broad: ["startup mrr", "mrr app", "startup mrr revenue", "mrr saas dashboard"],
+      niche: ["mrr saas", "startup revenue", "mrr app tracker", "startup revenue report"],
+    };
+    // 8 legacy category-demand seeds (the `buildCategorySeeds` llm branch,
+    // capped at 8) — mrr/startup themed so TRUSTMRR's real category rows
+    // still classify correctly (same vocabulary family as invariant-#1).
+    const llmCategorySeeds = [
+      "startup mrr tool", "mrr saas platform", "startup revenue app", "mrr tracking service",
+      "startup growth service", "mrr analytics tool", "startup finance app", "mrr insight tool",
+    ];
+
+    await gatherFreeSearchVisibility(
+      "trustmrr.com", ["startup mrr revenue saas tracking"], llmCategorySeeds, tierSeeds, [], categoryNiche,
+    );
+
+    // The spy is shared/uncleared across this file's other gather-level
+    // tests — read the LAST call (this test's own), not an absolute count.
+    const priced = gatherVolumesSpy.mock.calls.at(-1)![0] as string[];
+    const pricedSet = new Set(priced);
+
+    // Every category phrase, every niche phrase, and every essential ladder
+    // candidate (single-token forms + one intermediate per phrase) survives —
+    // none silently dropped.
+    const essential = [
+      ...categoryPhrases,
+      ...categoryPhrases.flatMap((p) => essentialLadderCandidates(p)),
+      ...nichePhrases,
+    ].map((s) => s.toLowerCase().trim());
+    const missingEssential = essential.filter((p) => !pricedSet.has(p));
+    expect(missingEssential).toEqual([]);
+
+    // The exact failure mode this closes: a floor-clearing SINGLE-TOKEN
+    // umbrella term (e.g. "seo", "scheduling") is never truncated.
+    const singleTokenCandidates = categoryPhrases
+      .flatMap((p) => essentialLadderCandidates(p))
+      .filter((c) => !c.includes(" "));
+    expect(singleTokenCandidates.length).toBeGreaterThan(0);
+    for (const t of singleTokenCandidates) expect(pricedSet.has(t)).toBe(true);
+
+    // The batch stays within the documented cap...
+    expect(priced.length).toBeLessThanOrEqual(60);
+    // ...and this scenario is a genuine stress case, not a vacuous one: the
+    // essential set ALONE plus the deterministic legacy seeds already exceeds
+    // the cap, so SOMETHING must be cut — proving the priority order (not
+    // just a big-enough cap) is what's under test.
+    expect(new Set([...essential, ...llmCategorySeeds]).size).toBeGreaterThan(60);
+  });
+});
+
 describe("buildCategorySeeds — LLM seeds are authoritative", () => {
   it("prefers the LLM's clean category phrases over the subject's own rankings", () => {
     const sv = computeSearchVisibility(
@@ -751,7 +1122,10 @@ describe("M2 paid parity — the deep pass threads tier seeds too", () => {
   // bumped 4 -> 5 here too, so a dropped brandNames arg on the paid path
   // (silently reverting x.com-class subjects to brandPct 0 on upgrade) fails
   // the same way a dropped tierSeeds arg already did.
-  it("full-scan.ts: runFullScan calls gatherFreeSearchVisibility(...) with a 5th (brandNames) argument", () => {
+  // P2 (2026-07-20, data board): a 6th argument (categoryNicheSeeds) was added
+  // so categoryCard/nicheCard don't silently vanish when a scan is deepened
+  // post-upgrade — bumped 5 -> 6 here too, same discipline.
+  it("full-scan.ts: runFullScan calls gatherFreeSearchVisibility(...) with a 6th (categoryNicheSeeds) argument", () => {
     expect(() => expectCallsSymbol("lib/scan/full-scan.ts", "gatherFreeSearchVisibility", { within: "runFullScan" })).not.toThrow();
 
     const src = readFileSync(resolve(process.cwd(), "lib/scan/full-scan.ts"), "utf8");
@@ -761,7 +1135,7 @@ describe("M2 paid parity — the deep pass threads tier seeds too", () => {
     expect(call, "expected a gatherFreeSearchVisibility(...) call inside runFullScan").not.toBeNull();
     const args = call![1]!;
     const argCount = args.split(",").length;
-    expect(argCount, `expected 5 args (rawSelf, seedText, catSeeds, tierSeeds, brandNames) — got: ${args}`).toBe(5);
+    expect(argCount, `expected 6 args (rawSelf, seedText, catSeeds, tierSeeds, brandNames, categoryNicheSeeds) — got: ${args}`).toBe(6);
   });
 });
 

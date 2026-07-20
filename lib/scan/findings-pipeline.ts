@@ -102,6 +102,11 @@ export async function runFindings(
       // categorySeeds is UNCHANGED (still feeds the persisted v5 score story); this
       // is the raw material a later task prices via the existing volumes call.
       marketTiers: (synth.marketTiers ?? null) as unknown as Json,
+      // P2 (2026-07-20, data board): the two-label category/niche seed the
+      // gather ladders into categoryCard/nicheCard (search-visibility.ts).
+      // categorySeeds/marketTiers above are DERIVED compat copies of this
+      // (see parseLiteSynth) — this is the field the data board actually reads.
+      categoryNiche: (synth.categoryNiche ?? null) as unknown as Json,
     };
 
     const { error: scansErr } = await db
