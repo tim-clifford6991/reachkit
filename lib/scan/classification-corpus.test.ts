@@ -8,6 +8,16 @@ import resend from "./fixtures/classification-corpus/resend.com.json";
 import savvycal from "./fixtures/classification-corpus/savvycal.com.json";
 import savvycalLegitimizedTime from "./fixtures/classification-corpus/savvycal.com.legitimized-time.json";
 import spacex from "./fixtures/classification-corpus/spacex.com.json";
+// D3 (2026-07-20, data board P1): the two DIRECTORY controls — real captures
+// whose footprint IS the AGGREGATED dimension (see each fixture's own note).
+import trustmrr from "./fixtures/classification-corpus/trustmrr.com.json";
+import getapp from "./fixtures/classification-corpus/getapp.com.json";
+// P1 review fix (2026-07-20): the missing reachkit ≈0-aggregation control
+// (REAL data — reachkit.app genuinely has zero rankings, verified via Supabase
+// MCP; see the fixture's own note) + the blog/docs false-positive class
+// (CONSTRUCTED, clearly labeled — see the fixture's own note).
+import reachkit from "./fixtures/classification-corpus/reachkit.app.json";
+import blogHeavySaas from "./fixtures/classification-corpus/blog-heavy-saas.constructed.json";
 
 // ---------------------------------------------------------------------------
 // CALIBRATION RATCHET — runs the REAL classifier (classifyFootprint, the same
@@ -25,9 +35,16 @@ import spacex from "./fixtures/classification-corpus/spacex.com.json";
 // to off-topic for want of vocab support that the real page actually provides).
 // ---------------------------------------------------------------------------
 
-// The captured fixtures omit the per-keyword ranking `url` (classification never
-// reads it — only keyword/position/volume/etv), so the corpus rows are a subset.
-type CorpusKw = { keyword: string; position: number; volume: number; etv: number };
+// D3 (2026-07-20, data board P1): `url` is now OPTIONAL on the corpus row type
+// — the URL-template batch pass (computeSearchVisibility's AGGREGATED-dimension
+// detection) reads it, so fixtures that exercise that pass carry real per-row
+// URLs (trustmrr, getapp, and the non-directory controls below, all pulled
+// from the live search_cache `rk:<domain>:50` bodies, Supabase MCP project
+// kleepxxddbcnfsfwudoe, 2026-07-20). Fixtures that predate this field simply
+// omit it — `run()` below defaults a missing url to "", which never forms a
+// 2-segment path template (see `pathContainer`), so their aggregated split
+// stays exactly 0, identical to their pre-P1 behaviour.
+type CorpusKw = { keyword: string; position: number; volume: number; etv: number; url?: string };
 interface Corpus {
   domain: string;
   note?: string;
@@ -46,7 +63,9 @@ interface Corpus {
 
 /** Run the real classification + opportunity computation over a corpus fixture. */
 function run(fx: Corpus) {
-  const sv = classifyFootprint(fx.domain, fx.seedText, fx.llmCategorySeeds, fx.rankedKeywords as unknown as RankedKeyword[], fx.brandNames ?? []);
+  // url ?? "" — see the CorpusKw doc comment above (pre-P1 fixtures omit it).
+  const rowsWithUrl = fx.rankedKeywords.map((k) => ({ ...k, url: k.url ?? "" }));
+  const sv = classifyFootprint(fx.domain, fx.seedText, fx.llmCategorySeeds, rowsWithUrl as unknown as RankedKeyword[], fx.brandNames ?? []);
   const rankByKeyword = new Map<string, number>();
   for (const k of fx.rankedKeywords) {
     const key = k.keyword.toLowerCase();
@@ -68,13 +87,21 @@ const MEGA_BRANDS = [
 ];
 
 describe("corpus: x.com — a giant whose footprint is ~entirely other mega-brands", () => {
-  const { category, categoryOpportunities } = run(xcom as Corpus);
+  const { sv, category, categoryOpportunities } = run(xcom as Corpus);
   it("no mega-brand is classified as x.com's category", () => {
     for (const b of MEGA_BRANDS) expect(category.has(b), `"${b}" must NOT be x.com category`).toBe(false);
   });
   it("the biggest 'opportunity' is not a mega-brand (no 'google is your opportunity')", () => {
     const top = categoryOpportunities[0]?.keyword ?? "";
     expect(MEGA_BRANDS).not.toContain(top);
+  });
+  // D3 (2026-07-20, data board P1): x.com is NOT a directory — its incidental
+  // mega-brand hits (google/foxnews/espn/…) must stay off-topic NOISE, never
+  // AGGREGATED. Real per-row URLs (x.com.json) are single-segment profile
+  // pages (x.com/FoxNews) with no repeated 2+-segment container, so the
+  // URL-template pass correctly finds nothing here.
+  it("aggregatedPct stays ~0 — a big platform's incidental mega-brand hits are NOT a directory listing", () => {
+    expect(sv.aggregatedPct).toBeLessThan(5);
   });
 });
 
@@ -86,7 +113,7 @@ describe("corpus: x.com (legitimized-news seeds) — the 'fox news' class, repro
   // ["fox","news"] never match the stored concatenated entry "foxnews"). The class
   // fix must hold even with "news" legitimized, and must NOT demote x.com's real,
   // legitimately-named categories ("microblogging platform", "social media network").
-  const { category, categoryOpportunities } = run(xcomLegitimizedNews as Corpus);
+  const { sv, category, categoryOpportunities } = run(xcomLegitimizedNews as Corpus);
   it("no mega-brand — including the multi-word 'fox news' — is classified as x.com's category", () => {
     for (const b of MEGA_BRANDS) expect(category.has(b), `"${b}" must NOT be x.com category`).toBe(false);
   });
@@ -97,6 +124,9 @@ describe("corpus: x.com (legitimized-news seeds) — the 'fox news' class, repro
   it("x.com's real, legitimately-named categories stay category", () => {
     expect(category.has("microblogging platform"), `category had: ${[...category].join(", ")}`).toBe(true);
     expect(category.has("social media network"), `category had: ${[...category].join(", ")}`).toBe(true);
+  });
+  it("aggregatedPct stays ~0 here too — legitimizing 'news' doesn't create a directory", () => {
+    expect(sv.aggregatedPct).toBeLessThan(5);
   });
 });
 
@@ -125,6 +155,10 @@ describe("corpus: x.com POST-PART-C shape (subject brand name recovered) — PR-
   it("every OTHER mega-brand still classifies off-topic — the exemption applies ONLY to the subject's own brand token", () => {
     for (const b of MEGA_BRANDS) expect(category.has(b), `"${b}" must NOT be x.com category`).toBe(false);
   });
+
+  it("aggregatedPct stays ~0 — recovering the real brand doesn't turn x.com into a directory", () => {
+    expect(sv.aggregatedPct).toBeLessThan(5);
+  });
 });
 
 describe("corpus: savvycal.com — footprint is ~all incidental timezone lookups", () => {
@@ -138,6 +172,13 @@ describe("corpus: savvycal.com — footprint is ~all incidental timezone lookups
   it("the biggest opportunity is not a timezone lookup", () => {
     expect(/\btime\b|hawaii|tokyo/.test(categoryOpportunities[0]?.keyword ?? "")).toBe(false);
   });
+  // D3 (2026-07-20, data board P1): savvycal is NOT a directory — its
+  // timezone-lookup footprint is one page per place, ranking under many
+  // keyword PHRASINGS of the SAME lookup (same URL, same slug every time),
+  // never a repeated container with distinct entity slugs.
+  it("aggregatedPct stays ~0 — repeated phrasings of the SAME timezone page are not a directory of entities", () => {
+    expect(sv.aggregatedPct).toBeLessThan(5);
+  });
 });
 
 describe("corpus: savvycal.com (legitimized-time seeds) — the macro rule's OWN mechanism, reproducing the 'fox news' class generically", () => {
@@ -148,7 +189,7 @@ describe("corpus: savvycal.com (legitimized-time seeds) — the macro rule's OWN
   // "news" ride "fox news" into category — so ONLY the macro rule (every
   // non-generic token must be supported; "hawaii"/"tokyo"/"japan"/etc. never
   // are) keeps every timezone lookup off-topic. Part A2 (2026-07-19).
-  const { category, categoryOpportunities } = run(savvycalLegitimizedTime as Corpus);
+  const { sv, category, categoryOpportunities } = run(savvycalLegitimizedTime as Corpus);
   it("'time' is genuinely corroborated (the real category term IS category)", () => {
     expect(category.has("real-time availability calendar"), `category had: ${[...category].join(", ")}`).toBe(true);
   });
@@ -173,6 +214,9 @@ describe("corpus: savvycal.com (legitimized-time seeds) — the macro rule's OWN
   });
   it("a real scheduling term still classifies category (the fix does not over-drop)", () => {
     expect(category.has("real-time availability calendar"), `category had: ${[...category].join(", ")}`).toBe(true);
+  });
+  it("aggregatedPct stays ~0 here too", () => {
+    expect(sv.aggregatedPct).toBeLessThan(5);
   });
 });
 
@@ -204,6 +248,9 @@ describe("corpus: resend.com — the clean SaaS control (must stay right)", () =
   it("'react-email' (Resend's own sub-product) classifies as category, not off-topic", () => {
     expect(category.has("react-email"), `category had: ${[...category].join(", ")}`).toBe(true);
   });
+  it("aggregatedPct stays ~0 — resend is not a directory", () => {
+    expect(sv.aggregatedPct).toBeLessThan(5);
+  });
 });
 
 describe("corpus: spacex.com — real-category giant (must stay right)", () => {
@@ -214,5 +261,102 @@ describe("corpus: spacex.com — real-category giant (must stay right)", () => {
   it("real space/rocket terms are category", () => {
     expect(category.has("space")).toBe(true);
     expect(category.has("rocket launch")).toBe(true);
+  });
+  // D3 (2026-07-20, data board P1): SpaceX's own two products (dragon,
+  // starship) share the URL container "vehicles" but that's only 2 DISTINCT
+  // slugs — well under N_TEMPLATE(4). A company's own product line must NOT
+  // be mistaken for "a directory of vehicles" and reclassified aggregated.
+  it("aggregatedPct stays ~0 — dragon/starship's shared 'vehicles' URL container is 2 products, not a directory of third-party entities", () => {
+    expect(sv.aggregatedPct).toBeLessThan(5);
+  });
+});
+
+// D3 (2026-07-20, data board P1): the two DIRECTORY controls. Corpus-first —
+// these expectations were written and watched FAIL before the URL-template
+// pass existed (aggregatedPct read 0 for both; see task-P1-report.md for the
+// recorded before/after).
+describe("corpus: trustmrr.com — the directory whose footprint IS the AGGREGATED dimension", () => {
+  const { sv } = run(trustmrr as Corpus);
+
+  it("aggregatedPct is HIGH — most of the footprint is the startups it lists, not off-topic noise", () => {
+    expect(sv.aggregatedPct).toBeGreaterThan(60);
+  });
+
+  it("residual offTopicPct (genuine noise) is small — only the 1-row 'founder'/'special-category' pages remain", () => {
+    expect(sv.offTopicPct).toBeLessThan(15);
+  });
+
+  it("aggregatedExamples names real listed startups (cometly), not the lone founder profile", () => {
+    expect(sv.aggregatedExamples).toContain("cometly");
+    expect(sv.aggregatedExamples).not.toContain("marc lou");
+  });
+
+  it("brand 'trustmrr' and its tiny real category terms are UNTOUCHED by the split", () => {
+    expect(sv.brandPct).toBeGreaterThan(0);
+    expect(sv.categoryPct).toBeGreaterThan(0);
+  });
+});
+
+describe("corpus: getapp.com — the second directory control, a DIFFERENT URL shape (category-then-'a'-then-slug)", () => {
+  const { sv } = run(getapp as Corpus);
+
+  it("aggregatedPct is HIGH — the container is the constant 'a' segment, not the (per-row-varying) category segment ahead of it", () => {
+    expect(sv.aggregatedPct).toBeGreaterThan(60);
+  });
+
+  it("residual offTopicPct is low", () => {
+    expect(sv.offTopicPct).toBeLessThan(15);
+  });
+
+  it("aggregatedExamples names real listed software (amcs, a real getapp listing)", () => {
+    expect(sv.aggregatedExamples.length).toBeGreaterThan(0);
+  });
+});
+
+// P1 review fix (2026-07-20): the reachkit ≈0-aggregation control the plan
+// named twice but no fixture existed for (see the fixture's own note for the
+// Supabase MCP verification that this is reachkit.app's REAL current state —
+// pre-launch, genuinely zero rankings — not a placeholder).
+describe("corpus: reachkit.app — the real ≈0 control (pre-launch, genuinely zero rankings)", () => {
+  const { sv } = run(reachkit as Corpus);
+
+  it("aggregatedPct is 0 — no rankings means no directory listings to detect", () => {
+    expect(sv.aggregatedPct).toBe(0);
+  });
+
+  it("normal brand/category expectations for a zero-ranking site: everything honestly zero, nothing fabricated", () => {
+    expect(sv.brandPct).toBe(0);
+    expect(sv.categoryPct).toBe(0);
+    expect(sv.keywordsRanked).toBe(0);
+    expect(sv.categoryRanked).toEqual([]);
+  });
+});
+
+// P1 review fix (2026-07-20, the blog/docs false-positive class): a normal
+// SaaS's own /blog/<slug> section structurally matches the URL-template
+// signal exactly like a real directory (>=N_TEMPLATE distinct-slug rows on
+// the SAME container) — live-verified by review to wrongly reclassify
+// off-topic blog-post titles as "directory listings". This fixture is
+// CONSTRUCTED (not a real capture — see its own note) specifically to prove
+// the entity-shape requirement keeps topic-shaped headlines in the residual
+// off-topic bucket even when the URL-template signal alone would have fired.
+describe("corpus: flowdeskapp.com (CONSTRUCTED) — a normal SaaS's own /blog section must NOT become 'aggregated'", () => {
+  const { sv } = run(blogHeavySaas as Corpus);
+
+  it("aggregatedPct stays ≈0 — the blog posts are topic phrases, not third-party entity listings", () => {
+    expect(sv.aggregatedPct).toBeLessThan(5);
+  });
+
+  it("the blog posts stay in the residual off-topic bucket instead (that's where 5 unrelated topic posts belong)", () => {
+    expect(sv.offTopicPct).toBeGreaterThan(60);
+  });
+
+  it("no blog post title is ever named as an 'aggregated' (directory-listing) example", () => {
+    expect(sv.aggregatedExamples).toEqual([]);
+  });
+
+  it("the site's real brand + category rows are untouched by the fix (still classify normally)", () => {
+    expect(sv.brandPct).toBeGreaterThan(0);
+    expect(sv.categoryPct).toBeGreaterThan(0);
   });
 });

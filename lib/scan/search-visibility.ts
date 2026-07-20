@@ -32,7 +32,24 @@ import { brandTokensFor, isBrandKeyword, tokens, GENERIC_TOKENS, STOPWORDS, stem
 export { stem };
 import { cachedRankedKeywords, cachedKeywordVolumes, cachedDomainOverview } from "@/lib/scan/cache/cached-adapters";
 
-export type KeywordClass = "brand" | "category" | "offtopic";
+// D3 (2026-07-20, data board P1): AGGREGATED joins the split as a first-class
+// footprint dimension — a distinct THIRD-PARTY ENTITY (company/product/person)
+// name the domain ranks for, the directory/aggregator tell (trustmrr ranks for
+// the startups it lists; getapp for the software it lists). It is peeled OUT
+// of the old `offtopic` bucket (which stays the enum name for the RESIDUAL
+// "noise" — genuinely unrelated keywords — to avoid a repo-wide rename churn;
+// see the doc comment on `entityListingTemplates` for the naming call). A
+// normal SaaS's `aggregated` share is ≈0; a directory's is the bulk of its
+// footprint. Detected by a BATCH pass over all rows' URLs in
+// `computeSearchVisibility` (see `entityListingTemplates`) — never inside the
+// per-keyword `classify()`, which only sees one keyword string at a time and
+// cannot see the repeated URL shape that is the actual evidence. P1 review
+// fix (2026-07-20): the URL template alone is NOT sufficient — a blog/docs
+// section (`/blog/<slug>`, distinct slugs, N_TEMPLATE+ rows) has the same
+// structural shape as a directory listing. A row also needs to be
+// ENTITY-shaped (see `isEntityShapedKeyword`) — a short name, not a
+// topic/question/comparison headline — before it moves out of `offtopic`.
+export type KeywordClass = "brand" | "category" | "aggregated" | "offtopic";
 
 export interface ClassifiedKeyword {
   keyword: string;
@@ -40,6 +57,13 @@ export interface ClassifiedKeyword {
   volume: number;
   etv: number;
   klass: KeywordClass;
+  /** The ranking page URL for this keyword (RankedKeyword.url) — carried
+   *  through so the D3 batch pass can detect a repeated per-entity URL
+   *  template (`/startup/<slug>`) across ALL rows. "" when unknown (a
+   *  classification-corpus fixture that predates this field, or a
+   *  synthetic/test row) — `pathContainer` treats "" as "no template",
+   *  never a false match. */
+  url: string;
 }
 
 export interface CategoryGapRow {
@@ -81,13 +105,33 @@ export interface SearchVisibility {
    *  computed over the top ranked_keywords only — so the UI must label it as such. */
   brandPct: number;
   categoryPct: number;
+  /** D3 (2026-07-20, data board P1): share of estimated traffic on THIRD-PARTY
+   *  ENTITY pages — directory/aggregator listings (other companies'/products'/
+   *  people's names), detected by a repeated per-entity URL template (e.g.
+   *  `/startup/<slug>`, `/<category>/a/<slug>`). A normal SaaS ≈ 0%; a
+   *  directory ≈ 90%. Peeled OUT of the `offtopic` bucket below (which is now
+   *  the genuine-noise RESIDUAL, not "everything that isn't brand/category")
+   *  so a directory's real footprint reads as "your aggregation engine", not
+   *  a scolding "off-topic leakage" — the mis-framing D3 fixes. Never moves
+   *  brand/category rows, so `categoryPct` (and therefore `sv.score`, computed
+   *  from category rows only) is unaffected by this split (invariant #1).
+   *  Data-only this phase — the render strip lands in P3. */
+  aggregatedPct: number;
   offTopicPct: number;
   /** Category terms you rank for but aren't winning (pos > 3), by volume — the
    *  honest keyword-gap teaser (no other-brand noise). */
   categoryGap: CategoryGapRow[];
-  /** A few high-volume OFF-TOPIC terms, to make the "you rank for other companies'
-   *  names" point concrete (e.g. ["spanglish translator", "cometly", "shipfast"]). */
+  /** A few high-volume terms in the RESIDUAL "noise" bucket — genuinely
+   *  unrelated keywords, now that D3 (2026-07-20) peels directory-listing
+   *  entity names out into `aggregatedExamples` below (they used to be the
+   *  "spanglish translator"/"cometly" examples here — those are directory
+   *  listings, not off-topic noise). */
   offTopicExamples: string[];
+  /** D3: a few named THIRD-PARTY ENTITY examples (the things your directory/
+   *  aggregator lists, e.g. ["cometly", "trimrx", "spanglish translator"]) —
+   *  sampled from the `aggregated` bucket, the evidence for P3's aggregation
+   *  strip. Data-only this phase; not rendered yet. */
+  aggregatedExamples: string[];
   /** Count of category terms you already WIN (top 3) — usually small/zero. */
   categoryWins: number;
 
@@ -311,7 +355,150 @@ function isNsfwExample(keyword: string): boolean {
 
 const WINNING_POSITION = 3;
 const CATEGORY_GAP_ROWS = 6;
+/** Shared example-list cap for BOTH `offTopicExamples` (residual noise) and
+ *  `aggregatedExamples` (D3) — one constant, one meaning ("how many named
+ *  examples to print per bucket"), no drift between the two buckets. */
 const OFFTOPIC_EXAMPLES = 3;
+
+/**
+ * D3 (2026-07-20, data board P1): an "entity-listing template" — a repeated
+ * per-entity URL shape — needs at least this many rankings sharing it, AND at
+ * least this many of them on DISTINCT entity slugs, before it counts as a
+ * directory tell. Below this bar it's just a couple of pages that happen to
+ * share a URL segment, not a listing. One threshold reused for BOTH
+ * conditions (row count AND distinct-slug count) — see
+ * `entityListingTemplates` for the two real false-positive shapes this
+ * rejects (savvycal's repeated single timezone page; SpaceX's own two
+ * products under `/vehicles/<slug>`).
+ */
+export const N_TEMPLATE = 4;
+
+/**
+ * D3: the per-entity URL "container" segment — the directory tell. A listing
+ * URL is shaped `.../<container>/<entity-slug>` where `<container>` repeats
+ * across many rankings and `<entity-slug>` is different each time: trustmrr
+ * `/startup/cometly`, `/startup/trimrx`; getapp
+ * `/government-social-services-software/a/amcs/`,
+ * `/recreation-wellness-software/a/sports-connect/`. The container is the
+ * SECOND-TO-LAST path segment, not the first — getapp's category segment
+ * (ahead of the constant "a") varies per row, so a first-segment rule would
+ * miss its shape entirely; second-to-last generalizes cleanly to both real
+ * shapes (verified against live-captured trustmrr.com / getapp.com
+ * `ranked_keywords`, task-P1). `null` when the URL has fewer than 2 path
+ * segments (a homepage, or a single-segment page like a Twitter/X profile
+ * `x.com/FoxNews`) or isn't a parseable absolute URL — there is no container
+ * to detect, never a false match.
+ */
+function pathContainer(url: string): { container: string; slug: string } | null {
+  if (!url) return null;
+  let pathname: string;
+  try {
+    pathname = new URL(url).pathname;
+  } catch {
+    return null;
+  }
+  const segs = pathname.split("/").filter(Boolean);
+  if (segs.length < 2) return null;
+  const container = segs[segs.length - 2]!.toLowerCase();
+  const slug = segs[segs.length - 1]!.toLowerCase();
+  return { container, slug };
+}
+
+/**
+ * P1 review fix (2026-07-20, the blog/docs false-positive class): topic/
+ * question/comparison/listicle markers. A phrase carrying ANY of these is a
+ * TOPIC headline ("how to make sourdough bread", "best hiking boots 2026"),
+ * never a directory-listing ENTITY name — checked against the RAW tokens
+ * (before `tokens()`'s stopword filter), because several of these words
+ * ("how", "why", "what", "who", "best", "top", "vs", "review", "to") are
+ * THEMSELVES stopwords/generic and would otherwise vanish before this check
+ * ever saw them.
+ */
+const TOPIC_MARKER_TOKENS = new Set([
+  "how", "what", "why", "when", "where", "who", "best", "top", "vs", "versus",
+  "guide", "tutorial", "review", "reviews", "ideas", "tips", "to",
+]);
+
+/**
+ * P1 review fix (2026-07-20): live-verified false positive — a normal SaaS
+ * with ≥4 off-topic `/blog/<slug>` posts (distinct slugs) cleared the OLD
+ * purely-structural `entityListingTemplates` bar and got reclassified
+ * `aggregated`, so a blog post title ("how to make sourdough bread") rendered
+ * as a "directory listing". The URL-template signal alone can't tell "a
+ * directory of THIRD-PARTY ENTITIES" from "our own /blog section ranking for
+ * TOPICS" — both are N_TEMPLATE+ rows on a repeated 2-segment container with
+ * distinct slugs. This is the SECOND, REQUIRED signal: the ranked keyword
+ * itself must be ENTITY-shaped (a company/product/person NAME), not a
+ * natural-language TOPIC phrase. A row is `aggregated` only when BOTH the URL
+ * template AND this keyword shape agree (see the D3 batch pass below) — this
+ * ALSO re-protects x.com belt-and-braces (its mega-brand hits aren't on a
+ * listing template at all, so signal (a) already fails there; the AND makes
+ * the guarantee robust rather than accidental).
+ *
+ * ENTITY: short (≤3 meaningful tokens), carries no `TOPIC_MARKER_TOKENS`
+ * word, and is not majority generic vocabulary (`GENERIC_TOKENS`) — "cometly",
+ * "spanglish translator", "notion", "career hound", "sign up genius".
+ * TOPIC (stays noise, never aggregated): "how to make sourdough bread",
+ * "best hiking boots 2026", "remote work burnout signs" (4 meaningful
+ * tokens — too long to be a name), "calendar scheduling guide" (carries the
+ * "guide" marker). Pure, deterministic — reuses the ONE shared tokenizer +
+ * generic-word list (RC1), no forked vocabulary logic.
+ */
+function isEntityShapedKeyword(keyword: string): boolean {
+  const rawTokens = keyword.toLowerCase().match(/[a-z0-9]+/g) ?? [];
+  if (rawTokens.length === 0) return false;
+  if (rawTokens.some((t) => TOPIC_MARKER_TOKENS.has(t))) return false; // topic/question/comparison/listicle marker
+  const meaningful = tokens(keyword); // the shared stopword-filtered tokenizer
+  if (meaningful.length === 0 || meaningful.length > 3) return false; // too long to be a name
+  const genericCount = meaningful.filter((t) => GENERIC_TOKENS.has(t)).length;
+  if (genericCount * 2 > meaningful.length) return false; // majority generic vocabulary, not a distinctive name
+  return true;
+}
+
+/**
+ * D3 batch pass (needs ALL rows' URLs at once, so it runs in
+ * `computeSearchVisibility` AFTER per-keyword `classify()`, never inside it):
+ * which URL containers are genuine entity-listing templates. This is the
+ * PREFERRED, robust signal — a structural fact about the URL space, not a
+ * guess about keyword shape. (A keyword-shape-only signal — "this looks like
+ * a company name" — was evaluated and REJECTED for this phase: x.com's
+ * incidental mega-brand hits, "google"/"foxnews"/"espn", are exactly
+ * proper-name-shaped keywords, but x.com is not a directory of them — it's a
+ * giant platform that ranks for them incidentally. A keyword-shape rule alone
+ * cannot tell "directory of entities" apart from "big platform, noisy
+ * footprint"; the URL structure can, because x.com's real ranking pages are
+ * single-segment profile URLs (`x.com/FoxNews`) with no repeated 2+-segment
+ * container at all — verified against x.com's live-captured `ranked_keywords`.
+ * See task-P1-report.md for the corpus evidence.)
+ *
+ * A container qualifies only when BOTH hold: ≥N_TEMPLATE rows share it, AND
+ * ≥N_TEMPLATE of those rows land on DISTINCT slugs. The distinct-slugs half
+ * rejects two real false-positive shapes with a HIGH row count but NOT
+ * genuine entity variety:
+ *   - savvycal `/worldclock/Hawaii/Honolulu` — repeated under many keyword
+ *     PHRASINGS of the SAME lookup ("hawaii time", "what time in hawaii", …).
+ *     Same container ("hawaii"), same slug ("honolulu") every time — a
+ *     monotonous single page, not a directory.
+ *   - spacex `/vehicles/dragon` + `/vehicles/starship` — same container
+ *     ("vehicles"), but only 2 distinct slugs (SpaceX's OWN two products, not
+ *     third-party entities) — well under N_TEMPLATE.
+ */
+function entityListingTemplates(rows: Array<{ url: string }>): Set<string> {
+  const bySeg = new Map<string, { rows: number; slugs: Set<string> }>();
+  for (const r of rows) {
+    const parsed = pathContainer(r.url);
+    if (!parsed) continue;
+    const cur = bySeg.get(parsed.container) ?? { rows: 0, slugs: new Set<string>() };
+    cur.rows += 1;
+    cur.slugs.add(parsed.slug);
+    bySeg.set(parsed.container, cur);
+  }
+  const out = new Set<string>();
+  for (const [container, stat] of bySeg) {
+    if (stat.rows >= N_TEMPLATE && stat.slugs.size >= N_TEMPLATE) out.add(container);
+  }
+  return out;
+}
 /** How many of the subject's real category rankings to carry into the demand
  *  merge (won + not-won, highest-volume first). Bounded so the payload stays lean
  *  and a huge footprint can't sum into an incoherent "demand". */
@@ -343,14 +530,15 @@ export function computeSearchVisibility(
 ): SearchVisibility {
   const empty: SearchVisibility = {
     score: 0, keywordsRanked: 0, estMonthlyVisits: 0, footprintComplete: false,
-    brandPct: 0, categoryPct: 0, offTopicPct: 0,
-    categoryGap: [], offTopicExamples: [], categoryWins: 0,
+    brandPct: 0, categoryPct: 0, aggregatedPct: 0, offTopicPct: 0,
+    categoryGap: [], offTopicExamples: [], aggregatedExamples: [], categoryWins: 0,
     categoryDemand: 0, categoryOpportunities: [], categoryPhrases: [], categoryRanked: [], categoryWonKeywords: [],
   };
   if (kw.length === 0) return empty;
 
   // Best position + max volume + summed etv per keyword (a domain ranks several
-  // pages for one term).
+  // pages for one term). `url` is carried through UNCHANGED from the first
+  // occurrence — it feeds the D3 batch pass below, not the score.
   const byKw = new Map<string, ClassifiedKeyword>();
   for (const k of kw) {
     if (k.volume <= 0 || k.position <= 0) continue;
@@ -359,6 +547,7 @@ export function computeSearchVisibility(
       byKw.set(k.keyword, {
         keyword: k.keyword, position: k.position, volume: k.volume, etv: k.etv,
         klass: classify(k.keyword, vocab.brandTokens, vocab.categoryVocab),
+        url: k.url ?? "",
       });
     } else {
       cur.volume = Math.max(cur.volume, k.volume);
@@ -368,6 +557,28 @@ export function computeSearchVisibility(
   }
   const rows = [...byKw.values()];
   if (rows.length === 0) return empty;
+
+  // D3 (2026-07-20) batch pass: peel genuine THIRD-PARTY ENTITY listings out of
+  // `offtopic` into `aggregated`. Runs AFTER per-keyword classify() (needs ALL
+  // rows' URLs at once) and ONLY ever moves rows OUT of `offtopic` — brand and
+  // category rows are never touched by this pass, so `categoryPct` (and
+  // therefore `score`, computed below from category rows only) is UNCHANGED
+  // by it (invariant #1; see search-visibility.test.ts's explicit
+  // score-is-unaffected-by-the-aggregated-split proof).
+  const templates = entityListingTemplates(rows);
+  if (templates.size > 0) {
+    for (const r of rows) {
+      if (r.klass !== "offtopic") continue;
+      // P1 review fix: BOTH signals required — the structural URL template
+      // AND the keyword itself must be entity-shaped, not a topic headline
+      // (see `isEntityShapedKeyword`'s doc comment for the blog/docs class
+      // this closes). A row stays in the residual `offtopic` noise bucket
+      // when either signal is missing.
+      if (!isEntityShapedKeyword(r.keyword)) continue;
+      const parsed = pathContainer(r.url);
+      if (parsed && templates.has(parsed.container)) r.klass = "aggregated";
+    }
+  }
 
   const totalEtv = rows.reduce((s, r) => s + r.etv, 0);
   const etvOf = (klass: KeywordClass) => rows.filter((r) => r.klass === klass).reduce((s, r) => s + r.etv, 0);
@@ -394,8 +605,18 @@ export function computeSearchVisibility(
     .slice(0, CATEGORY_RANKED_ROWS)
     .map((r) => ({ keyword: r.keyword.toLowerCase(), volume: r.volume, yourPosition: r.position }));
 
+  // offTopicExamples now samples the RESIDUAL noise bucket only (aggregated
+  // rows moved klass above, so this filter naturally excludes them — e.g.
+  // "cometly"/"spanglish translator" no longer print here as "off-topic").
   const offTopicExamples = rows
     .filter((r) => r.klass === "offtopic" && !isNsfwExample(r.keyword))
+    .sort((a, b) => b.volume - a.volume)
+    .slice(0, OFFTOPIC_EXAMPLES)
+    .map((r) => r.keyword);
+
+  // D3: a few named entity examples for P3's aggregation strip.
+  const aggregatedExamples = rows
+    .filter((r) => r.klass === "aggregated" && !isNsfwExample(r.keyword))
     .sort((a, b) => b.volume - a.volume)
     .slice(0, OFFTOPIC_EXAMPLES)
     .map((r) => r.keyword);
@@ -411,9 +632,11 @@ export function computeSearchVisibility(
     footprintComplete: false,
     brandPct: pct(etvOf("brand")),
     categoryPct: pct(etvOf("category")),
+    aggregatedPct: pct(etvOf("aggregated")),
     offTopicPct: pct(etvOf("offtopic")),
     categoryGap,
     offTopicExamples,
+    aggregatedExamples,
     categoryWins: category.filter((r) => r.position <= WINNING_POSITION).length,
     categoryRanked,
     // Category-demand fields are filled by the gather (needs the keyword_ideas call);
@@ -427,8 +650,8 @@ export function computeSearchVisibility(
 
 const EMPTY: SearchVisibility = {
   score: 0, keywordsRanked: 0, estMonthlyVisits: 0, footprintComplete: false,
-  brandPct: 0, categoryPct: 0, offTopicPct: 0,
-  categoryGap: [], offTopicExamples: [], categoryWins: 0,
+  brandPct: 0, categoryPct: 0, aggregatedPct: 0, offTopicPct: 0,
+  categoryGap: [], offTopicExamples: [], aggregatedExamples: [], categoryWins: 0,
   categoryDemand: 0, categoryOpportunities: [], categoryPhrases: [], categoryRanked: [], categoryWonKeywords: [],
 };
 

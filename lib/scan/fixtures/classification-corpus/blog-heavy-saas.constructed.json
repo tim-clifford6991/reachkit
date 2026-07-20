@@ -1,0 +1,17 @@
+{
+  "domain": "flowdeskapp.com",
+  "note": "CONSTRUCTED FIXTURE — NOT a real capture (unlike every other file in this corpus). Built to reproduce the P1 review's live-verified false positive: a normal SaaS with >=4 off-topic posts on its OWN `/blog/<slug>` section (distinct slugs) structurally clears the OLD purely-URL-template `entityListingTemplates` bar exactly like a real directory does (>=N_TEMPLATE(4) rows sharing the 'blog' container across >=4 distinct slugs) — so before the entity-shape fix, every post title here ('how to make sourdough bread', 'best hiking boots for winter', …) was reclassified AGGREGATED and would have rendered as a 'directory listing'. 'flowdeskapp' is a fictional project-management SaaS (shape only: one brand row + one real category row, both realistic and unaffected by this fix) whose blog covers topics with ZERO relation to its category vocabulary — the shape needed to prove the blog posts stay in the residual off-topic NOISE bucket, never aggregated, once a keyword also has to be ENTITY-shaped (not a topic/question/comparison/listicle headline) to cross into AGGREGATED.",
+  "seedText": [
+    "FlowDesk is project management software for small teams — task tracking, sprints, and shared boards in one place."
+  ],
+  "llmCategorySeeds": ["project management software", "task tracking tool"],
+  "rankedKeywords": [
+    { "keyword": "flowdeskapp", "position": 1, "volume": 320, "etv": 90, "url": "https://flowdeskapp.com/" },
+    { "keyword": "project management software", "position": 9, "volume": 4400, "etv": 60, "url": "https://flowdeskapp.com/features" },
+    { "keyword": "how to make sourdough bread", "position": 14, "volume": 22000, "etv": 400, "url": "https://flowdeskapp.com/blog/sourdough-bread-guide" },
+    { "keyword": "best hiking boots for winter", "position": 11, "volume": 8100, "etv": 380, "url": "https://flowdeskapp.com/blog/best-hiking-boots-winter" },
+    { "keyword": "remote work burnout warning signs", "position": 6, "volume": 1900, "etv": 350, "url": "https://flowdeskapp.com/blog/remote-work-burnout-signs" },
+    { "keyword": "beginner guide to houseplants", "position": 8, "volume": 3600, "etv": 340, "url": "https://flowdeskapp.com/blog/houseplants-for-beginners" },
+    { "keyword": "easy dinner recipes for busy families", "position": 10, "volume": 2700, "etv": 330, "url": "https://flowdeskapp.com/blog/easy-dinner-recipes" }
+  ]
+}
