@@ -39,6 +39,37 @@ export function tokens(text: string): string[] {
   return (text.toLowerCase().match(/[a-z0-9]+/g) ?? []).filter((t) => t.length >= 3 && !STOPWORDS.has(t));
 }
 
+/** Light, symmetric singular/plural + gerund fold so "rockets" (a seed's own
+ *  prose) and "rocket" (a real query token) — or "sending" and "send" — read as
+ *  the SAME token when checking vocabulary support. Deliberately tiny (no real
+ *  stemmer): it exists only to stop ordinary inflection from masquerading as an
+ *  "unsupported token" under the classifier's stricter rule, or as an
+ *  unrelated shared token under the tier-grounding overlap check. Domain-agnostic
+ *  — it has no knowledge of any subject, so it cannot be a per-domain special
+ *  case. Moved here (from `search-visibility.ts`, PR-9 2026-07-20, the
+ *  "platform"/"platforms" tier-grounding class) so there is exactly ONE
+ *  stemmer — the classifier's `isVocabSupported` and the tier-grounding
+ *  overlap check (`groundedCategoryTokens`/`isTierPhraseGrounded`) both route
+ *  through THIS function instead of each hand-listing singular/plural pairs
+ *  into `GENERIC_TOKENS`, which only ever fixes the ONE plural reported and
+ *  leaves every other unlisted plural (or gerund) able to false-ground the
+ *  same way. `search-visibility.ts` re-exports this for backward-compatible
+ *  import paths. */
+export function stem(t: string): string {
+  let s = t;
+  if (s.length > 5 && s.endsWith("ing")) s = s.slice(0, -3);
+  else if (s.length > 4 && /(ches|shes|xes|zes|ses)$/.test(s)) s = s.slice(0, -2);
+  else if (s.length > 4 && s.endsWith("ies")) s = `${s.slice(0, -3)}y`;
+  else if (s.length > 3 && s.endsWith("s") && !s.endsWith("ss")) s = s.slice(0, -1);
+  // Guard: a stem that collapses into a STOPWORD or below the meaningful-token
+  // length floor (3, matching `tokens()`) is not a real stem — it's an
+  // over-aggressive strip that happens to be harmless today only because
+  // STOPWORDS filters it before it can corrupt vocab matching ("news" → "new").
+  // Keep the ORIGINAL token rather than ship a silently-wrong stem.
+  if (s !== t && (STOPWORDS.has(s) || s.length < 3)) return t;
+  return s;
+}
+
 /** A single generic word ("Platform", "Time", "Guide"…) must never itself
  *  become a brand token — a listing name like "Twitter Platform" must not turn
  *  every ordinary "platform" query into a brand hit. Moved here (from
