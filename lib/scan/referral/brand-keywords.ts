@@ -24,19 +24,61 @@
  *  ("the", "reviews", "com"…). Moved here (from `search-visibility.ts`, which
  *  now imports it) so the ONE tokenizer below is self-contained — the exact
  *  same stopword list `search-visibility.ts` always used, just relocated so
- *  `brandTokensFor`'s name-folding can use it too without re-declaring it. */
+ *  `brandTokensFor`'s name-folding can use it too without re-declaring it.
+ *
+ *  Task-G (2026-07-20, the savvycal "time in hi" class): the closed set of
+ *  short (2-char) English grammatical particles — articles/prepositions/
+ *  pronouns/conjunctions that are NEVER content ("in", "is", "at", "to"…).
+ *  Needed once `tokens()` (below) stops dropping every 2-char word: without
+ *  this, a phrase like "time in hi" would require "in" itself to carry
+ *  vocabulary support, which no real category vocabulary ever provides for a
+ *  pure function word — regressing legitimate category phrases that happen
+ *  to contain one. Deliberately excludes any 2-char word that plausibly
+ *  functions as CONTENT in a search query — an abbreviation, initial, or
+ *  (per the bug this fixes) a geo/state code: "hi" (Hawaii), "ca"
+ *  (California), "ny" (New York), "ok" (Oklahoma), "or" (Oregon) etc. are NOT
+ *  listed here on purpose, even though several double as common English
+ *  function words too — that ambiguity is inherent to 2-letter English, not
+ *  something a stopword list can fully resolve, and the KNOWN residual is
+ *  that a legitimate category phrase using one of these AS a function word
+ *  (rare in commercial search queries) could now be foreclosed by it. */
+const SHORT_STOPWORDS = new Set([
+  "am", "an", "as", "at", "be", "by", "do", "go", "he", "if", "is", "it",
+  "me", "my", "no", "of", "on", "so", "to", "up", "us", "we",
+]);
+
 export const STOPWORDS = new Set([
   "the", "and", "for", "with", "your", "you", "our", "are", "was", "how", "why",
   "what", "who", "best", "top", "app", "apps", "tool", "tools", "software", "online",
   "free", "new", "get", "com", "www", "http", "https", "vs", "review", "reviews",
+  ...SHORT_STOPWORDS,
 ]);
 
-/** Break a phrase into meaningful lowercase tokens (len ≥ 3, non-stopword).
+/** Break a phrase into meaningful lowercase tokens (len ≥ 2, non-stopword).
  *  Shared with `search-visibility.ts`, which imports this instead of keeping
  *  its own copy — one tokenizer, so a name folds into brand tokens (or into
- *  category vocab) identically everywhere. */
+ *  category vocab) identically everywhere.
+ *
+ *  Task-G (2026-07-20, the savvycal "time in hi" class, root-caused against
+ *  savvycal's REAL captured footprint): the floor used to be 3 chars, so
+ *  "time in hi" tokenized to JUST ["time"] — "in" was filler-length anyway,
+ *  but "hi" (a real, meaningful Hawaii-timezone signal) was silently dropped
+ *  for being 2 chars, same as "in". The classifier's macro rule ("every
+ *  non-generic token of the phrase must be supported") was then satisfied
+ *  VACUOUSLY by the single surviving token "time" — a generic word legitimized
+ *  only via the LLM's own category-seed corroboration — because the ONE word
+ *  that actually disambiguated the phrase never reached the check. Lowering
+ *  the floor to 2 and filtering the closed class of short grammatical
+ *  particles (`SHORT_STOPWORDS`, not a place-name list) instead of a raw
+ *  length cutoff keeps real 2-char content — geo/state codes, initials,
+ *  abbreviations ("hi", "ca", "ny", "ai", "js") — in every token-vocabulary
+ *  computation that routes through this ONE function: brand tokens, category
+ *  vocab, the classifier's support check, AND the tier-grounding overlap
+ *  check (`groundedCategoryTokens`/`isTierPhraseGrounded` in
+ *  `search-visibility.ts`) — one shared tokenizer, not a fork local to the
+ *  classifier (RC1). */
 export function tokens(text: string): string[] {
-  return (text.toLowerCase().match(/[a-z0-9]+/g) ?? []).filter((t) => t.length >= 3 && !STOPWORDS.has(t));
+  return (text.toLowerCase().match(/[a-z0-9]+/g) ?? []).filter((t) => t.length >= 2 && !STOPWORDS.has(t));
 }
 
 /** Light, symmetric singular/plural + gerund fold so "rockets" (a seed's own

@@ -187,6 +187,74 @@ describe("computeCategoryDemand — merges the REAL category footprint (scale-in
   });
 });
 
+// Task-G (2026-07-20) — completes the grounding PR-8 applied to the market
+// tiers: computeCategoryDemand merged ALL seed volumes with NO grounding at
+// all, so an LLM categorySeed priced to a real DataForSEO volume but sharing
+// no vocabulary with the subject's REAL category rankings could pollute the
+// demand HERO itself. VERIFIED live evidence: trustmrr.com's categoryPhrases
+// were [{"business intelligence platform", 165000}, {"startup marketplace",
+// 50}, {"startup revenue", 30, #2}] -> categoryDemand 165,080 — trustmrr
+// neither ranks for "business intelligence platform" nor is a BI platform.
+// Reuses the SAME shared grounding helper PR-8 added for the tiers
+// (groundedCategoryTokens / isTierPhraseGrounded, private to this file) — no
+// forked grounding logic for a third site.
+describe("computeCategoryDemand grounding (task-G, 2026-07-20) — no LLM-guessed seeds in the demand hero (the trustmrr class)", () => {
+  const trustmrrCategoryRanked = [
+    { keyword: "mrr startup", volume: 90, yourPosition: 2 },
+    { keyword: "startup mrr", volume: 90, yourPosition: 2 },
+    { keyword: "mrr app", volume: 70, yourPosition: 1 },
+    { keyword: "startup revenue", volume: 30, yourPosition: 2 },
+  ];
+  const emptyRanks = new Map<string, number>();
+
+  it("an ungrounded seed is EXCLUDED from categoryDemand/categoryPhrases even though its volume is real (trustmrr 'business intelligence platform')", () => {
+    const seedVolumes = [
+      { keyword: "business intelligence platform", volume: 165000 }, // ungrounded — LLM guess, real DataForSEO volume
+      { keyword: "startup marketplace", volume: 50 }, // grounded — shares "startup" with categoryRanked
+      { keyword: "startup revenue", volume: 30 }, // already a real ranking too
+    ];
+    const d = computeCategoryDemand(seedVolumes, emptyRanks, trustmrrCategoryRanked);
+    expect(d.categoryPhrases.map((p) => p.keyword)).not.toContain("business intelligence platform");
+    expect(d.categoryDemand).not.toBe(165080); // the shipped, dishonest total
+    // Real rankings (always included) + the one grounded seed.
+    expect(d.categoryDemand).toBe(90 + 90 + 70 + 30 + 50);
+    // G4 still holds after grounding: total is exactly the sum of its named parts.
+    expect(d.categoryDemand).toBe(d.categoryPhrases.reduce((s, p) => s + p.volume, 0));
+  });
+
+  it("a seed the subject ranks for EXACTLY is grounded even with zero token overlap", () => {
+    const seedVolumes = [{ keyword: "totally unrelated phrase", volume: 500 }];
+    const ranks = new Map([["totally unrelated phrase", 5]]);
+    const d = computeCategoryDemand(seedVolumes, ranks, trustmrrCategoryRanked);
+    expect(d.categoryPhrases.map((p) => p.keyword)).toContain("totally unrelated phrase");
+  });
+
+  it("real rankings (categoryRanked) are ALWAYS included regardless of seed grounding — they're real by definition", () => {
+    const d = computeCategoryDemand([], emptyRanks, trustmrrCategoryRanked);
+    expect(d.categoryDemand).toBe(90 + 90 + 70 + 30);
+  });
+
+  it("empty categoryRanked keeps TODAY's seed fallback UNFILTERED (no ranking evidence to ground against — degrade to best-effort, not to nothing)", () => {
+    const seedVolumes = [{ keyword: "business intelligence platform", volume: 165000 }];
+    const d = computeCategoryDemand(seedVolumes, emptyRanks, []); // no footprint at all
+    expect(d.categoryDemand).toBe(165000); // unfiltered — same as today's behaviour
+  });
+
+  it("invariant #1: grounding categoryDemand does not touch sv.score (computed separately, from classified rows)", () => {
+    const vocab = buildVocab("trustmrr.com", ["verified startup revenue database acquisition marketplace saas mrr"]);
+    const sv = computeSearchVisibility(TRUSTMRR, vocab);
+    const scoreBefore = sv.score;
+    computeCategoryDemand(
+      [{ keyword: "business intelligence platform", volume: 165000 }],
+      emptyRanks,
+      trustmrrCategoryRanked,
+    );
+    // computeCategoryDemand is pure — calling it cannot mutate a previously
+    // computed sv.score. Assert the field the render reads is unchanged.
+    expect(sv.score).toBe(scoreBefore);
+  });
+});
+
 describe("buildCategorySeeds — LLM seeds are authoritative", () => {
   it("prefers the LLM's clean category phrases over the subject's own rankings", () => {
     const sv = computeSearchVisibility(
@@ -652,6 +720,28 @@ describe("classification requires ALL non-generic tokens supported (the macro ru
   it("the subject's REAL category terms (all tokens supported) are unaffected", () => {
     expect(category.has("time tracking app")).toBe(true);
     expect(category.has("employee time clock")).toBe(true);
+  });
+
+  // Task-G (2026-07-20, VERIFIED live evidence, savvycal.com): "time in hi" (a
+  // Hawaii-timezone lookup) classified as CATEGORY because tokens() drops
+  // tokens shorter than 3 chars — "in" is filler, "hi" is silently dropped for
+  // being 2 chars — leaving ONLY the corroborated-generic "time" to satisfy
+  // the macro rule vacuously. Same chronotrack fixture (its own seeds
+  // corroborate "time" the same way savvycal's did live) — reproduces the
+  // class generically, not just on the savvycal corpus fixture.
+  it("a 2-char geo abbreviation ('hi') is NOT silently dropped — 'time in hi' forecloses to off-topic", () => {
+    const svWithGeo = classifyFootprint(
+      "chronotrack.com",
+      ["accurate time tracking software for distributed teams"],
+      ["time tracking software", "employee time clock"],
+      [
+        rk2("time tracking app", 2, 5000, 2000),
+        rk2("time in hi", 5, 246000, 90000), // "time" corroborated, "hi" is a 2-char geo token, unsupported
+      ],
+    );
+    const cat = new Set(svWithGeo.categoryRanked.map((r) => r.keyword));
+    expect(cat.has("time in hi"), "the 2-char geo token 'hi' must not be silently dropped").toBe(false);
+    expect(cat.has("time tracking app")).toBe(true); // the fix must not over-drop real category terms
   });
 });
 

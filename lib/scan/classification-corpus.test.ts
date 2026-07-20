@@ -160,6 +160,20 @@ describe("corpus: savvycal.com (legitimized-time seeds) — the macro rule's OWN
   it("the biggest opportunity is not a timezone lookup", () => {
     expect(/hawaii|tokyo|japan/.test(categoryOpportunities[0]?.keyword ?? "")).toBe(false);
   });
+  // Task-G (2026-07-20, VERIFIED live prod evidence): the 2-char geo-abbreviation
+  // class. "time in hi" tokenizes (under the OLD 3-char floor) to JUST ["time"] —
+  // "in" is filler, "hi" is silently dropped for being 2 chars — so the macro
+  // rule's "every non-generic token supported" was satisfied VACUOUSLY by the
+  // single surviving corroborated-generic token "time", and a Hawaii-timezone
+  // lookup rode into savvycal's category (246k of its 257k live "category
+  // demand"). A real scheduling term ("real-time availability calendar") must
+  // still classify category — the fix must not over-drop.
+  it("'time in hi' — the 2-char geo-abbreviation collapse — is OFF-TOPIC, not category (live evidence 2026-07-20)", () => {
+    expect(category.has("time in hi"), `category had: ${[...category].join(", ")}`).toBe(false);
+  });
+  it("a real scheduling term still classifies category (the fix does not over-drop)", () => {
+    expect(category.has("real-time availability calendar"), `category had: ${[...category].join(", ")}`).toBe(true);
+  });
 });
 
 describe("corpus: resend.com — the clean SaaS control (must stay right)", () => {

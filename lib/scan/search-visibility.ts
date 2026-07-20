@@ -473,6 +473,18 @@ const CATEGORY_DEMAND_ROWS = 8;
  * site actually ranks in a category worth hundreds of thousands of searches/mo.
  * `position` (from the ranked data or `rankByKeyword`) rides through so an
  * opportunity can render "you're #12 for X", the meaningful discovery.
+ *
+ * Grounding (task-G, 2026-07-20, completing PR-8): `categoryRanked` rows are
+ * ALWAYS included (real by definition), but a `seedVolumes` row counts only
+ * when GROUNDED against those real rankings — ranks for it exactly, or shares
+ * ≥1 non-generic token with `categoryRanked` (the same `isTierPhraseGrounded`/
+ * `groundedCategoryTokens` PR-8 added for the tier ladder — reused unforked).
+ * An ungrounded seed ("business intelligence platform" priced to a real
+ * 165,000/mo for trustmrr.com, which is neither ranks for it nor is a BI
+ * platform) is dropped — real number, fabricated relevance. When
+ * `categoryRanked` is EMPTY, there is no ranking evidence to ground against at
+ * all, so the seeds are kept UNFILTERED (today's fallback) — a 0-ranking new
+ * site's only signal, degrade to best-effort rather than to nothing.
  */
 export function computeCategoryDemand(
   seedVolumes: Array<{ keyword: string; volume: number }>,
@@ -492,9 +504,30 @@ export function computeCategoryDemand(
       if (pos !== undefined && (cur.position === undefined || pos < cur.position)) cur.position = pos;
     }
   };
-  // Reality first (carries position), then the LLM seeds fill in / cover zero-rank sites.
+  // Reality first (carries position) — real rankings are ALWAYS included, they're
+  // real by definition. The LLM seeds fill in / cover zero-rank sites, but (task-G,
+  // 2026-07-20) only when GROUNDED against those real rankings — the same
+  // corroboration rule PR-8 applied to the tier ladder (`isTierPhraseGrounded` /
+  // `groundedCategoryTokens`, reused here unforked): a seed counts only if the
+  // subject ranks for it exactly, or shares ≥1 non-generic (stemmed) token with
+  // `categoryRanked`. Fixes the trustmrr class: "business intelligence platform"
+  // priced to a REAL 165,000/mo (a real DataForSEO number) but trustmrr neither
+  // ranks for it nor shares a token with its real category (mrr/startup/app/
+  // revenue) — real number, fabricated relevance, same bug as the tier ladder had.
+  // When `categoryRanked` is EMPTY (a 0-ranking/young site — no real-ranking
+  // evidence to ground against at all), keep TODAY's unfiltered seed fallback:
+  // it's the only signal a brand-new site has, so grounding would zero out the
+  // one insight a young site can get (degrade to best-effort, not to nothing).
   for (const r of categoryRanked) add(r.keyword, r.volume, r.yourPosition);
-  for (const r of seedVolumes) add(r.keyword, r.volume);
+  if (categoryRanked.length === 0) {
+    for (const r of seedVolumes) add(r.keyword, r.volume);
+  } else {
+    const groundedTokens = groundedCategoryTokens(categoryRanked);
+    for (const r of seedVolumes) {
+      if (!isTierPhraseGrounded(r.keyword, groundedTokens, rankByKeyword)) continue; // ungrounded — an LLM guess with no ranking evidence
+      add(r.keyword, r.volume);
+    }
+  }
 
   const rows = [...byKw.values()].sort((a, b) => b.volume - a.volume).slice(0, CATEGORY_DEMAND_ROWS);
   const categoryDemand = rows.reduce((s, r) => s + r.volume, 0);
