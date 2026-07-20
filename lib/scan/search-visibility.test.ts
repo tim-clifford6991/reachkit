@@ -22,7 +22,7 @@ vi.mock("@/lib/scan/cache/cached-adapters", () => ({
 import {
   computeSearchVisibility, buildVocab, computeCategoryDemand, buildCategorySeeds, computeMarketTiers,
   classifyFootprint, gatherFreeSearchVisibility, stem, computeCategoryLadder, ladderCandidates, CATEGORY_FLOOR,
-  essentialLadderCandidates,
+  essentialLadderCandidates, CATEGORY_SUFFIX_TOKENS, isMeaningfulCategoryHead,
 } from "./search-visibility";
 import { tokens, GENERIC_TOKENS } from "@/lib/scan/referral/brand-keywords";
 import type { CategoryNicheSeeds } from "@/lib/llm/types";
@@ -516,8 +516,78 @@ describe("computeCategoryLadder — CATEGORY must be LARGE, never fabricated (D2
     expect(nicheCard.phrases.map((p) => p.keyword)).toContain("microblogging service");
   });
 
-  it("trustmrr.com: the tiny (90/mo) real category ladders to a LARGE grounded umbrella, not left tiny — niche keeps the small real MRR terms", () => {
-    // VERIFIED live rankings (task-P2 brief): "startup revenue" #2, "mrr startup" #2.
+  // P3fix (2026-07-20, LIVE DEFECT): trustmrr's real ladder run picked the
+  // BARE generic noun "marketplace" (2,240,000/mo — Amazon/Facebook
+  // Marketplace territory, meaningless for a startup-MRR directory) over the
+  // genuinely-qualified "startup"/"startup acquisition" candidates, because
+  // the OLD guard only required a candidate to be GROUNDED (share a token
+  // with real rankings/niche vocab) — and "marketplace" legitimately IS
+  // grounded (trustmrr ranks for "startup acquisition marketplace"). Grounded
+  // is necessary but not sufficient: "marketplace" alone names a BUSINESS
+  // MODEL SHAPE, not an industry — the same class of dishonesty as
+  // "business intelligence platforms" for an MRR tool. Fixed by
+  // `isMeaningfulCategoryHead`: a candidate must ALSO retain ≥1 token outside
+  // `CATEGORY_SUFFIX_TOKENS`/`GENERIC_TOKENS` — a real qualifier.
+  it("trustmrr.com: a bare category-suffix noun ('marketplace', 2.24M) is REJECTED even though it is grounded and clears the floor — never fabricate-large (the P3fix class)", () => {
+    // VERIFIED live rankings (task-P2 brief + task-P3fix brief): "startup
+    // revenue" #2, "mrr startup" #2, and trustmrr genuinely ranks (position 6)
+    // for "startup acquisition marketplace" — which is exactly how "marketplace"
+    // enters the ladder's grounded vocabulary in the first place.
+    const categoryRanked = [
+      { keyword: "mrr startup", volume: 90, yourPosition: 2 },
+      { keyword: "startup mrr", volume: 90, yourPosition: 2 },
+      { keyword: "mrr app", volume: 70, yourPosition: 1 },
+      { keyword: "startup revenue", volume: 30, yourPosition: 2 },
+      { keyword: "startup acquisition marketplace", volume: 20, yourPosition: 6 },
+    ];
+    const categoryNiche: CategoryNicheSeeds = {
+      category: { label: "Startup acquisition marketplace", phrases: ["startup acquisition marketplace"] },
+      niche: { label: "MRR verification", phrases: ["mrr verification tool", "startup revenue verification"] },
+    };
+    const volumesByKeyword = new Map<string, number>([
+      ["startup acquisition marketplace", 20], // the base LLM phrase — tiny, honest
+      ["startup acquisition", 40], // essentialLadderCandidates' intermediate (drop trailing "marketplace") — still tiny
+      ["startup", 90], // single-token candidate — MEANINGFUL (a real qualifier) but still sub-floor
+      ["acquisition", 60], // single-token candidate — MEANINGFUL but still sub-floor
+      ["marketplace", 2_240_000], // the LIVE DEFECT number: bare category-suffix noun, grounded, clears the floor — MUST be rejected
+      ["mrr verification tool", 20],
+      ["startup revenue verification", 10],
+    ]);
+    const rankByKeyword = new Map<string, number>();
+
+    const { categoryCard, nicheCard } = computeCategoryLadder(categoryNiche, volumesByKeyword, rankByKeyword, categoryRanked);
+
+    // The fake fabricated-large number never appears.
+    expect(categoryCard.demand).not.toBe(2_240_000);
+    expect(categoryCard.phrases.map((p) => p.keyword)).not.toContain("marketplace");
+    expect(categoryCard.label).not.toBe("marketplace");
+    // Nothing MEANINGFUL clears the floor here (90/60/40/20 all < 10,000) — so
+    // per D2 ("never fabricate a category, an honest moderate number beats a
+    // fake huge one") the ladder is exhausted honestly: it keeps the original,
+    // small, REAL grounded category phrase rather than force a lie.
+    expect(categoryCard.demand).toBeLessThan(CATEGORY_FLOOR);
+    expect(categoryCard.demand).toBe(20);
+    expect(categoryCard.phrases.map((p) => p.keyword)).toEqual(["startup acquisition marketplace"]);
+    // Explicit qualifier assertion (mutation-prove target): every laddered
+    // category head phrase retains a real, non-suffix qualifier token.
+    for (const p of categoryCard.phrases) {
+      expect(isMeaningfulCategoryHead(p.keyword)).toBe(true);
+    }
+
+    // Niche keeps the small real, CONTAINED terms — honest, no fabrication.
+    // "mrr verification tool" shares no token with the category's own
+    // vocabulary ("startup"/"acquisition"/"marketplace") so the ⊆ guarantee
+    // correctly excludes it; "startup revenue verification" shares "startup".
+    expect(nicheCard.demand).toBe(10);
+    expect(nicheCard.phrases.map((p) => p.keyword)).toEqual(["startup revenue verification"]);
+  });
+
+  it("trustmrr.com class, contrast: when a MEANINGFUL candidate DOES clear the floor, it ladders large exactly like reachkit/savvycal/x.com — the floor still drives laddering when a real large category exists", () => {
+    // Same shape as the live-defect fixture above, except "startup" alone is
+    // given real, large, floor-clearing volume (a genuinely large, honest,
+    // non-suffix umbrella) — proving the fix doesn't just make trustmrr small
+    // by policy; it still ladders to LARGE whenever a real MEANINGFUL term
+    // supports it, same as every other archetype.
     const categoryRanked = [
       { keyword: "mrr startup", volume: 90, yourPosition: 2 },
       { keyword: "startup mrr", volume: 90, yourPosition: 2 },
@@ -531,7 +601,7 @@ describe("computeCategoryLadder — CATEGORY must be LARGE, never fabricated (D2
     const volumesByKeyword = new Map<string, number>([
       ["mrr tracking tool", 90],
       ["startup revenue tools", 40],
-      ["startup", 40500], // the ladder candidate that clears the floor
+      ["startup", 40500], // the ladder candidate that clears the floor — MEANINGFUL (not a suffix noun)
       ["mrr verification tool", 20],
       ["startup revenue verification", 10],
     ]);
@@ -543,9 +613,69 @@ describe("computeCategoryLadder — CATEGORY must be LARGE, never fabricated (D2
     // Not the tiny unladdered 90+40 = 130 (the shipped-dishonest class this fixes).
     expect(categoryCard.demand).not.toBe(130);
     expect(categoryCard.phrases.map((p) => p.keyword)).toEqual(["startup"]);
+    expect(isMeaningfulCategoryHead("startup")).toBe(true);
     // Niche keeps the small real MRR terms — honest, no fabrication.
     expect(nicheCard.demand).toBe(30);
     expect(nicheCard.phrases.map((p) => p.keyword).sort()).toEqual(["mrr verification tool", "startup revenue verification"]);
+  });
+
+  it("isMeaningfulCategoryHead: rejects every bare CATEGORY_SUFFIX_TOKENS noun, accepts a qualified phrase", () => {
+    for (const suffix of CATEGORY_SUFFIX_TOKENS) {
+      expect(isMeaningfulCategoryHead(suffix), `bare "${suffix}" must not be a meaningful category head`).toBe(false);
+    }
+    expect(isMeaningfulCategoryHead("startup marketplace")).toBe(true); // retains "startup"
+    expect(isMeaningfulCategoryHead("seo")).toBe(true); // reachkit's real umbrella
+    expect(isMeaningfulCategoryHead("scheduling")).toBe(true); // savvycal's real umbrella
+    expect(isMeaningfulCategoryHead("social")).toBe(true); // x.com's real umbrella
+  });
+
+  it("reachkit/savvycal/x.com laddered category heads are all MEANINGFUL (prove no regression from the qualifier guard)", () => {
+    const cases: { categoryRanked: { keyword: string; volume: number; yourPosition: number }[]; categoryNiche: CategoryNicheSeeds; volumesByKeyword: [string, number][]; expectHead: string }[] = [
+      {
+        categoryRanked: [
+          { keyword: "seo audit tool", volume: 2400, yourPosition: 15 },
+          { keyword: "seo scan", volume: 1300, yourPosition: 22 },
+        ],
+        categoryNiche: {
+          category: { label: "SEO tooling", phrases: ["seo audit tool", "website seo checker"] },
+          niche: { label: "SEO competitor tracking", phrases: ["seo competitor tracking", "compare seo rivals"] },
+        },
+        volumesByKeyword: [["seo audit tool", 90], ["website seo checker", 200], ["seo", 40500], ["seo competitor tracking", 70], ["compare seo rivals", 20]],
+        expectHead: "seo",
+      },
+      {
+        categoryRanked: [
+          { keyword: "appointment scheduling tool", volume: 110, yourPosition: 8 },
+          { keyword: "meeting scheduler", volume: 320, yourPosition: 14 },
+        ],
+        categoryNiche: {
+          category: { label: "Scheduling software", phrases: ["online scheduling tool", "meeting scheduler app"] },
+          niche: { label: "Scheduling for consultants", phrases: ["consultant scheduling tool", "client booking calendar"] },
+        },
+        volumesByKeyword: [["online scheduling tool", 110], ["meeting scheduler app", 90], ["scheduling", 33100], ["consultant scheduling tool", 40], ["client booking calendar", 20]],
+        expectHead: "scheduling",
+      },
+      {
+        categoryRanked: [
+          { keyword: "social media platform", volume: 9900, yourPosition: 5 },
+          { keyword: "microblogging app", volume: 720, yourPosition: 3 },
+        ],
+        categoryNiche: {
+          category: { label: "Social media", phrases: ["social networking site", "microblogging platform"] },
+          niche: { label: "Microblogging for public figures", phrases: ["microblogging service"] },
+        },
+        volumesByKeyword: [["social networking site", 480], ["microblogging platform", 90], ["social", 673000], ["microblogging service", 320]],
+        expectHead: "social",
+      },
+    ];
+    for (const c of cases) {
+      const { categoryCard } = computeCategoryLadder(c.categoryNiche, new Map(c.volumesByKeyword), new Map(), c.categoryRanked);
+      expect(categoryCard.demand).toBeGreaterThanOrEqual(CATEGORY_FLOOR);
+      expect(categoryCard.phrases.map((p) => p.keyword)).toEqual([c.expectHead]);
+      for (const p of categoryCard.phrases) {
+        expect(isMeaningfulCategoryHead(p.keyword), `${c.expectHead} must be a meaningful category head`).toBe(true);
+      }
+    }
   });
 
   it("no ladder needed when the grounded category head phrases already clear the floor", () => {

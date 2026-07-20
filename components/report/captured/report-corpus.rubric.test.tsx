@@ -345,6 +345,21 @@ describe("corpus: spacex.com — the 8,170-demand class control (post-fix)", () 
 // onto getapp.com's real base (also a real directory scan), simulating the
 // aggregation-strip case rather than claiming it as getapp's own data.
 //
+// P3fix (2026-07-20, LIVE DEFECT caught the same day, task-P3fix-brief.md):
+// the trustmrr "Business Marketplace & Acquisition" 2,240,000 number above
+// was the BUG — the ladder had picked the BARE generic noun "marketplace"
+// (real Amazon/Facebook Marketplace search volume, meaningless for a
+// startup-MRR directory) because it was grounded but not required to be
+// MEANINGFUL (retain a real qualifier token). `computeCategoryLadder` now
+// rejects a bare `CATEGORY_SUFFIX_TOKENS` noun even when grounded and even
+// when it clears CATEGORY_FLOOR (see search-visibility.ts's
+// `isMeaningfulCategoryHead`) — trustmrr's honest, corrected category is the
+// real grounded phrase it actually ranks for, "startup acquisition
+// marketplace" (8,100/mo — real, moderate, sub-floor; an honest number beats
+// a fake huge one, D2). The niche card ALSO used to be OMITTED when its
+// demand was genuinely 0 — it now renders an honest empty state instead
+// (`<NicheEmptyCard>`) so the two-card layout holds.
+//
 // TODO (post-merge, per CLAUDE.md "always live-test against REAL adapters"):
 // once a fresh scan of each domain is available on prod, `pnpm capture:report`
 // should replace these constructs with real captures and this block retired,
@@ -431,9 +446,12 @@ describe("data board P3 (CONSTRUCTED variants, corpus-first — not verbatim cap
   // The directory-pattern case (D3): trustmrr.com's verified live numbers,
   // layered onto getapp.com's real base (also a directory scan — see the
   // block comment above for why trustmrr itself has no base fixture here).
-  // Niche demand is genuinely 0 (no grounded niche phrase cleared pricing) —
-  // the niche card must NOT render (marketCardReady false), and the
-  // aggregation strip must fire (aggregatedPct 78 ≥ 40).
+  // P3fix: the category is now the CORRECTED honest number (8,100 — real,
+  // moderate, sub-floor) instead of the bare-generic "marketplace" 2,240,000
+  // bug. Niche demand is genuinely 0 (no grounded niche phrase cleared
+  // pricing) — the niche card now renders the honest EMPTY STATE (label +
+  // "no measurable niche demand yet"), not an omission. The aggregation
+  // strip must still fire (aggregatedPct 78 ≥ 40).
   const directoryP3: CorpusFixture = {
     ...getappFixture,
     domain: "getapp.com (constructed: P3 directory pattern, trustmrr.com live numbers)",
@@ -442,9 +460,9 @@ describe("data board P3 (CONSTRUCTED variants, corpus-first — not verbatim cap
       searchVisibility: {
         ...getappFixture.reportPayload.searchVisibility!,
         categoryCard: marketCard({
-          label: "Business Marketplace & Acquisition",
-          demand: 2240000,
-          gaps: [{ keyword: "business marketplace", volume: 1240000 }, { keyword: "startup acquisition marketplace", volume: 1000000 }],
+          label: "Startup acquisition marketplace",
+          demand: 8100,
+          gaps: [{ keyword: "startup acquisition marketplace", volume: 8100 }],
         }),
         nicheCard: marketCard({ label: "MRR verification for acquirers", demand: 0 }), // 0 grounded phrases — genuinely empty
         aggregatedPct: 78,
@@ -507,15 +525,18 @@ describe("data board P3 (CONSTRUCTED variants, corpus-first — not verbatim cap
       expect(html).toContain("cometly");
       expect(html).toContain("trimrx");
     });
-    it("the Category card renders (2,240,000, large) but the Niche card is OMITTED — niche demand is genuinely 0", () => {
-      expect(html).toContain("2,240,000");
-      // renderToStaticMarkup HTML-escapes "&" to &amp; in text — split the
-      // label check either side of it.
-      expect(html).toContain("Business Marketplace");
-      expect(html).toContain("Acquisition");
-      expect(html).not.toContain("MRR verification for acquirers");
+    it("the Category card renders the CORRECTED honest number (8,100), never the bare-generic 'marketplace' 2,240,000 (P3fix)", () => {
+      expect(html).toContain("8,100");
+      expect(html).not.toContain("2,240,000");
+      expect(html).toContain("Startup acquisition marketplace");
+      // The fabricated bare-generic label must never appear either.
+      expect(html).not.toContain("Business Marketplace");
     });
-    it("the Opportunity section is OMITTED too — no niche card, nothing to itemise (invariant #11)", () => {
+    it("the Niche card renders the honest EMPTY STATE (label + 'no measurable niche demand yet') — niche demand is genuinely 0, but the card is not omitted (P3fix)", () => {
+      expect(html).toContain("MRR verification for acquirers");
+      expect(html).toContain("No measurable niche demand yet");
+    });
+    it("the Opportunity section is still OMITTED — the empty-state niche card has nothing to itemise (invariant #11)", () => {
       expect(html).not.toContain("Opportunity · your niche");
     });
     it("passes the full rubric (R1–R7)", () => {

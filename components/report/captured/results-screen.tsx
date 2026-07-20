@@ -148,6 +148,27 @@ function MarketCard({ kind, card }: { kind: "category" | "niche"; card: MarketCa
   );
 }
 
+/** P3fix (2026-07-20): the honest empty state for a niche that genuinely has
+ *  no measurable demand yet (0 grounded/priced phrases — e.g. trustmrr.com,
+ *  a real directory whose niche terms just don't clear pricing). Previously
+ *  the niche slot was OMITTED entirely when this happened, which silently
+ *  collapsed the two-card layout to one column and dropped the niche's own
+ *  LABEL (real LLM output, just with no priced phrases) with no explanation.
+ *  Shows the SAME pill + label as a real `<MarketCard>` so the two-card
+ *  layout holds, plus one honest line — never a fabricated demand number
+ *  (invariant #11: degrade, never invent). */
+function NicheEmptyCard({ label }: { label: string }) {
+  return (
+    <div style={MARKET_CARD_STYLE}>
+      <span style={{ fontFamily: JM, fontSize: 10.5, fontWeight: 700, letterSpacing: "0.08em", padding: "3px 9px", borderRadius: 999, background: "var(--c-tint-amber)", color: "#C98A12" }}>YOUR NICHE</span>
+      <div className="rk-wrap-any" style={{ fontSize: 13, color: "var(--c-muted)", margin: "10px 0 12px" }}>{label}</div>
+      <div style={{ fontSize: 12.5, color: "var(--c-muted)", background: "var(--c-fill)", borderLeft: "3px solid var(--c-line)", borderRadius: "0 8px 8px 0", padding: "8px 11px" }}>
+        No measurable niche demand yet — your niche is still small or emerging.
+      </div>
+    </div>
+  );
+}
+
 /** A card is renderable when it actually carries priced, grounded phrases —
  *  never an empty "0 searches/mo, None yet, None yet" shell (invariant #11:
  *  degrade, never invent an empty section). `demand` alone can't gate this on
@@ -157,6 +178,18 @@ function MarketCard({ kind, card }: { kind: "category" | "niche"; card: MarketCa
  *  `computeCategoryLadder`'s `splitRankedGaps` produces) is the real signal. */
 function marketCardReady(card: MarketCardData | null | undefined): card is MarketCardData {
   return !!card && card.rankedTop3.length + card.gaps.length > 0;
+}
+
+/** Same phrase-count check as `marketCardReady`, but on an ALREADY non-null
+ *  card and returning a PLAIN boolean (no `is` type predicate). Needed
+ *  because the niche slot picks between two DIFFERENT RENDERS of the SAME
+ *  card object (a real `<MarketCard>` vs `<NicheEmptyCard>`) — "ready" here
+ *  is a runtime distinction (does this card have priced phrases?), not a
+ *  type distinction, so reusing `marketCardReady`'s predicate on an
+ *  already-`MarketCardData` value would make TS narrow the false branch to
+ *  `never` (excluding the only type left in the union). */
+function hasCardPhrases(card: MarketCardData): boolean {
+  return card.rankedTop3.length + card.gaps.length > 0;
 }
 
 export interface ResultsScreenProps {
@@ -544,7 +577,17 @@ export function ResultsScreen(p: ResultsScreenProps) {
             // ── P3: the NEW six-section board (sections 2-4) ──────────────
             if (marketCardReady(sv.categoryCard)) {
               const categoryCard = sv.categoryCard!;
-              const nicheCard = marketCardReady(sv.nicheCard) ? sv.nicheCard! : null;
+              // P3fix (2026-07-20): a niche with genuinely 0 priced phrases
+              // (trustmrr.com — a real directory) used to be OMITTED entirely,
+              // silently collapsing the two-card layout to one column. The
+              // card's LABEL is real LLM output regardless of whether any
+              // phrase priced — so when `sv.nicheCard` exists at all, ALWAYS
+              // render its slot: a real `<MarketCard>` when it's ready
+              // (priced phrases), else the honest `<NicheEmptyCard>` (never a
+              // fabricated demand number — invariant #11). Only a wholly
+              // ABSENT nicheCard (legacy payload, predates P2) renders nothing.
+              const nicheCardData = sv.nicheCard ?? null;
+              const nicheReady = !!nicheCardData && hasCardPhrases(nicheCardData);
               return (
                 <>
                   {/* The intrinsic-collapse grid idiom (dashboard-hero.tsx): the
@@ -553,19 +596,21 @@ export function ResultsScreen(p: ResultsScreenProps) {
                       (the CI-blocking mobile gate needs nothing extra here). */}
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))", gap: 14, marginBottom: 14 }}>
                     <MarketCard kind="category" card={categoryCard} />
-                    {nicheCard && <MarketCard kind="niche" card={nicheCard} />}
+                    {nicheCardData && (hasCardPhrases(nicheCardData) ? <MarketCard kind="niche" card={nicheCardData} /> : <NicheEmptyCard label={nicheCardData.label} />)}
                   </div>
                   {sv.categoryDemand > 0 && rivalryTeaser}
                   {/* Opportunity — section 4: the niche's OWN gap keywords (real
                       demand + real positions, zero LLM), by volume — "where the
                       searches are, and you're not there." Omitted entirely when
                       the niche has nothing to show (invariant #11: an empty
-                      input renders no section, never an empty list). */}
-                  {nicheCard && nicheCard.gaps.length > 0 && (
+                      input renders no section, never an empty list) — the
+                      empty-state CARD above still shows, but there is nothing
+                      to itemise here. */}
+                  {nicheReady && nicheCardData!.gaps.length > 0 && (
                     <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16, padding: "18px 20px", marginBottom: 14 }}>
                       <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: "#C98A12", marginBottom: 4 }}>Opportunity · your niche</div>
                       <div style={{ fontSize: 12.5, color: "var(--c-faint)", marginBottom: 10 }}>Where the searches are — and you&apos;re not there.</div>
-                      {nicheCard.gaps.slice(0, 5).map((row) => (
+                      {nicheCardData!.gaps.slice(0, 5).map((row) => (
                         <div key={row.keyword} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "9px 0", borderBottom: "1px solid var(--c-line2)", fontSize: 13 }}>
                           <span className="rk-wrap-any" style={{ fontWeight: 600, minWidth: 0 }}>{row.keyword}</span>
                           <span style={{ fontFamily: JM, color: "var(--c-muted)", fontSize: 12.5, whiteSpace: "nowrap" }}>{row.volume.toLocaleString()} / mo</span>

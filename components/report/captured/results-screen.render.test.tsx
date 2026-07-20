@@ -286,6 +286,50 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
     expect(html).toContain("Search presence is your gap.");
   });
 
+  it("P3fix: a niche with genuinely 0 priced phrases renders the honest EMPTY STATE, not an omission — the two-card layout holds", () => {
+    // trustmrr.com's real shape post-fix: the category ladders to the
+    // corrected honest number (never the bare-generic "marketplace"
+    // 2,240,000 — see search-visibility.test.ts's computeCategoryLadder
+    // suite), and the niche genuinely has 0 grounded/priced phrases. Before
+    // this fix the niche slot was OMITTED entirely, silently collapsing the
+    // two-card grid to one column and dropping the niche's own real LABEL.
+    const r = report({
+      searchVisibility: sv({
+        categoryDemand: 8100,
+        categoryCard: {
+          label: "Startup acquisition marketplace",
+          demand: 8100,
+          phrases: [{ keyword: "startup acquisition marketplace", volume: 8100 }],
+          rankedTop3: [],
+          gaps: [{ keyword: "startup acquisition marketplace", volume: 8100 }],
+        },
+        nicheCard: {
+          label: "MRR verification for acquirers",
+          demand: 0,
+          phrases: [],
+          rankedTop3: [],
+          gaps: [],
+        },
+      }),
+    });
+    const html = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r, "trustmrr.com", 0, 0)} scanId="scan-trustmrr-niche-empty" />);
+
+    assertNoGarbage(html, "niche empty-state");
+    // The corrected, honest category renders — never the fabricated bare
+    // "marketplace" 2,240,000 fake-large number.
+    expect(html).toContain("8,100");
+    expect(html).not.toContain("2,240,000");
+    expect(html).toContain("Startup acquisition marketplace");
+    // The niche card renders its real label + the honest empty-state line —
+    // it is NOT omitted, so the two-card layout holds.
+    expect(html).toContain("MRR verification for acquirers");
+    expect(html).toContain("No measurable niche demand yet");
+    // No fabricated niche demand number (invariant #11: degrade, never invent).
+    expect(html).not.toMatch(/MRR verification for acquirers[\s\S]{0,200}searches\s*\/\s*mo/);
+    // Nothing to itemise in the Opportunity section — omitted, not an empty list.
+    expect(html).not.toContain("Opportunity · your niche");
+  });
+
   it("LEGACY payload (predates a report_payload section) renders without crashing — the null-coalesce rule, machine-enforced", () => {
     // WHY THIS EXISTS (the process gap that shipped a live crash): report_payload is
     // ONE JSON blob and OLDER scans predate fields added later (WS1's footprintComplete,
