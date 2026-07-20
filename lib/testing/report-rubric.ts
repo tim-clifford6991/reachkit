@@ -300,7 +300,12 @@ const SECTION_RULES: SectionRule[] = [
   },
   {
     id: "off-topic-examples",
-    marker: "e.g. you rank for",
+    // P4 review fix (2026-07-20): marker updated from "e.g. you rank for" —
+    // the sentence it lived in ("N% of your search traffic is other
+    // companies' names — not buyers looking for you. e.g. you rank for…")
+    // is gone; the terse chip now appends "· e.g. "term1", "term2"" after
+    // the base percentage label.
+    marker: "· e.g.",
     // Mirrors the render boundary's editorial curation (`renderableExamples`):
     // a payload whose only examples are explicit terms grounds NO example copy.
     // Superseded by the P3 aggregation strip once categoryCard is ready — the
@@ -629,6 +634,13 @@ const BANNED_PROSE = [
   "You don't rank in the top 3",
   "Someone is winning these searches today",
   "The full scan discovers who's winning these searches",
+  // P4 review fix (2026-07-20): the legacy footprint-split block's own
+  // "not buyers looking for you" sentence — verified live-rendering on
+  // directories (getapp.com: offTopicPct 100, aggregatedPct below the
+  // newer strip's floor so this old sentence fired instead). The split
+  // bar + percentage chips + named examples already carry the same data.
+  "not buyers looking for you",
+  "of your search traffic is other companies",
 ];
 
 const r8Terseness: RubricRule = {

@@ -599,12 +599,17 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
   // mechanism-neutral: it names the fact (other companies' names) without
   // asserting how the site came to rank for them. E2 (facts-first copy sweep,
   // 2026-07-20) tersened it further: numbers lead, the "real visits… what you
-  // do" clause is gone.
-  it("the off-topic warning is mechanism-neutral, facts-first — no 'you list or mention' claim", () => {
+  // do" clause is gone. P4 review fix (2026-07-20, "not buyers looking for
+  // you" — the last prose sibling): the whole sentence is gone — a terse
+  // "other companies' names {pct}%" label chip replaces it (R8 BANNED_PROSE
+  // now pins both retired wordings so neither can come back).
+  it("the off-topic warning is a terse data chip — no 'you list or mention' or 'not buyers looking for you' claim", () => {
     const html = renderPublicReport(report({ searchVisibility: sv({ offTopicPct: 60, categoryPct: 15 }) }));
-    // renderToStaticMarkup HTML-escapes the JSX &apos; to the &#x27; entity.
-    expect(html).toMatch(/60% of your search traffic is other companies(?:'|’|&#x27;)? names — not buyers looking for you\./);
+    expect(html).toContain("other companies");
+    expect(html).toContain("60%");
     expect(html).not.toContain("you list or mention");
+    expect(html).not.toContain("not buyers looking for you");
+    expect(html).not.toMatch(/of your search traffic is other companies/);
   });
 
   // WS-D (2026-07-19): named off-topic examples — the >=40% warning used to

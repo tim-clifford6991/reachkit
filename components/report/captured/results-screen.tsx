@@ -777,17 +777,17 @@ export function ResultsScreen(p: ResultsScreenProps) {
                 {/* G3: the split is a SAMPLE (top ranked terms by traffic) — disclose it. */}
                 <div style={{ marginTop: 6, fontSize: 11, color: "var(--c-faint)" }}>Traffic split across your top-ranked terms.</div>
                 {sv.offTopicPct >= 40 && (
-                  <div style={{ marginTop: 14, padding: "12px 14px", background: "var(--c-tint-orange)", borderLeft: "3px solid #E0731C", borderRadius: "0 10px 10px 0", fontSize: 13.5, lineHeight: 1.55, color: "#3A3744" }}>
-                    {/* E2 (facts-first copy sweep, 2026-07-20): the number now leads
-                        ("{offTopicPct}% of…") instead of trailing after a scene-setting
-                        clause, and "real visits, but not buyers looking for what you
-                        do" — restating the same fact in more words — is gone. */}
-                    {sv.offTopicPct}% of your search traffic is other companies&apos; names — not buyers looking for you.
-                    {/* WS-D (2026-07-19): names the actual off-topic keywords, so
-                        the "other companies' names" claim is concrete, not just a
-                        percentage. */}
+                  /* P4 review fix (2026-07-20, "not buyers looking for you" — the
+                     last prose sibling): the old block was a full sentence
+                     ("{offTopicPct}% of your search traffic is other companies'
+                     names — not buyers looking for you.") — the split bar +
+                     percentage chips above already carry that number. Dropped
+                     to a terse label chip: the percentage + named examples
+                     (still real, still derivable), no sentence framing. */
+                  <div style={{ marginTop: 14, padding: "10px 14px", background: "var(--c-tint-orange)", borderLeft: "3px solid #E0731C", borderRadius: "0 10px 10px 0", fontSize: 12.5, fontFamily: JM, fontWeight: 600, color: "#3A3744" }}>
+                    other companies&apos; names {sv.offTopicPct}%
                     {(sv.offTopicExamples ?? []).length > 0 && (
-                      <> e.g. you rank for <strong>{(sv.offTopicExamples ?? []).map((ex) => `"${ex}"`).join(", ")}</strong>.</>
+                      <span style={{ fontWeight: 700 }}> · e.g. {(sv.offTopicExamples ?? []).map((ex) => `"${ex}"`).join(", ")}</span>
                     )}
                   </div>
                 )}

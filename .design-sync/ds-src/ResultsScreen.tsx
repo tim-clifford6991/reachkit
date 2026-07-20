@@ -329,7 +329,13 @@ export function ResultsScreen() {
             Search presence — your weaker half. There are N more like it in
             your category.") is gone outright — the query/volume/rank chips
             above it already carry that meaning; a bare "🔒 +N more" chip is
-            all that survives of the "N more" count. */}
+            all that survives of the "N more" count. Last sibling fix (same
+            day): the footprint-split bar's own "N% of your search traffic is
+            other companies' names — not buyers looking for you." sentence is
+            gone too — the split bar + percentage chips already carry the
+            number, so the ≥40% warning is now a bare "other companies' names
+            N%" chip (plus "· e.g. "term1", "term2"" when examples ground
+            it). */}
         <div style={{ marginBottom: 14, fontSize: 11.5, color: "var(--c-faint)", fontStyle: "italic" }}>
           Legacy payload (no categoryCard) → falls back to the pre-P2 three-tier ladder (YOUR CATEGORY card shows a terse "top 3 × N" / "not ranking" chip beside the pill, no sentence) + the footprint-split bar ("Traffic split across your top-ranked terms.") + the promoted "Your biggest untapped opportunity" card (query + volume + rank chips, a bare "🔒 +N more" chip, no explainer sentence; degrading to "Unlock to see who wins them and how →" when nothing parses) instead of the board above (don&apos;t crash, don&apos;t blank).
         </div>
