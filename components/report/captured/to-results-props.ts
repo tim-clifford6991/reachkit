@@ -192,12 +192,10 @@ export function toResultsProps(
         brandPct: sv.brandPct,
         categoryPct: sv.categoryPct,
         // D3 (2026-07-20, data board P1): aggregatedPct/aggregatedExamples are
-        // the new AGGREGATED footprint dimension (directory/aggregator listing
-        // share, peeled out of offTopicPct — see search-visibility.ts). DATA
-        // ONLY this phase: defaulted here for legacy-payload safety (the
-        // report_payload one-blob rule — a pre-P1 persisted scan predates these
-        // fields) but NOT added to ResultsScreenProps / rendered anywhere yet;
-        // that's P3.
+        // the AGGREGATED footprint dimension (directory/aggregator listing
+        // share, peeled out of offTopicPct — see search-visibility.ts).
+        // `?? 0`/`?? []` for legacy-payload safety (a pre-P1 persisted scan
+        // predates these fields). P3 renders these as the aggregation strip.
         aggregatedPct: sv.aggregatedPct ?? 0,
         aggregatedExamples: sv.aggregatedExamples ?? [],
         offTopicPct: sv.offTopicPct,
@@ -243,6 +241,13 @@ export function toResultsProps(
         // named example): explicit terms never render as examples; the split
         // percentages still count them — only the NAMED examples are curated.
         offTopicExamples: renderableExamples(sv.offTopicExamples).slice(0, 3),
+        // P2/P3 (2026-07-20, data board): the CATEGORY (broad, laddered-large)
+        // and NICHE (specific) cards. `?? null` — absent on any payload
+        // captured before P2 (or when the synth had no `categoryNiche` seed);
+        // `<MarketCard>` (results-screen.tsx) falls back to the pre-P2
+        // market-tier ladder render when null, never crashes/blanks.
+        categoryCard: sv.categoryCard ?? null,
+        nicheCard: sv.nicheCard ?? null,
       }
     : null;
 

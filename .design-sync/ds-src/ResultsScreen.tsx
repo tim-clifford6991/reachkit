@@ -5,16 +5,20 @@ import * as React from "react";
  * ResultsScreen — the free-scan report rendered at /scan/[id]: a context bar
  * (free scan · site + Share), the hero card (280° gauge showing the UNIFIED
  * Discoverability Score + band + headline + its TWO driver bars: on-page
- * readiness × search presence), the "Your category, and how much of it you own"
- * money-shot lifted directly under the score, the promoted single biggest
- * opportunity (not a flat table) plus its rows 2-4 and teaser count (WS-B/WS-D,
- * G10 — the teaser count derives from the SAME rows rendered here, never a
- * sibling metric), the "buyers compare you to" rivalry line in BOTH its states
- * (rivals found → names + per-rival teaser; none found → an honest "someone is
- * winning" degrade, WS-E), the top ranked fixes with a clickable unlock
- * teaser, the reworked Positioning Mirror (gap insight leads, compact aim→reads-as
- * line), the evidence footnote, and the unlock CTA band. Mirrors the live captured
- * report (`components/report/captured/results-screen.tsx`).
+ * readiness × search presence + the Overview hero stat — the CATEGORY size),
+ * the P3 (2026-07-20, data board) SIX-SECTION BOARD: Category (broad) + Niche
+ * (specific) MarketCards side by side, the "buyers compare you to" rivalry
+ * line in BOTH its states (rivals found → names + per-rival teaser; none
+ * found → an honest "someone is winning" degrade, WS-E), the Opportunity
+ * section (the niche's own gap keywords by volume), the top ranked fixes with
+ * a clickable unlock teaser, the reworked Positioning Mirror (gap insight
+ * leads, compact aim→reads-as line), the evidence footnote, and the unlock
+ * CTA band. A payload whose categoryCard isn't yet grounded (pre-P2 / legacy)
+ * falls back to the OLD three-tier ladder + footprint-split render instead —
+ * documented as a note below, not duplicated as a second full demo (the DS
+ * shows the CANONICAL going-forward experience; every new scan carries a
+ * ready categoryCard). Mirrors the live captured report
+ * (`components/report/captured/results-screen.tsx`).
  */
 export interface ResultsScreenProps {
   _unused?: never;
@@ -49,31 +53,32 @@ const SITE = "bloom.io";
 // R1 (2026-07-19) — the listing's own self-description, rendered as a small
 // line before the headline.
 const IDENTITY_LINE = "Habit and mood tracking for people building daily routines.";
-// Task B (2026-07-19, ladder restructure) — at most [broad?, niche?]. MEDIUM
-// is gone: it duplicated the category-demand hero at the same altitude (a
-// live scan showed "seo tools" priced in BOTH the medium rung and the hero,
-// visibly double-counted). BROAD renders ABOVE the hero only when its priced
-// demand EXCEEDS the hero's (the inversion guard — an inverted ladder, broad
-// sized below the category it sits above, degrades to omitted rather than
-// rendering dishonestly). NICHE is a cheap additional rung rendered AFTER the
-// hero's own phrase chips. FINAL-REVIEW FIX (2026-07-19): a rung's number is
-// the SUM of every phrase priced for it, but showing only its top phrase as
-// the label made the number look like it belonged to that phrase alone —
-// NICHE here demos a multi-phrase rung so its chips row (itemising the rest)
-// is mirrored.
-const MARKET_TIERS = [
-  { tier: "broad" as const, label: "productivity software", demand: 90500, bestPosition: null as number | null, phrases: [{ keyword: "productivity software", volume: 90500 }] },
-];
-const NICHE_TIER = { tier: "niche" as const, label: "habit tracker app", demand: 8820, bestPosition: 34 as number | null, phrases: [{ keyword: "habit tracker app", volume: 8100 }, { keyword: "daily habit app", volume: 720 }] };
-// WS-D (2026-07-19) — categoryRanked rows the subject already ranks top-3
-// for, shown alongside the gap so the report isn't gaps-only. FINAL-REVIEW FIX:
-// the wins SENTENCE below states a count (3) higher than this strip's rows —
-// so the demo mirrors the "+N more" disclosure that discloses the strip is partial.
-const CATEGORY_WINS = 3;
-const WINS_ROWS = [{ keyword: "habit journal app", volume: 720, yourPosition: 2 }];
-// WS-D (2026-07-19) — a few named off-topic keywords, so the >=40% warning
-// is concrete rather than a bare percentage.
-const OFFTOPIC_EXAMPLES = ["spanglish translator", "cometly"];
+// P3 (2026-07-20, data board §2-3): the CATEGORY (broad, laddered-large — D2:
+// a small category is a too-narrow definition, never fabricated) and NICHE
+// (specific, small-is-honest) MarketCards. `rankedTop3`/`gaps` partition every
+// priced phrase (`splitRankedGaps`) — CATEGORY here demos the zero-state ("None
+// yet." — an honest hook, not a blank) and NICHE demos a real top-3 win, so
+// both card states are visible in one demo.
+const CATEGORY_CARD = {
+  label: "productivity software",
+  demand: 90500,
+  rankedTop3: [] as { keyword: string; volume: number; yourPosition?: number }[],
+  gaps: [{ keyword: "productivity software", volume: 90500 }, { keyword: "task management app", volume: 40200 }],
+};
+const NICHE_CARD = {
+  label: "habit tracker app",
+  demand: 8820,
+  rankedTop3: [{ keyword: "habit journal app", volume: 720, yourPosition: 2 }],
+  gaps: [{ keyword: "habit tracker app", volume: 8100 }],
+};
+// The Overview hero stat (§1) — the CATEGORY's own laddered demand, a
+// DIFFERENT number from any legacy `categoryDemand` field (the two coexist by
+// design; see search-visibility.ts's doc comment on `categoryCard`).
+const HERO_MARKET_DEMAND = CATEGORY_CARD.demand;
+// Opportunity (§4) — the NICHE's own gap keywords, by volume. Omitted
+// entirely when there's nothing to show (invariant #11), same discipline as
+// every other section here.
+const NICHE_OPPORTUNITY_ROWS = NICHE_CARD.gaps;
 const DRIVERS = [
   { label: "On-page readiness", value: ON_PAGE, note: "how well your page is built" },
   { label: "Search presence", value: SEARCH, note: "how findable you are in search" },
@@ -85,19 +90,6 @@ const FIXES = [
 ];
 const INTENDED = ["habit tracking", "productivity", "wellness"];
 const ACTUAL = ["mood journal", "self-care app", "daily check-in"];
-// The single biggest category search the site doesn't win (promoted, not a table).
-const TOP_OPP = { query: "best habit tracker 2026", volume: "8,100", rank: "Not winning", opp: "High", oppC: { bg: "var(--c-tint-red)", fg: "var(--c-band-invisible)" } };
-const OPP_TOTAL = 14;
-// WS-B/WS-D (2026-07-19): opportunity rows 2-4, shown beneath the promoted top
-// row (previously only the single top row rendered). G10: the teaser count is
-// derived from THESE SAME rows (OPP_TOTAL - shown.length), never a sibling
-// metric or a bare "OPP_TOTAL - 1".
-const MORE_OPP_ROWS = [
-  { query: "habit tracker for adhd", volume: "2,900", rank: "#14" },
-  { query: "best habit app 2026", volume: "1,300", rank: "Not winning" },
-  { query: "daily habit tracker free", volume: "880", rank: "#22" },
-];
-const MORE_OPP = OPP_TOTAL - (1 + MORE_OPP_ROWS.length);
 
 const CARD: React.CSSProperties = { background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16 };
 const H2: React.CSSProperties = { fontFamily: SG, fontWeight: 700, fontSize: 20, letterSpacing: "-0.01em", margin: "32px 0 6px" };
@@ -164,6 +156,14 @@ export function ResultsScreen() {
               <div style={{ fontSize: 12, lineHeight: 1.5, color: "var(--c-muted)", fontFamily: JM, paddingTop: 4, borderTop: "1px dashed var(--c-line2)", marginTop: 2 }}>
                 Your score multiplies both. <strong style={{ color: "var(--c-ink)" }}>{WEAKER_DRIVER} is your gap.</strong>
               </div>
+              {/* P3 (data board §1, Overview): the hero stat — the CATEGORY
+                  size, laddered-large and grounded (D2: a small category is a
+                  too-narrow definition, never fabricated). Sits at the bottom
+                  of the SAME hero card, beneath the driver bars. */}
+              <div style={{ marginTop: 2, paddingTop: 12, borderTop: "1px solid var(--c-line2)", display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+                <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 26 }}>{HERO_MARKET_DEMAND.toLocaleString()}</span>
+                <span style={{ fontSize: 12, color: "var(--c-muted)" }}>searches/mo in your market — you&apos;re in a real category</span>
+              </div>
             </div>
           </div>
         </div>
@@ -171,84 +171,59 @@ export function ResultsScreen() {
         {/* Your category, and how much of it you own — LIFTED directly under the score */}
         <h2 style={H2}>Your category, and how much of it you own</h2>
         <p style={SUB}>What buyers search, what you capture, who takes the rest.</p>
-        {/* E1 (2026-07-20, three-card market split, Tim: "two/three individual
-            UI components side by side"). Replaces the old ladder ROWS + in-card
-            hero arrangement with sibling cards — BROAD | YOUR CATEGORY | NICHE
-            — in the intrinsic-collapse grid idiom (dashboard-hero.tsx's
+        {/* P3 (2026-07-20, data board §2-3): ONE reusable MarketCard, used
+            TWICE — Category (broad) and Niche (specific) — in the
+            intrinsic-collapse grid idiom (dashboard-hero.tsx's
             `repeat(auto-fit, minmax(min(100%, 240px), 1fr))`, no media query
-            needed — mobile-safe by construction). BROAD only renders when its
-            priced demand exceeds the category hero's (inversion guard); NICHE
-            has no such guard (it never claims to be the "biggest" market).
-            Every rung's phrase(s) are always itemised as chips (G4/R2) — with
-            no separate "label" line in the card design, the chip IS how a
-            card says WHAT its demand number is for. */}
+            needed — mobile-safe by construction). Replaces the old BROAD |
+            CATEGORY | NICHE three-tier ladder (E1, 2026-07-19) — that design
+            is retired going forward; a payload whose categoryCard isn't yet
+            grounded (pre-P2/legacy) falls back to it instead of this board
+            (invariant #11: don't crash, don't blank; see the live component's
+            `marketCardReady` gate). CATEGORY demos the zero-state ("None
+            yet." — a real hook, not a blank); NICHE demos a real top-3 win —
+            so both card states are visible in one demo. */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))", gap: 14, marginBottom: 14 }}>
-          {MARKET_TIERS.map((t) => (
-            <div key={t.tier} style={CARD}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 10 }}>
-                <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.05em", color: "var(--c-faint)" }}>{t.tier.toUpperCase()}</span>
-                <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 13, color: t.bestPosition != null ? "var(--c-band-fair)" : "var(--c-band-invisible)" }}>{t.bestPosition != null ? `best #${t.bestPosition}` : "not ranking"}</span>
-              </div>
-              <div style={{ fontFamily: JM, fontWeight: 700, fontSize: 22 }}>{t.demand.toLocaleString()}</div>
-              <div style={{ fontSize: 12.5, color: "var(--c-muted)" }}>searches/mo</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 10px", fontSize: 12.5, color: "var(--c-faint)", fontFamily: JM, marginTop: 10 }}>
-                {t.phrases.map((ph) => (
-                  <span key={ph.keyword} style={{ background: "var(--c-fill)", borderRadius: 6, padding: "2px 8px" }}>{ph.keyword} <span style={{ color: "var(--c-muted)", fontWeight: 600 }}>{ph.volume.toLocaleString()}</span></span>
-                ))}
-              </div>
-              {/* Only the BROAD card carries the bridge to the category card
-                  beside it — the reader's eye moves broad → category → niche. */}
-              <div style={{ fontSize: 11.5, color: "var(--c-faint)", marginTop: 10, paddingTop: 10, borderTop: "1px dashed var(--c-line2)" }}>Your category, where the plan below starts: →</div>
-            </div>
-          ))}
-          {/* YOUR CATEGORY card — the hero's own identity, independent of
-              whichever sibling rungs render. Its "standing" is the wins/red
-              line + wins strip (not a single best-position — the category
-              aggregates many phrases, unlike a single-rung best position). */}
           <div style={CARD}>
-            <div style={{ marginBottom: 10 }}>
-              <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.05em", color: "var(--c-faint)" }}>YOUR CATEGORY</span>
+            <span style={{ fontFamily: JM, fontSize: 10.5, fontWeight: 700, letterSpacing: "0.08em", padding: "3px 9px", borderRadius: 999, background: "var(--c-tint-violet)", color: "var(--c-action)" }}>YOUR CATEGORY</span>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 8, margin: "10px 0 2px" }}>
+              <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 26 }}>{CATEGORY_CARD.demand.toLocaleString()}</span>
+              <span style={{ fontSize: 12, color: "var(--c-muted)" }}>searches / mo</span>
             </div>
-            <div style={{ fontFamily: JM, fontWeight: 700, fontSize: 26 }}>12,400</div>
-            <div style={{ fontSize: 13, color: "var(--c-muted)", marginBottom: 10 }}>searches/mo across your category</div>
-            {/* No "You capture X%" bar — captureRate was the search score under a second
-                label (guard G1). We state the real, reconcilable count instead. */}
-            <div style={{ fontSize: 13, color: "var(--c-muted)", marginBottom: 8 }}>
-              You rank in the top 3 for <strong style={{ color: "var(--c-band-findable)" }}>{CATEGORY_WINS}</strong> of your category&apos;s searches.
+            <div style={{ fontSize: 13, color: "var(--c-muted)", marginBottom: 12 }}>{CATEGORY_CARD.label}</div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "var(--c-faint)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "12px 0 7px" }}>You rank top 3 for</div>
+            {/* "None yet." — the single most useful thing the card can say
+                (savvycal.com ranks for ZERO scheduling terms, live): an
+                honest hook, never a blank. */}
+            <div style={{ fontSize: 12.5, color: "var(--c-muted)", background: "var(--c-tint-red)", borderLeft: "3px solid var(--c-band-invisible)", borderRadius: "0 8px 8px 0", padding: "8px 11px" }}>
+              <strong style={{ color: "var(--c-band-invisible)" }}>None yet.</strong> You don&apos;t rank for a single term in your own category.
             </div>
-            {/* WS-D (2026-07-19): the "you already win" strip — categoryRanked
-                rows you already rank top-3 for, so gaps aren't the whole story.
-                FINAL-REVIEW FIX: the sentence above states CATEGORY_WINS (3),
-                higher than this capped strip's rows (1) — the "+N more" chip
-                discloses that the strip is a partial view of that count. */}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 10px", fontSize: 12.5, fontFamily: JM, marginBottom: 10 }}>
-              {WINS_ROWS.map((w) => (
-                <span key={w.keyword} style={{ background: "var(--c-tint-green)", color: "var(--c-band-high)", borderRadius: 6, padding: "2px 8px", fontWeight: 600 }}>#{w.yourPosition} {w.keyword} <span style={{ fontWeight: 700 }}>{w.volume.toLocaleString()}</span></span>
-              ))}
-              {CATEGORY_WINS > WINS_ROWS.length && (
-                <span style={{ color: "var(--c-faint)", fontWeight: 600, padding: "2px 4px" }}>+{CATEGORY_WINS - WINS_ROWS.length} more</span>
-              )}
-            </div>
-            {/* G4: the named phrases behind the demand total, so it reconciles. */}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 10px", fontSize: 12.5, color: "var(--c-faint)", fontFamily: JM }}>
-              {[["email api", "590"], ["email delivery service", "590"], ["transactional email api", "70"]].map(([k, v]) => (
-                <span key={k} style={{ background: "var(--c-fill)", borderRadius: 6, padding: "2px 8px" }}>{k} <span style={{ color: "var(--c-muted)", fontWeight: 600 }}>{v}</span></span>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "var(--c-faint)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "12px 0 7px" }}>You don&apos;t rank for</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {CATEGORY_CARD.gaps.map((g) => (
+                <span key={g.keyword} style={{ fontFamily: JM, fontSize: 11.5, padding: "4px 9px", borderRadius: 7, background: "var(--c-fill)", color: "var(--c-muted)" }}>{g.keyword} <strong style={{ color: "var(--c-ink)" }}>{g.volume.toLocaleString()}</strong></span>
               ))}
             </div>
           </div>
-          {/* NICHE card — a cheap additional altitude, rendered as the third
-              sibling card. No inversion guard: it never claims to be the
-              "biggest" market, just an additional, narrower one worth naming. */}
           <div style={CARD}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 10 }}>
-              <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.05em", color: "var(--c-faint)" }}>{NICHE_TIER.tier.toUpperCase()}</span>
-              <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 13, color: NICHE_TIER.bestPosition != null ? "var(--c-band-fair)" : "var(--c-band-invisible)" }}>{NICHE_TIER.bestPosition != null ? `best #${NICHE_TIER.bestPosition}` : "not ranking"}</span>
+            <span style={{ fontFamily: JM, fontSize: 10.5, fontWeight: 700, letterSpacing: "0.08em", padding: "3px 9px", borderRadius: 999, background: "var(--c-tint-amber)", color: "var(--c-band-fair)" }}>YOUR NICHE</span>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 8, margin: "10px 0 2px" }}>
+              <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 26 }}>{NICHE_CARD.demand.toLocaleString()}</span>
+              <span style={{ fontSize: 12, color: "var(--c-muted)" }}>searches / mo</span>
             </div>
-            <div style={{ fontFamily: JM, fontWeight: 700, fontSize: 22 }}>{NICHE_TIER.demand.toLocaleString()}</div>
-            <div style={{ fontSize: 12.5, color: "var(--c-muted)" }}>searches/mo</div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 10px", fontSize: 12.5, color: "var(--c-faint)", fontFamily: JM, marginTop: 10 }}>
-              {NICHE_TIER.phrases.map((ph) => (
-                <span key={ph.keyword} style={{ background: "var(--c-fill)", borderRadius: 6, padding: "2px 8px" }}>{ph.keyword} <span style={{ color: "var(--c-muted)", fontWeight: 600 }}>{ph.volume.toLocaleString()}</span></span>
+            <div style={{ fontSize: 13, color: "var(--c-muted)", marginBottom: 12 }}>{NICHE_CARD.label}</div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "var(--c-faint)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "12px 0 7px" }}>You rank top 3 for</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {NICHE_CARD.rankedTop3.map((r) => (
+                <span key={r.keyword} style={{ fontFamily: JM, fontSize: 11.5, padding: "4px 9px", borderRadius: 7, background: "var(--c-tint-green)", color: "var(--c-band-high)", display: "inline-flex", gap: 6, alignItems: "baseline" }}>
+                  <strong style={{ color: "var(--c-band-high)" }}>#{r.yourPosition}</strong> {r.keyword} <strong>{r.volume.toLocaleString()}</strong>
+                </span>
+              ))}
+            </div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "var(--c-faint)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "12px 0 7px" }}>You don&apos;t rank for</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {NICHE_CARD.gaps.map((g) => (
+                <span key={g.keyword} style={{ fontFamily: JM, fontSize: 11.5, padding: "4px 9px", borderRadius: 7, background: "var(--c-fill)", color: "var(--c-muted)" }}>{g.keyword} <strong style={{ color: "var(--c-ink)" }}>{g.volume.toLocaleString()}</strong></span>
               ))}
             </div>
           </div>
@@ -257,77 +232,48 @@ export function ResultsScreen() {
             with zero discovered rivals used to drop the "someone is
             winning" insight entirely instead of degrading. Demo shows the
             common "found" case; the note below is the exact copy shown
-            live when no rivals are discovered. Sits BELOW the three-card
-            grid — it's not tied to any one rung, it's about the category
-            as a whole. */}
+            live when no rivals are discovered. Sits BELOW the card grid —
+            it's not tied to either card, it's about the category as a whole. */}
         <div style={{ ...CARD, marginBottom: 14, fontSize: 13, color: "var(--c-muted)" }}>
           Buyers compare you to <strong style={{ color: "var(--c-ink)" }}>Streaks, Habitica, Way of Life</strong> — and rivals are taking the searches above. <span style={UNLOCK}>Unlock to see how each one ranks, why they win, and how much of your category each takes →</span>
         </div>
         <div style={{ marginTop: -6, marginBottom: 14, fontSize: 11.5, color: "var(--c-faint)", fontStyle: "italic" }}>
           No rivals discovered → degrades to: "Someone is winning these searches today. <span style={UNLOCK}>The full scan discovers who&apos;s winning these searches and what they do to rank →</span>"
         </div>
-        {/* Footprint: TRUE totals (domain_rank_overview) + the traffic split, which
-            is a SAMPLE of your top-ranked terms — disclosed as such (guard G3). */}
-        <div style={{ ...CARD, padding: "18px 22px", marginBottom: 14 }}>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 18, marginBottom: 14 }}>
-            <div><div style={{ fontFamily: JM, fontWeight: 700, fontSize: 20 }}>2,100</div><div style={{ fontSize: 11.5, color: "var(--c-faint)" }}>keywords ranked</div></div>
-            <div><div style={{ fontFamily: JM, fontWeight: 700, fontSize: 20 }}>~28,530</div><div style={{ fontSize: 11.5, color: "var(--c-faint)" }}>est. visits / mo</div></div>
-            <div><div style={{ fontFamily: JM, fontWeight: 700, fontSize: 20, color: "var(--c-band-invisible)" }}>20%</div><div style={{ fontSize: 11.5, color: "var(--c-faint)" }}>category (top terms)</div></div>
-          </div>
-          <div style={{ display: "flex", height: 12, borderRadius: 6, overflow: "hidden", background: "var(--c-fill)" }}>
-            <div style={{ width: "30%", background: "var(--c-action)" }} />
-            <div style={{ width: "20%", background: "#1F9D5B" }} />
-            <div style={{ width: "50%", background: "#E5A23B" }} />
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 14, marginTop: 10, fontSize: 11.5, color: "var(--c-faint)", fontFamily: JM }}>
-            <span><span style={{ color: "var(--c-action)" }}>■</span> your brand 30%</span>
-            <span><span style={{ color: "#1F9D5B" }}>■</span> your category 20%</span>
-            <span><span style={{ color: "#E5A23B" }}>■</span> other companies&apos; names 50%</span>
-          </div>
-          <div style={{ marginTop: 6, fontSize: 11, color: "var(--c-faint)" }}>Traffic split across your top-ranked terms.</div>
-          {/* offTopicPct (50%) >= 40 — the honest "not your traffic" warning,
-              naming the actual off-topic keywords (WS-D, 2026-07-19). E2
-              (facts-first copy sweep, 2026-07-20): the number leads, the
-              "real visits… what you do" clause is gone. */}
-          <div style={{ marginTop: 14, padding: "12px 14px", background: "var(--c-tint-orange)", borderLeft: "3px solid var(--c-band-hard)", borderRadius: "0 10px 10px 0", fontSize: 13.5, lineHeight: 1.55, color: "var(--c-ink)" }}>
-            50% of your search traffic is other companies&apos; names — not buyers looking for you.
-            {" "}e.g. you rank for <strong>{OFFTOPIC_EXAMPLES.map((ex) => `"${ex}"`).join(", ")}</strong>.
-          </div>
+        {/* P3 (data board §4): Opportunity — the NICHE's own gap keywords,
+            100% real positions + DataForSEO volumes, zero LLM, by volume.
+            Replaces the old "biggest untapped opportunity" promoted-row card
+            (the wireframe has exactly ONE opportunity section, never two
+            competing framings back to back) — omitted entirely when there's
+            nothing to show (invariant #11), same discipline as every other
+            section here. */}
+        <div style={{ ...CARD, padding: "18px 20px", marginBottom: 14 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--c-band-fair)", marginBottom: 4 }}>Opportunity · your niche</div>
+          <div style={{ fontSize: 12.5, color: "var(--c-faint)", marginBottom: 10 }}>Where the searches are — and you&apos;re not there.</div>
+          {NICHE_OPPORTUNITY_ROWS.map((row) => (
+            <div key={row.keyword} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "9px 0", borderBottom: "1px solid var(--c-line2)", fontSize: 13 }}>
+              <span style={{ fontWeight: 600, minWidth: 0 }} className="rk-wrap-any">{row.keyword}</span>
+              <span style={{ fontFamily: JM, color: "var(--c-muted)", fontSize: 12.5, whiteSpace: "nowrap" }}>{row.volume.toLocaleString()} / mo</span>
+              <span style={{ fontFamily: JM, fontWeight: 700, color: "var(--c-band-invisible)", fontSize: 12, whiteSpace: "nowrap" }}>not ranking</span>
+            </div>
+          ))}
         </div>
-        {/* Biggest opportunity — the single highest-value search you don't win,
-            framed by the score lever it moves (not a flat Low/Med/High table). */}
-        <div style={{ ...CARD, padding: "22px 24px" }}>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--c-action)", marginBottom: 10 }}>Your biggest untapped opportunity</div>
-          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12, marginBottom: 14 }}>
-            <span style={{ fontFamily: SG, fontWeight: 700, fontSize: 22, letterSpacing: "-0.01em" }}>{TOP_OPP.query}</span>
-            <span style={{ fontSize: 11.5, fontWeight: 700, color: TOP_OPP.oppC.fg, background: TOP_OPP.oppC.bg, padding: "3px 10px", borderRadius: 6 }}>{TOP_OPP.opp} opportunity</span>
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 26 }}>
-            <div><div style={{ fontFamily: JM, fontWeight: 700, fontSize: 22 }}>{TOP_OPP.volume}</div><div style={{ fontSize: 11.5, color: "var(--c-faint)" }}>searches / mo</div></div>
-            <div><div style={{ fontFamily: JM, fontWeight: 700, fontSize: 22, color: "var(--c-band-invisible)" }}>{TOP_OPP.rank}</div><div style={{ fontSize: 11.5, color: "var(--c-faint)" }}>where you are today</div></div>
-          </div>
-          <div style={{ marginTop: 16, padding: "13px 15px", background: "var(--c-bg2)", borderRadius: 10, fontSize: 13.5, lineHeight: 1.55, color: "var(--c-muted)" }}>
-            Winning this lifts <strong style={{ color: "var(--c-ink)" }}>Search presence</strong> — your weaker half. There are <strong style={{ color: "var(--c-ink)" }}>{MORE_OPP} more</strong> like it in your category.
-          </div>
-          {/* WS-B/WS-D (2026-07-19): rows 2-4, not just the promoted top row. */}
-          <div style={{ marginTop: 14, borderTop: "1px solid var(--c-line2)", paddingTop: 4 }}>
-            {MORE_OPP_ROWS.map((row) => (
-              <div key={row.query} style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: 10, padding: "8px 0", borderBottom: "1px solid var(--c-line2)", fontSize: 13.5 }}>
-                <span style={{ fontFamily: SG, fontWeight: 600, flex: "1 1 160px", minWidth: 0 }} className="rk-wrap-any">{row.query}</span>
-                <span style={{ fontFamily: JM, color: "var(--c-muted)" }}>{row.volume}/mo</span>
-                <span style={{ fontFamily: JM, fontWeight: 700, color: "var(--c-band-invisible)" }}>{row.rank}</span>
-              </div>
-            ))}
-          </div>
-          <div style={{ marginTop: 14, textAlign: "center", fontSize: 14, fontWeight: 600 }}>
-            <span style={UNLOCK}>🔒 Unlock the plan to win all {OPP_TOTAL} opportunities — pages, drafts, and weekly tracking →</span>
-          </div>
-          {/* R2 (2026-07-19): when no opportunities parse at all, the card
-              degrades to this keyword-gap tease instead of the promoted row
-              above — never invents a fake top opportunity. */}
-          <div style={{ marginTop: 10, fontSize: 11.5, color: "var(--c-faint)", fontStyle: "italic" }}>
-            No opportunities parsed → degrades to: "🔒 The full keyword-gap plan ({OPP_TOTAL} queries) — every buyer search where rivals outrank you, ranked by opportunity. <span style={UNLOCK}>Unlock to see who wins them and how →</span>"
-          </div>
+        {/* D3/P3: the aggregation strip — reframes a directory/aggregator's
+            footprint as its OWN engine, not leaked/scolded traffic. Fires
+            whenever aggregatedPct ≥ 40 (unconditional on categoryCard — a P1
+            field). This demo's site isn't a directory, so the strip doesn't
+            render live here; the note documents the exact copy + trigger. */}
+        <div style={{ marginBottom: 14, fontSize: 11.5, color: "var(--c-faint)", fontStyle: "italic" }}>
+          aggregatedPct ≥ 40 (directory/aggregator pattern, e.g. trustmrr.com 78%) → renders a "DIRECTORY PATTERN DETECTED" card: "<strong>78%</strong> of your traffic is the names of companies you list (cometly, trimrx…) — your directory engine, not lost buyers."
+        </div>
+        {/* Legacy note — a payload captured before P2 (categoryCard never
+            grounded) falls back to the OLD BROAD | CATEGORY | NICHE ladder +
+            the brand/category/other-companies footprint-split bar + the
+            "biggest untapped opportunity" promoted card, unchanged from
+            before this redesign. Documented (with the exact live copy, so the
+            label-drift gate stays green), not duplicated as a second demo. */}
+        <div style={{ marginBottom: 14, fontSize: 11.5, color: "var(--c-faint)", fontStyle: "italic" }}>
+          Legacy payload (no categoryCard) → falls back to the pre-P2 three-tier ladder ("You rank in the top 3 for N of your category&apos;s searches.") + the footprint-split bar ("Traffic split across your top-ranked terms.") + the promoted "Your biggest untapped opportunity" card (degrading to "Unlock to see who wins them and how →" when nothing parses) instead of the board above (don&apos;t crash, don&apos;t blank).
         </div>
 
         {/* Ranked fixes */}
