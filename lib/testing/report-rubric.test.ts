@@ -73,7 +73,7 @@ function cleanHtml(p: ReportPayload = payload()): string {
     <p><strong>${weaker} is your gap.</strong></p>
     <span>${s.categoryDemand.toLocaleString()}</span><span>searches/mo across your category</span>
     <div>You rank in the top 3 for ${s.categoryWins} of your category's searches.</div>
-    ${hasOppRow ? `<div>Winning this term lifts your Search presence${searchIsWeaker ? " — the weaker half of your Discoverability Score." : "."}</div>` : ""}
+    ${hasOppRow ? `<div>Winning this lifts Search presence${searchIsWeaker ? " — your weaker half." : "."}</div>` : ""}
     <div>Someone is winning these searches today.</div>
   </main>`;
 }
@@ -179,6 +179,54 @@ describe("report-rubric engine honesty — every rule FIRES on a violating input
     });
     const v = runReportRubric(p, cleanHtml(p), only("R6"));
     expect(v.some((x) => x.message.includes("silent drop"))).toBe(true);
+  });
+
+  // E3 — the trustmrr "180,000 monthly visitors" class: an LLM-authored field
+  // (identity line / mirror gap / mirror audience tags) must never render an
+  // unmeasured quantitative claim (a 3+ digit run).
+  it("R7 fires when identityLine's digit-laden sentence rendered verbatim", () => {
+    const p = payload({
+      whatYouOffer: { positioningMirror: { listingSays: "Trusted by 180,000 monthly visitors.", reviewsValue: "", gap: "" } },
+    });
+    const html = cleanHtml() + "<div>Trusted by 180,000 monthly visitors.</div>";
+    const v = runReportRubric(p, html, only("R7"));
+    expect(v.some((x) => x.message.includes("180,000"))).toBe(true);
+  });
+
+  it("R7 fires when the mirror gap's digit-laden sentence rendered verbatim", () => {
+    const p = payload({
+      whatYouOffer: { positioningMirror: { listingSays: "x", reviewsValue: "y", gap: "Reviews say it grew to 500,000 users overnight." } },
+    });
+    const html = cleanHtml() + "<div>Reviews say it grew to 500,000 users overnight.</div>";
+    const v = runReportRubric(p, html, only("R7"));
+    expect(v.some((x) => x.message.includes("500,000"))).toBe(true);
+  });
+
+  it("R7 fires when a digit-laden audience tag rendered verbatim", () => {
+    const p = payload({
+      whatYouOffer: {
+        positioningMirror: { listingSays: "x", reviewsValue: "y", gap: "z", actualAudience: ["500,000 happy users"] },
+      },
+    });
+    const html = cleanHtml() + "<div>500,000 happy users</div>";
+    const v = runReportRubric(p, html, only("R7"));
+    expect(v.length).toBeGreaterThan(0);
+  });
+
+  it("R7 passes when the digit-laden sentence was correctly scrubbed (not rendered)", () => {
+    const p = payload({
+      whatYouOffer: { positioningMirror: { listingSays: "Trusted by 180,000 monthly visitors.", reviewsValue: "", gap: "" } },
+    });
+    // cleanHtml() never renders the identity line at all → the scrub held.
+    expect(runReportRubric(p, cleanHtml(), only("R7"))).toEqual([]);
+  });
+
+  it("R7 does not fire on small/measured numbers (ranks, counts under 100)", () => {
+    const p = payload({
+      whatYouOffer: { positioningMirror: { listingSays: "One of the top 5 tools for photographers.", reviewsValue: "", gap: "" } },
+    });
+    const html = cleanHtml() + "<div>One of the top 5 tools for photographers.</div>";
+    expect(runReportRubric(p, html, only("R7"))).toEqual([]);
   });
 
   it("R3 off-topic grounding mirrors the explicit-terms curation (all-explicit examples ground nothing)", () => {

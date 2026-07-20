@@ -7,6 +7,7 @@ import {
   isAggregatorHost,
   isNameCollision,
   looksLikeListicle,
+  looksLikeSentenceName,
 } from "./competitor-filter";
 import { rankCompetitors } from "./competitors";
 
@@ -95,6 +96,65 @@ describe("filterRealCompetitors", () => {
   test("falls back to the host brand when a kept result has an empty name", () => {
     const raw: Competitor[] = [{ name: "", url: "https://doneapp.io", source: "tavily", rank: 1 }];
     expect(filterRealCompetitors(raw)[0]?.name).toBe("Doneapp");
+  });
+
+  // E4 (live defect: x.com scan 05e64108) — an article headline surfaced as a
+  // rival NAME. A competitor name is never a sentence/headline.
+  test("drops the verbatim live defect string as a candidate name", () => {
+    const raw: Competitor[] = [
+      { name: "How users can leave Twitter / X", url: "", source: "llm_extracted", rank: 1 },
+    ];
+    expect(filterRealCompetitors(raw)).toEqual([]);
+  });
+
+  // review Minor (2026-07-20): "top"/"best" are real brand-name prefixes
+  // ("Best Buy", "Top Hat", "Best Egg") — dropping them on that token alone
+  // was collateral. A legit 2-word "Best Buy"/"Top Hat"-shaped name must
+  // survive the full filter pipeline while the verbatim E4 defect string is
+  // still rejected.
+  test("a legit 'Best Buy'/'Top Hat'-shaped brand name survives; the E4 headline defect is still rejected", () => {
+    const raw: Competitor[] = [
+      { name: "Best Buy", url: "https://bestbuy.com", source: "dataforseo_serp", rank: 1 },
+      { name: "Top Hat", url: "https://tophat.com", source: "dataforseo_serp", rank: 2 },
+      { name: "How users can leave Twitter / X", url: "", source: "llm_extracted", rank: 3 },
+    ];
+    const out = filterRealCompetitors(raw);
+    expect(out.map((c) => c.name)).toEqual(["Best Buy", "Top Hat"]);
+  });
+});
+
+describe("looksLikeSentenceName (E4 — a rival name is never a sentence/headline)", () => {
+  test.each([
+    // the verbatim live defect (x.com scan 05e64108)
+    ["How users can leave Twitter / X", true],
+    // (a) > 4 words
+    ["The Best Five Tools For Teams", true],
+    // (b) interrogative / how-to start
+    ["Why teams switch from Slack", true],
+    ["What is the best CRM", true],
+    ["When to migrate off Heroku", true],
+    ["Where founders find customers", true],
+    ["Who competes with Stripe", true],
+    // (c) sentence punctuation beyond a single trailing "."
+    ["Is this the one? Read more", true],
+    ["Great tool, highly rated", true],
+    ["A guide: getting started", true],
+    ["Amazing! Try it now", true],
+    // real product names must survive
+    ["Focusmate", false],
+    ["Habitica", false],
+    ["Node.js", false],
+    ["Streaks", false],
+    ["Mailgun", false],
+    // review Minor (2026-07-20): "top"/"best" are real brand-name prefixes and
+    // must NOT be rejected on that token alone — "Best Buy"/"Top Hat"-shaped
+    // 2-word names survive. The >4-word rule + looksLikeListicle's "top N" /
+    // "N best" phrasing still catch the actual listicle-headline defect shape.
+    ["Best Buy", false],
+    ["Top Hat", false],
+    ["Best Egg", false],
+  ])("looksLikeSentenceName(%s) -> %s", (name, expected) => {
+    expect(looksLikeSentenceName(name)).toBe(expected);
   });
 });
 

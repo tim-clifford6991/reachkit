@@ -68,6 +68,41 @@ export function looksLikeListicle(name: string): boolean {
   return LISTICLE_RE.test(name);
 }
 
+// ── E4 — rival name-shape guard (live defect: x.com scan 05e64108) ──────────
+// A discovered "competitor" whose candidate string is an article
+// headline/sentence, not a product name — "How users can leave Twitter / X"
+// rendered as a rival on x.com's own scan. `looksLikeListicle` only catches
+// comparison-article phrasing ("X vs Y", "Top 10 …"); a plain interrogative
+// headline slips past it entirely. A rival NAME is never a sentence.
+//
+// "top"/"best" are deliberately EXCLUDED from this start-token list (review
+// Minor, 2026-07-20): they are legitimate real brand-name prefixes ("Best
+// Buy", "Top Hat", "Best Egg"), so rejecting them on that token alone is
+// collateral damage. The >4-word rule and `looksLikeListicle`'s "top N" /
+// "N best" phrasing already catch the actual defect shape ("Top 10 CRM tools
+// for…"); how/why/what/when/where/who remain because they are genuine
+// sentence/question starters that never begin a brand name.
+const INTERROGATIVE_START_RE = /^(how|why|what|when|where|who)\b/i;
+/** Sentence punctuation that never appears in a product name — a lone
+ *  trailing "." is allowed (nothing else is, and a SECOND "." anywhere,
+ *  including a trailing one, is also rejected). */
+const SENTENCE_PUNCT_RE = /[?!,:]/;
+
+/** True if `name` reads like a sentence/headline rather than a product name:
+ *  more than 4 words, starts with an interrogative/how-to token, or carries
+ *  sentence punctuation beyond a single "." (e.g. "Node.js" survives; "A
+ *  guide: getting started" does not). */
+export function looksLikeSentenceName(name: string): boolean {
+  const trimmed = name.trim();
+  if (!trimmed) return false;
+  const words = trimmed.split(/\s+/).filter(Boolean);
+  if (words.length > 4) return true;
+  if (INTERROGATIVE_START_RE.test(trimmed)) return true;
+  if (SENTENCE_PUNCT_RE.test(trimmed)) return true;
+  if ((trimmed.match(/\./g) ?? []).length > 1) return true;
+  return false;
+}
+
 /** Strip a trailing tagline / site suffix: "Focusmate – Virtual Coworking" → "Focusmate". */
 export function cleanCompetitorName(name: string): string {
   const first = name.split(/\s+[|–—-]\s+|:\s+/)[0]?.trim();
@@ -161,6 +196,9 @@ export function filterRealCompetitors(
     if (!name || looksLikeListicle(name)) name = host ? brandFromHost(host) : "";
     if (!name) continue; // nothing usable (empty name + no host to fall back to)
     if (NON_PRODUCT_NAMES.has(name.toLowerCase())) continue; // forum/aggregator artifact
+    // E4: a rival NAME is never a sentence/headline (the "How users can leave
+    // Twitter / X" class — an article headline surfaced as a rival).
+    if (looksLikeSentenceName(name)) continue;
     // Brand-ambiguity hard rule: never accept a same-/similar-named DIFFERENT product.
     if (subject && hasAnyCollision(name, host, subject)) continue;
     out.push({ ...c, name });

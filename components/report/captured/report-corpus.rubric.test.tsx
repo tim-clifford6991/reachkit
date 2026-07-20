@@ -31,6 +31,8 @@
  *  R3 ← remove a `length > 0` section conditional in results-screen.tsx
  *  R4 ← reorder the fullGapQueries fallback chain in public-report.tsx
  *  R5 ← make the "…is your gap." driver line unconditional in results-screen.tsx
+ *  R7 ← delete the scrubNumerals() call on listingSays in to-results-props.ts
+ *       (getapp.com's real "45,000+ options" identity claim renders again)
  *  manifest ← delete a fixture file
  */
 
@@ -73,7 +75,7 @@ const SUPPRESSIONS: Record<string, string[]> = {};
 // ── Manifest — the only-grows floor ─────────────────────────────────────────
 const MIN_FIXTURES = 6;
 const REQUIRED_ARCHETYPES = ["directory", "zero-ranking", "normal-saas", "pathological"];
-const MIN_RUBRIC_RULES = 6; // raised from 5 when R6 (ladder sanity) landed — the floor only rises
+const MIN_RUBRIC_RULES = 7; // raised from 6 when R7 (numeral guard, E3) landed — the floor only rises
 
 function render(fx: CorpusFixture): string {
   const { resultsProps } = publicReportProps(fx.reportPayload, `corpus-${fx.domain}`, fx.siteUrl);
@@ -137,6 +139,16 @@ describe("corpus: getapp.com — directory whose footprint is other companies' n
   it("the persisted INVERTED broad rung (10 below the hero's 30) never renders", () => {
     expect(html).not.toContain("b2b software market");
     expect(html).not.toContain("Your category, where the plan below starts:");
+  });
+  // E3 (2026-07-20) — the REAL numeral-guard defect this corpus fixture
+  // exhibits: getapp.com's captured listingSays reads "GetApp is a large
+  // software directory with 45,000+ options and 2.5 million user reviews,
+  // backed by 16+ years of market presence." — an unmeasured third-party
+  // claim the identity strip used to render verbatim (the trustmrr
+  // "180,000 monthly visitors" class, on real prod data).
+  it("the 45,000+/16+ years identity claim is scrubbed — an unmeasured number, never rendered as ours", () => {
+    expect(html).not.toContain("45,000+");
+    expect(html).not.toContain("16+ years of market presence");
   });
 });
 
