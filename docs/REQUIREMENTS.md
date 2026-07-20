@@ -5,21 +5,60 @@
 > **How it is maintained.**
 > - **The owner edits freely.** An owner edit here IS a requirement change: the next agent touching that area must reconcile code to this doc or raise the conflict (Feedback Protocol).
 > - **Agents edit via the Requirement Intake Protocol** (`CLAUDE.md`): a new requirement gets an intake doc (`docs/superpowers/intakes/`), and the section of THIS file it touches is updated in the same PR — the doc and the product may never drift apart knowingly.
-> - **Open decisions are pushed to the owner.** Anything an agent cannot decide is recorded as an `OPEN(O-n)` item in §0 and inline where it bites. Agents must not resolve an OPEN item silently; shipping around one requires the degrade path stated next to it.
+> - **Open decisions are pushed to the owner.** Anything an agent cannot decide is recorded as an `OPEN(O-n)` item in §0 with an **Owner answer** field. You write your answer in that field; an agent then writes it into the referenced `R-x.y` requirement and moves the item to §0.1 Resolved (see §0's own instructions). Agents must not resolve an OPEN item silently; until you answer, the stated default applies.
 > - Requirement IDs (`R-x.y`) are stable — never renumber; retire with ~~strikethrough~~ and a dated reason.
 
 ---
 
 ## 0. Open decisions for the owner (the push-list)
 
-| ID | Decision needed | Where it bites | Default until decided |
-|---|---|---|---|
-| OPEN(O-1) | **Review coverage vs attribution tradeoff.** WS-A v3 drops genuine name-only review snippets (a G2 page that never writes `stripe.com`). Accept the coverage loss permanently, or invest in a verification step (e.g. fetching the platform page's vendor-website field)? | §7 R-7.3 | Keep v3 (drop) — honesty over coverage |
-| OPEN(O-2) | **Explicit off-topic examples.** Adult/explicit keywords are curated out of *named* examples (`lib/scan/explicit-terms.ts`). Is the term list right? Should other categories (violence, slurs) join it? | §3 R-3.9 | Current narrow adult-terms list |
-| OPEN(O-3) | **x.com brand-zero (Part C).** The SPA-fetch escalation is in flight on `feat/part-c-fetch-escalation`. When it lands: re-capture x.com + reachkit.app corpus fixtures and tighten expectations. | §3 R-3.4 | Fixtures pinned as-is with notes |
-| OPEN(O-4) | **Paid corpus activation — two one-command captures, zero spend.** (a) `pnpm capture:report 35e30a99-b26b-43c9-8d94-d3340ac9f096 --archetype=normal-saas` freezes the cardpointers tier=full payload (needs prod Supabase creds — agent-side transcription was attempted and abandoned: the md5 gate caught a corruption, proving hand-copy is not a safe channel); (b) an intel-cache capture for reachkit.app (its `funnel2:`/`content-intel:` cache rows are warm). After both: raise the paid floors in `paid-corpus.rubric.test.tsx` + extend to the intel blocks. | §6 R-6.6 | Hero rubric runs on free fixtures now; blocks await capture |
-| OPEN(O-5) | **`audienceProxy` is always 0** (YouTube 2nd call never made). Build it, or remove the field and its render? "Never pay for data you don't render" cuts both ways. | §6 R-6.4 | Placeholder stands, documented |
-| OPEN(O-6) | **Cardpointers cleanup.** The leaked third-party URL may still sit in a prod user's `app_ids` (memory: owner TODO from 2026-07-18). Confirm removed. | §8 R-8.5 | Unverified |
+> **How to use this section.** Each decision has an **Owner answer** field. Write your answer there in your own words (replace the `_(unanswered)_` placeholder). That's all you need to do — the field is the durable record of your intent.
+>
+> **What happens after you answer.** On the next pass, an agent (or you) does three things in one commit, per the Change + Feedback Protocols: (1) writes your answer into the referenced `R-x.y` requirement so the product spec reflects it, (2) makes any code/guard change the answer implies, and (3) moves the decision down to **§0.1 Resolved** with the date and a one-line outcome. Until you answer, the **Default** applies — the product already behaves that way, so nothing is blocked.
+>
+> A half-answer is fine: write what you've decided, leave a follow-up question in the field, and it stays open. Never delete a decision — resolve it into §0.1 so the history survives.
+
+### OPEN(O-1) — Review coverage vs attribution tradeoff
+- **Decision:** WS-A v3 drops genuine name-only review snippets (a G2 page that never writes `stripe.com`). Accept the coverage loss permanently, or invest in a verification step (e.g. fetching the platform page's vendor-website field)?
+- **Where it bites:** §7 R-7.3
+- **Default until answered:** Keep v3 (drop) — honesty over coverage.
+- **Owner answer:** _(unanswered)_
+
+### OPEN(O-2) — Explicit off-topic examples
+- **Decision:** Adult/explicit keywords are curated out of *named* examples (`lib/scan/explicit-terms.ts`); percentages still count them. Is the term list right? Should other categories (violence, slurs) join it?
+- **Where it bites:** §3 R-3.9
+- **Default until answered:** Current narrow adult-terms list.
+- **Owner answer:** _(unanswered)_
+
+### OPEN(O-3) — x.com brand-zero (Part C)
+- **Decision:** The SPA-fetch escalation is in flight on `feat/part-c-fetch-escalation`. When it lands, re-capture the x.com + reachkit.app corpus fixtures and tighten expectations. Confirm this is the intended follow-up (or redirect).
+- **Where it bites:** §3 R-3.4
+- **Default until answered:** Fixtures pinned as-is with explanatory notes.
+- **Owner answer:** _(unanswered)_
+
+### OPEN(O-4) — Paid corpus activation (two one-command captures, zero spend)
+- **Decision:** To extend the paid-surface rubric beyond the hero to the market blob + intel blocks, two verbatim captures are needed (both zero-spend, prod Supabase creds required — agent hand-transcription was attempted and abandoned, the md5 gate caught a corruption). Run them, or leave the paid rubric at hero-only for now?
+  - (a) `pnpm capture:report 35e30a99-b26b-43c9-8d94-d3340ac9f096 --archetype=normal-saas` — freezes the cardpointers tier=full payload.
+  - (b) an intel-cache capture for reachkit.app (its `funnel2:` / `content-intel:` cache rows are warm).
+- **Where it bites:** §6 R-6.6
+- **Default until answered:** Hero rubric runs on free fixtures now; the intel-blocks half awaits capture.
+- **Owner answer:** _(unanswered)_
+
+### OPEN(O-5) — `audienceProxy` is always 0
+- **Decision:** The creator-reach proxy is a placeholder (the YouTube 2nd `videos.list` call is never made). Build it, or remove the field and its render? "Never pay for data you don't render" cuts both ways.
+- **Where it bites:** §6 R-6.4
+- **Default until answered:** Placeholder stands, documented.
+- **Owner answer:** _(unanswered)_
+
+### OPEN(O-6) — Cardpointers cleanup
+- **Decision:** The leaked third-party URL may still sit in a prod user's `app_ids` (owner TODO from 2026-07-18). Confirm it's removed, or ask an agent to verify + purge.
+- **Where it bites:** §8 R-8.5
+- **Default until answered:** Unverified.
+- **Owner answer:** _(unanswered)_
+
+### 0.1 Resolved decisions
+
+_None yet. When a decision above is answered and written into its `R-x.y` requirement, it moves here as: `RESOLVED(O-n, YYYY-MM-DD) — <one-line outcome> → R-x.y`._
 
 ---
 
