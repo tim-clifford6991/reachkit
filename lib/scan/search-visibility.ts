@@ -832,6 +832,46 @@ export function computeCategoryDemand(
  *  keeps the small, honest number rather than fabricate a bigger one). */
 export const CATEGORY_FLOOR = 10_000;
 
+/** P3fix (2026-07-20, LIVE DEFECT): trustmrr.com's category laddered to the
+ *  BARE word "marketplace" (2,240,000/mo — Amazon/Facebook Marketplace
+ *  territory) instead of its real niche. Root cause: the ladder's ONLY guard
+ *  was "grounded" (shares a real ranking/niche token) — and "marketplace" IS
+ *  grounded (trustmrr genuinely ranks for "startup acquisition marketplace"),
+ *  so it passed while being a meaningless generic. These words describe a
+ *  BUSINESS-MODEL SHAPE (a marketplace, a platform, a tool) — not an
+ *  INDUSTRY. "marketplace" alone says nothing about what is traded, the same
+ *  way "software" alone says nothing about what the software does. A
+ *  category head must retain ≥1 token OUTSIDE this set (`isMeaningfulCategoryHead`)
+ *  — a real qualifier ("seo", "scheduling", "startup", "social") — or it is
+ *  rejected even when grounded and even when it clears `CATEGORY_FLOOR`.
+ *  Several of these already ride OTHER lists incidentally (STOPWORDS drops
+ *  "app"/"apps"/"tool"/"tools"/"software"/"online" from `tokens()` entirely;
+ *  GENERIC_TOKENS already carries "platform"/"service"/"system"/"site") —
+ *  this set is named and complete on its own so the rule is explicit and
+ *  does not silently depend on those other lists' contents changing under it. */
+export const CATEGORY_SUFFIX_TOKENS = new Set([
+  "marketplace", "software", "tools", "tool", "platform", "platforms", "app", "apps",
+  "service", "services", "system", "systems", "solution", "solutions", "company",
+  "companies", "website", "site", "online", "business", "product", "products",
+]);
+
+/** A category head phrase is MEANINGFUL only if it retains ≥1 token, after
+ *  stemming, that is neither a `CATEGORY_SUFFIX_TOKENS` bare-noun nor
+ *  `GENERIC_TOKENS` — a real qualifier that names what the umbrella actually
+ *  IS ("seo", "scheduling", "startup"), not merely what shape it takes
+ *  ("marketplace", "platform", "tool"). Gates BOTH the base grounded category
+ *  list and the laddered candidate selection in `computeCategoryLadder` — a
+ *  bare-generic head must never win even when it is grounded and clears
+ *  `CATEGORY_FLOOR` (the trustmrr "marketplace" 2.24M class, P3fix). */
+export function isMeaningfulCategoryHead(phrase: string): boolean {
+  for (const t of tokens(phrase)) {
+    const st = stem(t);
+    if (CATEGORY_SUFFIX_TOKENS.has(st) || CATEGORY_SUFFIX_TOKENS.has(t) || GENERIC_TOKENS.has(st)) continue;
+    return true;
+  }
+  return false;
+}
+
 export interface CategoryLadderCard {
   /** The LLM's cosmetic label for this altitude (e.g. "SEO tooling") — never
    *  itself a priced search phrase. */
@@ -938,22 +978,35 @@ function priceCardPhrase(
  * stemmed non-generic token with EITHER the subject's real category
  * rankings (`categoryRanked`) OR the LLM's own niche phrases — the SAME
  * `isTierPhraseGrounded` helper the existing broad/niche market-tier ladder
- * uses (RC1). This is also the LADDER GUARD: since the check is "shares a
+ * uses (RC1). This is ONE of two ladder guards: since the check is "shares a
  * token with real rankings or niche vocabulary", a candidate that has
- * broadened past every one of those tokens (a token-less industry-wide
- * generic like "software"/"tools" — both are STOPWORDS and tokenize to
- * nothing at all, so they can NEVER pass; a real but unrelated word like
+ * broadened past every one of those tokens (a real but unrelated word like
  * "widgets" tokenizes but shares nothing) is structurally rejected, never a
- * separate bolt-on check. NICHE phrases are grounded ONLY against
- * `categoryRanked` (not against niche's own vocabulary — that would be
- * self-referential, since niche vocabulary is built FROM the niche phrases
- * being checked) and separately required to be CONTAINED in category (share
- * a token with the category's own pre-ladder vocabulary) — the ⊆ guarantee.
+ * separate bolt-on check. Grounding is NECESSARY but NOT SUFFICIENT, though
+ * — a bare category-SUFFIX noun like "marketplace" can legitimately be
+ * grounded (the subject genuinely ranks for "startup acquisition
+ * marketplace") while still being a meaningless umbrella, because it names a
+ * business-model SHAPE, not an industry. The SECOND guard,
+ * `isMeaningfulCategoryHead`, closes that gap (P3fix, 2026-07-20 — the
+ * trustmrr "marketplace" 2.24M live defect): several suffix nouns
+ * ("software"/"tools"/"tool"/"app"/"apps"/"online") happen to be STOPWORDS
+ * and tokenize to nothing, so they were ALREADY structurally rejected by
+ * grounding alone — but "marketplace" is an ordinary word, not a stopword,
+ * so it sailed through with real grounding and a real (huge) volume.
+ * `CATEGORY_SUFFIX_TOKENS` names the full class explicitly rather than
+ * relying on that incidental stopword overlap. NICHE phrases are grounded
+ * ONLY against `categoryRanked` (not against niche's own vocabulary — that
+ * would be self-referential, since niche vocabulary is built FROM the niche
+ * phrases being checked) and separately required to be CONTAINED in
+ * category (share a token with the category's own pre-ladder vocabulary) —
+ * the ⊆ guarantee.
  *
  * When `categoryRanked` is EMPTY (a 0-ranking/brand-new site — no ranking
  * evidence to ground against at all), every check degrades to accept-all —
  * the same "degrade to best-effort, not to nothing" rule
- * `computeCategoryDemand`/`computeMarketTiers` already apply.
+ * `computeCategoryDemand`/`computeMarketTiers` already apply. The
+ * meaningful-head guard still applies even then — a bare-generic must never
+ * win the ladder regardless of grounding evidence.
  */
 export function computeCategoryLadder(
   categoryNiche: CategoryNicheSeeds,
@@ -977,7 +1030,11 @@ export function computeCategoryLadder(
 
   // ── CATEGORY ──────────────────────────────────────────────────────────
   const dedupCategory = [...new Set(categoryNiche.category.phrases.map((p) => p.toLowerCase().trim()).filter(Boolean))];
-  const groundedCategoryPhrases = dedupCategory.filter(groundedForCategory);
+  // P3fix: a category head must be grounded AND meaningful (retain a real
+  // qualifier token, never JUST a bare CATEGORY_SUFFIX_TOKENS noun) — applied
+  // here to the base LLM-proposed phrases too, not only the ladder candidates
+  // below, so a bare-generic can never win via either path.
+  const groundedCategoryPhrases = dedupCategory.filter((p) => groundedForCategory(p) && isMeaningfulCategoryHead(p));
   const categoryRows = groundedCategoryPhrases.map(priced).filter((r): r is DemandRow => r !== null);
   const baseDemand = categoryRows.reduce((s, r) => s + r.volume, 0);
 
@@ -996,6 +1053,11 @@ export function computeCategoryLadder(
     const candidates = [...new Set(groundedCategoryPhrases.flatMap((p) => essentialLadderCandidates(p)))];
     const qualifying = candidates
       .filter(groundedForCategory)
+      // P3fix (the trustmrr "marketplace" 2.24M class): grounded is
+      // necessary but not sufficient — a candidate that is JUST a bare
+      // category-suffix noun (no real qualifier token survives) must never
+      // win the ladder, even though it may be grounded and clear the floor.
+      .filter(isMeaningfulCategoryHead)
       .map((c) => priced(c))
       .filter((r): r is DemandRow => r !== null && r.volume >= CATEGORY_FLOOR)
       .sort((a, b) => {

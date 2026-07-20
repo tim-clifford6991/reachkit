@@ -228,6 +228,18 @@ export function ResultsScreen() {
             </div>
           </div>
         </div>
+        {/* P3fix (2026-07-20): a niche with genuinely 0 priced phrases
+            (e.g. trustmrr.com — a real directory whose niche terms don't
+            clear pricing) used to be OMITTED entirely, silently collapsing
+            the two-card grid to one column. It now ALWAYS renders when the
+            niche label exists — either the real MarketCard above, or this
+            honest empty state in its place (same pill + label, "You rank
+            top 3 for"/"You don't rank for" sections replaced by one line).
+            Demo shows the populated case above; this note is the exact
+            copy shown live for the empty case. */}
+        <div style={{ marginTop: -6, marginBottom: 14, fontSize: 11.5, color: "var(--c-faint)", fontStyle: "italic" }}>
+          Niche demand genuinely 0 (0 priced phrases) → the niche card still renders its real label, replacing the rank/gap sections with: "No measurable niche demand yet — your niche is still small or emerging."
+        </div>
         {/* WS-E (2026-07-19): both rivalry states render live now — a scan
             with zero discovered rivals used to drop the "someone is
             winning" insight entirely instead of degrading. Demo shows the
