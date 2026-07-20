@@ -8,8 +8,9 @@ import { serverDb } from "@/lib/db/client";
 import { engagementSummary } from "@/lib/scan/engagement";
 import { scoreHistoryMarkers } from "@/lib/scan/score-history-markers";
 import { buildProgressEvents } from "@/lib/scan/progress-events";
-import { pillarRollupFromRegistry, type ScoreBreakdown } from "@/lib/scan/pillar-scores";
-import { headlineScore, registryScore, discoverabilityScore } from "@/lib/scan/registry-score";
+import { type ScoreBreakdown } from "@/lib/scan/pillar-scores";
+import { buildDashboardHeroProps } from "@/lib/app/dashboard-hero-props";
+import type { ReportPayload } from "@/lib/scan/report";
 import type { Pillar } from "@/lib/scan/signals";
 import { actionBoard } from "@/lib/scan/action-board";
 import { hostname } from "@/lib/scan/url";
@@ -182,26 +183,15 @@ async function DashboardContent() {
     normalised: r.normalised as number | null,
     state: (r.state as string | null) ?? "unmeasured",
   }));
-  const reg = rows.length ? headlineScore(rows) : null; // gauge on-page driver (fixed basis)
-  const regFull = rows.length ? registryScore(rows) : null; // pillar bars (full measured set)
-  // Measured-signal count per pillar — the basis shown beside each bar.
-  const measuredByPillar: Record<Pillar, number> = { content: 0, outreach: 0, seo: 0 };
-  for (const r of rows) if (r.state !== "unmeasured") measuredByPillar[r.pillar] = (measuredByPillar[r.pillar] ?? 0) + 1;
-  const rollup = pillarRollupFromRegistry(regFull, scan.score_breakdown as unknown as ScoreBreakdown | null);
-  // The gauge is the UNIFIED Discoverability Score (v5) — the SAME number the free
-  // report + persisted `score_total`/trend show, so the score never jumps between
-  // surfaces. reg.total is the on-page *driver* (the pillars decompose it); we fold
-  // in the persisted search-presence half via the geomean. Falls back to the
-  // persisted score_total when no live signals exist.
-  const searchPresence =
-    (scan.report_payload as { searchVisibility?: { score?: number } | null } | null)?.searchVisibility?.score ?? null;
-  const headline = reg
-    ? searchPresence != null
-      ? discoverabilityScore(reg.total, searchPresence)
-      : reg.total
-    : scan.score_total;
-  // F2 — the paid off-site "Market position" grade, if the deep pass computed one.
-  const marketPosition = (scan.report_payload as { marketPosition?: { total?: number } | null } | null)?.marketPosition?.total ?? null;
+  // ONE pure builder (extracted so the paid-surface acceptance rubric drives
+  // this exact production computation — see lib/app/dashboard-hero-props.ts).
+  // The gauge stays the UNIFIED Discoverability Score v5 (invariant #1).
+  const heroScore = buildDashboardHeroProps({
+    signalRows: rows,
+    scoreTotal: scan.score_total,
+    scoreBreakdown: scan.score_breakdown as unknown as ScoreBreakdown | null,
+    reportPayload: scan.report_payload as ReportPayload | null,
+  });
 
   return (
     <>
@@ -223,15 +213,10 @@ async function DashboardContent() {
         </div>
       )}
       <DashboardHero
-        score={headline}
-        rollup={rollup}
-        measuredByPillar={measuredByPillar}
+        {...heroScore}
         history={engagement.history}
         markers={markers}
         isPaid={entitlements?.active ?? false}
-        marketPosition={marketPosition}
-        onPageReadiness={reg ? reg.total : null}
-        searchPresence={searchPresence}
         events={events}
       />
       {/* The plan is what a founder acts on — it reads second, right after the score story. */}

@@ -19,7 +19,8 @@ export interface SectionNavItem {
 
 /**
  * Which section anchors exist for this (already-redacted) report + tier. Mirrors
- * the render conditions in market-analysis-sections.tsx so jump links stay live.
+ * the render conditions of the live intel views so jump links stay live
+ * (MarketAnalysisSections was deleted 2026-07-20 — orphaned; no page imported it).
  */
 export function buildSectionNavItems(
   report: ReportPayload,
