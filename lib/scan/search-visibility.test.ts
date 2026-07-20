@@ -22,6 +22,7 @@ vi.mock("@/lib/scan/cache/cached-adapters", () => ({
 import {
   computeSearchVisibility, buildVocab, computeCategoryDemand, buildCategorySeeds, computeMarketTiers,
   classifyFootprint, gatherFreeSearchVisibility, stem, computeCategoryLadder, ladderCandidates, CATEGORY_FLOOR,
+  essentialLadderCandidates,
 } from "./search-visibility";
 import { tokens, GENERIC_TOKENS } from "@/lib/scan/referral/brand-keywords";
 import type { CategoryNicheSeeds } from "@/lib/llm/types";
@@ -661,6 +662,104 @@ describe("computeCategoryLadder — CATEGORY must be LARGE, never fabricated (D2
     // no ladder, no cards — produces the identical score the gather returned.
     const expected = classifyFootprint("trustmrr.com", seedText, llmCategorySeeds, TRUSTMRR, []);
     expect(gathered.score).toBe(expected.score);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// P2 review fix (2026-07-20): the missing boundary guard. At realistic MAX
+// phrase counts the unique phrase set headed for the ONE `cachedKeywordVolumes`
+// batch reaches ~60+ — well past the OLD 40-item cap — and the OLD assembly
+// order (`[...seeds, ...tierPhrases, ...cardSeeds]`, cardSeeds LAST, and within
+// each phrase's ladder candidates the single-token broadest form generated
+// LAST) silently dropped up to 10 of 16 single-token ladder candidates: the
+// exact terms that clear CATEGORY_FLOOR. `computeCategoryLadder` then read a
+// truncated `volumesByKeyword`, found the floor-clearing umbrella term absent,
+// and wrongly reported "ladder exhausted" — the CATEGORY-must-be-LARGE
+// guarantee (D2) silently failing at scale. This guard prices the actual
+// batch a live scan sends and asserts every essential phrase survives.
+// ---------------------------------------------------------------------------
+describe("gatherFreeSearchVisibility — the volumes batch never truncates essential card-seed phrases (P2 review fix)", () => {
+  it("at realistic MAX phrase counts (6 category, 6 niche, 8 tier) every category phrase, niche phrase, and single-token ladder candidate rides the priced batch — only lower-priority legacy phrases may be cut", async () => {
+    gatherRankedSpy.mockResolvedValueOnce(TRUSTMRR);
+    gatherOverviewSpy.mockResolvedValueOnce(null);
+    gatherVolumesSpy.mockResolvedValueOnce([]); // volumes content is irrelevant here — only the REQUEST shape is under test
+
+    // 6 category phrases, 6 tokens each, deliberately DISTINCT vocabulary
+    // across phrases (worst case for the ladder — no token sharing means no
+    // free dedup) — realistic upper end of "usually 2-3 words" (synth.ts
+    // prompt) but within the hard 6-phrase LadderSeeds.phrases cap.
+    const categoryPhrases = [
+      "seo keyword audit checker report tool",
+      "calendar meeting booking scheduler event widget",
+      "social content post publisher schedule panel",
+      "growth funnel metrics tracker insight suite",
+      "invoice billing payment ledger record system",
+      "helpdesk ticket queue routing escalation manager",
+    ];
+    // 6 niche phrases (hard cap) — content irrelevant to grounding here, this
+    // test is about batch truncation, not the grounding guard (covered above).
+    const nichePhrases = [
+      "seo audit reporting for digital agencies",
+      "booking scheduler for solo consultants",
+      "content publisher for indie creators",
+      "funnel insight dashboards for founders",
+      "invoice ledger tracking for freelancers",
+      "ticket escalation flows for support teams",
+    ];
+    const categoryNiche: CategoryNicheSeeds = {
+      category: { label: "Ops tooling", phrases: categoryPhrases },
+      niche: { label: "Ops tooling for small teams", phrases: nichePhrases },
+    };
+    // 8 market-tier phrases (broad 4 + niche 4, the M1 hard cap) — grounded
+    // against TRUSTMRR's real category rows (exact-rank match or a shared
+    // mrr/startup token), same family as the existing invariant-#1 test.
+    const tierSeeds = {
+      broad: ["startup mrr", "mrr app", "startup mrr revenue", "mrr saas dashboard"],
+      niche: ["mrr saas", "startup revenue", "mrr app tracker", "startup revenue report"],
+    };
+    // 8 legacy category-demand seeds (the `buildCategorySeeds` llm branch,
+    // capped at 8) — mrr/startup themed so TRUSTMRR's real category rows
+    // still classify correctly (same vocabulary family as invariant-#1).
+    const llmCategorySeeds = [
+      "startup mrr tool", "mrr saas platform", "startup revenue app", "mrr tracking service",
+      "startup growth service", "mrr analytics tool", "startup finance app", "mrr insight tool",
+    ];
+
+    await gatherFreeSearchVisibility(
+      "trustmrr.com", ["startup mrr revenue saas tracking"], llmCategorySeeds, tierSeeds, [], categoryNiche,
+    );
+
+    // The spy is shared/uncleared across this file's other gather-level
+    // tests — read the LAST call (this test's own), not an absolute count.
+    const priced = gatherVolumesSpy.mock.calls.at(-1)![0] as string[];
+    const pricedSet = new Set(priced);
+
+    // Every category phrase, every niche phrase, and every essential ladder
+    // candidate (single-token forms + one intermediate per phrase) survives —
+    // none silently dropped.
+    const essential = [
+      ...categoryPhrases,
+      ...categoryPhrases.flatMap((p) => essentialLadderCandidates(p)),
+      ...nichePhrases,
+    ].map((s) => s.toLowerCase().trim());
+    const missingEssential = essential.filter((p) => !pricedSet.has(p));
+    expect(missingEssential).toEqual([]);
+
+    // The exact failure mode this closes: a floor-clearing SINGLE-TOKEN
+    // umbrella term (e.g. "seo", "scheduling") is never truncated.
+    const singleTokenCandidates = categoryPhrases
+      .flatMap((p) => essentialLadderCandidates(p))
+      .filter((c) => !c.includes(" "));
+    expect(singleTokenCandidates.length).toBeGreaterThan(0);
+    for (const t of singleTokenCandidates) expect(pricedSet.has(t)).toBe(true);
+
+    // The batch stays within the documented cap...
+    expect(priced.length).toBeLessThanOrEqual(60);
+    // ...and this scenario is a genuine stress case, not a vacuous one: the
+    // essential set ALONE plus the deterministic legacy seeds already exceeds
+    // the cap, so SOMETHING must be cut — proving the priority order (not
+    // just a big-enough cap) is what's under test.
+    expect(new Set([...essential, ...llmCategorySeeds]).size).toBeGreaterThan(60);
   });
 });
 

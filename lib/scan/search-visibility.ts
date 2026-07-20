@@ -525,12 +525,26 @@ const CATEGORY_RANKED_ROWS = 15;
 export const CATEGORY_TARGET = 6;
 /** Cap on the single `cachedKeywordVolumes` batch (request-billed — every
  *  phrase in the array is one price lookup, but the request itself is free
- *  regardless of count, so this bounds request SIZE, not cost). Raised from
- *  16 (P2, 2026-07-20) to make room for the category/niche card seeds + their
- *  ladder candidates (`ladderCandidates` can add several broader forms per
- *  category phrase) alongside the existing category-demand seeds + market
- *  tier phrases — still one call, still no new spend. */
-const MAX_VOLUME_SEEDS = 40;
+ *  regardless of count, so this bounds request SIZE, not cost).
+ *
+ *  Sized to a documented WORST CASE that the essential (never-truncatable)
+ *  phrase set can never exceed (P2 review fix, 2026-07-20 — the prior cap of
+ *  40 silently dropped up to 30 of ~70 unique phrases at realistic counts,
+ *  including the single-token umbrella terms that clear CATEGORY_FLOOR):
+ *    - category phrases:            ≤6  (LadderSeeds.phrases cap, synth.ts)
+ *    - niche phrases:                ≤6  (LadderSeeds.phrases cap, synth.ts)
+ *    - ladder candidates:            ≤6 category phrases × 7 each
+ *                                     (`essentialLadderCandidates` bounds one
+ *                                     phrase to token-count + 1; the prompt
+ *                                     asks for "usually 2-3 words" so 6
+ *                                     tokens/phrase is a generous ceiling)
+ *                                     = 42 worst case (no shared tokens)
+ *  essential worst case = 6 + 6 + 42 = 54. MAX_VOLUME_SEEDS=60 covers that
+ *  with headroom to still fit a handful of the lower-priority legacy
+ *  category-demand seeds / market-tier phrases (never guaranteed — only the
+ *  essential set is guaranteed to survive truncation; see the priority order
+ *  in `gatherFreeSearchVisibility`). */
+const MAX_VOLUME_SEEDS = 60;
 
 /** SERP position → share of clicks captured (a #1 ranking captures ~all its volume,
  *  a #20 almost none). pos1→1, pos21+→0. */
@@ -863,6 +877,30 @@ export function ladderCandidates(phrase: string): string[] {
   return out;
 }
 
+/** P2 review fix (2026-07-20): the candidates `computeCategoryLadder`'s ladder
+ *  can actually SELECT, reduced from `ladderCandidates`'s full O(n²)
+ *  combinatorial window enumeration (every contiguous sub-phrase of every
+ *  length) to what the algorithm needs — every SINGLE-TOKEN form of the
+ *  phrase (the ladder sorts fewest-tokens-first, so ANY one-word form might
+ *  be the accepted broadest candidate; which one clears grounding+the floor
+ *  is only known once priced, so all must ride the batch) plus AT MOST ONE
+ *  intermediate broadening (the phrase with its trailing token dropped — the
+ *  least-broadened non-trivial step, tried before falling back to a single
+ *  token). Bounds one phrase's candidate count to (token count) + 1 instead
+ *  of O(n²), so a 6-phrase category card can never explode the shared,
+ *  cap-limited `cachedKeywordVolumes` batch (the class of bug this closes —
+ *  see MAX_VOLUME_SEEDS's comment). Used by BOTH `computeCategoryLadder`
+ *  (which candidates to evaluate) and `gatherFreeSearchVisibility` (which
+ *  candidates to PRICE) — the same set, so nothing the ladder might select
+ *  is ever left unpriced by a forked enumeration. */
+export function essentialLadderCandidates(phrase: string): string[] {
+  const toks = phrase.toLowerCase().trim().split(/\s+/).filter(Boolean);
+  if (toks.length <= 1) return [];
+  const singleTokens = [...new Set(toks)];
+  const intermediate = toks.length > 2 ? [toks.slice(0, toks.length - 1).join(" ")] : [];
+  return [...new Set([...intermediate, ...singleTokens])];
+}
+
 /** Split a priced phrase list into "already winning" (top-3) vs "the gap"
  *  (everything else, highest-volume first) — shared by CATEGORY and NICHE
  *  cards so the two never drift on what counts as "ranked". */
@@ -952,7 +990,10 @@ export function computeCategoryLadder(
     // candidate — "broadest" because D2 wants MAXIMUM honest breadth, not
     // the minimum broadening that merely clears the bar. Ties (same token
     // count) break on higher volume, then lexical order — deterministic.
-    const candidates = [...new Set(groundedCategoryPhrases.flatMap((p) => ladderCandidates(p)))];
+    // `essentialLadderCandidates` (not the full `ladderCandidates`) — the
+    // SAME reduced set the gather batch prices, so nothing evaluated here is
+    // ever unpriced by a forked enumeration (P2 review fix).
+    const candidates = [...new Set(groundedCategoryPhrases.flatMap((p) => essentialLadderCandidates(p)))];
     const qualifying = candidates
       .filter(groundedForCategory)
       .map((c) => priced(c))
@@ -1282,21 +1323,34 @@ export async function gatherFreeSearchVisibility(
     // sent here) — "never pay for data you don't render", per-field.
     const tierPhrases = groundedTierSeeds ? [...groundedTierSeeds.broad, ...groundedTierSeeds.niche] : [];
     // P2: the category/niche card seeds + their LADDER candidates (broader
-    // forms of each category phrase — see `ladderCandidates`) join the SAME
-    // batch. Enumerated up front from the RAW (not-yet-grounded) category
-    // phrases — grounding happens after pricing, in `computeCategoryLadder`
-    // — because this is the one request-billed batch where an extra priced
-    // phrase costs nothing (never a second call).
+    // forms of each category phrase — see `essentialLadderCandidates`) join
+    // the SAME batch. Enumerated up front from the RAW (not-yet-grounded)
+    // category phrases — grounding happens after pricing, in
+    // `computeCategoryLadder` — because this is the one request-billed batch
+    // where an extra priced phrase costs nothing (never a second call).
+    // `essentialLadderCandidates` (not the full `ladderCandidates`) — bounds
+    // the candidate count per phrase so this list can't itself blow the cap.
     const cardSeeds = categoryNicheSeeds
       ? [
           ...categoryNicheSeeds.category.phrases,
+          ...categoryNicheSeeds.category.phrases.flatMap((p) => essentialLadderCandidates(p)),
           ...categoryNicheSeeds.niche.phrases,
-          ...categoryNicheSeeds.category.phrases.flatMap((p) => ladderCandidates(p)),
         ]
       : [];
+    // P2 review fix (2026-07-20): PRIORITY order, not append order. `cardSeeds`
+    // (category phrases + their ladder candidates + niche phrases) is the
+    // data-board essential set — the CATEGORY-must-be-LARGE guarantee (D2)
+    // depends on the umbrella term surviving pricing, so it goes FIRST. The
+    // legacy `seeds`/`tierPhrases` (category-demand hero + market-tier cards)
+    // go SECOND — real features, but lower priority: if the combined unique
+    // set exceeds MAX_VOLUME_SEEDS, only these may be truncated, never a
+    // card-seed phrase or its ladder candidate (see MAX_VOLUME_SEEDS's
+    // worst-case bound above). Dedup via Set happens AFTER priority ordering
+    // so the FIRST (highest-priority) occurrence of a shared phrase is what
+    // survives to the slice.
     const allSeeds = [
       ...new Set(
-        [...seeds, ...tierPhrases, ...cardSeeds].map((s) => s.toLowerCase().trim()).filter(Boolean),
+        [...cardSeeds, ...seeds, ...tierPhrases].map((s) => s.toLowerCase().trim()).filter(Boolean),
       ),
     ].slice(0, MAX_VOLUME_SEEDS);
     const seedVolumes = allSeeds.length > 0 ? await cachedKeywordVolumes(allSeeds).catch(() => []) : [];
