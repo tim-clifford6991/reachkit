@@ -678,12 +678,65 @@ const r8Terseness: RubricRule = {
 };
 
 // ---------------------------------------------------------------------------
+// R9 — magnitude / credibility (the trustmrr "10 searches/mo" class, 2026-07-21)
+//
+// R1–R8 verify a number is HONEST (derives from the payload). R9 verifies a
+// number shown as a HERO is CREDIBLE. trustmrr.com passed every honesty rule
+// while rendering "YOUR NICHE 10 searches/mo" and a category card backed by a
+// single phrase — true-by-construction, and useless as a market signal. The
+// owner's "too little and unrealistic" is exactly this: a market card shown as
+// a hero must clear a credibility floor and rest on more than one phrase, or it
+// degrades to its zero-state (a card is only "ready" when it carries priced
+// phrases — see marketCardReady). The Phase A "market size + your share" model
+// makes these cards credible (leader-sized demand, 8 phrases) or unready; until
+// then trustmrr.com is suppressed in the corpus test as the known-bad marker.
+// ---------------------------------------------------------------------------
+
+/** A hero market/category number below this reads as noise, not a market —
+ *  the trustmrr "10 searches/mo" class. Deliberately a MAGNITUDE rule only:
+ *  whether a card's LABEL is the right market (trustmrr's "Business
+ *  Intelligence" mislabel) is the classifier/judge's job (Phase B), and a
+ *  legitimate niche can rest on a single tight phrase (savvycal 240/mo), so
+ *  R9 never polices phrase COUNT — only that a number shown as a hero clears
+ *  a credibility floor or degrades to its zero-state. */
+const MAGNITUDE_FLOOR = 100;
+
+const r9MarketCredibility: RubricRule = {
+  id: "R9",
+  title: "a market/niche card shown as a hero clears a credibility floor — not a tiny number that reads as noise",
+  check: (payload, html) => {
+    const sv = payload.searchVisibility;
+    const violations: RubricViolation[] = [];
+    if (!sv) return violations;
+    const text = visibleText(html);
+    const cards: Array<{ name: string; card: SearchVisibility["categoryCard"] }> = [
+      { name: "category", card: sv.categoryCard },
+      { name: "niche", card: sv.nicheCard },
+    ];
+    for (const { name, card } of cards) {
+      // An unready card renders its zero-state, not a number — nothing to judge.
+      if (!marketCardReady(card)) continue;
+      const demand = card!.demand;
+      // Only judge a demand number the user actually sees rendered.
+      if (!(demand >= MIN_SIGNIFICANT && text.includes(demand.toLocaleString()))) continue;
+      if (demand < MAGNITUDE_FLOOR) {
+        violations.push({
+          rule: "R9",
+          message: `${name} card renders ${demand.toLocaleString()}/mo as a hero — below the ${MAGNITUDE_FLOOR}/mo credibility floor. A tiny number must degrade to its zero-state or show real market size, never stand alone (the trustmrr "10 searches/mo" class).`,
+        });
+      }
+    }
+    return violations;
+  },
+};
+
+// ---------------------------------------------------------------------------
 // Registry + runner
 // ---------------------------------------------------------------------------
 
 /** Every rubric rule, in priority order. The corpus test pins this list's
  *  length as an only-grows floor — deleting a rule is a ratchet violation. */
-export const RUBRIC_RULES: RubricRule[] = [r1NoGarbage, r2NumberBasis, r3EmptyInputNoSection, r4TeaserParity, r5ComparativeCopy, r6LadderSanity, r7NoNumeralClaimsInLlmProse, r8Terseness];
+export const RUBRIC_RULES: RubricRule[] = [r1NoGarbage, r2NumberBasis, r3EmptyInputNoSection, r4TeaserParity, r5ComparativeCopy, r6LadderSanity, r7NoNumeralClaimsInLlmProse, r8Terseness, r9MarketCredibility];
 
 export interface RubricOptions {
   /** Rule ids to skip for a fixture — a named, only-shrinks list in the corpus

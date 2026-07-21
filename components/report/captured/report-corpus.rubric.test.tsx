@@ -71,12 +71,20 @@ const FIXTURES = [getapp, reachkit, resend, savvycal, spacex, trustmrr, xcom] as
 
 /** Only-shrinks: rule ids suppressed per domain. Every entry is either a real
  *  bug awaiting its fix (linked) or a documented, reviewed exception. */
-const SUPPRESSIONS: Record<string, string[]> = {};
+const SUPPRESSIONS: Record<string, string[]> = {
+  // trustmrr.com is the 2026-07-21 before-oracle: it renders "YOUR NICHE 10
+  // searches/mo" and a category card backed by a single phrase — HONEST (passes
+  // R1–R8) but not CREDIBLE (fails R9, magnitude). The Phase A "market size +
+  // your share" model + Phase C floor make it credible; when trustmrr is
+  // re-captured on the new pipeline this suppression LIFTS (ratchet: only
+  // shrinks). It is the visible marker of the known-bad render.
+  "trustmrr.com": ["R9"],
+};
 
 // ── Manifest — the only-grows floor ─────────────────────────────────────────
 const MIN_FIXTURES = 6;
 const REQUIRED_ARCHETYPES = ["directory", "zero-ranking", "normal-saas", "pathological"];
-const MIN_RUBRIC_RULES = 8; // raised from 7 when R8 (terseness, P4) landed — the floor only rises
+const MIN_RUBRIC_RULES = 9; // R8 terseness (P4), R9 magnitude/credibility (2026-07-21) — the floor only rises
 
 function render(fx: CorpusFixture): string {
   const { resultsProps } = publicReportProps(fx.reportPayload, `corpus-${fx.domain}`, fx.siteUrl);

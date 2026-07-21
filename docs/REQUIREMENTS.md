@@ -65,8 +65,8 @@
 
 - **Decision:** The creator-reach proxy is a placeholder (the YouTube 2nd `videos.list` call is never made). Build it, or remove the field and its render? "Never pay for data you don't render" cuts both ways.
 - **Where it bites:** §6 R-6.4
-- **Default until answered:** Placeholder stands, documented.
-- **Owner answer:** *(unanswered)*
+- ~~**Default until answered:** Placeholder stands, documented.~~
+- **RESOLVED(2026-07-21) → §0.1** — cut with the creators pass (O-8); the field is removed, not built.
 
 
 
@@ -79,45 +79,13 @@
 
 
 
-### OPEN(O-7) — Reviews on the paid scan
-
-- **Decision:** The product contract (R-1.6) does not include review themes. Cut `reviewThemes`/`strengthsAndWeaknesses` and their gathering from the paid scan entirely (this also deletes the highest grounding-risk surface — the invented-reviews class), or keep them as a secondary paid section?
-- **Where it bites:** §6 R-6.1, §7 R-7.3
-- **Default until answered:** Proposed CUT — reviews already removed from the free path (R-1.5); paid gathering stays until you confirm.
-- **Owner answer:** *(unanswered)*
-
-
-
-### OPEN(O-8) — Creators pass
-
-- **Decision:** The contract (R-1.6) centers referrers + customer communities. The creators pass (`find-creators`, `audienceProxy` — a known always-0 placeholder, see O-5) is off-contract. Cut the pass and its render, or keep and finish it?
-- **Where it bites:** §6 R-6.1/R-6.4
-- **Default until answered:** Proposed CUT (subsumes O-5's question).
-- **Owner answer:** *(unanswered)*
-
-
-
-### OPEN(O-9) — Content-intel scope
-
-- **Decision:** Content-intel / content drafts are off the contract's three paid lines unless they feed the lessons/actions surfaces. Keep only what feeds actions ("lessons from competitor referrers" → content to create), or cut entirely?
-- **Where it bites:** §6 R-6.2
-- **Default until answered:** Proposed KEEP-where-it-feeds-actions, cut the rest.
-- **Owner answer:** *(unanswered)*
-
-
-
-### OPEN(O-10) — Retire local Supabase (cloud-only dev/test)
-
-- **Decision:** (Owner ruling 2026-07-21) "Local supabase may also be causing confusion and adding no value — we can simply do everything in supabase cloud, in production to avoid redundancy." Two things read local today: `.env.local` (`SUPABASE_URL=http://127.0.0.1:54321`) and the CI `eval-integration`/`test:int` jobs (spin up a local Supabase via the CLI). This session hit the friction directly — `pnpm capture:report` defaulted to local and could not see the prod scan. Move dev + integration tests to a cloud project (prod or a dedicated cloud test project), retire the local-CLI stack?
-- **Where it bites:** §11 (dev system); `pnpm test:int` / `pnpm eval` CI jobs; `capture:report` + `check:live` credential sourcing.
-- **Default until answered:** Proposed CUT local — point `.env.local` and CI at cloud; `capture:report` reads cloud by default. Caveat to weigh before executing: integration tests mutating a shared cloud DB need isolation (a dedicated cloud test project or per-run schema), and cloud round-trips are slower than the local stack — so the swap is a small program, not a one-liner. Until decided, local stays.
-- **Owner answer:** *(leaning yes — confirm the isolation approach: dedicated cloud test project vs prod)*
-
-
-
 ### 0.1 Resolved decisions
 
-*None yet. When a decision above is answered and written into its* `R-x.y` *requirement, it moves here as:* `RESOLVED(O-n, YYYY-MM-DD) — <one-line outcome> → R-x.y`*.*
+- **RESOLVED(O-7, 2026-07-21)** — Cut reviews from BOTH tiers. Owner: "we cut reviews from the paid scan and from the free scan." `reviewThemes`/`strengthsAndWeaknesses` and their gathering are removed; the invented-reviews grounding-risk surface goes with them (invariant #11 machinery stays for what remains). → R-6.1, R-7.3.
+- **RESOLVED(O-8, 2026-07-21)** — Cut the creators pass. Owner: "we can also cut this… not something we're showcasing on the paid scans." `find-creators` + `audienceProxy` + the creators render are removed (subsumes O-5). → R-6.1, R-6.4.
+- **RESOLVED(O-9, 2026-07-21)** — Content-intel kept ONLY where it feeds the action plan. Owner: "typically only used for lessons/action surfaced for the action plan that the user actually creates." Everything else cut. → R-6.2.
+- **RESOLVED(O-10, 2026-07-21)** — Cloud-only Supabase. Owner: "definitely something we need to go towards, so delete all local supabase implementation." Dev + integration move to cloud; the local CLI stack is retired. Isolation approach for shared-DB integration tests to be settled during execution. → §11 R-11.6.
+- **RESOLVED(O-5, 2026-07-21)** — folded into O-8: `audienceProxy` is removed with the creators pass, not built.
 
 ---
 
@@ -196,10 +164,10 @@
 
 ## 6. The paid loop
 
-- **R-6.1** A paid deep scan enriches the free scan with off-site signals: competitor cohort (≤ `MAX_SELECTED=5` rivals), keyword gap, market analysis, communities, creators. Deep-pass sentinel is `scans.deepened_at`.
-- **R-6.2** The paid headline additions are the **Market Position grade** (off-site cohort strength — separate from, never blended into, the Discoverability Score) and the intel surfaces (`/app` dashboard + supply/demand/competitors/audience/synthesis tabs).
+- **R-6.1** A paid deep scan enriches the free scan with the contract's off-site intelligence (R-1.6): the competitor cohort (≤ `MAX_SELECTED=5` rivals), **referrer intelligence** (the user's referrers + competitors' top referrers + the lessons), keyword gap, and **customer communities** (demand pockets + where buyers talk). Deep-pass sentinel is `scans.deepened_at`. **CUT (2026-07-21, O-7/O-8):** reviews (`reviewThemes`/`strengthsAndWeaknesses`) and the creators pass (`find-creators`/`audienceProxy`) are off-contract and removed — neither is gathered or rendered.
+- **R-6.2** The paid headline additions are the **Market Position grade** (off-site cohort strength — separate from, never blended into, the Discoverability Score) and the intel surfaces (`/app` dashboard + supply/demand/competitors/synthesis tabs). **Content-intel (O-9)** is kept ONLY where it feeds the user's action plan (lessons → content to create); the standalone content surfaces are cut.
 - **R-6.3** The plan (`/app/plan`) is the singular action timeline: floored to `MIN_ACTIONS=5` with deterministic fixes; every active category keeps ≥1 surviving action after the §11 cap; every "+N pts" is the model-computed shortfall, never the LLM's free choice; observed deltas are the real gauge movement post-completion.
-- **R-6.4** §11 outreach safety: cap 5 outreach cards, divergence 0.92, 1 action per evidence host, every draft `draftRequiresEdit=true` — nothing auto-sends. (`audienceProxy` placeholder: `OPEN(O-5)`.)
+- **R-6.4** §11 outreach safety: cap 5 outreach cards, divergence 0.92, 1 action per evidence host, every draft `draftRequiresEdit=true` — nothing auto-sends.
 - **R-6.5** Cadence: weekly refresh Monday 09:00 UTC (paid tiers), score pulse Thursday 09:00 UTC, cache cleanup daily 03:00. Trend lines reuse the persisted search-presence score so the score-over-time series never mixes scales.
 - **R-6.6** The paid render surfaces obey the same number/section honesty as the free report. Machine coverage today: report-payload paid fixture through the shared-report path + hero/blocks render checks; full intel-cache corpus is `OPEN(O-4)`.
 
@@ -247,4 +215,23 @@
 - **R-11.3** Every new guard is proven to bite (mutation-proven) before it counts.
 - **R-11.4** This document, `CLAUDE.md`, and `docs/architecture.md` are kept consistent in the same commit as the change that affects them (Change Protocol). The doc-rot tripwire asserts referenced files exist.
 - **R-11.5** The owner always has a current view: `docs/architecture.md` (structure), this file (behavior), and the interactive process/ledger artifact (linked from `CLAUDE.md`).
+- **R-11.6** **Cloud-only Supabase** (O-10, 2026-07-21): there is one Supabase — the cloud project. No local Supabase stack. Dev (`.env.local`) points at cloud; integration tests (`test:int`/`eval`) run against cloud with per-run isolation (a dedicated cloud test project or per-run schema, decided at execution). `capture:report` and `check:live` read cloud by default. Rationale: local added redundancy and confusion (a free scan captured against local couldn't see the prod scan) for no value.
+- **R-11.7** **One capability, one implementation** (2026-07-21): every domain capability has a single canonical module, pinned in the capability ledger (`lib/testing/capability-ledger.test.ts`). A second definition of a registered symbol anywhere in `lib/` fails the build. This is the machine-checked form of R-1.4 (one path per use case) — prose alone never prevented a duplication; the ledger does.
+
+
+
+## 12. The quality contract (owner-editable — the bar, and what enforces it)
+
+> **What this is.** One table of the quality dimensions the product is held to, each with its **bar** (the owner's words) and its **gate** (the machine check, or `UNENFORCED` when there is none — the gap is named, never silent). The owner edits the bar; an agent then makes the gate match. This exists because before it, only *honesty* had a durable home — so magnitude/simplicity/wow feedback took a whole session to land, each time reinvented. (2026-07-21.)
+
+| Dimension | The bar | Gate |
+|---|---|---|
+| **Honesty** | Every number derives from the payload; empty input ⇒ no section; comparative copy only when true. | Rubric R1–R7, G1–G10, classification corpus. |
+| **Magnitude / credibility** | A number shown as a hero must be *credible*, not merely honest: a tiny or hollow market/category number degrades to its zero-state rather than standing alone as the headline (the trustmrr "10 searches/mo" class). | Rubric **R9** (report corpus). |
+| **Terseness** | No LLM-generated sentences in the UI — labels + minor keywords + numbers only (R-1.7). | Rubric **R8** (free board); paid surfaces `UNENFORCED` until the paid corpus lands (Phase E / O-4). |
+| **One path per use case** | One entry point, one path, no per-tier/per-product special-casing (R-1.4); one implementation per capability (R-11.7). | Capability ledger + dep-cruiser capability-owner rules. |
+| **Contract fit — data↔UI alignment** | Every data point pulled is *showcased* and calculated efficiently; every rendered element maps to real data (owner, 2026-07-21). Nothing fetched-but-hidden; nothing rendered-but-fabricated. | G9 (per-wrapper: no wrapper without a consumer) + R2 (per-number: no render without a basis). **Per-FIELD `UNENFORCED`** — "fetch 50, show 8" is still un-gated (CLAUDE.md open risk); the field-level sweep is the next ratchet. |
+| **One-glance comprehension** | A non-specialist reads any surface in one pass (R-1.2). | `UNENFORCED` (prose bar; no deterministic check exists — revisit only if a live-review failure proves mechanically checkable). |
+| **UI standards** | Tokens only, mobile-clean at 390/360px, design-parity with the DS. | `check:design`, `test:mobile`, ESLint. |
+| **Score calibration** | Bands separate on live data (no SPA-fetch false-lows, no tidy-page false-100s). | `UNENFORCED` — the one red rule; `scripts/score-calibration.mts` is a live tool, not CI. |
 
