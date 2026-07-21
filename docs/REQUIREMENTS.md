@@ -79,6 +79,42 @@
 
 
 
+### OPEN(O-7) — Reviews on the paid scan
+
+- **Decision:** The product contract (R-1.6) does not include review themes. Cut `reviewThemes`/`strengthsAndWeaknesses` and their gathering from the paid scan entirely (this also deletes the highest grounding-risk surface — the invented-reviews class), or keep them as a secondary paid section?
+- **Where it bites:** §6 R-6.1, §7 R-7.3
+- **Default until answered:** Proposed CUT — reviews already removed from the free path (R-1.5); paid gathering stays until you confirm.
+- **Owner answer:** *(unanswered)*
+
+
+
+### OPEN(O-8) — Creators pass
+
+- **Decision:** The contract (R-1.6) centers referrers + customer communities. The creators pass (`find-creators`, `audienceProxy` — a known always-0 placeholder, see O-5) is off-contract. Cut the pass and its render, or keep and finish it?
+- **Where it bites:** §6 R-6.1/R-6.4
+- **Default until answered:** Proposed CUT (subsumes O-5's question).
+- **Owner answer:** *(unanswered)*
+
+
+
+### OPEN(O-9) — Content-intel scope
+
+- **Decision:** Content-intel / content drafts are off the contract's three paid lines unless they feed the lessons/actions surfaces. Keep only what feeds actions ("lessons from competitor referrers" → content to create), or cut entirely?
+- **Where it bites:** §6 R-6.2
+- **Default until answered:** Proposed KEEP-where-it-feeds-actions, cut the rest.
+- **Owner answer:** *(unanswered)*
+
+
+
+### OPEN(O-10) — Retire local Supabase (cloud-only dev/test)
+
+- **Decision:** (Owner ruling 2026-07-21) "Local supabase may also be causing confusion and adding no value — we can simply do everything in supabase cloud, in production to avoid redundancy." Two things read local today: `.env.local` (`SUPABASE_URL=http://127.0.0.1:54321`) and the CI `eval-integration`/`test:int` jobs (spin up a local Supabase via the CLI). This session hit the friction directly — `pnpm capture:report` defaulted to local and could not see the prod scan. Move dev + integration tests to a cloud project (prod or a dedicated cloud test project), retire the local-CLI stack?
+- **Where it bites:** §11 (dev system); `pnpm test:int` / `pnpm eval` CI jobs; `capture:report` + `check:live` credential sourcing.
+- **Default until answered:** Proposed CUT local — point `.env.local` and CI at cloud; `capture:report` reads cloud by default. Caveat to weigh before executing: integration tests mutating a shared cloud DB need isolation (a dedicated cloud test project or per-run schema), and cloud round-trips are slower than the local stack — so the swap is a small program, not a one-liner. Until decided, local stays.
+- **Owner answer:** *(leaning yes — confirm the isolation approach: dedicated cloud test project vs prod)*
+
+
+
 ### 0.1 Resolved decisions
 
 *None yet. When a decision above is answered and written into its* `R-x.y` *requirement, it moves here as:* `RESOLVED(O-n, YYYY-MM-DD) — <one-line outcome> → R-x.y`*.*
@@ -93,6 +129,12 @@
 - **R-1.2** The buyer is a solo founder / small SaaS team without an SEO budget. Every surface must be readable by a non-specialist in one pass.
 - **R-1.3** The core promise is **honesty**: every claim on any surface is grounded in evidence we actually gathered. Degrade, never invent. This is a product requirement, not a style preference — the marketing hero says "Every claim grounded in your live page" and the product must never contradict its own hero.
 - **R-1.4** The user-facing processes stay **simple**: one entry point per intent, one path, no per-tier/per-product special-casing (owner rule 2026-07-17). A fix that needs a new special case signals the process itself is wrong.
+
+**The product contract** (owner spec, 2026-07-21 — the filter every pipeline step, data call, and rendered section must pass; data that serves no contract line gets deleted):
+
+- **R-1.5** The **free scan** exists to deliver immediate wow that drives upgrade. It answers exactly four things: (1) what your **category** is, (2) what your **niche** is, (3) where you **stand vs your industry**, (4) **three actions** to improve your standing in your niche/category. The free pipeline gathers ONLY the data these four require — anything else (e.g. review collection) is removed from the free path.
+- **R-1.6** The **paid deep scan** (the weekly big scan) shows what competitors are doing: (1) who your **referrers** are, (2) who your **competitors' top referrers** are and the **lessons** to take from them, (3) who your **potential customers** are, **which communities** they sit in, and where you can go to work with / hear from / learn from them. Data irrelevant to these is removed (open cuts: §0 O-7/O-8/O-9).
+- **R-1.7** **No LLM-generated sentences render in the UI.** LLMs synthesize the dynamics; every surface shows simple words, labels, and numbers — never prose paragraphs. (Product-wide extension of the free-board terseness gate.)
 
 
 
@@ -126,6 +168,13 @@
 - **R-3.11** Every number ≥10 on the report derives from the payload (no aliases, no fetch-limits-as-totals, no literals); teaser counts equal the collection their section renders and are never 0; empty inputs render no section; comparative copy renders only when true. Machine-enforced by rubric R1–R6 over the report corpus, every build.
 - **R-3.12** Old persisted reports must always render: every consumer of `report_payload` null-coalesces new fields; legacy shapes (pre-ladder, retired aliases, `medium` rungs, inverted broad rungs) render cleanly with the retired parts filtered at the props boundary.
 - **R-3.13** One tease vocabulary across the report: free states what's true; paid unlocks what rivals do about it. Locked counts always come from the real collection.
+
+**The market model + free floor** (owner decisions D1–D4, 2026-07-21 — approved, build in flight):
+
+- **R-3.14** The category/niche cards show **market size + your share**: market-level demand measured from the MARKET itself (site-independent, real DataForSEO volumes — big when the market is big), with the subject's position/share rendered beside it. The gap between them is the pitch. A market number's basis is disclosed (e.g. "sized from <leader>'s rankings"). Never an ETV percentage share (G1 class).
+- **R-3.15** To ground market size, a free scan may make **ONE category-leader `ranked_keywords` fetch** (~2¢, within the 25¢ cap, per-domain cached). This amends the 2026-07-17 "no rival fetch on free" rule; per-rival gap analysis and rival intel remain paid-only (R-3.10 unchanged). Thin/failed leader data degrades to seed-basket volumes — never fabricates.
+- **R-3.16** Category/niche **relevance and labels** are judged by an LLM relevance pass over REAL keywords (classification, never generation — all volumes stay DataForSEO); deterministic token heuristics remain as pre-filter and structural veto. The score-side footprint classifier stays deterministic and frozen (invariant #1).
+- **R-3.17** The free report always shows **3 real ranked fixes** (deterministic floor — `FREE_MIN_ACTIONS=3`), plus blurred locked placeholder rows that carry no numbers and no fabricated specifics (zero LLM spend on placeholders).
 
 
 

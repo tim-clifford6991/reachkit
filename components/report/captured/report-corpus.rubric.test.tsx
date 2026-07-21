@@ -50,6 +50,7 @@ import reachkit from "@/lib/scan/fixtures/report-corpus/reachkit.app.json";
 import resend from "@/lib/scan/fixtures/report-corpus/resend.com.json";
 import savvycal from "@/lib/scan/fixtures/report-corpus/savvycal.com.json";
 import spacex from "@/lib/scan/fixtures/report-corpus/spacex.com.json";
+import trustmrr from "@/lib/scan/fixtures/report-corpus/trustmrr.com.json";
 import xcom from "@/lib/scan/fixtures/report-corpus/x.com.json";
 
 interface CorpusFixture {
@@ -66,7 +67,7 @@ interface CorpusFixture {
 // Captured payloads are verbatim prod JSON — older ones carry retired fields
 // (resend's categoryCaptureRate) and legacy shapes the current types no longer
 // name; that looseness is the point (the ?? [] rule gets real legacy inputs).
-const FIXTURES = [getapp, reachkit, resend, savvycal, spacex, xcom] as unknown as CorpusFixture[];
+const FIXTURES = [getapp, reachkit, resend, savvycal, spacex, trustmrr, xcom] as unknown as CorpusFixture[];
 
 /** Only-shrinks: rule ids suppressed per domain. Every entry is either a real
  *  bug awaiting its fix (linked) or a documented, reviewed exception. */
