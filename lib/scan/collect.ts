@@ -1,17 +1,14 @@
-import type { ScanContext } from "@/lib/scan/pipeline";
+import type { ScanContext } from "@/lib/scan/scan-context";
 import type { PreliminaryFacts, ListingFacts, Competitor, ReviewItem } from "@/lib/scan/types";
 import type { FactsExtras } from "@/lib/scan/tools/types";
-import { getListing, getReviews, findCompetitors } from "@/lib/scan/tools/index";
-import { persistCompetitors, rankCompetitors } from "@/lib/scan/competitors";
+import { getListing, getReviews } from "@/lib/scan/tools/index";
+import { persistCompetitors } from "@/lib/scan/competitors";
+import { discoverScanCompetitors } from "@/lib/scan/scan-competitors";
 import { emitScanEvent } from "@/lib/scan/progress";
 import { hostname } from "@/lib/scan/url";
 import { appIdFromUrl } from "@/lib/scan/adapters/itunes";
 import { assembleFacts } from "@/lib/scan/facts";
-import { serverDb } from "@/lib/db/client";
 import { upsertRawDocument } from "@/lib/db/raw-documents";
-import { extractCompetitorNames } from "@/lib/llm/competitor-names";
-import { parseSerpContent } from "@/lib/scan/adapters/dataforseo";
-import { parseTavilyContent } from "@/lib/scan/adapters/tavily";
 import { fetchWebReviews, reviewCountFromSnippets } from "@/lib/scan/adapters/web-reviews";
 
 // ---------------------------------------------------------------------------
@@ -48,7 +45,15 @@ export async function collect(ctx: ScanContext): Promise<PreliminaryFacts> {
   const productName = deriveProductName(storeUrl, mode);
   const toolCtx = { scanId, mode, budget };
 
-  // --- Listing ---
+  // Phase S (R-1.5): the FREE scan gathers only what the free contract renders —
+  // its own page (identity/category/signals). Reviews and competitor discovery
+  // are off the free contract, so a free scan skips BOTH fetches (cheaper +
+  // faster + no dead sections). Competitors are re-collected at deepen time
+  // (runFullCollect) for a scan that upgrades. Default "full" keeps every other
+  // caller's behaviour unchanged.
+  const gatherOffContract = (ctx.tier ?? "full") !== "free";
+
+  // --- Listing (always) ---
   const listingPromise = getListing
     .run({ storeUrl, subjectKey }, toolCtx)
     .catch(
@@ -62,48 +67,45 @@ export async function collect(ctx: ScanContext): Promise<PreliminaryFacts> {
       return result;
     });
 
-  // --- Reviews (skip in web mode) ---
+  // --- Reviews (paid only; off the free contract) ---
   // appIdFromUrl is called INSIDE the promise chain so a malformed URL throws
   // within the protected chain and the .catch backstop degrades gracefully.
-  const reviewsPromise = (
-    mode === "web"
-      ? // Web mode has no first-party reviews — mine review-bearing snippets from a
-        // domain-anchored "{host} reviews" search so review_themes has signal.
-        fetchWebReviews(hostname(storeUrl)).then(async (r) => {
-          if (r.snippets.length > 0) {
-            await upsertRawDocument({ subjectType: "web", subjectKey, sourceType: "web_reviews", body: r.raw, mode });
-          }
-          return {
-            reviews: r.snippets.map((s, i) => ({ id: `web-${i}`, rating: null, title: "Web review", body: s })) as ReviewItem[],
-          };
-        })
-      : Promise.resolve().then(() =>
-          getReviews.run({ appId: appIdFromUrl(storeUrl), subjectKey }, toolCtx),
-        )
-  )
-    .catch((): { reviews: ReviewItem[] } => ({ reviews: [] }))
-    .then(async (result) => {
-      await emitScanEvent(scanId, "artifact", {
-        label:
-          result.reviews.length > 0
-            ? `Analysed ${result.reviews.length} reviews`
-            : "Checked for public reviews",
-        count: result.reviews.length,
-      });
-      return result;
-    });
+  const reviewsPromise: Promise<{ reviews: ReviewItem[] }> = !gatherOffContract
+    ? Promise.resolve({ reviews: [] })
+    : (
+        mode === "web"
+          ? // Web mode has no first-party reviews — mine review-bearing snippets from a
+            // domain-anchored "{host} reviews" search so review_themes has signal.
+            fetchWebReviews(hostname(storeUrl)).then(async (r) => {
+              if (r.snippets.length > 0) {
+                await upsertRawDocument({ subjectType: "web", subjectKey, sourceType: "web_reviews", body: r.raw, mode });
+              }
+              return {
+                reviews: r.snippets.map((s, i) => ({ id: `web-${i}`, rating: null, title: "Web review", body: s })) as ReviewItem[],
+              };
+            })
+          : Promise.resolve().then(() =>
+              getReviews.run({ appId: appIdFromUrl(storeUrl), subjectKey }, toolCtx),
+            )
+      )
+        .catch((): { reviews: ReviewItem[] } => ({ reviews: [] }))
+        .then(async (result) => {
+          await emitScanEvent(scanId, "artifact", {
+            label:
+              result.reviews.length > 0
+                ? `Analysed ${result.reviews.length} reviews`
+                : "Checked for public reviews",
+            count: result.reviews.length,
+          });
+          return result;
+        });
 
-  // --- Competitors ---
-  // The competitor artifact event is emitted ONCE after the (web-mode) content
-  // refine below, so the feed shows the FINAL count rather than the pre-refine one.
-  const competitorsPromise = findCompetitors
-    .run({ productName, storeUrl, subjectKey }, toolCtx)
-    .catch(
-      (): { competitors: Competitor[]; extras: FactsExtras } => ({
-        competitors: [],
-        extras: {},
-      }),
-    );
+  // --- Competitors (paid only; off the free contract — re-collected at deepen) ---
+  const competitorsPromise: Promise<{ competitors: Competitor[]; extras: FactsExtras }> = !gatherOffContract
+    ? Promise.resolve({ competitors: [], extras: {} })
+    : listingPromise.then((listingResult) =>
+        discoverScanCompetitors(ctx, { productName, listing: listingResult.listing }),
+      );
 
   const [listingResult, reviewsResult, competitorsResult] = await Promise.all([
     listingPromise,
@@ -111,38 +113,9 @@ export async function collect(ctx: ScanContext): Promise<PreliminaryFacts> {
     competitorsPromise,
   ]);
 
-  // Web mode: the URL-based competitor parse often yields only listicle / aggregator
-  // pages that get filtered out (→ empty set). Recover the REAL competitor names from
-  // the SERP/Tavily *content* — category-anchored to the subject so a same-named
-  // different product can't contaminate the set (brand-ambiguity hard rule) — and
-  // merge them in before facts + cold-start are computed.
-  let competitors = competitorsResult.competitors;
-  if (mode === "web") {
-    const selfHost = hostname(storeUrl);
-    const { data: rawDocs } = await serverDb()
-      .from("raw_documents")
-      .select("source_type, body")
-      .eq("subject_key", subjectKey)
-      .in("source_type", ["dataforseo_serp", "tavily"]);
-    const content = (rawDocs ?? [])
-      .map((d) => (d.source_type === "tavily" ? parseTavilyContent(d.body) : parseSerpContent(d.body)))
-      .join("\n")
-      .trim();
-    const named = await extractCompetitorNames(ctx, {
-      subjectName: listingResult.listing.name,
-      subjectHost: selfHost,
-      category: listingResult.listing.category ?? listingResult.listing.description ?? "",
-      content,
-    });
-    if (named.length > 0) {
-      competitors = rankCompetitors([...competitors, ...named], {
-        selfHost,
-        subjectName: listingResult.listing.name,
-      });
-    }
-  }
+  const competitors = competitorsResult.competitors;
 
-  // Single competitor artifact event with the final count (post content-refine).
+  // Single competitor artifact event with the final count.
   await emitScanEvent(scanId, "artifact", {
     label: competitors.length > 0 ? `Found ${competitors.length} competitors` : "Mapping your competitive landscape",
     count: competitors.length,
@@ -168,4 +141,14 @@ export async function collect(ctx: ScanContext): Promise<PreliminaryFacts> {
     competitors,
     extras: mergedExtras,
   });
+}
+
+/**
+ * The collect pipeline step. Lives here (not in pipeline.ts) so pipeline.ts
+ * stays a type-only re-export shim and never imports collect at runtime — that
+ * import was the `pipeline → collect` edge that turned every tool taking a
+ * ScanContext into a dependency cycle. Phase S, 2026-07-21.
+ */
+export async function runCollect(ctx: ScanContext): Promise<PreliminaryFacts> {
+  return collect(ctx);
 }

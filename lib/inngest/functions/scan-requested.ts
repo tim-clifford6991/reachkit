@@ -2,7 +2,7 @@ import { inngest, scanRequestedEvent } from "@/lib/inngest/client";
 import { serverDb } from "@/lib/db/client";
 import { env } from "@/lib/config/env";
 import { ScanBudget } from "@/lib/tools/registry";
-import { runCollect } from "@/lib/scan/pipeline";
+import { runCollect } from "@/lib/scan/collect";
 import { runFindings } from "@/lib/scan/findings-pipeline";
 import { SYNTH_MODEL_FREE } from "@/lib/llm/synth";
 import { runFreeReport } from "@/lib/scan/free-report";
@@ -94,6 +94,7 @@ export const scanRequested = inngest.createFunction(
         mode: app.platform,
         storeUrl: app.store_url,
         budget,
+        tier: scanTier,
       });
 
       // Persist facts to scans row

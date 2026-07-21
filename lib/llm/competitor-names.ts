@@ -1,5 +1,5 @@
 import type { Competitor } from "@/lib/scan/types";
-import type { ScanContext } from "@/lib/scan/pipeline";
+import type { ScanContext } from "@/lib/scan/scan-context";
 import { callModel } from "@/lib/llm/anthropic";
 import { extractJson } from "@/lib/llm/json";
 import { fixtures } from "@/lib/scan/fixture-seam";

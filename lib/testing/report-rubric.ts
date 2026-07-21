@@ -709,7 +709,8 @@ const r9MarketCredibility: RubricRule = {
     const violations: RubricViolation[] = [];
     if (!sv) return violations;
     const text = visibleText(html);
-    const cards: Array<{ name: string; card: SearchVisibility["categoryCard"] }> = [
+    type MarketCard = { demand: number; phrases?: unknown[]; rankedTop3: unknown[]; gaps: unknown[] } | null | undefined;
+    const cards: Array<{ name: string; card: MarketCard }> = [
       { name: "category", card: sv.categoryCard },
       { name: "niche", card: sv.nicheCard },
     ];

@@ -101,6 +101,19 @@ const CAPABILITY_LEDGER: Capability[] = [
     exports: ["gatherFreeSearchVisibility"],
     consumer: "lib/scan/free-report.ts",
   },
+  {
+    // Phase S (2026-07-21): extracted from collect.ts so the paid initial
+    // collect AND the deepen-time re-collect share ONE discovery path.
+    // NOTE the distinct name: the referral cohort's `discoverCompetitors`
+    // (lib/scan/referral/discover-competitors.ts) is a DIFFERENT capability
+    // (closeness-ranked cohort), so this scan-facts discovery is
+    // `discoverScanCompetitors` — the ledger's no-second-definer check caught
+    // the collision and forced the rename (exactly its job).
+    capability: "scan-competitor-discovery",
+    canonicalModule: "lib/scan/scan-competitors.ts",
+    exports: ["discoverScanCompetitors"],
+    consumer: "lib/scan/collect.ts",
+  },
 ];
 
 /** Recursively list every non-test `.ts`/`.tsx` under a root (repo-relative). */
