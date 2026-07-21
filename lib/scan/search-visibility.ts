@@ -24,6 +24,7 @@ import type { RankedKeyword } from "@/lib/scan/adapters/dataforseo-ranked-keywor
 import type { CategoryNicheSeeds } from "@/lib/llm/types";
 import { normalizeHost } from "@/lib/scan/referral/classify";
 import { brandTokensFor, isBrandKeyword, tokens, GENERIC_TOKENS, STOPWORDS, stem } from "@/lib/scan/referral/brand-keywords";
+import { isAggregatorHost } from "@/lib/scan/competitor-filter";
 
 // Re-exported for existing import sites (`import { stem } from "./search-visibility"`,
 // e.g. this file's own test suite) — the canonical definition now lives in
@@ -192,6 +193,12 @@ export interface SearchVisibility {
    *  laddered. Data-only this phase; optional, same absence rule as
    *  `categoryCard`. */
   nicheCard?: CategoryLadderCard;
+  /** Phase A (2026-07-21, market model): the leader domain the CATEGORY market
+   *  was sized from, when `categoryCard` came from a category leader's footprint
+   *  rather than the subject's own ladder. Rendered as provenance ("market sized
+   *  from ahrefs.com's rankings"). Absent when no leader resolved (the card fell
+   *  back to the subject-grounded ladder — R-3.15 degrade path). */
+  categoryLeader?: string;
   // DELETED 2026-07-17 (free-scan honesty): `categoryCaptureRate` was
   // `= sv.score` — the search-presence score rendered a SECOND time under a
   // "you capture X%" label (identical in 10/10 prod scans). A metric may never be
@@ -1320,6 +1327,94 @@ export function classifyFootprint(
   return computeSearchVisibility(kw, vocab);
 }
 
+/** Phase A: how many category-market phrases the CATEGORY card renders. */
+const MARKET_PHRASES = 8;
+/** A leader footprint thinner than this is untrustworthy — degrade to seeds. */
+const MIN_LEADER_ROWS = 10;
+
+/**
+ * Pick the ONE category-leader domain to size the market from: normalized, a
+ * real domain, NOT the subject, NOT an aggregator/directory (competitor-filter),
+ * NOT a mega-brand platform. Returns the first survivor, or null → the gather
+ * degrades to the subject-grounded ladder (R-3.15). Deterministic, no I/O.
+ */
+export function pickCategoryLeader(leaders: string[], subjectHost: string): string | null {
+  const subject = normalizeHost(subjectHost);
+  for (const raw of leaders) {
+    const host = normalizeHost(raw);
+    if (!host || host === subject) continue;
+    if (isAggregatorHost(host)) continue;
+    const label = host.split(".")[0] ?? host;
+    if (MEGA_BRAND_TOKENS.has(label)) continue;
+    return host;
+  }
+  return null;
+}
+
+/**
+ * Size the CATEGORY market from a leader's real ranked keywords (site-
+ * independent), annotated with the SUBJECT's own position per phrase — "market
+ * size + your share" (R-3.14). Produces a `CategoryLadderCard` so it drops
+ * straight into the existing render. Every volume is DataForSEO's (the leader's
+ * real rankings); the LLM only named the leader. Never touches `sv.score`
+ * (invariant #1 — this feeds the card only). Returns null when no leader
+ * keyword is category-relevant (→ degrade to the subject ladder).
+ */
+export function computeMarketFromLeader(
+  leaderDomain: string,
+  leaderRows: RankedKeyword[],
+  seeds: CategoryNicheSeeds,
+  subjectRankByKeyword: Map<string, number>,
+  subjectCategoryRanked: DemandRow[],
+): CategoryLadderCard | null {
+  // Category vocabulary = non-generic stemmed tokens of the category label +
+  // phrases. A leader keyword must share one to count as "the category".
+  const catVocab = new Set<string>();
+  for (const text of [seeds.category.label, ...seeds.category.phrases]) {
+    for (const t of tokens(text)) {
+      const st = stem(t);
+      if (!GENERIC_TOKENS.has(st) && !MEGA_BRAND_TOKENS.has(st)) catVocab.add(st);
+    }
+  }
+  if (catVocab.size === 0) return null;
+
+  const leaderBrand = brandTokensFor([leaderDomain]);
+  const subjPos = new Map<string, number>();
+  for (const r of subjectCategoryRanked) {
+    if (r.yourPosition && r.yourPosition > 0) subjPos.set(r.keyword.toLowerCase(), r.yourPosition);
+  }
+
+  // Category-relevant leader keywords: real volume, not the leader's own brand,
+  // shares a non-generic token with the category vocabulary. Dedup by keyword
+  // (highest volume wins), top by volume.
+  const byKeyword = new Map<string, RankedKeyword>();
+  for (const r of leaderRows) {
+    if (r.volume <= 0) continue;
+    if (isBrandKeyword(r.keyword, leaderBrand)) continue;
+    if (!tokens(r.keyword).some((t) => catVocab.has(stem(t)))) continue;
+    const key = r.keyword.toLowerCase();
+    const cur = byKeyword.get(key);
+    if (!cur || r.volume > cur.volume) byKeyword.set(key, r);
+  }
+  const top = [...byKeyword.values()].sort((a, b) => b.volume - a.volume).slice(0, MARKET_PHRASES);
+  if (top.length === 0) return null;
+
+  const phrases: DemandRow[] = top.map((r) => {
+    const key = r.keyword.toLowerCase();
+    const yp = subjectRankByKeyword.get(key) ?? subjPos.get(key);
+    return { keyword: r.keyword, volume: r.volume, ...(yp ? { yourPosition: yp } : {}) };
+  });
+  const demand = phrases.reduce((s, p) => s + p.volume, 0);
+  const isWon = (p: DemandRow): boolean => p.yourPosition !== undefined && p.yourPosition <= WINNING_POSITION;
+  return {
+    label: seeds.category.label,
+    demand,
+    phrases,
+    rankedTop3: phrases.filter(isWon),
+    gaps: phrases.filter((p) => !isWon(p)),
+  };
+}
+
 export async function gatherFreeSearchVisibility(
   rawSelf: string,
   seedText: string[],
@@ -1439,11 +1534,34 @@ export async function gatherFreeSearchVisibility(
     const cards = categoryNicheSeeds
       ? computeCategoryLadder(categoryNicheSeeds, volumesByKeyword, rankByKeyword, sv.categoryRanked)
       : null;
+    // Phase A (market model, R-3.14/R-3.15): size the CATEGORY market from a
+    // category LEADER's real footprint — site-independent, so a weak/new subject
+    // still shows the real market it competes in, with "your share" (the
+    // subject's position per phrase) beside it. ONE extra ranked_keywords call
+    // (~1.8¢, per-domain cached), a validated leader, and it only REPLACES the
+    // subject-grounded categoryCard when it resolves AND is larger (never shrinks
+    // the honest number). Degrades to `cards` on any miss. Feeds the card only —
+    // `sv.score` is already fixed above (invariant #1).
+    let categoryCard = cards?.categoryCard;
+    let categoryLeader: string | undefined;
+    const leader = categoryNicheSeeds ? pickCategoryLeader(categoryNicheSeeds.leaders ?? [], self) : null;
+    if (categoryNicheSeeds && leader) {
+      const leaderRows = await cachedRankedKeywords(leader, 50).catch(() => [] as RankedKeyword[]);
+      if (leaderRows.length >= MIN_LEADER_ROWS) {
+        const market = computeMarketFromLeader(leader, leaderRows, categoryNicheSeeds, rankByKeyword, sv.categoryRanked);
+        if (market && market.demand > (categoryCard?.demand ?? 0)) {
+          categoryCard = market;
+          categoryLeader = leader;
+        }
+      }
+    }
     return {
       ...sv,
       ...demand,
       ...(marketTiers && marketTiers.length > 0 ? { marketTiers } : {}),
-      ...(cards ? { categoryCard: cards.categoryCard, nicheCard: cards.nicheCard } : {}),
+      ...(categoryCard ? { categoryCard } : {}),
+      ...(cards ? { nicheCard: cards.nicheCard } : {}),
+      ...(categoryLeader ? { categoryLeader } : {}),
     };
   } catch {
     return EMPTY;

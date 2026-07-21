@@ -390,7 +390,8 @@ Return ONLY this JSON (no markdown, no code fences):
   "niche": {
     "label": "<2-4 word label for the SPECIFIC sub-space this product actually competes in, e.g. 'SEO competitor tracking', 'Scheduling for consultants'>",
     "phrases": ["<a real, specific search phrase within that sub-space>", "..."]
-  }
+  },
+  "categoryLeaders": ["<a well-known LEADER domain in this category, e.g. 'ahrefs.com'>", "..."]
 }
 
 Rules:
@@ -399,8 +400,9 @@ Rules:
 - category: the BROAD INDUSTRY UMBRELLA this product belongs to — think "what section of a software directory would this be filed under", not "what exactly does this product do". label = 2–4 words naming that umbrella. phrases = 2–5 SHORT, HIGH-VOLUME head search terms for it, usually 2–3 words (e.g. "scheduling software", "seo tools"). PREFER the broad head term over a long-tail phrasing — head terms have real search volume, long-tail ones are near-zero. NOT the brand name, NOT a competitor's name, NOT a feature.
 - niche: the SPECIFIC sub-space this product actually competes in — narrower than category, often audience- or use-case-qualified (e.g. "scheduling for consultants", "seo tools for solo founders"). label = 2–4 words. phrases = 2–4 specific search phrases. Every niche phrase should plausibly share a real topic word with the category (niche is a subset of category, not a different subject).
 - Both label fields are cosmetic names for the market, not search phrases themselves — do not put a label string into the phrases array.
+- categoryLeaders: 2–3 real, well-known DOMAINS that clearly LEAD this category (bare hostnames, e.g. "ahrefs.com", "semrush.com" for SEO tools; "calendly.com" for scheduling). These size the real market — pick recognizable category leaders, NOT the subject itself, NOT a tiny/unknown site. If you are not confident of a real leader domain, return fewer or an empty array rather than guessing — a wrong domain sizes the wrong market. NEVER a made-up domain.
 - If the category or niche is genuinely unclear from the sheets, return fewer phrases rather than guessing — NEVER volumes, NEVER the brand name, NEVER a competitor name.
-- Do NOT output findings, sampleAction, or any other field — only positioningMirror, category, and niche.
+- Do NOT output findings, sampleAction, or any other field — only positioningMirror, category, niche, and categoryLeaders.
 - Do not invent data not present in the fact sheets.`;
 }
 

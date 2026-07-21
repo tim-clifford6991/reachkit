@@ -63,6 +63,15 @@ export interface LadderSeeds {
 export interface CategoryNicheSeeds {
   category: LadderSeeds;
   niche: LadderSeeds;
+  /** Phase A (2026-07-21, market model): 2–3 well-known LEADER domains in this
+   *  category (e.g. "ahrefs.com", "semrush.com" for SEO tooling). The market
+   *  gather validates one and reads its ranked_keywords to size the CATEGORY
+   *  MARKET independently of the subject's own footprint — so a weak/new site
+   *  still shows the real market it competes in, with "your share" beside it
+   *  (R-3.14/R-3.15). The LLM only NAMES domains it's confident lead the
+   *  category; DataForSEO supplies every volume. Optional — absent on legacy
+   *  output; the gather degrades to the seed-basket volumes when empty. */
+  leaders?: string[];
 }
 
 export interface SynthResult {
