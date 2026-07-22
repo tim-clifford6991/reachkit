@@ -758,6 +758,14 @@ export function computeCategoryDemand(
   seedVolumes: Array<{ keyword: string; volume: number }>,
   rankByKeyword: Map<string, number>,
   categoryRanked: DemandRow[] = [],
+  /** Phase B (optional): the LLM relevance judge's rulings. Where a seed was
+   *  judged, its verdict decides inclusion (keep unless explicitly "irrelevant")
+   *  instead of token-grounding — the precision fix for a seed that shares a real
+   *  category token but names a different market (a "startup incubator" seed for
+   *  an MRR tracker). An unjudged seed falls back to token-grounding (unchanged).
+   *  Real rankings (`categoryRanked`) stay always-included, real by definition —
+   *  the judge only refines the SEED fill, never vetoes a real ranking. */
+  verdicts?: RelevanceVerdicts,
 ): Pick<SearchVisibility, "categoryDemand" | "categoryOpportunities" | "categoryPhrases"> {
   const byKw = new Map<string, { keyword: string; volume: number; position?: number }>();
   const add = (rawKeyword: string, volume: number, position?: number) => {
@@ -792,7 +800,12 @@ export function computeCategoryDemand(
   } else {
     const groundedTokens = groundedCategoryTokens(categoryRanked);
     for (const r of seedVolumes) {
-      if (!isTierPhraseGrounded(r.keyword, groundedTokens, rankByKeyword)) continue; // ungrounded — an LLM guess with no ranking evidence
+      const v = verdicts?.get(r.keyword.toLowerCase());
+      // Judge-authoritative when it ruled: keep unless explicitly "irrelevant"
+      // (category AND niche are both the subject's market). Unjudged → the
+      // pre-judge token-grounding decides (degrade, never worse than today).
+      const relevant = v !== undefined ? v !== "irrelevant" : isTierPhraseGrounded(r.keyword, groundedTokens, rankByKeyword);
+      if (!relevant) continue;
       add(r.keyword, r.volume);
     }
   }
@@ -1552,13 +1565,46 @@ export async function gatherFreeSearchVisibility(
     const seedVolumes = allSeeds.length > 0 ? await cachedKeywordVolumes(allSeeds).catch(() => []) : [];
     const leaderRows = await leaderRowsP;
     const volumesByKeyword = new Map(seedVolumes.map((r) => [r.keyword.toLowerCase(), r.volume]));
+    // Phase B (relevance judge, D3): rule each candidate keyword's relevance to
+    // THIS business, so a term that merely SHARES a category token but names a
+    // different/broader market is dropped from BOTH the category-demand hero AND
+    // the leader market card — precision the token-overlap filter structurally
+    // cannot give (the trustmrr "business intelligence" mislabel + the mixpanel-
+    // for-fathom market pollution). Candidates = the subject's category seed
+    // phrases (feed `computeCategoryDemand`) + the leader's highest-volume
+    // keywords (feed `computeMarketFromLeader`). ONE Haiku call, cached + version-
+    // stamped per subject, riding the ambient free-report/full-scan cost context
+    // (invariant #2); degrades to token heuristics on any miss (unjudged keyword
+    // → each function falls back). Feeds the card/demand side only — `sv.score`
+    // is already fixed above (invariant #1).
+    let verdicts: RelevanceVerdicts | undefined;
+    if (categoryNicheSeeds) {
+      const leaderCandidates = [...new Map(leaderRows.map((r) => [r.keyword.toLowerCase(), r])).values()]
+        .sort((a, b) => b.volume - a.volume)
+        .slice(0, JUDGE_CANDIDATES)
+        .map((r) => r.keyword);
+      const candidates = [...new Set([...seeds, ...leaderCandidates])];
+      if (candidates.length > 0) {
+        const judged = await judgeRelevance(
+          {
+            host: self,
+            name: brandNames[0],
+            categoryLabel: categoryNicheSeeds.category.label,
+            nicheLabel: categoryNicheSeeds.niche.label,
+            rankedTerms: sv.categoryRanked.map((r) => r.keyword),
+          },
+          candidates,
+        );
+        if (judged.size > 0) verdicts = judged;
+      }
+    }
     // Demand hero (category rung): UNCHANGED — only the ORIGINAL category seeds
     // feed it, so the persisted demand story doesn't move under the ladder.
     const catVolumes = seedVolumes.filter((r) => seeds.includes(r.keyword.toLowerCase()));
     // Merge the site's REAL category rankings (sv.categoryRanked — from the SAME
     // ranked_keywords call, no extra spend) with the seed volumes, so demand +
     // opportunities reflect the actual market for big AND small sites alike.
-    const demand = computeCategoryDemand(catVolumes, rankByKeyword, sv.categoryRanked);
+    const demand = computeCategoryDemand(catVolumes, rankByKeyword, sv.categoryRanked, verdicts);
     // computeMarketTiers runs AFTER computeCategoryDemand — the dedup + inversion
     // guard need the category phrase set + demand total it just produced. Pass
     // the ALREADY-GROUNDED seeds (pre-filtered above, pre-fetch) plus
@@ -1585,32 +1631,10 @@ export async function gatherFreeSearchVisibility(
     let categoryCard = cards?.categoryCard;
     let categoryLeader: string | undefined;
     if (categoryNicheSeeds && leader && leaderRows.length >= MIN_LEADER_ROWS) {
-      // Phase B (relevance judge, D3): the leader ranks for its OWN market, much of
-      // which merely shares a token with the subject's category (mixpanel's
-      // "data analytics tools"/"mobile app analytics" for web-analytics fathom).
-      // Judge the leader's highest-volume keywords against THIS business so those
-      // adjacent/generic terms are dropped from the market card instead of
-      // dominating it — precision the token-overlap filter structurally cannot
-      // give. ONE Haiku call, cached + version-stamped per subject, riding the
-      // ambient free-report/full-scan cost context (invariant #2); degrades to
-      // token-overlap on any miss (unjudged keyword → `computeMarketFromLeader`
-      // falls back). Feeds the card only — `sv.score` is already fixed above
-      // (invariant #1).
-      const candidates = [...new Map(leaderRows.map((r) => [r.keyword.toLowerCase(), r])).values()]
-        .sort((a, b) => b.volume - a.volume)
-        .slice(0, JUDGE_CANDIDATES)
-        .map((r) => r.keyword);
-      const judged = await judgeRelevance(
-        {
-          host: self,
-          name: brandNames[0],
-          categoryLabel: categoryNicheSeeds.category.label,
-          nicheLabel: categoryNicheSeeds.niche.label,
-          rankedTerms: sv.categoryRanked.map((r) => r.keyword),
-        },
-        candidates,
-      );
-      const verdicts = judged.size > 0 ? judged : undefined;
+      // The leader ranks for its OWN market, much of which merely shares a token
+      // with the subject's category — the hoisted `verdicts` (judged above) drop
+      // those adjacent/generic terms from the market card instead of letting them
+      // dominate it. Feeds the card only — `sv.score` is already fixed (inv. #1).
       const market = computeMarketFromLeader(
         leader,
         leaderRows,

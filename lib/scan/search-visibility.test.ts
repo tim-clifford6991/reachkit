@@ -35,6 +35,7 @@ import {
 } from "./search-visibility";
 import { tokens, GENERIC_TOKENS } from "@/lib/scan/referral/brand-keywords";
 import type { CategoryNicheSeeds } from "@/lib/llm/types";
+import type { RelevanceVerdicts } from "./relevance-judge";
 
 // Default url is a single-segment placeholder ("/x") — deliberately NEVER a
 // 2+-segment URL template match (see `pathContainer` in search-visibility.ts),
@@ -369,6 +370,34 @@ describe("computeCategoryDemand grounding (task-G, 2026-07-20) — no LLM-guesse
     const seedVolumes = [{ keyword: "business intelligence platform", volume: 165000 }];
     const d = computeCategoryDemand(seedVolumes, emptyRanks, []); // no footprint at all
     expect(d.categoryDemand).toBe(165000); // unfiltered — same as today's behaviour
+  });
+
+  it("Phase B: the judge drops a token-GROUNDED seed that names a different market ('startup incubator' for an MRR tracker)", () => {
+    // Both seeds share "startup" with categoryRanked, so token-grounding keeps
+    // BOTH. The judge knows "startup incubator program" is not this MRR tracker's
+    // market and rules it irrelevant; "startup revenue tracker" stays category.
+    const seedVolumes = [
+      { keyword: "startup incubator program", volume: 40000 }, // grounded on "startup", but a different market
+      { keyword: "startup revenue tracker", volume: 800 }, // genuinely the subject's category
+    ];
+    const verdicts: RelevanceVerdicts = new Map([
+      ["startup incubator program", "irrelevant"],
+      ["startup revenue tracker", "category"],
+    ]);
+    const withJudge = computeCategoryDemand(seedVolumes, emptyRanks, trustmrrCategoryRanked, verdicts);
+    expect(withJudge.categoryPhrases.map((p) => p.keyword)).not.toContain("startup incubator program");
+    expect(withJudge.categoryPhrases.map((p) => p.keyword)).toContain("startup revenue tracker");
+
+    // WITHOUT the judge (degrade), token-grounding keeps the incubator seed and
+    // its 40k dominates — the coarse behaviour the judge fixes.
+    const noJudge = computeCategoryDemand(seedVolumes, emptyRanks, trustmrrCategoryRanked);
+    expect(noJudge.categoryPhrases.map((p) => p.keyword)).toContain("startup incubator program");
+  });
+
+  it("Phase B local fallback: an UNJUDGED seed still uses token-grounding", () => {
+    const seedVolumes = [{ keyword: "startup marketplace", volume: 50 }]; // shares "startup", unjudged
+    const d = computeCategoryDemand(seedVolumes, emptyRanks, trustmrrCategoryRanked, new Map());
+    expect(d.categoryPhrases.map((p) => p.keyword)).toContain("startup marketplace");
   });
 
   // Review fix (2026-07-20, Minor finding): the old version of this test called
