@@ -8,7 +8,7 @@
  * ranked-keyword volume; the functions never fabricate a number.
  */
 import { describe, it, expect } from "vitest";
-import { pickCategoryLeader, computeMarketFromLeader, computeNicheMarket, stem } from "./search-visibility";
+import { pickCategoryLeader, computeMarketFromLeader, computeNicheMarket, computeCategoryMarket, dedupeByIntent, stem } from "./search-visibility";
 import { tokens } from "./referral/brand-keywords";
 import type { RankedKeyword } from "./adapters/dataforseo-ranked-keywords";
 import type { DemandRow } from "./search-visibility";
@@ -221,5 +221,85 @@ describe("computeNicheMarket — the niche is sized from REAL data, not one phra
   it("G4: demand reconciles exactly to the rendered phrases", () => {
     const card = computeNicheMarket("Privacy-First Analytics", pool, categoryVocab, nicheVocab)!;
     expect(card.demand).toBe(card.phrases.reduce((s, p) => s + p.volume, 0));
+  });
+});
+
+describe("dedupeByIntent — collapse same-intent paraphrases (anti-inflation, 2026-07-22)", () => {
+  it("collapses word-order paraphrases of one intent, keeping the highest volume", () => {
+    const rows: DemandRow[] = [
+      { keyword: "google analytics cost", volume: 480 },
+      { keyword: "cost of google analytics", volume: 480 },
+      { keyword: "cost google analytics", volume: 200 },
+    ];
+    const out = dedupeByIntent(rows);
+    expect(out).toHaveLength(1); // one intent {google, analytics, cost}
+    expect(out[0]!.volume).toBe(480);
+  });
+
+  it("collapses the 12 phrasings of 'how to delete google analytics account' into ONE", () => {
+    const rows: DemandRow[] = [
+      { keyword: "how to delete a google analytics account", volume: 210 },
+      { keyword: "how to delete an account in google analytics", volume: 210 },
+      { keyword: "delete account from google analytics", volume: 140 },
+      { keyword: "google analytics delete account", volume: 140 },
+      { keyword: "how to remove google analytics account", volume: 210 },
+    ];
+    const out = dedupeByIntent(rows);
+    // "delete" vs "remove" differ, but the delete-phrasings collapse to one.
+    const deleteRows = out.filter((r) => r.keyword.includes("delete"));
+    expect(deleteRows).toHaveLength(1);
+    expect(deleteRows[0]!.volume).toBe(210); // highest of the delete cluster
+  });
+
+  it("keeps genuinely distinct intents", () => {
+    const rows: DemandRow[] = [
+      { keyword: "web analytics", volume: 40000 },
+      { keyword: "cookieless analytics", volume: 2400 },
+      { keyword: "google analytics alternative", volume: 5400 },
+    ];
+    expect(dedupeByIntent(rows)).toHaveLength(3);
+  });
+});
+
+describe("computeCategoryMarket — the category is a BASKET, never one head keyword (2026-07-22)", () => {
+  const stemSet = (phrases: string[]): Set<string> => new Set(phrases.flatMap((p) => tokens(p)).map(stem));
+  const categoryVocab = stemSet(["web analytics"]);
+
+  it("sums a de-duplicated basket of the judged-category keywords (not a single term)", () => {
+    const pool: DemandRow[] = [
+      { keyword: "web analytics", volume: 40000, yourPosition: 8 },
+      { keyword: "website analytics", volume: 22000 },
+      { keyword: "analytics software", volume: 12000 },
+      { keyword: "google analytics cost", volume: 480 },
+      { keyword: "cost of google analytics", volume: 480 }, // paraphrase → collapses
+      { keyword: "privacy tools", volume: 1600 }, // not category (no verdict, no category token)
+    ];
+    const verdicts: RelevanceVerdicts = new Map([
+      ["web analytics", "category"],
+      ["website analytics", "category"],
+      ["analytics software", "category"],
+      ["google analytics cost", "category"],
+      ["cost of google analytics", "category"],
+      ["privacy tools", "niche"],
+    ]);
+    const card = computeCategoryMarket("Web Analytics", pool, categoryVocab, verdicts)!;
+    expect(card.demand).toBe(40000 + 22000 + 12000 + 480); // basket sum, paraphrase deduped (one 480, not two)
+    expect(card.phrases.map((p) => p.keyword)).not.toContain("privacy tools"); // not category
+    expect(card.demand).toBe(card.phrases.reduce((s, p) => s + p.volume, 0)); // G4
+  });
+
+  it("degrade (no verdicts): a category-vocab token gates membership", () => {
+    const pool: DemandRow[] = [
+      { keyword: "web analytics", volume: 40000 },
+      { keyword: "bread recipes", volume: 90000 }, // no category token → excluded even though bigger
+    ];
+    const card = computeCategoryMarket("Web Analytics", pool, categoryVocab)!;
+    expect(card.phrases.map((p) => p.keyword)).toEqual(["web analytics"]);
+    expect(card.demand).toBe(40000);
+  });
+
+  it("returns null when no category keyword survives", () => {
+    expect(computeCategoryMarket("Web Analytics", [{ keyword: "bread", volume: 1000 }], categoryVocab)).toBeNull();
+    expect(computeCategoryMarket("Web Analytics", [], categoryVocab)).toBeNull();
   });
 });
