@@ -176,6 +176,30 @@ describe("redactReportForTier", () => {
     }
   });
 
+  it("free preview is opportunity-aware — leads with 2 keyword growth moves (by volume) + 1 other fix, across buckets (2026-07-22)", () => {
+    const opp = (title: string, volume: number): ActionCard => ({
+      ...makeAction(title, 120),
+      category: "seo_aso",
+      opportunity: { keyword: title, volume },
+    });
+    const report = makeReport();
+    // Signal fixes land in quickWins (they'd win the old first-3-by-bucket rule);
+    // the data-driven keyword opportunities are in medium. Selection must still
+    // lead with the 2 highest-volume opportunities, not the hygiene fixes.
+    report.whatToDoThisWeek = {
+      quickWins: [makeAction("add title", 20), makeAction("add schema", 20)],
+      medium: [opp("space launch system", 110000), opp("rocket launch", 74000), opp("space launch", 22000)],
+      longPlay: [],
+    };
+    const out = redactReportForTier(report, "free");
+    expect(totalActions(out)).toBe(3);
+    const kept = allActions(out);
+    const oppKept = kept.filter((a) => a.opportunity);
+    // Exactly 2 opportunities (the two highest-volume), plus 1 other fix.
+    expect(oppKept.map((a) => a.opportunity!.volume).sort((a, b) => b - a)).toEqual([110000, 74000]);
+    expect(kept.filter((a) => !a.opportunity)).toHaveLength(1);
+  });
+
   it("free tier caps even when one bucket already has fewer than 3", () => {
     const report = makeReport();
     report.whatToDoThisWeek = {
