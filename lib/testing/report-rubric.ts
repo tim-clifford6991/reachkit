@@ -351,14 +351,9 @@ const SECTION_RULES: SectionRule[] = [
       return marketCardReady(sv?.categoryCard) && marketCardReady(sv?.nicheCard) && (sv?.nicheCard?.gaps.length ?? 0) > 0;
     },
   },
-  {
-    id: "directory-strip",
-    // P3/D3: the aggregation strip — reframes a directory/aggregator's
-    // footprint as its own engine. Independent of categoryCard (aggregatedPct
-    // is unconditional, P1), so this rule has no categoryCard condition.
-    marker: "your directory engine, not lost buyers",
-    grounded: (p) => (p.searchVisibility?.aggregatedPct ?? 0) >= 40,
-  },
+  // (removed 2026-07-22) the "directory-strip" grounded rule — the aggregation
+  // strip render was removed from the free board (owner decluttering note); its
+  // never-renders guard now lives in report-corpus.rubric.test.tsx.
 ];
 
 const r3EmptyInputNoSection: RubricRule = {

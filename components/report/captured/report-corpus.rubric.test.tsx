@@ -592,14 +592,11 @@ describe("data board P3 (CONSTRUCTED variants, corpus-first — not verbatim cap
     });
   }
 
-  describe("getapp.com (directory pattern, trustmrr.com live numbers): the aggregation strip", () => {
+  describe("getapp.com (directory pattern, trustmrr.com live numbers): the aggregation strip is REMOVED", () => {
     const html = render(directoryP3);
-    it("the DIRECTORY PATTERN strip renders with the real aggregatedPct + named examples", () => {
-      expect(html).toContain("DIRECTORY PATTERN DETECTED");
-      expect(html).toContain("78%");
-      expect(html).toContain("your directory engine, not lost buyers");
-      expect(html).toContain("cometly");
-      expect(html).toContain("trimrx");
+    it("the DIRECTORY PATTERN strip NEVER renders — even for a directory with aggregatedPct 78 (owner decluttering, 2026-07-22)", () => {
+      expect(html).not.toContain("DIRECTORY PATTERN DETECTED");
+      expect(html).not.toContain("your directory engine, not lost buyers");
     });
     it("the Category card renders the CORRECTED honest number (8,100), never the bare-generic 'marketplace' 2,240,000 (P3fix)", () => {
       expect(html).toContain("8,100");
@@ -621,24 +618,17 @@ describe("data board P3 (CONSTRUCTED variants, corpus-first — not verbatim cap
     });
   });
 
-  describe("mutation proof: the aggregation-strip conditional is directory-only (≥40%)", () => {
-    it("savvycal.com and x.com (aggregatedPct 0, unset) never render the strip even though other blocks are active", () => {
+  describe("the aggregation strip is gone for EVERY aggregatedPct (removed 2026-07-22)", () => {
+    it("never renders regardless of aggregatedPct — 0/unset, just-under, at-floor, and high all drop it", () => {
+      for (const pct of [0, 39, 40, 78, 100]) {
+        const fx: CorpusFixture = {
+          ...directoryP3,
+          reportPayload: { ...directoryP3.reportPayload, searchVisibility: { ...directoryP3.reportPayload.searchVisibility!, aggregatedPct: pct } },
+        };
+        expect(render(fx), `aggregatedPct ${pct}`).not.toContain("DIRECTORY PATTERN DETECTED");
+      }
       expect(render(savvycalP3)).not.toContain("DIRECTORY PATTERN DETECTED");
       expect(render(xcomP3)).not.toContain("DIRECTORY PATTERN DETECTED");
-    });
-    it("the SAME getapp.com base with aggregatedPct dropped to 39 (just under the floor) drops the strip", () => {
-      const justUnder: CorpusFixture = {
-        ...directoryP3,
-        reportPayload: { ...directoryP3.reportPayload, searchVisibility: { ...directoryP3.reportPayload.searchVisibility!, aggregatedPct: 39 } },
-      };
-      expect(render(justUnder)).not.toContain("DIRECTORY PATTERN DETECTED");
-    });
-    it("the SAME base at exactly 40 renders the strip (the floor is inclusive)", () => {
-      const atFloor: CorpusFixture = {
-        ...directoryP3,
-        reportPayload: { ...directoryP3.reportPayload, searchVisibility: { ...directoryP3.reportPayload.searchVisibility!, aggregatedPct: 40 } },
-      };
-      expect(render(atFloor)).toContain("DIRECTORY PATTERN DETECTED");
     });
   });
 });

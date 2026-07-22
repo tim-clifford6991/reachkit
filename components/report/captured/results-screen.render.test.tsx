@@ -252,11 +252,11 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
 
   it("Phase A: the headline market number equals the CATEGORY CARD number — never the subject categoryDemand (the 80-vs-90,500 contradiction)", () => {
     // Leader-grounded market: card demand 302,230 (from a leader's footprint),
-    // subject categoryDemand 4,710. The headline "your category gets X" MUST
-    // render the CARD number so the page doesn't contradict itself.
+    // subject categoryDemand 4,710. The market-stat headline MUST render the CARD
+    // number so the page doesn't contradict itself.
     const r = report({
       searchVisibility: sv({
-        score: 15, // < 30 → the "your category gets X … barely visible" headline
+        score: 15, // ranked + demand>0 → the "N searches/mo in your market" hero
         keywordsRanked: 40,
         categoryDemand: 4710,
         categoryCard: {
@@ -271,8 +271,11 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
     });
     const html = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r, "usefathom.com", 0, 0)} scanId="scan-market" />);
     assertNoGarbage(html, "leader-market headline");
-    expect(html).toContain("Your category gets 302,230 searches a month");
-    expect(html).not.toContain("4,710"); // the subject number must not headline
+    // The market stat renders the CARD number (302,230), in its own span before
+    // the "searches/mo in your market" label — never the subject number.
+    expect(html).toContain("302,230");
+    expect(html).toContain("searches/mo in your market");
+    expect(html).not.toContain("4,710"); // the subject number must not appear
     expect(html).toContain("sized from mixpanel.com"); // provenance disclosed
   });
 

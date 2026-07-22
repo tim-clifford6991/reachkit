@@ -469,13 +469,14 @@ export function ResultsScreen(p: ResultsScreenProps) {
                     <div style={{ fontSize: 12, lineHeight: 1.5, color: "var(--c-muted)", fontFamily: JM, paddingTop: 4, borderTop: "1px dashed var(--c-line2)", marginTop: 2 }}>
                       Your score multiplies both. <strong style={{ color: "var(--c-fg)" }}>{weakerDriver} is your gap.</strong>
                     </div>
-                    {/* P3 (data board §1, Overview): the hero stat — the
-                        CATEGORY size, laddered-large and grounded (D2). Only
-                        when categoryCard actually carries a priced phrase
-                        (never an empty "0 searches/mo" claim) — mirrors the
-                        `categoryCardReady` gate the section below uses, so
-                        the hero and the cards agree on whether P2 data is
-                        usable for this payload. */}
+                    {/* Data board §1 (Overview): the market stat — the CATEGORY
+                        size, positive and data-led ("N searches/mo in your
+                        market — you're in a real category"). This is the free
+                        board's category hook (owner note 2026-07-22: the old
+                        "your category gets X … barely visible" HEADLINE was
+                        dropped in favour of this positive stat). Only when
+                        categoryCard carries a priced phrase — never an empty
+                        "0 searches/mo" claim. */}
                     {marketCardReady(p.searchVisibility!.categoryCard) && (
                       <div style={{ marginTop: 2, paddingTop: 12, borderTop: "1px solid var(--c-line2)", display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
                         <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 26 }}>{p.searchVisibility!.categoryCard.demand.toLocaleString()}</span>
@@ -538,27 +539,11 @@ export function ResultsScreen(p: ResultsScreenProps) {
               </div>
             );
           })()}
-          {/* P3 (data board, D3) — the aggregation strip: reframes a
-              directory/aggregator's traffic as its OWN engine ("names of
-              companies you list") instead of the old scolding "not buyers
-              looking for you". Independent of categoryCard — aggregatedPct is
-              a P1 field computed unconditionally, so this renders in BOTH the
-              new six-section board and the legacy branch below it. `?? 0` at
-              the props boundary keeps any pre-P1 payload silently under the
-              40% floor (no crash, no strip). */}
-          {p.searchVisibility && p.searchVisibility.aggregatedPct >= 40 && (() => {
-            const sv = p.searchVisibility!;
-            const examples = (sv.aggregatedExamples ?? []).slice(0, 3);
-            return (
-              <div style={{ background: "var(--c-fill)", border: "1px solid var(--c-line)", borderRadius: 16, padding: "16px 20px", marginBottom: 14 }}>
-                <span style={{ fontFamily: JM, fontSize: 10.5, fontWeight: 700, letterSpacing: "0.08em", color: "var(--c-muted)" }}>DIRECTORY PATTERN DETECTED</span>
-                <div style={{ fontSize: 13, color: "var(--c-muted)", marginTop: 9, lineHeight: 1.55 }}>
-                  <b style={{ fontFamily: JM, color: "var(--c-ink)" }}>{sv.aggregatedPct}%</b> of your traffic is the names of companies you list
-                  {examples.length > 0 && <> (<i className="rk-wrap-any">{examples.join(", ")}</i>)</>} — your directory engine, not lost buyers.
-                </div>
-              </div>
-            );
-          })()}
+          {/* Owner note (2026-07-22): the "DIRECTORY PATTERN DETECTED"
+              aggregation strip was REMOVED — a notification-style panel that
+              cluttered the data board. `aggregatedPct` still feeds the footprint
+              classification (and thus the score); only its render is gone.
+              `aggregatedExamples` now has no consumer (a cheap derived field). */}
           {/* Category demand (free): the real market size and how many of those
               terms you actually win. Once a payload carries a READY categoryCard
               (P2 — real priced phrases, never an empty shell: `marketCardReady`),

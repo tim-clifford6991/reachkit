@@ -310,16 +310,18 @@ export function toResultsProps(
   // (identical in 10/10 prod scans), so it read as a fabricated capture percentage.
   // Deleted; we lead with the real signal instead: the category demand (the
   // market card's number, reconciled above) and a LOW search-presence score.
+  // Owner note (2026-07-22): the headline never restates the category demand
+  // number — the positive market stat below the driver bars ("N searches/mo in
+  // your market — you're in a real category") owns that. Dropped BOTH old
+  // demand-in-headline branches: the "your category gets X … barely visible"
+  // scolding (low-score ranked) and the "…all going to someone else" tail on the
+  // 0-ranking hook. The category framing is now the (positive) stat, not the h1.
   const headline = searchVisibility
     ? searchVisibility.keywordsRanked === 0
-      ? heroDemand > 0
-        ? `Google ranks you for nothing yet — and your category gets ${demandStr} searches a month, all going to someone else.`
-        : `Google ranks you for nothing yet — you're invisible in the searches your buyers make.`
-      : heroDemand > 0 && searchVisibility.score < 30
-        ? `Your category gets ${demandStr} searches a month — and you're barely visible for any of them.`
-        : searchVisibility.offTopicPct >= 55
-          ? `${searchVisibility.offTopicPct}% of the searches you rank for are other companies' brand names, not yours.`
-          : `You're on the board in search — but leaving real category traffic on the table.`
+      ? `Google ranks you for nothing yet — you're invisible in the searches your buyers make.`
+      : searchVisibility.offTopicPct >= 55
+        ? `${searchVisibility.offTopicPct}% of the searches you rank for are other companies' brand names, not yours.`
+        : `You're on the board in search — but leaving real category traffic on the table.`
     : `${report.score.total}/100 on-site readiness. The gap that matters is where buyers search — and that's below.`;
 
   // MINOR polish: only append an ellipsis when the string was ACTUALLY cut —

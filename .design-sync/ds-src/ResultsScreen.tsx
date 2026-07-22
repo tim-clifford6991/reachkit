@@ -340,14 +340,10 @@ export function ResultsScreen() {
             </div>
           ))}
         </div>
-        {/* D3/P3: the aggregation strip — reframes a directory/aggregator's
-            footprint as its OWN engine, not leaked/scolded traffic. Fires
-            whenever aggregatedPct ≥ 40 (unconditional on categoryCard — a P1
-            field). This demo's site isn't a directory, so the strip doesn't
-            render live here; the note documents the exact copy + trigger. */}
-        <div style={{ marginBottom: 14, fontSize: 11.5, color: "var(--c-faint)", fontStyle: "italic" }}>
-          aggregatedPct ≥ 40 (directory/aggregator pattern, e.g. trustmrr.com 78%) → renders a "DIRECTORY PATTERN DETECTED" card: "<strong>78%</strong> of your traffic is the names of companies you list (cometly, trimrx…) — your directory engine, not lost buyers."
-        </div>
+        {/* (removed 2026-07-22) the "DIRECTORY PATTERN DETECTED" aggregation
+            strip — a notification-style panel the owner cut from the free board.
+            aggregatedPct still feeds the footprint classification; only its
+            render is gone. */}
         {/* Legacy note — a payload captured before P2 (categoryCard never
             grounded) falls back to the OLD BROAD | CATEGORY | NICHE ladder +
             the brand/category/other-companies footprint-split bar + the
