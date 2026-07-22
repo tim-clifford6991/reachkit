@@ -1503,6 +1503,7 @@ function nicheVocabFrom(seeds: CategoryNicheSeeds): Set<string> {
 export function computeNicheMarket(
   nicheLabel: string,
   pool: DemandRow[],
+  categoryVocab: ReadonlySet<string>,
   nicheVocab: ReadonlySet<string>,
   verdicts?: RelevanceVerdicts,
 ): CategoryLadderCard | null {
@@ -1510,9 +1511,18 @@ export function computeNicheMarket(
   for (const r of pool) {
     if (!r || r.volume <= 0) continue;
     const key = r.keyword.toLowerCase();
+    const stems = tokens(r.keyword).map(stem);
+    // CONTAINMENT (the ladder's `containedInCategory` rule, reinstated after a
+    // live defect): a niche is a SLICE OF THE CATEGORY, so a niche keyword must
+    // share a category token. This kills the judge's over-classification of a
+    // differentiation-adjacent but off-CATEGORY term — usefathom (privacy
+    // ANALYTICS) had generic "privacy tools"/"online privacy software" ruled
+    // "niche" by the judge (privacy-adjacent, but not analytics), inflating the
+    // niche to a wrong 4,380. No category token ("analytics") → not the niche.
+    if (!stems.some((t) => categoryVocab.has(t))) continue;
     const v = verdicts?.get(key);
     // Judge-authoritative when it ruled; else the niche-distinguishing token gate.
-    const isNiche = v !== undefined ? v === "niche" : tokens(r.keyword).some((t) => nicheVocab.has(stem(t)));
+    const isNiche = v !== undefined ? v === "niche" : stems.some((t) => nicheVocab.has(t));
     if (!isNiche) continue;
     const cur = byKw.get(key);
     if (!cur || r.volume > cur.volume) byKw.set(key, r);
@@ -1740,6 +1750,16 @@ export async function gatherFreeSearchVisibility(
     let nicheCard = cards?.nicheCard;
     if (categoryNicheSeeds) {
       const nicheVocab = nicheVocabFrom(categoryNicheSeeds);
+      // Category vocabulary for the niche⊆category containment check — the clean
+      // LLM category definition (label + phrases), NOT the subject's noisy real
+      // rankings (which include off-category terms like "privacy tools").
+      const categoryVocab = new Set<string>();
+      for (const text of [categoryNicheSeeds.category.label, ...categoryNicheSeeds.category.phrases]) {
+        for (const t of tokens(text)) {
+          const st = stem(t);
+          if (!GENERIC_TOKENS.has(st) && !MEGA_BRAND_TOKENS.has(st)) categoryVocab.add(st);
+        }
+      }
       const posOf = (kw: string): number | undefined => rankByKeyword.get(kw.toLowerCase());
       const nichePool: DemandRow[] = [
         ...sv.categoryRanked,
@@ -1759,7 +1779,7 @@ export async function gatherFreeSearchVisibility(
           })
           .filter((r): r is DemandRow => r !== null),
       ];
-      const nicheMarket = computeNicheMarket(categoryNicheSeeds.niche.label, nichePool, nicheVocab, verdicts);
+      const nicheMarket = computeNicheMarket(categoryNicheSeeds.niche.label, nichePool, categoryVocab, nicheVocab, verdicts);
       if (nicheMarket && nicheMarket.demand > (nicheCard?.demand ?? 0)) nicheCard = nicheMarket;
     }
     return {
