@@ -8,8 +8,9 @@
  * ranked-keyword volume; the functions never fabricate a number.
  */
 import { describe, it, expect } from "vitest";
-import { pickCategoryLeader, computeMarketFromLeader } from "./search-visibility";
+import { pickCategoryLeader, computeMarketFromLeader, computeNicheMarket } from "./search-visibility";
 import type { RankedKeyword } from "./adapters/dataforseo-ranked-keywords";
+import type { DemandRow } from "./search-visibility";
 import type { CategoryNicheSeeds } from "@/lib/llm/types";
 import type { RelevanceVerdicts } from "./relevance-judge";
 
@@ -145,5 +146,63 @@ describe("computeMarketFromLeader — LLM relevance judge (Phase B, mixpanel-for
     expect(keywords).toContain("website analytics"); // unjudged → token-overlap keeps
     expect(keywords).toContain("site analytics"); // unjudged → token-overlap keeps
     expect(keywords).not.toContain("data analytics tools"); // judged irrelevant
+  });
+});
+
+describe("computeNicheMarket — the niche is sized from REAL data, not one phrase (Phase B-niche)", () => {
+  // usefathom (WEB analytics, niche = PRIVACY-first analytics). The old nicheCard
+  // priced the single phrase "privacy-first analytics" = 20/mo. The real niche
+  // footprint is the privacy/cookieless terms the site actually ranks for.
+  const nicheVocab = new Set(["privacy", "cookieless"]); // distinguishing tokens (analytics is category, shared)
+  const pool: DemandRow[] = [
+    { keyword: "web analytics", volume: 60000, yourPosition: 8 }, // category, NOT niche
+    { keyword: "cookieless analytics", volume: 2400, yourPosition: 4 },
+    { keyword: "privacy analytics", volume: 1300 },
+    { keyword: "privacy-first analytics", volume: 20, yourPosition: 12 }, // the old single phrase
+    { keyword: "google analytics alternative", volume: 5400, yourPosition: 6 }, // niche footprint, NO niche token
+    { keyword: "google analytics", volume: 900000 }, // mega category term, NOT niche
+  ];
+
+  it("WITH judge verdicts: sums the keywords ruled 'niche' (incl. ones with NO niche token), excludes category/irrelevant", () => {
+    const verdicts: RelevanceVerdicts = new Map([
+      ["web analytics", "category"],
+      ["cookieless analytics", "niche"],
+      ["privacy analytics", "niche"],
+      ["privacy-first analytics", "niche"],
+      ["google analytics alternative", "niche"], // judge knows this IS fathom's niche despite no "privacy" token
+      ["google analytics", "irrelevant"],
+    ]);
+    const card = computeNicheMarket("Privacy-First Analytics", pool, nicheVocab, verdicts)!;
+    const kws = card.phrases.map((p) => p.keyword);
+    expect(kws).toEqual(
+      expect.arrayContaining(["cookieless analytics", "privacy analytics", "privacy-first analytics", "google analytics alternative"]),
+    );
+    expect(kws).not.toContain("web analytics"); // category, not niche
+    expect(kws).not.toContain("google analytics"); // judged irrelevant
+    // the judge captures the token-less niche term the degrade path would miss:
+    expect(card.demand).toBe(5400 + 2400 + 1300 + 20); // credible, not 20
+    expect(card.demand).toBeGreaterThan(20);
+    expect(card.rankedTop3.length + card.gaps.length).toBe(card.phrases.length);
+  });
+
+  it("WITHOUT verdicts (degrade): niche-DISTINGUISHING token gate keeps privacy/cookieless, drops bare 'analytics'", () => {
+    const card = computeNicheMarket("Privacy-First Analytics", pool, nicheVocab)!;
+    const kws = card.phrases.map((p) => p.keyword);
+    expect(kws).toContain("cookieless analytics");
+    expect(kws).toContain("privacy analytics");
+    expect(kws).not.toContain("web analytics"); // shares only the CATEGORY token
+    expect(kws).not.toContain("google analytics");
+    expect(kws).not.toContain("google analytics alternative"); // no niche token → degrade MISSES it (only the judge catches it)
+  });
+
+  it("returns null when no niche keyword survives (→ degrade to the thin single-phrase card)", () => {
+    const catOnly: DemandRow[] = [{ keyword: "web analytics", volume: 60000 }];
+    expect(computeNicheMarket("Privacy-First Analytics", catOnly, nicheVocab, new Map([["web analytics", "category"]]))).toBeNull();
+    expect(computeNicheMarket("Privacy-First Analytics", [], nicheVocab)).toBeNull();
+  });
+
+  it("G4: demand reconciles exactly to the rendered phrases", () => {
+    const card = computeNicheMarket("Privacy-First Analytics", pool, nicheVocab)!;
+    expect(card.demand).toBe(card.phrases.reduce((s, p) => s + p.volume, 0));
   });
 });

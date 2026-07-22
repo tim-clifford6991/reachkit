@@ -1459,6 +1459,76 @@ export function computeMarketFromLeader(
   };
 }
 
+/**
+ * The niche's DISTINGUISHING vocabulary: the non-generic stemmed tokens of the
+ * niche label + phrases that are NOT already category tokens — the differentiator
+ * (usefathom category "Web Analytics", niche "Privacy-First Analytics" → the
+ * distinguishing token is "privacy", not the shared "analytics"). Used as the
+ * DEGRADE gate when the judge is absent. PURE.
+ */
+function nicheVocabFrom(seeds: CategoryNicheSeeds): Set<string> {
+  const cat = new Set<string>();
+  for (const text of [seeds.category.label, ...seeds.category.phrases]) {
+    for (const t of tokens(text)) cat.add(stem(t));
+  }
+  const out = new Set<string>();
+  for (const text of [seeds.niche.label, ...seeds.niche.phrases]) {
+    for (const t of tokens(text)) {
+      const st = stem(t);
+      if (GENERIC_TOKENS.has(st) || MEGA_BRAND_TOKENS.has(st) || cat.has(st)) continue;
+      out.add(st);
+    }
+  }
+  return out;
+}
+
+/**
+ * Size the NICHE market the same way the CATEGORY market is sized (Phase B-niche,
+ * 2026-07-22 — the "niche is the least-built piece" fix): from MULTIPLE real
+ * keywords, not the single exact-match LLM phrase the old `nicheCard` priced
+ * (usefathom's "privacy-first analytics" = 20/mo). A niche keyword is one the
+ * relevance judge ruled "niche" WHEN it ruled; absent a verdict it must carry a
+ * niche-DISTINGUISHING token (`nicheVocab`) — a keyword the judge called
+ * "category" or "irrelevant" is never the niche, and a keyword that only shares
+ * the CATEGORY vocabulary (bare "analytics") is not niche-specific.
+ *
+ * `pool` is the subject's REAL niche-source rows — its own category rankings, the
+ * leader's market keywords, and the priced LLM niche phrases — each with a real
+ * DataForSEO volume + the subject's real position. Every number stays real; the
+ * niche is honestly small when its real footprint is small, and credible when it
+ * isn't (never fabricated, invariant #11). Feeds the card only — never `sv.score`
+ * (invariant #1). Returns null when no niche keyword survives (→ degrade to the
+ * thin single-phrase card). PURE.
+ */
+export function computeNicheMarket(
+  nicheLabel: string,
+  pool: DemandRow[],
+  nicheVocab: ReadonlySet<string>,
+  verdicts?: RelevanceVerdicts,
+): CategoryLadderCard | null {
+  const byKw = new Map<string, DemandRow>();
+  for (const r of pool) {
+    if (!r || r.volume <= 0) continue;
+    const key = r.keyword.toLowerCase();
+    const v = verdicts?.get(key);
+    // Judge-authoritative when it ruled; else the niche-distinguishing token gate.
+    const isNiche = v !== undefined ? v === "niche" : tokens(r.keyword).some((t) => nicheVocab.has(stem(t)));
+    if (!isNiche) continue;
+    const cur = byKw.get(key);
+    if (!cur || r.volume > cur.volume) byKw.set(key, r);
+  }
+  const rows = [...byKw.values()].sort((a, b) => b.volume - a.volume).slice(0, MARKET_PHRASES);
+  if (rows.length === 0) return null;
+  const isWon = (p: DemandRow): boolean => p.yourPosition !== undefined && p.yourPosition <= WINNING_POSITION;
+  return {
+    label: nicheLabel,
+    demand: rows.reduce((s, r) => s + r.volume, 0),
+    phrases: rows,
+    rankedTop3: rows.filter(isWon),
+    gaps: rows.filter((p) => !isWon(p)),
+  };
+}
+
 export async function gatherFreeSearchVisibility(
   rawSelf: string,
   seedText: string[],
@@ -1583,7 +1653,19 @@ export async function gatherFreeSearchVisibility(
         .sort((a, b) => b.volume - a.volume)
         .slice(0, JUDGE_CANDIDATES)
         .map((r) => r.keyword);
-      const candidates = [...new Set([...seeds, ...leaderCandidates])];
+      // Phase B-niche (2026-07-22): ALSO judge the subject's OWN real category
+      // rankings + the LLM niche phrases, so the judge can rule which of them are
+      // the NICHE (feeds `computeNicheMarket`). The niche's real footprint lives
+      // in the subject's own rankings (usefathom's cookieless/GA-alternative
+      // terms), not the single exact-match phrase the old nicheCard priced.
+      const candidates = [
+        ...new Set([
+          ...seeds,
+          ...leaderCandidates,
+          ...sv.categoryRanked.map((r) => r.keyword),
+          ...categoryNicheSeeds.niche.phrases.map((p) => p.toLowerCase().trim()).filter(Boolean),
+        ]),
+      ];
       if (candidates.length > 0) {
         const judged = await judgeRelevance(
           {
@@ -1648,12 +1730,44 @@ export async function gatherFreeSearchVisibility(
         categoryLeader = leader;
       }
     }
+    // Phase B-niche (2026-07-22): size the NICHE market from REAL data the same
+    // way the category is — the subject's own category rankings + the leader's
+    // keywords + the priced niche phrases, filtered to what the judge ruled
+    // "niche". Replaces the thin single-phrase `nicheCard` (usefathom's
+    // "privacy-first analytics" = 20/mo) when it resolves bigger; degrades to it
+    // otherwise. Real volumes only — honestly small where the niche footprint is
+    // genuinely small. Feeds the card only (invariant #1).
+    let nicheCard = cards?.nicheCard;
+    if (categoryNicheSeeds) {
+      const nicheVocab = nicheVocabFrom(categoryNicheSeeds);
+      const posOf = (kw: string): number | undefined => rankByKeyword.get(kw.toLowerCase());
+      const nichePool: DemandRow[] = [
+        ...sv.categoryRanked,
+        ...leaderRows
+          .filter((r) => r.volume > 0)
+          .map((r) => {
+            const yp = posOf(r.keyword);
+            return { keyword: r.keyword, volume: r.volume, ...(yp ? { yourPosition: yp } : {}) };
+          }),
+        ...categoryNicheSeeds.niche.phrases
+          .map((p): DemandRow | null => {
+            const k = p.toLowerCase().trim();
+            const v = volumesByKeyword.get(k);
+            if (!v || v <= 0) return null;
+            const yp = posOf(k);
+            return { keyword: p, volume: v, ...(yp ? { yourPosition: yp } : {}) };
+          })
+          .filter((r): r is DemandRow => r !== null),
+      ];
+      const nicheMarket = computeNicheMarket(categoryNicheSeeds.niche.label, nichePool, nicheVocab, verdicts);
+      if (nicheMarket && nicheMarket.demand > (nicheCard?.demand ?? 0)) nicheCard = nicheMarket;
+    }
     return {
       ...sv,
       ...demand,
       ...(marketTiers && marketTiers.length > 0 ? { marketTiers } : {}),
       ...(categoryCard ? { categoryCard } : {}),
-      ...(cards ? { nicheCard: cards.nicheCard } : {}),
+      ...(nicheCard ? { nicheCard } : {}),
       ...(categoryLeader ? { categoryLeader } : {}),
     };
   } catch {
