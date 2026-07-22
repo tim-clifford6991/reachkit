@@ -326,4 +326,27 @@ describe("toResultsProps — free board leads with data-driven keyword opportuni
     expect(p.fixes[0]!.metric).toBe("110,000/mo");
     expect(p.fixes[1]!.metric).toBe("74,000/mo");
   });
+
+  it("caps the shown board at 2 keyword moves + a DIFFERENT action — never 3 near-paraphrases (trustmrr class)", () => {
+    const p = toResultsProps(
+      report({
+        whatToDoThisWeek: {
+          quickWins: [action("Publish honest 'vs' and 'alternatives' pages", 4)],
+          medium: [
+            opp('Create a page targeting "buy online business for sale"', 3600, 30),
+            opp('Create a page targeting "online business to buy"', 3600, 30),
+            opp('Create a page targeting "online businesses for sale"', 3600, 30),
+          ],
+          longPlay: [],
+        },
+      }),
+      "trustmrr.com",
+      4,
+    );
+    // Two grow moves, then the different action type — the 3rd near-dup opportunity
+    // is pushed out of the shown set (into the locked rows), not shown thrice.
+    expect(p.fixes.filter((f) => f.metric).length).toBe(2);
+    expect(p.fixes[2]!.title).toContain("vs");
+    expect(p.fixes[2]!.metric).toBeUndefined();
+  });
 });

@@ -104,7 +104,16 @@ export function toResultsProps(
     .filter((a) => a.opportunity)
     .sort((a, b2) => (b2.opportunity!.volume) - (a.opportunity!.volume));
   const restFixes = base.filter((a) => !a.opportunity).sort(byDelta);
-  const allActions = [...opps, ...restFixes];
+  // Show at most 2 keyword "grow" moves up front, then a DIFFERENT action type
+  // (on-page/other), then any remaining opportunities. `dedupeByIntent` collapses
+  // exact plural/paraphrase dups but not loose ones ("buy online business for
+  // sale" ≡ "online business to buy" ≡ "online businesses for sale", trustmrr;
+  // "rocket launch today" ≡ "rocket launch", spacex), and a fuzzy stem-overlap
+  // filter over-collapses genuinely distinct terms (spacex's many "…launch…"
+  // queries). Capping the LEAD at 2 gives the clean "2 things to rank for + 1 to
+  // fix" story and structurally prevents 3-near-identical fixes, without a
+  // fragile heuristic. The rest ride into the locked-preview rows. (2026-07-22)
+  const allActions = [...opps.slice(0, 2), ...restFixes, ...opps.slice(2)];
 
   const toFix = (a: ActionCard, rank: number): Fix => ({
     rank,
