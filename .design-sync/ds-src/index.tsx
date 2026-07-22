@@ -35,6 +35,7 @@ export { EvidenceDrawer } from "./EvidenceDrawer";
 export { IntentRecencyMap } from "./IntentRecencyMap";
 export { BuyerThreadFeed } from "./BuyerThreadFeed";
 export { PainBars } from "./PainBars";
+export { RankTargets } from "./RankTargets";
 export { PlanItemCard } from "./PlanItemCard";
 export { LeverBanner } from "./LeverBanner";
 export { ProgressChart } from "./ProgressChart";

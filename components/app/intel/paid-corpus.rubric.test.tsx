@@ -28,7 +28,9 @@
 import { describe, it, expect } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { DashboardHero } from "./dashboard-hero";
+import { WhatToRankFor } from "./rank-targets";
 import { buildDashboardHeroProps } from "@/lib/app/dashboard-hero-props";
+import { buildRankTargets } from "@/lib/app/rank-targets-props";
 import { runIntelRubric, INTEL_RUBRIC_RULES } from "@/lib/testing/report-rubric";
 import type { ReportPayload } from "@/lib/scan/report";
 
@@ -88,6 +90,40 @@ describe("paid dashboard hero — every corpus payload renders clean through the
       const html2 = renderToStaticMarkup(<DashboardHero {...data2} />);
       const violations2 = runIntelRubric(data2, html2);
       expect(violations2, violations2.map((v) => `[${v.rule}] ${v.message}`).join("\n")).toEqual([]);
+    });
+  }
+
+  // Generic advice that must NEVER render — the action plan always pushes a
+  // SPECIFIC artifact (owner rule 2026-07-22). If any of these appear, a row
+  // degraded to general filler.
+  const GENERIC_ADVICE = [
+    "improve your content", "increase your visibility", "boost your ranking",
+    "optimize your site", "enhance your presence", "grow your audience",
+  ];
+
+  for (const fx of FIXTURES) {
+    it(`${fx.domain}: "What to rank for" renders SPECIFIC, actionable targets (R1 + R2i + actionability)`, () => {
+      const props = buildRankTargets(fx.reportPayload);
+      const html = renderToStaticMarkup(<WhatToRankFor {...props} />);
+
+      // R1 (no garbage) + R2i (every rendered number ≥10 derives from the props).
+      const violations = runIntelRubric(props, html);
+      expect(violations, violations.map((v) => `[${v.rule}] ${v.message}`).join("\n")).toEqual([]);
+
+      // Never general advice — the through-line requirement.
+      for (const g of GENERIC_ADVICE) expect(html.toLowerCase()).not.toContain(g);
+
+      if (props.targets.length > 0) {
+        // Every shown target is a CONCRETE move — "Create a page targeting «kw»"
+        // with its real keyword. Depth: the board shows the moves, not a teaser.
+        expect(html).toContain("Create a page targeting");
+        for (const t of props.targets.slice(0, 12)) {
+          expect(html, `${fx.domain}: target "${t.keyword}" must render`).toContain(t.keyword);
+        }
+      } else {
+        // Honest zero-state — a fabricated row would be worse than none.
+        expect(html).toContain("No category searches measured yet");
+      }
     });
   }
 
