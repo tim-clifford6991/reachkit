@@ -902,16 +902,15 @@ export function ResultsScreen(p: ResultsScreenProps) {
                 </div>
               );
             })}
-            {/* P4 "2+2" deliverable: up to 2 blurred locked-preview rows between
-                the shown fixes and the "N more" band, matching the wireframe's
-                paywall tease. Uses REAL rank-3/4 data when the (already
-                free-redacted) plan carries it (`p.lockedPreview`); a slot with
-                no real data behind it renders as a content-free skeleton bar —
-                honest ("there is more, unlock it"), never a fabricated title
-                (invariant #11 — this phase does not widen the free-preview
-                action count, so a genuine title for every blurred slot isn't
-                always available). */}
-            {Math.min(2, p.lockedCount) > 0 && Array.from({ length: Math.min(2, p.lockedCount) }).map((_, i) => {
+            {/* Phase C / D4 (2026-07-21): the free board ALWAYS blurs 2 locked
+                rows below the 3 shown fixes — a CONSISTENT paywall tease ("the
+                plan continues on upgrade"), shown even when no specific free fix
+                is withheld. A slot uses REAL rank-4/5 data when the (already
+                free-redacted) plan carries it (`p.lockedPreview`); otherwise it
+                renders a content-free skeleton bar — honest, never a fabricated
+                title (invariant #11). Gated on `fixes.length > 0` so the degraded
+                empty-plan branch above owns the zero case. */}
+            {p.fixes.length > 0 && Array.from({ length: 2 }).map((_, i) => {
               const real = (p.lockedPreview ?? [])[i];
               return (
                 <div
@@ -937,14 +936,16 @@ export function ResultsScreen(p: ResultsScreenProps) {
                 </div>
               );
             })}
-            {p.lockedCount > 0 && (
+            {/* The unlock CTA. When a real withheld count exists it names it
+                ("N more ranked fixes [worth +W]" — the number derives ONLY from
+                the real collection, R4/G10); otherwise a generic unlock CTA with
+                NO fabricated count. `worth` clause only when > 0 (a "+0" reads as
+                broken). */}
+            {p.fixes.length > 0 && (
               <div style={{ position: "relative", background: "var(--c-surface)", border: "1px dashed #D9D6E4", borderRadius: 14, padding: "18px 20px", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
-                {/* lockedWorth can legitimately be 0 (zero-delta cards, or a
-                    lockedCount derived from totalActions with no rest rows) —
-                    "worth an estimated +0" reads as broken, so the worth clause
-                    only renders when there's a real number behind it
-                    (housekeeping, remediation plan 2026-07-15 Task 5.4). */}
-                <span style={{ fontSize: 14, fontWeight: 600, color: "var(--c-faint)" }}>🔒 {p.lockedCount} more ranked fixes{p.lockedWorth > 0 ? <> — worth an estimated +{p.lockedWorth}</> : null} — <UnlockLink scanId={p.scanId}>unlock the full plan →</UnlockLink></span>
+                <span style={{ fontSize: 14, fontWeight: 600, color: "var(--c-faint)" }}>
+                  🔒 {p.lockedCount > 0 ? <>{p.lockedCount} more ranked fixes{p.lockedWorth > 0 ? <> — worth an estimated +{p.lockedWorth}</> : null} — </> : null}<UnlockLink scanId={p.scanId}>unlock the full plan →</UnlockLink>
+                </span>
               </div>
             )}
           </div>

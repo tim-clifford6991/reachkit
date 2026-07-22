@@ -93,11 +93,6 @@ export function toResultsProps(
   const positive = ranked.filter((a) => (a.expectedOutcome?.delta ?? 0) > 0);
   const allActions = positive.length > 0 ? positive : ranked;
 
-  // P4 (2026-07-20, data board terseness): the wireframe shows 2 shown fixes,
-  // not 3 — the third card's "why" prose is gone, so the card itself is
-  // terser and 2 is enough to prove the plan without crowding the paywall
-  // tease. `rest` (everything beyond the 2 shown) feeds BOTH the up-to-2
-  // real blurred locked-preview cards AND the "N more" band's worth total.
   const toFix = (a: ActionCard, rank: number): Fix => ({
     rank,
     title: a.title,
@@ -106,7 +101,13 @@ export function toResultsProps(
     pillar: CATEGORY_LABEL[a.category] ?? a.category,
     pred: a.expectedOutcome?.delta ?? 0,
   });
-  const SHOWN_FIXES = 2;
+  // Phase C / D4 (2026-07-21, supersedes P4's 2): the free board ALWAYS shows 3
+  // ranked fixes — the owner's directive ("the user should always, regardless see
+  // 3 fixes"). The generator floors the plan to FREE_MIN_ACTIONS=3 real fixes
+  // (never fabricated — `categoryNearMisses`), so 3 is always available on a real
+  // scan; the cards stay terse (no prose "why"). Change Protocol: the constant +
+  // this rationale move together.
+  const SHOWN_FIXES = 3;
   const fixes: Fix[] = allActions.slice(0, SHOWN_FIXES).map((a, i) => toFix(a, i + 1));
   const rest = allActions.slice(SHOWN_FIXES);
   const lockedPreview: Fix[] = rest.slice(0, 2).map((a, i) => toFix(a, fixes.length + i + 1));

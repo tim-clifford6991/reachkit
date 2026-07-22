@@ -100,12 +100,10 @@ describe("toResultsProps — positioning mirror grounding (invariant #11)", () =
 });
 
 describe("toResultsProps — fixes", () => {
-  // P4 (2026-07-20, data board terseness): the wireframe shows 2 shown fixes,
-  // not 3 — a terser fix card (no why-sentence) needs less room to prove the
-  // plan, and up to 2 MORE render as a blurred locked-preview via
-  // `lockedPreview` (real title/delta, hidden behind blur — the paywall
-  // tease's "2+2" pattern).
-  it("ranks positive-delta actions by delta, shows 2, and previews up to 2 more as lockedPreview", () => {
+  // Phase C / D4 (2026-07-21, supersedes P4's 2): the free board shows 3 ranked
+  // fixes (SHOWN_FIXES=3 — the owner's "always see 3 fixes"), and everything
+  // beyond the 3 feeds the blurred locked-preview / "N more" teaser.
+  it("ranks positive-delta actions by delta, shows 3, and previews the rest as lockedPreview", () => {
     const p = toResultsProps(
       report({
         whatToDoThisWeek: {
@@ -116,9 +114,9 @@ describe("toResultsProps — fixes", () => {
       }),
       "bloom.io",
     );
-    expect(p.fixes.map((f) => f.title)).toEqual(["b", "d"]);
-    expect(p.lockedPreview?.map((f) => f.title)).toEqual(["c", "a"]);
-    expect(p.lockedCount).toBe(2);
+    expect(p.fixes.map((f) => f.title)).toEqual(["b", "d", "c"]);
+    expect(p.lockedPreview?.map((f) => f.title)).toEqual(["a"]);
+    expect(p.lockedCount).toBe(1);
   });
 
   it("does NOT hide actions when every delta is 0/absent (regression: silent empty fixes)", () => {

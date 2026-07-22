@@ -23,6 +23,7 @@ import { PILLAR_WEIGHTS } from "./signals";
 import { parseEnv } from "@/lib/config/env";
 import { MAX_SELECTED } from "./competitor-selection";
 import { MIN_ACTIONS } from "./action-linking";
+import { FREE_MIN_ACTIONS } from "./fallback-actions";
 
 describe("documented invariants (keep docs in sync when these change)", () => {
   it("headline score model is v4 — the on-site basis (CLAUDE.md invariant #1, architecture §4.1)", () => {
@@ -87,5 +88,13 @@ describe("documented invariants (keep docs in sync when these change)", () => {
     // The plan is floored to MIN_ACTIONS deterministic fixes so a report is never
     // empty. If this changes, update CLAUDE.md invariant #4 in the same commit.
     expect(MIN_ACTIONS).toBe(5);
+  });
+
+  it("free fix floor is 3 (Phase C / D4 — the free board always shows 3 fixes)", () => {
+    // The free plan floors to FREE_MIN_ACTIONS honest fixes (deterministic, drawn
+    // from the real category near-miss pool — never fabricated) so it never reads
+    // "your top 1 ranked fixes". If this changes, update the product contract
+    // (D4) + SHOWN_FIXES in to-results-props.ts in the same commit.
+    expect(FREE_MIN_ACTIONS).toBe(3);
   });
 });

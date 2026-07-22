@@ -398,10 +398,10 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
 
   it("locked band with zero worth: omits the 'worth an estimated +N' clause instead of rendering '+0'", () => {
     // Real scans have shipped cards carrying delta 0 (the positive-filter
-    // fallback in toResultsProps exists because of them). With 4 zero-delta
-    // actions: P4 shows 2 as fixes, 2 are locked → lockedCount 2, lockedWorth 0.
-    // "worth an estimated +0" reads as broken; the clause must vanish while the
-    // count + unlock CTA stay.
+    // fallback in toResultsProps exists because of them). Phase C / D4 shows 3
+    // fixes; with 4 zero-delta actions: 3 shown, 1 locked → lockedCount 1,
+    // lockedWorth 0. "worth an estimated +0" reads as broken; the clause must
+    // vanish while the count + unlock CTA stay.
     const r = report({
       whatToDoThisWeek: {
         quickWins: [action("Fix titles", 0), action("Add schema", 0)],
@@ -412,13 +412,13 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
     const html = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r, "zeroworth.dev", 4, 0)} scanId="scan-zeroworth" />);
 
     assertNoGarbage(html, "zero locked worth");
-    expect(html).toContain("2 more ranked fixes"); // the locked band still renders
+    expect(html).toContain("1 more ranked fixes"); // the locked band still renders
     expect(html).not.toContain("worth an estimated"); // …without the +0 clause
     expect(html).toContain("unlock the full plan");
 
     // And the clause still renders when the worth is real (guard the guard).
-    // fixes = [Fix titles(6), Add schema(5)]; rest = [Write comparison page(4),
-    // Pitch a directory(3)] → lockedWorth = 4 + 3 = 7.
+    // Phase C shows 3: fixes = [Fix titles(6), Add schema(5), Write comparison
+    // page(4)]; rest = [Pitch a directory(3)] → lockedWorth = 3.
     const r2 = report({
       whatToDoThisWeek: {
         quickWins: [action("Fix titles", 6), action("Add schema", 5)],
@@ -427,7 +427,28 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
       },
     });
     const html2 = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r2, "worth.dev", 4, 0)} scanId="scan-worth" />);
-    expect(html2).toContain("worth an estimated +7");
+    expect(html2).toContain("worth an estimated +3");
+  });
+
+  it("Phase C / D4: a floored plan (nothing withheld) still shows 3 fixes + 2 blurred rows + a generic unlock CTA with NO fabricated count", () => {
+    // 3 actions total, totalActions=3 → lockedCount 0. The board must still show
+    // all 3 fixes AND the consistent paywall tease (2 blurred skeleton rows +
+    // "unlock the full plan"), but NEVER a fabricated "N more ranked fixes" count.
+    const r = report({
+      whatToDoThisWeek: {
+        quickWins: [action("Target 'mrr tracking'", 6), action("Target 'saas revenue'", 5)],
+        medium: [action("Target 'startup metrics'", 4)],
+        longPlay: [],
+      },
+    });
+    const html = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r, "floored.dev", 3, 0)} scanId="scan-floored" />);
+
+    assertNoGarbage(html, "floored plan");
+    expect(html).toContain("Your top 3 ranked fixes"); // all 3 shown (D4)
+    // the 2 blurred locked-preview rows always render (the consistent tease)
+    expect((html.match(/blur\(3px\)/g) ?? []).length).toBeGreaterThanOrEqual(2);
+    expect(html).toContain("unlock the full plan"); // the CTA is always present
+    expect(html).not.toMatch(/more ranked fixes/); // …but NO fabricated count when nothing is withheld
   });
 
   it("established brand, weak page: on-page IS the weaker driver → the summary names on-page, not search (MINOR 4 converse)", () => {

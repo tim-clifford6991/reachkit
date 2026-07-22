@@ -103,7 +103,7 @@ import type { ScanContext } from "./pipeline";
 import { serverDb } from "@/lib/db/client";
 import { emitScanEvent } from "./progress";
 import { computeSignalRowsForScan, persistScanSignals } from "./persist-signals";
-import { fallbackActionsFromSignals, opportunityActionsFromSearch, MAX_FALLBACK_ACTIONS } from "./fallback-actions";
+import { fallbackActionsFromSignals, opportunityActionsFromSearch, categoryNearMisses, MAX_FALLBACK_ACTIONS, FREE_MIN_ACTIONS } from "./fallback-actions";
 import { fillDeterministicDrafts } from "./action-drafts";
 import { writeScanScoreSnapshot, rollupScanCost } from "./scan-telemetry";
 import { headlineScore, HEADLINE_SCORE_VERSION, discoverabilityScore as unifiedDiscoverability, DISCOVERABILITY_SCORE_VERSION } from "./registry-score";
@@ -222,13 +222,21 @@ export async function runFreeReport(ctx: ScanContext, facts: PreliminaryFacts): 
 
   // Plan: opportunity-targeted cards FIRST (they speak to the search story the
   // page just told), then the weakest-signal baseline fixes; capped at the floor
-  // max so the free plan stays 3–5 tight cards.
+  // max so the free plan stays 3–5 tight cards. Phase C / D4 (2026-07-21): the
+  // free plan ALWAYS surfaces ≥FREE_MIN_ACTIONS honest fixes — so the opportunity
+  // pool widens from `categoryOpportunities` alone to the full category near-miss
+  // set (`categoryNearMisses`: + the leader MARKET card's gaps + niche gaps), and
+  // its cap rises to FREE_MIN_ACTIONS. This kills the "your top 1 ranked fixes"
+  // starvation on a tidy page with a weak search footprint (trustmrr) WITHOUT
+  // fabricating anything — every opportunity card names a real category keyword
+  // the site doesn't win, with its real volume/position (invariant #11 / 5a).
   const opportunityCards =
     searchVisibility
       ? opportunityActionsFromSearch({
           score: searchVisibility.score,
           onPageReadiness: searchVisibility.onPageReadiness ?? reg.total,
-          categoryOpportunities: searchVisibility.categoryOpportunities ?? [],
+          categoryOpportunities: categoryNearMisses(searchVisibility),
+          max: FREE_MIN_ACTIONS,
         })
       : [];
   const actions = fillDeterministicDrafts(

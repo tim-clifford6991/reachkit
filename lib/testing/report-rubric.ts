@@ -174,10 +174,12 @@ export function derivableNumbers(payload: ReportPayload): Map<number, string> {
   add(fullActions, "Σ action buckets — the “show N of TOTAL” teaser total (public-report.tsx fullActions)");
   const redacted = redactReportForTier(payload, "free").whatToDoThisWeek;
   const shownActions = redacted.quickWins.length + redacted.medium.length + redacted.longPlay.length;
-  // P4 (2026-07-20): 2 fixes shown, not 3 — the third card's "why" prose is
-  // gone, so 2 terse cards are enough (the up-to-2 blurred locked-preview
-  // rows are a separate, non-numeric visual tease, not counted here).
-  add(Math.max(0, fullActions - Math.min(shownActions, 2)), "fullActions − rendered fixes — the locked-fixes teaser count (to-results-props.ts lockedCount)");
+  // Phase C / D4 (2026-07-21, supersedes P4's 2): SHOWN_FIXES = 3 (the free
+  // board always shows 3 ranked fixes). Must track `SHOWN_FIXES` in
+  // to-results-props.ts — the locked-fixes teaser count is `fullActions −
+  // min(shownActions, 3)`. The 2 blurred locked-preview rows are a separate,
+  // non-numeric visual tease, not counted here.
+  add(Math.max(0, fullActions - Math.min(shownActions, 3)), "fullActions − rendered fixes — the locked-fixes teaser count (to-results-props.ts lockedCount)");
 
   const sv = payload.searchVisibility;
   const kgLen = payload.market?.gap?.keywordGap?.length ?? 0;
@@ -416,8 +418,11 @@ const r4TeaserParity: RubricRule = {
     const fullActions = acts.quickWins.length + acts.medium.length + acts.longPlay.length;
     const redacted = redactReportForTier(payload, "free").whatToDoThisWeek;
     const shownActions = redacted.quickWins.length + redacted.medium.length + redacted.longPlay.length;
-    // P4 (2026-07-20): 2 fixes shown, not 3 (see the derivableNumbers() comment above).
-    const expectedLocked = Math.max(0, fullActions - Math.min(shownActions, 2));
+    // Phase C / D4 (2026-07-21): SHOWN_FIXES = 3 (see the derivableNumbers() comment above).
+    const expectedLocked = Math.max(0, fullActions - Math.min(shownActions, 3));
+    // The teaser now renders ONLY when there's a real withheld count (>0); a
+    // zero-locked plan shows a generic "unlock the full plan" CTA with no number,
+    // so there's nothing for this matcher to reconcile in that case.
     for (const m of text.matchAll(/(\d[\d,]*) more ranked fixes/g)) {
       const n = Number((m[1] ?? "").replace(/,/g, ""));
       if (n === 0 || n !== expectedLocked) {
