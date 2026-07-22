@@ -1828,9 +1828,13 @@ export async function gatherFreeSearchVisibility(
         const yp = rankByKeyword.get(k);
         return { keyword: phrase, volume: v, ...(yp ? { yourPosition: yp } : {}) };
       };
+      // The basket is the LLM's DISTINCT category + niche phrases only — NOT their
+      // broader ladder forms (those over-broaden: "website analytics" → bare
+      // "website" 450,000, which is not the subject's market and inflated the
+      // category). The ladder's broadenings stay for the rare ladder degrade path,
+      // never the basket sum.
       const seedPhrases = [
         ...categoryNicheSeeds.category.phrases,
-        ...categoryNicheSeeds.category.phrases.flatMap((p) => essentialLadderCandidates(p)),
         ...categoryNicheSeeds.niche.phrases,
       ];
       const marketPool: DemandRow[] = [
