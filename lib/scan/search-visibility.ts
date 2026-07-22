@@ -1415,13 +1415,38 @@ export function dedupeByIntent(rows: DemandRow[]): DemandRow[] {
 }
 
 /**
- * The shared tail of every market card (leader / category / niche): DEDUP by
- * intent, take the top `MARKET_PHRASES` by volume, sum to `demand`, and split the
- * subject's won vs gap phrases. One place so the anti-inflation dedup + the G4
- * "demand === Σ phrases" reconciliation can't drift between the three cards. PURE.
+ * A market phrase is MEANINGFUL only if it's a real multi-token search query with
+ * ≥1 content token — never a BARE mega-generic single word. This is the guard for
+ * the "category = 'google' 68,000,000 / 'rocket' 1,000,000 / 'buy' 110,000" class:
+ * the subject incidentally ranks for a huge one-word head (simpleanalytics ranks
+ * for "google"), or a "google analytics alternative" seed drags "google" into the
+ * category vocabulary, and that bare mega-word then dominates the basket. A real
+ * market is "web analytics"/"rocket launch"/"google analytics alternative", not
+ * "google"/"rocket"/"analytics" alone. PURE.
+ */
+function isMeaningfulMarketPhrase(keyword: string): boolean {
+  // A bare single word is too broad/ambiguous to size a market ("google" 68M,
+  // "rocket" 1M, "buy" 110k, "analytics" 60.5k). A real market query is ≥2 RAW
+  // words (counted raw, NOT via `tokens()` — that strips suffix-words like
+  // "tools"/"software", which would wrongly collapse "seo tools" to one token)
+  // with at least one non-mega-brand content token ("web analytics", "rocket
+  // launch", "google analytics alternative"). This is the ONLY structural filter
+  // — topic relevance is the judge's job, not this.
+  const rawWords = keyword.trim().split(/\s+/).filter(Boolean).length;
+  if (rawWords < 2) return false;
+  const toks = tokens(keyword);
+  return toks.length === 0 || toks.some((t) => !MEGA_BRAND_TOKENS.has(stem(t)));
+}
+
+/**
+ * The shared tail of every market card (leader / category / niche): drop
+ * non-meaningful bare phrases, DEDUP by intent, take the top `MARKET_PHRASES` by
+ * volume, sum to `demand`, and split the subject's won vs gap phrases. One place
+ * so the anti-inflation dedup + the bare-mega-word guard + the G4 "demand === Σ
+ * phrases" reconciliation can't drift between the three cards. PURE.
  */
 function finalizeMarketCard(label: string, rows: DemandRow[]): CategoryLadderCard | null {
-  const top = dedupeByIntent(rows)
+  const top = dedupeByIntent(rows.filter((r) => isMeaningfulMarketPhrase(r.keyword)))
     .sort((a, b) => b.volume - a.volume)
     .slice(0, MARKET_PHRASES);
   if (top.length === 0) return null;

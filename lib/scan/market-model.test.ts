@@ -303,3 +303,30 @@ describe("computeCategoryMarket — the category is a BASKET, never one head key
     expect(computeCategoryMarket("Web Analytics", [], categoryVocab)).toBeNull();
   });
 });
+
+describe("isMeaningfulMarketPhrase guard — no bare mega-generic single word (2026-07-22 live defect)", () => {
+  const stemSet = (phrases: string[]): Set<string> => new Set(phrases.flatMap((p) => tokens(p)).map(stem));
+  it("drops a bare single word that dominates by volume (the 'category = google 68M' class)", () => {
+    const pool: DemandRow[] = [
+      { keyword: "google", volume: 68000000, yourPosition: 40 }, // bare mega word — must be dropped
+      { keyword: "web analytics", volume: 40000 },
+      { keyword: "website analytics", volume: 22000 },
+    ];
+    const verdicts: RelevanceVerdicts = new Map([
+      ["google", "category"], // even if judged category, a bare word is not a market
+      ["web analytics", "category"],
+      ["website analytics", "category"],
+    ]);
+    const card = computeCategoryMarket("Web Analytics", pool, stemSet(["web analytics"]), verdicts)!;
+    expect(card.phrases.map((p) => p.keyword)).not.toContain("google");
+    expect(card.demand).toBe(40000 + 22000); // real basket, not 68,000,000
+  });
+  it("keeps ≥2-word phrases even when a suffix-word is a stopword (seo tools, analytics software)", () => {
+    const pool: DemandRow[] = [
+      { keyword: "seo tools", volume: 90000 },
+      { keyword: "analytics software", volume: 12000 },
+    ];
+    const card = computeCategoryMarket("SEO tools", pool, stemSet(["seo tools", "analytics software"]))!;
+    expect(card.phrases.map((p) => p.keyword)).toEqual(expect.arrayContaining(["seo tools", "analytics software"]));
+  });
+});
