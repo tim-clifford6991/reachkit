@@ -823,11 +823,18 @@ describe("computeCategoryLadder — CATEGORY must be LARGE, never fabricated (D2
 
     const gathered = await gatherFreeSearchVisibility("trustmrr.com", seedText, llmCategorySeeds, undefined, [], categoryNiche);
 
-    // The ladder actually ran (not a no-op stand-in).
-    expect(gathered.categoryCard?.demand).toBeGreaterThanOrEqual(CATEGORY_FLOOR);
+    // The category card is now the guarded market BASKET (2026-07-22 — the basket
+    // is primary over the old single-umbrella ladder): demand reconciles to its
+    // phrases (G4), and no phrase is a bare single word (the "google" 68M guard).
+    const card = gathered.categoryCard;
+    expect(card).toBeTruthy();
+    if (card) {
+      expect(card.demand).toBe(card.phrases.reduce((s, p) => s + p.volume, 0));
+      for (const p of card.phrases) expect(p.keyword.trim().split(/\s+/).length).toBeGreaterThanOrEqual(2);
+    }
 
     // …and it did not touch score: classifying the SAME rows/vocab directly —
-    // no ladder, no cards — produces the identical score the gather returned.
+    // no cards — produces the identical score the gather returned (invariant #1).
     const expected = classifyFootprint("trustmrr.com", seedText, llmCategorySeeds, TRUSTMRR, []);
     expect(gathered.score).toBe(expected.score);
   });

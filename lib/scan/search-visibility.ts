@@ -1876,10 +1876,15 @@ export async function gatherFreeSearchVisibility(
       }
       const nicheVocab = nicheVocabFrom(categoryNicheSeeds);
 
-      // CATEGORY: the basket beats the ladder's single term; a validated leader's
-      // footprint (with its brand dropped + "sized from" provenance) beats both.
+      // CATEGORY: the guarded market BASKET is PRIMARY — it OUTRIGHT replaces the
+      // ladder whenever it resolves (never "only if bigger": the ladder produced
+      // bare single umbrella terms like "google" 68,000,000 / "job" 1,220,000 that
+      // won purely by size, which the ≥2-word basket can never out-total). The
+      // ladder survives only as a last-resort when the basket is null. A validated
+      // leader's footprint (brand dropped + "sized from" provenance) beats the
+      // basket when larger.
       const categoryBasket = computeCategoryMarket(categoryNicheSeeds.category.label, marketPool, categoryVocab, verdicts);
-      if (categoryBasket && categoryBasket.demand > (categoryCard?.demand ?? 0)) categoryCard = categoryBasket;
+      if (categoryBasket) categoryCard = categoryBasket;
       if (leader && leaderRows.length >= MIN_LEADER_ROWS) {
         const leaderMarket = computeMarketFromLeader(leader, leaderRows, categoryNicheSeeds, rankByKeyword, sv.categoryRanked, verdicts);
         if (leaderMarket && leaderMarket.demand > (categoryCard?.demand ?? 0)) {
@@ -1888,9 +1893,10 @@ export async function gatherFreeSearchVisibility(
         }
       }
 
-      // NICHE: the same pool, the "niche" verdicts, contained in the category.
+      // NICHE: the same pool, the "niche" verdicts, contained in the category. Also
+      // PRIMARY over the thin ladder niche when it resolves.
       const nicheMarket = computeNicheMarket(categoryNicheSeeds.niche.label, marketPool, categoryVocab, nicheVocab, verdicts);
-      if (nicheMarket && nicheMarket.demand > (nicheCard?.demand ?? 0)) nicheCard = nicheMarket;
+      if (nicheMarket) nicheCard = nicheMarket;
     }
     return {
       ...sv,
