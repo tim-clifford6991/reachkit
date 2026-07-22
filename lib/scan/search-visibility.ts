@@ -1424,7 +1424,7 @@ export function dedupeByIntent(rows: DemandRow[]): DemandRow[] {
  * market is "web analytics"/"rocket launch"/"google analytics alternative", not
  * "google"/"rocket"/"analytics" alone. PURE.
  */
-function isMeaningfulMarketPhrase(keyword: string): boolean {
+export function isMeaningfulMarketPhrase(keyword: string): boolean {
   // A bare single word is too broad/ambiguous to size a market ("google" 68M,
   // "rocket" 1M, "buy" 110k, "analytics" 60.5k). A real market query is ≥2 RAW
   // words (counted raw, NOT via `tokens()` — that strips suffix-words like

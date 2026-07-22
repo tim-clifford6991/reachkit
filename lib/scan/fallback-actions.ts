@@ -24,7 +24,7 @@ import type { ScanSignalRow } from "./compute-signals";
 import type { ActionCard } from "@/lib/llm/types";
 import type { SearchVisibility, DemandRow } from "./search-visibility";
 import { discoverabilityScore as unifiedDiscoverability } from "./registry-score";
-import { CATEGORY_TARGET } from "./search-visibility";
+import { CATEGORY_TARGET, dedupeByIntent, isMeaningfulMarketPhrase } from "./search-visibility";
 
 /** Max baseline fixes emitted by the floor. */
 export const MAX_FALLBACK_ACTIONS = 5;
@@ -126,15 +126,19 @@ export function categoryNearMisses(sv: Pick<SearchVisibility, "categoryOpportuni
     ...(sv.categoryOpportunities ?? []),
     ...(sv.categoryCard?.gaps ?? []),
     ...(sv.nicheCard?.gaps ?? []),
-  ];
-  const byKw = new Map<string, DemandRow>();
-  for (const r of rows) {
-    if (!r || r.volume <= 0) continue;
-    const key = r.keyword.toLowerCase();
-    const cur = byKw.get(key);
-    if (!cur || r.volume > cur.volume) byKw.set(key, r);
-  }
-  return [...byKw.values()].sort((a, b) => b.volume - a.volume);
+  ].filter((r) => r && r.volume > 0);
+  // These become the free board's LEAD fixes ("Create a page targeting X"), so
+  // they must clear the SAME honesty bar as the market cards — never a bare
+  // mega-word ("Create a page targeting 'space'" for spacex.com, 368k, a real
+  // ranking but an unwinnable page target: live defect 2026-07-22) and never a
+  // near-duplicate ("privacy tools" + "privacy tool", usefathom.com). Reuse the
+  // exact market-card guards (`isMeaningfulMarketPhrase` ≥2 real non-mega words,
+  // `dedupeByIntent` plural/paraphrase collapse) so the opportunity surface can
+  // never drift from the card surface. `categoryOpportunities`/`categoryCard.gaps`
+  // are NOT pre-filtered upstream (only the niche/market cards are), which is why
+  // the bare word leaked here but not into "What to rank for next".
+  const deduped = dedupeByIntent(rows.filter((r) => isMeaningfulMarketPhrase(r.keyword)));
+  return deduped.sort((a, b) => b.volume - a.volume);
 }
 
 /**

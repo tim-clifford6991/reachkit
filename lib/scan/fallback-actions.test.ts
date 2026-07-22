@@ -245,6 +245,33 @@ describe("categoryNearMisses (Phase C / D4 — the honest floor pool)", () => {
     expect(cards[0]!.title).toContain('"mrr tracking"'); // highest-volume near-miss first
   });
 
+  it("drops bare mega-word opportunities — 'Create a page targeting \"space\"' (spacex.com 368k, live defect 2026-07-22) never leads", () => {
+    const sv = {
+      categoryOpportunities: [
+        { keyword: "space", volume: 368000, yourPosition: 12 }, // bare mega-word — unwinnable page target
+        { keyword: "rocket launch today", volume: 110000 },
+        { keyword: "space launch system", volume: 110000, yourPosition: 10 },
+      ],
+    };
+    const pool = categoryNearMisses(sv);
+    expect(pool.map((r) => r.keyword)).not.toContain("space");
+    // The winnable, specific multi-word opportunities survive and lead.
+    expect(pool[0]!.keyword).toBe("rocket launch today");
+  });
+
+  it("collapses near-duplicate opportunities by intent — 'privacy tools' ≡ 'privacy tool' (usefathom.com, live defect) shows once", () => {
+    const sv = {
+      categoryOpportunities: [
+        { keyword: "website tracking", volume: 1900 },
+        { keyword: "privacy tools", volume: 1600 },
+        { keyword: "privacy tool", volume: 1600 }, // plural dup — must not render as a second fix
+      ],
+    };
+    const pool = categoryNearMisses(sv);
+    const privacyRows = pool.filter((r) => r.keyword.startsWith("privacy tool"));
+    expect(privacyRows).toHaveLength(1);
+  });
+
   it("empty everything → empty pool (degrade, never invent)", () => {
     expect(categoryNearMisses({ categoryOpportunities: [] })).toEqual([]);
   });
