@@ -256,6 +256,41 @@ export function ResultsScreen() {
             </div>
           </div>
         </div>
+        {/* Opportunity (§4, 2026-07-22): the niche's own gap keywords as a
+            demand-sized "What to rank for next" module — bars ∝ real monthly
+            volume, position chip, and a one-line paid bridge (the pages to win
+            them + weekly tracking). Was the terse "Opportunity · your niche"
+            list; now the free board's data-driven "what to rank for" hero. */}
+        <div style={{ ...CARD, marginBottom: 14 }}>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
+            <div style={{ fontFamily: SG, fontWeight: 700, fontSize: 16 }}>What to rank for next</div>
+            <div style={{ fontFamily: JM, fontSize: 11.5, color: "var(--c-faint)" }}>{NICHE_OPPORTUNITY_ROWS.length} niche searches · you don&apos;t rank</div>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
+            {NICHE_OPPORTUNITY_ROWS.map((row, i) => {
+              const maxVol = Math.max(...NICHE_OPPORTUNITY_ROWS.map((g) => g.volume), 1);
+              const pct = Math.max(6, Math.round((row.volume / maxVol) * 100));
+              return (
+                <div key={row.keyword}>
+                  <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, marginBottom: 5 }}>
+                    <span style={{ fontWeight: 600, fontSize: 13.5, minWidth: 0 }}>{row.keyword}</span>
+                    <span style={{ display: "inline-flex", gap: 8, alignItems: "baseline", flex: "0 0 auto" }}>
+                      <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 13 }}>{row.volume.toLocaleString()}</span>
+                      <span style={{ fontSize: 11, color: "var(--c-faint)" }}>/ mo</span>
+                      <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 11, color: i === 0 ? "var(--c-band-fair)" : "var(--c-band-invisible)" }}>{i === 0 ? "#8" : "not ranking"}</span>
+                    </span>
+                  </div>
+                  <div style={{ height: 7, borderRadius: 5, background: "var(--c-fill)", overflow: "hidden" }}>
+                    <div style={{ height: "100%", borderRadius: 5, width: `${pct}%`, background: "linear-gradient(90deg, var(--c-action), #8B74FF)" }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--c-line2)", fontSize: 13, fontWeight: 600, color: "var(--c-action)" }}>
+            🔒 Get the pages to win these + weekly rank tracking →
+          </div>
+        </div>
         {/* P3fix (2026-07-20): a niche with genuinely 0 priced phrases
             (e.g. trustmrr.com — a real directory whose niche terms don't
             clear pricing) used to be OMITTED entirely, silently collapsing

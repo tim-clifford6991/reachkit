@@ -58,7 +58,7 @@ describe("fallbackActionsFromSignals", () => {
     const actions = fallbackActionsFromSignals(rows);
     expect(actions).toHaveLength(2);
     const titles = actions.map((a) => a.title).join(" | ");
-    expect(titles).toContain("JSON-LD");
+    expect(titles).toContain("structured data");
     expect(titles).toContain("threads");
   });
 
@@ -102,7 +102,7 @@ describe("fallbackActionsFromSignals", () => {
     const byTitleFragment = (frag: string) =>
       actions.find((a) => a.title.toLowerCase().includes(frag))!;
     expect(byTitleFragment("canonical").category).toBe("seo_aso");
-    expect(byTitleFragment("500 words").category).toBe("content");
+    expect(byTitleFragment("500+ words").category).toBe("content");
     expect(byTitleFragment("marketplace").category).toBe("outreach");
   });
 

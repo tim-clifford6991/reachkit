@@ -82,16 +82,29 @@ export function toResultsProps(
     { label: "SEO", value: b.seo, note: PILLAR_NOTE(b.seo, measured.seo && b.seo === minVal), measured: measured.seo },
   ];
 
-  const ranked = [
+  const byDelta = (a: ActionCard, b2: ActionCard) =>
+    (b2.expectedOutcome?.delta ?? 0) - (a.expectedOutcome?.delta ?? 0);
+  const flat = [
     ...report.whatToDoThisWeek.quickWins,
     ...report.whatToDoThisWeek.medium,
     ...report.whatToDoThisWeek.longPlay,
-  ].sort((a, b2) => (b2.expectedOutcome?.delta ?? 0) - (a.expectedOutcome?.delta ?? 0));
+  ];
   // Prefer actions with a positive predicted delta, but NEVER let the filter
   // empty a non-empty plan (regression: real scans whose cards carried delta 0
   // rendered "your top 0 ranked fixes").
-  const positive = ranked.filter((a) => (a.expectedOutcome?.delta ?? 0) > 0);
-  const allActions = positive.length > 0 ? positive : ranked;
+  const positive = flat.filter((a) => (a.expectedOutcome?.delta ?? 0) > 0);
+  const base = positive.length > 0 ? positive : flat;
+  // The free board LEADS with the data-driven keyword growth moves (real
+  // category/niche searches to win, by demand) — the on-thesis "3 actions to
+  // improve your standing in your niche/category", not generic on-page hygiene.
+  // These carry `.opportunity` (`opportunityActionsFromSearch`); the remaining
+  // signal/LLM fixes follow, ranked by score impact. Paid LLM cards never carry
+  // `.opportunity`, so paid ordering stays pure impact-ranked (unchanged).
+  const opps = base
+    .filter((a) => a.opportunity)
+    .sort((a, b2) => (b2.opportunity!.volume) - (a.opportunity!.volume));
+  const restFixes = base.filter((a) => !a.opportunity).sort(byDelta);
+  const allActions = [...opps, ...restFixes];
 
   const toFix = (a: ActionCard, rank: number): Fix => ({
     rank,
@@ -100,6 +113,9 @@ export function toResultsProps(
     effort: effortLabel(a.effortMin),
     pillar: CATEGORY_LABEL[a.category] ?? a.category,
     pred: a.expectedOutcome?.delta ?? 0,
+    // Data-driven fix cards (keyword opportunities) render their real monthly
+    // search volume — the number that makes them a growth move, not hygiene.
+    metric: a.opportunity ? `${a.opportunity.volume.toLocaleString()}/mo` : undefined,
   });
   // Phase C / D4 (2026-07-21, supersedes P4's 2): the free board ALWAYS shows 3
   // ranked fixes — the owner's directive ("the user should always, regardless see

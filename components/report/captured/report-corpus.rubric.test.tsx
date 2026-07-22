@@ -572,8 +572,8 @@ describe("data board P3 (CONSTRUCTED variants, corpus-first — not verbatim cap
         // Never the same number twice under two different labels (G1's spirit).
         expect(v.categoryDemand).not.toBe(v.nicheDemand);
       });
-      it("the Opportunity section (niche gaps) renders — 'Opportunity · your niche'", () => {
-        expect(html).toContain("Opportunity · your niche");
+      it("the Opportunity section (niche gaps) renders — 'What to rank for next'", () => {
+        expect(html).toContain("What to rank for next");
       });
       it("the LEGACY 'biggest untapped opportunity' callout is superseded, not duplicated", () => {
         expect(html).not.toContain("Your biggest untapped opportunity");
@@ -613,7 +613,7 @@ describe("data board P3 (CONSTRUCTED variants, corpus-first — not verbatim cap
       expect(html).toContain("No measurable niche demand yet");
     });
     it("the Opportunity section is still OMITTED — the empty-state niche card has nothing to itemise (invariant #11)", () => {
-      expect(html).not.toContain("Opportunity · your niche");
+      expect(html).not.toContain("What to rank for next");
     });
     it("passes the full rubric (R1–R7)", () => {
       const violations = runReportRubric(directoryP3.reportPayload, html);

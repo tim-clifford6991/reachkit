@@ -341,8 +341,11 @@ const SECTION_RULES: SectionRule[] = [
   },
   {
     id: "opportunity-niche",
-    // P3 (data board §4): the niche's own gap keywords, by volume.
-    marker: "Opportunity · your niche",
+    // P3 (data board §4): the niche's own gap keywords, by volume — the
+    // "what to rank for next" module (demand-sized bars). Marker updated
+    // 2026-07-22 when the eyebrow "Opportunity · your niche" became the
+    // clearer header "What to rank for next" (same section, R3 intent intact).
+    marker: "What to rank for next",
     grounded: (p) => {
       const sv = p.searchVisibility;
       return marketCardReady(sv?.categoryCard) && marketCardReady(sv?.nicheCard) && (sv?.nicheCard?.gaps.length ?? 0) > 0;

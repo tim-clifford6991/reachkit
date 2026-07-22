@@ -276,3 +276,54 @@ describe("toResultsProps — pillar measurement (A6)", () => {
     expect(p.pillars.every((x) => x.measured)).toBe(true);
   });
 });
+
+describe("toResultsProps — free board leads with data-driven keyword opportunities (2026-07-22)", () => {
+  const opp = (title: string, volume: number, delta: number): ActionCard => ({
+    ...action(title, delta, 120),
+    category: "seo_aso",
+    signalKeys: [],
+    opportunity: { keyword: title.replace(/^Create a page targeting "|"$/g, ""), volume },
+  });
+
+  it("opportunity fixes (real volume) lead the plan even when a signal fix has a bigger delta; volume renders as the metric chip", () => {
+    const p = toResultsProps(
+      report({
+        whatToDoThisWeek: {
+          // A high-delta on-page hygiene fix (the SpaceX/low-on-page case) must
+          // NOT bury the data-driven keyword move.
+          quickWins: [action("Add structured data so Google can show rich results", 8)],
+          medium: [opp('Create a page targeting "space launch system"', 110000, 2)],
+          longPlay: [],
+        },
+      }),
+      "spacex.com",
+      2,
+    );
+    // The keyword opportunity leads, despite its smaller delta.
+    expect(p.fixes[0]!.title).toContain("space launch system");
+    // …carrying its real monthly volume as the lead data chip.
+    expect(p.fixes[0]!.metric).toBe("110,000/mo");
+    // The on-page fix follows (no metric — it's hygiene, not a sized opportunity).
+    expect(p.fixes[1]!.title).toContain("structured data");
+    expect(p.fixes[1]!.metric).toBeUndefined();
+  });
+
+  it("multiple opportunities order by demand (volume), highest first", () => {
+    const p = toResultsProps(
+      report({
+        whatToDoThisWeek: {
+          quickWins: [],
+          medium: [
+            opp('Create a page targeting "rocket launch"', 74000, 2),
+            opp('Create a page targeting "space launch system"', 110000, 2),
+          ],
+          longPlay: [],
+        },
+      }),
+      "spacex.com",
+      2,
+    );
+    expect(p.fixes[0]!.metric).toBe("110,000/mo");
+    expect(p.fixes[1]!.metric).toBe("74,000/mo");
+  });
+});

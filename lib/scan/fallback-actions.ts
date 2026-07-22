@@ -166,7 +166,7 @@ export function opportunityActionsFromSearch(
   const delta = Math.max(1, Math.round(after - before));
   return opps.map((o) => ({
     category: "seo_aso",
-    title: `Create or strengthen a page targeting "${o.keyword}"`,
+    title: `Create a page targeting "${o.keyword}"`,
     why: `${o.volume.toLocaleString()} searches/mo in your category — ${
       typeof o.yourPosition === "number" ? `you're #${o.yourPosition} today; top 3 is the goal` : "you don't rank for it yet"
     }. Winning it lifts the Search-presence half of your score.`,
@@ -182,5 +182,9 @@ export function opportunityActionsFromSearch(
     confidence: 0.5,
     target: null,
     signalKeys: [],
+    // The real keyword + volume that make this a data-driven growth move — the
+    // free board leads with these and renders the volume chip (R2-safe: a real
+    // DataForSEO number already in the payload).
+    opportunity: { keyword: o.keyword, volume: o.volume },
   }));
 }

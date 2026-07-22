@@ -179,6 +179,13 @@ export interface ActionCard {
    *  Powers score-delta attribution + the action-floor dedupe. `[]` for legacy cards
    *  or actions with no clean signal linkage; the floor + linker keep this populated. */
   signalKeys?: string[];
+  /** Set ONLY on the deterministic search-opportunity cards
+   *  (`opportunityActionsFromSearch`): the real category/niche keyword this
+   *  action targets + its DataForSEO monthly volume. Drives the free board's
+   *  data-driven ordering (these growth moves lead the plan) and the volume
+   *  chip on the fix card — every number is a real payload value (R2-safe).
+   *  Absent on signal-derived and LLM-authored cards. */
+  opportunity?: { keyword: string; volume: number };
 }
 
 /** Routing channels an ActionTarget can name — a subset that inferExecutionRoute

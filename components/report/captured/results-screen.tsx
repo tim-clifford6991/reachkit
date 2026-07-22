@@ -82,7 +82,11 @@ const RESULTS_CSS = `
 const PRICE_LINE = `${fmtPrice(tierByPlan("solo").monthly)}/mo · cancel anytime`;
 
 export interface Pillar { label: string; value: number; note: string; measured?: boolean }
-export interface Fix { rank: number; title: string; why: string; effort: string; pillar: string; pred: number }
+export interface Fix { rank: number; title: string; why: string; effort: string; pillar: string; pred: number;
+  /** Data-driven keyword-opportunity fixes carry their real monthly search
+   *  volume (e.g. "110,000/mo") — rendered as the lead data chip so the growth
+   *  moves read as sized opportunities, not hygiene. Absent on on-page fixes. */
+  metric?: string }
 export interface GapRow { query: string; volume: string; rank: string; ranked: boolean; opp: string }
 
 /** Data-board P3 — the shape `<MarketCard>` renders. Mirrors
@@ -623,19 +627,51 @@ export function ResultsScreen(p: ResultsScreenProps) {
                       input renders no section, never an empty list) — the
                       empty-state CARD above still shows, but there is nothing
                       to itemise here. */}
-                  {nicheReady && nicheCardData!.gaps.length > 0 && (
-                    <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16, padding: "18px 20px", marginBottom: 14 }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: "#C98A12", marginBottom: 4 }}>Opportunity · your niche</div>
-                      <div style={{ fontSize: 12.5, color: "var(--c-faint)", marginBottom: 10 }}>Where the searches are — and you&apos;re not there.</div>
-                      {nicheCardData!.gaps.slice(0, 5).map((row) => (
-                        <div key={row.keyword} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "9px 0", borderBottom: "1px solid var(--c-line2)", fontSize: 13 }}>
-                          <span className="rk-wrap-any" style={{ fontWeight: 600, minWidth: 0 }}>{row.keyword}</span>
-                          <span style={{ fontFamily: JM, color: "var(--c-muted)", fontSize: 12.5, whiteSpace: "nowrap" }}>{row.volume.toLocaleString()} / mo</span>
-                          <span style={{ fontFamily: JM, fontWeight: 700, color: "#E5484D", fontSize: 12, whiteSpace: "nowrap" }}>not ranking</span>
+                  {nicheReady && nicheCardData!.gaps.length > 0 && (() => {
+                    const gaps = nicheCardData!.gaps.slice(0, 5);
+                    // Bars are sized against the biggest shown gap — a visual
+                    // demand ranking ("win the tall bars first"). Pure ratio of
+                    // real volumes; the numbers themselves are the payload values.
+                    const maxVol = Math.max(...gaps.map((g) => g.volume), 1);
+                    return (
+                    <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16, padding: "20px 22px", marginBottom: 14 }}>
+                      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
+                        <div style={{ fontFamily: SG, fontWeight: 700, fontSize: 16 }}>What to rank for next</div>
+                        <div style={{ fontFamily: JM, fontSize: 11.5, color: "var(--c-faint)" }}>{gaps.length} niche searches · you don&apos;t rank</div>
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
+                        {gaps.map((row) => {
+                          const pct = Math.max(6, Math.round((row.volume / maxVol) * 100));
+                          const ranks = typeof row.yourPosition === "number";
+                          return (
+                            <div key={row.keyword}>
+                              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, marginBottom: 5 }}>
+                                <span className="rk-wrap-any" style={{ fontWeight: 600, fontSize: 13.5, minWidth: 0 }}>{row.keyword}</span>
+                                <span style={{ display: "inline-flex", gap: 8, alignItems: "baseline", flex: "0 0 auto" }}>
+                                  <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 13 }}>{row.volume.toLocaleString()}</span>
+                                  <span style={{ fontSize: 11, color: "var(--c-faint)" }}>/ mo</span>
+                                  <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 11, color: ranks ? "#C98A12" : "#E5484D", whiteSpace: "nowrap" }}>{ranks ? `#${row.yourPosition}` : "not ranking"}</span>
+                                </span>
+                              </div>
+                              {/* Demand bar — width ∝ real monthly volume. */}
+                              <div style={{ height: 7, borderRadius: 5, background: "var(--c-fill)", overflow: "hidden" }}>
+                                <div style={{ height: "100%", borderRadius: 5, width: `${pct}%`, background: "linear-gradient(90deg, var(--c-action), #8B74FF)" }} />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {/* Paid bridge — the niche opportunity IS the paid thesis:
+                          the pages to win these + weekly tracking as the score
+                          climbs. Named up front, one line, no prose. */}
+                      {!p.hideUnlock && (
+                        <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--c-line2)", fontSize: 13, fontWeight: 600 }}>
+                          <UnlockLink scanId={p.scanId}>🔒 Get the pages to win these + weekly rank tracking →</UnlockLink>
                         </div>
-                      ))}
+                      )}
                     </div>
-                  )}
+                    );
+                  })()}
                 </>
               );
             }
@@ -891,7 +927,12 @@ export function ResultsScreen(p: ResultsScreenProps) {
                   <span style={{ width: 30, height: 30, borderRadius: 8, background: ec.bg, color: ec.fg, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: JM, flex: "0 0 auto" }}>{f.rank}</span>
                   <div style={{ flex: "1 1 0%", minWidth: 0 }}>
                     <div className="rk-wrap-any" style={{ fontWeight: 600, fontSize: 15.5 }}>{f.title}</div>
-                    <div style={{ display: "flex", gap: 7, marginTop: 8 }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginTop: 8 }}>
+                      {/* Data-driven keyword opportunities lead with their real
+                          search volume — the number that makes it a growth move. */}
+                      {f.metric && (
+                        <span style={{ fontFamily: JM, fontSize: 11.5, fontWeight: 700, color: "#1F9D5B", background: "var(--c-tint-green)", padding: "3px 9px", borderRadius: 6 }}>{f.metric}</span>
+                      )}
                       <span style={{ fontSize: 11.5, fontWeight: 600, color: ec.fg, background: ec.bg, padding: "3px 9px", borderRadius: 6 }}>{f.effort}</span>
                       <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--c-muted)", background: "var(--c-fill)", padding: "3px 9px", borderRadius: 6 }}>{f.pillar}</span>
                     </div>
