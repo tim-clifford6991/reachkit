@@ -11,6 +11,7 @@ import { describe, it, expect } from "vitest";
 import { pickCategoryLeader, computeMarketFromLeader } from "./search-visibility";
 import type { RankedKeyword } from "./adapters/dataforseo-ranked-keywords";
 import type { CategoryNicheSeeds } from "@/lib/llm/types";
+import type { RelevanceVerdicts } from "./relevance-judge";
 
 const seeds: CategoryNicheSeeds = {
   category: { label: "SEO tooling", phrases: ["seo tools", "seo software", "keyword research"] },
@@ -78,5 +79,71 @@ describe("computeMarketFromLeader (R-3.14 market size + your share)", () => {
   it("returns null when no leader keyword is category-relevant (→ degrade)", () => {
     const offCategory: RankedKeyword[] = [kw("bread recipes", 1, 1000), kw("cake tins", 2, 500)];
     expect(computeMarketFromLeader("ahrefs.com", offCategory, seeds, new Map(), [])).toBeNull();
+  });
+});
+
+describe("computeMarketFromLeader — LLM relevance judge (Phase B, mixpanel-for-fathom class)", () => {
+  // usefathom.com (WEB analytics) sized from mixpanel.com (PRODUCT/mobile
+  // analytics). Every candidate below shares the token "analytics" with the
+  // category, so TOKEN-OVERLAP alone keeps them all — and the generic
+  // "data analytics tools" (301k) dominates the market number, the exact live
+  // defect. The judge rules the adjacent/generic ones "irrelevant".
+  const fathomSeeds: CategoryNicheSeeds = {
+    category: { label: "Web Analytics", phrases: ["web analytics", "website analytics"] },
+    niche: { label: "privacy-first web analytics", phrases: ["privacy analytics"] },
+    leaders: ["mixpanel.com"],
+  };
+  const mixpanelRows: RankedKeyword[] = [
+    kw("web analytics", 3, 49500),
+    kw("website analytics", 5, 22000),
+    kw("data analytics tools", 12, 301000), // generic — shares "analytics" only
+    kw("mobile app analytics", 2, 40000), // different product — shares "analytics" only
+    kw("product analytics", 1, 30000), // mixpanel's own market, not fathom's
+  ];
+
+  it("WITHOUT verdicts (degrade): token-overlap keeps the generic term and it dominates", () => {
+    const card = computeMarketFromLeader("mixpanel.com", mixpanelRows, fathomSeeds, new Map(), [])!;
+    const keywords = card.phrases.map((p) => p.keyword);
+    expect(keywords).toContain("data analytics tools"); // the coarse over-inclusion
+    // demand is inflated by the 301k generic term (the shipped defect)
+    expect(card.demand).toBeGreaterThan(300000);
+  });
+
+  it("WITH verdicts: the judge drops the generic + adjacent terms; demand reflects the real category", () => {
+    const verdicts: RelevanceVerdicts = new Map([
+      ["web analytics", "category"],
+      ["website analytics", "category"],
+      ["data analytics tools", "irrelevant"],
+      ["mobile app analytics", "irrelevant"],
+      ["product analytics", "irrelevant"],
+    ]);
+    const card = computeMarketFromLeader("mixpanel.com", mixpanelRows, fathomSeeds, new Map(), [], verdicts)!;
+    const keywords = card.phrases.map((p) => p.keyword);
+    expect(keywords).toContain("web analytics");
+    expect(keywords).toContain("website analytics");
+    expect(keywords).not.toContain("data analytics tools"); // judge: irrelevant
+    expect(keywords).not.toContain("mobile app analytics"); // judge: irrelevant
+    expect(keywords).not.toContain("product analytics"); // judge: irrelevant
+    // demand reconciles to the two REAL category phrases only (G4 idiom holds)
+    expect(card.demand).toBe(49500 + 22000);
+  });
+
+  it("LOCAL fallback: a keyword the judge did NOT rule on still uses token-overlap", () => {
+    // "site analytics" has no verdict → falls back to token-overlap (shares
+    // "analytics") → kept. A partial judge only refines; it never over-drops.
+    const rows = [...mixpanelRows, kw("site analytics", 8, 12000)];
+    const verdicts: RelevanceVerdicts = new Map([
+      ["web analytics", "category"],
+      ["data analytics tools", "irrelevant"],
+      ["mobile app analytics", "irrelevant"],
+      ["product analytics", "irrelevant"],
+      // "website analytics" and "site analytics" intentionally UNJUDGED
+    ]);
+    const card = computeMarketFromLeader("mixpanel.com", rows, fathomSeeds, new Map(), [], verdicts)!;
+    const keywords = card.phrases.map((p) => p.keyword);
+    expect(keywords).toContain("web analytics"); // judged category
+    expect(keywords).toContain("website analytics"); // unjudged → token-overlap keeps
+    expect(keywords).toContain("site analytics"); // unjudged → token-overlap keeps
+    expect(keywords).not.toContain("data analytics tools"); // judged irrelevant
   });
 });

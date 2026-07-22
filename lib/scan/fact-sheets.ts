@@ -2,24 +2,35 @@ import { serverDb } from "@/lib/db/client";
 import type { Json } from "@/lib/db/types";
 import { GROUNDING_POLICY_VERSION } from "@/lib/scan/adapters/web-reviews";
 import type { FactSheetKind } from "@/lib/scan/fact-sheet-kind";
+import { RELEVANCE_JUDGE_VERSION } from "@/lib/scan/fact-sheet-kind";
 
 export type { FactSheetKind };
 
-// Task 2b (the cache-poisoning class fix): only sheet kinds actually DERIVED from
-// grounding-filtered inputs need the policy check on read-back. Today that's just
-// `review_themes` (built from Tavily web-review snippets, filtered by
-// web-reviews.ts's subject/domain-conflict rule). `positioning`/`competitor_gap`/
-// `keyword_data` aren't built from that filtered input, so they're intentionally
-// excluded — revisit this set if a future extract kind starts consuming
-// grounding-filtered evidence.
-const GROUNDING_POLICY_KINDS: ReadonlySet<FactSheetKind> = new Set(["review_themes"]);
+// Task 2b (the cache-poisoning class fix): a sheet kind whose CACHE VALIDITY is
+// gated by a policy version carries that version as a suffix on `model_version`,
+// so a bump treats every pre-bump row as a MISS on read-back even inside its TTL
+// (the rules that decided what the row means changed underneath it). Only kinds
+// DERIVED from a versioned policy appear here:
+//   - `review_themes`     — built from Tavily web-review snippets filtered by
+//                           web-reviews.ts's subject/domain-conflict rule
+//                           (`GROUNDING_POLICY_VERSION`).
+//   - `relevance_verdicts` — the LLM relevance judge's category/niche/irrelevant
+//                           calls (`RELEVANCE_JUDGE_VERSION`, Phase B): a prompt
+//                           or verdict-semantics change must invalidate old
+//                           verdicts, not re-serve them.
+// `positioning`/`competitor_gap`/`keyword_data` aren't built from a versioned
+// policy, so they're intentionally absent — add a kind here only when its
+// meaning is gated by a version constant.
+const POLICY_SUFFIX_BY_KIND: Partial<Record<FactSheetKind, string>> = {
+  review_themes: `+g${GROUNDING_POLICY_VERSION}`,
+  relevance_verdicts: `+rjv${RELEVANCE_JUDGE_VERSION}`,
+};
 
-const POLICY_SUFFIX = `+g${GROUNDING_POLICY_VERSION}`;
-
-/** Appends the current grounding-policy suffix for kinds that need it; a no-op
+/** Appends the current policy-version suffix for kinds that need it; a no-op
  *  (unchanged behavior) for every other kind. */
 function stampModelVersion(kind: FactSheetKind, modelVersion: string): string {
-  return GROUNDING_POLICY_KINDS.has(kind) ? `${modelVersion}${POLICY_SUFFIX}` : modelVersion;
+  const suffix = POLICY_SUFFIX_BY_KIND[kind];
+  return suffix ? `${modelVersion}${suffix}` : modelVersion;
 }
 
 /** Returns the subject_type string used in fact_sheets for a given scan mode.
@@ -85,12 +96,13 @@ export async function getFreshFactSheet(
   if (!data) return null;
   if (new Date(data.expires_at).getTime() < Date.now()) return null; // expired → treat as absent
   // The cache-poisoning class fix (Task 2b): a sheet cached under an older
-  // grounding policy is stale evidence even inside its TTL window — the rules
-  // that decided what counts as grounded evidence changed underneath it. Treat
-  // a missing/mismatched policy suffix as a miss so it re-extracts instead of
+  // policy version is stale evidence even inside its TTL window — the rules
+  // that decided what the row means changed underneath it. Treat a
+  // missing/mismatched policy suffix as a miss so it re-derives instead of
   // re-serving pre-fix poison (the reachkit.app/reachkit.ai review-theme leak,
   // 2026-07-19: a sheet cached 2026-07-16, pre-WS-A, was read back post-fix).
-  if (GROUNDING_POLICY_KINDS.has(kind) && !(data.model_version ?? "").endsWith(POLICY_SUFFIX)) {
+  const suffix = POLICY_SUFFIX_BY_KIND[kind];
+  if (suffix && !(data.model_version ?? "").endsWith(suffix)) {
     return null;
   }
   return { body: data.body };

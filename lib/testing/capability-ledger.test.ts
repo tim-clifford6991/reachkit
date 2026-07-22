@@ -114,6 +114,18 @@ const CAPABILITY_LEDGER: Capability[] = [
     exports: ["discoverScanCompetitors"],
     consumer: "lib/scan/collect.ts",
   },
+  {
+    // Phase B (2026-07-22, D3): the ONE LLM relevance judge. Classifies real
+    // keyword strings as category/niche/irrelevant to the subject's business —
+    // the structural replacement for the coarse token-overlap relevance that
+    // kept mislabeling markets (mixpanel-for-fathom). The keyword-brand detector
+    // (RC1) and the score-side classifier stay separate capabilities; this owns
+    // relevance JUDGING only. Pinned so a future scan surface can't re-fork it.
+    capability: "relevance-judging",
+    canonicalModule: "lib/scan/relevance-judge.ts",
+    exports: ["judgeRelevance"],
+    consumer: "lib/scan/search-visibility.ts",
+  },
 ];
 
 /** Recursively list every non-test `.ts`/`.tsx` under a root (repo-relative). */

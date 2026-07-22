@@ -171,6 +171,11 @@ export function fixtureExtract(
     case "positioning":    return FIXTURE_POSITIONING;
     case "competitor_gap": return FIXTURE_COMPETITOR_GAP;
     case "keyword_data":   return FIXTURE_KEYWORD_SHEET;
+    // `relevance_verdicts` (Phase B) is the LLM judge's OWN cache, not an extract
+    // sheet — the judge short-circuits to an empty map in fixtures mode, so this
+    // never fires. Listed to keep the switch exhaustive over FactSheetKind.
+    case "relevance_verdicts":
+      throw new Error("relevance_verdicts has no extract fixture (it is the judge's cache, not an extract sheet)");
   }
 }
 
