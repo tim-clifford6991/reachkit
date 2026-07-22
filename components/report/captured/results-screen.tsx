@@ -298,6 +298,9 @@ export interface ResultsScreenProps {
      *  (legacy safety: don't crash, don't blank). */
     categoryCard?: MarketCardData | null;
     nicheCard?: MarketCardData | null;
+    /** Phase A: the leader domain the category market was sized from (provenance).
+     *  Absent when the card came from the subject's own ladder. */
+    categoryLeader?: string | null;
   } | null;
   /** Real competitor names we discovered (the compare-set). Per-rival share is paid. */
   competitors?: string[];
@@ -473,6 +476,9 @@ export function ResultsScreen(p: ResultsScreenProps) {
                       <div style={{ marginTop: 2, paddingTop: 12, borderTop: "1px solid var(--c-line2)", display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
                         <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 26 }}>{p.searchVisibility!.categoryCard.demand.toLocaleString()}</span>
                         <span style={{ fontSize: 12, color: "var(--c-muted)" }}>searches/mo in your market — you&apos;re in a real category</span>
+                        {p.searchVisibility!.categoryLeader && (
+                          <span style={{ fontSize: 11, color: "var(--c-muted)", fontFamily: JM }}>· sized from {p.searchVisibility!.categoryLeader}</span>
+                        )}
                       </div>
                     )}
                   </div>

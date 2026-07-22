@@ -250,6 +250,32 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
     expect(html).toContain("Search presence is your gap.");
   });
 
+  it("Phase A: the headline market number equals the CATEGORY CARD number — never the subject categoryDemand (the 80-vs-90,500 contradiction)", () => {
+    // Leader-grounded market: card demand 302,230 (from a leader's footprint),
+    // subject categoryDemand 4,710. The headline "your category gets X" MUST
+    // render the CARD number so the page doesn't contradict itself.
+    const r = report({
+      searchVisibility: sv({
+        score: 15, // < 30 → the "your category gets X … barely visible" headline
+        keywordsRanked: 40,
+        categoryDemand: 4710,
+        categoryCard: {
+          label: "Web Analytics",
+          demand: 302230,
+          phrases: [{ keyword: "data analytics tools", volume: 301000 }, { keyword: "app analytics", volume: 1230 }],
+          rankedTop3: [],
+          gaps: [{ keyword: "data analytics tools", volume: 301000 }, { keyword: "app analytics", volume: 1230 }],
+        },
+        categoryLeader: "mixpanel.com",
+      }),
+    });
+    const html = renderToStaticMarkup(<ResultsScreen {...toResultsProps(r, "usefathom.com", 0, 0)} scanId="scan-market" />);
+    assertNoGarbage(html, "leader-market headline");
+    expect(html).toContain("Your category gets 302,230 searches a month");
+    expect(html).not.toContain("4,710"); // the subject number must not headline
+    expect(html).toContain("sized from mixpanel.com"); // provenance disclosed
+  });
+
   it("trustmrr-shape: flawless on-page, near-invisible in search → unified total is low, but the intro must credit the strong on-page driver (Critical 1)", () => {
     // The flagship honesty case the whole branch exists for: a beautifully-built
     // page (onPageReadiness 98) that almost nobody finds (search 4) — unified

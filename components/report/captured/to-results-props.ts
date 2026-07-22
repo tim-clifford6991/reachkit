@@ -267,6 +267,7 @@ export function toResultsProps(
         // `<MarketCard>` (results-screen.tsx) falls back to the pre-P2
         // market-tier ladder render when null, never crashes/blanks.
         categoryCard: sv.categoryCard ?? null,
+        categoryLeader: sv.categoryLeader ?? null,
         nicheCard: sv.nicheCard ?? null,
       }
     : null;
@@ -274,18 +275,25 @@ export function toResultsProps(
   // Coherent headline (was the incoherent "a 98 means customers land on someone
   // else"). Lead with the real gap: no rankings at all is the sharpest hook; then a
   // low category-capture; then the other-brands story.
-  const demandStr = sv ? sv.categoryDemand.toLocaleString() : "";
+  // Phase A (2026-07-21): the HEADLINE market number must equal the CATEGORY
+  // CARD's number — else the page contradicts itself (headline "80 searches"
+  // vs card "90,500"). When the market card is ready (leader-grounded or
+  // subject-laddered), lead with ITS demand; only fall back to the subject
+  // `categoryDemand` when there is no ready card (legacy/0-ranking payloads).
+  const cardReady = !!sv && !!sv.categoryCard && sv.categoryCard.rankedTop3.length + sv.categoryCard.gaps.length > 0;
+  const heroDemand = cardReady ? sv!.categoryCard!.demand : sv ? sv.categoryDemand : 0;
+  const demandStr = heroDemand.toLocaleString();
   // Honest headline. The old branch said "you capture just {categoryCaptureRate}%"
   // — but categoryCaptureRate WAS the search-presence score under a second label
   // (identical in 10/10 prod scans), so it read as a fabricated capture percentage.
-  // Deleted; we lead with the real signal instead: the category demand (true seed
-  // volumes) and a LOW search-presence score, without relabelling the score as a %.
+  // Deleted; we lead with the real signal instead: the category demand (the
+  // market card's number, reconciled above) and a LOW search-presence score.
   const headline = searchVisibility
     ? searchVisibility.keywordsRanked === 0
-      ? searchVisibility.categoryDemand > 0
+      ? heroDemand > 0
         ? `Google ranks you for nothing yet — and your category gets ${demandStr} searches a month, all going to someone else.`
         : `Google ranks you for nothing yet — you're invisible in the searches your buyers make.`
-      : searchVisibility.categoryDemand > 0 && searchVisibility.score < 30
+      : heroDemand > 0 && searchVisibility.score < 30
         ? `Your category gets ${demandStr} searches a month — and you're barely visible for any of them.`
         : searchVisibility.offTopicPct >= 55
           ? `${searchVisibility.offTopicPct}% of the searches you rank for are other companies' brand names, not yours.`
