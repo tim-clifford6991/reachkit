@@ -70,7 +70,7 @@ async function CheckResult({ url }: { url: string }) {
       <CheckList checks={checks} />
       <ScanCta
         url={normalized}
-        line="This is 5 of the 18 signals ReachKit scores — run the full scan to see how you show up in search, AI answers and against your competitors. Free, no account."
+        line="This is 5 of the signals in the full ReachKit scan — run it to see how you show up in search, AI answers and against your competitors. Free, no account."
       />
     </div>
   );

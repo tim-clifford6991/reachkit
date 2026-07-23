@@ -82,7 +82,11 @@ const RESULTS_CSS = `
 const PRICE_LINE = `${fmtPrice(tierByPlan("solo").monthly)}/mo · cancel anytime`;
 
 export interface Pillar { label: string; value: number; note: string; measured?: boolean }
-export interface Fix { rank: number; title: string; why: string; effort: string; pillar: string; pred: number }
+export interface Fix { rank: number; title: string; why: string; effort: string; pillar: string; pred: number;
+  /** Data-driven keyword-opportunity fixes carry their real monthly search
+   *  volume (e.g. "110,000/mo") — rendered as the lead data chip so the growth
+   *  moves read as sized opportunities, not hygiene. Absent on on-page fixes. */
+  metric?: string }
 export interface GapRow { query: string; volume: string; rank: string; ranked: boolean; opp: string }
 
 /** Data-board P3 — the shape `<MarketCard>` renders. Mirrors
@@ -298,6 +302,9 @@ export interface ResultsScreenProps {
      *  (legacy safety: don't crash, don't blank). */
     categoryCard?: MarketCardData | null;
     nicheCard?: MarketCardData | null;
+    /** Phase A: the leader domain the category market was sized from (provenance).
+     *  Absent when the card came from the subject's own ladder. */
+    categoryLeader?: string | null;
   } | null;
   /** Real competitor names we discovered (the compare-set). Per-rival share is paid. */
   competitors?: string[];
@@ -462,17 +469,21 @@ export function ResultsScreen(p: ResultsScreenProps) {
                     <div style={{ fontSize: 12, lineHeight: 1.5, color: "var(--c-muted)", fontFamily: JM, paddingTop: 4, borderTop: "1px dashed var(--c-line2)", marginTop: 2 }}>
                       Your score multiplies both. <strong style={{ color: "var(--c-fg)" }}>{weakerDriver} is your gap.</strong>
                     </div>
-                    {/* P3 (data board §1, Overview): the hero stat — the
-                        CATEGORY size, laddered-large and grounded (D2). Only
-                        when categoryCard actually carries a priced phrase
-                        (never an empty "0 searches/mo" claim) — mirrors the
-                        `categoryCardReady` gate the section below uses, so
-                        the hero and the cards agree on whether P2 data is
-                        usable for this payload. */}
+                    {/* Data board §1 (Overview): the market stat — the CATEGORY
+                        size, positive and data-led ("N searches/mo in your
+                        market — you're in a real category"). This is the free
+                        board's category hook (owner note 2026-07-22: the old
+                        "your category gets X … barely visible" HEADLINE was
+                        dropped in favour of this positive stat). Only when
+                        categoryCard carries a priced phrase — never an empty
+                        "0 searches/mo" claim. */}
                     {marketCardReady(p.searchVisibility!.categoryCard) && (
                       <div style={{ marginTop: 2, paddingTop: 12, borderTop: "1px solid var(--c-line2)", display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
                         <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 26 }}>{p.searchVisibility!.categoryCard.demand.toLocaleString()}</span>
                         <span style={{ fontSize: 12, color: "var(--c-muted)" }}>searches/mo in your market — you&apos;re in a real category</span>
+                        {p.searchVisibility!.categoryLeader && (
+                          <span style={{ fontSize: 11, color: "var(--c-muted)", fontFamily: JM }}>· sized from {p.searchVisibility!.categoryLeader}</span>
+                        )}
                       </div>
                     )}
                   </div>
@@ -528,27 +539,11 @@ export function ResultsScreen(p: ResultsScreenProps) {
               </div>
             );
           })()}
-          {/* P3 (data board, D3) — the aggregation strip: reframes a
-              directory/aggregator's traffic as its OWN engine ("names of
-              companies you list") instead of the old scolding "not buyers
-              looking for you". Independent of categoryCard — aggregatedPct is
-              a P1 field computed unconditionally, so this renders in BOTH the
-              new six-section board and the legacy branch below it. `?? 0` at
-              the props boundary keeps any pre-P1 payload silently under the
-              40% floor (no crash, no strip). */}
-          {p.searchVisibility && p.searchVisibility.aggregatedPct >= 40 && (() => {
-            const sv = p.searchVisibility!;
-            const examples = (sv.aggregatedExamples ?? []).slice(0, 3);
-            return (
-              <div style={{ background: "var(--c-fill)", border: "1px solid var(--c-line)", borderRadius: 16, padding: "16px 20px", marginBottom: 14 }}>
-                <span style={{ fontFamily: JM, fontSize: 10.5, fontWeight: 700, letterSpacing: "0.08em", color: "var(--c-muted)" }}>DIRECTORY PATTERN DETECTED</span>
-                <div style={{ fontSize: 13, color: "var(--c-muted)", marginTop: 9, lineHeight: 1.55 }}>
-                  <b style={{ fontFamily: JM, color: "var(--c-ink)" }}>{sv.aggregatedPct}%</b> of your traffic is the names of companies you list
-                  {examples.length > 0 && <> (<i className="rk-wrap-any">{examples.join(", ")}</i>)</>} — your directory engine, not lost buyers.
-                </div>
-              </div>
-            );
-          })()}
+          {/* Owner note (2026-07-22): the "DIRECTORY PATTERN DETECTED"
+              aggregation strip was REMOVED — a notification-style panel that
+              cluttered the data board. `aggregatedPct` still feeds the footprint
+              classification (and thus the score); only its render is gone.
+              `aggregatedExamples` now has no consumer (a cheap derived field). */}
           {/* Category demand (free): the real market size and how many of those
               terms you actually win. Once a payload carries a READY categoryCard
               (P2 — real priced phrases, never an empty shell: `marketCardReady`),
@@ -565,23 +560,22 @@ export function ResultsScreen(p: ResultsScreenProps) {
             // Discovered rival NAMES are free (the compare-set); per-rival intel
             // is the paid unlock. Shared by BOTH the new and legacy branches
             // below (P3 DRY fix — was duplicated per-branch pre-P3).
-            // P4 (2026-07-20, terseness): the old copy was two prose sentences
-            // ("and rivals are taking the searches above" / "Unlock to see how
-            // each one ranks, why they win, and how much of your category each
-            // takes"). Data-driven per Tim's directive: a keyword-only tease —
-            // the compare-set NAMES (real, free) + a bare unlock link. This is
-            // the one deliberate deviation from the wireframe's 6 sections (it
-            // has no rivalry section at all) — kept because the names are a
-            // strong, honest paid hook and dropping them loses real signal.
+            // P4 (2026-07-20, terseness) + L1 (2026-07-23): the tease is
+            // keyword-only and data-driven — the compare-set NAMES (real, free) +
+            // a bare unlock link. The link now names what paid actually delivers
+            // post-M3a (rival rank + the keyword spine), not the retired "why they
+            // win / share of category" prose. This is the one deliberate deviation
+            // from the wireframe's 6 sections (no rivalry section) — kept because
+            // the names are a strong, honest paid hook.
             const rivalryTeaser = comps.length > 0 ? (
               <div style={{ ...CARD_STYLE, marginBottom: 14, fontSize: 13, color: "var(--c-muted)", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                 <span style={{ fontFamily: JM, fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--c-faint)" }}>Compared to</span>
                 <strong className="rk-wrap-any" style={{ color: "var(--c-ink)" }}>{comps.join(", ")}</strong>
-                <UnlockLink scanId={p.scanId}>🔒 unlock →</UnlockLink>
+                <UnlockLink scanId={p.scanId}>🔒 See how each rival ranks + your keyword spine →</UnlockLink>
               </div>
             ) : !p.hideUnlock ? (
               <div style={{ ...CARD_STYLE, marginBottom: 14, fontSize: 13, color: "var(--c-muted)" }}>
-                <UnlockLink scanId={p.scanId}>🔒 See who&apos;s winning these searches →</UnlockLink>
+                <UnlockLink scanId={p.scanId}>🔒 See who wins these + your weekly plan →</UnlockLink>
               </div>
             ) : null;
 
@@ -617,19 +611,51 @@ export function ResultsScreen(p: ResultsScreenProps) {
                       input renders no section, never an empty list) — the
                       empty-state CARD above still shows, but there is nothing
                       to itemise here. */}
-                  {nicheReady && nicheCardData!.gaps.length > 0 && (
-                    <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16, padding: "18px 20px", marginBottom: 14 }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: "#C98A12", marginBottom: 4 }}>Opportunity · your niche</div>
-                      <div style={{ fontSize: 12.5, color: "var(--c-faint)", marginBottom: 10 }}>Where the searches are — and you&apos;re not there.</div>
-                      {nicheCardData!.gaps.slice(0, 5).map((row) => (
-                        <div key={row.keyword} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "9px 0", borderBottom: "1px solid var(--c-line2)", fontSize: 13 }}>
-                          <span className="rk-wrap-any" style={{ fontWeight: 600, minWidth: 0 }}>{row.keyword}</span>
-                          <span style={{ fontFamily: JM, color: "var(--c-muted)", fontSize: 12.5, whiteSpace: "nowrap" }}>{row.volume.toLocaleString()} / mo</span>
-                          <span style={{ fontFamily: JM, fontWeight: 700, color: "#E5484D", fontSize: 12, whiteSpace: "nowrap" }}>not ranking</span>
+                  {nicheReady && nicheCardData!.gaps.length > 0 && (() => {
+                    const gaps = nicheCardData!.gaps.slice(0, 5);
+                    // Bars are sized against the biggest shown gap — a visual
+                    // demand ranking ("win the tall bars first"). Pure ratio of
+                    // real volumes; the numbers themselves are the payload values.
+                    const maxVol = Math.max(...gaps.map((g) => g.volume), 1);
+                    return (
+                    <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16, padding: "20px 22px", marginBottom: 14 }}>
+                      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
+                        <div style={{ fontFamily: SG, fontWeight: 700, fontSize: 16 }}>What to rank for next</div>
+                        <div style={{ fontFamily: JM, fontSize: 11.5, color: "var(--c-faint)" }}>{gaps.length} niche searches · you don&apos;t rank</div>
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
+                        {gaps.map((row) => {
+                          const pct = Math.max(6, Math.round((row.volume / maxVol) * 100));
+                          const ranks = typeof row.yourPosition === "number";
+                          return (
+                            <div key={row.keyword}>
+                              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, marginBottom: 5 }}>
+                                <span className="rk-wrap-any" style={{ fontWeight: 600, fontSize: 13.5, minWidth: 0 }}>{row.keyword}</span>
+                                <span style={{ display: "inline-flex", gap: 8, alignItems: "baseline", flex: "0 0 auto" }}>
+                                  <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 13 }}>{row.volume.toLocaleString()}</span>
+                                  <span style={{ fontSize: 11, color: "var(--c-faint)" }}>/ mo</span>
+                                  <span style={{ fontFamily: JM, fontWeight: 700, fontSize: 11, color: ranks ? "#C98A12" : "#E5484D", whiteSpace: "nowrap" }}>{ranks ? `#${row.yourPosition}` : "not ranking"}</span>
+                                </span>
+                              </div>
+                              {/* Demand bar — width ∝ real monthly volume. */}
+                              <div style={{ height: 7, borderRadius: 5, background: "var(--c-fill)", overflow: "hidden" }}>
+                                <div style={{ height: "100%", borderRadius: 5, width: `${pct}%`, background: "linear-gradient(90deg, var(--c-action), #8B74FF)" }} />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {/* Paid bridge — the niche opportunity IS the paid thesis:
+                          the pages to win these + weekly tracking as the score
+                          climbs. Named up front, one line, no prose. */}
+                      {!p.hideUnlock && (
+                        <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--c-line2)", fontSize: 13, fontWeight: 600 }}>
+                          <UnlockLink scanId={p.scanId}>🔒 Get the pages to win these + weekly rank tracking →</UnlockLink>
                         </div>
-                      ))}
+                      )}
                     </div>
-                  )}
+                    );
+                  })()}
                 </>
               );
             }
@@ -885,7 +911,12 @@ export function ResultsScreen(p: ResultsScreenProps) {
                   <span style={{ width: 30, height: 30, borderRadius: 8, background: ec.bg, color: ec.fg, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: JM, flex: "0 0 auto" }}>{f.rank}</span>
                   <div style={{ flex: "1 1 0%", minWidth: 0 }}>
                     <div className="rk-wrap-any" style={{ fontWeight: 600, fontSize: 15.5 }}>{f.title}</div>
-                    <div style={{ display: "flex", gap: 7, marginTop: 8 }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginTop: 8 }}>
+                      {/* Data-driven keyword opportunities lead with their real
+                          search volume — the number that makes it a growth move. */}
+                      {f.metric && (
+                        <span style={{ fontFamily: JM, fontSize: 11.5, fontWeight: 700, color: "#1F9D5B", background: "var(--c-tint-green)", padding: "3px 9px", borderRadius: 6 }}>{f.metric}</span>
+                      )}
                       <span style={{ fontSize: 11.5, fontWeight: 600, color: ec.fg, background: ec.bg, padding: "3px 9px", borderRadius: 6 }}>{f.effort}</span>
                       <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--c-muted)", background: "var(--c-fill)", padding: "3px 9px", borderRadius: 6 }}>{f.pillar}</span>
                     </div>
@@ -896,16 +927,15 @@ export function ResultsScreen(p: ResultsScreenProps) {
                 </div>
               );
             })}
-            {/* P4 "2+2" deliverable: up to 2 blurred locked-preview rows between
-                the shown fixes and the "N more" band, matching the wireframe's
-                paywall tease. Uses REAL rank-3/4 data when the (already
-                free-redacted) plan carries it (`p.lockedPreview`); a slot with
-                no real data behind it renders as a content-free skeleton bar —
-                honest ("there is more, unlock it"), never a fabricated title
-                (invariant #11 — this phase does not widen the free-preview
-                action count, so a genuine title for every blurred slot isn't
-                always available). */}
-            {Math.min(2, p.lockedCount) > 0 && Array.from({ length: Math.min(2, p.lockedCount) }).map((_, i) => {
+            {/* Phase C / D4 (2026-07-21): the free board ALWAYS blurs 2 locked
+                rows below the 3 shown fixes — a CONSISTENT paywall tease ("the
+                plan continues on upgrade"), shown even when no specific free fix
+                is withheld. A slot uses REAL rank-4/5 data when the (already
+                free-redacted) plan carries it (`p.lockedPreview`); otherwise it
+                renders a content-free skeleton bar — honest, never a fabricated
+                title (invariant #11). Gated on `fixes.length > 0` so the degraded
+                empty-plan branch above owns the zero case. */}
+            {p.fixes.length > 0 && Array.from({ length: 2 }).map((_, i) => {
               const real = (p.lockedPreview ?? [])[i];
               return (
                 <div
@@ -931,14 +961,16 @@ export function ResultsScreen(p: ResultsScreenProps) {
                 </div>
               );
             })}
-            {p.lockedCount > 0 && (
+            {/* The unlock CTA. When a real withheld count exists it names it
+                ("N more ranked fixes [worth +W]" — the number derives ONLY from
+                the real collection, R4/G10); otherwise a generic unlock CTA with
+                NO fabricated count. `worth` clause only when > 0 (a "+0" reads as
+                broken). */}
+            {p.fixes.length > 0 && (
               <div style={{ position: "relative", background: "var(--c-surface)", border: "1px dashed #D9D6E4", borderRadius: 14, padding: "18px 20px", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
-                {/* lockedWorth can legitimately be 0 (zero-delta cards, or a
-                    lockedCount derived from totalActions with no rest rows) —
-                    "worth an estimated +0" reads as broken, so the worth clause
-                    only renders when there's a real number behind it
-                    (housekeeping, remediation plan 2026-07-15 Task 5.4). */}
-                <span style={{ fontSize: 14, fontWeight: 600, color: "var(--c-faint)" }}>🔒 {p.lockedCount} more ranked fixes{p.lockedWorth > 0 ? <> — worth an estimated +{p.lockedWorth}</> : null} — <UnlockLink scanId={p.scanId}>unlock the full plan →</UnlockLink></span>
+                <span style={{ fontSize: 14, fontWeight: 600, color: "var(--c-faint)" }}>
+                  🔒 {p.lockedCount > 0 ? <>{p.lockedCount} more ranked fixes{p.lockedWorth > 0 ? <> — worth an estimated +{p.lockedWorth}</> : null} — </> : null}<UnlockLink scanId={p.scanId}>unlock the full plan →</UnlockLink>
+                </span>
               </div>
             )}
           </div>
@@ -972,9 +1004,9 @@ export function ResultsScreen(p: ResultsScreenProps) {
             <div style={{ marginTop: 18, background: "linear-gradient(135deg, var(--c-dark), var(--c-dark2))", borderRadius: 18, padding: "30px 32px", textAlign: "center" }}>
               <h3 style={{ fontFamily: SG, fontWeight: 700, fontSize: 22, color: "#fff", margin: "0 0 16px" }}>Unlock the full plan</h3>
               <div style={{ display: "flex", flexDirection: "column", gap: 6, fontFamily: JM, fontSize: 13, color: "#D8D5E6", marginBottom: 20 }}>
-                <span>Daily fix calendar</span>
-                <span>Weekly rank tracking</span>
-                <span>Distribution &amp; outreach</span>
+                <span>Weekly action plan + keyword spine</span>
+                <span>Weekly rank tracking &amp; score history</span>
+                <span>Referrer lessons &amp; community targets</span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
                 {p.unlockButton ?? (

@@ -22,11 +22,18 @@
 import { SIGNAL_REGISTRY, PILLAR_WEIGHTS, type Pillar, type SignalSource } from "./signals";
 import type { ScanSignalRow } from "./compute-signals";
 import type { ActionCard } from "@/lib/llm/types";
+import type { SearchVisibility, DemandRow } from "./search-visibility";
 import { discoverabilityScore as unifiedDiscoverability } from "./registry-score";
-import { CATEGORY_TARGET } from "./search-visibility";
+import { CATEGORY_TARGET, dedupeByIntent, isMeaningfulMarketPhrase } from "./search-visibility";
 
 /** Max baseline fixes emitted by the floor. */
 export const MAX_FALLBACK_ACTIONS = 5;
+
+/** Phase C / D4 (2026-07-21): the free plan ALWAYS surfaces at least this many
+ *  fixes (deterministic, honest — never fabricated). The blurred locked rows are
+ *  a SEPARATE visual teaser; this is the floor on REAL fixes shown. Pinned in
+ *  `documented-invariants.test.ts`. */
+export const FREE_MIN_ACTIONS = 3;
 
 const CATEGORY_FOR_PILLAR: Record<Pillar, ActionCard["category"]> = {
   content: "content",
@@ -104,6 +111,37 @@ export function fallbackActionsFromSignals(
 export const MAX_OPPORTUNITY_ACTIONS = 2;
 
 /**
+ * Phase C / D4 (2026-07-21): the honest near-miss pool the free floor draws
+ * opportunity fixes from — every REAL category keyword the subject does NOT
+ * already win, highest-volume first, deduped. It merges the demand hero's
+ * `categoryOpportunities` with the (Phase A) leader MARKET card's `gaps` and the
+ * niche card's `gaps`, so a tidy page with a weak search footprint (the trustmrr
+ * class: 0 `categoryOpportunities`, but a leader-sized market with real gaps)
+ * still yields ≥{@link FREE_MIN_ACTIONS} honest fixes instead of "your top 1
+ * ranked fixes". Every row carries a REAL DataForSEO volume + the subject's REAL
+ * position (or none) — never fabricated (invariant #11 / 5a). PURE.
+ */
+export function categoryNearMisses(sv: Pick<SearchVisibility, "categoryOpportunities" | "categoryCard" | "nicheCard">): DemandRow[] {
+  const rows: DemandRow[] = [
+    ...(sv.categoryOpportunities ?? []),
+    ...(sv.categoryCard?.gaps ?? []),
+    ...(sv.nicheCard?.gaps ?? []),
+  ].filter((r) => r && r.volume > 0);
+  // These become the free board's LEAD fixes ("Create a page targeting X"), so
+  // they must clear the SAME honesty bar as the market cards — never a bare
+  // mega-word ("Create a page targeting 'space'" for spacex.com, 368k, a real
+  // ranking but an unwinnable page target: live defect 2026-07-22) and never a
+  // near-duplicate ("privacy tools" + "privacy tool", usefathom.com). Reuse the
+  // exact market-card guards (`isMeaningfulMarketPhrase` ≥2 real non-mega words,
+  // `dedupeByIntent` plural/paraphrase collapse) so the opportunity surface can
+  // never drift from the card surface. `categoryOpportunities`/`categoryCard.gaps`
+  // are NOT pre-filtered upstream (only the niche/market cards are), which is why
+  // the bare word leaked here but not into "What to rank for next".
+  const deduped = dedupeByIntent(rows.filter((r) => isMeaningfulMarketPhrase(r.keyword)));
+  return deduped.sort((a, b) => b.volume - a.volume);
+}
+
+/**
  * WS-C (2026-07-19): the free plan's #1 fix must speak to the page's own
  * diagnosis. These cards are DETERMINISTIC (no LLM, no new data): each names a
  * real category search the site doesn't win (keyword/volume/position already in
@@ -113,19 +151,26 @@ export const MAX_OPPORTUNITY_ACTIONS = 2;
  * step produces. Never a free-chosen number.
  */
 export function opportunityActionsFromSearch(
-  input: { score: number; onPageReadiness: number; categoryOpportunities: Array<{ keyword: string; volume: number; yourPosition?: number }> },
+  input: {
+    score: number;
+    onPageReadiness: number;
+    categoryOpportunities: Array<{ keyword: string; volume: number; yourPosition?: number }>;
+    /** Phase C: how many opportunity cards to emit (the free floor raises this to
+     *  FREE_MIN_ACTIONS so a weak-search site still reaches the fix floor). */
+    max?: number;
+  },
   now: Date = new Date(),
 ): ActionCard[] {
   const { score, onPageReadiness } = input;
   if (onPageReadiness <= 0) return [];
-  const opps = (input.categoryOpportunities ?? []).slice(0, MAX_OPPORTUNITY_ACTIONS);
+  const opps = (input.categoryOpportunities ?? []).slice(0, input.max ?? MAX_OPPORTUNITY_ACTIONS);
   const deadline = new Date(now.getTime() + 21 * 24 * 3600 * 1000).toISOString().slice(0, 10);
   const before = unifiedDiscoverability(onPageReadiness, Math.max(1, score));
   const after = unifiedDiscoverability(onPageReadiness, Math.min(100, score + 100 / CATEGORY_TARGET));
   const delta = Math.max(1, Math.round(after - before));
   return opps.map((o) => ({
     category: "seo_aso",
-    title: `Create or strengthen a page targeting "${o.keyword}"`,
+    title: `Create a page targeting "${o.keyword}"`,
     why: `${o.volume.toLocaleString()} searches/mo in your category — ${
       typeof o.yourPosition === "number" ? `you're #${o.yourPosition} today; top 3 is the goal` : "you don't rank for it yet"
     }. Winning it lifts the Search-presence half of your score.`,
@@ -141,5 +186,9 @@ export function opportunityActionsFromSearch(
     confidence: 0.5,
     target: null,
     signalKeys: [],
+    // The real keyword + volume that make this a data-driven growth move — the
+    // free board leads with these and renders the volume chip (R2-safe: a real
+    // DataForSEO number already in the payload).
+    opportunity: { keyword: o.keyword, volume: o.volume },
   }));
 }

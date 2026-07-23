@@ -33,8 +33,8 @@ const LABEL_STYLE: React.CSSProperties = {
 
 export function CompetitorEdgePanel({
   channels = [],
-  text = "Ranks #3 for “ai meeting notes” (12,000/mo) — a keyword you don’t rank for at all.",
-  moveLabel = "Counter: target “ai meeting notes” — in your plan",
+  text = "Pulls 84.2k/mo with referrers like g2.com — study their acquisition mix, then pursue the referrers they have that you don’t (above).",
+  moveLabel = null,
 }: CompetitorEdgePanelProps) {
   return (
     <div style={{ fontFamily: "var(--font-sans)", color: "var(--c-ink)", borderTop: "1px solid var(--c-tint-orange-line)", paddingTop: 14, display: "flex", flexDirection: "column", gap: 7 }}>

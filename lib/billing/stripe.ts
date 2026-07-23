@@ -38,9 +38,14 @@ export function priceMap(): PriceMap {
 }
 
 /**
- * Resolve the Stripe price id for a (plan, interval). Falls back to the monthly
- * price when an annual price id isn't configured, so the annual toggle degrades
- * gracefully rather than 500ing checkout.
+ * Resolve the Stripe price id for a (plan, interval).
+ *
+ * Annual selection with an unconfigured annual price id is a HARD ERROR, never a
+ * silent fall-back to the monthly price: the checkout still stamps
+ * `metadata.interval:"year"`, so a silent downgrade would record "annual" while
+ * charging monthly — an honesty bug on the money path (the public
+ * `/api/billing/checkout/anonymous` accepts `interval:"year"` regardless of UI).
+ * Better a loud 500 that surfaces the misconfig than a mislabelled charge.
  */
 export function priceIdFor(
   plan: "solo" | "growth",
@@ -49,7 +54,12 @@ export function priceIdFor(
 ): string {
   if (interval === "year") {
     const annual = plan === "growth" ? prices.growthAnnual : prices.soloAnnual;
-    if (annual.length > 0) return annual;
+    if (annual.length === 0) {
+      throw new Error(
+        `annual price not configured for plan "${plan}" (set STRIPE_PRICE_${plan.toUpperCase()}_ANNUAL) — refusing to bill monthly under an annual label`,
+      );
+    }
+    return annual;
   }
   return plan === "growth" ? prices.growth : prices.solo;
 }

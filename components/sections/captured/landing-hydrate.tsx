@@ -8,8 +8,10 @@
  * Every captured CTA that promises a scan is routed to a REAL scan entry: the
  * nearest live shared <ScanInput/> on the page when one exists (smooth-scroll +
  * focus — the actual POST /api/scan lives in that one component, never
- * duplicated here), otherwise the dedicated /scan page. Upgrade CTAs go to
- * billing via login.
+ * duplicated here), otherwise the dedicated /scan page. Upgrade CTAs ("Start
+ * Solo/Growth") open an ANONYMOUS Stripe checkout directly (L1, 2026-07-23) —
+ * the pricing page used to bounce them to /login?next=/app/billing (a wall,
+ * not a sell); the login route stays only as the graceful fallback.
  *
  * HISTORY (owner bug report 2026-07-16): the captured hero used to carry its
  * own <input>, and this file duplicated the scan POST against it. When the hero
@@ -49,6 +51,22 @@ export function LandingHydrate({ rootId = "rk-landing" }: { rootId?: string }) {
     const root = document.getElementById(rootId);
     if (!root) return;
 
+    /** Open an anonymous Stripe checkout for the chosen plan; on any failure
+     *  fall back to the login→billing route so the CTA is never a dead click. */
+    function openCheckout(plan: "solo" | "growth") {
+      fetch("/api/billing/checkout/anonymous", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan, interval: "month" }),
+      })
+        .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+        .then((d: { url?: string }) => {
+          if (d.url) window.location.href = d.url;
+          else router.push(UPGRADE_CTA_HREF);
+        })
+        .catch(() => router.push(UPGRADE_CTA_HREF));
+    }
+
     /** Scroll+focus the nearest live scan input; no input on page → /scan. */
     function openScanEntry(from: HTMLElement) {
       const inputs = Array.from(document.querySelectorAll<HTMLInputElement>(SCAN_INPUT_SELECTOR));
@@ -69,7 +87,7 @@ export function LandingHydrate({ rootId = "rk-landing" }: { rootId?: string }) {
       const t = b.textContent?.trim() ?? "";
       // Upgrade first: "Start Solo/Growth" must never fall through to a scan.
       const h = UPGRADE_CTA_PATTERN.test(t)
-        ? () => router.push(UPGRADE_CTA_HREF)
+        ? () => openCheckout(/growth/i.test(t) ? "growth" : "solo")
         : SCAN_CTA_PATTERN.test(t)
           ? () => openScanEntry(b)
           : null;

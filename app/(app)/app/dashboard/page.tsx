@@ -10,6 +10,8 @@ import { scoreHistoryMarkers } from "@/lib/scan/score-history-markers";
 import { buildProgressEvents } from "@/lib/scan/progress-events";
 import { type ScoreBreakdown } from "@/lib/scan/pillar-scores";
 import { buildDashboardHeroProps } from "@/lib/app/dashboard-hero-props";
+import { buildRankTargets } from "@/lib/app/rank-targets-props";
+import { WhatToRankFor } from "@/components/app/intel/rank-targets";
 import type { ReportPayload } from "@/lib/scan/report";
 import type { Pillar } from "@/lib/scan/signals";
 import { actionBoard } from "@/lib/scan/action-board";
@@ -219,6 +221,12 @@ async function DashboardContent() {
         isPaid={entitlements?.active ?? false}
         events={events}
       />
+      {/* The growth engine: score → WHAT to rank for (the target searches) → the
+          PLAN to win them. "What to rank for" reads right after the score so the
+          founder sees the specific moves before the calendar that schedules them. */}
+      <div style={{ marginTop: 20 }}>
+        <WhatToRankFor {...buildRankTargets(scan.report_payload as ReportPayload | null)} />
+      </div>
       {/* The plan is what a founder acts on — it reads second, right after the score story. */}
       <div style={{ marginTop: 20 }}>
         <WeekPlanPreview board={board} />

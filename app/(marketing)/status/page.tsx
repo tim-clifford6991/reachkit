@@ -8,8 +8,8 @@ export default function StatusPage() {
   return (
     <ComingSoon
       eyebrow="Status"
-      title="All systems operational"
-      blurb="A live status page with uptime history is coming soon. If something looks broken in the meantime, let us know via the contact page."
+      title="Status page coming soon"
+      blurb="A live status page with uptime history is on the way. If something looks broken in the meantime, let us know via the contact page."
     />
   );
 }

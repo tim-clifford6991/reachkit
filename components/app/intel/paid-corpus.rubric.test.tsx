@@ -28,7 +28,9 @@
 import { describe, it, expect } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { DashboardHero } from "./dashboard-hero";
+import { WhatToRankFor } from "./rank-targets";
 import { buildDashboardHeroProps } from "@/lib/app/dashboard-hero-props";
+import { buildRankTargets } from "@/lib/app/rank-targets-props";
 import { runIntelRubric, INTEL_RUBRIC_RULES } from "@/lib/testing/report-rubric";
 import type { ReportPayload } from "@/lib/scan/report";
 
@@ -90,6 +92,68 @@ describe("paid dashboard hero — every corpus payload renders clean through the
       expect(violations2, violations2.map((v) => `[${v.rule}] ${v.message}`).join("\n")).toEqual([]);
     });
   }
+
+  // Generic advice that must NEVER render — the action plan always pushes a
+  // SPECIFIC artifact (owner rule 2026-07-22). If any of these appear, a row
+  // degraded to general filler.
+  const GENERIC_ADVICE = [
+    "improve your content", "increase your visibility", "boost your ranking",
+    "optimize your site", "enhance your presence", "grow your audience",
+  ];
+
+  for (const fx of FIXTURES) {
+    it(`${fx.domain}: "What to rank for" renders SPECIFIC, actionable targets (R1 + R2i + actionability)`, () => {
+      const props = buildRankTargets(fx.reportPayload);
+      const html = renderToStaticMarkup(<WhatToRankFor {...props} />);
+
+      // R1 (no garbage) + R2i (every rendered number ≥10 derives from the props).
+      const violations = runIntelRubric(props, html);
+      expect(violations, violations.map((v) => `[${v.rule}] ${v.message}`).join("\n")).toEqual([]);
+
+      // Never general advice — the through-line requirement.
+      for (const g of GENERIC_ADVICE) expect(html.toLowerCase()).not.toContain(g);
+
+      if (props.targets.length > 0) {
+        // Every shown target is a CONCRETE move — "Create a page targeting «kw»"
+        // with its real keyword. Depth: the board shows the moves, not a teaser.
+        expect(html).toContain("Create a page targeting");
+        for (const t of props.targets.slice(0, 12)) {
+          expect(html, `${fx.domain}: target "${t.keyword}" must render`).toContain(t.keyword);
+        }
+      } else {
+        // Honest zero-state — a fabricated row would be worse than none.
+        expect(html).toContain("No category searches measured yet");
+      }
+    });
+  }
+
+  // M1 unify (2026-07-23): the dashboard renders ONLY the spine surface — the
+  // metered Pipeline-B `supply.keywords.gaps` is gone. The raw deep-scan
+  // `market.gap.keywordGap` must NOT leak into this "Create a page targeting X"
+  // board: it is UNCLASSIFIED rival keywords (competitor brands, airports, card
+  // products) — un-winnable page targets (the SpaceX-"space" / cardpointers-
+  // "capital one" 9.1M class, verified on the real cardpointers paid payload).
+  // buildRankTargets ignores `market.gap` entirely; the classified rival "why"
+  // lands in M3 via the Phase-B relevance judge. Guard: injecting a mega-brand
+  // rival gap NEVER adds a target and NEVER renders. Mutation-proven: re-add the
+  // gap-merge to buildRankTargets → this fires.
+  it("raw rival gap (unclassified) never leaks into the spine targets (deferred to M3)", () => {
+    const base = FIXTURES.map((fx) => ({ fx, spine: buildRankTargets(fx.reportPayload) })).find((c) => c.spine.targets.length > 0)!;
+    const before = base.spine.targets.map((t) => t.keyword);
+    const withGap = {
+      ...base.fx.reportPayload,
+      market: { gap: { keywordGap: [
+        { keyword: "capital one", volume: 9140000, rivalsRanking: 1, bestRivalPosition: 18 },
+        { keyword: "los angeles international airport", volume: 1500000, rivalsRanking: 1, bestRivalPosition: 48 },
+      ] } },
+    } as unknown as CorpusFixture["reportPayload"];
+    const after = buildRankTargets(withGap);
+    // The target set is unchanged — the raw gap contributed nothing.
+    expect(after.targets.map((t) => t.keyword)).toEqual(before);
+    const html = renderToStaticMarkup(<WhatToRankFor {...after} />);
+    expect(html).not.toContain("capital one");
+    expect(html).not.toContain("los angeles international airport");
+  });
 
   it("the builder preserves invariant #1 on the fallback path: gauge == persisted score_total", () => {
     for (const fx of FIXTURES) {

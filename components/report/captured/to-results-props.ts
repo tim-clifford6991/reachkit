@@ -82,22 +82,35 @@ export function toResultsProps(
     { label: "SEO", value: b.seo, note: PILLAR_NOTE(b.seo, measured.seo && b.seo === minVal), measured: measured.seo },
   ];
 
-  const ranked = [
+  const byDelta = (a: ActionCard, b2: ActionCard) =>
+    (b2.expectedOutcome?.delta ?? 0) - (a.expectedOutcome?.delta ?? 0);
+  const flat = [
     ...report.whatToDoThisWeek.quickWins,
     ...report.whatToDoThisWeek.medium,
     ...report.whatToDoThisWeek.longPlay,
-  ].sort((a, b2) => (b2.expectedOutcome?.delta ?? 0) - (a.expectedOutcome?.delta ?? 0));
+  ];
   // Prefer actions with a positive predicted delta, but NEVER let the filter
   // empty a non-empty plan (regression: real scans whose cards carried delta 0
   // rendered "your top 0 ranked fixes").
-  const positive = ranked.filter((a) => (a.expectedOutcome?.delta ?? 0) > 0);
-  const allActions = positive.length > 0 ? positive : ranked;
+  const positive = flat.filter((a) => (a.expectedOutcome?.delta ?? 0) > 0);
+  const base = positive.length > 0 ? positive : flat;
+  // The free board LEADS with the data-driven keyword growth moves (real
+  // category/niche searches to win, by demand) — the on-thesis "3 actions to
+  // improve your standing in your niche/category", not generic on-page hygiene.
+  // These carry `.opportunity` (`opportunityActionsFromSearch`); the remaining
+  // signal/LLM fixes follow, ranked by score impact. Paid LLM cards never carry
+  // `.opportunity`, so paid ordering stays pure impact-ranked (unchanged).
+  // Display order: the data-driven keyword growth moves (by demand) lead, then
+  // the remaining fixes by score impact. Which actions are PRESENT here is already
+  // decided upstream by `redactReportForTier` (opportunity-aware: ≤2 opportunities
+  // + best other fix for free); this only orders whatever survived. Paid LLM cards
+  // carry no `.opportunity`, so paid stays pure impact-ranked.
+  const opps = base
+    .filter((a) => a.opportunity)
+    .sort((a, b2) => (b2.opportunity!.volume) - (a.opportunity!.volume));
+  const restFixes = base.filter((a) => !a.opportunity).sort(byDelta);
+  const allActions = [...opps, ...restFixes];
 
-  // P4 (2026-07-20, data board terseness): the wireframe shows 2 shown fixes,
-  // not 3 — the third card's "why" prose is gone, so the card itself is
-  // terser and 2 is enough to prove the plan without crowding the paywall
-  // tease. `rest` (everything beyond the 2 shown) feeds BOTH the up-to-2
-  // real blurred locked-preview cards AND the "N more" band's worth total.
   const toFix = (a: ActionCard, rank: number): Fix => ({
     rank,
     title: a.title,
@@ -105,8 +118,17 @@ export function toResultsProps(
     effort: effortLabel(a.effortMin),
     pillar: CATEGORY_LABEL[a.category] ?? a.category,
     pred: a.expectedOutcome?.delta ?? 0,
+    // Data-driven fix cards (keyword opportunities) render their real monthly
+    // search volume — the number that makes them a growth move, not hygiene.
+    metric: a.opportunity ? `${a.opportunity.volume.toLocaleString()}/mo` : undefined,
   });
-  const SHOWN_FIXES = 2;
+  // Phase C / D4 (2026-07-21, supersedes P4's 2): the free board ALWAYS shows 3
+  // ranked fixes — the owner's directive ("the user should always, regardless see
+  // 3 fixes"). The generator floors the plan to FREE_MIN_ACTIONS=3 real fixes
+  // (never fabricated — `categoryNearMisses`), so 3 is always available on a real
+  // scan; the cards stay terse (no prose "why"). Change Protocol: the constant +
+  // this rationale move together.
+  const SHOWN_FIXES = 3;
   const fixes: Fix[] = allActions.slice(0, SHOWN_FIXES).map((a, i) => toFix(a, i + 1));
   const rest = allActions.slice(SHOWN_FIXES);
   const lockedPreview: Fix[] = rest.slice(0, 2).map((a, i) => toFix(a, fixes.length + i + 1));
@@ -267,6 +289,7 @@ export function toResultsProps(
         // `<MarketCard>` (results-screen.tsx) falls back to the pre-P2
         // market-tier ladder render when null, never crashes/blanks.
         categoryCard: sv.categoryCard ?? null,
+        categoryLeader: sv.categoryLeader ?? null,
         nicheCard: sv.nicheCard ?? null,
       }
     : null;
@@ -274,22 +297,31 @@ export function toResultsProps(
   // Coherent headline (was the incoherent "a 98 means customers land on someone
   // else"). Lead with the real gap: no rankings at all is the sharpest hook; then a
   // low category-capture; then the other-brands story.
-  const demandStr = sv ? sv.categoryDemand.toLocaleString() : "";
+  // Phase A (2026-07-21): the HEADLINE market number must equal the CATEGORY
+  // CARD's number — else the page contradicts itself (headline "80 searches"
+  // vs card "90,500"). When the market card is ready (leader-grounded or
+  // subject-laddered), lead with ITS demand; only fall back to the subject
+  // `categoryDemand` when there is no ready card (legacy/0-ranking payloads).
+  const cardReady = !!sv && !!sv.categoryCard && sv.categoryCard.rankedTop3.length + sv.categoryCard.gaps.length > 0;
+  const heroDemand = cardReady ? sv!.categoryCard!.demand : sv ? sv.categoryDemand : 0;
+  const demandStr = heroDemand.toLocaleString();
   // Honest headline. The old branch said "you capture just {categoryCaptureRate}%"
   // — but categoryCaptureRate WAS the search-presence score under a second label
   // (identical in 10/10 prod scans), so it read as a fabricated capture percentage.
-  // Deleted; we lead with the real signal instead: the category demand (true seed
-  // volumes) and a LOW search-presence score, without relabelling the score as a %.
+  // Deleted; we lead with the real signal instead: the category demand (the
+  // market card's number, reconciled above) and a LOW search-presence score.
+  // Owner note (2026-07-22): the headline never restates the category demand
+  // number — the positive market stat below the driver bars ("N searches/mo in
+  // your market — you're in a real category") owns that. Dropped BOTH old
+  // demand-in-headline branches: the "your category gets X … barely visible"
+  // scolding (low-score ranked) and the "…all going to someone else" tail on the
+  // 0-ranking hook. The category framing is now the (positive) stat, not the h1.
   const headline = searchVisibility
     ? searchVisibility.keywordsRanked === 0
-      ? searchVisibility.categoryDemand > 0
-        ? `Google ranks you for nothing yet — and your category gets ${demandStr} searches a month, all going to someone else.`
-        : `Google ranks you for nothing yet — you're invisible in the searches your buyers make.`
-      : searchVisibility.categoryDemand > 0 && searchVisibility.score < 30
-        ? `Your category gets ${demandStr} searches a month — and you're barely visible for any of them.`
-        : searchVisibility.offTopicPct >= 55
-          ? `${searchVisibility.offTopicPct}% of the searches you rank for are other companies' brand names, not yours.`
-          : `You're on the board in search — but leaving real category traffic on the table.`
+      ? `Google ranks you for nothing yet — you're invisible in the searches your buyers make.`
+      : searchVisibility.offTopicPct >= 55
+        ? `${searchVisibility.offTopicPct}% of the searches you rank for are other companies' brand names, not yours.`
+        : `You're on the board in search — but leaving real category traffic on the table.`
     : `${report.score.total}/100 on-site readiness. The gap that matters is where buyers search — and that's below.`;
 
   // MINOR polish: only append an ellipsis when the string was ACTUALLY cut —

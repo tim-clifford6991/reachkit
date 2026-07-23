@@ -183,7 +183,10 @@ test(
 
     expect(result).toMatchObject({ ok: true });
 
-    // 3. Assert a `facts` scan_event was written with ≥1 competitor
+    // 3. Assert a `facts` scan_event was written. A FREE scan (this path) does
+    //    NOT discover competitors — Phase S / R-3.10 moved rival discovery to the
+    //    paid deepen, so the free facts carry an empty competitors list (present
+    //    as an array, never populated). Rivalry is a paid capability now.
     const { data: evtRows, error: evtErr } = await db
       .from("scan_events")
       .select("id, type, payload")
@@ -200,7 +203,7 @@ test(
     const factsPayload = factsRow.payload as Record<string, unknown>;
     const competitors = factsPayload["competitors"];
     expect(Array.isArray(competitors)).toBe(true);
-    expect((competitors as unknown[]).length).toBeGreaterThanOrEqual(1);
+    expect((competitors as unknown[]).length).toBe(0); // free = no rival discovery (Phase S)
 
     // 4. Assert a `findings` scan_event was written with 3 findings and a numeric score.total
     const { data: findingsEvtRows, error: findingsEvtErr } = await db

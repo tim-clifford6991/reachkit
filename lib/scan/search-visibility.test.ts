@@ -19,6 +19,15 @@ vi.mock("@/lib/scan/cache/cached-adapters", () => ({
   cachedKeywordVolumes: (...a: unknown[]) => gatherVolumesSpy(...a),
 }));
 
+// Phase B: the LLM relevance judge is mocked so the gather-level tests stay
+// deterministic (no live callModel). Defaults to an EMPTY map — every existing
+// gather test passes no `leaders`, so the judge never runs; the Phase-B
+// invariant-#1 test below opts in with `mockResolvedValueOnce(...)`.
+const judgeSpy = vi.fn(async (..._a: unknown[]) => new Map<string, string>());
+vi.mock("@/lib/scan/relevance-judge", () => ({
+  judgeRelevance: (...a: unknown[]) => judgeSpy(...a),
+}));
+
 import {
   computeSearchVisibility, buildVocab, computeCategoryDemand, buildCategorySeeds, computeMarketTiers,
   classifyFootprint, gatherFreeSearchVisibility, stem, computeCategoryLadder, ladderCandidates, CATEGORY_FLOOR,
@@ -26,6 +35,7 @@ import {
 } from "./search-visibility";
 import { tokens, GENERIC_TOKENS } from "@/lib/scan/referral/brand-keywords";
 import type { CategoryNicheSeeds } from "@/lib/llm/types";
+import type { RelevanceVerdicts } from "./relevance-judge";
 
 // Default url is a single-segment placeholder ("/x") — deliberately NEVER a
 // 2+-segment URL template match (see `pathContainer` in search-visibility.ts),
@@ -360,6 +370,34 @@ describe("computeCategoryDemand grounding (task-G, 2026-07-20) — no LLM-guesse
     const seedVolumes = [{ keyword: "business intelligence platform", volume: 165000 }];
     const d = computeCategoryDemand(seedVolumes, emptyRanks, []); // no footprint at all
     expect(d.categoryDemand).toBe(165000); // unfiltered — same as today's behaviour
+  });
+
+  it("Phase B: the judge drops a token-GROUNDED seed that names a different market ('startup incubator' for an MRR tracker)", () => {
+    // Both seeds share "startup" with categoryRanked, so token-grounding keeps
+    // BOTH. The judge knows "startup incubator program" is not this MRR tracker's
+    // market and rules it irrelevant; "startup revenue tracker" stays category.
+    const seedVolumes = [
+      { keyword: "startup incubator program", volume: 40000 }, // grounded on "startup", but a different market
+      { keyword: "startup revenue tracker", volume: 800 }, // genuinely the subject's category
+    ];
+    const verdicts: RelevanceVerdicts = new Map([
+      ["startup incubator program", "irrelevant"],
+      ["startup revenue tracker", "category"],
+    ]);
+    const withJudge = computeCategoryDemand(seedVolumes, emptyRanks, trustmrrCategoryRanked, verdicts);
+    expect(withJudge.categoryPhrases.map((p) => p.keyword)).not.toContain("startup incubator program");
+    expect(withJudge.categoryPhrases.map((p) => p.keyword)).toContain("startup revenue tracker");
+
+    // WITHOUT the judge (degrade), token-grounding keeps the incubator seed and
+    // its 40k dominates — the coarse behaviour the judge fixes.
+    const noJudge = computeCategoryDemand(seedVolumes, emptyRanks, trustmrrCategoryRanked);
+    expect(noJudge.categoryPhrases.map((p) => p.keyword)).toContain("startup incubator program");
+  });
+
+  it("Phase B local fallback: an UNJUDGED seed still uses token-grounding", () => {
+    const seedVolumes = [{ keyword: "startup marketplace", volume: 50 }]; // shares "startup", unjudged
+    const d = computeCategoryDemand(seedVolumes, emptyRanks, trustmrrCategoryRanked, new Map());
+    expect(d.categoryPhrases.map((p) => p.keyword)).toContain("startup marketplace");
   });
 
   // Review fix (2026-07-20, Minor finding): the old version of this test called
@@ -785,11 +823,67 @@ describe("computeCategoryLadder — CATEGORY must be LARGE, never fabricated (D2
 
     const gathered = await gatherFreeSearchVisibility("trustmrr.com", seedText, llmCategorySeeds, undefined, [], categoryNiche);
 
-    // The ladder actually ran (not a no-op stand-in).
-    expect(gathered.categoryCard?.demand).toBeGreaterThanOrEqual(CATEGORY_FLOOR);
+    // The category card is now the guarded market BASKET (2026-07-22 — the basket
+    // is primary over the old single-umbrella ladder): demand reconciles to its
+    // phrases (G4), and no phrase is a bare single word (the "google" 68M guard).
+    const card = gathered.categoryCard;
+    expect(card).toBeTruthy();
+    if (card) {
+      expect(card.demand).toBe(card.phrases.reduce((s, p) => s + p.volume, 0));
+      for (const p of card.phrases) expect(p.keyword.trim().split(/\s+/).length).toBeGreaterThanOrEqual(2);
+    }
 
     // …and it did not touch score: classifying the SAME rows/vocab directly —
-    // no ladder, no cards — produces the identical score the gather returned.
+    // no cards — produces the identical score the gather returned (invariant #1).
+    const expected = classifyFootprint("trustmrr.com", seedText, llmCategorySeeds, TRUSTMRR, []);
+    expect(gathered.score).toBe(expected.score);
+  });
+
+  it("invariant #1 (Phase B): the LLM relevance judge reshapes the market card but NEVER touches sv.score", async () => {
+    // Subject footprint (call #1), then the LEADER's footprint (call #2, the
+    // parallel fetch). The leader ranks for a broad market; the judge marks only
+    // some of it as the subject's category.
+    gatherRankedSpy.mockResolvedValueOnce(TRUSTMRR); // subject
+    const leaderRows: RankedKeyword[] = [
+      kw("mrr calculator", 1, 8000, 500, "https://leaderco.com/a"),
+      kw("mrr dashboard", 1, 6000, 400, "https://leaderco.com/b"),
+      kw("mrr analytics platform", 1, 5000, 300, "https://leaderco.com/c"),
+      kw("saas mrr benchmarks", 2, 4000, 200, "https://leaderco.com/d"),
+      kw("mrr growth rate", 3, 3000, 150, "https://leaderco.com/e"),
+      kw("recurring revenue software", 2, 2500, 120, "https://leaderco.com/f"),
+      kw("mrr forecasting tool", 1, 2000, 100, "https://leaderco.com/g"),
+      kw("mrr tracking spreadsheet", 4, 1500, 80, "https://leaderco.com/h"),
+      kw("mrr reporting", 2, 1200, 70, "https://leaderco.com/i"),
+      kw("mrr metrics guide", 5, 1000, 60, "https://leaderco.com/j"),
+      kw("mrr saas tools", 1, 900, 50, "https://leaderco.com/k"),
+    ];
+    gatherRankedSpy.mockResolvedValueOnce(leaderRows); // leader
+    gatherOverviewSpy.mockResolvedValueOnce(null);
+    gatherVolumesSpy.mockResolvedValueOnce([{ keyword: "mrr tracking tool", volume: 90 }]);
+    // The judge returns NON-EMPTY, mixed verdicts — proving even an applied
+    // verdict set can't perturb the score.
+    judgeSpy.mockResolvedValueOnce(
+      new Map<string, string>([
+        ["mrr calculator", "category"],
+        ["mrr dashboard", "category"],
+        ["mrr analytics platform", "irrelevant"],
+        ["saas mrr benchmarks", "irrelevant"],
+      ]),
+    );
+
+    const seedText = ["verified startup revenue database acquisition marketplace saas mrr"];
+    const llmCategorySeeds = ["mrr tracking tool"];
+    const categoryNiche: CategoryNicheSeeds = {
+      category: { label: "MRR tools", phrases: ["mrr tracking tool"] },
+      niche: { label: "MRR verification", phrases: ["mrr verification tool"] },
+      leaders: ["leaderco.com"],
+    };
+
+    const gathered = await gatherFreeSearchVisibility("trustmrr.com", seedText, llmCategorySeeds, undefined, [], categoryNiche);
+
+    // The judge actually ran (not a no-op stand-in for the real thing).
+    expect(judgeSpy).toHaveBeenCalled();
+    // …and the score is byte-identical to classifying the subject directly.
     const expected = classifyFootprint("trustmrr.com", seedText, llmCategorySeeds, TRUSTMRR, []);
     expect(gathered.score).toBe(expected.score);
   });

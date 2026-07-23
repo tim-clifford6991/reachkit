@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/auth/server";
+import { safeRelativePath } from "@/lib/auth/safe-redirect";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const code = searchParams.get("code");
-  const nextParam = searchParams.get("next") ?? "/app";
 
-  // Sanitize: only allow relative paths to prevent open-redirect attacks.
-  const safeNext = nextParam.startsWith("/") ? nextParam : "/app";
+  // Sanitize: a real same-origin relative path only. `startsWith("/")` alone
+  // lets `//evil.com` through (open redirect) — safeRelativePath rejects it.
+  const safeNext = safeRelativePath(searchParams.get("next"));
 
   if (code) {
     const supa = await createServerSupabase();

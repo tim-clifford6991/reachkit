@@ -1,0 +1,294 @@
+{
+  "domain": "trustmrr.com",
+  "siteUrl": "https://trustmrr.com/",
+  "archetype": "directory",
+  "scanId": "4a3b346a-a87c-4630-ab84-958d1f4cde2b",
+  "tier": "free",
+  "capturedAt": "2026-07-20",
+  "note": "trustmrr.com — 2026-07-21 product-contract-reset before-oracle: mislabeled market card (Business Intelligence & Marketplaces 14,800), bare NICHE 10 hero, 1 fix",
+  "reportPayload": {
+    "mode": "web",
+    "score": {
+      "basis": "verified",
+      "radar": [
+        {
+          "axis": "Content",
+          "value": 96,
+          "active": true,
+          "assessed": true
+        },
+        {
+          "axis": "Outreach",
+          "value": 0,
+          "active": true,
+          "assessed": false
+        },
+        {
+          "axis": "SEO/ASO",
+          "value": 100,
+          "active": true,
+          "assessed": true
+        },
+        {
+          "axis": "Ads",
+          "value": 0,
+          "active": false,
+          "assessed": false
+        },
+        {
+          "axis": "Partnerships",
+          "value": 0,
+          "active": false,
+          "assessed": false
+        },
+        {
+          "axis": "PR",
+          "value": 0,
+          "active": false,
+          "assessed": false
+        },
+        {
+          "axis": "Positioning",
+          "value": 0,
+          "active": false,
+          "assessed": false
+        }
+      ],
+      "total": 20,
+      "breakdown": {
+        "seo": 100,
+        "content": 96,
+        "outreach": 0
+      }
+    },
+    "whoItsFor": {
+      "signals": [],
+      "summary": "Users praise TrustMRR for transparency, API-verified revenue accuracy, free listing with SEO backlinks, and strong execution as a benchmarking tool; concerns include limited scope (not full due diligence) and lack of customer reviews on listed businesses."
+    },
+    "generatedAt": "2026-07-20T21:16:38.592Z",
+    "whatYouOffer": {
+      "positioningMirror": {
+        "gap": "TrustMRR positions itself as a free, verified-revenue directory with leaderboard visibility, but competitors like BeliveMRR also offer free listing with backlinks—TrustMRR's differentiation appears to rest on marketplace acquisition functionality rather than listing incentives alone, yet review themes suggest users value the transparency and benchmarking utility more than the transaction features.",
+        "listingSays": "TrustMRR is a verified startup revenue database and marketplace where 180K monthly visitors discover SaaS, mobile apps, and digital businesses for acquisition, backed by transparent financial metrics and a leaderboard ranked by MRR.",
+        "reviewsValue": "Users praise TrustMRR for transparency, API-verified revenue accuracy, free listing with SEO backlinks, and strong execution as a benchmarking tool; concerns include limited scope (not full due diligence) and lack of customer reviews on listed businesses.",
+        "actualAudience": [
+          "Indie founders benchmarking peers",
+          "Bootstrapped SaaS creators",
+          "Transparency-focused entrepreneurs",
+          "SEO-aware business owners"
+        ],
+        "intendedAudience": [
+          "SaaS founders seeking acquisition",
+          "Digital business buyers",
+          "Startup acquirers",
+          "Founders benchmarking growth"
+        ]
+      }
+    },
+    "whereTheyAre": {
+      "surfaces": [],
+      "competitorGap": [
+        {
+          "you": 0,
+          "them": 0,
+          "dimension": "community presence",
+          "competitor": "index"
+        },
+        {
+          "you": 0,
+          "them": 0,
+          "dimension": "community presence",
+          "competitor": "Acquire.com"
+        },
+        {
+          "you": 0,
+          "them": 0,
+          "dimension": "community presence",
+          "competitor": "Flippa"
+        },
+        {
+          "you": 0,
+          "them": 0,
+          "dimension": "community presence",
+          "competitor": "Empire Flippers"
+        },
+        {
+          "you": 0,
+          "them": 0,
+          "dimension": "community presence",
+          "competitor": "MicroAcquire"
+        }
+      ]
+    },
+    "creatorsToReach": [],
+    "searchVisibility": {
+      "score": 4,
+      "brandPct": 11,
+      "nicheCard": {
+        "gaps": [
+          {
+            "volume": 10,
+            "keyword": "startup acquisition marketplace"
+          }
+        ],
+        "label": "Verified Revenue Directory",
+        "demand": 10,
+        "phrases": [
+          {
+            "volume": 10,
+            "keyword": "startup acquisition marketplace"
+          }
+        ],
+        "rankedTop3": []
+      },
+      "categoryGap": [],
+      "categoryPct": 1,
+      "marketTiers": [
+        {
+          "tier": "niche",
+          "demand": 10,
+          "phrases": [
+            {
+              "volume": 10,
+              "keyword": "startup acquisition marketplace"
+            }
+          ],
+          "bestPosition": null
+        }
+      ],
+      "offTopicPct": 9,
+      "categoryCard": {
+        "gaps": [
+          {
+            "volume": 14800,
+            "keyword": "business intelligence tools"
+          }
+        ],
+        "label": "Business Intelligence & Marketplaces",
+        "demand": 14800,
+        "phrases": [
+          {
+            "volume": 14800,
+            "keyword": "business intelligence tools"
+          }
+        ],
+        "rankedTop3": []
+      },
+      "categoryWins": 4,
+      "aggregatedPct": 78,
+      "categoryDemand": 280,
+      "categoryRanked": [
+        {
+          "volume": 90,
+          "keyword": "mrr startup",
+          "yourPosition": 2
+        },
+        {
+          "volume": 90,
+          "keyword": "startup mrr",
+          "yourPosition": 2
+        },
+        {
+          "volume": 70,
+          "keyword": "mrr app",
+          "yourPosition": 1
+        },
+        {
+          "volume": 30,
+          "keyword": "startup revenue",
+          "yourPosition": 2
+        }
+      ],
+      "keywordsRanked": 346,
+      "categoryPhrases": [
+        {
+          "volume": 90,
+          "keyword": "mrr startup",
+          "yourPosition": 2
+        },
+        {
+          "volume": 90,
+          "keyword": "startup mrr",
+          "yourPosition": 2
+        },
+        {
+          "volume": 70,
+          "keyword": "mrr app",
+          "yourPosition": 1
+        },
+        {
+          "volume": 30,
+          "keyword": "startup revenue",
+          "yourPosition": 2
+        }
+      ],
+      "onPageReadiness": 98,
+      "estMonthlyVisits": 6384,
+      "offTopicExamples": [
+        "tmrr",
+        "marc lou"
+      ],
+      "footprintComplete": true,
+      "aggregatedExamples": [
+        "spanglish translator",
+        "cometly",
+        "trimrx"
+      ],
+      "categoryWonKeywords": [
+        "mrr startup",
+        "startup mrr",
+        "mrr app",
+        "startup revenue"
+      ],
+      "categoryOpportunities": []
+    },
+    "whatToDoThisWeek": {
+      "medium": [],
+      "longPlay": [
+        {
+          "why": "Comparison pages is failing (0/100 on this scan). \"X vs Y\" and \"alternatives\" pages capture high-intent comparison searches.",
+          "basis": "probability_based",
+          "draft": null,
+          "title": "Publish honest comparison pages against the rivals buyers weigh you against",
+          "target": null,
+          "category": "outreach",
+          "evidence": [],
+          "effortMin": 45,
+          "confidence": 0.5,
+          "signalKeys": [
+            "comparison_pages"
+          ],
+          "evidenceIds": [],
+          "verification": {
+            "state": "pending",
+            "method": "self_report"
+          },
+          "expectedOutcome": {
+            "delta": 4,
+            "scoreComponent": "outreach"
+          },
+          "draftRequiresEdit": true,
+          "suggestedDeadline": "2026-08-03"
+        }
+      ],
+      "quickWins": []
+    },
+    "channelOpportunities": {
+      "keywordClusters": [],
+      "communitiesByEngagement": []
+    },
+    "competitiveLandscape": [],
+    "strengthsAndWeaknesses": {
+      "mixed": [],
+      "strengths": [],
+      "weaknesses": [],
+      "diagnostics": [
+        {
+          "claim": "Your strongest discoverability lever right now is your own page: lead with one specific outcome and your highest-intent keyword in the title and first screen.",
+          "category": "content",
+          "confidence": 0.4
+        }
+      ]
+    }
+  }
+}

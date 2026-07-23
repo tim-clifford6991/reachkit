@@ -13,6 +13,7 @@
     "test:int": "vitest run --config vitest.integration.config.ts",
     "typecheck": "tsc --noEmit",
     "capture:report": "node scripts/capture-report-fixture.mjs",
+    "smoke:free": "npx --yes tsx scripts/free-scan-smoke.mts",
     "check:bundle": "node scripts/check-bundle.mjs",
     "check:arch": "node scripts/check-arch.mjs",
     "check:design": "node scripts/check-design-parity.mjs",

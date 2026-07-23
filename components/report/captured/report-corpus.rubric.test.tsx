@@ -50,6 +50,7 @@ import reachkit from "@/lib/scan/fixtures/report-corpus/reachkit.app.json";
 import resend from "@/lib/scan/fixtures/report-corpus/resend.com.json";
 import savvycal from "@/lib/scan/fixtures/report-corpus/savvycal.com.json";
 import spacex from "@/lib/scan/fixtures/report-corpus/spacex.com.json";
+import trustmrr from "@/lib/scan/fixtures/report-corpus/trustmrr.com.json";
 import xcom from "@/lib/scan/fixtures/report-corpus/x.com.json";
 
 interface CorpusFixture {
@@ -66,16 +67,24 @@ interface CorpusFixture {
 // Captured payloads are verbatim prod JSON — older ones carry retired fields
 // (resend's categoryCaptureRate) and legacy shapes the current types no longer
 // name; that looseness is the point (the ?? [] rule gets real legacy inputs).
-const FIXTURES = [getapp, reachkit, resend, savvycal, spacex, xcom] as unknown as CorpusFixture[];
+const FIXTURES = [getapp, reachkit, resend, savvycal, spacex, trustmrr, xcom] as unknown as CorpusFixture[];
 
 /** Only-shrinks: rule ids suppressed per domain. Every entry is either a real
  *  bug awaiting its fix (linked) or a documented, reviewed exception. */
-const SUPPRESSIONS: Record<string, string[]> = {};
+const SUPPRESSIONS: Record<string, string[]> = {
+  // trustmrr.com is the 2026-07-21 before-oracle: it renders "YOUR NICHE 10
+  // searches/mo" and a category card backed by a single phrase — HONEST (passes
+  // R1–R8) but not CREDIBLE (fails R9, magnitude). The Phase A "market size +
+  // your share" model + Phase C floor make it credible; when trustmrr is
+  // re-captured on the new pipeline this suppression LIFTS (ratchet: only
+  // shrinks). It is the visible marker of the known-bad render.
+  "trustmrr.com": ["R9"],
+};
 
 // ── Manifest — the only-grows floor ─────────────────────────────────────────
 const MIN_FIXTURES = 6;
 const REQUIRED_ARCHETYPES = ["directory", "zero-ranking", "normal-saas", "pathological"];
-const MIN_RUBRIC_RULES = 8; // raised from 7 when R8 (terseness, P4) landed — the floor only rises
+const MIN_RUBRIC_RULES = 9; // R8 terseness (P4), R9 magnitude/credibility (2026-07-21) — the floor only rises
 
 function render(fx: CorpusFixture): string {
   const { resultsProps } = publicReportProps(fx.reportPayload, `corpus-${fx.domain}`, fx.siteUrl);
@@ -563,8 +572,8 @@ describe("data board P3 (CONSTRUCTED variants, corpus-first — not verbatim cap
         // Never the same number twice under two different labels (G1's spirit).
         expect(v.categoryDemand).not.toBe(v.nicheDemand);
       });
-      it("the Opportunity section (niche gaps) renders — 'Opportunity · your niche'", () => {
-        expect(html).toContain("Opportunity · your niche");
+      it("the Opportunity section (niche gaps) renders — 'What to rank for next'", () => {
+        expect(html).toContain("What to rank for next");
       });
       it("the LEGACY 'biggest untapped opportunity' callout is superseded, not duplicated", () => {
         expect(html).not.toContain("Your biggest untapped opportunity");
@@ -583,14 +592,11 @@ describe("data board P3 (CONSTRUCTED variants, corpus-first — not verbatim cap
     });
   }
 
-  describe("getapp.com (directory pattern, trustmrr.com live numbers): the aggregation strip", () => {
+  describe("getapp.com (directory pattern, trustmrr.com live numbers): the aggregation strip is REMOVED", () => {
     const html = render(directoryP3);
-    it("the DIRECTORY PATTERN strip renders with the real aggregatedPct + named examples", () => {
-      expect(html).toContain("DIRECTORY PATTERN DETECTED");
-      expect(html).toContain("78%");
-      expect(html).toContain("your directory engine, not lost buyers");
-      expect(html).toContain("cometly");
-      expect(html).toContain("trimrx");
+    it("the DIRECTORY PATTERN strip NEVER renders — even for a directory with aggregatedPct 78 (owner decluttering, 2026-07-22)", () => {
+      expect(html).not.toContain("DIRECTORY PATTERN DETECTED");
+      expect(html).not.toContain("your directory engine, not lost buyers");
     });
     it("the Category card renders the CORRECTED honest number (8,100), never the bare-generic 'marketplace' 2,240,000 (P3fix)", () => {
       expect(html).toContain("8,100");
@@ -604,7 +610,7 @@ describe("data board P3 (CONSTRUCTED variants, corpus-first — not verbatim cap
       expect(html).toContain("No measurable niche demand yet");
     });
     it("the Opportunity section is still OMITTED — the empty-state niche card has nothing to itemise (invariant #11)", () => {
-      expect(html).not.toContain("Opportunity · your niche");
+      expect(html).not.toContain("What to rank for next");
     });
     it("passes the full rubric (R1–R7)", () => {
       const violations = runReportRubric(directoryP3.reportPayload, html);
@@ -612,24 +618,17 @@ describe("data board P3 (CONSTRUCTED variants, corpus-first — not verbatim cap
     });
   });
 
-  describe("mutation proof: the aggregation-strip conditional is directory-only (≥40%)", () => {
-    it("savvycal.com and x.com (aggregatedPct 0, unset) never render the strip even though other blocks are active", () => {
+  describe("the aggregation strip is gone for EVERY aggregatedPct (removed 2026-07-22)", () => {
+    it("never renders regardless of aggregatedPct — 0/unset, just-under, at-floor, and high all drop it", () => {
+      for (const pct of [0, 39, 40, 78, 100]) {
+        const fx: CorpusFixture = {
+          ...directoryP3,
+          reportPayload: { ...directoryP3.reportPayload, searchVisibility: { ...directoryP3.reportPayload.searchVisibility!, aggregatedPct: pct } },
+        };
+        expect(render(fx), `aggregatedPct ${pct}`).not.toContain("DIRECTORY PATTERN DETECTED");
+      }
       expect(render(savvycalP3)).not.toContain("DIRECTORY PATTERN DETECTED");
       expect(render(xcomP3)).not.toContain("DIRECTORY PATTERN DETECTED");
-    });
-    it("the SAME getapp.com base with aggregatedPct dropped to 39 (just under the floor) drops the strip", () => {
-      const justUnder: CorpusFixture = {
-        ...directoryP3,
-        reportPayload: { ...directoryP3.reportPayload, searchVisibility: { ...directoryP3.reportPayload.searchVisibility!, aggregatedPct: 39 } },
-      };
-      expect(render(justUnder)).not.toContain("DIRECTORY PATTERN DETECTED");
-    });
-    it("the SAME base at exactly 40 renders the strip (the floor is inclusive)", () => {
-      const atFloor: CorpusFixture = {
-        ...directoryP3,
-        reportPayload: { ...directoryP3.reportPayload, searchVisibility: { ...directoryP3.reportPayload.searchVisibility!, aggregatedPct: 40 } },
-      };
-      expect(render(atFloor)).toContain("DIRECTORY PATTERN DETECTED");
     });
   });
 });

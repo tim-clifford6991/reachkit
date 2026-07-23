@@ -30,7 +30,6 @@ const FOOTER_CONTENT: FooterContent = {
       heading: "Resources",
       items: [
         { label: "Gallery", href: "/gallery" },
-        { label: "Status", href: "/status" },
       ],
     },
     {

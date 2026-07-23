@@ -8,11 +8,11 @@
  * audPages / audKeywords), re-presenting the same `supply` layer data the
  * Supply view already fetches — no new data source.
  */
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
-import Link from "next/link";
+import { useMemo, useState, type CSSProperties } from "react";
 import dynamic from "next/dynamic";
 import { useIntel, IntelShell, fmtCompact } from "@/components/app/intel/shared";
 import { Card, Badge, Expand, EvidenceLink } from "@/components/app/intel/kit";
+import { useActionPlan, AddToPlanChip } from "@/components/app/intel/add-to-plan";
 import type { Supply } from "@/components/app/intel/supply-view";
 
 // Code-split — these two are new to the /app bundle graph (ReferrerRow pulls in
@@ -33,79 +33,9 @@ export function CompetitorsView() {
 }
 
 type Entity = Supply["funnel"]["subject"] | Supply["funnel"]["competitors"][number];
-type Gap = Supply["keywords"]["gaps"][number];
 type Channel = Supply["funnel"]["channelsMissing"][number];
 type ContentEntity = NonNullable<Supply["content"]>["entities"][number];
 type ContentPage = ContentEntity["pages"][number];
-
-// ---------------------------------------------------------------------------
-// Keyword-gap "add to plan" chips — POSTs a content action against the
-// sibling-owned /api/action route ({ title, category, why } -> { id }).
-// Contract: GET /api/action -> { actions: { id; title; category; status }[] }.
-// A keyword gap is "in plan" when an action titled exactly `Target “{keyword}”`
-// already exists. Unauthed/failed GET (the styled fixture has no session) just
-// leaves every chip defaulted to "add" — never throws.
-// ---------------------------------------------------------------------------
-type ActionCategory = "content" | "outreach" | "seo";
-
-interface ActionPlan {
-  isInPlan: (title: string) => boolean;
-  isPending: (title: string) => boolean;
-  isError: (title: string) => boolean;
-  add: (title: string, category: ActionCategory, why?: string) => void;
-}
-
-function useActionPlan(): ActionPlan {
-  const [inPlan, setInPlan] = useState<Set<string>>(new Set());
-  const [pending, setPending] = useState<Set<string>>(new Set());
-  const [errored, setErrored] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/action");
-        if (!res.ok) throw new Error(String(res.status));
-        const json = (await res.json()) as { actions?: { title: string }[] };
-        if (!cancelled) setInPlan(new Set((json.actions ?? []).map((a) => a.title)));
-      } catch {
-        // Unauthed or failed — leave `inPlan` empty; every chip defaults to "add".
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
-
-  const add = useCallback((title: string, category: ActionCategory, why?: string) => {
-    setInPlan((prev) => new Set(prev).add(title)); // optimistic swap to "in plan"
-    setPending((prev) => new Set(prev).add(title));
-    setErrored((prev) => (prev.has(title) ? new Set([...prev].filter((t) => t !== title)) : prev));
-    (async () => {
-      try {
-        const res = await fetch("/api/action", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ title, category, why }),
-        });
-        if (!res.ok) throw new Error(String(res.status));
-      } catch {
-        setInPlan((prev) => new Set([...prev].filter((t) => t !== title))); // revert
-        setErrored((prev) => new Set(prev).add(title));
-      } finally {
-        setPending((prev) => new Set([...prev].filter((t) => t !== title)));
-      }
-    })();
-  }, []);
-
-  return {
-    isInPlan: (title) => inPlan.has(title),
-    isPending: (title) => pending.has(title),
-    isError: (title) => errored.has(title),
-    add,
-  };
-}
-
-const keywordActionTitle = (keyword: string) => `Target “${keyword}”`;
-const keywordActionWhy = (gap: Gap) => `${fmtCompact(gap.volume)}/mo keyword gap — ${gap.competitorsRanking} rivals rank`;
 
 // Plain-language tooltips for the referrer tags (hover to learn what each means).
 const CATEGORY_HELP: Record<string, string> = {
@@ -122,29 +52,6 @@ const CATEGORY_HELP: Record<string, string> = {
 const categoryTitle = (c: string) => CATEGORY_HELP[c] ?? `Referrer type: ${c}`;
 const DR_HELP = "Domain Rating (0–1000) — the referring site's own authority. Higher = a more valuable, harder-to-earn link.";
 
-/** The chip pair: static "→ in plan" pill once the action exists, else a clickable "＋ add". */
-function AddToPlanChip({ title, category, why, plan }: { title: string; category: ActionCategory; why?: string; plan: ActionPlan }) {
-  if (plan.isInPlan(title)) return <Badge tone="violet">→ in plan</Badge>;
-  const pending = plan.isPending(title);
-  return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-      <button
-        type="button"
-        disabled={pending}
-        onClick={(ev) => { ev.stopPropagation(); plan.add(title, category, why); }}
-        style={{
-          display: "inline-flex", alignItems: "center", gap: 5, background: "var(--c-fill)", color: "var(--c-muted)",
-          fontFamily: "var(--font-sans)", fontWeight: 700, fontSize: 11.5, padding: "3px 9px", borderRadius: "var(--radius-xs)",
-          lineHeight: 1.2, whiteSpace: "nowrap", border: "none", cursor: pending ? "default" : "pointer", opacity: pending ? 0.6 : 1,
-        }}
-      >
-        ＋ add
-      </button>
-      {plan.isError(title) && <span style={{ fontSize: 10.5, color: "var(--c-faint)" }}>couldn&rsquo;t add</span>}
-    </span>
-  );
-}
-
 /** Best-effort path extraction so page lists read like the template's "/templates" rather than a full URL. */
 function pathOf(url: string): string {
   try {
@@ -157,7 +64,6 @@ function pathOf(url: string): string {
 
 export function CompetitorsBody({ data }: { data: Supply }) {
   const { subject, competitors, channelsMissing, channelStrength } = data.funnel;
-  const gaps = data.keywords.gaps;
   const plan = useActionPlan();
 
   const all: (Entity & { isSubject: boolean })[] = useMemo(
@@ -188,22 +94,13 @@ export function CompetitorsBody({ data }: { data: Supply }) {
     }));
   }, [selEntity]);
 
-  // Top keywords: for a rival, the gap keywords they actually rank for (their
-  // wins); for the subject, the highest-opportunity gaps — keywords rivals
-  // rank for that the subject doesn't, i.e. exactly what "not ranking" means.
-  // Each row keeps the full Gap object so the row can expand to show every
-  // rival's position on that keyword.
-  const keywordRows = useMemo<{ gap: Gap; note: string }[]>(() => {
-    if (sel.isSubject) {
-      return [...gaps].sort((a, b) => b.opportunity - a.opportunity).slice(0, 3).map((g) => ({ gap: g, note: "not ranking" }));
-    }
-    return gaps
-      .map((g) => ({ g, hit: g.competitors.find((c) => c.domain === sel.domain) }))
-      .filter((x): x is { g: Gap; hit: NonNullable<Gap["competitors"][number]> } => !!x.hit)
-      .sort((a, b) => b.g.volume - a.g.volume)
-      .slice(0, 3)
-      .map(({ g, hit }) => ({ gap: g, note: `#${hit.position}` }));
-  }, [gaps, sel]);
+  // NOTE (M3, 2026-07-23): the per-rival keyword-gap surface was REMOVED here.
+  // `data.keywords.gaps` is RAW, unclassified rival keywords (competitor brands,
+  // airports, card products — cardpointers' gap is "capital one" 9.1M, "los
+  // angeles international airport" 1.5M). Framed as "target this" it was garbage
+  // (the SpaceX-"space" class). Classified rival keywords need the Phase-B
+  // relevance judge (deferred); the ONE keyword surface is the dashboard spine.
+  // This page is now the COMPETITOR LESSONS surface: referrers + channels.
 
   // Referrer table — the hero: every quality referrer for the selected entity,
   // ranked by platform reach (etv).
@@ -222,23 +119,13 @@ export function CompetitorsBody({ data }: { data: Supply }) {
         .slice(0, 8)
     : [];
 
-  // "Their edge → your move": lead with the rival's single strongest gap
-  // keyword (highest volume they rank for that the subject doesn't) as the
-  // counter-move, falling back to a traffic/backlink framing when no shared
-  // gap exists.
-  const bestGapHit = !sel.isSubject
-    ? gaps
-        .map((g) => ({ g, hit: g.competitors.find((c) => c.domain === sel.domain) }))
-        .filter((x): x is { g: (typeof gaps)[number]; hit: NonNullable<(typeof gaps)[number]["competitors"][number]> } => !!x.hit)
-        .sort((a, b) => b.g.opportunity - a.g.opportunity)[0]
-    : undefined;
-
+  // "Their edge → your move": the LESSON framing (M3) — what powers this rival's
+  // discovery, in referrer/channel terms (classified, contract pillar 2), never a
+  // raw gap keyword. The concrete moves are the channel EdgeMoves + the "referrers
+  // to pursue" list below (each an add-to-plan outreach action).
   const edgeText = sel.isSubject
-    ? "Your baseline. Pick a rival above to see what powers their referral engine — and the move that answers it."
-    : bestGapHit
-      ? `Ranks #${bestGapHit.hit.position} for "${bestGapHit.g.keyword}" (${fmtCompact(bestGapHit.g.volume)}/mo) — a keyword you don't rank for at all.`
-      : `Pulls ${fmtCompact(sel.monthlyTraffic)}/mo with ${sortedRefs.length ? `referrers like ${sortedRefs[0]!.host}` : "a stronger backlink profile"} — worth studying their acquisition mix.`;
-  const moveLabel = !sel.isSubject && bestGapHit ? `Counter: target "${bestGapHit.g.keyword}" — in your plan` : null;
+    ? "Your baseline. Pick a rival above to see what powers their referral engine — and the lesson that answers it."
+    : `Pulls ${fmtCompact(sel.monthlyTraffic)}/mo with ${sortedRefs.length ? `referrers like ${sortedRefs[0]!.host}` : "a stronger backlink profile"} — study their acquisition mix, then pursue the referrers they have that you don't (below).`;
 
   // R4 — concrete edge moves: when a rival is selected, prefer the channels
   // they use that the subject doesn't (real, actionable) over the prose framing.
@@ -290,7 +177,7 @@ export function CompetitorsBody({ data }: { data: Supply }) {
         <Card title={`Where ${sel.isSubject ? "you get" : sel.domain + " gets"} found`} style={{ padding: 0, background: "transparent", border: "none", boxShadow: "none" }}>
           {sortedRefs.length > 0 ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              {sortedRefs.map((r, i) => <ReferrerRow key={r.host} r={r} maxEtv={maxEtv} />)}
+              {sortedRefs.map((r) => <ReferrerRow key={r.host} r={r} maxEtv={maxEtv} />)}
             </div>
           ) : (
             <span style={{ fontSize: 12.5, color: "var(--c-faint)" }}>No quality referrers surfaced.</span>
@@ -302,7 +189,7 @@ export function CompetitorsBody({ data }: { data: Supply }) {
             to pursue, each with a real add-to-plan (outreach action) chip. */}
         {pursue.length > 0 && (
           <div style={{ display: "flex", flexDirection: "column", gap: 8, borderTop: "1px solid var(--c-tint-orange-line)", paddingTop: 14 }}>
-            <span style={EDGE_LABEL_STYLE}>Referrers to pursue · they have, you don&apos;t ({pursue.length})</span>
+            <span style={EDGE_LABEL_STYLE}>The lesson · pursue the referrers they have, you don&apos;t ({pursue.length})</span>
             {pursue.map((r, i) => {
               const title = `Reach out to ${r.host} for a backlink`;
               return (
@@ -319,24 +206,13 @@ export function CompetitorsBody({ data }: { data: Supply }) {
           </div>
         )}
         <PagesEdgeList label="Top pages" pages={topPages} byCluster={pagesByCluster} totalCount={selEntity?.pages.length ?? 0} empty="No page-level content data surfaced." />
-        <KeywordEdgeList label="Top keywords" rows={keywordRows} plan={plan} empty="No keyword-gap data surfaced." />
 
         <div style={{ borderTop: "1px solid var(--c-tint-orange-line)", paddingTop: 14, display: "flex", flexDirection: "column", gap: 7 }}>
           <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--c-band-hard)" }}>Their edge → your move</span>
           {edgeMoves.length > 0 ? (
             <EdgeMoves channels={edgeMoves} />
           ) : (
-            <>
-              <span style={{ fontSize: 13, color: "var(--c-ink)", lineHeight: 1.55 }}>{edgeText}</span>
-              {moveLabel && (
-                <Link href="/app/plan" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 700, color: "var(--c-action)", textDecoration: "none" }}>
-                  {moveLabel}
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 12, height: 12 }}>
-                    <path d="M9 6l6 6-6 6" />
-                  </svg>
-                </Link>
-              )}
-            </>
+            <span style={{ fontSize: 13, color: "var(--c-ink)", lineHeight: 1.55 }}>{edgeText}</span>
           )}
         </div>
       </div>
@@ -407,59 +283,6 @@ function PagesEdgeList({ label, pages, byCluster, totalCount, empty }: { label: 
             ))}
           </div>
         </Expand>
-      )}
-    </div>
-  );
-}
-
-/** R3 — expandable keyword-gap rows: reveals every rival's position + a link to their winning URL. */
-function KeywordEdgeList({ label, rows, plan, empty }: { label: string; rows: { gap: Gap; note: string }[]; plan: ActionPlan; empty: string }) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-      <span style={EDGE_LABEL_STYLE}>{label}</span>
-      {rows.length > 0 ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-          {rows.map((r, i) => <KeywordGapRow key={i} gap={r.gap} note={r.note} plan={plan} />)}
-        </div>
-      ) : (
-        <span style={{ fontSize: 12.5, color: "var(--c-faint)" }}>{empty}</span>
-      )}
-    </div>
-  );
-}
-
-function KeywordGapRow({ gap, note, plan }: { gap: Gap; note: string; plan: ActionPlan }) {
-  const [open, setOpen] = useState(false);
-  const toggle = () => setOpen((o) => !o);
-  return (
-    <div>
-      <div
-        role="button"
-        tabIndex={0}
-        onClick={toggle}
-        onKeyDown={(ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); toggle(); } }}
-        style={{ display: "flex", width: "100%", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "2px 0", cursor: "pointer" }}
-      >
-        <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flex: 1 }}>
-          <span style={{ fontSize: 13.5, color: "var(--c-ink)", fontWeight: 500, minWidth: 0, ...ELLIPSIS }}>{gap.keyword} · {note}</span>
-          <span style={{ fontSize: 11, color: "var(--c-faint)", flexShrink: 0 }}>{open ? "▾" : "▸"}</span>
-        </span>
-        <span onClick={(ev) => ev.stopPropagation()} style={{ flexShrink: 0 }}>
-          <AddToPlanChip title={keywordActionTitle(gap.keyword)} category="content" why={keywordActionWhy(gap)} plan={plan} />
-        </span>
-      </div>
-      {open && (
-        <ul style={{ margin: "5px 0 3px", padding: "0 0 0 8px", listStyle: "none", display: "flex", flexDirection: "column", gap: 4, borderLeft: "2px solid var(--c-line)" }}>
-          {gap.competitors.map((c, i) => (
-            <li key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, fontSize: 12 }}>
-              <span style={{ color: "var(--c-muted)", minWidth: 0, ...ELLIPSIS }}>{c.domain}</span>
-              <span style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--c-faint)" }}>#{c.position}</span>
-                <EvidenceLink href={c.url} style={{ fontSize: 11 }}>view</EvidenceLink>
-              </span>
-            </li>
-          ))}
-        </ul>
       )}
     </div>
   );

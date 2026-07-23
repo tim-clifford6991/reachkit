@@ -174,10 +174,12 @@ export function derivableNumbers(payload: ReportPayload): Map<number, string> {
   add(fullActions, "Σ action buckets — the “show N of TOTAL” teaser total (public-report.tsx fullActions)");
   const redacted = redactReportForTier(payload, "free").whatToDoThisWeek;
   const shownActions = redacted.quickWins.length + redacted.medium.length + redacted.longPlay.length;
-  // P4 (2026-07-20): 2 fixes shown, not 3 — the third card's "why" prose is
-  // gone, so 2 terse cards are enough (the up-to-2 blurred locked-preview
-  // rows are a separate, non-numeric visual tease, not counted here).
-  add(Math.max(0, fullActions - Math.min(shownActions, 2)), "fullActions − rendered fixes — the locked-fixes teaser count (to-results-props.ts lockedCount)");
+  // Phase C / D4 (2026-07-21, supersedes P4's 2): SHOWN_FIXES = 3 (the free
+  // board always shows 3 ranked fixes). Must track `SHOWN_FIXES` in
+  // to-results-props.ts — the locked-fixes teaser count is `fullActions −
+  // min(shownActions, 3)`. The 2 blurred locked-preview rows are a separate,
+  // non-numeric visual tease, not counted here.
+  add(Math.max(0, fullActions - Math.min(shownActions, 3)), "fullActions − rendered fixes — the locked-fixes teaser count (to-results-props.ts lockedCount)");
 
   const sv = payload.searchVisibility;
   const kgLen = payload.market?.gap?.keywordGap?.length ?? 0;
@@ -339,21 +341,19 @@ const SECTION_RULES: SectionRule[] = [
   },
   {
     id: "opportunity-niche",
-    // P3 (data board §4): the niche's own gap keywords, by volume.
-    marker: "Opportunity · your niche",
+    // P3 (data board §4): the niche's own gap keywords, by volume — the
+    // "what to rank for next" module (demand-sized bars). Marker updated
+    // 2026-07-22 when the eyebrow "Opportunity · your niche" became the
+    // clearer header "What to rank for next" (same section, R3 intent intact).
+    marker: "What to rank for next",
     grounded: (p) => {
       const sv = p.searchVisibility;
       return marketCardReady(sv?.categoryCard) && marketCardReady(sv?.nicheCard) && (sv?.nicheCard?.gaps.length ?? 0) > 0;
     },
   },
-  {
-    id: "directory-strip",
-    // P3/D3: the aggregation strip — reframes a directory/aggregator's
-    // footprint as its own engine. Independent of categoryCard (aggregatedPct
-    // is unconditional, P1), so this rule has no categoryCard condition.
-    marker: "your directory engine, not lost buyers",
-    grounded: (p) => (p.searchVisibility?.aggregatedPct ?? 0) >= 40,
-  },
+  // (removed 2026-07-22) the "directory-strip" grounded rule — the aggregation
+  // strip render was removed from the free board (owner decluttering note); its
+  // never-renders guard now lives in report-corpus.rubric.test.tsx.
 ];
 
 const r3EmptyInputNoSection: RubricRule = {
@@ -416,8 +416,11 @@ const r4TeaserParity: RubricRule = {
     const fullActions = acts.quickWins.length + acts.medium.length + acts.longPlay.length;
     const redacted = redactReportForTier(payload, "free").whatToDoThisWeek;
     const shownActions = redacted.quickWins.length + redacted.medium.length + redacted.longPlay.length;
-    // P4 (2026-07-20): 2 fixes shown, not 3 (see the derivableNumbers() comment above).
-    const expectedLocked = Math.max(0, fullActions - Math.min(shownActions, 2));
+    // Phase C / D4 (2026-07-21): SHOWN_FIXES = 3 (see the derivableNumbers() comment above).
+    const expectedLocked = Math.max(0, fullActions - Math.min(shownActions, 3));
+    // The teaser now renders ONLY when there's a real withheld count (>0); a
+    // zero-locked plan shows a generic "unlock the full plan" CTA with no number,
+    // so there's nothing for this matcher to reconcile in that case.
     for (const m of text.matchAll(/(\d[\d,]*) more ranked fixes/g)) {
       const n = Number((m[1] ?? "").replace(/,/g, ""));
       if (n === 0 || n !== expectedLocked) {
@@ -678,12 +681,66 @@ const r8Terseness: RubricRule = {
 };
 
 // ---------------------------------------------------------------------------
+// R9 — magnitude / credibility (the trustmrr "10 searches/mo" class, 2026-07-21)
+//
+// R1–R8 verify a number is HONEST (derives from the payload). R9 verifies a
+// number shown as a HERO is CREDIBLE. trustmrr.com passed every honesty rule
+// while rendering "YOUR NICHE 10 searches/mo" and a category card backed by a
+// single phrase — true-by-construction, and useless as a market signal. The
+// owner's "too little and unrealistic" is exactly this: a market card shown as
+// a hero must clear a credibility floor and rest on more than one phrase, or it
+// degrades to its zero-state (a card is only "ready" when it carries priced
+// phrases — see marketCardReady). The Phase A "market size + your share" model
+// makes these cards credible (leader-sized demand, 8 phrases) or unready; until
+// then trustmrr.com is suppressed in the corpus test as the known-bad marker.
+// ---------------------------------------------------------------------------
+
+/** A hero market/category number below this reads as noise, not a market —
+ *  the trustmrr "10 searches/mo" class. Deliberately a MAGNITUDE rule only:
+ *  whether a card's LABEL is the right market (trustmrr's "Business
+ *  Intelligence" mislabel) is the classifier/judge's job (Phase B), and a
+ *  legitimate niche can rest on a single tight phrase (savvycal 240/mo), so
+ *  R9 never polices phrase COUNT — only that a number shown as a hero clears
+ *  a credibility floor or degrades to its zero-state. */
+const MAGNITUDE_FLOOR = 100;
+
+const r9MarketCredibility: RubricRule = {
+  id: "R9",
+  title: "a market/niche card shown as a hero clears a credibility floor — not a tiny number that reads as noise",
+  check: (payload, html) => {
+    const sv = payload.searchVisibility;
+    const violations: RubricViolation[] = [];
+    if (!sv) return violations;
+    const text = visibleText(html);
+    type MarketCard = { demand: number; phrases?: unknown[]; rankedTop3: unknown[]; gaps: unknown[] } | null | undefined;
+    const cards: Array<{ name: string; card: MarketCard }> = [
+      { name: "category", card: sv.categoryCard },
+      { name: "niche", card: sv.nicheCard },
+    ];
+    for (const { name, card } of cards) {
+      // An unready card renders its zero-state, not a number — nothing to judge.
+      if (!marketCardReady(card)) continue;
+      const demand = card!.demand;
+      // Only judge a demand number the user actually sees rendered.
+      if (!(demand >= MIN_SIGNIFICANT && text.includes(demand.toLocaleString()))) continue;
+      if (demand < MAGNITUDE_FLOOR) {
+        violations.push({
+          rule: "R9",
+          message: `${name} card renders ${demand.toLocaleString()}/mo as a hero — below the ${MAGNITUDE_FLOOR}/mo credibility floor. A tiny number must degrade to its zero-state or show real market size, never stand alone (the trustmrr "10 searches/mo" class).`,
+        });
+      }
+    }
+    return violations;
+  },
+};
+
+// ---------------------------------------------------------------------------
 // Registry + runner
 // ---------------------------------------------------------------------------
 
 /** Every rubric rule, in priority order. The corpus test pins this list's
  *  length as an only-grows floor — deleting a rule is a ratchet violation. */
-export const RUBRIC_RULES: RubricRule[] = [r1NoGarbage, r2NumberBasis, r3EmptyInputNoSection, r4TeaserParity, r5ComparativeCopy, r6LadderSanity, r7NoNumeralClaimsInLlmProse, r8Terseness];
+export const RUBRIC_RULES: RubricRule[] = [r1NoGarbage, r2NumberBasis, r3EmptyInputNoSection, r4TeaserParity, r5ComparativeCopy, r6LadderSanity, r7NoNumeralClaimsInLlmProse, r8Terseness, r9MarketCredibility];
 
 export interface RubricOptions {
   /** Rule ids to skip for a fixture — a named, only-shrinks list in the corpus

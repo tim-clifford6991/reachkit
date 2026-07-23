@@ -8,7 +8,7 @@ import { expect, test, vi } from "vitest";
 import { serverDb } from "@/lib/db/client";
 import { ScanBudget } from "@/lib/tools/registry";
 import type { ScanContext } from "@/lib/scan/pipeline";
-import { runCollect } from "@/lib/scan/pipeline";
+import { runCollect } from "@/lib/scan/collect";
 
 const SOFA_URL = "https://apps.apple.com/us/app/sofa/id1276554886";
 const SUBJECT_URL = "https://acme.example";
@@ -147,8 +147,8 @@ test(
       reviewCountFromSnippets: () => 0,
     }));
 
-    // Dynamically import pipeline after mocking so it picks up mocked modules
-    const { runCollect: runCollectMocked } = await import("@/lib/scan/pipeline");
+    // Dynamically import collect after mocking so it picks up mocked modules
+    const { runCollect: runCollectMocked } = await import("@/lib/scan/collect");
 
     const ctx = await seedAppAndScan(SUBJECT_URL, "web");
     const db = serverDb();

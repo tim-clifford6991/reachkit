@@ -31,13 +31,14 @@ const result = await cruise(TARGETS, {
  * make a regression pass (CLAUDE.md → "strict adherence, iterate forward").
  */
 const KNOWN_CYCLES = new Set([
-  "components/report/section-nav-active.tsx → components/report/section-nav.tsx",
+  // section-nav-active ↔ section-nav cycle retired 2026-07-23 (M2): both files
+  // were part of the dead report/*-section island (zero live importers), deleted.
   "lib/badge/score-card.ts → lib/scan/report.ts",
-  "lib/llm/check-link.ts → lib/llm/prompts.ts",
-  "lib/llm/competitor-names.ts → lib/scan/pipeline.ts",
-  "lib/llm/prompts.ts → lib/llm/grounding.ts",
-  "lib/scan/collect.ts → lib/scan/facts.ts",
-  "lib/scan/collect.ts → lib/scan/pipeline.ts",
+  // 5 cycles retired 2026-07-21 (Phase S): moving ScanContext to the leaf
+  // module `scan-context.ts` and `runCollect` into `collect.ts` removed the
+  // `pipeline → collect` runtime edge, which had turned the whole scan tool
+  // tree (collect ↔ pipeline ↔ tools ↔ check-link ↔ prompts ↔ grounding ↔
+  // facts) into one tangle. The baseline only shrinks — do not re-add.
 ]);
 
 const out = result.output ?? result;

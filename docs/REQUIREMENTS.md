@@ -65,8 +65,8 @@
 
 - **Decision:** The creator-reach proxy is a placeholder (the YouTube 2nd `videos.list` call is never made). Build it, or remove the field and its render? "Never pay for data you don't render" cuts both ways.
 - **Where it bites:** §6 R-6.4
-- **Default until answered:** Placeholder stands, documented.
-- **Owner answer:** *(unanswered)*
+- ~~**Default until answered:** Placeholder stands, documented.~~
+- **RESOLVED(2026-07-21) → §0.1** — cut with the creators pass (O-8); the field is removed, not built.
 
 
 
@@ -81,7 +81,11 @@
 
 ### 0.1 Resolved decisions
 
-*None yet. When a decision above is answered and written into its* `R-x.y` *requirement, it moves here as:* `RESOLVED(O-n, YYYY-MM-DD) — <one-line outcome> → R-x.y`*.*
+- **RESOLVED(O-7, 2026-07-21)** — Cut reviews from BOTH tiers. Owner: "we cut reviews from the paid scan and from the free scan." `reviewThemes`/`strengthsAndWeaknesses` and their gathering are removed; the invented-reviews grounding-risk surface goes with them (invariant #11 machinery stays for what remains). → R-6.1, R-7.3.
+- **RESOLVED(O-8, 2026-07-21)** — Cut the creators pass. Owner: "we can also cut this… not something we're showcasing on the paid scans." `find-creators` + `audienceProxy` + the creators render are removed (subsumes O-5). → R-6.1, R-6.4.
+- **RESOLVED(O-9, 2026-07-21)** — Content-intel kept ONLY where it feeds the action plan. Owner: "typically only used for lessons/action surfaced for the action plan that the user actually creates." Everything else cut. → R-6.2.
+- **RESOLVED(O-10, 2026-07-21)** — Cloud-only Supabase. Owner: "definitely something we need to go towards, so delete all local supabase implementation." Dev + integration move to cloud; the local CLI stack is retired. Isolation approach for shared-DB integration tests to be settled during execution. → §11 R-11.6.
+- **RESOLVED(O-5, 2026-07-21)** — folded into O-8: `audienceProxy` is removed with the creators pass, not built.
 
 ---
 
@@ -93,6 +97,13 @@
 - **R-1.2** The buyer is a solo founder / small SaaS team without an SEO budget. Every surface must be readable by a non-specialist in one pass.
 - **R-1.3** The core promise is **honesty**: every claim on any surface is grounded in evidence we actually gathered. Degrade, never invent. This is a product requirement, not a style preference — the marketing hero says "Every claim grounded in your live page" and the product must never contradict its own hero.
 - **R-1.4** The user-facing processes stay **simple**: one entry point per intent, one path, no per-tier/per-product special-casing (owner rule 2026-07-17). A fix that needs a new special case signals the process itself is wrong.
+
+**The product contract** (owner spec, 2026-07-21 — the filter every pipeline step, data call, and rendered section must pass; data that serves no contract line gets deleted):
+
+- **R-1.5** The **free scan** exists to deliver immediate wow that drives upgrade. It answers exactly four things: (1) what your **category** is, (2) what your **niche** is, (3) where you **stand vs your industry**, (4) **three actions** to improve your standing in your niche/category. The free pipeline gathers ONLY the data these four require — anything else (e.g. review collection) is removed from the free path.
+- **R-1.6** The **paid deep scan** (the weekly big scan) shows what competitors are doing: (1) who your **referrers** are, (2) who your **competitors' top referrers** are and the **lessons** to take from them, (3) who your **potential customers** are, **which communities** they sit in, and where you can go to work with / hear from / learn from them. Data irrelevant to these is removed (open cuts: §0 O-7/O-8/O-9).
+- **R-1.7** **No LLM-generated sentences render in the UI.** LLMs synthesize the dynamics; every surface shows simple words, labels, and numbers — never prose paragraphs. (Product-wide extension of the free-board terseness gate.)
+- **R-1.8** **Data-driven, not word-driven** (owner rule, 2026-07-23 — the positive half of R-1.7). ReachKit is a data application: gaps, trends, and performance are shown with **the data itself — bars, gauges, sparklines, deltas, positions, counts** — never a paragraph describing them. When a surface has a choice between a sentence and a chart/number, it uses the chart/number. Generated text is reduced to labels, not explanations. Every UI change (marketing, free report, paid app) is reflected 1:1 in Claude Design (`ds-src` mirrors) in the same change so the design system and the product never disagree. This binds every phase of the launch build.
 
 
 
@@ -122,10 +133,17 @@
 - **R-3.7** Wins render alongside gaps: top-3 rankings as a wins strip with an honest "+N more" disclosure when the sentence count exceeds the chips.
 - **R-3.8** Classification is honest at render: no mega-brand/entity is ever "your category" or "your biggest opportunity"; incidental noise (timezone lookups) never becomes category; the subject's own sub-brands are never off-topic (macro rule + classification corpus).
 - **R-3.9** Off-topic examples are named concretely — but explicit/adult terms never render as *named* examples (`lib/scan/explicit-terms.ts`); percentages still count every keyword. `OPEN(O-2)`.
-- **R-3.10** Rivalry has both states: discovered rival names render free (per-rival intel is the paid tease); zero rivals renders the honest degrade tease, never silence, never invented names.
+- **R-3.10** ~~Rivalry has both states: discovered rival names render free (per-rival intel is the paid tease)~~ **SUPERSEDED (2026-07-21, Phase S + the product contract R-1.5):** competitor discovery is OFF the free contract — a free scan no longer discovers or renders rivals. The free "standing vs your industry" story is the market model (R-3.14: market size + your share), not a rival list. Rivalry (names + per-rival intel) is a paid capability; competitors are discovered at deepen time. A paid scan that has no rivals still renders the honest degrade tease, never invented names.
 - **R-3.11** Every number ≥10 on the report derives from the payload (no aliases, no fetch-limits-as-totals, no literals); teaser counts equal the collection their section renders and are never 0; empty inputs render no section; comparative copy renders only when true. Machine-enforced by rubric R1–R6 over the report corpus, every build.
 - **R-3.12** Old persisted reports must always render: every consumer of `report_payload` null-coalesces new fields; legacy shapes (pre-ladder, retired aliases, `medium` rungs, inverted broad rungs) render cleanly with the retired parts filtered at the props boundary.
 - **R-3.13** One tease vocabulary across the report: free states what's true; paid unlocks what rivals do about it. Locked counts always come from the real collection.
+
+**The market model + free floor** (owner decisions D1–D4, 2026-07-21 — approved, build in flight):
+
+- **R-3.14** The category/niche cards show **market size + your share**: market-level demand measured from the MARKET itself (site-independent, real DataForSEO volumes — big when the market is big), with the subject's position/share rendered beside it. The gap between them is the pitch. A market number's basis is disclosed (e.g. "sized from <leader>'s rankings"). Never an ETV percentage share (G1 class).
+- **R-3.15** To ground market size, a free scan may make **ONE category-leader `ranked_keywords` fetch** (~2¢, within the 25¢ cap, per-domain cached). This amends the 2026-07-17 "no rival fetch on free" rule; per-rival gap analysis and rival intel remain paid-only (R-3.10 unchanged). Thin/failed leader data degrades to seed-basket volumes — never fabricates.
+- **R-3.16** Category/niche **relevance and labels** are judged by an LLM relevance pass over REAL keywords (classification, never generation — all volumes stay DataForSEO); deterministic token heuristics remain as pre-filter and structural veto. The score-side footprint classifier stays deterministic and frozen (invariant #1).
+- **R-3.17** The free report always shows **3 real ranked fixes** (deterministic floor — `FREE_MIN_ACTIONS=3`), plus blurred locked placeholder rows that carry no numbers and no fabricated specifics (zero LLM spend on placeholders).
 
 
 
@@ -147,10 +165,10 @@
 
 ## 6. The paid loop
 
-- **R-6.1** A paid deep scan enriches the free scan with off-site signals: competitor cohort (≤ `MAX_SELECTED=5` rivals), keyword gap, market analysis, communities, creators. Deep-pass sentinel is `scans.deepened_at`.
-- **R-6.2** The paid headline additions are the **Market Position grade** (off-site cohort strength — separate from, never blended into, the Discoverability Score) and the intel surfaces (`/app` dashboard + supply/demand/competitors/audience/synthesis tabs).
+- **R-6.1** A paid deep scan enriches the free scan with the contract's off-site intelligence (R-1.6): the competitor cohort (≤ `MAX_SELECTED=5` rivals), **referrer intelligence** (the user's referrers + competitors' top referrers + the lessons), keyword gap, and **customer communities** (demand pockets + where buyers talk). Deep-pass sentinel is `scans.deepened_at`. **CUT (2026-07-21, O-7/O-8):** reviews (`reviewThemes`/`strengthsAndWeaknesses`) and the creators pass (`find-creators`/`audienceProxy`) are off-contract and removed — neither is gathered or rendered.
+- **R-6.2** The paid headline additions are the **Market Position grade** (off-site cohort strength — separate from, never blended into, the Discoverability Score) and the intel surfaces (`/app` dashboard + supply/demand/competitors/synthesis tabs). **Content-intel (O-9)** is kept ONLY where it feeds the user's action plan (lessons → content to create); the standalone content surfaces are cut.
 - **R-6.3** The plan (`/app/plan`) is the singular action timeline: floored to `MIN_ACTIONS=5` with deterministic fixes; every active category keeps ≥1 surviving action after the §11 cap; every "+N pts" is the model-computed shortfall, never the LLM's free choice; observed deltas are the real gauge movement post-completion.
-- **R-6.4** §11 outreach safety: cap 5 outreach cards, divergence 0.92, 1 action per evidence host, every draft `draftRequiresEdit=true` — nothing auto-sends. (`audienceProxy` placeholder: `OPEN(O-5)`.)
+- **R-6.4** §11 outreach safety: cap 5 outreach cards, divergence 0.92, 1 action per evidence host, every draft `draftRequiresEdit=true` — nothing auto-sends.
 - **R-6.5** Cadence: weekly refresh Monday 09:00 UTC (paid tiers), score pulse Thursday 09:00 UTC, cache cleanup daily 03:00. Trend lines reuse the persisted search-presence score so the score-over-time series never mixes scales.
 - **R-6.6** The paid render surfaces obey the same number/section honesty as the free report. Machine coverage today: report-payload paid fixture through the shared-report path + hero/blocks render checks; full intel-cache corpus is `OPEN(O-4)`.
 
@@ -198,4 +216,24 @@
 - **R-11.3** Every new guard is proven to bite (mutation-proven) before it counts.
 - **R-11.4** This document, `CLAUDE.md`, and `docs/architecture.md` are kept consistent in the same commit as the change that affects them (Change Protocol). The doc-rot tripwire asserts referenced files exist.
 - **R-11.5** The owner always has a current view: `docs/architecture.md` (structure), this file (behavior), and the interactive process/ledger artifact (linked from `CLAUDE.md`).
+- **R-11.6** **Cloud-only Supabase** (O-10, 2026-07-21): there is one Supabase — the cloud project. No local Supabase stack. Dev (`.env.local`) points at cloud; integration tests (`test:int`/`eval`) run against cloud with per-run isolation (a dedicated cloud test project or per-run schema, decided at execution). `capture:report` and `check:live` read cloud by default. Rationale: local added redundancy and confusion (a free scan captured against local couldn't see the prod scan) for no value.
+- **R-11.7** **One capability, one implementation** (2026-07-21): every domain capability has a single canonical module, pinned in the capability ledger (`lib/testing/capability-ledger.test.ts`). A second definition of a registered symbol anywhere in `lib/` fails the build. This is the machine-checked form of R-1.4 (one path per use case) — prose alone never prevented a duplication; the ledger does.
+
+
+
+## 12. The quality contract (owner-editable — the bar, and what enforces it)
+
+> **What this is.** One table of the quality dimensions the product is held to, each with its **bar** (the owner's words) and its **gate** (the machine check, or `UNENFORCED` when there is none — the gap is named, never silent). The owner edits the bar; an agent then makes the gate match. This exists because before it, only *honesty* had a durable home — so magnitude/simplicity/wow feedback took a whole session to land, each time reinvented. (2026-07-21.)
+
+| Dimension | The bar | Gate |
+|---|---|---|
+| **Honesty** | Every number derives from the payload; empty input ⇒ no section; comparative copy only when true. | Rubric R1–R7, G1–G10, classification corpus. |
+| **Magnitude / credibility** | A number shown as a hero must be *credible*, not merely honest: a tiny or hollow market/category number degrades to its zero-state rather than standing alone as the headline (the trustmrr "10 searches/mo" class). | Rubric **R9** (report corpus). |
+| **Terseness** | No LLM-generated sentences in the UI — labels + minor keywords + numbers only (R-1.7). | Rubric **R8** (free board); paid surfaces `UNENFORCED` until the paid corpus lands (Phase E / O-4). |
+| **Data-driven representation** | Gaps/trends/performance shown as data — bars, gauges, sparklines, deltas, positions, counts — never a paragraph describing them; a surface with a sentence-vs-chart choice uses the chart (R-1.8). Every UI change mirrored 1:1 in Claude Design. | Rubric R8 (terseness proxy) + `check:design` (DS parity); a positive "prefer-viz" check is `UNENFORCED` (design-review judgment) — revisit if a live-review failure proves mechanically checkable. |
+| **One path per use case** | One entry point, one path, no per-tier/per-product special-casing (R-1.4); one implementation per capability (R-11.7). | Capability ledger + dep-cruiser capability-owner rules. |
+| **Contract fit — data↔UI alignment** | Every data point pulled is *showcased* and calculated efficiently; every rendered element maps to real data (owner, 2026-07-21). Nothing fetched-but-hidden; nothing rendered-but-fabricated. | G9 (per-wrapper: no wrapper without a consumer) + R2 (per-number: no render without a basis). **Per-FIELD `UNENFORCED`** — "fetch 50, show 8" is still un-gated (CLAUDE.md open risk); the field-level sweep is the next ratchet. |
+| **One-glance comprehension** | A non-specialist reads any surface in one pass (R-1.2). | `UNENFORCED` (prose bar; no deterministic check exists — revisit only if a live-review failure proves mechanically checkable). |
+| **UI standards** | Tokens only, mobile-clean at 390/360px, design-parity with the DS. | `check:design`, `test:mobile`, ESLint. |
+| **Score calibration** | Bands separate on live data (no SPA-fetch false-lows, no tidy-page false-100s). | `UNENFORCED` — the one red rule; `scripts/score-calibration.mts` is a live tool, not CI. |
 

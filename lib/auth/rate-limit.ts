@@ -52,3 +52,12 @@ export function __resetRateLimits(): void {
 /** Per-IP-hash and per-email magic-link ceilings (per rolling hour). */
 export const MAGIC_LINK_PER_IP = 10;
 export const MAGIC_LINK_PER_EMAIL = 5;
+
+/**
+ * Per-IP-hash cap on Stripe Checkout Session creation (per rolling hour). The
+ * public checkout routes previously borrowed `assertRateLimit`, which counts
+ * `scans` rows the checkout routes never write — a dead limiter that let an IP
+ * create unlimited sessions (card-testing / Stripe-API exhaustion). This real
+ * counter closes it. Generous: a genuine buyer rarely opens >8 checkouts/hour.
+ */
+export const CHECKOUT_PER_IP = 8;

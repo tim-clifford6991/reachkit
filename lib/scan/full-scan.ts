@@ -62,6 +62,9 @@ import { externalCapBreached } from "@/lib/scan/cost-context";
 import { writeScanScoreSnapshot, rollupScanCost } from "@/lib/scan/scan-telemetry";
 import { countMentions } from "@/lib/scan/competitor-mentions";
 import { normalizeName } from "@/lib/scan/competitor-filter";
+import { discoverScanCompetitors } from "@/lib/scan/scan-competitors";
+import { persistCompetitors } from "@/lib/scan/competitors";
+import { hostname } from "@/lib/scan/url";
 import type { ScanContext } from "@/lib/scan/pipeline";
 import type { PreliminaryFacts } from "@/lib/scan/types";
 import type { Finding, PositioningMirror, ActionCard } from "@/lib/llm/types";
@@ -497,6 +500,22 @@ async function persistActions(ctx: ScanContext, actions: ActionCard[]): Promise<
 // ---------------------------------------------------------------------------
 export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Promise<void> {
   try {
+    // 0. Competitor discovery is a PAID capability (Phase S, R-1.5). A scan
+    //    deepened from a stored FREE scan carries no competitors (the free
+    //    collect skipped them), yet the paid surfaces below — full-collect's
+    //    community/keyword seeds and the competitor-gap grounding — need them.
+    //    Re-collect + persist once here, before anything reads facts.competitors,
+    //    through the ONE shared discovery path (capability ledger). A fresh
+    //    tier=full scan already has them, so this is a no-op there.
+    if (facts.competitors.length === 0) {
+      const productName = facts.listing.name || hostname(ctx.storeUrl).split(".")[0] || hostname(ctx.storeUrl);
+      const { competitors } = await discoverScanCompetitors(ctx, { productName, listing: facts.listing });
+      if (competitors.length > 0) {
+        facts.competitors = competitors;
+        await persistCompetitors(ctx.appId, competitors);
+      }
+    }
+
     // 1. Heavy collect (keywords / communities / creators)
     await runFullCollect(ctx, facts);
 

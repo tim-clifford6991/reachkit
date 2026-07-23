@@ -68,7 +68,7 @@ async function runScanRequested(tier: "free" | "full") {
   const runFullScan = vi.fn(
     async (_ctx: Record<string, unknown>, _facts: Record<string, unknown>) => {},
   );
-  vi.doMock("@/lib/scan/pipeline", () => ({ runCollect }));
+  vi.doMock("@/lib/scan/collect", () => ({ runCollect }));
   vi.doMock("@/lib/scan/findings-pipeline", () => ({ runFindings }));
   vi.doMock("@/lib/scan/free-report", () => ({ runFreeReport }));
   vi.doMock("@/lib/scan/full-scan", () => ({ runFullScan }));

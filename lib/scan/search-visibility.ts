@@ -22,8 +22,10 @@
 
 import type { RankedKeyword } from "@/lib/scan/adapters/dataforseo-ranked-keywords";
 import type { CategoryNicheSeeds } from "@/lib/llm/types";
+import { judgeRelevance, type RelevanceVerdicts } from "@/lib/scan/relevance-judge";
 import { normalizeHost } from "@/lib/scan/referral/classify";
 import { brandTokensFor, isBrandKeyword, tokens, GENERIC_TOKENS, STOPWORDS, stem } from "@/lib/scan/referral/brand-keywords";
+import { isAggregatorHost } from "@/lib/scan/competitor-filter";
 
 // Re-exported for existing import sites (`import { stem } from "./search-visibility"`,
 // e.g. this file's own test suite) — the canonical definition now lives in
@@ -192,6 +194,12 @@ export interface SearchVisibility {
    *  laddered. Data-only this phase; optional, same absence rule as
    *  `categoryCard`. */
   nicheCard?: CategoryLadderCard;
+  /** Phase A (2026-07-21, market model): the leader domain the CATEGORY market
+   *  was sized from, when `categoryCard` came from a category leader's footprint
+   *  rather than the subject's own ladder. Rendered as provenance ("market sized
+   *  from ahrefs.com's rankings"). Absent when no leader resolved (the card fell
+   *  back to the subject-grounded ladder — R-3.15 degrade path). */
+  categoryLeader?: string;
   // DELETED 2026-07-17 (free-scan honesty): `categoryCaptureRate` was
   // `= sv.score` — the search-presence score rendered a SECOND time under a
   // "you capture X%" label (identical in 10/10 prod scans). A metric may never be
@@ -750,6 +758,14 @@ export function computeCategoryDemand(
   seedVolumes: Array<{ keyword: string; volume: number }>,
   rankByKeyword: Map<string, number>,
   categoryRanked: DemandRow[] = [],
+  /** Phase B (optional): the LLM relevance judge's rulings. Where a seed was
+   *  judged, its verdict decides inclusion (keep unless explicitly "irrelevant")
+   *  instead of token-grounding — the precision fix for a seed that shares a real
+   *  category token but names a different market (a "startup incubator" seed for
+   *  an MRR tracker). An unjudged seed falls back to token-grounding (unchanged).
+   *  Real rankings (`categoryRanked`) stay always-included, real by definition —
+   *  the judge only refines the SEED fill, never vetoes a real ranking. */
+  verdicts?: RelevanceVerdicts,
 ): Pick<SearchVisibility, "categoryDemand" | "categoryOpportunities" | "categoryPhrases"> {
   const byKw = new Map<string, { keyword: string; volume: number; position?: number }>();
   const add = (rawKeyword: string, volume: number, position?: number) => {
@@ -784,7 +800,12 @@ export function computeCategoryDemand(
   } else {
     const groundedTokens = groundedCategoryTokens(categoryRanked);
     for (const r of seedVolumes) {
-      if (!isTierPhraseGrounded(r.keyword, groundedTokens, rankByKeyword)) continue; // ungrounded — an LLM guess with no ranking evidence
+      const v = verdicts?.get(r.keyword.toLowerCase());
+      // Judge-authoritative when it ruled: keep unless explicitly "irrelevant"
+      // (category AND niche are both the subject's market). Unjudged → the
+      // pre-judge token-grounding decides (degrade, never worse than today).
+      const relevant = v !== undefined ? v !== "irrelevant" : isTierPhraseGrounded(r.keyword, groundedTokens, rankByKeyword);
+      if (!relevant) continue;
       add(r.keyword, r.volume);
     }
   }
@@ -1320,6 +1341,299 @@ export function classifyFootprint(
   return computeSearchVisibility(kw, vocab);
 }
 
+/** Phase A: how many category-market phrases the CATEGORY card renders. */
+const MARKET_PHRASES = 8;
+/** A leader footprint thinner than this is untrustworthy — degrade to seeds. */
+const MIN_LEADER_ROWS = 10;
+/** Phase B: how many of the leader's highest-volume keywords the judge rules on.
+ *  Bounds the one Haiku call to ≤1 batch; the highest-volume terms (the ones that
+ *  would dominate the market card) are exactly the ones that must be judged. */
+const JUDGE_CANDIDATES = 30;
+/** 2026-07-22 fine-tune: how many of the SUBJECT's own highest-volume non-brand
+ *  ranked keywords feed the market pool + the judge. The niche's real footprint
+ *  (usefathom's "google analytics cost"/"cross site tracking" buyer intent) lives
+ *  here, below the score-side category classification — so the niche can be sized
+ *  from how buyers ACTUALLY search, not just the LLM's exact-match phrases. */
+const SUBJECT_FOOTPRINT_ROWS = 25;
+
+/**
+ * Pick the ONE category-leader domain to size the market from: normalized, a
+ * real domain, NOT the subject, NOT an aggregator/directory (competitor-filter),
+ * NOT a mega-brand platform. Returns the first survivor, or null → the gather
+ * degrades to the subject-grounded ladder (R-3.15). Deterministic, no I/O.
+ */
+export function pickCategoryLeader(leaders: string[], subjectHost: string): string | null {
+  const subject = normalizeHost(subjectHost);
+  for (const raw of leaders) {
+    const host = normalizeHost(raw);
+    if (!host || host === subject) continue;
+    if (isAggregatorHost(host)) continue;
+    const label = host.split(".")[0] ?? host;
+    if (MEGA_BRAND_TOKENS.has(label)) continue;
+    return host;
+  }
+  return null;
+}
+
+/**
+ * Cluster same-INTENT keyword paraphrases and keep the highest-volume member per
+ * cluster (2026-07-22, the market-sizing fine-tune). DataForSEO/Keyword Planner
+ * merge close variants (plurals, spelling) into ONE volume, but return distinct
+ * PHRASINGS of one intent SEPARATELY — usefathom ranks for 12 phrasings of "how
+ * to delete google analytics account" (140–210 each) and "google analytics cost"
+ * + "cost of google analytics" (480 each). Summing those raw DOUBLE-COUNTS one
+ * buyer. The intent key is the ORDER-INDEPENDENT set of non-stopword stems, so
+ * "google analytics cost" and "cost of google analytics" collapse to one, and the
+ * 12 delete-account phrasings collapse to one. This is the "de-dup before you
+ * sum" the SEO-standard total-addressable-search method requires. PURE.
+ */
+/** Question words / prepositions / articles stripped from the intent key so
+ *  filler-only paraphrases collapse ("how to delete a X account" ≡ "delete
+ *  account from X") while CONTENT-word differences are preserved ("analytics" ≠
+ *  "web analytics" — "web" is content, not filler, so they never merge). Stemmed. */
+const INTENT_FILLERS: ReadonlySet<string> = new Set(
+  ["how", "to", "a", "an", "the", "in", "on", "at", "of", "for", "from", "with", "is", "are", "do", "does", "what", "why", "when", "your", "you"].map(stem),
+);
+
+export function dedupeByIntent(rows: DemandRow[]): DemandRow[] {
+  const byIntent = new Map<string, DemandRow>();
+  for (const r of rows) {
+    const key = [
+      ...new Set(
+        tokens(r.keyword)
+          .map(stem)
+          .filter((t) => !STOPWORDS.has(t) && !INTENT_FILLERS.has(t)),
+      ),
+    ]
+      .sort()
+      .join("|");
+    if (!key) continue;
+    const cur = byIntent.get(key);
+    if (!cur || r.volume > cur.volume) byIntent.set(key, r);
+  }
+  return [...byIntent.values()];
+}
+
+/**
+ * A market phrase is MEANINGFUL only if it's a real multi-token search query with
+ * ≥1 content token — never a BARE mega-generic single word. This is the guard for
+ * the "category = 'google' 68,000,000 / 'rocket' 1,000,000 / 'buy' 110,000" class:
+ * the subject incidentally ranks for a huge one-word head (simpleanalytics ranks
+ * for "google"), or a "google analytics alternative" seed drags "google" into the
+ * category vocabulary, and that bare mega-word then dominates the basket. A real
+ * market is "web analytics"/"rocket launch"/"google analytics alternative", not
+ * "google"/"rocket"/"analytics" alone. PURE.
+ */
+export function isMeaningfulMarketPhrase(keyword: string): boolean {
+  // A bare single word is too broad/ambiguous to size a market ("google" 68M,
+  // "rocket" 1M, "buy" 110k, "analytics" 60.5k). A real market query is ≥2 RAW
+  // words (counted raw, NOT via `tokens()` — that strips suffix-words like
+  // "tools"/"software", which would wrongly collapse "seo tools" to one token)
+  // with at least one non-mega-brand content token ("web analytics", "rocket
+  // launch", "google analytics alternative"). This is the ONLY structural filter
+  // — topic relevance is the judge's job, not this.
+  const rawWords = keyword.trim().split(/\s+/).filter(Boolean).length;
+  if (rawWords < 2) return false;
+  const toks = tokens(keyword);
+  return toks.length === 0 || toks.some((t) => !MEGA_BRAND_TOKENS.has(stem(t)));
+}
+
+/**
+ * The shared tail of every market card (leader / category / niche): drop
+ * non-meaningful bare phrases, DEDUP by intent, take the top `MARKET_PHRASES` by
+ * volume, sum to `demand`, and split the subject's won vs gap phrases. One place
+ * so the anti-inflation dedup + the bare-mega-word guard + the G4 "demand === Σ
+ * phrases" reconciliation can't drift between the three cards. PURE.
+ */
+function finalizeMarketCard(label: string, rows: DemandRow[]): CategoryLadderCard | null {
+  const top = dedupeByIntent(rows.filter((r) => isMeaningfulMarketPhrase(r.keyword)))
+    .sort((a, b) => b.volume - a.volume)
+    .slice(0, MARKET_PHRASES);
+  if (top.length === 0) return null;
+  const isWon = (p: DemandRow): boolean => p.yourPosition !== undefined && p.yourPosition <= WINNING_POSITION;
+  return {
+    label,
+    demand: top.reduce((s, p) => s + p.volume, 0),
+    phrases: top,
+    rankedTop3: top.filter(isWon),
+    gaps: top.filter((p) => !isWon(p)),
+  };
+}
+
+/**
+ * Is a keyword in the subject's CATEGORY? Phase B (2026-07-22): the LLM relevance
+ * judge is authoritative WHEN it ruled on this keyword — `verdicts.get(kw)`
+ * present ⇒ include iff it's "category", so a broad/adjacent term the judge
+ * rejects (mixpanel's "data analytics tools" for web-analytics fathom) is dropped
+ * even though it shares a token. A keyword the judge did NOT rule on (omitted, or
+ * no judge at all) falls back to the pre-judge token-overlap heuristic — so a
+ * partial/absent judge only REFINES, never renders worse than today (degrade,
+ * never invent). PURE.
+ */
+function isCategoryKeyword(
+  keyword: string,
+  catVocab: ReadonlySet<string>,
+  verdicts?: RelevanceVerdicts,
+): boolean {
+  const v = verdicts?.get(keyword.toLowerCase());
+  if (v !== undefined) return v === "category";
+  return tokens(keyword).some((t) => catVocab.has(stem(t)));
+}
+
+/**
+ * Size the CATEGORY market from a leader's real ranked keywords (site-
+ * independent), annotated with the SUBJECT's own position per phrase — "market
+ * size + your share" (R-3.14). Produces a `CategoryLadderCard` so it drops
+ * straight into the existing render. Every volume is DataForSEO's (the leader's
+ * real rankings); the LLM only named the leader. Never touches `sv.score`
+ * (invariant #1 — this feeds the card only). Returns null when no leader
+ * keyword is category-relevant (→ degrade to the subject ladder).
+ *
+ * `verdicts` (Phase B, optional): the LLM relevance judge's rulings — where a
+ * leader keyword was judged, its verdict decides category membership instead of
+ * token-overlap (the mixpanel-for-fathom precision fix). Absent/unjudged
+ * keywords fall back to token-overlap (unchanged behavior).
+ */
+export function computeMarketFromLeader(
+  leaderDomain: string,
+  leaderRows: RankedKeyword[],
+  seeds: CategoryNicheSeeds,
+  subjectRankByKeyword: Map<string, number>,
+  subjectCategoryRanked: DemandRow[],
+  verdicts?: RelevanceVerdicts,
+): CategoryLadderCard | null {
+  // Category vocabulary = non-generic stemmed tokens of the category label +
+  // phrases. A leader keyword must share one to count as "the category".
+  const catVocab = new Set<string>();
+  for (const text of [seeds.category.label, ...seeds.category.phrases]) {
+    for (const t of tokens(text)) {
+      const st = stem(t);
+      if (!GENERIC_TOKENS.has(st) && !MEGA_BRAND_TOKENS.has(st)) catVocab.add(st);
+    }
+  }
+  if (catVocab.size === 0) return null;
+
+  const leaderBrand = brandTokensFor([leaderDomain]);
+  const subjPos = new Map<string, number>();
+  for (const r of subjectCategoryRanked) {
+    if (r.yourPosition && r.yourPosition > 0) subjPos.set(r.keyword.toLowerCase(), r.yourPosition);
+  }
+
+  // Category-relevant leader keywords: real volume, not the leader's own brand,
+  // shares a non-generic token with the category vocabulary. Annotate the
+  // subject's own position, then finalize (dedup intent + top-N + sum).
+  const rows: DemandRow[] = [];
+  for (const r of leaderRows) {
+    if (r.volume <= 0) continue;
+    if (isBrandKeyword(r.keyword, leaderBrand)) continue;
+    if (!isCategoryKeyword(r.keyword, catVocab, verdicts)) continue;
+    const key = r.keyword.toLowerCase();
+    const yp = subjectRankByKeyword.get(key) ?? subjPos.get(key);
+    rows.push({ keyword: r.keyword, volume: r.volume, ...(yp ? { yourPosition: yp } : {}) });
+  }
+  return finalizeMarketCard(seeds.category.label, rows);
+}
+
+/**
+ * Size the CATEGORY market from a BASKET of real category keywords when no leader
+ * resolves (2026-07-22 fine-tune — the "category collapsed to one keyword"
+ * defect: usefathom's ladder priced the bare word "analytics" 60,500, a single
+ * head term disconnected from what it competes for). The pool is the subject's
+ * category seed phrases (+ their broader ladder forms) priced + its real category
+ * rankings; a keyword counts as the category when the judge ruled it "category"
+ * (else a category-vocab token), deduped by intent and summed. This is the
+ * SEO-correct "total addressable search" method — Σ a distinct-query basket, not
+ * a lone head keyword. Feeds the card only (invariant #1). PURE. Returns null →
+ * degrade to the ladder card.
+ */
+export function computeCategoryMarket(
+  label: string,
+  pool: DemandRow[],
+  categoryVocab: ReadonlySet<string>,
+  verdicts?: RelevanceVerdicts,
+): CategoryLadderCard | null {
+  const rows: DemandRow[] = [];
+  for (const r of pool) {
+    if (!r || r.volume <= 0) continue;
+    const key = r.keyword.toLowerCase();
+    const v = verdicts?.get(key);
+    const isCat = v !== undefined ? v === "category" : tokens(r.keyword).some((t) => categoryVocab.has(stem(t)));
+    if (!isCat) continue;
+    rows.push(r);
+  }
+  return finalizeMarketCard(label, rows);
+}
+
+/**
+ * The niche's DISTINGUISHING vocabulary: the non-generic stemmed tokens of the
+ * niche label + phrases that are NOT already category tokens — the differentiator
+ * (usefathom category "Web Analytics", niche "Privacy-First Analytics" → the
+ * distinguishing token is "privacy", not the shared "analytics"). Used as the
+ * DEGRADE gate when the judge is absent. PURE.
+ */
+function nicheVocabFrom(seeds: CategoryNicheSeeds): Set<string> {
+  const cat = new Set<string>();
+  for (const text of [seeds.category.label, ...seeds.category.phrases]) {
+    for (const t of tokens(text)) cat.add(stem(t));
+  }
+  const out = new Set<string>();
+  for (const text of [seeds.niche.label, ...seeds.niche.phrases]) {
+    for (const t of tokens(text)) {
+      const st = stem(t);
+      if (GENERIC_TOKENS.has(st) || MEGA_BRAND_TOKENS.has(st) || cat.has(st)) continue;
+      out.add(st);
+    }
+  }
+  return out;
+}
+
+/**
+ * Size the NICHE market the same way the CATEGORY market is sized (Phase B-niche,
+ * 2026-07-22 — the "niche is the least-built piece" fix): from MULTIPLE real
+ * keywords, not the single exact-match LLM phrase the old `nicheCard` priced
+ * (usefathom's "privacy-first analytics" = 20/mo). A niche keyword is one the
+ * relevance judge ruled "niche" WHEN it ruled; absent a verdict it must carry a
+ * niche-DISTINGUISHING token (`nicheVocab`) — a keyword the judge called
+ * "category" or "irrelevant" is never the niche, and a keyword that only shares
+ * the CATEGORY vocabulary (bare "analytics") is not niche-specific.
+ *
+ * `pool` is the subject's REAL niche-source rows — its own category rankings, the
+ * leader's market keywords, and the priced LLM niche phrases — each with a real
+ * DataForSEO volume + the subject's real position. Every number stays real; the
+ * niche is honestly small when its real footprint is small, and credible when it
+ * isn't (never fabricated, invariant #11). Feeds the card only — never `sv.score`
+ * (invariant #1). Returns null when no niche keyword survives (→ degrade to the
+ * thin single-phrase card). PURE.
+ */
+export function computeNicheMarket(
+  nicheLabel: string,
+  pool: DemandRow[],
+  categoryVocab: ReadonlySet<string>,
+  nicheVocab: ReadonlySet<string>,
+  verdicts?: RelevanceVerdicts,
+): CategoryLadderCard | null {
+  const rows: DemandRow[] = [];
+  for (const r of pool) {
+    if (!r || r.volume <= 0) continue;
+    const key = r.keyword.toLowerCase();
+    const stems = tokens(r.keyword).map(stem);
+    // CONTAINMENT (the ladder's `containedInCategory` rule, reinstated after a
+    // live defect): a niche is a SLICE OF THE CATEGORY, so a niche keyword must
+    // share a category token. This kills the judge's over-classification of a
+    // differentiation-adjacent but off-CATEGORY term — usefathom (privacy
+    // ANALYTICS) had generic "privacy tools"/"online privacy software" ruled
+    // "niche" by the judge (privacy-adjacent, but not analytics), inflating the
+    // niche to a wrong 4,380. No category token ("analytics") → not the niche.
+    if (!stems.some((t) => categoryVocab.has(t))) continue;
+    const v = verdicts?.get(key);
+    // Judge-authoritative when it ruled; else the niche-distinguishing token gate.
+    const isNiche = v !== undefined ? v === "niche" : stems.some((t) => nicheVocab.has(t));
+    if (!isNiche) continue;
+    rows.push(r);
+  }
+  return finalizeMarketCard(nicheLabel, rows);
+}
+
 export async function gatherFreeSearchVisibility(
   rawSelf: string,
   seedText: string[],
@@ -1365,6 +1679,23 @@ export async function gatherFreeSearchVisibility(
       const cur = rankByKeyword.get(key);
       if (cur === undefined || k.position < cur) rankByKeyword.set(key, k.position);
     }
+    // 2026-07-22 fine-tune: the subject's OWN highest-volume NON-brand ranked
+    // keywords — the real buyer footprint (usefathom's GA-alternative + privacy
+    // buyer intent) that the score-side classifier may bucket as brand/off-topic
+    // and thus keep out of `categoryRanked`. Feeds the market pool + the judge so
+    // the category and niche can be sized from how buyers ACTUALLY search. Brand
+    // terms dropped (the subject's own name isn't market demand).
+    const subjectBrand = brandTokensFor([self, ...brandNames]);
+    const subjectFootprint: DemandRow[] = [
+      ...new Map(
+        kw
+          .filter((k) => k.volume > 0 && !isBrandKeyword(k.keyword, subjectBrand))
+          .map((k) => [k.keyword.toLowerCase(), k] as const),
+      ).values(),
+    ]
+      .sort((a, b) => b.volume - a.volume)
+      .slice(0, SUBJECT_FOOTPRINT_ROWS)
+      .map((k) => ({ keyword: k.keyword, volume: k.volume, ...(k.position > 0 ? { yourPosition: k.position } : {}) }));
     const seeds = buildCategorySeeds(sv, llmCategorySeeds);
     // PR-8 (2026-07-20): ground the tier phrases BEFORE they're priced — only a
     // phrase corroborated by the subject's REAL category rankings (`sv.categoryRanked`,
@@ -1415,15 +1746,70 @@ export async function gatherFreeSearchVisibility(
         [...cardSeeds, ...seeds, ...tierPhrases].map((s) => s.toLowerCase().trim()).filter(Boolean),
       ),
     ].slice(0, MAX_VOLUME_SEEDS);
+    // Phase A/B: pick the category leader now and start its ranked_keywords fetch
+    // in PARALLEL with the seed-volume batch (both are DataForSEO round-trips, no
+    // reason to serialize them). Its rows size the market card AND are the judge's
+    // candidates below.
+    const leader = categoryNicheSeeds ? pickCategoryLeader(categoryNicheSeeds.leaders ?? [], self) : null;
+    const leaderRowsP: Promise<RankedKeyword[]> = leader
+      ? cachedRankedKeywords(leader, 50).catch(() => [] as RankedKeyword[])
+      : Promise.resolve([] as RankedKeyword[]);
     const seedVolumes = allSeeds.length > 0 ? await cachedKeywordVolumes(allSeeds).catch(() => []) : [];
+    const leaderRows = await leaderRowsP;
     const volumesByKeyword = new Map(seedVolumes.map((r) => [r.keyword.toLowerCase(), r.volume]));
+    // Phase B (relevance judge, D3): rule each candidate keyword's relevance to
+    // THIS business, so a term that merely SHARES a category token but names a
+    // different/broader market is dropped from BOTH the category-demand hero AND
+    // the leader market card — precision the token-overlap filter structurally
+    // cannot give (the trustmrr "business intelligence" mislabel + the mixpanel-
+    // for-fathom market pollution). Candidates = the subject's category seed
+    // phrases (feed `computeCategoryDemand`) + the leader's highest-volume
+    // keywords (feed `computeMarketFromLeader`). ONE Haiku call, cached + version-
+    // stamped per subject, riding the ambient free-report/full-scan cost context
+    // (invariant #2); degrades to token heuristics on any miss (unjudged keyword
+    // → each function falls back). Feeds the card/demand side only — `sv.score`
+    // is already fixed above (invariant #1).
+    let verdicts: RelevanceVerdicts | undefined;
+    if (categoryNicheSeeds) {
+      const leaderCandidates = [...new Map(leaderRows.map((r) => [r.keyword.toLowerCase(), r])).values()]
+        .sort((a, b) => b.volume - a.volume)
+        .slice(0, JUDGE_CANDIDATES)
+        .map((r) => r.keyword);
+      // Phase B-niche (2026-07-22): ALSO judge the subject's OWN real category
+      // rankings + the LLM niche phrases, so the judge can rule which of them are
+      // the NICHE (feeds `computeNicheMarket`). The niche's real footprint lives
+      // in the subject's own rankings (usefathom's cookieless/GA-alternative
+      // terms), not the single exact-match phrase the old nicheCard priced.
+      const candidates = [
+        ...new Set([
+          ...seeds,
+          ...leaderCandidates,
+          ...sv.categoryRanked.map((r) => r.keyword),
+          ...subjectFootprint.map((r) => r.keyword.toLowerCase()),
+          ...categoryNicheSeeds.niche.phrases.map((p) => p.toLowerCase().trim()).filter(Boolean),
+        ]),
+      ];
+      if (candidates.length > 0) {
+        const judged = await judgeRelevance(
+          {
+            host: self,
+            name: brandNames[0],
+            categoryLabel: categoryNicheSeeds.category.label,
+            nicheLabel: categoryNicheSeeds.niche.label,
+            rankedTerms: sv.categoryRanked.map((r) => r.keyword),
+          },
+          candidates,
+        );
+        if (judged.size > 0) verdicts = judged;
+      }
+    }
     // Demand hero (category rung): UNCHANGED — only the ORIGINAL category seeds
     // feed it, so the persisted demand story doesn't move under the ladder.
     const catVolumes = seedVolumes.filter((r) => seeds.includes(r.keyword.toLowerCase()));
     // Merge the site's REAL category rankings (sv.categoryRanked — from the SAME
     // ranked_keywords call, no extra spend) with the seed volumes, so demand +
     // opportunities reflect the actual market for big AND small sites alike.
-    const demand = computeCategoryDemand(catVolumes, rankByKeyword, sv.categoryRanked);
+    const demand = computeCategoryDemand(catVolumes, rankByKeyword, sv.categoryRanked, verdicts);
     // computeMarketTiers runs AFTER computeCategoryDemand — the dedup + inversion
     // guard need the category phrase set + demand total it just produced. Pass
     // the ALREADY-GROUNDED seeds (pre-filtered above, pre-fetch) plus
@@ -1439,11 +1825,86 @@ export async function gatherFreeSearchVisibility(
     const cards = categoryNicheSeeds
       ? computeCategoryLadder(categoryNicheSeeds, volumesByKeyword, rankByKeyword, sv.categoryRanked)
       : null;
+    // Phase A (market model, R-3.14/R-3.15): size the CATEGORY market from a
+    // category LEADER's real footprint — site-independent, so a weak/new subject
+    // still shows the real market it competes in, with "your share" (the
+    // subject's position per phrase) beside it. ONE extra ranked_keywords call
+    // (~1.8¢, per-domain cached), a validated leader, and it only REPLACES the
+    // subject-grounded categoryCard when it resolves AND is larger (never shrinks
+    // the honest number). Degrades to `cards` on any miss. Feeds the card only —
+    // `sv.score` is already fixed above (invariant #1).
+    let categoryCard = cards?.categoryCard;
+    let nicheCard = cards?.nicheCard;
+    let categoryLeader: string | undefined;
+    if (categoryNicheSeeds) {
+      // The ONE shared market pool (2026-07-22 fine-tune): every real keyword we
+      // have a volume for — the subject's real category rankings + its full non-
+      // brand footprint + the priced category/niche seed phrases (+ their broader
+      // ladder forms) — each with the subject's real position. The judge's per-
+      // keyword verdict SPLITS this ONE pool into the CATEGORY card (verdict
+      // "category") and the NICHE card (verdict "niche", contained in category);
+      // both `finalizeMarketCard` (dedup intent → top-N → Σ). This is the SEO-
+      // correct "sum a de-duplicated basket of distinct queries", replacing the
+      // ladder's single head keyword (usefathom's bare "analytics" 60,500).
+      const priced = (phrase: string): DemandRow | null => {
+        const k = phrase.toLowerCase().trim();
+        const v = volumesByKeyword.get(k);
+        if (!v || v <= 0) return null;
+        const yp = rankByKeyword.get(k);
+        return { keyword: phrase, volume: v, ...(yp ? { yourPosition: yp } : {}) };
+      };
+      // The basket is the LLM's DISTINCT category + niche phrases only — NOT their
+      // broader ladder forms (those over-broaden: "website analytics" → bare
+      // "website" 450,000, which is not the subject's market and inflated the
+      // category). The ladder's broadenings stay for the rare ladder degrade path,
+      // never the basket sum.
+      const seedPhrases = [
+        ...categoryNicheSeeds.category.phrases,
+        ...categoryNicheSeeds.niche.phrases,
+      ];
+      const marketPool: DemandRow[] = [
+        ...sv.categoryRanked,
+        ...subjectFootprint,
+        ...seedPhrases.map(priced).filter((r): r is DemandRow => r !== null),
+      ];
+      const categoryVocab = new Set<string>();
+      for (const text of [categoryNicheSeeds.category.label, ...categoryNicheSeeds.category.phrases]) {
+        for (const t of tokens(text)) {
+          const st = stem(t);
+          if (!GENERIC_TOKENS.has(st) && !MEGA_BRAND_TOKENS.has(st)) categoryVocab.add(st);
+        }
+      }
+      const nicheVocab = nicheVocabFrom(categoryNicheSeeds);
+
+      // CATEGORY: the guarded market BASKET is PRIMARY — it OUTRIGHT replaces the
+      // ladder whenever it resolves (never "only if bigger": the ladder produced
+      // bare single umbrella terms like "google" 68,000,000 / "job" 1,220,000 that
+      // won purely by size, which the ≥2-word basket can never out-total). The
+      // ladder survives only as a last-resort when the basket is null. A validated
+      // leader's footprint (brand dropped + "sized from" provenance) beats the
+      // basket when larger.
+      const categoryBasket = computeCategoryMarket(categoryNicheSeeds.category.label, marketPool, categoryVocab, verdicts);
+      if (categoryBasket) categoryCard = categoryBasket;
+      if (leader && leaderRows.length >= MIN_LEADER_ROWS) {
+        const leaderMarket = computeMarketFromLeader(leader, leaderRows, categoryNicheSeeds, rankByKeyword, sv.categoryRanked, verdicts);
+        if (leaderMarket && leaderMarket.demand > (categoryCard?.demand ?? 0)) {
+          categoryCard = leaderMarket;
+          categoryLeader = leader;
+        }
+      }
+
+      // NICHE: the same pool, the "niche" verdicts, contained in the category. Also
+      // PRIMARY over the thin ladder niche when it resolves.
+      const nicheMarket = computeNicheMarket(categoryNicheSeeds.niche.label, marketPool, categoryVocab, nicheVocab, verdicts);
+      if (nicheMarket) nicheCard = nicheMarket;
+    }
     return {
       ...sv,
       ...demand,
       ...(marketTiers && marketTiers.length > 0 ? { marketTiers } : {}),
-      ...(cards ? { categoryCard: cards.categoryCard, nicheCard: cards.nicheCard } : {}),
+      ...(categoryCard ? { categoryCard } : {}),
+      ...(nicheCard ? { nicheCard } : {}),
+      ...(categoryLeader ? { categoryLeader } : {}),
     };
   } catch {
     return EMPTY;

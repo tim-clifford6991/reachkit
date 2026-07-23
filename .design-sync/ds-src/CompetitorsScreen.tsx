@@ -60,12 +60,6 @@ const PAGES = [
   { title: "1:1 templates", cluster: "templates", etv: 6400 },
 ];
 
-const KEYWORDS = [
-  { keyword: "ai meeting notes", note: "#3", volume: 12000 },
-  { keyword: "meeting action items tool", note: "#5", volume: 4400 },
-  { keyword: "1:1 meeting template", note: "#2", volume: 3100 },
-];
-
 function StatStrip() {
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 20px" }}>
@@ -103,7 +97,7 @@ export function CompetitorsScreen() {
           </Card>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 8, borderTop: "1px solid var(--c-tint-orange-line)", paddingTop: 14 }}>
-            <span style={EDGE_LABEL}>Referrers to pursue · they have, you don&apos;t ({PURSUE.length})</span>
+            <span style={EDGE_LABEL}>The lesson · pursue the referrers they have, you don&apos;t ({PURSUE.length})</span>
             {PURSUE.map((r) => (
               <div key={r.host} style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}>
                 <span style={{ fontSize: 13, fontWeight: 600, color: "var(--c-action)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.host}</span>
@@ -129,21 +123,8 @@ export function CompetitorsScreen() {
             </div>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-            <span style={EDGE_LABEL}>Top keywords</span>
-            <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-              {KEYWORDS.map((k, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "2px 0" }}>
-                  <span style={{ fontSize: 13.5, color: "var(--c-ink)", fontWeight: 500 }}>{k.keyword} · {k.note}</span>
-                  <span style={{ fontFamily: JM, fontSize: 11, color: "var(--c-faint)" }}>{Intl.NumberFormat("en", { notation: "compact" }).format(k.volume)}/mo</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
           <CompetitorEdgePanel
-            text={`Ranks #3 for "ai meeting notes" (12,000/mo) — a keyword you don't rank for at all.`}
-            moveLabel={`Counter: target "ai meeting notes" — in your plan`}
+            text={`Pulls 84.2k/mo with referrers like g2.com — study their acquisition mix, then pursue the referrers they have that you don't (above).`}
           />
         </div>
       </div>

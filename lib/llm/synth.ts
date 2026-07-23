@@ -176,8 +176,17 @@ export function parseLiteSynth(obj: unknown): SynthResult {
   };
   const categoryRaw = parseLadderSeeds(o["category"]);
   const nicheRaw = parseLadderSeeds(o["niche"]);
+  // Phase A: category-leader domains — bare hostnames, deduped, capped at 3.
+  // The market gather validates + fetches one; a malformed entry is dropped
+  // here so a downstream never sees junk (grounding honesty: the LLM only
+  // names domains, DataForSEO supplies volumes).
+  const leaders = strArray(o["categoryLeaders"], 3)
+    .map((d) => d.toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/^www\./, "").trim())
+    .filter((d) => /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(d));
   const categoryNiche: CategoryNicheSeeds | undefined =
-    categoryRaw && nicheRaw ? { category: categoryRaw, niche: nicheRaw } : undefined;
+    categoryRaw && nicheRaw
+      ? { category: categoryRaw, niche: nicheRaw, ...(leaders.length > 0 ? { leaders: [...new Set(leaders)] } : {}) }
+      : undefined;
 
   // categorySeeds: legacy top-level key wins when present (a truly old cached
   // payload); otherwise DERIVED from categoryNiche.category.phrases so

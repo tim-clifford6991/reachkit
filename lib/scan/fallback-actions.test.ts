@@ -16,6 +16,8 @@ import {
   MAX_FALLBACK_ACTIONS,
   opportunityActionsFromSearch,
   MAX_OPPORTUNITY_ACTIONS,
+  categoryNearMisses,
+  FREE_MIN_ACTIONS,
 } from "./fallback-actions";
 import { SIGNAL_REGISTRY, PILLAR_WEIGHTS } from "./signals";
 import { assembleReport } from "./report";
@@ -56,7 +58,7 @@ describe("fallbackActionsFromSignals", () => {
     const actions = fallbackActionsFromSignals(rows);
     expect(actions).toHaveLength(2);
     const titles = actions.map((a) => a.title).join(" | ");
-    expect(titles).toContain("JSON-LD");
+    expect(titles).toContain("structured data");
     expect(titles).toContain("threads");
   });
 
@@ -100,7 +102,7 @@ describe("fallbackActionsFromSignals", () => {
     const byTitleFragment = (frag: string) =>
       actions.find((a) => a.title.toLowerCase().includes(frag))!;
     expect(byTitleFragment("canonical").category).toBe("seo_aso");
-    expect(byTitleFragment("500 words").category).toBe("content");
+    expect(byTitleFragment("500+ words").category).toBe("content");
     expect(byTitleFragment("marketplace").category).toBe("outreach");
   });
 
@@ -190,5 +192,87 @@ describe("opportunityActionsFromSearch (WS-C)", () => {
 
   it("no opportunities → no cards (degrade, never invent)", () => {
     expect(opportunityActionsFromSearch({ score: 50, onPageReadiness: 80, categoryOpportunities: [] })).toEqual([]);
+  });
+
+  it("respects the max param (Phase C floor raises it to FREE_MIN_ACTIONS)", () => {
+    expect(opportunityActionsFromSearch({ ...sv, max: FREE_MIN_ACTIONS }, new Date("2026-07-19"))).toHaveLength(3);
+    // default is unchanged for existing callers
+    expect(opportunityActionsFromSearch(sv, new Date("2026-07-19"))).toHaveLength(MAX_OPPORTUNITY_ACTIONS);
+  });
+});
+
+describe("categoryNearMisses (Phase C / D4 — the honest floor pool)", () => {
+  it("merges categoryOpportunities + the leader MARKET card's gaps + niche gaps, deduped by keyword (highest volume), volume-desc", () => {
+    const sv = {
+      categoryOpportunities: [{ keyword: "seo tools", volume: 1000, yourPosition: 8 }],
+      categoryCard: {
+        label: "SEO", demand: 0, phrases: [], rankedTop3: [],
+        gaps: [
+          { keyword: "keyword research", volume: 40000 },
+          { keyword: "seo tools", volume: 900 }, // dup of the opportunity — higher-volume wins
+        ],
+      },
+      nicheCard: {
+        label: "SEO for founders", demand: 0, phrases: [], rankedTop3: [],
+        gaps: [{ keyword: "seo for startups", volume: 500, yourPosition: 15 }],
+      },
+    };
+    const pool = categoryNearMisses(sv);
+    expect(pool.map((r) => r.keyword)).toEqual(["keyword research", "seo tools", "seo for startups"]);
+    expect(pool.find((r) => r.keyword === "seo tools")!.volume).toBe(1000); // dedup kept the higher volume
+  });
+
+  it("the trustmrr class: 0 categoryOpportunities but a leader-sized market card yields ≥3 near-misses (kills 'top 1 fixes')", () => {
+    const sv = {
+      categoryOpportunities: [],
+      categoryCard: {
+        label: "Startup revenue tools", demand: 0, phrases: [], rankedTop3: [],
+        gaps: [
+          { keyword: "mrr tracking", volume: 8000, yourPosition: 12 },
+          { keyword: "saas revenue dashboard", volume: 4000 },
+          { keyword: "startup metrics", volume: 2000, yourPosition: 20 },
+        ],
+      },
+    };
+    const pool = categoryNearMisses(sv);
+    expect(pool.length).toBeGreaterThanOrEqual(FREE_MIN_ACTIONS);
+    // …and those become ≥3 honest opportunity fixes (the floor is reachable).
+    const cards = opportunityActionsFromSearch(
+      { score: 4, onPageReadiness: 92, categoryOpportunities: pool, max: FREE_MIN_ACTIONS },
+      new Date("2026-07-19"),
+    );
+    expect(cards.length).toBe(FREE_MIN_ACTIONS);
+    expect(cards[0]!.title).toContain('"mrr tracking"'); // highest-volume near-miss first
+  });
+
+  it("drops bare mega-word opportunities — 'Create a page targeting \"space\"' (spacex.com 368k, live defect 2026-07-22) never leads", () => {
+    const sv = {
+      categoryOpportunities: [
+        { keyword: "space", volume: 368000, yourPosition: 12 }, // bare mega-word — unwinnable page target
+        { keyword: "rocket launch today", volume: 110000 },
+        { keyword: "space launch system", volume: 110000, yourPosition: 10 },
+      ],
+    };
+    const pool = categoryNearMisses(sv);
+    expect(pool.map((r) => r.keyword)).not.toContain("space");
+    // The winnable, specific multi-word opportunities survive and lead.
+    expect(pool[0]!.keyword).toBe("rocket launch today");
+  });
+
+  it("collapses near-duplicate opportunities by intent — 'privacy tools' ≡ 'privacy tool' (usefathom.com, live defect) shows once", () => {
+    const sv = {
+      categoryOpportunities: [
+        { keyword: "website tracking", volume: 1900 },
+        { keyword: "privacy tools", volume: 1600 },
+        { keyword: "privacy tool", volume: 1600 }, // plural dup — must not render as a second fix
+      ],
+    };
+    const pool = categoryNearMisses(sv);
+    const privacyRows = pool.filter((r) => r.keyword.startsWith("privacy tool"));
+    expect(privacyRows).toHaveLength(1);
+  });
+
+  it("empty everything → empty pool (degrade, never invent)", () => {
+    expect(categoryNearMisses({ categoryOpportunities: [] })).toEqual([]);
   });
 });

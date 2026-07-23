@@ -131,10 +131,21 @@ function lockAction(action: ActionCard): ActionCard {
  *
  * - Paid → returned unchanged (same reference).
  * - Free → a fresh copy whose `whatToDoThisWeek` is capped to
- *   {@link FREE_PREVIEW_ACTIONS} preview actions total, drawn in order from
- *   quickWins → medium → longPlay (bucket structure preserved), with every
- *   previewed action's `draft` set to null. All other sections
- *   (`whatYouOffer`, `whoItsFor`, `whereTheyAre`, `score`) stay full.
+ *   {@link FREE_PREVIEW_ACTIONS} preview actions, with every previewed action's
+ *   `draft` set to null. All other sections stay full.
+ *
+ * Preview SELECTION is opportunity-aware (2026-07-22): the free board leads with
+ * up to 2 data-driven keyword growth moves (actions carrying `.opportunity` — a
+ * real category/niche keyword + its search volume, highest-demand first), then
+ * fills to {@link FREE_PREVIEW_ACTIONS} with the best remaining on-page/other
+ * fixes (kept in their original quick→medium→long bucket order), topping up with
+ * more opportunities only if there aren't enough other fixes. This is the ONE
+ * place that decides which 3 the free tier sees — previously it took the first 3
+ * by effort bucket, so which fixes showed was an accident of effort (spacex.com
+ * rendered 2 hygiene fixes; plausible.io rendered 3 near-duplicate keyword
+ * opportunities). A report with no opportunity actions (every corpus fixture,
+ * captured before the field existed) is unaffected: opps is empty, so the
+ * selection is exactly the old first-3-by-bucket order.
  *
  * Never mutates the input.
  */
@@ -144,18 +155,25 @@ export function redactReportForTier(
 ): ReportPayload {
   if (isPaid(tier)) return payload;
 
-  let remaining = FREE_PREVIEW_ACTIONS;
-  const take = (bucket: ActionCard[]): ActionCard[] => {
-    if (remaining <= 0) return [];
-    const slice = bucket.slice(0, remaining).map(lockAction);
-    remaining -= slice.length;
-    return slice;
-  };
+  const b = payload.whatToDoThisWeek;
+  // Original bucket order (quick → medium → long) — the tie-break for non-
+  // opportunity fixes, so a no-opportunity report keeps the exact old selection.
+  const all = [...b.quickWins, ...b.medium, ...b.longPlay];
+  const opps = all
+    .filter((a) => a.opportunity)
+    .sort((x, y) => (y.opportunity!.volume) - (x.opportunity!.volume));
+  const otherFixes = all.filter((a) => !a.opportunity); // original bucket order
+  const chosen = [...opps.slice(0, 2), ...otherFixes];
+  if (chosen.length < FREE_PREVIEW_ACTIONS) chosen.push(...opps.slice(2));
+  const keep = new Set(chosen.slice(0, FREE_PREVIEW_ACTIONS));
 
-  // Order matters: quickWins fill first, then medium, then longPlay.
-  const quickWins = take(payload.whatToDoThisWeek.quickWins);
-  const medium = take(payload.whatToDoThisWeek.medium);
-  const longPlay = take(payload.whatToDoThisWeek.longPlay);
+  // Preserve the bucket structure (downstream flattens it) — keep only the
+  // chosen preview actions in their original bucket + order, draft-locked.
+  const pick = (bucket: ActionCard[]): ActionCard[] =>
+    bucket.filter((a) => keep.has(a)).map(lockAction);
+  const quickWins = pick(b.quickWins);
+  const medium = pick(b.medium);
+  const longPlay = pick(b.longPlay);
 
   return {
     ...payload,

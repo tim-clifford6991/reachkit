@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/auth/server";
 import { hashIp, ipFromRequest } from "@/lib/scan/abuse";
 import { rateLimitAllow, MAGIC_LINK_PER_IP, MAGIC_LINK_PER_EMAIL } from "@/lib/auth/rate-limit";
+import { safeRelativePath } from "@/lib/auth/safe-redirect";
 
 /**
  * POST /api/auth/magic-link — send a passwordless sign-in link.
@@ -13,8 +14,9 @@ import { rateLimitAllow, MAGIC_LINK_PER_IP, MAGIC_LINK_PER_EMAIL } from "@/lib/a
 export async function POST(req: NextRequest) {
   const body = (await req.json().catch(() => ({}))) as { email?: unknown; next?: unknown };
   const email = typeof body.email === "string" ? body.email.trim() : "";
-  // Only allow relative paths (prevent open-redirect via the magic link).
-  const next = typeof body.next === "string" && body.next.startsWith("/") ? body.next : "/app";
+  // A real same-origin relative path only — `startsWith("/")` alone lets
+  // `//evil.com` through (open redirect embedded in the magic-link email).
+  const next = safeRelativePath(body.next);
 
   if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
     return NextResponse.json({ message: "Enter a valid email address." }, { status: 400 });

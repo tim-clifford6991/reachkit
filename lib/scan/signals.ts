@@ -43,21 +43,21 @@ const WEB: Platform[] = ["web"];
 export const SIGNAL_REGISTRY: readonly SignalDefinition[] = [
   // ── SEO (0.45) ─────────────────────────────────────────────────────────────
   { key: "title_tag", pillar: "seo", label: "Title tag", weight: 0.1, thresholds: { pass: 70, warn: 40 }, platforms: ALL, source: "exists",
-    why: "Your title is the single strongest on-page ranking and click signal.", howToFix: "Write a 30–60 character title with your primary keyword near the front." },
+    why: "Your title is the single strongest on-page ranking and click signal.", howToFix: "Add a clear page title with your main keyword near the front" },
   { key: "meta_description", pillar: "seo", label: "Meta description", weight: 0.1, thresholds: { pass: 70, warn: 40 }, platforms: ALL, source: "exists",
-    why: "The description shapes your search snippet and click-through rate.", howToFix: "Add a 120–160 character description that states the value and a reason to click." },
+    why: "The description shapes your search snippet and click-through rate.", howToFix: "Add a meta description that states the value and a reason to click" },
   { key: "schema_jsonld", pillar: "seo", label: "Structured data", weight: 0.12, thresholds: { pass: 100, warn: 50 }, platforms: WEB, source: "parse",
-    why: "JSON-LD/schema.org lets search engines render rich results for your page.", howToFix: "Add a JSON-LD block (SoftwareApplication, Product, or Organization)." },
+    why: "JSON-LD/schema.org lets search engines render rich results for your page.", howToFix: "Add structured data so Google can show rich results" },
   { key: "canonical_url", pillar: "seo", label: "Canonical URL", weight: 0.08, thresholds: { pass: 100, warn: 50 }, platforms: WEB, source: "parse",
-    why: "A canonical tag prevents duplicate-content dilution of your ranking.", howToFix: "Add <link rel=\"canonical\"> pointing at the preferred URL." },
+    why: "A canonical tag prevents duplicate-content dilution of your ranking.", howToFix: "Add a canonical tag so duplicate URLs don't split your ranking" },
   { key: "heading_structure", pillar: "seo", label: "Heading structure", weight: 0.1, thresholds: { pass: 70, warn: 40 }, platforms: WEB, source: "parse",
-    why: "One clear H1 plus H2/H3 sub-heads tells search engines what the page covers.", howToFix: "Use exactly one H1 and structure sections with H2/H3 sub-headings." },
+    why: "One clear H1 plus H2/H3 sub-heads tells search engines what the page covers.", howToFix: "Use one H1 with clear H2/H3 sub-headings" },
   { key: "organic_keywords", pillar: "seo", label: "Organic keyword footprint", weight: 0.25, thresholds: { pass: 60, warn: 25 }, platforms: WEB, source: "wire",
-    why: "The breadth of queries you already rank for is your discoverability base.", howToFix: "Publish keyword-targeted pages for the themes in your search-gap list." },
+    why: "The breadth of queries you already rank for is your discoverability base.", howToFix: "Publish pages targeting the searches in your gap list" },
   { key: "keyword_rankings", pillar: "seo", label: "Ranking positions", weight: 0.15, thresholds: { pass: 60, warn: 25 }, platforms: WEB, source: "wire",
-    why: "Where you actually rank for tracked terms determines real traffic.", howToFix: "Improve on-page relevance and internal links for near-page-1 terms." },
+    why: "Where you actually rank for tracked terms determines real traffic.", howToFix: "Strengthen pages and internal links for terms near page 1" },
   { key: "referring_domains", pillar: "seo", label: "Referring domains", weight: 0.1, thresholds: { pass: 60, warn: 25 }, platforms: WEB, source: "new",
-    why: "Links from distinct domains are the strongest off-page authority signal.", howToFix: "Earn links via launches, guest posts, and directory listings." },
+    why: "Links from distinct domains are the strongest off-page authority signal.", howToFix: "Earn links through launches, guest posts, and directory listings" },
 
   // ── Content (0.30) ─────────────────────────────────────────────────────────
   // content_depth / media_richness thresholds (C3, docs/plans/2026-07-07-launch-readiness.md
@@ -72,27 +72,27 @@ export const SIGNAL_REGISTRY: readonly SignalDefinition[] = [
   // scripts/score-calibration.mjs (monotonic strong > median > weak, median
   // indie lands 50–69 "Fair") before being considered final.
   { key: "content_depth", pillar: "content", label: "Content depth", weight: 0.25, thresholds: { pass: 80, warn: 50 }, platforms: WEB, source: "parse",
-    why: "Thin pages rarely rank; substantive copy earns relevance and trust.", howToFix: "Expand the page past ~500 words of real, specific copy — thin templated pages plateau below this bar." },
+    why: "Thin pages rarely rank; substantive copy earns relevance and trust.", howToFix: "Add more real, specific copy to the page (aim for 500+ words)" },
   { key: "content_cadence", pillar: "content", label: "Publishing cadence", weight: 0.25, thresholds: { pass: 70, warn: 40 }, platforms: WEB, source: "wire",
-    why: "Fresh, regular content compounds discoverability over time.", howToFix: "Ship a post on a predictable cadence (e.g. one useful piece a week)." },
+    why: "Fresh, regular content compounds discoverability over time.", howToFix: "Publish on a steady cadence (aim for one useful post a week)" },
   { key: "owned_channels", pillar: "content", label: "Owned channels", weight: 0.2, thresholds: { pass: 60, warn: 25 }, platforms: WEB, source: "wire",
-    why: "More owned surfaces (blog, YouTube, newsletter) = more ways to be found.", howToFix: "Stand up one additional owned channel your rivals already use." },
+    why: "More owned surfaces (blog, YouTube, newsletter) = more ways to be found.", howToFix: "Add one more owned channel (blog, YouTube, or newsletter)" },
   { key: "social_share_tags", pillar: "content", label: "Social share tags", weight: 0.15, thresholds: { pass: 70, warn: 40 }, platforms: WEB, source: "parse",
-    why: "OpenGraph/Twitter tags control how your link looks when shared.", howToFix: "Add og:title, og:description, og:image and twitter:card meta tags." },
+    why: "OpenGraph/Twitter tags control how your link looks when shared.", howToFix: "Add social share tags so shared links show a title and image" },
   { key: "media_richness", pillar: "content", label: "Media & alt coverage", weight: 0.15, thresholds: { pass: 80, warn: 45 }, platforms: ALL, source: "parse",
-    why: "Images with alt text aid accessibility, image search, and comprehension.", howToFix: "Add descriptive alt text to every meaningful image, and make sure the page carries enough images (aim for 5+) to show real richness — a single hero shot with alt text is not enough." },
+    why: "Images with alt text aid accessibility, image search, and comprehension.", howToFix: "Add alt text and more images (aim for 5+) to the page" },
 
   // ── Outreach (0.25) ────────────────────────────────────────────────────────
   { key: "marketplace_presence", pillar: "outreach", label: "Marketplace presence", weight: 0.25, thresholds: { pass: 60, warn: 25 }, platforms: WEB, source: "wire",
-    why: "Listings on PH/G2/Capterra/AlternativeTo are high-intent discovery surfaces.", howToFix: "Claim and complete the marketplace listings your rivals appear on." },
+    why: "Listings on PH/G2/Capterra/AlternativeTo are high-intent discovery surfaces.", howToFix: "Claim the marketplace listings your rivals appear on (PH, G2, Capterra)" },
   { key: "community_presence", pillar: "outreach", label: "Community presence", weight: 0.25, thresholds: { pass: 60, warn: 25 }, platforms: WEB, source: "wire",
-    why: "Recent mentions in HN/Reddit show your audience is finding and discussing you.", howToFix: "Engage authentically in the threads your buyers already read." },
+    why: "Recent mentions in HN/Reddit show your audience is finding and discussing you.", howToFix: "Join the threads your buyers already read (Reddit, HN)" },
   { key: "share_of_voice", pillar: "outreach", label: "Share of voice", weight: 0.2, thresholds: { pass: 50, warn: 20 }, platforms: WEB, source: "wire",
-    why: "Your slice of community mentions vs rivals is competitive visibility.", howToFix: "Increase quality mentions where rivals currently out-share you." },
+    why: "Your slice of community mentions vs rivals is competitive visibility.", howToFix: "Earn more quality mentions where rivals out-share you" },
   { key: "comparison_pages", pillar: "outreach", label: "Comparison pages", weight: 0.15, thresholds: { pass: 60, warn: 25 }, platforms: ALL, source: "exists",
-    why: "\"X vs Y\" and \"alternatives\" pages capture high-intent comparison searches.", howToFix: "Publish honest comparison pages against the rivals buyers weigh you against." },
+    why: "\"X vs Y\" and \"alternatives\" pages capture high-intent comparison searches.", howToFix: "Publish honest 'vs' and 'alternatives' pages for the rivals buyers weigh you against" },
   { key: "press_mentions", pillar: "outreach", label: "Press & news mentions", weight: 0.15, thresholds: { pass: 50, warn: 20 }, platforms: ALL, source: "new",
-    why: "Recent press signals momentum and earns authoritative links.", howToFix: "Pitch launches and milestones to relevant newsletters and outlets." },
+    why: "Recent press signals momentum and earns authoritative links.", howToFix: "Pitch launches and milestones to relevant newsletters and outlets" },
 ] as const;
 
 export function signalsForPlatform(platform: Platform): SignalDefinition[] {

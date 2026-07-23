@@ -323,6 +323,39 @@ describe("report-rubric engine honesty — every rule FIRES on a violating input
     expect(v.some((x) => x.message.includes("Someone is winning these searches today"))).toBe(true);
   });
 
+  // R9 (2026-07-21) — magnitude / credibility, same discipline as R1–R8.
+  const readyCard = (demand: number, phraseKeywords: string[]) => ({
+    label: "X",
+    demand,
+    phrases: phraseKeywords.map((keyword) => ({ keyword, volume: demand })),
+    gaps: phraseKeywords.map((keyword) => ({ keyword, volume: demand })),
+    rankedTop3: [],
+  });
+
+  it("R9 fires on a tiny niche hero below the credibility floor (the trustmrr 10/mo class)", () => {
+    const p = payload({ searchVisibility: sv({ nicheCard: readyCard(10, ["startup acquisition marketplace"]) }) });
+    const html = cleanHtml(p) + "<div>YOUR NICHE 10 searches / mo</div>";
+    const v = runReportRubric(p, html, only("R9"));
+    expect(v.some((x) => x.message.includes("credibility floor"))).toBe(true);
+  });
+
+  it("R9 passes a credible card over the floor — even a single-phrase niche (240/mo, savvycal class)", () => {
+    const p = payload({ searchVisibility: sv({ nicheCard: readyCard(240, ["team scheduling software"]) }) });
+    const html = cleanHtml(p) + "<div>YOUR NICHE 240 searches / mo</div>";
+    expect(runReportRubric(p, html, only("R9"))).toEqual([]);
+  });
+
+  it("R9 does NOT police label credibility — a big but mislabeled category passes (that is the judge's job)", () => {
+    const p = payload({ searchVisibility: sv({ categoryCard: readyCard(14800, ["business intelligence tools"]) }) });
+    const html = cleanHtml(p) + "<div>YOUR CATEGORY 14,800 searches / mo</div>";
+    expect(runReportRubric(p, html, only("R9"))).toEqual([]);
+  });
+
+  it("R9 ignores an unready card (it renders its zero-state, not a number)", () => {
+    const p = payload({ searchVisibility: sv({ nicheCard: { label: "X", demand: 0, phrases: [], gaps: [], rankedTop3: [] } }) });
+    expect(runReportRubric(p, cleanHtml(p), only("R9"))).toEqual([]);
+  });
+
   it("suppressions skip exactly the named rule and nothing else", () => {
     const html = cleanHtml() + "<div>undefined</div>";
     expect(runReportRubric(payload(), html, { suppress: ["R1"] })).toEqual([]);
