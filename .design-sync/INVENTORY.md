@@ -69,11 +69,11 @@ atoms are dead). Exempt from `@mirrors` enforcement.
 | Testimonial | Superseded by the active `Testimonials` landing section (the live logo ticker is `company-ticker.tsx`; this single-quote card is unused). |
 | Alert | No live standalone `Alert` component. |
 | Tabs | No live standalone `Tabs` component. |
-| ScoreGauge | `report/score-gauge.tsx` not reachable (superseded by captured results-screen). |
-| ScoreCard | `report/executive-summary.tsx` not reachable. |
-| RankedFix | `report/action-plan-section.tsx` not reachable. |
-| PositioningMirror | `report/what-you-offer-section.tsx` not reachable. |
-| SearchGapTable | `report/keyword-gap-table.tsx` not reachable. |
+| ScoreGauge | live counterpart `report/score-gauge.tsx` DELETED 2026-07-23 (M2 dead-island cut); superseded by captured results-screen. |
+| ScoreCard | live counterpart `report/executive-summary.tsx` DELETED 2026-07-23 (M2). |
+| RankedFix | live counterpart `report/action-plan-section.tsx` DELETED 2026-07-23 (M2). |
+| PositioningMirror | live counterpart `report/what-you-offer-section.tsx` DELETED 2026-07-23 (M2). |
+| SearchGapTable | live counterpart `report/keyword-gap-table.tsx` DELETED 2026-07-23 (M2). |
 | ComparisonTable | `sections/comparison-table.tsx` orphaned. |
 | PricingTable | `sections/pricing-table.tsx` only via unused `pricing-plans.tsx`. |
 | FaqItem | `sections/faq.tsx` orphaned. |

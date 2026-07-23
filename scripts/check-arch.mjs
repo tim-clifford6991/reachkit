@@ -31,7 +31,8 @@ const result = await cruise(TARGETS, {
  * make a regression pass (CLAUDE.md → "strict adherence, iterate forward").
  */
 const KNOWN_CYCLES = new Set([
-  "components/report/section-nav-active.tsx → components/report/section-nav.tsx",
+  // section-nav-active ↔ section-nav cycle retired 2026-07-23 (M2): both files
+  // were part of the dead report/*-section island (zero live importers), deleted.
   "lib/badge/score-card.ts → lib/scan/report.ts",
   // 5 cycles retired 2026-07-21 (Phase S): moving ScanContext to the leaf
   // module `scan-context.ts` and `runCollect` into `collect.ts` removed the
