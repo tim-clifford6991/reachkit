@@ -32,8 +32,6 @@ export interface PreliminaryFacts {
   // Computed by isColdStart() in lib/scan/cold-start.ts when facts are assembled.
   coldStart: boolean;
 }
-export interface Creator { name: string; url: string; audienceProxy: number; coveredCompetitor: string; }
-
 // Monitors (Cycle 4 Task 7): one row per (app_id, kind); `watermark` (jsonb)
 // holds the per-kind marker the weekly delta refresh advances on each run.
 export type MonitorKind = "reviews" | "rank" | "threads" | "competitors";

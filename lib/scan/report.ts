@@ -20,23 +20,6 @@ import { serverDb } from "@/lib/db/client";
 // Public types
 // ---------------------------------------------------------------------------
 
-/** A competitor row for the full competitive landscape (paid deep section). */
-export interface CompetitiveLandscapeRow {
-  competitor: string;
-  positioning: string | null;
-  gap: string | null;
-  /** Community-mention count (the "them" signal). */
-  communityMentions: number;
-  /** Creators/influencers that cover this competitor (outreach targets). */
-  creators: Array<{ name: string; url: string }>;
-  /**
-   * On the free teaser, `creators` is emptied and this carries the original
-   * count so the section can render "{n} creators reach their audience — see
-   * all". Absent (undefined) on the full/paid payload.
-   */
-  lockedCreatorCount?: number;
-}
-
 export interface KeywordOpportunity {
   keyword: string;
   volume: number;
@@ -60,27 +43,6 @@ export interface EngagedCommunity {
 export interface ChannelOpportunities {
   keywordClusters: KeywordCluster[];
   communitiesByEngagement: EngagedCommunity[];
-}
-
-/** A creator/influencer to reach (paid deep section). */
-export interface CreatorReach {
-  name: string;
-  url: string;
-  coveredCompetitor: string;
-  audienceProxy: number;
-}
-
-export interface ReviewTheme {
-  theme: string;
-  quote: string;
-}
-
-/** What you do well vs poorly (paid deep section). */
-export interface StrengthsAndWeaknesses {
-  strengths: ReviewTheme[];
-  weaknesses: ReviewTheme[];
-  mixed: ReviewTheme[];
-  diagnostics: Array<{ category: string; claim: string; confidence: number }>;
 }
 
 export interface ReportPayload {
@@ -128,18 +90,12 @@ export interface ReportPayload {
   // ── Deep sections — surfaced from already-computed data (paid; teaser-locked) ──
   // Optional: reports persisted before this feature won't carry them, so every
   // consumer must null-coalesce (`?? []`).
-  /** Full competitive landscape — all competitors with positioning + distribution. */
-  competitiveLandscape?: CompetitiveLandscapeRow[];
   /** Channel & keyword opportunities — keyword clusters + communities by engagement. */
   channelOpportunities?: ChannelOpportunities;
-  /** Influencers/creators to reach. */
-  creatorsToReach?: CreatorReach[];
-  /** What you do well vs poorly — review sentiment + diagnostic findings. */
-  strengthsAndWeaknesses?: StrengthsAndWeaknesses;
 
   // ── M4 market analysis — deep cohort (you + prominent rivals) + demand + gap +
   // plan. Present only on paid deep scans (flag-gated). Supersedes the lighter
-  // competitiveLandscape/channelOpportunities/creators sections when present.
+  // channelOpportunities section when present.
   market?: MarketAnalysis;
 
   // ── Free-tier Search Visibility (iteration 2) — the honest conversion metric,
@@ -235,8 +191,16 @@ export function assembleReport(input: {
   mode: Platform;
   generatedAt: string;
   positioningMirror: PositioningMirror;
+  // Kept on the signature so existing callers (e.g. persistDeepSynth-adjacent
+  // call sites) don't need a second edit — no longer read in the body since
+  // M3b retired the strengthsAndWeaknesses section that used to map these into
+  // its `diagnostics` list.
   findings: Finding[];
-  icpSignals: string[];
+  /** ICP/audience signal strings shown in `whoItsFor`. The review_themes
+   *  producer (M3b, O-7) was its only source at the deep pass; free scans still
+   *  derive it from `facts.themes` (free-report.ts). Optional — an omitted/empty
+   *  array degrades `whoItsFor.summary` to its "not yet identified" fallback. */
+  icpSignals?: string[];
   surfaces: Array<{ source: string; title: string; url: string }>;
   competitorGap: Array<{
     competitor: string;
@@ -250,10 +214,7 @@ export function assembleReport(input: {
   score: VerifiedScore;
   // Deep sections (already-computed data, passed in by the caller). Optional so
   // existing callers/tests that don't surface them still produce a valid report.
-  competitiveLandscape?: CompetitiveLandscapeRow[];
   channelOpportunities?: ChannelOpportunities;
-  creatorsToReach?: CreatorReach[];
-  reviewThemes?: { strengths: ReviewTheme[]; weaknesses: ReviewTheme[]; mixed: ReviewTheme[] };
   /** Free-tier Search Visibility (iteration 2) — populated on free web scans. */
   searchVisibility?: SearchVisibility;
   /** Part C — `facts.fetchDegraded`, passed through by the caller. */
@@ -263,16 +224,12 @@ export function assembleReport(input: {
     mode,
     generatedAt,
     positioningMirror,
-    findings,
-    icpSignals,
+    icpSignals = [],
     surfaces,
     competitorGap,
     actions,
     score,
-    competitiveLandscape = [],
     channelOpportunities = { keywordClusters: [], communitiesByEngagement: [] },
-    creatorsToReach = [],
-    reviewThemes = { strengths: [], weaknesses: [], mixed: [] },
     searchVisibility,
     fetchDegraded,
   } = input;
@@ -293,21 +250,7 @@ export function assembleReport(input: {
     },
     whatToDoThisWeek: bucketActions(actions),
     score,
-    competitiveLandscape,
     channelOpportunities,
-    creatorsToReach,
-    strengthsAndWeaknesses: {
-      strengths: reviewThemes.strengths,
-      weaknesses: reviewThemes.weaknesses,
-      mixed: reviewThemes.mixed,
-      // The Cycle 2 findings were always passed in but never surfaced — they are
-      // the diagnostic "what we found" layer of this section.
-      diagnostics: findings.map((f) => ({
-        category: f.category,
-        claim: f.claim,
-        confidence: f.confidence,
-      })),
-    },
     // Attach whenever the gather ran (free web scans always pass it) so a site that
     // ranks for NOTHING still renders the "Google ranks you for 0 searches" zero-state
     // instead of hiding the section. The caller passes undefined for non-web.

@@ -45,12 +45,9 @@ import { verifiedScoreFromRegistry } from "@/lib/scan/free-report";
 import type { ScanSignalRow } from "@/lib/scan/compute-signals";
 import { assembleReport, persistReport, bucketActions, type ReportPayload } from "@/lib/scan/report";
 import type {
-  CompetitiveLandscapeRow,
   ChannelOpportunities,
-  CreatorReach,
   KeywordCluster,
   EngagedCommunity,
-  ReviewTheme,
 } from "@/lib/scan/report";
 import { seedMonitors } from "@/lib/scan/monitors";
 import { getFreshFactSheet, factSheetSubjectType } from "@/lib/scan/fact-sheets";
@@ -119,28 +116,10 @@ async function persistDeepSynth(scanId: string, synth: SynthResult): Promise<voi
 }
 
 // ---------------------------------------------------------------------------
-// icpSignals — theme strings from the review_themes fact sheet (degrade to [])
-// ---------------------------------------------------------------------------
-async function readIcpSignals(subjectType: string, subjectKey: string): Promise<string[]> {
-  try {
-    const sheet = await getFreshFactSheet(subjectType, subjectKey, "review_themes");
-    if (sheet === null) return [];
-    const body = sheet.body as { themes?: unknown };
-    const themes = Array.isArray(body.themes) ? body.themes : [];
-    const signals: string[] = [];
-    for (const t of themes) {
-      const theme = (t as Record<string, unknown>)["theme"];
-      if (typeof theme === "string" && theme.length > 0) signals.push(theme);
-    }
-    return signals;
-  } catch {
-    return [];
-  }
-}
-
-// ---------------------------------------------------------------------------
-// surfaces — where the audience is: communities + creators raw_documents
-// (subject_key = storeUrl; communities body = Community[], youtube body = Creator[])
+// surfaces — where the audience is: communities raw_documents (subject_key =
+// storeUrl; body = Community[]). The "youtube" source_type is queried too for
+// legacy rows, but nothing writes it anymore (find_creators retired M3b,
+// 2026-07-23, O-8), so that branch is permanently dead on a fresh scan.
 // ---------------------------------------------------------------------------
 async function readSurfaces(subjectKey: string): Promise<Surface[]> {
   try {
@@ -166,7 +145,7 @@ async function readSurfaces(subjectKey: string): Promise<Surface[]> {
           const title = typeof obj["title"] === "string" ? obj["title"] : url;
           surfaces.push({ source, title, url });
         } else {
-          // youtube creators — Creator.name is the channel/video title
+          // legacy youtube rows — "name" was the channel/video title
           const title = typeof obj["name"] === "string" ? obj["name"] : url;
           surfaces.push({ source: "youtube", title, url });
         }
@@ -263,43 +242,6 @@ async function readCompetitorGap(
 // Deep sections — surfaced from already-persisted data (no new external calls).
 // Every reader degrades to empty so legacy / partial scans never throw.
 // ---------------------------------------------------------------------------
-
-/** Creators/influencers from the youtube raw_documents (deduped by url). */
-async function readCreatorDocs(subjectKey: string): Promise<CreatorReach[]> {
-  try {
-    const db = serverDb();
-    const { data, error } = await db
-      .from("raw_documents")
-      .select("body")
-      .eq("subject_key", subjectKey)
-      .eq("source_type", "youtube");
-    if (error || data === null) return [];
-
-    const seen = new Set<string>();
-    const out: CreatorReach[] = [];
-    for (const row of data) {
-      const items = Array.isArray(row.body) ? (row.body as unknown[]) : [];
-      for (const item of items) {
-        if (typeof item !== "object" || item === null) continue;
-        const o = item as Record<string, unknown>;
-        const url = typeof o["url"] === "string" ? o["url"] : "";
-        if (url.length === 0 || seen.has(url)) continue;
-        seen.add(url);
-        out.push({
-          name: typeof o["name"] === "string" && o["name"].length > 0 ? (o["name"] as string) : url,
-          url,
-          coveredCompetitor: typeof o["coveredCompetitor"] === "string" ? (o["coveredCompetitor"] as string) : "",
-          // audienceProxy is currently always 0 (the youtube adapter doesn't
-          // make the second videos.list call) — kept for forward-compat.
-          audienceProxy: typeof o["audienceProxy"] === "number" ? (o["audienceProxy"] as number) : 0,
-        });
-      }
-    }
-    return out;
-  } catch {
-    return [];
-  }
-}
 
 /** Communities sorted by engagement (the hidden Community.engagement signal). */
 async function readCommunitiesByEngagement(subjectKey: string): Promise<EngagedCommunity[]> {
@@ -405,60 +347,6 @@ async function readChannelOpportunities(
   return { keywordClusters, communitiesByEngagement };
 }
 
-/** Review themes partitioned by sentiment (sentiment + quote are dropped by
- *  readIcpSignals, which keeps only the theme string). */
-async function readReviewThemesFull(
-  subjectType: string,
-  subjectKey: string,
-): Promise<{ strengths: ReviewTheme[]; weaknesses: ReviewTheme[]; mixed: ReviewTheme[] }> {
-  const empty = { strengths: [] as ReviewTheme[], weaknesses: [] as ReviewTheme[], mixed: [] as ReviewTheme[] };
-  try {
-    const sheet = await getFreshFactSheet(subjectType, subjectKey, "review_themes");
-    if (sheet === null) return empty;
-    const body = sheet.body as { themes?: unknown };
-    const themes = Array.isArray(body.themes) ? body.themes : [];
-    const out = { strengths: [] as ReviewTheme[], weaknesses: [] as ReviewTheme[], mixed: [] as ReviewTheme[] };
-    for (const t of themes) {
-      const o = t as Record<string, unknown>;
-      const theme = typeof o["theme"] === "string" ? (o["theme"] as string) : "";
-      if (theme.length === 0) continue;
-      const quote = typeof o["quote"] === "string" ? (o["quote"] as string) : "";
-      const row: ReviewTheme = { theme, quote };
-      const sentiment = o["sentiment"];
-      if (sentiment === "positive") out.strengths.push(row);
-      else if (sentiment === "negative") out.weaknesses.push(row);
-      else out.mixed.push(row);
-    }
-    return out;
-  } catch {
-    return empty;
-  }
-}
-
-/** Compose the competitive landscape from the (brand-validated) gap rows + the
- *  creators index — never resurrects collision data, since competitorGap is
- *  already built only from facts.competitors. */
-function buildCompetitiveLandscape(
-  competitorGap: GapRow[],
-  creators: CreatorReach[],
-): CompetitiveLandscapeRow[] {
-  const byCompetitor = new Map<string, Array<{ name: string; url: string }>>();
-  for (const c of creators) {
-    if (c.coveredCompetitor.length === 0) continue;
-    const key = normalizeName(c.coveredCompetitor);
-    const list = byCompetitor.get(key) ?? [];
-    if (!list.some((x) => x.url === c.url)) list.push({ name: c.name, url: c.url });
-    byCompetitor.set(key, list);
-  }
-  return competitorGap.map((g) => ({
-    competitor: g.competitor,
-    positioning: g.positioning ?? null,
-    gap: g.gap ?? null,
-    communityMentions: g.them,
-    creators: byCompetitor.get(normalizeName(g.competitor)) ?? [],
-  }));
-}
-
 // ---------------------------------------------------------------------------
 // Persist the Critic-passed, algorithm-safe actions to the actions table.
 // Idempotent: delete existing rows for this scan first, then insert.
@@ -535,13 +423,14 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
 
     // 4. Ground the generator in the ALREADY-COLLECTED market data (named
     //    competitors with community-mention counts, communities ranked by
-    //    engagement, named creators). These readers only re-read persisted
-    //    raw_documents / fact sheets — no new external calls — and the SAME
-    //    variables are reused for report assembly below (each read exactly once).
+    //    engagement). These readers only re-read persisted raw_documents / fact
+    //    sheets — no new external calls — and the SAME variables are reused for
+    //    report assembly below (each read exactly once). (Creators were retired
+    //    M3b, 2026-07-23 — O-8, write-only: creatorsToReach had zero render
+    //    consumers.)
     const subjectType = factSheetSubjectType(ctx.mode);
-    const [competitorGap, creatorsToReach, channelOpportunities] = await Promise.all([
+    const [competitorGap, channelOpportunities] = await Promise.all([
       readCompetitorGap(subjectType, ctx.storeUrl, facts),
-      readCreatorDocs(ctx.storeUrl),
       readChannelOpportunities(subjectType, ctx.storeUrl),
     ]);
     const grounding = {
@@ -552,7 +441,6 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
         youMentions: r.you,
       })),
       communities: channelOpportunities.communitiesByEngagement,
-      creators: creatorsToReach,
     };
 
     // 4b. Action cards. §4.3: Cold Start subjects (little/no footprint) get the
@@ -615,16 +503,12 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
     }
 
     // 7. Gather the remaining report inputs + assemble the four-question report.
-    //    Deep sections (competitive landscape / channels / creators / review
-    //    sentiment) are surfaced here from already-persisted data — no new calls.
-    //    competitorGap / creatorsToReach / channelOpportunities were already read
-    //    above (for grounding) and are reused here — no second read.
-    const [icpSignals, surfaces, reviewThemes] = await Promise.all([
-      readIcpSignals(subjectType, ctx.storeUrl),
-      readSurfaces(ctx.storeUrl),
-      readReviewThemesFull(subjectType, ctx.storeUrl),
-    ]);
-    const competitiveLandscape = buildCompetitiveLandscape(competitorGap, creatorsToReach);
+    //    Channels are surfaced here from already-persisted data — no new calls.
+    //    competitorGap / channelOpportunities were already read above (for
+    //    grounding) and are reused here — no second read. (icpSignals/
+    //    competitiveLandscape/creatorsToReach/reviewThemes producers retired
+    //    M3b, 2026-07-23 — O-7/O-8, write-only or superseded.)
+    const surfaces = await readSurfaces(ctx.storeUrl);
 
     await emitScanEvent(ctx.scanId, "artifact", { label: "Finalising your report" });
     const payload = assembleReport({
@@ -632,15 +516,11 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
       generatedAt: new Date().toISOString(),
       positioningMirror,
       findings,
-      icpSignals,
       surfaces,
       competitorGap,
       actions: plan,
       score,
-      competitiveLandscape,
       channelOpportunities,
-      creatorsToReach,
-      reviewThemes,
       fetchDegraded: facts.fetchDegraded,
     });
 

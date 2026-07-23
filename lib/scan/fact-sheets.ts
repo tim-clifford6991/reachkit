@@ -1,6 +1,5 @@
 import { serverDb } from "@/lib/db/client";
 import type { Json } from "@/lib/db/types";
-import { GROUNDING_POLICY_VERSION } from "@/lib/scan/adapters/web-reviews";
 import type { FactSheetKind } from "@/lib/scan/fact-sheet-kind";
 import { RELEVANCE_JUDGE_VERSION } from "@/lib/scan/fact-sheet-kind";
 
@@ -11,18 +10,15 @@ export type { FactSheetKind };
 // so a bump treats every pre-bump row as a MISS on read-back even inside its TTL
 // (the rules that decided what the row means changed underneath it). Only kinds
 // DERIVED from a versioned policy appear here:
-//   - `review_themes`     — built from Tavily web-review snippets filtered by
-//                           web-reviews.ts's subject/domain-conflict rule
-//                           (`GROUNDING_POLICY_VERSION`).
 //   - `relevance_verdicts` — the LLM relevance judge's category/niche/irrelevant
 //                           calls (`RELEVANCE_JUDGE_VERSION`, Phase B): a prompt
 //                           or verdict-semantics change must invalidate old
 //                           verdicts, not re-serve them.
 // `positioning`/`competitor_gap`/`keyword_data` aren't built from a versioned
 // policy, so they're intentionally absent — add a kind here only when its
-// meaning is gated by a version constant.
+// meaning is gated by a version constant. (`review_themes` used to be here,
+// gated by `GROUNDING_POLICY_VERSION` — retired M3b, 2026-07-23, O-7.)
 const POLICY_SUFFIX_BY_KIND: Partial<Record<FactSheetKind, string>> = {
-  review_themes: `+g${GROUNDING_POLICY_VERSION}`,
   relevance_verdicts: `+rjv${RELEVANCE_JUDGE_VERSION}`,
 };
 

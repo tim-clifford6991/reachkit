@@ -20,7 +20,6 @@ import type {
   Finding,
   PositioningMirror,
   SampleAction,
-  ReviewThemesSheet,
   PositioningSheet,
   CompetitorGapSheet,
   KeywordSheet,
@@ -253,7 +252,7 @@ export function parseSynthResult(text: string): SynthResult | null {
 async function readSheet<T>(
   subjectType: string,
   subjectKey: string,
-  kind: "review_themes" | "positioning" | "competitor_gap" | "keyword_data",
+  kind: "positioning" | "competitor_gap" | "keyword_data",
   fallback: T,
 ): Promise<T> {
   try {
@@ -279,12 +278,12 @@ export async function runSynth(
     return _f.synth();
   }
 
-  // Read the 4 fact sheets (degrade gracefully on missing/expired sheets)
+  // Read the 3 fact sheets (degrade gracefully on missing/expired sheets).
+  // review_themes retired M3b, 2026-07-23 (O-7) — no consumer reads it anymore.
   // Use factSheetSubjectType so web-mode reads "web" sheets (matching extract's write).
   const subjectType = factSheetSubjectType(ctx.mode);
-  const [reviewThemesBody, positioningBody, competitorGapBody, keywordDataBody] =
+  const [positioningBody, competitorGapBody, keywordDataBody] =
     await Promise.all([
-      readSheet<ReviewThemesSheet>(subjectType, ctx.storeUrl, "review_themes", { themes: [] }),
       readSheet<PositioningSheet>(subjectType, ctx.storeUrl, "positioning", { category: "", claims: [], valueProps: [] }),
       readSheet<CompetitorGapSheet>(subjectType, ctx.storeUrl, "competitor_gap", { competitors: [] }),
       readSheet<KeywordSheet>(subjectType, ctx.storeUrl, "keyword_data", { clusters: [] }),
@@ -297,12 +296,10 @@ export async function runSynth(
   // read keyword_data (the mirror + seeds don't use it).
   const prompt = opts.lite
     ? buildSynthPromptLite({
-        reviewThemes: JSON.stringify(reviewThemesBody, null, 2),
         positioning: JSON.stringify(positioningBody, null, 2),
         competitorGap: JSON.stringify(competitorGapBody, null, 2),
       }, { storeUrl: ctx.storeUrl })
     : buildSynthPrompt({
-        reviewThemes: JSON.stringify(reviewThemesBody, null, 2),
         positioning: JSON.stringify(positioningBody, null, 2),
         competitorGap: JSON.stringify(competitorGapBody, null, 2),
         keywordData: JSON.stringify(keywordDataBody, null, 2),
@@ -326,19 +323,17 @@ export async function runSynth(
   const parsed = parseSynthResult(text);
   if (!parsed) return buildDegradedResult(positioningBody);
 
-  // GROUNDING (invariant #11): the review sheet is the ONLY evidence for the
-  // positioning mirror's review claims. When it has zero themes, the mirror must
-  // be empty — never a plausible synthesis. The extract layer already refuses to
-  // invent reviews (prompts.ts:62 "If there are no reviews, return { themes: [] }");
-  // this closes the same guard at synth, where a fabricated paragraph otherwise
-  // passes parseSynthResult (it validates types, not grounding). This is the fix
-  // for the invented reviews on the unlaunched reachkit.app (scan 6d49d58e).
-  if (reviewThemesBody.themes.length === 0) {
-    parsed.positioningMirror = {
-      ...parsed.positioningMirror,
-      reviewsValue: "",
-      actualAudience: [],
-    };
-  }
+  // GROUNDING (invariant #11): reviews are no longer collected at all (O-7,
+  // M3b) — the positioning mirror's review-derived fields must ALWAYS be empty,
+  // never a plausible synthesis (the model has no review evidence to draw on,
+  // and the prompt-shape change above no longer even offers it a review sheet;
+  // this is now an UNCONDITIONAL wipe rather than conditional on sheet emptiness
+  // — the fix for the invented reviews on the unlaunched reachkit.app, scan
+  // 6d49d58e, generalised to the case where there is no review sheet at all).
+  parsed.positioningMirror = {
+    ...parsed.positioningMirror,
+    reviewsValue: "",
+    actualAudience: [],
+  };
   return parsed;
 }

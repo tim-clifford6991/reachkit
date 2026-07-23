@@ -1,16 +1,12 @@
 import { describe, expect, test, vi, beforeEach } from "vitest";
 import { factSheetTtlMs } from "./fact-sheets";
-import { GROUNDING_POLICY_VERSION } from "./adapters/web-reviews";
+import { RELEVANCE_JUDGE_VERSION } from "./fact-sheet-kind";
 
 const DAY_MS = 24 * 3600 * 1000;
 
 describe("factSheetTtlMs", () => {
   test("keyword_data TTL is 30 days", () => {
     expect(factSheetTtlMs("keyword_data")).toBe(30 * DAY_MS);
-  });
-
-  test("review_themes TTL is 14 days", () => {
-    expect(factSheetTtlMs("review_themes")).toBe(14 * DAY_MS);
   });
 
   test("positioning TTL is 14 days", () => {
@@ -22,11 +18,13 @@ describe("factSheetTtlMs", () => {
   });
 });
 
-// Task 2b: whenever grounding policy tightens (WS-A's subject-validated web
-// reviews), a fact sheet cached under the OLD policy must stop being served —
-// otherwise a re-scan keeps re-serving pre-fix poison (the reachkit.app/
-// reachkit.ai review-theme leak, live-verified 2026-07-19) even after the
-// fetch-layer filter is fixed, because the cache read-back never re-checks it.
+// Task 2b: whenever a policy-gated kind's semantics tighten, a fact sheet cached
+// under the OLD policy must stop being served — otherwise a re-scan keeps
+// re-serving pre-fix data even after the generation-layer fix lands, because the
+// cache read-back never re-checks it. (`review_themes` was the original example
+// of this mechanism — retired M3b, 2026-07-23, O-7. `relevance_verdicts`, the
+// LLM relevance judge's cache, is the general POLICY_SUFFIX_BY_KIND mechanism's
+// one remaining live member; ported here so the mechanism itself stays guarded.)
 // serverDb mock: .from("fact_sheets").select().eq().eq().eq().maybeSingle() + .upsert()
 function makeDb(row: { body: unknown; expires_at: string; model_version: string } | null) {
   const maybeSingle = vi.fn().mockResolvedValue({ data: row, error: null });
@@ -43,41 +41,40 @@ function makeDb(row: { body: unknown; expires_at: string; model_version: string 
 
 beforeEach(() => vi.resetModules());
 
-describe("getFreshFactSheet — grounding-policy version (review_themes)", () => {
-  test("a review_themes sheet stamped with the CURRENT policy version is returned", async () => {
+describe("getFreshFactSheet — policy version (relevance_verdicts)", () => {
+  test("a relevance_verdicts sheet stamped with the CURRENT policy version is returned", async () => {
     const db = makeDb({
-      body: { themes: ["fast support"] },
+      body: { verdict: "category" },
       expires_at: new Date(Date.now() + DAY_MS).toISOString(),
-      model_version: `claude-haiku-test+g${GROUNDING_POLICY_VERSION}`,
+      model_version: `claude-haiku-test+rjv${RELEVANCE_JUDGE_VERSION}`,
     });
     vi.doMock("@/lib/db/client", () => ({ serverDb: db.serverDb }));
     const { getFreshFactSheet } = await import("./fact-sheets");
-    const out = await getFreshFactSheet("web", "acme.com", "review_themes");
-    expect(out).toEqual({ body: { themes: ["fast support"] } });
+    const out = await getFreshFactSheet("web", "acme.com", "relevance_verdicts");
+    expect(out).toEqual({ body: { verdict: "category" } });
   });
 
-  test("a review_themes sheet stamped with an OLD/missing policy version is treated as a MISS", async () => {
+  test("a relevance_verdicts sheet stamped with an OLD/missing policy version is treated as a MISS", async () => {
     const db = makeDb({
-      body: { themes: ["invented — wrong subject"] },
+      body: { verdict: "stale-verdict" },
       expires_at: new Date(Date.now() + DAY_MS).toISOString(),
-      // Pre-WS-A sheet: no policy suffix at all (v1, implicit).
       model_version: "claude-haiku-test",
     });
     vi.doMock("@/lib/db/client", () => ({ serverDb: db.serverDb }));
     const { getFreshFactSheet } = await import("./fact-sheets");
-    const out = await getFreshFactSheet("web", "acme.com", "review_themes");
+    const out = await getFreshFactSheet("web", "acme.com", "relevance_verdicts");
     expect(out).toBeNull();
   });
 
-  test("a review_themes sheet stamped with a STALE policy version (g1) is treated as a MISS", async () => {
+  test("a relevance_verdicts sheet stamped with a STALE policy version (rjv0) is treated as a MISS", async () => {
     const db = makeDb({
-      body: { themes: ["invented — wrong subject"] },
+      body: { verdict: "stale-verdict" },
       expires_at: new Date(Date.now() + DAY_MS).toISOString(),
-      model_version: "claude-haiku-test+g1",
+      model_version: "claude-haiku-test+rjv0",
     });
     vi.doMock("@/lib/db/client", () => ({ serverDb: db.serverDb }));
     const { getFreshFactSheet } = await import("./fact-sheets");
-    const out = await getFreshFactSheet("web", "acme.com", "review_themes");
+    const out = await getFreshFactSheet("web", "acme.com", "relevance_verdicts");
     expect(out).toBeNull();
   });
 
@@ -94,20 +91,20 @@ describe("getFreshFactSheet — grounding-policy version (review_themes)", () =>
   });
 });
 
-describe("upsertFactSheet — grounding-policy stamping", () => {
-  test("stamps the CURRENT grounding-policy version onto review_themes writes", async () => {
+describe("upsertFactSheet — policy stamping", () => {
+  test("stamps the CURRENT policy version onto relevance_verdicts writes", async () => {
     const db = makeDb(null);
     vi.doMock("@/lib/db/client", () => ({ serverDb: db.serverDb }));
     const { upsertFactSheet } = await import("./fact-sheets");
     await upsertFactSheet({
       subjectType: "web",
       subjectKey: "acme.com",
-      kind: "review_themes",
-      body: { themes: [] },
+      kind: "relevance_verdicts",
+      body: { verdict: "category" },
       modelVersion: "claude-haiku-test",
     });
     const upsertCall = db.spies.upsert.mock.calls[0]![0] as { model_version: string };
-    expect(upsertCall.model_version).toBe(`claude-haiku-test+g${GROUNDING_POLICY_VERSION}`);
+    expect(upsertCall.model_version).toBe(`claude-haiku-test+rjv${RELEVANCE_JUDGE_VERSION}`);
   });
 
   test("does NOT stamp a policy suffix on other sheet kinds (e.g. positioning) — no behavior change", async () => {

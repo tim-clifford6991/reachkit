@@ -28,7 +28,7 @@ describe("synth models", () => {
 
 describe("the lite prompt generates ONLY the two rendered fields (render-only)", () => {
   const lite = buildSynthPromptLite(
-    { reviewThemes: "{}", positioning: "{}", competitorGap: "{}" },
+    { positioning: "{}", competitorGap: "{}" },
     { storeUrl: "https://acme.com/" },
   );
   it("asks for positioningMirror + category/niche market seeds", () => {
@@ -43,7 +43,7 @@ describe("the lite prompt generates ONLY the two rendered fields (render-only)",
     expect(lite).not.toContain('"sampleAction"');
     // sanity: the FULL prompt DOES ask for them (so the assertion isn't vacuous)
     const full = buildSynthPrompt(
-      { reviewThemes: "{}", positioning: "{}", competitorGap: "{}", keywordData: "{}" },
+      { positioning: "{}", competitorGap: "{}", keywordData: "{}" },
       { storeUrl: "https://acme.com/" },
     );
     expect(full).toContain('"findings"');

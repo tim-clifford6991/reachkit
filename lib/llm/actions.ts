@@ -1,6 +1,7 @@
 /**
- * FORMAT stage (Task 6) — Haiku reads the 4 fact sheets + synthesis findings
- * and over-generates §10.2 ActionCards (2–3× per module).
+ * FORMAT stage (Task 6) — Haiku reads the 3 fact sheets (positioning,
+ * competitor_gap, keyword_data — review_themes retired M3b, 2026-07-23, O-7)
+ * + synthesis findings and over-generates §10.2 ActionCards (2–3× per module).
  *
  * §11: draftRequiresEdit is always forced to true.
  * Fixture-aware: when fixturesEnabled()=true, returns fixtureActions() without any LLM call.
@@ -18,7 +19,6 @@ import type {
   ActionCard,
   ActionTarget,
   ActionTargetChannel,
-  ReviewThemesSheet,
   PositioningSheet,
   CompetitorGapSheet,
   KeywordSheet,
@@ -211,7 +211,7 @@ function parseActionCards(text: string): ActionCard[] | null {
 async function readSheet<T>(
   subjectType: string,
   subjectKey: string,
-  kind: "review_themes" | "positioning" | "competitor_gap" | "keyword_data",
+  kind: "positioning" | "competitor_gap" | "keyword_data",
   fallback: T,
 ): Promise<T> {
   try {
@@ -260,11 +260,10 @@ export async function generateActions(
     return _f.actions();
   }
 
-  // Read the 4 fact sheets in parallel
+  // Read the 3 fact sheets in parallel (review_themes retired M3b, 2026-07-23 — O-7)
   const subjectType = factSheetSubjectType(ctx.mode);
-  const [reviewThemesBody, positioningBody, competitorGapBody, keywordDataBody, founderVoice] =
+  const [positioningBody, competitorGapBody, keywordDataBody, founderVoice] =
     await Promise.all([
-      readSheet<ReviewThemesSheet>(subjectType, ctx.storeUrl, "review_themes", { themes: [] }),
       readSheet<PositioningSheet>(subjectType, ctx.storeUrl, "positioning", { category: "", claims: [], valueProps: [] }),
       readSheet<CompetitorGapSheet>(subjectType, ctx.storeUrl, "competitor_gap", { competitors: [] }),
       readSheet<KeywordSheet>(subjectType, ctx.storeUrl, "keyword_data", { clusters: [] }),
@@ -275,7 +274,6 @@ export async function generateActions(
 
   const prompt = buildActionsPrompt({
     storeUrl: ctx.storeUrl,
-    reviewThemes: JSON.stringify(reviewThemesBody, null, 2),
     positioning: JSON.stringify(positioningBody, null, 2),
     competitorGap: JSON.stringify(competitorGapBody, null, 2),
     keywordData: JSON.stringify(keywordDataBody, null, 2),

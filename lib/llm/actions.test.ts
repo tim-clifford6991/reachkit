@@ -10,18 +10,16 @@ import { buildActionsPrompt } from "./prompts";
 describe("buildActionsPrompt grounding", () => {
   test("embeds grounding names + demands a target", () => {
     const p = buildActionsPrompt({
-      storeUrl: "https://nudgi.ai", reviewThemes: "{}", positioning: "{}",
+      storeUrl: "https://nudgi.ai", positioning: "{}",
       competitorGap: "{}", keywordData: "{}", findings: "[]", founderVoice: null,
       today: "2026-07-07",
       grounding: {
         competitors: [{ name: "Fathom", positioning: "AI notetaker", themMentions: 12, youMentions: 0 }],
         communities: [{ source: "reddit", title: "r/productivity", url: "https://reddit.com/r/productivity", engagement: 340 }],
-        creators: [{ name: "Thomas Frank", url: "https://youtube.com/@thomasfrank", coveredCompetitor: "Fathom", audienceProxy: 0 }],
       },
     });
     expect(p).toContain("Fathom");
     expect(p).toContain("r/productivity");
-    expect(p).toContain("Thomas Frank");
     expect(p).toMatch(/target/i);
   });
 });
@@ -241,7 +239,7 @@ describe("generateActions — normal path", () => {
     expect(args.maxTokens).toBe(4096);
   });
 
-  test("getFreshFactSheet called for all 4 kinds", async () => {
+  test("getFreshFactSheet called for all 3 kinds (review_themes retired M3b, O-7)", async () => {
     const getFreshMock = makeGetFreshFactSheetMock();
     vi.doMock("@/lib/scan/fact-sheets", () => ({
       getFreshFactSheet: getFreshMock,
@@ -270,7 +268,7 @@ describe("generateActions — normal path", () => {
     await generateActions(ctx, SAMPLE_FINDINGS);
 
     const kindsCalled = getFreshMock.mock.calls.map((c) => (c as unknown[])[2]);
-    expect(kindsCalled).toContain("review_themes");
+    expect(kindsCalled).not.toContain("review_themes");
     expect(kindsCalled).toContain("positioning");
     expect(kindsCalled).toContain("competitor_gap");
     expect(kindsCalled).toContain("keyword_data");

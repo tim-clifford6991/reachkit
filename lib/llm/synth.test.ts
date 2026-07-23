@@ -164,7 +164,7 @@ describe("runSynth — normal path", () => {
     expect(args.maxTokens).toBe(4096);
   });
 
-  test("getFreshFactSheet called for all 4 kinds", async () => {
+  test("getFreshFactSheet called for all 3 kinds (review_themes retired M3b, O-7)", async () => {
     const getFreshMock = makeGetFreshFactSheetMock();
     vi.doMock("@/lib/scan/fact-sheets", () => ({ getFreshFactSheet: getFreshMock, factSheetSubjectType: () => "app" }));
     const callModelMock = vi.fn().mockResolvedValue({
@@ -178,13 +178,13 @@ describe("runSynth — normal path", () => {
     await runSynth(ctx);
 
     const kindsCalled = getFreshMock.mock.calls.map((c) => (c as unknown[])[2]);
-    expect(kindsCalled).toContain("review_themes");
+    expect(kindsCalled).not.toContain("review_themes");
     expect(kindsCalled).toContain("positioning");
     expect(kindsCalled).toContain("competitor_gap");
     expect(kindsCalled).toContain("keyword_data");
   });
 
-  test("positioningMirror has listingSays, reviewsValue, gap all non-empty", async () => {
+  test("positioningMirror has listingSays, gap non-empty; reviewsValue is always the empty string (M3b, O-7)", async () => {
     vi.doMock("@/lib/scan/fact-sheets", () => ({ getFreshFactSheet: makeGetFreshFactSheetMock(), factSheetSubjectType: () => "app" }));
     const callModelMock = vi.fn().mockResolvedValue({
       text: JSON.stringify(CANNED_SYNTH_RESULT),
@@ -197,7 +197,9 @@ describe("runSynth — normal path", () => {
     const result = await runSynth(ctx);
 
     expect(typeof result.positioningMirror.listingSays).toBe("string");
-    expect(typeof result.positioningMirror.reviewsValue).toBe("string");
+    // reviewsValue is UNCONDITIONALLY wiped (invariant #11, M3b — reviews are
+    // never collected, so nothing may synthesize a reviews-derived claim).
+    expect(result.positioningMirror.reviewsValue).toBe("");
     expect(typeof result.positioningMirror.gap).toBe("string");
   });
 });

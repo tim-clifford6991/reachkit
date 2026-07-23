@@ -138,13 +138,16 @@ function makeFacts(mode: "ios" | "web" = "ios"): PreliminaryFacts {
 // A real raw_document so extract has something to read (and would call the LLM,
 // which we then make throw). Without docs, extract trivially writes empty sheets
 // WITHOUT a model call — so we seed a doc to genuinely exercise the catch path.
-async function seedReviewDoc(storeUrl: string): Promise<void> {
+// review_themes was retired M3b (2026-07-23, O-7) — competitor_gap is the
+// replacement kind used to genuinely exercise the extract LLM-catch path below
+// (a dataforseo_serp doc triggers the competitor_gap job).
+async function seedCompetitorGapDoc(storeUrl: string): Promise<void> {
   const { error } = await db.from("raw_documents").insert({
     subject_type: "app",
     subject_key: storeUrl,
-    source_type: "app_store_rss",
-    body: { reviews: [{ title: "Great", body: "love the streaks" }] },
-    content_hash: `degraded-rss-${Date.now()}-${Math.random()}`,
+    source_type: "dataforseo_serp",
+    body: { results: [{ title: "Habitify", url: "https://habitify.me", snippet: "Visual habit analytics" }] },
+    content_hash: `degraded-serp-${Date.now()}-${Math.random()}`,
     mode: "ios",
   });
   if (error) throw error;
@@ -203,7 +206,6 @@ test(
         ...actual,
         searchKeywords: { ...actual.searchKeywords, ...reject },
         findCommunities: { ...actual.findCommunities, ...reject },
-        findCreators: { ...actual.findCreators, ...reject },
       };
     });
     // Fact-sheet LLM (extract) also down — proves a compound failure still degrades.
@@ -245,27 +247,27 @@ test(
 
     const ctx = await makeCtx(storeUrl);
     const facts = makeFacts();
-    await seedReviewDoc(storeUrl); // ensure extract has a doc → genuinely hits the LLM catch
+    await seedCompetitorGapDoc(storeUrl); // ensure extract has a doc → genuinely hits the LLM catch
 
     const { runFindings } = await import("@/lib/scan/findings-pipeline");
 
     // Findings pipeline must resolve despite the extract + synth LLM outage.
     await expect(runFindings(ctx, facts)).resolves.toBeUndefined();
 
-    // review_themes sheet was written as the EMPTY shape ({ themes: [] }) — the
-    // honest degrade for a failed extract. No invented themes.
+    // competitor_gap sheet was written as the EMPTY shape ({ competitors: [] })
+    // — the honest degrade for a failed extract. No invented gap data.
     const { data: sheet, error: sheetErr } = await db
       .from("fact_sheets")
       .select("body")
       .eq("subject_type", "app")
       .eq("subject_key", storeUrl)
-      .eq("kind", "review_themes")
+      .eq("kind", "competitor_gap")
       .maybeSingle();
     expect(sheetErr).toBeNull();
     expect(sheet).not.toBeNull();
-    const body = sheet!.body as { themes?: unknown[] };
-    expect(Array.isArray(body.themes)).toBe(true);
-    expect(body.themes!.length).toBe(0);
+    const body = sheet!.body as { competitors?: unknown[] };
+    expect(Array.isArray(body.competitors)).toBe(true);
+    expect(body.competitors!.length).toBe(0);
 
     // findings_payload is set, and the (synth-degraded) findings are honestly
     // labelled probability_based with no fabricated evidence source.

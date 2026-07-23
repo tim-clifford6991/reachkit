@@ -166,9 +166,7 @@ test(
     expect((reportScore["radar"] as unknown[]).length).toBe(7);
 
     // Deep (paid-only) sections must be empty on the free report.
-    expect(report["competitiveLandscape"]).toEqual([]);
     expect(report["channelOpportunities"]).toEqual({ keywordClusters: [], communitiesByEngagement: [] });
-    expect(report["creatorsToReach"]).toEqual([]);
 
     // The persisted headline is the v5 unified Discoverability Score
     // (geomean of on-page readiness × search presence — CLAUDE.md invariant #1).

@@ -1,5 +1,5 @@
-import type { Competitor, Community, Creator, KeywordRow, ReviewItem, TimedCommunity } from "@/lib/scan/types";
-import type { ReviewThemesSheet, PositioningSheet, CompetitorGapSheet, KeywordSheet, SynthResult, ActionCard } from "@/lib/llm/types";
+import type { Competitor, Community, KeywordRow, ReviewItem, TimedCommunity } from "@/lib/scan/types";
+import type { PositioningSheet, CompetitorGapSheet, KeywordSheet, SynthResult, ActionCard } from "@/lib/llm/types";
 import type { FactSheetKind } from "@/lib/scan/fact-sheets";
 import type { FixtureProvider } from "@/lib/scan/fixture-seam";
 import { coldStartActionsFrom } from "@/lib/llm/cold-start-actions";
@@ -65,23 +65,6 @@ export function fixtureCommunities(topic: string): Community[] {
   ];
 }
 
-export function fixtureCreators(competitors: string[]): Creator[] {
-  return competitors.flatMap((competitor) => [
-    {
-      name: `${competitor} Review Channel`,
-      url: `https://www.youtube.com/watch?v=fixture_${competitor.replace(/\s+/g, "_")}_1`,
-      audienceProxy: 0,
-      coveredCompetitor: competitor,
-    },
-    {
-      name: `Best ${competitor} Alternatives`,
-      url: `https://www.youtube.com/watch?v=fixture_${competitor.replace(/\s+/g, "_")}_2`,
-      audienceProxy: 0,
-      coveredCompetitor: competitor,
-    },
-  ]);
-}
-
 export function fixtureKeywords(seeds: string[]): { keywords: KeywordRow[]; raw: unknown } {
   return {
     keywords: seeds.slice(0, 5).map((k, i) => ({ keyword: k, volume: 1200 - i * 100, cpc: 1.2, competition: 0.4 })),
@@ -90,18 +73,10 @@ export function fixtureKeywords(seeds: string[]): { keywords: KeywordRow[]; raw:
 }
 
 // ---------------------------------------------------------------------------
-// Extract-stage fixture providers — realistic bodies for the 4 fact-sheet kinds.
-// Used by runExtract() when fixturesEnabled()=true so the findings flow works with no Anthropic key.
+// Extract-stage fixture providers — realistic bodies for the 3 fact-sheet kinds
+// (review_themes retired M3b, 2026-07-23, O-7). Used by runExtract() when
+// fixturesEnabled()=true so the findings flow works with no Anthropic key.
 // ---------------------------------------------------------------------------
-const FIXTURE_REVIEW_THEMES: ReviewThemesSheet = {
-  themes: [
-    { theme: "Ease of use", sentiment: "positive", quote: "incredibly easy to get started", evidenceIds: [] },
-    { theme: "Habit streaks", sentiment: "positive", quote: "the streak feature keeps me going", evidenceIds: [] },
-    { theme: "Crashes on older iOS", sentiment: "negative", quote: "crashes every time on my iPhone 11", evidenceIds: [] },
-    { theme: "Widget support", sentiment: "mixed", quote: "widget is nice but doesn't refresh reliably", evidenceIds: [] },
-  ],
-};
-
 const FIXTURE_POSITIONING: PositioningSheet = {
   category: "Health & Fitness",
   claims: [
@@ -165,9 +140,8 @@ const FIXTURE_KEYWORD_SHEET: KeywordSheet = {
 
 export function fixtureExtract(
   kind: FactSheetKind,
-): ReviewThemesSheet | PositioningSheet | CompetitorGapSheet | KeywordSheet {
+): PositioningSheet | CompetitorGapSheet | KeywordSheet {
   switch (kind) {
-    case "review_themes":  return FIXTURE_REVIEW_THEMES;
     case "positioning":    return FIXTURE_POSITIONING;
     case "competitor_gap": return FIXTURE_COMPETITOR_GAP;
     case "keyword_data":   return FIXTURE_KEYWORD_SHEET;
@@ -580,7 +554,6 @@ export function makeFixtureProvider(): FixtureProvider {
     tavily: fixtureTavily,
     ph: fixturePh,
     communities: fixtureCommunities,
-    creators: fixtureCreators,
     keywords: fixtureKeywords,
     extract: fixtureExtract,
     embed: fixtureEmbed,

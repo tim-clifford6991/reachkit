@@ -70,7 +70,9 @@ test(
     expect(rawRows).not.toBeNull();
     expect(rawRows!.length).toBeGreaterThanOrEqual(1);
 
-    // scan_events — at least the 3 artifact events (listing, reviews, competitors)
+    // scan_events — at least the 2 artifact events (listing, competitors).
+    // Reviews are no longer gathered at collect time (O-7, M3b, 2026-07-23),
+    // so there is no "reviews" artifact event anymore.
     const { data: evtRows, error: evtErr } = await db
       .from("scan_events")
       .select("id, type, payload")
@@ -78,10 +80,9 @@ test(
     expect(evtErr).toBeNull();
     expect(evtRows).not.toBeNull();
     const artifactRows = (evtRows ?? []).filter((r) => r.type === "artifact");
-    expect(artifactRows.length).toBeGreaterThanOrEqual(3);
+    expect(artifactRows.length).toBeGreaterThanOrEqual(2);
     const labels = artifactRows.map((r) => String((r.payload as Record<string, unknown>).label));
     expect(labels.some((l) => /product page/i.test(l))).toBe(true);
-    expect(labels.some((l) => /review/i.test(l))).toBe(true);
     expect(labels.some((l) => /competit/i.test(l))).toBe(true);
 
     // competitors table — rows written by persistCompetitors
@@ -142,10 +143,6 @@ test(
     vi.doMock("@/lib/scan/adapters/domain-age", () => ({
       fetchDomainAgeYears: async () => 2,
     }));
-    vi.doMock("@/lib/scan/adapters/web-reviews", () => ({
-      fetchWebReviews: async () => ({ snippets: [], raw: null }),
-      reviewCountFromSnippets: () => 0,
-    }));
 
     // Dynamically import collect after mocking so it picks up mocked modules
     const { runCollect: runCollectMocked } = await import("@/lib/scan/collect");
@@ -167,7 +164,9 @@ test(
     expect(facts.webProxy).not.toBeNull();
     expect(facts.webProxy!.score).toBeGreaterThan(0);
 
-    // scan_events — artifact rows written for each source
+    // scan_events — artifact rows written for each source. Reviews are no
+    // longer gathered at collect time (O-7, M3b, 2026-07-23), so there is no
+    // "reviews" artifact event anymore.
     const { data: evtRows, error: evtErr } = await db
       .from("scan_events")
       .select("id, type, payload")
@@ -175,10 +174,9 @@ test(
     expect(evtErr).toBeNull();
     expect(evtRows).not.toBeNull();
     const artifactRows = (evtRows ?? []).filter((r) => r.type === "artifact");
-    expect(artifactRows.length).toBeGreaterThanOrEqual(3);
+    expect(artifactRows.length).toBeGreaterThanOrEqual(2);
     const labels = artifactRows.map((r) => String((r.payload as Record<string, unknown>).label));
     expect(labels.some((l) => /product page/i.test(l))).toBe(true);
-    expect(labels.some((l) => /review/i.test(l))).toBe(true);
     expect(labels.some((l) => /competit/i.test(l))).toBe(true);
 
     // competitors table persisted

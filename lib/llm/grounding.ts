@@ -5,15 +5,14 @@
  * buildActionsPrompt/ACTIONS_SYSTEM from prompts.ts).
  */
 
-import type { EngagedCommunity, CreatorReach } from "@/lib/scan/report";
+import type { EngagedCommunity } from "@/lib/scan/report";
 
 /** The already-collected market data the action generator must ground in.
  *  Competitors carry real community-mention counts; communities are ranked by
- *  engagement; creators are named YouTubers who covered a competitor. */
+ *  engagement. (Creators were retired M3b, 2026-07-23 — O-8, write-only.) */
 export interface ActionGrounding {
   competitors: { name: string; positioning: string | null; themMentions: number; youMentions: number }[];
   communities: EngagedCommunity[];
-  creators: CreatorReach[];
 }
 
-export const EMPTY_GROUNDING: ActionGrounding = { competitors: [], communities: [], creators: [] };
+export const EMPTY_GROUNDING: ActionGrounding = { competitors: [], communities: [] };

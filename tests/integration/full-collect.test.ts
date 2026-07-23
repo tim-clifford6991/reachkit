@@ -3,8 +3,9 @@
  *
  * Runs in FIXTURES mode — no API keys required.
  * Verifies that after runFullCollect completes, raw_documents rows exist for
- * all three source types (dataforseo_keywords, communities, youtube) keyed
- * by the scan's storeUrl (= subjectKey).
+ * both source types (dataforseo_keywords, communities) keyed by the scan's
+ * storeUrl (= subjectKey). (find_creators/"youtube" retired M3b, 2026-07-23,
+ * O-8 — write-only: creatorsToReach had zero render consumers.)
  *
  * Run with: pnpm test:int tests/integration/full-collect.test.ts
  */
@@ -78,7 +79,7 @@ function makeFixtureFacts(overrides?: Partial<PreliminaryFacts>): PreliminaryFac
 // Main test — fixtures mode, no keys
 // ---------------------------------------------------------------------------
 test(
-  "runFullCollect (fixtures mode) writes dataforseo_keywords + communities + youtube raw_documents",
+  "runFullCollect (fixtures mode) writes dataforseo_keywords + communities raw_documents",
   async () => {
     vi.resetModules();
 
@@ -109,7 +110,7 @@ test(
 
     expect(sourceTypes).toContain("dataforseo_keywords");
     expect(sourceTypes).toContain("communities");
-    expect(sourceTypes).toContain("youtube");
+    expect(sourceTypes).not.toContain("youtube");
   },
   30_000,
 );
@@ -126,7 +127,6 @@ test(
     vi.doMock("@/lib/scan/tools/index", () => ({
       searchKeywords:   { run: async () => { throw new Error("keywords down"); } },
       findCommunities:  { run: async () => { throw new Error("communities down"); } },
-      findCreators:     { run: async () => { throw new Error("creators down"); } },
     }));
 
     const { runFullCollect } = await import("@/lib/scan/full-collect");
@@ -156,7 +156,7 @@ test(
 
     installFixtures(makeFixtureProvider());
 
-    const capturedArgs: Array<{ seeds?: string[]; topic?: string; competitors?: string[] }> = [];
+    const capturedArgs: Array<{ seeds?: string[]; topic?: string }> = [];
 
     vi.doMock("@/lib/scan/tools/index", () => ({
       searchKeywords: {
@@ -169,12 +169,6 @@ test(
         run: async (args: { topic: string }) => {
           capturedArgs.push({ topic: args.topic });
           return { communities: [] };
-        },
-      },
-      findCreators: {
-        run: async (args: { competitors: string[] }) => {
-          capturedArgs.push({ competitors: args.competitors });
-          return { creators: [] };
         },
       },
     }));
@@ -206,9 +200,5 @@ test(
     // topic should be the category
     const commArgs = capturedArgs.find((a) => a.topic !== undefined);
     expect(commArgs?.topic).toBe("Productivity");
-
-    // competitors sliced to those with names
-    const crArgs = capturedArgs.find((a) => a.competitors !== undefined);
-    expect(crArgs?.competitors).toContain("Habitify");
   },
 );

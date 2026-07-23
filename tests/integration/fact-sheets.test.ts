@@ -9,17 +9,17 @@ const db = createClient(
 
 test("upsertFactSheet then getFreshFactSheet returns the body", async () => {
   const subjectKey = `upsert-test-${Date.now()}`;
-  const body = { themes: ["onboarding", "pricing"] };
+  const body = { competitors: [{ name: "Acme", positioning: "p", gap: "g" }] };
 
   await upsertFactSheet({
     subjectType: "app",
     subjectKey,
-    kind: "review_themes",
+    kind: "competitor_gap",
     body,
     modelVersion: "claude-3-5-haiku-20241022",
   });
 
-  const result = await getFreshFactSheet("app", subjectKey, "review_themes");
+  const result = await getFreshFactSheet("app", subjectKey, "competitor_gap");
   expect(result).not.toBeNull();
   expect(result?.body).toEqual(body);
 });

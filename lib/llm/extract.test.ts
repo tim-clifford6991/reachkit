@@ -1,19 +1,14 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import type { ReviewThemesSheet, PositioningSheet, CompetitorGapSheet, KeywordSheet } from "./types";
+import type { PositioningSheet, CompetitorGapSheet, KeywordSheet } from "./types";
 import { installFixtures, resetFixtures } from "@/lib/scan/fixture-seam";
 import { makeFixtureProvider } from "@/lib/dev/fixtures";
 
 afterEach(() => resetFixtures());
 
 // ---------------------------------------------------------------------------
-// Canned model responses
+// Canned model responses (review_themes retired M3b, 2026-07-23, O-7 — no
+// longer extracted; the 3 remaining kinds are positioning/competitor_gap/keyword_data)
 // ---------------------------------------------------------------------------
-const CANNED_REVIEW_THEMES: ReviewThemesSheet = {
-  themes: [
-    { theme: "Onboarding", sentiment: "positive", quote: "super easy to set up", evidenceIds: [] },
-    { theme: "Crashes", sentiment: "negative", quote: "crashes on launch", evidenceIds: [] },
-  ],
-};
 const CANNED_POSITIONING: PositioningSheet = {
   category: "Productivity",
   claims: ["#1 habit tracker"],
@@ -37,7 +32,6 @@ const CANNED_KEYWORD_SHEET: KeywordSheet = {
 // ---------------------------------------------------------------------------
 const STORE_URL = "https://apps.apple.com/us/app/habits/id123";
 const CANNED_RAW_DOCS = [
-  { id: 1, source_type: "app_store_rss",       subject_key: STORE_URL, body: { reviews: [{ title: "Great", body: "super easy to set up" }] } },
   { id: 2, source_type: "itunes",               subject_key: STORE_URL, body: { name: "Habits", description: "Build habits in 21 days", category: "Productivity" } },
   { id: 3, source_type: "dataforseo_serp",      subject_key: STORE_URL, body: { results: [{ title: "Habitify", url: "https://habitify.me", snippet: "Visual habit analytics" }] } },
   { id: 4, source_type: "dataforseo_keywords",  subject_key: STORE_URL, body: { keywords: [{ keyword: "habit tracker", volume: 5000, cpc: 1.2, competition: 0.4 }] } },
@@ -82,9 +76,6 @@ function makeCallModelMock(overrideText?: string) {
     let text: string;
     if (overrideText !== undefined) {
       text = overrideText;
-    } else if (prompt.includes("recurring themes")) {
-      // review_themes prompt: "Extract the top recurring themes"
-      text = JSON.stringify(CANNED_REVIEW_THEMES);
     } else if (prompt.includes("app's positioning")) {
       // positioning prompt: "Extract the app's positioning"
       text = JSON.stringify(CANNED_POSITIONING);
@@ -107,7 +98,7 @@ describe("runExtract — normal path", () => {
     vi.resetModules();
   });
 
-  test("calls upsertFactSheet for all 4 kinds with parsed bodies", async () => {
+  test("calls upsertFactSheet for all 3 kinds with parsed bodies", async () => {
     vi.doMock("@/lib/db/client", () => ({ serverDb: makeDbMock(CANNED_RAW_DOCS) }));
     const callModelMock = makeCallModelMock();
     vi.doMock("@/lib/llm/anthropic", () => ({ callModel: callModelMock }));
@@ -118,23 +109,20 @@ describe("runExtract — normal path", () => {
     const ctx = await makeScanCtx();
     await runExtract(ctx);
 
-    expect(upsertMock).toHaveBeenCalledTimes(4);
+    expect(upsertMock).toHaveBeenCalledTimes(3);
 
     const calls = upsertMock.mock.calls as Array<[Parameters<typeof upsertMock>[0]]>;
     const kinds = calls.map((c) => c[0].kind);
-    expect(kinds).toContain("review_themes");
+    expect(kinds).not.toContain("review_themes");
     expect(kinds).toContain("positioning");
     expect(kinds).toContain("competitor_gap");
     expect(kinds).toContain("keyword_data");
 
-    const reviewCall = calls.find((c) => c[0].kind === "review_themes")?.[0];
-    expect(reviewCall?.body).toEqual(CANNED_REVIEW_THEMES);
-    expect(reviewCall?.subjectKey).toBe(STORE_URL);
-    expect(reviewCall?.subjectType).toBe("app");
-    expect(reviewCall?.modelVersion).toBe("claude-haiku-4-5-20251001");
-
     const posCall = calls.find((c) => c[0].kind === "positioning")?.[0];
     expect(posCall?.body).toEqual(CANNED_POSITIONING);
+    expect(posCall?.subjectKey).toBe(STORE_URL);
+    expect(posCall?.subjectType).toBe("app");
+    expect(posCall?.modelVersion).toBe("claude-haiku-4-5-20251001");
 
     const compCall = calls.find((c) => c[0].kind === "competitor_gap")?.[0];
     expect(compCall?.body).toEqual(CANNED_COMPETITOR_GAP);
@@ -178,11 +166,10 @@ describe("runExtract — malformed JSON degrades to empty sheets (no throw)", ()
     // Must not throw
     await expect(runExtract(ctx)).resolves.toBeUndefined();
 
-    expect(upsertMock).toHaveBeenCalledTimes(4);
+    expect(upsertMock).toHaveBeenCalledTimes(3);
 
     const calls = upsertMock.mock.calls as Array<[Parameters<typeof upsertMock>[0]]>;
-    // All four kinds written as minimal empty sheets
-    expect(calls.find((c) => c[0].kind === "review_themes")?.[0].body).toEqual({ themes: [] });
+    // All three kinds written as minimal empty sheets
     expect(calls.find((c) => c[0].kind === "positioning")?.[0].body).toEqual({ category: "", claims: [], valueProps: [] });
     expect(calls.find((c) => c[0].kind === "competitor_gap")?.[0].body).toEqual({ competitors: [] });
     expect(calls.find((c) => c[0].kind === "keyword_data")?.[0].body).toEqual({ clusters: [] });
@@ -194,10 +181,10 @@ describe("runExtract — missing source does NOT cache an empty sheet (invariant
     vi.resetModules();
   });
 
-  test("when no review rows exist, review_themes is NOT upserted — never cache an empty sheet", async () => {
-    // Only listing + competitor + keyword docs — no reviews.
-    const docsWithoutReviews = CANNED_RAW_DOCS.filter((d) => d.source_type !== "app_store_rss");
-    vi.doMock("@/lib/db/client", () => ({ serverDb: makeDbMock(docsWithoutReviews) }));
+  test("when no competitor rows exist, competitor_gap is NOT upserted — never cache an empty sheet", async () => {
+    // Only listing + keyword docs — no competitor/SERP data.
+    const docsWithoutCompetitors = CANNED_RAW_DOCS.filter((d) => d.source_type !== "dataforseo_serp");
+    vi.doMock("@/lib/db/client", () => ({ serverDb: makeDbMock(docsWithoutCompetitors) }));
     const callModelMock = makeCallModelMock();
     vi.doMock("@/lib/llm/anthropic", () => ({ callModel: callModelMock }));
     const upsertMock = vi.fn().mockResolvedValue({ id: 1 });
@@ -207,17 +194,17 @@ describe("runExtract — missing source does NOT cache an empty sheet (invariant
     const ctx = await makeScanCtx();
     await runExtract(ctx);
 
-    // invariant #3: an empty sheet is never persisted. The 3 kinds WITH docs
-    // upsert; review_themes (zero docs) is skipped entirely, so synth reads back
-    // the {themes:[]} fallback rather than a cached blank that could later be
+    // invariant #3: an empty sheet is never persisted. The 2 kinds WITH docs
+    // upsert; competitor_gap (zero docs) is skipped entirely, so synth reads back
+    // the {competitors:[]} fallback rather than a cached blank that could later be
     // served as if it were real. This is the same guard demand-intel has.
     const calls = upsertMock.mock.calls as Array<[Parameters<typeof upsertMock>[0]]>;
     const kinds = calls.map((c) => c[0].kind);
-    expect(kinds).not.toContain("review_themes");
-    expect(upsertMock).toHaveBeenCalledTimes(3);
+    expect(kinds).not.toContain("competitor_gap");
+    expect(upsertMock).toHaveBeenCalledTimes(2);
 
-    // callModel was NOT called for reviews (only 3 remaining sources).
-    expect(callModelMock).toHaveBeenCalledTimes(3);
+    // callModel was NOT called for competitor_gap (only 2 remaining sources).
+    expect(callModelMock).toHaveBeenCalledTimes(2);
   });
 });
 
@@ -339,7 +326,6 @@ describe("runExtract — fixture mode", () => {
       ...makeFixtureProvider(),
       extract: (kind: string) => {
         switch (kind) {
-          case "review_themes":  return CANNED_REVIEW_THEMES;
           case "positioning":    return CANNED_POSITIONING;
           case "competitor_gap": return CANNED_COMPETITOR_GAP;
           case "keyword_data":   return CANNED_KEYWORD_SHEET;
@@ -359,10 +345,9 @@ describe("runExtract — fixture mode", () => {
     // callModel must NOT be called
     expect(callModelMock).not.toHaveBeenCalled();
 
-    // But upsertFactSheet still called for all 4 kinds
-    expect(upsertMock).toHaveBeenCalledTimes(4);
+    // But upsertFactSheet still called for all 3 kinds
+    expect(upsertMock).toHaveBeenCalledTimes(3);
     const calls = upsertMock.mock.calls as Array<[Parameters<typeof upsertMock>[0]]>;
-    expect(calls.find((c) => c[0].kind === "review_themes")?.[0].body).toEqual(CANNED_REVIEW_THEMES);
     expect(calls.find((c) => c[0].kind === "positioning")?.[0].body).toEqual(CANNED_POSITIONING);
     expect(calls.find((c) => c[0].kind === "competitor_gap")?.[0].body).toEqual(CANNED_COMPETITOR_GAP);
     expect(calls.find((c) => c[0].kind === "keyword_data")?.[0].body).toEqual(CANNED_KEYWORD_SHEET);

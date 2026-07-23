@@ -8,7 +8,7 @@
  */
 
 import { TIER_LIMITS, isPaid, isTier, type Tier, type TierLimit } from "@/lib/billing/tiers";
-import type { ReportPayload, CompetitiveLandscapeRow } from "@/lib/scan/report";
+import type { ReportPayload } from "@/lib/scan/report";
 import type { ActionCard } from "@/lib/llm/types";
 import type { MarketAnalysis } from "@/lib/scan/gap";
 import type { DistributionProfile } from "@/lib/scan/profile";
@@ -34,8 +34,6 @@ const FREE_PREVIEW_ACTIONS = 3;
 /** Preview slice sizes for the deep sections shown locked on the free teaser. */
 const FREE_PREVIEW_KEYWORD_CLUSTERS = 1;
 const FREE_PREVIEW_COMMUNITIES = 2;
-const FREE_PREVIEW_CREATORS = 2;
-const FREE_PREVIEW_THEMES = 1;
 /** Market teaser slice sizes for the free report. */
 const FREE_PREVIEW_COMPETITORS = 3;
 const FREE_PREVIEW_POCKETS = 5;
@@ -181,14 +179,9 @@ export function redactReportForTier(
     // F2: the off-site "Market position" grade is paid-only value — never leak the
     // exact number on the free/public teaser.
     marketPosition: null,
-    // Deep sections. The competitive landscape is "tease the question, gate the
-    // answer": free keeps WHICH rivals + their mention counts (the proof), but
-    // the exact opening text and the creators-to-reach are gated. The other
-    // three are truncated to a small locked preview.
-    competitiveLandscape: redactLandscape(payload.competitiveLandscape),
+    // Deep sections. (competitiveLandscape/creatorsToReach/strengthsAndWeaknesses
+    // retired M3b, 2026-07-23 — O-7/O-8, write-only: zero render consumers.)
     channelOpportunities: redactChannels(payload.channelOpportunities),
-    creatorsToReach: (payload.creatorsToReach ?? []).slice(0, FREE_PREVIEW_CREATORS),
-    strengthsAndWeaknesses: redactStrengths(payload.strengthsAndWeaknesses),
     // M4 market analysis — free now gets a deliberate TEASER (the ChannelIntel
     // free scan: top-3 competitors + channels + traffic + demand-pocket headlines
     // + the channel matrix + share-of-voice), with the paid payoff gated
@@ -262,25 +255,6 @@ export function redactMarket(market: MarketAnalysis | undefined): MarketAnalysis
   };
 }
 
-/**
- * Free-tier competitive landscape: keep the provocation (competitor name,
- * positioning, mention count), gate the answer — null the `gap` opening text
- * and empty `creators`, preserving the creator count via `lockedCreatorCount`.
- */
-function redactLandscape(
-  rows: CompetitiveLandscapeRow[] | undefined,
-): CompetitiveLandscapeRow[] | undefined {
-  if (!rows) return rows;
-  return rows.map((r) => ({
-    competitor: r.competitor,
-    positioning: r.positioning,
-    communityMentions: r.communityMentions,
-    gap: null,
-    creators: [],
-    lockedCreatorCount: r.creators.length,
-  }));
-}
-
 /** Free-tier preview of the channel section: 1 cluster with cpc/competition
  *  stripped, 2 communities — enough to tease, not enough to use. */
 function redactChannels(
@@ -295,20 +269,5 @@ function redactChannels(
         keywords: c.keywords.map((k) => ({ ...k, cpc: 0, competition: 0 })),
       })),
     communitiesByEngagement: channels.communitiesByEngagement.slice(0, FREE_PREVIEW_COMMUNITIES),
-  };
-}
-
-/** Free-tier preview of strengths/weaknesses: 1 of each, quotes stripped,
- *  diagnostics hidden. */
-function redactStrengths(
-  sw: ReportPayload["strengthsAndWeaknesses"],
-): ReportPayload["strengthsAndWeaknesses"] {
-  if (!sw) return sw;
-  const noQuote = (t: { theme: string; quote: string }) => ({ theme: t.theme, quote: "" });
-  return {
-    strengths: sw.strengths.slice(0, FREE_PREVIEW_THEMES).map(noQuote),
-    weaknesses: sw.weaknesses.slice(0, FREE_PREVIEW_THEMES).map(noQuote),
-    mixed: [],
-    diagnostics: [],
   };
 }

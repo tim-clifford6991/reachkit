@@ -1,10 +1,13 @@
 /**
  * Phase S (R-1.5, 2026-07-21) — the FREE scan gathers only its own page.
  *
- * Behavioural proof that the collect tier gate holds: a `tier: "free"` scan
- * makes NEITHER the review fetch NOR competitor discovery (both off the free
- * contract), and a `tier: "full"` scan makes both. Mutation-proven: flipping
- * the `gatherOffContract` predicate in collect.ts flips these assertions.
+ * Behavioural proof that the collect tier gate holds for competitor discovery:
+ * a `tier: "free"` scan makes NO competitor discovery call (off the free
+ * contract), and a `tier: "full"` scan does. Mutation-proven: flipping the
+ * `gatherOffContract` predicate in collect.ts flips these assertions.
+ *
+ * Reviews (O-7, M3b 2026-07-23): the review_themes producer is retired for
+ * BOTH tiers — collect() never gathers reviews anymore, regardless of tier.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -12,8 +15,6 @@ const getListingRun = vi.fn(async (..._a: unknown[]) => ({
   listing: { name: "Acme", category: "widgets", description: "We sell widgets" },
   extras: {},
 }));
-const getReviewsRun = vi.fn(async (..._a: unknown[]) => ({ reviews: [{ id: "a", rating: 5, title: "t", body: "b" }] }));
-const fetchWebReviews = vi.fn(async (..._a: unknown[]) => ({ snippets: ["great tool"], raw: {} }));
 const discoverScanCompetitors = vi.fn(async (..._a: unknown[]) => ({
   competitors: [{ name: "Rival", url: "https://rival.com", rank: 1 }],
   extras: {},
@@ -22,11 +23,6 @@ const persistCompetitors = vi.fn(async (..._a: unknown[]) => undefined);
 
 vi.mock("@/lib/scan/tools/index", () => ({
   getListing: { run: (...a: unknown[]) => getListingRun(...a) },
-  getReviews: { run: (...a: unknown[]) => getReviewsRun(...a) },
-}));
-vi.mock("@/lib/scan/adapters/web-reviews", () => ({
-  fetchWebReviews: (...a: unknown[]) => fetchWebReviews(...a),
-  reviewCountFromSnippets: () => 0,
 }));
 vi.mock("@/lib/scan/scan-competitors", () => ({
   discoverScanCompetitors: (...a: unknown[]) => discoverScanCompetitors(...a),
@@ -58,9 +54,8 @@ function ctx(tier: "free" | "full"): ScanContext {
 describe("collect tier gate (Phase S — free gathers only its own page)", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("free scan skips the review fetch AND competitor discovery", async () => {
+  it("free scan skips competitor discovery; reviews are never gathered on any tier", async () => {
     const facts = (await collect(ctx("free"))) as unknown as { reviews: unknown[]; competitors: unknown[] };
-    expect(fetchWebReviews).not.toHaveBeenCalled();
     expect(discoverScanCompetitors).not.toHaveBeenCalled();
     expect(facts.reviews).toEqual([]);
     expect(facts.competitors).toEqual([]);
@@ -68,18 +63,16 @@ describe("collect tier gate (Phase S — free gathers only its own page)", () =>
     expect(getListingRun).toHaveBeenCalledTimes(1);
   });
 
-  it("full scan gathers reviews AND competitors", async () => {
+  it("full scan gathers competitors; reviews still stay empty (O-7, M3b — retired for both tiers)", async () => {
     const facts = (await collect(ctx("full"))) as unknown as { reviews: unknown[]; competitors: unknown[] };
-    expect(fetchWebReviews).toHaveBeenCalledTimes(1);
     expect(discoverScanCompetitors).toHaveBeenCalledTimes(1);
-    expect(facts.reviews.length).toBe(1);
+    expect(facts.reviews).toEqual([]);
     expect(facts.competitors.length).toBe(1);
   });
 
-  it("defaults to full when tier is absent (an un-updated caller never skips data)", async () => {
+  it("defaults to full when tier is absent (an un-updated caller never skips competitor data)", async () => {
     const { tier: _drop, ...noTier } = ctx("full");
     await collect(noTier as ScanContext);
     expect(discoverScanCompetitors).toHaveBeenCalledTimes(1);
-    expect(fetchWebReviews).toHaveBeenCalledTimes(1);
   });
 });

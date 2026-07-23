@@ -303,7 +303,9 @@ function deriveSeed(facts: PreliminaryFacts, grounding: ActionGrounding, positio
   const communityAUrl = comms[0]?.url;
   const communityB = comms[1]?.title ?? DEFAULT_COMMUNITY_B;
   const communityBUrl = comms[1]?.url;
-  const creator = grounding.creators[0];
+  // Creators were retired M3b (2026-07-23, O-8, write-only) — ActionGrounding
+  // no longer carries them, so `seed.creator` (and the optional card-7 outreach
+  // card in coldStartActionsFrom) is simply never populated now.
 
   return {
     productName,
@@ -315,7 +317,6 @@ function deriveSeed(facts: PreliminaryFacts, grounding: ActionGrounding, positio
     communityAUrl,
     communityB,
     communityBUrl,
-    creator,
   };
 }
 
@@ -366,7 +367,6 @@ export async function generateColdStartActions(
       communityAUrl: comms[0]?.url,
       communityB: comms[1]?.title ?? DEFAULT_COMMUNITY_B,
       communityBUrl: comms[1]?.url,
-      creator: grounding.creators[0],
     });
   }
 }

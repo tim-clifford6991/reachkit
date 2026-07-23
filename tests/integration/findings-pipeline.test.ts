@@ -12,18 +12,12 @@
 
 import { beforeEach, expect, test, vi } from "vitest";
 import { createClient } from "@supabase/supabase-js";
-import type { SynthResult, ReviewThemesSheet, PositioningSheet, CompetitorGapSheet, KeywordSheet } from "@/lib/llm/types";
+import type { SynthResult, PositioningSheet, CompetitorGapSheet, KeywordSheet } from "@/lib/llm/types";
 
 // ---------------------------------------------------------------------------
 // Canned model responses — returned by the mocked callModel
+// (review_themes retired M3b, 2026-07-23, O-7 — no longer extracted)
 // ---------------------------------------------------------------------------
-
-const CANNED_REVIEW_THEMES: ReviewThemesSheet = {
-  themes: [
-    { theme: "Ease of use", sentiment: "positive", quote: "incredibly easy to get started", evidenceIds: [] },
-    { theme: "Crashes", sentiment: "negative", quote: "crashes on older iOS", evidenceIds: [] },
-  ],
-};
 
 const CANNED_POSITIONING: PositioningSheet = {
   category: "Health & Fitness",
@@ -112,9 +106,7 @@ function makeCallModelMock() {
     // extract stage — route by prompt keyword
     const prompt = args.prompt;
     let text: string;
-    if (prompt.includes("recurring themes")) {
-      text = JSON.stringify(CANNED_REVIEW_THEMES);
-    } else if (prompt.includes("app's positioning")) {
+    if (prompt.includes("app's positioning")) {
       text = JSON.stringify(CANNED_POSITIONING);
     } else if (prompt.includes("main competitors")) {
       text = JSON.stringify(CANNED_COMPETITOR_GAP);

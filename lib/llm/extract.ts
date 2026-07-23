@@ -6,20 +6,17 @@ import { parseListingHtml } from "@/lib/scan/adapters/site-fetch";
 import { upsertFactSheet, factSheetSubjectType } from "@/lib/scan/fact-sheets";
 import { fixtures } from "@/lib/scan/fixture-seam";
 import {
-  reviewThemesPrompt,
   positioningPrompt,
   competitorGapPrompt,
   keywordDataPrompt,
   EXTRACT_SYSTEM,
 } from "@/lib/llm/prompts";
 import {
-  EMPTY_REVIEW_THEMES,
   EMPTY_POSITIONING,
   EMPTY_COMPETITOR_GAP,
   EMPTY_KEYWORD_SHEET,
 } from "@/lib/llm/types";
 import type {
-  ReviewThemesSheet,
   PositioningSheet,
   CompetitorGapSheet,
   KeywordSheet,
@@ -31,7 +28,6 @@ import { SITE_FETCH_ESCALATED, SITE_FETCH_DEGRADED } from "@/lib/scan/tools/get-
 const MODEL = "claude-haiku-4-5-20251001" as const;
 
 // Source type groupings
-const REVIEW_SOURCES = Object.freeze(["app_store_rss", "web_reviews"] as const);
 // Part C — "site_fetch_escalated" is the ONE Tavily Extract fallback's rendered
 // text (get-listing.ts), written only when the raw site_fetch HTML was garbage
 // (a JS-shell page) and the escalation itself was non-garbage. See
@@ -194,7 +190,6 @@ export async function runExtract(ctx: ScanContext, kinds?: FactSheetKind[]): Pro
   }));
 
   // 2. Group by source category
-  const reviewRows = rows.filter((r) => (REVIEW_SOURCES as readonly string[]).includes(r.source_type));
   // Part C REPLACE/EXCLUDE semantics — drops the raw "site_fetch" row when a
   // good "site_fetch_escalated" row exists OR the escalation failed
   // ("site_fetch_degraded" marker) for this subject (effectiveListingRows).
@@ -215,8 +210,6 @@ export async function runExtract(ctx: ScanContext, kinds?: FactSheetKind[]): Pro
 
   // 3. For each requested kind: either use fixture or call model, then upsert
   const jobs: Promise<void>[] = [];
-  if (want("review_themes"))
-    jobs.push(extractKind<ReviewThemesSheet>(ctx, "review_themes", reviewRows, (docs) => reviewThemesPrompt(formatDocBodies(docs)), EMPTY_REVIEW_THEMES, usingFixtures));
   if (want("positioning"))
     jobs.push(extractKind<PositioningSheet>(ctx, "positioning", listingRows, (docs) => positioningPrompt(formatDocBodies(docs)), positioningFloor, usingFixtures));
   if (want("competitor_gap"))

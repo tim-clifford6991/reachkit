@@ -224,15 +224,15 @@ describe("redactReportForTier", () => {
 
 // ---------------------------------------------------------------------------
 // Deep sections — teaser gating
+//
+// competitiveLandscape/creatorsToReach/strengthsAndWeaknesses were retired M3b
+// (2026-07-23, O-7/O-8, write-only: zero render consumers) — channelOpportunities
+// is the one deep section that survives the cut.
 // ---------------------------------------------------------------------------
 
 function withDeepSections(report: ReportPayload): ReportPayload {
   return {
     ...report,
-    competitiveLandscape: [
-      { competitor: "Acme", positioning: "all-in-one", gap: "no offline", communityMentions: 9, creators: [{ name: "Chan", url: "https://yt/1" }] },
-      { competitor: "Bolt", positioning: "fast", gap: "no team plan", communityMentions: 3, creators: [] },
-    ],
     channelOpportunities: {
       keywordClusters: [
         { theme: "notes", keywords: [{ keyword: "fast notes", volume: 1000, cpc: 1.5, competition: 0.4 }] },
@@ -244,17 +244,6 @@ function withDeepSections(report: ReportPayload): ReportPayload {
         { source: "hn", title: "c", url: "https://h/3", engagement: 50 },
       ],
     },
-    creatorsToReach: [
-      { name: "C1", url: "https://yt/1", coveredCompetitor: "Acme", audienceProxy: 0 },
-      { name: "C2", url: "https://yt/2", coveredCompetitor: "Bolt", audienceProxy: 0 },
-      { name: "C3", url: "https://yt/3", coveredCompetitor: "Acme", audienceProxy: 0 },
-    ],
-    strengthsAndWeaknesses: {
-      strengths: [{ theme: "speed", quote: "so fast" }, { theme: "ui", quote: "clean" }],
-      weaknesses: [{ theme: "crashes", quote: "crashes daily" }],
-      mixed: [{ theme: "price", quote: "bit pricey" }],
-      diagnostics: [{ category: "content", claim: "listing buries sync", confidence: 0.8 }],
-    },
   };
 }
 
@@ -263,34 +252,7 @@ describe("redactReportForTier — deep sections", () => {
     const report = withDeepSections(makeReport());
     const out = redactReportForTier(report, "solo");
     expect(out).toBe(report);
-    expect(out.creatorsToReach).toHaveLength(3);
     expect(out.channelOpportunities?.keywordClusters[0]?.keywords[0]?.cpc).toBe(1.5);
-  });
-
-  it("free teases the landscape: keeps name/positioning/mentions, gates gap + creators", () => {
-    const report = withDeepSections(makeReport());
-    const out = redactReportForTier(report, "free");
-    const land = out.competitiveLandscape!;
-    // All rows survive (the proof), in order.
-    expect(land).toHaveLength(2);
-    expect(land.map((r) => r.competitor)).toEqual(["Acme", "Bolt"]);
-    // Provocation kept: positioning + mention count.
-    expect(land[0]?.positioning).toBe("all-in-one");
-    expect(land[0]?.communityMentions).toBe(9);
-    // Answer gated: opening text nulled, creators emptied, count preserved.
-    expect(land[0]?.gap).toBeNull();
-    expect(land[0]?.creators).toEqual([]);
-    expect(land[0]?.lockedCreatorCount).toBe(1);
-    // A competitor with no creators reports a 0 locked count.
-    expect(land[1]?.lockedCreatorCount).toBe(0);
-  });
-
-  it("paid keeps the landscape untouched (gap text + creators intact)", () => {
-    const report = withDeepSections(makeReport());
-    const out = redactReportForTier(report, "solo");
-    expect(out.competitiveLandscape).toEqual(report.competitiveLandscape);
-    expect(out.competitiveLandscape?.[0]?.gap).toBe("no offline");
-    expect(out.competitiveLandscape?.[0]?.creators).toHaveLength(1);
   });
 
   it("free truncates channels: 1 cluster, cpc/competition zeroed, 2 communities", () => {
@@ -303,19 +265,6 @@ describe("redactReportForTier — deep sections", () => {
     // volume (the teaser hook) survives
     expect(ch.keywordClusters[0]?.keywords[0]?.volume).toBe(1000);
     expect(ch.communitiesByEngagement).toHaveLength(2);
-  });
-
-  it("free truncates creators to 2 and strips strengths/weaknesses quotes + diagnostics", () => {
-    const report = withDeepSections(makeReport());
-    const out = redactReportForTier(report, "free");
-    expect(out.creatorsToReach).toHaveLength(2);
-    const sw = out.strengthsAndWeaknesses!;
-    expect(sw.strengths).toHaveLength(1);
-    expect(sw.strengths[0]?.quote).toBe("");
-    expect(sw.weaknesses).toHaveLength(1);
-    expect(sw.weaknesses[0]?.quote).toBe("");
-    expect(sw.mixed).toEqual([]);
-    expect(sw.diagnostics).toEqual([]);
   });
 
   it("does not mutate the input deep sections", () => {

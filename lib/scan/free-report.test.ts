@@ -54,9 +54,7 @@ describe("buildFreeReport", () => {
     expect(report.mode).toBe("web");
     expect(report.whatYouOffer.positioningMirror.gap).toBe("g");
     // Deep sections are empty on a free report.
-    expect(report.competitiveLandscape).toEqual([]);
     expect(report.channelOpportunities).toEqual({ keywordClusters: [], communitiesByEngagement: [] });
-    expect(report.creatorsToReach).toEqual([]);
   });
 
   it("derives icpSignals from facts.themes and competitorGap from facts.competitors", () => {

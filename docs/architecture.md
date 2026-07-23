@@ -136,7 +136,7 @@ sequenceDiagram
     U->>SSE: subscribe (Server-Sent Events)
 
     ING->>P: step "collect"
-    P->>EXT: DataForSEO · iTunes · HN · PH · web-reviews · domain-age
+    P->>EXT: DataForSEO · iTunes · HN · PH · domain-age
     P->>P: extract HTML → fact_sheets
     P->>LLM: extract + synth + critic
     P->>P: compute-signals → pillar scores → fixed-basis score
@@ -225,8 +225,9 @@ live populated/empty state of any given scan.
 | Keyword gap | DataForSEO ranked_keywords | `search_cache` (`synth:*`) + `report_payload.market.gap` | `gatherKeywordGap` | Audience → Keywords |
 | Demand / pockets | Reddit/community search + keyword ideas | `search_cache` (`demand-intel:*`) **and** `demand_intel` table | `gatherDemand` | Audience → Customers |
 | Buyer insights | competitor review mining (Tavily) + own reviews/community (2C fallback) | inside the demand payload | `mineCompetitorReviews` | Audience → Customers |
-| Creators | YouTube adapter | `report_payload.creatorsToReach` | `find-creators` (brand-relevance gated) | Audience → Creators |
 | Plan / actions | LLM synthesis | `actions` table + `report_payload.whatToDoThisWeek` | `synthesizeKeyActions` / action generation | Plan · Dashboard "this week" |
+
+> **Retired M3b (2026-07-23, O-7/O-8, write-only — zero render consumers):** `reviewThemes`/`review_themes` (fed `strengthsAndWeaknesses` + `icpSignals`), `creatorsToReach` (the YouTube `find-creators` adapter), and `competitiveLandscape`. `channelOpportunities` (keyword clusters + communities by engagement) is the one deep section from that era that survives — it still has no render consumer either, but was out of this cut's scope.
 
 ### 4.2 The `report_payload` contract (paid report = `scans.report_payload`)
 
@@ -244,7 +245,7 @@ existed won't carry it. Top-level sections and who reads them:
 | `whatToDoThisWeek.{quickWins,medium,longPlay}` | Plan |
 | `score` (`VerifiedScore`) | Dashboard gauge |
 | `marketPosition` | Dashboard hero (paid) |
-| `competitiveLandscape` / `channelOpportunities` / `creatorsToReach` / `strengthsAndWeaknesses` | Audience tabs (light pass) |
+| `channelOpportunities` | No current render consumer (verified by grep of `components/`+`app/`) — the sibling `competitiveLandscape`/`creatorsToReach`/`strengthsAndWeaknesses` sections were retired M3b (2026-07-23, O-7/O-8) for the same reason; `channelOpportunities` was out of that cut's scope |
 | `market` (`MarketAnalysis`) | Read by: the public teaser's keyword-gap rows + gap totals (`to-results-props.ts` prefers `market.gap.keywordGap`), the market-aware action re-floor, and the diagnostics data map. The paid dashboard's live market/gap rendering comes from the **streamed intel supply layer** (`/api/app/intel` → intel-kit views), NOT from a dedicated market component — `MarketAnalysisSections` was orphaned (no page imported it) and was deleted 2026-07-20. |
 | `searchVisibility.marketTiers` (2026-07-19 ladder) | The market ladder: at most a BROAD rung (renders only when its priced demand exceeds the category hero — inversion guard in `computeMarketTiers`, re-enforced at the props boundary for legacy payloads, pinned by rubric R6) and a NICHE rung, each reconciling to its priced phrases (G10). Seeds come from the lite synth's labeled tier phrases, priced in the same single `search_volume` call — no extra cost. |
 
@@ -736,7 +737,7 @@ review to pre-merge, on every `pnpm test`, over REAL captured data:
 | `app/(app)` | Gated product app: dashboard, add, onboarding, plan(+content/distribution), plans, demand, supply, synthesis, competitors, audience (competitors/customers), progress, billing, settings, diagnostics (owner-only) |
 | `app/api` | Thin API routes (scan, billing, auth, competitors, action, inngest host) |
 | `lib/scan` | Scan pipeline, scoring engine, adapters, deepen gate, reports |
-| `lib/scan/adapters` | External data collectors (DataForSEO, Tavily, iTunes, HN, PH, YouTube, X, web-reviews) |
+| `lib/scan/adapters` | External data collectors (DataForSEO, Tavily, iTunes, HN, PH, X). `web-reviews.ts` is now domain-conflict helpers only (`dropDomainConflicts`, for the recent-buzz producer) — its review-fetching half and *adapters/youtube.ts* (deleted) were retired M3b (2026-07-23, O-7/O-8) |
 | `lib/llm` | Anthropic synthesis (extract, synth, critic, actions) + Voyage embeddings |
 | `lib/inngest` | Inngest client + background functions |
 | `lib/db` | Supabase client + generated types |

@@ -155,17 +155,20 @@ describe("generateColdStartActions", () => {
 });
 
 describe("deriveSeed grounding (Task 7)", () => {
-  test("real grounding produces targets naming the community + a creator card", async () => {
+  test("real grounding produces targets naming the community", async () => {
     const { deriveSeedForTest } = await import("@/lib/llm/cold-start-actions");
     const seed = deriveSeedForTest(coldFacts(), {
       competitors: [{ name: "Fathom", positioning: null, themMentions: 5, youMentions: 0 }],
       communities: [{ source: "reddit", title: "r/productivity", url: "https://reddit.com/r/productivity", engagement: 200 }],
-      creators: [{ name: "Thomas Frank", url: "https://youtube.com/@thomasfrank", coveredCompetitor: "Fathom", audienceProxy: 0 }],
     });
     const cards = coldStartActionsFrom(seed);
     assertColdStartInvariants(cards);
     expect(cards.some((c) => c.target?.label === "r/productivity")).toBe(true);
-    expect(cards.some((c) => c.target?.channel === "creator" && c.target?.label === "Thomas Frank")).toBe(true);
+    // Creators were retired M3b (2026-07-23, O-8) — ActionGrounding no longer
+    // carries them, so seed.creator (and the optional card-7 outreach card) is
+    // never populated, even from real grounding.
+    expect(seed.creator).toBeUndefined();
+    expect(cards.some((c) => c.target?.channel === "creator")).toBe(false);
   });
 
   test("empty grounding falls back to hardcoded defaults exactly as before", async () => {

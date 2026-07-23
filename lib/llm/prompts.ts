@@ -39,28 +39,6 @@ Rules:
 
 export const EXTRACT_SYSTEM = `You are a data-extraction assistant. Your job is to read raw app-store and web evidence and compress it into structured JSON facts. Be concise and accurate. Output ONLY valid JSON — no markdown, no code fences, no explanations.`;
 
-// --- review_themes ---
-// Input: concatenated review text (title + body per review)
-// Output: ReviewThemesSheet
-export function reviewThemesPrompt(rawReviews: string): string {
-  return `Extract the top recurring themes from these app reviews. For each theme identify whether sentiment is positive, negative, or mixed, and pick a short representative quote directly from the reviews.
-
-Reviews:
-${rawReviews}
-
-Return ONLY this JSON (no markdown):
-{
-  "themes": [
-    { "theme": "<string>", "sentiment": "positive"|"negative"|"mixed", "quote": "<verbatim short quote>", "evidenceIds": [] }
-  ]
-}
-
-Rules:
-- Include 3–8 themes.
-- quote must be a verbatim excerpt (≤20 words) from the review text.
-- evidenceIds: always an empty array (IDs are attached by the pipeline, not by you).
-- If there are no reviews, return { "themes": [] }.`;
-}
 
 // --- positioning ---
 // Input: app listing text (name, category, description)
@@ -146,7 +124,7 @@ STRICT OUTPUT RULES:
 1. Output ONLY a valid JSON array of action cards — no markdown, no code fences, no prose.
 2. Over-generate: produce 2–3× the minimum cards per module (Content / Outreach / SEO-ASO). Aim for at least 3 content cards, 3 outreach cards, and 3 seo_aso cards.
 3. Every card MUST name a specific surface (a real subreddit, creator channel, keyword phrase, app directory URL — NOT generic phrases like "post on Reddit" or "reach out to influencers").
-4. Every draft for content/outreach cards MUST reference ≥1 app-specific fact drawn verbatim or closely from the review themes or competitor gap provided.
+4. Every draft for content/outreach cards MUST reference ≥1 app-specific fact drawn verbatim or closely from the competitor gap provided.
 5. Drafts must be written in the founder's own voice (see founderVoice hint if provided; otherwise use plain, direct, non-salesy language — as if a real person wrote it, not marketing copy).
 6. draftRequiresEdit must always be true — never set it to false.
 7. evidenceIds must always be an empty array [] — evidence attachment happens in a later step.
@@ -156,15 +134,14 @@ STRICT OUTPUT RULES:
 11. confidence is a float 0.0–1.0.
 12. expectedOutcome.scoreComponent is one of: "content", "outreach", "seo".
 13. basis is "evidence_based" when the card is driven by a specific signal from the fact sheets; "probability_based" when it is a reasonable inference without a direct quote.
-14. evidence is an array of ≥2 items drawn from ≥2 distinct sourceTypes. Each item has: excerpt (verbatim quote from the fact sheets), source (the name of the fact sheet or URL if available), sourceType (one of: "app_store_rss", "dataforseo_serp", "communities", "youtube", "dataforseo_keywords", "review_themes", "positioning", "competitor_gap", "keyword_data"). You MUST include at least 2 evidence items from at least 2 different sourceTypes per card.
+14. evidence is an array of ≥2 items drawn from ≥2 distinct sourceTypes. Each item has: excerpt (verbatim quote from the fact sheets), source (the name of the fact sheet or URL if available), sourceType (one of: "app_store_rss", "dataforseo_serp", "communities", "dataforseo_keywords", "positioning", "competitor_gap", "keyword_data"). You MUST include at least 2 evidence items from at least 2 different sourceTypes per card.
 15. BRAND-AMBIGUITY HARD RULE: generate actions ONLY for the subject product identified in the prompt (by its URL) and described by the fact sheets. NEVER introduce competitors, facts, acquisitions, or claims from outside/training knowledge — especially about other products whose names merely resemble the subject's. If it is not in the fact sheets, do not use it.
-16. GROUNDING: every outreach card MUST set "target" to a REAL venue or person drawn from the COMMUNITIES or CREATORS lists in the prompt — never invent a community or creator. Use the exact label and URL given. If no suitable named venue exists, set target to null and do NOT fabricate one.
+16. GROUNDING: every outreach card MUST set "target" to a REAL venue drawn from the COMMUNITIES list in the prompt — never invent a community. Use the exact label and URL given. If no suitable named venue exists, set target to null and do NOT fabricate one.
 17. Every seo_aso comparison/alternative card MUST name a real competitor from the NAMED COMPETITORS list; if that list is empty, frame the action around the category keyword, not a made-up rival.
 18. "target.channel" must be one of: community, creator, directory, media, podcast, newsletter, partner, x.`;
 
 export interface ActionsPromptInput {
   storeUrl: string;
-  reviewThemes: string;
   positioning: string;
   competitorGap: string;
   keywordData: string;
@@ -186,18 +163,12 @@ export function buildActionsPrompt(input: ActionsPromptInput): string {
   const communitiesBlock = g.communities.length
     ? g.communities.map((c) => `- ${c.title} [${c.source}] ${c.url} (engagement ${c.engagement})`).join("\n")
     : "(none discovered)";
-  const creatorsBlock = g.creators.length
-    ? g.creators.map((c) => `- ${c.name} ${c.url}${c.coveredCompetitor ? ` (covered ${c.coveredCompetitor})` : ""}`).join("\n")
-    : "(none discovered)";
 
   const groundingSection = `=== NAMED COMPETITORS (real, brand-validated — mention counts from tracked communities) ===
 ${competitorsBlock}
 
 === COMMUNITIES RANKED BY ENGAGEMENT (real venues to post in — use these exact names/URLs) ===
 ${communitiesBlock}
-
-=== NAMED CREATORS WHO COVERED A COMPETITOR (real outreach targets — use these exact names/URLs) ===
-${creatorsBlock}
 `;
 
   return `SUBJECT — generate actions ONLY for this product, and ignore any same-/similar-named product you may know of: ${input.storeUrl}
@@ -207,9 +178,6 @@ Here are the fact sheets and synthesis findings for this app. Generate a compreh
 ${voiceSection}
 === POSITIONING SHEET ===
 ${input.positioning}
-
-=== REVIEW THEMES SHEET ===
-${input.reviewThemes}
 
 === COMPETITOR GAP SHEET ===
 ${input.competitorGap}
@@ -231,7 +199,7 @@ Return ONLY a JSON array (no markdown, no code fences). Each element must match 
     "why": "<1–2 sentences citing a specific signal from the sheets or findings>",
     "evidenceIds": [],
     "evidence": [
-      { "excerpt": "<verbatim quote from fact sheet>", "source": "<fact sheet name or URL>", "sourceType": "<one of: app_store_rss | dataforseo_serp | communities | youtube | dataforseo_keywords | review_themes | positioning | competitor_gap | keyword_data>" },
+      { "excerpt": "<verbatim quote from fact sheet>", "source": "<fact sheet name or URL>", "sourceType": "<one of: app_store_rss | dataforseo_serp | communities | dataforseo_keywords | positioning | competitor_gap | keyword_data>" },
       { "excerpt": "<verbatim quote from a DIFFERENT sourceType>", "source": "<fact sheet name or URL>", "sourceType": "<different sourceType from above>" }
     ],
     "effortMin": <integer minutes>,
@@ -246,16 +214,16 @@ Return ONLY a JSON array (no markdown, no code fences). Each element must match 
     "verification": { "method": "url" | "self_report" | "rank_check", "state": "pending" },
     "basis": "evidence_based" | "probability_based",
     "confidence": <0.0–1.0>
-    ,"target": { "channel": "community" | "creator" | "directory" | "media" | "podcast" | "newsletter" | "partner" | "x", "label": "<exact venue/recipient name from the grounding, e.g. 'r/productivity' or 'Thomas Frank'>", "url": "<direct URL if known, else omit>" } | null
+    ,"target": { "channel": "community" | "creator" | "directory" | "media" | "podcast" | "newsletter" | "partner" | "x", "label": "<exact venue name from the grounding, e.g. 'r/productivity'>", "url": "<direct URL if known, else omit>" } | null
   }
 ]
 
 Rules recap:
 - Produce ≥3 cards per category (content, outreach, seo_aso) — over-generate rather than under.
-- Each outreach card must name a real, specific community or creator — use a venue from the COMMUNITIES list or a creator from the CREATORS list above — and set "target" to that exact venue/person; never use a generic placeholder.
+- Each outreach card must name a real, specific community — use a venue from the COMMUNITIES list above — and set "target" to that exact venue; never use a generic placeholder.
 - Each content card must name a specific content surface or format (e.g. "App Store 'What's New' copy", "Product Hunt launch post", "HackerNews Show HN post").
 - Each seo_aso card must include a specific keyword phrase or directory URL.
-- Drafts for content/outreach must reference a real review theme quote or competitor gap from the sheets above.
+- Drafts for content/outreach must reference a real competitor gap from the sheets above.
 - draftRequiresEdit is always true.
 - evidenceIds is always [].
 - verification.state is always "pending".`;
@@ -278,7 +246,6 @@ STRICT RULES:
 
 export function buildSynthPrompt(
   sheets: {
-    reviewThemes: string;
     positioning: string;
     competitorGap: string;
     keywordData: string;
@@ -292,9 +259,6 @@ Here are the fact sheets for this app. Synthesise them into a SynthResult.
 === POSITIONING SHEET ===
 ${sheets.positioning}
 
-=== REVIEW THEMES SHEET ===
-${sheets.reviewThemes}
-
 === COMPETITOR GAP SHEET ===
 ${sheets.competitorGap}
 
@@ -305,10 +269,10 @@ Return ONLY this JSON (no markdown, no code fences):
 {
   "positioningMirror": {
     "listingSays": "<1–2 sentences: what the listing claims or emphasises>",
-    "reviewsValue": "<1–2 sentences on what users praise or complain about — EMPTY STRING \"\" if the review sheet is empty. NEVER infer reviews from the listing or invent them.>",
-    "gap": "<1–2 sentences: the key disconnect between listing claims and review reality. When the COMPETITOR GAP SHEET names competitors, name at least ONE of them and state the concrete angle where the subject wins or loses vs that rival>",
+    "reviewsValue": "<MUST always be the empty string \"\" — reviews are not collected for this product. NEVER infer reviews from the listing or invent them.>",
+    "gap": "<1–2 sentences: the key disconnect between listing claims and the product's actual positioning. When the COMPETITOR GAP SHEET names competitors, name at least ONE of them and state the concrete angle where the subject wins or loses vs that rival>",
     "intendedAudience": ["<2–4 word audience descriptor the page is written FOR>", "..."],
-    "actualAudience": ["<2–4 word audience the page/reviews actually read AS>", "..."]
+    "actualAudience": ["<2–4 word audience the page actually reads AS>", "..."]
   },
   "categorySeeds": ["<a real search phrase a buyer would type for this PRODUCT CATEGORY>", "..."],
   "findings": [
@@ -318,7 +282,7 @@ Return ONLY this JSON (no markdown, no code fences):
       "basis": "evidence_based",
       "confidence": <0.0–1.0>,
       "evidence": [
-        { "excerpt": "<verbatim quote from a fact sheet>", "source": "review_themes" | "positioning" | "competitor_gap" | "keyword_data" }
+        { "excerpt": "<verbatim quote from a fact sheet>", "source": "positioning" | "competitor_gap" | "keyword_data" }
       ]
     }
   ],
@@ -350,15 +314,15 @@ Rules:
 // (absent findings/sampleAction degrade to safe defaults — never rendered on free).
 // ---------------------------------------------------------------------------
 
-export const SYNTH_SYSTEM_LITE = `You are a product-growth strategist. You read structured fact sheets extracted from a product's listing, user reviews, and competitor data, and produce a concise positioning mirror plus two labeled market seeds: CATEGORY (the broad industry umbrella) and NICHE (the specific sub-space).
+export const SYNTH_SYSTEM_LITE = `You are a product-growth strategist. You read structured fact sheets extracted from a product's listing and competitor data, and produce a concise positioning mirror plus two labeled market seeds: CATEGORY (the broad industry umbrella) and NICHE (the specific sub-space).
 
 STRICT RULES:
 1. Output ONLY valid JSON — no markdown, no code fences, no prose.
-2. reviewsValue MUST be an empty string "" when the review sheet has no themes — NEVER infer reviews from the listing or invent them.
+2. reviewsValue MUST always be the empty string "" — reviews are not collected for this product. NEVER infer reviews from the listing or invent them.
 3. BRAND-AMBIGUITY HARD RULE: analyse ONLY the subject product identified by its URL and described by the fact sheets. NEVER introduce facts, competitors, acquisitions, or claims from outside/training knowledge — especially about other products whose names merely resemble the subject's. If it is not in the fact sheets, it does not exist for this analysis.`;
 
 export function buildSynthPromptLite(
-  sheets: { reviewThemes: string; positioning: string; competitorGap: string },
+  sheets: { positioning: string; competitorGap: string },
   identity: { storeUrl: string },
 ): string {
   return `SUBJECT — analyse ONLY this product, and ignore any same-/similar-named product you may know of: ${identity.storeUrl}
@@ -368,9 +332,6 @@ Here are the fact sheets for this product. Produce a positioning mirror + catego
 === POSITIONING SHEET ===
 ${sheets.positioning}
 
-=== REVIEW THEMES SHEET ===
-${sheets.reviewThemes}
-
 === COMPETITOR GAP SHEET ===
 ${sheets.competitorGap}
 
@@ -378,10 +339,10 @@ Return ONLY this JSON (no markdown, no code fences):
 {
   "positioningMirror": {
     "listingSays": "<1–2 sentences: what the listing claims or emphasises>",
-    "reviewsValue": "<1–2 sentences on what users praise or complain about — EMPTY STRING \"\" if the review sheet is empty. NEVER infer reviews from the listing or invent them.>",
-    "gap": "<1–2 sentences: the key disconnect between listing claims and review reality. When the COMPETITOR GAP SHEET names competitors, name at least ONE of them and state the concrete angle where the subject wins or loses vs that rival>",
+    "reviewsValue": "<MUST always be the empty string \"\" — reviews are not collected for this product. NEVER infer reviews from the listing or invent them.>",
+    "gap": "<1–2 sentences: the key disconnect between listing claims and the product's actual positioning. When the COMPETITOR GAP SHEET names competitors, name at least ONE of them and state the concrete angle where the subject wins or loses vs that rival>",
     "intendedAudience": ["<2–4 word audience descriptor the page is written FOR>", "..."],
-    "actualAudience": ["<2–4 word audience the page/reviews actually read AS>", "..."]
+    "actualAudience": ["<2–4 word audience the page actually reads AS>", "..."]
   },
   "category": {
     "label": "<2-4 word label for the BROAD INDUSTRY UMBRELLA this product sits in, e.g. 'SEO tooling', 'Scheduling software'>",

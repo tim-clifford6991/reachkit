@@ -32,12 +32,12 @@ export async function runFindings(
     //    (everything was a name-collision / aggregator → facts.competitors empty),
     //    the SERP/keyword raw docs are about a same-named DIFFERENT product. Do
     //    NOT let them contaminate the findings — ground the analysis in the site
-    //    itself (positioning + reviews) only.
-    await emitScanEvent(ctx.scanId, "artifact", { label: "Reading your reviews & positioning" });
+    //    itself (positioning only; review_themes retired M3b, 2026-07-23, O-7).
+    await emitScanEvent(ctx.scanId, "artifact", { label: "Reading your positioning" });
     const extractKinds: FactSheetKind[] | undefined =
       facts.competitors.length > 0
         ? undefined // trust the full external signal set
-        : ["review_themes", "positioning"];
+        : ["positioning"];
     await runExtract(ctx, extractKinds);
 
     // When grounding in the site only, overwrite any STALE competitor_gap /

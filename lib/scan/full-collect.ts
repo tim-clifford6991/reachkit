@@ -1,13 +1,14 @@
 import type { ScanContext } from "@/lib/scan/pipeline";
 import type { PreliminaryFacts } from "@/lib/scan/types";
-import { searchKeywords, findCommunities, findCreators } from "@/lib/scan/tools/index";
+import { searchKeywords, findCommunities } from "@/lib/scan/tools/index";
 import { hostname } from "@/lib/scan/url";
 
 /**
- * Full collect — the heavier data pass (keywords + communities + creators)
- * that feeds findings/actions downstream.
+ * Full collect — the heavier data pass (keywords + communities) that feeds
+ * findings/actions downstream. (Creators were retired M3b, 2026-07-23 — O-8,
+ * write-only: `creatorsToReach` had zero render consumers.)
  *
- * - Runs all three D-tools in parallel under Promise.allSettled
+ * - Runs both D-tools in parallel under Promise.allSettled
  * - Each tool call is additionally .catch-guarded so one failure degrades
  *   only that source (the tools persist their own raw_documents)
  * - Returns void; raw_documents written by tools are what extract/action-gen reads
@@ -39,10 +40,6 @@ export async function runFullCollect(
 
     findCommunities
       .run({ topic, subjectKey }, toolCtx)
-      .catch(() => undefined),
-
-    findCreators
-      .run({ competitors: competitorNames, subjectKey }, toolCtx)
       .catch(() => undefined),
   ]);
 }

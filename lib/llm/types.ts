@@ -106,15 +106,6 @@ export interface ScoreResult {
   breakdown: { content: number; outreach: number; seo: number };
 }
 
-export interface ReviewThemesSheet {
-  themes: Array<{
-    theme: string;
-    sentiment: "positive" | "negative" | "mixed";
-    quote: string;
-    evidenceIds: number[];
-  }>;
-}
-
 export interface PositioningSheet {
   category: string;
   claims: string[];
@@ -141,7 +132,6 @@ export interface KeywordSheet {
 
 // Empty (degrade) sheet shapes — used when source is absent or model output is unparseable.
 // Frozen so callers cannot accidentally mutate the shared reference.
-export const EMPTY_REVIEW_THEMES: ReviewThemesSheet = Object.freeze({ themes: [] as ReviewThemesSheet["themes"] });
 export const EMPTY_POSITIONING: PositioningSheet = Object.freeze({ category: "", claims: [] as string[], valueProps: [] as string[] });
 export const EMPTY_COMPETITOR_GAP: CompetitorGapSheet = Object.freeze({ competitors: [] as CompetitorGapSheet["competitors"] });
 export const EMPTY_KEYWORD_SHEET: KeywordSheet = Object.freeze({ clusters: [] as KeywordSheet["clusters"] });

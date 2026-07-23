@@ -394,7 +394,7 @@ function parseFindings(text: string): Finding[] {
 }
 
 async function readSheetJson(subjectType: string, subjectKey: string, kind:
-  "review_themes" | "positioning" | "competitor_gap" | "keyword_data"): Promise<string> {
+  "positioning" | "competitor_gap" | "keyword_data"): Promise<string> {
   try {
     const row = await getFreshFactSheet(subjectType, subjectKey, kind);
     return JSON.stringify(row?.body ?? {}, null, 2);
@@ -418,8 +418,7 @@ async function synthNovelFindings(
   }
 
   const subjectType = factSheetSubjectType(ctx.mode);
-  const [reviewThemes, positioning, competitorGap, keywordData] = await Promise.all([
-    readSheetJson(subjectType, ctx.storeUrl, "review_themes"),
+  const [positioning, competitorGap, keywordData] = await Promise.all([
     readSheetJson(subjectType, ctx.storeUrl, "positioning"),
     readSheetJson(subjectType, ctx.storeUrl, "competitor_gap"),
     readSheetJson(subjectType, ctx.storeUrl, "keyword_data"),
@@ -436,9 +435,6 @@ ${deltaBlock}
 
 === POSITIONING SHEET ===
 ${positioning}
-
-=== REVIEW THEMES SHEET ===
-${reviewThemes}
 
 === COMPETITOR GAP SHEET ===
 ${competitorGap}

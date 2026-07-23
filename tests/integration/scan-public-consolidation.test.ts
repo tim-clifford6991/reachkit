@@ -27,10 +27,7 @@ import { makeFixtureProvider } from "@/lib/dev/fixtures";
 import type { Json } from "@/lib/db/types";
 import type {
   ReportPayload,
-  CompetitiveLandscapeRow,
   ChannelOpportunities,
-  CreatorReach,
-  StrengthsAndWeaknesses,
 } from "@/lib/scan/report";
 import type { ActionCard } from "@/lib/llm/types";
 import type { VerifiedScore } from "@/lib/scan/score-full";
@@ -110,11 +107,6 @@ function makePocket(surface: string): DemandPocket {
 }
 
 function makeDeepReport(): ReportPayload {
-  const competitiveLandscape: CompetitiveLandscapeRow[] = [
-    { competitor: "Acme", positioning: "all-in-one suite", gap: "no offline sync — the real answer", communityMentions: 12, creators: [{ name: "Chan", url: "https://yt/1" }, { name: "Dee", url: "https://yt/2" }] },
-    { competitor: "Bolt", positioning: "fast and cheap", gap: "no team plan — the real answer", communityMentions: 4, creators: [] },
-  ];
-
   const channelOpportunities: ChannelOpportunities = {
     keywordClusters: [
       { theme: "notes", keywords: [{ keyword: "fast notes app", volume: 4400, cpc: 1.8, competition: 0.42 }] },
@@ -125,19 +117,6 @@ function makeDeepReport(): ReportPayload {
       { source: "hn", title: "b", url: "https://h/2", engagement: 250 },
       { source: "reddit", title: "c", url: "https://r/3", engagement: 90 },
     ],
-  };
-
-  const creatorsToReach: CreatorReach[] = [
-    { name: "C1", url: "https://yt/1", coveredCompetitor: "Acme", audienceProxy: 50000 },
-    { name: "C2", url: "https://yt/2", coveredCompetitor: "Bolt", audienceProxy: 30000 },
-    { name: "C3", url: "https://yt/3", coveredCompetitor: "Acme", audienceProxy: 10000 },
-  ];
-
-  const strengthsAndWeaknesses: StrengthsAndWeaknesses = {
-    strengths: [{ theme: "speed", quote: "it's so fast" }, { theme: "ui", quote: "clean interface" }],
-    weaknesses: [{ theme: "crashes", quote: "crashes on sync" }, { theme: "price", quote: "too expensive for solo" }],
-    mixed: [{ theme: "support", quote: "hit or miss" }],
-    diagnostics: [{ category: "content", claim: "listing buries the sync story", confidence: 0.8 }],
   };
 
   const keywordGap = [
@@ -211,10 +190,7 @@ function makeDeepReport(): ReportPayload {
       longPlay: [makeAction("lp1", 180, 4), makeAction("lp2", 240, 2)],
     },
     score,
-    competitiveLandscape,
     channelOpportunities,
-    creatorsToReach,
-    strengthsAndWeaknesses,
     market,
   };
 }
@@ -305,29 +281,12 @@ describe("scan-public-consolidation", () => {
       expect(report.whatToDoThisWeek.medium.map((a) => a.title)).toEqual(["md1"]);
       expect(report.whatToDoThisWeek.longPlay).toEqual([]);
 
-      // --- Competitive landscape: gated (gap nulled, creators emptied + counted).
-      expect(report.competitiveLandscape?.[0]?.gap).toBeNull();
-      expect(report.competitiveLandscape?.[0]?.creators).toEqual([]);
-      expect(report.competitiveLandscape?.[0]?.lockedCreatorCount).toBe(2);
-      expect(report.competitiveLandscape?.[1]?.lockedCreatorCount).toBe(0);
-
       // --- Channel opportunities: truncated to 1 cluster (cpc/competition zeroed), 2 communities.
       expect(report.channelOpportunities?.keywordClusters.length).toBe(1);
       expect(report.channelOpportunities?.keywordClusters[0]?.keywords[0]?.cpc).toBe(0);
       expect(report.channelOpportunities?.keywordClusters[0]?.keywords[0]?.competition).toBe(0);
       expect(report.channelOpportunities?.keywordClusters[0]?.keywords[0]?.volume).toBe(4400); // teaser hook survives
       expect(report.channelOpportunities?.communitiesByEngagement.length).toBe(2);
-
-      // --- Creators: truncated to 2 (of the 3 seeded).
-      expect(report.creatorsToReach?.length).toBe(2);
-
-      // --- Strengths/weaknesses: 1 of each, quotes stripped, mixed+diagnostics gated.
-      expect(report.strengthsAndWeaknesses?.strengths.length).toBe(1);
-      expect(report.strengthsAndWeaknesses?.strengths[0]?.quote).toBe("");
-      expect(report.strengthsAndWeaknesses?.weaknesses.length).toBe(1);
-      expect(report.strengthsAndWeaknesses?.weaknesses[0]?.quote).toBe("");
-      expect(report.strengthsAndWeaknesses?.mixed).toEqual([]);
-      expect(report.strengthsAndWeaknesses?.diagnostics).toEqual([]);
 
       // --- Market: the paid payoff (plan, channel/keyword gaps, buzz, backlink
       // detail, thread excerpts) is gated; the teaser proof (SOV, channel matrix,

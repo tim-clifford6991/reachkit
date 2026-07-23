@@ -1,15 +1,13 @@
 import type { ScanContext } from "@/lib/scan/scan-context";
 import type { PreliminaryFacts, ListingFacts, Competitor, ReviewItem } from "@/lib/scan/types";
 import type { FactsExtras } from "@/lib/scan/tools/types";
-import { getListing, getReviews } from "@/lib/scan/tools/index";
+import { getListing } from "@/lib/scan/tools/index";
 import { persistCompetitors } from "@/lib/scan/competitors";
 import { discoverScanCompetitors } from "@/lib/scan/scan-competitors";
 import { emitScanEvent } from "@/lib/scan/progress";
 import { hostname } from "@/lib/scan/url";
 import { appIdFromUrl } from "@/lib/scan/adapters/itunes";
 import { assembleFacts } from "@/lib/scan/facts";
-import { upsertRawDocument } from "@/lib/db/raw-documents";
-import { fetchWebReviews, reviewCountFromSnippets } from "@/lib/scan/adapters/web-reviews";
 
 // ---------------------------------------------------------------------------
 // productName derivation
@@ -67,38 +65,14 @@ export async function collect(ctx: ScanContext): Promise<PreliminaryFacts> {
       return result;
     });
 
-  // --- Reviews (paid only; off the free contract) ---
-  // appIdFromUrl is called INSIDE the promise chain so a malformed URL throws
-  // within the protected chain and the .catch backstop degrades gracefully.
-  const reviewsPromise: Promise<{ reviews: ReviewItem[] }> = !gatherOffContract
-    ? Promise.resolve({ reviews: [] })
-    : (
-        mode === "web"
-          ? // Web mode has no first-party reviews — mine review-bearing snippets from a
-            // domain-anchored "{host} reviews" search so review_themes has signal.
-            fetchWebReviews(hostname(storeUrl)).then(async (r) => {
-              if (r.snippets.length > 0) {
-                await upsertRawDocument({ subjectType: "web", subjectKey, sourceType: "web_reviews", body: r.raw, mode });
-              }
-              return {
-                reviews: r.snippets.map((s, i) => ({ id: `web-${i}`, rating: null, title: "Web review", body: s })) as ReviewItem[],
-              };
-            })
-          : Promise.resolve().then(() =>
-              getReviews.run({ appId: appIdFromUrl(storeUrl), subjectKey }, toolCtx),
-            )
-      )
-        .catch((): { reviews: ReviewItem[] } => ({ reviews: [] }))
-        .then(async (result) => {
-          await emitScanEvent(scanId, "artifact", {
-            label:
-              result.reviews.length > 0
-                ? `Analysed ${result.reviews.length} reviews`
-                : "Checked for public reviews",
-            count: result.reviews.length,
-          });
-          return result;
-        });
+  // --- Reviews (O-7, 2026-07-23): the review_themes producer is retired for
+  // BOTH tiers — no consumer reads app_store_rss/web_reviews raw docs anymore
+  // (extract's review_themes job, synth's review section, and the strengths/
+  // weaknesses report section are all cut in the same change). Reviews are no
+  // longer gathered at collect time. The weekly "reviews" MONITOR (a separate
+  // producer — app-store review DELTAS via app-store-rss.ts's fetchAppReviews)
+  // is untouched; it reads live via delta-collect.ts, not these raw_documents.
+  const reviewsPromise: Promise<{ reviews: ReviewItem[] }> = Promise.resolve({ reviews: [] });
 
   // --- Competitors (paid only; off the free contract — re-collected at deepen) ---
   const competitorsPromise: Promise<{ competitors: Competitor[]; extras: FactsExtras }> = !gatherOffContract
@@ -127,13 +101,6 @@ export async function collect(ctx: ScanContext): Promise<PreliminaryFacts> {
     ...listingResult.extras,
     ...competitorsResult.extras,
   };
-  // Web mode: surface a REAL review count parsed from the review snippets
-  // ("from 380 reviews") rather than the misleading snippet count. Falls back to
-  // the snippet count (in facts.ts) when no figure is parseable.
-  if (mode === "web") {
-    const webReviewCount = reviewCountFromSnippets(reviewsResult.reviews.map((r) => r.body));
-    if (webReviewCount > 0) mergedExtras.ratingCount = webReviewCount;
-  }
 
   return assembleFacts(ctx, {
     listing: listingResult.listing,

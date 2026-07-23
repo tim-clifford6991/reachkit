@@ -134,10 +134,7 @@ function buildDataMap(p: ReportPayload | null): DataPoint[] {
     pointFor("Medium plays", "Plan", p.whatToDoThisWeek?.medium),
     pointFor("Long plays", "Plan", p.whatToDoThisWeek?.longPlay),
     pointFor("Market position grade", "Dashboard hero", p.marketPosition),
-    pointFor("Competitive landscape", "Audience → Competitors", p.competitiveLandscape),
     pointFor("Channel opportunities", "Audience → Competitors / Keywords", p.channelOpportunities),
-    pointFor("Creators to reach", "Audience → Creators", p.creatorsToReach),
-    pointFor("Strengths & weaknesses", "Audience → Customers", p.strengthsAndWeaknesses),
     // M4 deep market analysis — supersedes the lighter sections above when present.
     pointFor("Market · cohort rivals", "Dashboard intel blocks", market?.cohort?.competitors),
     pointFor("Market · demand pockets", "Audience → Customers", market?.demand?.pockets),

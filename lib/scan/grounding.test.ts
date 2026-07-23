@@ -1,10 +1,13 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { filterSubjectResults } from "./adapters/web-reviews";
 
 /**
  * INVARIANT #11 — grounding honesty. No synthesized field may assert evidence we
- * did not gather. When an input fact sheet is empty, the dependent field is
- * empty/absent — never a plausible synthesis.
+ * did not gather. review_themes was retired M3b (2026-07-23, O-7): reviews are no
+ * longer collected for either tier, so there is no review sheet left to condition
+ * on — `runSynth` now UNCONDITIONALLY wipes `reviewsValue`/`actualAudience` after
+ * parsing, regardless of what the model returned. This reduces (but does not
+ * weaken) the guard this file previously tested conditionally: before M3b, an
+ * EMPTY review sheet triggered the wipe; after M3b, every call does.
  *
  * Shipped violation this guards against (scan 6d49d58e, 2026-07-16): a free scan
  * of the unlaunched reachkit.app — zero users, zero reviews anywhere — produced
@@ -12,13 +15,14 @@ import { filterSubjectResults } from "./adapters/web-reviews";
  * and an `actualAudience` rendered under "Your page reads as", on a product whose
  * hero reads "Every claim grounded in your live page".
  *
- * Behavioral, not source-matching: empty sheet in → empty field out.
+ * Behavioral, not source-matching: the model's output is irrelevant — the field
+ * is always empty out.
  */
 
 const STORE_URL = "https://reachkit.app/";
 
 // A synth JSON blob that INVENTS reviews + audience (what Sonnet actually did for
-// reachkit.app). The guard must strip both when the review sheet is empty.
+// reachkit.app). The guard must strip both unconditionally.
 const FABRICATED = JSON.stringify({
   positioningMirror: {
     listingSays: "A discoverability engine for founders",
@@ -34,12 +38,10 @@ const FABRICATED = JSON.stringify({
   sampleAction: { category: "seo_aso", title: "t", why: "w", draft: "d" },
 });
 
-/** Fact-sheet mock with an EMPTY review sheet (the reachkit.app case). */
-function emptyReviewSheetMock() {
+/** Fact-sheet mock (review_themes is never read anymore — only the 3 remaining kinds). */
+function factSheetMock() {
   return vi.fn().mockImplementation(async (_subjectType: string, _subjectKey: string, kind: string) => {
     switch (kind) {
-      case "review_themes":
-        return { body: { themes: [] } }; // ← zero reviews
       case "positioning":
         return { body: { category: "SaaS", claims: ["Ship faster"], valueProps: ["One scan"] } };
       case "competitor_gap":
@@ -63,12 +65,12 @@ async function makeScanCtx() {
   };
 }
 
-describe("grounding: empty review sheet → empty mirror (invariant #11)", () => {
+describe("grounding: reviewsValue/actualAudience are UNCONDITIONALLY wiped (invariant #11, M3b)", () => {
   beforeEach(() => vi.resetModules());
 
-  test("runSynth wipes an invented reviewsValue + actualAudience when the review sheet is empty", async () => {
+  test("runSynth wipes an invented reviewsValue + actualAudience every time — reviews are never collected", async () => {
     vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
-    vi.doMock("@/lib/scan/fact-sheets", () => ({ getFreshFactSheet: emptyReviewSheetMock(), factSheetSubjectType: () => "web" }));
+    vi.doMock("@/lib/scan/fact-sheets", () => ({ getFreshFactSheet: factSheetMock(), factSheetSubjectType: () => "web" }));
     vi.doMock("@/lib/llm/anthropic", () => ({
       callModel: vi.fn().mockResolvedValue({ text: FABRICATED, usage: { inputTokens: 1, outputTokens: 1 } }),
     }));
@@ -82,35 +84,17 @@ describe("grounding: empty review sheet → empty mirror (invariant #11)", () =>
     expect(JSON.stringify(result.positioningMirror)).not.toMatch(/consistently praise/);
   });
 
-  test("a NON-empty review sheet keeps the synthesized reviewsValue (no over-correction)", async () => {
-    const withReviews = vi.fn().mockImplementation(async (_s: string, _k: string, kind: string) => {
-      if (kind === "review_themes") return { body: { themes: [{ theme: "Ease", sentiment: "positive", quote: "easy", evidenceIds: [] }] } };
-      if (kind === "positioning") return { body: { category: "SaaS", claims: [], valueProps: [] } };
-      if (kind === "competitor_gap") return { body: { competitors: [] } };
-      if (kind === "keyword_data") return { body: { clusters: [] } };
-      return null;
-    });
+  test("the wipe fires on the LITE (free-teaser) synth path too", async () => {
     vi.doMock("@/lib/dev/fixtures", () => ({ fixturesEnabled: () => false }));
-    vi.doMock("@/lib/scan/fact-sheets", () => ({ getFreshFactSheet: withReviews, factSheetSubjectType: () => "web" }));
+    vi.doMock("@/lib/scan/fact-sheets", () => ({ getFreshFactSheet: factSheetMock(), factSheetSubjectType: () => "web" }));
     vi.doMock("@/lib/llm/anthropic", () => ({
       callModel: vi.fn().mockResolvedValue({ text: FABRICATED, usage: { inputTokens: 1, outputTokens: 1 } }),
     }));
 
     const { runSynth } = await import("@/lib/llm/synth");
-    const result = await runSynth(await makeScanCtx());
+    const result = await runSynth(await makeScanCtx(), { lite: true });
 
-    // Real reviews present → the synthesized value is kept.
-    expect(result.positioningMirror.reviewsValue).toMatch(/consistently praise/);
-  });
-});
-
-describe("grounding: domain-conflict subject validation feeds the empty-sheet path (WS-A, invariant #11)", () => {
-  test("a contested-brand review batch yields ZERO snippets → empty sheet → no mirror (WS-A, scan 4093f1c9 class)", () => {
-    expect(
-      filterSubjectResults(
-        { results: [{ url: "https://www.trustpilot.com/review/reachkit.ai", title: "Reachkit", content: "5/5" }] },
-        "reachkit.app",
-      ),
-    ).toEqual([]);
+    expect(result.positioningMirror.reviewsValue).toBe("");
+    expect(result.positioningMirror.actualAudience ?? []).toEqual([]);
   });
 });

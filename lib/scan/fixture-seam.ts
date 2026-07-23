@@ -14,10 +14,9 @@
  * (which builds a provider and installs it), so production never imports fixtures —
  * enforced by the `production ✗→ lib/dev` architecture rule.
  */
-import type { Competitor, Community, Creator, KeywordRow, ReviewItem, TimedCommunity } from "@/lib/scan/types";
+import type { Competitor, Community, KeywordRow, ReviewItem, TimedCommunity } from "@/lib/scan/types";
 import type { FactSheetKind } from "@/lib/scan/fact-sheet-kind";
 import type {
-  ReviewThemesSheet,
   PositioningSheet,
   CompetitorGapSheet,
   KeywordSheet,
@@ -37,9 +36,8 @@ export interface FixtureProvider {
   tavily(productName: string): { competitors: Competitor[]; raw: unknown };
   ph(productName: string): { selfUpvotes: number; neighbours: Competitor[]; raw: unknown };
   communities(topic: string): Community[];
-  creators(competitors: string[]): Creator[];
   keywords(seeds: string[]): { keywords: KeywordRow[]; raw: unknown };
-  extract(kind: FactSheetKind): ReviewThemesSheet | PositioningSheet | CompetitorGapSheet | KeywordSheet;
+  extract(kind: FactSheetKind): PositioningSheet | CompetitorGapSheet | KeywordSheet;
   embed(texts: string[]): number[][];
   synth(): SynthResult;
   rankMap(keywords: string[], target: string): Record<string, number>;
