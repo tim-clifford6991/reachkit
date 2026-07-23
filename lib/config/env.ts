@@ -19,6 +19,11 @@ const PAID_KEYS = [
   // function-invocation endpoint (/api/inngest) is unauthenticated. Required in
   // prod so a misconfigured deploy fails at boot, not silently open.
   "INNGEST_SIGNING_KEY",
+  // Event key for SENDING Inngest events — without it `inngest.send` fails and
+  // every scan/deepen event silently drops (the "paid deep scans never ran"
+  // class). Enforced at boot for the same reason as the signing key: a
+  // misconfigured deploy must fail loudly, not strand scans in ACTIVE.
+  "INNGEST_EVENT_KEY",
 ] as const;
 
 // The money-path keys: required in prod so a deploy missing them fails at boot
@@ -59,6 +64,9 @@ const schema = z.object({
   POSTHOG_KEY: z.string().optional().default(""),
   POSTHOG_HOST: z.string().optional().default(""),
   INNGEST_SIGNING_KEY: z.string().optional().default(""),
+  // Event-send key (inngest.send) — see PAID_KEYS note: without it every
+  // scan/deepen event silently drops in prod.
+  INNGEST_EVENT_KEY: z.string().optional().default(""),
   // Observability kill switch (P4): set to "false" to pause all new scans at the
   // entrypoints (a friendly "scans paused" state) without a redeploy — the
   // mitigation when Anthropic/DataForSEO/Tavily is degraded. Any other value
