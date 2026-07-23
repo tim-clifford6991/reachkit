@@ -141,3 +141,18 @@ Land → scan → progress → report → CTA → checkout: **ALL SOLID** (no em
 - **DataForSEO spend for the ENTIRE plan: ≈ $1.80 of $7.50** (L2 deep scan 66¢ + L3 provisioning deep scan 66¢ + L6 three free scans 48¢; L0/L1/L4/L5 are zero-scan). ~$5.70 remains for first real users.
 - **Timeline at this session's pace:** L0+L1 = day 1 · L2+L3 = day 2 (L3 needs the owner's card) · L4+L5 = day 3 · L6 = day 3–4. Marketing starts inside the 24–48h window the owner set for ship-to-sell.
 - **Stop-points:** after L1 (truth pass live-verified), after L2 (M3b deep-scan validation), after L3 (money certified), after L5 (week-1 value) — each a Tim checkpoint per the standing milestone rule.
+
+## 6. Prod-DB verifications (read-only, 2026-07-23)
+
+- **Legacy-payload census (18 live public reports):** 0 missing `searchVisibility` · 9 current data-board shape (`categoryCard`) · 1 tiers-only legacy · 2 paid `market` blobs · 0 review fields · 2 creators rows. All shapes are covered by the legacy render scenario — merging #127 breaks no permanent public report (R-10.2). The market model persists INSIDE `categoryCard`/`nicheCard` (no separate `sv.market` key — the plan's original field name was renamed in build).
+- **O-6 is smaller than feared:** the cardpointers app row is ORPHANED — no user's `app_ids` references it (the enrolment was already detached). Purge = delete the app row (scans cascade) + the marketing-ticker entry.
+- **⚠ SEQUENCING CATCH:** the cardpointers deep scan (`35e30a99`) is the SOURCE for the O-4 tier=full capture. **Run the L2 capture BEFORE the L1/O-6 purge** — purging first destroys the only live tier=full payload. (L1 executes the ticker removal; the DB purge moves to L2, after the capture.)
+
+## 7. Deep-validation pack (five parallel agents, in flight)
+
+Launched 2026-07-23 to make the L-phases mechanical; results attach here as they land:
+1. **L1 truth-pass surgical spec** — file:line change-list for pricing→checkout, 18-signal claim, rival-why teaser, nav stubs, annual honesty.
+2. **M3b surgical cut spec** — the full producer graph (reviews/creators/landscape/strengths), the action-generator prompt-shape change, weekly-refresh/deepen cohesion, guard updates.
+3. **Security posture sweep** — unauthenticated API surface, SSRF, IDOR, RLS on post-audit tables, XSS via scanned-site content, secrets in client bundles.
+4. **Per-field data-contract map** — every `report_payload` + Pipeline-B field: writer → reader → verdict (rendered/orphan/legacy), incl. NEW orphans created by M3a (gathered-but-no-longer-rendered = fresh invisible cost), + the Phase-E collapse map.
+5. **Paid week-1 story walkthrough** — minute-0 → hour-1 → tabs → plan round-trip → week-2 Monday, every incoherence ranked.
