@@ -150,9 +150,16 @@ Land → scan → progress → report → CTA → checkout: **ALL SOLID** (no em
 
 ## 7. Deep-validation pack (five parallel agents, in flight)
 
-Launched 2026-07-23 to make the L-phases mechanical; results attach here as they land:
-1. **L1 truth-pass surgical spec** — file:line change-list for pricing→checkout, 18-signal claim, rival-why teaser, nav stubs, annual honesty.
-2. **M3b surgical cut spec** — the full producer graph (reviews/creators/landscape/strengths), the action-generator prompt-shape change, weekly-refresh/deepen cohesion, guard updates.
-3. **Security posture sweep** — unauthenticated API surface, SSRF, IDOR, RLS on post-audit tables, XSS via scanned-site content, secrets in client bundles.
-4. **Per-field data-contract map** — every `report_payload` + Pipeline-B field: writer → reader → verdict (rendered/orphan/legacy), incl. NEW orphans created by M3a (gathered-but-no-longer-rendered = fresh invisible cost), + the Phase-E collapse map.
-5. **Paid week-1 story walkthrough** — minute-0 → hour-1 → tabs → plan round-trip → week-2 Monday, every incoherence ranked.
+All five landed 2026-07-23; each persisted as its own spec doc for mechanical execution:
+1. **`2026-07-23-l1-truth-pass-spec.md`** — 24 edits/16 files. Key: rival-why teaser already fixed (P4); sharpest violation = `/status` "All systems operational" with no monitoring; annual silently bills monthly on the public API (loud-fail required); cardpointers marketing surfaces KEEP.
+2. **`2026-07-23-m3b-cut-spec.md`** — 28 del/30 edit/5 guard, every file:line; the action-generator prompt-shape change spec'd exactly; `dropDomainConflicts` KEEP; the `reviews` MonitorKind is separate (owner FLAG).
+3. **`2026-07-23-security-sweep.md`** — no CRITICAL; **H1 open-redirect FIXED this session** (`safeRelativePath` + guard); H2 unauth scan-stream leaks raw facts + M1 dead checkout limiter → fold into L2; SSRF/webhook/IDOR/RLS/XSS verified clean.
+4. **`2026-07-23-data-contract-map.md`** — ⚠ **my own M1/M3a reshape created fresh invisible cost**: `keywords.gaps` (6 metered calls), `buyerInsights` (Tavily+LLM), `searchDemand` (keyword_ideas+Haiku), `synthesis.summary` (Haiku) all still gathered on every cold paid tab load but rendered by NObody mounted. + the exact Phase-E collapse map. → grows L2/M3b and shrinks Phase E.
+5. **`2026-07-23-paid-week1-walkthrough.md`** — 7 incoherences; #1 HIGH: WhatToRankFor's "Build these into your plan →" is a **dead-end** (its keyword targets never reach `/app/plan` — the flagship spine breaks at targets→plan). Add-to-plan chips DO round-trip (M3a verified). Plan nav badge hardcoded 0.
+
+## 8. Net changes to the launch plan from the deep-validation pack
+- **L1** now has a complete file:line spec + one new item: `/status` monitoring-claim fix.
+- **L2 GROWS and gets far more valuable:** M3b producer cuts **+ gate the 4 M3a-orphaned gathers + delete unmounted views/dead helpers** (recurring per-load savings) **+ H2 scan-stream (rate-limit + facts-payload trim) + M1 checkout counter (security)**. Still ONE deep scan validates all.
+- **L2 also fixes paid-week1 #1** (WhatToRankFor → real add-to-plan chips, the shared M3a module) — arguably the highest-leverage paid-value fix in the program; #3 (plan nav badge), #4 (competing scores), #6/#7 (cold-warm + stale routes) fold in.
+- **L4** absorbs paid-week1 #2 (the silent week-2 loop → the digest email is the fix).
+- **Phase E post-launch shrinks** — its worst per-load waste is already gone after L2; the collapse map is its work order.
