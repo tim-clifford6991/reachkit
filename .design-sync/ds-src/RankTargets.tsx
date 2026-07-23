@@ -48,8 +48,13 @@ export function RankTargets() {
                   </span>
                 </span>
               </div>
-              <div style={{ height: 7, background: "var(--c-fill)", borderRadius: "var(--radius-sm)", overflow: "hidden" }}>
-                <div style={{ width: `${pct}%`, height: "100%", background: "var(--c-action)", borderRadius: "var(--radius-sm)" }} />
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ flex: 1, minWidth: 0, height: 7, background: "var(--c-fill)", borderRadius: "var(--radius-sm)", overflow: "hidden" }}>
+                  <div style={{ width: `${pct}%`, height: "100%", background: "var(--c-action)", borderRadius: "var(--radius-sm)" }} />
+                </div>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "var(--c-fill)", color: "var(--c-muted)", fontFamily: "var(--font-sans)", fontWeight: 700, fontSize: 11.5, padding: "3px 9px", borderRadius: "var(--radius-xs)", lineHeight: 1.2, whiteSpace: "nowrap", flexShrink: 0 }}>
+                  ＋ add
+                </span>
               </div>
             </div>
           );
@@ -58,7 +63,7 @@ export function RankTargets() {
       <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--c-line)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
         <span style={{ fontFamily: JM, fontSize: 12, color: "var(--c-faint)" }}>+7 more targets</span>
         <a href="#" onClick={(e) => e.preventDefault()} style={{ fontFamily: SG, fontSize: 13, fontWeight: 700, color: "var(--c-action)", textDecoration: "none", marginLeft: "auto" }}>
-          Build these into your plan →
+          See your plan →
         </a>
       </div>
     </section>
