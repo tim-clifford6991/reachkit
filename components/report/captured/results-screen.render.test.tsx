@@ -707,9 +707,9 @@ describe("ResultsScreen render (P5) — the three named free-report scenarios re
       searchVisibility: sv({ categoryDemand: 8000 }),
       whereTheyAre: { surfaces: [], competitorGap: [] },
     }));
-    // renderToStaticMarkup HTML-escapes the JSX &apos; to the &#x27; entity, so
-    // the match must account for the entity, not a literal quote character.
-    expect(html).toMatch(/See who(?:'|’|&#x27;)s winning these searches/i);
+    // L1 (2026-07-23): tease copy now names what paid delivers today (who wins +
+    // the weekly plan), not the retired "winning these searches" line.
+    expect(html).toMatch(/See who wins these \+ your weekly plan/i);
     expect(html).not.toContain("Compared to"); // no empty comma-list tease
   });
 

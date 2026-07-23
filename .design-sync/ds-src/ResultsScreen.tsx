@@ -429,9 +429,9 @@ export function ResultsScreen() {
         <div style={{ marginTop: 18, background: "linear-gradient(135deg, var(--c-dark), var(--c-dark2))", borderRadius: 18, padding: "30px 32px", textAlign: "center" }}>
           <h3 style={{ color: "var(--c-on-dark)", fontFamily: SG, fontWeight: 700, fontSize: 22, margin: "0 0 16px" }}>Unlock the full plan</h3>
           <div style={{ display: "flex", flexDirection: "column", gap: 6, fontFamily: JM, fontSize: 13, color: "var(--c-on-dark-muted)", marginBottom: 20 }}>
-            <span>Daily fix calendar</span>
-            <span>Weekly rank tracking</span>
-            <span>Distribution &amp; outreach</span>
+            <span>Weekly action plan + keyword spine</span>
+            <span>Weekly rank tracking &amp; score history</span>
+            <span>Referrer lessons &amp; community targets</span>
           </div>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
             <button style={{ background: "var(--c-surface)", color: "var(--c-ink)", borderRadius: 10, padding: "13px 24px", border: "none", fontFamily: "var(--font-sans)", fontWeight: 700, fontSize: 15, cursor: "pointer", whiteSpace: "nowrap" }}>Unlock →</button>

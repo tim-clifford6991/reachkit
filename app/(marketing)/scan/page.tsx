@@ -21,7 +21,7 @@ const HOW_TO_LD = howToLd({
     "Get a free discoverability score and ranked action plan for your App Store listing or website in under two minutes.",
   steps: [
     { name: "Paste your URL", text: "Copy your App Store URL, Google Play URL, or website address and paste it into the scan input." },
-    { name: "Wait under a minute", text: "ReachKit fetches your live product page, extracts 18 discoverability signals, and runs the four-question analysis engine." },
+    { name: "Wait under a minute", text: "ReachKit fetches your live product page, extracts every discoverability signal it can read, and runs the four-question analysis engine." },
     { name: "Read your report", text: "Review your Discoverability Score, positioning mirror, search gap analysis, and ranked action steps. Free, no account required." },
   ],
 });

@@ -80,7 +80,7 @@ export function DashboardGlimpse() {
 
       <div style={{ display: "grid", gap: 14, gridTemplateColumns: "repeat(auto-fit, minmax(290px, 1fr))" }}>
         {/* Score + pillar breakdown */}
-        <Card title="Discoverability Score" meta="18 signals">
+        <Card title="Discoverability Score" meta="live-page signals">
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
             <Gauge score={DEMO.score} size={168} />
             <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 9 }}>

@@ -560,23 +560,22 @@ export function ResultsScreen(p: ResultsScreenProps) {
             // Discovered rival NAMES are free (the compare-set); per-rival intel
             // is the paid unlock. Shared by BOTH the new and legacy branches
             // below (P3 DRY fix — was duplicated per-branch pre-P3).
-            // P4 (2026-07-20, terseness): the old copy was two prose sentences
-            // ("and rivals are taking the searches above" / "Unlock to see how
-            // each one ranks, why they win, and how much of your category each
-            // takes"). Data-driven per Tim's directive: a keyword-only tease —
-            // the compare-set NAMES (real, free) + a bare unlock link. This is
-            // the one deliberate deviation from the wireframe's 6 sections (it
-            // has no rivalry section at all) — kept because the names are a
-            // strong, honest paid hook and dropping them loses real signal.
+            // P4 (2026-07-20, terseness) + L1 (2026-07-23): the tease is
+            // keyword-only and data-driven — the compare-set NAMES (real, free) +
+            // a bare unlock link. The link now names what paid actually delivers
+            // post-M3a (rival rank + the keyword spine), not the retired "why they
+            // win / share of category" prose. This is the one deliberate deviation
+            // from the wireframe's 6 sections (no rivalry section) — kept because
+            // the names are a strong, honest paid hook.
             const rivalryTeaser = comps.length > 0 ? (
               <div style={{ ...CARD_STYLE, marginBottom: 14, fontSize: 13, color: "var(--c-muted)", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                 <span style={{ fontFamily: JM, fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--c-faint)" }}>Compared to</span>
                 <strong className="rk-wrap-any" style={{ color: "var(--c-ink)" }}>{comps.join(", ")}</strong>
-                <UnlockLink scanId={p.scanId}>🔒 unlock →</UnlockLink>
+                <UnlockLink scanId={p.scanId}>🔒 See how each rival ranks + your keyword spine →</UnlockLink>
               </div>
             ) : !p.hideUnlock ? (
               <div style={{ ...CARD_STYLE, marginBottom: 14, fontSize: 13, color: "var(--c-muted)" }}>
-                <UnlockLink scanId={p.scanId}>🔒 See who&apos;s winning these searches →</UnlockLink>
+                <UnlockLink scanId={p.scanId}>🔒 See who wins these + your weekly plan →</UnlockLink>
               </div>
             ) : null;
 
@@ -1005,9 +1004,9 @@ export function ResultsScreen(p: ResultsScreenProps) {
             <div style={{ marginTop: 18, background: "linear-gradient(135deg, var(--c-dark), var(--c-dark2))", borderRadius: 18, padding: "30px 32px", textAlign: "center" }}>
               <h3 style={{ fontFamily: SG, fontWeight: 700, fontSize: 22, color: "#fff", margin: "0 0 16px" }}>Unlock the full plan</h3>
               <div style={{ display: "flex", flexDirection: "column", gap: 6, fontFamily: JM, fontSize: 13, color: "#D8D5E6", marginBottom: 20 }}>
-                <span>Daily fix calendar</span>
-                <span>Weekly rank tracking</span>
-                <span>Distribution &amp; outreach</span>
+                <span>Weekly action plan + keyword spine</span>
+                <span>Weekly rank tracking &amp; score history</span>
+                <span>Referrer lessons &amp; community targets</span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
                 {p.unlockButton ?? (

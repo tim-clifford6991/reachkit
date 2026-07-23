@@ -179,7 +179,7 @@ async function PreviewResult({ url }: { url: string }) {
 
       <ScanCta
         url={normalized}
-        line="Your preview tags are 1 of the 18 signals ReachKit scores. Run the full scan to see how you show up in search, AI answers and against your competitors — free, no account."
+        line="Your preview tags are one of the signals in the full ReachKit scan. Run it to see how you show up in search, AI answers and against your competitors — free, no account."
       />
     </div>
   );

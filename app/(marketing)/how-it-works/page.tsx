@@ -27,7 +27,7 @@ import { SCORE_BANDS } from "@/lib/scan/score-bands";
 export const metadata: Metadata = buildMetadata({
   title: "How ReachKit works — see why buyers can't find you",
   description:
-    "Paste your link and watch ReachKit read your live site, score 18 discoverability signals, and hand you a ranked plan to get found. Every step shown in the open — run it free on your own product.",
+    "Paste your link and watch ReachKit read your live site, score every discoverability signal on the page, and hand you a ranked plan to get found. Every step shown in the open — run it free on your own product.",
   path: "/how-it-works",
 });
 
@@ -35,7 +35,7 @@ const HOW_TO_LD = howToLd({
   name: "How ReachKit works",
   description: "Scan your product, read your Discoverability report, and work a weekly action queue.",
   steps: [
-    { name: "Scan", text: "Paste your App Store URL or website. ReachKit fetches it and scores 18 discoverability signals in under a minute — no account needed." },
+    { name: "Scan", text: "Paste your App Store URL or website. ReachKit fetches it and scores your live page across every signal it can read in under a minute — no account needed." },
     { name: "Report", text: "See your score and your top findings: what's holding you back and what to fix first, every claim grounded in your live page." },
     { name: "Engine", text: "Paid plans run the full engine weekly — buyer search demand, competitor coverage, and a ranked action queue that verifies each fix and tracks your score over time." },
   ],
@@ -44,7 +44,7 @@ const HOW_TO_LD = howToLd({
 const SG = "var(--font-display)", JM = "var(--font-mono)";
 
 const STEPS = [
-  { n: "01", title: "Scan your live page", body: "Paste your App Store URL or website. ReachKit reads the real page — the same signals search engines and buyers weigh — and scores all 18 in under a minute. No account needed for your first scan.", tag: "Under a minute" },
+  { n: "01", title: "Scan your live page", body: "Paste your App Store URL or website. ReachKit reads the real page — the same signals search engines and buyers weigh — and scores it in under a minute. No account needed for your first scan.", tag: "Under a minute" },
   { n: "02", title: "See the searches your rivals win", body: "In plain language: the searches your buyers run where a competitor shows up and you don't, and the score that measures the gap — every claim pulled straight from your live page, so you can see exactly what's costing you traffic.", tag: "Grounded in evidence" },
   { n: "03", title: "Work a weekly queue that closes the gap", body: "Paid plans turn the report into a short queue each week, ranked by impact. Mark a fix done and ReachKit re-checks your live page before your score moves — so what you're watching is the gap closing, week after week.", tag: "Verified, not vanity" },
 ];

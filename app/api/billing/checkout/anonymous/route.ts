@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createAnonymousCheckout } from "@/lib/billing/checkout";
-import {
-  AbuseError,
-  assertRateLimit,
-  hashIp,
-  ipFromRequest,
-} from "@/lib/scan/abuse";
+import { hashIp, ipFromRequest } from "@/lib/scan/abuse";
+import { rateLimitAllow, CHECKOUT_PER_IP } from "@/lib/auth/rate-limit";
 
 /**
  * POST /api/billing/checkout/anonymous — payment-first checkout, Path B
@@ -26,14 +22,11 @@ const Body = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  // Real per-IP cap on session creation (the old scans-table limiter never
+  // incremented here — it counted a table this route doesn't write).
   const ipHash = hashIp(ipFromRequest(req));
-  try {
-    await assertRateLimit(ipHash);
-  } catch (e) {
-    if (e instanceof AbuseError) {
-      return NextResponse.json({ error: "rate limit — try again later" }, { status: 429 });
-    }
-    throw e;
+  if (!rateLimitAllow(`checkout:ip:${ipHash}`, CHECKOUT_PER_IP)) {
+    return NextResponse.json({ error: "rate limit — try again later" }, { status: 429 });
   }
 
   const parsed = Body.safeParse(await req.json().catch(() => ({})));

@@ -60,7 +60,7 @@ const STEPS: readonly Step[] = [
     eyebrow: "Scan",
     title: "Paste a URL. Get a score in under a minute.",
     description:
-      "ReachKit fetches your App Store listing or website, extracts every discoverability signal, and runs it through 18 checks.",
+      "ReachKit fetches your App Store listing or website, extracts every discoverability signal it can read, and scores them.",
     detail:
       "Keyword density · Title optimisation · Screenshot alt text · Metadata completeness · Category fit · Competitor gap · Backlink signal · Structured data · …and 10 more.",
   },

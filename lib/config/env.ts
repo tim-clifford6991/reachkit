@@ -56,8 +56,11 @@ const schema = z.object({
   STRIPE_WEBHOOK_SECRET: z.string().optional().default(""),
   STRIPE_PRICE_SOLO: z.string().optional().default(""),
   STRIPE_PRICE_GROWTH: z.string().optional().default(""),
-  // Annual recurring prices (2-months-free yearly billing). Optional: when blank,
-  // the annual toggle still renders but checkout falls back to the monthly price.
+  // Annual recurring prices (2-months-free yearly billing). Optional, but if an
+  // annual checkout is requested while these are blank, `priceIdFor` THROWS
+  // rather than silently billing the monthly price under an annual label. No
+  // live surface offers an annual toggle today; the public checkout API still
+  // accepts interval:"year", so the loud-fail is the guard.
   STRIPE_PRICE_SOLO_ANNUAL: z.string().optional().default(""),
   STRIPE_PRICE_GROWTH_ANNUAL: z.string().optional().default(""),
   // Analytics — fully optional

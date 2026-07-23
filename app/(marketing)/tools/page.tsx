@@ -21,7 +21,7 @@ const TOOLS: readonly Tool[] = [
   {
     name: "Discoverability Score",
     blurb:
-      "Paste any App Store URL or website and get a 0–100 score across 18 signals — search, AI answers, content, competitors — plus your biggest gaps. Free, no account.",
+      "Paste any App Store URL or website and get a 0–100 score across every signal we can measure from your live page — search, AI answers, content, competitors — plus your biggest gaps. Free, no account.",
     href: "/scan",
     cta: "Run a free scan →",
   },
@@ -59,7 +59,7 @@ export default function ToolsPage() {
           Free tools to help you get found
         </h1>
         <p style={{ fontSize: 17.5, lineHeight: 1.5, color: "var(--c-muted)", margin: "18px auto 0", maxWidth: 560 }}>
-          Single-purpose checkers that run on your live site — no signup, no email. Each one covers a slice of the full 18-signal Discoverability Score.
+          Single-purpose checkers that run on your live site — no signup, no email. Each one covers a slice of the full ReachKit Discoverability Score.
         </p>
       </HeroFade>
 
