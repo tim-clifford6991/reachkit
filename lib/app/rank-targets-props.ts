@@ -11,13 +11,20 @@
  * guarded `categoryNearMisses` (≥2-real-word phrases, intent-deduped — the same
  * spine the free board and the action floor use, so the three can't drift).
  *
- * Zero new cost: reads the persisted payload, makes no fetch. The paid rival-gap
- * enrichment (who outranks you, the "why") lands in Phase 3 as a paid-only
- * fetch; this phase renders the base spine that already exists in the payload.
+ * THE ONE KEYWORD SURFACE (M1 unify, 2026-07-23). The dashboard used to render a
+ * SECOND keyword model — the metered Pipeline-B `supply.keywords.gaps`, recomputed
+ * on every tab load. That fork is gone: the rival "why" (how many cohort rivals
+ * rank a term, and the best position they hold) is read straight from the deep
+ * scan's ALREADY-persisted `report_payload.market.gap.keywordGap` — zero new cost,
+ * no second gather. Free payloads carry no `market`, so free stays spine-only and
+ * the base target list is byte-identical free↔paid (invariant #1 safe). The full
+ * per-rival breakdown (which domain ranks where + the winning URL) is the Phase-3
+ * enrichment that persists per-rival positions into the payload.
  */
 
 import type { ReportPayload } from "@/lib/scan/report";
 import { categoryNearMisses } from "@/lib/scan/fallback-actions";
+import { dedupeByIntent, isMeaningfulMarketPhrase, type DemandRow } from "@/lib/scan/search-visibility";
 
 export interface RankTarget {
   keyword: string;
@@ -25,6 +32,12 @@ export interface RankTarget {
   volume: number;
   /** The subject's live position for this term, when it already ranks (near-miss). */
   yourPosition?: number;
+  /** Rival "why" (paid) — how many cohort rivals rank for this term, from the deep
+   *  scan's persisted `market.gap.keywordGap`. Absent on free (spine-only) and on
+   *  pre-market legacy payloads. */
+  rivalsRanking?: number;
+  /** The best (lowest) absolute position any rival holds for it — the gap to close. */
+  bestRivalPosition?: number;
 }
 
 export interface RankTargetsProps {
@@ -41,11 +54,45 @@ export interface RankTargetsProps {
   nicheDemand: number | null;
 }
 
+const norm = (s: string) => s.toLowerCase().trim();
+
 export function buildRankTargets(reportPayload: ReportPayload | null): RankTargetsProps {
   const sv = reportPayload?.searchVisibility ?? null;
-  const targets: RankTarget[] = sv
-    ? categoryNearMisses(sv).map((r) => ({ keyword: r.keyword, volume: r.volume, yourPosition: r.yourPosition }))
-    : [];
+  const base = sv ? categoryNearMisses(sv) : [];
+
+  // Rival "why" from the deep scan's persisted market gap (paid-only; free/legacy
+  // payloads carry no `market`). The SAME RC1 keyword-gap engine the retired
+  // metered Pipeline-B surface used — read once from the payload, never re-fetched.
+  const gapRows = reportPayload?.market?.gap?.keywordGap ?? [];
+  const gapByKw = new Map(gapRows.map((g) => [norm(g.keyword), g]));
+
+  // Base spine positions, keyed so a deduped row can re-attach "you're #N".
+  const posByKw = new Map(base.map((r) => [norm(r.keyword), r.yourPosition]));
+  const knownBase = new Set(base.map((r) => norm(r.keyword)));
+
+  // The paid set = the spine ∪ the rival-gap terms the spine didn't surface, run
+  // through the SAME honesty guards the spine uses (≥2 real non-mega words, intent
+  // dedup) so a rival brand/mega term can never leak in via the gap.
+  const combined: DemandRow[] = [
+    ...base,
+    ...gapRows
+      .filter((g) => !knownBase.has(norm(g.keyword)) && g.volume > 0 && isMeaningfulMarketPhrase(g.keyword))
+      .map((g) => ({ keyword: g.keyword, volume: g.volume })),
+  ];
+  const deduped = dedupeByIntent(combined).sort((a, b) => b.volume - a.volume);
+
+  const targets: RankTarget[] = deduped.map((r) => {
+    const key = norm(r.keyword);
+    const g = gapByKw.get(key);
+    const yourPosition = posByKw.get(key);
+    return {
+      keyword: r.keyword,
+      volume: r.volume,
+      ...(typeof yourPosition === "number" ? { yourPosition } : {}),
+      ...(g ? { rivalsRanking: g.rivalsRanking, bestRivalPosition: g.bestRivalPosition } : {}),
+    };
+  });
+
   return {
     targets,
     categoryLabel: sv?.categoryCard?.label ?? null,

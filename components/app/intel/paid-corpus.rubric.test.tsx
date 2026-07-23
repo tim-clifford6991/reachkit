@@ -127,6 +127,42 @@ describe("paid dashboard hero — every corpus payload renders clean through the
     });
   }
 
+  // M1 unify (2026-07-23): the rival "why" rides the ONE spine, read from the
+  // deep scan's persisted `market.gap.keywordGap` — no metered second gather.
+  // Corpus fixtures are free-tier (no `market`), so a paid payload is synthesized
+  // here from a real fixture: inject a rival gap on the spine's own top target and
+  // prove the "N rivals rank · best #P" line renders AND survives R2i (the count +
+  // position derive from the props, not a literal). Mutation-proven: delete the
+  // rival <div> in rank-targets.tsx → the toContain assertions fail; render a bare
+  // literal there → R2i fires.
+  it("rival 'why' renders on a paid payload (market.gap) and derives under R2i", () => {
+    // Any fixture that surfaces a spine target works — pick the first one so the
+    // guard doesn't pin a specific corpus entry (which may lose targets on recapture).
+    const base = FIXTURES.map((fx) => ({ fx, spine: buildRankTargets(fx.reportPayload) })).find((c) => c.spine.targets.length > 0);
+    expect(base, "at least one fixture must surface a spine target to enrich").toBeTruthy();
+    const lead = base!.spine.targets[0]!;
+
+    // A paid payload = the free fixture + a persisted rival gap on the lead term.
+    const paid = {
+      ...base!.fx.reportPayload,
+      market: { gap: { keywordGap: [{ keyword: lead.keyword, volume: lead.volume, rivalsRanking: 12, bestRivalPosition: 14 }] } },
+    } as unknown as CorpusFixture["reportPayload"];
+
+    const props = buildRankTargets(paid);
+    const enriched = props.targets.find((t) => t.keyword === lead.keyword);
+    expect(enriched?.rivalsRanking, "lead target must carry the persisted rival count").toBe(12);
+    expect(enriched?.bestRivalPosition).toBe(14);
+
+    const html = renderToStaticMarkup(<WhatToRankFor {...props} />);
+    expect(html).toContain("12 rivals rank");
+    expect(html).toContain("best #14");
+
+    // R2i: the rival count (12) + position (14) must DERIVE from the props, never
+    // a literal — the whole point of the unify (data, not decoration).
+    const violations = runIntelRubric(props, html);
+    expect(violations, violations.map((v) => `[${v.rule}] ${v.message}`).join("\n")).toEqual([]);
+  });
+
   it("the builder preserves invariant #1 on the fallback path: gauge == persisted score_total", () => {
     for (const fx of FIXTURES) {
       const heroScore = buildDashboardHeroProps({

@@ -124,3 +124,16 @@ Settings · Billing · Add · Diagnostics · CompetitorSetup — **KEEP** (utili
 - **Invariant #1 untouched** — the spine feeds presentation, never `sv.score`.
 - **Cost frugality** — Arc-1 needs exactly ONE deep scan (P3's rival fetch). P1/P2/C = zero new scans.
 - **Live-verify** each shipped surface (render, not DB).
+
+---
+
+## 8. As-built log (owner APPROVED all 5 decisions, 2026-07-23)
+
+Owner ruling: file all 3 keyword surfaces onto the one spine · reframe competitor referrers as lessons→plan · cut PainBars · cut the 23 dead sections + write-only producers (**"never have an invisible cost"**) · **sequence by data flow / what's available** · **stop at significant milestones for validation.**
+
+**Milestone decomposition (data-flow order).** The spine is already persisted (`report_payload`), so zero-cost / already-available work leads; the one paid fetch lands last.
+
+- **M1 — Dashboard keyword unify (DONE, zero cost).** Verified reality first: the deep scan ALREADY persists `report_payload.market.gap.keywordGap` (the same RC1 rival-enriched gap the metered Pipeline-B `supply.keywords.gaps` recomputed per tab-load). So the unify is zero-cost AND non-thinning. Changes: `buildRankTargets` merges the spine ∪ the persisted rival gap (same honesty guards), attaching rival count + best position; `WhatToRankFor` renders a grounded "N rivals rank · best #P" line; the dashboard's metered `KeywordGapTable` (+ its `useActionPlan`/`AddToPlanChip`/`KeywordGapRow` orphans) is deleted. Free/legacy payloads carry no `market` → spine-only, base target list byte-identical free↔paid (invariant #1 untouched). Guard: paid-corpus rubric — new mutation-proven rival test (R1+R2i: the count/position DERIVE from props, never a literal). Deferred to M3: per-rival domain expand-detail + one-click per-target add-to-plan (they belong with the lens→plan wiring).
+- **M2 — cut the dead render tree** (23 orphaned `report/*-section.tsx` — verified a self-contained dead island — + dead diagnostics points + dead redaction). Zero cost/risk.
+- **M3 — rival "lessons" + competitors/customers keyword unify + wire lenses→plan + producer/fetch cuts.** MOVED here (from the doc's original all-in-one P3): competitors `KeywordEdgeList` sits INSIDE the per-rival "edge" card and customers `DemandThemes` beside communities — both are structurally part of their lens's reframing, so they upgrade *with* the lessons framing ("only upgrade if appropriate, at the same time"). The producer cuts (`reviewThemes` feeds the LLM action generator — NOT pure dead code; `creators`/`competitiveLandscape`) are a paid-pipeline behavioral change, so they ride M3's single deep scan. **All of Arc 1 = exactly ONE deep scan.**
+- **M4 — per-keyword rank-over-time on Progress.** Zero new scan cost.

@@ -9,11 +9,11 @@ import * as React from "react";
  * PainBars/BuyerThreadFeed convention; the live component composes the intel
  * kit `Card`/`Bar`/`Badge` and reads the persisted opportunity model.
  */
-type SampleTarget = { keyword: string; volume: number; yourPosition?: number };
+type SampleTarget = { keyword: string; volume: number; yourPosition?: number; rivalsRanking?: number; bestRivalPosition?: number };
 
 const SAMPLE: SampleTarget[] = [
-  { keyword: "privacy-first analytics", volume: 1600, yourPosition: 8 },
-  { keyword: "google analytics alternative", volume: 720 },
+  { keyword: "privacy-first analytics", volume: 1600, yourPosition: 8, rivalsRanking: 4, bestRivalPosition: 2 },
+  { keyword: "google analytics alternative", volume: 720, rivalsRanking: 3, bestRivalPosition: 5 },
   { keyword: "cookieless analytics", volume: 480, yourPosition: 14 },
   { keyword: "gdpr compliant analytics", volume: 260 },
   { keyword: "simple website analytics", volume: 140 },
@@ -51,6 +51,12 @@ export function RankTargets() {
               <div style={{ height: 7, background: "var(--c-fill)", borderRadius: "var(--radius-sm)", overflow: "hidden" }}>
                 <div style={{ width: `${pct}%`, height: "100%", background: "var(--c-action)", borderRadius: "var(--radius-sm)" }} />
               </div>
+              {typeof t.rivalsRanking === "number" && t.rivalsRanking > 0 && (
+                <div style={{ marginTop: 5, fontSize: 11.5, color: "var(--c-faint)", fontFamily: JM }}>
+                  {t.rivalsRanking} rival{t.rivalsRanking === 1 ? "" : "s"} rank
+                  {typeof t.bestRivalPosition === "number" ? ` · best #${t.bestRivalPosition}` : ""}
+                </div>
+              )}
             </div>
           );
         })}

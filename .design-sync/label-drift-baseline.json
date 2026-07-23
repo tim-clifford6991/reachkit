@@ -1,5 +1,5 @@
 {
-  "missing": 47,
+  "missing": 43,
   "byTarget": {
     "components/app/captured/app-shell.tsx": 1,
     "components/app/intel/kit.tsx": 2,
@@ -15,6 +15,6 @@
     "components/app/intel/progress-view.tsx": 2,
     "components/app/intel/referrer-row.tsx": 1,
     "components/app/captured/settings-main.tsx": 1,
-    "components/app/intel/dashboard-view.tsx": 9
+    "components/app/intel/dashboard-view.tsx": 5
   }
 }
