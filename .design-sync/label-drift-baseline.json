@@ -1,14 +1,12 @@
 {
-  "missing": 43,
+  "missing": 41,
   "byTarget": {
     "components/app/captured/app-shell.tsx": 1,
     "components/app/intel/kit.tsx": 2,
     "components/app/intel/buyer-thread-feed.tsx": 2,
     "components/app/intel/competitors-view.tsx": 1,
-    "components/app/intel/customers-view.tsx": 1,
     "components/app/intel/dashboard-hero.tsx": 2,
     "components/app/intel/intent-recency-map.tsx": 1,
-    "components/app/intel/pain-bars.tsx": 1,
     "components/sections/captured/pricing-html.ts": 10,
     "components/app/intel/plan-entry-card.tsx": 11,
     "components/app/intel/plan-timeline-view.tsx": 2,

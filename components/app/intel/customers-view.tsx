@@ -1,22 +1,26 @@
 "use client";
 
 /**
- * Customers view — "who buyers are" for the Audience group. Rebuilt (WS2) as
- * three analytical rows, every data point wired into the shared
- * `EvidenceDrawer` so keywords, themes, threads, and pains are all
- * click-through-to-evidence:
- *   1. Who your buyer is (compact ICP → JTBD + use-case chips) | Demand
- *      themes (each theme + its sample keywords as drawer-opening chips).
- *   2. Where they hang out — the buyer-intent map + the full thread feed,
- *      ranked by intent (thread dates are unavailable for most surfaces).
- *   3. Top buyer pains — mention-ranked bars with expandable evidence.
+ * Customers view — "who buyers are" for the Audience group (contract pillar 3:
+ * who your buyers are, which communities they sit in, where you can go to engage).
+ *   1. Who your buyer is — compact ICP → JTBD + use-case chips.
+ *   2. Where they hang out — the buyer-intent map + the full thread feed, ranked
+ *      by intent (click any dot/row for evidence).
+ *   3. Communities to engage — the LESSON → move: each surface buyers already
+ *      discuss on, as a specific "engage here" plan action.
  * Built strictly on the intel kit (`--c-*` tokens).
+ *
+ * M3 (2026-07-23): dropped the "Demand themes" keyword surface (the unclassified
+ * keyword fork — the ONE keyword surface is the dashboard spine) and "Top buyer
+ * pains" (review-derived — cut both tiers per O-7). This page is now purely the
+ * ICP + communities contract pillar.
  */
-import { useIntel, IntelShell, fmtCompact } from "@/components/app/intel/shared";
-import { Card, Eyebrow, Badge, intentTone } from "@/components/app/intel/kit";
-import { normalizePains } from "@/components/app/intel/demand-view";
-import type { Demand, Theme } from "@/components/app/intel/demand-view";
-import { EvidenceDrawerProvider, useEvidenceDrawer } from "@/components/app/intel/evidence-drawer";
+import { useIntel, IntelShell } from "@/components/app/intel/shared";
+import { Card, Eyebrow, Badge } from "@/components/app/intel/kit";
+import { subUrl } from "@/components/app/intel/demand-view";
+import type { Demand } from "@/components/app/intel/demand-view";
+import { EvidenceDrawerProvider } from "@/components/app/intel/evidence-drawer";
+import { useActionPlan, AddToPlanChip } from "@/components/app/intel/add-to-plan";
 import dynamic from "next/dynamic";
 
 // Heavy client-only leaves — dynamic-imported so they leave the initial bundle
@@ -27,10 +31,6 @@ const IntentRecencyMap = dynamic(
 );
 const BuyerThreadFeed = dynamic(
   () => import("@/components/app/intel/buyer-thread-feed").then((m) => m.BuyerThreadFeed),
-  { ssr: false, loading: () => <div style={{ height: 120 }} /> }
-);
-const PainBars = dynamic(
-  () => import("@/components/app/intel/pain-bars").then((m) => m.PainBars),
   { ssr: false, loading: () => <div style={{ height: 120 }} /> }
 );
 
@@ -48,20 +48,20 @@ export function CustomersView() {
 }
 
 export function CustomersBody({ data }: { data: Demand }) {
+  const plan = useActionPlan();
+  // The communities your buyers already gather in — contract pillar 3 ("which
+  // communities they sit in, and where you can go to work with them"). Ranked by
+  // thread volume; each is a specific engage-here plan move.
+  const pockets = [...data.community.pockets].sort((a, b) => b.count - a.count).slice(0, 6);
   return (
     <EvidenceDrawerProvider>
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-        {/* Row 1 — who buyers are + demand themes */}
-        <div style={{ display: "grid", gap: 20, gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))" }}>
-          <Card title="Who your buyer is" meta={data.category}>
-            <WhoYourBuyer data={data} />
-          </Card>
-          <Card title="Demand themes">
-            <DemandThemes data={data} />
-          </Card>
-        </div>
+        {/* Row 1 — who buyers are */}
+        <Card title="Who your buyer is" meta={data.category}>
+          <WhoYourBuyer data={data} />
+        </Card>
 
-        {/* Row 2 — where they hang out */}
+        {/* Row 2 — where they hang out (the exploratory map + thread feed) */}
         <Card title="Where they hang out" info="Every surfaced buyer thread, ranked by buyer intent; click any dot or row for evidence.">
           <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
             <IntentRecencyMap pockets={data.community.pockets} />
@@ -69,17 +69,34 @@ export function CustomersBody({ data }: { data: Demand }) {
           </div>
         </Card>
 
-        {/* Row 3 — top buyer pains */}
-        <Card
-          title="Top buyer pains"
-          meta={
-            data.buyerInsights.sources.length > 0
-              ? `from ${data.buyerInsights.sources.length} competitor review pages`
-              : undefined
-          }
-        >
-          <PainBars pains={normalizePains(data.buyerInsights.pains)} sources={data.buyerInsights.sources} />
-        </Card>
+        {/* Row 3 — communities to engage: the LESSON → move. Post/answer/learn
+            where buyers already are; each adds to the plan (contract pillar 3). */}
+        {pockets.length > 0 && (
+          <Card title="Communities to engage" info="The surfaces your buyers already discuss this on — post, answer, and learn there. Add each as a plan move.">
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {pockets.map((p) => (
+                <div key={p.surface} style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                  <a
+                    href={subUrl(p.surface)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ fontSize: 13, fontWeight: 600, color: "var(--c-action)", textDecoration: "none", minWidth: 0, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                  >
+                    {p.surface}
+                  </a>
+                  <Badge tone="neutral">{p.platform}</Badge>
+                  <span style={{ fontFamily: JM, fontSize: 11, color: "var(--c-faint)", flexShrink: 0 }}>{p.count} thread{p.count === 1 ? "" : "s"}</span>
+                  <AddToPlanChip
+                    title={`Engage in ${p.surface}`}
+                    category="outreach"
+                    why={`${p.count} buyer thread${p.count === 1 ? "" : "s"} surfaced in ${p.surface} — post/answer there.`}
+                    plan={plan}
+                  />
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
       </div>
     </EvidenceDrawerProvider>
   );
@@ -123,111 +140,3 @@ function WhoYourBuyer({ data }: { data: Demand }) {
   );
 }
 
-function DemandThemes({ data }: { data: Demand }) {
-  const { open } = useEvidenceDrawer();
-  const { searchDemand } = data;
-  const themes = searchDemand.themes;
-
-  if (!themes.length) {
-    return <span style={{ fontSize: 13, color: "var(--c-faint)" }}>Thin search demand.</span>;
-  }
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      {themes.map((t: Theme, i: number) => {
-        const sampleLower = t.sampleKeywords.map((s) => s.toLowerCase());
-        const themeKeywords = searchDemand.topKeywords.filter((k) => sampleLower.includes(k.keyword.toLowerCase()));
-        const lookup = (kw: string) => {
-          const hit = searchDemand.topKeywords.find((k) => k.keyword.toLowerCase() === kw.toLowerCase());
-          return { volume: hit?.volume ?? 0, intent: hit?.intent ?? null };
-        };
-        return (
-          <div
-            key={i}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 8,
-              padding: "11px 14px",
-              background: "var(--c-bg2)",
-              border: "1px solid var(--c-line)",
-              borderRadius: "var(--radius-sm)",
-            }}
-          >
-            <button
-              type="button"
-              onClick={() =>
-                open({
-                  kind: "theme",
-                  theme: t.theme,
-                  totalVolume: t.totalVolume,
-                  intent: t.intent,
-                  keywords: themeKeywords,
-                })
-              }
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 10,
-                background: "none",
-                border: "none",
-                padding: 0,
-                cursor: "pointer",
-                font: "inherit",
-                textAlign: "left",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 13.5,
-                  color: "var(--c-ink)",
-                  fontWeight: 500,
-                  minWidth: 0,
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }}
-              >
-                {t.theme}
-              </span>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 8, flex: "0 0 auto" }}>
-                <span style={{ fontFamily: JM, fontSize: 12, fontWeight: 700, color: "var(--c-ink)" }}>
-                  {fmtCompact(t.totalVolume)}/mo
-                </span>
-                <Badge tone={intentTone(t.intent)}>{t.intent || "informational"}</Badge>
-              </span>
-            </button>
-            {t.sampleKeywords.length > 0 && (
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {t.sampleKeywords.map((kw, j) => {
-                  const { volume, intent } = lookup(kw);
-                  return (
-                    <button
-                      key={j}
-                      type="button"
-                      onClick={() => open({ kind: "keyword", keyword: kw, volume, intent, theme: t.theme })}
-                      style={{
-                        fontSize: 11.5,
-                        fontWeight: 500,
-                        color: "var(--c-muted)",
-                        background: "var(--c-fill)",
-                        border: "none",
-                        padding: "5px 10px",
-                        borderRadius: "var(--radius-full)",
-                        cursor: "pointer",
-                        font: "inherit",
-                      }}
-                    >
-                      {kw}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}

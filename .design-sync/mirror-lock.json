@@ -7,6 +7,10 @@
     "mirror": "components/sections/captured/landing-html.ts",
     "hash": "94f34cef630f0d42"
   },
+  "AddToPlan": {
+    "mirror": "components/app/intel/add-to-plan.tsx",
+    "hash": "d363354efa597068"
+  },
   "AppShell": {
     "mirror": "components/app/captured/app-shell.tsx",
     "hash": "c3b8653d94b5d899"
@@ -41,7 +45,7 @@
   },
   "CompetitorEdgePanel": {
     "mirror": "components/app/intel/competitors-view.tsx",
-    "hash": "dbde9516a5c859ef"
+    "hash": "f12e9565250383f3"
   },
   "CompetitorGapMap": {
     "mirror": "components/app/intel/competitor-gap-map.tsx",
@@ -49,7 +53,7 @@
   },
   "CompetitorsScreen": {
     "mirror": "components/app/intel/competitors-view.tsx",
-    "hash": "dbde9516a5c859ef"
+    "hash": "f12e9565250383f3"
   },
   "ContactScreen": {
     "mirror": "app/(marketing)/contact/page.tsx",
@@ -57,7 +61,7 @@
   },
   "CustomersScreen": {
     "mirror": "components/app/intel/customers-view.tsx",
-    "hash": "105496f290f91bff"
+    "hash": "91e47ce5b20c259c"
   },
   "DashboardScreen": {
     "mirror": "components/app/intel/dashboard-hero.tsx",
@@ -118,10 +122,6 @@
   "OnboardingScreen": {
     "mirror": "components/app/setup/setup-overlay.tsx",
     "hash": "b695195d6ebee355"
-  },
-  "PainBars": {
-    "mirror": "components/app/intel/pain-bars.tsx",
-    "hash": "429b21df38266f40"
   },
   "PlanCards": {
     "mirror": "components/sections/captured/pricing-html.ts",
