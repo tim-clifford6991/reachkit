@@ -40,7 +40,6 @@ export function WhatToRankFor({ targets, categoryLabel, categoryDemand }: RankTa
           <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
             {rows.map((r) => {
               const ranks = typeof r.yourPosition === "number";
-              const rivals = typeof r.rivalsRanking === "number" && r.rivalsRanking > 0;
               return (
                 <div key={r.keyword}>
                   <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, marginBottom: 5 }}>
@@ -54,15 +53,6 @@ export function WhatToRankFor({ targets, categoryLabel, categoryDemand }: RankTa
                     </span>
                   </div>
                   <Bar value={r.volume} max={maxVol} color="var(--c-action)" />
-                  {/* Rival "why" — read from the deep scan's persisted market gap
-                      (paid). Grounds each target: it's a real page rivals already
-                      win. Absent on free / legacy payloads (spine-only). */}
-                  {rivals && (
-                    <div style={{ marginTop: 5, fontSize: 11.5, color: "var(--c-faint)", fontFamily: JM }}>
-                      {r.rivalsRanking} rival{r.rivalsRanking === 1 ? "" : "s"} rank
-                      {typeof r.bestRivalPosition === "number" ? ` · best #${r.bestRivalPosition}` : ""}
-                    </div>
-                  )}
                 </div>
               );
             })}

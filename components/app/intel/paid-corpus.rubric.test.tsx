@@ -127,40 +127,32 @@ describe("paid dashboard hero — every corpus payload renders clean through the
     });
   }
 
-  // M1 unify (2026-07-23): the rival "why" rides the ONE spine, read from the
-  // deep scan's persisted `market.gap.keywordGap` — no metered second gather.
-  // Corpus fixtures are free-tier (no `market`), so a paid payload is synthesized
-  // here from a real fixture: inject a rival gap on the spine's own top target and
-  // prove the "N rivals rank · best #P" line renders AND survives R2i (the count +
-  // position derive from the props, not a literal). Mutation-proven: delete the
-  // rival <div> in rank-targets.tsx → the toContain assertions fail; render a bare
-  // literal there → R2i fires.
-  it("rival 'why' renders on a paid payload (market.gap) and derives under R2i", () => {
-    // Any fixture that surfaces a spine target works — pick the first one so the
-    // guard doesn't pin a specific corpus entry (which may lose targets on recapture).
-    const base = FIXTURES.map((fx) => ({ fx, spine: buildRankTargets(fx.reportPayload) })).find((c) => c.spine.targets.length > 0);
-    expect(base, "at least one fixture must surface a spine target to enrich").toBeTruthy();
-    const lead = base!.spine.targets[0]!;
-
-    // A paid payload = the free fixture + a persisted rival gap on the lead term.
-    const paid = {
-      ...base!.fx.reportPayload,
-      market: { gap: { keywordGap: [{ keyword: lead.keyword, volume: lead.volume, rivalsRanking: 12, bestRivalPosition: 14 }] } },
+  // M1 unify (2026-07-23): the dashboard renders ONLY the spine surface — the
+  // metered Pipeline-B `supply.keywords.gaps` is gone. The raw deep-scan
+  // `market.gap.keywordGap` must NOT leak into this "Create a page targeting X"
+  // board: it is UNCLASSIFIED rival keywords (competitor brands, airports, card
+  // products) — un-winnable page targets (the SpaceX-"space" / cardpointers-
+  // "capital one" 9.1M class, verified on the real cardpointers paid payload).
+  // buildRankTargets ignores `market.gap` entirely; the classified rival "why"
+  // lands in M3 via the Phase-B relevance judge. Guard: injecting a mega-brand
+  // rival gap NEVER adds a target and NEVER renders. Mutation-proven: re-add the
+  // gap-merge to buildRankTargets → this fires.
+  it("raw rival gap (unclassified) never leaks into the spine targets (deferred to M3)", () => {
+    const base = FIXTURES.map((fx) => ({ fx, spine: buildRankTargets(fx.reportPayload) })).find((c) => c.spine.targets.length > 0)!;
+    const before = base.spine.targets.map((t) => t.keyword);
+    const withGap = {
+      ...base.fx.reportPayload,
+      market: { gap: { keywordGap: [
+        { keyword: "capital one", volume: 9140000, rivalsRanking: 1, bestRivalPosition: 18 },
+        { keyword: "los angeles international airport", volume: 1500000, rivalsRanking: 1, bestRivalPosition: 48 },
+      ] } },
     } as unknown as CorpusFixture["reportPayload"];
-
-    const props = buildRankTargets(paid);
-    const enriched = props.targets.find((t) => t.keyword === lead.keyword);
-    expect(enriched?.rivalsRanking, "lead target must carry the persisted rival count").toBe(12);
-    expect(enriched?.bestRivalPosition).toBe(14);
-
-    const html = renderToStaticMarkup(<WhatToRankFor {...props} />);
-    expect(html).toContain("12 rivals rank");
-    expect(html).toContain("best #14");
-
-    // R2i: the rival count (12) + position (14) must DERIVE from the props, never
-    // a literal — the whole point of the unify (data, not decoration).
-    const violations = runIntelRubric(props, html);
-    expect(violations, violations.map((v) => `[${v.rule}] ${v.message}`).join("\n")).toEqual([]);
+    const after = buildRankTargets(withGap);
+    // The target set is unchanged — the raw gap contributed nothing.
+    expect(after.targets.map((t) => t.keyword)).toEqual(before);
+    const html = renderToStaticMarkup(<WhatToRankFor {...after} />);
+    expect(html).not.toContain("capital one");
+    expect(html).not.toContain("los angeles international airport");
   });
 
   it("the builder preserves invariant #1 on the fallback path: gauge == persisted score_total", () => {
