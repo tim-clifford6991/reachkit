@@ -362,10 +362,12 @@ describe("buildThreadReplyEntries — quick-win replies from REAL demand threads
     expect(top.title).toBe("Reply to: Anyone struggling with search visibility for their product");
   });
 
-  test("truncates a long thread title to 60 chars in the entry title", () => {
-    const longTitle = "A".repeat(80);
+  test("truncates a long thread title to 100 chars in the entry title", () => {
+    // Bumped 60→100 (2026-07-24): titles wrap in both the card and the detail
+    // modal, so a 60-char cut was over-aggressive and cut text in the modal.
+    const longTitle = "A".repeat(140);
     const [entryOut] = buildThreadReplyEntries([{ title: longTitle, url: "https://reddit.com/r/x/1" }]);
-    expect(entryOut!.title.length).toBeLessThanOrEqual("Reply to: ".length + 60);
+    expect(entryOut!.title.length).toBeLessThanOrEqual("Reply to: ".length + 100);
   });
 
   test("dedupes by url and caps at the limit", () => {

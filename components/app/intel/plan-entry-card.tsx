@@ -500,9 +500,35 @@ function DetailSections({ entry, detail }: { entry: PlanEntry; detail?: EntryDet
     );
   }
 
+  // Fallback — entries NOT matched to a live synthesis item (tracked/floor
+  // actions). Ground them from the ENTRY itself so no action is ever a black box
+  // (owner 2026-07-24: every action shows its insights + deep-links back to the
+  // source it came from — keywords, the rivals winning them, the venue, evidence).
+  const kws = entry.targetKeywords ?? [];
+  const exemplars = entry.exemplars ?? [];
+  const hasGrounding = kws.length > 0 || exemplars.length > 0 || !!entry.target || !!entry.evidence;
   return (
-    <p style={{ fontSize: 12.5, color: "var(--c-muted)", margin: 0 }}>
-      {entry.evidence ? `↳ ${entry.evidence}` : "This action was queued directly from your plan."}
-    </p>
+    <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+      {kws.length > 0 && <DetailRow label="Keywords">{kws.join(", ")}</DetailRow>}
+      {exemplars.length > 0 && (
+        <DetailRow label="Who wins it">
+          <span style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            {exemplars.map((ex, i) => (
+              <EvidenceLink key={i} href={ex.url} style={{ fontSize: 12 }}>{ex.domain}</EvidenceLink>
+            ))}
+          </span>
+        </DetailRow>
+      )}
+      {entry.target && (
+        <DetailRow label="Where">
+          {entry.targetUrl
+            ? <a href={entry.targetUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--c-action)", fontWeight: 600, textDecoration: "none", overflowWrap: "anywhere" }}>{entry.target} ↗</a>
+            : entry.target}
+          {entry.channel && <span style={{ fontFamily: JM, fontSize: 11, color: "var(--c-faint)" }}> · {entry.channel}</span>}
+        </DetailRow>
+      )}
+      {entry.evidence && <DetailRow label="Evidence">{entry.evidence}</DetailRow>}
+      {!hasGrounding && <p style={{ fontSize: 12.5, color: "var(--c-muted)", margin: 0 }}>Queued from your plan — full analysis will attach on the next weekly re-scan.</p>}
+    </div>
   );
 }
