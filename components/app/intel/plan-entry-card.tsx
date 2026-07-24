@@ -424,8 +424,35 @@ function MeterRow({ label, value }: { label: string; value: number }) {
   );
 }
 
+/** Every action modal shows a consistent "how it helps" line so the founder
+ *  always understands why the action matters + how it feeds the strategy
+ *  (owner 2026-07-24). Keyed by the plan kind. */
+const CONTRIBUTION: Record<PlanEntry["kind"], string> = {
+  content: "Builds your own-site authority for keywords rivals already win — the compounding half of discoverability.",
+  distribution: "Gets you found where your competitors already are — borrowed reach in the venues buyers use.",
+  post: "Daily presence where high-intent buyers gather — steady surface area for low effort.",
+};
+
+/** Render an evidence value, hyperlinking any URL it contains (owner ask: the
+ *  Reddit/thread link in Evidence must be clickable, everywhere, consistently). */
+function EvidenceValue({ text }: { text: string }) {
+  const m = text.match(/https?:\/\/[^\s]+/);
+  if (!m) return <>{text}</>;
+  const url = m[0];
+  const before = text.slice(0, m.index).replace(/[·↳\s]+$/, "").trim();
+  let label = url;
+  try { const u = new URL(url); label = `${u.hostname.replace(/^www\./, "")}${u.pathname === "/" ? "" : u.pathname}`.replace(/\/$/, ""); } catch { /* keep raw */ }
+  return (
+    <span style={{ overflowWrap: "anywhere" }}>
+      {before && `${before} — `}
+      <EvidenceLink href={url} style={{ fontSize: 12 }}>{label}</EvidenceLink>
+    </span>
+  );
+}
+
 function DetailSections({ entry, detail }: { entry: PlanEntry; detail?: EntryDetail }) {
   const fmtVol = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n));
+  const contribution = <DetailRow label="How it helps">{CONTRIBUTION[entry.kind]}</DetailRow>;
 
   if (detail?.kind === "content") {
     const c = detail.item;
@@ -448,7 +475,7 @@ function DetailSections({ entry, detail }: { entry: PlanEntry; detail?: EntryDet
             </span>
           </DetailRow>
         )}
-        {c.evidence && <DetailRow label="Evidence">{c.evidence}</DetailRow>}
+        {c.evidence && <DetailRow label="Evidence"><EvidenceValue text={c.evidence} /></DetailRow>}
         {c.agentPrompt && (
           <DetailRow label="Agent prompt">
             <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
@@ -457,6 +484,7 @@ function DetailSections({ entry, detail }: { entry: PlanEntry; detail?: EntryDet
             </span>
           </DetailRow>
         )}
+        {contribution}
       </div>
     );
   }
@@ -467,15 +495,16 @@ function DetailSections({ entry, detail }: { entry: PlanEntry; detail?: EntryDet
       <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
         <DetailRow label="Where">
           {d.targetUrl
-            ? <a href={d.targetUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--c-action)", fontWeight: 600, textDecoration: "none" }}>{d.target} ↗</a>
+            ? <a href={d.targetUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--c-action)", fontWeight: 600, textDecoration: "none", overflowWrap: "anywhere" }}>{d.target} ↗</a>
             : d.target}
           <span style={{ fontFamily: JM, fontSize: 11, color: "var(--c-faint)" }}> · {d.channel} · {d.effort} effort</span>
         </DetailRow>
-        {d.evidence && <DetailRow label="Evidence">{d.evidence}</DetailRow>}
+        {d.evidence && <DetailRow label="Evidence"><EvidenceValue text={d.evidence} /></DetailRow>}
         <div style={{ display: "flex", gap: 18, marginTop: 2 }}>
           <MeterRow label="Ease" value={d.ease} />
           <MeterRow label="Impact" value={d.impact} />
         </div>
+        {contribution}
       </div>
     );
   }
@@ -491,11 +520,12 @@ function DetailSections({ entry, detail }: { entry: PlanEntry; detail?: EntryDet
           <DetailRow label="Coming up">
             <span style={{ display: "flex", flexDirection: "column", gap: 3 }}>
               {detail.upcoming.map((t, i) => (
-                <span key={i} style={{ fontSize: 12, color: "var(--c-muted)" }}>· {t}</span>
+                <span key={i} style={{ fontSize: 12, color: "var(--c-muted)", lineHeight: 1.45 }}>· {t}</span>
               ))}
             </span>
           </DetailRow>
         )}
+        {contribution}
       </div>
     );
   }
@@ -527,8 +557,10 @@ function DetailSections({ entry, detail }: { entry: PlanEntry; detail?: EntryDet
           {entry.channel && <span style={{ fontFamily: JM, fontSize: 11, color: "var(--c-faint)" }}> · {entry.channel}</span>}
         </DetailRow>
       )}
-      {entry.evidence && <DetailRow label="Evidence">{entry.evidence}</DetailRow>}
-      {!hasGrounding && <p style={{ fontSize: 12.5, color: "var(--c-muted)", margin: 0 }}>Queued from your plan — full analysis will attach on the next weekly re-scan.</p>}
+      {entry.evidence && <DetailRow label="Evidence"><EvidenceValue text={entry.evidence} /></DetailRow>}
+      {hasGrounding
+        ? contribution
+        : <p style={{ fontSize: 12.5, color: "var(--c-muted)", margin: 0 }}>Queued from your plan — the full analysis (keywords, competitors, evidence) attaches on the next weekly re-scan.</p>}
     </div>
   );
 }

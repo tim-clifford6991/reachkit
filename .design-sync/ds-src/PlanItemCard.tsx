@@ -195,6 +195,8 @@ function DetailShowcase() {
             <span style={{ ...btnGhost, padding: "2px 10px", fontSize: 10.5 }}>Copy</span>
           </span>
         </DetailRow>
+        {/* N+ (2026-07-24): every detail modal ends with a consistent strategic line. */}
+        <DetailRow label="How it helps">Builds your own-site authority for keywords rivals already win — the compounding half of discoverability.</DetailRow>
       </DetailPanel>
 
       <DetailPanel kind="distribution" title='List on "Best AI Meeting Assistants 2026"'>

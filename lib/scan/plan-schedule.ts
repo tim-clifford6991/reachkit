@@ -445,12 +445,12 @@ export function buildDailyPostAngles(s: {
 
   for (const c of s.contentPlan) {
     pool.push({
-      title: trunc(`Tip: ${c.topic}`, 100),
+      title: trunc(`Tip: ${c.topic}`, 130),
       angle: `Share ONE practical, non-obvious tip on "${c.topic}"${c.buyerAngle ? ` (audience: ${c.buyerAngle})` : ""}. Teach something real in 2-3 sentences.`,
     });
     if (c.buyerAngle) {
       pool.push({
-        title: trunc(`Pain point: ${c.buyerAngle}`, 100),
+        title: trunc(`Pain point: ${c.buyerAngle}`, 130),
         angle: `Describe the pain "${c.buyerAngle}" the way a buyer would say it, then one insight that helps — related to ${c.topic}.`,
       });
     }
@@ -459,7 +459,7 @@ export function buildDailyPostAngles(s: {
   for (const d of s.distribution ?? []) {
     if (d.why) {
       pool.push({
-        title: trunc(`Insight: ${d.why}`, 100),
+        title: trunc(`Insight: ${d.why}`, 130),
         angle: `Turn this market observation into a useful post: "${d.why}" (context: ${d.target}). No pitch — share the insight.`,
       });
     }
