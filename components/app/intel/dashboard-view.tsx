@@ -99,7 +99,7 @@ function Blocks({ data }: { data: Supply }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       {/* F3 — YOU vs. COMPETITORS + THEIR CHANNEL MIX (one interactive component) */}
-      <Card title="You vs. top competitors" meta={`#${rank} of ${ranked.length}`} info="Estimated channel mix from public SEO signals (organic ETV, backlinks, branded search). Not measured analytics. Click a competitor to see their mix.">
+      <Card title="You vs. top competitors" meta={`#${rank} of ${ranked.length}`} info="Footprint strength (0–100): each site's relative search footprint estimated from public SEO signals (organic ETV, backlinks, branded search) — distinct from your Discoverability Score. Click a competitor to see their channel mix. Not measured analytics.">
         {/* Side-by-side: a 1px rule splits the two halves; when the grid wraps to
             one column (narrow) the divider is hidden and the halves stack. */}
         <style>{`
@@ -113,7 +113,14 @@ function Blocks({ data }: { data: Supply }) {
         <div className="rk-vs-grid">
           {/* Left: clickable ranking */}
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <Eyebrow color="var(--c-faint)">click to inspect →</Eyebrow>
+            {/* R-1.9: name the metric so the bar/number isn't a loose figure —
+                "Footprint strength 0–100", explicitly distinct from the headline
+                Discoverability Score (the "what is this 88?" walkthrough finding). */}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 9px 2px" }}>
+              <Eyebrow color="var(--c-faint)">click to inspect →</Eyebrow>
+              <span style={{ flex: 1 }} />
+              <span style={{ fontFamily: JM, fontSize: 10, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--c-faint)", whiteSpace: "nowrap" }}>Footprint&nbsp;/100</span>
+            </div>
             {ranked.slice(0, 5).map((e) => {
               const band = bandFor(e.score);
               const on = e.domain === selected.domain;

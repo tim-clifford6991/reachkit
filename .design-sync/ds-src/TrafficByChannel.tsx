@@ -59,6 +59,14 @@ export function TrafficByChannel() {
               </div>
             </div>
           </div>
+          {/* R-1.9 label parity with the live "You vs competitors" ranking
+              (dashboard-view.tsx): the score column is named "Footprint /100" so
+              the figure is never loose. (This DS card is the tidier channel-mix
+              variant; the metric label is mirrored here to stay 1:1 on labels.) */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 11px 2px" }}>
+            <span style={{ flex: 1 }} />
+            <span style={{ fontFamily: JM, fontSize: 10, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--c-faint)", whiteSpace: "nowrap" }}>Footprint&nbsp;/100</span>
+          </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {CHANNELS.map((c, i) => (
               <div key={c.label} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 11px", borderRadius: "var(--radius-sm)", border: `1.5px solid ${i === SELECTED ? "var(--c-action)" : "transparent"}`, background: i === SELECTED ? "var(--c-soft)" : "transparent", fontSize: 13, cursor: "pointer" }}>
