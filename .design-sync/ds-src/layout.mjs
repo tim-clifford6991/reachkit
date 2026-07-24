@@ -82,7 +82,7 @@ const META = {
   WhySwitch:        { group: "Marketing", render: "{}" },
   Testimonials:     { group: "Marketing", render: "{}", archived: true },
   Audience:         { group: "Marketing", render: "{}" },
-  PlanCards:        { group: "Marketing", render: "{}" },
+  PlanCards:        { group: "Marketing", render: "{ page: true }" },
   PageHeader:       { group: "Foundations", render: "{eyebrow:'About',title:'Built for founders who ship'}" },
   ComingSoon:       { group: "Marketing", render: "{eyebrow:'Roadmap',title:'Where ReachKit is headed',blurb:'A public roadmap is in the works.'}" },
   PricingBlock:     { group: "Marketing", render: "{}" },

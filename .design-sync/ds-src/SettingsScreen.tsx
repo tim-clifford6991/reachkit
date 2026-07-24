@@ -68,10 +68,22 @@ export function SettingsScreen() {
 
         {/* Account */}
         <Card title="Account">
-          <div style={{ background: "var(--c-tint-red)", borderRadius: 12, padding: 18 }}>
-            <div style={{ fontWeight: 700, fontSize: 14, color: "var(--c-band-invisible)" }}>Delete account</div>
-            <p style={{ fontSize: 13.5, color: "var(--c-muted)", margin: "6px 0 12px" }}>Permanently remove your account and tracked data. We&apos;ll confirm by email.</p>
-            <a href="mailto:hello@reachkit.app?subject=Delete my ReachKit account" style={{ display: "inline-block", fontSize: 13, fontWeight: 600, color: "var(--c-band-invisible)", background: "var(--c-surface)", border: "1px solid var(--c-tint-red)", borderRadius: 8, padding: "8px 14px", textDecoration: "none" }}>Delete account</a>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {/* Data export (GDPR portability) — a plain link that streams a JSON
+                attachment. Mirrors the live settings-main "Export my data" row. */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", padding: 18, background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 12 }}>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: "var(--c-ink)" }}>Export my data</div>
+                <div style={{ fontSize: 13.5, color: "var(--c-muted)", marginTop: 2 }}>Download everything we hold about your account as a JSON file.</div>
+              </div>
+              <a href="/api/app/account/export" style={{ flexShrink: 0, fontSize: 13, fontWeight: 600, color: "var(--c-action)", background: "var(--c-surface)", border: "1px solid var(--c-tint-violet-line)", borderRadius: 8, padding: "8px 14px", textDecoration: "none", whiteSpace: "nowrap" }}>Export my data</a>
+            </div>
+            {/* Danger zone — hard delete (AccountDeleteLazy in the live screen). */}
+            <div style={{ background: "var(--c-tint-red)", borderRadius: 12, padding: 18 }}>
+              <div style={{ fontWeight: 700, fontSize: 14, color: "var(--c-band-invisible)" }}>Delete account</div>
+              <p style={{ fontSize: 13.5, color: "var(--c-muted)", margin: "6px 0 12px" }}>Permanently remove your account and tracked data. We&apos;ll confirm by email.</p>
+              <a href="mailto:hello@reachkit.app?subject=Delete my ReachKit account" style={{ display: "inline-block", fontSize: 13, fontWeight: 600, color: "var(--c-band-invisible)", background: "var(--c-surface)", border: "1px solid var(--c-tint-red)", borderRadius: 8, padding: "8px 14px", textDecoration: "none" }}>Delete account</a>
+            </div>
           </div>
         </Card>
       </div>

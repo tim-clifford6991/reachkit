@@ -18,7 +18,7 @@ const DEFAULT_TAGLINE =
 
 const DEFAULT_COLUMNS: NonNullable<FooterProps["columns"]> = [
   { heading: "Product", items: [{ label: "Scan your app", href: "/scan" }, { label: "How it works", href: "/how-it-works" }, { label: "Pricing", href: "/pricing" }, { label: "Free tools", href: "/tools" }, { label: "Roadmap", href: "/roadmap" }] },
-  { heading: "Resources", items: [{ label: "Gallery", href: "/gallery" }, { label: "Status", href: "/status" }] },
+  { heading: "Resources", items: [{ label: "Gallery", href: "/gallery" }] },
   { heading: "Compare", items: [{ label: "vs Ahrefs", href: "/compare/ahrefs" }, { label: "vs Semrush", href: "/compare/semrush" }, { label: "vs SparkToro", href: "/compare/sparktoro" }, { label: "vs ChatGPT", href: "/compare/chatgpt" }, { label: "All comparisons", href: "/compare" }] },
   { heading: "Company", items: [{ label: "About", href: "/about" }, { label: "Contact", href: "/contact" }, { label: "Affiliates", href: "/affiliates" }, { label: "Log in", href: "/login" }] },
 ];
@@ -26,9 +26,9 @@ const DEFAULT_COLUMNS: NonNullable<FooterProps["columns"]> = [
 const LEGAL = [{ label: "Privacy", href: "/privacy" }, { label: "Terms", href: "/terms" }, { label: "Imprint", href: "/imprint" }];
 
 const SOCIAL: { label: string; d: string }[] = [
-  { label: "X", d: "M12.6 1.5h2.3l-5 5.7 5.9 7.8h-4.6l-3.6-4.7-4.1 4.7H1.1l5.4-6.1L0.8 1.5h4.7l3.3 4.3 3.8-4.3Zm-.8 12.4h1.3L4.3 2.8H2.9l8.9 11.1Z" },
-  { label: "GitHub", d: "M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.5 7.5 0 0 1 4 0c1.53-1.03 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" },
-  { label: "RSS", d: "M3 3a1 1 0 0 0 0 2 8 8 0 0 1 8 8 1 1 0 1 0 2 0A10 10 0 0 0 3 3Zm0 4a1 1 0 0 0 0 2 4 4 0 0 1 4 4 1 1 0 1 0 2 0 6 6 0 0 0-6-6Zm.5 4.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z" },
+  { label: "ReachKit on X", d: "M12.6 1.5h2.3l-5 5.7 5.9 7.8h-4.6l-3.6-4.7-4.1 4.7H1.1l5.4-6.1L0.8 1.5h4.7l3.3 4.3 3.8-4.3Zm-.8 12.4h1.3L4.3 2.8H2.9l8.9 11.1Z" },
+  { label: "ReachKit on GitHub", d: "M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.5 7.5 0 0 1 4 0c1.53-1.03 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" },
+  { label: "Teardowns RSS feed", d: "M3 3a1 1 0 0 0 0 2 8 8 0 0 1 8 8 1 1 0 1 0 2 0A10 10 0 0 0 3 3Zm0 4a1 1 0 0 0 0 2 4 4 0 0 1 4 4 1 1 0 1 0 2 0 6 6 0 0 0-6-6Zm.5 4.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z" },
 ];
 
 export function Footer({ tagline = DEFAULT_TAGLINE, columns = DEFAULT_COLUMNS, copyright = "© 2026 ReachKit", attribution = "Built for founders who ship" }: FooterProps) {

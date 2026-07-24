@@ -198,10 +198,32 @@ export function PlanScreen() {
             You marked these done — ReachKit is re-checking your live pages to confirm each one actually
             shipped before it counts toward your score. Click any row for the full detail.
           </p>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <span style={{ fontSize: 10.5, fontWeight: 700, color: VERIFYING_COLOR, background: "var(--c-tint-amber)", borderRadius: 6, padding: "2px 8px" }}>Verifying</span>
-            <span style={{ flex: 1, fontSize: 13.5 }}>Claim G2 + Capterra listings</span>
-            <span style={{ fontFamily: JM, fontSize: 12, color: VERIFYING_COLOR }}>+5 predicted</span>
+          {/* An expanded lifecycle row — every verifying/done row is drillable in
+              place: the "what's happening" note, the draft behind it, and the
+              link to the full history. Mirrors the live LifecycleRow (open). */}
+          <div style={{ border: "1px solid var(--c-line)", borderRadius: "var(--radius-lg)", background: "var(--c-surface)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 16px" }}>
+              <span aria-hidden style={{ fontFamily: JM, fontSize: 11, color: "var(--c-faint)" }}>▾</span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: "block", fontFamily: SG, fontWeight: 700, fontSize: 14 }}>Claim G2 + Capterra listings</span>
+                <span style={{ display: "inline-block", marginTop: 3, fontFamily: PJ, fontSize: 10, fontWeight: 700, color: "var(--c-band-findable)", background: "var(--c-tint-green)", padding: "2px 7px", borderRadius: "var(--radius-full)" }}>distribution</span>
+              </span>
+              <span style={{ fontFamily: JM, fontSize: 12, color: "var(--c-action)" }}>+5 predicted</span>
+              <span style={{ fontSize: 11, fontWeight: 600, color: "var(--c-on-dark)", background: VERIFYING_COLOR, padding: "2px 8px", borderRadius: "var(--radius-full)" }}>Verifying</span>
+            </div>
+            <div style={{ padding: "0 16px 14px 33px", display: "flex", flexDirection: "column", gap: 8 }}>
+              <p style={{ fontSize: 12, color: "var(--c-muted)", lineHeight: 1.55, margin: 0, background: "var(--c-fill)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-sm)", padding: "8px 10px" }}>
+                ReachKit is re-reading your live pages to confirm this shipped. Once confirmed it moves to Done,
+                your score re-snapshots, and the measured movement appears here.
+              </p>
+              <details>
+                <summary style={{ fontFamily: PJ, fontSize: 12, fontWeight: 600, color: "var(--c-action)", cursor: "pointer" }}>View the draft behind this action</summary>
+                <pre style={{ whiteSpace: "pre-wrap", fontFamily: JM, fontSize: 11, lineHeight: 1.6, color: "var(--c-ink)", background: "var(--c-fill)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-sm)", padding: "10px 12px", margin: "6px 0 0" }}>Submitted nudgi.ai to G2 and Capterra under “AI Meeting Assistants”, with the comparison page as the primary link.</pre>
+              </details>
+              <p style={{ fontFamily: JM, fontSize: 10.5, color: "var(--c-faint)", margin: 0 }}>
+                Full history on your <a href="/app/progress" style={{ color: "var(--c-action)", fontWeight: 700, textDecoration: "none" }}>Progress timeline →</a>
+              </p>
+            </div>
           </div>
         </Card>
 

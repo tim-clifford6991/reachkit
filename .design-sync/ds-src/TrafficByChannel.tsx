@@ -69,6 +69,9 @@ export function TrafficByChannel() {
               </div>
             ))}
           </div>
+          <div style={{ marginTop: 4, textAlign: "right" }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--c-action)", cursor: "pointer" }}>See the full cohort →</span>
+          </div>
         </div>
         {/* right: selected channel detail */}
         <div style={{ flex: "1.6 1 330px", minWidth: 0, alignSelf: "stretch", display: "flex", flexDirection: "column", gap: 16, paddingLeft: 28, borderLeft: "1px solid var(--c-line2)" }}>
@@ -78,10 +81,11 @@ export function TrafficByChannel() {
             <span style={{ fontFamily: JM, fontSize: 10, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--c-muted)", background: "var(--c-fill)", padding: "3px 9px", borderRadius: 999 }}>{sel.pct}% of traffic</span>
           </div>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            {[["Est. visits / mo", DETAIL.visits], ["Referring domains", DETAIL.domains]].map(([l, v]) => (
+            {[["Est. visits / mo", DETAIL.visits, ""], ["Share of voice", "38%", "of cohort traffic"], ["Referring domains", DETAIL.domains, ""]].map(([l, v, sub]) => (
               <div key={l} style={{ flex: "1 1 130px", background: "var(--c-bg2)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-sm)", padding: "13px 15px", display: "flex", flexDirection: "column", gap: 4 }}>
                 <span style={{ fontFamily: JM, fontSize: 10, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--c-faint)" }}>{l}</span>
                 <b style={{ fontFamily: SG, fontWeight: 700, fontSize: 23, color: "var(--c-ink)", lineHeight: 1 }}>{v}</b>
+                {sub && <span style={{ fontSize: 11, color: "var(--c-muted)" }}>{sub}</span>}
               </div>
             ))}
           </div>
@@ -97,6 +101,9 @@ export function TrafficByChannel() {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: "auto", padding: "10px 13px", background: "var(--c-soft)", borderRadius: "var(--radius-sm)", cursor: "pointer" }}>
             <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--c-action)" }}>→ In your plan · {DETAIL.plan}</span>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--c-action)", cursor: "pointer" }}>See channel plan →</span>
           </div>
         </div>
       </div>

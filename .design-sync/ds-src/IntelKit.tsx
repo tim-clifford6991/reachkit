@@ -3,7 +3,7 @@ import * as React from "react";
 
 /**
  * IntelKit — the shared in-app component set the intel views compose (Card,
- * Gauge, Bar, Badge, Eyebrow, Kpi/KpiRow, Donut, HeroCard). Mirrors
+ * Gauge, Bar, Badge, Eyebrow, Kpi/KpiRow, Donut, HeroCard, Quadrant). Mirrors
  * `components/app/intel/kit.tsx` so every app screen uses one consistent set of
  * primitives, tokens and band colours. Internal module — not its own card.
  */
@@ -97,6 +97,29 @@ export function Gauge({ score, sub, size = 184 }: { score: number; sub?: string;
         <span style={{ display: "inline-block", fontFamily: SG, fontWeight: 700, fontSize: 12.5, padding: "4px 12px", borderRadius: 999, color: b.color, background: `color-mix(in oklab, ${b.color} 12%, transparent)` }}>{b.label}</span>
       </div>
       {sub && <div style={{ fontFamily: JM, fontSize: 10.5, color: "var(--c-faint)", marginTop: 8 }}>{sub}</div>}
+    </div>
+  );
+}
+
+// Impact × Ease prioritisation map — the plan/action quadrant. Axis captions
+// "EASE →" and "IMPACT →" and the corner labels mirror kit.tsx's Quadrant 1:1.
+export interface QuadrantItem { ease: number; impact: number; color: string; label: string }
+export function Quadrant({ items, legend }: { items: QuadrantItem[]; legend?: { color: string; label: string }[] }) {
+  const MIN = 14, MAX = 92, span = MAX - MIN, mid = (MIN + MAX) / 2;
+  const mapX = (e: number) => MIN + e * span, mapY = (i: number) => MAX - i * span;
+  const lbl = (x: number, y: number, t: string, anchor: "start" | "middle" | "end" | "inherit") => <text x={x} y={y} textAnchor={anchor} style={{ font: "600 3.4px var(--font-mono)", fill: "var(--c-faint)", letterSpacing: "0.04em" }}>{t}</text>;
+  return (
+    <div>
+      <svg viewBox="0 0 106 100" width="100%" style={{ display: "block", maxWidth: 440, margin: "0 auto" }}>
+        <line x1={mid} y1={MIN - 4} x2={mid} y2={MAX + 4} stroke="var(--c-line)" strokeWidth="0.4" strokeDasharray="1.5 1.5" />
+        <line x1={MIN - 4} y1={mid} x2={MAX + 4} y2={mid} stroke="var(--c-line)" strokeWidth="0.4" strokeDasharray="1.5 1.5" />
+        {lbl(MIN - 2, MIN, "BIG BETS", "start")}{lbl(MAX + 2, MIN, "QUICK WINS", "end")}
+        {lbl(MIN - 2, MAX + 4, "LOW PRIORITY", "start")}{lbl(MAX + 2, MAX + 4, "FILL-INS", "end")}
+        <text x={mid} y={99} textAnchor="middle" style={{ font: "600 3.2px var(--font-mono)", fill: "var(--c-faint)" }}>EASE →</text>
+        <text x={MIN - 9} y={mid} textAnchor="middle" transform={`rotate(-90 ${MIN - 9} ${mid})`} style={{ font: "600 3.2px var(--font-mono)", fill: "var(--c-faint)" }}>IMPACT →</text>
+        {items.map((it, i) => <circle key={i} cx={mapX(it.ease)} cy={mapY(it.impact)} r="2.6" fill={it.color} opacity="0.9"><title>{it.label}</title></circle>)}
+      </svg>
+      {legend && <div style={{ display: "flex", flexWrap: "wrap", gap: 14, marginTop: 8, justifyContent: "center" }}>{legend.map((l, i) => <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11.5, color: "var(--c-muted)" }}><span style={{ width: 8, height: 8, borderRadius: 999, background: l.color }} />{l.label}</span>)}</div>}
     </div>
   );
 }

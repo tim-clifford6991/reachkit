@@ -1,18 +1,15 @@
 {
-  "missing": 41,
+  "missing": 24,
   "byTarget": {
-    "components/app/captured/app-shell.tsx": 1,
     "components/app/intel/kit.tsx": 2,
     "components/app/intel/buyer-thread-feed.tsx": 2,
     "components/app/intel/competitors-view.tsx": 1,
     "components/app/intel/dashboard-hero.tsx": 2,
     "components/app/intel/intent-recency-map.tsx": 1,
     "components/sections/captured/pricing-html.ts": 10,
-    "components/app/intel/plan-entry-card.tsx": 11,
-    "components/app/intel/plan-timeline-view.tsx": 2,
+    "components/app/intel/plan-timeline-view.tsx": 1,
     "components/app/intel/progress-view.tsx": 2,
     "components/app/intel/referrer-row.tsx": 1,
-    "components/app/captured/settings-main.tsx": 1,
-    "components/app/intel/dashboard-view.tsx": 5
+    "components/app/intel/dashboard-view.tsx": 2
   }
 }

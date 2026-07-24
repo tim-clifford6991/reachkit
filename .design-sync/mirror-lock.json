@@ -5,7 +5,7 @@
   },
   "ActionEngine": {
     "mirror": "components/sections/captured/landing-html.ts",
-    "hash": "94f34cef630f0d42"
+    "hash": "55724993ad98c252"
   },
   "AddToPlan": {
     "mirror": "components/app/intel/add-to-plan.tsx",
@@ -13,15 +13,15 @@
   },
   "AppShell": {
     "mirror": "components/app/captured/app-shell.tsx",
-    "hash": "c3b8653d94b5d899"
+    "hash": "bb6829c7a53005ba"
   },
   "Audience": {
     "mirror": "components/sections/captured/landing-html.ts",
-    "hash": "94f34cef630f0d42"
+    "hash": "55724993ad98c252"
   },
   "Badge": {
     "mirror": "components/app/intel/kit.tsx",
-    "hash": "f66ca29b67fa1a97"
+    "hash": "7a1ece20300b23da"
   },
   "BrandMark": {
     "mirror": "components/brand/logo.tsx",
@@ -41,7 +41,7 @@
   },
   "CompareScreen": {
     "mirror": "app/(marketing)/compare/page.tsx",
-    "hash": "b80c5fb44f2edce8"
+    "hash": "db40e528ab8fb927"
   },
   "CompetitorEdgePanel": {
     "mirror": "components/app/intel/competitors-view.tsx",
@@ -77,7 +77,7 @@
   },
   "Footer": {
     "mirror": "components/sections/footer.tsx",
-    "hash": "79512e67ca0d3898"
+    "hash": "15962f88d3014cbe"
   },
   "GalleryScreen": {
     "mirror": "app/(marketing)/gallery/page.tsx",
@@ -85,11 +85,11 @@
   },
   "HowItWorks": {
     "mirror": "components/sections/captured/landing-html.ts",
-    "hash": "94f34cef630f0d42"
+    "hash": "55724993ad98c252"
   },
   "IntelKit": {
     "mirror": "components/app/intel/kit.tsx",
-    "hash": "f66ca29b67fa1a97"
+    "hash": "7a1ece20300b23da"
   },
   "IntentRecencyMap": {
     "mirror": "components/app/intel/intent-recency-map.tsx",
@@ -97,7 +97,7 @@
   },
   "KpiCard": {
     "mirror": "components/app/intel/kit.tsx",
-    "hash": "f66ca29b67fa1a97"
+    "hash": "7a1ece20300b23da"
   },
   "LandingHero": {
     "mirror": "components/sections/scan-hero.tsx",
@@ -105,7 +105,7 @@
   },
   "LandingScreen": {
     "mirror": "components/sections/captured/landing-screen.tsx",
-    "hash": "ed8fe47ebea53860"
+    "hash": "18f286c3070a153b"
   },
   "LegalScreen": {
     "mirror": "app/(marketing)/privacy/page.tsx",
@@ -117,7 +117,7 @@
   },
   "NavBar": {
     "mirror": "components/sections/marketing-nav.tsx",
-    "hash": "c36acf2a5940e28b"
+    "hash": "038dd28b7b2e7033"
   },
   "OnboardingScreen": {
     "mirror": "components/app/setup/setup-overlay.tsx",
@@ -125,27 +125,27 @@
   },
   "PlanCards": {
     "mirror": "components/sections/captured/pricing-html.ts",
-    "hash": "e07f81ba5558bece"
+    "hash": "cf071b08138ea699"
   },
   "PlanItemCard": {
     "mirror": "components/app/intel/plan-entry-card.tsx",
-    "hash": "76868c799ed86456"
+    "hash": "e83f98534c76b334"
   },
   "PlanScreen": {
     "mirror": "components/app/intel/plan-timeline-view.tsx",
-    "hash": "29eb7bcf5df9b8ad"
+    "hash": "e82b375148b13258"
   },
   "PricingBlock": {
     "mirror": "components/sections/captured/landing-html.ts",
-    "hash": "94f34cef630f0d42"
+    "hash": "55724993ad98c252"
   },
   "PricingScreen": {
     "mirror": "components/sections/captured/pricing-screen.tsx",
-    "hash": "c43bd79719f5b1a5"
+    "hash": "97a2aa6dcfb512bc"
   },
   "ProgressScreen": {
     "mirror": "components/app/intel/progress-view.tsx",
-    "hash": "595b157bce2e7459"
+    "hash": "d540dbf831fc49d0"
   },
   "RankTargets": {
     "mirror": "components/app/intel/rank-targets.tsx",
@@ -177,42 +177,42 @@
   },
   "ScoreTravels": {
     "mirror": "components/sections/captured/landing-html.ts",
-    "hash": "94f34cef630f0d42"
+    "hash": "55724993ad98c252"
   },
   "SettingsScreen": {
     "mirror": "components/app/captured/settings-main.tsx",
-    "hash": "d743e90a24a64a18"
+    "hash": "dc053969b862c917"
   },
   "StatusScreen": {
     "mirror": "app/(marketing)/status/page.tsx",
-    "hash": "722a63a461746716"
+    "hash": "6741f9f4e6e5df26"
   },
   "StorySection": {
     "mirror": "components/sections/captured/landing-html.ts",
-    "hash": "94f34cef630f0d42"
+    "hash": "55724993ad98c252"
   },
   "TeardownsScreen": {
     "mirror": "app/(marketing)/teardowns/[slug]/page.tsx",
-    "hash": "6f8a558ea3a038db"
+    "hash": "7dde715a94d73a16"
   },
   "Testimonials": {
     "mirror": "components/sections/captured/landing-html.ts",
-    "hash": "94f34cef630f0d42"
+    "hash": "55724993ad98c252"
   },
   "ToolsScreen": {
     "mirror": "app/(marketing)/tools/page.tsx",
-    "hash": "59176d69bbafae6b"
+    "hash": "745fd5d4ab0287f8"
   },
   "TrafficByChannel": {
     "mirror": "components/app/intel/dashboard-view.tsx",
-    "hash": "7e6708a3f4fe12c7"
+    "hash": "955545c2bcd243e3"
   },
   "UnlockBand": {
     "mirror": "components/report/captured/unlock-button.tsx",
-    "hash": "b7b6c84abecc4f2d"
+    "hash": "69857c52448329ce"
   },
   "WhySwitch": {
     "mirror": "components/sections/captured/landing-html.ts",
-    "hash": "94f34cef630f0d42"
+    "hash": "55724993ad98c252"
   }
 }

@@ -9,7 +9,11 @@ import * as React from "react";
  * "Audience" (Competitors, Customers); "Plan" with an action-count badge;
  * "History"; "Settings". The item/group matching `active` gets the violet
  * `--c-soft` / `--c-action` pill. Purely presentational — no click handling,
- * no internal state. Renders fully with no props.
+ * no internal state. Renders fully with no props: the bare showcase shows the
+ * live shell's off-nav subpage state — the /app/billing view, whose header is a
+ * "Settings / Billing" breadcrumb (Billing is a Settings subpage, not a sidebar
+ * item — see SUBPAGES in the live app-shell), with Settings highlighted in the
+ * rail. Screen cards pass `headerTitle`, so they render their own plain title.
  *
  * Reconciled 2026-07-15 after the card was found drifted: it said "Progress"
  * (renamed "History" in WS4) and omitted the app switcher, the side card and
@@ -38,6 +42,13 @@ export interface AppShellProps {
   user?: { name: string; sub: string };
   headerTitle?: string;
   headerSub?: string;
+  /**
+   * Parent-section crumb for an off-nav subpage. The live shell renders
+   * "Settings / Billing" when at /app/billing (Billing is a Settings subpage,
+   * not a sidebar item — see SUBPAGES in the live app-shell). When set, the
+   * header shows `{breadcrumbParent} / {headerTitle}`.
+   */
+  breadcrumbParent?: string;
   /** Tracked product shown in the app switcher. */
   appName?: string;
   appInitial?: string;
@@ -139,6 +150,7 @@ export function AppShell({
   user,
   headerTitle,
   headerSub,
+  breadcrumbParent,
   appName = "nudgi.ai",
   appInitial = "N",
   plan = "Growth",
@@ -146,10 +158,16 @@ export function AppShell({
   sideCardSub = "Weekly tracking keeps your score current.",
   children,
 }: AppShellProps) {
-  const activeKey = active ?? "dashboard";
+  // The bare showcase card (rendered with no props) demonstrates the live
+  // shell's off-nav subpage state: the /app/billing view, where "Billing" shows
+  // as a "Settings / Billing" breadcrumb (Settings is the highlighted nav item).
+  // Every screen card passes `headerTitle`, so this default never affects them.
+  const bareShowcase = headerTitle == null && title == null;
+  const activeKey = active ?? (bareShowcase ? "settings" : "dashboard");
   const resolvedUser = user ?? { name: userName ?? "Nadia L.", sub: userRole ?? "nudgi.ai · solo founder" };
-  const resolvedTitle = headerTitle ?? title ?? "Dashboard";
-  const resolvedSub = headerSub ?? subtitle ?? "Your score, your edge, and this week's highest-leverage move — at a glance.";
+  const resolvedTitle = headerTitle ?? title ?? "Billing";
+  const resolvedCrumb = breadcrumbParent ?? (bareShowcase ? "Settings" : undefined);
+  const resolvedSub = headerSub ?? subtitle ?? (bareShowcase ? "Manage your subscription, invoices, and payment method." : "Your score, your edge, and this week's highest-leverage move — at a glance.");
   const initials = resolvedUser.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("") || "RK";
 
   const isAudComp = activeKey === "audComp";
@@ -221,7 +239,17 @@ export function AppShell({
         <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
           <header style={{ background: "var(--c-glass)", backdropFilter: "blur(10px)", borderBottom: "1px solid var(--c-line)", padding: "24px 40px 20px", display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 24 }}>
             <div>
-              <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 25, color: "var(--c-ink)", margin: 0, letterSpacing: "-0.01em" }}>{resolvedTitle}</h1>
+              {resolvedCrumb ? (
+                // Breadcrumb for an off-nav subpage (e.g. Settings / Billing),
+                // mirroring the live shell's SUBPAGES header.
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 25, color: "var(--c-faint)", letterSpacing: "-0.01em" }}>{resolvedCrumb}</span>
+                  <span style={{ color: "var(--c-faint)", fontSize: 18, fontWeight: 400 }}>/</span>
+                  <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 25, color: "var(--c-ink)", margin: 0, letterSpacing: "-0.01em" }}>{resolvedTitle}</h1>
+                </div>
+              ) : (
+                <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 25, color: "var(--c-ink)", margin: 0, letterSpacing: "-0.01em" }}>{resolvedTitle}</h1>
+              )}
               <p style={{ fontSize: 13.5, color: "var(--c-muted)", margin: "6px 0 0", maxWidth: 640 }}>{resolvedSub}</p>
             </div>
             <button style={{ display: "inline-flex", alignItems: "center", gap: 8, border: "1px solid var(--c-line)", background: "var(--c-surface)", color: "var(--c-ink)", fontFamily: "var(--font-sans)", fontWeight: 600, fontSize: 13.5, padding: "10px 16px", borderRadius: "var(--radius-lg)", cursor: "pointer", whiteSpace: "nowrap" }}>

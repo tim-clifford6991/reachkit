@@ -7,7 +7,6 @@ import { StorySection } from "./StorySection";
 import { HowItWorks } from "./HowItWorks";
 import { ActionEngine } from "./ActionEngine";
 import { WhySwitch } from "./WhySwitch";
-import { Testimonials } from "./Testimonials";
 import { Audience } from "./Audience";
 import { PricingBlock } from "./PricingBlock";
 import { ScoreTravels } from "./ScoreTravels";
@@ -18,9 +17,10 @@ import { Footer } from "./Footer";
  * LandingScreen — the marketing home page (`/`), composed 1:1 from the live
  * section components in the SAME order the production page renders them:
  * NavBar → LandingHero → CompanyTicker → StorySection → HowItWorks →
- * ActionEngine → WhySwitch → Testimonials → Audience → PricingBlock →
- * ScoreTravels → FinalCta → Footer. Each section is its own DS component (its own
- * card in the pane); this screen is a thin composition — no page-only markup.
+ * ActionEngine → WhySwitch → Audience → PricingBlock → ScoreTravels → FinalCta →
+ * Footer. (Testimonials was dropped from the live landing — it is archived, so it
+ * is no longer composed here.) Each section is its own DS component (its own card
+ * in the pane); this screen is a thin composition — no page-only markup.
  */
 export interface LandingScreenProps {
   _unused?: never;
@@ -36,7 +36,6 @@ export function LandingScreen() {
       <HowItWorks />
       <ActionEngine />
       <WhySwitch />
-      <Testimonials />
       <Audience />
       <PricingBlock />
       <ScoreTravels />

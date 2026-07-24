@@ -127,7 +127,7 @@ export function CompareScreen() {
         <h2 style={{ fontFamily: SG, fontWeight: 700, fontSize: 28, letterSpacing: "-0.02em", margin: 0 }}>The comparison that actually matters is your product</h2>
         <p style={{ fontSize: 16, lineHeight: 1.6, color: "var(--c-muted)", maxWidth: 480, margin: "14px auto 22px" }}>Run the free scan: your 0–100 discoverability score, the evidence behind it, and the first fixes — before you spend a cent on any tool on this page.</p>
         <a href="/scan" style={{ display: "inline-block", fontFamily: "var(--font-sans)", fontWeight: 700, fontSize: 15, color: "var(--c-on-dark)", background: "var(--c-action)", borderRadius: 11, padding: "13px 24px", textDecoration: "none" }}>See your Discoverability Score — free</a>
-        <p style={{ fontFamily: JM, fontSize: 12.5, color: "var(--c-faint)", marginTop: 16 }}>Free scan · then $59/mo Solo or $129/mo Growth</p>
+        <p style={{ fontFamily: JM, fontSize: 12.5, color: "var(--c-faint)", marginTop: 16 }}>Free scan · then €59/mo Solo or €129/mo Growth</p>
       </section>
       <Footer />
     </div>
