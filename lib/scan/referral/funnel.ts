@@ -7,7 +7,7 @@
  *
  * Heavy (many DataForSEO calls) — test-only. Profiles are cached; backlink lists are not.
  */
-import { normalizeHost, isNoiseHost } from "@/lib/scan/referral/classify";
+import { normalizeHost, isNoiseHost, isBoilerplateSource } from "@/lib/scan/referral/classify";
 import { productNameFromHost } from "@/lib/scan/referral/discover-competitors";
 import { enrichEntity, type ScoredEntity } from "@/lib/scan/referral/intel";
 import { discoverReferralChannels } from "@/lib/scan/referral/discover";
@@ -108,7 +108,12 @@ function buildBreakdown(refs: RawRef[], cats: Map<string, ReferrerCategory>): Re
   for (const r of refs) {
     const c = cats.get(r.host) ?? "other";
     byCategory[c] = (byCategory[c] ?? 0) + 1;
-    if (isQuality(c)) {
+    // A boilerplate SOURCE page (privacy/terms/cookie/legal/sitemap) is never a
+    // genuine referral — exclude it from the quality set and count so it can't be
+    // shown as a top "directory" source beside the venue's whole-site traffic
+    // (the dontpayfull /privacy → plausible /privacy case). Still counted in
+    // byCategory (raw host tally); only the QUALITY surface is protected.
+    if (isQuality(c) && !isBoilerplateSource(r.url)) {
       quality++;
       if (topQuality.length < 30) topQuality.push({ host: r.host, category: c, url: r.url, anchor: r.anchor, target: r.target, authority: r.authority ?? null, dofollow: r.dofollow ?? null });
     }

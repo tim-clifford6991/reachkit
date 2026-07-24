@@ -180,6 +180,26 @@ const PODCAST_HOSTS = new Set([
   "transistor.fm",
 ]);
 
+/**
+ * Is this backlink's SOURCE page boilerplate (a legal/policy/utility page) rather
+ * than a genuine editorial referral? A privacy-policy, terms, cookie or sitemap
+ * page that happens to link out (e.g. dontpayfull.com/privacy-policy → the
+ * subject's /privacy) is NOT a "quality referrer" — it's cross-boilerplate, and
+ * surfacing it as a top directory source (beside the referring site's whole-site
+ * organic traffic) reads as a huge, real referral when it is neither. Matched on
+ * the URL PATH so a site whose brand contains "privacy" isn't falsely excluded.
+ * (Owner walkthrough, 2026-07-24 — the plausible.io dontpayfull /privacy case.)
+ */
+export function isBoilerplateSource(url: string): boolean {
+  let path: string;
+  try {
+    path = new URL(url.startsWith("http") ? url : `https://${url}`).pathname.toLowerCase();
+  } catch {
+    path = url.toLowerCase();
+  }
+  return /(?:^|\/)(?:privacy(?:-policy)?|privacy-notice|terms(?:-of-(?:service|use|sale))?|tos|cookie(?:s|-policy)?|legal|gdpr|ccpa|dmca|imprint|impressum|disclaimer|accessibility|sitemap(?:\.xml)?)(?:\/|\.|$)/.test(path);
+}
+
 export function classifyReferrer(host: string, url: string): ChannelType {
   const u = url.toLowerCase();
   if (MARKETPLACE_HOSTS.has(host)) return "marketplace";

@@ -51,9 +51,14 @@ export function SetupOverlay({
     return () => cancelAnimationFrame(id);
   }, []);
 
-  // Step 3 done → refresh the server layout; setupState flips to "ready" and
-  // the overlay unmounts, revealing the dashboard behind it.
+  // Step 3 done → go to the DASHBOARD (owner walkthrough, 2026-07-24). The overlay
+  // can be mounted on any /app page that gates on setupState (e.g. /app/settings
+  // when a user adds their first product there), and a bare router.refresh() just
+  // re-revealed THAT page — landing the freshly-onboarded user on settings instead
+  // of their new dashboard. Navigate explicitly; the dashboard server component
+  // recomputes setupState="ready" so the overlay unmounts on arrival.
   const finish = useCallback(() => {
+    router.push("/app/dashboard");
     router.refresh();
   }, [router]);
 
