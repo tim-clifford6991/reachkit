@@ -9,6 +9,7 @@ import { runFreeReport } from "@/lib/scan/free-report";
 import { warmFootprintCache } from "@/lib/scan/search-visibility";
 import { runFullScan } from "@/lib/scan/full-scan";
 import { emitScanEvent } from "@/lib/scan/progress";
+import { scopeFactsForStream } from "@/lib/scan/facts-preview";
 import { scanCostCents } from "@/lib/telemetry/pipeline-runs";
 import { handleScanPipelineFailure } from "@/lib/scan/terminal-status";
 import { costedStep } from "@/lib/scan/scan-telemetry";
@@ -104,8 +105,12 @@ export const scanRequested = inngest.createFunction(
         .eq("id", scanId);
       if (factsErr) throw factsErr;
 
-      // Emit the facts scan_event
-      await emitScanEvent(scanId, "facts", collectedFacts as unknown as Record<string, unknown>);
+      // Emit the facts scan_event — SCOPED (scopeFactsForStream) to the fields the
+      // public progress UI renders. The /api/scan/[id]/stream route is unauthenticated
+      // and broadcasts every scan_event by id, so the full pre-redaction facts must
+      // never cross this wire (invariant #12). Full facts stay on preliminary_facts
+      // above for authenticated pipeline steps.
+      await emitScanEvent(scanId, "facts", scopeFactsForStream(collectedFacts));
 
       return { facts: collectedFacts, tier: scanTier };
     }, { capCents: externalCapCentsFor("collect", eventTier) }));

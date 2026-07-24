@@ -61,3 +61,13 @@ export const MAGIC_LINK_PER_EMAIL = 5;
  * counter closes it. Generous: a genuine buyer rarely opens >8 checkouts/hour.
  */
 export const CHECKOUT_PER_IP = 8;
+
+/**
+ * Per-IP-hash cap on public scan-progress stream opens (per rolling hour). The
+ * `/api/scan/[id]/stream` route is unauthenticated and each connection polls the
+ * DB every 250ms for up to ~290s (~1,160 queries), so unbounded concurrency per
+ * IP is a cost/availability vector. Generous by design — a genuine viewer opens
+ * one stream per scan plus a few reconnects on drops; 60/hour comfortably covers
+ * watching several scans with retries while blocking a connection flood.
+ */
+export const SCAN_STREAM_PER_IP = 60;

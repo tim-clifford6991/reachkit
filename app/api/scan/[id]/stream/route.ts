@@ -1,5 +1,7 @@
 import { NextRequest } from "next/server";
 import { serverDb } from "@/lib/db/client";
+import { hashIp, ipFromRequest } from "@/lib/scan/abuse";
+import { rateLimitAllow, SCAN_STREAM_PER_IP } from "@/lib/auth/rate-limit";
 
 // SSE stream of scan_events for a scan. The Inngest pipeline persists every
 // progress event server-side (lib/scan/progress.ts → scan_events), so this route
@@ -28,6 +30,14 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+
+  // Per-IP-hash open cap (defense-in-depth): this route is unauthenticated and each
+  // connection polls the DB every 250ms for ~290s, so unbounded concurrent opens per
+  // IP are a cost/availability vector. 60/hour is generous for legit watch+reconnect.
+  const ipHash = hashIp(ipFromRequest(req));
+  if (!rateLimitAllow(`scan-stream:ip:${ipHash}`, SCAN_STREAM_PER_IP)) {
+    return new Response("Too Many Requests", { status: 429, headers: { "Retry-After": "60" } });
+  }
 
   // Resume cursor: explicit ?since= wins, else the native Last-Event-ID header.
   const sinceParam = Number(req.nextUrl.searchParams.get("since"));

@@ -10,7 +10,10 @@ SSRF guard on `/api/scan` is genuinely well-built (scheme allowlist + literal & 
 ### H1 — Open redirect (CWE-601) · ✅ FIXED this session
 `app/auth/callback/route.ts:10` + `app/api/auth/magic-link/route.ts:17` validated `next` with `startsWith("/")` only → `//evil.com` passes and `new URL("//evil.com", origin)` resolves to another origin. Zero-precondition phishing from the trusted domain (and embeddable in a genuine magic-link email). **Fix:** new `lib/auth/safe-redirect.ts::safeRelativePath` (rejects `//`, `/\`, control chars) reused in both routes; mutation-proof test `safe-redirect.test.ts`. Mirrors the existing `lib/billing/return-path.ts::safeReturnPath`.
 
-### H2 — `/api/scan/[id]/stream` unauth + unrated + leaks raw facts · → L2
+### H2 — `/api/scan/[id]/stream` unauth + unrated + leaks raw facts · ✅ FIXED 2026-07-24
+**Fixed both halves.** Payload-trim (higher value): the `"facts"` scan_event now carries only `scopeFactsForStream(collectedFacts)` — `{mode, listing.name, reviewVolume, competitors:[…length only]}`, the exact fields `scan-stream.tsx` renders; the full pre-redaction facts stay on `scans.preliminary_facts` for authed steps. Guard: `lib/scan/facts-preview.test.ts` (mutation-proven — a `...facts` leak fails it). Rate-limit: the stream route now gates on `rateLimitAllow('scan-stream:ip:'+ipHash, SCAN_STREAM_PER_IP=60)` (generous for legit reconnects; 429 on breach). Original finding below.
+
+### H2 (original) — `/api/scan/[id]/stream` unauth + unrated + leaks raw facts
 Whole file: no `currentUser`, no ownership, no rate limit on a 250ms-poll / 290s stream (~1,160 DB queries/connection, unbounded concurrency per IP) — a cost/availability vector in a cost-obsessed codebase. Worse: the first `"facts"` event broadcasts the **entire pre-redaction `collectedFacts`** (`scan-requested.ts:108`) for every scan incl. `tier=full` — the exact "paywall hid it, the API didn't" class closed elsewhere. **Fix (L2):** add per-IP rate limiting (reuse `lib/scan/abuse.ts`); scope the `"facts"` event payload to what the free-redacted report needs. *(Note: the public funnel uses `/api/scan/[id]/stream` for progress — the rate limit must be generous enough for legit reconnects; the payload-trim is the higher-value half.)*
 
 ### M1 — Dead rate limiter on checkout routes · → L2 (pairs with money path)
