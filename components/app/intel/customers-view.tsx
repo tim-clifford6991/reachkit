@@ -50,9 +50,22 @@ export function CustomersView() {
 export function CustomersBody({ data }: { data: Demand }) {
   const plan = useActionPlan();
   // The communities your buyers already gather in — contract pillar 3 ("which
-  // communities they sit in, and where you can go to work with them"). Ranked by
-  // thread volume; each is a specific engage-here plan move.
-  const pockets = [...data.community.pockets].sort((a, b) => b.count - a.count).slice(0, 6);
+  // communities they sit in, and where you can go to work with them").
+  // L (owner walkthrough 2026-07-24): don't bundle every community as one — rank
+  // and LABEL by BUYER INTENT (avg intent per thread), not just thread volume, so
+  // high-intent surfaces (where engaged buyers actually are) stand out. Degrade to
+  // count-order when there's no intent signal.
+  const scored = data.community.pockets.map((p) => {
+    const intentTotal = p.intentSum ?? p.topThreads.reduce((s, t) => s + (t.intent ?? 0), 0);
+    return { p, avgIntent: p.count > 0 ? intentTotal / p.count : 0 };
+  });
+  const hasIntent = scored.some((s) => s.avgIntent > 0);
+  const maxAvg = Math.max(...scored.map((s) => s.avgIntent), 1e-6);
+  const pockets = [...scored]
+    .sort((a, b) => (hasIntent ? b.avgIntent - a.avgIntent : b.p.count - a.p.count))
+    .slice(0, 6);
+  const intentLevel = (ratio: number): { label: string; tone: "green" | "violet" | "neutral" } =>
+    ratio > 0.66 ? { label: "High", tone: "green" } : ratio > 0.33 ? { label: "Med", tone: "violet" } : { label: "Low", tone: "neutral" };
   return (
     <EvidenceDrawerProvider>
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -72,28 +85,33 @@ export function CustomersBody({ data }: { data: Demand }) {
         {/* Row 3 — communities to engage: the LESSON → move. Post/answer/learn
             where buyers already are; each adds to the plan (contract pillar 3). */}
         {pockets.length > 0 && (
-          <Card title="Communities to engage" info="The surfaces your buyers already discuss this on — post, answer, and learn there. Add each as a plan move.">
+          <Card title="Communities to engage" info="The surfaces your buyers already discuss this on, ranked by buyer intent — post, answer, and learn where the most engaged buyers are. Add each as a plan move.">
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {pockets.map((p) => (
-                <div key={p.surface} style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                  <a
-                    href={subUrl(p.surface)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ fontSize: 13, fontWeight: 600, color: "var(--c-action)", textDecoration: "none", minWidth: 0, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                  >
-                    {p.surface}
-                  </a>
-                  <Badge tone="neutral">{p.platform}</Badge>
-                  <span style={{ fontFamily: JM, fontSize: 11, color: "var(--c-faint)", flexShrink: 0 }}>{p.count} thread{p.count === 1 ? "" : "s"}</span>
-                  <AddToPlanChip
-                    title={`Engage in ${p.surface}`}
-                    category="outreach"
-                    why={`${p.count} buyer thread${p.count === 1 ? "" : "s"} surfaced in ${p.surface} — post/answer there.`}
-                    plan={plan}
-                  />
-                </div>
-              ))}
+              {hasIntent && <Eyebrow>Ranked by buyer intent</Eyebrow>}
+              {pockets.map(({ p, avgIntent }) => {
+                const lvl = intentLevel(avgIntent / maxAvg);
+                return (
+                  <div key={p.surface} style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                    <a
+                      href={subUrl(p.surface)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ fontSize: 13, fontWeight: 600, color: "var(--c-action)", textDecoration: "none", minWidth: 0, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                    >
+                      {p.surface}
+                    </a>
+                    {hasIntent && <Badge tone={lvl.tone} title="Average buyer intent across this surface's threads (transactional/commercial > informational).">{lvl.label} intent</Badge>}
+                    <Badge tone="neutral">{p.platform}</Badge>
+                    <span style={{ fontFamily: JM, fontSize: 11, color: "var(--c-faint)", flexShrink: 0 }}>{p.count} thread{p.count === 1 ? "" : "s"}</span>
+                    <AddToPlanChip
+                      title={`Engage in ${p.surface}`}
+                      category="outreach"
+                      why={`${p.count} buyer thread${p.count === 1 ? "" : "s"} surfaced in ${p.surface}${hasIntent ? ` (${lvl.label.toLowerCase()} buyer intent)` : ""} — post/answer there.`}
+                      plan={plan}
+                    />
+                  </div>
+                );
+              })}
             </div>
           </Card>
         )}

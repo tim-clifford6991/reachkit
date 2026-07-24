@@ -23,11 +23,12 @@ export interface CustomersScreenProps {
 
 const JM = "var(--font-mono)";
 
-const POCKETS: { surface: string; platform: string; count: number }[] = [
-  { surface: "r/productivity", platform: "reddit", count: 14 },
-  { surface: "r/sales", platform: "reddit", count: 9 },
-  { surface: "news.ycombinator.com", platform: "hackernews", count: 6 },
-  { surface: "indiehackers.com", platform: "indiehackers", count: 5 },
+// L (2026-07-24): communities carry a buyer-intent level + are ranked by it.
+const POCKETS: { surface: string; platform: string; count: number; intent: "High" | "Med" | "Low"; tone: "green" | "violet" | "neutral" }[] = [
+  { surface: "r/sales", platform: "reddit", count: 9, intent: "High", tone: "green" },
+  { surface: "r/productivity", platform: "reddit", count: 14, intent: "Med", tone: "violet" },
+  { surface: "news.ycombinator.com", platform: "hackernews", count: 6, intent: "Med", tone: "violet" },
+  { surface: "indiehackers.com", platform: "indiehackers", count: 5, intent: "Low", tone: "neutral" },
 ];
 
 function AddChip() {
@@ -76,13 +77,15 @@ export function CustomersScreen() {
         </Card>
 
         {/* Row 3 — communities to engage */}
-        <Card title="Communities to engage" info="The surfaces your buyers already discuss this on — post, answer, and learn there. Add each as a plan move.">
+        <Card title="Communities to engage" info="The surfaces your buyers already discuss this on, ranked by buyer intent — post, answer, and learn where the most engaged buyers are. Add each as a plan move.">
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <Eyebrow>Ranked by buyer intent</Eyebrow>
             {POCKETS.map((p) => (
               <div key={p.surface} style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                 <a href="#" onClick={(e) => e.preventDefault()} style={{ fontSize: 13, fontWeight: 600, color: "var(--c-action)", textDecoration: "none", minWidth: 0, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {p.surface}
                 </a>
+                <Badge tone={p.tone}>{p.intent} intent</Badge>
                 <Badge tone="neutral">{p.platform}</Badge>
                 <span style={{ fontFamily: JM, fontSize: 11, color: "var(--c-faint)", flexShrink: 0 }}>{p.count} threads</span>
                 <AddChip />
