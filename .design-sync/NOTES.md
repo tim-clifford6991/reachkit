@@ -1,5 +1,24 @@
 # ReachKit design-sync notes
 
+## Re-sync 2026-07-24 — pushed the 903525d reconcile (remote WAS stale) + 2 new cards
+The 2026-07-23 "27 stale cards → 0" reconcile commit (903525d) updated ds-src +
+mirror-lock but its build was NEVER uploaded — remote TeardownsScreen still held
+the old single-teardown "linear.app" card. Lesson: a reconcile session that ends
+at `bless:design` without running the upload leaves the pane silently stale;
+the check is content-level (fetch one heavily-changed card and diff), NOT
+`_ds_sync.json` exports (identical when only card content changed). This sync:
+rebuilt (build.mjs → 57 exports; layout.mjs → 72 cards, all prerendered ✓),
+restored the curated `ds-bundle/styles.css` from remote (it's gitignored and had
+been wiped), then uploaded the FULL managed set (296 files: components/** 292 +
+bundle js/css + _ds_manifest.json + tokens/tokens.css) — full-set because the
+reconcile touched shared pieces (IntelKit, Footer, layout.mjs) that ripple into
+many prerendered screens; hand-deriving the ripple set isn't worth it, writes
+are idempotent. Two NEW cards first appeared remote: `App/AddToPlan` +
+`App/RankTargets` (L2 WhatToRankFor work). Deletes []; protected content
+re-confirmed intact via list_files. Sentinel first + re-armed, _ds_sync.json
+last. No bless (mirror-lock already current from 903525d).
+planId plan_819c77dc3b5b42e1_febcf2523641.
+
 ## WS3 Plan-page redesign reconcile + WS2.1 customers caption 2026-07-13
 Live Plan page (`components/app/intel/plan-timeline-view.tsx`) was redesigned:
 (a) the old tall summary card was replaced by a slim one-line status strip
