@@ -324,6 +324,24 @@ export function PlanEntryCard({ entry, domain, detail }: { entry: PlanEntry; dom
 
       <div style={{ fontFamily: SG, fontWeight: 700, fontSize: 15, marginBottom: 4 }}>{entry.title}</div>
       {entry.why && <p style={{ fontSize: 13, color: "var(--c-muted)", lineHeight: 1.5, margin: "0 0 6px" }}>{entry.why}</p>}
+      {/* N (owner walkthrough 2026-07-24): ground each action in the data it came
+          from — WHAT it targets (the gap keywords) + WHO it models (the rival pages
+          already winning them) — so a plan row is never a bare instruction. Labelled
+          (R-1.9); rendered only when the grounding exists. */}
+      {((entry.targetKeywords?.length ?? 0) > 0 || (entry.exemplars?.length ?? 0) > 0) && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "3px 12px", margin: "0 0 8px" }}>
+          {entry.targetKeywords && entry.targetKeywords.length > 0 && (
+            <span style={{ fontFamily: JM, fontSize: 10.5, color: "var(--c-muted)", overflowWrap: "anywhere" }}>
+              <b style={{ color: "var(--c-faint)", fontWeight: 700, letterSpacing: "0.04em" }}>TARGETS </b>{entry.targetKeywords.slice(0, 4).join(", ")}
+            </span>
+          )}
+          {entry.exemplars && entry.exemplars.length > 0 && (
+            <span style={{ fontFamily: JM, fontSize: 10.5, color: "var(--c-muted)", overflowWrap: "anywhere" }}>
+              <b style={{ color: "var(--c-faint)", fontWeight: 700, letterSpacing: "0.04em" }}>MODELED ON </b>{entry.exemplars.slice(0, 2).map((e) => e.domain).join(", ")}
+            </span>
+          )}
+        </div>
+      )}
       {entry.target && (
         <p style={{ fontSize: 12, margin: "0 0 8px" }}>
           {entry.targetUrl

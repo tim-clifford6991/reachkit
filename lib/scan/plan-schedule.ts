@@ -48,6 +48,12 @@ export interface PlanEntry {
   tracked: boolean;
   /** The evidence line this recommendation cites — never a black box. */
   evidence: string | null;
+  /** N (2026-07-24) grounding context — WHAT this action targets + WHO it models,
+   *  surfaced so a plan row is never a bare instruction. Content entries carry the
+   *  gap keywords they target + the rival pages that already win them; empty for
+   *  entries without that grounding (distribution/post/legacy). */
+  targetKeywords?: string[];
+  exemplars?: { domain: string; url: string }[];
   /** Pinned calendar day ("YYYY-MM-DD"): when set, the entry lands on exactly
    *  this day (bypassing the pacer) — e.g. "generate more for today". Null =
    *  paced. Only tracked actions can be pinned. */
@@ -70,6 +76,9 @@ export interface ContentPlanItemLike {
   priority: string;
   estMonthlyVolume?: number;
   evidence?: string;
+  /** N: grounding — the gap keywords this piece targets + the rival pages winning them. */
+  targetKeywords?: string[];
+  competitorExemplars?: { domain: string; url: string; position?: number }[];
 }
 
 export interface DistributionPlanItemLike {
@@ -158,6 +167,9 @@ export function mergePlanEntries(args: {
       draft: null,
       tracked: false,
       evidence: c.evidence || null,
+      // N: the keywords this piece targets + the rival pages that already win them.
+      targetKeywords: c.targetKeywords ?? [],
+      exemplars: (c.competitorExemplars ?? []).map((e) => ({ domain: e.domain, url: e.url })),
     });
   }
 

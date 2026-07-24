@@ -99,6 +99,11 @@ export function PlanItemCard(p: PlanItemCardProps) {
 
       <div style={{ fontFamily: SG, fontWeight: 700, fontSize: 15, marginBottom: 4 }}>{p.title}</div>
       {p.why && <p style={{ fontSize: 13, color: "var(--c-muted)", lineHeight: 1.5, margin: "0 0 6px" }}>{p.why}</p>}
+      {/* N (2026-07-24): grounding — what the action targets + who it models. */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "3px 12px", margin: "0 0 8px" }}>
+        <span style={{ fontFamily: JM, fontSize: 10.5, color: "var(--c-muted)", overflowWrap: "anywhere" }}><b style={{ color: "var(--c-faint)", fontWeight: 700, letterSpacing: "0.04em" }}>TARGETS </b>cookieless analytics, gdpr analytics</span>
+        <span style={{ fontFamily: JM, fontSize: 10.5, color: "var(--c-muted)", overflowWrap: "anywhere" }}><b style={{ color: "var(--c-faint)", fontWeight: 700, letterSpacing: "0.04em" }}>MODELED ON </b>matomo.org</span>
+      </div>
 
       {/* Provenance — cites evidence and opens the entry's full analysis in
           place ("details →" / "what to post about →" for daily posts). */}

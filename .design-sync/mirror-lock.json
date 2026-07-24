@@ -129,7 +129,7 @@
   },
   "PlanItemCard": {
     "mirror": "components/app/intel/plan-entry-card.tsx",
-    "hash": "e83f98534c76b334"
+    "hash": "60cfb98ca9bcba1c"
   },
   "PlanScreen": {
     "mirror": "components/app/intel/plan-timeline-view.tsx",
