@@ -40,7 +40,8 @@ import { persistScanSignals, computeSignalRowsForScan } from "@/lib/scan/persist
 import { linkSignalKeys, topUpActions, recomputeActionImpacts, ensurePerCategoryFloor, MIN_ACTIONS } from "@/lib/scan/action-linking";
 import { fillDeterministicDrafts } from "@/lib/scan/action-drafts";
 import { headlineScore, marketPositionScore, HEADLINE_SCORE_VERSION, discoverabilityScore as unifiedDiscoverability, DISCOVERABILITY_SCORE_VERSION } from "@/lib/scan/registry-score";
-import { gatherFreeSearchVisibility } from "@/lib/scan/search-visibility";
+import { gatherFreeSearchVisibility, type SearchVisibility } from "@/lib/scan/search-visibility";
+import { shouldReuseFreeLayer } from "@/lib/scan/free-layer-freshness";
 import { verifiedScoreFromRegistry } from "@/lib/scan/free-report";
 import type { ScanSignalRow } from "@/lib/scan/compute-signals";
 import { assembleReport, persistReport, bucketActions, type ReportPayload } from "@/lib/scan/report";
@@ -634,7 +635,7 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
     try {
       const { data: persisted } = await db
         .from("scans")
-        .select("report_payload, findings_payload")
+        .select("report_payload, findings_payload, created_at")
         .eq("id", ctx.scanId)
         .maybeSingle();
       const payload = persisted?.report_payload as unknown as ReportPayload | null;
@@ -701,7 +702,18 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
           // brand vocabulary isn't limited to the domain label alone (the
           // brand≠domain class — "x.com" -> unusable "x").
           const brandNames = facts.listing.name ? [facts.listing.name] : [];
-          const sv = await gatherFreeSearchVisibility(ctx.storeUrl, seedText, catSeeds, marketTierSeeds, brandNames, categoryNicheSeeds).catch(() => null);
+          // Free-layer freshness gate (owner rule, 2026-07-24): REUSE the free
+          // scan's persisted search-visibility when it's ≤7 days old, so the
+          // unified score is identical free↔paid (invariant #1) and the dashboard
+          // never shows a false "▲ +N since last scan" from a re-measurement. Only
+          // RECOMPUTE when the free layer is stale (>7d) — then fresh data is the
+          // honest choice even though the score may legitimately move. Reuse also
+          // skips the ranked_keywords re-fetch (a free DataForSEO saving).
+          const persistedSv = (payload.searchVisibility ?? null) as SearchVisibility | null;
+          const reuseFreeLayer = shouldReuseFreeLayer(persisted?.created_at, !!persistedSv);
+          const sv = reuseFreeLayer
+            ? persistedSv
+            : await gatherFreeSearchVisibility(ctx.storeUrl, seedText, catSeeds, marketTierSeeds, brandNames, categoryNicheSeeds).catch(() => null);
           if (sv) sv.onPageReadiness = head.total;
           const unified = unifiedDiscoverability(head.total, sv?.score ?? 0);
           await db
