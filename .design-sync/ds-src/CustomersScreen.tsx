@@ -43,25 +43,27 @@ export function CustomersScreen() {
     <AppShell active="audCust" headerTitle="Customers" headerSub="Who your buyer is, and the communities where you can go engage them." user={{ name: "Nadia L.", sub: "nudgi.ai · solo founder" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         {/* Row 1 — who buyers are */}
+        {/* K (2026-07-24): labelled, scannable structure — Audience (de-emphasised
+            ICP) + Jobs-to-be-done + Use-case chips — replacing the wordy prose line. */}
         <Card title="Who your buyer is" meta="AI meeting notetakers">
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 14, fontWeight: 600, color: "var(--c-ink)" }}>Solo founders & small teams who run lots of calls</span>
-              <span style={{ color: "var(--c-faint)", fontSize: 15 }}>→</span>
-              <span style={{ fontSize: 13.5, color: "var(--c-muted)" }}>trying to</span>
-              <span style={{ color: "var(--c-faint)", fontSize: 15 }}>→</span>
-              <span style={{ fontSize: 14, fontWeight: 600, color: "var(--c-ink)" }}>never lose an action item from a meeting</span>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+              <Eyebrow>Audience</Eyebrow>
+              <span style={{ fontSize: 13.5, color: "var(--c-muted)", lineHeight: 1.5 }}>Solo founders &amp; small teams who run lots of calls and reject losing action items to messy notes</span>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-              <Eyebrow>Use cases</Eyebrow>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {["Sales call recaps", "User interview notes", "Standup summaries"].map((u) => (
-                  <span key={u} style={{ fontSize: 13, fontWeight: 600, color: "var(--c-ink)", background: "var(--c-fill)", padding: "7px 13px", borderRadius: "var(--radius-full)" }}>
-                    {u}
-                  </span>
-                ))}
+            {[
+              ["Jobs to be done", ["Never lose an action item", "Search past calls", "Share recaps fast"]],
+              ["Use cases", ["Sales call recaps", "User interview notes", "Standup summaries"]],
+            ].map(([label, items]) => (
+              <div key={label as string} style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+                <Eyebrow>{label}</Eyebrow>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {(items as string[]).map((u) => (
+                    <span key={u} style={{ fontSize: 13, fontWeight: 600, color: "var(--c-ink)", background: "var(--c-fill)", padding: "7px 13px", borderRadius: "var(--radius-full)" }}>{u}</span>
+                  ))}
+                </div>
               </div>
-            </div>
+            ))}
           </div>
         </Card>
 

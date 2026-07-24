@@ -102,40 +102,38 @@ export function CustomersBody({ data }: { data: Demand }) {
   );
 }
 
+/** A labelled row of value chips — the data-driven idiom for the buyer card
+ *  (R-1.8/R-1.9): a named field, its values as scannable chips, never prose. */
+function ChipField({ label, items }: { label: string; items: string[] }) {
+  if (items.length === 0) return null;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+      <Eyebrow>{label}</Eyebrow>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        {items.map((v, i) => (
+          <span key={i} style={{ fontSize: 13, fontWeight: 600, color: "var(--c-ink)", background: "var(--c-fill)", padding: "7px 13px", borderRadius: "var(--radius-full)" }}>{v}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// K (owner walkthrough 2026-07-24): the buyer card used to lead with a long
+// LLM prose sentence ("privacy-focused website owners and developers who reject
+// data-selling analytics platforms…") set at header weight — too wordy, too much
+// attention. Consolidated into a LABELLED, scannable structure (R-1.8 data-driven
+// + R-1.9 every field named): the ICP prose is de-emphasised under an "Audience"
+// label, and the buyer's jobs + use cases render as data chips.
 function WhoYourBuyer({ data }: { data: Demand }) {
   const { icp } = data;
-  const primaryJob = icp.jobsToBeDone[0] ?? "—";
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 14, fontWeight: 600, color: "var(--c-ink)" }}>{icp.whoItsFor}</span>
-        <span style={{ color: "var(--c-faint)", fontSize: 15 }}>→</span>
-        <span style={{ fontSize: 13.5, color: "var(--c-muted)" }}>trying to</span>
-        <span style={{ color: "var(--c-faint)", fontSize: 15 }}>→</span>
-        <span style={{ fontSize: 14, fontWeight: 600, color: "var(--c-ink)" }}>{primaryJob}</span>
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+        <Eyebrow>Audience</Eyebrow>
+        <span style={{ fontSize: 13.5, color: "var(--c-muted)", lineHeight: 1.5 }}>{icp.whoItsFor}</span>
       </div>
-      {icp.useCases.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-          <Eyebrow>Use cases</Eyebrow>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {icp.useCases.map((u, i) => (
-              <span
-                key={i}
-                style={{
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: "var(--c-ink)",
-                  background: "var(--c-fill)",
-                  padding: "7px 13px",
-                  borderRadius: "var(--radius-full)",
-                }}
-              >
-                {u}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
+      <ChipField label="Jobs to be done" items={icp.jobsToBeDone.slice(0, 4)} />
+      <ChipField label="Use cases" items={icp.useCases} />
     </div>
   );
 }
