@@ -35,6 +35,26 @@
 
 Each milestone: verify against the live plausible.io scan, corpus-guard where it's a data contract, stop for owner validation. No major changes — improvements only.
 
+## Integrated program (owner-approved 2026-07-24 — Option B + "always label numbers" R-1.9)
+
+Ratchet the system forward, UI-only where UI; every number labelled; every score honest **across ALL archetypes**, not just plausible.io.
+
+**Phase D — score calibration (the model fix + the first calibration gate).** SHIPPED items A/B/C already stabilise free↔paid; D makes the *absolute* number honest.
+- `posQuality`: soften the hard cliff at #21 (a small tail to ~#50) so broad page-2/3 presence isn't scored as invisibility.
+- `searchPresence`: blend category-**win** strength with a **findability** term (category ranking breadth + brand pull) so it means what its label says ("how findable in search"). Deterministic; identical free↔paid (invariant #1 by construction; v5-parity eval is the guardrail).
+- **Calibration corpus (closes the unenforced red rule):** run `computeSearchVisibility` over REAL captured footprints — reuse `classification-corpus/*` (spacex, resend, savvycal, x.com, reachkit, getapp, trustmrr) + add **plausible.io** and **nudgi.ai** — and assert BAND-SEPARATION: a broadly-findable site (spacex/resend/plausible/x.com/reachkit) is NOT in the "invisible" band; a genuinely thin one (trustmrr / zero-ranking) is. Corpus only grows; bands only tighten.
+- Change Protocol: `CATEGORY_TARGET`/`posQuality`/weights + guard + CLAUDE.md invariant #1 & score-calibration doc, one commit. Headless live-validate all 5 archetypes.
+
+**Phase U — UI honesty (R-1.9 "always label numbers") + the intel ratchets.**
+- H: label the funnel entity score ("Footprint strength N/100") so the dashboard's three scales (Discoverability / Market position / Footprint strength) are each named — no loose 88/66/19.
+- Sweep the intel views for any bare number → add its metric label/unit.
+- K: consolidate the wordy "who your buyer is" into a data component. L: split demand channels by intent. M: inline-expand instead of side-panel. N: grounding context on each action (target keywords / who it duplicates).
+- Each: live component + `ds-src` mirror + label-drift + mobile, per-component ratchet.
+
+**Phase O — onboarding.** E: surface a competitor **size spread** (bigger/biggest, not all "your size"). F: make the calculating-screen **stage labels advance** live (stop sticking on "analyzing winning content").
+
+Sequence: **D → U(H + labels) → U(K/L/M/N) → O(E/F)**. D is the foundation (everything renders honest numbers); ship guarded, checkpoint after D.
+
 ## Acceptance
 - A/B/C: a deepen of a >7-day free scan recomputes (never reuses) the free layer; the score does not spuriously move / the "since last scan" delta never reports a re-measurement as a gain. Guard: invariant + test.
 - The rest: verified on the live re-scan + (where a data contract) a corpus/rubric expectation.
