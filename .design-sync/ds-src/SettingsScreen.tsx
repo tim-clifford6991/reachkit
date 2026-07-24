@@ -16,8 +16,9 @@ export interface SettingsScreenProps {
 const SG = "var(--font-display)", JM = "var(--font-mono)";
 
 const SCORING: [string, React.ReactNode][] = [
-  ["Score version", "v3 · deterministic"],
-  ["Signals tracked", "18 across 3 pillars"],
+  ["Score model", "v5 · geometric mean"],
+  ["On-page readiness", "8 signals"],
+  ["Search presence", "live rankings"],
   ["Weekly auto-scan", <span key="a" style={{ color: "var(--c-band-findable)", fontWeight: 600 }}>On</span>],
   ["Email score digest", <span key="d" style={{ color: "var(--c-band-findable)", fontWeight: 600 }}>On</span>],
 ];

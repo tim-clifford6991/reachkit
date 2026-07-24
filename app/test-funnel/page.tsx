@@ -13,8 +13,7 @@ interface Mix { organic: number; referral: number; social: number; direct: numbe
 interface Entity { domain: string; score: number; band: string; monthlyTraffic: number; mix: Mix | null; category?: string }
 interface QRef { host: string; category: string; url: string; anchor: string; target: string }
 interface Competitor extends Entity { closeness: number; reason: string; backlinks: { sampled: number; byCategory: Cat; topQualityReferrers: QRef[]; qualityShare: number } }
-interface KeyAction { action: string; why: string; priority: string }
-interface Funnel { subject: Entity; category: string; competitors: Competitor[]; discoveryChannels: Cat; channelsMissing: { host: string; type: string; action: string; competitorsUsing: number }[]; keyActions: KeyAction[] }
+interface Funnel { subject: Entity; category: string; competitors: Competitor[]; discoveryChannels: Cat; channelsMissing: { host: string; type: string; action: string; competitorsUsing: number }[] }
 
 const CAT_COLOR: Record<string, string> = {
   marketplace: "#7c3aed", software_directory: "#2563eb", blog: "#0891b2", media: "#db2777",
@@ -42,7 +41,6 @@ function CatBar({ data }: { data: Cat }) {
 
 const PRESETS = ["nudgi.ai", "reachkit-pi.vercel.app", "savvycal.com", "tally.so"];
 const scoreColor = (s: number) => (s >= 70 ? "#16a34a" : s >= 50 ? "#7c3aed" : s >= 30 ? "#E0731C" : "#dc2626");
-const prioColor = (p: string) => (p === "high" ? "#dc2626" : p === "medium" ? "#E0731C" : "#9ca3af");
 const fmt = (n: number) => n.toLocaleString();
 
 export default function TestFunnelPage() {
@@ -157,22 +155,6 @@ export default function TestFunnelPage() {
                 </div>
               ))}
             </div>
-          </section>
-
-          {/* KEY ACTIONS */}
-          <section>
-            <h2 className="mb-2 font-semibold">Key actions that move the needle</h2>
-            <ol className="space-y-2">
-              {d.keyActions.map((a, i) => (
-                <li key={i} className="rounded-lg border border-neutral-200 p-3">
-                  <div className="flex items-center gap-2">
-                    <span className="rounded px-1.5 py-0.5 text-[10px] font-bold uppercase text-white" style={{ background: prioColor(a.priority) }}>{a.priority}</span>
-                    <span className="font-medium">{a.action}</span>
-                  </div>
-                  <p className="mt-1 text-neutral-600">{a.why}</p>
-                </li>
-              ))}
-            </ol>
           </section>
         </div>
       )}

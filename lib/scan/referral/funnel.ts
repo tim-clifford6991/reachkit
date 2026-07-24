@@ -7,8 +7,6 @@
  *
  * Heavy (many DataForSEO calls) — test-only. Profiles are cached; backlink lists are not.
  */
-import { callModel } from "@/lib/llm/anthropic";
-import { extractJson } from "@/lib/llm/json";
 import { normalizeHost, isNoiseHost } from "@/lib/scan/referral/classify";
 import { productNameFromHost } from "@/lib/scan/referral/discover-competitors";
 import { enrichEntity, type ScoredEntity } from "@/lib/scan/referral/intel";
@@ -74,12 +72,6 @@ export interface ActionableChannel {
   competitorsUsing: number;
 }
 
-export interface KeyAction {
-  action: string;
-  why: string;
-  priority: "high" | "medium" | "low";
-}
-
 export interface FunnelResult {
   subject: ScoredEntity & { category: string; backlinks: ReferralBreakdown };
   category: string;
@@ -87,7 +79,6 @@ export interface FunnelResult {
   /** Aggregate across the cohort: where competitors are discovered (quality channels). */
   discoveryChannels: Partial<Record<ReferrerCategory, number>>;
   channelsMissing: ActionableChannel[];
-  keyActions: KeyAction[];
   /** WS1 — per-domain quality-channel strength for the gap-map matrix (incl. subject). */
   channelStrength: Record<string, Record<ChannelGroup, StrengthBucket>>;
 }
@@ -140,49 +131,6 @@ async function classifyChannels(
     })
     .filter((o) => o.actionable)
     .map(({ actionable: _a, ...rest }) => rest);
-}
-
-async function synthesizeKeyActions(input: {
-  subject: ScoredEntity;
-  category: string;
-  competitors: CompetitorDeep[];
-  discoveryChannels: Partial<Record<ReferrerCategory, number>>;
-  channelsMissing: ActionableChannel[];
-}): Promise<KeyAction[]> {
-  const compLines = input.competitors
-    .map((c) => `- ${c.domain}: score ${c.score}, ${c.monthlyTraffic.toLocaleString()}/mo; quality referrers e.g. ${c.backlinks.topQualityReferrers.slice(0, 5).map((r) => `${r.host}(${r.category})`).join(", ") || "—"}`)
-    .join("\n");
-  const chLines = input.channelsMissing.slice(0, 12).map((c) => `- ${c.host} (${c.type}): ${c.action}`).join("\n");
-  const discovery = Object.entries(input.discoveryChannels).sort((a, b) => b[1] - a[1]).map(([c, n]) => `${c}: ${n}`).join(", ");
-  const prompt = `A founder runs "${input.subject.domain}" — a ${input.category}. Discoverability ${input.subject.score}/100, ~${input.subject.monthlyTraffic.toLocaleString()} monthly visits.
-
-How competitors are DISCOVERED (aggregate referrer channels, quality only): ${discovery || "(thin)"}
-
-Competitors:
-${compLines}
-
-Channels the founder is ABSENT from that feed competitors:
-${chLines || "(none surfaced)"}
-
-Give the 3–5 highest-leverage actions that would most move this founder's discoverability — grounded in WHERE competitors are actually found (the channels above), not generic SEO. Be specific.
-
-Return ONLY a JSON array:
-[ { "action": "<concrete action>", "why": "<why it moves the needle, ≤20 words>", "priority": "high"|"medium"|"low" } ]`;
-  try {
-    const { text } = await callModel({ model: "claude-haiku-4-5-20251001", system: "You are a pragmatic growth advisor for solo founders. Ground actions in where competitors are actually discovered. Return only a JSON array.", prompt, scanId: null, stage: "synth" });
-    const parsed = JSON.parse(extractJson(text));
-    if (!Array.isArray(parsed)) return [];
-    return parsed.slice(0, 5).map((a) => {
-      const o = a as Record<string, unknown>;
-      return {
-        action: String(o.action ?? "").trim(),
-        why: String(o.why ?? "").trim(),
-        priority: (["high", "medium", "low"].includes(String(o.priority)) ? o.priority : "medium") as KeyAction["priority"],
-      };
-    }).filter((a) => a.action);
-  } catch {
-    return [];
-  }
 }
 
 /** WS1 — attach platform reach + relevance to every entity's referrers and
@@ -285,16 +233,12 @@ export async function gatherFullFunnel(rawSelf: string, opts: { topN?: number; c
     channelsMissing = await classifyChannels(ref.opportunities.slice(0, 25), self, closest.category);
   }
 
-  // 5. Key actions grounded in discovery channels.
-  const keyActions = await synthesizeKeyActions({ subject: subjectWithLens, category: closest.category, competitors: competitorsWithLens, discoveryChannels, channelsMissing });
-
   const preliminary: FunnelResult = {
     subject: { ...subjectWithLens, category: closest.category, backlinks: selfBacklinks },
     category: closest.category,
     competitors: competitorsWithLens,
     discoveryChannels,
     channelsMissing,
-    keyActions,
     channelStrength: {},
   };
 

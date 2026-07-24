@@ -15,7 +15,19 @@
 
 **`supply-view.tsx` / `demand-view.tsx` / `synthesis-view.tsx` are NOT mounted by any route** — only their types/helpers are imported. Dead render surfaces since the M1/M3a reshape.
 
-## ⚠ THE HEADLINE: new orphans CREATED by M1/M3a (metered cost, zero mounted render)
+## ✅ AS-BUILT (2026-07-24): orphan-gating landed — the metered orphans below are CUT
+
+The surgical L2 move (Option a) shipped. On the mounted intel endpoints (`route.ts` + `stream/route.ts`):
+- **`gatherKeywordGap` removed from the `supply` Promise.all** → returns `keywords: null`. Saved **6× metered `ranked_keywords`** per cold supply load (dashboard + competitors). Synthesis still re-gathers keyword-gap internally for the rendered plan, so nothing that ships loses data.
+- **`synthSummary` removed** from `gatherSynthesis` → `summary: ""`. Saved **1 dedicated Haiku call** per cold synthesis load; its text rendered on no mounted view.
+- **`FunnelResult.keyActions` removed** (`synthesizeKeyActions`) — dead everywhere (not in the `Supply` type, zero readers). Saved **1 Haiku call** per cold funnel gather (every supply load).
+- **Dead `SupplyView` component deleted** (`supply-view.tsx` is now types-only); **`competitive-framing.ts` + test deleted** (zero prod refs).
+
+**Verified safe:** tsc/unit(1976)/eval(v5-parity)/int(115)/arch/design all green; the per-page `cluster` label (rendered by competitors-view) was confirmed to come from the SAME `clusterPageTopics` Haiku call, so clusters was NOT cut.
+
+**Still deferred to Phase E (documented reasons):** `demand.buyerInsights` + `demand.searchDemand` (orphaned on the demand *surface* but re-consumed server-side by `gatherSynthesis` for the plan — dropping needs the O-7 reviews cut / a forked cache key, which the simplicity rule forbids as a special-case); the dead `DemandView`/`SynthesisView` components (same-named-type ambiguity with `lib/scan/demand/*` — a type-home consolidation, not a delete); and the `buildExecutiveSummary`/`ExecutiveSummary` cluster in core `report.ts` (provably dead + zero-cost — never called, no spend, no render — so deleting it is tidiness, deferred to keep this cost-fix diff low-risk).
+
+## ⚠ ORIGINAL HEADLINE (pre-2026-07-24): new orphans CREATED by M1/M3a (metered cost, zero mounted render)
 
 The `/api/app/intel` gatherers still run unconditionally on every cold load; the reshape removed their renders:
 

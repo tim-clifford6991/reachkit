@@ -4,7 +4,7 @@
  * runs the matching gatherer (cohort-scoped). Everything is behind the Phase-1
  * global cache, so first load is heavy and subsequent loads are instant.
  *
- *   supply    → { funnel, keywords }   (Supply page)
+ *   supply    → { funnel, content }    (dashboard + competitors)
  *   demand    → DemandIntel            (Demand page)
  *   synthesis → Synthesis              (Synthesis + Plans pages)
  */
@@ -16,7 +16,6 @@ import { costedIntelStep, subjectBrandNamesForApp } from "@/lib/app/latest-scan"
 import { serverDb } from "@/lib/db/client";
 import { getSelectedCompetitors } from "@/lib/scan/competitor-selection";
 import { gatherFullFunnel } from "@/lib/scan/referral/funnel";
-import { gatherKeywordGap } from "@/lib/scan/referral/keyword-gap";
 import { gatherDemand } from "@/lib/scan/demand/gather";
 import { gatherSynthesis } from "@/lib/scan/synthesis/synthesize";
 import { gatherContentIntel } from "@/lib/scan/content/gather";
@@ -64,13 +63,16 @@ export async function GET(req: NextRequest) {
       await costedIntelStep(appId, "intel", async () => {
         if (layer === "demand") return gatherDemand(domain, { competitorDomains: co });
         if (layer === "synthesis") return gatherSynthesis(domain, { competitorDomains: co, brandNames });
-        // supply
-        const [funnel, keywords, content] = await Promise.all([
+        // supply — the keyword-gap gather was dropped here (2026-07-24): its result
+        // (`keywords.gaps`) is rendered by NO mounted Supply view (dashboard/competitors
+        // both removed it in the M1/M3a reshape), yet it fired 6× metered ranked_keywords
+        // per cold load. Synthesis re-gathers keyword-gap itself for the rendered plan,
+        // so nothing that ships loses data. "Never pay for data you don't render."
+        const [funnel, content] = await Promise.all([
           gatherFullFunnel(domain, { competitorDomains: co }),
-          gatherKeywordGap(domain, { competitorDomains: co, brandNames }),
           gatherContentIntel(domain, { competitorDomains: co }),
         ]);
-        return { funnel, keywords, content };
+        return { funnel, keywords: null, content };
       }),
     );
   } catch (e) {

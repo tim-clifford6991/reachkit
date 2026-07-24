@@ -181,7 +181,7 @@
   },
   "SettingsScreen": {
     "mirror": "components/app/captured/settings-main.tsx",
-    "hash": "dc053969b862c917"
+    "hash": "e374d958d135461f"
   },
   "StatusScreen": {
     "mirror": "app/(marketing)/status/page.tsx",

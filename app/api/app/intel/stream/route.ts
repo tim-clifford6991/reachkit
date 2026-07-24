@@ -21,7 +21,6 @@ import { costedIntelStep, subjectBrandNamesForApp } from "@/lib/app/latest-scan"
 import { serverDb } from "@/lib/db/client";
 import { getSelectedCompetitors } from "@/lib/scan/competitor-selection";
 import { gatherFullFunnel } from "@/lib/scan/referral/funnel";
-import { gatherKeywordGap } from "@/lib/scan/referral/keyword-gap";
 import { gatherDemand } from "@/lib/scan/demand/gather";
 import { gatherSynthesis } from "@/lib/scan/synthesis/synthesize";
 import { gatherContentIntel } from "@/lib/scan/content/gather";
@@ -123,14 +122,16 @@ export async function GET(req: NextRequest) {
           if (layer === "synthesis") {
             return gatherSynthesis(domain, { competitorDomains: co, onStage, brandNames });
           }
-          // supply (default) — three gatherers run in parallel; each fires onStage
-          // independently so progress events from all three interleave naturally.
-          const [funnel, keywords, content] = await Promise.all([
+          // supply (default) — gatherers run in parallel; each fires onStage
+          // independently so progress events interleave naturally. The keyword-gap
+          // gather was dropped here (2026-07-24) to match the non-stream route: its
+          // `keywords.gaps` renders on NO mounted Supply view yet fired 6× metered
+          // ranked_keywords per cold load. Synthesis re-gathers it for the plan.
+          const [funnel, content] = await Promise.all([
             gatherFullFunnel(domain, { competitorDomains: co, onStage }),
-            gatherKeywordGap(domain, { competitorDomains: co, onStage, brandNames }),
             gatherContentIntel(domain, { competitorDomains: co, onStage }),
           ]);
-          return { funnel, keywords, content };
+          return { funnel, keywords: null, content };
         });
 
         send({ type: "done", payload });

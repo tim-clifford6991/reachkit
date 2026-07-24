@@ -12,7 +12,7 @@ function baseResult(): FunnelResult {
     subject: { domain: "you.com", isSubject: true, monthlyTraffic: 0, score: 10, band: "b", mix: null, paidEtv: 0, brandedSearchVolume: 0, topPagesCount: 0, lens: null, category: "notetaking", backlinks: bd({ marketplace: 1 }, ["g2.com"]) },
     category: "notetaking",
     competitors: [{ domain: "rival.com", isSubject: false, monthlyTraffic: 100, score: 50, band: "b", mix: null, paidEtv: 0, brandedSearchVolume: 0, topPagesCount: 0, lens: null, closeness: 1, reason: "", backlinks: bd({ marketplace: 8 }, ["g2.com", "capterra.com"]) }],
-    discoveryChannels: {}, channelsMissing: [], keyActions: [],
+    discoveryChannels: {}, channelsMissing: [],
     channelStrength: {},
   };
 }

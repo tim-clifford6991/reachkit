@@ -92,9 +92,11 @@ export async function gatherSynthesis(rawSelf: string, opts: { competitorDomains
       synthContent({ self, cohortKey, category, demand, kw }),
       synthDistribution({ self, cohortKey, category, funnel, demand }),
     ]);
-    const summary = await synthSummary({ self, cohortKey, category, demand, kw, funnel, contentPlan, distributionPlan });
-
-    return { domain: self, category, summary, contentPlan, distributionPlan };
+    // `summary` was a dedicated Haiku call whose text rendered on NO mounted view
+    // (only the unmounted synthesis-view showed it). Dropped 2026-07-24 — the plan
+    // itself (contentPlan/distributionPlan) is the rendered payoff. Field kept ""
+    // so legacy cached payloads and the type stay stable.
+    return { domain: self, category, summary: "", contentPlan, distributionPlan };
   });
 }
 
@@ -231,25 +233,3 @@ Return ONLY a JSON array:
   });
 }
 
-async function synthSummary(i: {
-  self: string; cohortKey: string; category: string;
-  demand: Awaited<ReturnType<typeof gatherDemand>>;
-  kw: Awaited<ReturnType<typeof gatherKeywordGap>>;
-  funnel: Awaited<ReturnType<typeof gatherFullFunnel>>;
-  contentPlan: ContentPlanItem[]; distributionPlan: DistributionPlanItem[];
-}): Promise<string> {
-  // Include cohortKey — the summary cites this cohort's plans/scores.
-  const key = `synth:summary:${i.self}:${i.cohortKey}`;
-  return cachedJson(key, 7 * DAY_MS, async () => {
-    const prompt = `Write a 2–3 sentence strategic summary for "${i.self}" (${i.category}). Score ${i.funnel.subject.score}/100, ${i.funnel.subject.monthlyTraffic.toLocaleString()} monthly visits, ranks for ${i.kw.subject.rankedFor} keywords. Top content move: ${i.contentPlan[0]?.topic ?? "—"}. Top distribution move: ${i.distributionPlan[0]?.action ?? "—"} on ${i.distributionPlan[0]?.target ?? "—"}. Be direct about where they stand and the single highest-leverage path forward. Plain prose, no preamble.`;
-    try {
-      const { text } = await callModel({ model: "claude-haiku-4-5-20251001", system: "You are a blunt growth advisor. 2–3 sentences, plain prose.", prompt, scanId: null, stage: "synth" });
-      return text.trim();
-    } catch {
-      return "";
-    }
-  }, {
-    // An empty summary is an LLM failure — don't cache "" for 7d.
-    isEmpty: (s) => s.trim() === "",
-  });
-}

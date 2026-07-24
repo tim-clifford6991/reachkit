@@ -112,8 +112,9 @@ export function SettingsMain(p: SettingsMainProps) {
       <Card title="Scoring">
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {[
-            ["Score version", <span key="v" style={{ fontFamily: JM, fontWeight: 600 }}>v3 · deterministic</span>],
-            ["Signals tracked", <span key="s" style={{ fontFamily: JM, fontWeight: 600 }}>18 across 3 pillars</span>],
+            ["Score model", <span key="v" style={{ fontFamily: JM, fontWeight: 600 }}>v5 · geometric mean</span>],
+            ["On-page readiness", <span key="s" style={{ fontFamily: JM, fontWeight: 600 }}>8 signals</span>],
+            ["Search presence", <span key="p" style={{ fontFamily: JM, fontWeight: 600 }}>live rankings</span>],
             ["Weekly auto-scan", <span key="w" style={{ fontWeight: 600, color: "#1F9D5B" }}>On</span>],
             ["Email score digest", <span key="e" style={{ fontWeight: 600, color: "#1F9D5B" }}>On</span>],
           ].map(([label, val]) => (

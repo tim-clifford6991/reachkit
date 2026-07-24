@@ -14,7 +14,7 @@
 
 - **Branch `reset/pr1-product-contract` (PR #127): 28 commits ahead of main, unmerged.** Contains: reset Phases 0 (contract) · H (capability ledger + quality contract) · S (slim free spine) · A (market size + share, leader fetch) · B (relevance judge) · C (free floor of 3 + tease) — plus this session's M1 (one keyword spine on the dashboard), M2 (dead render island cut), M3a (competitors=lessons, customers=ICP+communities; approved via artifact).
 - **Phase D (search-visibility split + demand/ rename): NOT started** (1,935-line file, no rename).
-- **Phase E (paid pipeline consolidation, intel → thin reader): NOT started** — Pipeline B still recomputes per tab-load.
+- **Phase E (paid pipeline consolidation, intel → thin reader): NOT started** — Pipeline B still recomputes per tab-load. **BUT the worst per-load waste is GONE (2026-07-24):** the 4 M3a-orphaned metered gathers are gated/cut — `supply.keywords` (6 ranked_keywords), `synthesis.summary` (Haiku), `funnel.keyActions` (Haiku) removed from the mounted endpoints; `buyerInsights`/`searchDemand` remain (synthesis-consumed, Phase E). Dead `SupplyView` + `competitive-framing.ts` deleted. Settings scoring card fixed to v5/8-signal honesty. See `2026-07-23-data-contract-map.md` §AS-BUILT.
 - **M3b (write-only producer cuts: reviews O-7, creators O-8) + M4 (rank-over-time): pending, sequenced below.**
 - **Crons real:** weekly-refresh Mon 09:00 · score-pulse Thu 09:00 · cache cleanup daily 03:00.
 - **Cost reality:** $7.50 DataForSEO credits — every phase below is scan-budgeted.
