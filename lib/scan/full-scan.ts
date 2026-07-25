@@ -34,6 +34,7 @@ import type { SynthResult, CategoryNicheSeeds } from "@/lib/llm/types";
 import { generateActions } from "@/lib/llm/actions";
 import { generateColdStartActions } from "@/lib/llm/cold-start-actions";
 import { resolveColdStart } from "@/lib/scan/cold-start";
+import { isSelfProperty } from "@/lib/scan/self-property";
 import { runCriticGate } from "@/lib/llm/critic";
 import { algorithmSafety } from "@/lib/scan/algorithm-safety";
 import { gatherScoreComponents, verifiedScore } from "@/lib/scan/score-full";
@@ -245,8 +246,10 @@ async function readCompetitorGap(
 // Every reader degrades to empty so legacy / partial scans never throw.
 // ---------------------------------------------------------------------------
 
-/** Communities sorted by engagement (the hidden Community.engagement signal). */
-async function readCommunitiesByEngagement(subjectKey: string): Promise<EngagedCommunity[]> {
+/** Communities sorted by engagement (the hidden Community.engagement signal).
+ *  A3: drops any "community" that is really the subject's OWN property (its domain
+ *  or its repo/profile on a platform) — you can't "go engage" in your own GitHub. */
+async function readCommunitiesByEngagement(subjectKey: string, selfDomain: string, brandNames: string[]): Promise<EngagedCommunity[]> {
   try {
     const db = serverDb();
     const { data, error } = await db
@@ -265,6 +268,7 @@ async function readCommunitiesByEngagement(subjectKey: string): Promise<EngagedC
         const o = item as Record<string, unknown>;
         const url = typeof o["url"] === "string" ? o["url"] : "";
         if (url.length === 0 || seen.has(url)) continue;
+        if (isSelfProperty(url, selfDomain, brandNames)) continue; // A3: never propose the subject's own page
         seen.add(url);
         out.push({
           source: typeof o["source"] === "string" ? (o["source"] as string) : "community",
@@ -341,10 +345,12 @@ async function readKeywordClusters(subjectType: string, subjectKey: string): Pro
 async function readChannelOpportunities(
   subjectType: string,
   subjectKey: string,
+  brandNames: string[] = [],
 ): Promise<ChannelOpportunities> {
   const [keywordClusters, communitiesByEngagement] = await Promise.all([
     readKeywordClusters(subjectType, subjectKey),
-    readCommunitiesByEngagement(subjectKey),
+    // subjectKey is the subject's store URL — doubles as the self-domain for the A3 guard.
+    readCommunitiesByEngagement(subjectKey, subjectKey, brandNames),
   ]);
   return { keywordClusters, communitiesByEngagement };
 }
@@ -445,9 +451,10 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
     //    M3b, 2026-07-23 — O-8, write-only: creatorsToReach had zero render
     //    consumers.)
     const subjectType = factSheetSubjectType(ctx.mode);
+    const brandNames = facts.listing.name ? [facts.listing.name] : [];
     const [competitorGap, channelOpportunities] = await Promise.all([
       readCompetitorGap(subjectType, ctx.storeUrl, facts),
-      readChannelOpportunities(subjectType, ctx.storeUrl),
+      readChannelOpportunities(subjectType, ctx.storeUrl, brandNames),
     ]);
     const grounding = {
       competitors: competitorGap.map((r) => ({
