@@ -412,42 +412,47 @@ function PlanCalendar({ days, today, activeDate, onSelect }: {
 }) {
   const byDate = new Map(days.map((d) => [d.date, d.entries]));
   const todayKey = localDateKey(today);
-  const DAY = 24 * 60 * 60 * 1000;
 
-  // U2 (2026-07-25): a ROLLING window from the start of THIS week forward — the old
-  // fixed calendar month buried the plan under ~3 weeks of dead leading days (on the
-  // 25th you saw Jul 1-24 empty). Runs Monday-of-this-week → the last scheduled day,
-  // with a 5-week minimum runway so it always shows a usable horizon (and naturally
-  // spills into next month). "‹ earlier weeks" prepends past context on demand.
+  // U2 (2026-07-25, refined): a TIGHT, always-populated window — 1 week in the past
+  // + 3 weeks forward (4 full Mon-Sun weeks), never the old fixed month with ~3 weeks
+  // of dead leading days, and never the loose "through last scheduled day" that ran
+  // out to empty Aug/Sep weeks. ‹/› page the window a month (4 weeks) at a time;
+  // "today" resets. Each new month that starts inside the window is marked on its
+  // 1st-of-month cell so the month split is always clear.
   const startOfWeek = (d: Date) => {
     const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
     x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); // Mon = start of week
     return x;
   };
-  const [showEarlier, setShowEarlier] = useState(false);
-  const baseStart = startOfWeek(today);
-  const start = new Date(baseStart);
-  if (showEarlier) start.setDate(start.getDate() - 28);
-  const lastKey = days[days.length - 1]?.date ?? todayKey;
-  const minEnd = new Date(baseStart); minEnd.setDate(minEnd.getDate() + 5 * 7 - 1);
-  const lastDate = new Date(`${lastKey}T00:00:00`);
-  const end = lastDate.getTime() > minEnd.getTime() ? lastDate : minEnd;
-  const spanDays = Math.round((end.getTime() - start.getTime()) / DAY) + 1;
-  const cells = Array.from({ length: Math.ceil(spanDays / 7) * 7 }, (_, i) => {
+  const WINDOW_DAYS = 4 * 7;
+  const [pageShiftDays, setPageShiftDays] = useState(0);
+  const start = startOfWeek(today);
+  start.setDate(start.getDate() - 7 + pageShiftDays); // 1 week past + paging
+  const cells = Array.from({ length: WINDOW_DAYS }, (_, i) => {
     const d = new Date(start); d.setDate(d.getDate() + i); return d;
   });
   const fmtShort = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   const rangeTitle = `${fmtShort(cells[0]!)} – ${fmtShort(cells[cells.length - 1]!)}`;
+  const atToday = pageShiftDays === 0;
 
   return (
     <div>
-      {/* Range header + "earlier weeks" (no month paging) */}
+      {/* Range header + month paging (‹/›) — a fixed 4-week window that pages a
+          month at a time; "today" resets to the current window. */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "0 2px 8px" }}>
-        <h3 style={{ fontFamily: SG, fontWeight: 700, fontSize: 15, color: "var(--c-ink)", margin: 0 }}>{rangeTitle}</h3>
-        <button type="button" onClick={() => setShowEarlier((s) => !s)}
-          style={{ marginLeft: "auto", background: "none", border: "none", padding: 0, fontFamily: JM, fontSize: 11, fontWeight: 700, color: "var(--c-action)", cursor: "pointer" }}>
-          {showEarlier ? "hide earlier" : "‹ earlier weeks"}
-        </button>
+        <h3 style={{ fontFamily: SG, fontWeight: 700, fontSize: 15, color: "var(--c-ink)", margin: 0, minWidth: 130 }}>{rangeTitle}</h3>
+        {!atToday && (
+          <button type="button" onClick={() => setPageShiftDays(0)}
+            style={{ background: "none", border: "none", padding: 0, fontFamily: JM, fontSize: 11, fontWeight: 700, color: "var(--c-action)", cursor: "pointer" }}>
+            today
+          </button>
+        )}
+        <span style={{ marginLeft: "auto", display: "inline-flex", gap: 6 }}>
+          <button type="button" aria-label="Previous weeks" onClick={() => setPageShiftDays((s) => s - WINDOW_DAYS)}
+            style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-full)", width: 28, height: 28, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: "var(--c-ink)", cursor: "pointer", lineHeight: 1 }}>‹</button>
+          <button type="button" aria-label="Next weeks" onClick={() => setPageShiftDays((s) => s + WINDOW_DAYS)}
+            style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-full)", width: 28, height: 28, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: "var(--c-ink)", cursor: "pointer", lineHeight: 1 }}>›</button>
+        </span>
       </div>
 
       <style>{CAL_CSS}</style>
@@ -484,12 +489,15 @@ function PlanCalendar({ days, today, activeDate, onSelect }: {
             >
               <span className="rk-cal-daynum" style={{
                 fontFamily: JM, fontSize: 10.5, fontWeight: 700, lineHeight: 1,
-                color: isToday ? "var(--c-on-dark)" : "var(--c-faint)",
+                color: isToday ? "var(--c-on-dark)" : d.getDate() === 1 ? "var(--c-action)" : "var(--c-faint)",
                 background: isToday ? "var(--c-action)" : "transparent",
                 borderRadius: "var(--radius-full)", padding: isToday ? "3px 6px" : "3px 0",
-                alignSelf: "flex-start",
+                alignSelf: "flex-start", whiteSpace: "nowrap",
               }}>
-                {d.getDate()}
+                {/* Month split: the 1st of each month inside the window is labelled
+                    (e.g. "Aug 1") in the accent colour, so a new month is always
+                    marked without breaking the Mon-Sun column alignment. */}
+                {d.getDate() === 1 ? `${d.toLocaleDateString("en-US", { month: "short" })} 1` : d.getDate()}
               </span>
               {entries.slice(0, 2).map((e) => (
                 <span key={e.key} title={e.title} className="rk-cal-chip" style={{
