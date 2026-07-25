@@ -9,7 +9,7 @@
   },
   "AddToPlan": {
     "mirror": "components/app/intel/add-to-plan.tsx",
-    "hash": "d363354efa597068"
+    "hash": "6739ba8c4f7b6d1f"
   },
   "AppShell": {
     "mirror": "components/app/captured/app-shell.tsx",
@@ -45,7 +45,7 @@
   },
   "CompetitorEdgePanel": {
     "mirror": "components/app/intel/competitors-view.tsx",
-    "hash": "f12e9565250383f3"
+    "hash": "8b29f2767205e3b9"
   },
   "CompetitorGapMap": {
     "mirror": "components/app/intel/competitor-gap-map.tsx",
@@ -53,7 +53,7 @@
   },
   "CompetitorsScreen": {
     "mirror": "components/app/intel/competitors-view.tsx",
-    "hash": "f12e9565250383f3"
+    "hash": "8b29f2767205e3b9"
   },
   "ContactScreen": {
     "mirror": "app/(marketing)/contact/page.tsx",
@@ -61,7 +61,7 @@
   },
   "CustomersScreen": {
     "mirror": "components/app/intel/customers-view.tsx",
-    "hash": "c9a422ad4aee3127"
+    "hash": "0c87f1979b1a1a9f"
   },
   "DashboardScreen": {
     "mirror": "components/app/intel/dashboard-hero.tsx",
@@ -149,7 +149,7 @@
   },
   "RankTargets": {
     "mirror": "components/app/intel/rank-targets.tsx",
-    "hash": "b6d58763a9fb3ef8"
+    "hash": "901cdf904761cac1"
   },
   "ReferrerRow": {
     "mirror": "components/app/intel/referrer-row.tsx",
