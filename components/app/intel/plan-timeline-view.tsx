@@ -412,132 +412,99 @@ function PlanCalendar({ days, today, activeDate, onSelect }: {
 }) {
   const byDate = new Map(days.map((d) => [d.date, d.entries]));
   const todayKey = localDateKey(today);
-  const last = days[days.length - 1]!.date;
-  const [ly, lm] = last.split("-").map(Number);
+  const DAY = 24 * 60 * 60 * 1000;
 
-  // Month slides: previous month (context/history) through the last scheduled
-  // month — one full-width slide each, horizontally scrollable.
-  const months: { year: number; month: number }[] = [];
-  {
-    let y = today.getFullYear(), m = today.getMonth() - 1;
-    if (m < 0) { m = 11; y--; }
-    while (y < ly! || (y === ly! && m <= lm! - 1)) {
-      months.push({ year: y, month: m });
-      m === 11 ? (m = 0, y++) : m++;
-    }
-  }
-  const currentIdx = months.findIndex((x) => x.year === today.getFullYear() && x.month === today.getMonth());
-
-  // State-driven slider (transform paging). Opens on the CURRENT month.
-  // Deliberately NOT native scroll-snap: Chrome's mandatory snapping fights
-  // programmatic scrolls and can snap back mid-animation — arrows must always
-  // land exactly one month over.
-  const [slide, setSlide] = useState(Math.max(0, currentIdx));
-  const goTo = (index: number) => setSlide(Math.min(months.length - 1, Math.max(0, index)));
-  const go = (dir: -1 | 1) => goTo(slide + dir);
-
-  const active = months[slide] ?? months[0]!;
-  const monthTitle = new Date(active.year, active.month, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" });
-
-  const navBtn: React.CSSProperties = {
-    background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-full)",
-    width: 28, height: 28, display: "inline-flex", alignItems: "center", justifyContent: "center",
-    fontSize: 14, color: "var(--c-ink)", cursor: "pointer", lineHeight: 1,
+  // U2 (2026-07-25): a ROLLING window from the start of THIS week forward — the old
+  // fixed calendar month buried the plan under ~3 weeks of dead leading days (on the
+  // 25th you saw Jul 1-24 empty). Runs Monday-of-this-week → the last scheduled day,
+  // with a 5-week minimum runway so it always shows a usable horizon (and naturally
+  // spills into next month). "‹ earlier weeks" prepends past context on demand.
+  const startOfWeek = (d: Date) => {
+    const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); // Mon = start of week
+    return x;
   };
+  const [showEarlier, setShowEarlier] = useState(false);
+  const baseStart = startOfWeek(today);
+  const start = new Date(baseStart);
+  if (showEarlier) start.setDate(start.getDate() - 28);
+  const lastKey = days[days.length - 1]?.date ?? todayKey;
+  const minEnd = new Date(baseStart); minEnd.setDate(minEnd.getDate() + 5 * 7 - 1);
+  const lastDate = new Date(`${lastKey}T00:00:00`);
+  const end = lastDate.getTime() > minEnd.getTime() ? lastDate : minEnd;
+  const spanDays = Math.round((end.getTime() - start.getTime()) / DAY) + 1;
+  const cells = Array.from({ length: Math.ceil(spanDays / 7) * 7 }, (_, i) => {
+    const d = new Date(start); d.setDate(d.getDate() + i); return d;
+  });
+  const fmtShort = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const rangeTitle = `${fmtShort(cells[0]!)} – ${fmtShort(cells[cells.length - 1]!)}`;
 
   return (
     <div>
-      {/* Month header + prev/next */}
+      {/* Range header + "earlier weeks" (no month paging) */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "0 2px 8px" }}>
-        <h3 style={{ fontFamily: SG, fontWeight: 700, fontSize: 15, color: "var(--c-ink)", margin: 0, minWidth: 130 }}>{monthTitle}</h3>
-        {slide !== currentIdx && (
-          <button type="button" onClick={() => goTo(currentIdx)}
-            style={{ background: "none", border: "none", padding: 0, fontFamily: JM, fontSize: 11, fontWeight: 700, color: "var(--c-action)", cursor: "pointer" }}>
-            back to today
-          </button>
-        )}
-        <span style={{ marginLeft: "auto", display: "inline-flex", gap: 6 }}>
-          <button type="button" aria-label="Previous month" onClick={() => go(-1)} disabled={slide === 0} style={{ ...navBtn, opacity: slide === 0 ? 0.4 : 1 }}>‹</button>
-          <button type="button" aria-label="Next month" onClick={() => go(1)} disabled={slide === months.length - 1} style={{ ...navBtn, opacity: slide === months.length - 1 ? 0.4 : 1 }}>›</button>
-        </span>
+        <h3 style={{ fontFamily: SG, fontWeight: 700, fontSize: 15, color: "var(--c-ink)", margin: 0 }}>{rangeTitle}</h3>
+        <button type="button" onClick={() => setShowEarlier((s) => !s)}
+          style={{ marginLeft: "auto", background: "none", border: "none", padding: 0, fontFamily: JM, fontSize: 11, fontWeight: 700, color: "var(--c-action)", cursor: "pointer" }}>
+          {showEarlier ? "hide earlier" : "‹ earlier weeks"}
+        </button>
       </div>
 
       <style>{CAL_CSS}</style>
-      {/* Slides — transform paging, one month per viewport width */}
-      <div style={{ overflow: "hidden" }}>
-        <div style={{ display: "flex", transform: `translateX(-${slide * 100}%)`, transition: "transform 0.3s ease" }}>
-        {months.map(({ year, month }) => {
-          const first = new Date(year, month, 1);
-          const daysInMonth = new Date(year, month + 1, 0).getDate();
-          const lead = (first.getDay() + 6) % 7; // Mon-first offset
-          const cells: (number | null)[] = [
-            ...Array.from({ length: lead }, () => null),
-            ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
-          ];
+      {/* ONE rolling grid — full weeks from this week forward (mobile: agenda of
+          non-empty days via CAL_CSS). Layout lives in CAL_CSS so the mobile
+          override can win; only dynamic/state styles stay inline. */}
+      <div className="rk-cal-month">
+        {WEEKDAYS.map((w) => (
+          <span key={w} className="rk-cal-wd" style={{ fontFamily: JM, fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--c-faint)", padding: "0 4px" }}>{w}</span>
+        ))}
+        {cells.map((d) => {
+          const key = localDateKey(d);
+          const entries = byDate.get(key) ?? [];
+          const isToday = key === todayKey;
+          const isActive = key === activeDate;
+          const isPast = key < todayKey;
+          // Every day is clickable — past days greyed but still selectable.
           return (
-            <div key={`${year}-${month}`} style={{ flex: "0 0 100%", minWidth: 0 }} aria-hidden={months[slide] !== undefined && !(months[slide]!.year === year && months[slide]!.month === month)}>
-              {/* Layout lives in CAL_CSS, not inline: inline styles beat any
-                  stylesheet rule, so the mobile agenda could never override an
-                  inline `display:grid`. Only dynamic/state styles stay inline. */}
-              <div className="rk-cal-month">
-                {WEEKDAYS.map((w) => (
-                  <span key={w} className="rk-cal-wd" style={{ fontFamily: JM, fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--c-faint)", padding: "0 4px" }}>{w}</span>
-                ))}
-                {cells.map((dayNum, i) => {
-                  if (dayNum === null) return <span key={`b${i}`} className="rk-cal-blank" />;
-                  const key = localDateKey(new Date(year, month, dayNum));
-                  const entries = byDate.get(key) ?? [];
-                  const isToday = key === todayKey;
-                  const isActive = key === activeDate;
-                  const isPast = key < todayKey;
-                  // Every day is clickable — past days included, greyed via
-                  // opacity but still selectable so the founder can review what
-                  // was (or wasn't) scheduled on a day that's already gone.
-                  return (
-                    <div
-                      key={key}
-                      role="button"
-                      tabIndex={0}
-                      className={`rk-cal-day${entries.length === 0 ? " rk-cal-day--empty" : ""}${isToday ? " rk-cal-day--today" : ""}`}
-                      onClick={() => onSelect(key)}
-                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(key); } }}
-                      aria-label={`${dayHeading(key)} — ${entries.length} ${entries.length === 1 ? "action" : "actions"}`}
-                      style={{
-                        border: `1px solid ${isActive ? "var(--c-action)" : "var(--c-line)"}`,
-                        borderRadius: "var(--radius-md)",
-                        background: isActive ? "var(--c-soft)" : "var(--c-surface)",
-                        opacity: isPast ? 0.5 : 1,
-                        cursor: "pointer",
-                      }}
-                    >
-                      <span className="rk-cal-daynum" style={{
-                        fontFamily: JM, fontSize: 10.5, fontWeight: 700, lineHeight: 1,
-                        color: isToday ? "var(--c-on-dark)" : "var(--c-faint)",
-                        background: isToday ? "var(--c-action)" : "transparent",
-                        borderRadius: "var(--radius-full)", padding: isToday ? "3px 6px" : "3px 0",
-                        alignSelf: "flex-start",
-                      }}>
-                        {dayNum}
-                      </span>
-                      {entries.slice(0, 2).map((e) => (
-                        <span key={e.key} title={e.title} className="rk-cal-chip" style={{
-                          fontFamily: PJ, fontWeight: 600,
-                          color: CHIP_STYLE[e.kind].fg, background: CHIP_STYLE[e.kind].bg,
-                        }}>
-                          {e.title}
-                        </span>
-                      ))}
-                      {entries.length > 2 && (
-                        <span style={{ fontFamily: JM, fontSize: 9, color: "var(--c-faint)" }}>+{entries.length - 2}</span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+            <div
+              key={key}
+              role="button"
+              tabIndex={0}
+              className={`rk-cal-day${entries.length === 0 ? " rk-cal-day--empty" : ""}${isToday ? " rk-cal-day--today" : ""}`}
+              onClick={() => onSelect(key)}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(key); } }}
+              aria-label={`${dayHeading(key)} — ${entries.length} ${entries.length === 1 ? "action" : "actions"}`}
+              style={{
+                border: `1px solid ${isActive ? "var(--c-action)" : "var(--c-line)"}`,
+                borderRadius: "var(--radius-md)",
+                background: isActive ? "var(--c-soft)" : "var(--c-surface)",
+                opacity: isPast ? 0.5 : 1,
+                cursor: "pointer",
+              }}
+            >
+              <span className="rk-cal-daynum" style={{
+                fontFamily: JM, fontSize: 10.5, fontWeight: 700, lineHeight: 1,
+                color: isToday ? "var(--c-on-dark)" : "var(--c-faint)",
+                background: isToday ? "var(--c-action)" : "transparent",
+                borderRadius: "var(--radius-full)", padding: isToday ? "3px 6px" : "3px 0",
+                alignSelf: "flex-start",
+              }}>
+                {d.getDate()}
+              </span>
+              {entries.slice(0, 2).map((e) => (
+                <span key={e.key} title={e.title} className="rk-cal-chip" style={{
+                  fontFamily: PJ, fontWeight: 600,
+                  color: CHIP_STYLE[e.kind].fg, background: CHIP_STYLE[e.kind].bg,
+                }}>
+                  {e.title}
+                </span>
+              ))}
+              {entries.length > 2 && (
+                <span style={{ fontFamily: JM, fontSize: 9, color: "var(--c-faint)" }}>+{entries.length - 2}</span>
+              )}
             </div>
           );
         })}
-        </div>
       </div>
     </div>
   );
