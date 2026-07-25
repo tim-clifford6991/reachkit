@@ -54,6 +54,10 @@ export interface PlanEntry {
    *  entries without that grounding (distribution/post/legacy). */
   targetKeywords?: string[];
   exemplars?: { domain: string; url: string }[];
+  /** The buyer pain this action addresses + the community thread it replies to —
+   *  persisted grounding, so a tracked action never loses its provenance. */
+  pain?: string;
+  sourceThread?: { title: string; url: string };
   /** Pinned calendar day ("YYYY-MM-DD"): when set, the entry lands on exactly
    *  this day (bypassing the pacer) — e.g. "generate more for today". Null =
    *  paced. Only tracked actions can be pinned. */
@@ -145,7 +149,14 @@ export function mergePlanEntries(args: {
       predictedDelta: a.predictedDelta,
       draft: a.draft,
       tracked: true,
-      evidence: null,
+      // Grounding persisted onto the action row (owner 2026-07-24) — so a tracked
+      // action ALWAYS shows why it matters + deep-links its source, independent of
+      // whether its title still matches a regenerated synthesis item.
+      evidence: a.grounding?.evidence ?? null,
+      targetKeywords: a.grounding?.targetKeywords ?? [],
+      exemplars: (a.grounding?.exemplars ?? []).map((e) => ({ domain: e.domain, url: e.url })),
+      pain: a.grounding?.pain,
+      sourceThread: a.grounding?.sourceThread,
       scheduledFor: a.scheduledFor ?? null,
     });
   }

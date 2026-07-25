@@ -65,7 +65,7 @@ import { persistCompetitors } from "@/lib/scan/competitors";
 import { hostname } from "@/lib/scan/url";
 import type { ScanContext } from "@/lib/scan/pipeline";
 import type { PreliminaryFacts } from "@/lib/scan/types";
-import type { Finding, PositioningMirror, ActionCard } from "@/lib/llm/types";
+import type { Finding, PositioningMirror, ActionCard, ActionGrounding } from "@/lib/llm/types";
 import type { Json } from "@/lib/db/types";
 
 // ---------------------------------------------------------------------------
@@ -360,6 +360,19 @@ async function persistActions(ctx: ScanContext, actions: ActionCard[]): Promise<
 
   if (actions.length === 0) return;
 
+  // Grounding persisted onto every action at creation (owner 2026-07-24) so the
+  // plan always shows why it matters + its source, independent of title-matching:
+  // fold the card's own `grounding` with its search `opportunity` (keyword+volume)
+  // and its top inline evidence excerpt.
+  const groundingFor = (a: ActionCard): ActionGrounding | null => {
+    const g: ActionGrounding = { ...(a.grounding ?? {}) };
+    if (a.opportunity) {
+      if (!g.targetKeywords?.length) g.targetKeywords = [a.opportunity.keyword];
+      if (g.volume == null) g.volume = a.opportunity.volume;
+    }
+    if (!g.evidence && a.evidence?.[0]?.excerpt) g.evidence = a.evidence[0].excerpt;
+    return Object.keys(g).length > 0 ? g : null;
+  };
   const rows = actions.map((a) => ({
     app_id: ctx.appId,
     scan_id: ctx.scanId,
@@ -378,6 +391,7 @@ async function persistActions(ctx: ScanContext, actions: ActionCard[]): Promise<
     score_component: a.expectedOutcome.scoreComponent,
     verification: a.verification as unknown as Json,
     signal_keys: a.signalKeys ?? [],
+    grounding: groundingFor(a) as unknown as Json,
   }));
 
   const { error: insErr } = await db.from("actions").insert(rows);

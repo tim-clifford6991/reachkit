@@ -536,7 +536,7 @@ function DetailSections({ entry, detail }: { entry: PlanEntry; detail?: EntryDet
   // source it came from — keywords, the rivals winning them, the venue, evidence).
   const kws = entry.targetKeywords ?? [];
   const exemplars = entry.exemplars ?? [];
-  const hasGrounding = kws.length > 0 || exemplars.length > 0 || !!entry.target || !!entry.evidence;
+  const hasGrounding = kws.length > 0 || exemplars.length > 0 || !!entry.target || !!entry.evidence || !!entry.pain || !!entry.sourceThread;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
       {kws.length > 0 && <DetailRow label="Keywords">{kws.join(", ")}</DetailRow>}
@@ -555,6 +555,12 @@ function DetailSections({ entry, detail }: { entry: PlanEntry; detail?: EntryDet
             ? <a href={entry.targetUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--c-action)", fontWeight: 600, textDecoration: "none", overflowWrap: "anywhere" }}>{entry.target} ↗</a>
             : entry.target}
           {entry.channel && <span style={{ fontFamily: JM, fontSize: 11, color: "var(--c-faint)" }}> · {entry.channel}</span>}
+        </DetailRow>
+      )}
+      {entry.pain && <DetailRow label="Buyer pain">{entry.pain}</DetailRow>}
+      {entry.sourceThread && (
+        <DetailRow label="Thread">
+          <EvidenceLink href={entry.sourceThread.url} style={{ fontSize: 12 }}>{entry.sourceThread.title}</EvidenceLink>
         </DetailRow>
       )}
       {entry.evidence && <DetailRow label="Evidence"><EvidenceValue text={entry.evidence} /></DetailRow>}

@@ -57,6 +57,19 @@ export const Body = z.object({
       url: z.string().url().max(2048).optional(),
     })
     .nullish(),
+  /** Full provenance carried from the plan entry so the tracked action row keeps
+   *  its grounding forever (owner 2026-07-24) — why it matters + what it's based
+   *  on — instead of losing it the moment a re-scan regenerates the synthesis. */
+  grounding: z
+    .object({
+      targetKeywords: z.array(z.string().max(120)).max(12).optional(),
+      exemplars: z.array(z.object({ domain: z.string().max(253), url: z.string().max(2048), position: z.number().optional() })).max(8).optional(),
+      evidence: z.string().max(2000).optional(),
+      pain: z.string().max(2000).optional(),
+      sourceThread: z.object({ title: z.string().max(500), url: z.string().max(2048) }).optional(),
+      volume: z.number().optional(),
+    })
+    .nullish(),
 });
 
 export async function POST(req: NextRequest) {
@@ -70,7 +83,7 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ message: "missing or invalid title/category" }, { status: 400 });
   }
-  const { title, category, why, expectedDelta, signalKeys, draft, verifyUrl, effortMin, target } = parsed.data;
+  const { title, category, why, expectedDelta, signalKeys, draft, verifyUrl, effortMin, target, grounding } = parsed.data;
 
   const appId = await activeAppId(viewer.user);
   if (!appId) {
@@ -136,6 +149,7 @@ export async function POST(req: NextRequest) {
       verify_url: verifyUrl ?? null,
       effort_min: effortMin ?? null,
       target: (target ?? null) as Json | null,
+      grounding: (grounding ?? null) as Json | null,
     })
     .select("id")
     .single();

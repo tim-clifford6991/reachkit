@@ -204,6 +204,10 @@ function DetailShowcase() {
           <span style={{ color: "var(--c-action)", fontWeight: 600 }}>Best AI Meeting Assistants 2026 ↗</span>
           <span style={{ fontFamily: JM, fontSize: 11, color: "var(--c-faint)" }}> · directory · low effort</span>
         </DetailRow>
+        {/* Persisted grounding (owner 2026-07-24): a tracked action keeps its buyer
+            pain + source thread, so it's never a bare "queued from your plan". */}
+        <DetailRow label="Buyer pain">Solo founders losing action items to messy notes</DetailRow>
+        <DetailRow label="Thread"><span style={{ color: "var(--c-action)" }}>GA4 killed my cookie banner — what now?</span></DetailRow>
         <DetailRow label="Evidence">A curated directory fathom.video and otter.ai both appear on.</DetailRow>
         <div style={{ display: "flex", gap: 18, marginTop: 2 }}>
           <MeterRow label="Ease" value={0.8} />

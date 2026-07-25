@@ -176,6 +176,27 @@ export interface ActionCard {
    *  chip on the fix card — every number is a real payload value (R2-safe).
    *  Absent on signal-derived and LLM-authored cards. */
   opportunity?: { keyword: string; volume: number };
+  /** Full provenance persisted onto the action row at creation (owner 2026-07-24):
+   *  why it matters + what it's based on, so the plan UI always shows the grounding
+   *  and deep-links its source, WITHOUT re-matching the title to a regenerated
+   *  synthesis. All optional; filled from whatever the source stream carried. */
+  grounding?: ActionGrounding;
+}
+
+/** @see ActionCard.grounding — the shape stored in `actions.grounding` (jsonb). */
+export interface ActionGrounding {
+  /** Gap keywords the action targets. */
+  targetKeywords?: string[];
+  /** Rival pages already winning those keywords (deep-linked in the plan detail). */
+  exemplars?: { domain: string; url: string; position?: number }[];
+  /** The source evidence line (may contain a URL, hyperlinked in the UI). */
+  evidence?: string;
+  /** The buyer pain / angle this action addresses. */
+  pain?: string;
+  /** The community thread this action replies to. */
+  sourceThread?: { title: string; url: string };
+  /** Est. monthly search volume for the targeted keywords. */
+  volume?: number;
 }
 
 /** Routing channels an ActionTarget can name — a subset that inferExecutionRoute

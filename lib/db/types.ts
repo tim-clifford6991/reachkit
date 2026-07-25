@@ -46,6 +46,7 @@ export type Database = {
           draft_requires_edit: boolean
           effort_min: number | null
           evidence_ids: number[]
+          grounding: Json | null
           expected_outcome: Json | null
           id: string
           scan_id: string | null
@@ -71,6 +72,7 @@ export type Database = {
           draft_requires_edit?: boolean
           effort_min?: number | null
           evidence_ids?: number[]
+          grounding?: Json | null
           expected_outcome?: Json | null
           id?: string
           scan_id?: string | null
@@ -96,6 +98,7 @@ export type Database = {
           draft_requires_edit?: boolean
           effort_min?: number | null
           evidence_ids?: number[]
+          grounding?: Json | null
           expected_outcome?: Json | null
           id?: string
           scan_id?: string | null

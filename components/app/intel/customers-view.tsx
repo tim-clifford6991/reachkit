@@ -107,6 +107,11 @@ export function CustomersBody({ data }: { data: Demand }) {
                       title={`Engage in ${p.surface}`}
                       category="outreach"
                       why={`${p.count} buyer thread${p.count === 1 ? "" : "s"} surfaced in ${p.surface}${hasIntent ? ` (${lvl.label.toLowerCase()} buyer intent)` : ""} — post/answer there.`}
+                      grounding={{
+                        evidence: `${p.count} buyer thread${p.count === 1 ? "" : "s"} in ${p.surface}${hasIntent ? ` · ${lvl.label} buyer intent` : ""}`,
+                        pain: data.icp?.whoItsFor,
+                        ...(p.topThreads?.[0]?.url ? { sourceThread: { title: p.topThreads[0].title, url: p.topThreads[0].url } } : {}),
+                      }}
                       plan={plan}
                     />
                   </div>

@@ -75,6 +75,39 @@ describe("mergePlanEntries", () => {
     expect(merged[0]).toMatchObject({ actionId: "a1", tracked: true, draft: "listing copy", targetUrl: "https://alternativeto.net", effortMin: 15 });
   });
 
+  test("a tracked action's PERSISTED grounding round-trips onto the entry (owner 2026-07-24)", () => {
+    // The whole point: a tracked action carries its own provenance, so the plan
+    // shows why it matters + deep-links its source WITHOUT re-matching a synthesis
+    // item by title (here `content`/`distribution` are empty — no match possible).
+    const merged = mergePlanEntries({
+      openActions: [boardAction({
+        id: "g1",
+        title: "Create a page targeting \"cookieless analytics\"",
+        why: "1,600/mo you don't win yet",
+        grounding: {
+          targetKeywords: ["cookieless analytics", "gdpr analytics"],
+          exemplars: [{ domain: "matomo.org", url: "https://matomo.org/cookieless" }],
+          evidence: "matomo.org ranks #3; you have no page",
+          pain: "privacy-focused owners rejecting GA",
+          sourceThread: { title: "GA4 killed my cookie banner", url: "https://reddit.com/r/x/1" },
+          volume: 1600,
+        },
+      })],
+      allActionTitles: new Set(),
+      content: [],
+      distribution: [],
+    });
+    expect(merged).toHaveLength(1);
+    expect(merged[0]).toMatchObject({
+      tracked: true,
+      targetKeywords: ["cookieless analytics", "gdpr analytics"],
+      exemplars: [{ domain: "matomo.org", url: "https://matomo.org/cookieless" }],
+      evidence: "matomo.org ranks #3; you have no page",
+      pain: "privacy-focused owners rejecting GA",
+      sourceThread: { title: "GA4 killed my cookie banner", url: "https://reddit.com/r/x/1" },
+    });
+  });
+
   test("suggestions matching ANY existing action title are dropped (open or shipped)", () => {
     const merged = mergePlanEntries({
       openActions: [],

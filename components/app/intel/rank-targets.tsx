@@ -71,6 +71,7 @@ export function WhatToRankFor({ targets, categoryLabel, categoryDemand }: RankTa
                       title={targetActionTitle(r.keyword)}
                       category="content"
                       why={`${fmt(r.volume)}/mo category search you don't win yet${ranks ? ` (you're #${r.yourPosition})` : ""} — create a page for it.`}
+                      grounding={{ targetKeywords: [r.keyword], volume: r.volume, evidence: `${fmt(r.volume)}/mo category search${ranks ? `; you rank #${r.yourPosition}` : "; you don't rank yet"}` }}
                       plan={plan}
                     />
                   </div>

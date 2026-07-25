@@ -199,7 +199,7 @@ export function CompetitorsBody({ data }: { data: Supply }) {
                   {typeof r.authority === "number" && r.authority > 0 && (
                     <span title={DR_HELP} style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, fontWeight: 700, color: "var(--c-faint)", flexShrink: 0, cursor: "help" }}>DR&nbsp;{r.authority}</span>
                   )}
-                  <AddToPlanChip title={title} category="outreach" why={`${sel.domain} has a ${r.category} link from ${r.host} that you don't — pursue it.`} plan={plan} />
+                  <AddToPlanChip title={title} category="outreach" why={`${sel.domain} has a ${r.category} link from ${r.host} that you don't — pursue it.`} grounding={{ evidence: `${sel.domain} earns a ${r.category} link here that you don't`, exemplars: [{ domain: sel.domain, url: r.url }] }} plan={plan} />
                 </div>
               );
             })}

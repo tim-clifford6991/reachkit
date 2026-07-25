@@ -15,6 +15,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Badge } from "@/components/app/intel/kit";
+import type { ActionGrounding } from "@/lib/llm/types";
 
 export type ActionCategory = "content" | "outreach" | "seo";
 
@@ -22,7 +23,7 @@ export interface ActionPlan {
   isInPlan: (title: string) => boolean;
   isPending: (title: string) => boolean;
   isError: (title: string) => boolean;
-  add: (title: string, category: ActionCategory, why?: string) => void;
+  add: (title: string, category: ActionCategory, why?: string, grounding?: ActionGrounding) => void;
 }
 
 export function useActionPlan(): ActionPlan {
@@ -45,7 +46,7 @@ export function useActionPlan(): ActionPlan {
     return () => { cancelled = true; };
   }, []);
 
-  const add = useCallback((title: string, category: ActionCategory, why?: string) => {
+  const add = useCallback((title: string, category: ActionCategory, why?: string, grounding?: ActionGrounding) => {
     setInPlan((prev) => new Set(prev).add(title)); // optimistic swap to "in plan"
     setPending((prev) => new Set(prev).add(title));
     setErrored((prev) => (prev.has(title) ? new Set([...prev].filter((t) => t !== title)) : prev));
@@ -54,7 +55,9 @@ export function useActionPlan(): ActionPlan {
         const res = await fetch("/api/action", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ title, category, why }),
+          // grounding persists WHY + what-it's-based-on onto the action row, so a
+          // tracked task never loses its provenance (owner 2026-07-24).
+          body: JSON.stringify({ title, category, why, grounding }),
         });
         if (!res.ok) throw new Error(String(res.status));
       } catch {
@@ -75,7 +78,7 @@ export function useActionPlan(): ActionPlan {
 }
 
 /** The chip pair: static "→ in plan" pill once the action exists, else a clickable "＋ add". */
-export function AddToPlanChip({ title, category, why, plan }: { title: string; category: ActionCategory; why?: string; plan: ActionPlan }) {
+export function AddToPlanChip({ title, category, why, grounding, plan }: { title: string; category: ActionCategory; why?: string; grounding?: ActionGrounding; plan: ActionPlan }) {
   if (plan.isInPlan(title)) return <Badge tone="violet">→ in plan</Badge>;
   const pending = plan.isPending(title);
   return (
@@ -83,7 +86,7 @@ export function AddToPlanChip({ title, category, why, plan }: { title: string; c
       <button
         type="button"
         disabled={pending}
-        onClick={(ev) => { ev.stopPropagation(); plan.add(title, category, why); }}
+        onClick={(ev) => { ev.stopPropagation(); plan.add(title, category, why, grounding); }}
         style={{
           display: "inline-flex", alignItems: "center", gap: 5, background: "var(--c-fill)", color: "var(--c-muted)",
           fontFamily: "var(--font-sans)", fontWeight: 700, fontSize: 11.5, padding: "3px 9px", borderRadius: "var(--radius-xs)",

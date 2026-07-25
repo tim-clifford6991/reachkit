@@ -8,7 +8,7 @@
  */
 
 import { serverDb } from "@/lib/db/client";
-import type { ActionTarget } from "@/lib/llm/types";
+import type { ActionTarget, ActionGrounding } from "@/lib/llm/types";
 
 export type VerifyGroup = "open" | "verifying" | "done" | "retry";
 
@@ -68,6 +68,10 @@ export interface BoardAction {
   /** Pinned calendar day ("YYYY-MM-DD") when the founder scheduled it explicitly
    *  (e.g. "generate more for today"); null = paced by the scheduler. */
   scheduledFor: string | null;
+  /** Full provenance captured when the action was created — targets/exemplars/
+   *  evidence/pain/thread — so the plan always shows why it matters + deep-links
+   *  its source without re-matching a regenerated synthesis (owner 2026-07-24). */
+  grounding?: ActionGrounding | null;
 }
 
 /** Open-queue order: biggest predicted Δ first; actions without a prediction sink last. */
@@ -102,7 +106,7 @@ export async function actionBoard(appId: string): Promise<ActionBoard> {
   const [{ data: actions }, { data: snaps }] = await Promise.all([
     db
       .from("actions")
-      .select("id, title, category, why, status, verify_state, expected_outcome, created_at, draft, verify_url, effort_min, target, scheduled_for")
+      .select("id, title, category, why, status, verify_state, expected_outcome, created_at, draft, verify_url, effort_min, target, scheduled_for, grounding")
       .eq("app_id", appId),
     db
       .from("score_snapshots")
@@ -138,6 +142,7 @@ export async function actionBoard(appId: string): Promise<ActionBoard> {
       effortMin: (a.effort_min as number | null) ?? null,
       target: (a.target as ActionTarget | null) ?? null,
       scheduledFor: (a.scheduled_for as string | null) ?? null,
+      grounding: (a.grounding as ActionGrounding | null) ?? null,
     });
   }
   board.open.sort(byPredictedDeltaDesc);
