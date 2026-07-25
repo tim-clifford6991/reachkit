@@ -305,8 +305,23 @@ export function PlanEntryCard({ entry, domain, detail }: { entry: PlanEntry; dom
     </>
   );
 
+  // Owner ask (2026-07-25): the WHOLE card opens details, not just the button — a
+  // click anywhere expands the full analysis. Guarded so clicks on the card's own
+  // interactive children (View draft, venue/evidence links, add-to-plan, mark done,
+  // the details button, and anything inside the open modal) do their own thing and
+  // never also trigger the card-open.
+  const openDetailsFromCard = (e: React.MouseEvent | React.KeyboardEvent) => {
+    if ((e.target as HTMLElement).closest('a, button, input, textarea, select, [role="dialog"]')) return;
+    setDetailsOpen(true);
+  };
   return (
-    <div style={{ fontFamily: PJ, color: "var(--c-ink)", border: "1px solid var(--c-line)", borderLeft: `3px solid ${kindStyle.fg}`, borderRadius: "var(--radius-lg)", padding: "16px 16px 16px 14px", background: "var(--c-surface)" }}>
+    <div
+      role="button"
+      tabIndex={0}
+      aria-label={`${entry.title} — open details`}
+      onClick={openDetailsFromCard}
+      onKeyDown={(e) => { if (e.key === "Enter") openDetailsFromCard(e); }}
+      style={{ fontFamily: PJ, color: "var(--c-ink)", border: "1px solid var(--c-line)", borderLeft: `3px solid ${kindStyle.fg}`, borderRadius: "var(--radius-lg)", padding: "16px 16px 16px 14px", background: "var(--c-surface)", cursor: "pointer" }}>
       {/* Header row — kind badge matches the calendar chip colors exactly */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
         <span style={{ display: "inline-block", fontFamily: PJ, fontSize: 10.5, fontWeight: 700, color: kindStyle.fg, background: kindStyle.bg, padding: "3px 9px", borderRadius: "var(--radius-full)", whiteSpace: "nowrap" }}>
