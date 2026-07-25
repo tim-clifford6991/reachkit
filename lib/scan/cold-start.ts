@@ -23,6 +23,35 @@ export const COLD_START_MIN_REVIEWS = 25;
 /** Web mode: a domain at least this old (years) is an established site, never pre-launch. */
 const COLD_START_MIN_ESTABLISHED_AGE_YEARS = 1;
 
+/**
+ * A subject ranking for at least this many keywords has a REAL search footprint —
+ * it is established, never pre-launch. This is the signal `isColdStart` structurally
+ * cannot see (A1, 2026-07-25): cold-start is decided at facts-assembly time, BEFORE
+ * the free pass computes `searchVisibility.keywordsRanked`, and the facts-time
+ * signals it does have are unreliable for a live product (a privacy/SPA homepage
+ * yields 0 discovered competitors; the archive.org domain-age lookup routinely times
+ * out to null). plausible.io — a mature product ranking for 1,425 keywords — was
+ * wrongly flagged cold-start and handed the pre-launch "waitlist" template. The deep
+ * pass overrides that flag with this footprint check (`resolveColdStart`).
+ */
+export const ESTABLISHED_MIN_RANKED_KEYWORDS = 25;
+
+/** True when the free pass's ranked-keyword footprint proves a real, established
+ *  search presence — regardless of what the facts-time cold-start heuristics saw. */
+export function isEstablishedByFootprint(keywordsRanked: number | null | undefined): boolean {
+  return (keywordsRanked ?? 0) >= ESTABLISHED_MIN_RANKED_KEYWORDS;
+}
+
+/**
+ * The deep pass's FINAL cold-start decision (A1): the facts-time flag, but
+ * OVERRIDDEN to established when the free pass's ranked-keyword footprint proves a
+ * presence the facts-time signals missed. Genuinely pre-launch subjects (no
+ * footprint) keep the validation queue; a live product never does. PURE.
+ */
+export function resolveColdStart(factsColdStart: boolean, keywordsRanked: number | null | undefined): boolean {
+  return factsColdStart && !isEstablishedByFootprint(keywordsRanked);
+}
+
 // ---------------------------------------------------------------------------
 // "Effectively no signal at all" — degraded/empty facts in ANY mode: no
 // competitors discovered AND no review themes extracted AND a thin review volume.

@@ -33,6 +33,7 @@ import { runSynth, SYNTH_MODEL_FULL } from "@/lib/llm/synth";
 import type { SynthResult, CategoryNicheSeeds } from "@/lib/llm/types";
 import { generateActions } from "@/lib/llm/actions";
 import { generateColdStartActions } from "@/lib/llm/cold-start-actions";
+import { resolveColdStart } from "@/lib/scan/cold-start";
 import { runCriticGate } from "@/lib/llm/critic";
 import { algorithmSafety } from "@/lib/scan/algorithm-safety";
 import { gatherScoreComponents, verifiedScore } from "@/lib/scan/score-full";
@@ -462,7 +463,17 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
     //     validation-through-distribution queue; everything else gets the standard
     //     over-generated set. Both flow through the SAME Critic → §11 gate below.
     await emitScanEvent(ctx.scanId, "artifact", { label: "Drafting your action plan" });
-    const actions = facts.coldStart
+    // A1 (2026-07-25): the cold-start flag was decided at facts-assembly time,
+    // BEFORE the free pass computed the ranked-keyword footprint — so a live product
+    // with a thin SPA homepage (0 discovered competitors) + a timed-out domain-age
+    // lookup was wrongly flagged cold-start and handed the pre-launch "waitlist"
+    // template (plausible.io, 1,425 ranked keywords). Override that flag here with
+    // the REAL footprint the free searchVisibility already holds: a subject ranking
+    // for a meaningful number of keywords is established, never pre-launch.
+    const { data: svRow } = await serverDb().from("scans").select("report_payload").eq("id", ctx.scanId).maybeSingle();
+    const keywordsRanked = (svRow?.report_payload as unknown as ReportPayload | null)?.searchVisibility?.keywordsRanked ?? null;
+    const coldStart = resolveColdStart(facts.coldStart, keywordsRanked);
+    const actions = coldStart
       ? await generateColdStartActions(ctx, facts, grounding)
       : await generateActions(ctx, findings, grounding);
 
@@ -470,7 +481,7 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
     //    and §11-compliant by construction, so we run the deterministic checks
     //    only (skipLlm) — avoiding up to ~3 Sonnet critic calls per card.
     await emitScanEvent(ctx.scanId, "artifact", { label: "Pressure-testing each recommendation" });
-    const { passed } = await runCriticGate(ctx, actions, { skipLlm: facts.coldStart });
+    const { passed } = await runCriticGate(ctx, actions, { skipLlm: coldStart });
     const safe = await algorithmSafety(ctx, passed);
 
     // 6. Verified Discoverability Score + radar (§7)

@@ -1,5 +1,5 @@
-import { expect, test } from "vitest";
-import { isColdStart } from "./cold-start";
+import { describe, expect, test } from "vitest";
+import { isColdStart, resolveColdStart, isEstablishedByFootprint, ESTABLISHED_MIN_RANKED_KEYWORDS } from "./cold-start";
 import type { PreliminaryFacts } from "@/lib/scan/types";
 
 // A "well-established" baseline we then override per case.
@@ -101,4 +101,35 @@ test("a healthy app keeps its footprint even with few themes", () => {
   expect(
     isColdStart(facts({ mode: "ios", competitors: [{ name: "X", url: "https://x.com", source: "s", rank: 1 }], themes: [], reviewVolume: 900 })),
   ).toBe(false);
+});
+
+// ---------------------------------------------------------------------------
+// A1 (2026-07-25) — the deep-pass footprint override: a live product wrongly
+// flagged cold-start at facts time (SPA fetch → 0 competitors, timed-out domain
+// age) must be RESCUED by its real ranked-keyword footprint, never handed the
+// pre-launch "waitlist" template. Genuinely pre-launch subjects keep it.
+// ---------------------------------------------------------------------------
+describe("resolveColdStart — deep-pass footprint override (A1)", () => {
+  test("a real ranked-keyword footprint overrides a mis-flagged cold-start (the plausible.io case)", () => {
+    expect(resolveColdStart(true, 1425)).toBe(false); // flagged cold-start, but 1,425 keywords → established
+    expect(resolveColdStart(true, ESTABLISHED_MIN_RANKED_KEYWORDS)).toBe(false); // exactly at the line → established
+  });
+
+  test("a genuinely pre-launch subject (no footprint) stays cold-start", () => {
+    expect(resolveColdStart(true, 0)).toBe(true);
+    expect(resolveColdStart(true, null)).toBe(true);
+    expect(resolveColdStart(true, ESTABLISHED_MIN_RANKED_KEYWORDS - 1)).toBe(true);
+  });
+
+  test("never manufactures cold-start: an established subject stays established regardless of footprint", () => {
+    expect(resolveColdStart(false, 0)).toBe(false);
+    expect(resolveColdStart(false, 5000)).toBe(false);
+  });
+
+  test("isEstablishedByFootprint pins the threshold", () => {
+    expect(ESTABLISHED_MIN_RANKED_KEYWORDS).toBe(25);
+    expect(isEstablishedByFootprint(1425)).toBe(true);
+    expect(isEstablishedByFootprint(24)).toBe(false);
+    expect(isEstablishedByFootprint(null)).toBe(false);
+  });
 });
