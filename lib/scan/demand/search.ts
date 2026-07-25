@@ -16,8 +16,8 @@ import type { DemandHit } from "./types";
 
 /** Recency windows → Google `tbs=qdr:` time filter. Recency is a core signal:
  *  people describing a problem this week matter far more than a 2-year-old thread. */
-export type RecencyWindow = "month" | "year" | "any";
-const QDR: Record<Exclude<RecencyWindow, "any">, string> = { month: "m", year: "y" };
+export type RecencyWindow = "week" | "month" | "year" | "any";
+const QDR: Record<Exclude<RecencyWindow, "any">, string> = { week: "w", month: "m", year: "y" };
 
 /** The DataForSEO `search_param` for a recency window (empty for "any"). */
 export function recencySearchParam(recency: RecencyWindow): string {

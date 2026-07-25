@@ -22,13 +22,16 @@ export function pocketKey(hit: ClassifiedHit): string {
 
 /**
  * Recency multiplier for a hit (0..1). Fresh problem-talk is worth far more than
- * a stale thread. Unknown dates get a mild penalty (could be old) rather than a
- * zero, so dateless-but-relevant hits still surface. PURE.
+ * a stale thread. R1 (2026-07-25): the demand sweep is now restricted to a 1-MONTH
+ * source window, so a DATELESS Reddit hit (DataForSEO SERP returns no timestamp
+ * for ~all Reddit results) is recent BY CONSTRUCTION — treat null as near-fresh
+ * (0.9), not the old accidental mid-rank 0.7 that sat below the 90-180d bucket and
+ * let a dated stale thread outrank a fresh dateless one. PURE.
  */
 export function recencyWeight(publishedAt: string | null, nowMs: number): number {
-  if (!publishedAt) return 0.7;
+  if (!publishedAt) return 0.9;
   const t = Date.parse(publishedAt);
-  if (Number.isNaN(t)) return 0.7;
+  if (Number.isNaN(t)) return 0.9;
   const ageDays = (nowMs - t) / DAY_MS;
   // Recency matters a lot — penalise stale threads hard so fresh problem-talk
   // floats to the top of each pocket (and fresher pockets outrank stale ones).

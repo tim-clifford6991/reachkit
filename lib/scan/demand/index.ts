@@ -89,7 +89,13 @@ export async function discoverDemand(
   const CONCURRENCY = 5;
   for (let i = 0; i < labeled.length; i += CONCURRENCY) {
     const chunk = labeled.slice(i, i + CONCURRENCY);
-    const res = await Promise.all(chunk.map(async (lq) => (await searchDemand(lq.query)).map((h) => ({ ...h, theme: lq.theme }))));
+    // R1 (2026-07-25): the demand sweep used to run with NO recency opt, silently
+    // defaulting to the 1-year window — surfacing 5-8-month-old threads. Optimize
+    // for RECENCY: restrict to the last MONTH so "where buyers are ACTIVELY engaging
+    // now" wins. The cache key includes the window, so this won't collide with the
+    // old year-window cache. (Reddit thread dates aren't available server-side —
+    // SERP/DataForSEO approach only — so the source window is the primary lever.)
+    const res = await Promise.all(chunk.map(async (lq) => (await searchDemand(lq.query, { recency: "month" })).map((h) => ({ ...h, theme: lq.theme }))));
     perQuery.push(...res);
   }
   const hits = dedupeHits(perQuery.flat()).slice(0, maxHits);

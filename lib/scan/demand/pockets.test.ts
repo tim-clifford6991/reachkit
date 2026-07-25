@@ -41,8 +41,8 @@ describe("recencyWeight", () => {
     expect(recencyWeight(daysAgo(60), NOW)).toBe(0.85);
     expect(recencyWeight(daysAgo(300), NOW)).toBe(0.35);
     expect(recencyWeight(daysAgo(900), NOW)).toBe(0.05);
-    expect(recencyWeight(null, NOW)).toBe(0.7);
-    expect(recencyWeight("garbage", NOW)).toBe(0.7);
+    expect(recencyWeight(null, NOW)).toBe(0.9); // R1: null = recent (month-windowed source)
+    expect(recencyWeight("garbage", NOW)).toBe(0.9);
   });
 });
 
