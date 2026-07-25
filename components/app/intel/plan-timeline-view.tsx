@@ -142,15 +142,6 @@ export function PlanTimelineBody({ board, synthesis, domain, score, today: today
     () => { const picked = new Set(headlineEntries.map((e) => e.key)); return activeEntries.filter((e) => !picked.has(e.key)); },
     [activeEntries, headlineEntries],
   );
-  // Reset the "more" toggle when the founder switches days — adjusted during
-  // render (React's recommended reset-on-prop-change pattern) rather than in
-  // an effect, so there's no extra render pass / no setState-in-effect lint.
-  const [showMore, setShowMore] = useState(false);
-  const [showMoreForDate, setShowMoreForDate] = useState(activeDate);
-  if (showMoreForDate !== activeDate) {
-    setShowMoreForDate(activeDate);
-    setShowMore(false);
-  }
 
   const openCount = days.reduce((s, d) => s + d.entries.length, 0);
   const measured = board.done.filter((a) => a.actualDelta !== null);
@@ -223,23 +214,11 @@ export function PlanTimelineBody({ board, synthesis, domain, score, today: today
                 {activeDate === todayKey && <span style={{ fontFamily: JM, fontSize: 10.5, fontWeight: 700, color: "var(--c-action)" }}>← start here</span>}
               </div>
               {activeEntries.length > 0 ? (
+                // U3 (2026-07-25): show every scheduled task in ONE consistent list —
+                // the horizon-diverse top items first, then the rest, no "+N more"
+                // dropdown (a day's whole plan should be visible at a glance).
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {headlineEntries.map((e) => <PlanEntryCard key={e.key} entry={e} domain={domain} detail={detailFor(e)} />)}
-                  {extraEntries.length > 0 && (
-                    <>
-                      {showMore && extraEntries.map((e) => <PlanEntryCard key={e.key} entry={e} domain={domain} detail={detailFor(e)} />)}
-                      <button
-                        type="button"
-                        onClick={() => setShowMore((s) => !s)}
-                        style={{
-                          alignSelf: "flex-start", background: "none", border: "none", padding: "2px 0",
-                          fontFamily: JM, fontSize: 11, fontWeight: 700, color: "var(--c-action)", cursor: "pointer",
-                        }}
-                      >
-                        {showMore ? "▾ show fewer" : `▸ +${extraEntries.length} more scheduled today`}
-                      </button>
-                    </>
-                  )}
+                  {[...headlineEntries, ...extraEntries].map((e) => <PlanEntryCard key={e.key} entry={e} domain={domain} detail={detailFor(e)} />)}
                 </div>
               ) : (
                 <div style={{

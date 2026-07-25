@@ -350,17 +350,22 @@ export function PlanEntryCard({ entry, domain, detail }: { entry: PlanEntry; dom
         </p>
       )}
       {/* Provenance — every recommendation cites its evidence and opens its full
-          analysis in place. Nothing is a black box, and no extra routes. */}
-      <p style={{ fontFamily: JM, fontSize: 10.5, color: "var(--c-faint)", lineHeight: 1.5, margin: "0 0 8px" }}>
-        {entry.evidence && <>↳ {entry.evidence}{" · "}</>}
+          analysis in place. U1 (2026-07-25): the "details" button is RIGHT-ALIGNED
+          on its own row, so it sits in a CONSTANT position regardless of how long
+          the evidence above it is (it used to trail the evidence text and jump
+          around per card). */}
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, margin: "0 0 8px" }}>
+        <span style={{ fontFamily: JM, fontSize: 10.5, color: "var(--c-faint)", lineHeight: 1.5, minWidth: 0, overflowWrap: "anywhere" }}>
+          {entry.evidence ? <>↳ {entry.evidence}</> : null}
+        </span>
         <button
           type="button"
           onClick={() => setDetailsOpen(true)}
-          style={{ background: "none", border: "none", padding: 0, fontFamily: JM, fontSize: 10.5, color: "var(--c-action)", cursor: "pointer", fontWeight: 700 }}
+          style={{ flexShrink: 0, marginLeft: "auto", background: "none", border: "none", padding: 0, fontFamily: JM, fontSize: 10.5, color: "var(--c-action)", cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}
         >
           {entry.kind === "post" ? "what to post about →" : "details →"}
         </button>
-      </p>
+      </div>
 
       {executeArea}
 
