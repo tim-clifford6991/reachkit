@@ -97,7 +97,9 @@ export function AddFlow() {
       <div style={{ display: "flex", flexDirection: "column", maxWidth: 640 }}>
         <DashboardScanProgress
           scanId={added.scanId}
-          tier={added.paid ? "full" : "free"}
+          /* Unified onboarding: the add scan is always the fast lightweight pass;
+             the deep pass runs after the competitor pick below. */
+          tier="free"
           host={added.host}
           onFacts={() => setStep("competitors")}
         />
