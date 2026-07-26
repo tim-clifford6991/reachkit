@@ -209,15 +209,20 @@ describe("addTrackedProduct (cap · already-tracked · paused)", () => {
     expect(inserted.scans[0]).toMatchObject({ tier: "free" });
   });
 
-  it("a PAID user gets scan tier=full on product add", async () => {
+  it("a new-app add ALWAYS starts on the lightweight track (tier=free), even for a paid user", async () => {
+    // Unified onboarding (2026-07-26): a fresh add runs the fast lightweight pass;
+    // the deep pass runs AFTER the competitor pick (/api/competitors/select →
+    // ensureDeepScan) on the approved cohort, never inline on an auto set. So a
+    // paid add no longer creates a tier=full scan here.
     const { addTrackedProduct } = await import("./add-product");
     setUser({ tier: "growth", app_ids: [] }); // growth cap = 3, tier !== "free" → active: true
     findAppByUrl.mockResolvedValue(null);
     inserted.scans = []; // Clear before the test
     await expect(addTrackedProduct("u1", "https://x.com/")).resolves.toMatchObject({ appId: expect.any(String) });
-    // Invariant: paid user's scan must be tier=full, never tier=free
     expect(inserted.scans).toHaveLength(1);
-    expect(inserted.scans[0]).toMatchObject({ tier: "full" });
+    expect(inserted.scans[0]).toMatchObject({ tier: "free" });
+    // A fresh add never inline-deepens — the pick does (idempotent path).
+    expect(ensureDeepScan).not.toHaveBeenCalled();
   });
 
   // Finding 3 (code review 2026-07-15): the cap re-read/re-assert (the

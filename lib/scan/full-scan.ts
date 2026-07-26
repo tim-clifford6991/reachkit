@@ -58,6 +58,7 @@ import { parseKeywords } from "@/lib/scan/adapters/keywords";
 import { checkScanCostOverrun, checkAllInCostOverrun, checkUserDailyCostOverrun } from "@/lib/telemetry/pipeline-runs";
 import { emitScanEvent } from "@/lib/scan/progress";
 import { attachMarketAnalysis, writeMarketSnapshot } from "@/lib/scan/market";
+import { getSelectedCompetitors } from "@/lib/scan/competitor-selection";
 import { externalCapBreached } from "@/lib/scan/cost-context";
 import { writeScanScoreSnapshot, rollupScanCost } from "@/lib/scan/scan-telemetry";
 import { countMentions } from "@/lib/scan/competitor-mentions";
@@ -574,7 +575,12 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
       console.warn("[full-scan] external cap breached — skipping market analysis (degraded)");
     }
     if (ctx.mode === "web" && !externalCapBreached()) {
-      const market = await attachMarketAnalysis(ctx.scanId, ctx.storeUrl).catch((e) => {
+      // Unified onboarding (2026-07-26): profile the user's APPROVED competitor
+      // cohort (the pick) rather than re-discovering a 3rd auto set. Empty → the
+      // market pass auto-discovers (the skip fallback). Reuses the free→deepen
+      // path, so this runs post-pick on the cohort the user actually chose.
+      const selectedCohort = await getSelectedCompetitors(ctx.appId).catch(() => [] as string[]);
+      const market = await attachMarketAnalysis(ctx.scanId, ctx.storeUrl, { competitorDomains: selectedCohort }).catch((e) => {
         console.error("[full-scan] market analysis failed (best-effort)", e);
         return null;
       });

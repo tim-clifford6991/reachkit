@@ -10,7 +10,8 @@ import { NextRequest, NextResponse, after } from "next/server";
 import { currentUser } from "@/lib/auth/server";
 import { assertPaid, EntitlementError } from "@/lib/billing/entitlements";
 import { activeAppId } from "@/lib/app/active-app";
-import { costedIntelStep, subjectBrandNamesForApp } from "@/lib/app/latest-scan";
+import { costedIntelStep, subjectBrandNamesForApp, latestScanIdForApp } from "@/lib/app/latest-scan";
+import { ensureDeepScan } from "@/lib/scan/deepen";
 import { serverDb } from "@/lib/db/client";
 import { saveSelectedCompetitors } from "@/lib/scan/competitor-selection";
 import { resolveCompetitorDomain } from "@/lib/scan/competitor-resolve";
@@ -60,6 +61,15 @@ export async function POST(req: NextRequest) {
     if (storeUrl && saved.length > 0) {
       after(async () => {
         try {
+          // Unified onboarding (2026-07-26): the pick DEEPENS the app's lightweight
+          // add-scan on the APPROVED cohort. runFullScan reads getSelectedCompetitors
+          // (saved synchronously above), so the deep report + market are built for the
+          // opponents the user chose — never an auto-discovered set. ensureDeepScan is
+          // idempotent (no-op if already deep) and best-effort.
+          const deepScanId = await latestScanIdForApp(appId);
+          if (deepScanId) {
+            await ensureDeepScan(deepScanId).catch((e) => console.error("[competitors/select] deepen failed (best-effort)", e));
+          }
           // RC1 parity: same subject-brand-name fold-in as /api/app/intel.
           const brandNames = await subjectBrandNamesForApp(appId);
           // costedIntelStep: this pre-compute is the single heaviest interactive

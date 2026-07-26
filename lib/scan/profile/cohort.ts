@@ -58,11 +58,18 @@ export function pruneHuskCompetitors(competitors: DistributionProfile[]): Distri
 
 export async function profileCohort(
   domain: string,
-  opts: { topN?: number; nowMs?: number; maxAgeMs?: number; light?: boolean } = {},
+  opts: { topN?: number; nowMs?: number; maxAgeMs?: number; light?: boolean; competitorDomains?: string[] } = {},
 ): Promise<Cohort> {
   const topN = opts.topN ?? 5;
   const product = await subjectInfo(domain);
-  const competitorDomains = await discoverCompetitorsSmart(domain, product, { topN });
+  // Unified onboarding (2026-07-26): when the user has APPROVED a cohort (the
+  // competitor pick), profile THOSE — never re-discover. This both kills a
+  // redundant 3rd competitor discovery (LLM + SERP + verify, ~15-20s) and makes
+  // the market/gap intel reflect the opponents the user actually chose. Falls
+  // back to auto-discovery only when no cohort was picked (the skip fallback).
+  const competitorDomains = opts.competitorDomains && opts.competitorDomains.length > 0
+    ? opts.competitorDomains.slice(0, topN)
+    : await discoverCompetitorsSmart(domain, product, { topN });
 
   const [self, ...profiled] = await Promise.all([
     // Reddit community (paid SERP) only for the subject; competitors keep free HN.

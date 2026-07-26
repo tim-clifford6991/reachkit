@@ -32,7 +32,7 @@ export interface MarketAnalysis {
 
 export async function runMarketAnalysis(
   domain: string,
-  opts: { topN?: number; queryCap?: number; scanId?: string | null; light?: boolean } = {},
+  opts: { topN?: number; queryCap?: number; scanId?: string | null; light?: boolean; competitorDomains?: string[] } = {},
 ): Promise<MarketAnalysis> {
   // Light (free-tier) pass: top-3 cohort, ETV-only profiles (no Backlinks), and a
   // 2-query demand sweep — keeps the free scan inside its ≤20¢ ceiling.
@@ -40,6 +40,9 @@ export async function runMarketAnalysis(
   const cohort = await profileCohort(domain, {
     topN: opts.topN ?? (light ? 3 : 5),
     light,
+    // The user's approved cohort (unified onboarding) — profile these, not a
+    // freshly re-discovered set.
+    competitorDomains: opts.competitorDomains,
   });
 
   // Demand brief from what the crawl told us the product does.

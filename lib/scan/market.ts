@@ -25,7 +25,7 @@ import { hostname } from "@/lib/scan/url";
 export async function attachMarketAnalysis(
   scanId: string,
   storeUrl: string,
-  opts: { light?: boolean } = {},
+  opts: { light?: boolean; competitorDomains?: string[] } = {},
 ): Promise<MarketAnalysis | null> {
   const light = opts.light ?? false;
   // Full pass: 5 pain queries (not 8). Light pass: runMarketAnalysis caps to 2.
@@ -33,6 +33,9 @@ export async function attachMarketAnalysis(
     scanId,
     queryCap: light ? undefined : 5,
     light,
+    // The user's approved competitor cohort (unified onboarding) — profile these
+    // instead of re-discovering; empty/absent → auto-discover (skip fallback).
+    competitorDomains: opts.competitorDomains,
   });
 
   const db = serverDb();

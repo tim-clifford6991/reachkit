@@ -146,7 +146,9 @@ export async function addTrackedProduct(userId: string, rawUrl: string): Promise
   // linked; the dashboard offers retry (never strand a slot, see startScan).
   let scanId: string | null = null;
   if (plan.kind === "fresh" || plan.kind === "rescan") {
-    scanId = await startScan(appId, paid);
+    // Unified onboarding: a new app starts lightweight; the deep pass runs after
+    // the competitor pick (or skip) on the approved cohort — never inline here.
+    scanId = await startScan(appId);
   } else if (plan.kind === "deepen") {
     scanId = plan.scanId;
     if (paid) await safeEnsureDeepScan(plan.scanId, "deepen"); // flips tier→full, emits scan/deepen
@@ -162,9 +164,18 @@ export async function addTrackedProduct(userId: string, rawUrl: string): Promise
   return { appId, scanId };
 }
 
-/** Insert a scan row at the viewer's tier and kick the pipeline. Mirrors /api/scan. */
-async function startScan(appId: string, paid: boolean): Promise<string | null> {
-  const tier: "free" | "full" = paid ? "full" : "free";
+/**
+ * Insert a scan row and kick the pipeline. Unified onboarding (2026-07-26): a NEW
+ * app ALWAYS starts on the fast lightweight track (tier="free": collect + findings
+ * + free-report → score + basic report in ~25s), regardless of the viewer's plan.
+ * The heavy deep pass (synth/actions/market) runs AFTER the competitor pick, on the
+ * user's APPROVED cohort — triggered by `/api/competitors/select` (pick) or the
+ * skip fallback — so we never spend the deep pass on auto-discovered competitors
+ * the user would just replace. `ensureDeepScan` (the same free→paid deepen path)
+ * does the rest.
+ */
+async function startScan(appId: string): Promise<string | null> {
+  const tier = "free" as const;
   const scan = await serverDb().from("scans").insert({ app_id: appId, status: "queued", tier }).select("id").single();
   if (scan.error || !scan.data) {
     console.error("[add-product] scan row insert failed", scan.error?.message);
