@@ -355,12 +355,29 @@ export async function runCriticGate(
   const rejected: Array<{ title: string; failedRules: string[] }> = [];
   let totalRejections = 0;
 
-  for (const card of actions) {
-    const { outcome, card: finalCard, failedRules } = await criticGateCard(ctx, card, 3, opts.skipLlm ?? false);
+  // Cards are INDEPENDENT (each `criticGateCard` reads only its own card), so run
+  // them in bounded-concurrency batches instead of the old serial loop — it was
+  // the dominant deep-scan cost (~15-20s: up to 3 sequential Sonnet calls PER
+  // card, ~10-18 cards, all serial). Batching to 6 collapses that to a few
+  // parallel rounds while staying under Anthropic rate limits. Input order is
+  // preserved (results gathered in order) so the plan stays deterministic; the
+  // post-loop `enforceSourceDiversity` still sees the full set. (B1, 2026-07-26.)
+  const CRITIC_CONCURRENCY = 6;
+  const results: Array<{ outcome: "pass" | "downgrade" | "drop"; card: ActionCard; failedRules: string[]; orig: ActionCard }> = [];
+  for (let i = 0; i < actions.length; i += CRITIC_CONCURRENCY) {
+    const batch = actions.slice(i, i + CRITIC_CONCURRENCY);
+    const batchResults = await Promise.all(
+      batch.map((card) =>
+        criticGateCard(ctx, card, 3, opts.skipLlm ?? false).then((r) => ({ ...r, orig: card })),
+      ),
+    );
+    results.push(...batchResults);
+  }
 
+  for (const { outcome, card: finalCard, failedRules, orig } of results) {
     if (outcome === "drop") {
       totalRejections++;
-      rejected.push({ title: card.title, failedRules });
+      rejected.push({ title: orig.title, failedRules });
     } else {
       // "pass" or "downgrade" — include in passing set
       passed.push(finalCard);
