@@ -59,9 +59,12 @@ export function buildDashboardHeroProps(input: {
   const rollup = pillarRollupFromRegistry(regFull, input.scoreBreakdown);
 
   const searchPresence = input.reportPayload?.searchVisibility?.score ?? null;
+  // v6 findability blend — floor search presence by the raw ranked-keyword
+  // footprint (invariant #1). Same keywordsRanked the persisted score used.
+  const keywordsRanked = input.reportPayload?.searchVisibility?.keywordsRanked ?? null;
   const score = reg
     ? searchPresence != null
-      ? discoverabilityScore(reg.total, searchPresence)
+      ? discoverabilityScore(reg.total, searchPresence, keywordsRanked)
       : reg.total
     : input.scoreTotal;
 

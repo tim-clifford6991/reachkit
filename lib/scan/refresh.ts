@@ -672,8 +672,11 @@ async function writeScoreSnapshot(
   // v5: reuse the persisted search-presence score so the weekly point lands on the
   // unified Discoverability scale (not the on-page-only headline).
   const { data: rpRow } = await db.from("scans").select("report_payload").eq("id", ctx.scanId).maybeSingle();
-  const searchPresence = (rpRow?.report_payload as { searchVisibility?: { score?: number } } | null)?.searchVisibility?.score ?? null;
-  const headline = unifiedHeadline(headlineFromRows(ctx.mode, score, rows), searchPresence);
+  const persistedSv = (rpRow?.report_payload as { searchVisibility?: { score?: number; keywordsRanked?: number } } | null)?.searchVisibility ?? null;
+  const searchPresence = persistedSv?.score ?? null;
+  // v6 findability blend: reuse the persisted footprint so the recomputed trend
+  // point stays on the same scale the scan persisted (invariant #1).
+  const headline = unifiedHeadline(headlineFromRows(ctx.mode, score, rows), searchPresence, persistedSv?.keywordsRanked ?? null);
 
   const { error } = await db.from("score_snapshots").insert({
     app_id: ctx.appId,

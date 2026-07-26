@@ -216,7 +216,9 @@ export async function runFreeReport(ctx: ScanContext, facts: PreliminaryFacts): 
   // scores low. The two drivers are carried on `searchVisibility` for the hero.
   if (ctx.mode === "web" && reg.assessed.length > 0 && searchVisibility) {
     searchVisibility.onPageReadiness = reg.total;
-    score = { ...score, total: unifiedDiscoverability(reg.total, searchVisibility.score) };
+    // v6 findability blend (keywordsRanked floors search presence) — identical
+    // free↔paid because keywordsRanked is the same free-computed footprint.
+    score = { ...score, total: unifiedDiscoverability(reg.total, searchVisibility.score, searchVisibility.keywordsRanked ?? null) };
     scoreVersion = DISCOVERABILITY_SCORE_VERSION;
   }
 

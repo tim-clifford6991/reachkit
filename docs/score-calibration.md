@@ -125,3 +125,51 @@ cohort labels aren't meaningful there).
   `lib/scan/signals.ts` / `lib/scan/compute-signals.ts`, and the unit tests in
   `lib/scan/signals.test.ts` / `lib/scan/compute-signals.test.ts` together, so this
   doc never drifts from the code it describes.
+
+## v6 — the findability blend (2026-07-26, owner-approved)
+
+The C3 pass above tightened the *content* signals (the false-**high** direction). v6
+addresses the false-**low** direction, which the report-corpus capture (Phase D)
+proved was the dominant live failure and the launch-credibility killer:
+
+| site | keywords ranked | on-page | search-pres | v5 total | band |
+|---|--:|--:|--:|--:|---|
+| x.com | 15,060,115 | 20 | 0 | **4** | Invisible 🔴 |
+| getapp.com | 120,578 | — | 0 | **32** | Hard 🔴 |
+| savvycal.com | 32,324 | 48 | 0 | **7** | Invisible 🔴 |
+| resend.com | 50 | 90 | 81 | 85 | Highly disc ✅ |
+| reachkit.app | 0 | 89 | 0 | 9 | Invisible ✅ (unlaunched) |
+
+`searchVisibility.score` (search presence) is the CATEGORY-CLASSIFIED presence.
+When the frozen classifier can't recover a site's category (x.com's brand is
+unrecoverable from a garbage SPA fetch; a broken fetch starves the vocabulary) it
+reads ~0 — and because the unified score is a **geometric mean**, a zero collapses
+the WHOLE score. A household-name site ranking for 15M keywords reading "Invisible
+(4/100)" destroys trust in the number at first impression.
+
+**The fix (invariant-#1-safe):** floor search presence by the RAW ranked-keyword
+footprint. `searchEffective = max(searchPresence, findabilityFloor(keywordsRanked))`,
+where `findabilityFloor = clamp(0,100, round(14·log₁₀(keywordsRanked)))` (0 ranked → 0;
+~350 → 36; ~32k → 63; 15M → 100). `keywordsRanked` is a raw count from the same
+`ranked_keywords` call — **NOT** the frozen `classify`/`computeSearchVisibility` — so
+the blend never touches the classifier (invariant #1 hard boundary holds), and because
+`keywordsRanked` is identical free↔paid, the number STILL never moves on upgrade.
+
+Owner-approved targets, recomputed under v6: x.com 4→~45 (Hard, capped by its SPA-garbage
+on-page 20), savvycal 7→~55 (Fair), getapp 32→~61 (Fair), resend 85 unchanged, reachkit.app
+~9 unchanged (a genuinely footprint-less site correctly STAYS Invisible — the blend only
+lifts sites that demonstrably rank).
+
+`findabilityFloor` + the blend live in `lib/scan/registry-score.ts`
+(`DISCOVERABILITY_SCORE_VERSION = 6`). **Enforced** by `score-calibration.corpus.test.ts`
+(band separation over the real captured footprints — no false-low for a broadly-ranking
+site, no false-high for the footprint-less; mutation-proven), turning the previously-
+UNENFORCED "one red rule" into a machine check for the false-low half.
+
+**Still open (deferred):** the false-HIGH half — a tidy-but-thin page inflating on-page
+readiness (trustmrr on-page 98 on a thin directory), and SPA-fetch→SEO=0 spurious on-page
+lows. That's an on-page-curve recalibration, a separate Phase-D follow-up.
+
+**NOT yet live-validated:** v6 is landed under the corpus gate but a real re-scan across
+archetypes must confirm it on real adapters before it's fully trusted (fixtures mask
+real-adapter footprints — the standing "always live-test" rule).

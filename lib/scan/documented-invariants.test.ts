@@ -30,13 +30,14 @@ describe("documented invariants (keep docs in sync when these change)", () => {
     expect(HEADLINE_SCORE_VERSION).toBe(4);
   });
 
-  it("unified Discoverability Score model is v5 — geomean(on-page, search) (CLAUDE.md invariant #1)", () => {
-    expect(DISCOVERABILITY_SCORE_VERSION).toBe(5);
+  it("unified Discoverability Score model is v6 — geomean(on-page, search) + findability blend (CLAUDE.md invariant #1)", () => {
+    expect(DISCOVERABILITY_SCORE_VERSION).toBe(6);
   });
 
   it("discoverabilityScore is the geometric mean of its two drivers (never above either alone)", () => {
     // Geometric mean: √(onPage × search). BOTH must be strong. A flawless page
     // nobody finds (98 × 4) reads low; equal drivers return that same value.
+    // (No keywordsRanked passed → no findability floor, v5 behavior preserved.)
     expect(discoverabilityScore(98, 4)).toBe(Math.round(Math.sqrt(98 * 4))); // 20
     expect(discoverabilityScore(80, 80)).toBe(80);
     expect(discoverabilityScore(100, 100)).toBe(100);
@@ -44,6 +45,18 @@ describe("documented invariants (keep docs in sync when these change)", () => {
     expect(discoverabilityScore(100, 0)).toBe(10);
     // the mean can never exceed the weaker driver's ceiling by much: it's ≤ max.
     expect(discoverabilityScore(98, 4)).toBeLessThan(98);
+  });
+
+  it("v6 findability blend: a broadly-ranking site can't read Invisible on a classifier miss, but a footprint-less one stays low (CLAUDE.md invariant #1)", () => {
+    // x.com class: onPage 20, searchPresence 0, but 15M keywords ranked → the
+    // findability floor lifts it out of "Invisible" (4 → ~45). The floor is the
+    // RAW footprint, not the frozen classifier — so invariant #1 (free↔paid
+    // stability) holds because keywordsRanked is identical free↔paid.
+    expect(discoverabilityScore(20, 0, 15_060_115)).toBeGreaterThanOrEqual(40);
+    // A genuinely footprint-less site (0 ranked) keeps floor 0 → stays low.
+    expect(discoverabilityScore(89, 0, 0)).toBe(discoverabilityScore(89, 0));
+    // Passing a footprint never LOWERS the score (max(searchPresence, floor)).
+    expect(discoverabilityScore(90, 81, 50)).toBe(discoverabilityScore(90, 81));
   });
 
   it("the fixed on-site headline basis is exactly the 8 HTML signals (CLAUDE.md invariant #1)", () => {

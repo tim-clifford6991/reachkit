@@ -749,7 +749,10 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
             ? persistedSv
             : await gatherFreeSearchVisibility(ctx.storeUrl, seedText, catSeeds, marketTierSeeds, brandNames, categoryNicheSeeds).catch(() => null);
           if (sv) sv.onPageReadiness = head.total;
-          const unified = unifiedDiscoverability(head.total, sv?.score ?? 0);
+          // v6 findability blend: floor search presence by the raw ranked-keyword
+          // footprint so a broadly-ranking site can't read "Invisible" on a
+          // classifier miss (invariant #1).
+          const unified = unifiedDiscoverability(head.total, sv?.score ?? 0, sv?.keywordsRanked ?? null);
           await db
             .from("scans")
             .update({

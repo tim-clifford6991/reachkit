@@ -7,6 +7,7 @@ import {
   marketPositionScore,
   unifiedHeadline,
   discoverabilityScore,
+  findabilityFloor,
   FIXED_BASIS_SIGNAL_KEYS,
   HEADLINE_SCORE_VERSION,
   DISCOVERABILITY_SCORE_VERSION,
@@ -110,7 +111,7 @@ describe("headlineFromRows", () => {
   });
 });
 
-describe("unifiedHeadline (v5 — the Discoverability Score shown to the user)", () => {
+describe("unifiedHeadline (v6 — the Discoverability Score shown to the user)", () => {
   const v1 = { total: 18, breakdown: { content: 0, outreach: 0, seo: 40 } };
 
   it("combines the on-page headline with search presence into the geomean (version 5)", () => {
@@ -135,6 +136,52 @@ describe("unifiedHeadline (v5 — the Discoverability Score shown to the user)",
     expect(unifiedHeadline(app, 30)).toEqual(app); // v1 never unified
     const web = headlineFromRows("web", v1, FIXED_ROWS);
     expect(unifiedHeadline(web, null)).toEqual(web); // no persisted search presence → on-page only
+  });
+
+  // v6 (2026-07-26): the findability blend. keywordsRanked floors search presence
+  // so a broadly-ranking site can't read "Invisible" on a classifier miss.
+  it("v6: floors search presence by the raw ranked-keyword footprint (x.com class)", () => {
+    const onPage = headlineFromRows("web", v1, FIXED_ROWS);
+    // With a 0 search presence but a huge footprint, the blended score is much
+    // higher than the un-blended (searchPresence-only) score.
+    const blended = unifiedHeadline(onPage, 0, 15_060_115).total;
+    const unblended = unifiedHeadline(onPage, 0).total;
+    expect(blended).toBeGreaterThan(unblended);
+    expect(blended).toBe(discoverabilityScore(onPage.total, 0, 15_060_115));
+  });
+
+  it("v6: a footprint-less site (0 ranked) is unchanged by the blend — stays low", () => {
+    const onPage = headlineFromRows("web", v1, FIXED_ROWS);
+    expect(unifiedHeadline(onPage, 0, 0).total).toBe(unifiedHeadline(onPage, 0).total);
+  });
+
+  it("v6 stays stable free↔paid: same footprint → same blended score (invariant #1)", () => {
+    // keywordsRanked is the SAME free-computed footprint on both tiers (the deepen
+    // reuses the persisted free searchVisibility), so the blend can't move the
+    // number on upgrade — the whole point of the v6 boundary.
+    const freeOnPage = headlineFromRows("web", v1, FIXED_ROWS);
+    const paidOnPage = headlineFromRows("web", v1, [...FIXED_ROWS, ...DEEP_ROWS]);
+    expect(unifiedHeadline(paidOnPage, 0, 32_324).total).toBe(unifiedHeadline(freeOnPage, 0, 32_324).total);
+  });
+});
+
+describe("findabilityFloor (v6 — raw footprint → search-presence floor)", () => {
+  it("is 0 for a footprint-less site and monotonic in keywordsRanked", () => {
+    expect(findabilityFloor(0)).toBe(0);
+    expect(findabilityFloor(null)).toBe(0);
+    expect(findabilityFloor(undefined)).toBe(0);
+    // log-scale, monotonic non-decreasing.
+    expect(findabilityFloor(346)).toBeLessThan(findabilityFloor(32_324));
+    expect(findabilityFloor(32_324)).toBeLessThan(findabilityFloor(15_060_115));
+  });
+  it("saturates at 100 for a mega-footprint and never exceeds it", () => {
+    expect(findabilityFloor(15_060_115)).toBe(100);
+    expect(findabilityFloor(Number.MAX_SAFE_INTEGER)).toBe(100);
+  });
+  it("hits the owner-approved calibration anchors (2026-07-26)", () => {
+    // These are the corpus targets the blend was calibrated to.
+    expect(findabilityFloor(32_324)).toBeGreaterThanOrEqual(60); // savvycal → Fair
+    expect(findabilityFloor(120_578)).toBeGreaterThanOrEqual(68); // getapp → Fair
   });
 });
 

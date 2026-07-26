@@ -42,18 +42,60 @@ export const HEADLINE_SCORE_VERSION = 4;
  * beneath the gauge. Off-site cohort strength stays the separate
  * `marketPositionScore` grade. See CLAUDE.md invariant #1 + docs/architecture.md.
  */
-export const DISCOVERABILITY_SCORE_VERSION = 5;
+/**
+ * v6 (2026-07-26): the FINDABILITY BLEND. `searchPresence` (`sv.score`) is the
+ * CATEGORY-CLASSIFIED presence — for a site whose category the classifier can't
+ * recover (x.com; a broken SPA fetch that starves the classifier) it reads ~0
+ * even though the site ranks for millions of keywords, and the geometric mean
+ * then collapses the WHOLE score to "Invisible" (x.com: 15,060,115 ranked
+ * keywords → 4/100, savvycal 32k → 7, getapp 120k → 32). That is the launch-
+ * credibility "one red rule": a household-name site scanning "Invisible".
+ *
+ * `keywordsRanked` is a RAW count from the same `ranked_keywords` call — NOT the
+ * frozen category classifier — so blending it in is invariant-#1-safe: it never
+ * touches `classify`/`computeSearchVisibility`, and because keywordsRanked is
+ * identical free↔paid (the deepen reuses the persisted free searchVisibility),
+ * the unified number is STILL identical free↔paid, never moving on upgrade. We
+ * floor search presence by a scale-invariant findability curve so a site that
+ * demonstrably ranks broadly cannot read "Invisible", while a genuinely
+ * footprint-less site (0 ranked → floor 0) stays low (reachkit.app, unlaunched,
+ * correctly stays ~9). Owner-approved targets (2026-07-26): x.com 4→~45,
+ * savvycal 7→~55, getapp 32→~61, resend 85 unchanged, reachkit.app ~9 unchanged.
+ */
+export const DISCOVERABILITY_SCORE_VERSION = 6;
+
+/**
+ * Findability floor from the raw ranked-keyword footprint (0..100). 0 ranked → 0
+ * (a footprint-less site stays low, so a genuinely unlaunched product still reads
+ * Invisible); ~350 → ~36; ~32k → ~63; 15M → 100. Log-scale so it's scale-invariant
+ * across a tiny niche and a mega-site. PURE. Invariant-#1-safe: keywordsRanked is a
+ * raw count, not the frozen category classifier.
+ */
+export function findabilityFloor(keywordsRanked: number | null | undefined): number {
+  const k = keywordsRanked ?? 0;
+  if (!Number.isFinite(k) || k < 1) return 0;
+  return Math.min(100, Math.max(0, Math.round(14 * Math.log10(k))));
+}
 
 /**
  * The unified Discoverability Score: geometric mean of on-page readiness and search
  * presence, both 0–100. Geometric (not arithmetic) so BOTH must be strong — a great
  * page with no search presence, or strong rankings on a broken page, both score low.
  * `searchPresence` is floored at 1 so a well-built but wholly-unfound site reads a
- * low single digit rather than a hard 0 (which looks like an error). PURE.
+ * low single digit rather than a hard 0 (which looks like an error). v6: search
+ * presence is additionally floored by the raw findability footprint
+ * (`findabilityFloor(keywordsRanked)`) so a broadly-ranking site can't read as
+ * search-invisible on a classifier miss — see DISCOVERABILITY_SCORE_VERSION.
+ * `keywordsRanked` omitted (undefined) → no findability floor (v5 behavior). PURE.
  */
-export function discoverabilityScore(onPageReadiness: number, searchPresence: number): number {
+export function discoverabilityScore(
+  onPageReadiness: number,
+  searchPresence: number,
+  keywordsRanked?: number | null,
+): number {
   const onPage = Math.max(0, Math.min(100, onPageReadiness));
-  const search = Math.max(1, Math.min(100, searchPresence));
+  const floored = Math.max(1, Math.min(100, searchPresence));
+  const search = Math.max(floored, findabilityFloor(keywordsRanked));
   return Math.round(Math.sqrt(onPage * search));
 }
 
@@ -143,9 +185,17 @@ export interface Headline {
  * persisted `report_payload.searchVisibility.score` (null on app platforms / legacy
  * scans → falls back to the on-page headline unchanged).
  */
-export function unifiedHeadline(headline: Headline, searchPresence: number | null | undefined): Headline {
+export function unifiedHeadline(
+  headline: Headline,
+  searchPresence: number | null | undefined,
+  keywordsRanked?: number | null,
+): Headline {
   if (headline.version === 1 || searchPresence == null) return headline;
-  return { ...headline, total: discoverabilityScore(headline.total, searchPresence), version: DISCOVERABILITY_SCORE_VERSION };
+  return {
+    ...headline,
+    total: discoverabilityScore(headline.total, searchPresence, keywordsRanked),
+    version: DISCOVERABILITY_SCORE_VERSION,
+  };
 }
 
 /**
