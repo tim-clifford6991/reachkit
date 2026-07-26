@@ -81,7 +81,7 @@ export function BuyerThreadFeed() {
             );
           })}
         </div>
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--c-faint)", flexShrink: 0 }}>{filtered.length} shown · ranked by buyer intent</span>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--c-faint)", flexShrink: 0 }}>{filtered.length} shown · last 30 days · ranked by buyer intent</span>
       </div>
 
       <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 2, maxHeight: 420, overflowY: "auto" }}>

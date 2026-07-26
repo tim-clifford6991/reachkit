@@ -20,8 +20,13 @@ async function hackerNews(url: string): Promise<ThreadActivity | null> {
   if (!id || !/^\d+$/.test(id)) return null;
   const res = await fetchWithTimeout(`https://hacker-news.firebaseio.com/v0/item/${id}.json`, { headers: { accept: "application/json" } }, 6000);
   if (!res.ok) return null;
-  const d = (await res.json()) as { score?: number; descendants?: number } | null;
+  const d = (await res.json()) as { score?: number; descendants?: number; dead?: boolean; deleted?: boolean } | null;
   if (!d || typeof d.score !== "number") return null;
+  // R3 (2026-07-26): a flagged-dead or deleted HN item is not a live thread —
+  // never surface engagement for it (the "dead link" the owner saw). Reddit
+  // liveness is unrecoverable server-side (403, no OAuth), so this guard only
+  // fires for the surfaces whose own API tells us liveness truthfully.
+  if (d.dead === true || d.deleted === true) return null;
   return { score: d.score, comments: typeof d.descendants === "number" ? d.descendants : 0 };
 }
 

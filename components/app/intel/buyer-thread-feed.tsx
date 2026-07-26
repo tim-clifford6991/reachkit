@@ -123,7 +123,12 @@ export function BuyerThreadFeed({ pockets }: { pockets: Pocket[] }): React.JSX.E
           })}
         </div>
         <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--c-faint)", flexShrink: 0 }}>
-          {filtered.length} shown · ranked by buyer intent
+          {/* R2 (2026-07-26): surface R1's real freshness guarantee. The demand
+              sweep is bounded to a 30-day source window (searchDemand recency:
+              "month"), so every surfaced thread is recent by construction — say
+              so, rather than leaving recency an unexplained blank (Reddit dates
+              are unrecoverable server-side, so a per-thread date can't). */}
+          {filtered.length} shown · last 30 days · ranked by buyer intent
         </span>
       </div>
 

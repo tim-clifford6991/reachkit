@@ -29,7 +29,7 @@
   },
   "BuyerThreadFeed": {
     "mirror": "components/app/intel/buyer-thread-feed.tsx",
-    "hash": "c8f10e809650f265"
+    "hash": "328395438aa15e30"
   },
   "ComingSoon": {
     "mirror": "components/sections/coming-soon.tsx",

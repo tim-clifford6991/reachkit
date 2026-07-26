@@ -19,6 +19,12 @@ describe("fetchThreadActivity", () => {
     const a = await fetchThreadActivity("https://news.ycombinator.com/item?id=12345");
     expect(a).toEqual({ score: 128, comments: 33 });
   });
+  it("returns null for a dead/deleted HN item — never surfaces a dead thread (R3)", async () => {
+    vi.stubGlobal("fetch", mockFetch(200, { score: 40, descendants: 5, dead: true }));
+    expect(await fetchThreadActivity("https://news.ycombinator.com/item?id=99")).toBeNull();
+    vi.stubGlobal("fetch", mockFetch(200, { score: 40, descendants: 5, deleted: true }));
+    expect(await fetchThreadActivity("https://news.ycombinator.com/item?id=99")).toBeNull();
+  });
   it("returns null for an unsupported host (never invents)", async () => {
     vi.stubGlobal("fetch", mockFetch(200, {}));
     expect(await fetchThreadActivity("https://quora.com/q/xyz")).toBeNull();
