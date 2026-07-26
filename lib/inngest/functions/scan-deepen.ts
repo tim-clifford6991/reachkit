@@ -16,6 +16,7 @@ import { emitScanEvent } from "@/lib/scan/progress";
 import { hasDeepReport } from "@/lib/scan/deepen";
 import { handleScanPipelineFailure } from "@/lib/scan/terminal-status";
 import { costedStep } from "@/lib/scan/scan-telemetry";
+import { notifyScanReady } from "@/lib/email/notify";
 import type { PreliminaryFacts } from "@/lib/scan/types";
 
 export const scanDeepen = inngest.createFunction(
@@ -84,11 +85,19 @@ export const scanDeepen = inngest.createFunction(
     await step.run("done", async () => {
       await emitScanEvent(scanId, "done", { scanId });
       const db = serverDb();
-      const { error } = await db
+      const { data: doneRow, error } = await db
         .from("scans")
         .update({ status: "done", completed_at: new Date().toISOString() })
-        .eq("id", scanId);
+        .eq("id", scanId)
+        .select("app_id")
+        .maybeSingle();
       if (error) throw error;
+      // "Your report is ready" EMAIL — best-effort + preference-gated inside
+      // notify; a mail failure must never fail the deepen (intake 2026-07-26).
+      const appId = doneRow?.app_id as string | undefined;
+      if (appId) {
+        await notifyScanReady(appId).catch((e) => console.error("[scan-deepen] scan-ready email failed (best-effort)", e));
+      }
     });
 
     return { ok: true };

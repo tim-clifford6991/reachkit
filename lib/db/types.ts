@@ -924,6 +924,7 @@ export type Database = {
           id: string
           onboarded_at: string | null
           onboarding_link_sent_at: string | null
+          email_prefs: Json
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           subscription_status: string | null
@@ -941,6 +942,7 @@ export type Database = {
           id?: string
           onboarded_at?: string | null
           onboarding_link_sent_at?: string | null
+          email_prefs?: Json
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_status?: string | null
@@ -958,6 +960,7 @@ export type Database = {
           id?: string
           onboarded_at?: string | null
           onboarding_link_sent_at?: string | null
+          email_prefs?: Json
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_status?: string | null

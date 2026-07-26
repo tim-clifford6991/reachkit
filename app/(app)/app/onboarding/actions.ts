@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/server";
 import { serverDb } from "@/lib/db/client";
 import { parseOnboardingForm } from "./parse";
+import { notifyWelcome } from "@/lib/email/notify";
 
 /**
  * Persist the profile backfill and mark onboarding complete. Setting
@@ -15,7 +16,13 @@ async function persistOnboarding(formData: FormData): Promise<void> {
 
   const { displayName, goal, icp } = parseOnboardingForm(formData);
 
-  const { error } = await serverDb()
+  const db = serverDb();
+  // Read the prior state so the welcome email fires exactly ONCE — the first
+  // time onboarding completes, not on every re-save of the profile.
+  const { data: before } = await db.from("users").select("onboarded_at").eq("id", user.id).maybeSingle();
+  const firstCompletion = before?.onboarded_at == null;
+
+  const { error } = await db
     .from("users")
     .update({
       display_name: displayName || null,
@@ -28,6 +35,11 @@ async function persistOnboarding(formData: FormData): Promise<void> {
   if (error) {
     throw new Error(`saveOnboarding: failed to update user ${user.id}: ${error.message}`);
   }
+
+  // Welcome email — best-effort, once, after the account is set up. The magic
+  // link (transactional) already went out at provision; this is the warmer
+  // "here's your first week" follow-up on first login.
+  if (firstCompletion) await notifyWelcome(user.id);
 }
 
 /** Legacy full-page variant: persists, then navigates to the app. */

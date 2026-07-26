@@ -10,6 +10,7 @@ import { entitlementsFor } from "@/lib/billing/entitlements";
 import { activeAppId } from "@/lib/app/active-app";
 import { serverDb } from "@/lib/db/client";
 import { SettingsMain, type TrackedProduct } from "@/components/app/captured/settings-main";
+import { DEFAULT_ON, shouldSendEmail, type EmailType } from "@/lib/email/prefs";
 import { SettingsSkeleton } from "@/components/app/captured/skeletons";
 import { buildMetadata } from "@/lib/seo";
 
@@ -75,6 +76,13 @@ async function SettingsContent() {
     }
   }
 
+  // Resolve the user's email preferences (defaults applied) for the toggles.
+  const { data: prefRow } = await serverDb().from("users").select("email_prefs").eq("id", viewer.user.id).maybeSingle();
+  const rawPrefs = (prefRow?.email_prefs as Record<string, unknown> | null) ?? null;
+  const emailPrefs = Object.fromEntries(
+    (Object.keys(DEFAULT_ON) as EmailType[]).map((t) => [t, shouldSendEmail(rawPrefs, t)]),
+  ) as Record<EmailType, boolean>;
+
   return (
     <SettingsMain
       planTitle={plan.title}
@@ -83,6 +91,7 @@ async function SettingsContent() {
       upgradePlan={plan.upgradePlan}
       isPaid={ent.active}
       products={products}
+      emailPrefs={emailPrefs}
     />
   );
 }

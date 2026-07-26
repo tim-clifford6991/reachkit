@@ -138,13 +138,19 @@ export async function provisionCheckoutUser({
   // `email` is always present on the payment-first shape (the only one that
   // opts into a link); the legacy shape resolves by id and passes false.
   if (sendMagicLink && !linkAlreadySent && email) {
-    await sendOnboardingMagicLink(email);
-    // Record the send BEFORE the next delivery can race us to it.
-    const { error } = await db
-      .from("users")
-      .update({ onboarding_link_sent_at: new Date().toISOString() })
-      .eq("id", userId);
-    if (error) console.error("[provision] failed to record onboarding_link_sent_at", error.message);
+    const sent = await sendOnboardingMagicLink(email);
+    // Record the send ONLY on confirmed delivery — a swallowed Resend failure
+    // must NOT be recorded as sent (that stranded a paying user with no login
+    // link and no retry). On failure the column stays null, so the next Stripe
+    // webhook retry re-runs this and re-attempts delivery. Record BEFORE the
+    // next delivery can race us to it.
+    if (sent) {
+      const { error } = await db
+        .from("users")
+        .update({ onboarding_link_sent_at: new Date().toISOString() })
+        .eq("id", userId);
+      if (error) console.error("[provision] failed to record onboarding_link_sent_at", error.message);
+    }
   }
 
   return userId;
@@ -205,7 +211,7 @@ async function deepenOwnedScans(userId: string): Promise<void> {
  * the time this runs, and the user can re-request the link from /welcome — so a
  * transient generateLink/Resend failure must not fail the Stripe webhook.
  */
-export async function sendOnboardingMagicLink(email: string): Promise<void> {
+export async function sendOnboardingMagicLink(email: string): Promise<boolean> {
   try {
     const db = serverDb();
     const { data, error } = await db.auth.admin.generateLink({
@@ -217,15 +223,19 @@ export async function sendOnboardingMagicLink(email: string): Promise<void> {
     const tokenHash = data?.properties?.hashed_token;
     if (error || !tokenHash) {
       console.error("[provision] generateLink failed", error?.message);
-      return;
+      return false;
     }
 
     const link =
       `${env.appUrl}/auth/confirm?token_hash=${encodeURIComponent(tokenHash)}` +
       `&type=magiclink&next=${encodeURIComponent("/welcome")}`;
 
+    // Throws on a Resend error — so a failed send returns false and is NOT
+    // recorded as sent, letting the Stripe webhook retry re-deliver it.
     await sendMagicLinkEmail({ to: email, link });
+    return true;
   } catch (e) {
     console.error("[provision] sendOnboardingMagicLink failed (best-effort)", e);
+    return false;
   }
 }

@@ -172,3 +172,23 @@ export async function removeProduct(appId: string): Promise<RemoveProductResult>
   revalidatePath("/app/dashboard");
   return { ok: true };
 }
+
+// ---------------------------------------------------------------------------
+// Email preferences (intake 2026-07-26-email-system) — toggle a single email
+// type on/off. Persists into users.email_prefs; unknown types are rejected.
+// ---------------------------------------------------------------------------
+import { serverDb } from "@/lib/db/client";
+import { DEFAULT_ON, type EmailType } from "@/lib/email/prefs";
+import type { Json } from "@/lib/db/types";
+
+export async function setEmailPref(type: string, enabled: boolean): Promise<{ ok: boolean; error?: string }> {
+  if (!(type in DEFAULT_ON)) return { ok: false, error: "unknown email type" };
+  const { user } = await requireUser();
+  const db = serverDb();
+  const { data } = await db.from("users").select("email_prefs").eq("id", user.id).maybeSingle();
+  const prefs = { ...((data?.email_prefs as Record<string, unknown> | null) ?? {}), [type as EmailType]: enabled };
+  const { error } = await db.from("users").update({ email_prefs: prefs as Json }).eq("id", user.id);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/app/settings");
+  return { ok: true };
+}

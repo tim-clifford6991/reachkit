@@ -21,6 +21,7 @@
 import { inngest } from "@/lib/inngest/client";
 import { serverDb } from "@/lib/db/client";
 import { env } from "@/lib/config/env";
+import { notifyWeeklyDigest } from "@/lib/email/notify";
 import { captureServerException } from "@/lib/analytics-server";
 import { ScanBudget } from "@/lib/tools/registry";
 import { runWeeklyRefresh } from "@/lib/scan/refresh";
@@ -174,6 +175,14 @@ async function refreshOneApp(appId: string): Promise<AppRefreshSummary> {
     newActions: result.newActions,
     alerts: result.alerts,
   });
+
+  // The weekly digest EMAIL — the retention last-mile (intake 2026-07-26).
+  // Best-effort + preference-gated inside notify; never breaks the refresh.
+  await notifyWeeklyDigest(appId, {
+    weekOf: result.weekOf,
+    changes: result.changes.map((c) => c.summary),
+    alerts: result.alerts.map((a) => a.message),
+  }).catch((e) => console.error("[weekly-refresh] digest email failed (best-effort)", e));
 
   return {
     appId,

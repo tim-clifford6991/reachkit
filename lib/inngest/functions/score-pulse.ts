@@ -12,6 +12,7 @@
 
 import { inngest } from "@/lib/inngest/client";
 import { serverDb } from "@/lib/db/client";
+import { notifyScoreAlert } from "@/lib/email/notify";
 import { env } from "@/lib/config/env";
 import { runScorePulse } from "@/lib/scan/pulse";
 import { captureServerException } from "@/lib/analytics-server";
@@ -54,6 +55,11 @@ async function pulseOneApp(appId: string): Promise<{ appId: string; skipped: boo
   if (recent) return { appId, skipped: true };
 
   const result = await runScorePulse(appId);
+  // Midweek score-alert EMAIL — notify only fires on a meaningful move (its
+  // internal threshold), is preference-gated, and never throws (intake 2026-07-26).
+  if (!result.skipped) {
+    await notifyScoreAlert(appId).catch((e) => console.error("[score-pulse] alert email failed (best-effort)", e));
+  }
   return { appId, ...result };
 }
 

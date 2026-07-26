@@ -9,6 +9,8 @@ import { ProductUrlForm } from "./settings-product-url-form";
 import { AddProductForm } from "./settings-add-product-form";
 import { RemoveProductButton } from "./settings-remove-product-button";
 import { AccountDeleteLazy } from "./account-delete-lazy";
+import { EmailPrefs } from "./settings-email-prefs";
+import type { EmailType } from "@/lib/email/prefs";
 
 const SG = "Space Grotesk", JM = "JetBrains Mono", PJ = "Plus Jakarta Sans";
 
@@ -34,6 +36,8 @@ export interface SettingsMainProps {
   isPaid: boolean;
   /** Every tracked product. Empty → the zero-app add form. */
   products: TrackedProduct[];
+  /** Resolved email on/off per gated type (defaults already applied). */
+  emailPrefs: Record<EmailType, boolean>;
 }
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
@@ -112,11 +116,10 @@ export function SettingsMain(p: SettingsMainProps) {
       <Card title="Scoring">
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {[
-            ["Score model", <span key="v" style={{ fontFamily: JM, fontWeight: 600 }}>v5 · geometric mean</span>],
+            ["Score model", <span key="v" style={{ fontFamily: JM, fontWeight: 600 }}>v6 · geometric mean + findability</span>],
             ["On-page readiness", <span key="s" style={{ fontFamily: JM, fontWeight: 600 }}>8 signals</span>],
             ["Search presence", <span key="p" style={{ fontFamily: JM, fontWeight: 600 }}>live rankings</span>],
             ["Weekly auto-scan", <span key="w" style={{ fontWeight: 600, color: "#1F9D5B" }}>On</span>],
-            ["Email score digest", <span key="e" style={{ fontWeight: 600, color: "#1F9D5B" }}>On</span>],
           ].map(([label, val]) => (
             <div key={label as string} style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5 }}>
               <span style={{ color: "var(--c-muted)" }}>{label}</span>
@@ -124,6 +127,9 @@ export function SettingsMain(p: SettingsMainProps) {
             </div>
           ))}
         </div>
+      </Card>
+      <Card title="Email notifications">
+        <EmailPrefs resolved={p.emailPrefs} />
       </Card>
       <Card title="Account">
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>

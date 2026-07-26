@@ -3,6 +3,7 @@ import { serverDb } from "@/lib/db/client";
 import { priceMap, stripeClient } from "@/lib/billing/stripe";
 import { tierForPriceId } from "@/lib/billing/tiers";
 import { ensureAuthUser, provisionCheckoutUser } from "@/lib/billing/provision";
+import { notifyCanceled } from "@/lib/email/notify";
 import { captureServerEvent } from "@/lib/analytics-server";
 import type { Database } from "@/lib/db/types";
 
@@ -202,6 +203,21 @@ async function onSubscriptionDeleted(sub: Stripe.Subscription): Promise<void> {
   };
 
   await updateUserByCustomer(customer, update, "customer.subscription.deleted");
+
+  // "Sorry to see you go" EMAIL — best-effort + preference-gated; a mail failure
+  // must never fail the webhook / trigger a Stripe retry (intake 2026-07-26).
+  try {
+    const { data: user } = await serverDb()
+      .from("users")
+      .select("email, email_prefs")
+      .eq("stripe_customer_id", customer)
+      .maybeSingle();
+    if (user?.email) {
+      await notifyCanceled(user.email as string, (user.email_prefs as Record<string, unknown> | null) ?? null);
+    }
+  } catch (e) {
+    console.error("[stripe webhook] canceled email failed (best-effort)", e);
+  }
 }
 
 // ---------------------------------------------------------------------------
