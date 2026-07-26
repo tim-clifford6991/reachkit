@@ -115,6 +115,20 @@ const CAPABILITY_LEDGER: Capability[] = [
     consumer: "lib/scan/collect.ts",
   },
   {
+    // A2 (2026-07-26): the ONE synthesis → tracked-plan seeder. Turns a cohort's
+    // contentPlan/distributionPlan into persisted actions (dedupe + rank + cap +
+    // honest impact + §11 no-auto). Both surfaces route through it — the manual
+    // "Generate more actions" button (/api/app/plan/generate) AND the onboarding
+    // competitor-approval (/api/competitors/select) — so the funnel-grounded plan
+    // feeds the tracked plan through a single path, never a re-fork. The seeder
+    // was extracted FROM the plan/generate route (which had inlined it), so this
+    // entry pins that the extraction can't silently be re-inlined on a 2nd surface.
+    capability: "plan-seeding",
+    canonicalModule: "lib/scan/plan-seed.ts",
+    exports: ["seedPlanFromSynthesis"],
+    consumer: "app/api/app/plan/generate/route.ts",
+  },
+  {
     // Phase B (2026-07-22, D3): the ONE LLM relevance judge. Classifies real
     // keyword strings as category/niche/irrelevant to the subject's business —
     // the structural replacement for the coarse token-overlap relevance that

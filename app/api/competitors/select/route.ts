@@ -16,6 +16,7 @@ import { saveSelectedCompetitors } from "@/lib/scan/competitor-selection";
 import { resolveCompetitorDomain } from "@/lib/scan/competitor-resolve";
 import { normalizeHost } from "@/lib/scan/referral/classify";
 import { gatherSynthesis } from "@/lib/scan/synthesis/synthesize";
+import { seedPlanFromSynthesis } from "@/lib/scan/plan-seed";
 
 export const maxDuration = 240;
 
@@ -63,9 +64,22 @@ export async function POST(req: NextRequest) {
           const brandNames = await subjectBrandNamesForApp(appId);
           // costedIntelStep: this pre-compute is the single heaviest interactive
           // spend point (~€1 cold) — attribute it (CLAUDE.md invariant #2).
-          await costedIntelStep(appId, "select", () =>
+          const synth = await costedIntelStep(appId, "select", () =>
             gatherSynthesis(storeUrl, { competitorDomains: saved, brandNames }),
           );
+          // A2 (2026-07-26): seed the tracked plan from the APPROVED-cohort
+          // synthesis right here, so the funnel-grounded distribution plan
+          // (channelsMissing/discoveryChannels via synthDistribution) drives the
+          // plan the moment the user approves competitors — never an auto cohort,
+          // never a per-scan funnel gather. ONE shared seeder with the manual
+          // "Generate more" button (dedupe + honest impact + §11 no-auto inside).
+          // Best-effort: a seeding failure never breaks the (already-returned)
+          // select response; the manual button remains a fallback.
+          const seededFor = new Date().toISOString().slice(0, 10);
+          const seeded = await seedPlanFromSynthesis({ appId, synth, scheduledFor: seededFor });
+          if (seeded.length > 0) {
+            console.info(`[competitors/select] seeded ${seeded.length} plan action(s) for app ${appId}`);
+          }
         } catch (e) {
           console.error("[competitors/select] pre-compute failed (best-effort)", e);
         }
