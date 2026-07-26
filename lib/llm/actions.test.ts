@@ -22,6 +22,25 @@ describe("buildActionsPrompt grounding", () => {
     expect(p).toContain("r/productivity");
     expect(p).toMatch(/target/i);
   });
+
+  // A4 (2026-07-26): an established product (real footprint) must be framed for
+  // growth, never pre-launch validation — the fix for a live product (plausible,
+  // 1,425 ranked keywords) getting "ship a waitlist" cards.
+  test("frames an ESTABLISHED footprint for growth, not validation", () => {
+    const base = {
+      storeUrl: "https://plausible.io", positioning: "{}", competitorGap: "{}",
+      keywordData: "{}", findings: "[]", founderVoice: null, today: "2026-07-26",
+      grounding: { competitors: [], communities: [] },
+    };
+    const established = buildActionsPrompt({ ...base, footprint: { keywordsRanked: 1425 } });
+    expect(established).toContain("ESTABLISHED");
+    expect(established).toContain("1,425");
+    expect(established).toMatch(/never pre-launch validation/i);
+
+    // Absent footprint still defaults to established (a scanned live site).
+    const noFootprint = buildActionsPrompt(base);
+    expect(noFootprint).toContain("ESTABLISHED");
+  });
 });
 
 describe("clampEffort", () => {

@@ -482,7 +482,9 @@ export async function runFullScan(ctx: ScanContext, facts: PreliminaryFacts): Pr
     const coldStart = resolveColdStart(facts.coldStart, keywordsRanked);
     const actions = coldStart
       ? await generateColdStartActions(ctx, facts, grounding)
-      : await generateActions(ctx, findings, grounding);
+      // A4: the same footprint A1 used to reject cold-start now frames the
+      // generator toward growth moves (never pre-launch validation).
+      : await generateActions(ctx, findings, grounding, { keywordsRanked });
 
     // 5. Critic Gate v2 → §11 algorithm safety. Cold Start cards are templated
     //    and §11-compliant by construction, so we run the deterministic checks

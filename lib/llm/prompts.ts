@@ -138,7 +138,8 @@ STRICT OUTPUT RULES:
 15. BRAND-AMBIGUITY HARD RULE: generate actions ONLY for the subject product identified in the prompt (by its URL) and described by the fact sheets. NEVER introduce competitors, facts, acquisitions, or claims from outside/training knowledge — especially about other products whose names merely resemble the subject's. If it is not in the fact sheets, do not use it.
 16. GROUNDING: every outreach card MUST set "target" to a REAL venue drawn from the COMMUNITIES list in the prompt — never invent a community. Use the exact label and URL given. If no suitable named venue exists, set target to null and do NOT fabricate one.
 17. Every seo_aso comparison/alternative card MUST name a real competitor from the NAMED COMPETITORS list; if that list is empty, frame the action around the category keyword, not a made-up rival.
-18. "target.channel" must be one of: community, creator, directory, media, podcast, newsletter, partner, x.`;
+18. "target.channel" must be one of: community, creator, directory, media, podcast, newsletter, partner, x.
+19. GROWTH-STAGE HONESTY (A4): the FOOTPRINT block states whether this is an ESTABLISHED product (already ranks for real keywords / has search presence) or a genuine pre-launch one. For an ESTABLISHED product, EVERY card must be a GROWTH move — win the keyword gaps it doesn't yet rank for, pursue the directories/communities/press its competitors are found in, relaunch on surfaces like Product Hunt where apt, deepen pages that under-rank. NEVER recommend pre-launch VALIDATION for an established product: no "ship a waitlist", no "validate demand first", no "decide whether to keep/pivot", no "run a landing-page test to see if anyone wants this". A live product with real users needs distribution and ranking wins, not proof it should exist.`;
 
 export interface ActionsPromptInput {
   storeUrl: string;
@@ -149,12 +150,24 @@ export interface ActionsPromptInput {
   founderVoice: string | null;
   today: string; // ISO date YYYY-MM-DD
   grounding: ActionGrounding;
+  /** A4 (2026-07-26): the subject's real search footprint, so the generator frames
+   *  ESTABLISHED products with growth moves (never pre-launch validation). null =
+   *  unknown → treated as established (a scanned live product is the common case;
+   *  genuine pre-launch products route to the cold-start template, not here). */
+  footprint?: { keywordsRanked: number | null };
 }
 
 export function buildActionsPrompt(input: ActionsPromptInput): string {
   const voiceSection = input.founderVoice
     ? `=== FOUNDER VOICE HINT ===\n${input.founderVoice}\n`
     : `=== FOUNDER VOICE HINT ===\n(none provided — use plain, direct, non-salesy language)\n`;
+
+  // A4: state growth stage explicitly so rule 19 (growth-not-validation) binds.
+  const ranked = input.footprint?.keywordsRanked ?? null;
+  const footprintSection =
+    ranked != null && ranked > 0
+      ? `=== FOOTPRINT (growth stage) ===\nESTABLISHED product — already ranks for ${ranked.toLocaleString()} keyword${ranked === 1 ? "" : "s"} in search. Every card must be a GROWTH move (win gaps, pursue rivals' channels, relaunch where apt) — NEVER pre-launch validation (no waitlist / "validate demand" / "decide whether to pivot").\n`
+      : `=== FOOTPRINT (growth stage) ===\nESTABLISHED product (a live, scanned site). Recommend growth moves — distribution + ranking wins — never pre-launch validation.\n`;
 
   const g = input.grounding;
   const competitorsBlock = g.competitors.length
@@ -189,6 +202,7 @@ ${input.keywordData}
 ${input.findings}
 
 ${groundingSection}
+${footprintSection}
 Today's date: ${input.today}
 
 Return ONLY a JSON array (no markdown, no code fences). Each element must match this shape exactly:

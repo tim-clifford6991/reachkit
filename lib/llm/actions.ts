@@ -253,6 +253,10 @@ export async function generateActions(
   ctx: ScanContext,
   findings: Finding[],
   grounding: ActionGrounding = EMPTY_GROUNDING,
+  // A4 (2026-07-26): the subject's real search footprint (from the free scan's
+  // searchVisibility) so the generator frames ESTABLISHED products with growth
+  // moves, never pre-launch validation. Omitted → treated as established.
+  footprint?: { keywordsRanked: number | null },
 ): Promise<ActionCard[]> {
   // Fixture path — no LLM call, no DB reads
   const _f = fixtures();
@@ -281,6 +285,7 @@ export async function generateActions(
     founderVoice,
     today,
     grounding,
+    footprint,
   });
 
   let text: string;
