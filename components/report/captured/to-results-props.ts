@@ -9,6 +9,7 @@
 import type { ReportPayload } from "@/lib/scan/report";
 import type { ActionCard } from "@/lib/llm/types";
 import { renderableExamples } from "@/lib/scan/explicit-terms";
+import { effectiveSearchPresence } from "@/lib/scan/registry-score";
 import type { ResultsScreenProps, Fix, GapRow } from "./results-screen";
 
 const PILLAR_NOTE = (v: number, isMin: boolean) =>
@@ -221,6 +222,11 @@ export function toResultsProps(
   const searchVisibility = sv
     ? {
         score: sv.score,
+        // v6: the search-presence value the GAUGE actually multiplies (raw score
+        // floored by the raw findability footprint). The driver bar shows THIS so
+        // the two bars reconcile with the gauge — a site ranking for 17k keywords
+        // reads gauge 76 beside "Search presence 59", not a contradictory 0.
+        searchPresenceEffective: effectiveSearchPresence(sv.score, sv.keywordsRanked ?? null),
         onPageReadiness: sv.onPageReadiness ?? report.score.total,
         keywordsRanked: sv.keywordsRanked,
         estMonthlyVisits: sv.estMonthlyVisits,

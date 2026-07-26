@@ -29,6 +29,7 @@ import type { ReportPayload } from "@/lib/scan/report";
 import { redactReportForTier } from "@/lib/billing/entitlements";
 import { tierByPlan } from "@/lib/billing/pricing";
 import { renderableExamples } from "@/lib/scan/explicit-terms";
+import { effectiveSearchPresence } from "@/lib/scan/registry-score";
 
 export interface RubricViolation {
   rule: string;
@@ -197,6 +198,10 @@ export function derivableNumbers(payload: ReportPayload): Map<number, string> {
       (sv.categoryRanked ?? []).filter((r) => typeof r.yourPosition === "number" && r.yourPosition <= 3).length,
     );
     add(Math.max(0, sv.categoryWins - winsShown), 'categoryWins − rendered wins chips — the wins-strip “+N more” disclosure (results-screen.tsx)');
+    // v6: the "Search presence" driver bar shows the EFFECTIVE search presence
+    // (raw score floored by the findability footprint) so it reconciles with the
+    // gauge — effectiveSearchPresence(score, keywordsRanked), to-results-props.ts.
+    add(effectiveSearchPresence(sv.score, sv.keywordsRanked ?? null), "effectiveSearchPresence(score, keywordsRanked) — the v6 search-presence driver bar (to-results-props.ts)");
   }
 
   return out;
@@ -453,11 +458,15 @@ const r5ComparativeCopy: RubricRule = {
     const onPage = sv?.onPageReadiness ?? payload.score.total;
     if (sv) {
       // The driver-summary line names whichever driver is ACTUALLY weaker
-      // (results-screen.tsx `weakerDriver`).
-      const weaker = onPage < sv.score ? "On-page readiness" : "Search presence";
+      // (results-screen.tsx `weakerDriver`). v6: the search-presence bar shows the
+      // EFFECTIVE (findability-blended) value, so the weaker-driver comparison uses
+      // it too — for x.com (on-page 20 vs effective search 100) the gap correctly
+      // flips to "On-page readiness".
+      const effSearch = effectiveSearchPresence(sv.score, sv.keywordsRanked ?? null);
+      const weaker = onPage < effSearch ? "On-page readiness" : "Search presence";
       const stronger = weaker === "Search presence" ? "On-page readiness" : "Search presence";
       if (!text.includes(`${weaker} is your gap.`)) {
-        violations.push({ rule: "R5", message: `driver summary must name the weaker driver — expected "${weaker} is your gap." (on-page ${onPage} vs search ${sv.score})` });
+        violations.push({ rule: "R5", message: `driver summary must name the weaker driver — expected "${weaker} is your gap." (on-page ${onPage} vs effective search ${effSearch})` });
       }
       if (text.includes(`${stronger} is your gap.`)) {
         violations.push({ rule: "R5", message: `"${stronger} is your gap." contradicts the driver bars (on-page ${onPage} vs search ${sv.score})` });

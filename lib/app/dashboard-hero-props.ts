@@ -22,7 +22,7 @@
  */
 
 import { pillarRollupFromRegistry, type ScoreBreakdown } from "@/lib/scan/pillar-scores";
-import { headlineScore, registryScore, discoverabilityScore } from "@/lib/scan/registry-score";
+import { headlineScore, registryScore, discoverabilityScore, effectiveSearchPresence } from "@/lib/scan/registry-score";
 import type { Pillar } from "@/lib/scan/signals";
 import type { ReportPayload } from "@/lib/scan/report";
 
@@ -58,15 +58,20 @@ export function buildDashboardHeroProps(input: {
 
   const rollup = pillarRollupFromRegistry(regFull, input.scoreBreakdown);
 
-  const searchPresence = input.reportPayload?.searchVisibility?.score ?? null;
+  const rawSearchPresence = input.reportPayload?.searchVisibility?.score ?? null;
   // v6 findability blend — floor search presence by the raw ranked-keyword
   // footprint (invariant #1). Same keywordsRanked the persisted score used.
   const keywordsRanked = input.reportPayload?.searchVisibility?.keywordsRanked ?? null;
   const score = reg
-    ? searchPresence != null
-      ? discoverabilityScore(reg.total, searchPresence, keywordsRanked)
+    ? rawSearchPresence != null
+      ? discoverabilityScore(reg.total, rawSearchPresence, keywordsRanked)
       : reg.total
     : input.scoreTotal;
+  // The driver bar shows the EFFECTIVE search presence the gauge multiplies, so
+  // the bar reconciles with the gauge (never gauge 76 beside "Search presence 0").
+  const searchPresence = rawSearchPresence != null
+    ? effectiveSearchPresence(rawSearchPresence, keywordsRanked)
+    : null;
 
   const marketPosition = input.reportPayload?.marketPosition?.total ?? null;
 

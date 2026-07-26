@@ -248,6 +248,10 @@ export interface ResultsScreenProps {
    *  other companies' brand names. Null on paid (uses market position instead). */
   searchVisibility?: {
     score: number;
+    /** v6: the search-presence value the gauge multiplies (raw score floored by the
+     *  findability footprint) — what the "Search presence" driver bar shows so it
+     *  reconciles with the gauge. Optional: legacy payloads fall back to `score`. */
+    searchPresenceEffective?: number;
     /** The on-page readiness driver (v4 headlineScore) — the OTHER half of the
      *  unified Discoverability Score, shown as the second driver bar. */
     onPageReadiness: number;
@@ -433,16 +437,22 @@ export function ResultsScreen(p: ResultsScreenProps) {
                   is WHY the headline is low — no more "98 vs Invisible" whiplash.
                   Paid scans (no free searchVisibility) keep the 3 on-page pillars. */}
               {p.searchVisibility ? (() => {
+                // v6: the "Search presence" bar shows the EFFECTIVE value the gauge
+                // multiplies (raw score floored by the findability footprint), so the
+                // two bars reconcile with the gauge — never gauge 76 beside a
+                // contradictory "Search presence 0" for a site ranking 17k keywords.
+                // `?? score` for legacy payloads that predate searchPresenceEffective.
+                const searchPresenceShown = p.searchVisibility!.searchPresenceEffective ?? p.searchVisibility!.score;
                 const drivers = [
                   { label: "On-page readiness", value: p.searchVisibility!.onPageReadiness, note: "how well your page is built" },
-                  { label: "Search presence", value: p.searchVisibility!.score, note: "how findable you are in search" },
+                  { label: "Search presence", value: searchPresenceShown, note: "how findable you are in search" },
                 ];
                 // Name whichever driver is actually weaker — an unconditional
                 // "Search presence is your gap." contradicts the bars directly
                 // above it whenever on-page readiness is the lower of the two
                 // (MINOR 4: e.g. an established brand with strong search but a
                 // weak page).
-                const weakerDriver = p.searchVisibility!.onPageReadiness < p.searchVisibility!.score
+                const weakerDriver = p.searchVisibility!.onPageReadiness < searchPresenceShown
                   ? "On-page readiness"
                   : "Search presence";
                 return (

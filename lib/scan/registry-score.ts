@@ -94,9 +94,22 @@ export function discoverabilityScore(
   keywordsRanked?: number | null,
 ): number {
   const onPage = Math.max(0, Math.min(100, onPageReadiness));
+  return Math.round(Math.sqrt(onPage * effectiveSearchPresence(searchPresence, keywordsRanked)));
+}
+
+/**
+ * The search-presence value the score ACTUALLY multiplies: the classified
+ * `searchPresence` (floored at 1) raised to the v6 findability floor from the raw
+ * footprint. This is what the "Search presence" DRIVER BAR must display — showing
+ * the raw classified score while the gauge uses this blended value makes the two
+ * bars fail to reconcile with the gauge (a site ranking for 17k keywords rendering
+ * gauge 76 beside "Search presence 0" — geomean(98,0)≠76). The bar is "how
+ * findable you are in search", which the raw footprint measures directly, so the
+ * blended value is the honest one. PURE.
+ */
+export function effectiveSearchPresence(searchPresence: number, keywordsRanked?: number | null): number {
   const floored = Math.max(1, Math.min(100, searchPresence));
-  const search = Math.max(floored, findabilityFloor(keywordsRanked));
-  return Math.round(Math.sqrt(onPage * search));
+  return Math.max(floored, findabilityFloor(keywordsRanked));
 }
 
 export interface RegistryScore {
