@@ -52,8 +52,11 @@ test("non-fixture: emails.send is called with correct from/to/subject/body", asy
   expect(payload?.["from"]).toBe(FROM);
   expect(payload?.["to"]).toBe(OPTS.to);
   expect(payload?.["subject"]).toContain("login link");
+  // Text alternative carries the raw link; HTML carries it in the button href
+  // with the query `&` correctly HTML-escaped to `&amp;` (browsers decode it).
   expect(payload?.["text"]).toContain(OPTS.link);
-  expect(payload?.["html"]).toContain(OPTS.link);
+  expect(payload?.["html"]).toContain("token_hash=abc123");
+  expect(payload?.["html"]).toContain("reachkit-icon-512.png"); // branded shell
 });
 
 // ---------------------------------------------------------------------------

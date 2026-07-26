@@ -1,11 +1,35 @@
 import { Resend } from "resend";
 import { env } from "@/lib/config/env";
 import { fixtures } from "@/lib/scan/fixture-seam";
+import { loginLinkEmail, type BuiltEmail } from "@/lib/email/messages";
 
 const FROM = "ReachKit <reports@reachkit.app>";
 
 export function resendClient() {
   return new Resend(env.resendApiKey);
+}
+
+/**
+ * The ONE send seam every ReachKit email routes through (intake
+ * 2026-07-26-email-system). Takes a `BuiltEmail` (subject/html/text from
+ * `lib/email/messages.ts`, already rendered through the branded shell) and sends
+ * it via Resend. In fixtures/keyless dev it logs instead of sending. Throws on a
+ * Resend error so callers that MUST confirm delivery (see the provision.ts
+ * "recorded-as-sent" fix) can catch it — cron/best-effort callers wrap in try.
+ */
+export async function sendBrandedEmail(to: string, email: BuiltEmail): Promise<void> {
+  if (fixtures()) {
+    console.log("[email:fixture]", email.subject, "→", to);
+    return;
+  }
+  const { error } = await resendClient().emails.send({
+    from: FROM,
+    to,
+    subject: email.subject,
+    html: email.html,
+    text: email.text,
+  });
+  if (error) throw new Error(`Resend error: ${error.message}`);
 }
 
 /**
@@ -26,34 +50,6 @@ export async function sendMagicLinkEmail({
     console.log("[email:fixture] magic-link →", { to, link });
     return;
   }
-
-  const subject = "Your ReachKit login link";
-  const text = [
-    "Welcome to ReachKit — your plan is active.",
-    "",
-    `Click here to log in and open your dashboard: ${link}`,
-    "",
-    "This link signs you in automatically. If you didn't request this, you can ignore this email.",
-    "",
-    "— The ReachKit team",
-  ].join("\n");
-  const html = [
-    `<h2>Welcome to ReachKit</h2>`,
-    `<p>Your plan is active. Click below to log in and open your dashboard.</p>`,
-    `<p><a href="${link}">Log in to ReachKit</a></p>`,
-    `<p>This link signs you in automatically. If you didn't request this, you can ignore this email.</p>`,
-    `<p>— The ReachKit team</p>`,
-  ].join("\n");
-
-  const { error } = await resendClient().emails.send({
-    from: FROM,
-    to,
-    subject,
-    text,
-    html,
-  });
-
-  if (error) {
-    throw new Error(`Resend error: ${error.message}`);
-  }
+  // Branded template (intake 2026-07-26) — same token_hash link, now on-brand.
+  await sendBrandedEmail(to, loginLinkEmail({ link }));
 }
