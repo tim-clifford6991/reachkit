@@ -132,6 +132,19 @@ const schema = z.object({
         });
       }
     }
+    // APP_URL drives Stripe success/cancel URLs AND every magic-link redirect. It
+    // is NOT in PAID_KEYS (it has a localhost DEFAULT for dev), so a prod deploy
+    // that forgets it would silently point checkout + login at localhost and break
+    // BOTH the payment and login round-trips with nothing failing loudly. Require a
+    // real https URL in production so that misconfig fails at boot instead (launch
+    // audit 2026-07-26, the #1 silent killer).
+    if (!val.APP_URL || !/^https:\/\//.test(val.APP_URL) || val.APP_URL.includes("localhost")) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["APP_URL"],
+        message: "APP_URL must be a real https URL in production (drives Stripe + magic-link redirects)",
+      });
+    }
   }
 });
 

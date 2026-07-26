@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/auth/server";
+import { safeRelativePath } from "@/lib/auth/safe-redirect";
 
 /**
  * GET /auth/confirm — verify an admin-generated magic link (token_hash flow).
@@ -17,8 +18,10 @@ export async function GET(req: NextRequest) {
   const type = searchParams.get("type");
   const nextParam = searchParams.get("next") ?? "/welcome";
 
-  // Sanitize: only allow relative paths to prevent open-redirect attacks.
-  const safeNext = nextParam.startsWith("/") ? nextParam : "/welcome";
+  // Sanitize via the shared guard — `startsWith("/")` alone admits a
+  // protocol-relative `//evil.com` (a real open-redirect); `safeRelativePath`
+  // rejects it (launch audit 2026-07-26, same guard as /auth/callback).
+  const safeNext = safeRelativePath(nextParam, "/welcome");
 
   if (tokenHash && type) {
     const supa = await createServerSupabase();
