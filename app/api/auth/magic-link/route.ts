@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { createServerSupabase } from "@/lib/auth/server";
 import { hashIp, ipFromRequest } from "@/lib/scan/abuse";
 import { rateLimitAllow, MAGIC_LINK_PER_IP, MAGIC_LINK_PER_EMAIL } from "@/lib/auth/rate-limit";
 import { safeRelativePath } from "@/lib/auth/safe-redirect";
+import { sendLoginLink } from "@/lib/auth/login-link";
 
 /**
  * POST /api/auth/magic-link — send a passwordless sign-in link.
  *
- * Runs the Supabase OTP send SERVER-side so the browser SDK never enters the
- * marketing client bundle. The link points at /auth/callback (code exchange).
+ * Uses the ONE branded sender (`sendLoginLink`): admin token_hash link via Resend,
+ * NOT Supabase's SMTP/`signInWithOtp`. So this "/welcome resend" email is identical
+ * to the post-checkout onboarding link — consistent branding, cross-device safe
+ * (token_hash, no PKCE code_verifier), and no Supabase-native auth email to theme.
+ * Login-only: an unknown email sends nothing but still returns ok (no enumeration).
  */
 export async function POST(req: NextRequest) {
   const body = (await req.json().catch(() => ({}))) as { email?: unknown; next?: unknown };
@@ -34,16 +37,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: "Too many requests — please wait a bit and try again." }, { status: 429 });
   }
 
-  const supa = await createServerSupabase();
-  const { error } = await supa.auth.signInWithOtp({
-    email,
-    options: {
-      emailRedirectTo: `${req.nextUrl.origin}/auth/callback?next=${encodeURIComponent(next)}`,
-    },
-  });
-
-  if (error) {
-    return NextResponse.json({ message: error.message }, { status: 400 });
-  }
+  // Branded Resend link (best-effort). Login-only: an unknown email quietly sends
+  // nothing. Always return ok so a caller can't enumerate which emails have
+  // accounts (the send failure is logged server-side, never surfaced).
+  await sendLoginLink(email, next);
   return NextResponse.json({ ok: true });
 }

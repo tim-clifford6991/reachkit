@@ -64,11 +64,11 @@ test("provisionCheckoutUser sends the onboarding magic link on first provisionin
     createUserResult: { data: { user: { id: "user-1" } }, error: null },
     existingStripeCustomerId: null, // no prior binding — genuinely new
   });
-  const sendMagicLinkEmail = vi.fn().mockResolvedValue(undefined);
+  const sendLoginLink = vi.fn().mockResolvedValue(true);
 
   vi.doMock("@/lib/db/client", () => ({ serverDb: db.serverDb }));
   vi.doMock("@/lib/config/env", () => ({ env: { appUrl: "https://reachkit.app" } }));
-  vi.doMock("@/lib/email/resend", () => ({ sendMagicLinkEmail }));
+  vi.doMock("@/lib/auth/login-link", () => ({ sendLoginLink }));
 
   const { provisionCheckoutUser } = await import("./provision");
 
@@ -80,11 +80,8 @@ test("provisionCheckoutUser sends the onboarding magic link on first provisionin
   });
 
   expect(userId).toBe("user-1");
-  expect(sendMagicLinkEmail).toHaveBeenCalledOnce();
-  expect(sendMagicLinkEmail).toHaveBeenCalledWith({
-    to: "founder@acme.com",
-    link: expect.stringContaining("tok_abc"),
-  });
+  expect(sendLoginLink).toHaveBeenCalledOnce();
+  expect(sendLoginLink).toHaveBeenCalledWith("founder@acme.com", "/welcome");
 });
 
 // ---------------------------------------------------------------------------
@@ -100,7 +97,7 @@ test("provisionCheckoutUser skips the magic-link resend once the link has alread
     existingStripeCustomerId: "cus_existing",
     onboardingLinkSentAt: "2026-07-17T10:00:00.000Z", // already sent — this is a retry
   });
-  const sendMagicLinkEmail = vi.fn().mockResolvedValue(undefined);
+  const sendLoginLink = vi.fn().mockResolvedValue(true);
 
   // ensureAuthUser falls back to the existing-row lookup when createUser
   // reports "already registered". Reuse the same select/maybeSingle mock to
@@ -118,7 +115,7 @@ test("provisionCheckoutUser skips the magic-link resend once the link has alread
 
   vi.doMock("@/lib/db/client", () => ({ serverDb: db.serverDb }));
   vi.doMock("@/lib/config/env", () => ({ env: { appUrl: "https://reachkit.app" } }));
-  vi.doMock("@/lib/email/resend", () => ({ sendMagicLinkEmail }));
+  vi.doMock("@/lib/auth/login-link", () => ({ sendLoginLink }));
 
   const { provisionCheckoutUser } = await import("./provision");
 
@@ -130,7 +127,7 @@ test("provisionCheckoutUser skips the magic-link resend once the link has alread
   });
 
   expect(userId).toBe("user-1");
-  expect(sendMagicLinkEmail).not.toHaveBeenCalled();
+  expect(sendLoginLink).not.toHaveBeenCalled();
   // The id-binding update still runs on every call — that side effect is
   // naturally idempotent (last-write-wins), unlike the email send.
   expect(db.spies.update).toHaveBeenCalledWith(
@@ -156,7 +153,7 @@ test("provisionCheckoutUser sends the magic link when a subscription-first race 
     existingStripeCustomerId: "cus_raced", // bound by the defensive create, NOT by us
     onboardingLinkSentAt: null, // ...but nobody has ever sent the link
   });
-  const sendMagicLinkEmail = vi.fn().mockResolvedValue(undefined);
+  const sendLoginLink = vi.fn().mockResolvedValue(true);
 
   db.spies.selectMaybeSingle.mockImplementation(() =>
     Promise.resolve({
@@ -167,7 +164,7 @@ test("provisionCheckoutUser sends the magic link when a subscription-first race 
 
   vi.doMock("@/lib/db/client", () => ({ serverDb: db.serverDb }));
   vi.doMock("@/lib/config/env", () => ({ env: { appUrl: "https://reachkit.app" } }));
-  vi.doMock("@/lib/email/resend", () => ({ sendMagicLinkEmail }));
+  vi.doMock("@/lib/auth/login-link", () => ({ sendLoginLink }));
 
   const { provisionCheckoutUser } = await import("./provision");
 
@@ -178,7 +175,7 @@ test("provisionCheckoutUser sends the magic link when a subscription-first race 
     sendMagicLink: true,
   });
 
-  expect(sendMagicLinkEmail).toHaveBeenCalledOnce();
+  expect(sendLoginLink).toHaveBeenCalledOnce();
   // ...and the send is RECORDED, so the next redelivery skips it.
   expect(db.spies.update).toHaveBeenCalledWith(
     expect.objectContaining({ onboarding_link_sent_at: expect.any(String) }),
@@ -247,11 +244,11 @@ test("provisionCheckoutUser never sends a link when the caller opts out (legacy 
     createUserResult: { data: { user: { id: "user-1" } }, error: null },
     onboardingLinkSentAt: null,
   });
-  const sendMagicLinkEmail = vi.fn().mockResolvedValue(undefined);
+  const sendLoginLink = vi.fn().mockResolvedValue(true);
 
   vi.doMock("@/lib/db/client", () => ({ serverDb: db.serverDb }));
   vi.doMock("@/lib/config/env", () => ({ env: { appUrl: "https://reachkit.app" } }));
-  vi.doMock("@/lib/email/resend", () => ({ sendMagicLinkEmail }));
+  vi.doMock("@/lib/auth/login-link", () => ({ sendLoginLink }));
 
   const { provisionCheckoutUser } = await import("./provision");
 
@@ -261,7 +258,7 @@ test("provisionCheckoutUser never sends a link when the caller opts out (legacy 
     sendMagicLink: false,
   });
 
-  expect(sendMagicLinkEmail).not.toHaveBeenCalled();
+  expect(sendLoginLink).not.toHaveBeenCalled();
 });
 
 // ---------------------------------------------------------------------------
@@ -272,11 +269,11 @@ test("provisionCheckoutUser always sends the magic link when no stripeCustomerId
   const db = makeServerDb({
     createUserResult: { data: { user: { id: "user-2" } }, error: null },
   });
-  const sendMagicLinkEmail = vi.fn().mockResolvedValue(undefined);
+  const sendLoginLink = vi.fn().mockResolvedValue(true);
 
   vi.doMock("@/lib/db/client", () => ({ serverDb: db.serverDb }));
   vi.doMock("@/lib/config/env", () => ({ env: { appUrl: "https://reachkit.app" } }));
-  vi.doMock("@/lib/email/resend", () => ({ sendMagicLinkEmail }));
+  vi.doMock("@/lib/auth/login-link", () => ({ sendLoginLink }));
 
   const { provisionCheckoutUser } = await import("./provision");
 
@@ -288,5 +285,5 @@ test("provisionCheckoutUser always sends the magic link when no stripeCustomerId
 
   // No stripeCustomerId → the idempotency select is never consulted for this
   // decision, so the send always proceeds.
-  expect(sendMagicLinkEmail).toHaveBeenCalledOnce();
+  expect(sendLoginLink).toHaveBeenCalledOnce();
 });

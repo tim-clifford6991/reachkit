@@ -15,7 +15,7 @@ import { serverDb } from "@/lib/db/client";
 import { env } from "@/lib/config/env";
 import { linkScanToUser } from "@/lib/auth/profile";
 import { ensureDeepScan } from "@/lib/scan/deepen";
-import { sendMagicLinkEmail } from "@/lib/email/resend";
+import { sendLoginLink } from "@/lib/auth/login-link";
 import type { Database } from "@/lib/db/types";
 
 type UsersUpdate = Database["public"]["Tables"]["users"]["Update"];
@@ -212,30 +212,9 @@ async function deepenOwnedScans(userId: string): Promise<void> {
  * transient generateLink/Resend failure must not fail the Stripe webhook.
  */
 export async function sendOnboardingMagicLink(email: string): Promise<boolean> {
-  try {
-    const db = serverDb();
-    const { data, error } = await db.auth.admin.generateLink({
-      type: "magiclink",
-      email,
-      options: { redirectTo: `${env.appUrl}/welcome` },
-    });
-
-    const tokenHash = data?.properties?.hashed_token;
-    if (error || !tokenHash) {
-      console.error("[provision] generateLink failed", error?.message);
-      return false;
-    }
-
-    const link =
-      `${env.appUrl}/auth/confirm?token_hash=${encodeURIComponent(tokenHash)}` +
-      `&type=magiclink&next=${encodeURIComponent("/welcome")}`;
-
-    // Throws on a Resend error — so a failed send returns false and is NOT
-    // recorded as sent, letting the Stripe webhook retry re-deliver it.
-    await sendMagicLinkEmail({ to: email, link });
-    return true;
-  } catch (e) {
-    console.error("[provision] sendOnboardingMagicLink failed (best-effort)", e);
-    return false;
-  }
+  // The ONE branded sender (lib/auth/login-link.ts) — same admin token_hash +
+  // Resend path the /welcome resend uses. Returns false on any failure, so a
+  // swallowed error is NOT recorded as sent and the Stripe webhook retry
+  // re-delivers it (the onboarding_link_sent_at gate).
+  return sendLoginLink(email, "/welcome");
 }
