@@ -105,6 +105,16 @@ export const scanRequested = inngest.createFunction(
         .eq("id", scanId);
       if (factsErr) throw factsErr;
 
+      // Backfill the app's display NAME from the discovered product name. Apps are
+      // created name-less at add/scan time (add-product.ts / api/scan insert only
+      // store_url + platform), and NOTHING ever wrote apps.name — so every app
+      // rendered as "Untitled App" in the switcher forever (root cause, 2026-07-27).
+      // Set it only when still null so a user-chosen name is never overwritten.
+      const productName = collectedFacts.listing?.name?.trim();
+      if (productName) {
+        await db.from("apps").update({ name: productName }).eq("id", scanRow.app_id).is("name", null);
+      }
+
       // Emit the facts scan_event — SCOPED (scopeFactsForStream) to the fields the
       // public progress UI renders. The /api/scan/[id]/stream route is unauthenticated
       // and broadcasts every scan_event by id, so the full pre-redaction facts must

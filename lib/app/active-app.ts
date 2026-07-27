@@ -21,6 +21,19 @@ export interface AppOption {
   name: string;
 }
 
+/** A clean display name for an app: its backfilled product name, else the bare
+ *  host (reachkit.app — never the raw URL or "Untitled app"). The scan backfills
+ *  `apps.name` from the discovered product name (scan-requested collect step); this
+ *  is the fallback for an app whose scan hasn't populated it yet (or a legacy row). */
+export function appDisplayName(name: string | null, storeUrl: string | null): string {
+  if (name && name.trim()) return name.trim();
+  if (storeUrl && storeUrl.trim()) {
+    try { return new URL(storeUrl).host.replace(/^www\./, ""); }
+    catch { return storeUrl.replace(/^https?:\/\//, "").replace(/\/$/, ""); }
+  }
+  return "Your product";
+}
+
 /** The user's apps as {id, name}, in app_ids order, for the switcher dropdown. */
 export async function userApps(appIds: string[]): Promise<AppOption[]> {
   if (appIds.length === 0) return [];
@@ -28,7 +41,6 @@ export async function userApps(appIds: string[]): Promise<AppOption[]> {
   const byId = new Map((data ?? []).map((a) => [a.id as string, a]));
   return appIds.map((id) => {
     const a = byId.get(id);
-    const name = (a?.name as string | null) || (a?.store_url as string | null) || "Untitled app";
-    return { id, name };
+    return { id, name: appDisplayName((a?.name as string | null) ?? null, (a?.store_url as string | null) ?? null) };
   });
 }
