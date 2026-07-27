@@ -38,6 +38,8 @@ export interface SettingsMainProps {
   products: TrackedProduct[];
   /** Resolved email on/off per gated type (defaults already applied). */
   emailPrefs: Record<EmailType, boolean>;
+  /** Whether the plan has a free slot for another product (shows the add button). */
+  canAddApp: boolean;
 }
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
@@ -110,6 +112,17 @@ export function SettingsMain(p: SettingsMainProps) {
                 {prod.isActive && <ProductUrlForm appId={prod.appId} initialUrl={prod.storeUrl ?? ""} />}
               </div>
             ))}
+            {/* Add another product right here — remove is per-row above, so both
+                live together in Settings (owner ask 2026-07-27). Only when the
+                plan has a free slot; otherwise the plan card's upgrade CTA applies. */}
+            {p.canAddApp && (
+              <a
+                href="/app/add"
+                style={{ alignSelf: "flex-start", marginTop: 2, fontFamily: PJ, fontWeight: 600, fontSize: 13, color: "var(--c-action)", background: "var(--c-surface)", border: "1px solid var(--c-tint-violet-line)", borderRadius: 8, padding: "8px 14px", textDecoration: "none" }}
+              >
+                + Add product
+              </a>
+            )}
           </div>
         )}
       </Card>

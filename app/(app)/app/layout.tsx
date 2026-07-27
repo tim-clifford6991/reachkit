@@ -27,7 +27,7 @@ import { entitlementsFor } from "@/lib/billing/entitlements";
 import { serverDb } from "@/lib/db/client";
 import type { ReportPayload } from "@/lib/scan/report";
 import type { Tier } from "@/lib/billing/tiers";
-import { activeAppId, userApps } from "@/lib/app/active-app";
+import { activeAppId, userApps, pruneDanglingApps } from "@/lib/app/active-app";
 import { shouldBlockSetup } from "@/lib/app/setup-state";
 import { getSelectedCompetitors } from "@/lib/scan/competitor-selection";
 import { CommandPalette } from "@/components/app/command-palette";
@@ -160,7 +160,10 @@ async function SidebarData({ children }: { children: React.ReactNode }) {
   const userName = email ? email.split("@")[0]!.replace(/[._]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "Founder";
 
   // App switcher: the user's apps + whether the plan has a free slot to add one.
-  const apps = (await userApps(user.app_ids)).map((a) => ({ id: a.id, name: a.name }));
+  // Self-heal dangling app_ids (an app deleted out from under the reference) so
+  // the switcher shows no ghost "Your product" and the cap count is honest.
+  const liveAppIds = await pruneDanglingApps(user.id, user.app_ids);
+  const apps = (await userApps(liveAppIds)).map((a) => ({ id: a.id, name: a.name }));
   const APP_LIMIT: Record<string, number> = { free: 1, solo: 1, growth: 3 };
   const canAddApp = apps.length < (APP_LIMIT[tier] ?? 1);
 
@@ -204,7 +207,7 @@ async function SidebarData({ children }: { children: React.ReactNode }) {
   // unclickable) so completing setup feels like unlocking the dashboard in
   // place. The ⌘K palette only mounts once the app is unlocked. Sign-out
   // stays possible from inside the overlay.
-  const appCount = (user.app_ids ?? []).length;
+  const appCount = liveAppIds.length;
   if (
     setupState !== "ready" &&
     shouldBlockSetup({ onboardedAt: user.onboarded_at as string | null, setupState, appCount })

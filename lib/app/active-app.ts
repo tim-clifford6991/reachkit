@@ -34,13 +34,40 @@ export function appDisplayName(name: string | null, storeUrl: string | null): st
   return "Your product";
 }
 
-/** The user's apps as {id, name}, in app_ids order, for the switcher dropdown. */
+/** The user's apps as {id, name}, in app_ids order, for the switcher dropdown.
+ *  Only apps that ACTUALLY EXIST are returned — a dangling `app_ids` entry
+ *  (an id whose `apps` row was deleted out from under it, e.g. an admin/manual
+ *  delete) is filtered out, never rendered as a ghost "Your product". */
 export async function userApps(appIds: string[]): Promise<AppOption[]> {
   if (appIds.length === 0) return [];
   const { data } = await serverDb().from("apps").select("id, name, store_url").in("id", appIds);
   const byId = new Map((data ?? []).map((a) => [a.id as string, a]));
-  return appIds.map((id) => {
-    const a = byId.get(id);
-    return { id, name: appDisplayName((a?.name as string | null) ?? null, (a?.store_url as string | null) ?? null) };
-  });
+  return appIds
+    .map((id) => byId.get(id))
+    .filter((a): a is NonNullable<typeof a> => a != null)
+    .map((a) => ({ id: a.id as string, name: appDisplayName((a.name as string | null) ?? null, (a.store_url as string | null) ?? null) }));
+}
+
+/**
+ * Self-heal a user's `app_ids`: drop any id whose `apps` row no longer exists
+ * (dangling reference from a deleted app), persisting the pruned list. Returns the
+ * LIVE ids. Idempotent + best-effort — a failure just leaves the stored list as-is
+ * (reads already filter dangling ids for display). Prevents dangling ids from
+ * inflating the tracked-product COUNT (the plan cap check reads app_ids.length).
+ */
+export async function pruneDanglingApps(userId: string, appIds: string[]): Promise<string[]> {
+  if (appIds.length === 0) return [];
+  try {
+    const db = serverDb();
+    const { data } = await db.from("apps").select("id").in("id", appIds);
+    const live = new Set((data ?? []).map((a) => a.id as string));
+    const kept = appIds.filter((id) => live.has(id));
+    if (kept.length !== appIds.length) {
+      await db.from("users").update({ app_ids: kept }).eq("id", userId);
+    }
+    return kept;
+  } catch (e) {
+    console.error("[active-app] pruneDanglingApps failed (best-effort)", e);
+    return appIds.filter(Boolean);
+  }
 }

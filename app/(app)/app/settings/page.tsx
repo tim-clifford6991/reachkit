@@ -91,6 +91,7 @@ async function SettingsContent() {
       upgradePlan={plan.upgradePlan}
       isPaid={ent.active}
       products={products}
+      canAddApp={products.length < ({ free: 1, solo: 1, growth: 3 }[tier] ?? 1)}
       emailPrefs={emailPrefs}
     />
   );
