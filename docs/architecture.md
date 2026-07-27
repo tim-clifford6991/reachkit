@@ -147,9 +147,9 @@ sequenceDiagram
     P->>DB: write lightweight FREE report (status=done)
     Note over U,SSE: Free score + report visible immediately
 
-    U->>API: clicks upgrade → Stripe checkout
-    Note over API,ING: Deepen originates from checkout provision (or /app/add),<br/>NOT the public scan route: ensureDeepScan → "scan/deepen"
-    API->>ING: (via webhook/provision) ensureDeepScan → send "scan/deepen"
+    U->>API: clicks upgrade → Stripe checkout → blocking onboarding
+    Note over API,ING: Deepen is DEFERRED to onboarding (2026-07-27): it fires from the<br/>COMPETITOR PICK on the chosen cohort (/api/competitors/select →<br/>ensureDeepScan), NOT at the payment webhook. Backstop: weekly self-heal.
+    API->>ING: (via competitors/select, post-pick) ensureDeepScan → send "scan/deepen"
     ING->>P: runFullScan (heavy pass)
     P->>EXT: deeper competitor + demand + keyword intel
     P->>LLM: deep synthesis + action generation

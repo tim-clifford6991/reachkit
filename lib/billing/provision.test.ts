@@ -182,58 +182,11 @@ test("provisionCheckoutUser sends the magic link when a subscription-first race 
   );
 });
 
-// ---------------------------------------------------------------------------
-// THE DEEPEN POLICY (regression guard). The legacy in-app upgrade carries NO
-// scanId (metadata is { userId, plan, interval }), so a scanId-driven deepen
-// silently never ran for it: a logged-in free user upgrading from the paywall
-// kept a free report forever. Deepening by OWNERSHIP covers both shapes.
-// ---------------------------------------------------------------------------
-test("provisionCheckoutUser deepens the user's owned scans even with no scanId (legacy in-app upgrade)", async () => {
-  const ensureDeepScan = vi.fn().mockResolvedValue(true);
-
-  // users: select("app_ids") → one tracked app. scans: the latest completed
-  // scan for it, plus an older one that must NOT be deepened.
-  const usersMaybeSingle = vi.fn().mockResolvedValue({
-    data: { id: "user-1", app_ids: ["app-1"], onboarding_link_sent_at: null },
-    error: null,
-  });
-  const usersSelect = vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ maybeSingle: usersMaybeSingle }) });
-  const usersUpdate = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
-
-  const scansOrder = vi.fn().mockResolvedValue({
-    data: [
-      { id: "scan-new", app_id: "app-1", completed_at: "2026-07-17T00:00:00Z" },
-      { id: "scan-old", app_id: "app-1", completed_at: "2026-07-01T00:00:00Z" },
-    ],
-    error: null,
-  });
-  const scansNot = vi.fn().mockReturnValue({ order: scansOrder });
-  const scansIn = vi.fn().mockReturnValue({ not: scansNot });
-  const scansSelect = vi.fn().mockReturnValue({ in: scansIn });
-
-  const from = vi.fn((table: string) =>
-    table === "scans" ? { select: scansSelect } : { select: usersSelect, update: usersUpdate },
-  );
-  const serverDb = vi.fn().mockReturnValue({ from, auth: { admin: { createUser: vi.fn(), generateLink: vi.fn() } } });
-
-  vi.doMock("@/lib/db/client", () => ({ serverDb }));
-  vi.doMock("@/lib/config/env", () => ({ env: { appUrl: "https://reachkit.app" } }));
-  vi.doMock("@/lib/email/resend", () => ({ sendMagicLinkEmail: vi.fn() }));
-  vi.doMock("@/lib/scan/deepen", () => ({ ensureDeepScan }));
-  vi.doMock("@/lib/auth/profile", () => ({ linkScanToUser: vi.fn() }));
-
-  const { provisionCheckoutUser } = await import("./provision");
-
-  await provisionCheckoutUser({
-    userId: "user-1", // legacy shape: pre-resolved, no email, no scanId
-    stripeCustomerId: "cus_inapp",
-    sendMagicLink: false,
-  });
-
-  // Only the LATEST completed scan per app — not every historical scan.
-  expect(ensureDeepScan).toHaveBeenCalledOnce();
-  expect(ensureDeepScan).toHaveBeenCalledWith("scan-new");
-});
+// NOTE: provision no longer deep-scans at checkout (2026-07-27 deferral, intake
+// `unified-onboarding`). The deep scan now fires from the onboarding competitor
+// pick on the CHOSEN cohort; the "paid apps never stranded" ratchet moved to
+// lib/inngest/paid-deep-invariant.test.ts (pick + weekly self-heal). Provision
+// keeps only linkScanToUser + the magic-link send (guarded below).
 
 // ---------------------------------------------------------------------------
 // The legacy in-app upgrade is already logged in — it must never be emailed a

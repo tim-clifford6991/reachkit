@@ -1,19 +1,27 @@
 "use client";
 
 /**
- * SetupOverlay — the blocking first-run onboarding sequence.
+ * SetupOverlay — THE single onboarding flow (unified 2026-07-27, intake
+ * `unified-onboarding`). One blocking, stepped modal used for EVERY entry —
+ * first-app after upgrade AND add-product from the dashboard:
  *
- * Rendered by the app layout (server) whenever setupState !== "ready"; it sits
- * fixed over the ENTIRE app (the shell behind is `inert` + dimmed) so nothing
- * is usable until setup completes. Three steps:
+ *   1. URL         — "What is your product URL?" (AddProductForm → creates the
+ *                    app + starts the lightweight scan)
+ *   2. Scanning    — DashboardScanProgress; advances on the `facts` event
+ *   3. Profile     — confirm detected audience (SetupProfileStep)
+ *   4. Competitors — the shared cc: picker (CompetitorSetup, R-3.20)
+ *   5. Building    — the DEEP scan runs on the PICKED cohort (SetupCalculatingStep)
  *
- *   1. Profile      — reuses the saveOnboarding persistence (non-redirect variant)
- *   2. Competitors  — embeds the existing CompetitorSetup picker
- *   3. Calculating  — real staged progress off the supply SSE stream
+ * Entry skips any step whose work is already done:
+ *   - `mode="add"`        → start at URL (no app yet).
+ *   - `mode="first-run"`  → the upgrade's free scan is the starting point (URL +
+ *                            lightweight scan done) → start at Profile/Competitors
+ *                            per setupState. The URL step stays reachable via Back
+ *                            (changing it re-scans).
  *
- * Step 3 ends with router.refresh(): the server layout recomputes setupState
- * (now "ready") and stops rendering the overlay — the dimmed dashboard behind
- * "unlocks" in place. A small sign-out escape stays available in the corner.
+ * The deep scan is DEFERRED to step 5 (it fires from the pick via
+ * /api/competitors/select) — the Stripe webhook no longer deep-scans against a
+ * guessed cohort. Blocking + the weekly self-heal cover an abandoned onboarding.
  *
  * Styling is strictly the intel-kit idiom: inline styles + `--c-*` tokens.
  */
@@ -23,48 +31,66 @@ import { useRouter, usePathname } from "next/navigation";
 import { CompetitorSetup } from "@/components/app/intel/competitor-setup";
 import { SetupProfileStep } from "./setup-profile-step";
 import { SetupCalculatingStep } from "./setup-calculating-step";
+import { AddProductForm } from "@/app/(app)/app/add/add-product-form";
+import { DashboardScanProgressLazy as DashboardScanProgress } from "@/components/app/dashboard-scan-progress-lazy";
 import { setActiveApp } from "@/lib/app/set-active-app";
 
 const PJ = "var(--font-sans)", JM = "var(--font-mono)";
 
+/** The overlay renders on every onboarding entry; `mode` picks the start step. */
+export type SetupMode = "add" | "first-run";
 export type SetupInitialStep = "profile" | "competitors";
 
-const STEP_LABELS = ["Profile", "Competitors", "Your data"] as const;
+type Step = "url" | "scanning" | "profile" | "competitors" | "building";
+
+// Consistent numbering across the whole flow — an upgrader who skips URL/Scan
+// still reads "Step 3 of 5 · Profile", so the framing never changes per entry.
+const STEP_ORDER: Step[] = ["url", "scanning", "profile", "competitors", "building"];
+const STEP_LABELS: Record<Step, string> = {
+  url: "Product URL",
+  scanning: "Scanning",
+  profile: "Profile",
+  competitors: "Competitors",
+  building: "Building your data",
+};
 
 export interface OverlayApp { id: string; name: string; }
 
 export function SetupOverlay({
+  mode = "first-run",
   initialStep,
-  domain,
+  domain: domainProp,
   icpSignals,
   apps = [],
   activeAppId = null,
 }: {
-  initialStep: SetupInitialStep;
-  /** The active app's subject domain — null when the user has no scanned app yet. */
+  mode?: SetupMode;
+  /** first-run start (from setupState); ignored for mode="add". */
+  initialStep?: SetupInitialStep;
+  /** The active app's subject domain — known for first-run; null for add until
+   *  the URL step creates it. */
   domain: string | null;
-  /** Detected ICP traits (scan-first users) prefilled into the profile step. */
   icpSignals: string[];
-  /** The user's other products, so onboarding can be ESCAPED by switching to a
-   *  ready one (blocking-with-escape, owner rule 2026-07-27). */
   apps?: OverlayApp[];
   activeAppId?: string | null;
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [step, setStep] = useState<1 | 2 | 3>(initialStep === "profile" ? 1 : 2);
+
+  const [domain, setDomain] = useState<string | null>(domainProp);
+  const [scanId, setScanId] = useState<string | null>(null);
+  const [step, setStep] = useState<Step>(
+    mode === "add" ? "url" : initialStep === "competitors" ? "competitors" : "profile",
+  );
+
   const [switchOpen, setSwitchOpen] = useState(false);
   const [switching, startSwitch] = useTransition();
 
-  // The overlay steps aside on two surfaces: /app/settings (always reachable — fix
-  // your URL / billing without being trapped) and /app/add (the onboarding surface
-  // itself: the AddFlow drives scanning → pick there). It BLOCKS everywhere else,
-  // so a user who navigates away mid-onboarding is caught by the pick — they can't
-  // reach a half-onboarded product's dashboard (owner rule 2026-07-27).
-  const onExempt = pathname === "/app/settings" || pathname === "/app/add";
+  // The first-run overlay (layout-mounted) steps aside on /app/settings (fix
+  // URL/billing) and /app/add (the add-mode overlay renders there). The add-mode
+  // overlay never steps aside — it IS the add surface.
+  const onExempt = mode === "first-run" && (pathname === "/app/settings" || pathname === "/app/add");
 
-  // Escape 2: switch to another product. A ready product flips setupState → ready
-  // → the overlay unmounts; a product that also needs onboarding shows its own.
   const switchTo = (id: string) => {
     if (id === activeAppId) { setSwitchOpen(false); return; }
     startSwitch(async () => {
@@ -75,26 +101,23 @@ export function SetupOverlay({
     });
   };
 
-  // Entrance: fade + scale in on mount (CSS transitions only, no motion deps).
   const [entered, setEntered] = useState(false);
   useEffect(() => {
     const id = requestAnimationFrame(() => setEntered(true));
     return () => cancelAnimationFrame(id);
   }, []);
 
-  // Step 3 done → go to the DASHBOARD (owner walkthrough, 2026-07-24). The overlay
-  // can be mounted on any /app page that gates on setupState (e.g. /app/settings
-  // when a user adds their first product there), and a bare router.refresh() just
-  // re-revealed THAT page — landing the freshly-onboarded user on settings instead
-  // of their new dashboard. Navigate explicitly; the dashboard server component
-  // recomputes setupState="ready" so the overlay unmounts on arrival.
   const finish = useCallback(() => {
     router.push("/app/dashboard");
     router.refresh();
   }, [router]);
 
-  // Step aside on the exempt surfaces (Settings / Add) — see onExempt above.
   if (onExempt) return null;
+
+  const stepNum = STEP_ORDER.indexOf(step) + 1;
+  // Back to the URL step to change the product (re-scan on a new URL). Available
+  // from any step after URL; hidden on the terminal Building beat.
+  const canGoBack = step !== "url" && step !== "building";
 
   const escapeBtn = {
     background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-sm)",
@@ -145,7 +168,6 @@ export function SetupOverlay({
         <a href="/app/settings" style={{ ...escapeBtn, textDecoration: "none", display: "inline-block" }}>Settings</a>
       </div>
 
-      {/* Sign-out escape — POST (the route is POST-only and prefetch-safe). */}
       <form action="/auth/signout" method="post" style={{ position: "fixed", top: 14, left: 18, zIndex: 1 }}>
         <button
           type="submit"
@@ -171,18 +193,29 @@ export function SetupOverlay({
             transition: "transform 260ms ease",
           }}
         >
-          {/* Slim progress header — Step n of 3 + segment bar */}
+          {/* Slim progress header — Step n of 5 + segment bar (consistent numbering) */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, marginBottom: 22 }}>
-            <span style={{ fontFamily: JM, fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--c-faint)" }}>
-              Step {step} of 3 · {STEP_LABELS[step - 1]}
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+              {canGoBack && (
+                <button
+                  type="button"
+                  onClick={() => setStep("url")}
+                  style={{ background: "none", border: "none", padding: 0, fontFamily: JM, fontSize: 11, fontWeight: 700, color: "var(--c-action)", cursor: "pointer" }}
+                >
+                  ← Change URL
+                </button>
+              )}
+              <span style={{ fontFamily: JM, fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--c-faint)" }}>
+                Step {stepNum} of 5 · {STEP_LABELS[step]}
+              </span>
             </span>
             <div style={{ display: "flex", gap: 5 }} aria-hidden="true">
-              {[1, 2, 3].map((i) => (
+              {STEP_ORDER.map((_, i) => (
                 <span
                   key={i}
                   style={{
-                    width: 26, height: 4, borderRadius: "var(--radius-full)",
-                    background: i <= step ? "var(--c-action)" : "var(--c-fill)",
+                    width: 20, height: 4, borderRadius: "var(--radius-full)",
+                    background: i < stepNum ? "var(--c-action)" : "var(--c-fill)",
                     transition: "background 200ms ease",
                   }}
                 />
@@ -190,21 +223,51 @@ export function SetupOverlay({
             </div>
           </div>
 
-          {step === 1 && (
-            <SetupProfileStep
-              icpSignals={icpSignals}
-              hasApp={domain != null}
-              // No scanned app yet → nothing to benchmark; skip straight to the
-              // final beat (the dashboard's empty state points at the first scan).
-              onDone={() => setStep(domain ? 2 : 3)}
+          {step === "url" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 22, letterSpacing: "-0.01em", color: "var(--c-ink)", margin: 0 }}>
+                What is your product URL?
+              </h1>
+              <p style={{ fontFamily: PJ, fontSize: 13.5, color: "var(--c-muted)", margin: 0, lineHeight: 1.5 }}>
+                We&apos;ll scan it, then you pick who to benchmark against. You can switch to another product while it runs.
+              </p>
+              <div style={{ marginTop: 8 }}>
+                <AddProductForm
+                  onAdded={(res) => {
+                    setDomain(res.host);
+                    setScanId(res.scanId);
+                    setStep(res.scanId ? "scanning" : "url");
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {step === "scanning" && scanId && (
+            <DashboardScanProgress
+              scanId={scanId}
+              /* Always the fast lightweight pass; the DEEP pass runs at Building
+                 (step 5) on the picked cohort — the money-path deferral. */
+              tier="free"
+              host={domain}
+              onFacts={() => setStep("profile")}
             />
           )}
 
-          {step === 2 && domain && (
-            <CompetitorSetup domain={domain} onDone={() => setStep(3)} />
+          {step === "profile" && (
+            <SetupProfileStep
+              icpSignals={icpSignals}
+              hasApp={domain != null}
+              // No scanned app yet → nothing to benchmark; skip to the final beat.
+              onDone={() => setStep(domain ? "competitors" : "building")}
+            />
           )}
 
-          {step === 3 && (
+          {step === "competitors" && domain && (
+            <CompetitorSetup domain={domain} onDone={() => setStep("building")} />
+          )}
+
+          {step === "building" && (
             <SetupCalculatingStep hasDomain={domain != null} onComplete={finish} />
           )}
         </div>

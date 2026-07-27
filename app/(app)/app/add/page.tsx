@@ -1,22 +1,39 @@
 /**
- * /app/add — add a tracked product from INSIDE the app, as one cohesive flow:
- * URL → scanning → competitors → dashboard (owner report 2026-07-17: the old
- * flow redirected straight to the dashboard and left the competitor pick to a
- * later banner, so onboarding felt "disconnected").
+ * /app/add — add a tracked product. Renders THE unified onboarding overlay in
+ * `add` mode (2026-07-27, intake `unified-onboarding`): one blocking, stepped
+ * flow URL → Scanning → Profile → Competitors → Building, identical to the
+ * first-app path (which the layout mounts in `first-run` mode) — no separate
+ * AddFlow. The deep scan is deferred to the Building step on the picked cohort.
  *
- * Replaces the switcher's old link to the PUBLIC /scan page, which pushed a
- * paying user to an entitlement-blind PublicReport (always redacted to free,
- * always an "Unlock full report" CTA) for a product they already pay for.
- * PublicReport is deliberately public-safe; we route around it, never weaken it.
- *
- * Not assertPaid-gated (see actions.ts) — a free zero-app user reaching this
- * page can still add their first product, same as Settings does today.
+ * Not assertPaid-gated (a free zero-app user reaching here can still add their
+ * first product, same as Settings) — actions.ts owns entitlement.
  */
+import { redirect } from "next/navigation";
 import { buildMetadata } from "@/lib/seo";
-import { AddFlow } from "./add-flow";
+import { currentUser } from "@/lib/auth/server";
+import { activeAppId, pruneDanglingApps, userApps } from "@/lib/app/active-app";
+import { SetupOverlayLazy as SetupOverlay } from "@/components/app/setup/setup-overlay-lazy";
 
 export const metadata = buildMetadata({ title: "Add a product", path: "/app/add" });
 
-export default function AddProductPage() {
-  return <AddFlow />;
+export default async function AddProductPage() {
+  const viewer = await currentUser();
+  if (!viewer) redirect("/login");
+
+  // The switcher-escape context (switch to a ready product mid-add). Mirrors the
+  // layout's sidebar computation; icpSignals is empty until the new app's scan
+  // runs (the Profile step fills in either way).
+  const liveAppIds = await pruneDanglingApps(viewer.user.id, viewer.user.app_ids);
+  const apps = (await userApps(liveAppIds)).map((a) => ({ id: a.id, name: a.name }));
+  const primaryAppId = await activeAppId(viewer.user);
+
+  return (
+    <SetupOverlay
+      mode="add"
+      domain={null}
+      icpSignals={[]}
+      apps={apps}
+      activeAppId={primaryAppId}
+    />
+  );
 }

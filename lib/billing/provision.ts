@@ -14,7 +14,6 @@
 import { serverDb } from "@/lib/db/client";
 import { env } from "@/lib/config/env";
 import { linkScanToUser } from "@/lib/auth/profile";
-import { ensureDeepScan } from "@/lib/scan/deepen";
 import { sendLoginLink } from "@/lib/auth/login-link";
 import type { Database } from "@/lib/db/types";
 
@@ -128,12 +127,16 @@ export async function provisionCheckoutUser({
     }
   }
 
-  // ONE deepen policy for every checkout shape. The payment-first funnel knows
-  // its scanId; the legacy in-app upgrade carries none (metadata is
-  // { userId, plan, interval }), so the target can only be what the user OWNS.
-  // Deepening by ownership covers both without a per-path branch — which is why
-  // the legacy path silently never deepened at all before this.
-  await deepenOwnedScans(userId);
+  // Deep scan is DEFERRED to onboarding (2026-07-27, intake `unified-onboarding`).
+  // It used to fire HERE, at payment, against a GUESSED competitor cohort (the
+  // user hadn't picked yet) — so `report_payload.market` benchmarked against
+  // rivals they never chose, and it was partly wasted. Now the onboarding Build
+  // step drives the deep scan on the PICKED cohort (via /api/competitors/select →
+  // ensureDeepScan, already the post-pick trigger). Safety net for an abandoned
+  // onboarding: it's BLOCKING (they must complete it → the pick deepens), plus
+  // the weekly self-heal (weekly-refresh → ensureDeepScan) catches any paid app
+  // left un-deepened within 7 days. Provision keeps linkScanToUser (above) so the
+  // pre-checkout free scan is enrolled and ready as the onboarding starting point.
 
   // `email` is always present on the payment-first shape (the only one that
   // opts into a link); the legacy shape resolves by id and passes false.
@@ -154,51 +157,6 @@ export async function provisionCheckoutUser({
   }
 
   return userId;
-}
-
-/**
- * Deepen every scan this user owns that hasn't had the deep pass yet.
- *
- * The SINGLE post-checkout deepen policy — the deliberate mirror of
- * `resolveProductScan` (lib/app/add-product.ts), which exists because two
- * dedupe paths drifted apart. The same drift had happened here: only the
- * payment-first branch deepened (via its session scanId), so a logged-in free
- * user upgrading from the paywall got NO deep pass, ever, and nothing
- * re-triggered it — their paid dashboard rendered free data.
- *
- * Idempotent by construction: `ensureDeepScan` no-ops once `deepened_at` is
- * stamped, so already-deep scans cost nothing and redelivery is safe. Failures
- * degrade (logged, never thrown): a checkout must never 500 because a deepen
- * couldn't be queued — the webhook's mark-after-success ledger would then
- * replay the whole provisioning.
- */
-async function deepenOwnedScans(userId: string): Promise<void> {
-  const db = serverDb();
-  try {
-    const { data: user } = await db.from("users").select("app_ids").eq("id", userId).maybeSingle();
-    const appIds: string[] = user?.app_ids ?? [];
-    if (appIds.length === 0) return;
-
-    const { data: scans } = await db
-      .from("scans")
-      .select("id, app_id, completed_at")
-      .in("app_id", appIds)
-      .not("completed_at", "is", null)
-      .order("completed_at", { ascending: false });
-
-    // Latest completed scan per app — that's the one the dashboard renders.
-    const latestByApp = new Map<string, string>();
-    for (const s of scans ?? []) {
-      const appId = s.app_id as string;
-      if (!latestByApp.has(appId)) latestByApp.set(appId, s.id as string);
-    }
-
-    for (const scanId of latestByApp.values()) {
-      await ensureDeepScan(scanId);
-    }
-  } catch (e) {
-    console.error("[provision] deepenOwnedScans failed", e);
-  }
 }
 
 /**
