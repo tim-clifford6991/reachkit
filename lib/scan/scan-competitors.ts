@@ -15,7 +15,7 @@ import type { ScanContext } from "@/lib/scan/scan-context";
 import type { Competitor, ListingFacts } from "@/lib/scan/types";
 import type { FactsExtras } from "@/lib/scan/tools/types";
 import { findCompetitors } from "@/lib/scan/tools/index";
-import { rankCompetitors } from "@/lib/scan/competitors";
+import { rankCompetitors, SCAN_COMPETITOR_POOL } from "@/lib/scan/competitors";
 import { hostname } from "@/lib/scan/url";
 import { serverDb } from "@/lib/db/client";
 import { extractCompetitorNames } from "@/lib/llm/competitor-names";
@@ -72,6 +72,7 @@ export async function discoverScanCompetitors(
       competitors = rankCompetitors([...competitors, ...named], {
         selfHost,
         subjectName: args.listing.name,
+        cap: SCAN_COMPETITOR_POOL,
       });
     }
   }
