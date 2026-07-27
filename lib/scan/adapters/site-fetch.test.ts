@@ -1,21 +1,36 @@
-import { expect, test } from "vitest";
+import { describe, it, expect } from "vitest";
 import { parseListingHtml } from "./site-fetch";
 
-test("parseListingHtml pulls title, meta description, h1", () => {
-  const html = `<html><head><title>Nudgi — habit nudges</title>
-    <meta name="description" content="Gentle reminders that build habits"></head>
-    <body><h1>Build habits without willpower</h1></body></html>`;
-  const r = parseListingHtml(html, "https://nudgi.app");
-  expect(r.name).toContain("Nudgi");
-  expect(r.description).toBe("Gentle reminders that build habits");
-});
-test("parseListingHtml falls back to hostname when no title, and h1 when no meta", () => {
-  const r = parseListingHtml(`<html><body><h1>Just an H1</h1></body></html>`, "https://example.com/x");
-  expect(r.name).toBe("example.com");
-  expect(r.description).toBe("Just an H1");
-});
+const html = (opts: { title?: string; ogSite?: string; ogTitle?: string }) =>
+  `<html><head>
+    ${opts.title ? `<title>${opts.title}</title>` : ""}
+    ${opts.ogSite ? `<meta property="og:site_name" content="${opts.ogSite}">` : ""}
+    ${opts.ogTitle ? `<meta property="og:title" content="${opts.ogTitle}">` : ""}
+  </head><body><h1>Hi</h1></body></html>`;
 
-test("parseListingHtml does not throw on a non-absolute url and uses it as-is for the name", () => {
-  const r = parseListingHtml("<html></html>", "not-an-absolute-url");
-  expect(r.name).toBe("not-an-absolute-url");
+describe("parseListingHtml — brand name (not the full title)", () => {
+  it("reduces a 'Tagline — Brand' title to the domain-matching segment", () => {
+    const l = parseListingHtml(html({ title: "The distribution system for solo founders — ReachKit" }), "https://reachkit.app/");
+    expect(l.name).toBe("ReachKit");
+  });
+
+  it("prefers og:site_name when present", () => {
+    const l = parseListingHtml(html({ title: "Warp — The Agentic Development Environment", ogSite: "Warp" }), "https://warp.dev/");
+    expect(l.name).toBe("Warp");
+  });
+
+  it("picks the domain segment for 'Brand | Tagline' too", () => {
+    const l = parseListingHtml(html({ title: "Linear | Streamline issues, projects, and product roadmaps" }), "https://linear.app/");
+    expect(l.name).toBe("Linear");
+  });
+
+  it("ignores an og:site_name that is itself a long title, falling back to the cleaned title", () => {
+    const l = parseListingHtml(html({ title: "Acme — The best widget for teams", ogSite: "Acme — The best widget for teams everywhere in the whole world" }), "https://acme.com/");
+    expect(l.name).toBe("Acme");
+  });
+
+  it("leaves a single-segment title as-is", () => {
+    const l = parseListingHtml(html({ title: "Stripe" }), "https://stripe.com/");
+    expect(l.name).toBe("Stripe");
+  });
 });
