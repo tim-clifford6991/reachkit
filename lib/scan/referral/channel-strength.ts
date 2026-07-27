@@ -23,10 +23,14 @@ const CATEGORY_GROUP: Partial<Record<ReferrerCategory, ChannelGroup>> = {
   // ai_directory / spam / other → intentionally unmapped (low-value)
 };
 
+// Buckets over the per-category host count in the ~120-host counting sample
+// (rawReferrers, raised from 60). "absent" is a GENUINE zero (no referrer in that
+// channel across the sample), not a sampling artifact of the old 60-host slice.
+// Recalibrated for the wider sample so a couple of hosts isn't already "Strong".
 function bucket(count: number): StrengthBucket {
   if (count <= 0) return "absent";
-  if (count <= 2) return "lo";
-  if (count <= 6) return "med";
+  if (count <= 3) return "lo";
+  if (count <= 10) return "med";
   return "hi";
 }
 

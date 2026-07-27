@@ -4,9 +4,9 @@ import { channelStrengthFor, CHANNEL_GROUPS } from "./channel-strength";
 describe("channelStrengthFor", () => {
   it("maps all 8 quality categories into the 5 groups and buckets by count", () => {
     const s = channelStrengthFor({
-      marketplace: 8,        // reviews → hi (>=7)
-      software_directory: 2, // directories → lo (1-2)
-      blog: 3, newsletter: 1, media: 2, // media = 6 → med (3-6)
+      marketplace: 12,       // reviews → hi (>10)
+      software_directory: 2, // directories → lo (1-3)
+      blog: 4, newsletter: 1, media: 3, // media = 8 → med (4-10)
       community: 5, social: 1,          // community = 6 → med
       // partners: none → absent
     });

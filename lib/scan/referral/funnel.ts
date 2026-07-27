@@ -86,8 +86,13 @@ export interface FunnelResult {
 const isQuality = (c: ReferrerCategory) => QUALITY_CATEGORIES.includes(c);
 
 /** Top distinct referrers for a domain (by backlink rank), with the deep link to
- *  the exact referring page. one_per_domain mode → the strongest page per host. */
-async function rawReferrers(domain: string, limit = 60): Promise<RawRef[]> {
+ *  the exact referring page. one_per_domain mode → the strongest page per host.
+ *  Limit 120 (not 60): `byCategory` — the gap-map's channel-strength counts — is
+ *  tallied over THIS set, and 60 top-rank hosts (of 300 already fetched) skew to
+ *  big media, so directory/community/partner channels read a false "None". The
+ *  wider slice surfaces real presence; display is still capped at 30 in
+ *  buildBreakdown, so only the counting set grows (2026-07-27). */
+async function rawReferrers(domain: string, limit = 120): Promise<RawRef[]> {
   const refs = await cachedBacklinks(domain, 300);
   const seen = new Set<string>();
   const out: RawRef[] = [];

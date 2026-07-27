@@ -56,7 +56,11 @@ Return ONLY a JSON array, one entry per host, using the host verbatim:
 /** host → category. Never throws → empty map on failure (caller treats as "other"). */
 export async function classifyReferrers(hosts: string[], productCategory: string): Promise<Map<string, ReferrerCategory>> {
   const out = new Map<string, ReferrerCategory>();
-  const unique = [...new Set(hosts)].slice(0, 150);
+  // 400 (was 150): the gap-map counts channel presence over the union of the
+  // cohort's referrers (~6 entities × 120 hosts). At 150 most hosts fell to
+  // "other" (unclassified) → quality channels read a false "None". 400 short
+  // hostnames is still one cheap batched Haiku call (2026-07-27).
+  const unique = [...new Set(hosts)].slice(0, 400);
   if (unique.length === 0) return out;
   try {
     const { text } = await callModel({
