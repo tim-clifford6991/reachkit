@@ -165,6 +165,11 @@ export function PlanScreen() {
               predictedPts="+2 pts"
               from="Referral gap vs fathom.video"
             />
+            {/* Extra tasks beyond the top 3 collapse behind a "show N more"
+                toggle so a busy day reads at a glance (owner 2026-07-27). On
+                mobile the calendar above also swaps its text chips for
+                kind-keyed dots so the whole month fits one screen. */}
+            <button type="button" style={{ alignSelf: "flex-start", background: "none", border: "none", padding: 2, fontFamily: JM, fontSize: 12, fontWeight: 700, color: "var(--c-action)", cursor: "pointer" }}>Show 2 more</button>
           </div>
 
           {/* Generate more actions — with the "higher-impact only" toggle */}

@@ -6,6 +6,7 @@
 
 import { cookies } from "next/headers";
 import { serverDb } from "@/lib/db/client";
+import { brandFromUrl } from "@/lib/brand/logo";
 
 export const ACTIVE_APP_COOKIE = "active_app";
 
@@ -19,6 +20,10 @@ export async function activeAppId(user: { app_ids: string[] }): Promise<string |
 export interface AppOption {
   id: string;
   name: string;
+  /** The app's brand favicon, derived from its store_url at render time
+   *  (Google favicon service). null when the app has no URL — the switcher
+   *  then falls back to the initial-letter square. */
+  logoUrl: string | null;
 }
 
 /** A clean display name for an app: its backfilled product name, else the bare
@@ -45,7 +50,14 @@ export async function userApps(appIds: string[]): Promise<AppOption[]> {
   return appIds
     .map((id) => byId.get(id))
     .filter((a): a is NonNullable<typeof a> => a != null)
-    .map((a) => ({ id: a.id as string, name: appDisplayName((a.name as string | null) ?? null, (a.store_url as string | null) ?? null) }));
+    .map((a) => {
+      const storeUrl = (a.store_url as string | null) ?? null;
+      return {
+        id: a.id as string,
+        name: appDisplayName((a.name as string | null) ?? null, storeUrl),
+        logoUrl: brandFromUrl(storeUrl)?.logoUrl ?? null,
+      };
+    });
 }
 
 /**

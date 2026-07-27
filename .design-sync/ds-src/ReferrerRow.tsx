@@ -26,8 +26,10 @@ export function ReferrerRow({ r, maxEtv }: ReferrerRowProps) {
     <div style={{ fontFamily: "var(--font-sans)", opacity: low ? 0.6 : 1 }}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 84px 64px 16px", alignItems: "center", gap: 8, padding: "5px 6px", borderRadius: 6, cursor: "pointer" }}
            onClick={() => setOpen((o) => !o)}>
-        <span style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-          <a href={r.url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} style={{ color: "var(--c-action)", textDecoration: "none", fontSize: 12.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        {/* flexWrap + minWidth:0 let the badges wrap under the host on a narrow
+            phone instead of spilling over the bar column (the mobile-overlap fix). */}
+        <span style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6, minWidth: 0, overflow: "hidden" }}>
+          <a href={r.url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} style={{ color: "var(--c-action)", textDecoration: "none", fontSize: 12.5, minWidth: 0, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {r.host.replace(/^www\./, "")}
           </a>
           <span style={{ fontSize: 10.5, fontWeight: 600, padding: "1px 6px", borderRadius: "var(--radius-full)", background: "var(--c-soft)", color: "var(--c-muted)" }}>{r.category}</span>

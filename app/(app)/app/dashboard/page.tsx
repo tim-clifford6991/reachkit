@@ -221,8 +221,15 @@ async function DashboardContent() {
         isPaid={entitlements?.active ?? false}
         events={events}
       />
+      {/* "You vs. top competitors" reads directly under the score (owner 2026-07-27,
+          all viewports): the founder's standing against rivals is the first context
+          after their own number. It streams in (client intel fetch), so it skeletons
+          below the hero rather than blocking it. */}
+      <div style={{ marginTop: 20 }}>
+        <DashboardIntelBlocks />
+      </div>
       {/* The growth engine: score → WHAT to rank for (the target searches) → the
-          PLAN to win them. "What to rank for" reads right after the score so the
+          PLAN to win them. "What to rank for" reads after the standing so the
           founder sees the specific moves before the calendar that schedules them. */}
       <div style={{ marginTop: 20 }}>
         <WhatToRankFor {...buildRankTargets(scan.report_payload as ReportPayload | null)} />
@@ -231,7 +238,6 @@ async function DashboardContent() {
       <div style={{ marginTop: 20 }}>
         <WeekPlanPreview board={board} />
       </div>
-      <DashboardIntelBlocks />
       {isOwner(viewer?.user.email) && (
         <p style={{ marginTop: 18, textAlign: "center", fontSize: 11.5, color: "var(--c-faint)" }}>
           <Link href="/app/diagnostics" style={{ color: "var(--c-faint)", textDecoration: "none" }}>Scan diagnostics →</Link>

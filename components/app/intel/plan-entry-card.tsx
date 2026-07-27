@@ -22,7 +22,7 @@
  * post or submit anything ourselves.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge, CopyButton, EvidenceLink, priorityTone } from "@/components/app/intel/kit";
 import { KIND_STYLE, HORIZON_STYLE } from "@/components/app/intel/plan-kind-style";
@@ -70,6 +70,9 @@ export function PlanEntryCard({ entry, domain, detail }: { entry: PlanEntry; dom
   );
   const [actionId, setActionId] = useState<string | null>(entry.actionId);
   const [status, setStatus] = useState<"idle" | "drafting" | "error" | "upgrade" | "completing" | "done">("idle");
+  // A specific failure reason — so a flaky mobile connection reads differently
+  // from a real server error (both used to show a blank "something failed").
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showDraft, setShowDraft] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
 
@@ -86,11 +89,16 @@ export function PlanEntryCard({ entry, domain, detail }: { entry: PlanEntry; dom
   // `https://https://bazzly.ai` seen in the X composer — normalize to a clean
   // canonical `https://<host>` (drops scheme dup + www + trailing slash).
   const productUrl = domain ? `https://${hostname(domain)}` : undefined;
-  const route: ExecutionRoute | null = entry.kind === "distribution"
-    ? inferExecutionRoute({ channel: entry.channel ?? "", target: entry.target ?? entry.title, targetUrl: entry.targetUrl ?? undefined })
-    : entry.kind === "post"
-      ? { kind: "share", platform: "x" } // the daily post: X composer, prefilled
-      : null;
+  // Memoized so it's a stable dependency for generate() (derived purely from entry).
+  const route = useMemo<ExecutionRoute | null>(
+    () =>
+      entry.kind === "distribution"
+        ? inferExecutionRoute({ channel: entry.channel ?? "", target: entry.target ?? entry.title, targetUrl: entry.targetUrl ?? undefined })
+        : entry.kind === "post"
+          ? { kind: "share", platform: "x" } // the daily post: X composer, prefilled
+          : null,
+    [entry],
+  );
 
   const horizon = horizonForEntry(entry);
 
@@ -135,42 +143,92 @@ export function PlanEntryCard({ entry, domain, detail }: { entry: PlanEntry; dom
     }
   }, [entry]);
 
+  // Drafting runs a Sonnet generation that can take ~30–60s on a phone. Abort at
+  // 2 min so a stalled request surfaces as a retryable error instead of an
+  // infinite spinner; a network drop / abort reads differently from a 5xx so the
+  // founder knows whether to check their connection or just retry.
+  const postJson = useCallback(async (url: string, payload: unknown): Promise<Response> => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 120_000);
+    try {
+      return await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+  }, []);
+
   // -- Draft generation -------------------------------------------------------
+  // The generated draft is persisted server-side by the API (content on its own
+  // action row, distribution via the shared draft-action-persist path), so it is
+  // ALWAYS retained — a refresh, a closed tab, or a dropped connection can't lose
+  // it; on reload it rehydrates as a tracked entry (owner 2026-07-27).
   const generate = useCallback(async () => {
     setStatus("drafting");
+    setErrorMsg(null);
     try {
       if (entry.kind === "content") {
-        const res = await fetch("/api/content-draft", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ topic: entry.title, angle: entry.why || undefined, regenerate: draft !== null }),
+        const res = await postJson("/api/content-draft", {
+          topic: entry.title,
+          angle: entry.why || undefined,
+          regenerate: draft !== null,
         });
-        if (!res.ok) throw new Error(String(res.status));
+        if (res.status === 402 || res.status === 403) { setStatus("upgrade"); return; }
+        if (!res.ok) throw new Error(`server ${res.status}`);
         const json = (await res.json()) as { draft?: string; actionId?: string };
         setDraft({ text: json.draft ?? "" });
         if (json.actionId) setActionId(json.actionId);
       } else {
-        const res = await fetch("/api/distribute/draft", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            platform: route!.platform,
-            productName: domain,
-            angle: `${entry.title}${entry.target ? ` — ${entry.target}.` : "."}${entry.why ? ` ${entry.why}` : ""}`,
-            url: productUrl,
-          }),
+        // Only genuine distribution entries carry the persistence context (title
+        // + routing) — the daily X-post composer is keyed by date elsewhere, so
+        // it stays generate-only here.
+        const persist =
+          entry.kind === "distribution"
+            ? {
+                title: entry.title,
+                why: entry.why || undefined,
+                target:
+                  KNOWN_CHANNELS.has(entry.channel ?? "") && entry.target
+                    ? { channel: entry.channel as ActionTargetChannel, label: entry.target, ...(entry.targetUrl ? { url: entry.targetUrl } : {}) }
+                    : undefined,
+                verifyUrl: entry.targetUrl || undefined,
+                effortMin: entry.effortMin,
+                regenerate: draft !== null,
+              }
+            : {};
+        const res = await postJson("/api/distribute/draft", {
+          platform: route!.platform,
+          productName: domain,
+          angle: `${entry.title}${entry.target ? ` — ${entry.target}.` : "."}${entry.why ? ` ${entry.why}` : ""}`,
+          url: productUrl,
+          ...persist,
         });
         if (res.status === 403) { setStatus("upgrade"); return; }
-        if (!res.ok) throw new Error(String(res.status));
-        const json = (await res.json()) as { draft?: { text?: string; title?: string } };
+        if (!res.ok) throw new Error(`server ${res.status}`);
+        const json = (await res.json()) as { draft?: { text?: string; title?: string }; actionId?: string };
         setDraft({ title: json.draft?.title, text: json.draft?.text ?? "" });
+        if (json.actionId) setActionId(json.actionId);
       }
       setShowDraft(true);
       setStatus("idle");
-    } catch {
+    } catch (e) {
+      // A fetch rejection (TypeError) or an abort means the request never got a
+      // response — a connection problem, not a server error. Distinguish them so
+      // the message is actionable.
+      const name = (e as { name?: string })?.name;
+      const isNetwork = e instanceof TypeError || name === "AbortError";
+      setErrorMsg(
+        isNetwork
+          ? "couldn’t reach the server — check your connection and try again"
+          : "the draft service hit an error — try again",
+      );
       setStatus("error");
     }
-  }, [entry, route, domain, productUrl, draft]);
+  }, [entry, route, domain, productUrl, draft, postJson]);
 
   // -- Handoff — the "Open →" affordances are real <a href> links (see the
   // action row). These are their click side-effects only: record that the
@@ -291,7 +349,12 @@ export function PlanEntryCard({ entry, domain, detail }: { entry: PlanEntry; dom
         </button>
       </div>
 
-      {status === "error" && <p style={{ fontSize: 10.5, color: "var(--c-faint)", margin: "6px 0 0" }}>something failed — try again</p>}
+      {status === "drafting" && (
+        <p style={{ fontSize: 10.5, color: "var(--c-faint)", margin: "6px 0 0" }}>
+          Writing your draft — this can take up to a minute. It’s saved automatically, so you won’t lose it.
+        </p>
+      )}
+      {status === "error" && <p style={{ fontSize: 10.5, color: "var(--c-faint)", margin: "6px 0 0" }}>{errorMsg ?? "something failed — try again"}</p>}
       {status === "upgrade" && (
         <p style={{ fontSize: 10.5, color: "var(--c-faint)", margin: "6px 0 0" }}>
           drafting is a paid feature — <a href="/pricing" style={{ color: "var(--c-action)" }}>upgrade</a>

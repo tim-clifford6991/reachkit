@@ -43,7 +43,16 @@ export function CustomersScreen() {
   return (
     <AppShell active="audCust" headerTitle="Customers" headerSub="Who your buyer is, and the communities where you can go engage them." user={{ name: "Nadia L.", sub: "nudgi.ai · solo founder" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-        {/* Row 1 — who buyers are */}
+        {/* Row 1 — where they hang out (lifted to the top, owner 2026-07-27: the
+            page's lead answer, so it sits above the buyer profile). */}
+        <Card title="Where they hang out" info="Every surfaced buyer thread, ranked by buyer intent; click any dot or row for evidence.">
+          <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+            <IntentRecencyMap />
+            <BuyerThreadFeed />
+          </div>
+        </Card>
+
+        {/* Row 2 — who buyers are */}
         {/* K (2026-07-24): labelled, scannable structure — Audience (de-emphasised
             ICP) + Jobs-to-be-done + Use-case chips — replacing the wordy prose line. */}
         <Card title="Who your buyer is" meta="AI meeting notetakers">
@@ -65,14 +74,6 @@ export function CustomersScreen() {
                 </div>
               </div>
             ))}
-          </div>
-        </Card>
-
-        {/* Row 2 — where they hang out */}
-        <Card title="Where they hang out" info="Every surfaced buyer thread, ranked by buyer intent; click any dot or row for evidence.">
-          <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-            <IntentRecencyMap />
-            <BuyerThreadFeed />
           </div>
         </Card>
 

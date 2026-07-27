@@ -6,7 +6,7 @@
  */
 
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 
 import { buildMetadata } from "@/lib/seo";
@@ -126,7 +126,14 @@ export default async function CompareSlugPage({
 }) {
   const { slug } = await params;
   const c = COMPARE_MAP[slug];
-  if (!c) notFound();
+  // Unknown slug (e.g. a bot probing /compare/null). notFound() here 500s under
+  // Cache Components ("Invalid revalidate configuration provided: 0 < 1" — the
+  // not-found boundary crashes on the on-demand-params render path before the
+  // 404 renders; `dynamicParams = false` is not an option because segment-config
+  // exports are rejected under cacheComponents). Same class fixed for teardowns
+  // in #86 — comparisons are a fixed editorial set, so redirect probes to the
+  // /compare hub: no 500, no orphan URL. Guarded by unknown-slug-redirect.test.tsx.
+  if (!c) redirect("/compare");
 
   return (
     <main aria-label={`ReachKit versus ${c.name}`} style={{ background: "var(--c-surface)" }}>

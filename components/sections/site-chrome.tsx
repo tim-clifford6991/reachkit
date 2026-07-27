@@ -11,7 +11,7 @@
 
 import { type ReactNode, Suspense } from "react";
 import { currentUser } from "@/lib/auth/server";
-import { type FooterContent } from "@/components/sections/footer";
+import { Footer, type FooterContent } from "@/components/sections/footer";
 import { MarketingNav } from "@/components/sections/marketing-nav";
 import { MarketingChrome } from "@/components/sections/marketing-chrome";
 
@@ -75,10 +75,19 @@ async function AuthNav() {
   return <MarketingNav isLoggedIn={!!viewer} />;
 }
 
+async function AuthFooter() {
+  const viewer = await currentUser();
+  return <Footer content={SITE_FOOTER} isLoggedIn={!!viewer} />;
+}
+
 export function SiteChrome({ children }: { children: ReactNode }) {
   return (
     <MarketingChrome
-      footer={SITE_FOOTER}
+      footer={
+        <Suspense fallback={<Footer content={SITE_FOOTER} isLoggedIn={false} />}>
+          <AuthFooter />
+        </Suspense>
+      }
       nav={
         <Suspense fallback={<MarketingNav isLoggedIn={false} />}>
           <AuthNav />

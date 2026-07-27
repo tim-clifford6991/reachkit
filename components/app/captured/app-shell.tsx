@@ -115,6 +115,8 @@ export interface AppShellProps {
   appName: string;
   plan: string;
   appInitial: string;
+  /** Active app's brand favicon; null falls back to the initial-letter square. */
+  appLogoUrl?: string | null;
   actionsCount: number;
   sideCard: SideCard | null;
   apps: SwitcherApp[];
@@ -231,6 +233,7 @@ export function AppShell(p: AppShellProps) {
             activeId={p.activeAppId}
             appName={p.appName}
             appInitial={p.appInitial}
+            appLogoUrl={p.appLogoUrl ?? null}
             plan={p.plan}
             canAddApp={p.canAddApp}
             addAppUpgradePlan={p.addAppUpgradePlan ?? null}

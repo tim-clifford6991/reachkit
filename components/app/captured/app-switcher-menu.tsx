@@ -20,6 +20,32 @@ const SG = "Space Grotesk", PJ = "Plus Jakarta Sans";
 export interface SwitcherApp {
   id: string;
   name: string;
+  /** Brand favicon for the app; null falls back to the initial-letter square. */
+  logoUrl?: string | null;
+}
+
+/** The app avatar: the brand favicon (derived from the app's domain), falling
+ *  back to the gradient initial-letter square when there's no URL or the image
+ *  fails to load. Keeps the exact captured square dimensions/radius. */
+function AppAvatar({ logoUrl, initial, size = 28 }: { logoUrl?: string | null; initial: string; size?: number }) {
+  const [failed, setFailed] = useState(false);
+  const radius = Math.round(size / 4);
+  if (logoUrl && !failed) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- external favicon host, no next/image loader
+      <img
+        src={logoUrl}
+        alt=""
+        width={size}
+        height={size}
+        onError={() => setFailed(true)}
+        style={{ width: size, height: size, borderRadius: radius, objectFit: "cover", flex: "0 0 auto", background: "var(--c-bg2)", border: "1px solid var(--c-line2)" }}
+      />
+    );
+  }
+  return (
+    <span style={{ width: size, height: size, borderRadius: radius, background: "linear-gradient(135deg, var(--c-action), #9A88FF)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: Math.round(size * 0.46), fontFamily: SG, flex: "0 0 auto" }}>{initial}</span>
+  );
 }
 
 export function AppSwitcher({
@@ -27,6 +53,7 @@ export function AppSwitcher({
   activeId,
   appName,
   appInitial,
+  appLogoUrl = null,
   plan,
   canAddApp,
   addAppUpgradePlan = null,
@@ -35,6 +62,8 @@ export function AppSwitcher({
   activeId: string | null;
   appName: string;
   appInitial: string;
+  /** Active app's brand favicon; null falls back to the initial square. */
+  appLogoUrl?: string | null;
   plan: string;
   canAddApp: boolean;
   /** At the app limit: which plan unlocks another slot via direct checkout.
@@ -66,7 +95,7 @@ export function AppSwitcher({
         disabled={pending}
         style={{ width: "100%", fontFamily: PJ, background: "var(--c-bg2)", border: "1px solid var(--c-line2)", borderRadius: 11, padding: "9px 11px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", textAlign: "left", opacity: pending ? 0.6 : 1 }}
       >
-        <span style={{ width: 28, height: 28, borderRadius: 7, background: "linear-gradient(135deg, var(--c-action), #9A88FF)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: SG, flex: "0 0 auto" }}>{appInitial}</span>
+        <AppAvatar logoUrl={appLogoUrl} initial={appInitial} size={28} />
         <div style={{ flex: "1 1 0%", minWidth: 0 }}>
           <div style={{ fontWeight: 600, fontSize: 13.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: "var(--c-ink)" }}>{appName}</div>
           <div style={{ fontSize: 11.5, color: "var(--c-faint)" }}>{plan}</div>
@@ -80,7 +109,8 @@ export function AppSwitcher({
           <div style={{ position: "absolute", left: 0, right: 0, top: "calc(100% + 6px)", zIndex: 31, background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 12, boxShadow: "0 16px 40px -12px rgba(40,33,84,0.22)", padding: 6, display: "flex", flexDirection: "column", gap: 2 }}>
             {apps.map((a) => (
               <button key={a.id} type="button" onClick={() => switchTo(a.id)} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", textAlign: "left", border: "none", background: a.id === activeId ? "var(--c-soft)" : "transparent", borderRadius: 8, padding: "8px 10px", cursor: "pointer", fontFamily: PJ, fontSize: 13, fontWeight: 600, color: a.id === activeId ? "var(--c-action)" : "var(--c-ink)" }}>
-                <span style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.name}</span>
+                <AppAvatar logoUrl={a.logoUrl} initial={(a.name || "?").charAt(0).toUpperCase()} size={20} />
+                <span style={{ flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.name}</span>
                 {a.id === activeId && <span aria-hidden>✓</span>}
               </button>
             ))}

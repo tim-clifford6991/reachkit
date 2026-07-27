@@ -17,9 +17,14 @@ interface NavLink {
   href: string;
 }
 
-export function MobileMenu({ links }: { links: readonly NavLink[] }) {
+export function MobileMenu({ links, isLoggedIn = false }: { links: readonly NavLink[]; isLoggedIn?: boolean }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  // Authed users get "Dashboard" (→ /app/dashboard); logged-out get "Log in".
+  // Mirrors the desktop header so no surface still shows "Log in" once signed in.
+  const authLink: NavLink = isLoggedIn
+    ? { label: "Dashboard", href: "/app/dashboard" }
+    : { label: "Log in", href: "/login" };
 
   return (
     <div className="sm:hidden">
@@ -47,7 +52,7 @@ export function MobileMenu({ links }: { links: readonly NavLink[] }) {
             className="absolute inset-x-0 top-full z-50 flex flex-col gap-1 border-b p-3 backdrop-blur-xl"
             style={{ background: "var(--glass-tint)", borderColor: "var(--hairline)" }}
           >
-            {[...links, { label: "Log in", href: "/login" }].map((l) => {
+            {[...links, authLink].map((l) => {
               const active = isActivePath(pathname, l.href);
               return (
                 <Link

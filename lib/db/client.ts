@@ -7,3 +7,6 @@ export const serverDb = () =>
   createClient<Database>(env.supabaseUrl, env.supabaseServiceKey, {
     auth: { persistSession: false },
   });
+
+/** The service-role client type — for helpers that take a `db` handle. */
+export type ServerDb = ReturnType<typeof serverDb>;

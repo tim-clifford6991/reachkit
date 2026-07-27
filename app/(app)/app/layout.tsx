@@ -28,6 +28,7 @@ import { serverDb } from "@/lib/db/client";
 import type { ReportPayload } from "@/lib/scan/report";
 import type { Tier } from "@/lib/billing/tiers";
 import { activeAppId, userApps, pruneDanglingApps } from "@/lib/app/active-app";
+import { brandFromUrl } from "@/lib/brand/logo";
 import { shouldBlockSetup } from "@/lib/app/setup-state";
 import { getSelectedCompetitors } from "@/lib/scan/competitor-selection";
 import { CommandPalette } from "@/components/app/command-palette";
@@ -163,7 +164,7 @@ async function SidebarData({ children }: { children: React.ReactNode }) {
   // Self-heal dangling app_ids (an app deleted out from under the reference) so
   // the switcher shows no ghost "Your product" and the cap count is honest.
   const liveAppIds = await pruneDanglingApps(user.id, user.app_ids);
-  const apps = (await userApps(liveAppIds)).map((a) => ({ id: a.id, name: a.name }));
+  const apps = (await userApps(liveAppIds)).map((a) => ({ id: a.id, name: a.name, logoUrl: a.logoUrl }));
   const APP_LIMIT: Record<string, number> = { free: 1, solo: 1, growth: 3 };
   const canAddApp = apps.length < (APP_LIMIT[tier] ?? 1);
 
@@ -183,6 +184,7 @@ async function SidebarData({ children }: { children: React.ReactNode }) {
       appName={appName ?? "your site"}
       plan={PLAN_LABEL[tier] ?? "Free plan"}
       appInitial={(appName ?? "?").charAt(0).toUpperCase()}
+      appLogoUrl={brandFromUrl(domain)?.logoUrl ?? null}
       actionsCount={0}
       apps={apps}
       activeAppId={primaryAppId}

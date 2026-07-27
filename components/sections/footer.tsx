@@ -51,6 +51,23 @@ export interface FooterContent {
 
 export interface FooterProps {
   content: FooterContent;
+  /** When the viewer is authenticated, any "/login" nav item is swapped for a
+   *  "Dashboard" link (→ /app/dashboard) so no footer shows "Log in" to a
+   *  signed-in user — same class fix as the header. */
+  isLoggedIn?: boolean;
+}
+
+/** Swap any `/login` footer nav item for a Dashboard link when authenticated.
+ *  Generic (walks every column) so it fixes the class wherever the item sits,
+ *  not just the one column that happens to hold it today. */
+function authAwareColumns(columns: readonly FooterNavColumn[], isLoggedIn: boolean): readonly FooterNavColumn[] {
+  if (!isLoggedIn) return columns;
+  return columns.map((col) => ({
+    ...col,
+    items: col.items.map((item) =>
+      item.href === "/login" ? { ...item, label: "Dashboard", href: "/app/dashboard" } : item,
+    ),
+  }));
 }
 
 // ---------------------------------------------------------------------------
@@ -77,8 +94,9 @@ const MONO_LABEL: React.CSSProperties = {
 // Component
 // ---------------------------------------------------------------------------
 
-export function Footer({ content }: FooterProps) {
-  const { brand, tagline, columns, legal, social, copyright, attribution } = content;
+export function Footer({ content, isLoggedIn = false }: FooterProps) {
+  const { brand, tagline, columns: rawColumns, legal, social, copyright, attribution } = content;
+  const columns = authAwareColumns(rawColumns, isLoggedIn);
 
   return (
     <footer

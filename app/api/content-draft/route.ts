@@ -28,6 +28,7 @@ import { serverDb } from "@/lib/db/client";
 import { getSelectedCompetitors } from "@/lib/scan/competitor-selection";
 import { gatherSynthesis, type ContentPlanItem } from "@/lib/scan/synthesis/synthesize";
 import { generateContentDraft } from "@/lib/scan/synthesis/content-draft";
+import { upsertDraftAction } from "@/lib/app/draft-action-store";
 
 export const maxDuration = 240;
 
@@ -103,51 +104,20 @@ export async function POST(req: NextRequest) {
     item = fallbackItem(topic, angle);
   }
 
-  // Reuse an existing open action for this topic; return its stored draft unless
-  // the caller explicitly asked to regenerate (keeps repeat clicks free).
-  const { data: existingRows, error: findErr } = await db
-    .from("actions")
-    .select("id, status, draft")
-    .eq("app_id", appId)
-    .eq("title", topic);
-  if (findErr) return NextResponse.json({ message: "failed to check for existing action" }, { status: 500 });
-  const openMatch = (existingRows ?? []).find((a) => a.status !== "done");
-
-  if (openMatch && typeof openMatch.draft === "string" && openMatch.draft.length > 0 && !regenerate) {
-    return NextResponse.json({ draft: openMatch.draft, requiresEdit: true, actionId: openMatch.id as string });
+  // Find-or-create the draft action and store it (shared draft-action-persist
+  // path — the same one /api/distribute/draft uses). Reuses a stored draft for
+  // free unless `regenerate`; the draft travels into the worked queue, not just
+  // this view. Invariant #2: the paid LLM call runs under a cost context so the
+  // spend bills this app's latest scan instead of an unattributable NULL row.
+  try {
+    const { draft, actionId } = await upsertDraftAction(
+      db,
+      appId,
+      { title: topic, category: "content", why: item.buyerAngle || null, regenerate },
+      () => costedIntelStep(appId, "content-draft", () => generateContentDraft(item)).then((r) => r.markdown),
+    );
+    return NextResponse.json({ draft, requiresEdit: true, actionId });
+  } catch {
+    return NextResponse.json({ message: "failed to store draft" }, { status: 500 });
   }
-
-  // Invariant #2: the draft is a paid LLM call — run it under a cost context so
-  // the spend bills this app's latest scan (and rolls up to the owning user)
-  // instead of writing an unattributable `pipeline_runs.scan_id = NULL` row.
-  const { markdown } = await costedIntelStep(appId, "content-draft", () =>
-    generateContentDraft(item),
-  );
-
-  // Store on the action (update the open one, else create it) so the draft
-  // travels into the worked queue — not just returned to this view.
-  let actionId: string;
-  if (openMatch) {
-    const { error: updErr } = await db.from("actions").update({ draft: markdown }).eq("id", openMatch.id);
-    if (updErr) return NextResponse.json({ message: "failed to store draft" }, { status: 500 });
-    actionId = openMatch.id as string;
-  } else {
-    const { data: inserted, error: insErr } = await db
-      .from("actions")
-      .insert({
-        app_id: appId,
-        category: "content",
-        title: topic,
-        why: item.buyerAngle || null,
-        status: "pending",
-        draft: markdown,
-        expected_outcome: null,
-      })
-      .select("id")
-      .single();
-    if (insErr || !inserted) return NextResponse.json({ message: "failed to store draft" }, { status: 500 });
-    actionId = inserted.id as string;
-  }
-
-  return NextResponse.json({ draft: markdown, requiresEdit: true, actionId });
 }

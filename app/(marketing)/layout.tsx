@@ -7,7 +7,7 @@
 
 import { type ReactNode, Suspense } from "react";
 import { currentUser } from "@/lib/auth/server";
-import { type FooterContent } from "@/components/sections/footer";
+import { Footer, type FooterContent } from "@/components/sections/footer";
 import { MarketingNav } from "@/components/sections/marketing-nav";
 import { MotionProvider } from "@/components/sections/motion-provider";
 import { MarketingChrome } from "@/components/sections/marketing-chrome";
@@ -76,10 +76,22 @@ async function AuthNav() {
   return <MarketingNav isLoggedIn={!!viewer} />;
 }
 
+// Same Suspense-island pattern as AuthNav: the footer's "Log in" → "Dashboard"
+// swap needs the session, which is dynamic, so it streams in behind the
+// logged-out fallback rather than blocking the static prerender.
+async function AuthFooter() {
+  const viewer = await currentUser();
+  return <Footer content={FOOTER_CONTENT} isLoggedIn={!!viewer} />;
+}
+
 export default function MarketingLayout({ children }: { children: ReactNode }) {
   return (
     <MarketingChrome
-      footer={FOOTER_CONTENT}
+      footer={
+        <Suspense fallback={<Footer content={FOOTER_CONTENT} isLoggedIn={false} />}>
+          <AuthFooter />
+        </Suspense>
+      }
       nav={
         <Suspense fallback={<MarketingNav isLoggedIn={false} />}>
           <AuthNav />

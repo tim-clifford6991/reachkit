@@ -140,6 +140,17 @@ const CAPABILITY_LEDGER: Capability[] = [
     exports: ["judgeRelevance"],
     consumer: "lib/scan/search-visibility.ts",
   },
+  {
+    // 2026-07-27: the ONE "generate a draft → persist it as a reusable action"
+    // path. A generated draft must ALWAYS be retained (survive refresh / a mid-
+    // generation mobile drop) — content drafts persisted server-side, distribution
+    // drafts did not, so a refresh lost them. Both draft routes now share this,
+    // instead of forking the find-or-create-and-store logic a third time.
+    capability: "draft-action-persist",
+    canonicalModule: "lib/app/draft-action-store.ts",
+    exports: ["upsertDraftAction"],
+    consumer: "app/api/distribute/draft/route.ts",
+  },
 ];
 
 /** Recursively list every non-test `.ts`/`.tsx` under a root (repo-relative). */

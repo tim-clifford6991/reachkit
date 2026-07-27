@@ -192,7 +192,12 @@ export function AppShell({
               brand and the nav. This card omitted it entirely, which is why the
               multi-app model was invisible in the DS. */}
           <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 8px", marginBottom: 14, border: "1px solid var(--c-line)", borderRadius: "var(--radius-lg)", background: "var(--c-surface)" }}>
-            <span style={{ flex: "0 0 auto", width: 28, height: 28, borderRadius: 7, background: "linear-gradient(135deg, var(--c-action), #9A88FF)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: "var(--font-display)" }}>{appInitial}</span>
+            {/* The app's brand favicon (derived from its domain via the Google
+                favicon service), with the gradient initial-letter square as the
+                fallback when there's no URL or the image fails (owner 2026-07-27). */}
+            {/* eslint-disable-next-line @next/next/no-img-element -- external favicon host */}
+            <img src="https://www.google.com/s2/favicons?domain=nudgi.ai&sz=128" alt="" width={28} height={28} style={{ flex: "0 0 auto", width: 28, height: 28, borderRadius: 7, objectFit: "cover", background: "var(--c-bg2)", border: "1px solid var(--c-line2)" }} />
+            <span hidden style={{ flex: "0 0 auto", width: 28, height: 28, borderRadius: 7, background: "linear-gradient(135deg, var(--c-action), #9A88FF)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: "var(--font-display)" }}>{appInitial}</span>
             <div style={{ flex: "1 1 0%", minWidth: 0 }}>
               <div style={{ fontWeight: 600, fontSize: 13.5, color: "var(--c-ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{appName}</div>
               <div style={{ fontSize: 11.5, color: "var(--c-faint)" }}>{plan}</div>

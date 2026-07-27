@@ -60,7 +60,7 @@ export function MarketingNav({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
           >
             {isLoggedIn ? "New scan" : "Analyze my site"}
           </Link>
-          <MobileMenu links={[...LINKS]} />
+          <MobileMenu links={[...LINKS]} isLoggedIn={isLoggedIn} />
         </div>
       </nav>
     </header>

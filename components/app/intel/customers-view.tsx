@@ -69,17 +69,20 @@ export function CustomersBody({ data }: { data: Demand }) {
   return (
     <EvidenceDrawerProvider>
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-        {/* Row 1 — who buyers are */}
-        <Card title="Who your buyer is" meta={data.category}>
-          <WhoYourBuyer data={data} />
-        </Card>
-
-        {/* Row 2 — where they hang out (the exploratory map + thread feed) */}
+        {/* Row 1 — where they hang out (the exploratory map + thread feed).
+            Lifted to the top (owner 2026-07-27): it's the page's lead answer
+            ("where your buyers actually are"), so it must not sit below the
+            buyer profile. */}
         <Card title="Where they hang out" info="Every surfaced buyer thread, ranked by buyer intent; click any dot or row for evidence.">
           <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
             <IntentRecencyMap pockets={data.community.pockets} />
             <BuyerThreadFeed pockets={data.community.pockets} />
           </div>
+        </Card>
+
+        {/* Row 2 — who buyers are */}
+        <Card title="Who your buyer is" meta={data.category}>
+          <WhoYourBuyer data={data} />
         </Card>
 
         {/* Row 3 — communities to engage: the LESSON → move. Post/answer/learn

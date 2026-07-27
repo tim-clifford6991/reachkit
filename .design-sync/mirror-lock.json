@@ -13,7 +13,7 @@
   },
   "AppShell": {
     "mirror": "components/app/captured/app-shell.tsx",
-    "hash": "bb6829c7a53005ba"
+    "hash": "72bce3413c1cab54"
   },
   "Audience": {
     "mirror": "components/sections/captured/landing-html.ts",
@@ -61,7 +61,7 @@
   },
   "CustomersScreen": {
     "mirror": "components/app/intel/customers-view.tsx",
-    "hash": "0c87f1979b1a1a9f"
+    "hash": "ce66152c968d175b"
   },
   "DashboardScreen": {
     "mirror": "components/app/intel/dashboard-hero.tsx",
@@ -77,7 +77,7 @@
   },
   "Footer": {
     "mirror": "components/sections/footer.tsx",
-    "hash": "15962f88d3014cbe"
+    "hash": "25f1ddc1d20e3d7e"
   },
   "GalleryScreen": {
     "mirror": "app/(marketing)/gallery/page.tsx",
@@ -117,7 +117,7 @@
   },
   "NavBar": {
     "mirror": "components/sections/marketing-nav.tsx",
-    "hash": "038dd28b7b2e7033"
+    "hash": "2dfe76696292f422"
   },
   "OnboardingScreen": {
     "mirror": "components/app/setup/setup-overlay.tsx",
@@ -129,11 +129,11 @@
   },
   "PlanItemCard": {
     "mirror": "components/app/intel/plan-entry-card.tsx",
-    "hash": "d7489b20e0e6aa91"
+    "hash": "c436f73227a55c51"
   },
   "PlanScreen": {
     "mirror": "components/app/intel/plan-timeline-view.tsx",
-    "hash": "b4ab46fddc7432a6"
+    "hash": "97fa42ce64b1c34a"
   },
   "PricingBlock": {
     "mirror": "components/sections/captured/landing-html.ts",
@@ -153,7 +153,7 @@
   },
   "ReferrerRow": {
     "mirror": "components/app/intel/referrer-row.tsx",
-    "hash": "1baa85eec6f046ea"
+    "hash": "db3bb910eaf68c6a"
   },
   "ResultsScreen": {
     "mirror": "components/report/captured/results-screen.tsx",

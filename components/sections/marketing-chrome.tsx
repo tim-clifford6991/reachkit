@@ -11,7 +11,6 @@
 
 import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { Footer, type FooterContent } from "@/components/sections/footer";
 
 // Routes that render full-bleed (no shared nav/footer).
 const FULL_BLEED = new Set<string>(["/login"]);
@@ -22,7 +21,9 @@ export function MarketingChrome({
   children,
 }: {
   nav: ReactNode;
-  footer: FooterContent;
+  // Auth-aware footer node (Suspense-wrapped island, same as `nav`) so the
+  // cookie read stays out of the static prerender path.
+  footer: ReactNode;
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -33,7 +34,7 @@ export function MarketingChrome({
     <div className="flex min-h-dvh flex-col overflow-x-hidden" style={{ background: "var(--c-surface)" }}>
       {nav}
       <div className="flex-1">{children}</div>
-      <Footer content={footer} />
+      {footer}
     </div>
   );
 }

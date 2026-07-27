@@ -14,7 +14,7 @@
  * "what to do".
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
@@ -126,6 +126,17 @@ export function PlanTimelineBody({ board, synthesis, domain, score, today: today
   }, [synthesis]);
 
   const [selected, setSelected] = useState<string | null>(null);
+  // The selected-day panel — tapping a calendar day scrolls it into view on
+  // mobile (the calendar now fits one screen, so the day's actions are below
+  // the fold). Desktop shows both at once, so no scroll there.
+  const dayPanelRef = useRef<HTMLElement>(null);
+  const handleSelectDay = useCallback((date: string) => {
+    setSelected(date);
+    if (typeof window !== "undefined" && window.innerWidth <= 640) {
+      // Let the panel re-render for the new day, then bring it into view.
+      requestAnimationFrame(() => dayPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    }
+  }, []);
   // Default focus: today if it has work, else the first scheduled day. Once the
   // founder explicitly picks a day (including a past day with nothing on it —
   // greyed but clickable), that pick wins outright: `selected` isn't gated on
@@ -186,11 +197,11 @@ export function PlanTimelineBody({ board, synthesis, domain, score, today: today
         <EmptyPlan />
       ) : (
         <>
-          <PlanCalendar days={days} today={today} activeDate={activeDate} onSelect={setSelected} />
+          <PlanCalendar days={days} today={today} activeDate={activeDate} onSelect={handleSelectDay} />
 
           {/* The selected day, workable in place */}
           {activeDate && (
-            <section>
+            <section ref={dayPanelRef} style={{ scrollMarginTop: 12 }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 10, margin: "0 2px 10px" }}>
                 <h3 style={{ fontFamily: SG, fontWeight: 700, fontSize: 15, color: "var(--c-ink)", margin: 0 }}>
                   {activeDate === todayKey ? "Today" : dayHeading(activeDate)}
@@ -214,12 +225,12 @@ export function PlanTimelineBody({ board, synthesis, domain, score, today: today
                 {activeDate === todayKey && <span style={{ fontFamily: JM, fontSize: 10.5, fontWeight: 700, color: "var(--c-action)" }}>← start here</span>}
               </div>
               {activeEntries.length > 0 ? (
-                // U3 (2026-07-25): show every scheduled task in ONE consistent list —
-                // the horizon-diverse top items first, then the rest, no "+N more"
-                // dropdown (a day's whole plan should be visible at a glance).
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {[...headlineEntries, ...extraEntries].map((e) => <PlanEntryCard key={e.key} entry={e} domain={domain} detail={detailFor(e)} />)}
-                </div>
+                // The day's top 3 (one per impact horizon) always show; any extra
+                // tasks collapse behind a "show N more" toggle so a busy day reads
+                // at a glance rather than as a long scroll (owner 2026-07-27,
+                // supersedes the U3 always-expanded list — the overview won).
+                // Keyed by activeDate so switching days remounts it collapsed.
+                <DayActions key={activeDate} headline={headlineEntries} extra={extraEntries} domain={domain} detailFor={detailFor} />
               ) : (
                 <div style={{
                   padding: "20px 16px", textAlign: "center", border: "1px dashed var(--c-line)", borderRadius: "var(--radius-lg)",
@@ -276,6 +287,36 @@ export function PlanTimelineBody({ board, synthesis, domain, score, today: today
           Verified wins land on your Progress timeline &rarr;
         </Link>
       </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// DayActions — the selected day's task list: its top 3 (one per impact horizon)
+// always visible, the rest behind a "show N more" toggle so a busy day is
+// scannable at a glance. Own component (keyed by day in the parent) so switching
+// days remounts it collapsed — no reset effect.
+// ---------------------------------------------------------------------------
+function DayActions({ headline, extra, domain, detailFor }: {
+  headline: PlanEntry[];
+  extra: PlanEntry[];
+  domain: string;
+  detailFor: (e: PlanEntry) => EntryDetail | undefined;
+}) {
+  const [showAll, setShowAll] = useState(false);
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {headline.map((e) => <PlanEntryCard key={e.key} entry={e} domain={domain} detail={detailFor(e)} />)}
+      {showAll && extra.map((e) => <PlanEntryCard key={e.key} entry={e} domain={domain} detail={detailFor(e)} />)}
+      {extra.length > 0 && (
+        <button
+          type="button"
+          onClick={() => setShowAll((v) => !v)}
+          style={{ alignSelf: "flex-start", background: "none", border: "none", padding: 2, fontFamily: JM, fontSize: 12, fontWeight: 700, color: "var(--c-action)", cursor: "pointer" }}
+        >
+          {showAll ? "Show less" : `Show ${extra.length} more`}
+        </button>
+      )}
     </div>
   );
 }
@@ -390,19 +431,23 @@ function dayHeading(dateKey: string): string {
 const CHIP_STYLE = KIND_STYLE;
 
 /**
- * Below 640px the month grid becomes a vertical AGENDA.
+ * Below 640px the month KEEPS its 7-column grid but swaps text chips for
+ * kind-keyed DOTS (owner 2026-07-27).
  *
- * Seven columns on a phone leaves ~46px per day, which truncates every action to
- * an unreadable stub ("Ti…", "P…"). The calendar is a day PICKER — the selected
- * day's actions render in full underneath — so a stub carries no information.
- * The agenda lists only days that actually have actions (date + readable titles);
- * blank lead cells, the weekday header, and empty days are dropped. Days keep
- * their click/keyboard selection. Reuses the `byDate` grouping already computed
- * for the grid — no JS, no horizontal scroll.
+ * Seven columns on a phone leaves ~46px per day — too narrow for a readable
+ * title, but plenty for a day number + a row of small coloured dots (one per
+ * scheduled action, coloured by kind). The whole month then fits ONE screen as
+ * a true overview (the agenda it replaced listed every day full-height, so the
+ * calendar was a long scroll with no bird's-eye view). The calendar is a day
+ * PICKER — tapping a day scrolls its actions into view in full underneath — so
+ * the dots only need to convey "how much, of what kind", which they do. Empty
+ * days stay in place (day number, no dots) to keep the Mon–Sun alignment.
+ * `.rk-cal-chips` (desktop titles) and `.rk-cal-dots` (mobile dots) are toggled
+ * purely in CSS here, never inline, so this media query actually wins.
  */
 // Minified for the same reason as SHELL_CSS: template-literal contents ship
 // verbatim, and /app/plan also sits on a pinned bundle baseline.
-const CAL_CSS = `.rk-cal-month{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}.rk-cal-day{display:flex;flex-direction:column;gap:3px;min-width:0;min-height:54px;padding:4px 5px 5px}.rk-cal-chip{font-size:9.5px;line-height:1.25;border-radius:var(--radius-sm);padding:2px 5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}@media (max-width:640px){.rk-cal-month{display:flex;flex-direction:column;gap:6px}.rk-cal-wd,.rk-cal-blank,.rk-cal-day--empty:not(.rk-cal-day--today){display:none}.rk-cal-day{flex-direction:row;align-items:center;flex-wrap:wrap;gap:8px;min-height:0;padding:9px 11px}.rk-cal-daynum{align-self:center;font-size:12px;min-width:22px}.rk-cal-chip{font-size:12px;white-space:normal;overflow:visible;text-overflow:clip;padding:3px 8px}}`;
+const CAL_CSS = `.rk-cal-month{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}.rk-cal-day{display:flex;flex-direction:column;gap:3px;min-width:0;min-height:54px;padding:4px 5px 5px}.rk-cal-chips{display:flex;flex-direction:column;gap:3px;min-width:0}.rk-cal-chip{font-size:9.5px;line-height:1.25;border-radius:var(--radius-sm);padding:2px 5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rk-cal-dots{display:none;flex-wrap:wrap;gap:3px;align-items:center}.rk-cal-dot{width:6px;height:6px;border-radius:50%;flex:0 0 auto}.rk-cal-dotmore{font-size:8px;font-family:var(--font-mono);color:var(--c-faint);line-height:1}@media (max-width:640px){.rk-cal-month{gap:4px}.rk-cal-day{min-height:44px;padding:4px 3px;gap:4px}.rk-cal-wd{text-align:center}.rk-cal-chips{display:none}.rk-cal-dots{display:flex}}`;
 
 function PlanCalendar({ days, today, activeDate, onSelect }: {
   days: ScheduledDay[];
@@ -499,16 +544,31 @@ function PlanCalendar({ days, today, activeDate, onSelect }: {
                     marked without breaking the Mon-Sun column alignment. */}
                 {d.getDate() === 1 ? `${d.toLocaleDateString("en-US", { month: "short" })} 1` : d.getDate()}
               </span>
-              {entries.slice(0, 2).map((e) => (
-                <span key={e.key} title={e.title} className="rk-cal-chip" style={{
-                  fontFamily: PJ, fontWeight: 600,
-                  color: CHIP_STYLE[e.kind].fg, background: CHIP_STYLE[e.kind].bg,
-                }}>
-                  {e.title}
-                </span>
-              ))}
-              {entries.length > 2 && (
-                <span style={{ fontFamily: JM, fontSize: 9, color: "var(--c-faint)" }}>+{entries.length - 2}</span>
+              {/* Desktop: readable title chips (top 2 + overflow count). */}
+              <div className="rk-cal-chips">
+                {entries.slice(0, 2).map((e) => (
+                  <span key={e.key} title={e.title} className="rk-cal-chip" style={{
+                    fontFamily: PJ, fontWeight: 600,
+                    color: CHIP_STYLE[e.kind].fg, background: CHIP_STYLE[e.kind].bg,
+                  }}>
+                    {e.title}
+                  </span>
+                ))}
+                {entries.length > 2 && (
+                  <span style={{ fontFamily: JM, fontSize: 9, color: "var(--c-faint)" }}>+{entries.length - 2}</span>
+                )}
+              </div>
+              {/* Mobile: a kind-keyed dot per action (up to 5 + overflow) so the
+                  whole month fits one screen. aria-hidden — the cell's aria-label
+                  already announces the action count; the dots are the visual
+                  density cue, decoded in full when the day is tapped. */}
+              {entries.length > 0 && (
+                <div className="rk-cal-dots" aria-hidden>
+                  {entries.slice(0, 5).map((e) => (
+                    <span key={e.key} className="rk-cal-dot" style={{ background: CHIP_STYLE[e.kind].fg }} />
+                  ))}
+                  {entries.length > 5 && <span className="rk-cal-dotmore">+{entries.length - 5}</span>}
+                </div>
               )}
             </div>
           );

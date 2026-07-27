@@ -20,7 +20,9 @@ const DEFAULT_COLUMNS: NonNullable<FooterProps["columns"]> = [
   { heading: "Product", items: [{ label: "Scan your app", href: "/scan" }, { label: "How it works", href: "/how-it-works" }, { label: "Pricing", href: "/pricing" }, { label: "Free tools", href: "/tools" }, { label: "Roadmap", href: "/roadmap" }] },
   { heading: "Resources", items: [{ label: "Gallery", href: "/gallery" }] },
   { heading: "Compare", items: [{ label: "vs Ahrefs", href: "/compare/ahrefs" }, { label: "vs Semrush", href: "/compare/semrush" }, { label: "vs SparkToro", href: "/compare/sparktoro" }, { label: "vs ChatGPT", href: "/compare/chatgpt" }, { label: "All comparisons", href: "/compare" }] },
-  { heading: "Company", items: [{ label: "About", href: "/about" }, { label: "Contact", href: "/contact" }, { label: "Affiliates", href: "/affiliates" }, { label: "Log in", href: "/login" }] },
+  // Authed footer state: the "/login" item is swapped for "Dashboard" (→
+  // /app/dashboard) by the live footer's authAwareColumns, mirrored here.
+  { heading: "Company", items: [{ label: "About", href: "/about" }, { label: "Contact", href: "/contact" }, { label: "Affiliates", href: "/affiliates" }, { label: "Dashboard", href: "/app/dashboard" }] },
 ];
 
 const LEGAL = [{ label: "Privacy", href: "/privacy" }, { label: "Terms", href: "/terms" }, { label: "Imprint", href: "/imprint" }];

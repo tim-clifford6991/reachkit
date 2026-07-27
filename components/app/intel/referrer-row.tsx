@@ -22,9 +22,13 @@ export function ReferrerRow({ r, maxEtv }: { r: ReferrerLike; maxEtv: number }) 
     <div style={{ opacity: low ? 0.6 : 1 }}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 84px 64px 16px", alignItems: "center", gap: 8, padding: "5px 6px", borderRadius: 6, cursor: "pointer" }}
            onClick={() => setOpen((o) => !o)}>
-        {/* host → SOURCE page (never the rival's target) */}
-        <span style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-          <EvidenceLink href={r.url}>{r.host.replace(/^www\./, "")}</EvidenceLink>
+        {/* host → SOURCE page (never the rival's target). minWidth:0 + overflow
+            let the grid track shrink; the host truncates and the badges wrap
+            under it on a narrow phone instead of spilling over the bar column
+            (the mobile-overlap fix — inline grid, so a media query can't touch
+            it; the collapse must be intrinsic). */}
+        <span style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6, minWidth: 0, overflow: "hidden" }}>
+          <EvidenceLink href={r.url} style={{ minWidth: 0, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.host.replace(/^www\./, "")}</EvidenceLink>
           <Badge tone="neutral">{r.category}</Badge>
           {low && <Badge tone="neutral">low relevance</Badge>}
         </span>
