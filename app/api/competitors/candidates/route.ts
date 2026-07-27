@@ -1,22 +1,23 @@
 /**
  * /api/competitors/candidates?domain=<host> — ranked competitor candidates for the
- * dashboard picker: closeness score + reason, estimated traffic, and size ratio vs
- * the user's own traffic. The user chooses up to 5 from this list to benchmark.
+ * onboarding picker: closeness + reason, estimated traffic, and size tier.
  *
- * Source preference (cheapest sufficient answer first, W6):
- *   1. Warm `cc:<host>` cache (14-day TTL, shared with the intel layers) — the
- *      richest shape (etv / size tiers), served instantly via
- *      `cachedClosestCompetitors`. Domain-keyed, so it can never serve stale
- *      wrong-domain candidates.
- *   2. Competitors already DISCOVERED by the user's scan (persisted on the
- *      `competitors` table during collect). The free scan pays for this once —
- *      onboarding must not re-run the Tavily + DataForSEO + LLM discovery
- *      pipeline just to show the same names again.
- *   3. Full discovery via `cachedClosestCompetitors` (cold path; result cached
- *      globally per domain for every later caller).
+ * ONE source (2026-07-27 convergence — intake `onboarding-picker-convergence`):
+ * candidates ALWAYS come from `cachedClosestCompetitors` (`cc:<host>`), the same
+ * closeness-ranked cohort the intel funnels benchmark against (`cohortFor`). The
+ * old scan-seeded fork (`seedFromScan` over the `competitors` table) is retired:
+ * it only fired on the checkout/first-app path (where the deep scan had populated
+ * the table), while `/app/add` (free scan, empty table) hit this cold path — two
+ * sources, two lists, two sizing mechanisms. `cc:` works for BOTH paths, carries
+ * native traffic + size tiers, and aligns "pick 5 to benchmark" with the cohort
+ * that actually gets benchmarked.
  *
- * `?refresh=1` busts the domain's cache entry AND skips the scan seed so the
- * next compute is genuinely fresh.
+ * Cost-neutral: `cc:<host>` is fetched anyway at select-time by `gatherSynthesis`
+ * (`cohortFor`); converging just moves that single 14-day-cached fetch earlier
+ * (picker time), then select cache-hits. The deep scan's own competitor discovery
+ * (`facts.competitors` → score/gap/monitors) is unchanged.
+ *
+ * `?refresh=1` busts the domain's cache so the next compute is genuinely fresh.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth/server";
@@ -25,190 +26,14 @@ import { activeAppId } from "@/lib/app/active-app";
 import { costedIntelStep } from "@/lib/app/latest-scan";
 import { serverDb } from "@/lib/db/client";
 import { normalizeHost } from "@/lib/scan/referral/classify";
-import { resolveCompetitorDomain } from "@/lib/scan/competitor-resolve";
 import { cachedClosestCompetitors } from "@/lib/scan/cache/cached-adapters";
-import { computeSizeTier, type SizeTier } from "@/lib/scan/referral/discover-competitors";
 
 export const maxDuration = 60;
-
-/** Mirrors cachedClosestCompetitors' TTL (14d) for the warm-cache peek. */
-const CC_TTL_MS = 14 * 24 * 60 * 60 * 1000;
-
-/** Candidate shape the picker consumes — scan-seeded entries carry no traffic
- *  data, so etv/ratio/sizeTier are degraded (the picker renders those softly). */
-interface SeededCandidate {
-  domain: string;
-  name: string;
-  closeness: number;
-  reason: string;
-  etv: number;
-  ratio: number | null;
-  sizeRelevant: boolean;
-  /** Size tier vs the subject — attached by REUSING the deep scan's already-fetched
-   *  competitor traffic (report_payload.market), never a fresh fetch. Absent when
-   *  the scan holds no sizing for this domain (never fabricated). */
-  sizeTier?: SizeTier;
-  /** 2B — a discovered competitor we couldn't auto-resolve to a domain. Still
-   *  selectable; the select route resolves it on commit (name-keyed, no domain). */
-  unresolved?: boolean;
-}
-
-/**
- * Competitor sizing the DEEP SCAN already fetched + persisted (the market pass's
- * per-rival `domain_rank_overview` → `report_payload.market.cohort`), keyed by
- * domain. Reused to size the scan-seeded picker candidates WITHOUT a second
- * DataForSEO call — the sizing was already paid for; the picker just never read
- * it. Best-effort: returns null (→ degraded, tier-less seed) when no deepened
- * scan / no market cohort exists yet. Never fabricates a tier.
- */
-export interface CohortSizing {
-  subjectEtv: number;
-  etvByDomain: Map<string, number>;
-}
-
-/** Pure parse of a persisted `report_payload` → the subject + per-rival ETV the
- *  deep scan already fetched (market pass). Returns null when there's no market
- *  cohort or no rival carries a positive ETV (→ degraded seed, never fabricated).
- *  Exported for the guard test. */
-export function cohortSizingFromPayload(payload: unknown): CohortSizing | null {
-  const cohort = (payload as { market?: { cohort?: {
-    self?: { seo?: { etv?: number } };
-    competitors?: Array<{ domain?: string; seo?: { etv?: number } }>;
-  } } } | null | undefined)?.market?.cohort;
-  if (!cohort) return null;
-  const subjectEtv = Number(cohort.self?.seo?.etv ?? 0) || 0;
-  const etvByDomain = new Map<string, number>();
-  for (const c of cohort.competitors ?? []) {
-    const host = normalizeHost(c.domain ?? "");
-    const etv = Number(c.seo?.etv ?? 0);
-    if (host && etv > 0) etvByDomain.set(host, etv);
-  }
-  return etvByDomain.size > 0 ? { subjectEtv, etvByDomain } : null;
-}
-
-async function cohortSizing(appId: string): Promise<CohortSizing | null> {
-  const { data } = await serverDb()
-    .from("scans")
-    .select("report_payload")
-    .eq("app_id", appId)
-    .not("deepened_at", "is", null)
-    .order("completed_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  return cohortSizingFromPayload(data?.report_payload ?? null);
-}
-
-/** True when the shared `cc:<host>` cache already holds a fresh result — then
- *  cachedClosestCompetitors is an instant read and strictly richer than a seed. */
-async function ccCacheIsWarm(self: string): Promise<boolean> {
-  try {
-    const { data } = await serverDb()
-      .from("search_cache")
-      .select("created_at")
-      .eq("key", `cc:${self.trim().toLowerCase()}`)
-      .maybeSingle();
-    return !!data?.created_at && Date.now() - new Date(data.created_at).getTime() < CC_TTL_MS;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Build the picker payload from the competitors the user's own scan already
- * discovered (source != 'user_selected'), when the requested domain IS the
- * active app's domain. Returns null when there's nothing to seed from —
- * callers then fall through to the discovery pipeline.
- */
-async function seedFromScan(
-  user: { app_ids: string[] },
-  self: string,
-): Promise<{ category: string; blurb: string; subjectEtv: number; ranked: SeededCandidate[]; suggested: string[] } | null> {
-  const db = serverDb();
-  const appId = await activeAppId(user);
-  if (!appId) return null;
-
-  const { data: appRow } = await db.from("apps").select("store_url").eq("id", appId).maybeSingle();
-  if (!appRow?.store_url || normalizeHost(appRow.store_url) !== self) return null;
-
-  const { data: rows } = await db
-    .from("competitors")
-    .select("id, competitor_store_url, name, source")
-    .eq("app_id", appId)
-    .neq("source", "user_selected");
-
-  // Reuse the deep scan's already-fetched competitor traffic to size these
-  // seeded candidates — no second DataForSEO call. Best-effort.
-  const sizing = await cohortSizing(appId).catch(() => null);
-  const subjectEtv = sizing?.subjectEtv ?? 0;
-
-  const seen = new Set<string>();
-  const ranked: SeededCandidate[] = [];
-  const add = (host: string, name: string) => {
-    if (!host || host === self || seen.has(host) || ranked.length >= 15) return;
-    seen.add(host);
-    const etv = sizing?.etvByDomain.get(host) ?? 0;
-    ranked.push({
-      domain: host,
-      name: name || host,
-      closeness: 3,
-      reason: "Found during your scan",
-      etv,
-      ratio: etv > 0 && subjectEtv > 0 ? etv / subjectEtv : null,
-      sizeRelevant: true,
-      // Attach a tier ONLY when the scan actually holds this rival's traffic —
-      // never fabricated for a domain the scan didn't profile.
-      ...(etv > 0 ? { sizeTier: computeSizeTier(etv, subjectEtv) } : {}),
-    });
-  };
-
-  // Rows that already carry a domain (SERP/Tavily-sourced) go straight in;
-  // LLM-extracted rows are name-only and must be resolved (A4) — otherwise the
-  // picker drops every one of them and falls back to 1 live-discovery result.
-  const nameOnly: Array<{ id: string; name: string }> = [];
-  for (const r of rows ?? []) {
-    const host = normalizeHost(r.competitor_store_url ?? "");
-    if (host) add(host, r.name ?? host);
-    else if (r.name) nameOnly.push({ id: r.id as string, name: r.name });
-  }
-
-  // Resolve name-only competitors → domains in parallel, then BACKFILL the row so
-  // this cost is paid once (subsequent loads see the host and skip resolution).
-  // 2B — a name we CAN'T resolve is no longer silently dropped: it's surfaced as
-  // an `unresolved` candidate (name-keyed) so the user sees every discovered rival
-  // and can still pick it; the select route resolves it on commit.
-  const seenNames = new Set<string>();
-  if (nameOnly.length > 0 && ranked.length < 15) {
-    const resolved = await Promise.all(
-      nameOnly.slice(0, 10).map(async (u) => ({ u, host: await resolveCompetitorDomain(u.name) })),
-    );
-    for (const { u, host } of resolved) {
-      if (host && host !== self && !seen.has(host)) {
-        add(host, u.name);
-        try {
-          await db.from("competitors").update({ competitor_store_url: `https://${host}` }).eq("id", u.id);
-        } catch (e) {
-          console.error("[competitors/candidates] backfill failed (best-effort)", e);
-        }
-      } else if (!host) {
-        const key = u.name.trim().toLowerCase();
-        if (key && !seenNames.has(key) && ranked.length < 15) {
-          seenNames.add(key);
-          ranked.push({ domain: "", name: u.name, closeness: 2, reason: "Found during your scan (name only)", etv: 0, ratio: null, sizeRelevant: true, unresolved: true });
-        }
-      }
-    }
-  }
-
-  if (ranked.length === 0) return null;
-  // Auto-suggest only resolved candidates (an unresolved one has no domain to seed).
-  const suggested = ranked.filter((c) => c.domain).slice(0, 5).map((c) => c.domain);
-  return { category: "", blurb: "", subjectEtv, ranked, suggested };
-}
 
 export async function GET(req: NextRequest) {
   const viewer = await currentUser();
   if (!viewer) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
-  // Paid entitlement — the cold path runs DataForSEO competitor discovery; gate it
+  // Paid entitlement — the cold path runs DataForSEO/Tavily/LLM discovery; gate it
   // like the rest of the paid onboarding surface (§6 #6).
   try {
     await assertPaid(viewer.user.id);
@@ -232,22 +57,9 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // Scan continuity (W6): when the discovery cache is cold but the user's scan
-  // already found competitors for THIS domain, serve those instead of re-paying
-  // the discovery pipeline during onboarding. Best-effort — any failure falls
-  // through to the normal path.
-  if (!fresh && !(await ccCacheIsWarm(self))) {
-    try {
-      const seeded = await seedFromScan(viewer.user, self);
-      if (seeded) return NextResponse.json(seeded);
-    } catch (e) {
-      console.error("[competitors/candidates] scan seed failed (best-effort)", e);
-    }
-  }
-
   try {
-    // costedIntelStep: the cold discovery path spends DataForSEO/Tavily —
-    // attribute it to the viewer's latest scan row (CLAUDE.md invariant #2).
+    // ONE source. costedIntelStep attributes the cold-compute DataForSEO/Tavily/LLM
+    // spend to the viewer's latest scan (invariant #2); a warm `cc:` is an instant read.
     const appId = await activeAppId(viewer.user);
     const result = appId
       ? await costedIntelStep(appId, "candidates", () => cachedClosestCompetitors(self))

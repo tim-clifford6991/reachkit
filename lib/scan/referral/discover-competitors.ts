@@ -232,11 +232,14 @@ export async function discoverClosestCompetitors(self: string, trace: TraceStep[
     output: { category: cat.category, queries: cat.queries },
   });
 
-  // Richer pool: up to 4 category queries, 15 results each → more large players surface.
+  // Richer pool so the picker is a real CHOICE (not 5-of-5): up to 4 category
+  // queries, 20 results each (Tavily bills per search, not per result — free
+  // width), deduped to 60. A bigger candidate set → the ranker surfaces more
+  // genuine ≥3-closeness rivals; a niche market still honestly yields few.
   let candidates: { domain: string; title: string }[] = [];
   if (cat.queries.length) {
     t = Date.now();
-    const resultSets = await Promise.all(cat.queries.slice(0, 4).map((q) => tavilySearch(q, { maxResults: 15 })));
+    const resultSets = await Promise.all(cat.queries.slice(0, 4).map((q) => tavilySearch(q, { maxResults: 20 })));
     const byDomain = new Map<string, string>();
     for (const rs of resultSets) {
       for (const r of rs) {
@@ -245,7 +248,7 @@ export async function discoverClosestCompetitors(self: string, trace: TraceStep[
         if (!byDomain.has(d)) byDomain.set(d, r.title || d);
       }
     }
-    candidates = [...byDomain.entries()].map(([domain, title]) => ({ domain, title })).slice(0, 45);
+    candidates = [...byDomain.entries()].map(([domain, title]) => ({ domain, title })).slice(0, 60);
     trace.push({ node: "closest.category_search", status: candidates.length ? "ok" : "empty", ms: Date.now() - t, input: { queries: cat.queries.slice(0, 4) }, output: { candidateDomains: candidates.map((c) => c.domain) } });
   }
 

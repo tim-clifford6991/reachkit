@@ -3,19 +3,6 @@ import { serverDb } from "@/lib/db/client";
 import { hostname } from "@/lib/scan/url";
 import { filterRealCompetitors } from "@/lib/scan/competitor-filter";
 
-/**
- * The competitor CANDIDATE-POOL size the scan persists — the ranked list the
- * onboarding picker offers ("pick up to 5"). Deliberately larger than the
- * SELECTION max (`MAX_SELECTED = 5`) so the picker is a real choice, not 5-of-5
- * pre-checked. Widening this is FREE: the extra names were already extracted by
- * the SERP/Tavily/LLM discovery — `rankCompetitors` just sliced them away — and
- * the deep-scan market pass auto-discovers its own top-5 cohort independently
- * (cohort.ts), so it never profiles this wider pool. Selection + deep analysis
- * stay bounded to 5 (invariant #2). Sizing (R-3.18) still renders only on the
- * profiled overlap; the rest are honest band-less ranked candidates.
- */
-export const SCAN_COMPETITOR_POOL = 12;
-
 export function rankCompetitors(
   all: Competitor[],
   opts: { selfHost?: string; cap?: number; subjectName?: string } = {},

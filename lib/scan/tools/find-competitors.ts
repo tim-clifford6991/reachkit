@@ -5,7 +5,7 @@ import { appIdFromUrl, fetchItunesCompetitors } from "@/lib/scan/adapters/itunes
 import { liveSerpAlternatives } from "@/lib/scan/adapters/dataforseo";
 import { fetchPhByName } from "@/lib/scan/adapters/product-hunt";
 import { tavilyAlternatives } from "@/lib/scan/adapters/tavily";
-import { rankCompetitors, SCAN_COMPETITOR_POOL } from "@/lib/scan/competitors";
+import { rankCompetitors } from "@/lib/scan/competitors";
 import { upsertRawDocument } from "@/lib/db/raw-documents";
 import { recordPipelineRun } from "@/lib/telemetry/pipeline-runs";
 import { hostname } from "@/lib/scan/url";
@@ -94,7 +94,6 @@ export const findCompetitors: ToolDefinition<FindCompetitorsArgs, FindCompetitor
       const competitors = rankCompetitors(all, {
         selfHost: hostname(args.storeUrl),
         subjectName: args.productName,
-        cap: SCAN_COMPETITOR_POOL,
       });
 
       await recordPipelineRun({
@@ -118,7 +117,7 @@ export const findCompetitors: ToolDefinition<FindCompetitorsArgs, FindCompetitor
 
     const appId = appIdFromUrl(args.storeUrl);
     const cands = await fetchItunesCompetitors(args.productName, appId);
-    const competitors = rankCompetitors(cands, { subjectName: args.productName, cap: SCAN_COMPETITOR_POOL });
+    const competitors = rankCompetitors(cands, { subjectName: args.productName });
 
     await upsertRawDocument({
       subjectType: "app",
