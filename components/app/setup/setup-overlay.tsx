@@ -18,11 +18,12 @@
  * Styling is strictly the intel-kit idiom: inline styles + `--c-*` tokens.
  */
 
-import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState, useTransition } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { CompetitorSetup } from "@/components/app/intel/competitor-setup";
 import { SetupProfileStep } from "./setup-profile-step";
 import { SetupCalculatingStep } from "./setup-calculating-step";
+import { setActiveApp } from "@/lib/app/set-active-app";
 
 const PJ = "var(--font-sans)", JM = "var(--font-mono)";
 
@@ -30,19 +31,49 @@ export type SetupInitialStep = "profile" | "competitors";
 
 const STEP_LABELS = ["Profile", "Competitors", "Your data"] as const;
 
+export interface OverlayApp { id: string; name: string; }
+
 export function SetupOverlay({
   initialStep,
   domain,
   icpSignals,
+  apps = [],
+  activeAppId = null,
 }: {
   initialStep: SetupInitialStep;
   /** The active app's subject domain — null when the user has no scanned app yet. */
   domain: string | null;
   /** Detected ICP traits (scan-first users) prefilled into the profile step. */
   icpSignals: string[];
+  /** The user's other products, so onboarding can be ESCAPED by switching to a
+   *  ready one (blocking-with-escape, owner rule 2026-07-27). */
+  apps?: OverlayApp[];
+  activeAppId?: string | null;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [step, setStep] = useState<1 | 2 | 3>(initialStep === "profile" ? 1 : 2);
+  const [switchOpen, setSwitchOpen] = useState(false);
+  const [switching, startSwitch] = useTransition();
+
+  // The overlay steps aside on two surfaces: /app/settings (always reachable — fix
+  // your URL / billing without being trapped) and /app/add (the onboarding surface
+  // itself: the AddFlow drives scanning → pick there). It BLOCKS everywhere else,
+  // so a user who navigates away mid-onboarding is caught by the pick — they can't
+  // reach a half-onboarded product's dashboard (owner rule 2026-07-27).
+  const onExempt = pathname === "/app/settings" || pathname === "/app/add";
+
+  // Escape 2: switch to another product. A ready product flips setupState → ready
+  // → the overlay unmounts; a product that also needs onboarding shows its own.
+  const switchTo = (id: string) => {
+    if (id === activeAppId) { setSwitchOpen(false); return; }
+    startSwitch(async () => {
+      await setActiveApp(id);
+      router.push("/app/dashboard");
+      router.refresh();
+      setSwitchOpen(false);
+    });
+  };
 
   // Entrance: fade + scale in on mount (CSS transitions only, no motion deps).
   const [entered, setEntered] = useState(false);
@@ -62,6 +93,14 @@ export function SetupOverlay({
     router.refresh();
   }, [router]);
 
+  // Step aside on the exempt surfaces (Settings / Add) — see onExempt above.
+  if (onExempt) return null;
+
+  const escapeBtn = {
+    background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-sm)",
+    padding: "6px 12px", fontFamily: PJ, fontSize: 12, fontWeight: 600, color: "var(--c-muted)", cursor: "pointer",
+  } as const;
+
   return (
     <div
       role="dialog"
@@ -79,9 +118,35 @@ export function SetupOverlay({
         transition: "opacity 260ms ease",
       }}
     >
-      {/* Sign-out escape — the only working exit while the app is locked.
-          POST (not a link): the route is POST-only and prefetch-safe. */}
-      <form action="/auth/signout" method="post" style={{ position: "fixed", top: 14, right: 18, zIndex: 1 }}>
+      {/* Escapes — the overlay blocks the app, but the user is never trapped:
+          switch to another product, jump to Settings, or sign out. */}
+      <div style={{ position: "fixed", top: 14, right: 18, zIndex: 2, display: "flex", gap: 8, alignItems: "flex-start" }}>
+        {apps.length > 1 && (
+          <div style={{ position: "relative" }}>
+            <button type="button" style={escapeBtn} onClick={() => setSwitchOpen((v) => !v)} disabled={switching}>
+              Switch product ▾
+            </button>
+            {switchOpen && (
+              <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, minWidth: 200, background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-md)", boxShadow: "rgba(20,19,26,0.10) 0px 12px 30px -8px", padding: 6, zIndex: 3 }}>
+                {apps.map((a) => (
+                  <button
+                    key={a.id}
+                    type="button"
+                    onClick={() => switchTo(a.id)}
+                    style={{ display: "block", width: "100%", textAlign: "left", background: a.id === activeAppId ? "var(--c-soft)" : "transparent", border: "none", borderRadius: "var(--radius-sm)", padding: "8px 10px", fontFamily: PJ, fontSize: 13, fontWeight: 600, color: a.id === activeAppId ? "var(--c-action)" : "var(--c-ink)", cursor: "pointer", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+                  >
+                    {a.name}{a.id === activeAppId ? " ✓" : ""}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        <a href="/app/settings" style={{ ...escapeBtn, textDecoration: "none", display: "inline-block" }}>Settings</a>
+      </div>
+
+      {/* Sign-out escape — POST (the route is POST-only and prefetch-safe). */}
+      <form action="/auth/signout" method="post" style={{ position: "fixed", top: 14, left: 18, zIndex: 1 }}>
         <button
           type="submit"
           style={{

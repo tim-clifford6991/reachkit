@@ -121,7 +121,7 @@
   },
   "OnboardingScreen": {
     "mirror": "components/app/setup/setup-overlay.tsx",
-    "hash": "e1ac1a2da3ba9cb9"
+    "hash": "d8fcb604cff01e2b"
   },
   "PlanCards": {
     "mirror": "components/sections/captured/pricing-html.ts",
@@ -181,7 +181,7 @@
   },
   "SettingsScreen": {
     "mirror": "components/app/captured/settings-main.tsx",
-    "hash": "e374d958d135461f"
+    "hash": "e665edd9eec770fa"
   },
   "StatusScreen": {
     "mirror": "app/(marketing)/status/page.tsx",

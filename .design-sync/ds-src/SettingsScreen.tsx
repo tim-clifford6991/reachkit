@@ -53,6 +53,8 @@ export function SettingsScreen() {
               <button style={{ fontFamily: "var(--font-sans)", fontWeight: 600, fontSize: 13, color: "var(--c-on-dark)", background: "var(--c-action)", border: "none", borderRadius: 10, padding: "9px 18px", cursor: "pointer" }}>Save</button>
             </div>
           </div>
+          {/* Add another product right here (beside the per-row Remove above). */}
+          <a href="/app/add" style={{ display: "inline-block", marginTop: 14, fontFamily: "var(--font-sans)", fontWeight: 600, fontSize: 13, color: "var(--c-action)", background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 8, padding: "8px 14px", textDecoration: "none" }}>+ Add product</a>
         </Card>
 
         {/* Scoring */}

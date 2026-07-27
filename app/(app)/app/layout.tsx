@@ -217,7 +217,7 @@ async function SidebarData({ children }: { children: React.ReactNode }) {
         <div inert aria-hidden style={{ pointerEvents: "none", userSelect: "none" }}>
           {shell}
         </div>
-        <SetupOverlay initialStep={setupState} domain={domain} icpSignals={icpSignals} />
+        <SetupOverlay initialStep={setupState} domain={domain} icpSignals={icpSignals} apps={apps} activeAppId={primaryAppId} />
       </>
     );
   }

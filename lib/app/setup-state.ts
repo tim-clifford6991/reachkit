@@ -1,10 +1,15 @@
 /**
  * Should the blocking SetupOverlay render?
  *
- * The overlay inerts the ENTIRE app. That's right for a genuine first run and
- * wrong for an additional product: locking a healthy product #1 behind product
- * #2's competitor pick is exactly what the non-blocking add flow exists to avoid
- * (spec 2026-07-15). Profile is per-USER and stays mandatory.
+ * Onboarding a product is a BLOCKING step (owner rule 2026-07-27): until it's
+ * done — scanned + competitors picked — the user can't navigate the app for that
+ * product. This holds for the FIRST app AND every new one alike. The old
+ * "competitors blocks only on the first app" carve-out (spec 2026-07-15) existed
+ * to avoid inerting a healthy product #1 behind product #2's pick — but the
+ * overlay now carries a SWITCH-PRODUCT + SETTINGS escape, so the user can always
+ * jump back to a ready product (which flips setupState → ready → unblocks). So the
+ * block is universal; the escape is what keeps product #1 reachable. Profile is
+ * per-USER and stays mandatory.
  */
 export function shouldBlockSetup(args: {
   onboardedAt: string | null;
@@ -12,6 +17,5 @@ export function shouldBlockSetup(args: {
   appCount: number;
 }): boolean {
   if (args.setupState === "ready") return false;
-  if (args.setupState === "profile") return true; // per-user, mandatory
-  return args.appCount <= 1; // competitors: first app only
+  return true; // profile (per-user) OR competitors (per-product) — both block, with escapes
 }

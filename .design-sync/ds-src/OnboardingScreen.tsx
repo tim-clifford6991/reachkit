@@ -27,7 +27,12 @@ const label: React.CSSProperties = { fontSize: 13, fontWeight: 600, color: "var(
 export function OnboardingScreen() {
   return (
     <div style={{ position: "relative", minHeight: 700, display: "flex", alignItems: "center", justifyContent: "center", padding: 40, background: "color-mix(in oklab, var(--c-bg2) 88%, transparent)", fontFamily: "var(--font-sans)", color: "var(--c-ink)" }}>
-      <form style={{ position: "absolute", top: 22, right: 26 }}><button style={{ fontFamily: "var(--font-sans)", fontSize: 13, color: "var(--c-muted)", background: "transparent", border: "1px solid var(--c-line)", borderRadius: 8, padding: "6px 12px", cursor: "pointer" }}>Sign out</button></form>
+      <form style={{ position: "absolute", top: 22, left: 26 }}><button style={{ fontFamily: "var(--font-sans)", fontSize: 13, color: "var(--c-muted)", background: "transparent", border: "1px solid var(--c-line)", borderRadius: 8, padding: "6px 12px", cursor: "pointer" }}>Sign out</button></form>
+      {/* Escapes — blocked, never trapped: switch to another product or jump to Settings. */}
+      <div style={{ position: "absolute", top: 22, right: 26, display: "flex", gap: 8 }}>
+        <button style={{ fontFamily: "var(--font-sans)", fontSize: 12, fontWeight: 600, color: "var(--c-muted)", background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 8, padding: "6px 12px", cursor: "pointer" }}>Switch product ▾</button>
+        <a href="/app/settings" style={{ fontFamily: "var(--font-sans)", fontSize: 12, fontWeight: 600, color: "var(--c-muted)", background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 8, padding: "6px 12px", textDecoration: "none" }}>Settings</a>
+      </div>
       <div style={{ width: "min(720px, 100%)", background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: "var(--radius-xl)", boxShadow: "0 30px 80px -30px rgba(40,33,84,0.4)", padding: 40 }}>
         <div style={{ marginBottom: 28 }}>
           <div style={{ fontFamily: JM, fontSize: 12, color: "var(--c-faint)", marginBottom: 10 }}>Step {STEP} of 3 · {STEPS[STEP - 1]}</div>

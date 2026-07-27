@@ -36,30 +36,6 @@ type Step = "url" | "scanning" | "competitors";
 
 const PJ = "var(--font-sans)";
 
-function SkipLink({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{
-        marginTop: 16,
-        alignSelf: "flex-start",
-        background: "transparent",
-        border: "none",
-        padding: 0,
-        fontFamily: PJ,
-        fontSize: 12.5,
-        fontWeight: 500,
-        color: "var(--c-muted)",
-        textDecoration: "underline",
-        cursor: "pointer",
-      }}
-    >
-      {children}
-    </button>
-  );
-}
-
 export function AddFlow() {
   const router = useRouter();
   const [step, setStep] = useState<Step>("url");
@@ -103,16 +79,16 @@ export function AddFlow() {
           host={added.host}
           onFacts={() => setStep("competitors")}
         />
-        <SkipLink onClick={goToDashboard}>I&apos;ll pick competitors later</SkipLink>
       </div>
     );
   }
 
-  // step === "competitors"
+  // step === "competitors". Onboarding is a BLOCKING step now (owner rule
+  // 2026-07-27): no "skip" — the blocking overlay catches the pick on every other
+  // page, and Switch-product / Settings / Sign-out are the non-trapping escapes.
   return (
     <div style={{ display: "flex", flexDirection: "column", maxWidth: 720 }}>
       <CompetitorSetup domain={added.host} onDone={goToDashboard} />
-      <SkipLink onClick={goToDashboard}>Skip for now</SkipLink>
     </div>
   );
 }
