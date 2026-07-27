@@ -70,6 +70,8 @@ test("createAnonymousCheckout: session requires ToS consent (EU withdrawal waive
   // EU CRD: explicit ToS consent at checkout (the Terms carry the
   // immediate-performance / withdrawal-waiver clause).
   expect(sessionParams.consent_collection).toEqual({ terms_of_service: "required" });
+  // Promotion-code field is offered at checkout (coupons/promo codes).
+  expect(sessionParams.allow_promotion_codes).toBe(true);
   // No free trial — charged immediately at checkout (launch P2).
   expect(sessionParams.subscription_data).toBeUndefined();
   expect(sessionParams.mode).toBe("subscription");
@@ -96,6 +98,8 @@ test("createCheckout: session requires ToS consent (EU withdrawal waiver) and st
   expect(s.sessionsCreate).toHaveBeenCalledTimes(1);
   const sessionParams = s.created[0]!;
   expect(sessionParams.consent_collection).toEqual({ terms_of_service: "required" });
+  // Promotion-code field is offered at checkout (coupons/promo codes).
+  expect(sessionParams.allow_promotion_codes).toBe(true);
   expect(sessionParams.subscription_data).toBeUndefined();
   expect(sessionParams.mode).toBe("subscription");
 });

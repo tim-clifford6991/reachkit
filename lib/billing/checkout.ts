@@ -61,6 +61,9 @@ export async function createAnonymousCheckout({
     // EU CRD: explicit ToS consent at checkout — the Terms carry the
     // immediate-performance / withdrawal-waiver clause (Task 6.4).
     consent_collection: { terms_of_service: "required" },
+    // Render Stripe's "Add promotion code" field so coupons/promo codes can be
+    // applied at checkout (used for testing + real promotions).
+    allow_promotion_codes: true,
     success_url: `${env.appUrl}/welcome?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: cancelUrl,
   });
@@ -154,6 +157,9 @@ export async function createCheckout({
     // EU CRD: explicit ToS consent at checkout — the Terms carry the
     // immediate-performance / withdrawal-waiver clause (Task 6.4).
     consent_collection: { terms_of_service: "required" },
+    // Render Stripe's "Add promotion code" field so coupons/promo codes can be
+    // applied at checkout (used for testing + real promotions).
+    allow_promotion_codes: true,
     success_url: `${env.appUrl}/app?upgraded=1`,
     cancel_url: cancelUrl,
   });
