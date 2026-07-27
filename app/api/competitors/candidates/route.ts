@@ -27,6 +27,7 @@ import { serverDb } from "@/lib/db/client";
 import { normalizeHost } from "@/lib/scan/referral/classify";
 import { resolveCompetitorDomain } from "@/lib/scan/competitor-resolve";
 import { cachedClosestCompetitors } from "@/lib/scan/cache/cached-adapters";
+import { computeSizeTier, type SizeTier } from "@/lib/scan/referral/discover-competitors";
 
 export const maxDuration = 60;
 
@@ -43,9 +44,58 @@ interface SeededCandidate {
   etv: number;
   ratio: number | null;
   sizeRelevant: boolean;
+  /** Size tier vs the subject — attached by REUSING the deep scan's already-fetched
+   *  competitor traffic (report_payload.market), never a fresh fetch. Absent when
+   *  the scan holds no sizing for this domain (never fabricated). */
+  sizeTier?: SizeTier;
   /** 2B — a discovered competitor we couldn't auto-resolve to a domain. Still
    *  selectable; the select route resolves it on commit (name-keyed, no domain). */
   unresolved?: boolean;
+}
+
+/**
+ * Competitor sizing the DEEP SCAN already fetched + persisted (the market pass's
+ * per-rival `domain_rank_overview` → `report_payload.market.cohort`), keyed by
+ * domain. Reused to size the scan-seeded picker candidates WITHOUT a second
+ * DataForSEO call — the sizing was already paid for; the picker just never read
+ * it. Best-effort: returns null (→ degraded, tier-less seed) when no deepened
+ * scan / no market cohort exists yet. Never fabricates a tier.
+ */
+export interface CohortSizing {
+  subjectEtv: number;
+  etvByDomain: Map<string, number>;
+}
+
+/** Pure parse of a persisted `report_payload` → the subject + per-rival ETV the
+ *  deep scan already fetched (market pass). Returns null when there's no market
+ *  cohort or no rival carries a positive ETV (→ degraded seed, never fabricated).
+ *  Exported for the guard test. */
+export function cohortSizingFromPayload(payload: unknown): CohortSizing | null {
+  const cohort = (payload as { market?: { cohort?: {
+    self?: { seo?: { etv?: number } };
+    competitors?: Array<{ domain?: string; seo?: { etv?: number } }>;
+  } } } | null | undefined)?.market?.cohort;
+  if (!cohort) return null;
+  const subjectEtv = Number(cohort.self?.seo?.etv ?? 0) || 0;
+  const etvByDomain = new Map<string, number>();
+  for (const c of cohort.competitors ?? []) {
+    const host = normalizeHost(c.domain ?? "");
+    const etv = Number(c.seo?.etv ?? 0);
+    if (host && etv > 0) etvByDomain.set(host, etv);
+  }
+  return etvByDomain.size > 0 ? { subjectEtv, etvByDomain } : null;
+}
+
+async function cohortSizing(appId: string): Promise<CohortSizing | null> {
+  const { data } = await serverDb()
+    .from("scans")
+    .select("report_payload")
+    .eq("app_id", appId)
+    .not("deepened_at", "is", null)
+    .order("completed_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return cohortSizingFromPayload(data?.report_payload ?? null);
 }
 
 /** True when the shared `cc:<host>` cache already holds a fresh result — then
@@ -86,12 +136,29 @@ async function seedFromScan(
     .eq("app_id", appId)
     .neq("source", "user_selected");
 
+  // Reuse the deep scan's already-fetched competitor traffic to size these
+  // seeded candidates — no second DataForSEO call. Best-effort.
+  const sizing = await cohortSizing(appId).catch(() => null);
+  const subjectEtv = sizing?.subjectEtv ?? 0;
+
   const seen = new Set<string>();
   const ranked: SeededCandidate[] = [];
   const add = (host: string, name: string) => {
     if (!host || host === self || seen.has(host) || ranked.length >= 15) return;
     seen.add(host);
-    ranked.push({ domain: host, name: name || host, closeness: 3, reason: "Found during your scan", etv: 0, ratio: null, sizeRelevant: true });
+    const etv = sizing?.etvByDomain.get(host) ?? 0;
+    ranked.push({
+      domain: host,
+      name: name || host,
+      closeness: 3,
+      reason: "Found during your scan",
+      etv,
+      ratio: etv > 0 && subjectEtv > 0 ? etv / subjectEtv : null,
+      sizeRelevant: true,
+      // Attach a tier ONLY when the scan actually holds this rival's traffic —
+      // never fabricated for a domain the scan didn't profile.
+      ...(etv > 0 ? { sizeTier: computeSizeTier(etv, subjectEtv) } : {}),
+    });
   };
 
   // Rows that already carry a domain (SERP/Tavily-sourced) go straight in;
@@ -135,7 +202,7 @@ async function seedFromScan(
   if (ranked.length === 0) return null;
   // Auto-suggest only resolved candidates (an unresolved one has no domain to seed).
   const suggested = ranked.filter((c) => c.domain).slice(0, 5).map((c) => c.domain);
-  return { category: "", blurb: "", subjectEtv: 0, ranked, suggested };
+  return { category: "", blurb: "", subjectEtv, ranked, suggested };
 }
 
 export async function GET(req: NextRequest) {
