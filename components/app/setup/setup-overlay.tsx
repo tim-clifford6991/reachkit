@@ -275,7 +275,7 @@ export function SetupOverlay({
           )}
 
           {step === "building" && (
-            <SetupCalculatingStep hasDomain={domain != null} onComplete={finish} />
+            <SetupCalculatingStep hasDomain={domain != null} scanId={scanId} host={domain} onComplete={finish} />
           )}
         </div>
       </div>

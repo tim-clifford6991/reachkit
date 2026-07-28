@@ -38,6 +38,7 @@ export function DashboardScanProgress({
   refreshing = false,
   startedAt = null,
   onFacts,
+  onDone,
 }: {
   scanId: string;
   /** Two-track split, mirroring the funnel: 'full' scans run the deep pass. */
@@ -65,6 +66,11 @@ export function DashboardScanProgress({
    * so the pick never waits on the deep pass.
    */
   onFacts?: () => void;
+  /** When set, the PARENT owns what happens on `done` (instead of the default
+   *  in-place router.refresh()). The onboarding Build step uses it to navigate to
+   *  the now-ready dashboard once the DEEP pass completes — so onboarding shows
+   *  ONE loading (this deep-scan checklist) and the dashboard has no second one. */
+  onDone?: () => void;
 }) {
   const router = useRouter();
   const [artifacts, setArtifacts] = useState<string[]>([]);
@@ -81,6 +87,10 @@ export function DashboardScanProgress({
   useEffect(() => {
     onFactsRef.current = onFacts;
   }, [onFacts]);
+  const onDoneRef = useRef(onDone);
+  useEffect(() => {
+    onDoneRef.current = onDone;
+  }, [onDone]);
 
   useEffect(() => {
     let cancelled = false;
@@ -166,7 +176,9 @@ export function DashboardScanProgress({
   // parent owns navigation via onFacts (the /app/add flow advances to the
   // competitor pick at `facts` and routes itself; a refresh here would fight it).
   useEffect(() => {
-    if (done && !onFacts) router.refresh();
+    if (!done) return;
+    if (onDoneRef.current) onDoneRef.current(); // parent navigates (onboarding Build step)
+    else if (!onFacts) router.refresh(); // default: reveal the real dashboard in place
   }, [done, onFacts, router]);
 
   if (failed) {

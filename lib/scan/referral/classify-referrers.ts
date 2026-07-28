@@ -53,20 +53,39 @@ Return ONLY a JSON array, one entry per host, using the host verbatim:
 [ { "host": "<host>", "category": "<category>" } ]`;
 }
 
+// Hosts are CHUNKED so no single model response can overrun the output ceiling
+// and truncate mid-array. Regression (66e12d0): the cap was raised 150→400 in
+// ONE 4096-token call — 400 entries ≈ ~8k output tokens, so the response
+// truncated, JSON.parse threw, the map came back EMPTY, every host fell to
+// "other", and the gap-map read all-"None" for the whole cohort (subject
+// included). ~100 hosts/batch keeps each response well under 4096; a failed
+// batch degrades only its own hosts, never the whole map.
+const CLASSIFY_BATCH = 100;
+const CLASSIFY_CAP = 400; // cohort union bound (cost) — now spread across batches
+
 /** host → category. Never throws → empty map on failure (caller treats as "other"). */
 export async function classifyReferrers(hosts: string[], productCategory: string): Promise<Map<string, ReferrerCategory>> {
   const out = new Map<string, ReferrerCategory>();
-  // 400 (was 150): the gap-map counts channel presence over the union of the
-  // cohort's referrers (~6 entities × 120 hosts). At 150 most hosts fell to
-  // "other" (unclassified) → quality channels read a false "None". 400 short
-  // hostnames is still one cheap batched Haiku call (2026-07-27).
-  const unique = [...new Set(hosts)].slice(0, 400);
+  const unique = [...new Set(hosts)].slice(0, CLASSIFY_CAP);
   if (unique.length === 0) return out;
+
+  const batches: string[][] = [];
+  for (let i = 0; i < unique.length; i += CLASSIFY_BATCH) batches.push(unique.slice(i, i + CLASSIFY_BATCH));
+
+  const maps = await Promise.all(batches.map((b) => classifyBatch(b, productCategory)));
+  for (const m of maps) for (const [h, c] of m) out.set(h, c);
+  return out;
+}
+
+/** One batch → its host→category map. Isolated try/catch so a single truncated
+ *  or malformed batch never zeroes the others. */
+async function classifyBatch(hosts: string[], productCategory: string): Promise<Map<string, ReferrerCategory>> {
+  const out = new Map<string, ReferrerCategory>();
   try {
     const { text } = await callModel({
       model: "claude-haiku-4-5-20251001",
       system: "You classify referring websites into discovery-channel categories by hostname. Label auto-generated AI-tool listing aggregators as ai_directory. Return only a JSON array.",
-      prompt: buildPrompt(productCategory, unique),
+      prompt: buildPrompt(productCategory, hosts),
       scanId: null,
       stage: "extract",
       maxTokens: 4096,
@@ -81,7 +100,7 @@ export async function classifyReferrers(hosts: string[], productCategory: string
       }
     }
   } catch {
-    /* empty map */
+    /* this batch degrades to "other"; siblings still classify */
   }
   return out;
 }

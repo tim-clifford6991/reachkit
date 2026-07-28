@@ -3,8 +3,45 @@
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/server";
 import { serverDb } from "@/lib/db/client";
+import { activeAppId } from "@/lib/app/active-app";
 import { parseOnboardingForm } from "./parse";
 import { notifyWelcome } from "@/lib/email/notify";
+
+/**
+ * The onboarding Build step's watch target: the deep scan to display until it
+ * completes, so onboarding shows ONE loading (the deep-scan checklist) and the
+ * dashboard has no second one. Returns the scan id + the resume cursor
+ * (`sinceId` = the last terminal event, so the stream tails PAST the free pass's
+ * `done` and settles only on the DEEP pass's `done`). `scanId` when known (add
+ * flow) short-circuits the active-app lookup. null when there's no scan yet.
+ */
+export async function deepScanCursor(scanId: string | null): Promise<{ scanId: string; sinceId: number } | null> {
+  const { user } = await requireUser();
+  const db = serverDb();
+  let id = scanId;
+  if (!id) {
+    const appId = await activeAppId(user);
+    if (!appId) return null;
+    const { data } = await db
+      .from("scans")
+      .select("id")
+      .eq("app_id", appId)
+      .order("started_at", { ascending: false, nullsFirst: false })
+      .limit(1)
+      .maybeSingle();
+    id = (data?.id as string | null) ?? null;
+  }
+  if (!id) return null;
+  const { data: ev } = await db
+    .from("scan_events")
+    .select("id")
+    .eq("scan_id", id)
+    .in("type", ["done", "error"])
+    .order("id", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return { scanId: id, sinceId: Number(ev?.id ?? 0) || 0 };
+}
 
 /**
  * Persist the profile backfill and mark onboarding complete. Setting

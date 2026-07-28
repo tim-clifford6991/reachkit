@@ -225,12 +225,17 @@ export function PlanTimelineBody({ board, synthesis, domain, score, today: today
                 {activeDate === todayKey && <span style={{ fontFamily: JM, fontSize: 10.5, fontWeight: 700, color: "var(--c-action)" }}>← start here</span>}
               </div>
               {activeEntries.length > 0 ? (
-                // The day's top 3 (one per impact horizon) always show; any extra
-                // tasks collapse behind a "show N more" toggle so a busy day reads
-                // at a glance rather than as a long scroll (owner 2026-07-27,
-                // supersedes the U3 always-expanded list — the overview won).
-                // Keyed by activeDate so switching days remounts it collapsed.
-                <DayActions key={activeDate} headline={headlineEntries} extra={extraEntries} domain={domain} detailFor={detailFor} />
+                // Show EVERY scheduled task in ONE list — horizon-diverse top items
+                // first, then the rest, no "show N more" collapse. A day's whole plan
+                // must be visible at a glance (owner fix 2678e4a, restored 2026-07-28
+                // after a mobile-overview change re-hid the tail; the dot-calendar is
+                // the overview surface, NOT a collapsed task list). Guard:
+                // plan-timeline-view.showall.test.tsx.
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {[...headlineEntries, ...extraEntries].map((e) => (
+                    <PlanEntryCard key={e.key} entry={e} domain={domain} detail={detailFor(e)} />
+                  ))}
+                </div>
               ) : (
                 <div style={{
                   padding: "20px 16px", textAlign: "center", border: "1px dashed var(--c-line)", borderRadius: "var(--radius-lg)",
@@ -287,36 +292,6 @@ export function PlanTimelineBody({ board, synthesis, domain, score, today: today
           Verified wins land on your Progress timeline &rarr;
         </Link>
       </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// DayActions — the selected day's task list: its top 3 (one per impact horizon)
-// always visible, the rest behind a "show N more" toggle so a busy day is
-// scannable at a glance. Own component (keyed by day in the parent) so switching
-// days remounts it collapsed — no reset effect.
-// ---------------------------------------------------------------------------
-function DayActions({ headline, extra, domain, detailFor }: {
-  headline: PlanEntry[];
-  extra: PlanEntry[];
-  domain: string;
-  detailFor: (e: PlanEntry) => EntryDetail | undefined;
-}) {
-  const [showAll, setShowAll] = useState(false);
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      {headline.map((e) => <PlanEntryCard key={e.key} entry={e} domain={domain} detail={detailFor(e)} />)}
-      {showAll && extra.map((e) => <PlanEntryCard key={e.key} entry={e} domain={domain} detail={detailFor(e)} />)}
-      {extra.length > 0 && (
-        <button
-          type="button"
-          onClick={() => setShowAll((v) => !v)}
-          style={{ alignSelf: "flex-start", background: "none", border: "none", padding: 2, fontFamily: JM, fontSize: 12, fontWeight: 700, color: "var(--c-action)", cursor: "pointer" }}
-        >
-          {showAll ? "Show less" : `Show ${extra.length} more`}
-        </button>
-      )}
     </div>
   );
 }
