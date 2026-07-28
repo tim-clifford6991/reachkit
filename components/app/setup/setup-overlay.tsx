@@ -61,6 +61,7 @@ export function SetupOverlay({
   initialStep,
   domain: domainProp,
   icpSignals,
+  onboarded = false,
   apps = [],
   activeAppId = null,
 }: {
@@ -71,6 +72,10 @@ export function SetupOverlay({
    *  the URL step creates it. */
   domain: string | null;
   icpSignals: string[];
+  /** The user has already completed the Profile step (display_name/goal/ICP are
+   *  user-level and set). When true, add-mode SKIPS Profile — asking "what should
+   *  we call you?" again on every new product makes no sense. */
+  onboarded?: boolean;
   apps?: OverlayApp[];
   activeAppId?: string | null;
 }) {
@@ -250,7 +255,9 @@ export function SetupOverlay({
                  (step 5) on the picked cohort — the money-path deferral. */
               tier="free"
               host={domain}
-              onFacts={() => setStep("profile")}
+              // Skip Profile for an already-onboarded user (its fields are
+              // user-level + set) — go straight to the per-product competitor pick.
+              onFacts={() => setStep(onboarded ? "competitors" : "profile")}
             />
           )}
 

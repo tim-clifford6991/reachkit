@@ -32,6 +32,7 @@ export default async function AddProductPage() {
       mode="add"
       domain={null}
       icpSignals={[]}
+      onboarded={viewer.user.onboarded_at != null}
       apps={apps}
       activeAppId={primaryAppId}
     />

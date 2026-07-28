@@ -156,9 +156,14 @@ async function SidebarData({ children }: { children: React.ReactNode }) {
     }
   }
 
+  // Prefer the user's real display_name (set at onboarding); the email-derived
+  // form is only the fallback for a user who somehow has no name.
   const email = user.email ?? "";
-  const initials = email.slice(0, 2).toUpperCase();
-  const userName = email ? email.split("@")[0]!.replace(/[._]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "Founder";
+  const userName =
+    user.display_name?.trim() ||
+    (email ? email.split("@")[0]!.replace(/[._]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "Founder");
+  const nameParts = userName.split(/\s+/).filter(Boolean);
+  const initials = (nameParts.length > 1 ? nameParts.slice(0, 2).map((p) => p[0]).join("") : userName.slice(0, 2)).toUpperCase();
 
   // App switcher: the user's apps + whether the plan has a free slot to add one.
   // Self-heal dangling app_ids (an app deleted out from under the reference) so
