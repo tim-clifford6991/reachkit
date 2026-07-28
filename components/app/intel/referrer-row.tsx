@@ -1,45 +1,50 @@
 "use client";
 /**
- * WS1 — one-line referrer row for the Competitors detail. The host links to its
- * SOURCE page (where the backlink lives) so a click never lands on a rival's dead
- * target (the fellow.ai→producthunt 404 case). "Platform reach" is the referring
- * host's own organic traffic (a native title clarifies: not measured click-through).
- * Low-relevance referrers render muted but are never dropped.
+ * One-line BACKLINK row for the Competitors detail (R-6.7: this surface is a
+ * backlink & placement map, never a "referrer/traffic" map). The host links to
+ * its SOURCE page (where the `<a href>` to this domain lives) so a click never
+ * lands on a rival's dead target (the fellow.ai→producthunt 404 case).
+ *
+ * The linking host's own organic traffic (etv) is NOT rendered as a magnitude
+ * (the "~84K" mislabel, dropped 2026-07-28) — it was US·organic-only ETV shown as
+ * if it were referral traffic through this one link, which we cannot measure. The
+ * honest strength signals are the backlink's own attributes: authority (DR),
+ * dofollow, anchor, and the placement type. Low-relevance backlinks render muted
+ * but are never dropped.
  */
 import { useState } from "react";
-import { Badge, Bar, EvidenceLink } from "@/components/app/intel/kit";
-import { fmtCompact } from "@/components/app/intel/shared";
+import { Badge, EvidenceLink } from "@/components/app/intel/kit";
 
 export type ReferrerLike = {
   host: string; category: string; url: string; target?: string; anchor?: string;
   authority?: number | null; dofollow?: boolean | null; etv?: number | null; relevance?: "core" | "low";
 };
 
-export function ReferrerRow({ r, maxEtv }: { r: ReferrerLike; maxEtv: number }) {
+const DR_HELP = "Domain Rating (0–1000) — the linking site's own authority. Higher = a more valuable, harder-to-earn backlink.";
+
+export function ReferrerRow({ r }: { r: ReferrerLike }) {
   const [open, setOpen] = useState(false);
   const low = r.relevance === "low";
   return (
     <div style={{ opacity: low ? 0.6 : 1 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 84px 64px 16px", alignItems: "center", gap: 8, padding: "5px 6px", borderRadius: 6, cursor: "pointer" }}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr auto 16px", alignItems: "center", gap: 8, padding: "5px 6px", borderRadius: 6, cursor: "pointer" }}
            onClick={() => setOpen((o) => !o)}>
         {/* host → SOURCE page (never the rival's target). minWidth:0 + overflow
             let the grid track shrink; the host truncates and the badges wrap
-            under it on a narrow phone instead of spilling over the bar column
-            (the mobile-overlap fix — inline grid, so a media query can't touch
-            it; the collapse must be intrinsic). */}
+            under it on a narrow phone instead of spilling over (the mobile-overlap
+            fix — inline grid, so a media query can't touch it; the collapse must
+            be intrinsic). */}
         <span style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6, minWidth: 0, overflow: "hidden" }}>
           <EvidenceLink href={r.url} style={{ minWidth: 0, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.host.replace(/^www\./, "")}</EvidenceLink>
           <Badge tone="neutral">{r.category}</Badge>
           {low && <Badge tone="neutral">low relevance</Badge>}
         </span>
-        {/* platform reach bar (honest) */}
-        <span>{typeof r.etv === "number" ? <Bar value={r.etv} max={Math.max(1, maxEtv)} /> : <span style={{ fontSize: 10, color: "var(--c-faint)" }}>—</span>}</span>
+        {/* Authority (DR) — the honest link-strength signal, named + scaled (R-1.9). */}
         <span style={{ fontSize: 11, fontFamily: "JetBrains Mono", textAlign: "right", color: "var(--c-muted)" }}>
-          {typeof r.etv === "number" && (
-            <span
-              title="That site's own monthly organic traffic — how big the venue is, not measured click-through to this rival."
-              style={{ cursor: "help", borderBottom: "1px dotted var(--c-faint)" }}
-            >~{fmtCompact(r.etv)}</span>
+          {typeof r.authority === "number" && r.authority > 0 ? (
+            <span title={DR_HELP} style={{ cursor: "help", borderBottom: "1px dotted var(--c-faint)" }}>DR&nbsp;{r.authority}</span>
+          ) : (
+            <span style={{ fontSize: 10, color: "var(--c-faint)" }}>—</span>
           )}
         </span>
         <span title={r.dofollow ? "dofollow" : "nofollow"} style={{ fontSize: 11, color: r.dofollow ? "var(--c-band-findable)" : "var(--c-faint)" }}>●</span>

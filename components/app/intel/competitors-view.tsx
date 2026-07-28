@@ -37,20 +37,23 @@ type Channel = Supply["funnel"]["channelsMissing"][number];
 type ContentEntity = NonNullable<Supply["content"]>["entities"][number];
 type ContentPage = ContentEntity["pages"][number];
 
-// Plain-language tooltips for the referrer tags (hover to learn what each means).
+// Plain-language tooltips for the backlink-type tags (hover to learn what each
+// means). These describe where a LINK to the domain was found — a backlink, NOT
+// measured referral traffic (R-6.7: the competitor surface is a backlink &
+// placement map, never a "referrer/traffic" map).
 const CATEGORY_HELP: Record<string, string> = {
-  marketplace: "Marketplace — a software listing/review platform (G2, Capterra, Product Hunt, AppSumo). High-intent discovery surface.",
+  marketplace: "Marketplace — a software listing/review platform (G2, Capterra, Product Hunt, AppSumo). A high-intent placement to get listed on.",
   software_directory: "Software directory — a categorized listing site where buyers browse tools.",
   blog: "Blog — an editorial/content site that linked to this domain (a mention or review).",
-  media: "Media — a news or press outlet.",
+  media: "Media — a news or press outlet that linked to this domain.",
   community: "Community — a forum or discussion site (Reddit, Indie Hackers, Hacker News) where the link appeared.",
   social: "Social — a social network link.",
-  newsletter: "Newsletter — an email publication that featured this domain.",
+  newsletter: "Newsletter — an email publication that linked to this domain.",
   partner: "Partner — an integration or partner site linking back.",
-  other: "Other — a link that doesn't fit the main discovery channels.",
+  other: "Other — a link that doesn't fit the main placement types.",
 };
-const categoryTitle = (c: string) => CATEGORY_HELP[c] ?? `Referrer type: ${c}`;
-const DR_HELP = "Domain Rating (0–1000) — the referring site's own authority. Higher = a more valuable, harder-to-earn link.";
+const categoryTitle = (c: string) => CATEGORY_HELP[c] ?? `Backlink type: ${c}`;
+const DR_HELP = "Domain Rating (0–1000) — the linking site's own authority. Higher = a more valuable, harder-to-earn backlink.";
 
 /** Best-effort path extraction so page lists read like the template's "/templates" rather than a full URL. */
 function pathOf(url: string): string {
@@ -102,15 +105,15 @@ export function CompetitorsBody({ data }: { data: Supply }) {
   // relevance judge (deferred); the ONE keyword surface is the dashboard spine.
   // This page is now the COMPETITOR LESSONS surface: referrers + channels.
 
-  // Referrer table — the hero: every quality referrer for the selected entity,
-  // ranked by platform reach (etv).
+  // Backlink table — the hero: every quality backlink for the selected entity.
+  // Ranked internally by the linking host's own reach (etv) as a strength signal
+  // — the etv is NEVER rendered as a magnitude (R-6.7).
   const refs = sel.backlinks?.topQualityReferrers ?? [];
-  const maxEtv = Math.max(1, ...refs.map((r) => r.etv ?? 0));
   const sortedRefs = refs.slice().sort((a, b) => (b.etv ?? 0) - (a.etv ?? 0));
 
-  // "Referrers to pursue" — the actionable acquisition gap, noise-filtered to
-  // core relevance: quality referrers pointing at the selected rival whose host
-  // never links to the subject, excluding "low" relevance matches.
+  // "Placements to pursue" — the actionable gap, noise-filtered to core relevance:
+  // quality backlinks pointing at the selected rival whose host never links to the
+  // subject, excluding "low" relevance matches.
   const subjectRefHosts = new Set((subject.backlinks?.topQualityReferrers ?? []).map((r) => r.host));
   const pursue = !sel.isSubject
     ? refs
@@ -119,13 +122,13 @@ export function CompetitorsBody({ data }: { data: Supply }) {
         .slice(0, 8)
     : [];
 
-  // "Their edge → your move": the LESSON framing (M3) — what powers this rival's
-  // discovery, in referrer/channel terms (classified, contract pillar 2), never a
-  // raw gap keyword. The concrete moves are the channel EdgeMoves + the "referrers
-  // to pursue" list below (each an add-to-plan outreach action).
+  // "Their edge → your move": the LESSON framing (M3) — the backlinks & placements
+  // that power this rival's discovery (classified, contract pillar 2), never a raw
+  // gap keyword and never a traffic magnitude. The concrete moves are the channel
+  // EdgeMoves + the "placements to pursue" list below (each an add-to-plan action).
   const edgeText = sel.isSubject
-    ? "Your baseline. Pick a rival above to see what powers their referral engine — and the lesson that answers it."
-    : `Pulls ${fmtCompact(sel.monthlyTraffic)}/mo with ${sortedRefs.length ? `referrers like ${sortedRefs[0]!.host}` : "a stronger backlink profile"} — study their acquisition mix, then pursue the referrers they have that you don't (below).`;
+    ? "Your baseline. Pick a rival above to see the backlinks & placements they've earned that you haven't."
+    : `${sortedRefs.length ? `Strongest placement: ${sortedRefs[0]!.host}` : "A stronger backlink profile"} — the placements to pursue are below.`;
 
   // R4 — concrete edge moves: when a rival is selected, prefer the channels
   // they use that the subject doesn't (real, actionable) over the prose framing.
@@ -165,7 +168,8 @@ export function CompetitorsBody({ data }: { data: Supply }) {
             top pages. Each stat is shown only when the signal is present. */}
         <EntityStatStrip
           stats={[
-            { label: "Est. visits / mo", value: sel.monthlyTraffic > 0 ? fmtCompact(sel.monthlyTraffic) : null },
+            // "Est. visits / mo" DROPPED (R-6.7 / R-1.10, 2026-07-28): it rendered
+            // US·organic ETV as total traffic. The remaining stats are honest counts.
             { label: "Referring domains", value: sel.mix?.referringDomains ? fmtCompact(sel.mix.referringDomains) : null },
             { label: "Organic keywords", value: sel.mix?.organicKeywords ? fmtCompact(sel.mix.organicKeywords) : null },
             { label: "Branded search", value: (sel.brandedSearchVolume ?? 0) > 0 ? `${fmtCompact(sel.brandedSearchVolume!)}/mo` : null },
@@ -173,23 +177,23 @@ export function CompetitorsBody({ data }: { data: Supply }) {
           ]}
         />
 
-        {/* Referrer table — the hero. */}
-        <Card title={`Where ${sel.isSubject ? "you get" : sel.domain + " gets"} found`} style={{ padding: 0, background: "transparent", border: "none", boxShadow: "none" }}>
+        {/* Backlinks & placements table — the hero (R-6.7). */}
+        <Card title={`${sel.isSubject ? "Your" : sel.domain + "'s"} backlinks & placements`} style={{ padding: 0, background: "transparent", border: "none", boxShadow: "none" }}>
           {sortedRefs.length > 0 ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              {sortedRefs.map((r) => <ReferrerRow key={r.host} r={r} maxEtv={maxEtv} />)}
+              {sortedRefs.map((r) => <ReferrerRow key={r.host} r={r} />)}
             </div>
           ) : (
-            <span style={{ fontSize: 12.5, color: "var(--c-faint)" }}>No quality referrers surfaced.</span>
+            <span style={{ fontSize: 12.5, color: "var(--c-faint)" }}>No quality backlinks surfaced.</span>
           )}
         </Card>
 
-        {/* F4 — the acquisition gap: quality referrers pointing at this rival that
-            never link to you (core relevance only). The concrete outreach targets
+        {/* F4 — the placement gap: quality backlinks pointing at this rival that
+            never link to you (core relevance only). The concrete placement targets
             to pursue, each with a real add-to-plan (outreach action) chip. */}
         {pursue.length > 0 && (
           <div style={{ display: "flex", flexDirection: "column", gap: 8, borderTop: "1px solid var(--c-tint-orange-line)", paddingTop: 14 }}>
-            <span style={EDGE_LABEL_STYLE}>The lesson · pursue the referrers they have, you don&apos;t ({pursue.length})</span>
+            <span style={EDGE_LABEL_STYLE}>The lesson · placements they have, you don&apos;t ({pursue.length})</span>
             {pursue.map((r, i) => {
               const title = `Reach out to ${r.host} for a backlink`;
               return (
@@ -299,7 +303,7 @@ function EdgeMoves({ channels }: { channels: Channel[] }) {
             <span style={{ fontSize: 13, fontWeight: 600, color: "var(--c-ink)", flex: 1, minWidth: 0, ...ELLIPSIS }}>{c.action}</span>
             <Badge tone="neutral">{c.type}</Badge>
           </div>
-          <span style={{ fontSize: 11.5, color: "var(--c-faint)", ...ELLIPSIS }}>{c.host} · used by {c.competitorsUsing} rival{c.competitorsUsing === 1 ? "" : "s"}</span>
+          <span style={{ fontSize: 11.5, color: "var(--c-faint)", ...ELLIPSIS }}>{c.host} · {c.competitorsUsing} rival{c.competitorsUsing === 1 ? "" : "s"} linked from here</span>
         </div>
       ))}
     </div>

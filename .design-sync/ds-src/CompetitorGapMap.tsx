@@ -2,10 +2,12 @@
 import * as React from "react";
 
 /**
- * CompetitorGapMap — WS1 Competitors gap-map. Columns = you + rivals, rows =
- * the 5 quality channel groups, colour = strength; a RED/absent cell in the
- * "you" column where a rival is strong is the honest "you're not here"
- * signal. Column headers ARE the competitor selector (click to focus).
+ * CompetitorGapMap — WS1 Competitors PLACEMENT gap-map (R-6.7). Columns = you +
+ * rivals, rows = the 5 quality placement groups, colour = how many quality sites
+ * in that channel LINK to the entity (backlink/placement presence) — NOT measured
+ * discovery or traffic. A RED/absent cell in the "you" column where a rival has
+ * placements is the honest "you're not listed here" signal. Column headers ARE
+ * the competitor selector (click to focus).
  *
  * Laid out column-major (a flex column per entity) so the SELECTED entity
  * gets a single surround around its whole column — header + all its cells —
@@ -41,7 +43,7 @@ export function CompetitorGapMap({ entities, channelStrength, selected, onSelect
   return (
     <div style={{ fontFamily: "var(--font-sans)", color: "var(--c-ink)" }}>
       <div style={{ fontSize: 11, color: "var(--c-faint)", textTransform: "uppercase", letterSpacing: ".04em" }}>
-        Gap map — where you&apos;re absent · click a rival to focus
+        Placement gap — where rivals are listed and you&apos;re not · click a rival to focus
       </div>
       <div style={{ display: "flex", gap: 4, marginTop: 8, overflowX: "auto" }}>
         {/* Row-label column — a transparent 2px border + 2px padding mirrors the
@@ -88,7 +90,7 @@ export function CompetitorGapMap({ entities, channelStrength, selected, onSelect
                 return (
                   <div
                     key={g.key}
-                    title={`${e.isSubject ? "You" : e.domain} · ${g.label}: ${c.txt}`}
+                    title={`${e.isSubject ? "You" : e.domain} · ${g.label}: ${c.txt} placement presence (quality sites in this channel that link to ${e.isSubject ? "you" : "them"})`}
                     style={{
                       height: CELL_H, borderRadius: 5, display: "flex", alignItems: "center", justifyContent: "center",
                       fontSize: 9.5, color: c.fg, background: c.bg,
@@ -103,7 +105,7 @@ export function CompetitorGapMap({ entities, channelStrength, selected, onSelect
         })}
       </div>
       <p style={{ fontSize: 11.5, color: "var(--c-faint)", marginTop: 6 }}>
-        Red in <b>your</b> column where a rival is strong = the highest-value channels to enter.
+        Red in <b>your</b> column where a rival has placements = the highest-value channels to get listed in.
       </p>
     </div>
   );

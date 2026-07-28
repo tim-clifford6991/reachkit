@@ -6,11 +6,10 @@ import * as React from "react";
  * the Competitors detail panel (below the referrer table, "referrers to
  * pursue", and the top pages/keywords lists). Two shapes, matching the live
  * `CompetitorsBody`:
- *  - `channels` — up to 3 concrete channels the selected rival uses that the
- *    subject doesn't (host + "used by N rivals"), each tagged with a type Badge.
- *  - prose — falls back to a sentence framing the rival's edge (their top gap
- *    keyword, or traffic/backlink framing), with an optional "Counter: … — in
- *    your plan" link when a gap keyword exists. Shown for the subject's own
+ *  - `channels` — up to 3 concrete channels the selected rival is placed in that
+ *    the subject isn't (host + "N rivals linked from here"), each with a type Badge.
+ *  - prose — falls back to a terse backlink/placement framing (their strongest
+ *    placement), no traffic magnitude (R-6.7). Shown for the subject's own
  *    baseline row too ("Pick a rival above…").
  */
 export interface EdgeChannel {
@@ -33,7 +32,7 @@ const LABEL_STYLE: React.CSSProperties = {
 
 export function CompetitorEdgePanel({
   channels = [],
-  text = "Pulls 84.2k/mo with referrers like g2.com — study their acquisition mix, then pursue the referrers they have that you don’t (above).",
+  text = "Strongest placement: g2.com — the placements to pursue are above.",
   moveLabel = null,
 }: CompetitorEdgePanelProps) {
   return (
@@ -48,7 +47,7 @@ export function CompetitorEdgePanel({
                 <span style={{ fontSize: 10.5, fontWeight: 600, padding: "1px 6px", borderRadius: "var(--radius-full)", background: "var(--c-soft)", color: "var(--c-muted)" }}>{c.type}</span>
               </div>
               <span style={{ fontSize: 11.5, color: "var(--c-faint)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {c.host} · used by {c.competitorsUsing} rival{c.competitorsUsing === 1 ? "" : "s"}
+                {c.host} · {c.competitorsUsing} rival{c.competitorsUsing === 1 ? "" : "s"} linked from here
               </span>
             </div>
           ))}

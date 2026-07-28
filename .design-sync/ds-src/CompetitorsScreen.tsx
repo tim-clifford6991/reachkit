@@ -36,7 +36,7 @@ const CHANNEL_STRENGTH: Record<string, Record<string, string>> = {
 };
 
 const STATS = [
-  ["Est. visits / mo", "184k"],
+  // "Est. visits / mo" dropped (R-6.7/R-1.10, 2026-07-28 — US·organic ETV as total traffic).
   ["Referring domains", "960"],
   ["Organic keywords", "12.4k"],
   ["Branded search", "22k/mo"],
@@ -77,7 +77,7 @@ const EDGE_LABEL: React.CSSProperties = { fontFamily: JM, fontSize: 10, letterSp
 
 export function CompetitorsScreen() {
   return (
-    <AppShell active="audComp" headerTitle="Competitors" headerSub="How you and your rivals get found — channels, scores, and the gaps." user={{ name: "Nadia L.", sub: "nudgi.ai · solo founder" }}>
+    <AppShell active="audComp" headerTitle="Competitors" headerSub="Your backlinks & placements vs rivals — the gaps to close." user={{ name: "Nadia L.", sub: "nudgi.ai · solo founder" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         {/* The matrix IS the selector — replaces the old left rail. */}
         <Card title="Competitors" info="Click a rival column to focus the detail below.">
@@ -90,14 +90,14 @@ export function CompetitorsScreen() {
 
           <StatStrip />
 
-          <Card title="Where fellow.ai gets found" style={{ padding: 0, background: "transparent", border: "none", boxShadow: "none" }}>
+          <Card title="fellow.ai's backlinks & placements" style={{ padding: 0, background: "transparent", border: "none", boxShadow: "none" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              {REFERRERS.map((r) => <ReferrerRow key={r.host} r={r} maxEtv={120000} />)}
+              {REFERRERS.map((r) => <ReferrerRow key={r.host} r={r} />)}
             </div>
           </Card>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 8, borderTop: "1px solid var(--c-tint-orange-line)", paddingTop: 14 }}>
-            <span style={EDGE_LABEL}>The lesson · pursue the referrers they have, you don&apos;t ({PURSUE.length})</span>
+            <span style={EDGE_LABEL}>The lesson · placements they have, you don&apos;t ({PURSUE.length})</span>
             {PURSUE.map((r) => (
               <div key={r.host} style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}>
                 <span style={{ fontSize: 13, fontWeight: 600, color: "var(--c-action)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.host}</span>
@@ -124,7 +124,7 @@ export function CompetitorsScreen() {
           </div>
 
           <CompetitorEdgePanel
-            text={`Pulls 84.2k/mo with referrers like g2.com — study their acquisition mix, then pursue the referrers they have that you don't (above).`}
+            text={`Strongest placement: g2.com — the placements to pursue are above.`}
           />
         </div>
       </div>
