@@ -16,7 +16,6 @@ import { cachedBacklinks, cohortFor, cachedBrandedSearchBatch } from "@/lib/scan
 import { MAX_SELECTED } from "@/lib/scan/competitor-selection";
 import { cachedJson, DAY_MS } from "@/lib/scan/cache/external-cache";
 import { classifyReferrers, QUALITY_CATEGORIES, type ReferrerCategory } from "@/lib/scan/referral/classify-referrers";
-import { computeTrafficLens, type TrafficLens } from "@/lib/scan/referral/traffic-lens";
 import type { OnStageCallback } from "@/lib/scan/types";
 import { channelStrengthFor, type ChannelGroup, type StrengthBucket } from "@/lib/scan/referral/channel-strength";
 import { enrichReferrers } from "@/lib/scan/referral/referrer-enrich";
@@ -218,25 +217,14 @@ export async function gatherFullFunnel(rawSelf: string, opts: { topN?: number; c
     backlinks: buildBreakdown(referrerLists[i]!, cats),
   }));
 
-  // 3c. Compute the two-lens supply view for each entity now that byCategory is known.
-  //     This requires organic/paid etv, referring domains, branded search volume,
-  //     topPagesCount, and organicKeywords — all carried on ScoredEntity from enrichEntity.
-  const lensFor = (e: ScoredEntity, bd: ReferralBreakdown): TrafficLens =>
-    computeTrafficLens({
-      organicEtv: e.monthlyTraffic,
-      paidEtv: e.paidEtv,
-      referringDomains: e.mix?.referringDomains ?? 0,
-      brandedSearchVolume: e.brandedSearchVolume,
-      byCategory: bd.byCategory,
-      topPagesCount: e.topPagesCount,
-      organicKeywords: e.mix?.organicKeywords ?? 0,
-    });
-
-  const subjectWithLens: ScoredEntity = { ...subject, lens: lensFor(subject, selfBacklinks) };
-  const competitorsWithLens: CompetitorDeep[] = competitors.map((c) => ({
-    ...c,
-    lens: lensFor(c, c.backlinks),
-  }));
+  // 3c. The per-entity traffic "lens" (computeTrafficLens) was REMOVED 2026-07-28:
+  //     it only ever fed the dashboard "traffic by channel" donut, whose shares
+  //     were a log-normalised blend of backlink COUNTS + branded-search volume
+  //     shown as % of TRAFFIC (existence-as-magnitude, dropped in Phase 3, R-1.10).
+  //     The dashboard now renders an honest backlink CHANNEL MIX from byCategory,
+  //     so the lens is dead compute — gone, with its `lens` field.
+  const subjectWithLens: ScoredEntity = { ...subject };
+  const competitorsWithLens: CompetitorDeep[] = competitors.map((c) => ({ ...c }));
 
   // Aggregate: how competitors are discovered (quality channels only).
   const discoveryChannels: Partial<Record<ReferrerCategory, number>> = {};

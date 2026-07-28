@@ -13,7 +13,6 @@ import { profileDomainCached } from "@/lib/scan/profile/cache";
 import { estimateTrafficMix } from "@/lib/scan/profile/traffic-mix";
 import { bandFor } from "@/lib/scan/score-bands";
 import type { DistributionProfile } from "@/lib/scan/profile/types";
-import type { TrafficLens } from "@/lib/scan/referral/traffic-lens";
 
 /**
  * Traffic-source split + the raw signals that drive each share, so the UI can
@@ -42,20 +41,12 @@ export interface ScoredEntity {
   score: number;
   band: string;
   mix: TrafficMixDetail | null;
-  // Supply-lens inputs — raw signals needed by computeTrafficLens in the funnel
-  // (byCategory isn't available yet in enrichEntity, so lens is set post-classify).
   /** Estimated paid-search traffic value (same rank-overview response, zero cost). */
   paidEtv: number;
   /** Google Ads monthly search volume for the brand name (direct-traffic proxy). */
   brandedSearchVolume: number;
   /** Number of top organic pages returned by the relevant-pages endpoint. */
   topPagesCount: number;
-  /**
-   * Two-lens supply view (traffic sources + growth activities). Set to null by
-   * `enrichEntity` and populated by `gatherFullFunnel` after `classifyReferrers`
-   * provides the per-category referrer breakdown needed to complete the computation.
-   */
-  lens: TrafficLens | null;
 }
 
 const log100 = (value: number, ref: number) => Math.min(100, (Math.log1p(Math.max(0, value)) / Math.log1p(ref)) * 100);
@@ -130,9 +121,6 @@ export async function enrichEntity(
       paidEtv: profile.seo?.paidEtv ?? 0,
       brandedSearchVolume,
       topPagesCount: profile.seo?.topPages?.length ?? 0,
-      // lens is null here — byCategory isn't available until gatherFullFunnel
-      // runs classifyReferrers. The funnel sets this on each entity post-classify.
-      lens: null,
     };
   } catch {
     return {
@@ -145,7 +133,6 @@ export async function enrichEntity(
       paidEtv: 0,
       brandedSearchVolume: 0,
       topPagesCount: 0,
-      lens: null,
     };
   }
 }

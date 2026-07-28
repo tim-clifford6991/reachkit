@@ -30,11 +30,6 @@ const SAMPLE: Supply = {
         sampled: 14,
       },
       mix: { organic: 0.42, referral: 0.28, social: 0.14, direct: 0.1, organicKeywords: 340, referringDomains: 14, socialMentions: 6 },
-      lens: {
-        sources: { organic: 0.42, paid: 0.02, referral: 0.28, social: 0.14, direct: 0.1, email: 0.04 },
-        activities: { content: 0.35, seo: 0.4, outreach: 0.25 },
-        estimated: true,
-      },
     },
     competitors: [
       {

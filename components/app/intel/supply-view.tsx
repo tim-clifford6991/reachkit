@@ -9,13 +9,7 @@
  */
 
 interface Backlinks { topQualityReferrers: { host: string; category: string; url: string; anchor?: string; target?: string; authority?: number | null; dofollow?: boolean | null; etv?: number | null; relevance?: "core" | "low" }[]; byCategory: Record<string, number>; qualityShare: number; sampled: number }
-/** Two-lens supply view — ESTIMATES from public SEO signals, not measured analytics. */
-interface TrafficLens {
-  sources: { organic: number; paid: number; referral: number; social: number; direct: number; email: number };
-  activities: { content: number; seo: number; outreach: number };
-  estimated: boolean;
-}
-interface Entity { domain: string; isSubject?: boolean; monthlyTraffic: number; score: number; band: string; lens?: TrafficLens | null; mix?: { organic: number; referral: number; social: number; direct: number; organicKeywords: number; referringDomains: number; socialMentions: number } | null; brandedSearchVolume?: number; topPagesCount?: number }
+interface Entity { domain: string; isSubject?: boolean; monthlyTraffic: number; score: number; band: string; mix?: { organic: number; referral: number; social: number; direct: number; organicKeywords: number; referringDomains: number; socialMentions: number } | null; brandedSearchVolume?: number; topPagesCount?: number }
 interface CompetitorDeep extends Entity { closeness: number; reason: string; backlinks: Backlinks }
 interface Channel { host: string; type: string; action: string; competitorsUsing: number }
 interface Gap { keyword: string; volume: number; bestPosition: number; competitorsRanking: number; competitors: { domain: string; position: number; url: string }[]; opportunity: number }

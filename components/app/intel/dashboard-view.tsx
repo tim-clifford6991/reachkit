@@ -49,7 +49,7 @@ export function DashboardIntelBlocks() {
   );
 }
 
-function Blocks({ data }: { data: Supply }) {
+export function Blocks({ data }: { data: Supply }) {
   // Defensive: this subtree renders ONLY in the browser (after the async intel
   // fetch), so any throw here bubbles to the GLOBAL error boundary ("We hit an
   // unexpected error") and is invisible to a server curl. A gatherer that resolves
@@ -59,7 +59,7 @@ function Blocks({ data }: { data: Supply }) {
   // Safe fallback keeps every `subject.*` access + hook below from throwing when a
   // stale/degraded cache blob is missing the subject; the JSX early-returns an
   // empty notice in that case (after all hooks, so hook order is preserved).
-  const subject = data?.funnel?.subject ?? ({ domain: "", score: 0, monthlyTraffic: 0, lens: null, backlinks: null, mix: null } as unknown as (typeof data)["funnel"]["subject"]);
+  const subject = data?.funnel?.subject ?? ({ domain: "", score: 0, monthlyTraffic: 0, backlinks: null, mix: null } as unknown as (typeof data)["funnel"]["subject"]);
   const competitors = data?.funnel?.competitors ?? [];
 
   const ranked = [{ ...subject, isSubject: true }, ...competitors].sort((a, b) => b.score - a.score);

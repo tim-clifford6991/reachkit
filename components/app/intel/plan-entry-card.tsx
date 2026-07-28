@@ -494,13 +494,19 @@ function DetailRow({ label, children }: { label: string; children: React.ReactNo
   );
 }
 
-function MeterRow({ label, value }: { label: string; value: number }) {
-  // `value` is a 3-LEVEL categorical remap of the LLM's own effort/priority bucket
-  // (synthesize.ts EASE/IMPACT: only 3 possible values each), NOT a measured
-  // magnitude. Render the BAND + a discrete 3-segment level, never a fabricated
-  // precise % (R-1.10 — the same dishonesty invariant #5a bans for "+N pts").
+/**
+ * A meter `value` is a 3-LEVEL categorical remap of the LLM's own effort/priority
+ * bucket (synthesize.ts EASE/IMPACT: only 3 possible values each), NOT a measured
+ * magnitude — so it renders as a BAND + discrete level, never a fabricated precise
+ * % (R-1.10, the dishonesty invariant #5a bans for "+N pts"). Exported + guarded.
+ */
+export function meterBand(value: number): { level: 1 | 2 | 3; band: "High" | "Medium" | "Low" } {
   const level = value >= 0.7 ? 3 : value >= 0.45 ? 2 : 1;
-  const band = level === 3 ? "High" : level === 2 ? "Medium" : "Low";
+  return { level, band: level === 3 ? "High" : level === 2 ? "Medium" : "Low" };
+}
+
+function MeterRow({ label, value }: { label: string; value: number }) {
+  const { level, band } = meterBand(value);
   return (
     <div style={{ flex: 1, minWidth: 100 }}>
       <div style={{ display: "flex", justifyContent: "space-between", fontFamily: JM, fontSize: 10.5, color: "var(--c-faint)", marginBottom: 4 }}>
