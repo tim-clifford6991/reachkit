@@ -13,26 +13,30 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useIntel, IntelShell, fmt, fmtCompact } from "@/components/app/intel/shared";
+import { useIntel, IntelShell, fmt } from "@/components/app/intel/shared";
 import type { Supply } from "@/components/app/intel/supply-view";
-import { Card, Kpi, KpiRow, Badge, Eyebrow, Donut, Bar, bandFor, EvidenceLink, PALETTE, type Segment } from "@/components/app/intel/kit";
-
-type ReferrerItem = NonNullable<Supply["funnel"]["subject"]["backlinks"]>["topQualityReferrers"][number];
-type ContentEntity = NonNullable<Supply["content"]>["entities"][number];
-type ContentPage = ContentEntity["pages"][number];
+import { Card, Kpi, KpiRow, Eyebrow, Bar, bandFor, PALETTE } from "@/components/app/intel/kit";
 
 const JM = "var(--font-mono)";
 
-/** Traffic-source key → display label + stable palette order (mirrors Supply). */
-const SOURCE_LABELS: Record<string, string> = {
-  organic: "Organic",
-  paid: "Paid search",
-  referral: "Referral",
-  social: "Social",
-  direct: "Direct / brand",
-  email: "Email / newsletter",
-};
-const SOURCE_ORDER = ["organic", "paid", "referral", "social", "direct", "email"] as const;
+/**
+ * Quality backlink channels → display label. The dashboard's right column shows a
+ * per-entity BACKLINK CHANNEL MIX (honest counts of quality backlinks per channel,
+ * from `backlinks.byCategory`), R-6.7/R-1.10. This REPLACED the old "traffic by
+ * channel" donut, whose shares were a log-normalised blend of backlink COUNTS and
+ * a branded-search volume presented as a % of TRAFFIC — existence-as-magnitude,
+ * dropped 2026-07-28. There is no measured traffic-by-channel data to show.
+ */
+const QUALITY_CHANNELS: { key: string; label: string }[] = [
+  { key: "marketplace", label: "Marketplaces" },
+  { key: "software_directory", label: "Directories" },
+  { key: "community", label: "Community" },
+  { key: "media", label: "Media & press" },
+  { key: "blog", label: "Blogs" },
+  { key: "social", label: "Social" },
+  { key: "newsletter", label: "Newsletters" },
+  { key: "partner", label: "Partners" },
+];
 
 export function DashboardIntelBlocks() {
   const { data, loading, error, stages } = useIntel<Supply>("supply");
@@ -59,30 +63,22 @@ function Blocks({ data }: { data: Supply }) {
   const competitors = data?.funnel?.competitors ?? [];
 
   const ranked = [{ ...subject, isSubject: true }, ...competitors].sort((a, b) => b.score - a.score);
-  const totalTraffic = ranked.reduce((s, e) => s + e.monthlyTraffic, 0) || 1;
-  const sov = Math.round((subject.monthlyTraffic / totalTraffic) * 100);
   const rank = 1 + competitors.filter((c) => c.score > subject.score).length;
 
   // F3 — one interactive component: the "you vs competitors" list drives the
-  // channel breakdown. Click a rival → the channel mix / referrers / KPIs re-render
-  // for THEM (all from data already loaded per entity — no new fetch).
+  // backlink channel mix. Click a rival → the mix / KPIs re-render for THEM (all
+  // from data already loaded per entity — no new fetch).
   const [selectedDomain, setSelectedDomain] = useState<string>(subject.domain);
   const selected = ranked.find((e) => e.domain === selectedDomain) ?? subject;
 
-  const lens = selected.lens;
-  const channelRows = lens
-    ? SOURCE_ORDER.map((key, i) => ({ key, label: SOURCE_LABELS[key] ?? key, value: lens.sources[key], color: PALETTE[i % PALETTE.length]! })).filter((s) => s.value > 0.001)
-    : [];
-  const sourceSegs: Segment[] = channelRows.map(({ label, value, color }) => ({ label, value, color }));
-  const dominant = lens ? SOURCE_ORDER.reduce((best, key) => (lens.sources[key] > lens.sources[best] ? key : best), SOURCE_ORDER[0]) : null;
-
-  // Selected-channel drill-down: default to the dominant channel; falls back to
-  // "organic" when there's no lens data at all (the drilldown then just won't render).
-  // The channel pick PERSISTS across entity switches, so you can compare the same
-  // channel (e.g. Organic) across you + each rival.
-  const [selectedChannel, setSelectedChannel] = useState<string>(dominant ?? SOURCE_ORDER[0]);
-  const selectedContentEntity = data.content?.entities.find((e) => e.domain === selected.domain || (selected.isSubject && e.isSubject));
-  const referrers: ReferrerItem[] = selected.backlinks?.topQualityReferrers ?? [];
+  // Backlink channel mix for the SELECTED entity — honest COUNTS of quality
+  // backlinks per channel (R-6.7/R-1.10), sorted desc, colour-coded. Replaces the
+  // dropped "traffic by channel" donut (existence-as-magnitude).
+  const channelMix = QUALITY_CHANNELS
+    .map((c, i) => ({ label: c.label, value: selected.backlinks?.byCategory?.[c.key] ?? 0, color: PALETTE[i % PALETTE.length]! }))
+    .filter((c) => c.value > 0)
+    .sort((a, b) => b.value - a.value);
+  const maxChannelCount = Math.max(1, ...channelMix.map((c) => c.value));
 
   // Degraded/partial intel payload (e.g. a stale cache blob missing the subject):
   // render a friendly notice instead of crashing the whole dashboard.
@@ -147,29 +143,32 @@ function Blocks({ data }: { data: Supply }) {
           {/* Vertical divider (side-by-side only — see .rk-vs-grid style above). */}
           <div className="rk-vs-divider" aria-hidden="true" />
 
-          {/* Right: channel breakdown for the SELECTED entity */}
+          {/* Right: BACKLINK CHANNEL MIX for the SELECTED entity — honest counts,
+              never a traffic donut (R-6.7/R-1.10). */}
           <div>
             <div style={{ marginBottom: 8 }}>
-              <Eyebrow color="var(--c-action)">{selected.isSubject ? "Your traffic by channel" : `${selected.domain} · traffic by channel`}</Eyebrow>
+              <Eyebrow color="var(--c-action)">{selected.isSubject ? "Your backlink channel mix" : `${selected.domain} · backlink channel mix`}</Eyebrow>
             </div>
-            {sourceSegs.length > 0 && dominant ? (
-              <Donut segments={sourceSegs} centerLabel={dominant.charAt(0).toUpperCase() + dominant.slice(1)} centerSub="dominant" />
+            {channelMix.length > 0 ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, margin: "4px 0 14px" }}>
+                {channelMix.map((c) => (
+                  <div key={c.label} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ width: 104, flexShrink: 0, fontSize: 12, color: "var(--c-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.label}</span>
+                    <div style={{ flex: 1 }}><Bar value={c.value} max={maxChannelCount} color={c.color} height={8} /></div>
+                    <span style={{ width: 26, flexShrink: 0, textAlign: "right", fontFamily: JM, fontSize: 12.5, fontWeight: 700, color: "var(--c-muted)" }}>{c.value}</span>
+                  </div>
+                ))}
+                <p style={{ fontSize: 11, color: "var(--c-faint)", margin: "2px 0 0" }}>Quality backlinks per channel — where {selected.isSubject ? "you're" : "they're"} placed.</p>
+              </div>
             ) : (
-              <p style={{ fontSize: 13, color: "var(--c-faint)", margin: "4px 0 14px" }}>Channel mix populates after a full funnel run.</p>
-            )}
-            {channelRows.length > 0 && (
-              <ChannelDrilldown
-                rows={channelRows}
-                selected={selectedChannel}
-                onSelect={setSelectedChannel}
-                panel={<ChannelPanel channel={selectedChannel} subjectPages={selectedContentEntity?.pages ?? []} referrers={referrers} />}
-              />
+              <p style={{ fontSize: 13, color: "var(--c-faint)", margin: "4px 0 14px" }}>Backlink channel mix populates after a full funnel run.</p>
             )}
             <KpiRow>
-              <Kpi label="Est. visits / mo" value={fmtCompact(selected.monthlyTraffic)} />
-              {selected.isSubject && <Kpi label="Share of voice" value={`${sov}%`} sub="of cohort traffic" />}
               {typeof selected.mix?.referringDomains === "number" && (
                 <Kpi label="Referring domains" value={fmt(selected.mix?.referringDomains ?? 0)} />
+              )}
+              {typeof selected.mix?.organicKeywords === "number" && (
+                <Kpi label="Organic keywords" value={fmt(selected.mix?.organicKeywords ?? 0)} />
               )}
             </KpiRow>
           </div>
@@ -183,132 +182,6 @@ function Blocks({ data }: { data: Supply }) {
           from the already-persisted market gap — no second gather. */}
     </div>
   );
-}
-
-// ---------------------------------------------------------------------------
-// TRAFFIC-BY-CHANNEL DRILL-DOWN — clickable channel rows (selection idiom
-// mirrors competitors-view: `--c-soft` background + `--c-action` text) beside
-// a detail panel for whichever channel is selected. Every sub-list degrades to
-// a muted "no data surfaced yet" line when the underlying payload is thin —
-// this card has no fixture route, so it must stay resilient to sparse data.
-// ---------------------------------------------------------------------------
-const SOCIAL_OR_COMMUNITY = new Set(["social", "community"]);
-
-interface ChannelRow { key: string; label: string; value: number; color: string }
-
-function ChannelDrilldown({ rows, selected, onSelect, panel }: { rows: ChannelRow[]; selected: string; onSelect: (key: string) => void; panel: React.ReactNode }) {
-  const total = rows.reduce((s, r) => s + r.value, 0) || 1;
-  return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 16, margin: "14px 0 18px" }}>
-      <div style={{ flex: "1 1 220px", minWidth: 200, display: "flex", flexDirection: "column", gap: 3 }}>
-        {rows.map((r) => {
-          const on = r.key === selected;
-          return (
-            <div
-              key={r.key}
-              role="button"
-              tabIndex={0}
-              onClick={() => onSelect(r.key)}
-              onKeyDown={(ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); onSelect(r.key); } }}
-              style={{
-                display: "flex", alignItems: "center", gap: 8, padding: "7px 9px", borderRadius: "var(--radius-md)",
-                background: on ? "var(--c-soft)" : "transparent", color: on ? "var(--c-action)" : "var(--c-muted)",
-                cursor: "pointer", fontSize: 12.5, fontWeight: on ? 700 : 500,
-              }}
-            >
-              <span style={{ width: 8, height: 8, borderRadius: "var(--radius-full)", background: r.color, flexShrink: 0 }} />
-              <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.label}</span>
-              <span style={{ fontFamily: JM, fontSize: 11.5, color: on ? "var(--c-action)" : "var(--c-faint)", flexShrink: 0 }}>{Math.round((r.value / total) * 100)}%</span>
-            </div>
-          );
-        })}
-      </div>
-      <div style={{ flex: "2 1 240px", minWidth: 220, background: "var(--c-fill)", borderRadius: "var(--radius-lg)", padding: "14px 16px" }}>{panel}</div>
-    </div>
-  );
-}
-
-function ChannelPanel({ channel, subjectPages, referrers }: { channel: string; subjectPages: ContentPage[]; referrers: ReferrerItem[] }) {
-  let title: string;
-  let body: React.ReactNode;
-
-  switch (channel) {
-    case "organic": {
-      title = "Top landing pages";
-      const top = [...subjectPages].sort((a, b) => b.etv - a.etv).slice(0, 3);
-      body = top.length > 0
-        ? <ChannelList items={top.map((p) => ({ key: p.url, href: p.url, label: p.title || p.url, meta: fmtCompact(p.etv) }))} />
-        : <NoData />;
-      break;
-    }
-    case "referral": {
-      title = "Top referrers";
-      const top = referrers.filter((r) => r.category !== "social" && r.category !== "newsletter").slice(0, 3);
-      body = top.length > 0
-        ? <ChannelList items={top.map((r) => ({ key: r.host, href: r.url, label: r.host, badge: r.category }))} />
-        : <NoData />;
-      break;
-    }
-    case "social": {
-      title = "Top social & community sources";
-      const top = referrers.filter((r) => SOCIAL_OR_COMMUNITY.has(r.category)).slice(0, 3);
-      body = top.length > 0
-        ? <ChannelList items={top.map((r) => ({ key: r.host, href: r.url, label: r.host, badge: r.category }))} />
-        : <NoData />;
-      break;
-    }
-    case "email": {
-      title = "Top newsletter sources";
-      const top = referrers.filter((r) => r.category === "newsletter").slice(0, 3);
-      body = top.length > 0
-        ? <ChannelList items={top.map((r) => ({ key: r.host, href: r.url, label: r.host, badge: r.category }))} />
-        : <NoData />;
-      break;
-    }
-    case "direct":
-      title = "Direct / brand";
-      body = <Explainer text="Branded search & direct visits — grows with brand awareness." />;
-      break;
-    case "paid":
-      title = "Paid search";
-      body = <Explainer text="Paid share is estimated; no paid keywords tracked yet." />;
-      break;
-    default:
-      title = "Channel detail";
-      body = <NoData />;
-  }
-
-  const href = channel === "referral" || channel === "social" || channel === "email" ? "/app/plan" : "/app/plan";
-
-  return (
-    <div>
-      <Eyebrow>{title}</Eyebrow>
-      <div style={{ marginTop: 9 }}>{body}</div>
-      <Footer href={href}>See channel plan →</Footer>
-    </div>
-  );
-}
-
-function ChannelList({ items }: { items: { key: string; href: string; label: string; meta?: string; badge?: string }[] }) {
-  return (
-    <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 7 }}>
-      {items.map((it) => (
-        <li key={it.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, fontSize: 12.5 }}>
-          <EvidenceLink href={it.href} style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.label}</EvidenceLink>
-          {it.meta && <span style={{ fontFamily: JM, fontSize: 11.5, color: "var(--c-faint)", flexShrink: 0 }}>{it.meta}</span>}
-          {it.badge && <Badge tone="neutral">{it.badge}</Badge>}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function NoData() {
-  return <p style={{ fontSize: 12.5, color: "var(--c-faint)", margin: 0 }}>No data surfaced yet.</p>;
-}
-
-function Explainer({ text }: { text: string }) {
-  return <p style={{ fontSize: 12.5, color: "var(--c-muted)", margin: 0 }}>{text}</p>;
 }
 
 function Footer({ href, children }: { href: string; children: React.ReactNode }) {

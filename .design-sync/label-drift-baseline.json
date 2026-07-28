@@ -1,5 +1,5 @@
 {
-  "missing": 14,
+  "missing": 13,
   "byTarget": {
     "components/app/intel/kit.tsx": 2,
     "components/app/intel/buyer-thread-feed.tsx": 2,
@@ -9,6 +9,6 @@
     "components/app/intel/plan-timeline-view.tsx": 1,
     "components/app/intel/progress-view.tsx": 2,
     "components/app/intel/referrer-row.tsx": 1,
-    "components/app/intel/dashboard-view.tsx": 2
+    "components/app/intel/dashboard-view.tsx": 1
   }
 }

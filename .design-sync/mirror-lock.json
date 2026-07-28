@@ -205,7 +205,7 @@
   },
   "TrafficByChannel": {
     "mirror": "components/app/intel/dashboard-view.tsx",
-    "hash": "532b49230cd68276"
+    "hash": "68718ae55f6171c9"
   },
   "UnlockBand": {
     "mirror": "components/report/captured/unlock-button.tsx",
