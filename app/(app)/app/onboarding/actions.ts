@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/server";
 import { serverDb } from "@/lib/db/client";
 import { activeAppId } from "@/lib/app/active-app";
+import { deepReleaseReady } from "@/lib/app/deep-scan-release";
 import { parseOnboardingForm } from "./parse";
 import { notifyWelcome } from "@/lib/email/notify";
 
@@ -15,7 +16,9 @@ import { notifyWelcome } from "@/lib/email/notify";
  * `done` and settles only on the DEEP pass's `done`). `scanId` when known (add
  * flow) short-circuits the active-app lookup. null when there's no scan yet.
  */
-export async function deepScanCursor(scanId: string | null): Promise<{ scanId: string; sinceId: number } | null> {
+export async function deepScanCursor(
+  scanId: string | null,
+): Promise<{ scanId: string; sinceId: number; deepComplete: boolean } | null> {
   const { user } = await requireUser();
   const db = serverDb();
   let id = scanId;
@@ -32,6 +35,28 @@ export async function deepScanCursor(scanId: string | null): Promise<{ scanId: s
     id = (data?.id as string | null) ?? null;
   }
   if (!id) return null;
+
+  // `deepComplete` is the ONLY race-free "onboarding may release the user" signal:
+  // `scans.deepened_at` is the deep-pass sentinel (invariant #10), set exactly once
+  // when the DEEP pass finishes — NULL through the whole free-pass + deep-in-progress
+  // window. A terminal FAILURE status also releases (invariant #9: never trap on a
+  // degraded scan). The Build step MUST gate navigation on this, never on an SSE
+  // `done` event — a tier=full scan emits TWO `done`s (free pass, then deep pass),
+  // and the competitor pick can mount the Build step BEFORE the free `done` is even
+  // written, so tailing "the next done" would fire on the FREE done and drop the
+  // user on the dashboard mid-deep-scan (the two-loading-screens bug, 2026-07-28).
+  const { data: scan } = await db
+    .from("scans")
+    .select("deepened_at, status")
+    .eq("id", id)
+    .maybeSingle();
+  const deepComplete = deepReleaseReady({
+    deepened_at: (scan?.deepened_at as string | null) ?? null,
+    status: (scan?.status as string | null) ?? null,
+  });
+
+  // sinceId is for the VISUAL checklist only (tail past the latest terminal so the
+  // deep pass renders) — navigation never depends on it.
   const { data: ev } = await db
     .from("scan_events")
     .select("id")
@@ -40,7 +65,7 @@ export async function deepScanCursor(scanId: string | null): Promise<{ scanId: s
     .order("id", { ascending: false })
     .limit(1)
     .maybeSingle();
-  return { scanId: id, sinceId: Number(ev?.id ?? 0) || 0 };
+  return { scanId: id, sinceId: Number(ev?.id ?? 0) || 0, deepComplete };
 }
 
 /**
