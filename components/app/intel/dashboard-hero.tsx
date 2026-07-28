@@ -70,9 +70,9 @@ export function DashboardHero({ score, rollup, measuredByPillar, history, marker
                 not broken. Only when both halves are known (v5 web scans). */}
             {onPageReadiness != null && searchPresence != null && (
               <div style={{ display: "flex", gap: 10, fontSize: 10.5, fontFamily: JM, color: "var(--c-faint)" }}>
-                <span title="How well your page is built (on-site signals).">On-page <strong style={{ color: bandFor(onPageReadiness).color }}>{onPageReadiness}</strong></span>
+                <span title="How well your page is built (on-site signals).">On-page <strong style={{ color: bandFor(onPageReadiness).color }}>{onPageReadiness}</strong>/100</span>
                 <span style={{ color: "var(--c-line)" }}>·</span>
-                <span title="How findable you are in search.">Search <strong style={{ color: bandFor(searchPresence).color }}>{searchPresence}</strong></span>
+                <span title="How findable you are in search.">Search <strong style={{ color: bandFor(searchPresence).color }}>{searchPresence}</strong>/100</span>
               </div>
             )}
             {delta !== null && (

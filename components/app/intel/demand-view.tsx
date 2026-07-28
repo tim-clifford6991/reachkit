@@ -95,7 +95,10 @@ function Body({ data }: { data: Demand }) {
         <WhereBuyersAsk pockets={community.pockets} />
       </Card>
 
-      <Card title="Buyer insights" meta={`from ${buyerInsights.sources.length} competitor review pages`}>
+      {/* R-1.10 provenance honesty: only claim review-page sourcing when there ARE
+          sources. Reviews were retired (O-7), so this normally degrades to the
+          honest "inferred" label rather than "from 0 competitor review pages". */}
+      <Card title="Buyer insights" meta={buyerInsights.sources.length > 0 ? `from ${buyerInsights.sources.length} competitor review pages` : "inferred from your positioning & community signals"}>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <Cluster title="Pains" items={normalizePains(buyerInsights.pains).map((p) => p.text)} tone="red" />
           <Cluster title="Loved" items={buyerInsights.lovedFeatures} tone="green" />

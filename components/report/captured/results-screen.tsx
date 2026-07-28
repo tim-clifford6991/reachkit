@@ -934,7 +934,8 @@ export function ResultsScreen(p: ResultsScreenProps) {
                     </div>
                   </div>
                   <div style={{ textAlign: "right", flex: "0 0 auto" }}>
-                    <div style={{ fontFamily: JM, fontWeight: 700, fontSize: 18, color: "#1F9D5B" }}>+{f.pred}</div>
+                    {/* R-1.9: name the unit — "+N pts" (Discoverability Score points), never a bare +N. */}
+                    <div style={{ fontFamily: JM, fontWeight: 700, fontSize: 18, color: "#1F9D5B" }}>+{f.pred}<span style={{ fontSize: 10.5, fontWeight: 600, color: "var(--c-faint)" }}> pts</span></div>
                   </div>
                 </div>
               );
@@ -965,7 +966,7 @@ export function ResultsScreen(p: ResultsScreenProps) {
                   </div>
                   <div style={{ textAlign: "right", flex: "0 0 auto" }}>
                     {real ? (
-                      <div style={{ fontFamily: JM, fontWeight: 700, fontSize: 18, color: "#1F9D5B" }}>+{real.pred}</div>
+                      <div style={{ fontFamily: JM, fontWeight: 700, fontSize: 18, color: "#1F9D5B" }}>+{real.pred}<span style={{ fontSize: 10.5, fontWeight: 600, color: "var(--c-faint)" }}> pts</span></div>
                     ) : (
                       <div style={{ height: 18, width: 30, borderRadius: 4, background: "var(--c-fill)" }} />
                     )}
@@ -981,7 +982,7 @@ export function ResultsScreen(p: ResultsScreenProps) {
             {p.fixes.length > 0 && (
               <div style={{ position: "relative", background: "var(--c-surface)", border: "1px dashed #D9D6E4", borderRadius: 14, padding: "18px 20px", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
                 <span style={{ fontSize: 14, fontWeight: 600, color: "var(--c-faint)" }}>
-                  🔒 {p.lockedCount > 0 ? <>{p.lockedCount} more ranked fixes{p.lockedWorth > 0 ? <> — worth an estimated +{p.lockedWorth}</> : null} — </> : null}<UnlockLink scanId={p.scanId}>unlock the full plan →</UnlockLink>
+                  🔒 {p.lockedCount > 0 ? <>{p.lockedCount} more ranked fixes{p.lockedWorth > 0 ? <> — worth an estimated +{p.lockedWorth} pts</> : null} — </> : null}<UnlockLink scanId={p.scanId}>unlock the full plan →</UnlockLink>
                 </span>
               </div>
             )}

@@ -219,8 +219,10 @@ export function BuyerThreadFeed({ pockets }: { pockets: Pocket[] }): React.JSX.E
                 </button>
 
                 {typeof t.intent === "number" && (
+                  // Intent is a 4-BAND LLM label (0.9/0.6/0.3/0), not a measured
+                  // score — render the band, never a false 2-decimal precision (R-1.10).
                   <Badge tone={high ? "red" : "neutral"} style={{ flexShrink: 0 }}>
-                    {high ? "🔥 " : ""}intent {t.intent.toFixed(2)}
+                    {high ? "🔥 " : ""}{t.intent >= 0.9 ? "high" : t.intent >= 0.6 ? "medium" : t.intent >= 0.3 ? "low" : "no"} intent
                   </Badge>
                 )}
 

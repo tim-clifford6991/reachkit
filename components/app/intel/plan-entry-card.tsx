@@ -495,13 +495,21 @@ function DetailRow({ label, children }: { label: string; children: React.ReactNo
 }
 
 function MeterRow({ label, value }: { label: string; value: number }) {
+  // `value` is a 3-LEVEL categorical remap of the LLM's own effort/priority bucket
+  // (synthesize.ts EASE/IMPACT: only 3 possible values each), NOT a measured
+  // magnitude. Render the BAND + a discrete 3-segment level, never a fabricated
+  // precise % (R-1.10 — the same dishonesty invariant #5a bans for "+N pts").
+  const level = value >= 0.7 ? 3 : value >= 0.45 ? 2 : 1;
+  const band = level === 3 ? "High" : level === 2 ? "Medium" : "Low";
   return (
     <div style={{ flex: 1, minWidth: 100 }}>
       <div style={{ display: "flex", justifyContent: "space-between", fontFamily: JM, fontSize: 10.5, color: "var(--c-faint)", marginBottom: 4 }}>
-        <span>{label}</span><span>{Math.round(value * 100)}%</span>
+        <span>{label}</span><span style={{ fontWeight: 700, color: "var(--c-muted)" }}>{band}</span>
       </div>
-      <div style={{ height: 6, borderRadius: 999, background: "var(--c-fill)", overflow: "hidden" }}>
-        <div style={{ width: `${Math.round(value * 100)}%`, height: "100%", background: "var(--c-action)" }} />
+      <div style={{ display: "flex", gap: 3 }}>
+        {[1, 2, 3].map((i) => (
+          <div key={i} style={{ flex: 1, height: 6, borderRadius: 999, background: i <= level ? "var(--c-action)" : "var(--c-fill)" }} />
+        ))}
       </div>
     </div>
   );
