@@ -161,6 +161,14 @@ export async function gatherFullFunnel(rawSelf: string, opts: { topN?: number; c
   const self = normalizeHost(rawSelf);
   const topN = opts.topN ?? MAX_SELECTED;
   const cohortKey = (opts.competitorDomains ?? []).map((d) => d.toLowerCase()).sort().join(",");
+  // Poison guard (invariant #3, don't-cache-empties — applied to the funnel blob):
+  // if there WAS a real referrer cohort to classify but the classification came
+  // back wholesale-empty (LLM truncation/outage → every host defaults to "other"),
+  // the byCategory matrix reads all-"None" for the whole cohort. Refuse to cache
+  // that for 7 days — recompute next load (cheap: the DataForSEO sub-results stay
+  // cached; only the chunked Haiku classify re-runs). A genuinely referrer-less
+  // site (0 hosts) is NOT poison — it caches its legitimately-empty matrix.
+  let classifyFailed = false;
   // Persist the whole funnel (incl. the uncached homepage-classification step) so
   // each dashboard load is instant and makes ZERO new DataForSEO/LLM calls.
   // v2: includes lens (traffic sources + growth activities) on each entity.
@@ -192,6 +200,11 @@ export async function gatherFullFunnel(rawSelf: string, opts: { topN?: number; c
   //    (subject + competitors), so the subject's own channel mix is comparable.
   const allHosts = [...new Set([...selfRefs, ...referrerLists.flat()].map((r) => r.host))];
   const cats = await classifyReferrers(allHosts, closest.category);
+  // Wholesale classify failure signature: a real host set went in, nothing came
+  // back (every batch threw/parsed-empty). buildBreakdown then defaults all hosts
+  // to "other" → the all-"None" matrix. Flag it so cachedJson refuses to persist.
+  // A partial (some batches classified) yields cats.size > 0 → kept, as intended.
+  classifyFailed = classificationDegraded(allHosts.length, cats.size);
 
   opts.onStage?.({ key: "funnel:backlinks", label: "Measuring traffic & backlinks" });
 
@@ -260,5 +273,23 @@ export async function gatherFullFunnel(rawSelf: string, opts: { topN?: number; c
   )];
   const reach = await fetchTrafficForHosts(reachHosts);
   return applyFunnelEnrichment(preliminary, reach);
-  });
+  }, { isEmpty: () => classifyFailed });
+}
+
+// A funnel whose entire cohort classified to "other" (map size 0 on a real host
+// set) is a degraded blob, not a real result — never cache it. Floor keeps a tiny
+// legit host set (which could plausibly all be "other") from tripping the guard.
+const POISON_MIN_HOSTS = 8;
+
+/**
+ * True when a referrer classification is DEGRADED — a real cohort of hosts went
+ * in (`hostCount >= POISON_MIN_HOSTS`) but `classifyReferrers` returned NOTHING
+ * (`classifiedCount === 0`), the signature of a wholesale LLM truncation/outage
+ * that collapses the whole byCategory matrix to all-"None". Used as the funnel
+ * cache's `isEmpty` predicate so a degraded blob is never persisted for the TTL.
+ * A referrer-less site (hostCount 0) and a partial classification (count > 0)
+ * both return false — only wholesale failure on a real host set trips it.
+ */
+export function classificationDegraded(hostCount: number, classifiedCount: number): boolean {
+  return hostCount >= POISON_MIN_HOSTS && classifiedCount === 0;
 }
