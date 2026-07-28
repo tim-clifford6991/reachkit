@@ -84,7 +84,7 @@ const SUPPRESSIONS: Record<string, string[]> = {
 // ── Manifest — the only-grows floor ─────────────────────────────────────────
 const MIN_FIXTURES = 6;
 const REQUIRED_ARCHETYPES = ["directory", "zero-ranking", "normal-saas", "pathological"];
-const MIN_RUBRIC_RULES = 9; // R8 terseness (P4), R9 magnitude/credibility (2026-07-21) — the floor only rises
+const MIN_RUBRIC_RULES = 10; // R8 terseness (P4), R9 magnitude (2026-07-21), R10 slice-honest magnitudes (2026-07-28) — the floor only rises
 
 function render(fx: CorpusFixture): string {
   const { resultsProps } = publicReportProps(fx.reportPayload, `corpus-${fx.domain}`, fx.siteUrl);
@@ -191,9 +191,12 @@ describe("P4 terseness — the free board is data-driven (titles + keywords + nu
 
 describe("corpus: getapp.com — directory whose footprint is other companies' names", () => {
   const html = render(FIXTURES.find((f) => f.domain === "getapp.com")!);
-  it("renders the TRUE footprint totals, never the old capped-50 lie", () => {
+  it("renders the TRUE keyword-count total, never the old capped-50 lie", () => {
     expect(html).toContain("120,578");
-    expect(html).toContain("605,177");
+  });
+  it("does NOT render the est-visits ETV magnitude (R-1.10 — dropped 2026-07-28, US·organic sliver)", () => {
+    expect(html).not.toContain("605,177"); // the estMonthlyVisits value
+    expect(html).not.toContain("est. visits");
   });
   it("the persisted legacy 'medium' rung NEVER renders (props-boundary defensive filter)", () => {
     expect(html).not.toContain("software review platforms");

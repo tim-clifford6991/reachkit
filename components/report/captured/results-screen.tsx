@@ -792,12 +792,14 @@ export function ResultsScreen(p: ResultsScreenProps) {
             return (
               <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-line)", borderRadius: 16, padding: "18px 22px", marginBottom: 14 }}>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 18, marginBottom: 14 }}>
-                  {/* keywordsRanked/estMonthlyVisits are TRUE domain totals when
-                      footprintComplete (domain_rank_overview); on the degraded
-                      fallback they're the top-ranked sample — labelled so, never a
-                      cap dressed as a total (the old "50" lie). */}
+                  {/* keywordsRanked is a TRUE domain total when footprintComplete
+                      (domain_rank_overview), else the top-ranked sample — labelled
+                      so, never a cap dressed as a total (the old "50" lie).
+                      "est. visits / mo" was DROPPED (R-1.10, 2026-07-28): it rendered
+                      DataForSEO US·English·Google-organic-only ETV as if it were the
+                      site's total monthly traffic — a mislabelled sliver. We keep the
+                      honest keyword COUNT and the category SHARE, not a fake magnitude. */}
                   <div><div style={{ fontFamily: JM, fontWeight: 700, fontSize: 20 }}>{sv.keywordsRanked.toLocaleString()}</div><div style={{ fontSize: 11.5, color: "var(--c-faint)" }}>{sv.footprintComplete ? "keywords ranked" : "top keywords ranked"}</div></div>
-                  <div><div style={{ fontFamily: JM, fontWeight: 700, fontSize: 20 }}>~{sv.estMonthlyVisits.toLocaleString()}</div><div style={{ fontSize: 11.5, color: "var(--c-faint)" }}>{sv.footprintComplete ? "est. visits / mo" : "est. visits / mo (top terms)"}</div></div>
                   <div><div style={{ fontFamily: JM, fontWeight: 700, fontSize: 20, color: sv.categoryPct < 25 ? "#E5484D" : "var(--c-ink)" }}>{sv.categoryPct}%</div><div style={{ fontSize: 11.5, color: "var(--c-faint)" }}>category (top terms)</div></div>
                 </div>
                 <div style={{ display: "flex", height: 12, borderRadius: 6, overflow: "hidden", background: "var(--c-fill)" }}>

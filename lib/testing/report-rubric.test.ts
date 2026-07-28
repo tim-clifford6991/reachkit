@@ -356,6 +356,25 @@ describe("report-rubric engine honesty — every rule FIRES on a violating input
     expect(runReportRubric(p, cleanHtml(p), only("R9"))).toEqual([]);
   });
 
+  // R10 (2026-07-28) — slice-honest magnitudes (R-1.10, the "84K"/est.-visits class).
+  it("R10 fires on an ETV magnitude rendered as 'est. visits / mo' (the dropped label)", () => {
+    const html = cleanHtml() + "<div>~9,300 est. visits / mo</div>";
+    const v = runReportRubric(payload(), html, only("R10"));
+    expect(v.some((x) => x.message.includes("US·English·Google-organic-only ETV"))).toBe(true);
+  });
+
+  it("R10 fires on any traffic-magnitude label (visitors / reach)", () => {
+    expect(runReportRubric(payload(), cleanHtml() + "<div>84,000 monthly visitors</div>", only("R10")).length).toBeGreaterThan(0);
+    expect(runReportRubric(payload(), cleanHtml() + "<div>reach 12,400</div>", only("R10")).length).toBeGreaterThan(0);
+  });
+
+  it("R10 ALLOWS search volume (demand) and the disclosed traffic-split share caption", () => {
+    // "searches / mo" is honest demand, not the ETV traffic sliver; the "Traffic
+    // split across your top-ranked terms" caption is a % share, not a magnitude.
+    expect(runReportRubric(payload(), cleanHtml() + "<div>14,800 searches / mo</div>", only("R10"))).toEqual([]);
+    expect(runReportRubric(payload(), cleanHtml() + "<div>your category 24% Traffic split across your top-ranked terms</div>", only("R10"))).toEqual([]);
+  });
+
   it("suppressions skip exactly the named rule and nothing else", () => {
     const html = cleanHtml() + "<div>undefined</div>";
     expect(runReportRubric(payload(), html, { suppress: ["R1"] })).toEqual([]);

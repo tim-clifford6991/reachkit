@@ -79,6 +79,20 @@
 
 
 
+### OPEN(O-11) — Category-demand "altitude" (label ↔ number)
+
+- **Decision:** For a **laddered** category the rendered demand is a broadened head-term volume (bare "seo" ≈40.5k) shown under the LLM's narrower cosmetic label ("SEO tooling"). Keep laddering, or reconcile label↔number so the label names the measured phrase?
+- **Where it bites:** §3 R-3.6, `rank-targets.tsx:49`
+- **Default until answered:** Keep laddering; the rendered label states the measured phrase (no cosmetic label over a broader number).
+- **Owner answer:** *(unanswered)*
+
+### OPEN(O-12) — ETV locale (the real fix for "understated for global founders")
+
+- **Decision:** DataForSEO ETV/volumes are US · English only. Dropping the magnitudes (R-1.10) removes the *lie*; it does not give a global founder their real numbers. Do we ever fund non-US/multi-locale search data, or is drop-magnitudes sufficient for launch?
+- **Where it bites:** §1 R-1.10, §6 R-6.6
+- **Default until answered:** Drop-magnitudes ships for launch; multi-locale is a separate funded data decision, not built now.
+- **Owner answer:** *(unanswered)*
+
 ### 0.1 Resolved decisions
 
 - **RESOLVED(O-7, 2026-07-21)** — Cut reviews from BOTH tiers. Owner: "we cut reviews from the paid scan and from the free scan." `reviewThemes`/`strengthsAndWeaknesses` and their gathering are removed; the invented-reviews grounding-risk surface goes with them (invariant #11 machinery stays for what remains). → R-6.1, R-7.3.
@@ -104,6 +118,8 @@
 - **R-1.6** The **paid deep scan** (the weekly big scan) shows what competitors are doing: (1) who your **referrers** are, (2) who your **competitors' top referrers** are and the **lessons** to take from them, (3) who your **potential customers** are, **which communities** they sit in, and where you can go to work with / hear from / learn from them. Data irrelevant to these is removed (open cuts: §0 O-7/O-8/O-9).
 - **R-1.7** **No LLM-generated sentences render in the UI.** LLMs synthesize the dynamics; every surface shows simple words, labels, and numbers — never prose paragraphs. (Product-wide extension of the free-board terseness gate.)
 - **R-1.8** **Data-driven, not word-driven** (owner rule, 2026-07-23 — the positive half of R-1.7). ReachKit is a data application: gaps, trends, and performance are shown with **the data itself — bars, gauges, sparklines, deltas, positions, counts** — never a paragraph describing them. When a surface has a choice between a sentence and a chart/number, it uses the chart/number. Generated text is reduced to labels, not explanations. Every UI change (marketing, free report, paid app) is reflected 1:1 in Claude Design (`ds-src` mirrors) in the same change so the design system and the product never disagree. This binds every phase of the launch build.
+- **R-1.9** **Every number carries its label** (owner rule, 2026-07-24). No number renders "hanging loose": every rendered metric shows its **name + scale/unit** at a glance ("Footprint strength 88/100", "1,425 keywords ranked", "Search presence 4/100"), never a naked figure the reader must reverse-engineer. Especially where multiple scores on different scales sit together (Discoverability / Market position / Footprint strength), each must be unambiguously named so they can't be confused.
+- **R-1.10** **Number-claim honesty — a rendered number measures exactly what its label says** (owner rule, 2026-07-28 — the "84K referrer" class; binds free AND paid). No rendered number or claim asserts more than its data source measures. Concretely: (a) **narrow-slice ≠ total** — a DataForSEO organic-ETV or search-volume figure is US · English · Google-**organic-only** (`DATAFORSEO_LOCATION_CODE`/`LANGUAGE_CODE`), so it is NEVER labelled "traffic / visits / reach / audience / market" without that scope; the standing resolution (owner, 2026-07-28) is to **drop the raw magnitude** and keep only honest relative/strength signals rather than qualify it. (b) **existence ≠ magnitude** — a DataForSEO **backlink** proves only that an `<a href>` exists; it is never rendered as measured referral traffic, a traffic share, or a discovery-channel strength. (c) **"referrer" ≠ "backlink"** — a referrer sent visitors (measurable only in the target's own analytics); the competitor surface renders backlinks and must call them so (R-6.7). (d) **no fabricated precision** — a value drawn from an N-value categorical (LLM effort/priority buckets, a 4-band intent label) renders the band, never a granular %/2-decimal. Machine-enforced by free rubric R10/R11 + paid `INTEL_RUBRIC_RULES` Ri3–Ri6 (§12; lands with `OPEN(O-4)`).
 
 
 
@@ -173,7 +189,8 @@
 - **R-6.4** §11 outreach safety: cap 5 outreach cards, divergence 0.92, 1 action per evidence host, every draft `draftRequiresEdit=true` — nothing auto-sends.
 - **R-6.4a** A generated draft is **always retained** (owner 2026-07-27): every "generate a draft" surface persists the draft **server-side** onto its `actions` row AS PART of generation, so it survives a refresh, a closed tab, or a dropped connection mid-generation — and on reload rehydrates as the tracked entry's draft. Content and distribution drafts share ONE path (`upsertDraftAction`, capability `draft-action-persist`): reuse a stored draft for free unless `regenerate` (which overwrites), never lose a completed draft even if the DB write blips (return it unsaved). The client shows an honest long-wait state ("up to a minute; saved automatically"), times out a stalled request, and distinguishes a connection failure from a server error. Guards: `lib/app/draft-action-store.test.ts` + the capability ledger.
 - **R-6.5** Cadence: weekly refresh Monday 09:00 UTC (paid tiers), score pulse Thursday 09:00 UTC, cache cleanup daily 03:00. Trend lines reuse the persisted search-presence score so the score-over-time series never mixes scales.
-- **R-6.6** The paid render surfaces obey the same number/section honesty as the free report. Machine coverage today: report-payload paid fixture through the shared-report path + hero/blocks render checks; full intel-cache corpus is `OPEN(O-4)`.
+- **R-6.6** The paid render surfaces obey the same number/section honesty as the free report — including R-1.10 (number-claim honesty). Machine coverage: report-payload paid fixture through the shared-report path + hero/blocks render checks, extended (2026-07-28) with `INTEL_RUBRIC_RULES` Ri3–Ri6 (no ETV magnitude under a traffic label; no backlink-count as a traffic share; "referrer" never labels backlink data; no fabricated precision). Full intel-cache corpus + activation of Ri3–Ri6 across the demand/plan builders is `OPEN(O-4)` — the fixtures land WITH the honesty fixes, not after.
+- **R-6.7** The **competitor surface is a backlink & placement map, not a referrer/traffic map** (owner ruling 2026-07-28). It shows the two things backlink data honestly supports: the **SEO-strength gap** (authority + dofollow links rivals have that you don't) and the **placement gap** (venues — directories, communities, marketplaces — where rivals have links/mentions you don't, so you know where to get placed). It renders **no traffic attribution** and never calls a backlink a "referrer". A referring host's own organic ETV may inform an internal size/relevance signal but is never rendered as a magnitude. This reconciles the R-1.6 paid-contract line "who your competitors' referrers are" to what the data actually is (backlink sources), and the actionable output ("the lessons to take") is unchanged.
 
 
 
@@ -231,6 +248,7 @@
 | Dimension | The bar | Gate |
 |---|---|---|
 | **Honesty** | Every number derives from the payload; empty input ⇒ no section; comparative copy only when true. | Rubric R1–R7, G1–G10, classification corpus. |
+| **Number-claim honesty** | A rendered number measures exactly what its label says (R-1.10): a US·organic ETV sliver is never "traffic/visits/reach" (drop the magnitude); a backlink's existence is never a traffic share or discovery strength; "referrer" never labels backlink data; an N-value categorical never renders as fabricated precision. Binds free AND paid. | Free rubric **R10/R11** (report corpus) + paid **Ri3–Ri6** (`INTEL_RUBRIC_RULES`); paid activation lands with `OPEN(O-4)`. |
 | **Magnitude / credibility** | A number shown as a hero must be *credible*, not merely honest: a tiny or hollow market/category number degrades to its zero-state rather than standing alone as the headline (the trustmrr "10 searches/mo" class). | Rubric **R9** (report corpus). |
 | **Terseness** | No LLM-generated sentences in the UI — labels + minor keywords + numbers only (R-1.7). | Rubric **R8** (free board); paid surfaces `UNENFORCED` until the paid corpus lands (Phase E / O-4). |
 | **Data-driven representation** | Gaps/trends/performance shown as data — bars, gauges, sparklines, deltas, positions, counts — never a paragraph describing them; a surface with a sentence-vs-chart choice uses the chart (R-1.8). Every UI change mirrored 1:1 in Claude Design. | Rubric R8 (terseness proxy) + `check:design` (DS parity); a positive "prefer-viz" check is `UNENFORCED` (design-review judgment) — revisit if a live-review failure proves mechanically checkable. |

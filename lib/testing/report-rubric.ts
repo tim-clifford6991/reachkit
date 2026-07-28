@@ -743,13 +743,41 @@ const r9MarketCredibility: RubricRule = {
   },
 };
 
+/**
+ * R10 — slice-honest magnitudes (R-1.10, owner ruling 2026-07-28, the "84K" class).
+ * A DataForSEO organic-ETV figure is US · English · Google-organic-ONLY — a sliver,
+ * not total traffic. The standing resolution is to DROP the magnitude, not qualify
+ * it, so no number may render adjacent to a raw-traffic word (visits / visitors /
+ * reach). Search VOLUME ("searches / mo") is DEMAND, honestly labelled, and allowed
+ * — this rule deliberately does NOT match "searches" or the disclosed "traffic
+ * split" share caption (a %, not a magnitude). Root: results-screen.tsx "est.
+ * visits / mo" rendered US-organic ETV as the site's monthly visits.
+ */
+const TRAFFIC_MAGNITUDE_WORD = /\b(visits?|visitors?|reach)\b/i;
+const r10SliceHonestMagnitude: RubricRule = {
+  id: "R10",
+  title: "no organic-ETV sliver rendered as a visits/reach magnitude — drop it (R-1.10)",
+  check: (_payload, html) => {
+    const violations: RubricViolation[] = [];
+    for (const { value, context } of renderedNumbers(html)) {
+      if (TRAFFIC_MAGNITUDE_WORD.test(context)) {
+        violations.push({
+          rule: "R10",
+          message: `"${context}" renders ${value} under a visits/reach label — that figure is DataForSEO US·English·Google-organic-only ETV, a sliver mislabelled as total traffic. Drop the magnitude (R-1.10), don't qualify it.`,
+        });
+      }
+    }
+    return violations;
+  },
+};
+
 // ---------------------------------------------------------------------------
 // Registry + runner
 // ---------------------------------------------------------------------------
 
 /** Every rubric rule, in priority order. The corpus test pins this list's
  *  length as an only-grows floor — deleting a rule is a ratchet violation. */
-export const RUBRIC_RULES: RubricRule[] = [r1NoGarbage, r2NumberBasis, r3EmptyInputNoSection, r4TeaserParity, r5ComparativeCopy, r6LadderSanity, r7NoNumeralClaimsInLlmProse, r8Terseness, r9MarketCredibility];
+export const RUBRIC_RULES: RubricRule[] = [r1NoGarbage, r2NumberBasis, r3EmptyInputNoSection, r4TeaserParity, r5ComparativeCopy, r6LadderSanity, r7NoNumeralClaimsInLlmProse, r8Terseness, r9MarketCredibility, r10SliceHonestMagnitude];
 
 export interface RubricOptions {
   /** Rule ids to skip for a fixture — a named, only-shrinks list in the corpus
