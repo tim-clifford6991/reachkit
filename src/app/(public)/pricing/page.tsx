@@ -82,7 +82,11 @@ export default function PricingPage(): React.JSX.Element {
         wide: { kind: "same-as-below" },
       }}
     >
-      <main>
+      {/* A padding edge, for the reason `src/app/(public)/signin/page.tsx`
+          states in full: it stops a child's top margin collapsing through
+          `<body>` and leaving Next's own `<next-route-announcer>` outside
+          it, and it keeps the card off the viewport edge at 320px. */}
+      <main className="p-4">
         <Card
           state="default"
           title={

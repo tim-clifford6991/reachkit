@@ -133,7 +133,17 @@ export default function SignInPage(props: {
         wide: { kind: "same-as-below" },
       }}
     >
-      <main>
+      {/* The padding is load-bearing, not decoration. `<body>` carries the
+          UA's own margin and nothing else; without a padding edge here the
+          heading's top margin collapses straight through `<main>` and
+          `<body>`, moving `<body>`'s box down while Next's own
+          `<next-route-announcer>` — appended after the app tree — stays
+          where it was, i.e. below `<body>`'s bottom edge. The layout
+          sweep's containment check reads that, correctly, as an element
+          outside its containing block (ADR-093 decision 6 point 2). One
+          padding edge ends the collapse, and gives the screen a margin at
+          320px besides. */}
+      <main className="p-4">
         {deadLink === undefined ? null : <Alert tone={DEAD_LINK_TONE} message={deadLink} />}
 
         <h1>{copy("signin.heading")}</h1>

@@ -126,11 +126,14 @@ describe('REQ-021 c2 — "Given the offer, when it renders, then it states the m
   it("the page holds no sentence, no currency symbol and no digit of its own", () => {
     expect(PAGE_BODY).not.toContain("€");
     // The page states no number of its own: the amount is inside the
-    // owner's sentence, the cadences inside `offerTerms()`. The one digit
-    // the body may carry is `Surface`'s column count, which is a layout
-    // declaration (ADR-093), not a figure about the offer.
-    const withoutArms = PAGE_BODY.replace(/count: 1/g, "");
-    expect(withoutArms).not.toMatch(/[0-9]/);
+    // owner's sentence, the cadences inside `offerTerms()`. Two things in
+    // the body carry a digit and are not figures about the offer —
+    // `Surface`'s column count, which is a layout declaration (ADR-093),
+    // and a `className` spacing token, which is the same "class names, not
+    // a sentence" category the copy sweep's own allow-list names. Both are
+    // removed before the check rather than exempted by hand-waving.
+    const withoutLayout = PAGE_BODY.replace(/count: 1/g, "").replace(/className="[^"]*"/g, "");
+    expect(withoutLayout).not.toMatch(/[0-9]/);
   });
 
   it("the numeral the page does render is in JetBrains Mono (BUILD §2.3)", async () => {
