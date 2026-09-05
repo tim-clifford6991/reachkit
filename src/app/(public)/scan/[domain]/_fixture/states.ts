@@ -88,9 +88,56 @@ const QUESTIONS: readonly StoredQuestion[] = QUESTION_WORDING.map((wording, inde
   namedBrands: index >= 9 ? [] : [RIVALS[0], RIVALS[1]],
 }));
 
+/** What the *pipeline* recorded, beside what the screen renders (issue
+ *  #25's half of `StoredReport`). The screen reads none of it — the
+ *  correction, the paid pass's reuse of a fresh free scan and anyone asked
+ *  to reproduce a report do — so it is spread into both fixture reports
+ *  rather than written out twice. Invented, like every figure in this
+ *  file, and it goes when the fixture does. */
+const FIXTURE_RECORD = {
+  version: 1,
+  scanId: "fixture-scan-1",
+  domain: OWN_DOMAIN as CanonicalDomain,
+  tier: "free",
+  complete: true,
+  stoppedReason: "complete",
+  fromIncompleteRescan: false,
+  market: { kind: "unmeasured", reason: "not_attempted", at: MEASURED_AT },
+  questions: { kind: "unmeasured", reason: "not_attempted", at: MEASURED_AT },
+  serps: [],
+  rivals: { kind: "unmeasured", reason: "not_attempted", at: MEASURED_AT },
+  sources: [],
+  onPage: { kind: "unmeasured", reason: "not_attempted", at: MEASURED_AT },
+  robots: { kind: "unmeasured", reason: "not_attempted", at: MEASURED_AT },
+  coherence: { verdict: "unjudgeable", measuredCount: 0 },
+  correctionState: "none",
+} as const satisfies Pick<
+  StoredReport,
+  | "version"
+  | "scanId"
+  | "domain"
+  | "tier"
+  | "complete"
+  | "stoppedReason"
+  | "fromIncompleteRescan"
+  | "market"
+  | "questions"
+  | "serps"
+  | "rivals"
+  | "sources"
+  | "onPage"
+  | "robots"
+  | "coherence"
+  | "correctionState"
+>;
+
 /** The report the screen renders for every domain with no other fixture
  *  arm. Complete: every section present, every count measured. */
 export const FIXTURE_REPORT: StoredReport = {
+  // The record half of the blob (issue #25). Invented for the fixture like
+  // everything else here: this file is still the stand-in, and the screen
+  // reads none of these members.
+  ...FIXTURE_RECORD,
   verdict: {
     domain: OWN_DOMAIN as CanonicalDomain,
     measuredAt: MEASURED_AT,
@@ -110,6 +157,7 @@ export const FIXTURE_REPORT: StoredReport = {
     ownDomain: OWN_DOMAIN,
     rivals: RIVALS.map((domain, offset) => ({ domain, cells: rivalCells(offset) })),
     rows: QUESTIONS.map((question, index) => ({ question, cell: cellFor(index) })),
+    coverage: "async_included",
   },
   presence: {
     measuredSearches: 12,
@@ -199,6 +247,7 @@ export const FIXTURE_COLD_START_REPORT: StoredReport = {
     ownDomain: OWN_DOMAIN,
     rivals: [],
     rows: QUESTIONS.map((question, index) => ({ question, cell: cellFor(index) })),
+    coverage: "async_included",
   },
   presence: {
     measuredSearches: 12,

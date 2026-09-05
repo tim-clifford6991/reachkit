@@ -6,6 +6,8 @@
 // quietly into a stored blob.
 import { buildAiAnswersCard } from "../../../src/lib/market/questions/matrix";
 import { buildPresenceCard } from "../../../src/lib/market/rivals/presence";
+import { answersSectionOf } from "../../../src/lib/scan/sections";
+import { AI_READER_AGENTS } from "../../../src/lib/config/constants";
 import type { Profile } from "../../../src/lib/market/questions/profile";
 import type { Question } from "../../../src/lib/market/questions/phrase";
 import type { SelectedSearch } from "../../../src/lib/market/questions/select";
@@ -101,18 +103,23 @@ export const UNMEASURED_VERDICT: Verdict = {
 /** Every section on its most-populated arm. */
 export function fullSections(over: Partial<ReportSections> = {}): ReportSections {
   const serps: Measured<SerpResult>[] = [measured(SERP, AT)];
+  const questions = measured([QUESTION], AT);
+  const card = buildAiAnswersCard({ questions: [QUESTION], serps, ownDomain: DOMAIN, coverage: "async_included" });
   return {
     scanId: "11111111-1111-4111-8111-111111111111",
     domain: DOMAIN,
-    measuredAt: AT,
     tier: "free",
     stoppedReason: "complete",
     fromIncompleteRescan: false,
     verdict: VERDICT,
-    market: measured(marketSetOf({ profile: PROFILE, suggestions: [{ keyword: SELECTED.keyword, volume: 1900 }] }), AT),
-    questions: measured([QUESTION], AT),
-    answers: buildAiAnswersCard({ questions: [QUESTION], serps, ownDomain: DOMAIN, coverage: "async_included" }),
+    blockedAgents: [AI_READER_AGENTS[0]!],
+    category: PROFILE.category,
+    aiAnswers: answersSectionOf({ card, questions, rivals: [], ownDomain: DOMAIN, measuredAt: AT }),
     presence: buildPresenceCard({ serps, selected: [SELECTED], ownDomain: DOMAIN, rivals: [] }),
+    supply: { missingPages: measured(7, AT), unquotablePages: measured(3, AT) },
+    freePage: null,
+    market: measured(marketSetOf({ profile: PROFILE, suggestions: [{ keyword: SELECTED.keyword, volume: 1900 }] }), AT),
+    questions,
     serps,
     rivals: measured([], AT),
     sources: [],
@@ -130,10 +137,14 @@ export function unreachedSections(over: Partial<ReportSections> = {}): ReportSec
   return fullSections({
     stoppedReason: "time_ceiling",
     verdict: UNMEASURED_VERDICT,
+    blockedAgents: [],
+    category: null,
+    aiAnswers: null,
+    presence: null,
+    supply: { missingPages: unmeasured("not_attempted", AT), unquotablePages: unmeasured("not_attempted", AT) },
+    freePage: null,
     market: unmeasured("not_attempted", AT),
     questions: unmeasured("not_attempted", AT),
-    answers: buildAiAnswersCard({ questions: [], serps: [], ownDomain: DOMAIN, coverage: "cached_only" }),
-    presence: buildPresenceCard({ serps: [], selected: [], ownDomain: DOMAIN, rivals: [] }),
     serps: [],
     rivals: unmeasured("not_attempted", AT),
     onPage: unmeasured("not_attempted", AT),

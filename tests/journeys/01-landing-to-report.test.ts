@@ -308,11 +308,12 @@ describe("/ → /scan/{domain}: a stranger scans and reads a report (JN-001, JN-
 
     const report = storedReport();
     const verdict = report.verdict as { scoreAndBand: { kind: string; value?: { score: number; band: string } } };
-    const answers = report.answers as {
+    const answers = report.aiAnswers as {
       measuredSearches: number;
       answeredSearches: number;
       customerCitations: number;
-      rows: unknown[];
+      rows: { question: { n: number; search: string; namedBrands: string[] } }[];
+      rivals: { domain: string; cells: unknown[] }[];
       coverage: string;
     };
     const presence = report.presence as {
@@ -334,6 +335,12 @@ describe("/ → /scan/{domain}: a stranger scans and reads a report (JN-001, JN-
     // The customer is cited in none of them — the report's whole point.
     expect(answers.customerCitations).toBe(0);
     expect(answers.coverage).toBe("async_included");
+    // One dot-matrix row per rival, one cell per question on each.
+    expect(answers.rivals.length).toBeGreaterThan(0);
+    for (const rival of answers.rivals) expect(rival.cells).toHaveLength(12);
+    // Each question is numbered and carries the search it came from.
+    expect(answers.rows.map((row) => row.question.n)).toEqual(Array.from({ length: 12 }, (_, i) => i + 1));
+    expect(answers.rows[0]?.question.search).toBeTypeOf("string");
 
     // The Google-presence card: a cold start reads 0 as a measurement.
     expect(presence.measuredSearches).toBe(12);
@@ -348,6 +355,9 @@ describe("/ → /scan/{domain}: a stranger scans and reads a report (JN-001, JN-
     expect(report.sources).toEqual(["reddit.com"]);
 
     // No section is omitted, and each says what it is.
+    // The screen's own sections, and the record beside them.
+    expect(report.blockedAgents).toBeDefined();
+    expect(report.category).toBe("user onboarding software");
     for (const section of ["market", "questions", "serps", "onPage", "robots", "coherence", "correctionState"]) {
       expect(report[section]).toBeDefined();
     }

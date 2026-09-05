@@ -45,7 +45,7 @@ import { dbAdmin } from "@/lib/db";
 import type { RobotsPolicy } from "@/lib/egress/types";
 import { checkCoherence, type CoherenceVerdict } from "@/lib/market/coherence/check";
 import { nextCorrectionState, type CorrectionState } from "@/lib/market/coherence/state";
-import { buildAiAnswersCard, type AiAnswersCard } from "@/lib/market/questions/matrix";
+import { buildAiAnswersCard } from "@/lib/market/questions/matrix";
 import {
   deriveMarketSet,
   marketSetOf,
@@ -69,7 +69,9 @@ import type { SerpResult } from "@/lib/vendors/dataforseo/types";
 import { withScanBounds, type Bounds } from "./ceilings";
 import { advanceCorrectionState, readCorrectionFacts, registerCorrectionRunner } from "./correction";
 import { parseDomain, type CanonicalDomain } from "./domain";
-import { readCurrentReport, type StoppedReason, type StoredReport, type Tier } from "./report";
+import { readCurrentReport } from "./report";
+import type { AiAnswersSection, StoppedReason, StoredReport, SupplySection, Tier } from "./report";
+import { answersSectionOf, blockedAgentsOf, categoryOf } from "./sections";
 import { emitEnding, enterStage, exitStage } from "./stages";
 import { assembleReport, storeCurrentReport, type ScanStatus } from "./store";
 
@@ -131,7 +133,7 @@ interface Sections {
   serps: Measured<SerpResult>[];
   rivals: Measured<RivalCandidate[]>;
   sources: readonly string[];
-  answers: AiAnswersCard | null;
+  aiAnswers: AiAnswersSection | null;
   presence: PresenceCard | null;
   coherence: CoherenceVerdict;
 }
@@ -149,7 +151,7 @@ function freshSections(at: Date): Sections {
     serps: [],
     rivals: unmeasured("not_attempted", at),
     sources: [],
-    answers: null,
+    aiAnswers: null,
     presence: null,
     coherence: { verdict: "unjudgeable", measuredCount: 0 },
   };
@@ -299,7 +301,7 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
   // 2. §6.4's seven-day window.
   if (a.correctionOf === undefined) {
     const stored = await readCurrentReport(domain);
-    if (stored !== null && stored.complete && wholeDaysBetween(stored.measuredAt, startedAt) < FREE_RESCAN_WINDOW_D) {
+    if (stored !== null && stored.complete && wholeDaysBetween(stored.verdict.measuredAt, startedAt) < FREE_RESCAN_WINDOW_D) {
       if (parameters.adoptsClaim) await closeWithoutSpending(scanId);
       logPass({
         scanId: stored.scanId,
@@ -533,17 +535,34 @@ function score(a: StageArgs): void {
     rivals: derivation.rivals,
   });
 
-  sections.answers = buildAiAnswersCard({
+  const card = buildAiAnswersCard({
     questions: sections.questions.kind === "unmeasured" ? [] : sections.questions.value,
     serps,
     ownDomain: domain,
     coverage: a.parameters.asyncAiOverview && !a.correction ? "async_included" : "cached_only",
+  });
+  sections.aiAnswers = answersSectionOf({
+    card,
+    questions: sections.questions,
+    rivals: derivation.rivals,
+    ownDomain: domain,
+    measuredAt: sections.questions.at,
   });
 
   sections.coherence = checkCoherence({ serps: readSerps, measuredCount: readSerps.length });
 }
 
 // ── Composition ─────────────────────────────────────────────────────────
+
+/** BUILD §4.1 module 3's two counts. The opportunities engine (issue #40)
+ *  derives them and is not built, so they are `not_attempted` — the arm
+ *  that says we did not get to it. A 0 would be a claim about the
+ *  customer's site that nobody has made, and the free page card (module 5)
+ *  is the same engine's, so it is `null`: a named absent section, never an
+ *  empty card. */
+function UNMEASURED_SUPPLY(at: Date): SupplySection {
+  return { missingPages: unmeasured("not_attempted", at), unquotablePages: unmeasured("not_attempted", at) };
+}
 
 function outcomeOf(m: Measured<unknown>): InputOutcome {
   if (m.kind === "unmeasured") return { read: false, because: m.reason };
@@ -616,17 +635,21 @@ function composeReport(a: {
   const report = assembleReport({
     scanId: a.scanId,
     domain: a.domain,
-    measuredAt,
     tier: a.tier,
     stoppedReason: a.stoppedReason,
     fromIncompleteRescan: a.fromIncompleteRescan,
     verdict,
+    blockedAgents: blockedAgentsOf(robots),
+    category: categoryOf(market),
+    aiAnswers: s.aiAnswers,
+    // A pass that never bought a SERP has no card to show, and an empty
+    // one would read as "we looked and nobody is there". `null` is the
+    // screen's own named-absent arm.
+    presence: s.presence,
+    supply: UNMEASURED_SUPPLY(measuredAt),
+    freePage: null,
     market,
     questions: s.questions,
-    answers:
-      s.answers ??
-      buildAiAnswersCard({ questions: [], serps: [], ownDomain: a.domain, coverage: "cached_only" }),
-    presence: s.presence ?? buildPresenceCard({ serps: [], selected: [], ownDomain: a.domain, rivals: [] }),
     serps: s.serps,
     rivals: s.rivals,
     sources: s.sources,
@@ -637,6 +660,8 @@ function composeReport(a: {
   });
 
   const sectionMissing =
+    s.aiAnswers === null ||
+    s.presence === null ||
     verdict.missing.length > 0 ||
     market.kind === "unmeasured" ||
     s.questions.kind === "unmeasured" ||

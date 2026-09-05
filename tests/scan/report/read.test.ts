@@ -102,9 +102,9 @@ describe("dates survive the round trip through jsonb", () => {
   it("revives every instant the blob carries", async () => {
     answer = { data: [{ report: asStoredJson() }], error: null };
     const report = await readCurrentReport("example.com");
-    expect(report?.measuredAt).toBeInstanceOf(Date);
-    expect(report?.measuredAt.getTime()).toBe(AT.getTime());
     expect(report?.verdict.measuredAt).toBeInstanceOf(Date);
+    expect(report?.verdict.measuredAt.getTime()).toBe(AT.getTime());
+    expect(report?.aiAnswers?.measuredAt).toBeInstanceOf(Date);
     expect(report?.market.at).toBeInstanceOf(Date);
     expect(report?.serps[0]?.at).toBeInstanceOf(Date);
     expect(report !== null && report.robots.kind !== "unmeasured" && report.robots.value.readAt).toBeInstanceOf(Date);

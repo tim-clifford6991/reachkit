@@ -156,6 +156,16 @@ function happyPath(): void {
   advanceCorrectionState.mockResolvedValue(true);
 }
 
+/** A stored report as the seven-day window reads one: its scan id, whether
+ *  it was complete, and the one date the blob has — `verdict.measuredAt`. */
+function storedFor(a: { daysAgo: number; complete: boolean }): StoredReport {
+  return {
+    scanId: "previous-scan",
+    complete: a.complete,
+    verdict: { measuredAt: new Date(Date.now() - a.daysAgo * 86_400_000) },
+  } as unknown as StoredReport;
+}
+
 function storedReport(): StoredReport {
   return (storeCurrentReport.mock.calls.at(-1) as unknown as [{ report: StoredReport }])[0].report;
 }
@@ -202,7 +212,7 @@ describe("the six stages", () => {
     expect(report.stoppedReason).toBe("complete");
     // The empty sections are measurements, not admissions of failure.
     expect(report.serps.every((serp) => serp.kind !== "unmeasured")).toBe(true);
-    expect(report.presence.you.top10Count).toBe(0);
+    expect(report.presence?.you.top10Count).toBe(0);
   });
 
   it("asks one SERP per question, at the battery's own size", async () => {
@@ -232,8 +242,8 @@ describe("a ceiling gives back what was measured", () => {
       expect(JSON.stringify(serp)).not.toMatch(/"organic"/);
     }
     // The cards' denominator is what was measured, not what was asked for.
-    expect(report.answers.measuredSearches).toBe(3);
-    expect(report.presence.measuredSearches).toBe(3);
+    expect(report.aiAnswers?.measuredSearches).toBe(3);
+    expect(report.presence?.measuredSearches).toBe(3);
   });
 
   it("a pass stopped before the market chain stores a report whose market says why", async () => {
@@ -313,8 +323,7 @@ describe("the free path never starts outside admission control", () => {
 
 describe("a free re-scan inside the seven-day window serves the stored report", () => {
   it("returns the stored scan id, spends nothing, and closes the adopted row", async () => {
-    const previous = { scanId: "previous-scan", complete: true, measuredAt: new Date(Date.now() - 2 * 86_400_000) };
-    readCurrentReport.mockResolvedValue(previous as unknown as StoredReport);
+    readCurrentReport.mockResolvedValue(storedFor({ daysAgo: 2, complete: true }));
 
     const result = await runScan({ domain: DOMAIN, tier: "free" });
     expect(result).toEqual({ scanId: "previous-scan", status: "done" });
@@ -328,22 +337,14 @@ describe("a free re-scan inside the seven-day window serves the stored report", 
   });
 
   it("runs a full pass once the window has passed", async () => {
-    readCurrentReport.mockResolvedValue({
-      scanId: "previous-scan",
-      complete: true,
-      measuredAt: new Date(Date.now() - 8 * 86_400_000),
-    } as unknown as StoredReport);
+    readCurrentReport.mockResolvedValue(storedFor({ daysAgo: 8, complete: true }));
     await runScan({ domain: DOMAIN, tier: "free" });
     expect(measureDomain).toHaveBeenCalledTimes(1);
     expect(stages.lines).toEqual(EVERY_STAGE);
   });
 
   it("runs a full pass when the stored report is itself incomplete", async () => {
-    readCurrentReport.mockResolvedValue({
-      scanId: "previous-scan",
-      complete: false,
-      measuredAt: new Date(Date.now() - 1 * 86_400_000),
-    } as unknown as StoredReport);
+    readCurrentReport.mockResolvedValue(storedFor({ daysAgo: 1, complete: false }));
     await runScan({ domain: DOMAIN, tier: "free" });
     expect(measureDomain).toHaveBeenCalledTimes(1);
   });
@@ -367,15 +368,11 @@ describe("a market correction runs inside the scan it corrects", () => {
     for (const call of serpOrganic.mock.calls) {
       expect((call as unknown as [unknown, { loadAsyncAiOverview: boolean }])[1].loadAsyncAiOverview).toBe(false);
     }
-    expect(storedReport().answers.coverage).toBe("cached_only");
+    expect(storedReport().aiAnswers?.coverage).toBe("cached_only");
   });
 
   it("ignores the seven-day window — a correction is not a re-scan", async () => {
-    readCurrentReport.mockResolvedValue({
-      scanId: "previous-scan",
-      complete: true,
-      measuredAt: new Date(),
-    } as unknown as StoredReport);
+    readCurrentReport.mockResolvedValue(storedFor({ daysAgo: 0, complete: true }));
     await runScan({ domain: DOMAIN, tier: "free", correctionOf: CORRECTED });
     expect(measureDomain).toHaveBeenCalledTimes(1);
     expect(readCurrentReport).not.toHaveBeenCalled();

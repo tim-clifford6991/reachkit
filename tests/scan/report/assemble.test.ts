@@ -24,16 +24,21 @@ const REPORT_KEYS = [
   "version",
   "scanId",
   "domain",
-  "measuredAt",
   "tier",
   "complete",
   "stoppedReason",
   "fromIncompleteRescan",
+  // The screen's own sections (issue #13).
   "verdict",
+  "blockedAgents",
+  "category",
+  "aiAnswers",
+  "presence",
+  "supply",
+  "freePage",
+  // The record beside them (issue #25).
   "market",
   "questions",
-  "answers",
-  "presence",
   "serps",
   "rivals",
   "sources",
@@ -56,11 +61,19 @@ describe("a section is never omitted", () => {
     expect(report.market).toEqual({ kind: "unmeasured", reason: "not_attempted", at: AT });
     expect(report.questions.kind).toBe("unmeasured");
     expect(report.onPage.kind).toBe("unmeasured");
+    // A screen section that could not be produced is `null` — the arm the
+    // screen renders as a named absent section with one written line —
+    // never an empty card.
+    expect(report.aiAnswers).toBeNull();
+    expect(report.presence).toBeNull();
+    expect(report.freePage).toBeNull();
+    expect(report.supply.missingPages).toEqual({ kind: "unmeasured", reason: "not_attempted", at: AT });
   });
 
   it("never writes a 0 for a section that was not reached", () => {
     const report = assembleReport(unreachedSections());
     expect(report.serps).toEqual([]);
+    expect(report.blockedAgents).toEqual([]);
     expect(report.verdict.scoreAndBand.kind).toBe("unmeasured");
     // A score of 0 would be a measurement about the customer's site.
     expect(JSON.stringify(report.verdict.scoreAndBand)).not.toMatch(/"score":\s*0/);
@@ -86,7 +99,9 @@ describe("the composition computes nothing", () => {
     expect(report.verdict).toBe(sections.verdict);
     expect(report.market).toBe(sections.market);
     expect(report.questions).toBe(sections.questions);
-    expect(report.answers).toBe(sections.answers);
+    expect(report.aiAnswers).toBe(sections.aiAnswers);
+    expect(report.supply).toBe(sections.supply);
+    expect(report.blockedAgents).toBe(sections.blockedAgents);
     expect(report.presence).toBe(sections.presence);
     expect(report.serps).toBe(sections.serps);
     expect(report.rivals).toBe(sections.rivals);
@@ -120,9 +135,13 @@ describe("the composition computes nothing", () => {
 });
 
 describe("the report carries exactly one date and it is the caller's", () => {
-  it("takes `measuredAt` from the sections, never from a clock", () => {
+  it("has one date and it is the verdict's, which is the caller's", () => {
     const measuredAt = new Date("2020-01-02T03:04:05.000Z");
-    expect(assembleReport(fullSections({ measuredAt })).measuredAt).toBe(measuredAt);
+    const verdict = { ...fullSections().verdict, measuredAt };
+    const report = assembleReport(fullSections({ verdict }));
+    expect(report.verdict.measuredAt).toBe(measuredAt);
+    // No second `measuredAt` on the blob, so the two cannot drift.
+    expect(Object.keys(report)).not.toContain("measuredAt");
   });
 
   it("reads no clock at assembly", () => {

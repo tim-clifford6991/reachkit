@@ -3,14 +3,15 @@
 //
 // `assembleReport` is **pure and total**: one required member per section
 // of `StoredReport`, so a section a stage never produced is a compile
-// error rather than a missing key, and the caller must pass the `Measured`
-// arm that says why. It computes nothing — no score, no rate, no count, no
-// band — and re-derives no figure. It derives exactly two fields from what
-// it is given: `complete`, which is `stoppedReason === 'complete'`, and
-// `version`, the one blob version this build writes. It reads no clock:
-// `measuredAt` is the caller's, so the report's date is the date of the
-// measurement and not of the storage, and every `Measured.at` under it
-// still agrees with it.
+// error rather than a missing key, and the caller must pass the arm that
+// says why — `null` for a screen section, the `unmeasured` arm for a
+// record one. It computes nothing — no score, no rate, no count, no band —
+// re-derives no figure, and re-shapes nothing (that is `sections.ts`'s).
+// It derives exactly two fields from what it is given: `complete`, which
+// is `stoppedReason === 'complete'`, and `version`, the one blob version
+// this build writes. It reads no clock: the report's one date is
+// `verdict.measuredAt`, the caller's, so the date is the measurement's and
+// not the storage's, and every `Measured.at` under it still agrees.
 //
 // `storeCurrentReport` is the write. The row and the pointer flip are one
 // transaction — `store_current_report` in
@@ -21,10 +22,8 @@
 import { dbAdmin } from "@/lib/db";
 import type { CoherenceVerdict } from "@/lib/market/coherence/check";
 import type { CorrectionState } from "@/lib/market/coherence/state";
-import type { AiAnswersCard } from "@/lib/market/questions/matrix";
 import type { MarketSet } from "@/lib/market/questions/market-set";
 import type { Question } from "@/lib/market/questions/phrase";
-import type { PresenceCard } from "@/lib/market/rivals/presence";
 import type { RivalCandidate } from "@/lib/market/rivals/derive";
 import type { Measured } from "@/lib/measure/measured";
 import type { OnPageFacts } from "@/lib/measure/parse";
@@ -33,7 +32,17 @@ import type { Verdict } from "@/lib/measure/verdict";
 import type { RobotsPolicy } from "@/lib/egress/types";
 import type { SerpResult } from "@/lib/vendors/dataforseo/types";
 import type { CanonicalDomain } from "./domain";
-import { REPORT_VERSION, type StoredReport, type StoppedReason, type Tier } from "./report";
+import type { AI_READER_AGENTS } from "@/lib/config/constants";
+import { REPORT_VERSION } from "./report";
+import type {
+  AiAnswersSection,
+  FreePageSection,
+  PresenceSection,
+  StoppedReason,
+  StoredReport,
+  SupplySection,
+  Tier,
+} from "./report";
 
 /**
  * One required member per section of `StoredReport`. Required, not
@@ -46,15 +55,21 @@ import { REPORT_VERSION, type StoredReport, type StoppedReason, type Tier } from
 export interface ReportSections {
   scanId: string;
   domain: CanonicalDomain;
-  measuredAt: Date;
   tier: Tier;
   stoppedReason: StoppedReason;
   fromIncompleteRescan: boolean;
+  /** One date governs the whole blob and it lives here: `verdict.measuredAt`
+   *  (issue #13's own rule). There is no second `measuredAt` on the
+   *  report, so the two cannot drift. */
   verdict: Verdict;
+  blockedAgents: readonly (typeof AI_READER_AGENTS)[number][];
+  category: string | null;
+  aiAnswers: AiAnswersSection | null;
+  presence: PresenceSection | null;
+  supply: SupplySection;
+  freePage: FreePageSection | null;
   market: Measured<MarketSet>;
   questions: Measured<Question[]>;
-  answers: AiAnswersCard;
-  presence: PresenceCard;
   serps: readonly Measured<SerpResult>[];
   rivals: Measured<RivalCandidate[]>;
   sources: readonly string[];
@@ -72,16 +87,19 @@ export function assembleReport(s: ReportSections): StoredReport {
     version: REPORT_VERSION,
     scanId: s.scanId,
     domain: s.domain,
-    measuredAt: s.measuredAt,
     tier: s.tier,
     complete: s.stoppedReason === "complete",
     stoppedReason: s.stoppedReason,
     fromIncompleteRescan: s.fromIncompleteRescan,
     verdict: s.verdict,
+    blockedAgents: s.blockedAgents,
+    category: s.category,
+    aiAnswers: s.aiAnswers,
+    presence: s.presence,
+    supply: s.supply,
+    freePage: s.freePage,
     market: s.market,
     questions: s.questions,
-    answers: s.answers,
-    presence: s.presence,
     serps: s.serps,
     rivals: s.rivals,
     sources: s.sources,

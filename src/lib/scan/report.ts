@@ -124,6 +124,16 @@ export interface AiAnswersSection {
    *  them; one cell per row per question. */
   rivals: readonly { domain: string; cells: readonly AnswerCell[] }[];
   rows: readonly { question: StoredQuestion; cell: AnswerCell }[];
+  /** Which AI answers this card could see — #27's own member, carried
+   *  here because the ruling that created it requires a disclosure the
+   *  screen can only render from a state it can read. The free report's
+   *  twelve are bought with `load_async_ai_overview` and count Google's
+   *  actual AI answers (`async_included`, ADR-094); a market correction
+   *  buys none — the 12¢ cap stands and a correction spends no second
+   *  allowance — so its card counts only what Google had already cached
+   *  (`cached_only`), "and its disclosure says so" (DECISIONS
+   *  2026-09-03). A state, never a sentence: the words are the registry's. */
+  coverage: "async_included" | "cached_only";
 }
 
 /** BUILD §4.1 module 2, right card — #27's own `PresenceCard`, re-exported

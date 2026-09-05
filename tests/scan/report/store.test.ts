@@ -122,7 +122,7 @@ describe("the row the pass writes", () => {
     await storeCurrentReport({ report: assembleReport(fullSections()), drivers: DRIVERS, degraded: false, costCents: 6 });
     const args = argsOfLastCall();
     expect(args.p_domain).toBe(DOMAIN);
-    expect((args.p_report as { measuredAt: Date }).measuredAt).toBe(AT);
+    expect((args.p_report as { verdict: { measuredAt: Date } }).verdict.measuredAt).toBe(AT);
   });
 
   it("raises when the transaction did not commit — never reports a store that did not happen", async () => {
