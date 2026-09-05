@@ -122,3 +122,16 @@ function logMarketSet(seeds: number, outcome: Measured<SuggestionRow[]>): void {
     )
   );
 }
+
+/** The `market` section, composed from the profile that seeded it and the
+ *  suggestions the vendor returned (ADR-095: the leaf that declares the
+ *  shape owns its construction, so the scan pipeline composes no shape of
+ *  its own and sums nothing). `totalVolume` is the measured market's own
+ *  size; the owner removed its footnote from the free report on
+ *  2026-09-03, so nothing renders it today — it stays in the blob because
+ *  it is what `suggestions` measured, not because a surface reads it. */
+export function marketSetOf(a: { profile: Profile; suggestions: readonly SuggestionRow[] }): MarketSet {
+  let totalVolume = 0;
+  for (const row of a.suggestions) totalVolume += row.volume;
+  return { profile: a.profile, suggestions: a.suggestions, totalVolume };
+}
