@@ -1,11 +1,10 @@
-// src/lib/presentation/copy/index.ts — BP-020, WO-041, WO-278
+// src/lib/presentation/copy/index.ts — BP-020, WO-041, WO-278, issue #19
 //
 // The module's public entry point. Re-exports `COPY`, `COPY_META`,
-// `AWAITING_COPY`, `TODO_COPY_MARKER`, `copy`, `explain` and the types
-// `CopyKey`, `CopyMeta`, `CopyPartition`, `ExplainKey`, `MeasuredSlotOf` —
-// nothing else. No partition is
-// re-exported by name, so nothing outside this module can read one
-// partition and miss the rest.
+// `AWAITING_COPY`, `TODO_COPY_MARKER`, `copy`, `explain`, `isWritten` and
+// the types `CopyKey`, `CopyMeta`, `CopyPartition`, `ExplainKey`,
+// `MeasuredSlotOf` — nothing else. No partition is re-exported by name, so
+// nothing outside this module can read one partition and miss the rest.
 export {
   COPY,
   COPY_META,
@@ -16,4 +15,5 @@ export {
   type CopyPartition,
 } from "./registry.ts";
 export { copy } from "./copy.ts";
+export { isWritten } from "./written.ts";
 export { explain, type ExplainKey, type MeasuredSlotOf } from "./explain.ts";

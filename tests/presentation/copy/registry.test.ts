@@ -150,9 +150,13 @@ describe("REQ-093 c5 — the registry renders with every model unavailable", () 
     // sentences is still 59, and every key that renders without one is
     // counted separately, which is what keeps this assertion meaning what
     // it said before the marker existed.
+    //
+    // 2026-09-05, separately again: issue #19 (REQ-098) adds six ruled
+    // sentences — REQ-098 criterion 2 states them verbatim as the owner's
+    // own transcription. 59 + 6 = 65.
     const awaiting = new Set<CopyKey>(AWAITING_COPY);
     const ruled = nonOwnerOwed.filter((key) => !awaiting.has(key));
-    expect(ruled.length).toBe(59);
+    expect(ruled.length).toBe(65);
 
     // Only the ruled sentences carry their slots' `{name}` placeholders —
     // a `TODO(copy)` marker is one literal with no placeholder in it, so
@@ -178,7 +182,7 @@ describe("REQ-093 c5 — the registry renders with every model unavailable", () 
 });
 
 describe("the partition list is closed and total (BP-020 decision 5)", () => {
-  it("keys/ holds exactly twelve partition files", () => {
+  it("keys/ holds exactly thirteen partition files", () => {
     expect(KEY_FILES).toEqual([
       "bands.ts",
       "calendar.ts",
@@ -192,15 +196,16 @@ describe("the partition list is closed and total (BP-020 decision 5)", () => {
       "report.ts",
       "settings.ts",
       "setup.ts",
+      "signin.ts",
     ]);
   });
 
-  it("registry.ts imports every file under keys/, and no thirteenth", () => {
+  it("registry.ts imports every file under keys/, and no fourteenth", () => {
     const importedKeyFiles = [...REGISTRY_SOURCE.matchAll(/from\s+["']\.\/keys\/([^"']+)["']/g)]
       .map((m) => m[1])
       .filter((f): f is string => f !== undefined);
     expect(new Set(importedKeyFiles)).toEqual(new Set(KEY_FILES));
-    expect(importedKeyFiles).toHaveLength(12);
+    expect(importedKeyFiles).toHaveLength(13);
   });
 
   it("every key in COPY traces to exactly one partition", async () => {
@@ -341,10 +346,27 @@ describe("owner-owed and empty agree both ways", () => {
     // key that quietly moved from "the owner still owes this" to "someone
     // wrote something" fails here rather than passing on a total that
     // happens to add up.
-    expect(OWNER_OWED.length).toBe(45);
-    expect(AWAITING_COPY.length).toBe(69);
-    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(59);
-    expect(Object.keys(COPY).length).toBe(173);
+    //
+    // 2026-09-05, separately again: issue #19 (/pricing and the sign-in
+    // screen, REQ-098) adds eleven keys in the new `signin.ts` partition —
+    // six ruled, because REQ-098 criterion 2 states them verbatim as the
+    // owner's own transcription (`signin.heading`, `signin.body`,
+    // `signin.field.placeholder`, `signin.submit.label`,
+    // `signin.new.prompt`, `signin.new.link`), and five carrying the
+    // marker, being exactly the lines REQ-098's third open question
+    // records as written nowhere (`signin.link_sent`,
+    // `signin.payment_held`, `signin.no_account`,
+    // `signin.address.invalid`, `signin.link_dead`). It also moves
+    // `price.vat_included` off the empty value onto the marker, on the
+    // same ground #13 moved `offer.cancel_self_service`: `/pricing` has to
+    // speak it, and an empty value would take the whole surface down
+    // rather than show the owner the one line still owed. So: 45 - 1 = 44
+    // owner-owed and empty, 69 + 5 + 1 = 75 awaiting copy, 59 + 6 = 65
+    // ruled — 173 + 11 = 184 total.
+    expect(OWNER_OWED.length).toBe(44);
+    expect(AWAITING_COPY.length).toBe(75);
+    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(65);
+    expect(Object.keys(COPY).length).toBe(184);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.
