@@ -100,6 +100,30 @@ function landingRedirect(request: Request, problem: DomainProblem, value: string
   return Response.redirect(url.toString(), 303);
 }
 
+/** Starts the free pass and returns immediately. The engine is reached
+ *  through a dynamic import so that the three responses that start no scan
+ *  — a malformed value, a malformed body, a refusal — load none of it;
+ *  this route stays a canonicaliser and a starter, and only the starting
+ *  half pays for the pipeline.
+ *
+ *  `runScan` never rejects for a domain it cannot measure — every such
+ *  ending is a stored report or a `failed` status — so the `catch` here is
+ *  for the unforeseen only, and it logs rather than failing the request
+ *  that started the pass. */
+function startPipeline(domain: string, scanId: string): void {
+  void import("@/lib/scan/run")
+    .then(({ runScan }) => runScan({ domain, tier: "free" }))
+    .catch((error: unknown) => {
+      console.log(
+        JSON.stringify({
+          event: "scan_start_failed",
+          scanId,
+          because: error instanceof Error ? error.message : String(error),
+        })
+      );
+    });
+}
+
 export async function POST(request: Request): Promise<Response> {
   const body = await readBody(request);
   if (body.transport === "malformed") {
@@ -133,6 +157,16 @@ export async function POST(request: Request): Promise<Response> {
     : "refuse" in claim.refusal && claim.refusal.refuse === "in_flight" && claim.refusal.sameDomain
       ? claim.refusal.runningScanId
       : undefined;
+
+  // The starter half (BP-022 decision 3). A claim that produced a new
+  // scan id starts the pipeline; a refusal starts nothing, and an
+  // `in_flight` refusal of this same domain hands back the id of the pass
+  // already running rather than starting a second. The pipeline is not
+  // awaited: the visitor's next request is the progress stream
+  // (`GET /api/scan/{scanId}/progress`), which replays the stages this
+  // pass publishes as it runs. Its own two ceilings bound it; nothing
+  // here does.
+  if (claim.claimed) startPipeline(parsed.domain, claim.scanId);
 
   if (isForm) return Response.redirect(new URL(location, request.url).toString(), 303);
 
