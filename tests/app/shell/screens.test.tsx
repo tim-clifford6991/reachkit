@@ -17,6 +17,14 @@
 //      line the owner has not written renders as nothing rather than as a
 //      placeholder.
 //
+// **Calendar left the shared table on 2026-09-05 (issue #16).** Its screen is
+// built, so it no longer heads itself with the destination's nav word and it
+// no longer renders `calendar.head` as a subordinate line — §4.6 gives it a
+// head of its own ("One page a day. Every day.") and a `searchParams` prop
+// for the month switcher, so it can neither be rendered nor asserted by the
+// same three rows as the two placeholders. The contract it inherits is
+// unchanged and is asserted for it below, in its own block.
+//
 // `copy()` is mocked to `(key) => key` and `COPY` is left real, the same
 // convention `frame.test.tsx` uses and for the same reason.
 import { readFileSync } from "node:fs";
@@ -39,7 +47,6 @@ const APP_DIR = path.resolve(import.meta.dirname, "../../../src/app/(account)/ap
 
 const SCREENS = [
   { name: "overview", file: "page.tsx", Page: OverviewPage, nav: "shell.nav.overview", head: "overview.head" },
-  { name: "calendar", file: "calendar/page.tsx", Page: CalendarPage, nav: "shell.nav.calendar", head: "calendar.head" },
   { name: "settings", file: "settings/page.tsx", Page: SettingsPage, nav: "shell.nav.settings", head: "settings.head" },
 ] as const satisfies readonly {
   name: string;
@@ -81,5 +88,29 @@ describe.each(SCREENS)("$name — the screen renders inside the shell", ({ file,
 
   it("its head key exists in the registry, so filling it is the whole change", () => {
     expect(Object.keys(COPY)).toContain(head);
+  });
+});
+
+// ── Calendar, which is no longer a placeholder (issue #16, BUILD §4.6) ────
+describe("calendar — the built screen keeps the three contracts the frame set", () => {
+  async function calendarMarkup(): Promise<string> {
+    return markup(await CalendarPage({ searchParams: Promise.resolve({}) }));
+  }
+
+  it("renders, and heads itself with §4.6's own line rather than the nav word", async () => {
+    const html = await calendarMarkup();
+    expect(html).toContain("<h1>calendar.head</h1>");
+    expect(html).not.toContain("<h1>shell.nav.calendar</h1>");
+  });
+
+  it("declares no Surface — the shell's layout owns this route's screen root", async () => {
+    const source = readFileSync(path.join(APP_DIR, "calendar/page.tsx"), "utf8");
+    expect(source).not.toMatch(/from\s+["']@\/ui\/layout/);
+    expect(source).not.toContain("<Surface");
+    expect(await calendarMarkup()).not.toContain("data-surface");
+  });
+
+  it("its head key exists in the registry, so filling it is the whole change", () => {
+    expect(Object.keys(COPY)).toContain("calendar.head" satisfies CopyKey);
   });
 });
