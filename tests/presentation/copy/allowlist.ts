@@ -116,6 +116,23 @@ export const ATTRIBUTE_ALLOWLIST: readonly AllowlistedAttribute[] = Object.freez
   },
   {
     kind: "exact",
+    name: "tone",
+    reason:
+      "a registered component's `Tone` token ('ok' | 'warn' | 'bad' | 'neutral' | " +
+      "'accent'), the same category as `variant` and `state`: it selects a state " +
+      "colour, and BP-018's words-not-colour rule means every component taking one " +
+      "also requires the word beside it through a separate prop (Badge's required " +
+      "text child).",
+  },
+  {
+    kind: "exact",
+    name: "size",
+    reason:
+      "a registered component's size token ('default' | 'sm'), the same category as " +
+      "`variant`: it selects a scale, never a sentence.",
+  },
+  {
+    kind: "exact",
     name: "state",
     reason:
       "a registered component's own discriminant (e.g. Card's 'default' | 'degraded'), " +
