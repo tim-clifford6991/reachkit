@@ -1,0 +1,115 @@
+/* src/ui/components/custom/day-panel.css — BUILD §2.2, §4.6
+ *
+ * The day panel's stylesheet — the second of the five surfaces §2.2 allows
+ * custom CSS for.
+ *
+ * §4.6, verbatim: "**Day panel** (290px, sticky, beside the grid — not a
+ * drawer)". `design/tokens.md` §2b derives the width at which that is
+ * possible: "`--breakpoint-xl` `1280px` — the day panel sits **beside** the
+ * grid, which is §4.6's own word. 222 + 48 + 696 + `--s-4` + `--w-day-panel`
+ * 290 = **1272**", rounded up to the named 1280 step, which is also
+ * `BAND_MIN.wide`. A media query prelude cannot read a `var()`, so 1280 is
+ * written literally below and pinned back against `BAND_MIN` by
+ * `tests/ui/calendar-css.test.ts`.
+ *
+ * **Not a drawer, at any width.** Below `--breakpoint-xl` the panel is a
+ * full-width block following the grid, in flow and not sticky. Nothing
+ * slides over anything, nothing is dismissed, and there is no second markup
+ * path — the arms below are two declarations over one tree.
+ *
+ * SPACING. As in `calendar-grid.css` and `src/ui/layout/shell.css`: the
+ * steps `design/tokens.md` §1 rules are transcribed scoped to this
+ * component's own roots, because `theme.css` is §2.1 verbatim and refuses
+ * a token §2.1 does not state. Their home is issue #12.
+ */
+
+.rk-day-layout,
+.rk-daypanel {
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+
+  /* design/tokens.md §2b: "`--w-day-panel` `290px` — §4.6: *Day panel
+   * (290px, sticky, beside the grid — not a drawer)*". */
+  --w-day-panel: 290px;
+}
+
+.rk-day-layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  align-items: stretch;
+  min-width: 0;
+}
+
+.rk-day-layout-grid {
+  min-width: 0;
+}
+
+.rk-daypanel {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r-box);
+  background: var(--surface);
+}
+
+.rk-daypanel-inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-3);
+  min-width: 0;
+}
+
+.rk-daypanel-head,
+.rk-daypanel-account,
+.rk-daypanel-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.rk-daypanel-actions {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+/* §4.6's "stage badge + date" — one row, and it wraps rather than clipping
+ * when the two do not fit side by side in 290px (ADR-093 decision 2). */
+.rk-daypanel-heading {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* --breakpoint-xl (1280px) = BAND_MIN.wide. "The day panel sits beside the
+ * grid." Pinned by tests/ui/calendar-css.test.ts. */
+@media (min-width: 1280px) {
+  .rk-day-layout {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .rk-day-layout-grid {
+    flex: 1 1 0;
+  }
+
+  .rk-daypanel {
+    /* 290px exactly — §4.6's own number, and it neither grows nor shrinks:
+     * the grid takes the remaining room, which is what "beside the grid"
+     * means for the column that is not fixed. */
+    flex: 0 0 var(--w-day-panel);
+    width: var(--w-day-panel);
+  }
+
+  .rk-daypanel-inner {
+    position: sticky;
+    top: 0;
+  }
+}

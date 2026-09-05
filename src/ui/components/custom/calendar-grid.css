@@ -1,0 +1,157 @@
+/* src/ui/components/custom/calendar-grid.css — BUILD §2.2, §4.6
+ *
+ * The calendar grid's stylesheet — the first of the five surfaces §2.2
+ * allows custom CSS for ("the calendar grid, the day panel, the AI
+ * dot-matrix, chart SVGs, and the sidebar — nothing else").
+ *
+ * §4.6, verbatim: "**Grid**: Mon–Sun columns (`repeat(7,minmax(0,1fr))` —
+ * the minmax is load-bearing), one event per day, every day filled while
+ * supply lasts, weekends included. Stage = chip color. Today ringed accent."
+ *
+ * **Why the minmax is load-bearing, kept here so nobody "simplifies" it.**
+ * A bare `repeat(7, 1fr)` gives every column a min-content floor, so one
+ * long unbroken word in one cell widens that column and pushes the grid
+ * past its container — a horizontal document scroll, which is check 1 of
+ * ADR-093 decision 6's sweep. `minmax(0, 1fr)` removes that floor, and the
+ * cell's own `overflow-wrap` is then what keeps the text inside it.
+ *
+ * SPACING AND TYPE STEPS. `design/tokens.md` §1's spacing scale and §2b's
+ * `--w-cell-min` were ruled by the owner on 2026-09-02 but have no home in
+ * this repository yet: `src/ui/theme.css` is `BUILD.md` §2.1 verbatim and
+ * `tests/ui/tokens.test.ts` refuses any token §2.1 does not state. They are
+ * therefore transcribed here, scoped to `.rk-cal` rather than `:root`, in
+ * exactly the shape `src/ui/layout/shell.css` already uses for the same
+ * reason. Their proper home is the design system's own order (issue #12);
+ * moving them there costs this block.
+ *
+ * A media query prelude cannot read a `var()`, so `--breakpoint-md`'s 768px
+ * is written literally below and pinned back against `design/tokens.md`
+ * §2b by `tests/ui/calendar-css.test.ts`.
+ */
+
+.rk-cal {
+  /* design/tokens.md §1, owner ruling 2026-09-02 — transcribed, not chosen. */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+
+  /* design/tokens.md §2b: "`--w-cell-min` `96px` — one cell of a
+   * seven-across grid. It must hold a two-digit mono date …, the widest
+   * registered stage chip ("Your review"), and one line of page label …
+   * This is the token that decides where a seven-column grid becomes a
+   * seven-row list." */
+  --w-cell-min: 96px;
+
+  /* §4.6, verbatim. Declared as a token so the grid and its head cannot
+   * disagree about how many columns there are. */
+  --grid-week: repeat(7, minmax(0, 1fr));
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  min-width: 0;
+}
+
+.rk-cal-head,
+.rk-cal-grid {
+  display: grid;
+  grid-template-columns: var(--grid-week);
+  gap: var(--s-1);
+  min-width: 0;
+}
+
+.rk-cal-weekday {
+  /* §2.3's eyebrow role: "Uppercase 10.5–11px eyebrows for section
+   * labels." `--t-floor` is the bound (ADR-093 decision 3), so 11px. */
+  font-size: var(--t-floor);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+  padding: 0 var(--s-1);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.rk-cal-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-1);
+  min-width: 0;
+  /* No fixed height. A cell whose text does not fit gets more room — it is
+   * never clipped and the type is never shrunk (ADR-093 decision 2: "content
+   * fits its box or the box changes; text is never shrunk to fit"). */
+  padding: var(--s-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-field);
+  background: var(--surface);
+  color: var(--ink);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  /* The other half of the minmax: with the column floor removed, this is
+   * what stops a long token from overflowing its own cell. */
+  overflow-wrap: anywhere;
+}
+
+.rk-cal-cell > * {
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.rk-cal-date {
+  font-size: var(--t-floor);
+  color: var(--ink-2);
+}
+
+.rk-cal-label,
+.rk-cal-empty {
+  font-size: var(--t-floor);
+  line-height: 1.35;
+}
+
+.rk-cal-empty {
+  color: var(--ink-3);
+}
+
+/* §4.6: "Today ringed accent." A ring, not a border — a border would move
+ * the cell's own box and shift the grid by a pixel on whichever day it is. */
+.rk-cal-cell.rk-cal-today {
+  box-shadow: var(--ring-accent);
+  border-color: var(--accent-line);
+}
+
+.rk-cal-cell.rk-cal-selected {
+  background: var(--accent-bg);
+  border-color: var(--accent-line);
+}
+
+/* A cell holding a column position and nothing else. It is not a date the
+ * calendar has anything to say about, and it is emphatically not padding
+ * (§4.6: "the calendar is never padded") — it renders no content at all. */
+.rk-cal-out {
+  border: 1px solid transparent;
+  min-height: var(--s-3);
+}
+
+/* Below --breakpoint-md (768px, design/tokens.md §2b: "A seven-across grid
+ * reaches `--w-cell-min` … Below this the calendar and the week strip are
+ * not grids") the month is seven **rows** in date order: the same entries,
+ * the weekday head suppressed because a one-column list has no columns to
+ * head, and an out-of-month cell not drawn because it exists to hold a
+ * column position and there are none. A CSS rule over an unchanged
+ * contract — no second markup path, no `narrow` prop, and no cell invented. */
+@media (max-width: 767px) {
+  .rk-cal-head {
+    display: none;
+  }
+
+  .rk-cal-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rk-cal-out {
+    display: none;
+  }
+}
