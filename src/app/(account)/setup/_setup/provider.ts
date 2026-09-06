@@ -23,15 +23,45 @@ export const readSetupScreen = cache(async function readSetupScreen(): Promise<S
   });
 });
 
-/** The deep pass's current state. One arm carries which step is running;
- *  the other carries that it ended, degraded or not. Neither carries a
- *  time. */
+/**
+ * The deep pass's current state. One arm carries which step is running;
+ * the other carries that it ended, degraded or not. Neither carries a
+ * time.
+ *
+ * The engine behind this is `passProgressFor(siteId)` (issue #36): it
+ * reads the founder's recorded stage and the release latch, and the read
+ * itself is what latches the ten-minute deadline — there is no scheduled
+ * job in that path. It takes a `siteId`, which is exactly what this
+ * process cannot supply until issue #35's `currentSession()`, so the
+ * fixture stands in for the same one gap `setupStore()` names above:
+ *
+ *     return passProgressFor((await setupStore().readProgress(currentUserId())).siteId);
+ */
 export const readPassProgress = cache(async function readPassProgress(): Promise<PassProgress> {
   return FIXTURE_PASS;
 });
 
-/** The writes completing setup makes. Returns the honest stub until #42's
- *  rows exist; the route handler holds no knowledge of which it got. */
+/**
+ * The writes completing setup makes. The route handler holds no knowledge
+ * of which implementation it got.
+ *
+ * `liveSetupStore()` (issue #36) is the one that writes rows: the three
+ * answers, `applySetupChoice()`'s mode-and-destination transaction, the
+ * `setup_completed_at` stamp and the `scan/run` event at tier `deep`. It
+ * is not what this returns yet, because it reads and writes **one
+ * account's** rows and no session carries an account until issue #35's
+ * `currentSession()` — `POST /api/setup`'s own `currentUserId()` says the
+ * same thing at the other end of the same gap. Handing it the fixture id
+ * would have it read rows for an account that does not exist and throw on
+ * the first submit.
+ *
+ * The switch is this line:
+ *
+ *     return liveSetupStore();
+ *
+ * and, in `src/app/api/setup/route.ts`, `currentUserId()` becoming the
+ * session's. Nothing in `submit.ts` changes either way.
+ */
 export function setupStore(): SetupStore {
   return fixtureSetupStore();
 }

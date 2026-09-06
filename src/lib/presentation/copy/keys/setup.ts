@@ -132,4 +132,27 @@ export const SETUP_COPY = Object.freeze({
   /** A degraded pass still releases setup (§4.3); the founder is told so
    *  on the screen they arrive at, not only at the moment of release. */
   "setup.waiting.degraded": [TODO, { slots: {}, fixedBy: "REQ-029 c3" }],
+
+  // ── The release notice (issue #36) ──────────────────────────────────
+  //
+  // The one written sentence that travels with a founder into the app
+  // when their pass did not finish clean. Projected from the current
+  // report every time it is asked for — `src/lib/scan/deep/notice.ts` —
+  // so it stops being shown the moment a later pass makes it untrue,
+  // with no flag stored and none to clear.
+  //
+  // Neither declares a slot. The unmeasured parts are carried beside the
+  // key as internal handles rather than substituted into the sentence:
+  // turning a list of handles into a phrase is composition, and composing
+  // is the owner's, not the engine's. When the sentence should name them,
+  // the slot and its per-part keys are added here.
+
+  /** REQ-029 c3: the pass measured some of it. One sentence saying what
+   *  could not be measured. */
+  "setup.release.unmeasured": [TODO, { slots: {}, fixedBy: "REQ-029 c3" }],
+  /** REQ-029 c5: the pass failed outright, or had not ended when the
+   *  founder was released anyway. One sentence saying the measurement did
+   *  not complete — never that it found nothing, which is a different
+   *  fact with its own line (§7). */
+  "setup.release.incomplete": [TODO, { slots: {}, fixedBy: "REQ-029 c5" }],
 }) satisfies CopyPartition;

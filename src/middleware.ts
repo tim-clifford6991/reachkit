@@ -40,6 +40,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { isDomainRemoved } from "@/lib/scan/removal";
 import { isFixtureDomain } from "@/app/(public)/scan/[domain]/_fixture/states";
+import { readSetupGateState, setupRedirectFor } from "@/app/(account)/setup/gate";
 
 /** One entry per BP-001 `## Public interface` "Routes (public)" row
  *  (`## Steps` step 1). A leading `:` marks a single dynamic path segment —
@@ -238,7 +239,23 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
   const removed = await removedRewrite(req);
   if (removed !== null) return removed;
 
-  if (isPublic(pathname) || hasSession(req)) {
+  if (isPublic(pathname)) return NextResponse.next();
+
+  if (hasSession(req)) {
+    // BUILD §4.3's incomplete-setup gate. The allow-list and the three
+    // arms are `src/app/(account)/setup/gate.ts`'s — this file contributes
+    // the enforcement point and no setup knowledge of its own, which is
+    // why there is no per-route branch here to keep in step with one
+    // there. `readSetupGateState` answers `null` until issue #35 can say
+    // which account a session cookie belongs to, and `setupRedirectFor`
+    // lets an unknown account through rather than guessing at one.
+    const destination = setupRedirectFor({
+      setup: await readSetupGateState(req),
+      path: pathname,
+    });
+    if (destination !== null && destination !== pathname) {
+      return NextResponse.redirect(new URL(destination, req.url));
+    }
     return NextResponse.next();
   }
 

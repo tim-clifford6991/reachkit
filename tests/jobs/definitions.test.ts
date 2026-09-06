@@ -46,6 +46,8 @@ function engineDouble(): Record<string, unknown> {
     stopHosting: record("stopHosting", done),
     accountsDueForPurge: record("accountsDueForPurge", []),
     purgeAccount: record("purgeAccount", done),
+    sitesDueSetupReminder: record("sitesDueSetupReminder", []),
+    remindSetup: record("remindSetup", done),
   };
 }
 
@@ -242,14 +244,16 @@ describe("lead/nurture — per-touch dedupe inside a sequence", () => {
   });
 });
 
-describe("account/maintenance — five due-work queries, five hand-offs, no domain logic", () => {
+describe("account/maintenance — six due-work queries, six hand-offs, no domain logic", () => {
   it("ticks every MAINTENANCE_TICK_MINUTES", async () => {
     const job = await definition("account/maintenance");
     expect(job.trigger).toEqual({ kind: "cron", cron: `*/${MAINTENANCE_TICK_MINUTES} * * * *` });
     expect(MAINTENANCE_TICK_MINUTES).toBe(15);
   });
 
-  it("a tick whose five queries return nothing is five reads and no hand-off", async () => {
+  it("a tick whose six queries return nothing is six reads and no hand-off", async () => {
+    // The sixth is §4.3's setup reminders (issue #36): a founder who paid
+    // and has not answered the three questions.
     const job = await definition("account/maintenance");
     const outcome = await job.run({ data: {}, now: MONDAY_0600_UTC });
     expect(calls.map((c) => c.fn)).toEqual([
@@ -258,6 +262,7 @@ describe("account/maintenance — five due-work queries, five hand-offs, no doma
       "sitesDueHostingEndNotice",
       "sitesDueHostingStop",
       "accountsDueForPurge",
+      "sitesDueSetupReminder",
     ]);
     expect(outcome).toEqual({ outcome: "skipped", subjectId: null, reason: "no-subject" });
   });
@@ -339,25 +344,43 @@ describe("nothing fakes work — an unbuilt engine fails loudly", () => {
     );
   });
 
-  it("account/maintenance still throws once its two built obligations are past", async () => {
+  it("account/maintenance skips an unbuilt obligation rather than dying on it (issue #36), and each still fails loudly at the seam", async () => {
     stubEnv(false);
-    // The payment half is built (issue #33). Standing the two due-work
-    // queries in — with nothing due, which is the ordinary case — lets the
-    // tick reach the third obligation, whose engine is not built, which is
-    // what this suite is about. Doubling the whole engine instead would
-    // assert nothing.
+    // Two of the six obligations are built and read rows: the payment half
+    // (issue #33) and §4.3's setup reminders (issue #36). Both are stood in
+    // with nothing due — the ordinary case — so this suite reaches no
+    // database. Doubling the whole engine instead would assert nothing.
     vi.doMock("@/lib/account/provisioning/due-work", () => ({
       paymentsAwaitingSignIn: async () => [],
       paymentsWithoutAccounts: async () => [],
     }));
+    vi.doMock("@/lib/mail/setup/reminders", () => ({
+      sitesDueSetupReminder: async () => [],
+      sendSetupReminder: async () => ({ sent: false, reason: "not-due" }),
+    }));
     const { jobs } = await import("@/jobs");
     const { runJob } = await import("@/jobs/run");
-    const { EngineNotBuilt } = await import("@/jobs/engine");
+    const engine = await import("@/jobs/engine");
+
+    // The three whose engines have not shipped still fail loudly — the
+    // failure moved from the tick to the obligation, not away.
+    for (const unbuilt of [
+      engine.sitesDueHostingEndNotice,
+      engine.sitesDueHostingStop,
+      engine.accountsDueForPurge,
+    ]) {
+      await expect(unbuilt()).rejects.toBeInstanceOf(engine.EngineNotBuilt);
+    }
+
+    // ...and the tick carries on past them, so every built obligation
+    // behind them in the list still runs. Before issue #36 the first of the
+    // three ended the run, and a purge was held because an unrelated node
+    // had not landed.
     const job = jobs.find((j) => j.id === "account/maintenance");
     if (job === undefined) throw new Error("no definition for account/maintenance");
-    await expect(runJob(job, { data: {}, now: MONDAY_0600_UTC })).rejects.toBeInstanceOf(
-      EngineNotBuilt
-    );
+    await expect(runJob(job, { data: {}, now: MONDAY_0600_UTC })).resolves.toBeDefined();
+
+    vi.doUnmock("@/lib/mail/setup/reminders");
     vi.doUnmock("@/lib/account/provisioning/due-work");
   });
 

@@ -15,10 +15,14 @@
 // screen's client half carries no database client. The ordered list of
 // stages the screen renders is passed down from the server as data.
 import type { StageName } from "@/lib/scan/stages";
+import type { DeepPassProgress } from "@/lib/scan/deep/progress";
 
-export type PassProgress =
-  | { running: true; stage: StageName }
-  | { running: false; degraded: boolean };
+/** The engine's own shape, not a second copy of it (issue #36):
+ *  `src/lib/scan/deep/progress.ts` builds this frame from the founder's
+ *  row and the release latch, and this alias is what the two surfaces and
+ *  the adapter call it. A type-only import, so the module behind it — and
+ *  its database client — never reaches the client bundle. */
+export type PassProgress = DeepPassProgress;
 
 /** One copy key per stage — which step is under way, in written words
  *  rather than a bare spinner (REQ-029 c1). */
