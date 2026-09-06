@@ -3,7 +3,15 @@
 // WO-166 `## Test plan`: the projection from the transition table, no
 // action offered that the stage would refuse, and an empty day offering
 // nothing that publishes or approves.
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+// The seam under test is the app-side adapter, not the engine: it must call
+// BUILD §9's one mover with the right edge and turn its refusal into a
+// rejection. `transition()` itself is exercised in `tests/publish/machine/`
+// against a database double; mocking it here keeps this file's subject the
+// seam's own contract.
+const transition = vi.fn();
+vi.mock("@/lib/publish/machine", () => ({ transition: (...a: unknown[]) => transition(...a) }));
 import { measured } from "@/lib/measure/measured";
 import {
   STATES_WITH_STOP_EDGE,
@@ -13,7 +21,11 @@ import {
   draftHref,
 } from "@/app/(account)/app/calendar/actions";
 import { PUBLISH_STATES, STAGE_OF, type PublishState } from "@/app/(account)/app/calendar/stages";
-import { publishing, PublishingNotBuiltError } from "@/app/(account)/app/calendar/publishing";
+import {
+  publishing,
+  PublishingNotBuiltError,
+  PublishingRefusedError,
+} from "@/app/(account)/app/calendar/publishing";
 import type { DayCell } from "@/app/(account)/app/calendar/month";
 import { COPY } from "@/lib/presentation/copy";
 
@@ -163,20 +175,58 @@ describe("REQ-043 c11 — an empty day offers nothing that publishes or approves
   });
 });
 
-describe("the publishing seam is declared and stubbed honestly", () => {
-  it("every command rejects, naming what was asked", async () => {
-    await expect(publishing.move({ draftId: "d1", to: "2026-09-20" })).rejects.toBeInstanceOf(
-      PublishingNotBuiltError
-    );
-    await expect(publishing.skip({ draftId: "d1" })).rejects.toBeInstanceOf(PublishingNotBuiltError);
-    await expect(publishing.veto({ draftId: "d1" })).rejects.toBeInstanceOf(PublishingNotBuiltError);
+describe("the publishing seam calls BUILD §9's one mover, and refuses honestly", () => {
+  beforeEach(() => {
+    transition.mockReset();
   });
 
-  it("it never resolves — a stub that succeeded would be a control that appears to work", async () => {
+  it.each([
+    ["skip", "skipped"],
+    ["veto", "skipped"],
+    ["approve", "approved"],
+  ] as const)("%s asks the machine for the %s edge, as the customer", async (command, to) => {
+    transition.mockResolvedValue({ ok: true, state: to });
+    await publishing[command]({ draftId: "d1" });
+    expect(transition).toHaveBeenCalledWith("d1", to, { kind: "customer", userId: "user-fixture" });
+  });
+
+  it("a refusal rejects, carrying the machine's own word for why", async () => {
+    transition.mockResolvedValue({
+      ok: false,
+      refused: "guard",
+      failedGuard: "publishing_switch_on",
+      state: "approved",
+    });
+    await expect(publishing.veto({ draftId: "d1" })).rejects.toBeInstanceOf(PublishingRefusedError);
+    await expect(publishing.veto({ draftId: "d1" })).rejects.toMatchObject({
+      command: "veto",
+      refused: "publishing_switch_on",
+    });
+  });
+
+  it("a move outside the fifteen rejects too, and is not reported as a guard", async () => {
+    transition.mockResolvedValue({ ok: false, refused: "not_a_transition", state: "published" });
+    await expect(publishing.skip({ draftId: "d1" })).rejects.toMatchObject({
+      refused: "not_a_transition",
+    });
+  });
+
+  it("a command that changed nothing never resolves as though it had", async () => {
+    transition.mockResolvedValue({ ok: false, refused: "not_a_transition", state: "published" });
     const outcome = await publishing.skip({ draftId: "d1" }).then(
       () => "resolved",
       () => "rejected"
     );
     expect(outcome).toBe("rejected");
+  });
+
+  it("move alone is not a §9 transition, and says so without asking the machine", async () => {
+    // Moving a page to another date rewrites the schedule and the veto
+    // deadline that hangs off it — issue #46's re-deadline rule, not one of
+    // the fifteen edges.
+    await expect(publishing.move({ draftId: "d1", to: "2026-09-20" })).rejects.toBeInstanceOf(
+      PublishingNotBuiltError
+    );
+    expect(transition).not.toHaveBeenCalled();
   });
 });
