@@ -151,6 +151,20 @@ export function checkNoClippingOrTruncation(opts: {
   const offenders: Offender[] = [];
   const all = Array.from(document.querySelectorAll("*"));
   for (const el of all) {
+    // ADR-093 decision 3's SVG viewBox exemption — the same one check 4
+    // already applies, applied where the same reason holds. `scrollWidth`
+    // and `clientWidth` are defined for CSS boxes; on an element inside an
+    // `<svg>` Chromium answers from the SVG root rather than from the
+    // glyphs, so a `<text>` drawn wholly inside its viewBox reports
+    // `scrollHeight 41 > clientHeight 13` and a chart that clips nothing is
+    // reported as clipping everything (issue #15 — the first route to carry
+    // a chart). What this check is for inside a viewBox is check 2's: a
+    // label drawn outside the viewBox escapes the `<svg>`'s box and is
+    // reported there, which `canary.test.ts` asserts directly. The
+    // exemption is the drawing's, never the page's — an `<svg>` that
+    // overflows its own container is still an offender, because the `<svg>`
+    // element itself is not inside one.
+    if (el.closest("svg")) continue;
     if (!isTextBearing(el)) continue;
     const clipped = el.scrollWidth > el.clientWidth || el.scrollHeight > el.clientHeight;
     if (!clipped) continue;

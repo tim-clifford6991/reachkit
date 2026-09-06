@@ -119,6 +119,37 @@ describe("ADR-093 decision 6 point 5 — the canary overflows on purpose and mus
     expect(offenders.some((o) => o.element.includes("clipped-value"))).toBe(true);
   });
 
+  it("check 2 — a chart label drawn outside its own viewBox is still an offender", async () => {
+    // The guarantee that check 3's SVG exemption (ADR-093 decision 3) does
+    // not drop. A chart label the `<svg>` clips is a half-printed value to
+    // the reader, and it fails here — measured as what it is, an element
+    // escaping its container's box, rather than through `scrollWidth`
+    // metrics that are not defined inside a viewBox.
+    const offenders = await withPage(FLOOR_WIDTH, async (page) => {
+      await page.goto(FIXTURE_URL);
+      return page.evaluate(checkContainment, { scrollContainerAllowlist: [] });
+    });
+    expect(offenders.some((o) => o.element.includes("svg-escapee"))).toBe(true);
+  });
+
+  it("check 3 — text inside an SVG is exempt; the clipped HTML name still is not", async () => {
+    // ADR-093 decision 3's viewBox exemption, applied to check 3 for the
+    // same reason check 4 already applies it: `scrollWidth`/`clientWidth`
+    // describe CSS boxes, and inside a viewBox they describe nothing. The
+    // exemption is narrow — it reaches only what is inside an `<svg>`, and
+    // every clipped box on the page still fails.
+    const offenders = await withPage(FLOOR_WIDTH, async (page) => {
+      await page.goto(FIXTURE_URL);
+      return page.evaluate(checkNoClippingOrTruncation, {
+        truncationAllowlist: [],
+        monoFontFamily: MONO_FONT_FAMILY,
+      });
+    });
+    expect(offenders.some((o) => o.element.includes("svg-escapee"))).toBe(false);
+    expect(offenders.some((o) => o.element.includes("clipped-name"))).toBe(true);
+    expect(offenders.some((o) => o.element.includes("clipped-value"))).toBe(true);
+  });
+
   it("check 4 (the type floor) fails on text rendered under --t-floor", async () => {
     const offenders = await withPage(FLOOR_WIDTH, async (page) => {
       await page.goto(FIXTURE_URL);

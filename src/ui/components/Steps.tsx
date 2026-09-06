@@ -17,9 +17,20 @@ export interface StepItem {
   state: "pending" | "active" | "done";
 }
 
-export function Steps(p: { steps: StepItem[] }): React.JSX.Element {
+export function Steps(p: {
+  steps: StepItem[];
+  /** Optional, added by issue #14 (constitution rule 1.1: an internal,
+   *  additive, backward-compatible parameter — every existing caller
+   *  keeps omitting it and renders exactly as before). It selects
+   *  daisyUI's own `steps-vertical` modifier and mints nothing: six named
+   *  stages laid out in a row do not fit the 320px floor ADR-093 decision
+   *  2 commits the product to, and a horizontal `steps` there pushes the
+   *  document sideways rather than shrinking. Flagged once (rule 4.2):
+   *  `components.md` §1 registers `steps` without naming this modifier. */
+  direction?: "horizontal" | "vertical";
+}): React.JSX.Element {
   return (
-    <ul className="steps">
+    <ul className={p.direction === "vertical" ? "steps steps-vertical" : "steps"}>
       {p.steps.map((step) => (
         <li
           key={step.id}
