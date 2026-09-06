@@ -25,7 +25,7 @@ import {
   startOfNextLocalDay,
   startOfNextLocalWeek,
 } from "@/lib/publish/ceilings/local-week";
-import { weekStartOf } from "@/jobs/site-clock";
+import { weekStartFor } from "@/lib/scan/weekly/week";
 
 const ZONE = "America/New_York";
 
@@ -97,7 +97,7 @@ describe("the week starts on the customer's Monday", () => {
     expect(startOfLocalWeek(sundayEvening, ZONE).toISOString()).toBe("2026-09-07T04:00:00.000Z");
   });
 
-  it("agrees with the job runner's own site-local week on a fixed date — two helpers, one answer", () => {
+  it("agrees with the weekly measurement's own site-local week — two helpers, one answer", () => {
     for (const iso of [
       "2026-09-14T00:30:00.000Z",
       "2026-09-14T14:00:00.000Z",
@@ -106,7 +106,7 @@ describe("the week starts on the customer's Monday", () => {
     ]) {
       const instant = new Date(iso);
       const mine = startOfLocalWeek(instant, ZONE);
-      const theirs = weekStartOf(instant, ZONE);
+      const theirs = weekStartFor({ at: instant, zone: ZONE });
       const asDate = new Intl.DateTimeFormat("en-CA", {
         timeZone: ZONE,
         year: "numeric",

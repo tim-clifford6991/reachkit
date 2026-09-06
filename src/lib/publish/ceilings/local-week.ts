@@ -6,13 +6,19 @@
 // zone through `Intl.DateTimeFormat` — the platform's own IANA database,
 // so no dependency and no offset table can go stale.
 //
-// This is a calendar boundary, not a publish time: `src/jobs/site-clock.ts`
-// resolves the site-local *hour* a job is due, which is a different
-// question, and the dependency direction is one-way (`src/jobs/` →
-// `src/lib/`), so this module cannot call it. Both read the same
-// `sites.timezone` through the same platform API, and a test asserts the
-// two agree on a fixed date — the drift a second zone helper could
-// otherwise hide.
+// **Why this exists beside `src/lib/scan/weekly/week.ts`.** That module owns
+// the site-local *week key* — `weekStartFor`, the calendar date that is
+// `scans.week_start` — and the *due hour* a job runs at. Both are different
+// questions from this one, and neither answers it: the ceilings need the
+// **instants** a local day and a local week begin at, to count publications
+// between them, and `week.ts` exports no instant (`instantOfLocal` is
+// private to it). So the boundary arithmetic is here and the reading of the
+// clock is not duplicated in spirit: both modules read the same
+// `sites.timezone` through the same platform API and derive the week start
+// from the same `WEEK_START` pin, and a test asserts the two agree on fixed
+// dates across two DST transitions — the drift a second zone helper could
+// otherwise hide. If `week.ts` ever exports the instant, this file's two
+// boundary functions become one-liners over it.
 import { WEEK_START } from "@/lib/config/constants";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
