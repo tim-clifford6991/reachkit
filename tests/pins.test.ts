@@ -623,6 +623,37 @@ describe("§7 opportunities — winnability, rival size, effort and fit", () => 
   it('REQ-063 c2, quoted: "Given a page published less than three weeks ago, when its verdict is produced, then it is marked as working if it already passes its recorded test, and otherwise as too early to judge" — TOO_EARLY_WEEKS', () => {
     expect(pins.TOO_EARLY_WEEKS).toBe(3);
   });
+
+  it('§7, quoted: "Ranking: `demand × intent × (1−effort) × fit`, one list." — DEMAND_LOG_DIVISOR is the demand term\'s scale, chosen (§7 fixes the formula\'s shape and no term\'s scale) so that log10(volume + 1) saturates at 1.0 at 100,000/mo, above any volume a market set carries', () => {
+    expect(pins.DEMAND_LOG_DIVISOR).toBe(5);
+    expect(Math.min(1, Math.log10(10 ** pins.DEMAND_LOG_DIVISOR) / pins.DEMAND_LOG_DIVISOR)).toBe(1);
+    // Saturates rather than clips: the term is 1 at the point it reaches
+    // it and never exceeds 1 above it.
+    expect(Math.log10(10 ** (pins.DEMAND_LOG_DIVISOR - 1)) / pins.DEMAND_LOG_DIVISOR).toBeLessThan(1);
+  });
+
+  it('§7, quoted: "`keyword_page` | Rival top-20 for a query ≥10/mo; customer absent" — WRITE_VOLUME_FLOOR_PER_MONTH, and it is not §6.7\'s selection floor', () => {
+    expect(pins.WRITE_VOLUME_FLOOR_PER_MONTH).toBe(10);
+    // Two floors, stated independently by the spec: §6.7\'s admits a
+    // search into the twelve, §7\'s makes it worth a page. Neither is
+    // derived from the other, and asserting they differ is what keeps a
+    // later tidy-up from collapsing them.
+    expect(pins.WRITE_VOLUME_FLOOR_PER_MONTH).not.toBe(pins.SELECTION.volumeFloorPerMonth);
+  });
+
+  it('§7, quoted: "`expand_page` | Customer ranks 4–30, page thin" — IMPROVE_POSITION_BAND is that band, inclusive at both ends', () => {
+    expect(pins.IMPROVE_POSITION_BAND).toEqual({ min: 4, max: 30 });
+  });
+
+  it('§7, quoted: "`expand_page` | Customer ranks 4–30, page thin" — THIN_PAGE_VISIBLE_CHARS is what "thin" means in the unit the parser measures (`OnPageFacts.visibleChars`); chosen, since §7 states the trigger and no number', () => {
+    expect(pins.THIN_PAGE_VISIBLE_CHARS).toBe(1800);
+    // Roughly 300 words at ~6 characters a word including spaces. Stated
+    // as a bound rather than a bare literal so a retune that crossed into
+    // absurdity — a floor no real page could sit under, or one every page
+    // sits under — fails here.
+    expect(pins.THIN_PAGE_VISIBLE_CHARS).toBeGreaterThan(500);
+    expect(pins.THIN_PAGE_VISIBLE_CHARS).toBeLessThan(10_000);
+  });
 });
 
 // ────────────────────────────────────────────────────────────── §8 generation
