@@ -26,6 +26,7 @@
 // strength of ReachKit's own 502. `landmine.test.ts` is the assertion that
 // goes red the day it is proposed.
 import type { Measured } from "@/lib/measure/measured";
+import type { VerifyChecks } from "@/lib/publish/types";
 import type { Barrier } from "../types";
 
 /** The three §9 names. */
@@ -80,15 +81,13 @@ export const NOT_JUDGEABLE_CAUSES: readonly NotJudgeableCause[] = Object.freeze(
 /**
  * The four checks the one look at 24 hours makes.
  *
- * Declared here because nothing declares it yet: BP-049's
- * `src/lib/publish/verify/verify.ts` (issue #50) is the home the plans give
- * it, and issue #45 owns `src/lib/publish/types.ts`. When either lands this
- * declaration is replaced by an import from it and no other line in this
- * directory changes — the ids are `publications.verify`'s own, transcribed
- * from BUILD §10 ("verify jsonb(reachable/indexable/sitemap/ai_readable)")
- * and not chosen here.
+ * **Derived, not re-declared**: it is the key set of `VerifyChecks`, which
+ * issue #45's `src/lib/publish/types.ts` owns. A fifth check added there
+ * appears here on the next build; a hand-written union of four strings
+ * would not, and a note naming a check nobody runs is exactly the kind of
+ * quiet drift a second copy produces.
  */
-export type CheckId = "reachable" | "indexable" | "sitemap" | "aiReadable";
+export type CheckId = keyof VerifyChecks;
 
 /**
  * REQ-063 c1's two verification outcomes that sit **beside** a verdict

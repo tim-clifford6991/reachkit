@@ -22,4 +22,4 @@ export { NOT_JUDGEABLE_CAUSES } from "./types";
 export { judgeWeek, type PageStanding } from "./judge";
 export { readWeek, weeklyDigest, type DigestPage } from "./read";
 
-export { setVerdictStore, type PublishedPage, type StoredVerification, type VerdictStore } from "./store";
+export { readVerification, setVerdictStore, type PublishedPage, type VerdictStore } from "./store";

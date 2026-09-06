@@ -17,15 +17,15 @@ import "../env";
 import { assembleReport } from "../../../src/lib/scan/store";
 import type { ReportSections } from "../../../src/lib/scan/store";
 import type { StoredReport } from "../../../src/lib/scan/report";
-import { measured, type Measured } from "../../../src/lib/measure/measured";
+import { measured, measuredZero, type Measured } from "../../../src/lib/measure/measured";
 import type { Acceptance } from "../../../src/lib/opportunities/types";
 import type {
   PublishedPage,
-  StoredVerification,
   VerdictInsert,
   VerdictRecord,
   VerdictStore,
 } from "../../../src/lib/opportunities/verdicts/store";
+import type { VerifyChecks, VerifyOutcome } from "../../../src/lib/publish/types";
 import { setVerdictStore } from "../../../src/lib/opportunities/verdicts/store";
 import { AT, DOMAIN, SITE_ID, question, reportOf, serp } from "../fixtures";
 
@@ -47,13 +47,24 @@ export function pageOf(over: Partial<PublishedPage> = {}): PublishedPage {
   };
 }
 
+/** The stored outcome of the one check at 24 hours, as #45's own shape.
+ *  `failed` names the checks that came back false; every other check is a
+ *  measured pass, so a fixture cannot accidentally assert a note composed
+ *  from a check that said nothing. */
 export function verification(
-  outcome: StoredVerification["outcome"],
-  failed: readonly ("reachable" | "indexable" | "sitemap" | "aiReadable")[] = []
-): StoredVerification {
-  if (outcome === "found") return { outcome: "found", failed, checkedAt: AT };
-  if (outcome === "page_not_found") return { outcome: "page_not_found", checkedAt: AT };
-  return { outcome: "could_not_confirm", checkedAt: AT };
+  outcome: VerifyOutcome["outcome"],
+  failed: readonly (keyof VerifyChecks)[] = []
+): VerifyOutcome {
+  if (outcome === "page_not_found") return { outcome: "page_not_found", status: 404, checkedAt: AT };
+  if (outcome === "could_not_confirm") {
+    return { outcome: "could_not_confirm", why: "unreachable", checkedAt: AT };
+  }
+  const ids: (keyof VerifyChecks)[] = ["reachable", "indexable", "sitemap", "aiReadable"];
+  const checks = {} as VerifyChecks;
+  for (const id of ids) {
+    checks[id] = failed.includes(id) ? measuredZero(false, AT) : measured(true, AT);
+  }
+  return { outcome: "found", checks, checkedAt: AT };
 }
 
 /** A row as `page_verdicts` would have stored it. */

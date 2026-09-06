@@ -29,6 +29,17 @@
 // `reachable`, and not routed to `not_judgeable` — it leaves the page
 // fully judged with a note beside its verdict (ADR-085).
 //
+// **Why this does not call `accountForWeek`.** #41's account
+// (`src/lib/scan/weekly/account.ts`) states a week's status in the terms a
+// *surface* needs — complete, partly measured and what it missed, not
+// measured, not owed — and this node needs the measurement itself, which
+// the account does not carry. Both read the same row, and `no_week` is the
+// same fact the account's `not_measured` and `not_owed` arms are read
+// from: there is no readable weekly report stamped with that week. So
+// this is one read of that row rather than a second account of it, and
+// nothing here re-derives what §4.4, §4.5, §4.6 and the Monday mail read
+// from the account.
+//
 // `no_week` is a property of the **week**, not of the page: it is returned
 // once per page only so the returned type is uniform, and a surface or a
 // mail states it once for the week and never once per page (ADR-071

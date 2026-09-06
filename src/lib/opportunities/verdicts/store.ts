@@ -21,30 +21,18 @@
 // hours, whose *record* is read below (`publications.verify`) and never
 // re-taken. `no-look.test.ts` asserts it at source level.
 import { dbAdmin } from "@/lib/db";
+import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
+// The shapes the one check at 24 hours records, declared by the publishing
+// module that owns them (#45's `src/lib/publish/types.ts`) and read here,
+// never re-declared: `page_not_found` and `could_not_confirm` carry
+// different payloads there precisely so they cannot be given one shape,
+// and a projection of my own would have thrown that separation away. The
+// direction `src/lib/opportunities -> src/lib/publish` closes no cycle —
+// nothing under `src/lib/publish/` imports this module.
+import type { NotConfirmed, VerifyChecks, VerifyOutcome } from "@/lib/publish/types";
 import { readStoredReport, type StoredReport } from "@/lib/scan/report";
 import type { Acceptance } from "../types";
 import type { CheckId, Movement, NotJudgeableCause, Verdict, VerifyNote, WeekStart } from "./types";
-import type { Measured } from "@/lib/measure/measured";
-
-/**
- * What the 24-hour check recorded, as this node reads it.
- *
- * A projection of BP-049's stored `VerifyOutcome` onto the three things
- * REQ-063 needs from it, not a second declaration of that type: the arms
- * carry no status code and no transport reason, because nothing here may
- * act on either. Issue #50 writes the record and issue #45 owns the shape;
- * when they land, `readVerification` below parses their blob into this and
- * no other line in this directory changes.
- *
- * **The two arms that come from the same fetch go opposite ways.**
- * `could_not_confirm` leaves the page fully judged with a note beside its
- * verdict; `page_not_found` retires it from judgement forever. Merging
- * them, or retrying the first, is what ADR-085 exists to forbid.
- */
-export type StoredVerification =
-  | { readonly outcome: "found"; readonly failed: readonly CheckId[]; readonly checkedAt: Date }
-  | { readonly outcome: "page_not_found"; readonly checkedAt: Date }
-  | { readonly outcome: "could_not_confirm"; readonly checkedAt: Date };
 
 /**
  * One published page, as the judgement needs it.
@@ -70,8 +58,9 @@ export interface PublishedPage {
   readonly domain: string;
   /** What the one check at 24 hours recorded, or `null` where it has not
    *  run — which is neither a failure nor a confirmation and qualifies
-   *  nothing. */
-  readonly verification: StoredVerification | null;
+   *  nothing. There is no "pending" arm to read: a check that has not run
+   *  is a `VerifyDisposition`, which is #50's and not this node's. */
+  readonly verification: VerifyOutcome | null;
   /** The address the page is served at. It is what makes the page a
    *  member of the judged population — ADR-084 made `servesPublicly` true
    *  at both destinations, and it is the field that governs whether
@@ -160,34 +149,6 @@ const SNAKE: Readonly<Record<CheckId, string>> = Object.freeze({
 });
 
 /**
- * `publications.verify`, read as the three outcomes REQ-062 records.
- *
- * Total and unguessing: a blob this function cannot read is `null` — the
- * check has said nothing — and never `page_not_found`, which is terminal.
- * A row that does not say a page was missing must never be read as saying
- * it was.
- */
-export function readVerification(blob: unknown): StoredVerification | null {
-  if (blob === null || typeof blob !== "object") return null;
-  const row = blob as Record<string, unknown>;
-  const checkedAtRaw = row["checkedAt"] ?? row["checked_at"];
-  if (typeof checkedAtRaw !== "string") return null;
-  const checkedAt = new Date(checkedAtRaw);
-  if (Number.isNaN(checkedAt.getTime())) return null;
-
-  const outcome = row["outcome"];
-  if (outcome === "page_not_found") return { outcome: "page_not_found", checkedAt };
-  if (outcome === "could_not_confirm") return { outcome: "could_not_confirm", checkedAt };
-
-  // The `found` arm, and BUILD §10's four flags it is written as. A flag
-  // that is not a boolean is not a failure: it is a check that said
-  // nothing, and REQ-062 c3's "the failure is stated plainly" is only
-  // stated where one was actually recorded.
-  const failed = CHECK_IDS.filter((id) => row[id] === false || row[SNAKE[id]] === false);
-  return { outcome: "found", failed, checkedAt };
-}
-
-/**
  * REQ-063 c1's note, composed by **destructuring the stored outcome** —
  * never by testing a boolean or a date, which could not tell "the page
  * failed a check" from "the check did not settle at all".
@@ -198,19 +159,84 @@ export function readVerification(blob: unknown): StoredVerification | null {
  * same fetch, render as the same grey line, and go opposite ways (ADR-085
  * decision 4). One home for the composition, so the judge and the digest
  * cannot come to differ about it.
+ *
+ * A check whose flag is `unmeasured` has not failed: it said nothing, and
+ * naming it would state a failure that was never recorded.
  */
-export function noteFor(verification: StoredVerification | null): VerifyNote | null {
+export function noteFor(verification: VerifyOutcome | null): VerifyNote | null {
   if (verification === null) return null;
   switch (verification.outcome) {
-    case "found":
-      return verification.failed.length === 0
+    case "found": {
+      const failed = CHECK_IDS.filter((id) => {
+        const flag = verification.checks[id];
+        return flag.kind !== "unmeasured" && flag.value === false;
+      });
+      return failed.length === 0
         ? null
-        : { note: "checks_failed", failed: verification.failed, checkedAt: verification.checkedAt };
+        : { note: "checks_failed", failed, checkedAt: verification.checkedAt };
+    }
     case "could_not_confirm":
       return { note: "could_not_confirm", checkedAt: verification.checkedAt };
     case "page_not_found":
       return null;
   }
+}
+
+const NOT_CONFIRMED: readonly NotConfirmed[] = Object.freeze([
+  "unreachable",
+  "server_error",
+  "redirected_away",
+  "not_our_page",
+]);
+
+/**
+ * `publications.verify`, read as the three outcomes REQ-062 records.
+ *
+ * Total and unguessing: a blob this function cannot read is `null` — the
+ * check has said nothing — and never `page_not_found`, which is terminal.
+ * A row that does not say a page was missing must never be read as saying
+ * it was.
+ *
+ * The column's writer is #50. Until it lands this is the only thing that
+ * has ever parsed it, so it reads both spellings of the fourth flag rather
+ * than choosing one on the writer's behalf.
+ */
+export function readVerification(blob: unknown): VerifyOutcome | null {
+  if (blob === null || typeof blob !== "object") return null;
+  const row = blob as Record<string, unknown>;
+  const checkedAtRaw = row["checkedAt"] ?? row["checked_at"];
+  if (typeof checkedAtRaw !== "string") return null;
+  const checkedAt = new Date(checkedAtRaw);
+  if (Number.isNaN(checkedAt.getTime())) return null;
+
+  const outcome = row["outcome"];
+  if (outcome === "page_not_found") {
+    return { outcome: "page_not_found", status: row["status"] === 410 ? 410 : 404, checkedAt };
+  }
+  if (outcome === "could_not_confirm") {
+    const why = row["why"];
+    return {
+      outcome: "could_not_confirm",
+      // An unreadable reason is the weakest true one, never a guess at a
+      // stronger claim: nothing downstream acts on it.
+      why: NOT_CONFIRMED.includes(why as NotConfirmed) ? (why as NotConfirmed) : "unreachable",
+      checkedAt,
+    };
+  }
+
+  // The `found` arm. Each flag is a `Measured<boolean>`: a flag that is not
+  // a boolean on disk is a check that said nothing, not one that failed.
+  const checks = {} as VerifyChecks;
+  for (const id of CHECK_IDS) {
+    const raw = row[id] ?? row[SNAKE[id]];
+    checks[id] =
+      typeof raw !== "boolean"
+        ? unmeasured<boolean>("undeterminable", checkedAt)
+        : raw
+          ? measured(true, checkedAt)
+          : measuredZero(false, checkedAt);
+  }
+  return { outcome: "found", checks, checkedAt };
 }
 
 // ── The default, Postgres-backed store ──────────────────────────────────
