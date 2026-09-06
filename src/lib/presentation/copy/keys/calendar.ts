@@ -47,25 +47,28 @@
 // builder ("the empty state says so") and never says it to the customer.
 // Listed in issue #16's PR under "Owner owes".
 //
-// 2026-09-06, issue #20 (REQ-091 c2): `place.calendar.date.page`,
-// `cause.unrecognised` and `cause.supply-exhausted` moved from `""` to
-// `TODO(copy)` — #93's ruling, reached by the cold-start law: the arbiter
-// (`src/lib/presentation/place/account.ts`) must return one written line
-// for every cause, and an empty value makes `copy()` throw instead. Still
-// the owner's sentences.
+// 2026-09-06, issue #20 (REQ-091 c2): these three keys are the ones the
+// arbiter `src/lib/presentation/place/account.ts` resolves — the baseline
+// cold-start line for a date carrying no page, and the two cause lines. They
+// stay **owner-owed and empty**, deliberately: this screen reads every line
+// through the shell's `writtenLine`, which renders an owner-owed key as
+// nothing, and `copy()` refuses one outright. So `account()` throws naming
+// the key rather than handing a place a blank — the outstanding obligation
+// is recorded the moment a place is registered, and no screen can render an
+// unwritten account by accident.
 import type { CopyPartition } from "../registry.ts";
 
 export const CALENDAR_COPY = Object.freeze({
   "place.calendar.date.page": [
-    "TODO(copy)",
+    "",
     { law: "no-presence-yet", slots: {}, fixedBy: "REQ-043 c5" },
   ],
   "cause.unrecognised": [
-    "TODO(copy)",
+    "",
     { law: "no-presence-yet", slots: {}, fixedBy: "REQ-043 c4" },
   ],
   "cause.supply-exhausted": [
-    "TODO(copy)",
+    "",
     { law: "no-presence-yet", slots: {}, fixedBy: "REQ-043 c3" },
   ],
   "calendar.head": ["One page a day. Every day.", { slots: {}, fixedBy: "BUILD §4.6" }],

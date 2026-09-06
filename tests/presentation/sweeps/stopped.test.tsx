@@ -104,7 +104,11 @@ describe("REQ-092 c3 — the screen the customer lands on states it", () => {
   });
 
   it("every app screen carries it, so no screen is the one that forgot", () => {
-    const appScreens = stopped.filter((r) => r.route.groups.includes("(account)"));
+    // The screens inside the shell, which is where the statement lives —
+    // not `(account)` as a whole. Setup runs once, *before* the app: it has
+    // no publishing state, no week count and no day whose work ReachKit
+    // could have stopped, which is why issue #14 put it outside the shell.
+    const appScreens = stopped.filter((r) => r.insideShell);
     expect(appScreens.length).toBeGreaterThan(0);
     for (const screen of appScreens) {
       expect(
@@ -115,13 +119,21 @@ describe("REQ-092 c3 — the screen the customer lands on states it", () => {
   });
 
   it("it stops stating it once the work resumes — no route, no cached banner", () => {
-    const leaks = running
-      .filter((r) => r.text.includes(STATEMENT.line))
-      .map((r) => r.route.url);
-    expect(leaks, "a route states the stop with no stop to state").toEqual([]);
+    // There is no dismissal flag, no cached banner and no "seen" state to
+    // clear: with `stopped` null the notice is not rendered at all.
+    //
+    // What is checked is the *statement*, not every occurrence of its
+    // words. A calendar day ReachKit emptied last Tuesday still says so
+    // once the work resumes — that is REQ-043 c4's account of that date,
+    // and criterion 3's "stops stating it" is about the screen the
+    // customer lands on today, not about the past.
     for (const r of running) {
-      expect(r.doc.querySelector("[data-testid='shell-stopped']"), r.route.url).toBeNull();
+      expect(
+        r.doc.querySelector("[data-testid='shell-stopped']"),
+        `${r.route.url} carries the stopped-work statement with no stop`
+      ).toBeNull();
     }
+    expect(at(stopped, LANDING).doc.querySelector("[data-testid='shell-stopped']")).not.toBeNull();
   });
 
   it("the stop is not one of Overview's two alerts (REQ-041 c5)", () => {

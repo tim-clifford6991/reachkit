@@ -26,7 +26,15 @@ export const TODO_MARKER = "TODO(copy)";
 
 /** Elements that carry a value or a sentence a reader reads. A `div`, a
  *  `section` or a `progress` is not on this list: an empty layout box is a
- *  layout question (ADR-093's sweep), not REQ-091's. */
+ *  layout question (ADR-093's sweep), not REQ-091's.
+ *
+ *  **SVG `<text>` is deliberately outside it.** A chart's own empty and
+ *  unmeasured states are the chart's contract — §2.4's inventory is closed
+ *  and each chart's suite decides what it draws for a week with no
+ *  measurement (issue #15's growth chart draws REQ-004's dash there, which
+ *  is correct and which this sweep would have to be taught to exempt one
+ *  glyph at a time). A stated boundary, not an omission: a chart that
+ *  disappeared for holding nothing is still caught, by `noModuleHidden`. */
 const TEXT_BEARING = new Set([
   "p",
   "span",

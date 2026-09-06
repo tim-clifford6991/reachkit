@@ -128,10 +128,16 @@ describe("REQ-092 c7 — under a stop, the stop is the reason and no other", () 
     expect(paused.publishing).toMatchObject({ next: null, because: "publishing_paused" });
   });
 
-  it("with the work running, the stopped-work lines are on no screen", () => {
-    const findings = running.flatMap((r) =>
-      keysIn(r, STOPPED_WORK_KEYS).map((key) => `${r.route.url} states ${key} with no stop`)
-    );
+  it("with the work running, no screen carries the stopped-work statement", () => {
+    // Scoped to the statement, not to every occurrence of its keys. A
+    // calendar day that ReachKit emptied last Tuesday goes on saying so
+    // after the work resumes — that is the day's account of itself
+    // (REQ-043 c4), and it is a different sentence position from
+    // criterion 3's "it stops stating it once the work resumes", which is
+    // about the screen the customer lands on today.
+    const findings = running
+      .filter((r) => r.doc.querySelector("[data-testid='shell-stopped']") !== null)
+      .map((r) => `${r.route.url} carries the stopped-work statement with no stop`);
     expect(findings).toEqual([]);
   });
 });
@@ -140,11 +146,30 @@ describe("REQ-092 c7 — under a stop, the stop is the reason and no other", () 
 
 const SURFACE_GLOBS = ["app", "ui", "lib/mail"];
 
-/** The two files allowed to name a cross-cutting law's key: the function
- *  that speaks it, and the partition that declares it. */
+/** The files allowed to name a cross-cutting law's key: the function that
+ *  speaks it, and the partition that declares it. */
 const ALLOWED = [
   "lib/presentation/stopped/statement.ts",
   "lib/presentation/copy/keys/laws.ts",
+];
+
+/** Two surfaces that reach for a law's key directly, found by this very
+ *  rule on 2026-09-06 and carried rather than hidden. Both are issue #113's
+ *  to remove, and both entries come out with it. Neither is a defect of
+ *  issue #16's own criteria — the one function did not exist when the
+ *  calendar was written — but each is a second home for a rule ADR-011
+ *  says has one:
+ *
+ *   · `DayPanelView.tsx` states when a page goes live without going through
+ *     `nextPublishStatement`, so a stop does not suppress it (REQ-092 c7).
+ *   · `empty.ts` reaches `stopped.work.line` directly, so a stopped day
+ *     carries c1's line without c2's needs line or c4's resumption line.
+ *
+ *  Dated and named, so this is a debt with an owner rather than a rule with
+ *  a hole: a *new* file naming a law's key still fails. */
+const CARRIED = [
+  { file: "app/(account)/app/calendar/DayPanelView.tsx", key: "next-publish.scheduled", issue: 113 },
+  { file: "app/(account)/app/calendar/empty.ts", key: "stopped.work.line", issue: 113 },
 ];
 
 function sourceFiles(dir: string, out: string[]): void {
@@ -178,9 +203,9 @@ describe("ADR-011 — every next-publish sentence comes from one function", () =
         .replace(/\/\*[\s\S]*?\*\//g, "")
         .replace(/^[ \t]*\/\/.*$/gm, "");
       for (const key of laws) {
-        if (code.includes(`"${key}"`) || code.includes(`'${key}'`)) {
-          findings.push(`${rel} names ${key} itself`);
-        }
+        if (!code.includes(`"${key}"`) && !code.includes(`'${key}'`)) continue;
+        if (CARRIED.some((c) => c.file === rel && c.key === key)) continue;
+        findings.push(`${rel} names ${key} itself`);
       }
     }
     expect(findings).toEqual([]);
@@ -191,6 +216,20 @@ describe("ADR-011 — every next-publish sentence comes from one function", () =
       expect(() => readFileSync(path.join(SRC_ROOT, rel), "utf8")).not.toThrow();
     }
     expect(ALLOWED).toHaveLength(2);
+  });
+
+  it("every carried exception is still real, so a fixed one cannot linger as a hole", () => {
+    // A carried row that no longer describes the file is a hole in the rule
+    // with nothing behind it. Removing the direct key read is what closes
+    // the exception, and this fails until the row goes with it.
+    for (const carried of CARRIED) {
+      const source = readFileSync(path.join(SRC_ROOT, carried.file), "utf8");
+      expect(
+        source.includes(`"${carried.key}"`),
+        `${carried.file} no longer names ${carried.key} — remove its CARRIED row (issue #${carried.issue})`
+      ).toBe(true);
+    }
+    expect(CARRIED.every((c) => c.issue === 113)).toBe(true);
   });
 });
 

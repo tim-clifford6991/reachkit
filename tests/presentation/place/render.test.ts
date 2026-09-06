@@ -59,15 +59,25 @@ describe("REQ-091 c2 — null, [] and unmeasured are accounted, never empty", ()
   });
 
   it("an empty list is a cause — the module stays on the screen carrying its line", () => {
-    const p = renderPlace(MODULE_PLACE, []);
+    const p = renderPlace(MODULE_PLACE, [], [{ tag: "named", line: "NOTHING-PLANNED" }]);
     expect(p.state).toBe("accounted");
+    if (p.state !== "accounted") throw new Error("unreachable");
+    expect(p.line).toBe("NOTHING-PLANNED");
   });
 
   it("a chart with no series is a cause, not an absent chart", () => {
-    const p = renderPlace(SERIES_PLACE, []);
+    const p = renderPlace(SERIES_PLACE, [], [{ tag: "named", line: "NO-WEEKS-YET" }]);
     expect(p.state).toBe("accounted");
     if (p.state !== "accounted") throw new Error("unreachable");
     expect(p.line).not.toBe("");
+  });
+
+  it("and with no cause at all it reaches the place's own line, which the owner still owes", () => {
+    // Never a blank: the unwritten baseline throws naming the key, so the
+    // obligation is visible the moment a place is registered.
+    expect(() => renderPlace(SERIES_PLACE, [])).toThrow(
+      /place\.overview\.weekly-presence\.chart/
+    );
   });
 
   it("an unmeasured measurement is accounted, and says so through its own cause", () => {
@@ -80,7 +90,9 @@ describe("REQ-091 c2 — null, [] and unmeasured are accounted, never empty", ()
   });
 
   it("a 'module' place with no entries and no series is accounted, never dropped", () => {
-    expect(renderPlace(MODULE_PLACE, {}).state).toBe("accounted");
+    expect(renderPlace(MODULE_PLACE, {}, [{ tag: "named", line: "NOTHING-PLANNED" }]).state).toBe(
+      "accounted"
+    );
   });
 });
 

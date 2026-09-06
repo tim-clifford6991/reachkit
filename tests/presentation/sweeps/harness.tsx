@@ -32,6 +32,10 @@ export interface RenderedRoute {
    *  on this screen" and would make every text assertion in the sweeps pass
    *  vacuously. */
   text: string;
+  /** Whether this route renders inside the `/app` shell. REQ-092 criterion
+   *  3's "when the customer opens the app" reaches these and not the two
+   *  setup screens, which run once, before the app. */
+  insideShell: boolean;
 }
 
 type PageModule = { default: (props: never) => React.ReactNode | Promise<React.ReactNode> };
@@ -69,9 +73,18 @@ export const ROUTE_HARNESS: Readonly<Record<string, HarnessRow>> = Object.freeze
     shell: false,
     async: true,
   },
-  "(account)/app/page.tsx": { props: () => ({}), shell: true, async: false },
-  "(account)/app/calendar/page.tsx": { props: () => ({}), shell: true, async: false },
-  "(account)/app/settings/page.tsx": { props: () => ({}), shell: true, async: false },
+  // Setup sits under `(account)` and **outside** the `/app` shell: it runs
+  // once, before the app, and the shell states a publishing state and a week
+  // count this founder does not have yet (issue #14's own header says so).
+  "(account)/setup/page.tsx": { props: () => ({}), shell: false, async: true },
+  "(account)/setup/waiting/page.tsx": { props: () => ({}), shell: false, async: true },
+  "(account)/app/page.tsx": { props: () => ({}), shell: true, async: true },
+  "(account)/app/calendar/page.tsx": {
+    props: () => ({ searchParams: {} }),
+    shell: true,
+    async: true,
+  },
+  "(account)/app/settings/page.tsx": { props: () => ({}), shell: true, async: true },
 });
 
 export class MissingHarnessRowError extends Error {
@@ -111,5 +124,5 @@ export async function renderRoute(
   const tree = row.shell ? await wrap(element) : element;
   const html = renderToStaticMarkup(tree as React.ReactElement);
   const doc = parse(html);
-  return { route, html, doc, text: doc.body.textContent ?? "" };
+  return { route, html, doc, text: doc.body.textContent ?? "", insideShell: row.shell };
 }

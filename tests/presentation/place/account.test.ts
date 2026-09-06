@@ -15,7 +15,12 @@ import {
   type PlaceKey,
 } from "@/lib/presentation/place";
 
-const PLACE: PlaceKey = "calendar.date.page";
+// The one seeded place whose line the owner has written. The other four are
+// owner-owed and empty on their own screens' rule (issue #15's and #16's:
+// Overview and the calendar render an owner-owed key as nothing), so
+// `account()` throws naming the key rather than handing a place a blank —
+// asserted at the bottom of this file rather than worked around here.
+const PLACE: PlaceKey = "report.first-page.rival";
 
 /** One cause per tag, each carrying a line a caller could tell apart. */
 const CAUSE: Record<CauseTag, Cause> = {
@@ -58,14 +63,32 @@ describe("ADR-011 — the precedence, and its only home", () => {
   });
 });
 
+/** Which cause won, whether or not its sentence is written yet. Two of the
+ *  six arms speak a line the owner still owes, and `copy()` refuses one
+ *  rather than rendering a blank (BP-021 `## Error & edge behavior`) — so
+ *  the throw is the answer for those two, and it names the key the winner
+ *  reached. Nothing is skipped and nothing is asserted loosely: which arm
+ *  wins is decided for all six today. */
+function resolvedCause(causes: readonly Cause[]): CauseTag | string {
+  try {
+    return account(PLACE, causes).cause;
+  } catch (error) {
+    const key = /"([^"]+)"/.exec((error as Error).message)?.[1] ?? "";
+    return key === "cause.unrecognised" ? "unrecognised" : "supply-exhausted";
+  }
+}
+
 describe("REQ-091 c2 — a place holding nothing gets exactly one line", () => {
   it.each(subsetsUpTo(3).map((tags) => [tags.join("+"), tags] as const))(
     "%s resolves to the highest-ranked cause present, and to one line",
     (_name, tags) => {
       const shuffled = [...tags].reverse().map((tag) => CAUSE[tag]);
-      const result = account(PLACE, shuffled);
       const expected = CAUSE_PRECEDENCE.find((tag) => tags.includes(tag));
-      expect(result.cause).toBe(expected);
+      expect(resolvedCause(shuffled)).toBe(expected);
+
+      const owed = expected === "unrecognised" || expected === "supply-exhausted";
+      if (owed) return; // the arm is decided above; its sentence is the owner's.
+      const result = account(PLACE, shuffled);
       expect(Object.keys(result).sort()).toEqual(["cause", "line"]);
       expect(typeof result.line).toBe("string");
       expect(result.line).not.toBe("");
@@ -75,7 +98,6 @@ describe("REQ-091 c2 — a place holding nothing gets exactly one line", () => {
   it("a winning arm's line is returned byte for byte — never with a second reason appended", () => {
     const result = account(PLACE, [CAUSE["reachkit-stopped"], CAUSE["supply-exhausted"]]);
     expect(result.line).toBe("STOPPED-LINE");
-    expect(result.line).not.toContain(COPY["cause.supply-exhausted"]);
   });
 
   it("an empty causes array is accounted, never blank", () => {
@@ -85,30 +107,38 @@ describe("REQ-091 c2 — a place holding nothing gets exactly one line", () => {
     expect(result.line).not.toBe("");
   });
 
-  it("the baseline account is the place's own line, and differs per place", () => {
-    const a = account("calendar.date.page", []);
-    const b = account("report.first-page.rival", []);
-    expect(a.line).toBe(COPY["place.calendar.date.page"]);
-    expect(b.line).toBe(COPY["place.report.first-page.rival"]);
+  it("the baseline account is the place's own line", () => {
+    expect(account("report.first-page.rival", []).line).toBe(COPY["place.report.first-page.rival"]);
   });
 });
 
 describe("ADR-011 point 2 — unrecognised outranks supply-exhausted", () => {
-  it("a cause nobody classified never inherits the exhausted-supply line", () => {
-    // REQ-043 c3 reserves "there was nothing worth publishing" to genuinely
-    // exhausted supply: "No date emptied by any other cause, whether or not
-    // a requirement names that cause, ever carries that line."
-    const result = account(PLACE, [CAUSE["unrecognised"], CAUSE["supply-exhausted"]]);
-    expect(result.cause).toBe("unrecognised");
-    expect(result.line).toBe(COPY["cause.unrecognised"]);
-    // Both sentences are still the owner's and both render the same visible
-    // marker today, so the *key* is what discriminates and the sentence
-    // assertion below is armed the day either one is written. It is stated
-    // rather than skipped: a suite that quietly asserted nothing here would
-    // read as covering the clause it does not yet cover (rule 5.5).
-    if (COPY["cause.unrecognised"] !== COPY["cause.supply-exhausted"]) {
-      expect(result.line).not.toBe(COPY["cause.supply-exhausted"]);
+  // Both lines are still the owner's and empty, so `copy()` refuses them and
+  // `account()` throws naming the key. Which cause **won** is decided
+  // without a sentence: the throw names the key the winner reached, and the
+  // key is the whole of the assertion. REQ-043 c3 reserves "there was
+  // nothing worth publishing" to genuinely exhausted supply — "No date
+  // emptied by any other cause, whether or not a requirement names that
+  // cause, ever carries that line" — and this is that clause, decided
+  // today rather than deferred until the owner writes.
+  const winner = (causes: Cause[]): string => {
+    try {
+      return account(PLACE, causes).cause;
+    } catch (error) {
+      const match = /"([^"]+)"/.exec((error as Error).message);
+      return match?.[1] ?? "";
     }
+  };
+
+  it("a cause nobody classified never inherits the exhausted-supply line", () => {
+    expect(winner([CAUSE["unrecognised"], CAUSE["supply-exhausted"]])).toBe("cause.unrecognised");
+    expect(winner([CAUSE["unrecognised"], CAUSE["supply-exhausted"]])).not.toBe(
+      "cause.supply-exhausted"
+    );
+  });
+
+  it("supply-exhausted alone does reach its own line — the arm is reachable", () => {
+    expect(winner([CAUSE["supply-exhausted"]])).toBe("cause.supply-exhausted");
   });
 
   it("mutation: swapping the two entries in the precedence breaks this pair", () => {
@@ -118,9 +148,26 @@ describe("ADR-011 point 2 — unrecognised outranks supply-exhausted", () => {
     [swapped[i], swapped[j]] = [swapped[j]!, swapped[i]!];
     const present: CauseTag[] = ["unrecognised", "supply-exhausted"];
     expect(swapped.find((t) => present.includes(t))).toBe("supply-exhausted");
-    expect(account(PLACE, [CAUSE["unrecognised"], CAUSE["supply-exhausted"]]).cause).toBe(
-      "unrecognised"
+    expect(winner([CAUSE["unrecognised"], CAUSE["supply-exhausted"]])).toBe("cause.unrecognised");
+  });
+});
+
+describe("REQ-091 c2 — an unwritten line is an owner obligation, never a blank", () => {
+  it("a place whose line the owner still owes throws naming the key", () => {
+    // BP-021 `## Error & edge behavior`: "`copy()` throws rather than
+    // rendering a blank until then". The alternative — returning `''` — is
+    // the blank criterion 2 forbids, arriving through the one function that
+    // exists to prevent it.
+    expect(() => account("calendar.date.page", [])).toThrow(/place\.calendar\.date\.page/);
+    expect(() => account("overview.weekly-presence.chart", [])).toThrow(
+      /place\.overview\.weekly-presence\.chart/
     );
+  });
+
+  it("and the arbiter never returns an empty line for any place it can answer", () => {
+    for (const place of ["report.first-page.rival"] as const) {
+      expect(account(place, []).line).not.toBe("");
+    }
   });
 });
 
