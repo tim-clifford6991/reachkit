@@ -134,15 +134,24 @@ export async function runScan(a: {
   return notBuilt("BP-012", `runScan(${a.scanId})`);
 }
 
-// ── Generation — BP-014
-// TODO(engine): BP-014's `generateDraft()` — next opportunity to a draft in
-// review, with the veto clock started.
+// ── Generation — BUILD §8 (issue #44)
+// Built. `src/lib/generate/` owns the pipeline, the hard rules and the
+// recovery decision; the wrapper below passes the job's own `publishDate`
+// in and maps the outcome to an `EngineResult`.
+//
+// Every arm that is not a page is `degraded`, not a throw: a day with no
+// page is a state the calendar renders (§7 — "supply is the cap: never
+// invent an opportunity to fill a day"), not a job that failed. The edge
+// into `in_review` — and the veto clock it starts — is the publishing
+// engine's (#45); this call writes the page and stops.
 
 export async function generateDraft(a: {
   readonly siteId: string;
   readonly publishDate: string;
 }): Promise<EngineResult> {
-  return notBuilt("BP-014", `generateDraft(${a.siteId})`);
+  const { generateDayPage } = await import("@/lib/generate");
+  const outcome = await generateDayPage({ siteId: a.siteId, publishDate: a.publishDate });
+  return outcome.ok ? { done: true } : { degraded: `generate:${outcome.because}` };
 }
 
 // ── Publishing — BP-015
