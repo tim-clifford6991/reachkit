@@ -86,8 +86,18 @@ export const LAWS_COPY = Object.freeze({
     "TODO(copy)",
     { law: "next-publish", slots: {}, fixedBy: "REQ-040 c4" },
   ],
+  // 2026-09-06, issue #17: value moved from "" to `TODO(copy)`, on exactly
+  // the footing the sibling key below records for 2026-09-05. §4.6's draft
+  // view renders a *written* page's body, which is model text and therefore
+  // reaches the screen only through `renderGenerated` — and
+  // `renderGenerated` resolves this key for the label that must ride with
+  // it (REQ-093 c2). Left empty, `copy()` throws and the whole draft view
+  // goes down; `TODO(copy)` renders as itself, so the label is visibly
+  // present and visibly unwritten. Still the owner's sentence; no string is
+  // written here. With this, both `generated.page.*` keys are awaiting copy
+  // and neither is owner-owed-and-empty.
   "generated.page.written": [
-    "",
+    "TODO(copy)",
     { slots: { pageTitle: "text" }, fixedBy: "REQ-093 c2" },
   ],
   // 2026-09-05, issue #13: value moved from "" to `TODO(copy)` per
