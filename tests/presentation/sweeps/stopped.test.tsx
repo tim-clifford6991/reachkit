@@ -29,6 +29,17 @@ import { shellState } from "./shell-state";
 
 applyEnvFixture();
 
+// Issue #144: `(public)/veto/[token]` redeems its token on arrival, which
+// reaches the admin database — and these sweeps render in jsdom, where
+// `dbAdmin()` refuses by design. The unknown-link answer is the one the
+// route's own layout fixture uses (`tests/ui/layout/routes.ts`) and the one
+// a token that verifies against nothing produces in the product: no page
+// leaves review, no token is marked used. It is the arm, not the read, that
+// these sweeps are about.
+vi.mock("@/lib/publish/publishable", () => ({
+  redeemVetoLink: async () => ({ ok: false, reason: "unknown" }),
+}));
+
 vi.mock("next/navigation", async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
   return { ...actual, usePathname: () => "/app", useRouter: () => ({ push: vi.fn() }) };
