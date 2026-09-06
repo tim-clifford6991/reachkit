@@ -1,0 +1,55 @@
+/* BUILD §4.3 — the setup screen's own layout.
+ *
+ * BUILD §2.2 allows custom CSS for layout; every widget on this screen is
+ * a registered component (`src/ui/components`). Two columns at
+ * `--breakpoint-lg` and one below it, matching the `Surface` arms the page
+ * declares — the media query and the declaration are the same decision
+ * written twice, which ADR-093's conformance sweep is what checks.
+ *
+ * `minmax(0, 1fr)` is load-bearing: without the `0` a long domain or a
+ * typed market pushes its column past the grid and check 1 (no horizontal
+ * document scroll) fails at 320px. */
+.rk-setup {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+  align-content: start;
+}
+
+.rk-setup-cards {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 1024px) {
+  .rk-setup-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* The chips a founder accepts, rejects and types. Wrapping is what keeps
+ * five domains inside a 320px column. */
+.rk-setup-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+/* §9's CNAME record. Mono because every URL and code-like string is
+ * (BP-018). It **wraps** rather than scrolling: ADR-093 check 3 treats any
+ * clipped mono element as an offender whatever the allow-list says — "a
+ * value is never saved by an allow-list" — so a record longer than a 320px
+ * column has to break inside its own box, never hide behind a scrollbar. */
+.rk-setup-dns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.rk-setup-dns > span {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
