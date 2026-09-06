@@ -137,4 +137,19 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.done-when.top20": ["", { slots: { query: "text" }, fixedBy: "BUILD §7" }],
   "calendar.done-when.named-on": ["", { slots: { question: "text" }, fixedBy: "BUILD §7" }],
   "calendar.done-when.gate-cleared": ["", { slots: {}, fixedBy: "BUILD §7" }],
+
+  // 2026-09-06, issue #50 (REQ-043 c12). The three grounds on which the
+  // day panel says a way through leads nowhere **in place of** offering
+  // it. Three keys, three sentences, all the owner's; `TODO(copy)` rather
+  // than the empty value's throw, because these render on a screen (#93).
+  //
+  // There is no fourth ground, and in particular **there is no ground for
+  // "the check could not be confirmed"**: that outcome's whole content is
+  // that ReachKit does not know, and refusing a way on it would take a
+  // page the record says nothing against and tell the customer the way
+  // leads nowhere (ADR-085). The offered way claims only that this is
+  // where the page was put, never that it is there now.
+  "waythrough.unpublished-by-us": ["TODO(copy)", { slots: {}, fixedBy: "REQ-043 c12" }],
+  "waythrough.page-not-found": ["TODO(copy)", { slots: {}, fixedBy: "REQ-043 c12" }],
+  "waythrough.no-admin-address": ["TODO(copy)", { slots: {}, fixedBy: "REQ-043 c12" }],
 }) satisfies CopyPartition;

@@ -48,4 +48,30 @@ export const PUBLISH_COPY = Object.freeze({
     "TODO(copy)",
     { slots: { state: "text" }, fixedBy: "REQ-056 c2" },
   ],
+
+  // 2026-09-06, issue #50 (REQ-062 / REQ-056 c6). The page record's
+  // address labels. Three keys, all three sentences the owner's.
+  //
+  // **The pair is two keys and never one key with the tense interpolated
+  // into it.** "The address this page is publicly readable at" and "the
+  // address this page was published at" are a customer-visible
+  // distinction — the second is said of a page ReachKit has stopped
+  // serving, and ReachKit never goes back to look — so making the tense a
+  // variable substitution would put half a sentence in the module that
+  // supplies the address. Which of the two a record earns is decided by
+  // the page's **current state**, not by what ReachKit once did to it
+  // (`src/lib/publish/record/index.ts`).
+  //
+  // The third is said **in place of** an address, for a page ReachKit
+  // never made live at its destination: that arm of `RecordedAddress`
+  // carries no `url` field at all, so this line is the whole of what the
+  // record offers there.
+  //
+  // `TODO(copy)` rather than the empty value's throw, on the same #93
+  // ruling the four verdicts above cite from the other side: these three
+  // render on *screens* — the day panel, the draft view and Overview —
+  // and the throw would take a whole screen down over one unwritten line.
+  "record.address.publiclyReadableAt": ["TODO(copy)", { slots: {}, fixedBy: "REQ-056 c6" }],
+  "record.address.wasPublishedAt": ["TODO(copy)", { slots: {}, fixedBy: "REQ-056 c6" }],
+  "record.address.neverMadeLive": ["TODO(copy)", { slots: {}, fixedBy: "REQ-056 c6" }],
 }) satisfies CopyPartition;
