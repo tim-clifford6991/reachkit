@@ -38,14 +38,14 @@
 // **Two schema gaps, each flagged once here (constitution rule 4.2), not
 // fabricated around:**
 //
-//  1. `domain_blocks` (BP-002's table; the removal address holds it) had
+//  1. The removal table (BP-002's; the removal address holds it) had
 //     not landed in this repo when this module was written. **The table
 //     landed on 2026-09-05** (`supabase/migrations/
 //     20260905120000_domainblocks.sql`, issue #28), so the gap is now
 //     half closed: the read below hits a real table. What remains is the
 //     generated `Database` type (`src/lib/db/types.generated.ts`), which
 //     was not regenerated with it and still carries no entry for
-//     `domain_blocks` — so the `untyped` hatch below stays until a
+//     it — so the `untyped` hatch below stays until a
 //     regeneration lands.
 //  2. `scans.network_hash` and `scans.from_incomplete_rescan` were added to
 //     the live schema by WO-056's migration (`supabase/migrations/
@@ -55,7 +55,8 @@
 //
 // Both gaps are worked around the same way: a minimal, locally declared
 // row shape and a narrow, explicitly cast query builder (`untyped`,
-// below) for exactly the calls that touch them — `domain_blocks` entirely;
+// below) for exactly the calls that touch them — the removal table
+// entirely (its own reader is `./removal` since #104);
 // `scans.network_hash` on the in-flight and hourly reads and on
 // `claimFreeScanSlot`'s insert; `scans.from_incomplete_rescan` on that same
 // insert (WO-058). Every other query in this file is fully typed against
@@ -72,6 +73,7 @@ import {
   HOURLY_WINDOW_H,
 } from "@/lib/config/constants";
 import { dbAdmin } from "@/lib/db";
+import { isRemovedWith } from "./removal";
 import type { CanonicalDomain } from "./domain";
 
 // ── NetworkKey — BP-023 decision 3 ──────────────────────────────────────
@@ -203,10 +205,6 @@ function untyped(client: ReturnType<typeof dbAdmin>): MinimalClient {
   return client as unknown as MinimalClient;
 }
 
-interface DomainBlockRow {
-  domain: string;
-}
-
 interface ScanNetworkRow {
   id: string;
   domain: string;
@@ -232,24 +230,15 @@ type Client = ReturnType<typeof dbAdmin>;
 
 /** Whether the domain's report was taken down on a written request
  *  (REQ-002 c4). Exported because this file is the one place under `src/`
- *  that names `domain_blocks` at all, and the correction offer
+ *  that reads the removal table at all, and the correction offer
  *  (`src/lib/scan/correction.ts`) has to know the same fact the admission
  *  order's first step reads — one reader of that table in the product, not
- *  two. It reads and never writes, like every other use of the table here.
- *  Throws on a read that could not be answered; each caller decides what
- *  an unanswerable read means for it (this file's own order fails open). */
+ *  two. Since #104 that reader is `./removal`, which imports the database
+ *  client and nothing else so the report address's own removal check can
+ *  reach it from the Edge runtime without dragging `node:crypto` along;
+ *  this export stays as the name admission's callers already use. */
 export function isDomainRemoved(domain: CanonicalDomain): Promise<boolean> {
-  return isRemoved(dbAdmin(), domain);
-}
-
-async function isRemoved(client: Client, domain: CanonicalDomain): Promise<boolean> {
-  const { data, error } = await untyped(client)
-    .from<DomainBlockRow>("domain_blocks")
-    .select("domain")
-    .eq("domain", domain)
-    .limit(1);
-  if (error) throw new Error(error.message);
-  return Array.isArray(data) && data.length > 0;
+  return isRemovedWith(dbAdmin(), domain);
 }
 
 async function checkCooldown(client: Client, domain: CanonicalDomain): Promise<Admission | null> {
@@ -363,13 +352,13 @@ async function evaluateAdmission(
   network: NetworkKey
 ): Promise<{ result: Admission; step: FreeStep }> {
   // Step 1 — removed. Outside the fail-open handler (WO-057 `## Steps`
-  // step 4, BP-023 `## Error & edge behavior`): a `domain_blocks` read
+  // step 4, BP-023 `## Error & edge behavior`): a removal-table read
   // that errors refuses rather than admits, because failing open there
   // would serve a removed report, which REQ-002 criterion 3 forbids
   // absolutely.
   let removed: boolean;
   try {
-    removed = await isRemoved(client, domain);
+    removed = await isRemovedWith(client, domain);
   } catch {
     return { result: { refuse: "removed" }, step: "removed" };
   }

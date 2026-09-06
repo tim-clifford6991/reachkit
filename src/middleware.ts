@@ -38,8 +38,7 @@
 // a work order that touches BP-001's own `code:` list.
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { isDomainRemoved } from "@/lib/scan/admission";
-import { parseDomain } from "@/lib/scan/domain";
+import { isDomainRemoved } from "@/lib/scan/removal";
 
 /** One entry per BP-001 `## Public interface` "Routes (public)" row
  *  (`## Steps` step 1). A leading `:` marks a single dynamic path segment —
@@ -164,8 +163,11 @@ export function reportSegmentOf(pathname: string): string | null {
  * answered rewrites nothing — the report renders, which is this file's own
  * fail-open convention and the same one admission uses.
  *
- * `isDomainRemoved` is `src/lib/scan/admission.ts`', the product's one
- * reader of that table, and this file names neither the table nor a query:
+ * `isDomainRemoved` is `src/lib/scan/removal.ts`', the product's one
+ * reader of that table. It is imported from there and not through
+ * `admission.ts`, which pulls `node:crypto` for its network-key HMAC — a
+ * module the Edge runtime this file is built for does not have. This file
+ * names neither the table nor a query:
  * the status a removed address serves and the refusal a removed domain's
  * scan gets can never disagree, because they are the same read.
  */
@@ -174,17 +176,25 @@ async function removedRewrite(req: NextRequest): Promise<NextResponse | null> {
   const segment = reportSegmentOf(req.nextUrl.pathname);
   if (segment === null) return null;
 
-  const parsed = parseDomain(decodeURIComponent(segment));
-  if (!parsed.ok) return null;
+  // The *canonical* form of the segment, and only that. `parseDomain` is
+  // not called here on purpose: it needs `node:net`, which the Edge
+  // runtime this file is built for does not have. It does not need to be
+  // called either — a non-canonical written form never gets a response
+  // from this path. `page.tsx` issues its 308 to the canonical address
+  // before it resolves anything, so `/scan/WWW.Gone.example` renders
+  // nothing, lands on `/scan/gone.example`, and comes back through this
+  // function, which matches. One extra hop, no leak, and the whole domain
+  // parser stays out of the Edge bundle.
+  const domain = decodeURIComponent(segment).toLowerCase();
 
   try {
-    if (!(await isDomainRemoved(parsed.domain))) return null;
+    if (!(await isDomainRemoved(domain))) return null;
   } catch {
     return null;
   }
 
   const destination = req.nextUrl.clone();
-  destination.pathname = `/api/report/${parsed.domain}/removed`;
+  destination.pathname = `/api/report/${domain}/removed`;
   return NextResponse.rewrite(destination);
 }
 

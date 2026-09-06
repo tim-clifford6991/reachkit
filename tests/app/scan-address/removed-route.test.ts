@@ -11,9 +11,9 @@ import { NextRequest } from "next/server";
 import { REPORT_REMOVED_STATUS } from "@/lib/config/constants";
 
 const isDomainRemoved = vi.fn<(domain: string) => Promise<boolean>>();
-vi.mock("@/lib/scan/admission", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/lib/scan/admission")>()),
+vi.mock("@/lib/scan/removal", () => ({
   isDomainRemoved: (domain: string) => isDomainRemoved(domain),
+  isRemovedWith: (_client: unknown, domain: string) => isDomainRemoved(domain),
 }));
 
 const { GET } = await import("@/app/api/report/[domain]/removed/route");
@@ -53,6 +53,8 @@ describe("the route handler — the status a page cannot set", () => {
     for (const tag of ["<button", "<form", "<input", "<a "]) expect(html).not.toContain(tag);
     // Nothing of the report itself survives a removal.
     for (const leak of ["score", "rival", "Copy link"]) expect(html).not.toContain(leak);
+    // `noindex` twice over (ADR-002): the header above and the meta tag.
+    expect(html).toContain('<meta name="robots" content="noindex">');
   });
 
   it("re-checks the removal itself — a 410 for a live report is a lie a stranger could make us tell", async () => {
@@ -103,8 +105,17 @@ describe("the rewrite — the visitor stays at the one address for the domain", 
     expect(res.headers.get("x-middleware-rewrite")).toBeNull();
   });
 
-  it("canonicalises before it asks, so no written form of a removed domain slips past", async () => {
+  it("asks about the canonical form only — a non-canonical one is 308'd there first and matches on the way back", async () => {
+    // `page.tsx` issues its 308 before it resolves anything, so a
+    // non-canonical form renders nothing and comes back here canonical.
+    // That is what lets this function keep the whole domain parser — and
+    // its `node:net` import — out of the Edge bundle it is built into.
     await middleware(reportRequest(`/scan/${encodeURIComponent(`WWW.${REMOVED}`)}`));
+    expect(isDomainRemoved).toHaveBeenCalledWith(`www.${REMOVED}`);
+    expect(isDomainRemoved).not.toHaveBeenCalledWith(REMOVED);
+
+    isDomainRemoved.mockClear();
+    await middleware(reportRequest(`/scan/${REMOVED.toUpperCase()}`));
     expect(isDomainRemoved).toHaveBeenCalledWith(REMOVED);
   });
 });

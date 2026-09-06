@@ -25,7 +25,7 @@ import "../scan/run/harness";
 // allow-list and the cookie, and a database answer is not part of either.
 // `tests/app/scan-address/removed-route.test.ts` is where the rewrite's
 // behaviour is decided.
-vi.mock("@/lib/scan/admission", () => ({ isDomainRemoved: async () => false }));
+vi.mock("@/lib/scan/removal", () => ({ isDomainRemoved: async () => false }));
 
 import { middleware, PUBLIC_PATHS, config } from "@/middleware";
 
