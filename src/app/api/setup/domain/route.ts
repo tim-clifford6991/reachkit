@@ -10,13 +10,14 @@
 // It answers with the current report for the domain in the same breath,
 // because a founder who changes their site address needs the market card
 // re-derived against the new one (REQ-026 c6) and that is the same round
-// trip. `report: null` is the honest answer today: §4.1's stored report
-// (`readCurrentReport()`, #24) does not exist on disk, so nothing here
-// claims a report was found. When it lands, this function reads it and the
-// client does not change.
+// trip. The read is `_setup/provider.ts`'s `readReportFor`, which answers
+// `null` while this issue's screens run on fixtures and carries, in its own
+// header, the two lines that make it live once #42's account and site rows
+// exist. Nothing here claims a report was found.
 import { adapter } from "../../_adapter";
 import { resolvesInDns } from "@/lib/egress";
 import { registrableDomain } from "@/lib/market/rivals/domains";
+import { readReportFor } from "@/app/(account)/setup/_setup/provider";
 import type { ReportFacts } from "@/lib/market/setup/state";
 
 const BAD_REQUEST = 400;
@@ -54,9 +55,10 @@ export const POST = adapter(
     const answer: ResolveDomainResponse = {
       domain,
       resolves: await resolvesInDns(domain),
-      // §4.1's stored report is #24's; nothing is presented as measured
-      // for a domain nobody has measured (REQ-021 c11).
-      report: null,
+      // Nothing is presented as measured for a domain nobody has measured
+      // (REQ-021 c11) — which is what this seam answering `null` means,
+      // not a value withheld.
+      report: await readReportFor(domain),
     };
     return Response.json(answer);
   }

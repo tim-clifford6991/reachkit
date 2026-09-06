@@ -112,14 +112,12 @@ describe("POST /api/setup — the one write path", () => {
 });
 
 describe("POST /api/setup/domain — does this address resolve", () => {
-  it("a resolving domain answers with its canonical form and nothing measured", async () => {
+  it("a resolving domain answers with its canonical form, however it was written", async () => {
     const { POST } = await import("@/app/api/setup/domain/route");
     const response = await POST(post("/api/setup/domain", { host: "https://WWW.Example.com/x" }), undefined);
-    await expect(response.json()).resolves.toEqual({
-      domain: "example.com",
-      resolves: true,
-      report: null,
-    });
+    const body = (await response.json()) as { domain: string; resolves: boolean };
+    expect(body.domain).toBe("example.com");
+    expect(body.resolves).toBe(true);
   });
 
   it("a value that is not a domain answers domain: null, and asks no resolver", async () => {
@@ -140,8 +138,20 @@ describe("POST /api/setup/domain — does this address resolve", () => {
 
   it("REQ-021 c11 — nothing is presented as measured for a domain nobody has measured", async () => {
     const { POST } = await import("@/app/api/setup/domain/route");
+    for (const host of ["unmeasured-site.com", "unreachable-site.com"]) {
+      const body = await (await POST(post("/api/setup/domain", { host }), undefined)).json();
+      expect(body.report, host).toBeNull();
+    }
+  });
+
+  it("REQ-026 c6 — the address the product did measure answers with its own report, so the market card re-derives", async () => {
+    const { POST } = await import("@/app/api/setup/domain/route");
     const body = await (await POST(post("/api/setup/domain", { host: "example.com" }), undefined)).json();
-    expect(body.report).toBeNull();
+    expect(body.report).toEqual({
+      scanId: "scan-fixture",
+      category: "project management software for agencies",
+      rivals: ["asana.com", "monday.com", "clickup.com"],
+    });
   });
 
   it("a body with no host is a 400", async () => {
