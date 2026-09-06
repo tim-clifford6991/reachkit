@@ -221,7 +221,7 @@ describe('REQ-001 c16 — "… then one written line says what happened and a ma
     expect(() => copy("control.retry")).not.toThrow();
   });
 
-  it("the registry holds exactly five notice.* keys and exactly four control.* keys", () => {
+  it("the registry holds exactly six notice.* keys and exactly four control.* keys", () => {
     const allKeys = Object.keys(COPY) as CopyKey[];
     const noticeKeys = allKeys.filter((k) => k.startsWith("notice."));
     const controlKeys = allKeys.filter((k) => k.startsWith("control."));
@@ -232,6 +232,11 @@ describe('REQ-001 c16 — "… then one written line says what happened and a ma
         "notice.measurement-failed",
         "notice.refused.network-limit",
         "notice.refused.scan-running",
+        // #104: the third `AddressRefusal` reason — ReachKit's own stop.
+        // It is its own line because it borrows neither of the other two:
+        // both of those say "your network", and this one is not about the
+        // visitor at all (ADR-011).
+        "notice.refused.stopped",
       ].sort()
     );
     expect(controlKeys.sort()).toEqual(

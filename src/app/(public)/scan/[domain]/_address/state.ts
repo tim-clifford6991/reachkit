@@ -22,7 +22,13 @@ import type { ScoreFactorName } from "@/lib/measure/score";
  *  different screen. */
 export type AddressRefusal =
   | { reason: "network-limit"; retryAfterSeconds: number }
-  | { reason: "scan-running"; retryAfterSeconds: number };
+  | { reason: "scan-running"; retryAfterSeconds: number }
+  /** ReachKit's own stop — the kill switch, not anything the visitor did.
+   *  It carries no wait: nobody can say when we will start again, and a
+   *  figure invented to fill the sentence would be the one part of a
+   *  refusal that was not true. ADR-011: our own stop outranks every other
+   *  cause that is also true, and is never dressed as one of them. */
+  | { reason: "stopped" };
 
 /** At most one line ever renders (REQ-001 c14/c16, REQ-003 c12). `null`
  *  is an arm of the switch, not a missing value. */

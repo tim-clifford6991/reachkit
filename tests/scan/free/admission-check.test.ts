@@ -380,9 +380,13 @@ describe(
       }
     );
 
-    it("admission/removed · this module never writes domain_blocks", async () => {
+    it("admission/removed · this module never writes domain_blocks — it no longer names the table at all", async () => {
       const source = readFileSync(
         path.resolve(import.meta.dirname, "../../../src/lib/scan/admission.ts"),
+        "utf8"
+      );
+      const reader = readFileSync(
+        path.resolve(import.meta.dirname, "../../../src/lib/scan/removal.ts"),
         "utf8"
       );
       // Source-level check, narrowed by WO-058 (constitution rule 4.2,
@@ -395,8 +399,18 @@ describe(
       // named exactly once in the file, inside `isRemoved`'s own read and
       // nowhere else, so nothing else here — including that insert — can
       // reach the table.
-      const domainBlocksMentions = [...source.matchAll(/"domain_blocks"/g)];
-      expect(domainBlocksMentions).toHaveLength(1);
+      //
+      // #104 narrowed it further: the read moved to `src/lib/scan/removal.ts`
+      // (so the report address's removal check reaches it without dragging
+      // `node:crypto` into the Edge bundle), and this module now names the
+      // table zero times. The promise is the same one, asserted in the
+      // stronger place — nothing here can reach the table at all, and the
+      // one reader that can still only selects.
+      expect([...source.matchAll(/"domain_blocks"/g)]).toHaveLength(0);
+      expect([...reader.matchAll(/"domain_blocks"/g)]).toHaveLength(1);
+      for (const verb of [".insert(", ".update(", ".upsert(", ".delete("]) {
+        expect(reader).not.toContain(verb);
+      }
 
       // `.update(` appears exactly once in this file — `node:crypto`'s
       // `Hmac.update()` inside `hashSeed`, not a database write. Asserted
@@ -409,7 +423,7 @@ describe(
       // Watch it fail first: the same predicate flags a fixture that adds
       // a second reference to the table, proving it discriminates rather
       // than trivially passing.
-      const fixtureWithSecondMention = `${source}\nvoid dbAdmin().from("domain_blocks").insert({ domain: "x" });\n`;
+      const fixtureWithSecondMention = `${reader}\nvoid dbAdmin().from("domain_blocks").insert({ domain: "x" });\n`;
       expect([...fixtureWithSecondMention.matchAll(/"domain_blocks"/g)]).toHaveLength(2);
 
       // Call-level check: exercise several admission scenarios and assert

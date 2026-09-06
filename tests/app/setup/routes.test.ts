@@ -11,6 +11,9 @@
 // `tests/mail/**` established.
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { applyEnvFixture } from "../../mail/env-fixture.ts";
+// #104: importing `@/middleware` loads the removal reader, and through it
+// the database client and the environment binding.
+import "../../scan/run/harness";
 import { middleware } from "@/middleware";
 import { NextRequest } from "next/server";
 
@@ -49,8 +52,11 @@ describe("the boundary — every setup route is signed-in-only", () => {
 
   it.each(["/setup", "/setup/waiting", "/api/setup", "/api/setup/domain", "/api/setup/progress"])(
     "%s without a session is redirected to the sign-in prompt",
-    (path) => {
-      const res = middleware(requestTo(path));
+    async (path) => {
+      // `middleware` became async with #104's removal rewrite; every other
+      // path it decides is still settled from the allow-list and the
+      // cookie, with no database read on the way.
+      const res = await middleware(requestTo(path));
       expect(res.status).toBe(307);
       expect(new URL(res.headers.get("location") ?? "", "https://reachkit.example").pathname).toBe(
         "/signin"
@@ -60,8 +66,8 @@ describe("the boundary — every setup route is signed-in-only", () => {
 
   it.each(["/setup", "/setup/waiting", "/api/setup", "/api/setup/domain", "/api/setup/progress"])(
     "%s with a session is served",
-    (path) => {
-      expect(middleware(requestTo(path, "rk_session=a-token")).status).toBe(200);
+    async (path) => {
+      expect((await middleware(requestTo(path, "rk_session=a-token"))).status).toBe(200);
     }
   );
 });
