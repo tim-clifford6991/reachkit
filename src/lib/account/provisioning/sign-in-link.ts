@@ -44,6 +44,18 @@ export function registerSignInLinkIssuer(next: SignInLinkIssuer | null): void {
   issuer = next ?? notWiredYet;
 }
 
+/** Whether anything at all has been registered here.
+ *
+ *  Issue #35's own wiring (`../identity/wire.ts`) reads this before it
+ *  registers, so that an issuer somebody has deliberately put in place is
+ *  never silently replaced by the default one. A suite that stands a
+ *  counting double in front of this port is the case that matters: without
+ *  this predicate, the first `sendSignInLink` call would wire the real
+ *  issuer over the double and the suite would be measuring nothing. */
+export function signInLinkIssuerWired(): boolean {
+  return issuer !== notWiredYet;
+}
+
 export async function issueSignInLink(a: {
   userId: string;
   to: string;

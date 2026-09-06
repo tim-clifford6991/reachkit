@@ -53,10 +53,11 @@ import { Btn } from "@/ui/components/Btn";
 import { Input } from "@/ui/components/Input";
 import { Surface } from "@/ui/layout";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
+import { DEAD_LINK_MARKER, LINK_QUERY_KEY } from "@/lib/account/identity/addresses";
 import { sendLink } from "./actions";
 import { EMAIL_FIELD, SIGN_IN_INITIAL, type SignInState } from "./state";
 
-type SignInSearchParams = { link?: string };
+type SignInSearchParams = Partial<Record<typeof LINK_QUERY_KEY, string>>;
 
 /** The one written line each answer reaches for (REQ-098 criteria 3 and 6;
  *  REQ-020 criterion 4). `none` is before any submission, when the screen
@@ -74,9 +75,9 @@ const ANSWER_COPY_KEY = {
  *  link that is not theirs learns nothing about whether the address it was
  *  issued for has an account": this screen therefore reads one marker and
  *  never a reason. The marker's spelling is an internal name (constitution
- *  rule 1.1); `redeemLink`'s own caller (issue #35) sends the visitor here
- *  with it. */
-const DEAD_LINK_MARKER = "dead";
+ *  rule 1.1), and since issue #35 it has one home —
+ *  `src/lib/account/identity/addresses.ts`, which is also where the route
+ *  that redeems a link reads it from when it sends a visitor here. */
 
 /** `Alert`'s tone token for that line — a style token, like `Btn`'s
  *  `variant`, never a sentence. */
@@ -115,7 +116,8 @@ export default function SignInPage(props: {
   // runtime to have typed into.
   const value = typed ?? state.value;
 
-  const deadLink = params.link === DEAD_LINK_MARKER ? copy("signin.link_dead") : undefined;
+  const deadLink =
+    params[LINK_QUERY_KEY] === DEAD_LINK_MARKER ? copy("signin.link_dead") : undefined;
   const answerKey = ANSWER_COPY_KEY[state.answer];
   const answer = answerKey === undefined ? undefined : copy(answerKey);
 

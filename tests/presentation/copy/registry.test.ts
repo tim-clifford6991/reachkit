@@ -554,10 +554,22 @@ describe("owner-owed and empty agree both ways", () => {
     // `setup.release.{unmeasured,incomplete}`, which a *screen* speaks — so
     // they take the marker. 76 + 3 = 79 owner-owed and empty,
     // 133 + 2 = 135 awaiting copy, 168 ruled unchanged, 377 + 5 = 382 total.
-    expect(OWNER_OWED.length).toBe(79);
+    //
+    // 2026-09-06, again: issue #35 (identity, REQ-077) adds six keys, every
+    // one owner-owed and *empty*. Two are the `account` mail that goes to
+    // the address an account has just stopped signing in with, and take the
+    // throw for the reason above. Four are the account card's — REQ-077
+    // c1's second note line and the three answers `beginEmailChange` can
+    // give — and they are empty rather than marked because nothing renders
+    // them yet: identity returns the *key* for each and speaks no sentence,
+    // so `copy()`'s throw can take no screen down, and the marker would
+    // only put "TODO(copy)" where a customer will later read a sentence.
+    // 79 + 6 = 85 owner-owed, 135 awaiting copy unchanged, 168 ruled
+    // unchanged, 382 + 6 = 388 total.
+    expect(OWNER_OWED.length).toBe(85);
     expect(AWAITING_COPY.length).toBe(135);
     expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(168);
-    expect(Object.keys(COPY).length).toBe(382);
+    expect(Object.keys(COPY).length).toBe(388);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.

@@ -9,6 +9,12 @@
 // route, rather than being silently skipped (rule 5.5).
 import { readdirSync } from "node:fs";
 import path from "node:path";
+// The cookie's wire name has one home since issue #35
+// (`src/lib/account/identity/addresses.ts`, a module that imports nothing so
+// `src/middleware.ts` can read it on the Edge runtime). Taking the name from
+// there rather than repeating it is what makes a rename impossible to get
+// half-done: the sweep, the middleware and the mint all move together.
+import { SESSION_COOKIE_NAME } from "@/lib/account/identity/addresses";
 
 export interface EnumeratedRoute {
   /** The URL path, route groups stripped and every dynamic segment filled. */
@@ -78,7 +84,7 @@ const HOST_FIXTURES: Readonly<Record<string, string>> = {};
  * `src/middleware.ts` reads; when BP-061's identity work sets it for real
  * (issue #35), that work order is where the two are made to agree.
  */
-export const ACCOUNT_SESSION_COOKIE = "rk_session=layout-sweep-fixture";
+export const ACCOUNT_SESSION_COOKIE = `${SESSION_COOKIE_NAME}=layout-sweep-fixture`;
 
 export class MissingRouteFixtureError extends Error {
   constructor(

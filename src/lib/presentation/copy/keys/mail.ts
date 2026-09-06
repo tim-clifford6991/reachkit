@@ -134,4 +134,19 @@ export const MAIL_COPY = Object.freeze({
   // The one way to reach a person, named in every `account` mail REQ-024
   // requires it in (c3, c5). One key, so the address is written once.
   "mail.account.reach_a_person": ["", { slots: {}, fixedBy: "REQ-024 c5" }],
+
+  // 2026-09-06, issue #35 (identity, REQ-077 c3). The one `account` mail
+  // that goes to the address an account has just stopped signing in with:
+  // "saying the account now signs in at a different address and this one no
+  // longer can". Two keys, both owner-owed and empty — each is a sentence
+  // the product speaks in its own voice, so neither is written here
+  // (constitution §1 / CLAUDE.md "never invent copy"), and `copy()` throws
+  // on an owner-owed key so this mail fails loudly at compose time rather
+  // than reaching a customer blank.
+  //
+  // No slot on either. The mail arrives at the old address, so naming it
+  // says nothing, and naming the new one would put the account's live
+  // credential-bearing address into the mailbox the customer is leaving.
+  "mail.account.address_moved.subject": ["", { slots: {}, fixedBy: "REQ-077 c3" }],
+  "mail.account.address_moved": ["", { slots: {}, fixedBy: "REQ-077 c3" }],
 }) satisfies CopyPartition;

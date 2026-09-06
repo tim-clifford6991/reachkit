@@ -481,3 +481,20 @@ export const IMPROVE_POSITION_BAND = Object.freeze({ min: 4, max: 30 } as const)
  *  depends on it, since the shortfall row records the measured count
  *  itself and not the comparison. */
 export const THIN_PAGE_VISIBLE_CHARS = 1800 as const;         // §7
+
+// ── Identity (issue #35) — BUILD §13, §4.7
+/** The size of a sign-in token, in bytes of `randomBytes`. BP-061 decision
+ *  3: "SHA-256 of a 256-bit random token" — the entropy is what makes the
+ *  stored hash unsalted-safe, so the number and the reason travel together.
+ *  A smaller token is not a tuning knob; it is the credential. */
+export const LINK_TOKEN_BYTES = 32 as const;                  // BP-061 d3 (256 bits)
+/** How long a session cookie stays valid before its holder needs a fresh
+ *  link. **Chosen** (constitution rule 1.1): no requirement states a
+ *  session lifetime — REQ-077 c5 fixes only that signing out ends one.
+ *  Derivation: the product has no password, so every expiry costs the
+ *  customer a round trip through their inbox; 30 days is the same window
+ *  `ERASURE_DAYS` and `HOSTED_RETENTION_DAYS` already use for "long enough
+ *  that a person on holiday is not punished", and a weekly product whose
+ *  own mail arrives every Monday re-anchors it four times over. Reversal
+ *  cost: one line here. */
+export const SESSION_TTL_DAYS = 30 as const;                  // BP-061 (chosen)

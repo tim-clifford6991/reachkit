@@ -59,6 +59,25 @@ const SITES_PROVISIONING_MIGRATION = path.join(
   REPO_ROOT,
   "supabase/migrations/20260906090200_sites_provisioning_columns.sql"
 );
+// BUILD §13 · §4.7 (issue #35) — the two identity migrations. They land in
+// this file for the reason the three payment ones do: `vitest.config.ts`'s
+// `LIVE_SCHEMA_TESTS` list is the owner's and already names this path, so a
+// db-project file of their own would not run at all, and would reset the
+// same physical schema besides.
+//
+// `00000000000002_rls.sql` is applied before them, and only for its first
+// line — it is where `users.deleted_at` is added, and the in-use check
+// REQ-077 c2 needs reads that column (ADR-051 point 5). Its policies are
+// BP-002's and are not under test here.
+const RLS_MIGRATION = path.join(REPO_ROOT, "supabase/migrations/00000000000002_rls.sql");
+const USERS_IDENTITY_COLUMNS_MIGRATION = path.join(
+  REPO_ROOT,
+  "supabase/migrations/20260906100000_users_identity_columns.sql"
+);
+const USERS_IDENTITY_LINKS_MIGRATION = path.join(
+  REPO_ROOT,
+  "supabase/migrations/20260906100100_users_identity_links.sql"
+);
 
 function psql(args: string[]): string {
   return execFileSync("psql", ["-h", DB_HOST, "-p", DB_PORT, "-U", DB_USER, "-d", DB_NAME, "-q", ...args], {
@@ -100,6 +119,9 @@ beforeAll(() => {
   psql(["-v", "ON_ERROR_STOP=1", "-f", USERS_BILLING_MIGRATION]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", USERS_PROVISIONING_MIGRATION]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", SITES_PROVISIONING_MIGRATION]);
+  psql(["-v", "ON_ERROR_STOP=1", "-f", RLS_MIGRATION]);
+  psql(["-v", "ON_ERROR_STOP=1", "-f", USERS_IDENTITY_COLUMNS_MIGRATION]);
+  psql(["-v", "ON_ERROR_STOP=1", "-f", USERS_IDENTITY_LINKS_MIGRATION]);
 });
 
 afterAll(() => {
@@ -410,6 +432,224 @@ describe(
       expect(baselineText).not.toMatch(/\bcheckout_session_id\b/);
       expect(baselineText).not.toMatch(/\bfirst_signed_in_at\b/);
       expect(baselineText).not.toMatch(/\bprovisioned_from_scan_id\b/);
+    });
+  }
+);
+
+// ── BUILD §13 · §4.7 (issue #35) — the identity columns and `auth_links`
+
+describe(
+  'REQ-077 c2, quoted: "a sign-in link is sent to it and the old address keeps working until that link is used" — the pending state is three columns beside an untouched `users.email`',
+  () => {
+    it("the three pending columns exist, are nullable and have no default", () => {
+      const rows = psqlRows(
+        `select column_name, data_type, is_nullable, coalesce(column_default, '') from information_schema.columns where table_schema = 'public' and table_name = 'users' and column_name in ('pending_email', 'pending_email_token_hash', 'pending_email_sent_at') order by column_name;`
+      );
+      expect(rows).toEqual([
+        ["pending_email", "text", "YES", ""],
+        ["pending_email_sent_at", "timestamp with time zone", "YES", ""],
+        ["pending_email_token_hash", "text", "YES", ""],
+      ]);
+    });
+
+    it("users.email is untouched by them — writing a pending address changes no sign-in address", () => {
+      const userId = freshUserId();
+      const before = psqlRows(`select email from users where id = '${userId}';`);
+      psql([
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-c",
+        `update users set pending_email = 'pending-one@example.com', pending_email_token_hash = 'deadbeef', pending_email_sent_at = now() where id = '${userId}';`,
+      ]);
+      expect(psqlRows(`select email from users where id = '${userId}';`)).toEqual(before);
+    });
+
+    it("two rows cannot hold the same pending address, in any case", () => {
+      const first = freshUserId();
+      const second = freshUserId();
+      psql([
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-c",
+        `update users set pending_email = 'Wanted@Example.com' where id = '${first}';`,
+      ]);
+      expect(
+        raises(`update users set pending_email = 'wanted@example.com' where id = '${second}';`)
+      ).toBe(true);
+    });
+
+    it("but many rows may hold no pending address at once — the index is partial", () => {
+      freshUserId();
+      freshUserId();
+      const rows = psqlRows(
+        `select indexdef from pg_indexes where tablename = 'users' and indexname = 'users_pending_email_lower_key';`
+      );
+      expect(rows).toHaveLength(1);
+      expect(rows[0]?.[0]).toContain("WHERE (pending_email IS NOT NULL)");
+    });
+  }
+);
+
+describe(
+  'REQ-077 c1, quoted: "their name and the address they sign in with are shown" (the storage half)',
+  () => {
+    it("users.name exists as text and is nullable — nothing fabricates a name", () => {
+      const rows = psqlRows(
+        `select data_type, is_nullable, coalesce(column_default, '') from information_schema.columns where table_schema = 'public' and table_name = 'users' and column_name = 'name';`
+      );
+      expect(rows).toEqual([["text", "YES", ""]]);
+      const userId = freshUserId();
+      expect(psqlRows(`select coalesce(name, '<null>') from users where id = '${userId}';`)).toEqual([
+        ["<null>"],
+      ]);
+    });
+  }
+);
+
+describe(
+  'BP-061 decision 4, quoted: "A completed email change ends the account\'s other sessions"',
+  () => {
+    it("users.sessions_valid_from exists, is timestamptz and is nullable — null means every unexpired session stands", () => {
+      const rows = psqlRows(
+        `select data_type, is_nullable, coalesce(column_default, '') from information_schema.columns where table_schema = 'public' and table_name = 'users' and column_name = 'sessions_valid_from';`
+      );
+      expect(rows).toEqual([["timestamp with time zone", "YES", ""]]);
+    });
+  }
+);
+
+describe(
+  'BP-061 `## Data model delta`: "New table `auth_links`: `token_hash text primary key`, `user_id`, `purpose`, `sent_to`, `expires_at`, `spent_at`. Tokens are stored hashed ... the plaintext exists only in the mail."',
+  () => {
+    it("the table carries exactly those six columns and no seventh", () => {
+      const rows = psqlRows(
+        `select column_name from information_schema.columns where table_schema = 'public' and table_name = 'auth_links' order by column_name;`
+      );
+      expect(rows.map((r) => r[0])).toEqual([
+        "expires_at",
+        "purpose",
+        "sent_to",
+        "spent_at",
+        "token_hash",
+        "user_id",
+      ]);
+    });
+
+    it("no column could hold a plaintext token — the mutation this catches is a convenience column added later", () => {
+      const rows = psqlRows(
+        `select column_name from information_schema.columns where table_schema = 'public' and table_name = 'auth_links' and column_name ~ '(^|_)(token|secret|plaintext)$';`
+      );
+      expect(rows).toEqual([]);
+    });
+
+    it("token_hash is the primary key", () => {
+      const rows = psqlRows(
+        `select a.attname from pg_index i join pg_attribute a on a.attrelid = i.indrelid and a.attnum = any(i.indkey) where i.indrelid = 'auth_links'::regclass and i.indisprimary;`
+      );
+      expect(rows).toEqual([["token_hash"]]);
+    });
+
+    it("purpose admits exactly the two occasions a link exists for", () => {
+      const userId = freshUserId();
+      const write = (purpose: string): boolean =>
+        raises(
+          `insert into auth_links (token_hash, user_id, purpose, sent_to, expires_at) values ('h-${purpose}-${Math.random().toString(36).slice(2)}', '${userId}', '${purpose}', 'a@example.com', now() + interval '1 hour');`
+        );
+      expect(write("sign_in")).toBe(false);
+      expect(write("password_reset")).toBe(true);
+    });
+
+    it("sent_to must be lowercased — a mixed-case row would be a second identity for one person", () => {
+      const userId = freshUserId();
+      expect(
+        raises(
+          `insert into auth_links (token_hash, user_id, purpose, sent_to, expires_at) values ('h-case', '${userId}', 'sign_in', 'Mixed@Example.com', now() + interval '1 hour');`
+        )
+      ).toBe(true);
+    });
+
+    it("the foreign key to users carries no cascade (ADR-051 point 2)", () => {
+      const rows = psqlRows(
+        `select c.confdeltype from pg_constraint c join pg_class t on t.oid = c.conrelid where t.relname = 'auth_links' and c.contype = 'f';`
+      );
+      expect(rows).toEqual([["a"]]); // 'a' = NO ACTION; 'c' would be CASCADE
+    });
+
+    it("RLS is on with no policy — nobody holding an anon or authenticated key can read a link", () => {
+      expect(
+        psqlRows(`select relrowsecurity::text from pg_class where relname = 'auth_links';`)
+      ).toEqual([["true"]]);
+      expect(psqlRows(`select count(*)::text from pg_policies where tablename = 'auth_links';`)).toEqual(
+        [["0"]]
+      );
+    });
+  }
+);
+
+describe(
+  'BP-061 `## Error & edge behavior`: "Rate limiting: at most one live token per `(user_id, purpose)`. Issuing a new one spends the previous."',
+  () => {
+    const live = (userId: string, hash: string, purpose = "sign_in"): boolean =>
+      raises(
+        `insert into auth_links (token_hash, user_id, purpose, sent_to, expires_at) values ('${hash}', '${userId}', '${purpose}', 'a@example.com', now() + interval '1 hour');`
+      );
+
+    it("a second unspent link for one (user, purpose) is refused by the index, not by a caller", () => {
+      const userId = freshUserId();
+      expect(live(userId, `h1-${userId}`)).toBe(false);
+      expect(live(userId, `h2-${userId}`)).toBe(true);
+    });
+
+    it("spending the first makes room for the next — which is what `issueLink` relies on", () => {
+      const userId = freshUserId();
+      live(userId, `h3-${userId}`);
+      psql([
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-c",
+        `update auth_links set spent_at = now() where token_hash = 'h3-${userId}';`,
+      ]);
+      expect(live(userId, `h4-${userId}`)).toBe(false);
+    });
+
+    it("a sign-in link and an email-change link live side by side — the index is per purpose", () => {
+      const userId = freshUserId();
+      expect(live(userId, `h5-${userId}`, "sign_in")).toBe(false);
+      expect(live(userId, `h6-${userId}`, "email_change")).toBe(false);
+    });
+  }
+);
+
+describe(
+  '`structure.md` rule 3a — each identity migration carries exactly one sub-token, and resolves to the leaf that owns those columns',
+  () => {
+    it("both filenames resolve to users_identity", () => {
+      expect(topicOf("20260906100000_users_identity_columns.sql")).toEqual({
+        token: "users_identity",
+        owner: "BP-061",
+      });
+      expect(topicOf("20260906100100_users_identity_links.sql")).toEqual({
+        token: "users_identity",
+        owner: "BP-061",
+      });
+    });
+
+    it("the baseline file is unmodified — no identity column arrives in it", () => {
+      const baselineText = readFileSync(BASELINE_MIGRATION, "utf8");
+      expect(baselineText).not.toMatch(/\bpending_email\b/);
+      expect(baselineText).not.toMatch(/\bauth_links\b/);
+      expect(baselineText).not.toMatch(/\bsessions_valid_from\b/);
+    });
+
+    it("neither identity migration introduces an on-delete cascade", () => {
+      for (const file of [USERS_IDENTITY_COLUMNS_MIGRATION, USERS_IDENTITY_LINKS_MIGRATION]) {
+        // Comments stripped: both files *name* ADR-051 point 2 in prose, and
+        // a promise stated in a header must not fail the test that checks
+        // the promise is kept — the same footing the TypeScript suites in
+        // `tests/account/**` strip their own sources on.
+        const sql = readFileSync(file, "utf8").replace(/^\s*--.*$/gm, "");
+        expect(sql).not.toMatch(/on delete cascade/i);
+      }
     });
   }
 );
