@@ -1,16 +1,29 @@
-// BUILD §13 — the two `account` mails REQ-024 obliges.
+// BUILD §13 — the `account` mails REQ-024 and REQ-077 oblige.
 import { describe, expect, it } from "vitest";
 import { applyEnvFixture } from "../../env-fixture";
 
 applyEnvFixture();
 
-const { buildChaseWithLink, buildChaseWithoutLink, buildSecondPurchase } = await import(
-  "../../../../src/lib/mail/templates/account"
-);
+const { buildAddressMoved, buildChaseWithLink, buildChaseWithoutLink, buildSecondPurchase } =
+  await import("../../../../src/lib/mail/templates/account");
 const { MAIL_KINDS } = await import("../../../../src/lib/mail/kinds");
 const { COPY } = await import("../../../../src/lib/presentation/copy");
+const { COPY_META } = await import("../../../../src/lib/presentation/copy/registry");
 
 const HREF = "https://reachkit.example/signin?t=tok";
+
+/** Every sentence the `account` kind speaks. Six from REQ-024 (#33), two
+ *  from REQ-077 c3 (#35). */
+const ACCOUNT_MAIL_KEYS = [
+  "mail.account.chase.subject",
+  "mail.account.chase.link_ready",
+  "mail.account.chase.not_open_yet",
+  "mail.account.second_purchase.subject",
+  "mail.account.no_second_subscription",
+  "mail.account.reach_a_person",
+  "mail.account.address_moved.subject",
+  "mail.account.address_moved",
+] as const;
 
 describe('REQ-024 c5 — the chase: a working link where the account is open, or a statement that it is not', () => {
   it("the open arm carries the link", () => {
@@ -55,11 +68,38 @@ describe('REQ-024 c3 — a founder whose second purchase was charged is told it 
   });
 });
 
-describe('REQ-024 c3/c5 — every account mail names one way to reach a person', () => {
+describe('REQ-077 c3 (issue #35) — the address has moved, and the old one is told', () => {
+  it("says so, and names a way to reach a person", () => {
+    expect(buildAddressMoved()).toEqual({
+      subject: "mail.account.address_moved.subject",
+      blocks: [
+        { block: "paragraph", text: "mail.account.address_moved" },
+        { block: "notice", text: "mail.account.reach_a_person" },
+      ],
+    });
+  });
+
+  it("carries no action: the change is already made, and there is nothing here to do", () => {
+    const blocks = buildAddressMoved().blocks as readonly { block: string }[];
+    expect(blocks.some((block) => block.block === "action")).toBe(false);
+  });
+
+  it("names neither address — it arrives at one, and must not carry the other", () => {
+    // The template holds keys, and neither key takes a slot: a template with
+    // an `{email}` slot is one edit away from putting the account's live
+    // sign-in address in the mailbox the customer is leaving.
+    for (const key of ["mail.account.address_moved.subject", "mail.account.address_moved"] as const) {
+      expect(COPY_META[key].slots).toEqual({});
+    }
+  });
+});
+
+describe('REQ-024 c3/c5, REQ-077 c3 — every account mail names one way to reach a person', () => {
   it.each([
     ["chase, open", buildChaseWithLink({ href: HREF })],
     ["chase, not open", buildChaseWithoutLink()],
     ["second purchase", buildSecondPurchase()],
+    ["address moved", buildAddressMoved()],
   ])("%s", (_name, mail) => {
     const blocks = mail.blocks as readonly { text?: string }[];
     expect(blocks.some((block) => block.text === "mail.account.reach_a_person")).toBe(true);
@@ -73,26 +113,11 @@ describe("the register row, and the sentences still owed", () => {
   });
 
   it("every key these mails speak is in the registry", () => {
-    const keys = [
-      "mail.account.chase.subject",
-      "mail.account.chase.link_ready",
-      "mail.account.chase.not_open_yet",
-      "mail.account.second_purchase.subject",
-      "mail.account.no_second_subscription",
-      "mail.account.reach_a_person",
-    ] as const;
-    for (const key of keys) expect(Object.keys(COPY)).toContain(key);
+    for (const key of ACCOUNT_MAIL_KEYS) expect(Object.keys(COPY)).toContain(key);
   });
 
-  it("all six are owner-owed and empty, so the seam refuses to compose rather than shipping a blank line", () => {
-    const keys = [
-      "mail.account.chase.subject",
-      "mail.account.chase.link_ready",
-      "mail.account.chase.not_open_yet",
-      "mail.account.second_purchase.subject",
-      "mail.account.no_second_subscription",
-      "mail.account.reach_a_person",
-    ] as const;
-    for (const key of keys) expect(COPY[key]).toBe("");
+  it("all eight are owner-owed and empty, so the seam refuses to compose rather than shipping a blank line", () => {
+    expect(ACCOUNT_MAIL_KEYS).toHaveLength(8);
+    for (const key of ACCOUNT_MAIL_KEYS) expect(COPY[key]).toBe("");
   });
 });

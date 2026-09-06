@@ -146,6 +146,33 @@ export const SETTINGS_COPY = Object.freeze({
   // product's voice. The key exists, so filling it is the whole change.
   "settings.account.magic-link": ["", { slots: {}, fixedBy: 'BUILD §4.7 ("magic-link note")' }],
 
+  // 2026-09-06, issue #35 — REQ-077's four sentences on this card. Every
+  // one is owner-owed and empty, like `settings.account.magic-link` two
+  // lines above and for the same reason: nothing renders them yet. Identity
+  // returns the *key* for each answer (`beginEmailChange`'s `lineKey`,
+  // `accountCard`'s `noteKeys`) and speaks no sentence, and the panel that
+  // will render them is not in this build — so `copy()`'s throw on an
+  // empty value cannot take a screen down, and the marker's renderable
+  // form would only put "TODO(copy)" where a customer will later read a
+  // sentence.
+  //
+  // The first is REQ-077 criterion 1's second note line — "one saying
+  // invoices and receipts go to the address held in the billing portal and
+  // are changed there (REQ-076 criterion 2), not here". It is a note, not a
+  // control: this screen offers no way to change an invoice address and
+  // this key is the line that says where one is.
+  //
+  // The next three are the three answers `beginEmailChange` can give. Three
+  // lines, not one with a variable: "that address already belongs to an
+  // account", "that is not an address we can send to" and "we could not
+  // start the change just now" are three different facts about what
+  // happened, and a customer who is told the second when the third is true
+  // will retype an address that was never the problem.
+  "settings.account.invoices-elsewhere": ["", { slots: {}, fixedBy: "REQ-077 c1" }],
+  "settings.account.email-in-use": ["", { slots: {}, fixedBy: "REQ-077 c2" }],
+  "settings.account.email-invalid": ["", { slots: {}, fixedBy: "REQ-077 c2" }],
+  "settings.account.email-change-unavailable": ["", { slots: {}, fixedBy: "REQ-077 c2" }],
+
   // ── Your content ───────────────────────────────────────────────────────
   "settings.content.title": ["Your content", { slots: {}, fixedBy: "BUILD §4.7" }],
   "settings.content.pages": ["pages", { slots: {}, fixedBy: 'BUILD §4.7 ("pages count")' }],

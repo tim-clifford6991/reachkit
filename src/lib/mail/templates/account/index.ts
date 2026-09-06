@@ -25,6 +25,8 @@ const CHASE_LINK_READY = "mail.account.chase.link_ready" satisfies CopyKey;
 const CHASE_NOT_OPEN_YET = "mail.account.chase.not_open_yet" satisfies CopyKey;
 const CHASE_ACTION = "mail.magicLink.action" satisfies CopyKey;
 const SECOND_PURCHASE_SUBJECT = "mail.account.second_purchase.subject" satisfies CopyKey;
+const ADDRESS_MOVED_SUBJECT = "mail.account.address_moved.subject" satisfies CopyKey;
+const ADDRESS_MOVED = "mail.account.address_moved" satisfies CopyKey;
 const NO_SECOND_SUBSCRIPTION = "mail.account.no_second_subscription" satisfies CopyKey;
 const REACH_A_PERSON = "mail.account.reach_a_person" satisfies CopyKey;
 
@@ -62,6 +64,33 @@ export function buildSecondPurchase(): AccountMail {
     subject: SECOND_PURCHASE_SUBJECT,
     blocks: [
       { block: "paragraph", text: NO_SECOND_SUBSCRIPTION },
+      { block: "notice", text: REACH_A_PERSON },
+    ],
+  };
+}
+
+/** REQ-077 criterion 3 (issue #35): "one `account` mail (REQ-064) goes to
+ *  the old address saying the account now signs in at a different address
+ *  and this one no longer can."
+ *
+ *  **It names neither address.** The mail arrives at the old one, so
+ *  printing it says nothing; printing the new one would put the account's
+ *  live credential-bearing address into a mailbox the customer has just
+ *  told us they are leaving — which is exactly the mailbox somebody else
+ *  may be reading. The line says what happened, and that is all REQ-077
+ *  asks it to say.
+ *
+ *  **It carries no action.** There is nothing for the reader of the old
+ *  address to do: the change is already made, and a control here could only
+ *  offer to undo something this mail's reader may not be the person who
+ *  did. It keeps the notice naming a way to reach a person, which is the
+ *  invariant this file's header states and the only route back for someone
+ *  who did not expect this mail. */
+export function buildAddressMoved(): AccountMail {
+  return {
+    subject: ADDRESS_MOVED_SUBJECT,
+    blocks: [
+      { block: "paragraph", text: ADDRESS_MOVED },
       { block: "notice", text: REACH_A_PERSON },
     ],
   };
