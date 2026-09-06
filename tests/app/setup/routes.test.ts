@@ -54,8 +54,8 @@ describe("the boundary — every setup route is signed-in-only", () => {
     "%s without a session is redirected to the sign-in prompt",
     async (path) => {
       // `middleware` became async with #104's removal rewrite; every other
-      // path it decides is still settled from the allow-list and the
-      // cookie, with no database read on the way.
+      // path it decides is still settled from the allow-list, the cookie
+      // and §4.3's setup gate, with no database read on the way.
       const res = await middleware(requestTo(path));
       expect(res.status).toBe(307);
       expect(new URL(res.headers.get("location") ?? "", "https://reachkit.example").pathname).toBe(
