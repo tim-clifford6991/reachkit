@@ -418,3 +418,32 @@ export const AUTOSAVE_DEBOUNCE_MS = 1200 as const;             // BP-044 · BUIL
  *  they type' costs no round trip." It is a ceiling on re-render, never on
  *  the edit itself — the textarea is never debounced. */
 export const PREVIEW_DEBOUNCE_MS = 100 as const;               // BP-044 · BUILD §4.6
+
+// ── Payments (issues #33, #91) — BUILD §13
+/** The price, in minor units of its currency. `BUILD.md` §13 states the
+ *  amount ("49/mo flat", written there with its currency sign) and
+ *  `DECISIONS.md`'s ADR-052 line names these three as the pins the Stripe
+ *  Price object is built from and checked against. Minor units because
+ *  that is what the payment vendor's own Price object carries, so no
+ *  caller ever multiplies by a hundred.
+ *
+ *  No sentence about the price lives here. What a founder reads is
+ *  `PRICE_COPY_KEYS`' three keys in the copy registry, and this file holds
+ *  no key and no currency sign — `tests/config/constants.test.ts` asserts
+ *  both. */
+export const PRICE_EUR_CENTS = 4900 as const;                 // ADR-052 · REQ-022 c1, c4
+export const PRICE_CURRENCY = "eur" as const;                 // ADR-052 · REQ-022 c4
+export const PRICE_INTERVAL = "month" as const;               // ADR-052 · REQ-022 c1, c2
+
+/** How long after a completed payment nobody has signed in before the
+ *  address is written to again (REQ-024 c5). Deliberately not
+ *  `MAINTENANCE_TICK_MINUTES`, which happens to hold the same number today
+ *  and bounds a different thing — how often the tick that notices runs.
+ *  The two move independently: a five-minute tick would not change when a
+ *  founder is chased. */
+export const PAYMENT_CHASE_MINUTES = 15 as const;             // REQ-024 c5
+/** How long after a completed payment with no account opened before the
+ *  backstop opens one from the payment alone (REQ-024 c6). Deliberately
+ *  not `PUBLISH_VERIFY_DELAY_H`, which also holds 24 and bounds a
+ *  publication check. */
+export const PAYMENT_BACKSTOP_H = 24 as const;                // REQ-024 c6

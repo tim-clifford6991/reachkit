@@ -120,24 +120,42 @@ export async function advanceSequence(a: {
   return notBuilt("BP-029", `advanceSequence(${a.leadId})`);
 }
 
-// ── Payments and provisioning — BP-032
-// TODO(engine): BP-032's payment backstops — the two due-work queries and
-// their two hand-offs.
+// ── Payments and provisioning — BUILD §13 (issue #33)
+// Built. The four functions below are the only ones on this seam that call
+// a real engine: `src/lib/account/provisioning/**` owns the rules, and the
+// four wrappers here do nothing but pass a clock in and map the result to
+// an `EngineResult`.
+//
+// The two due-work queries take `now` from the tick, which is what makes
+// due-ness testable without a scheduler. The tick's own signature supplies
+// none, so `new Date()` is read here — the one place in this file that
+// reads a clock, and the boundary the engine's own `now` parameter exists
+// to keep out of the rules.
 
 export async function paymentsAwaitingSignIn(): Promise<readonly string[]> {
-  return notBuilt("BP-032", "paymentsAwaitingSignIn()");
+  const { paymentsAwaitingSignIn: due } = await import("@/lib/account/provisioning/due-work");
+  return due(new Date());
 }
 
 export async function chaseSignIn(paymentId: string): Promise<EngineResult> {
-  return notBuilt("BP-032", `chaseSignIn(${paymentId})`);
+  const { chaseSignIn: chase } = await import("@/lib/account/provisioning/chase");
+  // A chase that did not send is not a degraded run: every `chased: false`
+  // arm is a subject that turned out not to need one (signed in since,
+  // already chased) or a transient the next tick asks again about. The job
+  // reports what it handed off, never a second copy of this rule.
+  await chase(paymentId);
+  return { done: true };
 }
 
 export async function paymentsWithoutAccounts(): Promise<readonly string[]> {
-  return notBuilt("BP-032", "paymentsWithoutAccounts()");
+  const { paymentsWithoutAccounts: due } = await import("@/lib/account/provisioning/due-work");
+  return due(new Date());
 }
 
 export async function backstopProvision(paymentId: string): Promise<EngineResult> {
-  return notBuilt("BP-032", `backstopProvision(${paymentId})`);
+  const { backstopProvision: backstop } = await import("@/lib/account/provisioning/backstop");
+  const outcome = await backstop(paymentId);
+  return outcome.provisioned ? { done: true } : { degraded: `backstop:${outcome.because}` };
 }
 
 // ── Hosted pages — BP-060

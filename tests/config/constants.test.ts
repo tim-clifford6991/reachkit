@@ -221,3 +221,51 @@ describe("REPORT_REMOVED_STATUS — the removed report address's status", () => 
     expect(constants.REPORT_REMOVED_STATUS).not.toBe(200);
   });
 });
+
+// BUILD §13 / ADR-052 — the three price pins (issues #33, #91). Structural
+// rows only: the values against their quoted clauses are `tests/pins.test.ts`'s.
+// The last two rows are the ones that keep the *sentence* out of this file —
+// BP-005 decision 5, "no customer-visible string enters this file; the
+// sentence a founder reads stays in the registry under `PRICE_COPY_KEYS`".
+describe("BUILD §13 price pins — three exports, and no sentence about the price", () => {
+  it("PRICE_EUR_CENTS is an integer number of minor units", () => {
+    expect(typeof constants.PRICE_EUR_CENTS).toBe("number");
+    expect(Number.isInteger(constants.PRICE_EUR_CENTS)).toBe(true);
+    expect(constants.PRICE_EUR_CENTS).toBeGreaterThan(0);
+  });
+
+  it("PRICE_CURRENCY and PRICE_INTERVAL are lowercase strings, as the vendor's Price object carries them", () => {
+    expect(typeof constants.PRICE_CURRENCY).toBe("string");
+    expect(constants.PRICE_CURRENCY).toBe(constants.PRICE_CURRENCY.toLowerCase());
+    expect(typeof constants.PRICE_INTERVAL).toBe("string");
+    expect(constants.PRICE_INTERVAL).toBe(constants.PRICE_INTERVAL.toLowerCase());
+  });
+
+  it("the file carries no currency sign and no tax word — the sentence is the registry's", () => {
+    expect(SOURCE).not.toMatch(/[€$£]/);
+    expect(SOURCE).not.toMatch(/\bVAT\b/);
+    expect(SOURCE).not.toMatch(/per month/);
+  });
+
+  it("the file names no copy key — no `price.` literal reaches it", () => {
+    expect(SOURCE).not.toMatch(/["'`]price\.[a-z_]/);
+  });
+});
+
+// BUILD §13 / REQ-024 c5, c6 — the two payment backstop clocks (issue #33).
+describe("BUILD §13 payment backstops — two clocks, in different units, each its own pin", () => {
+  it("PAYMENT_CHASE_MINUTES and PAYMENT_BACKSTOP_H are both positive integers", () => {
+    expect(Number.isInteger(constants.PAYMENT_CHASE_MINUTES)).toBe(true);
+    expect(constants.PAYMENT_CHASE_MINUTES).toBeGreaterThan(0);
+    expect(Number.isInteger(constants.PAYMENT_BACKSTOP_H)).toBe(true);
+    expect(constants.PAYMENT_BACKSTOP_H).toBeGreaterThan(0);
+  });
+
+  it("neither is an alias of the pin that happens to share its number", () => {
+    // A cleanup that unified either pair would make a change to the tick's
+    // cadence silently change when a founder is chased, and a change to
+    // the publication check silently change when the backstop fires.
+    expect(constants.PAYMENT_CHASE_MINUTES).not.toBe(constants.MAINTENANCE_TICK_MINUTES * 2);
+    expect(constants.PAYMENT_BACKSTOP_H).not.toBe(constants.PUBLISH_VERIFY_DELAY_H * 2);
+  });
+});

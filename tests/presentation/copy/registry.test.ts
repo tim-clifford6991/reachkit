@@ -535,10 +535,18 @@ describe("owner-owed and empty agree both ways", () => {
     //
     // 64 + 4 - 1 = 67 owner-owed and empty, 124 + 8 + 1 = 133 awaiting
     // copy, 160 + 8 = 168 ruled, 348 + 20 = 368 total.
-    expect(OWNER_OWED.length).toBe(67);
+    //
+    // 2026-09-06, separately again: issue #33 (Stripe and provisioning,
+    // §13) adds nine keys, every one owner-owed and *empty* rather than
+    // marked. The owner's 2026-09-05 ruling on #93 divides the two
+    // representations by destination — the marker for fixture screens, the
+    // throw for mail, "a mail never ships a placeholder" — and all nine
+    // are mail lines. 67 + 9 = 76 owner-owed, 133 awaiting copy unchanged,
+    // 168 ruled unchanged, 368 + 9 = 377 total.
+    expect(OWNER_OWED.length).toBe(76);
     expect(AWAITING_COPY.length).toBe(133);
     expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(168);
-    expect(Object.keys(COPY).length).toBe(368);
+    expect(Object.keys(COPY).length).toBe(377);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.

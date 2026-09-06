@@ -1,49 +1,57 @@
-// src/lib/account/provisioning/magic-link.ts — §13, REQ-098 c3, REQ-020 c4 (issue #19)
+// src/lib/account/provisioning/magic-link.ts — BUILD §13
 //
-// **The declared sign-in-link seam, and nothing behind it yet.** §1's
-// "magic-link auth" and §13's "send magic link → /setup". Issue #35 builds
-// the identity half — `auth_links`, `issueLink`, `redeemLink`,
-// `currentSession`, `signOut` — and this function's body with it. The
-// signature below is BP-032's, verbatim: one function, three branches,
-// "because they are three answers to one request".
+// One request for a sign-in link, three answers, each in its own written
+// line — and never an access check.
 //
-// **No section marker, deliberately** — same reason as
-// `src/lib/account/checkout/session.ts`: the drift audit reads such a
-// citation as "built", and no link is sent from here. #35 adds it with
-// the body.
+// REQ-020 criterion 4 is emphatic about who is *not* in the "no account"
+// branch: "never a customer whose account exists and whose paid-through
+// date has passed, who is still sent a link and can still sign in". A
+// lapsed customer signs in, sees their billing page and decides what to do.
+// Gating this function on access would lock them out of the one screen that
+// lets them come back — so this file imports nothing from
+// `src/lib/account/billing/**`, and the eslint fence
+// (`local/no-billing-internal-import`) makes that structural rather than
+// remembered.
 //
-// **The stub throws; it never answers `{ sent: true }`.** Reporting a link
-// as sent when no mail left the process is the one answer this screen must
-// never give (REQ-098 c3), so the seam refuses rather than guesses.
+// **The three answers are three lines, not one line with a variable.** A
+// held payment and an unknown address are different facts about a person's
+// standing with this product, and telling them apart is the difference
+// between "your money arrived, we are opening it" and "we have never heard
+// of you". `signin.payment_held` and `signin.no_account` are distinct keys
+// for exactly that reason.
+//
+// **Nothing is said about an address until one is given.** This function's
+// only input is the address; there is no path by which it reports on any
+// other (REQ-020 c5).
+import { accountStore } from "../store";
+import { sendSignInLink } from "./sign-in-mail";
+import { heldPaymentFor } from "./held-payment";
 
-/** BP-032, verbatim. Never consults access: a customer past their
- *  paid-through date is sent a link and can sign in (REQ-076 c5, REQ-020
- *  c4). Each `lineKey` names the copy key whose sentence the sign-in screen
- *  speaks for that branch. */
+/** Three answers to one request. Each `lineKey` names the copy key whose
+ *  sentence the sign-in screen speaks for that branch. */
 export type MagicLinkAnswer =
   | { sent: true }
   | { sent: false; answer: "payment_held_account_opening"; lineKey: "signin.payment_held" }
   | { sent: false; answer: "no_account"; lineKey: "signin.no_account" };
 
-export class MagicLinkNotImplementedError extends Error {
-  constructor() {
-    super(
-      "requestMagicLink is declared, not implemented: the identity half is issue #35. " +
-        "No sign-in link was issued and no mail was sent."
-    );
-    this.name = "MagicLinkNotImplementedError";
-  }
-}
-
-/**
- * Answers one sign-in request for `email`.
- *
- * Throws `MagicLinkNotImplementedError` until issue #35 supplies the body.
- */
 export async function requestMagicLink(email: string): Promise<MagicLinkAnswer> {
-  // Named and discarded, deliberately: this file must not read, log or
-  // store the address it is given — an address is exactly the fact this
-  // seam's own policy exists to keep quiet about (REQ-020 criterion 5).
-  void email;
-  throw new MagicLinkNotImplementedError();
+  const address = email.trim().toLowerCase();
+
+  const read = await accountStore().accountByEmail(address);
+  if (read.ok && read.account !== null) {
+    // An account exists. Whether it is paid up is not asked, here or
+    // anywhere on this path.
+    await sendSignInLink({ userId: read.account.id, email: read.account.email });
+    return { sent: true };
+  }
+
+  // No account. Either their payment is with us and the account is being
+  // opened, or we have never heard of this address. An unreadable store
+  // takes the second branch rather than the first: claiming to hold
+  // somebody's payment when we cannot see whether we do is the one thing
+  // neither line may say wrongly.
+  const held = await heldPaymentFor(address);
+  return held
+    ? { sent: false, answer: "payment_held_account_opening", lineKey: "signin.payment_held" }
+    : { sent: false, answer: "no_account", lineKey: "signin.no_account" };
 }

@@ -56,6 +56,11 @@ export const MIGRATION_TOPICS: readonly MigrationTopic[] = [
 // column(s) it carries (BP-002 `## Data model delta`'s index, and
 // `structure.md`'s per-leaf `code:` globs).
 export const MIGRATION_SUBTOKENS: readonly MigrationSubtoken[] = [
+  // `users_billing` — the columns Checkout writes (issue #33, BUILD §13).
+  // BP-030 is the checkout leaf inside BP-017; the sub-token narrows the
+  // `users` topic so `users_provisioning` and this one cannot both claim
+  // one file.
+  { token: "users_billing", parent: "users", owner: "BP-030" },
   { token: "users_provisioning", parent: "users", owner: "BP-032" },
   { token: "users_subscription", parent: "users", owner: "BP-060" },
   { token: "users_identity", parent: "users", owner: "BP-061" },
