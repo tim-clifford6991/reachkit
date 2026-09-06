@@ -39,10 +39,14 @@ export interface DeriveInput {
    *  as a large number instead would silently widen the bars for exactly
    *  the customers the product exists to serve. */
   ownRanked: Measured<number>;
-  /** One ranked count per domain the deep pass sized. See
-   *  `winnability/counts.ts` for why a missing entry is `undeterminable`
-   *  and never a zero, and for the seam issue #37's rival sizing plugs
-   *  into. */
+  /** One ranked count per domain the deep pass sized — issue #37's
+   *  `RivalSize[]`, projected by `rankedCountsFromSizes`. It is a
+   *  parameter and not a read of the report because `rivalSizes` is not a
+   *  member of `StoredReport` yet: it "joins StoredReport under #103"
+   *  (DECISIONS, 2026-09-06). When it does, the caller passes
+   *  `rankedCountsFromSizes(report.rivalSizes.value, at)` and nothing in
+   *  this directory changes. A missing entry is `undeterminable` and
+   *  never a zero — see `winnability/counts.ts`. */
   rankedCounts: RankedCounts;
 }
 

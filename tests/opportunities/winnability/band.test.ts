@@ -7,7 +7,10 @@ import { assess, bandWinnability, qualifies } from "../../../src/lib/opportuniti
 import {
   rankedCountFrom,
   rankedCountsFor,
+  rankedCountsFromSizes,
 } from "../../../src/lib/opportunities/winnability/counts";
+import { bandRivalSize } from "../../../src/lib/market/rivals/band";
+import type { RivalSize } from "../../../src/lib/market/rivals/size";
 import { BAND_LABELS } from "../../../src/lib/presentation/bands";
 
 const AT = new Date("2026-09-05T10:00:00.000Z");
@@ -105,5 +108,62 @@ describe("assess tells the two rejections apart", () => {
       qualified: true,
       band: "winnable",
     });
+  });
+});
+
+describe("#37's rival sizing is where the counts come from, and it is not re-done here", () => {
+  const sizes: RivalSize[] = [
+    {
+      domain: "appcues.com",
+      state: "sized",
+      rankedCount: 40,
+      band: bandRivalSize({ rivalRanked: 40, ownRanked: 0 }),
+      at: AT,
+      current: true,
+    },
+    { domain: "userpilot.com", state: "unsized", because: "awaiting_deep_pass" },
+  ];
+
+  it("a sized rival contributes its count with the date it was measured on", () => {
+    const counts = rankedCountsFromSizes(sizes, new Date("2026-09-06T00:00:00.000Z"));
+    expect(counts.get("appcues.com")).toEqual(measured(40, AT));
+  });
+
+  it("an unsized rival contributes undeterminable, never a zero", () => {
+    const later = new Date("2026-09-06T00:00:00.000Z");
+    const counts = rankedCountsFromSizes(sizes, later);
+    expect(counts.get("userpilot.com")).toEqual(unmeasured<number>("undeterminable", later));
+    expect(counts.get("userpilot.com")).not.toEqual(measuredZero(0, later));
+  });
+
+  it("the row cap is applied on this side too, whatever the sizing recorded", () => {
+    // #37's own header records the same bound and names issue #117 as the
+    // fix. Until it lands, a rival at the cap is a rival whose size we do
+    // not know — and a target is not made winnable by it.
+    const atCap: RivalSize[] = [
+      {
+        domain: "big.com",
+        state: "sized",
+        rankedCount: PRICE_BOOK.RANKED_RIVAL_ROWS,
+        band: bandRivalSize({ rivalRanked: PRICE_BOOK.RANKED_RIVAL_ROWS, ownRanked: 0 }),
+        at: AT,
+        current: true,
+      },
+    ];
+    const counts = rankedCountsFromSizes(atCap, AT);
+    expect(counts.get("big.com")!.kind).toBe("unmeasured");
+    expect(qualifies({ top10RankedCounts: [counts.get("big.com")!], ownRanked: 0 })).toBe(false);
+  });
+
+  it("a rival's size band is never read as a target's winnability band", () => {
+    // Two band sets, two meanings, six distinct words (ADR-001). The
+    // projection carries counts and drops the rival band entirely.
+    const counts = rankedCountsFromSizes(sizes, AT);
+    for (const count of counts.values()) {
+      expect(Object.keys(count)).not.toContain("band");
+    }
+    expect(bandWinnability({ top10RankedCounts: [...counts.values()], ownRanked: 0 })).toBe(
+      "winnable"
+    );
   });
 });

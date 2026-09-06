@@ -12,6 +12,7 @@
 // knowing is fewer opportunities, never a guessed one — supply is the cap
 // (DECISIONS, 2026-08-28).
 import { PRICE_BOOK } from "@/lib/config/constants";
+import type { RivalSize } from "@/lib/market/rivals/size";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 
 /**
@@ -33,19 +34,41 @@ export function rankedCountFrom(
 }
 
 /** The lookup a derivation is handed: one entry per domain the deep pass
- *  bought ranked rows for. A domain with no entry is not an error and not a
- *  zero — it is `undeterminable`, which `rankedCountsFor` below returns for
- *  it.
- *
- *  This is the seam where issue #37's rival sizing meets §7. #37 was not
- *  merged when this landed (PR #118 open), so its `RivalSize[]` is not yet
- *  a member of `StoredReport` and `bandRivalSize` cannot be called from
- *  here. `RankedCounts` is the interface declared in its place: a
- *  `Measured<number>` per domain is exactly what #37's `sized` arm carries,
- *  so wiring the two together is a projection at the call site and no
- *  change to anything in this directory. Nothing here re-derives a
- *  rival-size band — that is #37's `bandRivalSize` and stays its. */
+ *  sized. A domain with no entry is not an error and not a zero — it is
+ *  `undeterminable`, which `rankedCountsFor` below returns for it. */
 export type RankedCounts = ReadonlyMap<string, Measured<number>>;
+
+/**
+ * #37's rival sizing, projected into what winnability reads.
+ *
+ * The two modules meet here and nowhere else. Sizing owns the counts and
+ * the near/middle/far band a *rival* carries (`bandRivalSize`); this
+ * module owns the Winnable/Reach/Not-yet band a *target* carries. No band
+ * is re-derived here and no count is re-measured: an entry's
+ * `rankedCount` is taken with the date it was measured on, and an
+ * `unsized` rival contributes `undeterminable` — never a zero, which
+ * would satisfy every bar.
+ *
+ * `sized` counts still pass through `rankedCountFrom`, so the row cap is
+ * applied on this side too. #37 records the same bound in its own header
+ * and names issue #117 as the fix; until that lands, a rival at the cap
+ * is a rival whose size we do not know, and winnability says so.
+ */
+export function rankedCountsFromSizes(
+  sizes: readonly RivalSize[],
+  at: Date
+): RankedCounts {
+  const counts = new Map<string, Measured<number>>();
+  for (const size of sizes) {
+    counts.set(
+      size.domain,
+      size.state === "sized"
+        ? rankedCountFrom({ rows: size.rankedCount, at: size.at }, at)
+        : unmeasured<number>("undeterminable", at)
+    );
+  }
+  return counts;
+}
 
 /** Every top-ten domain's ranked count, in the SERP's own order. A domain
  *  the lookup does not carry contributes an `undeterminable` count rather

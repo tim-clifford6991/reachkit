@@ -21,7 +21,11 @@ export { BARRIERS, FAMILY_OF, OPPORTUNITY_TYPES } from "./types";
 
 export { bandWinnability, qualifies } from "./winnability/band";
 export { qualifyingBar, winnableBar } from "./winnability/bars";
-export { rankedCountFrom, type RankedCounts } from "./winnability/counts";
+export {
+  rankedCountFrom,
+  rankedCountsFromSizes,
+  type RankedCounts,
+} from "./winnability/counts";
 
 export { rankScore } from "./rank/score";
 export { rankOpen } from "./rank/open";
