@@ -74,4 +74,55 @@ export const PUBLISH_COPY = Object.freeze({
   "record.address.publiclyReadableAt": ["TODO(copy)", { slots: {}, fixedBy: "REQ-056 c6" }],
   "record.address.wasPublishedAt": ["TODO(copy)", { slots: {}, fixedBy: "REQ-056 c6" }],
   "record.address.neverMadeLive": ["TODO(copy)", { slots: {}, fixedBy: "REQ-056 c6" }],
+
+  // The eight below are the destination lines (§9, issue #48): one written
+  // line per `HealthReason`, which is what a broken destination says under
+  // the state word beside it. The state words themselves are
+  // `settings.destination.health.*` and are not restated here — one
+  // sentence lives in one key.
+  //
+  // **These are lines, not error messages.** §9 makes a broken destination
+  // a state the customer can fix — "expired credential is a **state**
+  // (reconnect prompt, queue holds), not an error loop" — so each says what
+  // is true of their pages and what fixes it, and none is a technical
+  // message anybody is asked to interpret. No vendor payload, status code
+  // or credential fragment can reach one: the view these hang off carries
+  // only a state, a reason token, a count and these keys.
+  //
+  // Every value is the **marker**, not the empty string: the first surface
+  // to read one is a screen (§4.7's destinations list), and the owner's
+  // 2026-09-05 ruling on #93 gives a fixture screen the marker where the
+  // four verdict words above take the throw.
+  //
+  // `publish.destination.line.cannot-publish` is owner-owed for a second,
+  // stated reason (ADR-086 decision 3): its sentence must **not** say pages
+  // are being held and nothing has been lost, because in that state the
+  // credential is valid and the page has already failed rather than been
+  // held. Wording that distinction is the owner's.
+  "publish.destination.line.never-connected": [
+    "TODO(copy)",
+    { slots: {}, fixedBy: "§9 · REQ-028 c5" },
+  ],
+  "publish.destination.line.dns-unset": ["TODO(copy)", { slots: {}, fixedBy: "§9 · REQ-059 c2" }],
+  "publish.destination.line.dns-elsewhere": [
+    "TODO(copy)",
+    { slots: {}, fixedBy: "§9 · REQ-059 c2" },
+  ],
+  "publish.destination.line.credentials-expired": [
+    "TODO(copy)",
+    { slots: {}, fixedBy: "§9 · REQ-074 c2" },
+  ],
+  "publish.destination.line.credentials-invalid": [
+    "TODO(copy)",
+    { slots: {}, fixedBy: "§9 · REQ-074 c2" },
+  ],
+  "publish.destination.line.unreachable": ["TODO(copy)", { slots: {}, fixedBy: "§9 · REQ-074 c2" }],
+  "publish.destination.line.destination-rejected": [
+    "TODO(copy)",
+    { slots: {}, fixedBy: "§9 · REQ-074 c2" },
+  ],
+  "publish.destination.line.cannot-publish": [
+    "TODO(copy)",
+    { slots: {}, fixedBy: "ADR-086 · REQ-060 c7" },
+  ],
 }) satisfies CopyPartition;

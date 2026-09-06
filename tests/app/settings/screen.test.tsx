@@ -130,12 +130,20 @@ describe("REQ-070 c1 — the rendered control set is exactly the fourteen SETTAB
     const root = await mountScreen();
     const expired = root.querySelector('[data-testid="destination-dest-wordpress"]');
     expect(expired?.textContent).toContain("settings.destination.health.expired");
-    // ADR-086: a credential that cannot publish carries an action leading
-    // somewhere, and the healthy destination does not.
+    // ADR-086: a broken destination carries an action leading somewhere,
+    // and one written line saying what is true of the customer's pages.
     expect(expired?.textContent).toContain("settings.publishing.reconnect");
-    const ok = root.querySelector('[data-testid="destination-dest-hosted"]');
-    expect(ok?.textContent).toContain("settings.destination.health.ok");
-    expect(ok?.textContent).not.toContain("settings.publishing.reconnect");
+    expect(expired?.textContent).toContain("publish.destination.line.credentials-expired");
+  });
+
+  // BUILD §9, #48: the `destinations` migration makes one live destination
+  // per site a database invariant, so the screen is drawn against exactly
+  // one. A fixture with two would be a specimen of a state the database
+  // refuses — and a screen tested against it would be testing a list it
+  // can never receive.
+  it("one live destination per site — the screen draws exactly one row", async () => {
+    const root = await mountScreen();
+    expect(root.querySelectorAll('[data-testid^="destination-"]')).toHaveLength(1);
   });
 });
 

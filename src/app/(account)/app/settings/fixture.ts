@@ -24,6 +24,7 @@
 // The domain and the zone agree with the shell's fixture on purpose: the two
 // are the same site, and a settings screen that named a different domain from
 // the sidebar beside it would be the one bug this file can cause.
+import { destinationView } from "@/lib/publish/destinations/view";
 import type { BillingFacts, SettingsFacts } from "./model";
 import { FIXTURE_DOMAIN } from "../_shell/fixture";
 
@@ -64,12 +65,30 @@ export const FIXTURE_SETTINGS_FACTS: SettingsFacts = Object.freeze({
   publishingEnabled: true,
   voiceText: "Plain and specific. No hype, no superlatives, first person plural.",
   doNotClaim: Object.freeze(["fastest on the market", "GDPR certified"]),
+  // **One destination, and one only.** §9 publishes to the destination the
+  // customer chose and to no other, and the `destinations` migration makes
+  // that a database invariant (one live row per site). A fixture showing two
+  // would be a specimen of a state the database refuses.
+  //
+  // Its state is `expired` / `credentials_expired` — a credential that has
+  // run out, which is the ordinary broken case and the one §9 names: the
+  // queue holds, one line says so, and Reconnect is offered. The screen is
+  // designed against a destination that needs the customer, because a
+  // destination that does not need them draws nothing.
+  //
+  // Built through the registry's own `destinationView`, never hand-written:
+  // the action and the copy keys the panel renders are the engine's mapping,
+  // so a fixture cannot show a control the engine would not offer.
   destinations: Object.freeze([
-    { id: "dest-hosted", kind: "hosted", health: "ok" },
-    // The state, not an error: an expired credential holds the queue and asks
-    // to be reconnected (ADR-086, §9).
-    { id: "dest-wordpress", kind: "wordpress", health: "expired" },
-  ] as const),
+    destinationView({
+      id: "dest-wordpress",
+      kind: "wordpress",
+      health: "expired",
+      reason: "credentials_expired",
+      lastCheckedAt: new Date("2026-09-06T07:00:00.000Z"),
+      heldPages: 3,
+    }),
+  ]),
   name: "Dana Whitfield",
   email: "dana@example.com",
   // Two on, one off — so the screen is drawn in a state where the switches

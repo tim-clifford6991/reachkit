@@ -31,9 +31,22 @@
 // (`actions.ts`), which mints one at the press. `surfaceHref` on the model
 // is the fallback destination for a render with no action available.
 //
+// **The destinations half is wired too** (#48). It goes through the
+// publishing registry's `listDestinations`, which is what re-checks a
+// destination whose state has gone stale before the list renders. The one
+// thing still missing is *which site*: `currentUserId()` below has a
+// stand-in and there is no site id to stand in for, so `currentSiteId()`
+// answers `null` and the fixture's own destination is what the card draws.
+// A fabricated id would be worse than none — it would send a real query to
+// a row that does not exist and draw an empty list for every customer.
+// The import is at the call for the same reason the billing one is.
+//
 // WO-179 step 2: no measurement, no vendor call and no model call happens
-// here or downstream of here for the site's own facts.
+// here or downstream of here for the site's own facts. `listDestinations`
+// reaches Postgres and resolves DNS for a hosted destination, and neither
+// is a measurement, a vendor call or a model call.
 import { cache } from "react";
+import type { DestinationView } from "@/lib/publish/types";
 import { assembleSettings, type BillingFacts, type SettingsModel } from "./model";
 import { FIXTURE_SETTINGS_FACTS } from "./fixture";
 import { FIXTURE_USER_ID } from "../../setup/_setup/fixture";
@@ -84,7 +97,42 @@ export async function readBillingFacts(userId: string): Promise<BillingFacts> {
   }
 }
 
+/**
+ * The site this request is about, or `null` where the session cannot say.
+ *
+ * `null` today, and honestly so: the session resolves an account (see
+ * `currentUserId()` above) and nothing yet resolves the site under it. A
+ * fabricated id would be worse than none — it would send a real query to a
+ * row that does not exist and draw an empty destinations list for every
+ * customer.
+ */
+export function currentSiteId(): string | null {
+  return null;
+}
+
+/**
+ * The site's destinations, read through the registry.
+ *
+ * The registry is the one place a destination's state, its written line
+ * and its action are decided, and it re-checks a state older than the
+ * freshness window before returning it — which is how §9's "never more
+ * than 24 hours old whether or not a publish was attempted" is kept on the
+ * screen the customer is looking at.
+ */
+export async function readDestinations(
+  siteId: string | null
+): Promise<readonly DestinationView[]> {
+  if (siteId === null) return FIXTURE_SETTINGS_FACTS.destinations;
+  // Imported where it is used, not at the top: the registry reaches
+  // Postgres, and the fixture path — every render there is until #35 —
+  // must not drag a database client into a screen that never asks it
+  // anything.
+  const { listDestinations } = await import("@/lib/publish/destinations");
+  return listDestinations(siteId);
+}
+
 export const readSettings = cache(async function readSettings(): Promise<SettingsModel> {
   const billing = await readBillingFacts(currentUserId());
-  return assembleSettings({ ...FIXTURE_SETTINGS_FACTS, billing });
+  const destinations = await readDestinations(currentSiteId());
+  return assembleSettings({ ...FIXTURE_SETTINGS_FACTS, billing, destinations });
 });

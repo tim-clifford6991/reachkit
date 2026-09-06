@@ -21,6 +21,22 @@
 // failure this card apologises for. All three read as words rather than as
 // colour alone — `Badge` requires a text child for exactly that reason.
 //
+// **The state is the band; the reason is the line and the action** (#48,
+// ADR-086). Three states the customer reads, and under one of them the
+// written line that says what is true of their pages — which differs
+// between a record that was never pointed, a credential that has run out
+// and a credential that is valid and cannot publish. This card renders the
+// registry's `DestinationView` entire and maps nothing of its own: the
+// action comes from the view, so the control offered here is the one the
+// engine decided on.
+//
+// **`reconnect_other_account` is its own control.** A destination whose
+// credential is valid and simply cannot publish must not be offered
+// ordinary Reconnect — re-entering the same credential is the one action
+// guaranteed to change nothing. It is a union member rather than a
+// relabelled button, so a card that offered the wrong one here would fail
+// to compile.
+//
 // The mode toggle is labelled with the mode word, the same choice the shell's
 // own publishing card makes and for the same reason: naming a control by what
 // it controls, rather than minting a second sentence to sit beside it. Both
@@ -34,7 +50,7 @@ import { Toggle } from "@/ui/components/Toggle";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
 import { formatVetoWindow } from "../format";
-import type { DestinationHealth, DestinationKind, SettingsModel } from "../model";
+import type { DestinationAction, DestinationHealth, DestinationKind, SettingsModel } from "../model";
 import type { Tone } from "@/ui/types";
 
 const MODE_COPY_KEY = {
@@ -47,12 +63,6 @@ const KIND_COPY_KEY: Record<DestinationKind, CopyKey> = {
   wordpress: "settings.destination.wordpress",
 };
 
-const HEALTH_COPY_KEY: Record<DestinationHealth, CopyKey> = {
-  ok: "settings.destination.health.ok",
-  expired: "settings.destination.health.expired",
-  error: "settings.destination.health.error",
-};
-
 /** §2.5: red is for "the customer's problem being shown to them". A
  *  credential that has expired or broken is exactly that — their pages are
  *  not going anywhere until it is fixed — while a healthy destination is a
@@ -62,6 +72,15 @@ const HEALTH_TONE: Record<DestinationHealth, Tone> = {
   ok: "ok",
   expired: "warn",
   error: "bad",
+};
+
+/** The label for each action. `none` has no control and therefore no key —
+ *  total over the other three, so a fifth action arrives here as a missing
+ *  key rather than as a destination with nothing to do about it. */
+const ACTION_COPY_KEY: Record<Exclude<DestinationAction, "none">, CopyKey> = {
+  reconnect: "settings.publishing.reconnect",
+  reconnect_other_account: "settings.publishing.reconnect-other-account",
+  set_dns: "settings.publishing.set-dns",
 };
 
 export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Element {
@@ -112,13 +131,18 @@ export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Eleme
         <div className="flex min-w-0 flex-col gap-1" data-testid="setting-destinations">
           <span className="eyebrow opacity-60">{copy("settings.publishing.destinations")}</span>
           {destinations.map((destination) => (
-            <div className="flex min-w-0 flex-wrap items-center gap-2" key={destination.id} data-testid={`destination-${destination.id}`}>
-              <span className="min-w-0 wrap-anywhere">{copy(KIND_COPY_KEY[destination.kind])}</span>
-              <Badge tone={HEALTH_TONE[destination.health]}>
-                {copy(HEALTH_COPY_KEY[destination.health])}
-              </Badge>
-              {destination.health === "ok" ? null : (
-                <Btn label={copy("settings.publishing.reconnect")} size="sm" />
+            <div className="flex min-w-0 flex-col gap-1" key={destination.id} data-testid={`destination-${destination.id}`}>
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <span className="min-w-0 wrap-anywhere">{copy(KIND_COPY_KEY[destination.kind])}</span>
+                <Badge tone={HEALTH_TONE[destination.health]}>
+                  {copy(destination.copy.state)}
+                </Badge>
+                {destination.action === "none" ? null : (
+                  <Btn label={copy(ACTION_COPY_KEY[destination.action])} size="sm" />
+                )}
+              </div>
+              {destination.copy.line === null ? null : (
+                <p className="text-xs opacity-60 wrap-anywhere">{copy(destination.copy.line)}</p>
               )}
             </div>
           ))}
