@@ -99,7 +99,25 @@ function logClampedSettlement(source: string, reservedCents: number, proposedCen
 }
 
 export async function withCostContext<T>(
-  ctx: { scanId: string; cap: CapName; policyVersion: number },
+  ctx: {
+    scanId: string;
+    cap: CapName;
+    policyVersion: number;
+    /** Which row the close writes its roll-up to. `"scan"` (the default,
+     *  and every caller's behaviour before this argument existed) writes
+     *  `scans.cost_cents` and `scans.status`; `"none"` writes nothing.
+     *
+     *  `"none"` exists for the generation pipeline (BUILD §8), which spends
+     *  under `CAP_DRAFT` against the scan that grounds the day's page:
+     *  `fetches.scan_id` is `not null`, so every ledger row a draft writes
+     *  is keyed to that scan — but the draft's spend is the *draft's*
+     *  (`drafts.cost_cents`, BUILD §10), and rolling it into the scan's
+     *  total would overstate what the scan cost and would flip a scan that
+     *  degraded back to `done`. Every ledgered `fetches` row stands either
+     *  way: the roll-up is a cached summary, `fetches` is the source of
+     *  truth. */
+    rollUp?: "scan" | "none";
+  },
   body: (cost: CostContext) => Promise<T>
 ): Promise<T> {
   const capValue = CAP_VALUES[ctx.cap];
@@ -203,6 +221,8 @@ export async function withCostContext<T>(
   // to set. Every already-ledgered `fetches` row stands regardless: the
   // roll-up is a cached summary, `fetches` is the source of truth.
   const result = await body(cost);
+
+  if (ctx.rollUp === "none") return result;
 
   const { error } = await dbAdmin()
     .from("scans")
