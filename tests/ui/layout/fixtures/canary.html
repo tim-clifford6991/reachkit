@@ -8,14 +8,19 @@
   declares `--t-floor` on its own `:root` rather than depending on
   `src/ui/theme.css` (WO-029's file, not this order's).
 
-  Five deliberate defects, one per check plus one that must fail check 3
-  even if it were on the truncation allow-list:
+  Six deliberate defects, one per check plus one that must fail check 3
+  even if it were on the truncation allow-list, plus one that must fail
+  check 2 from inside an SVG:
     1. `.wide-box`    — wider than any of the suite's five viewports.
     2. `.escapee`     — a child escaping its parent's padding box.
     3. `.clipped-name`— a clipped text-bearing box (a *name*, not a value).
     4. `.clipped-value` — a clipped value in `--font-mono`: must fail even
        allow-listed (ADR-093 decision 6 point 3).
     5. `.below-floor` — text rendered under `--t-floor`.
+    6. `#svg-escapee` — a chart label drawn outside its own viewBox. Check 3
+       exempts everything inside an `<svg>` (ADR-093 decision 3), so this is
+       the case that proves the guarantee did not go with it: a clipped
+       chart label is check 2's offender, and it still fails.
 -->
 <html>
   <head>
@@ -69,6 +74,10 @@
       .below-floor {
         font-size: 8px; /* below the 11px --t-floor — check 4 */
       }
+      .chart {
+        width: 100px;
+        height: 40px;
+      }
     </style>
   </head>
   <body>
@@ -79,5 +88,10 @@
     <div class="clipped-name">A name clipped so nobody can read it in full</div>
     <div class="clipped-value">12345678901234567890</div>
     <div class="below-floor">Text rendered under the type floor</div>
+    <!-- A label drawn past the right edge of its own viewBox: the `<svg>`
+         clips it, so the reader gets half a value. Check 2 reports it. -->
+    <svg class="chart" viewBox="0 0 100 40">
+      <text id="svg-escapee" x="90" y="20" font-size="8">A chart label drawn outside its viewBox</text>
+    </svg>
   </body>
 </html>
