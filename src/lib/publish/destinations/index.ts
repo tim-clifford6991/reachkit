@@ -61,11 +61,17 @@ export class AlreadyConnectedError extends Error {
   }
 }
 
+/** What a caller may learn about a site's destination without opening its
+ *  credential. **`config` is not on it** (issue #54): the ciphertext used
+ *  to travel on this shape typed as though it were the plaintext, and the
+ *  two callers that read it — the delivery and the telling — now open it
+ *  through `withConfig`, for the duration of the one call each needs it
+ *  in. `store.ts` holds the same discipline for the same reason: there is
+ *  one select list and it does not name the column. */
 export interface DestinationRow {
   id: string;
   kind: DestinationKind;
   health: "ok" | "expired" | "error";
-  config: Readonly<Record<string, unknown>>;
 }
 
 /**
@@ -84,7 +90,7 @@ export async function destinationOf(
 ): Promise<DestinationRow | null> {
   const { data, error } = await publishDb()
     .from<DestinationRow>("destinations")
-    .select("id, kind, health, config")
+    .select("id, kind, health")
     .eq("site_id", siteId)
     .eq("kind", kind)
     .is("deleted_at", null)

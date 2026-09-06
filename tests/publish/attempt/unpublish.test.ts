@@ -43,7 +43,10 @@ function seed(over: Row = {}, pubOver: Row = {}): void {
   db.reset();
   installTransitionRpc(db);
   db.seed("sites", [{ id: "s1", mode: "autopilot", veto_hours: 24, publishing_enabled: true }]);
-  db.seed("destinations", [{ id: "dest-1", site_id: "s1", kind: "hosted", health: "ok", config: {} }]);
+  db.seed("destinations", [// A hosted destination stores no credential — `connect` writes
+  // `config: null` and nothing ever fills it — and the adapter is handed an
+  // empty config for that reason (#54).
+  { id: "dest-1", site_id: "s1", kind: "hosted", health: "ok", config: null }]);
   db.seed("drafts", [
     {
       id: "d1",
