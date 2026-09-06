@@ -38,7 +38,18 @@ export function measuredText(
  *  `src/ui/type.css` is the one rule that binds it; this is the one
  *  element on this screen that carries the class, so a numeral in the UI
  *  font is a defect with one place to look. */
-export function Num(p: { children: React.ReactNode }): React.JSX.Element {
+export function Num(p: {
+  children: React.ReactNode;
+  /** REQ-004's dash, marked as itself. The cold-start sweep
+   *  (`tests/presentation/sweeps/`) flags a dash standing where a value
+   *  would sit — REQ-091 c2's "no blank, dash or placeholder value" — and
+   *  REQ-004's trichotomy is the one dash that is not that: a measurement
+   *  that could not be taken, saying so. Without the marker the sweep
+   *  cannot tell the two apart, and would either miss a real blank or
+   *  fail an honest admission. It is a structural marker read by tests,
+   *  never by a person. */
+  unmeasured?: boolean;
+}): React.JSX.Element {
   // ADR-093: content fits its box or the box changes, and text is never
   // shrunk to fit. A domain, a search phrase or a robots directive is one
   // long unbreakable token in a narrow column, so it wraps
@@ -46,13 +57,18 @@ export function Num(p: { children: React.ReactNode }): React.JSX.Element {
   // to shrink below its content width (`min-width: 0`) — without that
   // second half a grid item refuses to narrow and overflows its track no
   // matter what the text does.
-  return <span className="num min-w-0 break-words">{p.children}</span>;
+  return (
+    <span className="num min-w-0 break-words" data-unmeasured={p.unmeasured === true ? "" : undefined}>
+      {p.children}
+    </span>
+  );
 }
 
 /** A measured count, with the dash rule applied and no line — for a card
  *  that places the reason line itself. */
 export function MeasuredNum(p: { value: Measured<number>; what: string }): React.JSX.Element {
-  return <Num>{measuredText(p.value, p.what).text}</Num>;
+  const rendered = measuredText(p.value, p.what);
+  return <Num unmeasured={rendered.isDash}>{rendered.text}</Num>;
 }
 
 /** `n/m`, composed in TypeScript rather than as two JSX children with a

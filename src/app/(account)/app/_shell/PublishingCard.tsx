@@ -33,9 +33,9 @@ import { Badge } from "@/ui/components/Badge";
 import { Toggle } from "@/ui/components/Toggle";
 import { Card } from "@/ui/components/Card";
 import { copy } from "@/lib/presentation/copy";
-import { NO_PUBLISH_COPY_KEY } from "./nopublish";
+import { nextPublishStatement } from "@/lib/presentation/stopped";
+import { NEXT_PUBLISH_OTHERWISE } from "./nopublish";
 import { formatDateTime } from "./format";
-import { writtenLine } from "./written";
 import type { ShellModel } from "./model";
 
 const MODE_COPY_KEY = {
@@ -48,24 +48,39 @@ export function PublishingCard(p: { shell: ShellModel }): React.JSX.Element {
   const modeWord = copy(MODE_COPY_KEY[publishing.mode]);
   const autopilot = publishing.mode === "autopilot";
 
-  // REQ-040 c3's time, or c4's line for the resolved reason. Exactly one of
-  // the two renders — `next` is a closed union, so there is no state in
-  // which both or neither is reachable.
-  const line =
-    publishing.next === null
-      ? writtenLine(NO_PUBLISH_COPY_KEY[publishing.because])
-      : writtenLine("next-publish.scheduled", {
-          at: formatDateTime(publishing.next, timeZone),
-        });
-
+  // REQ-040 c3's time, or c4's line for the resolved reason — both through
+  // `nextPublishStatement`, which is REQ-092 c7's one home: "any statement
+  // of when the next page publishes … names ReachKit's stop as the reason
+  // no publish is scheduled, and gives no other reason for it". This card
+  // is one such statement, so it does not choose its own key.
+  //
+  // Note what is handed in when the account is stopped: `otherwise` still
+  // carries whichever *other* cause the shell resolved, and the statement
+  // ignores it (ADR-011 point 5). That is the behaviour, exercised on the
+  // real screen, not merely in a unit test.
+  const statement = nextPublishStatement({
+    stopped: publishing.next === null && publishing.because === "reachkit_stopped",
+    otherwise:
+      publishing.next !== null
+        ? { tag: "scheduled", at: formatDateTime(publishing.next, timeZone) }
+        : {
+            tag:
+              publishing.because === "reachkit_stopped"
+                ? "none-planned"
+                : NEXT_PUBLISH_OTHERWISE[publishing.because],
+          },
+  });
+  // No `writtenLine` guard on this line any more (issue #20): every
+  // `next-publish.*` key now carries at least the visible `TODO(copy)`
+  // marker, because REQ-091 c2 forbids a blank standing where a written
+  // line belongs. The guard stays in `DomainBlock`, whose two keys are
+  // still empty and owner-owed.
   return (
     <div className="rk-publishing" data-testid="shell-publishing">
       <Card state="default" title={<Badge tone={autopilot ? "accent" : "neutral"}>{modeWord}</Badge>}>
-        {line === null ? null : (
-          <p className="rk-prov" data-testid="shell-publishing-line">
-            {line}
-          </p>
-        )}
+        <p className="rk-prov" data-testid="shell-publishing-line">
+          {statement.line}
+        </p>
         <Toggle label={modeWord} checked={autopilot} />
       </Card>
     </div>

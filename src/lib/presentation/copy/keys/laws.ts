@@ -41,6 +41,17 @@
 // itself prints, on the same footing as the thirteen band words: §4.4's
 // "nav **Overview / Calendar / Settings**" and §4.3's "Autopilot (default,
 // selected) vs Copilot". Nothing here is composed.
+//
+// 2026-09-06, issue #20 (REQ-091/REQ-092): seven values moved from `""` to
+// `TODO(copy)` — `stopped.work.resumes-on`, `stopped.work.no-time-promised`,
+// `stopped.work.partial-pass` and the four unfilled `next-publish.*` lines.
+// The reason is #93's standing ruling ("owner-owed copy keys on fixture
+// screens render as the visible marker `TODO(copy)`; mail keeps the
+// throw"), reached here by REQ-091 c2: a place holding nothing must carry
+// **one written line, never a blank**, so an empty value — which `copy()`
+// refuses to render — is the one thing these keys may not hold. Still the
+// owner's sentences; nothing is written here, and
+// `tests/presentation/sweeps/` reports which lines are still the marker.
 import type { CopyPartition } from "../registry.ts";
 
 export const LAWS_COPY = Object.freeze({
@@ -50,29 +61,29 @@ export const LAWS_COPY = Object.freeze({
     { law: "stopped-work", slots: {}, fixedBy: "REQ-092 c2" },
   ],
   "stopped.work.resumes-on": [
-    "",
+    "TODO(copy)",
     { law: "stopped-work", slots: { date: "date" }, fixedBy: "REQ-092 c4" },
   ],
   "stopped.work.no-time-promised": [
-    "",
+    "TODO(copy)",
     { law: "stopped-work", slots: {}, fixedBy: "REQ-092 c4" },
   ],
   "stopped.work.partial-pass": [
-    "",
+    "TODO(copy)",
     { law: "stopped-work", slots: {}, fixedBy: "REQ-092 c6" },
   ],
-  "next-publish.stopped": ["", { law: "next-publish", slots: {}, fixedBy: "REQ-092 c7" }],
+  "next-publish.stopped": ["TODO(copy)", { law: "next-publish", slots: {}, fixedBy: "REQ-092 c7" }],
   "next-publish.scheduled": [
     "Next page goes live {at}",
     { law: "next-publish", slots: { at: "date" }, fixedBy: "REQ-040 c4" },
   ],
-  "next-publish.paused": ["", { law: "next-publish", slots: {}, fixedBy: "REQ-040 c4" }],
+  "next-publish.paused": ["TODO(copy)", { law: "next-publish", slots: {}, fixedBy: "REQ-040 c4" }],
   "next-publish.nothing-approved": [
-    "",
+    "TODO(copy)",
     { law: "next-publish", slots: {}, fixedBy: "REQ-040 c4" },
   ],
   "next-publish.none-planned": [
-    "",
+    "TODO(copy)",
     { law: "next-publish", slots: {}, fixedBy: "REQ-040 c4" },
   ],
   "generated.page.written": [

@@ -14,7 +14,7 @@
 // precedence is data (`NO_PUBLISH_PRECEDENCE`) and the resolver is a
 // first-match over it — not a chain of `if`s whose order is whichever one a
 // later editor happens to leave on top.
-import type { CopyKey } from "@/lib/presentation/copy";
+import type { NextPublishCause } from "@/lib/presentation/stopped";
 
 export type NoPublishReason =
   | "reachkit_stopped"
@@ -38,14 +38,24 @@ export const NO_PUBLISH_PRECEDENCE: readonly NoPublishReason[] = Object.freeze([
  *  the same as "no". */
 export type NoPublishCauses = Record<NoPublishReason, boolean>;
 
-/** The line each cause is spoken from. All four keys are BP-019's
- *  `law: 'next-publish'` family; `next-publish.stopped` is the one REQ-092
- *  c7 fixes, and it names ReachKit's stop rather than any internal cause. */
-export const NO_PUBLISH_COPY_KEY: Record<NoPublishReason, CopyKey> = {
-  reachkit_stopped: "next-publish.stopped",
-  publishing_paused: "next-publish.paused",
-  nothing_approved: "next-publish.nothing-approved",
-  nothing_planned: "next-publish.none-planned",
+/** Which of `nextPublishStatement`'s `otherwise` causes each of the three
+ *  non-stop reasons is. The *line* is not chosen here: REQ-092 c7 lives in
+ *  one function (`src/lib/presentation/stopped/statement.ts`), and this map
+ *  is the shell's four-boolean vocabulary translated into that function's
+ *  argument — never a second key table beside it (ADR-011: the precedence
+ *  and the mapping have one home each, and duplicating either re-opens
+ *  every failure the decision names).
+ *
+ *  `reachkit_stopped` is deliberately absent: it is not an `otherwise`. A
+ *  stop is passed as the `stopped` flag, and the flag is what the function
+ *  reads. */
+export const NEXT_PUBLISH_OTHERWISE: Record<
+  Exclude<NoPublishReason, "reachkit_stopped">,
+  NextPublishCause
+> = {
+  publishing_paused: "paused",
+  nothing_approved: "nothing-approved",
+  nothing_planned: "none-planned",
 };
 
 /** First match over `NO_PUBLISH_PRECEDENCE`. `undefined` means no cause

@@ -39,19 +39,24 @@
 // The two delta glyphs are the same kind of thing as `unmeasured.dash` —
 // §4.5's own "▲delta" mark, transcribed once so no arrow character is
 // written at a call site.
+// 2026-09-06, issue #20 (REQ-091 c2): the three `place.overview.*` values
+// moved from `""` to `TODO(copy)` — #93's ruling, reached by the cold-start
+// law: a place holding nothing carries one written line, never a blank, and
+// an empty value makes `copy()` throw rather than render. Still the owner's
+// sentences.
 import type { CopyPartition } from "../registry.ts";
 
 export const OVERVIEW_COPY = Object.freeze({
   "place.overview.weekly-presence.chart": [
-    "",
+    "TODO(copy)",
     { law: "no-presence-yet", slots: {}, fixedBy: "REQ-041 c3" },
   ],
   "place.overview.weekly-presence.week": [
-    "",
+    "TODO(copy)",
     { law: "no-presence-yet", slots: {}, fixedBy: "REQ-065 c3" },
   ],
   "place.overview.weekly-presence.partial-week": [
-    "",
+    "TODO(copy)",
     { law: "no-presence-yet", slots: {}, fixedBy: "REQ-065 c4" },
   ],
   "overview.head": ["", { slots: {}, fixedBy: "BUILD §4.5" }],

@@ -46,19 +46,26 @@
 // and the supply half of the footnote — §4.6 states the supply *rule* to the
 // builder ("the empty state says so") and never says it to the customer.
 // Listed in issue #16's PR under "Owner owes".
+//
+// 2026-09-06, issue #20 (REQ-091 c2): `place.calendar.date.page`,
+// `cause.unrecognised` and `cause.supply-exhausted` moved from `""` to
+// `TODO(copy)` — #93's ruling, reached by the cold-start law: the arbiter
+// (`src/lib/presentation/place/account.ts`) must return one written line
+// for every cause, and an empty value makes `copy()` throw instead. Still
+// the owner's sentences.
 import type { CopyPartition } from "../registry.ts";
 
 export const CALENDAR_COPY = Object.freeze({
   "place.calendar.date.page": [
-    "",
+    "TODO(copy)",
     { law: "no-presence-yet", slots: {}, fixedBy: "REQ-043 c5" },
   ],
   "cause.unrecognised": [
-    "",
+    "TODO(copy)",
     { law: "no-presence-yet", slots: {}, fixedBy: "REQ-043 c4" },
   ],
   "cause.supply-exhausted": [
-    "",
+    "TODO(copy)",
     { law: "no-presence-yet", slots: {}, fixedBy: "REQ-043 c3" },
   ],
   "calendar.head": ["One page a day. Every day.", { slots: {}, fixedBy: "BUILD §4.6" }],

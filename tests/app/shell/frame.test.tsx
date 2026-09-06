@@ -53,6 +53,7 @@ const SCHEDULED: ShellModel = {
   weeks: { kind: "counted", weeks: 3, lastMeasuredOn: MONDAY(14) },
   waiting: 2,
   publishing: { mode: "autopilot", next: new Date(Date.UTC(2026, 8, 16, 13, 0, 0)) },
+  stopped: null,
 };
 
 function render(el: React.ReactElement): Element {
@@ -159,11 +160,12 @@ describe("REQ-040 c4 — with no publish scheduled, one line for the resolved re
     // it is written `writtenLine` renders nothing rather than throwing.
     const root = render(<PublishingCard shell={withReason("reachkit_stopped")} />);
     const line = root.querySelector("[data-testid='shell-publishing-line']");
-    if (COPY["next-publish.stopped"] === "") {
-      expect(line).toBeNull();
-    } else {
-      expect(line?.textContent).toBe("next-publish.stopped");
-    }
+    // Issue #20: the card's line no longer goes through `writtenLine`, and
+    // every `next-publish.*` key now carries at least `TODO(copy)` — REQ-091
+    // c2 forbids a blank where a written line belongs. So the line is always
+    // rendered, and what is pinned is the key it resolved from.
+    expect(COPY["next-publish.stopped"]).not.toBe("");
+    expect(line?.textContent).toBe("next-publish.stopped");
     // Whichever it is, no *other* cause's line reached this card.
     expect(root.textContent).not.toContain("next-publish.paused");
     expect(root.textContent).not.toContain("next-publish.nothing-approved");

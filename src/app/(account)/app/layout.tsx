@@ -30,6 +30,7 @@ import { Surface } from "@/ui/layout";
 import { DomainBlock } from "./_shell/DomainBlock";
 import { PublishingCard } from "./_shell/PublishingCard";
 import { SidebarNav } from "./_shell/SidebarNav";
+import { StoppedNotice } from "./_shell/StoppedNotice";
 import { TabBar } from "./_shell/TabBar";
 import { readShell } from "./_shell/provider";
 import "@/ui/layout/shell.css";
@@ -68,7 +69,14 @@ export default async function AppLayout({
               <PublishingCard shell={shell} />
             </div>
           </aside>
-          <main className="rk-main">{children}</main>
+          <main className="rk-main">
+            {/* REQ-092 c3: stated on the screen the customer lands on, once
+                — not in the header and the sidebar the way the domain block
+                and the publishing card are, because two copies of one
+                statement is two accounts of one fact. */}
+            <StoppedNotice stopped={shell.stopped} timeZone={shell.timeZone} />
+            {children}
+          </main>
         </div>
       </div>
     </Surface>
