@@ -18,7 +18,7 @@ import { publishDb } from "../../db";
 import type { DestinationHealth, HealthReason } from "../../types";
 import { NoConfigError, withConfig } from "../config";
 import { adapterFor } from "../registry";
-import { readDestination, writeHealth, type DestinationRecord } from "../store";
+import { readDestination, writeHealth, writePublishCapable, type DestinationRecord } from "../store";
 
 export interface HealthCheck {
   health: DestinationHealth;
@@ -94,6 +94,35 @@ async function credentialHealth(row: DestinationRecord): Promise<{ health: Desti
 }
 
 /**
+ * What the credential may do, asked of the destination's own end.
+ *
+ * Returns `null` where the question does not arise (an adapter that
+ * declares no probe — a destination ReachKit runs has no account whose
+ * permission to publish could differ from its permission to create) **and
+ * where it could not be put**. Those two are one return value here and two
+ * different things on the row: neither writes, so the last real answer
+ * stands, and nothing is recorded on the strength of a network blip.
+ *
+ * **It is asked beside `health` and never inside it** (ADR-086): a site can
+ * answer its REST index perfectly and refuse to publish, and folding the
+ * two would make one answer stand for both — after which re-entering the
+ * same, valid credential would appear to clear a state the probe decided.
+ */
+async function publishCapable(row: DestinationRecord): Promise<boolean | null> {
+  const adapter = adapterFor(row.kind);
+  if (adapter?.canPublish === undefined) return null;
+  const probe = adapter.canPublish.bind(adapter);
+  try {
+    return await withConfig(row.id, (cfg) => probe(cfg as Record<string, unknown>));
+  } catch {
+    // "We could not ask" is not "the answer is no". The cause is not
+    // carried: a vendor payload has no route to a screen, a mail or an
+    // export.
+    return null;
+  }
+}
+
+/**
  * Checks one destination and records what it found.
  *
  * `publish_capable === false` outranks every other answer (ADR-086): a
@@ -111,12 +140,21 @@ export async function checkHealth(destinationId: string): Promise<HealthCheck> {
     return { health: "error", reason: "destination_rejected", checkedAt };
   }
 
+  const answered = row.kind === "hosted" ? await hostedHealth(row) : await credentialHealth(row);
+
+  // The capability probe, run beside the state read and recorded where it
+  // answered. The fresh answer is what the state is decided from; where the
+  // probe was not asked or could not be, the last recorded answer stands —
+  // which is what keeps `cannot_publish` from being cleared by anything but
+  // a probe that found otherwise.
+  const capable = await publishCapable(row);
+  if (capable !== null) await writePublishCapable(destinationId, capable);
+  const stands = capable ?? row.publish_capable;
+
   const found =
-    row.publish_capable === false
+    stands === false
       ? { health: "error" as const, reason: "cannot_publish" as const }
-      : row.kind === "hosted"
-        ? await hostedHealth(row)
-        : await credentialHealth(row);
+      : answered;
 
   const changed = found.health !== row.health;
   await writeHealth({
