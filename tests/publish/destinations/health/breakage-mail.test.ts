@@ -36,7 +36,7 @@ const NOW = new Date("2026-09-06T12:00:00.000Z");
 /** Exactly 24 hours before `NOW`. */
 const BROKE_AT = new Date(NOW.getTime() - DESTINATION_BREAKAGE_MAIL_DELAY_H * HOUR_MS);
 
-function seed(destination: Row = {}, user: Row = {}): void {
+function seed(destination: Row = {}, user: Row = {}, links: Row[] = []): void {
   db.seed("sites", [{ id: "site-1", user_id: "user-1", domain: "example.com", publishing_enabled: true }]);
   db.seed("users", [
     { id: "user-1", email: "dana@example.com", first_signed_in_at: null, ...user },
@@ -58,6 +58,7 @@ function seed(destination: Row = {}, user: Row = {}): void {
       ...destination,
     },
   ]);
+  db.seed("auth_links", links);
   db.seed("drafts", [
     { id: "d1", site_id: "site-1", state: "approved", publishable_since: "2026-09-02T00:00:00.000Z" },
     { id: "d2", site_id: "site-1", state: "approved", publishable_since: "2026-09-03T00:00:00.000Z" },
@@ -118,6 +119,57 @@ describe("each of the four conjuncts, falsified alone, makes it not due", () => 
   it("a customer who signed in since it broke", async () => {
     seed({}, { first_signed_in_at: new Date(BROKE_AT.getTime() + HOUR_MS).toISOString() });
     expect(await breakageMailDue("site-1", NOW)).toEqual({ due: false });
+  });
+});
+
+describe("the last sign-in is the newest redeemed sign-in link (#35)", () => {
+  /** One redeemed link, `offsetH` hours from the moment it broke. */
+  function link(offsetH: number, over: Row = {}): Row {
+    return {
+      token_hash: `hash-${offsetH}`,
+      user_id: "user-1",
+      purpose: "sign_in",
+      spent_at: new Date(BROKE_AT.getTime() + offsetH * HOUR_MS).toISOString(),
+      ...over,
+    };
+  }
+
+  it("a link redeemed since the breakage is a sign-in since the breakage — even where the first sign-in was long before it", async () => {
+    // The discriminating case: `first_signed_in_at` alone says "before",
+    // and would write to a customer who has been here this morning.
+    seed({}, { first_signed_in_at: "2026-08-01T00:00:00.000Z" }, [link(2)]);
+    expect(await breakageMailDue("site-1", NOW)).toEqual({ due: false });
+  });
+
+  it("a link redeemed before the breakage leaves it due", async () => {
+    seed({}, { first_signed_in_at: "2026-08-01T00:00:00.000Z" }, [link(-6)]);
+    expect((await breakageMailDue("site-1", NOW)).due).toBe(true);
+  });
+
+  it("the newest of several is the one that counts", async () => {
+    seed({}, { first_signed_in_at: "2026-08-01T00:00:00.000Z" }, [link(-10), link(3), link(-2)]);
+    expect(await breakageMailDue("site-1", NOW)).toEqual({ due: false });
+  });
+
+  it("a link that was never redeemed is not a sign-in", async () => {
+    seed({}, { first_signed_in_at: "2026-08-01T00:00:00.000Z" }, [
+      { token_hash: "unspent", user_id: "user-1", purpose: "sign_in", spent_at: null },
+    ]);
+    expect((await breakageMailDue("site-1", NOW)).due).toBe(true);
+  });
+
+  it("an email-change link is not somebody arriving at the product", async () => {
+    seed({}, { first_signed_in_at: "2026-08-01T00:00:00.000Z" }, [
+      link(2, { purpose: "email_change", token_hash: "change" }),
+    ]);
+    expect((await breakageMailDue("site-1", NOW)).due).toBe(true);
+  });
+
+  it("another customer's link is not this one's sign-in", async () => {
+    seed({}, { first_signed_in_at: "2026-08-01T00:00:00.000Z" }, [
+      link(2, { user_id: "user-2", token_hash: "someone-else" }),
+    ]);
+    expect((await breakageMailDue("site-1", NOW)).due).toBe(true);
   });
 });
 
