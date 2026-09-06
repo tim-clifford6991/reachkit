@@ -15,7 +15,11 @@ import { fakeDb, installTransitionRpc, type Row } from "../../publish/harness";
 const db = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 
-import { registerSessionReader } from "@/lib/account/session";
+/** The session, driven by the test. Mocked at the module the routes read
+ *  it through — the cookie and its MAC are `tests/account/identity`'s. */
+let session: { userId: string; siteId: string | null } | null = null;
+vi.mock("@/lib/account/identity", () => ({ currentSession: async () => session }));
+
 import { POST as approve } from "@/app/api/drafts/[id]/approve/route";
 import { POST as veto } from "@/app/api/drafts/[id]/veto/route";
 import { POST as skip } from "@/app/api/drafts/[id]/skip/route";
@@ -66,7 +70,7 @@ function seed(state: string, over: Row = {}): void {
 
 beforeEach(() => {
   seed("in_review");
-  registerSessionReader(async () => ({ userId: "u1", siteId: "s1" }));
+  session = { userId: "u1", siteId: "s1" };
 });
 
 describe('REQ-045 c4 — "can approve, edit or veto without leaving the view"', () => {
@@ -188,7 +192,7 @@ describe('REQ-057 c3 / REQ-056 c2 — "refused with the page\'s state unchanged"
 
 describe("the session and the draft's owner", () => {
   it("no session is 401, and nothing is read or written", async () => {
-    registerSessionReader(null);
+    session = null;
     db.queries.length = 0;
     const response = await approve(request(), context());
     expect(response.status).toBe(401);
@@ -196,17 +200,24 @@ describe("the session and the draft's owner", () => {
   });
 
   it("a draft belonging to another site answers exactly as one that does not exist", async () => {
-    registerSessionReader(async () => ({ userId: "u2", siteId: "s2" }));
+    session = { userId: "u2", siteId: "s2" };
     const other = await approve(request(), context());
-    registerSessionReader(async () => ({ userId: "u1", siteId: "s1" }));
+    session = { userId: "u1", siteId: "s1" };
     const missing = await approve(request(), context("nope"));
     expect(other.status).toBe(404);
     expect(missing.status).toBe(404);
     expect(await other.json()).toEqual(await missing.json());
   });
 
+  it("a session with no site row yet is answered as a draft that does not exist, and takes no transition", async () => {
+    session = { userId: "u1", siteId: null };
+    const response = await approve(request(), context());
+    expect(response.status).toBe(404);
+    expect(db.rows("drafts")[0]?.state).toBe("in_review");
+  });
+
   it("a refused ownership check takes no transition", async () => {
-    registerSessionReader(async () => ({ userId: "u2", siteId: "s2" }));
+    session = { userId: "u2", siteId: "s2" };
     await approve(request(), context());
     expect(db.rows("drafts")[0]?.state).toBe("in_review");
   });
@@ -228,7 +239,7 @@ describe("the adapters hold no engine logic", () => {
     expect(new Set(specifiers)).toEqual(
       new Set([
         "../../_adapter",
-        "@/lib/account/session",
+        "@/lib/account/identity",
         "@/lib/publish/db",
         "@/lib/publish/machine",
         "@/lib/publish/types",

@@ -14,9 +14,13 @@
 // Three sibling files calling one local helper is not logic in an adapter;
 // three copies of the same twelve lines would be.
 //
+// The session is `src/lib/account/identity`'s — one cookie-verified read,
+// and `siteId` rides in the signed cookie, so the ownership check below is
+// the route's only extra read.
+//
 // The archived plan is WO-245.
 import { adapter } from "../../_adapter";
-import { currentSession } from "@/lib/account/session";
+import { currentSession } from "@/lib/account/identity";
 import { publishDb } from "@/lib/publish/db";
 import { transition } from "@/lib/publish/machine";
 import type { State } from "@/lib/publish/types";
@@ -51,7 +55,10 @@ export function draftAction(routeId: string, to: State, reason: string) {
     if (session === null) return Response.json({ error: "unauthenticated" }, { status: UNAUTHORIZED });
 
     const { id } = await context.params;
-    const owned = await ownsDraft(session.siteId, id);
+    // A session can legitimately precede a site row (§13 opens an account
+    // before setup names a domain). No site is no draft of theirs, and the
+    // answer is the one a draft that does not exist gets.
+    const owned = session.siteId !== null && (await ownsDraft(session.siteId, id));
     // A draft that is not this session's site's is answered exactly as one
     // that does not exist: a distinct response would tell a stranger which
     // draft ids are real.
