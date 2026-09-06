@@ -204,7 +204,12 @@ describe("REQ-093 c5 — the registry renders with every model unavailable", () 
     // would otherwise read as product copy.
     //
     // 135 + 19 = 154 ruled.
-    expect(ruled.length).toBe(154);
+    //
+    // 2026-09-06: issue #14 (the setup screen, BUILD §4.3) adds six, every
+    // one a transcription of a word §4.3 itself prints — "**Your market**",
+    // "Change", "**Competitors**", "*Hosted blog*", "*WordPress*", and the
+    // footer's own verb. 154 + 6 = 160 ruled.
+    expect(ruled.length).toBe(160);
 
     // Only the ruled sentences carry their slots' `{name}` placeholders —
     // a `TODO(copy)` marker is one literal with no placeholder in it, so
@@ -465,10 +470,23 @@ describe("owner-owed and empty agree both ways", () => {
     //
     // 54 + 17 = 71 owner-owed and empty, 74 awaiting copy unchanged, 135 +
     // 19 = 154 ruled, 263 + 36 = 299 total.
+    //
+    // 2026-09-06: issue #14 (the setup screen, BUILD §4.3) mints 48 keys
+    // and moves none. Forty-two carry the `TODO(copy)` marker — every
+    // sentence the three cards, the address, the refusals and the waiting
+    // screen speak — and six carry a transcription of a word §4.3 prints.
+    // Not one is owner-owed and empty, and unlike Settings and Overview
+    // that is this screen's own rule rather than an oversight: setup calls
+    // `copy()` directly, so an empty value would throw and take the whole
+    // screen down, hiding every finished card from the review the owner
+    // needs in order to write the missing sentences. A screen that reads
+    // through `writtenLine` can afford the empty representation; this one
+    // cannot. So: 71 owner-owed unchanged, 74 + 42 = 116 awaiting copy,
+    // 154 + 6 = 160 ruled — 299 + 48 = 347 total.
     expect(OWNER_OWED.length).toBe(71);
-    expect(AWAITING_COPY.length).toBe(74);
-    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(154);
-    expect(Object.keys(COPY).length).toBe(299);
+    expect(AWAITING_COPY.length).toBe(116);
+    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(160);
+    expect(Object.keys(COPY).length).toBe(347);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.
