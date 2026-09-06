@@ -16,7 +16,7 @@
 // and never the state names.
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { DayCell } from "./month";
-import type { PublishingCommand } from "./publishing";
+import type { PublishingCommand, StopCommand } from "./publishing";
 import { PUBLISH_STATES, type PublishState } from "./stages";
 
 /**
@@ -58,7 +58,7 @@ export const TRANSITIONS: Readonly<Record<PublishState, readonly PublishState[]>
  * the state has the `skipped` edge, which is what makes this a projection
  * rather than a second list.
  */
-export const STOP_COMMAND: Readonly<Record<PublishState, PublishingCommand | null>> = Object.freeze({
+export const STOP_COMMAND: Readonly<Record<PublishState, StopCommand | null>> = Object.freeze({
   planned: "skip",
   generating: "skip",
   in_review: "veto",
@@ -71,7 +71,7 @@ export const STOP_COMMAND: Readonly<Record<PublishState, PublishingCommand | nul
   unpublished: null,
 });
 
-const STOP_COPY_KEY: Record<PublishingCommand, CopyKey> = {
+const STOP_COPY_KEY: Record<StopCommand, CopyKey> = {
   move: "calendar.action.move",
   skip: "calendar.action.skip",
   veto: "calendar.action.veto",
