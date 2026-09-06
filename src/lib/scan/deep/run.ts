@@ -25,8 +25,19 @@
 // A stage write that fails is swallowed. The pass is the thing being paid
 // for; a founder briefly shown the previous step is a worse screen, and
 // stopping a 30¢ measurement over it would be a worse product.
+//
+// **And the third thing: the pass's measurements become supply.** §7's
+// derivation runs here rather than inside the pipeline because the
+// pipeline branches on no tier and the free path derives nothing — the
+// choice of *which* §7 entry point a pass uses belongs to the pass. The
+// deep pass pursues a month of depth (`pursueDepth`, through
+// `deriveForPass`), inside the same cost context and the same `DEEP` cap
+// the stages spent, on the report the pass just stored. A derivation that
+// finds nothing is a normal return: §4.3 releases the founder either way
+// and "zero proposals is legal, never faked".
 import type { StageName } from "../stages";
 import { dbAdmin } from "@/lib/db";
+import { deriveForPass } from "@/lib/opportunities";
 import { runScan } from "../run";
 import type { ScanStatus } from "../store";
 import { releaseToApp, type ReleaseReason } from "./release";
@@ -79,6 +90,17 @@ export async function runDeepPass(a: {
     siteId: a.siteId,
     tier: "deep",
     onStage: (stage) => recordStage(a.siteId, stage),
+    // Onboarding's pass runs on a payment that has just cleared, so the
+    // gate is answered `true` here and never guessed at inside the
+    // engine (`topUp`'s own rule, which the deep arm does not read).
+    afterReport: async ({ report, cost }) => {
+      await deriveForPass(cost, {
+        tier: "deep",
+        siteId: a.siteId,
+        report,
+        hasActiveAccess: true,
+      });
+    },
   });
 
   const reason = reasonFor(result.status);

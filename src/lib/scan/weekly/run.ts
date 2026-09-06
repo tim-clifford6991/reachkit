@@ -24,6 +24,15 @@
 // measured week that says what it missed (REQ-065 c4), never a failure to
 // repeat.
 //
+// **What the week found becomes supply, before the account is read.**
+// §7's weekly top-up is additive and runs inside this pass's own cost
+// context and `WEEKLY` cap (§6.3 puts opportunity typing in the paid
+// budgets); it is handed to `runScan` as the hook it calls once the
+// report is stored, because the opportunity rows reference that row. The
+// access gate is not re-decided for it: `sitesWithActiveAccess` answered
+// a few lines above and that answer is passed on, so there is one
+// definition of active and `topUp` obeys rather than asks.
+//
 // **The kill switch stops it before any spend.** §11's switch names
 // `scan+generate+publish`, and this starts a scan without passing through
 // the `scan/run` job's own door, so it asks the same binding here — the
@@ -31,6 +40,7 @@
 // The week then reads `not_measured` with its next due date, which is
 // REQ-065 c3's account and not a silent skip.
 import { env } from "@/lib/config/env";
+import { deriveForPass } from "@/lib/opportunities";
 import { accountForWeek, type UnmeasuredPart } from "./account";
 import { sitesWithActiveAccess } from "./access";
 import { claimWeek, readSiteZone, releaseWeek } from "./store";
@@ -98,6 +108,14 @@ export async function runWeekly(a: {
       siteId: a.siteId,
       domain: a.domain,
       tier: "weekly",
+      afterReport: async ({ report, cost }) => {
+        await deriveForPass(cost, {
+          tier: "weekly",
+          siteId: a.siteId,
+          report,
+          hasActiveAccess: true,
+        });
+      },
     }));
   } catch (error) {
     // A crash leaves no week: the claim goes, and the next tick retries

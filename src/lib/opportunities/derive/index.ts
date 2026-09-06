@@ -40,13 +40,14 @@ export interface DeriveInput {
    *  the customers the product exists to serve. */
   ownRanked: Measured<number>;
   /** One ranked count per domain the deep pass sized — issue #37's
-   *  `RivalSize[]`, projected by `rankedCountsFromSizes`. It is a
-   *  parameter and not a read of the report because `rivalSizes` is not a
-   *  member of `StoredReport` yet: it "joins StoredReport under #103"
-   *  (DECISIONS, 2026-09-06). When it does, the caller passes
-   *  `rankedCountsFromSizes(report.rivalSizes.value, at)` and nothing in
-   *  this directory changes. A missing entry is `undeterminable` and
-   *  never a zero — see `winnability/counts.ts`. */
+   *  `RivalSize[]`, projected by `rankedCountsFromSizes`. It stays a
+   *  parameter now that `rivalSizes` is a member of `StoredReport`
+   *  (issue #126, DECISIONS 2026-09-06): the projection is the caller's
+   *  — `rankedCountsOf` in `../pass.ts` — so this directory reads a
+   *  lookup and never the blob's sizing arm, and a suite can hand it a
+   *  market of any shape without assembling a report for it. A missing
+   *  entry is `undeterminable` and never a zero — see
+   *  `winnability/counts.ts`. */
   rankedCounts: RankedCounts;
 }
 

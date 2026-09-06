@@ -41,6 +41,10 @@ export { topUp } from "./supply/topup";
 
 export { setOpportunityStore, type OpportunityStore } from "./store";
 
+// What a paid pass does with what it measured: the deep pass pursues a
+// month of depth, every weekly refresh tops up (issue #126).
+export { deriveForPass, rankedCountsOf, type PassOutcome, type PassTier } from "./pass";
+
 // §9's weekly judgement of the pages the engine's opportunities became
 // (REQ-063). It lives under `opportunities/` because a verdict is the
 // acceptance test an opportunity was created with, decided — not a second
