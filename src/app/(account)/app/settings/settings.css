@@ -1,0 +1,177 @@
+/* src/app/(account)/app/settings/settings.css — BUILD §4.7, §2.2
+ *
+ * §4.7's first two words: "Two-column cards." This sheet is those two
+ * columns and the rows inside them — arrangement, and nothing else.
+ *
+ * WHAT IT DELIBERATELY DOES NOT DO. It styles no registered component.
+ * `.card`, `.btn`, `.badge`, `.toggle` and `.input` are daisyUI's, and
+ * `BUILD.md` §2.1 maps this product's tokens onto daisyUI's theme slots in
+ * `tailwind.config.ts` "so stock daisyUI classes just work". They do not work
+ * yet: nothing in this repository runs `@import "tailwindcss"`, so daisyUI's
+ * stylesheet is never emitted and every component class is inert (the same
+ * state `src/ui/layout/shell.css` records, and the same reason the shell's
+ * own cards are unstyled today). Giving those classes rules here would be a
+ * second, hand-written copy of the design system that someone would have to
+ * find and delete when the real one lands, and it is exactly what §2.2's
+ * closed list — "Custom CSS is allowed only for: the calendar grid, the day
+ * panel, the AI dot-matrix, chart SVGs, and the sidebar" — exists to prevent.
+ * So the cards on this screen will look like the shell's cards look, and they
+ * will start looking right on the day the Tailwind entry is imported, with no
+ * change to this file. Flagged to the owner in this issue's PR.
+ *
+ * WHAT IT DOES DO. Screen-level arrangement, which is Tailwind *utility*
+ * territory (`grid`, `gap-4`, `flex-wrap`) rather than component territory —
+ * the same "transcribed, scoped, and redundant rather than wrong when the
+ * pipeline lands" posture `shell.css` takes for the spacing scale. Every rule
+ * below is scoped under `.rk-settings`, so this file can touch nothing on any
+ * other screen.
+ *
+ * THE COLUMN SWITCH. Two columns arrive at `--breakpoint-xl` (1280px) —
+ * `BAND_MIN.wide` — not at the `--breakpoint-lg` where the sidebar returns. At
+ * 1024px the sidebar has already taken 222px and its padding, leaving the main
+ * column about 750px: two card columns there are ~370px each, which is
+ * narrower than the compact band this screen is already proven at, and
+ * ADR-093's law is that content fits its box or the box changes. So the medium
+ * band keeps one column and the wide band is where §4.7's two appear. A media
+ * query prelude cannot read a `var()` (see `layout.css`'s header), so 1280px
+ * is written literally below and pinned back against `BAND_MIN.wide` by
+ * `tests/ui/settings-css.test.ts` — the shape `layout.css`, `shell.css` and
+ * `tests/pins.test.ts` already use.
+ *
+ * SPACING. The four steps this sheet needs are transcribed from
+ * `design/tokens.md` §1 (owner ruling 2026-09-02) and scoped to `.rk-settings`
+ * rather than `:root`, for the reason `shell.css` states at length: that scale
+ * has no global home yet and minting one here would be a second global
+ * vocabulary. Their proper home is the design system's own order (issue #12).
+ */
+
+.rk-settings {
+  /* design/tokens.md §1, owner ruling 2026-09-02 — transcribed, not chosen. */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+}
+
+/* No global reset ships in this repository (Tailwind's preflight is not
+ * imported anywhere), so this screen states border-box for its own subtree,
+ * exactly as the shell does for its. */
+.rk-settings,
+.rk-settings * {
+  box-sizing: border-box;
+}
+
+/* ── The two columns ──────────────────────────────────────────────────── */
+
+.rk-settings-cols {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--s-4);
+  align-items: start;
+  min-width: 0;
+}
+
+/* --breakpoint-xl (1280px) = BAND_MIN.wide. §4.7's "Two-column cards".
+ * Pinned by tests/ui/settings-css.test.ts. */
+@media (min-width: 1280px) {
+  .rk-settings-cols {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.rk-settings-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  min-width: 0;
+}
+
+/* ── Rows inside a card ───────────────────────────────────────────────── */
+
+/* Every group of controls wraps. ADR-093 decision 6 check 2 asks that every
+ * border box stay inside its containing block's padding box at 320px, and a
+ * row of a label, a value and a control cannot do that on one line there. */
+.rk-settings-row,
+.rk-settings-chips,
+.rk-settings-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  min-width: 0;
+}
+
+.rk-settings-fields {
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.rk-settings-row {
+  align-items: center;
+}
+
+.rk-settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  min-width: 0;
+}
+
+/* §2.3's "Uppercase 10.5–11px eyebrows for section labels", at the floor
+ * ADR-093 decision 3 fixes (`--t-floor`, 11px) and never below it. */
+.rk-settings-label {
+  font-size: var(--t-floor);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  color: var(--ink-3);
+}
+
+/* A domain, an address, a category phrase and a rival's host all arrive as
+ * one unbroken token that is wider than 288px of compact viewport. They break
+ * rather than overflow — check 3 fails a clipped or scrolling text box, and
+ * §2.2 admits no truncation allow-list entry for this screen. */
+.rk-settings-value,
+.rk-settings-chip,
+.rk-settings-line {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.rk-settings-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+/* §2.5: "Explanatory text is one short written line, 11–12px, dim." */
+.rk-settings-line {
+  margin: 0;
+  font-size: var(--t-floor);
+  color: var(--ink-3);
+}
+
+/* A native control has an intrinsic width of its own (an `<input>` defaults to
+ * about 20 characters) that ignores its flex container. Containment at 320px
+ * is what this rule is for; it sets no colour, border, radius or padding, so
+ * daisyUI's own `.input` rules remain the only thing that will style it. */
+.rk-settings input,
+.rk-settings textarea {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* ── The danger zone ──────────────────────────────────────────────────── */
+
+/* The consequence step, once opened. It is set off by space rather than by
+ * colour: §2.5 rules that "Red appears only for *the customer's problem being
+ * shown to them*", and a customer deliberately opening the danger zone is not
+ * being shown a problem — the two written lines are what carry the weight. */
+.rk-settings-consequence {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding-top: var(--s-2);
+  min-width: 0;
+}
