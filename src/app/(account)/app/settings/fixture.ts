@@ -24,20 +24,22 @@
 // The domain and the zone agree with the shell's fixture on purpose: the two
 // are the same site, and a settings screen that named a different domain from
 // the sidebar beside it would be the one bug this file can cause.
-import { fromStripe, type BillingSummary } from "./billing";
-import type { SettingsFacts } from "./model";
+import type { BillingFacts, SettingsFacts } from "./model";
 import { FIXTURE_DOMAIN } from "../_shell/fixture";
 
-/** Stripe's own summary, as Stripe rendered it. Every value is text Stripe
- *  produced; nothing here was computed, formatted or totalled by ReachKit
- *  (REQ-097 c5). `surfaceHref` is the one destination criterion 1 names — the
- *  billing portal — and all three billing controls lead to it. */
-const FIXTURE_BILLING: BillingSummary = Object.freeze({
+/** The billing facts, as `billingSummary` answers them (#34). Three
+ *  members and no billing value: REQ-097 criterion 5 keeps the next
+ *  invoice, the card and the invoice history off every ReachKit surface,
+ *  and `billing.ts` records the owner's ruling that settled which of §4.7's
+ *  four things survive it. `surfaceHref` is the one destination criterion 1
+ *  names — the billing portal — and all three billing controls lead to it.
+ *
+ *  A fixed instant, not `Date.now() + n`: a fixture that moved would make
+ *  the layout conformance sweep non-deterministic, and this one is a
+ *  specimen of a paid-up account rather than a clock. */
+const FIXTURE_BILLING: BillingFacts = Object.freeze({
   state: "active",
-  plan: fromStripe("ReachKit — €49.00 / month"),
-  nextInvoice: fromStripe("1 October 2026 — €49.00"),
-  card: fromStripe("Visa •••• 4242"),
-  accessUntil: fromStripe("1 October 2026"),
+  paidThrough: new Date("2026-10-01T00:00:00.000Z"),
   surfaceHref: "https://billing.stripe.com/p/session/fixture",
 });
 

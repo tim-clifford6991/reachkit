@@ -58,7 +58,9 @@ import SettingsPage from "@/app/(account)/app/settings/page";
 import { BillingPanel } from "@/app/(account)/app/settings/panels/BillingPanel";
 import { ACTIONS, SETTABLE } from "@/app/(account)/app/settings/settable";
 import { FIXTURE_SETTINGS_FACTS } from "@/app/(account)/app/settings/fixture";
-import { billingValues } from "@/app/(account)/app/settings/billing";
+import { PRICE_KEYS } from "@/app/(account)/app/settings/billing";
+import { assembleSettings } from "@/app/(account)/app/settings/model";
+import { COPY } from "@/lib/presentation/copy";
 import * as constants from "@/lib/config/constants";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -152,7 +154,9 @@ describe("REQ-070 c2 — the rendered action set is the seven ACTIONS entries", 
     // the two rather than inside one render.
     const active = await mountScreen();
     const cancelled = await mount(
-      <BillingPanel billing={{ ...FIXTURE_SETTINGS_FACTS.billing, state: "cancelled" }} />
+      <BillingPanel
+        billing={{ ...assembleSettings(FIXTURE_SETTINGS_FACTS).billing, state: "cancelled" }}
+      />
     );
     const offered = new Set([...testIds(active, "action-"), ...testIds(cancelled, "action-")]);
     expect([...offered].sort()).toEqual([...ACTIONS].sort());
@@ -240,24 +244,33 @@ describe("REQ-079 c1 — each danger-zone action states its consequence before i
 
 // ── REQ-097 ────────────────────────────────────────────────────────────────
 describe("REQ-097 — the Billing card renders no number ReachKit computed", () => {
-  it("each value it states is exactly the text Stripe produced", async () => {
+  it("it states no next invoice, no card and no invoice history", async () => {
+    // REQ-097 c5, and the ruling on issue #34 that settled which of §4.7's
+    // four things survive it: the plan, the price and the control.
     const root = await mountScreen();
-    const billing = FIXTURE_SETTINGS_FACTS.billing;
-    expect(root.querySelector('[data-testid="billing-plan"]')?.textContent).toBe(billing.plan.text);
-    expect(root.querySelector('[data-testid="billing-next-invoice"]')?.textContent).toBe(
-      billing.nextInvoice.text
-    );
-    expect(root.querySelector('[data-testid="billing-card"]')?.textContent).toBe(billing.card.text);
+    expect(root.querySelector('[data-testid="billing-next-invoice"]')).toBeNull();
+    expect(root.querySelector('[data-testid="billing-card"]')).toBeNull();
+    expect(root.querySelector('[data-testid="billing-plan"]')).not.toBeNull();
+    expect(root.querySelector('[data-testid="billing-price"]')).not.toBeNull();
   });
 
-  it("every digit in the card comes from one of those Stripe values", async () => {
+  it("every digit on the card comes from the price copy or the access-end day", async () => {
     const root = await mountScreen();
     const card = root.querySelector('[data-testid="action-invoices"]')?.closest(".card");
     expect(card).not.toBeNull();
     let text = card?.textContent ?? "";
-    for (const value of billingValues(FIXTURE_SETTINGS_FACTS.billing)) {
-      text = text.split(value.text).join("");
+
+    // The price, as the registry states it — a public product fact, not a
+    // value read back from a vendor (REQ-097's own non-goal).
+    for (const key of PRICE_KEYS) {
+      const value = COPY[key];
+      if (value !== "") text = text.split(value).join("");
     }
+    // The day access ends — `users.paid_through`, this product's own gate
+    // (ADR-050) and the date REQ-076 c3 requires the customer be told.
+    const { accessUntil } = assembleSettings(FIXTURE_SETTINGS_FACTS).billing;
+    text = text.split(accessUntil).join("");
+
     // Whatever is left is the card's words. If a figure survived this
     // subtraction, ReachKit rendered a billing number of its own.
     expect(text).not.toMatch(/[0-9]/);
