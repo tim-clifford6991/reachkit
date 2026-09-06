@@ -48,6 +48,18 @@ function headersFor(route: EnumeratedRoute): { extraHTTPHeaders?: Record<string,
   return Object.keys(headers).length > 0 ? { extraHTTPHeaders: headers } : {};
 }
 
+/** The two tests below walk **every** route in one `it`, and `withPage`
+ *  launches its own Chromium per call (see `browser.ts`'s header for why it
+ *  cannot share one). That is roughly half a second of browser startup per
+ *  route, so the wall clock here grows with the route tree and crossed
+ *  Vitest's 5 s per-test default the week `src/app` reached seven routes
+ *  (issue #19 — `/pricing` and `/signin` were the sixth and seventh). The
+ *  bound is on browser startup, not on the assertion, and it is per-`it` so
+ *  the width sweep above keeps the default and a real layout defect still
+ *  fails fast. Same shape, same reason, as `tests/egress/policy.test.ts`'s
+ *  `ESLINT_BOOT_MS`. */
+const PER_ROUTE_BROWSER_MS = 60_000;
+
 function urlFor(route: EnumeratedRoute): string {
   const baseURL = getBaseURL();
   if (!baseURL) {
@@ -113,7 +125,7 @@ describe(`layout sweep — ${routes.length} route(s) × 5 widths`, () => {
       // Nothing to check today — stated, not silent (rule 5.5).
       expect(routes).toEqual([]);
     }
-  });
+  }, PER_ROUTE_BROWSER_MS);
 
   it("every route's :root pins --breakpoint-lg/-xl and --t-floor against BAND_MIN", async () => {
     for (const route of routes) {
@@ -141,5 +153,5 @@ describe(`layout sweep — ${routes.length} route(s) × 5 widths`, () => {
     if (routes.length === 0) {
       expect(routes).toEqual([]);
     }
-  });
+  }, PER_ROUTE_BROWSER_MS);
 });

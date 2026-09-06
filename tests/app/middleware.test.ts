@@ -71,6 +71,7 @@ describe(
         "/api/lead": "/api/lead",
         "/opt-out/:token": "/opt-out/abc123",
         "/pricing": "/pricing",
+        "/signin": "/signin",
       };
       expect(Object.keys(instances).sort()).toEqual([...PUBLIC_PATHS].sort());
       for (const pattern of PUBLIC_PATHS) {

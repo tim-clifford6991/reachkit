@@ -15,13 +15,22 @@
 // The start control is a link to checkout in the shipped journey (§3, §13,
 // issue #33). Until that lands it is a control with no destination rather
 // than an invented one.
+//
+// 2026-09-05, issue #19: `startAction` is how the *other* surface that
+// carries this offer — `/pricing`, the scanless one — gives that control
+// its destination. REQ-021 criterion 4 says that surface states the terms
+// "on the same terms the offer at the end of a report states (criterion
+// 2)"; the strongest reading of that is one component, rendered twice, so
+// the two cannot drift by construction. Everything above the control is
+// identical either way; only where Start goes differs, and the report
+// screen passes nothing and is unchanged.
 import type React from "react";
 import { Btn, Card } from "@/ui/components";
 import { VETO } from "@/lib/config/constants";
 import { copy } from "@/lib/presentation/copy";
 import { Num } from "../_address/measured";
 
-export function PricingCard(): React.JSX.Element {
+export function PricingCard(p: { startAction?: () => Promise<void> } = {}): React.JSX.Element {
   const specs = [
     copy("offer.cadence.page", { value: copy("offer.cadence.page.value") }),
     copy("offer.cadence.measure", { value: copy("offer.cadence.measure.value") }),
@@ -44,7 +53,13 @@ export function PricingCard(): React.JSX.Element {
           <li key={line}>{line}</li>
         ))}
       </ul>
-      <Btn label={copy("offer.start")} variant="primary" block />
+      {p.startAction ? (
+        <form action={p.startAction}>
+          <Btn label={copy("offer.start")} variant="primary" block type="submit" />
+        </form>
+      ) : (
+        <Btn label={copy("offer.start")} variant="primary" block />
+      )}
       <p className="text-xs opacity-60">{copy("offer.cancel_self_service")}</p>
     </Card>
   );

@@ -43,6 +43,13 @@ export const PUBLIC_PATHS: readonly string[] = [
   "/api/lead",
   "/opt-out/:token",
   "/pricing",
+  // Issue #19: the sign-in address prompt now exists as a route
+  // (`src/app/(public)/signin/page.tsx`), so it takes a row on this list
+  // like every other public surface. `SIGNIN_PATH` below stays: it is this
+  // file's redirect *target*, and a target that is not itself public would
+  // redirect a denied visitor to a denied page forever — a property worth
+  // holding independently of any row on this list.
+  "/signin",
 ];
 
 /** The two transport-only adapters (`## File plan`): Stripe and the job
