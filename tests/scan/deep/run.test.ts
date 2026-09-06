@@ -57,6 +57,33 @@ beforeEach(() => {
   });
 });
 
+describe("the pass's measurements become supply (issue #126)", () => {
+  it("hands the pipeline an afterReport hook that pursues §7's depth, on this pass's own money", async () => {
+    pipeline.mockResolvedValue({ scanId: "scan-1", status: "done" });
+    const derive = vi.fn();
+    vi.doMock("@/lib/opportunities", () => ({ deriveForPass: derive }));
+    vi.resetModules();
+    const { runDeepPass: freshRunDeepPass } = await import("../../../src/lib/scan/deep/run");
+
+    await freshRunDeepPass({ siteId: SITE, domain: "example.com" });
+    const args = pipeline.mock.calls[0]![0] as { afterReport?: (a: unknown) => Promise<void> };
+    expect(typeof args.afterReport).toBe("function");
+
+    const cost = { cap: "DEEP" } as unknown;
+    const report = { scanId: "scan-1" } as unknown;
+    await args.afterReport?.({ report, cost });
+    expect(derive).toHaveBeenCalledWith(cost, {
+      tier: "deep",
+      siteId: SITE,
+      report,
+      // Onboarding's pass runs on a payment that has just cleared.
+      hasActiveAccess: true,
+    });
+    vi.doUnmock("@/lib/opportunities");
+    vi.resetModules();
+  });
+});
+
 describe("§4.3 — the deep pass is the one pipeline with tier as a parameter", () => {
   it("calls runScan once, at tier 'deep', with the founder's own site and domain", async () => {
     pipeline.mockResolvedValue({ scanId: "scan-1", status: "done" });

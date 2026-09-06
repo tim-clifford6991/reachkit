@@ -165,7 +165,7 @@ export function DayPanelView(p: {
                   label={copy(action.key)}
                   variant="ghost"
                   size="sm"
-                  onClick={() => run(action.command, page.draftId, cell.day)}
+                  onClick={() => run(action.command, action.draftId, cell.day)}
                 />
               </span>
             ),

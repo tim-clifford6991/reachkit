@@ -101,7 +101,7 @@ const QUESTIONS: readonly StoredQuestion[] = QUESTION_WORDING.map((wording, inde
  *  rather than written out twice. Invented, like every figure in this
  *  file, and it goes when the fixture does. */
 const FIXTURE_RECORD = {
-  version: 1,
+  version: 2,
   scanId: "fixture-scan-1",
   domain: OWN_DOMAIN as CanonicalDomain,
   tier: "free",
@@ -112,6 +112,7 @@ const FIXTURE_RECORD = {
   questions: { kind: "unmeasured", reason: "not_attempted", at: MEASURED_AT },
   serps: [],
   rivals: { kind: "unmeasured", reason: "not_attempted", at: MEASURED_AT },
+  rivalSizes: { kind: "unmeasured", reason: "not_attempted", at: MEASURED_AT },
   sources: [],
   onPage: { kind: "unmeasured", reason: "not_attempted", at: MEASURED_AT },
   robots: { kind: "unmeasured", reason: "not_attempted", at: MEASURED_AT },
@@ -130,6 +131,7 @@ const FIXTURE_RECORD = {
   | "questions"
   | "serps"
   | "rivals"
+  | "rivalSizes"
   | "sources"
   | "onPage"
   | "robots"

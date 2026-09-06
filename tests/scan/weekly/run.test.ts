@@ -52,6 +52,37 @@ function weekReadsBack(row: Record<string, unknown> | null): void {
     statement.table === "scans" && statement.verb === "select" ? (row === null ? [] : [row]) : null;
 }
 
+describe("what the week found becomes supply (issue #126)", () => {
+  it("hands the pipeline an afterReport hook that tops up §7's supply, on this pass's own money", async () => {
+    weekReadsBack({ id: "x", status: "done", report: COMPLETE_REPORT });
+    const derive = vi.fn();
+    vi.doMock("@/lib/opportunities", () => ({ deriveForPass: derive }));
+    vi.resetModules();
+    const { runWeekly: freshRunWeekly } = await import("@/lib/scan/weekly");
+    const { registerActiveAccessGate: register } = await import("@/lib/scan/weekly");
+    register(async (ids: readonly string[]) => new Set(ids));
+
+    await freshRunWeekly({ ...SITE, now: MONDAY_0600_UTC });
+    const call = runScan.mock.calls[0]?.[0] as { afterReport?: (a: unknown) => Promise<void> };
+    expect(typeof call.afterReport).toBe("function");
+
+    const cost = { cap: "WEEKLY" } as unknown;
+    const report = { scanId: "s" } as unknown;
+    await call.afterReport?.({ report, cost });
+    expect(derive).toHaveBeenCalledWith(cost, {
+      tier: "weekly",
+      siteId: SITE.siteId,
+      report,
+      // The gate was answered a few lines above the claim; that answer is
+      // passed on rather than asked a second time, so there is one
+      // definition of active access.
+      hasActiveAccess: true,
+    });
+    vi.doUnmock("@/lib/opportunities");
+    register(null);
+  });
+});
+
 describe("the measurement is runScan with the tier as its parameter, and nothing else", () => {
   it("runs the pipeline at tier weekly, into the row it claimed", async () => {
     weekReadsBack({ id: "x", status: "done", report: COMPLETE_REPORT });

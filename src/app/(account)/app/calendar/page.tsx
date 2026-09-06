@@ -26,7 +26,8 @@ import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../_shell/written";
 import { CalendarView } from "./CalendarView";
 import { addMonths, monthLabel } from "./dates";
-import { parseMonth, readMonth } from "./provider";
+import { parseMonth, readMonth, readSupplyNotice } from "./provider";
+import { supplyLine } from "./supply";
 
 export default async function CalendarPage({
   searchParams,
@@ -36,6 +37,10 @@ export default async function CalendarPage({
   const asked = (await searchParams).month;
   const month = parseMonth(typeof asked === "string" ? asked : undefined);
   const model = await readMonth(month);
+  // §7's one statement of supply. At most one — the precedence between the
+  // three arms is the engine's, and this screen renders whichever it
+  // returned and never a second.
+  const supplyStatement = supplyLine(await readSupplyNotice(), model.timeZone);
 
   const previous = addMonths(month, -1);
   const next = addMonths(month, 1);
@@ -75,6 +80,11 @@ export default async function CalendarPage({
       <footer className="flex flex-col gap-1" data-testid="calendar-footnote">
         {plannedNote === null ? null : <p className="rk-prov">{plannedNote}</p>}
         {supplyNote === null ? null : <p className="rk-prov">{supplyNote}</p>}
+        {supplyStatement === null ? null : (
+          <p className="rk-prov" data-testid="calendar-supply-statement">
+            {supplyStatement}
+          </p>
+        )}
       </footer>
     </div>
   );
