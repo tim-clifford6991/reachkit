@@ -45,7 +45,7 @@
 // that lives in exactly one file, which this stays as long as no second
 // caller repeats the literal rather than importing it.
 import { TIMING } from "@/lib/config/constants";
-import { withCostContext, type CostContext } from "@/lib/costs";
+import { withCostContext, type CapName, type CostContext } from "@/lib/costs";
 
 /** REQ-003's "bounded moment", made total. A free scan reaches exactly one. */
 export type Ending =
@@ -132,14 +132,14 @@ function delay(ms: number): Promise<void> {
  *     ceiling was reached").
  */
 async function runBounded<T>(
-  a: { startedAt: Date; cost: CapReader },
-  body: (b: Bounds) => Promise<T>
+  a: { startedAt: Date; cost: CostContext; deadlineApplies: boolean },
+  body: (b: Bounds, c: CostContext) => Promise<T>
 ): Promise<{ result: T | null; ending: Ending }> {
   const bounds = makeBounds({ startedAt: a.startedAt, clock: () => new Date(), cost: a.cost });
 
   const bodyOutcome: Promise<{ result: T | null; ending: Ending }> = (async () => {
     try {
-      const result = await body(bounds);
+      const result = await body(bounds, a.cost);
       const stopped = bounds.stopNow();
       return stopped
         ? { result, ending: { kind: "report" as const, complete: false as const, stoppedReason: stopped } }
@@ -159,6 +159,13 @@ async function runBounded<T>(
       ending: { kind: "report" as const, complete: false as const, stoppedReason: "time_ceiling" as const },
     };
   })();
+
+  // The deep pass is released at ten minutes rather than stopped, and the
+  // weekly pass runs on the standard queue; for both, the spend cap
+  // re-checked between stages is the whole of the bound, so there is no
+  // timer to race against. `bounds.expired()` is `false` for the life of
+  // such a pass and `stopNow()` reads the cap alone.
+  if (!a.deadlineApplies) return bodyOutcome;
 
   return Promise.race([bodyOutcome, deadlineOutcome]);
 }
@@ -188,12 +195,27 @@ function logEnding(a: { scanId: string; ending: Ending; elapsedMs: number; cost:
  *  (ADR-021 decision 1). */
 export async function withFreeBounds<T>(
   a: { scanId: string; startedAt: Date },
-  body: (b: Bounds) => Promise<T>
+  body: (b: Bounds, c: CostContext) => Promise<T>
+): Promise<{ result: T | null; ending: Ending }> {
+  return withScanBounds({ scanId: a.scanId, startedAt: a.startedAt, cap: "FREE", deadlineApplies: true }, body);
+}
+
+/** The same two-ceiling shape for a pass whose cap is not the free path's
+ *  and whose bound is the cap alone (`deadlineApplies: false`). The free
+ *  path never reaches this function with anything but its own two fixed
+ *  values — `withFreeBounds` above supplies them and exposes no way to
+ *  vary either, which is the whole of ADR-021 decision 1. */
+export async function withScanBounds<T>(
+  a: { scanId: string; startedAt: Date; cap: CapName; deadlineApplies: boolean },
+  body: (b: Bounds, c: CostContext) => Promise<T>
 ): Promise<{ result: T | null; ending: Ending }> {
   return withCostContext(
-    { scanId: a.scanId, cap: "FREE", policyVersion: FREE_SCAN_POLICY_VERSION },
+    { scanId: a.scanId, cap: a.cap, policyVersion: FREE_SCAN_POLICY_VERSION },
     async (cost) => {
-      const outcome = await runBounded({ startedAt: a.startedAt, cost }, body);
+      const outcome = await runBounded(
+        { startedAt: a.startedAt, cost, deadlineApplies: a.deadlineApplies },
+        body
+      );
       logEnding({ scanId: a.scanId, ending: outcome.ending, elapsedMs: Date.now() - a.startedAt.getTime(), cost });
       return outcome;
     }

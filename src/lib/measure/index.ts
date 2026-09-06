@@ -34,13 +34,14 @@
 import { BATTERY, CACHE_WINDOWS_D, PRICE_BOOK } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { safeFetch, type SafeFetchOpts } from "@/lib/egress/safe-fetch";
+import { readRobots } from "@/lib/egress/robots";
 import type { FetchOutcome, RobotsPolicy } from "@/lib/egress/types";
 import { rankedKeywords } from "@/lib/vendors/dataforseo";
 import type { RankedRow } from "@/lib/vendors/dataforseo/types";
 import { answerabilityOf, foundationsOf, searchPresenceOf } from "./drivers";
 import { measured, measuredZero, unmeasured, type Measured } from "./measured";
 import { OWN_FETCH_SOURCE, isStoredDocument, toStoredDocument, type StoredDocument } from "./own-fetch";
-import { parseOnPage, type OnPageFacts } from "./parse";
+import { parseOnPage, visibleText, type OnPageFacts } from "./parse";
 import type { Drivers } from "./score";
 
 export type { Drivers } from "./score";
@@ -69,24 +70,19 @@ const EXTRA_PAGES_BY_TIER: Readonly<Record<Tier, number>> = Object.freeze({
  *  double them at the module boundary without a network, a database or a
  *  vendor. Production callers pass nothing and get the real modules.
  *
- *  `readRobots` has no real module yet — issue #22 ships it beside
- *  `safeFetch`; until then the default cannot determine a policy
- *  (`{ ok: false }`), which measures as `undeterminable`, never as a
- *  fabricated "nothing blocked". */
+ *  `readRobots` is `src/lib/egress/robots.ts`' (issue #22, since landed).
+ *  A reader that cannot determine a policy answers `{ ok: false }`, which
+ *  measures as `undeterminable`, never as a fabricated "nothing
+ *  blocked". */
 export interface MeasurePorts {
   fetchDocument: (url: string, opts?: SafeFetchOpts) => Promise<FetchOutcome>;
   readRobots: (origin: string) => Promise<RobotsPolicy | { ok: false; reason: string }>;
   rankedKeywords: (c: CostContext, a: { domain: string; rows: 50 | 100 | 300 }) => Promise<Measured<RankedRow[]>>;
 }
 
-const robotsReaderNotWiredYet: MeasurePorts["readRobots"] = async () => ({
-  ok: false,
-  reason: "robots reader not wired (issue #22)",
-});
-
 const DEFAULT_PORTS: MeasurePorts = Object.freeze({
   fetchDocument: safeFetch,
-  readRobots: robotsReaderNotWiredYet,
+  readRobots,
   rankedKeywords,
 });
 
@@ -206,6 +202,13 @@ function homeUrlOf(domain: string): string {
 
 export interface DomainMeasurement {
   drivers: Drivers;
+  /** The rendered text of the documents this call read. Handed over rather
+   *  than re-fetched: BUILD §6.7 step 1 derives the business profile "from
+   *  the fetched home + pricing pages", and this call is the one that
+   *  fetched them — a second read of the customer's own server for text
+   *  already in hand is exactly what §6.4's never-pull list forbids.
+   *  `null` where the document was not read. */
+  text: { home: string | null; pricing: string | null };
   /** The home document's facts — `unmeasured` when it could not be read,
    *  never a fabricated all-zero `OnPageFacts`. */
   onPage: Measured<OnPageFacts>;
@@ -235,8 +238,12 @@ export async function measureDomain(
 
   // 2. The pricing page, from the home document's own links.
   const pricingUrl = home.html === null ? null : detectPricingUrl(home.html, homeUrl);
+  const pricingRead = pricingUrl === null ? null : await readDocument(c, ports, pricingUrl);
+  const pricingHtml = pricingRead === null ? null : pricingRead.html;
   const pricing =
-    pricingUrl === null ? null : { url: pricingUrl, facts: stampedAt((await readDocument(c, ports, pricingUrl)).facts, at) };
+    pricingUrl === null || pricingRead === null
+      ? null
+      : { url: pricingUrl, facts: stampedAt(pricingRead.facts, at) };
 
   // 3. The caller's pages, capped by the tier's allowance, deduplicated
   //    against what was already read, in the order given.
@@ -303,5 +310,14 @@ export async function measureDomain(
     aiPresence: drivers.aiPresence.kind,
   });
 
-  return { drivers, onPage, pricing, robots };
+  return {
+    drivers,
+    text: {
+      home: home.html === null ? null : visibleText(home.html),
+      pricing: pricingHtml === null ? null : visibleText(pricingHtml),
+    },
+    onPage,
+    pricing,
+    robots,
+  };
 }

@@ -35,6 +35,12 @@ import { env } from "@/lib/config/env";
 import { correctionOffer } from "@/lib/market/coherence/offer";
 import { nextCorrectionState } from "@/lib/market/coherence/state";
 import { advanceCorrectionState, correctionRunner, readCorrectionFacts } from "@/lib/scan/correction";
+// Side-effect import: the scan pipeline registers itself as the correction
+// runner at its own module load (`registerCorrectionRunner`, issue #25).
+// Route modules are separate entry points, so without this line nothing is
+// registered in this one's graph and every correction would refuse with
+// `scanning_unavailable` — a refusal that would be untrue.
+import "@/lib/scan/run";
 import { parseDomain, type DomainProblem } from "@/lib/scan/domain";
 
 /** Every way a submission can be turned down, as one flat vocabulary.
