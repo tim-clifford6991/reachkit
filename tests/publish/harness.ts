@@ -7,6 +7,16 @@
 // conflict clause that refuses only a delivered row, the ordering a resume
 // drains in. A mock that answered from a fixed list would pass whether or
 // not any of them held.
+import { applyEnvFixture } from "../mail/env-fixture";
+
+// The publishing subsystem seals destination credentials
+// (`src/lib/publish/destinations/config/seal.ts`), and `src/lib/config/env`
+// validates `process.env` once, at module load, throwing on a missing
+// binding. Applying the fixture here — at the top of the module every
+// publishing suite imports before the module under test — is what makes
+// that load succeed. Reused rather than copied a third time: the bindings
+// are the same bindings.
+applyEnvFixture();
 
 export type Row = Record<string, unknown>;
 
@@ -21,6 +31,11 @@ export interface RecordedQuery {
 export interface UniqueIndex {
   table: string;
   columns: string[];
+  /** A partial index's predicate. `destinations` carries one — unique on
+   *  `(site_id) where deleted_at is null` — and without it the double this
+   *  suite runs against would accept a second live destination the real
+   *  database refuses. */
+  where?: (row: Row) => boolean;
 }
 
 export interface FakeDb {
@@ -55,6 +70,8 @@ function matches(row: Row, filters: RecordedQuery["filters"]): boolean {
         return value === null || value === undefined;
       case "not-is-null":
         return value !== null && value !== undefined;
+      case "is":
+        return f.value === null ? value === null || value === undefined : value === f.value;
       default:
         return true;
     }
@@ -80,7 +97,14 @@ export function fakeDb(): FakeDb {
 
   const db: FakeDb = {
     tables: new Map(),
-    uniqueIndexes: [{ table: "publications", columns: ["draft_id", "destination"] }],
+    uniqueIndexes: [
+      { table: "publications", columns: ["draft_id", "destination"] },
+      {
+        table: "destinations",
+        columns: ["site_id"],
+        where: (row) => row.deleted_at === null || row.deleted_at === undefined,
+      },
+    ],
     rpcs: new Map(),
     queries: [],
     rpcCalls: [],
@@ -144,6 +168,10 @@ export function fakeDb(): FakeDb {
         query.filters.push({ op: "eq", column, value });
         return self;
       },
+      is(column: string, value: unknown) {
+        query.filters.push({ op: "is", column, value });
+        return self;
+      },
       neq(column: string, value: unknown) {
         query.filters.push({ op: "neq", column, value });
         return self;
@@ -185,7 +213,14 @@ export function fakeDb(): FakeDb {
         const index = db.uniqueIndexes.find((i) => i.table === table);
         if (
           index !== undefined &&
-          db.rows(table).some((row) => index.columns.every((c) => row[c] === values[c]))
+          (index.where === undefined || index.where(values)) &&
+          db
+            .rows(table)
+            .some(
+              (row) =>
+                (index.where === undefined || index.where(row)) &&
+                index.columns.every((c) => row[c] === values[c])
+            )
         ) {
           insertError = { message: "duplicate key value violates unique constraint", code: UNIQUE_VIOLATION };
           return self;

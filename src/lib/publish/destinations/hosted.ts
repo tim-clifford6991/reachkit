@@ -20,6 +20,7 @@ import type {
   DeliveryResult,
   DestinationAdapter,
   DestinationHealth,
+  HealthReason,
   UnpublishResult,
 } from "../types";
 
@@ -48,9 +49,17 @@ export const HOSTED_ADAPTER: DestinationAdapter = Object.freeze({
     return { ok: false, reason: "destination_unavailable" };
   },
 
-  async health(): Promise<DestinationHealth> {
-    // The edge route is unbuilt, so the destination cannot publish. `error`
-    // is that fact; `ok` would be a claim.
-    return "error";
+  async health(): Promise<{ health: DestinationHealth; reason: HealthReason }> {
+    // The edge route is unbuilt, so nothing answers at the address a
+    // pointed record would point to. `error`/`unreachable` is that fact,
+    // stated as what it is; `ok` would be a claim.
+    //
+    // When #49 lands, this call learns the one distinction DNS resolution
+    // alone cannot make — a record pointing at our edge against a record
+    // pointing at somebody else's — and returns `ok` or
+    // `expired`/`dns_elsewhere`. Nothing that reads this changes with it:
+    // the reason travels with the state, so the caller never maps one
+    // back into the other.
+    return { health: "error", reason: "unreachable" };
   },
 });
