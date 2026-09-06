@@ -78,3 +78,26 @@ export const LIMITING_LINES: Readonly<Record<"foundations" | "answerability" | "
   answerability: "verdict.limiting.answerability",
   presence: "verdict.limiting.presence",
 };
+
+/** Added 2026-09-06, issue #47 (REQ-063): the four words a published
+ *  page's weekly standing is spoken as. Same shape as `SCORE_BANDS` — a
+ *  handle becomes a `CopyKey` and nothing else — and one map rather than
+ *  one per surface, because §4.5's Overview, §4.6's calendar and §12's
+ *  Monday mail all speak the same four and must not word them
+ *  differently.
+ *
+ *  The fourth is not a fourth verdict: REQ-063 c6's page carries it "in
+ *  place of the three". The two row-less standings — a week that was not
+ *  measured, and a page this week could not decide — have no entry here at
+ *  all: they are properties of a week and a measurement rather than
+ *  verdicts, they are stated once per week and not once per page (ADR-071
+ *  point 3), and giving them a word beside these four is the merge
+ *  ADR-071 forbids. */
+export const PAGE_VERDICTS: Readonly<
+  Record<"working" | "too_early" | "not_working" | "not_judgeable", CopyKey>
+> = {
+  working: "verdict.page.working",
+  too_early: "verdict.page.too_early",
+  not_working: "verdict.page.not_working",
+  not_judgeable: "verdict.page.not_judgeable",
+};

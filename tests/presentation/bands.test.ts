@@ -262,8 +262,20 @@ describe("bands · separation (step 9) — no config import, no customer-visible
     expect(codeOnly).not.toMatch(/\d/);
   });
 
-  it("bands.ts exports exactly BAND_LABELS, SCORE_BANDS, SEVERITY, LIMITING_LINES — no flattened array of the six band terms and no BAND_TERMS constant (ADR-001 point 4)", () => {
+  // The list grows only with a stated reason, which is the whole point of
+  // pinning it: ADR-001 point 4's guard is against a *flattened array of
+  // the band terms* — a seventh copy through which a fourth term could
+  // pass undetected — and not against a fifth handle→CopyKey map. Fifth
+  // entry, 2026-09-06, issue #47: `PAGE_VERDICTS`, REQ-063's four words for
+  // a published page's weekly standing. It is here rather than in a file of
+  // its own for the same reason `LIMITING_LINES` is: §4.5's Overview,
+  // §4.6's calendar and §12's Monday mail all speak those four words, and
+  // one home is what stops a screen and a mail wording the same verdict
+  // differently. It enumerates no band term and flattens nothing.
+  it("bands.ts exports exactly BAND_LABELS, SCORE_BANDS, SEVERITY, LIMITING_LINES, PAGE_VERDICTS — no flattened array of the six band terms and no BAND_TERMS constant (ADR-001 point 4)", () => {
     const exportNames = [...SOURCE.matchAll(/^export\s+const\s+([A-Za-z_$][\w$]*)/gm)].map((m) => m[1]);
-    expect(new Set(exportNames)).toEqual(new Set(["BAND_LABELS", "SCORE_BANDS", "SEVERITY", "LIMITING_LINES"]));
+    expect(new Set(exportNames)).toEqual(
+      new Set(["BAND_LABELS", "SCORE_BANDS", "SEVERITY", "LIMITING_LINES", "PAGE_VERDICTS"])
+    );
   });
 });
