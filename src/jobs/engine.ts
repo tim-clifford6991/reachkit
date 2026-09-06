@@ -12,8 +12,13 @@
 // signatures are what the jobs are written against; when an engine lands,
 // its module replaces the body here and the job files do not change.
 //
-// This module reaches no database and no vendor: it is a declaration of
-// what the engine will expose, not a second implementation of it.
+// This module reaches no database and no vendor of its own: where an
+// engine exists it is imported and called, and where one does not the stub
+// throws. It is a declaration of what the engine exposes, never a second
+// implementation of it — every body below is either one call into a module
+// that owns the rule, or `notBuilt`.
+import { runDeepPass } from "@/lib/scan/deep/run";
+import { sendSetupReminder, sitesDueSetupReminder as sitesDueSetupReminderRows } from "@/lib/mail/setup/reminders";
 
 /** A site and the zone its own clock runs in. Due-ness is computed from
  *  this — never from UTC (ADR-060). */
@@ -67,14 +72,38 @@ export async function startWeeklyScan(a: {
   return notBuilt("BP-050", `startWeeklyScan(${a.siteId})`);
 }
 
-// ── The scan pipeline — BP-012
-// TODO(engine): BP-012's `runScan()` — the one pipeline, tier a parameter.
+// ── The scan pipeline — BP-012, and the deep tier wired here (issue #36)
+//
+// The one pipeline, tier a parameter. `scanId` is the delivery's own
+// idempotency handle, not an instruction to the pipeline: a free pass
+// adopts the row admission already claimed and a paid one mints its own,
+// both inside `runScan` itself. Nothing about a tier is decided here.
+//
+// **Only the deep arm is wired.** `src/lib/scan/run.ts` is built (issue
+// #100), but reaching it from `scan/run` on the free path also means
+// admission's claimed slot and on the weekly path the site list — both
+// other issues' (#24, BP-050), and neither this one's to decide. So the
+// deep arm calls the pipeline and the other two still throw: an unwired
+// tier fails loudly rather than quietly reporting a pass nobody ran.
+//
+// A deep pass takes `runDeepPass` rather than `runScan` directly, because
+// onboarding needs two things the other tiers do not: the founder's stage
+// written where the waiting screen can read it, and the release latch.
+// Both are that module's; it is still one `runScan` call underneath.
+
+// TODO(engine): the free and weekly arms — BP-023's admission claim (#24)
+// and BP-050's site list.
 
 export async function runScan(a: {
   readonly scanId: string;
   readonly domain: string;
   readonly tier: ScanTier;
+  readonly siteId?: string;
 }): Promise<EngineResult> {
+  if (a.tier === "deep" && a.siteId !== undefined) {
+    const deep = await runDeepPass({ siteId: a.siteId, domain: a.domain });
+    return deep.status === "degraded" ? { degraded: "deep-pass" } : { done: true };
+  }
   return notBuilt("BP-012", `runScan(${a.scanId})`);
 }
 
@@ -175,6 +204,27 @@ export async function sitesDueHostingStop(): Promise<readonly string[]> {
 
 export async function stopHosting(siteId: string): Promise<EngineResult> {
   return notBuilt("BP-060", `stopHosting(${siteId})`);
+}
+
+// ── Setup reminders — BP-033, built (issue #36) and wired here
+//
+// The sixth obligation on `account/maintenance`'s tick: a founder who paid
+// and has not answered §4.3's three questions. Both halves are
+// `src/lib/mail/setup/reminders.ts`'s — this file holds no offset, no
+// threshold and no predicate over a timestamp.
+
+export async function sitesDueSetupReminder(): Promise<readonly string[]> {
+  return sitesDueSetupReminderRows();
+}
+
+export async function remindSetup(siteId: string): Promise<EngineResult> {
+  // Not sending is a decided outcome, never a degradation: a founder who
+  // finished between the tick and the send is exactly what the send-time
+  // check exists to catch, and a link that cannot be issued yet is
+  // REQ-025 c6's own rule doing its job. The reason is the sender's to log
+  // and this tick's to carry on past.
+  await sendSetupReminder(siteId);
+  return { done: true };
 }
 
 // ── Erasure — BP-063

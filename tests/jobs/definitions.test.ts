@@ -46,6 +46,8 @@ function engineDouble(): Record<string, unknown> {
     stopHosting: record("stopHosting", done),
     accountsDueForPurge: record("accountsDueForPurge", []),
     purgeAccount: record("purgeAccount", done),
+    sitesDueSetupReminder: record("sitesDueSetupReminder", []),
+    remindSetup: record("remindSetup", done),
   };
 }
 
@@ -242,14 +244,16 @@ describe("lead/nurture — per-touch dedupe inside a sequence", () => {
   });
 });
 
-describe("account/maintenance — five due-work queries, five hand-offs, no domain logic", () => {
+describe("account/maintenance — six due-work queries, six hand-offs, no domain logic", () => {
   it("ticks every MAINTENANCE_TICK_MINUTES", async () => {
     const job = await definition("account/maintenance");
     expect(job.trigger).toEqual({ kind: "cron", cron: `*/${MAINTENANCE_TICK_MINUTES} * * * *` });
     expect(MAINTENANCE_TICK_MINUTES).toBe(15);
   });
 
-  it("a tick whose five queries return nothing is five reads and no hand-off", async () => {
+  it("a tick whose six queries return nothing is six reads and no hand-off", async () => {
+    // The sixth is §4.3's setup reminders (issue #36): a founder who paid
+    // and has not answered the three questions.
     const job = await definition("account/maintenance");
     const outcome = await job.run({ data: {}, now: MONDAY_0600_UTC });
     expect(calls.map((c) => c.fn)).toEqual([
@@ -258,6 +262,7 @@ describe("account/maintenance — five due-work queries, five hand-offs, no doma
       "sitesDueHostingEndNotice",
       "sitesDueHostingStop",
       "accountsDueForPurge",
+      "sitesDueSetupReminder",
     ]);
     expect(outcome).toEqual({ outcome: "skipped", subjectId: null, reason: "no-subject" });
   });
@@ -334,6 +339,28 @@ describe("nothing fakes work — an unbuilt engine fails loudly", () => {
       "weekly/refresh": {},
       "account/maintenance": {},
     };
+    if (id === "account/maintenance") {
+      // The one id whose shape changed, and deliberately (issue #36). Five
+      // of its six obligations are still unbuilt and every one of them
+      // still throws `EngineNotBuilt` at the seam — but the tick now
+      // *skips* an unbuilt obligation rather than dying on the first, so a
+      // purge is no longer held because an unrelated node has not landed.
+      // The loud failure moved from the tick to the obligation, and this
+      // assertion follows it there. That the tick skips and carries on is
+      // `tests/jobs/setup-wiring.test.ts`'s, where the sixth obligation is
+      // doubled and no database is reached.
+      const engine = await import("@/jobs/engine");
+      for (const unbuilt of [
+        engine.paymentsAwaitingSignIn,
+        engine.paymentsWithoutAccounts,
+        engine.sitesDueHostingEndNotice,
+        engine.sitesDueHostingStop,
+        engine.accountsDueForPurge,
+      ]) {
+        await expect(unbuilt()).rejects.toBeInstanceOf(EngineNotBuilt);
+      }
+      return;
+    }
     await expect(runJob(job, { data: data[id], now: MONDAY_0600_UTC })).rejects.toBeInstanceOf(
       EngineNotBuilt
     );

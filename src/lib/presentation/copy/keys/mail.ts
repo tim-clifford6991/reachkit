@@ -76,6 +76,17 @@ export const MAIL_COPY = Object.freeze({
   "mail.nurture.body.2": ["", { slots: { domain: "text" }, fixedBy: "REQ-010 c9" }],
   "mail.nurture.body.3": ["", { slots: { domain: "text" }, fixedBy: "REQ-010 c9" }],
 
+  // BUILD §4.3's setup reminder (REQ-025 c6). Three keys: the subject, the
+  // one line asking them to finish, and the label on the sign-in link that
+  // lands them back on the setup screen. Owner-owed as `''`, not as the
+  // `TODO(copy)` marker the two setup *screens* use — DECISIONS 2026-09-05:
+  // "mail keeps the throw (a mail never ships a placeholder)", and a
+  // reminder that went out reading `TODO(copy)` would be worse than one
+  // that did not go out.
+  "mail.setupReminder.subject": ["", { slots: {}, fixedBy: "REQ-025 c6" }],
+  "mail.setupReminder.body": ["", { slots: {}, fixedBy: "REQ-025 c6" }],
+  "mail.setupReminder.action": ["", { slots: {}, fixedBy: "REQ-025 c6" }],
+
   // What `POST /api/lead` answers with. The adapter maps each arm of
   // `captureLead()` to one of these keys and never to a sentence of its
   // own or a vendor payload (REQ-003 c10, REQ-010 c1).

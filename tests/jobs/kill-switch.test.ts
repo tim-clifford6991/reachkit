@@ -51,6 +51,8 @@ function engineDouble(): Record<string, unknown> {
     stopHosting: ran,
     accountsDueForPurge: none,
     purgeAccount: ran,
+    sitesDueSetupReminder: none,
+    remindSetup: ran,
   };
 }
 
