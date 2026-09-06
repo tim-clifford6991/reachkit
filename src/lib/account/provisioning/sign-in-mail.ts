@@ -13,6 +13,7 @@
 // (`chase.ts`) is what covers the gap, and it is written for both states.
 import { sendEmail } from "@/lib/mail/send";
 import { buildMagicLink } from "@/lib/mail/templates/magic-link";
+import { wireSignInLinkIssuer } from "../identity/wire";
 import { issueSignInLink } from "./sign-in-link";
 
 export type SignInMailOutcome =
@@ -23,6 +24,13 @@ export async function sendSignInLink(a: {
   userId: string;
   email: string;
 }): Promise<SignInMailOutcome> {
+  // Issue #35 fills the port declared below. Wiring here, and not only at
+  // some entry point's module load, is the same move
+  // `src/lib/mail/leads/**` makes with its own seam: idempotent, so no
+  // caller has to remember it and no ordering of imports can leave a paid
+  // customer's link unissued.
+  wireSignInLinkIssuer();
+
   const link = await issueSignInLink({ userId: a.userId, to: a.email });
   if (!link.issued) {
     // Recorded loudly: an account is open and its owner has no way in yet.
