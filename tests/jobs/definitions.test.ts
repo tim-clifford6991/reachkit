@@ -339,52 +339,48 @@ describe("nothing fakes work — an unbuilt engine fails loudly", () => {
       "weekly/refresh": {},
       "account/maintenance": {},
     };
-    if (id === "account/maintenance") {
-      // The one id whose shape changed, and deliberately (issue #36). Five
-      // of its six obligations are still unbuilt and every one of them
-      // still throws `EngineNotBuilt` at the seam — but the tick now
-      // *skips* an unbuilt obligation rather than dying on the first, so a
-      // purge is no longer held because an unrelated node has not landed.
-      // The loud failure moved from the tick to the obligation, and this
-      // assertion follows it there. That the tick skips and carries on is
-      // `tests/jobs/setup-wiring.test.ts`'s, where the sixth obligation is
-      // doubled and no database is reached.
-      const engine = await import("@/jobs/engine");
-      for (const unbuilt of [
-        engine.paymentsAwaitingSignIn,
-        engine.paymentsWithoutAccounts,
-        engine.sitesDueHostingEndNotice,
-        engine.sitesDueHostingStop,
-        engine.accountsDueForPurge,
-      ]) {
-        await expect(unbuilt()).rejects.toBeInstanceOf(EngineNotBuilt);
-      }
-      return;
-    }
     await expect(runJob(job, { data: data[id], now: MONDAY_0600_UTC })).rejects.toBeInstanceOf(
       EngineNotBuilt
     );
   });
 
-  it("account/maintenance still throws once its two built obligations are past", async () => {
+  it("account/maintenance skips an unbuilt obligation rather than dying on it (issue #36), and each still fails loudly at the seam", async () => {
     stubEnv(false);
-    // The payment half is built (issue #33). Standing the two due-work
-    // queries in — with nothing due, which is the ordinary case — lets the
-    // tick reach the third obligation, whose engine is not built, which is
-    // what this suite is about. Doubling the whole engine instead would
-    // assert nothing.
+    // Two of the six obligations are built and read rows: the payment half
+    // (issue #33) and §4.3's setup reminders (issue #36). Both are stood in
+    // with nothing due — the ordinary case — so this suite reaches no
+    // database. Doubling the whole engine instead would assert nothing.
     vi.doMock("@/lib/account/provisioning/due-work", () => ({
       paymentsAwaitingSignIn: async () => [],
       paymentsWithoutAccounts: async () => [],
     }));
+    vi.doMock("@/lib/mail/setup/reminders", () => ({
+      sitesDueSetupReminder: async () => [],
+      sendSetupReminder: async () => ({ sent: false, reason: "not-due" }),
+    }));
     const { jobs } = await import("@/jobs");
     const { runJob } = await import("@/jobs/run");
-    const { EngineNotBuilt } = await import("@/jobs/engine");
+    const engine = await import("@/jobs/engine");
+
+    // The three whose engines have not shipped still fail loudly — the
+    // failure moved from the tick to the obligation, not away.
+    for (const unbuilt of [
+      engine.sitesDueHostingEndNotice,
+      engine.sitesDueHostingStop,
+      engine.accountsDueForPurge,
+    ]) {
+      await expect(unbuilt()).rejects.toBeInstanceOf(engine.EngineNotBuilt);
+    }
+
+    // ...and the tick carries on past them, so every built obligation
+    // behind them in the list still runs. Before issue #36 the first of the
+    // three ended the run, and a purge was held because an unrelated node
+    // had not landed.
     const job = jobs.find((j) => j.id === "account/maintenance");
     if (job === undefined) throw new Error("no definition for account/maintenance");
-    await expect(runJob(job, { data: {}, now: MONDAY_0600_UTC })).rejects.toBeInstanceOf(
-      EngineNotBuilt
-    );
+    await expect(runJob(job, { data: {}, now: MONDAY_0600_UTC })).resolves.toBeDefined();
+
+    vi.doUnmock("@/lib/mail/setup/reminders");
     vi.doUnmock("@/lib/account/provisioning/due-work");
   });
 

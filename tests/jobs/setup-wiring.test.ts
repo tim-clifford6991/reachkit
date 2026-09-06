@@ -17,6 +17,13 @@ vi.mock("@/lib/mail/setup/reminders", () => ({
   sitesDueSetupReminder: () => dueReminders(),
   sendSetupReminder: (id: string) => sendReminder(id),
 }));
+// The payment half of the tick is built too (issue #33) and reads rows.
+// Stood in with nothing due, so this suite reaches no database — what it
+// is about is the sixth obligation and the two queue wires.
+vi.mock("@/lib/account/provisioning/due-work", () => ({
+  paymentsAwaitingSignIn: async () => [],
+  paymentsWithoutAccounts: async () => [],
+}));
 
 const engine = await import("../../src/jobs/engine");
 const { scanRun } = await import("../../src/jobs/scan-run");
@@ -102,10 +109,10 @@ describe("REQ-025 c6 — the reminders are the maintenance tick's sixth obligati
     });
   });
 
-  it("the five obligations whose engines have not shipped no longer take the tick down with them", async () => {
-    // Every one of the other five throws `EngineNotBuilt` today. Before
-    // this issue the first of them ended the run, so nothing behind it in
-    // the list — including a purge — ever ran.
+  it("the obligations whose engines have not shipped no longer take the tick down with them", async () => {
+    // Three of the six still throw `EngineNotBuilt` today — the hosting
+    // notice, the hosting stop and the purge. Before this issue the first
+    // of them ended the run, so nothing behind it in the list ever ran.
     dueReminders.mockResolvedValue(["site-1"]);
     await expect(accountMaintenance.run({ data: {}, now: NOW })).resolves.toBeDefined();
     expect(sendReminder).toHaveBeenCalledWith("site-1");

@@ -6,6 +6,10 @@
 // `src/middleware.ts` — the enforcement point — so the wiring is asserted
 // rather than assumed.
 import { afterEach, describe, expect, it } from "vitest";
+// #104: importing `@/middleware` loads the removal reader, and through it
+// the database client and the environment bindings it parses at module
+// load. The harness applies them, the same way `routes.test.ts` does.
+import "../../scan/run/harness";
 import { NextRequest } from "next/server";
 import {
   APP_PATH,

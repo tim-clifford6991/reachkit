@@ -6,7 +6,7 @@
 // arithmetic: all of those are the pipeline's own and none is repeated
 // here. In the kill switch's scope.
 import { runScan, type ScanTier } from "@/jobs/engine";
-import { oneOf, requiredString } from "./payload";
+import { oneOf, optionalString, requiredString } from "./payload";
 import type { JobDefinition, Outcome } from "./types";
 
 const TIERS = Object.freeze(["free", "deep", "weekly"] as const) satisfies readonly ScanTier[];
@@ -21,6 +21,11 @@ export const scanRun: JobDefinition = {
       scanId,
       domain: requiredString(input, "domain"),
       tier: oneOf(input, "tier", TIERS),
+      // The onboarding pass belongs to a site, and the deep tier is the
+      // only one that needs to know which: the founder's stage and their
+      // release latch are both rows on it. Absent on a free scan, which
+      // has no site yet.
+      siteId: optionalString(input, "siteId"),
     });
     return "degraded" in result
       ? { outcome: "degraded", subjectId: scanId, step: result.degraded }

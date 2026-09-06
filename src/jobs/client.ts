@@ -25,7 +25,7 @@
 import { Inngest } from "inngest";
 import { serve as serveFunctions } from "inngest/next";
 import { runJob } from "./run";
-import type { JobDefinition } from "./types";
+import type { JobDefinition, JobEvent } from "./types";
 
 /** The application id, stable across deployments — renaming it orphans
  *  every function's history, so it is written once, here. */
@@ -76,6 +76,26 @@ export function defineJob(definition: JobDefinition): PlatformFunction {
       );
     }
   );
+}
+
+/**
+ * Sends one event onto the queue.
+ *
+ * The platform's own `send`, kept here for the reason everything else
+ * platform-shaped is: this is the only file that names the platform, so a
+ * caller that wants work queued asks for an event by its `JobEvent` name
+ * and learns nothing about what carries it. The name is typed, so an event
+ * no registered job listens for does not compile.
+ *
+ * At-least-once: the receiving job's `idempotencyKey` is what makes a
+ * second delivery harmless, and every event sent here carries the fields
+ * that key names.
+ */
+export async function sendJobEvent(
+  event: JobEvent,
+  data: Readonly<Record<string, unknown>>
+): Promise<void> {
+  await client.send({ name: event, data });
 }
 
 /** The HTTP handler set the `/api/jobs` route mounts. It serves exactly the
