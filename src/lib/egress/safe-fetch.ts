@@ -64,6 +64,21 @@ export type SafeFetchOpts = {
   maxBytes?: number;
   respectRobots?: boolean;
   userAgent?: "reachkit-measure" | "reachkit-verify";
+  /** The verb. Omitted is `GET`, which is every measurement caller — this
+   *  module's original and still principal use (issue #54). */
+  method?: "GET" | "POST";
+  /** Request headers the caller needs the destination to see: an
+   *  `Authorization` for an API the site's own administrator authorised, a
+   *  `Content-Type` for a body. **They are never logged** — `logFetch`
+   *  below carries five fields and none of them is a header — and they are
+   *  **dropped rather than carried** across a redirect that leaves the
+   *  origin the caller named (see the redirect arm). `Host` cannot be
+   *  overridden: the pin depends on it naming the resolved address's own
+   *  name. */
+  headers?: Readonly<Record<string, string>>;
+  /** The request body, already serialised. Sent with an explicit
+   *  `Content-Length`, so nothing is chunked and nothing is guessed. */
+  body?: string;
 };
 
 // ── The robots port (BP-006 `readRobots`) ───────────────────────────────
@@ -180,7 +195,8 @@ function performRequest(
   hostname: string,
   userAgentValue: string,
   remainingMs: number,
-  maxBytes: number
+  maxBytes: number,
+  request: { method: "GET" | "POST"; headers: Readonly<Record<string, string>>; body: string | null }
 ): Promise<HopResult> {
   return new Promise((resolve) => {
     const isHttps = targetUrl.protocol === "https:";
@@ -196,16 +212,26 @@ function performRequest(
       resolve(result);
     };
 
+    // The caller's headers go on first and the three below overwrite them:
+    // `Host` is what the pin rests on (the socket is opened to an address,
+    // and this is the only thing that still names the site), and the other
+    // two are this module's own contract with the destination.
+    const headers: Record<string, string> = {
+      ...request.headers,
+      Host: hostHeader,
+      "User-Agent": userAgentValue,
+      "Accept-Encoding": "identity",
+    };
+    if (request.body !== null) {
+      headers["Content-Length"] = String(Buffer.byteLength(request.body, "utf8"));
+    }
+
     const options: http.RequestOptions & { servername?: string } = {
       host: address,
       port,
       path: `${targetUrl.pathname}${targetUrl.search}`,
-      method: "GET",
-      headers: {
-        Host: hostHeader,
-        "User-Agent": userAgentValue,
-        "Accept-Encoding": "identity",
-      },
+      method: request.method,
+      headers,
       ...(isHttps ? { servername: hostname } : {}),
     };
 
@@ -249,6 +275,7 @@ function performRequest(
       settle({ kind: "timeout" });
     }, remainingMs);
 
+    if (request.body !== null) req.write(request.body);
     req.end();
   });
 }
@@ -260,6 +287,10 @@ export async function safeFetch(url: string, opts?: SafeFetchOpts): Promise<Fetc
   const timeoutMs = clampTimeout(opts?.timeoutMs);
   const maxBytes = opts?.maxBytes ?? DEFAULT_MAX_BYTES;
   const respectRobots = opts?.respectRobots ?? true;
+  const method = opts?.method ?? "GET";
+  const callerHeaders = opts?.headers ?? {};
+  const body = opts?.body ?? null;
+  const carriesCallerState = method !== "GET" || Object.keys(callerHeaders).length > 0 || body !== null;
   const userAgentToken = opts?.userAgent ?? DEFAULT_USER_AGENT_TOKEN;
   const userAgentValue = userAgentString(userAgentToken);
   const deadline = start + timeoutMs;
@@ -328,7 +359,8 @@ export async function safeFetch(url: string, opts?: SafeFetchOpts): Promise<Fetc
       currentUrl.hostname,
       userAgentValue,
       remainingForConnect,
-      maxBytes
+      maxBytes,
+      { method, headers: callerHeaders, body }
     );
 
     if (result.kind === "too_large") {
@@ -354,6 +386,16 @@ export async function safeFetch(url: string, opts?: SafeFetchOpts): Promise<Fetc
       } catch {
         logFetch(currentUrl.hostname, "status", result.status, 0, Date.now() - start);
         return fail("status", hopUrlString, readAt, result.status);
+      }
+      // A caller that supplied headers or a body named one origin, and a
+      // credential must never travel to a host it did not name (issue #54).
+      // The hop is refused rather than re-issued stripped: a stripped
+      // re-issue would send an unauthenticated request the caller would
+      // read as the destination's own answer, and a create call is not a
+      // thing to half-make.
+      if (carriesCallerState && next.origin !== currentUrl.origin) {
+        logFetch(currentUrl.hostname, "blocked_by_policy", result.status, 0, Date.now() - start);
+        return fail("blocked_by_policy", hopUrlString, readAt, result.status);
       }
       currentUrl = next;
       continue; // each hop re-checked from step 1, per BP-006

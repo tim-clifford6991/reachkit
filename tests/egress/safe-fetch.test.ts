@@ -28,15 +28,21 @@ type Scenario =
  *  header and SNI servername the module tried to connect to. */
 function installTransport(scenarios: Scenario[]) {
   const calls: Array<http.RequestOptions & { servername?: string }> = [];
+  const requests: http.ClientRequest[] = [];
   let i = 0;
 
   const impl = (options: http.RequestOptions, cb: (res: http.IncomingMessage) => void) => {
     calls.push(options);
     const scenario = scenarios[i++];
     const req = new EventEmitter() as unknown as http.ClientRequest;
+    (req as unknown as { write: (chunk: string) => void; written: string[] }).written = [];
+    (req as unknown as { write: (chunk: string) => void; written: string[] }).write = function (chunk) {
+      (this as unknown as { written: string[] }).written.push(chunk);
+    };
     (req as unknown as { end: () => void }).end = () => {};
     (req as unknown as { destroy: (err?: Error) => void }).destroy = vi.fn();
 
+    requests.push(req);
     if (!scenario) return req;
 
     if (scenario.type === "error") {
@@ -61,7 +67,7 @@ function installTransport(scenarios: Scenario[]) {
 
   const httpSpy = vi.spyOn(http, "request").mockImplementation(impl as typeof http.request);
   const httpsSpy = vi.spyOn(https, "request").mockImplementation(impl as typeof https.request);
-  return { calls, httpSpy, httpsSpy };
+  return { calls, requests, httpSpy, httpsSpy };
 }
 
 function okResponse(body = "hi"): Scenario {
@@ -340,5 +346,153 @@ describe("safeFetch · redirects (BP-006: each hop re-checked)", () => {
     const outcome = await safeFetch("https://a.example.com/start");
 
     expect(outcome).toMatchObject({ ok: true, url: "https://b.example.com/final" });
+  });
+});
+
+// ── Authenticated requests (issue #54) ─────────────────────────────────
+//
+// The WordPress destination publishes into a customer's own site over an
+// application password, and §9 puts every byte toward a customer URL
+// through this module. So the seam carries a verb, headers and a body —
+// and the rows below are what keeps that from becoming a hole: the caller
+// cannot displace the `Host` header the pin rests on, and a credential
+// never travels to a host the caller did not name.
+describe("safeFetch · authenticated requests (issue #54)", () => {
+  it("defaults are unchanged: no method, no body, and the three headers this module has always sent", async () => {
+    const { safeFetch } = await import("../../src/lib/egress/safe-fetch");
+    vi.spyOn(dns.promises, "lookup").mockResolvedValue({ address: "93.184.216.34", family: 4 } as never);
+    const { calls, requests } = installTransport([okResponse()]);
+
+    await safeFetch("https://example.com/page");
+
+    expect(calls[0]!.method).toBe("GET");
+    expect(Object.keys(calls[0]!.headers ?? {}).sort()).toEqual([
+      "Accept-Encoding",
+      "Host",
+      "User-Agent",
+    ]);
+    expect((requests[0] as unknown as { written: string[] }).written).toEqual([]);
+  });
+
+  it("carries the verb, the caller's headers and the body, with an explicit Content-Length", async () => {
+    const { safeFetch } = await import("../../src/lib/egress/safe-fetch");
+    vi.spyOn(dns.promises, "lookup").mockResolvedValue({ address: "93.184.216.34", family: 4 } as never);
+    const { calls, requests } = installTransport([okResponse('{"id":1}')]);
+
+    const body = JSON.stringify({ title: "a page" });
+    const outcome = await safeFetch("https://example.com/wp-json/wp/v2/posts", {
+      method: "POST",
+      headers: { Authorization: "Basic c2VjcmV0", "Content-Type": "application/json" },
+      body,
+      respectRobots: false,
+    });
+
+    expect(outcome).toMatchObject({ ok: true, status: 200 });
+    expect(calls[0]!.method).toBe("POST");
+    expect(calls[0]!.headers).toMatchObject({
+      Authorization: "Basic c2VjcmV0",
+      "Content-Type": "application/json",
+      "Content-Length": String(Buffer.byteLength(body, "utf8")),
+    });
+    expect((requests[0] as unknown as { written: string[] }).written).toEqual([body]);
+  });
+
+  it("**the caller cannot displace the Host header**: the pin is what names the site the socket was opened for", async () => {
+    const { safeFetch } = await import("../../src/lib/egress/safe-fetch");
+    vi.spyOn(dns.promises, "lookup").mockResolvedValue({ address: "93.184.216.34", family: 4 } as never);
+    const { calls } = installTransport([okResponse()]);
+
+    await safeFetch("https://example.com/page", {
+      headers: { Host: "evil.example", "User-Agent": "not-ours" },
+    });
+
+    const sent = calls[0]!.headers as Record<string, string>;
+    expect(sent.Host).toBe("example.com");
+    expect(sent["User-Agent"]).not.toBe("not-ours");
+  });
+
+  it("**a credential never follows a redirect off the origin the caller named**", async () => {
+    const { safeFetch } = await import("../../src/lib/egress/safe-fetch");
+    vi.spyOn(dns.promises, "lookup").mockImplementation(async (hostname) => {
+      if (hostname === "blog.example.com") return { address: "93.184.216.34", family: 4 } as never;
+      return { address: "93.184.216.35", family: 4 } as never;
+    });
+    const { calls } = installTransport([
+      { type: "response", statusCode: 301, headers: { location: "https://collector.example/posts" } },
+      okResponse("somebody else's answer"),
+    ]);
+
+    const outcome = await safeFetch("https://blog.example.com/wp-json/wp/v2/posts", {
+      method: "POST",
+      headers: { Authorization: "Basic c2VjcmV0" },
+      body: "{}",
+      respectRobots: false,
+    });
+
+    expect(outcome).toMatchObject({ ok: false, reason: "blocked_by_policy" });
+    // One hop, and the second host was never connected to at all.
+    expect(calls).toHaveLength(1);
+  });
+
+  it("a same-origin redirect is followed, carrying the verb and the body", async () => {
+    const { safeFetch } = await import("../../src/lib/egress/safe-fetch");
+    vi.spyOn(dns.promises, "lookup").mockResolvedValue({ address: "93.184.216.34", family: 4 } as never);
+    const { calls, requests } = installTransport([
+      { type: "response", statusCode: 308, headers: { location: "https://blog.example.com/wp-json/wp/v2/posts/" } },
+      okResponse('{"id":1}'),
+    ]);
+
+    const outcome = await safeFetch("https://blog.example.com/wp-json/wp/v2/posts", {
+      method: "POST",
+      headers: { Authorization: "Basic c2VjcmV0" },
+      body: "{}",
+      respectRobots: false,
+    });
+
+    expect(outcome).toMatchObject({ ok: true });
+    expect(calls.map((c) => c.method)).toEqual(["POST", "POST"]);
+    expect((requests[1] as unknown as { written: string[] }).written).toEqual(["{}"]);
+  });
+
+  it("an ordinary GET still follows a redirect to another host — the refusal is about carried state, not about redirects", async () => {
+    const { safeFetch } = await import("../../src/lib/egress/safe-fetch");
+    vi.spyOn(dns.promises, "lookup").mockResolvedValue({ address: "93.184.216.34", family: 4 } as never);
+    installTransport([
+      { type: "response", statusCode: 301, headers: { location: "https://b.example.com/final" } },
+      okResponse("final page"),
+    ]);
+
+    expect(await safeFetch("https://a.example.com/start")).toMatchObject({
+      ok: true,
+      url: "https://b.example.com/final",
+    });
+  });
+
+  it("the log line still carries five fields and no header among them", async () => {
+    const { safeFetch } = await import("../../src/lib/egress/safe-fetch");
+    vi.spyOn(dns.promises, "lookup").mockResolvedValue({ address: "93.184.216.34", family: 4 } as never);
+    installTransport([okResponse()]);
+    const lines: string[] = [];
+    const spy = vi.spyOn(console, "log").mockImplementation((line: unknown) => {
+      lines.push(String(line));
+    });
+
+    await safeFetch("https://example.com/page", {
+      method: "POST",
+      headers: { Authorization: "Basic c2VjcmV0" },
+      body: "{}",
+      respectRobots: false,
+    });
+    spy.mockRestore();
+
+    expect(lines).toHaveLength(1);
+    expect(Object.keys(JSON.parse(lines[0]!)).sort()).toEqual([
+      "bytes",
+      "duration",
+      "host",
+      "reason",
+      "status",
+    ]);
+    expect(lines[0]).not.toContain("c2VjcmV0");
   });
 });
