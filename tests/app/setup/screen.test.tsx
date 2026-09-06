@@ -76,11 +76,11 @@ describe('REQ-025 c2 — "one action starts the product: no multi-page wizard, n
     expect(tree.querySelectorAll('button[type="submit"]')).toHaveLength(1);
   });
 
-  it("the submit carries §4.3's own footer, and it is the only place a duration is stated", () => {
+  it("the submit carries §4.3's footer verb, without the duration the owner removed", () => {
     const tree = screenFor();
     const submit = tree.querySelector('button[type="submit"]');
     expect(submit?.textContent).toBe(COPY["setup.submit"]);
-    expect(COPY["setup.submit"]).toBe("Start — first page in ~3 minutes");
+    expect(COPY["setup.submit"]).toBe("Start");
   });
 });
 
@@ -121,21 +121,41 @@ describe('REQ-025 c3 — "when they look for anything that tunes the engine ... 
   });
 });
 
-describe("nothing on the screen states how long, except the one footer §4.3 fixes", () => {
+describe('REQ-025 c1 — "nothing on the screen states how long the deep pass, or the founder\'s first page, will take"', () => {
+  // The owner ruled on 2026-09-06 that c1 wins over §4.3's footer, which is
+  // amended under #2. So the scan covers the *whole* screen, the submit
+  // control included — there is no exempt corner.
   const TIME =
     /(\d+\s*(second|minute|hour|day|week)s?|~\s*\d|about\s+\d|%|remaining|elapsed|eta\b|countdown)/i;
 
-  it("no rendered string states a duration, an estimate or a time to first page", () => {
-    const tree = screenFor();
-    const submit = tree.querySelector('button[type="submit"]');
-    submit?.remove();
-    expect(tree.textContent ?? "").not.toMatch(TIME);
+  it("no rendered string anywhere on the screen states a duration, an estimate or a time to first page", () => {
+    for (const facts of [{}, SCANLESS, { suggestedRivals: [] }]) {
+      expect(screenFor(facts).textContent ?? "").not.toMatch(TIME);
+    }
   });
 
-  it("the mutation check: the same scan does catch the footer when it is left in", () => {
-    // If this ever stops matching, the test above has stopped
-    // discriminating and would pass on a screen full of estimates.
-    expect(COPY["setup.submit"]).toMatch(TIME);
+  it("the submit control itself states none — it is not exempted, it simply does not say one", () => {
+    const submit = screenFor().querySelector('button[type="submit"]');
+    expect(submit?.textContent ?? "").not.toMatch(TIME);
+    expect(COPY["setup.submit"]).not.toMatch(TIME);
+  });
+
+  it("mutation check: the scan does catch the sentence §4.3 used to print, so it is still discriminating", () => {
+    // Without this, a scan that had quietly stopped matching anything would
+    // pass on a screen full of estimates.
+    expect("Start — first page in ~3 minutes").toMatch(TIME);
+    expect("about 3 minutes").toMatch(TIME);
+    expect("40% done").toMatch(TIME);
+  });
+
+  it("no copy key the screen resolves states one either — the absence is in the registry, not only in the render", () => {
+    const spoken = (Object.keys(COPY) as (keyof typeof COPY)[]).filter((key) =>
+      key.startsWith("setup.")
+    );
+    expect(spoken.length).toBeGreaterThan(0);
+    for (const key of spoken) {
+      expect(COPY[key], key).not.toMatch(TIME);
+    }
   });
 });
 

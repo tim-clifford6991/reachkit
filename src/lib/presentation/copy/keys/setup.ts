@@ -16,19 +16,20 @@
 // `BUILD.md` §4.3 itself prints** — on the same footing as the thirteen
 // band words and the five `shell.*` keys issue #9 filled: "**Your market**
 // — inferred category chip, Change", "**Competitors**", "*Hosted blog*",
-// "*WordPress*", and the footer "Start — first page in ~3 minutes."
-// Nothing here is composed.
+// "*WordPress*", and the footer's own verb, "Start". Nothing here is
+// composed.
 //
-// **The submit label states a duration, and it is the only place on the
-// screen that does.** §4.3 fixes the footer verbatim; REQ-025 c1 says
-// "nothing on the screen states how long the deep pass, or the founder's
-// first page, will take", and WO-147 step 3 read that as deleting the
-// footer. `BUILD.md` is this project's spec and rules where it rules
-// (`CLAUDE.md`), so the sentence ships as written and the promise REQ-025
-// c1 protects is kept everywhere else: the waiting screen states which step
-// is running and no duration, estimate, countdown, clock or percentage
-// appears anywhere else on either screen — asserted, not reviewed, in
-// `tests/app/setup/no-duration.test.tsx`. Flagged for the owner in the PR.
+// **`setup.submit` is "Start", and no sentence on either screen states how
+// long anything takes.** §4.3's footer reads "Start — first page in ~3
+// minutes", and REQ-025 c1 reads "nothing on the screen states how long the
+// deep pass, or the founder's first page, will take". The two contradict
+// each other; the owner ruled on 2026-09-06 (this PR) that **REQ-025 c1
+// wins** and §4.3's footer is amended under #2. So the control keeps the
+// verb and drops the promise, and the absence is asserted rather than
+// reviewed: `tests/app/setup/screen.test.tsx` and `waiting.test.tsx` scan
+// the whole rendered tree — the submit included — for a duration, an
+// estimate, a countdown, a clock or a percentage, and each carries a
+// mutation check proving the scan still catches one.
 //
 // The two publishing *mode* names are not here: §4.3's "Autopilot" and
 // "Copilot" are already `shell.publishing.mode.*` in `laws.ts`, which the
@@ -51,10 +52,9 @@ export const SETUP_COPY = Object.freeze({
    *  read is told so, and told they can still reach Settings, cancel and
    *  export with setup unfinished. */
   "setup.refused.no-access": [TODO, { slots: {}, fixedBy: "REQ-025 c5" }],
-  "setup.submit": [
-    "Start — first page in ~3 minutes",
-    { slots: {}, fixedBy: "REQ-025 c2" },
-  ],
+  /** §4.3's footer verb, with the duration the owner removed on
+   *  2026-09-06 (REQ-025 c1 wins; §4.3's footer amended under #2). */
+  "setup.submit": ["Start", { slots: {}, fixedBy: "REQ-025 c1" }],
 
   // ── The site address (REQ-021) ──────────────────────────────────────
   "setup.address.title": [TODO, { slots: {}, fixedBy: "REQ-021 c6" }],
