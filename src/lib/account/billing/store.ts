@@ -41,7 +41,11 @@ export interface SubscriptionFacts {
   readonly stripe_subscription_id: string;
   readonly paid_through: Date;
   readonly plan_status: string;
-  readonly eventId: string;
+  /** The vendor event this write came from, or `null` where it came from
+   *  something that is not an event (a resume the customer asked for). The
+   *  column records the last *event* applied, so a write with no event id
+   *  leaves whatever is there alone. */
+  readonly eventId: string | null;
 }
 
 /** One site, as the hosted-retention clock reads it, with the one column of
@@ -52,9 +56,19 @@ export interface HostingRow {
   readonly hosted_serving_ends_at: string | null;
   readonly hosting_end_notice_at: string | null;
   readonly hosting_end_reminder_at: string | null;
+  /** The site's own stated zone, or `null` where the customer has stated
+   *  none (REQ-073 c1 forbids one they did not state). Every day this
+   *  module tells a customer about is expressed in it. */
+  readonly timezone: string | null;
   readonly owner_deleted_at: string | null;
   readonly owner_email: string;
   readonly owner_paid_through: string;
+  /** Whether this site has a hosted destination — the `destinations` row of
+   *  kind `hosted` (§10). Everything in this module about the end of
+   *  hosting is about sites that have one: a customer publishing only to
+   *  their own WordPress has no hosted page to lose, no day to be told and
+   *  nothing for the stop to stop. */
+  readonly hasHostedPages: boolean;
 }
 
 /** Which of the two notices REQ-076 c11 requires. Two names, never a
@@ -160,7 +174,11 @@ const BILLING_COLUMNS =
  *  flattened by `toHostingRow` so no caller below meets the nesting. */
 const HOSTING_COLUMNS =
   "id, user_id, hosted_serving_ends_at, hosting_end_notice_at, " +
-  "hosting_end_reminder_at, users!inner(deleted_at, email, paid_through)";
+  "hosting_end_reminder_at, timezone, users!inner(deleted_at, email, paid_through), " +
+  // A left join, deliberately: a site with no destination at all must still
+  // come back, as a site with no hosted pages. An `!inner` here would drop
+  // it from every query in this module.
+  "destinations(kind)";
 
 interface HostingJoinRow {
   id: string;
@@ -168,7 +186,9 @@ interface HostingJoinRow {
   hosted_serving_ends_at: string | null;
   hosting_end_notice_at: string | null;
   hosting_end_reminder_at: string | null;
+  timezone: string | null;
   users: { deleted_at: string | null; email: string; paid_through: string };
+  destinations: { kind: string }[] | null;
 }
 
 function toHostingRow(row: HostingJoinRow): HostingRow {
@@ -178,9 +198,11 @@ function toHostingRow(row: HostingJoinRow): HostingRow {
     hosted_serving_ends_at: row.hosted_serving_ends_at,
     hosting_end_notice_at: row.hosting_end_notice_at,
     hosting_end_reminder_at: row.hosting_end_reminder_at,
+    timezone: row.timezone,
     owner_deleted_at: row.users.deleted_at,
     owner_email: row.users.email,
     owner_paid_through: row.users.paid_through,
+    hasHostedPages: (row.destinations ?? []).some((d) => d.kind === "hosted"),
   };
 }
 
@@ -226,7 +248,7 @@ export function supabaseBillingStore(): BillingStore {
           stripe_subscription_id: facts.stripe_subscription_id,
           paid_through: facts.paid_through.toISOString(),
           plan_status: facts.plan_status,
-          last_subscription_event_id: facts.eventId,
+          ...(facts.eventId === null ? {} : { last_subscription_event_id: facts.eventId }),
         })
         .eq("id", userId);
       return error ? { ok: false } : { ok: true };

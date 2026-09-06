@@ -30,14 +30,17 @@ export type WebhookResult =
   | { handled: true; event: string; route: StripeEventRoute }
   | { handled: false; reason: "signature" | "unknown_event" };
 
-/** What the `subscription` route calls. Issue #34 owns the rule; until it
- *  registers, a subscription event is verified, recognised and recorded as
- *  routed, and nothing happens to it — which is what is true. */
-export type SubscriptionHandler = (event: Stripe.Event) => Promise<void>;
+/** What the `subscription` route calls. The rule is
+ *  `src/lib/account/billing/events.ts`'s (issue #34), reached through the
+ *  same lazy default the provisioning route uses below — so a subscription
+ *  event is handled without this module holding a load-time edge into
+ *  billing, which holds one back into this file. */
+export type SubscriptionHandler = (event: Stripe.Event) => Promise<unknown>;
 
 let subscriptionHandler: SubscriptionHandler | null = null;
 
-/** Wired by `src/lib/account/billing/**` (issue #34); `null` unwires. */
+/** Swaps the subscription call. The suites' one door in; `null` restores
+ *  `onSubscriptionEvent`. */
 export function registerSubscriptionHandler(handler: SubscriptionHandler | null): void {
   subscriptionHandler = handler;
 }
@@ -88,7 +91,8 @@ export async function handleStripeWebhook(
     const handler = provisionHandler ?? (await defaultProvisionHandler());
     await handler(session.id);
   } else if (route === "subscription") {
-    await subscriptionHandler?.(event);
+    const handler = subscriptionHandler ?? (await defaultSubscriptionHandler());
+    await handler(event);
   }
 
   log({ outcome: route, type: event.type });
@@ -100,4 +104,12 @@ export async function handleStripeWebhook(
 async function defaultProvisionHandler(): Promise<ProvisionHandler> {
   const { provisionFromPayment } = await import("./provision");
   return (sessionId) => provisionFromPayment(sessionId);
+}
+
+/** `onSubscriptionEvent`, imported lazily for the same reason: billing's
+ *  event handler imports `registerSubscriptionHandler` from this file, and
+ *  a static import back would be a load-time cycle. */
+async function defaultSubscriptionHandler(): Promise<SubscriptionHandler> {
+  const { onSubscriptionEvent } = await import("../billing");
+  return (event) => onSubscriptionEvent(event);
 }
