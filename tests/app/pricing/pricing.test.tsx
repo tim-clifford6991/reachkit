@@ -11,17 +11,19 @@
 // Server Function the submit posts to) is asserted against the module's own
 // source, exactly as that file asserts the landing page's client half.
 //
-// **`copy()` is mocked to `(key) => key`** for the rendering tests, so they
-// see the rendered *tree* — which key each line resolves from, how many
-// controls there are — without depending on the owner's wording. The last
-// describe drops the mock and renders against the real registry, which is
-// where "this page does not throw on an owner-owed key" is proved.
+// **The offer itself is not re-tested here.** It is `PricingCard`, BUILD
+// §4.1 module 6, and its own suite is the report screen's (issue #13). What
+// this file owns is what REQ-021 criterion 4 asks of the *scanless* surface:
+// that it carries that one offer and no second one, that nothing is asked
+// first, and that the one control begins checkout with `origin: 'pricing'`
+// and no fabricated scan id. Where a term must be shown to be "on the same
+// terms the offer at the end of a report states", the assertion is that both
+// surfaces render the same component — not that two lists match.
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { applyEnvFixture } from "../../mail/env-fixture";
-import { offerTerms } from "@/lib/presentation/offer";
 
 // `page.tsx` reads `@/lib/config/env` at module load (BP-005) for the
 // absolute `returnTo` it hands checkout, so the bindings are in place before
@@ -31,58 +33,53 @@ applyEnvFixture();
 
 const PAGE_PATH = path.resolve(import.meta.dirname, "../../../src/app/(public)/pricing/page.tsx");
 const PAGE_SOURCE = readFileSync(PAGE_PATH, "utf8");
+const CARD_PATH = path.resolve(
+  import.meta.dirname,
+  "../../../src/app/(public)/scan/[domain]/_modules/pricing.tsx"
+);
+const REPORT_VIEW_PATH = path.resolve(
+  import.meta.dirname,
+  "../../../src/app/(public)/scan/[domain]/_address/report-view.tsx"
+);
 
 /** `PAGE_SOURCE` with every comment removed — block, line and JSX. The
  *  assertions below are about what the module *does*, and this file's own
- *  header quotes the very identifiers ("scanId", "€49") those assertions
- *  forbid in code. */
+ *  header quotes the very identifiers ("scanId") those assertions forbid in
+ *  code. */
 const PAGE_BODY = PAGE_SOURCE.replace(/\{\s*\/\*[\s\S]*?\*\/\s*\}/g, "")
   .replace(/\/\*[\s\S]*?\*\//g, "")
   .replace(/^[ \t]*\/\/.*$/gm, "");
 
-/** Renders with `copy()` mocked to the identity, so an assertion names a
- *  key rather than a sentence. `isWritten` is mocked `true` for the same
- *  reason: these tests are about which lines the page carries, not about
- *  which the owner has written yet — that is the last describe's subject.
- *
- *  Rendered once and shared: the page takes no argument and is a pure
- *  function of the registry and `offerTerms()`, so a second render could
- *  only produce the same markup — at the cost of another `resetModules()`
- *  and a fresh import of the whole copy registry per test. */
-let cachedKeyRender: Promise<string> | undefined;
+/** Rendered once and shared: the page takes no argument and is a pure
+ *  function of the registry, so a second render could only produce the same
+ *  markup at the cost of another `resetModules()` and a fresh import of the
+ *  whole copy registry. */
+let cachedRender: Promise<string> | undefined;
 
-function renderWithKeys(): Promise<string> {
-  cachedKeyRender ??= renderWithKeysOnce();
-  return cachedKeyRender;
+function render(): Promise<string> {
+  cachedRender ??= renderOnce();
+  return cachedRender;
 }
 
-async function renderWithKeysOnce(): Promise<string> {
+async function renderOnce(): Promise<string> {
   vi.resetModules();
-  vi.doMock("@/lib/presentation/copy", async (importOriginal) => ({
-    ...(await importOriginal<Record<string, unknown>>()),
-    copy: (key: string, vars?: Record<string, string>) =>
-      vars ? `${key}:${Object.values(vars).join(",")}` : key,
-    isWritten: () => true,
-  }));
   const { default: PricingPage } = (await import("@/app/(public)/pricing/page.tsx")) as {
     default: () => React.JSX.Element;
   };
-  const html = renderToStaticMarkup(<PricingPage />);
-  vi.doUnmock("@/lib/presentation/copy");
-  return html;
+  return renderToStaticMarkup(<PricingPage />);
 }
 
 describe('REQ-021 c4 — "Given a surface that offers ReachKit away from any report, when a founder reaches it, then it carries exactly one offer to subscribe, states the price on the terms REQ-022 criterion 1 fixes and what the subscription does on the same terms the offer at the end of a report states (criterion 2), and one control on it begins checkout with no account, sign-in, password or form asked first (REQ-020 criterion 1)." — pricing/offer', () => {
   it("exactly one offer and exactly one control", async () => {
-    const html = await renderWithKeys();
-    expect(html.match(/<div class="card"/g)).toHaveLength(1);
+    const html = await render();
+    expect(html.match(/class="card[ "]/g)).toHaveLength(1);
     expect(html.match(/<button/g)).toHaveLength(1);
     expect(html.match(/<form/g)).toHaveLength(1);
     expect(html).toContain('type="submit"');
   });
 
   it("nothing is asked first — no field, no sign-in, no password", async () => {
-    const html = await renderWithKeys();
+    const html = await render();
     expect(html).not.toContain("<input");
     expect(html).not.toContain("<select");
     expect(html).not.toContain("<textarea");
@@ -96,57 +93,38 @@ describe('REQ-021 c4 — "Given a surface that offers ReachKit away from any rep
     expect(PAGE_BODY).not.toMatch(/readCurrentReport|runScan/);
   });
 
-  it("the terms are the report offer's terms — asserted against offerTerms(), never against a list here", async () => {
-    const html = await renderWithKeys();
-    const terms = offerTerms();
-    // Every key the one derivation names appears, in its order; a row added
-    // to `offerTerms()` renders here with no edit to the page or to this
-    // assertion.
-    const positions = [
-      ...terms.priceKeys,
-      ...terms.rows.map((r) => r.key),
-      terms.cancelKey,
-      terms.startKey,
-    ].map((key) => html.indexOf(key));
-    for (const [i, at] of positions.entries()) {
-      expect(at, `key ${i} of offerTerms() is not rendered`).toBeGreaterThanOrEqual(0);
-    }
-    expect([...positions].sort((a, b) => a - b)).toEqual(positions);
-  });
-
-  it("each cadence row is filled from the row's own value, not from a number this page formats", async () => {
-    const html = await renderWithKeys();
-    for (const row of offerTerms().rows) {
-      expect(html).toContain(`${row.key}:${row.value}`);
+  it("the terms are the report offer's terms — the same component, not a second list", () => {
+    // The discriminating assertion for "on the same terms": both surfaces
+    // render `PricingCard`, and this page states no term of its own.
+    expect(PAGE_BODY).toContain("PricingCard");
+    expect(readFileSync(REPORT_VIEW_PATH, "utf8")).toContain("PricingCard");
+    for (const term of ["price.amount", "price.interval", "offer.cadence", "offer.veto", "offer.start"]) {
+      expect(PAGE_BODY, `${term} is restated on this surface instead of coming from the card`).not.toContain(term);
     }
   });
-});
 
-describe('REQ-021 c2 — "Given the offer, when it renders, then it states the monthly price on the terms REQ-022 criterion 1 fixes, how often a page is written, how often measurement is repeated, how often the customer is told what moved, that a page can be stopped before it publishes, and that the subscription can be cancelled by the customer themselves." — pricing/offer · every statement from a key', () => {
-  it("the page holds no sentence, no currency symbol and no digit of its own", () => {
+  it("every sentence the surface speaks resolves through copy() in that one component", async () => {
+    const html = await render();
+    const { copy } = await import("@/lib/presentation/copy");
+    const { VETO } = await import("@/lib/config/constants");
+    expect(html).toContain(copy("price.amount"));
+    expect(html).toContain(copy("price.interval"));
+    expect(html).toContain(copy("offer.start"));
+    expect(html).toContain(
+      copy("offer.veto.window", {
+        value: copy("offer.veto.window.value", { hours: String(VETO.defaultHours) }),
+      })
+    );
+    // The card holds every string; this page's own body holds none.
     expect(PAGE_BODY).not.toContain("€");
-    // The page states no number of its own: the amount is inside the
-    // owner's sentence, the cadences inside `offerTerms()`. Two things in
-    // the body carry a digit and are not figures about the offer —
-    // `Surface`'s column count, which is a layout declaration (ADR-093),
-    // and a `className` spacing token, which is the same "class names, not
-    // a sentence" category the copy sweep's own allow-list names. Both are
-    // removed before the check rather than exempted by hand-waving.
-    const withoutLayout = PAGE_BODY.replace(/count: 1/g, "").replace(/className="[^"]*"/g, "");
-    expect(withoutLayout).not.toMatch(/[0-9]/);
-  });
-
-  it("the numeral the page does render is in JetBrains Mono (BUILD §2.3)", async () => {
-    const html = await renderWithKeys();
-    expect(html).toContain('<span class="num">price.amount</span>');
   });
 });
 
 describe('REQ-021 c5 — "Given a founder on a price surface with no report behind it, when they buy, then the purchase completes on the same terms as one made from a report." — pricing/checkout · the origin is pricing and carries no scan', () => {
   it("the one control posts a Server Function that names origin { kind: 'pricing' } exactly", () => {
     expect(PAGE_SOURCE).toContain('"use server"');
-    expect(PAGE_SOURCE).toContain('origin: { kind: "pricing" }');
-    expect(PAGE_SOURCE).toContain("createCheckoutSession");
+    expect(PAGE_BODY).toContain('origin: { kind: "pricing" }');
+    expect(PAGE_BODY).toContain("createCheckoutSession");
   });
 
   it("no scan id is fabricated here: the page names no scanId at all", () => {
@@ -155,45 +133,31 @@ describe('REQ-021 c5 — "Given a founder on a price surface with no report behi
   });
 
   it("returnTo is this surface's own absolute URL, built from NEXT_PUBLIC_APP_URL", () => {
-    expect(PAGE_SOURCE).toContain("NEXT_PUBLIC_APP_URL");
-    expect(PAGE_SOURCE).toContain('new URL("/pricing"');
+    expect(PAGE_BODY).toContain("NEXT_PUBLIC_APP_URL");
+    expect(PAGE_BODY).toContain('new URL("/pricing"');
   });
 
   it("a refused session is not swallowed: the page never renders as if checkout began", () => {
-    expect(PAGE_SOURCE).toMatch(/if \(!result\.ok\)/);
-    expect(PAGE_SOURCE).toMatch(/throw new Error/);
+    expect(PAGE_BODY).toMatch(/if \(!result\.ok\)/);
+    expect(PAGE_BODY).toMatch(/throw new Error/);
+  });
+
+  it("the report's own offer is unchanged: with no startAction the card renders its control bare", () => {
+    // `startAction` is additive. The report screen passes nothing, and must
+    // still get a control that is not wrapped in a form of this page's.
+    const card = readFileSync(CARD_PATH, "utf8");
+    expect(card).toContain("startAction?: () => Promise<void>");
+    expect(card).toMatch(/p\.startAction \?/);
+    expect(readFileSync(REPORT_VIEW_PATH, "utf8")).toContain("<PricingCard />");
   });
 });
 
-describe("against the real registry — the two owner-owed sentences are left unsaid, not invented and not thrown on", () => {
-  it("renders without throwing, speaks the seven ruled sentences, and leaves no blank in place of the two that are owed", async () => {
-    vi.resetModules();
-    const { default: PricingPage } = (await import("@/app/(public)/pricing/page.tsx")) as {
-      default: () => React.JSX.Element;
-    };
-    const { COPY, copy, isWritten } = await import("@/lib/presentation/copy");
-    const html = renderToStaticMarkup(<PricingPage />);
-
-    // The seven the owner ruled on 2026-09-04, byte for byte.
-    expect(html).toContain(COPY["price.amount"]);
-    expect(html).toContain(COPY["price.interval"]);
-    expect(html).toContain(COPY["offer.start"]);
-    for (const row of offerTerms().rows) {
-      expect(html).toContain(copy(row.key, { value: row.value }));
-    }
-
-    // The two still owner-owed. This assertion is derived from the registry,
-    // not from a list here, so the day the owner writes either one it flips
-    // to requiring it with no edit to this file or to the page.
-    for (const key of ["price.vat_included", "offer.cancel_self_service"] as const) {
-      if (isWritten(key)) {
-        expect(html).toContain(COPY[key]);
-      } else {
-        // Not spoken — and not left as an empty element in its place.
-        expect(html).not.toContain("<p></p>");
-        expect(html).not.toContain("<span> </span>");
-        expect(html).not.toContain("TODO");
-      }
-    }
+describe("the screen root (ADR-093; DECISIONS 2026-09-02)", () => {
+  it("is one Surface with an arm declared for every band", async () => {
+    const html = await render();
+    expect(html.match(/data-surface=""/g)).toHaveLength(1);
+    expect(html).toContain('data-arm-compact="columns:1"');
+    expect(html).toContain('data-arm-medium="same-as-below"');
+    expect(html).toContain('data-arm-wide="same-as-below"');
   });
 });

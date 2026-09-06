@@ -21,13 +21,17 @@
 // requirement's own bytes are what is transcribed here; the owner may
 // normalise it in one line.
 //
-// The five empty values are the ones REQ-098's third open question names as
-// "written nowhere" — the link-sent line (c3), REQ-020 criterion 4's two
+// The five remaining values are the ones REQ-098's third open question names
+// as "written nowhere" — the link-sent line (c3), REQ-020 criterion 4's two
 // answers (already booked against `signin.payment_held` and
 // `signin.no_account` by BP-032's `requestMagicLink`), the malformed-address
-// line (c6) and the dead-link line (c7, BP-061's `redeemLink` lineKey).
-// Empty value, owner-owed — no string is written for them here
-// (`CLAUDE.md`: "never invent copy").
+// line (c6) and the dead-link line (c7, BP-061's `redeemLink` lineKey). Each
+// carries `CLAUDE.md`'s `TODO(copy)` marker rather than the empty value, on
+// exactly the ground issue #13 records for `offer.cancel_self_service`: an
+// empty value makes `copy()` throw, which takes the whole screen down and
+// hides the four arms that *are* finished from the review the owner has to
+// do to write the fifth. Renderable is not invisible — `AWAITING_COPY`
+// counts them, and none is a sentence anyone wrote.
 //
 // The line the field's visible *label* renders is not among criterion 2's
 // six: the requirement fixes the placeholder and says nothing about a
@@ -53,11 +57,12 @@ export const SIGNIN_COPY = Object.freeze({
   "signin.new.prompt": ["New to ReachKit?", { slots: {}, fixedBy: "REQ-098 c2" }],
   "signin.new.link": ["Start a free scan →", { slots: {}, fixedBy: "REQ-098 c2" }],
 
-  // Owner-owed (REQ-098 open question 3). Empty value; `copy()` refuses to
-  // render them and the surface speaks nothing in their place.
-  "signin.link_sent": ["", { slots: {}, fixedBy: "REQ-098 c3" }],
-  "signin.payment_held": ["", { slots: {}, fixedBy: "REQ-020 c4" }],
-  "signin.no_account": ["", { slots: {}, fixedBy: "REQ-020 c4" }],
-  "signin.address.invalid": ["", { slots: {}, fixedBy: "REQ-098 c6" }],
-  "signin.link_dead": ["", { slots: {}, fixedBy: "REQ-098 c7" }],
+  // Awaiting copy (REQ-098 open question 3): the marker renders, so the arm
+  // that speaks each line is visible and reviewable, and the sentence is
+  // still the owner's to write.
+  "signin.link_sent": ["TODO(copy)", { slots: {}, fixedBy: "REQ-098 c3" }],
+  "signin.payment_held": ["TODO(copy)", { slots: {}, fixedBy: "REQ-020 c4" }],
+  "signin.no_account": ["TODO(copy)", { slots: {}, fixedBy: "REQ-020 c4" }],
+  "signin.address.invalid": ["TODO(copy)", { slots: {}, fixedBy: "REQ-098 c6" }],
+  "signin.link_dead": ["TODO(copy)", { slots: {}, fixedBy: "REQ-098 c7" }],
 }) satisfies CopyPartition;

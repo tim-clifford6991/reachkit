@@ -356,15 +356,14 @@ describe("owner-owed and empty agree both ways", () => {
     // marker, being exactly the lines REQ-098's third open question
     // records as written nowhere (`signin.link_sent`,
     // `signin.payment_held`, `signin.no_account`,
-    // `signin.address.invalid`, `signin.link_dead`). It also moves
-    // `price.vat_included` off the empty value onto the marker, on the
-    // same ground #13 moved `offer.cancel_self_service`: `/pricing` has to
-    // speak it, and an empty value would take the whole surface down
-    // rather than show the owner the one line still owed. So: 45 - 1 = 44
-    // owner-owed and empty, 69 + 5 + 1 = 75 awaiting copy, 59 + 6 = 65
-    // ruled — 173 + 11 = 184 total.
-    expect(OWNER_OWED.length).toBe(44);
-    expect(AWAITING_COPY.length).toBe(75);
+    // `signin.address.invalid`, `signin.link_dead`). It leaves
+    // `price.vat_included` untouched and unrendered, for the reason #13
+    // already records against it: `price.interval`'s own ruled string
+    // already says "per month, VAT included", and no module speaks the
+    // separate key. So: 45 owner-owed and empty unchanged, 69 + 5 = 74
+    // awaiting copy, 59 + 6 = 65 ruled — 173 + 11 = 184 total.
+    expect(OWNER_OWED.length).toBe(45);
+    expect(AWAITING_COPY.length).toBe(74);
     expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(65);
     expect(Object.keys(COPY).length).toBe(184);
 

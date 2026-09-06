@@ -24,12 +24,12 @@
 // move, in reverse, that `src/app/(public)/page.tsx` makes with
 // `landing.field.label`.
 //
-// **Criteria 3, 6 and 7 are structurally complete and speak nothing yet.**
-// Each of the four answers, and the dead-link line, resolves from the copy
-// key REQ-098's own third open question records as written nowhere; each is
-// asked for through `isWritten` and left unsaid rather than invented, and
-// appears with no code change the day the owner writes it. What is built and
-// tested today is which key each arm reaches for.
+// **Criteria 3, 6 and 7 are structurally complete and speak the marker.**
+// Each of the four answers, and the dead-link line, resolves from a copy key
+// REQ-098's own third open question records as written nowhere; each carries
+// `CLAUDE.md`'s `TODO(copy)` marker until the owner writes it, so the arm is
+// visible and reviewable and nothing here invents a sentence. What is built
+// and tested today is which key each arm reaches for.
 //
 // **Criteria 4 and 5 are not built** — the "Discoverability Score" card.
 // REQ-098's first two open questions are unruled: whether that is the
@@ -52,7 +52,7 @@ import { Alert } from "@/ui/components/Alert";
 import { Btn } from "@/ui/components/Btn";
 import { Input } from "@/ui/components/Input";
 import { Surface } from "@/ui/layout";
-import { copy, isWritten, type CopyKey } from "@/lib/presentation/copy";
+import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { sendLink } from "./actions";
 import { EMAIL_FIELD, SIGN_IN_INITIAL, type SignInState } from "./state";
 
@@ -102,13 +102,6 @@ function useSignInSearchParams(
   return searchParams ?? {};
 }
 
-/** A line the owner has written, or nothing. Never a blank sentence and
- *  never a stand-in: `copy()` refuses an owner-owed key outright. */
-function line(key: CopyKey | undefined): string | undefined {
-  if (key === undefined) return undefined;
-  return isWritten(key) ? copy(key) : undefined;
-}
-
 export default function SignInPage(props: {
   searchParams?: Promise<SignInSearchParams> | SignInSearchParams;
 }): React.JSX.Element {
@@ -122,8 +115,9 @@ export default function SignInPage(props: {
   // runtime to have typed into.
   const value = typed ?? state.value;
 
-  const deadLink = params.link === DEAD_LINK_MARKER ? line("signin.link_dead") : undefined;
-  const answer = line(ANSWER_COPY_KEY[state.answer]);
+  const deadLink = params.link === DEAD_LINK_MARKER ? copy("signin.link_dead") : undefined;
+  const answerKey = ANSWER_COPY_KEY[state.answer];
+  const answer = answerKey === undefined ? undefined : copy(answerKey);
 
   return (
     <Surface

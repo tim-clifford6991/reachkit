@@ -64,15 +64,17 @@ describe("ADR-093 decision 6 point 5 — the canary overflows on purpose and mus
     expect(offenders.some((o) => o.element.includes("escapee"))).toBe(true);
   });
 
-  it("check 2 — a zero-area box outside its parent is not an offender; the escapee still is (issue #19)", async () => {
-    // `<next-route-announcer>` is Next.js's own route-change announcer: an
-    // empty custom element the client runtime appends to `<body>` after the
-    // app tree, with a 0 × 0 border box. It *does* generate a box, so the
-    // no-box skip above misses it, and a collapsed margin on a screen's
-    // first or last child shortens `<body>` out from under it. Built here
-    // the same way the case above is: body gets the UA's 8px margin, and a
-    // real zero-area element is appended below its bottom edge. A box with
-    // no area cannot clip, overflow or hide anything a reader could see.
+  it("check 2 — a zero-area box outside its parent is not an offender; the escapee still is (issue #13's rule)", async () => {
+    // `checks.ts`'s zero-area skip (issue #13) had no fixture of its own;
+    // this is it. `<next-route-announcer>` is Next.js's own route-change
+    // announcer: an empty custom element the client runtime appends to
+    // `<body>` after the app tree, with a 0 × 0 border box. It *does*
+    // generate a box, so the no-box skip above misses it, and a collapsed
+    // margin on a screen's first or last child shortens `<body>` out from
+    // under it. Built here the same way the case above is: body gets the
+    // UA's 8px margin, and a real zero-area element is appended below its
+    // bottom edge. A box with no area cannot clip, overflow or hide
+    // anything a reader could see.
     const offenders = await withPage(FLOOR_WIDTH, async (page) => {
       await page.goto(FIXTURE_URL);
       await page.evaluate(() => {

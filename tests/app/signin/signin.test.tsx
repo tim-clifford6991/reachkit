@@ -229,7 +229,7 @@ describe('REQ-098 c7 — "Given a person who opens a sign-in link that no longer
   });
 });
 
-describe("against the real registry — the five owner-owed lines are left unsaid, not invented and not thrown on", () => {
+describe("against the real registry — every arm renders, and none of the five owed lines is invented", () => {
   it.each([
     { answer: "sent", value: "someone@example.com" },
     { answer: "payment_held", value: "someone@example.com" },
@@ -248,20 +248,37 @@ describe("against the real registry — the five owner-owed lines are left unsai
     const html = renderToStaticMarkup(<SignInPage searchParams={{ link: "dead" }} />);
     vi.doUnmock(STATE_MODULE);
 
-    const { COPY, isWritten } = await import("@/lib/presentation/copy");
-    expect(html).toContain(COPY["signin.heading"]);
-    expect(html).not.toContain("TODO");
-    for (const key of [
+    const { COPY, AWAITING_COPY, TODO_COPY_MARKER } = await import("@/lib/presentation/copy");
+    // Criterion 2's six strings are the owner's and are spoken byte for
+    // byte. React escapes `'` as `&#x27;` on the way out, so the comparison
+    // is against the text the browser reconstructs, not the wire bytes.
+    const text = html.replaceAll("&#x27;", "'").replaceAll("&amp;", "&").replaceAll("&quot;", '"');
+    expect(text).toContain(COPY["signin.heading"]);
+    expect(text).toContain(COPY["signin.body"]);
+    expect(text).toContain(COPY["signin.new.link"]);
+
+    // The five REQ-098's third open question records as written nowhere are
+    // still unwritten: each carries `CLAUDE.md`'s marker, which renders, so
+    // the arm is visible and reviewable and no sentence is invented. Derived
+    // from `AWAITING_COPY`, not from a list here, so the day the owner
+    // writes one this flips with no edit to this file or to the page.
+    const owed = [
       "signin.link_sent",
       "signin.payment_held",
       "signin.no_account",
       "signin.address.invalid",
       "signin.link_dead",
-    ] as const) {
-      if (isWritten(key)) expect(html).toContain(COPY[key]);
+    ] as const;
+    for (const key of owed) {
+      if (AWAITING_COPY.includes(key)) expect(COPY[key]).toBe(TODO_COPY_MARKER);
+      expect(COPY[key]).not.toBe("");
     }
-    // Nothing empty is left standing in place of a line nobody has written.
-    expect(html).not.toContain('<div role="alert"');
-    expect(html).toContain('<p aria-live="polite"></p>');
+
+    // The dead-link arm is showing (the query names it), and exactly one of
+    // the answer lines is — never two, and never none where the state has
+    // one to say.
+    expect(html).toContain('<div role="alert"');
+    const spoken = (html.match(new RegExp(TODO_COPY_MARKER.replace(/[()]/g, "\\$&"), "g")) ?? []).length;
+    expect(spoken).toBe(state.answer === "none" ? 1 : 2);
   });
 });
