@@ -578,10 +578,27 @@ describe("owner-owed and empty agree both ways", () => {
     // case that ruling draws the line for. 85 + 15 = 100 owner-owed and
     // empty, 135 awaiting copy unchanged, 168 ruled unchanged,
     // 388 + 15 = 403 total.
-    expect(OWNER_OWED.length).toBe(100);
-    expect(AWAITING_COPY.length).toBe(135);
+    //
+    // 2026-09-06, separately again: issue #34 (access and billing, REQ-076
+    // and REQ-097) adds five keys, and they divide by destination exactly
+    // as the ruling above says they should.
+    //
+    //   **Four owner-owed and empty.** The two end-of-hosting notices
+    //   REQ-076 criterion 11 requires — two subjects, the day serving stops
+    //   and the line saying the export stays open afterwards. All four are
+    //   mail, and a mail never ships a placeholder.
+    //
+    //   **One awaiting copy.** `plan.single`, the plan's own name beside
+    //   the price on §4.7's Billing card. A screen must render something
+    //   for the plan, so it takes the marker — Setup's rule, and the same
+    //   one `offer.cancel_self_service` took.
+    //
+    // 100 + 4 = 104 owner-owed, 135 + 1 = 136 awaiting copy, 168 ruled
+    // unchanged, 403 + 5 = 408 total.
+    expect(OWNER_OWED.length).toBe(104);
+    expect(AWAITING_COPY.length).toBe(136);
     expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(168);
-    expect(Object.keys(COPY).length).toBe(403);
+    expect(Object.keys(COPY).length).toBe(408);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.

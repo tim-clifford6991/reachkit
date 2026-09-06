@@ -40,6 +40,17 @@ export const OFFER_COPY = Object.freeze({
   "offer.cancel_self_service": ["TODO(copy)", { slots: {}, fixedBy: "REQ-021 c2" }],
   "offer.start": ["Start ReachKit", { slots: {}, fixedBy: "REQ-021 c4" }],
 
+  // 2026-09-06, issue #34: the plan's own name, which §4.7's Billing card
+  // states beside the price. One key, because there is one plan and no
+  // upgrade, downgrade, annual billing, seat or add-on to name a second
+  // (REQ-022 c3, REQ-076's non-goal). It sits in this partition rather than
+  // in `settings.*` because it is the same public product fact the price
+  // surfaces state, not a sentence about one customer's account —
+  // REQ-097's own non-goal draws that line. `TODO(copy)` per `CLAUDE.md`:
+  // the Billing card must render something for the plan, so the marker
+  // rather than the empty value.
+  "plan.single": ["TODO(copy)", { slots: {}, fixedBy: "REQ-022 c1" }],
+
   // 2026-09-05, issue #13: the four values the four slotted lines above
   // take. BP-031's `offerTerms()` was to supply them and does not exist;
   // the free report's pricing card (`BUILD.md` §4.1 module 6) needs them

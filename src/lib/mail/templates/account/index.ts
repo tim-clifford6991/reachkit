@@ -20,6 +20,11 @@
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { AccountMail } from "../magic-link";
 
+/** Which of REQ-076 criterion 11's two notices this is. Two occasions, two
+ *  subjects, one body: what changes between them is why the customer is
+ *  hearing from us, not what they are being told. */
+export type HostingEndOccasion = "access_ended" | "seven_days";
+
 const CHASE_SUBJECT = "mail.account.chase.subject" satisfies CopyKey;
 const CHASE_LINK_READY = "mail.account.chase.link_ready" satisfies CopyKey;
 const CHASE_NOT_OPEN_YET = "mail.account.chase.not_open_yet" satisfies CopyKey;
@@ -29,6 +34,12 @@ const ADDRESS_MOVED_SUBJECT = "mail.account.address_moved.subject" satisfies Cop
 const ADDRESS_MOVED = "mail.account.address_moved" satisfies CopyKey;
 const NO_SECOND_SUBSCRIPTION = "mail.account.no_second_subscription" satisfies CopyKey;
 const REACH_A_PERSON = "mail.account.reach_a_person" satisfies CopyKey;
+const HOSTING_END_SUBJECT: Readonly<Record<HostingEndOccasion, CopyKey>> = Object.freeze({
+  access_ended: "mail.account.hosting_end.access_ended.subject",
+  seven_days: "mail.account.hosting_end.seven_days.subject",
+});
+const HOSTING_END_STOPS_ON = "mail.account.hosting_end.stops_on" satisfies CopyKey;
+const HOSTING_END_EXPORT_STAYS = "mail.account.hosting_end.export_stays" satisfies CopyKey;
 
 /** The chase where the account is open and a link exists: the payment
  *  succeeded, here is the way in, here is a person. */
@@ -91,6 +102,39 @@ export function buildAddressMoved(): AccountMail {
     subject: ADDRESS_MOVED_SUBJECT,
     blocks: [
       { block: "paragraph", text: ADDRESS_MOVED },
+      { block: "notice", text: REACH_A_PERSON },
+    ],
+  };
+}
+
+/** REQ-076 criterion 11 — one of the two notices a customer with pages on
+ *  the hosted CMS is owed before those pages stop being served: which day
+ *  serving stops, and that their export stays open afterwards.
+ *
+ *  **Two statements, two blocks.** The criterion requires both — "they are
+ *  told in writing which day it stops **and** that their pages remain
+ *  exportable afterwards" — and a notice that carried the day inside a
+ *  sentence about the export would be one edit away from dropping one of
+ *  them with nothing failing.
+ *
+ *  `stopsOn` is the day, already written in the customer's own zone by the
+ *  caller (REQ-073 c3). Nothing here formats a date: a template that could
+ *  format one would be a second date formatter, and the two would disagree
+ *  the day one of them was corrected.
+ *
+ *  It carries no action block. There is nothing for the customer to press:
+ *  the day is not theirs to change, and the export lives on a surface they
+ *  already have. `REACH_A_PERSON` is the way out, as in every `account`
+ *  mail. */
+export function buildHostingEnd(a: {
+  occasion: HostingEndOccasion;
+  stopsOn: string;
+}): AccountMail {
+  return {
+    subject: HOSTING_END_SUBJECT[a.occasion],
+    blocks: [
+      { block: "paragraph", text: HOSTING_END_STOPS_ON, vars: { date: a.stopsOn } },
+      { block: "paragraph", text: HOSTING_END_EXPORT_STAYS },
       { block: "notice", text: REACH_A_PERSON },
     ],
   };

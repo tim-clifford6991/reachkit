@@ -193,4 +193,27 @@ export const MAIL_COPY = Object.freeze({
       fixedBy: "REQ-063 c4",
     },
   ],
+
+  // The end of hosting (REQ-076 c11, issue #34): the two notices a customer
+  // with pages on the hosted CMS is owed before those pages stop being
+  // served — one when their access ends, however it ends, and one
+  // HOSTING_END_REMINDER_DAYS before the day serving stops. Same `account`
+  // kind, same empty representation: these are mail, and a mail never ships
+  // a placeholder.
+  //
+  // Four keys and not two. The subject differs between the two occasions
+  // (one says access has ended, the other that a day is approaching) and
+  // the body carries the day itself, so each is its own sentence. The day
+  // is a `date` slot, filled at composition and expressed in the customer's
+  // own stated time zone (REQ-073 c3) — never formatted in this file.
+  //
+  // `mail.account.hosting_end.export_stays` is a separate key rather than a
+  // clause inside either body for the reason the two above are: c11
+  // requires that the customer is told "their pages remain exportable
+  // afterwards", and a promise that lives inside another sentence is one
+  // edit away from being dropped without anything failing.
+  "mail.account.hosting_end.access_ended.subject": ["", { slots: {}, fixedBy: "REQ-076 c11" }],
+  "mail.account.hosting_end.seven_days.subject": ["", { slots: {}, fixedBy: "REQ-076 c11" }],
+  "mail.account.hosting_end.stops_on": ["", { slots: { date: "date" }, fixedBy: "REQ-076 c11" }],
+  "mail.account.hosting_end.export_stays": ["", { slots: {}, fixedBy: "REQ-076 c11" }],
 }) satisfies CopyPartition;
