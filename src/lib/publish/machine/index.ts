@@ -20,7 +20,7 @@
 // The archived plan is WO-209.
 import { VETO } from "@/lib/config/constants";
 import { publishDb } from "../db";
-import type { Actor, DraftView, State, TransitionRecord } from "../types";
+import type { Actor, DraftView, State, ToldRecord, TransitionRecord } from "../types";
 import {
   DEFAULT_GUARD_DEPS,
   GUARD_FNS,
@@ -152,17 +152,24 @@ interface DraftRow {
   state: string;
   veto_deadline: string | null;
   approved_at: string | null;
+  approved_by: unknown;
+  told: unknown;
   transitions: unknown;
   hard_rules_passed: boolean | null;
   publishable_since: string | null;
-  sites?: { mode?: string | null; veto_hours?: number | null } | null;
+  sites?: {
+    mode?: string | null;
+    veto_hours?: number | null;
+    publish_time?: string | null;
+    timezone?: string | null;
+  } | null;
 }
 
 async function loadDraft(draftId: string): Promise<MachineDraft | null> {
   const { data, error } = await publishDb()
     .from<DraftRow>("drafts")
     .select(
-      "id, site_id, state, veto_deadline, approved_at, transitions, hard_rules_passed, publishable_since, sites(mode, veto_hours)"
+      "id, site_id, state, veto_deadline, approved_at, approved_by, told, transitions, hard_rules_passed, publishable_since, sites(mode, veto_hours, publish_time, timezone)"
     )
     .eq("id", draftId)
     .single();
@@ -170,12 +177,23 @@ async function loadDraft(draftId: string): Promise<MachineDraft | null> {
   return toMachineDraft(data);
 }
 
-/** The row as the machine reads it. The four members #44's generation
- *  columns will populate (`hasUnsavedEdit`, `claimRecheckOutstanding`,
- *  `told`, and the hard-rule outcome) read `false` where the column is
- *  absent — the conservative arm every time: a draft that has not recorded
- *  passing the hard rules has not passed them, and a customer who has not
- *  been recorded as told has not been told. */
+/** The row as the machine reads it.
+ *
+ *  The two members #44's generation columns will populate
+ *  (`hasUnsavedEdit`, `claimRecheckOutstanding`) read `false` where the
+ *  column is absent, and the hard-rule outcome reads `false` unless the
+ *  row records it — the conservative arm every time: a draft that has not
+ *  recorded passing the hard rules has not passed them.
+ *
+ *  `told` is the **record**, not a verdict: whether the customer has been
+ *  told on the pair now in force is decided by comparing it against
+ *  `governing`, and that comparison is the veto leaf's (`toldCurrentPair`).
+ *  A row with no record has never been told, which holds the page.
+ *
+ *  `publishTime` and `timezone` are on the pair because REQ-073 c4's change
+ *  — the one REQ-057 c8 tracks — includes both, and either one moves *when*
+ *  a page publishes. A null zone travels as null; nothing here substitutes
+ *  the server's. */
 export function toMachineDraft(row: DraftRow): MachineDraft {
   const state = STATES.find((candidate) => candidate === row.state) ?? "planned";
   const transitions = Array.isArray(row.transitions)
@@ -187,14 +205,38 @@ export function toMachineDraft(row: DraftRow): MachineDraft {
     state,
     vetoDeadline: row.veto_deadline === null ? null : new Date(row.veto_deadline),
     approvedAt: row.approved_at === null ? null : new Date(row.approved_at),
-    approvedBy: null,
+    approvedBy: actorOf(row.approved_by),
     hasUnsavedEdit: false,
     claimRecheckOutstanding: false,
-    told: false,
+    told: toldOf(row.told),
     governing: {
       mode: row.sites?.mode === "copilot" ? "copilot" : "autopilot",
       vetoHours: typeof row.sites?.veto_hours === "number" ? row.sites.veto_hours : VETO.defaultHours,
+      publishTime: publishTimeOf(row.sites?.publish_time ?? null),
+      timezone: typeof row.sites?.timezone === "string" ? row.sites.timezone : null,
     },
   };
   return { ...view, hardRulesPassed: row.hard_rules_passed === true, transitions };
+}
+
+/** BUILD §10's own column default (`publish_time time not null default
+ *  '09:00'`), read back as `HH:mm` — the column renders seconds the pair
+ *  never carries. Not a second decision about the hour: the same value the
+ *  column already holds. */
+function publishTimeOf(value: string | null): string {
+  if (value === null) return "09:00";
+  const [hh = "09", mm = "00"] = value.split(":");
+  return `${hh.padStart(2, "0")}:${mm.padStart(2, "0")}`;
+}
+
+function actorOf(value: unknown): Actor | null {
+  const actor = value as Actor | null;
+  if (actor === null || typeof actor !== "object") return null;
+  return actor.kind === "customer" || actor.kind === "system" ? actor : null;
+}
+
+function toldOf(value: unknown): ToldRecord | null {
+  const record = value as ToldRecord | null;
+  if (record === null || typeof record !== "object") return null;
+  return typeof record.pair === "object" && record.pair !== null ? record : null;
 }

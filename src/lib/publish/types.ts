@@ -259,10 +259,58 @@ export interface DestinationAdapter {
 
 /** The pair of publishing mode and veto window governing a draft. §9:
  *  "Autopilot = auto-approve when the veto window … expires without a
- *  veto. Copilot = explicit approve only." */
+ *  veto. Copilot = explicit approve only."
+ *
+ *  **Four members, and the name is still "the pair".** REQ-057 c8 tracks
+ *  "the pair of publishing mode and veto window governing it" and points at
+ *  REQ-073 c4 for what a change to it is — and c4's change is "a change to
+ *  mode, veto window, publish time or time zone". The publish time and the
+ *  zone decide *when* the page goes out, so a change to either makes what
+ *  the customer was last told stop being true, which is the whole test c8
+ *  states. Comparing two of the four would let a customer move the publish
+ *  hour and have a page go out at a time they were never told.
+ *
+ *  There is no fifth member, and destination health is deliberately not one
+ *  (BP-046 decision 5): a health flap would re-open the telling on a
+ *  precondition c8 never names, and what holds a page against a destination
+ *  that cannot publish is the `destination_working` guard. */
 export interface GoverningPair {
   mode: "autopilot" | "copilot";
   vetoHours: number;
+  /** `HH:mm`, 24-hour, read in `timezone`. */
+  publishTime: string;
+  /** IANA name, or `null` where the customer has not stated one. Nullable
+   *  by design — REQ-073 c1 forbids a zone the customer never stated, and
+   *  no read path falls back to the server's. A page whose site has no zone
+   *  is held, never published in a zone nobody chose. */
+  timezone: string | null;
+}
+
+/** The stop link a telling carries. Declared here, in the leaf that imports
+ *  nothing from `src/lib/publish/`, for the reason `FailureReason` is: the
+ *  telling names it and the veto module (which issues and redeems it)
+ *  imports `transition()`, so declaring it there would put
+ *  `machine/guards.ts → publishable/rule.ts → publishable/telling.ts →
+ *  publishable/veto.ts → machine/index.ts` in the graph. `expiresAt` is
+ *  `null` at a veto window of zero, where no interval exists in which a
+ *  link could be used and none is issued (REQ-057 c7). */
+export interface VetoLink {
+  token: string;
+  expiresAt: Date | null;
+}
+
+/** What was last said to the customer about whether and when a page
+ *  publishes — `drafts.told`, as the rule reads it.
+ *
+ *  `pair` is what the comparison is against; `kind` and `publishesAt` are
+ *  what was said, kept so the record can be read back without recomposing
+ *  it. The destination clause is stored as sent and is not part of the
+ *  comparison (BP-046 decision 5). */
+export interface ToldRecord {
+  pair: GoverningPair;
+  kind: "interval" | "no_interval" | "approval_only";
+  publishesAt: string | null;
+  sentAt: string;
 }
 
 /** What the publishable rule and the guards are handed. The last four
@@ -277,9 +325,16 @@ export interface DraftView {
   approvedBy: Actor | null;
   hasUnsavedEdit: boolean;
   claimRecheckOutstanding: boolean;
-  /** Whether the customer has been told, on the pair actually in force,
-   *  either the interval they have to stop it or that none exists
-   *  (REQ-057 c8). The rule that decides it is #46's. */
-  told: boolean;
+  /** What the customer was last told about this page, or `null` where they
+   *  have never been told anything about it. It is the **record**, not the
+   *  answer: whether the telling still stands is decided by comparing this
+   *  record's pair against `governing`, and that comparison is
+   *  `toldCurrentPair`'s (#46). A boolean here would have to be computed by
+   *  whoever loaded the row, which is a second copy of the rule.
+   *
+   *  REQ-057 c8: "no page publishes at all without their having been told,
+   *  on the pair it actually publishes under, either the interval they have
+   *  to stop it or that no interval exists." */
+  told: ToldRecord | null;
   governing: GoverningPair;
 }
