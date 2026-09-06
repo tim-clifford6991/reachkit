@@ -64,9 +64,47 @@ describe("rankedCountsOf — #37's sizing, projected", () => {
   });
 });
 
+describe("the customer's own count is the pass's, not a guess (issue #140)", () => {
+  it("derives against the count the pass stored, whatever it is", async () => {
+    // #140 put `ownRanked` on the blob; before it, this read
+    // `undeterminable` and every customer was banded at the cold-start
+    // floors. The derivation now runs against what was measured.
+    const report = defaultReport({
+      rivalSizes: measured(sized(40), AT),
+      ownRanked: measured(120, AT),
+    });
+    const outcome = await deriveForPass(fakeCost().ctx, {
+      tier: "deep",
+      siteId: SITE_ID,
+      report,
+      hasActiveAccess: true,
+    });
+    if (outcome.tier !== "deep") throw new Error("unreachable");
+    expect(outcome.created).toBeGreaterThan(0);
+  });
+
+  it("a count that could not be read is the cold-start 0 and still derives", async () => {
+    const report = defaultReport({
+      rivalSizes: measured(sized(40), AT),
+      ownRanked: unmeasured("undeterminable", AT),
+    });
+    const outcome = await deriveForPass(fakeCost().ctx, {
+      tier: "deep",
+      siteId: SITE_ID,
+      report,
+      hasActiveAccess: true,
+    });
+    if (outcome.tier !== "deep") throw new Error("unreachable");
+    expect(outcome.created).toBeGreaterThan(0);
+  });
+});
+
 describe("the deep pass pursues depth", () => {
-  it("persists what the evidence supports and reports where the pursuit stopped", async () => {
-    const report = defaultReport({ rivalSizes: measured(sized(40), AT) });
+  it("persists Write opportunities for a site whose rivals clear the bars", async () => {
+    const report = defaultReport({
+      rivalSizes: measured(sized(40), AT),
+      ownRanked: measured(120, AT),
+    });
     const outcome = await deriveForPass(fakeCost().ctx, {
       tier: "deep",
       siteId: SITE_ID,
@@ -83,6 +121,9 @@ describe("the deep pass pursues depth", () => {
     if (outcome.tier !== "deep") throw new Error("unreachable");
     expect(outcome.unused).toBe(state.rows.filter((row) => row.family !== "fix").length);
     expect(["target_met", "evidence_spent", "pass_ended_early"]).toContain(outcome.stop);
+    // The Done-when this issue exists for: a sized market yields days of
+    // pages, not only Fix instructions (which take no publishing day).
+    expect(state.rows.filter((row) => row.family === "write").length).toBeGreaterThan(0);
   });
 
   it("derives nothing where the market could not be sized — fewer opportunities, never a guessed one", async () => {
