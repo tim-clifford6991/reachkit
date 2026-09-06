@@ -21,7 +21,7 @@
 // hours, whose *record* is read below (`publications.verify`) and never
 // re-taken. `no-look.test.ts` asserts it at source level.
 import { dbAdmin } from "@/lib/db";
-import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
+import type { Measured } from "@/lib/measure/measured";
 // The shapes the one check at 24 hours records, declared by the publishing
 // module that owns them (#45's `src/lib/publish/types.ts`) and read here,
 // never re-declared: `page_not_found` and `could_not_confirm` carry
@@ -29,7 +29,8 @@ import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure
 // and a projection of my own would have thrown that separation away. The
 // direction `src/lib/opportunities -> src/lib/publish` closes no cycle —
 // nothing under `src/lib/publish/` imports this module.
-import type { NotConfirmed, VerifyChecks, VerifyOutcome } from "@/lib/publish/types";
+import type { VerifyOutcome } from "@/lib/publish/types";
+import { readStoredCheck } from "@/lib/publish/verify/stored";
 import { readStoredReport, type StoredReport } from "@/lib/scan/report";
 import type { Acceptance } from "../types";
 import type { CheckId, Movement, NotJudgeableCause, Verdict, VerifyNote, WeekStart } from "./types";
@@ -138,16 +139,6 @@ function reviveDates(value: unknown): unknown {
 
 const CHECK_IDS: readonly CheckId[] = Object.freeze(["reachable", "indexable", "sitemap", "aiReadable"]);
 
-/** BUILD §10 writes the four flags snake-cased inside the blob
- *  (`ai_readable`); the ids this module speaks are camel-cased. One map,
- *  so neither spelling is written twice. */
-const SNAKE: Readonly<Record<CheckId, string>> = Object.freeze({
-  reachable: "reachable",
-  indexable: "indexable",
-  sitemap: "sitemap",
-  aiReadable: "ai_readable",
-});
-
 /**
  * REQ-063 c1's note, composed by **destructuring the stored outcome** —
  * never by testing a boolean or a date, which could not tell "the page
@@ -182,61 +173,31 @@ export function noteFor(verification: VerifyOutcome | null): VerifyNote | null {
   }
 }
 
-const NOT_CONFIRMED: readonly NotConfirmed[] = Object.freeze([
-  "unreachable",
-  "server_error",
-  "redirected_away",
-  "not_our_page",
-]);
-
 /**
  * `publications.verify`, read as the three outcomes REQ-062 records.
+ *
+ * **One reader, and it is the writer's own** (issue #50). The column is
+ * written by `src/lib/publish/verify/` and `readStoredCheck` is that
+ * module's projection of it, so the shape is stated once and a reader here
+ * cannot come to disagree with the writer about it. Before #50 landed this
+ * function guessed the on-disk shape — it read the four flags as bare
+ * booleans at the top level, in two spellings — and the writer stores them
+ * as `Measured<boolean>` under `checks`, which that guess would have read
+ * as four checks that said nothing on every page ever published. The
+ * failure would have been silent: every verdict still computed, every
+ * screen still correct, and the four outcomes permanently unmeasured.
  *
  * Total and unguessing: a blob this function cannot read is `null` — the
  * check has said nothing — and never `page_not_found`, which is terminal.
  * A row that does not say a page was missing must never be read as saying
  * it was.
  *
- * The column's writer is #50. Until it lands this is the only thing that
- * has ever parsed it, so it reads both spellings of the fourth flag rather
- * than choosing one on the writer's behalf.
+ * The direction `src/lib/opportunities -> src/lib/publish` closes no
+ * cycle: nothing under `src/lib/publish/` imports this module, and
+ * `stored.ts` reaches no database.
  */
 export function readVerification(blob: unknown): VerifyOutcome | null {
-  if (blob === null || typeof blob !== "object") return null;
-  const row = blob as Record<string, unknown>;
-  const checkedAtRaw = row["checkedAt"] ?? row["checked_at"];
-  if (typeof checkedAtRaw !== "string") return null;
-  const checkedAt = new Date(checkedAtRaw);
-  if (Number.isNaN(checkedAt.getTime())) return null;
-
-  const outcome = row["outcome"];
-  if (outcome === "page_not_found") {
-    return { outcome: "page_not_found", status: row["status"] === 410 ? 410 : 404, checkedAt };
-  }
-  if (outcome === "could_not_confirm") {
-    const why = row["why"];
-    return {
-      outcome: "could_not_confirm",
-      // An unreadable reason is the weakest true one, never a guess at a
-      // stronger claim: nothing downstream acts on it.
-      why: NOT_CONFIRMED.includes(why as NotConfirmed) ? (why as NotConfirmed) : "unreachable",
-      checkedAt,
-    };
-  }
-
-  // The `found` arm. Each flag is a `Measured<boolean>`: a flag that is not
-  // a boolean on disk is a check that said nothing, not one that failed.
-  const checks = {} as VerifyChecks;
-  for (const id of CHECK_IDS) {
-    const raw = row[id] ?? row[SNAKE[id]];
-    checks[id] =
-      typeof raw !== "boolean"
-        ? unmeasured<boolean>("undeterminable", checkedAt)
-        : raw
-          ? measured(true, checkedAt)
-          : measuredZero(false, checkedAt);
-  }
-  return { outcome: "found", checks, checkedAt };
+  return readStoredCheck(blob)?.result ?? null;
 }
 
 // ── The default, Postgres-backed store ──────────────────────────────────
