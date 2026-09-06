@@ -309,7 +309,7 @@ describe("owner-owed and empty agree both ways", () => {
     expect(new Set(emptyKeys)).toEqual(new Set(OWNER_OWED));
   });
 
-  it("counts: 71 owner-owed, 117 awaiting copy, 160 ruled, 348 total (rule 5.5 — the index states its own coverage)", () => {
+  it("counts: 64 owner-owed, 124 awaiting copy, 160 ruled, 348 total (rule 5.5 — the index states its own coverage)", () => {
     // WO-070 added report.ts's eight landing keys (headline, field label,
     // submit label, five DomainProblem lines), all owner-owed: 30 + 8 = 38.
     // 2026-09-03: the owner ruled on three of them (headline, field label,
@@ -469,7 +469,6 @@ describe("owner-owed and empty agree both ways", () => {
     // cannot. So: 71 owner-owed unchanged, 74 + 42 = 116 awaiting copy,
     // 154 + 6 = 160 ruled — 299 + 48 = 347 total.
     //
-<<<<<<< HEAD
     // 2026-09-06, separately again: issue #20 (REQ-091/REQ-092) adds no key
     // and moves seven off the empty-value representation onto the marker:
     // `stopped.work.resumes-on`, `stopped.work.no-time-promised`,
@@ -492,19 +491,16 @@ describe("owner-owed and empty agree both ways", () => {
     //
     // 71 - 7 = 64 owner-owed and empty, 116 + 7 = 123 awaiting copy, 160
     // ruled unchanged, 347 total unchanged.
+    //
+    // 2026-09-06, separately again: issue #104 (wiring the report address
+    // to the store) adds one key in `report.ts`, `notice.refused.stopped`
+    // — ReachKit's own stop, in writing. It is the third `AddressRefusal`
+    // reason and the only one that names no wait, so it could borrow
+    // neither line already there. It carries the marker, on Setup's rule
+    // above: a refusal screen must render something. 64 owner-owed and 160
+    // ruled unchanged, 123 + 1 = 124 awaiting copy, 347 + 1 = 348 total.
     expect(OWNER_OWED.length).toBe(64);
-    expect(AWAITING_COPY.length).toBe(123);
-=======
-    // 2026-09-06, issue #104 (wiring the report address to the store):
-    // one new key in `report.ts`, `notice.refused.stopped` — ReachKit's
-    // own stop, in writing. It is the third `AddressRefusal` reason and
-    // the only one that names no wait, so it could not borrow either line
-    // already there. Owner-owed and carrying the marker: 116 + 1 =
-    // 117 awaiting copy, 71 owner-owed and 160 ruled unchanged,
-    // 347 + 1 = 348 total.
-    expect(OWNER_OWED.length).toBe(71);
-    expect(AWAITING_COPY.length).toBe(117);
->>>>>>> d9128f3 (feat(report): ReachKit's own stop is its own refusal, and one place a refusal is worded)
+    expect(AWAITING_COPY.length).toBe(124);
     expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(160);
     expect(Object.keys(COPY).length).toBe(348);
 
