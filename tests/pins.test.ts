@@ -904,6 +904,10 @@ describe("§4.2 and the account lifecycle — every clock that is a pin", () => 
   it("BP-063 — DANGER_TICKET_TTL_MINUTES = 30, the life of a danger-zone confirmation ticket", () => {
     expect(pins.DANGER_TICKET_TTL_MINUTES).toBe(30);
   });
+
+  it('BP-062 (chosen) · REQ-078 c5, quoted: "Given an export cannot be produced, when the customer requests one, then they are told so in one written line and are not given a partial archive presented as complete" — EXPORT_DEADLINE_MS = 120_000, the point past which an export fails rather than trickles', () => {
+    expect(pins.EXPORT_DEADLINE_MS).toBe(120_000);
+  });
 });
 
 describe("DECISIONS 2026-08-31 (ADR-051) — retention, erasure and the hosted window", () => {
