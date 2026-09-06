@@ -20,11 +20,30 @@ import { SRC_DIR, read, walkFiles } from "./vocabulary";
 
 const FIXTURES = "tests/ui/design/__fixtures__";
 
-/** The three legacy marks Unicode gives `Extended_Pictographic` but text
- *  presentation by default. `©`, `®` and `™` are typography, not emoji —
- *  a footer may carry one — so they count only when a following
- *  variation selector-16 asks explicitly for the emoji glyph. */
-const TEXT_PRESENTATION_BY_DEFAULT = new Set(["©", "®", "™"]);
+/** Unicode gives `Extended_Pictographic` to marks that are typography, not
+ *  emoji: the copyright and trademark signs, the arrows this repo writes
+ *  in prose (`↔`, `↩`), and the geometric shapes a bullet is drawn with.
+ *  Each is text-presentation by default and each is something the product
+ *  legitimately writes, so they are exempt — *unless* a variation
+ *  selector-16 follows, which is a request for the emoji glyph and is
+ *  never anything else.
+ *
+ *  Everything else `Extended_Pictographic` covers is a finding whether or
+ *  not it has emoji presentation by default: `⚠`, `✂` and `☀` are emoji
+ *  in every browser that matters, and "no emoji anywhere" is not a rule
+ *  that should turn on a font's opinion. */
+const TYPOGRAPHIC_EXEMPT: ReadonlyArray<readonly [number, number]> = [
+  [0x00a9, 0x00a9], // ©
+  [0x00ae, 0x00ae], // ®
+  [0x2122, 0x2122], // ™
+  [0x2190, 0x21ff], // Arrows
+  [0x25a0, 0x25ff], // Geometric Shapes
+];
+
+function isTypographic(char: string): boolean {
+  const code = char.codePointAt(0) ?? 0;
+  return TYPOGRAPHIC_EXEMPT.some(([lo, hi]) => code >= lo && code <= hi);
+}
 
 const VARIATION_SELECTOR_16 = "️";
 
@@ -42,12 +61,7 @@ function emojiIn(text: string): Array<{ char: string; index: number }> {
   for (const match of text.matchAll(re)) {
     const char = match[0];
     const index = match.index;
-    if (
-      TEXT_PRESENTATION_BY_DEFAULT.has(char) &&
-      text[index + char.length] !== VARIATION_SELECTOR_16
-    ) {
-      continue;
-    }
+    if (isTypographic(char) && text[index + char.length] !== VARIATION_SELECTOR_16) continue;
     out.push({ char, index });
   }
   return out;
@@ -78,9 +92,16 @@ describe("the no-emoji detector", () => {
     expect(emojiIn(read(`${FIXTURES}/emoji-absent.txt`))).toEqual([]);
   });
 
-  it("counts a legacy mark only when it asks for the emoji glyph", () => {
+  it("counts a typographic mark only when it asks for the emoji glyph", () => {
     expect(emojiIn("ReachKit™")).toEqual([]);
     expect(emojiIn(`ReachKit™${VARIATION_SELECTOR_16}`)).toHaveLength(2);
+  });
+
+  it("the exemption is typography, not every text-presentation character", () => {
+    // `src/lib/market/setup/state.ts` writes `↔` in prose about a module
+    // cycle; nothing in the product writes a warning sign.
+    expect(emojiIn("src/lib/market ↔ src/lib/scan")).toEqual([]);
+    expect(emojiIn("Careful ⚠")).toHaveLength(1);
   });
 });
 

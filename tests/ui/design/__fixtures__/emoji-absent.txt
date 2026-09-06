@@ -6,4 +6,5 @@ writes every one of them.
 Em dash — en dash – ellipsis … arrow → bullet · times × degree °
 Curly quotes “measured” and it's, non-breaking space, ratio 0/12,
 price €49, plus-minus ±, section §2.3, copyright © 2026, ReachKit™ ®,
-accented characters: café, naïve, Zürich, Ångström.
+accented characters: café, naïve, Zürich, Ångström,
+and the marks this repo writes in prose: ↔ ↩ ▪ ▸.

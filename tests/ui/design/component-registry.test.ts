@@ -115,6 +115,47 @@ function deadClassesOnRegisteredBases(written: ReadonlyMap<string, Set<string>>)
   return out.sort();
 }
 
+/** The classes a file outside `src/ui/components/**` may write itself, and
+ *  why the registered component cannot serve the case. Not a way past the
+ *  registry: every class named here is still one of §2.2's fifteen, so no
+ *  sixteenth component is reached — what the row records is markup the
+ *  barrel's component cannot produce.
+ *
+ *  A row is friction on purpose. Reaching for daisyUI's markup instead of
+ *  the component is how a design system rots, so the second row has to be
+ *  argued for in a diff, and a row that stops being used fails the test
+ *  above rather than sitting here. */
+const HAND_WRITTEN: ReadonlyArray<{
+  readonly file: string;
+  readonly classes: readonly string[];
+  readonly why: string;
+}> = [
+  {
+    file: "src/app/(account)/app/_overview/WeekModule.tsx",
+    classes: ["btn", "btn-sm"],
+    why: "a link that reads as a button (#15): `Btn` renders a `<button>` with an `onClick`, and this control navigates with no client runtime. daisyUI's own class pair for the case.",
+  },
+];
+
+/** Every daisyUI component class written outside `src/ui/components/**`
+ *  that no row above accounts for. */
+function handWrittenOutsideTheRegistry(
+  written: ReadonlyMap<string, Set<string>> = WRITTEN
+): string[] {
+  const out: string[] = [];
+  for (const [token, files] of written) {
+    if (!isDaisyComponentClass(VOCAB, token)) continue;
+    for (const file of files) {
+      if (file.startsWith("src/ui/components/")) continue;
+      const allowed = HAND_WRITTEN.some(
+        (row) => row.file === file && row.classes.includes(token)
+      );
+      if (!allowed) out.push(`${token} in ${file}`);
+    }
+  }
+  return out.sort();
+}
+
 describe('§2.2 — "daisyUI components only" over src/app/** and src/ui/**', () => {
   it("every daisyUI class the product writes belongs to a registered component", () => {
     expect(unregisteredDaisyClasses(WRITTEN)).toEqual([]);
@@ -144,15 +185,31 @@ describe('§2.2 — "daisyUI components only" over src/app/** and src/ui/**', ()
     expect(deadClassesOnRegisteredBases(mutated)).toEqual([]);
   });
 
-  it("daisyUI component classes are written only inside src/ui/components/** — everything else composes the barrel", () => {
-    const elsewhere: string[] = [];
-    for (const [token, files] of WRITTEN) {
-      if (!isDaisyComponentClass(VOCAB, token)) continue;
-      for (const file of files) {
-        if (!file.startsWith("src/ui/components/")) elsewhere.push(`${token} in ${file}`);
-      }
-    }
-    expect(elsewhere.sort()).toEqual([]);
+  it("daisyUI component classes are written only inside src/ui/components/**, or by a declared exception", () => {
+    expect(handWrittenOutsideTheRegistry()).toEqual([]);
+  });
+
+  it("every declared exception is still used — a row cannot outlive its reason", () => {
+    const stale = HAND_WRITTEN.filter((row) => {
+      const written = row.classes.filter((cls) => WRITTEN.get(cls)?.has(row.file) === true);
+      return written.length !== row.classes.length;
+    }).map((row) => row.file);
+    expect(stale).toEqual([]);
+  });
+
+  it("mutation: a screen that hand-rolls a registered component's markup is caught", () => {
+    expect(
+      handWrittenOutsideTheRegistry(
+        new Map([["card-body", new Set(["src/app/(public)/pricing/page.tsx"])]])
+      )
+    ).toEqual(["card-body in src/app/(public)/pricing/page.tsx"]);
+  });
+
+  it("mutation: an exception does not licence the file's other daisyUI classes", () => {
+    const file = HAND_WRITTEN[0]?.file ?? "";
+    expect(
+      handWrittenOutsideTheRegistry(new Map([["card", new Set([file])]]))
+    ).toEqual([`card in ${file}`]);
   });
 });
 

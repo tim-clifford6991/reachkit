@@ -265,16 +265,42 @@ describe("§2.1 — no reference to a token nothing declares", () => {
     }
   }
 
+  /** What the product actually paints with, comments excluded: CSS
+   *  declaration values, and the strings the TypeScript AST holds. A
+   *  screen's comment explaining that daisyUI's badge is `height:
+   *  var(--size)` is not a reference to a token this repo owes. */
+  function tokenReferences(file: string): string[] {
+    const blobs = file.endsWith(".css")
+      ? declarationsOf(read(file)).map((decl) => decl.value)
+      : stringsOf(file);
+    return blobs.flatMap((blob) =>
+      [...blob.matchAll(/var\(\s*(--[\w-]+)/g)]
+        .map((match) => match[1])
+        .filter((token): token is string => token !== undefined)
+    );
+  }
+
   it("every var(--token) under src/ resolves to a declaration under src/", () => {
     const dangling: string[] = [];
     for (const file of SRC_FILES) {
       if (!/\.(css|tsx?)$/.test(file)) continue;
-      for (const match of read(file).matchAll(/var\(\s*(--[\w-]+)/g)) {
-        const token = match[1];
-        if (token !== undefined && !declared.has(token)) dangling.push(`${file}: ${token}`);
+      for (const token of tokenReferences(file)) {
+        if (!declared.has(token)) dangling.push(`${file}: ${token}`);
       }
     }
     expect([...new Set(dangling)].sort()).toEqual([]);
+  });
+
+  it("a var() a comment merely quotes is not a reference", () => {
+    // The case this reads through declarations rather than raw text for:
+    // a screen explaining in a comment that daisyUI's badge is
+    // `height: var(--size)` owes this repo no `--size` token.
+    expect(tokenReferences("src/ui/layout/shell.css").length).toBeGreaterThan(0);
+    const decls = declarationsOf("/* height: var(--size) */ .x { color: var(--ink); }");
+    const seen = decls.flatMap((decl) =>
+      [...decl.value.matchAll(/var\(\s*(--[\w-]+)/g)].map((match) => match[1])
+    );
+    expect(seen).toEqual(["--ink"]);
   });
 
   it("mutation: a renamed token leaves its references dangling, and that is caught", () => {
