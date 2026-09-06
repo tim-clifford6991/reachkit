@@ -57,6 +57,7 @@ import { deriveProfile, type Profile } from "@/lib/market/questions/profile";
 import { selectTwelve, type SelectedSearch } from "@/lib/market/questions/select";
 import { deriveRivals, type RivalCandidate } from "@/lib/market/rivals/derive";
 import { buildPresenceCard, type PresenceCard } from "@/lib/market/rivals/presence";
+import type { RivalSize } from "@/lib/market/rivals/size";
 import type { MarketSerp } from "@/lib/market/views";
 import { aiPresenceOf, measureDomain, type DomainMeasurement } from "@/lib/measure";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
@@ -145,6 +146,13 @@ interface Sections {
   questions: Measured<Question[]>;
   serps: Measured<SerpResult>[];
   rivals: Measured<RivalCandidate[]>;
+  /** §6.6's sizing. No stage fills it: `sizeRivals` is built and nothing
+   *  calls it (issue #140), so it stays on the arm `freshSections` gave
+   *  it and reaches the blob saying so — never a zero, which would
+   *  satisfy every winnability bar. Declared here rather than synthesised
+   *  at composition, so the stage that lands fills a member that already
+   *  exists. */
+  rivalSizes: Measured<RivalSize[]>;
   sources: readonly string[];
   aiAnswers: AiAnswersSection | null;
   presence: PresenceCard | null;
@@ -163,6 +171,7 @@ function freshSections(at: Date): Sections {
     questions: unmeasured("not_attempted", at),
     serps: [],
     rivals: unmeasured("not_attempted", at),
+    rivalSizes: unmeasured("not_attempted", at),
     sources: [],
     aiAnswers: null,
     presence: null,
@@ -215,6 +224,7 @@ interface QueryResult<T> {
 
 interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
   select(columns: string): MinimalQueryBuilder<T>;
+  insert(values: Record<string, unknown>): MinimalQueryBuilder<T>;
   update(values: Record<string, unknown>): MinimalQueryBuilder<T>;
   eq(column: string, value: string): MinimalQueryBuilder<T>;
   order(column: string, opts: { ascending: boolean }): MinimalQueryBuilder<T>;
@@ -268,6 +278,38 @@ async function closeWithoutSpending(scanId: string): Promise<void> {
   if (error) throw new Error(`runScan: could not close the adopted row: ${error.message}`);
 }
 
+/**
+ * Inserts the `running` row a paid pass writes to, before any spend.
+ *
+ * `fetches.scan_id` and `opportunities.scan_id` both reference `scans
+ * (id)`, so a pass whose row does not exist yet can neither ledger a
+ * vendor call nor persist an opportunity against it. The free path adopts
+ * the row admission already claimed and the weekly pass claims its own
+ * (that claim is also the once-a-week guarantee and carries `week_start`,
+ * which is why it stays `runWeekly`'s); every other pass claims here, and
+ * `store_current_report` then updates this row rather than inserting one.
+ *
+ * No `week_start`, no `is_current`, no cost: this is the row, not the
+ * report. Nothing about the pass is decided by it.
+ */
+async function claimPassRow(a: {
+  scanId: string;
+  domain: CanonicalDomain;
+  tier: Tier;
+  siteId?: string;
+}): Promise<void> {
+  const { error } = await untyped(dbAdmin())
+    .from<{ id: string }>("scans")
+    .insert({
+      id: a.scanId,
+      domain: a.domain,
+      tier: a.tier,
+      status: "running",
+      ...(a.siteId === undefined ? {} : { site_id: a.siteId }),
+    });
+  if (error) throw new Error(`runScan: could not claim the scan row: ${error.message}`);
+}
+
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 function wholeDaysBetween(from: Date, to: Date): number {
@@ -305,6 +347,32 @@ export interface RunScanArgs {
    * why the one caller in this repo swallows its own write failures.
    */
   onStage?: (stage: StageName) => void | Promise<void>;
+  /**
+   * Called once the pass's report is stored, with the report and the
+   * pass's own `CostContext`.
+   *
+   * §6.3 puts "Haiku ×~4 for opportunity typing" inside the deep and
+   * weekly passes' own budgets, so the work this hook does spends the
+   * pass's money and no other: the context handed here is the one the
+   * stages spent, its cap still applies, and a second `withCostContext`
+   * would be a second budget *and* a second roll-up over the same
+   * `scans` row.
+   *
+   * **After the store, and that ordering is a foreign key.**
+   * `opportunities.scan_id references scans (id)`: an opportunity derived
+   * before the row it belongs to exists cannot be written. The pass's own
+   * roll-up was written when the bounds closed and `store_current_report`
+   * overwrote it a moment ago, so what this hook spends is ledgered in
+   * `fetches` — which BP-007 states is the source of truth — and is not
+   * added to the row's cached `cost_cents`. Stated rather than hidden: it
+   * is a summary that under-reports by the typing calls, not a figure the
+   * ledger disagrees with.
+   *
+   * It is awaited, and it never stops the pass: a derivation that throws
+   * is logged and the stored report stands (§4.3 — "a degraded pass still
+   * releases setup; zero proposals is legal, never faked").
+   */
+  afterReport?: (a: { report: StoredReport; cost: CostContext }) => Promise<void>;
 }
 
 export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status: ScanStatus }> {
@@ -329,8 +397,16 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
     }
     scanId = claimed.id;
     fromIncompleteRescan = claimed.fromIncompleteRescan;
+  } else if (a.scanId !== undefined) {
+    scanId = a.scanId;
   } else {
-    scanId = a.scanId ?? crypto.randomUUID();
+    scanId = crypto.randomUUID();
+    await claimPassRow({
+      scanId,
+      domain,
+      tier: a.tier,
+      ...(a.siteId === undefined ? {} : { siteId: a.siteId }),
+    });
   }
 
   // 2. §6.4's seven-day window — the free path's, per `servesStoredReport`.
@@ -360,9 +436,14 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
   //    after it has closed.
   const sections = freshSections(startedAt);
   const spend: { cents: number; degraded: boolean } = { cents: 0, degraded: false };
+  // The pass's own context, held past the block that opened it so
+  // `afterReport` can spend inside the same cap. See `RunScanArgs.afterReport`
+  // for why the work it does cannot run before the row is stored.
+  let passCost: CostContext | null = null;
   const { ending } = await withScanBounds(
     { scanId, startedAt, cap: parameters.cap, deadlineApplies: parameters.deadlineApplies },
     async (bounds, cost) => {
+      passCost = cost;
       try {
         await runStages({ scanId, bounds, cost, domain, tier: a.tier, parameters, correction: a.correctionOf !== undefined, sections, onStage: a.onStage });
       } finally {
@@ -400,6 +481,24 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
   //    current, so that row's own state has to move with it.
   if (a.correctionOf !== undefined && correctionBefore !== null && correctionState !== correctionBefore) {
     await advanceCorrectionState({ scanId: a.correctionOf, from: correctionBefore, to: correctionState });
+  }
+
+  // 7. What the pass measured, turned into supply — the deep and weekly
+  //    passes' own step, supplied by their callers rather than decided
+  //    here (this file branches on no tier). A hook that throws does not
+  //    take the report down with it.
+  if (a.afterReport !== undefined && passCost !== null) {
+    try {
+      await a.afterReport({ report: composed.report, cost: passCost });
+    } catch (error) {
+      console.log(
+        JSON.stringify({
+          event: "after_report_failed",
+          scanId,
+          because: error instanceof Error ? error.message : String(error),
+        })
+      );
+    }
   }
 
   logPass({ scanId, tier: a.tier, stoppedReason, status: stored.status, because: "pass_ended" });
@@ -695,6 +794,7 @@ function composeReport(a: {
     questions: s.questions,
     serps: s.serps,
     rivals: s.rivals,
+    rivalSizes: s.rivalSizes,
     sources: s.sources,
     onPage,
     robots,
