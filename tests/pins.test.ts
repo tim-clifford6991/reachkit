@@ -1054,6 +1054,43 @@ describe("DECISIONS 2026-08-31 (ADR-001) — the six band words are disjoint", (
   });
 });
 
+// ─────────────────────────────────────────────── §13 payments — the three price
+// pins and the two backstop clocks (issues #33, #91)
+
+describe("§13 Payments — the price the Stripe Price object is built from and checked against", () => {
+  it(`§13, quoted: "${B.priceFlat}" — PRICE_EUR_CENTS is that amount in minor units, so no caller multiplies by a hundred`, () => {
+    expect(pins.PRICE_EUR_CENTS).toBe(4900);
+    expect(pins.PRICE_EUR_CENTS).toBe(49 * 100);
+    expect(Number.isInteger(pins.PRICE_EUR_CENTS)).toBe(true);
+  });
+
+  it(`${D.adr052} — PRICE_CURRENCY is the currency the amount above is denominated in, lowercased as the vendor's own Price object carries it; REQ-024's archived criterion 4 (frozen corpus) reads "it is €49 in euro — the same amount and the same currency wherever they are, never converted to a local one"`, () => {
+    expect(pins.PRICE_CURRENCY).toBe("eur");
+    expect(pins.PRICE_CURRENCY).toBe(pins.PRICE_CURRENCY.toLowerCase());
+  });
+
+  it(`§13, quoted: "${B.priceFlat}" — the "/mo" half. PRICE_INTERVAL is the recurring interval, singular, as the vendor's Price object names it`, () => {
+    expect(pins.PRICE_INTERVAL).toBe("month");
+  });
+
+  it(`${D.tax} — no tax rate, tax behaviour or registration threshold is pinned here: the ruling is that none is charged separately, and the one literal this repository states about the Price object ("inclusive") lives beside the object's own spec, not in the price book`, () => {
+    const names = Object.keys(pins);
+    expect(names.filter((n) => /VAT|TAX/i.test(n))).toEqual([]);
+  });
+});
+
+describe("§13 Payments — the two clocks that make sure no charge leaves a founder with nothing", () => {
+  it('REQ-024 c5 (archived corpus, frozen), quoted: "when 15 minutes have passed since the charge and no one has signed in at the address that paid, then that address is written to again with an `account` mail" — PAYMENT_CHASE_MINUTES is that 15, and it is not MAINTENANCE_TICK_MINUTES, which bounds how often the tick that notices runs', () => {
+    expect(pins.PAYMENT_CHASE_MINUTES).toBe(15);
+    expect(Number.isInteger(pins.PAYMENT_CHASE_MINUTES)).toBe(true);
+  });
+
+  it('REQ-024 c6 (archived corpus, frozen), quoted: "when 24 hours have passed since the charge, then an account is open against that payment and a sign-in link to it has been sent to the address that paid, with no second charge" — PAYMENT_BACKSTOP_H is that 24, and the backstop is later than the chase, never the same instant', () => {
+    expect(pins.PAYMENT_BACKSTOP_H).toBe(24);
+    expect(pins.PAYMENT_BACKSTOP_H * 60).toBeGreaterThan(pins.PAYMENT_CHASE_MINUTES);
+  });
+});
+
 // ────────────────────────────────────────────────────── the file's own contract
 
 // ────────────────────────────────────────────────────────── §4.6 the draft editor's two intervals
