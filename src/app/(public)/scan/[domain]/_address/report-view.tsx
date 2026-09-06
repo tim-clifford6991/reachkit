@@ -40,7 +40,8 @@ import { MethodSections } from "../_problems/method";
 import { cardsOf, PROBLEM_ORDER } from "../_problems/model";
 import { unblockLines } from "../_problems/unblock";
 import { RemovalAddressLine } from "./removal";
-import type { AddressControl, AddressNotice, AddressRefusal } from "./state";
+import type { AddressControl, AddressNotice } from "./state";
+import { refusalLine } from "./refusal";
 import { VerdictStrip } from "./verdict";
 
 /** BUILD §6.3a / DECISIONS 2026-08-28: MVP is US-English only, one
@@ -58,28 +59,11 @@ const FACTOR_NAME_KEY: Readonly<Record<ScoreFactorName, CopyKey>> =
     presence: "verdict.factor.presence",
   });
 
-const REFUSAL_KEY: Readonly<Record<AddressRefusal["reason"], CopyKey>> =
-  Object.freeze({
-    "network-limit": "notice.refused.network-limit",
-    "scan-running": "notice.refused.scan-running",
-  });
-
-const SECONDS_PER_MINUTE = 60;
-
 function formatMeasuredOn(at: Date): string {
   return at.toLocaleDateString(REPORT_LOCALE, {
     year: "numeric",
     month: "short",
     day: "numeric",
-  });
-}
-
-/** The refusal lines carry a `{wait}` slot. The figure is the refusal's
- *  own `retryAfterSeconds`, rounded up to whole minutes; the unit around
- *  it is the owner's word, never composed here. */
-function formatWait(retryAfterSeconds: number): string {
-  return copy("report.wait.minutes", {
-    minutes: String(Math.ceil(retryAfterSeconds / SECONDS_PER_MINUTE)),
   });
 }
 
@@ -107,14 +91,7 @@ function NoticeLine(p: {
     case "correction_failed":
       return <Alert tone="warn" message={copy("notice.correction-failed")} />;
     case "refused":
-      return (
-        <Alert
-          tone="neutral"
-          message={copy(REFUSAL_KEY[notice.refusal.reason], {
-            wait: formatWait(notice.refusal.retryAfterSeconds),
-          })}
-        />
-      );
+      return <Alert tone="neutral" message={refusalLine(notice.refusal)} />;
     default: {
       const exhaustive: never = notice;
       return exhaustive;

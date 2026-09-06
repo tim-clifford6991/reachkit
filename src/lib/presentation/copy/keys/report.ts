@@ -87,6 +87,11 @@ export const REPORT_COPY = Object.freeze({
   "notice.correction-failed": ["The correction didn’t finish — this is the report from before it.", { slots: {}, fixedBy: "REQ-094 c7" }],
   "notice.refused.network-limit": ["That’s five scans from your network in the last hour — you can scan again in {wait}.", { slots: { wait: "text" }, fixedBy: "REQ-003 c6" }],
   "notice.refused.scan-running": ["A scan is already running from your network. It finishes in about {wait}, then this one can start.", { slots: { wait: "text" }, fixedBy: "REQ-003 c7" }],
+  // Owner-owed (#104). ReachKit's own stop, in writing — the one refusal
+  // the visitor did not cause and the only one that names no wait, because
+  // nobody can say when we start again (ADR-011). Ships as `TODO(copy)`,
+  // which renders as itself on the screen rather than as a blank.
+  "notice.refused.stopped": ["TODO(copy)", { slots: {}, fixedBy: "REQ-003 c12" }],
   "control.rescan-age": ["Measure again", { slots: {}, fixedBy: "REQ-001 c15" }],
   "control.rescan-incomplete": ["Measure what’s missing", { slots: {}, fixedBy: "REQ-001 c14" }],
   "control.retry": ["Try again", { slots: {}, fixedBy: "REQ-001 c16" }],
