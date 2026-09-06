@@ -78,6 +78,17 @@ const USERS_IDENTITY_LINKS_MIGRATION = path.join(
   REPO_ROOT,
   "supabase/migrations/20260906100100_users_identity_links.sql"
 );
+// BUILD §13 (issue #34) — the two subscription and hosting migrations, on
+// the same footing and for the same reason: `LIVE_SCHEMA_TESTS` is the
+// owner's list and already names this path.
+const USERS_SUBSCRIPTION_MIGRATION = path.join(
+  REPO_ROOT,
+  "supabase/migrations/20260906120000_users_subscription_columns.sql"
+);
+const SITES_HOSTING_MIGRATION = path.join(
+  REPO_ROOT,
+  "supabase/migrations/20260906120100_sites_hosting_columns.sql"
+);
 
 function psql(args: string[]): string {
   return execFileSync("psql", ["-h", DB_HOST, "-p", DB_PORT, "-U", DB_USER, "-d", DB_NAME, "-q", ...args], {
@@ -122,6 +133,8 @@ beforeAll(() => {
   psql(["-v", "ON_ERROR_STOP=1", "-f", RLS_MIGRATION]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", USERS_IDENTITY_COLUMNS_MIGRATION]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", USERS_IDENTITY_LINKS_MIGRATION]);
+  psql(["-v", "ON_ERROR_STOP=1", "-f", USERS_SUBSCRIPTION_MIGRATION]);
+  psql(["-v", "ON_ERROR_STOP=1", "-f", SITES_HOSTING_MIGRATION]);
 });
 
 afterAll(() => {
@@ -653,3 +666,121 @@ describe(
     });
   }
 );
+// ── BUILD §13, issue #34 — the subscription gate and the hosting clock
+
+describe("ADR-050 — users.paid_through is the gate, and plan_status carries the landmine", () => {
+  it("paid_through is timestamptz, NOT NULL, and defaults to now()", () => {
+    // Not null because the gate has no third answer: a null would have to
+    // mean either "no access" or "access we have not heard about yet", and
+    // every caller would pick for itself. The default is what keeps
+    // provisioning's own insert legal in the seconds before the first
+    // subscription event lands.
+    const rows = psqlRows(
+      `select data_type, is_nullable, column_default from information_schema.columns where table_schema = 'public' and table_name = 'users' and column_name = 'paid_through';`
+    );
+    expect(rows).toEqual([["timestamp with time zone", "NO", "now()"]]);
+  });
+
+  it("an insert naming neither paid_through nor a subscription still opens an account", () => {
+    // `src/lib/account/store.ts`'s `insertAccount` names neither column.
+    // Dropping the default would turn a paid customer's provisioning into a
+    // constraint violation.
+    const userId = freshUserId();
+    const rows = psqlRows(`select paid_through is not null from users where id = '${userId}';`);
+    expect(rows).toEqual([["t"]]);
+  });
+
+  it("cancelled_at exists, is nullable, and is a different column from paid_through", () => {
+    // REQ-076 c3: the cancellation stamp and the date access ends are two
+    // facts. A cancelled account keeps access until the date passes.
+    const rows = psqlRows(
+      `select column_name, data_type, is_nullable from information_schema.columns where table_schema = 'public' and table_name = 'users' and column_name in ('cancelled_at', 'stripe_subscription_id', 'last_subscription_event_id') order by column_name;`
+    );
+    expect(rows).toEqual([
+      ["cancelled_at", "timestamp with time zone", "YES"],
+      ["last_subscription_event_id", "text", "YES"],
+      ["stripe_subscription_id", "text", "YES"],
+    ]);
+  });
+
+  it("paid_through is indexed — the gate is read three times per unit of scheduled work", () => {
+    const rows = psqlRows(
+      `select indexname from pg_indexes where schemaname = 'public' and tablename = 'users' and indexdef like '%paid_through%';`
+    );
+    expect(rows).toEqual([["users_paid_through_idx"]]);
+  });
+
+  it("plan_status carries the comment recording that no gate reads it", () => {
+    // The one place the schema itself carries ADR-050's warning, so a
+    // reader meets the landmine where they meet the column.
+    const rows = psqlRows(
+      `select col_description('public.users'::regclass, (select ordinal_position from information_schema.columns where table_schema = 'public' and table_name = 'users' and column_name = 'plan_status')::int);`
+    );
+    const [[comment]] = rows as [[string]];
+    expect(comment).toContain("read by no gate");
+    expect(comment).toContain("ADR-050");
+    expect(comment).toContain("paid_through");
+  });
+});
+
+describe("REQ-076 c10, c11 — the hosted-retention clock and the two notice stamps", () => {
+  it("the three sites columns exist, are timestamptz and are nullable", () => {
+    const rows = psqlRows(
+      `select column_name, data_type, is_nullable from information_schema.columns where table_schema = 'public' and table_name = 'sites' and column_name in ('hosted_serving_ends_at', 'hosting_end_notice_at', 'hosting_end_reminder_at') order by column_name;`
+    );
+    expect(rows).toEqual([
+      ["hosted_serving_ends_at", "timestamp with time zone", "YES"],
+      ["hosting_end_notice_at", "timestamp with time zone", "YES"],
+      ["hosting_end_reminder_at", "timestamp with time zone", "YES"],
+    ]);
+  });
+
+  it("the two notices are two columns, so which one is missing is visible", () => {
+    // BP-060 decision 3: `sitesDueHostingStop` refuses a site missing
+    // either, and an operator needs to know which. A count could not say.
+    const userId = freshUserId();
+    const siteId = freshSiteId(userId);
+    psql([
+      "-v",
+      "ON_ERROR_STOP=1",
+      "-c",
+      `update sites set hosting_end_notice_at = now() where id = '${siteId}';`,
+    ]);
+    const rows = psqlRows(
+      `select hosting_end_notice_at is not null, hosting_end_reminder_at is null from sites where id = '${siteId}';`
+    );
+    expect(rows).toEqual([["t", "t"]]);
+  });
+
+  it("hosted_serving_ends_at is indexed — the due-work queries read it every tick", () => {
+    const rows = psqlRows(
+      `select indexname from pg_indexes where schemaname = 'public' and tablename = 'sites' and indexdef like '%hosted_serving_ends_at%';`
+    );
+    expect(rows).toEqual([["sites_hosted_serving_ends_at_idx"]]);
+  });
+
+  it("ADR-051 point 2 — nothing added by these two migrations cascades", () => {
+    const rows = psqlRows(
+      `select conname from pg_constraint where contype = 'f' and confdeltype <> 'a' and conrelid in ('public.users'::regclass, 'public.sites'::regclass);`
+    );
+    expect(rows).toEqual([]);
+  });
+});
+
+describe("structure.md rule 3a — the two sub-tokens", () => {
+  it("each migration file carries its own sub-token and no other", () => {
+    const subscription = readFileSync(USERS_SUBSCRIPTION_MIGRATION, "utf8");
+    const hosting = readFileSync(SITES_HOSTING_MIGRATION, "utf8");
+    expect(subscription).toContain("users_subscription");
+    expect(hosting).toContain("sites_hosting");
+    // The subscription file touches `users` alone; the hosting file `sites`
+    // alone. A file that altered both would own two topics.
+    expect(subscription).not.toMatch(/alter table sites/);
+    expect(hosting).not.toMatch(/alter table users/);
+  });
+
+  it("both topics resolve through the one topic map", () => {
+    expect(topicOf(path.basename(USERS_SUBSCRIPTION_MIGRATION))).toBeTruthy();
+    expect(topicOf(path.basename(SITES_HOSTING_MIGRATION))).toBeTruthy();
+  });
+});
