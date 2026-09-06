@@ -403,3 +403,18 @@ export const OVERVIEW_ALERT_CAP = 2 as const;                 // BUILD §4.5
  *  record points at is `HOSTED_EDGE_CNAME_TARGET`, an env binding, because
  *  it differs per deployment; this label does not. */
 export const HOSTED_SUBDOMAIN_LABEL = "content" as const;     // BUILD §4.3
+
+// ── The draft editor's two intervals (issue #17) — BUILD §4.6
+/** BUILD §4.6's autosave, in milliseconds. The archived BP-044 `## NFR
+ *  budget` derives it: "criterion 6 triggers on 'pauses or leaves the
+ *  view'; 1200 ms is above ordinary inter-keystroke pauses and below the
+ *  interval at which a customer starts to feel their work is at risk."
+ *  A pause of this length issues one save; blur and leaving the view flush
+ *  immediately, so the number bounds the pause and never the departure. */
+export const AUTOSAVE_DEBOUNCE_MS = 1200 as const;             // BP-044 · BUILD §4.6
+
+/** BUILD §4.6's live preview pane, in milliseconds. Same source: "preview
+ *  re-renders at most every 100 ms and runs entirely client-side, so 'as
+ *  they type' costs no round trip." It is a ceiling on re-render, never on
+ *  the edit itself — the textarea is never debounced. */
+export const PREVIEW_DEBOUNCE_MS = 100 as const;               // BP-044 · BUILD §4.6

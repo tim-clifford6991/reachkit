@@ -20,6 +20,11 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import ts from "typescript";
+import {
+  AWAITING_COPY,
+  COPY,
+  TODO_COPY_MARKER,
+} from "../../../src/lib/presentation/copy/registry.ts";
 
 const COPY_INDEX_PATH = "../../../src/lib/presentation/copy/index.ts";
 const TEXT_TS_PATH = path.resolve(__dirname, "../../../src/lib/presentation/generated/text.ts");
@@ -278,7 +283,7 @@ describe("REQ-093 c2 — model text cannot be rendered without its page", () => 
 });
 
 describe("REQ-093 c2 / c5 — against the real, unmocked copy() registry", () => {
-  it("renderGenerated on the real registry throws naming the owner-owed key, not a fabricated string", async () => {
+  it("renderGenerated on the real registry returns the key's registry value and fabricates no string", async () => {
     vi.resetModules();
     const { fromStored, renderGenerated } = await import(
       "../../../src/lib/presentation/generated/text.ts"
@@ -291,10 +296,21 @@ describe("REQ-093 c2 / c5 — against the real, unmocked copy() registry", () =>
       body: fromStored("drafts.body", "b"),
     };
     const field = fromStored("drafts.body", "b");
-    // The real generated.page.written key is owner-owed (WO-041
-    // keys/laws.ts): copy() throws naming it. renderGenerated must not
-    // swallow or paper over that throw.
-    expect(() => renderGenerated(field, identity)).toThrow("generated.page.written");
+    // 2026-09-06, issue #17: `generated.page.written` moved from the
+    // owner-owed empty value to `TODO(copy)` (keys/laws.ts records why —
+    // §4.6's draft view is the first surface to render a *written* page's
+    // body, and an owner-owed throw would take that screen down instead of
+    // showing the owner a label to write). So the assertion is no longer
+    // that it throws; it is the thing the throw was there to guarantee, and
+    // it is the stronger of the two: whatever comes back is the registry's
+    // own value for that key, never a sentence this module composed.
+    const result = renderGenerated(field, identity);
+    expect(result.label).toBe(COPY["generated.page.written"]);
+    expect(result.label).toBe(TODO_COPY_MARKER);
+    expect(AWAITING_COPY).toContain("generated.page.written");
+    // The text is still returned untouched beside it, so a caller cannot
+    // render one without the other.
+    expect(result.text).toBe("b");
   });
 });
 

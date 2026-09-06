@@ -85,6 +85,15 @@ export const ROUTE_HARNESS: Readonly<Record<string, HarnessRow>> = Object.freeze
     async: true,
   },
   "(account)/app/settings/page.tsx": { props: () => ({}), shell: true, async: true },
+  // The draft view (issue #17, BUILD §4.6). The id is the one the fixture
+  // holds in `in_review` — the same value `tests/ui/layout/routes.ts` fills
+  // `[draftId]` with, and the arm that renders every part of the screen.
+  // The page awaits its own `params`, so a plain object is enough.
+  "(account)/app/draft/[draftId]/page.tsx": {
+    props: () => ({ params: { draftId: "draft-2026-09-15" } }),
+    shell: true,
+    async: true,
+  },
 });
 
 export class MissingHarnessRowError extends Error {

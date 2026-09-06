@@ -23,7 +23,15 @@ import type { DayKey } from "./dates";
  *  does, not for the transition underneath — `veto` is REQ-046's veto and
  *  `skip` is BUILD §9's `skipped`, and they reach the same state by two
  *  different promises. */
-export type PublishingCommand = "move" | "skip" | "veto";
+export type StopCommand = "move" | "skip" | "veto";
+
+/** 2026-09-06, issue #17: §4.6's *draft view* offers a fourth — "Approve /
+ *  Edit / Veto". `edit` is not here and never will be: editing is a text
+ *  write against the draft's own store (`draft/[draftId]/save.ts`), not a
+ *  transition of §9's state machine, and putting it in this union would
+ *  make one seam answer for two different promises. Approve is the
+ *  `in_review → approved` edge and belongs here beside its own opposite. */
+export type PublishingCommand = StopCommand | "approve";
 
 export interface PublishingMachine {
   /** Move a planned or in-review page to another site-local date. */
@@ -32,6 +40,9 @@ export interface PublishingMachine {
   skip(a: { draftId: string }): Promise<void>;
   /** Stop a page in review before its veto window closes (BUILD §9). */
   veto(a: { draftId: string }): Promise<void>;
+  /** Approve a page in review, ahead of the veto window (§9: "Copilot =
+   *  explicit approve only"). */
+  approve(a: { draftId: string }): Promise<void>;
 }
 
 /** Thrown by every method of the stub. It names what was asked and which
@@ -60,5 +71,8 @@ export const publishing: PublishingMachine = Object.freeze({
   },
   veto(): Promise<void> {
     return Promise.reject(new PublishingNotBuiltError("veto"));
+  },
+  approve(): Promise<void> {
+    return Promise.reject(new PublishingNotBuiltError("approve"));
   },
 });

@@ -122,6 +122,8 @@ const B = {
   absentFrom: "\"5 biggest searches you're absent from\" table (search · /mo · holds #1)",
   hostedCname:
     "**Hosted CMS:** `content.{customer-domain}` by CNAME → our edge route serves static-rendered pages by Host header.",
+  draftEditor:
+    "**Edit = Markdown textarea with a live preview pane** (owner ruling, 28 Aug) — two columns on desktop, tabbed on mobile, autosaved, no rich-text editor.",
 } as const;
 
 const D = {
@@ -138,6 +140,8 @@ const D = {
   freeCap: 'Free-scan cap stays 12¢ ("a lead magnet … wasting money on it is a crime").',
   aiOneReading:
     "Overview's AI-answers tile shows one reading only: weeks present in the trailing window. The composite score has no tile on Overview.",
+  markdownEditor:
+    "Draft editing is a Markdown textarea with a live preview pane; no rich-text editor.",
 } as const;
 
 const C = {
@@ -1051,6 +1055,30 @@ describe("DECISIONS 2026-08-31 (ADR-001) — the six band words are disjoint", (
 });
 
 // ────────────────────────────────────────────────────── the file's own contract
+
+// ────────────────────────────────────────────────────────── §4.6 the draft editor's two intervals
+
+describe("§4.6 the draft view — the two intervals the editor is built on (#17)", () => {
+  it(`§4.6, quoted: "${B.draftEditor}" · DECISIONS 2026-08-28, quoted: "${D.markdownEditor}" — AUTOSAVE_DEBOUNCE_MS is the pause "autosaved" names, and the archived BP-044 \`## NFR budget\` derives it: "1200 ms is above ordinary inter-keystroke pauses and below the interval at which a customer starts to feel their work is at risk"`, () => {
+    expect(pins.AUTOSAVE_DEBOUNCE_MS).toBe(1200);
+    expect(B.draftEditor).toContain("autosaved");
+    // The two properties that make 1200 the right number rather than any
+    // number: it is longer than a keystroke gap (so a burst of typing is one
+    // save, not one per character) and short enough that a pause is a save
+    // rather than a risk the customer has to think about.
+    expect(pins.AUTOSAVE_DEBOUNCE_MS).toBeGreaterThan(500);
+    expect(pins.AUTOSAVE_DEBOUNCE_MS).toBeLessThan(5000);
+  });
+
+  it(`§4.6, quoted: "${B.draftEditor}" — PREVIEW_DEBOUNCE_MS is the ceiling on the "live preview pane"'s re-render; the archived BP-044 \`## NFR budget\`: "preview re-renders at most every 100 ms and runs entirely client-side, so 'as they type' costs no round trip"`, () => {
+    expect(pins.PREVIEW_DEBOUNCE_MS).toBe(100);
+    expect(B.draftEditor).toContain("live preview pane");
+    // The preview must feel like typing and the save must not: a preview
+    // interval at or above the autosave's would make the pane lag the
+    // keystroke, which is the one thing "as they type" forbids.
+    expect(pins.PREVIEW_DEBOUNCE_MS).toBeLessThan(pins.AUTOSAVE_DEBOUNCE_MS);
+  });
+});
 
 describe("BP-005 error behaviour — every pin is asserted, by quotation and never by line number", () => {
   /**

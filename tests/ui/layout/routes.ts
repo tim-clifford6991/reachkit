@@ -50,6 +50,16 @@ const SEGMENT_FIXTURES: Readonly<Record<string, string>> = {
    * strictly less content in the same boxes.
    */
   "[domain]": "example.com",
+  /**
+   * The draft view's address (issue #17, `BUILD.md` §4.6). The value is the
+   * one draft the fixture holds in `in_review` — the stage §4.6 gives this
+   * view a way in from, and the densest arm it can render: the whole body,
+   * the grounded block with its source line, the claim badge, all three
+   * controls and the do-nothing box. The other arms (an edited draft, a
+   * dropped highlight, a not-found id) are strictly less content in the
+   * same boxes.
+   */
+  "[draftId]": "draft-2026-09-15",
 };
 
 /**

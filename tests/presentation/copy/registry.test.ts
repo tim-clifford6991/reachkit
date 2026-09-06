@@ -209,7 +209,10 @@ describe("REQ-093 c5 — the registry renders with every model unavailable", () 
     // one a transcription of a word §4.3 itself prints — "**Your market**",
     // "Change", "**Competitors**", "*Hosted blog*", "*WordPress*", and the
     // footer's own verb. 154 + 6 = 160 ruled.
-    expect(ruled.length).toBe(160);
+    //
+    // 2026-09-06, separately: issue #17 (the draft view, BUILD §4.6) adds
+    // eight §4.6/§9 transcriptions. 160 + 8 = 168 ruled.
+    expect(ruled.length).toBe(168);
 
     // Only the ruled sentences carry their slots' `{name}` placeholders —
     // a `TODO(copy)` marker is one literal with no placeholder in it, so
@@ -499,10 +502,43 @@ describe("owner-owed and empty agree both ways", () => {
     // neither line already there. It carries the marker, on Setup's rule
     // above: a refusal screen must render something. 64 owner-owed and 160
     // ruled unchanged, 123 + 1 = 124 awaiting copy, 347 + 1 = 348 total.
-    expect(OWNER_OWED.length).toBe(64);
-    expect(AWAITING_COPY.length).toBe(124);
-    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(160);
-    expect(Object.keys(COPY).length).toBe(348);
+    //
+    // 2026-09-06, separately again: issue #17 (the draft view, BUILD §4.6)
+    // adds twenty keys in `draft.ts` and moves one, and it is the first
+    // screen to use all three standings — which is what makes the rule the
+    // two paragraphs above arrived at a rule rather than a screen's taste:
+    //
+    //   **Eight ruled.** Each is a transcription of a word or a phrase §4.6
+    //   or §9 itself prints — the three controls ("Approve/Edit/Veto"), the
+    //   two copy-out controls ("copy as Markdown/HTML"), the info box's own
+    //   quoted phrase ("what happens if you do nothing"), and the two panes
+    //   §4.6 names ("Markdown textarea with a live preview pane"). Same
+    //   footing as `calendar.*`'s twenty and `shell.*`'s five.
+    //
+    //   **Eight awaiting copy.** Every key this screen must render
+    //   *something* for: the four claim-check words (a badge with no word
+    //   is a colour, which is the one thing §2.5 forbids), the grounded
+    //   block's heading, the back link, the unsaved indicator and the
+    //   not-found line.
+    //
+    //   **Four owner-owed and empty.** Every *composed sentence*: the two
+    //   "if you do nothing" outcomes, the edited-since note and the line
+    //   naming the do-not-claim entry that held the draft. Each is read
+    //   through `writtenLine`, which renders an owner-owed key as nothing.
+    //
+    // The moved key is `generated.page.written`: `renderGenerated` resolves
+    // it for the label that must ride with a written page's body (REQ-093
+    // c2), and §4.6's draft view is the first surface to render one. Left
+    // empty, `copy()` throws and the screen goes down; it takes the marker
+    // its sibling `generated.page.proposed` took on 2026-09-05 for the same
+    // reason. So: one key leaves OWNER_OWED and joins AWAITING_COPY.
+    //
+    // 64 + 4 - 1 = 67 owner-owed and empty, 124 + 8 + 1 = 133 awaiting
+    // copy, 160 + 8 = 168 ruled, 348 + 20 = 368 total.
+    expect(OWNER_OWED.length).toBe(67);
+    expect(AWAITING_COPY.length).toBe(133);
+    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(168);
+    expect(Object.keys(COPY).length).toBe(368);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.
