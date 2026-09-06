@@ -20,7 +20,7 @@
 // so the whole run fails before any test file runs when Chromium is
 // missing, rather than at the first test's own attempt.
 import { spawn, type ChildProcess } from "node:child_process";
-import { readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
@@ -28,7 +28,22 @@ import { chromium, type Page } from "playwright";
 import { enumerateRoutes } from "./routes";
 
 const ROOT = path.resolve(__dirname, "../../..");
-const STATE_FILE = path.join(os.tmpdir(), "wo-269-layout-browser-state.json");
+
+/** The env var that carries this run's state-file path from `globalSetup`
+ *  (the vitest main process) to the worker processes the test files run in.
+ *  `globalSetup` runs to completion before any worker is forked, so every
+ *  worker inherits it; nothing else ever writes it. */
+export const STATE_FILE_ENV = "REACHKIT_LAYOUT_STATE_FILE";
+
+/** #105: this state used to live at one fixed machine-global path, so two
+ *  worktrees running `npm run test:layout` at once clobbered each other —
+ *  the second run overwrote the first's `baseURL` (whose tests then probed
+ *  the *other* branch's app and reported innocent routes as broken), and
+ *  whichever run finished first deleted the file out from under the other.
+ *  One `mkdtemp` directory per run makes both impossible: no two runs can
+ *  name the same file, and a teardown only ever removes the directory its
+ *  own setup created. */
+const STATE_DIR_PREFIX = "reachkit-layout-";
 
 interface BrowserState {
   baseURL: string | null;
@@ -130,16 +145,38 @@ export default async function setup(): Promise<() => Promise<void>> {
   }
 
   const state: BrowserState = { baseURL };
-  writeFileSync(STATE_FILE, JSON.stringify(state), "utf8");
+  const stateDir = mkdtempSync(path.join(os.tmpdir(), STATE_DIR_PREFIX));
+  const stateFile = path.join(stateDir, "browser-state.json");
+  writeFileSync(stateFile, JSON.stringify(state), "utf8");
+  process.env[STATE_FILE_ENV] = stateFile;
 
   return async function teardown(): Promise<void> {
     if (appProcess) appProcess.kill();
-    rmSync(STATE_FILE, { force: true });
+    delete process.env[STATE_FILE_ENV];
+    rmSync(stateDir, { recursive: true, force: true });
   };
 }
 
 function readState(): BrowserState {
-  const raw = readFileSync(STATE_FILE, "utf8");
+  const stateFile = process.env[STATE_FILE_ENV];
+  if (!stateFile) {
+    throw new Error(
+      `tests/ui/layout/browser.ts: ${STATE_FILE_ENV} is not set, so this process never learned ` +
+        "where the layout run wrote its state. That variable is set by this file's `globalSetup`, " +
+        "which only the `layout` vitest project registers — run the suite with `npm run test:layout`."
+    );
+  }
+  let raw: string;
+  try {
+    raw = readFileSync(stateFile, "utf8");
+  } catch (err) {
+    throw new Error(
+      `tests/ui/layout/browser.ts: this run's state file ${stateFile} could not be read, so the ` +
+        "built app's base URL is unknown. `globalSetup` writes it and its teardown removes it, so " +
+        "this means the run was torn down while a test was still going.\n\n" +
+        String(err)
+    );
+  }
   return JSON.parse(raw) as BrowserState;
 }
 
