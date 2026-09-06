@@ -71,36 +71,36 @@ export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Eleme
 
   return (
     <Card state="default" title={<h2>{copy("settings.publishing.title")}</h2>}>
-      <div className="rk-settings-fields">
+      <div className="flex min-w-0 flex-col gap-3">
         <div data-testid="setting-mode">
           <Toggle label={modeWord} checked={publishing.mode === "autopilot"} />
         </div>
 
-        <div className="rk-settings-field" data-testid="setting-veto_hours">
-          <span className="rk-settings-label">{copy("settings.publishing.veto")}</span>
+        <div className="flex min-w-0 flex-col gap-1" data-testid="setting-veto_hours">
+          <span className="eyebrow opacity-60">{copy("settings.publishing.veto")}</span>
           {/* The stepper's two ends. §4.7's range (0–7d) is `VETO.minDays` and
               `VETO.maxDays`, enforced by the writer (issue #46) and never
               restated here — WO-178 step 4 puts that rule in one module and
               forbids a second copy, and a renderer that clamped would be one. */}
-          <div className="rk-settings-row">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
             <Btn label={copy("settings.publishing.veto.less")} size="sm" variant="ghost" />
-            <span className="rk-settings-value num">{formatVetoWindow(publishing.vetoHours)}</span>
+            <span className="num min-w-0 wrap-anywhere">{formatVetoWindow(publishing.vetoHours)}</span>
             <Btn label={copy("settings.publishing.veto.more")} size="sm" variant="ghost" />
           </div>
         </div>
 
-        <div className="rk-settings-field" data-testid="setting-publish_time">
-          <span className="rk-settings-label">{copy("settings.publishing.publish-time")}</span>
-          <div className="rk-settings-row">
-            <span className="rk-settings-value num">{publishing.publishTime}</span>
+        <div className="flex min-w-0 flex-col gap-1" data-testid="setting-publish_time">
+          <span className="eyebrow opacity-60">{copy("settings.publishing.publish-time")}</span>
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <span className="num min-w-0 wrap-anywhere">{publishing.publishTime}</span>
             <Btn label={copy("settings.edit")} size="sm" />
           </div>
         </div>
 
-        <div className="rk-settings-field" data-testid="setting-time_zone">
-          <span className="rk-settings-label">{copy("settings.publishing.time-zone")}</span>
-          <div className="rk-settings-row">
-            <span className="rk-settings-value num">{publishing.timeZone}</span>
+        <div className="flex min-w-0 flex-col gap-1" data-testid="setting-time_zone">
+          <span className="eyebrow opacity-60">{copy("settings.publishing.time-zone")}</span>
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <span className="num min-w-0 wrap-anywhere">{publishing.timeZone}</span>
             <Btn label={copy("settings.edit")} size="sm" />
           </div>
         </div>
@@ -109,11 +109,11 @@ export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Eleme
           <Toggle label={copy("settings.publishing.enabled")} checked={publishing.enabled} />
         </div>
 
-        <div className="rk-settings-field" data-testid="setting-destinations">
-          <span className="rk-settings-label">{copy("settings.publishing.destinations")}</span>
+        <div className="flex min-w-0 flex-col gap-1" data-testid="setting-destinations">
+          <span className="eyebrow opacity-60">{copy("settings.publishing.destinations")}</span>
           {destinations.map((destination) => (
-            <div className="rk-settings-row" key={destination.id} data-testid={`destination-${destination.id}`}>
-              <span className="rk-settings-value">{copy(KIND_COPY_KEY[destination.kind])}</span>
+            <div className="flex min-w-0 flex-wrap items-center gap-2" key={destination.id} data-testid={`destination-${destination.id}`}>
+              <span className="min-w-0 wrap-anywhere">{copy(KIND_COPY_KEY[destination.kind])}</span>
               <Badge tone={HEALTH_TONE[destination.health]}>
                 {copy(HEALTH_COPY_KEY[destination.health])}
               </Badge>
@@ -125,7 +125,7 @@ export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Eleme
         </div>
       </div>
 
-      {fixNote === null ? null : <p className="rk-settings-line">{fixNote}</p>}
+      {fixNote === null ? null : <p className="text-xs opacity-60 wrap-anywhere">{fixNote}</p>}
     </Card>
   );
 }

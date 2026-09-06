@@ -36,27 +36,27 @@ export function ContentPanel(p: { settings: SettingsModel }): React.JSX.Element 
 
   return (
     <Card state="default" title={<h2>{copy("settings.content.title")}</h2>}>
-      <div className="rk-settings-fields">
-        <div className="rk-settings-field">
-          <span className="rk-settings-label">{copy("settings.content.pages")}</span>
-          <span className="rk-settings-value num" data-testid="content-pages">
+      <div className="flex min-w-0 flex-col gap-3">
+        <div className="flex min-w-0 flex-col gap-1">
+          <span className="eyebrow opacity-60">{copy("settings.content.pages")}</span>
+          <span className="num min-w-0 wrap-anywhere" data-testid="content-pages">
             {p.settings.content.pages}
           </span>
         </div>
 
-        <div className="rk-settings-field" data-testid="setting-voice_text">
-          <span className="rk-settings-label">{copy("settings.content.voice")}</span>
-          <div className="rk-settings-row">
-            <span className="rk-settings-value">{p.settings.voice.text}</span>
+        <div className="flex min-w-0 flex-col gap-1" data-testid="setting-voice_text">
+          <span className="eyebrow opacity-60">{copy("settings.content.voice")}</span>
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <span className="min-w-0 wrap-anywhere">{p.settings.voice.text}</span>
             <Btn label={copy("settings.edit")} size="sm" />
           </div>
         </div>
 
-        <div className="rk-settings-field" data-testid="setting-do_not_claim">
-          <span className="rk-settings-label">{copy("settings.content.do-not-claim")}</span>
-          <div className="rk-settings-chips">
+        <div className="flex min-w-0 flex-col gap-1" data-testid="setting-do_not_claim">
+          <span className="eyebrow opacity-60">{copy("settings.content.do-not-claim")}</span>
+          <div className="flex min-w-0 flex-wrap gap-2">
             {p.settings.doNotClaim.map((claim) => (
-              <span className="rk-settings-chip" key={claim}>
+              <span className="inline-flex min-w-0 items-center gap-2 wrap-anywhere" key={claim}>
                 {claim}
               </span>
             ))}
@@ -65,7 +65,7 @@ export function ContentPanel(p: { settings: SettingsModel }): React.JSX.Element 
         </div>
       </div>
 
-      <div className="rk-settings-row">
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
         <span data-testid="action-export">
           <Btn
             label={copy("settings.content.export")}
@@ -76,7 +76,7 @@ export function ContentPanel(p: { settings: SettingsModel }): React.JSX.Element 
         </span>
       </div>
 
-      {action.line === null ? null : <p className="rk-settings-line">{action.line}</p>}
+      {action.line === null ? null : <p className="text-xs opacity-60 wrap-anywhere">{action.line}</p>}
     </Card>
   );
 }

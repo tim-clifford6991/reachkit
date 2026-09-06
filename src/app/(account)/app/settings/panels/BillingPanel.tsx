@@ -44,29 +44,29 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
 
   return (
     <Card state="default" title={<h2>{copy("settings.billing.title")}</h2>}>
-      <div className="rk-settings-fields">
-        <div className="rk-settings-field">
-          <span className="rk-settings-label">{copy("settings.billing.plan")}</span>
+      <div className="flex min-w-0 flex-col gap-3">
+        <div className="flex min-w-0 flex-col gap-1">
+          <span className="eyebrow opacity-60">{copy("settings.billing.plan")}</span>
           {/* §2.3: a price, a date and a card number are numerals. */}
-          <span className="rk-settings-value num" data-testid="billing-plan">
+          <span className="num min-w-0 wrap-anywhere" data-testid="billing-plan">
             {billing.plan.text}
           </span>
         </div>
-        <div className="rk-settings-field">
-          <span className="rk-settings-label">{copy("settings.billing.next-invoice")}</span>
-          <span className="rk-settings-value num" data-testid="billing-next-invoice">
+        <div className="flex min-w-0 flex-col gap-1">
+          <span className="eyebrow opacity-60">{copy("settings.billing.next-invoice")}</span>
+          <span className="num min-w-0 wrap-anywhere" data-testid="billing-next-invoice">
             {billing.nextInvoice.text}
           </span>
         </div>
-        <div className="rk-settings-field">
-          <span className="rk-settings-label">{copy("settings.billing.card")}</span>
-          <span className="rk-settings-value num" data-testid="billing-card">
+        <div className="flex min-w-0 flex-col gap-1">
+          <span className="eyebrow opacity-60">{copy("settings.billing.card")}</span>
+          <span className="num min-w-0 wrap-anywhere" data-testid="billing-card">
             {billing.card.text}
           </span>
         </div>
       </div>
 
-      <div className="rk-settings-row">
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
         <span data-testid="action-invoices">
           <Btn
             label={copy("settings.billing.invoices")}
@@ -93,8 +93,8 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
         )}
       </div>
 
-      {cancelling === null ? null : <p className="rk-settings-line">{cancelling}</p>}
-      {action.line === null ? null : <p className="rk-settings-line">{action.line}</p>}
+      {cancelling === null ? null : <p className="text-xs opacity-60 wrap-anywhere">{cancelling}</p>}
+      {action.line === null ? null : <p className="text-xs opacity-60 wrap-anywhere">{action.line}</p>}
     </Card>
   );
 }

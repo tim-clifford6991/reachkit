@@ -10,11 +10,22 @@
 // components are thin adapters over a module's exported interface."
 //
 // The order of the eight cards is §4.7's order, and the two columns are §4.7's
-// two. Which of the three bands actually draws two of them is
-// `settings.css`'s: one column until `--breakpoint-xl`, two above it, because
-// at the medium band the sidebar has already taken 222px and two card columns
-// there would be narrower than the compact band this screen is proven at
-// (ADR-093: content fits its box, or the box changes).
+// two. **This screen ships no stylesheet.** `BUILD.md` §2.2 closes custom CSS
+// at five surfaces — "the calendar grid, the day panel, the AI dot-matrix,
+// chart SVGs, and the sidebar — nothing else" — and Settings is on none of
+// them, so every rule this screen needs is a stock Tailwind utility or one of
+// the two type roles `src/ui/type.css` already registers (`.eyebrow` for §2.3's
+// uppercase 11px section labels, `.num` for its numerals). §2.1 is explicit
+// that this is how it is meant to work: the tokens are mapped onto daisyUI's
+// theme slots in `tailwind.config.ts` "so stock daisyUI classes just work", and
+// `src/ui/tailwind.css` is what makes them emit.
+//
+// The column switch is `xl:`, which Tailwind sets at 80rem = 1280px =
+// `BAND_MIN.wide` = `--breakpoint-xl` (pinned by
+// `tests/ui/settings-columns.test.ts`). Not `lg:`: at 1024 the sidebar has
+// already taken 222px and its padding, so two card columns there would be
+// narrower than the compact band this screen is proven at, and ADR-093's law is
+// that content fits its box or the box changes.
 //
 // **It declares no `Surface`**: the shell's layout owns this route's screen
 // root (`../layout.tsx`), and a second one would be a second `[data-surface]`
@@ -43,26 +54,25 @@ import { BillingPanel } from "./panels/BillingPanel";
 import { AccountPanel } from "./panels/AccountPanel";
 import { ContentPanel } from "./panels/ContentPanel";
 import { DangerZone } from "./panels/DangerZone";
-import "./settings.css";
 
 export default async function SettingsPage(): Promise<React.JSX.Element> {
   const settings = await readSettings();
   const head = writtenLine("settings.head");
 
   return (
-    <div className="rk-settings" data-testid="settings">
+    <div className="flex flex-col gap-4" data-testid="settings">
       <h1>{copy("shell.nav.settings")}</h1>
       {head === null ? null : <p>{head}</p>}
 
-      <div className="rk-settings-cols">
-        <div className="rk-settings-col" data-testid="settings-left">
+      <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-2">
+        <div className="flex min-w-0 flex-col gap-4" data-testid="settings-left">
           <MarketPanel settings={settings} />
           <CompetitorsPanel settings={settings} />
           <PublishingPanel settings={settings} />
           <NotificationsPanel settings={settings} />
         </div>
 
-        <div className="rk-settings-col" data-testid="settings-right">
+        <div className="flex min-w-0 flex-col gap-4" data-testid="settings-right">
           <BillingPanel billing={settings.billing} />
           <AccountPanel account={settings.account} />
           <ContentPanel settings={settings} />

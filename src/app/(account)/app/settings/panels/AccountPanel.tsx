@@ -31,28 +31,28 @@ export function AccountPanel(p: { account: SettingsModel["account"] }): React.JS
 
   return (
     <Card state="default" title={<h2>{copy("settings.account.title")}</h2>}>
-      <div className="rk-settings-fields">
-        <div className="rk-settings-field" data-testid="setting-name">
-          <span className="rk-settings-label">{copy("settings.account.name")}</span>
-          <div className="rk-settings-row">
-            <span className="rk-settings-value">{p.account.name}</span>
+      <div className="flex min-w-0 flex-col gap-3">
+        <div className="flex min-w-0 flex-col gap-1" data-testid="setting-name">
+          <span className="eyebrow opacity-60">{copy("settings.account.name")}</span>
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <span className="min-w-0 wrap-anywhere">{p.account.name}</span>
             <Btn label={copy("settings.edit")} size="sm" />
           </div>
         </div>
 
-        <div className="rk-settings-field" data-testid="setting-email">
-          <span className="rk-settings-label">{copy("settings.account.email")}</span>
-          <div className="rk-settings-row">
+        <div className="flex min-w-0 flex-col gap-1" data-testid="setting-email">
+          <span className="eyebrow opacity-60">{copy("settings.account.email")}</span>
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
             {/* §2.3: an address is a code-like string. */}
-            <span className="rk-settings-value num">{p.account.email}</span>
+            <span className="num min-w-0 wrap-anywhere">{p.account.email}</span>
             <Btn label={copy("settings.account.change-email")} size="sm" />
           </div>
         </div>
       </div>
 
-      {magicLink === null ? null : <p className="rk-settings-line">{magicLink}</p>}
+      {magicLink === null ? null : <p className="text-xs opacity-60 wrap-anywhere">{magicLink}</p>}
 
-      <div className="rk-settings-row">
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
         <span data-testid="action-sign_out">
           <Btn
             label={copy("settings.account.sign-out")}
@@ -63,7 +63,7 @@ export function AccountPanel(p: { account: SettingsModel["account"] }): React.JS
         </span>
       </div>
 
-      {action.line === null ? null : <p className="rk-settings-line">{action.line}</p>}
+      {action.line === null ? null : <p className="text-xs opacity-60 wrap-anywhere">{action.line}</p>}
     </Card>
   );
 }

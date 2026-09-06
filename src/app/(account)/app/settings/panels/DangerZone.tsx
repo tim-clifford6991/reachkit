@@ -60,9 +60,9 @@ export function DangerZone(): React.JSX.Element {
 
   return (
     <Card state="default" title={<h2>{copy("danger.zone.title")}</h2>}>
-      {exportFirst === null ? null : <p className="rk-settings-line">{exportFirst}</p>}
+      {exportFirst === null ? null : <p className="text-xs opacity-60 wrap-anywhere">{exportFirst}</p>}
 
-      <div className="rk-settings-fields">
+      <div className="flex min-w-0 flex-col gap-3">
         {DANGER.map((row) => {
           const isOpen = opened === row.action;
           const consequence = writtenLine(row.consequence);
@@ -71,15 +71,15 @@ export function DangerZone(): React.JSX.Element {
               {/* The offer. It opens the step and runs nothing — which is why
                   it, and not the control inside the step, is what the closed
                   offer of seven actions is counted from. */}
-              <div className="rk-settings-row">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <span data-testid={`action-${row.action}`}>
                   <Btn label={copy(row.label)} size="sm" onClick={() => setOpened(row.action)} />
                 </span>
               </div>
               {isOpen ? (
-                <div className="rk-settings-consequence" data-testid={`consequence-${row.action}`}>
-                  {consequence === null ? null : <p className="rk-settings-line">{consequence}</p>}
-                  <div className="rk-settings-row">
+                <div className="flex min-w-0 flex-col gap-2 pt-2" data-testid={`consequence-${row.action}`}>
+                  {consequence === null ? null : <p className="text-xs opacity-60 wrap-anywhere">{consequence}</p>}
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
                     <span data-testid={`confirm-${row.action}`}>
                       <Btn label={copy(row.label)} size="sm" onClick={() => action.run(row.action)} />
                     </span>
@@ -91,7 +91,7 @@ export function DangerZone(): React.JSX.Element {
         })}
       </div>
 
-      {action.line === null ? null : <p className="rk-settings-line">{action.line}</p>}
+      {action.line === null ? null : <p className="text-xs opacity-60 wrap-anywhere">{action.line}</p>}
     </Card>
   );
 }

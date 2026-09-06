@@ -21,7 +21,7 @@ import type { SettingsModel } from "../model";
 export function NotificationsPanel(p: { settings: SettingsModel }): React.JSX.Element {
   return (
     <Card state="default" title={<h2>{copy("settings.notifications.title")}</h2>}>
-      <div className="rk-settings-fields" data-testid="setting-notifications">
+      <div className="flex min-w-0 flex-col gap-3" data-testid="setting-notifications">
         {p.settings.notifications.map((row) => (
           <div key={row.kind} data-testid={`notification-${row.kind}`}>
             <Toggle label={copy(row.copyKey)} checked={row.on} />

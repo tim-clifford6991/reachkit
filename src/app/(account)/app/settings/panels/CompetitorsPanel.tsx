@@ -29,10 +29,10 @@ export function CompetitorsPanel(p: { settings: SettingsModel }): React.JSX.Elem
 
   return (
     <Card state="default" title={<h2>{copy("settings.competitors.title")}</h2>}>
-      <div className="rk-settings-fields" data-testid="setting-competitors">
-        <div className="rk-settings-chips">
+      <div className="flex min-w-0 flex-col gap-3" data-testid="setting-competitors">
+        <div className="flex min-w-0 flex-wrap gap-2">
           {p.settings.competitors.map((domain) => (
-            <span className="rk-settings-chip" key={domain} data-testid={`competitor-${domain}`}>
+            <span className="inline-flex min-w-0 items-center gap-2 wrap-anywhere" key={domain} data-testid={`competitor-${domain}`}>
               {/* §2.3: a domain is a URL-shaped value. */}
               <span className="num">{domain}</span>
               <Btn label={copy("settings.competitors.remove")} size="sm" variant="ghost" />
@@ -41,7 +41,7 @@ export function CompetitorsPanel(p: { settings: SettingsModel }): React.JSX.Elem
         </div>
 
         {full ? null : (
-          <div className="rk-settings-row">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
             <Input
               label={copy("settings.competitors.title")}
               placeholder={copy("settings.market.domain")}

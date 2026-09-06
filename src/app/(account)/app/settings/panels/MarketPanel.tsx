@@ -29,27 +29,27 @@ export function MarketPanel(p: { settings: SettingsModel }): React.JSX.Element {
 
   return (
     <Card state="default" title={<h2>{copy("settings.market.title")}</h2>}>
-      <div className="rk-settings-fields">
-        <div className="rk-settings-field" data-testid="setting-category">
-          <span className="rk-settings-label">{copy("settings.market.category")}</span>
-          <div className="rk-settings-row">
+      <div className="flex min-w-0 flex-col gap-3">
+        <div className="flex min-w-0 flex-col gap-1" data-testid="setting-category">
+          <span className="eyebrow opacity-60">{copy("settings.market.category")}</span>
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
             {/* §2.3: a search query and the buyer vocabulary it is written in
                 are code-like strings, so the chip is mono. */}
-            <span className="rk-settings-chip num">{p.settings.market.category}</span>
+            <span className="num inline-flex min-w-0 items-center gap-2 wrap-anywhere">{p.settings.market.category}</span>
             <Btn label={copy("settings.edit")} size="sm" />
           </div>
         </div>
 
-        <div className="rk-settings-field" data-testid="setting-domain">
-          <span className="rk-settings-label">{copy("settings.market.domain")}</span>
-          <div className="rk-settings-row">
-            <span className="rk-settings-value num">{p.settings.domain}</span>
+        <div className="flex min-w-0 flex-col gap-1" data-testid="setting-domain">
+          <span className="eyebrow opacity-60">{copy("settings.market.domain")}</span>
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <span className="num min-w-0 wrap-anywhere">{p.settings.domain}</span>
             <Btn label={copy("settings.edit")} size="sm" />
           </div>
         </div>
       </div>
 
-      {effect === null ? null : <p className="rk-settings-line">{effect}</p>}
+      {effect === null ? null : <p className="text-xs opacity-60 wrap-anywhere">{effect}</p>}
     </Card>
   );
 }
