@@ -486,6 +486,14 @@ describe("§11 bounds — the free path's rate limits and the report's clock", (
     expect(pins.DEEP_HEARTBEAT_S).toBe(15);
     expect(pins.DEEP_HEARTBEAT_S * 2).toBe(pins.TIMING.progressHeartbeatS);
   });
+
+  // Quoted from the frozen corpus (`archive/`, frozen 2026-09-04): a
+  // document that cannot drift is quoted by id and text without a drift
+  // check, per this file's header.
+  it('BP-034 `## NFR budget`, quoted: "a rival suggestion call is bounded at 3 s and, on timeout, leaves `SuggestionState` at `none_found` rather than holding the screen — **setup is never held on suggestions**" — TIMING.suggestCeilingS, and it is well inside the free report\'s own ceiling', () => {
+    expect(pins.TIMING.suggestCeilingS).toBe(3);
+    expect(pins.TIMING.suggestCeilingS).toBeLessThan(pins.TIMING.reportCeilingS);
+  });
 });
 
 describe("DECISIONS 2026-08-31 (ADR-060) — the weekly clock is site-local, and no UTC hour is pinned", () => {
