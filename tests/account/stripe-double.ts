@@ -27,6 +27,19 @@ export interface StripeDoubleState {
   chargesCreated: number;
   pricesCreated: Record<string, unknown>[];
   nextSessionId: number;
+  // ── Subscriptions and the billing portal (issue #34)
+  subscriptions: Map<string, Record<string, unknown>>;
+  subscriptionRetrieveError: Error | null;
+  subscriptionUpdateError: Error | null;
+  subscriptionCreateError: Error | null;
+  /** Every `subscriptions.update` this double saw, in order. The
+   *  `cancel_at_period_end` assertions read it. */
+  subscriptionUpdates: { id: string; params: Record<string, unknown> }[];
+  subscriptionsCreated: Record<string, unknown>[];
+  portalConfigurations: Record<string, unknown>[];
+  portalSessions: Record<string, unknown>[];
+  portalError: Error | null;
+  nextSubscriptionId: number;
 }
 
 export function newStripeDouble(): StripeDoubleState {
@@ -45,6 +58,44 @@ export function newStripeDouble(): StripeDoubleState {
     chargesCreated: 0,
     pricesCreated: [],
     nextSessionId: 1,
+    subscriptions: new Map(),
+    subscriptionRetrieveError: null,
+    subscriptionUpdateError: null,
+    subscriptionCreateError: null,
+    subscriptionUpdates: [],
+    subscriptionsCreated: [],
+    portalConfigurations: [],
+    portalSessions: [],
+    portalError: null,
+    nextSubscriptionId: 1,
+  };
+}
+
+/** A period end a month out, in the vendor's own unit (seconds). Used by
+ *  `subscriptions.create`, which is what a resume after the paid-through
+ *  date calls. */
+const MONTH_FROM_NOW = Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60;
+
+/** One subscription, in the shape the SDK returns it — `current_period_end`
+ *  on the **items**, which is where it lives in this API version and the
+ *  thing `paidThroughOf` exists to read in one place.
+ *
+ *  Exported so every billing suite builds the same shape: a double that
+ *  put the period on the subscription itself would pass a test that the
+ *  live API fails. */
+export function subscriptionDouble(a: {
+  id: string;
+  customer: string;
+  periodEnd: Date;
+  status?: string;
+  cancelAtPeriodEnd?: boolean;
+}): Record<string, unknown> {
+  return {
+    id: a.id,
+    customer: a.customer,
+    status: a.status ?? "active",
+    cancel_at_period_end: a.cancelAtPeriodEnd ?? false,
+    items: { data: [{ current_period_end: Math.floor(a.periodEnd.getTime() / 1000) }] },
   };
 }
 
@@ -98,6 +149,57 @@ export function stripeDouble(state: StripeDoubleState): Stripe {
       cancel: async (id: string) => {
         state.cancelled.push(id);
         return { id, status: "canceled" };
+      },
+      retrieve: async (id: string) => {
+        raise(state.subscriptionRetrieveError);
+        const subscription = state.subscriptions.get(id);
+        if (subscription === undefined) throw new Error("no such subscription");
+        return subscription;
+      },
+      update: async (id: string, params: Record<string, unknown>) => {
+        raise(state.subscriptionUpdateError);
+        const subscription = state.subscriptions.get(id);
+        if (subscription === undefined) throw new Error("no such subscription");
+        state.subscriptionUpdates.push({ id, params });
+        const updated = { ...subscription, ...params };
+        state.subscriptions.set(id, updated);
+        return updated;
+      },
+      create: async (params: Record<string, unknown>) => {
+        raise(state.subscriptionCreateError);
+        const id = `sub_created_${state.nextSubscriptionId++}`;
+        state.subscriptionsCreated.push(params);
+        // A created subscription carries a period, as the real one does —
+        // one month, so a resume after the paid-through date has a date to
+        // advance the gate to.
+        const created = {
+          id,
+          status: "active",
+          cancel_at_period_end: false,
+          customer: params.customer,
+          items: { data: [{ current_period_end: MONTH_FROM_NOW }] },
+        };
+        state.subscriptions.set(id, created);
+        return created;
+      },
+    },
+    billingPortal: {
+      configurations: {
+        create: async (params: Record<string, unknown>) => {
+          raise(state.portalError);
+          state.portalConfigurations.push(params);
+          return { id: `bpc_${state.portalConfigurations.length}` };
+        },
+      },
+      sessions: {
+        create: async (params: Record<string, unknown>) => {
+          raise(state.portalError);
+          state.portalSessions.push(params);
+          return {
+            id: `bps_${state.portalSessions.length}`,
+            url: `https://billing.stripe.com/p/session/${state.portalSessions.length}`,
+          };
+        },
       },
     },
     webhooks: {

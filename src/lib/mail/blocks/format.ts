@@ -50,3 +50,27 @@ export function formatStat(value: Measured<number>, format: StatFormat): string 
   }
   return plain(value.value, format);
 }
+
+/** The locale every date in a mail is written in. `DECISIONS.md`
+ *  2026-08-28: "MVP is US-English only: one `SERP_LOCATION` constant, one
+ *  written footer line." `SERP_LOCATION` is the vendor's own vocabulary
+ *  (`{ location: 'United States', language: 'en' }`) and `Intl` needs a
+ *  BCP-47 tag; `en-US` is that pair spelled the way `Intl` spells it.
+ *  `src/app/(account)/app/_shell/format.ts` makes the same derivation for
+ *  the screen and cannot be imported here (`src/lib` never imports
+ *  `src/app`) — one pinned fact, derived at each of the two boundaries that
+ *  needs it, and it moves in one place the day the pin does. */
+const MAIL_LOCALE = "en-US";
+
+/** A calendar day a mail states, in the customer's own stated zone
+ *  (REQ-073 c3). `null` is a customer who has stated none — REQ-073 c1
+ *  forbids inventing one for them, so the day is written in UTC rather
+ *  than in a zone this product picked on their behalf. */
+export function formatMailDate(at: Date, timeZone: string | null): string {
+  return new Intl.DateTimeFormat(MAIL_LOCALE, {
+    timeZone: timeZone ?? "UTC",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  }).format(at);
+}

@@ -12,8 +12,10 @@
 //
 // The model carries a value for each of the fourteen `SETTABLE` keys and
 // nothing a control could bind to besides. It carries no measurement, no
-// derived number and no billing figure of its own: the billing values are
-// `FromStripe` (REQ-097) and `content.pages` is a count of the customer's own
+// derived number and no billing figure at all: REQ-097 keeps the next
+// invoice, the card and the invoice history off every ReachKit surface
+// (`billing.ts` records the owner's ruling on which of §4.7's four things
+// survive it), and `content.pages` is a count of the customer's own
 // published pages, which is not a billing value and not a measurement.
 //
 // **`vetoHours` is read, never corrected.** WO-179 step 5: the rule — a whole
@@ -23,7 +25,8 @@
 // stored", so this module validates nothing and the screen renders what is
 // there.
 import type { PublishingMode } from "../_shell/model";
-import type { BillingSummary } from "./billing";
+import { formatDate } from "../_shell/format";
+import type { BillingSummary, PlanState } from "./billing";
 import { notificationRows, type NotificationRow, type NotifyKind } from "./notifications";
 
 /** §10's `destinations` row, as the screen needs it. `health` is a **state**
@@ -52,6 +55,20 @@ export interface PublishingSettings {
   timeZone: string;
   /** REQ-070 c1's "whether pages publish at all". */
   enabled: boolean;
+}
+
+/** What `src/lib/account/billing`'s `billingSummary` answers, as this
+ *  screen needs it. Deliberately three members and no billing value:
+ *  REQ-097 criterion 5 keeps the next invoice, the card and the invoice
+ *  history off every ReachKit surface, and `billing.ts` records the ruling
+ *  that settled which of §4.7's four things survive it. */
+export interface BillingFacts {
+  state: PlanState;
+  /** `users.paid_through` — the access gate (ADR-050), and REQ-076
+   *  criterion 3's "the exact date their access ends". */
+  paidThrough: Date;
+  /** REQ-097 c1's one destination. */
+  surfaceHref: string;
 }
 
 export interface SettingsModel {
@@ -90,8 +107,10 @@ export interface SettingsFacts {
   name: string;
   email: string;
   notifyPrefs: Partial<Record<NotifyKind, boolean>>;
-  /** Stripe's own summary (#34). Every value on it is `FromStripe`. */
-  billing: BillingSummary;
+  /** The billing facts (#34), before they are a card. `paidThrough` is an
+   *  instant here and a written day on the model: the customer's own stated
+   *  zone is applied once, below, and nowhere else (REQ-073 c3). */
+  billing: BillingFacts;
   /** `publications` (§10) — the customer's live pages. */
   publishedPages: number;
 }
@@ -113,7 +132,15 @@ export function assembleSettings(facts: SettingsFacts): SettingsModel {
     doNotClaim: facts.doNotClaim,
     notifications: notificationRows(facts.notifyPrefs),
     account: { name: facts.name, email: facts.email },
-    billing: facts.billing,
+    billing: {
+      state: facts.billing.state,
+      // The one place the paid-through instant becomes a day a customer
+      // reads, in the zone they stated. A card that formatted it would be
+      // a second formatter, and the two would disagree the day one of them
+      // was corrected.
+      accessUntil: formatDate(facts.billing.paidThrough, facts.timeZone),
+      surfaceHref: facts.billing.surfaceHref,
+    },
     content: { pages: facts.publishedPages },
   };
 }

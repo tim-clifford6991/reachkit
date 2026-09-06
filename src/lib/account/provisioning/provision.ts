@@ -26,12 +26,15 @@
 // to run it against until setup asks for an address (REQ-021 c7), and the
 // payer's email domain is never read as one.
 //
-// **`plan_status` is set; `paid_through` is not.** ADR-050 makes
-// `users.paid_through` the whole of the access gate, and that column
-// belongs to the `users_subscription` sub-token — issue #34's, with
-// `hasActiveAccess()` and the portal. Provisioning is its first writer the
-// day it exists; until then this insert would be writing a column that is
-// not there. Named here rather than left as a surprise.
+// **`plan_status` is set at the insert; `paid_through` immediately after
+// it.** ADR-050 makes `users.paid_through` the whole of the access gate,
+// and issue #34 made provisioning its first writer, through
+// `openSubscription` at step 2b. It is a second write and not a column on
+// the insert on purpose: the value comes from the *subscription*, which is
+// a second vendor object, and a retrieve that failed must still leave an
+// account open rather than refusing a paid customer their account over a
+// date a webhook will supply seconds later. The column's own default keeps
+// the row legal in that window.
 import { recordCheckoutFacts } from "../checkout/record";
 import { accountStore } from "../store";
 import { queueDeepPass } from "./deep-pass";
@@ -111,6 +114,18 @@ export async function provisionFromPayment(sessionId: string): Promise<Provision
   }
 
   const userId = inserted.id;
+
+  // 2b. The gate. `users.paid_through` is the whole of REQ-076 c8's access
+  //     gate (ADR-050), and this is where it stops being the column's
+  //     default and becomes the subscription's own period end. It is done
+  //     here rather than left to `customer.subscription.created` because
+  //     the two deliveries are not ordered: an account opened after that
+  //     event had already been dropped for having no account would sit on
+  //     the default until its first renewal.
+  if (facts.subscriptionId !== null) {
+    const { openSubscription } = await import("@/lib/account/billing");
+    await openSubscription({ userId, subscriptionId: facts.subscriptionId });
+  }
 
   // 3. The site. Its domain is the report's, or null where there was no
   //    report — never anything derived from how the buyer paid.

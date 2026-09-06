@@ -11,7 +11,8 @@
 import { describe, expect, it } from "vitest";
 import { assembleSettings, type SettingsFacts } from "@/app/(account)/app/settings/model";
 import { notificationRows, NOTIFICATION_COPY_KEY } from "@/app/(account)/app/settings/notifications";
-import { billingValues, fromStripe } from "@/app/(account)/app/settings/billing";
+import { PLAN_KEY, PRICE_KEYS } from "@/app/(account)/app/settings/billing";
+import { COPY } from "@/lib/presentation/copy";
 import { FIXTURE_SETTINGS_FACTS } from "@/app/(account)/app/settings/fixture";
 import { SETTABLE } from "@/app/(account)/app/settings/settable";
 import { MAIL_KINDS, TOGGLE_KINDS, type MailKind } from "@/lib/mail/kinds";
@@ -112,33 +113,54 @@ describe("WO-179 decision 4 — the notification rows are projected from MAIL_KI
   });
 });
 
-describe("REQ-097 — every billing value on the model came from Stripe", () => {
-  it("each one carries the provenance, and there is no arm that does not", () => {
-    const values = billingValues(assembleSettings(FACTS).billing);
-    expect(values.length).toBeGreaterThan(0);
-    for (const value of values) {
-      expect(value.from).toBe("stripe");
-      expect(typeof value.text).toBe("string");
-    }
+describe("REQ-097 — the model carries no billing value at all", () => {
+  // The ruling on issue #34 (REQ-097's first open question): Settings shows
+  // the plan, the price and the control, and none of the next invoice, the
+  // card or the invoice history. So the assertion is not "every value has
+  // provenance" any more — it is that there is no such value on the model.
+  it("the billing slice is the plan state, the access-end day and the destination — and nothing else", () => {
+    const billing = assembleSettings(FACTS).billing;
+    expect(Object.keys(billing).sort()).toEqual(["accessUntil", "state", "surfaceHref"]);
   });
 
-  it("`fromStripe` is the only construction path, and it formats nothing", () => {
-    // The text Stripe produced, returned unchanged: no currency symbol added,
-    // no date reformatted, no rounding. A renderer therefore cannot be handed
-    // a number to make a decision about.
-    expect(fromStripe("1 October 2026 — €49.00")).toEqual({
-      from: "stripe",
-      text: "1 October 2026 — €49.00",
-    });
+  it("the plan and the price are copy keys, not values read back from a vendor", () => {
+    // REQ-097's own non-goal: "€49/mo is a public product fact stated on
+    // every price surface … not a value Stripe holds about one customer."
+    expect(PLAN_KEY in COPY).toBe(true);
+    for (const key of PRICE_KEYS) expect(key in COPY).toBe(true);
   });
 
-  it("the plan state selects which of cancel/resume the card offers, and is Stripe's, not a date comparison", () => {
+  it("the access-end day is the paid-through instant, written in the customer's own zone", () => {
+    // REQ-076 c3's "the exact date their access ends", and REQ-073 c3's
+    // zone. One instant in, one written day out — and the zone applied here
+    // and nowhere else.
+    const model = assembleSettings(FACTS);
+    const inZone = new Intl.DateTimeFormat("en-US", {
+      timeZone: FACTS.timeZone,
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    }).format(FACTS.billing.paidThrough);
+    expect(model.billing.accessUntil).toBe(inZone);
+
+    const elsewhere = assembleSettings({ ...FACTS, timeZone: "Australia/Sydney" });
+    expect(elsewhere.billing.accessUntil).not.toBe(model.billing.accessUntil);
+  });
+
+  it("the plan state selects which of cancel/resume the card offers, and is not a date comparison", () => {
+    // `users.cancelled_at`, recorded from what Stripe reported — never
+    // derived from `paid_through`, which is the access gate (ADR-050) and
+    // stays in the future for a customer who has already cancelled.
     expect(assembleSettings(FACTS).billing.state).toBe("active");
     const cancelled = assembleSettings({
       ...FACTS,
       billing: { ...FACTS.billing, state: "cancelled" },
     });
     expect(cancelled.billing.state).toBe("cancelled");
+
+    // The same paid-through date under both states: the state did not come
+    // from it.
+    expect(cancelled.billing.accessUntil).toBe(assembleSettings(FACTS).billing.accessUntil);
   });
 });
 

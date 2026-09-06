@@ -222,23 +222,54 @@ export async function backstopProvision(paymentId: string): Promise<EngineResult
   return outcome.provisioned ? { done: true } : { degraded: `backstop:${outcome.because}` };
 }
 
-// ── Hosted pages — BP-060
-// TODO(engine): BP-060's hosting lifecycle — the end notice and the stop.
+// ── Hosted pages — BUILD §13, §9 (issue #34)
+// Built. `src/lib/account/billing/**` owns the rules; the four wrappers
+// here pass a clock in and map the result to an `EngineResult`. Imported
+// from the module's bare entry point and never from a file under it —
+// `eslint.config.mjs`'s `no-billing-internal-import` fence (ADR-050).
+//
+// The two due-work queries take `now` from the tick, which is what makes
+// due-ness testable without a scheduler; the tick's own signature supplies
+// none, so `new Date()` is read here, on the same footing as the
+// provisioning pair above.
 
 export async function sitesDueHostingEndNotice(): Promise<readonly string[]> {
-  return notBuilt("BP-060", "sitesDueHostingEndNotice()");
+  const { sitesDueHostingEndNotice: due } = await import("@/lib/account/billing");
+  return due(new Date());
 }
 
 export async function noticeHostingEnd(siteId: string): Promise<EngineResult> {
-  return notBuilt("BP-060", `noticeHostingEnd(${siteId})`);
+  const { sendHostingEndNotice } = await import("@/lib/account/billing");
+  // A notice that did not send is not a degraded run: every `sent: false`
+  // arm is either a subject that turned out not to need one (already sent,
+  // deleted, resumed) or a transient the next tick asks again about — and
+  // the stop queue goes on excluding the site until a notice has actually
+  // gone (REQ-076 c11). The job reports what it handed off, never a second
+  // copy of that rule.
+  await sendHostingEndNotice(siteId);
+  return { done: true };
 }
 
 export async function sitesDueHostingStop(): Promise<readonly string[]> {
-  return notBuilt("BP-060", "sitesDueHostingStop()");
+  const { sitesDueHostingStop: due } = await import("@/lib/account/billing");
+  return due(new Date());
 }
 
 export async function stopHosting(siteId: string): Promise<EngineResult> {
-  return notBuilt("BP-060", `stopHosting(${siteId})`);
+  // **There is nothing to do here, and that is the design.** Serving is
+  // computed from `sites.hosted_serving_ends_at` by `hostedServingState`,
+  // never from a boolean this function could flip (BP-060; REQ-076 c10).
+  // The window was stamped when access ended, both notices have been sent —
+  // `sitesDueHostingStop` returns no site for which they have not — and the
+  // hosted edge has been answering 410 for this site since the moment the
+  // column's instant passed, whether or not this tick ever ran.
+  //
+  // It is kept as a hand-off rather than removed so the queue has somewhere
+  // to report to and the stop is visible in the tick's log. A write here
+  // would be a second source of truth for a fact one timestamp already
+  // holds.
+  console.log(JSON.stringify({ event: "hosting_stopped", siteId }));
+  return { done: true };
 }
 
 // ── Setup reminders — BP-033, built (issue #36) and wired here

@@ -30,10 +30,19 @@ const { scanRun } = await import("../../src/jobs/scan-run");
 const { accountMaintenance } = await import("../../src/jobs/account-maintenance");
 const { jobs } = await import("../../src/jobs/index");
 const { JOB_IDS } = await import("../../src/jobs/types");
+// The hosting half of the tick is built too (issue #34) and reads rows. It
+// reads through the billing module's own store, so it is stood in through
+// that module's door rather than by mocking the module — an empty store is
+// a tick with nothing due, which is the state every case below wants.
+const { setBillingStore } = await import("../../src/lib/account/billing");
+const { memoryBillingStore, newMemoryBilling } = await import(
+  "../account/billing/memory-store"
+);
 
 const NOW = new Date(Date.UTC(2026, 8, 6, 12, 0, 0));
 
 beforeEach(() => {
+  setBillingStore(memoryBillingStore(newMemoryBilling()));
   deepPass.mockReset();
   dueReminders.mockReset();
   sendReminder.mockReset();
@@ -110,9 +119,10 @@ describe("REQ-025 c6 — the reminders are the maintenance tick's sixth obligati
   });
 
   it("the obligations whose engines have not shipped no longer take the tick down with them", async () => {
-    // Three of the six still throw `EngineNotBuilt` today — the hosting
-    // notice, the hosting stop and the purge. Before this issue the first
-    // of them ended the run, so nothing behind it in the list ever ran.
+    // One of the six still throws `EngineNotBuilt` today — BP-063's purge.
+    // The two hosting obligations that stood beside it here were built by
+    // issue #34. Before issue #36 the first unbuilt obligation ended the
+    // run, so nothing behind it in the list ever ran.
     dueReminders.mockResolvedValue(["site-1"]);
     await expect(accountMaintenance.run({ data: {}, now: NOW })).resolves.toBeDefined();
     expect(sendReminder).toHaveBeenCalledWith("site-1");

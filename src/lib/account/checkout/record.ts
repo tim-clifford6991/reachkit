@@ -36,6 +36,12 @@ export interface CheckoutFacts {
   /** Verbatim as entered; never normalised, never validated. */
   readonly vatNumber: string | null;
   readonly stripeCustomerId: string;
+  /** The subscription this session opened, where it opened one. Read here
+   *  because provisioning stamps `users.paid_through` from it (issue #34)
+   *  and this is the one place the session is retrieved: the two webhook
+   *  deliveries are not ordered, so an account that waited for
+   *  `customer.subscription.created` to arrive could wait a month. */
+  readonly subscriptionId: string | null;
   readonly origin: CheckoutOrigin;
 }
 
@@ -62,6 +68,14 @@ function customerIdOf(session: Stripe.Checkout.Session): string | null {
   const customer = session.customer;
   if (customer === null || customer === undefined) return null;
   return typeof customer === "string" ? customer : customer.id;
+}
+
+/** The subscription the session opened, whether it carries it expanded or
+ *  as a reference. A session in a mode that opens none reports `null`. */
+function subscriptionIdOf(session: Stripe.Checkout.Session): string | null {
+  const subscription = session.subscription;
+  if (subscription === null || subscription === undefined) return null;
+  return typeof subscription === "string" ? subscription : subscription.id;
 }
 
 /** The address the sign-in link and receipt go to. `customer_details.email`
@@ -114,6 +128,7 @@ export async function recordCheckoutFacts(sessionId: string): Promise<RecordResu
     billingCountry: session.customer_details?.address?.country ?? null,
     vatNumber: vatNumberOf(session),
     stripeCustomerId,
+    subscriptionId: subscriptionIdOf(session),
     origin,
   };
 
