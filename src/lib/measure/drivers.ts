@@ -202,6 +202,32 @@ const SEARCH_TOP10_SATURATION = 4;
 /** "top10share" — the share of ranked rows at positions 1–10. */
 const TOP10_LAST_POSITION = 10;
 
+/**
+ * The customer's own ranked count — the number of rows, not a score.
+ *
+ * §6.6 bands a rival against "the customer's own measured count from the
+ * same pass", and §7's two winnability bars are `max(500, 5× customer's)`
+ * and `max(100, 2× customer's)`. Both want the count itself, which
+ * `searchPresenceOf` below consumes and does not give back. One call, two
+ * readings, and no second fetch: this reads the very rows that call
+ * returned.
+ *
+ * Zero rows is a measured 0 (BUILD §6.3: "0 rows is a legal result"), not
+ * an absence — a domain that ranks for nothing is the cold-start case the
+ * product exists to serve, and `unmeasured` would hide it.
+ *
+ * **Capped by the row limit the pass bought** (`PRICE_BOOK.RANKED_*_ROWS`),
+ * so a customer at the limit reads as exactly the limit. Stated rather
+ * than corrected here: understating the customer's own count *tightens*
+ * both bars, so the error is in the direction of fewer opportunities,
+ * never of one they cannot win. Issue #117 is the vendor-side fix, shared
+ * with the rival side.
+ */
+export function ownRankedOf(a: { ranked: Measured<readonly RankedRow[]>; at: Date }): Measured<number> {
+  if (a.ranked.kind === "unmeasured") return unmeasured(a.ranked.reason, a.at);
+  return ofValue(a.ranked.value.length, a.at);
+}
+
 /** BUILD §5's SearchPresence over the customer's own ranked rows. Zero
  *  rows is a legal result and a measured 0 (BUILD §6.3: "0 rows is a legal
  *  result") — the `zero` arm, never `unmeasured`. An `unmeasured` row set

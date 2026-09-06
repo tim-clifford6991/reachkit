@@ -18,6 +18,7 @@ import {
   aiPresenceOf,
   answerabilityOf,
   foundationsOf,
+  ownRankedOf,
   searchPresenceOf,
 } from "../../../src/lib/measure/drivers.ts";
 import { measured, measuredZero, unmeasured, type Measured } from "../../../src/lib/measure/measured.ts";
@@ -225,6 +226,36 @@ describe('`BUILD.md` §5: "Answerability = shape of the home + measured pages, 0
   it("no page handed in at all is undeterminable, never a floored 1", () => {
     const m = answerabilityOf({ pages: [], at: AT });
     expect(m).toEqual({ kind: "unmeasured", reason: "undeterminable", at: AT });
+  });
+});
+
+describe("the customer's own ranked count — the rows, not the sub-measure (issue #140)", () => {
+  it("is the number of rows, and not a score derived from them", () => {
+    const rows = [rankedRow(1), rankedRow(11), rankedRow(12)];
+    expect(ownRankedOf({ ranked: measured(rows, AT), at: AT })).toEqual(measured(3, AT));
+    // The same rows read as SearchPresence are a 0–100 quantity, which is
+    // why the count cannot be recovered from `scans.drivers`.
+    expect(valueOf(searchPresenceOf({ ranked: measured(rows, AT), at: AT }))).not.toBe(3);
+  });
+
+  it('zero rows is a measured 0 — "0 rows is a legal result", never an absence', () => {
+    const m = ownRankedOf({ ranked: measuredZero<readonly RankedRow[]>([], AT), at: AT });
+    expect(m.kind).toBe("zero");
+    expect(valueOf(m)).toBe(0);
+    expectAt(m);
+  });
+
+  it("an unmeasured row set stays unmeasured and carries the same reason", () => {
+    expect(ownRankedOf({ ranked: unmeasured<readonly RankedRow[]>("not_attempted", AT), at: AT })).toEqual({
+      kind: "unmeasured",
+      reason: "not_attempted",
+      at: AT,
+    });
+  });
+
+  it("reads no clock — the date is the caller's", () => {
+    const other = new Date("2020-01-01T00:00:00.000Z");
+    expect(ownRankedOf({ ranked: measured([rankedRow(1)], AT), at: other }).at).toEqual(other);
   });
 });
 
