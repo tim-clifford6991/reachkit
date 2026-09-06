@@ -57,6 +57,22 @@ export interface MarketAiOverview {
   referenceDomains: readonly string[];
 }
 
+/** One battery engine's answer, as the AI-answers card reads it (§6.2's
+ *  ChatGPT std and AI Mode std): whether the engine answered at all and
+ *  which domains it cited. The vendor's `AiAnswer` satisfies this
+ *  structurally, exactly as `MarketSerp` is satisfied by `SerpResult`.
+ *
+ *  **`text` is deliberately absent, and its absence is the point.** The
+ *  engine's own prose is generated text; a card with a field to carry it
+ *  is a card a surface could render it from unlabelled, which `CLAUDE.md`
+ *  forbids ("No generated prose anywhere except draft page content,
+ *  always labelled"). What the product measures about an AI answer is
+ *  whether it appeared and whom it named — both of which are here. */
+export interface MarketAiAnswer {
+  answered: boolean;
+  citedDomains: readonly string[];
+}
+
 /** A bought SERP, as the rival derivation and the two cards read it. */
 export interface MarketSerp extends MarketSerpOrganic {
   organic: readonly MarketOrganicRow[];
