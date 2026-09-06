@@ -447,3 +447,37 @@ export const PAYMENT_CHASE_MINUTES = 15 as const;             // REQ-024 c5
  *  not `PUBLISH_VERIFY_DELAY_H`, which also holds 24 and bounds a
  *  publication check. */
 export const PAYMENT_BACKSTOP_H = 24 as const;                // REQ-024 c6
+
+// ── Opportunities (issue #40) — BUILD §7
+/** The ranking formula's demand scale (§7: `demand × intent × (1−effort) ×
+ *  fit`). `demand = min(1, log10(volume + 1) / 5)`: log-scaled for the
+ *  reason §6.7 gives for the selection score, with the divisor chosen so
+ *  100,000/mo saturates the term at 1.0 — above any volume a market set
+ *  carries, so demand saturates rather than clips. Chosen, not
+ *  transcribed: §7 fixes the formula's shape and no term's scale. Reversal
+ *  cost is this one number and its assertion. */
+export const DEMAND_LOG_DIVISOR = 5 as const;                 // §7 ranking
+
+/** §7's Write trigger, transcribed: "Rival top-20 for a query ≥10/mo;
+ *  customer absent". The floor below which a search is not worth a page of
+ *  its own. Distinct from `SELECTION.volumeFloorPerMonth` (50), which is
+ *  §6.7's floor for admitting a search into the *twelve* — two floors,
+ *  stated independently by the spec, and neither derived from the other. */
+export const WRITE_VOLUME_FLOOR_PER_MONTH = 10 as const;      // §7
+
+/** §7's Improve trigger, transcribed: "Customer ranks 4–30, page thin".
+ *  The band is inclusive at both ends. The bought SERP is a top ten
+ *  (`transport.ts` fixes depth 10), so today only 4–10 is observable; the
+ *  band is stated as the spec states it, so widening what is bought needs
+ *  no edit here. */
+export const IMPROVE_POSITION_BAND = Object.freeze({ min: 4, max: 30 } as const); // §7
+
+/** What "page thin" means, in the unit the parser measures
+ *  (`OnPageFacts.visibleChars`). Chosen, not transcribed — §7 states the
+ *  trigger and no number. 1800 visible characters is roughly 300 words at
+ *  ~6 characters a word including spaces, the length below which a page
+ *  answering a commercial search has said too little to rank for it.
+ *  Reversal cost is this one number and its fixtures; nothing stored
+ *  depends on it, since the shortfall row records the measured count
+ *  itself and not the comparison. */
+export const THIN_PAGE_VISIBLE_CHARS = 1800 as const;         // §7
