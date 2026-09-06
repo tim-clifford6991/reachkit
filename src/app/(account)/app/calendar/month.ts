@@ -39,7 +39,14 @@ export interface WhyThisPage {
 
 /** One draft, on the site-local date it is scheduled for. */
 export interface DraftOnDay {
-  draftId: string;
+  /** `null` for a page that is planned and not yet written: §7's supply
+   *  puts an opportunity on a date, and §8's generation turns it into a
+   *  draft on the morning it is due — so a planned date has a page and no
+   *  draft id, which is a shape rather than a placeholder. Every control
+   *  that names a draft (`Read the full page`, and the publishing
+   *  commands, which write against a draft's own row) is offered only
+   *  where there is one; `actions.ts` is where that is held, once. */
+  draftId: string | null;
   title: string;
   state: PublishState;
   scheduledFor: DayKey;

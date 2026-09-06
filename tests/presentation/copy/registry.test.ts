@@ -312,7 +312,7 @@ describe("owner-owed and empty agree both ways", () => {
     expect(new Set(emptyKeys)).toEqual(new Set(OWNER_OWED));
   });
 
-  it("counts: 79 owner-owed, 135 awaiting copy, 168 ruled, 382 total (rule 5.5 — the index states its own coverage)", () => {
+  it("counts: 110 owner-owed, 136 awaiting copy, 168 ruled, 414 total (rule 5.5 — the index states its own coverage)", () => {
     // WO-070 added report.ts's eight landing keys (headline, field label,
     // submit label, five DomainProblem lines), all owner-owed: 30 + 8 = 38.
     // 2026-09-03: the owner ruled on three of them (headline, field label,
@@ -595,10 +595,21 @@ describe("owner-owed and empty agree both ways", () => {
     //
     // 100 + 4 = 104 owner-owed, 135 + 1 = 136 awaiting copy, 168 ruled
     // unchanged, 403 + 5 = 408 total.
-    expect(OWNER_OWED.length).toBe(104);
+    //
+    // 2026-09-06, separately again: issue #126 (§7 wired into §4.6) adds
+    // six calendar keys, every one **empty** like the twelve `calendar.*`
+    // keys already beside them — the screen reads them through the shell's
+    // `writtenLine`, which renders an owner-owed key as nothing. Three are
+    // the one statement of supply (`calendar.supply.{exhausted,short,
+    // first-arrival}`, `supplyNotice`'s three arms); three are §4.6's
+    // `done-when` row read from a stored acceptance test
+    // (`calendar.done-when.{top20,named-on,gate-cleared}`, §7's three
+    // forms). 104 + 6 = 110 owner-owed and empty, 136 awaiting copy
+    // unchanged, 168 ruled unchanged, 408 + 6 = 414 total.
+    expect(OWNER_OWED.length).toBe(110);
     expect(AWAITING_COPY.length).toBe(136);
     expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(168);
-    expect(Object.keys(COPY).length).toBe(408);
+    expect(Object.keys(COPY).length).toBe(414);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.

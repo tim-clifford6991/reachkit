@@ -114,4 +114,27 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.empty.customer-change-holds-pages": ["", { slots: {}, fixedBy: "REQ-043 c4" }],
   "calendar.provenance.measured": ["", { slots: { date: "date" }, fixedBy: "REQ-043 c10" }],
   "calendar.status.veto-deadline": ["", { slots: { at: "date" }, fixedBy: "BUILD §9" }],
+
+  // §7's one statement of supply, as §4.6's calendar makes it: the three
+  // arms of `supplyNotice`, in the engine's own precedence (exhausted >
+  // short > arrival shortfall). Three keys and not one, because they are
+  // three different claims — supply is gone / supply is running out /
+  // this month stops before the month does — and a customer reads exactly
+  // one of them. Owner-owed: §4.6 states the supply *rule* to the builder
+  // and never words it for the customer, and `overview.supply.*` is the
+  // same three claims on a different screen, so neither is the other's
+  // string. `days` counts days of pages, so it is a text slot carrying a
+  // numeral, exactly as `overview.supply.*` declares it.
+  "calendar.supply.exhausted": ["", { slots: { since: "date" }, fixedBy: "BUILD §4.6" }],
+  "calendar.supply.short": ["", { slots: { days: "text" }, fixedBy: "BUILD §4.6" }],
+  "calendar.supply.first-arrival": ["", { slots: { days: "text" }, fixedBy: "BUILD §4.6" }],
+
+  // §4.6's `done-when` row, from the acceptance test recorded when the
+  // opportunity was created (§7: "top 20 for Q" / "named on question P" /
+  // "gate passes"). Three forms, three keys: the test a page is judged
+  // against is never rewritten, so the row must say which of the three it
+  // is rather than a single line that fits none of them. Owner-owed.
+  "calendar.done-when.top20": ["", { slots: { query: "text" }, fixedBy: "BUILD §7" }],
+  "calendar.done-when.named-on": ["", { slots: { question: "text" }, fixedBy: "BUILD §7" }],
+  "calendar.done-when.gate-cleared": ["", { slots: {}, fixedBy: "BUILD §7" }],
 }) satisfies CopyPartition;

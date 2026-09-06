@@ -79,10 +79,17 @@ const STOP_COPY_KEY: Record<StopCommand, CopyKey> = {
 
 /** A control the panel offers. Two arms and no third: a link goes
  *  somewhere, a command writes something. Neither carries a sentence — the
- *  `key` is read through `copy()` by whatever renders it. */
+ *  `key` is read through `copy()` by whatever renders it.
+ *
+ *  The command arm carries the draft it acts on rather than leaving the
+ *  renderer to read one off the page: `PublishingInterface` writes against
+ *  a draft's own row, and a planned date has no draft yet (§8 generates
+ *  one on the morning it is due). Carrying it here is what makes "no
+ *  control is offered that has nothing to act on" a shape instead of a
+ *  check every renderer has to remember. */
 export type DayAction =
   | { key: CopyKey; kind: "link"; href: string }
-  | { key: CopyKey; kind: "command"; command: PublishingCommand };
+  | { key: CopyKey; kind: "command"; command: PublishingCommand; draftId: string };
 
 /** Issue #17's draft view — ARCHITECTURE's `/app/draft/{id}`. */
 export function draftHref(draftId: string): string {
@@ -104,8 +111,9 @@ export function actionsFor(cell: DayCell): readonly DayAction[] {
 
   // review → "Read the full page" (§4.6). The draft view is where a page is
   // read whole; the stage that asks the customer to judge one is the stage
-  // that gets the way in.
-  if (page.stage === "your_review") {
+  // that gets the way in — and a page in review always has a draft to
+  // read, which is why the `null` arm below is not a lost affordance.
+  if (page.stage === "your_review" && page.draftId !== null) {
     actions.push({
       key: "calendar.action.read-full-page",
       kind: "link",
@@ -130,10 +138,15 @@ export function actionsFor(cell: DayCell): readonly DayAction[] {
   // offered exactly where that edge is open — a page that can still be
   // stopped is a page that has not gone out, which is the same condition
   // §4.6 offers Move under, read off the table instead of restated.
+  //
+  // A page with no draft yet offers neither: both commands write against a
+  // draft's own row, and DECISIONS 2026-09-05 (#99) is the rule they are
+  // held to — "a control never appears to work before its engine exists".
   const stop = STOP_COMMAND[page.state];
-  if (TRANSITIONS[page.state].includes("skipped") && stop !== null) {
-    actions.push({ key: STOP_COPY_KEY.move, kind: "command", command: "move" });
-    actions.push({ key: STOP_COPY_KEY[stop], kind: "command", command: stop });
+  const draftId = page.draftId;
+  if (TRANSITIONS[page.state].includes("skipped") && stop !== null && draftId !== null) {
+    actions.push({ key: STOP_COPY_KEY.move, kind: "command", command: "move", draftId });
+    actions.push({ key: STOP_COPY_KEY[stop], kind: "command", command: stop, draftId });
   }
 
   return actions;

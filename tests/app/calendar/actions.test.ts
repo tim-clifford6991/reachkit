@@ -31,7 +31,11 @@ import { COPY } from "@/lib/presentation/copy";
 
 const AT = new Date(Date.UTC(2026, 8, 14, 6, 0, 0));
 
-function cellWith(state: PublishState, liveUrl: string | null = null): DayCell {
+function cellWith(
+  state: PublishState,
+  liveUrl: string | null = null,
+  draftId: string | null = "d1"
+): DayCell {
   const stage = STAGE_OF[state];
   if (stage === null) throw new Error(`${state} occupies no date`);
   return {
@@ -39,7 +43,7 @@ function cellWith(state: PublishState, liveUrl: string | null = null): DayCell {
     inMonth: true,
     today: true,
     page: {
-      draftId: "d1",
+      draftId,
       title: "a page",
       state,
       stage,
@@ -128,6 +132,30 @@ describe("REQ-043 c9 — §4.6's stage-appropriate actions, and no action a stag
     const keys = actionsFor(cellWith("planned")).map((a) => a.key);
     expect(keys).toEqual(["calendar.action.move", "calendar.action.skip"]);
     expect(keys).not.toContain("calendar.action.veto");
+  });
+
+  // A planned date drawn from §7's supply carries no draft until §8
+  // generates one on the morning it is due (issue #126). Every control
+  // below writes against a draft's own row, so a date with none offers
+  // nothing — DECISIONS 2026-09-05 (#99): "a control never appears to work
+  // before its engine exists."
+  it("a planned page with no draft yet offers no control at all", () => {
+    expect(actionsFor(cellWith("planned", null, null))).toEqual([]);
+  });
+
+  it("a command carries the draft it acts on, so no renderer has to find one", () => {
+    for (const action of actionsFor(cellWith("planned"))) {
+      if (action.kind !== "command") continue;
+      expect(action.draftId).toBe("d1");
+    }
+  });
+
+  it("no state offers a command without a draft to act on", () => {
+    for (const state of PUBLISH_STATES) {
+      if (STAGE_OF[state] === null) continue;
+      const actions = actionsFor(cellWith(state, "https://content.example.com/p", null));
+      expect(actions.filter((a) => a.kind === "command"), state).toEqual([]);
+    }
   });
 
   it("scheduled offers neither Move nor Skip — the page is on its way out", () => {
