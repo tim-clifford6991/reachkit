@@ -383,10 +383,11 @@ describe("nothing fakes work — an unbuilt engine fails loudly", () => {
 
   it("account/maintenance skips an unbuilt obligation rather than dying on it (issue #36), and each still fails loudly at the seam", async () => {
     stubEnv(false);
-    // Two of the six obligations are built and read rows: the payment half
-    // (issue #33) and §4.3's setup reminders (issue #36). Both are stood in
-    // with nothing due — the ordinary case — so this suite reaches no
-    // database. Doubling the whole engine instead would assert nothing.
+    // Four of the six obligations are built and read rows: the payment half
+    // (issue #33), §4.3's setup reminders (issue #36) and the hosting pair
+    // (issue #34). All four are stood in with nothing due — the ordinary
+    // case — so this suite reaches no database. Doubling the whole engine
+    // instead would assert nothing.
     vi.doMock("@/lib/account/provisioning/due-work", () => ({
       paymentsAwaitingSignIn: async () => [],
       paymentsWithoutAccounts: async () => [],
@@ -399,24 +400,31 @@ describe("nothing fakes work — an unbuilt engine fails loudly", () => {
     const { runJob } = await import("@/jobs/run");
     const engine = await import("@/jobs/engine");
 
-    // The three whose engines have not shipped still fail loudly — the
-    // failure moved from the tick to the obligation, not away.
-    for (const unbuilt of [
-      engine.sitesDueHostingEndNotice,
-      engine.sitesDueHostingStop,
-      engine.accountsDueForPurge,
-    ]) {
-      await expect(unbuilt()).rejects.toBeInstanceOf(engine.EngineNotBuilt);
-    }
+    // The hosting pair reads through the billing module's own store, so it
+    // is stood in through that module's door rather than by mocking the
+    // module: an empty store is a tick with nothing due, which is the state
+    // under test.
+    const { setBillingStore } = await import("@/lib/account/billing");
+    const { memoryBillingStore, newMemoryBilling } = await import(
+      "../account/billing/memory-store"
+    );
+    setBillingStore(memoryBillingStore(newMemoryBilling()));
 
-    // ...and the tick carries on past them, so every built obligation
-    // behind them in the list still runs. Before issue #36 the first of the
-    // three ended the run, and a purge was held because an unrelated node
-    // had not landed.
+    // The one whose engine has not shipped still fails loudly — the failure
+    // moved from the tick to the obligation, not away. Issue #34 built the
+    // two hosting obligations that stood beside it here; BP-063's purge is
+    // what is left.
+    await expect(engine.accountsDueForPurge()).rejects.toBeInstanceOf(engine.EngineNotBuilt);
+
+    // ...and the tick carries on past it, so every built obligation behind
+    // it in the list still runs. Before issue #36 the first unbuilt
+    // obligation ended the run, and a purge was held because an unrelated
+    // node had not landed.
     const job = jobs.find((j) => j.id === "account/maintenance");
     if (job === undefined) throw new Error("no definition for account/maintenance");
     await expect(runJob(job, { data: {}, now: MONDAY_0600_UTC })).resolves.toBeDefined();
 
+    setBillingStore(null);
     vi.doUnmock("@/lib/mail/setup/reminders");
     vi.doUnmock("@/lib/account/provisioning/due-work");
   });
