@@ -310,7 +310,15 @@ describe("the fan-out is bounded and never starves the rest of the tick", () => 
 });
 
 describe("nothing fakes work — an unbuilt engine fails loudly", () => {
-  it.each(JOB_IDS)("%s throws EngineNotBuilt against the real seam", async (id) => {
+  // `account/maintenance` is the one id excluded, and issue #33 is why: its
+  // first two obligations — the 15-minute chase and the 24-hour backstop —
+  // are built now, so the tick reaches a real engine before it reaches an
+  // unbuilt one. Its own case is below, with the two built queries stood
+  // in for, so what is asserted is still that the *unbuilt* third
+  // obligation throws.
+  const UNBUILT_JOB_IDS = JOB_IDS.filter((id) => id !== "account/maintenance");
+
+  it.each(UNBUILT_JOB_IDS)("%s throws EngineNotBuilt against the real seam", async (id) => {
     stubEnv(false);
     const { jobs } = await import("@/jobs");
     const { runJob } = await import("@/jobs/run");
@@ -329,6 +337,28 @@ describe("nothing fakes work — an unbuilt engine fails loudly", () => {
     await expect(runJob(job, { data: data[id], now: MONDAY_0600_UTC })).rejects.toBeInstanceOf(
       EngineNotBuilt
     );
+  });
+
+  it("account/maintenance still throws once its two built obligations are past", async () => {
+    stubEnv(false);
+    // The payment half is built (issue #33). Standing the two due-work
+    // queries in — with nothing due, which is the ordinary case — lets the
+    // tick reach the third obligation, whose engine is not built, which is
+    // what this suite is about. Doubling the whole engine instead would
+    // assert nothing.
+    vi.doMock("@/lib/account/provisioning/due-work", () => ({
+      paymentsAwaitingSignIn: async () => [],
+      paymentsWithoutAccounts: async () => [],
+    }));
+    const { jobs } = await import("@/jobs");
+    const { runJob } = await import("@/jobs/run");
+    const { EngineNotBuilt } = await import("@/jobs/engine");
+    const job = jobs.find((j) => j.id === "account/maintenance");
+    if (job === undefined) throw new Error("no definition for account/maintenance");
+    await expect(runJob(job, { data: {}, now: MONDAY_0600_UTC })).rejects.toBeInstanceOf(
+      EngineNotBuilt
+    );
+    vi.doUnmock("@/lib/account/provisioning/due-work");
   });
 
   it("a failed invocation is logged as failed, carrying no payload", async () => {

@@ -19,8 +19,15 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { MagicLinkNotImplementedError } from "@/lib/account/provisioning/magic-link";
 import type { SignInState } from "@/app/(public)/signin/state";
+import { applyEnvFixture } from "../../mail/env-fixture";
+
+// Issue #33 gave `requestMagicLink` a body, and the body reaches the
+// database seam — so importing `./actions` now parses `env` at module load
+// where the declared stub imported nothing at all. The fixture is applied
+// before any dynamic import below, exactly as the mail and account suites
+// do it.
+applyEnvFixture();
 
 const PAGE_PATH = path.resolve(import.meta.dirname, "../../../src/app/(public)/signin/page.tsx");
 const PAGE_SOURCE = readFileSync(PAGE_PATH, "utf8");
@@ -169,19 +176,29 @@ describe('REQ-098 c3 / REQ-020 c4 — "then they are answered in writing on the 
     }
   });
 
-  it("the action never answers `sent` on its own: it asks requestMagicLink, which is the seam that decides", async () => {
+  // Issue #33 built the seam; before it, this asserted that the action let
+  // the seam's not-implemented error through rather than reporting `sent`.
+  // The property under test is the same one, restated against a seam that
+  // answers: the action decides nothing about an address itself, and every
+  // one of its three answers is the one `requestMagicLink` gave it.
+  it.each([
+    [{ sent: true }, "sent"],
+    [{ sent: false, answer: "payment_held_account_opening", lineKey: "signin.payment_held" }, "payment_held"],
+    [{ sent: false, answer: "no_account", lineKey: "signin.no_account" }, "no_account"],
+  ])("the action reports %j as %s and decides nothing of its own", async (seamAnswer, expected) => {
     vi.resetModules();
+    const requestMagicLink = vi.fn(async () => seamAnswer);
+    vi.doMock("@/lib/account/provisioning/magic-link", () => ({ requestMagicLink }));
     const { sendLink } = await import(ACTIONS_MODULE);
     const { SIGN_IN_INITIAL } = await import(STATE_MODULE);
     const form = new FormData();
     form.set("email", "someone@example.com");
-    // `vi.resetModules()` gives this import its own copy of the seam's
-    // error class, so the assertion is on what the error says, not on which
-    // realm's constructor made it.
-    await expect(sendLink(SIGN_IN_INITIAL, form)).rejects.toThrow("issue #35");
-    await expect(sendLink(SIGN_IN_INITIAL, form)).rejects.toThrow(
-      new MagicLinkNotImplementedError().message
-    );
+    await expect(sendLink(SIGN_IN_INITIAL, form)).resolves.toEqual({
+      answer: expected,
+      value: "someone@example.com",
+    });
+    expect(requestMagicLink).toHaveBeenCalledWith("someone@example.com");
+    vi.doUnmock("@/lib/account/provisioning/magic-link");
   });
 });
 
@@ -190,16 +207,20 @@ describe('REQ-098 c6 — "Given a person who submits an empty value or one that 
     "%j is refused before the seam is reached, with the value carried back",
     async (value) => {
       vi.resetModules();
+      const requestMagicLink = vi.fn(async () => ({ sent: true }));
+      vi.doMock("@/lib/account/provisioning/magic-link", () => ({ requestMagicLink }));
       const { sendLink } = await import(ACTIONS_MODULE);
-    const { SIGN_IN_INITIAL } = await import(STATE_MODULE);
+      const { SIGN_IN_INITIAL } = await import(STATE_MODULE);
       const form = new FormData();
       form.set("email", value);
-      // No link is sent: the seam throws when reached, so *not* throwing is
-      // the assertion that it was never reached.
       await expect(sendLink(SIGN_IN_INITIAL, form)).resolves.toEqual({
         answer: "invalid",
         value,
       });
+      // No link is sent, and the refusal happens before the seam: the spy
+      // is what proves it was never reached at all.
+      expect(requestMagicLink).not.toHaveBeenCalled();
+      vi.doUnmock("@/lib/account/provisioning/magic-link");
     }
   );
 

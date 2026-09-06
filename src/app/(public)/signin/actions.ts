@@ -11,10 +11,12 @@
 // what they typed intact" — then criterion 3, which routes the three answers
 // `requestMagicLink` gives to the three lines that answer them.
 //
-// **The seam is not caught.** `requestMagicLink` throws
-// `MagicLinkNotImplementedError` until issue #35 lands. Catching it here and
-// returning `sent` would tell a customer a link is in their inbox when no
-// mail left the process — the one answer this screen must never give.
+// **The seam is not caught, and its answer is not second-guessed.**
+// `requestMagicLink` (issue #33) decides which of the three answers an
+// address gets, including whether a link was actually sent. A `try` here
+// that fell back to `sent` would tell a customer a link is in their inbox
+// when no mail left the process — the one answer this screen must never
+// give — so a failure below the seam surfaces as a failure.
 //
 // **Nothing here reveals whether an address has an account before a
 // submission** (REQ-020 criterion 5): the module holds no lookup of its own,

@@ -347,6 +347,14 @@ describe(
       expect(rows).toHaveLength(1);
       expect(rows[0]?.[0]).toContain("checkout_session_id");
       expect(rows[0]?.[0]).toContain("first_signed_in_at IS NULL");
+      expect(rows[0]?.[0]).toContain("sign_in_chased_at IS NULL");
+    });
+
+    it("users.sign_in_chased_at exists and is nullable — a tick that runs twice sends one mail", () => {
+      const rows = psqlRows(
+        `select data_type, is_nullable, coalesce(column_default, '') from information_schema.columns where table_schema = 'public' and table_name = 'users' and column_name = 'sign_in_chased_at';`
+      );
+      expect(rows).toEqual([["timestamp with time zone", "YES", ""]]);
     });
   }
 );

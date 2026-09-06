@@ -24,9 +24,13 @@ create unique index users_email_lower_key on users (lower(email));
 
 alter table users add column first_signed_in_at timestamptz;
 
+alter table users add column sign_in_chased_at timestamptz;
+
 comment on column users.first_signed_in_at is
   'When this account was first signed in to. Null means nobody has: what the 15-minute chase reads (REQ-024 c5).';
+comment on column users.sign_in_chased_at is
+  'When the 15-minute chase mail was sent. Null means it has not been: a tick that runs twice sends once (REQ-024 c5).';
 
 create index users_awaiting_sign_in_idx
   on users (checkout_session_id)
-  where first_signed_in_at is null;
+  where first_signed_in_at is null and sign_in_chased_at is null;
