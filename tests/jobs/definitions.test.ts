@@ -30,6 +30,7 @@ function engineDouble(): Record<string, unknown> {
   return {
     EngineNotBuilt: class extends Error {},
     activeSites: record("activeSites", [{ siteId: "site-1", timeZone: "UTC" }]),
+    weeklyDueSites: record("weeklyDueSites", []),
     startWeeklyScan: record("startWeeklyScan", done),
     runScan: record("runScan", done),
     generateDraft: record("generateDraft", done),
@@ -146,14 +147,28 @@ describe("weekly/refresh — an hourly tick, due per site-local Monday (ADR-060)
   });
 
   it("starts one weekly scan per due site, keyed (site_id, week_start)", async () => {
-    results.set("activeSites", [
-      { siteId: "utc-site", timeZone: "UTC" },
-      { siteId: "la-site", timeZone: "America/Los_Angeles" },
+    // The selection is the engine's: three of its four predicates are
+    // database questions, and a job body reaches no database. The job asks
+    // for the due set and starts exactly what it is handed.
+    results.set("weeklyDueSites", [
+      { siteId: "utc-site", domain: "utc.example.com", zone: "UTC", weekStart: "2026-09-07" },
     ]);
     const job = await definition("weekly/refresh");
     const outcome = await job.run({ data: {}, now: MONDAY_0600_UTC });
+    expect(calls.filter((c) => c.fn === "weeklyDueSites")).toEqual([
+      { fn: "weeklyDueSites", arg: MONDAY_0600_UTC },
+    ]);
     expect(calls.filter((c) => c.fn === "startWeeklyScan")).toEqual([
-      { fn: "startWeeklyScan", arg: { siteId: "utc-site", weekStart: "2026-09-07" } },
+      {
+        fn: "startWeeklyScan",
+        arg: {
+          siteId: "utc-site",
+          domain: "utc.example.com",
+          zone: "UTC",
+          weekStart: "2026-09-07",
+          now: MONDAY_0600_UTC,
+        },
+      },
     ]);
     expect(outcome).toEqual({ outcome: "ran", subjectId: null });
   });
@@ -163,6 +178,19 @@ describe("weekly/refresh — an hourly tick, due per site-local Monday (ADR-060)
     const outcome = await job.run({ data: {}, now: new Date("2026-09-09T06:00:00Z") });
     expect(outcome).toEqual({ outcome: "skipped", subjectId: null, reason: "not-due" });
     expect(calls.filter((c) => c.fn === "startWeeklyScan")).toEqual([]);
+  });
+
+  it("degrades the tick where a site's week was only partly measured", async () => {
+    results.set("weeklyDueSites", [
+      { siteId: "utc-site", domain: "utc.example.com", zone: "UTC", weekStart: "2026-09-07" },
+    ]);
+    results.set("startWeeklyScan", { degraded: "ai_answers" });
+    const job = await definition("weekly/refresh");
+    expect(await job.run({ data: {}, now: MONDAY_0600_UTC })).toEqual({
+      outcome: "degraded",
+      subjectId: null,
+      step: "ai_answers",
+    });
   });
 });
 
@@ -315,13 +343,22 @@ describe("the fan-out is bounded and never starves the rest of the tick", () => 
 });
 
 describe("nothing fakes work — an unbuilt engine fails loudly", () => {
-  // `account/maintenance` is the one id excluded, and issue #33 is why: its
-  // first two obligations — the 15-minute chase and the 24-hour backstop —
-  // are built now, so the tick reaches a real engine before it reaches an
-  // unbuilt one. Its own case is below, with the two built queries stood
-  // in for, so what is asserted is still that the *unbuilt* third
-  // obligation throws.
-  const UNBUILT_JOB_IDS = JOB_IDS.filter((id) => id !== "account/maintenance");
+  // Two ids are excluded, each because its engine landed.
+  //
+  // `account/maintenance` — issue #33: its first two obligations (the
+  // 15-minute chase and the 24-hour backstop) are built, so the tick
+  // reaches a real engine before it reaches an unbuilt one. Its own case
+  // is below, with the two built queries stood in for, so what is asserted
+  // is still that the *unbuilt* third obligation throws.
+  //
+  // `weekly/refresh` — issue #41: against the real seam it reaches the
+  // database, which is the opposite of what this asserts.
+  //
+  // The remaining five stay, and an engine that lands moves its id out of
+  // here and into a suite of its own.
+  const UNBUILT_JOB_IDS = JOB_IDS.filter(
+    (id) => id !== "account/maintenance" && id !== "weekly/refresh"
+  );
 
   it.each(UNBUILT_JOB_IDS)("%s throws EngineNotBuilt against the real seam", async (id) => {
     stubEnv(false);

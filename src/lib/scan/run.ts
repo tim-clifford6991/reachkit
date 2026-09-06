@@ -97,6 +97,15 @@ interface TierParameters {
   /** A free scan is never started outside admission control: it adopts the
    *  row the claim already inserted and never inserts a second. */
   adoptsClaim: boolean;
+  /** §6.4, verbatim: "**A free re-scan of the same domain within 7 days
+   *  serves the stored report**". A *free* re-scan — the clause is the
+   *  lead magnet's, and the two paid tiers are the two things it cannot
+   *  hold for. The weekly pass exists to produce this week's measurement
+   *  (REQ-065 c1/c2), so a report five days old is exactly what it must
+   *  replace rather than serve; the paid deep pass reuses a fresh free
+   *  scan through the *cache* windows §6.4 names for it, which spends
+   *  nothing either and still measures. */
+  servesStoredReport: boolean;
 }
 
 export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.freeze({
@@ -106,6 +115,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     asyncAiOverview: true,
     deadlineApplies: true,
     adoptsClaim: true,
+    servesStoredReport: true,
   }),
   deep: Object.freeze({
     cap: "DEEP",
@@ -113,6 +123,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     asyncAiOverview: false,
     deadlineApplies: false,
     adoptsClaim: false,
+    servesStoredReport: false,
   }),
   weekly: Object.freeze({
     cap: "WEEKLY",
@@ -120,6 +131,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     asyncAiOverview: false,
     deadlineApplies: false,
     adoptsClaim: false,
+    servesStoredReport: false,
   }),
 } as const);
 
@@ -268,6 +280,13 @@ export interface RunScanArgs {
   domain: string;
   siteId?: string;
   tier: Tier;
+  /** The row this pass writes to, where the caller already claimed one.
+   *  The weekly measurement inserts its `(site_id, week_start)` row before
+   *  any spend — the claim *is* the once-a-week guarantee (§11, ADR-060)
+   *  — and hands the id here so the pass writes its report into that row
+   *  rather than inserting a second one behind the index's back. Absent,
+   *  a paid pass generates its own id, exactly as before. */
+  scanId?: string;
   /** A market correction re-measures inside the scan it corrects: same
    *  spend ceiling, no second allowance consumed. */
   correctionOf?: string;
@@ -311,11 +330,11 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
     scanId = claimed.id;
     fromIncompleteRescan = claimed.fromIncompleteRescan;
   } else {
-    scanId = crypto.randomUUID();
+    scanId = a.scanId ?? crypto.randomUUID();
   }
 
-  // 2. §6.4's seven-day window.
-  if (a.correctionOf === undefined) {
+  // 2. §6.4's seven-day window — the free path's, per `servesStoredReport`.
+  if (a.correctionOf === undefined && parameters.servesStoredReport) {
     const stored = await readCurrentReport(domain);
     if (stored !== null && stored.complete && wholeDaysBetween(stored.verdict.measuredAt, startedAt) < FREE_RESCAN_WINDOW_D) {
       if (parameters.adoptsClaim) await closeWithoutSpending(scanId);
