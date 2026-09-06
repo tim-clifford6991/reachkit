@@ -35,11 +35,21 @@
 // below — issue #13's section, which is #27's `AiAnswersCard` plus the
 // three things the screen needs and the engine's card does not carry.
 //
-// **Nothing sizes rivals yet.** `sizeRivals` is built and no stage calls
-// it, so every pass stores `unmeasured / not_attempted` here — which
-// winnability reads as "we do not know how big this rival is", never as a
-// zero that would satisfy every bar (`winnability/counts.ts`). The stage
-// that fills it is issue #140.
+// **The paid pass sizes rivals** (issue #140): `checking_your_presence`
+// calls `sizeRivals` over the site's tracked rivals, and the free path
+// calls it never (§6.4's never-pull list). A pass that could not read the
+// site's rivals stores `unmeasured`, which winnability reads as "we do not
+// know how big this rival is" — never as a zero that would satisfy every
+// bar (`winnability/counts.ts`).
+//
+// **`ownRanked` joins beside it, and for the same reader.** §6.6 bands a
+// rival against "the customer's own measured count from the same pass" and
+// §7's two bars are multiples of that count, so the count has to survive
+// the pass that measured it. `scans.drivers.searchPresence` is the 0–100
+// sub-measure and not the count; storing the count is what lets a
+// derivation run against the customer's own bars rather than the
+// cold-start ones. Both members land together, so `REPORT_VERSION` goes to
+// 3 once.
 //
 // **The market sections belong to the market leaves, and one of them is
 // now theirs.** #27 landed `buildPresenceCard` while this branch was open,
@@ -89,7 +99,7 @@ export type StoppedReason = "complete" | "time_ceiling" | "spend_ceiling" | "fai
  *  it does not know throws rather than returning a partially-populated
  *  value: `null` would be indistinguishable from "no report" at every call
  *  site. */
-export const REPORT_VERSION = 2;
+export const REPORT_VERSION = 3;
 
 /** One cell of the AI-answers matrix — one question, one measured SERP.
  *  BP-025 `## Public interface` (issue #26's `matrix.ts` owns it). An
@@ -239,6 +249,12 @@ export interface StoredReport {
    *  the sizing stage lands (issue #140) — never an empty array, which
    *  would read as "we sized this customer's rivals and there are none". */
   rivalSizes: Measured<RivalSize[]>;
+  /** The customer's own ranked count from this pass — the rows, not the
+   *  0–100 sub-measure `scans.drivers` carries. §6.6 bands every rival
+   *  against it and §7's bars are `max(500, 5× it)` and `max(100, 2× it)`.
+   *  Capped by the row limit the pass bought, which understates it and so
+   *  tightens both bars (issue #117). */
+  ownRanked: Measured<number>;
   /** §6.6's platform partition — the "sources" half. Stored, not rendered
    *  in MVP. */
   sources: readonly string[];

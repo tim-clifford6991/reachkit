@@ -13,25 +13,25 @@
 // rather than in `derive/`, which must not know where a report comes
 // from:
 //
-//   `ownRanked`     the customer's own ranked count. **Not a member of
-//                   the blob** — `scans.drivers.searchPresence` is the
-//                   0–100 sub-measure, not the count — so it is
-//                   `undeterminable` here, which `ownRankedValue` reads
-//                   as the cold-start 0. That is the conservative
-//                   reading, not a convenient one: at 0 the bars are 500
-//                   and 100, the tightest they go, so fewer targets
-//                   qualify rather than more (`winnability/bars.ts`).
+//   `ownRanked`     the customer's own ranked count, as the pass measured
+//                   it (issue #140 put it on the blob; it is not
+//                   `drivers.searchPresence`, which is the 0–100
+//                   sub-measure). Its `unmeasured` arm is read by
+//                   `ownRankedValue` as the cold-start 0 — the
+//                   conservative reading and not a convenient one: at 0
+//                   the bars are 500 and 100, the tightest they go, so
+//                   fewer targets qualify rather than more
+//                   (`winnability/bars.ts`).
 //   `rankedCounts`  `rankedCountsFromSizes` over `report.rivalSizes` —
-//                   #37's sizing, projected. `unmeasured` (nothing sizes
-//                   rivals yet, issue #140) yields an empty lookup, and
-//                   an absent domain is `undeterminable`, never a zero
-//                   that would satisfy every bar.
+//                   #37's sizing, projected. An `unmeasured` arm yields
+//                   an empty lookup, and an absent domain is
+//                   `undeterminable`, never a zero that would satisfy
+//                   every bar.
 //
 // Nothing here writes a sentence, reads a clock, or decides whether the
 // customer has paid: `hasActiveAccess` is the caller's answer, exactly as
 // `topUp`'s own header requires.
 import type { CostContext } from "@/lib/costs";
-import { unmeasured } from "@/lib/measure/measured";
 import type { StoredReport } from "@/lib/scan/report";
 import type { DeriveInput } from "./derive";
 import { pursueDepth, type DepthStop } from "./supply/pursue";
@@ -62,7 +62,7 @@ function inputFor(a: { siteId: string; report: StoredReport }): DeriveInput {
     siteId: a.siteId,
     scanId: a.report.scanId,
     report: a.report,
-    ownRanked: unmeasured<number>("undeterminable", a.report.verdict.measuredAt),
+    ownRanked: a.report.ownRanked,
     rankedCounts: rankedCountsOf(a.report),
   };
 }
