@@ -9,64 +9,67 @@
 // stage — a hand-list is a second copy of the state machine, and the two
 // drift the first time an edge changes.
 //
-// `TRANSITIONS` is BUILD §9's state machine transcribed. It is on loan from
-// `src/lib/publish/` (issue #45) for the same reason `PublishState` is —
-// see `stages.ts`'s header. When #45 lands, this table is deleted and
-// imported; the projection below is unchanged, because it reads the table
-// and never the state names.
+// **The table is no longer on loan.** It was transcribed here while §9's
+// machine did not exist (issue #45); #45 landed it at
+// `src/lib/publish/machine/table.ts`, and this file now reads that one and
+// declares none of its own. The projection below is unchanged — it reads
+// the table and never the state names — but three of the fifteen edges
+// were not in the transcription, and reconciling them changes what the
+// panel offers (issue #130):
+//
+//  - `generating → skipped` was in the copy and is **not** in §9. The
+//    transcription reasoned from §4.6's "planned → Move/Skip" plus the fact
+//    that a generating page wears the *planned* chip (`stages.ts`), and
+//    invented an edge to match. §9's machine is declared "exact", so §9 is
+//    the side that is right and the edge goes: a page mid-generation no
+//    longer offers Skip. Nothing is stranded by that — generating leads to
+//    `in_review`, where the same `→ skipped` edge is open under the word
+//    Veto, and no page can reach a destination without passing through it.
+//  - `generating → needs_attention` (§8 rule 4: "failure = regenerate,
+//    twice = needs-attention") is in §9 and was not in the copy. It opens
+//    no control: the panel projects controls from the `→ skipped` edge, and
+//    this edge's target is not `skipped`.
+//  - `needs_attention → skipped` is in §9 (its c3 promise that no page is
+//    left in a state it has no way out of) and was not in the copy. It is
+//    the one edge that **adds** controls: a page in `needs_attention` now
+//    offers Move and Skip beside Reconnect.
+//
+// `needs_attention → generating` — the customer's own restart — is the
+// fourth edge the copy lacked. It opens no control here either, because a
+// restart is a control §4.6 does not name and minting one is a screen
+// change with its own issue (#143), not a consequence of importing a table.
+import { TRANSITIONS, isTransition } from "@/lib/publish/machine/table";
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { DayCell } from "./month";
 import type { PublishingCommand, StopCommand } from "./publishing";
 import { PUBLISH_STATES, type PublishState } from "./stages";
 
 /**
- * BUILD §9's state machine, verbatim:
- *
- *     planned → generating → in_review → approved → publishing → published
- *                               ↓ veto                  ↓ fail
- *                            skipped            failed → retry ×3 → needs_attention
- *     published → unpublished (always available)
- *
- * Two edges the diagram implies rather than draws, each stated with its
- * source: `planned → skipped`, because §4.6 offers **Skip** on a planned
- * page and there is no other state for a page taken off its date; and
- * `needs_attention → publishing`, because §9 makes an expired credential "a
- * **state** (reconnect prompt, queue holds), not an error loop" — the queue
- * that holds resumes into the publish it was holding.
- */
-export const TRANSITIONS: Readonly<Record<PublishState, readonly PublishState[]>> = Object.freeze({
-  planned: Object.freeze(["generating", "skipped"] as const),
-  generating: Object.freeze(["in_review", "skipped"] as const),
-  in_review: Object.freeze(["approved", "skipped"] as const),
-  approved: Object.freeze(["publishing"] as const),
-  publishing: Object.freeze(["published", "failed"] as const),
-  published: Object.freeze(["unpublished"] as const),
-  failed: Object.freeze(["publishing", "needs_attention"] as const),
-  needs_attention: Object.freeze(["publishing"] as const),
-  skipped: Object.freeze([] as const),
-  unpublished: Object.freeze([] as const),
-});
-
-/**
  * The word the one `→ skipped` edge is offered under, at each tail that
- * has it. BUILD §9 labels the edge out of `in_review` "veto"; §4.6 calls
- * the same edge out of a planned page "Skip". One edge, two promises, and
- * the customer is owed the word that matches what they are doing.
+ * has it. §9 labels the edge out of `in_review` "veto"; §4.6 calls the same
+ * edge out of a planned page "Skip". One edge, two promises, and the
+ * customer is owed the word that matches what they are doing.
+ *
+ * `needs_attention` takes **Skip** and not a third word: the page never
+ * went out — that is what `needs_attention` means — so stopping it is a
+ * page taken off its date without publishing, which is exactly what §4.6
+ * already calls Skip. Veto is reserved for its own promise, stopping a page
+ * in review before its window closes.
  *
  * Total over the ten states so a new state cannot arrive without an answer,
- * and coupled to `TRANSITIONS` by test: an entry is non-null exactly where
- * the state has the `skipped` edge, which is what makes this a projection
+ * and coupled to the table by test: an entry is non-null exactly where the
+ * state has the `skipped` edge, which is what makes this a projection
  * rather than a second list.
  */
 export const STOP_COMMAND: Readonly<Record<PublishState, StopCommand | null>> = Object.freeze({
   planned: "skip",
-  generating: "skip",
+  generating: null,
   in_review: "veto",
   approved: null,
   publishing: null,
   published: null,
   failed: null,
-  needs_attention: null,
+  needs_attention: "skip",
   skipped: null,
   unpublished: null,
 });
@@ -144,7 +147,7 @@ export function actionsFor(cell: DayCell): readonly DayAction[] {
   // held to — "a control never appears to work before its engine exists".
   const stop = STOP_COMMAND[page.state];
   const draftId = page.draftId;
-  if (TRANSITIONS[page.state].includes("skipped") && stop !== null && draftId !== null) {
+  if (isTransition(page.state, "skipped") && stop !== null && draftId !== null) {
     actions.push({ key: STOP_COPY_KEY.move, kind: "command", command: "move", draftId });
     actions.push({ key: STOP_COPY_KEY[stop], kind: "command", command: stop, draftId });
   }
@@ -152,8 +155,9 @@ export function actionsFor(cell: DayCell): readonly DayAction[] {
   return actions;
 }
 
-/** Exported for the test that couples `STOP_COMMAND` to `TRANSITIONS`; no
- *  renderer reads it. */
-export const STATES_WITH_STOP_EDGE: readonly PublishState[] = PUBLISH_STATES.filter((s) =>
-  TRANSITIONS[s].includes("skipped")
+/** The tails of the `→ skipped` edge, read straight off the imported table
+ *  rather than filtered through a second question. Exported for the test
+ *  that couples `STOP_COMMAND` to it; no renderer reads it. */
+export const STATES_WITH_STOP_EDGE: readonly PublishState[] = PUBLISH_STATES.filter((state) =>
+  TRANSITIONS.some(([from, to]) => from === state && to === "skipped")
 );

@@ -27,9 +27,18 @@ import {
   type GuardDeps,
   type MachineDraft,
 } from "./guards";
-import { GUARDS, STATES, TERMINAL, TRANSITIONS, edgeKey, type GuardId, type Refusal } from "./table";
+import {
+  GUARDS,
+  STATES,
+  TERMINAL,
+  TRANSITIONS,
+  edgeKey,
+  isTransition,
+  type GuardId,
+  type Refusal,
+} from "./table";
 
-export { STATES, TRANSITIONS, TERMINAL, GUARDS, edgeKey };
+export { STATES, TRANSITIONS, TERMINAL, GUARDS, edgeKey, isTransition };
 export type { GuardId, Refusal };
 export {
   DEFAULT_GUARD_DEPS,
@@ -55,12 +64,6 @@ export interface TransitionOptions {
    *  that already fixed a moment passes it so the ceilings and the
    *  publishable rule agree with the rest of its own pass. */
   at?: Date;
-}
-
-/** Is this pair one of the fifteen? Data, not a switch — the table is the
- *  only place the edges exist. */
-export function isTransition(from: State, to: State): boolean {
-  return TRANSITIONS.some(([f, t]) => f === from && t === to);
 }
 
 export async function transition(
