@@ -9,10 +9,18 @@
 // `src/app/api/**` is BP-001's ... a transport-only adapter"), the sign-in
 // address prompt itself (below), or a Next.js internal.
 //
-// Reads no database (`## File plan`): the check is a cookie's presence,
-// nothing about its contents. Session *identity* is BP-061's
-// `currentSession()`; the account container is not reachable before that
-// node ships (`## Interfaces`).
+// The authorisation check reads no database (`## File plan`): it is a
+// cookie's presence, nothing about its contents. Session *identity* is
+// BP-061's `currentSession()`; the account container is not reachable
+// before that node ships (`## Interfaces`).
+//
+// **One database read was added here for one path (#104), and it is not
+// the authorisation check.** A removed domain's report address must answer
+// `410 Gone` (owner ruling 2026-09-05, #28) and a Next `page.tsx` cannot
+// set a status, so `GET /scan/{domain}` — that path, that method, and
+// nothing else — is rewritten to the route handler that can. See
+// `removedRewrite` below for why it is here rather than in the page, and
+// what it costs.
 //
 // **Deprecated file convention, flagged once (constitution rule 4.2).**
 // Next.js 16 deprecates the `middleware.ts` / `export function middleware`
@@ -30,6 +38,8 @@
 // a work order that touches BP-001's own `code:` list.
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { isDomainRemoved } from "@/lib/scan/admission";
+import { parseDomain } from "@/lib/scan/domain";
 
 /** One entry per BP-001 `## Public interface` "Routes (public)" row
  *  (`## Steps` step 1). A leading `:` marks a single dynamic path segment —
@@ -129,8 +139,60 @@ function hasSession(req: NextRequest): boolean {
   return cookie !== undefined && cookie.value.length > 0;
 }
 
-export function middleware(req: NextRequest): NextResponse {
+/** `/scan/{domain}` and nothing else, with the segment as written. The one
+ *  path this function looks inside, because it is the one path whose
+ *  response status can depend on a stored fact (#104). */
+const REPORT_PATH = /^\/scan\/([^/]+)\/?$/;
+
+export function reportSegmentOf(pathname: string): string | null {
+  const match = REPORT_PATH.exec(pathname);
+  return match?.[1] ?? null;
+}
+
+/**
+ * A removed domain's report address answers `410 Gone` (owner ruling
+ * 2026-09-05, #28), and a Next `page.tsx` cannot set a status — so the
+ * report address is rewritten to the route handler that can, and the
+ * visitor stays at the address REQ-001 c2 promises them.
+ *
+ * **This is the one database read in this file, and it is narrow on
+ * purpose.** It happens for `GET /scan/{domain}` and for no other path,
+ * method or internal request; every other request is decided from the
+ * allow-list and the cookie exactly as before, with no await on the way.
+ * The read is one indexed lookup behind `isDomainRemoved`, over the table
+ * that holds one row per written removal request. A read that cannot be
+ * answered rewrites nothing — the report renders, which is this file's own
+ * fail-open convention and the same one admission uses.
+ *
+ * `isDomainRemoved` is `src/lib/scan/admission.ts`', the product's one
+ * reader of that table, and this file names neither the table nor a query:
+ * the status a removed address serves and the refusal a removed domain's
+ * scan gets can never disagree, because they are the same read.
+ */
+async function removedRewrite(req: NextRequest): Promise<NextResponse | null> {
+  if (req.method !== "GET") return null;
+  const segment = reportSegmentOf(req.nextUrl.pathname);
+  if (segment === null) return null;
+
+  const parsed = parseDomain(decodeURIComponent(segment));
+  if (!parsed.ok) return null;
+
+  try {
+    if (!(await isDomainRemoved(parsed.domain))) return null;
+  } catch {
+    return null;
+  }
+
+  const destination = req.nextUrl.clone();
+  destination.pathname = `/api/report/${parsed.domain}/removed`;
+  return NextResponse.rewrite(destination);
+}
+
+export async function middleware(req: NextRequest): Promise<NextResponse> {
   const { pathname } = req.nextUrl;
+
+  const removed = await removedRewrite(req);
+  if (removed !== null) return removed;
 
   if (isPublic(pathname) || hasSession(req)) {
     return NextResponse.next();
