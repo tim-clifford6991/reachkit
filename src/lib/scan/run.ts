@@ -57,7 +57,8 @@ import { deriveProfile, type Profile } from "@/lib/market/questions/profile";
 import { selectTwelve, type SelectedSearch } from "@/lib/market/questions/select";
 import { deriveRivals, type RivalCandidate } from "@/lib/market/rivals/derive";
 import { buildPresenceCard, type PresenceCard } from "@/lib/market/rivals/presence";
-import type { RivalSize } from "@/lib/market/rivals/size";
+import { sizeRivals, type RivalSize } from "@/lib/market/rivals/size";
+import { trackedRivals } from "@/lib/market/rivals/tracked";
 import type { MarketSerp } from "@/lib/market/views";
 import { aiPresenceOf, measureDomain, type DomainMeasurement } from "@/lib/measure";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
@@ -107,6 +108,14 @@ interface TierParameters {
    *  scan through the *cache* windows §6.4 names for it, which spends
    *  nothing either and still measures. */
   servesStoredReport: boolean;
+  /** §6.4's never-pull list, verbatim: "Never: … per-rival
+   *  `ranked_keywords` on the free path". §6.3's paid list adds it —
+   *  "`ranked_keywords`@100 ×rivals (**monthly**)" — so the two paid tiers
+   *  size the customer's tracked rivals and the free tier does not. The
+   *  monthly cadence is the cache window's (`CACHE_WINDOWS_D.rival`, applied
+   *  inside `rankedKeywords`) and not a second schedule here: a weekly pass
+   *  inside the window re-reads the same rows and spends nothing. */
+  sizesRivals: boolean;
 }
 
 export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.freeze({
@@ -117,6 +126,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     deadlineApplies: true,
     adoptsClaim: true,
     servesStoredReport: true,
+    sizesRivals: false,
   }),
   deep: Object.freeze({
     cap: "DEEP",
@@ -125,6 +135,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     deadlineApplies: false,
     adoptsClaim: false,
     servesStoredReport: false,
+    sizesRivals: true,
   }),
   weekly: Object.freeze({
     cap: "WEEKLY",
@@ -133,6 +144,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     deadlineApplies: false,
     adoptsClaim: false,
     servesStoredReport: false,
+    sizesRivals: true,
   }),
 } as const);
 
@@ -146,12 +158,10 @@ interface Sections {
   questions: Measured<Question[]>;
   serps: Measured<SerpResult>[];
   rivals: Measured<RivalCandidate[]>;
-  /** §6.6's sizing. No stage fills it: `sizeRivals` is built and nothing
-   *  calls it (issue #140), so it stays on the arm `freshSections` gave
-   *  it and reaches the blob saying so — never a zero, which would
-   *  satisfy every winnability bar. Declared here rather than synthesised
-   *  at composition, so the stage that lands fills a member that already
-   *  exists. */
+  /** §6.6's sizing, filled by `checking_your_presence` at the two tiers
+   *  whose parameters say so. A pass that could not read the site's
+   *  tracked rivals leaves the arm `freshSections` gave it — never a
+   *  zero, which would satisfy every winnability bar. */
   rivalSizes: Measured<RivalSize[]>;
   sources: readonly string[];
   aiAnswers: AiAnswersSection | null;
@@ -445,7 +455,19 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
     async (bounds, cost) => {
       passCost = cost;
       try {
-        await runStages({ scanId, bounds, cost, domain, tier: a.tier, parameters, correction: a.correctionOf !== undefined, sections, onStage: a.onStage });
+        await runStages({
+          scanId,
+          bounds,
+          cost,
+          domain,
+          tier: a.tier,
+          parameters,
+          correction: a.correctionOf !== undefined,
+          sections,
+          startedAt,
+          ...(a.siteId === undefined ? {} : { siteId: a.siteId }),
+          ...(a.onStage === undefined ? {} : { onStage: a.onStage }),
+        });
       } finally {
         spend.cents = cost.spentCents();
         spend.degraded = cost.degraded();
@@ -528,6 +550,12 @@ interface StageArgs {
   parameters: TierParameters;
   correction: boolean;
   sections: Sections;
+  /** Whose site this pass measures. Absent on the free path, which has no
+   *  site and therefore no tracked rivals to size. */
+  siteId?: string;
+  /** The pass's own start, so a stage that needs a date before the home
+   *  document has been read has one that is not `new Date()`. */
+  startedAt: Date;
   onStage?: (stage: StageName) => void | Promise<void>;
 }
 
@@ -570,6 +598,7 @@ async function runStages(a: StageArgs): Promise<void> {
 
   if (bounds.stopNow() !== null) return;
   await enter("checking_your_presence");
+  await sizeTrackedRivals(a);
   exitStage(scanId, "checking_your_presence");
 
   if (bounds.stopNow() !== null) return;
@@ -581,6 +610,75 @@ async function runStages(a: StageArgs): Promise<void> {
   await enter("scoring");
   score(a);
   exitStage(scanId, "scoring");
+}
+
+/**
+ * §6.6's sizing, over the rivals the customer chose.
+ *
+ * It runs in the presence stage because that is the stage about presence:
+ * stage one already bought the customer's own ranked rows, and this buys
+ * the rivals' — §6.3's paid list, "`ranked_keywords`@100 ×rivals". It runs
+ * at the tiers whose parameters say so and at no other, which is how
+ * §6.4's "never per-rival `ranked_keywords` on the free path" is kept: the
+ * free tier's `sizesRivals` is `false` and there is no other door.
+ *
+ * **Three inputs, and each is read rather than invented.** The rivals are
+ * the site's own, in the order the customer chose them. `ownRanked` is the
+ * count stage one measured — its `unmeasured` arm reads as the cold-start
+ * 0, which `sizeRivals` documents as an ordinary input and which bands
+ * every rival against the floors. `previous` is the last stored report's
+ * sizing, so a rival this pass could not measure is carried forward with
+ * its **earlier** date and `current: false` rather than falling back to
+ * "we have never measured this" (REQ-096 c4) — and its absence, where no
+ * pass has ever sized, is what makes a rival `awaiting_deep_pass`.
+ *
+ * Every failure is a leave-alone: a site whose rivals cannot be read, a
+ * report that cannot be re-read, a sizing that raised — each leaves
+ * `sections.rivalSizes` on the arm that says the pass did not get to it,
+ * and the pass carries on. Nothing here throws.
+ */
+async function sizeTrackedRivals(a: StageArgs): Promise<void> {
+  const siteId = a.siteId;
+  if (!a.parameters.sizesRivals || siteId === undefined) return;
+
+  // `null` is a site that is not there, which is not "tracks none": the
+  // sizing then stays on the arm that says the pass did not get to it,
+  // rather than storing a measured zero about a customer nobody read.
+  const rivals = await attempt("checking_your_presence", () => trackedRivals(siteId));
+  if (failed(rivals) || rivals === null) return;
+
+  const measurement = a.sections.measurement;
+  const at = measurement === null ? a.startedAt : measurement.drivers.foundations.at;
+  const ownRanked = measurement === null ? 0 : ownRankedValue(measurement.ownRanked);
+
+  const previous = await attempt("checking_your_presence", () => previousSizes(a.domain));
+  const sized = await attempt("checking_your_presence", () =>
+    sizeRivals(a.cost, {
+      rivals,
+      ownRanked,
+      at,
+      // Absent, never `[]`: an empty array says "the last pass sized these
+      // and found none", which would make every rival here
+      // `added_since_last_sizing` instead of `awaiting_deep_pass`.
+      ...(failed(previous) || previous === undefined ? {} : { previous }),
+    })
+  );
+  if (!failed(sized)) a.sections.rivalSizes = sized;
+}
+
+/** The customer's own count as a number for the banding. `unmeasured` is
+ *  the cold-start 0 — the honest reading and the conservative one: at 0
+ *  the winnability bars are 500 and 100, the tightest they go. */
+function ownRankedValue(ownRanked: Measured<number>): number {
+  return ownRanked.kind === "unmeasured" ? 0 : ownRanked.value;
+}
+
+/** The sizing the last stored report carries, or `undefined` where no pass
+ *  has sized this domain's rivals yet. */
+async function previousSizes(domain: CanonicalDomain): Promise<readonly RivalSize[] | undefined> {
+  const stored = await readCurrentReport(domain);
+  if (stored === null || stored.rivalSizes.kind === "unmeasured") return undefined;
+  return stored.rivalSizes.value;
 }
 
 /** §6.7 steps 1–4: profile → measured market → the twelve → their wording.
@@ -795,6 +893,7 @@ function composeReport(a: {
     serps: s.serps,
     rivals: s.rivals,
     rivalSizes: s.rivalSizes,
+    ownRanked: m === null ? unmeasured("not_attempted", measuredAt) : m.ownRanked,
     sources: s.sources,
     onPage,
     robots,

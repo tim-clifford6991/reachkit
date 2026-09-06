@@ -111,6 +111,7 @@ function measurement(over: Partial<DomainMeasurement> = {}): DomainMeasurement {
     onPage: measured(ON_PAGE, AT),
     pricing: null,
     robots: measured(ROBOTS, AT),
+    ownRanked: measuredZero(0, AT),
     ...over,
   };
 }
