@@ -54,8 +54,18 @@ export type InputProps = InputValid | InputInvalid;
 export function Input(p: InputProps): React.JSX.Element {
   return (
     <div>
-      <label className="label">
-        <span className="label-text">{p.label}</span>
+      {/* 2026-09-06, issue #12: was `label` + `label-text`. `label` is a
+          daisyUI *component* of its own and is not one of §2.2's fifteen —
+          "daisyUI components only … The set the product uses" is a closed
+          list, and a sixteenth component reached by writing its class by
+          hand is the one way left past the barrel. `label-text` is worse:
+          daisyUI 5 defines no such class at all (it is 4's spelling), so
+          it had never styled anything. The utilities below are daisyUI 5's
+          own `.label` rule written out — `display:inline-flex`,
+          `align-items:center`, `gap:.375rem`, `white-space:nowrap` and the
+          60% ink — so nothing about how this renders changes. */}
+      <label className="inline-flex items-center gap-1.5 whitespace-nowrap text-base-content/60">
+        <span>{p.label}</span>
       </label>
       <input
         type="text"

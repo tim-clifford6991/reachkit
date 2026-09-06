@@ -1,0 +1,8 @@
+Fixture — a file that violates the no-emoji rule (BUILD.md 2.3).
+Read only by tests/ui/design/emoji.test.ts, to prove the detector fires.
+
+Ship it 🎉
+Done ✅
+Careful ⚠️
+Region 🇬🇧
+First 1️⃣
