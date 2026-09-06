@@ -39,6 +39,12 @@ export const FIXTURE_SHELL_FACTS: ShellFacts = Object.freeze({
   firstDueOn: MONDAY(17),
   waiting: 2,
   next: new Date(Date.UTC(2026, 8, 8, 13, 0, 0)),
+  // REQ-092 c3: the ordinary state is that ReachKit has not stopped, so
+  // nothing states one. The stopped arm is exercised by
+  // `tests/presentation/sweeps/stopped.test.tsx`, which renders every route
+  // twice against a stop it supplies; a fixture that shipped a stop would
+  // put the notice on the owner's preview of every other screen.
+  stopped: null,
   noPublishCauses: Object.freeze({
     reachkit_stopped: false,
     publishing_paused: false,

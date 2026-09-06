@@ -46,6 +46,16 @@
 // and the supply half of the footnote — §4.6 states the supply *rule* to the
 // builder ("the empty state says so") and never says it to the customer.
 // Listed in issue #16's PR under "Owner owes".
+//
+// 2026-09-06, issue #20 (REQ-091 c2): these three keys are the ones the
+// arbiter `src/lib/presentation/place/account.ts` resolves — the baseline
+// cold-start line for a date carrying no page, and the two cause lines. They
+// stay **owner-owed and empty**, deliberately: this screen reads every line
+// through the shell's `writtenLine`, which renders an owner-owed key as
+// nothing, and `copy()` refuses one outright. So `account()` throws naming
+// the key rather than handing a place a blank — the outstanding obligation
+// is recorded the moment a place is registered, and no screen can render an
+// unwritten account by accident.
 import type { CopyPartition } from "../registry.ts";
 
 export const CALENDAR_COPY = Object.freeze({

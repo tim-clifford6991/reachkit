@@ -14,8 +14,9 @@
 // one-cause-at-a-time tests and fail these.
 import { describe, expect, it } from "vitest";
 import { COPY } from "@/lib/presentation/copy";
+import { nextPublishStatement } from "@/lib/presentation/stopped";
 import {
-  NO_PUBLISH_COPY_KEY,
+  NEXT_PUBLISH_OTHERWISE,
   NO_PUBLISH_PRECEDENCE,
   resolveNoPublish,
   type NoPublishCauses,
@@ -81,15 +82,33 @@ describe("REQ-092 c7 — ReachKit's stop outranks every other cause that is also
   });
 });
 
-describe("each cause has its own line in the registry, and stopped has REQ-092's", () => {
-  it("the four causes map one-to-one onto four distinct next-publish keys", () => {
-    const keys = NO_PUBLISH_PRECEDENCE.map((r) => NO_PUBLISH_COPY_KEY[r]);
+describe("each cause has its own line, and the line is chosen in one place", () => {
+  // Issue #20: the key table moved into `nextPublishStatement`
+  // (`src/lib/presentation/stopped/statement.ts`), REQ-092 c7's one home.
+  // What the shell keeps is the translation from its own four-boolean
+  // vocabulary into that function's `otherwise` argument — three entries,
+  // because a stop is not an `otherwise`.
+  it("the three non-stop causes map one-to-one onto three distinct next-publish keys", () => {
+    const keys = Object.values(NEXT_PUBLISH_OTHERWISE).map(
+      (tag) => nextPublishStatement({ stopped: false, otherwise: { tag } }).key
+    );
     expect(new Set(keys).size).toBe(keys.length);
     for (const key of keys) expect(key).toMatch(/^next-publish\./);
+    expect(keys).not.toContain("next-publish.stopped");
   });
 
-  it("reachkit_stopped's key is next-publish.stopped — REQ-092 c7's own line", () => {
-    expect(NO_PUBLISH_COPY_KEY.reachkit_stopped).toBe("next-publish.stopped");
+  it("reachkit_stopped has no otherwise entry — it is passed as the stop itself", () => {
+    expect(Object.keys(NEXT_PUBLISH_OTHERWISE)).not.toContain("reachkit_stopped");
+    expect(Object.keys(NEXT_PUBLISH_OTHERWISE)).toHaveLength(NO_PUBLISH_PRECEDENCE.length - 1);
+  });
+
+  it("a stop resolves to next-publish.stopped — REQ-092 c7's own line", () => {
+    const stopped = nextPublishStatement({
+      stopped: true,
+      // Publishing genuinely is paused as well; ADR-011 point 5 ignores it.
+      otherwise: { tag: "paused" },
+    });
+    expect(stopped.key).toBe("next-publish.stopped");
     // It is the registry's line, not one composed here: the key exists.
     expect(Object.keys(COPY)).toContain("next-publish.stopped");
   });

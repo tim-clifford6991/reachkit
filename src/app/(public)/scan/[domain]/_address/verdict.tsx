@@ -97,7 +97,9 @@ export function VerdictStrip(p: {
             overflows it by a pixel or two. A block wrapper takes the line
             box's height, which is the child's. */}
         <div className="text-5xl font-bold">
-          <Num>{scoreAndBand.kind === "unmeasured" ? dash() : scoreAndBand.value.score}</Num>
+          <Num unmeasured={scoreAndBand.kind === "unmeasured"}>
+            {scoreAndBand.kind === "unmeasured" ? dash() : scoreAndBand.value.score}
+          </Num>
         </div>
         {scoreAndBand.kind === "unmeasured" ? null : (
           <Badge tone={BAND_TONE[scoreAndBand.value.band]}>

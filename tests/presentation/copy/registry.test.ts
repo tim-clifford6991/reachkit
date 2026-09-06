@@ -416,33 +416,18 @@ describe("owner-owed and empty agree both ways", () => {
     // separate key. So: 45 owner-owed and empty unchanged, 69 + 5 = 74
     // awaiting copy, 59 + 6 = 65 ruled — 173 + 11 = 184 total.
     //
-    // 2026-09-05, separately again: issue #16 (the calendar, BUILD §4.6)
-    // adds twenty-five keys to `calendar.ts`. Twenty carry a value and
-    // every one is a transcription of a word or sentence §4.6 prints — six
-    // stage filter cards, six action words, the "Why this page" title and
-    // its five row labels, the footnote's first half — plus `calendar.head`
-    // itself, §4.6's `Head: "One page a day. Every day."`, which #9 seeded
-    // owner-owed and this issue fills. Six are owner-owed and empty because
-    // no artifact states them: REQ-043 c4's three remaining empty-date
-    // causes (`calendar.empty.instruction`, `.page-cannot-go-live`,
-    // `.customer-change-holds-pages`), c10's provenance line, §9's
-    // veto-deadline line, and the supply half of the footnote. None carries
-    // the `TODO(copy)` marker, so the awaiting count is untouched.
-    // 45 − 1 (`calendar.head`, now ruled) + 6 = 50 owner-owed, 74 awaiting
-    // unchanged, 65 + 20 = 85 ruled, 184 + 25 = 209 total.
     //
-    // 2026-09-05, separately again: issue #18 (Settings, BUILD §4.7) adds
-    // fifty-four keys — fifty ruled transcriptions (see the note above) and
-    // four owner-owed and empty: `settings.account.magic-link` (§4.7 names a
-    // "magic-link note" and prints no note), `settings.action.not-yet` (the
-    // line an action with no wiring yet reports), and the two danger-zone
-    // consequence lines, which REQ-079 c1 requires and no clause writes. They
-    // take the empty representation rather than the marker because that screen
-    // resolves every one of them through `writtenLine`, which returns `null`
-    // and renders nothing — the marker exists for a screen that `copy()`'s
-    // throw would otherwise take down, and this one never calls `copy()` on a
-    // key it has not first found written. 50 + 4 = 54 owner-owed, 74 awaiting
-    // unchanged, 85 + 50 = 135 ruled, 209 + 54 = 263 total.
+    // 2026-09-06, separately again: issue #20 (REQ-091/REQ-092) adds no key
+    // and moves thirteen off the empty-value representation onto the marker
+    // — the three `place.overview.weekly-presence.*` lines,
+    // `place.calendar.date.page`, `cause.unrecognised`,
+    // `cause.supply-exhausted`, `stopped.work.resumes-on`,
+    // `stopped.work.no-time-promised`, `stopped.work.partial-pass` and the
+    // four unfilled `next-publish.*` lines. Every one of them is a line a
+    // place holding nothing carries, and REQ-091 criterion 2 is that such a
+    // place carries "exactly one written line" and never a blank: an empty
+    // value makes `copy()` throw rather than render, which is the one thing
+    // these thirteen may not do.
     //
     // 2026-09-05, separately again: issue #15 (Overview, BUILD §4.5 as
     // amended by DECISIONS 2026-09-03) adds thirty-six keys in
@@ -483,8 +468,31 @@ describe("owner-owed and empty agree both ways", () => {
     // through `writtenLine` can afford the empty representation; this one
     // cannot. So: 71 owner-owed unchanged, 74 + 42 = 116 awaiting copy,
     // 154 + 6 = 160 ruled — 299 + 48 = 347 total.
-    expect(OWNER_OWED.length).toBe(71);
-    expect(AWAITING_COPY.length).toBe(116);
+    //
+    // 2026-09-06, separately again: issue #20 (REQ-091/REQ-092) adds no key
+    // and moves seven off the empty-value representation onto the marker:
+    // `stopped.work.resumes-on`, `stopped.work.no-time-promised`,
+    // `stopped.work.partial-pass` and the four unfilled `next-publish.*`
+    // lines. Every one of the seven is a line a **stopped** screen must
+    // render something for — REQ-092 criterion 3's "the screen they land on
+    // states it" and criterion 7's "names ReachKit's stop as the reason no
+    // publish is scheduled" are both a statement, and a screen that renders
+    // nothing has made neither. Setup's rule above is the same rule read
+    // from the other side, and Overview's is its complement: the marker for
+    // a key a screen must render something for, the empty value for a
+    // sentence a customer would otherwise read as product copy.
+    //
+    // The six sibling keys `src/lib/presentation/place/` resolves —
+    // `place.overview.weekly-presence.*`, `place.calendar.date.page`,
+    // `cause.unrecognised`, `cause.supply-exhausted` — are deliberately
+    // **not** moved: Overview and the calendar read them through
+    // `writtenLine`, and `account()` throws naming the key rather than
+    // handing a place a blank.
+    //
+    // 71 - 7 = 64 owner-owed and empty, 116 + 7 = 123 awaiting copy, 160
+    // ruled unchanged, 347 total unchanged.
+    expect(OWNER_OWED.length).toBe(64);
+    expect(AWAITING_COPY.length).toBe(123);
     expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(160);
     expect(Object.keys(COPY).length).toBe(347);
 

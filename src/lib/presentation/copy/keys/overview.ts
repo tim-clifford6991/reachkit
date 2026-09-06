@@ -39,6 +39,12 @@
 // The two delta glyphs are the same kind of thing as `unmeasured.dash` —
 // §4.5's own "▲delta" mark, transcribed once so no arrow character is
 // written at a call site.
+// 2026-09-06, issue #20 (REQ-091 c2): the three `place.overview.*` keys are
+// the ones `src/lib/presentation/place/` registers as places. They stay
+// owner-owed and empty on this screen's own rule, above — a marker is the
+// right standing for a key a screen must render something for, and Overview
+// reads these through `writtenLine`. `account()` therefore throws naming the
+// key rather than handing a place a blank.
 import type { CopyPartition } from "../registry.ts";
 
 export const OVERVIEW_COPY = Object.freeze({

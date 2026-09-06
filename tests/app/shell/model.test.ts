@@ -25,6 +25,7 @@ const BASE: ShellFacts = {
   firstDueOn: MONDAY(7),
   waiting: 0,
   next: new Date(Date.UTC(2026, 8, 16, 13, 0, 0)),
+  stopped: null,
   noPublishCauses: {
     reachkit_stopped: false,
     publishing_paused: false,
@@ -113,6 +114,43 @@ describe("REQ-040 c4 — no publish scheduled carries exactly one resolved reaso
     // "An unattributed empty day is ReachKit's own stop." There is no arm of
     // PublishingState with neither a time nor a reason.
     const shell = assembleShell(facts({ next: null }));
+    expect(shell.publishing).toEqual({ mode: "autopilot", next: null, because: "reachkit_stopped" });
+  });
+});
+
+// ── REQ-092 c3 and c7 (issue #20) ───────────────────────────────────────
+describe("REQ-092 — a stop is carried, and no publish is scheduled while it stands", () => {
+  const STOP = {
+    since: MONDAY(14),
+    resumes: { promised: false },
+    needs: { kind: "nothing" },
+    partial: false,
+  } as const;
+
+  it("the model carries the stop, so every app screen can state it (c3)", () => {
+    const shell = assembleShell(facts({ stopped: STOP }));
+    expect(shell.stopped).toEqual(STOP);
+  });
+
+  it("with no stop the field is null — that is the whole of 'it stops stating it' (c3)", () => {
+    expect(assembleShell(BASE).stopped).toBeNull();
+  });
+
+  it("a stop outranks a time still on the row: no publish is scheduled (c7)", () => {
+    // The row says a publish is due on the 16th and ReachKit has stopped.
+    // Carrying that time over would tell the customer the work is coming.
+    const shell = assembleShell(facts({ stopped: STOP }));
+    expect(shell.publishing).toEqual({ mode: "autopilot", next: null, because: "reachkit_stopped" });
+  });
+
+  it("a stop outranks every other cause that is also true (ADR-011)", () => {
+    const shell = assembleShell(
+      facts({
+        next: null,
+        stopped: STOP,
+        noPublishCauses: { ...BASE.noPublishCauses, publishing_paused: true },
+      })
+    );
     expect(shell.publishing).toEqual({ mode: "autopilot", next: null, because: "reachkit_stopped" });
   });
 });
