@@ -149,4 +149,48 @@ export const MAIL_COPY = Object.freeze({
   // credential-bearing address into the mailbox the customer is leaving.
   "mail.account.address_moved.subject": ["", { slots: {}, fixedBy: "REQ-077 c3" }],
   "mail.account.address_moved": ["", { slots: {}, fixedBy: "REQ-077 c3" }],
+
+  // 2026-09-06, issue #47 (REQ-063 c4, REQ-064, BUILD §12's `weekly` row:
+  // "score delta, AI answers delta, pages verdicts, next 3 — all values
+  // conditional: a missing number omits its section, never prints 0").
+  // Eleven keys, every one owner-owed and **empty** on the #93 ruling the
+  // account and setup-reminder lines above cite: these are mail lines, and
+  // a mail never ships a placeholder.
+  //
+  // The four *verdict words* are not here — they are `keys/publish.ts`'s,
+  // because Overview and the calendar speak the same four and a mail must
+  // not word a verdict differently from the screen beside it.
+  //
+  // A page is named by **its address**, and a next opportunity by **the
+  // search it targets**: both are measured fact. Neither is named by its
+  // title, which is model-written text a mail may not speak in ReachKit's
+  // own voice (§8, REQ-093) — so no slot below takes one.
+  "mail.weekly.subject": ["", { slots: {}, fixedBy: "§12" }],
+  "mail.weekly.score": ["", { slots: {}, fixedBy: "§12" }],
+  "mail.weekly.aiAnswers": ["", { slots: {}, fixedBy: "§12" }],
+  "mail.weekly.verdicts": ["", { slots: {}, fixedBy: "REQ-063 c4" }],
+  "mail.weekly.verdicts.none": ["", { slots: {}, fixedBy: "REQ-064 c3" }],
+  "mail.weekly.next": ["", { slots: {}, fixedBy: "§12" }],
+  "mail.weekly.next.none": ["", { slots: {}, fixedBy: "REQ-064 c3" }],
+  "mail.weekly.next.item": ["", { slots: { search: "text" }, fixedBy: "§12" }],
+
+  // The three forms a judged page's row takes. Three sentences and not one
+  // with a conditional: "this page" and "this page, which moved from here
+  // to there since the date it was measured" and "…, over an interval
+  // longer than a week" are three different statements, and REQ-063 c4
+  // requires the third whenever the measurement compared against is not
+  // the previous week's. A template that chose between them with an `if`
+  // would be one edit away from stating a span it did not have.
+  "mail.weekly.page": ["", { slots: { page: "text" }, fixedBy: "REQ-063 c4" }],
+  "mail.weekly.page.moved": [
+    "",
+    { slots: { page: "text", from: "text", to: "text", measuredAt: "date" }, fixedBy: "REQ-063 c3" },
+  ],
+  "mail.weekly.page.moved_over": [
+    "",
+    {
+      slots: { page: "text", from: "text", to: "text", measuredAt: "date", weeks: "text" },
+      fixedBy: "REQ-063 c4",
+    },
+  ],
 }) satisfies CopyPartition;

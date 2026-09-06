@@ -566,10 +566,22 @@ describe("owner-owed and empty agree both ways", () => {
     // only put "TODO(copy)" where a customer will later read a sentence.
     // 79 + 6 = 85 owner-owed, 135 awaiting copy unchanged, 168 ruled
     // unchanged, 382 + 6 = 388 total.
-    expect(OWNER_OWED.length).toBe(85);
+    //
+    // 2026-09-06, separately again: issue #47 (REQ-063's weekly verdicts and
+    // §12's Monday mail) adds fifteen keys, every one **empty**. Eleven are
+    // the `weekly` mail's own lines and take the empty value on the #93
+    // ruling the twelve above cite. The other four are the verdict words —
+    // `verdict.page.{working,too_early,not_working,not_judgeable}` — and
+    // they take it too, although Overview and the calendar will also speak
+    // them: the first surface to read one is the Monday mail, and a mail
+    // that rendered `TODO(copy)` as a customer's own page's verdict is the
+    // case that ruling draws the line for. 85 + 15 = 100 owner-owed and
+    // empty, 135 awaiting copy unchanged, 168 ruled unchanged,
+    // 388 + 15 = 403 total.
+    expect(OWNER_OWED.length).toBe(100);
     expect(AWAITING_COPY.length).toBe(135);
     expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(168);
-    expect(Object.keys(COPY).length).toBe(388);
+    expect(Object.keys(COPY).length).toBe(403);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.
