@@ -331,9 +331,10 @@ export type Database = {
           competitors: NonNullable<Json>
           created_at: string
           do_not_claim: NonNullable<Json>
-          domain: string
+          domain: string | null
           id: string
           mode: string
+          provisioned_from_scan_id: string | null
           publish_time: string
           user_id: string
           veto_hours: number
@@ -344,9 +345,10 @@ export type Database = {
           competitors?: NonNullable<Json>
           created_at?: string
           do_not_claim?: NonNullable<Json>
-          domain: string
+          domain?: string | null
           id?: string
           mode?: string
+          provisioned_from_scan_id?: string | null
           publish_time?: string
           user_id: string
           veto_hours?: number
@@ -357,15 +359,23 @@ export type Database = {
           competitors?: NonNullable<Json>
           created_at?: string
           do_not_claim?: NonNullable<Json>
-          domain?: string
+          domain?: string | null
           id?: string
           mode?: string
+          provisioned_from_scan_id?: string | null
           publish_time?: string
           user_id?: string
           veto_hours?: number
           voice_text?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "sites_provisioned_from_scan_id_fkey"
+            columns: ["provisioned_from_scan_id"]
+            isOneToOne: false
+            referencedRelation: "scans"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sites_user_id_fkey"
             columns: ["user_id"]
@@ -377,28 +387,40 @@ export type Database = {
       }
       users: {
         Row: {
+          billing_country: string | null
+          checkout_session_id: string | null
           created_at: string
           deleted_at: string | null
           email: string
+          first_signed_in_at: string | null
           id: string
           plan_status: string
           stripe_customer_id: string | null
+          vat_number: string | null
         }
         Insert: {
+          billing_country?: string | null
+          checkout_session_id?: string | null
           created_at?: string
           deleted_at?: string | null
           email: string
+          first_signed_in_at?: string | null
           id?: string
           plan_status: string
           stripe_customer_id?: string | null
+          vat_number?: string | null
         }
         Update: {
+          billing_country?: string | null
+          checkout_session_id?: string | null
           created_at?: string
           deleted_at?: string | null
           email?: string
+          first_signed_in_at?: string | null
           id?: string
           plan_status?: string
           stripe_customer_id?: string | null
+          vat_number?: string | null
         }
         Relationships: []
       }
