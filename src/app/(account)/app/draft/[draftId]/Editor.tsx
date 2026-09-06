@@ -20,13 +20,18 @@
 // save button beside an autosave is an invitation to believe the autosave
 // is optional.
 //
-// The textarea is a plain element with daisyUI's own `textarea` class:
-// §2.2's component set names `input` and no multi-line control, and
-// `src/ui/components/` registers none — the archived WO-173 recorded the
-// same gap. Minting one here would put an unregistered widget in the
-// design system's namespace; using daisyUI's own class keeps the control
-// inside daisyUI, where §2.2 puts every component, and leaves the
-// registration to the owner. Flagged in the pull request.
+// **The textarea is a native element, styled with stock utilities, and
+// that is a recorded gap rather than a shortcut.** §2.2's component set
+// names `input` and no multi-line control; `src/ui/components/` registers
+// none, and the archived WO-173 found the same thing ("the draft editor
+// cannot be built from the registered set"). Three things this build will
+// not do about it: mint a bespoke widget (§2.2 forbids it), reach for
+// daisyUI's own `textarea` class (that is a sixteenth daisyUI component,
+// which `tests/ui/design/component-registry.test.ts` closes), or edit
+// §2.2 (the owner's file). What is left is the browser's own multi-line
+// control wearing the same theme tokens `Card` wears — a form element on
+// the footing `<p>` and `<a>` are on, not a component. The registration is
+// the owner's; flagged in the pull request.
 "use client";
 
 import type React from "react";
@@ -72,7 +77,7 @@ export function Editor(p: {
           data-testid="draft-editor-markdown"
         >
           <textarea
-            className="textarea num h-96 w-full"
+            className="num border-base-300 bg-base-100 rounded-box h-96 w-full border p-3"
             value={p.bodyMd}
             onChange={(e) => p.onChange(e.target.value)}
             onBlur={p.onFlush}
