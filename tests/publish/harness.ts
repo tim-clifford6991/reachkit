@@ -70,8 +70,6 @@ function matches(row: Row, filters: RecordedQuery["filters"]): boolean {
         return value === null || value === undefined;
       case "not-is-null":
         return value !== null && value !== undefined;
-      case "is":
-        return f.value === null ? value === null || value === undefined : value === f.value;
       default:
         return true;
     }
@@ -166,10 +164,6 @@ export function fakeDb(): FakeDb {
       },
       eq(column: string, value: unknown) {
         query.filters.push({ op: "eq", column, value });
-        return self;
-      },
-      is(column: string, value: unknown) {
-        query.filters.push({ op: "is", column, value });
         return self;
       },
       neq(column: string, value: unknown) {

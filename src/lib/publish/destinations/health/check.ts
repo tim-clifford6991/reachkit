@@ -12,6 +12,7 @@
 // **It writes `health_changed_at` only when the state actually changed.**
 // That column is when the destination broke, not when it was last looked
 // at, and one breakage mail is counted from it (`breakage-mail.ts`).
+import { HOSTED_SUBDOMAIN_LABEL } from "@/lib/config/constants";
 import { resolvesInDns } from "@/lib/egress";
 import { publishDb } from "../../db";
 import type { DestinationHealth, HealthReason } from "../../types";
@@ -24,10 +25,6 @@ export interface HealthCheck {
   reason: HealthReason | null;
   checkedAt: Date;
 }
-
-/** The subdomain §9 names: "`content.{customer-domain}` by CNAME → our
- *  edge route". One label, written once. */
-export const HOSTED_SUBDOMAIN = "content";
 
 async function siteDomain(siteId: string): Promise<string | null> {
   const { data, error } = await publishDb()
@@ -61,7 +58,7 @@ async function hostedHealth(row: DestinationRecord): Promise<{ health: Destinati
   if (domain === null || domain.trim() === "") {
     return { health: "expired", reason: "never_connected" };
   }
-  if (!(await resolvesInDns(`${HOSTED_SUBDOMAIN}.${domain}`))) {
+  if (!(await resolvesInDns(`${HOSTED_SUBDOMAIN_LABEL}.${domain}`))) {
     return { health: "expired", reason: "dns_unset" };
   }
   const adapter = adapterFor("hosted");

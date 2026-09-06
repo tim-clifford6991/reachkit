@@ -22,7 +22,7 @@ import { destinationView } from "../view";
 import { readDestination, type DestinationRecord } from "../store";
 import { checkHealth } from "./check";
 
-export { checkHealth, HOSTED_SUBDOMAIN } from "./check";
+export { checkHealth } from "./check";
 export type { HealthCheck } from "./check";
 export { breakageMailDue, sendBreakageMail } from "./breakage-mail";
 export type { BreakageMail } from "./breakage-mail";
