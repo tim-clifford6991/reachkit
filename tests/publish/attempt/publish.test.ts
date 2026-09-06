@@ -32,6 +32,7 @@ const AT = new Date(Date.UTC(2026, 8, 15, 12, 0, 0));
 
 function openDeps(over: Partial<GuardDeps> = {}): GuardDeps {
   return {
+    reachKitStopped: async () => false,
     isPublishingOn: async () => true,
     hasCeilingRoom: async () => true,
     destinationWorking: async () => true,

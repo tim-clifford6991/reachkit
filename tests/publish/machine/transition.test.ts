@@ -29,6 +29,7 @@ const AT = new Date(Date.UTC(2026, 8, 15, 12, 0, 0));
 /** Every guard open. A test that wants one shut says which. */
 function openDeps(over: Partial<GuardDeps> = {}): GuardDeps {
   return {
+    reachKitStopped: async () => false,
     isPublishingOn: async () => true,
     hasCeilingRoom: async () => true,
     destinationWorking: async () => true,
@@ -144,6 +145,80 @@ describe("a move that is one of the fifteen moves the page and records it", () =
     draftRow().state = "approved";
     const result = await transition("d1", "approved", CUSTOMER, { at: AT, deps: openDeps() });
     expect(result.ok).toBe(false);
+  });
+});
+
+describe("REQ-092 c5 — a ReachKit stop holds a prepared page, it does not drop it", () => {
+  it.each(["approved", "failed", "needs_attention"] as const)(
+    "%s → publishing is refused by the stop, and the page keeps the state it holds",
+    async (from) => {
+      seedDraft(from, { publishable_since: "2026-09-10T00:00:00.000Z" });
+      const result = await transition("d1", "publishing", SYSTEM, {
+        at: AT,
+        deps: openDeps({ reachKitStopped: async () => true }),
+      });
+      expect(result).toEqual({
+        ok: false,
+        refused: "guard",
+        failedGuard: "reachkit_not_stopped",
+        state: from,
+      });
+      // Held is the absence of an edge: nothing moved, nothing was
+      // appended, and the page's place in the resume order is untouched.
+      expect(draftRow().state).toBe(from);
+      expect(draftRow().transitions).toEqual([]);
+      expect(draftRow().publishable_since).toBe("2026-09-10T00:00:00.000Z");
+      expect(db.rpcCalls).toHaveLength(0);
+    }
+  );
+
+  it("a draft in review when the stop begins is neither dropped nor marked published", async () => {
+    // The ordinary autopilot route, driven under a stop. Approval is not an
+    // attempt and is not held — §9 auto-approves on expiry and REQ-092
+    // stops the *work*, not the customer's own window. The attempt that
+    // follows is where the stop bites, and the page comes to rest in
+    // `approved`: still in the pipeline, not `skipped`, not `published`.
+    seedDraft("in_review", { publishable_since: "2026-09-11T00:00:00.000Z" });
+    const stopped = openDeps({ reachKitStopped: async () => true });
+
+    await transition("d1", "approved", SYSTEM, { at: AT, deps: stopped });
+    const attempt = await transition("d1", "publishing", SYSTEM, { at: AT, deps: stopped });
+
+    expect(attempt).toMatchObject({ failedGuard: "reachkit_not_stopped" });
+    expect(draftRow().state).toBe("approved");
+    expect(draftRow().state).not.toBe("skipped");
+    expect(draftRow().state).not.toBe("published");
+    // One record, the approval's — the stop appended none of its own.
+    expect((draftRow().transitions as TransitionRecord[]).map((r) => r.to)).toEqual(["approved"]);
+    expect(draftRow().publishable_since).toBe("2026-09-11T00:00:00.000Z");
+  });
+
+  it("the stop names itself even when the customer's switch is off too (ADR-011, REQ-092 c7)", async () => {
+    // Both causes hold. The refusal reports ReachKit's stop and never the
+    // pause — the customer is not sent to a setting of their own to fix
+    // something that was never theirs.
+    seedDraft("approved");
+    const result = await transition("d1", "publishing", SYSTEM, {
+      at: AT,
+      deps: openDeps({ reachKitStopped: async () => true, isPublishingOn: async () => false }),
+    });
+    expect(result).toMatchObject({ failedGuard: "reachkit_not_stopped" });
+  });
+
+  it("when the stop lifts, the same call is taken and the page publishes", async () => {
+    seedDraft("approved", { publishable_since: "2026-09-10T00:00:00.000Z" });
+    const held = await transition("d1", "publishing", SYSTEM, {
+      at: AT,
+      deps: openDeps({ reachKitStopped: async () => true }),
+    });
+    expect(held).toMatchObject({ ok: false, failedGuard: "reachkit_not_stopped" });
+
+    const resumed = await transition("d1", "publishing", SYSTEM, {
+      at: AT,
+      deps: openDeps({ reachKitStopped: async () => false }),
+    });
+    expect(resumed).toEqual({ ok: true, state: "publishing" });
+    expect(draftRow().state).toBe("publishing");
   });
 });
 
@@ -271,6 +346,7 @@ describe("the default publishable rule refuses until the veto leaf is built", ()
     const result = await transition("d1", "publishing", SYSTEM, {
       at: AT,
       deps: {
+        reachKitStopped: async () => false,
         isPublishingOn: async () => true,
         hasCeilingRoom: async () => true,
         destinationWorking: async () => true,

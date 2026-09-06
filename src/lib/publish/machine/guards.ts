@@ -1,10 +1,10 @@
-// BUILD §9 — the eight named guards, one function each.
+// BUILD §9 — the nine named guards, one function each.
 //
 // A guard answers one question about one edge and delegates every fact it
-// does not own: the switch is `switch/index.ts`'s, the ceilings are
-// `ceilings/index.ts`'s, the publishable rule and the telling are the veto
-// leaf's (#46). None of them is re-implemented here — a second copy of a
-// rule is the thing that drifts.
+// does not own: the switch and ReachKit's own stop are `switch/index.ts`'s,
+// the ceilings are `ceilings/index.ts`'s, the publishable rule and the
+// telling are the veto leaf's (#46). None of them is re-implemented here —
+// a second copy of a rule is the thing that drifts.
 //
 // Guards are evaluated lazily, in the order `GUARDS` lists them, and the
 // first that fails names itself in the refusal. Laziness is not an
@@ -13,7 +13,7 @@
 //
 // The archived plan is WO-209.
 import type { Actor, DraftView, TransitionRecord } from "../types";
-import { isPublishingOn } from "../switch";
+import { isPublishingOn, reachKitStopped } from "../switch";
 import { ceilingRoom } from "../ceilings";
 import { destinationWorking } from "../destinations";
 import { PUBLISHABLE_RULE } from "../publishable/rule";
@@ -70,6 +70,11 @@ export const PUBLISHABLE_RULE_NOT_BUILT: PublishableRule = Object.freeze({
  *  function of what it is handed, and so a test drives one guard without a
  *  database. */
 export interface GuardDeps {
+  /** REQ-092 c1's stop, as one boolean. Takes the site so a per-account
+   *  stop can arrive here without a signature change; the halt §11 binds to
+   *  publishing is deployment-wide, so the default implementation declares
+   *  no parameter and reads none. */
+  reachKitStopped(siteId: string): Promise<boolean>;
   isPublishingOn(siteId: string): Promise<boolean>;
   hasCeilingRoom(siteId: string, at: Date): Promise<boolean>;
   destinationWorking(siteId: string): Promise<boolean>;
@@ -77,6 +82,7 @@ export interface GuardDeps {
 }
 
 export const DEFAULT_GUARD_DEPS: GuardDeps = Object.freeze({
+  reachKitStopped,
   isPublishingOn,
   async hasCeilingRoom(siteId: string, at: Date): Promise<boolean> {
     return (await ceilingRoom(siteId, at)).room;
@@ -97,7 +103,7 @@ export interface GuardContext {
 }
 
 /** One function per `GuardId`, named for the id. Total over the union, so
- *  a ninth guard cannot be named on an edge without one. */
+ *  a tenth guard cannot be named on an edge without one. */
 export const GUARD_FNS: Readonly<Record<GuardId, (c: GuardContext) => Promise<boolean>>> =
   Object.freeze({
     async draft_passed_hard_rules(c: GuardContext): Promise<boolean> {
@@ -118,6 +124,17 @@ export const GUARD_FNS: Readonly<Record<GuardId, (c: GuardContext) => Promise<bo
 
     async customer_told(c: GuardContext): Promise<boolean> {
       return c.deps.rule.toldCurrentPair(c.draft);
+    },
+
+    /** REQ-092 c5, and the whole of it: the guard **refuses**, and a
+     *  refusal takes no transition (`transition()` returns before the RPC).
+     *  So a draft in review or approved when a stop begins keeps the state
+     *  it holds and the `publishable_since` it holds — it is not skipped,
+     *  not discarded, not marked published — and the resume order it is
+     *  already in is what it resumes in. Nothing here writes anything;
+     *  holding a page is the absence of an edge. */
+    async reachkit_not_stopped(c: GuardContext): Promise<boolean> {
+      return !(await c.deps.reachKitStopped(c.draft.siteId));
     },
 
     async publishing_switch_on(c: GuardContext): Promise<boolean> {

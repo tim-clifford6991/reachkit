@@ -9,9 +9,16 @@
 // here writes a `held` column, and nothing here moves a page: switching off
 // takes no transition, and a page held by it keeps the state it holds — it
 // is never skipped, discarded or brought to rest as needing the customer on
-// account of publishing being off. That is also the shape #116 needs: a
-// page prepared before a ReachKit stop is still there, in the state it was
-// in, when the stop lifts.
+// account of publishing being off.
+//
+// **REQ-092 c5 is the same shape, and #116 wired it here** rather than
+// beside it. A ReachKit stop is a second reason no attempt begins, not a
+// second mechanism: `reachKitStopped()` below is read by the machine's
+// `reachkit_not_stopped` guard exactly as the switch is read by
+// `publishing_switch_on`, it takes no transition either, and the held set
+// and the resume order are already blind to which of the two is holding a
+// page. So a page prepared before a stop is still there, in the state it
+// was in, when the stop lifts — and resumes in the order it was held.
 //
 // The archived plan is WO-210.
 import { publishDb } from "../db";
@@ -38,6 +45,38 @@ export async function isPublishingOn(siteId: string): Promise<boolean> {
     .single();
   if (error !== null || data === null) return false;
   return data.publishing_enabled === true;
+}
+
+/**
+ * Has ReachKit stopped its own work, so far as a publish attempt is
+ * concerned (REQ-092 c1)?
+ *
+ * **One of the three stop shapes reaches a delivery, and it is the halt.**
+ * `stopCause()` (`src/lib/presentation/stopped/stop.ts`) classifies three:
+ * `halted`, `spend-ceiling`, `step-failed`. §11 binds the kill switch to
+ * "scan+generate+publish", so a halt stops an attempt. The other two do
+ * not, and saying so is not a gap:
+ *
+ *   · a spend ceiling degrades a *scan* (§6.5 — "skip remaining optional
+ *     work, mark scan `degraded`, never throw"); it buys no vendor call to
+ *     deliver a page that is already written, so there is nothing of it
+ *     for a delivery to hit;
+ *   · a step that failed on a page is already the machine's own `failed`,
+ *     with its retries and its `failed → needs_attention` edge. Reading it
+ *     a second time here would hold a page the machine is deliberately
+ *     retrying.
+ *
+ * **It reads the binding at call time, through a dynamic import.** `env`
+ * parses `process.env` at module load and throws on a missing binding, and
+ * this leaf is imported by the machine, which every publishing suite
+ * drives. Importing it at the top would make an env fixture the price of
+ * touching the state machine at all. The read is per call either way — an
+ * operator who flips the binding is stopping the work now, not at the next
+ * deploy.
+ */
+export async function reachKitStopped(): Promise<boolean> {
+  const { env } = await import("@/lib/config/env");
+  return env.KILL_SWITCH;
 }
 
 /**
@@ -80,6 +119,13 @@ export interface HeldPages {
  * of `HELD_STATES` and has become publishable (`drafts.publishable_since`
  * is the moment it did). There is no `held` column to write and none to
  * forget to clear.
+ *
+ * **The set is cause-agnostic, and that is what REQ-092 c5 needs** (#116).
+ * It asks the draft row what state it is in and nothing about *why* no
+ * attempt began — so a page the customer's switch is holding and a page a
+ * ReachKit stop is holding are the same page, in the same set, in the same
+ * order. A second query per cause is how one of them would come back
+ * shorter than the other.
  */
 export async function heldPages(siteId: string): Promise<HeldPages> {
   const rows = await heldRows(siteId);
@@ -89,6 +135,11 @@ export async function heldPages(siteId: string): Promise<HeldPages> {
 /**
  * The held pages in the order they were held, oldest first, so a resume
  * drains the backlog in the order the customer accrued it and drops none.
+ *
+ * REQ-092 c5's "publishes on the normal schedule" after a stop lifts is
+ * this order and no other: the stop wrote no transition, so every page
+ * still carries the `publishable_since` it had before the stop began, and
+ * draining in this order is draining in the order they became publishable.
  *
  * `publishable_since` ascending, `id` ascending as the tiebreak — a total
  * order, so two pages that became publishable in the same millisecond
