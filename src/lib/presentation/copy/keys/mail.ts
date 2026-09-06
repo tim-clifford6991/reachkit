@@ -87,4 +87,40 @@ export const MAIL_COPY = Object.freeze({
   // not. Telling the reader their link is invalid would be a false
   // statement about the one thing they came to do.
   "optout.unavailable": ["", { slots: {}, fixedBy: "REQ-010 c11" }],
+
+  // 2026-09-06, issue #33 (Stripe, provisioning and the two backstops,
+  // `BUILD.md` §13). Nine keys, every one owner-owed and empty. Empty and
+  // not the `TODO(copy)` marker: the owner's 2026-09-05 ruling on #93 is
+  // that fixture *screens* render the marker and "mail keeps the throw (a
+  // mail never ships a placeholder)". Every line below is a sentence the
+  // product speaks in its own voice, so none is written here.
+  //
+  // Two of the nine (`mail.account.reach_a_person`,
+  // `mail.account.no_second_subscription`) carry obligations REQ-024
+  // states in words rather than in structure — "names one way to reach a
+  // person", "is told that it bought no second subscription" — and are
+  // separate keys rather than clauses inside another line so that a mail
+  // missing one fails to compose rather than shipping without it.
+
+  // The sign-in link a completed payment sends (§13, REQ-024 c1).
+  "mail.magicLink.subject": ["", { slots: {}, fixedBy: "REQ-024 c1" }],
+  "mail.magicLink.body": ["", { slots: {}, fixedBy: "REQ-024 c1" }],
+  "mail.magicLink.action": ["", { slots: {}, fixedBy: "REQ-024 c1" }],
+
+  // The 15-minute chase (REQ-024 c5): the payment succeeded, and either a
+  // working link or a written statement that the account is not open yet.
+  // Two bodies, not one with a conditional: "here is your way in" and "we
+  // are still opening it" are two different things to say.
+  "mail.account.chase.subject": ["", { slots: {}, fixedBy: "REQ-024 c5" }],
+  "mail.account.chase.link_ready": ["", { slots: {}, fixedBy: "REQ-024 c5" }],
+  "mail.account.chase.not_open_yet": ["", { slots: {}, fixedBy: "REQ-024 c5" }],
+
+  // The second-purchase mail (REQ-024 c3): what a founder whose second
+  // purchase was charged is told.
+  "mail.account.second_purchase.subject": ["", { slots: {}, fixedBy: "REQ-024 c3" }],
+  "mail.account.no_second_subscription": ["", { slots: {}, fixedBy: "REQ-024 c3" }],
+
+  // The one way to reach a person, named in every `account` mail REQ-024
+  // requires it in (c3, c5). One key, so the address is written once.
+  "mail.account.reach_a_person": ["", { slots: {}, fixedBy: "REQ-024 c5" }],
 }) satisfies CopyPartition;
