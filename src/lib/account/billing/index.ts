@@ -34,6 +34,7 @@ export {
   type PortalLinkResult,
 } from "./portal";
 export { cancelSubscription, type CancelResult } from "./cancel";
+export { endSubscriptionNow, type EndSubscriptionNow } from "./end-now";
 export { resumeSubscription, type ResumeResult } from "./resume";
 export {
   onSubscriptionEvent,
