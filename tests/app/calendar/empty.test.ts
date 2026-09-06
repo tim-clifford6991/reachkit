@@ -17,17 +17,21 @@ const NOTHING: EmptyFacts = {
   instruction: null,
   reachkitStopped: false,
   pageCannotGoLive: null,
+  pageHeld: false,
   customerChangeHoldsPages: null,
   unusedSupply: null,
 };
 
 describe("ADR-061 — the precedence is data, and it is the one ADR-061 states", () => {
-  it("is instruction → reachkit_stopped → page_cannot_go_live → customer_change_holds_pages → supply_exhausted → unattributed", () => {
+  it("is instruction → reachkit_stopped → page_cannot_go_live → customer_change_holds_pages → page_held → supply_exhausted → unattributed", () => {
     expect([...EMPTY_PRECEDENCE]).toEqual([
       "instruction",
       "reachkit_stopped",
       "page_cannot_go_live",
       "customer_change_holds_pages",
+      // #116: below every cause that says *why*, above the arm REQ-043 c3
+      // reserves. A date a page was planned for did not run out of supply.
+      "page_held",
       "supply_exhausted",
       "unattributed",
     ]);
@@ -111,6 +115,44 @@ describe("REQ-043 c4 — each other cause resolves to itself, and to exactly one
   });
 });
 
+describe("REQ-092 c5 — a date whose page was held is never told the market was empty", () => {
+  it("a held page gives the date its own account, not the exhausted-supply line", () => {
+    // The date a page was planned for is the one date whose supply
+    // manifestly was *not* exhausted. REQ-043 c3 reserves that sentence to
+    // proven exhaustion, and this is the arm that keeps it off this date.
+    expect(accountFor({ ...NOTHING, pageHeld: true, unusedSupply: 0 })).toEqual({
+      cause: "page_held",
+    });
+  });
+
+  it("it is not the page-cannot-go-live line — a held page still publishes", () => {
+    expect(EMPTY_COPY_KEY.page_held).not.toBe(EMPTY_COPY_KEY.page_cannot_go_live);
+    expect(EMPTY_COPY_KEY.page_held).toBe("calendar.empty.page-held");
+  });
+
+  it("ReachKit's own stop outranks it, and so does a page that can no longer go live (ADR-061)", () => {
+    expect(accountFor({ ...NOTHING, pageHeld: true, reachkitStopped: true }).cause).toBe(
+      "reachkit_stopped"
+    );
+    expect(accountFor({ ...NOTHING, pageHeld: true, pageCannotGoLive: "skipped" }).cause).toBe(
+      "page_cannot_go_live"
+    );
+    expect(
+      accountFor({ ...NOTHING, pageHeld: true, customerChangeHoldsPages: "publishing_off" }).cause
+    ).toBe("customer_change_holds_pages");
+  });
+
+  it("and it outranks both of the last two arms", () => {
+    expect(EMPTY_PRECEDENCE.indexOf("page_held")).toBeLessThan(
+      EMPTY_PRECEDENCE.indexOf("supply_exhausted")
+    );
+    expect(EMPTY_PRECEDENCE.indexOf("page_held")).toBeLessThan(
+      EMPTY_PRECEDENCE.indexOf("unattributed")
+    );
+    expect(accountFor({ ...NOTHING, pageHeld: true, unusedSupply: null }).cause).toBe("page_held");
+  });
+});
+
 describe("REQ-043 c5 — one account per date, and the instruction outranks everything", () => {
   it("an outstanding instruction outranks every other cause, including ReachKit's stop", () => {
     expect(
@@ -119,6 +161,7 @@ describe("REQ-043 c5 — one account per date, and the instruction outranks ever
         reachkitStopped: true,
         pageCannotGoLive: "skipped",
         customerChangeHoldsPages: "publishing_off",
+        pageHeld: true,
         unusedSupply: 0,
       })
     ).toEqual({ cause: "instruction", opportunityId: "o9" });
@@ -137,13 +180,14 @@ describe("REQ-043 c5 — one account per date, and the instruction outranks ever
   });
 
   it("the resolver returns exactly one account, and it is total over every combination", () => {
-    // 2 × 2 × 3 × 3 × 3 = 108 fact sets, every one resolved, every one to
-    // a cause the precedence names and to nothing else.
+    // 2 × 2 × 3 × 3 × 2 × 3 = 216 fact sets, every one resolved, every one
+    // to a cause the precedence names and to nothing else.
     const values = {
       instruction: [null, { opportunityId: "o" }],
       reachkitStopped: [false, true],
       pageCannotGoLive: [null, "skipped", "unpublished"],
       customerChangeHoldsPages: [null, "publishing_off", "destination_disconnected"],
+      pageHeld: [false, true],
       unusedSupply: [null, 0, 3],
     } as const;
     let seen = 0;
@@ -151,17 +195,19 @@ describe("REQ-043 c5 — one account per date, and the instruction outranks ever
       for (const reachkitStopped of values.reachkitStopped)
         for (const pageCannotGoLive of values.pageCannotGoLive)
           for (const customerChangeHoldsPages of values.customerChangeHoldsPages)
-            for (const unusedSupply of values.unusedSupply) {
-              const account = accountFor({
-                instruction,
-                reachkitStopped,
-                pageCannotGoLive,
-                customerChangeHoldsPages,
-                unusedSupply,
-              });
-              expect(EMPTY_PRECEDENCE).toContain(account.cause);
-              seen += 1;
-            }
-    expect(seen).toBe(108);
+            for (const pageHeld of values.pageHeld)
+              for (const unusedSupply of values.unusedSupply) {
+                const account = accountFor({
+                  instruction,
+                  reachkitStopped,
+                  pageCannotGoLive,
+                  customerChangeHoldsPages,
+                  pageHeld,
+                  unusedSupply,
+                });
+                expect(EMPTY_PRECEDENCE).toContain(account.cause);
+                seen += 1;
+              }
+    expect(seen).toBe(216);
   });
 });

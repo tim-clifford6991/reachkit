@@ -64,6 +64,7 @@ describe("a real site reads its own rows and never the fixture", () => {
       drafts: [],
       instructions: {},
       stoppedDays: [],
+      heldDays: [],
       customerChangeHoldsPages: null,
       unusedSupply: 0,
     });

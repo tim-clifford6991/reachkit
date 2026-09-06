@@ -111,6 +111,7 @@ describe("REQ-043 c3 and ADR-061 — the two grey lines are never swapped", () =
       drafts: [],
       instructions: {},
       stoppedDays: [],
+      heldDays: [],
       // Unreadable depth, no other cause: ADR-061's own mutation case.
       unusedSupply: null,
     };

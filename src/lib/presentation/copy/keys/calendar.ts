@@ -56,6 +56,15 @@
 // the key rather than handing a place a blank — the outstanding obligation
 // is recorded the moment a place is registered, and no screen can render an
 // unwritten account by accident.
+// 2026-09-06, separately again: issue #116 (REQ-092 c5) adds one —
+// `calendar.empty.page-held`, the account a date carries when a page was
+// planned for it and did not go live on it because a ReachKit stop held it.
+// Owner-owed and **empty**, like the three empty-date causes beside it and
+// for the same reason: this screen reads every line through the shell's
+// `writtenLine`, and `account()` throws naming an unwritten key rather than
+// handing a date a blank. It is a seventh cause, not a rewording of
+// `calendar.empty.page-cannot-go-live` — that line says a page can no longer
+// go live, and a held page still publishes.
 import type { CopyPartition } from "../registry.ts";
 
 export const CALENDAR_COPY = Object.freeze({
@@ -112,6 +121,7 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.empty.instruction": ["", { slots: {}, fixedBy: "REQ-043 c5" }],
   "calendar.empty.page-cannot-go-live": ["", { slots: {}, fixedBy: "REQ-043 c4" }],
   "calendar.empty.customer-change-holds-pages": ["", { slots: {}, fixedBy: "REQ-043 c4" }],
+  "calendar.empty.page-held": ["", { slots: {}, fixedBy: "REQ-092 c5" }],
   "calendar.provenance.measured": ["", { slots: { date: "date" }, fixedBy: "REQ-043 c10" }],
   "calendar.status.veto-deadline": ["", { slots: { at: "date" }, fixedBy: "BUILD §9" }],
 

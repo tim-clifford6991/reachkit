@@ -47,6 +47,7 @@ const BARE: CalendarFacts = {
   drafts: [],
   instructions: {},
   stoppedDays: [],
+  heldDays: [],
   customerChangeHoldsPages: null,
   unusedSupply: null,
 };
@@ -137,6 +138,27 @@ describe("REQ-043 c2 — a state that occupies no date empties it instead", () =
   });
 });
 
+describe("REQ-092 c5 — a date whose page was held carries its own account", () => {
+  it("a held date reads as a page that did not go live, never as exhausted supply", () => {
+    // Supply is read and zero — the one condition the exhausted-supply arm
+    // fires on — and the held date still does not take it.
+    const model = assembleMonth(
+      { ...BARE, heldDays: ["2026-09-08"], unusedSupply: 0 },
+      "2026-09"
+    );
+    expect(cellFor(model, "2026-09-08")?.empty).toEqual({ cause: "page_held" });
+    expect(cellFor(model, "2026-09-09")?.empty).toEqual({ cause: "supply_exhausted" });
+  });
+
+  it("a date on the stop's own list still reads as the stop (ADR-061 precedence)", () => {
+    const model = assembleMonth(
+      { ...BARE, heldDays: ["2026-09-08"], stoppedDays: ["2026-09-08"], unusedSupply: 0 },
+      "2026-09"
+    );
+    expect(cellFor(model, "2026-09-08")?.empty).toEqual({ cause: "reachkit_stopped" });
+  });
+});
+
 describe("REQ-043 c6 — the counts come from the same result as the grid", () => {
   it("All is the number of pages drawn, and each stage's count is its own", () => {
     const model = assembleMonth(FIXTURE_CALENDAR_FACTS, FIXTURE_MONTH);
@@ -182,7 +204,7 @@ describe("REQ-043 c7 — today is the site-local day, not the server's", () => {
 });
 
 describe("the fixture states every arm the screen can draw", () => {
-  it("carries all five stages and four of the six empty causes", () => {
+  it("carries all five stages and four of the seven empty causes", () => {
     const model = assembleMonth(FIXTURE_CALENDAR_FACTS, FIXTURE_MONTH);
     const stages = new Set(model.cells.map((c) => c.page?.stage).filter(Boolean));
     expect([...stages].sort()).toEqual(["live", "needs_you", "planned", "scheduled", "your_review"]);
