@@ -57,6 +57,12 @@ const SEGMENT_FIXTURES: Readonly<Record<string, string>> = {
    */
   "[domain]": "example.com",
   /**
+   * The hosted edge's catch-all (issue #49). One segment, because one
+   * segment is the only shape that names a page: `content.{domain}/a/b` is
+   * not a deeper page, it is not a page at all.
+   */
+  "[...slug]": "best-onboarding-tools",
+  /**
    * The draft view's address (issue #17, `BUILD.md` §4.6). The value is the
    * one draft the fixture holds in `in_review` — the stage §4.6 gives this
    * view a way in from, and the densest arm it can render: the whole body,
@@ -73,7 +79,22 @@ const SEGMENT_FIXTURES: Readonly<Record<string, string>> = {
  * repo root (POSIX separators), naming the `Host` header the suite sends
  * when rendering it. Empty today for the same reason as `SEGMENT_FIXTURES`.
  */
-const HOST_FIXTURES: Readonly<Record<string, string>> = {};
+const HOST_FIXTURES: Readonly<Record<string, string>> = {
+  /**
+   * The hosted edge's page (issue #49, `BUILD.md` §9). `content.` plus the
+   * fixture domain is the shape `resolveHost` matches, so the request
+   * reaches the hosted group rather than the sign-in redirect.
+   *
+   * **The sweep measures this route's 404 arm, and that is the honest
+   * scope.** The layout suite runs `next build` against a fixture
+   * environment with no database behind it, so the Host resolves to no
+   * site and the route renders `(hosted)/not-found.tsx` — a real surface
+   * of this product, and one the layout law applies to exactly as it does
+   * to any other. The published template's own layout is asserted where it
+   * can be rendered with a page in hand, in `tests/hosted/`.
+   */
+  "src/app/(hosted)/hosted-page/[...slug]/page.tsx": "content.example.com",
+};
 
 /**
  * The `Cookie` header every `(account)` page is rendered with — the one

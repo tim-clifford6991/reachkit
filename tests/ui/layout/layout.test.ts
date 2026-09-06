@@ -37,13 +37,17 @@ console.log(
     (routes.length === 0 ? " — src/app/ holds no route yet (WO-269 rests-on row 5)" : "")
 );
 
-/** The headers a route is rendered with: a `(hosted)` page's `Host`, an
- *  `(account)` page's session `Cookie` (`src/middleware.ts` is default-deny
- *  and would otherwise redirect the sweep to the sign-in prompt), or — for
- *  an ordinary public route — none. */
+/** The headers a route is rendered with: an `(account)` page's session
+ *  `Cookie` (`src/middleware.ts` is default-deny and would otherwise
+ *  redirect the sweep to the sign-in prompt), or — for an ordinary public
+ *  route — none.
+ *
+ *  A `(hosted)` route's `Host` is **not** here: `Host` is a forbidden
+ *  header name and Chromium refuses a navigation that sets it. It is
+ *  carried by the URL instead (`urlFor` below), which is where a Host
+ *  comes from anyway. */
 function headersFor(route: EnumeratedRoute): { extraHTTPHeaders?: Record<string, string> } {
   const headers: Record<string, string> = {};
-  if (route.host) headers.Host = route.host;
   if (route.cookie) headers.Cookie = route.cookie;
   return Object.keys(headers).length > 0 ? { extraHTTPHeaders: headers } : {};
 }
@@ -68,7 +72,13 @@ function urlFor(route: EnumeratedRoute): string {
         "(browser.ts only starts one when enumerateRoutes() finds a route at globalSetup time)."
     );
   }
-  return baseURL + route.path;
+  if (route.host === undefined) return baseURL + route.path;
+  // A `(hosted)` route is keyed by its Host, so the sweep navigates to
+  // that name and lets the browser send it. `browser.ts` maps every name
+  // to the loopback address, so the request still reaches this server.
+  const url = new URL(baseURL + route.path);
+  url.hostname = route.host;
+  return url.toString();
 }
 
 describe(`layout sweep — ${routes.length} route(s) × 5 widths`, () => {

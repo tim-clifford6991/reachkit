@@ -98,6 +98,15 @@ export const ROUTE_HARNESS: Readonly<Record<string, HarnessRow>> = Object.freeze
   // holds in `in_review` — the same value `tests/ui/layout/routes.ts` fills
   // `[draftId]` with, and the arm that renders every part of the screen.
   // The page awaits its own `params`, so a plain object is enough.
+  // BUILD §9, issue #49. The hosted edge's page, rendered on the fixture
+  // Host `hosted-fixture.ts` supplies. It sits in no shell: it is served on
+  // a customer's own domain and carries nothing of ReachKit's — no
+  // navigation, no publishing line, no sentence of ours at all.
+  "(hosted)/hosted-page/[...slug]/page.tsx": {
+    props: () => ({ params: { slug: ["best-onboarding-tools"] } }),
+    shell: false,
+    async: true,
+  },
   "(account)/app/draft/[draftId]/page.tsx": {
     props: () => ({ params: { draftId: "draft-2026-09-15" } }),
     shell: true,
