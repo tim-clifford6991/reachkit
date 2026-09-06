@@ -22,7 +22,8 @@
 // artifact and owner-written copy. So the columns arrive here as the
 // `engines` slot, exactly as the chart does, and the card renders
 // unchanged until that gate is discharged. The four copy keys the layout
-// will need are minted and owner-owed (`ai-answers.engine.*`).
+// will need are minted and owner-owed (`ai-answers.engine.*`). The
+// layout is issue #157.
 //
 // Question wording is model text and reaches this file only through
 // `renderQuestion`, which will not yield the wording without the search it
@@ -83,7 +84,7 @@ export function AiAnswersCard(p: {
    *  figure the chart would draw. */
   matrix?: React.ReactNode;
   /** §6.2's three answer columns, once the design gate #128 names is
-   *  discharged. Same standing as `matrix`: absent is an absence, and the
+   *  discharged — issue #157. Same standing as `matrix`: absent is an absence, and the
    *  card below is complete without it — the questions list and the
    *  citation table still state, in writing, everything the customer is
    *  told today. The data the layout reads is already on every row
