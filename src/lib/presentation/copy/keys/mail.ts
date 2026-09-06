@@ -322,6 +322,65 @@ export const MAIL_COPY = Object.freeze({
     { slots: { foundAt: "date" }, fixedBy: "REQ-062 c6" },
   ],
 
+  // ── The one `account` mail a deleted account leaves behind (issue #52)
+  //
+  // REQ-079 criterion 6. Deletion leaves the customer no ReachKit surface to
+  // read, so the naming criterion 4 puts on such a surface is carried by
+  // this mail instead — sent to the address being deleted, and only where
+  // something of either kind is left behind. Same `account` kind, same empty
+  // representation: a mail never ships a placeholder.
+  //
+  // **Ten keys, and the count is the point.** Criterion 6 gives each of §9's
+  // four WordPress outcomes "one sentence of its own, carrying that
+  // outcome's own count and, where there is anywhere to look, its own place
+  // — and no sentence carries two outcomes or one count for both". So each
+  // outcome is its own key; three of them come in two forms, one naming the
+  // place and one saying the posts are in that site and ReachKit cannot
+  // point to them there, "and it still carries its count"; and
+  // `already_gone` has one form only, because that sentence "naming no
+  // place, because there is nothing there to find".
+  //
+  // Every one carries a `count` slot and none of them lists a post,
+  // "whatever the number".
+  "mail.account.deleted.subject": ["", { slots: {}, fixedBy: "REQ-079 c6" }],
+  // The pages still live at a destination that could not be reached: the
+  // mail "names it and says what they must do about it".
+  "mail.account.deleted.still_live": ["", { slots: { count: "text" }, fixedBy: "REQ-079 c6" }],
+  // "The mail says of every post still in that site that it is theirs to
+  // keep or remove" — its own key, because a promise living inside another
+  // sentence is one edit away from being dropped without anything failing.
+  "mail.account.deleted.theirs_to_keep": ["", { slots: {}, fixedBy: "REQ-079 c6" }],
+  "mail.account.deleted.wordpress.returned_to_draft": [
+    "",
+    { slots: { count: "text", place: "text" }, fixedBy: "REQ-079 c6" },
+  ],
+  "mail.account.deleted.wordpress.returned_to_draft.no_place": [
+    "",
+    { slots: { count: "text" }, fixedBy: "REQ-079 c6" },
+  ],
+  "mail.account.deleted.wordpress.named_for_removal": [
+    "",
+    { slots: { count: "text", place: "text" }, fixedBy: "REQ-079 c6" },
+  ],
+  "mail.account.deleted.wordpress.named_for_removal.no_place": [
+    "",
+    { slots: { count: "text" }, fixedBy: "REQ-079 c6" },
+  ],
+  // No place form: "this sentence naming no place, because there is nothing
+  // there to find."
+  "mail.account.deleted.wordpress.already_gone": [
+    "",
+    { slots: { count: "text" }, fixedBy: "REQ-079 c6" },
+  ],
+  "mail.account.deleted.wordpress.unreachable": [
+    "",
+    { slots: { count: "text", place: "text" }, fixedBy: "REQ-079 c6" },
+  ],
+  "mail.account.deleted.wordpress.unreachable.no_place": [
+    "",
+    { slots: { count: "text" }, fixedBy: "REQ-079 c6" },
+  ],
+
   // One mail per breakage (BUILD §9, issue #48): a destination has needed
   // reconnecting for 24 hours and the customer has not signed in since it
   // broke. It says pages are being held, how many, and that reconnecting

@@ -386,15 +386,25 @@ describe("nothing fakes work — an unbuilt engine fails loudly", () => {
     );
   });
 
-  it("account/maintenance skips an unbuilt obligation rather than dying on it (issue #36), and each still fails loudly at the seam", async () => {
+  it("account/maintenance skips an unbuilt obligation rather than dying on it (issue #36), and every obligation behind it still runs", async () => {
     stubEnv(false);
-    // Four of the six obligations are built and read rows: the payment half
-    // (issue #33), §4.3's setup reminders (issue #36) and the hosting pair
-    // (issue #34). All four are stood in with nothing due — the ordinary
-    // case — so this suite reaches no database. Doubling the whole engine
-    // instead would assert nothing.
+    // All six obligations are built today and read rows: the payment half
+    // (issue #33), the hosting pair (issue #34), the purge (issue #52) and
+    // §4.3's setup reminders (issue #36). Every one is stood in with
+    // nothing due — the ordinary case — so this suite reaches no database.
+    // Doubling the whole engine instead would assert nothing.
+    //
+    // The skip itself has no live subject any more, so it is given one: the
+    // **first** obligation in the list is made to fail the way an unbuilt
+    // engine fails, and the assertion is that an obligation behind it —
+    // the purge, which is fifth — still ran. That was the failure issue #36
+    // fixed: before it, a purge was held because an unrelated node had not
+    // landed.
     vi.doMock("@/lib/account/provisioning/due-work", () => ({
-      paymentsAwaitingSignIn: async () => [],
+      paymentsAwaitingSignIn: async () => {
+        const { EngineNotBuilt } = await import("@/jobs/engine");
+        throw new EngineNotBuilt("BP-032", "paymentsAwaitingSignIn()");
+      },
       paymentsWithoutAccounts: async () => [],
     }));
     vi.doMock("@/lib/mail/setup/reminders", () => ({
@@ -403,32 +413,42 @@ describe("nothing fakes work — an unbuilt engine fails loudly", () => {
     }));
     const { jobs } = await import("@/jobs");
     const { runJob } = await import("@/jobs/run");
-    const engine = await import("@/jobs/engine");
 
-    // The hosting pair reads through the billing module's own store, so it
-    // is stood in through that module's door rather than by mocking the
-    // module: an empty store is a tick with nothing due, which is the state
-    // under test.
+    // The hosting pair reads through the billing module's own store, and
+    // the purge through its own, so both are stood in through their
+    // modules' doors rather than by mocking the modules.
     const { setBillingStore } = await import("@/lib/account/billing");
     const { memoryBillingStore, newMemoryBilling } = await import(
       "../account/billing/memory-store"
     );
     setBillingStore(memoryBillingStore(newMemoryBilling()));
 
-    // The one whose engine has not shipped still fails loudly — the failure
-    // moved from the tick to the obligation, not away. Issue #34 built the
-    // two hosting obligations that stood beside it here; BP-063's purge is
-    // what is left.
-    await expect(engine.accountsDueForPurge()).rejects.toBeInstanceOf(engine.EngineNotBuilt);
+    const { setLifecycleStore } = await import("@/lib/account/lifecycle");
+    const { memoryLifecycleStore, newMemoryLifecycle, account } = await import(
+      "../account/lifecycle/memory-store"
+    );
+    const lifecycle = newMemoryLifecycle();
+    // One account whose promised date has passed, so the purge has
+    // something to do and "it ran" is observable rather than vacuous.
+    lifecycle.accounts.push(
+      account({
+        id: "u-1",
+        deleted_at: "2026-08-01T00:00:00.000Z",
+        purge_due_at: "2026-08-31T00:00:00.000Z",
+      })
+    );
+    setLifecycleStore(memoryLifecycleStore(lifecycle));
 
-    // ...and the tick carries on past it, so every built obligation behind
-    // it in the list still runs. Before issue #36 the first unbuilt
-    // obligation ended the run, and a purge was held because an unrelated
-    // node had not landed.
     const job = jobs.find((j) => j.id === "account/maintenance");
     if (job === undefined) throw new Error("no definition for account/maintenance");
     await expect(runJob(job, { data: {}, now: MONDAY_0600_UTC })).resolves.toBeDefined();
 
+    // The obligation that failed the way an unbuilt engine fails was
+    // skipped, and the fifth still ran.
+    expect(lifecycle.deleted.map((step) => step.table)).toContain("users");
+    expect(lifecycle.accounts).toEqual([]);
+
+    setLifecycleStore(null);
     setBillingStore(null);
     vi.doUnmock("@/lib/mail/setup/reminders");
     vi.doUnmock("@/lib/account/provisioning/due-work");

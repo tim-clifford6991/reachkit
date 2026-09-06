@@ -31,4 +31,18 @@ export const DANGER_COPY = Object.freeze({
   ],
   "danger.unpublish-all.consequence": ["", { slots: {}, fixedBy: "REQ-079 c1" }],
   "danger.delete-account.consequence": ["", { slots: {}, fixedBy: "REQ-079 c1" }],
+
+  // Issue #52 — the three lines the danger zone's own outcomes are told in.
+  // All owner-owed: REQ-079 states what each must convey and no clause
+  // writes the words.
+  //
+  // c3, the refusal: "if it cannot be produced, or they do not take it, the
+  // action does not proceed and says why."
+  "danger.export-failed": ["TODO(copy)", { slots: {}, fixedBy: "REQ-079 c3" }],
+  // c4's last clause, the two arms of what an unpublish-everything run
+  // leaves behind: "the pages at any destination that could not be reached
+  // are listed as still live with one written line saying so", and the line
+  // for a run that left none.
+  "danger.some-still-live": ["TODO(copy)", { slots: {}, fixedBy: "REQ-079 c4" }],
+  "danger.all-taken-down": ["TODO(copy)", { slots: {}, fixedBy: "REQ-079 c4" }],
 }) satisfies CopyPartition;

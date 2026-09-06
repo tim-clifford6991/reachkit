@@ -24,6 +24,9 @@ export interface StripeDoubleState {
   event: Record<string, unknown> | null;
   created: Record<string, unknown>[];
   cancelled: string[];
+  /** Set to make `subscriptions.cancel` throw — the vendor-refuses arm of
+   *  REQ-079 c6's immediate end. */
+  cancelError: Error | null;
   chargesCreated: number;
   pricesCreated: Record<string, unknown>[];
   nextSessionId: number;
@@ -55,6 +58,7 @@ export function newStripeDouble(): StripeDoubleState {
     event: null,
     created: [],
     cancelled: [],
+    cancelError: null,
     chargesCreated: 0,
     pricesCreated: [],
     nextSessionId: 1,
@@ -147,6 +151,7 @@ export function stripeDouble(state: StripeDoubleState): Stripe {
     },
     subscriptions: {
       cancel: async (id: string) => {
+        raise(state.cancelError);
         state.cancelled.push(id);
         return { id, status: "canceled" };
       },
