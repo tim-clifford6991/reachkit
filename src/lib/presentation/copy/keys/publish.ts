@@ -27,4 +27,25 @@ export const PUBLISH_COPY = Object.freeze({
   "verdict.page.too_early": ["", { slots: {}, fixedBy: "REQ-063 c2" }],
   "verdict.page.not_working": ["", { slots: {}, fixedBy: "REQ-063 c1" }],
   "verdict.page.not_judgeable": ["", { slots: {}, fixedBy: "REQ-063 c6" }],
+
+  // 2026-09-06, issue #46 (BUILD §9, REQ-045 c4). The two things the three
+  // draft actions can answer when the state machine refuses.
+  //
+  // They are two keys and not one because the two refusals are two
+  // different facts about the customer's page: the action is not one the
+  // page can take from where it is (`not_a_transition` — someone else
+  // already moved it, or the control was stale), or it is and something
+  // named is holding it (`guard`). Collapsing them would tell a customer
+  // whose page had already published that "something is holding it".
+  //
+  // The `{state}` slot is the state the page still holds — the refusal
+  // never leaves it somewhere else.
+  "publish.action.refused.notATransition": [
+    "TODO(copy)",
+    { slots: { state: "text" }, fixedBy: "REQ-056 c2" },
+  ],
+  "publish.action.refused.guard": [
+    "TODO(copy)",
+    { slots: { state: "text" }, fixedBy: "REQ-056 c2" },
+  ],
 }) satisfies CopyPartition;

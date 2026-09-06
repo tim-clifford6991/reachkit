@@ -606,10 +606,20 @@ describe("owner-owed and empty agree both ways", () => {
     // (`calendar.done-when.{top20,named-on,gate-cleared}`, §7's three
     // forms). 104 + 6 = 110 owner-owed and empty, 136 awaiting copy
     // unchanged, 168 ruled unchanged, 408 + 6 = 414 total.
-    expect(OWNER_OWED.length).toBe(110);
-    expect(AWAITING_COPY.length).toBe(136);
+    //
+    // 2026-09-06, once more: issue #46 (the telling, §9) adds twelve.
+    // Seven are the `draft-ready` mail's — the three governing pairs and
+    // REQ-057 c9's four destination clauses — and take the **empty** value
+    // on the same #93 ruling the lines above cite. Five are screens' —
+    // REQ-073 c2's three `settings.publishing.pair.*` lines and the two
+    // refusals the draft-action routes answer with — and take the marker,
+    // because the panels that will speak them must stay reviewable.
+    // 110 + 7 = 117 owner-owed and empty, 136 + 5 = 141 awaiting copy,
+    // 168 ruled unchanged, 414 + 12 = 426 total.
+    expect(OWNER_OWED.length).toBe(117);
+    expect(AWAITING_COPY.length).toBe(141);
     expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(168);
-    expect(Object.keys(COPY).length).toBe(414);
+    expect(Object.keys(COPY).length).toBe(426);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.
