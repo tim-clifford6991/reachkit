@@ -120,6 +120,8 @@ const B = {
   weeklyRefreshRow:
     "| `weekly/refresh` | Mon 06:00 UTC | Weekly scan per active site → re-derive → verdicts → movement email |",
   absentFrom: "\"5 biggest searches you're absent from\" table (search · /mo · holds #1)",
+  hostedCname:
+    "**Hosted CMS:** `content.{customer-domain}` by CNAME → our edge route serves static-rendered pages by Host header.",
 } as const;
 
 const D = {
@@ -679,6 +681,15 @@ describe("§9 publishing and autopilot — the veto window, the hard limits, the
     expect(pins.VERIFY.coverageFloor).toBe(0.95);
     expect(pins.VERIFY.coverageFloor).toBeGreaterThan(0);
     expect(pins.VERIFY.coverageFloor).toBeLessThanOrEqual(1);
+  });
+
+  it(`§9's hosted CMS, quoted: "${B.hostedCname}" — HOSTED_SUBDOMAIN_LABEL is the "content" label that line prints, and nothing else about the record is pinned: the host it points at is \`HOSTED_EDGE_CNAME_TARGET\`, an env binding, because it differs per deployment`, () => {
+    expect(pins.HOSTED_SUBDOMAIN_LABEL).toBe("content");
+    expect(B.hostedCname).toContain(`${pins.HOSTED_SUBDOMAIN_LABEL}.{customer-domain}`);
+  });
+
+  it("HOSTED_SUBDOMAIN_LABEL is a label, never a hostname — it carries no dot, so no constant here can become half a record", () => {
+    expect(pins.HOSTED_SUBDOMAIN_LABEL).not.toContain(".");
   });
 
   it("VERIFY.userAgent is our own token and never one of the six AI readers — impersonating one would be a false statement to a server we are measuring", () => {

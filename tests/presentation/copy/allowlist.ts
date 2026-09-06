@@ -141,6 +141,14 @@ export const ATTRIBUTE_ALLOWLIST: readonly AllowlistedAttribute[] = Object.freez
   },
   {
     kind: "exact",
+    name: "direction",
+    reason:
+      "a registered component's layout-axis token (Steps' 'horizontal' | 'vertical'), the same " +
+      "category as `variant`, `size` and `state`: it selects how the component lays itself out, " +
+      "never what it says — every label it carries arrives through `steps[].label`.",
+  },
+  {
+    kind: "exact",
     name: "tone",
     reason:
       "a registered component's `Tone` token ('ok' | 'warn' | 'bad' | 'neutral' | " +
@@ -163,6 +171,23 @@ export const ATTRIBUTE_ALLOWLIST: readonly AllowlistedAttribute[] = Object.freez
     kind: "exact",
     name: "key",
     reason: "React's reconciliation key, never rendered to a reader.",
+  },
+  {
+    kind: "exact",
+    name: "size",
+    reason:
+      "a registered component's size token (Btn's 'default' | 'sm'), the same category " +
+      "as `variant` and `state`: it selects how the component draws, never what it says.",
+  },
+  {
+    kind: "exact",
+    name: "tone",
+    reason:
+      "a registered component's `Tone` token ('accent' | 'ok' | 'warn' | 'bad' | 'neutral'). " +
+      "The same category as `variant`, and safe for the same structural reason BP-018 gives " +
+      "for the type: Badge **requires a text child** and Alert **requires `message`**, so a " +
+      "tone can never stand in for a caption — every sentence either component carries " +
+      "arrives through a separate prop that this sweep still governs.",
   },
 ] as const);
 
