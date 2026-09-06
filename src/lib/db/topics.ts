@@ -67,6 +67,7 @@ export const MIGRATION_SUBTOKENS: readonly MigrationSubtoken[] = [
   { token: "users_erasure", parent: "users", owner: "BP-063" },
   { token: "sites_provisioning", parent: "sites", owner: "BP-031" },
   { token: "sites_hosting", parent: "sites", owner: "BP-060" },
+  { token: "sites_setup", parent: "sites", owner: "BP-033" },
   { token: "sites_erasure", parent: "sites", owner: "BP-063" },
   { token: "scans_freepath", parent: "scans", owner: "BP-023" },
   { token: "scans_verdict", parent: "scans", owner: "BP-024" },
