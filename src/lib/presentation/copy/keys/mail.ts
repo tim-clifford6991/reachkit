@@ -216,4 +216,50 @@ export const MAIL_COPY = Object.freeze({
   "mail.account.hosting_end.seven_days.subject": ["", { slots: {}, fixedBy: "REQ-076 c11" }],
   "mail.account.hosting_end.stops_on": ["", { slots: { date: "date" }, fixedBy: "REQ-076 c11" }],
   "mail.account.hosting_end.export_stays": ["", { slots: {}, fixedBy: "REQ-076 c11" }],
+
+  // 2026-09-06, issue #46 (the telling, §9 · §12). Seven keys, every one
+  // owner-owed and empty — the #93 ruling's mail arm: "mail keeps the throw
+  // (a mail never ships a placeholder)".
+  //
+  // Three for the three things §12's `draft-ready` mail can be, one per
+  // governing pair. They are three keys and not one with a conditional
+  // because "here is your window to stop it", "there is no window because
+  // you set none" and "nothing happens until you approve" are three
+  // different statements, and a mail missing the right one must fail to
+  // compose rather than ship the wrong one.
+  //
+  // `{publishesAt}` is a date slot: the exact moment the page publishes,
+  // stated in the customer's own zone (REQ-073 c3).
+  "mail.draftReady.autopilotWindow": [
+    "",
+    { slots: { publishesAt: "date" }, fixedBy: "REQ-057 c1" },
+  ],
+  "mail.draftReady.autopilotZero": [
+    "",
+    { slots: { publishesAt: "date" }, fixedBy: "REQ-057 c7" },
+  ],
+  "mail.draftReady.copilot": ["", { slots: {}, fixedBy: "REQ-057 c1" }],
+
+  // Four for REQ-057 c9's destination clause — what the telling says about
+  // a page bound for the customer's own site. `{site}` is the address the
+  // page goes live at, never a credential.
+  //
+  // Three of them differ only in what they say about *when*, which is
+  // exactly the distinction c9 draws: "it says the page goes live there
+  // then" (an interval), "goes live there only once they approve"
+  // (copilot), and the zero-window case where it goes live at the stated
+  // moment with no interval at all.
+  "mail.draftReady.dest.goesLiveThen": ["", { slots: { site: "text" }, fixedBy: "REQ-057 c9" }],
+  "mail.draftReady.dest.goesLiveAtOnce": ["", { slots: { site: "text" }, fixedBy: "REQ-057 c9" }],
+  "mail.draftReady.dest.goesLiveOnApproval": [
+    "",
+    { slots: { site: "text" }, fixedBy: "REQ-057 c9" },
+  ],
+  // The site cannot be published to as things stand. It says what the
+  // customer must change — and it never says the page will not go live at
+  // the moment the mail names, because c9's final sentence keeps the date,
+  // the interval and the stop action exactly as the other criteria set
+  // them. ADR-084 and ADR-086 both record this line as owner-owed and
+  // unminted; nothing here mints it.
+  "mail.draftReady.dest.cannotPublish": ["", { slots: { site: "text" }, fixedBy: "REQ-057 c9" }],
 }) satisfies CopyPartition;

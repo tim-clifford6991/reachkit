@@ -26,7 +26,7 @@
 // say a page went out that did not.
 //
 // The archived plan is WO-213.
-import { PUBLISH_VERIFY_DELAY_H } from "@/lib/config/constants";
+import { PUBLISH_DELIVER_TIMEOUT_MS, PUBLISH_VERIFY_DELAY_H } from "@/lib/config/constants";
 import { publishDb } from "../db";
 import { adapterFor as defaultAdapterFor } from "../destinations";
 import type { GuardDeps } from "../machine";
@@ -122,14 +122,16 @@ export async function publish(a: PublishArgs): Promise<PublishResult> {
     return failWith(a, claimed.publicationId, claimed.attemptNo, "destination_rejected", at);
   }
 
-  // Everything above this line has committed. The delivery is bounded by
-  // the egress seam the adapter reaches the network through (BUILD §6.4:
-  // 8 s default, 15 s hard maximum), which is the one bound in the product
-  // on a byte leaving toward a customer URL; a second timeout here would be
-  // a number in two places for one promise.
+  // Everything above this line has committed. Each byte the adapter sends
+  // is bounded by the egress seam it goes through (BUILD §6.4: 8 s default,
+  // 15 s hard maximum); `PUBLISH_DELIVER_TIMEOUT_MS` bounds the *attempt* —
+  // an adapter makes several requests, and a destination that answers each
+  // one slowly would otherwise hold a claimed publication open with no
+  // bound at all. Two bounds on two different things, not one number in two
+  // places.
   let result: DeliveryResult;
   try {
-    result = await adapter.deliver(page, claimed.config, a.draftId);
+    result = await withinDeliveryBound(adapter.deliver(page, claimed.config, a.draftId));
   } catch {
     // An adapter that threw told us nothing about what happened at the
     // destination. `timeout` is the retryable reason, and the idempotency
@@ -246,4 +248,29 @@ async function renderedPage(draftId: string): Promise<RenderedPage | null> {
     bodyMd: data.body_md ?? "",
     meta: data.meta ?? {},
   };
+}
+
+/**
+ * The delivery, bounded.
+ *
+ * A rejection — the adapter's own or this bound's — is caught by the caller
+ * and becomes the retryable `timeout` reason, which is the honest reading:
+ * an attempt that ran out of time told us nothing about what happened at
+ * the destination, and the idempotency key reconciles a delivery that did
+ * land on the next attempt.
+ *
+ * The timer is cleared on both arms, so a bounded call that returned early
+ * does not hold the process open.
+ */
+function withinDeliveryBound(delivery: Promise<DeliveryResult>): Promise<DeliveryResult> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const bound = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(
+      () => reject(new Error("publish: the delivery exceeded PUBLISH_DELIVER_TIMEOUT_MS")),
+      PUBLISH_DELIVER_TIMEOUT_MS
+    );
+  });
+  return Promise.race([delivery, bound]).finally(() => {
+    if (timer !== undefined) clearTimeout(timer);
+  });
 }

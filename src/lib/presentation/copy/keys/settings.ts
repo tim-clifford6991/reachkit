@@ -81,6 +81,21 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.publishing.enabled": ["whether pages publish at all", { slots: {}, fixedBy: "REQ-070 c1" }],
   "settings.publishing.destinations": ["destinations", { slots: {}, fixedBy: "BUILD §4.7" }],
   "settings.publishing.reconnect": ["Reconnect", { slots: {}, fixedBy: "BUILD §4.7" }],
+  // 2026-09-06, issue #46 (REQ-073 c2). One written line per selected pair,
+  // stating what that pair does to a draft the customer never acts on.
+  // Three keys, one per pair, and a fourth pair is a type error. The
+  // sentences are the owner's; they render as the `TODO(copy)` marker until
+  // written (#93's screen arm — the panel must stay reviewable).
+  "settings.publishing.pair.autopilotWindow": [
+    "TODO(copy)",
+    { slots: {}, fixedBy: "REQ-073 c2" },
+  ],
+  "settings.publishing.pair.autopilotZero": [
+    "TODO(copy)",
+    { slots: {}, fixedBy: "REQ-073 c2" },
+  ],
+  "settings.publishing.pair.copilot": ["TODO(copy)", { slots: {}, fixedBy: "REQ-073 c2" }],
+
   // §4.7's own footnote, verbatim and complete, including its full stop.
   "settings.publishing.fix-note": [
     "Fix-type tasks are never automated, whatever the mode.",

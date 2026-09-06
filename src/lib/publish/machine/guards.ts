@@ -16,6 +16,7 @@ import type { Actor, DraftView, TransitionRecord } from "../types";
 import { isPublishingOn } from "../switch";
 import { ceilingRoom } from "../ceilings";
 import { destinationWorking } from "../destinations";
+import { PUBLISHABLE_RULE } from "../publishable/rule";
 import type { GuardId } from "./table";
 
 /** The draft as the machine reads it: the view the rules take, plus the two
@@ -42,16 +43,19 @@ export interface PublishableRule {
 }
 
 /**
- * The default until #46 lands, and it refuses.
+ * The refusing rule — no longer the default, and kept.
  *
- * This is the honest value, not a placeholder chosen for convenience. §9
- * makes the telling a promise — "no page publishes at all without their
- * having been told, on the pair it actually publishes under, either the
- * interval they have to stop it or that no interval exists" — so a rule
- * that answered `true` while the telling is unbuilt would publish pages
- * the customer was never told about. Refusing holds them instead, which is
- * exactly what the switch does and exactly what §9 asks of a page it
- * cannot yet publish.
+ * It was the default until #46 landed, on the grounds §9 states: "no page
+ * publishes at all without their having been told, on the pair it actually
+ * publishes under, either the interval they have to stop it or that no
+ * interval exists", so a rule answering `true` while the telling was
+ * unbuilt would have published pages the customer was never told about.
+ *
+ * It stays because it is the one value that proves the two guards are load
+ * bearing: a test that drives `approved → publishing` with this rule and
+ * every other guard open must be refused at `publishable_and_due`. Deleting
+ * it because "nothing in `src/` uses it" removes the only thing that fails
+ * when the guards stop being consulted.
  */
 export const PUBLISHABLE_RULE_NOT_BUILT: PublishableRule = Object.freeze({
   becomesPublishable(): boolean {
@@ -78,7 +82,11 @@ export const DEFAULT_GUARD_DEPS: GuardDeps = Object.freeze({
     return (await ceilingRoom(siteId, at)).room;
   },
   destinationWorking,
-  rule: PUBLISHABLE_RULE_NOT_BUILT,
+  // The seam #45 declared and #46 fills. Imported by file, not through
+  // `publishable/index.ts`: the barrel re-exports `veto.ts`, which imports
+  // `transition()`, and reaching it from here would close the cycle this
+  // leaf sits on the other side of (ADR-092).
+  rule: PUBLISHABLE_RULE,
 });
 
 export interface GuardContext {

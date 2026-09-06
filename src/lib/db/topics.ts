@@ -82,6 +82,16 @@ export const MIGRATION_SUBTOKENS: readonly MigrationSubtoken[] = [
   // for — "a leaf narrows it with a sub-token and owns that file".
   { token: "drafts_publishing", parent: "drafts", owner: "BP-045" },
   { token: "sites_publishing", parent: "sites", owner: "BP-045" },
+  // Issue #46, BUILD §9: the approval, the telling and the veto token
+  // (`approved_at`, `approved_by`, `told`, `veto_token_*`) — the veto
+  // leaf's own columns on `drafts`, under its own sub-token so that
+  // `drafts_publishing` (the state machine's) and this one cannot both
+  // claim one file.
+  { token: "drafts_veto", parent: "drafts", owner: "BP-046" },
+  // Issue #46, BUILD §4.7: saving the four publishing settings and the
+  // drafts they re-deadline, in one statement. Adds no column; it carries
+  // the function that makes the save atomic across drafts.
+  { token: "sites_settings", parent: "sites", owner: "BP-057" },
 ];
 
 /**
