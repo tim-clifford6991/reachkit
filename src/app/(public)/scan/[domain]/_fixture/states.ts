@@ -26,7 +26,7 @@ import { AI_READER_AGENTS } from "@/lib/config/constants";
 import { measured, measuredZero } from "@/lib/measure/measured";
 import { fromStored } from "@/lib/presentation/generated";
 import type { CanonicalDomain } from "@/lib/scan/domain";
-import type { AnswerCell, StoredQuestion, StoredReport } from "@/lib/scan/report";
+import type { AnswerCell, EngineCell, StoredQuestion, StoredReport } from "@/lib/scan/report";
 import type { AddressState } from "../_address/state";
 
 const MEASURED_AT = new Date("2026-09-05T09:00:00.000Z");
@@ -74,6 +74,29 @@ function cellFor(index: number): AnswerCell {
     citedDomains: index % 2 === 0 ? [RIVALS[0], RIVALS[1]] : [RIVALS[0], RIVALS[2]],
     namesCustomer: false,
   };
+}
+
+/** §6.2's three answer columns for a **free** report: Google's AI answer,
+ *  and the two engines the free path never asks (§6.2 — "The free path
+ *  makes **zero** AI Optimization API calls"), which read `not_attempted`
+ *  and never as a miss.
+ *
+ *  Written as literals rather than through `matrix.ts`'s `engineColumns`,
+ *  and that is not taste: this file is reachable from `src/middleware.ts`,
+ *  a **runtime** import of the market leaf pulls `rivals/domains` →
+ *  `scan/domain` → `node:net` into the Edge bundle, and the build fails
+ *  with "A Node.js module is loaded which is not supported in the Edge
+ *  Runtime". A fixture describes a fixed shape; the order it describes is
+ *  asserted against `BATTERY_ENGINES` in `tests/market/questions/
+ *  matrix.test.ts`. */
+const NOT_ASKED = { kind: "unmeasured", reason: "not_attempted" } as const;
+
+function enginesFor(index: number): readonly EngineCell[] {
+  return [
+    { engine: "ai_overview", cell: cellFor(index) },
+    { engine: "ai_mode", cell: NOT_ASKED },
+    { engine: "chatgpt", cell: NOT_ASKED },
+  ];
 }
 
 function rivalCells(offset: number): readonly AnswerCell[] {
@@ -166,7 +189,7 @@ export const FIXTURE_REPORT: StoredReport = {
     measuredAt: MEASURED_AT,
     ownDomain: OWN_DOMAIN,
     rivals: RIVALS.map((domain, offset) => ({ domain, cells: rivalCells(offset) })),
-    rows: QUESTIONS.map((question, index) => ({ question, cell: cellFor(index) })),
+    rows: QUESTIONS.map((question, index) => ({ question, cell: cellFor(index), engines: enginesFor(index) })),
     coverage: "async_included",
   },
   presence: {
@@ -256,7 +279,7 @@ export const FIXTURE_COLD_START_REPORT: StoredReport = {
     measuredAt: MEASURED_AT,
     ownDomain: OWN_DOMAIN,
     rivals: [],
-    rows: QUESTIONS.map((question, index) => ({ question, cell: cellFor(index) })),
+    rows: QUESTIONS.map((question, index) => ({ question, cell: cellFor(index), engines: enginesFor(index) })),
     coverage: "async_included",
   },
   presence: {

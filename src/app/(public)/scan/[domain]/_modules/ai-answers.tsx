@@ -5,14 +5,25 @@
 // the answer, not the metric; carries its source as one quiet chip; states
 // its method in one line.
 //
-// **Two things this card deliberately does not hold.** No per-question
+// **Three things this card deliberately does not hold.** No per-question
 // `{vol}/mo` — the owner removed it on 2026-09-03 and `StoredQuestion` has
-// no volume member to render. And no dot matrix of its own: the AI
+// no volume member to render. No dot matrix of its own: the AI
 // dot-matrix is `BUILD.md` §2.4's closed chart inventory, owned by issue
 // #11, so it arrives here as a named, absent-safe `matrix` slot. The rows
 // are direct-labelled either way — name and value in writing — so the card
 // says everything it claims with the slot empty (§2.4: "identity is never
 // colour-alone").
+//
+// And no three-column engine layout, for the same reason and by the same
+// mechanism (issue #128). §6.2 rules the paid battery "rendered as three
+// answer columns"; every row now **carries** those three columns as data
+// (`AiAnswersSection.rows[].engines`), and drawing them changes an
+// approved screen — which `CLAUDE.md` gates behind an owner-approved
+// artifact and owner-written copy. So the columns arrive here as the
+// `engines` slot, exactly as the chart does, and the card renders
+// unchanged until that gate is discharged. The four copy keys the layout
+// will need are minted and owner-owed (`ai-answers.engine.*`). The
+// layout is issue #157.
 //
 // Question wording is model text and reaches this file only through
 // `renderQuestion`, which will not yield the wording without the search it
@@ -72,6 +83,14 @@ export function AiAnswersCard(p: {
    *  state and not an empty state — the rows below still carry every
    *  figure the chart would draw. */
   matrix?: React.ReactNode;
+  /** §6.2's three answer columns, once the design gate #128 names is
+   *  discharged — issue #157. Same standing as `matrix`: absent is an absence, and the
+   *  card below is complete without it — the questions list and the
+   *  citation table still state, in writing, everything the customer is
+   *  told today. The data the layout reads is already on every row
+   *  (`section.rows[].engines`), so the follow-up is a rendering change
+   *  and not a measurement one. */
+  engines?: React.ReactNode;
   /** The date the SERPs behind this card were read, already formatted by
    *  the caller that owns the report's one date. */
   measuredOn: string;
@@ -103,6 +122,7 @@ export function AiAnswersCard(p: {
       </p>
 
       {p.matrix}
+      {p.engines}
 
       <Table
         columns={[

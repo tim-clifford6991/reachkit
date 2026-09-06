@@ -6,9 +6,15 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { buildAiAnswersCard, type AiAnswersCard } from "../../../src/lib/market/questions/matrix.ts";
+import {
+  BATTERY_ENGINES,
+  buildAiAnswersCard,
+  engineColumns,
+  type AiAnswersCard,
+  type BatteryAnswers,
+} from "../../../src/lib/market/questions/matrix.ts";
 import { measured, unmeasured, type Measured } from "../../../src/lib/measure/measured.ts";
-import type { MarketSerp, QuestionView } from "../../../src/lib/market/views.ts";
+import type { MarketAiAnswer, MarketSerp, QuestionView } from "../../../src/lib/market/views.ts";
 
 const SOURCE_PATH = path.resolve(import.meta.dirname, "../../../src/lib/market/questions/matrix.ts");
 const SOURCE = readFileSync(SOURCE_PATH, "utf8");
@@ -62,7 +68,7 @@ describe('REQ-006 c1 — the card states how many searches were measured and on 
     expect(built.measuredSearches).toBe(8);
   });
 
-  it("card/invariants — all five hold on a mixed fixture", () => {
+  it("card/invariants — all six hold on a mixed fixture", () => {
     const questions = Array.from({ length: 12 }, (_, i) => question(i));
     const serps: Measured<MarketSerp>[] = [
       ok(["customer.com"]),
@@ -86,7 +92,11 @@ describe('REQ-006 c1 — the card states how many searches were measured and on 
     expect(built.rows).toHaveLength(questions.length);
     for (const [i, row] of built.rows.entries()) {
       expect(row.keyword).toBe(questions[i]?.search.keyword);
-      expect(Object.keys(row).sort()).toEqual(["cell", "keyword", "phrasing", "questionId", "text"]);
+      expect(Object.keys(row).sort()).toEqual(["cell", "engines", "keyword", "phrasing", "questionId", "text"]);
+      // The sixth invariant (issue #128): three columns, in
+      // BATTERY_ENGINES order, the first of which *is* the row's own cell.
+      expect(row.engines.map((e) => e.engine)).toEqual([...BATTERY_ENGINES]);
+      expect(row.engines[0]?.cell).toBe(row.cell);
     }
 
     expect(built.measuredSearches).toBe(9);
@@ -238,6 +248,142 @@ describe('REQ-006 c7 — the card reports what was measured and nothing more', (
     expect(row?.phrasing).toBe("template");
     expect(Object.keys(row ?? {})).not.toContain("volume");
     expect(JSON.stringify(built)).not.toContain("100");
+  });
+});
+
+// ── §6.2's three answer columns (issue #128) ─────────────────────────────
+//
+// "Paid weekly battery: ChatGPT std + AI Mode std + AI-Overview piggyback
+// = 2.2¢/week, rendered as three answer columns." The mutations this block
+// exists to kill: reordering the columns (a renderer indexes by position);
+// re-deriving the AI-Overview column instead of reading the row's own
+// cell (two readings of one measurement, free to drift); collapsing an
+// engine that was never asked onto `no_answer` (which reads as a miss);
+// and letting the battery move the three rendered counts, which is the
+// design decision the three-column visual is gated behind.
+
+const answer = (cited: string[]): Measured<MarketAiAnswer> => measured({ answered: true, citedDomains: cited }, AT);
+const silent = (): Measured<MarketAiAnswer> => measured({ answered: false, citedDomains: [] }, AT);
+const unasked = (reason: "undeterminable" | "not_attempted" = "not_attempted"): Measured<MarketAiAnswer> =>
+  unmeasured<MarketAiAnswer>(reason, AT);
+
+function withBattery(serps: Measured<MarketSerp>[], battery: BatteryAnswers[]): AiAnswersCard {
+  return buildAiAnswersCard({
+    questions: serps.map((_, i) => question(i)),
+    serps,
+    battery,
+    ownDomain: "customer.com",
+    coverage: "async_included",
+  });
+}
+
+describe("BUILD §6.2 — three answer columns, carried as data on every row", () => {
+  it("engines/order-is-fixed — ai_overview, ai_mode, chatgpt, on every row", () => {
+    const built = withBattery(
+      [ok(["rival.com"]), ok(null), missing()],
+      [
+        { aiMode: answer(["customer.com"]), chatgpt: silent() },
+        { aiMode: unasked("undeterminable"), chatgpt: answer(["rival.com"]) },
+        { aiMode: unasked(), chatgpt: unasked() },
+      ]
+    );
+    expect(BATTERY_ENGINES).toEqual(["ai_overview", "ai_mode", "chatgpt"]);
+    for (const row of built.rows) {
+      expect(row.engines).toHaveLength(3);
+      expect(row.engines.map((e) => e.engine)).toEqual([...BATTERY_ENGINES]);
+    }
+  });
+
+  it("engines/perplexity-is-not-a-column — §6.4 forbids a fourth engine", () => {
+    expect(BATTERY_ENGINES).toHaveLength(3);
+    expect([...BATTERY_ENGINES]).not.toContain("perplexity");
+  });
+
+  it("engines/battery-cells-take-the-same-three-kinds-the-overview-does", () => {
+    const built = withBattery(
+      [ok(["rival.com"])],
+      [{ aiMode: answer(["www.customer.com", "rival.com"]), chatgpt: silent() }]
+    );
+    const [, aiMode, chatgpt] = built.rows[0]?.engines ?? [];
+    expect(aiMode?.cell).toEqual({
+      kind: "answered",
+      citedDomains: ["customer.com", "rival.com"],
+      namesCustomer: true,
+    });
+    expect(chatgpt?.cell).toEqual({ kind: "no_answer" });
+  });
+
+  it("engines/an-engine-nobody-asked-is-not-a-miss — the free path's two columns", () => {
+    // No `battery` argument at all: the free path, which makes zero AI
+    // Optimization calls. Both battery columns say we did not get to them.
+    const built = card({ serps: [ok(["rival.com"]), ok(null)] });
+    for (const row of built.rows) {
+      expect(row.engines[1]?.cell).toEqual({ kind: "unmeasured", reason: "not_attempted" });
+      expect(row.engines[2]?.cell).toEqual({ kind: "unmeasured", reason: "not_attempted" });
+    }
+  });
+
+  it("engines/a-raised-engine-carries-its-own-reason", () => {
+    const built = withBattery([ok(null)], [{ aiMode: unasked("undeterminable"), chatgpt: unasked() }]);
+    expect(built.rows[0]?.engines[1]?.cell).toEqual({ kind: "unmeasured", reason: "undeterminable" });
+    expect(built.rows[0]?.engines[2]?.cell).toEqual({ kind: "unmeasured", reason: "not_attempted" });
+  });
+
+  it("engines/a-short-battery-covers-the-questions-it-covers-and-no-more", () => {
+    const built = withBattery(
+      [ok(null), ok(null)],
+      [{ aiMode: answer(["rival.com"]), chatgpt: silent() }]
+    );
+    expect(built.rows[0]?.engines[1]?.cell.kind).toBe("answered");
+    expect(built.rows[1]?.engines[1]?.cell).toEqual({ kind: "unmeasured", reason: "not_attempted" });
+  });
+
+  it("engines/the-three-rendered-counts-do-not-move — the battery is data beside them, not arithmetic under them", () => {
+    const serps = [ok(["rival.com"]), ok(null), missing()];
+    const without = card({ serps });
+    const with_ = withBattery(serps, [
+      { aiMode: answer(["customer.com"]), chatgpt: answer(["customer.com"]) },
+      { aiMode: answer(["customer.com"]), chatgpt: answer(["customer.com"]) },
+      { aiMode: answer(["customer.com"]), chatgpt: answer(["customer.com"]) },
+    ]);
+    expect(with_.measuredSearches).toBe(without.measuredSearches);
+    expect(with_.answeredSearches).toBe(without.answeredSearches);
+    expect(with_.customerCitations).toBe(without.customerCitations);
+    expect(with_.customerCitations).toBe(0);
+  });
+
+  it("engines/the-overview-column-is-the-row's-own-cell-and-not-a-second-derivation", () => {
+    const built = withBattery([ok(["customer.com"])], [{ aiMode: silent(), chatgpt: silent() }]);
+    expect(built.rows[0]?.engines[0]?.cell).toBe(built.rows[0]?.cell);
+  });
+
+  it("engines/no-engine-text-can-reach-the-card — MarketAiAnswer has no field for it", () => {
+    // The vendor's own `AiAnswer` carries `text`; the view the card reads
+    // does not, so an engine's prose has nowhere to travel and cannot be
+    // rendered unlabelled.
+    const built = withBattery(
+      [ok(null)],
+      [
+        {
+          aiMode: measured(
+            { answered: true, citedDomains: ["rival.com"], text: "Try Rival, it is the best." } as MarketAiAnswer,
+            AT
+          ),
+          chatgpt: silent(),
+        },
+      ]
+    );
+    expect(JSON.stringify(built)).not.toContain("it is the best");
+  });
+
+  it("engineColumns/is-the-one-implementation-of-the-order", () => {
+    // `src/lib/scan/sections.ts` builds the columns for a question the
+    // card had no row for; it must build them the same way.
+    const overview = { kind: "no_answer" } as const;
+    expect(engineColumns({ overview, ownDomain: "customer.com" }).map((e) => e.engine)).toEqual([
+      ...BATTERY_ENGINES,
+    ]);
+    expect(engineColumns({ overview, ownDomain: "customer.com" })[0]?.cell).toBe(overview);
   });
 });
 

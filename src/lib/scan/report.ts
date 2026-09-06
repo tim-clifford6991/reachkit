@@ -68,6 +68,33 @@
 // first of the three is the owner's call; flagged there rather than
 // settled quietly here by adopting a shape that drops a promise.
 //
+// **The three answer columns are here now, and `REPORT_VERSION` goes to
+// 4 for them** (issue #128). §6.2 rules the paid weekly battery as
+// "ChatGPT std + AI Mode std + AI-Overview piggyback … rendered as three
+// answer columns", and nothing had ever bought the two engines because no
+// stored shape carried their answers. Each row of `aiAnswers` now carries
+// `engines`, `matrix.ts`'s `EngineCell` triple — the AI Overview it
+// already had, plus the two the paid battery buys.
+//
+// **The migration is in this file, not a script**, because a stored blob
+// has exactly one reader and it is `readStoredReport`. A version-3 report
+// is upgraded on the way through: its rows gain the AI-Overview column
+// they already measured and `not_attempted` for the two engines, which is
+// precisely true of a report written before anything bought them. So no
+// customer's report goes off its own address at deploy, which is what a
+// bare version bump would have done to every report already on disk. The
+// upgrade writes the literal triple rather than calling `engineColumns` —
+// a migration describes a shape that is frozen in the past, and one that
+// followed a moving helper would rewrite history the next time the helper
+// changed.
+//
+// What the blob deliberately does **not** carry is the engines' own text.
+// An AI answer's prose is generated text; `MarketAiAnswer`
+// (`src/lib/market/views.ts`) has no member for it, so there is no field
+// it can travel in and no surface that could render it unlabelled
+// (`CLAUDE.md`). What is stored is what the product measures: whether the
+// engine answered, and whom it named.
+//
 // Nothing here is optional-by-accident: a section that could not be
 // produced is `null`, which the screen renders as a named absent section
 // with one written line (REQ-004 c10/c11), never as an empty card and
@@ -77,6 +104,7 @@ import { dbAdmin } from "@/lib/db";
 import type { RobotsPolicy } from "@/lib/egress/types";
 import type { CoherenceVerdict } from "@/lib/market/coherence/check";
 import type { CorrectionState } from "@/lib/market/coherence/state";
+import type { EngineCell } from "@/lib/market/questions/matrix";
 import type { MarketSet } from "@/lib/market/questions/market-set";
 import type { Question } from "@/lib/market/questions/phrase";
 import type { RivalCandidate } from "@/lib/market/rivals/derive";
@@ -99,7 +127,7 @@ export type StoppedReason = "complete" | "time_ceiling" | "spend_ceiling" | "fai
  *  it does not know throws rather than returning a partially-populated
  *  value: `null` would be indistinguishable from "no report" at every call
  *  site. */
-export const REPORT_VERSION = 3;
+export const REPORT_VERSION = 4;
 
 /** One cell of the AI-answers matrix — one question, one measured SERP.
  *  BP-025 `## Public interface` (issue #26's `matrix.ts` owns it). An
@@ -109,6 +137,14 @@ export type AnswerCell =
   | { kind: "answered"; citedDomains: readonly string[]; namesCustomer: boolean }
   | { kind: "no_answer" }
   | { kind: "unmeasured"; reason: "undeterminable" | "not_attempted" };
+
+/** `matrix.ts`'s own engine column, re-exported under the blob's roof so a
+ *  screen or a fixture can name the type without a **runtime** edge into
+ *  the market leaf. That edge is not hypothetical: `src/app/(public)/scan/
+ *  [domain]/_fixture/states.ts` is reachable from `src/middleware.ts`, and
+ *  importing `matrix.ts` for a value there pulls `rivals/domains` →
+ *  `scan/domain` → `node:net` into the Edge bundle and fails the build. */
+export type { EngineCell, BatteryEngine } from "@/lib/market/questions/matrix";
 
 /** One of the twelve tracked questions, as the report stores it. `wording`
  *  is model text and therefore a `GeneratedText`: the screen reaches it
@@ -142,7 +178,14 @@ export interface AiAnswersSection {
   /** Rival rows of the dot matrix, in the order the presence card orders
    *  them; one cell per row per question. */
   rivals: readonly { domain: string; cells: readonly AnswerCell[] }[];
-  rows: readonly { question: StoredQuestion; cell: AnswerCell }[];
+  /** One row per question. `cell` is the AI-Overview column — the one the
+   *  approved card renders — and `engines` is §6.2's three columns with
+   *  that same cell first, so the screen's existing reading is untouched
+   *  and the two engines the paid battery buys are beside it as data.
+   *  `EngineCell` is `matrix.ts`'s own type rather than a second copy of
+   *  it: the shape is the engine's, and this file has one duplicate of a
+   *  market type already (`AnswerCell`) without wanting a second. */
+  rows: readonly { question: StoredQuestion; cell: AnswerCell; engines: readonly EngineCell[] }[];
   /** Which AI answers this card could see — #27's own member, carried
    *  here because the ruling that created it requires a disclosure the
    *  screen can only render from a state it can read. The free report's
@@ -297,19 +340,58 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-/** The version guard. Throws — loudly — on a blob this build cannot read,
- *  because `null` reads as "this domain has no report" at every call site
- *  and would quietly take a customer's report off its own address. */
+/** The version this build's own migration knows how to lift, and the only
+ *  one: a report written before issue #128 bought the paid battery. */
+const MIGRATABLE_VERSION = 3;
+
+/** The two battery columns of a report written before anything bought
+ *  them. `not_attempted` and not `no_answer`: nobody asked these engines,
+ *  which is a different claim from asking and getting nothing. Frozen
+ *  literals, deliberately not `engineColumns(...)` — see this file's
+ *  header for why a migration does not follow a moving helper. */
+function engineColumnsAtVersion3(overview: unknown): unknown[] {
+  return [
+    { engine: "ai_overview", cell: overview },
+    { engine: "ai_mode", cell: { kind: "unmeasured", reason: "not_attempted" } },
+    { engine: "chatgpt", cell: { kind: "unmeasured", reason: "not_attempted" } },
+  ];
+}
+
+/**
+ * Version 3 → 4: every AI-answers row gains its `engines` triple.
+ *
+ * Total and non-destructive — it adds one member per row and changes no
+ * other byte of the blob, so a report measured before the battery existed
+ * renders exactly as it did, with its two new columns saying honestly
+ * that nobody asked them. A report whose `aiAnswers` is `null` needs no
+ * row rewritten and only its version moved.
+ */
+function upgradeFromVersion3(blob: Record<string, unknown>): Record<string, unknown> {
+  const answers = blob.aiAnswers;
+  if (!isRecord(answers) || !Array.isArray(answers.rows)) {
+    return { ...blob, version: REPORT_VERSION };
+  }
+  const rows = answers.rows.map((row) =>
+    isRecord(row) ? { ...row, engines: engineColumnsAtVersion3(row.cell) } : row
+  );
+  return { ...blob, version: REPORT_VERSION, aiAnswers: { ...answers, rows } };
+}
+
+/** The version guard, and the one upgrade beside it. Throws — loudly — on
+ *  a blob this build can neither read nor lift, because `null` reads as
+ *  "this domain has no report" at every call site and would quietly take a
+ *  customer's report off its own address. */
 export function readStoredReport(blob: unknown): StoredReport {
   if (!isRecord(blob)) {
     throw new Error("readCurrentReport: the stored report is not an object");
   }
-  if (blob.version !== REPORT_VERSION) {
+  const current = blob.version === MIGRATABLE_VERSION ? upgradeFromVersion3(blob) : blob;
+  if (current.version !== REPORT_VERSION) {
     throw new Error(
       `readCurrentReport: stored report version ${String(blob.version)} is not readable by this build (expected ${REPORT_VERSION})`
     );
   }
-  return reviveDates(blob) as StoredReport;
+  return reviveDates(current) as StoredReport;
 }
 
 // `scans.is_current` is on disk (`20260904110000_scans_current.sql`) and

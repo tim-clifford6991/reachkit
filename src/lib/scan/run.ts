@@ -1,4 +1,4 @@
-// BUILD §4.1, §6.3, §6.5 — the one scan pipeline. Tier is a parameter.
+// BUILD §4.1, §6.2, §6.3, §6.5 — the one scan pipeline. Tier is a parameter.
 //
 // Six named stages in `STAGES` order, under the tier's spend cap and — on
 // the free path — the ninety-second deadline, ending in exactly one stored
@@ -45,7 +45,7 @@ import { dbAdmin } from "@/lib/db";
 import type { RobotsPolicy } from "@/lib/egress/types";
 import { checkCoherence, type CoherenceVerdict } from "@/lib/market/coherence/check";
 import { nextCorrectionState, type CorrectionState } from "@/lib/market/coherence/state";
-import { buildAiAnswersCard } from "@/lib/market/questions/matrix";
+import { buildAiAnswersCard, type BatteryAnswers } from "@/lib/market/questions/matrix";
 import {
   deriveMarketSet,
   marketSetOf,
@@ -66,8 +66,8 @@ import type { InputOutcome, ScanInput } from "@/lib/measure/partition";
 import type { OnPageFacts } from "@/lib/measure/parse";
 import type { Drivers } from "@/lib/measure/score";
 import { verdictOf, type Verdict } from "@/lib/measure/verdict";
-import { serpOrganic } from "@/lib/vendors/dataforseo";
-import type { SerpResult } from "@/lib/vendors/dataforseo/types";
+import { aiMode, llmScraper, serpOrganic } from "@/lib/vendors/dataforseo";
+import type { AiAnswer, SerpResult } from "@/lib/vendors/dataforseo/types";
 import { withScanBounds, type Bounds } from "./ceilings";
 import { advanceCorrectionState, readCorrectionFacts, registerCorrectionRunner } from "./correction";
 import { parseDomain, type CanonicalDomain } from "./domain";
@@ -116,6 +116,25 @@ interface TierParameters {
    *  inside `rankedKeywords`) and not a second schedule here: a weekly pass
    *  inside the window re-reads the same rows and spends nothing. */
   sizesRivals: boolean;
+  /** §6.2's paid weekly battery — "ChatGPT std + AI Mode std +
+   *  AI-Overview piggyback = 2.2¢/week" — bought per question inside
+   *  `asking_the_twelve`, beside the SERP whose own AI Overview is the
+   *  third column and costs nothing extra.
+   *
+   *  `false` on the free path and no other value is defensible there:
+   *  §6.2 rules "The free path makes **zero** AI Optimization API calls"
+   *  and §6.1 prices `CHATGPT_SCRAPE_STD` "(paid battery only — never on
+   *  the free path)". It is a parameter and not a branch for the same
+   *  reason `sizesRivals` is: the stage runs at every tier and asks the
+   *  same callees; what a tier changes is what its row here says.
+   *
+   *  **Belt and braces, on purpose.** `aiMode` and `llmScraper` refuse
+   *  under a `FREE` cost context themselves (`src/lib/vendors/dataforseo/
+   *  ai.ts`), so the free path is held twice: once by this row, which
+   *  stops the call being made, and once at the vendor, which would
+   *  refuse it if it were. Two independent guards for a rule whose breach
+   *  is money spent against a promise. */
+  battery: boolean;
 }
 
 export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.freeze({
@@ -127,6 +146,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     adoptsClaim: true,
     servesStoredReport: true,
     sizesRivals: false,
+    battery: false,
   }),
   deep: Object.freeze({
     cap: "DEEP",
@@ -136,6 +156,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     adoptsClaim: false,
     servesStoredReport: false,
     sizesRivals: true,
+    battery: true,
   }),
   weekly: Object.freeze({
     cap: "WEEKLY",
@@ -145,6 +166,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     adoptsClaim: false,
     servesStoredReport: false,
     sizesRivals: true,
+    battery: true,
   }),
 } as const);
 
@@ -157,6 +179,12 @@ interface Sections {
   selected: SelectedSearch[];
   questions: Measured<Question[]>;
   serps: Measured<SerpResult>[];
+  /** §6.2's battery, one entry per question in question order — the same
+   *  parallel record `serps` is, and filled by the same stage. It reaches
+   *  the blob as the AI-answers card's engine columns and nowhere else:
+   *  the engines' own prose is generated text and has no member here to
+   *  travel in (`MarketAiAnswer`, `src/lib/market/views.ts`). */
+  battery: BatteryAnswers[];
   rivals: Measured<RivalCandidate[]>;
   /** §6.6's sizing, filled by `checking_your_presence` at the two tiers
    *  whose parameters say so. A pass that could not read the site's
@@ -180,6 +208,7 @@ function freshSections(at: Date): Sections {
     selected: [],
     questions: unmeasured("not_attempted", at),
     serps: [],
+    battery: [],
     rivals: unmeasured("not_attempted", at),
     rivalSizes: unmeasured("not_attempted", at),
     sources: [],
@@ -730,10 +759,16 @@ function seedsOf(profile: Profile): string[] {
 }
 
 /** §6.2's free battery: the twelve question-SERPs, live, reading each
- *  SERP's own AI Overview at no extra cost. The ceilings are re-checked
- *  between every one — this is the multi-call step §6.5 names — and a
- *  question the ceiling stopped us reaching carries `not_attempted`, which
- *  lowers the cards' denominator rather than reading as a miss. */
+ *  SERP's own AI Overview at no extra cost — and, at the tiers whose
+ *  parameters say so, §6.2's paid battery beside each of them. The
+ *  ceilings are re-checked between every one — this is the multi-call step
+ *  §6.5 names, and it is now three calls per question rather than one — and
+ *  a question the ceiling stopped us reaching carries `not_attempted`,
+ *  which lowers the cards' denominator rather than reading as a miss.
+ *
+ *  The two records stay the same length as each other and as the twelve:
+ *  `serps[i]` and `battery[i]` are the same question's, whatever any of
+ *  the three calls did, so the card can pair them by position. */
 async function askTheTwelve(a: StageArgs): Promise<void> {
   const { bounds, cost, parameters, sections } = a;
   const questions = sections.questions;
@@ -742,6 +777,7 @@ async function askTheTwelve(a: StageArgs): Promise<void> {
   for (const question of asked) {
     if (bounds.stopNow() !== null) {
       sections.serps.push(unmeasured("not_attempted", questions.at));
+      sections.battery.push(noBattery(questions.at));
       continue;
     }
     const serp = await attempt("asking_the_twelve", () =>
@@ -752,7 +788,70 @@ async function askTheTwelve(a: StageArgs): Promise<void> {
       })
     );
     sections.serps.push(failed(serp) ? unmeasured("undeterminable", questions.at) : serp);
+    sections.battery.push(await askTheBattery(a, question.search.keyword, questions.at));
   }
+}
+
+/** The battery nobody bought: both engines on the arm that says we did not
+ *  get to them. It is what the free path stores for every question, and
+ *  what a ceiling leaves behind — never a `zero`, which would claim the
+ *  engines were asked and said nothing. */
+function noBattery(at: Date): BatteryAnswers {
+  return { aiMode: unmeasured("not_attempted", at), chatgpt: unmeasured("not_attempted", at) };
+}
+
+/**
+ * §6.2's paid battery for one question: engine 1 (ChatGPT, LLM Scraper)
+ * and engine 2 (Google AI Mode). The third column, the AI Overview, was
+ * already bought by the SERP above at "0¢ extra" and is not asked for
+ * again.
+ *
+ * **Two calls, and the ceilings are re-checked before each** — §6.5:
+ * "`capHit()` is re-checked between calls in any multi-call step", and
+ * `bounds.stopNow()` is that check plus the report deadline, exactly as
+ * the SERP loop above uses it. An engine the ceiling arrives before is
+ * `not_attempted`; the pass keeps going and stores what it has.
+ *
+ * **An engine that did not answer degrades rather than throwing** (§6.5:
+ * "Caps degrade … never throw"). A vendor that raised is `undeterminable`
+ * — we asked and could not determine it — which is a different claim from
+ * `no_answer`, the engine's own zero, and from `not_attempted`. Nothing
+ * here can take the pass down: `attempt` catches, and the ChatGPT engine
+ * failing does not stop AI Mode being asked.
+ *
+ * **AI Mode follows the pass's own SERP mode.** It is a SERP endpoint
+ * priced at the SERP rows, and §6.4 rules "Live mode only where a human is
+ * waiting" — so the onboarding deep pass buys it live and the scheduled
+ * weekly pass buys it standard, which is §6.2's "AI Mode std" for the
+ * weekly battery. The LLM Scraper has no live variant to choose: its own
+ * type admits `"std"` alone.
+ */
+async function askTheBattery(a: StageArgs, query: string, at: Date): Promise<BatteryAnswers> {
+  const { bounds, cost, parameters } = a;
+  if (!parameters.battery) return noBattery(at);
+
+  const chatgpt =
+    bounds.stopNow() !== null
+      ? unmeasured<AiAnswer>("not_attempted", at)
+      : await engineAnswer(at, () => llmScraper(cost, { query, mode: "std" }));
+
+  const mode =
+    bounds.stopNow() !== null
+      ? unmeasured<AiAnswer>("not_attempted", at)
+      : await engineAnswer(at, () => aiMode(cost, { query, mode: parameters.serpMode }));
+
+  return { chatgpt, aiMode: mode };
+}
+
+/** One engine's answer, with a raise turned into the arm that is true of
+ *  it. The vendor's own refusals — a `FREE` context, a cap already hit —
+ *  come back as `Measured` arms and pass through untouched. */
+async function engineAnswer(
+  at: Date,
+  work: () => Promise<Measured<AiAnswer>>
+): Promise<Measured<AiAnswer>> {
+  const answer = await attempt("asking_the_twelve", work);
+  return failed(answer) ? unmeasured<AiAnswer>("undeterminable", at) : answer;
 }
 
 /** The last stage buys nothing: the rivals, both cards and the coherence
@@ -778,6 +877,7 @@ function score(a: StageArgs): void {
   const card = buildAiAnswersCard({
     questions: sections.questions.kind === "unmeasured" ? [] : sections.questions.value,
     serps,
+    battery: sections.battery,
     ownDomain: domain,
     coverage: a.parameters.asyncAiOverview && !a.correction ? "async_included" : "cached_only",
   });

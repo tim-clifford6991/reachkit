@@ -143,6 +143,20 @@ export const REPORT_COPY = Object.freeze({
   // and the brands the answer named. No `{vol}/mo` slot — the owner
   // removed per-question volume on 2026-09-03.
   "ai-answers.question.provenance": ["TODO(copy)", { slots: { search: "text", brands: "text" }, fixedBy: "REQ-006 c9" }],
+  // §6.2's three answer columns (issue #128). The data is measured and
+  // stored; the *visual* — three columns on an approved card — is the
+  // design gate #128 names and lands in its follow-up, so these four are
+  // the words that gate needs and are owed before it can render. Each
+  // carries the marker rather than the empty value: the card reads through
+  // `copy()`, which throws on an owner-owed key and would take the whole
+  // report down.
+  "ai-answers.engine.ai-overview": ["TODO(copy)", { slots: {}, fixedBy: "BUILD §6.2" }],
+  "ai-answers.engine.ai-mode": ["TODO(copy)", { slots: {}, fixedBy: "BUILD §6.2" }],
+  "ai-answers.engine.chatgpt": ["TODO(copy)", { slots: {}, fixedBy: "BUILD §6.2" }],
+  // What a column says where the engine was never asked — the free
+  // report's two battery columns, and any question a ceiling stopped the
+  // pass reaching. It states a fact about the measurement, never a miss.
+  "ai-answers.engine.not-measured": ["TODO(copy)", { slots: {}, fixedBy: "BUILD §6.2" }],
   "ai-answers.matrix.column.domain": ["TODO(copy)", { slots: {}, fixedBy: "REQ-006 c1" }],
   "ai-answers.matrix.column.cited": ["TODO(copy)", { slots: {}, fixedBy: "REQ-006 c1" }],
   "ai-answers.matrix.empty": ["TODO(copy)", { slots: {}, fixedBy: "REQ-006 c1" }],
