@@ -87,6 +87,11 @@ export const FREE_BOUNDS = Object.freeze({
 
 export const TIMING = Object.freeze({
   reportTargetS: 60, reportCeilingS: 90, deepReleaseMin: 10, progressHeartbeatS: 30,
+  // BP-034 `## NFR budget` (archived corpus), verbatim: "a rival suggestion
+  // call is bounded at 3 s and, on timeout, leaves `SuggestionState` at
+  // `none_found` rather than holding the screen — **setup is never held on
+  // suggestions**". Seconds, like its three neighbours. Issue #37.
+  suggestCeilingS: 3,
 } as const);
 
 export const WINNABILITY = Object.freeze({
