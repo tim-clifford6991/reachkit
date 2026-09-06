@@ -14,13 +14,14 @@
 // themselves.** A month name is a value, not a sentence (§2.3 covers it,
 // the copy registry does not), so the switcher needs no owner-owed string
 // to be usable — and being links rather than buttons is what puts the month
-// in the address, where it can be linked to and survives a reload.
+// in the address, where it can be linked to and survives a reload. They are
+// not wrapped in a `Join`: daisyUI's `join` does not wrap, and three month
+// names welded into one row overflow a 320px document.
 //
 // It declares no `Surface`: the shell's layout owns this route's screen
 // root (`../layout.tsx`), and a second one would be a second
 // `[data-surface]` in the document (ADR-093 decision 6).
 import type React from "react";
-import { Join } from "@/ui/components/Join";
 import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../_shell/written";
 import { CalendarView } from "./CalendarView";
@@ -44,36 +45,37 @@ export default async function CalendarPage({
   const supplyNote = writtenLine("calendar.footnote.supply");
 
   return (
-    <>
+    <div className="flex flex-col gap-4">
       <h1>{copy("calendar.head")}</h1>
-      <nav data-testid="month-switcher">
-        <Join>
-          <a
-            href={`/app/calendar?month=${previous}`}
-            className="num"
-            data-testid="month-previous"
-          >
-            {monthLabel(previous)}
-          </a>
-          <span className="num" data-testid="month-current">
-            {monthLabel(month)}
-          </span>
-          <a
-            href={`/app/calendar?month=${next}`}
-            className="num"
-            data-testid="month-next"
-          >
-            {monthLabel(next)}
-          </a>
-        </Join>
+      <nav
+        className="flex flex-wrap items-baseline gap-3"
+        data-testid="month-switcher"
+      >
+        <a
+          href={`/app/calendar?month=${previous}`}
+          className="num"
+          data-testid="month-previous"
+        >
+          {monthLabel(previous)}
+        </a>
+        <span className="num" data-testid="month-current">
+          {monthLabel(month)}
+        </span>
+        <a
+          href={`/app/calendar?month=${next}`}
+          className="num"
+          data-testid="month-next"
+        >
+          {monthLabel(next)}
+        </a>
       </nav>
 
       <CalendarView model={model} />
 
-      <footer data-testid="calendar-footnote">
+      <footer className="flex flex-col gap-1" data-testid="calendar-footnote">
         {plannedNote === null ? null : <p className="rk-prov">{plannedNote}</p>}
         {supplyNote === null ? null : <p className="rk-prov">{supplyNote}</p>}
       </footer>
-    </>
+    </div>
   );
 }

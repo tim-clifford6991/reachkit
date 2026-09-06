@@ -18,12 +18,18 @@
 // Nothing here is a sixth custom surface; it is one registered component
 // and one native element — and no class name either, because a class
 // nothing may style is a promise this file cannot keep.
+//
+// **Not a `Join`.** daisyUI's `join` is a non-wrapping row that welds its
+// children edge to edge; six cards in one at 320px push the document into a
+// horizontal scroll and squeeze the widest stage word ("Your review") until
+// its badge clips — both offenders ADR-093 decision 6's sweep reports. The
+// cards wrap instead, which is what the layout law asks for: the box
+// changes, the text is never shrunk to fit.
 "use client";
 
 import type React from "react";
 import { Badge } from "@/ui/components/Badge";
 import { Card } from "@/ui/components/Card";
-import { Join } from "@/ui/components/Join";
 import { copy } from "@/lib/presentation/copy";
 import {
   STAGE_FILTERS,
@@ -39,31 +45,30 @@ export function StageFilter(p: {
   onSelect: (filter: StageFilterId) => void;
 }): React.JSX.Element {
   return (
-    <div data-testid="stage-filters">
-      <Join>
-        {STAGE_FILTERS.map((filter) => (
-          <button
-            key={filter}
-            type="button"
-            data-testid={`stage-filter-${filter}`}
-            aria-pressed={filter === p.selected}
-            onClick={() => p.onSelect(filter)}
+    <div className="flex flex-wrap gap-2" data-testid="stage-filters">
+      {STAGE_FILTERS.map((filter) => (
+        <button
+          key={filter}
+          type="button"
+          className="text-left"
+          data-testid={`stage-filter-${filter}`}
+          aria-pressed={filter === p.selected}
+          onClick={() => p.onSelect(filter)}
+        >
+          <Card
+            state="default"
+            title={
+              <Badge tone={filter === "all" ? "neutral" : STAGE_TONE[filter]}>
+                {copy(STAGE_FILTER_COPY_KEY[filter])}
+              </Badge>
+            }
           >
-            <Card
-              state="default"
-              title={
-                <Badge tone={filter === "all" ? "neutral" : STAGE_TONE[filter]}>
-                  {copy(STAGE_FILTER_COPY_KEY[filter])}
-                </Badge>
-              }
-            >
-              <span className="num" data-testid={`stage-count-${filter}`}>
-                {p.counts[filter]}
-              </span>
-            </Card>
-          </button>
-        ))}
-      </Join>
+            <span className="num" data-testid={`stage-count-${filter}`}>
+              {p.counts[filter]}
+            </span>
+          </Card>
+        </button>
+      ))}
     </div>
   );
 }

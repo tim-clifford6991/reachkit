@@ -26,10 +26,14 @@ import type { WhyThisPage as WhyFacts } from "./month";
  *  registry — this component reads no key and writes no word, so there is
  *  no position here a sentence could be typed into. The value is always a
  *  value, and carries `.num` because §2.3 says every one of these is. */
-function Row(p: { label: string; children: React.ReactNode }): React.JSX.Element {
+function Row(p: {
+  label: string;
+  children: React.ReactNode;
+}): React.JSX.Element {
   return (
-    <p>
-      <span>{p.label}</span> <span className="num">{p.children}</span>
+    <p className="flex flex-wrap items-baseline gap-2">
+      <span>{p.label}</span>
+      <span className="num min-w-0 break-words">{p.children}</span>
     </p>
   );
 }
@@ -46,11 +50,13 @@ export function WhyThisPage(p: { why: WhyFacts }): React.JSX.Element {
   });
 
   return (
-    <div data-testid="why-this-page">
-      <p>{copy("calendar.why.title")}</p>
+    <div className="flex flex-col gap-1" data-testid="why-this-page">
+      <p className="font-bold">{copy("calendar.why.title")}</p>
       <Row label={copy("calendar.why.search")}>{why.search}</Row>
       <Row label={copy("calendar.why.asked")}>{why.askedAs}</Row>
-      <Row label={copy("calendar.why.answered-today-by")}>{why.answeredTodayBy.join(", ")}</Row>
+      <Row label={copy("calendar.why.answered-today-by")}>
+        {why.answeredTodayBy.join(", ")}
+      </Row>
       <Row label={copy("calendar.why.you")}>{you.text}</Row>
       {you.line === undefined ? null : <p className="rk-prov">{you.line}</p>}
       <Row label={copy("calendar.why.done-when")}>{why.doneWhen}</Row>

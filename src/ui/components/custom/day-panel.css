@@ -74,6 +74,7 @@
 .rk-daypanel-actions {
   flex-direction: row;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 /* §4.6's "stage badge + date" — one row, and it wraps rather than clipping

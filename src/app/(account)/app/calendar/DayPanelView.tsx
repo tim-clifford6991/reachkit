@@ -61,7 +61,10 @@ function run(command: PublishingCommand, draftId: string, to: string): void {
   void asked.catch(() => undefined);
 }
 
-export function DayPanelView(p: { cell: DayCell; timeZone: string }): React.JSX.Element {
+export function DayPanelView(p: {
+  cell: DayCell;
+  timeZone: string;
+}): React.JSX.Element {
   const { cell } = p;
   const date = fullDate(cell.day);
 
@@ -69,13 +72,18 @@ export function DayPanelView(p: { cell: DayCell; timeZone: string }): React.JSX.
     // REQ-043 c5: exactly one account, and no second one. `accountFor` has
     // already decided which — this renders that decision and never
     // re-derives it.
-    const account = cell.empty === null ? null : writtenLine(EMPTY_COPY_KEY[cell.empty.cause]);
+    const account =
+      cell.empty === null
+        ? null
+        : writtenLine(EMPTY_COPY_KEY[cell.empty.cause]);
     return (
       <DayPanel
         heading={<span className="num">{date}</span>}
         account={
           <div data-testid="day-account">
-            {account === null ? null : <p data-testid="day-empty-line">{account}</p>}
+            {account === null ? null : (
+              <p data-testid="day-empty-line">{account}</p>
+            )}
           </div>
         }
       />
@@ -106,19 +114,29 @@ export function DayPanelView(p: { cell: DayCell; timeZone: string }): React.JSX.
     <DayPanel
       heading={
         <div className="rk-daypanel-heading" data-testid="day-head">
-          <Badge tone={STAGE_TONE[page.stage]}>{copy(STAGE_FILTER_COPY_KEY[page.stage])}</Badge>
+          <Badge tone={STAGE_TONE[page.stage]}>
+            {copy(STAGE_FILTER_COPY_KEY[page.stage])}
+          </Badge>
           <span className="num">{date}</span>
         </div>
       }
       account={
-        <div data-testid="day-account">
-          <p data-testid="day-title">{page.title}</p>
+        <div className="flex flex-col gap-2" data-testid="day-account">
+          <p className="font-bold" data-testid="day-title">
+            {page.title}
+          </p>
           {/* Status rows — one per fact this stage actually has. */}
-          {publishLine === null ? null : <p data-testid="day-publish-line">{publishLine}</p>}
-          {vetoLine === null ? null : <p data-testid="day-veto-line">{vetoLine}</p>}
+          {publishLine === null ? null : (
+            <p data-testid="day-publish-line">{publishLine}</p>
+          )}
+          {vetoLine === null ? null : (
+            <p data-testid="day-veto-line">{vetoLine}</p>
+          )}
           {/* REQ-043 c8's winnability, through BAND_LABELS (ADR-001) — never
               a band word this component writes. */}
-          <Badge tone="neutral">{copy(BAND_LABELS.winnability[page.why.winnability])}</Badge>
+          <Badge tone="neutral">
+            {copy(BAND_LABELS.winnability[page.why.winnability])}
+          </Badge>
           <WhyThisPage why={page.why} />
           {/* "one dim provenance line" — §2.5: "Provenance is always visible
               but always quiet … mono, dim, small." */}
@@ -133,7 +151,11 @@ export function DayPanelView(p: { cell: DayCell; timeZone: string }): React.JSX.
         <>
           {actionsFor(cell).map((action) =>
             action.kind === "link" ? (
-              <a key={action.key} href={action.href} data-testid={`day-action-${action.key}`}>
+              <a
+                key={action.key}
+                href={action.href}
+                data-testid={`day-action-${action.key}`}
+              >
                 {copy(action.key)}
               </a>
             ) : (
@@ -145,7 +167,7 @@ export function DayPanelView(p: { cell: DayCell; timeZone: string }): React.JSX.
                   onClick={() => run(action.command, page.draftId, cell.day)}
                 />
               </span>
-            )
+            ),
           )}
         </>
       }

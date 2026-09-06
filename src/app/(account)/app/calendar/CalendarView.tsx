@@ -15,14 +15,22 @@
 
 import type React from "react";
 import { useState } from "react";
-import { CalendarGrid, DayPanelLayout, type CalendarGridCell } from "@/ui/components/custom";
+import {
+  CalendarGrid,
+  DayPanelLayout,
+  type CalendarGridCell,
+} from "@/ui/components/custom";
 import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../_shell/written";
 import { StageFilter } from "./StageFilter";
 import { DayPanelView } from "./DayPanelView";
 import { EMPTY_COPY_KEY } from "./empty";
 import { dayNumber, weekdayLabels } from "./dates";
-import { STAGE_FILTER_COPY_KEY, STAGE_TONE, type StageFilter as StageFilterId } from "./stages";
+import {
+  STAGE_FILTER_COPY_KEY,
+  STAGE_TONE,
+  type StageFilter as StageFilterId,
+} from "./stages";
 import { cellFor, type DayCell, type MonthModel } from "./month";
 
 /** The day the panel opens on: today where this month holds it, and this
@@ -45,7 +53,11 @@ function openOn(model: MonthModel): string {
  * publishing here" are different statements, and REQ-043 c3 forbids the
  * second from being said on a date it is not true of.
  */
-function toGridCell(cell: DayCell, filter: StageFilterId, selected: string): CalendarGridCell {
+function toGridCell(
+  cell: DayCell,
+  filter: StageFilterId,
+  selected: string,
+): CalendarGridCell {
   const showing = filter === "all" || cell.page?.stage === filter;
   return {
     id: cell.day,
@@ -76,7 +88,11 @@ export function CalendarView(p: { model: MonthModel }): React.JSX.Element {
 
   return (
     <>
-      <StageFilter counts={p.model.counts} selected={filter} onSelect={setFilter} />
+      <StageFilter
+        counts={p.model.counts}
+        selected={filter}
+        onSelect={setFilter}
+      />
       <DayPanelLayout
         grid={
           <CalendarGrid
@@ -86,7 +102,9 @@ export function CalendarView(p: { model: MonthModel }): React.JSX.Element {
           />
         }
         panel={
-          cell === undefined ? null : <DayPanelView cell={cell} timeZone={p.model.timeZone} />
+          cell === undefined ? null : (
+            <DayPanelView cell={cell} timeZone={p.model.timeZone} />
+          )
         }
       />
     </>
