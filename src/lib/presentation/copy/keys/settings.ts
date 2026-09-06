@@ -116,6 +116,23 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.destination.health.expired": ["expired", { slots: {}, fixedBy: "BUILD §10" }],
   "settings.destination.health.error": ["error", { slots: {}, fixedBy: "BUILD §10" }],
 
+  // The other two actions a destination can offer, beside `Reconnect`
+  // above. §4.7 names only Reconnect, so both are the owner's words.
+  //
+  // `reconnect-other-account` is a **control of its own** and not
+  // `Reconnect` relabelled (ADR-086 decision 2): where the stored
+  // credential is valid and simply cannot publish, re-entering it is the
+  // one action guaranteed to change nothing, and the remedy is an account
+  // that has the capability. `DestinationAction` makes that a union
+  // member, so a screen that offered ordinary Reconnect there fails to
+  // typecheck rather than failing a copy review — this key is the label
+  // for the control that member selects.
+  "settings.publishing.reconnect-other-account": [
+    "TODO(copy)",
+    { slots: {}, fixedBy: "ADR-086 · REQ-060 c7" },
+  ],
+  "settings.publishing.set-dns": ["TODO(copy)", { slots: {}, fixedBy: "BUILD §9 · REQ-059 c2" }],
+
   // ── Notifications ──────────────────────────────────────────────────────
   // One key per `stoppable: 'toggle'` row of `MAIL_KINDS`, named by the row's
   // own key, which is the word §12 prints for that mail. The panel projects

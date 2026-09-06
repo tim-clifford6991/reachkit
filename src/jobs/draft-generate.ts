@@ -9,7 +9,7 @@
 //
 // In the kill switch's scope: `runJob()` stops it before this body's first
 // spend and first write.
-import { activeSites, generateDraft } from "@/jobs/engine";
+import { activeSites, generateDraft, noticeBrokenDestination } from "@/jobs/engine";
 import { fanOut, settle } from "./fan-out";
 import { isDraftDue, nextPublishDate } from "./site-clock";
 import type { JobDefinition, Outcome } from "./types";
@@ -25,9 +25,17 @@ export const draftGenerate: JobDefinition = {
     const due = (await activeSites()).filter((site) => isDraftDue(input.now, site.timeZone));
     if (due.length === 0) return { outcome: "skipped", subjectId: null, reason: "not-due" };
 
-    const results = await fanOut(due, (site) =>
-      generateDraft({ siteId: site.siteId, publishDate: nextPublishDate(input.now, site.timeZone) })
-    );
+    const results = await fanOut(due, async (site) => {
+      // BUILD §9's one mail per breakage, before the page this site's
+      // broken destination would be holding is prepared. First, and not
+      // last: a generation that falls over must not also cost the customer
+      // the only telling they get that their pages are going nowhere.
+      await noticeBrokenDestination({ siteId: site.siteId, now: input.now });
+      return generateDraft({
+        siteId: site.siteId,
+        publishDate: nextPublishDate(input.now, site.timeZone),
+      });
+    });
     return settle(results, null);
   },
 };

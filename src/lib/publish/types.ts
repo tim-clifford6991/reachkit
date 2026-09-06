@@ -6,13 +6,16 @@
 // file granularity: "the publishing subsystem's six leaves are one
 // strongly connected component at node level and acyclic at file level".
 //
-// Its one import is `Measured<T>` (§5's trichotomy): the four verification
-// checks are measured facts and REQ-004 forbids re-inventing the
-// trichotomy per module. `src/lib/measure/` imports nothing from here, so
-// that import adds no cycle.
+// Its two imports are `Measured<T>` (§5's trichotomy) and `CopyKey`. The
+// four verification checks are measured facts and REQ-004 forbids
+// re-inventing the trichotomy per module; `DestinationView` names the
+// sentences a surface renders and every sentence the product speaks is a
+// key. Neither `src/lib/measure/` nor `src/lib/presentation/copy/` imports
+// anything from here, so neither adds a cycle.
 //
 // The archived plan is WO-206.
 import type { Measured } from "@/lib/measure/measured";
+import type { CopyKey } from "@/lib/presentation/copy";
 
 // ── The ten states ──────────────────────────────────────────────────────
 
@@ -201,8 +204,73 @@ export type DestinationKind = "hosted" | "wordpress";
 
 /** §10's `destinations.health` enum, unchanged. A credential that cannot
  *  publish is a `HealthReason` beside one of these three, never a fourth
- *  state (ADR-086) — that reason is #48's. */
+ *  state (ADR-086). */
 export type DestinationHealth = "ok" | "expired" | "error";
+
+/** What the last check concluded. Eight members, closed.
+ *
+ *  The three states above are what the customer *reads* — working, needs
+ *  reconnecting, failing — and this is what selects the written line and
+ *  the action underneath one of them. Three occasions land different lines
+ *  inside `expired` alone (a record never pointed, a record pointed
+ *  elsewhere, a credential that has run out), and `cannot_publish` lands
+ *  its own inside `error`.
+ *
+ *  **`cannot_publish` is a reason and not a fourth health state**
+ *  (ADR-086): a credential that can create a post and cannot publish it is
+ *  `error` — failing — with a line of its own and an action that leads to
+ *  a different account. Widening `DestinationHealth` instead would change
+ *  a column §10 specifies and turn three states the customer reads into a
+ *  mapping every surface has to know. */
+export type HealthReason =
+  | "never_connected"
+  | "dns_unset"
+  | "dns_elsewhere"
+  | "credentials_expired"
+  | "credentials_invalid"
+  | "unreachable"
+  | "destination_rejected"
+  | "cannot_publish";
+
+/** The one thing a surface offers against a destination.
+ *
+ *  **`reconnect_other_account` is a member of its own** and not
+ *  `reconnect` with a different label (ADR-086): re-entering the same,
+ *  perfectly valid credential is the one action guaranteed to change
+ *  nothing, so a surface that rendered the ordinary Reconnect control in
+ *  that state must fail to typecheck rather than fail a copy review. A
+ *  copy key is a string a surface may route around; a union member is
+ *  not. */
+export type DestinationAction = "none" | "reconnect" | "reconnect_other_account" | "set_dns";
+
+/**
+ * Everything a surface may see about a destination, and nothing more.
+ *
+ * A state, a reason token, a date, a count, an action and two copy keys.
+ * **There is no field on it that can hold a vendor string** — no message,
+ * no status line, no payload — which is what makes §9's "credentials …
+ * never logged" hold on the read path as a property of the type rather
+ * than as care taken at each call site. The credential itself is not here
+ * either: the `select` list this is built from does not name `config`.
+ *
+ * `copy.line` is `null` where the state has no line to add — a working
+ * destination says its state and stops.
+ */
+export interface DestinationView {
+  id: string;
+  kind: DestinationKind;
+  /** Rendered as working / needs reconnecting / failing. */
+  health: DestinationHealth;
+  reason: HealthReason | null;
+  /** Never more than `DESTINATION_HEALTH_MAX_AGE_H` old when a surface
+   *  reads it: the freshness promise is kept on the read path. */
+  lastCheckedAt: Date;
+  /** How many pages are waiting on this destination right now. A true
+   *  count, derived; never a sentence. */
+  heldPages: number;
+  action: DestinationAction;
+  copy: { state: CopyKey; line: CopyKey | null };
+}
 
 /** Opaque here; each adapter narrows it. Encrypted at rest, never logged
  *  (§9). Nothing in this subsystem reads a member of it. */
@@ -277,7 +345,21 @@ export interface DestinationAdapter {
    *  there, and whether the site answered at all, are facts only this call
    *  can learn. */
   unpublish(pub: Publication, cfg: DestinationConfig): Promise<UnpublishResult>;
-  health(cfg: DestinationConfig): Promise<DestinationHealth>;
+  /** What this destination's own end can be seen to be, right now.
+   *
+   *  It returns the **reason** as well as the state, because the adapter
+   *  is the only thing that knows one: "the record points somewhere that
+   *  is not us" and "the credential has run out" are answers only the
+   *  destination's own end can give, and a caller that mapped a bare
+   *  `error` back into a reason would be guessing at what the check
+   *  found (ADR-086 decision 2 — the reason is what the check concluded
+   *  and cannot be recovered later).
+   *
+   *  **It makes no write to the customer's site.** A health check that
+   *  proved a capability by creating something could interfere with a
+   *  delivery in flight, and a credential that may create is not the
+   *  question being asked. */
+  health(cfg: DestinationConfig): Promise<{ health: DestinationHealth; reason: HealthReason | null }>;
 }
 
 // ── The draft, as the machine sees it ───────────────────────────────────

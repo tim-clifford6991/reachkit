@@ -35,7 +35,7 @@ function adapterReturning(result: UnpublishResult): DestinationAdapter {
     hostedByUs: true,
     deliver: async () => ({ ok: true, madeLive: true }),
     unpublish: async () => result,
-    health: async () => "ok",
+    health: async () => ({ health: "ok" as const, reason: null }),
   };
 }
 

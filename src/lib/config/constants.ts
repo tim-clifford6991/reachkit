@@ -241,6 +241,21 @@ export const CLAIM_RECHECK_SWEEP_MAX = 25 as const;          // BP-043 · REQ-05
 // Publishing, destinations and verification
 export const PUBLISH_RETRY_BACKOFF_MIN = Object.freeze([5, 30, 180] as const);   // BP-045 · REQ-056 c4
 export const DESTINATION_HEALTH_MAX_AGE_H = 24 as const;     // BP-058 · REQ-074 c1
+/** How long one destination's health check stands before the read path
+ *  will run another. Chosen, not transcribed (BP-058 NFR budget): the
+ *  smallest window that collapses an ordinary navigation burst — a
+ *  customer moving between Overview, the calendar and Settings — into one
+ *  check. Deliberately not `DESTINATION_HEALTH_MAX_AGE_H`, which bounds a
+ *  different thing: the age of the date the customer reads. Reversal cost
+ *  is this one number. */
+export const DESTINATION_HEALTH_DEBOUNCE_S = 60 as const;    // BP-058 NFR budget
+/** How long a destination must have needed reconnecting before the one
+ *  breakage mail is due (§9, REQ-074 c6: "has needed reconnecting for 24
+ *  hours"). Deliberately not `DESTINATION_HEALTH_MAX_AGE_H`, which also
+ *  holds 24 and bounds the age of the date the customer reads: one is how
+ *  stale a check may be, the other is how long a breakage stands before
+ *  the customer is written to, and they move independently. */
+export const DESTINATION_BREAKAGE_MAIL_DELAY_H = 24 as const; // BP-058 · REQ-074 c6
 
 /** BP-049 NFR budget: "`VERIFY.coverageFloor = 0.95` and `VERIFY.userAgent`
  *  belong in BP-005 (config over constants, rule 7)." `userAgent` is our own

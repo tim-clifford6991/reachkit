@@ -17,6 +17,7 @@
 // still opening your account" are different statements, and a template that
 // chose between them with an `if` would be one edit away from saying the
 // first while carrying no link.
+import { measured } from "@/lib/measure/measured";
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { AccountMail } from "../magic-link";
 
@@ -40,6 +41,10 @@ const HOSTING_END_SUBJECT: Readonly<Record<HostingEndOccasion, CopyKey>> = Objec
 });
 const HOSTING_END_STOPS_ON = "mail.account.hosting_end.stops_on" satisfies CopyKey;
 const HOSTING_END_EXPORT_STAYS = "mail.account.hosting_end.export_stays" satisfies CopyKey;
+const BROKEN_SUBJECT = "mail.account.destinationBroken.subject" satisfies CopyKey;
+const BROKEN_BODY = "mail.account.destinationBroken.body" satisfies CopyKey;
+const BROKEN_HELD = "mail.account.destinationBroken.held" satisfies CopyKey;
+const BROKEN_ACTION = "mail.account.destinationBroken.action" satisfies CopyKey;
 
 /** The chase where the account is open and a link exists: the payment
  *  succeeded, here is the way in, here is a person. */
@@ -135,6 +140,32 @@ export function buildHostingEnd(a: {
     blocks: [
       { block: "paragraph", text: HOSTING_END_STOPS_ON, vars: { date: a.stopsOn } },
       { block: "paragraph", text: HOSTING_END_EXPORT_STAYS },
+      { block: "notice", text: REACH_A_PERSON },
+    ],
+  };
+}
+
+/**
+ * §9, one mail per breakage: a destination has needed reconnecting
+ * for 24 hours and the customer has not signed in since it broke.
+ *
+ * Three things, in order: pages are being held, how many, and the way to
+ * release them. The count is a `stat` block rather than a numeral inside
+ * the sentence — §12's omission rule lives in the shell, and a template
+ * that formatted its own number would be a second numeral formatter.
+ *
+ * `measured(held)` and not `measuredZero`: zero held pages is a real
+ * count, and the occasion this mail is sent on is a broken destination,
+ * not a backlog. A destination that broke before anything queued behind it
+ * is still broken, and the customer is still the only one who can fix it.
+ */
+export function buildDestinationBroken(a: { held: number; href: string; at: Date }): AccountMail {
+  return {
+    subject: BROKEN_SUBJECT,
+    blocks: [
+      { block: "paragraph", text: BROKEN_BODY },
+      { block: "stat", label: BROKEN_HELD, value: measured(a.held, a.at), format: "integer" },
+      { block: "action", label: BROKEN_ACTION, href: a.href },
       { block: "notice", text: REACH_A_PERSON },
     ],
   };

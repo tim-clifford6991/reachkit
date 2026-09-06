@@ -59,8 +59,12 @@ describe("the hosted adapter refuses honestly until the edge route exists", () =
     expect(result.madeLive).toBe(false);
   });
 
-  it("its health is error, because the destination cannot publish", async () => {
-    expect(await HOSTED_ADAPTER.health({})).toBe("error");
+  it("its health is error, and it says why: nothing answers at the address yet", async () => {
+    // The reason travels with the state, so no caller ever has to map a
+    // bare `error` back into what the check found. When #49 lands, this
+    // call returns `ok` or `expired`/`dns_elsewhere` and nothing that
+    // reads it changes.
+    expect(await HOSTED_ADAPTER.health({})).toEqual({ health: "error", reason: "unreachable" });
   });
 
   it("its unpublish is not `removed` — it has never served a page to remove", async () => {

@@ -72,7 +72,7 @@ describe("ADR-084 Decision 2 — servesPublicly and hostedByUs are two members",
       return { ok: true, outcome: "removed" } as const;
     },
     async health() {
-      return "ok" as const;
+      return { health: "ok" as const, reason: null };
     },
   };
 
@@ -183,8 +183,14 @@ describe("the leaf imports nothing from src/lib/publish", () => {
   const source = readFileSync(LEAF, "utf8");
   const specifiers = [...source.matchAll(/^import[^"']*["']([^"']+)["']/gm)].map((m) => m[1]);
 
-  it("its only import is Measured<T> from src/lib/measure", () => {
-    expect(specifiers).toEqual(["@/lib/measure/measured"]);
+  // Two imports since #48. `CopyKey` joins `Measured<T>` because
+  // `DestinationView` names the sentences a surface renders and every
+  // sentence the product speaks is a key — and because the view belongs in
+  // the leaf: `health/` builds one and `index.ts` returns one, so
+  // declaring it in either would put a cycle back where ADR-092 took one
+  // out. Neither module imports anything from here, so neither adds one.
+  it("its imports are Measured<T> and CopyKey, and nothing else", () => {
+    expect(specifiers).toEqual(["@/lib/measure/measured", "@/lib/presentation/copy"]);
   });
 
   it("no specifier resolves inside src/lib/publish — the leaf property, kept by test", () => {
