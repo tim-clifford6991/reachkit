@@ -22,7 +22,8 @@ import {
   isEditable,
   type DraftAction,
 } from "@/app/(account)/app/draft/[draftId]/actions";
-import { STOP_COMMAND, TRANSITIONS, actionsFor } from "@/app/(account)/app/calendar/actions";
+import { STOP_COMMAND, actionsFor } from "@/app/(account)/app/calendar/actions";
+import { TRANSITIONS, isTransition } from "@/lib/publish/machine/table";
 import { PUBLISH_STATES, type PublishState } from "@/app/(account)/app/calendar/stages";
 import {
   publishing,
@@ -51,7 +52,7 @@ describe("REQ-045 c4 — approve, edit and veto, offered where the state allows 
       const offered = draftActionsFor(state).some(
         (a) => a.kind === "command" && a.command === "approve"
       );
-      expect(offered, state).toBe(TRANSITIONS[state].includes("approved"));
+      expect(offered, state).toBe(isTransition(state, "approved"));
     }
   });
 
@@ -64,7 +65,7 @@ describe("REQ-045 c4 — approve, edit and veto, offered where the state allows 
 
   it("edit rides on the same edge as approve — text that can still be approved has not gone out", () => {
     for (const state of PUBLISH_STATES) {
-      expect(isEditable(state), state).toBe(TRANSITIONS[state].includes("approved"));
+      expect(isEditable(state), state).toBe(isTransition(state, "approved"));
       expect(
         draftActionsFor(state).some((a) => a.kind === "edit"),
         state
@@ -83,13 +84,37 @@ describe("REQ-045 c4 — approve, edit and veto, offered where the state allows 
       for (const action of draftActionsFor(state)) {
         if (action.kind !== "command") continue;
         const target = action.command === "approve" ? "approved" : "skipped";
-        expect(TRANSITIONS[state].includes(target), `${state} → ${target}`).toBe(true);
+        expect(isTransition(state, target), `${state} → ${target}`).toBe(true);
       }
     }
   });
 });
 
 describe("the draft view and the day panel read one table", () => {
+  // Issue #130: literally one table now — both surfaces read
+  // `src/lib/publish/machine/table.ts`, and neither declares an edge.
+
+  it("every action the draft view offers rides an edge of §9's own table", () => {
+    for (const state of PUBLISH_STATES) {
+      for (const action of draftActionsFor(state)) {
+        const target = action.kind === "edit" || action.command === "approve" ? "approved" : "skipped";
+        expect(
+          TRANSITIONS.some(([from, to]) => from === state && to === target),
+          `${state} → ${target}`
+        ).toBe(true);
+      }
+    }
+  });
+
+  it("Edit is offered on exactly the states §9's table can still reach approved from", () => {
+    const editable = PUBLISH_STATES.filter((state) => isEditable(state));
+    expect([...editable].sort()).toEqual(
+      TRANSITIONS.filter(([, to]) => to === "approved")
+        .map(([from]) => from)
+        .sort()
+    );
+  });
+
   it("wherever the panel offers Veto, the draft view offers Veto too", () => {
     for (const state of PUBLISH_STATES) {
       const cell = {

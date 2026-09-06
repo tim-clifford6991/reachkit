@@ -112,6 +112,16 @@ export function edgeKey(from: State, to: State): string {
 }
 
 /**
+ * Is this pair one of the fifteen? The one membership question about the
+ * table, answered here beside it rather than at each caller — and answered
+ * in the leaf that reaches nothing, so a surface may ask it without
+ * pulling `transition()`'s database in behind the answer.
+ */
+export function isTransition(from: State, to: State): boolean {
+  return TRANSITIONS.some(([f, t]) => f === from && t === to);
+}
+
+/**
  * The guards each edge carries, keyed `'from→to'`. An absent key means no
  * guard: the move is open the moment it is one of the fifteen.
  *
