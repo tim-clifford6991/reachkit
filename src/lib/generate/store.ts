@@ -66,6 +66,12 @@ export interface DraftPatch {
   hard_rule_attempts?: number;
   claim_check?: unknown;
   cost_cents?: number;
+  /** The publishing engine's own column (`_drafts_publishing`), and the
+   *  guard on its `generating → in_review` edge. It is written **here**
+   *  because §8 owns the battery: "a failing draft is never queued" is a
+   *  fact about what the rules decided, and the engine that decided them
+   *  is the only one that may assert it. */
+  hard_rules_passed?: boolean;
 }
 
 /** The site fields generation reads. `voiceText` is carried to the prompt

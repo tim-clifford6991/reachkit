@@ -183,6 +183,11 @@ export async function generateDraft(
   await store.patchDraft(draftId, {
     claim_check: serialiseVerdict(outcome.claim),
     cost_cents: Math.round(c.spentCents()),
+    // The publishing engine's guard on `generating → in_review`. Written
+    // here and nowhere else: only the run that put the page through the
+    // battery may say the battery passed it. An unrun claim check leaves
+    // it false, because "we could not check" is not "it passed".
+    hard_rules_passed: outcome.passed && outcome.claim.state === "passed",
   });
 
   // An unrun claim check is a step that did not run, not a rule that

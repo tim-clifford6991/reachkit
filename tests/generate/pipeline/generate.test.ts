@@ -117,6 +117,15 @@ describe("a draft that clears every rule", () => {
     expect(row?.state).toBe("generating");
     expect(row?.veto_deadline).toBeNull();
   });
+
+  it("asserts `hard_rules_passed` — the publishing engine's guard on the edge into review", async () => {
+    primeSteps(CLEAN_MARKDOWN);
+    const outcome = await run();
+    const draftId = outcome.ok === true ? outcome.draftId : "";
+    expect(store.patches.some((p) => p.draftId === draftId && p.patch.hard_rules_passed === true)).toBe(
+      true
+    );
+  });
 });
 
 describe("a draft that fails a rule is never queued and takes no day", () => {
@@ -150,6 +159,15 @@ describe("a draft that fails a rule is never queued and takes no day", () => {
       kind: "near_duplicate",
       duplicateOf: { ref: "page-1", title: "Choosing a tool" },
     });
+  });
+
+  it("never asserts `hard_rules_passed`, so the edge into review cannot fire on it", async () => {
+    primeSteps("Example wins everything, and always has.");
+    const outcome = await run();
+    const draftId = outcome.ok === false && outcome.reason === "rules" ? outcome.draftId : null;
+    expect(
+      store.patches.some((p) => p.draftId === draftId && p.patch.hard_rules_passed === true)
+    ).toBe(false);
   });
 
   it("a voice instruction demanding an invented persona still loses to the rule", async () => {
@@ -196,6 +214,10 @@ describe("a step that did not run is not a rule that failed", () => {
     expect(outcome).toMatchObject({ reason: "step_failed", step: "claim_check" });
     const draftId = outcome.ok === false ? outcome.draftId! : "";
     expect(store.rows.get(draftId)?.hard_rule_attempts).toBe(0);
+    // "We could not check" is not "it passed": the guard stays shut.
+    expect(
+      store.patches.some((p) => p.draftId === draftId && p.patch.hard_rules_passed === true)
+    ).toBe(false);
   });
 });
 
