@@ -41,8 +41,10 @@ const REPORT_KEYS = [
   "questions",
   "serps",
   "rivals",
-  // #37's sizing, joined to the blob under #126 (DECISIONS 2026-09-06).
+  // #37's sizing, joined to the blob under #126 (DECISIONS 2026-09-06),
+  // and the customer's own count it bands against, joined under #140.
   "rivalSizes",
+  "ownRanked",
   "sources",
   "onPage",
   "robots",

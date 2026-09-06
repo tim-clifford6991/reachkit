@@ -629,10 +629,23 @@ describe("owner-owed and empty agree both ways", () => {
     // read, and the day panel's three refusal lines for a way through that
     // leads nowhere. 117 + 16 = 133 owner-owed, 141 + 6 = 147 awaiting
     // copy, 168 ruled unchanged, 426 + 22 = 448 total.
-    expect(OWNER_OWED.length).toBe(133);
-    expect(AWAITING_COPY.length).toBe(147);
+    //
+    // 2026-09-06, separately again: issue #48 (§9's destinations) adds
+    // fourteen keys, and the same distinction divides them once more.
+    // Four are the breakage mail's —
+    // `mail.account.destinationBroken.{subject,body,held,action}` — and
+    // take the **empty** value on the #93 ruling ("a mail never ships a
+    // placeholder"). Ten are a *screen's*: the eight
+    // `publish.destination.line.*` lines, one per `HealthReason`, and the
+    // two remaining destination action labels
+    // (`settings.publishing.{reconnect-other-account,set-dns}`) — so they
+    // take the marker. 133 + 4 = 137 owner-owed and empty,
+    // 147 + 10 = 157 awaiting copy, 168 ruled unchanged,
+    // 448 + 14 = 462 total.
+    expect(OWNER_OWED.length).toBe(137);
+    expect(AWAITING_COPY.length).toBe(157);
     expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(168);
-    expect(Object.keys(COPY).length).toBe(448);
+    expect(Object.keys(COPY).length).toBe(462);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.

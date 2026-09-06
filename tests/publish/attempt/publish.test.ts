@@ -53,7 +53,7 @@ function stubAdapter(
     hostedByUs: true,
     deliver: async () => result,
     unpublish: async (): Promise<UnpublishResult> => ({ ok: true, outcome: "removed" }),
-    health: async () => "ok",
+    health: async () => ({ health: "ok" as const, reason: null }),
     ...over,
   };
 }

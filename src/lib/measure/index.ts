@@ -38,14 +38,14 @@ import { readRobots } from "@/lib/egress/robots";
 import type { FetchOutcome, RobotsPolicy } from "@/lib/egress/types";
 import { rankedKeywords } from "@/lib/vendors/dataforseo";
 import type { RankedRow } from "@/lib/vendors/dataforseo/types";
-import { answerabilityOf, foundationsOf, searchPresenceOf } from "./drivers";
+import { answerabilityOf, foundationsOf, ownRankedOf, searchPresenceOf } from "./drivers";
 import { measured, measuredZero, unmeasured, type Measured } from "./measured";
 import { OWN_FETCH_SOURCE, isStoredDocument, toStoredDocument, type StoredDocument } from "./own-fetch";
 import { parseOnPage, visibleText, type OnPageFacts } from "./parse";
 import type { Drivers } from "./score";
 
 export type { Drivers } from "./score";
-export { aiPresenceOf, answerabilityOf, foundationsOf, searchPresenceOf } from "./drivers";
+export { aiPresenceOf, answerabilityOf, foundationsOf, ownRankedOf, searchPresenceOf } from "./drivers";
 export { parseOnPage, visibleText, type OnPageFacts } from "./parse";
 export type { Measured, UnmeasuredReason } from "./measured";
 
@@ -216,6 +216,13 @@ export interface DomainMeasurement {
    *  none (a fact about the home document, not a failed read). */
   pricing: { url: string; facts: Measured<OnPageFacts> } | null;
   robots: Measured<RobotsPolicy>;
+  /** The customer's own ranked count, from the same call `searchPresence`
+   *  was computed from — the rows themselves, not the 0–100 sub-measure.
+   *  §6.6 bands every rival against it and §7's two winnability bars are
+   *  multiples of it, so it travels with the measurement rather than being
+   *  bought a second time. `unmeasured` carries the same reason
+   *  `searchPresence` carries; the two are the same read. */
+  ownRanked: Measured<number>;
 }
 
 /** Reads a domain — home document, detected pricing page, up to the tier's
@@ -277,13 +284,19 @@ export async function measureDomain(
   // 5. The one priced call. `capHit()` first — the ceiling names itself in
   //    the log and the call is not made (BUILD §6.5, BP-010 NFR budget).
   let searchPresence: Measured<number>;
+  // The same rows, read a second way: the count itself, which §6.6's
+  // banding and §7's bars are expressed in multiples of. Never a second
+  // call — it is assigned in every arm below, beside the driver.
+  let ownRanked: Measured<number>;
   if (c.capHit()) {
     logDriver("driver_not_attempted", { driver: "searchPresence", ceiling: "spend_cap", domain: a.domain });
     searchPresence = unmeasured("not_attempted", at);
+    ownRanked = unmeasured("not_attempted", at);
   } else {
     try {
       const ranked = await ports.rankedKeywords(c, { domain: a.domain, rows: RANKED_ROWS_BY_TIER[a.tier] });
       searchPresence = searchPresenceOf({ ranked, at });
+      ownRanked = ownRankedOf({ ranked, at });
     } catch (error) {
       logDriver("driver_undeterminable", {
         driver: "searchPresence",
@@ -291,6 +304,7 @@ export async function measureDomain(
         because: error instanceof Error ? error.message : String(error),
       });
       searchPresence = unmeasured("undeterminable", at);
+      ownRanked = unmeasured("undeterminable", at);
     }
   }
 
@@ -319,5 +333,6 @@ export async function measureDomain(
     onPage,
     pricing,
     robots,
+    ownRanked,
   };
 }

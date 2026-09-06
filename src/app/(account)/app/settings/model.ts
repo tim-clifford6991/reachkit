@@ -24,23 +24,32 @@
 // would hide the very state [the] validator exists to prevent from ever being
 // stored", so this module validates nothing and the screen renders what is
 // there.
+import type { DestinationView } from "@/lib/publish/types";
 import type { PublishingMode } from "../_shell/model";
 import { formatDate } from "../_shell/format";
 import type { BillingSummary, PlanState } from "./billing";
 import { notificationRows, type NotificationRow, type NotifyKind } from "./notifications";
 
-/** §10's `destinations` row, as the screen needs it. `health` is a **state**
- *  and never an error (ADR-086, WO-179 step 4): `expired` carries a Reconnect
- *  action and the queue holds — it is not a failure the screen apologises
- *  for. */
-export type DestinationKind = "hosted" | "wordpress";
-export type DestinationHealth = "ok" | "expired" | "error";
-
-export interface DestinationRow {
-  id: string;
-  kind: DestinationKind;
-  health: DestinationHealth;
-}
+/** The destination read model, entire — **the registry's own
+ *  `DestinationView`, not a narrower copy of it** (#48).
+ *
+ *  This screen carried three fields of its own until the registry landed
+ *  (an id, a kind and a health), and with them it could render neither the
+ *  one written line a broken destination owes the customer nor the action
+ *  that is not ordinary Reconnect. A screen-shaped copy of an engine's
+ *  read model is how a surface ends up unable to say what the engine
+ *  knows, so there is one shape and the screen reads it.
+ *
+ *  `health` is a **state** and never an error (ADR-086): `expired` carries
+ *  an action and the queue holds — it is not a failure the screen
+ *  apologises for. */
+export type {
+  DestinationAction,
+  DestinationHealth,
+  DestinationKind,
+  DestinationView,
+  HealthReason,
+} from "@/lib/publish/types";
 
 export interface PublishingSettings {
   mode: PublishingMode;
@@ -76,7 +85,7 @@ export interface SettingsModel {
   competitors: readonly string[];
   domain: string;
   publishing: PublishingSettings;
-  destinations: readonly DestinationRow[];
+  destinations: readonly DestinationView[];
   voice: { text: string };
   doNotClaim: readonly string[];
   notifications: readonly NotificationRow[];
@@ -101,7 +110,7 @@ export interface SettingsFacts {
   voiceText: string;
   doNotClaim: readonly string[];
   /** `destinations` (§10), health included — read as a state (#48). */
-  destinations: readonly DestinationRow[];
+  destinations: readonly DestinationView[];
   /** `users` (§10), plus the notify preferences the toggles read. A kind
    *  absent from the record reads as on. */
   name: string;

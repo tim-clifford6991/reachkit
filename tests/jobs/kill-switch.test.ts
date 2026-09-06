@@ -42,6 +42,9 @@ function engineDouble(): Record<string, unknown> {
     startWeeklyScan: ran,
     runScan: ran,
     generateDraft: ran,
+    // BUILD §9's one mail per breakage rides `draft/generate`, so the kill
+    // switch stops it too — this counter is what proves it.
+    noticeBrokenDestination: ran,
     publishApproved: ran,
     verifyLive: ran,
     advanceSequence: ran,
