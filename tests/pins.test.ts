@@ -1110,6 +1110,19 @@ describe("§13 Payments — the price the Stripe Price object is built from and 
   });
 });
 
+describe("§13 Identity — the credential's own two numbers (#35)", () => {
+  it('BP-061 d3, quoted: "SHA-256 of a 256-bit random token; constant-time comparison" — LINK_TOKEN_BYTES is those 256 bits, and it is the entropy the unsalted hash rests on', () => {
+    expect(pins.LINK_TOKEN_BYTES).toBe(32);
+    expect(pins.LINK_TOKEN_BYTES * 8).toBe(256);
+  });
+
+  it("BP-061 — SESSION_TTL_DAYS = 30, chosen rather than transcribed: no requirement states a session lifetime, REQ-077 c5 fixes only that signing out ends one. It matches the 30-day window ERASURE_DAYS and HOSTED_RETENTION_DAYS already use, and outlives the sign-in link that opened it many times over", () => {
+    expect(pins.SESSION_TTL_DAYS).toBe(30);
+    expect(pins.SESSION_TTL_DAYS).toBe(pins.ERASURE_DAYS);
+    expect(pins.SESSION_TTL_DAYS * 24).toBeGreaterThan(pins.SIGNIN_LINK_TTL_H);
+  });
+});
+
 describe("§13 Payments — the two clocks that make sure no charge leaves a founder with nothing", () => {
   it('REQ-024 c5 (archived corpus, frozen), quoted: "when 15 minutes have passed since the charge and no one has signed in at the address that paid, then that address is written to again with an `account` mail" — PAYMENT_CHASE_MINUTES is that 15, and it is not MAINTENANCE_TICK_MINUTES, which bounds how often the tick that notices runs', () => {
     expect(pins.PAYMENT_CHASE_MINUTES).toBe(15);
