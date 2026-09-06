@@ -389,3 +389,12 @@ export const OVERVIEW_TRAILING_WEEKS = 12 as const;           // BUILD §4.5 · 
 /** BUILD §4.5, verbatim: "up to two alerts". The remainder is stated as a
  *  count with where to see it, never as a third alert. */
 export const OVERVIEW_ALERT_CAP = 2 as const;                 // BUILD §4.5
+
+// ── Setup's destination card (issue #14) — BUILD §4.3 (§9's hosted CMS)
+/** §9, transcribed (rule 1.2 — nothing chosen): "**Hosted CMS:**
+ *  `content.{customer-domain}` by CNAME → our edge route serves
+ *  static-rendered pages by Host header." The label, never the record,
+ *  which is `src/lib/publish/setup/cards.ts`'s (rule 2.5). The target the
+ *  record points at is `HOSTED_EDGE_CNAME_TARGET`, an env binding, because
+ *  it differs per deployment; this label does not. */
+export const HOSTED_SUBDOMAIN_LABEL = "content" as const;     // BUILD §4.3
