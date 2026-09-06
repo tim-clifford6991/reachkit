@@ -55,12 +55,12 @@ import { RenderedBody } from "./RenderedBody";
 import { useDebounced } from "./useDebounced";
 import type { DraftView } from "./model";
 
-/** The two writes this screen can ask for. The seam rejects with
- *  `PublishingNotBuiltError` (§9's state machine, issues #45 and #46), and
- *  this handler deliberately tells the customer nothing: there is no
- *  registry sentence for "this cannot run yet", and inventing one is what
- *  the copy law forbids. The rejection is the developer's signal; the
- *  screen stays as it was. */
+/** The two writes this screen can ask for. Both are §9 edges and both go to
+ *  the state machine through the seam; a refusal rejects with
+ *  `PublishingRefusedError`, and this handler deliberately tells the
+ *  customer nothing: there is no registry sentence for a refused write, and
+ *  inventing one is what the copy law forbids. The rejection is the
+ *  developer's signal; the screen stays as it was. */
 function run(command: DraftCommand, draftId: string): void {
   const asked =
     command === "approve" ? publishing.approve({ draftId }) : publishing.veto({ draftId });

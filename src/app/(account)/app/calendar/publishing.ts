@@ -1,23 +1,28 @@
 // BUILD §4.6 — the stage-appropriate actions, and the machine behind them.
 //
 // §4.6 gives four stages a control that changes something: review → Move or
-// Veto, planned → Move or Skip. Every one of those is a write against
-// BUILD §9's state machine and the veto rule — `src/lib/publish/`, issues
-// #45 and #46, which do not exist yet.
+// Veto, planned → Move or Skip; the draft view adds Approve. Every one of
+// those is a write against §9's state machine, which now exists:
+// `src/lib/publish/`, issue #45.
 //
-// So this file declares the interface those controls call and **stubs it
-// honestly**: each method rejects with an error naming the issue that will
-// supply it. It does not pretend to succeed, it does not write a draft
-// somewhere else, and it does not quietly resolve — a stub that resolved
-// would put a control on the screen that appears to work and changes
-// nothing, which is worse than one that cannot run at all.
+// So this file is the seam and no longer the stub. Three of the four
+// commands are §9 edges and go to `transition()` — the one mover of state —
+// through the Server Functions in `./publishing-actions`. The fourth,
+// `move`, is **not a transition at all**: moving a page to another date
+// changes `drafts.scheduled_for` and the veto deadline that hangs off it,
+// which is the re-deadline rule (#46). It still refuses, and it says so
+// naming what it needs — a control that resolved without moving anything
+// would look exactly like one that worked.
 //
-// The shape is the real one, so #46 replaces this module's implementation
-// and no caller changes: the panel already projects which commands a stage
-// may carry (`actions.ts`), and that projection is the thing REQ-043
-// criterion 9 constrains ("no action is offered that would be refused
-// because of that stage").
+// **A refusal rejects; it never resolves.** `transition()` answers with a
+// value, not an exception, and the panel's contract is the opposite: a
+// click that changed nothing must not settle as though it had. So the seam
+// turns a refusal into `PublishingRefusedError`, carrying the machine's own
+// word for why, and the panel goes on telling the customer nothing — there
+// is no registry sentence for a refused write, and inventing one is what
+// the copy law forbids.
 import type { DayKey } from "./dates";
+import { approveDraft, skipDraft, vetoDraft } from "./publishing-actions";
 
 /** The three writes §4.6's day panel offers. Named for what the customer
  *  does, not for the transition underneath — `veto` is REQ-046's veto and
@@ -38,41 +43,64 @@ export interface PublishingMachine {
   move(a: { draftId: string; to: DayKey }): Promise<void>;
   /** Take a planned page off its date without publishing it. */
   skip(a: { draftId: string }): Promise<void>;
-  /** Stop a page in review before its veto window closes (BUILD §9). */
+  /** Stop a page in review before its veto window closes (§9). */
   veto(a: { draftId: string }): Promise<void>;
   /** Approve a page in review, ahead of the veto window (§9: "Copilot =
    *  explicit approve only"). */
   approve(a: { draftId: string }): Promise<void>;
 }
 
-/** Thrown by every method of the stub. It names what was asked and which
- *  issue supplies it, so a click that cannot go anywhere says exactly that
- *  in the one place a developer looks — and never to the customer, who is
- *  told nothing this product cannot yet do. */
+/** Thrown when the machine refused the move. It carries the machine's own
+ *  refusal word — `not_a_transition`, or the name of the guard that said no
+ *  — so a click that could not go anywhere says exactly why in the one
+ *  place a developer looks, and never to the customer. */
+export class PublishingRefusedError extends Error {
+  constructor(
+    public readonly command: PublishingCommand,
+    public readonly refused: string
+  ) {
+    super(
+      `The publishing machine refused "${command}": ${refused}. ` +
+        `The page keeps the state it holds; nothing was written.`
+    );
+    this.name = "PublishingRefusedError";
+  }
+}
+
+/** Thrown by `move` alone. Moving a page to another date is not one of §9's
+ *  fifteen edges: it rewrites the schedule and the veto deadline that hangs
+ *  off it, which is issue #46's re-deadline rule. */
 export class PublishingNotBuiltError extends Error {
   constructor(public readonly command: PublishingCommand) {
     super(
-      `The publishing machine is not built: "${command}" needs BUILD §9's state machine ` +
-        `(src/lib/publish/, issues #45 and #46). The calendar renders the control its stage ` +
-        `earns and calls this interface; nothing writes a draft until that lands.`
+      `The publishing machine cannot yet run "${command}": moving a page to another date ` +
+        `is not one of BUILD §9's transitions — it rewrites the schedule and the veto ` +
+        `deadline that hangs off it (issue #46's re-deadline rule). The calendar renders ` +
+        `the control its stage earns and calls this interface; nothing writes a draft ` +
+        `until that lands.`
     );
     this.name = "PublishingNotBuiltError";
   }
 }
 
-/** The declared seam. One module-level constant, so a later issue swaps the
+async function run(command: PublishingCommand, refusal: Promise<string | null>): Promise<void> {
+  const refused = await refusal;
+  if (refused !== null) throw new PublishingRefusedError(command, refused);
+}
+
+/** The declared seam. One module-level constant, so a later issue swaps an
  *  implementation in one place; no caller constructs its own. */
 export const publishing: PublishingMachine = Object.freeze({
   move(): Promise<void> {
     return Promise.reject(new PublishingNotBuiltError("move"));
   },
-  skip(): Promise<void> {
-    return Promise.reject(new PublishingNotBuiltError("skip"));
+  skip(a: { draftId: string }): Promise<void> {
+    return run("skip", skipDraft(a.draftId));
   },
-  veto(): Promise<void> {
-    return Promise.reject(new PublishingNotBuiltError("veto"));
+  veto(a: { draftId: string }): Promise<void> {
+    return run("veto", vetoDraft(a.draftId));
   },
-  approve(): Promise<void> {
-    return Promise.reject(new PublishingNotBuiltError("approve"));
+  approve(a: { draftId: string }): Promise<void> {
+    return run("approve", approveDraft(a.draftId));
   },
 });

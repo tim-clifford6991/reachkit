@@ -8,9 +8,15 @@
 //     table, so the two surfaces cannot offer different actions for one
 //     state — which is the archived BP-044's own wording of the promise.
 //
-// Plus the two seams this screen calls, both stubbed honestly: nothing here
-// pretends a write succeeded.
-import { describe, expect, it } from "vitest";
+// Plus the two seams this screen calls: nothing here pretends a write
+// succeeded. Approve and Veto now reach BUILD §9's one mover (#45); the
+// save is still declared and stubbed (#44).
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+// `transition()` is exercised in `tests/publish/machine/` against a database
+// double; mocking it here keeps this file's subject the seam's own contract.
+const transition = vi.fn();
+vi.mock("@/lib/publish/machine", () => ({ transition: (...a: unknown[]) => transition(...a) }));
 import {
   draftActionsFor,
   isEditable,
@@ -20,7 +26,7 @@ import { STOP_COMMAND, TRANSITIONS, actionsFor } from "@/app/(account)/app/calen
 import { PUBLISH_STATES, type PublishState } from "@/app/(account)/app/calendar/stages";
 import {
   publishing,
-  PublishingNotBuiltError,
+  PublishingRefusedError,
 } from "@/app/(account)/app/calendar/publishing";
 import {
   draftStore,
@@ -131,18 +137,45 @@ describe("the draft view and the day panel read one table", () => {
   });
 });
 
-describe("both seams are declared and stubbed honestly — nothing claims a write succeeded", () => {
-  it("approve rejects with PublishingNotBuiltError, naming the command", async () => {
-    await expect(publishing.approve({ draftId: "d1" })).rejects.toBeInstanceOf(
-      PublishingNotBuiltError
-    );
-    await expect(publishing.approve({ draftId: "d1" })).rejects.toMatchObject({
-      command: "approve",
+describe("neither seam claims a write succeeded", () => {
+  beforeEach(() => {
+    transition.mockReset();
+  });
+
+  it("approve asks §9's machine for the in_review → approved edge", async () => {
+    transition.mockResolvedValue({ ok: true, state: "approved" });
+    await publishing.approve({ draftId: "d1" });
+    expect(transition).toHaveBeenCalledWith("d1", "approved", {
+      kind: "customer",
+      userId: "user-fixture",
     });
   });
 
-  it("veto still rejects the same way, so the two controls behave alike", async () => {
-    await expect(publishing.veto({ draftId: "d1" })).rejects.toBeInstanceOf(PublishingNotBuiltError);
+  it("a refused approve rejects, naming the command and the machine's own word", async () => {
+    transition.mockResolvedValue({
+      ok: false,
+      refused: "not_a_transition",
+      state: "published",
+    });
+    await expect(publishing.approve({ draftId: "d1" })).rejects.toBeInstanceOf(
+      PublishingRefusedError
+    );
+    await expect(publishing.approve({ draftId: "d1" })).rejects.toMatchObject({
+      command: "approve",
+      refused: "not_a_transition",
+    });
+  });
+
+  it("veto behaves alike — the same seam, the → skipped edge, refused the same way", async () => {
+    transition.mockResolvedValue({ ok: true, state: "skipped" });
+    await publishing.veto({ draftId: "d1" });
+    expect(transition).toHaveBeenCalledWith("d1", "skipped", {
+      kind: "customer",
+      userId: "user-fixture",
+    });
+
+    transition.mockResolvedValue({ ok: false, refused: "guard", failedGuard: "customer_told", state: "in_review" });
+    await expect(publishing.veto({ draftId: "d1" })).rejects.toBeInstanceOf(PublishingRefusedError);
   });
 
   it("the save rejects with DraftSaveNotBuiltError and never resolves ok", async () => {

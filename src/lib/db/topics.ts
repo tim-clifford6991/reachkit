@@ -76,6 +76,12 @@ export const MIGRATION_SUBTOKENS: readonly MigrationSubtoken[] = [
   { token: "opportunities_verdicts", parent: "opportunities", owner: "BP-051" },
   { token: "drafts_core", parent: "drafts", owner: "BP-042" },
   { token: "drafts_claims", parent: "drafts", owner: "BP-043" },
+  // Issue #45, BUILD §9: the state machine's own two columns on `drafts`
+  // (`transitions`, `publishable_since`) and the switch on `sites`. Both
+  // narrow a topic another node owns, which is exactly what rule 3a is
+  // for — "a leaf narrows it with a sub-token and owns that file".
+  { token: "drafts_publishing", parent: "drafts", owner: "BP-045" },
+  { token: "sites_publishing", parent: "sites", owner: "BP-045" },
 ];
 
 /**
