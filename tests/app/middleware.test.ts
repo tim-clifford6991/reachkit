@@ -85,6 +85,10 @@ describe(
         "/opt-out/:token": "/opt-out/abc123",
         "/pricing": "/pricing",
         "/signin": "/signin",
+        // Issue #35 — the route that redeems a sign-in link. It has to be
+        // reachable with no session, because having no session is the whole
+        // reason its holder is following it.
+        "/signin/:token": "/signin/abc123",
       };
       expect(Object.keys(instances).sort()).toEqual([...PUBLIC_PATHS].sort());
       for (const pattern of PUBLIC_PATHS) {

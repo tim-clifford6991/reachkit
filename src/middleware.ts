@@ -41,6 +41,17 @@ import type { NextRequest } from "next/server";
 import { isDomainRemoved } from "@/lib/scan/removal";
 import { isFixtureDomain } from "@/app/(public)/scan/[domain]/_fixture/states";
 import { readSetupGateState, setupRedirectFor } from "@/app/(account)/setup/gate";
+// Three names, one home (issue #35). `src/lib/account/identity/addresses.ts`
+// imports nothing at all — precisely so this file can share the cookie's
+// wire name and the two routes with the module that mints them, instead of
+// holding a second copy of each. The two "parameter, chosen here" notes
+// this replaces both said the same thing: "at which point the two must
+// agree".
+import {
+  SESSION_COOKIE_NAME,
+  SIGNIN_LINK_PATH_PATTERN,
+  SIGNIN_PATH,
+} from "@/lib/account/identity/addresses";
 
 /** One entry per BP-001 `## Public interface` "Routes (public)" row
  *  (`## Steps` step 1). A leading `:` marks a single dynamic path segment —
@@ -56,11 +67,16 @@ export const PUBLIC_PATHS: readonly string[] = [
   "/pricing",
   // Issue #19: the sign-in address prompt now exists as a route
   // (`src/app/(public)/signin/page.tsx`), so it takes a row on this list
-  // like every other public surface. `SIGNIN_PATH` below stays: it is this
-  // file's redirect *target*, and a target that is not itself public would
-  // redirect a denied visitor to a denied page forever — a property worth
-  // holding independently of any row on this list.
-  "/signin",
+  // like every other public surface. `SIGNIN_PATH` stays used below: it is
+  // this file's redirect *target*, and a target that is not itself public
+  // would redirect a denied visitor to a denied page forever — a property
+  // worth holding independently of any row on this list.
+  SIGNIN_PATH,
+  // Issue #35: the route that redeems a sign-in link. Unauthenticated by
+  // necessity — the whole point of the link is that its holder has no
+  // session yet, so a denial here would send a working link to the screen
+  // that says links do not work.
+  SIGNIN_LINK_PATH_PATTERN,
 ];
 
 /** The two transport-only adapters (`## File plan`): Stripe and the job
@@ -71,39 +87,6 @@ function isAdapterPath(pathname: string): boolean {
   if (pathname === "/api/stripe/webhook") return true;
   return pathname === "/api/jobs" || pathname.startsWith("/api/jobs/");
 }
-
-/** The sign-in address prompt this middleware redirects a denied request
- *  to (`## File plan`: "redirected to the sign-in address prompt"). No
- *  route on this list names it — BP-001's `## Public interface` does not
- *  either — because the page itself is out of scope here (`## Out of
- *  scope`: "The sign-in address prompt page itself ... (BP-061)").
- *
- *  **Parameter, chosen here (constitution rule 1.1).** An internal route
- *  name, not a customer-visible string (the decision-rights table: "Internal
- *  names, type members, module boundaries" is the system's to set) — chosen
- *  as `/signin` under `(public)`, the shortest form matching this product's
- *  own vocabulary ("sign-in link", `LinkPurpose = 'sign_in'`, BP-061).
- *  Reversal cost: one constant in this file; nothing outside this file
- *  reads it, and no page exists at this address yet (`## Provenance of this
- *  file plan`), so renaming it costs one line here and, once BP-061's own
- *  work order lands, one matching route file. It must stay on the allow
- *  list below or a signed-out visitor sent here would be redirected here
- *  again. */
-const SIGNIN_PATH = "/signin";
-
-/** The session cookie this middleware checks for presence only.
- *
- *  **Parameter, chosen here (constitution rule 1.1).** BP-061's own
- *  `SessionCookie` type names no wire name yet — that node has not shipped
- *  (`## Interfaces`: "the account container is not reachable before that
- *  node ships"). An internal name, not a customer-visible string. Chosen
- *  as `rk_session`, this product's own initials, matching no existing
- *  convention because none exists yet on disk (`grep -rn -i cookie src
- *  tests` returns nothing but this file and one unrelated comment).
- *  Reversal cost: one constant in this file, until BP-061 ships and sets
- *  it — at which point the two must agree, and that WO's file plan is
- *  where the agreement is enforced. */
-const SESSION_COOKIE_NAME = "rk_session";
 
 /** Every request whose path is not covered by `config.matcher`'s
  *  exclusion never reaches this function; these two are Next.js's own
@@ -135,6 +118,13 @@ function isPublic(pathname: string): boolean {
   );
 }
 
+/** Presence only, still (`## File plan`: "Reads no database: the check is a
+ *  cookie's presence, nothing about its contents"). That stays safe because
+ *  the value is a real signed session rather than a marker: a forged cookie
+ *  gets past this function and past nothing else. `currentSession()`
+ *  verifies the MAC, the signed expiry, the account's own session stamp and
+ *  its tombstone, and every surface that reads who the customer *is* reads
+ *  it from there. */
 function hasSession(req: NextRequest): boolean {
   const cookie = req.cookies.get(SESSION_COOKIE_NAME);
   return cookie !== undefined && cookie.value.length > 0;

@@ -11,6 +11,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { BAND_MIN } from "@/ui/layout/bands";
+import { SESSION_COOKIE_NAME } from "@/lib/account/identity/addresses";
 import { ACCOUNT_SESSION_COOKIE, enumerateRoutes, MissingRouteFixtureError } from "./routes";
 import { widths } from "./widths";
 
@@ -89,12 +90,20 @@ describe("enumerateRoutes — an (account) page carries its session cookie", () 
     // The middleware checks presence only, so the value is a fixture; the
     // *name* is the contract, and a rename there without one here would
     // silently sweep the sign-in redirect instead of the account screen.
+    //
+    // Since issue #35 that name has exactly one home — the zero-import
+    // module both this file and `src/middleware.ts` read it from — so the
+    // assertion is that they are the same value, and that the middleware
+    // still takes it from there rather than re-spelling it.
+    const [name] = ACCOUNT_SESSION_COOKIE.split("=");
+    expect(name).toBe(SESSION_COOKIE_NAME);
+
     const middleware = readFileSync(
       path.resolve(__dirname, "../../../src/middleware.ts"),
       "utf8"
     );
-    const [name] = ACCOUNT_SESSION_COOKIE.split("=");
-    expect(middleware).toContain(`"${name}"`);
+    expect(middleware).toContain("SESSION_COOKIE_NAME");
+    expect(middleware).toContain("@/lib/account/identity/addresses");
   });
 });
 
