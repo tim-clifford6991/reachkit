@@ -19,7 +19,11 @@ export function Toggle(p: {
   onChange?: (checked: boolean) => void;
 }): React.JSX.Element {
   return (
-    <label className="label cursor-pointer gap-2">
+    // 2026-09-06, issue #12: was `label cursor-pointer gap-2`. daisyUI's
+    // `label` is a component of its own and is not one of §2.2's fifteen
+    // (see `Input.tsx`); these utilities are its own rule written out, with
+    // the caller-facing gap this component already chose kept as it was.
+    <label className="inline-flex cursor-pointer items-center gap-2 whitespace-nowrap text-base-content/60">
       <input
         type="checkbox"
         className="toggle"

@@ -1,0 +1,10 @@
+Fixture — a file that does not violate the no-emoji rule (BUILD.md 2.3).
+Read only by tests/ui/design/emoji.test.ts, to prove the detector is not
+a punctuation ban: none of the marks below is an emoji, and the product
+writes every one of them.
+
+Em dash — en dash – ellipsis … arrow → bullet · times × degree °
+Curly quotes “measured” and it's, non-breaking space, ratio 0/12,
+price €49, plus-minus ±, section §2.3, copyright © 2026, ReachKit™ ®,
+accented characters: café, naïve, Zürich, Ångström,
+and the marks this repo writes in prose: ↔ ↩ ▪ ▸.
