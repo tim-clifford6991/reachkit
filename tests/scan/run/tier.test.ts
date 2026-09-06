@@ -201,3 +201,49 @@ describe("tier is a parameter and never a branch", () => {
     expect(Object.keys(TIER_PARAMETERS).sort()).toEqual(["deep", "free", "weekly"]);
   });
 });
+
+// ── The optional stage hook (issue #36) ──────────────────────────────────
+//
+// `stages.ts`'s event bus carries transitions in one process only. A
+// caller whose reader lives elsewhere — the onboarding progress screen,
+// served by the web process while the pass runs in the job one — needs the
+// transition somewhere durable, and `onStage` is how it gets it. It adds no
+// stage, changes no order, and is optional.
+
+describe("onStage — the same six stages, reported to a caller that asked for them", () => {
+  it("reports every stage entry, once, in STAGES order", async () => {
+    const seen: string[] = [];
+    await runScan({ domain: DOMAIN, tier: "deep", onStage: (stage) => void seen.push(stage) });
+
+    expect(seen).toEqual(EVERY_STAGE.filter((line) => line.endsWith(":enter")).map((line) => line.replace(":enter", "")));
+  });
+
+  it("changes the stage sequence for nobody — with and without it, the bus sees the same lines", async () => {
+    await runScan({ domain: DOMAIN, tier: "deep" });
+    const withoutHook = [...stages.lines];
+
+    stages.restore();
+    stages = captureStages();
+    await runScan({ domain: DOMAIN, tier: "deep", onStage: () => undefined });
+    expect(stages.lines).toEqual(withoutHook);
+  });
+
+  it("is awaited, so a slow write cannot report two stages out of order", async () => {
+    const seen: string[] = [];
+    await runScan({
+      domain: DOMAIN,
+      tier: "deep",
+      onStage: async (stage) => {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        seen.push(stage);
+      },
+    });
+    expect(seen).toEqual(["reading_your_site", "reading_access_rules", "reading_your_market", "checking_your_presence", "asking_the_twelve", "scoring"]);
+  });
+
+  it("reports entry only — a stage the ceilings cut off never reports an exit through it either", () => {
+    // Structural: the hook is called from the entry helper and nowhere
+    // else, so there is no `done` half of it to drift.
+    expect(RUN_SOURCE.match(/onStage\?\.\(/g) ?? []).toHaveLength(1);
+  });
+});

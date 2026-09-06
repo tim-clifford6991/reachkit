@@ -73,6 +73,7 @@ import { readCurrentReport } from "./report";
 import type { AiAnswersSection, StoppedReason, StoredReport, SupplySection, Tier } from "./report";
 import { answersSectionOf, blockedAgentsOf, categoryOf } from "./sections";
 import { emitEnding, enterStage, exitStage } from "./stages";
+import type { StageName } from "./stages";
 import { assembleReport, storeCurrentReport, type ScanStatus } from "./store";
 
 // ── Tier as a parameter ─────────────────────────────────────────────────
@@ -270,6 +271,21 @@ export interface RunScanArgs {
   /** A market correction re-measures inside the scan it corrects: same
    *  spend ceiling, no second allowance consumed. */
   correctionOf?: string;
+  /**
+   * Called as each stage is entered, before its work starts.
+   *
+   * `stages.ts`'s event bus already carries every transition, but it
+   * carries them **in this process only** — a caller whose reader lives
+   * somewhere else (the onboarding progress screen, served by the web
+   * process while the pass runs in the job one) has no way to observe it.
+   * This hook is how such a caller writes the transition somewhere
+   * durable; it is awaited, so a stage is never reported out of order,
+   * and it is optional, so no existing caller changes.
+   *
+   * It reports entry only. A hook that threw would stop the pass, which is
+   * why the one caller in this repo swallows its own write failures.
+   */
+  onStage?: (stage: StageName) => void | Promise<void>;
 }
 
 export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status: ScanStatus }> {
@@ -329,7 +345,7 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
     { scanId, startedAt, cap: parameters.cap, deadlineApplies: parameters.deadlineApplies },
     async (bounds, cost) => {
       try {
-        await runStages({ scanId, bounds, cost, domain, tier: a.tier, parameters, correction: a.correctionOf !== undefined, sections });
+        await runStages({ scanId, bounds, cost, domain, tier: a.tier, parameters, correction: a.correctionOf !== undefined, sections, onStage: a.onStage });
       } finally {
         spend.cents = cost.spentCents();
         spend.degraded = cost.degraded();
@@ -394,6 +410,7 @@ interface StageArgs {
   parameters: TierParameters;
   correction: boolean;
   sections: Sections;
+  onStage?: (stage: StageName) => void | Promise<void>;
 }
 
 /**
@@ -411,32 +428,39 @@ interface StageArgs {
 async function runStages(a: StageArgs): Promise<void> {
   const { scanId, bounds, cost, domain, sections } = a;
 
+  /** Entry, reported to the in-process bus and to the optional durable
+   *  hook, in that order and never one without the other. */
+  const enter = async (stage: StageName): Promise<void> => {
+    enterStage(scanId, stage);
+    await a.onStage?.(stage);
+  };
+
   if (bounds.stopNow() !== null) return;
-  enterStage(scanId, "reading_your_site");
+  await enter("reading_your_site");
   const measurement = await attempt("reading_your_site", () => measureDomain(cost, { domain, tier: a.tier }));
   if (!failed(measurement)) sections.measurement = measurement;
   exitStage(scanId, "reading_your_site");
 
   if (bounds.stopNow() !== null) return;
-  enterStage(scanId, "reading_access_rules");
+  await enter("reading_access_rules");
   exitStage(scanId, "reading_access_rules");
 
   if (bounds.stopNow() !== null) return;
-  enterStage(scanId, "reading_your_market");
+  await enter("reading_your_market");
   await readMarket(a);
   exitStage(scanId, "reading_your_market");
 
   if (bounds.stopNow() !== null) return;
-  enterStage(scanId, "checking_your_presence");
+  await enter("checking_your_presence");
   exitStage(scanId, "checking_your_presence");
 
   if (bounds.stopNow() !== null) return;
-  enterStage(scanId, "asking_the_twelve");
+  await enter("asking_the_twelve");
   await askTheTwelve(a);
   exitStage(scanId, "asking_the_twelve");
 
   if (bounds.stopNow() !== null) return;
-  enterStage(scanId, "scoring");
+  await enter("scoring");
   score(a);
   exitStage(scanId, "scoring");
 }

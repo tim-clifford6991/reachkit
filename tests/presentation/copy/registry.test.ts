@@ -312,7 +312,7 @@ describe("owner-owed and empty agree both ways", () => {
     expect(new Set(emptyKeys)).toEqual(new Set(OWNER_OWED));
   });
 
-  it("counts: 64 owner-owed, 124 awaiting copy, 160 ruled, 348 total (rule 5.5 — the index states its own coverage)", () => {
+  it("counts: 79 owner-owed, 135 awaiting copy, 168 ruled, 382 total (rule 5.5 — the index states its own coverage)", () => {
     // WO-070 added report.ts's eight landing keys (headline, field label,
     // submit label, five DomainProblem lines), all owner-owed: 30 + 8 = 38.
     // 2026-09-03: the owner ruled on three of them (headline, field label,
@@ -543,10 +543,21 @@ describe("owner-owed and empty agree both ways", () => {
     // throw for mail, "a mail never ships a placeholder" — and all nine
     // are mail lines. 67 + 9 = 76 owner-owed, 133 awaiting copy unchanged,
     // 168 ruled unchanged, 368 + 9 = 377 total.
-    expect(OWNER_OWED.length).toBe(76);
-    expect(AWAITING_COPY.length).toBe(133);
+    //
+    // 2026-09-06, separately again: issue #36 (§4.3's setup engine) adds
+    // five keys, and the split between the two representations is the same
+    // distinction drawn once more. Three are the setup reminder's —
+    // `mail.setupReminder.{subject,body,action}` — and they take the
+    // **empty** value, on the same #93 ruling the nine above cite: a
+    // reminder that went out reading `TODO(copy)` would be worse than one
+    // that did not go out. Two are the release notice's,
+    // `setup.release.{unmeasured,incomplete}`, which a *screen* speaks — so
+    // they take the marker. 76 + 3 = 79 owner-owed and empty,
+    // 133 + 2 = 135 awaiting copy, 168 ruled unchanged, 377 + 5 = 382 total.
+    expect(OWNER_OWED.length).toBe(79);
+    expect(AWAITING_COPY.length).toBe(135);
     expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(168);
-    expect(Object.keys(COPY).length).toBe(377);
+    expect(Object.keys(COPY).length).toBe(382);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.
