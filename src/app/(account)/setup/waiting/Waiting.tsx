@@ -69,9 +69,11 @@ export function Waiting(p: {
     state: index < current ? "done" : index === current ? "active" : "pending",
   }));
 
+  // Vertical at every width: this screen is one column at every band, and
+  // six named stages in a row do not fit the 320px floor.
   return (
     <div data-testid="setup-waiting" data-stage={stage}>
-      <Steps steps={items} />
+      <Steps steps={items} direction="vertical" />
     </div>
   );
 }

@@ -141,6 +141,14 @@ export const ATTRIBUTE_ALLOWLIST: readonly AllowlistedAttribute[] = Object.freez
   },
   {
     kind: "exact",
+    name: "direction",
+    reason:
+      "a registered component's layout-axis token (Steps' 'horizontal' | 'vertical'), the same " +
+      "category as `variant`, `size` and `state`: it selects how the component lays itself out, " +
+      "never what it says — every label it carries arrives through `steps[].label`.",
+  },
+  {
+    kind: "exact",
     name: "tone",
     reason:
       "a registered component's `Tone` token ('ok' | 'warn' | 'bad' | 'neutral' | " +

@@ -53,3 +53,15 @@
   overflow-wrap: anywhere;
   min-width: 0;
 }
+
+/* A chip carrying a market the founder wrote in their own words is not a
+ * badge-sized word (§4.3: "inferred category chip"). daisyUI's `badge` is
+ * a fixed-height, `nowrap` pill, which pushes a long category out of its
+ * own box at the 320px floor; these three declarations let it wrap and
+ * grow instead. Nothing about the chip's colour, radius or spacing is
+ * touched — that stays the theme's. */
+.rk-setup .badge {
+  white-space: normal;
+  height: auto;
+  overflow-wrap: anywhere;
+}
