@@ -35,6 +35,10 @@ function engineDouble(): Record<string, unknown> {
       engineCalls.count += 1;
       return [{ siteId: "site-1", timeZone: "UTC" }];
     },
+    weeklyDueSites: async () => {
+      engineCalls.count += 1;
+      return [{ siteId: "site-1", domain: "example.com", zone: "UTC", weekStart: "2026-09-07" }];
+    },
     startWeeklyScan: ran,
     runScan: ran,
     generateDraft: ran,

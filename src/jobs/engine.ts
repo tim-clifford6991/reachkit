@@ -1,8 +1,8 @@
 // src/jobs/engine.ts — BUILD §11
 //
 // The seam between the seven job definitions and the engine. Every
-// function here is the interface a job calls; none of the engines behind
-// them is built yet, so every body throws `EngineNotBuilt` and each
+// function here is the interface a job calls. Most of the engines behind
+// them are not built yet: those bodies throw `EngineNotBuilt`, and each
 // unbuilt engine carries exactly one `TODO(engine)` naming it.
 //
 // **Nothing here fakes work.** A stub does not return a plausible empty
@@ -19,6 +19,7 @@
 // that owns the rule, or `notBuilt`.
 import { runDeepPass } from "@/lib/scan/deep/run";
 import { sendSetupReminder, sitesDueSetupReminder as sitesDueSetupReminderRows } from "@/lib/mail/setup/reminders";
+import { dueSites, runWeekly, type DueSite } from "@/lib/scan/weekly";
 
 /** A site and the zone its own clock runs in. Due-ness is computed from
  *  this — never from UTC (ADR-060). */
@@ -50,26 +51,48 @@ function notBuilt(engine: string, fn: string): never {
   throw new EngineNotBuilt(engine, fn);
 }
 
-// ── The site list — BP-050
-// TODO(engine): BP-050's weekly re-measurement. `activeSites()` and
-// `startWeeklyScan()` land with it; until then `weekly/refresh` and
-// `draft/generate` have no site list to tick over.
+// ── The site list — BP-014
+// TODO(engine): `draft/generate`'s own site list. `generateDraft()` (below)
+// lands with it; until then the daily tick has nothing to tick over. It is
+// not the weekly tick's list: `weeklyDueSites()` selects on four
+// predicates this one does not carry (issue #41).
 
 /** Every site with an active subscription, with its own time zone. Read by
- *  both clock-triggered fan-outs. */
+ *  `draft/generate`'s fan-out. */
 export async function activeSites(): Promise<readonly SiteClock[]> {
-  return notBuilt("BP-050", "activeSites()");
+  return notBuilt("BP-014", "activeSites()");
+}
+
+// ── The weekly measurement — issue #41, built.
+//
+// Two calls into `src/lib/scan/weekly/`, and no logic of their own. The
+// selection is one engine call rather than "every active site, filtered
+// here", because three of its four predicates — active access, a stated
+// zone, and no row for `(site_id, week_start)` — are database questions,
+// and a job body reaches no database.
+
+export type { DueSite } from "@/lib/scan/weekly";
+
+/** Every site whose own local Monday and due hour have arrived, that has
+ *  active access, and that carries no measurement for the week it is in
+ *  (ADR-060). */
+export async function weeklyDueSites(now: Date): Promise<readonly DueSite[]> {
+  return dueSites(now);
 }
 
 /** Starts one site's weekly pass. `weekStart` is the site-local Monday the
  *  run belongs to; the `unique (site_id, week_start) where tier = 'weekly'`
  *  constraint behind this call is the engine's, so a second delivery of the
  *  same key starts nothing. */
-export async function startWeeklyScan(a: {
-  readonly siteId: string;
-  readonly weekStart: string;
-}): Promise<EngineResult> {
-  return notBuilt("BP-050", `startWeeklyScan(${a.siteId})`);
+export async function startWeeklyScan(a: DueSite & { readonly now: Date }): Promise<EngineResult> {
+  const outcome = await runWeekly({
+    siteId: a.siteId,
+    domain: a.domain,
+    zone: a.zone,
+    now: a.now,
+  });
+  if (outcome.ran && outcome.status === "degraded") return { degraded: outcome.unmeasured.join(",") };
+  return { done: true };
 }
 
 // ── The scan pipeline — BP-012, and the deep tier wired here (issue #36)
@@ -79,10 +102,14 @@ export async function startWeeklyScan(a: {
 // adopts the row admission already claimed and a paid one mints its own,
 // both inside `runScan` itself. Nothing about a tier is decided here.
 //
-// **Only the deep arm is wired.** `src/lib/scan/run.ts` is built (issue
-// #100), but reaching it from `scan/run` on the free path also means
-// admission's claimed slot and on the weekly path the site list — both
-// other issues' (#24, BP-050), and neither this one's to decide. So the
+// **Only the deep arm is wired, and the other two for different reasons.**
+// `src/lib/scan/run.ts` is built (issue #100), but reaching it from
+// `scan/run` on the free path also means admission's claimed slot, which
+// is #24's to decide. The weekly path is built (issue #41) and does not
+// come through here at all: `weekly/refresh` is its trigger, and its own
+// claim on `(site_id, week_start)` is what makes the measurement once a
+// week — a second door into the same pass, through an event this job's
+// idempotency key does not cover, would be a way around that claim. So the
 // deep arm calls the pipeline and the other two still throw: an unwired
 // tier fails loudly rather than quietly reporting a pass nobody ran.
 //
@@ -91,8 +118,8 @@ export async function startWeeklyScan(a: {
 // written where the waiting screen can read it, and the release latch.
 // Both are that module's; it is still one `runScan` call underneath.
 
-// TODO(engine): the free and weekly arms — BP-023's admission claim (#24)
-// and BP-050's site list.
+// TODO(engine): the free arm — BP-023's admission claim (#24). The weekly
+// arm is not owed here; see above.
 
 export async function runScan(a: {
   readonly scanId: string;
@@ -150,10 +177,9 @@ export async function advanceSequence(a: {
 }
 
 // ── Payments and provisioning — BUILD §13 (issue #33)
-// Built. The four functions below are the only ones on this seam that call
-// a real engine: `src/lib/account/provisioning/**` owns the rules, and the
-// four wrappers here do nothing but pass a clock in and map the result to
-// an `EngineResult`.
+// Built, like the weekly measurement above: `src/lib/account/provisioning/**`
+// owns the rules, and the four wrappers here do nothing but pass a clock
+// in and map the result to an `EngineResult`.
 //
 // The two due-work queries take `now` from the tick, which is what makes
 // due-ness testable without a scheduler. The tick's own signature supplies
