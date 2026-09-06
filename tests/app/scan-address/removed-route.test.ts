@@ -105,6 +105,22 @@ describe("the rewrite — the visitor stays at the one address for the domain", 
     expect(res.headers.get("x-middleware-rewrite")).toBeNull();
   });
 
+  it("a read that never settles rewrites nothing either — a hang must not take live reports down", async () => {
+    // A `catch` alone does not cover this: a request that never settles
+    // never rejects. The deadline is what turns a hanging database into a
+    // report that renders instead of a page that never answers.
+    isDomainRemoved.mockReturnValue(new Promise(() => undefined));
+    const res = await middleware(reportRequest(`/scan/${REMOVED}`));
+    expect(res.headers.get("x-middleware-rewrite")).toBeNull();
+  }, 10_000);
+
+  it("never asks about a reserved name — the preview's own arms cost no round trip", async () => {
+    for (const domain of ["example.com", "removed.example.com", "degraded.example.com"]) {
+      await middleware(reportRequest(`/scan/${domain}`));
+    }
+    expect(isDomainRemoved).not.toHaveBeenCalled();
+  });
+
   it("asks about the canonical form only — a non-canonical one is 308'd there first and matches on the way back", async () => {
     // `page.tsx` issues its 308 before it resolves anything, so a
     // non-canonical form renders nothing and comes back here canonical.

@@ -39,6 +39,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { isDomainRemoved } from "@/lib/scan/removal";
+import { isFixtureDomain } from "@/app/(public)/scan/[domain]/_fixture/states";
 
 /** One entry per BP-001 `## Public interface` "Routes (public)" row
  *  (`## Steps` step 1). A leading `:` marks a single dynamic path segment —
@@ -138,6 +139,25 @@ function hasSession(req: NextRequest): boolean {
   return cookie !== undefined && cookie.value.length > 0;
 }
 
+// How long the removal read may take before the report renders anyway.
+// Chosen here rather than pinned in `constants.ts` (rule: a number in two
+// files is wrong; this one is in exactly one): it is a property of this
+// one request-path read, not a product bound anything else reads. Generous
+// against a healthy indexed lookup on a tiny table, short against a
+// visitor waiting for a page.
+const REMOVAL_READ_DEADLINE_MS = 800;
+
+/** Rejects when `work` has not settled inside the deadline, so the caller's
+ *  own `catch` covers a hang the same way it covers a failure. */
+function withDeadline<T>(work: Promise<T>): Promise<T> {
+  return Promise.race([
+    work,
+    new Promise<T>((_resolve, reject) =>
+      setTimeout(() => reject(new Error("removal read timed out")), REMOVAL_READ_DEADLINE_MS)
+    ),
+  ]);
+}
+
 /** `/scan/{domain}` and nothing else, with the segment as written. The one
  *  path this function looks inside, because it is the one path whose
  *  response status can depend on a stored fact (#104). */
@@ -187,8 +207,22 @@ async function removedRewrite(req: NextRequest): Promise<NextResponse | null> {
   // parser stays out of the Edge bundle.
   const domain = decodeURIComponent(segment).toLowerCase();
 
+  // A reserved name is never removed: `example.com` and its subdomains are
+  // the dev preview's own fixture arms, and one of them *is* the removed
+  // arm, rendered by the page. Asking the database about them would put a
+  // round trip in front of every preview render for an answer that is
+  // fixed.
+  if (isFixtureDomain(domain)) return null;
+
+  // **Bounded, and fails open.** This read is in front of every report
+  // render, so a database that is slow or unreachable must cost the
+  // visitor a report that renders, not a page that hangs — a `catch`
+  // alone does not do that, because a request that never settles never
+  // rejects. Past the deadline the report renders: the wrong answer for a
+  // removed domain, and the only one that does not take every live report
+  // down with the database.
   try {
-    if (!(await isDomainRemoved(domain))) return null;
+    if (!(await withDeadline(isDomainRemoved(domain)))) return null;
   } catch {
     return null;
   }

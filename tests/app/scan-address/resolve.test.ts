@@ -12,6 +12,9 @@ import type { StoredReport } from "@/lib/scan/report";
 
 const admitFreeScan = vi.fn<() => Promise<Admission>>();
 const readCurrentReport = vi.fn<() => Promise<StoredReport | null>>();
+const isDomainRemoved = vi.fn<() => Promise<boolean>>();
+
+vi.mock("@/lib/scan/removal", () => ({ isDomainRemoved: () => isDomainRemoved() }));
 
 vi.mock("@/lib/scan/admission", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/scan/admission")>()),
@@ -56,8 +59,15 @@ function storedReport(over: Partial<{
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // `clearAllMocks` clears call history, not implementations, so each of
+  // these is reset outright: a throwing implementation set by one case
+  // would otherwise still be in place for every case after it.
+  admitFreeScan.mockReset();
+  readCurrentReport.mockReset();
+  isDomainRemoved.mockReset();
   admitFreeScan.mockResolvedValue({ admit: true });
   readCurrentReport.mockResolvedValue(null);
+  isDomainRemoved.mockResolvedValue(false);
 });
 
 describe("row 1 — a segment that does not parse", () => {
@@ -66,11 +76,12 @@ describe("row 1 — a segment that does not parse", () => {
     expect(state).toEqual({ kind: "malformed", problem: "not_a_hostname", value: "not a domain at all" });
     expect(admitFreeScan).not.toHaveBeenCalled();
     expect(readCurrentReport).not.toHaveBeenCalled();
+    expect(isDomainRemoved).not.toHaveBeenCalled();
   });
 });
 
 describe("row 2 — a removed report outranks everything below it", () => {
-  beforeEach(() => admitFreeScan.mockResolvedValue({ refuse: "removed" }));
+  beforeEach(() => isDomainRemoved.mockResolvedValue(true));
 
   it("is the removed arm", async () => {
     expect(await resolve()).toEqual({ kind: "removed", domain: DOMAIN });
@@ -83,6 +94,24 @@ describe("row 2 — a removed report outranks everything below it", () => {
     // The withdrawn report is not read out to anybody, including the
     // visitor whose scan would otherwise have started.
     expect(JSON.stringify(state)).not.toContain("scan-1");
+  });
+
+  it("is asked of the removal table directly, never inferred from admission's refusal", async () => {
+    // Admission fails closed on that read: a database it cannot reach
+    // refuses the scan. Reading the removed *screen* off that refusal
+    // would tell every visitor, during an outage, that their report had
+    // been taken down at their own request.
+    isDomainRemoved.mockResolvedValue(false);
+    admitFreeScan.mockResolvedValue({ refuse: "removed" });
+    const state = await resolve();
+    expect(state.kind).not.toBe("removed");
+    expect(state).toEqual({ kind: "refused", domain: DOMAIN, refusal: { reason: "stopped" } });
+  });
+
+  it("a removal read that cannot be answered renders the report — never a removal nobody requested", async () => {
+    isDomainRemoved.mockImplementationOnce(() => Promise.reject(new Error("connection reset")));
+    readCurrentReport.mockResolvedValue(storedReport());
+    expect((await resolve()).kind).toBe("report");
   });
 });
 
@@ -227,6 +256,16 @@ describe("rows 4 to 7 — no stored report", () => {
   it("nothing here yet and nothing in the way is the starting arm", async () => {
     expect(await resolve()).toEqual({ kind: "starting", domain: DOMAIN });
   });
+
+  it("a store that cannot be read is our own stop — never an error page, and never a scan", async () => {
+    // REQ-001 c5: a report address never answers with a blank page, a 404
+    // or an unhandled error. And "we could not read the store" is not "no
+    // report": starting a scan on that guess would spend money on a domain
+    // that may already have one.
+    readCurrentReport.mockImplementationOnce(() => Promise.reject(new Error("connection reset")));
+    const state = await resolve();
+    expect(state).toEqual({ kind: "refused", domain: DOMAIN, refusal: { reason: "stopped" } });
+  });
 });
 
 describe("what resolving does not do", () => {
@@ -238,7 +277,7 @@ describe("what resolving does not do", () => {
   });
 
   it("canonicalises through the one parser — every written form reaches the same domain", async () => {
-    admitFreeScan.mockResolvedValue({ refuse: "removed" });
+    isDomainRemoved.mockResolvedValue(true);
     for (const written of ["acme.com", "WWW.Acme.Com", "https://acme.com/pricing"]) {
       const state = await resolveAddress({ rawSegment: written, network: NETWORK, now: NOW });
       expect(state).toEqual({ kind: "removed", domain: DOMAIN });

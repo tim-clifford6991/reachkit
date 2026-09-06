@@ -33,6 +33,7 @@
 // a crawler, a prefetch or a refresh from spending money.
 import { FREE_RESCAN_WINDOW_D, TIMING } from "@/lib/config/constants";
 import { admitFreeScan, type Admission, type NetworkKey } from "@/lib/scan/admission";
+import { isDomainRemoved } from "@/lib/scan/removal";
 import { parseDomain, type CanonicalDomain } from "@/lib/scan/domain";
 import { readCurrentReport, type StoredReport } from "@/lib/scan/report";
 import { correctionOffer } from "@/lib/market/coherence/offer";
@@ -66,6 +67,14 @@ function refusalOf(admission: Exclude<Admission, { admit: true }>): AddressRefus
     case "switched_off":
       return { reason: "stopped" };
     case "removed":
+      // Admission fails **closed** on the removal read: a read it cannot
+      // answer refuses the scan, because spending on a domain that might
+      // be removed is the worse mistake. That is right for its decision
+      // and wrong for this one — row 2 above has already asked the
+      // question directly, so reaching here means the table said no or
+      // could not be reached. Either way no scan will run and the visitor
+      // did not cause it, which is our own stop, not a removal.
+      return { reason: "stopped" };
     case "cooldown":
       return null;
   }
@@ -150,18 +159,38 @@ export async function resolveAddress(a: {
   if (!parsed.ok) return { kind: "malformed", problem: parsed.problem, value: a.rawSegment };
   const domain: CanonicalDomain = parsed.domain;
 
-  const admission = await admitFreeScan({ domain, network: a.network });
-
   // 2. Removed — outranks everything below, including a stored report.
-  if (!("admit" in admission) && admission.refuse === "removed") {
-    return { kind: "removed", domain };
-  }
+  //
+  // Asked of the removal table directly, and **not** read off admission's
+  // `removed` refusal. Admission fails closed on that read, so a database
+  // it cannot reach refuses the scan — which is right for spending money
+  // and wrong here: this arm renders REQ-002 c3's sentence, which asserts
+  // that a written removal request was received. An outage must not tell
+  // every visitor their report was taken down at their own request. A read
+  // that cannot be answered is therefore *not* a removal — the same
+  // fail-open the 410 rewrite uses, so the two cannot disagree about which
+  // domains are removed.
+  if (await removedForCertain(domain)) return { kind: "removed", domain };
 
+  const admission = await admitFreeScan({ domain, network: a.network });
   const refusal = "admit" in admission ? null : refusalOf(admission);
 
   // 3. A current report is a thing to read; a refusal or a cooldown beside
   //    it is a notice, never a screen that hides it.
-  const report = await readCurrentReport(domain);
+  //
+  // A read that cannot be answered is not "no report": we do not know
+  // whether one exists, and the two arms below that would follow from
+  // guessing are both wrong — `starting` would spend money on a domain
+  // that may already have a report, and rendering nothing would answer a
+  // report address with an unhandled error, which REQ-001 c5 forbids
+  // absolutely. What is true is that we cannot serve a report and the
+  // visitor did not cause it, which is our own stop.
+  let report: StoredReport | null;
+  try {
+    report = await readCurrentReport(domain);
+  } catch {
+    return { kind: "refused", domain, refusal: { reason: "stopped" } };
+  }
   if (report !== null) {
     const correction = correctionStateOf(report);
     return {
@@ -196,6 +225,21 @@ export async function resolveAddress(a: {
 
   // 7. Nothing here yet, and nothing in the way.
   return { kind: "starting", domain };
+}
+
+/** Whether this domain's report was withdrawn on a written request, as a
+ *  fact and not as an inference. A read that cannot be answered is
+ *  `false`: the report renders, which is the wrong answer for a removed
+ *  domain and the only one that does not take every live report down with
+ *  the database. The rewrite applies the same rule to the same read before
+ *  this runs; this is the second half of it, for a render that reaches the
+ *  page another way. */
+async function removedForCertain(domain: CanonicalDomain): Promise<boolean> {
+  try {
+    return await isDomainRemoved(domain);
+  } catch {
+    return false;
+  }
 }
 
 /** The correction's own age bound, asked of the report the visitor is
