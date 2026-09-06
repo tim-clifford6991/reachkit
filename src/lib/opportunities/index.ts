@@ -40,3 +40,18 @@ export { pursueDepth, type DepthStop } from "./supply/pursue";
 export { topUp } from "./supply/topup";
 
 export { setOpportunityStore, type OpportunityStore } from "./store";
+
+// §9's weekly judgement of the pages the engine's opportunities became
+// (REQ-063). It lives under `opportunities/` because a verdict is the
+// acceptance test an opportunity was created with, decided — not a second
+// fact about a page.
+export type {
+  Movement,
+  NotJudgeableCause,
+  PageStanding,
+  Verdict,
+  VerifyNote,
+  WeekStanding,
+  WeekStart,
+} from "./verdicts";
+export { judgeWeek, readWeek, weeklyDigest, setVerdictStore } from "./verdicts";
