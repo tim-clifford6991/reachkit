@@ -10,9 +10,26 @@
 // A thin adapter (`ARCHITECTURE.md` rule 1): the parse is `parseDomain`'s,
 // the redirect policy is `_address/canonical.ts`'s, the rendering is
 // `_address/view.tsx`'s, and what a visit resolves to is
-// `_fixture/states.ts`'s until issue #25 replaces it with
-// `readCurrentReport()`. This file holds no engine logic and renders no
+// `_address/resolve.ts`'s — the store, through `admitFreeScan` and
+// `readCurrentReport`. This file holds no engine logic and renders no
 // module itself.
+//
+// **Reserved names still resolve to fixtures**, and only reserved names:
+// `_fixture/states.ts` answers for `example.com` and its subdomains and
+// returns `null` for everything else, so every arm stays reviewable on a
+// preview deployment while no real address can be served invented
+// figures.
+//
+// **The `removed` arm never renders here.** A removed domain's address
+// must answer `410 Gone` (owner ruling 2026-09-05, #28), and a Next
+// `page.tsx` cannot set a status — the framework's three render
+// interrupts produce 404, 403 and 401 and there is none for 410.
+// `src/middleware.ts` rewrites
+// a removed domain's report address to `GET /api/report/{domain}/removed`,
+// the route handler that serves that body with that status, before this
+// file is reached. The arm stays in the union and in `view.tsx` because
+// the union is total and because a fixture preview of it must still
+// render; what it does not do any more is decide the response.
 //
 // **No session read, no cookie set, no gate** (REQ-001 c6/c10): there is
 // no auth call in this file and none in anything it imports.
@@ -29,9 +46,12 @@ import { permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
 import { env } from "@/lib/config/env";
 import { parseDomain } from "@/lib/scan/domain";
+import { headers } from "next/headers";
+import { networkKeyOf } from "@/lib/scan/admission";
 import { canonicalRedirect } from "./_address/canonical";
 import { AddressView } from "./_address/view";
 import type { AddressState } from "./_address/state";
+import { resolveAddress } from "./_address/resolve";
 import { fixtureStateFor } from "./_fixture/states";
 
 export const dynamic = "force-dynamic";
@@ -49,12 +69,22 @@ function canonicalUrlFor(domain: string): string {
 
 /** REQ-001 c4: a segment that does not parse is answered with the
  *  `malformed` arm — one written line and the landing field — never a 404
- *  and never a scan. */
-function resolve(rawSegment: string): AddressState {
+ *  and never a scan. Every other arm comes from the store, except on a
+ *  reserved name, where the fixture answers instead. */
+async function resolve(rawSegment: string): Promise<AddressState> {
   const parsed = parseDomain(rawSegment);
-  if (!parsed.ok)
+  if (!parsed.ok) {
     return { kind: "malformed", problem: parsed.problem, value: rawSegment };
-  return fixtureStateFor(parsed.domain);
+  }
+
+  const fixture = fixtureStateFor(parsed.domain);
+  if (fixture !== null) return fixture;
+
+  // The visitor's network, hashed at the seam that owns the hashing — the
+  // raw address never enters this file (BP-023: `networkKeyOf` never
+  // returns one).
+  const forwardedFor = (await headers()).get("x-forwarded-for");
+  return resolveAddress({ rawSegment, network: networkKeyOf(forwardedFor) });
 }
 
 export default async function ScanAddressPage({
@@ -70,7 +100,7 @@ export default async function ScanAddressPage({
   const redirectTo = canonicalRedirect(raw);
   if (redirectTo !== null) permanentRedirect(redirectTo.redirectTo);
 
-  const state = resolve(raw);
+  const state = await resolve(raw);
   // No `Surface` here. ADR-093 decision 6 puts one at every *screen* root,
   // and seven arms are seven screens with seven different band behaviours —
   // a long report that goes two columns at `medium`, and six short panes
