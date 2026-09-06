@@ -144,4 +144,33 @@ export const PUBLISH_COPY = Object.freeze({
   "publish.veto.alreadyUsed": ["TODO(copy)", { slots: {}, fixedBy: "REQ-057 c1" }],
   "publish.veto.expired": ["TODO(copy)", { slots: {}, fixedBy: "REQ-057 c1" }],
   "publish.veto.unknown": ["TODO(copy)", { slots: {}, fixedBy: "REQ-057 c1" }],
+
+  // 2026-09-06, issue #54 (BUILD §9 · REQ-060). The two sentences the
+  // WordPress destination speaks, and they are the only two: everything
+  // else that destination does is a state, an address or an outcome token,
+  // and none of those is a sentence.
+  //
+  // `noSeoPlugin` is REQ-060 criterion 4's line, and its whole job is to
+  // say what did **not** happen to a page that *did*: the page is live on
+  // the customer's own site and no SEO plugin was found to write its title
+  // and description into. It says that on the page's own record and on no
+  // other surface — a delivery with no plugin to write into is not a
+  // failure, is not a degradation, and must not read as one.
+  //
+  // `namedForRemoval` is **kept minted and unreached** (ADR-084 Decision
+  // 4). Its arm has had no members since 2026-09-01: every WordPress post
+  // ReachKit creates is made live, so every WordPress unpublish that
+  // reaches the site is `returned_to_draft`. The key stays because the arm
+  // stays — it is the outcome §9 promises for a page ReachKit created but
+  // did not make live — and because a deleted key is how an empty arm
+  // becomes unrenderable and therefore deletable next. It is not the same
+  // sentence as `already_gone`'s: one tells the customer removing the post
+  // is theirs to do, the other that nothing is theirs to remove, and a
+  // customer sent to delete a post that is not there was told the wrong
+  // one.
+  "publish.wordpress.noSeoPlugin": ["TODO(copy)", { slots: {}, fixedBy: "REQ-060 c4" }],
+  "publish.wordpress.namedForRemoval": [
+    "TODO(copy)",
+    { slots: {}, fixedBy: "ADR-084 d4 · REQ-056 c16" },
+  ],
 }) satisfies CopyPartition;
