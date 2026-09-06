@@ -6,6 +6,15 @@
 // Each tab's `label` is a required field of its own array entry, so a tab
 // with no label cannot be constructed. `selectedId` is required (no default
 // selection is invented by this component).
+//
+// 2026-09-06, issue #12: the boxed half was written `tabs-boxed`, which is
+// daisyUI 4's spelling. daisyUI 5 renamed it `tabs-box`, ships no rule for
+// the old name, and so the bar had been bordered only since it was
+// written — the same failure mode as the 2026-09-05 ruling under #93
+// ("until #93 no utility or daisyUI class had ever applied"): a class the
+// stylesheet does not define styles nothing and says nothing about it.
+// `tests/ui/design/component-registry.test.ts` reads the installed
+// daisyUI's own selectors, so a fourth-major spelling cannot come back.
 "use client";
 
 import type React from "react";
@@ -22,7 +31,7 @@ export function Tabs(p: {
   onSelect?: (id: string) => void;
 }): React.JSX.Element {
   return (
-    <div className="tabs tabs-boxed tabs-border" role="tablist">
+    <div className="tabs tabs-box tabs-border" role="tablist">
       {p.tabs.map((tab) => (
         <button
           key={tab.id}
