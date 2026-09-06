@@ -35,6 +35,129 @@ const ADDRESS_MOVED_SUBJECT = "mail.account.address_moved.subject" satisfies Cop
 const ADDRESS_MOVED = "mail.account.address_moved" satisfies CopyKey;
 const NO_SECOND_SUBSCRIPTION = "mail.account.no_second_subscription" satisfies CopyKey;
 const REACH_A_PERSON = "mail.account.reach_a_person" satisfies CopyKey;
+const DELETED_SUBJECT = "mail.account.deleted.subject" satisfies CopyKey;
+const DELETED_STILL_LIVE = "mail.account.deleted.still_live" satisfies CopyKey;
+const DELETED_THEIRS_TO_KEEP = "mail.account.deleted.theirs_to_keep" satisfies CopyKey;
+
+/** The four WordPress outcomes REQ-079 criterion 6 names, each with the two
+ *  forms its sentence takes: one that names the place ReachKit's posts come
+ *  up together in the customer's own site, one that says the posts are there
+ *  and ReachKit cannot point to them — and it still carries its count.
+ *
+ *  `already_gone` has one form, not two, because that sentence names no
+ *  place "because there is nothing there to find". A second form here would
+ *  be a place for a place to be written. */
+const WORDPRESS_LINES = Object.freeze({
+  returned_to_draft: Object.freeze({
+    withPlace: "mail.account.deleted.wordpress.returned_to_draft" satisfies CopyKey,
+    withoutPlace: "mail.account.deleted.wordpress.returned_to_draft.no_place" satisfies CopyKey,
+  }),
+  named_for_removal: Object.freeze({
+    withPlace: "mail.account.deleted.wordpress.named_for_removal" satisfies CopyKey,
+    withoutPlace: "mail.account.deleted.wordpress.named_for_removal.no_place" satisfies CopyKey,
+  }),
+  already_gone: Object.freeze({
+    withPlace: null,
+    withoutPlace: "mail.account.deleted.wordpress.already_gone" satisfies CopyKey,
+  }),
+  unreachable: Object.freeze({
+    withPlace: "mail.account.deleted.wordpress.unreachable" satisfies CopyKey,
+    withoutPlace: "mail.account.deleted.wordpress.unreachable.no_place" satisfies CopyKey,
+  }),
+});
+
+export type DeletedWordPressOutcome = keyof typeof WORDPRESS_LINES;
+
+/** The order the four sentences stand in. Fixed here rather than taken from
+ *  a map's iteration order, so the mail reads the same whichever arms a
+ *  particular run produced. */
+const WORDPRESS_ORDER: readonly DeletedWordPressOutcome[] = Object.freeze([
+  "returned_to_draft",
+  "named_for_removal",
+  "already_gone",
+  "unreachable",
+] as const);
+
+/** REQ-060 c6's list, as the values the sentence names it by. Composing the
+ *  address is this template's job for the same reason an `action` block's
+ *  `href` is: an address is structure, not voice, and the module that
+ *  tallied the counts builds no URL text. */
+export interface DeletedPlace {
+  readonly siteBaseUrl: string;
+  readonly stampSlug: string;
+}
+
+function placeAddress(place: DeletedPlace): string | null {
+  try {
+    return new URL(place.stampSlug, place.siteBaseUrl).toString();
+  } catch {
+    // A base that will not parse is no place to send anybody. The sentence
+    // falls back to the form that names none and still carries its count.
+    return null;
+  }
+}
+
+export interface DeletedAccountMailInput {
+  /** How many pages are still live at a destination that could not be
+   *  reached. Absent — not zero — where there are none. */
+  readonly stillLive?: number;
+  /** One entry per outcome that holds posts. An outcome holding none is
+   *  absent, never present with a count of none, so no sentence here can
+   *  render a zero. */
+  readonly leftInWordPress: Partial<
+    Record<DeletedWordPressOutcome, { count: number; place: DeletedPlace | null }>
+  >;
+}
+
+/**
+ * REQ-079 criterion 6's mail.
+ *
+ * **One sentence per outcome, each with its own count.** No block below
+ * carries two outcomes, and no count in it is the sum of two arms: the
+ * caller hands one entry per arm and this builder writes one paragraph per
+ * entry it was handed.
+ *
+ * **It lists no post, whatever the number**, and it names a place only
+ * where the caller supplied one.
+ *
+ * Whether this mail is sent at all is criterion 6's last sentence and the
+ * caller's: "Where nothing of either kind is left behind, no such mail is
+ * sent." A builder that returned an empty mail would be one call away from
+ * sending it.
+ */
+export function buildAccountDeleted(a: DeletedAccountMailInput): AccountMail {
+  const blocks: AccountMail["blocks"][number][] = [];
+
+  if (a.stillLive !== undefined) {
+    blocks.push({ block: "paragraph", text: DELETED_STILL_LIVE, vars: { count: String(a.stillLive) } });
+  }
+
+  for (const outcome of WORDPRESS_ORDER) {
+    const entry = a.leftInWordPress[outcome];
+    if (entry === undefined) continue;
+    const lines = WORDPRESS_LINES[outcome];
+    const place =
+      lines.withPlace === null || entry.place === null ? null : placeAddress(entry.place);
+    blocks.push(
+      place === null
+        ? { block: "paragraph", text: lines.withoutPlace, vars: { count: String(entry.count) } }
+        : {
+            block: "paragraph",
+            text: lines.withPlace as CopyKey,
+            vars: { count: String(entry.count), place },
+          }
+    );
+  }
+
+  if (Object.keys(a.leftInWordPress).length > 0) {
+    blocks.push({ block: "paragraph", text: DELETED_THEIRS_TO_KEEP });
+  }
+
+  return {
+    subject: DELETED_SUBJECT,
+    blocks: [...blocks, { block: "notice", text: REACH_A_PERSON }],
+  };
+}
 const HOSTING_END_SUBJECT: Readonly<Record<HostingEndOccasion, CopyKey>> = Object.freeze({
   access_ended: "mail.account.hosting_end.access_ended.subject",
   seven_days: "mail.account.hosting_end.seven_days.subject",
