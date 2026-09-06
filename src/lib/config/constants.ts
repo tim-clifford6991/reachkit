@@ -498,3 +498,22 @@ export const LINK_TOKEN_BYTES = 32 as const;                  // BP-061 d3 (256 
  *  own mail arrives every Monday re-anchors it four times over. Reversal
  *  cost: one line here. */
 export const SESSION_TTL_DAYS = 30 as const;                  // BP-061 (chosen)
+
+// ── Publishing, the veto leaf (issue #46) — BUILD §9
+/** The whole of one delivery attempt, bounded. Distinct from the egress
+ *  seam's per-request bound (BUILD §6.4: 8 s default, 15 s hard maximum),
+ *  which bounds one byte-stream toward one customer URL: an adapter makes
+ *  several requests — create, set meta, read back the address — and this is
+ *  the bound on all of them together, so a destination that answers every
+ *  request slowly cannot hold a publish attempt open indefinitely.
+ *  Chosen (rule 1.1): 20 s is above the §6.4 hard maximum, so a single
+ *  slow request still fails on its own bound and is reported as itself,
+ *  and low enough that a held attempt is retried within the first backoff
+ *  step (`PUBLISH_RETRY_BACKOFF_MIN[0]`, 5 minutes). Reversal cost: one
+ *  number. Raised as a possible pin by #45's PR and taken here. */
+export const PUBLISH_DELIVER_TIMEOUT_MS = 20_000 as const;   // BP-045 · BUILD §9 (chosen)
+
+/** The veto token's entropy, in bytes from a CSPRNG (REQ-057 c1's "single
+ *  action to stop it"). 32 bytes is the width every other single-use
+ *  secret in the product is minted at; only its SHA-256 hash is stored. */
+export const VETO_TOKEN_BYTES = 32 as const;                 // BP-046 · REQ-057 c1

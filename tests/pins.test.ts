@@ -720,6 +720,28 @@ describe("§9 publishing and autopilot — the veto window, the hard limits, the
     expect(pins.DESTINATION_HEALTH_MAX_AGE_H).toBe(24);
   });
 
+  it("PUBLISH_DELIVER_TIMEOUT_MS = 20000 — the bound on one whole delivery attempt (issue #46, raised by #45)", () => {
+    expect(pins.PUBLISH_DELIVER_TIMEOUT_MS).toBe(20_000);
+  });
+
+  it("it is above the egress seam's hard maximum (BUILD §6.4: 8 s default, 15 s hard maximum), so a single slow request still fails on its own bound and is reported as itself", () => {
+    // The two bounds are on two different things — one byte-stream toward
+    // one customer URL, and one whole delivery attempt — so the ordering is
+    // asserted rather than one derived from the other. The egress seam's
+    // own numbers are module-local to `src/lib/egress/safe-fetch.ts`; 15 s
+    // is quoted from §6.4 here, not imported.
+    const EGRESS_HARD_MAX_MS = 15_000;
+    expect(pins.PUBLISH_DELIVER_TIMEOUT_MS).toBeGreaterThan(EGRESS_HARD_MAX_MS);
+  });
+
+  it("and below the first retry step, so a held attempt is retried rather than left open past its own backoff", () => {
+    expect(pins.PUBLISH_DELIVER_TIMEOUT_MS).toBeLessThan(pins.PUBLISH_RETRY_BACKOFF_MIN[0]! * 60_000);
+  });
+
+  it("REQ-057 c1's stop link is minted at 32 bytes of CSPRNG entropy — VETO_TOKEN_BYTES", () => {
+    expect(pins.VETO_TOKEN_BYTES).toBe(32);
+  });
+
   it(`§9, quoted: "${B.verify24h}" · BP-049 NFR budget, quoted: "\`VERIFY.coverageFloor = 0.95\` and \`VERIFY.userAgent\` belong in BP-005" — VERIFY`, () => {
     expect(pins.VERIFY.coverageFloor).toBe(0.95);
     expect(pins.VERIFY.coverageFloor).toBeGreaterThan(0);
