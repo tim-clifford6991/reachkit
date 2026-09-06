@@ -174,10 +174,16 @@ describe("REQ-043 c9 — the panel renders exactly the projection, and adds noth
     expect(root.querySelectorAll('[data-testid^="day-action-"]')).toHaveLength(1);
   });
 
-  it("a needs-you page offers Reconnect and nothing that publishes", () => {
+  it("a needs-you page offers Reconnect, Move and Skip — and nothing that publishes", () => {
+    // Issue #130: `needs_attention → skipped` is one of §9's fifteen, so
+    // the projection offers the stop and the Move that rides beside it. No
+    // control here publishes or approves; the way out is a way out.
     const root = panel("2026-09-10");
     expect(root.querySelector('[data-testid="day-action-calendar.action.reconnect"]')).not.toBeNull();
-    expect(root.querySelectorAll('[data-testid^="day-action-"]')).toHaveLength(1);
+    expect(root.querySelector('[data-testid="day-action-calendar.action.move"]')).not.toBeNull();
+    expect(root.querySelector('[data-testid="day-action-calendar.action.skip"]')).not.toBeNull();
+    expect(root.querySelector('[data-testid="day-action-calendar.action.veto"]')).toBeNull();
+    expect(root.querySelectorAll('[data-testid^="day-action-"]')).toHaveLength(3);
   });
 
   it("a planned page offers Move and Skip, and never Veto", () => {

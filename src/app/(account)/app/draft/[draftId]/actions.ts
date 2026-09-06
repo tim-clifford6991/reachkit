@@ -5,10 +5,12 @@
 // the archived BP-044 fixes how the set is chosen: "which of them is
 // offered follows the same projection from BP-015's `TRANSITIONS` that
 // BP-039 decision 2 describes, so the two surfaces cannot offer different
-// actions for one state." So this file reads the calendar's transition
-// table rather than restating it — a hand-list here would be a second copy
-// of §9's state machine, and the two would drift the first time an edge
-// changed.
+// actions for one state." So this file reads §9's own transition
+// table (`src/lib/publish/machine/table.ts`) rather than restating it — a
+// hand-list here would be a second copy of the state machine, and the two
+// would drift the first time an edge changed. Until issue #130 it read the
+// calendar's transcription of that table; it now reads the table itself,
+// so "the two surfaces read one table" is true in the literal sense.
 //
 // Three rules, one edge each:
 //
@@ -21,8 +23,9 @@
 //             text that has not gone out, and that is the same condition
 //             read off the same table rather than a second list of state
 //             names.
+import { isTransition } from "@/lib/publish/machine/table";
 import type { CopyKey } from "@/lib/presentation/copy";
-import { STOP_COMMAND, TRANSITIONS } from "../../calendar/actions";
+import { STOP_COMMAND } from "../../calendar/actions";
 import type { PublishingCommand } from "../../calendar/publishing";
 import type { PublishState } from "../../calendar/stages";
 
@@ -38,13 +41,13 @@ export type DraftAction =
   | { key: CopyKey; kind: "edit" };
 
 export function isEditable(state: PublishState): boolean {
-  return TRANSITIONS[state].includes("approved");
+  return isTransition(state, "approved");
 }
 
 export function draftActionsFor(state: PublishState): readonly DraftAction[] {
   const actions: DraftAction[] = [];
 
-  if (TRANSITIONS[state].includes("approved")) {
+  if (isTransition(state, "approved")) {
     actions.push({ key: "draft.action.approve", kind: "command", command: "approve" });
   }
   if (isEditable(state)) {

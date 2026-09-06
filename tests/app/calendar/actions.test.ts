@@ -16,10 +16,10 @@ import { measured } from "@/lib/measure/measured";
 import {
   STATES_WITH_STOP_EDGE,
   STOP_COMMAND,
-  TRANSITIONS,
   actionsFor,
   draftHref,
 } from "@/app/(account)/app/calendar/actions";
+import { STATES, TRANSITIONS, isTransition } from "@/lib/publish/machine/table";
 import { PUBLISH_STATES, STAGE_OF, type PublishState } from "@/app/(account)/app/calendar/stages";
 import {
   publishing,
@@ -73,26 +73,62 @@ const EMPTY_CELL: DayCell = {
   empty: { cause: "supply_exhausted" },
 };
 
-describe("the transition table is BUILD §9's, and STOP_COMMAND is a projection of it", () => {
-  it("TRANSITIONS is total over the ten states, and the two terminal states are terminal", () => {
-    expect(Object.keys(TRANSITIONS).sort()).toEqual([...PUBLISH_STATES].sort());
-    expect(TRANSITIONS.skipped).toEqual([]);
-    expect(TRANSITIONS.unpublished).toEqual([]);
+describe("the panel projects from §9's own table — there is no second copy of it", () => {
+  // Issue #130: the calendar carried a transcription of §9's table made
+  // before `src/lib/publish/machine` existed. It is gone; these assertions
+  // are against the real one, so an edge changed there changes the panel
+  // and cannot silently disagree with it.
+
+  it("the calendar's ten states are §9's ten", () => {
+    expect([...PUBLISH_STATES].sort()).toEqual([...STATES].sort());
   });
 
-  it("STOP_COMMAND names a command exactly where the → skipped edge is open", () => {
+  it("STOP_COMMAND is total over the ten and names a command exactly where the → skipped edge is open", () => {
     // This is what makes the offered controls a projection rather than a
     // second hand-kept list: adding a `→ skipped` edge without a word for
     // it, or a word without the edge, fails here.
+    expect(Object.keys(STOP_COMMAND).sort()).toEqual([...STATES].sort());
     for (const state of PUBLISH_STATES) {
-      expect(STOP_COMMAND[state] !== null, state).toBe(TRANSITIONS[state].includes("skipped"));
+      expect(STOP_COMMAND[state] !== null, state).toBe(isTransition(state, "skipped"));
     }
-    expect([...STATES_WITH_STOP_EDGE].sort()).toEqual(["generating", "in_review", "planned"]);
+    expect([...STATES_WITH_STOP_EDGE].sort()).toEqual([
+      "in_review",
+      "needs_attention",
+      "planned",
+    ]);
   });
 
-  it("the edge out of in_review is Veto and out of a planned page is Skip (§9 and §4.6)", () => {
+  it("STATES_WITH_STOP_EDGE is read off the imported table, not restated", () => {
+    expect([...STATES_WITH_STOP_EDGE].sort()).toEqual(
+      TRANSITIONS.filter(([, to]) => to === "skipped")
+        .map(([from]) => from)
+        .sort()
+    );
+  });
+
+  it("the edge out of in_review is Veto; out of planned and needs_attention it is Skip", () => {
+    // §9 labels the in_review edge "veto" and §4.6 calls the planned one
+    // "Skip". `needs_attention` takes Skip too: the page never went out, so
+    // stopping it is a page taken off its date, which is what Skip means.
     expect(STOP_COMMAND.in_review).toBe("veto");
     expect(STOP_COMMAND.planned).toBe("skip");
+    expect(STOP_COMMAND.needs_attention).toBe("skip");
+  });
+
+  it("generating has no stop word, because §9 opens no → skipped edge from it", () => {
+    // The deleted transcription had `generating → skipped` and §9 does not.
+    // §9 is the side that is right: a generating page is not stranded by
+    // the loss — it leads to in_review, where the same edge is open under
+    // the word Veto.
+    expect(isTransition("generating", "skipped")).toBe(false);
+    expect(STOP_COMMAND.generating).toBeNull();
+    expect(isTransition("generating", "in_review")).toBe(true);
+  });
+
+  it("the three edges §9 has and the transcription lacked are all in the table the panel reads", () => {
+    expect(isTransition("generating", "needs_attention")).toBe(true);
+    expect(isTransition("needs_attention", "skipped")).toBe(true);
+    expect(isTransition("needs_attention", "generating")).toBe(true);
   });
 });
 
@@ -122,10 +158,23 @@ describe("REQ-043 c9 — §4.6's stage-appropriate actions, and no action a stag
     expect(actionsFor(cellWith("published", null))).toEqual([]);
   });
 
-  it("needs-you → Reconnect", () => {
+  it("needs-you → Reconnect, and now Move + Skip: §9 opens needs_attention → skipped", () => {
+    // The one control change this reconciliation adds (#130). §9 c3: no
+    // page is left in a state it has no way out of — and Reconnect alone
+    // was no way out for a customer who would rather drop the page.
     expect(actionsFor(cellWith("needs_attention"))).toEqual([
       { key: "calendar.action.reconnect", kind: "link", href: "/app/settings" },
+      { key: "calendar.action.move", kind: "command", command: "move", draftId: "d1" },
+      { key: "calendar.action.skip", kind: "command", command: "skip", draftId: "d1" },
     ]);
+  });
+
+  it("a page mid-generation offers nothing — the Skip the transcription gave it is gone", () => {
+    // The one control change this reconciliation removes (#130). A
+    // generating page wears the planned chip (`STAGE_OF`), which is what
+    // the transcription reasoned from; §9 opens no edge out of it but
+    // in_review and needs_attention, and the projection never invents one.
+    expect(actionsFor(cellWith("generating"))).toEqual([]);
   });
 
   it("planned → Move + Skip, and never Veto", () => {
@@ -168,7 +217,7 @@ describe("REQ-043 c9 — §4.6's stage-appropriate actions, and no action a stag
       if (STAGE_OF[state] === null) continue;
       for (const action of actionsFor(cellWith(state, "https://content.example.com/p"))) {
         if (action.kind !== "command") continue;
-        expect(TRANSITIONS[state], `${state} → ${action.command}`).toContain("skipped");
+        expect(isTransition(state, "skipped"), `${state} → ${action.command}`).toBe(true);
       }
     }
   });
