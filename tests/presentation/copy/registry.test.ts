@@ -166,7 +166,19 @@ describe("REQ-093 c5 — the registry renders with every model unavailable", () 
     // owner-owed to ruled with them, because §4.6 prints that sentence in
     // quotes. None carries the `TODO(copy)` marker, so all twenty are
     // ruled rather than awaiting: 65 + 20 = 85.
-    expect(ruled.length).toBe(85);
+    //
+    // 2026-09-05, separately again: issue #18 (Settings, BUILD §4.7) fills
+    // fifty — forty-six in `settings.ts` and four in `danger.ts`. Every one is
+    // a transcription, on the footing the five `shell.*` words sit on: §4.7
+    // prints the seven card names, the control words (`Edit`, `add`, `remove`,
+    // `Reconnect`, `Update card`, `Cancel plan`, `change email`, `sign out`,
+    // `Export everything`, `unpublish all`, `delete account`) and four of the
+    // screen's sentences outright; §8 prints "Brand voice" and "Do-not-claim
+    // list"; §9 and §10 print the destination kinds and the three health
+    // words; §12 prints the three recurring mails' own names. Each key's
+    // `fixedBy` names the clause it transcribes, so "ruled" still means ruled.
+    // None carries the marker: 85 + 50 = 135.
+    expect(ruled.length).toBe(135);
 
     // Only the ruled sentences carry their slots' `{name}` placeholders —
     // a `TODO(copy)` marker is one literal with no placeholder in it, so
@@ -387,10 +399,23 @@ describe("owner-owed and empty agree both ways", () => {
     // the `TODO(copy)` marker, so the awaiting count is untouched.
     // 45 − 1 (`calendar.head`, now ruled) + 6 = 50 owner-owed, 74 awaiting
     // unchanged, 65 + 20 = 85 ruled, 184 + 25 = 209 total.
-    expect(OWNER_OWED.length).toBe(50);
+    //
+    // 2026-09-05, separately again: issue #18 (Settings, BUILD §4.7) adds
+    // fifty-four keys — fifty ruled transcriptions (see the note above) and
+    // four owner-owed and empty: `settings.account.magic-link` (§4.7 names a
+    // "magic-link note" and prints no note), `settings.action.not-yet` (the
+    // line an action with no wiring yet reports), and the two danger-zone
+    // consequence lines, which REQ-079 c1 requires and no clause writes. They
+    // take the empty representation rather than the marker because that screen
+    // resolves every one of them through `writtenLine`, which returns `null`
+    // and renders nothing — the marker exists for a screen that `copy()`'s
+    // throw would otherwise take down, and this one never calls `copy()` on a
+    // key it has not first found written. 50 + 4 = 54 owner-owed, 74 awaiting
+    // unchanged, 85 + 50 = 135 ruled, 209 + 54 = 263 total.
+    expect(OWNER_OWED.length).toBe(54);
     expect(AWAITING_COPY.length).toBe(74);
-    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(85);
-    expect(Object.keys(COPY).length).toBe(209);
+    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(135);
+    expect(Object.keys(COPY).length).toBe(263);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.

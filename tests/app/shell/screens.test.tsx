@@ -25,6 +25,23 @@
 // same three rows as the two placeholders. The contract it inherits is
 // unchanged and is asserted for it below, in its own block.
 //
+// **Settings left it on 2026-09-05 too (issue #18).** Same reason, one
+// difference: §4.7 gives the screen no head line of its own, so it keeps
+// naming itself with the destination's nav word and keeps `settings.head` as
+// the subordinate line — what it can no longer do is share the table's
+// rendering, because it is an async Server Component (it awaits `readSettings`)
+// and the table renders its rows synchronously. Its block below therefore
+// awaits the page to a tree and renders it second, exactly as
+// `frame.test.tsx` already does for the layout. The head-line assertion also
+// stops reading "the document contains no `<p>` at all" as "no placeholder
+// paragraph": that was a fair proxy on a screen whose whole body was one line,
+// and is false on one with eight cards. It now says what it meant.
+//
+// `SCREENS` is down to Overview, the last of the three still a placeholder
+// (#15). The table stays rather than being inlined: the contract is the
+// frame's, and the next screen to be built should have to leave it
+// deliberately, as these two did.
+//
 // `copy()` is mocked to `(key) => key` and `COPY` is left real, the same
 // convention `frame.test.tsx` uses and for the same reason.
 import { readFileSync } from "node:fs";
@@ -47,7 +64,6 @@ const APP_DIR = path.resolve(import.meta.dirname, "../../../src/app/(account)/ap
 
 const SCREENS = [
   { name: "overview", file: "page.tsx", Page: OverviewPage, nav: "shell.nav.overview", head: "overview.head" },
-  { name: "settings", file: "settings/page.tsx", Page: SettingsPage, nav: "shell.nav.settings", head: "settings.head" },
 ] as const satisfies readonly {
   name: string;
   file: string;
@@ -112,5 +128,42 @@ describe("calendar — the built screen keeps the three contracts the frame set"
 
   it("its head key exists in the registry, so filling it is the whole change", () => {
     expect(Object.keys(COPY)).toContain("calendar.head" satisfies CopyKey);
+  });
+});
+
+// ── Settings, which is no longer a placeholder (issue #18, BUILD §4.7) ────
+describe("settings — the built screen keeps the three contracts the frame set", () => {
+  async function settingsMarkup(): Promise<string> {
+    return markup(await SettingsPage());
+  }
+
+  it("renders, and names itself from the destination's own registry key", async () => {
+    // Unlike Calendar, §4.7 gives this screen no head line of its own, so the
+    // nav word is still its name.
+    expect(await settingsMarkup()).toContain("<h1>shell.nav.settings</h1>");
+  });
+
+  it("declares no Surface — the shell's layout owns this route's screen root", async () => {
+    const source = readFileSync(path.join(APP_DIR, "settings/page.tsx"), "utf8");
+    expect(source).not.toMatch(/from\s+["']@\/ui\/layout/);
+    expect(source).not.toContain("<Surface");
+    expect(await settingsMarkup()).not.toContain("data-surface");
+  });
+
+  it("speaks only through the registry: the head line resolves from its key, or not at all", async () => {
+    const html = await settingsMarkup();
+    if (COPY["settings.head" satisfies CopyKey] === "") {
+      // Owner-owed: nothing is written in its place. Not a placeholder, not
+      // the key, and not an empty paragraph — which is the assertion the
+      // placeholder-era "no `<p>` at all" was standing in for.
+      expect(html).not.toContain("settings.head");
+      expect(html).not.toContain("<p></p>");
+    } else {
+      expect(html).toContain("<p>settings.head</p>");
+    }
+  });
+
+  it("its head key exists in the registry, so filling it is the whole change", () => {
+    expect(Object.keys(COPY)).toContain("settings.head" satisfies CopyKey);
   });
 });
