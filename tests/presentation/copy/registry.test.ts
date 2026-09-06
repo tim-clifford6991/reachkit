@@ -312,7 +312,7 @@ describe("owner-owed and empty agree both ways", () => {
     expect(new Set(emptyKeys)).toEqual(new Set(OWNER_OWED));
   });
 
-  it("counts: 148 owner-owed, 161 awaiting copy, 168 ruled, 477 total (rule 5.5 — the index states its own coverage)", () => {
+  it("counts: 148 owner-owed, 165 awaiting copy, 168 ruled, 481 total (rule 5.5 — the index states its own coverage)", () => {
     // WO-070 added report.ts's eight landing keys (headline, field label,
     // submit label, five DomainProblem lines), all owner-owed: 30 + 8 = 38.
     // 2026-09-03: the owner ruled on three of them (headline, field label,
@@ -663,10 +663,21 @@ describe("owner-owed and empty agree both ways", () => {
     // (`export.failed`) and the danger zone's three outcome lines.
     // 138 + 10 = 148 owner-owed and empty, 157 + 4 = 161 awaiting copy,
     // 168 ruled unchanged, 463 + 14 = 477 total.
+    //
+    // 2026-09-06, after that: issue #128 (§6.2's paid battery) adds four
+    // keys in `report.ts` and moves none — the three answer-column
+    // headings §6.2 names ("ChatGPT", "AI Mode", the AI Overview) and the
+    // one line a column carries where the engine was never asked. All four
+    // take the marker on Setup's rule: the report card reads through
+    // `copy()`, which throws on an owner-owed key and would take the whole
+    // report down. They are minted with the data the columns carry and
+    // ahead of the layout that renders it, which is the design gate #128
+    // states. 148 owner-owed and 168 ruled unchanged, 161 + 4 = 165
+    // awaiting copy, 477 + 4 = 481 total.
     expect(OWNER_OWED.length).toBe(148);
-    expect(AWAITING_COPY.length).toBe(161);
+    expect(AWAITING_COPY.length).toBe(165);
     expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(168);
-    expect(Object.keys(COPY).length).toBe(477);
+    expect(Object.keys(COPY).length).toBe(481);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.
