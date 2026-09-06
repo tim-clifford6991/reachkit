@@ -14,6 +14,7 @@ import {
   TERMINAL,
   TRANSITIONS,
   edgeKey,
+  isTransition,
   type GuardId,
 } from "@/lib/publish/machine/table";
 import type { State } from "@/lib/publish/types";
@@ -179,5 +180,34 @@ describe("GUARDS names guards only on edges that exist", () => {
     expect(GUARDS[edgeKey("in_review", "skipped")]).toBeUndefined();
     expect(GUARDS[edgeKey("planned", "skipped")]).toBeUndefined();
     expect(GUARDS[edgeKey("published", "unpublished")]).toBeUndefined();
+  });
+});
+
+describe("isTransition answers membership, and answers it from the table", () => {
+  // It lives here rather than in `./index` (issue #130) so a surface can
+  // ask whether an edge is open without pulling `transition()`'s database
+  // in behind the answer — the calendar's day panel is a client component
+  // and does exactly that.
+
+  it("is true for each of the fifteen and false for every other pair", () => {
+    for (const from of STATES) {
+      for (const to of STATES) {
+        expect(isTransition(from, to), edgeKey(from, to)).toBe(
+          TRANSITIONS.some(([f, t]) => f === from && t === to)
+        );
+      }
+    }
+  });
+
+  it("reaches nothing a browser cannot — the module it lives in imports no runtime module", async () => {
+    // A regression here would be a database client arriving in the
+    // calendar's client bundle by way of this import.
+    const source = await import("node:fs/promises").then((fs) =>
+      fs.readFile(new URL("../../../src/lib/publish/machine/table.ts", import.meta.url), "utf8")
+    );
+    const runtimeImports = source
+      .split("\n")
+      .filter((line) => line.startsWith("import ") && !line.startsWith("import type "));
+    expect(runtimeImports).toEqual([]);
   });
 });
