@@ -120,6 +120,88 @@ describe("dates survive the round trip through jsonb", () => {
   });
 });
 
+// ── The one upgrade beside the guard (issue #128) ────────────────────────
+//
+// `REPORT_VERSION` went 3 → 4 when every AI-answers row gained §6.2's
+// three engine columns. A bare bump would have made every report already
+// on disk unreadable — and `readStoredReport` throws rather than returning
+// `null`, so that is a customer's report off its own address at deploy.
+// The upgrade is the migration path the issue asks to be stated, and it is
+// stated here, in the reader, because a stored blob has exactly one reader.
+
+/** The same blob as `asStoredJson`, wound back to what version 3 wrote:
+ *  no `engines` on any row. */
+function asVersion3Json(): Record<string, unknown> {
+  const blob = asStoredJson() as Record<string, unknown>;
+  const answers = blob.aiAnswers as { rows: Record<string, unknown>[] };
+  return {
+    ...blob,
+    version: 3,
+    aiAnswers: {
+      ...answers,
+      rows: answers.rows.map((row) => {
+        const { engines, ...rest } = row;
+        void engines;
+        return rest;
+      }),
+    },
+  };
+}
+
+describe("a report written at version 3 is lifted, not refused", () => {
+  it("gains the three engine columns, with the two nobody asked saying so", () => {
+    const before = asVersion3Json();
+    expect(JSON.stringify(before)).not.toContain("engines");
+
+    const report = readStoredReport(before);
+    expect(report.version).toBe(REPORT_VERSION);
+    const rows = report.aiAnswers?.rows ?? [];
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) {
+      expect(row.engines.map((engine) => engine.engine)).toEqual(["ai_overview", "ai_mode", "chatgpt"]);
+      // The AI-Overview column is the row's own measurement, carried
+      // forward; the battery columns say nobody asked, which is exactly
+      // true of a report written before anything did.
+      expect(row.engines[0]?.cell).toEqual(row.cell);
+      expect(row.engines[1]?.cell).toEqual({ kind: "unmeasured", reason: "not_attempted" });
+      expect(row.engines[2]?.cell).toEqual({ kind: "unmeasured", reason: "not_attempted" });
+    }
+  });
+
+  it("changes nothing else about the blob", () => {
+    const before = asVersion3Json();
+    const lifted = readStoredReport(before) as unknown as Record<string, unknown>;
+    for (const key of Object.keys(before)) {
+      if (key === "version" || key === "aiAnswers") continue;
+      expect(JSON.stringify(lifted[key])).toBe(JSON.stringify(before[key]));
+    }
+    const answersBefore = before.aiAnswers as Record<string, unknown>;
+    const answersAfter = lifted.aiAnswers as Record<string, unknown>;
+    for (const key of Object.keys(answersBefore)) {
+      if (key === "rows") continue;
+      expect(JSON.stringify(answersAfter[key])).toBe(JSON.stringify(answersBefore[key]));
+    }
+  });
+
+  it("lifts a version-3 report whose AI-answers section is absent", () => {
+    const before = { ...asVersion3Json(), aiAnswers: null };
+    const report = readStoredReport(before);
+    expect(report.version).toBe(REPORT_VERSION);
+    expect(report.aiAnswers).toBeNull();
+  });
+
+  it("still revives dates after the lift", () => {
+    const report = readStoredReport(asVersion3Json());
+    expect(report.verdict.measuredAt).toBeInstanceOf(Date);
+    expect(report.aiAnswers?.measuredAt).toBeInstanceOf(Date);
+  });
+
+  it("lifts version 3 and no other — version 2 is still refused", () => {
+    const blob = { ...asVersion3Json(), version: 2 };
+    expect(() => readStoredReport(blob)).toThrow(/version 2 is not readable by this build/);
+  });
+});
+
 describe("the version guard", () => {
   it("throws on a blob this build does not know how to read", () => {
     const blob = { ...(asStoredJson() as Record<string, unknown>), version: REPORT_VERSION + 1 };

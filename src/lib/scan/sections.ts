@@ -13,7 +13,7 @@
 // filters and labels, and where an input is missing it returns `null` or
 // an empty list rather than a zero.
 import { AI_READER_AGENTS } from "@/lib/config/constants";
-import type { AiAnswersCard } from "@/lib/market/questions/matrix";
+import { engineColumns, type AiAnswersCard } from "@/lib/market/questions/matrix";
 import type { Question } from "@/lib/market/questions/phrase";
 import type { MarketSet } from "@/lib/market/questions/market-set";
 import type { RivalCandidate } from "@/lib/market/rivals/derive";
@@ -87,6 +87,19 @@ function rivalCellsOf(cells: readonly AnswerCell[], rivalDomain: string): readon
  * the matrix can label its own row, and one row per rival — the dot matrix
  * §4.1 draws is rival rows against the customer's.
  *
+ * §6.2's three answer columns travel with each row (issue #128), taken
+ * from the card rather than re-derived. A question the card had no row for
+ * gets the columns `engineColumns` builds from its own cell and no
+ * battery — one implementation of the order, so the two paths can never
+ * disagree about which column is which.
+ *
+ * **The rival rows keep the AI-Overview reading, and that is deliberate.**
+ * `rivalCellsOf` counts a rival over Google's answers alone, which is
+ * exactly what the approved card renders and what "cited on n of m" means
+ * on it today. Counting a rival across three engines changes a rendered
+ * figure, and that is the design decision the three-column visual is
+ * gated behind — not something to slip in under a data change.
+ *
  * `null` where the twelve were never phrased: the section is then absent
  * and named, never an empty card.
  */
@@ -102,7 +115,8 @@ export function answersSectionOf(a: {
   const cells = a.card.rows.map((row) => row.cell);
   const rows = a.questions.value.map((question, index) => {
     const cell = cells[index] ?? ({ kind: "unmeasured", reason: "not_attempted" } as const);
-    return { question: storedQuestionOf(question, index + 1, cell), cell };
+    const engines = a.card.rows[index]?.engines ?? engineColumns({ overview: cell, ownDomain: a.ownDomain });
+    return { question: storedQuestionOf(question, index + 1, cell), cell, engines };
   });
 
   return {
