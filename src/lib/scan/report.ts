@@ -23,15 +23,23 @@
 // `not_attempted` value read the same to a consumer and §5's trichotomy
 // forbids that.
 //
-// **Two members of BP-012's own list are not here, and this says why.**
-// `rivalSizes` needs `RivalSize`, which the rival-sizing module (issue #37)
-// declares and nothing yet does; inventing a shape for a type another
-// module owns is the second copy rule 2.4 exists to prevent, and §6.6's
-// non-goal keeps sizing off the free path, so nothing reads it. `answers`
-// is `aiAnswers` below — issue #13's section, which is #27's
-// `AiAnswersCard` plus the three things the screen needs and the engine's
-// card does not carry. The blob is versioned: adding either is a version
-// bump, not a migration.
+// **`rivalSizes` is here now, and this says why it took two versions.**
+// It needs `RivalSize`, which the rival-sizing module (issue #37) declares
+// — inventing a shape for a type another module owns is the second copy
+// rule 2.4 exists to prevent — and nothing read it until §7's winnability
+// did. `rankedCountsFromSizes` is that reader (issue #40), so the member
+// joins the blob under the ruling that always owed it here (DECISIONS
+// 2026-09-06, "RivalSize is declared in src/lib/market/rivals and joins
+// StoredReport under #103"), and `REPORT_VERSION` goes to 2 for it: adding
+// a member is a version bump, not a migration. `answers` is `aiAnswers`
+// below — issue #13's section, which is #27's `AiAnswersCard` plus the
+// three things the screen needs and the engine's card does not carry.
+//
+// **Nothing sizes rivals yet.** `sizeRivals` is built and no stage calls
+// it, so every pass stores `unmeasured / not_attempted` here — which
+// winnability reads as "we do not know how big this rival is", never as a
+// zero that would satisfy every bar (`winnability/counts.ts`). The stage
+// that fills it is issue #140.
 //
 // **The market sections belong to the market leaves, and one of them is
 // now theirs.** #27 landed `buildPresenceCard` while this branch was open,
@@ -62,6 +70,7 @@ import type { CorrectionState } from "@/lib/market/coherence/state";
 import type { MarketSet } from "@/lib/market/questions/market-set";
 import type { Question } from "@/lib/market/questions/phrase";
 import type { RivalCandidate } from "@/lib/market/rivals/derive";
+import type { RivalSize } from "@/lib/market/rivals/size";
 import type { PresenceCard } from "@/lib/market/rivals/presence";
 import type { Measured } from "@/lib/measure/measured";
 import type { OnPageFacts } from "@/lib/measure/parse";
@@ -80,7 +89,7 @@ export type StoppedReason = "complete" | "time_ceiling" | "spend_ceiling" | "fai
  *  it does not know throws rather than returning a partially-populated
  *  value: `null` would be indistinguishable from "no report" at every call
  *  site. */
-export const REPORT_VERSION = 1;
+export const REPORT_VERSION = 2;
 
 /** One cell of the AI-answers matrix — one question, one measured SERP.
  *  BP-025 `## Public interface` (issue #26's `matrix.ts` owns it). An
@@ -223,6 +232,13 @@ export interface StoredReport {
    *  above was counted over exactly these. */
   serps: readonly Measured<SerpResult>[];
   rivals: Measured<RivalCandidate[]>;
+  /** §6.6's sizing, one entry per rival the pass sized, in the order it
+   *  was handed them. Read by §7's winnability through
+   *  `rankedCountsFromSizes`, which is the only consumer: no surface
+   *  renders this and no band is re-derived from it. `unmeasured` until
+   *  the sizing stage lands (issue #140) — never an empty array, which
+   *  would read as "we sized this customer's rivals and there are none". */
+  rivalSizes: Measured<RivalSize[]>;
   /** §6.6's platform partition — the "sources" half. Stored, not rendered
    *  in MVP. */
   sources: readonly string[];

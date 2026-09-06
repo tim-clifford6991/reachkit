@@ -25,6 +25,7 @@ import type { CorrectionState } from "@/lib/market/coherence/state";
 import type { MarketSet } from "@/lib/market/questions/market-set";
 import type { Question } from "@/lib/market/questions/phrase";
 import type { RivalCandidate } from "@/lib/market/rivals/derive";
+import type { RivalSize } from "@/lib/market/rivals/size";
 import type { Measured } from "@/lib/measure/measured";
 import type { OnPageFacts } from "@/lib/measure/parse";
 import type { Drivers } from "@/lib/measure/score";
@@ -72,6 +73,7 @@ export interface ReportSections {
   questions: Measured<Question[]>;
   serps: readonly Measured<SerpResult>[];
   rivals: Measured<RivalCandidate[]>;
+  rivalSizes: Measured<RivalSize[]>;
   sources: readonly string[];
   onPage: Measured<OnPageFacts>;
   robots: Measured<RobotsPolicy>;
@@ -102,6 +104,7 @@ export function assembleReport(s: ReportSections): StoredReport {
     questions: s.questions,
     serps: s.serps,
     rivals: s.rivals,
+    rivalSizes: s.rivalSizes,
     sources: s.sources,
     onPage: s.onPage,
     robots: s.robots,
