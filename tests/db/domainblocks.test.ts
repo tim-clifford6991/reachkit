@@ -142,8 +142,13 @@ describe('`structure.md` rule 3 — "`*_domainblocks*.sql` (REQ-002\'s table has
 describe('REQ-002 c4 — "a report is taken down only by a removal request received at the address criterion 1 names, never at ReachKit\'s own initiative"', () => {
   const mentioning = SOURCES.filter((s) => s.text.includes("domain_blocks"));
 
-  it("exactly one file under `src/` names the table at all — the admission check that reads it", () => {
-    expect(mentioning.map((s) => s.file)).toEqual(["src/lib/scan/admission.ts"]);
+  it("exactly one file under `src/` names the table at all — the one reader of it", () => {
+    // #104 moved that reader out of `admission.ts` into its own module, so
+    // the report address's removal check can reach it from the Edge
+    // runtime without dragging `node:crypto` (admission's network-key
+    // HMAC) along. Still one file, and still only a read: admission, the
+    // correction offer and the 410 all resolve the same fact here.
+    expect(mentioning.map((s) => s.file)).toEqual(["src/lib/scan/removal.ts"]);
   });
 
   it("no file under `src/` writes to it — no insert, update, upsert or delete", () => {
@@ -159,9 +164,9 @@ describe('REQ-002 c4 — "a report is taken down only by a removal request recei
   });
 
   it("the reader selects and nothing else", () => {
-    const admission = SOURCES.find((s) => s.file === "src/lib/scan/admission.ts");
-    expect(admission).toBeDefined();
-    const [, after = ""] = (admission?.text ?? "").split('from<DomainBlockRow>("domain_blocks")');
+    const reader = SOURCES.find((s) => s.file === "src/lib/scan/removal.ts");
+    expect(reader).toBeDefined();
+    const [, after = ""] = (reader?.text ?? "").split('from<DomainBlockRow>("domain_blocks")');
     expect(after.slice(0, 200)).toContain('.select("domain")');
   });
 });

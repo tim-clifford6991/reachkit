@@ -13,6 +13,10 @@
 // here is the resolution the route delegates to — `canonicalRedirect` and
 // `parseDomain` — so the decision the route makes is proved, and only the
 // framework call it makes with that decision is read.
+// #104: importing `@/middleware` now loads `@/lib/db` (the removal
+// rewrite), and through it the environment binding. The fixture goes
+// above it.
+import "../../scan/run/harness";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -70,9 +74,21 @@ describe("ADR-002 / REQ-001 c8 — noindex twice over, and in no sitemap", () =>
 
 describe("REQ-001 c6/c10 — no session, no cookie, no gate", () => {
   it("the route reads no session and sets no cookie", () => {
-    for (const forbidden of ["cookies(", "headers(", "hasActiveAccess", "currentSession"]) {
+    for (const forbidden of ["cookies(", "hasActiveAccess", "currentSession"]) {
       expect(PAGE).not.toContain(forbidden);
     }
+  });
+
+  it("the one request header it reads is `x-forwarded-for`, and it reads it to hash a network key — never to identify a visitor", () => {
+    // #104 wired this route to the store, and admission counts a free
+    // scan's bounds per network. `networkKeyOf` is BP-023's HMAC and never
+    // returns a raw address, so nothing identifying enters this file. The
+    // assertion is written as "exactly one header, and it is that one"
+    // rather than "no headers at all", which was the shape before the
+    // route had anything to resolve.
+    const reads = [...PAGE.matchAll(/\.get\("([^"]+)"\)/g)].map((m) => m[1]);
+    expect(reads).toEqual(["x-forwarded-for"]);
+    expect(PAGE).toContain("networkKeyOf");
   });
 
   it("`/scan/:domain` is on the middleware's public allow-list, so it is reachable with none", async () => {

@@ -12,26 +12,13 @@
 import type React from "react";
 import { Alert, Btn } from "@/ui/components";
 import { Surface } from "@/ui/layout";
-import { copy, type CopyKey } from "@/lib/presentation/copy";
+import { copy } from "@/lib/presentation/copy";
 import LandingPage from "@/app/(public)/page";
 import { ReportView } from "./report-view";
 import { RemovedView } from "./removal";
 import { ScanProgress } from "./progress";
-import type { AddressRefusal, AddressState } from "./state";
-
-const REFUSAL_KEY: Readonly<Record<AddressRefusal["reason"], CopyKey>> =
-  Object.freeze({
-    "network-limit": "notice.refused.network-limit",
-    "scan-running": "notice.refused.scan-running",
-  });
-
-const SECONDS_PER_MINUTE = 60;
-
-function waitText(retryAfterSeconds: number): string {
-  return copy("report.wait.minutes", {
-    minutes: String(Math.ceil(retryAfterSeconds / SECONDS_PER_MINUTE)),
-  });
-}
+import type { AddressState } from "./state";
+import { refusalLine } from "./refusal";
 
 /** The frame every short arm renders inside, and its screen root
  *  (ADR-093 decision 6: every screen root is a `Surface`, and its three
@@ -115,12 +102,7 @@ export function AddressView(p: {
     case "refused":
       return (
         <Pane>
-          <Alert
-            tone="neutral"
-            message={copy(REFUSAL_KEY[state.refusal.reason], {
-              wait: waitText(state.refusal.retryAfterSeconds),
-            })}
-          />
+          <Alert tone="neutral" message={refusalLine(state.refusal)} />
         </Pane>
       );
 

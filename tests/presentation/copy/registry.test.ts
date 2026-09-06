@@ -309,7 +309,7 @@ describe("owner-owed and empty agree both ways", () => {
     expect(new Set(emptyKeys)).toEqual(new Set(OWNER_OWED));
   });
 
-  it("counts: 27 owner-owed, 59 filled, 86 total (rule 5.5 — the index states its own coverage)", () => {
+  it("counts: 64 owner-owed, 124 awaiting copy, 160 ruled, 348 total (rule 5.5 — the index states its own coverage)", () => {
     // WO-070 added report.ts's eight landing keys (headline, field label,
     // submit label, five DomainProblem lines), all owner-owed: 30 + 8 = 38.
     // 2026-09-03: the owner ruled on three of them (headline, field label,
@@ -491,10 +491,18 @@ describe("owner-owed and empty agree both ways", () => {
     //
     // 71 - 7 = 64 owner-owed and empty, 116 + 7 = 123 awaiting copy, 160
     // ruled unchanged, 347 total unchanged.
+    //
+    // 2026-09-06, separately again: issue #104 (wiring the report address
+    // to the store) adds one key in `report.ts`, `notice.refused.stopped`
+    // — ReachKit's own stop, in writing. It is the third `AddressRefusal`
+    // reason and the only one that names no wait, so it could borrow
+    // neither line already there. It carries the marker, on Setup's rule
+    // above: a refusal screen must render something. 64 owner-owed and 160
+    // ruled unchanged, 123 + 1 = 124 awaiting copy, 347 + 1 = 348 total.
     expect(OWNER_OWED.length).toBe(64);
-    expect(AWAITING_COPY.length).toBe(123);
+    expect(AWAITING_COPY.length).toBe(124);
     expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(160);
-    expect(Object.keys(COPY).length).toBe(347);
+    expect(Object.keys(COPY).length).toBe(348);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.

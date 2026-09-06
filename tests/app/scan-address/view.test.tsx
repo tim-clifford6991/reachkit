@@ -75,7 +75,7 @@ const ARMS: ReadonlyArray<readonly [AddressState["kind"], AddressState]> = [
     { kind: "refused", domain: DOMAIN, refusal: { reason: "scan-running", retryAfterSeconds: 90 } },
   ],
   ["cooldown", { kind: "cooldown", domain: DOMAIN }],
-  ["report", fixtureStateFor(DOMAIN)],
+  ["report", fixtureReport()],
 ];
 
 describe("REQ-001 c5 — every arm answers; never a blank page, a 404 or an error", () => {
@@ -173,9 +173,21 @@ describe("REQ-002 c3 / REQ-001 c18 — removed has no route back", () => {
   });
 });
 
-describe("the fixture resolution, until issue #25 replaces it", () => {
-  it("an ordinary domain resolves to the complete report with no notice and no control", () => {
-    const state = fixtureStateFor("acme.example" as CanonicalDomain);
+/** The fixture answers for reserved names only (#104), so every case below
+ *  asks about one and refuses to proceed if the gate turned it away. */
+function fixtureFor(domain: string): AddressState {
+  const state = fixtureStateFor(domain as CanonicalDomain);
+  if (state === null) throw new Error(`no fixture arm for ${domain}`);
+  return state;
+}
+
+function fixtureReport(): AddressState {
+  return fixtureFor("example.com");
+}
+
+describe("the fixture resolution, on reserved names only (#104)", () => {
+  it("a reserved subdomain with no arm of its own resolves to the complete report, with no notice and no control", () => {
+    const state = fixtureFor("acme.example.com");
     expect(state.kind).toBe("report");
     if (state.kind !== "report") throw new Error("unreachable");
     expect(state.notice).toBeNull();
@@ -183,9 +195,21 @@ describe("the fixture resolution, until issue #25 replaces it", () => {
   });
 
   it("the resolved report carries the domain that was asked for", () => {
-    const state = fixtureStateFor("acme.example" as CanonicalDomain);
+    const state = fixtureFor("acme.example.com");
     if (state.kind !== "report") throw new Error("unreachable");
-    expect(state.report.verdict.domain).toBe("acme.example");
+    expect(state.report.verdict.domain).toBe("acme.example.com");
+  });
+
+  it("every domain that is not a reserved name resolves to null — a real address can never be served invented figures", () => {
+    for (const domain of ["acme.example", "reachkit.app", "example.net", "example.org", "notexample.com"]) {
+      expect(fixtureStateFor(domain as CanonicalDomain)).toBeNull();
+    }
+  });
+
+  it("a name that merely ends with the reserved one is not a reserved name", () => {
+    expect(fixtureStateFor("evilexample.com" as CanonicalDomain)).toBeNull();
+    expect(fixtureStateFor("example.com" as CanonicalDomain)).not.toBeNull();
+    expect(fixtureStateFor("degraded.example.com" as CanonicalDomain)).not.toBeNull();
   });
 
   it("each fixture domain reaches its own arm", () => {
@@ -199,12 +223,12 @@ describe("the fixture resolution, until issue #25 replaces it", () => {
       ["removed.example.com", "removed"],
     ];
     for (const [domain, kind] of expected) {
-      expect(fixtureStateFor(domain as CanonicalDomain).kind).toBe(kind);
+      expect(fixtureFor(domain).kind).toBe(kind);
     }
   });
 
   it("the degraded fixture is the state §4.1 names: score nulled, sections absent, notice and control present", () => {
-    const state = fixtureStateFor("degraded.example.com" as CanonicalDomain);
+    const state = fixtureFor("degraded.example.com");
     if (state.kind !== "report") throw new Error("unreachable");
     expect(state.report.verdict.scoreAndBand.kind).toBe("unmeasured");
     expect(state.report.aiAnswers).toBeNull();
@@ -214,7 +238,7 @@ describe("the fixture resolution, until issue #25 replaces it", () => {
   });
 
   it("a measured zero in the degraded fixture stays a zero — it is not swept into the dash", () => {
-    const state = fixtureStateFor("degraded.example.com" as CanonicalDomain);
+    const state = fixtureFor("degraded.example.com");
     if (state.kind !== "report") throw new Error("unreachable");
     expect(state.report.supply.missingPages.kind).toBe("zero");
   });

@@ -20,12 +20,16 @@
 // suite adds up is the one the product would have written. The promise it
 // decides is §6.1's — a free scan spends no more than `CAP_FREE`.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { renderToStaticMarkup } from "react-dom/server";
 import { fakeDb, type DbQuery } from "../scan/run/harness";
 import { CAPS } from "../../src/lib/config/constants";
 import type { FetchOutcome, RobotsPolicy } from "../../src/lib/egress/types";
 
 
-const DOMAIN = "example.com";
+// A stranger's own domain, deliberately not a reserved name: the fixture
+// arms answer for `example.com` and its subdomains only (#104), so a
+// journey that ran on one would never touch the store it is here to prove.
+const DOMAIN = "acme.com";
 
 /** One scan id per journey: `stages.ts`'s stream is per-scan and closes on
  *  its one `ending`, so a second pass under the same id would find a
@@ -62,6 +66,12 @@ vi.mock("@/lib/egress/safe-fetch", () => ({
     return { ok: true, status: 200, url, html, bytes: html.length, readAt: READ_AT };
   },
 }));
+
+// `useRouter` throws outside a mounted App Router. The scanning arms use it
+// to ask the server to re-resolve when the stream ends (REQ-003 c3), which
+// is an effect `renderToStaticMarkup` never runs; mocking the hook lets the
+// server-side tree render so the markup can be read.
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 
 vi.mock("@/lib/egress/robots", () => ({
   readRobots: async (origin: string): Promise<RobotsPolicy> => ({
@@ -282,7 +292,7 @@ describe("/ → /scan/{domain}: a stranger scans and reads a report (JN-001, JN-
     // Step 1 — the landing field: one field, one button, any written form
     // of the domain. Steps 2–7 — the report screen opens the progress
     // stream on its first frame and watches the pass the POST started.
-    const { body, stages } = await walkTheJourney("HTTPS://WWW.Example.com/pricing");
+    const { body, stages } = await walkTheJourney("HTTPS://WWW.Acme.com/pricing");
 
     expect(body.ok).toBe(true);
     // Every written form arrives at the one address for the domain.
@@ -403,5 +413,58 @@ describe("/ → /scan/{domain}: a stranger scans and reads a report (JN-001, JN-
     expect(modelCalls).toHaveLength(2);
     expect(rows.filter((row) => row.source === "profile" || row.source === "question-phrasing")).toHaveLength(2);
     expect(rows.filter((row) => row.source === "serp/google/organic")).toHaveLength(12);
+  }, JOURNEY_TIMEOUT_MS);
+
+  it("and then the address resolves to that stored report and the screen renders it (#104)", async () => {
+    await walkTheJourney(DOMAIN);
+
+    // What the pass stored is what the row now holds: the blob after a
+    // round trip through `jsonb`, dates and all.
+    const stored = JSON.parse(JSON.stringify(storedReport())) as unknown;
+    db.answer = (query) => {
+      if (query.verb !== "select") return null;
+      const columns = new Map(query.filters);
+      if (query.table === "scans" && columns.get("is_current") === true) return [{ report: stored }];
+      return answerQuery(query);
+    };
+
+    const { resolveAddress } = await import(
+      "../../src/app/(public)/scan/[domain]/_address/resolve"
+    );
+    const { networkKeyOf } = await import("../../src/lib/scan/admission");
+
+    const state = await resolveAddress({
+      rawSegment: DOMAIN,
+      network: networkKeyOf("203.0.113.99"),
+    });
+
+    // Step 8 — the visitor lands on the report their scan produced, with
+    // nothing in the way: no notice, no control, and the report is the one
+    // this pass measured.
+    expect(state.kind).toBe("report");
+    if (state.kind !== "report") throw new Error("unreachable");
+    expect(state.report.scanId).toBe(scanId);
+    expect(state.report.verdict.domain).toBe(DOMAIN);
+    expect(state.notice).toBeNull();
+    expect(state.control).toEqual({ kind: "none" });
+    // Dates came back as dates, not as the strings `jsonb` stores.
+    expect(state.report.verdict.measuredAt).toBeInstanceOf(Date);
+
+    const { AddressView } = await import(
+      "../../src/app/(public)/scan/[domain]/_address/view"
+    );
+    const html = renderToStaticMarkup(
+      AddressView({ state, canonicalUrl: `https://app.example.com/scan/${DOMAIN}` }) as never
+    );
+
+    // The report screen, not a progress pane and not a blank page: the
+    // score the pass computed, the domain it measured, and none of the
+    // scanning arm's stage words.
+    const score = state.report.verdict.scoreAndBand;
+    if (score.kind === "unmeasured") throw new Error("the fixture pass should have produced a score");
+    expect(html).toContain(String(score.value.score));
+    expect(html).toContain(DOMAIN);
+    expect(html.length).toBeGreaterThan(0);
+    expect(html).not.toContain("stage.reading_your_site");
   }, JOURNEY_TIMEOUT_MS);
 });

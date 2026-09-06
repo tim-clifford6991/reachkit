@@ -1,12 +1,18 @@
-// BUILD §4.1 — fixture data for the report screen, until the pipeline lands
+// BUILD §4.1 — fixture arms for dev previews, on reserved names only
 //
-// **This file is temporary and says so.** Issue #25 builds `runScan`,
-// `assembleReport`, `storeCurrentReport` and `readCurrentReport`, and
-// rewires `page.tsx` to resolve a visit from the database. Until then the
-// screen has to render *something*, and this is that something: one
-// hand-written `StoredReport` and a small map from fixture domains to the
-// other six arms of `AddressState`, so every arm is reachable in a preview
-// deployment and reviewable by the owner in both themes.
+// **Every arm of the report address, reachable on a preview deployment
+// without a database behind it.** The screen resolves from the store
+// (#104's `resolveAddress`); this file is what a handful of *reserved*
+// domains resolve to instead, so the owner can review every state —
+// degraded, cold start, starting, scanning, refused, cooldown, removed —
+// in both themes on `dev.reachkit.app` without arranging seven real scans.
+//
+// **The gate is the point.** `fixtureStateFor` answers for a domain under
+// `example.com` and for nothing else, and returns `null` for every other
+// domain — so a real customer's address can never be served invented
+// figures, whatever this file grows to hold. `example.com` is IANA
+// reserved (RFC 2606) and cannot be registered, which is what makes the
+// gate safe to state as a suffix rather than as a list to keep in step.
 //
 // Every figure below is invented for the fixture and is labelled as such
 // by the domains it hangs on — all of them under `example.com`,
@@ -295,9 +301,27 @@ const FIXTURE_ARMS: Readonly<Record<string, (domain: CanonicalDomain) => Address
     "removed.example.com": (domain) => ({ kind: "removed", domain }),
   });
 
-/** Fixture stand-in for issue #25's `readCurrentReport()` plus #28's
- *  removal check. Reads nothing, writes nothing, starts no scan. */
-export function fixtureStateFor(domain: CanonicalDomain): AddressState {
+/** The one reserved name every fixture arm hangs under. A domain is a
+ *  fixture domain when it is this name or a subdomain of it — never when
+ *  it merely ends with the same characters, which `evilexample.com` does. */
+const FIXTURE_SUFFIX = "example.com";
+
+export function isFixtureDomain(domain: string): boolean {
+  return domain === FIXTURE_SUFFIX || domain.endsWith(`.${FIXTURE_SUFFIX}`);
+}
+
+/**
+ * What a reserved domain resolves to, or `null` for every domain that is
+ * not one. Reads nothing, writes nothing, starts no scan.
+ *
+ * `null` and not "the complete report" is the whole gate: a caller that
+ * forgets to check `isFixtureDomain` still cannot be handed invented
+ * figures for a real address, because there are none to hand back.
+ * `example.com` itself resolves to the complete report — the screen the
+ * owner reviews first is the one a stranger actually lands on.
+ */
+export function fixtureStateFor(domain: CanonicalDomain): AddressState | null {
+  if (!isFixtureDomain(domain)) return null;
   const arm = FIXTURE_ARMS[domain];
   if (arm !== undefined) return arm(domain);
   return {
