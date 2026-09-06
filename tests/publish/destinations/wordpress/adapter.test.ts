@@ -353,3 +353,22 @@ describe("the capability probe reads, and never writes", () => {
     expect(site.posts).toHaveLength(0);
   });
 });
+
+describe("the idempotent path writes nothing at all into their site", () => {
+  it("a delivery that already happened creates no term, and reads the stamp rather than assigning one", async () => {
+    await WORDPRESS_ADAPTER.deliver(PAGE, CFG, "draft-1");
+    site.requests = [];
+    const again = (await WORDPRESS_ADAPTER.deliver(PAGE, CFG, "draft-1")) as WordPressDelivery;
+    expect(writes()).toEqual([]);
+    expect(again.stampApplied).toBe(true);
+  });
+
+  it("a post carrying only the customer's own tags does not read as stamped", async () => {
+    site.tagsWritable = false;
+    await WORDPRESS_ADAPTER.deliver(PAGE, CFG, "draft-1");
+    site.posts[0]!.tags = [55];
+    site.requests = [];
+    const again = (await WORDPRESS_ADAPTER.deliver(PAGE, CFG, "draft-1")) as WordPressDelivery;
+    expect(again.stampApplied).toBe(false);
+  });
+});

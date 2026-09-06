@@ -126,12 +126,12 @@ function stringField(post: unknown, field: string): string | null {
   return typeof value === "string" && value !== "" ? value : null;
 }
 
-/** The post id, as the id the publication row carries. WordPress answers
- *  with a number; the row holds a string, and the conversion happens once,
- *  here. */
-function postId(post: unknown): string | null {
-  if (typeof post !== "object" || post === null) return null;
-  const id = (post as { id?: unknown }).id;
+/** The id of a thing WordPress answered with — a post, or a term. The
+ *  publication row holds a post id as a string; WordPress answers with a
+ *  number, and the conversion happens once, here. */
+function idOf(thing: unknown): string | null {
+  if (typeof thing !== "object" || thing === null) return null;
+  const id = (thing as { id?: unknown }).id;
   if (typeof id === "number" && Number.isFinite(id)) return String(id);
   return typeof id === "string" && id !== "" ? id : null;
 }
@@ -181,7 +181,7 @@ function deliveryOf(
   stampTermId: number | null
 ): DeliveryResult {
   const liveUrl = stringField(post, "link");
-  const id = postId(post);
+  const id = idOf(post);
   if (liveUrl === null || id === null) {
     // An answer with no address and no id is one this module cannot read.
     // It is not retried: an unclassifiable outcome at a destination we do
@@ -228,15 +228,22 @@ async function existingPost(cfg: WordPressConfig, draftId: string): Promise<unkn
  * criterion 6's list is unmet for that post — stated, never inferred.
  */
 async function stampTerm(cfg: WordPressConfig): Promise<number | null> {
-  const found = await findTag(cfg, WORDPRESS.stampSlug);
-  if (succeeded(found) && Array.isArray(found.body)) {
-    const id = found.body.map((term) => postId(term)).find((id) => id !== null);
-    if (id !== undefined && id !== null) return Number(id);
-  }
+  const found = await findStampTerm(cfg);
+  if (found !== null) return found;
   const created = await createTag(cfg, WORDPRESS.stampSlug, WORDPRESS.stampName);
   if (!succeeded(created)) return null;
-  const id = postId(created.body);
+  const id = idOf(created.body);
   return id === null ? null : Number(id);
+}
+
+/** The stamp's term id if the site already has the term, and `null` if it
+ *  does not. A lookup and never a create: this is what the idempotent path
+ *  asks, and a term that does not exist on the site cannot be on a post. */
+async function findStampTerm(cfg: WordPressConfig): Promise<number | null> {
+  const found = await findTag(cfg, WORDPRESS.stampSlug);
+  if (!succeeded(found) || !Array.isArray(found.body)) return null;
+  const id = found.body.map((term) => idOf(term)).find((value) => value !== null);
+  return id === undefined || id === null ? null : Number(id);
 }
 
 async function deliver(
@@ -259,9 +266,11 @@ async function deliver(
     if (already !== null) {
       // The post this draft already has. No second create, whatever the
       // publication row says: the row is the guard in our database and
-      // this is the guard in theirs.
-      const stampOnIt = tagIds(already);
-      return deliveryOf(already, plugins, seoPage, stampOnIt[0] ?? null);
+      // this is the guard in theirs. The stamp is **looked up, never
+      // created** here — a delivery that already happened is not an
+      // occasion to write anything into their site, and ADR-083 Decision 2
+      // puts the stamp on a post only by ReachKit creating it.
+      return deliveryOf(already, plugins, seoPage, await findStampTerm(config));
     }
 
     const stampTermId = await stampTerm(config);
