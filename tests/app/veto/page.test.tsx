@@ -17,10 +17,23 @@ import type { RedeemResult } from "../../../src/lib/publish/publishable";
 
 applyEnvFixture();
 
-const redeemVetoLink = vi.fn<(token: string) => Promise<RedeemResult>>();
+/** The redemption's answer for the test about to run, and the tokens it was
+ *  asked about. A plain function rather than a `vi.fn`: one of the cases
+ *  below is a redemption that *rejects*, and vitest's own tracking of a
+ *  mock's settled results drops its handler on the rejected promise when
+ *  the mock is cleared between tests — surfacing as an unhandled rejection
+ *  against a test that passed. The record this file needs is one array. */
+let answer: (token: string) => Promise<RedeemResult> = async () => ({
+  ok: false,
+  reason: "unknown",
+});
+const asked: string[] = [];
 
 vi.mock("@/lib/publish/publishable", () => ({
-  redeemVetoLink: (token: string) => redeemVetoLink(token),
+  redeemVetoLink: (token: string) => {
+    asked.push(token);
+    return answer(token);
+  },
 }));
 
 const VetoPage = (await import("../../../src/app/(public)/veto/[token]/page")).default;
@@ -47,11 +60,14 @@ function named(tree: React.ReactNode, name: string): Node | undefined {
 }
 
 async function render(result: RedeemResult): Promise<Node | undefined> {
-  redeemVetoLink.mockResolvedValue(result);
+  answer = async () => result;
   return named(await VetoPage({ params: { token: "a-token" } }), "Alert");
 }
 
-beforeEach(() => redeemVetoLink.mockReset());
+beforeEach(() => {
+  asked.length = 0;
+  answer = async () => ({ ok: false, reason: "unknown" });
+});
 
 describe("four arms, one written line, no fifth rendering and no default arm", () => {
   it("a valid link is vetoed, and says so", async () => {
@@ -99,8 +115,35 @@ describe("four arms, one written line, no fifth rendering and no default arm", (
     }
   });
 
+  it("a redemption that fails outright is the unknown-link line, never an error screen", async () => {
+    answer = async () => {
+      throw new Error("the database is down");
+    };
+    const alert = named(await VetoPage({ params: { token: "a-token" } }), "Alert");
+    expect(alert?.props.message).toBe(COPY["publish.veto.unknown"]);
+  });
+
+  it("a redemption that never comes back is bounded, and answers the same way", async () => {
+    // A `catch` alone does not cover this: a request that never settles
+    // never rejects. The reader gets the line that says this is not a link
+    // ReachKit can act on — which is what they are holding — rather than a
+    // page that never loads.
+    // A read that settles a little *after* the deadline, rather than one
+    // that never settles at all: the assertion is about what the page does
+    // with a slow read, and a promise left pending for the life of the
+    // process is a handle this file would leave behind for every later one.
+    answer = () =>
+      new Promise<RedeemResult>((resolve) => {
+        setTimeout(() => resolve({ ok: true, draftId: "d1" }), 3_000);
+      });
+    const started = Date.now();
+    const alert = named(await VetoPage({ params: { token: "a-token" } }), "Alert");
+    expect(alert?.props.message).toBe(COPY["publish.veto.unknown"]);
+    expect(Date.now() - started).toBeLessThan(4_000);
+  });
+
   it("Next's promised params and a resolved object are both accepted", async () => {
-    redeemVetoLink.mockResolvedValue({ ok: true, draftId: "d1" });
+    answer = async () => ({ ok: true, draftId: "d1" });
     const tree = await VetoPage({ params: Promise.resolve({ token: "a-token" }) });
     expect(named(tree, "Alert")?.props.tone).toBe("ok");
   });
@@ -108,10 +151,9 @@ describe("four arms, one written line, no fifth rendering and no default arm", (
 
 describe("exactly one transition — the surface redeems once and owns no token knowledge", () => {
   it("one render asks for one redemption, with the segment as given", async () => {
-    redeemVetoLink.mockResolvedValue({ ok: true, draftId: "d1" });
+    answer = async () => ({ ok: true, draftId: "d1" });
     await VetoPage({ params: { token: "the-token" } });
-    expect(redeemVetoLink).toHaveBeenCalledTimes(1);
-    expect(redeemVetoLink).toHaveBeenCalledWith("the-token");
+    expect(asked).toEqual(["the-token"]);
   });
 
   it("it calls redeemVetoLink and reaches neither the machine nor the token's own hashing", () => {
@@ -123,7 +165,7 @@ describe("exactly one transition — the surface redeems once and owns no token 
 
 describe("nothing else is on the page", () => {
   it("no control, no form, no field, and no navigation into the product", async () => {
-    redeemVetoLink.mockResolvedValue({ ok: true, draftId: "d1" });
+    answer = async () => ({ ok: true, draftId: "d1" });
     const tree = await VetoPage({ params: { token: "a-token" } });
     const types = nodes(tree).map((node) => (node.type as { name?: string })?.name ?? node.type);
 
@@ -135,7 +177,7 @@ describe("nothing else is on the page", () => {
   });
 
   it("neither the token nor the draft it moved is echoed back onto the page", async () => {
-    redeemVetoLink.mockResolvedValue({ ok: true, draftId: "draft-2026-09-15" });
+    answer = async () => ({ ok: true, draftId: "draft-2026-09-15" });
     const tree = await VetoPage({ params: { token: "a-secret-token" } });
     const rendered = JSON.stringify(nodes(tree).map((node) => node.props));
     expect(rendered).not.toContain("a-secret-token");

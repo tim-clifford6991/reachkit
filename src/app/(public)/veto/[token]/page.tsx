@@ -26,6 +26,11 @@
 // back, because a stop link forwarded to someone else must disclose nothing
 // about the page it was issued for.
 //
+// **Bounded, and it answers rather than hanging.** The page reads before it
+// can render at all, on a public, unauthenticated address, so a database
+// that is unreachable costs its reader the unknown-link line and not a page
+// that never loads — see `REDEEM_DEADLINE_MS` below.
+//
 // Every sentence is a registry key, all four owner-owed.
 import type React from "react";
 import type { Metadata } from "next";
@@ -50,6 +55,66 @@ export const revalidate = 0;
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
+
+// How long the redemption may take before the page answers anyway.
+//
+// Chosen here rather than pinned in `constants.ts` for the reason
+// `src/middleware.ts`'s `REMOVAL_READ_DEADLINE_MS` states of its own: it is
+// a property of this one request-path read, not a product bound anything
+// else reads, and a number in two files is wrong. Thirty times over a
+// healthy indexed statement on one row, and short against a person who has
+// just clicked a link in a mail — the same trade, and the same order of
+// magnitude, as that file's 800 ms in front of every report render.
+//
+// **This page reads before it can render at all**, and it is public and
+// unauthenticated, so an unreachable database must cost its reader an
+// answer rather than a page that never loads. A `catch` alone does not do
+// that: a request that never settles never rejects.
+//
+// The deadline bounds *this page's waiting*, not the statement: a
+// redemption that lands after it still stopped the page, and what the
+// reader lost is the line saying so, not the stop. Nothing is half-done —
+// the token is marked used in the same statement that moves the page.
+const REDEEM_DEADLINE_MS = 1_500;
+
+/** Rejects when `work` has not settled inside the deadline, so the caller's
+ *  own `catch` covers a hang the same way it covers a failure. The timer is
+ *  cleared once the race is over: a page that answered in 40 ms must not
+ *  leave a two-second handle behind on every request it serves. */
+async function withDeadline<T>(work: Promise<T>): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      work,
+      new Promise<T>((_resolve, reject) => {
+        timer = setTimeout(() => reject(new Error("the redemption timed out")), REDEEM_DEADLINE_MS);
+      }),
+    ]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+}
+
+/**
+ * What redeeming did, or `unknown` where this product could not find out.
+ *
+ * The unknown arm is the honest one for a redemption that failed or hung:
+ * its line says this is not a link ReachKit can act on, and a link it could
+ * not act on is exactly what the reader is holding. `redeemVeto` already
+ * answers `unknown` for a read that errors — this adds the case where the
+ * read does not come back at all, and keeps the two the same answer.
+ *
+ * Nothing was moved on this path, so nothing has to be undone: the token is
+ * marked used in the same statement that reads it, and a statement that
+ * never landed marked nothing.
+ */
+async function redeem(token: string): Promise<RedeemResult> {
+  try {
+    return await withDeadline(redeemVetoLink(token));
+  } catch {
+    return { ok: false, reason: "unknown" };
+  }
+}
 
 /** Next hands a dynamic segment as a promise; the suite calls this
  *  component directly with a resolved object, the same direct-call
@@ -97,7 +162,7 @@ export default async function VetoPage(p: {
   params: TokenParams | Promise<TokenParams>;
 }): Promise<React.JSX.Element> {
   const { token } = await p.params;
-  const { tone, message } = lineFor(await redeemVetoLink(token));
+  const { tone, message } = lineFor(await redeem(token));
 
   return (
     <Surface arms={ARMS}>

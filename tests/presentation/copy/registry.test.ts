@@ -312,7 +312,7 @@ describe("owner-owed and empty agree both ways", () => {
     expect(new Set(emptyKeys)).toEqual(new Set(OWNER_OWED));
   });
 
-  it("counts: 148 owner-owed, 165 awaiting copy, 168 ruled, 481 total (rule 5.5 — the index states its own coverage)", () => {
+  it("counts: 148 owner-owed, 169 awaiting copy, 168 ruled, 485 total (rule 5.5 — the index states its own coverage)", () => {
     // WO-070 added report.ts's eight landing keys (headline, field label,
     // submit label, five DomainProblem lines), all owner-owed: 30 + 8 = 38.
     // 2026-09-03: the owner ruled on three of them (headline, field label,
@@ -675,8 +675,8 @@ describe("owner-owed and empty agree both ways", () => {
     // states. 148 owner-owed and 168 ruled unchanged, 161 + 4 = 165
     // awaiting copy, 477 + 4 = 481 total.
     //
-    // 2026-09-06, last of all: issue #144 (`GET /veto/{token}`, §9) adds four —
-    // one per arm of the closed switch over what redeeming a stop link did
+    // 2026-09-06, last of all: issue #144 (`GET /veto/{token}`, §9) adds
+    // four — one per arm of the closed switch over what redeeming a stop link did
     // (`publish.veto.{stopped,alreadyUsed,expired,unknown}`). All four take
     // the marker rather than the empty value: they are a *screen's*
     // sentences, and #93's ruling divides the two representations by
@@ -684,9 +684,9 @@ describe("owner-owed and empty agree both ways", () => {
     // 148 owner-owed and 168 ruled unchanged, 165 + 4 = 169 awaiting
     // copy, 481 + 4 = 485 total.
     expect(OWNER_OWED.length).toBe(148);
-    expect(AWAITING_COPY.length).toBe(165);
+    expect(AWAITING_COPY.length).toBe(169);
     expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(168);
-    expect(Object.keys(COPY).length).toBe(481);
+    expect(Object.keys(COPY).length).toBe(485);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.
