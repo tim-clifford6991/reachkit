@@ -17,6 +17,7 @@ const db = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 
 import { PUBLISH_VERIFY_DELAY_H } from "@/lib/config/constants";
+import { seal } from "@/lib/publish/destinations/config";
 import { RETRYABLE, publish } from "@/lib/publish/attempt";
 import type { GuardDeps } from "@/lib/publish/machine";
 import type {
@@ -65,10 +66,12 @@ function seed(over: Row = {}): void {
   db.seed("sites", [
     { id: "s1", mode: "autopilot", veto_hours: 24, publishing_enabled: true, timezone: "America/New_York" },
   ]);
-  db.seed("destinations", [// A hosted destination stores no credential — `connect` writes
+  // A hosted destination stores no credential — `connect` writes
   // `config: null` and nothing ever fills it — and the adapter is handed an
   // empty config for that reason (#54).
-  { id: "dest-1", site_id: "s1", kind: "hosted", health: "ok", config: null }]);
+  db.seed("destinations", [
+    { id: "dest-1", site_id: "s1", kind: "hosted", health: "ok", config: null },
+  ]);
   db.seed("opportunities", [{ id: "o1", proposed_slug: "best-widgets" }]);
   db.seed("drafts", [
     {
@@ -387,5 +390,90 @@ describe("the page handed to the adapter is the draft's own facts", () => {
         ),
     });
     expect(key).toBe("d1");
+  });
+});
+
+describe("the credential reaches the adapter in plaintext, and only for the one call (#54)", () => {
+  it("a sealed config is opened for the delivery and handed over decrypted", async () => {
+    seed();
+    db.seed("destinations", [
+      {
+        id: "dest-1",
+        site_id: "s1",
+        kind: "wordpress",
+        health: "ok",
+        config: seal({ baseUrl: "https://blog.example.com", username: "u", applicationPassword: "p" }),
+      },
+    ]);
+    let seen: unknown = null;
+    await publish({
+      draftId: "d1",
+      destination: "wordpress" as DestinationKind,
+      by: SYSTEM,
+      at: AT,
+      deps: openDeps(),
+      adapterFor: () =>
+        stubAdapter({ ok: true, madeLive: true, liveUrl: "https://blog.example.com/p" }, {
+          kind: "wordpress",
+          deliver: async (_page, cfg) => {
+            seen = cfg;
+            return { ok: true, madeLive: true, liveUrl: "https://blog.example.com/p" };
+          },
+        }),
+    });
+
+    expect(seen).toEqual({
+      baseUrl: "https://blog.example.com",
+      username: "u",
+      applicationPassword: "p",
+    });
+  });
+
+  it("**never the ciphertext** — the sealed string reaches no adapter", async () => {
+    seed();
+    const sealed = seal({ baseUrl: "https://blog.example.com", username: "u", applicationPassword: "p" });
+    db.seed("destinations", [
+      { id: "dest-1", site_id: "s1", kind: "wordpress", health: "ok", config: sealed },
+    ]);
+    let seen: unknown = null;
+    await publish({
+      draftId: "d1",
+      destination: "wordpress" as DestinationKind,
+      by: SYSTEM,
+      at: AT,
+      deps: openDeps(),
+      adapterFor: () =>
+        stubAdapter({ ok: true, madeLive: true }, {
+          kind: "wordpress",
+          deliver: async (_page, cfg) => {
+            seen = cfg;
+            return { ok: true, madeLive: true };
+          },
+        }),
+    });
+
+    expect(JSON.stringify(seen)).not.toContain(sealed.slice(0, 12));
+  });
+
+  it("a destination with no credential is delivered to with an empty config, not refused", async () => {
+    seed();
+    let seen: unknown = "unset";
+    const result = await publish({
+      draftId: "d1",
+      destination: "hosted",
+      by: SYSTEM,
+      at: AT,
+      deps: openDeps(),
+      adapterFor: () =>
+        stubAdapter({ ok: true, madeLive: true }, {
+          deliver: async (_page, cfg) => {
+            seen = cfg;
+            return { ok: true, madeLive: true };
+          },
+        }),
+    });
+
+    expect(seen).toEqual({});
+    expect(result.ok).toBe(true);
   });
 });
