@@ -49,6 +49,7 @@ function engineDouble(): Record<string, unknown> {
     purgeAccount: record("purgeAccount", done),
     sitesDueSetupReminder: record("sitesDueSetupReminder", []),
     remindSetup: record("remindSetup", done),
+    noticeBrokenDestination: record("noticeBrokenDestination", done),
   };
 }
 

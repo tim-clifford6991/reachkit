@@ -321,4 +321,19 @@ export const MAIL_COPY = Object.freeze({
     "",
     { slots: { foundAt: "date" }, fixedBy: "REQ-062 c6" },
   ],
+
+  // One mail per breakage (BUILD §9, issue #48): a destination has needed
+  // reconnecting for 24 hours and the customer has not signed in since it
+  // broke. It says pages are being held, how many, and that reconnecting
+  // releases them.
+  //
+  // The count is a `stat` block and not a number inside a sentence: §12's
+  // omission rule is the shell's to apply, and a sentence carrying its own
+  // numeral would be a second place a count could be formatted. So the
+  // body says what is happening, the stat says how many, and neither can
+  // print the other's half.
+  "mail.account.destinationBroken.subject": ["", { slots: {}, fixedBy: "BUILD §9 · REQ-074 c6" }],
+  "mail.account.destinationBroken.body": ["", { slots: {}, fixedBy: "BUILD §9 · REQ-074 c6" }],
+  "mail.account.destinationBroken.held": ["", { slots: {}, fixedBy: "BUILD §9 · REQ-074 c6" }],
+  "mail.account.destinationBroken.action": ["", { slots: {}, fixedBy: "BUILD §9 · REQ-074 c6" }],
 }) satisfies CopyPartition;

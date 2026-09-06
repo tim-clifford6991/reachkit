@@ -318,6 +318,31 @@ export async function remindSetup(siteId: string): Promise<EngineResult> {
   return { done: true };
 }
 
+// ── Destinations — BUILD §9 (issue #48), built and wired here
+//
+// The seventh obligation on `draft/generate`'s daily per-site tick: a
+// destination that has needed reconnecting for 24 hours whose customer has
+// not signed in since it broke. It rides this job because the occasion is
+// one where the customer has *not* come to a screen, so no read path can
+// supply it — and because this is the same per-site loop that would
+// otherwise be preparing the page that is now being held.
+//
+// The predicate, the once-per-breakage guard and the send are all
+// `src/lib/publish/destinations/health/`'s; this wrapper holds no
+// threshold and no condition of its own.
+
+export async function noticeBrokenDestination(a: {
+  readonly siteId: string;
+  readonly now: Date;
+}): Promise<EngineResult> {
+  const { sendBreakageMail } = await import("@/lib/publish/destinations/health");
+  // Not sending is a decided outcome, never a degradation: `not-due` is
+  // the ordinary answer for a site whose destination is working, has
+  // already been written about, or whose customer has been back since.
+  await sendBreakageMail(a.siteId, a.now);
+  return { done: true };
+}
+
 // ── Erasure — BP-063
 // TODO(engine): BP-063's purge — a tombstone's 30-day sweep.
 
