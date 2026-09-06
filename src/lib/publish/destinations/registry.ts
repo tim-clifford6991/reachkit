@@ -9,12 +9,16 @@
 // unchanged.
 import type { DestinationAdapter, DestinationKind } from "../types";
 import { HOSTED_ADAPTER } from "./hosted";
+import { WORDPRESS_ADAPTER } from "./wordpress/adapter";
 
-/** Every adapter this build carries. WordPress is absent, not stubbed: an
- *  adapter that exists is one `adapterFor` hands to `deliver`, and there is
- *  nothing yet to hand (#54). */
+/** Every adapter this build carries, and the map is closed: a kind absent
+ *  from it resolves to `null`, and `null` is what holds a page rather than
+ *  sending it somewhere nobody chose. Both members are present since #54;
+ *  §10's `destinations.kind` enum has two values and this map has two
+ *  entries, which is the whole of its completeness. */
 const REGISTRY: Readonly<Partial<Record<DestinationKind, DestinationAdapter>>> = Object.freeze({
   hosted: HOSTED_ADAPTER,
+  wordpress: WORDPRESS_ADAPTER,
 });
 
 /** The adapter for a kind, or `null` where this build has none. */

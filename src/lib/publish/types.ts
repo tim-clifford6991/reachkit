@@ -360,6 +360,30 @@ export interface DestinationAdapter {
    *  delivery in flight, and a credential that may create is not the
    *  question being asked. */
   health(cfg: DestinationConfig): Promise<{ health: DestinationHealth; reason: HealthReason | null }>;
+  /** **Can this credential publish, not merely create?** (REQ-060 c7,
+   *  ADR-084 Decision 3.) Optional, and its absence is a fact rather than
+   *  an omission: a destination ReachKit runs draws no such distinction —
+   *  there is no account there whose permission to publish could differ
+   *  from its permission to create — so `hosted` has none to declare.
+   *
+   *  It is a **separate call from `health`, and must stay one.** A site can
+   *  answer its REST index perfectly and refuse to publish; folding the two
+   *  would make one answer stand for both, and re-entering the same, valid
+   *  credential would then appear to clear a state the probe decided
+   *  (ADR-086). The check calls this beside `health`, records what it found
+   *  on `destinations.publish_capable`, and `false` outranks every other
+   *  answer.
+   *
+   *  **`false` is an answer; a read that failed is not.** An adapter that
+   *  could not put the question rejects, and the check records nothing —
+   *  mapping a network blip to `false` would hold a working customer's
+   *  publishing while telling them their account lacks a permission it has.
+   *
+   *  **It makes no write to the customer's site**, for the same reason
+   *  `health` makes none: it runs in line on the read path, and a
+   *  capability proved by creating something leaves a post behind whenever
+   *  the tidy-up fails. */
+  canPublish?(cfg: DestinationConfig): Promise<boolean>;
 }
 
 // ── The draft, as the machine sees it ───────────────────────────────────
