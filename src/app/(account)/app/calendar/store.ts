@@ -25,6 +25,7 @@
 //
 //   instructions                  REQ-047 c5's dated instruction (#42)
 //   stoppedDays                   §11's stopped-work record (#39)
+//   heldDays                      §9's held set (#45, REQ-092 c5)
 //   customerChangeHoldsPages      §4.7's saved settings (#42)
 //
 // **Two values a planned page does not speak.** Its `title` is the search
@@ -213,11 +214,13 @@ export async function readCalendarFacts(a: {
     timeZone: a.site.timeZone,
     now: a.now,
     drafts,
-    // REQ-047 c5's dated instruction, §11's stopped-work record and §4.7's
-    // saved settings are three other subsystems' rows (#42, #39). Empty
-    // here is what is true of them: none is read, so none is claimed.
+    // REQ-047 c5's dated instruction, §11's stopped-work record, §9's held
+    // set and §4.7's saved settings are other subsystems' rows (#42, #39,
+    // #45). Empty here is what is true of them: none is read, so none is
+    // claimed.
     instructions: {},
     stoppedDays: [],
+    heldDays: [],
     customerChangeHoldsPages: null,
     unusedSupply: depth,
   };

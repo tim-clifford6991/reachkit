@@ -6,14 +6,15 @@
 // count is derived, not stored.
 //
 // The archived plan is WO-210.
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { applyEnvFixture } from "../../mail/env-fixture";
 import { fakeDb, installTransitionRpc, type Row } from "../harness";
 
 const db = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 
-import { heldPages, isPublishingOn, resumeOrder, setPublishing } from "@/lib/publish/switch";
-import { transition } from "@/lib/publish/machine";
+import { heldPages, isPublishingOn, reachKitStopped, resumeOrder, setPublishing } from "@/lib/publish/switch";
+import { DEFAULT_GUARD_DEPS, transition } from "@/lib/publish/machine";
 import type { Actor } from "@/lib/publish/types";
 
 const CUSTOMER: Actor = { kind: "customer", userId: "u1" };
@@ -161,12 +162,81 @@ describe("resume order is the order they were held, oldest first, and drops none
   });
 });
 
+describe("REQ-092 c5 — a ReachKit stop is a second reason to hold, not a second mechanism", () => {
+  const KILL_SWITCH = process.env.KILL_SWITCH;
+  afterEach(() => {
+    if (KILL_SWITCH === undefined) delete process.env.KILL_SWITCH;
+    else process.env.KILL_SWITCH = KILL_SWITCH;
+    vi.resetModules();
+  });
+
+  async function stopped(engaged: boolean): Promise<boolean> {
+    // `env` parses `process.env` once per module instance, so the binding
+    // is set and the module graph reset before the dep reads it.
+    applyEnvFixture();
+    process.env.KILL_SWITCH = engaged ? "true" : "false";
+    vi.resetModules();
+    const { reachKitStopped: read } = await import("@/lib/publish/switch");
+    return read();
+  }
+
+  it("reads §11's halt, the one stop shape that reaches a delivery", async () => {
+    expect(await stopped(true)).toBe(true);
+    expect(await stopped(false)).toBe(false);
+  });
+
+  it("is the function the machine's default deps carry", () => {
+    // Statically imported on both sides: the dynamic import above hands
+    // back a fresh module instance, which is not the one the machine holds.
+    expect(DEFAULT_GUARD_DEPS.reachKitStopped).toBe(reachKitStopped);
+  });
+
+  it("the held set does not ask why a page is held, so a stop and a pause return the same pages", async () => {
+    db.seed("drafts", [
+      draft("approved-1", "approved", "2026-09-10T00:00:00.000Z"),
+      draft("in-review-1", "in_review", "2026-09-11T00:00:00.000Z"),
+      draft("retry-due", "failed", "2026-09-12T00:00:00.000Z"),
+    ]);
+    const whileRunning = await heldPages("s1");
+
+    // A stop begins. It writes nothing — there is nothing for it to write —
+    // so the same three pages are held, in the same order.
+    await setPublishing("s1", false, CUSTOMER);
+    const underAStop = await heldPages("s1");
+
+    expect(underAStop).toEqual(whileRunning);
+    expect(underAStop.draftIds).toEqual(["approved-1", "in-review-1", "retry-due"]);
+    expect(db.rows("drafts").map((row) => row.state)).toEqual([
+      "approved",
+      "in_review",
+      "failed",
+    ]);
+  });
+
+  it("a draft in review or approved when a stop begins resumes in delivery order once it lifts", async () => {
+    db.seed("drafts", [
+      draft("third", "approved", "2026-09-12T00:00:00.000Z"),
+      draft("first", "in_review", "2026-09-10T00:00:00.000Z"),
+      draft("second", "approved", "2026-09-11T00:00:00.000Z"),
+    ]);
+    const before = await resumeOrder("s1");
+    expect(before).toEqual(["first", "second", "third"]);
+
+    // The stop runs and lifts. No page was skipped, none was marked
+    // published, and the backlog drains in the order it accrued.
+    expect(await resumeOrder("s1")).toEqual(before);
+    expect(db.rows("drafts").some((row) => row.state === "skipped")).toBe(false);
+    expect(db.rows("drafts").some((row) => row.state === "published")).toBe(false);
+  });
+});
+
 describe("a page held while the switch is off keeps its place in the order", () => {
   it("a failed page that is retried and fails again keeps its original publishable_since", async () => {
     db.seed("drafts", [draft("d1", "failed", "2026-09-10T00:00:00.000Z")]);
     await transition("d1", "publishing", CUSTOMER, {
       at: AT,
       deps: {
+        reachKitStopped: async () => false,
         isPublishingOn: async () => true,
         hasCeilingRoom: async () => true,
         destinationWorking: async () => true,

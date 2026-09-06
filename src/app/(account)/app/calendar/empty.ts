@@ -25,6 +25,7 @@ export type EmptyAccount =
   | { cause: "reachkit_stopped" }
   | { cause: "page_cannot_go_live"; state: "skipped" | "unpublished" }
   | { cause: "customer_change_holds_pages"; setting: "publishing_off" | "destination_disconnected" }
+  | { cause: "page_held" }
   | { cause: "supply_exhausted" }
   | { cause: "unattributed" };
 
@@ -33,12 +34,24 @@ export type EmptyCause = EmptyAccount["cause"];
 /** ADR-061's decision block, transcribed. `instruction` outranks everything
  *  (REQ-043 c5); `reachkit_stopped` outranks the customer's own causes
  *  (REQ-092 c7); `supply_exhausted` is second to last and proven only; and
- *  `unattributed` is the last arm, never a widened one. */
+ *  `unattributed` is the last arm, never a widened one.
+ *
+ *  **`page_held` (#116) is directly above `supply_exhausted` and nowhere
+ *  else.** Below the three attributed causes, because each of them says
+ *  *why* the page did not go out and this one says only that it did not:
+ *  where ReachKit's own stop, a page that can no longer go live, or a change
+ *  the customer saved is true of the date, that is the account, and putting
+ *  the weaker fact above any of them would lose the actionable one. Above
+ *  `supply_exhausted`, because that is the arm REQ-043 c3 reserves and a
+ *  date a page was planned for is exactly the date whose supply was *not*
+ *  exhausted — "there was nothing worth publishing" is a false statement
+ *  about a market that produced a page. */
 export const EMPTY_PRECEDENCE: readonly EmptyCause[] = Object.freeze([
   "instruction",
   "reachkit_stopped",
   "page_cannot_go_live",
   "customer_change_holds_pages",
+  "page_held",
   "supply_exhausted",
   "unattributed",
 ] as const);
@@ -59,6 +72,21 @@ export interface EmptyFacts {
   /** A change the customer saved that holds pages back, or `null`. */
   customerChangeHoldsPages: "publishing_off" | "destination_disconnected" | null;
   /**
+   * REQ-092 c5: a page was planned for this date and did not go live on it,
+   * because it was held — the publishing machine refused every route into
+   * an attempt and took no transition, so the page is still there, in the
+   * state it was in, waiting its turn in the resume order
+   * (`src/lib/publish/switch`'s `resumeOrder`).
+   *
+   * It is not `pageCannotGoLive`. That arm is for a page that can no longer
+   * go live at all — `skipped` or `unpublished`, both terminal — and a held
+   * page is the opposite: it still publishes, on a later date. Telling a
+   * customer their page can no longer go live while it is queued to go out
+   * is a false statement, which is why this is its own arm and its own
+   * sentence.
+   */
+  pageHeld: boolean;
+  /**
    * `supplyDepth().unused` — **read**, or `null` where it could not be
    * read. ADR-061 point 1: the exhausted-supply arm fires only when this is
    * read *and is zero*. `null` is not zero and must never be treated as it:
@@ -77,6 +105,7 @@ export const EMPTY_COPY_KEY: Record<EmptyCause, CopyKey> = {
   reachkit_stopped: "stopped.work.line",
   page_cannot_go_live: "calendar.empty.page-cannot-go-live",
   customer_change_holds_pages: "calendar.empty.customer-change-holds-pages",
+  page_held: "calendar.empty.page-held",
   supply_exhausted: "cause.supply-exhausted",
   unattributed: "stopped.work.line",
 };
@@ -113,6 +142,9 @@ export function accountFor(facts: EmptyFacts): EmptyAccount {
             setting: facts.customerChangeHoldsPages,
           };
         }
+        break;
+      case "page_held":
+        if (facts.pageHeld) return { cause: "page_held" };
         break;
       case "supply_exhausted":
         // ADR-061 point 1, and the one mutation this file is most likely to

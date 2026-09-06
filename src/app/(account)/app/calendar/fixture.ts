@@ -9,6 +9,7 @@
 //   youStand / measuredAt           → §11 weekly measurement (#41)
 //   instructions                    → REQ-047's outstanding instruction (#40)
 //   stoppedDays                     → §11's stopped-work record (#39)
+//   heldDays                        → §9's held set (#45, REQ-092 c5)
 //   unusedSupply                    → §7 `supplyDepth()` (#40)
 //
 // It is one exported constant with a **fixed** `now`, not a generator: a
@@ -144,6 +145,12 @@ export const FIXTURE_CALENDAR_FACTS: CalendarFacts = Object.freeze({
   // REQ-092 c1: a day ReachKit did not do the work. It carries the
   // stopped-work line, never the exhausted-supply one.
   stoppedDays: Object.freeze(["2026-09-13"] as const),
+  // REQ-092 c5 (#116): a date whose planned page was held and went out
+  // later. Empty, and honestly so — the held set is
+  // `src/lib/publish/switch`'s and no reader of it exists yet (#45's
+  // provider). A fixture date here would put an owner-owed line on the
+  // owner's own preview of the month, which renders as nothing.
+  heldDays: Object.freeze([] as readonly string[]),
   customerChangeHoldsPages: null,
   // Read, and zero: the one condition ADR-061 point 1 lets the
   // exhausted-supply arm fire on. `null` here would send every remaining

@@ -129,6 +129,7 @@ describe("GUARDS names guards only on edges that exist", () => {
     "customer_initiated",
     "publishable_and_due",
     "customer_told",
+    "reachkit_not_stopped",
     "publishing_switch_on",
     "within_ceilings",
     "destination_working",
@@ -139,25 +140,37 @@ describe("GUARDS names guards only on edges that exist", () => {
     for (const key of Object.keys(GUARDS)) expect(edges.has(key)).toBe(true);
   });
 
-  it("every guard named in GUARDS is one of the eight", () => {
+  it("every guard named in GUARDS is one of the nine", () => {
     for (const guards of Object.values(GUARDS)) {
       for (const guard of guards) expect(NAMED).toContain(guard);
     }
   });
 
-  it("every one of the eight is actually placed on an edge — a guard on no edge is a guard that never runs", () => {
+  it("every one of the nine is actually placed on an edge — a guard on no edge is a guard that never runs", () => {
     const placed = new Set(Object.values(GUARDS).flatMap((g) => [...g]));
     for (const guard of NAMED) expect(placed.has(guard), guard).toBe(true);
   });
 
-  it("every edge whose target is publishing carries the switch, the ceilings and the destination", () => {
+  it("every edge whose target is publishing carries the stop, the switch, the ceilings and the destination", () => {
     const intoPublishing = TRANSITIONS.filter(([, to]) => to === "publishing");
     expect(intoPublishing.length).toBe(3);
     for (const [from, to] of intoPublishing) {
       const guards = GUARDS[edgeKey(from, to)] ?? [];
+      expect(guards, `${from}→${to}`).toContain("reachkit_not_stopped");
       expect(guards, `${from}→${to}`).toContain("publishing_switch_on");
       expect(guards, `${from}→${to}`).toContain("within_ceilings");
       expect(guards, `${from}→${to}`).toContain("destination_working");
+    }
+  });
+
+  it("ReachKit's own stop is evaluated first on every route into an attempt (ADR-011, REQ-092 c7)", () => {
+    // Guards run lazily in list order and the first failure names itself,
+    // so position 0 is which cause a refusal reports when two are true at
+    // once. ADR-011 fixes it: the stop outranks every other cause. Sorting
+    // this guard anywhere but first re-answers REQ-092 c7, and this is the
+    // assertion that fails when it is.
+    for (const [from, to] of TRANSITIONS.filter(([, t]) => t === "publishing")) {
+      expect(GUARDS[edgeKey(from, to)]?.[0], `${from}→${to}`).toBe("reachkit_not_stopped");
     }
   });
 

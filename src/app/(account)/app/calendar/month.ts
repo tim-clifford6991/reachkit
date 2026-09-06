@@ -107,6 +107,17 @@ export interface CalendarFacts {
   instructions: Readonly<Record<DayKey, string>>;
   /** The dates on which ReachKit stopped its own work (REQ-092 c1). */
   stoppedDays: readonly DayKey[];
+  /**
+   * REQ-092 c5: the dates whose planned page did not go live on them
+   * because it was held, and which no stronger cause accounts for.
+   *
+   * A date, not a draft: the page is still there — it kept its state and
+   * its place in `resumeOrder` (`src/lib/publish/switch`) — and it goes out
+   * on a later date, so it is not on this one to be read off. What the
+   * calendar has left of it is the date it vacated, and that date must not
+   * inherit "there was nothing worth publishing" (REQ-043 c3).
+   */
+  heldDays: readonly DayKey[];
   customerChangeHoldsPages: "publishing_off" | "destination_disconnected" | null;
   /** `supplyDepth().unused`, **read** — or `null` where it could not be.
    *  ADR-061 point 1 turns on this distinction. */
@@ -135,6 +146,7 @@ function emptyFactsFor(day: DayKey, facts: CalendarFacts, cannotGoLive: PublishS
     pageCannotGoLive:
       cannotGoLive === "skipped" || cannotGoLive === "unpublished" ? cannotGoLive : null,
     customerChangeHoldsPages: facts.customerChangeHoldsPages,
+    pageHeld: facts.heldDays.includes(day),
     unusedSupply: facts.unusedSupply,
   };
 }

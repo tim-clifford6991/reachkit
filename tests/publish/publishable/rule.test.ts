@@ -5,7 +5,16 @@
 // are that rule's two answers, and the assertions here are what fails if
 // either guard stops consulting the leaf that owns it.
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { applyEnvFixture } from "../../mail/env-fixture";
 import { fakeDb, installTransitionRpc, type Row } from "../harness";
+
+// The tests below drive `DEFAULT_GUARD_DEPS`, and its `reachKitStopped`
+// reads `KILL_SWITCH` through `env` — which parses `process.env` and throws
+// on a missing binding. Every other publishing suite injects its deps and
+// never reaches it; this one is the seam test, so it pays the fixture. The
+// binding is read at call time (a dynamic import inside the dep), so
+// setting it here, before any test runs, is early enough.
+applyEnvFixture();
 
 const db = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));

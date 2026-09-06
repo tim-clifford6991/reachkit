@@ -80,7 +80,7 @@ export const TERMINAL: readonly State[] = Object.freeze(["skipped", "unpublished
  *  never leaves the page somewhere else. */
 export type Refusal = "not_a_transition" | "guard";
 
-/** The eight named guards. A guard is a condition on an *edge*, evaluated
+/** The nine named guards. A guard is a condition on an *edge*, evaluated
  *  in list order; the first that fails names itself in the refusal. */
 export type GuardId =
   /** needs_attention → publishing: only a draft that passed every
@@ -98,6 +98,13 @@ export type GuardId =
    *  force, either the interval they have to stop it or that none exists
    *  (#46). */
   | "customer_told"
+  /** every edge whose target is `publishing`: ReachKit has not stopped its
+   *  own work (REQ-092 c1). Evaluated first on every one of those edges —
+   *  ADR-011's precedence, in the machine: ReachKit's own stop outranks
+   *  every other cause that is also true, so where a stop and the
+   *  customer's own pause are both in force it is the stop that names
+   *  itself in the refusal. */
+  | "reachkit_not_stopped"
   /** every edge whose target is `publishing`. */
   | "publishing_switch_on"
   /** every edge whose target is `publishing`. */
@@ -125,13 +132,22 @@ export function isTransition(from: State, to: State): boolean {
  * The guards each edge carries, keyed `'from→to'`. An absent key means no
  * guard: the move is open the moment it is one of the fifteen.
  *
- * Every edge whose target is `publishing` carries the same three
- * ambient guards — the switch, the ceilings and the destination — because
- * "no publish attempt begins" has to be true of every route into an
- * attempt, not of the ordinary one only.
+ * Every edge whose target is `publishing` carries the same four ambient
+ * guards — ReachKit's own stop, the switch, the ceilings and the
+ * destination — because "no publish attempt begins" has to be true of every
+ * route into an attempt, not of the ordinary one only.
+ *
+ * **`reachkit_not_stopped` is first on all three, and the order is the
+ * decision.** Guards are evaluated lazily and the first that fails names
+ * itself, so the guard listed first is the cause the refusal reports. ADR-011
+ * fixes which that must be: "ReachKit's own stop outranks every other cause
+ * that is also true." A page held by a stop *and* by a paused switch is held
+ * by the stop, here as on every surface. Re-sorting this list is not a
+ * cosmetic change — it is REQ-092 c7 answered differently.
  */
 export const GUARDS: Readonly<Record<string, readonly GuardId[]>> = Object.freeze({
   [edgeKey("approved", "publishing")]: Object.freeze([
+    "reachkit_not_stopped",
     "publishable_and_due",
     "customer_told",
     "publishing_switch_on",
@@ -139,6 +155,7 @@ export const GUARDS: Readonly<Record<string, readonly GuardId[]>> = Object.freez
     "destination_working",
   ] as const),
   [edgeKey("failed", "publishing")]: Object.freeze([
+    "reachkit_not_stopped",
     "publishable_and_due",
     "customer_told",
     "publishing_switch_on",
@@ -146,6 +163,7 @@ export const GUARDS: Readonly<Record<string, readonly GuardId[]>> = Object.freez
     "destination_working",
   ] as const),
   [edgeKey("needs_attention", "publishing")]: Object.freeze([
+    "reachkit_not_stopped",
     "draft_passed_hard_rules",
     "publishing_switch_on",
     "within_ceilings",

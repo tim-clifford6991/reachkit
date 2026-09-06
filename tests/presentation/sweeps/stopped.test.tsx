@@ -16,6 +16,11 @@
 // what this file decides is what a reader would read.
 //
 // **`copy()` is real here**, because the vocabulary check is about words.
+//
+// 2026-09-06, issue #116: the REQ-092 c5 case, which WO-050 step 9 planned
+// and left unwired because `src/lib/publish/` did not exist. It does now,
+// so the describe below asserts the property against that module and
+// implements none of it — the holding is the machine's.
 import path from "node:path";
 import React from "react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
@@ -184,6 +189,70 @@ describe("REQ-091 c2 still holds under a stop — a stopped screen is not a blan
   });
 });
 
+describe("REQ-092 c5 — prepared pages survive the stop, and none is dropped or marked published", () => {
+  // WO-050 step 9's assertion, now that BUILD §9's machine is on disk
+  // (#45, #46, #131). This suite **asserts** the property and implements
+  // none of it: the holding is `src/lib/publish/`'s, and every line below
+  // reads that module rather than restating its rules. No database — the
+  // machine's guard deps are injected, which is what they exist for.
+  const HELD_STATES = ["in_review", "approved", "failed"] as const;
+
+  it("every route into an attempt is guarded by the stop, so no route publishes around it", async () => {
+    const { GUARDS, TRANSITIONS, edgeKey } = await import("@/lib/publish/machine");
+    const intoPublishing = TRANSITIONS.filter(([, to]) => to === "publishing");
+    expect(intoPublishing.length).toBeGreaterThan(0);
+    for (const [from, to] of intoPublishing) {
+      const guards = GUARDS[edgeKey(from, to)] ?? [];
+      expect(guards, `${from}→${to}`).toContain("reachkit_not_stopped");
+      // ADR-011: the stop outranks every other cause that is also true, so
+      // it is the guard that names itself when two hold at once.
+      expect(guards[0], `${from}→${to}`).toBe("reachkit_not_stopped");
+    }
+  });
+
+  it("the stop refuses the attempt and moves the page nowhere — held is the absence of an edge", async () => {
+    const { GUARD_FNS } = await import("@/lib/publish/machine");
+    const guard = GUARD_FNS.reachkit_not_stopped;
+
+    for (const state of HELD_STATES) {
+      const context = {
+        draft: { siteId: "s1", state } as never,
+        by: { kind: "system", job: "publish/execute" } as never,
+        at: new Date("2026-09-15T12:00:00Z"),
+        deps: { reachKitStopped: async () => true } as never,
+      };
+      // The guard answers `false` — a refusal. `transition()` returns
+      // before its one write on a refusal, so the page keeps its state,
+      // its transitions array and its `publishable_since`: not skipped,
+      // not discarded, not marked published.
+      expect(await guard(context), state).toBe(false);
+    }
+  });
+
+  it("the states a stop holds are the states the resume order drains, so none is dropped", async () => {
+    const { HELD_STATES: HELD } = await import("@/lib/publish/switch");
+    // The held set is derived from the page's own state and the moment it
+    // became publishable — it never asks *why* no attempt began. So the
+    // pages a stop holds are the same pages, in the same order, as the
+    // pages the customer's own pause holds, and a resume drains them
+    // oldest-first whichever was holding them.
+    expect([...HELD].sort()).toEqual([...HELD_STATES].sort());
+  });
+
+  it("nothing on the stop path can mark a page published or skipped: neither is reachable from a refusal", async () => {
+    const { GUARDS, edgeKey, TRANSITIONS } = await import("@/lib/publish/machine");
+    // `published` is reachable only through `publishing`, and every edge
+    // into `publishing` carries the stop. `skipped` is reachable only from
+    // `planned`, `in_review` and `needs_attention` — the customer's own
+    // veto and skip — and no stop takes one.
+    const intoPublished = TRANSITIONS.filter(([, to]) => to === "published").map(([from]) => from);
+    expect(intoPublished).toEqual(["publishing"]);
+    for (const [from, to] of TRANSITIONS.filter(([, t]) => t === "publishing")) {
+      expect(GUARDS[edgeKey(from, to)]).toContain("reachkit_not_stopped");
+    }
+  });
+});
+
 describe("the sweep states its own coverage (rule 5.5)", () => {
   it("reports routes rendered twice, vocabulary entries checked and what is not wired", () => {
     const report = [
@@ -193,9 +262,10 @@ describe("the sweep states its own coverage (rule 5.5)", () => {
       `app screens stating the stop: ${stopped.filter((r) => r.doc.querySelector("[data-testid='shell-stopped']") !== null).length}`,
       // REQ-092 c5 — "every prepared page is still there and publishes on
       // the normal schedule" — is a property of the publish state machine
-      // (BUILD §9), and `src/lib/publish/` does not exist yet. Reported as
-      // unwired rather than asserted vacuously.
-      "REQ-092 c5 (prepared pages survive a stop): UNWIRED — no publish state machine on disk",
+      // (BUILD §9), which is now on disk (#45, #46, #131) and wired to the
+      // stop by #116. Asserted above, against `src/lib/publish/`'s own
+      // table, guards and held set.
+      "REQ-092 c5 (prepared pages survive a stop): WIRED — reachkit_not_stopped guards all 3 routes into an attempt",
     ].join(" · ");
     console.log(`tests/presentation/sweeps/stopped: ${report}`);
     expect(stopped.length).toBe(running.length);

@@ -312,7 +312,7 @@ describe("owner-owed and empty agree both ways", () => {
     expect(new Set(emptyKeys)).toEqual(new Set(OWNER_OWED));
   });
 
-  it("counts: 133 owner-owed, 147 awaiting copy, 168 ruled, 448 total (rule 5.5 — the index states its own coverage)", () => {
+  it("counts: 138 owner-owed, 157 awaiting copy, 168 ruled, 463 total (rule 5.5 — the index states its own coverage)", () => {
     // WO-070 added report.ts's eight landing keys (headline, field label,
     // submit label, five DomainProblem lines), all owner-owed: 30 + 8 = 38.
     // 2026-09-03: the owner ruled on three of them (headline, field label,
@@ -642,10 +642,20 @@ describe("owner-owed and empty agree both ways", () => {
     // take the marker. 133 + 4 = 137 owner-owed and empty,
     // 147 + 10 = 157 awaiting copy, 168 ruled unchanged,
     // 448 + 14 = 462 total.
-    expect(OWNER_OWED.length).toBe(137);
+    //
+    // 2026-09-06, once more: issue #116 (REQ-092 c5) adds one —
+    // `calendar.empty.page-held`, the account a date carries when a page
+    // was planned for it and a ReachKit stop held it. **Empty**, like the
+    // three `calendar.empty.*` causes beside it and on the same footing:
+    // this screen reads every line through the shell's `writtenLine`, and
+    // `account()` throws naming an unwritten key rather than handing a date
+    // a blank, so the marker would only put "TODO(copy)" where a customer
+    // will read a sentence. 137 + 1 = 138 owner-owed and empty, 157
+    // awaiting copy unchanged, 168 ruled unchanged, 462 + 1 = 463 total.
+    expect(OWNER_OWED.length).toBe(138);
     expect(AWAITING_COPY.length).toBe(157);
     expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(168);
-    expect(Object.keys(COPY).length).toBe(462);
+    expect(Object.keys(COPY).length).toBe(463);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.
