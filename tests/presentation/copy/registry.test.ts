@@ -156,7 +156,17 @@ describe("REQ-093 c5 — the registry renders with every model unavailable", () 
     // own transcription. 59 + 6 = 65.
     const awaiting = new Set<CopyKey>(AWAITING_COPY);
     const ruled = nonOwnerOwed.filter((key) => !awaiting.has(key));
-    expect(ruled.length).toBe(65);
+    //
+    // 2026-09-05, separately again: issue #16 (the calendar, BUILD §4.6)
+    // fills twenty in `calendar.ts` — §4.6's head line, its six stage
+    // filter cards, its six action words, the "Why this page" title and
+    // its five row labels, and the first half of its footnote. Every one
+    // is a transcription of a word or sentence §4.6 itself prints, on the
+    // same footing as the thirteen band words; `calendar.head` moves from
+    // owner-owed to ruled with them, because §4.6 prints that sentence in
+    // quotes. None carries the `TODO(copy)` marker, so all twenty are
+    // ruled rather than awaiting: 65 + 20 = 85.
+    expect(ruled.length).toBe(85);
 
     // Only the ruled sentences carry their slots' `{name}` placeholders —
     // a `TODO(copy)` marker is one literal with no placeholder in it, so
@@ -362,10 +372,25 @@ describe("owner-owed and empty agree both ways", () => {
     // already says "per month, VAT included", and no module speaks the
     // separate key. So: 45 owner-owed and empty unchanged, 69 + 5 = 74
     // awaiting copy, 59 + 6 = 65 ruled — 173 + 11 = 184 total.
-    expect(OWNER_OWED.length).toBe(45);
+    //
+    // 2026-09-05, separately again: issue #16 (the calendar, BUILD §4.6)
+    // adds twenty-five keys to `calendar.ts`. Twenty carry a value and
+    // every one is a transcription of a word or sentence §4.6 prints — six
+    // stage filter cards, six action words, the "Why this page" title and
+    // its five row labels, the footnote's first half — plus `calendar.head`
+    // itself, §4.6's `Head: "One page a day. Every day."`, which #9 seeded
+    // owner-owed and this issue fills. Six are owner-owed and empty because
+    // no artifact states them: REQ-043 c4's three remaining empty-date
+    // causes (`calendar.empty.instruction`, `.page-cannot-go-live`,
+    // `.customer-change-holds-pages`), c10's provenance line, §9's
+    // veto-deadline line, and the supply half of the footnote. None carries
+    // the `TODO(copy)` marker, so the awaiting count is untouched.
+    // 45 − 1 (`calendar.head`, now ruled) + 6 = 50 owner-owed, 74 awaiting
+    // unchanged, 65 + 20 = 85 ruled, 184 + 25 = 209 total.
+    expect(OWNER_OWED.length).toBe(50);
     expect(AWAITING_COPY.length).toBe(74);
-    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(65);
-    expect(Object.keys(COPY).length).toBe(184);
+    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(85);
+    expect(Object.keys(COPY).length).toBe(209);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.

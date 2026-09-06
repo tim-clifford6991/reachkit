@@ -15,7 +15,10 @@
 // vendor's own vocabulary, not a BCP-47 tag, and `Intl` needs a tag. `en-US`
 // is that pair written the way `Intl` spells it, and it appears once, here.
 // Reversal cost: one line; nothing else in the shell names a locale.
-const SHELL_LOCALE = "en-US";
+// Exported (issue #16): the calendar states dates in the same one zone
+// and the same one locale this file already chose, and reading it from
+// here is what keeps that a single declaration rather than a second.
+export const SHELL_LOCALE = "en-US";
 
 /** The date a measurement was taken, in the site's zone. Numeric, so it is
  *  a value the mono rule (§2.3) covers and never a weekday word. */
