@@ -343,7 +343,7 @@ describe("the fan-out is bounded and never starves the rest of the tick", () => 
 });
 
 describe("nothing fakes work — an unbuilt engine fails loudly", () => {
-  // Two ids are excluded, each because its engine landed.
+  // Three ids are excluded, each because its engine landed.
   //
   // `account/maintenance` — issue #33: its first two obligations (the
   // 15-minute chase and the 24-hour backstop) are built, so the tick
@@ -354,10 +354,14 @@ describe("nothing fakes work — an unbuilt engine fails loudly", () => {
   // `weekly/refresh` — issue #41: against the real seam it reaches the
   // database, which is the opposite of what this asserts.
   //
-  // The remaining five stay, and an engine that lands moves its id out of
+  // `publish/verify` — issue #50: the 24-hour check is built and reaches
+  // the database for the same reason. Its own suites are
+  // `tests/publish/verify/**` and `tests/mail/published/**`.
+  //
+  // The remaining four stay, and an engine that lands moves its id out of
   // here and into a suite of its own.
   const UNBUILT_JOB_IDS = JOB_IDS.filter(
-    (id) => id !== "account/maintenance" && id !== "weekly/refresh"
+    (id) => id !== "account/maintenance" && id !== "weekly/refresh" && id !== "publish/verify"
   );
 
   it.each(UNBUILT_JOB_IDS)("%s throws EngineNotBuilt against the real seam", async (id) => {

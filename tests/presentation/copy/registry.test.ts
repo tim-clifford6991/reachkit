@@ -312,7 +312,7 @@ describe("owner-owed and empty agree both ways", () => {
     expect(new Set(emptyKeys)).toEqual(new Set(OWNER_OWED));
   });
 
-  it("counts: 110 owner-owed, 136 awaiting copy, 168 ruled, 414 total (rule 5.5 — the index states its own coverage)", () => {
+  it("counts: 133 owner-owed, 147 awaiting copy, 168 ruled, 448 total (rule 5.5 — the index states its own coverage)", () => {
     // WO-070 added report.ts's eight landing keys (headline, field label,
     // submit label, five DomainProblem lines), all owner-owed: 30 + 8 = 38.
     // 2026-09-03: the owner ruled on three of them (headline, field label,
@@ -616,10 +616,23 @@ describe("owner-owed and empty agree both ways", () => {
     // because the panels that will speak them must stay reviewable.
     // 110 + 7 = 117 owner-owed and empty, 136 + 5 = 141 awaiting copy,
     // 168 ruled unchanged, 414 + 12 = 426 total.
-    expect(OWNER_OWED.length).toBe(117);
-    expect(AWAITING_COPY.length).toBe(141);
+    //
+    // 2026-09-06, again: issue #50 (the 24-hour check, REQ-062) adds
+    // twenty-two keys, and the #93 split decides each one by where it is
+    // spoken. Sixteen are the `published` mail's — its subject, the three
+    // lines one per recorded outcome, the address label, the four check
+    // names, the three verdict words, the checks list's label and empty
+    // line, and the two site-condition lines — and every one of them takes
+    // the **empty** value and the throw: a mail never ships a placeholder.
+    // Six are screens' and take the marker: the page record's three
+    // address labels, which the day panel, the draft view and Overview all
+    // read, and the day panel's three refusal lines for a way through that
+    // leads nowhere. 117 + 16 = 133 owner-owed, 141 + 6 = 147 awaiting
+    // copy, 168 ruled unchanged, 426 + 22 = 448 total.
+    expect(OWNER_OWED.length).toBe(133);
+    expect(AWAITING_COPY.length).toBe(147);
     expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(168);
-    expect(Object.keys(COPY).length).toBe(426);
+    expect(Object.keys(COPY).length).toBe(448);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.

@@ -49,6 +49,10 @@ function matches(row: Row, filters: RecordedQuery["filters"]): boolean {
         return (f.value as unknown[]).includes(value);
       case "gte":
         return value !== null && value !== undefined && String(value) >= String(f.value);
+      case "lte":
+        return value !== null && value !== undefined && String(value) <= String(f.value);
+      case "is-null":
+        return value === null || value === undefined;
       case "not-is-null":
         return value !== null && value !== undefined;
       default:
@@ -150,6 +154,17 @@ export function fakeDb(): FakeDb {
       },
       gte(column: string, value: unknown) {
         query.filters.push({ op: "gte", column, value });
+        return self;
+      },
+      lte(column: string, value: unknown) {
+        query.filters.push({ op: "lte", column, value });
+        return self;
+      },
+      /** PostgREST's `is.null`, and the shape `publications.verify` is read
+       *  through: the partial index the 24-hour check selects on is
+       *  `(verify_due_at) where verify is null`. */
+      is(column: string, value: unknown) {
+        query.filters.push({ op: "is-null", column, value });
         return self;
       },
       not(column: string, operator: string, value: unknown) {

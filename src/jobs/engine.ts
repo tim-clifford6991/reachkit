@@ -155,8 +155,8 @@ export async function generateDraft(a: {
 }
 
 // ── Publishing — BP-015
-// TODO(engine): BP-015's state machine — `publishApproved()` and
-// `verifyLive()`.
+// TODO(engine): BP-015's state machine — `publishApproved()`. The 24-hour
+// check below is built (issue #50); the approve-and-deliver edge is not.
 
 export async function publishApproved(a: {
   readonly draftId: string;
@@ -165,10 +165,35 @@ export async function publishApproved(a: {
   return notBuilt("BP-015", `publishApproved(${a.draftId})`);
 }
 
+// ── The 24-hour check — BUILD §9, issue #50. Built.
+//
+// **Two calls, and the second is the point.** The check records what
+// ReachKit saw and stops; the `published` mail (§12) is a separate
+// obligation of the same tick, and it is sent **on the same occasion in
+// all three arms** — a failed check, an absent page and an unconfirmed
+// check are none of them a reason to send nothing (REQ-062 c5). Putting
+// the send inside `verifyLive` would hide that behind the check and would
+// make the publishing subsystem import the mail seam; keeping it here
+// leaves both obligations visible in the one place the tick is described.
+//
+// A run that recorded nothing — the check is not due, has already run, or
+// never will — sends nothing and is not a degradation: those are the
+// dispositions doing their job, and `dueNow` will not offer the row again
+// once an outcome is recorded, whichever of the three it was.
+
 export async function verifyLive(a: {
   readonly publicationId: string;
 }): Promise<EngineResult> {
-  return notBuilt("BP-015", `verifyLive(${a.publicationId})`);
+  const { verifyLive: runCheck } = await import("@/lib/publish/verify");
+  const run = await runCheck(a.publicationId);
+  if (!run.recorded) return { done: true };
+
+  const { sendPublishedMail } = await import("@/lib/mail/published");
+  const told = await sendPublishedMail(a.publicationId);
+  // The outcome the check recorded is never a degradation — all three are
+  // recorded facts about the page. A telling that could not go out is: the
+  // customer was not told about a page ReachKit did look at.
+  return told.sent ? { done: true } : { degraded: `published-mail:${told.reason}` };
 }
 
 // ── Lead sequences — BP-029

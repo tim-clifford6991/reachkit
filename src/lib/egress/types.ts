@@ -5,8 +5,19 @@
 // a thrown error, so a caller can distinguish "could not determine"
 // (REQ-004 criterion 6) from "read it and it contained nothing" (REQ-004
 // criterion 7) — BP-006 `## Error & edge behavior`, decision 1.
+//
+// `headers` is on the `ok` arm only, and is required there (issue #50).
+// REQ-062 criterion 1's indexability check reads `X-Robots-Tag`, which is
+// a *response header* and cannot be recovered from the document: a page
+// marked `noindex` by header alone and one marked by nothing at all are
+// the same string. An optional field would let a caller read "no header"
+// where the truth is "this outcome never carried them", which is the
+// `boolean | null` mistake REQ-004 exists to stop — so every producer of
+// this arm supplies the map, lowercased by Node's own parser, and a
+// repeated header arrives comma-joined exactly as Node joins it.
 export type FetchOutcome =
-  | { ok: true; status: number; url: string; html: string; bytes: number; readAt: Date }
+  | { ok: true; status: number; url: string; html: string; bytes: number; readAt: Date;
+      headers: Readonly<Record<string, string>> }
   | { ok: false; reason: 'dns' | 'refused' | 'timeout' | 'too_large' | 'blocked_by_policy'
               | 'robots_disallowed' | 'status'; status?: number; url: string; readAt: Date }
 

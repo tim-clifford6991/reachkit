@@ -250,6 +250,16 @@ export const DESTINATION_HEALTH_MAX_AGE_H = 24 as const;     // BP-058 · REQ-07
 export const VERIFY = Object.freeze({                         // BP-049 · REQ-062
   coverageFloor: 0.95,
   userAgent: "ReachKitVerify/1.0 (+https://reachkit.app)",     // userAgent is a machine token, not customer copy
+  /** How many sitemap documents one page's check may read before it stops
+   *  and reports that it could not read the site's sitemap (issue #50).
+   *  A sitemap index names further documents, and following them without a
+   *  bound turns one page's check into an unbounded crawl of a site
+   *  ReachKit does not serve. Chosen here as a parameter: five covers the
+   *  robots-declared documents plus the two conventional addresses on every
+   *  shape of site this check has to read, and a site that needs more is
+   *  reported as unread for that one page rather than crawled further.
+   *  Reversing it is one number and no customer-visible consequence. */
+  sitemapMaxDocuments: 5,
 } as const);
 
 // The weekly clock

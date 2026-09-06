@@ -36,7 +36,7 @@ const HOME_HTML = `
 `;
 
 function storedDocument(url: string, html: string, readAt: Date): unknown {
-  return toStoredDocument({ ok: true, status: 200, url, html, bytes: html.length, readAt });
+  return toStoredDocument({ ok: true, status: 200, url, html, bytes: html.length, readAt, headers: {} });
 }
 
 interface ScanRow {

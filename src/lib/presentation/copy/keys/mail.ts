@@ -262,4 +262,63 @@ export const MAIL_COPY = Object.freeze({
   // them. ADR-084 and ADR-086 both record this line as owner-owed and
   // unminted; nothing here mints it.
   "mail.draftReady.dest.cannotPublish": ["", { slots: { site: "text" }, fixedBy: "REQ-057 c9" }],
+
+  // 2026-09-06, issue #50 (REQ-062 c5, BUILD §12's `published` mail).
+  // Sixteen keys, every one owner-owed and empty — each is a sentence
+  // the product speaks in its own voice, so none is written here. A mail
+  // keeps the throw rather than the `TODO(copy)` marker (#93): a mail
+  // never ships a placeholder, and `sendEmail` reports the unwritten line
+  // as `not-composable` rather than sending a blank one.
+  //
+  // **Three lines for three outcomes, and the last two must stay two
+  // (ADR-085).** `mail.published.not_found` says no page was found at the
+  // address when the check ran; `mail.published.not_confirmed` says the
+  // check could not be confirmed. They render as nearly the same grey line
+  // and have opposite consequences — one retires the page from weekly
+  // judgement for ever, the other leaves it fully judged — so a reviewer
+  // looking at the two will propose one key. Neither may name a cause, and
+  // neither may say who removed the page.
+  //
+  // Each of the three carries the date, and only the date: criterion 4
+  // requires the outcome to carry when ReachKit looked, and criterion 7
+  // forbids any surface stating anything about the page beyond what that
+  // one check recorded on that date.
+  "mail.published.subject": ["", { slots: {}, fixedBy: "REQ-062 c5" }],
+  "mail.published.verified": ["", { slots: { checkedAt: "date" }, fixedBy: "REQ-062 c5" }],
+  "mail.published.not_found": ["", { slots: { checkedAt: "date" }, fixedBy: "REQ-062 c4" }],
+  "mail.published.not_confirmed": ["", { slots: { checkedAt: "date" }, fixedBy: "REQ-062 c4" }],
+  "mail.published.address_label": ["", { slots: {}, fixedBy: "REQ-062 c5" }],
+
+  // The four outcomes, as the four subjects of a `verdicts` block, and the
+  // three words one of them can carry. Split this way so the four names
+  // are written once each and the three verdicts once each, rather than
+  // twelve sentences that could disagree with one another.
+  //
+  // `check_not_measured` is its own word and is never `check_failed`: a
+  // check ReachKit could not observe is not a check this page failed, and
+  // saying so would blame the customer's page for a condition of the site
+  // it sits in (criterion 6).
+  "mail.published.checks_label": ["", { slots: {}, fixedBy: "REQ-062 c5" }],
+  "mail.published.checks_empty": ["", { slots: {}, fixedBy: "REQ-062 c5" }],
+  "mail.published.check.reachable": ["", { slots: {}, fixedBy: "REQ-062 c1" }],
+  "mail.published.check.indexable": ["", { slots: {}, fixedBy: "REQ-062 c1" }],
+  "mail.published.check.sitemap": ["", { slots: {}, fixedBy: "REQ-062 c1" }],
+  "mail.published.check.ai_readable": ["", { slots: {}, fixedBy: "REQ-062 c1" }],
+  "mail.published.check_passed": ["", { slots: {}, fixedBy: "REQ-062 c3" }],
+  "mail.published.check_failed": ["", { slots: {}, fixedBy: "REQ-062 c3" }],
+  "mail.published.check_not_measured": ["", { slots: {}, fixedBy: "REQ-062 c6" }],
+
+  // Criterion 6's condition of the site, named separately from the page's
+  // own outcomes and stated as the customer's own to act on. Two kinds,
+  // two lines, each carrying the date it was found — a condition is only
+  // ever as fresh as the last page checked on that site, and ReachKit
+  // never goes back to look.
+  "mail.published.site_condition.publishes_no_sitemap": [
+    "",
+    { slots: { foundAt: "date" }, fixedBy: "REQ-062 c6" },
+  ],
+  "mail.published.site_condition.robots_blocks_site": [
+    "",
+    { slots: { foundAt: "date" }, fixedBy: "REQ-062 c6" },
+  ],
 }) satisfies CopyPartition;

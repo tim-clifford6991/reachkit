@@ -361,6 +361,14 @@ export async function safeFetch(url: string, opts?: SafeFetchOpts): Promise<Fetc
 
     // result.kind === "final"
     const html = result.body.toString("utf8");
+    // Node lowercases header names and joins a repeated header itself; an
+    // array-valued header (`set-cookie`) is joined here rather than
+    // dropped, so the map is total over what the server actually sent.
+    const headers: Record<string, string> = {};
+    for (const [name, value] of Object.entries(result.headers)) {
+      if (value === undefined) continue;
+      headers[name] = Array.isArray(value) ? value.join(", ") : value;
+    }
     logFetch(currentUrl.hostname, "ok", result.status, result.body.length, Date.now() - start);
     return {
       ok: true,
@@ -369,6 +377,7 @@ export async function safeFetch(url: string, opts?: SafeFetchOpts): Promise<Fetc
       html,
       bytes: result.body.length,
       readAt,
+      headers,
     };
   }
 

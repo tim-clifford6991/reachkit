@@ -163,6 +163,31 @@ export type VerifyOutcome =
   | { outcome: "page_not_found"; status: 404 | 410; checkedAt: Date }
   | { outcome: "could_not_confirm"; why: NotConfirmed; checkedAt: Date };
 
+/** REQ-062 criterion 6, narrowed by the 2026-09-01 fold to the sitemap and
+ *  the robots policy alone — reachability moved into criterion 4's third
+ *  outcome and is **not** a site condition. Exactly two kinds and no third.
+ *
+ *  Declared in the leaf for the same reason the verification shapes are:
+ *  the page record, the published mail and the verification leaf all name
+ *  it, and declaring it under `verify/` would make `record/ → verify/ →
+ *  types.ts` a node-level cycle. `verify/site.ts` re-exports it, so every
+ *  caller's spelling is that module's.
+ *
+ *  **Recorded only from an answer the site gave.** Where ReachKit could not
+ *  reach what it went to read, or could not read what came back, no
+ *  condition is written — the affected check is `unmeasured` for that one
+ *  page and no later page's check is suppressed. */
+export type SiteConditionKind = "publishes_no_sitemap" | "robots_blocks_site";
+
+/** `foundAt` is on it because criterion 6 requires the date a condition was
+ *  found, and because a condition is only ever as fresh as the last page
+ *  checked on that site — nothing ever goes back to look (REQ-062's
+ *  non-goal). */
+export interface SiteCondition {
+  kind: SiteConditionKind;
+  foundAt: Date;
+}
+
 export type VerifyDisposition =
   | { kind: "not_yet"; dueAt: Date }
   | { kind: "due" }

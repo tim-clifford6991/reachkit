@@ -78,7 +78,7 @@ const RICH_HTML = `
 const PRICING_HTML = `<html><body><h2>What does it cost?</h2><p>${"Twelve pounds a month. ".repeat(3)}</p></body></html>`;
 
 function okOutcome(url: string, html: string, readAt: Date = READ_AT): FetchOutcome {
-  return { ok: true, status: 200, url, html, bytes: html.length, readAt };
+  return { ok: true, status: 200, url, html, bytes: html.length, readAt, headers: {} };
 }
 
 function failOutcome(url: string, reason: Extract<FetchOutcome, { ok: false }>["reason"]): FetchOutcome {

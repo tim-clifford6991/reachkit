@@ -44,6 +44,8 @@ export interface PublishQuery<T> extends PromiseLike<QueryResult<T>> {
   neq(column: string, value: string | number | boolean): PublishQuery<T>;
   in(column: string, values: readonly (string | number)[]): PublishQuery<T>;
   gte(column: string, value: string): PublishQuery<T>;
+  lte(column: string, value: string): PublishQuery<T>;
+  is(column: string, value: null): PublishQuery<T>;
   not(column: string, operator: string, value: unknown): PublishQuery<T>;
   order(column: string, opts: { ascending: boolean }): PublishQuery<T>;
   limit(count: number): PublishQuery<T>;

@@ -763,6 +763,15 @@ describe("§9 publishing and autopilot — the veto window, the hard limits, the
       expect(pins.VERIFY.userAgent).not.toContain(agent);
     }
   });
+
+  it("VERIFY.sitemapMaxDocuments bounds one page's check — a sitemap index names further documents, and following them without a bound turns one check into a crawl of a site ReachKit does not serve (issue #50)", () => {
+    expect(pins.VERIFY.sitemapMaxDocuments).toBe(5);
+    // At least the two conventional addresses plus one document a robots
+    // policy may name, or the bound would refuse a shape of site the check
+    // has to read.
+    expect(pins.VERIFY.sitemapMaxDocuments).toBeGreaterThanOrEqual(3);
+    expect(Number.isInteger(pins.VERIFY.sitemapMaxDocuments)).toBe(true);
+  });
 });
 
 // ───────────────────────────────────────────────────────── the AI reader agents
