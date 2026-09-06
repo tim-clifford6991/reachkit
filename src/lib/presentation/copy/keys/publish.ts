@@ -125,4 +125,23 @@ export const PUBLISH_COPY = Object.freeze({
     "TODO(copy)",
     { slots: {}, fixedBy: "ADR-086 · REQ-060 c7" },
   ],
+
+  // 2026-09-06, issue #144 (§9, §12's `draft-ready` "one veto link"). The
+  // four lines `GET /veto/{token}` can speak — one per arm of the closed
+  // switch over what redeeming a stop link did, and no fifth. They are
+  // screen sentences, so they carry the `TODO(copy)` marker rather than the
+  // empty string: the arm renders and is reviewable on a preview, which is
+  // what a screen owes (DECISIONS 2026-09-05, issue #93), where a mail owes
+  // the opposite.
+  //
+  // `expired` covers two refusals on purpose. A token past its expiry and a
+  // token still good for a page that has already left review are, to the
+  // person holding the link, the same fact: the moment to stop this page
+  // has passed. Two keys would be two sentences for one thing, and the
+  // second of them would have to name what became of the page — which this
+  // screen does not know and, holding no session, must not guess at.
+  "publish.veto.stopped": ["TODO(copy)", { slots: {}, fixedBy: "REQ-057 c1" }],
+  "publish.veto.alreadyUsed": ["TODO(copy)", { slots: {}, fixedBy: "REQ-057 c1" }],
+  "publish.veto.expired": ["TODO(copy)", { slots: {}, fixedBy: "REQ-057 c1" }],
+  "publish.veto.unknown": ["TODO(copy)", { slots: {}, fixedBy: "REQ-057 c1" }],
 }) satisfies CopyPartition;

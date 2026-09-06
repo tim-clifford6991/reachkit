@@ -68,6 +68,15 @@ export const ROUTE_HARNESS: Readonly<Record<string, HarnessRow>> = Object.freeze
     shell: false,
     async: true,
   },
+  "(public)/veto/[token]/page.tsx": {
+    // Deliberately a token that verifies against nothing: the page renders
+    // its unknown-link arm, so it moves no page out of review and marks no
+    // token used. The same choice `/opt-out/{token}` makes above, for the
+    // same reason — a real token would veto a page at every sweep.
+    props: () => ({ params: { token: "sweep-fixture" } }),
+    shell: false,
+    async: true,
+  },
   "(public)/scan/[domain]/page.tsx": {
     props: (state) => ({ params: { domain: state.domain } }),
     shell: false,

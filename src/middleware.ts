@@ -77,6 +77,11 @@ export const PUBLIC_PATHS: readonly string[] = [
   // session yet, so a denial here would send a working link to the screen
   // that says links do not work.
   SIGNIN_LINK_PATH_PATTERN,
+  // Issue #144: the address the one veto link in the `draft-ready` mail
+  // lands on. Unauthenticated by necessity, like `/opt-out/:token` above
+  // it — a mail's reader has no session, and the token is the whole of the
+  // credential the stop link carries.
+  "/veto/:token",
 ];
 
 /** The two transport-only adapters (`## File plan`): Stripe and the job

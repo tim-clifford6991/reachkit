@@ -12,7 +12,14 @@ const db = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 
 import { VETO_TOKEN_BYTES } from "@/lib/config/constants";
-import { hashToken, issueVetoLink, redeemVeto, sameHash } from "@/lib/publish/publishable/veto";
+import {
+  hashToken,
+  issueVetoLink,
+  redeemVeto,
+  redeemVetoLink,
+  sameHash,
+  vetoLinkPath,
+} from "@/lib/publish/publishable/veto";
 import type { Actor } from "@/lib/publish/types";
 
 const BY: Actor = { kind: "customer", userId: "u1" };
@@ -43,7 +50,11 @@ function seed(over: Row = {}): void {
   db.reset();
   installTransitionRpc(db);
   installRedeemRpc(db);
-  db.seed("sites", [{ id: "s1", mode: "autopilot", veto_hours: 24, publishing_enabled: true }]);
+  // `user_id` is here for #144: a link redeemed with no session takes its
+  // actor from the draft's site's owner, so the seed has to have one.
+  db.seed("sites", [
+    { id: "s1", user_id: "u1", mode: "autopilot", veto_hours: 24, publishing_enabled: true },
+  ]);
   db.seed("drafts", [
     {
       id: "d1",
@@ -157,6 +168,75 @@ describe("refusals disclose nothing", () => {
     const link = await issueVetoLink("d1", AT);
     draftRow().state = "published";
     expect(await redeemVeto(link.token, BY, AT)).toEqual({ ok: false, reason: "not_in_review" });
+  });
+
+  it("a token already used says `used`, and it is the token's own holder who is told (#144)", async () => {
+    const link = await issueVetoLink("d1", AT);
+    await redeemVeto(link.token, BY, AT);
+    expect(await redeemVeto(link.token, BY, AT)).toEqual({ ok: false, reason: "used" });
+  });
+
+  it("a token both used and past its expiry reads as used — using it is what happened", async () => {
+    const link = await issueVetoLink("d1", AT);
+    await redeemVeto(link.token, BY, AT);
+    const afterDeadline = new Date(DEADLINE.getTime() + 60_000);
+    expect(await redeemVeto(link.token, BY, afterDeadline)).toEqual({ ok: false, reason: "used" });
+  });
+
+  it("`used` is reachable only by presenting the token: a near-miss discloses nothing", async () => {
+    const link = await issueVetoLink("d1", AT);
+    await redeemVeto(link.token, BY, AT);
+    expect(await redeemVeto(`${link.token}x`, BY, AT)).toEqual({ ok: false, reason: "unknown" });
+  });
+});
+
+// ── #144: the same redemption, from a link, with nobody signed in ─────────
+
+describe("the link a mail carries redeems with no session, against the page's own owner", () => {
+  it("the path is the one `src/middleware.ts` declares public, with the token escaped", () => {
+    expect(vetoLinkPath("abc123")).toBe("/veto/abc123");
+    expect(vetoLinkPath("a/b?c")).toBe("/veto/a%2Fb%3Fc");
+  });
+
+  it("one use stops the page, and the move is recorded against the site's owner, never an empty name", async () => {
+    const link = await issueVetoLink("d1", AT);
+    expect(await redeemVetoLink(link.token, AT)).toEqual({ ok: true, draftId: "d1" });
+    expect(draftRow().state).toBe("skipped");
+    const [record] = draftRow().transitions as { actor: Actor; reason?: string }[];
+    expect(record?.actor).toEqual({ kind: "customer", userId: "u1" });
+    expect(record?.reason).toBe("veto");
+  });
+
+  it("a second click stops nothing further and is told the link was already used", async () => {
+    const link = await issueVetoLink("d1", AT);
+    await redeemVetoLink(link.token, AT);
+    expect(await redeemVetoLink(link.token, AT)).toEqual({ ok: false, reason: "used" });
+    expect((draftRow().transitions as unknown[]).length).toBe(1);
+  });
+
+  it("it refuses an unknown token, and an empty one before any read", async () => {
+    expect(await redeemVetoLink("not-a-token", AT)).toEqual({ ok: false, reason: "unknown" });
+    db.rpcCalls.length = 0;
+    expect(await redeemVetoLink("", AT)).toEqual({ ok: false, reason: "unknown" });
+    expect(db.rpcCalls).toHaveLength(0);
+  });
+
+  it("an expired link still says so, rather than pretending it never existed", async () => {
+    const link = await issueVetoLink("d1", AT);
+    const afterDeadline = new Date(DEADLINE.getTime() + 60_000);
+    expect(await redeemVetoLink(link.token, afterDeadline)).toEqual({
+      ok: false,
+      reason: "expired",
+    });
+    expect(draftRow().state).toBe("in_review");
+  });
+
+  it("an owner it cannot read moves nothing — the same database that hid the account could not record the move either", async () => {
+    const link = await issueVetoLink("d1", AT);
+    db.rows("sites").length = 0;
+    expect(await redeemVetoLink(link.token, AT)).toEqual({ ok: false, reason: "unknown" });
+    expect(draftRow().state).toBe("in_review");
+    expect(draftRow().veto_token_used_at).toBeNull();
   });
 });
 

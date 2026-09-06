@@ -89,6 +89,10 @@ describe(
         // reachable with no session, because having no session is the whole
         // reason its holder is following it.
         "/signin/:token": "/signin/abc123",
+        // Issue #144 — the address the `draft-ready` mail's one veto link
+        // lands on. Reachable with no session for the same reason: its
+        // holder is reading a mail, not the app.
+        "/veto/:token": "/veto/abc123",
       };
       expect(Object.keys(instances).sort()).toEqual([...PUBLIC_PATHS].sort());
       for (const pattern of PUBLIC_PATHS) {
