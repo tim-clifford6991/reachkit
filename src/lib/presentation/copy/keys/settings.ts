@@ -209,6 +209,13 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.content.title": ["Your content", { slots: {}, fixedBy: "BUILD §4.7" }],
   "settings.content.pages": ["pages", { slots: {}, fixedBy: 'BUILD §4.7 ("pages count")' }],
   "settings.content.export": ["Export everything", { slots: {}, fixedBy: "BUILD §4.7" }],
+  // REQ-078 c5 (issue #52): "Given an export cannot be produced, when the
+  // customer requests one, then they are told so in one written line and are
+  // not given a partial archive presented as complete." One line, whatever
+  // the reason — the four `ExportFailure` arms are an operator's fact, and
+  // naming which one failed tells the customer nothing they can act on. The
+  // sentence is the owner's; the key and the single-line shape are not.
+  "export.failed": ["TODO(copy)", { slots: {}, fixedBy: "REQ-078 c5" }],
   "settings.content.voice": ["Brand voice", { slots: {}, fixedBy: "BUILD §8 rule 7" }],
   "settings.content.do-not-claim": ["Do-not-claim list", { slots: {}, fixedBy: "BUILD §8 rule 4" }],
 

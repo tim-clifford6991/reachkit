@@ -312,7 +312,7 @@ describe("owner-owed and empty agree both ways", () => {
     expect(new Set(emptyKeys)).toEqual(new Set(OWNER_OWED));
   });
 
-  it("counts: 138 owner-owed, 157 awaiting copy, 168 ruled, 463 total (rule 5.5 — the index states its own coverage)", () => {
+  it("counts: 148 owner-owed, 161 awaiting copy, 168 ruled, 477 total (rule 5.5 — the index states its own coverage)", () => {
     // WO-070 added report.ts's eight landing keys (headline, field label,
     // submit label, five DomainProblem lines), all owner-owed: 30 + 8 = 38.
     // 2026-09-03: the owner ruled on three of them (headline, field label,
@@ -652,10 +652,21 @@ describe("owner-owed and empty agree both ways", () => {
     // a blank, so the marker would only put "TODO(copy)" where a customer
     // will read a sentence. 137 + 1 = 138 owner-owed and empty, 157
     // awaiting copy unchanged, 168 ruled unchanged, 462 + 1 = 463 total.
-    expect(OWNER_OWED.length).toBe(138);
-    expect(AWAITING_COPY.length).toBe(157);
+    //
+    // 2026-09-06, last: issue #52 (export, the danger zone and erasure,
+    // REQ-078/079) adds fourteen, split the same way. Ten are the one
+    // `account` mail a deleted account leaves behind — its subject, the
+    // still-live line, the theirs-to-keep line, and one per WordPress
+    // outcome in each form REQ-079 c6 gives it — and every one takes the
+    // **empty** value and the throw, on the same #93 ruling. Four are
+    // screens' and take the marker: the export's one failure line
+    // (`export.failed`) and the danger zone's three outcome lines.
+    // 138 + 10 = 148 owner-owed and empty, 157 + 4 = 161 awaiting copy,
+    // 168 ruled unchanged, 463 + 14 = 477 total.
+    expect(OWNER_OWED.length).toBe(148);
+    expect(AWAITING_COPY.length).toBe(161);
     expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(168);
-    expect(Object.keys(COPY).length).toBe(463);
+    expect(Object.keys(COPY).length).toBe(477);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.
