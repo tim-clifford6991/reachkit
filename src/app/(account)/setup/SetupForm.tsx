@@ -281,7 +281,7 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
         </Card>
       </section>
 
-      <div className="rk-setup-cards">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <section data-testid="setup-market">
           <Card state="default" title={<Badge tone="neutral">{copy("setup.market.title")}</Badge>}>
             {state.market.state === "empty" || editingMarket ? (
@@ -305,9 +305,23 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
               </>
             ) : (
               <>
-                <Badge tone="accent">
-                  <span data-testid="setup-market-chip">{state.market.category}</span>
-                </Badge>
+                {/* The chip §4.3 asks for, holding text a founder wrote
+                    themselves. daisyUI's `badge` is fixed-height
+                    (`height: var(--size)`) and `Badge` accepts no class of
+                    its own, so a market longer than one line escapes it at
+                    the 320px floor. §2.2 allows this screen no stylesheet,
+                    so the height is relaxed with a Tailwind arbitrary
+                    variant on the wrapper — a generated utility, not a
+                    rule of ours. Named in the PR: the durable fix is a
+                    wrapping variant on the registered component, which is
+                    the design system's to mint, not this screen's. */}
+                <div className="[&>.badge]:h-auto [&>.badge]:py-1">
+                  <Badge tone="accent">
+                    <span data-testid="setup-market-chip" className="wrap-anywhere">
+                      {state.market.category}
+                    </span>
+                  </Badge>
+                </div>
                 <Btn
                   label={copy("setup.market.change")}
                   variant="ghost"
@@ -341,7 +355,7 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
               </p>
             ) : null}
 
-            <div className="rk-setup-chips" data-testid="setup-competitors-suggested">
+            <div className="flex flex-wrap items-center gap-2" data-testid="setup-competitors-suggested">
               {state.suggestions.candidates.map((domain) => (
                 <Btn
                   key={domain}
@@ -354,7 +368,7 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
               ))}
             </div>
 
-            <div className="rk-setup-chips" data-testid="setup-competitors-selected">
+            <div className="flex flex-wrap items-center gap-2" data-testid="setup-competitors-selected">
               {state.rivals.map((rival) => (
                 <Btn
                   key={rival.domain}
@@ -414,7 +428,7 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
             state="default"
             title={<Badge tone="neutral">{copy("setup.publishing.title")}</Badge>}
           >
-            <div className="rk-setup-chips" data-testid="setup-mode">
+            <div className="flex flex-wrap items-center gap-2" data-testid="setup-mode">
               {p.model.cards.mode.map((option) => (
                 <Btn
                   key={option.mode}
@@ -433,7 +447,7 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
 
             <Divider />
 
-            <div className="rk-setup-chips" data-testid="setup-destination">
+            <div className="flex flex-wrap items-center gap-2" data-testid="setup-destination">
               {p.model.cards.destination.map((option) => (
                 <Btn
                   key={option.kind}
@@ -488,10 +502,16 @@ function HostedRecord(p: { dns: DnsRecord | DnsPending }): React.JSX.Element {
   return (
     <>
       <p data-testid="setup-dns-caption">{copy("setup.destination.dnsRecord")}</p>
-      <p className="num rk-setup-dns" data-testid="setup-dns-record">
-        <span>{p.dns.type}</span>
-        <span>{p.dns.name}</span>
-        <span>{p.dns.value}</span>
+      {/* §2.2 allows no stylesheet here, so the record wraps with
+          utilities: `wrap-anywhere` is Tailwind's `overflow-wrap: anywhere`
+          — ADR-093 check 3 treats any clipped mono element as an offender
+          whatever an allow-list says, so a record longer than a 320px
+          column has to break inside its own box rather than hide behind a
+          scrollbar. */}
+      <p className="num flex min-w-0 flex-wrap gap-2" data-testid="setup-dns-record">
+        <span className="min-w-0 wrap-anywhere">{p.dns.type}</span>
+        <span className="min-w-0 wrap-anywhere">{p.dns.name}</span>
+        <span className="min-w-0 wrap-anywhere">{p.dns.value}</span>
       </p>
     </>
   );

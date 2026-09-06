@@ -23,7 +23,6 @@ import { readPassProgress } from "../_setup/provider";
 import { STAGE_COPY_KEY, WAITING_STAGES } from "../_setup/progress";
 import { destinationFor } from "./release";
 import { Waiting } from "./Waiting";
-import "../setup.css";
 
 export default async function WaitingPage(): Promise<React.JSX.Element> {
   const progress = await readPassProgress();
@@ -43,7 +42,7 @@ export default async function WaitingPage(): Promise<React.JSX.Element> {
         wide: { kind: "same-as-below" },
       }}
     >
-      <main className="rk-setup">
+      <main className="grid content-start gap-4 p-4">
         <h1>{copy("setup.waiting.head")}</h1>
         <Waiting
           stage={stage}

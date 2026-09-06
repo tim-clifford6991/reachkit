@@ -17,12 +17,18 @@
 // `medium` — the three cards stack beside the address on a wide enough
 // screen — and `wide` says the same as `medium`, because nothing on this
 // screen changes at `--breakpoint-xl`.
+//
+// **No stylesheet of its own.** §2.2 allows custom CSS only for the
+// calendar grid, the day panel, the AI dot-matrix, chart SVGs and the
+// sidebar; setup is none of those, so every rule this screen needs is a
+// Tailwind utility written where it applies. `lg:` is Tailwind's 1024px
+// breakpoint, which is `--breakpoint-lg` — the same boundary the `medium`
+// arm declares, so the declaration and the query cannot drift.
 import type React from "react";
 import { Surface } from "@/ui/layout";
 import { copy } from "@/lib/presentation/copy";
 import { readSetupScreen } from "./_setup/provider";
 import { SetupForm } from "./SetupForm";
-import "./setup.css";
 
 export default async function SetupPage(): Promise<React.JSX.Element> {
   const model = await readSetupScreen();
@@ -35,7 +41,7 @@ export default async function SetupPage(): Promise<React.JSX.Element> {
         wide: { kind: "same-as-below" },
       }}
     >
-      <main className="rk-setup">
+      <main className="grid content-start gap-4 p-4">
         <h1>{copy("setup.head")}</h1>
         <SetupForm model={model} />
       </main>
