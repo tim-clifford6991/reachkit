@@ -742,6 +742,18 @@ describe("§9 publishing and autopilot — the veto window, the hard limits, the
     expect(pins.VETO_TOKEN_BYTES).toBe(32);
   });
 
+  it("BP-058 NFR budget, quoted: \"Health checks are debounced to at most one per destination per 60 s, so a burst of page loads makes one check\" — DESTINATION_HEALTH_DEBOUNCE_S", () => {
+    expect(pins.DESTINATION_HEALTH_DEBOUNCE_S).toBe(60);
+  });
+
+  it('REQ-074 c6, quoted: "Given a destination has needed reconnecting for 24 hours … when those 24 hours pass, then one `account` mail is sent" — DESTINATION_BREAKAGE_MAIL_DELAY_H', () => {
+    expect(pins.DESTINATION_BREAKAGE_MAIL_DELAY_H).toBe(24);
+  });
+
+  it("DESTINATION_BREAKAGE_MAIL_DELAY_H and DESTINATION_HEALTH_MAX_AGE_H share the number 24 and nothing else: one is how long a breakage stands before the customer is written to, the other how stale a check may be before it is run again — neither is derived from the other", () => {
+    expect(pins.DESTINATION_BREAKAGE_MAIL_DELAY_H).toBe(pins.DESTINATION_HEALTH_MAX_AGE_H);
+  });
+
   it(`§9, quoted: "${B.verify24h}" · BP-049 NFR budget, quoted: "\`VERIFY.coverageFloor = 0.95\` and \`VERIFY.userAgent\` belong in BP-005" — VERIFY`, () => {
     expect(pins.VERIFY.coverageFloor).toBe(0.95);
     expect(pins.VERIFY.coverageFloor).toBeGreaterThan(0);
