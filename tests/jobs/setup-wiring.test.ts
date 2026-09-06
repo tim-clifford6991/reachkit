@@ -38,11 +38,19 @@ const { setBillingStore } = await import("../../src/lib/account/billing");
 const { memoryBillingStore, newMemoryBilling } = await import(
   "../account/billing/memory-store"
 );
+// The erasure half of the tick is built too (issue #52) and reads rows, on
+// the same footing: stood in through its own module's door, with nothing
+// tombstoned, so a tick has no account due for purge.
+const { setLifecycleStore } = await import("../../src/lib/account/lifecycle");
+const { memoryLifecycleStore, newMemoryLifecycle } = await import(
+  "../account/lifecycle/memory-store"
+);
 
 const NOW = new Date(Date.UTC(2026, 8, 6, 12, 0, 0));
 
 beforeEach(() => {
   setBillingStore(memoryBillingStore(newMemoryBilling()));
+  setLifecycleStore(memoryLifecycleStore(newMemoryLifecycle()));
   deepPass.mockReset();
   dueReminders.mockReset();
   sendReminder.mockReset();
@@ -118,11 +126,13 @@ describe("REQ-025 c6 — the reminders are the maintenance tick's sixth obligati
     });
   });
 
-  it("the obligations whose engines have not shipped no longer take the tick down with them", async () => {
-    // One of the six still throws `EngineNotBuilt` today — BP-063's purge.
-    // The two hosting obligations that stood beside it here were built by
-    // issue #34. Before issue #36 the first unbuilt obligation ended the
-    // run, so nothing behind it in the list ever ran.
+  it("the sixth obligation runs behind the other five, all of which are now built", async () => {
+    // Every obligation in the list has an engine today: the payment pair
+    // (issue #33), the hosting pair (issue #34), the purge (issue #52) and
+    // these reminders (issue #36). Before issue #36 the first unbuilt
+    // obligation ended the run, so nothing behind it in the list ever ran;
+    // the skip that replaced it is asserted in
+    // `tests/jobs/definitions.test.ts`, which still has a subject for it.
     dueReminders.mockResolvedValue(["site-1"]);
     await expect(accountMaintenance.run({ data: {}, now: NOW })).resolves.toBeDefined();
     expect(sendReminder).toHaveBeenCalledWith("site-1");

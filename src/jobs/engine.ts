@@ -343,13 +343,31 @@ export async function noticeBrokenDestination(a: {
   return { done: true };
 }
 
-// ── Erasure — BP-063
-// TODO(engine): BP-063's purge — a tombstone's 30-day sweep.
+// ── Erasure — issue #52, built.
+//
+// Two calls into `src/lib/account/lifecycle/`, and no logic of their own.
+// Imported at the call, on the same footing as the hosting four above: the
+// module reaches `@/lib/db`, which parses the environment the moment it is
+// imported, and a static import here would put a database client in every
+// module graph this seam appears in.
+//
+// The due-work predicate is a stored date on an indexed column and the
+// sweep is the one code path in this product that deletes a customer's
+// rows; neither is a job's to hold. The tick's cadence
+// (`MAINTENANCE_TICK_MINUTES`) is tighter than the promise
+// (`ERASURE_DAYS`), so the boundary a customer was told about is decided
+// by `purge_due_at` and never by when a tick happened to fire.
 
 export async function accountsDueForPurge(): Promise<readonly string[]> {
-  return notBuilt("BP-063", "accountsDueForPurge()");
+  const { accountsDueForPurge: due } = await import("@/lib/account/lifecycle");
+  return due(new Date());
 }
 
 export async function purgeAccount(accountId: string): Promise<EngineResult> {
-  return notBuilt("BP-063", `purgeAccount(${accountId})`);
+  const { purgeAccount: purge } = await import("@/lib/account/lifecycle");
+  // A purge that cannot clear a row throws, and the tick lets it: it means
+  // data promised gone at thirty days is still present, which is not a
+  // degraded run to record and carry on from.
+  await purge(accountId);
+  return { done: true };
 }

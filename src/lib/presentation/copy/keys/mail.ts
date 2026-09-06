@@ -320,6 +320,8 @@ export const MAIL_COPY = Object.freeze({
   "mail.published.site_condition.robots_blocks_site": [
     "",
     { slots: { foundAt: "date" }, fixedBy: "REQ-062 c6" },
+  ],
+
   // ── The one `account` mail a deleted account leaves behind (issue #52)
   //
   // REQ-079 criterion 6. Deletion leaves the customer no ReachKit surface to
