@@ -43,6 +43,11 @@ const AXIS_Y = 38;
 /** `--w-spark-min`: below this the endpoint dot scales under 3.5px. */
 const PLOT_MIN_PX = 128;
 const BREAK_WIDTH = 1;
+/** Half a mark's hit area. The band is clamped to the viewBox below: a hit
+ *  area that ran past the edge put the marks layer outside the drawing's own
+ *  box, which the layout sweep reads — correctly — as content escaping its
+ *  container. */
+const MARK_HALF_WIDTH = 8;
 
 interface Row {
   /** The rival, direct-labelled. */
@@ -98,7 +103,15 @@ export function RivalSparkline(p: RivalSparklineProps): React.JSX.Element {
           alignItems: "center",
         }}
       >
-        <span style={{ fontSize: "13px", fontWeight: 600 }}>{p.name}</span>
+        {/* `minWidth: 0` and `overflowWrap` together: a grid item's default
+            `min-width: auto` refuses to shrink below its content, and a
+            domain carries no space to wrap at — so without both, a long
+            rival name overflows its own column at the compact band
+            (ADR-093 decision 3: content fits its box or the box changes;
+            text is never shrunk to fit). */}
+        <span style={{ fontSize: "13px", fontWeight: 600, minWidth: 0, overflowWrap: "anywhere" }}>
+          {p.name}
+        </span>
         <ChartFrame box={BOX} label={p.label} minWidth={PLOT_MIN_PX}>
           {/* The one axis. */}
           <line
@@ -146,9 +159,12 @@ export function RivalSparkline(p: RivalSparklineProps): React.JSX.Element {
                 key={`mark-${i}`}
                 box={BOX}
                 tip={value === null ? `${p.name} · ${p.account ?? ""}` : `${p.name} · ${value}`}
-                x={round(xAt(i) - 8)}
+                x={round(Math.max(0, xAt(i) - MARK_HALF_WIDTH))}
                 y={PLOT_TOP}
-                width={16}
+                width={round(
+                  Math.min(BOX.width, xAt(i) + MARK_HALF_WIDTH) -
+                    Math.max(0, xAt(i) - MARK_HALF_WIDTH)
+                )}
                 height={AXIS_Y - PLOT_TOP}
               />
             ))}

@@ -178,7 +178,33 @@ describe("REQ-093 c5 — the registry renders with every model unavailable", () 
     // words; §12 prints the three recurring mails' own names. Each key's
     // `fixedBy` names the clause it transcribes, so "ruled" still means ruled.
     // None carries the marker: 85 + 50 = 135.
-    expect(ruled.length).toBe(135);
+    //
+    // 2026-09-05, separately again: issue #15 (Overview, BUILD §4.5 as
+    // amended by DECISIONS 2026-09-03) adds thirty-six keys in
+    // `overview.ts`, split across two of the three standings and none
+    // across the third. Nineteen are **ruled**, and every one is a
+    // transcription of a word or sentence §4.5 itself prints, on the same
+    // footing as the `shell.*` five: the two module headings ("How far
+    // ahead each rival is", "This week"), three tile names, the three day
+    // words ("done/today/next"), the two controls ("Open calendar →",
+    // "Read it"), the goal form ("goal: {value}"), the two delta glyphs,
+    // the two figure forms ("{ratio}×", "was {previous}"), the cold-start
+    // "you", the sparkline's own label, the dim rival line and the growth
+    // footnote. The other seventeen are **owner-owed and empty** — every
+    // composed sentence Overview speaks: the three further head lines and
+    // the badge, the growth start footnote, the AI window reading, the two
+    // goal-meaning lines, the cold-start rival line, the four alert lines,
+    // the alerts-empty line, the overflow line and the three supply lines.
+    //
+    // None takes `AWAITING_COPY`'s marker, and that is the screen's own
+    // rule rather than an oversight: Overview reads every line through the
+    // shell's `writtenLine`, which renders an owner-owed key as **nothing**
+    // (issue #9). A marker is the right standing for a key a screen must
+    // render something for; it is the wrong one for a sentence a customer
+    // would otherwise read as product copy.
+    //
+    // 135 + 19 = 154 ruled.
+    expect(ruled.length).toBe(154);
 
     // Only the ruled sentences carry their slots' `{name}` placeholders —
     // a `TODO(copy)` marker is one literal with no placeholder in it, so
@@ -412,10 +438,37 @@ describe("owner-owed and empty agree both ways", () => {
     // throw would otherwise take down, and this one never calls `copy()` on a
     // key it has not first found written. 50 + 4 = 54 owner-owed, 74 awaiting
     // unchanged, 85 + 50 = 135 ruled, 209 + 54 = 263 total.
-    expect(OWNER_OWED.length).toBe(54);
+    //
+    // 2026-09-05, separately again: issue #15 (Overview, BUILD §4.5 as
+    // amended by DECISIONS 2026-09-03) adds thirty-six keys in
+    // `overview.ts`, split across two of the three standings and none
+    // across the third. Nineteen are **ruled**, and every one is a
+    // transcription of a word or sentence §4.5 itself prints, on the same
+    // footing as the `shell.*` five: the two module headings ("How far
+    // ahead each rival is", "This week"), three tile names, the three day
+    // words ("done/today/next"), the two controls ("Open calendar →",
+    // "Read it"), the goal form ("goal: {value}"), the two delta glyphs,
+    // the two figure forms ("{ratio}×", "was {previous}"), the cold-start
+    // "you", the sparkline's own label, the dim rival line and the growth
+    // footnote. The other seventeen are **owner-owed and empty** — every
+    // composed sentence Overview speaks: the three further head lines and
+    // the badge, the growth start footnote, the AI window reading, the two
+    // goal-meaning lines, the cold-start rival line, the four alert lines,
+    // the alerts-empty line, the overflow line and the three supply lines.
+    //
+    // None takes `AWAITING_COPY`'s marker, and that is the screen's own
+    // rule rather than an oversight: Overview reads every line through the
+    // shell's `writtenLine`, which renders an owner-owed key as **nothing**
+    // (issue #9). A marker is the right standing for a key a screen must
+    // render something for; it is the wrong one for a sentence a customer
+    // would otherwise read as product copy.
+    //
+    // 54 + 17 = 71 owner-owed and empty, 74 awaiting copy unchanged, 135 +
+    // 19 = 154 ruled, 263 + 36 = 299 total.
+    expect(OWNER_OWED.length).toBe(71);
     expect(AWAITING_COPY.length).toBe(74);
-    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(135);
-    expect(Object.keys(COPY).length).toBe(263);
+    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(154);
+    expect(Object.keys(COPY).length).toBe(299);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.

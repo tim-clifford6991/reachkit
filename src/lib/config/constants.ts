@@ -366,3 +366,26 @@ export const RIVAL_SCORE = Object.freeze({                    // BUILD §6.1 · 
  *  `BATTERY.COMPETITORS_MAX`, which happens to hold the same number today
  *  and bounds a different thing — how many rivals a customer may track. */
 export const ABSENT_FROM_MAX = 5 as const;                    // BP-026 · REQ-008 c4
+
+// ── Overview (issue #15) — BUILD §4.5
+/** The point below which a rival-to-customer ratio misleads more than it
+ *  informs. §6.6, verbatim: "The ratio module unlocks at ranked ≥ 10 with
+ *  copy 'now comparable'" — and, above it, the reason there is a threshold
+ *  at all: "when the customer's count is 0, render the rivals' absolute
+ *  numbers with `you: 0` — **never a ratio** (division by zero renders as
+ *  ∞× and reads as broken)". Transcribed, not chosen. */
+export const RATIO_UNLOCK = 10 as const;                      // §6.6
+
+/** The fixed trailing window Overview reads its two week-counted readings
+ *  over: the weekly points the growth chart draws, and — since the owner's
+ *  ruling of 2026-09-03 (DECISIONS) — the AI-answers tile's one reading,
+ *  "in how many of a fixed trailing window of weeks the customer was named
+ *  in at least one tracked question's AI answer". Twelve weeks is a
+ *  quarter of weekly measurement, and it is what makes
+ *  `GOAL_VALUES.ai_answers = 6` read as half the window; one number, so the
+ *  chart and the tile can never disagree about which weeks they mean. */
+export const OVERVIEW_TRAILING_WEEKS = 12 as const;           // BUILD §4.5 · DECISIONS 2026-09-03
+
+/** BUILD §4.5, verbatim: "up to two alerts". The remainder is stated as a
+ *  count with where to see it, never as a third alert. */
+export const OVERVIEW_ALERT_CAP = 2 as const;                 // BUILD §4.5

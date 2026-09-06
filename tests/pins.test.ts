@@ -97,6 +97,10 @@ const B = {
   nurture: "Nurture: max 3 mails (24h/72h/168h), stops on conversion.",
   goal400: 'footnote pair: start value · "At 400 the big category terms unlock."',
   goal6: 'AI answers `n/12` (dot row incl. dashed goal dots + "goal: 6")',
+  ratioUnlock:
+    'The ratio module unlocks at ranked ≥ 10 with copy "now comparable".',
+  twoAlerts:
+    '**This week**: 7-day strip (done/today/next) + "Open calendar →" + up to two alerts (today\'s page pending veto → "Read it"; a needs-you item → action button).',
   selectionScore: "score = intentWeight × log10(volume + 1) volume floor: 50/mo",
   intentWeights:
     "3 decision best X · X vs Y · X alternatives · top X tools 3 solution {category} software|tool|app|platform 2 problem how to {job} · {pain phrase} 1 informational what is X",
@@ -130,6 +134,8 @@ const D = {
   adr060: 'Weekly measurement is triggered hourly and gated on each site\'s own local Monday; "Mon 06:00 UTC" is not the trigger. — ADR-060',
   adr094: "The free report's AI matrix DOES set `load_async_ai_overview` (counts Google's actual AI answers).",
   freeCap: 'Free-scan cap stays 12¢ ("a lead magnet … wasting money on it is a crime").',
+  aiOneReading:
+    "Overview's AI-answers tile shows one reading only: weeks present in the trailing window. The composite score has no tile on Overview.",
 } as const;
 
 const C = {
@@ -908,6 +914,37 @@ describe("§4.5 Overview — the four headline goal values", () => {
 
   it("all four are numbers — the pairing with a copy key is BP-038's `GOALS`, so this file holds no `CopyKey`", () => {
     for (const [goal, value] of Object.entries(pins.GOAL_VALUES)) expect(typeof value, goal).toBe("number");
+  });
+});
+
+// ────────────────────────────────────────────────────────── §4.5 the screen's own three
+
+describe("§4.5 Overview — the three pins the screen itself is built on (#15)", () => {
+  it(`§6.6, quoted: "${B.ratioUnlock}" — RATIO_UNLOCK is the ranked count at which a rival ratio starts meaning something`, () => {
+    expect(pins.RATIO_UNLOCK).toBe(10);
+    // The clause's own reason for existing: below it the module shows
+    // absolute numbers, because at a count of 0 a ratio is a division by
+    // zero. A threshold of 0 or 1 would put the screen back there.
+    expect(pins.RATIO_UNLOCK).toBeGreaterThan(1);
+  });
+
+  it(`§4.5, quoted: "${B.twoAlerts}" — OVERVIEW_ALERT_CAP is that "up to two", and the remainder is a count rather than a third alert`, () => {
+    expect(pins.OVERVIEW_ALERT_CAP).toBe(2);
+    expect(B.twoAlerts).toContain("up to two alerts");
+  });
+
+  it(`DECISIONS 2026-09-03, quoted: "${D.aiOneReading}" — OVERVIEW_TRAILING_WEEKS is the window that ruling leaves unnumbered: chosen at 12, a quarter of weekly measurement, and the one window both of the screen's week-counted readings are taken over`, () => {
+    // The ruling fixes *what* the tile reads (weeks present in a fixed
+    // trailing window) and names no length, so the number is this build's
+    // parameter (constitution rule 1.1) rather than a transcription — it is
+    // asserted here against the two properties that make it the right one
+    // rather than against a clause that does not state it.
+    expect(pins.OVERVIEW_TRAILING_WEEKS).toBe(12);
+    // The goal has to be reachable inside the window, and has to be a real
+    // target rather than a formality: 6 of 12 is half of it.
+    expect(pins.GOAL_VALUES.ai_answers).toBeLessThanOrEqual(pins.OVERVIEW_TRAILING_WEEKS);
+    expect(pins.OVERVIEW_TRAILING_WEEKS).toBe(pins.GOAL_VALUES.ai_answers * 2);
+    expect(D.aiOneReading).toContain("trailing window");
   });
 });
 

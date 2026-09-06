@@ -3,10 +3,15 @@
 // shell frames: BUILD §4.5 Overview, BUILD §4.6 Calendar, BUILD §4.7
 // Settings.
 //
-// Issue #9 builds the frame, not the screens: Overview's chart and tiles are
-// #15's, the calendar grid and day panel are #16's (and #10's), and the
-// settings cards are #18's. What this file holds is the contract those three
-// builds inherit and must not break —
+// Issue #9 built the frame, not the screens: the calendar grid and day panel
+// are #16's (and #10's) and the settings cards are #18's. Overview's own
+// content landed with #15, so it is no longer one of the placeholder screens
+// this file sweeps — its five modules are covered by `tests/app/overview/`,
+// and the two contract rows it still owes the shell (no `Surface` of its
+// own, no sentence of its own) are asserted for it separately below.
+//
+// What this file holds is the contract those builds inherit and must not
+// break —
 //
 //   1. each destination has a route, and it renders;
 //   2. no page declares a `Surface` of its own, because the shell's layout
@@ -37,10 +42,22 @@
 // paragraph": that was a fair proxy on a screen whose whole body was one line,
 // and is false on one with eight cards. It now says what it meant.
 //
-// `SCREENS` is down to Overview, the last of the three still a placeholder
-// (#15). The table stays rather than being inlined: the contract is the
-// frame's, and the next screen to be built should have to leave it
-// deliberately, as these two did.
+// **Overview left it on 2026-09-05 as well (issue #15), and it was the
+// last one.** §4.5 gives the screen five modules and an async read, so it
+// can no more be rendered by the table's synchronous row than Settings
+// could; and its head is `OVERVIEW_HEAD[direction]`, one of four lines the
+// measured direction selects, rather than the single `overview.head` the
+// table asserted. Where none of the four is written it falls back to the
+// destination's nav word, so the document is never headless — which is the
+// one thing the table's first row was really holding.
+//
+// With that, **the table is gone**: all three destinations are built, and
+// §4.4 closes the navigation at three ("No other navigation"), so there is
+// no fourth screen left to inherit it. The contract is still the frame's
+// and is still asserted three times — once per screen, in its own block
+// below, because each screen now renders differently enough that a shared
+// row could only assert what they have in common by asserting almost
+// nothing.
 //
 // `copy()` is mocked to `(key) => key` and `COPY` is left real, the same
 // convention `frame.test.tsx` uses and for the same reason.
@@ -62,50 +79,9 @@ import SettingsPage from "@/app/(account)/app/settings/page";
 
 const APP_DIR = path.resolve(import.meta.dirname, "../../../src/app/(account)/app");
 
-const SCREENS = [
-  { name: "overview", file: "page.tsx", Page: OverviewPage, nav: "shell.nav.overview", head: "overview.head" },
-] as const satisfies readonly {
-  name: string;
-  file: string;
-  Page: () => React.JSX.Element;
-  nav: CopyKey;
-  head: CopyKey;
-}[];
-
-function markup(el: React.ReactElement): string {
-  return renderToStaticMarkup(el);
+async function markup(el: React.ReactElement | Promise<React.ReactElement>): Promise<string> {
+  return renderToStaticMarkup(await el);
 }
-
-describe.each(SCREENS)("$name — the screen renders inside the shell", ({ file, Page, nav, head }) => {
-  it("renders, and names itself from the destination's own registry key", () => {
-    const html = markup(<Page />);
-    expect(html).toContain(`<h1>${nav}</h1>`);
-  });
-
-  it("declares no Surface — the shell's layout owns this route's screen root", () => {
-    // By source (the import is the only way to reach it) and by output.
-    const source = readFileSync(path.join(APP_DIR, file), "utf8");
-    expect(source).not.toMatch(/from\s+["']@\/ui\/layout/);
-    expect(source).not.toContain("<Surface");
-    expect(markup(<Page />)).not.toContain("data-surface");
-  });
-
-  it("speaks only through the registry: the head line resolves from its key, or not at all", () => {
-    const html = markup(<Page />);
-    if (COPY[head] === "") {
-      // Owner-owed: nothing is written in its place. Not a placeholder, not
-      // the key, not an empty paragraph.
-      expect(html).not.toContain(head);
-      expect(html).not.toContain("<p>");
-    } else {
-      expect(html).toContain(`<p>${head}</p>`);
-    }
-  });
-
-  it("its head key exists in the registry, so filling it is the whole change", () => {
-    expect(Object.keys(COPY)).toContain(head);
-  });
-});
 
 // ── Calendar, which is no longer a placeholder (issue #16, BUILD §4.6) ────
 describe("calendar — the built screen keeps the three contracts the frame set", () => {
@@ -165,5 +141,40 @@ describe("settings — the built screen keeps the three contracts the frame set"
 
   it("its head key exists in the registry, so filling it is the whole change", () => {
     expect(Object.keys(COPY)).toContain("settings.head" satisfies CopyKey);
+  });
+});
+
+// ── Overview (#15) — built out, and still inside the shell ─────────────────
+//
+// The two rows every screen under `/app` owes the frame, asserted against
+// the screen that now has content of its own. The five modules themselves —
+// the head's direction, the growth break, the three tiles, both rival arms,
+// the strip and the alert cap — are `tests/app/overview/`'s.
+describe("overview — the built screen still keeps the shell's contract", () => {
+  it("declares no Surface — the shell's layout owns this route's screen root", async () => {
+    const source = readFileSync(path.join(APP_DIR, "page.tsx"), "utf8");
+    expect(source).not.toMatch(/from\s+["']@\/ui\/layout/);
+    expect(source).not.toContain("<Surface");
+    expect(await markup(OverviewPage())).not.toContain("data-surface");
+  });
+
+  it("renders, and is headed by a key from the registry", async () => {
+    const html = await markup(OverviewPage());
+    // `copy()` is mocked to the identity above, so the heading is whichever
+    // key the head resolved to — the direction's own line where the owner
+    // has written it, and the destination's name where they have not.
+    expect(html).toMatch(/<h1>[a-z.\-]+<\/h1>/);
+    expect(html).toContain('data-testid="overview"');
+  });
+
+  it("its head keys all exist in the registry, so filling one is the whole change", () => {
+    const HEAD_KEYS: CopyKey[] = [
+      "overview.head",
+      "overview.head.rising",
+      "overview.head.flat",
+      "overview.head.falling",
+      "overview.head.badge",
+    ];
+    for (const key of HEAD_KEYS) expect(Object.keys(COPY)).toContain(key);
   });
 });
