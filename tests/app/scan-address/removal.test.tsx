@@ -25,7 +25,7 @@ import path from "node:path";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { COPY } from "@/lib/presentation/copy";
+import { COPY, copy } from "@/lib/presentation/copy";
 import type { CanonicalDomain } from "@/lib/scan/domain";
 import {
   REMOVED_RESPONSE_INIT,
@@ -158,11 +158,23 @@ describe('REQ-002 c3 — "…in its place one written line says the report was r
 
   it("shows no report content — no score, no band, no verdict, no card", () => {
     const html = renderToStaticMarkup(React.createElement(RemovedView, { domain: DOMAIN }));
-    for (const key of Object.keys(COPY)) {
-      if (key.startsWith("removal.")) continue;
-      const sentence = COPY[key as keyof typeof COPY];
-      if (sentence.length > 0) expect(html).not.toContain(sentence);
-    }
+    // The whole body is one written line, so the claim is stated as an
+    // equality: the rendered text *is* that line and there is nothing else in
+    // it — no score, no band, no verdict, no card, and nothing outside the
+    // registry either.
+    //
+    // It used to be stated as a sweep — every other registry sentence must not
+    // appear as a substring of the markup — which was weaker (it could only
+    // catch text the registry already held) and, from issue #18, wrong: BUILD
+    // §4.7's Settings screen gave the registry its first single-word control
+    // labels, and `settings.competitors.remove` ("remove") is a substring of
+    // this very sentence's "removed" and of `removal.address` itself. The
+    // sweep reported that collision as report content leaking onto a removed
+    // address, which it is not.
+    const rendered = html.replace(/<[^>]*>/g, "").trim();
+    expect(rendered).toBe(
+      copy("removal.line.removed", { domain: DOMAIN, address: COPY["removal.address"] })
+    );
   });
 
   it("is a screen root — it declares its own three band arms (ADR-093)", () => {
