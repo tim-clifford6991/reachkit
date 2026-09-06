@@ -63,7 +63,7 @@ const READ_AT = new Date("2026-09-05T10:00:00.000Z");
 vi.mock("@/lib/egress/safe-fetch", () => ({
   safeFetch: async (url: string): Promise<FetchOutcome> => {
     const html = url.includes("/pricing") ? PRICING_HTML : HOME_HTML;
-    return { ok: true, status: 200, url, html, bytes: html.length, readAt: READ_AT };
+    return { ok: true, status: 200, url, html, bytes: html.length, readAt: READ_AT, headers: {} };
   },
 }));
 
