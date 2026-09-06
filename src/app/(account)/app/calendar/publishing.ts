@@ -103,7 +103,4 @@ export const publishing: PublishingMachine = Object.freeze({
   approve(a: { draftId: string }): Promise<void> {
     return run("approve", approveDraft(a.draftId));
   },
-  approve(): Promise<void> {
-    return Promise.reject(new PublishingNotBuiltError("approve"));
-  },
 });
