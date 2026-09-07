@@ -153,6 +153,17 @@ export const REPORT_COPY = Object.freeze({
   "ai-answers.engine.ai-overview": ["TODO(copy)", { slots: {}, fixedBy: "BUILD §6.2" }],
   "ai-answers.engine.ai-mode": ["TODO(copy)", { slots: {}, fixedBy: "BUILD §6.2" }],
   "ai-answers.engine.chatgpt": ["TODO(copy)", { slots: {}, fixedBy: "BUILD §6.2" }],
+  // The header over the column that carries each question's number. The
+  // engine columns are a table of the twelve, and the row-label column is
+  // a column like the other three — a header it does not have would be an
+  // invented blank, not an absent sentence (issue #157).
+  "ai-answers.engine.column.question": ["TODO(copy)", { slots: {}, fixedBy: "BUILD §6.2" }],
+  // What a cell says where that engine's answer named the customer. The
+  // approved one-column card says this by rendering *nothing* beside the
+  // question — the absence of the `not-you` badge is the good news. In a
+  // three-column grid a blank cell is ambiguous (a hit, or an engine
+  // nobody asked?), so the positive state states itself (issue #157).
+  "ai-answers.engine.cell.cited": ["TODO(copy)", { slots: {}, fixedBy: "BUILD §6.2" }],
   // What a column says where the engine was never asked — the free
   // report's two battery columns, and any question a ceiling stopped the
   // pass reaching. It states a fact about the measurement, never a miss.

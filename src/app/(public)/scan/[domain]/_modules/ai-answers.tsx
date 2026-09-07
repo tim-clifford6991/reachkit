@@ -14,25 +14,46 @@
 // says everything it claims with the slot empty (§2.4: "identity is never
 // colour-alone").
 //
-// And no three-column engine layout, for the same reason and by the same
-// mechanism (issue #128). §6.2 rules the paid battery "rendered as three
-// answer columns"; every row now **carries** those three columns as data
-// (`AiAnswersSection.rows[].engines`), and drawing them changes an
-// approved screen — which `CLAUDE.md` gates behind an owner-approved
-// artifact and owner-written copy. So the columns arrive here as the
-// `engines` slot, exactly as the chart does, and the card renders
-// unchanged until that gate is discharged. The four copy keys the layout
-// will need are minted and owner-owed (`ai-answers.engine.*`). The
-// layout is issue #157.
+// **§6.2's three answer columns are drawn here** (issue #157, design sheet
+// linked on the issue). §6.2 rules the paid battery "rendered as three
+// answer columns", every row carries them as data
+// (`AiAnswersSection.rows[].engines`), and `AnswerColumns` below is that
+// data laid out: one column per engine, one row per question, every cell
+// a written state. It is §2.2's registered `Table` and not a sixth chart —
+// §2.4's inventory is closed at five and a new form is an approval of its
+// own — which also buys the `overflow-x-auto` wrap that lets four columns
+// narrow to 320px by scrolling instead of by shrinking their type.
+//
+// **The columns are built from the data, so nothing here branches on
+// tier.** `report-view.tsx` has no payment, session or tier parameter and
+// gains none (REQ-004 c5): an engine is drawn as a column when at least
+// one question actually asked it. The free path makes zero AI Optimization
+// calls (§6.2), so its two battery engines are `unmeasured/not_attempted`
+// on every row, contribute no column of cells, and are named once beneath
+// the table in `ai-answers.engine.not-measured`. Twelve repetitions of
+// "not measured" down two columns would read as twenty-four places the
+// customer lost; one line per engine reads as what is true — §6.2's
+// "never as a miss", at the column level.
+//
+// **What this deliberately does not move**: `measuredSearches`,
+// `answeredSearches`, `customerCitations` and the rival rows are still
+// Google's AI answers alone. Counting them across three engines changes
+// what the card *claims*, not how it is laid out, and issue #157's last
+// box puts that to the owner.
 //
 // Question wording is model text and reaches this file only through
 // `renderQuestion`, which will not yield the wording without the search it
 // came from (REQ-093 c3).
 import type React from "react";
 import { Badge, Card, Divider, Table } from "@/ui/components";
-import { copy } from "@/lib/presentation/copy";
+import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { renderQuestion } from "@/lib/presentation/generated";
-import type { AiAnswersSection, AnswerCell, StoredQuestion } from "@/lib/scan/report";
+import type {
+  AiAnswersSection,
+  AnswerCell,
+  BatteryEngine,
+  StoredQuestion,
+} from "@/lib/scan/report";
 import { Num, ratio } from "../_address/measured";
 
 /** How many of the twelve the list shows before "Show all 12"
@@ -46,6 +67,109 @@ function citedCount(cells: readonly AnswerCell[]): number {
 
 function answeredCount(cells: readonly AnswerCell[]): number {
   return cells.filter((c) => c.kind === "answered").length;
+}
+
+/** One column header per engine. A **total** map over `BatteryEngine`, so
+ *  a fourth engine would be a compile error here rather than an unlabelled
+ *  column — which is the guard §2.4 asks for ("identity is never
+ *  colour-alone") standing where a fourth name could only arrive by
+ *  amending §6.2 and §6.4's never-pull list together. */
+const ENGINE_LABEL: Readonly<Record<BatteryEngine, CopyKey>> = Object.freeze({
+  ai_overview: "ai-answers.engine.ai-overview",
+  ai_mode: "ai-answers.engine.ai-mode",
+  chatgpt: "ai-answers.engine.chatgpt",
+});
+
+type AnswerRows = AiAnswersSection["rows"];
+
+/** The engines the rows carry, in the order they carry them —
+ *  `BATTERY_ENGINES` order, read off the data rather than transcribed. Not
+ *  taste: `matrix.ts` owns that order, and a **runtime** import of the
+ *  market leaf from a file this screen reaches pulls `rivals/domains` →
+ *  `scan/domain` → `node:net` into the Edge bundle and fails the build. */
+function engineOrder(rows: AnswerRows): readonly BatteryEngine[] {
+  const order: BatteryEngine[] = [];
+  for (const row of rows) {
+    for (const column of row.engines) {
+      if (!order.includes(column.engine)) order.push(column.engine);
+    }
+  }
+  return order;
+}
+
+function cellFor(row: AnswerRows[number], engine: BatteryEngine): AnswerCell {
+  return (
+    row.engines.find((column) => column.engine === engine)?.cell ?? {
+      kind: "unmeasured",
+      reason: "not_attempted",
+    }
+  );
+}
+
+/** Whether anything asked this engine at all. One question it reached is
+ *  enough: the column then has something to say, and the questions it did
+ *  not reach say so cell by cell. */
+function wasAsked(rows: AnswerRows, engine: BatteryEngine): boolean {
+  return rows.some((row) => cellFor(row, engine).kind !== "unmeasured");
+}
+
+/** One cell of one answer column. Four states and only four — `AnswerCell`'s
+ *  three arms, plus the one distinction the answered arm carries — and two
+ *  of them are not misses: an engine that served no answer and an engine
+ *  nobody asked both take the neutral tone, because §2.5 keeps red for the
+ *  customer's own problem being shown to them and neither of those is one. */
+function AnswerState(p: { cell: AnswerCell }): React.JSX.Element {
+  const { cell } = p;
+  if (cell.kind === "unmeasured") {
+    return <Badge tone="neutral">{copy("ai-answers.engine.not-measured")}</Badge>;
+  }
+  if (cell.kind === "no_answer") {
+    return <Badge tone="neutral">{copy("ai-answers.question.no-answer")}</Badge>;
+  }
+  return cell.namesCustomer ? (
+    <Badge tone="ok">{copy("ai-answers.engine.cell.cited")}</Badge>
+  ) : (
+    <Badge tone="bad">{copy("ai-answers.question.not-you")}</Badge>
+  );
+}
+
+/** §6.2's three answer columns. Renders nothing where no engine was asked
+ *  at all — the card's own denominator lines already state that, and an
+ *  empty table under four headers would say it a second time and worse. */
+function AnswerColumns(p: { rows: AnswerRows }): React.JSX.Element | null {
+  const engines = engineOrder(p.rows);
+  const drawn = engines.filter((engine) => wasAsked(p.rows, engine));
+  const neverAsked = engines.filter((engine) => !wasAsked(p.rows, engine));
+  if (drawn.length === 0) return null;
+
+  return (
+    <>
+      <Table
+        columns={[
+          { key: "n", header: copy("ai-answers.engine.column.question") },
+          ...drawn.map((engine) => ({ key: engine, header: copy(ENGINE_LABEL[engine]) })),
+        ]}
+        rows={p.rows.map((row) => ({
+          n: <Num>{String(row.question.n)}</Num>,
+          ...Object.fromEntries(
+            drawn.map((engine) => [engine, <AnswerState key={engine} cell={cellFor(row, engine)} />])
+          ),
+        }))}
+        // Unreachable, and required anyway: `drawn` is empty whenever
+        // `rows` is, so this component has already returned null. `Table`
+        // admits no fallback for it by design, so it takes the sentence
+        // that would be true — nothing was asked — rather than a string
+        // invented to satisfy the prop.
+        emptyMessage={copy("ai-answers.engine.not-measured")}
+      />
+      {neverAsked.map((engine) => (
+        <p key={engine} className="flex flex-wrap items-center gap-2 text-xs">
+          <Badge tone="neutral">{copy(ENGINE_LABEL[engine])}</Badge>
+          <span className="opacity-60">{copy("ai-answers.engine.not-measured")}</span>
+        </p>
+      ))}
+    </>
+  );
 }
 
 function QuestionRow(p: { row: { question: StoredQuestion; cell: AnswerCell } }): React.JSX.Element {
@@ -83,14 +207,6 @@ export function AiAnswersCard(p: {
    *  state and not an empty state — the rows below still carry every
    *  figure the chart would draw. */
   matrix?: React.ReactNode;
-  /** §6.2's three answer columns, once the design gate #128 names is
-   *  discharged — issue #157. Same standing as `matrix`: absent is an absence, and the
-   *  card below is complete without it — the questions list and the
-   *  citation table still state, in writing, everything the customer is
-   *  told today. The data the layout reads is already on every row
-   *  (`section.rows[].engines`), so the follow-up is a rendering change
-   *  and not a measurement one. */
-  engines?: React.ReactNode;
   /** The date the SERPs behind this card were read, already formatted by
    *  the caller that owns the report's one date. */
   measuredOn: string;
@@ -122,7 +238,7 @@ export function AiAnswersCard(p: {
       </p>
 
       {p.matrix}
-      {p.engines}
+      <AnswerColumns rows={section.rows} />
 
       <Table
         columns={[
