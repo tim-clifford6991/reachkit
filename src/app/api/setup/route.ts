@@ -8,26 +8,23 @@
 //
 // **`siteId` is never read from the request body.** It comes from the
 // account behind the session, through the store — a founder cannot name
-// another founder's site by editing a payload. The session itself is
-// #35's; until it lands, `currentUserId()` below is the one honest stand-in
-// and says so.
+// another founder's site by editing a payload.
+//
+// **The account is the session's, since #133.** `currentSession()`
+// (BP-061, #35) is the whole of it: the cookie's MAC, its signed expiry,
+// the account's own session stamp and its tombstone are all checked there,
+// and this file adds no claim of its own. `src/middleware.ts` has already
+// refused a request that carries no cookie at all, so the `null` arm below
+// is the forged, expired or ended one — answered the way every other
+// account endpoint answers it, with a status and no sentence.
 import { adapter } from "../_adapter";
 import { completeSetup, type SetupResult, type SetupSubmission } from "@/app/(account)/setup/submit";
 import { setupStore } from "@/app/(account)/setup/_setup/provider";
-import { FIXTURE_USER_ID } from "@/app/(account)/setup/_setup/fixture";
+import { currentSession } from "@/lib/account/identity";
 
 const BAD_REQUEST = 400;
+const UNAUTHENTICATED = 401;
 const REFUSED = 422;
-
-/** The signed-in account. `src/middleware.ts` has already refused this
- *  request unless it carried a session cookie, so a caller reaching here
- *  is signed in; **which** account it is, is BP-061's `currentSession()`
- *  (#35), which does not exist yet. Until it does this returns the fixture
- *  account, which is the same account `_setup/provider.ts` reads — one
- *  stand-in, named once, not a second guess. */
-function currentUserId(): string {
-  return FIXTURE_USER_ID;
-}
 
 /** Narrows an unknown body to `SetupSubmission` without widening it: a
  *  member absent from the type cannot be sent, which is REQ-025 c1's "and
@@ -57,6 +54,11 @@ function parseSubmission(body: unknown): SetupSubmission | null {
 }
 
 export const POST = adapter("POST /api/setup", async (request: Request): Promise<Response> => {
+  const session = await currentSession();
+  if (session === null) {
+    return Response.json({ error: "unauthenticated" }, { status: UNAUTHENTICATED });
+  }
+
   let body: unknown;
   try {
     body = await request.json();
@@ -70,7 +72,7 @@ export const POST = adapter("POST /api/setup", async (request: Request): Promise
   }
 
   const result: SetupResult = await completeSetup(setupStore(), {
-    userId: currentUserId(),
+    userId: session.userId,
     submission,
   });
 

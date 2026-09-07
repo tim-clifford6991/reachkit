@@ -9,7 +9,8 @@
 import { cache } from "react";
 import { env } from "@/lib/config/env";
 import { assembleSetup, type SetupScreenModel } from "./facts";
-import { FIXTURE_PASS, FIXTURE_SETUP_FACTS, fixtureSetupStore } from "./fixture";
+import { FIXTURE_PASS, FIXTURE_SETUP_FACTS } from "./fixture";
+import { liveSetupStore } from "./store";
 import type { PassProgress } from "./progress";
 import type { SetupStore } from "../submit";
 import type { ReportFacts } from "@/lib/market/setup/state";
@@ -45,25 +46,24 @@ export const readPassProgress = cache(async function readPassProgress(): Promise
  * The writes completing setup makes. The route handler holds no knowledge
  * of which implementation it got.
  *
- * `liveSetupStore()` (issue #36) is the one that writes rows: the three
- * answers, `applySetupChoice()`'s mode-and-destination transaction, the
- * `setup_completed_at` stamp and the `scan/run` event at tier `deep`. It
- * is not what this returns yet, because it reads and writes **one
- * account's** rows and no session carries an account until issue #35's
- * `currentSession()` — `POST /api/setup`'s own `currentUserId()` says the
- * same thing at the other end of the same gap. Handing it the fixture id
- * would have it read rows for an account that does not exist and throw on
- * the first submit.
+ * **This is the live store, since #133.** `liveSetupStore()` (issue #36)
+ * writes the rows: the three answers, `applySetupChoice()`'s
+ * mode-and-destination transaction, the `setup_completed_at` stamp and the
+ * `scan/run` event at tier `deep`. It reads and writes **one account's**
+ * rows, which is why it waited on issue #35 — and `currentSession()` has
+ * landed, so `POST /api/setup` now hands it the session's own user id
+ * rather than a fixture one. The two halves are one switch: a live store
+ * behind a fixture account would read rows for an account that does not
+ * exist and throw on the first submit, and a session behind a fixture
+ * store would record a real founder's three answers nowhere. Nothing in
+ * `submit.ts` changed for either.
  *
- * The switch is this line:
- *
- *     return liveSetupStore();
- *
- * and, in `src/app/api/setup/route.ts`, `currentUserId()` becoming the
- * session's. Nothing in `submit.ts` changes either way.
+ * `fixtureSetupStore()` stays where it is — it is what `submit.test.ts`
+ * and the route suite drive `completeSetup` with, and a store that never
+ * ships is not a stand-in for one that does.
  */
 export function setupStore(): SetupStore {
-  return fixtureSetupStore();
+  return liveSetupStore();
 }
 
 /**

@@ -9,7 +9,9 @@
 // provider these routes read imports it, so every route is imported
 // dynamically after the fixture bindings are applied — the convention
 // `tests/mail/**` established.
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { applyEnvFixture } from "../../mail/env-fixture.ts";
 // #104: importing `@/middleware` loads the removal reader, and through it
 // the database client and the environment binding.
@@ -23,8 +25,30 @@ vi.mock("@/lib/egress", () => ({
   resolvesInDns: vi.fn(async (host: string) => host !== "unreachable-site.com"),
 }));
 
+/** #133: `POST /api/setup` resolves the founder through
+ *  `currentSession()`, and `_setup/provider.ts` now hands out the **live**
+ *  store. Both are mocked here, and that is what keeps this file what its
+ *  header says it is — the adapters' mapping and refusals, never a
+ *  database and never `completeSetup`'s own rules. `submit.test.ts` owns
+ *  those, and `store.test.ts` owns the rows. */
+let session: { userId: string; siteId: string | null } | null = { userId: "user-fixture", siteId: "site-fixture" };
+
+vi.mock("@/lib/account/identity", () => ({
+  currentSession: async () => session,
+}));
+
+vi.mock("@/app/(account)/setup/_setup/provider", async (importOriginal) => {
+  const original = await importOriginal<typeof import("@/app/(account)/setup/_setup/provider")>();
+  const { fixtureSetupStore } = await import("@/app/(account)/setup/_setup/fixture");
+  return { ...original, setupStore: () => fixtureSetupStore() };
+});
+
 beforeAll(() => {
   applyEnvFixture();
+});
+
+beforeEach(() => {
+  session = { userId: "user-fixture", siteId: "site-fixture" };
 });
 
 function post(path: string, body: unknown): Request {
@@ -114,6 +138,52 @@ describe("POST /api/setup — the one write path", () => {
     const response = await POST(post("/api/setup", { ...SUBMISSION, category: "  " }), undefined);
     expect(response.status).toBe(422);
     await expect(response.json()).resolves.toEqual({ ok: false, refused: "market_missing" });
+  });
+
+  it("the site the answer names is the session's, never the body's (#133)", async () => {
+    // The fixture store answers with its own site whatever the payload
+    // says; what this pins is that the route never read one from the body
+    // and never passed one down.
+    session = { userId: "someone-else", siteId: "their-site" };
+    const { POST } = await import("@/app/api/setup/route");
+    const response = await POST(
+      post("/api/setup", { ...SUBMISSION, siteId: "not-yours", userId: "not-yours" }),
+      undefined
+    );
+    await expect(response.json()).resolves.toEqual({ ok: true, siteId: "site-fixture" });
+  });
+
+  it("a request whose cookie names no account is refused, with a status and no sentence (#133)", async () => {
+    // `src/middleware.ts` has already turned away a request with no cookie
+    // at all; this arm is the forged, expired or ended one, and it must
+    // never fall through to a fixture account.
+    session = null;
+    const { POST } = await import("@/app/api/setup/route");
+    const response = await POST(post("/api/setup", SUBMISSION), undefined);
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toEqual({ error: "unauthenticated" });
+  });
+});
+
+describe("the account behind setup is the session's, not a fixture (#133)", () => {
+  it("_setup/provider.ts hands out the live store", async () => {
+    // Asserted on the source, because the module is mocked above for
+    // every other test in this file — and what the switch *is* is that one
+    // line. `store.test.ts` owns what the live store then does.
+    const source = readFileSync(
+      path.resolve(import.meta.dirname, "../../../src/app/(account)/setup/_setup/provider.ts"),
+      "utf8"
+    );
+    expect(source).toMatch(/export function setupStore\(\): SetupStore \{\s*return liveSetupStore\(\);/);
+  });
+
+  it("the route names no fixture account of its own", async () => {
+    const source = readFileSync(
+      path.resolve(import.meta.dirname, "../../../src/app/api/setup/route.ts"),
+      "utf8"
+    );
+    expect(source).not.toContain("FIXTURE_USER_ID");
+    expect(source).toContain("currentSession");
   });
 });
 

@@ -37,15 +37,16 @@
 // test asserts the two seams still throw, so the day they land this file
 // is what says the journey changed.
 //
-// **The `draft-ready` mail has no template yet.** §12's register carries
-// the kind and `src/lib/presentation/copy/keys/mail.ts` carries its three
-// lines, but no `src/lib/mail/templates/draft-ready/` exists. What *is*
-// built is the decision behind it — `tellingFor` picks which of the three
-// things the mail says, `issueVetoLink` mints the one stop link it
-// carries, and `recordTold` is what the `customer_told` guard reads — so
-// the journey exercises the decision and the record, and the composition
-// is the hole. A page still cannot publish untold: that is the guard, and
-// it is asserted here.
+// **The `draft-ready` mail is built (#174), and this journey sends it.**
+// The decision behind it came with the veto leaf — `tellingFor` picks
+// which of §12's three things the mail says, `issueVetoLink` mints the one
+// stop link it carries, and `recordTold` is what the `customer_told` guard
+// reads — and until #174 nothing composed or sent it, so the composition
+// was the hole and a real customer was never told. Step 3 now goes through
+// the real template, the real compose shell and the real send seam, and
+// the stop link the veto tests redeem is read back out of the mail that
+// actually left. A page still cannot publish untold: that is the guard,
+// and it is asserted here.
 //
 // **The hosted destination cannot take a page yet** (#49 — its adapter
 // returns `destination_unavailable` and says so in its own header), so
@@ -321,8 +322,8 @@ const { transition, toMachineDraft } = await import("../../src/lib/publish/machi
 const { publish } = await import("../../src/lib/publish/attempt");
 const {
   becomesPublishable,
+  hashToken,
   issueVetoLink,
-  recordTold,
   redeemVeto,
   tellingFor,
   toldCurrentPair,
@@ -340,6 +341,7 @@ const { readCalendarFacts } = await import("../../src/app/(account)/app/calendar
 const { monthOf, dayKeyOf } = await import("../../src/app/(account)/app/calendar/dates");
 const { CHECK_IDS } = await import("../../src/lib/publish/verify");
 const { __setVendorTransportForTesting } = await import("../../src/lib/mail/vendor/resend");
+const { sendDraftReadyMail } = await import("../../src/lib/mail/draft-ready");
 
 const generateFixtures = await import("../generate/fixtures");
 const opportunityDoubles = await import("../opportunities/memory-store");
@@ -604,7 +606,14 @@ async function generateTonightsPage(): Promise<string> {
 }
 
 /** Step 3 — #45's edge into review, with the deadline a 24-hour window
- *  puts on it, and the telling the customer is owed. */
+ *  puts on it, and the telling the customer is owed.
+ *
+ *  The telling is now a **mail**, sent through the real template, the real
+ *  compose shell and the real send seam (#174): the decision was built
+ *  with the veto leaf and nothing composed it, so a real customer was
+ *  never told a page was in review. The token this returns is read back
+ *  out of the link that actually went to the inbox, so the veto tests
+ *  below stop the page with the link the customer was actually sent. */
 async function enterReviewAndTell(draftId: string): Promise<{ token: string }> {
   const deadline = new Date(TOLD_AT.getTime() + VETO.defaultHours * 3_600_000);
   const row = theDraftRow();
@@ -614,12 +623,19 @@ async function enterReviewAndTell(draftId: string): Promise<{ token: string }> {
   });
   expect(moved.ok).toBe(true);
 
-  const stopAction = await issueVetoLink(draftId, TOLD_AT);
-  const draft = machineDraft();
-  const telling = await tellingFor({ draft, destination: "wordpress", stopAction });
-  expect(telling.kind).toBe("interval");
-  await recordTold(draftId, telling, draft.governing, TOLD_AT);
-  return { token: stopAction.token };
+  const told = await sendDraftReadyMail({ draftId, destination: "wordpress", at: TOLD_AT });
+  expect(told.sent).toBe(true);
+  return { token: tokenFromInbox() };
+}
+
+/** The stop link as it left, read out of the last `draft-ready` mail. */
+function tokenFromInbox(): string {
+  const mails = inbox.filter((mail) => mail.subject.startsWith("mail.draftReady"));
+  const last = mails[mails.length - 1];
+  if (last === undefined) throw new Error("no draft-ready mail was sent");
+  const href = /href="([^"]*\/veto\/[^"]*)"/.exec(last.html)?.[1];
+  if (href === undefined) throw new Error(`the draft-ready mail carried no stop link: ${last.html}`);
+  return decodeURIComponent(href.slice(href.lastIndexOf("/") + 1));
 }
 
 /** The first publish time at or after the window runs out — the moment
@@ -722,8 +738,27 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       if (telling.kind !== "interval") throw new Error("an autopilot site with a window is told an interval");
       expect(telling.copy).toBe("mail.draftReady.autopilotWindow");
       expect(telling.stopAction.token).toBe(link.token);
-      await recordTold(draftId, telling, draft.governing, TOLD_AT);
+      // The telling is a **mail**, and the record follows the send (#174).
+      // Until it left, the page is still untold and still held.
+      const inboxBefore = inbox.length;
+      const told = await sendDraftReadyMail({ draftId, destination: "wordpress", at: TOLD_AT });
+      expect(told.sent).toBe(true);
       expect(toldCurrentPair(machineDraft()).told).toBe(true);
+
+      const mails = inbox.filter((mail) => mail.subject.startsWith("mail.draftReady"));
+      expect(inbox.length).toBe(inboxBefore + 1);
+      expect(mails).toHaveLength(1);
+      expect(mails[0]!.to).toEqual([EMAIL]);
+      // The right telling of the three, and no trace of the other two.
+      expect(mails[0]!.html).toContain("mail.draftReady.autopilotWindow");
+      expect(mails[0]!.html).not.toContain("mail.draftReady.copilot");
+      expect(mails[0]!.html).not.toContain("mail.draftReady.autopilotZero");
+      // The one veto link, and it is a link the database will accept: the
+      // sender mints the token it sends, so the hash on the row is the
+      // hash of what reached the inbox. (The link minted by hand above is
+      // superseded — one page has one live stop link, which is why the
+      // sender owns the minting rather than taking one from its caller.)
+      expect(hashToken(tokenFromInbox())).toBe(theDraftRow().veto_token_hash);
 
       // The window is the site's own — `VETO.defaultHours` from the moment
       // the page entered review — and the moment named in the telling is
@@ -734,6 +769,7 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       if (!inside.publishable) throw new Error("unreachable");
       expect(inside.at.getTime()).toBeGreaterThanOrEqual(deadline.getTime());
       expect(telling.publishesAt.getTime()).toBe(inside.at.getTime());
+
     },
     JOURNEY_TIMEOUT_MS
   );

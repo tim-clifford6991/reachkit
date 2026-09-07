@@ -41,7 +41,7 @@ import type { NextRequest } from "next/server";
 import { HOSTED_SUBDOMAIN_LABEL } from "@/lib/config/constants";
 import { isDomainRemoved } from "@/lib/scan/removal";
 import { isFixtureDomain } from "@/app/(public)/scan/[domain]/_fixture/states";
-import { readSetupGateState, setupRedirectFor } from "@/app/(account)/setup/gate";
+import { GATE_PATH_HEADER } from "@/app/(account)/setup/gate";
 // Three names, one home (issue #35). `src/lib/account/identity/addresses.ts`
 // imports nothing at all — precisely so this file can share the cookie's
 // wire name and the two routes with the module that mints them, instead of
@@ -321,21 +321,23 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
   if (isPublic(pathname)) return NextResponse.next();
 
   if (hasSession(req)) {
-    // BUILD §4.3's incomplete-setup gate. The allow-list and the three
-    // arms are `src/app/(account)/setup/gate.ts`'s — this file contributes
-    // the enforcement point and no setup knowledge of its own, which is
-    // why there is no per-route branch here to keep in step with one
-    // there. `readSetupGateState` answers `null` until issue #35 can say
-    // which account a session cookie belongs to, and `setupRedirectFor`
-    // lets an unknown account through rather than guessing at one.
-    const destination = setupRedirectFor({
-      setup: await readSetupGateState(req),
-      path: pathname,
-    });
-    if (destination !== null && destination !== pathname) {
-      return NextResponse.redirect(new URL(destination, req.url));
-    }
-    return NextResponse.next();
+    // BUILD §4.3's incomplete-setup gate is **not decided here** (#133).
+    // Deciding it means naming the asking account, and `currentSession()`
+    // needs `next/headers`, a `node:crypto` HMAC and a database read —
+    // none of them reachable from this file, which is bundled for the Edge
+    // runtime. The gate is enforced in `src/app/(account)/layout.tsx`
+    // instead, on Node, where all three work as written;
+    // `src/app/(account)/setup/gate.ts`'s header records the three
+    // candidate answers and why that is the one.
+    //
+    // What this file contributes is the one thing a layout cannot get for
+    // itself: the request's own path. It is `set` onto a clone of the
+    // incoming headers, which **overwrites** any value the caller sent, so
+    // the path the gate sees is always the path being served and never a
+    // client's claim about it.
+    const forwarded = new Headers(req.headers);
+    forwarded.set(GATE_PATH_HEADER, pathname);
+    return NextResponse.next({ request: { headers: forwarded } });
   }
 
   // "asks for an address and says nothing about whether an account or a
