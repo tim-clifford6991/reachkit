@@ -12,17 +12,15 @@
 // **Run this file with `--no-file-parallelism`** alongside the rest of the
 // `db` project — every file in it resets and rebuilds the same physical
 // `public` schema.
-import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { topicOf } from "@/lib/db/topics";
+import {
+  psql,
+  psqlRows,
+} from "../../db/substrate";
 
-const DB_HOST = "127.0.0.1";
-const DB_PORT = "5432";
-const DB_USER = "reachkit";
-const DB_PASSWORD = "reachkit";
-const DB_NAME = process.env.REACHKIT_DB_NAME ?? "reachkit_scratch";
 const MIGRATIONS = path.resolve(import.meta.dirname, "../../../supabase/migrations");
 const DRAFTS_VETO = "20260906120300_drafts_veto.sql";
 const SITES_SETTINGS = "20260906120400_sites_settings.sql";
@@ -34,23 +32,7 @@ const APPLIED = [
   SITES_SETTINGS,
 ];
 
-function psql(args: string[]): string {
-  return execFileSync("psql", ["-h", DB_HOST, "-p", DB_PORT, "-U", DB_USER, "-d", DB_NAME, "-q", ...args], {
-    env: { ...process.env, PGPASSWORD: DB_PASSWORD },
-    encoding: "utf8",
-    maxBuffer: 10 * 1024 * 1024,
-  });
-}
-
 /** One tuple-only row per line, `|`-separated columns — easy to split. */
-function psqlRows(sql: string): string[][] {
-  const out = psql(["-v", "ON_ERROR_STOP=1", "-Atc", sql]);
-  return out
-    .split("\n")
-    .filter((line) => line.length > 0)
-    .map((line) => line.split("|"));
-}
-
 /** Runs `sql` and returns whether it raised (never throws itself). */
 function raises(sql: string): boolean {
   try {

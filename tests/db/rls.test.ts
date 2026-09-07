@@ -40,7 +40,7 @@
 // Kong, so PostgREST was moved to `127.0.0.1:3002` and a small reverse
 // proxy (`substrate/postgrest/rest-v1-proxy.mjs`, started by the same
 // `start.sh`) now answers `127.0.0.1:3001` — the documented
-// `SUPABASE_URL` — stripping a leading `/rest/v1` before forwarding.
+// `REST_URL` — stripping a leading `/rest/v1` before forwarding.
 // Without it, every request `db()`/`dbAdmin()` (unmodified, per BP-002's
 // public interface) or this file's own `asUser()` client make 404s with
 // PGRST125. A substrate fix, not a repository change; no file in this
@@ -49,11 +49,23 @@
 // **Run this file, `baseline.test.ts` and `clients.test.ts` with
 // `--no-file-parallelism`** — see `baseline.test.ts`'s header for why.
 import { execFileSync } from "node:child_process";
-import { createHmac } from "node:crypto";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../../src/lib/db/types.generated";
+import {
+  ANON_KEY,
+  DB_HOST,
+  DB_NAME,
+  DB_PASSWORD,
+  DB_PORT,
+  DB_USER,
+  REST_URL,
+  SERVICE_ROLE_KEY,
+  psql,
+  psqlRows,
+  userJwt,
+} from "./substrate";
 
 // `env.ts` parses `process.env` at module load (BP-005), and `src/lib/db/
 // index.ts` imports `env` — so `db`/`dbAdmin` are imported dynamically,
@@ -62,33 +74,11 @@ import type { Database } from "../../src/lib/db/types.generated";
 let db: (typeof import("../../src/lib/db/index"))["db"];
 let dbAdmin: (typeof import("../../src/lib/db/index"))["dbAdmin"];
 
-const DB_HOST = "127.0.0.1";
-const DB_PORT = "5432";
-const DB_USER = "reachkit";
-const DB_PASSWORD = "reachkit";
-const DB_NAME = process.env.REACHKIT_DB_NAME ?? "reachkit_scratch";
-const SUPABASE_URL = process.env.SUPABASE_URL ?? "http://127.0.0.1:3001";
-const JWT_SECRET = "reachkit-scratch-jwt-secret-at-least-32-chars-long";
 const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
 const MIGRATIONS = [
   path.join(REPO_ROOT, "supabase/migrations/00000000000001_baseline.sql"),
   path.join(REPO_ROOT, "supabase/migrations/00000000000002_rls.sql"),
 ];
-
-function psql(args: string[]): string {
-  return execFileSync("psql", ["-h", DB_HOST, "-p", DB_PORT, "-U", DB_USER, "-d", DB_NAME, "-q", ...args], {
-    env: { ...process.env, PGPASSWORD: DB_PASSWORD },
-    encoding: "utf8",
-    maxBuffer: 10 * 1024 * 1024,
-  });
-}
-
-function psqlRows(sql: string): string[][] {
-  return psql(["-v", "ON_ERROR_STOP=1", "-Atc", sql])
-    .split("\n")
-    .filter((line) => line.length > 0)
-    .map((line) => line.split("|"));
-}
 
 function resetAndApplySchema(): void {
   psql([
@@ -105,31 +95,6 @@ function resetAndApplySchema(): void {
 // HS256, hand-rolled with `node:crypto` — no dependency beyond the repo's
 // existing manifest (`tests/db/clients.test.ts` file-plan note applies here
 // too: a new package is out of this work order's file plan).
-function base64url(input: Buffer): string {
-  return input.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-function signJwt(claims: Record<string, unknown>): string {
-  const header = base64url(Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })));
-  const payload = base64url(Buffer.from(JSON.stringify(claims)));
-  const signingInput = `${header}.${payload}`;
-  const signature = base64url(createHmac("sha256", JWT_SECRET).update(signingInput).digest());
-  return `${signingInput}.${signature}`;
-}
-function userJwt(userId: string): string {
-  return signJwt({
-    role: "authenticated",
-    sub: userId,
-    iss: "supabase",
-    exp: Math.floor(Date.now() / 1000) + 3600,
-  });
-}
-const ANON_KEY = signJwt({ role: "anon", iss: "supabase", exp: Math.floor(Date.now() / 1000) + 3600 });
-const SERVICE_ROLE_KEY = signJwt({
-  role: "service_role",
-  iss: "supabase",
-  exp: Math.floor(Date.now() / 1000) + 3600,
-});
-
 // Loopback-only `fetch`, spawning `curl` — `tests/setup.ts` refuses the real
 // `fetch`/`http`/`https` globals process-wide; this is the explicit,
 // narrow allowance the prompt directs, restricted to `127.0.0.1`.
@@ -185,7 +150,7 @@ globalThis.fetch = loopbackFetch as unknown as typeof fetch;
  * caller's JWT as the `Authorization` override. This is the "request-scoped
  * client" the behavioural assertions below exercise. */
 function asUser(jwt: string): SupabaseClient<Database> {
-  return createClient<Database>(SUPABASE_URL, ANON_KEY, {
+  return createClient<Database>(REST_URL, ANON_KEY, {
     auth: { persistSession: false, autoRefreshToken: false },
     global: { fetch: loopbackFetch, headers: { Authorization: `Bearer ${jwt}` } },
   });
@@ -262,7 +227,7 @@ function requestScopedPoliciesMissingDeletedAtCondition(): string[] {
 // connects on it directly.
 const ENV_FIXTURE: Record<string, string> = {
   DATABASE_URL: `postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}`,
-  SUPABASE_URL,
+  REST_URL,
   SUPABASE_ANON_KEY: ANON_KEY,
   SUPABASE_SERVICE_ROLE_KEY: SERVICE_ROLE_KEY,
   STRIPE_SECRET_KEY: "sk_test_fixture",

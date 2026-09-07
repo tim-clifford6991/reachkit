@@ -41,17 +41,21 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  DB_HOST,
+  DB_NAME,
+  DB_PASSWORD,
+  DB_PORT,
+  DB_USER,
+  REST_URL,
+  psql,
+} from "./substrate";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
 const SRC_DIR = path.join(REPO_ROOT, "src");
 const DB_INDEX_PATH = path.join(REPO_ROOT, "src/lib/db/index.ts");
 const TYPES_FILE_PATH = path.join(REPO_ROOT, "src/lib/db/types.generated.ts");
 
-const DB_HOST = "127.0.0.1";
-const DB_PORT = "5432";
-const DB_USER = "reachkit";
-const DB_PASSWORD = "reachkit";
-const DB_NAME = process.env.REACHKIT_DB_NAME ?? "reachkit_scratch";
 const MIGRATIONS = [
   path.join(REPO_ROOT, "supabase/migrations/00000000000001_baseline.sql"),
   path.join(REPO_ROOT, "supabase/migrations/00000000000002_rls.sql"),
@@ -61,14 +65,6 @@ const MIGRATIONS = [
 // (`scripts/db-substrate/`) so CI can run this row too; it was an absolute
 // path outside the tree while the substrate was one machine's fixture.
 const GEN_TYPES_SCRIPT = path.join(REPO_ROOT, "scripts/db-substrate/gen-types.sh");
-
-function psql(args: string[]): string {
-  return execFileSync("psql", ["-h", DB_HOST, "-p", DB_PORT, "-U", DB_USER, "-d", DB_NAME, "-q", ...args], {
-    env: { ...process.env, PGPASSWORD: DB_PASSWORD },
-    encoding: "utf8",
-    maxBuffer: 10 * 1024 * 1024,
-  });
-}
 
 function resetAndApplySchema(): void {
   psql([
@@ -110,7 +106,7 @@ function normalize(text: string): string {
 // this fixture: this file reads it for its own `pg` connection.
 const ENV_FIXTURE: Record<string, string> = {
   DATABASE_URL: `postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}`,
-  SUPABASE_URL: process.env.SUPABASE_URL ?? "http://127.0.0.1:3001",
+  SUPABASE_URL: REST_URL,
   SUPABASE_ANON_KEY: "anon-key-fixture",
   SUPABASE_SERVICE_ROLE_KEY: "service-role-key-fixture",
   STRIPE_SECRET_KEY: "sk_test_fixture",
