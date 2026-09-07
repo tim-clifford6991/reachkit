@@ -1,14 +1,18 @@
 // BUILD §4.6 — the draft view's facts, as a fixture.
 //
-// Issue #17 builds the draft view on FIXTURE data behind the typed provider
-// in `provider.ts`. Every field below stands in for a read that does not
-// exist yet, each naming the issue that will supply it:
+// **This is the reserved fixture account's draft, and nobody else's.**
+// `provider.ts` answers `isReservedFixtureAccount` from here and reads every
+// other account's draft from `store.ts`, so what this file holds is one
+// account's data rather than a placeholder for a missing read. It is what
+// keeps the layout and visual sweeps deterministic.
 //
-//   bodyMd / bodyMdGenerated / groundedFact → §8 generation (#43)
-//   claim                                   → §8's claim check (#43)
-//   state / autoApprovesAt                  → §9 publishing (#45, #46)
-//   firstEditedAt / lastSavedAt             → the drafts row (§10)
-//   mode / timeZone                         → §4.3 setup and §4.7 settings
+// Where each field comes from for a live account:
+//
+//   bodyMd / bodyMdGenerated / groundedFact → §8 generation
+//   claim                                   → §8's claim check
+//   state / autoApprovesAt                  → §9 publishing
+//   firstEditedAt / lastSavedAt             → the `drafts` row (§10)
+//   mode / timeZone                         → the `sites` row
 //
 // The ids are the calendar's own (`../../calendar/fixture.ts` keys every
 // draft `draft-{date}`), so "Read the full page" on the day panel lands on

@@ -1,15 +1,19 @@
 // BUILD §4.5 — Overview's facts, as a fixture.
 //
-// Issue #15 builds this screen on FIXTURE data behind the typed provider in
-// `provider.ts`. Every field below stands in for a read that does not exist
-// yet, each naming the issue that will supply it:
+// **This is the reserved fixture account's Overview, and nobody else's.**
+// `provider.ts` answers `isReservedFixtureAccount` from here and reads every
+// other account's facts live, so what this file holds is one account's data
+// rather than a placeholder for a missing read. It is what keeps the layout
+// and visual sweeps deterministic.
 //
-//   points / firstDueOn / aiPresence → §11 weekly measurement (#41)
-//   pagesPublished                   → §9 publishing (#45)
-//   rivals                           → §6.6 rival sizing (#27), setup (#14)
-//   waiting                          → §9 drafts in review / needing attention (#45)
-//   supply                           → §7 supply depth (#10)
-//   timeZone / today                 → §4.3 setup, §4.7 settings (#14, #18)
+// Where each field comes from for a live account:
+//
+//   points / firstDueOn / aiPresence → §11 weekly measurement
+//   pagesPublished                   → §9 publishing
+//   rivals                           → §6.6 rival sizing, and setup's answers
+//   waiting                          → §9's drafts in review / needing attention
+//   supply                           → §7 supply depth
+//   timeZone / today                 → the `sites` row
 //
 // It is one exported constant, not a generator: a fixture that varied per
 // call would make the layout conformance sweep non-deterministic, and a

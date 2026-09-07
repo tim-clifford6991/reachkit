@@ -21,10 +21,11 @@
 // shapes the real implementations already have, published in the blueprints
 // this screen is cut against. `elsewhere` is REQ-097 criterion 1's: the
 // billing controls hand the customer to Stripe's own surface and ReachKit
-// renders no step of its own. `here` is what sign-out, export and the two
-// danger-zone actions return once #35 and #52 land. Declaring all three now is
-// what lets the wiring change `FIXTURE_ACTIONS` for a real implementation
-// without the screen changing at all.
+// renders no step of its own. `here` is what sign-out returns, and what
+// export and the two danger-zone actions will return when they are wired
+// the same way. Declaring all three from the start is what lets a wiring
+// change `FIXTURE_ACTIONS` for a real implementation without the screen
+// changing at all.
 //
 // **Since issue #136, three of the seven are wired** (`SETTINGS_ACTIONS`),
 // and the stub's shape is what made that cheap: the panels were not touched.
