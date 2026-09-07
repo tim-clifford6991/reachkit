@@ -32,7 +32,7 @@ import { formatDate } from "../_shell/format";
 import { writtenLine } from "../_shell/written";
 import { renderValue } from "./present";
 import type { RatioRival, RivalGapModule } from "./rivals";
-import { CARRY, CHART_BOX, EYEBROW, MODULE, OFFER, RIVAL_ENTRY, RIVAL_ROW, STACK } from "./style";
+import { CARRY, CHART_BOX, EYEBROW, OFFER, RIVAL_ENTRY, RIVAL_ROW, STACK } from "./style";
 
 /** §2.5: the badge on a rival row reports the customer's own progress —
  *  the gap that used to be — so it is a success state, never an alarm. */
@@ -175,7 +175,7 @@ export function RivalModule(p: {
         ));
 
   return (
-    <section style={MODULE} data-testid="overview-rivals">
+    <section className="rk-idiom-card" data-testid="overview-rivals">
       <p className="eyebrow" style={EYEBROW}>{title}</p>
       <div style={STACK}>{rows}</div>
       {p.rivals.kind === "absolute" ? (

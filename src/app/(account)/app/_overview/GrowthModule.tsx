@@ -33,7 +33,7 @@ import { writtenLine } from "../_shell/written";
 import { GOALS } from "./goals";
 import { formatCount, formatMonthDay } from "./present";
 import type { GrowthModule as GrowthModuleModel } from "./growth";
-import { CHART_PLATE, MODULE, STACK } from "./style";
+import { CHART_PLATE, STACK } from "./style";
 
 export function GrowthModule(p: {
   growth: GrowthModuleModel;
@@ -42,7 +42,7 @@ export function GrowthModule(p: {
   if (p.growth.kind === "none") {
     const line = writtenLine("place.overview.weekly-presence.chart");
     return (
-      <section style={MODULE} data-testid="overview-growth">
+      <section className="rk-idiom-card" data-testid="overview-growth">
         <div style={STACK}>
           {line === null ? null : <p>{line}</p>}
           <p className="rk-prov" data-testid="overview-growth-first-due">
@@ -78,7 +78,7 @@ export function GrowthModule(p: {
   // is the two facts meeting rather than a check for something that can
   // happen.
   const [first, ...rest] = weeks;
-  if (first === undefined) return <section style={MODULE} data-testid="overview-growth" />;
+  if (first === undefined) return <section className="rk-idiom-card" data-testid="overview-growth" />;
 
   const goal = GOALS.searches_appeared_in;
   const goalText = copy("overview.goal", { value: formatCount(goal.value) });
@@ -92,7 +92,7 @@ export function GrowthModule(p: {
   const goalLine = writtenLine(goal.meansKey, { goal: formatCount(goal.value) });
 
   return (
-    <section style={MODULE} data-testid="overview-growth">
+    <section className="rk-idiom-card" data-testid="overview-growth">
       <div style={CHART_PLATE}>
         <GrowthLine
           weeks={[first, ...rest]}

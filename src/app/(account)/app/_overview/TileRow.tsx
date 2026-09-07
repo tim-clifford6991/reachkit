@@ -26,6 +26,7 @@ import { writtenLine } from "../_shell/written";
 import { GOALS } from "./goals";
 import { carriedBy, formatCount, formatDayOfMonth, renderValue, type Carried } from "./present";
 import type { AiPresenceWindow, Module } from "./model";
+import { CardHead, IdiomCard } from "@/ui/idiom";
 import { CARRY, CHART_BOX, STACK, TILES } from "./style";
 
 /** The one place a delta or a goal becomes a node. `Stat` takes exactly one
@@ -63,13 +64,21 @@ function Tile(p: {
   const value = renderValue(p.module.headline.value, p.labelKey);
 
   return (
-    <div style={STACK} data-testid={p.testId}>
+    // Take A, the take the owner approved on 2026-09-02: "one card per
+    // module, the three stat tiles broken out as three boxes — six boxes".
+    // Each tile is its own box now, and its label is the box's head rather
+    // than the tile's own `stat-title`: the idiom's card head already
+    // carries an eyebrow, and a tile with two of them states the same claim
+    // twice (`Stat`'s `labelInHead` widening).
+    <IdiomCard head={<CardHead eyebrow={label} />} testId={p.testId}>
+      <div style={STACK}>
       {value.isDash ? (
-        <Stat state="unmeasured" label={label} reason={value.line ?? label} />
+        <Stat state="unmeasured" label={label} labelInHead reason={value.line ?? label} />
       ) : (
         <Stat
           state={p.module.headline.value.kind === "zero" ? "measured-zero" : "measured"}
           label={label}
+          labelInHead
           value={
             p.outOf === undefined ? (
               value.text
@@ -81,7 +90,8 @@ function Tile(p: {
         />
       )}
       {p.children}
-    </div>
+      </div>
+    </IdiomCard>
   );
 }
 
