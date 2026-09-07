@@ -168,7 +168,7 @@ export function DraftScreen(p: {
           // c11: the customer is told which entry held the draft. The
           // entry is their own recorded text and renders as a value, so it
           // is named whether or not the sentence beside it is written yet.
-          <span className="num break-words" data-testid="draft-claim-entry">
+          <span className="num" data-testid="draft-claim-entry">
             {claim.matchedEntry}
           </span>
         ) : null}

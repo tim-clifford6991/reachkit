@@ -104,7 +104,7 @@ export function PageRecordBlock(p: {
             <span>{writtenLine(record.address.label)}</span>
             {/* §2.3: an address is a code-like string and renders in the
                 mono utility, like every other one on this screen. */}
-            <a className="num min-w-0 break-words" href={record.address.url}>
+            <a className="num min-w-0" href={record.address.url}>
               {record.address.url}
             </a>
           </>

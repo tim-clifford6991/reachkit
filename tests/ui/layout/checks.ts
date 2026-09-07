@@ -126,13 +126,41 @@ export function checkContainment(opts: {
   return offenders;
 }
 
-/** Check 3 — no clipping and no truncation; a value is never saved by an
- *  allow-list. One object argument, for the same reason as check 2. */
+/**
+ * Check 3 — no clipping and no truncation; a value is never saved by an
+ * allow-list. One object argument, for the same reason as check 2.
+ *
+ * **A declared scroll container is the box changing, not the text being cut
+ * off** (owner's ruling, 2026-09-07, issue #256). ADR-093's law is "content
+ * fits its box **or the box changes**", and an `overflow-x-auto` wrap is how
+ * this design system has always carried wide content — every registered
+ * `Table` sits in one, which is why `.overflow-x-auto` is the first row of
+ * check 2's `SCROLL_CONTAINER_ALLOWLIST`. Content inside such a container is
+ * reachable: scrolled, never clipped, never ellipsised, and — the point of
+ * the ruling — never broken mid-word to make it fit.
+ *
+ * So an element whose content overflows it is **not** an offender when a
+ * declared scroll container around it can scroll to reach that content. It
+ * still is when nothing can: overflow under `overflow: hidden`, or an
+ * element that simply spills its parent, is exactly what this check exists
+ * to find.
+ *
+ * **This is not a widening of the allow-list, and `TRUNCATION_ALLOWLIST`
+ * stays empty.** An allow-list forgives an element for cutting text off; a
+ * scroll container means no text was cut off. The distinction is what keeps
+ * "a value is never saved by an allow-list" true — a value *outside* a
+ * scroll container is an offender with no exemption available to it, which
+ * is the case #256 was opened about.
+ */
 export function checkNoClippingOrTruncation(opts: {
   truncationAllowlist: readonly string[];
   monoFontFamily: string;
+  /** The same selectors check 2 treats as scroll containers, passed in
+   *  rather than re-listed, so the two checks cannot come to disagree about
+   *  what one is. */
+  scrollContainerAllowlist: readonly string[];
 }): Offender[] {
-  const { truncationAllowlist, monoFontFamily } = opts;
+  const { truncationAllowlist, monoFontFamily, scrollContainerAllowlist } = opts;
   function describe(el: Element): string {
     const tag = el.tagName.toLowerCase();
     const id = el.id ? `#${el.id}` : "";
@@ -173,6 +201,15 @@ export function checkNoClippingOrTruncation(opts: {
     const clipped =
       el.scrollWidth > el.clientWidth || el.scrollHeight > el.clientHeight;
     if (!clipped) continue;
+    // The box changed rather than the text being cut off: a declared scroll
+    // container around this element can reach the overflow. `closest`
+    // includes the element itself, which is right — a `Table`'s own wrap
+    // carries its text and is the container at the same time.
+    if (
+      scrollContainerAllowlist.some((sel) => el.closest(sel) !== null)
+    ) {
+      continue;
+    }
     const allowListed = matchesAny(el, truncationAllowlist);
     const family = getComputedStyle(el).fontFamily || "";
     const isValue = family.toLowerCase().includes(monoFontFamily.toLowerCase());

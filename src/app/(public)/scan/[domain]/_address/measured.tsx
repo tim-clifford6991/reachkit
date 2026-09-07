@@ -51,14 +51,32 @@ export function Num(p: {
   unmeasured?: boolean;
 }): React.JSX.Element {
   // ADR-093: content fits its box or the box changes, and text is never
-  // shrunk to fit. A domain, a search phrase or a robots directive is one
-  // long unbreakable token in a narrow column, so it wraps
-  // (`overflow-wrap: break-word`) and, as a grid or flex child, is allowed
-  // to shrink below its content width (`min-width: 0`) — without that
-  // second half a grid item refuses to narrow and overflows its track no
-  // matter what the text does.
+  // shrunk to fit. **The box changes; the value does not** (issue #256).
+  //
+  // This carried `break-words` until #256. A domain is one long token with
+  // no space in it, so `rival-three.example.org` came out of a 164px track
+  // split at no boundary the string has — a different string from the one
+  // in the database, in the mono face §2.3 uses to make exactly that
+  // visible. The rule now lives once, on `.num` in `src/ui/type.css`, and
+  // this element must not carry a utility that contradicts it.
+  //
+  // `inline-block` is the other half, and it is about *measurement*. An
+  // inline box does not have a width of its own: an unbreakable value
+  // inside one reports content it cannot show, which the sweep's check 3
+  // reads — correctly — as a value being cut off. As an inline-block the
+  // span is exactly as wide as the value, so there is nothing to cut off
+  // and nothing to report. `align-bottom` keeps it on the text baseline it
+  // sat on as an inline, so nothing moves; `max-w-full` and `min-w-0` keep
+  // it a well-behaved grid and flex child.
+  //
+  // Where a value still cannot fit, the *box* changes and not the value —
+  // `_modules/free-page.tsx` stacks its label above the value for exactly
+  // that reason.
   return (
-    <span className="num min-w-0 break-words" data-unmeasured={p.unmeasured === true ? "" : undefined}>
+    <span
+      className="num min-w-0"
+      data-unmeasured={p.unmeasured === true ? "" : undefined}
+    >
       {p.children}
     </span>
   );

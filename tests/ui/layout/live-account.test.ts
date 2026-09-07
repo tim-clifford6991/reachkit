@@ -120,7 +120,8 @@ describe(`live-branch sweep — ${routes.length} route(s) × 5 widths`, () => {
                   scrollContainerAllowlist: SCROLL_CONTAINER_ALLOWLIST,
                 }),
                 await page.evaluate(checkNoClippingOrTruncation, {
-                  truncationAllowlist: TRUNCATION_ALLOWLIST,
+                  scrollContainerAllowlist: SCROLL_CONTAINER_ALLOWLIST,
+                truncationAllowlist: TRUNCATION_ALLOWLIST,
                   monoFontFamily: MONO_FONT_FAMILY,
                 }),
                 await page.evaluate(checkTypeFloor),

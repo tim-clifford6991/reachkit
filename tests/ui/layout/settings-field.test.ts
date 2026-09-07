@@ -92,6 +92,7 @@ describe(`layout sweep — ${SETTINGS.path} with a field open × 5 widths`, () =
                 scrollContainerAllowlist: SCROLL_CONTAINER_ALLOWLIST,
               }),
               await page.evaluate(checkNoClippingOrTruncation, {
+                scrollContainerAllowlist: SCROLL_CONTAINER_ALLOWLIST,
                 truncationAllowlist: TRUNCATION_ALLOWLIST,
                 monoFontFamily: MONO_FONT_FAMILY,
               }),
