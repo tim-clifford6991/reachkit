@@ -317,12 +317,46 @@ describe("REQ-091 c2 — every route renders for a domain that ranks for nothing
 });
 
 describe("REQ-091 c3 — nothing stands in the place of what the customer does not have", () => {
+  /** The public landing (issue #266).
+   *
+   *  Criterion 3 is about a **customer's** screen on their first day: what
+   *  may not stand in the place of what *they* do not have. The landing has
+   *  no customer — it is the page a stranger meets before there is an
+   *  account — and since #266 its hero carries the product's own specimen:
+   *  the reserved fixture account's AI-answers module, rendered by the same
+   *  component the report renders, and named as a specimen by
+   *  `landing.hero.specimen.caption`.
+   *
+   *  Those rows carry the fixture's rival domains, which are on
+   *  `BORROWABLE` because they are the *warm* fixture's — so the rule fires
+   *  on a screen it was not written about. The route is excluded here and
+   *  nowhere else: every account screen, and every other public one, is
+   *  still swept, and the non-vacuity test below still proves the rule
+   *  bites on the real tree.
+   *
+   *  **Flagged rather than settled** (#266): `design/tokens.md` §9.4 raised
+   *  "where does the specimen score come from?" and answered neither
+   *  surface; the master answered it for this build — the reserved
+   *  fixture's, stated as such. If the owner would rather the landing show
+   *  no other domain at all, the specimen loses its rival rows and this
+   *  exclusion goes with them. */
+  const LANDING = "/";
+
   it("no rival, search or measurement belonging to another customer appears", () => {
     expect(
-      sweepFindings(cold, (doc) =>
-        rules.nothingBorrowed(doc, fixture.BORROWABLE, [fixture.COLD_START_DOMAIN])
+      sweepFindings(
+        cold.filter((r) => r.route.url !== LANDING),
+        (doc) => rules.nothingBorrowed(doc, fixture.BORROWABLE, [fixture.COLD_START_DOMAIN])
       )
     ).toEqual([]);
+  });
+
+  it("the landing is excluded on purpose, and it is the only one", () => {
+    // Rule 5.5: the exclusion is stated and counted, never read off a
+    // silent green. One route, and the sweep still covers the rest.
+    const excluded = cold.filter((r) => r.route.url === LANDING);
+    expect(excluded).toHaveLength(1);
+    expect(cold.length).toBeGreaterThan(1);
   });
 
   it("and the rule bites on the real tree: the warm screens do state those rivals", () => {

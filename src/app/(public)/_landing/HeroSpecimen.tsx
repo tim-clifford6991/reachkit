@@ -1,0 +1,110 @@
+// BUILD §3, §2.4 — the landing hero's specimen (issue #266).
+// src/app/(public)/_landing/HeroSpecimen.tsx
+//
+// The owner's 2026-09-02 ruling asked for "an enticing image/component
+// giving them an immediate feel for what the app is and looks like". The
+// approved idiom answers it with **a real component from the product, not a
+// picture of one**, and its argument is worth keeping where the code is
+// (`/idiom/landing`'s own note, condensed):
+//
+//   · it makes the product's whole argument without a sentence — and on a
+//     page where every sentence is still owed, that is not a nice property,
+//     it is the only thing that renders at all;
+//   · it is the same code a customer meets after paying, so it cannot go
+//     stale, it re-themes with the toggle, it inherits every token ruling,
+//     and it is inside ADR-093's conformance suite, which no image is;
+//   · a screenshot is a second home for a surface that already has one, and
+//     a hero image rots the first time a token is ruled;
+//   · it is not interactive, so the argument is not behind a tap.
+//
+// **One module, not a whole screen.** The trade the idiom records: a scaled
+// screenshot of the entire app survives a 320px viewport and a live
+// component does not, because a live component at 320 renders its own
+// compact arm and stops looking like the product. So the choice is one
+// module, which is legible at every band.
+//
+// **WHERE THE FIGURES COME FROM, STATED.** `design/tokens.md` §9.4 raised
+// this as an open question for both this surface and the sign-in panel: a
+// score shown to a stranger is either a real measurement, a labelled
+// specimen, or a number the product invented — and the third is rule 1.2.
+// Issue #266 answers it: these are the **reserved fixture account's** own
+// measured figures, the same ones `/scan/example.com` renders, and the
+// caption names them as a specimen rather than letting them read as the
+// visitor's. Nothing here is invented and nothing is a placeholder.
+import type React from "react";
+import { AiDotMatrixChart, type AiDotMatrixCellState, type AiDotMatrixRow } from "@/ui/charts";
+import type { AnswerCell } from "@/lib/market/questions/matrix";
+import { CardHead } from "@/ui/idiom";
+import { copy } from "@/lib/presentation/copy";
+import { FIXTURE_REPORT } from "../scan/[domain]/_fixture/states";
+
+/** One measured answer, as the matrix draws it. §2.4's own rule, and the
+ *  chart's: a question nobody was asked is a **muted** cell and never a
+ *  miss, because merging the two would count a silence as a loss. An
+ *  answered question names the domain or it does not — that is the cited /
+ *  not-cited pair, and there is no third reading of it. */
+function cellState(cell: AnswerCell, domain: string): AiDotMatrixCellState {
+  if (cell.kind !== "answered") return "muted";
+  return cell.citedDomains.some((cited) => cited === domain) || cell.namesCustomer ? "cited" : "not-cited";
+}
+
+/** The reserved fixture's AI-answers module, as the matrix draws it: the
+ *  customer's own row and the three rivals', in that order. The customer's
+ *  cells are the ones the report measured — where they are empty, the chart
+ *  rings them, which is the whole argument the hero makes without a
+ *  sentence. */
+function specimenRows(): readonly AiDotMatrixRow[] {
+  const answers = FIXTURE_REPORT.aiAnswers;
+  if (answers === null) return [];
+  const you: AiDotMatrixRow = {
+    name: answers.ownDomain,
+    identity: "you",
+    cells: answers.rows.map((row) => cellState(row.cell, answers.ownDomain)),
+    count: `${answers.customerCitations}/${answers.measuredSearches}`,
+  };
+  const rivals: AiDotMatrixRow[] = answers.rivals.map((rival) => {
+    const cells = rival.cells.map((cell) => cellState(cell, rival.domain));
+    return {
+      name: rival.domain,
+      identity: "rival",
+      cells,
+      // The chart performs no arithmetic and cannot disagree with a card's
+      // own figure, so the count arrives already written.
+      count: `${cells.filter((cell) => cell === "cited").length}/${answers.measuredSearches}`,
+    };
+  });
+  return [you, ...rivals];
+}
+
+export function HeroSpecimen(): React.JSX.Element {
+  const answers = FIXTURE_REPORT.aiAnswers;
+  const rows = specimenRows();
+  if (answers === null || rows.length === 0) return <></>;
+
+  return (
+    // An island of `--surface` inside the accent ground — the component in
+    // its own theme, exactly as a customer meets it after paying.
+    <div className="rk-hero-specimen" data-testid="landing-specimen">
+      {/* No pill. The idiom's head shows one here, reading the report's own
+          "not you" badge out of the corpus mock — v3 has no such key, and
+          minting one would be a twenty-sixth owed string this issue's list
+          does not have. The head's `pill` slot is optional and stays empty
+          until the owner writes that line. */}
+      <CardHead eyebrow={copy("landing.hero.specimen.label")} />
+      <AiDotMatrixChart
+        rows={rows}
+        // Every cell is identified by its column and its row, never by
+        // colour alone (§2.4) — and the column label is the question's own
+        // NUMBER, not its wording. The wording is `GeneratedText`, and
+        // CLAUDE.md allows generated prose nowhere but draft page content,
+        // always labelled; the landing is the last surface that could carry
+        // it unlabelled. The number is a data identity, it is what the
+        // report's own list numbers each question by, and it sets in the
+        // mono numeral face like every other numeral in the product.
+        questions={answers.rows.map((row) => String(row.question.n))}
+        label={copy("landing.hero.specimen.label")}
+      />
+      <p className="rk-quiet">{copy("landing.hero.specimen.caption")}</p>
+    </div>
+  );
+}

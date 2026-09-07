@@ -263,6 +263,16 @@ const ALLOWED_CSS: ReadonlyArray<{
     why: "ADR-093's layout tokens (2026-09-05 ruling, #65)",
   },
   {
+    path: "src/ui/idiom/idiom.css",
+    why:
+      "the card idiom the owner endorsed on 2026-09-02 (\"A · Six boxes\"), " +
+      "ported from the live preview code (issue #266). Not a sixth custom " +
+      "surface: §2.2's five are the calendar grid, the day panel, the AI " +
+      "dot-matrix, chart SVGs and the sidebar, and this styles none of them " +
+      "— it declares four tokens and widens `Card`'s head, `Btn`'s ranks and " +
+      "`Progress`'s ground, plus the two grounds the idiom introduced",
+  },
+  {
     path: "src/ui/layout/surface.css",
     why:
       "ADR-093's rendering half (issue #241): the screen root's container, " +

@@ -238,10 +238,11 @@ describe("REQ-093 c5 — the registry renders with every model unavailable", () 
 });
 
 describe("the partition list is closed and total (BP-020 decision 5)", () => {
-  it("keys/ holds exactly thirteen partition files", () => {
+  it("keys/ holds exactly fourteen partition files", () => {
     expect(KEY_FILES).toEqual([
       "bands.ts",
       "calendar.ts",
+      "chrome.ts",
       "danger.ts",
       "draft.ts",
       "laws.ts",
@@ -256,12 +257,12 @@ describe("the partition list is closed and total (BP-020 decision 5)", () => {
     ]);
   });
 
-  it("registry.ts imports every file under keys/, and no fourteenth", () => {
+  it("registry.ts imports every file under keys/, and no fifteenth", () => {
     const importedKeyFiles = [...REGISTRY_SOURCE.matchAll(/from\s+["']\.\/keys\/([^"']+)["']/g)]
       .map((m) => m[1])
       .filter((f): f is string => f !== undefined);
     expect(new Set(importedKeyFiles)).toEqual(new Set(KEY_FILES));
-    expect(importedKeyFiles).toHaveLength(13);
+    expect(importedKeyFiles).toHaveLength(14);
   });
 
   it("every key in COPY traces to exactly one partition", async () => {
@@ -941,10 +942,24 @@ describe("owner-owed and empty agree both ways", () => {
     // key, so the card read "Competitors … Competitors". It takes the
     // marker, being a screen's. 131 owner-owed and 168 ruled unchanged,
     // 257 + 1 = 258 awaiting copy, 556 + 1 = 557 total.
+    //
+    // 2026-09-07, issue #266 adds **thirty-seven**, all carrying the
+    // marker and none written: fifteen in the new `chrome.ts` partition —
+    // the public header, the footer and the three legal pages, none of
+    // which `BUILD.md` names at all — and twenty-two `landing.*` slots,
+    // which are the owner's own enumerated L1–L25 from the approved card
+    // idiom's `copy.ts` less the three that already exist (`landing.field.
+    // label` L2/L3 and `landing.submit.label` L4). The tagline
+    // `landing.headline` is untouched: BUILD §3 approved it, and it stays
+    // the one written string on that page.
+    //
+    // 131 owner-owed and 168 ruled unchanged — nothing moved between the
+    // two representations — 258 + 37 = 295 awaiting copy, 557 + 37 = 594
+    // total.
     expect(OWNER_OWED.length).toBe(131);
-    expect(AWAITING_COPY.length).toBe(258);
+    expect(AWAITING_COPY.length).toBe(295);
     expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(168);
-    expect(Object.keys(COPY).length).toBe(557);
+    expect(Object.keys(COPY).length).toBe(594);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.

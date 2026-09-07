@@ -26,7 +26,21 @@ import type React from "react";
 export function Btn(p: {
   /** Required — BP-018 decision 2. No fallback string exists. */
   label: string;
-  variant?: "primary" | "ghost";
+  /** The three ranks the owner-approved card idiom draws, plus the two
+   *  daisyUI arms `components.md` §1 already registers.
+   *
+   *  `secondary` (outline) and `tertiary` (quiet) are the **widening** the
+   *  idiom proposes (tokens.md §9.1, `components.md` §7, issue #266): "one
+   *  solid accent primary, an outline secondary, a quiet tertiary". They
+   *  add no colour — the outline takes `--line` and the quiet arm takes
+   *  `--ink-2`, both named.
+   *
+   *  `on-accent` is not a fourth rank: it is what `primary` becomes when
+   *  its ground is already the accent, inverted to an `--on-accent` fill
+   *  with an `--accent` label. Two named tokens, no third value. A solid
+   *  accent button on the accent ground has no edge at all, which is the
+   *  whole reason the arm exists. */
+  variant?: "primary" | "ghost" | "secondary" | "tertiary" | "on-accent";
   size?: "default" | "sm";
   block?: boolean;
   disabled?: boolean;
@@ -34,12 +48,25 @@ export function Btn(p: {
    * spinner is added (`previews/WO-268.html` §1: "label unchanged, no
    * spinner"). */
   inFlight?: boolean;
+  /** The idiom's pill radius, `--r-pill`. Opt-in rather than the default,
+   *  so the surfaces the idiom has not reached yet keep the shape they were
+   *  built and swept with, and this PR moves exactly the screens it names. */
+  pill?: boolean;
   onClick?: () => void;
   type?: "button" | "submit";
 }): React.JSX.Element {
   const classes = ["btn"];
   if (p.variant === "primary") classes.push("btn-primary");
   if (p.variant === "ghost") classes.push("btn-ghost");
+  // The idiom's three ranks. `btn-ghost` under the two quiet arms so the
+  // daisyUI base still supplies the size, the focus ring and the disabled
+  // state; what the widening adds is the fill, the edge and the ink.
+  if (p.variant === "secondary") classes.push("btn-ghost", "rk-btn-secondary");
+  if (p.variant === "tertiary") classes.push("btn-ghost", "rk-btn-tertiary");
+  if (p.variant === "on-accent") classes.push("btn-ghost", "rk-btn-on-accent");
+  // Pill throughout — `--r-pill` is already law and the idiom spends no new
+  // radius for it (tokens.md §9.1).
+  if (p.pill === true) classes.push("rk-pill");
   if (p.size === "sm") classes.push("btn-sm");
   if (p.block) classes.push("btn-block");
 
