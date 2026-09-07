@@ -19,16 +19,22 @@ const { effectiveOn, generationHold, pendingChanges } = await import(
 
 const ZONE = "America/New_York";
 
-const declared = {
+const declared: { domain: string; category: string | null; rivals: readonly string[] } = {
   domain: "acme.com",
   category: "project management software",
-  rivals: ["asana.com", "monday.com"] as readonly string[],
+  rivals: ["asana.com", "monday.com"],
 };
 
-const measured = {
+const measured: {
+  domain: string;
+  category: string | null;
+  rivals: readonly string[];
+  at: Date;
+  scanId: string;
+} = {
   domain: "acme.com",
   category: "project management software",
-  rivals: ["asana.com", "monday.com"] as readonly string[],
+  rivals: ["asana.com", "monday.com"],
   at: new Date("2026-09-07T10:00:00.000Z"),
   scanId: "scan-1",
 };
