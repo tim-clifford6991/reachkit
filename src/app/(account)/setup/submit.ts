@@ -51,16 +51,22 @@ export type SetupProgressState =
 
 /**
  * The writes and reads completing setup needs, declared where they are
- * used and implemented elsewhere. Each member names the issue that will
- * supply it for real:
+ * used and implemented elsewhere. `_setup/store.ts`'s `liveSetupStore()`
+ * supplies every member, and `_setup/provider.ts` is what hands it to
+ * `POST /api/setup` — against the account `currentSession()` names (#133):
  *
- *   hasActiveAccess  → §13 billing, `users.paid_through > now()` (#42)
- *   resolvesInDns    → §6.4's `resolvesInDns` (built, #22) — passed in
- *                      rather than imported so this function stays
- *                      decidable without a network stub
- *   readProgress     → `sites.setup_completed_at` (#42)
- *   commitSetup      → the three decisions plus `setup_completed_at` (#42)
+ *   hasActiveAccess  → §13 billing's `hasActiveAccess()`, ADR-050's
+ *                      `users.paid_through > now()` alone
+ *   resolvesInDns    → §6.4's `resolvesInDns` (#22) — passed in rather
+ *                      than imported so this function stays decidable
+ *                      without a network stub
+ *   readProgress     → `sites.setup_completed_at`
+ *   commitSetup      → the three decisions plus `setup_completed_at`
  *   enqueueDeepPass  → `scan/run` at tier `deep` (§6.3, §11)
+ *
+ * It stays an interface the caller passes in: `completeSetup` is a
+ * decision about refusal order, and a function that reached for its own
+ * store could not be driven through that order in a test.
  */
 export interface SetupStore {
   hasActiveAccess(userId: string): Promise<boolean>;

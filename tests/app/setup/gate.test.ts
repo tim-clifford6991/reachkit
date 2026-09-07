@@ -1,11 +1,20 @@
-// tests/app/setup/gate.test.ts — BUILD §4.3, issue #36
+// tests/app/setup/gate.test.ts — BUILD §4.3, issues #36 and #133
 //
 // The incomplete-setup gate: the redirect matrix over
 // complete/incomplete × allow-listed/not, the way out staying reachable
-// with setup unfinished, and the same matrix again through
-// `src/middleware.ts` — the enforcement point — so the wiring is asserted
-// rather than assumed.
-import { afterEach, describe, expect, it } from "vitest";
+// with setup unfinished, and the same matrix again through the two files
+// that enforce it — `src/app/(account)/layout.tsx`, which decides, and
+// `src/middleware.ts`, which hands it the path — so the wiring is
+// asserted rather than assumed.
+//
+// **#133 moved the decision off the Edge.** It used to be made in
+// `src/middleware.ts`, which cannot name the asking account: the session
+// read needs `next/headers`, a `node:crypto` HMAC and a database round
+// trip, and that file is bundled for the Edge runtime. So the matrix below
+// runs against the layout, and what is asserted of the middleware is that
+// it forwards the path, overwrites a client's claim about it, and holds no
+// setup knowledge of its own.
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // #104: importing `@/middleware` loads the removal reader, and through it
 // the database client and the environment bindings it parses at module
 // load. The harness applies them, the same way `routes.test.ts` does.
@@ -13,15 +22,34 @@ import "../../scan/run/harness";
 import { NextRequest } from "next/server";
 import {
   APP_PATH,
+  GATE_PATH_HEADER,
   SETUP_INCOMPLETE_ALLOWLIST,
   SETUP_PATH,
   isAllowedWhileIncomplete,
-  resetSetupGateReader,
-  setSetupGateReader,
   setupRedirectFor,
 } from "@/app/(account)/setup/gate";
 import type { SetupProgressState } from "@/app/(account)/setup/submit";
 import { middleware } from "@/middleware";
+
+/** The request headers the layout reads its path out of. */
+const requestHeaders = new Map<string, string>();
+
+vi.mock("next/headers", () => ({
+  headers: async () => ({ get: (name: string) => requestHeaders.get(name) ?? null }),
+}));
+
+/** `redirect()` throws in Next, and mirroring that is what proves the
+ *  layout renders no children on the way past. */
+vi.mock("next/navigation", () => ({
+  redirect: (to: string) => {
+    throw new Error(`NEXT_REDIRECT:${to}`);
+  },
+}));
+
+const { resetSetupGateReader, setSetupGateReader } = await import(
+  "@/app/(account)/setup/gate-state"
+);
+const { default: AccountLayout } = await import("@/app/(account)/layout");
 
 const PAID_AT = new Date(Date.UTC(2026, 8, 5, 9, 30, 0));
 
@@ -129,52 +157,124 @@ describe("the allow-list is data, not an `if` repeated per route", () => {
 
 // ── The enforcement point ────────────────────────────────────────────────
 
-function requestTo(path: string): NextRequest {
-  const headers = new Headers({ cookie: "rk_session=a-token" });
-  return new NextRequest(new Request(`https://reachkit.example${path}`, { headers }));
+/** Renders the `(account)` layout for `path`, and answers where it sent
+ *  the request — `null` when it served the screen. */
+async function layoutFor(path: string | null): Promise<string | null> {
+  requestHeaders.clear();
+  if (path !== null) requestHeaders.set(GATE_PATH_HEADER, path);
+  try {
+    await AccountLayout({ children: null });
+    return null;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    const redirect = /^NEXT_REDIRECT:(.*)$/.exec(message);
+    if (redirect === null) throw err;
+    return redirect[1] ?? null;
+  }
 }
 
-describe("src/middleware.ts applies the gate, and holds no setup knowledge of its own", () => {
+describe("src/app/(account)/layout.tsx applies the gate, and holds no setup knowledge of its own", () => {
+  beforeEach(() => {
+    requestHeaders.clear();
+  });
+
   it("an incomplete founder asking for /app is redirected to /setup", async () => {
     setSetupGateReader(async () => INCOMPLETE);
-    const res = await middleware(requestTo("/app"));
-    expect(res.status).toBe(307);
-    expect(new URL(res.headers.get("location") ?? "", "https://reachkit.example").pathname).toBe(
-      SETUP_PATH
-    );
+    expect(await layoutFor("/app")).toBe(SETUP_PATH);
+  });
+
+  it.each(GATED_PATHS)("%s is redirected while setup is unfinished", async (path) => {
+    setSetupGateReader(async () => INCOMPLETE);
+    expect(await layoutFor(path)).toBe(SETUP_PATH);
   });
 
   it("the same founder asking for Settings is served", async () => {
     setSetupGateReader(async () => INCOMPLETE);
-    expect((await middleware(requestTo("/app/settings"))).status).toBe(200);
+    expect(await layoutFor("/app/settings")).toBeNull();
+  });
+
+  it("setup's own screens are served, so the gate is never a loop", async () => {
+    setSetupGateReader(async () => INCOMPLETE);
+    expect(await layoutFor(SETUP_PATH)).toBeNull();
+    expect(await layoutFor("/setup/waiting")).toBeNull();
   });
 
   it("a complete founder asking for /setup is taken onward to /app", async () => {
     setSetupGateReader(async () => COMPLETE);
-    const res = await middleware(requestTo(SETUP_PATH));
-    expect(res.status).toBe(307);
-    expect(new URL(res.headers.get("location") ?? "", "https://reachkit.example").pathname).toBe(
-      APP_PATH
-    );
+    expect(await layoutFor(SETUP_PATH)).toBe(APP_PATH);
   });
 
-  it("with no readable account — today's answer — nothing is gated at all", async () => {
-    for (const path of ["/app", "/app/calendar", SETUP_PATH]) {
-      expect((await middleware(requestTo(path))).status).toBe(200);
+  it("a complete founder is never sent back to /setup from anywhere", async () => {
+    setSetupGateReader(async () => COMPLETE);
+    for (const path of [...GATED_PATHS, ...WAY_OUT, "/setup/waiting"]) {
+      expect(await layoutFor(path), path).toBeNull();
     }
   });
 
-  it("a signed-out request is still refused before the gate is ever consulted", async () => {
+  it("an account the process cannot name is let through, never guessed at", async () => {
+    setSetupGateReader(async () => null);
+    for (const path of [...GATED_PATHS, SETUP_PATH]) {
+      expect(await layoutFor(path), path).toBeNull();
+    }
+  });
+
+  it("a request with no forwarded path is let through, and costs no read at all", async () => {
+    const reader = vi.fn(async () => INCOMPLETE);
+    setSetupGateReader(reader);
+    expect(await layoutFor(null)).toBeNull();
+    expect(reader).not.toHaveBeenCalled();
+  });
+});
+
+function requestTo(path: string, extra?: Record<string, string>): NextRequest {
+  const headers = new Headers({ cookie: "rk_session=a-token", ...extra });
+  return new NextRequest(new Request(`https://reachkit.example${path}`, { headers }));
+}
+
+/** What `NextResponse.next({ request: { headers } })` encodes an
+ *  overridden request header as, on the way back to Next. */
+function forwardedPath(res: Response): string | null {
+  return res.headers.get(`x-middleware-request-${GATE_PATH_HEADER}`);
+}
+
+describe("src/middleware.ts forwards the path the layout cannot ask for", () => {
+  it("an authorised request is served, carrying its own path", async () => {
+    const res = await middleware(requestTo("/app"));
+    expect(res.status).toBe(200);
+    expect(forwardedPath(res)).toBe("/app");
+  });
+
+  it.each([...GATED_PATHS, ...WAY_OUT, SETUP_PATH, "/setup/waiting"])(
+    "%s is forwarded as itself",
+    async (path) => {
+      expect(forwardedPath(await middleware(requestTo(path)))).toBe(path);
+    }
+  );
+
+  it("a client's own claim about the path is overwritten, never trusted", async () => {
+    // Without the overwrite this would be the whole gate: send
+    // `x-rk-path: /app/settings` with a request for `/app` and the
+    // allow-list would wave it through.
+    const res = await middleware(requestTo("/app", { [GATE_PATH_HEADER]: "/app/settings" }));
+    expect(forwardedPath(res)).toBe("/app");
+  });
+
+  it("holds no setup knowledge of its own: it redirects nobody on account of setup", async () => {
     setSetupGateReader(async () => {
-      throw new Error("the gate must not be consulted for a request with no session");
+      throw new Error("the middleware must not read the gate's state");
     });
-    const res = await middleware(
-      new NextRequest(new Request("https://reachkit.example/app"))
-    );
+    for (const path of [...GATED_PATHS, SETUP_PATH]) {
+      expect((await middleware(requestTo(path))).status, path).toBe(200);
+    }
+  });
+
+  it("a signed-out request is still refused, and carries no forwarded path", async () => {
+    const res = await middleware(new NextRequest(new Request("https://reachkit.example/app")));
     expect(res.status).toBe(307);
     expect(new URL(res.headers.get("location") ?? "", "https://reachkit.example").pathname).toBe(
       "/signin"
     );
+    expect(forwardedPath(res)).toBeNull();
   });
 
   it("a public route is never gated, however incomplete the founder", async () => {

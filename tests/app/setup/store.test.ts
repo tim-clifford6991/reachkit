@@ -29,6 +29,16 @@ vi.mock("@/lib/egress/dns", () => ({
   resolvesInDns: (host: string) => resolved(host),
 }));
 
+/** #133: the store's `hasActiveAccess` port now defaults to the billing
+ *  leaf's own gate — ADR-050's `users.paid_through > now()`, keyed by
+ *  site. Mocked here so this file keeps testing the setup store rather
+ *  than re-testing `tests/account/billing/gate.test.ts`. */
+const paid = vi.fn<(siteId: string) => Promise<boolean>>(async () => true);
+
+vi.mock("@/lib/account/billing", () => ({
+  hasActiveAccess: (siteId: string) => paid(siteId),
+}));
+
 const { liveSetupStore, resetActiveAccessReader, setActiveAccessReader } = await import(
   "../../../src/app/(account)/setup/_setup/store"
 );
@@ -63,6 +73,8 @@ function site(overrides: Record<string, unknown> = {}) {
 beforeEach(() => {
   queued.mockReset();
   resolved.mockClear();
+  paid.mockClear();
+  paid.mockResolvedValue(true);
   db = fakeDb({ sites: [site()], destinations: [] });
   setActiveAccessReader(async () => true);
 });
@@ -153,19 +165,39 @@ describe("enqueueDeepPass — the pass goes on the queue, at tier deep", () => {
   });
 });
 
-describe("hasActiveAccess is a seam, and it refuses rather than guessing", () => {
-  it("with nothing wired, the store answers false — the paywall closed, not open", async () => {
+describe("hasActiveAccess is the billing leaf's gate, asked about this account's own site (#133)", () => {
+  it("resolves the site from the account and asks billing about that site, never about the user", async () => {
     resetActiveAccessReader();
+    paid.mockResolvedValueOnce(true);
+    expect(await liveSetupStore().hasActiveAccess(USER)).toBe(true);
+    expect(paid).toHaveBeenCalledWith(SITE);
+  });
+
+  it("billing's answer is the store's answer, both ways", async () => {
+    resetActiveAccessReader();
+    paid.mockResolvedValueOnce(false);
     expect(await liveSetupStore().hasActiveAccess(USER)).toBe(false);
   });
 
-  it("so a submit through it is refused for want of access, not silently allowed", async () => {
+  it("an account provisioning has not given a site is refused, not thrown at", async () => {
+    // `completeSetup` asks this first, and "no account here" is exactly
+    // what it wants to hear — a throw would be a 500 where a refusal
+    // belongs.
     resetActiveAccessReader();
+    db = fakeDb({ sites: [] });
+    expect(await liveSetupStore().hasActiveAccess(USER)).toBe(false);
+    expect(paid).not.toHaveBeenCalled();
+  });
+
+  it("so a submit without access is refused for want of it, not silently allowed", async () => {
+    resetActiveAccessReader();
+    paid.mockResolvedValue(false);
     expect(await completeSetup(liveSetupStore(), { userId: USER, submission: SUBMISSION })).toEqual({
       ok: false,
       refused: "no_active_access",
     });
     expect(db.tables.sites![0]!.setup_completed_at).toBeNull();
+    paid.mockResolvedValue(true);
   });
 });
 
