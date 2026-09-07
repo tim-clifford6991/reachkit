@@ -5,7 +5,7 @@
 // REQ-043 criterion 5's "exactly one account of itself" are the same
 // function call, and ADR-011's ordering is the array this file reads.
 import { describe, expect, it } from "vitest";
-import { COPY } from "@/lib/presentation/copy";
+import { COPY, TODO_COPY_MARKER } from "@/lib/presentation/copy";
 import {
   CAUSE_PRECEDENCE,
   PLACES,
@@ -113,32 +113,24 @@ describe("REQ-091 c2 — a place holding nothing gets exactly one line", () => {
 });
 
 describe("ADR-011 point 2 — unrecognised outranks supply-exhausted", () => {
-  // Both lines are still the owner's and empty, so `copy()` refuses them and
-  // `account()` throws naming the key. Which cause **won** is decided
-  // without a sentence: the throw names the key the winner reached, and the
-  // key is the whole of the assertion. REQ-043 c3 reserves "there was
-  // nothing worth publishing" to genuinely exhausted supply — "No date
-  // emptied by any other cause, whether or not a requirement names that
-  // cause, ever carries that line" — and this is that clause, decided
-  // today rather than deferred until the owner writes.
-  const winner = (causes: Cause[]): string => {
-    try {
-      return account(PLACE, causes).cause;
-    } catch (error) {
-      const match = /"([^"]+)"/.exec((error as Error).message);
-      return match?.[1] ?? "";
-    }
-  };
+  // Both lines are still the owner's. Since #246 they carry the
+  // `TODO(copy)` marker rather than the empty value, so `account()` returns
+  // instead of throwing and *which cause won* is read straight off the
+  // answer — where this suite used to have to catch the throw and pull the
+  // key out of its message. REQ-043 c3 reserves "there was nothing worth
+  // publishing" to genuinely exhausted supply — "No date emptied by any
+  // other cause, whether or not a requirement names that cause, ever
+  // carries that line" — and this is that clause, decided today rather than
+  // deferred until the owner writes.
+  const winner = (causes: Cause[]): CauseTag => account(PLACE, causes).cause;
 
   it("a cause nobody classified never inherits the exhausted-supply line", () => {
-    expect(winner([CAUSE["unrecognised"], CAUSE["supply-exhausted"]])).toBe("cause.unrecognised");
-    expect(winner([CAUSE["unrecognised"], CAUSE["supply-exhausted"]])).not.toBe(
-      "cause.supply-exhausted"
-    );
+    expect(winner([CAUSE["unrecognised"], CAUSE["supply-exhausted"]])).toBe("unrecognised");
+    expect(winner([CAUSE["unrecognised"], CAUSE["supply-exhausted"]])).not.toBe("supply-exhausted");
   });
 
   it("supply-exhausted alone does reach its own line — the arm is reachable", () => {
-    expect(winner([CAUSE["supply-exhausted"]])).toBe("cause.supply-exhausted");
+    expect(winner([CAUSE["supply-exhausted"]])).toBe("supply-exhausted");
   });
 
   it("mutation: swapping the two entries in the precedence breaks this pair", () => {
@@ -148,25 +140,35 @@ describe("ADR-011 point 2 — unrecognised outranks supply-exhausted", () => {
     [swapped[i], swapped[j]] = [swapped[j]!, swapped[i]!];
     const present: CauseTag[] = ["unrecognised", "supply-exhausted"];
     expect(swapped.find((t) => present.includes(t))).toBe("supply-exhausted");
-    expect(winner([CAUSE["unrecognised"], CAUSE["supply-exhausted"]])).toBe("cause.unrecognised");
+    expect(winner([CAUSE["unrecognised"], CAUSE["supply-exhausted"]])).toBe("unrecognised");
+  });
+
+  it("and the two reach *different* lines, so the winner is visible in the sentence too", () => {
+    // The tag alone would still pass if both arms rendered one line. They
+    // are two keys, and the marker does not collapse them: each renders its
+    // own, and `COPY` is what says which.
+    expect(account(PLACE, [CAUSE["unrecognised"]]).line).toBe(COPY["cause.unrecognised"]);
+    expect(account(PLACE, [CAUSE["supply-exhausted"]]).line).toBe(COPY["cause.supply-exhausted"]);
   });
 });
 
 describe("REQ-091 c2 — an unwritten line is an owner obligation, never a blank", () => {
-  it("a place whose line the owner still owes throws naming the key", () => {
-    // BP-021 `## Error & edge behavior`: "`copy()` throws rather than
-    // rendering a blank until then". The alternative — returning `''` — is
-    // the blank criterion 2 forbids, arriving through the one function that
-    // exists to prevent it.
-    expect(() => account("calendar.date.page", [])).toThrow(/place\.calendar\.date\.page/);
-    expect(() => account("overview.weekly-presence.chart", [])).toThrow(
-      /place\.overview\.weekly-presence\.chart/
-    );
+  it("a place whose line the owner still owes renders the marker (#246)", () => {
+    // It used to throw: the keys were empty and `copy()` refuses an empty
+    // value. #246 moved this family to the marker on the product-wide rule
+    // that an owed sentence *renders* wherever it is owed — so the
+    // obligation is now visible on the screen and on a preview, rather than
+    // only in a stack trace. Criterion 2's blank is still forbidden and
+    // still impossible: what comes back is the marker, never `''`.
+    expect(account("calendar.date.page", []).line).toBe(TODO_COPY_MARKER);
+    expect(account("overview.weekly-presence.chart", []).line).toBe(TODO_COPY_MARKER);
   });
 
-  it("and the arbiter never returns an empty line for any place it can answer", () => {
-    for (const place of ["report.first-page.rival"] as const) {
-      expect(account(place, []).line).not.toBe("");
+  it("and the arbiter never returns an empty line for any place at all", () => {
+    // Every place, not the one that happened to be written — which is what
+    // this could assert before, and is the assertion #246 makes total.
+    for (const place of Object.keys(PLACES) as PlaceKey[]) {
+      expect(account(place, []).line, place).not.toBe("");
     }
   });
 });

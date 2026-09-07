@@ -312,7 +312,7 @@ describe("owner-owed and empty agree both ways", () => {
     expect(new Set(emptyKeys)).toEqual(new Set(OWNER_OWED));
   });
 
-  it("counts: 140 owner-owed, 235 awaiting copy, 168 ruled, 543 total (rule 5.5 — the index states its own coverage)", () => {
+  it("counts: 134 owner-owed, 241 awaiting copy, 168 ruled, 543 total (rule 5.5 — the index states its own coverage)", () => {
     // WO-070 added report.ts's eight landing keys (headline, field label,
     // submit label, five DomainProblem lines), all owner-owed: 30 + 8 = 38.
     // 2026-09-03: the owner ruled on three of them (headline, field label,
@@ -865,8 +865,26 @@ describe("owner-owed and empty agree both ways", () => {
     // opposite consequences (ADR-085), so they are two keys the owner
     // words apart. 140 owner-owed and 168 ruled unchanged, 219 + 16 = 235
     // awaiting copy, 527 + 16 = 543 total.
-    expect(OWNER_OWED.length).toBe(140);
-    expect(AWAITING_COPY.length).toBe(235);
+    //
+    // 2026-09-07, after that: issue #246 moves the last owner-owed family
+    // that still rendered as nothing. The six keys carrying
+    // `law: "no-presence-yet"` and the empty value — Overview's three
+    // weekly-presence lines and the calendar's `place.calendar.date.page`,
+    // `cause.unrecognised` and `cause.supply-exhausted` — take the marker,
+    // on the product-wide rule the two batches above already applied: an
+    // owed sentence renders the marker wherever it is owed, and a screen
+    // does not get an exception for a family being product-wide.
+    //
+    // **The seventh key with that law does not move**, and that is not an
+    // omission: `place.report.first-page.rival` is *written* ("No rival
+    // holds this ground yet"). It is not owed, and blanking it to a
+    // placeholder would delete the owner's own sentence.
+    //
+    // Nothing is minted, so the total does not move: 140 - 6 = 134
+    // owner-owed, 235 + 6 = 241 awaiting copy, 168 ruled and 543 total
+    // unchanged.
+    expect(OWNER_OWED.length).toBe(134);
+    expect(AWAITING_COPY.length).toBe(241);
     expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(168);
     expect(Object.keys(COPY).length).toBe(543);
 

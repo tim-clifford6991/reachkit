@@ -6,7 +6,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { COPY } from "@/lib/presentation/copy";
+import { COPY, TODO_COPY_MARKER } from "@/lib/presentation/copy";
 import { unmeasured, measuredZero } from "@/lib/measure/measured";
 import {
   PLACES,
@@ -73,11 +73,13 @@ describe("REQ-091 c2 — null, [] and unmeasured are accounted, never empty", ()
   });
 
   it("and with no cause at all it reaches the place's own line, which the owner still owes", () => {
-    // Never a blank: the unwritten baseline throws naming the key, so the
-    // obligation is visible the moment a place is registered.
-    expect(() => renderPlace(SERIES_PLACE, [])).toThrow(
-      /place\.overview\.weekly-presence\.chart/
-    );
+    // Never a blank. The unwritten baseline used to throw naming the key;
+    // since #246 this family carries the `TODO(copy)` marker and renders
+    // it, so the obligation is visible on the screen itself rather than
+    // only in a stack trace — and a blank is still what cannot happen.
+    const accounted = renderPlace(SERIES_PLACE, []);
+    expect(accounted.state).toBe("accounted");
+    expect(accounted.state === "accounted" && accounted.line).toBe(TODO_COPY_MARKER);
   });
 
   it("an unmeasured measurement is accounted, and says so through its own cause", () => {
