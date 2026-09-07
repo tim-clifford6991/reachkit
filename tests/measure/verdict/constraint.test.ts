@@ -28,26 +28,15 @@
 //
 // `structure.md` rule 4: tests live beside the module they exercise —
 // `tests/measure/verdict/**` is BP-024's own glob.
-import { execFileSync } from "node:child_process";
 import { readdirSync } from "node:fs";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import {
+  psql,
+} from "../../db/substrate";
 
-const DB_HOST = "127.0.0.1";
-const DB_PORT = "5432";
-const DB_USER = "reachkit";
-const DB_PASSWORD = "reachkit";
-const DB_NAME = process.env.REACHKIT_DB_NAME ?? "reachkit_scratch";
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
 const MIGRATIONS_DIR = path.join(REPO_ROOT, "supabase/migrations");
-
-function psql(args: string[]): string {
-  return execFileSync("psql", ["-h", DB_HOST, "-p", DB_PORT, "-U", DB_USER, "-d", DB_NAME, "-q", ...args], {
-    env: { ...process.env, PGPASSWORD: DB_PASSWORD },
-    encoding: "utf8",
-    maxBuffer: 10 * 1024 * 1024,
-  });
-}
 
 function resetSchema(): void {
   psql([

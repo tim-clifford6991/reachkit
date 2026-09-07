@@ -38,7 +38,6 @@
 // own database and its own ports, and the constants below read them out of
 // the environment. No lock is needed. CI passes no `--run` and needs none:
 // one job, one runner, one `postgres:18` service container.
-import { execFileSync } from "node:child_process";
 import { readdirSync } from "node:fs";
 import path from "node:path";
 import { LIVE_ACCOUNT, RESERVED_ACCOUNT } from "../../app/accounts";
@@ -49,15 +48,13 @@ import type { CanonicalDomain } from "@/lib/scan/domain";
 import { assembleReport } from "@/lib/scan/store";
 import { previousWeekStart, weekStartFor } from "@/lib/scan/weekly";
 import type { AppAccount } from "@/app/(account)/app/_session/account";
+import {
+  psql,
+} from "../../db/substrate";
 
 const ROOT = path.resolve(__dirname, "../../..");
 const MIGRATIONS_DIR = path.join(ROOT, "supabase/migrations");
 
-const DB_HOST = "127.0.0.1";
-const DB_PORT = "5432";
-const DB_USER = "reachkit";
-const DB_PASSWORD = "reachkit";
-const DB_NAME = process.env.REACHKIT_DB_NAME ?? "reachkit_scratch";
 
 /** Each account's own address. Never mailed: `issueLink` writes the row and
  *  this file redeems the token straight out of the returned URL. */
@@ -143,15 +140,6 @@ const LIVE_RIVALS: readonly { domain: string; weekly: readonly number[] }[] = Ob
   { domain: "bigcompetitor.com", weekly: Object.freeze([6500, 6400, 6318]) },
   { domain: "similar.io", weekly: Object.freeze([150, 145, 140]) },
 ]);
-
-function psql(args: string[]): string {
-  return execFileSync("psql", ["-h", DB_HOST, "-p", DB_PORT, "-U", DB_USER, "-d", DB_NAME, "-q", ...args], {
-    env: { ...process.env, PGPASSWORD: DB_PASSWORD },
-    encoding: "utf8",
-    maxBuffer: 10 * 1024 * 1024,
-  });
-}
-
 function sql(statement: string): void {
   psql(["-v", "ON_ERROR_STOP=1", "-c", statement]);
 }

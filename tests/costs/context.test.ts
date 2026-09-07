@@ -26,37 +26,26 @@
 // plan, so the flag is stated here, exactly as those files' own headers
 // already do.
 import { execFileSync } from "node:child_process";
-import { createHmac } from "node:crypto";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  ANON_KEY,
+  DB_HOST,
+  DB_NAME,
+  DB_PASSWORD,
+  DB_PORT,
+  DB_USER,
+  REST_URL,
+  SERVICE_ROLE_KEY,
+  psql,
+  psqlRows,
+} from "../db/substrate";
 
 let withCostContext: (typeof import("../../src/lib/costs/index"))["withCostContext"];
 
-const DB_HOST = "127.0.0.1";
-const DB_PORT = "5432";
-const DB_USER = "reachkit";
-const DB_PASSWORD = "reachkit";
-const DB_NAME = process.env.REACHKIT_DB_NAME ?? "reachkit_scratch";
-const SUPABASE_URL = process.env.SUPABASE_URL ?? "http://127.0.0.1:3001";
-const JWT_SECRET = "reachkit-scratch-jwt-secret-at-least-32-chars-long";
 const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
 const BASELINE_MIGRATION = path.join(REPO_ROOT, "supabase/migrations/00000000000001_baseline.sql");
 const FETCHES_MIGRATION = path.join(REPO_ROOT, "supabase/migrations/20260903080000_fetches.sql");
-
-function psql(args: string[]): string {
-  return execFileSync("psql", ["-h", DB_HOST, "-p", DB_PORT, "-U", DB_USER, "-d", DB_NAME, "-q", ...args], {
-    env: { ...process.env, PGPASSWORD: DB_PASSWORD },
-    encoding: "utf8",
-    maxBuffer: 10 * 1024 * 1024,
-  });
-}
-
-function psqlRows(sql: string): string[][] {
-  return psql(["-v", "ON_ERROR_STOP=1", "-Atc", sql])
-    .split("\n")
-    .filter((line) => line.length > 0)
-    .map((line) => line.split("|"));
-}
 
 function resetAndApplySchema(): void {
   psql([
@@ -72,19 +61,6 @@ function resetAndApplySchema(): void {
 }
 
 // ── JWT + loopback-fetch harness (mirrors tests/db/rls.test.ts's own) ──────
-
-function base64url(input: Buffer): string {
-  return input.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-function signJwt(claims: Record<string, unknown>): string {
-  const header = base64url(Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })));
-  const payload = base64url(Buffer.from(JSON.stringify(claims)));
-  const signingInput = `${header}.${payload}`;
-  const signature = base64url(createHmac("sha256", JWT_SECRET).update(signingInput).digest());
-  return `${signingInput}.${signature}`;
-}
-const ANON_KEY = signJwt({ role: "anon", iss: "supabase", exp: Math.floor(Date.now() / 1000) + 3600 });
-const SERVICE_ROLE_KEY = signJwt({ role: "service_role", iss: "supabase", exp: Math.floor(Date.now() / 1000) + 3600 });
 
 function loopbackFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
   const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : (input as Request).url;
@@ -130,7 +106,7 @@ globalThis.fetch = loopbackFetch as unknown as typeof fetch;
 
 const ENV_FIXTURE: Record<string, string> = {
   DATABASE_URL: `postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}`,
-  SUPABASE_URL,
+  REST_URL,
   SUPABASE_ANON_KEY: ANON_KEY,
   // Renamed by WO-284 (BP-005 decision 6a) — outside that order's own file
   // plan, whose grep for this literal missed this file; fixed here as the

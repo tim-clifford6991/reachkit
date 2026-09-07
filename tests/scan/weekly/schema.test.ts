@@ -20,16 +20,16 @@
 // `db` project — every file in it resets and rebuilds the same physical
 // `public` schema.
 import { execFileSync } from "node:child_process";
-import { createHmac } from "node:crypto";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { topicOf } from "../../../src/lib/db/topics";
+import {
+  REST_URL,
+  psql,
+  psqlRows,
+  signJwt,
+} from "../../db/substrate";
 
-const DB_HOST = "127.0.0.1";
-const DB_PORT = "5432";
-const DB_USER = "reachkit";
-const DB_PASSWORD = "reachkit";
-const DB_NAME = process.env.REACHKIT_DB_NAME ?? "reachkit_scratch";
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
 const MIGRATION_NAME = "20260906120000_scans_weekly.sql";
 const MIGRATIONS = path.join(REPO_ROOT, "supabase/migrations");
@@ -46,23 +46,7 @@ const WEEKLY_MIGRATION = path.join(MIGRATIONS, MIGRATION_NAME);
 const TIMEZONE_MIGRATION = path.join(MIGRATIONS, "00000000000004_sites_timezone_column.sql");
 const SUBSCRIPTION_MIGRATION = path.join(MIGRATIONS, "20260906120000_users_subscription_columns.sql");
 
-function psql(args: string[]): string {
-  return execFileSync("psql", ["-h", DB_HOST, "-p", DB_PORT, "-U", DB_USER, "-d", DB_NAME, "-q", ...args], {
-    env: { ...process.env, PGPASSWORD: DB_PASSWORD },
-    encoding: "utf8",
-    maxBuffer: 10 * 1024 * 1024,
-  });
-}
-
 /** One tuple-only row per line, `|`-separated columns — easy to split. */
-function psqlRows(sql: string): string[][] {
-  const out = psql(["-v", "ON_ERROR_STOP=1", "-Atc", sql]);
-  return out
-    .split("\n")
-    .filter((line) => line.length > 0)
-    .map((line) => line.split("|"));
-}
-
 /** Runs `sql` and returns whether it raised (never throws itself). */
 function raises(sql: string): boolean {
   try {
@@ -224,19 +208,6 @@ describe("the file is named for the topic that owns it", () => {
 // `tests/db/rls.test.ts` documents: `tests/setup.ts` refuses the real
 // globals process-wide, `db()`/`dbAdmin()` take no `fetch` hook, and the
 // regex is what keeps this from becoming a general network allowance.
-const SUPABASE_URL = process.env.SUPABASE_URL ?? "http://127.0.0.1:3001";
-const JWT_SECRET = "reachkit-scratch-jwt-secret-at-least-32-chars-long";
-
-function base64url(input: Buffer): string {
-  return input.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
-function signJwt(claims: Record<string, unknown>): string {
-  const header = base64url(Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })));
-  const payload = base64url(Buffer.from(JSON.stringify(claims)));
-  const signingInput = `${header}.${payload}`;
-  return `${signingInput}.${base64url(createHmac("sha256", JWT_SECRET).update(signingInput).digest())}`;
-}
 
 function keyFor(role: string): string {
   return signJwt({ role, iss: "supabase", exp: Math.floor(Date.now() / 1000) + 3600 });
@@ -277,7 +248,7 @@ function loopbackFetch(input: RequestInfo | URL, init: RequestInit = {}): Promis
 }
 
 const ENV_FIXTURE: Record<string, string> = {
-  SUPABASE_URL,
+  REST_URL,
   SUPABASE_ANON_KEY: keyFor("anon"),
   SUPABASE_SERVICE_ROLE_KEY: keyFor("service_role"),
   STRIPE_SECRET_KEY: "sk_test_fixture",

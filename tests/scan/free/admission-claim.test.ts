@@ -39,7 +39,6 @@
 // `structure.md` rule 4: tests live beside the module they exercise —
 // `tests/scan/free/**` is BP-023's.
 import { execFile, execFileSync } from "node:child_process";
-import { createHmac } from "node:crypto";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -50,18 +49,20 @@ vi.mock("@/lib/db", () => ({ dbAdmin: vi.fn() }));
 import { dbAdmin } from "@/lib/db";
 import type { CanonicalDomain } from "../../../src/lib/scan/domain.ts";
 import type { Admission, NetworkKey } from "../../../src/lib/scan/admission.ts";
+import {
+  DB_HOST,
+  DB_NAME,
+  DB_PASSWORD,
+  DB_PORT,
+  DB_USER,
+  REST_URL,
+  SERVICE_ROLE_KEY,
+  } from "../../db/substrate";
 
 const IP_HASH_SALT = "test-salt-fixture";
 
 // ── Live-substrate connection facts (REQ-003 c7's concurrency suite only;
 // every other suite below never lets these values reach a socket) ────────
-const DB_HOST = "127.0.0.1";
-const DB_PORT = "5432";
-const DB_USER = "reachkit";
-const DB_PASSWORD = "reachkit";
-const DB_NAME = process.env.REACHKIT_DB_NAME ?? "reachkit_scratch";
-const SUPABASE_URL = process.env.SUPABASE_URL ?? "http://127.0.0.1:3001";
-const JWT_SECRET = "reachkit-scratch-jwt-secret-at-least-32-chars-long";
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
 const CLAIM_MIGRATIONS = [
   path.join(REPO_ROOT, "supabase/migrations/00000000000001_baseline.sql"),
@@ -69,25 +70,9 @@ const CLAIM_MIGRATIONS = [
   path.join(REPO_ROOT, "supabase/migrations/00000000000006_scans_freepath_claim.sql"),
 ];
 
-function base64url(input: Buffer): string {
-  return input.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-function signJwt(claims: Record<string, unknown>): string {
-  const header = base64url(Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })));
-  const payload = base64url(Buffer.from(JSON.stringify(claims)));
-  const signingInput = `${header}.${payload}`;
-  const signature = base64url(createHmac("sha256", JWT_SECRET).update(signingInput).digest());
-  return `${signingInput}.${signature}`;
-}
-const SERVICE_ROLE_KEY = signJwt({
-  role: "service_role",
-  iss: "supabase",
-  exp: Math.floor(Date.now() / 1000) + 3600,
-});
-
 const ENV_FIXTURE: Record<string, string> = {
   DATABASE_URL: `postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}`,
-  SUPABASE_URL,
+  REST_URL,
   SUPABASE_ANON_KEY: "anon-key-fixture",
   SUPABASE_SERVICE_ROLE_KEY: SERVICE_ROLE_KEY,
   STRIPE_SECRET_KEY: "sk_test_fixture",

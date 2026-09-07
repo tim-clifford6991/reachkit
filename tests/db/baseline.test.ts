@@ -24,39 +24,20 @@
 // order's file plan (rule 2), so the flag is stated here rather than
 // forced in config; `migration-naming.test.ts` touches no live database
 // and is unaffected.
-import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import {
+  psql,
+  psqlRows,
+} from "./substrate";
 
-const DB_HOST = "127.0.0.1";
-const DB_PORT = "5432";
-const DB_USER = "reachkit";
-const DB_PASSWORD = "reachkit";
-const DB_NAME = process.env.REACHKIT_DB_NAME ?? "reachkit_scratch";
 const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
 const BASELINE_MIGRATION = path.join(
   REPO_ROOT,
   "supabase/migrations/00000000000001_baseline.sql"
 );
 
-function psql(args: string[], input?: string): string {
-  return execFileSync("psql", ["-h", DB_HOST, "-p", DB_PORT, "-U", DB_USER, "-d", DB_NAME, "-q", ...args], {
-    env: { ...process.env, PGPASSWORD: DB_PASSWORD },
-    encoding: "utf8",
-    input,
-    maxBuffer: 10 * 1024 * 1024,
-  });
-}
-
 /** One tuple-only row per line, `|`-separated columns — easy to split. */
-function psqlRows(sql: string): string[][] {
-  const out = psql(["-v", "ON_ERROR_STOP=1", "-Atc", sql]);
-  return out
-    .split("\n")
-    .filter((line) => line.length > 0)
-    .map((line) => line.split("|"));
-}
-
 beforeAll(() => {
   psql([
     "-v",
