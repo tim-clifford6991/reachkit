@@ -28,20 +28,52 @@ jobs:
   layout:
     name: layout conformance (browser)
     runs-on: ubuntu-latest
+    # The sweep renders the real `(account)` screens, which since #192 verify
+    # the session against the `users` row — so this job needs the same live
+    # database the `db` job runs against (#193). `scripts/db-substrate/` is
+    # that database; `tests/ui/layout/seed.ts` applies the migrations, seeds
+    # one account and mints its session through identity's own path.
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: reachkit
+          POSTGRES_PASSWORD: reachkit
+          POSTGRES_DB: reachkit_scratch
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U reachkit -d reachkit_scratch"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
+      - name: psql 18 (the seed spawns it; the runner image ships an older client)
+        run: |
+          set -euo pipefail
+          key=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc -o "$key"
+          echo "deb [signed-by=$key] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-18
+          psql --version
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - name: schema-valid fixture environment (src/lib/config/env.ts parses at build; no vendor is reached)
+      - name: bring up the substrate (roles · auth shims · PostgREST · /rest/v1 proxy · postgres-meta)
+        run: scripts/db-substrate/up.sh
+      - name: environment (src/lib/config/env.ts parses at build; the Supabase bindings are the substrate's, the rest are fixtures no vendor is reached with)
         run: |
+          set -euo pipefail
+          # `up.sh` already appended SUPABASE_URL and the two real keys for
+          # this substrate to $GITHUB_ENV — the sweep signs in against them,
+          # so they must not be overwritten with fixtures here.
           {
-            echo "SUPABASE_URL=http://127.0.0.1:3001"
-            echo "SUPABASE_ANON_KEY=ci-fixture"
-            echo "SUPABASE_SERVICE_ROLE_KEY=ci-fixture"
             echo "STRIPE_SECRET_KEY=sk_test_fixture"
             echo "STRIPE_WEBHOOK_SECRET=whsec_fixture"
             echo "STRIPE_PRICE_ID=price_fixture"

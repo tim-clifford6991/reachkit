@@ -16,7 +16,7 @@
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { BAND_MIN } from "@/ui/layout/bands";
-import { getBaseURL, withPage } from "./browser";
+import { getAccountCookie, getBaseURL, withPage } from "./browser";
 import {
   checkContainment,
   checkNoClippingOrTruncation,
@@ -35,7 +35,10 @@ import {
 import { widths } from "./widths";
 
 const APP_ROOT = path.resolve(__dirname, "../../../src/app");
-const routes = enumerateRoutes(APP_ROOT);
+// The seeded session (#193): every `(account)` route is swept signed in
+// as the account `browser.ts` put in the database, not as a fixture
+// value the screens now refuse.
+const routes = enumerateRoutes(APP_ROOT, { accountCookie: getAccountCookie() });
 
 console.log(
   `tests/ui/layout/layout.test.ts: ${routes.length} route(s) × 5 widths` +
