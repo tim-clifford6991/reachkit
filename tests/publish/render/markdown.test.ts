@@ -1,10 +1,17 @@
-// tests/app/draft/markdown.test.ts — BUILD §4.6, §9, REQ-045 criteria 5 and 12
+// tests/publish/render/markdown.test.ts — BUILD §9, §4.6, REQ-045 criteria
+// 5 and 12
 //
 // The one renderer. The claim this file exists to hold is the archived
 // BP-044 decision 3's: what the customer copies and what publishes are the
 // same bytes, because there is one parse and one serialiser and the screen's
 // own styling is a class map handed to that same serialiser — never a second
 // element tree.
+//
+// It moved here with the module (issue #158): the renderer now lives under
+// `src/lib/publish/` because that is the only side of the fence both the
+// draft screen and a destination adapter can reach, and a test that imports
+// it belongs beside it. The rows below are unchanged — this file's subject
+// did not move, only its address.
 import { describe, expect, it } from "vitest";
 import {
   escapeHtml,
@@ -14,7 +21,7 @@ import {
   renderMarkdownHtml,
   toHtml,
   type HtmlClasses,
-} from "@/app/(account)/app/draft/[draftId]/markdown";
+} from "@/lib/publish/render/markdown";
 import { BODY_CLASSES } from "@/app/(account)/app/draft/[draftId]/present";
 
 const CLASS_ATTR = / class="[^"]*"/g;

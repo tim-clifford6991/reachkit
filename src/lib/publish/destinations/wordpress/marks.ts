@@ -54,11 +54,22 @@ export function markerComment(draftId: string): string {
   return `<!-- ${markerToken(draftId)} -->`;
 }
 
-/** The post body ReachKit creates: the page, then the marker. Appended
- *  rather than prepended so that a site which truncates a body for an
- *  excerpt does not lead with our comment. */
-export function bodyWithMarker(bodyMd: string, draftId: string): string {
-  return `${bodyMd}\n\n${markerComment(draftId)}`;
+/**
+ * The post body ReachKit creates: the page, then the marker. Appended
+ * rather than prepended so that a site which truncates a body for an
+ * excerpt does not lead with our comment.
+ *
+ * **It takes the body as it will be sent — HTML, not Markdown — and the
+ * order is load-bearing** (issue #158). The renderer escapes every
+ * character of its input, which is what makes its output safe to set as
+ * HTML; a marker passed through it would come back as `&lt;!-- … --&gt;`
+ * and publish as a visible line of punctuation at the foot of a paying
+ * customer's page, while the search that looks for the raw comment would
+ * find nothing and the next attempt would create a second post. So the
+ * body is rendered first and marked second, here.
+ */
+export function bodyWithMarker(body: string, draftId: string): string {
+  return `${body}\n\n${markerComment(draftId)}`;
 }
 
 /**

@@ -22,6 +22,7 @@
 // proposing the second floor meets the evidence before the temptation.
 //
 // The archived plan is WO-233.
+import { renderOf } from "@/lib/generate/rules/text";
 import { visibleText } from "@/lib/measure/parse";
 
 /** Lowercase alphanumeric runs. Deliberately crude: it is what makes
@@ -56,7 +57,20 @@ function counts(of: readonly string[]): Map<string, number> {
  * draft carries no body rather than asking this function.
  */
 export function bodyCoverage(fetchedHtml: string, draftBodyMd: string): number {
-  const wanted = tokens(draftBodyMd);
+  // **The draft's words, not its source** (issue #158). `renderOf` is the
+  // one declared derivation from a body's Markdown to the words a reader
+  // meets — a link becomes its label and the address is gone — and it is
+  // read here for the reason its own module states: two derivations would
+  // let one caller's "the reader's words" disagree with another's.
+  //
+  // Tokenising the raw Markdown instead charges a page for the characters
+  // of its own link addresses, which no rendering of that body has ever put
+  // in front of a reader. That was survivable while a body reached one
+  // destination as literal Markdown; since the conversion it is not, and it
+  // is the same arithmetic at the hosted edge, which has always rendered.
+  // A page carrying three links would lose several points of coverage for
+  // being correctly published, and `VERIFY.coverageFloor` is 0.95.
+  const wanted = tokens(renderOf(draftBodyMd));
   if (wanted.length === 0) return 0;
 
   const found = counts(tokens(visibleText(fetchedHtml)));

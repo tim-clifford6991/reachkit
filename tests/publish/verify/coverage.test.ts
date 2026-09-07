@@ -118,6 +118,20 @@ describe("bodyCoverage — REQ-062 c1's whole page content", () => {
     expect(Math.abs(gated - parked)).toBeLessThan(0.2);
   });
 
+  it("**a page is not charged for its own link addresses** — the words wanted are the reader's, not the Markdown's source (issue #158)", () => {
+    // A body that is one sentence and one long address. Tokenising the
+    // source would demand the page show `https example com very long …`,
+    // which no rendering of that body has ever put in front of a reader.
+    const linky = "See the [survey](https://example.com/a/very/long/report/path/2026) for the sample.";
+    const rendered = '<p>See the <a href="https://example.com/a/very/long/report/path/2026">survey</a> for the sample.</p>';
+    expect(bodyCoverage(rendered, linky)).toBe(1);
+  });
+
+  it("and a page that dropped the link's label is still short of its words", () => {
+    const linky = "See the [survey](https://example.com/x) for the sample.";
+    expect(bodyCoverage("<p>See the for the sample.</p>", linky)).toBeLessThan(1);
+  });
+
   it("is pure: the same pair of documents scores the same twice", () => {
     expect(bodyCoverage(RENDERED, BODY_MD)).toBe(bodyCoverage(RENDERED, BODY_MD));
   });
