@@ -26,6 +26,13 @@
 // stops holding: replace the single `inFlightReserved` number with a set
 // of concurrent reservations, summed — a change local to this file.
 import { dbAdmin } from "@/lib/db";
+// §6.4's first rule — "nothing is fetched that no rendered surface reads"
+// and, with it, nothing fetched twice that one scan already holds. A cost
+// context is the one thing in this codebase whose lifetime *is* a scan, so
+// it is what opens the robots memo (#73). This seam learns nothing about
+// robots: it opens a scope and closes it, and `src/lib/egress/` decides
+// everything inside.
+import { withRobotsMemo } from "@/lib/egress/robots-memo";
 import { CAPS } from "@/lib/config/constants";
 import { readCache } from "./cache";
 import { writeFetchRow } from "./ledger";
@@ -220,7 +227,11 @@ export async function withCostContext<T>(
   // leaving `scans.cost_cents`/`scans.status` for BP-012's own error path
   // to set. Every already-ledgered `fetches` row stands regardless: the
   // roll-up is a cached summary, `fetches` is the source of truth.
-  const result = await body(cost);
+  // `withRobotsMemo` scopes one robots.txt read per origin to this
+  // context (#73): opened here so it cannot outlive the pass, and closed
+  // by the same `await` — an exception from `body` still propagates
+  // untouched, and takes the memo with it.
+  const result = await withRobotsMemo(() => body(cost));
 
   if (ctx.rollUp === "none") return result;
 
