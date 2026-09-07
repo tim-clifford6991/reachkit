@@ -60,29 +60,41 @@ jobs:
   db:
     name: schema · RLS (live Postgres)
     runs-on: ubuntu-latest
-    # The db project needs a live Supabase. This job could not be verified from
-    # the owner's machine (no Docker there), so it reports but does not gate
-    # until its first green run on GitHub — then remove continue-on-error.
-    continue-on-error: true
+    # The `db` project asserts the schema against a live, migrated database.
+    # `scripts/db-substrate/` is that database and the two services around it
+    # — PostgREST and postgres-meta — so this job needs no Supabase CLI and no
+    # `supabase start`.
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: reachkit
+          POSTGRES_PASSWORD: reachkit
+          POSTGRES_DB: reachkit_scratch
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U reachkit -d reachkit_scratch"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - uses: supabase/setup-cli@v1
-        with:
-          version: latest
-      - run: npm ci
-      - run: supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector
-      - name: export local credentials under both current and WO-284 names
+      - name: psql 18 (the suites spawn it; the runner image ships an older client)
         run: |
-          eval "$(supabase status -o env | sed 's/^/export /')"
-          {
-            echo "SUPABASE_URL=$API_URL"
-            echo "SUPABASE_ANON_KEY=$ANON_KEY"
-            echo "SUPABASE_SERVICE_ROLE=$SERVICE_ROLE_KEY"
-            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
-            echo "DATABASE_URL=$DB_URL"
-          } >> "$GITHUB_ENV"
+          set -euo pipefail
+          key=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc -o "$key"
+          echo "deb [signed-by=$key] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-18
+          psql --version
+      - run: npm ci
+      - name: bring up the substrate (roles · auth shims · PostgREST · /rest/v1 proxy · postgres-meta)
+        run: scripts/db-substrate/up.sh
       - run: npx vitest run --project db
