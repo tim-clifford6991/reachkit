@@ -120,6 +120,38 @@ describe("§4.5 — Overview draws the signed-in account's own rows", () => {
     await readOverview();
     expect(readOverviewFacts).not.toHaveBeenCalled();
   });
+
+  // §4.5 item 5's seven-day strip. `WeekModule.tsx` is a pure renderer and
+  // needed no edit; what it renders did — it was built from
+  // `FIXTURE_OVERVIEW_FACTS.today`, a fixed instant in the fixture's zone,
+  // so every signed-in customer saw a week centred on a day that was not
+  // theirs and, on most days, no "today" cell at all.
+  it("the week strip is built from the account's own clock, not the fixture's fixed instant", async () => {
+    const model = await readOverview();
+    const days = model.week.days.map((day) => day.date.toISOString().slice(0, 10));
+    expect(days).toHaveLength(7);
+    // The strip covers the week the store's `today` falls in — 2026-09-08
+    // is a Tuesday, so the week runs Monday the 7th to Sunday the 13th.
+    expect(days[0]).toBe("2026-09-07");
+    expect(days[6]).toBe("2026-09-13");
+    expect(model.week.days.filter((day) => day.state === "today")).toHaveLength(1);
+  });
+
+  it("and it moves when the account's clock does — it is not a constant", async () => {
+    // The row that kills a strip hard-coded to one week: read it twice,
+    // with two different days, and the seven cells have to differ.
+    const first = await readOverview();
+    const octoberFacts = { ...(await readOverviewFacts.mock.results[0]!.value), today: new Date("2026-10-01T12:00:00.000Z") };
+    readOverviewFacts.mockResolvedValue(octoberFacts);
+    const second = await readOverview();
+
+    const daysOf = (m: Awaited<ReturnType<typeof readOverview>>): string[] =>
+      m.week.days.map((day) => day.date.toISOString().slice(0, 10));
+    expect(daysOf(second)).not.toEqual(daysOf(first));
+    // 2026-10-01 is a Thursday, so its week runs Monday the 28th onward.
+    expect(daysOf(second)[0]).toBe("2026-09-28");
+    expect(second.week.days.filter((day) => day.state === "today")).toHaveLength(1);
+  });
 });
 
 describe("§4.6 — the draft view reads the account's own draft", () => {
