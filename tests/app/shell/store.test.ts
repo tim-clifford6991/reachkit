@@ -154,6 +154,32 @@ describe("the four causes are read as four facts", () => {
     expect(facts.stopped?.resumes).toEqual({ promised: false });
   });
 
+  it("the stop's `since` is read, not invented: a failed run began when the run did", async () => {
+    // `since` decides which days a stop accounts for, so a fabricated one
+    // mis-attributes them.
+    rows.set("scans", [
+      { id: "s1", site_id: "site-1", status: "degraded", created_at: "2026-09-05T06:00:00.000Z" },
+    ]);
+    const facts = await readShellFacts(SITE);
+    expect(facts.stopped?.since).toEqual(new Date("2026-09-05T06:00:00.000Z"));
+    // REQ-092 c6: the run was cut short but still produced its page.
+    expect(facts.stopped?.partial).toBe(true);
+  });
+
+  it("the kill switch has no recorded moment, so it accounts for no earlier day", async () => {
+    // Flipping an environment binding writes nothing anywhere, so the only
+    // honest `since` is the moment it was found — which under-attributes
+    // rather than over-attributes.
+    reachKitStopped.mockResolvedValue(true);
+    rows.set("scans", [
+      { id: "s1", site_id: "site-1", status: "ok", created_at: "2026-09-05T06:00:00.000Z" },
+    ]);
+    const before = Date.now();
+    const facts = await readShellFacts(SITE);
+    expect(facts.stopped?.since.getTime()).toBeGreaterThanOrEqual(before);
+    expect(facts.stopped?.partial).toBe(false);
+  });
+
   it("no stop, and nothing states one", async () => {
     const facts = await readShellFacts(SITE);
     expect(facts.stopped).toBeNull();
