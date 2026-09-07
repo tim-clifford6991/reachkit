@@ -8,6 +8,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { fakeDb, type Row } from "../harness";
+import { seal } from "@/lib/publish/destinations/config";
 import type { DestinationAdapter, DestinationKind } from "@/lib/publish/types";
 
 const db = fakeDb();
@@ -69,7 +70,11 @@ function seedDestination(kind: DestinationKind | "ftp", health: string, over: Ro
       site_id: "s1",
       kind,
       health,
-      config: { siteUrl: "https://example.com" },
+      // Sealed, as the column actually holds it: the clause's address is
+      // read through `withConfig`, the one door to a decrypted credential
+      // (#54). A plaintext object here would be a fixture of a shape the
+      // database never carries.
+      config: seal({ siteUrl: "https://example.com" }),
       ...over,
     },
   ]);

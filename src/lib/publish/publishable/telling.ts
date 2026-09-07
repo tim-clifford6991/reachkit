@@ -27,7 +27,7 @@
 //
 // The archived plan is WO-216.
 import { publishDb } from "../db";
-import { adapterFor, destinationOf } from "../destinations";
+import { adapterFor, destinationOf, withConfig } from "../destinations";
 import type { DestinationKind, DraftView, GoverningPair, ToldRecord, VetoLink } from "../types";
 import { samePair } from "../settings/pair";
 import { becomesPublishable } from "./predicate";
@@ -235,7 +235,7 @@ async function destinationClause(
   const row = await destinationOf(siteId, kind);
   if (row === null) return null;
 
-  const site = siteOf(row.config);
+  const site = await siteOf(row.id);
   // `ok` is the whole test today. The `cannot_publish` reason ADR-086 adds
   // (a credential that can create posts but cannot publish them) is #48's
   // and lands as a further health reading; it joins this arm, not a new
@@ -256,11 +256,30 @@ async function destinationClause(
   };
 }
 
-/** The address the clause names. Read from the destination's own config —
- *  never a credential, and never logged. */
-function siteOf(config: Readonly<Record<string, unknown>>): string {
-  const url = config.siteUrl ?? config.site_url ?? config.host;
-  return typeof url === "string" ? url : "";
+/**
+ * The address the clause names.
+ *
+ * Read from the destination's own config through the sealed-credential
+ * door, which decrypts it, hands it to this callback and returns **what
+ * this callback returns** — an address, never the config. The credential
+ * that sits beside the address in the same object has no way out of the
+ * callback and is not logged, thrown with or stored (issue #54; before it,
+ * this function was handed the ciphertext and read an empty address out of
+ * it).
+ *
+ * The empty string where there is nothing to name: a destination with no
+ * credential stored has no address to put in a sentence, and the clause
+ * that carries it is composed from a state, not from this.
+ */
+async function siteOf(destinationId: string): Promise<string> {
+  try {
+    return await withConfig(destinationId, async (cfg: Record<string, unknown>) => {
+      const url = cfg.baseUrl ?? cfg.siteUrl ?? cfg.site_url ?? cfg.host;
+      return typeof url === "string" ? url : "";
+    });
+  } catch {
+    return "";
+  }
 }
 
 /**

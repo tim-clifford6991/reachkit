@@ -96,6 +96,24 @@ export async function writeHealth(a: {
     .eq("id", a.destinationId);
 }
 
+/**
+ * Records what the capability probe found.
+ *
+ * Its own write, and only where the probe actually answered: `null` on the
+ * column means "not asked, or could not be asked", and it is a third value
+ * rather than a missing `false` on purpose. A hosted destination is never
+ * asked — there is no account there whose permission to publish could
+ * differ from its permission to create — and a probe whose read failed
+ * leaves the last answer standing rather than overwriting it with a
+ * network blip (ADR-084 Decision 3, ADR-086 Decision 1).
+ */
+export async function writePublishCapable(destinationId: string, capable: boolean): Promise<void> {
+  await publishDb()
+    .from<never>("destinations")
+    .update({ publish_capable: capable })
+    .eq("id", destinationId);
+}
+
 /** Stamps the once-per-breakage guard. Called when the mail has been
  *  handed to the mail seam and not before: a stamp written first would
  *  turn a send that never happened into a breakage nobody is ever told

@@ -65,6 +65,8 @@ const B = {
     "Every SERP, suggestion and volume uses Google US / `en` — one location constant (`SERP_LOCATION`), never per-customer derivation.",
   aiModeRow: "| **Google AI Mode** | Google's AI answer surface, own SERP endpoint, cited sources | 0.06¢ std / 0.2¢ live |",
   chatgptRow: "| **ChatGPT (LLM Scraper)** | The actual ChatGPT product's answer, scraped | 0.12¢ std / 0.4¢ live |",
+  wordpress:
+    "**WordPress:** REST + application password, posts as draft + Yoast/RankMath meta when detected; credentials encrypted at rest, never logged, revoked on disconnect.",
   scoreBands: "Bands: 0–24 Invisible · 25–49 Hard to find · 50–74 Findable · 75–100 Dominant",
   answerability: "Answerability = shape of the home + measured pages, 0–100, floored at 1",
   directAnswers:
@@ -142,6 +144,10 @@ const D = {
     "Overview's AI-answers tile shows one reading only: weeks present in the trailing window. The composite score has no tile on Overview.",
   markdownEditor:
     "Draft editing is a Markdown textarea with a live preview pane; no rich-text editor.",
+  adr083:
+    "A ReachKit post in a customer's WordPress carries two marks: the invisible idempotency marker and a visible findability stamp; neither does the other's job. — ADR-083",
+  adr084:
+    'Every CMS publishes live in one call; "created" and "made live by us" are two booleans and never merge back.',
 } as const;
 
 const C = {
@@ -774,6 +780,34 @@ describe("§9 publishing and autopilot — the veto window, the hard limits, the
     for (const agent of pins.AI_READER_AGENTS) {
       expect(pins.VERIFY.userAgent).not.toContain(agent);
     }
+  });
+
+  it(`§9's WordPress clause, quoted: "${B.wordpress}" · ${D.adr083} — WORDPRESS carries the REST base the clause's "REST" is derived from, and the two marks ADR-083 keeps apart`, () => {
+    expect(pins.WORDPRESS.restBase).toBe("/wp-json");
+    expect(B.wordpress).toContain("REST + application password");
+    // The two marks are two pins and share no value: one is ours and one
+    // is the customer's, and a marker that was the stamp would be a guard
+    // the customer can delete from their own admin screen.
+    expect(pins.WORDPRESS.markerPrefix).not.toBe(pins.WORDPRESS.stampSlug);
+  });
+
+  it("the marker names ReachKit and carries no colon of its own — the token is `{prefix}:{draftId}`, and a prefix holding one could not be split back", () => {
+    expect(pins.WORDPRESS.markerPrefix).toBe("reachkit-draft");
+    expect(pins.WORDPRESS.markerPrefix).not.toContain(":");
+  });
+
+  it(`${D.adr084} — WORDPRESS.stampSlug and stampName are ADR-083 Decision 5's pin, and their **values are owner-owed**: the term is public on the customer's own domain from the moment of delivery`, () => {
+    expect(pins.WORDPRESS.stampSlug).toBe("reachkit");
+    expect(pins.WORDPRESS.stampName).toBe("ReachKit");
+    // A slug is a slug: lowercase, no spaces, safe in a `/tag/<slug>/`
+    // path on somebody else's site.
+    expect(pins.WORDPRESS.stampSlug).toMatch(/^[a-z0-9-]+$/);
+  });
+
+  it("WORDPRESS.markerSearchLimit bounds the candidate read the idempotency search makes — chosen, and small because a correct site answers with at most one row", () => {
+    expect(pins.WORDPRESS.markerSearchLimit).toBe(20);
+    expect(Number.isInteger(pins.WORDPRESS.markerSearchLimit)).toBe(true);
+    expect(pins.WORDPRESS.markerSearchLimit).toBeGreaterThan(0);
   });
 
   it("VERIFY.sitemapMaxDocuments bounds one page's check — a sitemap index names further documents, and following them without a bound turns one check into a crawl of a site ReachKit does not serve (issue #50)", () => {

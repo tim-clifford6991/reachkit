@@ -683,10 +683,22 @@ describe("owner-owed and empty agree both ways", () => {
     // destination, so the four arms stay reviewable on a preview.
     // 148 owner-owed and 168 ruled unchanged, 165 + 4 = 169 awaiting
     // copy, 481 + 4 = 485 total.
+    //
+    // 2026-09-06, once more: issue #54 (WordPress, REQ-060) adds **two**,
+    // and two is the whole of what that destination speaks. Everything
+    // else it does is a state, an address or an outcome token, and none of
+    // those is a sentence. Both are a *screen's* — the page's own record —
+    // so both take the marker: `publish.wordpress.noSeoPlugin`, REQ-060
+    // c4's line for a page delivered where no SEO plugin was found, and
+    // `publish.wordpress.namedForRemoval`, kept minted and **unreached**
+    // beside an arm with no members since 2026-09-01 (ADR-084 Decision 4),
+    // because a deleted key is how an empty arm becomes unrenderable and
+    // therefore deletable next. 148 owner-owed and 168 ruled unchanged,
+    // 169 + 2 = 171 awaiting copy, 485 + 2 = 487 total.
     expect(OWNER_OWED.length).toBe(148);
-    expect(AWAITING_COPY.length).toBe(169);
+    expect(AWAITING_COPY.length).toBe(171);
     expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(168);
-    expect(Object.keys(COPY).length).toBe(485);
+    expect(Object.keys(COPY).length).toBe(487);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.

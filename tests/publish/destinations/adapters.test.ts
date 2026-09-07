@@ -14,6 +14,8 @@ vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 
 import { adapterFor, destinationOf, destinationWorking } from "@/lib/publish/destinations";
 import { HOSTED_ADAPTER } from "@/lib/publish/destinations/hosted";
+import { WORDPRESS_ADAPTER } from "@/lib/publish/destinations/wordpress/adapter";
+import type { DestinationKind } from "@/lib/publish/types";
 
 beforeEach(() => {
   db.reset();
@@ -24,8 +26,12 @@ describe("the registry is closed, and a missing adapter is null rather than a gu
     expect(adapterFor("hosted")).toBe(HOSTED_ADAPTER);
   });
 
-  it("wordpress resolves to null — absent, not stubbed (#54)", () => {
-    expect(adapterFor("wordpress")).toBeNull();
+  it("wordpress resolves to its adapter (#54)", () => {
+    expect(adapterFor("wordpress")).toBe(WORDPRESS_ADAPTER);
+  });
+
+  it("the map is closed over §10's two kinds and answers null for anything else", () => {
+    expect(adapterFor("ftp" as DestinationKind)).toBeNull();
   });
 });
 

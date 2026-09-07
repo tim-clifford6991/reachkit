@@ -31,7 +31,8 @@
 // The archived plan is WO-214.
 import { publishDb } from "../db";
 import { adapterFor as defaultAdapterFor } from "../destinations";
-import { destinationOf } from "../destinations";
+import { destinationOf, withConfig } from "../destinations";
+import { NoConfigError } from "../destinations/config";
 import type { GuardDeps } from "../machine";
 import { transition } from "../machine";
 import type {
@@ -81,7 +82,7 @@ export async function unpublish(a: UnpublishArgs): Promise<UnpublishResult> {
   if (adapter === null) return { ok: false, reason: "no_destination" };
 
   const connection = await destinationOf(row.site_id, destination);
-  const result = await adapter.unpublish(toPublication(row), connection?.config ?? {});
+  const result = await takenDown(adapter, toPublication(row), connection?.id ?? null);
 
   if (!result.ok) return result;
 
@@ -100,6 +101,33 @@ export async function unpublish(a: UnpublishArgs): Promise<UnpublishResult> {
   });
 
   return result;
+}
+
+/**
+ * The adapter's `unpublish`, with the credential in plaintext for the
+ * duration of that one call and not one moment longer.
+ *
+ * `withConfig` returns what the callback returns and never the config, so
+ * this function cannot leak one however it is edited. A destination whose
+ * credential has been destroyed — disconnected since the page was
+ * published — is called with an empty config rather than not at all: the
+ * arm the adapter takes for a page it never made live writes nothing and
+ * needs no credential, and the customer's stop is taken either way.
+ */
+async function takenDown(
+  adapter: DestinationAdapter,
+  pub: Publication,
+  destinationId: string | null
+): Promise<UnpublishResult> {
+  if (destinationId === null) return adapter.unpublish(pub, {});
+  try {
+    return await withConfig(destinationId, (cfg: Record<string, unknown>) =>
+      adapter.unpublish(pub, cfg)
+    );
+  } catch (cause) {
+    if (cause instanceof NoConfigError) return adapter.unpublish(pub, {});
+    throw cause;
+  }
 }
 
 async function readPublication(draftId: string): Promise<PublicationRow | null> {

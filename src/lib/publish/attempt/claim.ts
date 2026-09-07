@@ -64,7 +64,7 @@ import { publishDb } from "../db";
 import { destinationOf } from "../destinations";
 import type { GuardDeps } from "../machine";
 import { transition } from "../machine";
-import type { Actor, DestinationConfig, DestinationKind } from "../types";
+import type { Actor, DestinationKind } from "../types";
 import { ceilingRoom } from "../ceilings";
 
 /** Why an attempt did not begin. Every member is a **hold** — the page
@@ -86,8 +86,13 @@ export type ClaimResult =
       publicationId: string;
       alreadyPublished: boolean;
       attemptNo: number;
+      /** The row the credential is sealed on. **Not the credential**: the
+       *  claim never holds one, and the delivery reads it through
+       *  `withConfig` for the duration of the one call it is needed in
+       *  (issue #54). A claim that carried the config would be the
+       *  ciphertext travelling as though it were the plaintext, which is
+       *  what it used to be. */
       destinationId: string;
-      config: DestinationConfig;
     }
   | { ok: false; reason: "held"; heldBy: HeldBy };
 
@@ -158,7 +163,6 @@ export async function claim(a: ClaimArgs): Promise<ClaimResult> {
         alreadyPublished: false,
         attemptNo: 1,
         destinationId: destination?.id ?? "",
-        config: destination?.config ?? {},
       };
     }
     // The insert lost the unique index to a concurrent claim. The winner's
@@ -179,7 +183,6 @@ export async function claim(a: ClaimArgs): Promise<ClaimResult> {
       alreadyPublished: true,
       attemptNo: row.attempt_no,
       destinationId: destination?.id ?? "",
-      config: destination?.config ?? {},
     };
   }
 
@@ -207,7 +210,6 @@ export async function claim(a: ClaimArgs): Promise<ClaimResult> {
     alreadyPublished: false,
     attemptNo,
     destinationId: destination?.id ?? "",
-    config: destination?.config ?? {},
   };
 }
 
