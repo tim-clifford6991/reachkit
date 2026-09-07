@@ -35,7 +35,7 @@ export default async function CalendarPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }): Promise<React.JSX.Element> {
   const asked = (await searchParams).month;
-  const month = parseMonth(typeof asked === "string" ? asked : undefined);
+  const month = await parseMonth(typeof asked === "string" ? asked : undefined);
   const model = await readMonth(month);
   // §7's one statement of supply. At most one — the precedence between the
   // three arms is the engine's, and this screen renders whichever it

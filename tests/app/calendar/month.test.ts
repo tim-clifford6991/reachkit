@@ -45,6 +45,7 @@ function draft(day: string, state: DraftOnDay["state"]): DraftOnDay {
 const BARE: CalendarFacts = {
   timeZone: "America/New_York",
   now: new Date(Date.UTC(2026, 8, 15, 14, 0, 0)),
+  stop: null,
   drafts: [],
   instructions: {},
   stoppedDays: [],

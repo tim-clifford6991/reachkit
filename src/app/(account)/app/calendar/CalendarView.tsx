@@ -24,7 +24,9 @@ import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../_shell/written";
 import { StageFilter } from "./StageFilter";
 import { DayPanelView } from "./DayPanelView";
-import { EMPTY_COPY_KEY } from "./empty";
+import { EMPTY_COPY_KEY, isLawCause, stopForEmptyDay } from "./empty";
+import { stoppedWorkStatement, type WorkStop } from "@/lib/presentation/stopped";
+import { formatDate } from "../_shell/format";
 import { dayNumber, weekdayLabels } from "./dates";
 import {
   STAGE_FILTER_COPY_KEY,
@@ -57,6 +59,8 @@ function toGridCell(
   cell: DayCell,
   filter: StageFilterId,
   selected: string,
+  stopped: WorkStop | null,
+  timeZone: string,
 ): CalendarGridCell {
   const showing = filter === "all" || cell.page?.stage === filter;
   return {
@@ -70,14 +74,42 @@ function toGridCell(
             stage: copy(STAGE_FILTER_COPY_KEY[cell.page.stage]),
             tone: STAGE_TONE[cell.page.stage],
           },
+    // One cell, one line. A law-caused empty day states c1's line here and
+    // c2's and c4's beside it in the day panel: a month grid cell holds a
+    // date and a single sentence, and three sentences in one cell would be
+    // a different screen rather than a rendering of the law. The panel is
+    // the place on this surface where c2 and c4 are read (issue #113).
     emptyLine:
       filter === "all" && cell.page === null && cell.empty !== null
-        ? writtenLine(EMPTY_COPY_KEY[cell.empty.cause])
+        ? emptyLineFor(cell.empty.cause, cell.day, stopped, timeZone)
         : null,
     today: cell.today,
     selected: cell.day === selected,
     placeholder: !cell.inMonth,
   };
+}
+
+/** The one line a cell states for its cause. The two law causes render
+ *  through `stoppedWorkStatement`, which is REQ-092's one home (ADR-011);
+ *  the five the calendar owns render from its own keys. */
+export function emptyLineFor(
+  cause: NonNullable<DayCell["empty"]>["cause"],
+  day: string,
+  stopped: WorkStop | null,
+  timeZone: string,
+): string | null {
+  if (!isLawCause(cause)) return writtenLine(EMPTY_COPY_KEY[cause]);
+  const stop = stopForEmptyDay({ cause, stop: stopped, since: dayMarker(day) });
+  return stoppedWorkStatement(stop, { formatDate: (on) => formatDate(on, timeZone) }).line;
+}
+
+/** A `DayKey` as the instant that calendar day is marked by. UTC midnight,
+ *  the same convention `_overview/week.ts` states for a day marker: the day
+ *  was already resolved in the site's zone, and resolving it again would
+ *  shift it back across midnight. Never rendered — `WorkStop.since` is read
+ *  for which days a stop accounts for and never as a cause. */
+function dayMarker(day: string): Date {
+  return new Date(`${day}T00:00:00.000Z`);
 }
 
 export function CalendarView(p: { model: MonthModel }): React.JSX.Element {
@@ -97,13 +129,15 @@ export function CalendarView(p: { model: MonthModel }): React.JSX.Element {
         grid={
           <CalendarGrid
             weekdays={weekdayLabels()}
-            cells={p.model.cells.map((c) => toGridCell(c, filter, selected))}
+            cells={p.model.cells.map((c) =>
+              toGridCell(c, filter, selected, p.model.stopped, p.model.timeZone)
+            )}
             onSelect={setSelected}
           />
         }
         panel={
           cell === undefined ? null : (
-            <DayPanelView cell={cell} timeZone={p.model.timeZone} />
+            <DayPanelView cell={cell} timeZone={p.model.timeZone} stopped={p.model.stopped} />
           )
         }
       />

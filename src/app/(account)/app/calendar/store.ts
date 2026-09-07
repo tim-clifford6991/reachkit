@@ -46,6 +46,7 @@ import {
 } from "@/lib/opportunities";
 import { writtenLine } from "../_shell/written";
 import { addDays, dayKeyOf, daysOfMonth, type DayKey, type MonthKey } from "./dates";
+import { readStop } from "../_shell/stop";
 import { readPublishingFacts, type ScheduledPage } from "./drafts-read";
 import type { CalendarFacts, DraftOnDay, WhyThisPage } from "./month";
 
@@ -220,7 +221,7 @@ export async function readCalendarFacts(a: {
   now: Date;
 }): Promise<CalendarFacts> {
   const today = dayKeyOf(a.now, a.site.timeZone);
-  const [depth, head, ranked, publishing] = await Promise.all([
+  const [depth, head, ranked, publishing, stop] = await Promise.all([
     supplyDepth(a.site.siteId).then(
       (d) => d.unused,
       () => null
@@ -229,6 +230,11 @@ export async function readCalendarFacts(a: {
     rankOpen(a.site.siteId),
     // §9's own answers about this month (#175).
     readPublishingFacts({ siteId: a.site.siteId, month: a.month, today }),
+    // §11's stop, read where the shell reads it and not a second time
+    // (#113). A read that throws is not a claim that nothing stopped: the
+    // day's own account falls to `unattributed`, which is the same stop
+    // said without a record behind it (ADR-061 point 2).
+    readStop(a.site.siteId).catch(() => null),
   ]);
 
   // The head is the first fillable date's page; the rest of the list, in
@@ -278,6 +284,7 @@ export async function readCalendarFacts(a: {
   return {
     timeZone: a.site.timeZone,
     now: a.now,
+    stop,
     drafts,
     // REQ-047 c5's dated instruction and §11's stopped-work record are
     // still other subsystems' rows (#42, #39). Empty here is what is true

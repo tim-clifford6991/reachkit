@@ -224,24 +224,14 @@ const ALLOWED = [
   "lib/presentation/copy/keys/laws.ts",
 ];
 
-/** Two surfaces that reach for a law's key directly, found by this very
- *  rule on 2026-09-06 and carried rather than hidden. Both are issue #113's
- *  to remove, and both entries come out with it. Neither is a defect of
- *  issue #16's own criteria — the one function did not exist when the
- *  calendar was written — but each is a second home for a rule ADR-011
- *  says has one:
- *
- *   · `DayPanelView.tsx` states when a page goes live without going through
- *     `nextPublishStatement`, so a stop does not suppress it (REQ-092 c7).
- *   · `empty.ts` reaches `stopped.work.line` directly, so a stopped day
- *     carries c1's line without c2's needs line or c4's resumption line.
- *
- *  Dated and named, so this is a debt with an owner rather than a rule with
- *  a hole: a *new* file naming a law's key still fails. */
-const CARRIED = [
-  { file: "app/(account)/app/calendar/DayPanelView.tsx", key: "next-publish.scheduled", issue: 113 },
-  { file: "app/(account)/app/calendar/empty.ts", key: "stopped.work.line", issue: 113 },
-];
+/** Empty, and it stays empty. Two calendar surfaces were carried here from
+ *  2026-09-06 to 2026-09-07 — `DayPanelView.tsx` naming `next-publish.scheduled`
+ *  and `empty.ts` naming `stopped.work.line` — and issue #113 wired both to
+ *  the one function that owns each rule. The list is kept rather than
+ *  deleted so the next debt is dated and named here rather than hidden as an
+ *  `ALLOWED` entry, and so this suite reads the same whether or not one is
+ *  outstanding. */
+const CARRIED: { file: string; key: string; issue: number }[] = [];
 
 function sourceFiles(dir: string, out: string[]): void {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {

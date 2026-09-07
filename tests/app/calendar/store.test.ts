@@ -36,6 +36,13 @@ vi.mock("@/app/(account)/app/calendar/drafts-read", () => ({
   readPublishingFacts: (...a: unknown[]) => publishingFacts(...a),
 }));
 
+/** §11's stop is a third read with its own home and its own suite
+ *  (`law-lines.test.ts`, issue #113). This one is about supply. */
+const workStop = vi.fn();
+vi.mock("@/app/(account)/app/_shell/stop", () => ({
+  readStop: (...a: unknown[]) => workStop(...a),
+}));
+
 const { readCalendarFacts, fillableDates, offsetForMonth } = await import(
   "@/app/(account)/app/calendar/store"
 );
@@ -76,6 +83,7 @@ function withSupply(count: number): void {
 }
 
 beforeEach(() => {
+  workStop.mockResolvedValue(null);
   publishingFacts.mockResolvedValue({
     readable: true,
     pagesByDay: new Map(),
