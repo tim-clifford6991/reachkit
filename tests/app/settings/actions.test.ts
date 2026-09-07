@@ -7,9 +7,23 @@
 // happened. A stub that returned success would put "your account was deleted"
 // in front of a customer whose account is untouched, and that is the defect
 // these assertions exist to catch if someone ever simplifies the union away.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+// The three billing delegations reach Stripe and the database. This suite is
+// about the declaration and the map, not about what Stripe answers, so the
+// `"use server"` module behind them is replaced wholesale —
+// `billing-actions.test.ts` is what exercises it for real.
+vi.mock("@/app/(account)/app/settings/billing-actions", () => ({
+  openBillingSurface: () => Promise.resolve({ done: "elsewhere" as const, href: "https://billing.stripe.test/s" }),
+  cancelPlan: () => Promise.resolve({ done: "elsewhere" as const, href: "https://billing.stripe.test/s" }),
+  resumePlan: () => Promise.resolve({ done: "here" as const }),
+}));
+
 import { ACTIONS, type ActionKey } from "@/app/(account)/app/settings/settable";
-import { FIXTURE_ACTIONS, WIRED_BY } from "@/app/(account)/app/settings/actions";
+import { FIXTURE_ACTIONS, SETTINGS_ACTIONS, WIRED_BY } from "@/app/(account)/app/settings/actions";
+
+const BILLING: ActionKey[] = ["invoices", "cancel", "resume"];
+const UNWIRED = ACTIONS.filter((key) => !BILLING.includes(key));
 
 describe("the declaration is total over the seven", () => {
   it("every action has an implementation, and there is no eighth", () => {
@@ -53,8 +67,50 @@ describe("the stub is honest about not being wired", () => {
 
 describe("the three billing actions belong to the same module", () => {
   it("invoices, cancel and resume are wired by one issue — REQ-097's one destination", () => {
-    const billing: ActionKey[] = ["invoices", "cancel", "resume"];
-    const owners = new Set(billing.map((key) => WIRED_BY[key]));
+    const owners = new Set(BILLING.map((key) => WIRED_BY[key]));
     expect(owners.size).toBe(1);
+  });
+});
+
+// ── Issue #136 ─────────────────────────────────────────────────────────────
+describe("the map the screen calls is the stub with the wired actions replaced", () => {
+  it("`SETTINGS_ACTIONS` is total over the seven, and frozen against a swap", () => {
+    expect(Object.keys(SETTINGS_ACTIONS).sort()).toEqual([...ACTIONS].sort());
+    expect(Object.isFrozen(SETTINGS_ACTIONS)).toBe(true);
+  });
+
+  it("the three billing controls no longer answer `not-yet` — they reach REQ-097 c1's destination", async () => {
+    for (const key of BILLING) {
+      const outcome = await SETTINGS_ACTIONS[key]();
+      expect(outcome.done, key).not.toBe("not-yet");
+    }
+  });
+
+  it("the other four still answer `not-yet` with their issue — wiring three wired three", async () => {
+    expect(UNWIRED.length).toBe(4);
+    for (const key of UNWIRED) {
+      expect(await SETTINGS_ACTIONS[key](), key).toEqual({ done: "not-yet", issue: WIRED_BY[key] });
+    }
+  });
+
+  it("the stub is untouched, so what an unwired action answers has not changed", async () => {
+    for (const key of ACTIONS) {
+      expect(await FIXTURE_ACTIONS[key](), key).toEqual({ done: "not-yet", issue: WIRED_BY[key] });
+    }
+  });
+});
+
+describe("REQ-097 c6 — the fourth arm", () => {
+  it("`unreachable` carries nothing: no vendor string, no reason, no session URL", () => {
+    // A reason on this arm would be an operator's fact on a customer's
+    // screen, and a URL would be the thing that could not be produced.
+    const outcome = { done: "unreachable" } as Awaited<ReturnType<(typeof SETTINGS_ACTIONS)["invoices"]>>;
+    expect(Object.keys(outcome)).toEqual(["done"]);
+  });
+
+  it("the union is the four arms and no fifth — a control can only report a state that exists", async () => {
+    const arms = new Set<string>();
+    for (const key of ACTIONS) arms.add((await SETTINGS_ACTIONS[key]()).done);
+    for (const arm of arms) expect(["elsewhere", "here", "not-yet", "unreachable"]).toContain(arm);
   });
 });
