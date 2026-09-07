@@ -1,3 +1,4 @@
+// BUILD §5 — the verdict a score and its drivers add up to.
 // src/lib/measure/verdict.ts — WO-277 (consolidates WO-055), BP-024
 //
 // What the top of the report is made of. There is no tier field and no

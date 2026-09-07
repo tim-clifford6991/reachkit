@@ -1,3 +1,4 @@
+// BUILD §2.5 — the band words a verdict chip speaks.
 // src/lib/presentation/bands.ts — WO-248, WO-278 (BP-019 decision 5;
 // LIMITING_LINES added under rule 1.1, see WO-278 `## Decision taken under
 // rule 1.1`)

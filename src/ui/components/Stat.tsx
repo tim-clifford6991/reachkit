@@ -1,3 +1,4 @@
+// BUILD §2.2 — daisyUI `stats` / `stat`.
 // src/ui/components/Stat.tsx
 //
 // `components.md` §1, verbatim: "`stats`/`stat`. Value renders through the

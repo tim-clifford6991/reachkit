@@ -1,3 +1,4 @@
+// BUILD §2.5 — the copy registry's one public entry.
 // src/lib/presentation/copy/index.ts — BP-020, WO-041, WO-278
 //
 // The module's public entry point. Re-exports `COPY`, `COPY_META`,

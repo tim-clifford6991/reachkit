@@ -1,3 +1,4 @@
+// BUILD §2.2 — daisyUI `tabs`.
 // src/ui/components/Tabs.tsx
 //
 // `components.md` §1, verbatim: "`tabs`, boxed + bordered. Every tab label

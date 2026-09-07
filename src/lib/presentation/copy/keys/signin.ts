@@ -1,3 +1,4 @@
+// BUILD §2.5 — the sign-in prompt's sentences.
 // src/lib/presentation/copy/keys/signin.ts — REQ-098, REQ-020 c4 (issue #19)
 //
 // The sign-in screen's sentences — the thirteenth partition, added under the

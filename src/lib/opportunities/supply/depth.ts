@@ -1,5 +1,8 @@
 // BUILD §7 — how many days of pages the product actually holds.
 //
+// BUILD §14 guardrail 1 — volume follows supply: the anti-scaled-content-abuse
+// control is this count, and never a target.
+//
 // "Supply is the cap: never invent an opportunity to fill a day; the
 // calendar is never padded" (DECISIONS, 2026-08-28). Depth is the number
 // that rule is enforced against, and it counts **days of pages**: open,

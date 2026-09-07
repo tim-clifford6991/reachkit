@@ -1,3 +1,4 @@
+// BUILD §2.2 — daisyUI `join`.
 // src/ui/components/Join.tsx
 //
 // `components.md` §1, verbatim: "`join`. Layout only" | "—" (no states).

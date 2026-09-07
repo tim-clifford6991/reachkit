@@ -1,3 +1,4 @@
+// BUILD §2.5 — the offer's sentences.
 // src/lib/presentation/copy/keys/offer.ts — BP-020 decision 5, WO-041
 //
 // The price and offer surfaces' sentences, BP-030 and BP-031 — the

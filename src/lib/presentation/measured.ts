@@ -1,3 +1,4 @@
+// BUILD §2.5 — REQ-004's trichotomy, rendered — an unmeasured value says so.
 // src/lib/presentation/measured.ts — WO-249, WO-278, BP-019
 //
 // renderMeasured(): REQ-004's trichotomy, rendered. There is no other way

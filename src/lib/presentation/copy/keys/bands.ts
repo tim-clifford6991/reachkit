@@ -1,3 +1,4 @@
+// BUILD §2.5 — the band words.
 // src/lib/presentation/copy/keys/bands.ts — BP-020 decision 5, WO-041
 //
 // The band and severity words. The one partition seeded with real strings

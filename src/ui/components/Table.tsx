@@ -1,3 +1,4 @@
+// BUILD §2.2 — daisyUI `table`, always inside its scroll wrap.
 // src/ui/components/Table.tsx
 //
 // `components.md` §1, verbatim: "`table` (+`zebra`), **always inside an

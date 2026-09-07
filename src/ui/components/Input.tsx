@@ -1,3 +1,4 @@
+// BUILD §2.2 — daisyUI `input`.
 // src/ui/components/Input.tsx
 //
 // `components.md` §1, verbatim: "`input`. Placeholder **and** label

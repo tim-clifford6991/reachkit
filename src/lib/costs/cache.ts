@@ -1,3 +1,4 @@
+// BUILD §6.5 — the cache read — a fetch already paid for is never bought twice.
 // src/lib/costs/cache.ts — BP-007's cache read (WO-022, folded into WO-276)
 //
 // Keyed `source + cacheKey + policyVersion` (BP-007 `## Error & edge

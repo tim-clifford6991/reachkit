@@ -1,3 +1,4 @@
+// BUILD §2.2 — daisyUI `card` / `card-body` / `card-title`.
 // src/ui/components/Card.tsx
 //
 // `components.md` §1, verbatim: "`card`/`card-body`/`card-title`. Title slot

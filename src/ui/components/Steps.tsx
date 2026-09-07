@@ -1,3 +1,4 @@
+// BUILD §2.2 — daisyUI `steps`.
 // src/ui/components/Steps.tsx
 //
 // `components.md` §1, verbatim: "`steps`. **Each step's label required** —
