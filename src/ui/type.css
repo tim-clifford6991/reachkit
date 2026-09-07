@@ -68,7 +68,38 @@ h1, h2, h3, h4, h5, h6 {
   text-wrap: balance;
 }
 
-h1 { font-size: var(--t-h1); }
+/* `h1` is the one step that is narrower on a narrow viewport.
+ * `design/tokens.md` §4, "A third absolute, from the owner's 2026-09-02
+ * ruling", verbatim: "`--t-h1` takes `--t-h2`'s size ... below
+ * `--breakpoint-sm`. No new size is minted, the 1.25 ratio is untouched,
+ * and heads only ever step **down toward the body, never under it** — a
+ * 31px screen head on a 320px viewport wraps to four lines and pushes the
+ * card's own answer below the fold, which is the owner's rule reached from
+ * the other end."
+ *
+ * #166 left this unimplemented until the owner's own look at 320px
+ * disagreed with the sweep. It did, on `dev` after #251: the landing
+ * headline wrapped to four lines and pushed the field toward the fold
+ * (issue #258).
+ *
+ * Written narrow-first, so the only literal is a `min-width` — the
+ * convention `design/tokens.md` §2b states for itself ("Every query in the
+ * file is a `min-width`, so no literal is ever a breakpoint *minus one
+ * pixel*") and the one `layout.css`, `shell.css` and `surface.css` already
+ * follow. 640px is `--breakpoint-sm`, declared in `layout.css` beside the
+ * other three and pinned to it by `tests/ui/layout-tokens.test.ts`; a media
+ * prelude cannot read a `var()`.
+ *
+ * No other step moves. §4's ruling names two more clauses — `--t-num-big`
+ * takes `--t-h1`'s size below the same breakpoint, and form-control text
+ * runs the other way — and neither token exists in this repository yet;
+ * they are their own work, not this line's. */
+h1 { font-size: var(--t-h2); }
+
+@media (min-width: 640px) {
+  h1 { font-size: var(--t-h1); }
+}
+
 h2 { font-size: var(--t-h2); }
 h3 { font-size: var(--t-h3); }
 h4 { font-size: var(--t-h4); }

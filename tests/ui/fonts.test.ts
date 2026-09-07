@@ -178,7 +178,27 @@ describe("BUILD.md §2.3 — the type scale, asserted against the clause", () =>
       return rule!.style.getPropertyValue("font-size");
     };
 
-    expect(sizeOf("h1")).toBe("var(--t-h1)");
+    // `h1` is the one step that is conditional (issue #258). Written
+    // narrow-first, so the *declared* default is `--t-h2`'s size —
+    // `design/tokens.md` §4's third absolute, "`--t-h1` takes `--t-h2`'s
+    // size ... below `--breakpoint-sm`" — and the `min-width` block below
+    // restores the full step. No new size is minted either way, which is
+    // what this pin is for: both rules name a token from the same four.
+    expect(sizeOf("h1")).toBe("var(--t-h2)");
+    // `rules` is read as `CSSStyleRule[]` above, which every rule in this
+    // file was until #258 added the one media block; widened here rather
+    // than re-parsing the source a second time.
+    const wide = (rules as readonly CSSRule[]).find(
+      (r): r is CSSMediaRule =>
+        r instanceof CSSMediaRule && r.conditionText.includes("640px")
+    );
+    expect(wide, "type.css declares no --breakpoint-sm media block").toBeTruthy();
+    const wideH1 = Array.from(wide!.cssRules).find(
+      (r): r is CSSStyleRule => (r as CSSStyleRule).selectorText === "h1"
+    );
+    expect(wideH1, "the --breakpoint-sm block declares no h1 rule").toBeTruthy();
+    expect(wideH1!.style.getPropertyValue("font-size")).toBe("var(--t-h1)");
+
     expect(sizeOf("h2")).toBe("var(--t-h2)");
     expect(sizeOf("h3")).toBe("var(--t-h3)");
     expect(sizeOf("h4")).toBe("var(--t-h4)");
