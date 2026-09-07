@@ -166,8 +166,13 @@ describe("three tiles, and no fourth", () => {
   });
 
   it("no headline renders bare: every stat carries a description", () => {
-    expect(count(markup, 'class="stat-desc"')).toBe(3);
-    expect(markup).not.toContain('class="stat-desc"></div>');
+    // Matched on the class *token* rather than the whole attribute: the
+    // component carries a second class on this element since #211
+    // (`whitespace-normal`, so a written reason wraps inside its tile), and
+    // this test is about every tile having a description — not about how
+    // many classes the design system puts on it.
+    expect(count(markup, "stat-desc")).toBe(3);
+    expect(markup).not.toMatch(/class="stat-desc[^"]*"><\/div>/);
   });
 });
 

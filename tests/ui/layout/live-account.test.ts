@@ -69,35 +69,6 @@ console.log(
  */
 const LIVE_NAVIGATION_MS = 15_000;
 
-/**
- * The offenders `/app` reports today, pinned rather than allowed.
- *
- * **This sweep found a real defect on its first run** (#211). Overview's
- * two measurement tiles render their unmeasured arm for every live
- * account — `readOverviewFacts` returns `points: []` and `aiPresence: []`
- * until the weekly-report reader lands (#41, #27) — and that arm's
- * `stat-desc` ("… wasn't measured — the scan stopped early, before it got
- * there.") is long enough that `div.stat` grows past its containing block:
- * 534px and 463px inside a 320px viewport, at every one of the five
- * widths.
- *
- * It is a `src/` fix and this issue's fourth box forbids one, so the two
- * are recorded here as the exact set `/app` is known to report. This is
- * **not** an allowlist: the assertion is equality, so the day either one is
- * fixed — or a third appears — this fails and says so. #211 carries the
- * fix, and deleting these two lines is what closes it.
- */
-const OVERVIEW_KNOWN_OFFENDERS = [
-  { check: "containment", element: "div.stat" },
-  { check: "containment", element: "div.stat" },
-];
-
-/** `/app` is swept like every other address; only its expected offender
- *  set differs. */
-function expectedOffenders(routePath: string): unknown[] {
-  return routePath === "/app" ? OVERVIEW_KNOWN_OFFENDERS : [];
-}
-
 /** The whole `it`, including a Chromium launch. `layout.test.ts` states
  *  why this is far wider than the navigation bound above. */
 const PER_ROUTE_BROWSER_MS = 60_000;
@@ -157,7 +128,7 @@ describe(`live-branch sweep — ${routes.length} route(s) × 5 widths`, () => {
             },
             headersFor(route)
           );
-          expect(offenders).toEqual(expectedOffenders(route.path));
+          expect(offenders).toEqual([]);
         },
         PER_ROUTE_BROWSER_MS
       );
