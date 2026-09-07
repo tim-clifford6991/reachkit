@@ -32,6 +32,7 @@
 // declares; longest-match wins, `Allow` wins a tie, `*` and `$` are the only
 // pattern characters (RFC 9309 §2.2.2–2.2.3).
 import { AI_READER_AGENTS } from "@/lib/config/constants";
+import { memoiseRobots } from "./robots-memo";
 import { safeFetch } from "./safe-fetch";
 import type { RobotsPolicy } from "./types";
 
@@ -153,7 +154,23 @@ const ABSENT_VERDICTS: RobotsVerdicts = Object.freeze({
   sitemaps: Object.freeze([]),
 });
 
-/** BP-006 `readRobots(origin)`. Never throws. */
+/**
+ * BP-006 `readRobots(origin)`. Never throws.
+ *
+ * **Read once per origin per scan** (issue #73). Inside a cost context the
+ * answer is memoised for that context's lifetime; outside one — a direct
+ * call, the publish verifier, a test — this is `readOrigin` and nothing
+ * else, with no lookup, no write and no behaviour change.
+ *
+ * The memo sits here rather than at `safe-fetch.ts`'s robots port because
+ * two callers read the same origin during one pass: the port, on every page
+ * fetch and every redirect hop, and `src/lib/measure/index.ts` directly for
+ * the home document. A memo at the port would leave the second unmemoised
+ * and "at most once" would be false by one.
+ *
+ * The key is `URL.origin`, so two spellings of one origin are one entry and
+ * a malformed one never reaches the memo at all.
+ */
 export async function readRobots(origin: string): Promise<RobotsPolicy | { ok: false; reason: string }> {
   let base: URL;
   try {
@@ -161,7 +178,12 @@ export async function readRobots(origin: string): Promise<RobotsPolicy | { ok: f
   } catch {
     return { ok: false, reason: `origin '${origin}' is not a URL` };
   }
+  return memoiseRobots(base.origin, () => readOrigin(base));
+}
 
+/** One origin's document, fetched and parsed — the whole of what a read
+ *  does, with nothing about how often it happens. */
+async function readOrigin(base: URL): Promise<RobotsPolicy | { ok: false; reason: string }> {
   const outcome = await safeFetch(new URL("/robots.txt", base.origin).toString(), {
     respectRobots: false, // the robots document is the one fetch robots cannot gate
     userAgent: "reachkit-measure",
