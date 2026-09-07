@@ -236,6 +236,8 @@ describe("a page held while the switch is off keeps its place in the order", () 
     await transition("d1", "publishing", CUSTOMER, {
       at: AT,
       deps: {
+        claimRecheckOutstanding: async () => false,
+        outstandingMatch: async () => null,
         reachKitStopped: async () => false,
         isPublishingOn: async () => true,
         hasCeilingRoom: async () => true,

@@ -52,7 +52,19 @@ export {
 
 export type TransitionResult =
   | { ok: true; state: State }
-  | { ok: false; refused: Refusal; failedGuard?: GuardId; state: State };
+  | {
+      ok: false;
+      refused: Refusal;
+      failedGuard?: GuardId;
+      state: State;
+      /** Present only where `no_outstanding_claim_recheck` refused and the
+       *  draft's last check named an entry: the do-not-claim entry the page
+       *  matched, in the customer's own words. Absent where the page is
+       *  held by a stale list hash rather than by a failed check — there is
+       *  nothing to name yet, and naming something would attribute a claim
+       *  to a customer who never made it. */
+      matchedEntry?: string;
+    };
 
 export interface TransitionOptions {
   reason?: string;
@@ -89,9 +101,26 @@ export async function transition(
   }
 
   const deps = options.deps ?? DEFAULT_GUARD_DEPS;
+
+  // BUILD §8 hard rule 4 · REQ-053 c5 — the hand-off gate, and the one
+  // place the claim re-check is read. Resolved here rather than in
+  // `loadDraft` so it costs a read on the edges that hand a page over and
+  // on no other: `planned → skipped` asks a database nothing about claims.
+  // Both consumers see the same value — this guard, and the publishable
+  // rule's fourth conjunct through `becomesPublishable`.
+  const gated: MachineDraft =
+    to === "publishing"
+      ? { ...draft, claimRecheckOutstanding: await deps.claimRecheckOutstanding(draftId) }
+      : draft;
+
   for (const guard of GUARDS[edgeKey(from, to)] ?? []) {
-    const passed = await GUARD_FNS[guard]({ draft, by, at, deps });
+    const passed = await GUARD_FNS[guard]({ draft: gated, by, at, deps });
     if (!passed) {
+      // The entry is the customer's own words, so it travels in the
+      // refusal and never into the log line — which carries ids and names
+      // from closed unions and nothing else.
+      const held =
+        guard === "no_outstanding_claim_recheck" ? await deps.outstandingMatch(draftId) : null;
       log({
         draftId,
         from,
@@ -101,7 +130,13 @@ export async function transition(
         refused: "guard",
         failedGuard: guard,
       });
-      return { ok: false, refused: "guard", failedGuard: guard, state: from };
+      return {
+        ok: false,
+        refused: "guard",
+        failedGuard: guard,
+        state: from,
+        ...(held === null ? {} : { matchedEntry: held.matchedEntry }),
+      };
     }
   }
 
@@ -182,11 +217,17 @@ async function loadDraft(draftId: string): Promise<MachineDraft | null> {
 
 /** The row as the machine reads it.
  *
- *  The two members #44's generation columns will populate
- *  (`hasUnsavedEdit`, `claimRecheckOutstanding`) read `false` where the
- *  column is absent, and the hard-rule outcome reads `false` unless the
- *  row records it — the conservative arm every time: a draft that has not
- *  recorded passing the hard rules has not passed them.
+ *  `hasUnsavedEdit` reads `false` where #44's column is absent, and the
+ *  hard-rule outcome reads `false` unless the row records it — the
+ *  conservative arm every time: a draft that has not recorded passing the
+ *  hard rules has not passed them.
+ *
+ *  `claimRecheckOutstanding` reads `false` **here and is not left there**:
+ *  it is derived, not stored, so no column could populate it. `transition()`
+ *  resolves it from `claimRecheckOutstanding(draftId)` on every edge whose
+ *  target is `publishing` and hands the guards the resolved draft. A caller
+ *  that builds a `MachineDraft` from a row for any other purpose gets the
+ *  conservative literal, which cannot publish anything on its own.
  *
  *  `told` is the **record**, not a verdict: whether the customer has been
  *  told on the pair now in force is decided by comparing it against

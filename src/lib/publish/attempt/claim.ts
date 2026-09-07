@@ -71,6 +71,13 @@ import { ceilingRoom } from "../ceilings";
  *  keeps the state it holds and is never skipped, discarded or moved to
  *  needs-attention on account of one. */
 export type HeldBy =
+  /** BUILD §8 hard rule 4 · REQ-053 c5 — the page carries a claim the
+   *  customer has forbidden, or was last checked against a list they have
+   *  since changed. A hold like every other member: the page keeps its
+   *  state and nothing is written. It clears when a re-check passes
+   *  against the list now in force, which is what makes it a state and not
+   *  an error. */
+  | "claim_recheck"
   | "switch_off"
   | "ceiling_day"
   | "ceiling_week"
@@ -94,7 +101,18 @@ export type ClaimResult =
        *  what it used to be. */
       destinationId: string;
     }
-  | { ok: false; reason: "held"; heldBy: HeldBy };
+  | {
+      ok: false;
+      reason: "held";
+      heldBy: HeldBy;
+      /** Present only on `claim_recheck`, and only where the draft's last
+       *  check named an entry: the do-not-claim entry the page matched, in
+       *  the customer's own words. Rendered through `draft.claim.matched`.
+       *  Absent where a stale list hash holds the page — nothing has been
+       *  matched yet, and naming an entry would attribute a claim to a
+       *  customer who never made it. */
+      matchedEntry?: string;
+    };
 
 export interface ClaimArgs {
   draftId: string;
@@ -141,7 +159,15 @@ export async function claim(a: ClaimArgs): Promise<ClaimResult> {
     reason: "publish/execute",
   });
   if (!moved.ok) {
-    return { ok: false, reason: "held", heldBy: await heldWord(moved.failedGuard, draft.site_id, at) };
+    return {
+      ok: false,
+      reason: "held",
+      heldBy: await heldWord(moved.failedGuard, draft.site_id, at),
+      // Carried straight through from the refusal: the machine read it, and
+      // reading it a second time here could name a different entry than the
+      // one that actually held the page.
+      ...(moved.matchedEntry === undefined ? {} : { matchedEntry: moved.matchedEntry }),
+    };
   }
 
   // 2. The row, before any destination call.
@@ -222,6 +248,8 @@ async function heldWord(
   at: Date
 ): Promise<HeldBy> {
   switch (failedGuard) {
+    case "no_outstanding_claim_recheck":
+      return "claim_recheck";
     case "publishing_switch_on":
       return "switch_off";
     case "destination_working":

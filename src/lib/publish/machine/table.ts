@@ -80,7 +80,7 @@ export const TERMINAL: readonly State[] = Object.freeze(["skipped", "unpublished
  *  never leaves the page somewhere else. */
 export type Refusal = "not_a_transition" | "guard";
 
-/** The nine named guards. A guard is a condition on an *edge*, evaluated
+/** The ten named guards. A guard is a condition on an *edge*, evaluated
  *  in list order; the first that fails names itself in the refusal. */
 export type GuardId =
   /** needs_attention → publishing: only a draft that passed every
@@ -98,6 +98,16 @@ export type GuardId =
    *  force, either the interval they have to stop it or that none exists
    *  (#46). */
   | "customer_told"
+  /** every edge whose target is `publishing`: BUILD §8 hard rule 4 and
+   *  REQ-053 c5 — no claim re-check is outstanding on this draft. On
+   *  *every* route into an attempt, because the promise is "no approval,
+   *  schedule or retry can put a page carrying a forbidden claim on the
+   *  customer's site" and a route that skipped it would be one of those
+   *  three. `publishable_and_due` reads the same fact off the draft
+   *  (criterion 2's fourth conjunct), but it is not on
+   *  `needs_attention → publishing`, so the customer's own restart would
+   *  otherwise hand the page over unchecked. */
+  | "no_outstanding_claim_recheck"
   /** every edge whose target is `publishing`: ReachKit has not stopped its
    *  own work (REQ-092 c1). Evaluated first on every one of those edges —
    *  ADR-011's precedence, in the machine: ReachKit's own stop outranks
@@ -132,10 +142,20 @@ export function isTransition(from: State, to: State): boolean {
  * The guards each edge carries, keyed `'from→to'`. An absent key means no
  * guard: the move is open the moment it is one of the fifteen.
  *
- * Every edge whose target is `publishing` carries the same four ambient
- * guards — ReachKit's own stop, the switch, the ceilings and the
- * destination — because "no publish attempt begins" has to be true of every
- * route into an attempt, not of the ordinary one only.
+ * Every edge whose target is `publishing` carries the same five ambient
+ * guards — ReachKit's own stop, the outstanding claim re-check, the switch,
+ * the ceilings and the destination — because "no publish attempt begins"
+ * has to be true of every route into an attempt, not of the ordinary one
+ * only.
+ *
+ * **`no_outstanding_claim_recheck` is second on all three, under the stop
+ * and above everything else.** BUILD §8 hard rule 4 is a fact about the
+ * page itself — it carries a claim the customer has forbidden — where the
+ * switch, the ceilings and the destination are facts about the account's
+ * circumstances. Reporting the circumstance first would tell a customer
+ * their page is waiting on a ceiling when what holds it is a sentence they
+ * asked never to be made. ADR-011 keeps ReachKit's own stop above it: a
+ * deployment-wide halt outranks every other cause that is also true.
  *
  * **`reachkit_not_stopped` is first on all three, and the order is the
  * decision.** Guards are evaluated lazily and the first that fails names
@@ -148,6 +168,7 @@ export function isTransition(from: State, to: State): boolean {
 export const GUARDS: Readonly<Record<string, readonly GuardId[]>> = Object.freeze({
   [edgeKey("approved", "publishing")]: Object.freeze([
     "reachkit_not_stopped",
+    "no_outstanding_claim_recheck",
     "publishable_and_due",
     "customer_told",
     "publishing_switch_on",
@@ -156,6 +177,7 @@ export const GUARDS: Readonly<Record<string, readonly GuardId[]>> = Object.freez
   ] as const),
   [edgeKey("failed", "publishing")]: Object.freeze([
     "reachkit_not_stopped",
+    "no_outstanding_claim_recheck",
     "publishable_and_due",
     "customer_told",
     "publishing_switch_on",
@@ -164,6 +186,7 @@ export const GUARDS: Readonly<Record<string, readonly GuardId[]>> = Object.freez
   ] as const),
   [edgeKey("needs_attention", "publishing")]: Object.freeze([
     "reachkit_not_stopped",
+    "no_outstanding_claim_recheck",
     "draft_passed_hard_rules",
     "publishing_switch_on",
     "within_ceilings",

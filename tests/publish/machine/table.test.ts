@@ -130,6 +130,7 @@ describe("GUARDS names guards only on edges that exist", () => {
     "publishable_and_due",
     "customer_told",
     "reachkit_not_stopped",
+    "no_outstanding_claim_recheck",
     "publishing_switch_on",
     "within_ceilings",
     "destination_working",
@@ -140,26 +141,43 @@ describe("GUARDS names guards only on edges that exist", () => {
     for (const key of Object.keys(GUARDS)) expect(edges.has(key)).toBe(true);
   });
 
-  it("every guard named in GUARDS is one of the nine", () => {
+  it("every guard named in GUARDS is one of the ten", () => {
     for (const guards of Object.values(GUARDS)) {
       for (const guard of guards) expect(NAMED).toContain(guard);
     }
   });
 
-  it("every one of the nine is actually placed on an edge — a guard on no edge is a guard that never runs", () => {
+  it("every one of the ten is actually placed on an edge — a guard on no edge is a guard that never runs", () => {
     const placed = new Set(Object.values(GUARDS).flatMap((g) => [...g]));
     for (const guard of NAMED) expect(placed.has(guard), guard).toBe(true);
   });
 
-  it("every edge whose target is publishing carries the stop, the switch, the ceilings and the destination", () => {
+  it("every edge whose target is publishing carries the stop, the claim re-check, the switch, the ceilings and the destination", () => {
     const intoPublishing = TRANSITIONS.filter(([, to]) => to === "publishing");
     expect(intoPublishing.length).toBe(3);
     for (const [from, to] of intoPublishing) {
       const guards = GUARDS[edgeKey(from, to)] ?? [];
       expect(guards, `${from}→${to}`).toContain("reachkit_not_stopped");
+      // BUILD §8 hard rule 4 · REQ-053 c5: "no approval, schedule or retry
+      // can put a page carrying a forbidden claim on the customer's site."
+      // Three routes into an attempt, and the promise is about all three —
+      // `needs_attention → publishing` carries no `publishable_and_due`, so
+      // without this guard the customer's own restart is the route that
+      // hands the page over unchecked.
+      expect(guards, `${from}→${to}`).toContain("no_outstanding_claim_recheck");
       expect(guards, `${from}→${to}`).toContain("publishing_switch_on");
       expect(guards, `${from}→${to}`).toContain("within_ceilings");
       expect(guards, `${from}→${to}`).toContain("destination_working");
+    }
+  });
+
+  it("the claim re-check is second on every route — under ReachKit's own stop, above every circumstance", () => {
+    // A fact about the page itself outranks a fact about the account's
+    // circumstances: a customer whose page is held by a sentence they asked
+    // never to be made must not be told it is waiting on a ceiling. ADR-011
+    // keeps the deployment-wide stop above it.
+    for (const [from, to] of TRANSITIONS.filter(([, target]) => target === "publishing")) {
+      expect(GUARDS[edgeKey(from, to)]?.[1], `${from}→${to}`).toBe("no_outstanding_claim_recheck");
     }
   });
 
