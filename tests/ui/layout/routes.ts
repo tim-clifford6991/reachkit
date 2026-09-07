@@ -107,6 +107,40 @@ const HOST_FIXTURES: Readonly<Record<string, string>> = {
  */
 export const ACCOUNT_SESSION_COOKIE = `${SESSION_COOKIE_NAME}=layout-sweep-fixture`;
 
+/**
+ * The URL a route is fetched at, and the headers it is fetched with.
+ *
+ * **One home for both, because a second copy is what broke** (issue #49 →
+ * #110): `layout.test.ts` and `heading-scale.test.ts` each grew their own
+ * pair, and the second was written from the first's older shape — sending
+ * a `(hosted)` route's Host as a header, which Chromium refuses outright
+ * (`net::ERR_INVALID_ARGUMENT`, because `Host` is a forbidden header
+ * name). Every browser suite over the route tree now calls these, so a
+ * third suite cannot inherit a stale copy.
+ *
+ * A `(hosted)` route's Host rides in the **URL**, never in a header:
+ * `browser.ts` launches Chromium with `--host-resolver-rules` mapping
+ * every name to loopback, so navigating to
+ * `http://content.example.com:{port}` reaches the local server and the
+ * browser sends that Host itself — the real header on the real request.
+ */
+export function urlFor(baseURL: string, route: EnumeratedRoute): string {
+  if (route.host === undefined) return baseURL + route.path;
+  const url = new URL(baseURL + route.path);
+  url.hostname = route.host;
+  return url.toString();
+}
+
+/** An `(account)` page's session `Cookie` — `src/middleware.ts` is
+ *  default-deny and would otherwise redirect the sweep to the sign-in
+ *  prompt — or, for any other route, none. A `(hosted)` route's `Host` is
+ *  deliberately absent: see `urlFor` above. */
+export function headersFor(route: EnumeratedRoute): { extraHTTPHeaders?: Record<string, string> } {
+  const headers: Record<string, string> = {};
+  if (route.cookie) headers.Cookie = route.cookie;
+  return Object.keys(headers).length > 0 ? { extraHTTPHeaders: headers } : {};
+}
+
 export class MissingRouteFixtureError extends Error {
   constructor(
     public readonly route: string,

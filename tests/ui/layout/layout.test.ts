@@ -26,7 +26,12 @@ import {
   SCROLL_CONTAINER_ALLOWLIST,
   TRUNCATION_ALLOWLIST,
 } from "./checks";
-import { enumerateRoutes, type EnumeratedRoute } from "./routes";
+import {
+  enumerateRoutes,
+  headersFor,
+  urlFor as routeUrl,
+  type EnumeratedRoute,
+} from "./routes";
 import { widths } from "./widths";
 
 const APP_ROOT = path.resolve(__dirname, "../../../src/app");
@@ -36,21 +41,6 @@ console.log(
   `tests/ui/layout/layout.test.ts: ${routes.length} route(s) × 5 widths` +
     (routes.length === 0 ? " — src/app/ holds no route yet (WO-269 rests-on row 5)" : "")
 );
-
-/** The headers a route is rendered with: an `(account)` page's session
- *  `Cookie` (`src/middleware.ts` is default-deny and would otherwise
- *  redirect the sweep to the sign-in prompt), or — for an ordinary public
- *  route — none.
- *
- *  A `(hosted)` route's `Host` is **not** here: `Host` is a forbidden
- *  header name and Chromium refuses a navigation that sets it. It is
- *  carried by the URL instead (`urlFor` below), which is where a Host
- *  comes from anyway. */
-function headersFor(route: EnumeratedRoute): { extraHTTPHeaders?: Record<string, string> } {
-  const headers: Record<string, string> = {};
-  if (route.cookie) headers.Cookie = route.cookie;
-  return Object.keys(headers).length > 0 ? { extraHTTPHeaders: headers } : {};
-}
 
 /** The two tests below walk **every** route in one `it`, and `withPage`
  *  launches its own Chromium per call (see `browser.ts`'s header for why it
@@ -64,6 +54,10 @@ function headersFor(route: EnumeratedRoute): { extraHTTPHeaders?: Record<string,
  *  `ESLINT_BOOT_MS`. */
 const PER_ROUTE_BROWSER_MS = 60_000;
 
+/** `routes.ts` owns how a route becomes a URL and a header set — one home
+ *  for both, so a second suite over the same tree cannot inherit a stale
+ *  copy (see that module). This wrapper adds only this file's own message
+ *  for the no-server case. */
 function urlFor(route: EnumeratedRoute): string {
   const baseURL = getBaseURL();
   if (!baseURL) {
@@ -72,13 +66,7 @@ function urlFor(route: EnumeratedRoute): string {
         "(browser.ts only starts one when enumerateRoutes() finds a route at globalSetup time)."
     );
   }
-  if (route.host === undefined) return baseURL + route.path;
-  // A `(hosted)` route is keyed by its Host, so the sweep navigates to
-  // that name and lets the browser send it. `browser.ts` maps every name
-  // to the loopback address, so the request still reaches this server.
-  const url = new URL(baseURL + route.path);
-  url.hostname = route.host;
-  return url.toString();
+  return routeUrl(baseURL, route);
 }
 
 describe(`layout sweep — ${routes.length} route(s) × 5 widths`, () => {
