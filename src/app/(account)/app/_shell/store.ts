@@ -93,10 +93,30 @@ async function waitingCount(siteId: string): Promise<number> {
   return data.length;
 }
 
-/** The next scheduled publish, or `null`. The date is the draft's own
- *  `scheduled_for`; the *time* of day is §4.7's publish time, which the
- *  shell does not state — it states the day. */
-async function nextScheduled(siteId: string): Promise<Date | null> {
+/**
+ * The next scheduled publish, or `null`. The date is the draft's own
+ * `scheduled_for`; the *time* of day is §4.7's publish time, which the
+ * shell does not state — it states the day.
+ *
+ * **A site whose publishing is switched off has no next publish**, and
+ * that guard lives here rather than in the model. `publishingOf` gives a
+ * `next` precedence over every cause except ReachKit's own stop (REQ-092
+ * c7 names that one and no other), so a row still carrying a
+ * `scheduled_for` would be announced as "the next page goes live" while
+ * §9's switch holds it — "pause is one click and instant", and the page is
+ * in `heldPages`, not on its way out. Nothing the fixture could produce
+ * exercised that pair, which is why it surfaces here first: this is the
+ * first feeder that reads both facts from real rows.
+ *
+ * Answering `null` puts the shell on the `publishing_paused` cause, which
+ * is the true statement and the one the customer can act on.
+ */
+async function nextScheduled(siteId: string, publishingOn: boolean): Promise<Date | null> {
+  if (!publishingOn) return null;
+  return firstScheduled(siteId);
+}
+
+async function firstScheduled(siteId: string): Promise<Date | null> {
   const { data, error } = await client()
     .from<DraftStateRow>("drafts")
     .select("id, state, scheduled_for")
@@ -179,13 +199,16 @@ export async function readShellFacts(site: ShellSite): Promise<ShellFacts> {
   const { isPublishingOn } = await import("@/lib/publish/switch");
   const now = new Date();
 
-  const [weeks, firstDueOn, waiting, next, planned, publishingOn, stopped] = await Promise.all([
+  // The switch is read first: whether there is a next publish at all
+  // depends on it (see `nextScheduled`), so it cannot be read beside it.
+  const publishingOn = await isPublishingOn(site.siteId);
+
+  const [weeks, firstDueOn, waiting, next, planned, stopped] = await Promise.all([
     measuredWeeksOf({ site, now }),
     nextDueOn({ siteId: site.siteId, now }),
     waitingCount(site.siteId),
-    nextScheduled(site.siteId),
+    nextScheduled(site.siteId, publishingOn),
     plannedCount(site.siteId),
-    isPublishingOn(site.siteId),
     readStop(site.siteId),
   ]);
 
