@@ -27,7 +27,7 @@ import { OVERVIEW_ALERT_CAP } from "@/lib/config/constants";
 export const ALERT_KINDS = ["needs_you", "pending_veto"] as const;
 export type AlertKind = (typeof ALERT_KINDS)[number];
 
-/** One thing waiting on the customer, as §9's drafts (#45) will supply it. */
+/** One thing waiting on the customer, as §9's `drafts` rows describe it. */
 export interface WaitingItem {
   kind: AlertKind;
   /** The item's own title — the customer's own words for their page, never

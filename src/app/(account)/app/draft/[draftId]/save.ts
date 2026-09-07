@@ -10,8 +10,8 @@
 //
 // So this file declares the interface the editor calls and **stubs it
 // honestly**, on exactly the footing the calendar's `publishing.ts` stubs
-// §9's state machine: the one method rejects with an error naming the issue
-// that will supply it. It does not pretend to succeed, it does not write
+// §9's state machine: the one method rejects with an error naming what is
+// missing. It does not pretend to succeed, it does not write
 // the body somewhere else, and it does not quietly resolve — a stub that
 // resolved would tell the customer their words were saved when nothing had
 // been written anywhere, which is the one lie this screen must not tell.

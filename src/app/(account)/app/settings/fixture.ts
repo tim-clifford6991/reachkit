@@ -1,17 +1,22 @@
 // BUILD §4.7 — Settings' facts, as a fixture.
 //
-// Issue #18 builds this screen on FIXTURE data behind the typed provider in
-// `provider.ts`, exactly as issue #9 built the shell. Every field below is a
-// stand-in for a read that does not exist yet, each naming the issue that
-// will supply it:
+// **This is the reserved fixture account's Settings, and nobody else's.**
+// `provider.ts` answers `isReservedFixtureAccount` from here and reads every
+// other account's facts live, each through the module that owns it, so what
+// this file holds is one account's data rather than a placeholder for a
+// missing one. Two of those reads have a designed degraded arm and fall back
+// to the values below — billing and destinations (REQ-097 c5/c6); every
+// other unread fact reaches the error boundary instead.
 //
-//   domain / category / competitors / voice / do-not-claim → `sites` (#42)
-//   mode / veto / publish time / zone / enabled            → §9 publishing (#46)
-//   destinations + health                                  → §9 destinations (#48)
-//   name / email                                           → §13 identity (#35)
-//   notifyPrefs                                            → §12 notifications (#31)
-//   billing                                                → §13 Stripe (#34)
-//   publishedPages                                         → §9 publications (#45)
+// Where each field comes from for a live account:
+//
+//   domain / category / competitors / voice / do-not-claim → the `sites` row
+//   mode / veto / publish time / zone / enabled            → §9 publishing
+//   destinations + health                                  → §9 destinations
+//   name / email                                           → §13 identity
+//   notifyPrefs                                            → §12 notifications
+//   billing                                                → §13 Stripe
+//   publishedPages                                         → §9 publications
 //
 // One exported constant, not a generator: a fixture that varied per call
 // would make the layout conformance sweep non-deterministic. Its state is the
