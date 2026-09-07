@@ -63,20 +63,17 @@ function trackLists(source: string): string[][] {
 }
 
 /**
- * The one hand-built multi-column grid still outside a wrap, and why.
+ * No named gap. #275 wrapped the free page card's label/value pair while
+ * this branch was open, so every hand-built multi-column grid in
+ * `_modules/` is inside the wrap and the list below is empty — which is
+ * the state this rule was written to reach.
  *
- * A named gap, not a silent one: `free-page.tsx`'s `Row` is a label/value
- * pair whose two rows hold different kinds of content — one a single value
- * (the rival domain it beats) and one a sentence with slots. The presence
- * card's fix, a `max-content` label track inside a wrap, would size that
- * shared track to the sentence and scroll the card at every width, so the
- * same move does not transfer. **Filed as #256**, which is where the
- * design-system question underneath it belongs: `Num` marks a value, and
- * `break-words` on `Num` is what breaks one.
+ * It stays as a list rather than becoming an assertion of emptiness: the
+ * next hand-built grid that needs a filed exception has somewhere to be
+ * named, and the row beneath it fails on an entry that has since been
+ * wrapped, so a stale exemption cannot sit here unnoticed.
  */
-const NOT_YET_WRAPPED: ReadonlyArray<{ readonly file: string; readonly issue: string }> = [
-  { file: "free-page.tsx", issue: "#256" },
-];
+const NOT_YET_WRAPPED: ReadonlyArray<{ readonly file: string; readonly issue: string }> = [];
 
 describe("§2.2 — a table on the report is the registered component, or is wrapped the same way", () => {
   it("the modules directory is actually read — a rule over nothing is not a rule", () => {
