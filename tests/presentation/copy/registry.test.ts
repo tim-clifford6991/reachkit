@@ -683,10 +683,32 @@ describe("owner-owed and empty agree both ways", () => {
     // destination, so the four arms stay reviewable on a preview.
     // 148 owner-owed and 168 ruled unchanged, 165 + 4 = 169 awaiting
     // copy, 481 + 4 = 485 total.
+    //
+    // 2026-09-06, once more: issue #54 (WordPress, REQ-060) adds **two**,
+    // and two is the whole of what that destination speaks. Everything
+    // else it does is a state, an address or an outcome token, and none of
+    // those is a sentence. Both are a *screen's* — the page's own record —
+    // so both take the marker: `publish.wordpress.noSeoPlugin`, REQ-060
+    // c4's line for a page delivered where no SEO plugin was found, and
+    // `publish.wordpress.namedForRemoval`, kept minted and **unreached**
+    // beside an arm with no members since 2026-09-01 (ADR-084 Decision 4),
+    // because a deleted key is how an empty arm becomes unrenderable and
+    // therefore deletable next. 148 owner-owed and 168 ruled unchanged,
+    // 169 + 2 = 171 awaiting copy, 485 + 2 = 487 total.
+    //
+    // 2026-09-06, and last: issue #157 draws §6.2's three answer columns
+    // and mints the two words that layout needs and nothing had said
+    // before — `ai-answers.engine.column.question`, the header over the
+    // question-number column, and `ai-answers.engine.cell.cited`, what a
+    // cell says where the engine's answer named the customer, a state the
+    // approved one-column card renders as *nothing* and a three-column
+    // grid cannot. Both are a screen's, so both take the marker.
+    // 148 owner-owed and 168 ruled unchanged, 171 + 2 = 173 awaiting
+    // copy, 487 + 2 = 489 total.
     expect(OWNER_OWED.length).toBe(148);
-    expect(AWAITING_COPY.length).toBe(169);
+    expect(AWAITING_COPY.length).toBe(173);
     expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(168);
-    expect(Object.keys(COPY).length).toBe(485);
+    expect(Object.keys(COPY).length).toBe(489);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.

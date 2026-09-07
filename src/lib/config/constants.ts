@@ -543,3 +543,46 @@ export const PUBLISH_DELIVER_TIMEOUT_MS = 20_000 as const;   // BP-045 · BUILD 
  *  action to stop it"). 32 bytes is the width every other single-use
  *  secret in the product is minted at; only its SHA-256 hash is stored. */
 export const VETO_TOKEN_BYTES = 32 as const;                 // BP-046 · REQ-057 c1
+
+// ── The WordPress destination (issue #54) — BUILD §9 · REQ-060
+/**
+ * The pins the WordPress adapter runs on. One group, because every member
+ * is a fact about the same destination and a reader chasing one wants the
+ * others in front of them.
+ *
+ * `stampSlug` and `stampName` are **ADR-083 Decision 5's pin**, and their
+ * *values* are the owner's, not this file's: the term is visible on the
+ * customer's own public site from the moment a page is delivered
+ * (ADR-084 Decision 5), and a customer-visible string is owner-owed. They
+ * are pinned here so that the reversal is one line and so that no second
+ * spelling of the term can exist; the values below are placeholders the
+ * owner rules on, and the PR that added them says so.
+ *
+ * `markerPrefix` is **ADR-080 decision 5's marker**, and it is not a
+ * tuning knob: it is the only at-most-once mechanism available at a
+ * destination whose database we cannot index. Changing it is a migration
+ * of somebody else's site and requires a fallback that finds the old shape
+ * first.
+ *
+ * `markerSearchLimit` bounds the candidate page the marker search reads
+ * back before confirming each candidate exactly. **Chosen** (rule 1.1):
+ * no requirement states one. Derivation: the search is by a token that
+ * appears in no human-written post, so a correct site returns at most one
+ * row; 20 is small enough that a site answering with a page of unrelated
+ * posts costs one bounded read, and large enough that a site whose search
+ * ranks loosely still carries our post in the first page. Reversal cost:
+ * one number.
+ */
+export const WORDPRESS = Object.freeze({
+  /** The REST root, appended to the customer's site root. Derived from
+   *  `baseUrl` at every call and stored nowhere a second time. */
+  restBase: "/wp-json",
+  /** The idempotency marker's token. `{prefix}:{draftId}` is what the
+   *  search looks for and what a candidate is confirmed against. */
+  markerPrefix: "reachkit-draft",
+  /** How many candidates the marker search reads back before confirming. */
+  markerSearchLimit: 20,
+  /** ADR-083's findability stamp, as a `post_tag` term. Owner-owed values. */
+  stampSlug: "reachkit",
+  stampName: "ReachKit",
+} as const);

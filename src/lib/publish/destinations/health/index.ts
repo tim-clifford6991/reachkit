@@ -42,6 +42,21 @@ export function __resetHealthDebounceForTesting(): void {
   lastCheckedHere.clear();
 }
 
+/**
+ * What the capability probe last found for this destination, as recorded
+ * on its row.
+ *
+ * Three values and not two: `true` and `false` are answers, and `null` is
+ * "not asked" — a hosted destination, which has no such distinction to
+ * draw, or a WordPress destination no check has reached yet. A caller that
+ * read `null` as `false` would tell a customer their account cannot publish
+ * before anything had asked it (ADR-086 Decision 1).
+ */
+export async function publishCapability(destinationId: string): Promise<boolean | null> {
+  const row = await readDestination(destinationId);
+  return row?.publish_capable ?? null;
+}
+
 function isStale(row: DestinationRecord, now: Date): boolean {
   const checkedAt = Date.parse(row.last_checked_at);
   if (Number.isNaN(checkedAt)) return true;

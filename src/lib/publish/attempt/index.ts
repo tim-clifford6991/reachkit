@@ -28,7 +28,8 @@
 // The archived plan is WO-213.
 import { PUBLISH_DELIVER_TIMEOUT_MS, PUBLISH_VERIFY_DELAY_H } from "@/lib/config/constants";
 import { publishDb } from "../db";
-import { adapterFor as defaultAdapterFor } from "../destinations";
+import { adapterFor as defaultAdapterFor, withConfig } from "../destinations";
+import { NoConfigError } from "../destinations/config";
 import type { GuardDeps } from "../machine";
 import { transition } from "../machine";
 import type {
@@ -131,7 +132,7 @@ export async function publish(a: PublishArgs): Promise<PublishResult> {
   // places.
   let result: DeliveryResult;
   try {
-    result = await withinDeliveryBound(adapter.deliver(page, claimed.config, a.draftId));
+    result = await withinDeliveryBound(delivered(adapter, page, claimed.destinationId, a.draftId));
   } catch {
     // An adapter that threw told us nothing about what happened at the
     // destination. `timeout` is the retryable reason, and the idempotency
@@ -248,6 +249,40 @@ async function renderedPage(draftId: string): Promise<RenderedPage | null> {
     bodyMd: data.body_md ?? "",
     meta: data.meta ?? {},
   };
+}
+
+/**
+ * The delivery, with the credential in plaintext for exactly as long as it
+ * takes.
+ *
+ * The adapter is handed the **decrypted** config, and it is `withConfig`
+ * that decrypts it: that function reads the ciphertext, calls this back
+ * with the plaintext and returns what this returns — never the config — so
+ * a credential cannot leave by the door it came in through. Nothing above
+ * this line has ever held one. A destination with no row to read (a kind
+ * this build has no destination for) is called with an empty config, which
+ * is what the hosted adapter has always been handed.
+ */
+async function delivered(
+  adapter: DestinationAdapter,
+  page: RenderedPage,
+  destinationId: string,
+  idempotencyKey: string
+): Promise<DeliveryResult> {
+  if (destinationId === "") return adapter.deliver(page, {}, idempotencyKey);
+  try {
+    return await withConfig(destinationId, (cfg: Record<string, unknown>) =>
+      adapter.deliver(page, cfg, idempotencyKey)
+    );
+  } catch (cause) {
+    // A destination with no credential stored is an ordinary destination:
+    // the hosted blog has none and never will. The adapter is called with
+    // an empty config and says for itself whether it can work without one
+    // — which is where that judgement belongs, and it is the same call the
+    // hosted adapter has always received.
+    if (cause instanceof NoConfigError) return adapter.deliver(page, {}, idempotencyKey);
+    throw cause;
+  }
 }
 
 /**
