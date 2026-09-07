@@ -20,6 +20,7 @@
 // other one. Nothing in `src/` outside the tests imports either —
 // `tests/account/billing/single-gate.test.ts` is what holds that true.
 export { hasActiveAccess } from "./gate";
+export { installActiveAccessGate } from "./access-gate";
 export { hostedServingState, type HostedServingState } from "./hosted-serving";
 export {
   billingSummary,

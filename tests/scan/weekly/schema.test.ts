@@ -20,6 +20,7 @@
 // `db` project — every file in it resets and rebuilds the same physical
 // `public` schema.
 import { execFileSync } from "node:child_process";
+import { createHmac } from "node:crypto";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { topicOf } from "../../../src/lib/db/topics";
@@ -38,6 +39,12 @@ const FREEPATH_MIGRATION = path.join(MIGRATIONS, "00000000000005_scans_freepath.
 const CURRENT_MIGRATION = path.join(MIGRATIONS, "20260904110000_scans_current.sql");
 const VERDICT_MIGRATION = path.join(MIGRATIONS, "20260904100000_scans_verdict.sql");
 const WEEKLY_MIGRATION = path.join(MIGRATIONS, MIGRATION_NAME);
+// The selection below reads two more columns than the index does:
+// `sites.timezone` (whose Monday it is) and `users.paid_through` (ADR-050's
+// gate). Both are applied so the whole four-predicate selection can run,
+// not just the index it rests on.
+const TIMEZONE_MIGRATION = path.join(MIGRATIONS, "00000000000004_sites_timezone_column.sql");
+const SUBSCRIPTION_MIGRATION = path.join(MIGRATIONS, "20260906120000_users_subscription_columns.sql");
 
 function psql(args: string[]): string {
   return execFileSync("psql", ["-h", DB_HOST, "-p", DB_PORT, "-U", DB_USER, "-d", DB_NAME, "-q", ...args], {
@@ -83,6 +90,8 @@ beforeAll(() => {
   // it is built on come with it; `week_start` is the last thing applied.
   for (const file of [
     BASELINE_MIGRATION,
+    TIMEZONE_MIGRATION,
+    SUBSCRIPTION_MIGRATION,
     FREEPATH_MIGRATION,
     CURRENT_MIGRATION,
     VERDICT_MIGRATION,
@@ -195,5 +204,193 @@ describe("the week is written once and never recomputed", () => {
 describe("the file is named for the topic that owns it", () => {
   it("resolves to the `scans` topic and to exactly one owner", () => {
     expect(topicOf(MIGRATION_NAME)).toEqual({ token: "scans", owner: "BP-012" });
+  });
+});
+
+// ── The selection, through the gate billing registers (issue #180) ─────────
+//
+// The four predicates `dueSites` applies, run against the live schema: a
+// stated zone, the site-local Monday hour, no row for the week it is in,
+// and **active access**. The fourth is ADR-050's, and until #180 nothing
+// registered it — so this is the part that could not be asserted at all,
+// against any database, because the selection threw.
+//
+// `installActiveAccessGate()` is the same call the boot path makes. The
+// gate reaches `users.paid_through` through `sites.user_id`, which is why
+// this suite applies the subscription columns above; nothing here writes a
+// second expression of "active".
+//
+// **`fetch` is replaced with a loopback-only stand-in**, exactly as
+// `tests/db/rls.test.ts` documents: `tests/setup.ts` refuses the real
+// globals process-wide, `db()`/`dbAdmin()` take no `fetch` hook, and the
+// regex is what keeps this from becoming a general network allowance.
+const SUPABASE_URL = "http://127.0.0.1:3001";
+const JWT_SECRET = "reachkit-scratch-jwt-secret-at-least-32-chars-long";
+
+function base64url(input: Buffer): string {
+  return input.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function signJwt(claims: Record<string, unknown>): string {
+  const header = base64url(Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })));
+  const payload = base64url(Buffer.from(JSON.stringify(claims)));
+  const signingInput = `${header}.${payload}`;
+  return `${signingInput}.${base64url(createHmac("sha256", JWT_SECRET).update(signingInput).digest())}`;
+}
+
+function keyFor(role: string): string {
+  return signJwt({ role, iss: "supabase", exp: Math.floor(Date.now() / 1000) + 3600 });
+}
+
+function loopbackFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
+  const url =
+    typeof input === "string" ? input : input instanceof URL ? input.toString() : (input as Request).url;
+  if (!/^https?:\/\/127\.0\.0\.1(:\d+)?\//.test(url)) {
+    return Promise.reject(new Error(`loopbackFetch refuses non-loopback URL: ${url}`));
+  }
+  const headerEntries: [string, string][] = [];
+  if (init.headers) {
+    new Headers(init.headers as HeadersInit).forEach((value, key) => headerEntries.push([key, value]));
+  }
+  const bodyText = typeof init.body === "string" ? init.body : init.body ? String(init.body) : undefined;
+  const args = ["-s", "-i", "-X", init.method ?? "GET"];
+  for (const [key, value] of headerEntries) args.push("-H", `${key}: ${value}`);
+  if (bodyText !== undefined) args.push("--data-binary", "@-");
+  args.push(url);
+
+  const raw = execFileSync("curl", args, { input: bodyText, maxBuffer: 10 * 1024 * 1024 });
+  const separator = Buffer.from("\r\n\r\n");
+  const separatorIndex = raw.indexOf(separator);
+  const headerLines = raw.subarray(0, separatorIndex).toString("utf8").split("\r\n");
+  const responseHeaders = new Headers();
+  for (const line of headerLines.slice(1)) {
+    const idx = line.indexOf(":");
+    if (idx === -1) continue;
+    responseHeaders.append(line.slice(0, idx).trim(), line.slice(idx + 1).trim());
+  }
+  return Promise.resolve(
+    new Response(raw.subarray(separatorIndex + separator.length), {
+      status: Number((headerLines[0] ?? "").split(" ")[1] ?? "599"),
+      headers: responseHeaders,
+    })
+  );
+}
+
+const ENV_FIXTURE: Record<string, string> = {
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY: keyFor("anon"),
+  SUPABASE_SERVICE_ROLE_KEY: keyFor("service_role"),
+  STRIPE_SECRET_KEY: "sk_test_fixture",
+  STRIPE_WEBHOOK_SECRET: "whsec_fixture",
+  STRIPE_PRICE_ID: "price_fixture",
+  RESEND_API_KEY: "re_fixture",
+  DATAFORSEO_LOGIN: "dfs-login-fixture",
+  DATAFORSEO_PASSWORD: "dfs-password-fixture",
+  ANTHROPIC_API_KEY: "sk-ant-fixture",
+  IP_HASH_SALT: "salt-fixture",
+  KILL_SWITCH: "false",
+  OWNER_EMAILS: "owner@example.com",
+  NEXT_PUBLIC_APP_URL: "https://app.example.com",
+  HOSTED_EDGE_CNAME_TARGET: "content.example.com",
+};
+
+/** A Monday at 06:00 in the site's own zone — `isWeeklyDue`'s hour. */
+const MONDAY_0600_UTC = new Date("2026-08-31T06:00:00.000Z");
+const ZONE = "UTC";
+
+describe("ADR-050 · issue #180 — the weekly selection decides who pays, through the gate billing registers", () => {
+  let dueSites: (typeof import("../../../src/lib/scan/weekly"))["dueSites"];
+  let registerActiveAccessGate: (typeof import("../../../src/lib/scan/weekly"))["registerActiveAccessGate"];
+  let installActiveAccessGate: (typeof import("../../../src/lib/account/billing"))["installActiveAccessGate"];
+  let ActiveAccessGateNotRegistered: (typeof import("../../../src/lib/scan/weekly/access"))["ActiveAccessGateNotRegistered"];
+
+  beforeAll(async () => {
+    for (const [key, value] of Object.entries(ENV_FIXTURE)) process.env[key] = value;
+    globalThis.fetch = loopbackFetch as unknown as typeof fetch;
+    // Imported after `process.env` is populated: `env.ts` parses at module
+    // load, so `@/lib/db` cannot be reached before the bindings exist.
+    ({ dueSites, registerActiveAccessGate } = await import("../../../src/lib/scan/weekly"));
+    ({ installActiveAccessGate } = await import("../../../src/lib/account/billing"));
+    ({ ActiveAccessGateNotRegistered } = await import("../../../src/lib/scan/weekly/access"));
+  });
+
+  /** One site with a stated zone, whose owner's access runs to `paidThrough`. */
+  function givenSite(name: string, paidThrough: string): string {
+    const [user] = psqlRows(
+      `insert into users (email, plan_status, paid_through) values ('${name}@example.com', 'active', '${paidThrough}') returning id;`
+    );
+    const [site] = psqlRows(
+      `insert into sites (user_id, domain, timezone) values ('${user?.[0]}', '${name}.example.com', '${ZONE}') returning id;`
+    );
+    return site?.[0] ?? "";
+  }
+
+  function clearRows(): void {
+    psql(["-v", "ON_ERROR_STOP=1", "-c", "delete from scans; delete from sites; delete from users;"]);
+  }
+
+  it("with no gate registered the selection throws rather than guess who pays", async () => {
+    clearRows();
+    givenSite("paying", "2026-12-31T00:00:00Z");
+    registerActiveAccessGate(null);
+    await expect(dueSites(MONDAY_0600_UTC)).rejects.toBeInstanceOf(ActiveAccessGateNotRegistered);
+  });
+
+  it("selects a paying site and refuses one whose access has ended", async () => {
+    clearRows();
+    const paying = givenSite("paying", "2026-12-31T00:00:00Z");
+    givenSite("ended", "2026-01-01T00:00:00Z");
+    await installActiveAccessGate();
+
+    const due = await dueSites(MONDAY_0600_UTC);
+    expect(due.map((site) => site.siteId)).toEqual([paying]);
+    expect(due[0]).toMatchObject({ domain: "paying.example.com", zone: ZONE, weekStart: "2026-08-31" });
+  });
+
+  it("a cancelled customer inside their paid month is still selected — ADR-050 reads one column", async () => {
+    clearRows();
+    // `plan_status` and `cancelled_at` are on the row precisely so this
+    // holds: the gate reads neither (REQ-076 c3).
+    const [user] = psqlRows(
+      `insert into users (email, plan_status, paid_through, cancelled_at) values ` +
+        `('cancelled@example.com', 'canceled', '2026-12-31T00:00:00Z', now()) returning id;`
+    );
+    const [site] = psqlRows(
+      `insert into sites (user_id, domain, timezone) values ('${user?.[0]}', 'cancelled.example.com', '${ZONE}') returning id;`
+    );
+    await installActiveAccessGate();
+
+    expect((await dueSites(MONDAY_0600_UTC)).map((s) => s.siteId)).toEqual([site?.[0]]);
+  });
+
+  it("a week already measured is not selected again, and the gate is still what decided it", async () => {
+    clearRows();
+    const paying = givenSite("paying", "2026-12-31T00:00:00Z");
+    await installActiveAccessGate();
+    expect(await dueSites(MONDAY_0600_UTC)).toHaveLength(1);
+
+    psql([
+      "-v",
+      "ON_ERROR_STOP=1",
+      "-c",
+      `insert into scans (site_id, domain, tier, status, week_start) values ` +
+        `('${paying}', 'paying.example.com', 'weekly', 'done', '2026-08-31');`,
+    ]);
+    expect(await dueSites(MONDAY_0600_UTC)).toEqual([]);
+  });
+
+  it("a site with no stated zone is never selected, whoever is paying for it", async () => {
+    clearRows();
+    const [user] = psqlRows(
+      `insert into users (email, plan_status, paid_through) values ('nozone@example.com', 'active', '2026-12-31T00:00:00Z') returning id;`
+    );
+    psql([
+      "-v",
+      "ON_ERROR_STOP=1",
+      "-c",
+      `insert into sites (user_id, domain) values ('${user?.[0]}', 'nozone.example.com');`,
+    ]);
+    await installActiveAccessGate();
+    expect(await dueSites(MONDAY_0600_UTC)).toEqual([]);
   });
 });
