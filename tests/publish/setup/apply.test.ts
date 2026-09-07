@@ -2,6 +2,12 @@
 //
 // applySetupChoice(): two writes, one transaction, zero network calls, and
 // never a fallback destination.
+//
+// The schema half — that `apply_setup_choice` exists, that it is one
+// PL/pgSQL statement, that the deferred destination is written with an
+// existing `health` value — moved to `schema.test.ts` when issue #6 added
+// this feature's `LIVE_SCHEMA_TESTS` row (issue #78). It is asserted there
+// against a live database instead of against the migration's text.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -35,11 +41,6 @@ const APPLY_SOURCE = readFileSync(
   path.resolve(import.meta.dirname, "../../../src/lib/publish/setup/apply.ts"),
   "utf8"
 );
-const MIGRATION = readFileSync(
-  path.resolve(import.meta.dirname, "../../../supabase/migrations/20260906130000_sites_setup.sql"),
-  "utf8"
-);
-
 beforeEach(() => {
   egressReached.mockClear();
   db = fakeDb({ sites: [{ id: SITE, mode: "autopilot" }], destinations: [] });
@@ -66,9 +67,10 @@ describe("§4.3 — the mode and the destination are two writes in one transacti
   });
 
   it("the transaction is the database's, not a sequence of PostgREST requests", () => {
+    // The function's own shape is `schema.test.ts`'s, against a live
+    // database; what this file owns is that the module reaches for it and
+    // never for a table.
     expect(APPLY_SOURCE).not.toMatch(/\.from\(/);
-    expect(MIGRATION).toMatch(/create or replace function apply_setup_choice/);
-    expect(MIGRATION).toMatch(/language plpgsql/);
   });
 
   it("a site that does not exist is an error, never a half-applied setup", async () => {
@@ -96,13 +98,13 @@ describe("REQ-028 c3 — a founder who uses WordPress can defer connecting it an
     expect(destination.health).toBe("expired");
   });
 
-  it("a deferred connection is an ordinary broken destination, not a fourth state — the migration writes an existing health value", () => {
-    expect(MIGRATION).toMatch(/health\s*\)?[\s\S]{0,80}'expired'/);
-    const baseline = readFileSync(
-      path.resolve(import.meta.dirname, "../../../supabase/migrations/00000000000001_baseline.sql"),
-      "utf8"
-    );
-    expect(baseline).toMatch(/health in \('ok', 'expired', 'error'\)/);
+  it("`health` is the destination's own, and this path never invents a fourth state", () => {
+    // The value written is `schema.test.ts`'s assertion, against the live
+    // `health` check; what this file owns is that the module's own code
+    // names no health at all — the migration does. Its header comment
+    // explains why, so the check runs against the statements alone.
+    const code = APPLY_SOURCE.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+    expect(code).not.toContain("health");
   });
 });
 
