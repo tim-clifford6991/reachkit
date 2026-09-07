@@ -65,6 +65,8 @@ const B = {
     "Every SERP, suggestion and volume uses Google US / `en` — one location constant (`SERP_LOCATION`), never per-customer derivation.",
   aiModeRow: "| **Google AI Mode** | Google's AI answer surface, own SERP endpoint, cited sources | 0.06¢ std / 0.2¢ live |",
   chatgptRow: "| **ChatGPT (LLM Scraper)** | The actual ChatGPT product's answer, scraped | 0.12¢ std / 0.4¢ live |",
+  weeklyDigest:
+    "`weekly` (score delta, AI answers delta, pages verdicts, next 3 — all values conditional: a missing number omits its section, never prints 0).",
   wordpress:
     "**WordPress:** REST + application password, posts as draft + Yoast/RankMath meta when detected; credentials encrypted at rest, never logged, revoked on disconnect.",
   scoreBands: "Bands: 0–24 Invisible · 25–49 Hard to find · 50–74 Findable · 75–100 Dominant",
@@ -842,6 +844,11 @@ describe("§9 publishing and autopilot — the veto window, the hard limits, the
     // other way round — a blocklist is always one scheme behind.
     expect([...pins.MARKDOWN_LINK_SCHEMES]).not.toContain("javascript:");
     expect([...pins.MARKDOWN_LINK_SCHEMES]).not.toContain("data:");
+  });
+
+  it(`§12, quoted: "${B.weeklyDigest}" — WEEKLY_NEXT_COUNT is the "next 3" that line names, transcribed and not chosen`, () => {
+    expect(pins.WEEKLY_NEXT_COUNT).toBe(3);
+    expect(B.weeklyDigest).toContain("next 3");
   });
 
   it("VERIFY.sitemapMaxDocuments bounds one page's check — a sitemap index names further documents, and following them without a bound turns one check into a crawl of a site ReachKit does not serve (issue #50)", () => {

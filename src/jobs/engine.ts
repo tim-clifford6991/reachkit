@@ -80,10 +80,25 @@ export async function weeklyDueSites(now: Date): Promise<readonly DueSite[]> {
   return dueSites(now);
 }
 
-/** Starts one site's weekly pass. `weekStart` is the site-local Monday the
- *  run belongs to; the `unique (site_id, week_start) where tier = 'weekly'`
- *  constraint behind this call is the engine's, so a second delivery of the
- *  same key starts nothing. */
+/** Starts one site's weekly pass, and tells the customer what it found.
+ *
+ *  `weekStart` is the site-local Monday the run belongs to; the
+ *  `unique (site_id, week_start) where tier = 'weekly'` constraint behind
+ *  the measurement is the engine's, so a second delivery of the same key
+ *  starts nothing.
+ *
+ *  **Two obligations of one tick, visible here rather than hidden inside
+ *  the pass** (issue #181, and the same shape the 24-hour check takes):
+ *  the pass records what it measured and stops, and the digest is sent
+ *  after it. The digest carries its own once-ness on the same site-week
+ *  row (`scans.digest_sent_at`), so a re-delivery of this tick measures
+ *  nothing and sends nothing.
+ *
+ *  **A degraded pass still tells.** A week that reached only some of its
+ *  sections is REQ-064 c4's case — measured, with the sections it missed
+ *  named — and it is precisely the week a customer most needs an account
+ *  of. Only a week with no measurement at all sends nothing, and that
+ *  decision is `sendWeeklyDigest`'s, read from `accountForWeek`. */
 export async function startWeeklyScan(a: DueSite & { readonly now: Date }): Promise<EngineResult> {
   const outcome = await runWeekly({
     siteId: a.siteId,
@@ -91,7 +106,20 @@ export async function startWeeklyScan(a: DueSite & { readonly now: Date }): Prom
     zone: a.zone,
     now: a.now,
   });
+
+  const { sendWeeklyDigest } = await import("@/lib/mail/weekly");
+  const told = await sendWeeklyDigest({
+    siteId: a.siteId,
+    weekStart: a.weekStart,
+    now: a.now,
+  });
+
   if (outcome.ran && outcome.status === "degraded") return { degraded: outcome.unmeasured.join(",") };
+  // A measured week whose telling could not be composed is a degraded
+  // tick, not a done one: the measurement is filed and the customer has
+  // not been told, which is a state an operator has to be able to see.
+  if (!told.sent && told.reason === "not-composable") return { degraded: "digest:not-composable" };
+  if (!told.sent && told.reason === "mail") return { degraded: "digest:mail" };
   return { done: true };
 }
 

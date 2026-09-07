@@ -641,3 +641,12 @@ export const MARKDOWN_LINK_SCHEMES = Object.freeze([
   "mailto:",
   "/",
 ] as const);
+
+// ── The Monday digest (issue #181) — BUILD §12
+/** How many of the ranked-open opportunities §12's weekly mail names:
+ *  "score delta, AI answers delta, pages verdicts, **next 3**".
+ *
+ *  Transcribed, not chosen (rule 1.2) — §12 states the number. It is a
+ *  pin rather than a literal in the sender because it is the size of a
+ *  list a customer reads, and because §12 is where it changes. */
+export const WEEKLY_NEXT_COUNT = 3 as const;                  // BUILD §12
