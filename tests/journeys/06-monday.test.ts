@@ -31,12 +31,19 @@
 // omission rule drops — is asserted on the block list, which carries keys
 // and no sentences and so needs no registry at all.
 //
-// **Billing's access gate is not registered, and the journey asserts that
-// before it registers one.** ADR-050 puts active access in
-// `src/lib/account/billing`, and `registerActiveAccessGate` is exported
-// and called by nothing in `src/**` today — so the hourly selection throws
-// rather than guessing, which is the honest answer and is asserted. The
-// journey then registers the gate the way billing will.
+// **Billing's access gate is registered by the boot path** (issue #180).
+// ADR-050 puts active access in `src/lib/account/billing`, and
+// `src/instrumentation.ts` installs it there through
+// `installActiveAccessGate()`. The journey asserts both halves: cleared,
+// the hourly selection throws rather than guessing — the honest answer —
+// and installed the way boot installs it, the selection *decides*. The
+// journey seeds no billing rows, so what it decides is "nobody is paying";
+// that a paying site is selected and an ended one is not is asserted
+// against a live schema in `tests/scan/weekly/schema.test.ts`.
+//
+// For the measurement itself the journey then registers a gate of its own
+// that answers "everyone", because the flow under test is Monday's, not
+// billing's.
 //
 // **Nothing sends the weekly mail yet.** `buildWeekly` composes it and
 // `weeklyDigest` reads what it needs, and no module in `src/**` calls
@@ -402,6 +409,7 @@ function answerQuery(query: DbQuery): unknown[] | typeof UNIQUE_VIOLATION | null
 const { CAPS } = await import("../../src/lib/config/constants");
 const weekly = await import("../../src/lib/scan/weekly");
 const { ActiveAccessGateNotRegistered } = await import("../../src/lib/scan/weekly/access");
+const { installActiveAccessGate } = await import("../../src/lib/account/billing");
 const { setOpportunityStore } = await import("../../src/lib/opportunities");
 const verdicts = await import("../../src/lib/opportunities/verdicts");
 const { buildWeekly } = await import("../../src/lib/mail/templates/weekly");
@@ -532,6 +540,14 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
     // measuring the wrong set of sites or refusing a paying customer.
     weekly.registerActiveAccessGate(null);
     await expect(weekly.dueSites(MONDAY)).rejects.toBeInstanceOf(ActiveAccessGateNotRegistered);
+
+    // And the boot path is what ends that: `src/instrumentation.ts` calls
+    // exactly this, once, on every Node boot. Afterwards the same selection
+    // answers instead of throwing — this journey holds no billing rows, so
+    // the answer is that nobody here is paying, which is a decision and not
+    // a guess.
+    await installActiveAccessGate();
+    await expect(weekly.dueSites(MONDAY)).resolves.toEqual([]);
   });
 
   it(

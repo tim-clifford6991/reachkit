@@ -8,6 +8,12 @@
 // The claim worth having is the second one. A Price object whose amount
 // somebody typed in a dashboard is the failure ADR-052 exists for, and the
 // only place it can be caught is a boot that refuses to come up.
+//
+// **Two invariants now (issue #180).** ADR-050's access gate is registered
+// here too, and asserted through the seam the weekly selection reads — so
+// these cases also hold that the gate is installed on *every* Node boot,
+// including the ones where Stripe could not be read and the checkout arm
+// returns early.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { applyEnvFixture } from "../mail/env-fixture";
 
@@ -18,6 +24,9 @@ const { PRICE_OBJECT_SPEC, PriceObjectMismatch } = await import(
   "@/lib/account/checkout/price-object"
 );
 const { setStripe } = await import("@/lib/account/stripe/client");
+const { registerActiveAccessGate, sitesWithActiveAccess } = await import(
+  "@/lib/scan/weekly/access"
+);
 const { newStripeDouble, stripeDouble } = await import("../account/stripe-double");
 
 const MATCHING = {
@@ -47,11 +56,15 @@ beforeEach(() => {
   vi.spyOn(console, "log").mockImplementation((line: unknown) => void logged.push(String(line)));
   vi.spyOn(console, "error").mockImplementation((line: unknown) => void errored.push(String(line)));
   process.env.NEXT_RUNTIME = "nodejs";
+  // Unregistered before each case, so what is asserted below is this boot
+  // registering it and never a leftover from another suite.
+  registerActiveAccessGate(null);
 });
 
 afterEach(() => {
   vi.restoreAllMocks();
   setStripe(null);
+  registerActiveAccessGate(null);
   if (runtimeBefore === undefined) delete process.env.NEXT_RUNTIME;
   else process.env.NEXT_RUNTIME = runtimeBefore;
 });
@@ -61,6 +74,7 @@ describe("the assertion runs once at boot, on the Node.js runtime", () => {
     vendor.price = { ...MATCHING };
     await expect(register()).resolves.toBeUndefined();
     expect(logged.map((line) => JSON.parse(line))).toEqual([
+      { event: "boot_invariants", check: "access-gate", outcome: "checked" },
       { event: "boot_invariants", check: "checkout", outcome: "checked" },
     ]);
     expect(errored).toEqual([]);
@@ -117,13 +131,22 @@ describe("a vendor that could not be read is not a mismatch, and does not take t
     expect(errored.map((line) => JSON.parse(line))).toEqual([
       { event: "boot_invariants", check: "checkout", outcome: "unchecked", reason: "Error" },
     ]);
-    expect(logged).toEqual([]);
+    // The gate is local and was established before the vendor was asked.
+    expect(logged.map((line) => JSON.parse(line))).toEqual([
+      { event: "boot_invariants", check: "access-gate", outcome: "checked" },
+    ]);
   });
 
   it("a price that is not there at all is the same arm — a read that did not happen asserts nothing", async () => {
     vendor.price = null;
     await expect(register()).resolves.toBeUndefined();
     expect(onlyLine(errored)).toMatchObject({ outcome: "unchecked" });
+  });
+
+  it("the access gate is registered on that boot too — an unreadable price is not a reason to guess who pays", async () => {
+    vendor.priceError = new Error("vendor is down");
+    await register();
+    await expect(sitesWithActiveAccess("test", [])).resolves.toEqual(new Set());
   });
 
   it("the line carries no binding value and no vendor payload", async () => {

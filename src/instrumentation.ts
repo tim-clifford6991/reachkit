@@ -26,6 +26,15 @@
 //
 //  - A binding that does not parse throws out of `register()` — `env` is
 //    local, needs nobody, and is BP-005's own promise.
+//  - **Billing's access gate not taking** throws out of `register()`
+//    (issue #180). ADR-050 puts "who has active access" in billing, and
+//    `src/lib/scan/weekly/access.ts` throws while nothing is registered
+//    rather than guess — so a deployment that boots without the
+//    registration cannot run a Monday tick for any customer. Registering
+//    is local and needs nobody, so it is asserted like `env` and not like
+//    the price: it is done first, before the vendor read, because the
+//    vendor arm below may return early and a gate registered after that
+//    return would be a gate registered on some boots only.
 //  - A live Price that **differs from `PRICE_OBJECT_SPEC`** throws out of
 //    `register()`, carrying `PriceObjectMismatch`'s own message: the field,
 //    what was expected, what was found. A deployment that would charge
@@ -46,8 +55,12 @@
 /** One structured line, the shape `src/app/api/_log.ts` uses. Every field
  *  is a name from a closed set — never a binding's value, never a vendor
  *  payload, never the price id. */
-function log(outcome: "checked" | "unchecked", reason?: string): void {
-  const line = { event: "boot_invariants", check: "checkout", outcome, ...(reason === undefined ? {} : { reason }) };
+function log(
+  check: "checkout" | "access-gate",
+  outcome: "checked" | "unchecked",
+  reason?: string
+): void {
+  const line = { event: "boot_invariants", check, outcome, ...(reason === undefined ? {} : { reason }) };
   if (outcome === "unchecked") console.error(JSON.stringify(line));
   else console.log(JSON.stringify(line));
 }
@@ -62,6 +75,15 @@ function log(outcome: "checked" | "unchecked", reason?: string): void {
 export async function register(): Promise<void> {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
 
+  // ADR-050's gate, first: it is local, it needs nobody, and the vendor arm
+  // below returns early on an unreadable Stripe. A registration after that
+  // return would hold on the boots where Stripe answered and not on the
+  // others, which is exactly the half-configured deployment this hook
+  // closes.
+  const { installActiveAccessGate } = await import("@/lib/account/billing");
+  await installActiveAccessGate();
+  log("access-gate", "checked");
+
   const { assertCheckoutBootInvariants } = await import("@/lib/account/checkout/boot");
   const { PriceObjectMismatch } = await import("@/lib/account/checkout/price-object");
 
@@ -69,8 +91,8 @@ export async function register(): Promise<void> {
     await assertCheckoutBootInvariants();
   } catch (error) {
     if (error instanceof PriceObjectMismatch) throw error;
-    log("unchecked", error instanceof Error ? error.name : "unknown");
+    log("checkout", "unchecked", error instanceof Error ? error.name : "unknown");
     return;
   }
-  log("checked");
+  log("checkout", "checked");
 }

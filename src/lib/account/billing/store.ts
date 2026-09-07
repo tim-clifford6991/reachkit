@@ -228,13 +228,20 @@ export function supabaseBillingStore(): BillingStore {
   return {
     async paidThroughForSite(siteId) {
       const { data, error } = await untyped()
-        .from<{ users: { paid_through: string } }>("sites")
+        .from<{ users?: { paid_through?: string | null } | null }>("sites")
         .select("users!inner(paid_through)")
         .eq("id", siteId)
         .limit(1);
       if (error) return { ok: false };
-      const row = data?.[0];
-      return { ok: true, paidThrough: row === undefined ? null : new Date(row.users.paid_through) };
+      // No row, no joined owner, or an owner with no date are one answer:
+      // there is no `paid_through` to compare, so `hasActiveAccess` reads
+      // `null` and fails closed (ADR-050, and this module's own rule that
+      // spending a departed customer's money is the worse error). Read
+      // defensively because the inner join is the store's claim and not
+      // this function's — a shape that does not arrive must not become a
+      // `TypeError` inside the one gate three loops call.
+      const paidThrough = data?.[0]?.users?.paid_through ?? null;
+      return { ok: true, paidThrough: paidThrough === null ? null : new Date(paidThrough) };
     },
 
     account: (userId) => oneAccount("id", userId),
