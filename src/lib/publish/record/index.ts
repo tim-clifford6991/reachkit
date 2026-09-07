@@ -86,8 +86,19 @@ export interface PageRecord {
   opportunityId: string;
   targetQuery: string;
   /** The date of the measurement behind the page (REQ-056 c6) — the scan
-   *  the opportunity was derived from. */
-  measuredAt: Date;
+   *  the opportunity was derived from.
+   *
+   *  **Null where there is no such date, never a stand-in for one** (issue
+   *  #268). The opportunity a draft points at can fail to come back — the
+   *  row is gone, or this reader may not see it — and the record then has
+   *  no measurement to state. It used to carry `new Date(0)` through that
+   *  gap, which is not a missing date but a *wrong* one: epoch zero is a
+   *  real instant, so every surface downstream formatted it and a customer
+   *  read `Dec 31, 1969` as the day their page was measured. Null cannot be
+   *  formatted by accident; a surface has to decide what to do about it,
+   *  and the rule it decides by is the draft view's own: no row without a
+   *  fact. */
+  measuredAt: Date | null;
   /** c6's "approved or published automatically". */
   mode: "approved" | "autopilot";
   address: RecordedAddress;
@@ -240,7 +251,10 @@ export async function pageRecordFor(
   if (oppError !== null) throw new Error(`pageRecordFor(${draftId}): ${oppError.message}`);
   const opportunity = opportunities?.[0];
 
-  let measuredAt = new Date(0);
+  // No date until a scan supplies one. Every arm below that fails to find
+  // one leaves it null rather than substituting an instant nothing
+  // measured (issue #268).
+  let measuredAt: Date | null = null;
   if (opportunity !== undefined) {
     const { data: scans, error: scanError } = await db
       .from<{ created_at: string }>("scans")

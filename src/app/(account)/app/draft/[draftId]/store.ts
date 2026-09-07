@@ -81,14 +81,22 @@ function stringAt(meta: Record<string, unknown> | null, key: string): string | n
 /** §8's grounded fact, as generation recorded it. A draft with none carries
  *  the empty shape rather than a fabricated fact — `assembleDraft`
  *  recomputes `present` against the body, so an empty fact is simply never
- *  found in it and no highlight is drawn. */
+ *  found in it and no highlight is drawn.
+ *
+ *  **The empty shape's date is `null`, not epoch zero** (issue #268). It
+ *  used to be `new Date(0)`, and the empty string it sits beside is why
+ *  that was a different kind of value: an empty fact and an empty address
+ *  render as nothing, while epoch zero renders as `Dec 31, 1969` — a date
+ *  the screen stated as the day this page's source was read, on every
+ *  draft generation has recorded no grounding for. A missing date has to
+ *  be a value that cannot be formatted. */
 function groundedFactOf(meta: Record<string, unknown> | null): DraftFacts["groundedFact"] {
   const grounded = meta?.grounded_fact;
   if (typeof grounded !== "object" || grounded === null) {
-    return { fact: "", url: "", readAt: new Date(0) };
+    return { fact: "", url: "", readAt: null };
   }
   const record = grounded as Record<string, unknown>;
-  const readAt = typeof record.read_at === "string" ? new Date(record.read_at) : new Date(0);
+  const readAt = typeof record.read_at === "string" ? new Date(record.read_at) : null;
   return {
     fact: typeof record.fact === "string" ? record.fact : "",
     url: typeof record.url === "string" ? record.url : "",

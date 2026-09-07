@@ -128,6 +128,10 @@ export function DraftScreen(p: {
   const claim = bodyMd === view.bodyMd ? view.claim : claimAfterSave();
   // Rule 2: the highlight is a function of the buffer, never of a stored flag.
   const grounded = factPresentIn(bodyMd, view.grounded.fact);
+  // Whether generation recorded a grounding at all: three facts, and the
+  // section below is drawn only where at least one of them exists (#268).
+  const hasGrounding =
+    view.grounded.fact !== "" || view.grounded.url !== "" || view.grounded.readAt !== null;
 
   const doNothingLine =
     view.doNothing.publishesAt === null
@@ -223,23 +227,39 @@ export function DraftScreen(p: {
           date it was read. Both are values (§2.3), so they render in mono
           and need no sentence to be readable. The fact itself is printed
           here only when it is *not* marked in the body, so a grounding the
-          edit removed is never invisible. */}
-      <section className="flex flex-col gap-1" data-testid="draft-grounded">
-        <p className="eyebrow">{copy("draft.grounded.title")}</p>
-        {grounded ? null : (
-          <p className="min-w-0 break-words" data-testid="draft-grounded-fact">
-            {view.grounded.fact}
-          </p>
-        )}
-        <p className="rk-prov flex flex-wrap gap-2">
-          <a href={view.grounded.url} className="num" data-testid="draft-grounded-url">
-            {view.grounded.url}
-          </a>
-          <span className="num" data-testid="draft-grounded-read-at">
-            {formatDate(view.grounded.readAt, view.timeZone)}
-          </span>
-        </p>
-      </section>
+          edit removed is never invisible.
+
+          **No part of it without its fact** (issue #268, #237's rule). A
+          draft generation recorded no grounding for has no address to
+          print and no day to state, and this section used to print an
+          empty link beside `Dec 31, 1969` — the date epoch zero formats
+          to, read by a customer as the day their page's source was read.
+          Each part is drawn from its own fact, and a heading with nothing
+          under it is not drawn at all. */}
+      {hasGrounding ? (
+        <section className="flex flex-col gap-1" data-testid="draft-grounded">
+          <p className="eyebrow">{copy("draft.grounded.title")}</p>
+          {grounded ? null : (
+            <p className="min-w-0 break-words" data-testid="draft-grounded-fact">
+              {view.grounded.fact}
+            </p>
+          )}
+          {view.grounded.url === "" && view.grounded.readAt === null ? null : (
+            <p className="rk-prov flex flex-wrap gap-2">
+              {view.grounded.url === "" ? null : (
+                <a href={view.grounded.url} className="num" data-testid="draft-grounded-url">
+                  {view.grounded.url}
+                </a>
+              )}
+              {view.grounded.readAt === null ? null : (
+                <span className="num" data-testid="draft-grounded-read-at">
+                  {formatDate(view.grounded.readAt, view.timeZone)}
+                </span>
+              )}
+            </p>
+          )}
+        </section>
+      ) : null}
 
       {/* REQ-093 c2's label, and — where the customer has edited — the note
           that keeps it from speaking for their words. */}

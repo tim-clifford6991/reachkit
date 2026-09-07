@@ -129,6 +129,41 @@ describe("REQ-045 c2 and c8 — the grounded fact, marked, with its source line"
     // The fact was not rewritten to match the edit.
     expect(EDITED_VIEW.grounded.fact).toBe(VIEW.grounded.fact);
   });
+
+  // Issue #268. Generation records the grounding; a draft it recorded none
+  // for has no address to print and no day to state, and the screen used
+  // to print an empty link beside `Dec 31, 1969` — epoch zero, formatted,
+  // read by a customer as the day their page's source was read. #237's
+  // rule decides it: no row without a fact.
+  describe("a draft with no recorded grounding states no source and no date", () => {
+    const UNGROUNDED = assembleDraft({
+      ...factsFor(FIXTURE_DRAFT_ID),
+      groundedFact: { fact: "", url: "", readAt: null },
+    });
+
+    it("no date is stated, and no epoch date can be", () => {
+      const root = markup(UNGROUNDED);
+      expect(root.querySelector('[data-testid="draft-grounded-read-at"]')).toBeNull();
+      // The assertion that survives a reformat: whatever the date column
+      // is set to, 1969 and 1970 are the two years epoch zero lands in.
+      expect(root.textContent).not.toMatch(/19(69|70)/);
+    });
+
+    it("no empty address is offered in place of the one that was never read", () => {
+      expect(markup(UNGROUNDED).querySelector('[data-testid="draft-grounded-url"]')).toBeNull();
+    });
+
+    it("and the heading is not drawn over nothing", () => {
+      expect(markup(UNGROUNDED).querySelector('[data-testid="draft-grounded"]')).toBeNull();
+    });
+
+    it("while a draft that has one still states all of it", () => {
+      const root = markup();
+      expect(root.querySelector('[data-testid="draft-grounded"]')).not.toBeNull();
+      expect(textOf(root, "draft-grounded-read-at")).toBe("Sep 14, 2026");
+      expect(textOf(root, "draft-grounded-url")).toBe(VIEW.grounded.url);
+    });
+  });
 });
 
 describe("REQ-045 c3 and c11 — the claim outcome, in every case", () => {

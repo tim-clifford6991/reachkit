@@ -124,6 +124,20 @@ describe("§4.6 — ownership is a filter, not a check made afterwards", () => {
     await expect(readDraftRow({ draftId: "no-such-id", site: SITE })).resolves.toBeNull();
   });
 
+  // Issue #268 — the epoch-zero half of the same rule the file opens with:
+  // what has not been measured is *said* rather than guessed at, and a
+  // guessed date is the worst kind of guess because it formats like a real
+  // one. `Dec 31, 1969` reached a customer's draft view this way.
+  it("a draft with no recorded grounding carries no read date, and no record with no scan carries a measurement date", async () => {
+    const facts = await readDraftRow({ draftId: "mine", site: SITE });
+    expect(facts?.groundedFact.readAt).toBeNull();
+    // No opportunity row is seeded, so the record has no scan to take a
+    // date from — the arm the finding was raised against.
+    expect(facts?.record?.measuredAt ?? null).toBeNull();
+    // Neither is epoch zero wearing a different name.
+    expect(facts?.groundedFact.readAt as Date | null).not.toEqual(new Date(0));
+  });
+
   it("a row in a state this build does not know is not drawn", async () => {
     rows.set("drafts", [
       { id: "mine", site_id: "site-1", state: "wat", title: "t", body_md: "", meta: null, veto_deadline: null },
