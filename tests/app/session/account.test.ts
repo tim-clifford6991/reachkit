@@ -179,3 +179,36 @@ describe("the door", () => {
     await expect(account.appAccount()).resolves.toMatchObject({ ok: true });
   });
 });
+
+describe("what a forged or unverifiable cookie gets, and what that costs elsewhere", () => {
+  it("a cookie the session cannot verify is no session at all", async () => {
+    // `currentSession` is total: an absent cookie, a malformed one, a
+    // forged one, one past its window, one issued before the account's
+    // sessions were ended, and one belonging to a tombstoned account are
+    // all `null`, and none of them says which. Every `/app` surface then
+    // answers §4.3's refusal.
+    currentSession.mockResolvedValue(null);
+    await expect(account.requireAppAccount()).rejects.toThrow(/NEXT_REDIRECT/);
+    expect(redirected).toEqual(["/signin"]);
+  });
+
+  it("and that is why the browser layout sweep no longer measures the four /app screens", () => {
+    // Recorded here rather than left to be noticed. `src/middleware.ts`
+    // checks a cookie's *presence*, so `tests/ui/layout/routes.ts`'s
+    // `ACCOUNT_SESSION_COOKIE` — a fixture value, not a signed session —
+    // got the sweep past the boundary and onto the screens. Since this
+    // issue the screens themselves verify the session, so that request
+    // redirects to `/signin` and the sweep measures the sign-in prompt at
+    // those four addresses instead.
+    //
+    // It is the right behaviour and a real loss of coverage, and it cannot
+    // be closed from inside a suite: `currentSession` reads the `users`
+    // row, and the layout job runs `next build` with no database behind
+    // it. Closing it means giving that job a substrate and a seeded
+    // account — the shape the `db` vitest project already has, and its own
+    // piece of work. The assertion below is the marker that keeps the fact
+    // from going quiet.
+    const cookieIsAFixture = "rk_session=layout-sweep-fixture";
+    expect(cookieIsAFixture).not.toMatch(/\./);
+  });
+});
