@@ -176,12 +176,19 @@ export async function readDestinations(
   siteId: string | null
 ): Promise<readonly DestinationView[]> {
   if (siteId === null) return FIXTURE_SETTINGS_FACTS.destinations;
-  // Imported where it is used, not at the top: the registry reaches
-  // Postgres, and the fixture path — every render there is until #35 —
-  // must not drag a database client into a screen that never asks it
-  // anything.
-  const { listDestinations } = await import("@/lib/publish/destinations");
   try {
+    // Imported where it is used, not at the top: the registry reaches
+    // Postgres, and the render with no site id must not drag a database
+    // client into a screen that never asks it anything.
+    //
+    // **The import is inside the `try`, and that is not tidying** (#42).
+    // Until this issue `currentSiteId()` answered `null` for every render,
+    // so this line never ran; with a real site id behind it, a module graph
+    // that cannot be evaluated — no environment, as in the layout build and
+    // the presentation sweeps — throws *here*, and outside the `try` it
+    // took the whole screen down instead of falling back like the other two
+    // reads.
+    const { listDestinations } = await import("@/lib/publish/destinations");
     return await withDeadline(listDestinations(siteId));
   } catch {
     // Bounded like the other two, and falling back the same way: the card
