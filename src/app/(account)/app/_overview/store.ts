@@ -19,7 +19,8 @@
 // **The weekly series is read, not stubbed** (issue #213). This file used
 // to answer `points: []` and `aiPresence: []` unconditionally, on the
 // grounds that "the reader that turns a `StoredReport` into a screen's
-// series is #41's and #27's". Both landed long ago, so every real account
+// series is #41's and #27's" (historical). Both landed long ago, so every
+// real account
 // was drawing the unmeasured arm of two tiles and an empty chart whatever
 // had been measured for it — a stub that had outlived its reason and read
 // as a measurement. The readers are §11's own (`readWeekScans` in

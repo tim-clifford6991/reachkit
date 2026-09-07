@@ -60,7 +60,8 @@ export interface PublishedPage {
   /** What the one check at 24 hours recorded, or `null` where it has not
    *  run — which is neither a failure nor a confirmation and qualifies
    *  nothing. There is no "pending" arm to read: a check that has not run
-   *  is a `VerifyDisposition`, which is #50's and not this node's. */
+   *  is a `VerifyDisposition`, which `src/lib/publish/verify/due.ts`
+   *  decides and this node does not. */
   readonly verification: VerifyOutcome | null;
   /** The address the page is served at. It is what makes the page a
    *  member of the judged population — ADR-084 made `servesPublicly` true

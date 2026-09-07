@@ -116,8 +116,8 @@ export interface OverviewFacts {
   /** The dates inside the window at which an answer this site is measured
    *  under changed (REQ-071 c12/c13, issue #213). Supplied here and read
    *  by two things: the week count below, which may not span one, and the
-   *  break in the drawn series, which is #205's. Empty for a site whose
-   *  answers have not changed, which is most of them. */
+   *  break in the drawn series, which `./changes.ts` places. Empty for a
+   *  site whose answers have not changed, which is most of them. */
   changes: readonly ChangeMarker[];
   pagesPublished: Measured<number>;
   pagesPublishedPrevious?: Measured<number>;
