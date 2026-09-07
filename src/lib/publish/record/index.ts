@@ -220,3 +220,132 @@ export async function pageRecordFor(
         : dispositionOf(publication, now),
   };
 }
+
+// ── The month's worth, in one read (issue #175) ─────────────────────────
+//
+// `pageRecordFor` is one page's whole standing and costs three reads; a
+// calendar drawing thirty-one dates cannot ask it thirty-one times. So the
+// month is its own read: the same columns, for every page §9 has put on a
+// date inside a window, and nothing derived that the row does not carry.
+//
+// **It states no liveness of its own.** `liveUrl` is handed on exactly
+// where ReachKit made the page live at its destination and the page still
+// stands published — the same split `addressOf` makes above, and made in
+// one place so a grid and a panel cannot disagree about whether a page is
+// readable at an address.
+
+/** One page §9 has put on a date, as a surface reads it off the row. */
+export interface ScheduledPage {
+  readonly draftId: string;
+  readonly state: State;
+  /** The site-local calendar date the page is for, as stored. */
+  readonly scheduledFor: string;
+  readonly title: string | null;
+  readonly opportunityId: string;
+  /** §9's veto window, for the one stage that has one. */
+  readonly vetoDeadline: Date | null;
+  /** The moment the customer approved the page, where they did. */
+  readonly approvedAt: Date | null;
+  /** Whether the page ever reached review — read off the append-only
+   *  transitions and nowhere else, which is the same thing the machine's
+   *  own `never_entered_review` guard reads (#143). */
+  readonly enteredReview: boolean;
+  /** The address, where ReachKit made the page live and it still stands
+   *  published. `null` in every other case, never an empty string. */
+  readonly liveUrl: string | null;
+}
+
+interface ScheduledDraftRow {
+  id: string;
+  state: string;
+  scheduled_for: string | null;
+  title: string | null;
+  opportunity_id: string;
+  veto_deadline: string | null;
+  approved_at: string | null;
+  transitions: unknown;
+}
+
+interface LivePublicationRow {
+  draft_id: string;
+  live_url: string | null;
+  made_live_by_us: boolean;
+}
+
+const SCHEDULED_COLUMNS =
+  "id, state, scheduled_for, title, opportunity_id, veto_deadline, approved_at, transitions";
+
+function asDate(value: string | null): Date | null {
+  if (value === null) return null;
+  const at = new Date(value);
+  return Number.isNaN(at.getTime()) ? null : at;
+}
+
+/** `drafts.transitions` is append-only JSON; only one question is asked of
+ *  it here, and a row whose column is absent or misshapen answers `false`
+ *  — a page that has not recorded reaching review has not reached it. */
+function enteredReviewFrom(transitions: unknown): boolean {
+  if (!Array.isArray(transitions)) return false;
+  return transitions.some(
+    (record) => typeof record === "object" && record !== null && (record as { to?: unknown }).to === "in_review"
+  );
+}
+
+/**
+ * Every page scheduled for one site between two site-local dates,
+ * inclusive.
+ *
+ * Two indexed reads and no more, whatever the number of dates: the drafts
+ * in the window, and the publications behind the ones that went out. A
+ * window with no pages in it is an empty array — a legitimate empty, and
+ * never an error.
+ */
+export async function scheduledPagesFor(a: {
+  siteId: string;
+  from: string;
+  to: string;
+}): Promise<readonly ScheduledPage[]> {
+  const db = publishDb();
+  const { data, error } = await db
+    .from<ScheduledDraftRow>("drafts")
+    .select(SCHEDULED_COLUMNS)
+    .eq("site_id", a.siteId)
+    .gte("scheduled_for", a.from)
+    .lte("scheduled_for", a.to);
+  if (error !== null || data === null) {
+    throw new Error(`scheduledPagesFor(${a.siteId}): could not read the scheduled pages`);
+  }
+  const rows = data.filter((row): row is ScheduledDraftRow & { scheduled_for: string } =>
+    typeof row.scheduled_for === "string" && row.scheduled_for !== ""
+  );
+  if (rows.length === 0) return [];
+
+  const live = await db
+    .from<LivePublicationRow>("publications")
+    .select("draft_id, live_url, made_live_by_us")
+    .in(
+      "draft_id",
+      rows.map((row) => row.id)
+    );
+  const byDraft = new Map<string, LivePublicationRow>();
+  for (const row of live.data ?? []) byDraft.set(row.draft_id, row);
+
+  return rows.map((row): ScheduledPage => {
+    const state = row.state as State;
+    const publication = byDraft.get(row.id);
+    return {
+      draftId: row.id,
+      state,
+      scheduledFor: row.scheduled_for,
+      title: row.title,
+      opportunityId: row.opportunity_id,
+      vetoDeadline: asDate(row.veto_deadline),
+      approvedAt: asDate(row.approved_at),
+      enteredReview: enteredReviewFrom(row.transitions),
+      liveUrl:
+        state === "published" && publication?.made_live_by_us === true
+          ? (publication.live_url ?? null)
+          : null,
+    };
+  });
+}
