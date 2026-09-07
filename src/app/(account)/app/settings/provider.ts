@@ -131,6 +131,30 @@ async function currentUserId(): Promise<string> {
  *  baked into a page. */
 const BILLING_SURFACE = "/app/settings";
 
+/**
+ * How long the one read on this screen may take before the card falls back.
+ *
+ * Chosen here rather than pinned in `constants.ts` on the same grounds
+ * `src/middleware.ts` states for its own: it is a property of this one
+ * request-path read and lives in exactly one file. It exists because this
+ * screen renders per request (#133 made every `(account)` route dynamic),
+ * so a database that is slow or unreachable has to cost the card its
+ * facts, not the customer their screen — and the `catch` below does not
+ * cover that on its own, because a request that never settles never
+ * rejects. The layout conformance sweep renders this screen against a
+ * database that is not there, which is exactly that case.
+ */
+const BILLING_READ_DEADLINE_MS = 800;
+
+function withDeadline<T>(work: Promise<T>): Promise<T> {
+  return Promise.race([
+    work,
+    new Promise<T>((_resolve, reject) =>
+      setTimeout(() => reject(new Error("billing read timed out")), BILLING_READ_DEADLINE_MS)
+    ),
+  ]);
+}
+
 export async function readBillingFacts(userId: string): Promise<BillingFacts> {
   try {
     // Imported at the call and not at the top of the file. `@/lib/account/
@@ -152,10 +176,11 @@ export async function readBillingFacts(userId: string): Promise<BillingFacts> {
     }
     return FIXTURE_SETTINGS_FACTS.billing;
   } catch {
-    // No environment, or a store that could not be constructed at all.
-    // The card falls back to the fixture's facts rather than throwing the
-    // screen away — and nothing it then states is stale, because nothing it
-    // states came from a vendor (REQ-097 c5).
+    // No environment, a store that could not be constructed at all, or a
+    // read that did not answer inside the deadline. The card falls back to
+    // the fixture's facts rather than throwing the screen away — and
+    // nothing it then states is stale, because nothing it states came from
+    // a vendor (REQ-097 c5).
     return FIXTURE_SETTINGS_FACTS.billing;
   }
 }

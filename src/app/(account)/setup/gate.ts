@@ -5,9 +5,45 @@
 // not answered the three questions belongs on `/setup`, and a founder who
 // has answered them is never asked again. Both halves are this file, and
 // this file is the only place either is decided: `setupRedirectFor` holds
-// no per-route branch, and `src/middleware.ts` — the one place a route
-// policy is enforced in this product — holds no setup knowledge beyond
-// calling it.
+// no per-route branch, and the enforcement point holds no setup knowledge
+// beyond calling it.
+//
+// **The runtime question #133 asks, answered: the gate is enforced in
+// `src/app/(account)/layout.tsx`, on the Node.js runtime, and no longer in
+// `src/middleware.ts`.** The gate has to name the asking account, which is
+// `currentSession()` — `next/headers`, a `node:crypto` HMAC and one
+// `dbAdmin()` read. `src/middleware.ts` is still bundled for the **Edge**
+// runtime in this build (Next 16 gives the *new* `proxy.ts` convention the
+// Node default; the deprecated `middleware.ts` convention this repository
+// still uses lands in `server/edge/…`, checked in the build's own
+// middleware manifest), so none of those three is reachable from there.
+// The three ways out, and why this one:
+//
+//   * *Read the session some other way at the edge* — a second HMAC
+//     verifier written against Web Crypto beside the one in
+//     `identity/cookie.ts`. Two implementations of one trust boundary, and
+//     a database round trip in front of **every** request besides.
+//   * *Declare the Node.js runtime for middleware* — reachable only by
+//     migrating `middleware.ts` → `proxy.ts`, which `src/middleware.ts`'s
+//     own header defers to "a work order that touches BP-001's own `code:`
+//     list": an owner file, not a feature PR's.
+//   * *Move the gate into the `(account)` layout* — this. It is a server
+//     component on Node, so `currentSession()` and the
+//     `sites.setup_completed_at` read work as written; it runs once per
+//     account **screen**, not once per request; and `(account)/**` is
+//     exactly the surface REQ-025 c5 is about.
+//
+// What that costs, stated rather than hidden: `src/app/api/**` is outside
+// the `(account)` layout, so no API route is gated at all now. The
+// allow-list's four `/api/*` rows therefore no longer *do* anything — they
+// stay because the promise they record is unchanged and is now held more
+// simply (nothing to leave is gated, because no endpoint is), and because
+// they are what a future enforcement point that does see them must honour.
+// Redirecting a `fetch` to a screen was never the useful half of REQ-025
+// c5 either; every route handler authenticates on its own.
+//
+// A layout is not told its own path, so the path arrives as one request
+// header the boundary sets — `GATE_PATH_HEADER`, below.
 //
 // **The exception is data, not an `if` repeated in every route.** A
 // customer who has paid is never required to finish setup in order to
@@ -17,8 +53,11 @@
 // there is no setup-aware branch in it to add later, because the gate
 // never runs on those paths at all.
 //
-// Pure: no clock, no database, no request object. Which account is asking
-// is `readSetupGateState`'s (below), and today nothing can answer it.
+// Pure: no clock, no database, no request object, and no import that the
+// Edge runtime lacks — `src/middleware.ts` imports `GATE_PATH_HEADER` from
+// here, so a runtime import of the session or the store into this file
+// would fail the build rather than fail a test. Which account is asking is
+// `gate-state.ts`'s, which nothing on the Edge side imports.
 import type { SetupProgressState } from "./submit";
 
 /** Where an unfinished founder is sent, and where a finished one is taken
@@ -26,6 +65,21 @@ import type { SetupProgressState } from "./submit";
  *  strings. */
 export const SETUP_PATH = "/setup";
 export const APP_PATH = "/app";
+
+/**
+ * The header the authorisation boundary writes the request's own path
+ * into, so the `(account)` layout — which Next does not tell its path —
+ * can ask `setupRedirectFor` about it.
+ *
+ * **Set by `src/middleware.ts`, never read from the client.** It is
+ * written onto a *clone* of the incoming headers with `.set()`, which
+ * overwrites whatever the caller sent, so a request that arrives carrying
+ * `x-rk-path: /app/settings` for `/app` is gated as `/app`. A request that
+ * did not pass through the boundary carries no path, and the layout treats
+ * that the way it treats an unnameable account: it lets the request
+ * through rather than guessing at one.
+ */
+export const GATE_PATH_HEADER = "x-rk-path";
 
 /**
  * The one allow-list. Everything a paid customer needs in order to leave,
@@ -80,9 +134,10 @@ export function isAllowedWhileIncomplete(path: string): boolean {
  *   - anything else                           → `null`
  *
  * `setup: null` means "which account this is, is not knowable here" —
- * `readSetupGateState`'s default answer until §13's session lands. It lets
- * the request through: a gate that redirected on an unknown account would
- * send every signed-in customer to setup.
+ * `readSetupGateState`'s answer where no session names an account, or
+ * where the row that would say cannot be read. It lets the request
+ * through: a gate that redirected on an unknown account would send every
+ * signed-in customer to setup.
  */
 export function setupRedirectFor(a: {
   setup: SetupProgressState | null;
@@ -100,44 +155,4 @@ export function setupRedirectFor(a: {
   }
 
   return isAllowedWhileIncomplete(a.path) ? null : SETUP_PATH;
-}
-
-/**
- * Reads which account is asking and how far through setup it is.
- *
- * **Declared, and honestly unanswerable today.** The session cookie
- * `src/middleware.ts` checks carries presence and nothing else — "the
- * check is a cookie's presence, nothing about its contents" — and the
- * function that turns a session into an account, `currentSession()`, is
- * issue #35. `sites.setup_completed_at` exists (this issue's own
- * migration), so the *state* is readable the moment the *account* is; the
- * missing half is identity, not storage.
- *
- * So this returns `null`, the gate lets every request through, and the
- * wiring above is exercised end to end by `setSetupGateReader` rather than
- * by a fixture that would claim an account this process cannot name. When
- * #35 lands, this body becomes the one read it describes and nothing else
- * in this file or in `src/middleware.ts` changes.
- */
-export type SetupGateReader = (request: {
-  readonly cookies: { get(name: string): { value: string } | undefined };
-}) => Promise<SetupProgressState | null>;
-
-const identityIsIssue35: SetupGateReader = async () => null;
-
-let reader: SetupGateReader = identityIsIssue35;
-
-/** The seam #35 fills, and the one tests drive the gate through. */
-export function setSetupGateReader(next: SetupGateReader): void {
-  reader = next;
-}
-
-export function resetSetupGateReader(): void {
-  reader = identityIsIssue35;
-}
-
-export async function readSetupGateState(
-  request: Parameters<SetupGateReader>[0]
-): Promise<SetupProgressState | null> {
-  return reader(request);
 }
