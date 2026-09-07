@@ -833,8 +833,27 @@ describe("owner-owed and empty agree both ways", () => {
     // are this screen's, because `setup.competitors.refused.*` speaks to a
     // founder part-way through setup. 160 owner-owed unchanged, 191 + 8 =
     // 199 awaiting copy, 168 ruled unchanged, 519 + 8 = 527 total.
-    expect(OWNER_OWED.length).toBe(160);
-    expect(AWAITING_COPY.length).toBe(199);
+    //
+    // 2026-09-07, issue #236 moves **twenty** and mints none: every owed
+    // key under `overview.*`, from the empty value to the marker. Overview
+    // was the one screen still giving its owed keys the empty value, so
+    // `writtenLine` answered `null` and the line rendered as nothing —
+    // invisible on dev and unswept by the layout suite at any width. Two of
+    // the twenty are #234's `overview.rivals.far.*`, where the cost was a
+    // whole **control**: the swap REQ-096 c6 promises a customer with a
+    // rival they cannot catch had no visible label at all.
+    //
+    // The rule is one rule product-wide (master, 2026-09-07, extending the
+    // 2026-09-05 ruling): screens render the marker, mail keeps the throw.
+    //
+    // The three `place.overview.weekly-presence.*` lines are **not** among
+    // them and stay empty: they carry `law: "no-presence-yet"`, a family
+    // shared with `calendar.ts` and `report.ts`, and moving one screen's
+    // third of it would split a rule that is deliberately product-wide.
+    // 160 − 20 = 140 owner-owed, 199 + 20 = 219 awaiting copy, 168 ruled
+    // and 527 total unchanged — nothing was minted.
+    expect(OWNER_OWED.length).toBe(140);
+    expect(AWAITING_COPY.length).toBe(219);
     expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(168);
     expect(Object.keys(COPY).length).toBe(527);
 
