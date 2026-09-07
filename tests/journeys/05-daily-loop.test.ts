@@ -26,16 +26,19 @@
 //
 // Five of those need a word.
 //
-// **Two engine seams on this chain are not built, and the journey drives
-// what they will call rather than pretending they are.** `activeSites()`
-// (BP-014) is the evening tick's own site list, and `publishApproved()`
-// (BP-015) is the approve-and-deliver edge; both are `notBuilt` in
-// `src/jobs/engine.ts` today. So this file walks one site rather than a
-// list, and moves the two edges #45 owns — `generating → in_review` with
-// the veto deadline it stamps, and `approved → publishing` — with the same
-// `transition()` and `publish()` calls that engine will make. The first
-// test asserts the two seams still throw, so the day they land this file
-// is what says the journey changed.
+// **Both engine seams on this chain are built now (#173).**
+// `activeSites()` (BP-014) is the evening tick's own site list and
+// `publishApproved()` (BP-015) is the approve-and-deliver edge; each used
+// to throw `notBuilt`, and the first test used to assert that they did.
+// It now asserts what they do: the tick walks a real list that this
+// founder's site is on and a stopped site is not, and the day's page goes
+// out through the same `transition()` and `publish()` calls the engine
+// makes — which is what keeps this file a journey rather than a second
+// copy of the engine. The two edges #45 owns — `generating → in_review`
+// with the veto deadline it stamps, and `approved → publishing` — are
+// still moved here directly, because what this journey is about is the
+// customer's day and not the job runner's plumbing
+// (`tests/jobs/engine-daily.test.ts` owns that).
 //
 // **The `draft-ready` mail is built (#174), and this journey sends it.**
 // The decision behind it came with the veto leaf — `tellingFor` picks
@@ -315,7 +318,6 @@ const { CAPS, VETO, PUBLISH_VERIFY_DELAY_H, DRAFT_DUE_HOUR_LOCAL } = await impor
 );
 const { isDraftDue, nextPublishDate, localClock } = await import("../../src/jobs/site-clock");
 const engine = await import("../../src/jobs/engine");
-const { EngineNotBuilt } = engine;
 const { generateDayPage, setGenerateStore } = await import("../../src/lib/generate");
 const { setOpportunityStore } = await import("../../src/lib/opportunities");
 const { transition, toMachineDraft } = await import("../../src/lib/publish/machine");
@@ -658,16 +660,21 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
     // The evening before the publish date, in the site's own zone.
     expect(nextPublishDate(EVENING, TIME_ZONE)).toBe("2026-09-02");
 
-    // The two holes in this chain, asserted rather than narrated: the tick
-    // has no site list yet, and the approve-and-deliver edge has no engine.
-    // Both throw rather than reporting a quiet success, which is what makes
-    // this file the thing that says the journey changed the day they land.
-    return Promise.all([
-      expect(engine.activeSites()).rejects.toBeInstanceOf(EngineNotBuilt),
-      expect(engine.publishApproved({ draftId: "d", destinationId: DEST_ID })).rejects.toBeInstanceOf(
-        EngineNotBuilt
-      ),
-    ]);
+    // The two holes in this chain are filled (#173), so this asserts what
+    // they now do rather than that they throw. The tick walks a real list:
+    // this founder's site is on it, with the zone the gate above is decided
+    // in, and the composition of the two is the tick's own selection.
+    const sites = await engine.activeSites();
+    expect(sites).toEqual([{ siteId: SITE_ID, timeZone: TIME_ZONE }]);
+    expect(sites.filter((site) => isDraftDue(EVENING, site.timeZone))).toHaveLength(1);
+
+    // And a site the customer has stopped is not prepared a page at all —
+    // the discriminating half, because a list that returned every row would
+    // pass the assertion above.
+    await setPublishing(SITE_ID, false, { kind: "customer", userId: USER_ID });
+    expect(await engine.activeSites()).toEqual([]);
+    await setPublishing(SITE_ID, true, { kind: "customer", userId: USER_ID });
+    expect(await engine.activeSites()).toHaveLength(1);
   });
 
   it(

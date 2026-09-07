@@ -396,14 +396,20 @@ describe("nothing fakes work — an unbuilt engine fails loudly", () => {
   // the wiring — that this job hands the tick's clock to the sweep and maps
   // what it answers — is asserted above, against the recorded seam.
   //
-  // The remaining three stay, and an engine that lands moves its id out of
-  // here and into a suite of its own.
+  // The remaining one stays, and an engine that lands moves its id out of
+  // here and into a suite of its own. Issue #173 moved two: `draft/generate`
+  // (BP-014's site list, `tests/publish/daily/sites.test.ts`) and
+  // `publish/execute` (BP-015's approve-and-deliver edge,
+  // `tests/publish/attempt/deliver.test.ts`), both also walked end to end
+  // by `tests/journeys/05-daily-loop.test.ts`.
   const UNBUILT_JOB_IDS = JOB_IDS.filter(
     (id) =>
       id !== "account/maintenance" &&
       id !== "weekly/refresh" &&
       id !== "publish/verify" &&
-      id !== "lead/nurture"
+      id !== "lead/nurture" &&
+      id !== "draft/generate" &&
+      id !== "publish/execute"
   );
 
   it.each(UNBUILT_JOB_IDS)("%s throws EngineNotBuilt against the real seam", async (id) => {
