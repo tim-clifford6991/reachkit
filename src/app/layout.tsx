@@ -34,12 +34,22 @@
 // `--breakpoint-xl` and `--t-floor` on `:root` (ADR-093; issue #62). The
 // conformance suite reads them off every route's document, so the one
 // stylesheet every route shares is where they are imported.
+//
+// The layout law itself: `src/ui/layout/surface.css` (issue #241) is what
+// renders `Surface`'s `data-surface` and `data-arm-<band>` attributes — the
+// centred column, the band's gutters and the arm's grid. Every route has a
+// `Surface` root, so it is imported here for the same reason `layout.css`
+// is: the one stylesheet every route shares. It carries its own `:root`
+// block — the spacing steps and the two content measures it spends — and
+// sits beside its neighbour rather than inside it, because that file is
+// ADR-093's three tokens and nothing else.
 import type React from "react";
 
 import "@/ui/theme.css";
 import "@/ui/tailwind.css";
 import "@/ui/type.css";
 import "@/ui/layout/layout.css";
+import "@/ui/layout/surface.css";
 import { fontVariables } from "@/ui/fonts";
 
 export default function RootLayout({

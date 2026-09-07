@@ -167,55 +167,78 @@ export function ReportView(p: {
         wide: { kind: "same-as-below" },
       }}
     >
-      <main className="mx-auto flex max-w-[1060px] flex-col gap-6 p-6">
+      {/* 2026-09-07, issue #241: the arm draws the columns. This screen
+          declares `medium: columns:2`, and until `surface.css` existed that
+          declaration rendered nothing — so the two-up rows carried their own
+          `lg:grid-cols-2`, the same 1024px boundary written a second time,
+          and the column's own width and air were three raw values
+          (`max-w-[1060px]`, `mx-auto`, `p-6`) beside the two ruled measures.
+          All of it is the container's now: `--w-wide` 1216px is
+          `design/tokens.md` §2b's "multi-column content column — the public
+          report's six modules", which is this screen by name.
+
+          `<main>` stays the landmark and spans the arm's tracks, and
+          `grid-cols-subgrid` puts the rows below on *those* tracks rather
+          than on a second set of its own: the two-up cards take one track
+          each, and a row that spans the screen says so once, in
+          `col-span-full`. At compact the grid is one column and every span
+          is a no-op. `display: contents` would read the same and is wrong
+          here — an element with no box has no border box for conformance
+          check 2 to contain its children in, so every row reported as
+          escaping. */}
+      <main className="col-span-full grid grid-cols-subgrid">
         {/* REQ-001 c14: the notice and the one control that answers it sit
           together, so a visitor reads what happened and what they can do
           about it in one place. */}
-        <div className="flex flex-col gap-3">
+        <div className="col-span-full flex flex-col gap-3">
           <NoticeLine notice={notice} />
           <ControlButton control={control} />
         </div>
 
-        <VerdictStrip
-          verdict={report.verdict}
-          category={categoryOf(report.market)}
-          measuredOn={measuredOn}
-          canonicalUrl={p.canonicalUrl}
-        />
-
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {report.aiAnswers === null ? (
-            <AiAnswersAbsent />
-          ) : (
-            <AiAnswersCard
-              section={report.aiAnswers}
-              measuredOn={measuredOn}
-              matrix={p.charts?.aiMatrix}
-            />
-          )}
-          {report.presence === null ? (
-            <GooglePresenceAbsent />
-          ) : (
-            <GooglePresenceCard
-              section={report.presence}
-              bars={p.charts?.presenceBars}
-            />
-          )}
+        <div className="col-span-full">
+          <VerdictStrip
+            verdict={report.verdict}
+            category={categoryOf(report.market)}
+            measuredOn={measuredOn}
+            canonicalUrl={p.canonicalUrl}
+          />
         </div>
 
-        <ProblemCards cards={cards} />
-        <MethodSections for={PROBLEM_ORDER} />
+        {report.aiAnswers === null ? (
+          <AiAnswersAbsent />
+        ) : (
+          <AiAnswersCard
+            section={report.aiAnswers}
+            measuredOn={measuredOn}
+            matrix={p.charts?.aiMatrix}
+          />
+        )}
+        {report.presence === null ? (
+          <GooglePresenceAbsent />
+        ) : (
+          <GooglePresenceCard
+            section={report.presence}
+            bars={p.charts?.presenceBars}
+          />
+        )}
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {report.freePage === null ? (
-            <FreePageAbsent />
-          ) : (
-            <FreePageCard section={report.freePage} />
-          )}
-          <PricingCard />
+        <div className="col-span-full">
+          <ProblemCards cards={cards} />
+        </div>
+        <div className="col-span-full">
+          <MethodSections for={PROBLEM_ORDER} />
         </div>
 
-        <RemovalAddressLine />
+        {report.freePage === null ? (
+          <FreePageAbsent />
+        ) : (
+          <FreePageCard section={report.freePage} />
+        )}
+        <PricingCard />
+
+        <div className="col-span-full">
+          <RemovalAddressLine />
+        </div>
       </main>
     </Surface>
   );
