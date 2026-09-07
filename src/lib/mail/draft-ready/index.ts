@@ -38,6 +38,7 @@
 // import the mail seam for one occasion.
 import { dbAdmin } from "@/lib/db";
 import { env } from "@/lib/config/env";
+import { explainChoice } from "@/lib/opportunities";
 import { machineDraftFor } from "@/lib/publish/machine";
 import {
   isUnsuppressible,
@@ -49,7 +50,12 @@ import {
 } from "@/lib/publish/publishable";
 import type { DestinationKind } from "@/lib/publish/types";
 import { sendEmail } from "../send";
-import { buildDraftReady, type TellableTelling } from "../templates/draft-ready";
+import {
+  buildDraftReady,
+  type DraftReadyPage,
+  type DraftReadyWhy,
+  type TellableTelling,
+} from "../templates/draft-ready";
 
 /** Why a telling did not go out. Every arm is reported and none is a
  *  silent skip — a page nobody was told about is a page that will not
@@ -149,8 +155,16 @@ export async function sendDraftReadyMail(a: {
   const account = await recipient(draft.siteId, a.draftId);
   if (account === null) return { sent: false, reason: "no-account" };
 
+  // §12's "title, why-data" (issue #183). The page's own row carries the
+  // title and the body the label belongs to; §7's row carries the evidence
+  // it was chosen on. Both are **read**: nothing here re-measures a
+  // volume, and nothing composes a title of its own.
+  const page = await readPage(a.draftId);
+
   const mail = buildDraftReady({
     telling: telling as TellableTelling,
+    ...(page.page === null ? {} : { page: page.page }),
+    ...(page.why === null ? {} : { why: page.why }),
     ...(telling.kind === "approval_only"
       ? {}
       : { publishesAt: writePublishesAt(telling.publishesAt, account.timeZone) }),
@@ -178,6 +192,51 @@ export async function sendDraftReadyMail(a: {
   // After, and only after. See the module header.
   await recordTold(a.draftId, telling, draft.governing, at);
   return { sent: true, id: result.id };
+}
+
+/**
+ * The page this mail is about, and why §7 chose it.
+ *
+ * One read of the draft's own row and one of the opportunity's, and both
+ * are reads: the evidence is what §7 stored when it chose the page, which
+ * is the same stored evidence the draft screen renders. Re-measuring it
+ * here would state a volume the page was not chosen on and would make the
+ * mail and the screen disagree about one measurement.
+ *
+ * A page with no title is a page that cannot be in review, so `null` there
+ * is the honest arm rather than a title composed on the spot. A `fix`
+ * opportunity's evidence is a barrier and a URL — no search and no volume
+ * — and §9's "Fix never automates" means one cannot reach this mail; its
+ * why-data is `null` rather than a line invented for it.
+ */
+async function readPage(
+  draftId: string
+): Promise<{ page: DraftReadyPage | null; why: DraftReadyWhy | null }> {
+  const { data, error } = await untyped()
+    .from<{ title: string | null; body_md: string | null; opportunity_id: string | null }>("drafts")
+    .select("title, body_md, opportunity_id")
+    .eq("id", draftId)
+    .limit(1);
+  if (error !== null) throw new Error(`sendDraftReadyMail(${draftId}): ${error.message}`);
+
+  const row = data?.[0];
+  const title = row?.title ?? null;
+  const page: DraftReadyPage | null =
+    title === null || title === "" ? null : { title, markdown: row?.body_md ?? "" };
+
+  const opportunityId = row?.opportunity_id ?? null;
+  if (opportunityId === null) return { page, why: null };
+
+  const choice = await explainChoice(opportunityId);
+  if (choice === null) return { page, why: null };
+
+  const evidence = choice.evidence;
+  // Two of §7's three families carry a search and its volume; `fix`
+  // carries a barrier, and says nothing here.
+  const why: DraftReadyWhy | null =
+    evidence.family === "fix" ? null : { query: evidence.query, volume: evidence.volume };
+
+  return { page, why };
 }
 
 /** The address to write to, and the zone to write the moment in. */

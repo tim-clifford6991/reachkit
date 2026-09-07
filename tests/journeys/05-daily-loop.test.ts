@@ -753,6 +753,23 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       expect(mails[0]!.html).toContain("mail.draftReady.autopilotWindow");
       expect(mails[0]!.html).not.toContain("mail.draftReady.copilot");
       expect(mails[0]!.html).not.toContain("mail.draftReady.autopilotZero");
+
+      // §12's "title, why-data" (#183). The page the mail is about is
+      // named, and it is named **through the GeneratedText label** — the
+      // one carrier model text reaches a customer by. The title never
+      // appears in the subject, which is a registry key.
+      const written = theDraftRow().title as string;
+      expect(mails[0]!.html).toContain("generated.page.written");
+      expect(mails[0]!.html).toContain(written);
+      expect(mails[0]!.subject.startsWith("mail.draftReady")).toBe(true);
+      expect(mails[0]!.subject).not.toContain(written);
+
+      // And why §7 chose it: the search it targets and how often it is
+      // searched, read from the evidence stored at creation. This journey
+      // measured that volume once, in the deep pass — the mail states that
+      // number and does not go and ask again.
+      expect(mails[0]!.html).toContain("mail.draftReady.why.search");
+      expect(mails[0]!.html).toContain("mail.draftReady.why.volume");
       // The one veto link, and it is a link the database will accept: the
       // sender mints the token it sends, so the hash on the row is the
       // hash of what reached the inbox. (The link minted by hand above is

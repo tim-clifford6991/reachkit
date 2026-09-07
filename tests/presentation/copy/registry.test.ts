@@ -760,10 +760,23 @@ describe("owner-owed and empty agree both ways", () => {
     // interpolated: they name six different measurements, and a name is
     // not a value. 150 + 6 = 156 owner-owed and empty, 181 awaiting copy
     // and 168 ruled unchanged, 499 + 6 = 505 total.
-    expect(OWNER_OWED.length).toBe(156);
+    //
+    // 2026-09-07, issue #183 (§12's "title, why-data") adds **two**, both
+    // **empty** and owner-owed on the mail arm of the 2026-09-05 ruling:
+    // `mail.draftReady.why.search` and `mail.draftReady.why.volume` — §7's
+    // stored evidence for the page, read and never re-measured.
+    //
+    // **Two and not three.** The page's *title* is model-written and gets
+    // no key of its own: it travels in the `pageBody` block, whose label
+    // (`generated.page.written`, already minted) takes it as a slot. A
+    // `mail.draftReady.title` would be that same title with ADR-012's
+    // label stripped off, which is the one thing the label exists to
+    // prevent. 156 + 2 = 158 owner-owed and empty, 181 awaiting copy and
+    // 168 ruled unchanged, 505 + 2 = 507 total.
+    expect(OWNER_OWED.length).toBe(158);
     expect(AWAITING_COPY.length).toBe(181);
     expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(168);
-    expect(Object.keys(COPY).length).toBe(505);
+    expect(Object.keys(COPY).length).toBe(507);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.
