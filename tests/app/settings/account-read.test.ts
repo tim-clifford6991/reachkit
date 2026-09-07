@@ -15,12 +15,19 @@ import { applyEnvFixture } from "../../mail/env-fixture";
 
 applyEnvFixture();
 
-const { accountCard, currentSession } = vi.hoisted(() => ({
+const { accountCard, currentSession, appAccount } = vi.hoisted(() => ({
   accountCard: vi.fn(),
   currentSession: vi.fn(),
+  appAccount: vi.fn(),
 }));
 
 vi.mock("@/lib/account/identity", () => ({ accountCard, currentSession }));
+
+// #42: the screen resolves its account through the one `(account)` seam
+// (#169) rather than reading the cookie itself, so that is what this suite
+// drives. `currentSession` stays mocked because the seam reaches it, and
+// because the bounded-read rows below are about what happens when it hangs.
+vi.mock("@/app/(account)/app/_session/account", () => ({ appAccount }));
 
 // The other two reads this screen makes are not this file's subject, and
 // both reach a database it has none of.
@@ -31,7 +38,7 @@ vi.mock("@/lib/publish/destinations", () => ({ listDestinations: () => Promise.r
 
 const { readAccountFacts, readSettings } = await import("@/app/(account)/app/settings/provider");
 const { FIXTURE_SETTINGS_FACTS } = await import("@/app/(account)/app/settings/fixture");
-const { FIXTURE_USER_ID } = await import("@/app/(account)/setup/_setup/fixture");
+const { FIXTURE_SETTINGS_ACCOUNT_ID } = await import("@/app/(account)/app/settings/provider");
 const { ACCOUNT_NOTE_KEYS } = await import("@/lib/account/identity/notes");
 
 const SIGNED_IN_USER = "user-from-the-session";
@@ -51,6 +58,19 @@ beforeEach(() => {
   currentSession.mockImplementation(() =>
     Promise.resolve({ userId: SIGNED_IN_USER, siteId: "site-1" })
   );
+  appAccount.mockImplementation(() =>
+    Promise.resolve({
+      ok: true,
+      account: {
+        userId: SIGNED_IN_USER,
+        siteId: "site-1",
+        domain: "acme.com",
+        createdAt: new Date("2026-08-24T06:00:00.000Z"),
+        timeZone: "America/New_York",
+        mode: "autopilot",
+      },
+    })
+  );
   accountCard.mockImplementation(() => Promise.resolve(card()));
 });
 
@@ -58,7 +78,7 @@ describe("REQ-077 c1 — the card is read for the account the session names", ()
   it("asks `accountCard()` for the session's own account, never the fixture stand-in", async () => {
     await readSettings();
     expect(accountCard).toHaveBeenCalledWith(SIGNED_IN_USER);
-    expect(accountCard).not.toHaveBeenCalledWith(FIXTURE_USER_ID);
+    expect(accountCard).not.toHaveBeenCalledWith(FIXTURE_SETTINGS_ACCOUNT_ID);
   });
 
   it("carries the name, the address and the note keys through untouched", async () => {
@@ -124,10 +144,10 @@ describe("a read that cannot be made degrades, and never invents a change", () =
   });
 
   it("a session that never comes back is bounded too, and the screen falls back to the fixture id", async () => {
-    currentSession.mockImplementation(() => new Promise(() => {}));
+    appAccount.mockImplementation(() => new Promise(() => {}));
     const started = Date.now();
     await readSettings();
-    expect(accountCard).toHaveBeenCalledWith(FIXTURE_USER_ID);
+    expect(accountCard).toHaveBeenCalledWith(FIXTURE_SETTINGS_ACCOUNT_ID);
     expect(Date.now() - started).toBeLessThan(4_000);
   });
 

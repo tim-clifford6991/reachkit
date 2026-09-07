@@ -31,15 +31,13 @@
 // (`actions.ts`), which mints one at the press. `surfaceHref` on the model
 // is the fallback destination for a render with no action available.
 //
-// **The destinations half is wired too** (#48). It goes through the
-// publishing registry's `listDestinations`, which is what re-checks a
-// destination whose state has gone stale before the list renders. The one
-// thing still missing is *which site*: `currentUserId()` below has a
-// stand-in and there is no site id to stand in for, so `currentSiteId()`
-// answers `null` and the fixture's own destination is what the card draws.
-// A fabricated id would be worse than none — it would send a real query to
-// a row that does not exist and draw an empty list for every customer.
-// The import is at the call for the same reason the billing one is.
+// **The destinations half is wired too** (#48), and since #42 so is *which
+// site*: both halves of the account come from `_session/account.ts`, the
+// one seam every `(account)` surface resolves through (#169). Until then
+// this file carried a fixture user id and answered `null` for the site, so
+// the destinations card drew the fixture's own destination for every
+// customer. The import is at the call for the same reason the billing one
+// is.
 //
 // WO-179 step 2: no measurement, no vendor call and no model call happens
 // here or downstream of here for the site's own facts. `listDestinations`
@@ -49,7 +47,6 @@ import { cache } from "react";
 import type { DestinationView } from "@/lib/publish/types";
 import { assembleSettings, type AccountFacts, type BillingFacts, type SettingsModel } from "./model";
 import { FIXTURE_SETTINGS_FACTS } from "./fixture";
-import { FIXTURE_USER_ID } from "../../setup/_setup/fixture";
 
 /**
  * The signed-in account (#134).
@@ -71,13 +68,18 @@ import { FIXTURE_USER_ID } from "../../setup/_setup/fixture";
  * The import is at the call, not at the top, for the reason
  * `readBillingFacts` states below.
  */
-async function currentUserId(): Promise<string> {
+async function currentAccount(): Promise<{ userId: string; siteId: string } | null> {
   try {
-    const { currentSession } = await import("@/lib/account/identity");
-    const session = await withDeadline(currentSession());
-    return session?.userId ?? FIXTURE_USER_ID;
+    const { appAccount } = await import("../_session/account");
+    const result = await withDeadline(appAccount());
+    return result.ok ? { userId: result.account.userId, siteId: result.account.siteId } : null;
   } catch {
-    return FIXTURE_USER_ID;
+    // A read that could not be made is not an account. The screen falls to
+    // the fixture's facts rather than throwing itself away — the same
+    // fail-towards-the-fixture shape the billing read has had since #34,
+    // and what keeps a preview with no session, the layout build and the
+    // presentation sweeps rendering a whole screen.
+    return null;
   }
 }
 
@@ -150,16 +152,15 @@ export async function readBillingFacts(userId: string): Promise<BillingFacts> {
 }
 
 /**
- * The site this request is about, or `null` where the session cannot say.
+ * The site this request is about, or `null` where no session names one.
  *
- * `null` today, and honestly so: the session resolves an account (see
- * `currentUserId()` above) and nothing yet resolves the site under it. A
- * fabricated id would be worse than none — it would send a real query to a
- * row that does not exist and draw an empty destinations list for every
- * customer.
+ * `null` is the fixture path — a preview with no session, the layout build,
+ * the presentation sweeps — and never a fabricated id: a made-up id would
+ * send a real query to a row that does not exist and draw an empty
+ * destinations list for every customer.
  */
-export function currentSiteId(): string | null {
-  return null;
+export function currentSiteId(account: { siteId: string } | null): string | null {
+  return account?.siteId ?? null;
 }
 
 /**
@@ -175,12 +176,19 @@ export async function readDestinations(
   siteId: string | null
 ): Promise<readonly DestinationView[]> {
   if (siteId === null) return FIXTURE_SETTINGS_FACTS.destinations;
-  // Imported where it is used, not at the top: the registry reaches
-  // Postgres, and the fixture path — every render there is until #35 —
-  // must not drag a database client into a screen that never asks it
-  // anything.
-  const { listDestinations } = await import("@/lib/publish/destinations");
   try {
+    // Imported where it is used, not at the top: the registry reaches
+    // Postgres, and the render with no site id must not drag a database
+    // client into a screen that never asks it anything.
+    //
+    // **The import is inside the `try`, and that is not tidying** (#42).
+    // Until this issue `currentSiteId()` answered `null` for every render,
+    // so this line never ran; with a real site id behind it, a module graph
+    // that cannot be evaluated — no environment, as in the layout build and
+    // the presentation sweeps — throws *here*, and outside the `try` it
+    // took the whole screen down instead of falling back like the other two
+    // reads.
+    const { listDestinations } = await import("@/lib/publish/destinations");
     return await withDeadline(listDestinations(siteId));
   } catch {
     // Bounded like the other two, and falling back the same way: the card
@@ -230,6 +238,46 @@ const FIXTURE_ACCOUNT: AccountFacts = {
   noteKeys: FIXTURE_SETTINGS_FACTS.noteKeys,
 };
 
+/** The id the fixture path reads billing and account facts for. It names no
+ *  real account: every write takes the *session's* own id at the press and
+ *  refuses where there is none, so this can draw a card and can never act
+ *  for somebody else's. */
+export const FIXTURE_SETTINGS_ACCOUNT_ID = "settings-fixture-account";
+
+/**
+ * REQ-071's three answers, as the screen states them: the domain, the
+ * market category and the rival set the site is measured against **from
+ * now on** — the declared answers, not the measured ones.
+ *
+ * That is the right half of ADR-030's pair for this screen: Settings is
+ * where a customer reads and corrects what they will be measured as. What
+ * they were measured as is on every number elsewhere, carrying its own
+ * date.
+ *
+ * A read that cannot be made falls to the fixture's answers, like every
+ * other read here — the screen renders whole, and a control that writes
+ * takes the session's own id at the press.
+ */
+async function readDeclaredAnswers(
+  account: { siteId: string } | null
+): Promise<{ domain: string; category: string; competitors: readonly string[] } | Record<string, never>> {
+  if (account === null) return {};
+  try {
+    const { declaredAnswers } = await import("@/lib/market/changes");
+    const answers = await withDeadline(declaredAnswers(account.siteId));
+    return {
+      domain: answers.domain,
+      // A site with no category named yet reads the fixture's, which is
+      // what the market card's `empty` arm is drawn from; an empty string
+      // would be a category.
+      category: answers.category ?? FIXTURE_SETTINGS_FACTS.category,
+      competitors: answers.rivals,
+    };
+  } catch {
+    return {};
+  }
+}
+
 export const readSettings = cache(async function readSettings(): Promise<SettingsModel> {
   // The session first, because two of the three reads are *about* an
   // account and cannot be made without knowing which. The three that follow
@@ -237,11 +285,19 @@ export const readSettings = cache(async function readSettings(): Promise<Setting
   // would be three round trips on every render of this screen, and — since
   // each is bounded — three deadlines deep on a database that is
   // unreachable, where concurrently they are one.
-  const userId = await currentUserId();
-  const [billing, destinations, account] = await Promise.all([
+  const signedIn = await currentAccount();
+  const userId = signedIn?.userId ?? FIXTURE_SETTINGS_ACCOUNT_ID;
+  const [billing, destinations, account, answers] = await Promise.all([
     readBillingFacts(userId),
-    readDestinations(currentSiteId()),
+    readDestinations(currentSiteId(signedIn)),
     readAccountFacts(userId),
+    readDeclaredAnswers(signedIn),
   ]);
-  return assembleSettings({ ...FIXTURE_SETTINGS_FACTS, ...account, billing, destinations });
+  return assembleSettings({
+    ...FIXTURE_SETTINGS_FACTS,
+    ...answers,
+    ...account,
+    billing,
+    destinations,
+  });
 });

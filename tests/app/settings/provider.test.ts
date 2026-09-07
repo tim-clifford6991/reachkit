@@ -73,9 +73,15 @@ describe("the destinations half is wired to the registry", () => {
   });
 });
 
-describe("the fixture path is honest about not knowing the site yet", () => {
-  it("`currentSiteId()` is null until identity lands (#35)", () => {
-    expect(currentSiteId()).toBeNull();
+describe("the site is the signed-in account's, and the fixture path says so", () => {
+  it("`currentSiteId()` is the account's own site (#42)", () => {
+    expect(currentSiteId({ siteId: "site-1" })).toBe("site-1");
+  });
+
+  it("and `null` where no session names one — never a fabricated id", () => {
+    // A made-up id would send a real query to a row that does not exist and
+    // draw an empty destinations list for every customer.
+    expect(currentSiteId(null)).toBeNull();
   });
 
   it("with no site id, the fixture's own destinations stand in", async () => {

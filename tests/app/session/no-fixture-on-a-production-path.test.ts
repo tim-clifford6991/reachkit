@@ -7,11 +7,27 @@
 // than a list of module names somebody maintains.
 //
 // **The rule.** A module under `src/app/(account)/app/**` may import a
-// `fixture` module only if it also asks `isReservedFixtureAccount()` — that
-// is, only if the fixture sits behind the branch that can be reached by no
-// customer, because `example.com` is IANA-reserved (DECISIONS 2026-09-06:
-// "`*.example.com` fixtures answer only for reserved names"). A fixture
-// module importing another fixture module is not a production path either.
+// `fixture` module through one of exactly two doors, and no other:
+//
+//  1. it asks `isReservedFixtureAccount()` — the fixture sits behind a
+//     branch no customer can reach, because `example.com` is IANA-reserved
+//     (DECISIONS 2026-09-06: "`*.example.com` fixtures answer only for
+//     reserved names"); or
+//  2. it imports **its own** `./fixture` for facts, and takes its *account*
+//     from the session seam (`_session/account`) — the degraded state
+//     REQ-097 c5 designs, where a read that could not be made falls to a
+//     shape rather than throwing the screen away. Nothing it then states is
+//     stale, because nothing it states came from a vendor.
+//
+// The second door is narrow on purpose: what the first version of this rule
+// caught was `settings/provider.ts` importing *setup's* `FIXTURE_USER_ID` —
+// another surface's fixture *identity*, which is how a signed-in customer
+// got drawn as somebody else. An own-directory fixture supplying only facts
+// to a module whose identity comes from the session is a different thing,
+// and #42 is where the difference became worth stating.
+//
+// A fixture module importing another fixture module is not a production
+// path either.
 //
 // **The allow-list is data, one entry one reason** — the same idiom
 // `tests/presentation/copy/allowlist.ts` uses, and for the same reason: a
@@ -35,15 +51,17 @@ const APP = path.join(ROOT, "src/app/(account)/app");
  * screen two other issues were landing would have been the wrong kind of
  * tidy-up. An entry leaves this list when its own issue removes the import.
  */
-const NOT_YET_COVERED: ReadonlyArray<{ readonly file: string; readonly whose: string }> = [
-  {
-    file: "settings/provider.ts",
-    whose:
-      "#134/#136 — Settings resolves its account through the session for billing and identity, " +
-      "and `currentSiteId()` still answers null, so the fixture's own destination is what the " +
-      "card draws. The site half is that screen's to wire.",
-  },
-];
+/**
+ * The imports this rule does not yet cover, each naming whose they are.
+ *
+ * **Empty since #42.** `settings/provider.ts` was the last entry: it
+ * carried a fixture user id because nothing resolved the site under the
+ * account, and #42 resolved it through the same `_session/account.ts` seam
+ * every other `(account)` surface uses. The list stays — it is the shape a
+ * future gap gets named in — and the row below fails on any entry whose
+ * file has stopped offending, which is what took both of its members out.
+ */
+const NOT_YET_COVERED: ReadonlyArray<{ readonly file: string; readonly whose: string }> = [];
 
 function walk(dir: string, out: string[]): void {
   for (const entry of readdirSync(dir)) {
@@ -78,9 +96,16 @@ function offenders(): Offender[] {
     const fixtures = imports.filter((specifier) => /fixture/i.test(specifier));
     if (fixtures.length === 0) continue;
 
-    // The door: a module that asks whether this is the reserved account has
+    // Door 1: a module that asks whether this is the reserved account has
     // put its fixture behind a branch no customer can reach.
     if (source.includes("isReservedFixtureAccount")) continue;
+
+    // Door 2: its own `./fixture`, for facts, in a module that takes its
+    // account from the session seam. An import of any *other* module's
+    // fixture is a violation whatever else the file does — that is the
+    // identity leak this rule exists for.
+    const ownFixtureOnly = fixtures.every((specifier) => specifier === "./fixture");
+    if (ownFixtureOnly && source.includes("_session/account")) continue;
 
     for (const specifier of fixtures) found.push({ file: rel, specifier });
   }
@@ -92,14 +117,27 @@ describe("no signed-in customer is ever drawn from a fixture", () => {
     expect(offenders()).toEqual([]);
   });
 
-  it("the rule discriminates — it flags a fixture import with no branch in front of it", () => {
+  it("the rule discriminates — neither door opens for a bare fixture import", () => {
     // Without this, deleting the rule's body would leave the assertion
     // above passing over an empty list forever.
     const source = 'import { FIXTURE_THING } from "./fixture";\n';
-    const hasBranch = source.includes("isReservedFixtureAccount");
-    const importsFixture = /^import\s[^;]*?from\s+"[^"]*fixture[^"]*";/m.test(source);
-    expect(importsFixture).toBe(true);
-    expect(hasBranch).toBe(false);
+    expect(/^import\s[^;]*?from\s+"[^"]*fixture[^"]*";/m.test(source)).toBe(true);
+    expect(source.includes("isReservedFixtureAccount")).toBe(false);
+    expect(source.includes("_session/account")).toBe(false);
+  });
+
+  it("door 2 does not open for another surface's fixture, however the module resolves its account", () => {
+    // The leak the rule was written for: `settings/provider.ts` reading
+    // *setup's* `FIXTURE_USER_ID`. Session-resolved identity does not
+    // excuse importing somebody else's fixture.
+    const source =
+      'import { FIXTURE_USER_ID } from "../../setup/_setup/fixture";\n' +
+      'import { appAccount } from "../_session/account";\n';
+    const specifiers = [...source.matchAll(/^import\s[^;]*?from\s+"([^"]+)";/gm)].map(
+      (m) => m[1] ?? ""
+    );
+    const fixtures = specifiers.filter((s) => /fixture/i.test(s));
+    expect(fixtures.every((s) => s === "./fixture")).toBe(false);
   });
 
   it("the app tree is actually walked — a rule over nothing is not a rule", () => {

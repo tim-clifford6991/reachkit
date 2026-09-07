@@ -266,29 +266,40 @@ describe("a settings write that changes `sites.do_not_claim` calls `sweepOutstan
     return out;
   }
 
-  it("no file under `src/` writes the list, so there is no write that could skip the sweep", () => {
-    // The obligation is discharged by there being no writer: `applySettings`
-    // and `POST /api/settings` are issue #42's and are not on disk, and
-    // `savePublishingSettings` writes the four publishing settings and
-    // nothing else. This is the assertion that fails the day one appears —
-    // which is the day the sweep call has to be added beside it.
+  it("exactly one file under `src/` writes the list — `claims/save.ts`, and no other", () => {
+    // The obligation this suite held open until #42: while there was no
+    // writer, there was no write that could skip the sweep. Now there is
+    // one, and this is the assertion that a second never appears somewhere
+    // that forgets to sweep beside it.
     const writers = sources().filter(({ text }) =>
       /(update|upsert|insert)[\s\S]{0,400}?do_not_claim/.test(text)
     );
-    expect(writers.map((w) => w.file)).toEqual([]);
+    expect(writers.map((w) => w.file)).toEqual(["src/lib/generate/claims/save.ts"]);
   });
 
-  it("`savePublishingSettings` — the one `sites` writer that exists — names no claim list", () => {
+  it("that writer calls the sweep, in the same function that made the write", () => {
+    const save = sources().find((s) => s.file === "src/lib/generate/claims/save.ts");
+    expect(save).toBeDefined();
+    const body = save!.text.slice(save!.text.indexOf("export async function saveDoNotClaim"));
+    expect(body).toContain("do_not_claim");
+    expect(body).toContain("sweepOutstandingRechecks");
+    // The write is first: the guard reads the stored list, so a page must
+    // never be re-checked against a list the customer has not saved.
+    expect(body.indexOf("do_not_claim")).toBeLessThan(body.indexOf("sweepOutstandingRechecks"));
+  });
+
+  it("`savePublishingSettings` — the other `sites` writer — still names no claim list", () => {
     const save = sources().find((s) => s.file === "src/lib/publish/settings/save.ts");
     expect(save).toBeDefined();
     expect(save?.text).not.toContain("do_not_claim");
   });
 
-  it("the sweep is exported and ready for that writer", async () => {
+  it("the sweep is exported, and a sweep that cannot run leaves the hold standing", async () => {
     // Timeliness only: the guard already holds every page from the instant
     // the list changes, because outstanding-ness is derived from the two
     // hashes rather than from anything the sweep writes. The sweep clears
-    // the hold sooner; it is not what creates it.
+    // the hold sooner; it is not what creates it — which is why
+    // `saveDoNotClaim` reports a failed sweep instead of failing the save.
     const generate = await import("@/lib/generate");
     expect(typeof generate.sweepOutstandingRechecks).toBe("function");
   });
