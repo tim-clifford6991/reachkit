@@ -419,13 +419,18 @@
 
 /* ── 7 · The landing ──────────────────────────────────────────────────── */
 
+/* Block padding only. The inline gutter is the `Surface`'s (issue #241),
+ * and a hero that added its own would inset the tagline twice — at 320 that
+ * is 64px off a 320px viewport, and the headline #258 just fixed goes back
+ * to four lines. The same defect the app shell had, in the same place: a
+ * surface that predates the layout law paying the gutter a second time. */
 .rk-hero {
-  padding: var(--s-6) var(--s-4);
+  padding-block: var(--s-6);
 }
 
 @media (min-width: 640px) {
   .rk-hero {
-    padding: var(--s-7) var(--s-5);
+    padding-block: var(--s-7);
   }
 }
 
@@ -493,8 +498,23 @@
   color: var(--ink-3);
 }
 
+/* The heading on an accent ground. **It sets no size**, and that is the
+ * port's one deliberate departure from the archive's `.ci-on-accent-h1`.
+ *
+ * That class pinned `--t-h2` below `--breakpoint-sm` and `--t-h1` above —
+ * which is exactly what `src/ui/type.css`'s own `h1` rule already does
+ * since issue #258, so on the landing's `h1` it was the same rule written
+ * twice (rule 2.4). On the sign-in panel the archive puts the same class on
+ * an `<h2>`, where it is not a duplicate but an **upsize**: an h2 rendering
+ * at the h1 rung. `tests/ui/layout/heading-scale.test.ts` measures every
+ * rendered heading against its own step of the ruled scale and reported it,
+ * correctly, the first time this ran.
+ *
+ * So the size comes off and each element keeps its own step: the landing's
+ * h1 is 31/25 by `type.css`, the panel's h2 is 25 at every width. What the
+ * class carries is what the accent ground actually needs — the balance, the
+ * tighter leading a display line wants, and no margin. */
 .rk-on-accent-h1 {
-  font-size: var(--t-h2);
   font-weight: 700;
   letter-spacing: -0.02em;
   text-wrap: balance;
@@ -502,19 +522,14 @@
   margin: 0;
 }
 
-@media (min-width: 640px) {
-  .rk-on-accent-h1 {
-    font-size: var(--t-h1);
-  }
-}
-
+/* Block padding only, for the reason `.rk-hero` states. */
 .rk-section {
-  padding: var(--s-6) var(--s-4);
+  padding-block: var(--s-6);
 }
 
 @media (min-width: 640px) {
   .rk-section {
-    padding: var(--s-7) var(--s-5);
+    padding-block: var(--s-7);
   }
 }
 
