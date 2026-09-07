@@ -14,13 +14,27 @@
 // and an unreachable store are different facts, and collapsing them would
 // mail a customer who had switched a mail off.
 //
+// **`dbAdmin()`, not `db()`** (#228). `db()` is the anon key and carries no
+// user JWT, so `auth.uid()` is null and `users_select_own` — `to
+// authenticated using (id = auth.uid())` — matches no row: every read
+// through it answered `absent`, for every user, on every path. Both callers
+// are server-side and neither has a session to present. `readNotifyPrefs`
+// runs in a Server Component render (§4.7), and `stoppedByPreference` runs
+// in the send seam, inside a job, where there is no request at all. The
+// `userId` is the caller's own, authenticated before it got here. Reaching
+// this column through the request-scoped client was a read that could never
+// succeed — `/app/settings` rendered its failure arm for a real account
+// under the live sweep, which is how it was found. Every neighbouring
+// server reader (`identity/store.ts`, `market/changes/declared.ts`,
+// `publish/db.ts`) reaches its table the same way.
+//
 // **Schema-typing gap, flagged once (same class as `costs/ledger.ts`):**
 // `users.notify` exists in the applied schema but not in
 // `src/lib/db/types.generated.ts`, which is stale and is BP-002's artifact
 // to regenerate, not this module's file to widen. The column is reached
 // through a narrow, explicitly cast query-builder subset rather than by
 // losing typing everywhere else `db()` reaches.
-import { db } from "@/lib/db";
+import { dbAdmin } from "@/lib/db";
 import type { NotifyKind, NotifyPrefs } from "./index";
 
 interface QueryResult<T> {
@@ -44,7 +58,7 @@ interface UsersNotifyRow {
 }
 
 /** The one cast boundary in this module. */
-function untypedUsers(client: ReturnType<typeof db>): MinimalClient {
+function untypedUsers(client: ReturnType<typeof dbAdmin>): MinimalClient {
   return client as unknown as MinimalClient;
 }
 
@@ -57,7 +71,7 @@ export type StoredPrefs =
   | { readable: false; reason: "error" | "absent" };
 
 export async function readStored(userId: string): Promise<StoredPrefs> {
-  const { data, error } = await untypedUsers(db())
+  const { data, error } = await untypedUsers(dbAdmin())
     .from<UsersNotifyRow>("users")
     .select("notify")
     .eq("id", userId)
@@ -83,7 +97,7 @@ export async function writeStoredKey(a: {
   stored: Readonly<Record<string, unknown>>;
 }): Promise<{ written: true } | { written: false }> {
   const next = { ...a.stored, [a.kind]: a.on };
-  const { error } = await untypedUsers(db())
+  const { error } = await untypedUsers(dbAdmin())
     .from<UsersNotifyRow>("users")
     .update({ notify: next })
     .eq("id", a.userId);

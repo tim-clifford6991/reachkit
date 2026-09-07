@@ -204,11 +204,14 @@ export function fakeDb(): FakeDb {
         query.filters.push({ op: "lte", column, value });
         return self;
       },
-      /** PostgREST's `is.null`, and the shape `publications.verify` is read
-       *  through: the partial index the 24-hour check selects on is
-       *  `(verify_due_at) where verify is null`. */
+      /** PostgREST's `is.`, which takes `null`, `true` and `false` — the
+       *  three values SQL's `IS` compares against. `publications.verify` is
+       *  read through the null form (the partial index the 24-hour check
+       *  selects on is `(verify_due_at) where verify is null`); the current
+       *  scan is read through `is("is_current", true)`, and treating that
+       *  as a null test silently dropped every row that had it set. */
       is(column: string, value: unknown) {
-        query.filters.push({ op: "is-null", column, value });
+        query.filters.push({ op: value === null ? "is-null" : "eq", column, value });
         return self;
       },
       not(column: string, operator: string, value: unknown) {

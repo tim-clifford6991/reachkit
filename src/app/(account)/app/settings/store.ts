@@ -1,17 +1,17 @@
 // BUILD §4.7 — every settings fact, read for the account that owns it.
 //
 // Until #228 `readSettings` spread `FIXTURE_SETTINGS_FACTS` and overrode
-// four groups, so nine facts reached a real signed-in customer from the
+// four groups, so ten facts reached a real signed-in customer from the
 // fixture: the mode their pages publish under, the veto window, the publish
 // time, the zone, whether publishing is on at all, their voice, their
-// do-not-claim list, their notification switches and their page count. Every
-// one is now read.
+// do-not-claim list, their notification switches, their page count and
+// REQ-071's pending market change. Every one is now read.
 //
 // **The fixture is behind `isReservedFixtureAccount` and nowhere else**
 // (DECISIONS 2026-09-06, and #192's rule): `example.com` is IANA-reserved,
 // so no customer can hold the name that reaches it.
 //
-// **Two facts degrade; the other seven do not, and that asymmetry is the
+// **Two facts degrade; the other eight do not, and that asymmetry is the
 // point.** A fixture value is a *claim* — a mode the customer never chose,
 // a date nobody measured — and a customer acting on one is worse off than a
 // customer told the product could not read it. Billing and destinations
@@ -25,15 +25,16 @@
 //
 // **Every read is bounded and made concurrently** (DECISIONS 2026-09-07,
 // #186): this screen is dynamic, so an unsettled read would hang it, and
-// nine sequential reads would be nine round trips deep on a database that
-// is slow.
+// ten sequential reads would be ten round trips deep on a database that is
+// slow.
 import type { DestinationView } from "@/lib/publish/types";
 import type { AppAccount } from "../_session/account";
 import type { AccountFacts, BillingFacts, SettingsFacts } from "./model";
 
-/** How long any one read may take before the screen states the degraded
- *  arm instead. `src/middleware.ts` bounds its one request-path read the
- *  same way and for the same reason. */
+/** How long any one read may take before it is abandoned — for the two
+ *  facts that degrade, into their stated arm; for the rest, into the
+ *  screen's own failure. `src/middleware.ts` bounds its one request-path
+ *  read the same way and for the same reason. */
 const READ_DEADLINE_MS = 800;
 
 function withDeadline<T>(work: Promise<T>): Promise<T> {
@@ -130,7 +131,7 @@ async function readDestinations(siteId: string): Promise<DestinationsFacts> {
  *
  * Exported because it is the account half of this screen's read and is
  * asserted as one (`tests/app/settings/account-read.test.ts`); the other
- * eight reach modules with suites of their own.
+ * nine reach modules with suites of their own.
  */
 export async function readAccountFacts(userId: string): Promise<AccountFacts> {
   const card = await bounded(
@@ -154,7 +155,7 @@ export async function readAccountFacts(userId: string): Promise<AccountFacts> {
 /**
  * Everything §4.7 states about one real account.
  *
- * Nine reads, run together. Each is the module that owns the fact —
+ * Ten reads, run together. Each is the module that owns the fact —
  * `readPublishingSettings` for the four §9 settings, `isPublishingOn` for
  * the switch, the generation store for the voice and the claim list, the
  * notifications module for the three toggles — so no fact on this screen is
@@ -169,9 +170,21 @@ export async function readLiveSettingsFacts(
 ): Promise<SettingsFacts> {
   const { siteId, userId } = account;
 
-  const [answers, publishing, publishingOn, site, notify, pages, billing, destinations, card] =
+  const [
+    answers,
+    measured,
+    publishing,
+    publishingOn,
+    site,
+    notify,
+    pages,
+    billing,
+    destinations,
+    card,
+  ] =
     await Promise.all([
       bounded(() => import("@/lib/market/changes"), (m) => m.declaredAnswers(siteId)),
+      bounded(() => import("@/lib/market/changes"), (m) => m.measuredAnswers(siteId)),
       bounded(() => import("@/lib/publish/settings"), (m) => m.readPublishingSettings(siteId)),
       bounded(() => import("@/lib/publish/switch"), (m) => m.isPublishingOn(siteId)),
       bounded(() => import("@/lib/generate/store"), (m) => m.generateStore().siteFacts(siteId)),
@@ -182,13 +195,46 @@ export async function readLiveSettingsFacts(
       readAccountFacts(userId),
     ]);
 
+  // REQ-071's pending change is a *computation*, never a record (ADR-030):
+  // the difference between what the customer has declared and what the
+  // current scan measured. `pendingChanges` is the one place that
+  // difference is drawn, and this screen reads its first entry — §4.7 gives
+  // the market card one written line, and two dated sentences on it would
+  // be the same fact pretending to be two.
+  const { pendingChanges } = await import("@/lib/market/changes");
+  // Only the two kinds this card writes a line for. `pendingChanges` also
+  // reports a rivals change, and #204 gave the market card two copy keys
+  // (`CHANGE_COPY_KEY`) — a third kind here would be a line with no
+  // sentence, which is a key this issue may not invent.
+  const [change] = pendingChanges({
+    declared: answers,
+    measured,
+    now: new Date(),
+    timezone: account.timeZone,
+  }).filter((entry): entry is typeof entry & { kind: "domain" | "category" } =>
+    entry.kind === "domain" || entry.kind === "category"
+  );
+
   return {
     // The three answers the site is measured as (#42). The domain and the
     // zone come from the session's own row rather than a second read of it.
     domain: account.domain,
+
+    pendingChange: change === undefined ? null : { kind: change.kind, effectiveOn: change.effectiveOn },
+    // Not a read, and not the fixture's `null` either: `editing` is the
+    // kind the customer is part-way through typing, which exists in their
+    // browser and nowhere a server could look. The server render states no
+    // unsaved change (#204's `saved: false` line belongs to the client), so
+    // this is the only value it can honestly carry.
+    editing: null,
+
     // A site whose market has not been named yet reads as the empty
-    // category, which is the market card's own `empty` arm — not a
-    // category, and not a guess at one.
+    // category. The read this replaced answered `FIXTURE_SETTINGS_FACTS
+    // .category` here, on the reasoning that "an empty string would be a
+    // category" — but the fixture's value is a category, and a real one:
+    // it told a customer who had named no market that theirs was user
+    // onboarding software. A blank beside the label is the fact; the card
+    // states it and offers the control that names one.
     category: answers.category ?? "",
     competitors: answers.rivals,
 

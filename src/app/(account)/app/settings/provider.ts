@@ -7,10 +7,11 @@
 // **Where the facts come from** (#228): `./store`, which reads every one of
 // them for the account that owns it. Until #228 this file spread
 // `FIXTURE_SETTINGS_FACTS` and overrode four groups from live reads, so a
-// real customer read nine of their settings — the mode their pages publish
+// real customer read ten of their settings — the mode their pages publish
 // under, the veto window, the publish time, the zone, whether publishing
 // was on at all, their voice, their do-not-claim list, their notification
-// switches and their page count — off a fixture. The spread is gone. The
+// switches, their page count and REQ-071's pending market change — off a
+// fixture. The spread is gone. The
 // fixture is reached on one branch and no other, and that branch is a fact
 // about the name: `example.com` is IANA-reserved, so no customer can hold
 // it (`isReservedFixtureAccount`, #192).

@@ -162,6 +162,36 @@ describe("every settings fact is read for the account that owns it (#228)", () =
     expect(facts.publishedPages).not.toBe(FIXTURE_SETTINGS_FACTS.publishedPages);
   });
 
+  it("REQ-071's pending change is computed from the two answers, not spread from the fixture (#204)", async () => {
+    seed();
+    // The current scan measured a different domain from the one the site
+    // declares, which *is* the pending change (ADR-030: a difference, never
+    // a record).
+    db.seed("scans", [
+      {
+        id: "scan-1",
+        site_id: "site-1",
+        domain: "acme-old.test",
+        is_current: true,
+        created_at: "2026-09-01T00:00:00.000Z",
+        report: { category: "agency project management" },
+      },
+    ]);
+    const facts = await readLiveSettingsFacts(ACCOUNT);
+    expect(facts.pendingChange?.kind).toBe("domain");
+    expect(facts.pendingChange?.effectiveOn).toBeInstanceOf(Date);
+    // And the screen's own before-the-save state, which no server read can
+    // know: the customer's keystrokes are in their browser.
+    expect(facts.editing).toBeNull();
+  });
+
+  it("no current scan is no pending change — not the fixture's `null` by accident", async () => {
+    seed();
+    const facts = await readLiveSettingsFacts(ACCOUNT);
+    expect(facts.pendingChange).toBeNull();
+    expect(FIXTURE_SETTINGS_FACTS.pendingChange).toBeNull();
+  });
+
   it("the domain and the zone come from the session's own row, not a second read of it", async () => {
     seed();
     const facts = await readLiveSettingsFacts(ACCOUNT);

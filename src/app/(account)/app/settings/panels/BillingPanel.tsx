@@ -111,11 +111,11 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
 
       {billing.readable ? null : (
         <div className="flex min-w-0 flex-col gap-1" data-testid="billing-unreadable">
-          {BILLING_UNREADABLE_KEYS.map((key) => writtenLine(key))
-            .filter((line) => line !== null)
-            .map((line, i) => (
-              <p className="text-xs opacity-60 wrap-anywhere" key={i}>
-                {line}
+          {BILLING_UNREADABLE_KEYS.map((key) => ({ key, line: writtenLine(key) }))
+            .filter((written) => written.line !== null)
+            .map((written) => (
+              <p className="text-xs opacity-60 wrap-anywhere" key={written.key}>
+                {written.line}
               </p>
             ))}
         </div>

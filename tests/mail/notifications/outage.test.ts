@@ -8,7 +8,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeDb, newState, type FakeDbState } from "./fake-db";
 
 const state: FakeDbState = newState();
-vi.mock("@/lib/db", () => ({ db: () => fakeDbRef.current() }));
+// Both exports, one fake: the notification store reads `users.notify`
+// through `dbAdmin()` (#228 — `db()` is the anon key, and RLS
+// `users_select_own` matches no row without a user JWT, so that read
+// answered `absent` for everyone on every server path).
+vi.mock("@/lib/db", () => ({
+  db: () => fakeDbRef.current(),
+  dbAdmin: () => fakeDbRef.current(),
+}));
 const fakeDbRef = { current: fakeDb(state) };
 
 const { stoppedByPreference } = await import("../../../src/lib/mail/notifications/index");
