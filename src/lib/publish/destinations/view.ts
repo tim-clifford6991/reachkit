@@ -69,8 +69,9 @@ function actionFor(kind: DestinationKind, reason: HealthReason | null): Destinat
       return "set_dns";
     case "never_connected":
       // What is missing depends on what the kind needs: the hosted blog
-      // needs a record pointed at us, WordPress needs a credential.
-      return kind === "hosted" ? "set_dns" : "reconnect";
+      // needs a record pointed at us, WordPress needs a credential — and
+      // its *first* one, which is `connect` and not `reconnect` (#240).
+      return kind === "hosted" ? "set_dns" : "connect";
     case "cannot_publish":
       return "reconnect_other_account";
     default:

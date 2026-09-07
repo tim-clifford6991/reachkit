@@ -883,10 +883,39 @@ describe("owner-owed and empty agree both ways", () => {
     // Nothing is minted, so the total does not move: 140 - 6 = 134
     // owner-owed, 235 + 6 = 241 awaiting copy, 168 ruled and 543 total
     // unchanged.
+    //
+    // 2026-09-07, issue #240 — the WordPress connect surface adds **five**,
+    // all carrying the marker: `settings.publishing.connect` (the control
+    // on a destination that has never held a credential — its own word,
+    // because "Reconnect" tells a founder they did something they did not)
+    // and the credential form's four, `settings.destination.site-url`,
+    // `.app-password`, `.app-password.help` and `.submit`.
+    //
+    // **The marker and not the empty value**, per the 2026-09-05 ruling and
+    // for the reason #204's six take it: these land on a card of finished
+    // controls, and an empty value takes that card down through `copy()`'s
+    // throw — hiding the screen the owner has to review to write the
+    // sentence.
+    //
+    // **And no sixth for a refusal.** The credential is validated by the
+    // health check, never by the act of connecting, so what a customer
+    // reads after one is the *state's* own line (`destination.line.*`,
+    // minted by #48) on a redrawn card. A key here would be a second,
+    // form-shaped account of a fact the row already carries.
+    //
+    // A sixth, on the master's ruling of 2026-09-07:
+    // `settings.destination.username`. A WordPress application password
+    // authenticates as `username:app-password` and is scoped to the
+    // account that created it, so the user is part of the credential and
+    // the form asks for three fields rather than two — without it every
+    // real site refuses. 140 owner-owed and 168 ruled unchanged,
+    // Nothing #246 moved is minted here, so the two batches compose:
+    // 134 owner-owed and 168 ruled unchanged, 241 + 6 = 247 awaiting
+    // copy, 543 + 6 = 549 total.
     expect(OWNER_OWED.length).toBe(134);
-    expect(AWAITING_COPY.length).toBe(241);
+    expect(AWAITING_COPY.length).toBe(247);
     expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(168);
-    expect(Object.keys(COPY).length).toBe(543);
+    expect(Object.keys(COPY).length).toBe(549);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.
