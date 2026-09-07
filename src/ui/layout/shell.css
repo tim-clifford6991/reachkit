@@ -164,9 +164,15 @@
   padding: var(--s-4);
 }
 
+/* 2026-09-07, issue #241: no page gutter here. This padding *was* the
+ * page's air — the shell was the only screen root drawing any, because
+ * `[data-surface]` matched no rule. `surface.css` supplies it now, one step
+ * per band, and a main column that kept its own would sit two gutters in
+ * from the edge and give the calendar grid and the charts less width than
+ * they had before the law rendered. The frame's own edges — the sidebar
+ * rule, the header band — are still this file's. */
 .rk-main {
   min-width: 0;
-  padding: var(--s-4);
 }
 
 /* --breakpoint-lg (1024px) = BAND_MIN.medium. "The sidebar returns."
@@ -208,8 +214,9 @@
     margin-top: auto;
   }
 
+  /* Its own gutter is `surface.css`'s from #241 (see the rule above); what
+   * stays here is the column's share of the frame. */
   .rk-main {
     flex: 1 1 0;
-    padding: var(--s-5);
   }
 }

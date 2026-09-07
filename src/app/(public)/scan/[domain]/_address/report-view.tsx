@@ -177,12 +177,16 @@ export function ReportView(p: {
           `design/tokens.md` §2b's "multi-column content column — the public
           report's six modules", which is this screen by name.
 
-          `display: contents` keeps `<main>` as the landmark and gives it no
-          box, so the rows below are the grid's own items: the two-up cards
-          take one track each, and a row that spans the screen says so once,
-          in `col-span-full`, rather than by opening a nested grid. At
-          compact the grid is one column and every span is a no-op. */}
-      <main className="contents">
+          `<main>` stays the landmark and spans the arm's tracks, and
+          `grid-cols-subgrid` puts the rows below on *those* tracks rather
+          than on a second set of its own: the two-up cards take one track
+          each, and a row that spans the screen says so once, in
+          `col-span-full`. At compact the grid is one column and every span
+          is a no-op. `display: contents` would read the same and is wrong
+          here — an element with no box has no border box for conformance
+          check 2 to contain its children in, so every row reported as
+          escaping. */}
+      <main className="col-span-full grid grid-cols-subgrid">
         {/* REQ-001 c14: the notice and the one control that answers it sit
           together, so a visitor reads what happened and what they can do
           about it in one place. */}
