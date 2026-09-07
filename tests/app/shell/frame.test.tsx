@@ -29,8 +29,13 @@ vi.mock("@/lib/presentation/copy", async (importOriginal) => {
   return { ...actual, copy: (key: string) => key };
 });
 
+/** Which address the shell is rendering at. Mutable since #267: the current
+ *  mark is a function of the path, so a suite that can only be at `/app`
+ *  cannot see a route that is on no destination. */
+const at = vi.hoisted(() => ({ pathname: "/app" }));
+
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/app",
+  usePathname: () => at.pathname,
   useRouter: () => ({ push: vi.fn() }),
 }));
 
@@ -226,6 +231,50 @@ describe("REQ-040 c5 — a viewport too narrow for the sidebar keeps all three",
     );
     expect(tabs).toHaveLength(links.length);
     expect(links).toEqual(DESTINATIONS.map((d) => DESTINATION_HREF[d]));
+  });
+
+  // ── Issue #267 ────────────────────────────────────────────────────
+  //
+  // The tab bar took `current ?? DESTINATIONS[0]`, so on a route that is on
+  // no destination it marked **Overview** current while the sidebar, which
+  // reads the same `destinationOf`, marked nothing. The pair below is what
+  // discriminates: an implementation that falls back to the first
+  // destination passes the first row and fails the second.
+  it("each of the three destinations marks itself current at its own address", () => {
+    for (const [pathname, label] of [
+      ["/app", "shell.nav.overview"],
+      ["/app/calendar", "shell.nav.calendar"],
+      ["/app/settings", "shell.nav.settings"],
+    ] as const) {
+      at.pathname = pathname;
+      const selected = [...render(<TabBar />).querySelectorAll("[role='tab']")].filter(
+        (tab) => tab.getAttribute("aria-selected") === "true"
+      );
+      expect(selected.map((tab) => tab.textContent), pathname).toEqual([label]);
+    }
+  });
+
+  it("**a route on no destination marks none** — the draft view", () => {
+    at.pathname = "/app/draft/draft-1";
+    const tabs = [...render(<TabBar />).querySelectorAll("[role='tab']")];
+    expect(tabs).toHaveLength(3);
+    expect(tabs.filter((tab) => tab.getAttribute("aria-selected") === "true")).toEqual([]);
+    expect(tabs.filter((tab) => tab.className.includes("tab-active"))).toEqual([]);
+    at.pathname = "/app";
+  });
+
+  it("the two renderers agree about what is current, at every address", () => {
+    for (const pathname of ["/app", "/app/calendar", "/app/settings", "/app/draft/d1"] as const) {
+      at.pathname = pathname;
+      const tabSelected = [...render(<TabBar />).querySelectorAll("[role='tab']")]
+        .filter((tab) => tab.getAttribute("aria-selected") === "true")
+        .map((tab) => tab.textContent);
+      const navCurrent = [...render(<SidebarNav waiting={0} />).querySelectorAll("a")]
+        .filter((a) => a.getAttribute("aria-current") === "page")
+        .map((a) => a.textContent);
+      expect(tabSelected, pathname).toEqual(navCurrent);
+    }
+    at.pathname = "/app";
   });
 
   it("the domain block and the publishing state collapse into the tab bar's header, not away", async () => {
