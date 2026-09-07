@@ -35,6 +35,32 @@ export const MAIL_COPY = Object.freeze({
   "mail.nothing_to_report": ["", { slots: {}, fixedBy: "§12" }],
   "mail.week_unmeasured": ["", { slots: { nextDue: "date" }, fixedBy: "§12" }],
   "mail.week_partly_measured": ["", { slots: { sections: "text" }, fixedBy: "§12" }],
+
+  // 2026-09-07, issue #181. The six names the line above interpolates.
+  //
+  // `mail.week_partly_measured` says a week was measured with sections it
+  // did not reach, and names them — REQ-064 c4 — and until now nothing
+  // could: `MeasurementState.partial` takes copy keys and no key existed
+  // for any of the six parts `unmeasuredPartsOf` reports. So the sender
+  // could state that *something* was missed and never what, which is the
+  // half of the criterion that carries the information.
+  //
+  // Six keys and not one with the part interpolated: they are the names of
+  // six different measurements, and a name is not a value. Every one is
+  // **empty and owner-owed** on the mail arm of the 2026-09-05 ruling —
+  // these are words a customer reads, and a mail never ships a
+  // placeholder.
+  //
+  // They are `mail.section.*` and not `mail.weekly.section.*`: the same
+  // six parts are what §4.5's own account of a partial week names, and one
+  // set of names is what stops a screen and a mail calling one measurement
+  // two things.
+  "mail.section.on_page": ["", { slots: {}, fixedBy: "REQ-064 c4" }],
+  "mail.section.market": ["", { slots: {}, fixedBy: "REQ-064 c4" }],
+  "mail.section.rankings": ["", { slots: {}, fixedBy: "REQ-064 c4" }],
+  "mail.section.ai_answers": ["", { slots: {}, fixedBy: "REQ-064 c4" }],
+  "mail.section.rivals": ["", { slots: {}, fixedBy: "REQ-064 c4" }],
+  "mail.section.score": ["", { slots: {}, fixedBy: "REQ-064 c4" }],
   "mail.unsubscribe.label": ["", { slots: {}, fixedBy: "§12" }],
   "mail.optout.label": ["", { slots: {}, fixedBy: "§12" }],
 
