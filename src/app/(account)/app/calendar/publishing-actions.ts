@@ -12,11 +12,20 @@
 // error and the seam the panel calls all live in `./publishing`, which both
 // this file and the screen import.
 //
-// **Which account is acting.** `src/middleware.ts` has already refused this
-// request unless it carried a session cookie, so a caller reaching here is
-// signed in; *which* account it is, is #35's `currentSession()`, which does
-// not exist yet. Until it does, this uses the same fixture account
-// `/api/setup` uses — one stand-in, named once, not a second guess.
+// **Which account is acting, and whose page it is.** `src/middleware.ts`
+// has already refused this request unless it carried a session cookie;
+// *which* account it is, is the session's, through `_session/account.ts`
+// (issue #169). The actor on every transition this file writes is that
+// customer's own user id — a transition is never anonymous, and until this
+// issue it carried a fixture id, so every move a real customer made was
+// recorded against an account that was not theirs.
+//
+// **And the page has to be theirs.** A Server Function is an addressable
+// endpoint: the draft id arrives from the browser, and nothing about being
+// signed in makes an id the caller's. So the pair is checked before the
+// machine is asked, as a `select` keyed on `(id, site_id)` — a draft of
+// another account does not come back, and the move is refused with
+// `not_your_page` rather than reaching `transition()` at all.
 //
 // **The engine is imported inside the call, not at the top.**
 // `src/lib/publish/machine` reaches Postgres through `@/lib/db`, which
@@ -31,11 +40,14 @@
 "use server";
 
 import type { Actor, State } from "@/lib/publish/types";
-import { FIXTURE_USER_ID } from "@/app/(account)/setup/_setup/fixture";
+import { requireAppAccount } from "../_session/account";
 
-function currentActor(): Actor {
-  return { kind: "customer", userId: FIXTURE_USER_ID };
-}
+/** The machine's refusal vocabulary, extended by exactly one word: a page
+ *  this account does not own. It is a refusal like any other — `publishing.ts`
+ *  turns it into `PublishingRefusedError` — and never a rendered sentence,
+ *  because there is no registry key for a refused write and inventing one
+ *  is what that module forbids. */
+const NOT_YOUR_PAGE = "not_your_page";
 
 /**
  * The one shape every §9 write here takes: ask the machine, and report what
@@ -44,8 +56,18 @@ function currentActor(): Actor {
  * which changed nothing never resolves as though it had.
  */
 async function move(draftId: string, to: State): Promise<string | null> {
+  // No session is §4.3's refusal, and `requireAppAccount` answers it by
+  // redirecting — so nothing below runs for a caller who is not signed in.
+  const account = await requireAppAccount();
+  // Imported at the call, like the machine below and for the same reason:
+  // this module is imported statically by a client component, and
+  // `_session/store` reaches `@/lib/db`.
+  const { siteOwnsDraft } = await import("../_session/store");
+  if (!(await siteOwnsDraft(account.siteId, draftId))) return NOT_YOUR_PAGE;
+
+  const actor: Actor = { kind: "customer", userId: account.userId };
   const { transition } = await import("@/lib/publish/machine");
-  const result = await transition(draftId, to, currentActor());
+  const result = await transition(draftId, to, actor);
   if (result.ok) return null;
   return result.refused === "guard" ? (result.failedGuard ?? "guard") : result.refused;
 }

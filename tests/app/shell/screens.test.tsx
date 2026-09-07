@@ -63,7 +63,7 @@
 // convention `frame.test.tsx` uses and for the same reason.
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import React from "react";
 
@@ -76,6 +76,17 @@ import { COPY, type CopyKey } from "@/lib/presentation/copy";
 import OverviewPage from "@/app/(account)/app/page";
 import CalendarPage from "@/app/(account)/app/calendar/page";
 import SettingsPage from "@/app/(account)/app/settings/page";
+
+// BUILD §4.4–§4.6, issue #169 — the surfaces under test now resolve who is
+// asking through `_session/account.ts`, which reads a signed cookie and a
+// `sites` row. This suite has neither, so it signs in as the reserved
+// fixture account: the surfaces then take the same fixture branch they
+// always took, and what changed is only how they learned whose it is.
+import { resetAccount, signedInAs } from "../account-door";
+
+beforeEach(() => signedInAs());
+afterEach(() => resetAccount());
+
 
 const APP_DIR = path.resolve(import.meta.dirname, "../../../src/app/(account)/app");
 

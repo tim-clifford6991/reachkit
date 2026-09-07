@@ -21,10 +21,21 @@
 // that renders it with every key written.
 import { readFileSync, existsSync } from "node:fs";
 import path from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { COPY, type CopyKey } from "@/lib/presentation/copy";
 import OverviewPage from "@/app/(account)/app/page";
+
+// BUILD §4.4–§4.6, issue #169 — the surfaces under test now resolve who is
+// asking through `_session/account.ts`, which reads a signed cookie and a
+// `sites` row. This suite has neither, so it signs in as the reserved
+// fixture account: the surfaces then take the same fixture branch they
+// always took, and what changed is only how they learned whose it is.
+import { resetAccount, signedInAs } from "../account-door";
+
+beforeEach(() => signedInAs());
+afterEach(() => resetAccount());
+
 
 const SRC = path.resolve(import.meta.dirname, "../../../src");
 const APP = path.join(SRC, "app/(account)/app");

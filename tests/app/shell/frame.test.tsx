@@ -20,7 +20,7 @@
 // the owner's wording; keeping `COPY` real is what lets `writtenLine`'s
 // owner-owed branch behave exactly as it does in production, so a line the
 // owner has not written renders as nothing here too.
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import React from "react";
 
@@ -43,6 +43,17 @@ import { TabBar } from "@/app/(account)/app/_shell/TabBar";
 import { DESTINATIONS, DESTINATION_HREF } from "@/app/(account)/app/_shell/destinations";
 import { formatDate, formatDateTime } from "@/app/(account)/app/_shell/format";
 import type { ShellModel } from "@/app/(account)/app/_shell/model";
+
+// BUILD §4.4–§4.6, issue #169 — the surfaces under test now resolve who is
+// asking through `_session/account.ts`, which reads a signed cookie and a
+// `sites` row. This suite has neither, so it signs in as the reserved
+// fixture account: the surfaces then take the same fixture branch they
+// always took, and what changed is only how they learned whose it is.
+import { resetAccount, signedInAs } from "../account-door";
+
+beforeEach(() => signedInAs());
+afterEach(() => resetAccount());
+
 
 const ZONE = "America/New_York";
 const MONDAY = (day: number): Date => new Date(Date.UTC(2026, 8, day, 6, 0, 0));

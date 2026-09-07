@@ -7,10 +7,21 @@
 // The assembly is pure (facts in, model out), so every arm below is decided
 // with no database and no clock. The reading of those facts is `provider.ts`,
 // asserted at the bottom against this issue's fixture.
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { assembleShell, type ShellFacts } from "@/app/(account)/app/_shell/model";
 import { readShell } from "@/app/(account)/app/_shell/provider";
 import { FIXTURE_SHELL_FACTS } from "@/app/(account)/app/_shell/fixture";
+
+// BUILD §4.4–§4.6, issue #169 — the surfaces under test now resolve who is
+// asking through `_session/account.ts`, which reads a signed cookie and a
+// `sites` row. This suite has neither, so it signs in as the reserved
+// fixture account: the surfaces then take the same fixture branch they
+// always took, and what changed is only how they learned whose it is.
+import { resetAccount, signedInAs } from "../account-door";
+
+beforeEach(() => signedInAs());
+afterEach(() => resetAccount());
+
 
 const MONDAY = (day: number): Date => new Date(Date.UTC(2026, 8, day, 6, 0, 0));
 

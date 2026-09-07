@@ -72,6 +72,23 @@ vi.mock("@/lib/publish/destinations/hosted", async (importOriginal) => {
   return hostedModuleMock(await importOriginal<Record<string, unknown>>());
 });
 
+// BUILD §4.4–§4.6, issue #169 — the `(account)/app` routes now resolve who
+// is asking through `_session/account.ts`, which reads a signed cookie and
+// a `sites` row. This sweep has neither, so it signs in as the reserved
+// fixture account: every one of those routes then takes the same fixture
+// branch it always took, and the sweep goes on measuring the screens rather
+// than a redirect to the sign-in prompt.
+vi.mock("@/app/(account)/app/_session/account", async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  const { RESERVED_ACCOUNT } = await import("../../app/accounts");
+  return {
+    ...actual,
+    appAccount: async () => ({ ok: true, account: RESERVED_ACCOUNT }),
+    requireAppAccount: async () => RESERVED_ACCOUNT,
+    requireSetUpAccount: async () => RESERVED_ACCOUNT,
+  };
+});
+
 const { enumerateRoutes } = await import("./routes");
 const { renderRoute, ROUTE_HARNESS } = await import("./harness");
 type RenderedRoute = import("./harness").RenderedRoute;
