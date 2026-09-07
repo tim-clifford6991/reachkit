@@ -125,6 +125,11 @@ const REVIEWED: readonly State[] = Object.freeze([
   "unpublished",
 ] as const);
 
+/** The moment the one check ran on the fixture's published page — a fixed
+ *  instant, because a fixture that drifted with the clock would make the
+ *  layout sweep non-deterministic. */
+const CHECKED_AT = new Date(Date.UTC(2026, 8, 15, 9, 0, 0));
+
 const DRAFTS: readonly DraftOnDay[] = Object.entries(SCHEDULE).map(([day, state], index) => {
   const specimen = SPECIMENS[index % SPECIMENS.length] as Specimen;
   const [y, m, d] = day.split("-").map(Number);
@@ -147,6 +152,28 @@ const DRAFTS: readonly DraftOnDay[] = Object.entries(SCHEDULE).map(([day, state]
     // twice and no one ever read it — which is the state the restart
     // control is open on (#143).
     enteredReview: REVIEWED.includes(state),
+    // What became of the page (#217). Only a delivered page has a check to
+    // report, and only an unpublished one has a finding: every other state
+    // carries the `never` disposition, which is true of it.
+    verification:
+      state === "published"
+        ? {
+            kind: "done",
+            result: {
+              outcome: "found",
+              checks: {
+                reachable: { kind: "measured", value: true, at: CHECKED_AT },
+                indexable: { kind: "measured", value: true, at: CHECKED_AT },
+                sitemap: { kind: "measured", value: true, at: CHECKED_AT },
+                aiReadable: { kind: "measured", value: true, at: CHECKED_AT },
+              },
+              checkedAt: CHECKED_AT,
+            },
+          }
+        : state === "unpublished"
+          ? { kind: "never", because: "taken_down_first" }
+          : { kind: "never", because: "no_live_address" },
+    unpublishOutcome: state === "unpublished" ? "removed" : null,
   };
 });
 

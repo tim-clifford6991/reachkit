@@ -19,6 +19,11 @@
 // Nothing here moves with the clock: a fixture whose dates drifted would
 // make the layout sweep non-deterministic, and the veto deadline is a
 // number this screen states.
+import type { PageRecord } from "@/lib/publish/record";
+// The pure leaf, not the barrel: `record/index.ts` resolves `publishDb()`,
+// and this fixture is on the reserved account's path, which reaches no
+// database at all (`provider.ts` says why).
+import { SEO_COPY } from "@/lib/publish/record/lines";
 import { FIXTURE_SHELL_FACTS } from "../../_shell/fixture";
 import type { DraftFacts } from "./model";
 
@@ -38,6 +43,12 @@ export const FIXTURE_DRAFT_ID = "draft-2026-09-15";
  *  grounded fact the edit removed — the three states the unedited draft
  *  cannot show. */
 export const FIXTURE_EDITED_DRAFT_ID = "draft-2026-09-16";
+/** The third fixture draft: the same page after it went out (issue #217).
+ *  It is the only one that can carry a *record* worth drawing — a page in
+ *  review has never been delivered, so its record is honestly two rows —
+ *  and it is what makes REQ-060 criterion 4's line visible on a preview at
+ *  all. Its WordPress had no SEO plugin, which is the case c4 is about. */
+export const FIXTURE_PUBLISHED_DRAFT_ID = "draft-2026-09-14";
 
 /** The verbatim passage the page is grounded in, and the one this fixture's
  *  body contains word for word. Model output and customer-facing data, not
@@ -93,6 +104,61 @@ const LAST_SAVED_AT = new Date(Date.UTC(2026, 8, 15, 11, 25, 0));
 /** §9's veto window on the calendar fixture's in-review page: 24 hours
  *  after it entered review, the same instant that fixture states. */
 const AUTO_APPROVES_AT = new Date(Date.UTC(2026, 8, 16, 14, 0, 0));
+/** The moment the one check ran on the delivered fixture page — 24 hours
+ *  after it went out, which is the only interval §9 has. */
+const CHECKED_AT = new Date(Date.UTC(2026, 8, 15, 9, 0, 0));
+
+/** The record of a page that has not been delivered: no address was ever
+ *  made live, so no check will ever run. Two rows and no invention — the
+ *  arms are `PageRecord`'s own. */
+const NOT_DELIVERED: PageRecord = {
+  draftId: FIXTURE_DRAFT_ID,
+  state: "in_review",
+  opportunityId: "opportunity-fixture",
+  targetQuery: "best crm for a small team",
+  measuredAt: READ_AT,
+  mode: "approved",
+  address: {
+    offered: false,
+    because: "never_made_live",
+    copy: "record.address.neverMadeLive",
+  },
+  unpublishOutcome: null,
+  verification: { kind: "never", because: "no_live_address" },
+  seoNote: null,
+};
+
+/** The record of the page that went out: readable at its address, found by
+ *  the one check, and delivered into a WordPress with no SEO plugin to
+ *  write the title and description into (REQ-060 c4). */
+const DELIVERED: PageRecord = {
+  ...NOT_DELIVERED,
+  draftId: FIXTURE_PUBLISHED_DRAFT_ID,
+  state: "published",
+  address: {
+    offered: true,
+    label: "record.address.publiclyReadableAt",
+    url: "https://blog.example.com/how-to-choose-a-crm-for-a-small-team",
+  },
+  verification: {
+    kind: "done",
+    result: {
+      outcome: "found",
+      checks: {
+        reachable: { kind: "measured", value: true, at: CHECKED_AT },
+        indexable: { kind: "measured", value: true, at: CHECKED_AT },
+        sitemap: { kind: "measured", value: true, at: CHECKED_AT },
+        aiReadable: { kind: "measured", value: true, at: CHECKED_AT },
+      },
+      checkedAt: CHECKED_AT,
+    },
+  },
+  // Read from the record module rather than spelled here: REQ-060 c4's
+  // key is named in exactly three files in `src/` and no surface is one of
+  // them (`tests/publish/record/seo-note.test.ts`). A fixture that repeated
+  // the literal would be a fourth.
+  seoNote: SEO_COPY.noSeoPlugin,
+};
 
 const UNEDITED: DraftFacts = {
   draftId: FIXTURE_DRAFT_ID,
@@ -110,6 +176,7 @@ const UNEDITED: DraftFacts = {
   mode: FIXTURE_MODE,
   autoApprovesAt: AUTO_APPROVES_AT,
   lastSavedAt: null,
+  record: NOT_DELIVERED,
   timeZone: FIXTURE_TIME_ZONE,
 };
 
@@ -123,7 +190,18 @@ const EDITED: DraftFacts = {
   lastSavedAt: LAST_SAVED_AT,
 };
 
+/** The page as it stands after publication: no veto window left to run, no
+ *  unsaved buffer, and a record with every row it can have. */
+const PUBLISHED: DraftFacts = {
+  ...UNEDITED,
+  draftId: FIXTURE_PUBLISHED_DRAFT_ID,
+  state: "published",
+  autoApprovesAt: null,
+  record: DELIVERED,
+};
+
 export const FIXTURE_DRAFTS: Readonly<Record<string, DraftFacts>> = Object.freeze({
   [FIXTURE_DRAFT_ID]: UNEDITED,
   [FIXTURE_EDITED_DRAFT_ID]: EDITED,
+  [FIXTURE_PUBLISHED_DRAFT_ID]: PUBLISHED,
 });

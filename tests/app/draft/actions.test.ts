@@ -161,6 +161,8 @@ describe("the draft view and the day panel read one table", () => {
           vetoDeadline: null,
           publishAt: null,
       enteredReview: false,
+      verification: { kind: "never", because: "no_live_address" } as const,
+      unpublishOutcome: null,
         },
       };
       const panelHasVeto = actionsFor(cell).some(

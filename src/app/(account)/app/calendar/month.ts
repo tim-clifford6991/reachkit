@@ -18,6 +18,7 @@
 // ("Supply is the cap: never invent an opportunity to fill a day; the
 // calendar is never padded") are kept by a read that cannot pad.
 import type { Measured } from "@/lib/measure/measured";
+import type { UnpublishOutcome, VerifyDisposition } from "@/lib/publish/types";
 import { accountFor, type EmptyAccount, type EmptyFacts } from "./empty";
 import type { WorkStop } from "@/lib/presentation/stopped";
 import { STAGE_OF, type State, type Stage, type StageFilter } from "./stages";
@@ -77,6 +78,15 @@ export interface DraftOnDay {
    * `→ skipped` edge into Move and Skip (issue #143).
    */
   enteredReview: boolean;
+  /** What became of this page, as the record already decided it (issue
+   *  #217). The panel states it in one line and derives nothing: the
+   *  verification is `dispositionOf`'s and the outcome is the column's, both
+   *  read once in `scheduledPagesFor`.
+   *
+   *  A planned date carries the `never` disposition and no outcome, which
+   *  is true of it: nothing has been delivered, so no check will run. */
+  verification: VerifyDisposition;
+  unpublishOutcome: UnpublishOutcome | null;
 }
 
 export interface PageOnDay extends DraftOnDay {

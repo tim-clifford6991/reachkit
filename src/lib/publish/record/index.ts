@@ -121,16 +121,23 @@ export const ADDRESS_COPY = Object.freeze({
   neverMadeLive: "record.address.neverMadeLive",
 } as const satisfies Record<string, CopyKey>);
 
-/** REQ-060 criterion 4's line (issue #156). Named here rather than imported
- *  from the WordPress leaf that also names it: this module is on the import
- *  graph of every surface that states a page's standing, and pulling the
- *  adapter's REST client behind it to reach one string constant would be a
- *  dependency bought for nothing. `tests/publish/record/seo-note.test.ts`
+/** REQ-060 criterion 4's line (issue #156), declared in this module's pure
+ *  leaf and re-exported here so every caller's spelling is unchanged.
+ *
+ *  It is named in the record module rather than imported from the WordPress
+ *  leaf that also names it: this module is on the import graph of every
+ *  surface that states a page's standing, and pulling the adapter's REST
+ *  client behind it to reach one string constant would be a dependency
+ *  bought for nothing. It moved to `lines.ts` with #217 for the same shape
+ *  of reason one file down: a fixture screen needs the key and must not pay
+ *  for `publishDb()` to get it. `tests/publish/record/seo-note.test.ts`
  *  asserts the two spellings are the same key, which is the coupling that
  *  actually matters. */
-export const SEO_COPY = Object.freeze({
-  noSeoPlugin: "publish.wordpress.noSeoPlugin",
-} as const satisfies Record<string, CopyKey>);
+export { SEO_COPY } from "./lines";
+
+// Imported as well as re-exported: `seoNoteOf` below names the key, and a
+// re-export alone does not bring it into this module's scope.
+import { SEO_COPY as SEO_COPY_VALUE } from "./lines";
 
 interface PublicationRow extends DispositionRow {
   mode: string;
@@ -189,7 +196,7 @@ function addressOf(a: {
  */
 function seoNoteOf(written: readonly string[] | null | undefined): CopyKey | null {
   if (written === null || written === undefined) return null;
-  return written.length === 0 ? SEO_COPY.noSeoPlugin : null;
+  return written.length === 0 ? SEO_COPY_VALUE.noSeoPlugin : null;
 }
 
 /**
@@ -307,6 +314,15 @@ export interface ScheduledPage {
   /** The address, where ReachKit made the page live and it still stands
    *  published. `null` in every other case, never an empty string. */
   readonly liveUrl: string | null;
+  /** REQ-062 criterion 7, on the month read as well as the page one
+   *  (issue #217): the day panel states what became of a page, so it
+   *  carries what ReachKit saw and when — from the same `dispositionOf`
+   *  the single-page record uses, never a second reading of the columns. */
+  readonly verification: VerifyDisposition;
+  /** What the last unpublish call found, for a page that stands
+   *  `unpublished`. `null` for every other state, exactly as on
+   *  `PageRecord`. */
+  readonly unpublishOutcome: UnpublishOutcome | null;
 }
 
 interface ScheduledDraftRow {
@@ -320,10 +336,10 @@ interface ScheduledDraftRow {
   transitions: unknown;
 }
 
-interface LivePublicationRow {
+interface LivePublicationRow extends DispositionRow {
   draft_id: string;
-  live_url: string | null;
   made_live_by_us: boolean;
+  unpublish_outcome: string | null;
 }
 
 const SCHEDULED_COLUMNS =
@@ -358,6 +374,10 @@ export async function scheduledPagesFor(a: {
   siteId: string;
   from: string;
   to: string;
+  /** The clock due-ness is decided against, injected so a month's
+   *  dispositions are testable without travelling in time — the same
+   *  parameter `pageRecordFor` takes, for the same reason. */
+  now?: Date;
 }): Promise<readonly ScheduledPage[]> {
   const db = publishDb();
   const { data, error } = await db
@@ -376,7 +396,7 @@ export async function scheduledPagesFor(a: {
 
   const live = await db
     .from<LivePublicationRow>("publications")
-    .select("draft_id, live_url, made_live_by_us")
+    .select(`${DISPOSITION_COLUMNS}, draft_id, made_live_by_us, unpublish_outcome`)
     .in(
       "draft_id",
       rows.map((row) => row.id)
@@ -384,9 +404,11 @@ export async function scheduledPagesFor(a: {
   const byDraft = new Map<string, LivePublicationRow>();
   for (const row of live.data ?? []) byDraft.set(row.draft_id, row);
 
+  const now = a.now ?? new Date();
   return rows.map((row): ScheduledPage => {
     const state = row.state as State;
     const publication = byDraft.get(row.id);
+    const outcome = publication?.unpublish_outcome ?? null;
     return {
       draftId: row.id,
       state,
@@ -399,6 +421,19 @@ export async function scheduledPagesFor(a: {
       liveUrl:
         state === "published" && publication?.made_live_by_us === true
           ? (publication.live_url ?? null)
+          : null,
+      // The same two derivations `pageRecordFor` makes, from the same
+      // columns and the same functions — so a grid, a panel and a draft
+      // view cannot disagree about what became of one page.
+      verification:
+        publication === undefined
+          ? { kind: "never", because: "no_live_address" }
+          : dispositionOf(publication, now),
+      unpublishOutcome:
+        state === "unpublished" &&
+        outcome !== null &&
+        UNPUBLISH_OUTCOMES.includes(outcome as UnpublishOutcome)
+          ? (outcome as UnpublishOutcome)
           : null,
     };
   });

@@ -312,7 +312,7 @@ describe("owner-owed and empty agree both ways", () => {
     expect(new Set(emptyKeys)).toEqual(new Set(OWNER_OWED));
   });
 
-  it("counts: 160 owner-owed, 199 awaiting copy, 168 ruled, 527 total (rule 5.5 — the index states its own coverage)", () => {
+  it("counts: 140 owner-owed, 235 awaiting copy, 168 ruled, 543 total (rule 5.5 — the index states its own coverage)", () => {
     // WO-070 added report.ts's eight landing keys (headline, field label,
     // submit label, five DomainProblem lines), all owner-owed: 30 + 8 = 38.
     // 2026-09-03: the owner ruled on three of them (headline, field label,
@@ -852,10 +852,23 @@ describe("owner-owed and empty agree both ways", () => {
     // third of it would split a rule that is deliberately product-wide.
     // 160 − 20 = 140 owner-owed, 199 + 20 = 219 awaiting copy, 168 ruled
     // and 527 total unchanged — nothing was minted.
+    //
+    // 2026-09-07, and last: issue #217 gives the page record its first
+    // surface and mints the sixteen sentences it has to speak — the
+    // block's heading, its three row labels, the seven verification lines
+    // and the five unpublish outcomes. Every one is a *screen's*, so every
+    // one takes the marker rather than the empty value, which is the same
+    // product-wide rule the twenty above were moved under.
+    //
+    // **Seven verification lines and not six.** `pageNotFound` and
+    // `couldNotConfirm` are the same quiet line to look at and have
+    // opposite consequences (ADR-085), so they are two keys the owner
+    // words apart. 140 owner-owed and 168 ruled unchanged, 219 + 16 = 235
+    // awaiting copy, 527 + 16 = 543 total.
     expect(OWNER_OWED.length).toBe(140);
-    expect(AWAITING_COPY.length).toBe(219);
+    expect(AWAITING_COPY.length).toBe(235);
     expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(168);
-    expect(Object.keys(COPY).length).toBe(527);
+    expect(Object.keys(COPY).length).toBe(543);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.

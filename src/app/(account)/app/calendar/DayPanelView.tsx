@@ -35,6 +35,12 @@ import { Btn } from "@/ui/components/Btn";
 import { DayPanel } from "@/ui/components/custom";
 import { copy } from "@/lib/presentation/copy";
 import { BAND_LABELS } from "@/lib/presentation/bands";
+import type { Tone } from "@/ui/types";
+import {
+  unpublishedLine,
+  verificationLine,
+  type VerificationKind,
+} from "@/lib/publish/record/lines";
 import { formatDate, formatDateTime } from "../_shell/format";
 import { writtenLine } from "../_shell/written";
 import { actionsFor } from "./actions";
@@ -45,7 +51,7 @@ import { fullDate } from "./dates";
 import { STAGE_FILTER_COPY_KEY, STAGE_TONE } from "./stages";
 import { publishing, type PublishingCommand } from "./publishing";
 import { WhyThisPage } from "./WhyThisPage";
-import type { DayCell } from "./month";
+import type { DayCell, PageOnDay } from "./month";
 
 /** The writes the panel can ask for. `skip`, `veto` and `regenerate` are §9
  *  edges and go to the state machine through the seam; `move` still
@@ -64,6 +70,39 @@ function run(command: PublishingCommand, draftId: string, to: string): void {
           ? publishing.regenerate({ draftId })
           : publishing.veto({ draftId });
   void asked.catch(() => undefined);
+}
+
+/** How each standing looks on the panel — the same map the draft view's
+ *  record block keeps, and total over `VerificationKind` for the same
+ *  reason: an eighth standing is a compile error rather than a line with no
+ *  tone. `page_not_found` warns and `could_not_confirm` does not, which is
+ *  the only place the two differ to look at (ADR-085). */
+const VERIFICATION_TONE: Readonly<Record<VerificationKind, Tone>> = Object.freeze({
+  found: "ok",
+  page_not_found: "warn",
+  could_not_confirm: "neutral",
+  not_yet: "neutral",
+  due: "neutral",
+  never_taken_down_first: "neutral",
+  never_no_live_address: "neutral",
+});
+
+/** The record's one line, or `null` where the page has nothing to report —
+ *  a planned or generating date has never been delivered, and a line saying
+ *  no check will run for it would be an account of a page that does not
+ *  exist yet. */
+function recordSummary(page: PageOnDay): { text: string; tone: Tone; at: Date | null } | null {
+  if (page.unpublishOutcome !== null) {
+    const text = writtenLine(unpublishedLine(page.unpublishOutcome));
+    return text === null ? null : { text, tone: "neutral", at: null };
+  }
+  const line = verificationLine(page.verification);
+  // A page nothing has delivered says nothing here. Its state already says
+  // where it is, and the panel is not the place to explain that a check
+  // cannot run on a page that has not gone out.
+  if (line.kind === "never_no_live_address") return null;
+  const text = writtenLine(line.copy);
+  return text === null ? null : { text, tone: VERIFICATION_TONE[line.kind], at: line.at };
 }
 
 /** A `DayKey` as the instant that calendar day is marked by — UTC
@@ -160,6 +199,12 @@ export function DayPanelView(p: {
           otherwise: { tag: "scheduled", at: formatDateTime(page.publishAt, p.timeZone) },
         }).line;
 
+  // The record's own summary, or nothing. `unpublishOutcome` is stated in
+  // preference to the check: a page ReachKit took down is accounted for by
+  // what the takedown found, and the check that will never run beside it
+  // would say the same thing twice. Everything else states the check.
+  const recordLine = recordSummary(page);
+
   return (
     <DayPanel
       heading={
@@ -181,6 +226,25 @@ export function DayPanelView(p: {
           )}
           {vetoLine === null ? null : (
             <p data-testid="day-veto-line">{vetoLine}</p>
+          )}
+          {/* What became of the page, in one line (issue #217). The same
+              two facts the draft view's record block states, read through
+              the same keys, so the panel and that view cannot disagree
+              about one page.
+
+              **The address is not repeated here.** The panel already
+              offers the way through to the page (REQ-043 c12), and an
+              address printed in a 290px column wraps to three lines to say
+              what the link says. Nor is REQ-060 c4's line: c4 puts it on
+              "that page's own record — and no other surface", and the
+              draft view is that surface. */}
+          {recordLine === null ? null : (
+            <p className="flex flex-wrap items-baseline gap-2" data-testid="day-record-line">
+              <Badge tone={recordLine.tone}>{recordLine.text}</Badge>
+              {recordLine.at === null ? null : (
+                <span className="num rk-prov">{formatDate(recordLine.at, p.timeZone)}</span>
+              )}
+            </p>
           )}
           {/* REQ-043 c8's winnability, through BAND_LABELS (ADR-001) — never
               a band word this component writes. */}

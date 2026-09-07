@@ -50,6 +50,7 @@ import { CopyOut } from "./CopyOut";
 import { draftActionsFor, type DraftCommand } from "./actions";
 import { draftStore } from "./save";
 import { Editor, type EditorPane } from "./Editor";
+import { PageRecordBlock } from "./PageRecordBlock";
 import { factPresentIn } from "./grounded";
 import { RenderedBody } from "./RenderedBody";
 import { useDebounced } from "./useDebounced";
@@ -173,6 +174,14 @@ export function DraftScreen(p: {
         ) : null}
         {matchedLine === null ? null : <span>{matchedLine}</span>}
       </div>
+
+      {/* What became of this page (issue #217). Under the body and above
+          the actions: it is the page's own standing, so it reads before
+          anything the customer might do next — and it is absent, rather
+          than empty, for a draft whose record could not be read. */}
+      {view.record === null ? null : (
+        <PageRecordBlock record={view.record} timeZone={view.timeZone} />
+      )}
 
       {/* c4: approve, edit and veto, all without leaving the view. Which of
           them is offered is projected from §9's transition table, so this

@@ -39,6 +39,8 @@ function draft(day: string, state: DraftOnDay["state"]): DraftOnDay {
     vetoDeadline: null,
     publishAt: null,
     enteredReview: false,
+    verification: { kind: "never", because: "no_live_address" } as const,
+    unpublishOutcome: null,
   };
 }
 
