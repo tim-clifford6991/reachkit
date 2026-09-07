@@ -1,22 +1,29 @@
 // src/jobs/engine.ts — BUILD §11
 //
 // The seam between the seven job definitions and the engine. Every
-// function here is the interface a job calls. Most of the engines behind
-// them are not built yet: those bodies throw `EngineNotBuilt`, and each
-// unbuilt engine carries exactly one `TODO(engine)` naming it.
+// function here is the interface a job calls.
+//
+// **Every engine behind them is built** as of issue #229 — the last
+// `TODO(engine)` was `scan/run`'s free arm, and it went not because an
+// engine landed but because it was never an engine: the free tier does not
+// come through this job at all (see `runScan` below). `EngineNotBuilt` and
+// its `TODO(engine)` convention stay for the next engine that is genuinely
+// owed; `tests/jobs/definitions.test.ts` asserts the list of unbuilt ids is
+// empty, so one regressing to a stub puts its id back there and fails.
 //
 // **Nothing here fakes work.** A stub does not return a plausible empty
 // list and it does not swallow the call: it throws, loudly and
 // non-retriably in effect, so a deployment that triggers a job before its
 // engine exists fails visibly instead of reporting a quiet success. The
-// signatures are what the jobs are written against; when an engine lands,
-// its module replaces the body here and the job files do not change.
+// same rule covers a delivery that should not exist — see `NotAJobPath`,
+// which is a different failure with a different name, because "this engine
+// is missing" and "this event should never have been sent" are different
+// things for whoever reads the dead-letter.
 //
 // This module reaches no database and no vendor of its own: where an
-// engine exists it is imported and called, and where one does not the stub
-// throws. It is a declaration of what the engine exposes, never a second
-// implementation of it — every body below is either one call into a module
-// that owns the rule, or `notBuilt`.
+// engine exists it is imported and called. It is a declaration of what the
+// engine exposes, never a second implementation of it — every body below is
+// one call into a module that owns the rule, or a named refusal.
 import { runDeepPass } from "@/lib/scan/deep/run";
 import { sendSetupReminder, sitesDueSetupReminder as sitesDueSetupReminderRows } from "@/lib/mail/setup/reminders";
 import { dueSites, runWeekly, type DueSite } from "@/lib/scan/weekly";
@@ -42,6 +49,11 @@ export type { DailySelection };
  *  than throw (§6.5 — the spend ceiling outranks the verdict). */
 export type EngineResult = { readonly done: true } | { readonly degraded: string };
 
+/** An engine a job calls that has not been written yet. No body in this
+ *  file throws one today (#229); it is kept — and exported — because
+ *  `account/maintenance` catches it to skip an unbuilt obligation rather
+ *  than dying on it (#36), and because the next owed engine is written
+ *  against it. */
 export class EngineNotBuilt extends Error {
   readonly engine: string;
   constructor(engine: string, fn: string) {
@@ -52,10 +64,6 @@ export class EngineNotBuilt extends Error {
     this.name = "EngineNotBuilt";
     this.engine = engine;
   }
-}
-
-function notBuilt(engine: string, fn: string): never {
-  throw new EngineNotBuilt(engine, fn);
 }
 
 // ── The site list — BP-014, built (issue #173), gated on access (#201)
@@ -152,24 +160,60 @@ export async function startWeeklyScan(a: DueSite & { readonly now: Date }): Prom
 // adopts the row admission already claimed and a paid one mints its own,
 // both inside `runScan` itself. Nothing about a tier is decided here.
 //
-// **Only the deep arm is wired, and the other two for different reasons.**
-// `src/lib/scan/run.ts` is built (issue #100), but reaching it from
-// `scan/run` on the free path also means admission's claimed slot, which
-// is #24's to decide. The weekly path is built (issue #41) and does not
-// come through here at all: `weekly/refresh` is its trigger, and its own
-// claim on `(site_id, week_start)` is what makes the measurement once a
-// week — a second door into the same pass, through an event this job's
-// idempotency key does not cover, would be a way around that claim. So the
-// deep arm calls the pipeline and the other two still throw: an unwired
-// tier fails loudly rather than quietly reporting a pass nobody ran.
+// **`scan/run` is the deep tier's job and no other's** (issue #229). This
+// used to read as two unbuilt arms waiting on an engine; neither is. Both
+// other tiers reach the same pipeline, and neither reaches it through here:
+//
+//   - **Free runs inline, on the request.** `POST /api/scan` imports
+//     `@/lib/scan/run` and calls `runScan({ domain, tier: 'free' })`
+//     directly, because §6.4 puts the free report at "≈60s live" with a
+//     human waiting for it — an event queued for a worker is the one shape
+//     that cannot keep that promise. Nothing anywhere sends a `scan/run`
+//     event for a free tier, and `tests/jobs/definitions.test.ts` sweeps
+//     `src/**` to keep it that way.
+//
+//   - **Weekly has its own trigger.** `weekly/refresh` is an hourly tick
+//     gated on each site's own local Monday (ADR-060), and its claim on
+//     `(site_id, week_start)` is what makes the measurement happen once a
+//     week. A second door into the same pass — through an event keyed on
+//     `scanId`, which that claim does not cover — would be a way around it.
+//
+// So the two arms are not unbuilt and never will be: they are **not job
+// paths**, and they say so. `notAJobPath` throws rather than returning a
+// degraded result, for the reason every stub in this file throws: a
+// delivery that should not exist must fail visibly, not report a pass
+// nobody ran. It is a different failure from `EngineNotBuilt` and carries
+// a different name, so an operator reading a dead-letter can tell "this
+// engine is missing" from "this event should never have been sent".
+//
+// (What was here before pointed the free arm at "#24's admission claim".
+// #24 is closed and was the `llm()` seam; no admission issue exists, and
+// admission is not what stands between the free tier and this job — the
+// route is.)
 //
 // A deep pass takes `runDeepPass` rather than `runScan` directly, because
 // onboarding needs two things the other tiers do not: the founder's stage
 // written where the waiting screen can read it, and the release latch.
 // Both are that module's; it is still one `runScan` call underneath.
 
-// TODO(engine): the free arm — BP-023's admission claim (#24). The weekly
-// arm is not owed here; see above.
+/** The tier this job runs, and the only one. */
+export const SCAN_RUN_TIER = "deep" as const satisfies ScanTier;
+
+/** A delivery for a tier that does not come through this job. Named apart
+ *  from `EngineNotBuilt` because it is not a missing engine and no future
+ *  issue closes it — see the block above for where each other tier runs. */
+export class NotAJobPath extends Error {
+  readonly tier: ScanTier;
+  constructor(tier: ScanTier, where: string) {
+    super(
+      `src/jobs/engine.ts: not_a_job_path — the ${tier} tier does not run through ` +
+        `the scan/run job (${where}). Free runs inline on POST /api/scan; weekly ` +
+        "runs on the weekly/refresh tick, whose own claim makes it once a week."
+    );
+    this.name = "NotAJobPath";
+    this.tier = tier;
+  }
+}
 
 export async function runScan(a: {
   readonly scanId: string;
@@ -177,11 +221,18 @@ export async function runScan(a: {
   readonly tier: ScanTier;
   readonly siteId?: string;
 }): Promise<EngineResult> {
-  if (a.tier === "deep" && a.siteId !== undefined) {
-    const deep = await runDeepPass({ siteId: a.siteId, domain: a.domain });
-    return deep.status === "degraded" ? { degraded: "deep-pass" } : { done: true };
+  if (a.tier !== SCAN_RUN_TIER) throw new NotAJobPath(a.tier, `runScan(${a.scanId})`);
+  if (a.siteId === undefined) {
+    // A deep event with no site is a malformed delivery, not an unbuilt
+    // engine: the onboarding pass is a pass *for a site*, and the only
+    // sender (`setup/_setup/store.ts`) always names one.
+    throw new Error(
+      `src/jobs/engine.ts: runScan(${a.scanId}) is a deep pass with no siteId — ` +
+        "the onboarding pass belongs to a site and the event must name it."
+    );
   }
-  return notBuilt("BP-012", `runScan(${a.scanId})`);
+  const deep = await runDeepPass({ siteId: a.siteId, domain: a.domain });
+  return deep.status === "degraded" ? { degraded: "deep-pass" } : { done: true };
 }
 
 // ── Generation — BUILD §8 (issue #44)
