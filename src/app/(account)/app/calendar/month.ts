@@ -61,6 +61,21 @@ export interface DraftOnDay {
   vetoDeadline: Date | null;
   /** When a scheduled page goes out. */
   publishAt: Date | null;
+  /**
+   * Has this page's draft ever been in review?
+   *
+   * The fact §9's `never_entered_review` guard reads, carried here because
+   * the restart control the panel offers at `needs_attention` is open on
+   * exactly the pages that guard would let through — and the state alone
+   * does not say. A page that failed generation twice (§8 rule 4) never
+   * reached review and may be written again; one the customer has already
+   * read and that came back is not, and §9 does not open the edge on it.
+   *
+   * A **fact**, not the decision: `actions.ts` is the one place that turns
+   * it into a control, exactly as it is the one place that turns the
+   * `→ skipped` edge into Move and Skip (issue #143).
+   */
+  enteredReview: boolean;
 }
 
 export interface PageOnDay extends DraftOnDay {

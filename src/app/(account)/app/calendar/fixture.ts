@@ -116,6 +116,15 @@ const SCHEDULE: Readonly<Record<DayKey, PublishState>> = {
   "2026-09-22": "generating",
 };
 
+/** The states a page can only be in by having passed through review. */
+const REVIEWED: readonly PublishState[] = Object.freeze([
+  "in_review",
+  "approved",
+  "publishing",
+  "published",
+  "unpublished",
+] as const);
+
 const DRAFTS: readonly DraftOnDay[] = Object.entries(SCHEDULE).map(([day, state], index) => {
   const specimen = SPECIMENS[index % SPECIMENS.length] as Specimen;
   const [y, m, d] = day.split("-").map(Number);
@@ -132,6 +141,12 @@ const DRAFTS: readonly DraftOnDay[] = Object.entries(SCHEDULE).map(([day, state]
       state === "approved" || state === "publishing"
         ? new Date(Date.UTC(y ?? 2026, (m ?? 9) - 1, d ?? 1, 13, 0, 0))
         : null,
+    // Whether the draft ever reached review. A page that is in review, or
+    // past it, has by definition; one still on its way there has not. The
+    // fixture's `needs_attention` page is §8 rule 4's — generation failed
+    // twice and no one ever read it — which is the state the restart
+    // control is open on (#143).
+    enteredReview: REVIEWED.includes(state),
   };
 });
 

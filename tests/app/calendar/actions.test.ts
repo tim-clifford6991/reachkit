@@ -14,6 +14,8 @@ const transition = vi.fn();
 vi.mock("@/lib/publish/machine", () => ({ transition: (...a: unknown[]) => transition(...a) }));
 import { measured } from "@/lib/measure/measured";
 import {
+  RESTART_COMMAND,
+  STATES_WITH_RESTART_EDGE,
   STATES_WITH_STOP_EDGE,
   STOP_COMMAND,
   actionsFor,
@@ -34,7 +36,8 @@ const AT = new Date(Date.UTC(2026, 8, 14, 6, 0, 0));
 function cellWith(
   state: PublishState,
   liveUrl: string | null = null,
-  draftId: string | null = "d1"
+  draftId: string | null = "d1",
+  enteredReview = false
 ): DayCell {
   const stage = STAGE_OF[state];
   if (stage === null) throw new Error(`${state} occupies no date`);
@@ -60,6 +63,7 @@ function cellWith(
       liveUrl,
       vetoDeadline: null,
       publishAt: null,
+      enteredReview,
     },
     empty: null,
   };
@@ -158,12 +162,13 @@ describe("REQ-043 c9 — §4.6's stage-appropriate actions, and no action a stag
     expect(actionsFor(cellWith("published", null))).toEqual([]);
   });
 
-  it("needs-you → Reconnect, and now Move + Skip: §9 opens needs_attention → skipped", () => {
-    // The one control change this reconciliation adds (#130). §9 c3: no
-    // page is left in a state it has no way out of — and Reconnect alone
-    // was no way out for a customer who would rather drop the page.
+  it("needs-you → Reconnect, the restart, and Move + Skip", () => {
+    // #130 added Move and Skip (§9 c3: no page is left in a state it has
+    // no way out of). #143 adds the restart, which is the one thing §9
+    // opens for the customer at this state and for no one else.
     expect(actionsFor(cellWith("needs_attention"))).toEqual([
       { key: "calendar.action.reconnect", kind: "link", href: "/app/settings" },
+      { key: "calendar.action.regenerate", kind: "command", command: "regenerate", draftId: "d1" },
       { key: "calendar.action.move", kind: "command", command: "move", draftId: "d1" },
       { key: "calendar.action.skip", kind: "command", command: "skip", draftId: "d1" },
     ]);
@@ -305,5 +310,134 @@ describe("the publishing seam calls BUILD §9's one mover, and refuses honestly"
       PublishingNotBuiltError
     );
     expect(transition).not.toHaveBeenCalled();
+  });
+});
+
+describe("issue #143 — the restart is offered against the guard, never against the state alone", () => {
+  const keysOf = (cell: Parameters<typeof actionsFor>[0]) => actionsFor(cell).map((a) => a.key);
+
+  it("a page that needs you and was never read offers it", () => {
+    expect(keysOf(cellWith("needs_attention", null, "d1", false))).toContain(
+      "calendar.action.regenerate"
+    );
+  });
+
+  it("**a page that reached review and came back does not** — the guard would refuse it", () => {
+    // The discriminating row. Both pages read `needs_attention`; only one
+    // can pass `never_entered_review`. A projection from the state alone
+    // passes every other assertion in this file and fails this one.
+    expect(keysOf(cellWith("needs_attention", null, "d1", true))).not.toContain(
+      "calendar.action.regenerate"
+    );
+  });
+
+  it("and it is absent, not present-and-refusing: the other three controls are unchanged", () => {
+    expect(keysOf(cellWith("needs_attention", null, "d1", true))).toEqual([
+      "calendar.action.reconnect",
+      "calendar.action.move",
+      "calendar.action.skip",
+    ]);
+  });
+
+  it("a page with no draft offers it nothing to act on, so it is not offered", () => {
+    expect(keysOf(cellWith("needs_attention", null, null, false))).not.toContain(
+      "calendar.action.regenerate"
+    );
+  });
+
+  it("**no other state offers it**, whatever the draft's history", () => {
+    for (const state of PUBLISH_STATES) {
+      // `skipped` and `unpublished` occupy no date, so no cell carries
+      // them — `STAGE_OF` is what says so, and `cellWith` refuses them.
+      if (state === "needs_attention" || STAGE_OF[state] === null) continue;
+      for (const entered of [true, false]) {
+        expect(keysOf(cellWith(state, null, "d1", entered)), state).not.toContain(
+          "calendar.action.regenerate"
+        );
+      }
+    }
+  });
+
+  it("`planned` is a tail of the → generating edge and still offers no control", () => {
+    // §8's own move on the morning a page is due, not the customer's —
+    // which is what the edge's `customer_initiated` guard says, and what
+    // RESTART_COMMAND carries onto the panel.
+    expect(isTransition("planned", "generating")).toBe(true);
+    expect(RESTART_COMMAND.planned).toBeNull();
+    expect(keysOf(cellWith("planned"))).not.toContain("calendar.action.regenerate");
+  });
+
+  it("RESTART_COMMAND is total over the ten, and names a command only where the edge is open", () => {
+    expect(Object.keys(RESTART_COMMAND).sort()).toEqual([...STATES].sort());
+    for (const state of STATES) {
+      if (RESTART_COMMAND[state] !== null) {
+        expect(isTransition(state, "generating"), state).toBe(true);
+      }
+    }
+  });
+
+  it("STATES_WITH_RESTART_EDGE is read off the imported table, not restated", () => {
+    expect([...STATES_WITH_RESTART_EDGE].sort()).toEqual(
+      [...STATES].filter((state) => isTransition(state, "generating")).sort()
+    );
+    // A subset, and stated as one: the panel offers the control at one of
+    // the edge's two tails.
+    for (const state of STATES) {
+      if (RESTART_COMMAND[state] !== null) expect(STATES_WITH_RESTART_EDGE).toContain(state);
+    }
+    expect(STATES_WITH_RESTART_EDGE.length).toBeGreaterThan(
+      [...STATES].filter((state) => RESTART_COMMAND[state] !== null).length
+    );
+  });
+
+  it("the word is a registry key and no sentence is written here", () => {
+    expect(Object.keys(COPY)).toContain("calendar.action.regenerate");
+  });
+});
+
+describe("issue #143 — the restart reaches §9's one mover, and nothing else", () => {
+  beforeEach(() => {
+    transition.mockReset();
+  });
+
+  it("it asks for the `generating` edge, as the customer, against that draft", async () => {
+    transition.mockResolvedValue({ ok: true, state: "generating" });
+    await publishing.regenerate({ draftId: "d1" });
+    expect(transition).toHaveBeenCalledWith("d1", "generating", { kind: "customer", userId: expect.any(String) });
+  });
+
+  it("**it re-decides no guard of its own** — the seam asks and reports, and holds no rule", async () => {
+    transition.mockResolvedValue({
+      ok: false,
+      refused: "guard",
+      failedGuard: "never_entered_review",
+      state: "needs_attention",
+    });
+    await expect(publishing.regenerate({ draftId: "d1" })).rejects.toMatchObject({
+      command: "regenerate",
+      refused: "never_entered_review",
+    });
+  });
+
+  it("it is idempotent by the machine: a second press is `not_a_transition`, and writes nothing", async () => {
+    transition.mockResolvedValue({ ok: true, state: "generating" });
+    await publishing.regenerate({ draftId: "d1" });
+    // The page has left `needs_attention`; the same control pressed again
+    // asks for an edge that no longer exists from where it now is.
+    transition.mockResolvedValue({ ok: false, refused: "not_a_transition", state: "generating" });
+    await expect(publishing.regenerate({ draftId: "d1" })).rejects.toMatchObject({
+      refused: "not_a_transition",
+    });
+    expect(transition).toHaveBeenCalledTimes(2);
+  });
+
+  it("a refusal tells the customer nothing — there is no sentence for one, and none is invented", async () => {
+    transition.mockResolvedValue({ ok: false, refused: "not_a_transition", state: "generating" });
+    const outcome = await publishing.regenerate({ draftId: "d1" }).then(
+      () => "resolved",
+      () => "rejected"
+    );
+    expect(outcome).toBe("rejected");
+    expect(Object.keys(COPY)).not.toContain("calendar.action.regenerate.refused");
   });
 });

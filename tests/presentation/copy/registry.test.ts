@@ -714,10 +714,21 @@ describe("owner-owed and empty agree both ways", () => {
     // customer has pressed a billing control and Stripe refused, which is
     // exactly the state that must not be silent. 148 owner-owed and 168
     // ruled unchanged, 173 + 3 = 176 awaiting copy, 489 + 3 = 492 total.
+    //
+    // 2026-09-07, issue #143 (§9, REQ-043 c9) adds **one**:
+    // `calendar.action.regenerate`, the customer's own restart on a page
+    // that needs them. §9 opens `needs_attention → generating` for them and
+    // for no one else, and §4.6's control list for needs-you is *Reconnect*
+    // and nothing more — so unlike the five action words beside it this one
+    // is not transcribed from the spec but owner-owed. It takes the marker
+    // rather than the empty value on the #93 ruling: the day panel reads
+    // its controls through `copy()`, and a screen the customer reaches must
+    // stay reviewable on a preview. 148 owner-owed and 168 ruled unchanged,
+    // 176 + 1 = 177 awaiting copy, 492 + 1 = 493 total.
     expect(OWNER_OWED.length).toBe(148);
-    expect(AWAITING_COPY.length).toBe(176);
+    expect(AWAITING_COPY.length).toBe(177);
     expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(168);
-    expect(Object.keys(COPY).length).toBe(492);
+    expect(Object.keys(COPY).length).toBe(493);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.
