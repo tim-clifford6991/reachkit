@@ -21,7 +21,7 @@ vi.mock("@/lib/presentation/copy", async (importOriginal) => {
   return { ...actual, copy: (key: string) => key };
 });
 
-import { COPY } from "@/lib/presentation/copy";
+import { COPY, TODO_COPY_MARKER } from "@/lib/presentation/copy";
 import { CalendarGrid } from "@/ui/components/custom";
 import { CalendarView } from "@/app/(account)/app/calendar/CalendarView";
 import { assembleMonth, type CalendarFacts } from "@/app/(account)/app/calendar/month";
@@ -127,13 +127,25 @@ describe("REQ-043 c3 and ADR-061 — the two grey lines are never swapped", () =
     expect(root.querySelectorAll(".rk-cal-empty").length).toBeGreaterThan(0);
   });
 
-  it("a date emptied by exhausted supply carries no line while the owner has not written one", () => {
-    // The honest behaviour of an owner-owed key: nothing, never a
-    // placeholder and never another cause's sentence.
-    expect(COPY["cause.supply-exhausted"]).toBe("");
+  it("a date emptied by exhausted supply carries the marker while the owner has not written its line (#246)", () => {
+    // The honest behaviour of an owner-owed key on a *screen*: the marker,
+    // so the obligation is visible on a preview — never a blank, and never
+    // another cause's sentence. It was the empty value until #246 moved
+    // this family under the product-wide rule.
+    expect(COPY["cause.supply-exhausted"]).toBe(TODO_COPY_MARKER);
     const root = view();
     // 2026-09-23 is emptied by proven-zero supply in the fixture.
-    expect(cellEl(root, "2026-09-23").querySelector(".rk-cal-empty")).toBeNull();
+    const emptied = cellEl(root, "2026-09-23").querySelector(".rk-cal-empty");
+    // It renders, where before the empty value meant it did not. `copy()`
+    // resolves to its key in this suite (the shell's convention — the
+    // assertions here are about which key a line comes from, never the
+    // owner's wording), so what stands in the cell is that key; in the
+    // product it is the marker, which `COPY` above is what states.
+    expect(emptied).not.toBeNull();
+    expect(emptied?.textContent).toBe(EMPTY_COPY_KEY.supply_exhausted);
+    // Still not another cause's line, which is the half of this that the
+    // marker must not paper over.
+    expect(cellEl(root, "2026-09-23").textContent).not.toContain("stopped.work.line");
   });
 
   it("a date ReachKit stopped on carries ReachKit's own line", () => {

@@ -29,7 +29,7 @@ vi.mock("@/lib/presentation/copy", async (importOriginal) => {
   };
 });
 
-import { COPY } from "@/lib/presentation/copy";
+import { COPY, TODO_COPY_MARKER } from "@/lib/presentation/copy";
 import { CAUSE_PRECEDENCE } from "@/lib/presentation/place";
 import type { WorkStop } from "@/lib/presentation/stopped";
 import { DayPanelView } from "@/app/(account)/app/calendar/DayPanelView";
@@ -208,13 +208,14 @@ describe("REQ-092 c1, c2 and c4 — a stopped day carries all three lines", () =
     expect(cell.empty?.cause).toBe("supply_exhausted");
 
     const root = render(<DayPanelView cell={cell} timeZone={ZONE} stopped={null} />);
-    // Its own line, from its own key — and `writtenLine` renders nothing at
-    // all while that key is owner-owed, which is REQ-091 c2's rule and not
-    // this change's business.
+    // Its own line, from its own key — carrying the `TODO(copy)` marker
+    // since #246, so an owed sentence shows as owed on the screen rather
+    // than as nothing. What is asserted here is unchanged: whichever line
+    // it renders, it is not one of the stop's.
     expect(root.textContent).not.toContain("stopped.work.line");
     expect(root.querySelector('[data-testid="day-stopped-needs"]')).toBeNull();
     expect(root.querySelector('[data-testid="day-stopped-resumes"]')).toBeNull();
-    expect(COPY[EMPTY_COPY_KEY.supply_exhausted]).toBe("");
+    expect(COPY[EMPTY_COPY_KEY.supply_exhausted]).toBe(TODO_COPY_MARKER);
   });
 
   it("the grid cell states c1's line and no more — the panel is where c2 and c4 are read", () => {

@@ -69,15 +69,15 @@ import type { CopyPartition } from "../registry.ts";
 
 export const CALENDAR_COPY = Object.freeze({
   "place.calendar.date.page": [
-    "",
+    "TODO(copy)",
     { law: "no-presence-yet", slots: {}, fixedBy: "REQ-043 c5" },
   ],
   "cause.unrecognised": [
-    "",
+    "TODO(copy)",
     { law: "no-presence-yet", slots: {}, fixedBy: "REQ-043 c4" },
   ],
   "cause.supply-exhausted": [
-    "",
+    "TODO(copy)",
     { law: "no-presence-yet", slots: {}, fixedBy: "REQ-043 c3" },
   ],
   "calendar.head": ["One page a day. Every day.", { slots: {}, fixedBy: "BUILD §4.6" }],

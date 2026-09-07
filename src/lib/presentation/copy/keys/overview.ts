@@ -49,15 +49,15 @@ import type { CopyPartition } from "../registry.ts";
 
 export const OVERVIEW_COPY = Object.freeze({
   "place.overview.weekly-presence.chart": [
-    "",
+    "TODO(copy)",
     { law: "no-presence-yet", slots: {}, fixedBy: "REQ-041 c3" },
   ],
   "place.overview.weekly-presence.week": [
-    "",
+    "TODO(copy)",
     { law: "no-presence-yet", slots: {}, fixedBy: "REQ-065 c3" },
   ],
   "place.overview.weekly-presence.partial-week": [
-    "",
+    "TODO(copy)",
     { law: "no-presence-yet", slots: {}, fixedBy: "REQ-065 c4" },
   ],
   "overview.head": ["TODO(copy)", { slots: {}, fixedBy: "BUILD §4.5" }],
