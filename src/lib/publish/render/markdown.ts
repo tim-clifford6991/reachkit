@@ -1,17 +1,25 @@
-// BUILD §4.6 — the one Markdown renderer.
+// BUILD §9 · §4.6 — the one Markdown renderer, and the one place a
+// delivered page's body becomes HTML.
 //
-// §4.6 gives the draft view a live preview pane and §9 gives every
-// destination ReachKit does not serve a copy-out ("Everything else = copy
-// as Markdown/HTML (always shown)"). Those are two sinks and they must not
-// be two renderers: a second renderer means the HTML the customer copies
-// and the HTML that publishes differ, and the customer is the publisher of
-// record for whichever they use. So this module parses once and serialises
-// once, and every caller — the read view's body, the editor's preview pane,
-// and the copy-as-HTML control — goes through `toHtml`.
+// **It lives here, under `src/lib/publish/`, because that is the only side
+// of the fence both readers can reach** (issue #158). A draft's body is
+// Markdown and every sink puts it in front of a reader as HTML: the draft
+// view's preview pane and copy-as-HTML control (§4.6), the hosted template
+// (§9's `content.{customer-domain}` edge), and the WordPress adapter, which
+// sends it as the post's `content`. This module used to sit inside the
+// draft screen's own folder, where the first two could import it and the
+// third could not — `src/lib/**` may never import `src/app/**` — and a
+// destination adapter reaching for a renderer it cannot import is how a
+// second renderer gets written. It parses once and serialises once, and
+// every caller goes through `toHtml`.
 //
-// **The hosted template (§9's `content.{customer-domain}` edge) imports this
-// module when it lands; it does not write a second one.** That is the whole
-// point of the decision, recorded in the archived BP-044 decision 3.
+// Two renderers would mean the HTML the customer copies, the HTML the
+// hosted page serves and the HTML that publishes into their own WordPress
+// differ from one another — and the customer is the publisher of record for
+// whichever they use. That is the decision, recorded in the archived BP-044
+// decision 3 and ruled again by the owner on 2026-09-06 (`DECISIONS.md`,
+// #119): "Draft Markdown is a declared subset rendered by one in-repo
+// renderer … No Markdown dependency until fidelity demands one."
 //
 // No dependency: nothing in `package.json` renders Markdown, and adding one
 // is the owner's call (`CLAUDE.md`). The grammar below is the subset a
@@ -24,6 +32,17 @@
 // customer — cannot introduce markup, and the string this module returns is
 // safe to set as HTML by construction rather than by a sanitiser someone
 // has to remember to call.
+//
+// **The escaping is the whole sanitisation rule, and it is total.** There
+// is no allowlist of tags to keep and no blocklist to strip, because no
+// markup from the input ever reaches the output as markup: `<script>` in a
+// body is five escaped characters and a word, exactly as a customer who
+// typed it would expect to see it. The elements this module can emit are
+// the closed set the serialiser names below and nothing else, and the only
+// attributes it writes are `href` (scheme-vetted) and `class` (the caller's
+// own table).
+
+import { MARKDOWN_LINK_SCHEMES } from "@/lib/config/constants";
 
 export type Inline =
   | { kind: "text"; text: string }
@@ -45,14 +64,14 @@ export type Block =
 
 // ── inline ──────────────────────────────────────────────────────────────
 
-/** The four link schemes a draft may address. Anything else — `javascript:`
- *  above all — is not a link at all: the text renders and the address does
- *  not become clickable. A closed list, because the alternative is a
- *  blocklist and a blocklist is always one scheme behind. */
-const LINK_SCHEMES = ["http://", "https://", "mailto:", "/"] as const;
-
+/** The four link schemes a draft may address — `MARKDOWN_LINK_SCHEMES`,
+ *  pinned in `constants.ts` because it decides what publishes onto a
+ *  customer's own domain. Anything else — `javascript:` above all — is not
+ *  a link at all: the text renders and the address does not become
+ *  clickable. A closed list, because the alternative is a blocklist and a
+ *  blocklist is always one scheme behind. */
 function isAddressable(href: string): boolean {
-  return LINK_SCHEMES.some((scheme) => href.startsWith(scheme));
+  return MARKDOWN_LINK_SCHEMES.some((scheme) => href.startsWith(scheme));
 }
 
 const INLINE_RE =

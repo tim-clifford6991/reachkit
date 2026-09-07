@@ -92,6 +92,7 @@ import {
 } from "@/lib/publish/destinations/wordpress/adapter";
 import { unpublishWordPress } from "@/lib/publish/destinations/wordpress/unpublish";
 import { markerToken } from "@/lib/publish/destinations/wordpress/marks";
+import { renderMarkdownHtml } from "@/lib/publish/render/markdown";
 import { WORDPRESS } from "@/lib/config/constants";
 
 const CFG = {
@@ -221,7 +222,12 @@ describe("ADR-080 — the marker is the half of the at-most-once guarantee that 
     await WORDPRESS_ADAPTER.deliver(PAGE, CFG, "draft-1");
     const created = postWrites()[0]!.body as { content: string };
     expect(created.content).toContain(markerToken("draft-1"));
-    expect(created.content.startsWith(PAGE.bodyMd)).toBe(true);
+    // The rendered body, then the marker — the order issue #158 fixed. A
+    // marker rendered *with* the body would come back escaped and publish
+    // as a visible line of punctuation, and the search for the raw comment
+    // would find nothing.
+    expect(created.content.startsWith(renderMarkdownHtml(PAGE.bodyMd))).toBe(true);
+    expect(created.content.endsWith(`<!-- ${markerToken("draft-1")} -->`)).toBe(true);
   });
 
   it("**the search looks for the marker and never for the stamp**: a post whose tag the customer removed is still found", async () => {
@@ -370,5 +376,53 @@ describe("the idempotent path writes nothing at all into their site", () => {
     site.requests = [];
     const again = (await WORDPRESS_ADAPTER.deliver(PAGE, CFG, "draft-1")) as WordPressDelivery;
     expect(again.stampApplied).toBe(false);
+  });
+});
+
+describe("issue #158 — the body leaves as HTML, at one point, through the one renderer", () => {
+  it("the post's content is the rendered body, not the Markdown a reader would see as punctuation", async () => {
+    await WORDPRESS_ADAPTER.deliver(PAGE, CFG, "draft-1");
+    const created = postWrites()[0]!.body as { content: string };
+    expect(created.content).toContain("<h1>How to choose a kiln</h1>");
+    expect(created.content).toContain("<p>A body.</p>");
+    // The literal Markdown a customer would otherwise have found on their
+    // own domain.
+    expect(created.content).not.toContain("# How to choose a kiln");
+  });
+
+  it("it is the same renderer the draft view and the copy-out read — same bytes, no second parse", async () => {
+    await WORDPRESS_ADAPTER.deliver(PAGE, CFG, "draft-1");
+    const created = postWrites()[0]!.body as { content: string };
+    expect(created.content.replace(/\n*<!--[^>]*-->$/, "")).toBe(renderMarkdownHtml(PAGE.bodyMd));
+  });
+
+  it("**no raw HTML reaches the customer's site**: markup in a body is escaped, never passed through", async () => {
+    const nasty = {
+      ...PAGE,
+      bodyMd: '<script>alert(1)</script>\n\nA [link](javascript:alert(1)) and <b>bold</b>.',
+    };
+    await WORDPRESS_ADAPTER.deliver(nasty, CFG, "draft-1");
+    const created = postWrites()[0]!.body as { content: string };
+    expect(created.content).not.toContain("<script>");
+    expect(created.content).not.toContain("<b>");
+    expect(created.content).toContain("&lt;script&gt;");
+    // A scheme outside the allowlist never becomes an href: the label
+    // renders and the address does not become clickable.
+    expect(created.content).not.toContain("javascript:");
+    expect(created.content).toContain("link");
+  });
+
+  it("the marker survives the rendering, so a retry still finds the post", async () => {
+    await WORDPRESS_ADAPTER.deliver(PAGE, CFG, "draft-1");
+    site.requests = [];
+    const again = (await WORDPRESS_ADAPTER.deliver(PAGE, CFG, "draft-1")) as WordPressDelivery;
+    expect(postWrites()).toHaveLength(0);
+    expect(again.remoteId).toBe("100");
+  });
+
+  it("an empty body is an empty content, and still carries its marker", async () => {
+    await WORDPRESS_ADAPTER.deliver({ ...PAGE, bodyMd: "" }, CFG, "draft-1");
+    const created = postWrites()[0]!.body as { content: string };
+    expect(created.content.trim()).toBe(`<!-- ${markerToken("draft-1")} -->`);
   });
 });

@@ -60,6 +60,7 @@ import type {
 import type { WordPressConfig } from "./client";
 import { createPost, createTag, findTag, readRestIndex, readSelf, searchPosts } from "./client";
 import { NOT_PUBLISHED, reasonFor, succeeded } from "./errors";
+import { renderMarkdownHtml } from "../../render/markdown";
 import { bodyWithMarker, carriesMarker, markerToken } from "./marks";
 import { detectSeoPlugins, seoMetaFor, seoWrittenIn, type SeoPlugin } from "./seo";
 import { unpublishWordPress } from "./unpublish";
@@ -283,7 +284,15 @@ async function deliver(
       // marker, in one request. There is no call in `client.ts` that could
       // raise a draft to `publish`, so no two-step can be composed here.
       status: "publish",
-      content: bodyWithMarker(page.bodyMd, idempotencyKey),
+      // **The one point a body leaves this adapter, and the one place it
+      // becomes HTML** (issue #158). A draft's body is Markdown; a
+      // WordPress post's `content` is HTML, and a body sent as Markdown
+      // publishes `## A heading` and `[label](href)` as literal
+      // punctuation on the customer's own domain. The renderer is the same
+      // one the draft view's preview, the copy-as-HTML control and the
+      // hosted template read, so what the customer saw before approving is
+      // what their site gets.
+      content: bodyWithMarker(renderMarkdownHtml(page.bodyMd), idempotencyKey),
       ...(stampTermId === null ? {} : { tags: [stampTermId] }),
       ...(Object.keys(meta).length === 0 ? {} : { meta }),
     });
