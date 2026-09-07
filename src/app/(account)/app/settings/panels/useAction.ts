@@ -8,7 +8,7 @@
 // `elsewhere` navigates, because REQ-097 c1's billing surface is somewhere the
 // customer is handed to rather than something ReachKit reports about; `here`
 // has nothing to add, because a completed action shows itself in the state of
-// the screen it completed on. `not-yet` and `unreachable` are the two the
+// the screen it completed on. `unreachable` is the one the
 // customer is told about in writing, and both sentences are the owner's.
 //
 // **`unreachable` is REQ-097 criterion 6, and it is three statements, not
@@ -46,7 +46,6 @@ function unreachableLine(): string | null {
 
 function lineFor(outcome: ActionOutcome | null): string | null {
   if (outcome === null) return null;
-  if (outcome.done === "not-yet") return writtenLine("settings.action.not-yet");
   if (outcome.done === "unreachable") return unreachableLine();
   return null;
 }

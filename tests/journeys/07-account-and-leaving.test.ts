@@ -184,13 +184,30 @@ let mails: number;
  *  registry keeps them in: the ones whose absence takes the surface down
  *  rather than render a blank line, and the ones that render the marker so
  *  a whole screen of finished modules is still reviewable. */
-const REFUSED_KEYS = [
+/** The refusing kind: a *mail's*. `copy()` throws rather than shipping a
+ *  placeholder to an inbox — the #93 ruling's other half. */
+const REFUSED_KEYS = ["mail.account.deleted.subject"] as const;
+
+/** The marked kind: a *screen's*. Renderable, so an unfinished sentence is
+ *  visible on a preview rather than absent from it.
+ *
+ *  The two consequence lines joined this list in #259: they had been empty
+ *  and rendered as nothing, which the screen rule has no exception for
+ *  (#242, #255) — and they are the sentence REQ-079 c1 puts between a press
+ *  and a destroyed page, so a customer reading nothing there was the worst
+ *  case the exception had left. The five below them are the handshake's
+ *  own, minted by the same issue. */
+const MARKED_KEYS = [
+  "export.failed",
+  "danger.export-failed",
   "danger.unpublish-all.consequence",
   "danger.delete-account.consequence",
-  "mail.account.deleted.subject",
+  "danger.export-take",
+  "danger.export-taken",
+  "danger.type-to-confirm",
+  "danger.nothing-changed",
+  "danger.taken-down-count",
 ] as const;
-
-const MARKED_KEYS = ["export.failed", "danger.export-failed"] as const;
 
 function seedBilling(over: Partial<ReturnType<typeof billingDoubles.account>> = {}): void {
   billing.users = [
@@ -348,6 +365,33 @@ describe("settings → cancel → export → erasure, and the pages stop being s
     // `siteId` is the only parameter there is, so no route above this can
     // narrow — or widen — an export by accident.
     expect(exportApi.exportEverything).toHaveLength(1);
+  });
+
+  it("and the screen's own three controls reach that seam rather than answering `not-yet` (#259)", async () => {
+    // The journey below drives the engine directly. This step closes the
+    // loop the gap audit found open: until #259 the customer's export and
+    // danger-zone controls answered `{ done: "not-yet" }` while every
+    // engine under them was built, so the screen offered three actions that
+    // did nothing.
+    const { SETTINGS_ACTIONS } = await import("@/app/(account)/app/settings/actions");
+
+    expect(await SETTINGS_ACTIONS.export()).toEqual({ done: "elsewhere", href: "/api/export" });
+    // REQ-079 c3: what the danger controls reach is the archive, before
+    // anything is destroyed — never the run, which waits on the typed word.
+    expect(await SETTINGS_ACTIONS.unpublish_all()).toEqual({
+      done: "elsewhere",
+      href: "/api/danger/unpublish_all",
+    });
+    expect(await SETTINGS_ACTIONS.delete_account()).toEqual({
+      done: "elsewhere",
+      href: "/api/danger/delete_account",
+    });
+
+    // The other four are not called here: `sign_out` deletes a cookie and
+    // the three billing controls mint a Stripe session, none of which this
+    // journey has a request for. That no action anywhere answers the
+    // retired arm is `tests/app/settings/actions.test.ts`'s, over the whole
+    // map with those modules doubled.
   });
 
   it("the danger zone hands the archive over before it will take a confirmation", async () => {
@@ -577,7 +621,9 @@ describe("settings → cancel → export → erasure, and the pages stop being s
     // question with one answer.
     for (const key of MARKED_KEYS) {
       expect(AWAITING_COPY, key).toContain(key);
-      expect(copy(key), key).toBe(TODO_COPY_MARKER);
+      // Two of them interpolate: the marker is the whole value, so the
+      // filled slots leave it unchanged and the assertion still discriminates.
+      expect(copy(key, { word: "w", pages: "0" }), key).toBe(TODO_COPY_MARKER);
     }
 
     // The two lists are disjoint: a key is in one shape or the other, and

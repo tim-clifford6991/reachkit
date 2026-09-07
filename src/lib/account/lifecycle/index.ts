@@ -13,6 +13,7 @@ export { DANGER_ZONE, isDangerAction, type DangerAction } from "./danger-zone";
 export {
   beginDangerAction,
   markExportTaken,
+  readDangerTicket,
   DANGER_EXPORT_FAILED,
   type BeginDangerAction,
 } from "./handover";

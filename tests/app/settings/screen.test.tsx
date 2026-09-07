@@ -71,6 +71,16 @@ vi.mock("@/lib/presentation/copy", async (importOriginal) => {
 // here — the boundary, not the interface above it — so this file keeps
 // asserting what the *screen* offers. What those functions actually do is
 // `tests/app/settings/account.test.tsx`'s, against the real seam.
+// The danger zone's two Server Functions reach the lifecycle engine and the
+// request's own cookie jar (#259), and a jsdom mount has neither. Doubled
+// here — the boundary, not the interface above it — so this file keeps
+// asserting what the *screen* offers; what they do is
+// `tests/app/settings/danger-actions.test.ts`'s, against the real engine.
+vi.mock("@/app/(account)/app/settings/danger-actions", () => ({
+  handoverState: async () => ({ taken: false }),
+  runDangerAction: async () => ({ ran: false, lineKey: "danger.export-failed" }),
+}));
+
 vi.mock("@/app/(account)/app/settings/account-actions", () => ({
   signOutAction: async () => ({ done: "elsewhere", href: "/signin" }),
   beginEmailChangeAction: async () => ({ answer: "idle" }),
@@ -308,12 +318,23 @@ describe("REQ-079 c1 — each danger-zone action states its consequence before i
     expect(root.querySelector('[data-testid="consequence-unpublish_all"]')).toBeNull();
   });
 
-  it("only the control inside the step calls the interface", async () => {
+  it("the step's own export control is what reaches the seam, and the confirming one is held (#259)", async () => {
     const root = await mountScreen();
     await click(root.querySelector('[data-testid="action-unpublish_all"] button') as Element);
     expect(calls).toEqual([]);
-    await click(root.querySelector('[data-testid="confirm-unpublish_all"] button') as Element);
+
+    // REQ-079 c3's first gate: the archive is handed over before anything
+    // is destroyed, and that hand-off is what this action key reaches.
+    const gate = root.querySelector('[data-testid="export-unpublish_all"] button') as HTMLButtonElement;
+    expect(gate).not.toBeNull();
+    await click(gate);
     expect(calls).toEqual(["unpublish_all"]);
+
+    // c2's second gate: the confirming control is disabled until the
+    // customer has typed the word, so no press of it can run anything.
+    const confirm = root.querySelector('[data-testid="confirm-unpublish_all"] button') as HTMLButtonElement;
+    expect(confirm).not.toBeNull();
+    expect(confirm.disabled).toBe(true);
   });
 });
 

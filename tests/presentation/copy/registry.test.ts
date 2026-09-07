@@ -312,7 +312,7 @@ describe("owner-owed and empty agree both ways", () => {
     expect(new Set(emptyKeys)).toEqual(new Set(OWNER_OWED));
   });
 
-  it("counts: 134 owner-owed, 241 awaiting copy, 168 ruled, 543 total (rule 5.5 — the index states its own coverage)", () => {
+  it("counts: 131 owner-owed, 257 awaiting copy, 168 ruled, 556 total (rule 5.5 — the index states its own coverage)", () => {
     // WO-070 added report.ts's eight landing keys (headline, field label,
     // submit label, five DomainProblem lines), all owner-owed: 30 + 8 = 38.
     // 2026-09-03: the owner ruled on three of them (headline, field label,
@@ -918,10 +918,27 @@ describe("owner-owed and empty agree both ways", () => {
     // going down over an owner-owed line. 134 - 1 = 133 owner-owed,
     // 247 + 1 = 248 awaiting copy, 549 total unchanged — the arithmetic
     // that says a key moved rather than appeared.
-    expect(OWNER_OWED.length).toBe(133);
-    expect(AWAITING_COPY.length).toBe(248);
+    //
+    // 2026-09-07, and last: issue #259 wires the danger zone's two
+    // irreversible actions and mints the seven sentences the
+    // ticket-and-download handshake speaks — the two gates
+    // (`danger.export-take`, `danger.export-taken`), the typed
+    // confirmation and its word per action (`danger.type-to-confirm`,
+    // `danger.confirm-word.*`), and what a run leaves behind
+    // (`danger.nothing-changed`, `danger.taken-down-count`). All seven take
+    // the marker: they are a screen's.
+    //
+    // The same PR moves the last two keys that were still empty on a
+    // screen: `danger.unpublish-all.consequence` and
+    // `danger.delete-account.consequence`. The screen rule has no
+    // exceptions (#242, #255), and these two are the sentence REQ-079 c1
+    // puts between a press and a destroyed page — the worst place in the
+    // product to render nothing. 133 - 2 = 131 owner-owed, 248 + 2 + 7 =
+    // 257 awaiting copy, 168 ruled unchanged, 549 + 7 = 556 total.
+    expect(OWNER_OWED.length).toBe(131);
+    expect(AWAITING_COPY.length).toBe(257);
     expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(168);
-    expect(Object.keys(COPY).length).toBe(549);
+    expect(Object.keys(COPY).length).toBe(556);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.
