@@ -9,6 +9,11 @@
 // interface`: "Every screen root is a `Surface`" and `## Error & edge
 // behavior`: "a token missing from `:root` fails a test."
 //
+// Check 5 joins them (issue #241): the screen root's own container. All
+// four above are properties of content inside boxes and none of them fails
+// on a page with zero padding, which is how a `Surface` that matched no
+// stylesheet rule reached dev with every screen flush to the top-left.
+//
 // Enumerates the real `src/app` tree — never a fixture — and prints
 // `n routes × 5 widths` unconditionally (rule 5.5): today `src/app/` holds
 // no route (WO-269 rests-on row 5), so `n` is `0`, and that is stated
@@ -21,9 +26,12 @@ import {
   checkContainment,
   checkNoClippingOrTruncation,
   checkNoHorizontalScroll,
+  checkSurfaceContainer,
   checkTypeFloor,
+  CONTENT_MEASURE_PX,
   MONO_FONT_FAMILY,
   SCROLL_CONTAINER_ALLOWLIST,
+  SURFACE_GUTTER_PX,
   TRUNCATION_ALLOWLIST,
 } from "./checks";
 import {
@@ -42,7 +50,9 @@ const routes = enumerateRoutes(APP_ROOT, { accountCookie: getAccountCookie() });
 
 console.log(
   `tests/ui/layout/layout.test.ts: ${routes.length} route(s) × 5 widths` +
-    (routes.length === 0 ? " — src/app/ holds no route yet (WO-269 rests-on row 5)" : "")
+    (routes.length === 0
+      ? " — src/app/ holds no route yet (WO-269 rests-on row 5)"
+      : ""),
 );
 
 /** The two tests below walk **every** route in one `it`, and `withPage`
@@ -66,7 +76,7 @@ function urlFor(route: EnumeratedRoute): string {
   if (!baseURL) {
     throw new Error(
       "tests/ui/layout/layout.test.ts: a route was enumerated but no app server is running " +
-        "(browser.ts only starts one when enumerateRoutes() finds a route at globalSetup time)."
+        "(browser.ts only starts one when enumerateRoutes() finds a route at globalSetup time).",
     );
   }
   return routeUrl(baseURL, route);
@@ -85,7 +95,7 @@ describe(`layout sweep — ${routes.length} route(s) × 5 widths`, () => {
 
   for (const route of routes) {
     for (const width of widths()) {
-      it(`${route.path} @ ${width}px reports no offender on checks 1-4`, async () => {
+      it(`${route.path} @ ${width}px reports no offender on checks 1-5`, async () => {
         const offenders = await withPage(
           width,
           async (page) => {
@@ -100,59 +110,91 @@ describe(`layout sweep — ${routes.length} route(s) × 5 widths`, () => {
                 monoFontFamily: MONO_FONT_FAMILY,
               }),
               await page.evaluate(checkTypeFloor),
+              // Check 5 (issue #241) — the screen root renders its
+              // container. The numbers are `BAND_MIN`'s and
+              // `design/tokens.md`'s, passed in rather than read from the
+              // page, so a stylesheet that drifted from the ruled values
+              // fails here instead of redefining what "conformant" means.
+              await page.evaluate(checkSurfaceContainer, {
+                bandMin: { medium: BAND_MIN.medium, wide: BAND_MIN.wide },
+                gutterPx: SURFACE_GUTTER_PX,
+                measurePx: CONTENT_MEASURE_PX,
+              }),
             ];
             return results.flat();
           },
-          headersFor(route)
+          headersFor(route),
         );
         expect(offenders).toEqual([]);
       });
     }
   }
 
-  it("every route's document has exactly one [data-surface] root", async () => {
-    for (const route of routes) {
-      const count = await withPage(
-        BAND_MIN.compact,
-        async (page) => {
-          await page.goto(urlFor(route));
-          return page.evaluate(() => document.querySelectorAll("[data-surface]").length);
-        },
-        headersFor(route)
-      );
-      expect(count, `${route.path} must render exactly one [data-surface] root`).toBe(1);
-    }
-    if (routes.length === 0) {
-      // Nothing to check today — stated, not silent (rule 5.5).
-      expect(routes).toEqual([]);
-    }
-  }, PER_ROUTE_BROWSER_MS);
+  it(
+    "every route's document has exactly one [data-surface] root",
+    async () => {
+      for (const route of routes) {
+        const count = await withPage(
+          BAND_MIN.compact,
+          async (page) => {
+            await page.goto(urlFor(route));
+            return page.evaluate(
+              () => document.querySelectorAll("[data-surface]").length,
+            );
+          },
+          headersFor(route),
+        );
+        expect(
+          count,
+          `${route.path} must render exactly one [data-surface] root`,
+        ).toBe(1);
+      }
+      if (routes.length === 0) {
+        // Nothing to check today — stated, not silent (rule 5.5).
+        expect(routes).toEqual([]);
+      }
+    },
+    PER_ROUTE_BROWSER_MS,
+  );
 
-  it("every route's :root pins --breakpoint-lg/-xl and --t-floor against BAND_MIN", async () => {
-    for (const route of routes) {
-      const tokens = await withPage(
-        BAND_MIN.compact,
-        async (page) => {
-          await page.goto(urlFor(route));
-          return page.evaluate(() => {
-            const style = getComputedStyle(document.documentElement);
-            return {
-              breakpointLg: style.getPropertyValue("--breakpoint-lg").trim(),
-              breakpointXl: style.getPropertyValue("--breakpoint-xl").trim(),
-              tFloor: style.getPropertyValue("--t-floor").trim(),
-            };
-          });
-        },
-        headersFor(route)
-      );
-      expect(tokens.breakpointLg, `${route.path}: --breakpoint-lg must be declared`).not.toBe("");
-      expect(tokens.breakpointXl, `${route.path}: --breakpoint-xl must be declared`).not.toBe("");
-      expect(tokens.tFloor, `${route.path}: --t-floor must be declared`).not.toBe("");
-      expect(parseFloat(tokens.breakpointLg)).toBe(BAND_MIN.medium);
-      expect(parseFloat(tokens.breakpointXl)).toBe(BAND_MIN.wide);
-    }
-    if (routes.length === 0) {
-      expect(routes).toEqual([]);
-    }
-  }, PER_ROUTE_BROWSER_MS);
+  it(
+    "every route's :root pins --breakpoint-lg/-xl and --t-floor against BAND_MIN",
+    async () => {
+      for (const route of routes) {
+        const tokens = await withPage(
+          BAND_MIN.compact,
+          async (page) => {
+            await page.goto(urlFor(route));
+            return page.evaluate(() => {
+              const style = getComputedStyle(document.documentElement);
+              return {
+                breakpointLg: style.getPropertyValue("--breakpoint-lg").trim(),
+                breakpointXl: style.getPropertyValue("--breakpoint-xl").trim(),
+                tFloor: style.getPropertyValue("--t-floor").trim(),
+              };
+            });
+          },
+          headersFor(route),
+        );
+        expect(
+          tokens.breakpointLg,
+          `${route.path}: --breakpoint-lg must be declared`,
+        ).not.toBe("");
+        expect(
+          tokens.breakpointXl,
+          `${route.path}: --breakpoint-xl must be declared`,
+        ).not.toBe("");
+        expect(
+          tokens.tFloor,
+          `${route.path}: --t-floor must be declared`,
+        ).not.toBe("");
+        expect(parseFloat(tokens.breakpointLg)).toBe(BAND_MIN.medium);
+        expect(parseFloat(tokens.breakpointXl)).toBe(BAND_MIN.wide);
+      }
+      if (routes.length === 0) {
+        expect(routes).toEqual([]);
+      }
+    },
+    PER_ROUTE_BROWSER_MS,
+  );
 });

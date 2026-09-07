@@ -28,6 +28,7 @@
 "use client";
 
 import type React from "react";
+import { useId } from "react";
 
 type InputBase = {
   /** Required — no default label exists. */
@@ -53,8 +54,24 @@ type InputInvalid = InputBase & {
 export type InputProps = InputValid | InputInvalid;
 
 export function Input(p: InputProps): React.JSX.Element {
+  // The label is `for` the field it names, so the whole line is a hit
+  // target and a screen reader announces the two together. `useId` is
+  // React's own server-and-client-stable id — the component is already
+  // `"use client"`, and nothing else in this file needs the value.
+  const id = useId();
+  // 2026-09-07, issue #241: "one string, once." `placeholder` and `label`
+  // are both required with no default (BP-018 decision 2) and several
+  // screens have only one written line for a field, so they pass the same
+  // key twice — which rendered the same two words side by side once the
+  // label stacked above the field. The prop contract is unchanged; what
+  // changes is that a placeholder repeating the label is not drawn.
+  const placeholder = p.placeholder === p.label ? undefined : p.placeholder;
   return (
-    <div>
+    // The field is a column: label, control, then the one written line a
+    // refusal adds. Before this the label was `inline-flex` and sat beside
+    // the input — daisyUI 5's own `.label` rule, which is written for a
+    // label *inside* a control, applied to one standing above it.
+    <div className="flex flex-col gap-1.5">
       {/* 2026-09-06, issue #12: was `label` + `label-text`. `label` is a
           daisyUI *component* of its own and is not one of §2.2's fifteen —
           "daisyUI components only … The set the product uses" is a closed
@@ -62,16 +79,22 @@ export function Input(p: InputProps): React.JSX.Element {
           hand is the one way left past the barrel. `label-text` is worse:
           daisyUI 5 defines no such class at all (it is 4's spelling), so
           it had never styled anything. The utilities below are daisyUI 5's
-          own `.label` rule written out — `display:inline-flex`,
-          `align-items:center`, `gap:.375rem`, `white-space:nowrap` and the
-          60% ink — so nothing about how this renders changes. */}
-      <label className="inline-flex items-center gap-1.5 whitespace-nowrap text-base-content/60">
+          own `.label` rule written out — minus `display:inline-flex` and
+          `white-space:nowrap`, which are what kept the label on the field's
+          line and would clip a long one at 320px (issue #241). */}
+      <label
+        className="flex items-center gap-1.5 text-base-content/60"
+        htmlFor={id}
+      >
         <span>{p.label}</span>
       </label>
       <input
+        id={id}
         type="text"
-        className={["input", p.invalid ? "input-error" : ""].filter(Boolean).join(" ")}
-        placeholder={p.placeholder}
+        className={["input", p.invalid ? "input-error" : ""]
+          .filter(Boolean)
+          .join(" ")}
+        placeholder={placeholder}
         value={p.value}
         name={p.name}
         disabled={p.disabled}

@@ -52,9 +52,14 @@ describe("§2.2 — the registry is the spec's own list, both ways", () => {
   it("every class name §2.2 backticks is registered (no component quietly dropped)", () => {
     const backticked = [...BUILD_MD_2_2.matchAll(/`([a-z][a-z0-9-]*)`/g)]
       .map((m) => m[1])
-      .filter((name): name is string => name !== undefined && name !== NOT_A_COMPONENT);
+      .filter(
+        (name): name is string =>
+          name !== undefined && name !== NOT_A_COMPONENT,
+      );
     const registered = new Set(REGISTERED.flatMap((c) => c.named));
-    expect([...new Set(backticked)].filter((name) => !registered.has(name))).toEqual([]);
+    expect(
+      [...new Set(backticked)].filter((name) => !registered.has(name)),
+    ).toEqual([]);
   });
 
   it("every registered name is one §2.2 backticks (no component quietly added)", () => {
@@ -67,16 +72,22 @@ describe("§2.2 — the registry is the spec's own list, both ways", () => {
 
   it("each row names a stylesheet daisyUI 5 ships, and that stylesheet defines the row's class", () => {
     for (const component of REGISTERED) {
-      expect(VOCAB.stylesheets, component.stylesheet).toContain(component.stylesheet);
+      expect(VOCAB.stylesheets, component.stylesheet).toContain(
+        component.stylesheet,
+      );
       for (const name of component.named) {
-        expect([...(VOCAB.owners.get(name) ?? [])], `.${name}`).toContain(component.stylesheet);
+        expect([...(VOCAB.owners.get(name) ?? [])], `.${name}`).toContain(
+          component.stylesheet,
+        );
       }
     }
   });
 
   it("the barrel exports exactly the fifteen §2.2 registers", () => {
     const source = read("src/ui/components/index.ts");
-    const exported = [...source.matchAll(/^export \{ (\w+)/gm)].map((m) => m[1]);
+    const exported = [...source.matchAll(/^export \{ (\w+)/gm)].map(
+      (m) => m[1],
+    );
     expect(exported.sort()).toEqual(REGISTERED.map((c) => c.exported).sort());
   });
 });
@@ -88,13 +99,17 @@ describe("§2.2 — the registry is the spec's own list, both ways", () => {
  *  bespoke widgets" read the other way round: a sixteenth daisyUI
  *  component, reached by writing its class by hand. daisyUI's utilities
  *  are out of scope by construction (see `isDaisyComponentClass`). */
-function unregisteredDaisyClasses(written: ReadonlyMap<string, Set<string>>): string[] {
+function unregisteredDaisyClasses(
+  written: ReadonlyMap<string, Set<string>>,
+): string[] {
   const out: string[] = [];
   for (const [token, files] of written) {
     if (!isDaisyComponentClass(VOCAB, token)) continue;
     const owners = [...(VOCAB.owners.get(token) ?? [])];
     if (owners.some((owner) => REGISTERED_STYLESHEETS.has(owner))) continue;
-    out.push(`${token} (daisyUI ${owners.join(" ")}) in ${[...files].join(", ")}`);
+    out.push(
+      `${token} (daisyUI ${owners.join(" ")}) in ${[...files].join(", ")}`,
+    );
   }
   return out.sort();
 }
@@ -103,7 +118,9 @@ function unregisteredDaisyClasses(written: ReadonlyMap<string, Set<string>>): st
  *  for — `tabs-boxed`, daisyUI 4's spelling, which styles nothing at all.
  *  A class that does not exist is not "from the registered set"; it is
  *  from nowhere, and it silently drops the component's variant. */
-function deadClassesOnRegisteredBases(written: ReadonlyMap<string, Set<string>>): string[] {
+function deadClassesOnRegisteredBases(
+  written: ReadonlyMap<string, Set<string>>,
+): string[] {
   const out: string[] = [];
   for (const [token, files] of written) {
     if (VOCAB.owners.has(token)) continue;
@@ -145,7 +162,7 @@ const HAND_WRITTEN: ReadonlyArray<{
 /** Every daisyUI component class written outside `src/ui/components/**`
  *  that no row above accounts for. */
 function handWrittenOutsideTheRegistry(
-  written: ReadonlyMap<string, Set<string>> = WRITTEN
+  written: ReadonlyMap<string, Set<string>> = WRITTEN,
 ): string[] {
   const out: string[] = [];
   for (const [token, files] of written) {
@@ -153,7 +170,7 @@ function handWrittenOutsideTheRegistry(
     for (const file of files) {
       if (file.startsWith("src/ui/components/")) continue;
       const allowed = HAND_WRITTEN.some(
-        (row) => row.file === file && row.classes.includes(token)
+        (row) => row.file === file && row.classes.includes(token),
       );
       if (!allowed) out.push(`${token} in ${file}`);
     }
@@ -196,7 +213,9 @@ describe('§2.2 — "daisyUI components only" over src/app/** and src/ui/**', ()
 
   it("every declared exception is still used — a row cannot outlive its reason", () => {
     const stale = HAND_WRITTEN.filter((row) => {
-      const written = row.classes.filter((cls) => WRITTEN.get(cls)?.has(row.file) === true);
+      const written = row.classes.filter(
+        (cls) => WRITTEN.get(cls)?.has(row.file) === true,
+      );
       return written.length !== row.classes.length;
     }).map((row) => row.file);
     expect(stale).toEqual([]);
@@ -205,15 +224,17 @@ describe('§2.2 — "daisyUI components only" over src/app/** and src/ui/**', ()
   it("mutation: a screen that hand-rolls a registered component's markup is caught", () => {
     expect(
       handWrittenOutsideTheRegistry(
-        new Map([["card-body", new Set(["src/app/(public)/pricing/page.tsx"])]])
-      )
+        new Map([
+          ["card-body", new Set(["src/app/(public)/pricing/page.tsx"])],
+        ]),
+      ),
     ).toEqual(["card-body in src/app/(public)/pricing/page.tsx"]);
   });
 
   it("mutation: an exception does not licence the file's other daisyUI classes", () => {
     const file = HAND_WRITTEN[0]?.file ?? "";
     expect(
-      handWrittenOutsideTheRegistry(new Map([["card", new Set([file])]]))
+      handWrittenOutsideTheRegistry(new Map([["card", new Set([file])]])),
     ).toEqual([`card in ${file}`]);
   });
 });
@@ -224,14 +245,40 @@ describe('§2.2 — "daisyUI components only" over src/app/** and src/ui/**', ()
  *  it. Four are the design system itself — tokens, the Tailwind entry
  *  point, the type scale, the layout tokens — and are not any component's
  *  custom CSS. The rest are §2.2's five allowed surfaces. */
-const ALLOWED_CSS: ReadonlyArray<{ readonly path: string; readonly why: string }> = [
-  { path: "src/ui/theme.css", why: "§2.1's tokens — the theme, not a component's custom CSS" },
-  { path: "src/ui/tailwind.css", why: "the Tailwind 4 entry point (2026-09-05 ruling, #93)" },
+const ALLOWED_CSS: ReadonlyArray<{
+  readonly path: string;
+  readonly why: string;
+}> = [
+  {
+    path: "src/ui/theme.css",
+    why: "§2.1's tokens — the theme, not a component's custom CSS",
+  },
+  {
+    path: "src/ui/tailwind.css",
+    why: "the Tailwind 4 entry point (2026-09-05 ruling, #93)",
+  },
   { path: "src/ui/type.css", why: "§2.3's type scale and the one `.num` rule" },
-  { path: "src/ui/layout/layout.css", why: "ADR-093's layout tokens (2026-09-05 ruling, #65)" },
+  {
+    path: "src/ui/layout/layout.css",
+    why: "ADR-093's layout tokens (2026-09-05 ruling, #65)",
+  },
+  {
+    path: "src/ui/layout/surface.css",
+    why:
+      "ADR-093's rendering half (issue #241): the screen root's container, " +
+      "the band gutters and the arm grid. Not a sixth custom surface — it " +
+      "styles no component and draws no chrome, and `[data-surface]` is the " +
+      "one element §2.2's closed set does not cover and no daisyUI class names",
+  },
   { path: "src/ui/layout/shell.css", why: "§2.2 custom CSS: the sidebar" },
-  { path: "src/ui/components/custom/calendar-grid.css", why: "§2.2 custom CSS: the calendar grid" },
-  { path: "src/ui/components/custom/day-panel.css", why: "§2.2 custom CSS: the day panel" },
+  {
+    path: "src/ui/components/custom/calendar-grid.css",
+    why: "§2.2 custom CSS: the calendar grid",
+  },
+  {
+    path: "src/ui/components/custom/day-panel.css",
+    why: "§2.2 custom CSS: the day panel",
+  },
 ];
 
 /** §2.2 admits custom CSS for "the AI dot-matrix, chart SVGs" — the closed
@@ -243,7 +290,9 @@ const ALLOWED_CSS_GLOB = /^src\/ui\/charts\/[^/]+\.css$/;
 
 function unallowedStylesheets(files: readonly string[]): string[] {
   const allowed = new Set(ALLOWED_CSS.map((entry) => entry.path));
-  return files.filter((file) => !allowed.has(file) && !ALLOWED_CSS_GLOB.test(file)).sort();
+  return files
+    .filter((file) => !allowed.has(file) && !ALLOWED_CSS_GLOB.test(file))
+    .sort();
 }
 
 const STYLESHEETS = walkFiles(SRC_DIR, (rel) => rel.endsWith(".css"));
@@ -272,23 +321,30 @@ describe('§2.2 — "Custom CSS is allowed only for … nothing else"', () => {
     // The one this rule is written against: `src/app/(account)/app/
     // settings/settings.css`, which PR #107 removes. This suite asserts
     // the outcome; it does not edit that branch.
-    const inApp = walkFiles(path.join(SRC_DIR, "app"), (rel) => rel.endsWith(".css"));
+    const inApp = walkFiles(path.join(SRC_DIR, "app"), (rel) =>
+      rel.endsWith(".css"),
+    );
     expect(inApp).toEqual([]);
   });
 
   it("mutation: a stylesheet added beside a route is caught", () => {
     expect(
-      unallowedStylesheets([...STYLESHEETS, "src/app/(account)/app/settings/settings.css"])
+      unallowedStylesheets([
+        ...STYLESHEETS,
+        "src/app/(account)/app/settings/settings.css",
+      ]),
     ).toEqual(["src/app/(account)/app/settings/settings.css"]);
   });
 
   it("mutation: a sixth custom surface under src/ui is caught", () => {
-    expect(unallowedStylesheets([...STYLESHEETS, "src/ui/components/Btn.css"])).toEqual([
-      "src/ui/components/Btn.css",
-    ]);
+    expect(
+      unallowedStylesheets([...STYLESHEETS, "src/ui/components/Btn.css"]),
+    ).toEqual(["src/ui/components/Btn.css"]);
   });
 
   it("a chart stylesheet is admitted — §2.2 names chart SVGs", () => {
-    expect(unallowedStylesheets([...STYLESHEETS, "src/ui/charts/marks.css"])).toEqual([]);
+    expect(
+      unallowedStylesheets([...STYLESHEETS, "src/ui/charts/marks.css"]),
+    ).toEqual([]);
   });
 });

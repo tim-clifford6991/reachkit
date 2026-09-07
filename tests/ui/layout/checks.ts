@@ -46,7 +46,10 @@ export const MONO_FONT_FAMILY = "JetBrains Mono";
 // with JavaScript off once opened) and hides it with `overflow: hidden`.
 // Its content box sitting outside the closed shell is the component
 // working, not text escaping its box.
-export const SCROLL_CONTAINER_ALLOWLIST: readonly string[] = [".overflow-x-auto", ".collapse"];
+export const SCROLL_CONTAINER_ALLOWLIST: readonly string[] = [
+  ".overflow-x-auto",
+  ".collapse",
+];
 export const TRUNCATION_ALLOWLIST: readonly string[] = [];
 
 /** Check 1 — no horizontal document scroll. */
@@ -143,7 +146,8 @@ export function checkNoClippingOrTruncation(opts: {
   }
   function isTextBearing(el: Element): boolean {
     for (const node of Array.from(el.childNodes)) {
-      if (node.nodeType === 3 && (node.textContent ?? "").trim() !== "") return true;
+      if (node.nodeType === 3 && (node.textContent ?? "").trim() !== "")
+        return true;
     }
     return false;
   }
@@ -166,13 +170,17 @@ export function checkNoClippingOrTruncation(opts: {
     // element itself is not inside one.
     if (el.closest("svg")) continue;
     if (!isTextBearing(el)) continue;
-    const clipped = el.scrollWidth > el.clientWidth || el.scrollHeight > el.clientHeight;
+    const clipped =
+      el.scrollWidth > el.clientWidth || el.scrollHeight > el.clientHeight;
     if (!clipped) continue;
     const allowListed = matchesAny(el, truncationAllowlist);
     const family = getComputedStyle(el).fontFamily || "";
     const isValue = family.toLowerCase().includes(monoFontFamily.toLowerCase());
     if (!allowListed || isValue) {
-      offenders.push({ check: "no-clipping-or-truncation", element: describe(el) });
+      offenders.push({
+        check: "no-clipping-or-truncation",
+        element: describe(el),
+      });
     }
   }
   return offenders;
@@ -190,7 +198,8 @@ export function checkTypeFloor(): Offender[] {
   }
   function isTextBearing(el: Element): boolean {
     for (const node of Array.from(el.childNodes)) {
-      if (node.nodeType === 3 && (node.textContent ?? "").trim() !== "") return true;
+      if (node.nodeType === 3 && (node.textContent ?? "").trim() !== "")
+        return true;
     }
     return false;
   }
@@ -211,6 +220,117 @@ export function checkTypeFloor(): Offender[] {
     if (Number.isFinite(size) && size < floor) {
       offenders.push({ check: "type-floor", element: describe(el) });
     }
+  }
+  return offenders;
+}
+
+/** `design/tokens.md` §2's spacing scale, one step per band: the air a
+ *  screen root keeps either side of its content, and the same step it
+ *  keeps above and below. `--s-4` at compact, `--s-5` at medium, `--s-6`
+ *  at wide — and `--s-6` is §2b's own construction, "the breakpoint above
+ *  the content, less 2 × `--s-6` of air", so the wide band's gutter is the
+ *  one the two measures were derived against. Pinned back against
+ *  `src/ui/layout/surface.css` by `tests/ui/layout-tokens.test.ts`. */
+export const SURFACE_GUTTER_PX = { compact: 16, medium: 24, wide: 32 } as const;
+
+/** `design/tokens.md` §2b, "Two content measures": `--w-read` 704px for a
+ *  single reading column, `--w-wide` 1216px for a multi-column one. Which
+ *  a surface gets is read off its arms, never declared twice. */
+export const CONTENT_MEASURE_PX = { read: 704, wide: 1216 } as const;
+
+/** Check 5 — the screen root renders its container.
+ *
+ *  Issue #241: `Surface` wrote its attributes and no stylesheet matched
+ *  them, so every screen root was a bare block flush to the top-left — and
+ *  checks 1-4 all passed, because none of them fails on a page with zero
+ *  padding. Overflow, containment, truncation and the type floor are
+ *  properties of content inside boxes; nothing above asks whether the
+ *  outermost box exists.
+ *
+ *  Two assertions, both read off the rendered document rather than off the
+ *  stylesheet: the content edge is at least the band's gutter from the
+ *  viewport edge on both sides, and the content box is at most the ruled
+ *  measure. `src/ui/layout/surface.css` is what satisfies them; the check
+ *  never names that file, so a second way of drawing the same container
+ *  would pass it and a screen that opted out of the law would not.
+ *
+ *  One object argument, closure-free, for the same reason as checks 2-4:
+ *  this source text is serialised into a Chromium tab by `page.evaluate`.
+ *  The numbers come from `BAND_MIN` and `design/tokens.md` through the
+ *  caller (`layout.test.ts`), so this file mints none of them. */
+export function checkSurfaceContainer(opts: {
+  /** `BAND_MIN` — the two boundaries that pick the band, in CSS px. */
+  bandMin: { medium: number; wide: number };
+  /** The band's gutter, in CSS px: `design/tokens.md` §2's spacing steps. */
+  gutterPx: { compact: number; medium: number; wide: number };
+  /** §2b's two content measures, in CSS px. */
+  measurePx: { read: number; wide: number };
+}): Offender[] {
+  const { bandMin, gutterPx, measurePx } = opts;
+  function describe(el: Element): string {
+    const tag = el.tagName.toLowerCase();
+    const arms = ["compact", "medium", "wide"]
+      .map((band) => `${band}=${el.getAttribute(`data-arm-${band}`) ?? "?"}`)
+      .join(" ");
+    return `${tag}[data-surface] (${arms})`;
+  }
+
+  const surface = document.querySelector("[data-surface]");
+  if (!surface)
+    return [
+      {
+        check: "surface-container",
+        element: "no [data-surface] in the document",
+      },
+    ];
+
+  const width = window.innerWidth;
+  const band =
+    width >= bandMin.wide
+      ? "wide"
+      : width >= bandMin.medium
+        ? "medium"
+        : "compact";
+  const gutter = gutterPx[band];
+
+  // The measure the arms select, walking `same-as-below` down exactly as
+  // `surface.css` does: wide, else medium, else compact. A surface still
+  // one column at its widest is a reading column (`--w-read`); anything
+  // that opens into columns is a content column (`--w-wide`).
+  function resolvedWideArm(el: Element): string {
+    let arm = el.getAttribute("data-arm-wide") ?? "";
+    if (arm === "same-as-below") arm = el.getAttribute("data-arm-medium") ?? "";
+    if (arm === "same-as-below")
+      arm = el.getAttribute("data-arm-compact") ?? "";
+    return arm;
+  }
+  const measure =
+    resolvedWideArm(surface) === "columns:1" ? measurePx.read : measurePx.wide;
+
+  const offenders: Offender[] = [];
+  const box = surface.getBoundingClientRect();
+  const style = getComputedStyle(surface);
+  const padLeft = parseFloat(style.paddingLeft) || 0;
+  const padRight = parseFloat(style.paddingRight) || 0;
+  // Half a pixel, the epsilon check 2 already uses: a centred column at an
+  // odd viewport width lands on a fractional edge.
+  const EPS = 0.5;
+
+  const leftAir = box.left + padLeft;
+  const rightAir = width - (box.right - padRight);
+  if (leftAir < gutter - EPS || rightAir < gutter - EPS) {
+    offenders.push({
+      check: "surface-gutter",
+      element: `${describe(surface)} — ${band} band wants ${gutter}px either side, has ${Math.round(leftAir)}/${Math.round(rightAir)}`,
+    });
+  }
+
+  const content = box.width - padLeft - padRight;
+  if (content > measure + EPS) {
+    offenders.push({
+      check: "surface-measure",
+      element: `${describe(surface)} — content ${Math.round(content)}px exceeds the ${measure}px measure`,
+    });
   }
   return offenders;
 }

@@ -1,0 +1,211 @@
+/* src/ui/layout/surface.css — BUILD §2.2–§2.3, ADR-093 (DECISIONS
+ * 2026-09-02, 2026-09-05 #65/#83). Issue #241.
+ *
+ * ADR-093 defined the arms and the four conformance checks and never the
+ * rendering: `src/ui/layout/Surface.tsx` writes `data-surface` and one
+ * `data-arm-<band>` per band, "no class, no style", and until this file
+ * existed no stylesheet in the served bundle had a `[data-surface]` or
+ * `[data-arm-*]` rule at all. Every screen root therefore rendered flush
+ * to the top-left with no container, no gutters and no grid — and none of
+ * checks 1-4 fails on a page with zero padding, which is how it reached
+ * dev. Check 5 (`tests/ui/layout/checks.ts`) is the half that was missing.
+ *
+ * This is the layout module's own sheet, beside `layout.css`, and it is
+ * not one of `BUILD.md` §2.2's five custom-CSS surfaces: it styles no
+ * component and draws no chrome. It places the screen root, which is the
+ * one element §2.2's set does not cover and no daisyUI class names.
+ *
+ * TOKENS. `design/tokens.md` §2's spacing scale and §2b's two content
+ * measures are ruled values, transcribed here and pinned back by
+ * `tests/ui/layout-tokens.test.ts`. They are declared on `:root` because
+ * this sheet ships on every route and its rules read them there;
+ * `src/ui/theme.css` cannot hold them (`tests/ui/tokens.test.ts` refuses
+ * any token `BUILD.md` §2.1 does not state) and `shell.css` scopes its own
+ * copies to `.rk-shell`, which is the sidebar's subtree and not a screen
+ * root. Only the steps this sheet spends are declared; the rest of the
+ * seven-step scale keeps its present home until the design system's own
+ * order (issue #12) gives the whole scale one.
+ */
+
+:root {
+  /* design/tokens.md §2 spacing scale (owner ruling, 2026-09-02) — the
+   * three steps this sheet spends, transcribed, not chosen. */
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+
+  /* design/tokens.md §2b, "Two content measures": "One construction, so a
+   * third does not get minted: the breakpoint above the content, less
+   * 2 × `--s-6` of air."
+   *   --w-read  704px = --breakpoint-md 768  − 2 × --s-6 — "a single
+   *                     reading column … any one-column form"
+   *   --w-wide 1216px = --breakpoint-xl 1280 − 2 × --s-6 — "a multi-column
+   *                     content column — the public report's six modules"
+   * Both are **content** measures: the air sits outside them, which is why
+   * the cap below adds the band's gutter back on either side. */
+  --w-read: 704px;
+  --w-wide: 1216px;
+
+  /* The page ground, on the canvas rather than on the content box. Issue
+   * #241, the visual audit's own finding: daisyUI's theme paints the root
+   * with `base-100` — which `tailwind.config.ts` maps onto `--surface`, the
+   * white a card is drawn on — so the `--bg` ground `src/ui/tailwind.css`
+   * paints on `body` stopped where the content stopped and every route was
+   * white below the fold. One declaration, on the root, both themes: `--bg`
+   * is `src/ui/theme.css`'s token and changes with the theme, so nothing is
+   * stated twice. This sheet is unlayered and daisyUI's base sits inside
+   * `@layer base`, which is what makes one line enough. */
+  background: var(--bg);
+}
+
+/* ── The container ────────────────────────────────────────────────────── */
+
+/* One centred column with the band's air either side. `--rk-gutter` is the
+ * band's step, raised by the two media queries at the foot of this file;
+ * `--rk-measure` is the ruled measure the surface's own arms select, just
+ * below. Both are internal names (rule 1.1) and are read nowhere else.
+ *
+ * The gutter is `padding`, not `margin`, so a screen that wants a
+ * full-bleed band inside it can still reach the container's edge; and the
+ * same step sets the block padding, so a screen's air is one decision per
+ * band rather than two.
+ *
+ * `max-width` is the measure **plus the two gutters**: Tailwind's preflight
+ * ships in this bundle (`src/ui/tailwind.css`), so every box is
+ * `border-box` and a cap of `var(--w-read)` alone would leave a 640px
+ * reading column at the widest viewport rather than the ruled 704. At the
+ * wide band the arithmetic is §2b's own: 1216 + 2 × 32 = 1280 = the
+ * breakpoint the measure was derived from. */
+[data-surface] {
+  box-sizing: border-box;
+  --rk-gutter: var(--s-4);
+  --rk-measure: var(--w-wide);
+  width: 100%;
+  max-width: calc(var(--rk-measure) + 2 * var(--rk-gutter));
+  margin-inline: auto;
+  padding-inline: var(--rk-gutter);
+  padding-block: var(--rk-gutter);
+  min-width: 0;
+}
+
+/* §2b: `--w-read` is "a single reading column"; `--w-wide` is "a
+ * multi-column content column". Which of the two a screen gets is
+ * therefore not a new declaration — it is already in the arms, and the
+ * question the measure asks is what the **wide** arm resolves to. The
+ * three selectors below walk `same-as-below` down exactly as a reader
+ * does: wide, else medium, else compact. A surface still one column at its
+ * widest reads at 704; anything that opens into columns gets 1216. */
+[data-surface][data-arm-wide="columns:1"],
+[data-surface][data-arm-wide="same-as-below"][data-arm-medium="columns:1"],
+[data-surface][data-arm-wide="same-as-below"][data-arm-medium="same-as-below"][data-arm-compact="columns:1"] {
+  --rk-measure: var(--w-read);
+}
+
+/* ── The arms ─────────────────────────────────────────────────────────── */
+
+/* `columns:N` is a grid of N equal tracks. `minmax(0, 1fr)` rather than
+ * `1fr` because a grid item's automatic minimum size is its content's, so
+ * one long unbroken value in a column widens the track and pushes the
+ * grid past the container — check 1's failure, from a rule meant to
+ * prevent it. The gap is `--s-4`, §2's own "grid gap" step.
+ *
+ * The compact rules carry no media query: `BAND_MIN.compact` is 320 and
+ * the band has no floor to guard, and leaving them unconditional is what
+ * makes `same-as-below` free — a band that declares it emits no rule, so
+ * the band below's is still the one in force. The two media queries below
+ * come later in the file at equal specificity, so a band that *does*
+ * declare its own arm wins inside its own query. */
+/* Master's ruling on the #241 mockup: `align-items: start` — a shorter card
+ * keeps its own height. `stretch`, the default, makes every card in a row as
+ * tall as the tallest, which is a box of empty space under the shorter one's
+ * last line and reads as a card that lost its content. */
+[data-surface][data-arm-compact^="columns:"] {
+  display: grid;
+  align-items: start;
+  gap: var(--s-4);
+}
+
+[data-surface][data-arm-compact="columns:1"] {
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+[data-surface][data-arm-compact="columns:2"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* A surface whose children are one element has no columns to fill: the
+ * columns that element names are its own, drawn by its own stylesheet.
+ * The `/app` shell is the case that forced the rule — `medium: columns:2`
+ * is the sidebar beside the main column (222px and the rest, not two
+ * equal tracks), and `shell.css` already draws them; without this the
+ * shell would sit in track one at half the width. Stated here, generally,
+ * rather than as a rule about `.rk-shell` in a sheet that must not know
+ * the shell exists. */
+[data-surface] > :only-child {
+  grid-column: 1 / -1;
+}
+
+/* `declared` is the arm for a band whose behaviour is written down rather
+ * than drawn (`Arm`'s third kind, `src/ui/layout/bands.ts`): it gets the
+ * container and nothing else, so a band below it cannot leave a grid in
+ * force that the note never claimed. */
+@media (min-width: 1024px) {
+  [data-surface][data-arm-medium^="declared:"] {
+    display: block;
+  }
+}
+
+@media (min-width: 1280px) {
+  [data-surface][data-arm-wide^="declared:"] {
+    display: block;
+  }
+}
+
+/* ── The bands ────────────────────────────────────────────────────────── */
+
+/* 1024px = `--breakpoint-lg` = `BAND_MIN.medium`; 1280px = `--breakpoint-xl`
+ * = `BAND_MIN.wide`. design/tokens.md §2b: "A media query cannot read a
+ * `var()`. The literal inside an `@media` prelude is therefore the one raw
+ * value the stylesheet still admits, and it must equal a token named
+ * above." Both are pinned against `BAND_MIN` by
+ * `tests/ui/layout-tokens.test.ts` — the shape `layout.css` and
+ * `shell.css` already use. */
+@media (min-width: 1024px) {
+  [data-surface] {
+    --rk-gutter: var(--s-5);
+  }
+
+  [data-surface][data-arm-medium^="columns:"] {
+    display: grid;
+    align-items: start;
+    gap: var(--s-4);
+  }
+
+  [data-surface][data-arm-medium="columns:1"] {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+
+  [data-surface][data-arm-medium="columns:2"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  [data-surface] {
+    --rk-gutter: var(--s-6);
+  }
+
+  [data-surface][data-arm-wide^="columns:"] {
+    display: grid;
+    align-items: start;
+    gap: var(--s-4);
+  }
+
+  [data-surface][data-arm-wide="columns:1"] {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+
+  [data-surface][data-arm-wide="columns:2"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
