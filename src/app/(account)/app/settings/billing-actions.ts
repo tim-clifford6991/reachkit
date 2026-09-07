@@ -17,12 +17,20 @@
 // and the map the panel calls all live in `./actions`, which both this file
 // and the screen import.
 //
-// **Which account is acting.** `src/middleware.ts` has already refused this
-// request unless it carried a session cookie, so a caller reaching here is
-// signed in; *which* account it is, is #35's `currentSession()`, which does
-// not exist yet. Until it does this uses the same fixture account
-// `/api/setup` and `calendar/publishing-actions.ts` use — one stand-in,
-// named once, not a third guess.
+// **Which account is acting is the session's** (#134). `src/middleware.ts`
+// has already refused this request unless it carried a session cookie, so a
+// caller reaching here was signed in when the screen rendered; *which*
+// account it is, is identity's `currentSession()`, which verifies the MAC,
+// the signed expiry, the account's own session stamp and its tombstone.
+//
+// These three mint a portal session **against an account**, so a stand-in id
+// here would open somebody else's billing surface. There is no fallback:
+// where the session cannot be resolved — it ended between the render and the
+// press, or the account was tombstoned in between — the customer is sent to
+// the sign-in screen rather than acted for. That is BUILD §4.3's own gate
+// reached from the action instead of from the render, and it needs no new
+// arm and no new sentence: `elsewhere` is the arm `useAction` navigates on,
+// and a full request is what re-runs the middleware with the jar as it is.
 //
 // **`@/lib/account/billing` and `@/lib/config/env` are imported inside the
 // call, not at the top.** Both reach the environment the moment they are
@@ -35,12 +43,28 @@
 // reason.
 "use server";
 
-import { FIXTURE_USER_ID } from "@/app/(account)/setup/_setup/fixture";
+import { SIGNIN_PATH } from "@/lib/account/identity/addresses";
 import type { ActionOutcome } from "./actions";
 
-function currentUserId(): string {
-  return FIXTURE_USER_ID;
+/** The signed-in account, or `null`. The import is at the call for the
+ *  reason this file's header states of the other two: identity reaches
+ *  `@/lib/db`, which parses the environment the moment it is evaluated, and
+ *  this module is imported statically by a client component. */
+async function currentUserId(): Promise<string | null> {
+  try {
+    const { currentSession } = await import("@/lib/account/identity");
+    return (await currentSession())?.userId ?? null;
+  } catch {
+    // No environment, or a store that could not be constructed at all.
+    // Not a session, and never a guess at one.
+    return null;
+  }
 }
+
+/** BUILD §4.3's gate, reached from an action: a press that arrives without a
+ *  session is answered by sending the customer to the sign-in screen, not by
+ *  acting for an account nobody could name. */
+const SIGNED_OUT: ActionOutcome = { done: "elsewhere", href: SIGNIN_PATH };
 
 /** REQ-097 c1's `return_url`: the screen the customer pressed the control
  *  on. Absolute, because `portalLink` parses it and compares origins rather
@@ -62,8 +86,10 @@ async function returnToSettings(): Promise<string> {
  */
 async function openPortal(): Promise<ActionOutcome> {
   try {
+    const userId = await currentUserId();
+    if (userId === null) return SIGNED_OUT;
     const { portalLink } = await import("@/lib/account/billing");
-    const link = await portalLink(currentUserId(), await returnToSettings());
+    const link = await portalLink(userId, await returnToSettings());
     return link.ok ? { done: "elsewhere", href: link.url } : { done: "unreachable" };
   } catch {
     // No environment, or a module that could not be constructed at all.
@@ -105,14 +131,16 @@ export async function cancelPlan(): Promise<ActionOutcome> {
  */
 export async function resumePlan(): Promise<ActionOutcome> {
   try {
+    const userId = await currentUserId();
+    if (userId === null) return SIGNED_OUT;
     const { billingSummary, resumeSubscription } = await import("@/lib/account/billing");
-    const read = await billingSummary(currentUserId());
+    const read = await billingSummary(userId);
     // A summary that cannot be read is not a reason to guess which path
     // this is. Criterion 6 is not served by resuming the wrong way.
     if (!read.ok) return { done: "unreachable" };
     if (read.summary.paidThrough.getTime() > Date.now()) return openPortal();
 
-    const resumed = await resumeSubscription(currentUserId());
+    const resumed = await resumeSubscription(userId);
     return resumed.ok ? { done: "here" } : { done: "unreachable" };
   } catch {
     return { done: "unreachable" };

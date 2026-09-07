@@ -11,23 +11,36 @@
 // stops: everything below it — Stripe's SDK, the store, the portal
 // configuration — is `tests/account/billing/portal.test.ts`'s, and asserting
 // it again here would only assert the double.
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { applyEnvFixture } from "../../mail/env-fixture";
 
 applyEnvFixture();
 
-const { portalLink, billingSummary, resumeSubscription } = vi.hoisted(() => ({
+const { portalLink, billingSummary, resumeSubscription, currentSession } = vi.hoisted(() => ({
   portalLink: vi.fn(),
   billingSummary: vi.fn(),
   resumeSubscription: vi.fn(),
+  currentSession: vi.fn(),
 }));
 
 vi.mock("@/lib/account/billing", () => ({ portalLink, billingSummary, resumeSubscription }));
 
+// #134: which account is acting is the session's, not the #35 stand-in.
+// Identity is doubled at the same seam and for the same reason billing is —
+// what `currentSession()` verifies is `tests/account/identity/session.test.ts`'s.
+vi.mock("@/lib/account/identity", () => ({ currentSession }));
+
 const { openBillingSurface, cancelPlan, resumePlan } = await import(
   "@/app/(account)/app/settings/billing-actions"
 );
-const { FIXTURE_USER_ID } = await import("@/app/(account)/setup/_setup/fixture");
+const { SIGNIN_PATH } = await import("@/lib/account/identity/addresses");
+
+/** The account the session names. Nothing about it is the fixture id the
+ *  three actions used before #134 — a test that kept asserting that value
+ *  would pass against a wiring that ignored the session entirely. */
+const SIGNED_IN_USER = "user-from-the-session";
 
 /** A `paidThrough` in the future / in the past, which is the only fact
  *  `resumePlan` branches on. */
@@ -53,6 +66,9 @@ beforeEach(() => {
   // Re-implemented rather than reset: a `vi.fn` left with no implementation
   // returns `undefined`, and a test that then awaits it fails on a shape
   // rather than on the behaviour it is about.
+  currentSession.mockImplementation(() =>
+    Promise.resolve({ userId: SIGNED_IN_USER, siteId: "site-1" })
+  );
   portalLink.mockImplementation(() => Promise.resolve({ ok: true, url: "https://billing.stripe.test/session/abc" }));
   billingSummary.mockImplementation(() => Promise.resolve(summaryOf(AHEAD)));
   resumeSubscription.mockImplementation(() => Promise.resolve({ ok: true, paidThrough: AHEAD }));
@@ -91,7 +107,7 @@ describe("REQ-097 c1 — the three controls reach the one destination, minted at
   it("the customer comes back to the screen they pressed on, at our own origin", async () => {
     await openBillingSurface();
     const [userId, returnTo] = portalLink.mock.calls[0] as [string, string];
-    expect(userId).toBe(FIXTURE_USER_ID);
+    expect(userId).toBe(SIGNED_IN_USER);
     expect(new URL(returnTo).pathname).toBe("/app/settings");
     expect(new URL(returnTo).origin).toBe(new URL("https://reachkit.example").origin);
   });
@@ -141,14 +157,14 @@ describe("REQ-076 c6 — resume, before or after the paid-through date", () => {
   it("after the date it calls `resumeSubscription()` — the portal has nothing to restart", async () => {
     billingSummary.mockImplementation(() => Promise.resolve(summaryOf(BEHIND)));
     await expect(resumePlan()).resolves.toEqual({ done: "here" });
-    expect(resumeSubscription).toHaveBeenCalledWith(FIXTURE_USER_ID);
+    expect(resumeSubscription).toHaveBeenCalledWith(SIGNED_IN_USER);
     expect(portalLink).not.toHaveBeenCalled();
   });
 
   it("the date is read at the press, not taken from what the screen rendered", async () => {
     billingSummary.mockImplementation(() => Promise.resolve(summaryOf(BEHIND)));
     await resumePlan();
-    expect(billingSummary).toHaveBeenCalledWith(FIXTURE_USER_ID);
+    expect(billingSummary).toHaveBeenCalledWith(SIGNED_IN_USER);
   });
 
   it("a resume that fails is criterion 6's written line, never a reported success", async () => {
@@ -162,5 +178,56 @@ describe("REQ-076 c6 — resume, before or after the paid-through date", () => {
     await expect(resumePlan()).resolves.toEqual({ done: "unreachable" });
     expect(resumeSubscription).not.toHaveBeenCalled();
     expect(portalLink).not.toHaveBeenCalled();
+  });
+});
+
+// ── #134 — the account is the session's, and a press without one refuses ──
+
+describe("BUILD §4.3's gate, reached from an action", () => {
+  it("every one of the three acts for the account the session names", async () => {
+    await openBillingSurface();
+    await cancelPlan();
+    billingSummary.mockImplementation(() => Promise.resolve(summaryOf(BEHIND)));
+    await resumePlan();
+
+    for (const call of portalLink.mock.calls) expect(call[0]).toBe(SIGNED_IN_USER);
+    expect(billingSummary).toHaveBeenCalledWith(SIGNED_IN_USER);
+    expect(resumeSubscription).toHaveBeenCalledWith(SIGNED_IN_USER);
+  });
+
+  it("a press with no session sends the customer to the sign-in screen and mints nothing", async () => {
+    currentSession.mockImplementation(() => Promise.resolve(null));
+
+    for (const press of [openBillingSurface, cancelPlan, resumePlan]) {
+      await expect(press(), press.name).resolves.toEqual({
+        done: "elsewhere",
+        href: SIGNIN_PATH,
+      });
+    }
+
+    // Nothing was attempted for an account nobody could name: no portal
+    // session, no read, no resume.
+    expect(portalLink).not.toHaveBeenCalled();
+    expect(billingSummary).not.toHaveBeenCalled();
+    expect(resumeSubscription).not.toHaveBeenCalled();
+  });
+
+  it("a session that cannot be resolved at all is the same refusal, never a guess at an account", async () => {
+    currentSession.mockImplementation(() => Promise.reject(new Error("no environment")));
+    await expect(openBillingSurface()).resolves.toEqual({ done: "elsewhere", href: SIGNIN_PATH });
+    expect(portalLink).not.toHaveBeenCalled();
+  });
+
+  it("the module names no stand-in account — the id it uses can only come from the session", () => {
+    const source = readFileSync(
+      path.resolve(import.meta.dirname, "../../../src/app/(account)/app/settings/billing-actions.ts"),
+      "utf8"
+    )
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .split("\n")
+      .filter((line) => !line.trimStart().startsWith("//"))
+      .join("\n");
+    expect(source).not.toContain("FIXTURE_USER_ID");
+    expect(source).toContain("currentSession");
   });
 });

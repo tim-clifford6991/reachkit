@@ -28,6 +28,9 @@
 //
 // **Since issue #136, three of the seven are wired** (`SETTINGS_ACTIONS`),
 // and the stub's shape is what made that cheap: the panels were not touched.
+// **#134 makes it four**: `sign_out` is its real delegation now, added the
+// same way and for the same reason — ending a session writes a cookie, so
+// it too is a Server Function reference rather than a function body.
 //
 // This module still reaches nothing itself: no database, no vendor, no
 // `fetch`. What it now imports is `./billing-actions`, a `"use server"`
@@ -37,6 +40,7 @@
 // crosses into the browser.
 import { ACTIONS, type ActionKey } from "./settable";
 import { cancelPlan, openBillingSurface, resumePlan } from "./billing-actions";
+import { signOutAction } from "./account-actions";
 
 /** What an action did. Every arm is a state the screen can render today; none
  *  of them pretends work happened that did not. */
@@ -72,6 +76,8 @@ export type SettingsActions = Readonly<Record<ActionKey, () => Promise<ActionOut
  *         (REQ-097 c1) and resume past the date (REQ-076 c6). #34 built
  *         `portalLink()` underneath it.
  *  #35 — Identity: `signOut`, the account card and email change (REQ-077/098).
+ *        Wired by #134; the row stays, because which issue owns an action is
+ *        a fact about the action and not about whether it is done yet.
  *  #52 — Export everything, danger zone, `confirmDangerAction`,
  *        `deleteAccount`, the 30-day purge (REQ-078/079). */
 export const WIRED_BY: Record<ActionKey, number> = {
@@ -102,18 +108,21 @@ export const FIXTURE_ACTIONS: SettingsActions = Object.freeze(
  *
  * Issue #136 wired the three billing controls, and the shape the stub was
  * built for is exactly what made that a three-line change — the panels were
- * not touched. The other four still answer `not-yet` with their issue, which
- * is the honest state and not a placeholder for success.
+ * not touched. #134 added the fourth the same way. The other three still
+ * answer `not-yet` with their issue, which is the honest state and not a
+ * placeholder for success.
  *
- * The three delegations live in `./billing-actions`, a `"use server"` module:
- * a portal session is short-lived and must be minted at the press, and the
- * module that mints it reaches Stripe and the database, which no client
- * bundle may contain. Importing it here is what gives the panels a Server
- * Function reference to call.
+ * The delegations live in `./billing-actions` and `./account-actions`, both
+ * `"use server"` modules: a portal session is short-lived and must be minted
+ * at the press, ending a session writes a cookie, and the modules that do
+ * either reach Stripe, the database or the request's own jar — none of which
+ * a client bundle may contain. Importing them here is what gives the panels
+ * a Server Function reference to call.
  */
 export const SETTINGS_ACTIONS: SettingsActions = Object.freeze({
   ...FIXTURE_ACTIONS,
   invoices: openBillingSurface,
   cancel: cancelPlan,
   resume: resumePlan,
+  sign_out: signOutAction,
 });

@@ -47,18 +47,38 @@
 // is a measurement, a vendor call or a model call.
 import { cache } from "react";
 import type { DestinationView } from "@/lib/publish/types";
-import { assembleSettings, type BillingFacts, type SettingsModel } from "./model";
+import { assembleSettings, type AccountFacts, type BillingFacts, type SettingsModel } from "./model";
 import { FIXTURE_SETTINGS_FACTS } from "./fixture";
 import { FIXTURE_USER_ID } from "../../setup/_setup/fixture";
 
-/** The signed-in account. `src/middleware.ts` has already refused this
- *  request unless it carried a session cookie, so a caller reaching here is
- *  signed in; **which** account it is, is #35's `currentSession()`, which
- *  does not exist yet. Until it does this returns the fixture account — the
- *  same stand-in, named the same way, that `src/app/api/setup/route.ts`
- *  uses, so there is one guess in the codebase and not two. */
-function currentUserId(): string {
-  return FIXTURE_USER_ID;
+/**
+ * The signed-in account (#134).
+ *
+ * `src/middleware.ts` has already refused this request unless it carried a
+ * session cookie, so a caller reaching here is signed in; **which** account
+ * it is, is identity's `currentSession()`. It answers `null` for an absent,
+ * malformed, forged, expired, ended or tombstoned cookie, and this returns
+ * the fixture account there rather than throwing the screen away — the same
+ * fail-towards-the-fixture shape the billing read has had since #34, and
+ * what keeps a preview with no session, the layout build and the
+ * presentation sweeps rendering a whole screen.
+ *
+ * Nothing on that path writes: every control takes the *session's* own id at
+ * the press (`account-actions.ts`, `billing-actions.ts`) and refuses where
+ * there is none, so a fixture id here can render a card and can never act
+ * for somebody else's account.
+ *
+ * The import is at the call, not at the top, for the reason
+ * `readBillingFacts` states below.
+ */
+async function currentUserId(): Promise<string> {
+  try {
+    const { currentSession } = await import("@/lib/account/identity");
+    const session = await withDeadline(currentSession());
+    return session?.userId ?? FIXTURE_USER_ID;
+  } catch {
+    return FIXTURE_USER_ID;
+  }
 }
 
 /** REQ-097 c1's one destination, as the model's fallback. The action seam
@@ -69,25 +89,32 @@ function currentUserId(): string {
 const BILLING_SURFACE = "/app/settings";
 
 /**
- * How long the one read on this screen may take before the card falls back.
+ * How long any one read on this screen may take before its card falls back.
  *
  * Chosen here rather than pinned in `constants.ts` on the same grounds
- * `src/middleware.ts` states for its own: it is a property of this one
- * request-path read and lives in exactly one file. It exists because this
+ * `src/middleware.ts` states for its own: it is a property of this screen's
+ * request-path reads and lives in exactly one file. It exists because this
  * screen renders per request (#133 made every `(account)` route dynamic),
  * so a database that is slow or unreachable has to cost the card its
  * facts, not the customer their screen — and the `catch` below does not
  * cover that on its own, because a request that never settles never
  * rejects. The layout conformance sweep renders this screen against a
  * database that is not there, which is exactly that case.
+ *
+ * **All three of this screen's reads are behind it** (#134 added the
+ * account one and put the session read in front of them), and the three are
+ * made concurrently in `readSettings` — so the bound is paid once rather
+ * than three times, and the healthy path is one round trip shorter than
+ * doing them in turn. The name kept its `BILLING_` prefix until this issue;
+ * it guards more than billing now, and says so.
  */
-const BILLING_READ_DEADLINE_MS = 800;
+const READ_DEADLINE_MS = 800;
 
 function withDeadline<T>(work: Promise<T>): Promise<T> {
   return Promise.race([
     work,
     new Promise<T>((_resolve, reject) =>
-      setTimeout(() => reject(new Error("billing read timed out")), BILLING_READ_DEADLINE_MS)
+      setTimeout(() => reject(new Error("a settings read timed out")), READ_DEADLINE_MS)
     ),
   ]);
 }
@@ -153,11 +180,68 @@ export async function readDestinations(
   // must not drag a database client into a screen that never asks it
   // anything.
   const { listDestinations } = await import("@/lib/publish/destinations");
-  return listDestinations(siteId);
+  try {
+    return await withDeadline(listDestinations(siteId));
+  } catch {
+    // Bounded like the other two, and falling back the same way: the card
+    // draws the fixture's own destination rather than an empty list, which
+    // is what it already did for every render with no site id.
+    return FIXTURE_SETTINGS_FACTS.destinations;
+  }
 }
 
+/**
+ * REQ-077 criteria 1 and 4, as the card reads them (#134).
+ *
+ * The name, the address, the change awaiting confirmation and the two note
+ * lines all come from one call to `accountCard()`. This screen computes
+ * none of them — in particular it does **not** decide whether a pending
+ * change has lapsed. That window is `accountCard()`'s, computed from
+ * `pending_email_sent_at` and never stored, and a second copy of the
+ * arithmetic here is how a screen ends up offering to cancel a change that
+ * is already over.
+ *
+ * Falls back to the fixture's account for a read that cannot be made, the
+ * same as the billing half — and the fixture holds no pending change, so
+ * the fallback can never invent one.
+ */
+export async function readAccountFacts(userId: string): Promise<AccountFacts> {
+  try {
+    const { accountCard } = await import("@/lib/account/identity");
+    const card = await withDeadline(accountCard(userId));
+    if (card === null) return FIXTURE_ACCOUNT;
+    return {
+      name: card.name,
+      email: card.email,
+      pendingEmail: card.pending,
+      noteKeys: card.noteKeys,
+    };
+  } catch {
+    return FIXTURE_ACCOUNT;
+  }
+}
+
+/** The fixture's own account slice, named once so both fallbacks above
+ *  return the same three fields and no fourth is forgotten. */
+const FIXTURE_ACCOUNT: AccountFacts = {
+  name: FIXTURE_SETTINGS_FACTS.name,
+  email: FIXTURE_SETTINGS_FACTS.email,
+  pendingEmail: FIXTURE_SETTINGS_FACTS.pendingEmail,
+  noteKeys: FIXTURE_SETTINGS_FACTS.noteKeys,
+};
+
 export const readSettings = cache(async function readSettings(): Promise<SettingsModel> {
-  const billing = await readBillingFacts(currentUserId());
-  const destinations = await readDestinations(currentSiteId());
-  return assembleSettings({ ...FIXTURE_SETTINGS_FACTS, billing, destinations });
+  // The session first, because two of the three reads are *about* an
+  // account and cannot be made without knowing which. The three that follow
+  // are independent of each other and are made together: sequentially they
+  // would be three round trips on every render of this screen, and — since
+  // each is bounded — three deadlines deep on a database that is
+  // unreachable, where concurrently they are one.
+  const userId = await currentUserId();
+  const [billing, destinations, account] = await Promise.all([
+    readBillingFacts(userId),
+    readDestinations(currentSiteId()),
+    readAccountFacts(userId),
+  ]);
+  return assembleSettings({ ...FIXTURE_SETTINGS_FACTS, ...account, billing, destinations });
 });

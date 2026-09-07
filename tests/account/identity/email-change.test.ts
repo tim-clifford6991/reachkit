@@ -41,6 +41,15 @@ const SOURCE = readFileSync(
   .replace(/\/\*[\s\S]*?\*\//g, "")
   .replace(/\/\/.*$/gm, "");
 
+/** The import-free leaf the two note keys moved to (#134), read the same
+ *  way and for the same claim. */
+const NOTES_SOURCE = readFileSync(
+  path.resolve(import.meta.dirname, "../../../src/lib/account/identity/notes.ts"),
+  "utf8"
+)
+  .replace(/\/\*[\s\S]*?\*\//g, "")
+  .replace(/\/\/.*$/gm, "");
+
 const NOW = new Date("2026-09-06T12:00:00.000Z");
 const TTL_MS = EMAIL_CHANGE_TTL_H * 60 * 60 * 1000;
 
@@ -82,10 +91,14 @@ describe('REQ-077 c1 — what the account card shows', () => {
     const card = await accountCard(user.id, NOW);
     expect(Object.keys(card ?? {}).sort()).toEqual(["email", "name", "noteKeys", "pending"]);
     expect(SOURCE).not.toMatch(/account\/billing/);
-    // The only mention of an invoice anywhere in this module is the *key* of
-    // the line that says invoices are changed somewhere else. No value, no
-    // read, no field.
-    expect(SOURCE.match(/invoice[a-z-]*/gi)).toEqual(["invoices-elsewhere"]);
+    // No mention of an invoice anywhere in this module or in the leaf that
+    // holds its two note keys: no value, no read, no field. The *key* of
+    // the line that says invoices are changed somewhere else is the one
+    // occurrence across the pair, and it moved to `notes.ts` with the list
+    // (#134) — so both files are read, and the claim is unchanged.
+    expect(SOURCE.match(/invoice[a-z-]*/gi)).toBeNull();
+    expect(NOTES_SOURCE.match(/invoice[a-z-]*/gi)).toEqual(["invoices-elsewhere"]);
+    expect(NOTES_SOURCE).not.toMatch(/account\/billing/);
   });
 
   it("an account nobody can read is null, never an empty card", async () => {
