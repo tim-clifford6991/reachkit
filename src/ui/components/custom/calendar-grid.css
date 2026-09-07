@@ -100,6 +100,48 @@
   overflow-wrap: anywhere;
 }
 
+/* The stage chip, given the cell's own contract (issue #243).
+ *
+ * daisyUI's `.badge` is a single-line pill: `display: inline-flex`,
+ * `height: var(--size)`, `width: fit-content`, and
+ * `padding-inline: calc(var(--size) / 2 - var(--border))`. Until the theme
+ * declared `--border` and `--size-selector` both of those resolved to
+ * nothing and were dropped, so the chip drew with **no border and no
+ * horizontal padding** — 24px narrower than the component actually is —
+ * and fitted a cell it never really fitted. `design/tokens.md` §2b derived
+ * `--w-cell-min` against exactly that phantom: "It must hold a two-digit
+ * mono date …, the widest registered stage chip ("Your review"), and one
+ * line of page label".
+ *
+ * Widening the cell cannot be the answer: `--grid-week` is
+ * `repeat(7, minmax(0, 1fr))`, so a cell's width at the medium and wide
+ * bands is the viewport's arithmetic (about 107px beside the 222px
+ * sidebar), not `--w-cell-min`'s — and `minmax(0, …)` is load-bearing for
+ * check 1, as this file says above.
+ *
+ * So the cell's own rule is applied to the chip: "No fixed height. A cell
+ * whose text does not fit gets more room — it is never clipped and the
+ * type is never shrunk" (ADR-093 decision 2). The chip keeps every value
+ * the theme gives it — `--radius-selector`, `--border`, the padding
+ * derived from `--size-selector` — and gives up only the single line.
+ * `inline-block` rather than `inline-flex` because it is a flex item's
+ * `min-width: auto` that refuses to shrink below the longest word, which
+ * is what clipped "Your review" inside a box `max-width: 100%` had
+ * already capped.
+ */
+.rk-cal-cell .badge {
+  display: inline-block;
+  height: auto;
+  /* The chip's height is now its content plus this padding, rather than
+   * daisyUI's fixed `--size`. Not `min-height: var(--size)`: `--size` is
+   * daisyUI's own internal, declared in `.badge` and nowhere under `src/`,
+   * and `tests/ui/design/tokens-audit.test.ts` refuses a `var()` this tree
+   * does not declare — rightly, since a token that only exists in a
+   * dependency is a token this design system cannot change. */
+  padding-block: var(--s-1);
+  text-align: center;
+}
+
 .rk-cal-date {
   font-size: var(--t-floor);
   color: var(--ink-2);
