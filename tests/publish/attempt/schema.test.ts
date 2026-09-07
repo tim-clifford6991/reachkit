@@ -33,6 +33,8 @@ const APPLIED = [
   "20260906120000_publications_core.sql",
   "20260906120100_drafts_publishing.sql",
   "20260906120200_sites_publishing.sql",
+  // REQ-060 c4's column (issue #156). Same topic, later file.
+  "20260907120000_publications_seo.sql",
 ];
 
 function psql(args: string[]): string {
@@ -199,6 +201,44 @@ describe("ADR-084 Decision 4 — made_live_by_us exists and defaults to false", 
     const draft = insertDraft();
     expect(claim(draft, "dest-live-true", { made_live_by_us: "true" })).toBe(false);
     expect(claim(draft, "dest-live-false", { made_live_by_us: "false" })).toBe(false);
+  });
+});
+
+describe("REQ-060 c4 — seo_written is three-valued in the database (issue #156)", () => {
+  it("it is a text array, nullable, and has no default", () => {
+    // The default is the whole assertion. `not null default '{}'` would
+    // make every row that was never delivered — and every hosted row —
+    // indistinguishable from a delivery that found no SEO plugin, which
+    // puts criterion 4's line on pages it must never appear on.
+    expect(columnOf("publications", "seo_written")).toEqual(["ARRAY", "YES", "no default"]);
+  });
+
+  it("null, the empty array and a populated array are three storable values", () => {
+    const draft = insertDraft();
+    expect(claim(draft, "dest-seo-null", { seo_written: "null" })).toBe(false);
+    expect(claim(draft, "dest-seo-empty", { seo_written: "'{}'" })).toBe(false);
+    expect(claim(draft, "dest-seo-one", { seo_written: "'{yoast}'" })).toBe(false);
+  });
+
+  it("they read back as three distinct values, and the empty array is not null", () => {
+    const draft = insertDraft();
+    claim(draft, "dest-seo-read-null", { seo_written: "null" });
+    claim(draft, "dest-seo-read-empty", { seo_written: "'{}'" });
+    claim(draft, "dest-seo-read-one", { seo_written: "'{yoast,rankmath}'" });
+    const rows = psqlRows(
+      `select destination, coalesce(seo_written::text, 'NULL'), coalesce(array_length(seo_written, 1)::text, 'none') ` +
+        `from publications where destination like 'dest-seo-read-%' order by destination;`
+    );
+    expect(rows).toEqual([
+      ["dest-seo-read-empty", "{}", "none"],
+      ["dest-seo-read-null", "NULL", "none"],
+      ["dest-seo-read-one", "{yoast,rankmath}", "2"],
+    ]);
+  });
+
+  it("no constraint names the plugins — the closed list lives in the adapter, not in the schema", () => {
+    const draft = insertDraft();
+    expect(claim(draft, "dest-seo-unknown", { seo_written: "'{some_other_plugin}'" })).toBe(false);
   });
 });
 

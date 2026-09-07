@@ -98,6 +98,7 @@ import {
   canPublish,
   type WordPressDelivery,
 } from "@/lib/publish/destinations/wordpress/adapter";
+import type { DeliveryResult } from "@/lib/publish/types";
 import { unpublishWordPress } from "@/lib/publish/destinations/wordpress/unpublish";
 import { markerToken } from "@/lib/publish/destinations/wordpress/marks";
 import { renderMarkdownHtml } from "@/lib/publish/render/markdown";
@@ -324,6 +325,16 @@ describe("REQ-060 c3 and c4 — the SEO fields ride the create, and neither plug
   it("with neither present the page is still delivered and nothing was written", async () => {
     const result = (await WORDPRESS_ADAPTER.deliver(PAGE, CFG, "draft-1")) as WordPressDelivery;
     expect(result.ok).toBe(true);
+    expect(result.seoWritten).toEqual([]);
+  });
+
+  // issue #156 — the answer has to survive the adapter's own type to be
+  // stored. `DeliveryResult.seoWritten` is optional, and the case criterion
+  // 4 is about is the one where an adapter could most easily leave it
+  // undefined and be read as "no answer" rather than as "no plugin wrote".
+  it("the empty answer is present on the plain `DeliveryResult`, not absent from it", async () => {
+    const result: DeliveryResult = await WORDPRESS_ADAPTER.deliver(PAGE, CFG, "draft-1");
+    expect(result.seoWritten).toBeDefined();
     expect(result.seoWritten).toEqual([]);
   });
 
