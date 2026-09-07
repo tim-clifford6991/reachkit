@@ -13,6 +13,13 @@
 // still renders as a break; what it cannot do is borrow the week before's
 // value.
 //
+// **A change marker is a break with a name** (REQ-071 c12, issue #205).
+// `readGrowth` hands over `entries`, which are the window's weeks with a
+// break standing wherever a change fell between two of them; the break
+// becomes a column with no value, which is the shape `GrowthLine` already
+// cuts its run at. So the series before and after a change are two runs,
+// never joined — and §2.4's inventory gains no sixth chart.
+//
 // **Where nothing has been measured there is no chart.** The `none` arm
 // renders one written line and the date the first measurement is due — the
 // same date the shell's domain block states, because both read the one
@@ -20,6 +27,7 @@
 import type React from "react";
 import { GrowthLine, type GrowthWeek } from "@/ui/charts";
 import { copy } from "@/lib/presentation/copy";
+import { CHANGE_ACCOUNT_KEY } from "./changes";
 import { formatDate } from "../_shell/format";
 import { writtenLine } from "../_shell/written";
 import { GOALS } from "./goals";
@@ -46,10 +54,19 @@ export function GrowthModule(p: {
   }
 
   const unmeasuredAccount = writtenLine("place.overview.weekly-presence.week");
-  const weeks = p.growth.points.map((point): GrowthWeek => {
+  const weeks = p.growth.entries.map((entry): GrowthWeek => {
+    if (entry.kind === "break") {
+      // The break the change stands in. Its name is the date the answer
+      // changed — the same date every number beside it is read against —
+      // and its account is the written line naming which answer it was.
+      const name = formatMonthDay(entry.marker.on, p.timeZone);
+      const account = writtenLine(CHANGE_ACCOUNT_KEY[entry.marker.kind]);
+      return { name, value: null, account: account ?? name };
+    }
     // The week's own name, in the room a weekly column leaves it (see
     // `formatMonthDay`). The full date the measurement carries is in the
     // mark's tooltip, and the chart's own footnotes state the rest.
+    const point = entry.week;
     const name = formatMonthDay(point.weekStart, p.timeZone);
     return point.value.kind === "unmeasured"
       ? { name, value: null, account: unmeasuredAccount ?? name }

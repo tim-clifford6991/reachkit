@@ -86,10 +86,20 @@ function Tile(p: {
 }
 
 /** The window, as the matrix's one row. A week that was not measured is a
- *  `muted` cell — §6.2's rule applied to weeks: never a miss. */
+ *  `muted` cell — §6.2's rule applied to weeks: never a miss — and a date
+ *  the answers changed is a `break` cell, which is a rule and not a
+ *  reading (REQ-071 c12, issue #205). The count is handed in already
+ *  written and is taken over `weeks`, so a break can never be counted as
+ *  one. */
 function presenceRow(window: AiPresenceWindow, count: string): AiDotMatrixRow {
-  const cells: AiDotMatrixCellState[] = window.weeks.map((week) =>
-    week.present === null ? "muted" : week.present ? "cited" : "not-cited"
+  const cells: AiDotMatrixCellState[] = window.entries.map((entry) =>
+    entry.kind === "break"
+      ? "break"
+      : entry.week.present === null
+        ? "muted"
+        : entry.week.present
+          ? "cited"
+          : "not-cited"
   );
   return { name: copy(AI_LABEL), identity: "you", cells, count };
 }
@@ -123,8 +133,11 @@ export function TileRow(p: {
   // Each week's own column label: the day of the month, in the site's zone.
   // Two mono characters, so twelve of them fit the chart's own gutter — and
   // every cell is still named by its column and its row (§2.4).
-  const weekLabels = p.aiAnswers.window.weeks.map((week) =>
-    formatDayOfMonth(week.weekStart, p.timeZone)
+  // One label per column, breaks included — a rule with no name would be a
+  // mark the reader cannot identify, which §2.4 forbids as much for a break
+  // as for a cell.
+  const weekLabels = p.aiAnswers.window.entries.map((entry) =>
+    formatDayOfMonth(entry.kind === "break" ? entry.marker.on : entry.week.weekStart, p.timeZone)
   );
 
   return (

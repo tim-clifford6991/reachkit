@@ -31,6 +31,8 @@
 // resolver filters on the flag rather than trusting the caller's ordering.
 import type { Measured } from "@/lib/measure/measured";
 import type { CopyKey } from "@/lib/presentation/copy";
+import type { ChangeMarker } from "@/lib/market/changes/markers";
+import { changeWithin } from "./changes";
 import { RATIO_UNLOCK } from "@/lib/config/constants";
 
 /** One rival, as the screen needs it. `series` is how the gap has moved:
@@ -66,7 +68,17 @@ export interface AbsoluteRival {
 export interface RatioRival {
   domain: string;
   ratio: Measured<number>;
-  previous: Measured<number> | { kind: "first_ratio"; counts: { own: Measured<number>; rival: Measured<number> } };
+  /** The reading this one is compared against, or why there is none.
+   *
+   *  `spans_change` is REQ-071 c12 (issue #205): a change fell between the
+   *  two readings, so the difference between them is not movement and may
+   *  not be drawn, counted or described. The card states the window it
+   *  would have compared over instead of comparing across it — which is
+   *  c13's "say which span" rather than a silent omission. */
+  previous:
+    | Measured<number>
+    | { kind: "first_ratio"; counts: { own: Measured<number>; rival: Measured<number> } }
+    | { kind: "spans_change"; marker: ChangeMarker };
   series: readonly (number | null)[];
   breakAccount?: string;
 }
@@ -81,7 +93,12 @@ export type RivalGapModule =
 export const ABSOLUTE_LINE_KEY = "overview.rivals.line.absolute" satisfies CopyKey;
 export const SHRINKING_LINE_KEY = "overview.rivals.line.shrinking" satisfies CopyKey;
 
-export function resolveRivals(facts: RivalFacts): RivalGapModule {
+export function resolveRivals(
+  facts: RivalFacts,
+  /** The dates the site's answers changed. Absent means the same as empty
+   *  — most sites never change one. */
+  changes: readonly ChangeMarker[] = []
+): RivalGapModule {
   const confirmed = facts.rivals.filter((rival) => rival.confirmed);
   const ownCount = facts.own.kind === "unmeasured" ? 0 : facts.own.value;
 
@@ -104,7 +121,7 @@ export function resolveRivals(facts: RivalFacts): RivalGapModule {
     rivals: confirmed.map((rival) => ({
       domain: rival.domain,
       ratio: ratioOf(rival.ranked, facts.own),
-      previous: previousOf(facts, rival),
+      previous: previousOf(facts, rival, changes),
       series: rival.series,
       ...(rival.breakAccount === undefined ? {} : { breakAccount: rival.breakAccount }),
     })),
@@ -128,7 +145,11 @@ function ratioOf(rival: Measured<number>, own: Measured<number>): Measured<numbe
 /** The previous ratio — or, where the customer was below the threshold at
  *  the previous measurement and no previous ratio was ever taken, that
  *  measurement's absolute counts. */
-function previousOf(facts: RivalFacts, rival: RivalFact): RatioRival["previous"] {
+function previousOf(
+  facts: RivalFacts,
+  rival: RivalFact,
+  changes: readonly ChangeMarker[]
+): RatioRival["previous"] {
   const previousOwn = facts.previousOwn;
   const previousRanked = rival.previousRanked;
   if (previousOwn === undefined || previousRanked === undefined) {
@@ -141,5 +162,13 @@ function previousOf(facts: RivalFacts, rival: RivalFact): RatioRival["previous"]
   if (previousCount < RATIO_UNLOCK) {
     return { kind: "first_ratio", counts: { own: previousOwn, rival: previousRanked } };
   }
+
+  // REQ-071 c12, before any comparison is made: the two readings carry the
+  // dates they were taken, and a change between them means they measured
+  // two different markets. The difference is then not movement and this
+  // card says so rather than printing it.
+  const spanned = changeWithin([previousRanked.at, rival.ranked.at], changes);
+  if (spanned !== null) return { kind: "spans_change", marker: spanned };
+
   return ratioOf(previousRanked, previousOwn);
 }

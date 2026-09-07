@@ -20,6 +20,7 @@
 // (#27)). Keeping the assembly pure is what lets every rule above be decided
 // by a test with no database and no browser at all.
 import type { ChangeMarker } from "@/lib/market/changes/markers";
+import { weekOf, withBreaks, type SeriesEntry } from "./changes";
 import type { Measured } from "@/lib/measure/measured";
 import type { CopyKey } from "@/lib/presentation/copy";
 import { OVERVIEW_TRAILING_WEEKS } from "@/lib/config/constants";
@@ -71,6 +72,11 @@ export interface AiPresenceWindow {
    *  measured for three weeks is shown three readings and nine weeks that
    *  were not measured, rather than a window that quietly shrank to fit. */
   readonly weeks: readonly AiPresenceWeek[];
+  /** The same weeks with a break standing wherever a change fell between
+   *  two of them (REQ-071 c12, issue #205). The matrix draws this; `weeks`
+   *  stays the weeks alone, so the count over them counts readings and
+   *  never a rule. */
+  readonly entries: readonly SeriesEntry<AiPresenceWeek>[];
   /** The window's own length, from `OVERVIEW_TRAILING_WEEKS`. */
   readonly of: number;
 }
@@ -123,14 +129,18 @@ export interface OverviewFacts {
 }
 
 export function assembleOverview(facts: OverviewFacts): OverviewModel {
-  const growth = readGrowth({ points: facts.points, firstDueOn: facts.firstDueOn });
+  const growth = readGrowth({
+    points: facts.points,
+    firstDueOn: facts.firstDueOn,
+    changes: facts.changes,
+  });
   const direction = headDirection(facts.points);
   const measuredPoints = facts.points.filter((p) => p.value.kind !== "unmeasured");
   const latest = measuredPoints.at(-1);
   const previous = measuredPoints.at(-2);
   const { alerts, overflow } = readAlerts(facts.waiting);
   const supply = readSupplyStatement(facts.supply);
-  const window = aiWindow(facts.points, facts.aiPresence);
+  const window = aiWindow(facts.points, facts.aiPresence, facts.changes);
 
   return {
     head: {
@@ -168,7 +178,7 @@ export function assembleOverview(facts: OverviewFacts): OverviewModel {
           : {}),
       },
     },
-    rivals: resolveRivals(facts.rivals),
+    rivals: resolveRivals(facts.rivals, facts.changes),
     week: readWeek({ today: facts.today, timeZone: facts.timeZone }),
     ...(supply ? { supply } : {}),
     alerts,
@@ -210,11 +220,6 @@ function weeksSinceChange(
  *  dates inside one week would otherwise order by hours and drop the very
  *  week the change happened in — the first week under the new answer, and
  *  the one the count must start from. */
-function weekOf(at: Date): string {
-  const midnight = Date.UTC(at.getUTCFullYear(), at.getUTCMonth(), at.getUTCDate());
-  const weekday = (new Date(midnight).getUTCDay() + 6) % 7;
-  return new Date(midnight - weekday * 86_400_000).toISOString().slice(0, 10);
-}
 
 /** The change since the previous measurement. Never computed across an
  *  unmeasured arm: a difference from a number that was never taken is not a
@@ -234,7 +239,8 @@ function deltaOf(now: Measured<number>, before: Measured<number>): Measured<numb
  *  measured and are not misses. */
 function aiWindow(
   points: readonly WeeklyPoint[],
-  presence: readonly (boolean | null)[]
+  presence: readonly (boolean | null)[],
+  changes: readonly ChangeMarker[]
 ): AiPresenceWindow {
   const paired = points.map(
     (point, i): AiPresenceWeek => ({ weekStart: point.weekStart, present: presence[i] ?? null })
@@ -254,7 +260,12 @@ function aiWindow(
     });
   }
 
-  return { weeks: [...padding, ...inWindow], of: OVERVIEW_TRAILING_WEEKS };
+  const weeks = [...padding, ...inWindow];
+  return {
+    weeks,
+    entries: withBreaks(weeks, changes, (week) => week.weekStart),
+    of: OVERVIEW_TRAILING_WEEKS,
+  };
 }
 
 const MS_PER_WEEK = 7 * 86_400_000;

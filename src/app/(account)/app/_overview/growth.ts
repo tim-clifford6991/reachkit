@@ -13,6 +13,14 @@
 //      new week's date. Neither has a code path here: the series is a list
 //      of `Measured<number>`, and the `unmeasured` arm has no `value` field
 //      to interpolate from.
+//   3. **A date the answers changed is a break too** (REQ-071 c12, issue
+//      #205). The weeks either side were measured against different
+//      markets, so a line across one would draw movement that nobody
+//      measured. It takes the same shape rule 1 already gives an
+//      unmeasured week — a column of its own that cuts the run — so §2.4's
+//      inventory gains no sixth chart and this file gains no second idea
+//      of what a break is.
+//
 //   2. **Where nothing has been measured there is no chart at all.** The
 //      `none` arm carries the date the first measurement is due — the same
 //      date the shell states, passed in rather than computed, so the two
@@ -21,6 +29,8 @@
 //      zero, which is a different claim.
 import type { Measured } from "@/lib/measure/measured";
 import { OVERVIEW_TRAILING_WEEKS } from "@/lib/config/constants";
+import type { ChangeMarker } from "@/lib/market/changes/markers";
+import { withBreaks, type SeriesEntry } from "./changes";
 
 /** One site-local week of the series. `weekStart` is the week's own Monday
  *  (`WEEK_START`), and every value carries its own `at` — the date that
@@ -31,7 +41,14 @@ export interface WeeklyPoint {
 }
 
 export type GrowthModule =
-  | { kind: "series"; points: readonly WeeklyPoint[] }
+  | {
+      kind: "series";
+      points: readonly WeeklyPoint[];
+      /** The same window, with a break standing wherever a change fell
+       *  between two of its weeks. The renderer draws this; `points` stays
+       *  the weeks alone, so anything counting weeks counts weeks. */
+      entries: readonly SeriesEntry<WeeklyPoint>[];
+    }
   | { kind: "none"; firstDueOn: Date };
 
 /**
@@ -45,9 +62,17 @@ export type GrowthModule =
 export function readGrowth(input: {
   points: readonly WeeklyPoint[];
   firstDueOn: Date;
+  /** The dates the site's answers changed (REQ-071 c12). Absent is the
+   *  ordinary case and means the same as empty: most sites never change
+   *  one. */
+  changes?: readonly ChangeMarker[];
 }): GrowthModule {
   const window = input.points.slice(-OVERVIEW_TRAILING_WEEKS);
   const anyMeasured = window.some((p) => p.value.kind !== "unmeasured");
   if (!anyMeasured) return { kind: "none", firstDueOn: input.firstDueOn };
-  return { kind: "series", points: window };
+  return {
+    kind: "series",
+    points: window,
+    entries: withBreaks(window, input.changes ?? [], (week) => week.weekStart),
+  };
 }

@@ -134,4 +134,26 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.supply.exhausted": ["", { slots: {}, fixedBy: "REQ-095 c3" }],
   "overview.supply.short": ["", { slots: {}, fixedBy: "REQ-095 c5" }],
   "overview.supply.first-arrival": ["", { slots: {}, fixedBy: "REQ-095 c6" }],
+
+  // 2026-09-07, issue #205 — the account a broken series puts on its own
+  // break. REQ-071 c12/c13 forbid drawing a difference across a date the
+  // site's answers changed, so every week-spanning form on this screen
+  // stops at one; these are the lines that say which answer changed. One
+  // key per `ChangeKind` and no default: a change this screen cannot name
+  // is a change it must not stand a nameless rule for.
+  //
+  // The marker they name is a value the customer chose (a domain, a
+  // category), and the value itself renders beside the line as a value
+  // rather than as voice — §2.3's rule, the same one the draft screen's
+  // matched-entry line follows.
+  "overview.change.domain": ["TODO(copy)", { slots: {}, fixedBy: "REQ-071 c12" }],
+  "overview.change.category": ["TODO(copy)", { slots: {}, fixedBy: "REQ-071 c12" }],
+  "overview.change.rivals": ["TODO(copy)", { slots: {}, fixedBy: "REQ-071 c12" }],
+  // REQ-071 c13's other half: a card that compares two readings has to say
+  // which span it compared over when a change falls inside it, rather than
+  // quietly comparing across one.
+  "overview.comparison.window": [
+    "TODO(copy)",
+    { slots: { since: "date" }, fixedBy: "REQ-071 c13" },
+  ],
 }) satisfies CopyPartition;
