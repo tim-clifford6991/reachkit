@@ -128,3 +128,89 @@ describe("nothing technical reaches the card", () => {
     expect(view).not.toHaveProperty("message");
   });
 });
+
+// ── Issue #240 — the credential form, in the card ──────────────────────
+//
+// The M10 gap: `connect()` and `storeConfig()` had no caller on any
+// screen, so a customer could not connect their WordPress at all. What
+// this suite holds is the surface half — that the form exists, that it is
+// reached from each of the three states that need a credential and from
+// none of the others, and that nothing about the credential is rendered,
+// echoed or kept once the call is made.
+//
+// The Server Function is mocked at its module: what a `connect()` does to
+// a row is `tests/publish/destinations/`'s, and driving a database from a
+// DOM suite would assert the engine twice and the surface once.
+describe("REQ-060 — the one place a WordPress credential is typed", () => {
+  it("a destination that has never held one offers Connect, not Reconnect", async () => {
+    const host = await mount({ health: "expired", reason: "never_connected" });
+    const row = host.querySelector('[data-testid="destination-dest-1"]')!;
+    expect(row.textContent).toContain("settings.publishing.connect");
+    // The word is the whole point of the fourth action: "Reconnect" tells
+    // a founder they did something they did not.
+    expect(row.textContent).not.toContain("settings.publishing.reconnect");
+  });
+
+  it.each([
+    ["never_connected", "expired"],
+    ["credentials_expired", "expired"],
+    ["cannot_publish", "error"],
+  ] as const)("%s reaches the same two fields", async (reason, health) => {
+    const host = await mount({ health, reason });
+    const control = host.querySelector('[data-testid="wp-credential"] button')!;
+    expect(host.querySelector('[data-testid="wp-credential-form"]')).toBeNull();
+    await act(async () => {
+      control.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    const form = host.querySelector('[data-testid="wp-credential-form"]')!;
+    expect(form).not.toBeNull();
+    // Three since the master's ruling of 2026-09-07: an application
+    // password authenticates as `username:app-password`, so the user it
+    // was issued to is part of the credential.
+    expect(form.querySelectorAll("input")).toHaveLength(3);
+    expect(form.textContent).toContain("settings.destination.site-url");
+    expect(form.textContent).toContain("settings.destination.username");
+    expect(form.textContent).toContain("settings.destination.app-password");
+    expect(form.textContent).toContain("settings.destination.submit");
+  });
+
+  it("**the password is never rendered in clear text**", async () => {
+    const host = await mount({ health: "expired", reason: "never_connected" });
+    await act(async () => {
+      host
+        .querySelector('[data-testid="wp-credential"] button')!
+        .dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    const inputs = [...host.querySelectorAll('[data-testid="wp-credential-form"] input')];
+    const password = inputs.find((input) => input.getAttribute("name") === "application-password");
+    expect(password?.getAttribute("type")).toBe("password");
+    // And the other field is not: a site address is the customer's own
+    // public URL and hiding it would help nobody.
+    const site = inputs.find((input) => input.getAttribute("name") === "site-url");
+    expect(site?.getAttribute("type")).toBe("text");
+    // Nor is the user name: it is half of a pair, and hiding it would only
+    // stop the customer checking what they typed.
+    const user = inputs.find((input) => input.getAttribute("name") === "wp-username");
+    expect(user?.getAttribute("type")).toBe("text");
+  });
+
+  it("a working destination offers no form at all — there is nothing to connect", async () => {
+    const host = await mount({ health: "ok", reason: null });
+    expect(host.querySelector('[data-testid="wp-credential"]')).toBeNull();
+  });
+
+  it("a destination waiting on DNS offers no form either — it needs a record, not a credential", async () => {
+    const host = await mount({ kind: "hosted", health: "expired", reason: "dns_unset" });
+    expect(host.querySelector('[data-testid="wp-credential"]')).toBeNull();
+    expect(host.textContent).toContain("settings.publishing.set-dns");
+  });
+
+  it("the form is closed until it is asked for, and nothing is typed into a card at rest", async () => {
+    const host = await mount({ health: "error", reason: "cannot_publish" });
+    expect(host.querySelector('[data-testid="wp-credential-form"]')).toBeNull();
+    // Scoped to the credential's own subtree: the card's mode and
+    // publishing-enabled toggles are inputs too, and they are not fields
+    // anything is typed into.
+    expect(host.querySelectorAll('[data-testid="wp-credential"] input')).toHaveLength(0);
+  });
+});

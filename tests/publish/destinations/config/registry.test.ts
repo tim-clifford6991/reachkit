@@ -365,7 +365,10 @@ describe("the reason selects the line and the action; the state selects the band
     { kind: "hosted", health: "expired", reason: "dns_unset", action: "set_dns" },
     { kind: "hosted", health: "expired", reason: "dns_elsewhere", action: "set_dns" },
     { kind: "hosted", health: "expired", reason: "never_connected", action: "set_dns" },
-    { kind: "wordpress", health: "expired", reason: "never_connected", action: "reconnect" },
+    // Issue #240: its own action, not `reconnect`. A destination setup
+    // created and nobody has ever given a credential to is not a broken
+    // one, and the control's word is the difference the customer reads.
+    { kind: "wordpress", health: "expired", reason: "never_connected", action: "connect" },
     { kind: "wordpress", health: "expired", reason: "credentials_expired", action: "reconnect" },
     { kind: "wordpress", health: "error", reason: "credentials_invalid", action: "reconnect" },
     { kind: "wordpress", health: "error", reason: "unreachable", action: "reconnect" },
