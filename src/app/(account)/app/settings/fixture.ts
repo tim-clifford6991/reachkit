@@ -40,6 +40,7 @@ import { FIXTURE_DOMAIN } from "../_shell/fixture";
  *  the layout conformance sweep non-deterministic, and this one is a
  *  specimen of a paid-up account rather than a clock. */
 const FIXTURE_BILLING: BillingFacts = Object.freeze({
+  readable: true,
   state: "active",
   paidThrough: new Date("2026-10-01T00:00:00.000Z"),
   surfaceHref: "https://billing.stripe.com/p/session/fixture",
@@ -89,6 +90,7 @@ export const FIXTURE_SETTINGS_FACTS: SettingsFacts = Object.freeze({
   // Built through the registry's own `destinationView`, never hand-written:
   // the action and the copy keys the panel renders are the engine's mapping,
   // so a fixture cannot show a control the engine would not offer.
+  destinationsReadable: true,
   destinations: Object.freeze([
     destinationView({
       id: "dest-wordpress",

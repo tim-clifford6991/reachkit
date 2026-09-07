@@ -26,6 +26,16 @@
 // to a module whose identity comes from the session is a different thing,
 // and #42 is where the difference became worth stating.
 //
+// **A fixture that is merged is not behind either door** (#228). Settings'
+// `readSettings` passed door 1 for five months while still opening with
+// `{ ...FIXTURE_SETTINGS_FACTS, ...(four live overrides) }`, so the branch
+// the rule was reading was real and nine of the facts under it were the
+// fixture's — the customer's mode, veto window, publish time, zone,
+// publishing switch, voice, do-not-claim list, notification switches and
+// page count. An import check cannot see that; a spread check can. So a
+// binding imported from a fixture module may be *passed whole* (that is
+// what door 1 is for) and may never be spread into another object.
+//
 // A fixture module importing another fixture module is not a production
 // path either.
 //
@@ -43,23 +53,13 @@ const APP = path.join(ROOT, "src/app/(account)/app");
 /**
  * The imports this rule does not yet cover, each naming whose they are.
  *
- * Settings' two are the residue of #134/#136, which wired that screen's
- * billing and account halves to the session and left `FIXTURE_USER_ID`
- * standing where the *site* is still unresolved (`currentSiteId()` answers
- * `null`, and the file says so). They are named here rather than removed:
- * this issue's own scope is §4.4–§4.6 and the setup screen, and editing a
- * screen two other issues were landing would have been the wrong kind of
- * tidy-up. An entry leaves this list when its own issue removes the import.
- */
-/**
- * The imports this rule does not yet cover, each naming whose they are.
- *
- * **Empty since #42.** `settings/provider.ts` was the last entry: it
- * carried a fixture user id because nothing resolved the site under the
- * account, and #42 resolved it through the same `_session/account.ts` seam
- * every other `(account)` surface uses. The list stays — it is the shape a
- * future gap gets named in — and the row below fails on any entry whose
- * file has stopped offending, which is what took both of its members out.
+ * **Empty since #42, and it stays empty.** `settings/provider.ts` was the
+ * last entry: it carried a fixture user id because nothing resolved the
+ * site under the account, and #42 resolved it through the same
+ * `_session/account.ts` seam every other `(account)` surface uses. The
+ * list stays — it is the shape a future gap gets named in — and the row
+ * below fails on any entry whose file has stopped offending, which is what
+ * took both of its members out.
  */
 const NOT_YET_COVERED: ReadonlyArray<{ readonly file: string; readonly whose: string }> = [];
 
@@ -74,6 +74,62 @@ function walk(dir: string, out: string[]): void {
 interface Offender {
   file: string;
   specifier: string;
+}
+
+interface Spread {
+  file: string;
+  binding: string;
+}
+
+const IMPORTS = /^import\s[^;]*?from\s+"([^"]+)";/gm;
+
+/** The names an `import { a, b as c } from "..."` statement binds. A
+ *  default or namespace import binds one name the same way. */
+function bindingsOf(statement: string): string[] {
+  const braced = /\{([^}]*)\}/.exec(statement);
+  if (braced === null) {
+    const bare = /^import\s+(?:\*\s+as\s+)?([A-Za-z_$][\w$]*)\s+from/.exec(statement);
+    return bare?.[1] !== undefined ? [bare[1]] : [];
+  }
+  return (braced[1] ?? "")
+    .split(",")
+    .map((part) => (part.includes(" as ") ? part.split(" as ")[1] : part) ?? "")
+    .map((name) => name.trim())
+    .filter((name) => name.length > 0 && name !== "type");
+}
+
+/**
+ * Every binding a non-fixture module imports from a fixture module and then
+ * *spreads*.
+ *
+ * A fixture may be the whole answer behind the reserved-account branch. It
+ * may not be the base of an object the live path then overrides part of:
+ * that is a screen that reads as wired, whose unoverridden facts are still
+ * the fixture's, and it is what #228 was opened for. Local stubs are not in
+ * scope — `settings/actions.ts` spreads its own `FIXTURE_ACTIONS`, which is
+ * a table of *actions* it declares itself, reaches no store and answers
+ * every unwired key with the issue that wires it.
+ */
+function spreads(): Spread[] {
+  const files: string[] = [];
+  walk(APP, files);
+  const found: Spread[] = [];
+
+  for (const file of files.sort()) {
+    const rel = path.relative(APP, file).split(path.sep).join("/");
+    if (/(^|\/)fixture\.ts$/.test(rel)) continue;
+
+    const source = readFileSync(file, "utf8");
+    for (const match of source.matchAll(IMPORTS)) {
+      if (!/fixture/i.test(match[1] ?? "")) continue;
+      for (const binding of bindingsOf(match[0])) {
+        if (new RegExp(`\\.\\.\\.\\s*${binding}\\b`).test(source)) {
+          found.push({ file: rel, binding });
+        }
+      }
+    }
+  }
+  return found;
 }
 
 /** Every `import ... from "...fixture..."` under the app tree that is not
@@ -115,6 +171,31 @@ function offenders(): Offender[] {
 describe("no signed-in customer is ever drawn from a fixture", () => {
   it("every fixture import under (account)/app sits behind the reserved-account branch", () => {
     expect(offenders()).toEqual([]);
+  });
+
+  it("and no module merges one into the facts it states (#228)", () => {
+    // The import check above passed on `settings/provider.ts` throughout
+    // #134, #136 and #42 while nine of the screen's facts were still the
+    // fixture's, because the file did ask `isReservedFixtureAccount` — and
+    // then spread the fixture anyway.
+    expect(spreads()).toEqual([]);
+  });
+
+  it("the spread rule discriminates — it sees a merged fixture, and leaves a local stub alone", () => {
+    // Without these two, an empty result above would prove nothing.
+    const merged =
+      'import { FIXTURE_SETTINGS_FACTS } from "./fixture";\n' +
+      "const facts = { ...FIXTURE_SETTINGS_FACTS, billing };\n";
+    const imported = [...merged.matchAll(IMPORTS)].filter((m) => /fixture/i.test(m[1] ?? ""));
+    expect(imported.length).toBe(1);
+    const bindings = bindingsOf(imported[0]![0]);
+    expect(bindings).toEqual(["FIXTURE_SETTINGS_FACTS"]);
+    expect(new RegExp(`\\.\\.\\.\\s*${bindings[0]}\\b`).test(merged)).toBe(true);
+
+    // A stub the module declares itself is not imported from a fixture
+    // module, so it is not this rule's business.
+    const local = "const FIXTURE_ACTIONS = {};\nexport const A = { ...FIXTURE_ACTIONS, cancel };\n";
+    expect([...local.matchAll(IMPORTS)].length).toBe(0);
   });
 
   it("the rule discriminates — neither door opens for a bare fixture import", () => {

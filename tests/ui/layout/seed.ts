@@ -92,6 +92,32 @@ const LIVE_DRAFTS: readonly { id: string; state: string; title: string }[] = Obj
   { id: "00000000-0000-0000-0000-0000000000e3", state: "planned", title: "What to measure after a rollout" },
 ]);
 
+/**
+ * The publishing settings the live account has actually chosen (#228).
+ *
+ * Every one of these is a column `readSettings` used to spread off
+ * `FIXTURE_SETTINGS_FACTS` for any account at all: until #228 the settings
+ * screen stated the fixture's mode, veto window, publish time, voice and
+ * do-not-claim list to a real customer. They are stated here so the live
+ * pass renders **chosen** values rather than the columns' own defaults —
+ * settings a customer never chose are what this seed exists to stop being
+ * indistinguishable from settings they did.
+ *
+ * `copilot` rather than `autopilot`, and a window that is not 24 hours, so
+ * the pair sentence the screen writes (`explainPair`) is a different one
+ * from the reserved pass's and both arms get measured.
+ */
+const LIVE_PUBLISHING = Object.freeze({
+  mode: "copilot",
+  vetoHours: 36,
+  publishTime: "07:30",
+  enabled: true,
+  voiceText: "Plain, specific, and never louder than the evidence.",
+  doNotClaim: ["the fastest onboarding on the market"],
+  category: "user onboarding software",
+  competitors: ["asana.com", "notion.so"],
+});
+
 /** The live account's draft address — the one the live sweep renders. */
 export const LIVE_DRAFT_ID = LIVE_DRAFTS[0]?.id as string;
 
@@ -243,7 +269,12 @@ export function seedAccount(): void {
  * arm.
  */
 export function seedLiveAccount(): void {
-  seedSite(LIVE_ACCOUNT, { drafts: LIVE_DRAFTS, publish: true, rivals: LIVE_RIVALS });
+  seedSite(LIVE_ACCOUNT, {
+    drafts: LIVE_DRAFTS,
+    publish: true,
+    rivals: LIVE_RIVALS,
+    publishing: LIVE_PUBLISHING,
+  });
   seedMeasuredWeeks(LIVE_ACCOUNT);
 }
 
@@ -336,7 +367,10 @@ function seedMeasuredWeeks(account: AppAccount): void {
 
 /**
  * One account with a whole site under it: a measured scan, an opportunity
- * off it, and the drafts the caller asked for.
+ * off it, and the drafts the caller asked for. `publishing` states §9's and
+ * §4.7's own settings where the caller has them; without it the columns'
+ * defaults stand, which is what the reserved account wants (its screen is
+ * drawn from its fixture and never reads them).
  *
  * §4.3's requirements are the same for both accounts — a **stated** zone
  * (REQ-073 c1 forbids one the customer never chose), setup completed so
@@ -349,6 +383,7 @@ function seedSite(
     drafts: readonly { id: string; state: string; title: string }[];
     publish?: boolean;
     rivals?: readonly { domain: string; weekly: readonly number[] }[];
+    publishing?: typeof LIVE_PUBLISHING;
   }
 ): void {
   const { userId, siteId, domain, timeZone } = account;
@@ -365,6 +400,19 @@ function seedSite(
     `insert into sites (id, user_id, domain, timezone, setup_completed_at) values ` +
       `('${siteId}', '${userId}', '${domain}', '${timeZone}', now());`
   );
+
+  const chosen = opts.publishing;
+  if (chosen !== undefined) {
+    sql(
+      `update sites set mode = '${chosen.mode}', veto_hours = ${chosen.vetoHours}, ` +
+        `publish_time = '${chosen.publishTime}', publishing_enabled = ${chosen.enabled}, ` +
+        `voice_text = '${chosen.voiceText.replaceAll("'", "''")}', ` +
+        `do_not_claim = '${JSON.stringify(chosen.doNotClaim).replaceAll("'", "''")}'::jsonb, ` +
+        `category = '${chosen.category.replaceAll("'", "''")}', ` +
+        `competitors = '${JSON.stringify(chosen.competitors).replaceAll("'", "''")}'::jsonb ` +
+        `where id = '${siteId}';`
+    );
+  }
 
   const [scanId] = rows(
     `insert into scans (site_id, domain, tier, status) values ('${siteId}', '${domain}', 'deep', 'done') returning id;`
@@ -397,7 +445,9 @@ function seedSite(
   if (opts.publish !== true) return;
 
   // The destination §4.7's card draws, and the publication the overview
-  // counts as live. Both are reads that answered nothing before #206.
+  // counts as live. Both are reads that answered nothing before #206 — and
+  // since #228 the settings card draws this row for every account but the
+  // reserved one, so a live pass without it would measure an empty arm.
   sql(
     `insert into destinations (site_id, kind, config, health) values ('${siteId}', 'hosted', null, 'ok');`
   );
@@ -458,4 +508,4 @@ export async function seededSessionCookie(
   return `${SESSION_COOKIE_NAME}=${cookie.value}`;
 }
 
-export { LIVE_ACCOUNT, LIVE_DRAFTS, RESERVED_ACCOUNT, SEEDED_DRAFT_ID, SEEDED_EMAIL };
+export { LIVE_ACCOUNT, LIVE_DRAFTS, LIVE_PUBLISHING, RESERVED_ACCOUNT, SEEDED_DRAFT_ID, SEEDED_EMAIL };

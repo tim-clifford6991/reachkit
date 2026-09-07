@@ -70,7 +70,19 @@ export const UNREACHABLE_BILLING_KEYS: readonly CopyKey[] = Object.freeze([
   "settings.billing.reach-a-person",
 ] satisfies CopyKey[]);
 
-export interface BillingSummary {
+/**
+ * The billing card, or the arm that says it could not be read (#228).
+ *
+ * REQ-097 c6 names three statements for a billing surface that cannot be
+ * reached — that it cannot, that they may try again, and one way to reach a
+ * person — and #136 minted the three keys for the *action's* refusal. A
+ * read that fails owes the customer the same three, so the unreadable arm
+ * carries no plan state and no date rather than the fixture's.
+ */
+export type BillingSummary = BillingCard | { readable: false; surfaceHref: string };
+
+export interface BillingCard {
+  readable: true;
   state: PlanState;
   /** The `{date}` of §4.7's "cancelling keeps everything running until
    *  {date}", and REQ-076 criterion 3's "the exact date their access ends".

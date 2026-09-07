@@ -35,7 +35,30 @@ import { describe, expect, it, vi } from "vitest";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 
+/** #228 made `BillingSummary` a union — the card, or the arm that says it
+ *  could not be read. The fixture account's is always the card; narrowed
+ *  once here so no row below has to. */
+function billingCard(): Extract<
+  ReturnType<typeof assembleSettings>["billing"],
+  { readable: true }
+> {
+  const { billing } = assembleSettings(FIXTURE_SETTINGS_FACTS);
+  if (!billing.readable) throw new Error("the fixture account's billing is always readable");
+  return billing;
+}
+
 const { calls } = vi.hoisted(() => ({ calls: [] as string[] }));
+
+// #228: the screen now resolves its account through the one `(account)`
+// seam and reads every fact live. This suite is about what the cards draw,
+// not about which account they draw for, so it signs in as the reserved
+// fixture account — the branch whose facts are `FIXTURE_SETTINGS_FACTS`,
+// which is what every row below is written against.
+vi.mock("@/app/(account)/app/_session/account", async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  const { RESERVED_ACCOUNT } = await import("../accounts");
+  return { ...actual, requireSetUpAccount: async () => RESERVED_ACCOUNT };
+});
 
 vi.mock("@/lib/presentation/copy", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/presentation/copy")>();
@@ -197,7 +220,7 @@ describe("REQ-070 c2 — the rendered action set is the seven ACTIONS entries", 
     const active = await mountScreen();
     const cancelled = await mount(
       <BillingPanel
-        billing={{ ...assembleSettings(FIXTURE_SETTINGS_FACTS).billing, state: "cancelled" }}
+        billing={{ ...billingCard(), state: "cancelled" }}
       />
     );
     const offered = new Set([...testIds(active, "action-"), ...testIds(cancelled, "action-")]);
@@ -320,7 +343,7 @@ describe("REQ-097 — the Billing card renders no number ReachKit computed", () 
     }
     // The day access ends — `users.paid_through`, this product's own gate
     // (ADR-050) and the date REQ-076 c3 requires the customer be told.
-    const { accessUntil } = assembleSettings(FIXTURE_SETTINGS_FACTS).billing;
+    const { accessUntil } = billingCard();
     text = text.split(accessUntil).join("");
 
     // Whatever is left is the card's words. If a figure survived this
@@ -372,7 +395,7 @@ describe("REQ-097 c6 — a billing surface that cannot be produced is written on
 
     const cancelled = await mount(
       <BillingPanel
-        billing={{ ...assembleSettings(FIXTURE_SETTINGS_FACTS).billing, state: "cancelled" }}
+        billing={{ ...billingCard(), state: "cancelled" }}
       />
     );
     await click(cancelled.querySelector('[data-testid="action-resume"] button') as Element);
