@@ -106,6 +106,7 @@ describe(`layout sweep — ${routes.length} route(s) × 5 widths`, () => {
                 scrollContainerAllowlist: SCROLL_CONTAINER_ALLOWLIST,
               }),
               await page.evaluate(checkNoClippingOrTruncation, {
+                scrollContainerAllowlist: SCROLL_CONTAINER_ALLOWLIST,
                 truncationAllowlist: TRUNCATION_ALLOWLIST,
                 monoFontFamily: MONO_FONT_FAMILY,
               }),

@@ -21,7 +21,18 @@ function Row(p: { label: string; children: React.ReactNode }): React.JSX.Element
   return (
     <div className="border-base-300 grid grid-cols-[6rem_minmax(0,1fr)] gap-3 border-b py-2 last:border-b-0">
       <dt className="text-xs opacity-60">{p.label}</dt>
-      <dd>{p.children}</dd>
+      {/* The cell is a declared scroll container (issue #256, owner's ruling
+          2026-09-07). A value is never broken mid-word — `.num` in
+          `src/ui/type.css` — and the "beats" row's rival domain is one
+          unbreakable token needing about 190px in a track that is about
+          164px at the compact band. ADR-093's law is "content fits its box
+          **or the box changes**", and `overflow-x-auto` is how this design
+          system changes it: the wrap every registered `Table` carries, and
+          the first row of the layout sweep's scroll-container allow-list.
+          `min-w-0` beside it because a scroll container that cannot shrink
+          below its content never scrolls — the defect `Table` records
+          having been caught by the sweep at 320px. */}
+      <dd className="min-w-0 overflow-x-auto">{p.children}</dd>
     </div>
   );
 }

@@ -33,7 +33,7 @@ function Row(p: {
   return (
     <p className="flex flex-wrap items-baseline gap-2">
       <span>{p.label}</span>
-      <span className="num min-w-0 break-words">{p.children}</span>
+      <span className="num min-w-0">{p.children}</span>
     </p>
   );
 }

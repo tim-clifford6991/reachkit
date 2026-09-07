@@ -95,12 +95,10 @@
   font-variant-numeric: tabular-nums;
   font-size: var(--t-floor);
   color: var(--ink-3);
-  overflow-wrap: anywhere;
-}
-
-.num,
-.rk-domain-name .num {
-  overflow-wrap: anywhere;
+  /* No `overflow-wrap: anywhere` (issue #256). A provenance line is set in
+   * the mono face because it carries values — an address, a date — and a
+   * value broken mid-word is a different string from the one it came from.
+   * It wraps at its spaces like any other line. */
 }
 
 /* ── Nav ──────────────────────────────────────────────────────────────── */

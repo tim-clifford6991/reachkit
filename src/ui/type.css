@@ -150,4 +150,26 @@ body {
    * box at every size. Below body size it stays inside the surrounding
    * 1.55 line box and changes nothing. */
   line-height: normal;
+  /* **A value is never rewritten to fit its box** (issue #256; DECISIONS
+   * 2026-09-07 for #244: "a domain is a value and is never wrapped
+   * mid-word"). A customer compares the domain on the screen with the one
+   * they typed, so a mid-word break makes those two different strings —
+   * `rival-three.example.org` came out of a 164px track split at no
+   * boundary the string has, which is the very failure the mono face above
+   * exists to make visible.
+   *
+   * Declared here because `.num` is already the one mechanism the value
+   * rule is enforced through: every value in the product carries this
+   * class, so the rule holds for all of them at once and a component
+   * cannot half-apply it. Both properties are named rather than one,
+   * because `word-break: break-all` breaks mid-word without going through
+   * `overflow-wrap` at all.
+   *
+   * **This bans breaking inside a word, not wrapping between words.** A
+   * provenance line or a search phrase still wraps at its spaces exactly
+   * as before. Where a value genuinely cannot fit, ADR-093's rule applies
+   * and the *box* changes — an `overflow-x-auto` wrap, which is the layout
+   * sweep's own declared scroll container — rather than the value. */
+  overflow-wrap: normal;
+  word-break: normal;
 }

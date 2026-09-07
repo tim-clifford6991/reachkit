@@ -94,7 +94,7 @@ describe("§6.2 — the paid battery is drawn as three answer columns", () => {
 
   it("draws one row per question, each numbered in the mono utility (§2.3)", () => {
     for (const row of FREE_SECTION.rows) {
-      expect(html).toContain(`class="num min-w-0 break-words">${row.question.n}<`);
+      expect(html).toContain(`class="num min-w-0">${row.question.n}<`);
     }
   });
 

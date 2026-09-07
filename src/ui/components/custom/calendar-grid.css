@@ -94,10 +94,26 @@
   overflow-wrap: anywhere;
 }
 
-.rk-cal-cell > * {
+/* `:not(.num)` is the whole of #256 in this file. A month grid at 320px has
+ * cells about 40px wide, so a *title* has to be allowed to break or it
+ * overflows its cell — that is what this rule is for. A **value** must not:
+ * a date or a count broken mid-word is a different string from the one it
+ * came from, which is what `.num` exists to make visible. Values in a cell
+ * are short enough to fit without it.
+ *
+ * It is written as a selector rather than left to the cascade because both
+ * rules are one class deep and this file loads after `type.css` — so
+ * without the `:not`, `anywhere` wins on source order and `.num`'s own
+ * `normal` never applies. */
+.rk-cal-cell > *:not(.num) {
   max-width: 100%;
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+.rk-cal-cell > .num {
+  max-width: 100%;
+  min-width: 0;
 }
 
 /* The stage chip, given the cell's own contract (issue #243).

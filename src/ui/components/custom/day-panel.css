@@ -68,7 +68,11 @@
   flex-direction: column;
   gap: var(--s-2);
   min-width: 0;
-  overflow-wrap: anywhere;
+  /* No `overflow-wrap: anywhere` here (issue #256). It inherits into every
+   * descendant, values included, and a value broken mid-word is a different
+   * string from the one in the database — the defect `.num` exists to make
+   * visible. Prose still wraps at its spaces; a value that will not fit its
+   * box makes the box scroll, never itself break. */
 }
 
 .rk-daypanel-actions {
@@ -86,7 +90,8 @@
   flex-wrap: wrap;
   gap: var(--s-2);
   min-width: 0;
-  overflow-wrap: anywhere;
+  /* Same as above (#256): the heading holds a stage badge and a date, and
+   * the date is a value. `flex-wrap` is what makes the two fit at 290px. */
 }
 
 /* --breakpoint-xl (1280px) = BAND_MIN.wide. "The day panel sits beside the

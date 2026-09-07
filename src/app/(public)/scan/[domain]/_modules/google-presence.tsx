@@ -45,7 +45,19 @@ function OccupancyRow(p: {
     // pushes the whole document sideways at the compact band instead of
     // wrapping inside its own column.
     <div className="grid grid-cols-[minmax(3rem,8rem)_minmax(0,1fr)_auto] items-center gap-3">
-      <Num>{p.domain}</Num>
+      {/* The domain's track is capped at 8rem so one long name cannot push
+          the row's bar and ratio off the card — and a domain is a value, so
+          it is never broken mid-word to fit (`.num` in `src/ui/type.css`,
+          issue #256). Both hold at once because the cell is a declared
+          scroll container: ADR-093's "content fits its box **or the box
+          changes**", and `overflow-x-auto` is how this design system
+          changes it — the wrap every registered `Table` carries, and the
+          first row of the layout sweep's scroll-container allow-list.
+          `rival-three.example.org` needs 136px in a 128px track, which is
+          the eight pixels this reaches. */}
+      <div className="min-w-0 overflow-x-auto">
+        <Num>{p.domain}</Num>
+      </div>
       <Progress value={p.count} max={p.measured} />
       <Num>{ratio(p.count, p.measured)}</Num>
     </div>

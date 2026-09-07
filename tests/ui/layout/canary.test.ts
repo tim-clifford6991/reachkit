@@ -14,6 +14,7 @@ import {
   checkNoHorizontalScroll,
   checkContainment,
   checkNoClippingOrTruncation,
+  SCROLL_CONTAINER_ALLOWLIST,
   checkSurfaceContainer,
   checkTypeFloor,
   CONTENT_MEASURE_PX,
@@ -109,7 +110,8 @@ describe("ADR-093 decision 6 point 5 — the canary overflows on purpose and mus
     const offenders = await withPage(FLOOR_WIDTH, async (page) => {
       await page.goto(FIXTURE_URL);
       return page.evaluate(checkNoClippingOrTruncation, {
-        truncationAllowlist: [],
+        scrollContainerAllowlist: SCROLL_CONTAINER_ALLOWLIST,
+                truncationAllowlist: [],
         monoFontFamily: MONO_FONT_FAMILY,
       });
     });
@@ -125,7 +127,8 @@ describe("ADR-093 decision 6 point 5 — the canary overflows on purpose and mus
     const offenders = await withPage(FLOOR_WIDTH, async (page) => {
       await page.goto(FIXTURE_URL);
       return page.evaluate(checkNoClippingOrTruncation, {
-        truncationAllowlist: [".clipped-value"],
+        scrollContainerAllowlist: SCROLL_CONTAINER_ALLOWLIST,
+                truncationAllowlist: [".clipped-value"],
         monoFontFamily: MONO_FONT_FAMILY,
       });
     });
@@ -156,7 +159,8 @@ describe("ADR-093 decision 6 point 5 — the canary overflows on purpose and mus
     const offenders = await withPage(FLOOR_WIDTH, async (page) => {
       await page.goto(FIXTURE_URL);
       return page.evaluate(checkNoClippingOrTruncation, {
-        truncationAllowlist: [],
+        scrollContainerAllowlist: SCROLL_CONTAINER_ALLOWLIST,
+                truncationAllowlist: [],
         monoFontFamily: MONO_FONT_FAMILY,
       });
     });
@@ -234,7 +238,8 @@ describe("issue #241 — a screen root with no container fails check 5 and nothi
         await page.evaluate(checkNoHorizontalScroll),
         await page.evaluate(checkContainment, { scrollContainerAllowlist: [] }),
         await page.evaluate(checkNoClippingOrTruncation, {
-          truncationAllowlist: [],
+          scrollContainerAllowlist: SCROLL_CONTAINER_ALLOWLIST,
+                truncationAllowlist: [],
           monoFontFamily: MONO_FONT_FAMILY,
         }),
         await page.evaluate(checkTypeFloor),

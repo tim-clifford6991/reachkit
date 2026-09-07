@@ -68,7 +68,7 @@ describe("REQ-004 c1 — the verdict strip names the score, its band, the domain
   const html = render(FIXTURE_REPORT);
 
   it("renders the score as a mono numeral", () => {
-    expect(html).toContain('class="num min-w-0 break-words">62<');
+    expect(html).toContain('class="num min-w-0">62<');
   });
 
   it("renders the band as one of the four ruled words, through SCORE_BANDS", () => {
@@ -273,7 +273,7 @@ describe("REQ-091/092 — cold start: a domain that ranks for nothing still read
     // would be REQ-004 c7's exact failure: reading "we measured, and the
     // answer is none" as "we could not measure".
     expect(html).not.toContain("unmeasured.dash");
-    expect(html).toContain('class="num min-w-0 break-words">8<');
+    expect(html).toContain('class="num min-w-0">8<');
     expect(html).toContain("band.score.invisible");
   });
 
