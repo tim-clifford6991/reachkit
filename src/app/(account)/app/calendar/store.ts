@@ -132,6 +132,10 @@ function plannedOn(day: DayKey, choice: Choice, now: Date): DraftOnDay {
     draftId: null,
     title: choice.evidence.family === "fix" ? "" : choice.evidence.query,
     state: "planned",
+    // A planned page has no draft at all yet, so it has certainly never
+    // been in review (#143). Honest rather than defaulted: every §9 field
+    // on this shape is its own empty for the same reason.
+    enteredReview: false,
     scheduledFor: day,
     why: whyOf(choice, at),
     measuredAt: at,

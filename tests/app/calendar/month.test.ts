@@ -38,6 +38,7 @@ function draft(day: string, state: DraftOnDay["state"]): DraftOnDay {
     liveUrl: state === "published" ? "https://content.example.com/p" : null,
     vetoDeadline: null,
     publishAt: null,
+    enteredReview: false,
   };
 }
 

@@ -140,6 +140,7 @@ describe("the draft view and the day panel read one table", () => {
           liveUrl: null,
           vetoDeadline: null,
           publishAt: null,
+      enteredReview: false,
         },
       };
       const panelHasVeto = actionsFor(cell).some(
