@@ -4,6 +4,11 @@
 // inspected, the same direct-call convention `tests/app/layout.test.ts`
 // uses for `RootLayout` — no DOM, so this suite runs in the `node` project
 // beside the rest of `tests/app/**`.
+//
+// All three arms render (issue #261). The third one's sentence is still
+// the owner's and still unwritten; what changed is that the page says so
+// with the marker instead of throwing, so "the store is down" no longer
+// means "and so is this page".
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type React from "react";
 import { applyEnvFixture } from "../../mail/env-fixture";
@@ -16,6 +21,7 @@ const OptOutPage = (await import("../../../src/app/(public)/opt-out/[token]/page
 const { optOutTokenFor } = await import("../../../src/lib/mail/leads/optout");
 const { setLeadStore } = await import("../../../src/lib/mail/leads/store");
 const { COPY } = await import("../../../src/lib/presentation/copy");
+const { TODO_COPY_MARKER } = await import("../../../src/lib/presentation/copy/registry");
 
 let state: MemoryState;
 
@@ -73,14 +79,26 @@ describe("three arms, three tones, no fourth rendering and no default arm", () =
     expect(state.suppressions.size).toBe(0);
   });
 
-  it("our store being down is its own arm, and its line is owner-owed, so the page refuses rather than rendering a blank", async () => {
+  it("our store being down is its own arm, and its owner-owed line renders as the marker rather than taking the page down", async () => {
     state.failSuppressionWrite = true;
 
-    // `copy()` throws on an owner-owed key: the intended blocking point. It
-    // blocks copy, not structure — the arm exists and is reached.
-    await expect(
-      OptOutPage({ params: { token: optOutTokenFor("anna@example.com") } })
-    ).rejects.toThrow(/optout\.unavailable.*owner-owed/);
+    // Issue #261. This arm is reached at the moment the store is
+    // unavailable, which is the moment a reader can least afford a blank
+    // page — so the unwritten line shows the `TODO(copy)` marker and the
+    // page still renders, on the standing screen rule. The arm is still
+    // distinct: its own tone, and neither of the other two lines.
+    const tree = await OptOutPage({
+      params: { token: optOutTokenFor("anna@example.com") },
+    });
+    const alert = named(tree, "Alert");
+
+    expect(alert?.props.tone).toBe("neutral");
+    expect(alert?.props.message).toBe(TODO_COPY_MARKER);
+    expect(alert?.props.message).not.toBe(COPY["optout.confirmed"]);
+    expect(alert?.props.message).not.toBe(COPY["optout.invalid"]);
+    // It renders the marker without having suppressed anything: the arm
+    // says the write did not happen, and it did not.
+    expect(state.suppressions.size).toBe(0);
   });
 
   it("Next's promised params and a resolved object are both accepted", async () => {

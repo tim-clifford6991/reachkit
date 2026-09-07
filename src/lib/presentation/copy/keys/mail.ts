@@ -123,7 +123,18 @@ export const MAIL_COPY = Object.freeze({
   // The third arm of the opt-out page: the link is good and our store is
   // not. Telling the reader their link is invalid would be a false
   // statement about the one thing they came to do.
-  "optout.unavailable": ["", { slots: {}, fixedBy: "REQ-010 c11" }],
+  //
+  // **The marker and not the empty value** (issue #261). This is the one
+  // key on this list a *screen* reads through `copy()`, and the screen rule
+  // has no exceptions: an owner-owed sentence on a screen renders the
+  // visible marker, so the owner can see which line is still theirs while
+  // the rest of the page works (DECISIONS 2026-09-05, restated for #242 and
+  // #255). The empty value's throw would take `/opt-out/{token}` down
+  // whole — on the arm a reader reaches when the store is unavailable,
+  // which is the moment they can least afford a blank page. Its neighbours
+  // above stay empty because a *mail* reads them, and a mail never ships a
+  // placeholder.
+  "optout.unavailable": ["TODO(copy)", { slots: {}, fixedBy: "REQ-010 c11" }],
 
   // 2026-09-06, issue #33 (Stripe, provisioning and the two backstops,
   // `BUILD.md` §13). Nine keys, every one owner-owed and empty. Empty and

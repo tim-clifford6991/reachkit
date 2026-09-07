@@ -11,9 +11,12 @@
 // on `PUBLIC_PATHS` and this file sits under `(public)`, whose layout
 // declares nothing about sessions.
 //
-// Every sentence is a registry key. `optout.unavailable` is owner-owed, so
-// `copy()` throws on it rather than rendering a blank line — the intended
-// blocking point, and it blocks copy, not structure.
+// Every sentence is a registry key. `optout.unavailable` is still owner-owed
+// and renders the visible `TODO(copy)` marker (issue #261): a screen shows
+// which line is waiting on the owner rather than going down over it, which
+// is the standing rule for every owner-owed key a screen reads. It used to
+// carry the empty value, whose `copy()` throw took this whole page with it
+// on the one arm a reader reaches when the store is unavailable.
 import type React from "react";
 import { copy } from "@/lib/presentation/copy";
 import { applyOptOutToken } from "@/lib/mail/leads";
