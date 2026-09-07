@@ -73,7 +73,7 @@ import { advanceCorrectionState, readCorrectionFacts, registerCorrectionRunner }
 import { parseDomain, type CanonicalDomain } from "./domain";
 import { readCurrentReport } from "./report";
 import type { AiAnswersSection, StoppedReason, StoredReport, SupplySection, Tier } from "./report";
-import { answersSectionOf, blockedAgentsOf, categoryOf } from "./sections";
+import { answersSectionOf, blockedAgentsOf } from "./sections";
 import { emitEnding, enterStage, exitStage } from "./stages";
 import type { StageName } from "./stages";
 import { assembleReport, storeCurrentReport, type ScanStatus } from "./store";
@@ -1015,7 +1015,6 @@ function composeReport(a: {
     fromIncompleteRescan: a.fromIncompleteRescan,
     verdict,
     blockedAgents: blockedAgentsOf(robots),
-    category: categoryOf(market),
     aiAnswers: s.aiAnswers,
     // A pass that never bought a SERP has no card to show, and an empty
     // one would read as "we looked and nobody is there". `null` is the

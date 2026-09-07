@@ -50,7 +50,8 @@ vi.mock("@/lib/db", () => ({
 
 const { readCurrentReport, readStoredReport, REPORT_VERSION } = await import("../../../src/lib/scan/report");
 const { assembleReport } = await import("../../../src/lib/scan/store");
-const { fullSections, AT } = await import("./fixtures");
+const { fullSections, AT, PROFILE } = await import("./fixtures");
+const { categoryOf } = await import("../../../src/lib/scan/sections");
 
 /** What the row actually holds: the blob after a round trip through
  *  `jsonb`, where every `Date` is an ISO string. */
@@ -129,10 +130,30 @@ describe("dates survive the round trip through jsonb", () => {
 // The upgrade is the migration path the issue asks to be stated, and it is
 // stated here, in the reader, because a stored blob has exactly one reader.
 
-/** The same blob as `asStoredJson`, wound back to what version 3 wrote:
- *  no `engines` on any row. */
-function asVersion3Json(): Record<string, unknown> {
+/** The same blob as `asStoredJson`, wound back to what version 4 wrote:
+ *  the two facts that had a second home each (#103), and which version 5
+ *  drops — `category` beside the verdict strip, and `namedBrands` on every
+ *  stored question. */
+function asVersion4Json(): Record<string, unknown> {
   const blob = asStoredJson() as Record<string, unknown>;
+  const answers = blob.aiAnswers as { rows: Record<string, unknown>[] };
+  return {
+    ...blob,
+    version: 4,
+    category: "user onboarding software",
+    aiAnswers: {
+      ...answers,
+      rows: answers.rows.map((row) => ({
+        ...row,
+        question: { ...(row.question as Record<string, unknown>), namedBrands: ["appcues.com"] },
+      })),
+    },
+  };
+}
+
+/** And wound back once more to version 3: no `engines` on any row. */
+function asVersion3Json(): Record<string, unknown> {
+  const blob = asVersion4Json();
   const answers = blob.aiAnswers as { rows: Record<string, unknown>[] };
   return {
     ...blob,
@@ -172,7 +193,8 @@ describe("a report written at version 3 is lifted, not refused", () => {
     const before = asVersion3Json();
     const lifted = readStoredReport(before) as unknown as Record<string, unknown>;
     for (const key of Object.keys(before)) {
-      if (key === "version" || key === "aiAnswers") continue;
+      // `category` is version 5's own removal (#103), asserted below.
+      if (key === "version" || key === "aiAnswers" || key === "category") continue;
       expect(JSON.stringify(lifted[key])).toBe(JSON.stringify(before[key]));
     }
     const answersBefore = before.aiAnswers as Record<string, unknown>;
@@ -196,9 +218,72 @@ describe("a report written at version 3 is lifted, not refused", () => {
     expect(report.aiAnswers?.measuredAt).toBeInstanceOf(Date);
   });
 
-  it("lifts version 3 and no other — version 2 is still refused", () => {
+  it("lifts version 2 for nobody — the chain starts at 3", () => {
     const blob = { ...asVersion3Json(), version: 2 };
     expect(() => readStoredReport(blob)).toThrow(/version 2 is not readable by this build/);
+  });
+
+  it("is lifted the whole way: a version-3 report lands at the current version, not at 4", () => {
+    // The chain, asserted. A build that switched on the version rather than
+    // stepping it would leave a version-3 report at 4 and then refuse it.
+    const report = readStoredReport(asVersion3Json());
+    expect(report.version).toBe(REPORT_VERSION);
+    expect(REPORT_VERSION).toBeGreaterThan(4);
+  });
+});
+
+// ── #103: version 4 → 5, the two second homes dropped ───────────────────
+//
+// Both members were derived at assembly by one function — `categoryOf` for
+// the category, the answer cell for `namedBrands` — so no stored blob
+// carries a value the surviving home does not already imply. Dropping them
+// is therefore a migration and not a re-measurement, and a version-4 report
+// renders exactly as it did.
+
+describe("a report written at version 4 is lifted, not refused", () => {
+  it("loses the second home of the category, and the market still names it", () => {
+    const before = asVersion4Json();
+    expect(before.category).toBe("user onboarding software");
+
+    const report = readStoredReport(before);
+    expect(report.version).toBe(REPORT_VERSION);
+    expect((report as unknown as Record<string, unknown>).category).toBeUndefined();
+    // The fact itself is untouched: it has one home and always did.
+    expect(categoryOf(report.market)).toBe(PROFILE.category);
+  });
+
+  it("loses the third copy of the named brands, and the cell still holds them", () => {
+    const before = asVersion4Json();
+    const report = readStoredReport(before);
+    const rows = report.aiAnswers?.rows ?? [];
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) {
+      expect((row.question as unknown as Record<string, unknown>).namedBrands).toBeUndefined();
+      // The brands live where they were measured.
+      if (row.cell.kind === "answered") expect(row.cell.citedDomains).toBeDefined();
+    }
+  });
+
+  it("changes nothing else about the blob", () => {
+    const before = asVersion4Json();
+    const lifted = readStoredReport(before) as unknown as Record<string, unknown>;
+    for (const key of Object.keys(before)) {
+      if (key === "version" || key === "aiAnswers" || key === "category") continue;
+      expect(JSON.stringify(lifted[key]), key).toBe(JSON.stringify(before[key]));
+    }
+  });
+
+  it("lifts a version-4 report whose AI-answers section is absent", () => {
+    const before = { ...asVersion4Json(), aiAnswers: null };
+    const report = readStoredReport(before);
+    expect(report.version).toBe(REPORT_VERSION);
+    expect(report.aiAnswers).toBeNull();
+    expect((report as unknown as Record<string, unknown>).category).toBeUndefined();
+  });
+
+  it("still revives dates after the lift", () => {
+    const report = readStoredReport(asVersion4Json());
+    expect(report.verdict.measuredAt).toBeInstanceOf(Date);
   });
 });
 

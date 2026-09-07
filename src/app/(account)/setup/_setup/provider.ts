@@ -176,10 +176,15 @@ export async function readReportFor(domain: string): Promise<ReportFacts | null>
   } catch {
     return null;
   }
-  if (report === null || report.category === null) return null;
+  if (report === null) return null;
+  // #103: the category has one home — the market the profile inferred —
+  // and `categoryOf` is its one derivation.
+  const { categoryOf } = await import("@/lib/scan/sections");
+  const category = categoryOf(report.market);
+  if (category === null) return null;
   return {
     scanId: report.scanId,
-    category: report.category,
+    category,
     rivals: (report.presence?.rivals ?? []).map((rival) => rival.domain),
   };
 }

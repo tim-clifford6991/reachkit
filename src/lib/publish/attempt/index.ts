@@ -17,6 +17,13 @@
 //     that came back with a live address is due for the 24-hour check;
 //     one that did not is not. Deriving it from the destination kind is
 //     how WordPress silently leaves the verified population.
+//  4. **`seo_written` keeps "no answer" and "no plugin wrote" apart**
+//     (issue #156). `undefined` on the result is a destination with no
+//     such answer to give and stores `null`; an empty array is REQ-060
+//     criterion 4's answer — delivered, and written into no plugin — and
+//     stores `'{}'`. Written on this update and nowhere else: the fact
+//     belongs to the delivery that learned it, and a claim that never
+//     delivered leaves the column null.
 //
 // The outcome is written **as it happened**: a page that reached its
 // destination is recorded delivered even if the switch was thrown
@@ -161,6 +168,16 @@ export async function publish(a: PublishArgs): Promise<PublishResult> {
       // ADR-084 Decision 4 — copied straight off the `DeliveryResult` and
       // derived from nothing else.
       made_live_by_us: result.madeLive,
+      // REQ-060 criterion 4 (issue #156), and the same discipline: what the
+      // adapter *read back* from the destination, copied across as it is.
+      // `undefined` and `[]` are two answers and stay two — absent is "this
+      // destination has no such answer to give", empty is "delivered, and
+      // written into no plugin", and only the second carries criterion 4's
+      // line. The explicit `=== undefined` is what keeps them apart: a
+      // falsy test would store `null` for both and put the line nowhere,
+      // and a `?? []` would store the empty array for both and put it on
+      // every hosted page.
+      seo_written: result.seoWritten === undefined ? null : [...result.seoWritten],
       // BP-049's rule, landing on the write where `delivery_state` becomes
       // `delivered`: the address decides, never the kind.
       verify_due_at:

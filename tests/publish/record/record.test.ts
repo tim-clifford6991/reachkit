@@ -199,6 +199,11 @@ describe("pageRecordFor — REQ-056 c6's five facts", () => {
       "measuredAt",
       "mode",
       "opportunityId",
+      // REQ-060 c4's line (issue #156). It is a *recorded* fact about the
+      // delivery, not an observation of what is at the address now: the
+      // page record is where it lives, and no field beside it says
+      // anything fresher.
+      "seoNote",
       "state",
       "targetQuery",
       "unpublishOutcome",

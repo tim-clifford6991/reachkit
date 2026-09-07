@@ -83,6 +83,28 @@ export interface DeliveryResult {
   liveUrl?: string;
   /** Opaque to us; the post/page id at the destination. Never rendered. */
   remoteId?: string;
+  /** Which SEO plugins the destination's site **actually wrote** the title
+   *  and description into, read back from what the destination returned
+   *  and never inferred from what was sent (REQ-060 criteria 3 and 4,
+   *  issue #156).
+   *
+   *  **Three states, and the third is the whole point of the field being
+   *  optional.** Absent is "this destination has no such answer to give" —
+   *  a destination ReachKit runs writes the metadata itself and has no
+   *  plugin to find. An **empty array** is an answer, and the one criterion
+   *  4 is about: the delivery happened, the site had neither plugin (or
+   *  accepted the post and dropped the meta), and its page record carries
+   *  one written line saying so. A non-empty array is the ordinary case and
+   *  carries no line.
+   *
+   *  Collapsing absent into empty would put criterion 4's line on every
+   *  hosted page, which is the one place REQ-060 says it must never appear.
+   *
+   *  Typed as strings rather than as the WordPress leaf's `SeoPlugin`
+   *  deliberately: the vocabulary belongs to the adapter that knows it, and
+   *  every reader in this subsystem needs only to know whether the list is
+   *  empty. */
+  seoWritten?: readonly string[];
   /** Did *this call* make the page live at the destination? ADR-082's
    *  discriminator, carried forward unchanged by ADR-084 Decision 4:
    *  declared by the adapter that did or did not do it, stored by

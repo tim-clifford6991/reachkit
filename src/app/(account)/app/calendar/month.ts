@@ -20,7 +20,7 @@
 import type { Measured } from "@/lib/measure/measured";
 import { accountFor, type EmptyAccount, type EmptyFacts } from "./empty";
 import type { WorkStop } from "@/lib/presentation/stopped";
-import { STAGE_OF, type PublishState, type Stage, type StageFilter } from "./stages";
+import { STAGE_OF, type State, type Stage, type StageFilter } from "./stages";
 import { dayKeyOf, monthGrid, monthOf, type DayKey, type MonthKey } from "./dates";
 
 /** REQ-043 criterion 8's evidence, and §4.6's "Why this page" rows —
@@ -49,7 +49,7 @@ export interface DraftOnDay {
    *  where there is one; `actions.ts` is where that is held, once. */
   draftId: string | null;
   title: string;
-  state: PublishState;
+  state: State;
   scheduledFor: DayKey;
   why: WhyThisPage;
   /** REQ-043 c10: the one date the panel's provenance line states. Not
@@ -158,7 +158,7 @@ export class TwoPagesOnOneDateError extends Error {
   }
 }
 
-function emptyFactsFor(day: DayKey, facts: CalendarFacts, cannotGoLive: PublishState | null): EmptyFacts {
+function emptyFactsFor(day: DayKey, facts: CalendarFacts, cannotGoLive: State | null): EmptyFacts {
   const instruction = facts.instructions[day];
   return {
     instruction: instruction === undefined ? null : { opportunityId: instruction },

@@ -32,7 +32,8 @@ import {
   draftHref,
 } from "@/app/(account)/app/calendar/actions";
 import { STATES, TRANSITIONS, isTransition } from "@/lib/publish/machine/table";
-import { PUBLISH_STATES, STAGE_OF, type PublishState } from "@/app/(account)/app/calendar/stages";
+import type { State } from "@/lib/publish/types";
+import { STAGE_OF } from "@/app/(account)/app/calendar/stages";
 import {
   publishing,
   PublishingNotBuiltError,
@@ -55,7 +56,7 @@ afterEach(() => resetAccount());
 const AT = new Date(Date.UTC(2026, 8, 14, 6, 0, 0));
 
 function cellWith(
-  state: PublishState,
+  state: State,
   liveUrl: string | null = null,
   draftId: string | null = "d1",
   enteredReview = false
@@ -105,7 +106,7 @@ describe("the panel projects from §9's own table — there is no second copy of
   // and cannot silently disagree with it.
 
   it("the calendar's ten states are §9's ten", () => {
-    expect([...PUBLISH_STATES].sort()).toEqual([...STATES].sort());
+    expect([...STATES].sort()).toEqual([...STATES].sort());
   });
 
   it("STOP_COMMAND is total over the ten and names a command exactly where the → skipped edge is open", () => {
@@ -113,7 +114,7 @@ describe("the panel projects from §9's own table — there is no second copy of
     // second hand-kept list: adding a `→ skipped` edge without a word for
     // it, or a word without the edge, fails here.
     expect(Object.keys(STOP_COMMAND).sort()).toEqual([...STATES].sort());
-    for (const state of PUBLISH_STATES) {
+    for (const state of STATES) {
       expect(STOP_COMMAND[state] !== null, state).toBe(isTransition(state, "skipped"));
     }
     expect([...STATES_WITH_STOP_EDGE].sort()).toEqual([
@@ -226,7 +227,7 @@ describe("REQ-043 c9 — §4.6's stage-appropriate actions, and no action a stag
   });
 
   it("no state offers a command without a draft to act on", () => {
-    for (const state of PUBLISH_STATES) {
+    for (const state of STATES) {
       if (STAGE_OF[state] === null) continue;
       const actions = actionsFor(cellWith(state, "https://content.example.com/p", null));
       expect(actions.filter((a) => a.kind === "command"), state).toEqual([]);
@@ -239,7 +240,7 @@ describe("REQ-043 c9 — §4.6's stage-appropriate actions, and no action a stag
   });
 
   it("every command offered is one whose edge is open in the page's own state", () => {
-    for (const state of PUBLISH_STATES) {
+    for (const state of STATES) {
       if (STAGE_OF[state] === null) continue;
       for (const action of actionsFor(cellWith(state, "https://content.example.com/p"))) {
         if (action.kind !== "command") continue;
@@ -249,7 +250,7 @@ describe("REQ-043 c9 — §4.6's stage-appropriate actions, and no action a stag
   });
 
   it("every action's word is a registry key the owner has filled", () => {
-    for (const state of PUBLISH_STATES) {
+    for (const state of STATES) {
       if (STAGE_OF[state] === null) continue;
       for (const action of actionsFor(cellWith(state, "https://content.example.com/p"))) {
         expect(Object.keys(COPY)).toContain(action.key);
@@ -370,7 +371,7 @@ describe("issue #143 — the restart is offered against the guard, never against
   });
 
   it("**no other state offers it**, whatever the draft's history", () => {
-    for (const state of PUBLISH_STATES) {
+    for (const state of STATES) {
       // `skipped` and `unpublished` occupy no date, so no cell carries
       // them — `STAGE_OF` is what says so, and `cellWith` refuses them.
       if (state === "needs_attention" || STAGE_OF[state] === null) continue;

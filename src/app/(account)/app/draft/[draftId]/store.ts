@@ -24,7 +24,7 @@
 //   firstEditedAt     the first save that changed the text (#17)
 import { dbAdmin } from "@/lib/db";
 import type { PublishingMode } from "../../_shell/model";
-import type { PublishState } from "../../calendar/stages";
+import type { State } from "../../calendar/stages";
 import type { ClaimState, DraftFacts } from "./model";
 
 interface DraftRow {
@@ -161,7 +161,7 @@ export async function readDraftRow(a: {
     title: row.title,
     bodyMd,
     bodyMdGenerated: generated,
-    state: row.state as PublishState,
+    state: row.state as State,
     firstEditedAt: firstEdited === null ? null : new Date(firstEdited),
     groundedFact: groundedFactOf(row.meta),
     claim: claimOf(row.meta),

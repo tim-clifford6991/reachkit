@@ -33,7 +33,7 @@ import {
 } from "@/app/(account)/app/draft/[draftId]/actions";
 import { STOP_COMMAND, actionsFor } from "@/app/(account)/app/calendar/actions";
 import { TRANSITIONS, isTransition } from "@/lib/publish/machine/table";
-import { PUBLISH_STATES, type PublishState } from "@/app/(account)/app/calendar/stages";
+import { STATES, type State } from "@/app/(account)/app/calendar/stages";
 import {
   publishing,
   PublishingRefusedError,
@@ -68,7 +68,7 @@ describe("REQ-045 c4 — approve, edit and veto, offered where the state allows 
   });
 
   it("approve is offered exactly where the → approved edge is open", () => {
-    for (const state of PUBLISH_STATES) {
+    for (const state of STATES) {
       const offered = draftActionsFor(state).some(
         (a) => a.kind === "command" && a.command === "approve"
       );
@@ -77,14 +77,14 @@ describe("REQ-045 c4 — approve, edit and veto, offered where the state allows 
   });
 
   it("veto is offered exactly where the calendar's own projection names that word", () => {
-    for (const state of PUBLISH_STATES) {
+    for (const state of STATES) {
       const offered = draftActionsFor(state).some((a) => a.kind === "command" && a.command === "veto");
       expect(offered, state).toBe(STOP_COMMAND[state] === "veto");
     }
   });
 
   it("edit rides on the same edge as approve — text that can still be approved has not gone out", () => {
-    for (const state of PUBLISH_STATES) {
+    for (const state of STATES) {
       expect(isEditable(state), state).toBe(isTransition(state, "approved"));
       expect(
         draftActionsFor(state).some((a) => a.kind === "edit"),
@@ -94,13 +94,13 @@ describe("REQ-045 c4 — approve, edit and veto, offered where the state allows 
   });
 
   it("a page that has gone out, or been stopped, offers nothing at all", () => {
-    for (const state of ["published", "unpublished", "skipped", "publishing"] as PublishState[]) {
+    for (const state of ["published", "unpublished", "skipped", "publishing"] as State[]) {
       expect(draftActionsFor(state), state).toEqual([]);
     }
   });
 
   it("no action is offered that the state would refuse — the projection is total over the ten states", () => {
-    for (const state of PUBLISH_STATES) {
+    for (const state of STATES) {
       for (const action of draftActionsFor(state)) {
         if (action.kind !== "command") continue;
         const target = action.command === "approve" ? "approved" : "skipped";
@@ -115,7 +115,7 @@ describe("the draft view and the day panel read one table", () => {
   // `src/lib/publish/machine/table.ts`, and neither declares an edge.
 
   it("every action the draft view offers rides an edge of §9's own table", () => {
-    for (const state of PUBLISH_STATES) {
+    for (const state of STATES) {
       for (const action of draftActionsFor(state)) {
         const target = action.kind === "edit" || action.command === "approve" ? "approved" : "skipped";
         expect(
@@ -127,7 +127,7 @@ describe("the draft view and the day panel read one table", () => {
   });
 
   it("Edit is offered on exactly the states §9's table can still reach approved from", () => {
-    const editable = PUBLISH_STATES.filter((state) => isEditable(state));
+    const editable = STATES.filter((state) => isEditable(state));
     expect([...editable].sort()).toEqual(
       TRANSITIONS.filter(([, to]) => to === "approved")
         .map(([from]) => from)
@@ -136,7 +136,7 @@ describe("the draft view and the day panel read one table", () => {
   });
 
   it("wherever the panel offers Veto, the draft view offers Veto too", () => {
-    for (const state of PUBLISH_STATES) {
+    for (const state of STATES) {
       const cell = {
         day: "2026-09-15",
         inMonth: true,
@@ -174,7 +174,7 @@ describe("the draft view and the day panel read one table", () => {
   });
 
   it("the draft view offers no Move and no Skip — those are the calendar's, and it says so by not having them", () => {
-    for (const state of PUBLISH_STATES) {
+    for (const state of STATES) {
       for (const action of draftActionsFor(state)) {
         if (action.kind !== "command") continue;
         expect(["approve", "veto"]).toContain(action.command);
