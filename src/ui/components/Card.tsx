@@ -42,7 +42,22 @@ export function Card(p: CardProps): React.JSX.Element {
     // the product renders as white-on-white and the design system's own
     // surfaces are invisible.
     <div className="card bg-base-100 border-base-300 rounded-box border shadow-sm">
-      <div className="card-body">
+      {/* `[&>p]:grow-0` (issue #244).
+       *
+       * daisyUI's own rule is `.card-body p { flex-grow: 1 }`, so every
+       * paragraph in a card body absorbs whatever height the body has
+       * spare. In a card the page stretched — a grid row matched to a
+       * taller sibling, an `h-full` wrapper — that turns one line of text
+       * into a 400px band and pushes everything under it down the card,
+       * which is what the report's presence card was doing at 1024 and
+       * 1280 (two bands of about 400px, above and below its bars).
+       *
+       * A card's content starts at the top. That is not a per-screen
+       * choice, so it is stated here once rather than in every grid that
+       * might stretch one — and the grid that stretched this one is fixed
+       * too, in `_address/report-view.tsx`, because a card that keeps its
+       * own height is the better answer where the layout allows it. */}
+      <div className="card-body [&>p]:grow-0">
         <div className="card-title">{p.title}</div>
         {p.state === "degraded" ? <p>{p.degradedLine}</p> : p.children}
       </div>

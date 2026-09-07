@@ -213,8 +213,25 @@
   }
 
   /* Its own gutter is `surface.css`'s from #241 (see the rule above); what
-   * stays here is the column's share of the frame. */
+   * stays here is the column's share of the frame — and, since #267, the
+   * one edge `surface.css` cannot reach.
+   *
+   * `[data-surface]` pads the whole shell, sidebar included, so at this
+   * band the container's left gutter is spent on the *sidebar* and the
+   * content column begins flush against the sidebar's rule: the audit
+   * measured every h1, card and control column starting at x=253 with the
+   * sidebar ending at 252. The missing air is between the two, which is
+   * inside the container and therefore nowhere `surface.css` has a
+   * selector for.
+   *
+   * `--rk-gutter` is `surface.css`'s own variable, inherited from
+   * `[data-surface]`, so this is the band's step and not a second one — it
+   * rises 24 → 32 with the container's. **Start only.** The end edge
+   * already has the container's gutter; adding a second there would inset
+   * the content 64px from the right while the sidebar sits 32px from the
+   * left, which is a worse frame than the one being fixed. */
   .rk-main {
     flex: 1 1 0;
+    padding-inline-start: var(--rk-gutter);
   }
 }

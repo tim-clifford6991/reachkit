@@ -108,6 +108,41 @@ describe('BUILD §4.4 — "Mobile: sidebar hidden, top tabs", at --breakpoint-lg
   });
 });
 
+// ── Issue #267 ──────────────────────────────────────────────────────────
+describe("the content column's inner gutter — the one edge surface.css cannot reach", () => {
+  it("`.rk-main` takes the band's gutter on its start edge, above the sidebar breakpoint", () => {
+    const [media] = mediaRules();
+    const main = declsOf(".rk-main", media);
+    expect(main.get("padding-inline-start")).toBe("var(--rk-gutter)");
+  });
+
+  it("**it is `surface.css`'s variable, not a second step**", () => {
+    // `--rk-gutter` is declared on `[data-surface]` and rises 16 → 24 → 32
+    // with the band. A literal here would be a second spacing vocabulary
+    // that stops rising when the container's does.
+    const [media] = mediaRules();
+    const value = declsOf(".rk-main", media).get("padding-inline-start") ?? "";
+    expect(value).toContain("--rk-gutter");
+    expect(value).not.toMatch(/\d/);
+    expect(SHELL_CSS).not.toMatch(/--rk-gutter\s*:/);
+  });
+
+  it("start only — the end edge is the container's, and two would be worse than none", () => {
+    const [media] = mediaRules();
+    const main = declsOf(".rk-main", media);
+    expect(main.has("padding-inline-end")).toBe(false);
+    expect(main.has("padding-inline")).toBe(false);
+    expect(main.has("padding")).toBe(false);
+  });
+
+  it("below the breakpoint it has none: there is no sidebar to be clear of", () => {
+    // The sidebar collapses into the header band, `.rk-main` is the only
+    // column, and the container's own gutter is the page's air. A gutter
+    // here would inset the content twice on one side and once on the other.
+    expect(declsOf(".rk-main").has("padding-inline-start")).toBe(false);
+  });
+});
+
 describe("the sheet reaches every app route, and no other", () => {
   it("the (account)/app layout imports it, so every screen under /app carries it", () => {
     expect(readFileSync(APP_LAYOUT_PATH, "utf8")).toMatch(

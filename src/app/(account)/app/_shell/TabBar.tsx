@@ -37,7 +37,12 @@ export function TabBar(): React.JSX.Element {
     <div className="rk-tabbar" data-testid="shell-tabbar">
       <Tabs
         tabs={tabs}
-        selectedId={current ?? DESTINATIONS[0]}
+        // `?? DESTINATIONS[0]` until #267: on a route that is on no
+        // destination — the draft view — that fallback marked Overview
+        // current on a page that is not Overview, while the sidebar, which
+        // reads the same `destinationOf`, marked nothing. One reader, one
+        // answer, and `null` is the answer where there is none.
+        selectedId={current ?? null}
         onSelect={(id) => {
           const destination = DESTINATIONS.find((d) => d === id);
           if (destination) router.push(DESTINATION_HREF[destination]);

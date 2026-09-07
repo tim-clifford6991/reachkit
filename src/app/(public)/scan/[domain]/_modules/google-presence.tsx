@@ -55,7 +55,20 @@ function OccupancyRow(p: {
           first row of the layout sweep's scroll-container allow-list.
           `rival-three.example.org` needs 136px in a 128px track, which is
           the eight pixels this reaches. */}
-      <div className="min-w-0 overflow-x-auto">
+      {/* `whitespace-nowrap` completes it (issue #244). `.num` bans
+          breaking *inside* a word, and a hyphen is not inside one: it is
+          a soft wrap opportunity the line-breaking algorithm is entitled
+          to take, so `rival-one.example.net` still came apart as `rival-`
+          / `one.example.net` — 168px of value on two lines in a 120px
+          box, at every width. Same defect, one boundary further out. It
+          is stated on this cell rather than on `.num` because `.num` also
+          carries mono *lines* that hold spaces — a provenance line, a
+          search phrase — and those must keep wrapping; a single-token
+          value is a property of this cell's content, and this cell is
+          already the declared scroll container that lets the box change
+          instead. Whether `.num` should ban hyphen breaks for every
+          single-token value is #256's question, not this card's. */}
+      <div className="min-w-0 overflow-x-auto whitespace-nowrap">
         <Num>{p.domain}</Num>
       </div>
       <Progress value={p.count} max={p.measured} />

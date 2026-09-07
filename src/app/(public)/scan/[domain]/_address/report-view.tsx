@@ -186,7 +186,17 @@ export function ReportView(p: {
           here — an element with no box has no border box for conformance
           check 2 to contain its children in, so every row reported as
           escaping. */}
-      <main className="col-span-full grid grid-cols-subgrid">
+      {/* `items-start` (issue #244).
+        *
+        * The two-up cards are subgrid items in the same row, so without it
+        * each grows to the taller of the pair — and daisyUI's own
+        * `.card-body p { flex-grow: 1 }` then hands that slack to the
+        * card's paragraphs. On the presence card at 1280 that put one line
+        * of text in a 399px band and its legend in another 393px one, with
+        * the bars stranded in between. A shorter card keeps its own
+        * height; `Card` itself stops the distribution for the cases a
+        * layout does stretch one. */}
+      <main className="col-span-full grid grid-cols-subgrid items-start">
         {/* REQ-001 c14: the notice and the one control that answers it sit
           together, so a visitor reads what happened and what they can do
           about it in one place. */}
