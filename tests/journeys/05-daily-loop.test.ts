@@ -847,6 +847,12 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
         by: { kind: "system", job: "publish/execute" },
         at,
         deps: {
+          // The claim re-check is opened here so the stop is the reason
+          // this attempt does not begin — which is what the assertion
+          // below is about. The guard's own occasions are
+          // `tests/publish/machine/claim-recheck.test.ts`'s.
+          claimRecheckOutstanding: async () => false,
+          outstandingMatch: async () => null,
           reachKitStopped: async () => true,
           isPublishingOn: async () => true,
           hasCeilingRoom: async () => true,
