@@ -97,13 +97,18 @@ const HOST_FIXTURES: Readonly<Record<string, string>> = {
 };
 
 /**
- * The `Cookie` header every `(account)` page is rendered with — the one
- * fixture that gets the sweep past `src/middleware.ts`'s default-deny
- * boundary. The middleware checks the cookie's *presence only* ("the check
- * is a cookie's presence, nothing about its contents"), so a fixture value
- * is enough and no session has to exist. The name is the one
- * `src/middleware.ts` reads; when BP-061's identity work sets it for real
- * (issue #35), that work order is where the two are made to agree.
+ * The default `Cookie` header an `(account)` page is enumerated with.
+ *
+ * **It is no longer enough on its own** (issue #193). `src/middleware.ts`
+ * checks a cookie's *presence only*, so this fixture gets a request past
+ * the default-deny boundary — but since #192 the four `/app` screens
+ * verify the session against the `users` row, and this value names no
+ * account, so they answer `/signin`. The browser sweep passes
+ * `accountCookie` instead: a cookie minted through identity's own path
+ * against the seeded account (`seed.ts`). This stays the default because
+ * `routes.test.ts` enumerates a fixture tree with no database behind it
+ * and is asserting the *shape* of what enumeration produces, not what a
+ * screen answers.
  */
 export const ACCOUNT_SESSION_COOKIE = `${SESSION_COOKIE_NAME}=layout-sweep-fixture`;
 
@@ -173,6 +178,9 @@ function walk(dir: string, out: string[]): void {
 export interface EnumerateOptions {
   segmentFixtures?: Readonly<Record<string, string>>;
   hostFixtures?: Readonly<Record<string, string>>;
+  /** The `Cookie` header to give every `(account)` route. The browser
+   *  sweep passes the seeded session; everything else takes the fixture. */
+  accountCookie?: string;
 }
 
 /**
@@ -184,6 +192,7 @@ export interface EnumerateOptions {
 export function enumerateRoutes(appRoot: string, options: EnumerateOptions = {}): EnumeratedRoute[] {
   const segmentFixtures = options.segmentFixtures ?? SEGMENT_FIXTURES;
   const hostFixtures = options.hostFixtures ?? HOST_FIXTURES;
+  const accountCookie = options.accountCookie ?? ACCOUNT_SESSION_COOKIE;
 
   const pageFiles: string[] = [];
   walk(appRoot, pageFiles);
@@ -200,7 +209,7 @@ export function enumerateRoutes(appRoot: string, options: EnumerateOptions = {})
     for (const segment of segments) {
       if (isRouteGroup(segment)) {
         if (segment === "(account)") {
-          cookie = ACCOUNT_SESSION_COOKIE;
+          cookie = accountCookie;
         }
         if (segment === "(hosted)") {
           const h = hostFixtures[fsRoute];

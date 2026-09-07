@@ -6,6 +6,8 @@
 // The mutation this suite exists to kill is a surface that draws for a
 // caller it could not name — which is what every one of these screens did
 // until this issue, and what a `null`-tolerant seam would let one do again.
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { applyEnvFixture } from "../../mail/env-fixture";
 
@@ -192,23 +194,29 @@ describe("what a forged or unverifiable cookie gets, and what that costs elsewhe
     expect(redirected).toEqual(["/signin"]);
   });
 
-  it("and that is why the browser layout sweep no longer measures the four /app screens", () => {
-    // Recorded here rather than left to be noticed. `src/middleware.ts`
-    // checks a cookie's *presence*, so `tests/ui/layout/routes.ts`'s
-    // `ACCOUNT_SESSION_COOKIE` — a fixture value, not a signed session —
-    // got the sweep past the boundary and onto the screens. Since this
-    // issue the screens themselves verify the session, so that request
-    // redirects to `/signin` and the sweep measures the sign-in prompt at
-    // those four addresses instead.
+  it("and the browser layout sweep signs in for real rather than carrying a fixture (#193)", async () => {
+    // The marker #192 left here said the sweep had stopped measuring the
+    // four `/app` screens: `src/middleware.ts` checks a cookie's
+    // *presence*, so a fixture value got a request past the boundary, and
+    // then the screens themselves refused it and answered `/signin`.
     //
-    // It is the right behaviour and a real loss of coverage, and it cannot
-    // be closed from inside a suite: `currentSession` reads the `users`
-    // row, and the layout job runs `next build` with no database behind
-    // it. Closing it means giving that job a substrate and a seeded
-    // account — the shape the `db` vitest project already has, and its own
-    // piece of work. The assertion below is the marker that keeps the fact
-    // from going quiet.
-    const cookieIsAFixture = "rk_session=layout-sweep-fixture";
-    expect(cookieIsAFixture).not.toMatch(/\./);
+    // #193 closed it by giving the layout job the substrate #164 put in
+    // the repository, seeding one account and minting its session through
+    // identity's own issue → redeem → `sessionCookie` path. This is the
+    // assertion that keeps that true: the sweep's default cookie is still
+    // a fixture (`routes.test.ts` enumerates a tree with no database), so
+    // what must not regress is that the browser suites do not use it.
+    const { ACCOUNT_SESSION_COOKIE } = await import("../../ui/layout/routes");
+    expect(ACCOUNT_SESSION_COOKIE).not.toMatch(/\./);
+
+    const sweeps = ["layout.test.ts", "heading-scale.test.ts"] as const;
+    for (const file of sweeps) {
+      const source = readFileSync(
+        path.resolve(import.meta.dirname, "../../ui/layout", file),
+        "utf8"
+      );
+      // Enumerated with the seeded session, never with the default.
+      expect(source, file).toContain("accountCookie: getAccountCookie()");
+    }
   });
 });

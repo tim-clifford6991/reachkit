@@ -26,6 +26,7 @@ import os from "node:os";
 import path from "node:path";
 import { chromium, type Page } from "playwright";
 import { enumerateRoutes } from "./routes";
+import { applyMigrations, seedAccount, seededSessionCookie, waitForSchemaCache } from "./seed";
 
 const ROOT = path.resolve(__dirname, "../../..");
 
@@ -47,6 +48,11 @@ const STATE_DIR_PREFIX = "reachkit-layout-";
 
 interface BrowserState {
   baseURL: string | null;
+  /** The `Cookie` header every `(account)` route is swept with — minted
+   *  through identity's own path against the seeded account (#193). Read
+   *  by the worker processes, which enumerate the routes again for
+   *  themselves and must not fall back to the fixture. */
+  accountCookie: string;
 }
 
 /** ADR-093 decision 6, amended 2026-09-03: "the viewport carries a height …
@@ -132,7 +138,15 @@ export default async function setup(): Promise<() => Promise<void>> {
     throw err;
   }
 
-  const routes = enumerateRoutes(path.join(ROOT, "src/app"));
+  // The substrate, the account and the session, before anything is built:
+  // `next build` collects page data, and an account route that redirected
+  // during collection would bake the redirect in (#193).
+  applyMigrations();
+  await waitForSchemaCache();
+  seedAccount();
+  const accountCookie = await seededSessionCookie();
+
+  const routes = enumerateRoutes(path.join(ROOT, "src/app"), { accountCookie });
   let baseURL: string | null = null;
 
   if (routes.length > 0) {
@@ -144,7 +158,7 @@ export default async function setup(): Promise<() => Promise<void>> {
     await waitForServer(baseURL, 30_000);
   }
 
-  const state: BrowserState = { baseURL };
+  const state: BrowserState = { baseURL, accountCookie };
   const stateDir = mkdtempSync(path.join(os.tmpdir(), STATE_DIR_PREFIX));
   const stateFile = path.join(stateDir, "browser-state.json");
   writeFileSync(stateFile, JSON.stringify(state), "utf8");
@@ -185,6 +199,13 @@ function readState(): BrowserState {
  *  row 5) and no server was started. */
 export function getBaseURL(): string | null {
   return readState().baseURL;
+}
+
+/** The seeded session `Cookie` this run minted (#193). Every browser suite
+ *  that enumerates routes for itself passes this, so no two suites can
+ *  disagree about which account the sweep is signed in as. */
+export function getAccountCookie(): string {
+  return readState().accountCookie;
 }
 
 /** Launches its own Chromium (never a shared connection — see this file's
