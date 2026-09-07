@@ -163,6 +163,46 @@ describe("BUILD.md §2.3 — the type scale, asserted against the clause", () =>
     expect(body!.style.getPropertyValue("line-height")).toBe("1.55");
   });
 
+  it("the heading scale: h1..h4 each declare their own step, and h5/h6 state that they take the body size", () => {
+    // Issue #110. §2.3 names no heading size, so the four values are the
+    // owner's 2026-09-02 ruling, transcribed from `design/tokens.md` §4
+    // ("Ratio 1.25 from the 15px body") in the frozen corpus. A frozen
+    // document cannot drift, so they are pinned by quotation here — the
+    // `tests/pins.test.ts` convention — and the *rendered* sizes, which is
+    // the half preflight broke, are asserted by
+    // `tests/ui/layout/heading-scale.test.ts` in a real browser.
+    const rules = Array.from(parseCss(typeCssSource())) as CSSStyleRule[];
+    const sizeOf = (selector: string): string => {
+      const rule = rules.find((r) => r.selectorText === selector);
+      expect(rule, `type.css declares no rule for ${selector}`).toBeTruthy();
+      return rule!.style.getPropertyValue("font-size");
+    };
+
+    expect(sizeOf("h1")).toBe("var(--t-h1)");
+    expect(sizeOf("h2")).toBe("var(--t-h2)");
+    expect(sizeOf("h3")).toBe("var(--t-h3)");
+    expect(sizeOf("h4")).toBe("var(--t-h4)");
+    // Four roles, four steps. `h5`/`h6` take the body size rather than mint
+    // a fifth and sixth nobody ruled — stated, so it reads as a decision.
+    expect(sizeOf("h5, h6")).toBe("inherit");
+
+    const root = rules.find((r) => r.selectorText === ":root");
+    expect(root, "type.css declares no :root block for the heading scale").toBeTruthy();
+    expect(root!.style.getPropertyValue("--t-h1")).toBe("31px");
+    expect(root!.style.getPropertyValue("--t-h2")).toBe("25px");
+    expect(root!.style.getPropertyValue("--t-h3")).toBe("20px");
+    expect(root!.style.getPropertyValue("--t-h4")).toBe("16px");
+  });
+
+  it("every heading step is above the 15px body — a head never steps under it", () => {
+    const rules = Array.from(parseCss(typeCssSource())) as CSSStyleRule[];
+    const root = rules.find((r) => r.selectorText === ":root")!;
+    for (const token of ["--t-h1", "--t-h2", "--t-h3", "--t-h4"]) {
+      const px = Number.parseFloat(root.style.getPropertyValue(token));
+      expect(px, `${token} must be above the 15px body`).toBeGreaterThan(15);
+    }
+  });
+
   it("eyebrow: uppercase, 10.5-11px", () => {
     const rules = Array.from(parseCss(typeCssSource())) as CSSStyleRule[];
     const eyebrow = rules.find((r) => r.selectorText === ".eyebrow");
