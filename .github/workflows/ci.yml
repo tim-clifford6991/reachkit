@@ -53,20 +53,9 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - name: psql 18 (the seed spawns it; the runner image ships an older client)
-        run: |
-          set -euo pipefail
-          key=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
-          sudo install -d /usr/share/postgresql-common/pgdg
-          sudo curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc -o "$key"
-          echo "deb [signed-by=$key] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq postgresql-client-18
-          psql --version
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - name: bring up the substrate (roles · auth shims · PostgREST · /rest/v1 proxy · postgres-meta)
-        run: scripts/db-substrate/up.sh
+      - uses: ./.github/actions/db-substrate
       - name: environment (src/lib/config/env.ts parses at build; the Supabase bindings are the substrate's, the rest are fixtures no vendor is reached with)
         run: |
           set -euo pipefail
@@ -116,17 +105,6 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - name: psql 18 (the suites spawn it; the runner image ships an older client)
-        run: |
-          set -euo pipefail
-          key=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
-          sudo install -d /usr/share/postgresql-common/pgdg
-          sudo curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc -o "$key"
-          echo "deb [signed-by=$key] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq postgresql-client-18
-          psql --version
       - run: npm ci
-      - name: bring up the substrate (roles · auth shims · PostgREST · /rest/v1 proxy · postgres-meta)
-        run: scripts/db-substrate/up.sh
+      - uses: ./.github/actions/db-substrate
       - run: npx vitest run --project db

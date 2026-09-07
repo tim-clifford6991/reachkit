@@ -36,7 +36,7 @@ export interface EnumeratedRoute {
  * here fails, naming the route, rather than being silently skipped. The
  * work that adds a dynamic route adds its row here.
  */
-const SEGMENT_FIXTURES: Readonly<Record<string, string>> = {
+export const SEGMENT_FIXTURES: Readonly<Record<string, string>> = {
   /**
    * `GET /opt-out/{token}` (issue #31, `BUILD.md` §4.2). Deliberately a
    * value that does not verify: the page then renders its invalid-link
