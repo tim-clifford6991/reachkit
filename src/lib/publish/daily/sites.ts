@@ -13,7 +13,8 @@
 // are asserted — the list here, the gate in `tests/jobs/site-clock.test.ts`
 // — and the composition in `tests/journeys/05-daily-loop.test.ts`.
 //
-// **Three predicates, each read from the row that owns it:**
+// **Four predicates, three read from the row that owns it and one asked
+// of the gate that owns it:**
 //
 //   1. a zone. A site with none cannot be told whether it is its own
 //      evening, and inventing UTC for it would publish at the wrong time
@@ -32,23 +33,50 @@
 //      probe found it incapable is never a candidate even if its health
 //      has not been re-read since. A site with no destination row at all
 //      matches neither and is never returned.
+//   4. active access, asked of **the same registered gate the weekly tick
+//      asks** (issue #201, master's ruling; ADR-050 — one rule, one
+//      reader). A day's page is spend, and a site whose access has ended
+//      is not prepared one. §13's grace, if there is any, is billing's to
+//      express inside `hasActiveAccess()` and is never a second clause
+//      here — a threshold written twice is a threshold that disagrees with
+//      itself the day one copy is corrected.
 //
 // Two statements per tick whatever the number of sites, on the same
 // grounds `src/lib/scan/weekly/due.ts` states for its own selection: a
-// per-site read here would be one round trip per customer per hour.
+// per-site read here would be one round trip per customer per hour. The
+// gate is asked once too, about the candidates that survived the three
+// row predicates — there is no point asking who pays for a site that has
+// nowhere to publish.
 //
-// **What this does not ask.** Active access is not a predicate here. It is
-// one for the weekly tick because the measurement is what the subscription
-// buys; whether a lapsed site should still be prepared a page is a
-// question about §13's grace and the answer is not written down. Adding it
-// on a guess would silently stop a paying customer's pages on the day a
-// billing read failed. Named here rather than assumed either way.
+// **An unreadable gate holds the tick, and holds it loudly.** Where the
+// gate is not registered, or answers by throwing, this returns *no sites*
+// and says why. It does not fall back to "everyone" — that spends a
+// lapsed customer's day on a read that failed — and it does not fall back
+// to "nobody" quietly, which is the same silence as an ordinary hour with
+// nothing due. `draft/generate` records it as a degraded run naming the
+// step, so an operator sees a tick that could not decide who pays rather
+// than a quiet night. Failing closed on **spend** is the same direction
+// `hasActiveAccess()` itself fails in.
+//
+// A hold is not a stop: nothing moves, no page is touched, and the next
+// tick asks again. The pages a site already holds stay exactly where they
+// are, which is `switch/index.ts`'s property and not this file's to
+// change.
+import { sitesWithActiveAccess } from "@/lib/scan/weekly/access";
 import { publishDb } from "../db";
 
 /** One candidate, with the zone its own evening is decided in. */
 export interface DailySite {
   readonly siteId: string;
   readonly timeZone: string;
+}
+
+/** What one tick's selection found. `held` is non-null exactly where the
+ *  tick could not decide who is paying — no site is returned then, and the
+ *  run records it rather than reporting a quiet hour. */
+export interface DailySelection {
+  readonly sites: readonly DailySite[];
+  readonly held: "access-unreadable" | null;
 }
 
 interface SiteRow {
@@ -61,22 +89,22 @@ interface DestinationSiteRow {
   publish_capable: boolean | null;
 }
 
-export async function sitesForDailyTick(): Promise<readonly DailySite[]> {
-  const sites = await publishDb()
+export async function sitesForDailyTick(): Promise<DailySelection> {
+  const allSites = await publishDb()
     .from<SiteRow>("sites")
     .select("id, timezone")
     .eq("publishing_enabled", true)
     .not("timezone", "is", null);
-  if (sites.error !== null) {
-    throw new Error(`publish/daily: could not read the sites: ${sites.error.message}`);
+  if (allSites.error !== null) {
+    throw new Error(`publish/daily: could not read the sites: ${allSites.error.message}`);
   }
 
-  const withAZone = (sites.data ?? []).filter(
+  const withAZone = (allSites.data ?? []).filter(
     (row): row is SiteRow & { timezone: string } => typeof row.timezone === "string" && row.timezone.length > 0
   );
   if (withAZone.length === 0) {
-    logSelection({ sites: 0, withDestination: 0 });
-    return [];
+    logSelection({ sites: 0, withDestination: 0, paying: 0 });
+    return { sites: [], held: null };
   }
 
   const destinations = await publishDb()
@@ -101,15 +129,45 @@ export async function sitesForDailyTick(): Promise<readonly DailySite[]> {
       .filter((row) => row.publish_capable !== false)
       .map((row) => row.site_id)
   );
-  const due = withAZone
+  const candidates = withAZone
     .filter((row) => reachable.has(row.id))
     .map((row): DailySite => ({ siteId: row.id, timeZone: row.timezone }));
+  if (candidates.length === 0) {
+    logSelection({ sites: withAZone.length, withDestination: 0, paying: 0 });
+    return { sites: [], held: null };
+  }
 
-  logSelection({ sites: withAZone.length, withDestination: due.length });
-  return due;
+  // ADR-050's one reader, through the one seam billing registers itself
+  // into. Imported by file and never through `@/lib/scan/weekly`, whose
+  // barrel re-exports the selection and the measurement and drags a
+  // database client behind it — the same reason `billing/access-gate.ts`
+  // gives for importing it the same way.
+  let paying: ReadonlySet<string>;
+  try {
+    paying = await sitesWithActiveAccess(
+      "sitesForDailyTick",
+      candidates.map((site) => site.siteId)
+    );
+  } catch {
+    logSelection({ sites: withAZone.length, withDestination: candidates.length, paying: null });
+    return { sites: [], held: "access-unreadable" };
+  }
+
+  const paid = candidates.filter((site) => paying.has(site.siteId));
+  logSelection({
+    sites: withAZone.length,
+    withDestination: candidates.length,
+    paying: paid.length,
+  });
+  return { sites: paid, held: null };
 }
 
-/** One line per tick, carrying the counts and nothing about a customer. */
-function logSelection(fields: { sites: number; withDestination: number }): void {
+/** One line per tick, carrying the counts and nothing about a customer.
+ *  `paying: null` is the hold — the question was asked and not answered. */
+function logSelection(fields: {
+  sites: number;
+  withDestination: number;
+  paying: number | null;
+}): void {
   console.log(JSON.stringify({ event: "daily_site_selection", ...fields }));
 }

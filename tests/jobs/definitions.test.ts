@@ -29,7 +29,10 @@ function engineDouble(): Record<string, unknown> {
   const done = { done: true as const };
   return {
     EngineNotBuilt: class extends Error {},
-    activeSites: record("activeSites", [{ siteId: "site-1", timeZone: "UTC" }]),
+    activeSites: record("activeSites", {
+      sites: [{ siteId: "site-1", timeZone: "UTC" }],
+      held: null,
+    }),
     weeklyDueSites: record("weeklyDueSites", []),
     startWeeklyScan: record("startWeeklyScan", done),
     runScan: record("runScan", done),
@@ -207,6 +210,21 @@ describe("draft/generate — the site's own evening, the next publish date", () 
       { fn: "generateDraft", arg: { siteId: "site-1", publishDate: "2026-09-08" } },
     ]);
     expect(outcome).toEqual({ outcome: "ran", subjectId: null });
+  });
+
+  it("a tick that cannot decide who is paying prepares no page and records the hold (#201)", async () => {
+    // Not a skip: a quiet hour and an unanswerable one must not look alike
+    // in the run record, because one of them needs an operator.
+    results.set("activeSites", { sites: [], held: "access-unreadable" });
+    const job = await definition("draft/generate");
+    const outcome = await job.run({ data: {}, now: EVENING_UTC });
+    expect(outcome).toEqual({
+      outcome: "degraded",
+      subjectId: null,
+      step: "held:access-unreadable",
+    });
+    expect(calls.some((c) => c.fn === "generateDraft")).toBe(false);
+    expect(calls.some((c) => c.fn === "noticeBrokenDestination")).toBe(false);
   });
 
   it("a tick outside every site's evening is a recorded skip", async () => {

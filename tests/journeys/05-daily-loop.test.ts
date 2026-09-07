@@ -358,6 +358,7 @@ const { monthOf, dayKeyOf } = await import("../../src/app/(account)/app/calendar
 const { CHECK_IDS } = await import("../../src/lib/publish/verify");
 const { dueRetries, retryDueAt } = await import("../../src/lib/publish/attempt/due");
 const { MAX_RETRIES } = await import("../../src/lib/publish/attempt/retry");
+const { registerActiveAccessGate } = await import("../../src/lib/scan/weekly/access");
 const { __setVendorTransportForTesting } = await import("../../src/lib/mail/vendor/resend");
 const { sendDraftReadyMail } = await import("../../src/lib/mail/draft-ready");
 
@@ -517,6 +518,7 @@ beforeEach(() => {
   jobEvents.length = 0;
   livePage.status = 200;
   livePage.sitemapHasIt = true;
+  payingCustomer();
 
   db.seed("users", [{ id: USER_ID, email: EMAIL, notify: null }]);
   db.seed("sites", [
@@ -669,6 +671,13 @@ function whenItIsDue(): Date {
 
 const JOURNEY_TIMEOUT_MS = 30_000;
 
+/** This founder pays (#201). ADR-050 puts the rule in `hasActiveAccess()`
+ *  and `access.ts` throws while nothing is registered, so the journey says
+ *  which of the three cases it is rather than inheriting one. */
+function payingCustomer(): void {
+  registerActiveAccessGate(async (siteIds) => new Set(siteIds));
+}
+
 describe("the daily loop: pick → generate → tell → publish → +24h check (JN-003)", () => {
   it("the tick is due in the site's own evening, and the page it prepares is tomorrow's", async () => {
     // The gate is the site's own hour and never UTC (ADR-060).
@@ -682,17 +691,29 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
     // they now do rather than that they throw. The tick walks a real list:
     // this founder's site is on it, with the zone the gate above is decided
     // in, and the composition of the two is the tick's own selection.
-    const sites = await engine.activeSites();
-    expect(sites).toEqual([{ siteId: SITE_ID, timeZone: TIME_ZONE }]);
-    expect(sites.filter((site) => isDraftDue(EVENING, site.timeZone))).toHaveLength(1);
+    const selection = await engine.activeSites();
+    expect(selection).toEqual({ sites: [{ siteId: SITE_ID, timeZone: TIME_ZONE }], held: null });
+    expect(selection.sites.filter((site) => isDraftDue(EVENING, site.timeZone))).toHaveLength(1);
 
     // And a site the customer has stopped is not prepared a page at all —
     // the discriminating half, because a list that returned every row would
     // pass the assertion above.
     await setPublishing(SITE_ID, false, { kind: "customer", userId: USER_ID });
-    expect(await engine.activeSites()).toEqual([]);
+    expect((await engine.activeSites()).sites).toEqual([]);
     await setPublishing(SITE_ID, true, { kind: "customer", userId: USER_ID });
-    expect(await engine.activeSites()).toHaveLength(1);
+    expect((await engine.activeSites()).sites).toHaveLength(1);
+
+    // Nor is a site whose access has ended (#201): a day's page is spend,
+    // and the gate that decides it is the one the weekly tick asks.
+    registerActiveAccessGate(async () => new Set<string>());
+    expect((await engine.activeSites()).sites).toEqual([]);
+
+    // And a tick that cannot read the gate prepares nothing and says why,
+    // rather than spending on a guess in either direction.
+    registerActiveAccessGate(null);
+    expect(await engine.activeSites()).toEqual({ sites: [], held: "access-unreadable" });
+    payingCustomer();
+    expect((await engine.activeSites()).sites).toHaveLength(1);
   });
 
   it(

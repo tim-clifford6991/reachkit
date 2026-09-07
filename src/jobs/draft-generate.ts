@@ -22,7 +22,16 @@ export const draftGenerate: JobDefinition = {
   trigger: { kind: "cron", cron: DRAFT_TICK_CRON },
   idempotencyKey: [],
   async run(input): Promise<Outcome> {
-    const due = (await activeSites()).filter((site) => isDraftDue(input.now, site.timeZone));
+    const selection = await activeSites();
+    // A tick that could not decide who is paying prepares no page and says
+    // so (#201). It is not a skip: a quiet hour and an unanswerable one
+    // must not look alike in the run record, because one of them needs an
+    // operator. Nothing is moved and the next tick asks again.
+    if (selection.held !== null) {
+      return { outcome: "degraded", subjectId: null, step: `held:${selection.held}` };
+    }
+
+    const due = selection.sites.filter((site) => isDraftDue(input.now, site.timeZone));
     if (due.length === 0) return { outcome: "skipped", subjectId: null, reason: "not-due" };
 
     const results = await fanOut(due, async (site) => {
