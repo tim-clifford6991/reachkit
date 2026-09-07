@@ -36,7 +36,7 @@ vi.mock("@/lib/presentation/copy", async (importOriginal) => {
 const { begun } = vi.hoisted(() => ({ begun: [] as string[] }));
 
 vi.mock("@/app/(account)/app/settings/account-actions", () => ({
-  signOutAction: async () => ({ done: "elsewhere", href: "/" }),
+  signOutAction: async () => ({ done: "elsewhere", href: "/signin" }),
   beginEmailChangeAction: async (_previous: unknown, form: FormData) => {
     begun.push(String(form.get("new_email")));
     return { answer: "idle" };

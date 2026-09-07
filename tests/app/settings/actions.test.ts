@@ -22,7 +22,7 @@ const { signedOut } = vi.hoisted(() => ({ signedOut: [] as string[] }));
 vi.mock("@/app/(account)/app/settings/account-actions", () => ({
   signOutAction: () => {
     signedOut.push("sign_out");
-    return Promise.resolve({ done: "elsewhere" as const, href: "/" });
+    return Promise.resolve({ done: "elsewhere" as const, href: "/signin" });
   },
   beginEmailChangeAction: () => Promise.resolve({ answer: "idle" as const }),
   cancelEmailChangeAction: () => Promise.resolve(undefined),
@@ -119,7 +119,7 @@ describe("the map the screen calls is the stub with the wired actions replaced",
     // `elsewhere` and not `here`: `useAction` navigates on that arm and on
     // no other, and a client-side route change would leave the deleted
     // cookie unnoticed by every already-rendered piece of the app.
-    expect(outcome).toEqual({ done: "elsewhere", href: "/" });
+    expect(outcome).toEqual({ done: "elsewhere", href: "/signin" });
   });
 
   it("wiring `sign_out` wired nothing else — the stub still answers for the three", async () => {

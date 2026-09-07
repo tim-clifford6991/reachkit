@@ -29,12 +29,11 @@
 // all, so reaching here without one means the session ended between the
 // render and the press.
 //
-// **Sign-out is the exception, and deliberately so.** It does not need to
-// know which account is acting: `signOut()` deletes *this browser's* cookie
-// and touches no other device, so there is no id to resolve and nothing to
-// refuse. Sending a customer who is already signed out to the sign-in screen
-// instead of onward would make one press mean two different things for a
-// reason only the server can see.
+// **Sign-out needs no account of its own**: `signOut()` deletes *this
+// browser's* cookie and touches no other device, so there is no id to
+// resolve and nothing to refuse. It lands where the refusal lands all the
+// same — one press, one destination, whether the session was there to end or
+// had already gone.
 //
 // **The engine is imported inside the call, not at the top**, the same as
 // `calendar/publishing-actions.ts`: `@/lib/account/identity` reaches
@@ -57,11 +56,14 @@ import { NEW_EMAIL_FIELD, type EmailChangeState } from "./account-state";
  *  client-side guess at it. */
 const SETTINGS_PATH = "/app/settings";
 
-/** Where a signed-out customer lands: the public front page, on a full
- *  navigation. Not a client-side route change — the cookie has just been
- *  deleted, and only a real request re-runs `src/middleware.ts` with the
- *  jar as it now is. */
-const AFTER_SIGN_OUT = "/";
+/** Where a signed-out customer lands: the sign-in screen, on a full
+ *  navigation. One rule for the whole of Settings — every action here that
+ *  ends up without a session puts the customer on the same screen (BUILD
+ *  §4.3's gate, reached from an action), and sign-out is the case that
+ *  *creates* the state rather than meeting it. Not a client-side route
+ *  change: the cookie has just been deleted, and only a real request
+ *  re-runs `src/middleware.ts` with the jar as it now is. */
+const AFTER_SIGN_OUT = SIGNIN_PATH;
 
 async function identity(): Promise<typeof import("@/lib/account/identity")> {
   return import("@/lib/account/identity");
@@ -69,7 +71,7 @@ async function identity(): Promise<typeof import("@/lib/account/identity")> {
 
 /**
  * REQ-077 criterion 5. Ends **this** session and hands the browser to the
- * public front page.
+ * sign-in screen.
  *
  * The `elsewhere` arm carries the destination because that arm is the one
  * `useAction` navigates on, and a navigation is exactly what has to happen:

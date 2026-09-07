@@ -49,7 +49,7 @@ vi.mock("@/lib/presentation/copy", async (importOriginal) => {
 // asserting what the *screen* offers. What those functions actually do is
 // `tests/app/settings/account.test.tsx`'s, against the real seam.
 vi.mock("@/app/(account)/app/settings/account-actions", () => ({
-  signOutAction: async () => ({ done: "elsewhere", href: "/" }),
+  signOutAction: async () => ({ done: "elsewhere", href: "/signin" }),
   beginEmailChangeAction: async () => ({ answer: "idle" }),
   cancelEmailChangeAction: async () => undefined,
 }));
@@ -229,7 +229,7 @@ describe("REQ-070 c2 — the rendered action set is the seven ACTIONS entries", 
     // The other six still answer `not-yet` and navigate nowhere; this one
     // ends the session and hands the browser to a full request, which is the
     // only thing that re-runs `src/middleware.ts` with the jar as it now is.
-    expect(navigated).toEqual(["/"]);
+    expect(navigated).toEqual(["/signin"]);
   });
 
   it("export is offered with no condition around it — REQ-078's \"always\"", async () => {

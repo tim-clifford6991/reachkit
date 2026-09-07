@@ -100,11 +100,11 @@ function submit(address: string): FormData {
 // ── REQ-077 c5 — sign out ─────────────────────────────────────────────────
 
 describe('REQ-077 c5 — "that session ends and returning requires a fresh sign-in link"', () => {
-  it("ends the session for real and hands the browser to the front page", async () => {
+  it("ends the session for real and hands the browser to the sign-in screen", async () => {
     const user = addAccount(state, { email: "founder@example.com" });
     signIn(user.id);
 
-    expect(await signOutAction()).toEqual({ done: "elsewhere", href: "/" });
+    expect(await signOutAction()).toEqual({ done: "elsewhere", href: SIGNIN_PATH });
     // The cookie is gone, which is the whole of ending a session — not a
     // flag, not a list of devices.
     expect(jar.has(SESSION_COOKIE_NAME)).toBe(false);
@@ -122,12 +122,24 @@ describe('REQ-077 c5 — "that session ends and returning requires a fresh sign-
   });
 
   it("signing out with no session is not an error, and lands in the same place", async () => {
-    // Sign-out is the one settings action that needs no account: it deletes
-    // *this browser's* cookie. So it does not take §4.3's signed-out gate
-    // the other four do — one press must not mean two different things for
-    // a reason only the server can see.
-    expect(await signOutAction()).toEqual({ done: "elsewhere", href: "/" });
+    // Sign-out needs no account: it deletes *this browser's* cookie. One
+    // press, one destination, whether the session was there to end or had
+    // already gone — the same screen §4.3's gate sends every other
+    // session-less press on this surface to.
+    expect(await signOutAction()).toEqual({ done: "elsewhere", href: SIGNIN_PATH });
     expect(jar.has(SESSION_COOKIE_NAME)).toBe(false);
+  });
+
+  it("it is the one destination the whole screen refuses to, so no press means two things", async () => {
+    // The three billing controls answer `{ elsewhere, /signin }` with no
+    // session and the two form actions redirect there; this asserts
+    // sign-out agrees, rather than each control choosing its own way out.
+    const user = addAccount(state, { email: "founder@example.com" });
+    signIn(user.id);
+    const withSession = await signOutAction();
+    const without = await signOutAction();
+    expect(withSession).toEqual(without);
+    expect(withSession).toEqual({ done: "elsewhere", href: SIGNIN_PATH });
   });
 });
 
