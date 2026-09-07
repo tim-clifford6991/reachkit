@@ -790,10 +790,26 @@ describe("owner-owed and empty agree both ways", () => {
     // `domain` / `category` are internal names and REQ-071's line reads
     // that value out to a customer. 158 owner-owed unchanged, 181 + 6 =
     // 187 awaiting copy, 168 ruled unchanged, 507 + 6 = 513 total.
+    //
+    // 2026-09-07, issue #205 adds REQ-071 c12/c13's four, on the Overview:
+    // the three accounts a broken series puts on its own break — one per
+    // `ChangeKind`, because a change this screen cannot name is one it must
+    // not stand a nameless rule for — and the one line a card states when
+    // the comparison it would make would cross a change.
+    //
+    // **A separate family from #204's `settings.market.change.*`, on
+    // purpose.** Those name a *pending* change on the Settings card
+    // (REQ-071 c1); these are the account a *drawn series* gives for
+    // stopping (c12). One screen's word for "the domain changed" is not the
+    // other's, and a shared key would make them the same sentence by
+    // accident. All four take the marker: they are read through
+    // `writtenLine`, and a rule with no account is a mark the reader cannot
+    // identify. 158 owner-owed and 168 ruled unchanged, 187 + 4 = 191
+    // awaiting copy, 513 + 4 = 517 total.
     expect(OWNER_OWED.length).toBe(158);
-    expect(AWAITING_COPY.length).toBe(187);
+    expect(AWAITING_COPY.length).toBe(191);
     expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(168);
-    expect(Object.keys(COPY).length).toBe(513);
+    expect(Object.keys(COPY).length).toBe(517);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.

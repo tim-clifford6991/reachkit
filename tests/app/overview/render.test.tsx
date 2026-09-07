@@ -181,7 +181,7 @@ describe("three tiles, and no fourth", () => {
 describe("how far ahead each rival is", () => {
   it("the ratio arm renders the figure, the was badge and the shrinking line", () => {
     const model = assembleOverview(facts());
-    const markup = html(<RivalModule rivals={model.rivals} />);
+    const markup = html(<RivalModule rivals={model.rivals} timeZone={ZONE} />);
     expect(markup).toContain("overview.rivals.ratio(78)");
     expect(markup).toContain("overview.rivals.was");
     expect(markup).toContain("overview.rivals.line.shrinking");
@@ -189,7 +189,7 @@ describe("how far ahead each rival is", () => {
 
   it("only the confirmed set renders", () => {
     const model = assembleOverview(facts());
-    const markup = html(<RivalModule rivals={model.rivals} />);
+    const markup = html(<RivalModule rivals={model.rivals} timeZone={ZONE} />);
     expect(markup).toContain("bigcompetitor.com");
     expect(markup).not.toContain("unconfirmed.com");
   });
@@ -200,7 +200,7 @@ describe("how far ahead each rival is", () => {
         { domain: "bigcompetitor.com", confirmed: true, ranked: measured(6318, AT(31)), series: [312, 320, 331] },
       ] } })
     );
-    const markup = html(<RivalModule rivals={model.rivals} />);
+    const markup = html(<RivalModule rivals={model.rivals} timeZone={ZONE} />);
     expect(markup).toContain("6,318");
     expect(markup).toContain("overview.rivals.you");
     expect(markup).toContain("overview.rivals.line.absolute");

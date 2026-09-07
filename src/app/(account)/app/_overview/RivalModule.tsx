@@ -26,6 +26,7 @@ import { RivalSparkline } from "@/ui/charts";
 import { Badge } from "@/ui/components";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { Tone } from "@/ui/types";
+import { formatDate } from "../_shell/format";
 import { writtenLine } from "../_shell/written";
 import { renderValue } from "./present";
 import type { RatioRival, RivalGapModule } from "./rivals";
@@ -81,8 +82,14 @@ function RivalRow(p: {
   );
 }
 
-export function RivalModule(p: { rivals: RivalGapModule }): React.JSX.Element {
+export function RivalModule(p: {
+  rivals: RivalGapModule;
+  /** The site's own stated zone — the one every date on this screen is
+   *  written in (REQ-073 c1). */
+  timeZone: string;
+}): React.JSX.Element {
   const line = writtenLine(p.rivals.lineKey);
+  const windowLine = comparisonWindow(p.rivals, p.timeZone);
   const title = copy("overview.rivals.title");
 
   const rows =
@@ -123,8 +130,28 @@ export function RivalModule(p: { rivals: RivalGapModule }): React.JSX.Element {
         </p>
       ) : null}
       {line === null ? null : <p className="rk-prov">{line}</p>}
+      {windowLine === null ? null : (
+        <p className="rk-prov" data-testid="overview-rivals-comparison-window">
+          {windowLine}
+        </p>
+      )}
     </section>
   );
+}
+
+/** REQ-071 c13 — the window this card compared over, stated on the runs
+ *  where it could not compare across the whole of it. One line for the
+ *  card rather than one per rival: the change is the site's, not a
+ *  rival's, and repeating it per row would state one fact three times. */
+function comparisonWindow(rivals: RivalGapModule, timeZone: string): string | null {
+  if (rivals.kind !== "ratio") return null;
+  const spanning = rivals.rivals.find((rival) => rival.previous.kind === "spans_change");
+  if (spanning === undefined || spanning.previous.kind !== "spans_change") return null;
+  // The date the window starts at: the change itself. Everything this card
+  // can honestly compare is on this side of it.
+  return writtenLine("overview.comparison.window", {
+    since: formatDate(spanning.previous.marker.on, timeZone),
+  });
 }
 
 /** The `was 276×` badge — or, on the measurement that first crossed the
@@ -135,6 +162,11 @@ export function RivalModule(p: { rivals: RivalGapModule }): React.JSX.Element {
  *  points the sparkline already draws. */
 function previousFigure(previous: RatioRival["previous"]): string | null {
   if (previous.kind === "first_ratio") return null;
+  // REQ-071 c12 (issue #205): the two readings straddle a date the site's
+  // answers changed, so their difference is not movement. No badge — and
+  // the card states the span it would have compared over instead
+  // (`comparisonWindow` below), which is c13's "say which window".
+  if (previous.kind === "spans_change") return null;
   const rendered = renderValue(previous, RIVAL_LABEL);
   if (rendered.isDash) return null;
   return copy("overview.rivals.was", {

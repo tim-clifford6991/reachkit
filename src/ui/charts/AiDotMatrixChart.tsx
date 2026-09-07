@@ -33,7 +33,12 @@ import { SERIES_COLOR, type SeriesKind } from "./series";
 import { ChartFrame, Mark } from "./mark";
 
 /** The three states, and only three. */
-export type AiDotMatrixCellState = "cited" | "not-cited" | "muted";
+/** `break` is not a reading (issue #205). It is the column a change marker
+ *  stands in — the same dashed rule `GrowthLine` cuts its run at — so the
+ *  cells either side are read as two runs against two markets rather than
+ *  one row across both (REQ-071 c12). It is never counted: the row's
+ *  `count` arrives already written, and the caller does not count it. */
+export type AiDotMatrixCellState = "cited" | "not-cited" | "muted" | "break";
 
 /** One row of the matrix. `count` arrives already written — the chart
  *  performs no arithmetic and cannot disagree with the card's own figure. */
@@ -62,6 +67,13 @@ function cellPaint(
   identity: SeriesKind,
   ringAbsent: boolean,
 ): { fill: string; stroke: string; strokeWidth: number; dash?: string } {
+  // The break: nothing filled, one dashed hairline in the quiet ink — the
+  // same rule `GrowthLine` stands in a broken run's place, so one break
+  // reads the same on both of this screen's week-spanning forms. Never a
+  // series colour: a third stroke colour would read as a third series.
+  if (state === "break") {
+    return { fill: SVG.unfilled, stroke: CHART_INK.quiet, strokeWidth: EDGE_WIDTH, dash: SVG.dashBreak };
+  }
   if (state === "cited") {
     return { fill: SERIES_COLOR[identity], stroke: SVG.unfilled, strokeWidth: 0 };
   }
