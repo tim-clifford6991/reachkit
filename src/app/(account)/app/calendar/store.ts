@@ -159,6 +159,8 @@ function pageOn(a: {
     liveUrl: a.page.liveUrl,
     vetoDeadline: a.page.vetoDeadline,
     publishAt: a.publishAt,
+    verification: a.page.verification,
+    unpublishOutcome: a.page.unpublishOutcome,
   };
 }
 
@@ -181,6 +183,10 @@ function plannedOn(day: DayKey, choice: Choice, now: Date): DraftOnDay {
     liveUrl: null,
     vetoDeadline: null,
     publishAt: null,
+    // Nothing has been delivered for a planned date, so no check will run
+    // and there is no unpublish call to have found anything.
+    verification: { kind: "never", because: "no_live_address" },
+    unpublishOutcome: null,
   };
 }
 

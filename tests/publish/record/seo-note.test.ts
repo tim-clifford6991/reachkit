@@ -140,8 +140,10 @@ describe("**one written line on that page's own record — and no other surface*
       "lib/presentation/copy/keys/publish.ts",
       // Where the WordPress leaf names the line it is responsible for.
       "lib/publish/destinations/wordpress/seo.ts",
-      // And the one place a column becomes that key.
-      "lib/publish/record/index.ts",
+      // And the one place the record module names it. It lives in the
+      // pure leaf rather than beside the read (#217): a fixture screen
+      // needs the key and must not pay for a database client to get it.
+      "lib/publish/record/lines.ts",
     ]);
   });
 

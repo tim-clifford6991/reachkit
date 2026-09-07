@@ -18,6 +18,7 @@
 // … with nothing withheld or summarised", and there is no code path here
 // that shortens a body, so none can be introduced by accident.
 import type { CopyKey } from "@/lib/presentation/copy";
+import type { PageRecord } from "@/lib/publish/record";
 import type { PublishingMode } from "../../_shell/model";
 import type { State } from "../../calendar/stages";
 import { factPresentIn } from "./grounded";
@@ -71,6 +72,20 @@ export interface DraftView {
   claim: ClaimState;
   doNothing: DoNothing;
   lastSavedAt: Date | null;
+  /**
+   * What became of this page (issue #217): the address it is or was
+   * readable at, what ReachKit's one check saw, what the last unpublish
+   * call found, and REQ-060 criterion 4's line where a delivery wrote into
+   * no SEO plugin.
+   *
+   * **Handed through whole, and never re-derived here.** `PageRecord` is
+   * the one read behind every surface that states a page's standing, and
+   * `assembleDraft` is a pure assembly: it decides nothing about liveness,
+   * picks no key, and would be the second place the record's facts were
+   * interpreted if it did. `null` where nothing could be read for this
+   * draft — a shape, not a placeholder, and the block is simply absent.
+   */
+  record: PageRecord | null;
   /** The site-local zone every date this view states is expressed in. */
   timeZone: string;
 }
@@ -97,6 +112,8 @@ export interface DraftFacts {
    *  under copilot, and `null` for a page that is not awaiting review. */
   autoApprovesAt: Date | null;
   lastSavedAt: Date | null;
+  /** The page's own record, or `null` where none could be read (#217). */
+  record: PageRecord | null;
   timeZone: string;
 }
 
@@ -139,6 +156,7 @@ export function assembleDraft(facts: DraftFacts): DraftView {
     claim: facts.claim,
     doNothing: doNothingOf(facts),
     lastSavedAt: facts.lastSavedAt,
+    record: facts.record,
     timeZone: facts.timeZone,
   };
 }

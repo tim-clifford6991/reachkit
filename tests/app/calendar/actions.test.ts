@@ -86,6 +86,11 @@ function cellWith(
       vetoDeadline: null,
       publishAt: null,
       enteredReview,
+      // #217: a page's record on the shape the panel reads. These fixtures
+      // are about controls and law lines, so the honest default is the one
+      // a page nothing delivered carries.
+      verification: { kind: "never", because: "no_live_address" } as const,
+      unpublishOutcome: null,
     },
     empty: null,
   };

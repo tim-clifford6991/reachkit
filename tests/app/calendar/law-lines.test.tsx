@@ -68,6 +68,8 @@ function pageOn(day: string, state: State, publishAt: Date | null) {
     title: "a search",
     state,
     enteredReview: true,
+    verification: { kind: "never", because: "no_live_address" } as const,
+    unpublishOutcome: null,
     scheduledFor: day,
     why: {
       search: "a search",

@@ -25,6 +25,7 @@
 import { dbAdmin } from "@/lib/db";
 import type { PublishingMode } from "../../_shell/model";
 import type { State } from "../../calendar/stages";
+import { pageRecordFor } from "@/lib/publish/record";
 import type { ClaimState, DraftFacts } from "./model";
 
 interface DraftRow {
@@ -173,6 +174,12 @@ export async function readDraftRow(a: {
         ? new Date(row.veto_deadline)
         : null,
     lastSavedAt: lastSaved === null ? null : new Date(lastSaved),
+    // What became of this page (#217). One further read, made only once
+    // the row above has proved this account owns the draft — asking first
+    // would answer about a page the caller may not see. `pageRecordFor`
+    // is the one read behind every surface that states a page's standing;
+    // nothing here re-derives liveness from a column.
+    record: await pageRecordFor(a.draftId),
     timeZone: a.site.timeZone,
   };
 }

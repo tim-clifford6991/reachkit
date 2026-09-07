@@ -75,6 +75,40 @@ export const PUBLISH_COPY = Object.freeze({
   "record.address.wasPublishedAt": ["TODO(copy)", { slots: {}, fixedBy: "REQ-056 c6" }],
   "record.address.neverMadeLive": ["TODO(copy)", { slots: {}, fixedBy: "REQ-056 c6" }],
 
+  // The record as a customer reads it (issue #217): the block's heading,
+  // its three row labels, the seven verification lines and the five
+  // unpublish outcomes. Until #217 the record had no surface at all, so
+  // none of these had a place to be said.
+  //
+  // **`pageNotFound` and `couldNotConfirm` are two keys and must stay
+  // two** — ADR-085's landmine, at the surface. They are the same quiet
+  // line to look at and have opposite consequences: one stops the page
+  // being shown as live and retires it from weekly judgement, the other
+  // asserts nothing and leaves the page exactly as it was. Wording them
+  // apart is the owner's, and it is the point of them being separate keys
+  // rather than one with a variable in it.
+  //
+  // **`due` states no moment.** "The check is due" is about now, and a
+  // date printed beside it would read as an observation ReachKit has not
+  // made. The two `never` arms state none either: no check will run, so
+  // there is nothing to date.
+  "record.title": ["TODO(copy)", { slots: {}, fixedBy: "REQ-056 c6" }],
+  "record.label.address": ["TODO(copy)", { slots: {}, fixedBy: "REQ-056 c6" }],
+  "record.label.checked": ["TODO(copy)", { slots: {}, fixedBy: "REQ-062 c7" }],
+  "record.label.taken-down": ["TODO(copy)", { slots: {}, fixedBy: "REQ-056 c15" }],
+  "record.verification.found": ["TODO(copy)", { slots: {}, fixedBy: "REQ-062 c7" }],
+  "record.verification.pageNotFound": ["TODO(copy)", { slots: {}, fixedBy: "REQ-062 c7" }],
+  "record.verification.couldNotConfirm": ["TODO(copy)", { slots: {}, fixedBy: "REQ-062 c7" }],
+  "record.verification.notYet": ["TODO(copy)", { slots: {}, fixedBy: "REQ-062 c7" }],
+  "record.verification.due": ["TODO(copy)", { slots: {}, fixedBy: "REQ-062 c7" }],
+  "record.verification.never.takenDownFirst": ["TODO(copy)", { slots: {}, fixedBy: "REQ-062 c7" }],
+  "record.verification.never.noLiveAddress": ["TODO(copy)", { slots: {}, fixedBy: "REQ-062 c7" }],
+  "record.unpublished.removed": ["TODO(copy)", { slots: {}, fixedBy: "REQ-056 c15" }],
+  "record.unpublished.returnedToDraft": ["TODO(copy)", { slots: {}, fixedBy: "REQ-056 c15" }],
+  "record.unpublished.namedForRemoval": ["TODO(copy)", { slots: {}, fixedBy: "REQ-056 c16" }],
+  "record.unpublished.alreadyGone": ["TODO(copy)", { slots: {}, fixedBy: "REQ-056 c15" }],
+  "record.unpublished.unreachable": ["TODO(copy)", { slots: {}, fixedBy: "REQ-056 c15" }],
+
   // The eight below are the destination lines (§9, issue #48): one written
   // line per `HealthReason`, which is what a broken destination says under
   // the state word beside it. The state words themselves are
