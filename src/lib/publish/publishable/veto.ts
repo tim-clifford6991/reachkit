@@ -34,7 +34,7 @@ import { publishDb } from "../db";
 import { transition } from "../machine";
 import type { Actor, VetoLink } from "../types";
 
-export type VetoRefusal = "unknown" | "expired" | "not_in_review";
+export type VetoRefusal = "unknown" | "expired" | "used" | "not_in_review";
 
 export type RedeemResult =
   | { ok: true; draftId: string }
@@ -116,12 +116,10 @@ export async function redeemVeto(
 
   const [row] = data ?? [];
   if (row === undefined) {
-    // No row: the token is unknown, already used, or past its expiry. The
-    // database cannot tell us which without a second read that would
-    // disclose whether a draft exists, so the honest answer to a caller who
-    // presented an unusable token is that it did not work. `expired` is
-    // reserved for the case the caller can prove.
-    return { ok: false, reason: await expiredOrUnknown(hash, at) };
+    // No row: the token is unknown, already used, or past its expiry. One
+    // read by the hash the caller themselves presented says which — see
+    // `whyUnusable` for why that answer discloses nothing.
+    return { ok: false, reason: await whyUnusable(hash, at) };
   }
 
   if (row.state !== "in_review") return { ok: false, reason: "not_in_review" };
@@ -131,22 +129,90 @@ export async function redeemVeto(
   return { ok: true, draftId: row.draft_id };
 }
 
-/**
- * Which of the two an unusable token was.
+/** Where a stop link points, as a path. The origin belongs to whoever
+ *  composes the mail — `/opt-out/{token}` is built the same way
+ *  (`src/lib/mail/templates/first-page`), and for the same reason: the one
+ *  module that reads `NEXT_PUBLIC_APP_URL` should be the sender, not this
+ *  one. Internal name, not a sentence, so it is no copy key.
  *
- * The read is by hash and returns one column — the expiry — so a caller
- * learns "your link ran out" rather than "your link is not a link", and
- * learns nothing about which draft it belonged to or whether one exists.
+ *  `src/middleware.ts`'s `PUBLIC_PATHS` carries the pattern this builds
+ *  (`/veto/:token`), because a link whose holder has no session is the
+ *  whole point of a stop link in a mail. */
+export function vetoLinkPath(token: string): string {
+  return `/veto/${encodeURIComponent(token)}`;
+}
+
+/**
+ * Redeems a token presented by a *link*, where nobody is signed in (#144).
+ *
+ * `redeemVeto` takes the actor from its caller, because the signed-in
+ * screen has one. `GET /veto/{token}` has none: the token is the whole of
+ * the credential. So the account is read here, from the draft the token is
+ * bound to, and the move is recorded against the customer who owns the page
+ * rather than against an empty name — `drafts.transitions` says who moved a
+ * page, and "" is not who.
+ *
+ * One read, by the hash the caller presented, before the redemption. It
+ * discloses nothing for the same reason `whyUnusable`'s does. A token whose
+ * account cannot be read is answered `unknown`: that is a database this
+ * function could not read, and a database this function could not read is
+ * one `transition()` could not write to either, so the two degrade alike.
  */
-async function expiredOrUnknown(hash: string, at: Date): Promise<"unknown" | "expired"> {
+export async function redeemVetoLink(token: string, at: Date = new Date()): Promise<RedeemResult> {
+  if (token.length === 0) return { ok: false, reason: "unknown" };
+  const by = await holderOf(hashToken(token));
+  if (by === null) return { ok: false, reason: "unknown" };
+  return redeemVeto(token, by, at);
+}
+
+/** The account a stop link belongs to: the draft's site's owner. `null`
+ *  where no draft carries the hash, or where the row cannot be read. */
+async function holderOf(hash: string): Promise<Actor | null> {
   const { data, error } = await publishDb()
-    .from<{ veto_token_expires_at: string | null; veto_token_hash: string }>("drafts")
-    .select("veto_token_expires_at, veto_token_hash")
+    .from<{ sites: { user_id: string } | null }>("drafts")
+    .select("sites(user_id)")
+    .eq("veto_token_hash", hash)
+    .limit(1);
+  if (error !== null || data === null) return null;
+  const userId = data[0]?.sites?.user_id;
+  if (typeof userId !== "string" || userId.length === 0) return null;
+  return { kind: "customer", userId };
+}
+
+/**
+ * Which of the three an unusable token was.
+ *
+ * The read is by hash and returns two columns — the expiry and the moment
+ * of use — so a caller learns "your link ran out" or "you have already used
+ * it" rather than "your link is not a link", and learns nothing about which
+ * draft it belonged to or whether one exists.
+ *
+ * **`used` is not a disclosure** (#144). Reaching this read at all requires
+ * presenting the token, and the token is 32 CSPRNG bytes bound to one
+ * draft: nobody who does not hold it can ask this question, and the holder
+ * is the person the link was mailed to. What it buys is the one arm the
+ * public route could not otherwise render — a customer who stopped their
+ * page and clicked the link a second time is told they already stopped it,
+ * instead of being told their own working link was never a link.
+ *
+ * Order matters: a token both used and past its expiry is reported `used`,
+ * because using it is the thing that happened and expiry is what would have
+ * happened had they not.
+ */
+async function whyUnusable(hash: string, at: Date): Promise<"unknown" | "expired" | "used"> {
+  const { data, error } = await publishDb()
+    .from<{
+      veto_token_expires_at: string | null;
+      veto_token_used_at: string | null;
+      veto_token_hash: string;
+    }>("drafts")
+    .select("veto_token_expires_at, veto_token_used_at, veto_token_hash")
     .eq("veto_token_hash", hash)
     .limit(1);
   if (error !== null || data === null) return "unknown";
   const [row] = data;
   if (row === undefined || !sameHash(row.veto_token_hash, hash)) return "unknown";
+  if (row.veto_token_used_at !== null) return "used";
   if (row.veto_token_expires_at === null) return "unknown";
   return new Date(row.veto_token_expires_at).getTime() <= at.getTime() ? "expired" : "unknown";
 }

@@ -26,7 +26,9 @@ export {
   hashToken,
   issueVetoLink,
   redeemVeto,
+  redeemVetoLink,
   sameHash,
+  vetoLinkPath,
   type RedeemResult,
   type VetoRefusal,
 } from "./veto";
