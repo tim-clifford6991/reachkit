@@ -85,7 +85,7 @@ export async function transition(
   options: TransitionOptions = {}
 ): Promise<TransitionResult> {
   const at = options.at ?? new Date();
-  const draft = await loadDraft(draftId);
+  const draft = await machineDraftFor(draftId);
   if (draft === null) {
     // No row is not a refusal of a move — there is no page to move and no
     // state to report. `planned` would be a guess; the caller is told the
@@ -104,7 +104,7 @@ export async function transition(
 
   // BUILD §8 hard rule 4 · REQ-053 c5 — the hand-off gate, and the one
   // place the claim re-check is read. Resolved here rather than in
-  // `loadDraft` so it costs a read on the edges that hand a page over and
+  // `machineDraftFor` so it costs a read on the edges that hand a page over and
   // on no other: `planned → skipped` asks a database nothing about claims.
   // Both consumers see the same value — this guard, and the publishable
   // rule's fourth conjunct through `becomesPublishable`.
@@ -203,7 +203,21 @@ interface DraftRow {
   } | null;
 }
 
-async function loadDraft(draftId: string): Promise<MachineDraft | null> {
+/**
+ * The draft as the machine reads it, by id.
+ *
+ * Exported since #174 so the one occasion outside this module that needs
+ * the same view — the `draft-ready` mail, which must read the governing
+ * pair and the told record to know what it owes — reads it through the
+ * same select and the same mapping. A second reader with its own column
+ * list is how two answers to "what was this customer told?" come to exist.
+ *
+ * `claimRecheckOutstanding` reads `false` on the view this returns, as the
+ * mapping's own note says: it is derived per edge by `transition()`, and a
+ * caller reading a draft for any other purpose gets the conservative
+ * literal, which publishes nothing on its own.
+ */
+export async function machineDraftFor(draftId: string): Promise<MachineDraft | null> {
   const { data, error } = await publishDb()
     .from<DraftRow>("drafts")
     .select(
