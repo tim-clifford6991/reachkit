@@ -24,15 +24,67 @@ address redirects to `/signin`, which reads exactly like a broken screen
 eval "$(scripts/db-substrate/up.sh --run)"     # idempotent; see below
 npx vitest run --project db --maxWorkers=1
 npx vitest run --project layout --maxWorkers=1
+scripts/db-substrate/down.sh                  # stop the stack when you are done
 ```
+
+## The lifecycle: up → test → down
+
+**A stack costs 150–190 MB and nothing used to stop it.** `up.sh --run`
+leaves its database behind on purpose — that is what makes the next run on
+the same worktree cheap — but until issue #273 it also left the three
+*server processes* running for ever, and removing the worktree did not stop
+them. Measured on the shared box on 2026-09-07: **59 substrate processes
+holding 2.4 GB of 7.7 GB, 41 of them (1.66 GB) belonging to worktrees that
+no longer existed**, across twelve removed worktrees — one of which had
+three separate stacks. With swap already full, that is what the kernel was
+killing `npm ci` and `next build` to make room for. Roughly every sixth
+orphan costs the box a build.
+
+So a run has an end as well as a beginning:
+
+```bash
+scripts/db-substrate/down.sh                 # this worktree's run
+scripts/db-substrate/down.sh --run <id>      # a named run
+scripts/db-substrate/down.sh --drop          # …and drop its database too
+scripts/db-substrate/reap.sh                 # every stack whose worktree is gone
+```
+
+`--drop` is deliberately not the default: the database is what makes the
+next `up.sh` cheap, and dropping it turns every one into a full migration
+replay. Stopping the processes is what recovers the memory; the database
+costs disk, which this box has.
+
+**Before removing a worktree, stop its stack** — `down.sh --run <id>`, or
+`reap.sh` afterwards, which finds any stack whose working directory has been
+deleted (including stacks started before #273, which have no state file).
+
+### One run, one stack — never two
+
+`up.sh --run` records what it started in `/tmp/reachkit-substrate/<id>.state`
+— the ports, the database and the **pids**. On a second call it reuses that
+stack and starts nothing; if the same worktree asks under a *different* id it
+is refused, naming the id already running, because two ids for one directory
+is how issue-247 came to have three stacks.
+
+The pids are the point. Until #273 this script asked `curl` whether
+*something* answered a derived port and, if so, left it alone — so a
+**foreign** server on that port was silently adopted as this run's PostgREST,
+and the suite then failed with "PostgREST never picked up the migrated
+schema", which reads like a rejected JWT and is not. A port says something is
+listening; only a recorded pid says it is ours. `down.sh` holds the same
+discipline in reverse: it signals only pids `up.sh` recorded, checked against
+`/proc/<pid>/cmdline` first, and reports rather than kills anything it cannot
+prove is this run's.
 
 `--run` names the run after the current directory — on this layout, the
 worktree — so each implementer gets **one** database and reuses it rather
 than accumulating one per invocation. `--run <id>` names it explicitly.
 The database is `reachkit_scratch_<id>` and the three service ports are
 derived from the same id, so two worktrees never share a port or a row.
-**No lock is needed**, and the interim `flock /tmp/layout.lock` rule this
-replaced is no longer necessary.
+**No lock is needed for the database.** The interim `flock /tmp/layout.lock`
+rule this replaced is no longer necessary *for isolation* — though on a box
+running several implementers it is still worth holding for **memory**, since
+`next build` and Chromium together are the largest thing either suite does.
 
 `up.sh` prints every binding as an `export` line on stdout — the database
 name, the proxy URL, the postgres-meta port and the two keys — which is
