@@ -42,6 +42,18 @@ vi.mock("@/lib/presentation/copy", async (importOriginal) => {
   return { ...actual, copy: (key: string) => key };
 });
 
+// The account card's three controls cross the server boundary (#134), and a
+// jsdom mount has no server: `account-actions.ts` is a `"use server"` module
+// whose functions reach identity, the store and the mail seam. It is doubled
+// here — the boundary, not the interface above it — so this file keeps
+// asserting what the *screen* offers. What those functions actually do is
+// `tests/app/settings/account.test.tsx`'s, against the real seam.
+vi.mock("@/app/(account)/app/settings/account-actions", () => ({
+  signOutAction: async () => ({ done: "elsewhere", href: "/" }),
+  beginEmailChangeAction: async () => ({ answer: "idle" }),
+  cancelEmailChangeAction: async () => undefined,
+}));
+
 vi.mock("@/app/(account)/app/settings/actions", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/app/(account)/app/settings/actions")>();
   const recorded = Object.fromEntries(
@@ -76,6 +88,16 @@ import { COPY } from "@/lib/presentation/copy";
 import * as constants from "@/lib/config/constants";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
+// `useAction` navigates on the `elsewhere` arm, which sign-out now takes.
+// jsdom implements no navigation, so the real call logs a "Not implemented"
+// error and tells this suite nothing; the stub records it instead, and
+// `account.test.tsx` is where the destination is asserted.
+const navigated: string[] = [];
+Object.defineProperty(window, "location", {
+  configurable: true,
+  value: { ...window.location, assign: (href: string) => navigated.push(href) },
+});
 
 async function mount(node: React.ReactNode): Promise<HTMLElement> {
   const container = document.createElement("div");
@@ -198,6 +220,16 @@ describe("REQ-070 c2 — the rendered action set is the seven ACTIONS entries", 
     calls.length = 0;
     await click(root.querySelector('[data-testid="action-export"] button') as Element);
     expect(calls).toEqual(["export"]);
+  });
+
+  it("sign out is the one of the seven that is wired, and it takes the browser away (#134)", async () => {
+    navigated.length = 0;
+    const root = await mountScreen();
+    await click(root.querySelector('[data-testid="action-sign_out"] button') as Element);
+    // The other six still answer `not-yet` and navigate nowhere; this one
+    // ends the session and hands the browser to a full request, which is the
+    // only thing that re-runs `src/middleware.ts` with the jar as it now is.
+    expect(navigated).toEqual(["/"]);
   });
 
   it("export is offered with no condition around it — REQ-078's \"always\"", async () => {

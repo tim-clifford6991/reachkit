@@ -13,6 +13,21 @@ import { describe, expect, it, vi } from "vitest";
 // about the declaration and the map, not about what Stripe answers, so the
 // `"use server"` module behind them is replaced wholesale —
 // `billing-actions.test.ts` is what exercises it for real.
+// #134 doubles the account boundary for the same reason: `signOutAction`
+// deletes a cookie through `next/headers`, which a plain vitest run has no
+// request for. What it does is `account-actions.test.ts`'s question against
+// the real seam; what this file asks is whether the map reaches it at all.
+const { signedOut } = vi.hoisted(() => ({ signedOut: [] as string[] }));
+
+vi.mock("@/app/(account)/app/settings/account-actions", () => ({
+  signOutAction: () => {
+    signedOut.push("sign_out");
+    return Promise.resolve({ done: "elsewhere" as const, href: "/" });
+  },
+  beginEmailChangeAction: () => Promise.resolve({ answer: "idle" as const }),
+  cancelEmailChangeAction: () => Promise.resolve(undefined),
+}));
+
 vi.mock("@/app/(account)/app/settings/billing-actions", () => ({
   openBillingSurface: () => Promise.resolve({ done: "elsewhere" as const, href: "https://billing.stripe.test/s" }),
   cancelPlan: () => Promise.resolve({ done: "elsewhere" as const, href: "https://billing.stripe.test/s" }),
@@ -86,11 +101,33 @@ describe("the map the screen calls is the stub with the wired actions replaced",
     }
   });
 
-  it("the other four still answer `not-yet` with their issue — wiring three wired three", async () => {
-    expect(UNWIRED.length).toBe(4);
-    for (const key of UNWIRED) {
+  it("the other three still answer `not-yet` with their issue — wiring one wired one", async () => {
+    // #134 wired the fourth. `UNWIRED` is `ACTIONS` minus what this file
+    // says is wired, so the count is re-stated deliberately rather than
+    // drifting quietly the next time one of the three lands.
+    const stillStubbed = UNWIRED.filter((key) => key !== "sign_out");
+    expect(stillStubbed.length).toBe(3);
+    for (const key of stillStubbed) {
       expect(await SETTINGS_ACTIONS[key](), key).toEqual({ done: "not-yet", issue: WIRED_BY[key] });
     }
+  });
+
+  it("`sign_out` reaches identity and takes the browser away (#134)", async () => {
+    signedOut.length = 0;
+    const outcome = await SETTINGS_ACTIONS.sign_out();
+    expect(signedOut).toEqual(["sign_out"]);
+    // `elsewhere` and not `here`: `useAction` navigates on that arm and on
+    // no other, and a client-side route change would leave the deleted
+    // cookie unnoticed by every already-rendered piece of the app.
+    expect(outcome).toEqual({ done: "elsewhere", href: "/" });
+  });
+
+  it("wiring `sign_out` wired nothing else — the stub still answers for the three", async () => {
+    signedOut.length = 0;
+    for (const key of UNWIRED.filter((k) => k !== "sign_out")) {
+      expect(await SETTINGS_ACTIONS[key](), key).toEqual({ done: "not-yet", issue: WIRED_BY[key] });
+    }
+    expect(signedOut).toEqual([]);
   });
 
   it("the stub is untouched, so what an unwired action answers has not changed", async () => {

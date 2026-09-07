@@ -24,6 +24,7 @@
 // The domain and the zone agree with the shell's fixture on purpose: the two
 // are the same site, and a settings screen that named a different domain from
 // the sidebar beside it would be the one bug this file can cause.
+import { ACCOUNT_NOTE_KEYS } from "@/lib/account/identity/notes";
 import { destinationView } from "@/lib/publish/destinations/view";
 import type { BillingFacts, SettingsFacts } from "./model";
 import { FIXTURE_DOMAIN } from "../_shell/fixture";
@@ -91,6 +92,14 @@ export const FIXTURE_SETTINGS_FACTS: SettingsFacts = Object.freeze({
   ]),
   name: "Dana Whitfield",
   email: "dana@example.com",
+  // No change in flight (#134). The fixture draws the card at rest,
+  // because that is the state a preview with no session is honestly in:
+  // a pending address belongs to a real account and there is none here.
+  pendingEmail: null,
+  // REQ-077 c1's two note lines, in identity's own order. Taken from the
+  // module rather than repeated, so the fixture and the read cannot state
+  // a different pair.
+  noteKeys: ACCOUNT_NOTE_KEYS,
   // Two on, one off — so the screen is drawn in a state where the switches
   // are the customer's own choices rather than a uniform default.
   notifyPrefs: Object.freeze({ weekly: false }),

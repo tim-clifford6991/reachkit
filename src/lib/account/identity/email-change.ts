@@ -38,11 +38,11 @@
 // would fail the build if one appeared.
 import { z } from "zod";
 import { EMAIL_CHANGE_TTL_H } from "@/lib/config/constants";
-import type { CopyKey } from "@/lib/presentation/copy";
 import { sendEmail } from "@/lib/mail/send";
 import { buildMagicLink } from "@/lib/mail/templates/magic-link";
 import { issueLink } from "./links";
 import { logLink } from "./outcomes";
+import { ACCOUNT_NOTE_KEYS } from "./notes";
 import { identityStore } from "./store";
 
 const MS_PER_HOUR = 60 * 60 * 1000;
@@ -50,20 +50,11 @@ const MS_PER_HOUR = 60 * 60 * 1000;
 const address = z.email();
 
 /** REQ-077 criterion 1's two written lines, in the order the criterion
- *  names them: "one written line saying ReachKit sends a sign-in link
- *  rather than using a password, and one saying invoices and receipts go to
- *  the address held in the billing portal and are changed there ... not
- *  here."
- *
- *  BP-061 named these `account.magic_link_note` and
- *  `account.invoices_go_to_billing` before any registry existed. The first
- *  is already on disk under the settings partition's own spelling
- *  (`settings.account.magic-link`, BUILD §4.7's "magic-link note"), so it
- *  is reused rather than duplicated; only the second is minted here. */
-export const ACCOUNT_NOTE_KEYS = [
-  "settings.account.magic-link",
-  "settings.account.invoices-elsewhere",
-] as const satisfies readonly CopyKey[];
+ *  names them. Declared in `./notes.ts` and re-exported here so every
+ *  caller keeps its spelling: the account card and its fixture read the
+ *  same two keys, and neither can afford this file's import graph — see
+ *  that file's header (#134). */
+export { ACCOUNT_NOTE_KEYS };
 
 export interface AccountCard {
   readonly name: string | null;

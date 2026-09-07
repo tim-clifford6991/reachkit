@@ -25,8 +25,9 @@
 // stored", so this module validates nothing and the screen renders what is
 // there.
 import type { DestinationView } from "@/lib/publish/types";
+import type { ACCOUNT_NOTE_KEYS } from "@/lib/account/identity/notes";
 import type { PublishingMode } from "../_shell/model";
-import { formatDate } from "../_shell/format";
+import { formatDate, formatDateTime } from "../_shell/format";
 import type { BillingSummary, PlanState } from "./billing";
 import { notificationRows, type NotificationRow, type NotifyKind } from "./notifications";
 
@@ -89,10 +90,38 @@ export interface SettingsModel {
   voice: { text: string };
   doNotClaim: readonly string[];
   notifications: readonly NotificationRow[];
-  account: { name: string; email: string };
+  account: AccountCardView;
   billing: BillingSummary;
   /** §4.7's "pages count" — how many of the customer's pages are published. */
   content: { pages: number };
+}
+
+/**
+ * The account card, as the screen states it (#134).
+ *
+ * `noteKeys` is `accountCard()`'s own list and not a copy of it: REQ-077
+ * criterion 1 names two note lines in an order, identity returns the keys
+ * in that order, and a screen that held its own array would be the copy
+ * that goes stale the day a third is added. The card speaks no sentence of
+ * its own — it renders the keys it is handed.
+ */
+/** The account half of `SettingsFacts`, named so the provider's read and
+ *  its fallback are one shape and a field cannot be forgotten in either. */
+export interface AccountFacts {
+  name: string | null;
+  email: string;
+  pendingEmail: { email: string; expiresAt: Date } | null;
+  noteKeys: typeof ACCOUNT_NOTE_KEYS;
+}
+
+export interface AccountCardView {
+  /** `null` where the account has stated no name. */
+  name: string | null;
+  email: string;
+  /** The address awaiting confirmation and the moment its link lapses, as
+   *  a written moment in the customer's own zone — or `null`. */
+  pending: { email: string; expiresAt: string } | null;
+  noteKeys: typeof ACCOUNT_NOTE_KEYS;
 }
 
 /** Everything Settings reads, before it is a model. One shape, so a fixture
@@ -112,9 +141,21 @@ export interface SettingsFacts {
   /** `destinations` (§10), health included — read as a state (#48). */
   destinations: readonly DestinationView[];
   /** `users` (§10), plus the notify preferences the toggles read. A kind
-   *  absent from the record reads as on. */
-  name: string;
+   *  absent from the record reads as on. `name` is `null` where the account
+   *  has not stated one — `accountCard()` returns the column as it is, and
+   *  a blank is a fact rather than a missing string to be filled in. */
+  name: string | null;
   email: string;
+  /** REQ-077 c4's change awaiting confirmation, or `null`. An **instant**
+   *  here and a written moment on the model, the same one-place-only rule
+   *  `billing.paidThrough` follows two fields down. A change past its
+   *  window arrives here as `null`: the window is computed by
+   *  `accountCard()` and never stored, so its lapse needs no sweeper and
+   *  this screen holds no clock of its own. */
+  pendingEmail: { email: string; expiresAt: Date } | null;
+  /** REQ-077 c1's two note lines, in the order the criterion names them —
+   *  `accountCard()`'s `noteKeys`, carried through untouched. */
+  noteKeys: typeof ACCOUNT_NOTE_KEYS;
   notifyPrefs: Partial<Record<NotifyKind, boolean>>;
   /** The billing facts (#34), before they are a card. `paidThrough` is an
    *  instant here and a written day on the model: the customer's own stated
@@ -140,7 +181,18 @@ export function assembleSettings(facts: SettingsFacts): SettingsModel {
     voice: { text: facts.voiceText },
     doNotClaim: facts.doNotClaim,
     notifications: notificationRows(facts.notifyPrefs),
-    account: { name: facts.name, email: facts.email },
+    account: {
+      name: facts.name,
+      email: facts.email,
+      pending:
+        facts.pendingEmail === null
+          ? null
+          : {
+              email: facts.pendingEmail.email,
+              expiresAt: formatDateTime(facts.pendingEmail.expiresAt, facts.timeZone),
+            },
+      noteKeys: facts.noteKeys,
+    },
     billing: {
       state: facts.billing.state,
       // The one place the paid-through instant becomes a day a customer

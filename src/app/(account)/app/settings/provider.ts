@@ -47,18 +47,37 @@
 // is a measurement, a vendor call or a model call.
 import { cache } from "react";
 import type { DestinationView } from "@/lib/publish/types";
-import { assembleSettings, type BillingFacts, type SettingsModel } from "./model";
+import { assembleSettings, type AccountFacts, type BillingFacts, type SettingsModel } from "./model";
 import { FIXTURE_SETTINGS_FACTS } from "./fixture";
 import { FIXTURE_USER_ID } from "../../setup/_setup/fixture";
 
-/** The signed-in account. `src/middleware.ts` has already refused this
- *  request unless it carried a session cookie, so a caller reaching here is
- *  signed in; **which** account it is, is #35's `currentSession()`, which
- *  does not exist yet. Until it does this returns the fixture account — the
- *  same stand-in, named the same way, that `src/app/api/setup/route.ts`
- *  uses, so there is one guess in the codebase and not two. */
-function currentUserId(): string {
-  return FIXTURE_USER_ID;
+/**
+ * The signed-in account (#134).
+ *
+ * `src/middleware.ts` has already refused this request unless it carried a
+ * session cookie, so a caller reaching here is signed in; **which** account
+ * it is, is identity's `currentSession()`. It answers `null` for an absent,
+ * malformed, forged, expired, ended or tombstoned cookie, and this returns
+ * the fixture account there rather than throwing the screen away — the same
+ * fail-towards-the-fixture shape the billing read has had since #34, and
+ * what keeps a preview with no session, the layout build and the
+ * presentation sweeps rendering a whole screen.
+ *
+ * Nothing on that path writes: the three controls take the *session's* own
+ * id at the press (`account-actions.ts`), never this one, so a fixture id
+ * here can render a card and can never move somebody else's address.
+ *
+ * The import is at the call, not at the top, for the reason
+ * `readBillingFacts` states below.
+ */
+async function currentUserId(): Promise<string> {
+  try {
+    const { currentSession } = await import("@/lib/account/identity");
+    const session = await currentSession();
+    return session?.userId ?? FIXTURE_USER_ID;
+  } catch {
+    return FIXTURE_USER_ID;
+  }
 }
 
 /** REQ-097 c1's one destination, as the model's fallback. The action seam
@@ -131,8 +150,50 @@ export async function readDestinations(
   return listDestinations(siteId);
 }
 
+/**
+ * REQ-077 criteria 1 and 4, as the card reads them (#134).
+ *
+ * The name, the address, the change awaiting confirmation and the two note
+ * lines all come from one call to `accountCard()`. This screen computes
+ * none of them — in particular it does **not** decide whether a pending
+ * change has lapsed. That window is `accountCard()`'s, computed from
+ * `pending_email_sent_at` and never stored, and a second copy of the
+ * arithmetic here is how a screen ends up offering to cancel a change that
+ * is already over.
+ *
+ * Falls back to the fixture's account for a read that cannot be made, the
+ * same as the billing half — and the fixture holds no pending change, so
+ * the fallback can never invent one.
+ */
+export async function readAccountFacts(userId: string): Promise<AccountFacts> {
+  try {
+    const { accountCard } = await import("@/lib/account/identity");
+    const card = await accountCard(userId);
+    if (card === null) return FIXTURE_ACCOUNT;
+    return {
+      name: card.name,
+      email: card.email,
+      pendingEmail: card.pending,
+      noteKeys: card.noteKeys,
+    };
+  } catch {
+    return FIXTURE_ACCOUNT;
+  }
+}
+
+/** The fixture's own account slice, named once so both fallbacks above
+ *  return the same three fields and no fourth is forgotten. */
+const FIXTURE_ACCOUNT: AccountFacts = {
+  name: FIXTURE_SETTINGS_FACTS.name,
+  email: FIXTURE_SETTINGS_FACTS.email,
+  pendingEmail: FIXTURE_SETTINGS_FACTS.pendingEmail,
+  noteKeys: FIXTURE_SETTINGS_FACTS.noteKeys,
+};
+
 export const readSettings = cache(async function readSettings(): Promise<SettingsModel> {
-  const billing = await readBillingFacts(currentUserId());
+  const userId = await currentUserId();
+  const billing = await readBillingFacts(userId);
   const destinations = await readDestinations(currentSiteId());
-  return assembleSettings({ ...FIXTURE_SETTINGS_FACTS, billing, destinations });
+  const account = await readAccountFacts(userId);
+  return assembleSettings({ ...FIXTURE_SETTINGS_FACTS, ...account, billing, destinations });
 });
