@@ -19,6 +19,7 @@
 // calendar is never padded") are kept by a read that cannot pad.
 import type { Measured } from "@/lib/measure/measured";
 import { accountFor, type EmptyAccount, type EmptyFacts } from "./empty";
+import type { WorkStop } from "@/lib/presentation/stopped";
 import { STAGE_OF, type PublishState, type Stage, type StageFilter } from "./stages";
 import { dayKeyOf, monthGrid, monthOf, type DayKey, type MonthKey } from "./dates";
 
@@ -100,6 +101,11 @@ export interface DayCell {
 export interface MonthModel {
   month: MonthKey;
   timeZone: string;
+  /** REQ-092 c3: the fact that ReachKit stopped its own work, or `null`.
+   *  Carried on the model rather than read by a view, because both of the
+   *  screen's law statements — the day panel's publish line and a stopped
+   *  day's account — turn on it and must turn on the same one. */
+  stopped: WorkStop | null;
   /** The site-local today — the day the panel opens on (REQ-043 c7). */
   today: DayKey;
   cells: readonly DayCell[];
@@ -111,6 +117,8 @@ export interface MonthModel {
  *  fixture and a future query answer the same question. */
 export interface CalendarFacts {
   timeZone: string;
+  /** §11's stop for this account, read once (`_shell/stop.ts`). */
+  stop: WorkStop | null;
   /** The instant "today" is resolved from, in the site's zone. A parameter,
    *  never `Date.now()` read inside the assembly: a model that reads a
    *  clock cannot be tested for the UTC+13 case REQ-043's `rests-on` row
@@ -193,7 +201,14 @@ export function assembleMonth(facts: CalendarFacts, month: MonthKey): MonthModel
     };
   });
 
-  return { month, timeZone: facts.timeZone, today, cells, counts: countsOf(cells) };
+  return {
+    month,
+    timeZone: facts.timeZone,
+    stopped: facts.stop,
+    today,
+    cells,
+    counts: countsOf(cells),
+  };
 }
 
 /** Counted off the very cells the grid renders, so REQ-043 c6's "every

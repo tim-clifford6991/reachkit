@@ -150,9 +150,21 @@ const DRAFTS: readonly DraftOnDay[] = Object.entries(SCHEDULE).map(([day, state]
   };
 });
 
+/** REQ-092's stop, as the fixture account's own. The stopped day below is
+ *  what the owner reviews the three lines on: c1's line, c2's `needs
+ *  nothing` and c4's `no time promised` — the two arms a day with no record
+ *  behind it truthfully takes (issue #113). */
+const FIXTURE_STOP = Object.freeze({
+  since: new Date(Date.UTC(2026, 8, 13, 0, 0, 0)),
+  resumes: { promised: false } as const,
+  needs: { kind: "nothing" } as const,
+  partial: false,
+});
+
 export const FIXTURE_CALENDAR_FACTS: CalendarFacts = Object.freeze({
   timeZone: FIXTURE_TIME_ZONE,
   now: FIXTURE_NOW,
+  stop: FIXTURE_STOP,
   drafts: Object.freeze(DRAFTS),
   // REQ-047 c5: while an instruction stands against a date, it is that
   // date's one account — outranking even ReachKit's own stop (ADR-061 point 3).

@@ -4,12 +4,7 @@
 // test. This is the file that stops the product telling a customer their
 // market is empty on a day it merely broke.
 import { describe, expect, it } from "vitest";
-import {
-  EMPTY_COPY_KEY,
-  EMPTY_PRECEDENCE,
-  accountFor,
-  type EmptyFacts,
-} from "@/app/(account)/app/calendar/empty";
+import { EMPTY_COPY_KEY, EMPTY_PRECEDENCE, accountFor, type EmptyFacts, LAW_CAUSES, isLawCause } from "@/app/(account)/app/calendar/empty";
 import { COPY } from "@/lib/presentation/copy";
 
 /** No cause established. Every field stated, none absent. */
@@ -98,20 +93,26 @@ describe("REQ-043 c4 — each other cause resolves to itself, and to exactly one
     });
   });
 
-  it("an unenumerated cause resolves to unattributed, which renders ReachKit's own stopped-work line", () => {
-    // ADR-061 point 2: the same line `reachkit_stopped` renders, on the
-    // merits — a date the product cannot explain is a date on which
-    // something of the product's failed.
+  it("an unenumerated cause resolves to unattributed, and this file names no line for it", () => {
+    // ADR-061 point 2: a date the product cannot explain is a date on which
+    // something of the product's failed, so `unattributed` is ReachKit's own
+    // stop — and REQ-092's lines are `stoppedWorkStatement`'s, not this
+    // record's (issue #113). The record cannot name them: both causes are
+    // excluded from its key type.
     expect(accountFor(NOTHING).cause).toBe("unattributed");
-    expect(EMPTY_COPY_KEY.unattributed).toBe("stopped.work.line");
-    expect(EMPTY_COPY_KEY.unattributed).toBe(EMPTY_COPY_KEY.reachkit_stopped);
-    // And it is a line the owner has actually written, so an unexplained
-    // day is never a blank cell.
-    expect(COPY[EMPTY_COPY_KEY.unattributed]).not.toBe("");
+    expect(LAW_CAUSES).toEqual(["reachkit_stopped", "unattributed"]);
+    for (const cause of LAW_CAUSES) {
+      expect(isLawCause(cause)).toBe(true);
+      expect(Object.keys(EMPTY_COPY_KEY)).not.toContain(cause);
+    }
   });
 
-  it("the exhausted-supply line and the stopped-work line are two different keys", () => {
-    expect(EMPTY_COPY_KEY.supply_exhausted).not.toBe(EMPTY_COPY_KEY.unattributed);
+  it("the exhausted-supply line is the calendar's own, and is not a law's key", () => {
+    expect(EMPTY_COPY_KEY.supply_exhausted).toBe("cause.supply-exhausted");
+    expect(Object.values(EMPTY_COPY_KEY)).not.toContain("stopped.work.line");
+    // The stopped-work line is still a written one, so a law-caused day is
+    // never a blank cell — it is just no longer read from here.
+    expect(COPY["stopped.work.line"]).not.toBe("");
   });
 });
 

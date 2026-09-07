@@ -90,17 +90,33 @@ export const currentCalendarSite = cache(
   }
 );
 
-/** The site-local month the calendar opens on when no other is asked for —
- *  the month today falls in, in the customer's own zone. */
-export function currentMonth(): MonthKey {
-  return monthOf(dayKeyOf(FIXTURE_CALENDAR_FACTS.now, FIXTURE_CALENDAR_FACTS.timeZone));
+/**
+ * The site-local month the calendar opens on when no other is asked for —
+ * the month today falls in, **in the customer's own zone** (issue #113).
+ *
+ * It reads the zone through the same seam every other `/app` surface reads
+ * it through (`_session/account.ts`), not from the fixture clock it used to
+ * take. That clock was the last fixture behind a real session, and it was a
+ * wrong answer rather than a missing one: a customer opening the calendar
+ * was shown whichever month the fixture was frozen in.
+ *
+ * The reserved fixture account keeps the fixture's own month, because that
+ * is the month its fixture facts are drawn for and a live month over frozen
+ * facts would be a calendar of empty dates.
+ */
+export async function currentMonth(): Promise<MonthKey> {
+  const site = await currentCalendarSite();
+  if (site === null) {
+    return monthOf(dayKeyOf(FIXTURE_CALENDAR_FACTS.now, FIXTURE_CALENDAR_FACTS.timeZone));
+  }
+  return monthOf(dayKeyOf(new Date(), site.timeZone));
 }
 
 /** `YYYY-MM` or nothing. A query string is customer-supplied input and is
  *  never trusted into a date parser: anything that is not exactly a month
  *  falls back to the current one rather than rendering a month named by
  *  whatever was typed. */
-export function parseMonth(raw: string | undefined): MonthKey {
+export async function parseMonth(raw: string | undefined): Promise<MonthKey> {
   return raw !== undefined && /^\d{4}-(0[1-9]|1[0-2])$/.test(raw) ? raw : currentMonth();
 }
 

@@ -35,10 +35,11 @@ import { Btn } from "@/ui/components/Btn";
 import { DayPanel } from "@/ui/components/custom";
 import { copy } from "@/lib/presentation/copy";
 import { BAND_LABELS } from "@/lib/presentation/bands";
-import { formatDateTime } from "../_shell/format";
+import { formatDate, formatDateTime } from "../_shell/format";
 import { writtenLine } from "../_shell/written";
 import { actionsFor } from "./actions";
-import { EMPTY_COPY_KEY } from "./empty";
+import { EMPTY_COPY_KEY, isLawCause, stopForEmptyDay, type CalendarOwnCause } from "./empty";
+import { nextPublishStatement, stoppedWorkStatement, type WorkStop } from "@/lib/presentation/stopped";
 import { fullDate } from "./dates";
 import { STAGE_FILTER_COPY_KEY, STAGE_TONE } from "./stages";
 import { publishing, type PublishingCommand } from "./publishing";
@@ -64,9 +65,20 @@ function run(command: PublishingCommand, draftId: string, to: string): void {
   void asked.catch(() => undefined);
 }
 
+/** A `DayKey` as the instant that calendar day is marked by — UTC
+ *  midnight, the day having already been resolved in the site's zone
+ *  (`_overview/week.ts` states the same convention). Never rendered. */
+function dayMarker(day: string): Date {
+  return new Date(`${day}T00:00:00.000Z`);
+}
+
 export function DayPanelView(p: {
   cell: DayCell;
   timeZone: string;
+  /** REQ-092 c3's fact, carried from the model. Both of this panel's law
+   *  statements — the publish line and a stopped day's account — turn on
+   *  it, and they must turn on the same one. */
+  stopped: WorkStop | null;
 }): React.JSX.Element {
   const { cell } = p;
   const date = fullDate(cell.day);
@@ -75,10 +87,29 @@ export function DayPanelView(p: {
     // REQ-043 c5: exactly one account, and no second one. `accountFor` has
     // already decided which — this renders that decision and never
     // re-derives it.
+    //
+    // A law-caused day is that one account stated in the three lines
+    // REQ-092 owes it: c1's that ReachKit stopped, c2's what is needed from
+    // the customer (and, when nothing is, that nothing is) and c4's
+    // resumption date or the explicit statement that none is promised.
+    // Three lines of one account, not three accounts — which is why they
+    // are read from `stoppedWorkStatement` together and never assembled
+    // here (ADR-011, issue #113).
+    const law =
+      cell.empty !== null && isLawCause(cell.empty.cause)
+        ? stoppedWorkStatement(
+            stopForEmptyDay({
+              cause: cell.empty.cause,
+              stop: p.stopped,
+              since: dayMarker(cell.day),
+            }),
+            { formatDate: (on) => formatDate(on, p.timeZone) }
+          )
+        : null;
     const account =
-      cell.empty === null
+      cell.empty === null || law !== null
         ? null
-        : writtenLine(EMPTY_COPY_KEY[cell.empty.cause]);
+        : writtenLine(EMPTY_COPY_KEY[cell.empty.cause as CalendarOwnCause]);
     return (
       <DayPanel
         heading={<span className="num">{date}</span>}
@@ -86,6 +117,13 @@ export function DayPanelView(p: {
           <div data-testid="day-account">
             {account === null ? null : (
               <p data-testid="day-empty-line">{account}</p>
+            )}
+            {law === null ? null : (
+              <>
+                <p data-testid="day-empty-line">{law.line}</p>
+                <p data-testid="day-stopped-needs">{law.needsLine}</p>
+                <p data-testid="day-stopped-resumes">{law.resumesLine}</p>
+              </>
             )}
           </div>
         }
@@ -105,13 +143,21 @@ export function DayPanelView(p: {
           at: formatDateTime(page.vetoDeadline, p.timeZone),
         });
   // The scheduled publish, spoken through the cross-cutting `next-publish`
-  // law rather than a second sentence of the calendar's own.
+  // law rather than a second sentence of the calendar's own (issue #113).
+  //
+  // This is a statement of when the next page publishes, so REQ-092 c7
+  // reaches it: while ReachKit has stopped its own work the statement names
+  // the stop and gives no other reason — the date is not shown beside it,
+  // and `nextPublishStatement` is what makes that true here rather than an
+  // `if` this file could lose. A page with no publish moment makes no such
+  // statement at all, so there is nothing for the stop to suppress.
   const publishLine =
     page.publishAt === null
       ? null
-      : writtenLine("next-publish.scheduled", {
-          at: formatDateTime(page.publishAt, p.timeZone),
-        });
+      : nextPublishStatement({
+          stopped: p.stopped !== null,
+          otherwise: { tag: "scheduled", at: formatDateTime(page.publishAt, p.timeZone) },
+        }).line;
 
   return (
     <DayPanel
