@@ -61,16 +61,17 @@ const HISTORICAL = "(historical)";
 /**
  * The lines this rule does not yet cover, each naming whose they are.
  *
- * One entry, and it is somebody else's open work rather than an exemption:
- * `src/jobs/engine.ts` says the free scan arm's claimed slot "is #24's to
+ * **Empty, and that is the finished state** (issue #253). It held one row:
+ * `src/jobs/engine.ts` said the free scan arm's claimed slot "is #24's to
  * decide", and #24 is the `llm()` seam — an unrelated, closed issue. Issue
- * #229 is open on exactly that line, and rewriting it here would put two
- * issues in one file. The row below fails when the file stops offending, so
- * this entry cannot outlive #229.
+ * #229 was open on exactly that line, so rewriting it here would have put
+ * two issues in one file. #250 landed #229 and rewrote the line minutes
+ * after #249 added this row; the row then stopped offending and the last
+ * test below turned `main` red — the row doing exactly what it was written
+ * to do. A future entry is added the same way and lives under the same
+ * rule: it fails the moment its line is fixed.
  */
-const OWNED_ELSEWHERE: ReadonlyArray<{ readonly file: string; readonly whose: string }> = [
-  { file: "src/jobs/engine.ts", whose: "issue #229 — the free arm's own line, and its own PR" },
-];
+const OWNED_ELSEWHERE: ReadonlyArray<{ readonly file: string; readonly whose: string }> = [];
 
 function walk(dir: string, out: string[]): void {
   for (const entry of readdirSync(dir)) {
@@ -161,7 +162,9 @@ describe("no comment in src/ defers a fact to an issue (#230)", () => {
 
   it("every line not yet covered names whose it is, and still actually offends", () => {
     // A stale exemption is worse than none: it reads as a rule with a known
-    // gap while the gap has already closed.
+    // gap while the gap has already closed. The list is empty today (#253),
+    // stated rather than read off a loop that runs zero times in silence.
+    expect(OWNED_ELSEWHERE).toEqual([]);
     for (const entry of OWNED_ELSEWHERE) {
       expect(entry.whose.length, entry.file).toBeGreaterThan(0);
       const full = path.join(ROOT, entry.file);
