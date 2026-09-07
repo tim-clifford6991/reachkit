@@ -298,7 +298,10 @@ export interface DestinationView {
  *  (§9). Nothing in this subsystem reads a member of it. */
 export type DestinationConfig = Readonly<Record<string, unknown>>;
 
-/** What an adapter is handed to deliver. The rendering is #49's. */
+/** What an adapter is handed to deliver. Rendered by
+ *  `src/lib/publish/render/markdown.ts` — the one renderer the draft
+ *  preview, the copy-out, the hosted page and the WordPress post share
+ *  (DECISIONS 2026-09-07), so no adapter renders anything of its own. */
 export interface RenderedPage {
   title: string;
   slug: string;

@@ -236,10 +236,12 @@ async function destinationClause(
   if (row === null) return null;
 
   const site = await siteOf(row.id);
-  // `ok` is the whole test today. The `cannot_publish` reason ADR-086 adds
-  // (a credential that can create posts but cannot publish them) is #48's
-  // and lands as a further health reading; it joins this arm, not a new
-  // one, because criterion 9 names one thing to say for both.
+  // `ok` is the whole test, and it stays the whole test. The
+  // `cannot_publish` reason ADR-086 adds (a credential that can create
+  // posts but cannot publish them) is a `HealthReason` now
+  // (`src/lib/publish/types.ts`) and arrives on a row whose health is
+  // `error` — so it joins this arm rather than a new one, which is what
+  // criterion 9 asks for: one thing to say for both.
   if (row.health !== "ok") {
     return { says: "cannot_go_live_there", site, copy: "mail.draftReady.dest.cannotPublish" };
   }

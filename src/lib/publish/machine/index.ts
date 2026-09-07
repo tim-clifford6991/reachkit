@@ -69,8 +69,8 @@ export type TransitionResult =
 export interface TransitionOptions {
   reason?: string;
   /** The guard dependencies. Injected so a caller under test drives one
-   *  guard without a database, and so #46 supplies the publishable rule by
-   *  passing it rather than by editing this file. */
+   *  guard without a database, and so `src/lib/publish/publishable/rule.ts`
+   *  arrives by being passed rather than by editing this file. */
   deps?: GuardDeps;
   /** The clock the guards are evaluated against. Defaults to now; a caller
    *  that already fixed a moment passes it so the ceilings and the

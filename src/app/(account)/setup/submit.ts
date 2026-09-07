@@ -9,14 +9,14 @@
 // and `tests/app/setup/submit.test.ts` pins the member list so a fourth
 // decision cannot be added by adding a field.
 //
-// **What this file does not have yet, stated rather than faked.** The
-// account, the site row and the deep-pass queue are #35's, #42's and the
-// §6.3 pipeline's; none exists on disk today. So the writes are a declared
-// interface — `SetupStore` — and issue #14 supplies one honest
-// implementation of it, the fixture in `_setup/fixture.ts`, which records
-// what it was asked to do and reports it. Nothing here pretends a row was
-// written. When the real store lands, `_setup/provider.ts` returns it and
-// this file does not change.
+// **The writes are a declared interface, and that is why this file never
+// changed when they became real.** `SetupStore` is the seam: the account,
+// the site row and the deep-pass queue are all written behind it.
+// `liveSetupStore` in `_setup/store.ts` is the implementation
+// `_setup/provider.ts` returns for every founder; the fixture in
+// `_setup/fixture.ts` remains, recording what it was asked to do, for the
+// suites that drive `completeSetup` without a database. This file holds
+// neither, and nothing here pretends a row was written.
 import type { PublishingMode } from "@/lib/publish/setup/cards";
 import { BATTERY } from "@/lib/config/constants";
 import { registrableDomain } from "@/lib/market/rivals/domains";

@@ -32,8 +32,9 @@
 // 2026-09-06, "RivalSize is declared in src/lib/market/rivals and joins
 // StoredReport under #103"), and `REPORT_VERSION` goes to 2 for it: adding
 // a member is a version bump, not a migration. `answers` is `aiAnswers`
-// below — issue #13's section, which is #27's `AiAnswersCard` plus the
-// three things the screen needs and the engine's card does not carry.
+// below — issue #13's section, which is the `AiAnswersCard` from issue #27
+// plus the three things the screen needs and the engine's card does not
+// carry.
 //
 // **The paid pass sizes rivals** (issue #140): `checking_your_presence`
 // calls `sizeRivals` over the site's tracked rivals, and the free path

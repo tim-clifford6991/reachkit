@@ -53,8 +53,8 @@ async function siteDomain(siteId: string): Promise<string | null> {
  * A name that *does* resolve raises the one question resolution cannot
  * answer — whether it points at our edge or at somebody else's server —
  * and the adapter is asked, because the adapter is the end that would
- * know. Today it answers `error`/`unreachable`, which is true: the edge
- * route is #49's and nothing serves there yet.
+ * know. It answers `ok`: the edge route serves (`src/app/(hosted)/`), and
+ * `src/lib/publish/destinations/hosted/` is the end that answers for it.
  *
  * A site with no domain yet has nothing to point: that is `never_connected`
  * and not a failure of anybody's DNS.

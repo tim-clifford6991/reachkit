@@ -45,7 +45,7 @@
 // 2026-09-06, issue #20 (REQ-091/REQ-092): seven values moved from `""` to
 // `TODO(copy)` — `stopped.work.resumes-on`, `stopped.work.no-time-promised`,
 // `stopped.work.partial-pass` and the four unfilled `next-publish.*` lines.
-// The reason is #93's standing ruling ("owner-owed copy keys on fixture
+// The reason is the standing ruling in #93 ("owner-owed copy keys on fixture
 // screens render as the visible marker `TODO(copy)`; mail keeps the
 // throw"), reached here by REQ-091 c2: a place holding nothing must carry
 // **one written line, never a blank**, so an empty value — which `copy()`

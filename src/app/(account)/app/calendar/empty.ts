@@ -184,10 +184,11 @@ export const EMPTY_COPY_KEY: Record<CalendarOwnCause, CopyKey> = {
  * Two arms and no invention in either:
  *
  *   · `reachkit_stopped` — the site's own stop, read once by
- *     `_shell/stop.ts` and carried on the facts. Where the record has not
- *     been read (§11's stopped-work record is #39's, and the calendar
- *     still passes `null`), the day is exactly as explicable as an
- *     unattributed one and takes the same answer.
+ *     `_shell/stop.ts` and carried on the facts. Where that read found no
+ *     stop, or could not be made at all — `calendar/store.ts` catches it to
+ *     `null`, because a read that threw is not a claim that nothing stopped
+ *     — the day is exactly as explicable as an unattributed one and takes
+ *     the same answer.
  *   · `unattributed` — ADR-061 point 2's stop, which has no record behind
  *     it. `needs: nothing` and `resumes: no time promised` are the two
  *     **true** statements about a day nobody can account for: nothing is

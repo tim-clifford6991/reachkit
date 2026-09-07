@@ -5,7 +5,8 @@
 // did, so a page that failed once never tried again unless a person acted.
 // This is the tick that claims it.
 //
-// **It is a clock job, and the reasons are #196's, verbatim in shape.** A
+// **It is a clock job, for the reasons `src/jobs/lead-nurture.ts` states,
+// verbatim in shape.** A
 // retry cannot be a chained event: `publish/execute`'s idempotency key is
 // `(draftId, destinationId)`, so re-sending its event for the same page is
 // deduped rather than delayed — the second delivery is a no-op, which is
