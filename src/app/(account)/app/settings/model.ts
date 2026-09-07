@@ -81,14 +81,27 @@ export interface PublishingSettings {
  *  REQ-097 criterion 5 keeps the next invoice, the card and the invoice
  *  history off every ReachKit surface, and `billing.ts` records the ruling
  *  that settled which of §4.7's four things survive it. */
-export interface BillingFacts {
-  state: PlanState;
-  /** `users.paid_through` — the access gate (ADR-050), and REQ-076
-   *  criterion 3's "the exact date their access ends". */
-  paidThrough: Date;
-  /** REQ-097 c1's one destination. */
-  surfaceHref: string;
-}
+/**
+ * The billing facts, or the arm that says they could not be read (#228).
+ *
+ * **A union, not a nullable field.** Until #228 an unreadable read fell
+ * back to the fixture's plan state and date, which put a state the customer
+ * never held and a date nobody measured on their own screen. There is no
+ * honest value for either, so the shape has no place to put one: the
+ * `readable: false` arm carries the control and nothing else, and REQ-097
+ * c6's three sentences are what the card states in their place.
+ */
+export type BillingFacts =
+  | {
+      readable: true;
+      state: PlanState;
+      /** `users.paid_through` — the access gate (ADR-050), and REQ-076
+       *  criterion 3's "the exact date their access ends". */
+      paidThrough: Date;
+      /** REQ-097 c1's one destination. */
+      surfaceHref: string;
+    }
+  | { readable: false; surfaceHref: string };
 
 export interface SettingsModel {
   market: {
@@ -174,6 +187,10 @@ export interface SettingsFacts {
   doNotClaim: readonly string[];
   /** `destinations` (§10), health included — read as a state (#48). */
   destinations: readonly DestinationView[];
+  /** False where the registry could not be read (#228). An empty list and
+   *  an unreadable one are different facts, and only the first is one the
+   *  customer can act on. */
+  destinationsReadable: boolean;
   /** `users` (§10), plus the notify preferences the toggles read. A kind
    *  absent from the record reads as on. `name` is `null` where the account
    *  has not stated one — `accountCard()` returns the column as it is, and
@@ -256,15 +273,18 @@ export function assembleSettings(facts: SettingsFacts): SettingsModel {
             },
       noteKeys: facts.noteKeys,
     },
-    billing: {
-      state: facts.billing.state,
-      // The one place the paid-through instant becomes a day a customer
-      // reads, in the zone they stated. A card that formatted it would be
-      // a second formatter, and the two would disagree the day one of them
-      // was corrected.
-      accessUntil: formatDate(facts.billing.paidThrough, facts.timeZone),
-      surfaceHref: facts.billing.surfaceHref,
-    },
+    billing: facts.billing.readable
+      ? {
+          readable: true,
+          state: facts.billing.state,
+          // The one place the paid-through instant becomes a day a customer
+          // reads, in the zone they stated. A card that formatted it would
+          // be a second formatter, and the two would disagree the day one
+          // of them was corrected.
+          accessUntil: formatDate(facts.billing.paidThrough, facts.timeZone),
+          surfaceHref: facts.billing.surfaceHref,
+        }
+      : { readable: false, surfaceHref: facts.billing.surfaceHref },
     content: { pages: facts.publishedPages },
   };
 }

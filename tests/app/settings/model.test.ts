@@ -19,6 +19,23 @@ import { MAIL_KINDS, TOGGLE_KINDS, type MailKind } from "@/lib/mail/kinds";
 
 const FACTS: SettingsFacts = FIXTURE_SETTINGS_FACTS;
 
+/** #228 made `BillingSummary` a union — a card, or the arm that says it
+ *  could not be read. Every row below is about the readable card, so it is
+ *  narrowed once here rather than at each assertion. */
+function card(model: { billing: import("@/app/(account)/app/settings/billing").BillingSummary }) {
+  const { billing } = model;
+  if (!billing.readable) throw new Error("expected a readable billing card");
+  return billing;
+}
+
+/** The same narrowing on the way *in*: `SettingsFacts.billing` is a union
+ *  too, and the fixture's arm is the readable one by construction. */
+function readableFacts(): Extract<SettingsFacts["billing"], { readable: true }> {
+  const { billing } = FACTS;
+  if (!billing.readable) throw new Error("the fixture's billing facts are readable by construction");
+  return billing;
+}
+
 describe("REQ-070 c1 — the model carries a value for each settable key and nothing else a control could bind to", () => {
   const model = assembleSettings(FACTS);
 
@@ -120,7 +137,7 @@ describe("REQ-097 — the model carries no billing value at all", () => {
   // provenance" any more — it is that there is no such value on the model.
   it("the billing slice is the plan state, the access-end day and the destination — and nothing else", () => {
     const billing = assembleSettings(FACTS).billing;
-    expect(Object.keys(billing).sort()).toEqual(["accessUntil", "state", "surfaceHref"]);
+    expect(Object.keys(billing).sort()).toEqual(["accessUntil", "readable", "state", "surfaceHref"]);
   });
 
   it("the plan and the price are copy keys, not values read back from a vendor", () => {
@@ -140,27 +157,27 @@ describe("REQ-097 — the model carries no billing value at all", () => {
       year: "numeric",
       month: "short",
       day: "numeric",
-    }).format(FACTS.billing.paidThrough);
-    expect(model.billing.accessUntil).toBe(inZone);
+    }).format(readableFacts().paidThrough);
+    expect(card(model).accessUntil).toBe(inZone);
 
     const elsewhere = assembleSettings({ ...FACTS, timeZone: "Australia/Sydney" });
-    expect(elsewhere.billing.accessUntil).not.toBe(model.billing.accessUntil);
+    expect(card(elsewhere).accessUntil).not.toBe(card(model).accessUntil);
   });
 
   it("the plan state selects which of cancel/resume the card offers, and is not a date comparison", () => {
     // `users.cancelled_at`, recorded from what Stripe reported — never
     // derived from `paid_through`, which is the access gate (ADR-050) and
     // stays in the future for a customer who has already cancelled.
-    expect(assembleSettings(FACTS).billing.state).toBe("active");
+    expect(card(assembleSettings(FACTS)).state).toBe("active");
     const cancelled = assembleSettings({
       ...FACTS,
-      billing: { ...FACTS.billing, state: "cancelled" },
+      billing: { ...readableFacts(), state: "cancelled" as const },
     });
-    expect(cancelled.billing.state).toBe("cancelled");
+    expect(card(cancelled).state).toBe("cancelled");
 
     // The same paid-through date under both states: the state did not come
     // from it.
-    expect(cancelled.billing.accessUntil).toBe(assembleSettings(FACTS).billing.accessUntil);
+    expect(card(cancelled).accessUntil).toBe(card(assembleSettings(FACTS)).accessUntil);
   });
 });
 
