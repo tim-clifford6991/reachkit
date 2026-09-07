@@ -24,6 +24,10 @@ const LAYOUT_CSS = path.resolve(
   import.meta.dirname,
   "../../src/ui/layout/layout.css",
 );
+const TYPE_CSS = path.resolve(
+  import.meta.dirname,
+  "../../src/ui/type.css",
+);
 const SURFACE_CSS = path.resolve(
   import.meta.dirname,
   "../../src/ui/layout/surface.css",
@@ -39,6 +43,15 @@ const ROOT_LAYOUT_TSX = path.resolve(
  *  of `BUILD.md` §2.3's 10.5–11px eyebrow range; `src/ui/type.css`'s
  *  `.eyebrow` draws the same 11px. */
 const T_FLOOR_PX = 11;
+
+/** `design/tokens.md` §2b's first breakpoint: "`--breakpoint-sm` `640px` —
+ *  Two-up becomes possible. 2 × `--w-day-panel` (290) + `--s-5` +
+ *  2 × `--s-4` of page padding = **636**", rounded up to Tailwind's own
+ *  step. Not a band boundary — `BAND_MIN` names three bands and this is not
+ *  one of them — so it has no twin in `bands.ts` to be pinned against, and
+ *  the quotation is the pin (`tests/pins.test.ts`'s convention for a frozen
+ *  source). Its one consumer is the narrow-viewport heading step below. */
+const BREAKPOINT_SM_PX = 640;
 
 function rootDecls(source: string): Map<string, string> {
   const root: Root = postcss.parse(source);
@@ -70,9 +83,18 @@ describe("ADR-093 — src/ui/layout/layout.css declares the three layout tokens 
     expect(decls.get("--t-floor")).toBe(`${T_FLOOR_PX}px`);
   });
 
-  it("declares exactly those three and nothing else — a fourth token is a decision, not a line", () => {
+  it("--breakpoint-sm is 640px — §2b's own value (issue #258)", () => {
+    expect(decls.get("--breakpoint-sm")).toBe(`${BREAKPOINT_SM_PX}px`);
+  });
+
+  it("declares exactly those four and nothing else — a fifth token is a decision, not a line", () => {
+    // Four since #258, and the fourth *was* a decision: §4's narrow-viewport
+    // heading step needs 640 somewhere, and §2b's four breakpoints have one
+    // home — a second copy beside the rule that reads it is rule 2.4's
+    // second copy arriving by a side door.
     expect([...decls.keys()].sort()).toEqual([
       "--breakpoint-lg",
+      "--breakpoint-sm",
       "--breakpoint-xl",
       "--t-floor",
     ]);
@@ -241,3 +263,50 @@ describe("src/app/layout.tsx imports src/ui/layout/surface.css, so every route r
     );
   });
 });
+
+/* ── src/ui/type.css — §4's narrow-viewport heading step (issue #258) ──── */
+
+describe("issue #258 — the h1 step below --breakpoint-sm is written narrow-first", () => {
+  const TYPE_SOURCE = readFileSync(TYPE_CSS, "utf8");
+
+  it("the only media literal in type.css is --breakpoint-sm, as a min-width", () => {
+    // §2b: "A media query cannot read a `var()`. The literal inside an
+    // `@media` prelude is therefore the one raw value the stylesheet still
+    // admits, and it must equal a token named above." Narrow-first, so it
+    // is never a breakpoint minus one pixel.
+    const preludes: string[] = [];
+    postcss.parse(TYPE_SOURCE).walkAtRules("media", (at: AtRule) => {
+      preludes.push(at.params.trim());
+    });
+    expect(preludes).toEqual([`(min-width: ${BREAKPOINT_SM_PX}px)`]);
+  });
+
+  it("that literal equals the --breakpoint-sm layout.css declares — one home, two readers", () => {
+    expect(decls640()).toBe(`${BREAKPOINT_SM_PX}px`);
+  });
+
+  it("below it h1 takes --t-h2, above it --t-h1 — §4's own words, no new size", () => {
+    // "`--t-h1` takes `--t-h2`'s size ... below `--breakpoint-sm`. No new
+    // size is minted" — so the narrow rule reads the h2 token by name and
+    // mints nothing.
+    const narrow = /^h1 \{ font-size: var\(--t-h2\); \}$/m;
+    expect(TYPE_SOURCE, "the default h1 rule must read --t-h2").toMatch(narrow);
+    expect(
+      TYPE_SOURCE.slice(TYPE_SOURCE.indexOf("@media (min-width: 640px)")),
+      "the min-width rule must restore --t-h1",
+    ).toMatch(/h1 \{\s*font-size: var\(--t-h1\);\s*\}/);
+  });
+
+  it("no size below the floor is minted on the way (ADR-093 decision 3)", () => {
+    const minted = [...TYPE_SOURCE.matchAll(/font-size:\s*(\d+(?:\.\d+)?)px/g)].map((m) =>
+      Number(m[1]),
+    );
+    for (const px of minted) expect(px, `${px}px is under the floor`).toBeGreaterThanOrEqual(T_FLOOR_PX);
+  });
+});
+
+/** `--breakpoint-sm` as `layout.css` declares it — read through the same
+ *  parser the block above uses, so the two readers cannot drift. */
+function decls640(): string | undefined {
+  return rootDecls(readFileSync(LAYOUT_CSS, "utf8")).get("--breakpoint-sm");
+}

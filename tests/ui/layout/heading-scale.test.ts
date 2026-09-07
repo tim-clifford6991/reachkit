@@ -38,6 +38,19 @@ const routes = enumerateRoutes(APP_ROOT, { accountCookie: getAccountCookie() });
  *  transcribed by `src/ui/type.css`. Asserted here as *computed* pixels. */
 const SCALE_PX: Readonly<Record<string, number>> = { h1: 31, h2: 25, h3: 20, h4: 16 };
 
+/** §2b's first breakpoint, and §4's third absolute: below `--breakpoint-sm`
+ *  "`--t-h1` takes `--t-h2`'s size". Every other step is the same at every
+ *  viewport, so this map has one entry and gains one only if the ruling
+ *  does (issue #258). */
+const NARROW_PX: Readonly<Record<string, number>> = { ...SCALE_PX, h1: SCALE_PX.h2! };
+const BREAKPOINT_SM_PX = 640;
+
+/** The headline the owner's 320px screenshot is of. Four lines at `--t-h1`
+ *  is what §4's ruling names as the defect; three is the bound this asserts,
+ *  measured from the rendered box rather than from the size, because the
+ *  size is the *cause* and the wrap is the thing the reader sees. */
+const LANDING_MAX_LINES = 3;
+
 /** `BUILD.md` §2.3, verbatim: "Body 15px/1.55." */
 const BODY_PX = 15;
 
@@ -65,6 +78,19 @@ interface Measured {
   tag: string;
   px: number;
   text: string;
+}
+
+/** The rendered h1's height in line boxes: its border box over its own
+ *  computed `line-height`. Read from the browser, so `text-wrap: balance`
+ *  and the real font metrics are in it — a count derived from the string's
+ *  length would be a guess about a font. */
+function measureLandingHeadlineLines(): number | null {
+  const h1 = document.querySelector("h1");
+  if (!h1) return null;
+  const style = getComputedStyle(h1);
+  const lineHeight = Number.parseFloat(style.lineHeight);
+  if (!Number.isFinite(lineHeight) || lineHeight <= 0) return null;
+  return Math.round(h1.getBoundingClientRect().height / lineHeight);
 }
 
 /** Every heading on the page, with the size the browser actually computed. */
@@ -97,14 +123,16 @@ describe(`the heading scale survives preflight — ${routes.length} route(s)`, (
 
         for (const heading of headings) {
           seen.add(heading.tag);
-          const where = `${route.path}: <${heading.tag}> "${heading.text}"`;
+          const where = `${route.path}: <${heading.tag}> "${heading.text}" @ ${BAND_MIN.compact}px`;
           // The defect itself, stated as its own assertion: a heading at
           // body size is what preflight leaves behind.
           expect(heading.px, `${where} must be larger than the ${BODY_PX}px body`).toBeGreaterThan(
             BODY_PX
           );
-          expect(heading.px, `${where} must compute its own step of the scale`).toBe(
-            SCALE_PX[heading.tag]
+          // Below `--breakpoint-sm` the h1 step is `--t-h2`'s size; every
+          // other heading is its own step at every viewport (issue #258).
+          expect(heading.px, `${where} must compute its narrow-viewport step`).toBe(
+            NARROW_PX[heading.tag]
           );
         }
       }
@@ -116,6 +144,69 @@ describe(`the heading scale survives preflight — ${routes.length} route(s)`, (
         `tests/ui/layout/heading-scale.test.ts: measured ${[...seen].sort().join(", ") || "no"} heading(s) across ${routes.length} route(s)`
       );
       expect(seen.has("h1"), "no route rendered an h1 — the sweep proved nothing").toBe(true);
+    },
+    PER_ROUTE_BROWSER_MS
+  );
+
+  it(
+    `at and above --breakpoint-sm every h1 is the full ${SCALE_PX.h1}px step`,
+    async () => {
+      // The other half of the ruling: the step is a narrow-viewport rule,
+      // not a shrink. Measured at both bands above the boundary, because a
+      // `max-width` written by mistake would pass at one of them.
+      let seenH1 = false;
+      for (const width of [BAND_MIN.medium, BAND_MIN.wide]) {
+        for (const route of routes) {
+          const headings = await withPage(
+            width,
+            async (page) => {
+              await page.goto(urlFor(route));
+              return page.evaluate(measureHeadings);
+            },
+            headersFor(route)
+          );
+          for (const heading of headings) {
+            const where = `${route.path}: <${heading.tag}> "${heading.text}" @ ${width}px`;
+            expect(heading.px, `${where} must compute its own step of the scale`).toBe(
+              SCALE_PX[heading.tag]
+            );
+            if (heading.tag === "h1") seenH1 = true;
+          }
+        }
+      }
+      expect(seenH1, "no route rendered an h1 above the boundary").toBe(true);
+    },
+    PER_ROUTE_BROWSER_MS
+  );
+
+  it(
+    `the landing headline fits ${LANDING_MAX_LINES} lines at ${BAND_MIN.compact}px`,
+    async () => {
+      // Issue #258, from the owner's own 320px screenshot: at `--t-h1` the
+      // headline wrapped to four lines and pushed the field toward the
+      // fold. This asserts what the reader sees, so a future change that
+      // restored the size — or lengthened the line — fails here and not
+      // only on the token pin.
+      const landing = routes.find((route) => route.path === "/" && route.host === undefined);
+      expect(landing, "the landing route is not in the tree").toBeDefined();
+
+      const narrow = await withPage(
+        BAND_MIN.compact,
+        async (page) => {
+          await page.goto(urlFor(landing!));
+          return page.evaluate(measureLandingHeadlineLines);
+        },
+        headersFor(landing!)
+      );
+      expect(narrow, "the landing rendered no h1").not.toBeNull();
+      expect(narrow!, `the headline wraps to ${narrow} lines at ${BAND_MIN.compact}px`).toBeLessThanOrEqual(
+        LANDING_MAX_LINES
+      );
+      // Stated, not silent (rule 5.5): what the boundary is and what was
+      // measured under it.
+      console.log(
+        `tests/ui/layout/heading-scale.test.ts: landing headline is ${narrow} line(s) at ${BAND_MIN.compact}px, below --breakpoint-sm ${BREAKPOINT_SM_PX}px`
+      );
     },
     PER_ROUTE_BROWSER_MS
   );

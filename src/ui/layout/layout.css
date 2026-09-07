@@ -10,6 +10,18 @@
  *
  * Values transcribe `design/tokens.md` §2b (frozen under
  * `archive/sdlc-factory-2026-09-04/corpus/docs/design/tokens.md`):
+ *   --breakpoint-sm  640px — "Two-up becomes possible": 2 × --w-day-panel
+ *                             290 + --s-5 + 2 × --s-4 = 636, rounded up to
+ *                             Tailwind's own step. It is **not** a band
+ *                             boundary — `BAND_MIN` has three bands and
+ *                             this is not one of them — and no layout rule
+ *                             reads it. It is here because §2b's four
+ *                             breakpoints have one home and a second copy
+ *                             of 640 elsewhere is rule 2.4's second copy
+ *                             arriving by a side door. Its one consumer
+ *                             today is `src/ui/type.css`'s narrow-viewport
+ *                             heading step (§4's third absolute, issue
+ *                             #258).
  *   --breakpoint-lg 1024px — "The sidebar returns"; `BAND_MIN.medium`.
  *   --breakpoint-xl 1280px — "The day panel sits beside the grid";
  *                             `BAND_MIN.wide`.
@@ -27,6 +39,7 @@
  */
 
 :root {
+  --breakpoint-sm: 640px;
   --breakpoint-lg: 1024px;
   --breakpoint-xl: 1280px;
   --t-floor: 11px;
