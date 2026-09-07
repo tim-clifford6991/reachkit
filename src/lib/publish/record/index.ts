@@ -42,6 +42,17 @@
 // on a day panel; the paired fixture in
 // `tests/publish/record/record.test.ts` is what fails when they do.
 //
+// **REQ-060 criterion 4's line lives here and on no other surface** (issue
+// #156). "One written line on that page's own record — and no other
+// surface" is a law about where a sentence may appear, so it is kept the
+// way this module keeps the address label: there is one place the fact is
+// read from a column and turned into a key, and every surface that states a
+// page's standing already comes through it. The three ways of having no
+// line — nothing delivered, a destination with no plugins to find, and a
+// plugin that did write — are one `null` on the way out and three different
+// facts on the way in, which is why the column is three-valued and the
+// derivation is its own function.
+//
 // The archived plan is WO-263.
 import type { CopyKey } from "@/lib/presentation/copy";
 import { publishDb } from "../db";
@@ -88,6 +99,18 @@ export interface PageRecord {
    *  disposition where no check has run. **Not optional, and not separable
    *  from `state`.** */
   verification: VerifyDisposition;
+  /** REQ-060 criterion 4's line, **and this is the only surface it appears
+   *  on** (issue #156).
+   *
+   *  Non-null exactly where a delivery recorded that the destination's site
+   *  wrote the title and description into no SEO plugin. Null everywhere
+   *  else, and the three cases that are "everywhere else" are different
+   *  facts rather than one: a page nothing has delivered, a destination
+   *  with no plugins to find, and a page one plugin did write.
+   *
+   *  It names the key and mints no sentence — the line is the owner's, the
+   *  same way the three address keys are. */
+  seoNote: CopyKey | null;
 }
 
 /** The three keys this module names. All three sentences are the owner's;
@@ -98,10 +121,24 @@ export const ADDRESS_COPY = Object.freeze({
   neverMadeLive: "record.address.neverMadeLive",
 } as const satisfies Record<string, CopyKey>);
 
+/** REQ-060 criterion 4's line (issue #156). Named here rather than imported
+ *  from the WordPress leaf that also names it: this module is on the import
+ *  graph of every surface that states a page's standing, and pulling the
+ *  adapter's REST client behind it to reach one string constant would be a
+ *  dependency bought for nothing. `tests/publish/record/seo-note.test.ts`
+ *  asserts the two spellings are the same key, which is the coupling that
+ *  actually matters. */
+export const SEO_COPY = Object.freeze({
+  noSeoPlugin: "publish.wordpress.noSeoPlugin",
+} as const satisfies Record<string, CopyKey>);
+
 interface PublicationRow extends DispositionRow {
   mode: string;
   made_live_by_us: boolean;
   unpublish_outcome: string | null;
+  /** REQ-060 c4. `null` where no delivery recorded an answer; an empty
+   *  array is an answer and is the case that carries the line. */
+  seo_written: string[] | null;
 }
 
 interface DraftRow {
@@ -140,6 +177,22 @@ function addressOf(a: {
 }
 
 /**
+ * REQ-060 criterion 4's line, or nothing.
+ *
+ * **The empty array is the whole condition, and `null` is not it.** A page
+ * nothing has delivered, and a page delivered to a destination that has no
+ * SEO plugins to find, both carry `null` and both must carry no line —
+ * criterion 4 is about a site where the plugins *could* have been found and
+ * were not. A page one plugin wrote carries a non-empty array and no line,
+ * which is what makes "one present and one not" silent rather than
+ * half-spoken: the criterion asks about no plugin, not about every plugin.
+ */
+function seoNoteOf(written: readonly string[] | null | undefined): CopyKey | null {
+  if (written === null || written === undefined) return null;
+  return written.length === 0 ? SEO_COPY.noSeoPlugin : null;
+}
+
+/**
  * The one read behind every surface that states a published page's
  * standing: the day panel, the draft view and Overview all call this, and
  * none of them re-derives liveness from a column.
@@ -165,7 +218,7 @@ export async function pageRecordFor(
 
   const { data: publications, error: pubError } = await db
     .from<PublicationRow>("publications")
-    .select(`${DISPOSITION_COLUMNS}, mode, made_live_by_us, unpublish_outcome`)
+    .select(`${DISPOSITION_COLUMNS}, mode, made_live_by_us, unpublish_outcome, seo_written`)
     .eq("draft_id", draftId)
     .order("claimed_at", { ascending: false })
     .limit(1);
@@ -218,6 +271,7 @@ export async function pageRecordFor(
       publication === undefined
         ? { kind: "never", because: "no_live_address" }
         : dispositionOf(publication, now),
+    seoNote: seoNoteOf(publication?.seo_written),
   };
 }
 

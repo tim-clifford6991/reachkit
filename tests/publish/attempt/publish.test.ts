@@ -219,6 +219,63 @@ describe("ADR-084 Decision 4 — made_live_by_us is the adapter's own statement"
   });
 });
 
+describe("REQ-060 c4 — seo_written survives the delivery call (issue #156)", () => {
+  it("what the adapter read back is stored as it is", async () => {
+    await publish({
+      draftId: "d1", destination: "wordpress", by: SYSTEM, at: AT, deps: openDeps(),
+      adapterFor: () =>
+        stubAdapter({
+          ok: true, madeLive: true, liveUrl: "https://c.example/a",
+          seoWritten: ["yoast"],
+        }),
+    });
+    expect(pub().seo_written).toEqual(["yoast"]);
+  });
+
+  // The discriminating pair. `[]` and `undefined` are two answers, they
+  // store as two values, and an implementation that collapsed either into
+  // the other fails exactly one of these rows: `?? []` fails the first,
+  // a falsy test fails the second, and criterion 4's line then appears on
+  // every hosted page or on none at all.
+  it("a delivery that found no plugin stores the EMPTY ARRAY, which is an answer", async () => {
+    await publish({
+      draftId: "d1", destination: "wordpress", by: SYSTEM, at: AT, deps: openDeps(),
+      adapterFor: () =>
+        stubAdapter({ ok: true, madeLive: true, liveUrl: "https://c.example/a", seoWritten: [] }),
+    });
+    expect(pub().seo_written).toEqual([]);
+    expect(pub().seo_written).not.toBeNull();
+  });
+
+  it("an adapter with no such answer to give stores NULL, which is not an answer", async () => {
+    await publish({
+      draftId: "d1", destination: "hosted", by: SYSTEM, at: AT, deps: openDeps(),
+      adapterFor: () => stubAdapter({ ok: true, madeLive: true, liveUrl: "https://c.example/a" }),
+    });
+    expect(pub().seo_written).toBeNull();
+  });
+
+  it("both plugins are carried across, in the adapter's own order", async () => {
+    await publish({
+      draftId: "d1", destination: "wordpress", by: SYSTEM, at: AT, deps: openDeps(),
+      adapterFor: () =>
+        stubAdapter({
+          ok: true, madeLive: true, liveUrl: "https://c.example/a",
+          seoWritten: ["yoast", "rankmath"],
+        }),
+    });
+    expect(pub().seo_written).toEqual(["yoast", "rankmath"]);
+  });
+
+  it("a failed delivery records no answer — the fact belongs to a delivery that happened", async () => {
+    await publish({
+      draftId: "d1", destination: "wordpress", by: SYSTEM, at: AT, deps: openDeps(),
+      adapterFor: () => stubAdapter({ ok: false, madeLive: false, reason: "destination_rejected" }),
+    });
+    expect(pub().seo_written ?? null).toBeNull();
+  });
+});
+
 describe("verify_due_at reads the address, never the kind", () => {
   it.each(["hosted", "wordpress", "ghost"] as const)(
     "a %s delivery that returned an address is due at published_at + 24h",

@@ -56,6 +56,9 @@ function record(over: Partial<PageRecord> = {}): PageRecord {
     address: { offered: true, label: "record.address.publiclyReadableAt", url: LIVE_URL },
     unpublishOutcome: null,
     verification: FOUND,
+    // REQ-060 c4's line is the page record's, and this surface never
+    // renders it (issue #156).
+    seoNote: null,
     ...over,
   };
 }
