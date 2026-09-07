@@ -18,12 +18,32 @@ import { applyEnvFixture } from "../../mail/env-fixture.ts";
 import "../../scan/run/harness";
 import { middleware } from "@/middleware";
 import { NextRequest } from "next/server";
+import { passFactory, reportFactory, resetSetupSession, storeFactory } from "./session-door";
 
 vi.mock("@/lib/egress", () => ({
   // The one network fact these routes need, stubbed at the seam:
   // `tests/setup.ts` refuses a real resolver to every test in this corpus.
   resolvesInDns: vi.fn(async (host: string) => host !== "unreachable-site.com"),
 }));
+
+
+// #169: the setup screens name their founder through `currentSession()`
+// and read the address, the report and the pass live. The factories live in
+// `session-door.ts`; the `vi.mock` lines stay here, because vitest hoists a
+// `vi.mock` found in an imported module and would install it for every
+// suite that imports it.
+vi.mock("@/app/(account)/setup/_setup/store", async (importOriginal) =>
+  storeFactory(await importOriginal<Record<string, unknown>>())
+);
+vi.mock("@/lib/scan/report", async (importOriginal) =>
+  reportFactory(await importOriginal<Record<string, unknown>>())
+);
+vi.mock("@/lib/scan/deep/progress", () => passFactory());
+
+// The doubles are module-level mutable state, so a test that changes one
+// must not leave it changed for the next.
+beforeEach(() => resetSetupSession());
+
 
 /** #133: `POST /api/setup` resolves the founder through
  *  `currentSession()`, and `_setup/provider.ts` now hands out the **live**

@@ -5,16 +5,37 @@
 // and the fact that neither reaches for anything a fixture cannot supply.
 // The five-width sweep is `tests/ui/layout/layout.test.ts`'s; this is the
 // cheap check that runs on every push.
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import React from "react";
 import { applyEnvFixture } from "../../mail/env-fixture.ts";
+import { passFactory, reportFactory, resetSetupSession, sessionFactory, storeFactory } from "./session-door";
 
 const redirect = vi.fn();
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
   redirect: (path: string) => redirect(path),
 }));
+
+
+// #169: the setup screens name their founder through `currentSession()`
+// and read the address, the report and the pass live. The factories live in
+// `session-door.ts`; the `vi.mock` lines stay here, because vitest hoists a
+// `vi.mock` found in an imported module and would install it for every
+// suite that imports it.
+vi.mock("@/app/(account)/setup/_setup/store", async (importOriginal) =>
+  storeFactory(await importOriginal<Record<string, unknown>>())
+);
+vi.mock("@/lib/scan/report", async (importOriginal) =>
+  reportFactory(await importOriginal<Record<string, unknown>>())
+);
+vi.mock("@/lib/scan/deep/progress", () => passFactory());
+
+// The doubles are module-level mutable state, so a test that changes one
+// must not leave it changed for the next.
+beforeEach(() => resetSetupSession());
+vi.mock("@/lib/account/identity", () => sessionFactory());
+
 
 beforeAll(() => {
   applyEnvFixture();

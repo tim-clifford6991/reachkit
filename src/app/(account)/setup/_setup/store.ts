@@ -116,6 +116,30 @@ async function siteFor(userId: string): Promise<SiteSetupRow> {
   return row;
 }
 
+/**
+ * The site's own address, for the screen that draws it.
+ *
+ * `readProgress` answers the completion predicate and a site id; §4.3's
+ * market card needs the *domain*, to look up the report the account will
+ * use (REQ-021 c6). Both come off the same one row, so this exposes it
+ * rather than making the provider read `sites` a second time with its own
+ * spelling of the query (issue #169).
+ *
+ * `null` where provisioning has not run — the screen then opens with an
+ * empty address field, which is REQ-021 c7's arm, rather than throwing a
+ * founder off their own setup page.
+ */
+export async function siteAddressFor(
+  userId: string
+): Promise<{ siteId: string; domain: string } | null> {
+  try {
+    const site = await siteFor(userId);
+    return { siteId: site.id, domain: site.domain };
+  } catch {
+    return null;
+  }
+}
+
 export function liveSetupStore(): SetupStore {
   return {
     hasActiveAccess: (userId) => activeAccess(userId),

@@ -79,6 +79,31 @@ vi.mock("@/lib/publish/destinations/hosted", async (importOriginal) => {
 // fixture account: every one of those routes then takes the same fixture
 // branch it always took, and the sweep goes on measuring the screens rather
 // than a redirect to the sign-in prompt.
+// BUILD §4.3, issue #169 — the setup screens name their founder through
+// `currentSession()` and read the address, the report and the pass live.
+// This sweep has none of those; the factories are `tests/app/setup`'s, so
+// the screen it measures is the one a provisioned founder sees.
+vi.mock("@/lib/account/identity", async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  const { sessionFactory } = await import("../../app/setup/session-door");
+  return { ...actual, ...sessionFactory() };
+});
+
+vi.mock("@/app/(account)/setup/_setup/store", async (importOriginal) => {
+  const { storeFactory } = await import("../../app/setup/session-door");
+  return storeFactory(await importOriginal<Record<string, unknown>>());
+});
+
+vi.mock("@/lib/scan/report", async (importOriginal) => {
+  const { reportFactory } = await import("../../app/setup/session-door");
+  return reportFactory(await importOriginal<Record<string, unknown>>());
+});
+
+vi.mock("@/lib/scan/deep/progress", async () => {
+  const { passFactory } = await import("../../app/setup/session-door");
+  return passFactory();
+});
+
 vi.mock("@/app/(account)/app/_session/account", async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
   const { RESERVED_ACCOUNT } = await import("../../app/accounts");
