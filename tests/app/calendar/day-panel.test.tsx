@@ -34,7 +34,9 @@ const MODEL = assembleMonth(FIXTURE_CALENDAR_FACTS, FIXTURE_MONTH);
 function panel(day: string): Element {
   const cell = cellFor(MODEL, day);
   if (cell === undefined) throw new Error(`no cell for ${day}`);
-  return render(<DayPanelView cell={cell} timeZone={FIXTURE_TIME_ZONE} />);
+  return render(
+    <DayPanelView cell={cell} timeZone={FIXTURE_TIME_ZONE} stopped={MODEL.stopped} />
+  );
 }
 
 describe("REQ-043 c7 — today is the selected day when the calendar opens", () => {
@@ -262,7 +264,9 @@ describe("the panel is not a drawer, and it renders no sentence of its own", () 
 describe("a cell with a page whose stage has no action", () => {
   it("renders the page and an empty action slot rather than a missing one", () => {
     const scheduled = cellFor(MODEL, "2026-09-16") as DayCell;
-    const root = render(<DayPanelView cell={scheduled} timeZone={FIXTURE_TIME_ZONE} />);
+    const root = render(
+      <DayPanelView cell={scheduled} timeZone={FIXTURE_TIME_ZONE} stopped={null} />
+    );
     expect(root.querySelector('[data-testid="day-title"]')).not.toBeNull();
     expect(root.querySelectorAll('[data-testid^="day-action-"]')).toHaveLength(0);
   });

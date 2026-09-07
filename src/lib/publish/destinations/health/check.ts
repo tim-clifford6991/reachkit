@@ -18,7 +18,13 @@ import { publishDb } from "../../db";
 import type { DestinationHealth, HealthReason } from "../../types";
 import { NoConfigError, withConfig } from "../config";
 import { adapterFor } from "../registry";
-import { readDestination, writeHealth, writePublishCapable, type DestinationRecord } from "../store";
+import {
+  readDestination,
+  writeHealth,
+  writePublishCapable,
+  writeStampCapable,
+  type DestinationRecord,
+} from "../store";
 
 export interface HealthCheck {
   health: DestinationHealth;
@@ -123,6 +129,29 @@ async function publishCapable(row: DestinationRecord): Promise<boolean | null> {
 }
 
 /**
+ * Whether this destination's site will carry the findability stamp, asked
+ * of the destination's own end (issue #160, ADR-083 Decision 4).
+ *
+ * The same shape of question as `publishCapable` above and **a separate
+ * call**, because it is a separate question: a site can publish and refuse
+ * the term, and a site can take the term and refuse to publish. `null`
+ * again covers both "not asked" — an adapter that declares no stamp probe —
+ * and "could not be asked", and neither writes.
+ */
+async function stampCapable(row: DestinationRecord): Promise<boolean | null> {
+  const adapter = adapterFor(row.kind);
+  if (adapter?.canStamp === undefined) return null;
+  const probe = adapter.canStamp.bind(adapter);
+  try {
+    return await withConfig(row.id, (cfg) => probe(cfg as Record<string, unknown>));
+  } catch {
+    // "We could not ask" is not "the answer is no". The cause is not
+    // carried, for the reason `publishCapable` gives.
+    return null;
+  }
+}
+
+/**
  * Checks one destination and records what it found.
  *
  * `publish_capable === false` outranks every other answer (ADR-086): a
@@ -150,6 +179,18 @@ export async function checkHealth(destinationId: string): Promise<HealthCheck> {
   const capable = await publishCapable(row);
   if (capable !== null) await writePublishCapable(destinationId, capable);
   const stands = capable ?? row.publish_capable;
+
+  // The stamp probe, recorded and **read by nothing below** (issue #160).
+  // ADR-083 Decision 4 puts the question here — "so the state is known
+  // before a customer is told about a place, rather than discovered by a
+  // customer following a mail to a filter that returns nothing" — and this
+  // is the whole of what the check does with the answer. A site that
+  // publishes perfectly and will not take a `post_tag` term is a working
+  // destination: letting `false` reach `found` would take a customer's
+  // publishing down over a list, which is not a breakage and not this
+  // column's job. `stands` above is deliberately not widened to see it.
+  const stampable = await stampCapable(row);
+  if (stampable !== null) await writeStampCapable(destinationId, stampable);
 
   const found =
     stands === false

@@ -60,13 +60,24 @@ function aiOverviewItem(opts: { async: boolean; domains: string[] }): unknown {
   };
 }
 
+/** Whose purchase these calls are (#75). A site rather than a domain: the
+ *  paid battery is the call site the per-site key exists for, and the free
+ *  path's own shape is asserted in `cache-scope.test.ts`. */
+const SCOPE = { site: "site-1" } as const;
+
+/** §6.4's SERP window, as the caller now passes it — read from the pin and
+ *  never written down. A function because `constants` is imported inside
+ *  `beforeAll`, after the environment fixture is in place. The weekly
+ *  re-check's own window is asserted where the exception lives. */
+const WINDOW = (): number => constants.CACHE_WINDOWS_D.serp;
+
 describe('BUILD §6.2 — "the free AI matrix rides here at 0¢ extra": one call, one ledger row, both halves', () => {
   it("a SERP carrying organic results and an ai_overview yields both in one SerpResult, billed once at the SERP price", async () => {
     const stub = stubVendorFetch(() =>
       envelope({ items: [organic(1, "rival-one.com"), organic(2, "rival-two.com"), aiOverviewItem({ async: false, domains: ["rival-one.com", "wikipedia.org"] })] })
     );
     const { ctx, ledgered } = fakeCostContext();
-    const result = await serp.serpOrganic(ctx, { query: "best crm", mode: "live", loadAsyncAiOverview: false });
+    const result = await serp.serpOrganic(ctx, { query: "best crm", mode: "live", loadAsyncAiOverview: false, scope: SCOPE, freshnessDays: WINDOW() });
 
     expect(stub.requests).toHaveLength(1);
     expect(ledgered).toEqual([constants.PRICE_BOOK.SERP_LIVE_C]);
@@ -86,7 +97,7 @@ describe('BUILD §6.2 — "the free AI matrix rides here at 0¢ extra": one call
   it('a SERP Google served no AI answer on is `present: false` — a muted cell, never a miss', async () => {
     stubVendorFetch(() => envelope({ items: [organic(1, "rival-one.com")] }));
     const { ctx } = fakeCostContext();
-    const result = await serp.serpOrganic(ctx, { query: "best crm", mode: "live", loadAsyncAiOverview: true });
+    const result = await serp.serpOrganic(ctx, { query: "best crm", mode: "live", loadAsyncAiOverview: true, scope: SCOPE, freshnessDays: WINDOW() });
 
     expect(result.kind).toBe("measured");
     if (result.kind !== "measured") throw new Error("unreachable");
@@ -96,7 +107,7 @@ describe('BUILD §6.2 — "the free AI matrix rides here at 0¢ extra": one call
   it("an empty SERP — no organic rows and no AI answer — is the `zero` arm, never `unmeasured`", async () => {
     stubVendorFetch(() => envelope({ items: [] }));
     const { ctx } = fakeCostContext();
-    const result = await serp.serpOrganic(ctx, { query: "a search nobody serves", mode: "live", loadAsyncAiOverview: false });
+    const result = await serp.serpOrganic(ctx, { query: "a search nobody serves", mode: "live", loadAsyncAiOverview: false, scope: SCOPE, freshnessDays: WINDOW() });
 
     expect(result.kind).toBe("zero");
     if (result.kind !== "zero") throw new Error("unreachable");
@@ -108,7 +119,7 @@ describe("DECISIONS 2026-09-03 (ADR-094) — `load_async_ai_overview` is the BUI
   it.each([true, false])("serpOrganic sends the caller's own decision (%s) explicitly, never omitting the field", async (flag) => {
     const stub = stubVendorFetch(() => envelope({ items: [] }));
     const { ctx } = fakeCostContext();
-    await serp.serpOrganic(ctx, { query: "best crm", mode: "live", loadAsyncAiOverview: flag });
+    await serp.serpOrganic(ctx, { query: "best crm", mode: "live", loadAsyncAiOverview: flag, scope: SCOPE, freshnessDays: WINDOW() });
 
     expect(stub.tasks[0]).toHaveProperty("load_async_ai_overview", flag);
   });
@@ -116,7 +127,7 @@ describe("DECISIONS 2026-09-03 (ADR-094) — `load_async_ai_overview` is the BUI
   it("no other endpoint's request body carries the field, under either mode", async () => {
     const stub = stubVendorFetch((request) => (request.url.includes("task_post") ? taskCreated() : envelope({ items: [] })));
     const { ctx } = fakeCostContext();
-    await ai.aiMode(ctx, { query: "best crm", mode: "live" });
+    await ai.aiMode(ctx, { query: "best crm", mode: "live", scope: SCOPE });
 
     expect(stub.tasks).not.toHaveLength(0);
     for (const task of stub.tasks) {
@@ -127,8 +138,8 @@ describe("DECISIONS 2026-09-03 (ADR-094) — `load_async_ai_overview` is the BUI
   it("a flagged call is never served an unflagged SERP from cache — the flag is in the cache key", async () => {
     stubVendorFetch(() => envelope({ items: [] }));
     const { ctx, calls } = fakeCostContext();
-    await serp.serpOrganic(ctx, { query: "best crm", mode: "live", loadAsyncAiOverview: true });
-    await serp.serpOrganic(ctx, { query: "best crm", mode: "live", loadAsyncAiOverview: false });
+    await serp.serpOrganic(ctx, { query: "best crm", mode: "live", loadAsyncAiOverview: true, scope: SCOPE, freshnessDays: WINDOW() });
+    await serp.serpOrganic(ctx, { query: "best crm", mode: "live", loadAsyncAiOverview: false, scope: SCOPE, freshnessDays: WINDOW() });
 
     expect(calls[0]?.cacheKey).not.toBe(calls[1]?.cacheKey);
   });
@@ -137,11 +148,11 @@ describe("DECISIONS 2026-09-03 (ADR-094) — `load_async_ai_overview` is the BUI
     stubVendorFetch((request) => (request.url.includes("task_post") ? taskCreated() : envelope({ items: [] })));
     const { ctx, calls } = fakeCostContext();
     vi.useFakeTimers();
-    const pending = serp.serpOrganic(ctx, { query: "best crm", mode: "std", loadAsyncAiOverview: false });
+    const pending = serp.serpOrganic(ctx, { query: "best crm", mode: "std", loadAsyncAiOverview: false, scope: SCOPE, freshnessDays: WINDOW() });
     await vi.advanceTimersByTimeAsync(constants.VENDOR.stdQueuePollIntervalS * 1000 * 2);
     await pending;
     vi.useRealTimers();
-    await serp.serpOrganic(ctx, { query: "best crm", mode: "live", loadAsyncAiOverview: false });
+    await serp.serpOrganic(ctx, { query: "best crm", mode: "live", loadAsyncAiOverview: false, scope: SCOPE, freshnessDays: WINDOW() });
 
     expect(calls[0]?.cacheKey).toBe(calls[1]?.cacheKey);
   });
@@ -154,7 +165,7 @@ describe("ADR-094 decision 3a — a flagged call reserves the surcharge and sett
   it("reserves the surcharge-inclusive price before the call", async () => {
     stubVendorFetch(() => envelope({ items: [] }));
     const { ctx, calls } = fakeCostContext();
-    await serp.serpOrganic(ctx, { query: "best crm", mode: "live", loadAsyncAiOverview: true });
+    await serp.serpOrganic(ctx, { query: "best crm", mode: "live", loadAsyncAiOverview: true, scope: SCOPE, freshnessDays: WINDOW() });
 
     expect(calls[0]?.costCents).toBe(surcharged());
     expect(calls[0]?.settleCents).toBeTypeOf("function");
@@ -163,7 +174,7 @@ describe("ADR-094 decision 3a — a flagged call reserves the surcharge and sett
   it("settles the surcharge when the response carries an asynchronous AI Overview", async () => {
     stubVendorFetch(() => envelope({ items: [organic(1, "a.com"), aiOverviewItem({ async: true, domains: ["a.com"] })] }));
     const { ctx, ledgered } = fakeCostContext();
-    await serp.serpOrganic(ctx, { query: "best crm", mode: "live", loadAsyncAiOverview: true });
+    await serp.serpOrganic(ctx, { query: "best crm", mode: "live", loadAsyncAiOverview: true, scope: SCOPE, freshnessDays: WINDOW() });
 
     expect(ledgered).toEqual([surcharged()]);
   });
@@ -174,7 +185,7 @@ describe("ADR-094 decision 3a — a flagged call reserves the surcharge and sett
   ])("settles the base price when %s — the vendor refunds the extra charge", async (_name, items) => {
     stubVendorFetch(() => envelope({ items }));
     const { ctx, ledgered } = fakeCostContext();
-    await serp.serpOrganic(ctx, { query: "best crm", mode: "live", loadAsyncAiOverview: true });
+    await serp.serpOrganic(ctx, { query: "best crm", mode: "live", loadAsyncAiOverview: true, scope: SCOPE, freshnessDays: WINDOW() });
 
     expect(ledgered).toEqual([base()]);
   });
@@ -182,7 +193,7 @@ describe("ADR-094 decision 3a — a flagged call reserves the surcharge and sett
   it("an unflagged call reserves the base price and supplies no settlement closure", async () => {
     stubVendorFetch(() => envelope({ items: [organic(1, "a.com"), aiOverviewItem({ async: true, domains: ["a.com"] })] }));
     const { ctx, calls, ledgered } = fakeCostContext();
-    await serp.serpOrganic(ctx, { query: "best crm", mode: "live", loadAsyncAiOverview: false });
+    await serp.serpOrganic(ctx, { query: "best crm", mode: "live", loadAsyncAiOverview: false, scope: SCOPE, freshnessDays: WINDOW() });
 
     expect(calls[0]?.costCents).toBe(base());
     expect(calls[0]?.settleCents).toBeUndefined();
@@ -193,7 +204,7 @@ describe("ADR-094 decision 3a — a flagged call reserves the surcharge and sett
     stubVendorFetch((request) => (request.url.includes("task_post") ? taskCreated() : envelope({ items: [] })));
     const { ctx, calls } = fakeCostContext();
     vi.useFakeTimers();
-    const pending = serp.serpOrganic(ctx, { query: "best crm", mode: "std", loadAsyncAiOverview: false });
+    const pending = serp.serpOrganic(ctx, { query: "best crm", mode: "std", loadAsyncAiOverview: false, scope: SCOPE, freshnessDays: WINDOW() });
     await vi.advanceTimersByTimeAsync(constants.VENDOR.stdQueuePollIntervalS * 1000 * 2);
     await pending;
 
@@ -210,7 +221,7 @@ describe('BUILD §6.4 — "Everything scheduled = standard queue": task_post, th
     });
     const { ctx } = fakeCostContext();
     vi.useFakeTimers();
-    const pending = serp.serpOrganic(ctx, { query: "best crm", mode: "std", loadAsyncAiOverview: false });
+    const pending = serp.serpOrganic(ctx, { query: "best crm", mode: "std", loadAsyncAiOverview: false, scope: SCOPE, freshnessDays: WINDOW() });
     await vi.advanceTimersByTimeAsync(constants.VENDOR.stdQueuePollIntervalS * 1000 * 3);
     const result = await pending;
 
@@ -224,7 +235,7 @@ describe('BUILD §6.4 — "Everything scheduled = standard queue": task_post, th
     stubVendorFetch((request, index) => (index === 0 ? taskCreated() : taskInQueue()));
     const { ctx } = fakeCostContext();
     vi.useFakeTimers();
-    const pending = serp.serpOrganic(ctx, { query: "best crm", mode: "std", loadAsyncAiOverview: false });
+    const pending = serp.serpOrganic(ctx, { query: "best crm", mode: "std", loadAsyncAiOverview: false, scope: SCOPE, freshnessDays: WINDOW() });
     await vi.advanceTimersByTimeAsync((constants.VENDOR.stdQueueDeadlineMin + 1) * 60 * 1000);
     const result = await pending;
 
@@ -236,7 +247,7 @@ describe('BUILD §6.4 — "Everything scheduled = standard queue": task_post, th
   it("a task_post the vendor did not accept is `unmeasured`, and no poll is issued", async () => {
     const stub = stubVendorFetch(() => envelope(undefined, 40501));
     const { ctx } = fakeCostContext();
-    const result = await serp.serpOrganic(ctx, { query: "best crm", mode: "std", loadAsyncAiOverview: false });
+    const result = await serp.serpOrganic(ctx, { query: "best crm", mode: "std", loadAsyncAiOverview: false, scope: SCOPE, freshnessDays: WINDOW() });
 
     expect(result.kind).toBe("unmeasured");
     expect(stub.requests).toHaveLength(1);
@@ -247,7 +258,7 @@ describe('BUILD §6.2/§6.3 — "The free path makes zero AI Optimization API ca
   it.each(["aiMode", "llmScraper"] as const)("%s under a FREE context refuses without reaching the vendor", async (name) => {
     const stub = stubVendorFetch(() => envelope({ items: [] }));
     const { ctx, calls } = fakeCostContext("FREE");
-    const result = name === "aiMode" ? await ai.aiMode(ctx, { query: "x", mode: "live" }) : await ai.llmScraper(ctx, { query: "x", mode: "std" });
+    const result = name === "aiMode" ? await ai.aiMode(ctx, { query: "x", mode: "live", scope: SCOPE }) : await ai.llmScraper(ctx, { query: "x", mode: "std", scope: SCOPE });
 
     expect(result.kind).toBe("unmeasured");
     if (result.kind !== "unmeasured") throw new Error("unreachable");
@@ -261,7 +272,7 @@ describe('BUILD §6.2/§6.3 — "The free path makes zero AI Optimization API ca
   it.each(["DEEP", "WEEKLY"] as const)("aiMode runs under a %s context", async (cap) => {
     const stub = stubVendorFetch(() => envelope({ items: [aiOverviewItem({ async: false, domains: ["rival-one.com"] })] }));
     const { ctx } = fakeCostContext(cap);
-    const result = await ai.aiMode(ctx, { query: "best crm", mode: "live" });
+    const result = await ai.aiMode(ctx, { query: "best crm", mode: "live", scope: SCOPE });
 
     expect(stub.requests).toHaveLength(1);
     expect(result.kind).toBe("measured");
@@ -278,7 +289,7 @@ describe("BUILD §6.2 — the paid battery's two engines and their pinned prices
     stubVendorFetch((request) => (request.url.includes("task_post") ? taskCreated() : envelope({ items: [] })));
     const { ctx, calls } = fakeCostContext();
     vi.useFakeTimers();
-    const pending = ai.aiMode(ctx, { query: "best crm", mode });
+    const pending = ai.aiMode(ctx, { query: "best crm", mode, scope: SCOPE });
     await vi.advanceTimersByTimeAsync(constants.VENDOR.stdQueuePollIntervalS * 1000 * 2);
     await pending;
 
@@ -301,7 +312,7 @@ describe("BUILD §6.2 — the paid battery's two engines and their pinned prices
     );
     const { ctx, calls } = fakeCostContext();
     vi.useFakeTimers();
-    const pending = ai.llmScraper(ctx, { query: "best crm", mode: "std" });
+    const pending = ai.llmScraper(ctx, { query: "best crm", mode: "std", scope: SCOPE });
     await vi.advanceTimersByTimeAsync(constants.VENDOR.stdQueuePollIntervalS * 1000 * 2);
     const result = await pending;
 
@@ -316,7 +327,7 @@ describe("BUILD §6.2 — the paid battery's two engines and their pinned prices
   it("an engine that gave no answer is the `zero` arm carrying `answered: false`", async () => {
     stubVendorFetch(() => envelope({ items: [] }));
     const { ctx } = fakeCostContext();
-    const result = await ai.aiMode(ctx, { query: "best crm", mode: "live" });
+    const result = await ai.aiMode(ctx, { query: "best crm", mode: "live", scope: SCOPE });
 
     expect(result.kind).toBe("zero");
     if (result.kind !== "zero") throw new Error("unreachable");
@@ -327,7 +338,7 @@ describe("BUILD §6.2 — the paid battery's two engines and their pinned prices
     const stub = stubVendorFetch((request, index) => (index === 0 ? taskCreated() : envelope({ items: [] })));
     const { ctx } = fakeCostContext();
     vi.useFakeTimers();
-    const pending = ai.llmScraper(ctx, { query: "best crm", mode: "std" });
+    const pending = ai.llmScraper(ctx, { query: "best crm", mode: "std", scope: SCOPE });
     await vi.advanceTimersByTimeAsync(constants.VENDOR.stdQueuePollIntervalS * 1000 * 2);
     await pending;
 
@@ -339,7 +350,7 @@ describe("BUILD §6.5 — a cap-skipped SERP or AI call is `not_attempted`", () 
   it("serpOrganic under a spent cap never reaches the vendor", async () => {
     const stub = stubVendorFetch(() => envelope({ items: [] }));
     const { ctx } = cappedCostContext();
-    const result = await serp.serpOrganic(ctx, { query: "best crm", mode: "live", loadAsyncAiOverview: true });
+    const result = await serp.serpOrganic(ctx, { query: "best crm", mode: "live", loadAsyncAiOverview: true, scope: SCOPE, freshnessDays: WINDOW() });
 
     expect(result.kind).toBe("unmeasured");
     if (result.kind !== "unmeasured") throw new Error("unreachable");
@@ -352,8 +363,8 @@ describe("BUILD §6.3a — every SERP and AI call is fixed to the pinned locale 
   it("the organic SERP task carries SERP_LOCATION and depth 10, and the AI surfaces carry the locale without a depth", async () => {
     const stub = stubVendorFetch((request) => (request.url.includes("task_post") ? taskCreated() : envelope({ items: [] })));
     const { ctx } = fakeCostContext();
-    await serp.serpOrganic(ctx, { query: "best crm", mode: "live", loadAsyncAiOverview: false });
-    await ai.aiMode(ctx, { query: "best crm", mode: "live" });
+    await serp.serpOrganic(ctx, { query: "best crm", mode: "live", loadAsyncAiOverview: false, scope: SCOPE, freshnessDays: WINDOW() });
+    await ai.aiMode(ctx, { query: "best crm", mode: "live", scope: SCOPE });
 
     const [serpTask, aiTask] = stub.tasks;
     expect(serpTask).toMatchObject({

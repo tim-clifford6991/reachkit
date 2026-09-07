@@ -39,7 +39,7 @@
 // the next visitor is not refused for an in-flight scan that is not
 // running. A correction is not a re-scan: it re-measures inside the scan
 // it corrects and always runs.
-import { FREE_RESCAN_WINDOW_D } from "@/lib/config/constants";
+import { CACHE_WINDOWS_D, FREE_RESCAN_WINDOW_D } from "@/lib/config/constants";
 import type { CapName, CostContext } from "@/lib/costs";
 import { dbAdmin } from "@/lib/db";
 import type { RobotsPolicy } from "@/lib/egress/types";
@@ -67,7 +67,7 @@ import type { OnPageFacts } from "@/lib/measure/parse";
 import type { Drivers } from "@/lib/measure/score";
 import { verdictOf, type Verdict } from "@/lib/measure/verdict";
 import { aiMode, llmScraper, serpOrganic } from "@/lib/vendors/dataforseo";
-import type { AiAnswer, SerpResult } from "@/lib/vendors/dataforseo/types";
+import type { AiAnswer, CacheScope, SerpResult } from "@/lib/vendors/dataforseo/types";
 import { withScanBounds, type Bounds } from "./ceilings";
 import { advanceCorrectionState, readCorrectionFacts, registerCorrectionRunner } from "./correction";
 import { parseDomain, type CanonicalDomain } from "./domain";
@@ -135,6 +135,18 @@ interface TierParameters {
    *  refuse it if it were. Two independent guards for a rule whose breach
    *  is money spent against a promise. */
   battery: boolean;
+  /** §6.4's SERP window for this tier's target SERPs, verbatim: "SERPs 30d
+   *  (**except the weekly target re-check**)". The exception is a *tier's*
+   *  fact and not the vendor module's, so it is a row here and passed down
+   *  — `serpOrganic` knows nothing about tiers (#75).
+   *
+   *  The weekly pass exists to produce this week's measurement (REQ-065
+   *  c1/c2). At the 30-day window three weeks in four it would be served a
+   *  cached SERP wearing this week's date, and "measured once a week"
+   *  would be met by a monthly measurement — the defect
+   *  `CACHE_WINDOWS_D.serpWeeklyRecheck` exists to close. The two passes a
+   *  human waits for buy at the pinned 30. */
+  serpWindowDays: number;
 }
 
 export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.freeze({
@@ -147,6 +159,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     servesStoredReport: true,
     sizesRivals: false,
     battery: false,
+    serpWindowDays: CACHE_WINDOWS_D.serp,
   }),
   deep: Object.freeze({
     cap: "DEEP",
@@ -157,6 +170,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     servesStoredReport: false,
     sizesRivals: true,
     battery: true,
+    serpWindowDays: CACHE_WINDOWS_D.serp,
   }),
   weekly: Object.freeze({
     cap: "WEEKLY",
@@ -167,6 +181,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     servesStoredReport: false,
     sizesRivals: true,
     battery: true,
+    serpWindowDays: CACHE_WINDOWS_D.serpWeeklyRecheck,
   }),
 } as const);
 
@@ -769,6 +784,24 @@ function seedsOf(profile: Profile): string[] {
  *  The two records stay the same length as each other and as the twelve:
  *  `serps[i]` and `battery[i]` are the same question's, whatever any of
  *  the three calls did, so the card can pair them by position. */
+/**
+ * Whose purchase this pass's vendor calls are (#75).
+ *
+ * A paid pass has a site and buys for that site; the free path has no
+ * account and buys for the domain — "the same shape, since a free scan has
+ * no account". The two are never shared: `DATA-COSTS.md` §5's roll-up is
+ * stated per customer, and a key without this segment bought a market's
+ * SERPs once however many customers tracked it, which made the published
+ * cost model wrong in the product's favour.
+ *
+ * Derived from the pass rather than passed in: `siteId` is already on
+ * `StageArgs` and already means exactly this, so a second parameter would
+ * be a second chance to disagree with it.
+ */
+function cacheScope(a: StageArgs): CacheScope {
+  return a.siteId === undefined ? { domain: a.domain } : { site: a.siteId };
+}
+
 async function askTheTwelve(a: StageArgs): Promise<void> {
   const { bounds, cost, parameters, sections } = a;
   const questions = sections.questions;
@@ -785,6 +818,8 @@ async function askTheTwelve(a: StageArgs): Promise<void> {
         query: question.search.keyword,
         mode: parameters.serpMode,
         loadAsyncAiOverview: parameters.asyncAiOverview && !a.correction,
+        scope: cacheScope(a),
+        freshnessDays: parameters.serpWindowDays,
       })
     );
     sections.serps.push(failed(serp) ? unmeasured("undeterminable", questions.at) : serp);
@@ -833,12 +868,12 @@ async function askTheBattery(a: StageArgs, query: string, at: Date): Promise<Bat
   const chatgpt =
     bounds.stopNow() !== null
       ? unmeasured<AiAnswer>("not_attempted", at)
-      : await engineAnswer(at, () => llmScraper(cost, { query, mode: "std" }));
+      : await engineAnswer(at, () => llmScraper(cost, { query, mode: "std", scope: cacheScope(a) }));
 
   const mode =
     bounds.stopNow() !== null
       ? unmeasured<AiAnswer>("not_attempted", at)
-      : await engineAnswer(at, () => aiMode(cost, { query, mode: parameters.serpMode }));
+      : await engineAnswer(at, () => aiMode(cost, { query, mode: parameters.serpMode, scope: cacheScope(a) }));
 
   return { chatgpt, aiMode: mode };
 }

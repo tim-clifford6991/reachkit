@@ -102,11 +102,36 @@ describe("a real site reads its own rows and never the fixture", () => {
 });
 
 describe("parseMonth — a query string is never trusted into a date parser", () => {
-  it("takes a well-formed month and falls back to the current one otherwise", () => {
-    expect(provider.parseMonth("2026-11")).toBe("2026-11");
-    expect(provider.parseMonth("2026-13")).toBe(provider.currentMonth());
-    expect(provider.parseMonth("../../etc")).toBe(provider.currentMonth());
-    expect(provider.parseMonth(undefined)).toBe(provider.currentMonth());
+  it("takes a well-formed month and falls back to the current one otherwise", async () => {
+    // Asynchronous since issue #113: the fallback is the month today falls
+    // in *in the customer's own zone*, which is the session's to answer.
+    const current = await provider.currentMonth();
+    await expect(provider.parseMonth("2026-11")).resolves.toBe("2026-11");
+    await expect(provider.parseMonth("2026-13")).resolves.toBe(current);
+    await expect(provider.parseMonth("../../etc")).resolves.toBe(current);
+    await expect(provider.parseMonth(undefined)).resolves.toBe(current);
+  });
+
+  it("the reserved fixture account keeps the fixture's own month; a real site gets today's", async () => {
+    // The fixture facts are frozen in a month, so a live month over them
+    // would draw a calendar of empty dates. A real site is never given the
+    // fixture clock — that was the last one behind a real session (#197).
+    provider.setCalendarSiteReader(null);
+    const fixtureMonth = await provider.currentMonth();
+    expect(fixtureMonth).toMatch(/^\d{4}-\d{2}$/);
+
+    provider.setCalendarSiteReader(async () => ({ siteId: "s1", timeZone: "Pacific/Auckland" }));
+    const live = await provider.currentMonth();
+    expect(live).toBe(
+      new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Pacific/Auckland",
+        year: "numeric",
+        month: "2-digit",
+      })
+        .format(new Date())
+        .replace("-", "-")
+    );
+    provider.setCalendarSiteReader(null);
   });
 });
 

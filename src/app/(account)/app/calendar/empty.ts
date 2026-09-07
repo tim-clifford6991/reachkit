@@ -17,6 +17,7 @@
 // and ADR-061 point 4 requires the two orders to agree: ReachKit's own stop
 // outranks every cause that is also true.
 import type { CopyKey } from "@/lib/presentation/copy";
+import type { WorkStop } from "@/lib/presentation/stopped";
 
 /** REQ-043 criteria 3, 4 and 5. One account per date, resolved in one fixed
  *  order, total. */
@@ -30,6 +31,28 @@ export type EmptyAccount =
   | { cause: "unattributed" };
 
 export type EmptyCause = EmptyAccount["cause"];
+
+/**
+ * **Why this union is not `place/account.ts`'s `CauseTag`** (ADR-011 point
+ * 6, and issue #113's fourth question).
+ *
+ * They answer two different questions and are arbitrated over two
+ * different subjects. `CAUSE_PRECEDENCE` orders the causes a *place* is
+ * empty for — REQ-091's "why does this market/answer/page-set show
+ * nothing" — and its members (`named`, `unrecognised`, `no-presence-yet`)
+ * are facts about a measurement. This one orders the causes a *date* is
+ * empty for (REQ-043 c3–c5), and its members (`page_cannot_go_live`,
+ * `page_held`, `customer_change_holds_pages`) are facts about a page's
+ * passage through §9. Neither union's members are statable of the other's
+ * subject, so merging them would produce one list on which most members
+ * are unreachable from most callers — which is how a precedence stops
+ * being readable as a decision.
+ *
+ * What the two **do** share is ADR-061 point 4's one requirement, and it
+ * is a property rather than a shared list: ReachKit's own stop is first in
+ * both. `tests/app/calendar/law-lines.test.ts` asserts that over both
+ * orders, so the agreement is checked rather than remembered.
+ */
 
 /** ADR-061's decision block, transcribed. `instruction` outranks everything
  *  (REQ-043 c5); `reachkit_stopped` outranks the customer's own causes
@@ -95,20 +118,80 @@ export interface EmptyFacts {
   unusedSupply: number | null;
 }
 
-/** The line each cause is spoken from. `reachkit_stopped` and
- *  `unattributed` share `stopped.work.line` — ADR-061 point 2, on the
- *  merits and not as a safe default: "a date the product cannot explain is
- *  a date on which something of the product's failed", and REQ-092 c1
- *  already covers a day on which a step failed. */
-export const EMPTY_COPY_KEY: Record<EmptyCause, CopyKey> = {
+/**
+ * The two causes this module does **not** speak for (issue #113).
+ *
+ * REQ-092 is a law over surfaces, and ADR-011 gives it one home:
+ * `stoppedWorkStatement()` in `src/lib/presentation/stopped/`. It returns
+ * three lines — c1's "ReachKit stopped its own work", c2's what is needed
+ * from the customer (and, when nothing is, that nothing is) and c4's
+ * resumption date or the explicit statement that none is promised. A
+ * direct read of `stopped.work.line` returns the first of the three and
+ * silently drops the other two, which is what this file used to do.
+ *
+ * `unattributed` is in the pair because ADR-061 point 2 puts it there on
+ * the merits: "a date the product cannot explain is a date on which
+ * something of the product's failed". It is not a weaker statement of the
+ * same thing — it *is* ReachKit's own stop, and it is owed all three lines
+ * for the same reason.
+ */
+export const LAW_CAUSES: readonly EmptyCause[] = Object.freeze([
+  "reachkit_stopped",
+  "unattributed",
+] as const);
+
+export type CalendarOwnCause = Exclude<EmptyCause, "reachkit_stopped" | "unattributed">;
+
+export function isLawCause(cause: EmptyCause): cause is "reachkit_stopped" | "unattributed" {
+  return cause === "reachkit_stopped" || cause === "unattributed";
+}
+
+/** The line each cause the **calendar** speaks is spoken from. The two law
+ *  causes are absent by type, so this file cannot name their key again:
+ *  adding one back is a compile error, not a review comment. */
+export const EMPTY_COPY_KEY: Record<CalendarOwnCause, CopyKey> = {
   instruction: "calendar.empty.instruction",
-  reachkit_stopped: "stopped.work.line",
   page_cannot_go_live: "calendar.empty.page-cannot-go-live",
   customer_change_holds_pages: "calendar.empty.customer-change-holds-pages",
   page_held: "calendar.empty.page-held",
   supply_exhausted: "cause.supply-exhausted",
-  unattributed: "stopped.work.line",
 };
+
+/**
+ * The stop a law-caused empty day states, as `stoppedWorkStatement` needs
+ * it.
+ *
+ * Two arms and no invention in either:
+ *
+ *   · `reachkit_stopped` — the site's own stop, read once by
+ *     `_shell/stop.ts` and carried on the facts. Where the record has not
+ *     been read (§11's stopped-work record is #39's, and the calendar
+ *     still passes `null`), the day is exactly as explicable as an
+ *     unattributed one and takes the same answer.
+ *   · `unattributed` — ADR-061 point 2's stop, which has no record behind
+ *     it. `needs: nothing` and `resumes: no time promised` are the two
+ *     **true** statements about a day nobody can account for: nothing is
+ *     known to be needed from the customer, and no resumption is promised.
+ *     Neither is a placeholder, and c4's "never neither" is exactly the
+ *     case this arm exists to satisfy.
+ *
+ * `partial` is false on both: a partial pass is REQ-092 c6's *page
+ * produced anyway*, and every day reaching here produced none.
+ */
+export function stopForEmptyDay(a: {
+  cause: "reachkit_stopped" | "unattributed";
+  stop: WorkStop | null;
+  /** The date itself, as the moment the day's own stop is dated from. */
+  since: Date;
+}): WorkStop {
+  if (a.cause === "reachkit_stopped" && a.stop !== null) return a.stop;
+  return {
+    since: a.since,
+    resumes: { promised: false },
+    needs: { kind: "nothing" },
+    partial: false,
+  };
+}
 
 /**
  * First match over `EMPTY_PRECEDENCE`, total. Returns exactly one account

@@ -16,16 +16,29 @@
 // ("all extra charges will be returned to your account balance"). The
 // vendor rule lives here; the cost seam stays generic.
 //
-// Cache (§6.4, 30d): keyed on query, locale and the flag — a flagged call is
-// never served an unflagged SERP, whose `null` overview could mean "not
-// fetched" rather than "none appeared" (ADR-094 d4). Mode is not in the key:
-// live and standard return the same SERP.
+// Cache (§6.4): keyed on query, locale, the flag and **whose purchase it
+// is** — a flagged call is never served an unflagged SERP, whose `null`
+// overview could mean "not fetched" rather than "none appeared" (ADR-094
+// d4). Mode is not in the key: live and standard return the same SERP.
+//
+// **The scope is in the key, and the window is the caller's** (#75).
+// Neither was expressible before, and §6.4 states both. A key of query and
+// locale alone is shared across every customer whose market contains that
+// search, which `DATA-COSTS.md` §5's "monthly per customer" roll-up already
+// assumed it was not — see `CacheScope`. And §6.4's window is "SERPs 30d
+// (**except the weekly target re-check**)"; that exception had no way to be
+// asked for, so three weeks in four the weekly re-check would serve a
+// cached SERP wearing this week's date and "measured once a week" would be
+// met by a monthly measurement. The window is an argument here rather than
+// a branch on tier: this module knows nothing about tiers, and the caller
+// passes `CACHE_WINDOWS_D.serp` or `.serpWeeklyRecheck` from its own
+// parameters.
 import type { CostContext } from "@/lib/costs";
-import { ASYNC_AIO_SURCHARGE_MULTIPLIER, CACHE_WINDOWS_D, PRICE_BOOK, SERP_LOCATION } from "@/lib/config/constants";
+import { ASYNC_AIO_SURCHARGE_MULTIPLIER, PRICE_BOOK, SERP_LOCATION } from "@/lib/config/constants";
 import { mapMeasured, type Measured } from "@/lib/measure/measured";
 import { asArray, asNumber, asString, callEndpoint, isRecord, ledgered, referenceDomains, type EndpointPaths } from "./envelope";
 import type { DataForSeoMode } from "./transport";
-import type { SerpAiOverview, SerpOrganicRow, SerpResult } from "./types";
+import { scopeKey, type CacheScope, type SerpAiOverview, type SerpOrganicRow, type SerpResult } from "./types";
 
 const ORGANIC = "/v3/serp/google/organic";
 const PATHS: EndpointPaths = {
@@ -85,14 +98,26 @@ export function parseSerp(result: unknown): SerpResult[] | undefined {
 
 export async function serpOrganic(
   c: CostContext,
-  a: { query: string; mode: DataForSeoMode; loadAsyncAiOverview: boolean }
+  a: {
+    query: string;
+    mode: DataForSeoMode;
+    loadAsyncAiOverview: boolean;
+    /** Whose purchase this is — the site on a paid pass, the domain on the
+     *  free one. Required, never defaulted: a default would be a decision
+     *  about somebody's costs made by whoever forgot to pass it. */
+    scope: CacheScope;
+    /** §6.4's window for this call site: `CACHE_WINDOWS_D.serp` at every
+     *  one except the weekly target re-check, which passes
+     *  `.serpWeeklyRecheck`. Required for the same reason. */
+    freshnessDays: number;
+  }
 ): Promise<Measured<SerpResult>> {
   const base = basePriceCents(a.mode);
   const flagged = a.loadAsyncAiOverview;
   const rows = await ledgered<SerpResult>(c, {
     source: "serp/google/organic",
-    cacheKey: `${a.query}|${SERP_LOCATION.location}|${SERP_LOCATION.language}|aio:${flagged ? "async" : "cached"}`,
-    freshnessDays: CACHE_WINDOWS_D.serp,
+    cacheKey: `${a.query}|${SERP_LOCATION.location}|${SERP_LOCATION.language}|aio:${flagged ? "async" : "cached"}|${scopeKey(a.scope)}`,
+    freshnessDays: a.freshnessDays,
     costCents: flagged ? base * ASYNC_AIO_SURCHARGE_MULTIPLIER : base,
     ...(flagged ? { settleCents: (r: readonly SerpResult[] | null) => settledCents(base, r) } : {}),
     fetch: () =>
