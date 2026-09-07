@@ -33,8 +33,19 @@ import { useId } from "react";
 type InputBase = {
   /** Required — no default label exists. */
   label: string;
-  /** Required — no default placeholder exists. */
-  placeholder: string;
+  /** Optional since #240, and still no default: a field renders the
+   *  placeholder its caller passes and none otherwise. It was required
+   *  because the landing field has one and no component may invent a
+   *  string; a credential field has a label and nothing useful to suggest,
+   *  and requiring one there would have made a caller mint a sentence to
+   *  satisfy a type. */
+  placeholder?: string;
+  /** The native input type, and the only two this product has a use for
+   *  (#240). `password` is what keeps a WordPress application password off
+   *  the screen while it is typed — a credential rendered in clear text is
+   *  a credential in a screenshot. Text by default, exactly as before this
+   *  prop existed. */
+  type?: "text" | "password";
   value?: string;
   onChange?: (value: string) => void;
   disabled?: boolean;
@@ -90,7 +101,7 @@ export function Input(p: InputProps): React.JSX.Element {
       </label>
       <input
         id={id}
-        type="text"
+        type={p.type ?? "text"}
         className={["input", p.invalid ? "input-error" : ""]
           .filter(Boolean)
           .join(" ")}

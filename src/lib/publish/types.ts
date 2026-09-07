@@ -263,7 +263,23 @@ export type HealthReason =
  *  that state must fail to typecheck rather than fail a copy review. A
  *  copy key is a string a surface may route around; a union member is
  *  not. */
-export type DestinationAction = "none" | "reconnect" | "reconnect_other_account" | "set_dns";
+/** What the card offers against a destination, as a closed union.
+ *
+ *  **`connect` is its own member and not a relabelled `reconnect`** (issue
+ *  #240). A destination setup created and nobody has ever given a
+ *  credential to is not a broken one, and offering "Reconnect" to a founder
+ *  who has never connected is the card telling them they did something they
+ *  did not. The two arms also differ in what they *are*: `connect` is the
+ *  first credential this destination has held, `reconnect` replaces one
+ *  that stopped working. A union rather than a label means every
+ *  exhaustive map over it is a compile error until the new arm is
+ *  handled. */
+export type DestinationAction =
+  | "none"
+  | "connect"
+  | "reconnect"
+  | "reconnect_other_account"
+  | "set_dns";
 
 /**
  * Everything a surface may see about a destination, and nothing more.

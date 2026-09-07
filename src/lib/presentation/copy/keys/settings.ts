@@ -132,6 +132,11 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.publishing.enabled": ["whether pages publish at all", { slots: {}, fixedBy: "REQ-070 c1" }],
   "settings.publishing.destinations": ["destinations", { slots: {}, fixedBy: "BUILD §4.7" }],
   "settings.publishing.reconnect": ["Reconnect", { slots: {}, fixedBy: "BUILD §4.7" }],
+  // Issue #240 — the control on a destination that has never held a
+  // credential. **Its own key, not `reconnect` reused**: a founder who
+  // chose WordPress at setup has a destination row and has never connected
+  // it, and "Reconnect" tells them they did something they did not.
+  "settings.publishing.connect": ["TODO(copy)", { slots: {}, fixedBy: "BUILD §4.7 · REQ-060" }],
   // 2026-09-06, issue #46 (REQ-073 c2). One written line per selected pair,
   // stating what that pair does to a draft the customer never acts on.
   // Three keys, one per pair, and a fourth pair is a type error. The
@@ -160,6 +165,28 @@ export const SETTINGS_COPY = Object.freeze({
   // (ADR-086), so all three read as states here and none as a failure.
   "settings.destination.hosted": ["Hosted", { slots: {}, fixedBy: 'BUILD §9 ("Hosted CMS")' }],
   "settings.destination.wordpress": ["WordPress", { slots: {}, fixedBy: "BUILD §9" }],
+
+  // ── Issue #240: the credential form, and the whole of what it says.
+  //
+  // Four keys and no fifth. There is deliberately no key for a refusal:
+  // the credential is validated by the health check, never by the act of
+  // connecting, so what a customer reads after a refusal is the *state's*
+  // own line (`destination.line.*`, minted by #48) on a redrawn card — not
+  // a sentence this form composed, and never anything the site said back.
+  "settings.destination.site-url": ["TODO(copy)", { slots: {}, fixedBy: "REQ-060" }],
+  // The WordPress user the application password was issued to (master's
+  // ruling, 2026-09-07). A WordPress application password authenticates as
+  // `username:app-password` — it is scoped to the account that created it —
+  // so without this field the REST index cannot be read and every real site
+  // would refuse. The mockup's "two fields and no third" is amended by that
+  // ruling: three, and no fourth.
+  "settings.destination.username": ["TODO(copy)", { slots: {}, fixedBy: "REQ-060" }],
+  // The word "application" is the point of this label: a WordPress
+  // application password is not the account password, and the label is
+  // where that distinction is made to a customer.
+  "settings.destination.app-password": ["TODO(copy)", { slots: {}, fixedBy: "REQ-060" }],
+  "settings.destination.app-password.help": ["TODO(copy)", { slots: {}, fixedBy: "REQ-060" }],
+  "settings.destination.submit": ["TODO(copy)", { slots: {}, fixedBy: "REQ-060" }],
   "settings.destination.health.ok": [
     "ok",
     { slots: {}, fixedBy: "BUILD §10 (`health(ok/expired/error)`)" },

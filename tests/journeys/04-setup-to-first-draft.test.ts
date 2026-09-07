@@ -638,6 +638,43 @@ describe("three decisions → deep pass → the first page already on the calend
     expect(jobEvents.filter((event) => event.name === "scan/run")).toHaveLength(1);
   });
 
+
+  // ── Issue #240: the WordPress arm of step 3 ─────────────────────────
+  //
+  // REQ-028 c3 lets a founder choose WordPress and connect later, and
+  // setup still completes. What that leaves behind is a **destination
+  // waiting for a credential** — and until #240 there was nowhere on any
+  // screen to give it one, which is the M10 gap. This is the hand-off:
+  // the row setup writes is the row the Publishing card offers Connect on,
+  // so the founder's next step exists rather than being described.
+  it("step 3, WordPress — setup completes, and the row it leaves is one the card can connect", async () => {
+    const submitted = await submitTheThree({
+      destination: { kind: "wordpress", connectLater: true },
+    });
+    expect(submitted).toEqual({ status: 200, body: { ok: true, siteId: SITE_ID } });
+
+    // Setup finished: a deferred WordPress does not hold it up (c3).
+    expect(site.setup_completed_at).not.toBeNull();
+
+    const applied = db.rpcCalls.filter((call) => call.fn === "apply_setup_choice");
+    expect(applied).toHaveLength(1);
+    expect(applied[0]?.args).toMatchObject({ p_site_id: SITE_ID, p_kind: "wordpress" });
+
+    // And the state that row lands in is the one the card reads as "needs
+    // a first credential" — `connect`, not `reconnect`: this founder has
+    // never connected, and the control's word is the difference.
+    const { destinationView } = await import("../../src/lib/publish/destinations/view");
+    const view = destinationView({
+      id: "dest-wordpress",
+      kind: "wordpress",
+      health: "expired",
+      reason: "never_connected",
+      lastCheckedAt: new Date(),
+      heldPages: 0,
+    });
+    expect(view.action).toBe("connect");
+  });
+
   it("step 3 — the refusals §4.3 names, in the order the facts become knowable", async () => {
     // Access first: a founder without it is told that, not that their
     // domain is wrong.

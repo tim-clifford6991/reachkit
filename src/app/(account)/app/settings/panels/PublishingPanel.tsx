@@ -49,6 +49,7 @@ import { Card } from "@/ui/components/Card";
 import { Toggle } from "@/ui/components/Toggle";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
+import { ConnectDestination, type CredentialAction } from "./ConnectDestination";
 import { formatVetoWindow } from "../format";
 import type { DestinationAction, DestinationHealth, DestinationKind, SettingsModel } from "../model";
 import type { Tone } from "@/ui/types";
@@ -74,14 +75,24 @@ const HEALTH_TONE: Record<DestinationHealth, Tone> = {
   error: "bad",
 };
 
-/** The label for each action. `none` has no control and therefore no key —
- *  total over the other three, so a fifth action arrives here as a missing
+/** The label for each action this card renders itself. `none` has no
+ *  control and therefore no key; the three that ask for a **credential**
+ *  are `ConnectDestination`'s, because a word on a control that opens a
+ *  form belongs with the form. What is left is the one action this card
+ *  states and does not run.
+ *
+ *  Total over that remainder, so a sixth action arrives here as a missing
  *  key rather than as a destination with nothing to do about it. */
-const ACTION_COPY_KEY: Record<Exclude<DestinationAction, "none">, CopyKey> = {
-  reconnect: "settings.publishing.reconnect",
-  reconnect_other_account: "settings.publishing.reconnect-other-account",
+const ACTION_COPY_KEY: Record<Extract<DestinationAction, "set_dns">, CopyKey> = {
   set_dns: "settings.publishing.set-dns",
 };
+
+/** The three that need a credential typed (#240). Read as a predicate
+ *  rather than as a list of `if`s, so the card cannot offer the form for
+ *  one of them and forget another. */
+function needsCredential(action: DestinationAction): action is CredentialAction {
+  return action === "connect" || action === "reconnect" || action === "reconnect_other_account";
+}
 
 export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Element {
   const { publishing, destinations } = p.settings;
@@ -137,7 +148,13 @@ export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Eleme
                 <Badge tone={HEALTH_TONE[destination.health]}>
                   {copy(destination.copy.state)}
                 </Badge>
-                {destination.action === "none" ? null : (
+                {needsCredential(destination.action) ? (
+                  // The one place a WordPress credential is typed (#240).
+                  // The control's word is the engine's choice; the form
+                  // under it is the same two fields whichever of the three
+                  // states asked for it.
+                  <ConnectDestination action={destination.action} />
+                ) : destination.action === "none" ? null : (
                   <Btn label={copy(ACTION_COPY_KEY[destination.action])} size="sm" />
                 )}
               </div>
