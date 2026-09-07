@@ -40,40 +40,12 @@ import type { CostContext } from "@/lib/costs";
 import { measured, measuredZero, type Measured } from "@/lib/measure/measured";
 import { rankedKeywords } from "@/lib/vendors/dataforseo";
 import { bandRivalSize, type RivalSizeBand } from "./band";
+// The shape lives one file over so a screen can name it without pulling
+// the vendor client this module imports (issue #223). Re-exported here so
+// every existing `from "./size"` is unchanged.
+import type { RivalSize } from "./rival-size";
 
-/**
- * One tracked rival's size, or the named reason it has none.
- *
- * The `unsized` arm carries **no** band and **no** count, so no surface
- * can print a band for a rival that has not been measured — the arm is a
- * state with a reason on it, never a `null`, an `undefined` or an omitted
- * element (REQ-096 c5).
- *
- * `current` is required on the `sized` arm: a surface cannot omit the
- * distinction between a count taken in this pass and one carried forward
- * from an earlier one by omitting a field.
- */
-export type RivalSize =
-  | {
-      domain: string;
-      state: "sized";
-      /** Searches this rival appears in: the vendor's own total, or — where
-       *  it reported none — the rows this call bought, which understates
-       *  and so bands nearer (#117). A plain number either way: the
-       *  stored blob's shape is unchanged, so no report version moves. */
-      rankedCount: number;
-      /** Derived from `rankedCount` and the customer's own count, never
-       *  stored independently of them: re-deriving from the two counts
-       *  reproduces this value, and a test asserts it. */
-      band: RivalSizeBand;
-      at: Date;
-      current: boolean;
-    }
-  | {
-      domain: string;
-      state: "unsized";
-      because: "awaiting_deep_pass" | "added_since_last_sizing";
-    };
+export type { RivalSize } from "./rival-size";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 

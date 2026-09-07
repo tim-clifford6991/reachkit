@@ -58,8 +58,17 @@ const NOW = new Date(Date.UTC(2026, 8, 9, 10, 0, 0));
  *  accepts. Everything else on the report is elided: this suite is about
  *  the projection, and a field the projection does not touch would be
  *  scenery. */
-function report(a: { ownRanked: number | null; citations: number | null; at: string }): Row {
+function report(a: {
+  ownRanked: number | null;
+  citations: number | null;
+  at: string;
+  /** §6.6's sizing, as the week stored it. `null` is a pass that did not
+   *  size rivals at all — a free tier or a ceiling — which is a different
+   *  fact from a rival it could not size. */
+  sizes?: readonly { domain: string; rankedCount: number; band: string }[] | null;
+}): Row {
   const measuredAt = `${a.at}T09:00:00.000Z`;
+  const sizes = a.sizes === undefined ? [] : a.sizes;
   return {
     version: REPORT_VERSION,
     verdict: { measuredAt },
@@ -68,7 +77,28 @@ function report(a: { ownRanked: number | null; citations: number | null; at: str
         ? { kind: "unmeasured", reason: "not_attempted", at: measuredAt }
         : { kind: a.ownRanked === 0 ? "zero" : "measured", value: a.ownRanked, at: measuredAt },
     aiAnswers: a.citations === null ? null : { customerCitations: a.citations },
+    rivalSizes:
+      sizes === null
+        ? { kind: "unmeasured", reason: "not_attempted", at: measuredAt }
+        : {
+            kind: "measured",
+            value: sizes.map((size) => ({
+              domain: size.domain,
+              state: "sized",
+              rankedCount: size.rankedCount,
+              band: size.band,
+              at: measuredAt,
+              current: true,
+            })),
+            at: measuredAt,
+          },
   };
+}
+
+/** The set the customer tracks — `sites.competitors`, in their own order. */
+function tracking(...domains: readonly string[]): void {
+  const site = db.rows("sites")[0];
+  if (site !== undefined) site.competitors = [...domains];
 }
 
 function weeklyScan(weekStart: string, over: Row = {}): Row {
@@ -242,5 +272,219 @@ describe("the dates the series breaks at (REQ-071 c12/c13)", () => {
     db.seed("scans", [weeklyScan(WEEKS.aug31), weeklyScan(WEEKS.sep07)]);
     const read = await facts();
     expect(read.changes).toEqual([]);
+  });
+});
+
+
+// ── §6.6's rival rows, read from the same stored week (issue #223) ──────
+//
+// The rows that discriminate are about *which* rivals get a row and *what
+// an unmeasured one says*. A screen that quietly drops a rival, or shows a
+// zero for one nobody sized, breaks REQ-096 c5 and c7 in a way no customer
+// would report as a bug — they would simply believe the number.
+
+describe("the rival rows are the customer's own set, in their own order", () => {
+  it("one row per tracked rival, in the order they chose them", async () => {
+    tracking("bigcompetitor.com", "similar.io");
+    db.seed("scans", [
+      weeklyScan(WEEKS.sep07, {
+        report: report({
+          ownRanked: 81,
+          citations: 1,
+          at: WEEKS.sep07,
+          sizes: [
+            { domain: "similar.io", rankedCount: 140, band: "near" },
+            { domain: "bigcompetitor.com", rankedCount: 6318, band: "far" },
+          ],
+        }),
+      }),
+    ]);
+    const read = await facts();
+    // The *tracked* order, not the sizing's.
+    expect(read.rivals.rivals.map((r) => r.domain)).toEqual(["bigcompetitor.com", "similar.io"]);
+    expect(read.rivals.rivals.every((r) => r.confirmed)).toBe(true);
+  });
+
+  it("a rival the customer removed since the pass is not drawn from the stored entry", async () => {
+    tracking("similar.io");
+    db.seed("scans", [
+      weeklyScan(WEEKS.sep07, {
+        report: report({
+          ownRanked: 81,
+          citations: 1,
+          at: WEEKS.sep07,
+          sizes: [
+            { domain: "similar.io", rankedCount: 140, band: "near" },
+            { domain: "removed-rival.net", rankedCount: 6318, band: "far" },
+          ],
+        }),
+      }),
+    ]);
+    const read = await facts();
+    expect(read.rivals.rivals.map((r) => r.domain)).toEqual(["similar.io"]);
+  });
+
+  it("a rival added since the pass gets a row with nothing measured in it, never no row", async () => {
+    tracking("similar.io", "newcomer.dev");
+    db.seed("scans", [
+      weeklyScan(WEEKS.sep07, {
+        report: report({
+          ownRanked: 81,
+          citations: 1,
+          at: WEEKS.sep07,
+          sizes: [{ domain: "similar.io", rankedCount: 140, band: "near" }],
+        }),
+      }),
+    ]);
+    const read = await facts();
+    expect(read.rivals.rivals.map((r) => r.domain)).toEqual(["similar.io", "newcomer.dev"]);
+    expect(read.rivals.rivals[1]?.ranked.kind).toBe("unmeasured");
+  });
+
+  it("a site tracking nobody has no rows, and the read does not throw", async () => {
+    tracking();
+    db.seed("scans", [weeklyScan(WEEKS.sep07)]);
+    const read = await facts();
+    expect(read.rivals.rivals).toEqual([]);
+  });
+});
+
+describe("**a week that did not size rivals leaves the rows unmeasured, never zero**", () => {
+  it("a pass with no sizing at all — a free tier, or a ceiling", async () => {
+    tracking("similar.io");
+    db.seed("scans", [
+      weeklyScan(WEEKS.sep07, {
+        report: report({ ownRanked: 81, citations: 1, at: WEEKS.sep07, sizes: null }),
+      }),
+    ]);
+    const read = await facts();
+    expect(read.rivals.rivals[0]?.ranked.kind).toBe("unmeasured");
+    expect(read.rivals.rivals[0]?.ranked).not.toMatchObject({ value: 0 });
+    // And no band, so no offer can be composed for it.
+    expect(read.rivals.rivals[0]).not.toHaveProperty("size");
+  });
+
+  it("the customer's own count is still read — one section missing is not the whole week", async () => {
+    tracking("similar.io");
+    db.seed("scans", [
+      weeklyScan(WEEKS.sep07, {
+        report: report({ ownRanked: 81, citations: 1, at: WEEKS.sep07, sizes: null }),
+      }),
+    ]);
+    const read = await facts();
+    expect(read.rivals.own).toMatchObject({ kind: "measured", value: 81 });
+  });
+
+  it("a week that sized one rival and not another says so per row", async () => {
+    tracking("sizedrival.com", "unsizedrival.com");
+    db.seed("scans", [
+      weeklyScan(WEEKS.sep07, {
+        report: report({
+          ownRanked: 81,
+          citations: 1,
+          at: WEEKS.sep07,
+          sizes: [{ domain: "sizedrival.com", rankedCount: 140, band: "near" }],
+        }),
+      }),
+    ]);
+    const read = await facts();
+    expect(read.rivals.rivals[0]?.ranked).toMatchObject({ kind: "measured", value: 140 });
+    expect(read.rivals.rivals[1]?.ranked.kind).toBe("unmeasured");
+  });
+});
+
+describe("the band rides through, and with it REQ-096 c6's offer", () => {
+  it("a far rival's stored entry reaches the facts whole", async () => {
+    tracking("bigcompetitor.com");
+    db.seed("scans", [
+      weeklyScan(WEEKS.sep07, {
+        report: report({
+          ownRanked: 81,
+          citations: 1,
+          at: WEEKS.sep07,
+          sizes: [{ domain: "bigcompetitor.com", rankedCount: 6318, band: "far" }],
+        }),
+      }),
+    ]);
+    const read = await facts();
+    expect(read.rivals.rivals[0]?.size).toMatchObject({ state: "sized", band: "far" });
+  });
+
+  it("the counts a delta is taken against come from the previous measured week", async () => {
+    tracking("bigcompetitor.com");
+    db.seed("scans", [
+      weeklyScan(WEEKS.aug31, {
+        report: report({
+          ownRanked: 36,
+          citations: 1,
+          at: WEEKS.aug31,
+          sizes: [{ domain: "bigcompetitor.com", rankedCount: 9936, band: "far" }],
+        }),
+      }),
+      weeklyScan(WEEKS.sep07, {
+        report: report({
+          ownRanked: 81,
+          citations: 1,
+          at: WEEKS.sep07,
+          sizes: [{ domain: "bigcompetitor.com", rankedCount: 6318, band: "far" }],
+        }),
+      }),
+    ]);
+    const read = await facts();
+    expect(read.rivals.own).toMatchObject({ value: 81 });
+    expect(read.rivals.previousOwn).toMatchObject({ value: 36 });
+    expect(read.rivals.rivals[0]?.previousRanked).toMatchObject({ value: 9936 });
+  });
+});
+
+describe("the series carries the units of the arm the module will take", () => {
+  const twoWeeks = (own: [number, number], rival: [number, number]) => [
+    weeklyScan(WEEKS.aug31, {
+      report: report({
+        ownRanked: own[0],
+        citations: 1,
+        at: WEEKS.aug31,
+        sizes: [{ domain: "bigcompetitor.com", rankedCount: rival[0], band: "far" }],
+      }),
+    }),
+    weeklyScan(WEEKS.sep07, {
+      report: report({
+        ownRanked: own[1],
+        citations: 1,
+        at: WEEKS.sep07,
+        sizes: [{ domain: "bigcompetitor.com", rankedCount: rival[1], band: "far" }],
+      }),
+    }),
+  ];
+
+  it("above the unlock it is the ratio, week by week", async () => {
+    tracking("bigcompetitor.com");
+    db.seed("scans", twoWeeks([36, 81], [9936, 6318]));
+    const read = await facts();
+    // 9936/36 = 276, 6318/81 = 78 — §4.5's own two figures.
+    expect(read.rivals.rivals[0]?.series).toEqual([276, 78]);
+  });
+
+  it("below it, the rival's own count — never a ratio against a count of nothing", async () => {
+    tracking("bigcompetitor.com");
+    db.seed("scans", twoWeeks([0, 0], [9936, 6318]));
+    const read = await facts();
+    expect(read.rivals.rivals[0]?.series).toEqual([9936, 6318]);
+  });
+
+  it("a week that sized nobody contributes no point rather than a null", async () => {
+    // A `null` in this series is a *break* the row has to account for
+    // beside the plot; using it for "we did not measure that week" would
+    // state a discontinuity that did not happen.
+    tracking("bigcompetitor.com");
+    db.seed("scans", [
+      ...twoWeeks([36, 81], [9936, 6318]),
+      weeklyScan(WEEKS.aug24, {
+        report: report({ ownRanked: 30, citations: 1, at: WEEKS.aug24, sizes: null }),
+      }),
+    ]);
+    const read = await facts();
+    expect(read.rivals.rivals[0]?.series).toEqual([276, 78]);
+    expect(read.rivals.rivals[0]?.series).not.toContain(null);
   });
 });

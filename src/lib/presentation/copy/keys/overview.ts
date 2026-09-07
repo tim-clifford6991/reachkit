@@ -115,6 +115,33 @@ export const OVERVIEW_COPY = Object.freeze({
   // can never be `overview.rivals.line.shrinking` (REQ-041 c9).
   "overview.rivals.line.absolute": ["", { slots: {}, fixedBy: "REQ-041 c9" }],
 
+  // ── REQ-096 c6: a rival banded `far`, and the two sentences it needs.
+  //
+  // **The empty value, not the marker.** The general rule for a screen is
+  // the renderable `TODO(copy)` (the 2026-09-05 ruling on #93), but this
+  // screen took the stricter one and asserts it: `tests/app/overview/
+  // page.test.tsx` — "no owner-owed key renders anything at all — not a
+  // placeholder, not a TODO". Overview reads every line through
+  // `writtenLine`, which answers `null` for an owed key, and the module
+  // omits what it has no words for. `overview.rivals.line.absolute` above
+  // has been owed on those terms since #15.
+  //
+  // So until these two are written, a `far` rival's row is exactly the row
+  // it is today: its plot, its figure and its badge, with no line and no
+  // control under it. That is the honest state — a control whose label
+  // nobody has written cannot be rendered — and it is visible rather than
+  // silent, because the registry's own count reports both keys as owed.
+  //
+  // **What the line must not say.** It says the rival is far beyond what
+  // this customer could catch and why the distance to it will not move. It
+  // does not name a replacement, does not suggest removing the rival, and
+  // is not a verdict on the customer — REQ-096 c7 keeps the rival in the
+  // set until the customer takes it out themselves.
+  "overview.rivals.far.line": ["", { slots: { rival: "text" }, fixedBy: "REQ-096 c6" }],
+  // The one control c6 allows, and the whole of it: a word for "go to
+  // where you can change who you are measured against". Never "remove".
+  "overview.rivals.far.swap": ["", { slots: {}, fixedBy: "REQ-096 c6" }],
+
   // ── This week.
   "overview.week.title": ["This week", { slots: {}, fixedBy: "BUILD §4.5" }],
   "overview.week.calendar-link": ["Open calendar →", { slots: {}, fixedBy: "BUILD §4.5" }],

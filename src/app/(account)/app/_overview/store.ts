@@ -41,18 +41,32 @@
 //     because it is true of them, rather than because the reader was
 //     missing.
 //
-// **The rival set stays unmeasured, and that is not this issue.** §6.6's
-// per-rival sizing over weeks is #27's; the confirmed set is empty here and
-// `resolveRivals` draws its cold-start arm from that, which is what it
-// drew before. Filling `own` alone from the weekly report would flip the
-// module to its ratio arm with no rows in it — a visual change with no
-// mockup, and one this issue's boxes do not ask for.
+// **The rival rows are read too** (issue #223). §6.6's sizing rides the
+// same stored weekly report the series comes from — `rivalSizes`, one entry
+// per tracked rival — so the rows are a projection of it and of the
+// customer's own current set, and nothing on this screen sizes anything.
+// Four rules, each of them REQ-096:
+//
+//  · **The rows are the rivals the customer tracks now, in their order.** A
+//    rival they removed since Monday's pass is not drawn from a stored
+//    entry that outlived it, and one they added since has a row with
+//    nothing measured in it rather than no row at all (c5, c7).
+//  · **A week that did not size a rival contributes no point and no
+//    number.** `unmeasured` on the row and a shorter series — never a zero,
+//    which would say the rival ranks for nothing.
+//  · **The series carries the units of the arm the module will take** —
+//    the ratio where the customer's own count has passed the unlock, the
+//    rival's own count where it has not — because that is what
+//    `RivalFact.series` is declared to be.
+//  · **A rival banded `far` carries the offer, on either arm.** The band is
+//    on the stored entry and the condition is `swapOffer`'s; this file
+//    hands the entry over whole and decides nothing about it.
 //
 // A fixture in any of these places would put another account's numbers on
 // their screen; a fabricated zero would be worse still, because a zero is a
 // claim (`measuredZero`) and this product does not make claims it has not
 // measured.
-import { OVERVIEW_TRAILING_WEEKS, SUPPLY_SHORT_BELOW } from "@/lib/config/constants";
+import { OVERVIEW_TRAILING_WEEKS, RATIO_UNLOCK, SUPPLY_SHORT_BELOW } from "@/lib/config/constants";
 import { dbAdmin } from "@/lib/db";
 // Imported by file rather than through `@/lib/market/changes`: the barrel
 // also re-exports the declared answers and the pending-change computation,
@@ -60,10 +74,19 @@ import { dbAdmin } from "@/lib/db";
 // `access-gate.ts` reaches its seam by file (ADR-050).
 import { changeMarkers, type ChangeMarker } from "@/lib/market/changes/markers";
 import { unmeasured, measured, type Measured } from "@/lib/measure/measured";
+import type { RivalSize } from "@/lib/market/rivals/rival-size";
+import { trackedRivals } from "@/lib/market/rivals/tracked";
 import type { StoredReport } from "@/lib/scan/report";
-import { nextDueOn, previousWeekStart, readWeekScans, weekStartFor } from "@/lib/scan/weekly";
+import {
+  nextDueOn,
+  previousWeekStart,
+  readWeekScans,
+  weekStartFor,
+  type WeekScan,
+} from "@/lib/scan/weekly";
 import type { OverviewFacts } from "./model";
 import type { WeeklyPoint } from "./growth";
+import type { RivalFact, RivalFacts } from "./rivals";
 import type { WaitingItem } from "./alerts";
 
 export interface OverviewSite {
@@ -178,15 +201,38 @@ function presentInAnswers(report: StoredReport | null): boolean | null {
  * the window's edge: the weeks before it were never owed, and carrying them
  * as unmeasured points would draw eleven gaps for a customer measured once.
  */
-async function weeklySeries(
-  site: OverviewSite,
-  now: Date
-): Promise<{ points: WeeklyPoint[]; aiPresence: (boolean | null)[]; changes: readonly ChangeMarker[] }> {
+interface WeeklyFacts {
+  points: WeeklyPoint[];
+  aiPresence: (boolean | null)[];
+  changes: readonly ChangeMarker[];
+  rivals: RivalFacts;
+}
+
+async function weeklySeries(site: OverviewSite, now: Date): Promise<WeeklyFacts> {
   const weeks = windowWeeks(now, site.timeZone);
   const scans = await readWeekScans({ siteId: site.siteId, weekStarts: weeks });
 
+  // The two weeks every current figure on this screen is read from. The
+  // *latest measured* week, not the current one: a customer reading on a
+  // Sunday is shown last Monday's numbers rather than a blank because this
+  // week's pass has not run. `previous` is the measured week before that —
+  // what a delta and a `was 276×` are taken against — and skipping an
+  // unmeasured week between them is right, because the comparison is
+  // between two measurements and not between two calendar weeks.
+  const measured = weeks.filter((week) => scans.get(week)?.report != null);
+  const latest = scans.get(measured.at(-1) ?? "")?.report ?? null;
+  const previousWeek = scans.get(measured.at(-2) ?? "")?.report ?? null;
+  const rivals = await rivalFacts({
+    siteId: site.siteId,
+    weeks,
+    scans,
+    latest,
+    previous: previousWeek,
+    now,
+  });
+
   const first = weeks.findIndex((week) => scans.has(week));
-  if (first === -1) return { points: [], aiPresence: [], changes: [] };
+  if (first === -1) return { points: [], aiPresence: [], changes: [], rivals };
 
   const measuredWeeks = weeks.slice(first);
   const points = measuredWeeks.map((week): WeeklyPoint => {
@@ -205,7 +251,116 @@ async function weeklySeries(
     to: now,
   });
 
-  return { points, aiPresence, changes };
+  return { points, aiPresence, changes, rivals };
+}
+
+/** §6.6's sizing for one rival in one week, or nothing. The entries are
+ *  keyed by domain and the array is short (at most five tracked rivals), so
+ *  the lookup is a find rather than a map built per week. */
+function sizingFor(report: StoredReport | null, domain: string): RivalSize | undefined {
+  if (report === null || report.rivalSizes.kind === "unmeasured") return undefined;
+  return report.rivalSizes.value.find((size) => size.domain === domain);
+}
+
+/** The rival's own ranked count for a week, or nothing where that week did
+ *  not size it. `unsized` is **not** a zero: it is a week with no number in
+ *  it, and the caller leaves the point out rather than plotting a floor the
+ *  rival never sat on. */
+function rivalCountOf(size: RivalSize | undefined): number | undefined {
+  return size !== undefined && size.state === "sized" ? size.rankedCount : undefined;
+}
+
+/** The customer's own count for a week, where the pass measured one. */
+function ownCountOf(report: StoredReport | null): number | undefined {
+  if (report === null || report.ownRanked.kind === "unmeasured") return undefined;
+  return report.ownRanked.value;
+}
+
+/**
+ * How the gap to one rival has moved, in the units the module will draw it
+ * in.
+ *
+ * `RivalFact.series` is declared as "the ratio over time on the warm arm,
+ * the rival's own count over time on the cold one", and which arm is taken
+ * is decided by the **latest** own count — so the whole series is in one
+ * unit and a row cannot plot a ratio against a count.
+ *
+ * A week that measured one side and not the other contributes nothing. It
+ * is left **out** rather than entered as `null`: a `null` in this series
+ * means a break the row has to account for beside the plot (a domain
+ * change), and using it for "we did not measure that week" would state a
+ * discontinuity that did not happen.
+ */
+function seriesFor(a: {
+  domain: string;
+  weeks: readonly string[];
+  scans: ReadonlyMap<string, WeekScan>;
+  warm: boolean;
+}): number[] {
+  const points: number[] = [];
+  for (const week of a.weeks) {
+    const report = a.scans.get(week)?.report ?? null;
+    const rival = rivalCountOf(sizingFor(report, a.domain));
+    if (rival === undefined) continue;
+    if (!a.warm) {
+      points.push(rival);
+      continue;
+    }
+    const own = ownCountOf(report);
+    if (own === undefined || own <= 0) continue;
+    points.push(Math.round(rival / own));
+  }
+  return points;
+}
+
+/**
+ * The rival rows, from the customer's own set and the weeks that sized it.
+ *
+ * The rows are the **tracked set**, in the customer's own order, and every
+ * one of them gets a row whatever the week found: REQ-096 c7 keeps a rival
+ * in every comparison until the customer takes it out themselves, and c5
+ * says an unsized rival states that for itself rather than being left out
+ * or shown a zero.
+ */
+async function rivalFacts(a: {
+  siteId: string;
+  weeks: readonly string[];
+  scans: ReadonlyMap<string, WeekScan>;
+  latest: StoredReport | null;
+  previous: StoredReport | null;
+  now: Date;
+}): Promise<RivalFacts> {
+  const own = a.latest === null ? unmeasured<number>("not_attempted", a.now) : a.latest.ownRanked;
+  const previousOwn = a.previous === null ? undefined : a.previous.ownRanked;
+  const tracked = await trackedRivals(a.siteId);
+  if (tracked === null || tracked.length === 0) {
+    return { own, ...(previousOwn === undefined ? {} : { previousOwn }), rivals: [] };
+  }
+
+  const ownCount = own.kind === "unmeasured" ? 0 : own.value;
+  const warm = ownCount >= RATIO_UNLOCK;
+
+  const rivals: RivalFact[] = tracked.map((domain) => {
+    const size = sizingFor(a.latest, domain);
+    const ranked = rivalCountOf(size);
+    const previousRanked = rivalCountOf(sizingFor(a.previous, domain));
+    return {
+      domain,
+      // Every row here is one the customer chose: the set is read from
+      // their own answer, so the flag `resolveRivals` filters on is true by
+      // construction rather than by a judgement this file makes.
+      confirmed: true,
+      ranked:
+        ranked === undefined || size === undefined || size.state !== "sized"
+          ? unmeasured<number>("not_attempted", a.now)
+          : measured(ranked, size.at),
+      ...(previousRanked === undefined ? {} : { previousRanked: measured(previousRanked, a.now) }),
+      series: seriesFor({ domain, weeks: a.weeks, scans: a.scans, warm }),
+      ...(size === undefined ? {} : { size }),
+    };
+  });
+
+  return { own, ...(previousOwn === undefined ? {} : { previousOwn }), rivals };
 }
 
 /**
@@ -236,10 +391,7 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
     aiPresence: series.aiPresence,
     changes: series.changes,
     pagesPublished: published,
-    rivals: {
-      own: unmeasured<number>("not_attempted", now),
-      rivals: [],
-    },
+    rivals: series.rivals,
     today: now,
     supply: {
       exhausted: depth.unused === 0,

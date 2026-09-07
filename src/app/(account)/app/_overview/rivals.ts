@@ -34,6 +34,11 @@ import type { CopyKey } from "@/lib/presentation/copy";
 import type { ChangeMarker } from "@/lib/market/changes/markers";
 import { changeWithin } from "./changes";
 import { RATIO_UNLOCK } from "@/lib/config/constants";
+// By file, not through `@/lib/market`: `offer.ts` imports one type and
+// nothing else, where the barrel drags the questions leaf and a database
+// client behind a screen that needs neither (issue #223).
+import { swapOffer, type SwapOffer } from "@/lib/market/rivals/offer";
+import type { RivalSize } from "@/lib/market/rivals/rival-size";
 
 /** One rival, as the screen needs it. `series` is how the gap has moved:
  *  the ratio over time on the warm arm, the rival's own count over time on
@@ -49,6 +54,16 @@ export interface RivalFact {
   /** Required wherever `series` holds a break — the account the row states
    *  beside the sparkline, because the plot has no room for a sentence. */
   breakAccount?: string;
+  /** §6.6's sizing for this rival, where the week produced one (issue
+   *  #223).
+   *
+   *  Carried **whole** rather than as a band: `swapOffer` is the one place
+   *  REQ-096 c6's condition is written, and handing this resolver a bare
+   *  band would be a second place to get it wrong. Absent where the week
+   *  did not size the rival, which is not the same as a band of `near` —
+   *  an unsized rival offers nothing, and the arm below says so by having
+   *  nothing to ask. */
+  size?: RivalSize;
 }
 
 export interface RivalFacts {
@@ -63,6 +78,12 @@ export interface AbsoluteRival {
   ranked: Measured<number>;
   series: readonly (number | null)[];
   breakAccount?: string;
+  /** REQ-096 c6, on **both** arms. The offer follows the band, and a
+   *  customer whose own count is still below the unlock can have a rival
+   *  beyond reach exactly as one above it can — reading c6 as a warm-arm
+   *  rule would withhold the one control from the customers likeliest to
+   *  need it. */
+  offer: SwapOffer;
 }
 
 export interface RatioRival {
@@ -81,6 +102,7 @@ export interface RatioRival {
     | { kind: "spans_change"; marker: ChangeMarker };
   series: readonly (number | null)[];
   breakAccount?: string;
+  offer: SwapOffer;
 }
 
 export type RivalGapModule =
@@ -111,6 +133,7 @@ export function resolveRivals(
         ranked: rival.ranked,
         series: rival.series,
         ...(rival.breakAccount === undefined ? {} : { breakAccount: rival.breakAccount }),
+        offer: offerFor(rival),
       })),
       lineKey: ABSOLUTE_LINE_KEY,
     };
@@ -124,9 +147,18 @@ export function resolveRivals(
       previous: previousOf(facts, rival, changes),
       series: rival.series,
       ...(rival.breakAccount === undefined ? {} : { breakAccount: rival.breakAccount }),
+      offer: offerFor(rival),
     })),
     lineKey: SHRINKING_LINE_KEY,
   };
+}
+
+/** REQ-096 c6's offer for one rival, and the whole of this resolver's part
+ *  in it: a rival the week did not size has nothing to ask, and one it did
+ *  is asked through `swapOffer` — which is where "far, and only far" is
+ *  written. Nothing here reads `band` and nothing here writes a sentence. */
+function offerFor(rival: RivalFact): SwapOffer {
+  return rival.size === undefined ? { offered: false } : swapOffer(rival.size);
 }
 
 /** How many times the rival's count the customer's is. Only ever called on

@@ -43,6 +43,7 @@ import { readdirSync } from "node:fs";
 import path from "node:path";
 import { LIVE_ACCOUNT, RESERVED_ACCOUNT } from "../../app/accounts";
 import { VERDICT, fullSections } from "../../scan/report/fixtures";
+import { bandRivalSize } from "@/lib/market/rivals/band";
 import { measured } from "@/lib/measure/measured";
 import type { CanonicalDomain } from "@/lib/scan/domain";
 import { assembleReport } from "@/lib/scan/store";
@@ -121,6 +122,26 @@ const LIVE_WEEK_FIGURES: readonly { ownRanked: number; citations: number }[] = O
   { ownRanked: 12, citations: 0 },
   { ownRanked: 28, citations: 1 },
   { ownRanked: 41, citations: 2 },
+]);
+
+/**
+ * The rivals this account tracks, and what each week sized them at
+ * (issue #223).
+ *
+ * **Two, and deliberately on different bands.** Against the latest own
+ * count of 41 the bars are `max(100, 2×41) = 100` and
+ * `max(500, 5×41) = 500`, so `bigcompetitor.com` lands `far` and
+ * `similar.io` lands `middle` — which is the frame REQ-096 c6 is about: one
+ * rival beyond reach among rivals that are not. Sizing both `far` would
+ * make the sweep measure a module every row of which carries an offer,
+ * which is not the ordinary screen.
+ *
+ * The counts fall week on week while the customer's own count rises, so the
+ * ratio arm draws what §4.5 describes — a line pointing down.
+ */
+const LIVE_RIVALS: readonly { domain: string; weekly: readonly number[] }[] = Object.freeze([
+  { domain: "bigcompetitor.com", weekly: Object.freeze([6500, 6400, 6318]) },
+  { domain: "similar.io", weekly: Object.freeze([150, 145, 140]) },
 ]);
 
 function psql(args: string[]): string {
@@ -234,7 +255,7 @@ export function seedAccount(): void {
  * arm.
  */
 export function seedLiveAccount(): void {
-  seedSite(LIVE_ACCOUNT, { drafts: LIVE_DRAFTS, publish: true });
+  seedSite(LIVE_ACCOUNT, { drafts: LIVE_DRAFTS, publish: true, rivals: LIVE_RIVALS });
   seedMeasuredWeeks(LIVE_ACCOUNT);
 }
 
@@ -291,6 +312,24 @@ function seedMeasuredWeeks(account: AppAccount): void {
         scoreAndBand: measured({ score, band: "hard-to-find" }, measuredAt),
       },
       ownRanked: measured(figures.ownRanked, measuredAt),
+      // §6.6's sizing for the week, with the band **derived** rather than
+      // written down: `bandRivalSize` is the one place the two bars live,
+      // so a seeded row cannot carry a band the product would not have
+      // given it (issue #223).
+      rivalSizes: measured(
+        LIVE_RIVALS.map((rival) => {
+          const rankedCount = rival.weekly[index] ?? (rival.weekly.at(-1) as number);
+          return {
+            domain: rival.domain,
+            state: "sized" as const,
+            rankedCount,
+            band: bandRivalSize({ rivalRanked: rankedCount, ownRanked: figures.ownRanked }),
+            at: measuredAt,
+            current: true,
+          };
+        }),
+        measuredAt
+      ),
       aiAnswers:
         base.aiAnswers === null
           ? null
@@ -318,7 +357,11 @@ function seedMeasuredWeeks(account: AppAccount): void {
  */
 function seedSite(
   account: AppAccount,
-  opts: { drafts: readonly { id: string; state: string; title: string }[]; publish?: boolean }
+  opts: {
+    drafts: readonly { id: string; state: string; title: string }[];
+    publish?: boolean;
+    rivals?: readonly { domain: string; weekly: readonly number[] }[];
+  }
 ): void {
   const { userId, siteId, domain, timeZone } = account;
   const email = EMAIL_OF[userId];
@@ -338,6 +381,14 @@ function seedSite(
   const [scanId] = rows(
     `insert into scans (site_id, domain, tier, status) values ('${siteId}', '${domain}', 'deep', 'done') returning id;`
   );
+
+  if (opts.rivals !== undefined && opts.rivals.length > 0) {
+    // §4.7's competitors card, and the set §4.5's rival rows are drawn
+    // from: the rows are the customer's own answer, so without this the
+    // module renders nothing however many weeks were sized (issue #223).
+    const list = JSON.stringify(opts.rivals.map((rival) => rival.domain));
+    sql(`update sites set competitors = '${list}'::jsonb where id = '${siteId}';`);
+  }
 
   for (const [index, draft] of opts.drafts.entries()) {
     const [opportunityId] = rows(

@@ -25,17 +25,66 @@ import type React from "react";
 import { RivalSparkline } from "@/ui/charts";
 import { Badge } from "@/ui/components";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
+import type { SwapOffer } from "@/lib/market/rivals/offer";
 import type { Tone } from "@/ui/types";
+import { DESTINATION_HREF } from "../_shell/destinations";
 import { formatDate } from "../_shell/format";
 import { writtenLine } from "../_shell/written";
 import { renderValue } from "./present";
 import type { RatioRival, RivalGapModule } from "./rivals";
-import { CARRY, CHART_BOX, EYEBROW, MODULE, RIVAL_ROW, STACK } from "./style";
+import { CARRY, CHART_BOX, EYEBROW, MODULE, OFFER, RIVAL_ENTRY, RIVAL_ROW, STACK } from "./style";
 
 /** §2.5: the badge on a rival row reports the customer's own progress —
  *  the gap that used to be — so it is a success state, never an alarm. */
 const WAS_TONE: Tone = "ok";
 const RIVAL_LABEL = "overview.rivals.title" satisfies CopyKey;
+
+/** Where `SwapOffer.destination` goes. A `Record` over the handle's own
+ *  union, so a second destination is a compile error here rather than a
+ *  control that leads nowhere — and the address itself is
+ *  `DESTINATION_HREF`'s, written once for the whole app (issue #223). */
+const SWAP_HREF: Record<Extract<SwapOffer, { offered: true }>["destination"], string> = {
+  "settings.competitors": DESTINATION_HREF.settings,
+};
+
+/**
+ * REQ-096 c6, under the rival it is about.
+ *
+ * **Under that rival's own row, and never at the head of the module.** c6
+ * says "the same place", and a banner over the set would be a statement
+ * about every rival in it — which is what c7 forbids the product implying.
+ * The other rows are untouched: the far rival keeps its row, its plot and
+ * its figure, and nothing here removes, hides or reorders it.
+ *
+ * **One control, and it is a link.** `Btn` is a `<button>` with an
+ * `onClick`; this navigates to the competitors card, where the customer
+ * makes the change themselves. It names no replacement and offers no
+ * removal — `swapOffer` carries a destination and a rival and has nowhere
+ * to put either.
+ *
+ * **Both sentences or neither.** This screen renders nothing for a key the
+ * owner has not written — not the key, not a placeholder, not a `TODO`
+ * (`page.test.tsx` asserts it over the whole document) — and a control
+ * with no label is not a control. So while either sentence is owed the far
+ * rival's row is exactly the row every other rival gets, and the offer
+ * appears the moment both are written, with no code change.
+ */
+function Offer(p: { offer: SwapOffer }): React.JSX.Element | null {
+  if (!p.offer.offered) return null;
+  const line = writtenLine("overview.rivals.far.line", { rival: p.offer.rival });
+  const control = writtenLine("overview.rivals.far.swap");
+  if (line === null || control === null) return null;
+  return (
+    <div style={OFFER}>
+      <p className="rk-prov">{line}</p>
+      {/* A link that reads as a button, the same case and the same daisyUI
+          pair `WeekModule` states its reason for. */}
+      <a href={SWAP_HREF[p.offer.destination]} className="btn btn-sm btn-ghost">
+        {control}
+      </a>
+    </div>
+  );
+}
 
 /** A rival's plot and its written figure, in the order §4.5 sets them out.
  *  `RivalSparkline` already lays out name · plot · value as one row; the
@@ -47,11 +96,13 @@ function RivalRow(p: {
   previous: string | null;
   series: readonly (number | null)[];
   account: string | undefined;
+  offer: SwapOffer;
 }): React.JSX.Element {
   const label = copy("overview.rivals.spark.label", { rival: p.domain });
   const points = [...p.series];
 
   return (
+    <div style={RIVAL_ENTRY}>
     <div style={RIVAL_ROW}>
       <div style={CHART_BOX}>
         {p.account === undefined ? (
@@ -79,6 +130,8 @@ function RivalRow(p: {
         </span>
       )}
     </div>
+    <Offer offer={p.offer} />
+    </div>
   );
 }
 
@@ -104,6 +157,7 @@ export function RivalModule(p: {
             previous={null}
             series={rival.series}
             account={rival.breakAccount}
+            offer={rival.offer}
           />
         ))
       : p.rivals.rivals.map((rival) => (
@@ -116,6 +170,7 @@ export function RivalModule(p: {
             previous={previousFigure(rival.previous)}
             series={rival.series}
             account={rival.breakAccount}
+            offer={rival.offer}
           />
         ));
 
