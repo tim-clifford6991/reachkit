@@ -1,3 +1,4 @@
+// BUILD §2.2 — daisyUI `collapse`.
 // src/ui/components/Collapse.tsx
 //
 // `components.md` §1, verbatim: "`collapse`. Summary text required.

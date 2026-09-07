@@ -1,3 +1,4 @@
+// BUILD §6.4 — the egress module's declared shapes.
 // src/lib/egress/types.ts — WO-018, transcribed verbatim from BP-006
 // `## Public interface` (as of 2026-08-31).
 //

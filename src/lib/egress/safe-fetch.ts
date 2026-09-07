@@ -1,3 +1,4 @@
+// BUILD §6.4 — the one way a byte leaves toward a customer- or dataset-supplied URL.
 // src/lib/egress/safe-fetch.ts — WO-018, BP-006 `## Public interface` /
 // `## Error & edge behavior`.
 //

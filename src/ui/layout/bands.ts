@@ -1,3 +1,4 @@
+// BUILD §2 — ADR-093's three bands.
 // src/ui/layout/bands.ts
 //
 // BP-018 `## Public interface`, "Layout (ADR-093)" — `BANDS`, `Band` and

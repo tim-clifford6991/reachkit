@@ -1,4 +1,7 @@
 // BUILD §9 — the two robots documents, written by two functions that share
+//
+// BUILD §14 guardrail 6 — the customer is publisher of record, and
+// `*.reachkit.app` is noindex forever.
 // no helper.
 //
 // §9: "a robots.txt **we serve** that allows GPTBot, ClaudeBot,

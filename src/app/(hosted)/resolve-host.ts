@@ -1,5 +1,8 @@
 // BUILD §9 — the one place a Host header becomes a customer.
 //
+// BUILD §14 guardrail 6 — `*.reachkit.app` is noindex forever, and the
+// disposition's literal type is what makes it so.
+//
 // §9: "**Hosted CMS:** `content.{customer-domain}` by CNAME → our edge
 // route serves static-rendered pages by Host header." Everything the edge
 // answers — a page, a robots document, a sitemap, a 404, a 410 — is decided

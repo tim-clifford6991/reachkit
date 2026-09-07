@@ -1,3 +1,4 @@
+// BUILD §2.5 — setup's sentences.
 // src/lib/presentation/copy/keys/setup.ts — BP-020 decision 5, WO-041
 //
 // Setup's sentences. Seeded empty by WO-041; filled by issue #14, the block

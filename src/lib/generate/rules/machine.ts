@@ -1,4 +1,7 @@
-// BUILD §8 · §14 — no sentence addressed to a machine reader.
+// BUILD §8 hard rule 6 — no sentence addressed to a machine reader.
+//
+// BUILD §14's standing line: "no prompt-shaped tricks, no hidden
+// instructions, in any generated page".
 //
 // A pinned, deterministic pattern battery over the words the published page
 // shows. No model judges this: a hard rule decided by a model is a rule

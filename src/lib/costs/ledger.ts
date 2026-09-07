@@ -1,3 +1,4 @@
+// BUILD §6.5 — the ledger write — every vendor call recorded before it is answered.
 // src/lib/costs/ledger.ts — BP-007's write half (WO-022, folded into WO-276)
 //
 // `recordFetch`'s write half (`index.ts`): a row is written for every call

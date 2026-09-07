@@ -1,3 +1,4 @@
+// BUILD §2.2 — daisyUI `toggle`.
 // src/ui/components/Toggle.tsx
 //
 // `components.md` §1, verbatim: "`toggle`. Label required; no default

@@ -1,3 +1,4 @@
+// BUILD §5 — one fetched document to the counted facts every driver reads.
 // src/lib/measure/parse.ts — WO-251, BP-010
 //
 // One fetched HTML document, one pass, to the counted facts every driver in

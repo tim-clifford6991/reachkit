@@ -1,3 +1,4 @@
+// BUILD §2.2 — the registered component set — the closed fifteen.
 // src/ui/components/index.ts
 //
 // BP-018 `## Public interface`, verbatim: "Registered components only —

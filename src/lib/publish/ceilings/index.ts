@@ -1,4 +1,7 @@
 // BUILD §9 — the two ceilings: one a day, eight a week, in the customer's
+//
+// BUILD §14 guardrail 7 — autopilot rate limits, independent of the monthly
+// cap.
 // own zone, on a Monday-start week.
 //
 // §9: "Autopilot hard limits regardless of settings: ≤1 publish/day,

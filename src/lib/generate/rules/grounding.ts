@@ -1,5 +1,7 @@
 // BUILD §8 hard rule 1 — grounded.
 //
+// BUILD §14 guardrail 5 — grounding.
+//
 // "≥1 verifiable fact from the customer's own live pages, carried with its
 // source URL + read date." The check is that the recorded passage occurs,
 // word for word, in the content fetched from that page that day.
