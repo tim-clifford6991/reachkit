@@ -29,6 +29,16 @@
 // including the ones who finished months ago, and `/setup`'s own reads
 // would be failing too. It is the same fail-open convention
 // `src/middleware.ts` uses for the one read it makes.
+//
+// **And unreadable includes "did not answer at all".** This read sits in
+// front of every account screen, so a database that is slow or unreachable
+// must cost a screen that renders, not a page that hangs — and a `catch`
+// alone does not do that, because a request that never settles never
+// rejects. The bound below is the same shape as `src/middleware.ts`'s
+// `withDeadline` around its one read, and exists for the same reason: the
+// layout conformance sweep renders every account route against a database
+// that is not there, and a hang would be indistinguishable from a broken
+// screen.
 import { currentSession } from "@/lib/account/identity";
 import { liveSetupStore } from "./_setup/store";
 import type { SetupProgressState } from "./submit";
@@ -39,18 +49,47 @@ import type { SetupProgressState } from "./submit";
  *  cookie jar of the request it is already inside. */
 export type SetupGateReader = () => Promise<SetupProgressState | null>;
 
+/**
+ * How long the whole read may take before the screen renders anyway.
+ * Chosen here rather than pinned in `constants.ts` on the same grounds
+ * `src/middleware.ts` states for its own: it is a property of this one
+ * request-path read, not a product bound anything else reads, and it lives
+ * in exactly one file. Generous against two indexed lookups on a healthy
+ * database, short against a founder waiting for a screen.
+ */
+const GATE_READ_DEADLINE_MS = 800;
+
+/** Rejects when `work` has not settled inside the deadline, so the caller's
+ *  own `catch` covers a hang the same way it covers a failure. */
+function withDeadline<T>(work: Promise<T>): Promise<T> {
+  return Promise.race([
+    work,
+    new Promise<T>((_resolve, reject) =>
+      setTimeout(() => reject(new Error("setup gate read timed out")), GATE_READ_DEADLINE_MS)
+    ),
+  ]);
+}
+
 const sessionBacked: SetupGateReader = async () => {
-  const session = await currentSession();
+  let session: Awaited<ReturnType<typeof currentSession>>;
+  try {
+    session = await withDeadline(currentSession());
+  } catch {
+    // `currentSession()` reads the `users` row behind a verified cookie,
+    // so it is a database read too, and it fails the same way.
+    return null;
+  }
   if (session === null) return null;
 
   try {
-    return await liveSetupStore().readProgress(session.userId);
+    return await withDeadline(liveSetupStore().readProgress(session.userId));
   } catch {
     // `readProgress` throws where no site row exists — a founder whose
-    // payment has not provisioned one yet (§13). That is "not knowable",
-    // not "unfinished": sending them to `/setup`, whose own read would
-    // throw on the same missing row, would be a screen that cannot render
-    // instead of one that can.
+    // payment has not provisioned one yet (§13) — and now also where it
+    // did not answer inside the deadline. Both are "not knowable", not
+    // "unfinished": sending them to `/setup`, whose own read would fail on
+    // the same row, would be a screen that cannot render instead of one
+    // that can.
     return null;
   }
 };

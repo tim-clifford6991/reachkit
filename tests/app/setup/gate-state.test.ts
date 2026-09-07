@@ -85,4 +85,15 @@ describe("what cannot be answered is null, never a guess at incomplete", () => {
     readProgress.mockRejectedValue(new Error("connection refused"));
     await expect(readSetupGateState()).resolves.toBeNull();
   });
+
+  it("a read that never settles is null too, inside its own deadline", async () => {
+    // A `catch` alone does not cover this: a request that never settles
+    // never rejects, and this read sits in front of every account screen.
+    // The layout conformance sweep renders them all against a database
+    // that is not there.
+    readProgress.mockReturnValue(new Promise<never>(() => {}));
+    const started = Date.now();
+    await expect(readSetupGateState()).resolves.toBeNull();
+    expect(Date.now() - started).toBeLessThan(3_000);
+  });
 });
