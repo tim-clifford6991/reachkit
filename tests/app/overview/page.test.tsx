@@ -5,9 +5,12 @@
 //
 //   1. Overview is the screen `/app` renders, and it renders inside the
 //      shell rather than declaring a screen root of its own.
-//   2. It invents no sentence. Every line on it is owner-owed today, and an
-//      owner-owed line renders as **nothing** — not the key, not a
-//      placeholder, not an empty paragraph with a border around it.
+//   2. It invents no sentence — and, since #236, it does not hide the fact
+//      either. Every line on it is still the owner's, and an unwritten one
+//      renders the `TODO(copy)` marker, which is the product-wide rule
+//      (DECISIONS 2026-09-05: screens render the marker, mail keeps the
+//      throw). What it must never render is the key itself, or an empty
+//      element where a sentence belongs.
 //   3. The render performs no measurement, no vendor call and no model
 //      call. Asserted twice: no `fetch` during the render, and no path from
 //      this screen's own module graph into the vendor or model directories
@@ -112,10 +115,28 @@ describe("REQ-093 c1 — the screen invents no sentence", () => {
     }
   });
 
-  it("no owner-owed key renders anything at all — not a placeholder, not a TODO", async () => {
+  it("every unwritten `overview.*` key carries the marker, never the empty value (#236)", () => {
+    // The product-wide rule, applied here at last. Overview was the one
+    // screen that gave its owed keys the empty value, so `writtenLine`
+    // answered `null` and the line — and, for the far rival, its whole
+    // control — rendered as nothing: invisible on dev and unswept by the
+    // layout suite. An empty value is the *mail* standing (a mail never
+    // ships a placeholder); a screen's is the marker.
+    const owed = (Object.keys(COPY) as CopyKey[]).filter((key) => key.startsWith("overview."));
+    expect(owed.length).toBeGreaterThan(0);
+    for (const key of owed) {
+      expect(COPY[key], `${key} is empty; a screen's owed key takes the marker`).not.toBe("");
+    }
+  });
+
+  it("the screen renders the marker where a line is owed, and no empty element in its place", async () => {
     const html = await markup();
-    expect(html).not.toContain("TODO");
+    // Visible, which is the whole point: a control whose label rendered as
+    // nothing could not be reviewed and could not be measured at five
+    // widths.
+    expect(html).toContain("TODO(copy)");
     expect(html).not.toContain("<p></p>");
+    expect(html).not.toContain("<span></span>");
   });
 
   it("the head still renders a heading, from a key the owner has written", async () => {

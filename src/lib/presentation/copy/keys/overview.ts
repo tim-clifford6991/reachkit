@@ -60,19 +60,19 @@ export const OVERVIEW_COPY = Object.freeze({
     "",
     { law: "no-presence-yet", slots: {}, fixedBy: "REQ-065 c4" },
   ],
-  "overview.head": ["", { slots: {}, fixedBy: "BUILD §4.5" }],
+  "overview.head": ["TODO(copy)", { slots: {}, fixedBy: "BUILD §4.5" }],
 
   // ── The head: one line per direction the stored series shows, and the
   // badge §4.5 puts beside it. Four lines, not one: §4.5's "The gap is
   // closing." is a claim about the chart directly under it, and a screen
   // that states it over a widening gap has said something untrue.
-  "overview.head.rising": ["", { slots: {}, fixedBy: "BUILD §4.5" }],
-  "overview.head.flat": ["", { slots: {}, fixedBy: "BUILD §4.5" }],
-  "overview.head.falling": ["", { slots: {}, fixedBy: "BUILD §4.5" }],
-  "overview.head.badge": ["", { slots: { weeks: "text" }, fixedBy: "BUILD §4.5" }],
+  "overview.head.rising": ["TODO(copy)", { slots: {}, fixedBy: "BUILD §4.5" }],
+  "overview.head.flat": ["TODO(copy)", { slots: {}, fixedBy: "BUILD §4.5" }],
+  "overview.head.falling": ["TODO(copy)", { slots: {}, fixedBy: "BUILD §4.5" }],
+  "overview.head.badge": ["TODO(copy)", { slots: { weeks: "text" }, fixedBy: "BUILD §4.5" }],
 
   // ── The growth module.
-  "overview.growth.footnote.start": ["", { slots: { value: "text" }, fixedBy: "BUILD §4.5" }],
+  "overview.growth.footnote.start": ["TODO(copy)", { slots: { value: "text" }, fixedBy: "BUILD §4.5" }],
   "overview.growth.footnote.goal": [
     "At {goal} the big category terms unlock.",
     { slots: { goal: "text" }, fixedBy: "BUILD §4.5" },
@@ -83,12 +83,12 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.tile.searches.label": ["Searches you appear in", { slots: {}, fixedBy: "BUILD §4.5" }],
   "overview.tile.ai-answers.label": ["AI answers", { slots: {}, fixedBy: "BUILD §4.5" }],
   "overview.tile.ai-answers.window": [
-    "",
+    "TODO(copy)",
     { slots: { weeks: "text", of: "text" }, fixedBy: "REQ-041 c12" },
   ],
-  "overview.tile.ai-answers.means": ["", { slots: {}, fixedBy: "REQ-041 c4" }],
+  "overview.tile.ai-answers.means": ["TODO(copy)", { slots: {}, fixedBy: "REQ-041 c4" }],
   "overview.tile.pages.label": ["Pages published", { slots: {}, fixedBy: "BUILD §4.5" }],
-  "overview.tile.pages.means": ["", { slots: {}, fixedBy: "REQ-041 c4" }],
+  "overview.tile.pages.means": ["TODO(copy)", { slots: {}, fixedBy: "REQ-041 c4" }],
 
   // §4.5's "goal: 6", with the number left to `GOAL_VALUES`.
   "overview.goal": ["goal: {value}", { slots: { value: "text" }, fixedBy: "BUILD §4.5" }],
@@ -113,7 +113,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // The cold-start arm's line, and the one key on this screen whose value is
   // constrained by what it must **not** say: nothing is shrinking yet, so it
   // can never be `overview.rivals.line.shrinking` (REQ-041 c9).
-  "overview.rivals.line.absolute": ["", { slots: {}, fixedBy: "REQ-041 c9" }],
+  "overview.rivals.line.absolute": ["TODO(copy)", { slots: {}, fixedBy: "REQ-041 c9" }],
 
   // ── REQ-096 c6: a rival banded `far`, and the two sentences it needs.
   //
@@ -137,10 +137,10 @@ export const OVERVIEW_COPY = Object.freeze({
   // does not name a replacement, does not suggest removing the rival, and
   // is not a verdict on the customer — REQ-096 c7 keeps the rival in the
   // set until the customer takes it out themselves.
-  "overview.rivals.far.line": ["", { slots: { rival: "text" }, fixedBy: "REQ-096 c6" }],
+  "overview.rivals.far.line": ["TODO(copy)", { slots: { rival: "text" }, fixedBy: "REQ-096 c6" }],
   // The one control c6 allows, and the whole of it: a word for "go to
   // where you can change who you are measured against". Never "remove".
-  "overview.rivals.far.swap": ["", { slots: {}, fixedBy: "REQ-096 c6" }],
+  "overview.rivals.far.swap": ["TODO(copy)", { slots: {}, fixedBy: "REQ-096 c6" }],
 
   // ── This week.
   "overview.week.title": ["This week", { slots: {}, fixedBy: "BUILD §4.5" }],
@@ -150,17 +150,17 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.week.day.to-come": ["next", { slots: {}, fixedBy: "REQ-041 c6" }],
 
   // ── The alerts, and the one remainder line.
-  "overview.alert.pending-veto": ["", { slots: { title: "text" }, fixedBy: "REQ-041 c5" }],
+  "overview.alert.pending-veto": ["TODO(copy)", { slots: { title: "text" }, fixedBy: "REQ-041 c5" }],
   "overview.alert.pending-veto.action": ["Read it", { slots: {}, fixedBy: "BUILD §4.5" }],
-  "overview.alert.needs-you": ["", { slots: { title: "text" }, fixedBy: "REQ-041 c5" }],
-  "overview.alert.needs-you.action": ["", { slots: {}, fixedBy: "REQ-041 c5" }],
-  "overview.alert.overflow": ["", { slots: { remaining: "text" }, fixedBy: "REQ-041 c5" }],
-  "overview.alerts.empty": ["", { slots: {}, fixedBy: "REQ-041 c5" }],
+  "overview.alert.needs-you": ["TODO(copy)", { slots: { title: "text" }, fixedBy: "REQ-041 c5" }],
+  "overview.alert.needs-you.action": ["TODO(copy)", { slots: {}, fixedBy: "REQ-041 c5" }],
+  "overview.alert.overflow": ["TODO(copy)", { slots: { remaining: "text" }, fixedBy: "REQ-041 c5" }],
+  "overview.alerts.empty": ["TODO(copy)", { slots: {}, fixedBy: "REQ-041 c5" }],
 
   // ── The one supply statement Overview may make, resolved in this order.
-  "overview.supply.exhausted": ["", { slots: {}, fixedBy: "REQ-095 c3" }],
-  "overview.supply.short": ["", { slots: {}, fixedBy: "REQ-095 c5" }],
-  "overview.supply.first-arrival": ["", { slots: {}, fixedBy: "REQ-095 c6" }],
+  "overview.supply.exhausted": ["TODO(copy)", { slots: {}, fixedBy: "REQ-095 c3" }],
+  "overview.supply.short": ["TODO(copy)", { slots: {}, fixedBy: "REQ-095 c5" }],
+  "overview.supply.first-arrival": ["TODO(copy)", { slots: {}, fixedBy: "REQ-095 c6" }],
 
   // 2026-09-07, issue #205 — the account a broken series puts on its own
   // break. REQ-071 c12/c13 forbid drawing a difference across a date the
