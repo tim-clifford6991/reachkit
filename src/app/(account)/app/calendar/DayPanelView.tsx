@@ -38,7 +38,8 @@ import { BAND_LABELS } from "@/lib/presentation/bands";
 import { formatDate, formatDateTime } from "../_shell/format";
 import { writtenLine } from "../_shell/written";
 import { actionsFor } from "./actions";
-import { EMPTY_COPY_KEY, isLawCause, stopForEmptyDay, type CalendarOwnCause } from "./empty";
+import { isLawCause, stopForEmptyDay } from "./empty";
+import { emptyLineFor } from "./CalendarView";
 import { nextPublishStatement, stoppedWorkStatement, type WorkStop } from "@/lib/presentation/stopped";
 import { fullDate } from "./dates";
 import { STAGE_FILTER_COPY_KEY, STAGE_TONE } from "./stages";
@@ -109,7 +110,7 @@ export function DayPanelView(p: {
     const account =
       cell.empty === null || law !== null
         ? null
-        : writtenLine(EMPTY_COPY_KEY[cell.empty.cause as CalendarOwnCause]);
+        : emptyLineFor(cell.empty, cell.day, p.stopped, p.timeZone);
     return (
       <DayPanel
         heading={<span className="num">{date}</span>}

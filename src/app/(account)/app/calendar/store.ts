@@ -46,6 +46,13 @@ import {
 } from "@/lib/opportunities";
 import { writtenLine } from "../_shell/written";
 import { addDays, dayKeyOf, daysOfMonth, type DayKey, type MonthKey } from "./dates";
+import {
+  declaredAnswers,
+  declaredTimezone,
+  generationHold,
+  measuredAnswers,
+  pendingChanges,
+} from "@/lib/market/changes";
 import { readStop } from "../_shell/stop";
 import { readPublishingFacts, type ScheduledPage } from "./drafts-read";
 import type { CalendarFacts, DraftOnDay, WhyThisPage } from "./month";
@@ -208,6 +215,30 @@ export function offsetForMonth(a: { month: MonthKey; today: DayKey }): number {
 }
 
 /**
+ * REQ-071 c11's hold, for one site.
+ *
+ * Three reads and one call, all of them the change engine's: the answers as
+ * declared, the answers as last measured, and the zone the effective date is
+ * computed in. Nothing about *which* answer holds generation or *when* it
+ * resumes is decided here — `generationHold` owns both, and a site with
+ * nothing measured yet has nothing pending (ADR-030's own rule, and the
+ * reason a site between setup and its first pass is not held).
+ */
+async function marketHold(
+  siteId: string,
+  now: Date
+): Promise<{ because: "domain" | "category"; resumesOn: Date } | null> {
+  const [declared, measured, timezone] = await Promise.all([
+    declaredAnswers(siteId),
+    measuredAnswers(siteId),
+    declaredTimezone(siteId),
+  ]);
+  if (timezone === null) return null;
+  const hold = generationHold(pendingChanges({ declared, measured, now, timezone }));
+  return hold.held ? { because: hold.because, resumesOn: hold.resumesOn } : null;
+}
+
+/**
  * Everything the calendar reads, for one real site and one month.
  *
  * `unusedSupply` is read once and is the number ADR-061 point 1 turns on:
@@ -221,7 +252,7 @@ export async function readCalendarFacts(a: {
   now: Date;
 }): Promise<CalendarFacts> {
   const today = dayKeyOf(a.now, a.site.timeZone);
-  const [depth, head, ranked, publishing, stop] = await Promise.all([
+  const [depth, head, ranked, publishing, stop, changeHold] = await Promise.all([
     supplyDepth(a.site.siteId).then(
       (d) => d.unused,
       () => null
@@ -235,6 +266,12 @@ export async function readCalendarFacts(a: {
     // day's own account falls to `unattributed`, which is the same stop
     // said without a record behind it (ADR-061 point 2).
     readStop(a.site.siteId).catch(() => null),
+    // REQ-071 c11's hold (#204). A read that could not answer is not a site
+    // replacing nothing — but it is also not a licence to hold every date
+    // on a guess, and the day's account falls through to the arms below,
+    // which are read from their own rows. `generationHold` picks the one
+    // reason; nothing here picks between two.
+    marketHold(a.site.siteId, a.now).catch(() => null),
   ]);
 
   // The head is the first fillable date's page; the rest of the list, in
@@ -294,6 +331,7 @@ export async function readCalendarFacts(a: {
     // §9's, read (#175).
     heldDays: publishing.heldDays,
     customerChangeHoldsPages: publishing.customerChangeHoldsPages,
+    changeHoldsGeneration: changeHold,
     // A month whose §9 facts are unreadable states no supply either: the
     // exhausted arm is a proven claim (ADR-061 point 1) and a depth read
     // beside pages nobody could see is not one.

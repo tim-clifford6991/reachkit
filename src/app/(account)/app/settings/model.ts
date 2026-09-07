@@ -24,6 +24,15 @@
 // would hide the very state [the] validator exists to prevent from ever being
 // stored", so this module validates nothing and the screen renders what is
 // there.
+import type { CopyKey } from "@/lib/presentation/copy";
+// Imported by file and not through `@/lib/market/changes`'s barrel: the
+// barrel re-exports `declared.ts`, which reaches `@/lib/db` and parses
+// every deployment binding the moment it is evaluated. This module is pure
+// — "keeping the assembly pure is what lets every criterion be decided by a
+// test with no database at all" — and `pending.ts` imports only the week
+// clock. ADR-092's idiom, applied to keep a leaf a leaf.
+import { effectiveOn } from "@/lib/market/changes/pending";
+import { CHANGE_COPY_KEY } from "../calendar/change-line";
 import type { DestinationView } from "@/lib/publish/types";
 import type { ACCOUNT_NOTE_KEYS } from "@/lib/account/identity/notes";
 import type { PublishingMode } from "../_shell/model";
@@ -82,7 +91,25 @@ export interface BillingFacts {
 }
 
 export interface SettingsModel {
-  market: { category: string };
+  market: {
+    category: string;
+    /**
+     * REQ-071 c1 and c6, as one statement (issue #204).
+     *
+     * `on` is the written date — an instant on the facts and a written
+     * moment here, the one-place-only rule `billing.paidThrough` already
+     * follows. `changeKey` is the registry key for the answer being
+     * replaced, never the engine's own `ChangeKind` handle: `{change}` is
+     * a fragment the owner writes and "domain" is an internal name.
+     *
+     * `saved` is which of the two criteria this is: `false` while the
+     * customer is still typing (c1 — the consequence read before the
+     * button), `true` once it is saved and standing until the pass adopts
+     * it (c6). `null` where neither is true, and the card then states its
+     * standing effect line instead.
+     */
+    change: { on: string; changeKey: CopyKey; saved: boolean } | null;
+  };
   competitors: readonly string[];
   domain: string;
   publishing: PublishingSettings;
@@ -129,6 +156,13 @@ export interface AccountCardView {
 export interface SettingsFacts {
   /** `sites` (§10). */
   domain: string;
+  /** REQ-071's pending market change, or `null`. `pendingChanges()`'s own
+   *  first entry — the engine has already decided what differs and when it
+   *  takes effect, and this screen reads both (issue #204). `editing` is
+   *  the kind the customer is part-way through changing, which is c1's
+   *  before-the-save state and is the screen's own fact, not a row. */
+  pendingChange: { kind: "domain" | "category"; effectiveOn: Date } | null;
+  editing: "domain" | "category" | null;
   category: string;
   competitors: readonly string[];
   mode: PublishingMode;
@@ -165,9 +199,38 @@ export interface SettingsFacts {
   publishedPages: number;
 }
 
+/**
+ * REQ-071 c1/c6's one statement, chosen and written here.
+ *
+ * The unsaved change outranks the saved one: a customer who is typing is
+ * being told what the button they are about to press will do, and the
+ * older saved change is a fact they have already been given. Only one line
+ * either way — §4.7 gives this card one written line, and two dated
+ * sentences on it would be the same fact pretending to be two.
+ */
+function marketChange(facts: SettingsFacts): SettingsModel["market"]["change"] {
+  const zoneWritten = (on: Date): string => formatDate(on, facts.timeZone);
+  if (facts.editing !== null) {
+    return {
+      // Before the save there is no stored difference to read, so the date
+      // is the one a change saved now would take: `effectiveOn()`'s own
+      // answer, and no arithmetic here (issue #204).
+      on: zoneWritten(effectiveOn({ savedAt: new Date(), timezone: facts.timeZone })),
+      changeKey: CHANGE_COPY_KEY[facts.editing],
+      saved: false,
+    };
+  }
+  if (facts.pendingChange === null) return null;
+  return {
+    on: zoneWritten(facts.pendingChange.effectiveOn),
+    changeKey: CHANGE_COPY_KEY[facts.pendingChange.kind],
+    saved: true,
+  };
+}
+
 export function assembleSettings(facts: SettingsFacts): SettingsModel {
   return {
-    market: { category: facts.category },
+    market: { category: facts.category, change: marketChange(facts) },
     competitors: facts.competitors,
     domain: facts.domain,
     publishing: {

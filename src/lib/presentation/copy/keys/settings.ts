@@ -56,6 +56,27 @@ export const SETTINGS_COPY = Object.freeze({
     "changing this rebuilds the search set and the 12 questions next Monday",
     { slots: {}, fixedBy: "BUILD §4.7" },
   ],
+  // REQ-071's two dated statements about the market (issue #204). Both take
+  // their date from `effectiveOn()` and neither computes one: c1 states the
+  // date a change being typed *would* take effect, before it is saved; c6
+  // states the date a saved change takes effect, until the pass adopts it.
+  // `TODO(copy)` and not the empty value, per DECISIONS 2026-09-05: a whole
+  // card of finished controls must stay reviewable while the owner writes
+  // the sentence, and an empty value takes the card down with it.
+  "settings.market.pending": [
+    "TODO(copy)",
+    { slots: { date: "date", change: "text" }, fixedBy: "REQ-071 c1" },
+  ],
+  "settings.market.effectiveOn": [
+    "TODO(copy)",
+    { slots: { date: "date" }, fixedBy: "REQ-071 c6" },
+  ],
+  // The word each change kind is named by. One key per kind, because
+  // `{change}` is a **sentence fragment the owner writes** and never the
+  // engine's own `ChangeKind` handle: "domain" and "category" are internal
+  // names, and REQ-071's line reads them out to a customer.
+  "settings.market.change.domain": ["TODO(copy)", { slots: {}, fixedBy: "REQ-071 c1" }],
+  "settings.market.change.category": ["TODO(copy)", { slots: {}, fixedBy: "REQ-071 c1" }],
 
   // ── Competitors ────────────────────────────────────────────────────────
   "settings.competitors.title": ["Competitors", { slots: {}, fixedBy: "BUILD §4.7" }],
@@ -64,6 +85,10 @@ export const SETTINGS_COPY = Object.freeze({
     "remove",
     { slots: {}, fixedBy: 'BUILD §4.7 ("chips ×5, add/remove")' },
   ],
+  // REQ-071 c16. An empty rival set is a state the product designed (§2.5),
+  // not a blank: the line takes no slot, because there is no date and no
+  // change to name — only that comparison begins when a rival is added.
+  "settings.competitors.none-yet": ["TODO(copy)", { slots: {}, fixedBy: "REQ-071 c16" }],
 
   // ── Publishing ─────────────────────────────────────────────────────────
   "settings.publishing.title": ["Publishing", { slots: {}, fixedBy: "BUILD §4.7" }],

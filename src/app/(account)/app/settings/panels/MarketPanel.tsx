@@ -25,7 +25,26 @@ import { writtenLine } from "../../_shell/written";
 import type { SettingsModel } from "../model";
 
 export function MarketPanel(p: { settings: SettingsModel }): React.JSX.Element {
-  const effect = writtenLine("settings.market.effect");
+  // REQ-071 c1 and c6 (issue #204). One written line either way: a dated
+  // one while a change stands, the card's standing one otherwise. The
+  // model chose which and wrote the date; this panel renders it and states
+  // nothing of its own — `{change}` is the owner's word for the answer,
+  // read from its own key, never the engine's `domain` / `category`.
+  // `data-testid` is `market-change-line` and not `setting-market-change`:
+  // the `setting-*` namespace is REQ-070 c1's closed offer of exactly the
+  // fourteen controls, and this is a written line rather than a control
+  // (`screen.test.tsx` reads that namespace off the document).
+  const change = p.settings.market.change;
+  const dated =
+    change === null
+      ? null
+      : change.saved
+        ? writtenLine("settings.market.effectiveOn", { date: change.on })
+        : writtenLine("settings.market.pending", {
+            date: change.on,
+            change: copy(change.changeKey),
+          });
+  const effect = change === null ? writtenLine("settings.market.effect") : null;
 
   return (
     <Card state="default" title={<h2>{copy("settings.market.title")}</h2>}>
@@ -50,6 +69,18 @@ export function MarketPanel(p: { settings: SettingsModel }): React.JSX.Element {
       </div>
 
       {effect === null ? null : <p className="text-xs opacity-60 wrap-anywhere">{effect}</p>}
+      {dated === null ? null : (
+        <p
+          className={
+            change?.saved === false
+              ? "border-warning/40 bg-warning/10 text-warning rounded-field border px-2.5 py-2 text-xs wrap-anywhere"
+              : "text-xs opacity-60 wrap-anywhere"
+          }
+          data-testid="market-change-line"
+        >
+          {dated}
+        </p>
+      )}
     </Card>
   );
 }

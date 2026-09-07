@@ -51,6 +51,7 @@ const BARE: CalendarFacts = {
   stoppedDays: [],
   heldDays: [],
   customerChangeHoldsPages: null,
+  changeHoldsGeneration: null,
   unusedSupply: null,
 };
 
