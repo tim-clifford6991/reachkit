@@ -30,12 +30,19 @@
 // journey can assert *which* sentence each mail carries and in which slot
 // — the part that stops being true when the path breaks.
 //
-// **No job schedules any of this yet.** `src/jobs/lead-nurture.ts` exists,
-// but its engine seam (`advanceSequence`) is `notBuilt('BP-029')` and
-// nothing anywhere calls `dueFirstPageDeliveries` or `advanceSequences`.
-// Those two are the entry points the job will call, so the journey drives
-// them directly, at the clock it names. That is the one gap between this
-// file and production, and it is named rather than papered over.
+// **The nurture job is wired; nothing emits its event yet.** Since issue
+// #176 `src/jobs/lead-nurture.ts`'s engine seam (`advanceSequence`) is
+// built, and step 10 below drives the **first touch through the job
+// itself** — the event's `(leadId, touchIndex)`, the seam, the sequence
+// module, the compose shell and the send seam — rather than through the
+// sweep. The remaining touches go through `advanceSequences`, which is the
+// same body reached the other way.
+//
+// Two gaps remain between this file and production, named rather than
+// papered over: nothing calls `dueFirstPageDeliveries` yet, and nothing
+// emits a `lead/nurture` event, so in production the sequence still has no
+// scheduler. The journey drives both entry points directly, at the clock
+// it names.
 //
 // **The ledger claim is a claim about zero.** §4.2 spends nothing on the
 // visitor's request: no model call, no vendor round trip, no queue. The
@@ -90,6 +97,7 @@ const { dueFirstPageDeliveries, deliverFirstPage } = await import(
   "../../src/lib/mail/leads/giveaway"
 );
 const { advanceSequences } = await import("../../src/lib/mail/leads/sequence");
+const { leadNurture } = await import("../../src/jobs/lead-nurture");
 const { readOptOutToken } = await import("../../src/lib/mail/leads/optout");
 const { convertLead } = await import("../../src/lib/account/provisioning/lead-conversion");
 const { POST } = await import("../../src/app/api/lead/route");
@@ -384,7 +392,28 @@ describe('"Email me the full page" → lead → first page → a follow-up that 
     expect((await advanceSequences(new Date(startedAt.getTime() + 60_000))).sent).toBe(0);
     expect(mailsOfKind("mail.nurture")).toHaveLength(0);
 
-    for (let index = 0; index < NURTURE_MAX_TOUCHES; index += 1) {
+    // The first touch goes through the job, at the seam the platform
+    // reaches: the event's own `(leadId, touchIndex)` into
+    // `advanceSequence()`, into the sequence module, the compose shell and
+    // the send seam. `run` is called rather than `runJob` because the kill
+    // switch does not cover §11's lead work and has its own suite.
+    const leadId = theOneLead().id;
+    expect(
+      await leadNurture.run({ data: { leadId, touchIndex: 0 }, now: atTouch(startedAt, 0) })
+    ).toEqual({ outcome: "ran", subjectId: leadId });
+    expect(theOneLead().touch_count).toBe(1);
+    expect(mailsOfKind("mail.nurture")).toHaveLength(1);
+
+    // The same event delivered a second time sends nothing: `(leadId,
+    // touchIndex)` is per-touch dedupe inside the sequence.
+    expect(
+      await leadNurture.run({ data: { leadId, touchIndex: 0 }, now: atTouch(startedAt, 0) })
+    ).toEqual({ outcome: "ran", subjectId: leadId });
+    expect(theOneLead().touch_count).toBe(1);
+    expect(mailsOfKind("mail.nurture")).toHaveLength(1);
+
+    // The rest through the sweep — the same body, reached the other way.
+    for (let index = 1; index < NURTURE_MAX_TOUCHES; index += 1) {
       const outcome = await advanceSequences(atTouch(startedAt, index));
       expect(outcome.sent, `touch ${index + 1}`).toBe(1);
       expect(theOneLead().touch_count).toBe(index + 1);
