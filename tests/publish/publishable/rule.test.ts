@@ -19,7 +19,7 @@ applyEnvFixture();
 const db = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 
-import { DEFAULT_GUARD_DEPS, transition } from "@/lib/publish/machine";
+import { DEFAULT_GUARD_DEPS, transition, type GuardDeps } from "@/lib/publish/machine";
 import { PUBLISHABLE_RULE, customerTold, publishableAndDue } from "@/lib/publish/publishable/rule";
 import type { Actor, DraftView, GoverningPair } from "@/lib/publish/types";
 
@@ -90,6 +90,15 @@ describe("`customer_told` holds a page that was never told and one told on a pai
   });
 });
 
+/** The real deps, with only the claim re-check opened.
+ *
+ *  This suite is about the publishable rule, and `no_outstanding_claim_recheck`
+ *  sits above it on every route into an attempt (BUILD §8 hard rule 4) — a
+ *  draft with no recorded claim check is outstanding, which is the safe
+ *  direction and would hold every page below. `rule` stays the real one,
+ *  which is the seam this suite exists to prove is wired. */
+const RULE_DEPS: GuardDeps = { ...DEFAULT_GUARD_DEPS, claimRecheckOutstanding: async () => false };
+
 describe("the seam is filled — the machine's default deps carry this rule", () => {
   it("`DEFAULT_GUARD_DEPS.rule` is the real rule, not the refusing one", () => {
     expect(DEFAULT_GUARD_DEPS.rule).toBe(PUBLISHABLE_RULE);
@@ -108,6 +117,7 @@ describe("the seam is filled — the machine's default deps carry this rule", ()
     });
     const result = await transition("d1", "publishing", SYSTEM, {
       at: new Date("2026-09-03T09:00:00Z"),
+      deps: RULE_DEPS,
     });
     expect(result).toMatchObject({ refused: "guard", failedGuard: "customer_told" });
     expect(db.rows("drafts")[0]?.state).toBe("approved");
@@ -120,6 +130,7 @@ describe("the seam is filled — the machine's default deps carry this rule", ()
     });
     const result = await transition("d1", "publishing", SYSTEM, {
       at: new Date("2026-09-03T09:00:00Z"),
+      deps: RULE_DEPS,
     });
     expect(result).toEqual({ ok: true, state: "publishing" });
   });
@@ -132,6 +143,7 @@ describe("the seam is filled — the machine's default deps carry this rule", ()
     });
     const result = await transition("d1", "publishing", SYSTEM, {
       at: new Date("2026-09-03T09:00:00Z"),
+      deps: RULE_DEPS,
     });
     expect(result).toMatchObject({ refused: "guard", failedGuard: "publishable_and_due" });
   });

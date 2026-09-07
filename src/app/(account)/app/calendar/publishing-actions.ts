@@ -66,3 +66,18 @@ export async function vetoDraft(draftId: string): Promise<string | null> {
 export async function approveDraft(draftId: string): Promise<string | null> {
   return move(draftId, "approved");
 }
+
+/**
+ * The restart on a page that needs you — §9's `needs_attention →
+ * generating` (issue #143).
+ *
+ * The same one shape as every write above, and deliberately no extra
+ * check: the edge's guards are `never_entered_review` and
+ * `customer_initiated`, both of which `transition()` asks, and this actor
+ * is a customer. Re-deciding either here would be a second copy of the
+ * machine's own rule, and the two would disagree the first time one
+ * changed.
+ */
+export async function regenerateDraft(draftId: string): Promise<string | null> {
+  return move(draftId, "generating");
+}
