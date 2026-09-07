@@ -21,7 +21,7 @@
 import { measured, measuredZero, unmeasured } from "@/lib/measure/measured";
 import type { CalendarFacts, DraftOnDay, WhyThisPage } from "./month";
 import type { DayKey } from "./dates";
-import type { PublishState } from "./stages";
+import type { State } from "./stages";
 
 export const FIXTURE_TIME_ZONE = "America/New_York";
 /** 10:00 in the site's zone on 2026-09-15. */
@@ -92,7 +92,7 @@ function whyOf(index: number): WhyThisPage {
  *  weekend columns carry a page (§4.6: "weekends included"). The dates with
  *  no row here are the empty ones, and each is emptied by a different arm
  *  of `EMPTY_PRECEDENCE`. */
-const SCHEDULE: Readonly<Record<DayKey, PublishState>> = {
+const SCHEDULE: Readonly<Record<DayKey, State>> = {
   "2026-09-01": "published",
   "2026-09-02": "published",
   "2026-09-03": "published",
@@ -117,7 +117,7 @@ const SCHEDULE: Readonly<Record<DayKey, PublishState>> = {
 };
 
 /** The states a page can only be in by having passed through review. */
-const REVIEWED: readonly PublishState[] = Object.freeze([
+const REVIEWED: readonly State[] = Object.freeze([
   "in_review",
   "approved",
   "publishing",

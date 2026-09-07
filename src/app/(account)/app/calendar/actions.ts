@@ -44,7 +44,7 @@ import { TRANSITIONS, isTransition } from "@/lib/publish/machine/table";
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { DayCell } from "./month";
 import type { PublishingCommand, RestartCommand, StopCommand } from "./publishing";
-import { PUBLISH_STATES, type PublishState } from "./stages";
+import { STATES, type State } from "./stages";
 
 /**
  * The word the one `→ skipped` edge is offered under, at each tail that
@@ -63,7 +63,7 @@ import { PUBLISH_STATES, type PublishState } from "./stages";
  * state has the `skipped` edge, which is what makes this a projection
  * rather than a second list.
  */
-export const STOP_COMMAND: Readonly<Record<PublishState, StopCommand | null>> = Object.freeze({
+export const STOP_COMMAND: Readonly<Record<State, StopCommand | null>> = Object.freeze({
   planned: "skip",
   generating: null,
   in_review: "veto",
@@ -92,7 +92,7 @@ export const STOP_COMMAND: Readonly<Record<PublishState, StopCommand | null>> = 
  * answer, and coupled to the table by test: an entry is non-null only
  * where the state has the `generating` edge.
  */
-export const RESTART_COMMAND: Readonly<Record<PublishState, RestartCommand | null>> = Object.freeze({
+export const RESTART_COMMAND: Readonly<Record<State, RestartCommand | null>> = Object.freeze({
   planned: null,
   generating: null,
   in_review: null,
@@ -223,13 +223,13 @@ export function actionsFor(cell: DayCell): readonly DayAction[] {
 /** The tails of the `→ skipped` edge, read straight off the imported table
  *  rather than filtered through a second question. Exported for the test
  *  that couples `STOP_COMMAND` to it; no renderer reads it. */
-export const STATES_WITH_STOP_EDGE: readonly PublishState[] = PUBLISH_STATES.filter((state) =>
+export const STATES_WITH_STOP_EDGE: readonly State[] = STATES.filter((state) =>
   TRANSITIONS.some(([from, to]) => from === state && to === "skipped")
 );
 
 /** The tails of the `→ generating` edge, likewise. `RESTART_COMMAND` is a
  *  **subset** of these and not an equality: `planned` is a tail of the
  *  edge and is §8's own move, not a control (see `RESTART_COMMAND`). */
-export const STATES_WITH_RESTART_EDGE: readonly PublishState[] = PUBLISH_STATES.filter((state) =>
+export const STATES_WITH_RESTART_EDGE: readonly State[] = STATES.filter((state) =>
   TRANSITIONS.some(([from, to]) => from === state && to === "generating")
 );
