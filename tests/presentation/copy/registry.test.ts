@@ -312,7 +312,7 @@ describe("owner-owed and empty agree both ways", () => {
     expect(new Set(emptyKeys)).toEqual(new Set(OWNER_OWED));
   });
 
-  it("counts: 131 owner-owed, 257 awaiting copy, 168 ruled, 556 total (rule 5.5 — the index states its own coverage)", () => {
+  it("counts: 131 owner-owed, 258 awaiting copy, 168 ruled, 557 total (rule 5.5 — the index states its own coverage)", () => {
     // WO-070 added report.ts's eight landing keys (headline, field label,
     // submit label, five DomainProblem lines), all owner-owed: 30 + 8 = 38.
     // 2026-09-03: the owner ruled on three of them (headline, field label,
@@ -935,10 +935,16 @@ describe("owner-owed and empty agree both ways", () => {
     // puts between a press and a destroyed page — the worst place in the
     // product to render nothing. 133 - 2 = 131 owner-owed, 248 + 2 + 7 =
     // 257 awaiting copy, 168 ruled unchanged, 549 + 7 = 556 total.
+    //
+    // Then #270 mints one, `settings.competitors.add-label`: the
+    // add-a-competitor field had been labelled with the card's own heading
+    // key, so the card read "Competitors … Competitors". It takes the
+    // marker, being a screen's. 131 owner-owed and 168 ruled unchanged,
+    // 257 + 1 = 258 awaiting copy, 556 + 1 = 557 total.
     expect(OWNER_OWED.length).toBe(131);
-    expect(AWAITING_COPY.length).toBe(257);
+    expect(AWAITING_COPY.length).toBe(258);
     expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(168);
-    expect(Object.keys(COPY).length).toBe(556);
+    expect(Object.keys(COPY).length).toBe(557);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.
