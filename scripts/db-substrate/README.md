@@ -24,10 +24,15 @@ npx vitest run --project db
 ```
 
 `up.sh` assumes PostgreSQL is already listening (CI supplies it as a
-`postgres:18` service container) and starts the rest with Docker, pinned to
-`postgrest/postgrest:v16.2` and `supabase/postgres-meta:v0.99.0`. A service
-whose port already answers is left alone, so on a host without Docker you can
-start PostgREST and postgres-meta natively and `up.sh` will use those.
+`postgres:18` service container). PostgREST comes from Docker, pinned to
+`postgrest/postgrest:v16.2`; postgres-meta comes from npm, pinned to
+`@supabase/postgres-meta@0.99.0` and installed outside the tree. The
+generator has to be that exact build: the `supabase/postgres-meta:v0.99.0`
+image, same version number, emits `Json` where the package emits
+`NonNullable<Json>` for a not-null `jsonb` column, and the staleness check
+diffs those bytes. A service whose port already answers is left alone, so on
+a host without Docker you can start PostgREST natively and `up.sh` will use
+it.
 
 ## Keys
 

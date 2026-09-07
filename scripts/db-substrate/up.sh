@@ -20,7 +20,14 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 POSTGREST_IMAGE="postgrest/postgrest:v16.2"
-PGMETA_IMAGE="supabase/postgres-meta:v0.99.0"
+# postgres-meta comes from npm, not from a container: the checked-in
+# `src/lib/db/types.generated.ts` was produced by this package, and the
+# `supabase/postgres-meta:v0.99.0` image — same version number — emits `Json`
+# where the package emits `NonNullable<Json>` for a not-null jsonb column.
+# `tests/db/clients.test.ts`'s staleness check diffs those bytes, so the
+# generator has to be the same build, not merely the same release.
+PGMETA_PACKAGE="@supabase/postgres-meta@0.99.0"
+PGMETA_HOME="${PGMETA_HOME:-${RUNNER_TEMP:-/tmp}/reachkit-pgmeta}"
 
 DB_HOST="${DB_HOST:-127.0.0.1}"
 DB_PORT="${DB_PORT:-5432}"
@@ -105,16 +112,17 @@ fi
 if curl -s -o /dev/null "http://127.0.0.1:${PGMETA_PORT}/health"; then
   log "postgres-meta already answering on :${PGMETA_PORT}"
 else
-  command -v docker >/dev/null || {
-    log "no docker on this host and nothing answering :${PGMETA_PORT} — start postgres-meta natively first"; exit 1;
-  }
-  log "starting ${PGMETA_IMAGE} on :${PGMETA_PORT}"
-  docker run -d --name reachkit-pg-meta --network host \
-    -e PG_META_PORT="$PGMETA_PORT" \
-    -e PG_META_DB_URL="$DOCKER_DB_URL" \
-    "$PGMETA_IMAGE" >/dev/null
+  SERVER="${PGMETA_HOME}/node_modules/@supabase/postgres-meta/dist/server/server.js"
+  if [[ ! -f "$SERVER" ]]; then
+    log "installing ${PGMETA_PACKAGE} into ${PGMETA_HOME}"
+    mkdir -p "$PGMETA_HOME"
+    npm install --no-save --no-audit --no-fund --prefix "$PGMETA_HOME" "$PGMETA_PACKAGE" >/dev/null
+  fi
+  log "starting postgres-meta on :${PGMETA_PORT}"
+  PG_META_PORT="$PGMETA_PORT" PG_META_DB_URL="$DATABASE_URL" \
+    nohup node "$SERVER" > /tmp/pg-meta.log 2>&1 &
   wait_for_http "http://127.0.0.1:${PGMETA_PORT}/health" 60 || {
-    log "postgres-meta did not come up"; docker logs reachkit-pg-meta 2>&1 | tail -40; exit 1;
+    log "postgres-meta did not come up"; tail -40 /tmp/pg-meta.log; exit 1;
   }
 fi
 
