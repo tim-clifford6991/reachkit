@@ -26,7 +26,14 @@ import os from "node:os";
 import path from "node:path";
 import { chromium, type Page } from "playwright";
 import { enumerateRoutes } from "./routes";
-import { applyMigrations, seedAccount, seededSessionCookie, waitForSchemaCache } from "./seed";
+import {
+  applyMigrations,
+  LIVE_ACCOUNT,
+  seedAccount,
+  seededSessionCookie,
+  seedLiveAccount,
+  waitForSchemaCache,
+} from "./seed";
 
 const ROOT = path.resolve(__dirname, "../../..");
 
@@ -53,6 +60,12 @@ interface BrowserState {
    *  by the worker processes, which enumerate the routes again for
    *  themselves and must not fall back to the fixture. */
   accountCookie: string;
+  /** The same, for the **live-branch** account (#206): a non-reserved
+   *  domain, so every `/app` provider takes its database read rather than
+   *  its fixture. The four account addresses are swept twice — once as
+   *  each — because the two draw different content through the same
+   *  boxes, and the layout law is about content fitting its box. */
+  liveAccountCookie: string;
 }
 
 /** ADR-093 decision 6, amended 2026-09-03: "the viewport carries a height …
@@ -144,7 +157,9 @@ export default async function setup(): Promise<() => Promise<void>> {
   applyMigrations();
   await waitForSchemaCache();
   seedAccount();
+  seedLiveAccount();
   const accountCookie = await seededSessionCookie();
+  const liveAccountCookie = await seededSessionCookie(LIVE_ACCOUNT);
 
   const routes = enumerateRoutes(path.join(ROOT, "src/app"), { accountCookie });
   let baseURL: string | null = null;
@@ -158,7 +173,7 @@ export default async function setup(): Promise<() => Promise<void>> {
     await waitForServer(baseURL, 30_000);
   }
 
-  const state: BrowserState = { baseURL, accountCookie };
+  const state: BrowserState = { baseURL, accountCookie, liveAccountCookie };
   const stateDir = mkdtempSync(path.join(os.tmpdir(), STATE_DIR_PREFIX));
   const stateFile = path.join(stateDir, "browser-state.json");
   writeFileSync(stateFile, JSON.stringify(state), "utf8");
@@ -206,6 +221,13 @@ export function getBaseURL(): string | null {
  *  disagree about which account the sweep is signed in as. */
 export function getAccountCookie(): string {
   return readState().accountCookie;
+}
+
+/** The seeded session for the live-branch account (#206) — the one whose
+ *  domain no fixture answers for, so every `/app` provider reads the
+ *  database to draw its screen. */
+export function getLiveAccountCookie(): string {
+  return readState().liveAccountCookie;
 }
 
 /** Launches its own Chromium (never a shared connection — see this file's

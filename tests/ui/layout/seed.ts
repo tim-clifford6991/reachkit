@@ -32,7 +32,8 @@
 import { execFileSync } from "node:child_process";
 import { readdirSync } from "node:fs";
 import path from "node:path";
-import { RESERVED_ACCOUNT } from "../../app/accounts";
+import { LIVE_ACCOUNT, RESERVED_ACCOUNT } from "../../app/accounts";
+import type { AppAccount } from "@/app/(account)/app/_session/account";
 
 const ROOT = path.resolve(__dirname, "../../..");
 const MIGRATIONS_DIR = path.join(ROOT, "supabase/migrations");
@@ -43,9 +44,15 @@ const DB_USER = "reachkit";
 const DB_PASSWORD = "reachkit";
 const DB_NAME = "reachkit_scratch";
 
-/** The account's own address. Never mailed: `issueLink` writes the row and
+/** Each account's own address. Never mailed: `issueLink` writes the row and
  *  this file redeems the token straight out of the returned URL. */
-const SEEDED_EMAIL = "layout-sweep@example.com";
+const EMAIL_OF: Readonly<Record<string, string>> = {
+  [RESERVED_ACCOUNT.userId]: "layout-sweep@example.com",
+  [LIVE_ACCOUNT.userId]: "layout-sweep-live@example.com",
+};
+
+/** Kept for the callers that named it before there were two accounts. */
+const SEEDED_EMAIL = EMAIL_OF[RESERVED_ACCOUNT.userId] as string;
 
 /** The draft row the seeded site owns. The sweep's `[draftId]` fixture is
  *  **not** this id and must not become it: `readDraft` answers the reserved
@@ -54,6 +61,27 @@ const SEEDED_EMAIL = "layout-sweep@example.com";
  *  the seeded site is a whole site — an account with a scan, an
  *  opportunity and a page — rather than a shell with a session on it. */
 const SEEDED_DRAFT_ID = "00000000-0000-0000-0000-0000000000d1";
+
+/**
+ * The live account's drafts, one per state the `/app` screens draw
+ * differently (#206).
+ *
+ * Three states because that is what the shell, the overview and the
+ * calendar each read for: a page in review is what the draft address
+ * renders and what the veto window counts, a published one is what the
+ * overview's "live" reads, and a planned one is what the calendar draws on
+ * a future date. One state would leave two of the three live reads
+ * rendering an empty arm, which is not the layout this sweep is here to
+ * measure.
+ */
+const LIVE_DRAFTS: readonly { id: string; state: string; title: string }[] = Object.freeze([
+  { id: "00000000-0000-0000-0000-0000000000e1", state: "in_review", title: "How teams pick an onboarding tool" },
+  { id: "00000000-0000-0000-0000-0000000000e2", state: "published", title: "Onboarding checklists that survive week one" },
+  { id: "00000000-0000-0000-0000-0000000000e3", state: "planned", title: "What to measure after a rollout" },
+]);
+
+/** The live account's draft address — the one the live sweep renders. */
+export const LIVE_DRAFT_ID = LIVE_DRAFTS[0]?.id as string;
 
 function psql(args: string[]): string {
   return execFileSync("psql", ["-h", DB_HOST, "-p", DB_PORT, "-U", DB_USER, "-d", DB_NAME, "-q", ...args], {
@@ -152,30 +180,85 @@ function reloadPostgrestSchemaCache(): void {
  * account the presentation sweeps render as are the same account.
  */
 export function seedAccount(): void {
-  const { userId, siteId, domain, timeZone } = RESERVED_ACCOUNT;
+  seedSite(RESERVED_ACCOUNT, { drafts: [{ id: SEEDED_DRAFT_ID, state: "in_review", title: "Best onboarding tools" }] });
+}
+
+/**
+ * The second account, and the one the live branch is measured as (#206).
+ *
+ * `LIVE_ACCOUNT`'s domain is one no fixture answers for, so every `/app`
+ * provider takes its database read rather than its fixture — which is the
+ * whole point: until now no provider's live read was ever rendered under a
+ * browser at any width. It gets drafts in three states, a publication and
+ * a destination so each of those reads returns rows rather than an empty
+ * arm.
+ */
+export function seedLiveAccount(): void {
+  seedSite(LIVE_ACCOUNT, { drafts: LIVE_DRAFTS, publish: true });
+}
+
+/**
+ * One account with a whole site under it: a measured scan, an opportunity
+ * off it, and the drafts the caller asked for.
+ *
+ * §4.3's requirements are the same for both accounts — a **stated** zone
+ * (REQ-073 c1 forbids one the customer never chose), setup completed so
+ * the gate lets every `/app` address through, and access that has not
+ * ended so `hasActiveAccess()` is true.
+ */
+function seedSite(
+  account: AppAccount,
+  opts: { drafts: readonly { id: string; state: string; title: string }[]; publish?: boolean }
+): void {
+  const { userId, siteId, domain, timeZone } = account;
+  const email = EMAIL_OF[userId];
+  if (email === undefined) {
+    throw new Error(`tests/ui/layout/seed.ts: no address is declared for the account ${userId}.`);
+  }
+
   sql(
     `insert into users (id, email, plan_status, paid_through) values ` +
-      `('${userId}', '${SEEDED_EMAIL}', 'active', now() + interval '365 days');`
+      `('${userId}', '${email}', 'active', now() + interval '365 days');`
   );
   sql(
     `insert into sites (id, user_id, domain, timezone, setup_completed_at) values ` +
       `('${siteId}', '${userId}', '${domain}', '${timeZone}', now());`
   );
 
-  // A whole site: one measured scan, one opportunity off it, one page.
   const [scanId] = rows(
     `insert into scans (site_id, domain, tier, status) values ('${siteId}', '${domain}', 'deep', 'done') returning id;`
   );
-  const [opportunityId] = rows(
-    `insert into opportunities (site_id, scan_id, type, family, target_query, target_ref, proposed_slug, title, fit_band, effort, evidence, acceptance) values ` +
-      // A Write row carries a search and a band; only a Fix row has neither
-      // (`opportunities_fit_band_iff_not_fix`).
-      `('${siteId}', '${scanId}', 'answer_page', 'write', 'best onboarding tools', 'best-onboarding-tools', 'best-onboarding-tools', 'Best onboarding tools', 'winnable', 0.50, '{"family":"write"}'::jsonb, '{"check":"the page answers the question"}'::jsonb) returning id;`
-  );
+
+  for (const [index, draft] of opts.drafts.entries()) {
+    const [opportunityId] = rows(
+      `insert into opportunities (site_id, scan_id, type, family, target_query, target_ref, proposed_slug, title, fit_band, effort, evidence, acceptance) values ` +
+        // A Write row carries a search and a band; only a Fix row has neither
+        // (`opportunities_fit_band_iff_not_fix`). One opportunity per draft,
+        // because `opportunities_open_target_uniq` refuses a second open row
+        // on the same target.
+        `('${siteId}', '${scanId}', 'answer_page', 'write', 'onboarding tools ${index}', 'target-${index}', 'slug-${index}', 'Onboarding tools ${index}', 'winnable', 0.50, '{"family":"write"}'::jsonb, '{"check":"the page answers the question"}'::jsonb) returning id;`
+    );
+    sql(
+      `insert into drafts (id, opportunity_id, site_id, state, title, body_md) values ` +
+        `('${draft.id}', '${opportunityId}', '${siteId}', '${draft.state}', '${draft.title}', ` +
+        `'A paragraph of body copy, so the draft view renders a page rather than an empty one.');`
+    );
+  }
+
+  if (opts.publish !== true) return;
+
+  // The destination §4.7's card draws, and the publication the overview
+  // counts as live. Both are reads that answered nothing before #206.
   sql(
-    `insert into drafts (id, opportunity_id, site_id, state, title) values ` +
-      `('${SEEDED_DRAFT_ID}', '${opportunityId}', '${siteId}', 'in_review', 'Best onboarding tools');`
+    `insert into destinations (site_id, kind, config, health) values ('${siteId}', 'hosted', null, 'ok');`
   );
+  const published = opts.drafts.find((draft) => draft.state === "published");
+  if (published !== undefined) {
+    sql(
+      `insert into publications (draft_id, site_id, destination, mode, live_url, published_at, delivery_state) values ` +
+        `('${published.id}', '${siteId}', 'hosted', 'autopilot', 'https://content.${domain}/${published.id}', now(), 'delivered');`
+    );
+  }
 }
 
 function rows(statement: string): string[] {
@@ -192,14 +275,16 @@ function rows(statement: string): string[] {
  * cookie would measure the sign-in prompt at four addresses and report a
  * clean run, which is exactly the failure #192 had to leave a marker for.
  */
-export async function seededSessionCookie(): Promise<string> {
+export async function seededSessionCookie(
+  account: AppAccount = RESERVED_ACCOUNT
+): Promise<string> {
   const { issueLink, redeemLink, sessionCookie, SESSION_COOKIE_NAME } = await import(
     "@/lib/account/identity"
   );
 
   const issued = await issueLink({
-    userId: RESERVED_ACCOUNT.userId,
-    to: SEEDED_EMAIL,
+    userId: account.userId,
+    to: EMAIL_OF[account.userId] ?? SEEDED_EMAIL,
     purpose: "sign_in",
   });
   if (!issued.issued) {
@@ -224,4 +309,4 @@ export async function seededSessionCookie(): Promise<string> {
   return `${SESSION_COOKIE_NAME}=${cookie.value}`;
 }
 
-export { RESERVED_ACCOUNT, SEEDED_DRAFT_ID, SEEDED_EMAIL };
+export { LIVE_ACCOUNT, LIVE_DRAFTS, RESERVED_ACCOUNT, SEEDED_DRAFT_ID, SEEDED_EMAIL };
