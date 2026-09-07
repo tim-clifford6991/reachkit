@@ -1,3 +1,4 @@
+// BUILD §2.2 — daisyUI `alert`, in its four tones.
 // src/ui/components/Alert.tsx
 //
 // `components.md` §1, verbatim: "`alert`, four tones. `message` required; no

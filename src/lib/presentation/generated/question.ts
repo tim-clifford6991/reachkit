@@ -1,3 +1,4 @@
+// BUILD §2.5 — a tracked question's wording, admitted only beside the search it came from.
 // src/lib/presentation/generated/question.ts — BP-020, WO-279 (supersedes WO-043)
 //
 // REQ-093 criterion 3. The wording of one of the twelve tracked questions is

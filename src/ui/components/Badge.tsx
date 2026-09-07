@@ -1,3 +1,4 @@
+// BUILD §2.2 — daisyUI `badge`.
 // src/ui/components/Badge.tsx
 //
 // `components.md` §1, verbatim: "`badge` (+`primary`/`success`/`warning`/

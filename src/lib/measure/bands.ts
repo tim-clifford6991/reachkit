@@ -1,3 +1,4 @@
+// BUILD §5 — the band a score falls in.
 // src/lib/measure/bands.ts — WO-277 (consolidates WO-054), BP-024
 //
 // The four band handles and the boundaries they turn on. Thresholds are

@@ -1,3 +1,4 @@
+// BUILD §2.5 — one sentence, resolved from its key.
 // src/lib/presentation/copy/copy.ts — BP-020 Decisions 2 (runtime half), WO-041
 //
 // One property read plus named-slot substitution. No interpolation engine

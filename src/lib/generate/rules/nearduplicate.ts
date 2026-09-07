@@ -1,5 +1,7 @@
 // BUILD §8 hard rule 5 — the near-duplicate gate.
 //
+// BUILD §14 guardrail 3 — the near-duplicate gate, before queueing.
+//
 // "≥85% similarity vs the customer's published set = never queued." The set
 // is three sets in practice, and each is this customer's: the pages they
 // have published, the pages the product measured on their site, and the

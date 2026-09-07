@@ -1,3 +1,4 @@
+// BUILD §5 — the 0–100 composite and its drivers.
 // src/lib/measure/score.ts — WO-277 (consolidates WO-054), BP-024
 //
 // `BUILD.md` §5's arithmetic over `Measured` values. The report shows none

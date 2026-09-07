@@ -1,3 +1,4 @@
+// BUILD §5 — the score's parts, and what a cut-off factor does to it.
 // src/lib/measure/partition.ts — WO-277 (consolidates WO-053), BP-024
 //
 // The exhaustive classification REQ-004's last non-goal hands to the

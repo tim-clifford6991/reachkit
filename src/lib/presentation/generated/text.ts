@@ -1,3 +1,4 @@
+// BUILD §2.5 — model output, branded at the point it is read out of storage.
 // src/lib/presentation/generated/text.ts — BP-020, WO-279 (supersedes WO-043)
 //
 // Model output, wrapped at the point it is read out of storage. `fromStored`

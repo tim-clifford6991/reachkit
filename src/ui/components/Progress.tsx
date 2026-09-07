@@ -1,3 +1,4 @@
+// BUILD §2.2 — daisyUI `progress`.
 // src/ui/components/Progress.tsx
 //
 // `components.md` §1, verbatim: "`progress`. **Determinate only** — a

@@ -1,3 +1,4 @@
+// BUILD §6.4 — what `safeFetch` refuses before it connects.
 // src/lib/egress/policy.ts — WO-018, BP-006 `## Error & edge behavior`:
 // "Refuses by policy, before any connection: private, loopback, link-local,
 // multicast and reserved address space; non-http(s) schemes; redirects that

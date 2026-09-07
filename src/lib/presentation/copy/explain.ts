@@ -1,3 +1,4 @@
+// BUILD §2.5 — a measured value's sentence, with its provenance.
 // src/lib/presentation/copy/explain.ts — WO-042, WO-278, BP-020
 //
 // explain(): REQ-093 criterion 4. The only way a number reaches a

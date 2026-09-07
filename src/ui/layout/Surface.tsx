@@ -1,3 +1,4 @@
+// BUILD §2 — ADR-093's screen root — every screen declares its band arms.
 // src/ui/layout/Surface.tsx
 //
 // BP-018 `## Public interface`: "Every screen root is a `Surface`. `arms` is

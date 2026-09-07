@@ -1,3 +1,4 @@
+// BUILD §2.5 — the closed partition list — every sentence the product speaks.
 // src/lib/presentation/copy/registry.ts — BP-020, WO-041
 //
 // The closed partition list, written once (BP-020 decision 5). Every

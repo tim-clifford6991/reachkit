@@ -1,3 +1,4 @@
+// BUILD §2.3 — the two families, self-hosted.
 // src/ui/fonts.ts
 //
 // BP-018 `## Module / boundary`: "src/ui/fonts.ts" — the one font-loading

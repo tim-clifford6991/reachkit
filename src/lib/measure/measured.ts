@@ -1,3 +1,4 @@
+// BUILD §5 — REQ-004's trichotomy — measured, zero, unmeasured.
 // src/lib/measure/measured.ts — WO-277 (consolidates WO-052), BP-024
 //
 // The trichotomy REQ-004 makes a customer promise. Every stored number and

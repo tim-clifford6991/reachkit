@@ -1,3 +1,4 @@
+// BUILD §2.2 — daisyUI `btn`.
 // src/ui/components/Btn.tsx
 //
 // `components.md` §1, verbatim: "daisyUI `btn` (+`primary`/`ghost`/`sm`/

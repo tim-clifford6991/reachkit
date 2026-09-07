@@ -1,3 +1,4 @@
+// BUILD §2 — the layout module's one public entry.
 // src/ui/layout/index.ts
 //
 // Barrel for BP-018's layout module (ADR-093). Exports exactly the five

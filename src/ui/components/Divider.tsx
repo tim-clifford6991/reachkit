@@ -1,3 +1,4 @@
+// BUILD §2.2 — daisyUI `divider`.
 // src/ui/components/Divider.tsx
 //
 // `components.md` §1, verbatim: "`divider`. Layout only" | "—" (no states).

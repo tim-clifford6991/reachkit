@@ -1,3 +1,4 @@
+// BUILD §2.2 — daisyUI `kbd`.
 // src/ui/components/Kbd.tsx
 //
 // `components.md` §1, verbatim: "`kbd`. Renders through the mono utility —

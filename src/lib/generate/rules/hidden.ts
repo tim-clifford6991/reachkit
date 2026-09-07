@@ -1,4 +1,5 @@
-// BUILD §8 · §14 — nothing in the text handed to a destination that a
+// BUILD §8 hard rule 7, and BUILD §14's standing line — nothing in the
+// text handed to a destination that a
 // reader of the published page would not see.
 //
 // This rule runs over the **Markdown and the markup embedded in it**, not

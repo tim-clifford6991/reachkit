@@ -1,5 +1,7 @@
 // BUILD §8 hard rule 3 — not a doorway.
 //
+// BUILD §14 guardrail 4 — no doorway pages.
+//
 // "Answers the target question before naming the product (checked: first
 // 300 chars contain no brand mention)." The 300 is `GENERATION.brandGapChars`
 // and is counted over the words a reader of the published page meets — not
