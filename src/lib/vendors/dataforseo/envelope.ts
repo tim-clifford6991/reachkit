@@ -194,6 +194,86 @@ export async function ledgered<T>(
   return measured(rows, at);
 }
 
+/**
+ * `ledgered`, for a call whose answer is more than its rows (#117).
+ *
+ * The only endpoint that needs this today is `ranked_keywords`, whose
+ * `total_count` is the size of the domain rather than of the page of rows
+ * bought — a fact `Measured<T[]>` has nowhere to put and, more to the
+ * point, nowhere to *cache*. A total read off the response and dropped
+ * before `recordFetch` would be missing on every cache hit, and a 30-day
+ * rival window means almost every read is one.
+ *
+ * **The zero-result shape is normalised here, at the call site, exactly as
+ * `src/lib/costs/cache.ts`'s header requires.** That seam recognises
+ * `null`/`undefined`/`[]` and nothing else, and it must keep recognising
+ * this call's zero: a vendor answer with no rows is cached as `[]`, so it
+ * stays a miss and is re-bought and re-ledgered, which is BP-007 decision
+ * 3 and the cold-start law. Only a non-empty answer travels as
+ * `{ rows, total }`.
+ */
+export async function ledgeredWithTotal<T>(
+  c: CostContext,
+  call: {
+    source: string;
+    cacheKey: string;
+    freshnessDays: number;
+    costCents: number;
+    fetch: () => Promise<VendorOutcome>;
+    parse: (result: unknown) => { rows: T[]; total: number | null } | undefined;
+  }
+): Promise<Measured<{ rows: readonly T[]; total: number | null }>> {
+  const at = new Date();
+  const startedMs = Date.now();
+  let failure: string | undefined;
+
+  type Payload = { rows: T[]; total: number | null } | [] | null;
+
+  const result = await c.recordFetch<Payload>({
+    source: call.source,
+    cacheKey: call.cacheKey,
+    freshnessDays: call.freshnessDays,
+    costCents: call.costCents,
+    run: async (): Promise<Payload> => {
+      const out = await call.fetch();
+      if (!out.ok) {
+        failure = out.reason;
+        return null;
+      }
+      const parsed = call.parse(out.result);
+      if (parsed === undefined) {
+        failure = "dataforseo: unparseable result";
+        return null;
+      }
+      // The vendor's own zero-result, in the shape the cache reads as one.
+      return parsed.rows.length === 0 ? [] : parsed;
+    },
+  });
+
+  if ("skipped" in result) {
+    logVendorCall({ source: call.source, outcome: "cap", rows: 0, costCents: 0, fresh: false, durationMs: Date.now() - startedMs });
+    return unmeasured("not_attempted", at);
+  }
+
+  const payload = result.payload;
+  const rows = payload === null || Array.isArray(payload) ? [] : payload.rows;
+  logVendorCall({
+    source: call.source,
+    outcome: payload === null ? "failed" : "ok",
+    rows: rows.length,
+    costCents: result.costCents,
+    fresh: result.fresh,
+    durationMs: Date.now() - startedMs,
+    ...(failure ? { reason: failure } : {}),
+  });
+
+  if (payload === null) return unmeasured("undeterminable", at);
+  // A domain that ranks for nothing: zero rows and a total of zero, which
+  // is a measurement and not an absence.
+  if (Array.isArray(payload)) return measuredZero<{ rows: readonly T[]; total: number | null }>({ rows: [], total: 0 }, at);
+  return measured({ rows: payload.rows, total: payload.total }, at);
+}
+
 /** BP-008's observability line — endpoint, rows returned, cost, cache hit
  *  or miss, duration. Field set is closed; nothing from the request (so
  *  never the credential, never a query) reaches it. */

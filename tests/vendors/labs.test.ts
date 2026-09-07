@@ -58,10 +58,57 @@ describe("BUILD §6.3 — rankedKeywords parses the vendor's own shape into Rank
 
     expect(result.kind).toBe("measured");
     if (result.kind !== "measured") throw new Error("unreachable");
-    expect(result.value).toEqual([
+    expect(result.value.rows).toEqual([
       { keyword: "crm software", position: 4, searchVolume: 1900, url: "https://example.com/crm" },
       { keyword: "best crm", position: 11, searchVolume: 480, url: "https://example.com/best" },
     ]);
+    // No `total_count` in this envelope: `null`, never the row count in
+    // disguise, so the reader can tell "we do not know" from a real total.
+    expect(result.value.total).toBeNull();
+  });
+
+  // ── issue #117 ──────────────────────────────────────────────────────────
+  it("carries the vendor's own `total_count` beside the rows, uncapped by the row limit", async () => {
+    stubVendorFetch(() =>
+      envelope({
+        total_count: 4231,
+        items_count: 2,
+        items: [rankedItem("crm software", 4, 1900, "https://example.com/crm"), rankedItem("best crm", 11, 480, "https://example.com/best")],
+      })
+    );
+    const { ctx } = fakeCostContext();
+    const result = await labs.rankedKeywords(ctx, { domain: "example.com", rows: 50 });
+
+    expect(result.kind).toBe("measured");
+    if (result.kind !== "measured") throw new Error("unreachable");
+    // The point of the issue: a total far above any row count this product
+    // ever buys. Under `rows.length` the `far` band was unreachable.
+    expect(result.value.total).toBe(4231);
+    expect(result.value.rows).toHaveLength(2);
+  });
+
+  it("does not read `items_count` as a total — it is the rows returned under another name", async () => {
+    stubVendorFetch(() =>
+      envelope({ items_count: 1, items: [rankedItem("crm software", 4, 1900, "https://example.com/crm")] })
+    );
+    const { ctx } = fakeCostContext();
+    const result = await labs.rankedKeywords(ctx, { domain: "example.com", rows: 50 });
+
+    expect(result.kind).toBe("measured");
+    if (result.kind !== "measured") throw new Error("unreachable");
+    expect(result.value.total).toBeNull();
+  });
+
+  it("buys no extra rows for the total — the limit is still the row count asked for", async () => {
+    const stub = stubVendorFetch(() =>
+      envelope({ total_count: 9000, items: [rankedItem("k", 1, 10, "https://example.com/k")] })
+    );
+    const { ctx, ledgered } = fakeCostContext();
+    await labs.rankedKeywords(ctx, { domain: "example.com", rows: 100 });
+
+    expect(stub.requests).toHaveLength(1);
+    expect(stub.tasks[0]).toMatchObject({ limit: 100 });
+    expect(ledgered).toEqual([constants.PRICE_BOOK.RANKED_RIVAL_COST_C]);
   });
 
   it("sends the row count as the vendor's `limit` and the domain as its `target`", async () => {
@@ -86,7 +133,9 @@ describe('BP-008 error behaviour — "Zero rows is a legal, billed result … ne
 
     expect(measured.kind).toBe("zero");
     if (measured.kind !== "zero") throw new Error("unreachable");
-    expect(measured.value).toEqual([]);
+    // Zero rows and a total of zero: a domain that ranks for nothing is a
+    // measurement, not an absence.
+    expect(measured.value).toEqual({ rows: [], total: 0 });
     // Billed: the vendor was reached and charged, so the ledger carries the
     // price whether or not the domain ranks for anything.
     expect(ledgered).toEqual([constants.PRICE_BOOK.RANKED_FREE_COST_C]);

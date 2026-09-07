@@ -87,13 +87,20 @@ const SITE = "site-1";
 const CLAIMED_ID = "33333333-3333-4333-8333-333333333333";
 
 /** `n` ranked rows, which is what a count is read from. */
-function rows(n: number) {
-  const value = Array.from({ length: n }, (_, i) => ({
-    keyword: `k${i}`,
-    position: 1,
-    searchVolume: 10,
-    url: "https://rival.example/",
-  }));
+/** One `ranked_keywords` answer (#117): `n` rows, and the vendor's own
+ *  total beside them. `null` — the vendor reported none — is the default,
+ *  so the count falls back to the rows and every assertion written before
+ *  #117 still says what it said. */
+function rows(n: number, total: number | null = null) {
+  const value = {
+    rows: Array.from({ length: n }, (_, i) => ({
+      keyword: `k${i}`,
+      position: 1,
+      searchVolume: 10,
+      url: "https://rival.example/",
+    })),
+    total,
+  };
   return n === 0 ? measuredZero(value, AT) : measured(value, AT);
 }
 
