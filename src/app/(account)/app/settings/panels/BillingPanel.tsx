@@ -36,15 +36,32 @@
 import type React from "react";
 import { Btn } from "@/ui/components/Btn";
 import { Card } from "@/ui/components/Card";
-import { copy } from "@/lib/presentation/copy";
+import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
 import { useAction } from "./useAction";
 import { PLAN_KEY, PRICE_KEYS, type BillingSummary } from "../billing";
 
+/** REQ-097 c6's three statements, in the order the criterion names them.
+ *  One key each: a single key would let the second and third be lost by
+ *  writing the first (#136's own reasoning, applied to the read as well as
+ *  to the press). */
+const BILLING_UNREADABLE_KEYS: readonly CopyKey[] = [
+  "settings.billing.unreachable",
+  "settings.billing.try-again",
+  "settings.billing.reach-a-person",
+];
+
 export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element {
   const { billing } = p;
   const action = useAction();
-  const cancelling = writtenLine("settings.billing.cancelling", { date: billing.accessUntil });
+  // REQ-097 c5 keeps every billing *value* off this surface, so an
+  // unreadable read costs the customer two statements and no number: the
+  // plan word, the price and the one control still stand, and the date and
+  // the cancel/resume choice — the two things that depend on having read
+  // the account — are replaced by REQ-097 c6's three sentences (#228).
+  const cancelling = billing.readable
+    ? writtenLine("settings.billing.cancelling", { date: billing.accessUntil })
+    : null;
 
   // The three price keys, in the order every price surface speaks them,
   // with the owner-owed ones dropped rather than rendered as a gap.
@@ -81,7 +98,7 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
           size="sm"
           onClick={() => action.run("invoices")}
         />
-        {billing.state === "active" ? (
+        {!billing.readable ? null : billing.state === "active" ? (
           <span data-testid="action-cancel">
             <Btn label={copy("settings.billing.cancel")} size="sm" onClick={() => action.run("cancel")} />
           </span>
@@ -92,6 +109,17 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
         )}
       </div>
 
+      {billing.readable ? null : (
+        <div className="flex min-w-0 flex-col gap-1" data-testid="billing-unreadable">
+          {BILLING_UNREADABLE_KEYS.map((key) => ({ key, line: writtenLine(key) }))
+            .filter((written) => written.line !== null)
+            .map((written) => (
+              <p className="text-xs opacity-60 wrap-anywhere" key={written.key}>
+                {written.line}
+              </p>
+            ))}
+        </div>
+      )}
       {cancelling === null ? null : (
         <p className="text-xs opacity-60 wrap-anywhere" data-testid="billing-cancelling">
           {cancelling}

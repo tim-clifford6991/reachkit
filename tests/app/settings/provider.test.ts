@@ -1,12 +1,16 @@
-// tests/app/settings/provider.test.ts — BUILD §4.7's one read, and the
-// destinations half of it (#48).
+// tests/app/settings/provider.test.ts — BUILD §4.7's reads (#228)
 //
 // The screen's destinations list is not assembled here and never was: it
 // comes from the publishing registry, which is where a destination's
 // state, its written line and its action are decided. This suite asserts
-// that the provider actually reaches it — and that the fixture path,
-// which is every render there is until identity lands (#35), reaches no
-// database at all.
+// that the store actually reaches it, and that a read which cannot be made
+// degrades to a **stated** arm.
+//
+// The mutation these rows kill is the one #228 was opened for: a fact that
+// falls back to `FIXTURE_SETTINGS_FACTS` on a real account. A fixture value
+// is a claim — a plan state the customer never held, a destination they
+// never connected — and a customer acting on one is worse off than a
+// customer told the product could not read it.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeDb, type Row } from "../../publish/harness";
 
@@ -24,12 +28,50 @@ vi.mock("@/lib/publish/destinations/registry", () => ({
   }),
 }));
 
-import { currentSiteId, readDestinations, readSettings } from "@/app/(account)/app/settings/provider";
+vi.mock("@/lib/mail/notifications", () => ({
+  readNotifyPrefs: async () => ({ "draft-ready": true, published: true, weekly: false }),
+}));
+
+vi.mock("@/lib/account/identity", () => ({
+  accountCard: async () => ({
+    name: "A Founder",
+    email: "founder@example.com",
+    pending: null,
+    noteKeys: ["settings.account.magic-link", "settings.account.note.change"],
+  }),
+}));
+
+import { readLiveSettingsFacts } from "@/app/(account)/app/settings/store";
 import { FIXTURE_SETTINGS_FACTS } from "@/app/(account)/app/settings/fixture";
+import { LIVE_ACCOUNT } from "../accounts";
+
+const ACCOUNT = { ...LIVE_ACCOUNT, siteId: "site-1", timeZone: "America/New_York" };
 
 function seed(over: Row = {}): void {
+  // Deliberately different from `FIXTURE_SETTINGS_FACTS` in every field
+  // the spread used to supply: a row that matched the fixture could not
+  // tell a read from a spread.
   db.seed("sites", [
-    { id: "site-1", user_id: "user-1", domain: "example.com", publishing_enabled: true },
+    {
+      id: "site-1",
+      user_id: "user-1",
+      domain: "acme.test",
+      mode: "copilot",
+      veto_hours: 48,
+      publish_time: "07:30",
+      timezone: "America/New_York",
+      publishing_enabled: false,
+      voice_text: "Terse.",
+      do_not_claim: ["never the fastest"],
+      category: "agency project management",
+      competitors: ["asana.com"],
+    },
+  ]);
+  db.seed("publications", [
+    { id: "pub-1", site_id: "site-1", published_at: "2026-09-01", unpublished_at: null },
+    { id: "pub-2", site_id: "site-1", published_at: "2026-09-02", unpublished_at: null },
+    { id: "pub-3", site_id: "site-1", published_at: "2026-09-03", unpublished_at: "2026-09-04" },
+    { id: "pub-4", site_id: "site-other", published_at: "2026-09-01", unpublished_at: null },
   ]);
   db.seed("destinations", [
     {
@@ -57,7 +99,9 @@ beforeEach(() => {
 describe("the destinations half is wired to the registry", () => {
   it("a known site is read through `listDestinations`, action and copy keys included", async () => {
     seed();
-    const [view] = await readDestinations("site-1");
+    const facts = await readLiveSettingsFacts(ACCOUNT);
+    expect(facts.destinationsReadable).toBe(true);
+    const [view] = facts.destinations;
     expect(view).toMatchObject({
       id: "dest-1",
       health: "error",
@@ -69,62 +113,106 @@ describe("the destinations half is wired to the registry", () => {
 
   it("a disconnected destination is not in the list the screen renders", async () => {
     seed({ deleted_at: "2026-09-05T00:00:00.000Z" });
-    expect(await readDestinations("site-1")).toEqual([]);
+    const facts = await readLiveSettingsFacts(ACCOUNT);
+    expect(facts.destinations).toEqual([]);
+    // Read, and empty. Not the same fact as unreadable.
+    expect(facts.destinationsReadable).toBe(true);
+  });
+
+  it("a read that cannot be made is stated, never the fixture's own destination", async () => {
+    seed();
+    vi.doMock("@/lib/publish/destinations", () => ({
+      listDestinations: () => Promise.reject(new Error("unreachable")),
+    }));
+    vi.resetModules();
+    const { readLiveSettingsFacts: read } = await import("@/app/(account)/app/settings/store");
+    const facts = await read(ACCOUNT);
+    expect(facts.destinationsReadable).toBe(false);
+    expect(facts.destinations).toEqual([]);
+    expect(facts.destinations).not.toBe(FIXTURE_SETTINGS_FACTS.destinations);
+    vi.doUnmock("@/lib/publish/destinations");
+    vi.resetModules();
   });
 });
 
-describe("the site is the signed-in account's, and the fixture path says so", () => {
-  it("`currentSiteId()` is the account's own site (#42)", () => {
-    expect(currentSiteId({ siteId: "site-1" })).toBe("site-1");
+describe("every settings fact is read for the account that owns it (#228)", () => {
+  it("the nine facts that were the fixture's are the site's own", async () => {
+    seed();
+    const facts = await readLiveSettingsFacts(ACCOUNT);
+    // The fixture's values, for comparison: none of them may appear here
+    // by having been spread rather than read.
+    expect(facts.mode).toBe("copilot");
+    expect(facts.vetoHours).toBe(48);
+    expect(facts.publishTime).toBe("07:30");
+    expect(facts.publishingEnabled).toBe(false);
+    expect(facts.voiceText).toBe("Terse.");
+    expect(facts.doNotClaim).toEqual(["never the fastest"]);
+    expect(facts.publishedPages).toBe(2);
+    expect(facts.notifyPrefs).toEqual({ "draft-ready": true, published: true, weekly: false });
   });
 
-  it("and `null` where no session names one — never a fabricated id", () => {
-    // A made-up id would send a real query to a row that does not exist and
-    // draw an empty destinations list for every customer.
-    expect(currentSiteId(null)).toBeNull();
+  it("and none of them equals the fixture's, which is what the spread used to give them", async () => {
+    seed();
+    const facts = await readLiveSettingsFacts(ACCOUNT);
+    expect(facts.mode).not.toBe(FIXTURE_SETTINGS_FACTS.mode);
+    expect(facts.vetoHours).not.toBe(FIXTURE_SETTINGS_FACTS.vetoHours);
+    expect(facts.publishTime).not.toBe(FIXTURE_SETTINGS_FACTS.publishTime);
+    expect(facts.publishingEnabled).not.toBe(FIXTURE_SETTINGS_FACTS.publishingEnabled);
+    expect(facts.voiceText).not.toBe(FIXTURE_SETTINGS_FACTS.voiceText);
+    expect(facts.publishedPages).not.toBe(FIXTURE_SETTINGS_FACTS.publishedPages);
   });
 
-  it("with no site id, the fixture's own destinations stand in", async () => {
-    expect(await readDestinations(null)).toBe(FIXTURE_SETTINGS_FACTS.destinations);
+  it("REQ-071's pending change is computed from the two answers, not spread from the fixture (#204)", async () => {
+    seed();
+    // The current scan measured a different domain from the one the site
+    // declares, which *is* the pending change (ADR-030: a difference, never
+    // a record).
+    db.seed("scans", [
+      {
+        id: "scan-1",
+        site_id: "site-1",
+        domain: "acme-old.test",
+        is_current: true,
+        created_at: "2026-09-01T00:00:00.000Z",
+        report: { category: "agency project management" },
+      },
+    ]);
+    const facts = await readLiveSettingsFacts(ACCOUNT);
+    expect(facts.pendingChange?.kind).toBe("domain");
+    expect(facts.pendingChange?.effectiveOn).toBeInstanceOf(Date);
+    // And the screen's own before-the-save state, which no server read can
+    // know: the customer's keystrokes are in their browser.
+    expect(facts.editing).toBeNull();
   });
 
-  it("and no query is made: a screen that asks the database nothing must not reach it", async () => {
-    await readDestinations(null);
-    expect(db.queries).toHaveLength(0);
+  it("no current scan is no pending change — not the fixture's `null` by accident", async () => {
+    seed();
+    const facts = await readLiveSettingsFacts(ACCOUNT);
+    expect(facts.pendingChange).toBeNull();
+    expect(FIXTURE_SETTINGS_FACTS.pendingChange).toBeNull();
+  });
+
+  it("the domain and the zone come from the session's own row, not a second read of it", async () => {
+    seed();
+    const facts = await readLiveSettingsFacts(ACCOUNT);
+    expect(facts.domain).toBe(ACCOUNT.domain);
+    expect(facts.timeZone).toBe(ACCOUNT.timeZone);
   });
 });
 
-describe("readSettings assembles the model around whatever the destinations read returned", () => {
-  it("it carries the registry's view, not a shape of the screen's own", async () => {
-    const model = await readSettings();
-    for (const destination of model.destinations) {
-      expect(destination).toHaveProperty("action");
-      expect(destination).toHaveProperty("copy");
-      expect(destination).toHaveProperty("lastCheckedAt");
-    }
-  });
-
-  it("the fixture holds exactly one destination — one live destination per site", async () => {
-    const model = await readSettings();
-    expect(model.destinations).toHaveLength(1);
-  });
-});
-
-describe("the one read on this screen is bounded, so a database that will not answer costs the card and not the screen (#133)", () => {
-  it("a billing read that never settles falls back to the fixture's facts", async () => {
-    // #133 made every `(account)` route render per request, so this read
-    // is now on the path of every settings render. A `catch` alone does
-    // not cover a hang: a request that never settles never rejects, and
-    // the layout conformance sweep renders this screen against a database
-    // that is not there.
+describe("billing degrades to a stated arm, never to the fixture's plan (#228)", () => {
+  it("a read that never settles is bounded, and states that it could not be read", async () => {
+    seed();
     vi.doMock("@/lib/account/billing", () => ({
       billingSummary: () => new Promise<never>(() => {}),
     }));
     vi.resetModules();
-    const { readBillingFacts } = await import("@/app/(account)/app/settings/provider");
+    const { readLiveSettingsFacts: read } = await import("@/app/(account)/app/settings/store");
 
     const started = Date.now();
-    await expect(readBillingFacts("user-1")).resolves.toEqual(FIXTURE_SETTINGS_FACTS.billing);
+    const facts = await read(ACCOUNT);
+    expect(facts.billing.readable).toBe(false);
+    expect(facts.billing).not.toMatchObject({ state: expect.anything() });
     expect(Date.now() - started).toBeLessThan(3_000);
 
     vi.doUnmock("@/lib/account/billing");

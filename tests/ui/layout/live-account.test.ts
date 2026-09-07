@@ -31,7 +31,8 @@ import {
   TRUNCATION_ALLOWLIST,
 } from "./checks";
 import { enumerateRoutes, headersFor, SEGMENT_FIXTURES, urlFor as routeUrl } from "./routes";
-import { LIVE_ACCOUNT, LIVE_DRAFT_ID } from "./seed";
+import { LIVE_ACCOUNT, LIVE_DRAFT_ID, LIVE_PUBLISHING } from "./seed";
+import { FIXTURE_SETTINGS_FACTS } from "@/app/(account)/app/settings/fixture";
 import { widths } from "./widths";
 
 const APP_ROOT = path.resolve(__dirname, "../../../src/app");
@@ -155,5 +156,40 @@ describe(`live-branch sweep — ${routes.length} route(s) × 5 widths`, () => {
       }
     },
     PER_ROUTE_BROWSER_MS * 4
+  );
+
+  it(
+    "/app/settings states the settings this account chose, not the fixture's (#228)",
+    async () => {
+      // The address answering itself is not enough for this one screen.
+      // Until #228 `readSettings` opened with `{ ...FIXTURE_SETTINGS_FACTS,
+      // ...four live overrides }`, so `/app/settings` rendered, passed
+      // every check above, and told a real customer their pages publish at
+      // 09:00 under a mode they never chose. What distinguishes the two is
+      // the *values on the page*, so those are what this reads.
+      const text = await withPage(
+        widths()[0],
+        async (page) => {
+          await page.goto(`${getBaseURL()}/app/settings`, { timeout: LIVE_NAVIGATION_MS });
+          return page.evaluate(() => document.body.innerText);
+        },
+        headersFor({ path: "/app/settings", cookie: getLiveAccountCookie() })
+      );
+
+      // Chosen, and seeded as such: the publish time, the veto window and
+      // the domain this account owns.
+      expect(text).toContain(LIVE_PUBLISHING.publishTime);
+      expect(text).toContain(String(LIVE_PUBLISHING.vetoHours));
+      expect(text).toContain(LIVE_ACCOUNT.domain);
+
+      // And not the fixture's, which is the same screen's other arm. The
+      // fixture's own publish time and window are what a spread put here
+      // for every account; the domain is not the discriminator, because
+      // this account's *address* is at `example.com` by design (the sweep
+      // mails nobody, and the domain it is measured under is its own).
+      expect(text).not.toContain(FIXTURE_SETTINGS_FACTS.publishTime);
+      expect(text).not.toContain(FIXTURE_SETTINGS_FACTS.email);
+    },
+    PER_ROUTE_BROWSER_MS
   );
 });
