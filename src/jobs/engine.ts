@@ -253,6 +253,32 @@ export async function advanceSequence(a: {
   return { done: true };
 }
 
+/**
+ * The whole sweep, for the hourly `lead/nurture` tick (#182).
+ *
+ * The owner's ruling on that issue chose a due-work tick over chained
+ * events: `advanceSequences` already drops what missed its start deadline,
+ * releases the next waiting sequence per address, and sends every touch
+ * that has come round by `next_touch_at` — the three steps in that order,
+ * decided in `src/lib/mail/leads/sequence.ts` and not re-derived here.
+ *
+ * **A tick reports what it moved, never what it looked at.** Zero of all
+ * three is a legitimate hour and is `done` — a sweep that found nothing due
+ * did its whole job. There is no `degraded` arm: a touch the send seam
+ * refused is still owed, and the next tick re-reads the row and tries
+ * again, which is the property that made the clock the safer shape. The
+ * per-touch path above cannot do that, because a declined event is never
+ * re-delivered.
+ */
+export async function advanceDueSequences(now: Date): Promise<{
+  readonly dropped: number;
+  readonly released: number;
+  readonly sent: number;
+}> {
+  const { advanceSequences } = await import("@/lib/mail/leads/sequence");
+  return advanceSequences(now);
+}
+
 // ── Payments and provisioning — BUILD §13 (issue #33)
 // Built, like the weekly measurement above: `src/lib/account/provisioning/**`
 // owns the rules, and the four wrappers here do nothing but pass a clock

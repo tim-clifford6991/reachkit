@@ -48,6 +48,10 @@ function engineDouble(): Record<string, unknown> {
     publishApproved: ran,
     verifyLive: ran,
     advanceSequence: ran,
+    advanceDueSequences: async () => {
+      engineCalls.count += 1;
+      return { dropped: 0, released: 0, sent: 1 };
+    },
     paymentsAwaitingSignIn: none,
     chaseSignIn: ran,
     paymentsWithoutAccounts: none,
@@ -69,7 +73,6 @@ const PAYLOADS: Readonly<Record<string, Readonly<Record<string, unknown>>>> = {
   "scan/run": { scanId: "scan-1", domain: "example.com", tier: "free" },
   "publish/execute": { draftId: "draft-1", destinationId: "dest-1" },
   "publish/verify": { publicationId: "pub-1" },
-  "lead/nurture": { leadId: "lead-1", touchIndex: 0 },
 };
 
 async function invoke(id: JobId, killSwitch: boolean) {
