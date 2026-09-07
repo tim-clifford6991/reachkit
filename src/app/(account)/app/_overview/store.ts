@@ -13,26 +13,57 @@
 //   supply            §7's own count — `supplyDepth`
 //   waiting           §9's `in_review` and `needs_attention` drafts
 //
-// **What is honestly unmeasured, and why that is the right answer.** The
-// weekly series, the AI-answer presence and the rival set are read out of
-// the stored weekly reports, and the reader that turns a `StoredReport`
-// into a screen's series is §11's and §6.6's (#41, #27) — it does not exist
-// yet. So this file states `unmeasured` for them rather than a number, and
-// REQ-004 is exactly why that is a value and not a `null`: an unmeasured
-// reading says *that* it was not measured, and every module on this screen
-// already draws that arm. A customer who signed in today has no measured
-// week in any case, so the arm they see is the one the screen was designed
-// to open on — and it is theirs, which is the whole of this issue.
+//   points / aiPresence   §11's stored weekly scans — `readWeekScans`
+//   changes               §4.7's change markers — `changeMarkers`
 //
-// A fixture in its place would put another account's numbers on their
-// screen, which is the defect being removed here; a fabricated zero would
-// be worse still, because a zero is a claim (`measuredZero`) and this
-// product does not make claims it has not measured.
-import { SUPPLY_SHORT_BELOW } from "@/lib/config/constants";
+// **The weekly series is read, not stubbed** (issue #213). This file used
+// to answer `points: []` and `aiPresence: []` unconditionally, on the
+// grounds that "the reader that turns a `StoredReport` into a screen's
+// series is #41's and #27's". Both landed long ago, so every real account
+// was drawing the unmeasured arm of two tiles and an empty chart whatever
+// had been measured for it — a stub that had outlived its reason and read
+// as a measurement. The readers are §11's own (`readWeekScans` in
+// `src/lib/scan/weekly/`), and this file projects what they return.
+//
+// **Three rules the projection keeps, each of which is REQ-004:**
+//
+//  1. **A week with no row is not a point with a zero.** It is
+//     `unmeasured`, which is what makes the chart break at it rather than
+//     draw a line through a week nobody measured.
+//  2. **The window does not start before the customer did.** Weeks before
+//     the first measured one are omitted, not carried as unmeasured
+//     leading points: the AI window pads its own front (`aiWindow`), and
+//     those are weeks that were never owed rather than weeks that were
+//     missed.
+//  3. **`unmeasured` is still the whole answer where nothing has been
+//     measured.** A customer who signed in today has no measured week, and
+//     the arm they see is the one the screen was designed to open on — now
+//     because it is true of them, rather than because the reader was
+//     missing.
+//
+// **The rival set stays unmeasured, and that is not this issue.** §6.6's
+// per-rival sizing over weeks is #27's; the confirmed set is empty here and
+// `resolveRivals` draws its cold-start arm from that, which is what it
+// drew before. Filling `own` alone from the weekly report would flip the
+// module to its ratio arm with no rows in it — a visual change with no
+// mockup, and one this issue's boxes do not ask for.
+//
+// A fixture in any of these places would put another account's numbers on
+// their screen; a fabricated zero would be worse still, because a zero is a
+// claim (`measuredZero`) and this product does not make claims it has not
+// measured.
+import { OVERVIEW_TRAILING_WEEKS, SUPPLY_SHORT_BELOW } from "@/lib/config/constants";
 import { dbAdmin } from "@/lib/db";
+// Imported by file rather than through `@/lib/market/changes`: the barrel
+// also re-exports the declared answers and the pending-change computation,
+// and this screen needs the markers alone. The same reason
+// `access-gate.ts` reaches its seam by file (ADR-050).
+import { changeMarkers, type ChangeMarker } from "@/lib/market/changes/markers";
 import { unmeasured, measured, type Measured } from "@/lib/measure/measured";
-import { nextDueOn } from "@/lib/scan/weekly";
+import type { StoredReport } from "@/lib/scan/report";
+import { nextDueOn, previousWeekStart, readWeekScans, weekStartFor } from "@/lib/scan/weekly";
 import type { OverviewFacts } from "./model";
+import type { WeeklyPoint } from "./growth";
 import type { WaitingItem } from "./alerts";
 
 export interface OverviewSite {
@@ -102,6 +133,81 @@ async function waitingItems(siteId: string): Promise<readonly WaitingItem[]> {
   }));
 }
 
+/** The trailing window's Mondays, oldest first, in the site's own zone.
+ *  `OVERVIEW_TRAILING_WEEKS` of them — the same window the chart draws and
+ *  the AI tile counts over, so the screen's two readings can never mean
+ *  different weeks. */
+function windowWeeks(now: Date, timeZone: string): string[] {
+  const weeks: string[] = [weekStartFor({ at: now, zone: timeZone })];
+  for (let back = 1; back < OVERVIEW_TRAILING_WEEKS; back += 1) {
+    weeks.unshift(previousWeekStart(weeks[0] as string));
+  }
+  return weeks;
+}
+
+/** A `week_start` as the instant a surface states it at. Midday UTC, so a
+ *  Monday rendered in a zone either side of it is still that Monday. */
+function mondayOf(weekStart: string): Date {
+  return new Date(`${weekStart}T12:00:00.000Z`);
+}
+
+/** The customer's own ranked count for a week — §4.5's "searches you appear
+ *  in", already `Measured` on the report and carried across as it is. A
+ *  week whose pass did not reach it says so itself. */
+function ownRankedOf(report: StoredReport | null, at: Date): Measured<number> {
+  return report === null ? unmeasured<number>("not_attempted", at) : report.ownRanked;
+}
+
+/** Whether the customer was named in at least one tracked question's AI
+ *  answer that week (DECISIONS 2026-09-03's one reading).
+ *
+ *  `null` is a week that was not measured, and `false` is a week that was:
+ *  the two are different facts and the matrix draws them differently — a
+ *  blank cell against an empty one — so a week whose pass never reached the
+ *  AI answers must not read as a miss. */
+function presentInAnswers(report: StoredReport | null): boolean | null {
+  if (report === null || report.aiAnswers === null) return null;
+  return report.aiAnswers.customerCitations > 0;
+}
+
+/**
+ * The weekly series, its AI-answer presence and the dates it breaks at.
+ *
+ * One read for the window (`readWeekScans`) and one for the markers, run
+ * together. The series starts at the **first measured week** rather than at
+ * the window's edge: the weeks before it were never owed, and carrying them
+ * as unmeasured points would draw eleven gaps for a customer measured once.
+ */
+async function weeklySeries(
+  site: OverviewSite,
+  now: Date
+): Promise<{ points: WeeklyPoint[]; aiPresence: (boolean | null)[]; changes: readonly ChangeMarker[] }> {
+  const weeks = windowWeeks(now, site.timeZone);
+  const scans = await readWeekScans({ siteId: site.siteId, weekStarts: weeks });
+
+  const first = weeks.findIndex((week) => scans.has(week));
+  if (first === -1) return { points: [], aiPresence: [], changes: [] };
+
+  const measuredWeeks = weeks.slice(first);
+  const points = measuredWeeks.map((week): WeeklyPoint => {
+    const at = mondayOf(week);
+    return { weekStart: at, value: ownRankedOf(scans.get(week)?.report ?? null, at) };
+  });
+  const aiPresence = measuredWeeks.map((week) => presentInAnswers(scans.get(week)?.report ?? null));
+
+  // The dates the series breaks at (REQ-071 c12/c13). Derived from the
+  // scans themselves — this screen states no change of its own — and
+  // bounded by the window it draws, so a change from before the first
+  // point cannot break a chart that does not span it.
+  const changes = await changeMarkers({
+    siteId: site.siteId,
+    from: points[0]?.weekStart ?? now,
+    to: now,
+  });
+
+  return { points, aiPresence, changes };
+}
+
 /**
  * Everything §4.5 states about one real account.
  *
@@ -112,21 +218,23 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
   const now = new Date();
   const { supplyDepth } = await import("@/lib/opportunities");
 
-  const [firstDueOn, published, depth, waiting] = await Promise.all([
+  const [firstDueOn, published, depth, waiting, series] = await Promise.all([
     nextDueOn({ siteId: site.siteId, now }),
     pagesPublished(site.siteId, now),
     supplyDepth(site.siteId),
     waitingItems(site.siteId),
+    weeklySeries(site, now),
   ]);
 
   return {
     timeZone: site.timeZone,
-    // §11's series and §6.6's rival set, once a reader for the stored
-    // weekly reports exists (#41, #27). Empty is not a claim: `readGrowth`
-    // answers its `none` arm from `firstDueOn`, which is a real date.
-    points: [],
+    // §11's stored weeks, projected (#213). Empty is still not a claim:
+    // where nothing has been measured `readGrowth` answers its `none` arm
+    // from `firstDueOn`, which is a real date.
+    points: series.points,
     firstDueOn,
-    aiPresence: [],
+    aiPresence: series.aiPresence,
+    changes: series.changes,
     pagesPublished: published,
     rivals: {
       own: unmeasured<number>("not_attempted", now),

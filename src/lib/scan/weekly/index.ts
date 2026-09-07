@@ -25,3 +25,8 @@ export { isWeeklyDue, localClock, nextDueAfter, weekKey, weekStartFor } from "./
 // and one spelling (`weekKey`) across the tick that writes them and the
 // screen that counts them (issue #169).
 export { weeksAlreadyStamped } from "./store";
+// §4.5's series is a *window* of weeks, not one week: `readWeekScans` is
+// the trailing window in one read, so Overview's render path costs one
+// round trip rather than twelve (issue #213).
+export type { WeekScan } from "./store";
+export { readWeekScan, readWeekScans } from "./store";

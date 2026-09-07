@@ -60,6 +60,9 @@ beforeEach(() => {
     points: [],
     firstDueOn: new Date("2026-09-14T10:00:00.000Z"),
     aiPresence: [],
+    // No answer has changed under this account, and nothing has been
+    // measured for it to break anyway (issue #213).
+    changes: [],
     pagesPublished: unmeasured<number>("not_attempted", new Date()),
     rivals: { own: unmeasured<number>("not_attempted", new Date()), rivals: [] },
     today: new Date("2026-09-08T12:00:00.000Z"),

@@ -24,6 +24,8 @@ const facts = (over: Partial<OverviewFacts> = {}): OverviewFacts => ({
   points: [week(10, 36), week(17, 81)],
   firstDueOn: new Date(Date.UTC(2026, 8, 7)),
   aiPresence: [true, true],
+  // No answer has changed: the ordinary frame (issue #213).
+  changes: [],
   pagesPublished: measured(11, AT(17)),
   rivals: { own: measuredZero(0, AT(17)), rivals: [] },
   supply: { exhausted: false, short: false, firstArrivalShortfall: false },
@@ -129,6 +131,41 @@ describe("the head, and the badge only a rising series earns", () => {
     expect(model.head.key).toBe(OVERVIEW_HEAD.rising);
     expect(model.head.badgeKey).toBe("overview.head.badge");
     expect(model.head.weeksMeasured).toBe(2);
+  });
+
+  // issue #213 — REQ-071 c13: a count of weeks may not span a date the
+  // answers changed. The pair is what discriminates: the same two points
+  // count 2 with no change and 1 with a change between them, and an
+  // implementation still reading `measuredPoints.length` passes the first
+  // and fails the second.
+  it("a count of weeks never spans a change — it runs from the last one", () => {
+    const model = assembleOverview(
+      facts({ changes: [{ kind: "domain", on: new Date(Date.UTC(2026, 7, 17, 9, 0)) }] })
+    );
+    expect(model.head.weeksMeasured).toBe(1);
+  });
+
+  it("a change in the week of a point counts that point — the week under the new answer", () => {
+    // The marker falls on the Wednesday of the week of Monday the 17th, so
+    // the 17th's own measurement is the first one under the new answer.
+    const model = assembleOverview(
+      facts({ changes: [{ kind: "category", on: new Date(Date.UTC(2026, 7, 19, 9, 0)) }] })
+    );
+    expect(model.head.weeksMeasured).toBe(1);
+  });
+
+  it("with several changes the count runs from the last of them", () => {
+    const model = assembleOverview(
+      facts({
+        points: [week(3, 10), week(10, 36), week(17, 81)],
+        aiPresence: [true, true, true],
+        changes: [
+          { kind: "domain", on: new Date(Date.UTC(2026, 7, 10, 9, 0)) },
+          { kind: "category", on: new Date(Date.UTC(2026, 7, 17, 9, 0)) },
+        ],
+      })
+    );
+    expect(model.head.weeksMeasured).toBe(1);
   });
 
   it("a falling series selects the falling key and emits no badge", () => {

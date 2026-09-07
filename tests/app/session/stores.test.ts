@@ -55,6 +55,16 @@ vi.mock("@/lib/db", () => {
 
 vi.mock("@/lib/scan/weekly", () => ({
   nextDueOn: async () => new Date("2026-09-14T10:00:00.000Z"),
+  // Issue #213 — the store reads the trailing window of stored weeks. This
+  // suite is about the *other* four facts, so the weekly reader answers
+  // "no week has a row", which is the arm every case here was written
+  // against: a site with nothing measured.
+  weekStartFor: () => "2026-09-07",
+  previousWeekStart: (weekStart: string) => {
+    const midday = Date.parse(`${weekStart}T12:00:00.000Z`) - 7 * 86_400_000;
+    return new Date(midday).toISOString().slice(0, 10);
+  },
+  readWeekScans: async () => new Map(),
 }));
 
 vi.mock("@/lib/opportunities", () => ({
@@ -167,9 +177,15 @@ describe("§4.5 — what has not been measured is said, not guessed", () => {
     expect(facts.pagesPublished).toMatchObject({ kind: "measured", value: 1 });
   });
 
-  it("the weekly series and the rival set are unmeasured, never a fabricated zero", async () => {
+  it("a site with no measured week reads an empty series and an unmeasured rival set", async () => {
+    // Issue #213: the series is read now, and this is the arm where the
+    // read comes back with nothing — a customer who has not been measured
+    // yet. `tests/app/overview/store.test.ts` drives the other arms from
+    // rows; what matters here is that an empty read stays empty rather
+    // than becoming a line at zero.
     const facts = await readOverviewFacts({ siteId: "site-1", timeZone: "America/New_York" });
     expect(facts.points).toEqual([]);
+    expect(facts.aiPresence).toEqual([]);
     expect(facts.rivals.own.kind).toBe("unmeasured");
     // A `zero` would be a claim that this customer ranks for nothing
     // (REQ-004); `unmeasured` says only that nobody has looked.
