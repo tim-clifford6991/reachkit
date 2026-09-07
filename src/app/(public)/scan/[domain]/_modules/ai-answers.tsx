@@ -175,11 +175,17 @@ function AnswerColumns(p: { rows: AnswerRows }): React.JSX.Element | null {
 function QuestionRow(p: { row: { question: StoredQuestion; cell: AnswerCell } }): React.JSX.Element {
   const { question, cell } = p.row;
   const namesCustomer = cell.kind === "answered" && cell.namesCustomer;
+  // The brands the AI answer named, from the cell that measured them
+  // (#103). They rode on the question until then, which put a fact about
+  // the *answer* on the object beside it and made a third copy of this
+  // very list. A question whose answer named nobody names none — an empty
+  // list, never a claim.
+  const namedBrands = cell.kind === "answered" ? cell.citedDomains : [];
   const [wording, provenance] = renderQuestion({
     wording: question.wording,
     provenance: copy("ai-answers.question.provenance", {
       search: question.search,
-      brands: question.namedBrands.join(", "),
+      brands: namedBrands.join(", "),
     }),
   });
 

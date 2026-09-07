@@ -95,6 +95,55 @@
 // (`CLAUDE.md`). What is stored is what the product measures: whether the
 // engine answered, and whom it named.
 //
+// ── #103 — one home per fact, and the one ruling that keeps two shapes ──
+//
+// Reconciling #13's screen shape with #25's pipeline record left two facts
+// looking as though they had two homes each. Collapsing either is a
+// decision rather than a tidy-up, so here is the decision.
+//
+// **The category has one home: `market`.** It was carried twice —
+// `category: string | null` beside the verdict strip, and
+// `market.profile.category` — with `sections.ts`'s `categoryOf` deriving
+// the first from the second, so they could not disagree *at write time*.
+// That is not the same as having one home: nothing stopped a later writer
+// setting one and not the other, and a derived member on a stored blob is
+// a value that outlives the derivation that made it. The member is gone
+// (version 5); every reader calls `categoryOf(report.market)`, which is
+// the one derivation and always was.
+//
+// **The twelve questions keep two shapes, and this is why.** The record's
+// `questions: Measured<Question[]>` is the measurement: each selected
+// search with its keyword, volume, intent, score and rank, read by the
+// opportunity ranking and by the paid pass's frozen question set.
+// `aiAnswers.rows[].question` is a *projection* of it for the screen —
+// numbered, and with its wording behind `GeneratedText` so no surface can
+// reach the raw string except through `renderQuestion` (REQ-093 c3,
+// ADR-012).
+//
+// The gate is what makes the second shape necessary, and a gate is not a
+// second home: it is the only representation a surface may hold. What
+// keeps the two from drifting is that the projection has exactly one
+// writer — `storedQuestionOf` in `sections.ts` — and is derived from the
+// record at assembly, never supplied independently.
+//
+// The projection carried a fourth member until #103, and that one *was* a
+// second home: `namedBrands`, the brands the AI answer named. It is a fact
+// about the answer, not the question, and the row that holds the question
+// already holds the cell it came from — so it was a third copy of
+// `cell.citedDomains` sitting on the wrong object. Gone in version 5; the
+// screen reads the cell.
+//
+// **ADR-095's "it" is the blob, not `MarketSet`.** The DECISIONS line
+// reads "the report blob's market section takes the leaf's shape, and
+// coherence is a member of it", and "it" is ambiguous between the two.
+// The archived ADR-095 decision 3 settles it in as many words —
+// "`StoredReport` gains `coherence: CoherenceVerdict`, unwrapped" — and
+// the shipped `MarketSet` (#26) is `{ profile, suggestions, totalVolume }`
+// with no coherence member. `coherence` therefore stays where #100 put it,
+// on the blob, and the reason is recorded here rather than left to be
+// re-derived. `DECISIONS.md` is the owner's file; the clarification is
+// theirs to write.
+//
 // Nothing here is optional-by-accident: a section that could not be
 // produced is `null`, which the screen renders as a named absent section
 // with one written line (REQ-004 c10/c11), never as an empty card and
@@ -127,7 +176,7 @@ export type StoppedReason = "complete" | "time_ceiling" | "spend_ceiling" | "fai
  *  it does not know throws rather than returning a partially-populated
  *  value: `null` would be indistinguishable from "no report" at every call
  *  site. */
-export const REPORT_VERSION = 4;
+export const REPORT_VERSION = 5;
 
 /** One cell of the AI-answers matrix — one question, one measured SERP.
  *  BP-025 `## Public interface` (issue #26's `matrix.ts` owns it). An
@@ -153,14 +202,27 @@ export type { EngineCell, BatteryEngine } from "@/lib/market/questions/matrix";
  *
  *  No `volume` member. The owner removed per-question `{vol}/mo` on
  *  2026-09-03; a field that does not exist cannot be rendered by mistake. */
+/**
+ * One question, as the *screen* stores it.
+ *
+ * **Not a second home for the twelve** — see this file's header ruling.
+ * `questions: Measured<Question[]>` below is the measurement; this is the
+ * one representation a surface may hold, and it carries exactly what the
+ * gate and the list need: the number the list shows, the wording behind
+ * `GeneratedText`, and the search the question was phrased from.
+ *
+ * It carried a fourth member until #103: `namedBrands`, the brands the AI
+ * answer named. That is not a fact about the question at all — it is the
+ * *cell's*, and the row that holds this question already holds that cell,
+ * so the member was a third copy of `cell.citedDomains` on the wrong
+ * object. The screen reads it from the cell now.
+ */
 export interface StoredQuestion {
   /** 1-based, the number the list shows beside the question. */
   n: number;
   wording: GeneratedText;
   /** The search this question was derived from (REQ-006 c9). */
   search: string;
-  /** The brands the AI answer named, in the order the answer named them. */
-  namedBrands: readonly string[];
 }
 
 /** BUILD §4.1 module 2, left card. BP-025's `AiAnswersCard`, plus the
@@ -260,8 +322,6 @@ export interface StoredReport {
    *  place. `Verdict.blockedReaders` is the *count* of these and stays
    *  where it is — one measurement, two readings, no second count. */
   blockedAgents: readonly (typeof AI_READER_AGENTS)[number][];
-  /** The market category the profile inferred, shown beside the score. */
-  category: string | null;
   aiAnswers: AiAnswersSection | null;
   presence: PresenceSection | null;
   supply: SupplySection;
@@ -275,11 +335,14 @@ export interface StoredReport {
    *  three fail together and never apart, which is why one `Measured`
    *  wraps the whole set (ADR-095). */
   market: Measured<MarketSet>;
-  /** The twelve, or as many as the market yielded, with the selected
-   *  search each was phrased from. Not `aiAnswers.rows[].question`, which
-   *  is the same twelve as the *screen* stores them: gated behind
-   *  `GeneratedText`, numbered, and carrying no volume (owner ruling
-   *  2026-09-03). Two readers, two shapes, one measurement. */
+  /** **The twelve, and their one home** (#103). Each carries the selected
+   *  search it was phrased from, with that search's keyword, volume,
+   *  intent, score and rank — the measurement, which the opportunity
+   *  ranking and the paid pass's frozen question set read.
+   *
+   *  `aiAnswers.rows[].question` is not a second home for it: it is a
+   *  projection of this, derived at assembly by exactly one function, and
+   *  the header states the ruling that keeps it one. */
   questions: Measured<Question[]>;
   /** The bought top-tens, one per question, in question order. Every card
    *  above was counted over exactly these. */
@@ -342,7 +405,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /** The version this build's own migration knows how to lift, and the only
  *  one: a report written before issue #128 bought the paid battery. */
-const MIGRATABLE_VERSION = 3;
+const MIGRATABLE_VERSIONS: readonly number[] = [3, 4];
 
 /** The two battery columns of a report written before anything bought
  *  them. `not_attempted` and not `no_answer`: nobody asked these engines,
@@ -369,13 +432,59 @@ function engineColumnsAtVersion3(overview: unknown): unknown[] {
 function upgradeFromVersion3(blob: Record<string, unknown>): Record<string, unknown> {
   const answers = blob.aiAnswers;
   if (!isRecord(answers) || !Array.isArray(answers.rows)) {
-    return { ...blob, version: REPORT_VERSION };
+    return { ...blob, version: 4 };
   }
   const rows = answers.rows.map((row) =>
     isRecord(row) ? { ...row, engines: engineColumnsAtVersion3(row.cell) } : row
   );
-  return { ...blob, version: REPORT_VERSION, aiAnswers: { ...answers, rows } };
+  return { ...blob, version: 4, aiAnswers: { ...answers, rows } };
 }
+
+/**
+ * Version 4 → 5 (#103): the two facts that had two homes lose their second
+ * one.
+ *
+ * `category` was `categoryOf(market)` written a second time, and
+ * `aiAnswers.rows[].question.namedBrands` was the row's own
+ * `cell.citedDomains` written a third time. Both are dropped here; both
+ * readers derive them, from the home each fact actually has.
+ *
+ * **Dropping is safe precisely because nothing could disagree yet.** Both
+ * were derived at assembly by one function, so no stored blob carries a
+ * value the surviving home does not already imply — which is why this is a
+ * migration and not a re-measurement, and why a v4 report renders exactly
+ * as it did.
+ *
+ * Total: a blob whose `aiAnswers` is `null`, or whose rows are not rows,
+ * needs only its version moved.
+ */
+function without(record: Record<string, unknown>, key: string): Record<string, unknown> {
+  const out = { ...record };
+  delete out[key];
+  return out;
+}
+
+function upgradeFromVersion4(blob: Record<string, unknown>): Record<string, unknown> {
+  const rest = without(blob, "category");
+  const answers = rest.aiAnswers;
+  if (!isRecord(answers) || !Array.isArray(answers.rows)) {
+    return { ...rest, version: REPORT_VERSION };
+  }
+  const rows = answers.rows.map((row) => {
+    if (!isRecord(row) || !isRecord(row.question)) return row;
+    return { ...row, question: without(row.question, "namedBrands") };
+  });
+  return { ...rest, version: REPORT_VERSION, aiAnswers: { ...answers, rows } };
+}
+
+/** Every upgrade this build can apply, oldest first, each lifting a blob
+ *  one version. Chained rather than switched on, so a version-3 report is
+ *  lifted twice and lands readable — a build that only knew `n → latest`
+ *  would have to grow a new function per old version per release. */
+const UPGRADES: readonly ((blob: Record<string, unknown>) => Record<string, unknown>)[] = [
+  upgradeFromVersion3,
+  upgradeFromVersion4,
+];
 
 /** The version guard, and the one upgrade beside it. Throws — loudly — on
  *  a blob this build can neither read nor lift, because `null` reads as
@@ -385,7 +494,12 @@ export function readStoredReport(blob: unknown): StoredReport {
   if (!isRecord(blob)) {
     throw new Error("readCurrentReport: the stored report is not an object");
   }
-  const current = blob.version === MIGRATABLE_VERSION ? upgradeFromVersion3(blob) : blob;
+  let current = blob;
+  while (typeof current.version === "number" && MIGRATABLE_VERSIONS.includes(current.version)) {
+    const upgrade = UPGRADES[current.version - MIGRATABLE_VERSIONS[0]!];
+    if (upgrade === undefined) break;
+    current = upgrade(current);
+  }
   if (current.version !== REPORT_VERSION) {
     throw new Error(
       `readCurrentReport: stored report version ${String(blob.version)} is not readable by this build (expected ${REPORT_VERSION})`

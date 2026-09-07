@@ -24,6 +24,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { fakeDb, type DbQuery } from "../scan/run/harness";
 import { CAPS } from "../../src/lib/config/constants";
 import type { FetchOutcome, RobotsPolicy } from "../../src/lib/egress/types";
+import { categoryOf } from "@/lib/scan/sections";
 
 
 // A stranger's own domain, deliberately not a reserved name: the fixture
@@ -367,7 +368,11 @@ describe("/ → /scan/{domain}: a stranger scans and reads a report (JN-001, JN-
     // No section is omitted, and each says what it is.
     // The screen's own sections, and the record beside them.
     expect(report.blockedAgents).toBeDefined();
-    expect(report.category).toBe("user onboarding software");
+    // #103: the category has one home — the market the profile inferred —
+    // and `categoryOf` is the one derivation the screen reads it through.
+    expect(categoryOf(report.market as Parameters<typeof categoryOf>[0])).toBe(
+      "user onboarding software"
+    );
     for (const section of ["market", "questions", "serps", "onPage", "robots", "coherence", "correctionState"]) {
       expect(report[section]).toBeDefined();
     }

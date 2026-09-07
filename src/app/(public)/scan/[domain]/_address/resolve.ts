@@ -38,6 +38,7 @@ import { parseDomain, type CanonicalDomain } from "@/lib/scan/domain";
 import { readCurrentReport, type StoredReport } from "@/lib/scan/report";
 import { correctionOffer } from "@/lib/market/coherence/offer";
 import type { AddressControl, AddressNotice, AddressRefusal, AddressState } from "./state";
+import { categoryOf } from "@/lib/scan/sections";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -251,7 +252,7 @@ function correctionOfferStands(report: StoredReport, now: Date): boolean {
     report: {
       scanId: report.scanId,
       measuredAt: report.verdict.measuredAt,
-      category: report.category,
+      category: categoryOf(report.market),
       correctionState: report.correctionState,
       // Row 2 already returned for a removed domain, so by here it is not.
       domainRemoved: false,

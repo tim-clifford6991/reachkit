@@ -181,7 +181,6 @@ export const FIXTURE_REPORT: StoredReport = {
     blockedReaders: measured(4, MEASURED_AT),
   },
   blockedAgents: AI_READER_AGENTS.slice(0, 4),
-  category: "product analytics",
   aiAnswers: {
     measuredSearches: 12,
     answeredSearches: 9,

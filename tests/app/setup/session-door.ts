@@ -77,11 +77,21 @@ export function reportFactory(actual: Record<string, unknown>): Record<string, u
     ...actual,
     readCurrentReport: async (domain: string) => {
       const report = setupSession.reports.get(domain);
+      // #103: the category has one home — the market the profile inferred
+      // — so the double carries the market rather than a second member the
+      // blob no longer has.
       return report === undefined
         ? null
         : {
             scanId: report.scanId,
-            category: report.category,
+            market:
+              report.category === null
+                ? { kind: "unmeasured", reason: "not_attempted", at: new Date(0) }
+                : {
+                    kind: "measured",
+                    at: new Date(0),
+                    value: { profile: { category: report.category } },
+                  },
             presence: { rivals: report.rivals.map((domainName) => ({ domain: domainName })) },
           };
     },

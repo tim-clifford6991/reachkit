@@ -51,7 +51,14 @@ function storedReport(over: Partial<{
     scanId: "scan-1",
     complete: over.complete ?? true,
     fromIncompleteRescan: over.fromIncompleteRescan ?? false,
-    category: "product analytics",
+    // #103: the category has one home — the market the profile inferred.
+    // `resolve.ts` derives it with `categoryOf`, so the double carries the
+    // market rather than a second member.
+    market: {
+      kind: "measured",
+      at: measuredAt,
+      value: { profile: { category: "product analytics" } },
+    },
     correctionState: over.correctionState ?? "none",
     verdict: { measuredAt, missing: over.missing ?? [] },
   } as unknown as StoredReport;
