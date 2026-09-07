@@ -912,8 +912,14 @@ describe("owner-owed and empty agree both ways", () => {
     // Nothing #246 moved is minted here, so the two batches compose:
     // 134 owner-owed and 168 ruled unchanged, 241 + 6 = 247 awaiting
     // copy, 543 + 6 = 549 total.
-    expect(OWNER_OWED.length).toBe(134);
-    expect(AWAITING_COPY.length).toBe(247);
+    //
+    // Then #261 moved one key across, minting none: `optout.unavailable`
+    // is read by a *screen*, and a screen shows the marker rather than
+    // going down over an owner-owed line. 134 - 1 = 133 owner-owed,
+    // 247 + 1 = 248 awaiting copy, 549 total unchanged — the arithmetic
+    // that says a key moved rather than appeared.
+    expect(OWNER_OWED.length).toBe(133);
+    expect(AWAITING_COPY.length).toBe(248);
     expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(168);
     expect(Object.keys(COPY).length).toBe(549);
 
