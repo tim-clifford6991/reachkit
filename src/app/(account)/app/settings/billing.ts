@@ -54,6 +54,22 @@ export const PLAN_KEY = "plan.single" satisfies CopyKey;
  *  how two surfaces come to quote two prices. */
 export const PRICE_KEYS: readonly CopyKey[] = PRICE_COPY_KEYS;
 
+/** REQ-097 criterion 6's answer when the billing surface cannot be produced
+ *  (issue #136): the customer is told "that billing cannot be reached, that
+ *  they may try again, and one way to reach a person".
+ *
+ *  **Three keys and not one sentence.** They are three different facts —
+ *  what happened, what the customer may do about it, and who they can ask —
+ *  and a single key would let two of the three be dropped by writing the
+ *  first. The order is the criterion's own. Every one is the owner's to
+ *  write; the card renders whichever are written and nothing where they are
+ *  not. */
+export const UNREACHABLE_BILLING_KEYS: readonly CopyKey[] = Object.freeze([
+  "settings.billing.unreachable",
+  "settings.billing.try-again",
+  "settings.billing.reach-a-person",
+] satisfies CopyKey[]);
+
 export interface BillingSummary {
   state: PlanState;
   /** The `{date}` of §4.7's "cancelling keeps everything running until
