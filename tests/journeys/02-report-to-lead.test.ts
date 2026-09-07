@@ -393,22 +393,22 @@ describe('"Email me the full page" → lead → first page → a follow-up that 
     expect(mailsOfKind("mail.nurture")).toHaveLength(0);
 
     // The first touch goes through the job, at the seam the platform
-    // reaches: the event's own `(leadId, touchIndex)` into
-    // `advanceSequence()`, into the sequence module, the compose shell and
-    // the send seam. `run` is called rather than `runJob` because the kill
-    // switch does not cover §11's lead work and has its own suite.
-    const leadId = theOneLead().id;
+    // reaches: since #182 that is an hourly tick carrying no payload, into
+    // `advanceDueSequences()`, into the sequence module, the compose shell
+    // and the send seam. A tick has no single subject, which is what
+    // `subjectId: null` says. `run` is called rather than `runJob` because
+    // the kill switch does not cover §11's lead work and has its own suite.
     expect(
-      await leadNurture.run({ data: { leadId, touchIndex: 0 }, now: atTouch(startedAt, 0) })
-    ).toEqual({ outcome: "ran", subjectId: leadId });
+      await leadNurture.run({ data: {}, now: atTouch(startedAt, 0) })
+    ).toEqual({ outcome: "ran", subjectId: null });
     expect(theOneLead().touch_count).toBe(1);
     expect(mailsOfKind("mail.nurture")).toHaveLength(1);
 
-    // The same event delivered a second time sends nothing: `(leadId,
-    // touchIndex)` is per-touch dedupe inside the sequence.
+    // The same tick run a second time sends nothing: `next_touch_at` has
+    // moved on, and the row's own position is what a re-run reads.
     expect(
-      await leadNurture.run({ data: { leadId, touchIndex: 0 }, now: atTouch(startedAt, 0) })
-    ).toEqual({ outcome: "ran", subjectId: leadId });
+      await leadNurture.run({ data: {}, now: atTouch(startedAt, 0) })
+    ).toEqual({ outcome: "skipped", subjectId: null, reason: "not-due" });
     expect(theOneLead().touch_count).toBe(1);
     expect(mailsOfKind("mail.nurture")).toHaveLength(1);
 
