@@ -25,6 +25,10 @@ const site = vi.hoisted(() => ({
   createStatus: "publish" as string,
   createdMeta: true,
   tagsWritable: true,
+  /** What the credential's own account answers about managing terms — the
+   *  question `canStamp` puts before this adapter writes a term into
+   *  somebody's site (#160). */
+  manageCategories: true,
   searchAnswers: true,
   nextId: 100,
 }));
@@ -48,7 +52,11 @@ vi.mock("@/lib/egress", () => ({
     });
 
     if (path === "/") return json(200, { namespaces: site.namespaces });
-    if (path.startsWith("/wp/v2/users/me")) return json(200, { capabilities: { publish_posts: true } });
+    if (path.startsWith("/wp/v2/users/me")) {
+      return json(200, {
+        capabilities: { publish_posts: true, ...(site.manageCategories ? { manage_categories: true } : {}) },
+      });
+    }
     if (path.startsWith("/wp/v2/tags?") && method === "GET") {
       return json(200, site.tags);
     }
@@ -119,6 +127,7 @@ beforeEach(() => {
   site.createStatus = "publish";
   site.createdMeta = true;
   site.tagsWritable = true;
+  site.manageCategories = true;
   site.searchAnswers = true;
   site.nextId = 100;
 });
@@ -277,6 +286,27 @@ describe("ADR-083 — the findability stamp, in the create call and never afterw
     site.tags = [{ id: 42, slug: WORDPRESS.stampSlug }];
     const result = (await WORDPRESS_ADAPTER.deliver(PAGE, CFG, "draft-1")) as WordPressDelivery;
     expect(writes().filter((r) => r.path === "/wp/v2/tags")).toHaveLength(0);
+    expect(result.stampApplied).toBe(true);
+  });
+
+  // issue #160 — the stamp is *asked about* before it is written.
+  it("a credential the site says cannot manage terms is never asked to make one", async () => {
+    site.manageCategories = false;
+    const result = (await WORDPRESS_ADAPTER.deliver(PAGE, CFG, "draft-1")) as WordPressDelivery;
+    expect(writes().filter((r) => r.path === "/wp/v2/tags")).toEqual([]);
+    // The page is still delivered: this is not a failed delivery, it is a
+    // delivery with no stamp on it (ADR-083 Decision 4).
+    expect(result.ok).toBe(true);
+    expect(result.stampApplied).toBe(false);
+  });
+
+  it("the term the site already has is used without the probe being put at all", async () => {
+    // The lookup comes first, so the ordinary second delivery to a site
+    // that took the stamp once costs no extra read.
+    site.tags = [{ id: 42, slug: WORDPRESS.stampSlug }];
+    site.manageCategories = false;
+    const result = (await WORDPRESS_ADAPTER.deliver(PAGE, CFG, "draft-1")) as WordPressDelivery;
+    expect(site.requests.filter((r) => r.path.startsWith("/wp/v2/users/me"))).toEqual([]);
     expect(result.stampApplied).toBe(true);
   });
 });

@@ -35,6 +35,14 @@
 //    the price: it is done first, before the vendor read, because the
 //    vendor arm below may return early and a gate registered after that
 //    return would be a gate registered on some boots only.
+//  - **The deleted-account mail's WordPress place port not being wired**
+//    is registered here and does not throw (issue #160). The seam in
+//    `src/lib/account/lifecycle/left-in-wordpress.ts` answers "no place"
+//    while nothing is registered, which is a true answer rather than a
+//    broken one — every sentence still carries its count — so an
+//    unregistered port costs one mail its link and nothing else. It is
+//    registered beside the gate because it is the same kind of fact: local,
+//    needing nobody, and done before the vendor arm that may return early.
 //  - A live Price that **differs from `PRICE_OBJECT_SPEC`** throws out of
 //    `register()`, carrying `PriceObjectMismatch`'s own message: the field,
 //    what was expected, what was found. A deployment that would charge
@@ -56,7 +64,7 @@
  *  is a name from a closed set — never a binding's value, never a vendor
  *  payload, never the price id. */
 function log(
-  check: "checkout" | "access-gate",
+  check: "checkout" | "access-gate" | "stamp-place",
   outcome: "checked" | "unchecked",
   reason?: string
 ): void {
@@ -83,6 +91,14 @@ export async function register(): Promise<void> {
   const { installActiveAccessGate } = await import("@/lib/account/billing");
   await installActiveAccessGate();
   log("access-gate", "checked");
+
+  // ADR-083 Decision 4's port, for the same reason and in the same place:
+  // local, needing nobody, and ahead of the arm that may return early.
+  const { installStampCapability } = await import(
+    "@/lib/publish/destinations/wordpress/stamp-place"
+  );
+  installStampCapability();
+  log("stamp-place", "checked");
 
   const { assertCheckoutBootInvariants } = await import("@/lib/account/checkout/boot");
   const { PriceObjectMismatch } = await import("@/lib/account/checkout/price-object");

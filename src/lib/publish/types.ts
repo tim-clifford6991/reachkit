@@ -384,6 +384,27 @@ export interface DestinationAdapter {
    *  capability proved by creating something leaves a post behind whenever
    *  the tidy-up fails. */
   canPublish?(cfg: DestinationConfig): Promise<boolean>;
+  /** **Can this site carry ADR-083's findability stamp?** (REQ-060 c6,
+   *  ADR-083 Decision 4.) Optional for the same reason `canPublish` is: a
+   *  destination ReachKit runs has no such question to answer.
+   *
+   *  **Never merged with `canPublish`, and never returned together with
+   *  it.** They gate different things — `canPublish` false holds the queue
+   *  and decides `error`/`cannot_publish`; `canStamp` false is a *working*
+   *  destination that publishes normally and only loses criterion 6's
+   *  list — so one capability set would invite a caller to gate on the
+   *  wrong member, and the caller that did would either hold a healthy
+   *  customer's publishing or tell them to look in a list that is not
+   *  there.
+   *
+   *  **It is not a health input.** The check records what it found on
+   *  `destinations.stamp_capable` and lets the destination's state alone:
+   *  a site that will not take a term is not a broken destination.
+   *
+   *  **`false` is an answer; a read that failed is not**, and **it makes no
+   *  write to the customer's site** — both for the reasons `canPublish`
+   *  gives. */
+  canStamp?(cfg: DestinationConfig): Promise<boolean>;
 }
 
 // ── The draft, as the machine sees it ───────────────────────────────────
