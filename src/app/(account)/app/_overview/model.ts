@@ -19,6 +19,7 @@
 // §11's weekly measurement (#41), §9's publishing (#45) and the rival sizing
 // (#27)). Keeping the assembly pure is what lets every rule above be decided
 // by a test with no database and no browser at all.
+import type { ChangeMarker } from "@/lib/market/changes/markers";
 import type { Measured } from "@/lib/measure/measured";
 import type { CopyKey } from "@/lib/presentation/copy";
 import { OVERVIEW_TRAILING_WEEKS } from "@/lib/config/constants";
@@ -106,6 +107,12 @@ export interface OverviewFacts {
    *  question's AI answer, oldest first; `null` where the week was not
    *  measured. */
   aiPresence: readonly (boolean | null)[];
+  /** The dates inside the window at which an answer this site is measured
+   *  under changed (REQ-071 c12/c13, issue #213). Supplied here and read
+   *  by two things: the week count below, which may not span one, and the
+   *  break in the drawn series, which is #205's. Empty for a site whose
+   *  answers have not changed, which is most of them. */
+  changes: readonly ChangeMarker[];
   pagesPublished: Measured<number>;
   pagesPublishedPrevious?: Measured<number>;
   rivals: RivalFacts;
@@ -133,7 +140,7 @@ export function assembleOverview(facts: OverviewFacts): OverviewModel {
       // started, so it is emitted on `rising` and nowhere else, and only
       // over the weeks actually measured (BP-038 decision 4).
       ...(direction === "rising" ? { badgeKey: "overview.head.badge" satisfies CopyKey } : {}),
-      weeksMeasured: measuredPoints.length,
+      weeksMeasured: weeksSinceChange(measuredPoints, facts.changes),
     },
     growth,
     searches: {
@@ -167,6 +174,46 @@ export function assembleOverview(facts: OverviewFacts): OverviewModel {
     alerts,
     ...(overflow ? { overflow } : {}),
   };
+}
+
+/**
+ * How many weeks the count on this screen may speak for.
+ *
+ * REQ-071 c13: a count of weeks may not span a date the answers changed —
+ * the weeks either side were measured under different answers, and one
+ * number over both would be a number about two different sites. So the
+ * count runs from the **last** change inside the window, and where there
+ * has been none it is every measured week, which is what it was before
+ * there was anything to break it (issue #213).
+ *
+ * The comparison is on the week's own Monday: a change measured mid-week
+ * belongs to the week it was measured in, and that week is the first one
+ * under the new answer.
+ */
+function weeksSinceChange(
+  measuredPoints: readonly WeeklyPoint[],
+  changes: readonly ChangeMarker[]
+): number {
+  const last = changes.reduce<Date | null>(
+    (latest, marker) => (latest === null || marker.on > latest ? marker.on : latest),
+    null
+  );
+  if (last === null) return measuredPoints.length;
+  const changed = weekOf(last);
+  return measuredPoints.filter((point) => weekOf(point.weekStart) >= changed).length;
+}
+
+/** The Monday of the week a date falls in, as a calendar date.
+ *
+ *  Compared as a **week** and never as an instant: a marker is stamped with
+ *  the measurement's own time of day and a point with its week's, so two
+ *  dates inside one week would otherwise order by hours and drop the very
+ *  week the change happened in — the first week under the new answer, and
+ *  the one the count must start from. */
+function weekOf(at: Date): string {
+  const midnight = Date.UTC(at.getUTCFullYear(), at.getUTCMonth(), at.getUTCDate());
+  const weekday = (new Date(midnight).getUTCDay() + 6) % 7;
+  return new Date(midnight - weekday * 86_400_000).toISOString().slice(0, 10);
 }
 
 /** The change since the previous measurement. Never computed across an

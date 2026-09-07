@@ -60,6 +60,8 @@ const facts = (over: Partial<OverviewFacts> = {}): OverviewFacts => ({
   ],
   firstDueOn: new Date(Date.UTC(2026, 8, 7, 6)),
   aiPresence: [false, true, null, true],
+  // No answer has changed: the ordinary frame (issue #213).
+  changes: [],
   pagesPublished: measured(11, AT(31)),
   rivals: {
     own: measured(81, AT(31)),

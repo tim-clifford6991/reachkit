@@ -51,7 +51,7 @@ const DB_HOST = "127.0.0.1";
 const DB_PORT = "5432";
 const DB_USER = "reachkit";
 const DB_PASSWORD = "reachkit";
-const DB_NAME = "reachkit_scratch";
+const DB_NAME = process.env.REACHKIT_DB_NAME ?? "reachkit_scratch";
 const MIGRATIONS = [
   path.join(REPO_ROOT, "supabase/migrations/00000000000001_baseline.sql"),
   path.join(REPO_ROOT, "supabase/migrations/00000000000002_rls.sql"),
@@ -110,7 +110,7 @@ function normalize(text: string): string {
 // this fixture: this file reads it for its own `pg` connection.
 const ENV_FIXTURE: Record<string, string> = {
   DATABASE_URL: `postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}`,
-  SUPABASE_URL: "http://127.0.0.1:3001",
+  SUPABASE_URL: process.env.SUPABASE_URL ?? "http://127.0.0.1:3001",
   SUPABASE_ANON_KEY: "anon-key-fixture",
   SUPABASE_SERVICE_ROLE_KEY: "service-role-key-fixture",
   STRIPE_SECRET_KEY: "sk_test_fixture",

@@ -29,10 +29,24 @@
 // redemption route sets. A cookie this file signed itself would prove the
 // sweep can reach the screens and nothing about whether a real sign-in
 // can.
+// **One run, one database** (#220). `applyMigrations` below drops and
+// rebuilds `public`, so two runs sharing a database delete each other's rows
+// mid-flight: this file's seeded account vanishes and every `/app` address
+// redirects to `/signin`, which reads exactly like a broken screen rather
+// than like contention. Locally, start the substrate with
+// `eval "$(scripts/db-substrate/up.sh --run)"` — it gives this worktree its
+// own database and its own ports, and the constants below read them out of
+// the environment. No lock is needed. CI passes no `--run` and needs none:
+// one job, one runner, one `postgres:18` service container.
 import { execFileSync } from "node:child_process";
 import { readdirSync } from "node:fs";
 import path from "node:path";
 import { LIVE_ACCOUNT, RESERVED_ACCOUNT } from "../../app/accounts";
+import { VERDICT, fullSections } from "../../scan/report/fixtures";
+import { measured } from "@/lib/measure/measured";
+import type { CanonicalDomain } from "@/lib/scan/domain";
+import { assembleReport } from "@/lib/scan/store";
+import { previousWeekStart, weekStartFor } from "@/lib/scan/weekly";
 import type { AppAccount } from "@/app/(account)/app/_session/account";
 
 const ROOT = path.resolve(__dirname, "../../..");
@@ -42,7 +56,7 @@ const DB_HOST = "127.0.0.1";
 const DB_PORT = "5432";
 const DB_USER = "reachkit";
 const DB_PASSWORD = "reachkit";
-const DB_NAME = "reachkit_scratch";
+const DB_NAME = process.env.REACHKIT_DB_NAME ?? "reachkit_scratch";
 
 /** Each account's own address. Never mailed: `issueLink` writes the row and
  *  this file redeems the token straight out of the returned URL. */
@@ -82,6 +96,32 @@ const LIVE_DRAFTS: readonly { id: string; state: string; title: string }[] = Obj
 
 /** The live account's draft address — the one the live sweep renders. */
 export const LIVE_DRAFT_ID = LIVE_DRAFTS[0]?.id as string;
+
+/**
+ * How many weekly measurements the live account carries (issue #213).
+ *
+ * Three, for the same reason `LIVE_DRAFTS` has three states: a series needs
+ * more than a point to be a series, and `/app`'s two measurement tiles draw
+ * a **delta** only where there is a previous week to compare against — the
+ * denser arm, and therefore the one the layout law has to hold for. One
+ * week would leave both tiles carrying a goal and would measure the wrong
+ * frame.
+ *
+ * Fewer than `OVERVIEW_TRAILING_WEEKS` on purpose: the window is twelve, so
+ * three measured weeks also exercises the padding the AI matrix does at the
+ * front of a window a customer has not filled.
+ */
+const LIVE_MEASURED_WEEKS = 3;
+
+/** The figures each seeded week carries, oldest first: a customer whose
+ *  ranked count is rising and who is named in AI answers more often. Rising
+ *  rather than flat because `/app`'s head states a direction, and a flat
+ *  series draws the arm that says nothing moved. */
+const LIVE_WEEK_FIGURES: readonly { ownRanked: number; citations: number }[] = Object.freeze([
+  { ownRanked: 12, citations: 0 },
+  { ownRanked: 28, citations: 1 },
+  { ownRanked: 41, citations: 2 },
+]);
 
 function psql(args: string[]): string {
   return execFileSync("psql", ["-h", DB_HOST, "-p", DB_PORT, "-U", DB_USER, "-d", DB_NAME, "-q", ...args], {
@@ -195,6 +235,76 @@ export function seedAccount(): void {
  */
 export function seedLiveAccount(): void {
   seedSite(LIVE_ACCOUNT, { drafts: LIVE_DRAFTS, publish: true });
+  seedMeasuredWeeks(LIVE_ACCOUNT);
+}
+
+/**
+ * The live account's measured weeks — §11's own rows, as the tick would
+ * have written them (issue #213).
+ *
+ * **Why the sweep needs them.** `readOverviewFacts` reads the stored weekly
+ * scans; a live account with none draws the unmeasured arm of both
+ * measurement tiles, whose `stat-desc` is a whole sentence of product copy
+ * and whose box that sentence overflows (#211). This sweep is here to
+ * measure the layout of the screen a customer sees, and a customer with a
+ * measured week is the ordinary one — so the account carries weeks, and the
+ * densest arm of each tile is what gets measured.
+ *
+ * **The blob is the real one.** `assembleReport` over `fullSections()`
+ * rather than a hand-written object: every screen reading this row reads a
+ * report of the shape the pipeline actually stores, so a reader added later
+ * finds the field it expects instead of a hole this file did not know to
+ * fill.
+ *
+ * The Mondays are the site's own (`weekStartFor`), stepping back with
+ * `previousWeekStart`, so the week keys here are the same ones the screen
+ * computes when it reads them back.
+ */
+function seedMeasuredWeeks(account: AppAccount): void {
+  const { domain, siteId, timeZone } = account;
+  if (timeZone === null) {
+    // A site with no stated zone has no local Monday, so no week could be
+    // keyed for it (REQ-073 c1). `seedSite` above states one for every
+    // account it writes, so this is a contradiction rather than a state.
+    throw new Error(`tests/ui/layout/seed.ts: the account ${siteId} states no time zone.`);
+  }
+  const weeks: string[] = [weekStartFor({ at: new Date(), zone: timeZone })];
+  while (weeks.length < LIVE_MEASURED_WEEKS) weeks.unshift(previousWeekStart(weeks[0] as string));
+
+  for (const [index, weekStart] of weeks.entries()) {
+    const figures = LIVE_WEEK_FIGURES[index] ?? LIVE_WEEK_FIGURES[LIVE_WEEK_FIGURES.length - 1]!;
+    const measuredAt = new Date(`${weekStart}T09:00:00.000Z`);
+    const base = fullSections();
+    const score = 31 + index * 9;
+    const report = assembleReport({
+      ...base,
+      domain: domain as CanonicalDomain,
+      tier: "weekly",
+      // Every date and every domain on the blob is this week's and this
+      // account's: a report carrying the fixture's own domain would be a
+      // row about somebody else, and `changeMarkers` reads the domain off
+      // the scan to decide where a series breaks.
+      verdict: {
+        ...VERDICT,
+        domain: domain as CanonicalDomain,
+        measuredAt,
+        scoreAndBand: measured({ score, band: "hard-to-find" }, measuredAt),
+      },
+      ownRanked: measured(figures.ownRanked, measuredAt),
+      aiAnswers:
+        base.aiAnswers === null
+          ? null
+          : { ...base.aiAnswers, measuredAt, ownDomain: domain, customerCitations: figures.citations },
+    });
+    // `scans.score` is not decoration here: `scans_verdict_score_consistency`
+    // makes the column and the blob's own `scoreAndBand` agree, so a row
+    // with a measured score and a null column is refused by Postgres.
+    sql(
+      `insert into scans (site_id, domain, tier, status, score, week_start, created_at, report) values ` +
+        `('${siteId}', '${domain}', 'weekly', 'done', ${score}, '${weekStart}', '${measuredAt.toISOString()}', ` +
+        `'${JSON.stringify(report).replaceAll("'", "''")}'::jsonb);`
+    );
+  }
 }
 
 /**
