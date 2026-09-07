@@ -1,0 +1,37 @@
+# .github/actions/db-substrate/action.yml — the substrate, brought up once
+#
+# Two jobs need the live database `scripts/db-substrate/` describes: `db`
+# (the live-schema suites, #164) and `layout` (the browser sweep signs in
+# against it, #193). Before this action they carried the same psql install
+# and the same `up.sh` call in two places, and the `postgres:18` service
+# block in two more — three copies of one arrangement, which is how the two
+# come to disagree about what "the substrate" is.
+#
+# The `postgres:18` service itself stays in each job: a composite action
+# cannot declare `services:`, which is a job-level key. What it can own —
+# and does — is everything after the container is listening.
+name: Bring up the db substrate
+description: >-
+  Installs the psql client the suites spawn and starts PostgREST, the
+  /rest/v1 proxy and postgres-meta against the already-running
+  postgres:18 service. Appends the substrate's own SUPABASE_* bindings to
+  $GITHUB_ENV.
+
+runs:
+  using: composite
+  steps:
+    - name: psql 18 (the suites spawn it; the runner image ships an older client)
+      shell: bash
+      run: |
+        set -euo pipefail
+        key=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+        sudo install -d /usr/share/postgresql-common/pgdg
+        sudo curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc -o "$key"
+        echo "deb [signed-by=$key] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+        sudo apt-get update -qq
+        sudo apt-get install -y -qq postgresql-client-18
+        psql --version
+
+    - name: roles · auth shims · PostgREST · /rest/v1 proxy · postgres-meta
+      shell: bash
+      run: scripts/db-substrate/up.sh
