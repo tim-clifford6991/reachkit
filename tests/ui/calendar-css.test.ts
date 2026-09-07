@@ -69,8 +69,45 @@ describe('BUILD §4.6 — "repeat(7,minmax(0,1fr)) — the minmax is load-bearin
   it("the cell wraps rather than clips, so the type is never shrunk to fit (ADR-093 d2)", () => {
     const cell = declarations(GRID_CSS).filter((d) => d.parent?.toString().includes(".rk-cal-cell"));
     expect(cell.some((d) => d.prop === "overflow-wrap" && d.value === "anywhere")).toBe(true);
-    expect(cell.some((d) => d.prop === "height")).toBe(false);
+    // No *fixed* height anywhere under the cell. `height: auto` is the
+    // same claim stated positively — issue #243 needs it on the stage
+    // chip, whose own component sets one — so the assertion is on the
+    // value rather than on the property's absence.
+    for (const decl of cell.filter((d) => d.prop === "height")) {
+      expect(decl.value, `height: ${decl.value}`).toBe("auto");
+    }
     expect(cell.some((d) => d.prop === "overflow" && d.value === "hidden")).toBe(false);
+  });
+
+  it("the stage chip is given the cell's contract, and keeps the theme's own metrics (#243)", () => {
+    // The regression this row pins: with `--border` and `--size-selector`
+    // undeclared, daisyUI's `.badge` drew with no border and no inline
+    // padding — 24px narrower than the component is — and `--w-cell-min`'s
+    // derivation in tokens.md §2b was taken against that phantom. Once the
+    // theme declared them, "Your review" no longer fitted one line in a
+    // seven-column cell at the medium and wide bands and the sweep's
+    // check 3 caught it on `span.badge.badge-warning`.
+    const chip = declarations(GRID_CSS).filter((d) =>
+      d.parent?.toString().includes(".rk-cal-cell .badge")
+    );
+    expect(chip.length, "no .rk-cal-cell .badge rule").toBeGreaterThan(0);
+    // The box changes; the type does not shrink and the chip is not clipped.
+    expect(chip.some((d) => d.prop === "height" && d.value === "auto")).toBe(true);
+    expect(chip.some((d) => d.prop === "display" && d.value === "inline-block")).toBe(true);
+    expect(chip.some((d) => d.prop === "font-size")).toBe(false);
+    expect(chip.some((d) => d.prop === "max-width")).toBe(false);
+    // Every length it states is one of this tree's own tokens — never a
+    // literal, and never a `var()` only a dependency declares
+    // (`tests/ui/design/tokens-audit.test.ts` refuses that, rightly: a
+    // token that exists only in daisyUI is one this design system cannot
+    // change). So no `min-height: var(--size)`; the chip's height is its
+    // content plus `--s-1`.
+    const lengths = chip.filter((d) => /^(min-height|padding)/.test(d.prop));
+    expect(lengths.length).toBeGreaterThan(0);
+    for (const decl of lengths) {
+      expect(decl.value, `${decl.prop}: ${decl.value}`).toMatch(/^var\(--[a-z0-9-]+\)$/);
+    }
+    expect(chip.some((d) => d.prop === "min-height")).toBe(false);
   });
 });
 
