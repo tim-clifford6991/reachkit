@@ -26,9 +26,11 @@
 // exactly as it does in production.
 //
 // **The action interfaces are wrapped, not replaced.** The module mock below
-// records which key was called and then calls the real stub, so "the control
-// calls its declared interface" is asserted against the interface that ships
-// rather than against a double that agrees with the test.
+// records which key was called and then calls the real entry from
+// `SETTINGS_ACTIONS` — the map the screen actually calls since issue #136
+// wired the three billing controls — so "the control calls its declared
+// interface" is asserted against the interface that ships rather than against
+// a double that agrees with the test.
 import { describe, expect, it, vi } from "vitest";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
@@ -43,7 +45,7 @@ vi.mock("@/lib/presentation/copy", async (importOriginal) => {
 vi.mock("@/app/(account)/app/settings/actions", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/app/(account)/app/settings/actions")>();
   const recorded = Object.fromEntries(
-    Object.entries(actual.FIXTURE_ACTIONS).map(([key, run]) => [
+    Object.entries(actual.SETTINGS_ACTIONS).map(([key, run]) => [
       key,
       () => {
         calls.push(key);
@@ -51,14 +53,24 @@ vi.mock("@/app/(account)/app/settings/actions", async (importOriginal) => {
       },
     ])
   );
-  return { ...actual, FIXTURE_ACTIONS: recorded };
+  return { ...actual, SETTINGS_ACTIONS: recorded };
 });
+
+// The three billing delegations reach Stripe and the database. This suite is
+// about which key a control calls, not about what Stripe answers, so the
+// `"use server"` module behind them is replaced wholesale — the same seam
+// `billing-actions.test.ts` exercises for real.
+vi.mock("@/app/(account)/app/settings/billing-actions", () => ({
+  openBillingSurface: () => Promise.resolve({ done: "unreachable" as const }),
+  cancelPlan: () => Promise.resolve({ done: "unreachable" as const }),
+  resumePlan: () => Promise.resolve({ done: "unreachable" as const }),
+}));
 
 import SettingsPage from "@/app/(account)/app/settings/page";
 import { BillingPanel } from "@/app/(account)/app/settings/panels/BillingPanel";
 import { ACTIONS, SETTABLE } from "@/app/(account)/app/settings/settable";
 import { FIXTURE_SETTINGS_FACTS } from "@/app/(account)/app/settings/fixture";
-import { PRICE_KEYS } from "@/app/(account)/app/settings/billing";
+import { PRICE_KEYS, UNREACHABLE_BILLING_KEYS } from "@/app/(account)/app/settings/billing";
 import { assembleSettings } from "@/app/(account)/app/settings/model";
 import { COPY } from "@/lib/presentation/copy";
 import * as constants from "@/lib/config/constants";
@@ -300,5 +312,57 @@ describe("REQ-097 — the Billing card renders no number ReachKit computed", () 
     const updateCard = buttons.find((b) => b.textContent === "settings.billing.update-card");
     await click(updateCard as Element);
     expect(calls).toEqual(["invoices"]);
+  });
+});
+
+// ── REQ-097 criterion 6 ────────────────────────────────────────────────────
+// The `billing-actions` mock at the top of this file answers `unreachable`
+// for all three controls, so every press below is a press against a billing
+// surface that could not be produced — the state criterion 6 is about.
+describe("REQ-097 c6 — a billing surface that cannot be produced is written on the screen the customer was on", () => {
+  it("the three statements the criterion names are rendered, in its order", async () => {
+    const root = await mountScreen();
+    await click(root.querySelector('[data-testid="action-invoices"] button') as Element);
+    const card = root.querySelector('[data-testid="action-invoices"]')?.closest(".card");
+    const text = card?.textContent ?? "";
+    // That billing cannot be reached, that they may try again, and one way
+    // to reach a person. Three keys, so the owner can write each of them.
+    for (const key of UNREACHABLE_BILLING_KEYS) expect(text).toContain(key);
+    expect(text.indexOf("settings.billing.unreachable")).toBeLessThan(text.indexOf("settings.billing.try-again"));
+    expect(text.indexOf("settings.billing.try-again")).toBeLessThan(text.indexOf("settings.billing.reach-a-person"));
+  });
+
+  it("cancel and resume are told the same way — the arm does not differ by control", async () => {
+    const root = await mountScreen();
+    await click(root.querySelector('[data-testid="action-cancel"] button') as Element);
+    const active = root.querySelector('[data-testid="action-invoices"]')?.closest(".card")?.textContent ?? "";
+    expect(active).toContain("settings.billing.unreachable");
+
+    const cancelled = await mount(
+      <BillingPanel
+        billing={{ ...assembleSettings(FIXTURE_SETTINGS_FACTS).billing, state: "cancelled" }}
+      />
+    );
+    await click(cancelled.querySelector('[data-testid="action-resume"] button') as Element);
+    expect(cancelled.textContent ?? "").toContain("settings.billing.unreachable");
+  });
+
+  it("nothing stands in its place — no ReachKit field, form, payment step or cancellation control appears", async () => {
+    const root = await mountScreen();
+    const card = root.querySelector('[data-testid="action-invoices"]')?.closest(".card");
+    const before = card?.querySelectorAll("input, form, select, textarea").length ?? -1;
+    await click(root.querySelector('[data-testid="action-invoices"] button') as Element);
+    expect(card?.querySelectorAll("input, form, select, textarea")).toHaveLength(before);
+  });
+
+  it("the customer stays on Settings — the failing arm navigates nowhere", async () => {
+    // `elsewhere` is the only arm that assigns a location, and this one is
+    // not it. A screen that navigated on a refusal would take the customer
+    // off the screen the criterion says they must be told on.
+    const root = await mountScreen();
+    const planBefore = root.querySelector('[data-testid="billing-plan"]')?.textContent;
+    await click(root.querySelector('[data-testid="action-invoices"] button') as Element);
+    expect(root.querySelector('[data-testid="action-invoices"]')).not.toBeNull();
+    expect(root.querySelector('[data-testid="billing-plan"]')?.textContent).toBe(planBefore);
   });
 });

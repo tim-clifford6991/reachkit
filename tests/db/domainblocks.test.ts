@@ -3,39 +3,87 @@
 // BUILD §4.1 · REQ-002 · BP-002 decision 1 — `domain_blocks`, the table
 // with no writer anywhere in the product. Carries WO-012's test plan.
 //
-// **Why this file asserts source and not a live schema, flagged once.**
-// Every other suite under `tests/db/` applies its migration to the native
-// PostgreSQL scratch database and queries `information_schema`. Those
-// files are named one by one in `vitest.config.ts`'s `LIVE_SCHEMA_TESTS`,
-// which is both the `db` project's `include` and the `node` project's
-// `exclude` (WO-283) — a live-schema file absent from that list runs under
-// `node`, where there is no database, and fails. `vitest.config.ts` is an
-// owner file (`CODEOWNERS`) and is not editable from a feature PR, so this
-// suite asserts the migration's own text and the repository's own sources
-// instead, and the PR that adds it names the one-line owner change that
-// would promote it. The migration itself was applied to the scratch
-// database by hand and verified there; see the PR body.
+// **Promoted to a live-schema suite (issue #78, via #6).** This file used
+// to assert the migration's *text*, because `vitest.config.ts`'s
+// `LIVE_SCHEMA_TESTS` — both the `db` project's `include` and the `node`
+// project's `exclude` — is an owner file a feature PR could not add a row
+// to. Issue #6 owns that file and adds the row, so the schema half now
+// applies the baseline plus `*_domainblocks*.sql` to the scratch database
+// and queries `information_schema`, `pg_policies` and `role_table_grants`
+// the way `tests/db/baseline.test.ts` does. What a person verified by hand
+// during #28 is what CI now verifies every run.
 //
-// The strongest of the four criteria below is not a schema fact in any
-// case: "no writer anywhere in the product" (REQ-002 c4) is a property of
-// every file under `src/`, and only a repository-wide source assertion can
-// discharge it. That one would be written exactly like this even with a
-// live database to hand.
+// The source-level half stays exactly as it was: "no writer anywhere in
+// the product" (REQ-002 c4) is a property of every file under `src/`, not
+// a schema fact, and only a repository-wide source assertion can discharge
+// it. So is the topic-token check and the sweep proving no migration
+// resurrects the rejected `scans.removed_at`.
+//
+// **Run this file with `--no-file-parallelism`** alongside the rest of the
+// `db` project — every file in it resets and rebuilds the same physical
+// `public` schema.
+import { execFileSync } from "node:child_process";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { topicOf } from "../../src/lib/db/topics";
 
+const DB_HOST = "127.0.0.1";
+const DB_PORT = "5432";
+const DB_USER = "reachkit";
+const DB_PASSWORD = "reachkit";
+const DB_NAME = "reachkit_scratch";
 const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
 const MIGRATION_NAME = "20260905120000_domainblocks.sql";
-const MIGRATION = readFileSync(
-  path.join(REPO_ROOT, "supabase/migrations", MIGRATION_NAME),
-  "utf8"
-);
-const BASELINE = readFileSync(
-  path.join(REPO_ROOT, "supabase/migrations/00000000000001_baseline.sql"),
-  "utf8"
-);
+const BASELINE_MIGRATION = path.join(REPO_ROOT, "supabase/migrations/00000000000001_baseline.sql");
+const DOMAINBLOCKS_MIGRATION = path.join(REPO_ROOT, "supabase/migrations", MIGRATION_NAME);
+const BASELINE = readFileSync(BASELINE_MIGRATION, "utf8");
+
+function psql(args: string[]): string {
+  return execFileSync("psql", ["-h", DB_HOST, "-p", DB_PORT, "-U", DB_USER, "-d", DB_NAME, "-q", ...args], {
+    env: { ...process.env, PGPASSWORD: DB_PASSWORD },
+    encoding: "utf8",
+    maxBuffer: 10 * 1024 * 1024,
+  });
+}
+
+/** One tuple-only row per line, `|`-separated columns — easy to split. */
+function psqlRows(sql: string): string[][] {
+  const out = psql(["-v", "ON_ERROR_STOP=1", "-Atc", sql]);
+  return out
+    .split("\n")
+    .filter((line) => line.length > 0)
+    .map((line) => line.split("|"));
+}
+
+/** Runs `sql` and returns whether it raised (never throws itself). */
+function raises(sql: string): boolean {
+  try {
+    psql(["-v", "ON_ERROR_STOP=1", "-c", sql]);
+    return false;
+  } catch {
+    return true;
+  }
+}
+
+function resetSchema(): void {
+  psql([
+    "-v",
+    "ON_ERROR_STOP=1",
+    "-c",
+    "drop schema public cascade; create schema public; grant usage on schema public to anon, authenticated, service_role;",
+  ]);
+}
+
+beforeAll(() => {
+  resetSchema();
+  psql(["-v", "ON_ERROR_STOP=1", "-f", BASELINE_MIGRATION]);
+  psql(["-v", "ON_ERROR_STOP=1", "-f", DOMAINBLOCKS_MIGRATION]);
+});
+
+afterAll(() => {
+  resetSchema();
+});
 
 /** Text with every `--` comment line stripped, so an assertion about what
  *  the schema *does* is never satisfied — or failed — by prose describing
@@ -48,8 +96,6 @@ function statementsOf(sql: string): string {
     .filter((line) => !line.trimStart().startsWith("--"))
     .join("\n");
 }
-
-const SQL = statementsOf(MIGRATION);
 
 function sourceFiles(): string[] {
   const out: string[] = [];
@@ -69,33 +115,50 @@ const SOURCES = sourceFiles().map((file) => ({
 }));
 
 describe('BP-002 data-model delta — "REQ-002 criterion 3 removes a report for a **domain**, permanently and across every future scan; a scan-scoped column cannot bind a scan that does not exist yet."', () => {
-  it("creates `domain_blocks`, keyed by domain and by nothing else — no `scan_id`, no `site_id`", () => {
-    expect(SQL).toMatch(/create table domain_blocks/);
-    expect(SQL).not.toMatch(/scan_id/);
-    expect(SQL).not.toMatch(/site_id/);
+  it("`domain_blocks` exists, keyed by domain and by nothing else — no `scan_id`, no `site_id`", () => {
+    const columns = psqlRows(
+      `select column_name from information_schema.columns where table_schema = 'public' and table_name = 'domain_blocks' order by column_name;`
+    ).map(([name]) => name);
+    expect(columns).toEqual(["blocked_at", "domain", "id", "note"]);
   });
 
-  it("carries the four columns WO-012 names — id, domain, blocked_at, note", () => {
-    for (const column of ["id", "domain", "blocked_at", "note"]) {
-      expect(SQL).toMatch(new RegExp(`^\\s*${column}\\s`, "m"));
-    }
+  it("carries the four columns WO-012 names, with the types and nullability it names", () => {
+    const rows = psqlRows(
+      `select column_name, data_type, is_nullable from information_schema.columns where table_schema = 'public' and table_name = 'domain_blocks' order by column_name;`
+    );
+    expect(rows).toEqual([
+      ["blocked_at", "timestamp with time zone", "NO"],
+      ["domain", "text", "NO"],
+      ["id", "uuid", "NO"],
+      ["note", "text", "NO"],
+    ]);
   });
 
-  it("the domain is unique and lowercased, so one domain is blocked once and a mixed-case row blocks nothing silently (ADR-020)", () => {
-    expect(SQL).toMatch(/domain text not null unique check \(domain = lower\(domain\)\)/);
+  it("the domain is unique — one domain is blocked once", () => {
+    expect(raises(`insert into domain_blocks (domain, note) values ('dup.example.com', 'request A');`)).toBe(false);
+    expect(raises(`insert into domain_blocks (domain, note) values ('dup.example.com', 'request B');`)).toBe(true);
   });
 
-  it("records the written request the block was granted against — `note` is not null (REQ-002 c4)", () => {
-    expect(SQL).toMatch(/note text not null/);
+  it("the domain is lowercased, so a mixed-case row cannot block nothing silently (ADR-020)", () => {
+    expect(raises(`insert into domain_blocks (domain, note) values ('Mixed.Example.com', 'request C');`)).toBe(true);
+    expect(raises(`insert into domain_blocks (domain, note) values ('mixed.example.com', 'request C');`)).toBe(false);
+  });
+
+  it("records the written request the block was granted against — a row with no note is refused (REQ-002 c4)", () => {
+    expect(raises(`insert into domain_blocks (domain) values ('no-note.example.com');`)).toBe(true);
   });
 });
 
 describe('BP-002 decision 1 — the rejected alternative: "a `removed_at` column on `scans` — rejected, REQ-002 criterion 3 must refuse a scan for a domain that has no scan row"', () => {
-  it("`scans` carries no `removed_at` in the baseline", () => {
-    expect(statementsOf(BASELINE)).not.toMatch(/removed_at/);
+  it("`scans` carries no `removed_at` column in the applied schema", () => {
+    const rows = psqlRows(
+      `select column_name from information_schema.columns where table_schema = 'public' and table_name = 'scans' and column_name = 'removed_at';`
+    );
+    expect(rows).toEqual([]);
   });
 
-  it("no migration in the repository adds one", () => {
+  it("`scans` carries no `removed_at` in the baseline text either, and no migration in the repository adds one", () => {
+    expect(statementsOf(BASELINE)).not.toMatch(/removed_at/);
     const dir = path.join(REPO_ROOT, "supabase/migrations");
     for (const file of readdirSync(dir).filter((f) => f.endsWith(".sql"))) {
       expect(statementsOf(readFileSync(path.join(dir, file), "utf8"))).not.toMatch(/removed_at/);
@@ -104,22 +167,29 @@ describe('BP-002 decision 1 — the rejected alternative: "a `removed_at` column
 });
 
 describe('BP-002 error behaviour — "RLS is default-deny"', () => {
-  it("enables row level security on the table", () => {
-    expect(SQL).toMatch(/alter table domain_blocks enable row level security/);
+  it("row level security is enabled on the table", () => {
+    const rows = psqlRows(
+      `select relrowsecurity from pg_class where oid = 'public.domain_blocks'::regclass;`
+    );
+    expect(rows).toEqual([["t"]]);
   });
 
-  it("adds no policy at all — a table with no policy is unreadable by anyone holding an anon or authenticated key", () => {
-    expect(SQL).not.toMatch(/create policy/i);
+  it("the table carries no policy at all — unreadable by anyone holding an anon or authenticated key", () => {
+    const rows = psqlRows(
+      `select policyname from pg_policies where schemaname = 'public' and tablename = 'domain_blocks';`
+    );
+    expect(rows).toEqual([]);
   });
 
-  it("no other migration adds a policy on `domain_blocks` either", () => {
-    const dir = path.join(REPO_ROOT, "supabase/migrations");
-    for (const file of readdirSync(dir).filter((f) => f.endsWith(".sql"))) {
-      const text = readFileSync(path.join(dir, file), "utf8");
-      for (const statement of text.split(";")) {
-        if (/create policy/i.test(statement)) expect(statement).not.toMatch(/on domain_blocks\b/);
-      }
-    }
+  it("`anon` reads zero rows even when rows exist — RLS, not an empty table", () => {
+    psql([
+      "-v",
+      "ON_ERROR_STOP=1",
+      "-c",
+      `insert into domain_blocks (domain, note) values ('rls-visible.example.com', 'written request on file');`,
+    ]);
+    expect(psqlRows(`select count(*) from domain_blocks where domain = 'rls-visible.example.com';`)).toEqual([["1"]]);
+    expect(psqlRows(`set role anon; select count(*) from domain_blocks;`)).toEqual([["0"]]);
   });
 });
 
@@ -129,13 +199,26 @@ describe('`structure.md` rule 3 — "`*_domainblocks*.sql` (REQ-002\'s table has
   });
 
   it("grants `anon` and `authenticated` select only — the absence of a writer holds one layer below the policies", () => {
-    expect(SQL).toMatch(/grant select on domain_blocks to anon, authenticated;/);
-    expect(SQL).not.toMatch(/grant[^;]*insert[^;]*to[^;]*\banon\b/);
-    expect(SQL).not.toMatch(/grant[^;]*insert[^;]*to[^;]*\bauthenticated\b/);
+    const rows = psqlRows(
+      `select grantee, privilege_type from information_schema.role_table_grants where table_schema = 'public' and table_name = 'domain_blocks' and grantee in ('anon', 'authenticated') order by grantee, privilege_type;`
+    );
+    expect(rows).toEqual([
+      ["anon", "SELECT"],
+      ["authenticated", "SELECT"],
+    ]);
+  });
+
+  it("an `anon` insert is refused by the grants, one layer below the policies", () => {
+    expect(
+      raises(`set role anon; insert into domain_blocks (domain, note) values ('anon-write.example.com', 'nope');`)
+    ).toBe(true);
   });
 
   it("grants the write verbs to `service_role` alone — the manual operator path, and no other", () => {
-    expect(SQL).toMatch(/grant select, insert, update, delete on domain_blocks to service_role;/);
+    const rows = psqlRows(
+      `select privilege_type from information_schema.role_table_grants where table_schema = 'public' and table_name = 'domain_blocks' and grantee = 'service_role' order by privilege_type;`
+    );
+    expect(rows).toEqual([["DELETE"], ["INSERT"], ["SELECT"], ["UPDATE"]]);
   });
 });
 

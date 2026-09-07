@@ -56,10 +56,11 @@ const MIGRATIONS = [
   path.join(REPO_ROOT, "supabase/migrations/00000000000001_baseline.sql"),
   path.join(REPO_ROOT, "supabase/migrations/00000000000002_rls.sql"),
 ];
-// Substrate-only path (owner ruling, 2026-09-03; Docker unavailable) — the
-// prompt names this exact script as what the staleness row runs and diffs.
-// Outside the repository: a substrate dependency, not a ninth file.
-const GEN_TYPES_SCRIPT = "/root/projects/reachkitv3-wt/substrate/pgmeta/gen-types.sh";
+// The generator `supabase gen types typescript --local` shells out to,
+// asked directly. Issue #6 moved this script into the repository
+// (`scripts/db-substrate/`) so CI can run this row too; it was an absolute
+// path outside the tree while the substrate was one machine's fixture.
+const GEN_TYPES_SCRIPT = path.join(REPO_ROOT, "scripts/db-substrate/gen-types.sh");
 
 function psql(args: string[]): string {
   return execFileSync("psql", ["-h", DB_HOST, "-p", DB_PORT, "-U", DB_USER, "-d", DB_NAME, "-q", ...args], {

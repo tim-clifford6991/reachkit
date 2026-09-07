@@ -38,6 +38,7 @@
 // a work order that touches BP-001's own `code:` list.
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { HOSTED_SUBDOMAIN_LABEL } from "@/lib/config/constants";
 import { isDomainRemoved } from "@/lib/scan/removal";
 import { isFixtureDomain } from "@/app/(public)/scan/[domain]/_fixture/states";
 import { readSetupGateState, setupRedirectFor } from "@/app/(account)/setup/gate";
@@ -82,7 +83,84 @@ export const PUBLIC_PATHS: readonly string[] = [
   // it — a mail's reader has no session, and the token is the whole of the
   // credential the stop link carries.
   "/veto/:token",
+  // BUILD §9, issue #49. The two documents the hosted edge serves. They
+  // are public by their own nature — a robots policy nobody may read is
+  // not a policy — and each route resolves the Host itself and answers 404
+  // on one it does not serve, so a row here grants no read of anything.
+  // They are deliberately *not* rewritten into the hosted group with the
+  // rest of a `content.` host's paths: `/robots.txt` must be able to
+  // answer the *preview* policy on a `{slug}.reachkit.app` host, which is
+  // not a `content.` host at all (ADR-002).
+  "/robots.txt",
+  "/sitemap.xml",
 ];
+
+/** BUILD §9's hosted edge: `content.{customer-domain}`, by CNAME.
+ *
+ *  **Every other request on such a host is rewritten into
+ *  `src/app/(hosted)/`, and that is an authorisation boundary rather than a
+ *  convenience.** Next routes by path alone, so without the rewrite a
+ *  request to `content.example.com/setup` would render the account
+ *  container's setup screen on a customer's own domain. With it, no path on
+ *  a customer's domain can reach a ReachKit screen: every one of them lands
+ *  on the hosted catch-all, which serves that site's published page or
+ *  404s.
+ *
+ *  A rewrite, never a redirect (§9): the visitor stays at
+ *  `content.{their domain}/{slug}`, which is the address the canonical
+ *  link, the sitemap entry and `publications.live_url` all name. */
+const HOSTED_HOST_PREFIX = `${HOSTED_SUBDOMAIN_LABEL}.`;
+
+/** The two destinations a hosted request is rewritten to, and no third: the
+ *  page (200 or 404) and the `410 Gone` document. */
+const HOSTED_PAGE_PREFIX = "/hosted-page";
+const HOSTED_GONE_PATH = "/hosted-gone";
+
+/** The paths on a `content.` host that resolve the Host themselves and are
+ *  therefore served where they stand, not rewritten. */
+const HOSTED_DOCUMENT_PATHS: readonly string[] = ["/robots.txt", "/sitemap.xml"];
+
+function isHostedEdgeHost(req: NextRequest): boolean {
+  return (req.headers.get("host") ?? "").trim().toLowerCase().startsWith(HOSTED_HOST_PREFIX);
+}
+
+/**
+ * The hosted edge's own rewrite, on a `content.` host and nowhere else.
+ *
+ * **The second database read in this file, and narrow for the same reason
+ * the first one is** (`removedRewrite` above): a Next `page.tsx` cannot set
+ * a status, so whether this address answers `410 Gone` has to be settled
+ * before routing. It happens only on a `content.` host — every ReachKit
+ * address is decided from the allow-list and the cookie with no await on
+ * the way, exactly as before.
+ *
+ * **Bounded, and fails towards rendering.** A read that is slow or that
+ * throws rewrites to the page, which answers 404 when it finds none. A 410
+ * asserts that a page was taken down; it is never something to say because
+ * a query was slow. The failure direction is safe in the one case that
+ * matters: the page route resolves the Host again for itself, so a
+ * departed customer's address that missed this deadline answers 404 —
+ * never their page.
+ */
+async function hostedRewrite(req: NextRequest): Promise<NextResponse | null> {
+  if (!isHostedEdgeHost(req)) return null;
+  const { pathname } = req.nextUrl;
+  if (isNextInternal(pathname)) return null;
+  if (HOSTED_DOCUMENT_PATHS.includes(pathname)) return null;
+
+  let answer: "gone" | "page" = "page";
+  try {
+    const { hostedAnswer } = await import("@/app/(hosted)/edge");
+    answer = await withDeadline(hostedAnswer(req.headers.get("host") ?? "", pathname));
+  } catch {
+    answer = "page";
+  }
+
+  const destination = req.nextUrl.clone();
+  destination.pathname = answer === "gone" ? HOSTED_GONE_PATH : `${HOSTED_PAGE_PREFIX}${pathname}`;
+  return NextResponse.rewrite(destination);
+}
+
 
 /** The two transport-only adapters (`## File plan`): Stripe and the job
  *  platform hold no session of this product's, so an adapter denying them
@@ -149,7 +227,7 @@ function withDeadline<T>(work: Promise<T>): Promise<T> {
   return Promise.race([
     work,
     new Promise<T>((_resolve, reject) =>
-      setTimeout(() => reject(new Error("removal read timed out")), REMOVAL_READ_DEADLINE_MS)
+      setTimeout(() => reject(new Error("middleware read timed out")), REMOVAL_READ_DEADLINE_MS)
     ),
   ]);
 }
@@ -231,6 +309,12 @@ async function removedRewrite(req: NextRequest): Promise<NextResponse | null> {
 export async function middleware(req: NextRequest): Promise<NextResponse> {
   const { pathname } = req.nextUrl;
 
+  // BUILD §9's hosted edge comes first: a customer's own domain is not a
+  // ReachKit surface, and its authorisation is the rewrite rather than this
+  // file's allow-list and session check.
+  const hosted = await hostedRewrite(req);
+  if (hosted !== null) return hosted;
+
   const removed = await removedRewrite(req);
   if (removed !== null) return removed;
 
@@ -267,4 +351,23 @@ export const config = {
   // belt-and-braces with `isNextInternal` above, which covers the same
   // paths when this function is called directly, as the test suite does.
   matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  // **Node.js, and not the Edge runtime** (issue #49). The legacy
+  // `middleware.ts` convention still builds for Edge; its successor
+  // `proxy.ts` "defaults to using the Node.js runtime" and refuses this
+  // option altogether (`proxy.md`, "Runtime"; the runtime became stable
+  // for middleware in 15.5). Setting it here puts this file where the
+  // convention it is being renamed to already is, without renaming it —
+  // the rename is BP-001's own `code:` list to change (see this file's
+  // header), not a feature PR's.
+  //
+  // What forces it: BUILD §9's hosted edge asks `hostedServingState`
+  // whether a customer's pages are still served, which reaches
+  // `@/lib/account/billing` — the only way past that module's import
+  // fence — and the barrel's graph carries the mail vendor's `node:https`
+  // and `node:crypto`. On Edge those do not exist and the build says so.
+  // The alternatives were worse: duplicating BP-060's two-condition rule
+  // inside the hosted store (a second access arbiter, which ADR-050 exists
+  // to prevent), or answering a departed customer's address 404 instead of
+  // the 410 REQ-076 c10 requires.
+  runtime: "nodejs",
 };

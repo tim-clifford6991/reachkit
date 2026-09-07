@@ -222,6 +222,33 @@ describe("REPORT_REMOVED_STATUS — the removed report address's status", () => 
   });
 });
 
+// BUILD §9 / REQ-076 c10 (issue #49) — the hosted edge's own 410.
+describe("HOSTED_GONE_STATUS — a hosted address that has stopped serving", () => {
+  it("=== 410", () => {
+    expect(constants.HOSTED_GONE_STATUS).toBe(410);
+  });
+
+  it("is not 404, not 200 and not a redirect", () => {
+    expect(constants.HOSTED_GONE_STATUS).not.toBe(404);
+    expect(constants.HOSTED_GONE_STATUS).not.toBe(200);
+    // 4xx, so it is a statement about the request and never a redirect.
+    expect(Math.floor(constants.HOSTED_GONE_STATUS / 100)).toBe(4);
+  });
+});
+
+// BUILD §9 (issue #49) — the preview host's parent.
+describe("PREVIEW_HOST_SUFFIX — the parent of every {slug}.reachkit.app preview", () => {
+  it("is a bare hostname: no scheme, no path, no leading dot", () => {
+    expect(constants.PREVIEW_HOST_SUFFIX).not.toContain("/");
+    expect(constants.PREVIEW_HOST_SUFFIX.startsWith(".")).toBe(false);
+    expect(constants.PREVIEW_HOST_SUFFIX.endsWith(".")).toBe(false);
+  });
+
+  it("is not the subdomain label — the two are different things and never merge", () => {
+    expect(constants.PREVIEW_HOST_SUFFIX).not.toBe(constants.HOSTED_SUBDOMAIN_LABEL);
+  });
+});
+
 // BUILD §13 / ADR-052 — the three price pins (issues #33, #91). Structural
 // rows only: the values against their quoted clauses are `tests/pins.test.ts`'s.
 // The last two rows are the ones that keep the *sentence* out of this file —

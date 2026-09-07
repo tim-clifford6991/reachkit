@@ -18,6 +18,46 @@
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
+/* The heading scale — ruled, not transcribed (issue #110).
+ *
+ * `BUILD.md` §2.3 fixes heading weight, tracking and wrapping and fixes the
+ * body at 15px; it names **no heading size**. So these four are not read
+ * off the spec: they are the owner's 2026-09-02 ruling, transcribed from
+ * `design/tokens.md` §4 "Heading sizes — ruled, not transcribed", frozen
+ * under `archive/sdlc-factory-2026-09-04/corpus/docs/design/tokens.md` and
+ * quoted there as "Ratio 1.25 from the 15px body":
+ *
+ *   --t-h1  31px  Screen head
+ *   --t-h2  25px  Module head
+ *   --t-h3  20px  Card head
+ *   --t-h4  16px  Sub-head. "Deliberately 1px off the 15px body — at h4 15
+ *                 the two are indistinguishable"
+ *
+ * A frozen document cannot drift, so these are pinned by quotation and not
+ * re-checked against a moving source (`tests/pins.test.ts`'s convention).
+ *
+ * **They live here and not in `theme.css` or `layout/layout.css`.**
+ * `theme.css`'s `:root` is §2.1's colour block verbatim and
+ * `tests/ui/tokens.test.ts` refuses any token §2.1 does not state;
+ * `layout/layout.css` declares ADR-093's three layout tokens and
+ * `tests/ui/layout-tokens.test.ts` refuses a fourth. Type belongs to the
+ * type layer.
+ *
+ * **Why any of this is needed at all.** Until issue #13 no stylesheet
+ * imported Tailwind, so a heading with no stated size rendered at the
+ * browser's own `h1..h6` defaults and looked right by accident.
+ * `src/ui/tailwind.css` brought Tailwind 4's preflight, which resets every
+ * heading to `font-size: inherit` — and every `h1` in the product has
+ * rendered at the 15px body size since. The four rules below are what
+ * preflight took away, stated deliberately this time.
+ */
+:root {
+  --t-h1: 31px;
+  --t-h2: 25px;
+  --t-h3: 20px;
+  --t-h4: 16px;
+}
+
 /* Heading weight is a single value within BUILD.md's stated 700-800 range
  * (an internal parameter, rule 1.1 — reversal cost: one line, no h1..h6
  * differentiation is asked for by this WO's test plan). */
@@ -27,6 +67,22 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: -0.02em;
   text-wrap: balance;
 }
+
+h1 { font-size: var(--t-h1); }
+h2 { font-size: var(--t-h2); }
+h3 { font-size: var(--t-h3); }
+h4 { font-size: var(--t-h4); }
+
+/* The scale names four heading roles and the product uses four: no `h5` or
+ * `h6` appears anywhere under `src/app/**`. Rather than mint a fifth and a
+ * sixth step nobody asked for, these two take the body size — stated, so
+ * that it reads as a decision rather than as the preflight default it
+ * happens to equal. It is also the only size they could take: a head never
+ * steps under the body (`design/tokens.md` §4: heads "only ever step
+ * **down toward the body, never under it**"), and the sub-head above them
+ * is already within 1px of it. Weight and tracking still tell them apart
+ * from a paragraph. */
+h5, h6 { font-size: inherit; }
 
 body {
   font-family: var(--font-ui);

@@ -253,9 +253,18 @@ describe("REQ-093 c2/c3 — flow gate, over the real surface globs", () => {
     expect(result.filesWalked).toBeGreaterThan(0);
   });
 
-  it("reports coverage per governed glob — src/app and src/ui must hold files; src/app/(hosted) is empty today, and that is asserted, not just unasserted (TST-028 finding 3)", () => {
+  it("reports coverage per governed glob — every governed glob holds files, and the empty list is asserted empty rather than left unasserted (TST-028 finding 3)", () => {
     // 2026-09-05, issue #30: `src/lib/mail` now holds the mail seam.
-    assertGovernedCoverage(result, ["src/app", "src/ui", "src/lib/mail"], ["src/app/(hosted)"]);
+    // Every governed glob now holds files. `src/app/(hosted)` held only a
+    // `.gitkeep` until issue #49 built the hosted edge, and `src/lib/mail`
+    // was WO-279's other empty row; both are swept like the rest, and the
+    // empty list is asserted empty so a glob that quietly stops matching
+    // still fails here.
+    assertGovernedCoverage(
+      result,
+      ["src/app", "src/app/(hosted)", "src/lib/mail", "src/ui"],
+      []
+    );
   });
 
   it("no GeneratedColumn value or GeneratedText field reaches a surface outside renderGenerated/renderQuestion", () => {

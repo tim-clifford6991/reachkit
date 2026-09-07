@@ -160,6 +160,25 @@ export const SETTINGS_COPY = Object.freeze({
     "resume",
     { slots: {}, fixedBy: 'REQ-070 c2 ("cancelling or resuming the plan")' },
   ],
+  // 2026-09-07, issue #136 — REQ-097 criterion 6: "they are told in writing,
+  // on the screen they were on, that billing cannot be reached, that they may
+  // try again, and one way to reach a person". Three statements, so three
+  // keys: a single key would let the second and third be lost by writing the
+  // first, and the criterion names all three. Owner-owed, and carrying the
+  // renderable marker rather than the empty value — this line appears only
+  // when a customer has pressed a billing control and Stripe refused, which
+  // is precisely the state that must not be silent while the wording is
+  // being decided.
+  "settings.billing.unreachable": [
+    "TODO(copy)",
+    { slots: {}, fixedBy: "REQ-097 c6" },
+  ],
+  "settings.billing.try-again": ["TODO(copy)", { slots: {}, fixedBy: "REQ-097 c6" }],
+  "settings.billing.reach-a-person": [
+    "TODO(copy)",
+    { slots: {}, fixedBy: "REQ-097 c6" },
+  ],
+
   // §4.7 verbatim, including its lower-case opening and its `{date}` slot.
   // The date is Stripe's (REQ-097 c5), never one ReachKit worked out.
   "settings.billing.cancelling": [

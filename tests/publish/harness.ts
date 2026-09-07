@@ -76,16 +76,38 @@ function matches(row: Row, filters: RecordedQuery["filters"]): boolean {
   });
 }
 
-/** The one embedding convention the module's own selects use:
- *  `sites(mode, veto_hours)` and `opportunities(proposed_slug)`. */
+/** The embedding conventions the modules' own selects use:
+ *  `sites(mode, veto_hours)`, `opportunities(proposed_slug)`, and — since
+ *  issue #49's hosted edge — `drafts!inner(… opportunities!inner(…
+ *  scans(created_at)))`. `!inner` changes which rows come back in
+ *  PostgREST, not the shape of the embedding, so it is matched the same
+ *  way; a row whose parent is missing is dropped, which is what `!inner`
+ *  means. */
+function names(columns: string, relation: string): boolean {
+  return columns.includes(`${relation}(`) || columns.includes(`${relation}!inner(`);
+}
+
 function embed(db: FakeDb, table: string, columns: string, row: Row): Row {
   const out = { ...row };
-  if (columns.includes("sites(")) {
+  if (names(columns, "sites")) {
     out.sites = db.rows("sites").find((s) => s.id === row.site_id) ?? null;
   }
-  if (columns.includes("opportunities(")) {
+  if (names(columns, "opportunities")) {
     out.opportunities =
       db.rows("opportunities").find((o) => o.id === row.opportunity_id) ?? null;
+  }
+  if (names(columns, "drafts")) {
+    const draft = db.rows("drafts").find((d) => d.id === row.draft_id) ?? null;
+    out.drafts = draft === null ? null : embed(db, "drafts", columns, draft);
+  }
+  if (names(columns, "scans") && table === "drafts") {
+    const opportunity = out.opportunities as Row | null;
+    if (opportunity !== null && opportunity !== undefined) {
+      out.opportunities = {
+        ...opportunity,
+        scans: db.rows("scans").find((s) => s.id === opportunity.scan_id) ?? null,
+      };
+    }
   }
   return out;
 }

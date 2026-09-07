@@ -32,14 +32,45 @@ describe('BP-001 decision — "three route groups ... with the authorisation rul
 });
 
 describe('BP-001 `## Module / boundary` — "It does **not** own `src/app/(hosted)/**`, which is BP-004\'s."', () => {
-  it("(hosted) carries no layout.tsx written by this work order", () => {
-    const hostedLayout = path.join(APP_ROOT, "(hosted)", "layout.tsx");
-    expect(existsSync(hostedLayout), "(hosted)/layout.tsx belongs to BP-047, not WO-002").toBe(false);
+  // Until issue #49 the assertion here was that `(hosted)` held nothing but
+  // a `.gitkeep` — the strongest statement available while the hosted edge
+  // was unbuilt, and the reason the placeholder existed at all. #49 built
+  // it, so the boundary is now asserted the other way round: the group
+  // carries BP-004's and BP-047's own files and nothing WO-002 wrote.
+  const hostedDir = path.join(APP_ROOT, "(hosted)");
+
+  it("(hosted) is BP-004's, and every file in it is one BP-004 or BP-047 names", () => {
+    const entries = readdirSync(hostedDir).sort();
+    expect(entries).toEqual(
+      [
+        "edge.ts",
+        "hosted-gone",
+        "hosted-page",
+        "layout.tsx",
+        "not-found.tsx",
+        "policies.ts",
+        "resolve-host.ts",
+        "robots.txt",
+        "sitemap.xml",
+      ].sort()
+    );
   });
 
-  it("(hosted) carries no file besides the placeholder that keeps the empty directory in git", () => {
-    const hostedDir = path.join(APP_ROOT, "(hosted)");
-    const entries = readdirSync(hostedDir);
-    expect(entries).toEqual([".gitkeep"]);
+  it("the group's own four surfaces are on disk", () => {
+    for (const file of [
+      "layout.tsx",
+      "not-found.tsx",
+      "resolve-host.ts",
+      "hosted-page/[...slug]/page.tsx",
+      "robots.txt/route.ts",
+      "sitemap.xml/route.ts",
+      "hosted-gone/route.ts",
+    ]) {
+      expect(existsSync(path.join(hostedDir, file)), file).toBe(true);
+    }
+  });
+
+  it("(hosted) carries no `.gitkeep` any more — the directory holds real files", () => {
+    expect(existsSync(path.join(hostedDir, ".gitkeep"))).toBe(false);
   });
 });

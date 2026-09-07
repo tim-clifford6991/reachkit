@@ -1,11 +1,11 @@
 // tests/publish/destinations/adapters.test.ts — the registry, and the
 // hosted adapter's honest refusal.
 //
-// §9's hosted CMS is an edge route that does not exist yet (#49). The
-// assertions below pin what that means in practice: the adapter's two
-// booleans are facts and are set, and its delivery refuses rather than
-// returning an address nothing answers at. When #49 lands, the refusal rows
-// change and the two booleans do not.
+// §9's hosted CMS edge route landed with issue #49, and the refusal rows
+// that stood here went with it — the adapter now delivers, and its own
+// suite is `tests/publish/destinations/hosted/hosted.test.ts`. The two
+// booleans did not change, which is what that split was for: they are
+// facts about the destination, not about how far the build had got.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeDb } from "../harness";
 
@@ -45,59 +45,10 @@ describe("ADR-084 Decision 2 — the hosted adapter's two booleans are facts, no
   });
 });
 
-describe("the hosted adapter refuses honestly until the edge route exists", () => {
-  it("it delivers nothing and returns no address", async () => {
-    const result = await HOSTED_ADAPTER.deliver(
-      { title: "t", slug: "s", bodyMd: "", meta: {} },
-      {},
-      "d1"
-    );
-    expect(result).toEqual({ ok: false, madeLive: false, reason: "destination_unavailable" });
-    expect(result.liveUrl).toBeUndefined();
-  });
-
-  it("it never claims to have made a page live", async () => {
-    const result = await HOSTED_ADAPTER.deliver(
-      { title: "t", slug: "s", bodyMd: "", meta: {} },
-      {},
-      "d1"
-    );
-    expect(result.madeLive).toBe(false);
-  });
-
-  it("its health is error, and it says why: nothing answers at the address yet", async () => {
-    // The reason travels with the state, so no caller ever has to map a
-    // bare `error` back into what the check found. When #49 lands, this
-    // call returns `ok` or `expired`/`dns_elsewhere` and nothing that
-    // reads it changes.
-    expect(await HOSTED_ADAPTER.health({})).toEqual({ health: "error", reason: "unreachable" });
-  });
-
-  it("its unpublish is not `removed` — it has never served a page to remove", async () => {
-    const result = await HOSTED_ADAPTER.unpublish(
-      {
-        id: "p1",
-        draftId: "d1",
-        siteId: "s1",
-        destination: "hosted",
-        deliveryState: "delivered",
-        attemptNo: 1,
-        claimedAt: new Date(),
-        publishedAt: null,
-        unpublishedAt: null,
-        liveUrl: null,
-        remoteId: null,
-        failureReason: null,
-        mode: "autopilot",
-        unpublishOutcome: null,
-        madeLiveByUs: false,
-        verifyDueAt: null,
-      },
-      {}
-    );
-    expect(result).toEqual({ ok: false, reason: "destination_unavailable" });
-  });
-});
+// The hosted adapter's own behaviour — delivery, unpublish, health, the
+// address composer and §9's page record — is
+// `tests/publish/destinations/hosted/hosted.test.ts`'s (issue #49). What
+// stays here is the registry: which kinds resolve, and to what.
 
 describe("the destination the machine reads is the recorded row, read fresh", () => {
   it("destinationWorking is health = 'ok' and nothing else", async () => {
