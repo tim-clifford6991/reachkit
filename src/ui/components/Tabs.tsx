@@ -28,7 +28,16 @@ export interface TabItem {
 
 export function Tabs(p: {
   tabs: TabItem[];
-  selectedId: string;
+  /** Which tab is current, or `null` for **none** (#267).
+   *
+   *  `null` is a state and not a missing value: the app shell's tab bar
+   *  renders on every route under `/app`, and a route that is on none of
+   *  the three destinations — the draft view — has no current tab. It was
+   *  `string` with no default, so that caller fell back to the first
+   *  destination and the bar marked Overview current on a page that is not
+   *  Overview. A required prop that cannot say "none" is what made the
+   *  fallback the only spelling available. */
+  selectedId: string | null;
   onSelect?: (id: string) => void;
 }): React.JSX.Element {
   return (

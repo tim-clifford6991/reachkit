@@ -284,10 +284,11 @@ export const CONTENT_MEASURE_PX = { read: 704, wide: 1216 } as const;
  *  properties of content inside boxes; nothing above asks whether the
  *  outermost box exists.
  *
- *  Two assertions, both read off the rendered document rather than off the
- *  stylesheet: the content edge is at least the band's gutter from the
- *  viewport edge on both sides, and the content box is at most the ruled
- *  measure. `src/ui/layout/surface.css` is what satisfies them; the check
+ *  Three assertions since #267, all read off the rendered document rather
+ *  than off the stylesheet: the content edge is at least the band's gutter
+ *  from the viewport edge on both sides, a `main` drawn beside a box is at
+ *  least the band's gutter clear of it, and the content box is at most the
+ *  ruled measure. `src/ui/layout/surface.css` is what satisfies them; the check
  *  never names that file, so a second way of drawing the same container
  *  would pass it and a screen that opted out of the law would not.
  *
@@ -360,6 +361,41 @@ export function checkSurfaceContainer(opts: {
       check: "surface-gutter",
       element: `${describe(surface)} — ${band} band wants ${gutter}px either side, has ${Math.round(leftAir)}/${Math.round(rightAir)}`,
     });
+  }
+
+  // Issue #267 — the one content edge the container cannot reach.
+  //
+  // `[data-surface]` pads the whole screen root. Where a screen puts a
+  // sidebar *inside* that root and the content beside it, the container's
+  // left gutter is spent on the sidebar and the content column can begin
+  // flush against it — which is what the app shell did at 1024 and 1280,
+  // and what checks 1-4 and the two assertions above all pass on, because
+  // every one of them measures against the viewport or the root.
+  //
+  // Stated over `main` and its preceding box rather than over the shell's
+  // own classes: this file names no screen's markup, so a second layout
+  // that put a column beside its content would be held to the same rule
+  // and a screen that stopped using the shell would not be exempted by a
+  // selector going stale.
+  const main = document.querySelector("main");
+  const beside = main?.previousElementSibling ?? null;
+  if (main && beside) {
+    const mainBox = main.getBoundingClientRect();
+    const besideBox = beside.getBoundingClientRect();
+    const drawn = besideBox.width > 0 && besideBox.height > 0;
+    // Side by side, not stacked: the sidebar collapses into a header below
+    // the band that shows it, and two stacked boxes need no gutter between
+    // them.
+    if (drawn && besideBox.right <= mainBox.left + EPS) {
+      const gap =
+        mainBox.left + (parseFloat(getComputedStyle(main).paddingLeft) || 0) - besideBox.right;
+      if (gap < gutter - EPS) {
+        offenders.push({
+          check: "surface-gutter",
+          element: `main beside ${beside.tagName.toLowerCase()} — ${band} band wants ${gutter}px between them, has ${Math.round(gap)}`,
+        });
+      }
+    }
   }
 
   const content = box.width - padLeft - padRight;
