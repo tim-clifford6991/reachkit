@@ -135,6 +135,11 @@ const HAND_WRITTEN: ReadonlyArray<{
     classes: ["btn", "btn-sm"],
     why: "a link that reads as a button (#15): `Btn` renders a `<button>` with an `onClick`, and this control navigates with no client runtime. daisyUI's own class pair for the case.",
   },
+  {
+    file: "src/app/(account)/app/_overview/RivalModule.tsx",
+    classes: ["btn", "btn-sm", "btn-ghost"],
+    why: "REQ-096 c6's one control (#223), and the same case as the row above: it navigates to the competitors card, so it is an `<a>` rather than `Btn`'s `<button>`. `btn-ghost` is the third class and it is the point of the row — §2.5 keeps rival strength neutral, so the control beside a far rival must not read as a call to action, and the ruling on #177 fixed plain ghost for exactly this kind of quiet control.",
+  },
 ];
 
 /** Every daisyUI component class written outside `src/ui/components/**`

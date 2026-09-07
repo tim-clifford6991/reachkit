@@ -74,19 +74,50 @@ export const FIXTURE_OVERVIEW_FACTS: OverviewFacts = Object.freeze({
     own: measured(81, MONDAY(31)),
     previousOwn: measured(36, MONDAY(17)),
     rivals: Object.freeze([
+      // Sized, and banded `far`: against an own count of 81 the middle bar
+      // is `max(500, 5×81) = 500`, so 6,318 is beyond it. That is what
+      // makes REQ-096 c6's line and its one control part of the densest
+      // frame this screen can hold, which is what a fixture is for
+      // (issue #223).
       {
         domain: "bigcompetitor.com",
         confirmed: true,
         ranked: measured(6318, MONDAY(31)),
         previousRanked: measured(9936, MONDAY(17)),
         series: Object.freeze([276, 214, 168, 121, 96, 78]),
+        size: Object.freeze({
+          domain: "bigcompetitor.com",
+          state: "sized" as const,
+          rankedCount: 6318,
+          band: "far" as const,
+          at: MONDAY(31),
+          current: true,
+        }),
       },
+      // Sized too, and `middle` — so it carries **no** offer, and the frame
+      // shows the two arms side by side rather than one at a time.
+      //
+      // Its count moved from 2,511 to 420 when the bands started rendering
+      // (issue #223): against an own count of 81 the middle bar is
+      // `max(500, 5×81) = 500`, so 2,511 was `far` and this row would have
+      // carried a second offer. A fixture whose stored band and stored
+      // counts disagree is a fixture that teaches the wrong rule, and the
+      // one this screen most needs to show is *one* rival beyond reach
+      // among rivals that are not.
       {
         domain: "secondplace.io",
         confirmed: true,
-        ranked: measured(2511, MONDAY(31)),
-        previousRanked: measured(3384, MONDAY(17)),
-        series: Object.freeze([94, 81, 63, 52, 40, 31]),
+        ranked: measured(420, MONDAY(31)),
+        previousRanked: measured(430, MONDAY(17)),
+        series: Object.freeze([12, 11, 9, 8, 6, 5]),
+        size: Object.freeze({
+          domain: "secondplace.io",
+          state: "sized" as const,
+          rankedCount: 420,
+          band: "middle" as const,
+          at: MONDAY(31),
+          current: true,
+        }),
       },
       // Derived by §6.6's rival pass but never confirmed by the customer,
       // so it never renders (REQ-041 c8). Present in the fixture precisely

@@ -69,7 +69,13 @@ describe('REQ-096 c7 — "no band ever removes a rival, hides it, drops it from 
       "SwapOffer",
       "swapOffer",
     ]);
-    expect(importsOf("offer.ts")).toEqual(["./size"]);
+    // `./rival-size` and not `./size` since issue #223: the shape moved to
+    // a leaf of its own so Overview can name it without pulling the
+    // DataForSEO client that `size.ts` imports (that screen asserts its own
+    // module graph reaches no vendor at all). What this row is actually
+    // about is unchanged and is the point of asserting the whole list —
+    // this module imports one type and nothing that can write.
+    expect(importsOf("offer.ts")).toEqual(["./rival-size"]);
     expect(code).not.toContain("addRival");
     expect(code).not.toContain("removeRival");
     expect(code).not.toMatch(/RivalSize\[\]/);

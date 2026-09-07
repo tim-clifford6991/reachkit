@@ -132,3 +132,89 @@ describe("what the module may not do", () => {
     expect(gap.rivals[1]?.series).toEqual([94, 63, 31]);
   });
 });
+
+// ── REQ-096 c6 — the swap offer, on both arms (issue #223) ─────────────
+//
+// The rows that discriminate are the negative ones. `swapOffer` already
+// decides "far, and only far"; what this resolver can get wrong is *which
+// rivals it asks about* and *which arms it asks on* — and both mistakes
+// look like nothing at all on a screen until a customer with a far rival
+// is never offered the one control REQ-096 c6 promises them.
+const sized = (band: "near" | "middle" | "far", domain = "bigcompetitor.com") =>
+  ({ domain, state: "sized" as const, rankedCount: 6318, band, at: AT, current: true });
+
+describe("the offer follows the band, and the band alone", () => {
+  it("a rival banded far carries the offer, naming itself and the competitors card", () => {
+    const gap = resolveRivals(facts(81, { rivals: [rival({ size: sized("far") })] }));
+    expect(gap.rivals[0]?.offer).toEqual({
+      offered: true,
+      rival: "bigcompetitor.com",
+      destination: "settings.competitors",
+    });
+  });
+
+  it.each(["near", "middle"] as const)("a rival banded %s carries none", (band) => {
+    const gap = resolveRivals(facts(81, { rivals: [rival({ size: sized(band) })] }));
+    expect(gap.rivals[0]?.offer).toEqual({ offered: false });
+  });
+
+  it("a rival the week did not size carries none — an unsized rival has no band to be far", () => {
+    const gap = resolveRivals(
+      facts(81, {
+        rivals: [
+          rival({
+            size: { domain: "bigcompetitor.com", state: "unsized", because: "awaiting_deep_pass" },
+          }),
+        ],
+      })
+    );
+    expect(gap.rivals[0]?.offer).toEqual({ offered: false });
+  });
+
+  it("a rival with no sizing at all carries none, and does not throw", () => {
+    const gap = resolveRivals(facts(81, { rivals: [rival()] }));
+    expect(gap.rivals[0]?.offer).toEqual({ offered: false });
+  });
+});
+
+describe("**both arms** — a cold-start customer can have a rival beyond reach too", () => {
+  it("the absolute arm carries the offer", () => {
+    // Reading c6 as a warm-arm rule would withhold the one control from
+    // exactly the customers likeliest to need it: the ones whose own count
+    // has not passed the unlock.
+    const gap = resolveRivals(facts(0, { rivals: [rival({ size: sized("far") })] }));
+    expect(gap.kind).toBe("absolute");
+    expect(gap.rivals[0]?.offer).toMatchObject({ offered: true });
+  });
+
+  it("the ratio arm carries it too, and the two arms agree", () => {
+    const far = rival({ size: sized("far") });
+    const cold = resolveRivals(facts(0, { rivals: [far] }));
+    const warm = resolveRivals(facts(RATIO_UNLOCK, { rivals: [far] }));
+    expect(warm.kind).toBe("ratio");
+    expect(warm.rivals[0]?.offer).toEqual(cold.rivals[0]?.offer);
+  });
+});
+
+describe("REQ-096 c7 — an offer never narrows the set", () => {
+  it("a far rival keeps its row, its figure and its place in the order", () => {
+    const gap = resolveRivals(
+      facts(81, {
+        rivals: [
+          rival({ domain: "near.example", size: sized("near", "near.example") }),
+          rival({ domain: "far.example", size: sized("far", "far.example") }),
+          rival({ domain: "middle.example", size: sized("middle", "middle.example") }),
+        ],
+      })
+    );
+    expect(gap.rivals.map((r) => r.domain)).toEqual([
+      "near.example",
+      "far.example",
+      "middle.example",
+    ]);
+    expect(gap.rivals.filter((r) => r.offer.offered)).toHaveLength(1);
+    // The far row is not stripped of anything the others carry.
+    expect(gap.rivals[1]).toHaveProperty("ratio");
+    expect(gap.rivals[1]?.series).toEqual([276, 168, 78]);
+  });
+});

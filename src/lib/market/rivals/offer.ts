@@ -22,7 +22,7 @@
 //
 // `destination` is a handle, not a URL and not a sentence: route
 // resolution is the surface's.
-import type { RivalSize } from "./size";
+import type { RivalSize } from "./rival-size";
 
 export type SwapOffer =
   | { offered: false }

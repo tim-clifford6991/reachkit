@@ -67,12 +67,40 @@ const facts = (over: Partial<OverviewFacts> = {}): OverviewFacts => ({
     own: measured(81, AT(31)),
     previousOwn: measured(36, AT(17)),
     rivals: [
+      // Banded `far` — against an own count of 81 the middle bar is
+      // `max(500, 405) = 500`, so this is the row REQ-096 c6 applies to
+      // (issue #223).
       {
         domain: "bigcompetitor.com",
         confirmed: true,
         ranked: measured(6318, AT(31)),
         previousRanked: measured(9936, AT(17)),
         series: [276, 168, 78],
+        size: {
+          domain: "bigcompetitor.com",
+          state: "sized" as const,
+          rankedCount: 6318,
+          band: "far" as const,
+          at: AT(31),
+          current: true,
+        },
+      },
+      // Banded `middle`, and the row that proves the offer belongs to one
+      // rival rather than to the module.
+      {
+        domain: "secondplace.io",
+        confirmed: true,
+        ranked: measured(420, AT(31)),
+        previousRanked: measured(430, AT(17)),
+        series: [12, 8, 5],
+        size: {
+          domain: "secondplace.io",
+          state: "sized" as const,
+          rankedCount: 420,
+          band: "middle" as const,
+          at: AT(31),
+          current: true,
+        },
       },
       {
         domain: "unconfirmed.com",
@@ -207,6 +235,49 @@ describe("how far ahead each rival is", () => {
     expect(markup).not.toContain("overview.rivals.line.shrinking");
     // Never a ratio: no × figure is composed on this arm.
     expect(markup).not.toContain("overview.rivals.ratio");
+  });
+
+  // ── REQ-096 c6, rendered (issue #223) ───────────────────────────────
+  //
+  // `page.test.tsx` asserts the other half: while either sentence is owed,
+  // nothing of this renders at all. Here every key is written, so this is
+  // what the customer sees the moment the owner fills them.
+  it("a far rival carries the written line and one control, under its own row", () => {
+    const model = assembleOverview(facts());
+    const markup = html(<RivalModule rivals={model.rivals} timeZone={ZONE} />);
+    expect(markup).toContain("overview.rivals.far.line(bigcompetitor.com)");
+    expect(markup).toContain("overview.rivals.far.swap");
+  });
+
+  it("the control is a link to the competitors card, and there is exactly one", () => {
+    const model = assembleOverview(facts());
+    const markup = html(<RivalModule rivals={model.rivals} timeZone={ZONE} />);
+    expect(markup.split('href="/app/settings"').length - 1).toBe(1);
+    expect(markup.split("overview.rivals.far.swap").length - 1).toBe(1);
+  });
+
+  it("no other rival's row carries it — the fixture's middle-banded rival has none", () => {
+    const model = assembleOverview(facts());
+    const markup = html(<RivalModule rivals={model.rivals} timeZone={ZONE} />);
+    // Both rivals render; only one offer does.
+    expect(markup).toContain("secondplace.io");
+    expect(markup.split("overview.rivals.far.line").length - 1).toBe(1);
+  });
+
+  it("the far rival keeps its figure and its badge — the offer adds, it never replaces", () => {
+    const model = assembleOverview(facts());
+    const markup = html(<RivalModule rivals={model.rivals} timeZone={ZONE} />);
+    expect(markup).toContain("overview.rivals.ratio(78)");
+    expect(markup).toContain("overview.rivals.was");
+  });
+
+  it("it names no replacement and offers no removal — only the two written keys appear", () => {
+    const model = assembleOverview(facts());
+    const markup = html(<RivalModule rivals={model.rivals} timeZone={ZONE} />);
+    const rivalKeys = [...markup.matchAll(/overview\.rivals\.[a-z.]+/g)].map((m) => m[0]);
+    expect(new Set(rivalKeys.filter((k) => k.startsWith("overview.rivals.far")))).toEqual(
+      new Set(["overview.rivals.far.line", "overview.rivals.far.swap"])
+    );
   });
 });
 

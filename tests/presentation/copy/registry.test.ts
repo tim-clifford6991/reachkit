@@ -806,10 +806,27 @@ describe("owner-owed and empty agree both ways", () => {
     // `writtenLine`, and a rule with no account is a mark the reader cannot
     // identify. 158 owner-owed and 168 ruled unchanged, 187 + 4 = 191
     // awaiting copy, 513 + 4 = 517 total.
-    expect(OWNER_OWED.length).toBe(158);
+    //
+    // 2026-09-07, issue #223 — REQ-096 c6's two sentences for a rival
+    // banded `far`: `overview.rivals.far.line` and
+    // `overview.rivals.far.swap`. **Empty, where #205's four above take
+    // the marker**, and the difference is not a disagreement: Overview
+    // asserts over its own *rendered fixture* that no owner-owed key
+    // renders anything at all, not even a `TODO`
+    // (`tests/app/overview/page.test.tsx`). #205's accounts are reached
+    // only by a series that has a break, and the fixture has none; these
+    // two are reached by the fixture's `far` rival on every render, so the
+    // marker would put a `TODO` in that document. Both families are read
+    // through `writtenLine` and both render nothing until written — what
+    // differs is only whether the fixture reaches them. The offer
+    // therefore does not render until the owner writes both, which is the
+    // honest state: a control with no label is not a control. 158 + 2 =
+    // 160 owner-owed, 191 awaiting copy and 168 ruled unchanged,
+    // 517 + 2 = 519 total.
+    expect(OWNER_OWED.length).toBe(160);
     expect(AWAITING_COPY.length).toBe(191);
     expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(168);
-    expect(Object.keys(COPY).length).toBe(517);
+    expect(Object.keys(COPY).length).toBe(519);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.
