@@ -31,7 +31,6 @@ const REPORT_KEYS = [
   // The screen's own sections (issue #13).
   "verdict",
   "blockedAgents",
-  "category",
   "aiAnswers",
   "presence",
   "supply",

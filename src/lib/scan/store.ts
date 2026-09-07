@@ -64,7 +64,6 @@ export interface ReportSections {
    *  report, so the two cannot drift. */
   verdict: Verdict;
   blockedAgents: readonly (typeof AI_READER_AGENTS)[number][];
-  category: string | null;
   aiAnswers: AiAnswersSection | null;
   presence: PresenceSection | null;
   supply: SupplySection;
@@ -96,7 +95,6 @@ export function assembleReport(s: ReportSections): StoredReport {
     fromIncompleteRescan: s.fromIncompleteRescan,
     verdict: s.verdict,
     blockedAgents: s.blockedAgents,
-    category: s.category,
     aiAnswers: s.aiAnswers,
     presence: s.presence,
     supply: s.supply,

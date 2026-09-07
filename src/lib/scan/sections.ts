@@ -49,19 +49,27 @@ export function categoryOf(market: Measured<MarketSet>): string | null {
   return category === "" ? null : category;
 }
 
-/** One question, as the *screen* stores it: numbered, its wording gated
- *  behind `GeneratedText` so no surface can reach it except through
- *  `renderQuestion`, and carrying no volume — the owner removed
- *  per-question `{vol}/mo` on 2026-09-03, and a field that does not exist
- *  cannot be rendered by mistake. */
-function storedQuestionOf(question: Question, n: number, cell: AnswerCell): StoredQuestion {
+/**
+ * One question, as the *screen* stores it: numbered, its wording gated
+ * behind `GeneratedText` so no surface can reach it except through
+ * `renderQuestion`, and carrying no volume — the owner removed
+ * per-question `{vol}/mo` on 2026-09-03, and a field that does not exist
+ * cannot be rendered by mistake.
+ *
+ * **This is the one place the screen's shape is built** (#103's ruling in
+ * `report.ts`'s header): a projection of the record's twelve, derived
+ * here and written nowhere else, so the two can never come to disagree.
+ *
+ * It no longer takes the answer cell. `namedBrands` used to be built from
+ * it, and that was a fact about the *answer* riding on the question — a
+ * third copy of `cell.citedDomains`, on an object the row already holds
+ * the cell beside.
+ */
+function storedQuestionOf(question: Question, n: number): StoredQuestion {
   return {
     n,
     wording: fromStored("questions.wording", question.text),
     search: question.search.keyword,
-    // The brands the AI answer named, in the order the answer named them.
-    // A question with no answer named none — an empty list, never a claim.
-    namedBrands: cell.kind === "answered" ? cell.citedDomains : [],
   };
 }
 
@@ -116,7 +124,7 @@ export function answersSectionOf(a: {
   const rows = a.questions.value.map((question, index) => {
     const cell = cells[index] ?? ({ kind: "unmeasured", reason: "not_attempted" } as const);
     const engines = a.card.rows[index]?.engines ?? engineColumns({ overview: cell, ownDomain: a.ownDomain });
-    return { question: storedQuestionOf(question, index + 1, cell), cell, engines };
+    return { question: storedQuestionOf(question, index + 1), cell, engines };
   });
 
   return {
