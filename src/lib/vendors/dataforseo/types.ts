@@ -69,3 +69,19 @@ export interface AiAnswer {
   text: string;
   citedDomains: readonly string[];
 }
+
+/**
+ * One `ranked_keywords` answer: the rows this call bought, and the vendor's
+ * own count of every search the domain ranks for (#117).
+ *
+ * `total` is `null` where the vendor did not report one — never `0` and
+ * never the row count in disguise, so a reader can tell "the domain ranks
+ * for nothing" from "we do not know how much it ranks for" and choose its
+ * own fallback. A wrapper beside the rows rather than a field on
+ * `RankedRow`: the total is a property of the domain, not of a keyword,
+ * and repeating it per row would let a hundred copies disagree.
+ */
+export interface RankedResult {
+  readonly rows: readonly RankedRow[];
+  readonly total: number | null;
+}

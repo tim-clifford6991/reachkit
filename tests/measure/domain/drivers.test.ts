@@ -13,7 +13,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { SCORING } from "@/lib/config/constants";
 import type { RobotsPolicy } from "@/lib/egress/types";
-import type { RankedRow, SerpResult } from "@/lib/vendors/dataforseo/types";
+import type { RankedResult, RankedRow, SerpResult } from "@/lib/vendors/dataforseo/types";
 import {
   aiPresenceOf,
   answerabilityOf,
@@ -229,24 +229,42 @@ describe('`BUILD.md` §5: "Answerability = shape of the home + measured pages, 0
   });
 });
 
-describe("the customer's own ranked count — the rows, not the sub-measure (issue #140)", () => {
-  it("is the number of rows, and not a score derived from them", () => {
+describe("the customer's own ranked count — the vendor's total, not the sub-measure (issues #140, #117)", () => {
+  /** One `ranked_keywords` answer. `total` defaults to absent, which is
+   *  the pre-#117 world: the count falls back to the rows. */
+  function answer(rows: readonly RankedRow[], total: number | null = null): RankedResult {
+    return { rows, total };
+  }
+
+  it("is the vendor's own total, and not a score derived from the rows", () => {
     const rows = [rankedRow(1), rankedRow(11), rankedRow(12)];
-    expect(ownRankedOf({ ranked: measured(rows, AT), at: AT })).toEqual(measured(3, AT));
+    // #117: the rows are a page of a much larger set, and the count is the
+    // set. Reading `rows.length` here is what made `far` unreachable.
+    expect(ownRankedOf({ ranked: measured(answer(rows, 4200), AT), at: AT })).toEqual(measured(4200, AT));
     // The same rows read as SearchPresence are a 0–100 quantity, which is
     // why the count cannot be recovered from `scans.drivers`.
     expect(valueOf(searchPresenceOf({ ranked: measured(rows, AT), at: AT }))).not.toBe(3);
   });
 
+  it("falls back to the rows where the vendor reported no total — never worse than before #117", () => {
+    const rows = [rankedRow(1), rankedRow(11), rankedRow(12)];
+    expect(ownRankedOf({ ranked: measured(answer(rows), AT), at: AT })).toEqual(measured(3, AT));
+  });
+
+  it("a total of zero is the total, not an absence — `?? rows.length` must not swallow it", () => {
+    const rows = [rankedRow(1)];
+    expect(valueOf(ownRankedOf({ ranked: measured(answer(rows, 0), AT), at: AT }))).toBe(0);
+  });
+
   it('zero rows is a measured 0 — "0 rows is a legal result", never an absence', () => {
-    const m = ownRankedOf({ ranked: measuredZero<readonly RankedRow[]>([], AT), at: AT });
+    const m = ownRankedOf({ ranked: measuredZero<RankedResult>(answer([], 0), AT), at: AT });
     expect(m.kind).toBe("zero");
     expect(valueOf(m)).toBe(0);
     expectAt(m);
   });
 
   it("an unmeasured row set stays unmeasured and carries the same reason", () => {
-    expect(ownRankedOf({ ranked: unmeasured<readonly RankedRow[]>("not_attempted", AT), at: AT })).toEqual({
+    expect(ownRankedOf({ ranked: unmeasured<RankedResult>("not_attempted", AT), at: AT })).toEqual({
       kind: "unmeasured",
       reason: "not_attempted",
       at: AT,
@@ -255,7 +273,7 @@ describe("the customer's own ranked count — the rows, not the sub-measure (iss
 
   it("reads no clock — the date is the caller's", () => {
     const other = new Date("2020-01-01T00:00:00.000Z");
-    expect(ownRankedOf({ ranked: measured([rankedRow(1)], AT), at: other }).at).toEqual(other);
+    expect(ownRankedOf({ ranked: measured(answer([rankedRow(1)]), AT), at: other }).at).toEqual(other);
   });
 });
 

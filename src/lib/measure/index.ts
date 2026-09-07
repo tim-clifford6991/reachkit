@@ -37,7 +37,7 @@ import { safeFetch, type SafeFetchOpts } from "@/lib/egress/safe-fetch";
 import { readRobots } from "@/lib/egress/robots";
 import type { FetchOutcome, RobotsPolicy } from "@/lib/egress/types";
 import { rankedKeywords } from "@/lib/vendors/dataforseo";
-import type { RankedRow } from "@/lib/vendors/dataforseo/types";
+import type { RankedResult } from "@/lib/vendors/dataforseo/types";
 import { answerabilityOf, foundationsOf, ownRankedOf, searchPresenceOf } from "./drivers";
 import { measured, measuredZero, unmeasured, type Measured } from "./measured";
 import { OWN_FETCH_SOURCE, isStoredDocument, toStoredDocument, type StoredDocument } from "./own-fetch";
@@ -77,7 +77,7 @@ const EXTRA_PAGES_BY_TIER: Readonly<Record<Tier, number>> = Object.freeze({
 export interface MeasurePorts {
   fetchDocument: (url: string, opts?: SafeFetchOpts) => Promise<FetchOutcome>;
   readRobots: (origin: string) => Promise<RobotsPolicy | { ok: false; reason: string }>;
-  rankedKeywords: (c: CostContext, a: { domain: string; rows: 50 | 100 | 300 }) => Promise<Measured<RankedRow[]>>;
+  rankedKeywords: (c: CostContext, a: { domain: string; rows: 50 | 100 | 300 }) => Promise<Measured<RankedResult>>;
 }
 
 const DEFAULT_PORTS: MeasurePorts = Object.freeze({
@@ -295,7 +295,12 @@ export async function measureDomain(
   } else {
     try {
       const ranked = await ports.rankedKeywords(c, { domain: a.domain, rows: RANKED_ROWS_BY_TIER[a.tier] });
-      searchPresence = searchPresenceOf({ ranked, at });
+      // Two readings of one answer: §5's score is over the rows bought,
+      // and §6.6's own count is the vendor's total (#117).
+      searchPresence = searchPresenceOf({
+        ranked: ranked.kind === "unmeasured" ? ranked : { ...ranked, value: ranked.value.rows },
+        at,
+      });
       ownRanked = ownRankedOf({ ranked, at });
     } catch (error) {
       logDriver("driver_undeterminable", {

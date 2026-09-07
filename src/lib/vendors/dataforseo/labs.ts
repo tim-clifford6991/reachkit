@@ -15,8 +15,8 @@
 import type { CostContext } from "@/lib/costs";
 import { CACHE_WINDOWS_D, PRICE_BOOK, SERP_LOCATION, VENDOR } from "@/lib/config/constants";
 import type { Measured } from "@/lib/measure/measured";
-import { asArray, asNumber, asString, callEndpoint, isRecord, ledgered } from "./envelope";
-import type { CompetitorRow, RankedRow, SuggestionRow } from "./types";
+import { asArray, asNumber, asString, callEndpoint, isRecord, ledgered, ledgeredWithTotal } from "./envelope";
+import type { CompetitorRow, RankedResult, RankedRow, SuggestionRow } from "./types";
 
 const LABS = "/v3/dataforseo_labs/google";
 const LOCALE_KEY = `${SERP_LOCATION.location}|${SERP_LOCATION.language}`;
@@ -42,9 +42,25 @@ function rankedFreshnessDays(rows: RankedRows): number {
   return rows === PRICE_BOOK.RANKED_RIVAL_ROWS ? CACHE_WINDOWS_D.rival : CACHE_WINDOWS_D.own;
 }
 
-function parseRanked(result: unknown): RankedRow[] | undefined {
+/**
+ * The rows, and the vendor's own `total_count` beside them (#117).
+ *
+ * `total_count` is DataForSEO's count of every search the target ranks
+ * for, independent of the `limit` this call bought — which is the whole
+ * point: `PRICE_BOOK.RANKED_RIVAL_ROWS` is 100, so a row count can never
+ * exceed 100 and the `far` band (a rival above `max(500, 5×C)`) was
+ * unreachable from live data.
+ *
+ * `items_count` is deliberately not read as a fallback: it is the number
+ * of rows *returned*, so it is the same capped figure under a different
+ * name, and reading it would put the ceiling back while looking like a
+ * total. A response with no `total_count` reports `null`, and the reader
+ * chooses what to do about not knowing.
+ */
+function parseRanked(result: unknown): { rows: RankedRow[]; total: number | null } | undefined {
   if (!isRecord(result)) return undefined;
-  if (result.items === null || result.items === undefined) return [];
+  const total = asNumber(result.total_count) ?? null;
+  if (result.items === null || result.items === undefined) return { rows: [], total };
   if (!Array.isArray(result.items)) return undefined;
   const rows: RankedRow[] = [];
   for (const item of result.items) {
@@ -65,7 +81,7 @@ function parseRanked(result: unknown): RankedRow[] | undefined {
       url: (serp ? asString(serp.url) : undefined) ?? "",
     });
   }
-  return rows;
+  return { rows, total };
 }
 
 function parseSuggestions(result: unknown): SuggestionRow[] | undefined {
@@ -101,10 +117,14 @@ function parseCompetitors(target: string, result: unknown): CompetitorRow[] | un
 export async function rankedKeywords(
   c: CostContext,
   a: { domain: string; rows: RankedRows }
-): Promise<Measured<RankedRow[]>> {
-  return ledgered<RankedRow>(c, {
+): Promise<Measured<RankedResult>> {
+  return ledgeredWithTotal<RankedRow>(c, {
     source: "dataforseo_labs/google/ranked_keywords",
-    cacheKey: `${a.domain}|${a.rows}|${LOCALE_KEY}`,
+    // `VENDOR.rankedPayloadVersion` is part of the key because the cached
+    // payload's *shape* changed with #117, not its meaning: an entry
+    // written before it is a bare array, and reading one back as
+    // `{ rows, total }` would report a cached rival as having no rows.
+    cacheKey: `${a.domain}|${a.rows}|${LOCALE_KEY}|p${VENDOR.rankedPayloadVersion}`,
     freshnessDays: rankedFreshnessDays(a.rows),
     costCents: rankedCostCents(a.rows),
     fetch: () =>

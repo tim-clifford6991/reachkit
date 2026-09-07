@@ -350,6 +350,15 @@ export const VENDOR = Object.freeze({                         // #23 · BUILD §
   competitorsDomainRows: 25,
   stdQueuePollIntervalS: 10,
   stdQueueDeadlineMin: 45,
+  /** The shape of the payload `ranked_keywords` caches, as a number that
+   *  is part of that call's cache key (#117). It went to 2 when the call
+   *  began carrying the vendor's own `total_count` beside its rows: an
+   *  entry written under the old shape is a bare array, and reading one
+   *  back as `{ rows, total }` would report every cached rival as having
+   *  no rows at all. Bumping this retires those entries by never asking
+   *  for them again — nothing is deleted, which is this seam's rule
+   *  everywhere. */
+  rankedPayloadVersion: 2,
 } as const);
 
 // Report removal on written request (REQ-002 · ADR-002)

@@ -42,7 +42,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BATTERY, PRICE_BOOK } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import type { FetchOutcome, RobotsPolicy } from "@/lib/egress/types";
-import type { RankedRow } from "@/lib/vendors/dataforseo/types";
+import type { RankedResult } from "@/lib/vendors/dataforseo/types";
 import {
   detectPricingUrl,
   measureDomain,
@@ -139,7 +139,7 @@ interface PortLog {
 
 function fakePorts(
   documents: Readonly<Record<string, FetchOutcome>>,
-  over: { robots?: RobotsPolicy | { ok: false; reason: string }; ranked?: Measured<RankedRow[]> } = {}
+  over: { robots?: RobotsPolicy | { ok: false; reason: string }; ranked?: Measured<RankedResult> } = {}
 ): MeasurePorts & { log: PortLog } {
   const log: PortLog = { fetched: [], ranked: [], robots: [] };
   return {
@@ -154,7 +154,13 @@ function fakePorts(
     },
     async rankedKeywords(_c: CostContext, a: { domain: string; rows: 50 | 100 | 300 }) {
       log.ranked.push({ domain: a.domain, rows: a.rows });
-      return over.ranked ?? measured<RankedRow[]>([{ keyword: "k", position: 3, searchVolume: 90, url: HOME }], READ_AT);
+      return (
+        over.ranked ??
+        measured<RankedResult>(
+          { rows: [{ keyword: "k", position: 3, searchVolume: 90, url: HOME }], total: null },
+          READ_AT
+        )
+      );
     },
   };
 }
@@ -343,7 +349,7 @@ describe('BP-010 `## NFR budget` — the spend, the page cap and the ceiling', (
   });
 
   it("zero ranked rows is a measured zero, not a withheld driver", async () => {
-    const { result } = await measure(FULL_SITE, {}, { ranked: { kind: "zero", value: [], at: READ_AT } });
+    const { result } = await measure(FULL_SITE, {}, { ranked: { kind: "zero", value: { rows: [], total: 0 }, at: READ_AT } });
     expect(result.drivers.searchPresence.kind).toBe("zero");
   });
 });

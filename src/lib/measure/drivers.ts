@@ -14,7 +14,7 @@
 // list is `AI_READER_AGENTS`. Nothing here is customer-visible.
 import { AI_READER_AGENTS, SCORING } from "@/lib/config/constants";
 import type { RobotsPolicy } from "@/lib/egress/types";
-import type { RankedRow, SerpResult } from "@/lib/vendors/dataforseo/types";
+import type { RankedResult, RankedRow, SerpResult } from "@/lib/vendors/dataforseo/types";
 import { measured, measuredZero, unmeasured, worseReason, type Measured, type UnmeasuredReason } from "./measured";
 import { asciiLowerCase, type OnPageFacts } from "./parse";
 
@@ -223,12 +223,20 @@ const TOP10_LAST_POSITION = 10;
  * never of one they cannot win. Issue #117 is the vendor-side fix, shared
  * with the rival side.
  */
-export function ownRankedOf(a: { ranked: Measured<readonly RankedRow[]>; at: Date }): Measured<number> {
+export function ownRankedOf(a: { ranked: Measured<RankedResult>; at: Date }): Measured<number> {
   if (a.ranked.kind === "unmeasured") return unmeasured(a.ranked.reason, a.at);
-  return ofValue(a.ranked.value.length, a.at);
+  // The vendor's own total, which is what the rival bands are multiples of
+  // (#117). `null` means the vendor reported none, and the fallback is the
+  // row count — the same capped figure this returned before #117, so this
+  // change never makes the banding worse than it already was.
+  return ofValue(a.ranked.value.total ?? a.ranked.value.rows.length, a.at);
 }
 
-/** BUILD §5's SearchPresence over the customer's own ranked rows. Zero
+/** BUILD §5's SearchPresence over the customer's own ranked rows — the
+ *  **rows**, not the total (#117). §5's formula is a score over the page
+ *  of results this pass bought, and its top-10 share is a share *of those
+ *  rows*; feeding it a total the rows are a sample of would divide one
+ *  measurement by another. Zero
  *  rows is a legal result and a measured 0 (BUILD §6.3: "0 rows is a legal
  *  result") — the `zero` arm, never `unmeasured`. An `unmeasured` row set
  *  is `unmeasured` with the reason it carried. */
