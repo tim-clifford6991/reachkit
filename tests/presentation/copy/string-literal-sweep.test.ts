@@ -201,7 +201,12 @@ function relativeSignature(root: string, violations: Violation[]): Array<{ file:
  *  the globs expected to hold files (`expectedNonEmpty`) is caught, and a
  *  glob that is expected empty today (WO-279 rests-on row 1: `src/lib/mail`
  *  does not exist yet; `src/app/(hosted)` holds only `.gitkeep`) is
- *  reported as exactly that, not hidden inside an aggregate. */
+ *  reported as exactly that, not hidden inside an aggregate.
+ *
+ *  Both globs that list once held have since been built — `src/lib/mail`
+ *  by the mail block and `src/app/(hosted)` by issue #49 — so
+ *  `expectedEmpty` is empty today. The mechanism stays: it is what would
+ *  report a glob that quietly stopped matching. */
 function assertGovernedCoverage(
   tree: { perGlob: Record<string, number> },
   expectedNonEmpty: readonly string[],
@@ -292,12 +297,21 @@ describe("REQ-093 c1 — string-literal sweep, over the real surface globs", () 
     expect(result.filesWalked).toBeGreaterThan(0);
   });
 
-  it("reports coverage per governed glob — src/app and src/ui must hold files; src/app/(hosted) is empty today, and that is asserted, not just unasserted (TST-028 finding 3)", () => {
+  it("reports coverage per governed glob — every governed glob holds files, and the empty list is asserted empty rather than left unasserted (TST-028 finding 3)", () => {
     // 2026-09-05, issue #30: `src/lib/mail` now holds the mail seam, so it
     // moves from the expected-empty list to the expected-non-empty one —
     // the assertion that keeps a mistyped glob from reading as coverage
     // still holds, on the other side.
-    assertGovernedCoverage(result, ["src/app", "src/ui", "src/lib/mail"], ["src/app/(hosted)"]);
+    // Every governed glob now holds files. `src/app/(hosted)` held only a
+    // `.gitkeep` until issue #49 built the hosted edge, and `src/lib/mail`
+    // was WO-279's other empty row; both are swept like the rest, and the
+    // empty list is asserted empty so a glob that quietly stops matching
+    // still fails here.
+    assertGovernedCoverage(
+      result,
+      ["src/app", "src/app/(hosted)", "src/lib/mail", "src/ui"],
+      []
+    );
   });
 
   it("no surface holds a product sentence", () => {

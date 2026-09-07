@@ -93,6 +93,11 @@ describe(
         // lands on. Reachable with no session for the same reason: its
         // holder is reading a mail, not the app.
         "/veto/:token": "/veto/abc123",
+        // BUILD §9, issue #49 — the hosted edge's two documents. Public on
+        // every host: each route resolves the Host itself and answers 404
+        // on one it does not serve.
+        "/robots.txt": "/robots.txt",
+        "/sitemap.xml": "/sitemap.xml",
       };
       expect(Object.keys(instances).sort()).toEqual([...PUBLIC_PATHS].sort());
       for (const pattern of PUBLIC_PATHS) {

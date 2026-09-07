@@ -21,7 +21,12 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { BAND_MIN } from "@/ui/layout/bands";
 import { getBaseURL, withPage } from "./browser";
-import { enumerateRoutes, type EnumeratedRoute } from "./routes";
+import {
+  enumerateRoutes,
+  headersFor,
+  urlFor as routeUrl,
+  type EnumeratedRoute,
+} from "./routes";
 
 const APP_ROOT = path.resolve(__dirname, "../../../src/app");
 const routes = enumerateRoutes(APP_ROOT);
@@ -33,20 +38,16 @@ const SCALE_PX: Readonly<Record<string, number>> = { h1: 31, h2: 25, h3: 20, h4:
 /** `BUILD.md` §2.3, verbatim: "Body 15px/1.55." */
 const BODY_PX = 15;
 
-/** Same shape as `layout.test.ts`'s: a `(hosted)` page's `Host`, an
- *  `(account)` page's session `Cookie`, or neither. */
-function headersFor(route: EnumeratedRoute): { extraHTTPHeaders?: Record<string, string> } {
-  const headers: Record<string, string> = {};
-  if (route.host) headers.Host = route.host;
-  if (route.cookie) headers.Cookie = route.cookie;
-  return Object.keys(headers).length > 0 ? { extraHTTPHeaders: headers } : {};
-}
-
 /** Browser startup dominates: one Chromium per route, as `browser.ts`'s
  *  header explains it must be. Same bound, same reason, as
  *  `layout.test.ts`'s `PER_ROUTE_BROWSER_MS`. */
 const PER_ROUTE_BROWSER_MS = 60_000;
 
+/** `routes.ts` owns how a route becomes a URL and a header set. This file
+ *  had its own copy of both, written from `layout.test.ts`'s older shape,
+ *  which sent a `(hosted)` route's `Host` as a header — a forbidden header
+ *  name that Chromium refuses the navigation for. One home now (issue
+ *  #49); this wrapper adds only this file's own no-server message. */
 function urlFor(route: EnumeratedRoute): string {
   const baseURL = getBaseURL();
   if (!baseURL) {
@@ -54,7 +55,7 @@ function urlFor(route: EnumeratedRoute): string {
       "tests/ui/layout/heading-scale.test.ts: a route was enumerated but no app server is running"
     );
   }
-  return baseURL + route.path;
+  return routeUrl(baseURL, route);
 }
 
 interface Measured {

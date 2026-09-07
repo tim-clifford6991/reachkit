@@ -190,10 +190,20 @@ export function getBaseURL(): string | null {
 /** Launches its own Chromium (never a shared connection — see this file's
  *  header comment), opens a page in a fresh context sized at
  *  `width` × `VIEWPORT_HEIGHT_PX`, runs `fn`, and tears everything down
- *  again. `extraHTTPHeaders` carries a `(hosted)` route's `Host` header
- *  (`routes.ts`'s `HOST_FIXTURES`), never used for anything else. On a
- *  missing Chromium binary this fails the same way `globalSetup`'s
- *  preflight does — never a skip. */
+ *  again. `extraHTTPHeaders` carries an `(account)` route's session cookie.
+ *  On a missing Chromium binary this fails the same way `globalSetup`'s
+ *  preflight does — never a skip.
+ *
+ *  **`--host-resolver-rules` is what lets a `(hosted)` route be swept at
+ *  all** (issue #49). That group's routes are keyed by the `Host` header,
+ *  and `Host` is a forbidden header name: setting it through
+ *  `extraHTTPHeaders` makes Chromium refuse the navigation outright
+ *  (`net::ERR_INVALID_ARGUMENT`), which is what the empty `HOST_FIXTURES`
+ *  map had never exercised. Mapping every name to the loopback address
+ *  instead lets the sweep *navigate* to `http://content.example.com:{port}`
+ *  and have the browser send that Host itself — the real header, on the
+ *  real request, rather than one bolted on afterwards. It affects nothing
+ *  else: this browser only ever visits the local server. */
 export async function withPage<T>(
   width: number,
   fn: (page: Page) => Promise<T>,
@@ -201,7 +211,10 @@ export async function withPage<T>(
 ): Promise<T> {
   let browser;
   try {
-    browser = await chromium.launch({ headless: true });
+    browser = await chromium.launch({
+      headless: true,
+      args: ["--host-resolver-rules=MAP * 127.0.0.1"],
+    });
   } catch (err) {
     const missing = chromiumMissingError(err);
     if (missing) throw missing;

@@ -57,6 +57,12 @@ const SEGMENT_FIXTURES: Readonly<Record<string, string>> = {
    */
   "[domain]": "example.com",
   /**
+   * The hosted edge's catch-all (issue #49). One segment, because one
+   * segment is the only shape that names a page: `content.{domain}/a/b` is
+   * not a deeper page, it is not a page at all.
+   */
+  "[...slug]": "best-onboarding-tools",
+  /**
    * The draft view's address (issue #17, `BUILD.md` §4.6). The value is the
    * one draft the fixture holds in `in_review` — the stage §4.6 gives this
    * view a way in from, and the densest arm it can render: the whole body,
@@ -73,7 +79,22 @@ const SEGMENT_FIXTURES: Readonly<Record<string, string>> = {
  * repo root (POSIX separators), naming the `Host` header the suite sends
  * when rendering it. Empty today for the same reason as `SEGMENT_FIXTURES`.
  */
-const HOST_FIXTURES: Readonly<Record<string, string>> = {};
+const HOST_FIXTURES: Readonly<Record<string, string>> = {
+  /**
+   * The hosted edge's page (issue #49, `BUILD.md` §9). `content.` plus the
+   * fixture domain is the shape `resolveHost` matches, so the request
+   * reaches the hosted group rather than the sign-in redirect.
+   *
+   * **The sweep measures this route's 404 arm, and that is the honest
+   * scope.** The layout suite runs `next build` against a fixture
+   * environment with no database behind it, so the Host resolves to no
+   * site and the route renders `(hosted)/not-found.tsx` — a real surface
+   * of this product, and one the layout law applies to exactly as it does
+   * to any other. The published template's own layout is asserted where it
+   * can be rendered with a page in hand, in `tests/hosted/`.
+   */
+  "src/app/(hosted)/hosted-page/[...slug]/page.tsx": "content.example.com",
+};
 
 /**
  * The `Cookie` header every `(account)` page is rendered with — the one
@@ -85,6 +106,40 @@ const HOST_FIXTURES: Readonly<Record<string, string>> = {};
  * (issue #35), that work order is where the two are made to agree.
  */
 export const ACCOUNT_SESSION_COOKIE = `${SESSION_COOKIE_NAME}=layout-sweep-fixture`;
+
+/**
+ * The URL a route is fetched at, and the headers it is fetched with.
+ *
+ * **One home for both, because a second copy is what broke** (issue #49 →
+ * #110): `layout.test.ts` and `heading-scale.test.ts` each grew their own
+ * pair, and the second was written from the first's older shape — sending
+ * a `(hosted)` route's Host as a header, which Chromium refuses outright
+ * (`net::ERR_INVALID_ARGUMENT`, because `Host` is a forbidden header
+ * name). Every browser suite over the route tree now calls these, so a
+ * third suite cannot inherit a stale copy.
+ *
+ * A `(hosted)` route's Host rides in the **URL**, never in a header:
+ * `browser.ts` launches Chromium with `--host-resolver-rules` mapping
+ * every name to loopback, so navigating to
+ * `http://content.example.com:{port}` reaches the local server and the
+ * browser sends that Host itself — the real header on the real request.
+ */
+export function urlFor(baseURL: string, route: EnumeratedRoute): string {
+  if (route.host === undefined) return baseURL + route.path;
+  const url = new URL(baseURL + route.path);
+  url.hostname = route.host;
+  return url.toString();
+}
+
+/** An `(account)` page's session `Cookie` — `src/middleware.ts` is
+ *  default-deny and would otherwise redirect the sweep to the sign-in
+ *  prompt — or, for any other route, none. A `(hosted)` route's `Host` is
+ *  deliberately absent: see `urlFor` above. */
+export function headersFor(route: EnumeratedRoute): { extraHTTPHeaders?: Record<string, string> } {
+  const headers: Record<string, string> = {};
+  if (route.cookie) headers.Cookie = route.cookie;
+  return Object.keys(headers).length > 0 ? { extraHTTPHeaders: headers } : {};
+}
 
 export class MissingRouteFixtureError extends Error {
   constructor(

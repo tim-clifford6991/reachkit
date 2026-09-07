@@ -124,6 +124,8 @@ const B = {
   absentFrom: "\"5 biggest searches you're absent from\" table (search · /mo · holds #1)",
   hostedCname:
     "**Hosted CMS:** `content.{customer-domain}` by CNAME → our edge route serves static-rendered pages by Host header.",
+  previewNoindex:
+    "Preview at\n`{slug}.reachkit.app` is `noindex` **forever** (site-reputation-abuse guardrail —\ncustomer content never ranks on our domain).",
   draftEditor:
     "**Edit = Markdown textarea with a live preview pane** (owner ruling, 28 Aug) — two columns on desktop, tabbed on mobile, autosaved, no rich-text editor.",
 } as const;
@@ -773,6 +775,28 @@ describe("§9 publishing and autopilot — the veto window, the hard limits, the
 
   it("HOSTED_SUBDOMAIN_LABEL is a label, never a hostname — it carries no dot, so no constant here can become half a record", () => {
     expect(pins.HOSTED_SUBDOMAIN_LABEL).not.toContain(".");
+  });
+
+  it(`§9, quoted: "${B.previewNoindex.replace(/\n/g, " ")}" — PREVIEW_HOST_SUFFIX is the parent of every preview host, and the clause is in BUILD.md verbatim`, () => {
+    expect(pins.PREVIEW_HOST_SUFFIX).toBe("reachkit.app");
+    expect(B.previewNoindex).toContain(`{slug}.${pins.PREVIEW_HOST_SUFFIX}`);
+    expect(readFileSync(path.join(ROOT, "BUILD.md"), "utf8")).toContain(B.previewNoindex);
+  });
+
+  it("PREVIEW_HOST_SUFFIX is not derived from NEXT_PUBLIC_APP_URL — the deployment's own address is a binding and this suffix is the product's name", () => {
+    // `resolveHost` subtracts the deployment's own host from this suffix's
+    // children, so `dev.reachkit.app` is never read as a customer preview.
+    expect(pins.PREVIEW_HOST_SUFFIX.split(".")).toHaveLength(2);
+    expect(pins.PREVIEW_HOST_SUFFIX).not.toContain("//");
+  });
+
+  it(`REQ-076 c10, quoted: "when 30 days have passed since their paid-through date, then ReachKit stops serving their hosted pages and every address that served one returns 410 Gone" — HOSTED_GONE_STATUS is that 410, and is its own constant beside REPORT_REMOVED_STATUS`, () => {
+    expect(pins.HOSTED_GONE_STATUS).toBe(410);
+    expect(pins.HOSTED_GONE_STATUS).not.toBe(404);
+    expect(pins.HOSTED_GONE_STATUS).not.toBe(200);
+    // The same number, two policies that move independently — the shape
+    // `PUBLISH_VERIFY_DELAY_H` and `DAILY_WINDOW_H` already use.
+    expect(pins.HOSTED_GONE_STATUS).toBe(pins.REPORT_REMOVED_STATUS);
   });
 
   it("VERIFY.userAgent is our own token and never one of the six AI readers — impersonating one would be a false statement to a server we are measuring", () => {

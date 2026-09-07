@@ -54,6 +54,24 @@ vi.mock("@/app/(account)/app/_shell/provider", async () => {
   };
 });
 
+// BUILD §9, issue #49 — the hosted edge is a route, so it is in this
+// sweep's scope by construction (ADR-010). Its whole input is a Host header
+// and a `publications` row; both are supplied by `hosted-fixture.ts`, and
+// the render the sweep then measures is the real template's.
+vi.mock("next/headers", async () => {
+  const { HOSTED_SWEEP_HOST } = await import("./hosted-fixture");
+  return { headers: async () => new Headers({ host: HOSTED_SWEEP_HOST }) };
+});
+
+vi.mock("@/lib/account/billing", () => ({
+  hostedServingState: async () => ({ serve: true }),
+}));
+
+vi.mock("@/lib/publish/destinations/hosted", async (importOriginal) => {
+  const { hostedModuleMock } = await import("./hosted-fixture");
+  return hostedModuleMock(await importOriginal<Record<string, unknown>>());
+});
+
 const { enumerateRoutes } = await import("./routes");
 const { renderRoute, ROUTE_HARNESS } = await import("./harness");
 type RenderedRoute = import("./harness").RenderedRoute;

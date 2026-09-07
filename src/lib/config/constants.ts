@@ -586,3 +586,30 @@ export const WORDPRESS = Object.freeze({
   stampSlug: "reachkit",
   stampName: "ReachKit",
 } as const);
+
+// ── The hosted edge (issue #49) — BUILD §9
+/** §9, transcribed (rule 1.2 — nothing chosen): "Preview at
+ *  `{slug}.reachkit.app` is `noindex` **forever** (site-reputation-abuse
+ *  guardrail — customer content never ranks on our domain)."
+ *
+ *  The parent of every preview host, and the one place the spelling lives.
+ *  It is **not** `NEXT_PUBLIC_APP_URL`'s host and never derived from it:
+ *  the app's own address is a per-deployment binding (`dev.reachkit.app`
+ *  today, the apex at M4), while this suffix is the product's own name and
+ *  the same in every deployment. `resolveHost()` reads both — the app's own
+ *  host is subtracted from this suffix's children, so the deployment's own
+ *  address is never mistaken for a customer's preview. */
+export const PREVIEW_HOST_SUFFIX = "reachkit.app" as const;   // BUILD §9
+
+/** REQ-076 c10, quoted through `DECISIONS.md` and BP-060: 30 days after a
+ *  departed customer's paid-through date "ReachKit stops serving their
+ *  hosted pages and every address that served one returns 410 Gone rather
+ *  than a page, a redirect or a not-found" — and a deleted account's pages
+ *  stop at the moment of deletion (REQ-079 c6).
+ *
+ *  Deliberately **not** `REPORT_REMOVED_STATUS`, which happens to hold the
+ *  same number and bounds a different thing: that one is the report
+ *  address's answer after a written removal request (#28), and the two move
+ *  independently — the same reason `PUBLISH_VERIFY_DELAY_H` is its own
+ *  constant beside `DAILY_WINDOW_H`. */
+export const HOSTED_GONE_STATUS = 410 as const;               // BUILD §9 · REQ-076 c10
