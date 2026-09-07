@@ -27,7 +27,7 @@ import { isTransition } from "@/lib/publish/machine/table";
 import type { CopyKey } from "@/lib/presentation/copy";
 import { STOP_COMMAND } from "../../calendar/actions";
 import type { PublishingCommand } from "../../calendar/publishing";
-import type { PublishState } from "../../calendar/stages";
+import type { State } from "../../calendar/stages";
 
 /** A control the draft view offers. Two arms and no third: `command` is a
  *  write against the declared publishing seam, `edit` changes what this
@@ -40,11 +40,11 @@ export type DraftAction =
   | { key: CopyKey; kind: "command"; command: DraftCommand }
   | { key: CopyKey; kind: "edit" };
 
-export function isEditable(state: PublishState): boolean {
+export function isEditable(state: State): boolean {
   return isTransition(state, "approved");
 }
 
-export function draftActionsFor(state: PublishState): readonly DraftAction[] {
+export function draftActionsFor(state: State): readonly DraftAction[] {
   const actions: DraftAction[] = [];
 
   if (isTransition(state, "approved")) {

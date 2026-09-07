@@ -42,7 +42,7 @@ import {
   stopForEmptyDay,
 } from "@/app/(account)/app/calendar/empty";
 import { assembleMonth, cellFor, type CalendarFacts, type DayCell } from "@/app/(account)/app/calendar/month";
-import type { PublishState } from "@/app/(account)/app/calendar/stages";
+import type { State } from "@/app/(account)/app/calendar/stages";
 
 function render(el: React.ReactElement): Element {
   const container = document.createElement("div");
@@ -62,7 +62,7 @@ const STOP: WorkStop = {
   partial: false,
 };
 
-function pageOn(day: string, state: PublishState, publishAt: Date | null) {
+function pageOn(day: string, state: State, publishAt: Date | null) {
   return {
     draftId: "d1",
     title: "a search",

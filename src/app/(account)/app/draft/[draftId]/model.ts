@@ -19,7 +19,7 @@
 // that shortens a body, so none can be introduced by accident.
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { PublishingMode } from "../../_shell/model";
-import type { PublishState } from "../../calendar/stages";
+import type { State } from "../../calendar/stages";
 import { factPresentIn } from "./grounded";
 
 /** REQ-045 criterion 3's four outcomes. `nothing_to_check` is the empty
@@ -65,7 +65,7 @@ export interface DraftView {
   /** The text as generated, before any edit — what makes the authorship
    *  label truthful and what an unedited page's copy-out is identical to. */
   bodyMdGenerated: string;
-  state: PublishState;
+  state: State;
   authorship: Authorship;
   grounded: Grounded;
   claim: ClaimState;
@@ -82,7 +82,7 @@ export interface DraftFacts {
   title: string;
   bodyMd: string;
   bodyMdGenerated: string;
-  state: PublishState;
+  state: State;
   /** Set on the first save that changed the text; `null` on a draft the
    *  customer has not edited. */
   firstEditedAt: Date | null;
