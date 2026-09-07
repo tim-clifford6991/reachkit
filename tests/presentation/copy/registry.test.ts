@@ -312,7 +312,7 @@ describe("owner-owed and empty agree both ways", () => {
     expect(new Set(emptyKeys)).toEqual(new Set(OWNER_OWED));
   });
 
-  it("counts: 148 owner-owed, 169 awaiting copy, 168 ruled, 485 total (rule 5.5 — the index states its own coverage)", () => {
+  it("counts: 150 owner-owed, 181 awaiting copy, 168 ruled, 499 total (rule 5.5 — the index states its own coverage)", () => {
     // WO-070 added report.ts's eight landing keys (headline, field label,
     // submit label, five DomainProblem lines), all owner-owed: 30 + 8 = 38.
     // 2026-09-03: the owner ruled on three of them (headline, field label,
@@ -737,10 +737,21 @@ describe("owner-owed and empty agree both ways", () => {
     // action, on the one telling that has an interval to stop the page
     // inside. 148 + 2 = 150 owner-owed and empty, 177 awaiting copy and
     // 168 ruled unchanged, 493 + 2 = 495 total.
+    // 2026-09-07, and after it: issue #134 wires the account card to
+    // identity and mints the four the pending-change state needs — the
+    // field's own label (`settings.account.new-email`, one key serving
+    // label and placeholder, the `/signin` precedent), the eyebrow over the
+    // address awaiting confirmation, the line naming when its link lapses,
+    // and the control that calls the change off. All four take the marker,
+    // and two of them are *labels on controls*: an unwritten line costs a
+    // customer a sentence, while an unwritten label is a control nobody can
+    // name, so the empty value's throw would take the whole screen down
+    // instead. 150 owner-owed and 168 ruled unchanged, 177 + 4 = 181
+    // awaiting copy, 495 + 4 = 499 total.
     expect(OWNER_OWED.length).toBe(150);
-    expect(AWAITING_COPY.length).toBe(177);
+    expect(AWAITING_COPY.length).toBe(181);
     expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(168);
-    expect(Object.keys(COPY).length).toBe(495);
+    expect(Object.keys(COPY).length).toBe(499);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.

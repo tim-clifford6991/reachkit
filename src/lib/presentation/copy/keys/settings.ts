@@ -224,6 +224,33 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.account.email-invalid": ["", { slots: {}, fixedBy: "REQ-077 c2" }],
   "settings.account.email-change-unavailable": ["", { slots: {}, fixedBy: "REQ-077 c2" }],
 
+  // 2026-09-07, issue #134 — the four the pending-change state needs, now
+  // that something renders it. They take the **marker** and not the empty
+  // value the four above take, and the difference is not inconsistency: it
+  // is the #93 ruling applied to what each one is.
+  //
+  // Those four are *lines*. The card reads a line through the shell's
+  // `writtenLine`, which renders an owner-owed key as nothing, so an
+  // unwritten line costs a customer a sentence they never saw.
+  //
+  // Two of these four are *labels on controls* — a field and a button.
+  // A control with no name is not a quiet omission, it is a control nobody
+  // can use, and the empty value's throw would take the whole Settings
+  // screen down instead. So all four carry the marker and render as
+  // themselves, which is also what makes the state reviewable on a preview
+  // — the design gate this issue opens with.
+  //
+  // `email-pending-expires` interpolates the moment, formatted by the
+  // shell's one `formatDateTime` in the site's own zone: the card states no
+  // date of its own and the sentence carries no second copy of one.
+  "settings.account.new-email": ["TODO(copy)", { slots: {}, fixedBy: "REQ-077 c2" }],
+  "settings.account.email-pending": ["TODO(copy)", { slots: {}, fixedBy: "REQ-077 c4" }],
+  "settings.account.email-pending-expires": [
+    "TODO(copy)",
+    { slots: { at: "date" }, fixedBy: "REQ-077 c4" },
+  ],
+  "settings.account.cancel-change": ["TODO(copy)", { slots: {}, fixedBy: "REQ-077 c4" }],
+
   // ── Your content ───────────────────────────────────────────────────────
   "settings.content.title": ["Your content", { slots: {}, fixedBy: "BUILD §4.7" }],
   "settings.content.pages": ["pages", { slots: {}, fixedBy: 'BUILD §4.7 ("pages count")' }],
