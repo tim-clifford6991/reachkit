@@ -47,7 +47,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import type React from "react";
 import { BODY_CLASSES } from "@/app/(account)/app/draft/[draftId]/present";
-import { parseMarkdown, toHtml } from "@/app/(account)/app/draft/[draftId]/markdown";
+import { parseMarkdown, toHtml } from "@/lib/publish/render/markdown";
 import { liveUrlFor, livePageBySlug, type HostedPage } from "@/lib/publish/destinations/hosted";
 import { Surface } from "@/ui/layout";
 import { resolveHost } from "../../resolve-host";

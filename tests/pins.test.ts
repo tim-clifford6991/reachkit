@@ -146,6 +146,8 @@ const D = {
     "Overview's AI-answers tile shows one reading only: weeks present in the trailing window. The composite score has no tile on Overview.",
   markdownEditor:
     "Draft editing is a Markdown textarea with a live preview pane; no rich-text editor.",
+  markdownRenderer:
+    "Draft Markdown is a declared subset rendered by one in-repo renderer (headings, paragraphs, lists, links, emphasis, code); raw HTML is never passed through, every href is vetted, and the same serialiser produces the screen, the copy-as-HTML and the copy-as-Markdown, so the three cannot disagree.",
   adr083:
     "A ReachKit post in a customer's WordPress carries two marks: the invisible idempotency marker and a visible findability stamp; neither does the other's job. — ADR-083",
   adr084:
@@ -832,6 +834,14 @@ describe("§9 publishing and autopilot — the veto window, the hard limits, the
     expect(pins.WORDPRESS.markerSearchLimit).toBe(20);
     expect(Number.isInteger(pins.WORDPRESS.markerSearchLimit)).toBe(true);
     expect(pins.WORDPRESS.markerSearchLimit).toBeGreaterThan(0);
+  });
+
+  it(`${D.markdownRenderer} — MARKDOWN_LINK_SCHEMES is that renderer's whole address policy, and it is an allowlist rather than a blocklist`, () => {
+    expect([...pins.MARKDOWN_LINK_SCHEMES]).toEqual(["http://", "https://", "mailto:", "/"]);
+    // The scheme everybody names is absent because the list is closed the
+    // other way round — a blocklist is always one scheme behind.
+    expect([...pins.MARKDOWN_LINK_SCHEMES]).not.toContain("javascript:");
+    expect([...pins.MARKDOWN_LINK_SCHEMES]).not.toContain("data:");
   });
 
   it("VERIFY.sitemapMaxDocuments bounds one page's check — a sitemap index names further documents, and following them without a bound turns one check into a crawl of a site ReachKit does not serve (issue #50)", () => {

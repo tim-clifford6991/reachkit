@@ -23,7 +23,7 @@
 import type React from "react";
 import { copy } from "@/lib/presentation/copy";
 import { Btn } from "@/ui/components/Btn";
-import { renderMarkdownHtml } from "./markdown";
+import { renderMarkdownHtml } from "@/lib/publish/render/markdown";
 
 function writeClipboard(text: string): void {
   const clipboard = globalThis.navigator?.clipboard;

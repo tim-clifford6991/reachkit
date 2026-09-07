@@ -29,6 +29,8 @@ const AT = new Date(Date.UTC(2026, 8, 15, 12, 0, 0));
 /** Every guard open. A test that wants one shut says which. */
 function openDeps(over: Partial<GuardDeps> = {}): GuardDeps {
   return {
+    claimRecheckOutstanding: async () => false,
+    outstandingMatch: async () => null,
     reachKitStopped: async () => false,
     isPublishingOn: async () => true,
     hasCeilingRoom: async () => true,
@@ -346,6 +348,8 @@ describe("the default publishable rule refuses until the veto leaf is built", ()
     const result = await transition("d1", "publishing", SYSTEM, {
       at: AT,
       deps: {
+        claimRecheckOutstanding: async () => false,
+        outstandingMatch: async () => null,
         reachKitStopped: async () => false,
         isPublishingOn: async () => true,
         hasCeilingRoom: async () => true,

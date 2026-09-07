@@ -16,7 +16,7 @@
 // conformance suite names `.overflow-x-auto` as a declared scroll container
 // — a long code line scrolls inside its own box rather than pushing the
 // document sideways.
-import type { HtmlClasses } from "./markdown";
+import type { HtmlClasses } from "@/lib/publish/render/markdown";
 
 /** The heading scale inside a body. It starts below the screen's own `h1`
  *  (the page title) on purpose: a body's `#` is a heading *within* the
