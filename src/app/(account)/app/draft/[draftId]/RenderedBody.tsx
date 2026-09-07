@@ -18,7 +18,7 @@
 // every attribute value it emits and never passes source HTML through, so
 // the string handed here cannot carry markup a body contained.
 import type React from "react";
-import { markPassage, parseMarkdown, toHtml } from "./markdown";
+import { markPassage, parseMarkdown, toHtml } from "@/lib/publish/render/markdown";
 import { BODY_CLASSES } from "./present";
 
 export function RenderedBody(p: {

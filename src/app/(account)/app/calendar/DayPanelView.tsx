@@ -45,10 +45,10 @@ import { publishing, type PublishingCommand } from "./publishing";
 import { WhyThisPage } from "./WhyThisPage";
 import type { DayCell } from "./month";
 
-/** The writes the panel can ask for. `skip` and `veto` are §9 edges and go
- *  to the state machine through the seam; `move` still refuses, because
- *  moving a page to another date is not a transition but a re-deadline
- *  (issue #46). This handler deliberately tells the customer nothing when a
+/** The writes the panel can ask for. `skip`, `veto` and `regenerate` are §9
+ *  edges and go to the state machine through the seam; `move` still
+ *  refuses, because moving a page to another date is not a transition but
+ *  a re-deadline (issue #46). This handler deliberately tells the customer nothing when a
  *  write is refused: there is no registry sentence for a refused write, and
  *  inventing one is exactly what the copy law forbids. The rejection is the
  *  developer's signal; the screen stays as it was. */
@@ -58,7 +58,9 @@ function run(command: PublishingCommand, draftId: string, to: string): void {
       ? publishing.move({ draftId, to })
       : command === "skip"
         ? publishing.skip({ draftId })
-        : publishing.veto({ draftId });
+        : command === "regenerate"
+          ? publishing.regenerate({ draftId })
+          : publishing.veto({ draftId });
   void asked.catch(() => undefined);
 }
 

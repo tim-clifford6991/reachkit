@@ -97,6 +97,23 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.action.move": ["Move", { slots: {}, fixedBy: "BUILD §4.6" }],
   "calendar.action.skip": ["Skip", { slots: {}, fixedBy: "BUILD §4.6" }],
   "calendar.action.veto": ["Veto", { slots: {}, fixedBy: "BUILD §4.6" }],
+  // 2026-09-07, issue #143. The customer's own restart — §9 opens
+  // `needs_attention → generating` for them and for no one else, and no
+  // surface offered it.
+  //
+  // **A word the product does not yet speak.** §4.6's control list for
+  // needs-you is *Reconnect* and nothing more, so unlike the five above
+  // this key is not transcribed from the spec — it is owner-owed, and it
+  // carries the marker rather than the empty value on the #93 ruling: the
+  // day panel reads its controls through `copy()`, and a screen the
+  // customer reaches must stay reviewable on a preview.
+  //
+  // What it has to say is what happens: ReachKit writes the page again,
+  // from the same opportunity, and it returns to the queue as a fresh
+  // draft. What it must not say is that anything is being retried
+  // automatically — nothing is, which is the whole reason the control
+  // exists.
+  "calendar.action.regenerate": ["TODO(copy)", { slots: {}, fixedBy: "BUILD §9 · REQ-043 c9" }],
 
   // §4.6's "Why this page" block and its five rows.
   "calendar.why.title": ["Why this page", { slots: {}, fixedBy: "REQ-043 c8" }],

@@ -22,7 +22,7 @@
 // is no registry sentence for a refused write, and inventing one is what
 // the copy law forbids.
 import type { DayKey } from "./dates";
-import { approveDraft, skipDraft, vetoDraft } from "./publishing-actions";
+import { approveDraft, regenerateDraft, skipDraft, vetoDraft } from "./publishing-actions";
 
 /** The three writes §4.6's day panel offers. Named for what the customer
  *  does, not for the transition underneath — `veto` is REQ-046's veto and
@@ -36,7 +36,14 @@ export type StopCommand = "move" | "skip" | "veto";
  *  transition of §9's state machine, and putting it in this union would
  *  make one seam answer for two different promises. Approve is the
  *  `in_review → approved` edge and belongs here beside its own opposite. */
-export type PublishingCommand = StopCommand | "approve";
+/** 2026-09-07, issue #143: §9's `needs_attention → generating` — the
+ *  customer's own restart, and the one edge §9 opens for them and for no
+ *  one else. Its own type beside `StopCommand` because it is the opposite
+ *  of one: every stop command ends a page's run at its date, and this one
+ *  starts it over. */
+export type RestartCommand = "regenerate";
+
+export type PublishingCommand = StopCommand | RestartCommand | "approve";
 
 export interface PublishingMachine {
   /** Move a planned or in-review page to another site-local date. */
@@ -48,6 +55,19 @@ export interface PublishingMachine {
   /** Approve a page in review, ahead of the veto window (§9: "Copilot =
    *  explicit approve only"). */
   approve(a: { draftId: string }): Promise<void>;
+  /**
+   * Write a page again — §9's `needs_attention → generating`, the
+   * customer's own restart (issue #143).
+   *
+   * **Idempotent by the machine, not by a check here.** A second press
+   * asks for the same edge from a state the page has already left, and
+   * `transition()` answers `not_a_transition`: nothing is written twice
+   * and no second draft is started. The guards are asked in the same
+   * place they are asked for every other command — `never_entered_review`
+   * and `customer_initiated` — so a page that has been read is refused
+   * even if a control for it somehow reached a screen.
+   */
+  regenerate(a: { draftId: string }): Promise<void>;
 }
 
 /** Thrown when the machine refused the move. It carries the machine's own
@@ -102,5 +122,8 @@ export const publishing: PublishingMachine = Object.freeze({
   },
   approve(a: { draftId: string }): Promise<void> {
     return run("approve", approveDraft(a.draftId));
+  },
+  regenerate(a: { draftId: string }): Promise<void> {
+    return run("regenerate", regenerateDraft(a.draftId));
   },
 });

@@ -67,7 +67,10 @@ export function isRetryable(reason: FailureReason): boolean {
 export type PublishResult =
   | { ok: true; publicationId: string; liveUrl?: string; alreadyPublished: boolean }
   | { ok: false; reason: FailureReason; retryable: boolean; attemptNo: number }
-  | { ok: false; reason: "held"; heldBy: HeldBy };
+  /** `matchedEntry` rides on the `claim_recheck` hold and on no other —
+   *  the do-not-claim entry the page matched, in the customer's own words
+   *  (BUILD §8 hard rule 4). */
+  | { ok: false; reason: "held"; heldBy: HeldBy; matchedEntry?: string };
 
 export interface PublishArgs {
   draftId: string;
