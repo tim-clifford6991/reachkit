@@ -8,9 +8,22 @@
 // `FREE` returns `unmeasured / not_attempted` without reaching the vendor —
 // a refusal, not a throw (§6.5: caps degrade, never throw).
 //
-// Prices are the §6.1 pins for the mode used. Cache: the battery is
-// re-measured weekly, and no §6.4 window names it; `CACHE_WINDOWS_D.own`
-// (7d) is the shortest pinned window and the one a weekly cadence fits.
+// Prices are the §6.1 pins for the mode used.
+//
+// **Cache: `CACHE_WINDOWS_D.aiBattery`, a window that names the battery**
+// (#75). These two calls used to pass `.own` — 7 days, and `own` means
+// "the customer's own domain", so the citation was wrong even where the
+// number was arguable. §6.4 names no window for the battery, so the pin is
+// chosen at `constants.ts` and read here; it is six days rather than seven
+// because the battery is re-measured weekly on a trigger that can land an
+// hour early (ADR-060), and at seven a run that did would be served last
+// week's answer as this week's measurement.
+//
+// **The key carries whose purchase it is** (#75). Query and locale alone
+// are shared across every customer whose market contains that search,
+// which `DATA-COSTS.md` §5's "monthly per customer" roll-up already
+// assumed they were not — see `CacheScope`.
+//
 // An engine that gave no answer is the vendor's own zero-result — `[]`,
 // never cached (§6.4: no negative cache) — and surfaces as the `zero` arm
 // carrying `answered: false`.
@@ -19,7 +32,7 @@ import { CACHE_WINDOWS_D, PRICE_BOOK, SERP_LOCATION } from "@/lib/config/constan
 import { mapMeasured, unmeasured, type Measured } from "@/lib/measure/measured";
 import { asArray, asString, callEndpoint, isRecord, ledgered, referenceDomains, type EndpointPaths } from "./envelope";
 import type { DataForSeoMode } from "./transport";
-import type { AiAnswer } from "./types";
+import { scopeKey, type AiAnswer, type CacheScope } from "./types";
 
 const LOCALE_KEY = `${SERP_LOCATION.location}|${SERP_LOCATION.language}`;
 const NO_ANSWER: AiAnswer = { answered: false, text: "", citedDomains: [] };
@@ -76,13 +89,16 @@ function paidOnly<T>(c: CostContext, at: Date): Measured<T> | undefined {
   return c.cap === "FREE" ? unmeasured<T>("not_attempted", at) : undefined;
 }
 
-export async function aiMode(c: CostContext, a: { query: string; mode: DataForSeoMode }): Promise<Measured<AiAnswer>> {
+export async function aiMode(
+  c: CostContext,
+  a: { query: string; mode: DataForSeoMode; scope: CacheScope }
+): Promise<Measured<AiAnswer>> {
   const refused = paidOnly<AiAnswer>(c, new Date());
   if (refused) return refused;
   const rows = await ledgered<AiAnswer>(c, {
     source: "serp/google/ai_mode",
-    cacheKey: `${a.query}|${LOCALE_KEY}`,
-    freshnessDays: CACHE_WINDOWS_D.own,
+    cacheKey: `${a.query}|${LOCALE_KEY}|${scopeKey(a.scope)}`,
+    freshnessDays: CACHE_WINDOWS_D.aiBattery,
     costCents: a.mode === "live" ? PRICE_BOOK.AI_MODE_LIVE_C : PRICE_BOOK.AI_MODE_STD_C,
     fetch: () => callEndpoint(AI_MODE_PATHS, a.mode, { keyword: a.query }),
     parse: parseAiMode,
@@ -90,13 +106,16 @@ export async function aiMode(c: CostContext, a: { query: string; mode: DataForSe
   return mapMeasured(rows, (r) => r[0] ?? NO_ANSWER);
 }
 
-export async function llmScraper(c: CostContext, a: { query: string; mode: "std" }): Promise<Measured<AiAnswer>> {
+export async function llmScraper(
+  c: CostContext,
+  a: { query: string; mode: "std"; scope: CacheScope }
+): Promise<Measured<AiAnswer>> {
   const refused = paidOnly<AiAnswer>(c, new Date());
   if (refused) return refused;
   const rows = await ledgered<AiAnswer>(c, {
     source: "ai_optimization/chat_gpt/llm_scraper",
-    cacheKey: `${a.query}|${LOCALE_KEY}`,
-    freshnessDays: CACHE_WINDOWS_D.own,
+    cacheKey: `${a.query}|${LOCALE_KEY}|${scopeKey(a.scope)}`,
+    freshnessDays: CACHE_WINDOWS_D.aiBattery,
     costCents: PRICE_BOOK.CHATGPT_SCRAPE_STD_C,
     fetch: () => callEndpoint(LLM_SCRAPER_PATHS, a.mode, { keyword: a.query }),
     parse: parseLlmScraper,
