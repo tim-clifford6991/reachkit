@@ -9,10 +9,11 @@
 // BUILD §2.2's closed set of fifteen daisyUI components, and
 // `tests/ui/design/component-registry.test.ts` asserts it exports exactly
 // those fifteen and no more. Nothing here is a daisyUI component: `CardHead`
-// and `IdiomCard` are the registered `Card`'s widened arms, `Bar` is
-// `Progress`'s, and `ActionPanel` is the idiom's one new row. Putting them
+// and `IdiomCard` are the registered `Card`'s widened arms and
+// `ActionPanel` is the idiom's one new row. `Progress`'s own widening is a
+// prop on the registered component itself (`onAccent`) rather than a second
+// component here — it needed no new markup, only a second ground. Putting them
 // here keeps §2.2's list closed and still gives them one home.
 export { ActionPanel, type ActionPanelProps, type ActionPanelTone } from "./ActionPanel";
-export { Bar } from "./Bar";
 export { CardHead } from "./CardHead";
 export { IdiomCard } from "./IdiomCard";

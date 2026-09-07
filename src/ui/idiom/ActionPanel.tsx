@@ -19,6 +19,7 @@
 // the CTA's label, and `withheld` requires the one written line that says
 // why the action is not offered — never a disabled control with no account.
 import type React from "react";
+import { Btn } from "../components/Btn";
 
 export type ActionPanelTone = "accent" | "warn";
 
@@ -49,17 +50,22 @@ export function ActionPanel(p: ActionPanelProps): React.JSX.Element {
         <p className="rk-quiet">{p.line}</p>
       </div>
       <div className="rk-panel-cta">
+        {/* The registered `Btn`, not markup of its own: daisyUI component
+            classes are written inside `src/ui/components/**` and nowhere
+            else, and a panel that hand-wrote `btn` would be the sixteenth
+            component arriving by class name. */}
         {p.state === "withheld" ? (
           <span className="rk-quiet">{p.withheldAccount}</span>
         ) : (
-          <button
-            type="button"
-            className="btn btn-primary btn-sm rk-pill"
+          <Btn
+            label={p.cta}
+            variant="primary"
+            size="sm"
+            pill
             disabled={p.state === "in-flight"}
+            inFlight={p.state === "in-flight"}
             onClick={p.state === "default" ? p.onAct : undefined}
-          >
-            {p.cta}
-          </button>
+          />
         )}
       </div>
     </div>

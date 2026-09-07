@@ -28,25 +28,25 @@ import type { CopyPartition } from "../registry.ts";
 
 export const CHROME_COPY = Object.freeze({
   /* ── The header ──────────────────────────────────────────────────── */
-  "chrome.wordmark": ["TODO(copy)", { slots: {}, fixedBy: "issue #266" }],
-  "chrome.nav.pricing": ["TODO(copy)", { slots: {}, fixedBy: "issue #266" }],
-  "chrome.nav.signin": ["TODO(copy)", { slots: {}, fixedBy: "issue #266" }],
+  "chrome.wordmark": ["TODO(copy)", { slots: {}, fixedBy: "issue 266" }],
+  "chrome.nav.pricing": ["TODO(copy)", { slots: {}, fixedBy: "issue 266" }],
+  "chrome.nav.signin": ["TODO(copy)", { slots: {}, fixedBy: "issue 266" }],
   /** The header's one pill CTA. **Not rendered on the landing**: the
    *  master's ruling on the #266 mockup is one solid primary per screen,
    *  and on `/` that primary is the hero's own control. */
-  "chrome.cta.scan": ["TODO(copy)", { slots: {}, fixedBy: "issue #266" }],
+  "chrome.cta.scan": ["TODO(copy)", { slots: {}, fixedBy: "issue 266" }],
   /** The accessible name of the compact-band control that opens the
    *  links. It is the registered `Collapse`, listing them under the
    *  header — never a drawer or a dropdown (master, 2026-09-07). */
-  "chrome.nav.menu": ["TODO(copy)", { slots: {}, fixedBy: "issue #266" }],
+  "chrome.nav.menu": ["TODO(copy)", { slots: {}, fixedBy: "issue 266" }],
 
   /* ── The footer ──────────────────────────────────────────────────── */
-  "chrome.footer.product": ["TODO(copy)", { slots: {}, fixedBy: "issue #266" }],
-  "chrome.footer.legal": ["TODO(copy)", { slots: {}, fixedBy: "issue #266" }],
+  "chrome.footer.product": ["TODO(copy)", { slots: {}, fixedBy: "issue 266" }],
+  "chrome.footer.legal": ["TODO(copy)", { slots: {}, fixedBy: "issue 266" }],
   /** §4.2's removal address, named from the footer so a person who never
    *  opened an email can still find it. */
-  "chrome.footer.opt-out": ["TODO(copy)", { slots: {}, fixedBy: "issue #266" }],
-  "chrome.footer.rights": ["TODO(copy)", { slots: {}, fixedBy: "issue #266" }],
+  "chrome.footer.opt-out": ["TODO(copy)", { slots: {}, fixedBy: "issue 266" }],
+  "chrome.footer.rights": ["TODO(copy)", { slots: {}, fixedBy: "issue 266" }],
 
   /* ── The three legal pages ───────────────────────────────────────────
      One title and one body each, and the body is the whole page. These
@@ -55,10 +55,10 @@ export const CHROME_COPY = Object.freeze({
      owner is a legal claim nobody made. The routes exist so the footer
      links reach a page rather than a 404, and each renders its marker
      until written. */
-  "legal.privacy.title": ["TODO(copy)", { slots: {}, fixedBy: "issue #266" }],
-  "legal.privacy.body": ["TODO(copy)", { slots: {}, fixedBy: "issue #266" }],
-  "legal.terms.title": ["TODO(copy)", { slots: {}, fixedBy: "issue #266" }],
-  "legal.terms.body": ["TODO(copy)", { slots: {}, fixedBy: "issue #266" }],
-  "legal.imprint.title": ["TODO(copy)", { slots: {}, fixedBy: "issue #266" }],
-  "legal.imprint.body": ["TODO(copy)", { slots: {}, fixedBy: "issue #266" }],
+  "legal.privacy.title": ["TODO(copy)", { slots: {}, fixedBy: "issue 266" }],
+  "legal.privacy.body": ["TODO(copy)", { slots: {}, fixedBy: "issue 266" }],
+  "legal.terms.title": ["TODO(copy)", { slots: {}, fixedBy: "issue 266" }],
+  "legal.terms.body": ["TODO(copy)", { slots: {}, fixedBy: "issue 266" }],
+  "legal.imprint.title": ["TODO(copy)", { slots: {}, fixedBy: "issue 266" }],
+  "legal.imprint.body": ["TODO(copy)", { slots: {}, fixedBy: "issue 266" }],
 }) satisfies CopyPartition;

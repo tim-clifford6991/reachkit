@@ -300,6 +300,13 @@ describe("against the real registry — every arm renders, and none of the five 
     // one to say.
     expect(html).toContain('<div role="alert"');
     const spoken = (html.match(new RegExp(TODO_COPY_MARKER.replace(/[()]/g, "\\$&"), "g")) ?? []).length;
-    expect(spoken).toBe(state.answer === "none" ? 1 : 2);
+    // The dead-link line, the answer line where the state has one, and —
+    // since issue #266 — the accent panel's `signin.panel.specimen`, which
+    // is not an answer at all: it is the line that says the score beside it
+    // is the reserved fixture's specimen and not the visitor's own
+    // measurement. It is on the screen in every state, so it shifts the
+    // count by one and never by more.
+    const PANEL_SPECIMEN = 1;
+    expect(spoken).toBe((state.answer === "none" ? 1 : 2) + PANEL_SPECIMEN);
   });
 });

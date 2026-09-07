@@ -61,9 +61,9 @@ export function Btn(p: {
   // The idiom's three ranks. `btn-ghost` under the two quiet arms so the
   // daisyUI base still supplies the size, the focus ring and the disabled
   // state; what the widening adds is the fill, the edge and the ink.
-  if (p.variant === "secondary") classes.push("btn-ghost", "rk-btn-secondary");
+  if (p.variant === "secondary") classes.push("btn-ghost", "rk-btn-outline");
   if (p.variant === "tertiary") classes.push("btn-ghost", "rk-btn-tertiary");
-  if (p.variant === "on-accent") classes.push("btn-ghost", "rk-btn-on-accent");
+  if (p.variant === "on-accent") classes.push("btn-ghost", "rk-btn-inverse");
   // Pill throughout — `--r-pill` is already law and the idiom spends no new
   // radius for it (tokens.md §9.1).
   if (p.pill === true) classes.push("rk-pill");

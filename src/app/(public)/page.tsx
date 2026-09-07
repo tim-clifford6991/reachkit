@@ -126,7 +126,13 @@ export default function LandingPage(props: {
               <h2>{copy("landing.start.heading")}</h2>
               <p className="rk-quiet">{copy("landing.start.body")}</p>
               <div>
-                <a href="#landing-field" className="btn btn-ghost rk-btn-secondary rk-pill">
+                {/* A link, not a button — the master's ruling is one solid
+                    primary per screen and the hero's control is it, so this
+                    repeats that same action rather than adding a second.
+                    Styled by the idiom's own rule and not by a daisyUI
+                    class: those are written inside `src/ui/components/**`
+                    and nowhere else. */}
+                <a href="#landing-field" className="rk-cta-link">
                   {copy("landing.start.cta")}
                 </a>
               </div>

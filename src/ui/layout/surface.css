@@ -33,6 +33,9 @@
   --s-4: 16px;
   --s-5: 24px;
   --s-6: 32px;
+  /* The ladder's last rung — "between screen sections" — declared here with
+   * its neighbours when the card idiom first spent it (issue #266). */
+  --s-7: 48px;
 
   /* design/tokens.md §2b, "Two content measures": "One construction, so a
    * third does not get minted: the breakpoint above the content, less

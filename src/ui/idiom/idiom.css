@@ -149,7 +149,13 @@
   border-radius: var(--r-pill);
 }
 
-.btn.rk-btn-secondary {
+/* Named `outline`/`quiet`/`inverse` rather than after the ranks
+ * (`secondary`, `on-accent`): a class ending in a daisyUI family word —
+ * `-secondary`, `-accent`, `-neutral`, `-info` — is what
+ * `tests/ui/design/theme-slots.test.ts` sweeps for, because a modifier of a
+ * family with no declared slot renders a ground with no colour. These are
+ * not daisyUI modifiers, and the sweep should not have to know that. */
+.btn.rk-btn-outline {
   background: transparent;
   border: 1px solid var(--line);
   color: var(--ink);
@@ -163,7 +169,7 @@
 
 /* On an accent ground a solid primary cannot be the accent, so it inverts:
  * `--on-accent` fill, `--accent` label. Two named tokens, no third value. */
-.btn.rk-btn-on-accent {
+.btn.rk-btn-inverse {
   background: var(--on-accent);
   border: 0;
   color: var(--accent);
@@ -261,10 +267,12 @@
  * which is the derivation the six dark -bg/-line values already take. No
  * token is added: the names are the system's, the values are BUILD's. */
 .rk-glass {
-  --rk-glass-fill: color-mix(in oklab, var(--on-accent) 12%, transparent);
-  --rk-glass-line: color-mix(in oklab, var(--on-accent) 28%, transparent);
-  background: var(--rk-glass-fill);
-  border: 1px solid var(--rk-glass-line);
+  /* Written inline rather than named: `design/tokens.md` §9.3 is explicit
+   * that these two are **not tokens** — "no token is added: the names are
+   * the system's and the values are BUILD's" — and a local custom property
+   * would be a token with one home and no ruling behind it. */
+  background: color-mix(in oklab, var(--on-accent) 12%, transparent);
+  border: 1px solid color-mix(in oklab, var(--on-accent) 28%, transparent);
   border-radius: var(--r-box);
   padding: var(--s-5);
   display: flex;
@@ -291,21 +299,29 @@
 }
 
 /* `Progress`'s track and fill in `--on-accent` instead of `--sunk`/
- * `--chart-*` — a widening of a registered component, not a sixth chart
- * form (§2.4's inventory is closed and this adds nothing to it). */
-.rk-bar-track {
-  display: block;
-  height: var(--s-2);
-  background: color-mix(in oklab, var(--on-accent) 12%, transparent);
+ * `--chart-*` — a widening of the registered component, not a sixth chart
+ * form (§2.4's inventory is closed and this adds nothing to it). It skins
+ * the native `<progress>` the component already renders, so the bar keeps
+ * its element, its role and its accessible name. */
+.progress.rk-progress-inverse {
+  color: var(--on-accent);
+  background-color: color-mix(in oklab, var(--on-accent) 12%, transparent);
   border-radius: var(--r-pill);
-  overflow: hidden;
 }
 
-.rk-bar-fill {
-  display: block;
-  height: 100%;
+.progress.rk-progress-inverse::-webkit-progress-bar {
+  background-color: transparent;
   border-radius: var(--r-pill);
-  background: var(--on-accent);
+}
+
+.progress.rk-progress-inverse::-webkit-progress-value {
+  background-color: var(--on-accent);
+  border-radius: var(--r-pill);
+}
+
+.progress.rk-progress-inverse::-moz-progress-bar {
+  background-color: var(--on-accent);
+  border-radius: var(--r-pill);
 }
 
 /* ── 6 · The sign-in split ────────────────────────────────────────────── */
@@ -678,4 +694,68 @@
   display: flex;
   flex-direction: column;
   min-height: 100svh;
+}
+
+/* ── 9 · The figure on an accent ground ───────────────────────────────── */
+
+/* The sign-in panel's score. `--t-num-big` at and above `--breakpoint-sm`,
+ * the h1 rung below it — and in the **mono** face, because BUILD §2.3 states
+ * it flatly and the owner has not ruled otherwise (tokens.md §9.2). */
+.rk-figure {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+  margin: 0;
+}
+
+.rk-figure-big {
+  font-size: var(--t-h1);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+@media (min-width: 640px) {
+  .rk-figure-big {
+    font-size: var(--t-num-big, 44px);
+  }
+}
+
+.rk-figure-of {
+  font-size: var(--t-h3);
+  color: var(--on-accent-quiet);
+}
+
+/* The provenance line inside the glass card — quiet, mono, on the accent. */
+.rk-prov {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  color: var(--on-accent-quiet);
+}
+
+/* ── 10 · The legal pages ─────────────────────────────────────────────── */
+
+/* A title and one body, at the reading measure. Nothing else is on them. */
+.rk-legal {
+  max-width: var(--w-read);
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  padding-block: var(--s-6);
+}
+
+/* The repeated call to the hero's own action: the idiom's outline rank,
+ * drawn on a link because the screen already has its one solid primary. */
+.rk-cta-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  padding: var(--s-2) var(--s-4);
+  color: var(--ink);
+  text-decoration: none;
+  font-weight: 700;
 }

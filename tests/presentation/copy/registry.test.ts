@@ -212,7 +212,7 @@ describe("REQ-093 c5 — the registry renders with every model unavailable", () 
     //
     // 2026-09-06, separately: issue #17 (the draft view, BUILD §4.6) adds
     // eight §4.6/§9 transcriptions. 160 + 8 = 168 ruled.
-    expect(ruled.length).toBe(168);
+    expect(ruled.length).toBe(171);
 
     // Only the ruled sentences carry their slots' `{name}` placeholders —
     // a `TODO(copy)` marker is one literal with no placeholder in it, so
@@ -956,10 +956,24 @@ describe("owner-owed and empty agree both ways", () => {
     // 131 owner-owed and 168 ruled unchanged — nothing moved between the
     // two representations — 258 + 37 = 295 awaiting copy, 557 + 37 = 594
     // total.
+    //
+    //
+    // The sign-in's accent panel adds four more (issue #266): three
+    // **written** — `signin.panel.heading`, `.score-label` and `.line`,
+    // owner-supplied and transcribed from the page the owner endorsed, on
+    // exactly the footing REQ-098 c2's six already stand on — and one owed,
+    // `signin.panel.specimen`, the line that says the score beside it is
+    // the reserved fixture's specimen rather than the visitor's own
+    // measurement. `design/tokens.md` §9.4 raised that question and
+    // answered neither surface; it is answered here by labelling, which is
+    // the only one of its three candidate answers that is honest.
+    //
+    // 131 owner-owed unchanged, 168 + 3 = 171 ruled, 258 + 37 + 1 = 296
+    // awaiting copy, 557 + 41 = 598 total.
     expect(OWNER_OWED.length).toBe(131);
-    expect(AWAITING_COPY.length).toBe(295);
-    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(168);
-    expect(Object.keys(COPY).length).toBe(594);
+    expect(AWAITING_COPY.length).toBe(296);
+    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(171);
+    expect(Object.keys(COPY).length).toBe(598);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.
