@@ -28,11 +28,15 @@
 // **Nothing here re-derives a population.** The counts are tallied from the
 // arms the take-down run itself returned and from nothing else.
 //
-// **No WordPress adapter ships in this build** (#54), so no publication can
-// carry a WordPress outcome yet and every map this module builds today is
-// empty. The four arms are still routed, and the place port below still
-// exists unanswered, because the arm that looks like dead code is the one
-// REQ-056's promise is held open against.
+// **The port below is answered, and this module still knows nothing about
+// WordPress.** #54 landed the destination and #160 stored the fact the port
+// needs; the registration lives on the publishing side
+// (`src/lib/publish/destinations/wordpress/stamp-place.ts`), which is the
+// side that knows the answer. Nothing here imports it: an account surface
+// must not carry the publishing graph and a database client to render four
+// sentences. Unregistered — a test, a job that never touched publishing —
+// the default still answers "no place", and every sentence still carries
+// its count.
 import type { UnpublishOutcome } from "@/lib/publish/types";
 
 /** REQ-060 c6's list — the one place in the customer's own site that brings
@@ -52,10 +56,10 @@ export type LeftInWordPress = Partial<
 >;
 
 /** Whether a destination's site took ADR-083's findability stamp, and so
- *  whether there is a list to point the customer at. Unanswered in this
- *  build: the WordPress adapter and the stamp are #54's and #48's, and
- *  until they land every place is `null` and every sentence still carries
- *  its count. */
+ *  whether there is a list to point the customer at. Answered by the
+ *  WordPress destination from `destinations.stamp_capable` (#160); the
+ *  default below answers `null` wherever nothing has registered, which is
+ *  a place the mail simply does not name rather than a failure. */
 export interface StampCapability {
   place(destinationId: string): Promise<WordPressListPlace | null>;
 }
@@ -72,8 +76,9 @@ export function stampCapability(): StampCapability {
   return capability;
 }
 
-/** Wired by the WordPress destination when it lands; `null` restores the
- *  unanswered default. */
+/** Wired by the WordPress destination at boot
+ *  (`installStampCapability`, #160); `null` restores the unanswered
+ *  default. */
 export function setStampCapability(next: StampCapability | null): void {
   capability = next ?? noStamp;
 }

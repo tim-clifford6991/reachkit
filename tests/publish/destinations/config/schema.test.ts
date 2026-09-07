@@ -19,6 +19,11 @@ import { topicOf } from "@/lib/db/topics";
 const MIGRATIONS = path.resolve(import.meta.dirname, "../../../../supabase/migrations");
 const FILE = "20260906140000_destinations_core.sql";
 const SQL = readFileSync(path.join(MIGRATIONS, FILE), "utf8");
+/** The stamp capability's own migration (issue #160) — the same topic, a
+ *  later file, and asserted here for the same reason: `vitest.config.ts`'s
+ *  `db` project list is the owner's. */
+const STAMP_FILE = "20260907113000_destinations_stamp.sql";
+const STAMP_SQL = readFileSync(path.join(MIGRATIONS, STAMP_FILE), "utf8");
 
 /** The eight `HealthReason` members, as the type declares them. */
 const REASONS = [
@@ -35,13 +40,14 @@ const REASONS = [
 describe("the migration is on the destinations topic", () => {
   it("its name carries exactly one assigned topic token", () => {
     expect(topicOf(FILE)).toEqual({ token: "destinations", owner: "BP-058" });
+    expect(topicOf(STAMP_FILE)).toEqual({ token: "destinations", owner: "BP-058" });
   });
 
-  it("it is the only migration on that topic beyond the baseline", () => {
+  it("these are the only migrations on that topic beyond the baseline", () => {
     const onTopic = readdirSync(MIGRATIONS)
       .filter((name) => name.endsWith(".sql"))
       .filter((name) => topicOf(name)?.token === "destinations");
-    expect(onTopic).toEqual([FILE]);
+    expect(onTopic).toEqual([FILE, STAMP_FILE]);
   });
 });
 
@@ -116,5 +122,33 @@ describe("no cascade reaches publications (ADR-080)", () => {
 describe("`publish_capable` is the one probe result that is a health input", () => {
   it("it is nullable — null for a hosted destination and before the first probe", () => {
     expect(SQL).toMatch(/add column publish_capable boolean null/);
+  });
+});
+
+describe("`stamp_capable` is its sibling and not its second value (issue #160)", () => {
+  it("it is nullable with no default — three values, and the third is 'nobody asked'", () => {
+    expect(STAMP_SQL).toMatch(/add column stamp_capable boolean null/);
+    // A default would erase "not asked" and "could not be asked" into
+    // "the answer is no", which is what tells a customer their posts are
+    // gathered nowhere when nothing has looked.
+    expect(STAMP_SQL).not.toMatch(/stamp_capable boolean[^;]*default/i);
+  });
+
+  it("it is one column on one table and touches nothing else", () => {
+    const statements = STAMP_SQL.split("\n")
+      .filter((line) => !line.trimStart().startsWith("--"))
+      .join("\n");
+    expect(statements).toMatch(/alter table destinations/);
+    expect(statements.toLowerCase()).not.toContain("create index");
+    expect(statements.toLowerCase()).not.toContain("alter column health");
+    // One `add column`, and it is this one: the sibling column is named in
+    // the comment and altered nowhere.
+    expect(statements.match(/add column/g)).toHaveLength(1);
+    expect(statements.toLowerCase()).not.toMatch(/(add|alter|drop) column publish_capable/);
+  });
+
+  it("the column says in the database itself that it is not a health input", () => {
+    const comment = /comment on column destinations\.stamp_capable is([\s\S]*?);/.exec(STAMP_SQL)?.[1] ?? "";
+    expect(comment).toContain("NOT a health input");
   });
 });

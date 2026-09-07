@@ -85,3 +85,35 @@ export interface RankedResult {
   readonly rows: readonly RankedRow[];
   readonly total: number | null;
 }
+
+// ── Cache scope — BUILD §6.4, issue #75 ──────────────────────────────────
+
+/**
+ * Whose purchase a cached vendor payload is.
+ *
+ * §6.4 keys the cache "source+key+policy-version" and says nothing about
+ * what the key is for an endpoint. For the SERP and the AI battery that
+ * choice decides the product's largest recurring cost: a key of query and
+ * locale alone is shared across every customer whose market contains that
+ * search — a market's thirteen weekly target SERPs bought once however
+ * many customers track it — while a key carrying the site buys them once
+ * per customer.
+ *
+ * `DATA-COSTS.md` §5's roll-up is stated "Monthly **per customer**", so it
+ * already assumes the second, and the shared key silently made the
+ * published cost model wrong in the product's favour. The frozen corpus
+ * ruled the same way (BP-008 decision 5): the paid battery's key carries
+ * the site id, and the free path's carries the domain, "the same shape,
+ * since a free scan has no account".
+ *
+ * A discriminated union rather than a bare string: a caller cannot pass a
+ * domain where a site id belongs without saying which it is, and the two
+ * are prefixed below so an id that happened to read like a domain could
+ * never share a key with one.
+ */
+export type CacheScope = { readonly site: string } | { readonly domain: string };
+
+/** The scope, as the segment that goes in a cache key. */
+export function scopeKey(scope: CacheScope): string {
+  return "site" in scope ? `site:${scope.site}` : `domain:${scope.domain}`;
+}

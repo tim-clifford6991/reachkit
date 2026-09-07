@@ -47,6 +47,16 @@
 // that retry find the post instead of making a second one, and it looks for
 // the marker and never for the stamp (`marks.ts`).
 //
+// **The stamp is asked about before it is written** (#160, ADR-083
+// Decision 4). `canStamp` is a third read beside `health` and `canPublish`,
+// answering a question neither of them does: whether this site will carry
+// the `post_tag` term at all. It gates the one place this adapter would
+// create a term in somebody's site, and the check records what it found on
+// the destination row — so a customer is told where their posts are
+// gathered from a fact, rather than finding out by following a mail to an
+// empty filter. It is **not** a health input: a site that publishes and
+// refuses the term is working.
+//
 // The archived plans are WO-237, WO-264.
 import type {
   DeliveryResult,
@@ -231,10 +241,34 @@ async function existingPost(cfg: WordPressConfig, draftId: string): Promise<unkn
 async function stampTerm(cfg: WordPressConfig): Promise<number | null> {
   const found = await findStampTerm(cfg);
   if (found !== null) return found;
+  // The term is not there, so making it is a **write into the customer's
+  // site**, and issue #160 is that we ask first. The lookup comes before
+  // the probe on purpose: a site that already has the term needs no
+  // question put to it, and the ordinary second delivery therefore costs
+  // no extra read.
+  if (!(await mayStamp(cfg))) return null;
   const created = await createTag(cfg, WORDPRESS.stampSlug, WORDPRESS.stampName);
   if (!succeeded(created)) return null;
   const id = idOf(created.body);
   return id === null ? null : Number(id);
+}
+
+/** The stamp probe as the delivery path asks it: a question, and never a
+ *  reason to fail a delivery.
+ *
+ *  A probe that could not be read answers `false` **here and nowhere
+ *  else** — not because a blip means the site refuses the term, but because
+ *  "we could not ask" is not permission to write into somebody's site. The
+ *  page still publishes, `stampApplied: false` records what happened, and
+ *  the next delivery asks again. The recorded fact on the destination row
+ *  is untouched: `checkHealth` is what writes that, and it writes nothing
+ *  when the probe could not answer. */
+async function mayStamp(cfg: WordPressConfig): Promise<boolean> {
+  try {
+    return await canStamp(cfg);
+  } catch {
+    return false;
+  }
 }
 
 /** The stamp's term id if the site already has the term, and `null` if it
@@ -383,6 +417,65 @@ export function canPublishWith(cfg: DestinationConfig): Promise<boolean> {
   return canPublish(config);
 }
 
+/**
+ * **ADR-083 Decision 4, REQ-060 criterion 6 and issue #160.** Can this
+ * site carry the findability stamp — the `post_tag` term that brings
+ * ReachKit's posts up together in the customer's own WordPress?
+ *
+ * **A different question from `canPublish`, and a different answer.** A
+ * site can publish and refuse the term, and a site can take the term and
+ * refuse to publish: `publish_posts` is the Author role's, `manage_categories`
+ * the Editor's, and WordPress's default map hands them out separately. So
+ * this reads its own capability and returns its own boolean.
+ *
+ * **The two probes do not share an implementation, deliberately** (the
+ * issue's own note, BP-048 decision 4 in terms). One function returning a
+ * capability *set* is the shape that invites a caller to gate publishing on
+ * the stamp or the stamp on publishing, and the two gate entirely different
+ * things: `canPublish` false holds the queue and is a health input;
+ * `canStamp` false is a **working** destination that publishes normally and
+ * only loses criterion 6's list. The near-duplicate body below is what
+ * keeps an edit to one from silently becoming an edit to both.
+ *
+ * **It never writes a term to find out.** One authenticated read of the
+ * credential's own account — the same `context=edit` capability map
+ * `canPublish` reads, and no more of the customer's site touched than that.
+ * A probe that created the term to see whether it could would leave one
+ * behind on every site it was ever asked about, including sites that then
+ * publish nothing.
+ *
+ * **It is conservative by exactly one case, and says so.**
+ * `manage_categories` is what creating the term needs; a site that already
+ * has the term needs only to assign it, and such a site reads `false` here.
+ * Nothing is lost by that: the delivery path looks the term up before it
+ * asks this question at all, and `WordPressDelivery.stampApplied` is read
+ * back from the site's own answer per post, so what a customer is told
+ * about a *post* is never this probe's guess.
+ *
+ * **`false` is an answer; a read that failed is not** — the same line
+ * `canPublish` draws, for the same reason.
+ */
+export async function canStamp(cfg: WordPressConfig): Promise<boolean> {
+  const answer = await readSelf(cfg);
+  if (!succeeded(answer)) throw new WordPressProbeError(reasonFor(answer));
+  const capabilities = (answer.body as { capabilities?: unknown }).capabilities;
+  if (typeof capabilities !== "object" || capabilities === null) {
+    // An account answer with no capability map is one this probe cannot
+    // read. It is not `false`: a recorded `false` would tell a customer
+    // there is no list to look in when nothing had asked.
+    throw new WordPressProbeError("destination_rejected");
+  }
+  return (capabilities as Record<string, unknown>).manage_categories === true;
+}
+
+/** The stamp probe as the health check reaches it: config in, answer out,
+ *  and the narrowing in one place. */
+export function canStampWith(cfg: DestinationConfig): Promise<boolean> {
+  const config = configOf(cfg);
+  if (config === null) return Promise.reject(new WordPressProbeError("credentials_invalid"));
+  return canStamp(config);
+}
+
 export const WORDPRESS_ADAPTER: DestinationAdapter = Object.freeze({
   kind: "wordpress" as const,
 
@@ -407,4 +500,9 @@ export const WORDPRESS_ADAPTER: DestinationAdapter = Object.freeze({
 
   /** The capability probe, beside `health` and never inside it. */
   canPublish: canPublishWith,
+
+  /** The stamp probe, beside the publish probe and never merged with it:
+   *  two questions, two answers, and only one of them is a health input
+   *  (issue #160). */
+  canStamp: canStampWith,
 });

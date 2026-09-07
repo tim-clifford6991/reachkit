@@ -14,8 +14,8 @@
 import { publishDb } from "../db";
 import type { DestinationHealth, DestinationKind, HealthReason } from "../types";
 
-/** The `destinations` row as this subsystem reads it. Ten columns, and no
- *  eleventh: `config` is not here, and there is nowhere on this shape for
+/** The `destinations` row as this subsystem reads it. Eleven columns, and
+ *  no twelfth: `config` is not here, and there is nowhere on this shape for
  *  a vendor message to live. */
 export interface DestinationRecord {
   id: string;
@@ -28,12 +28,13 @@ export interface DestinationRecord {
   last_checked_at: string;
   deleted_at: string | null;
   publish_capable: boolean | null;
+  stamp_capable: boolean | null;
 }
 
 /** The one select list. Written once so that no caller can widen it. */
 export const RECORD_COLUMNS =
   "id, site_id, kind, health, health_reason, health_changed_at, " +
-  "broken_mail_sent_at, last_checked_at, deleted_at, publish_capable";
+  "broken_mail_sent_at, last_checked_at, deleted_at, publish_capable, stamp_capable";
 
 /** One destination by id, live or disconnected. `reconnect` and
  *  `disconnect` both address a row by id and both must be able to see a
@@ -111,6 +112,28 @@ export async function writePublishCapable(destinationId: string, capable: boolea
   await publishDb()
     .from<never>("destinations")
     .update({ publish_capable: capable })
+    .eq("id", destinationId);
+}
+
+/**
+ * Records what the stamp probe found (issue #160).
+ *
+ * Its own write, beside `writePublishCapable` and never folded into it.
+ * The two columns hold two facts with two consequences — one selects a
+ * health state and holds a queue, the other decides only whether REQ-060
+ * criterion 6's mail has a place to name — and one writer taking both
+ * would be the merge ADR-083 Decision 4's note forbids, arriving through
+ * the back door of a convenience.
+ *
+ * `null` means "not asked, or could not be asked", the same third value
+ * `publish_capable` carries and for the same reason: a probe whose read
+ * failed leaves the last answer standing rather than overwriting it with a
+ * network blip.
+ */
+export async function writeStampCapable(destinationId: string, capable: boolean): Promise<void> {
+  await publishDb()
+    .from<never>("destinations")
+    .update({ stamp_capable: capable })
     .eq("id", destinationId);
 }
 
