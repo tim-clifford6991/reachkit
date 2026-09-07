@@ -428,17 +428,36 @@ describe("BUILD §5 scoring — the boundaries and coefficients that are pins", 
 // ──────────────────────────────────────── BUILD §6.4 cache windows and the free path
 
 describe("BUILD §6.4 — cache windows, the free path's own bounds, and the DNS bound", () => {
-  it(`${B.cacheWindows} — CACHE_WINDOWS_D`, () => {
-    expect(pins.CACHE_WINDOWS_D).toEqual({ own: 7, rival: 30, serp: 30, suggestions: 30 });
+  it(`${B.cacheWindows} — CACHE_WINDOWS_D's four stated windows`, () => {
+    const { own, rival, serp, suggestions } = pins.CACHE_WINDOWS_D;
+    expect({ own, rival, serp, suggestions }).toEqual({ own: 7, rival: 30, serp: 30, suggestions: 30 });
   });
 
   // BUILD §6.4's parenthetical exception — "(except the weekly target
-  // re-check)" — has no pin in constants.ts. The archived BP-005 interface
-  // declares `serpWeeklyRecheck: 7` for it; the value is not in the file, so
-  // it is named here as owed rather than asserted at a value nobody pinned.
-  it("the stated exception, the weekly target re-check, carries no window of its own in constants.ts — named, not invented", () => {
-    expect(Object.keys(pins.CACHE_WINDOWS_D)).not.toContain("serpWeeklyRecheck");
+  // re-check)" — is a clause with a home since #75. The 7 is not this
+  // file's invention: the frozen corpus ruled it (BP-005 decision 3
+  // addendum, BP-008 decision 4), and a frozen document cannot drift, so
+  // it is pinned by quotation like every other archived value here.
+  it(`${B.cacheWindows}'s stated exception — CACHE_WINDOWS_D.serpWeeklyRecheck, the window the weekly target re-check passes instead of serp`, () => {
     expect(B.cacheWindows).toContain("except the weekly target re-check");
+    expect(pins.CACHE_WINDOWS_D.serpWeeklyRecheck).toBe(7);
+    // It is an exception, so it must differ from the rule: equal windows
+    // would leave the clause with a pin and no effect.
+    expect(pins.CACHE_WINDOWS_D.serpWeeklyRecheck).toBeLessThan(pins.CACHE_WINDOWS_D.serp);
+  });
+
+  // §6.4 names four windows and the battery is none of them. This one is
+  // chosen (rule 1.1) rather than transcribed, so what is asserted is the
+  // property it was chosen for, not the number alone.
+  it("§6.4 names no window for the paid AI battery — CACHE_WINDOWS_D.aiBattery is chosen, and is short enough that a weekly run landing early is never served last week's answer", () => {
+    expect(B.cacheWindows).not.toContain("battery");
+    expect(pins.CACHE_WINDOWS_D.aiBattery).toBe(6);
+    // The battery is re-measured weekly on a trigger that can land an hour
+    // early (ADR-060). A window at or above the cadence would serve the
+    // previous week's answer as this week's measurement; this is the
+    // property, and it is what fails if the pin is raised to 7.
+    const WEEKLY_CADENCE_D = 7;
+    expect(pins.CACHE_WINDOWS_D.aiBattery).toBeLessThan(WEEKLY_CADENCE_D);
   });
 
   it(`${B.rescan} — FREE_RESCAN_WINDOW_D, and it is the same 7 days §6.4's cache window gives the customer's own domain`, () => {

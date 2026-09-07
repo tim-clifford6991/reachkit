@@ -79,6 +79,31 @@ export const PLATFORM_DOMAINS = Object.freeze([
 
 export const CACHE_WINDOWS_D = Object.freeze({
   own: 7, rival: 30, serp: 30, suggestions: 30,
+  /** `BUILD.md` §6.4's stated exception — "SERPs 30d (**except the weekly
+   *  target re-check**)" — which had a clause and no pin (#75). The weekly
+   *  target-SERP battery passes this instead of `serp`, so a re-check run
+   *  to detect movement can never be served from a month-old cache wearing
+   *  this week's date, and REQ-065's "measured once a week" cannot be met
+   *  by a monthly measurement. Transcribed from the frozen corpus
+   *  (`design`/BP-005 decision 3 addendum, BP-008 decision 4), which is
+   *  where the 7 was ruled. */
+  serpWeeklyRecheck: 7,
+  /** §6.2's paid AI battery — AI Mode and the ChatGPT scraper. §6.4 names
+   *  **no** window for it, so this is chosen here (rule 1.1) rather than
+   *  transcribed, and it is deliberately not 7.
+   *
+   *  The battery is re-measured weekly, and ADR-060 triggers that hourly
+   *  on each site's own local Monday — so two consecutive runs are 168
+   *  hours apart *or slightly less* (a DST shift moves the local hour). At
+   *  a 7-day window a run landing an hour early is served the previous
+   *  week's answer and the week's measurement is last week's. Six days
+   *  leaves 24 hours of slack, which is more than any shift or trigger
+   *  drift, and still buys nothing twice inside one weekly cycle.
+   *
+   *  Reversal cost: one pin. Note the same hazard exists at 7 for
+   *  `serpWeeklyRecheck` above, which is the archive's own ruling
+   *  transcribed rather than this issue's to change. */
+  aiBattery: 6,
 } as const);
 
 export const FREE_BOUNDS = Object.freeze({
