@@ -51,6 +51,49 @@ import { assembleSettings, type AccountFacts, type BillingFacts, type SettingsMo
 import { FIXTURE_SETTINGS_FACTS } from "./fixture";
 import { FIXTURE_USER_ID } from "../../setup/_setup/fixture";
 
+// How long any one of this screen's reads may take before it renders anyway.
+//
+// Chosen here rather than pinned in `constants.ts` for the reason
+// `src/middleware.ts`'s `REMOVAL_READ_DEADLINE_MS` states of its own: it is
+// a property of this screen's own request-path reads, not a product bound
+// anything else reads, and a number in two files is wrong. Generous against
+// an indexed lookup by primary key; short against a person waiting for a
+// screen. The same 800 ms, for the same trade, that file puts in front of
+// every report render.
+//
+// **A `catch` alone does not cover this.** A request that never settles
+// never rejects, so a database that is unreachable rather than merely broken
+// would hang Settings instead of degrading it.
+//
+// **It applies to all three reads because #134 is what put them on the
+// request path**, and they are made concurrently so the bound is paid once
+// rather than three times. Reading the session calls `cookies()`, which makes this
+// route dynamic — until then Next prerendered `/app/settings` at build time
+// and its billing and destinations reads happened once, there. Now they
+// happen per request, so all three are bounded rather than only the two this
+// issue added. The layout conformance sweep is where that showed up:
+// `/app/settings` rendered in about a second against a dead port before this
+// change and timed out at every width after it.
+const READ_DEADLINE_MS = 800;
+
+/** Rejects when `work` has not settled inside the deadline, so the caller's
+ *  own `catch` covers a hang the same way it covers a failure. The timer is
+ *  cleared once the race is over: a screen that read in 40 ms must not leave
+ *  three timers behind on every render it serves. */
+async function withDeadline<T>(work: Promise<T>): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      work,
+      new Promise<T>((_resolve, reject) => {
+        timer = setTimeout(() => reject(new Error("a settings read timed out")), READ_DEADLINE_MS);
+      }),
+    ]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+}
+
 /**
  * The signed-in account (#134).
  *
@@ -63,9 +106,10 @@ import { FIXTURE_USER_ID } from "../../setup/_setup/fixture";
  * what keeps a preview with no session, the layout build and the
  * presentation sweeps rendering a whole screen.
  *
- * Nothing on that path writes: the three controls take the *session's* own
- * id at the press (`account-actions.ts`), never this one, so a fixture id
- * here can render a card and can never move somebody else's address.
+ * Nothing on that path writes: every control takes the *session's* own id at
+ * the press (`account-actions.ts`, `billing-actions.ts`) and refuses where
+ * there is none, so a fixture id here can render a card and can never act
+ * for somebody else's account.
  *
  * The import is at the call, not at the top, for the reason
  * `readBillingFacts` states below.
@@ -73,7 +117,7 @@ import { FIXTURE_USER_ID } from "../../setup/_setup/fixture";
 async function currentUserId(): Promise<string> {
   try {
     const { currentSession } = await import("@/lib/account/identity");
-    const session = await currentSession();
+    const session = await withDeadline(currentSession());
     return session?.userId ?? FIXTURE_USER_ID;
   } catch {
     return FIXTURE_USER_ID;
@@ -98,7 +142,7 @@ export async function readBillingFacts(userId: string): Promise<BillingFacts> {
     // Every other panel on this screen renders from facts; this is the one
     // that reads, and it reads at render time.
     const { billingSummary } = await import("@/lib/account/billing");
-    const summary = await billingSummary(userId);
+    const summary = await withDeadline(billingSummary(userId));
     if (summary.ok) {
       return {
         state: summary.summary.state,
@@ -147,7 +191,14 @@ export async function readDestinations(
   // must not drag a database client into a screen that never asks it
   // anything.
   const { listDestinations } = await import("@/lib/publish/destinations");
-  return listDestinations(siteId);
+  try {
+    return await withDeadline(listDestinations(siteId));
+  } catch {
+    // Bounded like the other two, and falling back the same way: the card
+    // draws the fixture's own destination rather than an empty list, which
+    // is what it already did for every render with no site id.
+    return FIXTURE_SETTINGS_FACTS.destinations;
+  }
 }
 
 /**
@@ -168,7 +219,7 @@ export async function readDestinations(
 export async function readAccountFacts(userId: string): Promise<AccountFacts> {
   try {
     const { accountCard } = await import("@/lib/account/identity");
-    const card = await accountCard(userId);
+    const card = await withDeadline(accountCard(userId));
     if (card === null) return FIXTURE_ACCOUNT;
     return {
       name: card.name,
@@ -191,9 +242,17 @@ const FIXTURE_ACCOUNT: AccountFacts = {
 };
 
 export const readSettings = cache(async function readSettings(): Promise<SettingsModel> {
+  // The session first, because two of the three reads are *about* an
+  // account and cannot be made without knowing which. The three that follow
+  // are independent of each other and are made together: sequentially they
+  // would be three round trips on every render of this screen, and — since
+  // each is bounded — three deadlines deep on a database that is
+  // unreachable, where concurrently they are one.
   const userId = await currentUserId();
-  const billing = await readBillingFacts(userId);
-  const destinations = await readDestinations(currentSiteId());
-  const account = await readAccountFacts(userId);
+  const [billing, destinations, account] = await Promise.all([
+    readBillingFacts(userId),
+    readDestinations(currentSiteId()),
+    readAccountFacts(userId),
+  ]);
   return assembleSettings({ ...FIXTURE_SETTINGS_FACTS, ...account, billing, destinations });
 });

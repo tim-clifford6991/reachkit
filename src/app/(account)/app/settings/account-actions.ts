@@ -18,13 +18,23 @@
 // This file reads a form field, calls the seam, and hands back the key the
 // seam named.
 //
-// **Which account is acting is the session's, not a fixture.** These three
-// write, and a write against a stand-in id would be a write against
-// somebody else's row. `currentSession()` answers `null` for an absent,
-// forged, expired or tombstoned cookie, and each function below refuses
-// rather than guessing — `src/middleware.ts` has already turned away a
-// request with no cookie at all, so reaching here with no session means the
-// session ended between the render and the press.
+// **Which account is acting is the session's, not a fixture.** The two
+// address-change functions write against an account, and a write against a
+// stand-in id would be a write against somebody else's row.
+// `currentSession()` answers `null` for an absent, forged, expired, ended or
+// tombstoned cookie, and both refuse rather than guessing — a press that
+// arrives without a session is sent to the sign-in screen, which is BUILD
+// §4.3's own gate reached from the action instead of from the render.
+// `src/middleware.ts` has already turned away a request with no cookie at
+// all, so reaching here without one means the session ended between the
+// render and the press.
+//
+// **Sign-out is the exception, and deliberately so.** It does not need to
+// know which account is acting: `signOut()` deletes *this browser's* cookie
+// and touches no other device, so there is no id to resolve and nothing to
+// refuse. Sending a customer who is already signed out to the sign-in screen
+// instead of onward would make one press mean two different things for a
+// reason only the server can see.
 //
 // **The engine is imported inside the call, not at the top**, the same as
 // `calendar/publishing-actions.ts`: `@/lib/account/identity` reaches
@@ -37,6 +47,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { SIGNIN_PATH } from "@/lib/account/identity/addresses";
 import type { ActionOutcome } from "./actions";
 import { NEW_EMAIL_FIELD, type EmailChangeState } from "./account-state";
 
@@ -92,17 +104,13 @@ export async function beginEmailChangeAction(
 
   const { beginEmailChange, currentSession } = await identity();
   const session = await currentSession();
-  if (session === null) {
-    // The session ended between the render and the press. Nothing was
-    // attempted, and "we could not start the change just now" is what is
-    // true — never "that address is not valid", which would send them to
-    // retype an address that was never the problem.
-    return {
-      answer: "refused",
-      lineKey: "settings.account.email-change-unavailable",
-      value,
-    };
-  }
+  // The session ended between the render and the press. Nothing is
+  // attempted for an account nobody can name, and the customer goes where
+  // every other signed-out request on this screen goes rather than reading
+  // a line about an address that was never the problem. `redirect` and not
+  // a fifth arm on `EmailChangeState`: this is a form action, so the
+  // framework's own mechanism is the one that navigates.
+  if (session === null) redirect(SIGNIN_PATH);
 
   const begun = await beginEmailChange(session.userId, value);
   if (!begun.ok) return { answer: "refused", lineKey: begun.lineKey, value };
@@ -123,7 +131,7 @@ export async function beginEmailChangeAction(
 export async function cancelEmailChangeAction(): Promise<void> {
   const { cancelEmailChange, currentSession } = await identity();
   const session = await currentSession();
-  if (session === null) return;
+  if (session === null) redirect(SIGNIN_PATH);
   await cancelEmailChange(session.userId);
   revalidatePath(SETTINGS_PATH);
 }

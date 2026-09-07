@@ -46,7 +46,23 @@ vi.mock("next/cache", () => ({
   },
 }));
 
-const { SESSION_COOKIE_NAME } = await import("@/lib/account/identity/addresses");
+/** `redirect()` throws by design — that is how it interrupts a Server
+ *  Function — so the double throws too, carrying the destination. A test
+ *  that let it return would assert nothing about a function whose whole
+ *  behaviour is not to continue. */
+class Redirected extends Error {
+  constructor(readonly to: string) {
+    super(`redirect:${to}`);
+  }
+}
+
+vi.mock("next/navigation", () => ({
+  redirect: (to: string) => {
+    throw new Redirected(to);
+  },
+}));
+
+const { SESSION_COOKIE_NAME, SIGNIN_PATH } = await import("@/lib/account/identity/addresses");
 const { mintSessionCookie } = await import("@/lib/account/identity/cookie");
 const { setIdentityStore } = await import("@/lib/account/identity/store");
 const { accountCard } = await import("@/lib/account/identity/email-change");
@@ -105,7 +121,11 @@ describe('REQ-077 c5 — "that session ends and returning requires a fresh sign-
     expect(outcome.done).toBe("elsewhere");
   });
 
-  it("signing out with no session is not an error — there is nothing to end", async () => {
+  it("signing out with no session is not an error, and lands in the same place", async () => {
+    // Sign-out is the one settings action that needs no account: it deletes
+    // *this browser's* cookie. So it does not take §4.3's signed-out gate
+    // the other four do — one press must not mean two different things for
+    // a reason only the server can see.
     expect(await signOutAction()).toEqual({ done: "elsewhere", href: "/" });
     expect(jar.has(SESSION_COOKIE_NAME)).toBe(false);
   });
@@ -195,17 +215,15 @@ describe("REQ-077 c2 — three refusals, each with its own line, and nothing sen
     expect((await accountCard(user.id))?.pending).toBeNull();
   });
 
-  it("a session that ended between the render and the press is `unavailable`, not `invalid`", async () => {
-    // Nothing was attempted, so "we could not start the change just now" is
-    // what is true. "That is not an address we can send to" would send them
-    // to retype an address that was never the problem.
-    const answer = await beginEmailChangeAction(EMAIL_CHANGE_INITIAL, submit("new@example.com"));
-    expect(answer).toEqual({
-      answer: "refused",
-      lineKey: "settings.account.email-change-unavailable",
-      value: "new@example.com",
-    });
+  it("a session that ended between the render and the press goes to the sign-in screen, and attempts nothing", async () => {
+    // BUILD §4.3's gate, reached from the action. Nothing is attempted for
+    // an account nobody can name, and the customer is not shown a line
+    // about an address that was never the problem.
+    await expect(
+      beginEmailChangeAction(EMAIL_CHANGE_INITIAL, submit("new@example.com"))
+    ).rejects.toThrow(`redirect:${SIGNIN_PATH}`);
     expect(sendCalls).toHaveLength(0);
+    expect(revalidated).toEqual([]);
   });
 
   it("every refusal keeps what the customer typed", async () => {
@@ -259,14 +277,14 @@ describe('REQ-077 c4 — "lets them cancel the pending change or submit a differ
     expect(sendCalls.map((c) => c.to)).toEqual(["first@example.com", "second@example.com"]);
   });
 
-  it("cancelling with no session touches nothing", async () => {
+  it("cancelling with no session touches nothing and goes to the sign-in screen", async () => {
     const user = addAccount(state, { email: "founder@example.com" });
     signIn(user.id);
     await beginEmailChangeAction(EMAIL_CHANGE_INITIAL, submit("new@example.com"));
 
     jar.clear();
     revalidated.length = 0;
-    await cancelEmailChangeAction();
+    await expect(cancelEmailChangeAction()).rejects.toThrow(`redirect:${SIGNIN_PATH}`);
 
     // Still pending: a request with no session must not clear somebody's
     // change, and it has no account to clear one for.
