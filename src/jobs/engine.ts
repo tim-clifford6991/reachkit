@@ -51,16 +51,27 @@ function notBuilt(engine: string, fn: string): never {
   throw new EngineNotBuilt(engine, fn);
 }
 
-// ── The site list — BP-014
-// TODO(engine): `draft/generate`'s own site list. `generateDraft()` (below)
-// lands with it; until then the daily tick has nothing to tick over. It is
-// not the weekly tick's list: `weeklyDueSites()` selects on four
-// predicates this one does not carry (issue #41).
+// ── The site list — BP-014, built (issue #173)
+//
+// One call into `src/lib/publish/daily/`, which owns the three predicates:
+// a zone, `publishing_enabled`, and a live destination that can publish.
+// It is not the weekly tick's list — `weeklyDueSites()` selects on four
+// predicates this one does not carry (issue #41) — and it is not the hour
+// either: ADR-060's gate is `isDraftDue(now, zone)` in
+// `src/jobs/site-clock.ts`, applied by `draft/generate` to every row this
+// returns, where the tick's own `now` lives.
+//
+// Imported at the call, on the same footing as the hosting and erasure
+// wrappers below: the module reaches `@/lib/db`, which parses the
+// environment the moment it is imported, and a static import here would
+// put a database client in every module graph this seam appears in.
 
-/** Every site with an active subscription, with its own time zone. Read by
- *  `draft/generate`'s fan-out. */
+/** Every site ReachKit is still working for that a page could actually
+ *  reach, with its own time zone. Read by `draft/generate`'s fan-out,
+ *  which gates each row on the site's own evening. */
 export async function activeSites(): Promise<readonly SiteClock[]> {
-  return notBuilt("BP-014", "activeSites()");
+  const { sitesForDailyTick } = await import("@/lib/publish/daily");
+  return sitesForDailyTick();
 }
 
 // ── The weekly measurement — issue #41, built.
@@ -182,15 +193,54 @@ export async function generateDraft(a: {
   return outcome.ok ? { done: true } : { degraded: `generate:${outcome.because}` };
 }
 
-// ── Publishing — BP-015
-// TODO(engine): BP-015's state machine — `publishApproved()`. The 24-hour
-// check below is built (issue #50); the approve-and-deliver edge is not.
+// ── Publishing — BP-015, built (issue #173)
+//
+// One call into `src/lib/publish/attempt/deliver.ts`, which orchestrates
+// the edge — the claim and its nine guards, the delivery, `made_live_by_us`
+// as the adapter declared it, and the retry policy — and **one obligation
+// of this tick that the leaf cannot discharge itself**: enqueuing the
+// +24h check. `src/lib/**` may not import `src/jobs/**` (ARCHITECTURE rule
+// 2), so the leaf reports that an address came back and the event is sent
+// from here, which is the same shape `verifyLive` below uses for the
+// `published` mail — two obligations of one tick, both visible in the one
+// place the tick is described.
+//
+// The check is enqueued on a delivery that produced an address and on no
+// other: that is the same fact `verify_due_at` is written from (BP-049 —
+// the address decides, never the destination kind), so a page the check
+// could not look at is never queued for it. A re-delivery that found the
+// row already delivered enqueues nothing: its check was queued when it
+// first went out, and `publish/verify`'s `publicationId` key would refuse
+// the second delivery anyway.
+//
+// **Neither a hold nor a failure throws.** A held page is §9 working —
+// the switch is off, a ceiling is reached, the claim needs re-checking —
+// and the page keeps its state and resumes in the order it was held. A
+// failure has already been written as it happened and passed through the
+// retry policy inside the leaf. Both are reported as the step they stopped
+// at, so an operator sees a page that did not go out rather than a run
+// that claims it did.
+//
+// Imported at the call, for the same reason as `activeSites()` above.
 
 export async function publishApproved(a: {
   readonly draftId: string;
   readonly destinationId: string;
 }): Promise<EngineResult> {
-  return notBuilt("BP-015", `publishApproved(${a.draftId})`);
+  const { deliverApproved } = await import("@/lib/publish/attempt/deliver");
+  const outcome = await deliverApproved({
+    draftId: a.draftId,
+    destinationId: a.destinationId,
+  });
+
+  if (outcome.kind === "held") return { degraded: `held:${outcome.heldBy}` };
+  if (outcome.kind === "failed") return { degraded: `publish:${outcome.reason}` };
+
+  if (outcome.verifyDue && !outcome.alreadyPublished) {
+    const { sendJobEvent } = await import("./client");
+    await sendJobEvent("publish/verify", { publicationId: outcome.publicationId });
+  }
+  return { done: true };
 }
 
 // ── The 24-hour check — BUILD §9, issue #50. Built.
