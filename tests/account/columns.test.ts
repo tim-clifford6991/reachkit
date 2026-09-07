@@ -28,7 +28,7 @@ const DB_HOST = "127.0.0.1";
 const DB_PORT = "5432";
 const DB_USER = "reachkit";
 const DB_PASSWORD = "reachkit";
-const DB_NAME = "reachkit_scratch";
+const DB_NAME = process.env.REACHKIT_DB_NAME ?? "reachkit_scratch";
 const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
 const BASELINE_MIGRATION = path.join(
   REPO_ROOT,

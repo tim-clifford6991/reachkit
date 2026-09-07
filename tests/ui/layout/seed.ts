@@ -29,6 +29,15 @@
 // redemption route sets. A cookie this file signed itself would prove the
 // sweep can reach the screens and nothing about whether a real sign-in
 // can.
+// **One run, one database** (#220). `applyMigrations` below drops and
+// rebuilds `public`, so two runs sharing a database delete each other's rows
+// mid-flight: this file's seeded account vanishes and every `/app` address
+// redirects to `/signin`, which reads exactly like a broken screen rather
+// than like contention. Locally, start the substrate with
+// `eval "$(scripts/db-substrate/up.sh --run)"` — it gives this worktree its
+// own database and its own ports, and the constants below read them out of
+// the environment. No lock is needed. CI passes no `--run` and needs none:
+// one job, one runner, one `postgres:18` service container.
 import { execFileSync } from "node:child_process";
 import { readdirSync } from "node:fs";
 import path from "node:path";
@@ -42,7 +51,7 @@ const DB_HOST = "127.0.0.1";
 const DB_PORT = "5432";
 const DB_USER = "reachkit";
 const DB_PASSWORD = "reachkit";
-const DB_NAME = "reachkit_scratch";
+const DB_NAME = process.env.REACHKIT_DB_NAME ?? "reachkit_scratch";
 
 /** Each account's own address. Never mailed: `issueLink` writes the row and
  *  this file redeems the token straight out of the returned URL. */

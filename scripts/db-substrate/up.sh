@@ -14,10 +14,60 @@
 # Idempotent: a service whose port already answers is left alone, so this is
 # also the local start script on a box where the substrate is already up.
 #
-# Writes the generated keys to `$GITHUB_ENV` when running under Actions;
-# always prints them as `NAME=value` lines on stdout for `eval`.
+# **One run, one database (`--run`, issue #220).** Every suite that reaches
+# the substrate begins by dropping and rebuilding `public`, so two runs
+# sharing a database delete each other's rows mid-flight: the layout sweep's
+# seeded account vanishes and every `/app` address redirects to `/signin`,
+# which reads exactly like a broken screen. Passing `--run [id]` gives this
+# run its own database — `reachkit_scratch_<id>` — with its own PostgREST,
+# its own proxy and its own postgres-meta on ports derived from the id, so
+# concurrent runs never share state and no lock is needed.
+#
+# The id defaults to the basename of the current directory, which on this
+# layout is the worktree — so each implementer gets one database and reuses
+# it, rather than accumulating one per invocation.
+#
+# **CI passes no `--run` and is unchanged**: one job, one runner, one
+# `postgres:18` service container, and the same ports and database name as
+# before.
+#
+# Writes the generated keys to `$GITHUB_ENV` when running under Actions, and
+# prints every binding as an `export` line on **stdout** so a local caller
+# can `eval "$(scripts/db-substrate/up.sh --run)"`. Progress goes to stderr,
+# so that `eval` sees bindings and nothing else.
 set -euo pipefail
+
+# The directory the caller ran this from, captured **before** the `cd` below
+# — on this layout that is the worktree, and it is what `--run` names a run
+# after. Reading it after the `cd` would name every run `db_substrate`.
+CALLER_DIR="$(basename "$PWD")"
 cd "$(dirname "$0")"
+
+# --- The run id ------------------------------------------------------------
+#
+# `--run` with no value takes the caller's directory name; `--run <id>` takes
+# what it is given. No flag at all is the shared substrate CI uses.
+RUN_ID=""
+if [[ "${1:-}" == "--run" ]]; then
+  RUN_ID="${2:-$CALLER_DIR}"
+elif [[ $# -gt 0 ]]; then
+  echo "db-substrate: unknown argument '$1' (expected --run [id])" >&2
+  exit 2
+fi
+
+# A stable, filesystem-and-Postgres-safe slug, and a port offset derived from
+# it. Deterministic on purpose: re-running for the same id finds the services
+# it started last time already listening and leaves them alone, which is what
+# makes this idempotent per run rather than only per machine.
+if [[ -n "$RUN_ID" ]]; then
+  # `printf` and not a here-string: the latter appends a newline, which
+  # `tr -c` turns into a trailing `_` and Postgres then carries in the
+  # database name for the life of the run.
+  RUN_SLUG="$(printf '%s' "$RUN_ID" | tr -c 'a-zA-Z0-9' '_' | tr 'A-Z' 'a-z' | cut -c1-40)"
+  # 0-199, doubled and offset so the three ports of one run cannot collide
+  # with the three of another, nor with the shared substrate's 3001/3002/8090.
+  RUN_OFFSET=$(( $(cksum <<<"$RUN_SLUG" | cut -d' ' -f1) % 200 ))
+fi
 
 POSTGREST_IMAGE="postgrest/postgrest:v16.2"
 # postgres-meta comes from npm, not from a container: the checked-in
@@ -33,18 +83,27 @@ DB_HOST="${DB_HOST:-127.0.0.1}"
 DB_PORT="${DB_PORT:-5432}"
 DB_USER="${DB_USER:-reachkit}"
 DB_PASSWORD="${DB_PASSWORD:-reachkit}"
-DB_NAME="${DB_NAME:-reachkit_scratch}"
-POSTGREST_PORT="${POSTGREST_PORT:-3002}"
-PROXY_PORT="${PROXY_PORT:-3001}"
-PGMETA_PORT="${PGMETA_PORT:-8090}"
+if [[ -n "$RUN_ID" ]]; then
+  DB_NAME="${DB_NAME:-reachkit_scratch_${RUN_SLUG}}"
+  POSTGREST_PORT="${POSTGREST_PORT:-$(( 3200 + RUN_OFFSET * 3 ))}"
+  PROXY_PORT="${PROXY_PORT:-$(( 3201 + RUN_OFFSET * 3 ))}"
+  PGMETA_PORT="${PGMETA_PORT:-$(( 3202 + RUN_OFFSET * 3 ))}"
+else
+  DB_NAME="${DB_NAME:-reachkit_scratch}"
+  POSTGREST_PORT="${POSTGREST_PORT:-3002}"
+  PROXY_PORT="${PROXY_PORT:-3001}"
+  PGMETA_PORT="${PGMETA_PORT:-8090}"
+fi
 
 DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
+ADMIN_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/postgres"
 
 # `--network host` inside the docker containers, so 127.0.0.1 means the same
 # thing there as it does to `psql` and to vitest.
 DOCKER_DB_URL="$DATABASE_URL"
 
-log() { echo "db-substrate: $*"; }
+# Progress on stderr, bindings on stdout — see the header on `eval`.
+log() { echo "db-substrate: $*" >&2; }
 
 # Answers `$1` (a URL) within `$2` seconds?
 wait_for_http() {
@@ -59,10 +118,23 @@ wait_for_http() {
 # --- 1. PostgreSQL ---------------------------------------------------------
 log "waiting for postgres at ${DB_HOST}:${DB_PORT}"
 for ((i = 0; i < 120; i++)); do
-  if PGPASSWORD="$DB_PASSWORD" psql "$DATABASE_URL" -Atqc 'select 1' >/dev/null 2>&1; then break; fi
+  if PGPASSWORD="$DB_PASSWORD" psql "$ADMIN_URL" -Atqc 'select 1' >/dev/null 2>&1; then break; fi
   sleep 0.5
 done
-PGPASSWORD="$DB_PASSWORD" psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -Atqc 'select version()'
+
+# This run's own database, created once and reused. `create database` cannot
+# run inside a transaction and has no `if not exists`, so existence is asked
+# first — the same shape `shim.sql` uses for its roles. Without `--run` this
+# is skipped entirely and the shared `reachkit_scratch` is used, which is
+# what CI does.
+if [[ -n "$RUN_ID" ]]; then
+  if [[ "$(PGPASSWORD="$DB_PASSWORD" psql "$ADMIN_URL" -Atqc "select 1 from pg_database where datname = '${DB_NAME}'")" != "1" ]]; then
+    log "creating database ${DB_NAME}"
+    PGPASSWORD="$DB_PASSWORD" psql "$ADMIN_URL" -v ON_ERROR_STOP=1 -q -c "create database \"${DB_NAME}\";"
+  fi
+fi
+
+PGPASSWORD="$DB_PASSWORD" psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -Atqc 'select version()' >&2
 
 # --- 2. Roles, auth schema, auth.uid()/auth.role() -------------------------
 log "applying shim.sql"
@@ -75,14 +147,38 @@ SERVICE_ROLE="$(sed -n 's/^SERVICE_ROLE=//p' <<<"$KEYS")"
 SECRET="$(sed -n 's/^SECRET=//p' <<<"$KEYS")"
 
 # --- 4. PostgREST ----------------------------------------------------------
+#
+# Docker in CI; a native binary where there is none. The native path exists
+# because per-run isolation needs a **second** instance, and the machine this
+# substrate was built for has no Docker at all (owner ruling 2026-09-02) —
+# so without it `--run` would work in CI and nowhere else, which is the
+# opposite of what issue #220 is about. `POSTGREST_BIN` names a binary
+# explicitly; otherwise one on `PATH` is used. CI has neither, so CI takes
+# the container exactly as before.
+POSTGREST_BIN="${POSTGREST_BIN:-$(command -v postgrest || true)}"
+CONTAINER_SUFFIX="${RUN_ID:+-$RUN_SLUG}"
+
 if curl -s -o /dev/null "http://127.0.0.1:${POSTGREST_PORT}/"; then
   log "postgrest already answering on :${POSTGREST_PORT}"
+elif [[ -n "$POSTGREST_BIN" ]]; then
+  log "starting ${POSTGREST_BIN} on :${POSTGREST_PORT}"
+  PGRST_DB_URI="$DATABASE_URL" \
+  PGRST_DB_SCHEMAS=public \
+  PGRST_DB_ANON_ROLE=anon \
+  PGRST_DB_POOL=4 \
+  PGRST_JWT_SECRET="$SECRET" \
+  PGRST_SERVER_HOST=127.0.0.1 \
+  PGRST_SERVER_PORT="$POSTGREST_PORT" \
+    nohup "$POSTGREST_BIN" > "/tmp/postgrest${CONTAINER_SUFFIX}.log" 2>&1 &
+  wait_for_http "http://127.0.0.1:${POSTGREST_PORT}/" 60 || {
+    log "postgrest did not come up"; tail -40 "/tmp/postgrest${CONTAINER_SUFFIX}.log" >&2; exit 1;
+  }
 else
   command -v docker >/dev/null || {
-    log "no docker on this host and nothing answering :${POSTGREST_PORT} — start PostgREST natively first"; exit 1;
+    log "nothing answering :${POSTGREST_PORT}, no docker, and no PostgREST binary — set POSTGREST_BIN or put one on PATH"; exit 1;
   }
   log "starting ${POSTGREST_IMAGE} on :${POSTGREST_PORT}"
-  docker run -d --name reachkit-postgrest --network host \
+  docker run -d --name "reachkit-postgrest${CONTAINER_SUFFIX}" --network host \
     -e PGRST_DB_URI="$DOCKER_DB_URL" \
     -e PGRST_DB_SCHEMAS=public \
     -e PGRST_DB_ANON_ROLE=anon \
@@ -92,7 +188,7 @@ else
     -e PGRST_SERVER_PORT="$POSTGREST_PORT" \
     "$POSTGREST_IMAGE" >/dev/null
   wait_for_http "http://127.0.0.1:${POSTGREST_PORT}/" 60 || {
-    log "postgrest did not come up"; docker logs reachkit-postgrest 2>&1 | tail -40; exit 1;
+    log "postgrest did not come up"; docker logs "reachkit-postgrest${CONTAINER_SUFFIX}" 2>&1 | tail -40 >&2; exit 1;
   }
 fi
 
@@ -102,9 +198,9 @@ if curl -s -o /dev/null "http://127.0.0.1:${PROXY_PORT}/"; then
 else
   log "starting rest-v1-proxy on :${PROXY_PORT}"
   POSTGREST_PORT="$POSTGREST_PORT" PROXY_PORT="$PROXY_PORT" \
-    nohup node rest-v1-proxy.mjs > /tmp/rest-v1-proxy.log 2>&1 &
+    nohup node rest-v1-proxy.mjs > "/tmp/rest-v1-proxy${CONTAINER_SUFFIX}.log" 2>&1 &
   wait_for_http "http://127.0.0.1:${PROXY_PORT}/" 30 || {
-    log "proxy did not come up"; cat /tmp/rest-v1-proxy.log; exit 1;
+    log "proxy did not come up"; cat "/tmp/rest-v1-proxy${CONTAINER_SUFFIX}.log" >&2; exit 1;
   }
 fi
 
@@ -120,15 +216,20 @@ else
   fi
   log "starting postgres-meta on :${PGMETA_PORT}"
   PG_META_PORT="$PGMETA_PORT" PG_META_DB_URL="$DATABASE_URL" \
-    nohup node "$SERVER" > /tmp/pg-meta.log 2>&1 &
+    nohup node "$SERVER" > "/tmp/pg-meta${CONTAINER_SUFFIX}.log" 2>&1 &
   wait_for_http "http://127.0.0.1:${PGMETA_PORT}/health" 60 || {
-    log "postgres-meta did not come up"; tail -40 /tmp/pg-meta.log; exit 1;
+    log "postgres-meta did not come up"; tail -40 "/tmp/pg-meta${CONTAINER_SUFFIX}.log" >&2; exit 1;
   }
 fi
 
 # --- 7. Report -------------------------------------------------------------
+# The same bindings, in the shape Actions reads. Identical in content to the
+# `export` lines below, so a job that ever passes `--run` needs no second
+# edit here; with no `--run` every value is the one CI has always had.
 if [[ -n "${GITHUB_ENV:-}" ]]; then
   {
+    echo "REACHKIT_DB_NAME=${DB_NAME}"
+    echo "PGMETA_PORT=${PGMETA_PORT}"
     echo "DATABASE_URL=${DATABASE_URL}"
     echo "SUPABASE_URL=http://127.0.0.1:${PROXY_PORT}"
     echo "SUPABASE_ANON_KEY=${ANON}"
@@ -137,4 +238,17 @@ if [[ -n "${GITHUB_ENV:-}" ]]; then
   } >> "$GITHUB_ENV"
 fi
 
-log "up — postgrest :${POSTGREST_PORT}, proxy :${PROXY_PORT}, postgres-meta :${PGMETA_PORT}"
+# Every binding this run needs, as `export` lines a caller can `eval`. The
+# database name and the three ports are what differ between runs, so they
+# travel here rather than being re-derived by whoever reads them.
+cat <<EOF
+export REACHKIT_DB_NAME=${DB_NAME}
+export PGMETA_PORT=${PGMETA_PORT}
+export DATABASE_URL=${DATABASE_URL}
+export SUPABASE_URL=http://127.0.0.1:${PROXY_PORT}
+export SUPABASE_ANON_KEY=${ANON}
+export SUPABASE_SERVICE_ROLE=${SERVICE_ROLE}
+export SUPABASE_SERVICE_ROLE_KEY=${SERVICE_ROLE}
+EOF
+
+log "up${RUN_ID:+ (run ${RUN_SLUG})} — db ${DB_NAME}, postgrest :${POSTGREST_PORT}, proxy :${PROXY_PORT}, postgres-meta :${PGMETA_PORT}"
