@@ -54,7 +54,11 @@ function facts(over: Partial<SettingsFacts> = {}): SettingsFacts {
 }
 
 function market(over: Partial<SettingsFacts> = {}): Element {
-  return render(<MarketPanel settings={assembleSettings(facts(over))} />);
+  const model = assembleSettings(facts(over));
+  // The card's own slice, since #231: a client panel takes what it renders.
+  return render(
+    <MarketPanel market={model.market} domain={model.domain} timeZone={ZONE} />
+  );
 }
 
 describe("REQ-071 c1 — the pending change, before the save", () => {
@@ -115,11 +119,11 @@ describe("REQ-071 c6 — the effective-on line, after the save", () => {
 
 describe("REQ-071 c16 — no rival comparison until one is added", () => {
   it("states the line where the chips would be, and only where the set is empty", () => {
-    const empty = render(<CompetitorsPanel settings={assembleSettings(facts({ competitors: [] }))} />);
+    const empty = render(<CompetitorsPanel competitors={[]} />);
     expect(empty.querySelector('[data-testid="competitors-none-yet-line"]')).not.toBeNull();
 
     const some = render(
-      <CompetitorsPanel settings={assembleSettings(facts({ competitors: ["rival.example"] }))} />
+      <CompetitorsPanel competitors={["rival.example"]} />
     );
     expect(some.querySelector('[data-testid="competitors-none-yet-line"]')).toBeNull();
   });

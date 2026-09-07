@@ -22,13 +22,35 @@
 // what the *product* will not do until they do it — there is no rival
 // comparison to make, so none is made. A control cannot say that, and §2.5
 // requires an empty state to be designed rather than blank.
+//
+// **Add and remove write, since issue #231.** Both go through
+// `../change-actions.ts` and therefore through `addRival` / `removeRival`
+// and `saveRivals` — REQ-071 c4's "the same rules" as setup, applied on the
+// server against the stored set. This card sends one typed domain and one
+// pressed chip; it never sends the set. A set from the browser is a set a
+// browser can rewrite, and it is also a stale one, which is how a fifth
+// rival gets added to a set that already holds five.
+//
+// **The refusal belongs to the field, not to the chips.** Every one of
+// `addRival`'s five is about the value that was typed, so it is shown on
+// the field that holds it, with the value intact (`Input`'s contract).
+"use client";
+
 import type React from "react";
+import { useState } from "react";
 import { Btn } from "@/ui/components/Btn";
 import { Card } from "@/ui/components/Card";
 import { Input } from "@/ui/components/Input";
 import { copy } from "@/lib/presentation/copy";
 import { BATTERY } from "@/lib/config/constants";
 import { writtenLine } from "../../_shell/written";
+import { addRivalAction, removeRivalAction } from "../change-actions";
+import {
+  MARKET_CHANGE_INITIAL,
+  RIVAL_FIELD,
+  refusalKeyOf,
+  type MarketChangeState,
+} from "../market-state";
 import type { SettingsModel } from "../model";
 
 /** c16's line, or nothing while the owner has not written it — never a
@@ -42,36 +64,88 @@ function EmptyLine(): React.JSX.Element | null {
   );
 }
 
-export function CompetitorsPanel(p: { settings: SettingsModel }): React.JSX.Element {
-  const full = p.settings.competitors.length >= BATTERY.COMPETITORS_MAX;
+/** The set, and no more of the model: a client panel takes what it renders
+ *  (`AccountPanel`'s shape, since #134). */
+export function CompetitorsPanel(p: {
+  competitors: SettingsModel["competitors"];
+}): React.JSX.Element {
+  const full = p.competitors.length >= BATTERY.COMPETITORS_MAX;
+  // The typed domain, kept across a refusal, and the answer the last press
+  // gave. Neither is a copy of the set: the set is the model's, re-read
+  // after every save, and this card holds no second one to fall out of
+  // step with it.
+  const [value, setValue] = useState("");
+  const [answer, setAnswer] = useState<MarketChangeState>(MARKET_CHANGE_INITIAL);
+
+  async function add(form: FormData): Promise<void> {
+    const next = await addRivalAction(form);
+    setAnswer(next);
+    // A rival that went in is no longer a value being typed; a refused one
+    // stays in the field with the reason beside it.
+    setValue(next.answer === "refused" ? next.value : "");
+  }
+
+  async function remove(form: FormData): Promise<void> {
+    // `removeRival` cannot refuse, so there is nothing to state and
+    // nothing to keep: the chip is gone from the set the next read
+    // returns, which is the whole of what happened.
+    setAnswer(await removeRivalAction(form));
+  }
+
+  const refusal = refusalKeyOf(answer);
+  const refusalLine = refusal === null ? null : writtenLine(refusal);
 
   return (
     <Card state="default" title={<h2>{copy("settings.competitors.title")}</h2>}>
       <div className="flex min-w-0 flex-col gap-3" data-testid="setting-competitors">
-        {p.settings.competitors.length > 0 ? null : (
+        {p.competitors.length > 0 ? null : (
           // REQ-071 c16. No slot: there is no date and no change to name,
           // only that comparison begins when a rival is added.
           <EmptyLine />
         )}
         <div className="flex min-w-0 flex-wrap gap-2">
-          {p.settings.competitors.map((domain) => (
+          {p.competitors.map((domain) => (
             <span className="inline-flex min-w-0 items-center gap-2 wrap-anywhere" key={domain} data-testid={`competitor-${domain}`}>
               {/* §2.3: a domain is a URL-shaped value. */}
               <span className="num">{domain}</span>
-              <Btn label={copy("settings.competitors.remove")} size="sm" variant="ghost" />
+              {/* The domain travels in the form rather than in a closure,
+                  so the press carries exactly one named value and the
+                  chip works the same way the field does. */}
+              <form action={remove}>
+                <input type="hidden" name={RIVAL_FIELD} value={domain} readOnly />
+                <Btn label={copy("settings.competitors.remove")} size="sm" variant="ghost" type="submit" />
+              </form>
             </span>
           ))}
         </div>
 
         {full ? null : (
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <Input
-              label={copy("settings.competitors.title")}
-              placeholder={copy("settings.market.domain")}
-              name="competitor"
-            />
-            <Btn label={copy("settings.competitors.add")} size="sm" />
-          </div>
+          <form action={add} className="flex min-w-0 flex-col gap-1" data-testid="add-competitor">
+            {/* Two calls, not one with a spread: `InputProps` is a union in
+                which `invalid: true` and `invalidMessage` arrive together. */}
+            {refusalLine === null ? (
+              <Input
+                label={copy("settings.competitors.title")}
+                placeholder={copy("settings.market.domain")}
+                name={RIVAL_FIELD}
+                value={value}
+                onChange={setValue}
+              />
+            ) : (
+              <Input
+                label={copy("settings.competitors.title")}
+                placeholder={copy("settings.market.domain")}
+                name={RIVAL_FIELD}
+                value={value}
+                onChange={setValue}
+                invalid
+                invalidMessage={refusalLine}
+              />
+            )}
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <Btn label={copy("settings.competitors.add")} size="sm" type="submit" />
+            </div>
+          </form>
         )}
       </div>
     </Card>
