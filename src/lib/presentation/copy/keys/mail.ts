@@ -263,6 +263,24 @@ export const MAIL_COPY = Object.freeze({
   // unminted; nothing here mints it.
   "mail.draftReady.dest.cannotPublish": ["", { slots: { site: "text" }, fixedBy: "REQ-057 c9" }],
 
+  // 2026-09-07, issue #174. The two the mail itself owed, beside the seven
+  // the telling already had: §12's `draft-ready` had a decision and no
+  // template, so the customer was never told a page was in review.
+  //
+  // Both are **empty and owner-owed**, on the same #93 ruling the seven
+  // above take: a mail keeps the throw, because a mail never ships a
+  // placeholder — `sendEmail` reports an unwritten line as
+  // `not-composable` and the page stays untold and held, which is a state
+  // the product can recover from. A `TODO(copy)` marker in an inbox is
+  // not.
+  //
+  // `stopAction` is the label on §12's "one veto link" — one, and only on
+  // the arm that has an interval to stop the page inside. It is the
+  // customer's own action and says what pressing it does; it is not an
+  // unsubscribe, and REQ-057 c7's zero-window mail carries neither.
+  "mail.draftReady.subject": ["", { slots: {}, fixedBy: "BUILD §12" }],
+  "mail.draftReady.stopAction": ["", { slots: {}, fixedBy: "REQ-057 c1" }],
+
   // 2026-09-06, issue #50 (REQ-062 c5, BUILD §12's `published` mail).
   // Sixteen keys, every one owner-owed and empty — each is a sentence
   // the product speaks in its own voice, so none is written here. A mail

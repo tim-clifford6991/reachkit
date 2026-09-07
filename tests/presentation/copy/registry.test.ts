@@ -725,10 +725,22 @@ describe("owner-owed and empty agree both ways", () => {
     // its controls through `copy()`, and a screen the customer reaches must
     // stay reviewable on a preview. 148 owner-owed and 168 ruled unchanged,
     // 176 + 1 = 177 awaiting copy, 492 + 1 = 493 total.
-    expect(OWNER_OWED.length).toBe(148);
+    //
+    // 2026-09-07, issue #174 (§12's `draft-ready`) adds **two**, and both
+    // take the **empty** value and the throw — the mail arm of the
+    // 2026-09-05 ruling, and the same footing as the seven
+    // `mail.draftReady.*` keys already beside them: a mail never ships a
+    // placeholder, so `sendEmail` reports an unwritten line as
+    // `not-composable` and the page stays untold and held, which is a
+    // state the product recovers from. `subject` is §12's own, and
+    // `stopAction` is the label on its "one veto link" — the customer's
+    // action, on the one telling that has an interval to stop the page
+    // inside. 148 + 2 = 150 owner-owed and empty, 177 awaiting copy and
+    // 168 ruled unchanged, 493 + 2 = 495 total.
+    expect(OWNER_OWED.length).toBe(150);
     expect(AWAITING_COPY.length).toBe(177);
     expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(168);
-    expect(Object.keys(COPY).length).toBe(493);
+    expect(Object.keys(COPY).length).toBe(495);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.
