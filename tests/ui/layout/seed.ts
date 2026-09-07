@@ -56,11 +56,63 @@ const ROOT = path.resolve(__dirname, "../../..");
 const MIGRATIONS_DIR = path.join(ROOT, "supabase/migrations");
 
 
+/**
+ * The third account: paid, and **still in setup** (issue #272).
+ *
+ * `/setup` and `/setup/waiting` were photographed signed out only, and
+ * signing the sweep in as either of the two accounts above does not fix
+ * that — it removes the screens altogether. Both have `setup_completed_at`
+ * set, and REQ-025 c4 is emphatic about what that means: "a founder who has
+ * answered them is never asked again". `setupRedirectFor` sends `/setup` to
+ * `/app` for them, and `waiting/release.ts` releases them off
+ * `/setup/waiting` the moment `TIMING.deepReleaseMin` has passed since the
+ * stamp — so a picture taken as the reserved account would be a picture of
+ * `/app` under a setup name, and a picture of the waiting screen would stop
+ * being one ten minutes into any run slow enough to reach it late.
+ *
+ * The state those two screens exist in is a founder who has paid and has
+ * not finished setup, and this is that founder. `setup_completed_at` is
+ * null, which is also what makes the pair **time-independent**: `isReleased`
+ * returns unreleased without latching anything when the stamp is absent, so
+ * the waiting screen renders the same frame on the first second of a run and
+ * the last.
+ */
+export const SETUP_ACCOUNT: AppAccount = Object.freeze({
+  userId: "00000000-0000-0000-0000-0000000000a3",
+  siteId: "00000000-0000-0000-0000-0000000000b3",
+  // A domain no fixture answers for, like the live account's: setup reads
+  // the founder's own rows and has no fixture branch at all
+  // (`_setup/provider.ts` says why — the domain is the thing being set).
+  domain: "newco.test",
+  createdAt: new Date("2026-09-05T06:00:00.000Z"),
+  timeZone: "America/New_York",
+  mode: "autopilot",
+});
+
+/**
+ * The step the setup account's pass is on.
+ *
+ * A middle stage rather than the first: `WAITING_STAGES` draws every step,
+ * and only a stage with steps on both sides of it renders the finished arm
+ * *and* the pending arm in one picture. `passProgressFor` falls back to the
+ * first stage when the column is null, which would leave five pending rows
+ * and nothing else to measure.
+ */
+const SETUP_STAGE = "asking_the_twelve";
+
+/** The measured report behind the setup account's address, and the score
+ *  its column and its blob both have to state (`scans_verdict_score_consistency`).
+ *  Fixed rather than derived: nothing on the setup screen renders either
+ *  number, and a picture is only a baseline if it is the same every run. */
+const SETUP_REPORT_AT = "2026-09-05T09:00:00.000Z";
+const SETUP_REPORT_SCORE = 44;
+
 /** Each account's own address. Never mailed: `issueLink` writes the row and
  *  this file redeems the token straight out of the returned URL. */
 const EMAIL_OF: Readonly<Record<string, string>> = {
   [RESERVED_ACCOUNT.userId]: "layout-sweep@example.com",
   [LIVE_ACCOUNT.userId]: "layout-sweep-live@example.com",
+  [SETUP_ACCOUNT.userId]: "layout-sweep-setup@example.com",
 };
 
 /** Kept for the callers that named it before there were two accounts. */
@@ -276,6 +328,69 @@ export function seedLiveAccount(): void {
     publishing: LIVE_PUBLISHING,
   });
   seedMeasuredWeeks(LIVE_ACCOUNT);
+}
+
+/**
+ * The founder who is still in setup (issue #272), and the report their
+ * address already has behind it.
+ *
+ * Written here rather than through `seedSite` because every one of that
+ * function's promises is the opposite of what these two screens need: it
+ * stamps `setup_completed_at` so the gate lets `/app` through, and it gives
+ * the site a scan, an opportunity and a draft — a site that has been running
+ * for a while. This account has paid, has answered nothing, and has a deep
+ * pass under way. `plan_status` and `paid_through` are the reserved
+ * account's, because a founder on the setup screen has certainly paid
+ * (§4.3: "post-payment, once") and `hasActiveAccess()` has to be true for
+ * them.
+ *
+ * The report is REQ-021 c6 versus c7: `readSetupScreen` reads the completed
+ * report for the address this account will use, and with one there the
+ * market card renders its inferred arm and the address field is filled —
+ * the denser of the two, and therefore the one the layout law has to hold
+ * for. Without it the screen is legal and emptier, which is a picture of
+ * less.
+ */
+export function seedSetupAccount(): void {
+  const { userId, siteId, domain, timeZone } = SETUP_ACCOUNT;
+  const email = EMAIL_OF[userId];
+  if (email === undefined) {
+    throw new Error(`tests/ui/layout/seed.ts: no address is declared for the account ${userId}.`);
+  }
+
+  sql(
+    `insert into users (id, email, plan_status, paid_through) values ` +
+      `('${userId}', '${email}', 'active', now() + interval '365 days');`
+  );
+  // No `setup_completed_at`, and that is the whole state: the gate reads
+  // this column and nothing else to decide that this founder belongs on
+  // `/setup`, and `isReleased` reads it to decide that no deadline has begun
+  // to run.
+  sql(
+    `insert into sites (id, user_id, domain, timezone, setup_stage) values ` +
+      `('${siteId}', '${userId}', '${domain}', '${timeZone}', '${SETUP_STAGE}');`
+  );
+
+  const measuredAt = new Date(SETUP_REPORT_AT);
+  const base = fullSections();
+  const report = assembleReport({
+    ...base,
+    domain: domain as CanonicalDomain,
+    tier: "deep",
+    verdict: {
+      ...VERDICT,
+      domain: domain as CanonicalDomain,
+      measuredAt,
+      scoreAndBand: measured({ score: SETUP_REPORT_SCORE, band: "hard-to-find" }, measuredAt),
+    },
+  });
+  // `is_current` is what `readCurrentReport` selects on — a stored report
+  // no row flags as current is a report the setup screen cannot see.
+  sql(
+    `insert into scans (site_id, domain, tier, status, score, is_current, created_at, report) values ` +
+      `('${siteId}', '${domain}', 'deep', 'done', ${SETUP_REPORT_SCORE}, true, ` +
+      `'${measuredAt.toISOString()}', '${JSON.stringify(report).replaceAll("'", "''")}'::jsonb);`
+  );
 }
 
 /**

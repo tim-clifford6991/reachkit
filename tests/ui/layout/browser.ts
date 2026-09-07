@@ -32,6 +32,8 @@ import {
   seedAccount,
   seededSessionCookie,
   seedLiveAccount,
+  seedSetupAccount,
+  SETUP_ACCOUNT,
   waitForSchemaCache,
 } from "./seed";
 
@@ -66,6 +68,11 @@ interface BrowserState {
    *  each — because the two draw different content through the same
    *  boxes, and the layout law is about content fitting its box. */
   liveAccountCookie: string;
+  /** The same, for the founder who is **still in setup** (#272) — the one
+   *  state `/setup` and `/setup/waiting` are the screens a signed-in
+   *  request answers with at all. `seed.ts`'s `SETUP_ACCOUNT` says why it
+   *  cannot be either of the two above. */
+  setupAccountCookie: string;
 }
 
 /** ADR-093 decision 6, amended 2026-09-03: "the viewport carries a height …
@@ -158,8 +165,10 @@ export default async function setup(): Promise<() => Promise<void>> {
   await waitForSchemaCache();
   seedAccount();
   seedLiveAccount();
+  seedSetupAccount();
   const accountCookie = await seededSessionCookie();
   const liveAccountCookie = await seededSessionCookie(LIVE_ACCOUNT);
+  const setupAccountCookie = await seededSessionCookie(SETUP_ACCOUNT);
 
   const routes = enumerateRoutes(path.join(ROOT, "src/app"), { accountCookie });
   let baseURL: string | null = null;
@@ -173,7 +182,7 @@ export default async function setup(): Promise<() => Promise<void>> {
     await waitForServer(baseURL, 30_000);
   }
 
-  const state: BrowserState = { baseURL, accountCookie, liveAccountCookie };
+  const state: BrowserState = { baseURL, accountCookie, liveAccountCookie, setupAccountCookie };
   const stateDir = mkdtempSync(path.join(os.tmpdir(), STATE_DIR_PREFIX));
   const stateFile = path.join(stateDir, "browser-state.json");
   writeFileSync(stateFile, JSON.stringify(state), "utf8");
@@ -228,6 +237,15 @@ export function getAccountCookie(): string {
  *  database to draw its screen. */
 export function getLiveAccountCookie(): string {
   return readState().liveAccountCookie;
+}
+
+/** The seeded session for the founder who has paid and has not finished
+ *  setup (#272). Signed in as this account, `/setup` is the setup screen
+ *  and `/setup/waiting` is the waiting frame; signed in as either of the
+ *  other two, the first is a redirect to `/app` and the second becomes one
+ *  ten minutes into the run. */
+export function getSetupAccountCookie(): string {
+  return readState().setupAccountCookie;
 }
 
 /** Launches its own Chromium (never a shared connection — see this file's
