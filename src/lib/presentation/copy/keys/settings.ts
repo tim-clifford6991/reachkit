@@ -99,6 +99,18 @@ export const SETTINGS_COPY = Object.freeze({
     "remove",
     { slots: {}, fixedBy: 'BUILD §4.7 ("chips ×5, add/remove")' },
   ],
+  // The add field's own name (issue #270). It had been labelled with the
+  // card's heading key, so the card read "Competitors … Competitors" — a
+  // heading and the field beneath it saying the same word, which names
+  // neither. The heading names the set; this names the one thing being
+  // typed, and it is the field's label *and* its placeholder because
+  // ADR-093's rendering half is "one string, once": `Input` omits a
+  // placeholder equal to the label rather than printing it twice.
+  //
+  // It replaces `settings.market.domain` as the placeholder, which was that
+  // card's word borrowed — a rival's domain is not this site's, and one key
+  // read by two cards is a sentence the owner cannot reword for one of them.
+  "settings.competitors.add-label": ["TODO(copy)", { slots: {}, fixedBy: "BUILD §4.7" }],
   // REQ-071 c16. An empty rival set is a state the product designed (§2.5),
   // not a blank: the line takes no slot, because there is no date and no
   // change to name — only that comparison begins when a rival is added.

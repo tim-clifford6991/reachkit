@@ -353,6 +353,29 @@ describe("REQ-071 c2 and c4 — the competitors control", () => {
     expect(root.querySelectorAll("form")).toHaveLength(BATTERY.COMPETITORS_MAX);
   });
 
+  // Issue #270. The mutation this catches is the one that was there: the
+  // field labelled with the card's heading, so the card said "Competitors"
+  // twice and named the field not at all.
+  it("the add field is named by its own key, and the heading key is read once", async () => {
+    const root = await competitors(TWO);
+    const label = root.querySelector('[data-testid="add-competitor"] label');
+    expect(label?.textContent).toBe("settings.competitors.add-label");
+    // Once in the whole card: the heading, and nowhere in the form.
+    expect(text(root).split("settings.competitors.title")).toHaveLength(2);
+    expect(within(root, "add-competitor").textContent).not.toContain(
+      "settings.competitors.title"
+    );
+  });
+
+  // ADR-093's rendering half — "one string, once". `Input` omits a
+  // placeholder equal to its label, so passing the one key twice draws the
+  // word once rather than above and inside the same field.
+  it("the label's own word is not repeated as the placeholder", async () => {
+    const root = await competitors(TWO);
+    const field = within(root, "add-competitor").querySelector('[name="rival_domain"]');
+    expect(field?.getAttribute("placeholder")).toBeNull();
+  });
+
   it("REQ-070 c1 — the set is one control, however many chips it holds", async () => {
     const root = await competitors(TWO);
     const offered = [...root.querySelectorAll("[data-testid]")]

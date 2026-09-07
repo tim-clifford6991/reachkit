@@ -34,6 +34,14 @@
 // **The refusal belongs to the field, not to the chips.** Every one of
 // `addRival`'s five is about the value that was typed, so it is shown on
 // the field that holds it, with the value intact (`Input`'s contract).
+//
+// **The field has its own name, since issue #270.** It was labelled with
+// the card's heading key, so the card read "Competitors … Competitors": a
+// heading naming the set and a field under it repeating the word rather
+// than naming what is typed into it. `settings.competitors.add-label` is
+// the field's, passed as both label and placeholder — ADR-093's "one
+// string, once", which `Input` renders by omitting a placeholder equal to
+// the label. The heading key is read once, by the heading.
 "use client";
 
 import type React from "react";
@@ -125,16 +133,16 @@ export function CompetitorsPanel(p: {
                 which `invalid: true` and `invalidMessage` arrive together. */}
             {refusalLine === null ? (
               <Input
-                label={copy("settings.competitors.title")}
-                placeholder={copy("settings.market.domain")}
+                label={copy("settings.competitors.add-label")}
+                placeholder={copy("settings.competitors.add-label")}
                 name={RIVAL_FIELD}
                 value={value}
                 onChange={setValue}
               />
             ) : (
               <Input
-                label={copy("settings.competitors.title")}
-                placeholder={copy("settings.market.domain")}
+                label={copy("settings.competitors.add-label")}
+                placeholder={copy("settings.competitors.add-label")}
                 name={RIVAL_FIELD}
                 value={value}
                 onChange={setValue}
