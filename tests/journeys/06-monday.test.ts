@@ -45,10 +45,14 @@
 // that answers "everyone", because the flow under test is Monday's, not
 // billing's.
 //
-// **Nothing sends the weekly mail yet.** `buildWeekly` composes it and
-// `weeklyDigest` reads what it needs, and no module in `src/**` calls
-// either. That is the hole; the journey composes the mail from the digest
-// and hands it to the one send seam, which is what the sender will do.
+// **The weekly mail is sent (#181), and this journey sends it.**
+// `buildWeekly` composed it and `weeklyDigest` read what it needs, and
+// until #181 no module in `src/**` called either — the journey composed
+// the mail by hand and handed it to the send seam, which is exactly what
+// `sendWeeklyDigest` now does: once per `(site_id, week_start)`, stamped
+// on the week's own row only where the seam accepted it, and never for a
+// week the site did not measure. The composition rows below are unchanged
+// — they are about the block list — and the send is now the sender's.
 //
 // **The overview screen is still fixture-backed** (`_overview/provider.ts`
 // names the three issues that replace it). Its week strip is a pure
@@ -309,6 +313,8 @@ function vendorAnswer(url: string): unknown {
 // ── The rows this journey keeps ─────────────────────────────────────────
 
 const SITE_ID = "site-journey-06";
+const USER_ID = "user-journey-06";
+const EMAIL = "founder@acme.com";
 const ZONE = "America/New_York";
 /** A zone on the other side of the date line, so one instant falls in two
  *  different customer-weeks — ADR-060's whole point. */
@@ -318,6 +324,9 @@ interface SiteRow {
   id: string;
   domain: string;
   timezone: string | null;
+  /** The account that owns the site — read by #181's digest to find the
+   *  address to write to. */
+  user_id?: string;
 }
 
 interface ScanRow {
@@ -327,6 +336,10 @@ interface ScanRow {
   week_start: string | null;
   status: string;
   report: unknown;
+  /** #181's stamp: when the digest for this site-week was accepted by the
+   *  send seam. Null until it was — including for a send the seam refused,
+   *  which is what leaves the week open for the next tick. */
+  digest_sent_at?: string | null;
 }
 
 /** The one error this journey's little tables can raise, and the only one
@@ -369,6 +382,7 @@ function answerQuery(query: DbQuery): unknown[] | typeof UNIQUE_VIOLATION | null
       site_id: String(values.site_id),
       tier: String(values.tier),
       week_start: (values.week_start as string | null) ?? null,
+      digest_sent_at: (values.digest_sent_at as string | null) ?? null,
       status: String(values.status ?? "running"),
       report: null,
     });
@@ -382,8 +396,10 @@ function answerQuery(query: DbQuery): unknown[] | typeof UNIQUE_VIOLATION | null
           ? scan.site_id
           : column === "tier"
             ? scan.tier
-            : column === "week_start"
-              ? scan.week_start
+            : column === "digest_sent_at"
+              ? (scan.digest_sent_at ?? null)
+              : column === "week_start"
+                ? scan.week_start
               : column === "id"
                 ? scan.id
                 : undefined;
@@ -416,6 +432,7 @@ const { buildWeekly } = await import("../../src/lib/mail/templates/weekly");
 const { omittedIndexes } = await import("../../src/lib/mail/blocks/omit");
 const { chooseWholeMailLine } = await import("../../src/lib/mail/shell/compose");
 const { sendEmail } = await import("../../src/lib/mail/send");
+const { sendWeeklyDigest } = await import("../../src/lib/mail/weekly");
 const { copy } = await import("../../src/lib/presentation/copy");
 const { COPY, OWNER_OWED } = await import("../../src/lib/presentation/copy/registry");
 const { readWeek: weekStrip, CALENDAR_HREF } = await import(
@@ -450,7 +467,11 @@ beforeEach(() => {
   vendorRequests.length = 0;
   vendorSends = 0;
 
-  sites = [{ id: SITE_ID, domain: DOMAIN, timezone: ZONE }];
+  sites = [{ id: SITE_ID, domain: DOMAIN, timezone: ZONE, user_id: USER_ID }];
+  // The address the digest is written to (#181). `users` is not one of
+  // this journey's own tables, so it lives in the shared double beside
+  // everything else the pass reads.
+  db.rows.set("users", [{ id: USER_ID, email: EMAIL }]);
   scans = [];
 
   opportunities = opportunityDoubles.newMemoryState({ now: MONDAY, profile: PROFILE_ANSWER });
@@ -634,14 +655,14 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
   it("nothing is spent on a week that is not owed, and the refusal says which", async () => {
     // A site with no stated zone has no local Monday, so no week of its own
     // has begun (REQ-073 c1 forbids a zone we chose).
-    sites = [{ id: SITE_ID, domain: DOMAIN, timezone: null }];
+    sites = [{ id: SITE_ID, domain: DOMAIN, timezone: null, user_id: USER_ID }];
     await expect(weekly.dueSites(MONDAY)).resolves.toEqual([]);
     await expect(
       weekly.runWeekly({ siteId: SITE_ID, domain: DOMAIN, now: MONDAY })
     ).resolves.toEqual({ ran: false, because: "week_not_begun" });
 
     // Access ended: no week is owed, and none is measured.
-    sites = [{ id: SITE_ID, domain: DOMAIN, timezone: ZONE }];
+    sites = [{ id: SITE_ID, domain: DOMAIN, timezone: ZONE, user_id: USER_ID }];
     weekly.registerActiveAccessGate(async () => new Set());
     await expect(weekly.dueSites(MONDAY)).resolves.toEqual([]);
     await expect(
@@ -727,6 +748,29 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
     // Every conditional section dropped: the mail carries the one line
     // that says so rather than standing empty.
     expect(chooseWholeMailLine({ blocks: partial.blocks })).toBe("mail.nothing_to_report");
+
+    // And through the sender the tick actually calls (#181). The week has
+    // to exist for it to be told about: this row is the one `claimWeek`
+    // writes, with no report — which reads back as a *partial* week, the
+    // arm that still sends and names the sections it missed.
+    scans.push({
+      id: "scan-told",
+      site_id: SITE_ID,
+      tier: "weekly",
+      week_start: "2026-08-31",
+      status: "done",
+      report: null,
+      digest_sent_at: null,
+    });
+
+    // Every one of the eleven lines is owner-owed, so the mail does not
+    // compose — the seam says exactly that, no vendor request is made,
+    // and **the week is left unstamped**, so the Monday the owner writes
+    // them the digest goes. This keeps discriminating once they do.
+    const told = await sendWeeklyDigest({ siteId: SITE_ID, weekStart: "2026-08-31", now: MONDAY });
+    expect(told).toEqual({ sent: false, reason: "not-composable" });
+    expect(vendorSends).toBe(0);
+    expect(scans.find((scan) => scan.id === "scan-told")?.digest_sent_at ?? null).toBeNull();
   });
 
   it("every sentence the digest speaks is the owner's, and none of them is written yet", async () => {
@@ -757,6 +801,7 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
     });
     expect(sent).toEqual({ sent: false, reason: "not-composable" });
     expect(vendorSends).toBe(0);
+
   });
 
   it("the screens read the same week the measurement was filed under", async () => {
