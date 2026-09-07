@@ -79,3 +79,28 @@ export async function beginDangerAction(a: {
 export async function markExportTaken(ticket: string, now?: Date): Promise<void> {
   await lifecycleStore().stampTicketTaken(ticket, now ?? new Date());
 }
+
+/**
+ * One ticket's action and whether its archive was taken — the read a
+ * surface makes to draw REQ-079 c3's first gate (#259).
+ *
+ * **Not a way round the guard.** It answers two facts about a ticket and
+ * authorises nothing: `confirmDangerAction` is still the only function that
+ * reaches either action, and it re-reads the same row itself. A caller
+ * cannot use this to skip the ticket, the stamp, the expiry or the typed
+ * confirmation.
+ *
+ * `null` where no such ticket exists or the store could not be read — a
+ * screen that cannot read the stamp draws the gate as untaken, which is the
+ * answer that holds the action rather than releasing it.
+ */
+export async function readDangerTicket(
+  ticket: string
+): Promise<{ action: string; takenAt: Date | null } | null> {
+  const read = await lifecycleStore().ticket(ticket);
+  if (!read.ok || read.ticket === null) return null;
+  return {
+    action: read.ticket.action,
+    takenAt: read.ticket.taken_at === null ? null : new Date(read.ticket.taken_at),
+  };
+}

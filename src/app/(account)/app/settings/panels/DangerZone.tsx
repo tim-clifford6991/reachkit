@@ -2,40 +2,56 @@
 // exported to you first, never silently destroyed')".
 //
 // Exactly two actions, and each states its consequence before it runs
-// (REQ-079 c1: "each with one written sentence saying what it removes, what it
-// keeps, and whether the account survives it").
+// (REQ-079 c1), then hands the export over (c3), then takes a typed
+// confirmation (c2) — the three things the criteria put between a press and
+// a destroyed page, in the order they state them.
 //
-// **The consequence step is structural, not conditional on the copy.** A press
-// on either action opens its own step; only the control inside that step calls
-// the interface. So the sequence is fixed in the shape of this component —
-// there is no path from a first press to a destroyed page — and it holds
-// whether or not the owner has written the sentence yet. Today both
-// consequence lines are owner-owed and render as nothing, which is the honest
-// state: the step exists, the pause exists, and the words appear the moment
-// they are written. Wiring the run directly to the first press and adding the
-// step later would have been the version where the words arriving late meant
-// the pause arrived late too.
+// **The sequence is structural, not conditional on the copy.** A press on
+// either action opens its own step; only the control inside that step, and
+// only once the word matches, calls the run. So there is no path from a
+// first press to a destroyed page, and it holds whether or not the owner
+// has written the sentences yet.
 //
-// The card's standing line is §4.7's own promise, and it sits at rest rather
-// than inside either step: it is true of both actions and of the zone itself,
-// and REQ-078 backs it — export is always available, so nothing here can be
-// the first the customer hears of their pages going away.
+// **The customer types the word §4.7 prints, never the engine's tag**
+// (owner ruling, 2026-09-07). The word is `danger.confirm-word.<action>`
+// from the registry, shown in `{word}` and compared here, trimmed and
+// case-insensitively, against that same value — and compared again on the
+// server before the engine is reached, so this check arms a control and
+// guards nothing on its own.
 //
-// The confirming control carries the same word as the control that opened the
-// step. That is the shell's rule for naming a control by what it controls
-// rather than minting a second word ("delete account" opens the step; "delete
-// account" inside it is what runs). It also means the two words a customer
-// reads are the two §4.7 prints, and no third one.
+// **The first gate reads the ticket's own stamp, not a memory of the
+// press.** `handoverState` asks whether the archive left the process whole;
+// a download the customer aborted answers the same as one never started,
+// which is the answer that holds the action.
+//
+// The card's standing line is §4.7's own promise, and it sits at rest
+// rather than inside either step: it is true of both actions and of the
+// zone itself, and REQ-078 backs it — export is always available, so
+// nothing here can be the first the customer hears of their pages going
+// away.
+//
+// The confirming control carries the same word as the control that opened
+// the step, which is the shell's rule for naming a control by what it
+// controls. It also means the two words a customer reads are §4.7's two,
+// and no third one is minted.
 "use client";
 
 import type React from "react";
 import { useState } from "react";
 import { Btn } from "@/ui/components/Btn";
 import { Card } from "@/ui/components/Card";
+import { Input } from "@/ui/components/Input";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
 import { useAction } from "./useAction";
 import type { ActionKey } from "../settable";
+import { handoverState, runDangerAction } from "../danger-actions";
+import {
+  CONFIRM_WORD_KEY,
+  matchesConfirmWord,
+  type DangerOutcome,
+  type HandoverState,
+} from "../danger-state";
 
 /** The two, each with the word it is offered under and the sentence stating
  *  what it does before it does it. A third row would be a third destructive
@@ -63,35 +79,142 @@ export function DangerZone(): React.JSX.Element {
       {exportFirst === null ? null : <p className="text-xs opacity-60 wrap-anywhere">{exportFirst}</p>}
 
       <div className="flex min-w-0 flex-col gap-3">
-        {DANGER.map((row) => {
-          const isOpen = opened === row.action;
-          const consequence = writtenLine(row.consequence);
-          return (
-            <div key={row.action} data-testid={`danger-${row.action}`}>
-              {/* The offer. It opens the step and runs nothing — which is why
-                  it, and not the control inside the step, is what the closed
-                  offer of seven actions is counted from. */}
-              <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <span data-testid={`action-${row.action}`}>
-                  <Btn label={copy(row.label)} size="sm" onClick={() => setOpened(row.action)} />
-                </span>
-              </div>
-              {isOpen ? (
-                <div className="flex min-w-0 flex-col gap-2 pt-2" data-testid={`consequence-${row.action}`}>
-                  {consequence === null ? null : <p className="text-xs opacity-60 wrap-anywhere">{consequence}</p>}
-                  <div className="flex min-w-0 flex-wrap items-center gap-2">
-                    <span data-testid={`confirm-${row.action}`}>
-                      <Btn label={copy(row.label)} size="sm" onClick={() => action.run(row.action)} />
-                    </span>
-                  </div>
-                </div>
-              ) : null}
+        {DANGER.map((row) => (
+          <div key={row.action} data-testid={`danger-${row.action}`}>
+            {/* The offer. It opens the step and runs nothing — which is why
+                it, and not the control inside the step, is what the closed
+                offer of seven actions is counted from. */}
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <span data-testid={`action-${row.action}`}>
+                <Btn label={copy(row.label)} size="sm" onClick={() => setOpened(row.action)} />
+              </span>
             </div>
-          );
-        })}
+            {opened === row.action ? <DangerStep row={row} action={action} /> : null}
+          </div>
+        ))}
       </div>
 
       {action.line === null ? null : <p className="text-xs opacity-60 wrap-anywhere">{action.line}</p>}
     </Card>
+  );
+}
+
+/**
+ * One action's step: the consequence, then REQ-079's two gates in the order
+ * the criteria state them, then the run.
+ *
+ * A component of its own so each step holds its own typed word and its own
+ * reading of the handover — two steps open at once could otherwise confirm
+ * each other's action, which is the one mistake this screen must not make.
+ */
+function DangerStep(p: {
+  row: (typeof DANGER)[number];
+  action: ReturnType<typeof useAction>;
+}): React.JSX.Element {
+  const [typed, setTyped] = useState("");
+  const [handover, setHandover] = useState<HandoverState>({ taken: false });
+  // Never the delete arm: that one navigates instead of rendering, because
+  // the account it belonged to is gone.
+  const [outcome, setOutcome] = useState<RenderedOutcome | null>(null);
+
+  const consequence = writtenLine(p.row.consequence);
+  const word = copy(CONFIRM_WORD_KEY[p.row.action]);
+  const armed = matchesConfirmWord(p.row.action, typed, word);
+
+  return (
+    <div
+      className="flex min-w-0 flex-col gap-2 rounded-field border border-error/40 border-l-4 border-l-error bg-error/10 p-3"
+      data-testid={`consequence-${p.row.action}`}
+    >
+      {consequence === null ? null : <p className="text-xs opacity-60 wrap-anywhere">{consequence}</p>}
+
+      {/* Gate 1 — c3's export, before anything is destroyed. Pressing it
+          hands the archive over through the action seam (an address, because
+          a Server Function cannot stream a file); the state below is then
+          re-read from the ticket rather than assumed from the press. */}
+      <div className="flex min-w-0 flex-col gap-1" data-testid={`export-${p.row.action}`}>
+        <span className="eyebrow opacity-60">
+          {handover.taken ? copy("danger.export-taken") : copy("danger.export-take")}
+        </span>
+        {handover.taken ? null : (
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <Btn
+              label={copy("settings.content.export")}
+              size="sm"
+              onClick={() => {
+                p.action.run(p.row.action);
+                void handoverState(p.row.action).then(setHandover);
+              }}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Gate 2 — c2's typed confirmation. */}
+      <div className="flex min-w-0 flex-col gap-1" data-testid={`confirm-word-${p.row.action}`}>
+        <Input
+          label={copy("danger.type-to-confirm", { word })}
+          placeholder={word}
+          value={typed}
+          onChange={setTyped}
+        />
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <span data-testid={`confirm-${p.row.action}`}>
+            <Btn
+              label={copy(p.row.label)}
+              size="sm"
+              disabled={!armed}
+              onClick={() => {
+                void runDangerAction(p.row.action, typed).then((result) => {
+                  if (result.ran && result.action === "delete_account") {
+                    // The account is gone and the session with it, so a full
+                    // navigation is the only thing that shows the customer
+                    // where they now are.
+                    window.location.assign(result.href);
+                    return;
+                  }
+                  setOutcome(result);
+                });
+              }}
+            />
+          </span>
+        </div>
+      </div>
+
+      {outcome === null ? null : <DangerLine outcome={outcome} />}
+    </div>
+  );
+}
+
+/** What the run left behind, as the keys the engine named. No sentence is
+ *  composed here and no count is derived: `takenDown` is the run's own. */
+type RenderedOutcome = Exclude<DangerOutcome, { action: "delete_account" }>;
+
+function DangerLine(p: { outcome: RenderedOutcome }): React.JSX.Element {
+  const line = writtenLine(p.outcome.lineKey);
+  return (
+    <div className="flex min-w-0 flex-col gap-1" data-testid="danger-outcome">
+      {line === null ? null : <p className="text-xs opacity-60 wrap-anywhere">{line}</p>}
+      {p.outcome.ran ? (
+        <>
+          <p className="text-xs opacity-60 wrap-anywhere">
+            {copy("danger.taken-down-count", { pages: String(p.outcome.takenDown) })}
+          </p>
+          {p.outcome.stillLive.length === 0 ? null : (
+            <ul className="flex min-w-0 flex-col gap-1" data-testid="danger-still-live">
+              {p.outcome.stillLive.flatMap((destination) =>
+                destination.liveUrls.map((url) => (
+                  <li key={url} className="num text-xs opacity-60 wrap-anywhere">
+                    {url}
+                  </li>
+                ))
+              )}
+            </ul>
+          )}
+        </>
+      ) : (
+        <p className="text-xs opacity-60 wrap-anywhere">{copy("danger.nothing-changed")}</p>
+      )}
+    </div>
   );
 }

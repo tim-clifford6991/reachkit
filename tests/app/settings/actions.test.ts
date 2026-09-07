@@ -1,22 +1,19 @@
 // tests/app/settings/actions.test.ts — BUILD §4.7, REQ-070 c2
 //
-// The seven actions are declared here and implemented elsewhere (#34, #35,
-// #52). What this suite holds is that the declaration is total and that the
-// stub standing in for those modules is *honest*: it answers with the issue
-// that wires it and changes nothing, rather than resolving as though the work
-// happened. A stub that returned success would put "your account was deleted"
-// in front of a customer whose account is untouched, and that is the defect
-// these assertions exist to catch if someone ever simplifies the union away.
+// The seven actions are declared here and implemented elsewhere (#136,
+// #134, #259). What this suite holds is that the declaration is total, that
+// every one of the seven is wired, and that **nothing answers `not-yet` any
+// more** — the arm was the stub's honesty about work that had not been
+// done, and issue #259 finished the work.
+//
+// The `"use server"` modules behind the delegations are doubled: they reach
+// Stripe, the database and the request's own cookie jar, none of which a
+// plain vitest run has. What each one *does* is its own suite's question
+// (`billing-actions.test.ts`, `account-actions.test.ts`,
+// `danger-actions.test.ts`); what this file asks is whether the map reaches
+// it at all.
 import { describe, expect, it, vi } from "vitest";
 
-// The three billing delegations reach Stripe and the database. This suite is
-// about the declaration and the map, not about what Stripe answers, so the
-// `"use server"` module behind them is replaced wholesale —
-// `billing-actions.test.ts` is what exercises it for real.
-// #134 doubles the account boundary for the same reason: `signOutAction`
-// deletes a cookie through `next/headers`, which a plain vitest run has no
-// request for. What it does is `account-actions.test.ts`'s question against
-// the real seam; what this file asks is whether the map reaches it at all.
 const { signedOut } = vi.hoisted(() => ({ signedOut: [] as string[] }));
 
 vi.mock("@/app/(account)/app/settings/account-actions", () => ({
@@ -35,119 +32,95 @@ vi.mock("@/app/(account)/app/settings/billing-actions", () => ({
 }));
 
 import { ACTIONS, type ActionKey } from "@/app/(account)/app/settings/settable";
-import { FIXTURE_ACTIONS, SETTINGS_ACTIONS, WIRED_BY } from "@/app/(account)/app/settings/actions";
+import { SETTINGS_ACTIONS, type ActionOutcome } from "@/app/(account)/app/settings/actions";
 
 const BILLING: ActionKey[] = ["invoices", "cancel", "resume"];
-const UNWIRED = ACTIONS.filter((key) => !BILLING.includes(key));
+const DANGER: ActionKey[] = ["unpublish_all", "delete_account"];
 
 describe("the declaration is total over the seven", () => {
   it("every action has an implementation, and there is no eighth", () => {
-    expect(Object.keys(FIXTURE_ACTIONS).sort()).toEqual([...ACTIONS].sort());
-  });
-
-  it("every action names the issue that wires it", () => {
-    expect(Object.keys(WIRED_BY).sort()).toEqual([...ACTIONS].sort());
-    for (const key of ACTIONS) {
-      expect(Number.isInteger(WIRED_BY[key]), key).toBe(true);
-      expect(WIRED_BY[key], key).toBeGreaterThan(0);
-    }
-  });
-});
-
-describe("the stub is honest about not being wired", () => {
-  it("every action answers `not-yet` with its issue, and none reports success", async () => {
-    for (const key of ACTIONS) {
-      const outcome = await FIXTURE_ACTIONS[key]();
-      expect(outcome, key).toEqual({ done: "not-yet", issue: WIRED_BY[key] });
-    }
-  });
-
-  it("`not-yet` is not a failure — nothing was attempted, so nothing threw", async () => {
-    await expect(FIXTURE_ACTIONS.delete_account()).resolves.toBeDefined();
-  });
-
-  it("calling one changes nothing another can observe", async () => {
-    // There is no store, no vendor and no mail on this module's import graph,
-    // so the only thing an action could mutate is itself. Two calls to the
-    // most destructive of the seven answer identically.
-    const first = await FIXTURE_ACTIONS.delete_account();
-    const second = await FIXTURE_ACTIONS.delete_account();
-    expect(second).toEqual(first);
-  });
-
-  it("the object is frozen, so a caller cannot swap one action for another", () => {
-    expect(Object.isFrozen(FIXTURE_ACTIONS)).toBe(true);
-  });
-});
-
-describe("the three billing actions belong to the same module", () => {
-  it("invoices, cancel and resume are wired by one issue — REQ-097's one destination", () => {
-    const owners = new Set(BILLING.map((key) => WIRED_BY[key]));
-    expect(owners.size).toBe(1);
-  });
-});
-
-// ── Issue #136 ─────────────────────────────────────────────────────────────
-describe("the map the screen calls is the stub with the wired actions replaced", () => {
-  it("`SETTINGS_ACTIONS` is total over the seven, and frozen against a swap", () => {
     expect(Object.keys(SETTINGS_ACTIONS).sort()).toEqual([...ACTIONS].sort());
+  });
+
+  it("the map is frozen, so a caller cannot swap one action for another", () => {
     expect(Object.isFrozen(SETTINGS_ACTIONS)).toBe(true);
   });
+});
 
-  it("the three billing controls no longer answer `not-yet` — they reach REQ-097 c1's destination", async () => {
+describe("all seven are wired — nothing answers `not-yet` any more (#259)", () => {
+  it("no action returns the arm, and the arm is gone from the union", async () => {
+    for (const key of ACTIONS) {
+      const outcome = await SETTINGS_ACTIONS[key]();
+      expect(outcome.done, key).not.toBe("not-yet");
+      // The three arms that remain, named rather than counted: an arm added
+      // later has to be added here too.
+      expect(["elsewhere", "here", "unreachable"], key).toContain(outcome.done);
+    }
+  });
+
+  it("the union itself no longer admits it — a compile-time fact, asserted from the source", async () => {
+    // `expect<never>` would pass on any type; the source is what says the
+    // arm is gone, and the file is short enough to read for it.
+    const { readFileSync } = await import("node:fs");
+    const path = await import("node:path");
+    const source = readFileSync(
+      path.resolve(import.meta.dirname, "../../../src/app/(account)/app/settings/actions.ts"),
+      "utf8"
+    );
+    const code = source.replace(/\/\*[\s\S]*?\*\//g, "").split("\n").filter((l) => !l.trimStart().startsWith("//")).join("\n");
+    expect(code).not.toContain("not-yet");
+    expect(code).not.toContain("FIXTURE_ACTIONS");
+    expect(code).not.toContain("WIRED_BY");
+  });
+});
+
+describe("REQ-078 c2 — the export control is the download address, and no gate stands in front of it", () => {
+  it("`export` hands the browser `/api/export`", async () => {
+    expect(await SETTINGS_ACTIONS.export()).toEqual({ done: "elsewhere", href: "/api/export" });
+  });
+
+  it("the module names no access gate at all", async () => {
+    const { readFileSync } = await import("node:fs");
+    const path = await import("node:path");
+    const source = readFileSync(
+      path.resolve(import.meta.dirname, "../../../src/app/(account)/app/settings/actions.ts"),
+      "utf8"
+    );
+    expect(source).not.toMatch(/hasActiveAccess|paid_through|plan_status/);
+  });
+});
+
+describe("REQ-079 c2/c3 — the two irreversible actions are offered as their export hand-off, never as their run", () => {
+  it.each(DANGER)("%s hands the browser its archive address and nothing else", async (key) => {
+    const outcome: ActionOutcome = await SETTINGS_ACTIONS[key]();
+    expect(outcome).toEqual({ done: "elsewhere", href: `/api/danger/${key}` });
+  });
+
+  it("neither reaches the lifecycle engine from this map — a press that has not been confirmed destroys nothing", async () => {
+    const { readFileSync } = await import("node:fs");
+    const path = await import("node:path");
+    const source = readFileSync(
+      path.resolve(import.meta.dirname, "../../../src/app/(account)/app/settings/actions.ts"),
+      "utf8"
+    );
+    // The run is `danger-actions.ts`'s, behind the typed confirmation.
+    expect(source).not.toContain("confirmDangerAction");
+    expect(source).not.toContain("deleteAccount");
+    expect(source).not.toContain("unpublishEverything");
+  });
+});
+
+describe("the wired delegations are reached, not re-implemented", () => {
+  it("`sign_out` reaches identity and takes the browser away (#134)", async () => {
+    signedOut.length = 0;
+    expect(await SETTINGS_ACTIONS.sign_out()).toEqual({ done: "elsewhere", href: "/signin" });
+    expect(signedOut).toEqual(["sign_out"]);
+  });
+
+  it("the three billing controls lead to REQ-097 c1's one destination", async () => {
     for (const key of BILLING) {
       const outcome = await SETTINGS_ACTIONS[key]();
       expect(outcome.done, key).not.toBe("not-yet");
     }
-  });
-
-  it("the other three still answer `not-yet` with their issue — wiring one wired one", async () => {
-    // #134 wired the fourth. `UNWIRED` is `ACTIONS` minus what this file
-    // says is wired, so the count is re-stated deliberately rather than
-    // drifting quietly the next time one of the three lands.
-    const stillStubbed = UNWIRED.filter((key) => key !== "sign_out");
-    expect(stillStubbed.length).toBe(3);
-    for (const key of stillStubbed) {
-      expect(await SETTINGS_ACTIONS[key](), key).toEqual({ done: "not-yet", issue: WIRED_BY[key] });
-    }
-  });
-
-  it("`sign_out` reaches identity and takes the browser away (#134)", async () => {
-    signedOut.length = 0;
-    const outcome = await SETTINGS_ACTIONS.sign_out();
-    expect(signedOut).toEqual(["sign_out"]);
-    // `elsewhere` and not `here`: `useAction` navigates on that arm and on
-    // no other, and a client-side route change would leave the deleted
-    // cookie unnoticed by every already-rendered piece of the app.
-    expect(outcome).toEqual({ done: "elsewhere", href: "/signin" });
-  });
-
-  it("wiring `sign_out` wired nothing else — the stub still answers for the three", async () => {
-    signedOut.length = 0;
-    for (const key of UNWIRED.filter((k) => k !== "sign_out")) {
-      expect(await SETTINGS_ACTIONS[key](), key).toEqual({ done: "not-yet", issue: WIRED_BY[key] });
-    }
-    expect(signedOut).toEqual([]);
-  });
-
-  it("the stub is untouched, so what an unwired action answers has not changed", async () => {
-    for (const key of ACTIONS) {
-      expect(await FIXTURE_ACTIONS[key](), key).toEqual({ done: "not-yet", issue: WIRED_BY[key] });
-    }
-  });
-});
-
-describe("REQ-097 c6 — the fourth arm", () => {
-  it("`unreachable` carries nothing: no vendor string, no reason, no session URL", () => {
-    // A reason on this arm would be an operator's fact on a customer's
-    // screen, and a URL would be the thing that could not be produced.
-    const outcome = { done: "unreachable" } as Awaited<ReturnType<(typeof SETTINGS_ACTIONS)["invoices"]>>;
-    expect(Object.keys(outcome)).toEqual(["done"]);
-  });
-
-  it("the union is the four arms and no fifth — a control can only report a state that exists", async () => {
-    const arms = new Set<string>();
-    for (const key of ACTIONS) arms.add((await SETTINGS_ACTIONS[key]()).done);
-    for (const arm of arms) expect(["elsewhere", "here", "not-yet", "unreachable"]).toContain(arm);
   });
 });
