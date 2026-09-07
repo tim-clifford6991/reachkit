@@ -90,6 +90,15 @@ export interface BillingFacts {
   surfaceHref: string;
 }
 
+/** REQ-071 c1/c6's one statement: the date, the answer being replaced, and
+ *  which of the two criteria this is. A name of its own because the panel
+ *  chooses one too — see `marketChange` below. */
+export interface MarketChange {
+  on: string;
+  changeKey: CopyKey;
+  saved: boolean;
+}
+
 export interface SettingsModel {
   market: {
     category: string;
@@ -108,7 +117,18 @@ export interface SettingsModel {
      * it (c6). `null` where neither is true, and the card then states its
      * standing effect line instead.
      */
-    change: { on: string; changeKey: CopyKey; saved: boolean } | null;
+    change: MarketChange | null;
+    /**
+     * The date a change saved right now would take effect —
+     * `effectiveOn()`'s own answer, written once, in the customer's zone.
+     *
+     * On the model rather than computed where it is needed because c1's
+     * line is stated *before* a save, and by then the fact deciding
+     * whether to state it (which field the customer opened) is the
+     * browser's. One date, written on the server, and no arithmetic on
+     * the screen (issue #231).
+     */
+    wouldTakeEffectOn: string;
   };
   competitors: readonly string[];
   domain: string;
@@ -200,37 +220,62 @@ export interface SettingsFacts {
 }
 
 /**
- * REQ-071 c1/c6's one statement, chosen and written here.
+ * REQ-071 c1/c6's one statement, chosen here.
  *
  * The unsaved change outranks the saved one: a customer who is typing is
  * being told what the button they are about to press will do, and the
  * older saved change is a fact they have already been given. Only one line
  * either way — §4.7 gives this card one written line, and two dated
  * sentences on it would be the same fact pretending to be two.
+ *
+ * **Exported, and called twice with the same rule** (issue #231). Which
+ * answer the customer is part-way through changing is a fact the browser
+ * settles, after the server has rendered the card: `MarketPanel` opens a
+ * field and asks this function again with the field it opened. The
+ * precedence is stated once, here, rather than a second time on the
+ * screen — the card model chooses the line, and the panel renders it.
  */
-function marketChange(facts: SettingsFacts): SettingsModel["market"]["change"] {
-  const zoneWritten = (on: Date): string => formatDate(on, facts.timeZone);
-  if (facts.editing !== null) {
-    return {
-      // Before the save there is no stored difference to read, so the date
-      // is the one a change saved now would take: `effectiveOn()`'s own
-      // answer, and no arithmetic here (issue #204).
-      on: zoneWritten(effectiveOn({ savedAt: new Date(), timezone: facts.timeZone })),
-      changeKey: CHANGE_COPY_KEY[facts.editing],
-      saved: false,
-    };
-  }
+export function marketChange(
+  market: SettingsModel["market"],
+  editing: "domain" | "category" | null
+): MarketChange | null {
+  if (editing === null) return market.change;
+  return {
+    // Before the save there is no stored difference to read, so the date is
+    // the one a change saved now would take — written on the model, above,
+    // and read here (issue #204, #231).
+    on: market.wouldTakeEffectOn,
+    changeKey: CHANGE_COPY_KEY[editing],
+    saved: false,
+  };
+}
+
+/** The saved half: REQ-071 c6's standing change, read as the difference
+ *  between the declared and measured answers (`pendingChanges()`), or
+ *  `null` where there is none and the card states its standing effect
+ *  line instead. */
+function savedChange(facts: SettingsFacts): MarketChange | null {
   if (facts.pendingChange === null) return null;
   return {
-    on: zoneWritten(facts.pendingChange.effectiveOn),
+    on: formatDate(facts.pendingChange.effectiveOn, facts.timeZone),
     changeKey: CHANGE_COPY_KEY[facts.pendingChange.kind],
     saved: true,
   };
 }
 
 export function assembleSettings(facts: SettingsFacts): SettingsModel {
+  const market = {
+    category: facts.category,
+    change: savedChange(facts),
+    wouldTakeEffectOn: formatDate(
+      effectiveOn({ savedAt: new Date(), timezone: facts.timeZone }),
+      facts.timeZone
+    ),
+  };
   return {
-    market: { category: facts.category, change: marketChange(facts) },
+    // The same chooser the panel calls, with the same fact, so REQ-071's
+    // precedence is decided in one place whichever side settled it.
+    market: { ...market, change: marketChange(market, facts.editing) },
     competitors: facts.competitors,
     domain: facts.domain,
     publishing: {

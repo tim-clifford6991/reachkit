@@ -66,8 +66,12 @@ export default async function SettingsPage(): Promise<React.JSX.Element> {
 
       <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-2">
         <div className="flex min-w-0 flex-col gap-4" data-testid="settings-left">
-          <MarketPanel settings={settings} />
-          <CompetitorsPanel settings={settings} />
+          <MarketPanel
+            market={settings.market}
+            domain={settings.domain}
+            timeZone={settings.publishing.timeZone}
+          />
+          <CompetitorsPanel competitors={settings.competitors} />
           <PublishingPanel settings={settings} />
           <NotificationsPanel settings={settings} />
         </div>

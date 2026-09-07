@@ -312,7 +312,7 @@ describe("owner-owed and empty agree both ways", () => {
     expect(new Set(emptyKeys)).toEqual(new Set(OWNER_OWED));
   });
 
-  it("counts: 158 owner-owed, 187 awaiting copy, 168 ruled, 513 total (rule 5.5 — the index states its own coverage)", () => {
+  it("counts: 160 owner-owed, 199 awaiting copy, 168 ruled, 527 total (rule 5.5 — the index states its own coverage)", () => {
     // WO-070 added report.ts's eight landing keys (headline, field label,
     // submit label, five DomainProblem lines), all owner-owed: 30 + 8 = 38.
     // 2026-09-03: the owner ruled on three of them (headline, field label,
@@ -823,10 +823,20 @@ describe("owner-owed and empty agree both ways", () => {
     // honest state: a control with no label is not a control. 158 + 2 =
     // 160 owner-owed, 191 awaiting copy and 168 ruled unchanged,
     // 517 + 2 = 519 total.
+    //
+    // 2026-09-07, issue #231 (Edit and add become handlers) adds **eight**,
+    // all carrying the marker for the same reason: `settings.save` and
+    // `settings.cancel-edit`, the two words the field Edit opens needs;
+    // `settings.market.refused.unreachable`, `saveDomain`'s one refusal
+    // (REQ-071 c9); and `settings.competitors.refused.*` — `addRival`'s own
+    // five, whose *rules* REQ-071 c4 shares with setup but whose sentences
+    // are this screen's, because `setup.competitors.refused.*` speaks to a
+    // founder part-way through setup. 160 owner-owed unchanged, 191 + 8 =
+    // 199 awaiting copy, 168 ruled unchanged, 519 + 8 = 527 total.
     expect(OWNER_OWED.length).toBe(160);
-    expect(AWAITING_COPY.length).toBe(191);
+    expect(AWAITING_COPY.length).toBe(199);
     expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(168);
-    expect(Object.keys(COPY).length).toBe(519);
+    expect(Object.keys(COPY).length).toBe(527);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.

@@ -46,6 +46,14 @@ export const SETTINGS_COPY = Object.freeze({
   // rule 1.1) — naming a control by what it does, rather than minting a
   // second, third and fourth word for the same act.
   "settings.edit": ["Edit", { slots: {}, fixedBy: 'BUILD §4.7 ("chip + Edit")' }],
+  // The other two words the field Edit opens needs (issue #231), and the
+  // same one-key-serving-several-positions rule: what the button does is
+  // the same act on the domain and on the category, so it is one word each
+  // and not two per control. Leaving a field is offered because opening
+  // one must be undoable — a customer who presses Edit to see what is
+  // there has changed nothing, and must not have to save to get out.
+  "settings.save": ["TODO(copy)", { slots: {}, fixedBy: "REQ-071 c1" }],
+  "settings.cancel-edit": ["TODO(copy)", { slots: {}, fixedBy: "REQ-071 c1" }],
 
   // ── Your market ────────────────────────────────────────────────────────
   "settings.market.title": ["Your market", { slots: {}, fixedBy: "BUILD §4.7" }],
@@ -77,6 +85,12 @@ export const SETTINGS_COPY = Object.freeze({
   // names, and REQ-071's line reads them out to a customer.
   "settings.market.change.domain": ["TODO(copy)", { slots: {}, fixedBy: "REQ-071 c1" }],
   "settings.market.change.category": ["TODO(copy)", { slots: {}, fixedBy: "REQ-071 c1" }],
+  // The one way a market save is refused (issue #231). `saveDomain` answers
+  // `unreachable` for a value that is not a registrable domain and for one
+  // that does not resolve — one refusal, because the customer's remedy is
+  // the same either way and REQ-071 c9 names one. A category save has no
+  // refusal: any non-empty string is a market somebody could be measured in.
+  "settings.market.refused.unreachable": ["TODO(copy)", { slots: {}, fixedBy: "REQ-071 c9" }],
 
   // ── Competitors ────────────────────────────────────────────────────────
   "settings.competitors.title": ["Competitors", { slots: {}, fixedBy: "BUILD §4.7" }],
@@ -89,6 +103,18 @@ export const SETTINGS_COPY = Object.freeze({
   // not a blank: the line takes no slot, because there is no date and no
   // change to name — only that comparison begins when a rival is added.
   "settings.competitors.none-yet": ["TODO(copy)", { slots: {}, fixedBy: "REQ-071 c16" }],
+  // `addRival`'s own five refusals, one sentence each (issue #231). The
+  // rules are `setup/rivals.ts`'s — REQ-071 c4 says they are the same rules
+  // — but the sentences are this screen's: `setup.competitors.refused.*`
+  // speaks to a founder part-way through setup, and reusing those keys here
+  // would put setup's voice on Settings. The map over them is total, so a
+  // sixth refusal in the engine is a compile error rather than a refusal
+  // that says nothing.
+  "settings.competitors.refused.not-a-domain": ["TODO(copy)", { slots: {}, fixedBy: "REQ-071 c4" }],
+  "settings.competitors.refused.does-not-resolve": ["TODO(copy)", { slots: {}, fixedBy: "REQ-071 c4" }],
+  "settings.competitors.refused.own-domain": ["TODO(copy)", { slots: {}, fixedBy: "REQ-071 c4" }],
+  "settings.competitors.refused.already-present": ["TODO(copy)", { slots: {}, fixedBy: "REQ-071 c4" }],
+  "settings.competitors.refused.set-full": ["TODO(copy)", { slots: {}, fixedBy: "REQ-071 c4" }],
 
   // ── Publishing ─────────────────────────────────────────────────────────
   "settings.publishing.title": ["Publishing", { slots: {}, fixedBy: "BUILD §4.7" }],
