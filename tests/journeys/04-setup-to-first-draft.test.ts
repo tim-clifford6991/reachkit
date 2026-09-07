@@ -36,15 +36,18 @@
 // journey stubs `setTimeout` to fire immediately: it is about the path,
 // not about waiting two minutes for a fixture to answer.
 //
-// **The one-line switch `provider.ts` names is applied here.**
-// `setupStore()` still hands out the fixture in the deployed route,
-// because which account a request belongs to is `currentSession()`'s
-// (#35) and `POST /api/setup`'s own `currentUserId()` says the same thing
-// at the other end of the same gap. Both halves of that switch are
-// written down in those two files; this journey applies the store half so
-// the path from the submit to the calendar is one path. That is the one
-// gap between this file and production, and it is named rather than
-// papered over.
+// **The founder signs in, and the submit is theirs** (#133). Both halves
+// of the switch this file used to name as a gap have landed:
+// `_setup/provider.ts` hands out the live store in production, and
+// `POST /api/setup` resolves the founder through `currentSession()`. So
+// this journey mints a **real** session cookie through identity's own
+// `sessionCookie()`, puts it in the jar `cookies()` reads, and lets
+// `currentSession()` verify it the way it does on a deployed request —
+// the MAC, the signed expiry, the account's own session stamp and its
+// tombstone, all against the `users` row below. Nothing here stands in
+// for identity any more; the provider is still mocked to the live store
+// only because this file's own db is a fake and `importOriginal` is how it
+// says so.
 //
 // **The copy registry is a fixture**, for the same reason as journeys 02
 // and 03: `copy()` refuses an owner-owed key, and the screens on this path
@@ -100,6 +103,28 @@ vi.mock("@/lib/presentation/copy", async (importOriginal) => {
 });
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+
+/** The founder's own cookie jar (#133). `beforeEach` mints a real signed
+ *  session into it through `sessionCookie()`, so `currentSession()` runs
+ *  its whole verification against it — this file supplies the transport a
+ *  server request would, and nothing else. */
+const cookieJar = new Map<string, string>();
+
+vi.mock("next/headers", () => ({
+  cookies: async () => ({
+    get: (name: string) => {
+      const value = cookieJar.get(name);
+      return value === undefined ? undefined : { name, value };
+    },
+    set: (name: string, value: string) => {
+      cookieJar.set(name, value);
+    },
+    delete: (name: string) => {
+      cookieJar.delete(name);
+    },
+  }),
+  headers: async () => new Headers(),
+}));
 
 // ── The job platform ────────────────────────────────────────────────────
 
@@ -299,8 +324,24 @@ function vendorAnswer(url: string): unknown {
 
 // ── The rows this journey keeps ─────────────────────────────────────────
 
-const USER_ID = "user-fixture"; // `POST /api/setup`'s own `currentUserId()`
+const USER_ID = "user-journey-04";
 const SITE_ID = "site-journey-04";
+
+/** The `users` row behind this journey's session. `deleted_at` and
+ *  `sessions_valid_from` are null on purpose: those are the two columns
+ *  that turn a verified cookie into "not a session", and this founder is
+ *  neither deleted nor signed out. */
+const ACCOUNT_ROW = {
+  id: USER_ID,
+  email: "founder@acme.com",
+  name: null,
+  pending_email: null,
+  pending_email_token_hash: null,
+  pending_email_sent_at: null,
+  sessions_valid_from: null,
+  first_signed_in_at: null,
+  deleted_at: null,
+};
 const DOMAIN = "acme.com";
 const TIME_ZONE = "America/New_York";
 const PAID_AT = new Date("2026-09-06T08:00:00.000Z");
@@ -341,6 +382,13 @@ function freshSite(): SiteRow {
 function answerQuery(query: DbQuery): unknown[] | null {
   if (query.table === "domain_blocks" || query.table === "fetches") return [];
   if (query.table === "scans") return query.verb === "select" ? [] : [];
+  // The account `currentSession()` verifies this journey's cookie against
+  // (#133): a live account, never signed out of elsewhere, not tombstoned.
+  if (query.table === "users") {
+    const filters = new Map(query.filters);
+    if (filters.has("id") && filters.get("id") !== USER_ID) return [];
+    return [ACCOUNT_ROW];
+  }
   if (query.table !== "sites") return null;
 
   const filters = new Map(query.filters);
@@ -376,6 +424,7 @@ const { setActiveAccessReader, resetActiveAccessReader } = await import(
   "../../src/app/(account)/setup/_setup/store"
 );
 const { POST: setupRoute } = await import("../../src/app/api/setup/route");
+const { sessionCookie } = await import("../../src/lib/account/identity");
 const { runDeepPass } = await import("../../src/lib/scan/deep/run");
 const { passProgressFor } = await import("../../src/lib/scan/deep/progress");
 const { isReleased, deadlineFrom } = await import("../../src/lib/scan/deep/release");
@@ -424,6 +473,14 @@ beforeEach(() => {
   });
   setOpportunityStore(opportunityMemoryStore(opportunities));
   setActiveAccessReader(async () => true);
+
+  // Step 2's own outcome, as a value: the founder followed their sign-in
+  // link and the redemption set this. Minted by identity, verified by
+  // identity — the journey asserts the submit is *theirs*, which is what
+  // #133 wired and what a stand-in user id could never have shown.
+  cookieJar.clear();
+  const minted = sessionCookie({ userId: USER_ID, siteId: SITE_ID, issuedAt: PAID_AT });
+  cookieJar.set(minted.name, minted.value);
 
   vi.stubGlobal(
     "fetch",

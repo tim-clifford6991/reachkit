@@ -11,41 +11,62 @@
 //   enqueueDeepPass  `scan/run` at tier `deep`, on the queue
 //   resolvesInDns    §6.4's resolver, through the egress seam
 //
-// **One member is still a seam, and it is named rather than faked.**
-// `hasActiveAccess` is ADR-050's rule — `users.paid_through > now()` alone
-// — and neither the column nor the `src/lib/account/billing` leaf that
-// owns it exists yet (issue #42). A store that answered `true` here would
-// be a paywall that lets everyone through, so this one asks the port
-// below, which refuses until #42 fills it. Nothing else in this file, in
-// `submit.ts` or in `POST /api/setup` changes when it does.
+// **`hasActiveAccess` is the billing leaf's, since #133.** It is ADR-050's
+// rule — `users.paid_through > now()` alone — and `src/lib/account/billing`
+// owns it; the port below now defaults to that read instead of refusing,
+// because this store is what `POST /api/setup` actually runs and a port
+// that answers `false` would be a paywall nobody can get past. The port
+// itself stays: it is the seam the suites drive.
 //
-// **Why the provider still hands out the fixture.** Which account a
-// request belongs to is `currentSession()`'s (issue #35) and no session
-// carries an identity yet, so a live store would be reading rows for an
-// account this process cannot name. The switch is one line in
-// `provider.ts` and it is written there.
+// **The provider hands this store out, since #133.** Which account a
+// request belongs to is `currentSession()`'s (issue #35), which landed, so
+// `POST /api/setup` resolves the founder from the session and this store
+// reads and writes that founder's own rows. The two are one switch —
+// `provider.ts` says why.
 import { sendJobEvent } from "@/jobs/client";
+import { hasActiveAccess } from "@/lib/account/billing";
 import { dbAdmin } from "@/lib/db";
 import { resolvesInDns } from "@/lib/egress/dns";
 import { applySetupChoice } from "@/lib/publish/setup/apply";
 import type { SetupProgressState, SetupStore, SetupSubmission } from "../submit";
 
-/** ADR-050's rule, as a port. Answers `false` until issue #42 supplies
- *  `hasActiveAccess()` — a refusal, because "we cannot tell whether this
- *  customer has paid" and "they have" are not the same answer, and only
- *  one of them is safe to guess. */
+/** ADR-050's rule, as a port. The default is now the billing leaf's own
+ *  `hasActiveAccess()` — the one export `CLAUDE.md` lets anything outside
+ *  `src/lib/account/billing` import, and THE access gate ADR-050 rules is
+ *  `users.paid_through > now()` alone. It fails closed for the same reason
+ *  the port did: "we cannot tell whether this customer has paid" and "they
+ *  have" are not the same answer, and only one of them is safe to guess.
+ *
+ *  The port stays a port because it is the seam the suites drive: a real
+ *  read here needs a `users` row and a `sites` row, and what
+ *  `completeSetup`'s refusal order is about is the order the facts become
+ *  knowable, not where they come from. */
 export type ActiveAccessReader = (userId: string) => Promise<boolean>;
 
-const billingIsIssue42: ActiveAccessReader = async () => false;
+/** `hasActiveAccess` is keyed by site and this store is keyed by account,
+ *  so the site is resolved first — the same one read `readProgress` makes,
+ *  and the same row `commitSetup` writes. A user with no site row has not
+ *  been provisioned and therefore has no access to be active: that is a
+ *  refusal, not a throw, because `completeSetup` asks this before it asks
+ *  anything else and "no account" is exactly what it wants to hear. */
+const billingAccess: ActiveAccessReader = async (userId) => {
+  let site: SiteSetupRow;
+  try {
+    site = await siteFor(userId);
+  } catch {
+    return false;
+  }
+  return hasActiveAccess(site.id);
+};
 
-let activeAccess: ActiveAccessReader = billingIsIssue42;
+let activeAccess: ActiveAccessReader = billingAccess;
 
 export function setActiveAccessReader(next: ActiveAccessReader): void {
   activeAccess = next;
 }
 
 export function resetActiveAccessReader(): void {
-  activeAccess = billingIsIssue42;
+  activeAccess = billingAccess;
 }
 
 /** The generated `Database` type carries none of the `sites.setup_*`
