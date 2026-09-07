@@ -51,49 +51,6 @@ import { assembleSettings, type AccountFacts, type BillingFacts, type SettingsMo
 import { FIXTURE_SETTINGS_FACTS } from "./fixture";
 import { FIXTURE_USER_ID } from "../../setup/_setup/fixture";
 
-// How long any one of this screen's reads may take before it renders anyway.
-//
-// Chosen here rather than pinned in `constants.ts` for the reason
-// `src/middleware.ts`'s `REMOVAL_READ_DEADLINE_MS` states of its own: it is
-// a property of this screen's own request-path reads, not a product bound
-// anything else reads, and a number in two files is wrong. Generous against
-// an indexed lookup by primary key; short against a person waiting for a
-// screen. The same 800 ms, for the same trade, that file puts in front of
-// every report render.
-//
-// **A `catch` alone does not cover this.** A request that never settles
-// never rejects, so a database that is unreachable rather than merely broken
-// would hang Settings instead of degrading it.
-//
-// **It applies to all three reads because #134 is what put them on the
-// request path**, and they are made concurrently so the bound is paid once
-// rather than three times. Reading the session calls `cookies()`, which makes this
-// route dynamic — until then Next prerendered `/app/settings` at build time
-// and its billing and destinations reads happened once, there. Now they
-// happen per request, so all three are bounded rather than only the two this
-// issue added. The layout conformance sweep is where that showed up:
-// `/app/settings` rendered in about a second against a dead port before this
-// change and timed out at every width after it.
-const READ_DEADLINE_MS = 800;
-
-/** Rejects when `work` has not settled inside the deadline, so the caller's
- *  own `catch` covers a hang the same way it covers a failure. The timer is
- *  cleared once the race is over: a screen that read in 40 ms must not leave
- *  three timers behind on every render it serves. */
-async function withDeadline<T>(work: Promise<T>): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  try {
-    return await Promise.race([
-      work,
-      new Promise<T>((_resolve, reject) => {
-        timer = setTimeout(() => reject(new Error("a settings read timed out")), READ_DEADLINE_MS);
-      }),
-    ]);
-  } finally {
-    if (timer !== undefined) clearTimeout(timer);
-  }
-}
-
 /**
  * The signed-in account (#134).
  *
@@ -132,25 +89,32 @@ async function currentUserId(): Promise<string> {
 const BILLING_SURFACE = "/app/settings";
 
 /**
- * How long the one read on this screen may take before the card falls back.
+ * How long any one read on this screen may take before its card falls back.
  *
  * Chosen here rather than pinned in `constants.ts` on the same grounds
- * `src/middleware.ts` states for its own: it is a property of this one
- * request-path read and lives in exactly one file. It exists because this
+ * `src/middleware.ts` states for its own: it is a property of this screen's
+ * request-path reads and lives in exactly one file. It exists because this
  * screen renders per request (#133 made every `(account)` route dynamic),
  * so a database that is slow or unreachable has to cost the card its
  * facts, not the customer their screen — and the `catch` below does not
  * cover that on its own, because a request that never settles never
  * rejects. The layout conformance sweep renders this screen against a
  * database that is not there, which is exactly that case.
+ *
+ * **All three of this screen's reads are behind it** (#134 added the
+ * account one and put the session read in front of them), and the three are
+ * made concurrently in `readSettings` — so the bound is paid once rather
+ * than three times, and the healthy path is one round trip shorter than
+ * doing them in turn. The name kept its `BILLING_` prefix until this issue;
+ * it guards more than billing now, and says so.
  */
-const BILLING_READ_DEADLINE_MS = 800;
+const READ_DEADLINE_MS = 800;
 
 function withDeadline<T>(work: Promise<T>): Promise<T> {
   return Promise.race([
     work,
     new Promise<T>((_resolve, reject) =>
-      setTimeout(() => reject(new Error("billing read timed out")), BILLING_READ_DEADLINE_MS)
+      setTimeout(() => reject(new Error("a settings read timed out")), READ_DEADLINE_MS)
     ),
   ]);
 }
