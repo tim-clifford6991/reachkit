@@ -39,13 +39,9 @@ const NOT_YET_COVERED: ReadonlyArray<{ readonly file: string; readonly whose: st
   {
     file: "settings/provider.ts",
     whose:
-      "#134/#136 — Settings resolves its account through the session for billing, and " +
-      "`currentSiteId()` still answers null, so the fixture's own destination is what the " +
+      "#134/#136 — Settings resolves its account through the session for billing and identity, " +
+      "and `currentSiteId()` still answers null, so the fixture's own destination is what the " +
       "card draws. The site half is that screen's to wire.",
-  },
-  {
-    file: "settings/billing-actions.ts",
-    whose: "#136 — the portal actions' actor, for the same reason as `settings/provider.ts`.",
   },
 ];
 
@@ -112,10 +108,23 @@ describe("no signed-in customer is ever drawn from a fixture", () => {
     expect(files.length).toBeGreaterThan(30);
   });
 
-  it("every entry not yet covered names whose it is, and points at a file that exists", () => {
+  it("every entry not yet covered names whose it is, and still actually offends", () => {
+    // A stale exemption is worse than none: it reads as a rule with a
+    // known gap while the gap has already closed. `settings/billing-actions.ts`
+    // left this list when #134 landed, and it left because this row fails
+    // on an entry that no longer imports a fixture.
     for (const entry of NOT_YET_COVERED) {
       expect(entry.whose.length, entry.file).toBeGreaterThan(0);
-      expect(() => statSync(path.join(APP, entry.file)), entry.file).not.toThrow();
+      const full = path.join(APP, entry.file);
+      expect(() => statSync(full), entry.file).not.toThrow();
+      const source = readFileSync(full, "utf8");
+      const importsFixture = [...source.matchAll(/^import\s[^;]*?from\s+"([^"]+)";/gm)].some(
+        (m) => /fixture/i.test(m[1] ?? "")
+      );
+      expect(importsFixture, `${entry.file} no longer imports a fixture — drop its entry`).toBe(
+        true
+      );
+      expect(source.includes("isReservedFixtureAccount"), entry.file).toBe(false);
     }
   });
 });
