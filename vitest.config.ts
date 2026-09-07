@@ -43,6 +43,17 @@ const LIVE_SCHEMA_TESTS = [
   "tests/costs/context.test.ts",
   "tests/measure/verdict/constraint.test.ts",
   "tests/scan/report/schema.test.ts",
+  // Issue #78, landed with #6: every suite that had to assert migration
+  // *text* because this file was out of a feature PR's reach. Each is now a
+  // live-schema suite, so the row is what makes it run at all.
+  "tests/db/domainblocks.test.ts",
+  "tests/mail/leads/migration.test.ts",
+  "tests/opportunities/schema.test.ts",
+  "tests/opportunities/verdicts/schema.test.ts",
+  "tests/scan/weekly/schema.test.ts",
+  "tests/publish/attempt/schema.test.ts",
+  "tests/publish/publishable/schema.test.ts",
+  "tests/publish/setup/schema.test.ts",
 ];
 
 export default defineConfig({
