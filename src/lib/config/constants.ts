@@ -613,3 +613,31 @@ export const PREVIEW_HOST_SUFFIX = "reachkit.app" as const;   // BUILD §9
  *  independently — the same reason `PUBLISH_VERIFY_DELAY_H` is its own
  *  constant beside `DAILY_WINDOW_H`. */
 export const HOSTED_GONE_STATUS = 410 as const;               // BUILD §9 · REQ-076 c10
+
+// ── The Markdown renderer (issue #158) — BUILD §9 · §4.6
+/**
+ * The schemes a draft's link may address, and the whole of the renderer's
+ * address policy (`src/lib/publish/render/markdown.ts`).
+ *
+ * **An allowlist, never a blocklist.** A blocklist of dangerous schemes is
+ * always one scheme behind — `javascript:` is the one everybody names and
+ * `data:`, `vbscript:` and the next one nobody has written down are the
+ * reason the list is closed the other way round. A link whose scheme is not
+ * one of these renders as its own label, in plain text: the words the
+ * customer wrote survive and the address does not become clickable.
+ *
+ * It is pinned here rather than left inside the renderer because it decides
+ * what publishes onto a customer's own domain, and because it is read in
+ * two directions — the renderer vets an address against it, and a test
+ * asserts a scheme outside it never reaches an `href`.
+ *
+ * `/` is on it because a draft may link within the site it is published to;
+ * every other member names a scheme a reader's browser will open as a
+ * document or a mail, and nothing that executes.
+ */
+export const MARKDOWN_LINK_SCHEMES = Object.freeze([
+  "http://",
+  "https://",
+  "mailto:",
+  "/",
+] as const);
