@@ -10,10 +10,10 @@
 // It answers with the current report for the domain in the same breath,
 // because a founder who changes their site address needs the market card
 // re-derived against the new one (REQ-026 c6) and that is the same round
-// trip. The read is `_setup/provider.ts`'s `readReportFor`, which answers
-// `null` while this issue's screens run on fixtures and carries, in its own
-// header, the two lines that make it live once #42's account and site rows
-// exist. Nothing here claims a report was found.
+// trip. The read is `_setup/provider.ts`'s `readReportFor`, which reads the
+// stored report through `@/lib/scan/report`'s `readCurrentReport` and
+// answers `null` for an address the product has not measured. Nothing here
+// claims a report was found.
 import { adapter } from "../../_adapter";
 import { resolvesInDns } from "@/lib/egress";
 import { registrableDomain } from "@/lib/market/rivals/domains";

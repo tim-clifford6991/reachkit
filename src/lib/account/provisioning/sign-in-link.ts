@@ -14,8 +14,8 @@
 // URL, and no mail is composed around one: a magic-link mail carrying a
 // dead link is worse than no mail, because the founder spends their attempt
 // on it and concludes the product is broken rather than that it is late.
-// The 15-minute chase (REQ-024 c5) is what carries the link once #35 lands,
-// and it is written to work from either state.
+// The 15-minute chase (REQ-024 c5) is what carries the link, and it is
+// written to work from either state — the issuer registered, or not.
 //
 // The registration door is the same one `registerCorrectionRunner` and
 // `registerSuppressionReader` use, for the same reason: a `src/lib` module

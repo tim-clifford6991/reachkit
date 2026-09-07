@@ -22,6 +22,44 @@
 //   `until #N lands`         — "the fixture stands until #54 lands"
 //   `#N supplies`            — "issue #14 supplies one honest implementation"
 //
+// **Six more forms, and the same rule** (issue #260). The first three caught
+// deferrals that name an issue; a second audit found four comments deferring
+// in forms that name no issue at all, or name one in a shape the patterns
+// above miss — every one of them describing work that had since landed:
+//
+//   `once #N lands` / `once #N's`  — "the link once #35 lands"
+//   `will supply it`               — "each naming the issue that will supply it"
+//   `not built yet`                — "the engine behind it is not built yet"
+//   `a read that does not exist yet` / `stand-in for a read`
+//
+// The last two are the important ones, because they carry no issue number
+// for a reader to check: a comment saying a read "does not exist yet" is
+// unfalsifiable from the outside and stays wrong silently. They are also the
+// forms a fixture header reaches for, which is where four of the second
+// audit's findings were.
+//
+// **Two of #260's forms are narrowed to their deferral sense, deliberately,
+// and this is a departure from the issue's wording worth reading.** Banning
+// `does not exist yet` and `stand-in for` outright fires on five lines of
+// correct writing, none of them a deferral: a page "whose publish moment
+// does not exist yet" (`calendar/drafts-read.ts`), a cap checked against a
+// reservation rather than "a figure that does not exist yet"
+// (`lib/costs/index.ts`, twice), "a pass whose row does not exist yet"
+// (`lib/scan/run.ts`), and a store that "is not a stand-in for one that
+// does" (`setup/_setup/provider.ts`) — which is denying the thing the rule
+// is against. Those sentences are about a *value*, a *row* or a *figure*,
+// and they will still be true in a year. So the two patterns require the
+// subject the deferral form actually takes — a **read** — which is exactly
+// the shape all four audited fixture headers used. This file's own header
+// says why that matters: "a rule that fires on good writing is one somebody
+// switches off." Widening them is the owner's to do, on evidence.
+//
+// **The scan reads comment lines only**, for the same reason:
+// `src/jobs/engine.ts`'s `EngineNotBuilt` message says "is not built yet" in
+// a *runtime string*, where it is true every time it is thrown. The rule is
+// about comments — it says so in its own title — and a thrown error that
+// describes the world accurately is not a stale comment.
+//
 // **What to write instead.** Name the module that holds the fact: "rendered
 // by `src/lib/publish/render/markdown.ts`". A module can be opened and read;
 // an issue number cannot, and a reader who follows one arrives at a closed
@@ -53,6 +91,19 @@ const DEFERRALS: ReadonlyArray<{ readonly pattern: RegExp; readonly says: string
   { pattern: /\b(?:is|are) #\d+'s/, says: "attributes part of the product to an issue instead of to a module" },
   { pattern: /until #\d+ lands/, says: "promises a state that ends when an issue closes, which nothing checks" },
   { pattern: /#\d+ supplies/, says: "names an issue as the supplier of something a module supplies" },
+  // Issue #260's. `once #N` covers both "once #35 lands" and "once #42's
+  // rows exist" — the shape is the same and so is the staleness.
+  { pattern: /once #\d+(?:'s| lands)/, says: "promises a state that ends when an issue closes, which nothing checks" },
+  { pattern: /will supply it/, says: "defers a fact to whatever supplies it later, rather than naming what does" },
+  { pattern: /not built yet/, says: "says a thing is unbuilt, in a form carrying no issue a reader could check" },
+  {
+    pattern: /read that does not exist yet/,
+    says: "says a read is missing, in a form carrying no issue a reader could check",
+  },
+  {
+    pattern: /stand-in for a read/,
+    says: "calls a value a stand-in without saying what supplies it today",
+  },
 ];
 
 /** The marker that says a line quotes a deferral in order to bury it. */
@@ -72,6 +123,20 @@ const HISTORICAL = "(historical)";
  * rule: it fails the moment its line is fixed.
  */
 const OWNED_ELSEWHERE: ReadonlyArray<{ readonly file: string; readonly whose: string }> = [];
+
+/**
+ * Whether this line is a comment.
+ *
+ * Blunt on purpose, and blunt in the safe direction: `//`, and `*` for a
+ * block comment's continuation lines, which is every form this codebase's
+ * headers and doc comments take. A deferral written inside a string literal
+ * is not what this rule is about — `src/jobs/engine.ts`'s `EngineNotBuilt`
+ * message says "is not built yet" and is true every time it is thrown.
+ */
+function isComment(line: string): boolean {
+  const trimmed = line.trim();
+  return trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed.startsWith("/*");
+}
 
 function walk(dir: string, out: string[]): void {
   for (const entry of readdirSync(dir)) {
@@ -103,6 +168,7 @@ function offences(files: string[] = sourceFiles()): Offence[] {
 
     for (const [index, line] of readFileSync(file, "utf8").split("\n").entries()) {
       if (line.includes(HISTORICAL)) continue;
+      if (!isComment(line)) continue;
       for (const { pattern, says } of DEFERRALS) {
         if (pattern.test(line)) found.push({ where: `${rel}:${index + 1}`, line: line.trim(), says });
       }
@@ -126,6 +192,14 @@ describe("no comment in src/ defers a fact to an issue (#230)", () => {
       "//  * the series is #41's and #27's, and neither has landed.",
       "// The fixture stands until #54 lands.",
       "// issue #14 supplies one honest implementation of it.",
+      // Issue #260's six forms, one line each.
+      "// The 15-minute chase is what carries the link once #35 lands.",
+      "// the two lines that make it live once #42's account and site rows exist.",
+      "// Every field below stands in for a read that does not exist yet.",
+      "// each naming the issue that will supply it:",
+      "// The engine behind it is not built yet, so the stub throws.",
+      "// Every field below is a stand-in for a read the product will make.",
+      "// a stand-in for a read that does not exist yet, each naming the issue",
     ];
     for (const line of deferrals) {
       expect(

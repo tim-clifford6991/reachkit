@@ -1,16 +1,21 @@
 // BUILD §4.6 — the calendar's facts, as a fixture.
 //
-// Issue #16 builds the calendar and its day panel on FIXTURE data behind
-// the typed provider in `provider.ts`. Every field below stands in for a
-// read that does not exist yet, each naming the issue that will supply it:
+// **This is the reserved fixture account's calendar, and nobody else's.**
+// `provider.ts` answers `isReservedFixtureAccount` from here and every other
+// account from the live reads below, so what this file holds is one
+// account's data rather than a placeholder for a missing one. It is what
+// keeps the layout and visual sweeps deterministic: the real screens are the
+// same components, drawn from a database.
 //
-//   drafts / state / veto deadline  → §9 publishing (#45, #46)
-//   why / doneWhen / winnability    → §7 opportunities (#40)
-//   youStand / measuredAt           → §11 weekly measurement (#41)
-//   instructions                    → REQ-047's outstanding instruction (#40)
-//   stoppedDays                     → §11's stopped-work record (#39)
-//   heldDays                        → §9's held set (#45, REQ-092 c5)
-//   unusedSupply                    → §7 `supplyDepth()` (#40)
+// Where each field comes from for a live account:
+//
+//   drafts / state / veto deadline  → `drafts-read.ts`, over §9's rows
+//   why / doneWhen / winnability    → §7 `src/lib/opportunities/`
+//   youStand / measuredAt           → §11 `src/lib/scan/weekly/`
+//   instructions                    → REQ-047's outstanding instruction
+//   stoppedDays                     → §11's stopped-work record
+//   heldDays                        → §9 `src/lib/publish/switch`'s held set
+//   unusedSupply                    → §7 `supplyDepth()`
 //
 // It is one exported constant with a **fixed** `now`, not a generator: a
 // fixture that moved with the clock would make the layout conformance sweep

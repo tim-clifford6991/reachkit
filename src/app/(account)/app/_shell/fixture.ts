@@ -1,13 +1,16 @@
 // BUILD §4.4 — the shell's facts, as a fixture.
 //
-// Issue #9 builds the shell frame and its model on FIXTURE data behind the
-// typed provider in `provider.ts`. Every field below is a stand-in for a
-// read that does not exist yet, each naming the issue that will supply it:
+// **This is the reserved fixture account's shell, and nobody else's.**
+// `provider.ts` answers `isReservedFixtureAccount` from here and every other
+// account from the live reads below, so what this file holds is one
+// account's data rather than a placeholder for a missing one.
 //
-//   weeks / firstDueOn  → §11 weekly measurement, `accountForWeek` (#41)
-//   waiting             → §9 drafts in review / needing attention (#45)
-//   next / causes       → §9 `becomesPublishable` (#45)
-//   domain / timeZone / mode → §4.3 setup and §4.7 settings (#14, #18, #42)
+// Where each field comes from for a live account:
+//
+//   weeks / firstDueOn       → §11 `accountForWeek`
+//   waiting                  → §9's drafts in review / needing attention
+//   next / causes            → §9 `becomesPublishable`
+//   domain / timeZone / mode → the `sites` row §4.3 and §4.7 write
 //
 // It is one exported constant, not a generator: a fixture that varied per
 // call would make the layout conformance sweep non-deterministic. Its state

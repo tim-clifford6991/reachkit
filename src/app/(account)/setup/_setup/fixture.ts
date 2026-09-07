@@ -1,15 +1,20 @@
 // BUILD §4.3 — setup's facts, and the deep pass's, as fixtures.
 //
-// Issue #14 builds `/setup` and `/setup/waiting` on FIXTURE data behind the
-// typed providers in `provider.ts` — the idiom the app shell established
-// (`src/app/(account)/app/_shell/fixture.ts`). Every field below is a
-// stand-in for a read that does not exist yet, each naming the issue that
-// will supply it:
+// The screen model behind `/setup` and `/setup/waiting`, in the idiom the
+// app shell established (`src/app/(account)/app/_shell/fixture.ts`).
 //
-//   measured        → §4.1's stored report, `readCurrentReport()` (#13, #24)
-//   suggestedRivals → §6.6's `deriveRivals` over the confirmed market (#27)
-//   the store       → §13's account and site rows (#42) and §6.3's deep
-//                     pass (#24)
+// **What is live and what is drawn from here.** `provider.ts`'s
+// `setupStore()` is `liveSetupStore()` and `readReportFor` reads the stored
+// report, so a founder's submission writes real rows against the account
+// `currentSession()` names. What still comes from this file is the *screen
+// model* — `readSetupScreen` and `readPassProgress` — which is what keeps
+// the layout and visual sweeps deterministic.
+//
+// Where each field comes from for a live account:
+//
+//   measured        → §4.1's stored report, `readCurrentReport()`
+//   suggestedRivals → §6.6's `deriveRivals` over the confirmed market
+//   the store       → the `users` and `sites` rows, through `liveSetupStore`
 //   the pass        → §6.3's `runScan` at tier `deep` and its stage stream
 //
 // **The two fixtures are two moments of one journey, not two accounts.**
