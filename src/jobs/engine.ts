@@ -243,6 +243,23 @@ export async function publishApproved(a: {
   return { done: true };
 }
 
+// ── The retries that have come round — BUILD §9, issue #200. Built.
+//
+// One call into `src/lib/publish/attempt/due.ts`, which owns the rule. The
+// tick that reads this re-enters every page it returns through
+// `publishApproved()` above — the same seam an approval comes through, so
+// an attempt occasioned by a retry and one occasioned by a customer are
+// the same attempt, with the same nine guards re-asked at the moment it is
+// made.
+//
+// `now` comes from the tick, which is what makes due-ness testable without
+// a scheduler.
+
+export async function duePublishRetries(now: Date): Promise<readonly { readonly draftId: string; readonly destinationId: string }[]> {
+  const { dueRetries } = await import("@/lib/publish/attempt/due");
+  return dueRetries(now);
+}
+
 // ── The 24-hour check — BUILD §9, issue #50. Built.
 //
 // **Two calls, and the second is the point.** The check records what

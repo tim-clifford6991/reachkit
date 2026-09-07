@@ -93,7 +93,10 @@ export async function deliverApproved(a: {
   // the machine has no `approved → needs_attention` edge to take instead.
   // §9's holds move no page: this one keeps its state and goes out when
   // the customer reconnects, which is what the reconnect prompt is for.
-  if (destination === null || destination.deleted_at !== null) {
+  // `?? null` and not a bare `!== null`: a row read without the column is
+  // not a disconnected destination, and treating an absent value as a
+  // deletion would hold every page on a read that named one column fewer.
+  if (destination === null || (destination.deleted_at ?? null) !== null) {
     return { kind: "held", heldBy: "destination_not_working" };
   }
 

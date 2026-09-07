@@ -151,6 +151,9 @@ const wordpress = {
   requests: [] as WpRequest[],
   posts: [] as Record<string, unknown>[],
   nextId: 500,
+  /** The customer's site answering 5xx to a create — §9's retryable
+   *  failure, and what the retry sweep exists for (issue #200). */
+  failCreates: false,
 };
 
 /** Everything the four checks read at the live address. */
@@ -176,6 +179,17 @@ function jsonAnswer(status: number, value: unknown, url: string) {
     headers: { "content-type": "application/json" },
   };
 }
+
+/** The job platform, doubled at its one door. `publishApproved()` enqueues
+ *  the +24h check from the engine — `src/lib/**` may not send job events
+ *  (ARCHITECTURE rule 2) — so this is where that obligation shows up. */
+const jobEvents: { name: string; data: Record<string, unknown> }[] = [];
+
+vi.mock("@/jobs/client", () => ({
+  sendJobEvent: async (name: string, data: Record<string, unknown>) => {
+    jobEvents.push({ name, data });
+  },
+}));
 
 vi.mock("@/lib/egress", () => ({
   resolvesInDns: async () => true,
@@ -208,6 +222,7 @@ vi.mock("@/lib/egress", () => ({
         return jsonAnswer(200, method === "POST" ? { id: 9, slug: "reachkit" } : [], url);
       }
       if (path.startsWith("/wp/v2/posts") && method === "POST") {
+        if (wordpress.failCreates) return jsonAnswer(503, { message: "unavailable" }, url);
         const post = {
           id: wordpress.nextId++,
           status: "publish",
@@ -313,9 +328,8 @@ vi.mock("@anthropic-ai/sdk", () => {
 
 // ── The modules, after the fixtures above are in place ──────────────────
 
-const { CAPS, VETO, PUBLISH_VERIFY_DELAY_H, DRAFT_DUE_HOUR_LOCAL } = await import(
-  "../../src/lib/config/constants"
-);
+const { CAPS, VETO, PUBLISH_VERIFY_DELAY_H, DRAFT_DUE_HOUR_LOCAL, PUBLISH_RETRY_BACKOFF_MIN } =
+  await import("../../src/lib/config/constants");
 const { isDraftDue, nextPublishDate, localClock } = await import("../../src/jobs/site-clock");
 const engine = await import("../../src/jobs/engine");
 const { generateDayPage, setGenerateStore } = await import("../../src/lib/generate");
@@ -342,6 +356,8 @@ const { setCalendarSiteReader } = await import(
 const { readCalendarFacts } = await import("../../src/app/(account)/app/calendar/store");
 const { monthOf, dayKeyOf } = await import("../../src/app/(account)/app/calendar/dates");
 const { CHECK_IDS } = await import("../../src/lib/publish/verify");
+const { dueRetries, retryDueAt } = await import("../../src/lib/publish/attempt/due");
+const { MAX_RETRIES } = await import("../../src/lib/publish/attempt/retry");
 const { __setVendorTransportForTesting } = await import("../../src/lib/mail/vendor/resend");
 const { sendDraftReadyMail } = await import("../../src/lib/mail/draft-ready");
 
@@ -497,6 +513,8 @@ beforeEach(() => {
   wordpress.requests.length = 0;
   wordpress.posts.length = 0;
   wordpress.nextId = 500;
+  wordpress.failCreates = false;
+  jobEvents.length = 0;
   livePage.status = 200;
   livePage.sitemapHasIt = true;
 
@@ -937,6 +955,117 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       });
       expect(out.ok).toBe(true);
       expect(theDraftRow().state).toBe("published");
+    },
+    JOURNEY_TIMEOUT_MS
+  );
+
+  it(
+    "a failed delivery is claimed again on the clock, and the last retry brings the page to rest",
+    async () => {
+      const draftId = await generateTonightsPage();
+      await enterReviewAndTell(draftId);
+      const at = whenItIsDue();
+      await transition(draftId, "approved", { kind: "system", job: "publish/execute" }, { at });
+
+      // The customer's site answers 5xx to the create. §9: "Failed
+      // publish: back in the queue with a written reason."
+      wordpress.failCreates = true;
+      const failed = await engine.publishApproved({ draftId, destinationId: DEST_ID });
+      expect(failed).toEqual({ degraded: "publish:destination_unavailable" });
+      expect(theDraftRow().state).toBe("failed");
+      const publication = db.rows("publications")[0]!;
+      expect(publication.delivery_state).toBe("failed");
+      expect(publication.failure_reason).toBe("destination_unavailable");
+      // Nothing is queued for a page that did not go out.
+      expect(jobEvents).toEqual([]);
+
+      // The moment the retry falls due is the schedule's own, read off the
+      // row the claim wrote — there is no `retry_due_at` column, and that
+      // is what keeps one home for the backoff (#200).
+      const claimedAt = new Date(String(publication.claimed_at));
+      const dueAt = retryDueAt(claimedAt, publication.attempt_no as number);
+      expect(dueAt).toEqual(
+        new Date(claimedAt.getTime() + (PUBLISH_RETRY_BACKOFF_MIN[0] ?? 5) * 60_000)
+      );
+
+      // The tick offers nothing a minute early, and offers this page on
+      // the moment — which is the whole of what #200 adds: before it, a
+      // page that failed once never tried again unless a person acted.
+      expect(await dueRetries(new Date((dueAt as Date).getTime() - 60_000))).toEqual([]);
+      expect(await dueRetries(dueAt as Date)).toEqual([
+        { draftId, destinationId: DEST_ID },
+      ]);
+
+      // The stop hold and the retry are the same rule seen twice: §9
+      // *withholds* a retry while publishing is off rather than cancelling
+      // it. So the tick goes on offering the page — the sweep asks no
+      // switch — and the claim is what refuses the attempt, at the moment
+      // it would be made. Nothing moves, and it is offered again the
+      // moment the customer switches back on.
+      await setPublishing(SITE_ID, false, { kind: "customer", userId: USER_ID });
+      expect(await dueRetries(dueAt as Date)).toEqual([{ draftId, destinationId: DEST_ID }]);
+      expect(await engine.publishApproved({ draftId, destinationId: DEST_ID })).toEqual({
+        degraded: "held:switch_off",
+      });
+      expect(theDraftRow().state).toBe("failed");
+      expect(wordpress.posts).toEqual([]);
+      await setPublishing(SITE_ID, true, { kind: "customer", userId: USER_ID });
+
+      // The tick re-enters through the same seam an approval does, and the
+      // site is answering again.
+      wordpress.failCreates = false;
+      const retried = await engine.publishApproved({ draftId, destinationId: DEST_ID });
+      expect(retried).toEqual({ done: true });
+      expect(theDraftRow().state).toBe("published");
+      // One post, not two: the retry re-claimed the row it already had.
+      expect(db.rows("publications")).toHaveLength(1);
+      expect(wordpress.posts).toHaveLength(1);
+      // And the +24h check is queued from the engine, on the publication
+      // the delivery produced.
+      expect(jobEvents).toEqual([
+        { name: "publish/verify", data: { publicationId: publication.id } },
+      ]);
+
+      // Claimed and delivered, so the tick offers it no more.
+      expect(await dueRetries(new Date((dueAt as Date).getTime() + 86_400_000))).toEqual([]);
+    },
+    JOURNEY_TIMEOUT_MS
+  );
+
+  it(
+    "the last permitted retry brings the page to rest needing the customer, through the machine's own edge",
+    async () => {
+      const draftId = await generateTonightsPage();
+      await enterReviewAndTell(draftId);
+      const at = whenItIsDue();
+      await transition(draftId, "approved", { kind: "system", job: "publish/execute" }, { at });
+
+      wordpress.failCreates = true;
+      // §9's "retry x3": the first attempt plus three retries, and the
+      // fourth failure is the one that comes to rest. Each is entered
+      // through the same seam, because the tick has no other.
+      for (let attempt = 1; attempt <= MAX_RETRIES + 1; attempt += 1) {
+        const outcome = await engine.publishApproved({ draftId, destinationId: DEST_ID });
+        expect(outcome, `attempt ${attempt}`).toEqual({
+          degraded: "publish:destination_unavailable",
+        });
+      }
+
+      expect(theDraftRow().state).toBe("needs_attention");
+      // The reason it stopped is on the page's own history, written by the
+      // machine and not by the tick.
+      const moves = (theDraftRow().transitions as { to: string; reason?: string }[]) ?? [];
+      expect(moves.at(-1)).toMatchObject({
+        to: "needs_attention",
+        reason: "retries_exhausted",
+      });
+      // One publication throughout, and no post: the at-most-once
+      // guarantee is the row, and it held across four attempts.
+      expect(db.rows("publications")).toHaveLength(1);
+      expect(wordpress.posts).toEqual([]);
+
+      // And the tick lets it alone now — it has come to rest.
+      expect(await dueRetries(new Date(Date.now() + 86_400_000))).toEqual([]);
     },
     JOURNEY_TIMEOUT_MS
   );

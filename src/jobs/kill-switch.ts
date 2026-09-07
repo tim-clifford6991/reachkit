@@ -1,7 +1,7 @@
 // src/jobs/kill-switch.ts — BUILD §11 bounds
 //
 // `BUILD.md` §11: "kill switch env var stops scan+generate+publish". The
-// scope is those three ids and no others — a stop that also held
+// scope is those ids and no others — a stop that also held
 // `publish/verify` would leave a published page unchecked, and a stop that
 // held `account/maintenance` would hold a purge, withhold a hosting notice
 // and strand a paid customer waiting for a sign-in link. Widening this set
@@ -12,11 +12,16 @@
 import { env } from "@/lib/config/env";
 import type { JobId } from "./types";
 
-/** The three ids §11 names, closed. */
+/** The ids §11 names, closed. `publish/retry` is one of them (issue #200):
+ *  it is the same delivery `publish/execute` makes, occasioned by a clock
+ *  rather than by an approval, and a stop that held one and not the other
+ *  would stop publishing for a page a customer approved while letting one
+ *  that failed go out. */
 export const KILL_SWITCH_SCOPE = Object.freeze([
   "scan/run",
   "draft/generate",
   "publish/execute",
+  "publish/retry",
 ] as const) satisfies readonly JobId[];
 
 /** Reads `KILL_SWITCH` through `env`, which parses it once at boot. Read
