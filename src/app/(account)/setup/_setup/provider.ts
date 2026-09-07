@@ -1,23 +1,92 @@
 // BUILD §4.3 — the reads the setup screens make.
 //
 // The typed seam every `/setup` surface calls, and nothing else. What it
-// reads behind the type is this issue's fixture; when §13's account rows
-// (#42) and §6.3's deep pass land, only this file changes.
+// reads behind the type is the signed-in founder's own rows (issue #169);
+// #133 had already made the *writes* live, and a screen drawn from a
+// fixture in front of a store that writes real rows is the half-wired
+// state this finishes.
+//
+// **Which account, and why not `requireAppAccount()`.** The session's own
+// user id, through `currentSession()` directly. The `/app` surfaces use
+// `_session/account.ts`, which redirects a session with no site to
+// `/setup` — on the setup screen itself that is a loop, and setup is
+// precisely where a founder who has no finished site belongs. So this
+// file asks for the account and nothing more, and answers §4.3's refusal
+// only for the one case that is really a refusal: no session at all.
+//
+// **No fixture branch here, deliberately.** The `/app` surfaces keep one
+// for the reserved `example.com` account; setup cannot key on a domain,
+// because the domain is the thing being set. #133 made the store live for
+// every founder and this follows it: the fixture stays for the suites that
+// drive `assembleSetup` and `completeSetup` directly.
 //
 // `React.cache` is what makes it one read per request even though the page
 // and the form each ask.
 import { cache } from "react";
+import { redirect } from "next/navigation";
 import { env } from "@/lib/config/env";
 import { assembleSetup, type SetupScreenModel } from "./facts";
-import { FIXTURE_PASS, FIXTURE_SETUP_FACTS } from "./fixture";
-import { liveSetupStore } from "./store";
+import { liveSetupStore, siteAddressFor } from "./store";
 import type { PassProgress } from "./progress";
 import type { SetupStore } from "../submit";
 import type { ReportFacts } from "@/lib/market/setup/state";
 
+/** The signed-in founder, or §4.3's refusal. `src/middleware.ts` has
+ *  already refused a request carrying no cookie at all, so the `null` arm
+ *  is the forged, expired or ended one — answered the way every other
+ *  account surface answers it, with no sentence about whether an account
+ *  or a payment exists (REQ-020 c5). */
+const currentFounder = cache(async function currentFounder(): Promise<{
+  userId: string;
+  siteId: string;
+  domain: string;
+}> {
+  const { currentSession } = await import("@/lib/account/identity");
+  const session = await currentSession();
+  if (session === null) redirect("/signin");
+
+  const address = await siteAddressFor(session.userId);
+  // Provisioning creates the site row from the payment (§13), so a founder
+  // who reached `/setup` has one. Where it is somehow absent the screen
+  // opens on REQ-021 c7's arm — an empty address field — rather than
+  // throwing them off their own setup page.
+  return {
+    userId: session.userId,
+    siteId: address?.siteId ?? "",
+    domain: address?.domain ?? "",
+  };
+});
+
+/**
+ * §4.3's screen, for the founder who is signed in.
+ *
+ * `measured` is REQ-021 c6 versus c7: the completed report for the address
+ * this account will use, or `null` for a purchase with no report behind it
+ * — in which case the address field is empty and nothing is pre-filled.
+ *
+ * **`suggestedRivals` is `null` on a screen read, and that is the honest
+ * value rather than a gap.** `suggestRivals` is a vendor call through the
+ * cost seam (`CostContext`), and REQ-026 c7's suggestions are sought when
+ * the market settles — not on every render of a page a founder returns to
+ * each time they retype their address. `null` is the state the shape
+ * declares for "no market known yet and none has been sought", which is
+ * exactly what a screen read knows; an empty array would be the different,
+ * stronger claim that some source was asked and offered nothing
+ * (REQ-026 c10).
+ */
 export const readSetupScreen = cache(async function readSetupScreen(): Promise<SetupScreenModel> {
+  const founder = await currentFounder();
+  const measured =
+    founder.domain === ""
+      ? null
+      : await (async () => {
+          const report = await readReportFor(founder.domain);
+          return report === null ? null : { domain: founder.domain, report };
+        })();
+
   return assembleSetup({
-    ...FIXTURE_SETUP_FACTS,
+    measured,
+    suggestedRivals: null,
     // §9's edge hostname is a deployment binding, never a string in a
     // card and never a fixture value in production.
     cnameTarget: env.HOSTED_EDGE_CNAME_TARGET,
@@ -32,14 +101,22 @@ export const readSetupScreen = cache(async function readSetupScreen(): Promise<S
  * The engine behind this is `passProgressFor(siteId)` (issue #36): it
  * reads the founder's recorded stage and the release latch, and the read
  * itself is what latches the ten-minute deadline — there is no scheduled
- * job in that path. It takes a `siteId`, which is exactly what this
- * process cannot supply until issue #35's `currentSession()`, so the
- * fixture stands in for the same one gap `setupStore()` names above:
+ * job in that path. It takes a `siteId`, which the session now supplies
+ * (issue #169).
  *
- *     return passProgressFor((await setupStore().readProgress(currentUserId())).siteId);
+ * **The read is what latches the deadline, so it is made once per request**
+ * — `cache` is load-bearing here and not only an optimisation: the waiting
+ * screen and anything beside it asking twice must not latch twice.
+ *
+ * A founder with no site row has no pass to report on: the screen shows
+ * the pass as not running rather than latching a deadline against a site
+ * that does not exist.
  */
 export const readPassProgress = cache(async function readPassProgress(): Promise<PassProgress> {
-  return FIXTURE_PASS;
+  const founder = await currentFounder();
+  if (founder.siteId === "") return { running: false, degraded: false };
+  const { passProgressFor } = await import("@/lib/scan/deep/progress");
+  return passProgressFor(founder.siteId);
 });
 
 /**
@@ -70,30 +147,39 @@ export function setupStore(): SetupStore {
  * The completed report the product holds for one address, projected to the
  * three facts the market card needs (REQ-026 c1 versus c3).
  *
- * On fixtures this is the one address the fixture measured and nothing
- * else, which is what makes REQ-026 c6 visible in a preview rather than
- * only in a test: change the address away from it and the market card goes
- * empty, change it back and the inferred card returns.
- *
- * It is a fixture, not a stub around a missing read: `readCurrentReport(domain)`
- * landed with #25 and `StoredReport` carries `scanId` and `category`
- * directly. What is missing is the account — issue #14 builds both setup
- * screens on fixtures behind this seam, and a live read here would put a
- * database round-trip, and its failure mode, on the path a founder takes
- * every time they retype their address, before the rows that decide which
- * domain is theirs exist at all (#42). Swapping it in is this function's
- * body and nothing else:
- *
- *     const report = await readCurrentReport(domain);
- *     return report === null || report.category === null
- *       ? null
- *       : { scanId: report.scanId, category: report.category, rivals: [...] };
+ * **Live since #169.** `readCurrentReport(domain)` landed with #25 and
+ * `StoredReport` carries `scanId` and `category` directly; the rival names
+ * come off the presence card, which is where `deriveRivals` put them in
+ * score order.
  *
  * The projection is deliberate and stays one — `ReportFacts` is not
  * `StoredReport`, for the cycle reason `src/lib/market/setup/state.ts`'s
- * header gives.
+ * header gives, and the market card needs three facts and no more.
+ *
+ * **A report with no category is `null`, not a report with an empty
+ * market.** REQ-026 c1 versus c3: an inferred market card is drawn from a
+ * category that was measured, and a scan that measured none leaves the
+ * card empty for the founder to fill — which is the `null` arm here, not a
+ * card claiming a market nobody derived.
+ *
+ * It reads on every render of the address the founder is typing against,
+ * and that is what makes REQ-026 c6 true rather than only tested: change
+ * the address away from a measured one and the market card goes empty,
+ * change it back and the inferred card returns. A read that fails is
+ * `null` — the empty card — never a screen the founder cannot get past.
  */
 export async function readReportFor(domain: string): Promise<ReportFacts | null> {
-  const measured = FIXTURE_SETUP_FACTS.measured;
-  return measured !== null && measured.domain === domain ? measured.report : null;
+  let report: Awaited<ReturnType<typeof import("@/lib/scan/report").readCurrentReport>>;
+  try {
+    const { readCurrentReport } = await import("@/lib/scan/report");
+    report = await readCurrentReport(domain);
+  } catch {
+    return null;
+  }
+  if (report === null || report.category === null) return null;
+  return {
+    scanId: report.scanId,
+    category: report.category,
+    rivals: (report.presence?.rivals ?? []).map((rival) => rival.domain),
+  };
 }

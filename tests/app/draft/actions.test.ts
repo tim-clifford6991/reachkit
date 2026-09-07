@@ -11,12 +11,21 @@
 // Plus the two seams this screen calls: nothing here pretends a write
 // succeeded. Approve and Veto now reach BUILD §9's one mover (#45); the
 // save is still declared and stubbed (#44).
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // `transition()` is exercised in `tests/publish/machine/` against a database
 // double; mocking it here keeps this file's subject the seam's own contract.
 const transition = vi.fn();
 vi.mock("@/lib/publish/machine", () => ({ transition: (...a: unknown[]) => transition(...a) }));
+
+// Issue #169: the day panel's writes now act as the signed-in customer and
+// refuse a draft the account does not own. The ownership read reaches
+// `@/lib/db`; this suite is about the actor and the edge, so the read is
+// doubled and answers "yours" — the refusal it can also answer has its own
+// rows in `tests/app/calendar/ownership.test.ts`.
+vi.mock("@/app/(account)/app/_session/store", () => ({
+  siteOwnsDraft: async () => true,
+}));
 import {
   draftActionsFor,
   isEditable,
@@ -33,6 +42,17 @@ import {
   draftStore,
   DraftSaveNotBuiltError,
 } from "@/app/(account)/app/draft/[draftId]/save";
+
+// BUILD §4.4–§4.6, issue #169 — the surfaces under test now resolve who is
+// asking through `_session/account.ts`, which reads a signed cookie and a
+// `sites` row. This suite has neither, so it signs in as the reserved
+// fixture account: the surfaces then take the same fixture branch they
+// always took, and what changed is only how they learned whose it is.
+import { RESERVED_ACCOUNT, resetAccount, signedInAs } from "../account-door";
+
+beforeEach(() => signedInAs());
+afterEach(() => resetAccount());
+
 
 function keysOf(actions: readonly DraftAction[]): string[] {
   return actions.map((a) => a.key);
@@ -173,7 +193,7 @@ describe("neither seam claims a write succeeded", () => {
     await publishing.approve({ draftId: "d1" });
     expect(transition).toHaveBeenCalledWith("d1", "approved", {
       kind: "customer",
-      userId: "user-fixture",
+      userId: RESERVED_ACCOUNT.userId,
     });
   });
 
@@ -197,7 +217,7 @@ describe("neither seam claims a write succeeded", () => {
     await publishing.veto({ draftId: "d1" });
     expect(transition).toHaveBeenCalledWith("d1", "skipped", {
       kind: "customer",
-      userId: "user-fixture",
+      userId: RESERVED_ACCOUNT.userId,
     });
 
     transition.mockResolvedValue({ ok: false, refused: "guard", failedGuard: "customer_told", state: "in_review" });

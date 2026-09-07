@@ -3,7 +3,7 @@
 // The draft read, decided with no database at all: `assembleDraft` is pure,
 // so every criterion about *what the view holds* is a call and an equality
 // rather than a render.
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   assembleDraft,
   doNothingOf,
@@ -16,6 +16,17 @@ import {
   FIXTURE_EDITED_DRAFT_ID,
 } from "@/app/(account)/app/draft/[draftId]/fixture";
 import { readDraft } from "@/app/(account)/app/draft/[draftId]/provider";
+
+// BUILD §4.4–§4.6, issue #169 — the surfaces under test now resolve who is
+// asking through `_session/account.ts`, which reads a signed cookie and a
+// `sites` row. This suite has neither, so it signs in as the reserved
+// fixture account: the surfaces then take the same fixture branch they
+// always took, and what changed is only how they learned whose it is.
+import { resetAccount, signedInAs } from "../account-door";
+
+beforeEach(() => signedInAs());
+afterEach(() => resetAccount());
+
 
 function facts(): DraftFacts {
   const f = FIXTURE_DRAFTS[FIXTURE_DRAFT_ID];

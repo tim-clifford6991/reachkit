@@ -24,18 +24,24 @@ vi.mock("@/lib/opportunities", () => ({
   supplyNotice: (...a: unknown[]) => supplyNotice(...a),
 }));
 
+const { resetAccount, signedInAs } = await import("../account-door");
 const provider = await import("@/app/(account)/app/calendar/provider");
 const { FIXTURE_MONTH } = await import("@/app/(account)/app/calendar/fixture");
 
 const SITE = { siteId: "site-1", timeZone: "America/New_York" };
 
+// Issue #169: `setCalendarSiteReader(null)` now restores the
+// session-backed reader, so the suite signs in as well — as the reserved
+// fixture account, which is the branch these rows are about.
 beforeEach(() => {
   vi.clearAllMocks();
+  signedInAs();
   provider.setCalendarSiteReader(null);
 });
 
 afterEach(() => {
   provider.setCalendarSiteReader(null);
+  resetAccount();
   vi.restoreAllMocks();
 });
 

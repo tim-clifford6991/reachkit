@@ -3,7 +3,7 @@
 // WO-166 `## Test plan`: the projection from the transition table, no
 // action offered that the stage would refuse, and an empty day offering
 // nothing that publishes or approves.
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // The seam under test is the app-side adapter, not the engine: it must call
 // BUILD §9's one mover with the right edge and turn its refusal into a
@@ -12,6 +12,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // seam's own contract.
 const transition = vi.fn();
 vi.mock("@/lib/publish/machine", () => ({ transition: (...a: unknown[]) => transition(...a) }));
+
+// Issue #169: the day panel's writes now act as the signed-in customer and
+// refuse a draft the account does not own. The ownership read reaches
+// `@/lib/db`; this suite is about the actor and the edge, so the read is
+// doubled and answers "yours" — the refusal it can also answer has its own
+// rows in `tests/app/calendar/ownership.test.ts`.
+vi.mock("@/app/(account)/app/_session/store", () => ({
+  siteOwnsDraft: async () => true,
+}));
+
 import { measured } from "@/lib/measure/measured";
 import {
   RESTART_COMMAND,
@@ -30,6 +40,17 @@ import {
 } from "@/app/(account)/app/calendar/publishing";
 import type { DayCell } from "@/app/(account)/app/calendar/month";
 import { COPY } from "@/lib/presentation/copy";
+
+// BUILD §4.4–§4.6, issue #169 — the surfaces under test now resolve who is
+// asking through `_session/account.ts`, which reads a signed cookie and a
+// `sites` row. This suite has neither, so it signs in as the reserved
+// fixture account: the surfaces then take the same fixture branch they
+// always took, and what changed is only how they learned whose it is.
+import { RESERVED_ACCOUNT, resetAccount, signedInAs } from "../account-door";
+
+beforeEach(() => signedInAs());
+afterEach(() => resetAccount());
+
 
 const AT = new Date(Date.UTC(2026, 8, 14, 6, 0, 0));
 
@@ -269,7 +290,10 @@ describe("the publishing seam calls BUILD §9's one mover, and refuses honestly"
   ] as const)("%s asks the machine for the %s edge, as the customer", async (command, to) => {
     transition.mockResolvedValue({ ok: true, state: to });
     await publishing[command]({ draftId: "d1" });
-    expect(transition).toHaveBeenCalledWith("d1", to, { kind: "customer", userId: "user-fixture" });
+    expect(transition).toHaveBeenCalledWith("d1", to, {
+      kind: "customer",
+      userId: RESERVED_ACCOUNT.userId,
+    });
   });
 
   it("a refusal rejects, carrying the machine's own word for why", async () => {

@@ -6,13 +6,24 @@
 // criterion 2's label and the text it speaks for into the same call, so
 // they cannot be rendered apart.
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import DraftPage from "@/app/(account)/app/draft/[draftId]/page";
 import {
   FIXTURE_DRAFTS,
   FIXTURE_DRAFT_ID,
 } from "@/app/(account)/app/draft/[draftId]/fixture";
 import { COPY } from "@/lib/presentation/copy";
+
+// BUILD §4.4–§4.6, issue #169 — the surfaces under test now resolve who is
+// asking through `_session/account.ts`, which reads a signed cookie and a
+// `sites` row. This suite has neither, so it signs in as the reserved
+// fixture account: the surfaces then take the same fixture branch they
+// always took, and what changed is only how they learned whose it is.
+import { resetAccount, signedInAs } from "../account-door";
+
+beforeEach(() => signedInAs());
+afterEach(() => resetAccount());
+
 
 async function render(draftId: string): Promise<Element> {
   const el = await DraftPage({ params: Promise.resolve({ draftId }) });

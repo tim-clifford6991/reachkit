@@ -7,20 +7,23 @@
 // caller, no second shape.
 //
 // **Which account, and why the fixture still answers.** Which site a
-// request belongs to is `currentSession()`'s (issue #35) and no session
-// carries an identity yet, so the registered reader answers `null` — the
-// reserved fixture account, `example.com`, IANA-reserved, the same name
-// the shell and the report fixtures are hung on (DECISIONS 2026-09-06:
-// "`*.example.com` fixtures answer only for reserved names"). The switch
-// is `noSessionYet`'s body and nothing else:
-//
-//     const session = await currentSession();
-//     return session === null ? null : { siteId: session.siteId, timeZone: session.timeZone };
+// request belongs to is the session's, through `_session/account.ts`
+// (issue #169) — and a request with no session never reaches this file at
+// all, because `requireAppAccount()` answers §4.3's refusal first. What is
+// left for the fixture is the reserved fixture account, `example.com`,
+// IANA-reserved, the same name the shell and the report fixtures are hung
+// on (DECISIONS 2026-09-06: "`*.example.com` fixtures answer only for
+// reserved names").
 //
 // A real site never reaches the fixture and the fixture never pads a real
 // site's month: the two are different branches of one `if`, and §4.6's
 // "the calendar is never padded" is held on the live branch by `store.ts`,
 // which creates nothing.
+//
+// **A site with no stated zone is not drawn in one nobody chose**
+// (REQ-073 c1). `timeZone` is nullable on the account and the calendar
+// needs a zone for every date it draws, so such a site takes the same
+// branch a missing site takes: it goes to setup, where the zone is stated.
 //
 // **`./store` is reached through `await import`, and that is not style.**
 // It resolves `@/lib/opportunities`, which resolves `@/lib/db`, which parses
@@ -38,7 +41,9 @@
 // dates resolves through `accountFor`, which is exactly what the calendar
 // does for a real site whose supply has run out.
 import { cache } from "react";
+import { redirect } from "next/navigation";
 import type { SupplyNotice } from "@/lib/opportunities";
+import { isReservedFixtureAccount, requireAppAccount } from "../_session/account";
 import { assembleMonth, type MonthModel } from "./month";
 import { dayKeyOf, monthOf, type MonthKey } from "./dates";
 import { FIXTURE_CALENDAR_FACTS } from "./fixture";
@@ -53,21 +58,27 @@ import type { CalendarSite } from "./store";
 export const RESERVED_FIXTURE_DOMAIN = FIXTURE_DOMAIN;
 
 /** Answers which site a request's calendar belongs to. `null` is the
- *  reserved fixture account — the only account this process can name until
- *  issue #35's `currentSession()` lands. */
+ *  reserved fixture account. */
 export type CalendarSiteReader = () => Promise<CalendarSite | null>;
 
-/** The reserved fixture account, and no session behind it. This is the
- *  body issue #35 replaces; nothing else in this file changes with it. */
-const noSessionYet: CalendarSiteReader = async () => null;
+/** The signed-in account's site, or `null` for the reserved fixture
+ *  account. A request with no session does not reach here: it is refused
+ *  at `requireAppAccount()`, which redirects to `/signin`. */
+const fromSession: CalendarSiteReader = async () => {
+  const account = await requireAppAccount();
+  if (isReservedFixtureAccount(account)) return null;
+  // REQ-073 c1: a site with no stated zone is never drawn in the server's.
+  if (account.timeZone === null) redirect("/setup");
+  return { siteId: account.siteId, timeZone: account.timeZone };
+};
 
-let siteReader: CalendarSiteReader = noSessionYet;
+let siteReader: CalendarSiteReader = fromSession;
 
-/** The one door in. `null` restores the reserved fixture account, which is
- *  what makes a suite that registers a real site unable to leak one into
- *  the next. */
+/** The one door in, for suites. `null` restores the session-backed reader,
+ *  which is what makes a suite that registers a real site unable to leak
+ *  one into the next. */
 export function setCalendarSiteReader(next: CalendarSiteReader | null): void {
-  siteReader = next ?? noSessionYet;
+  siteReader = next ?? fromSession;
 }
 
 /** The site this request's calendar belongs to, or `null` for the reserved
