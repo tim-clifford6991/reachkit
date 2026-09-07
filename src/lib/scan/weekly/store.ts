@@ -189,6 +189,48 @@ export async function readWeekScan(a: { siteId: string; weekStart: string }): Pr
   };
 }
 
+/**
+ * Several of one site's weeks, in one read (issue #213).
+ *
+ * `readWeekScan` above is the account's reader — one week, one lookup, on
+ * the render path of a screen that states one week. A *series* is a
+ * different question, and asking the single reader twelve times would put
+ * twelve round trips on Overview's render path. So: one `in` over the
+ * window's Mondays, keyed back by `week_start`.
+ *
+ * **Only the weeks that have a row come back.** The map is missing rather
+ * than empty for a week the site was not measured in, because those are
+ * two different facts and the caller draws them differently: an absent
+ * week is a break in a series, and inventing an entry for it here would be
+ * the one thing REQ-004 forbids — a reading where no measurement was made.
+ *
+ * An empty `weekStarts` asks nothing: a site whose window is empty has no
+ * question to put to the database.
+ */
+export async function readWeekScans(a: {
+  siteId: string;
+  weekStarts: readonly string[];
+}): Promise<ReadonlyMap<string, WeekScan>> {
+  if (a.weekStarts.length === 0) return new Map();
+  const { data, error } = await untyped()
+    .from<WeekRow>("scans")
+    .select("id, week_start, status, report")
+    .eq("site_id", a.siteId)
+    .eq("tier", "weekly")
+    .in("week_start", a.weekStarts);
+  if (error) throw new Error(`weekly: could not read the weeks: ${error.message}`);
+
+  const weeks = new Map<string, WeekScan>();
+  for (const row of data ?? []) {
+    weeks.set(row.week_start, {
+      scanId: row.id,
+      status: row.status,
+      report: row.report === null || row.report === undefined ? null : readStoredReport(row.report),
+    });
+  }
+  return weeks;
+}
+
 /** The zone one site's Monday is decided in, or `null` where the customer
  *  has stated none yet. */
 export async function readSiteZone(siteId: string): Promise<string | null> {

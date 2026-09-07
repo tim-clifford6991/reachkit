@@ -61,6 +61,12 @@ export const FIXTURE_OVERVIEW_FACTS: OverviewFacts = Object.freeze({
   // `null` is the week that was not measured — never a miss.
   aiPresence: Object.freeze([false, true, null, true]),
 
+  // No answer has changed under this customer, so nothing breaks the series
+  // and the week count spans all of it (REQ-071 c12/c13). The fixture shows
+  // the ordinary frame; the change arms are exercised by
+  // `tests/app/overview/`.
+  changes: Object.freeze([]),
+
   // No previous measurement, so this headline carries its goal of 30.
   pagesPublished: measured(11, MONDAY(31)),
 
