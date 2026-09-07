@@ -103,3 +103,25 @@ describe("readSettings assembles the model around whatever the destinations read
     expect(model.destinations).toHaveLength(1);
   });
 });
+
+describe("the one read on this screen is bounded, so a database that will not answer costs the card and not the screen (#133)", () => {
+  it("a billing read that never settles falls back to the fixture's facts", async () => {
+    // #133 made every `(account)` route render per request, so this read
+    // is now on the path of every settings render. A `catch` alone does
+    // not cover a hang: a request that never settles never rejects, and
+    // the layout conformance sweep renders this screen against a database
+    // that is not there.
+    vi.doMock("@/lib/account/billing", () => ({
+      billingSummary: () => new Promise<never>(() => {}),
+    }));
+    vi.resetModules();
+    const { readBillingFacts } = await import("@/app/(account)/app/settings/provider");
+
+    const started = Date.now();
+    await expect(readBillingFacts("user-1")).resolves.toEqual(FIXTURE_SETTINGS_FACTS.billing);
+    expect(Date.now() - started).toBeLessThan(3_000);
+
+    vi.doUnmock("@/lib/account/billing");
+    vi.resetModules();
+  });
+});
