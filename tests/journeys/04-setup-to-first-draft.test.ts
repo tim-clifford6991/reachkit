@@ -357,6 +357,13 @@ interface SiteRow {
   setup_released_at: string | null;
   setup_released_reason: string | null;
   setup_stage: string | null;
+  // §9's governing pair, which `apply_setup_choice` writes in the same
+  // transaction as the destination (#175 made the calendar read it).
+  mode: string;
+  veto_hours: number;
+  publish_time: string;
+  timezone: string;
+  publishing_enabled: boolean;
 }
 
 let site: SiteRow;
@@ -374,6 +381,11 @@ function freshSite(): SiteRow {
     setup_released_at: null,
     setup_released_reason: null,
     setup_stage: null,
+    mode: "autopilot",
+    veto_hours: VETO.defaultHours,
+    publish_time: "09:00",
+    timezone: TIME_ZONE,
+    publishing_enabled: true,
   };
 }
 
@@ -411,7 +423,7 @@ function answerQuery(query: DbQuery): unknown[] | null {
 
 // ── The modules, after the fixtures above are in place ──────────────────
 
-const { CAPS, PRICE_BOOK, TIMING } = await import("../../src/lib/config/constants");
+const { CAPS, PRICE_BOOK, TIMING, VETO } = await import("../../src/lib/config/constants");
 const { setOpportunityStore } = await import("../../src/lib/opportunities");
 const { setCalendarSiteReader } = await import(
   "../../src/app/(account)/app/calendar/provider"
@@ -460,6 +472,9 @@ beforeEach(() => {
   modelCalls.length = 0;
   vendorRequests.length = 0;
   site = freshSite();
+  // The one site, for the reads that ask for a single row — §9's own
+  // publishing settings among them (#175).
+  db.singles.set("sites", site as unknown as Record<string, unknown>);
   resolving.clear();
   resolving.add(DOMAIN);
 

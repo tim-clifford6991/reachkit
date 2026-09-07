@@ -968,9 +968,10 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
   );
 
   it(
-    "and the calendar still accounts for the date the page was written for",
+    "and the calendar carries the page the tick wrote, in the state it is in",
     async () => {
-      await generateTonightsPage();
+      const draftId = await generateTonightsPage();
+      await enterReviewAndTell(draftId);
 
       setCalendarSiteReader(async () => ({ siteId: SITE_ID, timeZone: TIME_ZONE }));
       const now = new Date("2026-09-02T15:00:00.000Z");
@@ -981,18 +982,28 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
         now,
       });
 
-      // §7's supply put a page on the date, and the calendar reads it.
-      expect(facts.drafts.length).toBeGreaterThan(0);
-      expect(facts.drafts[0]?.why.search).toBe("best project management software");
-      expect(facts.unusedSupply).toBe(1);
+      // The date the evening tick wrote the page for carries that page —
+      // the draft §9 has, in the state §9 has it in, not a planned
+      // placeholder (#175).
+      const page = facts.drafts.find((draft) => draft.draftId === draftId);
+      expect(page).toBeDefined();
+      expect(page?.state).toBe("in_review");
+      expect(page?.scheduledFor).toBe(nextPublishDate(EVENING, TIME_ZONE));
+      // Its own veto window, read off the row the telling was composed
+      // from.
+      expect(page?.vetoDeadline).not.toBeNull();
+      // And §7's account of why the page exists travels with it, unchanged
+      // from the day supply chose it.
+      expect(page?.why.search).toBe("best project management software");
 
-      // What the screen does not yet carry, and whose it is: the draft's
-      // own state and the held set are §9's rows, and `store.ts` names them
-      // as #45's. The engine has both today — the screen reads neither.
-      expect(facts.drafts[0]?.state).toBe("planned");
-      expect(facts.drafts[0]?.draftId).toBeNull();
+      // The engine's held set is cause-agnostic and counts every page that
+      // is publishable and has not been attempted — this one is in it. But
+      // a held page only *vacates* a date it has already missed, and this
+      // page's date has not come round yet, so no date on the calendar
+      // reads held and the page is still drawn on its own (#175).
+      expect((await heldPages(SITE_ID)).count).toBe(1);
       expect(facts.heldDays).toEqual([]);
-      expect((await heldPages(SITE_ID)).count).toBe(0);
+      expect(facts.customerChangeHoldsPages).toBeNull();
     },
     JOURNEY_TIMEOUT_MS
   );

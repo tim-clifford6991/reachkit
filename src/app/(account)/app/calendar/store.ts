@@ -46,6 +46,7 @@ import {
 } from "@/lib/opportunities";
 import { writtenLine } from "../_shell/written";
 import { addDays, dayKeyOf, daysOfMonth, type DayKey, type MonthKey } from "./dates";
+import { readPublishingFacts, type ScheduledPage } from "./drafts-read";
 import type { CalendarFacts, DraftOnDay, WhyThisPage } from "./month";
 
 /** The site one calendar belongs to. Which site that is, is
@@ -123,6 +124,36 @@ function whyOf(choice: Choice, at: Date): WhyThisPage {
   };
 }
 
+/** One date §9 has put a page on. The page's own state, its two dates and
+ *  its address come from the row; everything about *why* this page is on
+ *  this date is §7's, read through the same `explainChoice` a planned date
+ *  uses — so a page keeps its account of itself from the moment supply
+ *  chose it to the moment it goes live, and the panel does not change its
+ *  story when the draft is written.
+ *
+ *  The title is the search, not the draft's own written title: see
+ *  `drafts-read.ts`'s note on ADR-012. */
+function pageOn(a: {
+  page: ScheduledPage;
+  choice: Choice;
+  publishAt: Date | null;
+  now: Date;
+}): DraftOnDay {
+  const at = measuredAtOf(a.choice, a.now);
+  return {
+    draftId: a.page.draftId,
+    title: a.choice.evidence.family === "fix" ? "" : a.choice.evidence.query,
+    state: a.page.state,
+    enteredReview: a.page.enteredReview,
+    scheduledFor: a.page.scheduledFor as DayKey,
+    why: whyOf(a.choice, at),
+    measuredAt: at,
+    liveUrl: a.page.liveUrl,
+    vetoDeadline: a.page.vetoDeadline,
+    publishAt: a.publishAt,
+  };
+}
+
 /** One planned date. `draftId` is null and every §9 field is null: nothing
  *  has been written, scheduled or published for this date yet, and a date
  *  that says otherwise would offer controls with nothing to act on. */
@@ -189,13 +220,15 @@ export async function readCalendarFacts(a: {
   now: Date;
 }): Promise<CalendarFacts> {
   const today = dayKeyOf(a.now, a.site.timeZone);
-  const [depth, head, ranked] = await Promise.all([
+  const [depth, head, ranked, publishing] = await Promise.all([
     supplyDepth(a.site.siteId).then(
       (d) => d.unused,
       () => null
     ),
     nextForDay(a.site.siteId),
     rankOpen(a.site.siteId),
+    // §9's own answers about this month (#175).
+    readPublishingFacts({ siteId: a.site.siteId, month: a.month, today }),
   ]);
 
   // The head is the first fillable date's page; the rest of the list, in
@@ -206,9 +239,37 @@ export async function readCalendarFacts(a: {
   const offset = offsetForMonth({ month: a.month, today });
 
   const drafts: DraftOnDay[] = [];
-  for (const [index, day] of dates.entries()) {
+
+  // 1 — the pages §9 has actually put on dates. They come first and they
+  //     win: a date that carries a draft is not a date supply may plan on,
+  //     and drawing both would be the two-pages-on-one-date defect
+  //     `month.ts` raises.
+  for (const page of publishing.pagesByDay.values()) {
+    const choice = await explainChoice(page.opportunityId);
+    if (choice === null) continue;
+    drafts.push(
+      pageOn({
+        page,
+        choice,
+        publishAt: publishing.publishAt.get(page.draftId) ?? null,
+        now: a.now,
+      })
+    );
+  }
+
+  // 2 — the dates left, filled from supply in its own order. A date §9 has
+  //     already spoken for is skipped without consuming a page from the
+  //     queue: the page supply chose for it is the page that is on it.
+  //
+  //     Nothing is planned at all where §9's facts could not be read: a
+  //     month drawn as planned dates over pages that may be in review or
+  //     already live is worse than a month that says something of ours
+  //     failed, which is what every date then resolves to
+  //     (`drafts-read.ts`'s own note, and ADR-061 point 2).
+  for (const [index, day] of publishing.readable ? dates.entries() : []) {
     const opportunityId = queue[offset + index];
     if (opportunityId === undefined) break; // supply ran out; the rest stay empty
+    if (publishing.pagesByDay.has(day)) continue;
     const choice = await explainChoice(opportunityId);
     if (choice === null) continue;
     drafts.push(plannedOn(day, choice, a.now));
@@ -218,14 +279,17 @@ export async function readCalendarFacts(a: {
     timeZone: a.site.timeZone,
     now: a.now,
     drafts,
-    // REQ-047 c5's dated instruction, §11's stopped-work record, §9's held
-    // set and §4.7's saved settings are other subsystems' rows (#42, #39,
-    // #45). Empty here is what is true of them: none is read, so none is
-    // claimed.
+    // REQ-047 c5's dated instruction and §11's stopped-work record are
+    // still other subsystems' rows (#42, #39). Empty here is what is true
+    // of them: neither is read, so neither is claimed.
     instructions: {},
     stoppedDays: [],
-    heldDays: [],
-    customerChangeHoldsPages: null,
-    unusedSupply: depth,
+    // §9's, read (#175).
+    heldDays: publishing.heldDays,
+    customerChangeHoldsPages: publishing.customerChangeHoldsPages,
+    // A month whose §9 facts are unreadable states no supply either: the
+    // exhausted arm is a proven claim (ADR-061 point 1) and a depth read
+    // beside pages nobody could see is not one.
+    unusedSupply: publishing.readable ? depth : null,
   };
 }
