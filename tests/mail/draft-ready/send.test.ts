@@ -36,6 +36,34 @@ vi.mock("@/lib/mail/send", () => ({
   },
 }));
 
+/** §7's stored evidence for the page, as `explainChoice` reads it back.
+ *  Doubled at that seam and not below it: this suite is about what the
+ *  mail does with the evidence, and #183's ruling is that it **reads** the
+ *  stored evidence rather than measuring anything. */
+const choice = vi.hoisted(() => ({
+  answer: {
+    opportunityId: "opp-1",
+    type: "write",
+    family: "write",
+    fitBand: "winnable",
+    acceptance: { form: "top20", query: "how long does a slate roof last" },
+    evidence: {
+      family: "write",
+      query: "how long does a slate roof last",
+      volume: { kind: "measured", value: 1900, at: new Date(Date.UTC(2026, 7, 28)) },
+      rival: {
+        domain: "rival.example",
+        url: { kind: "measured", value: "https://rival.example/roofs", at: new Date(Date.UTC(2026, 7, 28)) },
+        position: { kind: "measured", value: 3, at: new Date(Date.UTC(2026, 7, 28)) },
+      },
+    },
+  } as unknown,
+}));
+vi.mock("@/lib/opportunities", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/opportunities")>();
+  return { ...actual, explainChoice: async () => choice.answer };
+});
+
 const { sendDraftReadyMail } = await import("@/lib/mail/draft-ready");
 
 const AT = new Date(Date.UTC(2026, 8, 15, 18, 0, 0));
@@ -68,6 +96,9 @@ function seed(over: { draft?: Row; site?: Row } = {}): void {
       transitions: [],
       hard_rules_passed: true,
       publishable_since: null,
+      title: "How long does a slate roof last?",
+      body_md: "# How long does a slate roof last?\n\nA slate roof lasts 80 to 150 years.",
+      opportunity_id: "opp-1",
       ...over.draft,
     },
   ]);
@@ -230,5 +261,128 @@ describe("copilot — nothing happens until they approve", () => {
     expect(paragraph?.vars).toBeUndefined();
     expect(sent[0]!.blocks.find((b) => b.block === "action")).toBeUndefined();
     expect(sent[0]!.suppressible).toBeUndefined();
+  });
+});
+
+describe("issue #183 — the mail names the page, and says why §7 chose it", () => {
+  const blocksOf = () => sent[0]!.blocks;
+
+  it("**the title travels in the body block that carries the GeneratedText label**", async () => {
+    await sendDraftReadyMail({ draftId: "d1", destination: "wordpress", at: AT });
+
+    const body = blocksOf().find((b) => b.block === "pageBody") as unknown as {
+      pageTitle: string;
+      written: boolean;
+      markdown: string;
+    };
+    expect(body.pageTitle).toBe("How long does a slate roof last?");
+    // `written`, not proposed: this page is written and in review.
+    expect(body.written).toBe(true);
+    expect(body.markdown).toContain("A slate roof lasts");
+  });
+
+  it("**and never in the subject**, which stays registry copy", async () => {
+    await sendDraftReadyMail({ draftId: "d1", destination: "wordpress", at: AT });
+
+    expect(sent[0]!.subject).toBe("mail.draftReady.subject");
+    expect(sent[0]!.subject).not.toContain("slate roof");
+    // The shape is what holds it: a subject is a copy key, so a title
+    // could not be put there without changing the mail's own type.
+    expect(sent[0]!.subject.startsWith("mail.")).toBe(true);
+  });
+
+  it("the page block leads — the mail is about a page, and says which first", async () => {
+    await sendDraftReadyMail({ draftId: "d1", destination: "wordpress", at: AT });
+    expect(blocksOf()[0]!.block).toBe("pageBody");
+  });
+
+  it("the why-data is §7's stored evidence: the search, and how often it is searched", async () => {
+    await sendDraftReadyMail({ draftId: "d1", destination: "wordpress", at: AT });
+
+    const search = blocksOf().find((b) => b.text === "mail.draftReady.why.search");
+    expect(search?.vars?.query).toBe("how long does a slate roof last");
+
+    const volume = blocksOf().find((b) => b.block === "stat") as unknown as {
+      label: string;
+      value: { kind: string; value: number };
+      format: string;
+    };
+    expect(volume.label).toBe("mail.draftReady.why.volume");
+    expect(volume.value).toMatchObject({ kind: "measured", value: 1900 });
+    expect(volume.format).toBe("perMonth");
+  });
+
+  it("**it is read, never re-measured** — the mail states the number the page was chosen on", async () => {
+    // The stored evidence says 1,900. Nothing in the mail path may go and
+    // ask again: a fresher number would be a page chosen on one figure and
+    // announced on another, and the screen and the mail would disagree.
+    await sendDraftReadyMail({ draftId: "d1", destination: "wordpress", at: AT });
+    const volume = blocksOf().find((b) => b.block === "stat") as unknown as {
+      value: { value: number; at: Date };
+    };
+    expect(volume.value.value).toBe(1900);
+    expect(volume.value.at).toEqual(new Date(Date.UTC(2026, 7, 28)));
+  });
+
+  it("an improve page states its own stored search and volume the same way", async () => {
+    choice.answer = {
+      opportunityId: "opp-2",
+      type: "improve",
+      family: "improve",
+      fitBand: "reach",
+      acceptance: { form: "top20", query: "re-pointing a chimney cost" },
+      evidence: {
+        family: "improve",
+        query: "re-pointing a chimney cost",
+        volume: { kind: "measured", value: 720, at: new Date(Date.UTC(2026, 7, 28)) },
+        pageUrl: "https://example.com/chimneys",
+        shortfall: { kind: "thin", visibleChars: 400 },
+      },
+    };
+    await sendDraftReadyMail({ draftId: "d1", destination: "wordpress", at: AT });
+
+    expect(blocksOf().find((b) => b.text === "mail.draftReady.why.search")?.vars?.query).toBe(
+      "re-pointing a chimney cost"
+    );
+  });
+
+  it("a fix page carries no why-data — it has no search and no volume, and Fix never automates", async () => {
+    choice.answer = {
+      opportunityId: "opp-3",
+      type: "unblock",
+      family: "fix",
+      fitBand: null,
+      acceptance: { form: "gate_cleared", gate: "robots_blocked" },
+      evidence: { family: "fix", barrier: "robots_blocked", foundOnUrl: "https://example.com/" },
+    };
+    await sendDraftReadyMail({ draftId: "d1", destination: "wordpress", at: AT });
+
+    expect(blocksOf().find((b) => b.text === "mail.draftReady.why.search")).toBeUndefined();
+    expect(blocksOf().find((b) => b.block === "stat")).toBeUndefined();
+    // The page is still named, and the telling still said what it says.
+    expect(blocksOf().find((b) => b.block === "pageBody")).toBeDefined();
+    expect(blocksOf().find((b) => b.text === "mail.draftReady.autopilotWindow")).toBeDefined();
+  });
+
+  it("a page whose opportunity has been purged is still named, and states no why-data", async () => {
+    choice.answer = null;
+    await sendDraftReadyMail({ draftId: "d1", destination: "wordpress", at: AT });
+
+    expect(blocksOf().find((b) => b.block === "pageBody")).toBeDefined();
+    expect(blocksOf().find((b) => b.text === "mail.draftReady.why.search")).toBeUndefined();
+  });
+
+  it("every sentence it speaks is a registry key, and the title is not one of them", async () => {
+    const { COPY } = await import("@/lib/presentation/copy");
+    await sendDraftReadyMail({ draftId: "d1", destination: "wordpress", at: AT });
+
+    for (const key of ["mail.draftReady.why.search", "mail.draftReady.why.volume"]) {
+      expect(Object.keys(COPY)).toContain(key);
+      expect(COPY[key as keyof typeof COPY]).toBe("");
+    }
+    // The title has no key of its own: it is carried by the label, which
+    // does (`generated.page.written`).
+    expect(Object.keys(COPY)).not.toContain("mail.draftReady.title");
+    expect(Object.keys(COPY)).toContain("generated.page.written");
   });
 });

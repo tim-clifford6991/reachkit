@@ -304,6 +304,28 @@ export const MAIL_COPY = Object.freeze({
   // the arm that has an interval to stop the page inside. It is the
   // customer's own action and says what pressing it does; it is not an
   // unsubscribe, and REQ-057 c7's zero-window mail carries neither.
+  // 2026-09-07, issue #183. §12's "why-data", as two rows of §7's own
+  // stored evidence: the search this page targets, and how often it is
+  // searched. Read from the row §7 wrote when it chose the page and never
+  // re-measured — a mail that measured again would state a number the page
+  // was not chosen on.
+  //
+  // Two keys and not one line with the number in it: every numeral in this
+  // product is written by one formatter (`stat`'s), and a volume folded
+  // into a sentence would be a second. The volume's own row omits itself
+  // where the measurement was never made, which is why it is `Measured`
+  // and not a number.
+  //
+  // Both **empty** and owner-owed, like every other line of this mail: a
+  // mail never ships a placeholder.
+  //
+  // There is no key for the page's *title*. It is model-written, and it
+  // travels in the `pageBody` block, whose label carries it —
+  // `generated.page.written` is the sentence that names it, and it is
+  // already minted. A `mail.draftReady.title` key would be that same title
+  // with ADR-012's label stripped off.
+  "mail.draftReady.why.search": ["", { slots: { query: "text" }, fixedBy: "BUILD §12 · §7" }],
+  "mail.draftReady.why.volume": ["", { slots: {}, fixedBy: "BUILD §12 · §7" }],
   "mail.draftReady.subject": ["", { slots: {}, fixedBy: "BUILD §12" }],
   "mail.draftReady.stopAction": ["", { slots: {}, fixedBy: "REQ-057 c1" }],
 
