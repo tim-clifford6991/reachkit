@@ -179,6 +179,8 @@ export const FIXTURE_CALENDAR_FACTS: CalendarFacts = Object.freeze({
   // owner's own preview of the month, which renders as nothing.
   heldDays: Object.freeze([] as readonly string[]),
   customerChangeHoldsPages: null,
+  // REQ-071 c11: the fixture account is replacing nothing.
+  changeHoldsGeneration: null,
   // Read, and zero: the one condition ADR-061 point 1 lets the
   // exhausted-supply arm fire on. `null` here would send every remaining
   // date to `unattributed` instead, which is the behaviour that ADR's

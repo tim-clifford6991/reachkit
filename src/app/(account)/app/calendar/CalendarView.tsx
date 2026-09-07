@@ -25,6 +25,7 @@ import { writtenLine } from "../_shell/written";
 import { StageFilter } from "./StageFilter";
 import { DayPanelView } from "./DayPanelView";
 import { EMPTY_COPY_KEY, isLawCause, stopForEmptyDay } from "./empty";
+import { CHANGE_COPY_KEY } from "./change-line";
 import { stoppedWorkStatement, type WorkStop } from "@/lib/presentation/stopped";
 import { formatDate } from "../_shell/format";
 import { dayNumber, weekdayLabels } from "./dates";
@@ -81,7 +82,7 @@ function toGridCell(
     // the place on this surface where c2 and c4 are read (issue #113).
     emptyLine:
       filter === "all" && cell.page === null && cell.empty !== null
-        ? emptyLineFor(cell.empty.cause, cell.day, stopped, timeZone)
+        ? emptyLineFor(cell.empty, cell.day, stopped, timeZone)
         : null,
     today: cell.today,
     selected: cell.day === selected,
@@ -93,11 +94,21 @@ function toGridCell(
  *  through `stoppedWorkStatement`, which is REQ-092's one home (ADR-011);
  *  the five the calendar owns render from its own keys. */
 export function emptyLineFor(
-  cause: NonNullable<DayCell["empty"]>["cause"],
+  empty: NonNullable<DayCell["empty"]>,
   day: string,
   stopped: WorkStop | null,
   timeZone: string,
 ): string | null {
+  const cause = empty.cause;
+  // REQ-071 c11's two slots. Both values are the engine's — the held answer
+  // named through its own registry key, and the resumption date formatted
+  // in the site's zone (issue #204).
+  if (empty.cause === "change_holds_generation") {
+    return writtenLine(EMPTY_COPY_KEY[empty.cause], {
+      change: copy(CHANGE_COPY_KEY[empty.because]),
+      date: formatDate(empty.resumesOn, timeZone),
+    });
+  }
   if (!isLawCause(cause)) return writtenLine(EMPTY_COPY_KEY[cause]);
   const stop = stopForEmptyDay({ cause, stop: stopped, since: dayMarker(day) });
   return stoppedWorkStatement(stop, { formatDate: (on) => formatDate(on, timeZone) }).line;

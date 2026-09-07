@@ -12,17 +12,35 @@
 // (`deriveRivals`) are a setup-time offer (issue #37), not a settings-screen
 // list, so none is rendered here.
 //
-// Cold start (§6.6): an empty set renders the add control and no chips. There
-// is no empty-state sentence, because a customer who has removed all five is
-// not being told about an absence — they are looking at a control that does
-// the one thing there is to do.
+// Cold start (§6.6): an empty set renders the add control and no chips —
+// and, since issue #204, REQ-071 c16's one line where the chips would be.
+//
+// **That reverses this file's earlier reading, on the criterion's own
+// words.** It said no empty-state sentence was owed, because a customer
+// looking at an add control is looking at the one thing there is to do.
+// c16 is about a different fact: not what the customer may do next, but
+// what the *product* will not do until they do it — there is no rival
+// comparison to make, so none is made. A control cannot say that, and §2.5
+// requires an empty state to be designed rather than blank.
 import type React from "react";
 import { Btn } from "@/ui/components/Btn";
 import { Card } from "@/ui/components/Card";
 import { Input } from "@/ui/components/Input";
 import { copy } from "@/lib/presentation/copy";
 import { BATTERY } from "@/lib/config/constants";
+import { writtenLine } from "../../_shell/written";
 import type { SettingsModel } from "../model";
+
+/** c16's line, or nothing while the owner has not written it — never a
+ *  placeholder standing where a sentence belongs (REQ-091 c2). */
+function EmptyLine(): React.JSX.Element | null {
+  const line = writtenLine("settings.competitors.none-yet");
+  return line === null ? null : (
+    <p className="text-xs opacity-60 wrap-anywhere" data-testid="competitors-none-yet-line">
+      {line}
+    </p>
+  );
+}
 
 export function CompetitorsPanel(p: { settings: SettingsModel }): React.JSX.Element {
   const full = p.settings.competitors.length >= BATTERY.COMPETITORS_MAX;
@@ -30,6 +48,11 @@ export function CompetitorsPanel(p: { settings: SettingsModel }): React.JSX.Elem
   return (
     <Card state="default" title={<h2>{copy("settings.competitors.title")}</h2>}>
       <div className="flex min-w-0 flex-col gap-3" data-testid="setting-competitors">
+        {p.settings.competitors.length > 0 ? null : (
+          // REQ-071 c16. No slot: there is no date and no change to name,
+          // only that comparison begins when a rival is added.
+          <EmptyLine />
+        )}
         <div className="flex min-w-0 flex-wrap gap-2">
           {p.settings.competitors.map((domain) => (
             <span className="inline-flex min-w-0 items-center gap-2 wrap-anywhere" key={domain} data-testid={`competitor-${domain}`}>

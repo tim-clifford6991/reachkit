@@ -48,6 +48,15 @@ const FIXTURE_BILLING: BillingFacts = Object.freeze({
 export const FIXTURE_SETTINGS_FACTS: SettingsFacts = Object.freeze({
   domain: FIXTURE_DOMAIN,
   category: "user onboarding software",
+  // REQ-071 c1 and c6 (issue #204): the ordinary state is that no market
+  // answer is being replaced, so the card states its standing §4.7 line and
+  // neither dated one. The same reason `FIXTURE_SHELL_FACTS` keeps
+  // `stopped: null` — a fixture that carried the exceptional state would
+  // make every screen suite assert the exception, and the two dated lines
+  // are exercised by `tests/app/settings/market-change.test.tsx` over facts
+  // of its own.
+  pendingChange: null,
+  editing: null,
   competitors: Object.freeze([
     "appcues.com",
     "userpilot.com",

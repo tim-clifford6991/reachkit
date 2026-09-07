@@ -312,7 +312,7 @@ describe("owner-owed and empty agree both ways", () => {
     expect(new Set(emptyKeys)).toEqual(new Set(OWNER_OWED));
   });
 
-  it("counts: 150 owner-owed, 181 awaiting copy, 168 ruled, 499 total (rule 5.5 — the index states its own coverage)", () => {
+  it("counts: 158 owner-owed, 187 awaiting copy, 168 ruled, 513 total (rule 5.5 — the index states its own coverage)", () => {
     // WO-070 added report.ts's eight landing keys (headline, field label,
     // submit label, five DomainProblem lines), all owner-owed: 30 + 8 = 38.
     // 2026-09-03: the owner ruled on three of them (headline, field label,
@@ -773,10 +773,27 @@ describe("owner-owed and empty agree both ways", () => {
     // label stripped off, which is the one thing the label exists to
     // prevent. 156 + 2 = 158 owner-owed and empty, 181 awaiting copy and
     // 168 ruled unchanged, 505 + 2 = 507 total.
+    //
+    // 2026-09-07, issue #204 (REQ-071's four written lines) adds **six**,
+    // all carrying the `TODO(copy)` marker rather than the empty value:
+    // `settings.market.pending` `{date} {change}` · `.effectiveOn`
+    // `{date}` · `.change.domain` · `.change.category` ·
+    // `settings.competitors.none-yet` · `calendar.empty.change-holds-pages`
+    // `{date} {change}`.
+    //
+    // **The marker and not the empty value**, per the 2026-09-05 ruling:
+    // each of the four lines lands on a card of finished controls, and an
+    // empty value takes that whole card down through `copy()`'s throw —
+    // which hides the very screen the owner has to review to write the
+    // sentence. And **two of the six are not lines at all**: the `{change}`
+    // slot is filled from a key per change kind, because the engine's own
+    // `domain` / `category` are internal names and REQ-071's line reads
+    // that value out to a customer. 158 owner-owed unchanged, 181 + 6 =
+    // 187 awaiting copy, 168 ruled unchanged, 507 + 6 = 513 total.
     expect(OWNER_OWED.length).toBe(158);
-    expect(AWAITING_COPY.length).toBe(181);
+    expect(AWAITING_COPY.length).toBe(187);
     expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(168);
-    expect(Object.keys(COPY).length).toBe(507);
+    expect(Object.keys(COPY).length).toBe(513);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.

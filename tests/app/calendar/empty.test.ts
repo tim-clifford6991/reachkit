@@ -14,16 +14,23 @@ const NOTHING: EmptyFacts = {
   pageCannotGoLive: null,
   pageHeld: false,
   customerChangeHoldsPages: null,
+  changeHoldsGeneration: null,
   unusedSupply: null,
 };
 
 describe("ADR-061 — the precedence is data, and it is the one ADR-061 states", () => {
-  it("is instruction → reachkit_stopped → page_cannot_go_live → customer_change_holds_pages → page_held → supply_exhausted → unattributed", () => {
+  it("is instruction → reachkit_stopped → page_cannot_go_live → customer_change_holds_pages → change_holds_generation → page_held → supply_exhausted → unattributed", () => {
     expect([...EMPTY_PRECEDENCE]).toEqual([
       "instruction",
       "reachkit_stopped",
       "page_cannot_go_live",
       "customer_change_holds_pages",
+      // #204: below the switch the customer can undo with a click, because
+      // this one resolves on a date they have already been given; above
+      // `page_held`, because it says why no page exists for the date at all
+      // where that one says only that a page which does exist did not go out
+      // (REQ-071 c11).
+      "change_holds_generation",
       // #116: below every cause that says *why*, above the arm REQ-043 c3
       // reserves. A date a page was planned for did not run out of supply.
       "page_held",
@@ -162,6 +169,7 @@ describe("REQ-043 c5 — one account per date, and the instruction outranks ever
         reachkitStopped: true,
         pageCannotGoLive: "skipped",
         customerChangeHoldsPages: "publishing_off",
+        changeHoldsGeneration: { because: "domain", resumesOn: new Date("2026-09-21T00:00:00.000Z") },
         pageHeld: true,
         unusedSupply: 0,
       })
@@ -188,6 +196,11 @@ describe("REQ-043 c5 — one account per date, and the instruction outranks ever
       reachkitStopped: [false, true],
       pageCannotGoLive: [null, "skipped", "unpublished"],
       customerChangeHoldsPages: [null, "publishing_off", "destination_disconnected"],
+      changeHoldsGeneration: [
+        null,
+        { because: "domain", resumesOn: new Date("2026-09-21T00:00:00.000Z") },
+        { because: "category", resumesOn: new Date("2026-09-21T00:00:00.000Z") },
+      ],
       pageHeld: [false, true],
       unusedSupply: [null, 0, 3],
     } as const;
@@ -196,19 +209,22 @@ describe("REQ-043 c5 — one account per date, and the instruction outranks ever
       for (const reachkitStopped of values.reachkitStopped)
         for (const pageCannotGoLive of values.pageCannotGoLive)
           for (const customerChangeHoldsPages of values.customerChangeHoldsPages)
-            for (const pageHeld of values.pageHeld)
+            for (const changeHoldsGeneration of values.changeHoldsGeneration)
+              for (const pageHeld of values.pageHeld)
               for (const unusedSupply of values.unusedSupply) {
                 const account = accountFor({
                   instruction,
                   reachkitStopped,
                   pageCannotGoLive,
                   customerChangeHoldsPages,
+                  changeHoldsGeneration,
                   pageHeld,
                   unusedSupply,
                 });
                 expect(EMPTY_PRECEDENCE).toContain(account.cause);
                 seen += 1;
               }
-    expect(seen).toBe(216);
+    // 3 × 2 × 3 × 3 × 3 × 2 × 3 — the new axis is swept like every other.
+    expect(seen).toBe(648);
   });
 });

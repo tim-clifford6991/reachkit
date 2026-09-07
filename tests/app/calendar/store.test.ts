@@ -43,6 +43,22 @@ vi.mock("@/app/(account)/app/_shell/stop", () => ({
   readStop: (...a: unknown[]) => workStop(...a),
 }));
 
+/** REQ-071 c11's hold is a fourth read, with its own suite
+ *  (`change-lines.test.tsx`, issue #204). A site replacing nothing is what
+ *  leaves supply the only thing deciding, which every case below is about. */
+const declaredRead = vi.fn();
+const measuredRead = vi.fn();
+const timezoneRead = vi.fn();
+vi.mock("@/lib/market/changes", async (importOriginal) => ({
+  // Only the three reads are stood in for. `pendingChanges` and
+  // `generationHold` are pure and run for real, so a site whose answers
+  // agree is decided by the engine rather than by this mock.
+  ...(await importOriginal<typeof import("@/lib/market/changes")>()),
+  declaredAnswers: (...a: unknown[]) => declaredRead(...a),
+  measuredAnswers: (...a: unknown[]) => measuredRead(...a),
+  declaredTimezone: (...a: unknown[]) => timezoneRead(...a),
+}));
+
 const { readCalendarFacts, fillableDates, offsetForMonth } = await import(
   "@/app/(account)/app/calendar/store"
 );
@@ -84,6 +100,9 @@ function withSupply(count: number): void {
 
 beforeEach(() => {
   workStop.mockResolvedValue(null);
+  declaredRead.mockResolvedValue({ domain: "acme.com", category: "c", rivals: [] });
+  measuredRead.mockResolvedValue({ domain: "acme.com", category: "c", rivals: [] });
+  timezoneRead.mockResolvedValue("America/New_York");
   publishingFacts.mockResolvedValue({
     readable: true,
     pagesByDay: new Map(),

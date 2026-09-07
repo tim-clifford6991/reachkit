@@ -139,6 +139,16 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.empty.page-cannot-go-live": ["", { slots: {}, fixedBy: "REQ-043 c4" }],
   "calendar.empty.customer-change-holds-pages": ["", { slots: {}, fixedBy: "REQ-043 c4" }],
   "calendar.empty.page-held": ["", { slots: {}, fixedBy: "REQ-092 c5" }],
+  // REQ-071 c11 (issue #204). A market change holds generation until the
+  // pass that adopts it, so the day names which change is holding pages and
+  // the date they resume — both read from `generationHold()`, which has
+  // already chosen one reason where two answers changed. `TODO(copy)`
+  // rather than the empty value, per DECISIONS 2026-09-05: a day with an
+  // account is never a blank cell while the owner writes the sentence.
+  "calendar.empty.change-holds-pages": [
+    "TODO(copy)",
+    { slots: { date: "date", change: "text" }, fixedBy: "REQ-071 c11" },
+  ],
   "calendar.provenance.measured": ["", { slots: { date: "date" }, fixedBy: "REQ-043 c10" }],
   "calendar.status.veto-deadline": ["", { slots: { at: "date" }, fixedBy: "BUILD §9" }],
 

@@ -26,6 +26,11 @@ export type EmptyAccount =
   | { cause: "reachkit_stopped" }
   | { cause: "page_cannot_go_live"; state: "skipped" | "unpublished" }
   | { cause: "customer_change_holds_pages"; setting: "publishing_off" | "destination_disconnected" }
+  /** REQ-071 c11 (issue #204): a market answer the customer replaced is
+   *  holding generation until the pass that adopts it. It carries the one
+   *  held answer and the date pages resume — `generationHold()`'s own two
+   *  values, and never a third derived here. */
+  | { cause: "change_holds_generation"; because: "domain" | "category"; resumesOn: Date }
   | { cause: "page_held" }
   | { cause: "supply_exhausted" }
   | { cause: "unattributed" };
@@ -59,6 +64,15 @@ export type EmptyCause = EmptyAccount["cause"];
  *  (REQ-092 c7); `supply_exhausted` is second to last and proven only; and
  *  `unattributed` is the last arm, never a widened one.
  *
+ *  **`change_holds_generation` (#204) sits between the customer's saved
+ *  settings and `page_held`.** Below `customer_change_holds_pages` because
+ *  that one the customer can undo with a click and this one resolves on a
+ *  date they have already been given; above `page_held` because it says
+ *  *why* no page exists for the date at all, where `page_held` says only
+ *  that a page which does exist did not go out. REQ-071 c11 names the
+ *  change and the resumption date, so it is the more actionable fact of
+ *  the two and the date's one account.
+ *
  *  **`page_held` (#116) is directly above `supply_exhausted` and nowhere
  *  else.** Below the three attributed causes, because each of them says
  *  *why* the page did not go out and this one says only that it did not:
@@ -74,6 +88,7 @@ export const EMPTY_PRECEDENCE: readonly EmptyCause[] = Object.freeze([
   "reachkit_stopped",
   "page_cannot_go_live",
   "customer_change_holds_pages",
+  "change_holds_generation",
   "page_held",
   "supply_exhausted",
   "unattributed",
@@ -94,6 +109,10 @@ export interface EmptyFacts {
   pageCannotGoLive: "skipped" | "unpublished" | null;
   /** A change the customer saved that holds pages back, or `null`. */
   customerChangeHoldsPages: "publishing_off" | "destination_disconnected" | null;
+  /** REQ-071 c11: the market answer being replaced, and the date pages
+   *  resume — `generationHold()`'s `held: true` arm, or `null` where
+   *  nothing is being replaced. Read, never derived here. */
+  changeHoldsGeneration: { because: "domain" | "category"; resumesOn: Date } | null;
   /**
    * REQ-092 c5: a page was planned for this date and did not go live on it,
    * because it was held — the publishing machine refused every route into
@@ -153,6 +172,7 @@ export const EMPTY_COPY_KEY: Record<CalendarOwnCause, CopyKey> = {
   instruction: "calendar.empty.instruction",
   page_cannot_go_live: "calendar.empty.page-cannot-go-live",
   customer_change_holds_pages: "calendar.empty.customer-change-holds-pages",
+  change_holds_generation: "calendar.empty.change-holds-pages",
   page_held: "calendar.empty.page-held",
   supply_exhausted: "cause.supply-exhausted",
 };
@@ -223,6 +243,15 @@ export function accountFor(facts: EmptyFacts): EmptyAccount {
           return {
             cause: "customer_change_holds_pages",
             setting: facts.customerChangeHoldsPages,
+          };
+        }
+        break;
+      case "change_holds_generation":
+        if (facts.changeHoldsGeneration !== null) {
+          return {
+            cause: "change_holds_generation",
+            because: facts.changeHoldsGeneration.because,
+            resumesOn: facts.changeHoldsGeneration.resumesOn,
           };
         }
         break;

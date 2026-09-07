@@ -94,6 +94,7 @@ function facts(over: Partial<CalendarFacts> = {}): CalendarFacts {
     stoppedDays: [],
     heldDays: [],
     customerChangeHoldsPages: null,
+    changeHoldsGeneration: null,
     unusedSupply: null,
     ...over,
   };

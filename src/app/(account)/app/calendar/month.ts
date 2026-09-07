@@ -142,6 +142,11 @@ export interface CalendarFacts {
    */
   heldDays: readonly DayKey[];
   customerChangeHoldsPages: "publishing_off" | "destination_disconnected" | null;
+  /** REQ-071 c11: the market answer being replaced and the date pages
+   *  resume, or `null`. `generationHold()`'s own `held: true` arm — the
+   *  engine has already chosen one reason where two answers changed, so
+   *  this screen never picks between them (issue #204). */
+  changeHoldsGeneration: { because: "domain" | "category"; resumesOn: Date } | null;
   /** `supplyDepth().unused`, **read** — or `null` where it could not be.
    *  ADR-061 point 1 turns on this distinction. */
   unusedSupply: number | null;
@@ -169,6 +174,9 @@ function emptyFactsFor(day: DayKey, facts: CalendarFacts, cannotGoLive: State | 
     pageCannotGoLive:
       cannotGoLive === "skipped" || cannotGoLive === "unpublished" ? cannotGoLive : null,
     customerChangeHoldsPages: facts.customerChangeHoldsPages,
+    // Site-wide and not per-date: a market answer under replacement holds
+    // every date until the pass adopts it.
+    changeHoldsGeneration: facts.changeHoldsGeneration,
     pageHeld: facts.heldDays.includes(day),
     unusedSupply: facts.unusedSupply,
   };
