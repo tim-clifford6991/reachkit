@@ -197,17 +197,32 @@ export async function verifyLive(a: {
 }
 
 // ── Lead sequences — BP-029
-// TODO(engine): BP-029's nurture sequence — `advanceSequence()`, and the
-// `(lower(email), domain)` partial unique index that is the sequence key.
+// Built (issue #176): one call into `src/lib/mail/leads/sequence`, which
+// owns the rule. The sequence key stays the `(lower(email), domain)`
+// partial unique index and is not re-derived here or in the job.
 
 /** Advances one lead's sequence by one touch. `(leadId, touchIndex)` is
  *  per-touch dedupe inside a sequence — never the sequence key itself,
- *  which stays the engine's index and is not re-implemented here. */
+ *  which stays the engine's index and is not re-implemented here.
+ *
+ *  **Only a refused send degrades.** A lead that converted, opted out,
+ *  subscribed, finished its three touches or has already recorded this
+ *  touch did exactly what it should have: nothing. The run is `done`, and
+ *  the sequence module's own log line records which of those it was. A
+ *  mail the send seam refused is different — the touch is still owed, and
+ *  an unwritten line (DECISIONS 2026-09-05: "a mail never ships a
+ *  placeholder") is the owner's debt made visible on the run rather than
+ *  reported as a success. */
 export async function advanceSequence(a: {
   readonly leadId: string;
   readonly touchIndex: number;
 }): Promise<EngineResult> {
-  return notBuilt("BP-029", `advanceSequence(${a.leadId})`);
+  const { advanceOneTouch } = await import("@/lib/mail/leads/sequence");
+  const outcome = await advanceOneTouch({ leadId: a.leadId, touchIndex: a.touchIndex, now: new Date() });
+  if (!outcome.advanced && outcome.reason === "not-sent") {
+    return { degraded: "lead-nurture:touch-not-sent" };
+  }
+  return { done: true };
 }
 
 // ── Payments and provisioning — BUILD §13 (issue #33)

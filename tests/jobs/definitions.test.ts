@@ -359,10 +359,20 @@ describe("nothing fakes work — an unbuilt engine fails loudly", () => {
   // the database for the same reason. Its own suites are
   // `tests/publish/verify/**` and `tests/mail/published/**`.
   //
-  // The remaining four stay, and an engine that lands moves its id out of
+  // `lead/nurture` — issue #176: `advanceSequence()` now calls
+  // `src/lib/mail/leads/sequence`, which reads the lead store. Its own
+  // suites are `tests/mail/leads/**`; the wiring — that this job calls the
+  // seam with the event's own `(leadId, touchIndex)` and maps what it
+  // answers — is asserted above, against the recorded seam.
+  //
+  // The remaining three stay, and an engine that lands moves its id out of
   // here and into a suite of its own.
   const UNBUILT_JOB_IDS = JOB_IDS.filter(
-    (id) => id !== "account/maintenance" && id !== "weekly/refresh" && id !== "publish/verify"
+    (id) =>
+      id !== "account/maintenance" &&
+      id !== "weekly/refresh" &&
+      id !== "publish/verify" &&
+      id !== "lead/nurture"
   );
 
   it.each(UNBUILT_JOB_IDS)("%s throws EngineNotBuilt against the real seam", async (id) => {
