@@ -30,6 +30,13 @@ export interface SiteClock {
 
 export type ScanTier = "free" | "deep" | "weekly";
 
+/** `draft/generate`'s selection, as the engine hands it over. The type is
+ *  the daily module's own — a second copy here would be one more place the
+ *  hold could be forgotten. A **type** import, so it is erased and drags
+ *  no database client onto this seam's graph. */
+import type { DailySelection } from "@/lib/publish/daily";
+export type { DailySelection };
+
 /** What one call into the engine reports back. `degraded` names the step
  *  that ran out of budget, so a job can mark its subject degraded rather
  *  than throw (§6.5 — the spend ceiling outranks the verdict). */
@@ -51,10 +58,12 @@ function notBuilt(engine: string, fn: string): never {
   throw new EngineNotBuilt(engine, fn);
 }
 
-// ── The site list — BP-014, built (issue #173)
+// ── The site list — BP-014, built (issue #173), gated on access (#201)
 //
-// One call into `src/lib/publish/daily/`, which owns the three predicates:
-// a zone, `publishing_enabled`, and a live destination that can publish.
+// One call into `src/lib/publish/daily/`, which owns the four predicates:
+// a zone, `publishing_enabled`, a live destination that can publish, and
+// active access through the same registered gate the weekly tick asks
+// (ADR-050 — one rule, one reader).
 // It is not the weekly tick's list — `weeklyDueSites()` selects on four
 // predicates this one does not carry (issue #41) — and it is not the hour
 // either: ADR-060's gate is `isDraftDue(now, zone)` in
@@ -66,10 +75,12 @@ function notBuilt(engine: string, fn: string): never {
 // environment the moment it is imported, and a static import here would
 // put a database client in every module graph this seam appears in.
 
-/** Every site ReachKit is still working for that a page could actually
- *  reach, with its own time zone. Read by `draft/generate`'s fan-out,
- *  which gates each row on the site's own evening. */
-export async function activeSites(): Promise<readonly SiteClock[]> {
+/** What one evening tick found: every site ReachKit is still working for
+ *  that a page could actually reach and whose owner is paying, with its
+ *  own time zone — and, where the access gate could not be read, no site
+ *  and the reason. Read by `draft/generate`'s fan-out, which gates each
+ *  row on the site's own evening. */
+export async function activeSites(): Promise<DailySelection> {
   const { sitesForDailyTick } = await import("@/lib/publish/daily");
   return sitesForDailyTick();
 }

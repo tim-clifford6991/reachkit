@@ -33,7 +33,7 @@ function engineDouble(): Record<string, unknown> {
     EngineNotBuilt: class extends Error {},
     activeSites: async () => {
       engineCalls.count += 1;
-      return [{ siteId: "site-1", timeZone: "UTC" }];
+      return { sites: [{ siteId: "site-1", timeZone: "UTC" }], held: null };
     },
     weeklyDueSites: async () => {
       engineCalls.count += 1;

@@ -17,10 +17,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // `@/lib/db`, which parses the environment the moment it is imported.
 import { applyEnvFixture } from "../mail/env-fixture";
 import type { ApprovedDelivery } from "@/lib/publish/attempt/deliver";
+import type { DailySelection } from "@/lib/publish/daily";
 
 applyEnvFixture();
 
-const sitesForDailyTick = vi.fn<() => Promise<readonly { siteId: string; timeZone: string }[]>>();
+const sitesForDailyTick = vi.fn<() => Promise<DailySelection>>();
 const deliverApproved = vi.fn<() => Promise<ApprovedDelivery>>();
 const sendJobEvent = vi.fn<(event: string, data: Record<string, unknown>) => Promise<void>>();
 
@@ -43,17 +44,25 @@ beforeEach(() => {
   sendJobEvent.mockResolvedValue(undefined);
 });
 
-describe("activeSites() is the list the engine owns, and nothing of its own", () => {
+describe("activeSites() is the selection the engine owns, and nothing of its own", () => {
   it("hands back exactly what the engine answered", async () => {
-    const sites = [{ siteId: "s1", timeZone: "America/New_York" }];
-    sitesForDailyTick.mockResolvedValue(sites);
-    expect(await activeSites()).toEqual(sites);
+    const selection = { sites: [{ siteId: "s1", timeZone: "America/New_York" }], held: null };
+    sitesForDailyTick.mockResolvedValue(selection);
+    expect(await activeSites()).toEqual(selection);
     expect(sitesForDailyTick).toHaveBeenCalledTimes(1);
   });
 
   it("an empty list is an empty list, never a throw", async () => {
-    sitesForDailyTick.mockResolvedValue([]);
-    await expect(activeSites()).resolves.toEqual([]);
+    sitesForDailyTick.mockResolvedValue({ sites: [], held: null });
+    await expect(activeSites()).resolves.toEqual({ sites: [], held: null });
+  });
+
+  it("a hold is carried through unchanged — the seam decides nothing about it (#201)", async () => {
+    // What to *do* about a tick that cannot decide who is paying is
+    // `draft/generate`'s, and asserting it here as well would be the
+    // second copy of that decision.
+    sitesForDailyTick.mockResolvedValue({ sites: [], held: "access-unreadable" });
+    await expect(activeSites()).resolves.toEqual({ sites: [], held: "access-unreadable" });
   });
 });
 
