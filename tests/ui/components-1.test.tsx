@@ -283,6 +283,32 @@ describe('BP-018 decision 1: "daisyUI components only — no bespoke widgets"', 
     expect(root.querySelector(".stat")).not.toBeNull();
   });
 
+  // ── issue #211 ────────────────────────────────────────────────────────
+  it("Stat's desc overrides daisyUI's nowrap, in the component and in both states", () => {
+    // daisyUI's own `.stat-desc` is `white-space: nowrap`, which suits a
+    // delta or a goal and is wrong for `unmeasured`'s `reason` — a written
+    // line this component's type makes required. Unwrappable, that sentence
+    // sets the grid column's max-content width and the tile grows past its
+    // containing block at every width (#211). The override belongs here and
+    // nowhere else: a per-screen fix would leave every other caller of this
+    // component with the same defect.
+    for (const props of [
+      { state: "measured", label: "l", value: 1, delta: "+1" },
+      {
+        state: "unmeasured",
+        label: "Searches you appear in",
+        reason: "Searches you appear in wasn’t measured — the scan stopped early, before it got there.",
+      },
+    ] as const) {
+      const desc = renderRoot(<Stat {...props} />).querySelector(".stat-desc");
+      expect(desc, `${props.state}: no .stat-desc rendered`).not.toBeNull();
+      expect(
+        desc?.classList.contains("whitespace-normal"),
+        `${props.state}: .stat-desc must override daisyUI's nowrap`
+      ).toBe(true);
+    }
+  });
+
   it("Tabs' root carries the tabs class", () => {
     const root = renderRoot(
       <Tabs tabs={[{ id: "a", label: "A" }]} selectedId="a" />
