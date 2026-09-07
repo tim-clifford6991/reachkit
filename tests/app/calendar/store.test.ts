@@ -26,6 +26,16 @@ vi.mock("@/lib/opportunities", () => ({
   explainChoice: (...a: unknown[]) => explainChoice(...a),
 }));
 
+/** §9's own answers are a different read and have their own suite
+ *  (`publishing-facts.test.ts`, issue #175). This one is about supply: what
+ *  the ranked list fills and what it refuses to fill. A month with no page
+ *  scheduled on any date is the state that leaves supply the only thing
+ *  deciding, which is what every case below is about. */
+const publishingFacts = vi.fn();
+vi.mock("@/app/(account)/app/calendar/drafts-read", () => ({
+  readPublishingFacts: (...a: unknown[]) => publishingFacts(...a),
+}));
+
 const { readCalendarFacts, fillableDates, offsetForMonth } = await import(
   "@/app/(account)/app/calendar/store"
 );
@@ -66,6 +76,13 @@ function withSupply(count: number): void {
 }
 
 beforeEach(() => {
+  publishingFacts.mockResolvedValue({
+    readable: true,
+    pagesByDay: new Map(),
+    publishAt: new Map(),
+    heldDays: [],
+    customerChangeHoldsPages: null,
+  });
   vi.clearAllMocks();
 });
 
