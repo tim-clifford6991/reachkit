@@ -80,11 +80,16 @@ describe("§4.3 — the deep pass is `scan/run` at tier deep", () => {
     expect(outcome).toEqual({ outcome: "ran", subjectId: "scan-1" });
   });
 
-  it("a free delivery does not take the deep path — the free arm is still #24's and fails loudly rather than reporting a pass nobody ran", async () => {
-    const { EngineNotBuilt } = await import("../../src/jobs/engine");
+  it("a free delivery does not take the deep path — it is not a job path at all, and fails loudly rather than reporting a pass nobody ran", async () => {
+    // Was `EngineNotBuilt` pointing at #24 (issue #229): the free arm is
+    // not an engine waiting to be built. The free report runs inline on
+    // `POST /api/scan` because §6.4 puts it at "≈60s live" with a human
+    // waiting, so a `scan/run` event for it should never exist — and if
+    // one arrives, the refusal says which it is.
+    const { NotAJobPath } = await import("../../src/jobs/engine");
     await expect(
       scanRun.run({ data: { scanId: "scan-2", domain: "example.com", tier: "free" }, now: NOW })
-    ).rejects.toBeInstanceOf(EngineNotBuilt);
+    ).rejects.toBeInstanceOf(NotAJobPath);
     expect(deepPass).not.toHaveBeenCalled();
   });
 

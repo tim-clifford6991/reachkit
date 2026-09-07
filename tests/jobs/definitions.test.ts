@@ -417,6 +417,118 @@ describe("the fan-out is bounded and never starves the rest of the tick", () => 
   });
 });
 
+describe("scan/run — deep only, and the other two tiers are not job paths (#229)", () => {
+  /** The tests below reach the **real** seam, so importing `@/jobs/engine`
+   *  pulls `@/lib/scan/deep/run` and its whole graph in. That import is the
+   *  cost, not the assertion, and it crosses Vitest's 5 s default on a
+   *  loaded box — the same shape, and the same reason, as
+   *  `tests/egress/policy.test.ts`'s `ESLINT_BOOT_MS`. */
+  const REAL_SEAM_IMPORT_MS = 30_000;
+
+  it("a deep event with a site runs the onboarding pass and nothing else", async () => {
+    const job = await definition("scan/run");
+    const outcome = await job.run({
+      data: { scanId: "setup-site-1", domain: "example.com", tier: "deep", siteId: "site-1" },
+      now: MONDAY_0600_UTC,
+    });
+    expect(calls).toEqual([
+      { fn: "runScan", arg: { scanId: "setup-site-1", domain: "example.com", tier: "deep", siteId: "site-1" } },
+    ]);
+    expect(outcome).toEqual({ outcome: "ran", subjectId: "setup-site-1" });
+  });
+
+  it.each(["free", "weekly"] as const)(
+    "a %s event is refused as not_a_job_path against the real seam — not as an unbuilt engine",
+    async (tier) => {
+      // The distinction is the point of #229. `EngineNotBuilt` says an
+      // engine is missing and an issue will close it; this says the event
+      // should never have been sent, and no issue closes that.
+      stubEnv(false);
+      const { jobs } = await import("@/jobs");
+      const { runJob } = await import("@/jobs/run");
+      const { EngineNotBuilt, NotAJobPath } = await import("@/jobs/engine");
+      const job = jobs.find((j) => j.id === "scan/run");
+      if (job === undefined) throw new Error("no scan/run definition");
+
+      const run = runJob(job, {
+        data: { scanId: "s", domain: "example.com", tier },
+        now: MONDAY_0600_UTC,
+      });
+      await expect(run).rejects.toBeInstanceOf(NotAJobPath);
+      await expect(run).rejects.not.toBeInstanceOf(EngineNotBuilt);
+      await expect(run).rejects.toThrow("not_a_job_path");
+    },
+    REAL_SEAM_IMPORT_MS
+  );
+
+  it("the refusal names where that tier does run, so a dead-letter is readable without this file", async () => {
+    stubEnv(false);
+    const { runScan } = await import("@/jobs/engine");
+    await expect(runScan({ scanId: "s", domain: "example.com", tier: "free" })).rejects.toThrow(
+      /POST \/api\/scan/
+    );
+    await expect(runScan({ scanId: "s", domain: "example.com", tier: "weekly" })).rejects.toThrow(
+      /weekly\/refresh/
+    );
+  }, REAL_SEAM_IMPORT_MS);
+
+  it("a deep event with no siteId is a malformed delivery, named as one", async () => {
+    stubEnv(false);
+    const { runScan, NotAJobPath } = await import("@/jobs/engine");
+    const run = runScan({ scanId: "s", domain: "example.com", tier: "deep" });
+    await expect(run).rejects.toThrow(/no siteId/);
+    // Not the tier refusal: deep *is* this job's tier, and the payload is
+    // what is wrong.
+    await expect(run).rejects.not.toBeInstanceOf(NotAJobPath);
+  }, REAL_SEAM_IMPORT_MS);
+
+  it("nothing in src/** sends a scan/run event for any tier but deep", async () => {
+    // The claim the header rests on, swept rather than asserted from
+    // memory: the free report runs inline on the request because §6.4 puts
+    // it at "≈60s live" with a human waiting, and the weekly pass comes
+    // through `weekly/refresh`'s own claim. A sender for either tier would
+    // be a second door, and this is what finds one.
+    const { readdirSync, readFileSync } = await import("node:fs");
+    const path = await import("node:path");
+    const root = path.resolve(import.meta.dirname, "../../src");
+
+    function walk(dir: string): string[] {
+      const out: string[] = [];
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) out.push(...walk(full));
+        else if (entry.isFile() && (full.endsWith(".ts") || full.endsWith(".tsx"))) out.push(full);
+      }
+      return out;
+    }
+
+    const senders: { file: string; tier: string }[] = [];
+    for (const file of walk(root)) {
+      const source = readFileSync(file, "utf8");
+      for (const call of source.matchAll(/sendJobEvent\(\s*"scan\/run"\s*,\s*\{([\s\S]*?)\}\s*\)/g)) {
+        const tier = /tier:\s*"(\w+)"/.exec(call[1] ?? "")?.[1] ?? "unstated";
+        senders.push({ file: path.relative(root, file), tier });
+      }
+    }
+
+    // Rule 5.5: a sweep that found no sender at all would pass while
+    // proving nothing, so the count is stated too.
+    expect(senders.length).toBeGreaterThan(0);
+    expect(senders.filter((s) => s.tier !== "deep")).toEqual([]);
+  });
+
+  it("and the free path really does run inline, on the request", async () => {
+    const { readFileSync } = await import("node:fs");
+    const path = await import("node:path");
+    const route = readFileSync(
+      path.resolve(import.meta.dirname, "../../src/app/api/scan/route.ts"),
+      "utf8"
+    );
+    expect(route).toMatch(/runScan\(\{[^}]*tier:\s*"free"/);
+    expect(route).not.toMatch(/sendJobEvent/);
+  });
+});
+
 describe("nothing fakes work — an unbuilt engine fails loudly", () => {
   // Three ids are excluded, each because its engine landed.
   //
@@ -448,6 +560,11 @@ describe("nothing fakes work — an unbuilt engine fails loudly", () => {
   // by `tests/journeys/05-daily-loop.test.ts`. Issue #200 moved a third,
   // `publish/retry` (§9's retry sweep,
   // `tests/publish/attempt/due.test.ts`).
+  // Issue #229 moved the last one, `scan/run`, and moved it for a
+  // different reason from the six above: its engine is not unbuilt. The
+  // deep arm calls `runDeepPass` and reaches the database; the other two
+  // tiers are not job paths at all and now say so. `scan/run — deep only`
+  // below is its case.
   const UNBUILT_JOB_IDS = JOB_IDS.filter(
     (id) =>
       id !== "account/maintenance" &&
@@ -456,29 +573,17 @@ describe("nothing fakes work — an unbuilt engine fails loudly", () => {
       id !== "lead/nurture" &&
       id !== "draft/generate" &&
       id !== "publish/execute" &&
-      id !== "publish/retry"
+      id !== "publish/retry" &&
+      id !== "scan/run"
   );
 
-  it.each(UNBUILT_JOB_IDS)("%s throws EngineNotBuilt against the real seam", async (id) => {
-    stubEnv(false);
-    const { jobs } = await import("@/jobs");
-    const { runJob } = await import("@/jobs/run");
-    const { EngineNotBuilt } = await import("@/jobs/engine");
-    const job = jobs.find((j) => j.id === id);
-    if (job === undefined) throw new Error(`no definition for ${id}`);
-    const data: Record<JobId, Record<string, unknown>> = {
-      "scan/run": { scanId: "s", domain: "example.com", tier: "free" },
-      "publish/execute": { draftId: "d", destinationId: "dest" },
-      "publish/verify": { publicationId: "p" },
-      "publish/retry": {},
-      "lead/nurture": {},
-      "draft/generate": {},
-      "weekly/refresh": {},
-      "account/maintenance": {},
-    };
-    await expect(runJob(job, { data: data[id], now: MONDAY_0600_UTC })).rejects.toBeInstanceOf(
-      EngineNotBuilt
-    );
+  it("every engine behind the seven is either built or an explicit refusal — none is a stub any more", () => {
+    // Rule 5.5: this describe's `it.each` would silently run zero cases
+    // now that the list is empty, and a suite that asserts nothing reads
+    // exactly like one that passes. So the emptiness is the assertion, and
+    // an engine regressing to a stub puts its id back in this list and
+    // fails here.
+    expect(UNBUILT_JOB_IDS).toEqual([]);
   });
 
   it("account/maintenance skips an unbuilt obligation rather than dying on it (issue #36), and every obligation behind it still runs", async () => {
