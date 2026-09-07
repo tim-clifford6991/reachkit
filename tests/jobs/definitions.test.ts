@@ -11,7 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { stubEnv } from "./env-fixture";
 import type { JobDefinition, JobId } from "@/jobs/types";
 import { JOB_IDS } from "@/jobs/types";
-import { MAINTENANCE_TICK_MINUTES, NURTURE_MAX_TOUCHES, PUBLISH_VERIFY_DELAY_H } from "@/lib/config/constants";
+import { MAINTENANCE_TICK_MINUTES, NURTURE_H, PUBLISH_VERIFY_DELAY_H } from "@/lib/config/constants";
 
 type Call = { readonly fn: string; readonly arg: unknown };
 
@@ -37,6 +37,7 @@ function engineDouble(): Record<string, unknown> {
     publishApproved: record("publishApproved", done),
     verifyLive: record("verifyLive", done),
     advanceSequence: record("advanceSequence", done),
+    advanceDueSequences: record("advanceDueSequences", { dropped: 0, released: 0, sent: 0 }),
     paymentsAwaitingSignIn: record("paymentsAwaitingSignIn", []),
     chaseSignIn: record("chaseSignIn", done),
     paymentsWithoutAccounts: record("paymentsWithoutAccounts", []),
@@ -89,7 +90,7 @@ describe("each job is a trigger, a bounded loop and one call into the engine", (
     ["publish/execute", "event"],
     ["publish/verify", "event"],
     ["weekly/refresh", "cron"],
-    ["lead/nurture", "event"],
+    ["lead/nurture", "cron"],
     ["account/maintenance", "cron"],
   ] as const)("%s is triggered by a %s", async (id, kind) => {
     expect((await definition(id)).trigger.kind).toBe(kind);
@@ -239,37 +240,66 @@ describe("publish/execute and publish/verify", () => {
   });
 });
 
-describe("lead/nurture — per-touch dedupe inside a sequence", () => {
-  it("keys on (lead_id, touch_index), never on the sequence key", async () => {
+describe("lead/nurture — an hourly tick over due work (#182)", () => {
+  it("is a clock job on the hour, and carries no idempotency key", async () => {
     const job = await definition("lead/nurture");
-    expect(job.idempotencyKey).toEqual(["leadId", "touchIndex"]);
+    const { NURTURE_TICK_CRON } = await import("@/jobs/lead-nurture");
+    expect(job.trigger).toEqual({ kind: "cron", cron: NURTURE_TICK_CRON });
+    expect(NURTURE_TICK_CRON).toBe("0 * * * *");
+    // A tick carries no payload, so there is no natural key to dedupe on:
+    // what stops a double send is the row's own position check.
+    expect(job.idempotencyKey).toEqual([]);
+  });
+
+  it("an hour is finer than the smallest offset the schedule names, so no touch is late by more than one tick", async () => {
+    // The bound this rests on. If `NURTURE_H` ever named an offset under an
+    // hour, hourly would stop being enough and this fails rather than
+    // silently delivering late.
+    expect(Math.min(...NURTURE_H)).toBeGreaterThanOrEqual(1);
+  });
+
+  it("hands the tick's own clock to the sweep, and nothing else", async () => {
+    const job = await definition("lead/nurture");
+    await job.run({ data: {}, now: MONDAY_0600_UTC });
+    // `now` is the tick's, injected — the job reads no clock of its own,
+    // which is what makes due-ness testable without travelling in time.
+    expect(calls).toEqual([{ fn: "advanceDueSequences", arg: MONDAY_0600_UTC }]);
+  });
+
+  it("an hour with nothing due is recorded as skipped, never as a run", async () => {
+    const job = await definition("lead/nurture");
+    const outcome = await job.run({ data: {}, now: MONDAY_0600_UTC });
+    expect(outcome).toEqual({ outcome: "skipped", subjectId: null, reason: "not-due" });
+  });
+
+  it.each([
+    ["a drop", { dropped: 1, released: 0, sent: 0 }],
+    ["a release", { dropped: 0, released: 1, sent: 0 }],
+    ["a touch", { dropped: 0, released: 0, sent: 1 }],
+  ])("an hour that moved %s is a run", async (_what, swept) => {
+    // Each of the sweep's three steps counts on its own: a tick that only
+    // dropped a lapsed sequence did real work, and reporting it as
+    // not-due would hide the one step with no path back.
+    results.set("advanceDueSequences", swept);
+    const job = await definition("lead/nurture");
+    expect(await job.run({ data: {}, now: MONDAY_0600_UTC })).toEqual({
+      outcome: "ran",
+      subjectId: null,
+    });
+  });
+
+  it("the job holds no sequence logic — no offsets, no bound, no clock arithmetic", async () => {
     const source = (await import("node:fs")).readFileSync(
       (await import("node:path")).resolve(import.meta.dirname, "../../src/jobs/lead-nurture.ts"),
       "utf8"
     );
-    // The sequence key `(lower(email), domain)` stays the engine's one
-    // enforcer; this job must not re-derive it. Comments are stripped
-    // first — this file names the key in prose, on purpose, to say that it
-    // is someone else's.
+    // Comments are stripped first: this file names `NURTURE_H`,
+    // `NURTURE_MAX_TOUCHES` and the sequence key in prose, on purpose, to
+    // say that each of them is someone else's.
     const code = source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+    expect(code).not.toMatch(/NURTURE_H|NURTURE_MAX_TOUCHES/);
     expect(code).not.toMatch(/lower\(|\bemail\b/);
-  });
-
-  it("advances one touch per delivery", async () => {
-    const job = await definition("lead/nurture");
-    const outcome = await job.run({ data: { leadId: "lead-1", touchIndex: 1 }, now: MONDAY_0600_UTC });
-    expect(calls).toEqual([{ fn: "advanceSequence", arg: { leadId: "lead-1", touchIndex: 1 } }]);
-    expect(outcome).toEqual({ outcome: "ran", subjectId: "lead-1" });
-  });
-
-  it("refuses a touch past the bound rather than handing it on", async () => {
-    const job = await definition("lead/nurture");
-    const outcome = await job.run({
-      data: { leadId: "lead-1", touchIndex: NURTURE_MAX_TOUCHES },
-      now: MONDAY_0600_UTC,
-    });
-    expect(outcome).toEqual({ outcome: "skipped", subjectId: "lead-1", reason: "no-subject" });
-    expect(calls).toEqual([]);
+    expect(code).not.toMatch(/new Date\(|Date\.now|getTime\(/);
   });
 });
 
@@ -359,11 +389,12 @@ describe("nothing fakes work — an unbuilt engine fails loudly", () => {
   // the database for the same reason. Its own suites are
   // `tests/publish/verify/**` and `tests/mail/published/**`.
   //
-  // `lead/nurture` — issue #176: `advanceSequence()` now calls
+  // `lead/nurture` — issue #176 built `advanceSequence()` and #182 made
+  // this job the hourly sweep instead; either way it reaches
   // `src/lib/mail/leads/sequence`, which reads the lead store. Its own
-  // suites are `tests/mail/leads/**`; the wiring — that this job calls the
-  // seam with the event's own `(leadId, touchIndex)` and maps what it
-  // answers — is asserted above, against the recorded seam.
+  // suites are `tests/mail/leads/**` and `tests/jobs/nurture-clock.test.ts`;
+  // the wiring — that this job hands the tick's clock to the sweep and maps
+  // what it answers — is asserted above, against the recorded seam.
   //
   // The remaining one stays, and an engine that lands moves its id out of
   // here and into a suite of its own. Issue #173 moved two: `draft/generate`
@@ -392,7 +423,7 @@ describe("nothing fakes work — an unbuilt engine fails loudly", () => {
       "scan/run": { scanId: "s", domain: "example.com", tier: "free" },
       "publish/execute": { draftId: "d", destinationId: "dest" },
       "publish/verify": { publicationId: "p" },
-      "lead/nurture": { leadId: "l", touchIndex: 0 },
+      "lead/nurture": {},
       "draft/generate": {},
       "weekly/refresh": {},
       "account/maintenance": {},

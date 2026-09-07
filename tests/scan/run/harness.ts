@@ -110,6 +110,17 @@ export function fakeDb(): FakeDb {
         query.filters.push([column, value]);
         return self;
       },
+      // #175: the calendar's own read of a month's scheduled pages bounds
+      // the window at both ends, and §9's held set asks for the rows whose
+      // `publishable_since` is not null.
+      lte(column: string, value: unknown) {
+        query.filters.push([column, value]);
+        return self;
+      },
+      not(column: string, _operator: string, value: unknown) {
+        query.filters.push([column, value]);
+        return self;
+      },
       gt(column: string, value: unknown) {
         query.filters.push([column, value]);
         return self;
