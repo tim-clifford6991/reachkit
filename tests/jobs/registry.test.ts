@@ -1,9 +1,9 @@
 // tests/jobs/registry.test.ts — BUILD §11
 //
 // The registry's four structural promises:
-//   1. `serve()` exposes exactly GET, POST and PUT, over exactly the seven
+//   1. `serve()` exposes exactly GET, POST and PUT, over exactly the eight
 //      definitions in `jobs` — an unregistered job is unreachable.
-//   2. The `JobId` union is closed at seven; an eighth fails here.
+//   2. The `JobId` union is closed at eight; a ninth fails here.
 //   3. The platform is named in exactly one file under `src/jobs/`, and in
 //      no file under `src/lib/` — so the reversal is that file plus the one
 //      route.
@@ -36,13 +36,14 @@ function filesUnder(dir: string): string[] {
   return out;
 }
 
-describe("the seven job ids", () => {
-  it("is exactly the seven BUILD §11 and the maintenance tick name", () => {
+describe("the eight job ids", () => {
+  it("is exactly the eight: BUILD §11's six, the maintenance tick, and §9's retry sweep", () => {
     expect([...JOB_IDS]).toEqual([
       "scan/run",
       "draft/generate",
       "publish/execute",
       "publish/verify",
+      "publish/retry",
       "weekly/refresh",
       "lead/nurture",
       "account/maintenance",
@@ -54,7 +55,7 @@ describe("the seven job ids", () => {
   });
 });
 
-describe("the registry is closed over those seven", () => {
+describe("the registry is closed over those eight", () => {
   it("`jobs` holds exactly one definition per id, in JOB_IDS order", async () => {
     const { jobs } = await import("@/jobs");
     expect(jobs.map((j) => j.id)).toEqual([...JOB_IDS]);
@@ -68,7 +69,7 @@ describe("the registry is closed over those seven", () => {
     }
   });
 
-  it("serve() exposes exactly GET, POST and PUT, over exactly the registered seven", async () => {
+  it("serve() exposes exactly GET, POST and PUT, over exactly the registered eight", async () => {
     const served: unknown[][] = [];
     vi.resetModules();
     vi.doMock("inngest/next", () => ({

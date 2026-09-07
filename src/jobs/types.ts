@@ -1,9 +1,9 @@
 // src/jobs/types.ts — BUILD §11, ARCHITECTURE `src/jobs/**`
 //
-// The job-id union, closed at exactly seven members, and the
+// The job-id union, closed at exactly eight members, and the
 // platform-neutral shapes the registry is built from. Adding an id is a
 // change to this file and to `tests/jobs/registry.test.ts`, which asserts
-// the set — an eighth id cannot arrive by accident.
+// the set — a ninth id cannot arrive by accident.
 //
 // `BUILD.md` §11's table names six jobs. `account/maintenance` is the
 // seventh: the clock-triggered obligations no read path can serve (a
@@ -12,20 +12,29 @@
 // and each is owned by the module that holds its rule — this tick only
 // hands the subject back.
 //
+// `publish/retry` is the eighth (issue #200). §9's "retry x3" needs a
+// trigger of its own: a retry cannot be a chained event, because
+// `publish/execute`'s idempotency key is `(draftId, destinationId)` and
+// re-sending it for the same page is deduped rather than delayed. It could
+// not ride an existing tick either — `draft/generate`'s is gated to the
+// site's own evening, and `account/maintenance` is deliberately outside
+// the kill switch, which a job that publishes may not be.
+//
 // Nothing here names the job platform. `client.ts` is the one file that
 // does, so replacing the platform is that file plus one route.
 
-/** Exactly seven, with their triggers. */
+/** Exactly eight, with their triggers. */
 export type JobId =
   | "scan/run" // on demand; tier is a parameter (free | deep | weekly)
   | "draft/generate" // hourly tick, due at the site's own evening hour
   | "publish/execute" // on approval or on window expiry
   | "publish/verify" // +24h after a publish
+  | "publish/retry" // hourly tick; the retries whose moment has come round
   | "weekly/refresh" // hourly tick, due per site-local Monday (ADR-060)
   | "lead/nurture" // event plus delay: 24h / 72h / 168h
   | "account/maintenance"; // every MAINTENANCE_TICK_MINUTES; five due-work queries
 
-/** The same seven as a value, so the registry's closure is assertable. The
+/** The same eight as a value, so the registry's closure is assertable. The
  *  `satisfies` pins it to the union: a member missing here or an id not in
  *  the union is a type error, not a test failure discovered later. */
 export const JOB_IDS = Object.freeze([
@@ -33,13 +42,14 @@ export const JOB_IDS = Object.freeze([
   "draft/generate",
   "publish/execute",
   "publish/verify",
+  "publish/retry",
   "weekly/refresh",
   "lead/nurture",
   "account/maintenance",
 ] as const) satisfies readonly JobId[];
 
 /** The event names the product sends. One per event-triggered job; the
- *  three clock-triggered jobs have none. */
+ *  four clock-triggered jobs have none. */
 export type JobEvent = Extract<
   JobId,
   "scan/run" | "publish/execute" | "publish/verify" | "lead/nurture"

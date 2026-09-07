@@ -46,6 +46,10 @@ function engineDouble(): Record<string, unknown> {
     // switch stops it too — this counter is what proves it.
     noticeBrokenDestination: ran,
     publishApproved: ran,
+    duePublishRetries: async () => {
+      engineCalls.count += 1;
+      return [{ draftId: "d1", destinationId: "dest-1" }];
+    },
     verifyLive: ran,
     advanceSequence: ran,
     advanceDueSequences: async () => {
@@ -103,13 +107,22 @@ afterEach(() => {
 });
 
 describe('BUILD §11 bounds — "kill switch env var stops scan+generate+publish"', () => {
-  it("the scope is exactly those three ids", async () => {
+  it("the scope is exactly the ids that scan, generate or publish", async () => {
     stubEnv(false);
     const { KILL_SWITCH_SCOPE } = await import("@/jobs/kill-switch");
-    expect([...KILL_SWITCH_SCOPE]).toEqual(["scan/run", "draft/generate", "publish/execute"]);
+    // `publish/retry` (issue #200) is the same delivery `publish/execute`
+    // makes, occasioned by a clock rather than by an approval. A stop that
+    // held one and not the other would stop a page a customer approved
+    // while letting one that failed go out.
+    expect([...KILL_SWITCH_SCOPE]).toEqual([
+      "scan/run",
+      "draft/generate",
+      "publish/execute",
+      "publish/retry",
+    ]);
   });
 
-  it.each(["scan/run", "draft/generate", "publish/execute"] as const)(
+  it.each(["scan/run", "draft/generate", "publish/execute", "publish/retry"] as const)(
     "%s is stopped before any spend and before any write",
     async (id) => {
       const { outcome, engineCalls: calls } = await invoke(id, true);

@@ -35,6 +35,7 @@ function engineDouble(): Record<string, unknown> {
     runScan: record("runScan", done),
     generateDraft: record("generateDraft", done),
     publishApproved: record("publishApproved", done),
+    duePublishRetries: record("duePublishRetries", [{ draftId: "d1", destinationId: "dest-1" }]),
     verifyLive: record("verifyLive", done),
     advanceSequence: record("advanceSequence", done),
     advanceDueSequences: record("advanceDueSequences", { dropped: 0, released: 0, sent: 0 }),
@@ -89,6 +90,7 @@ describe("each job is a trigger, a bounded loop and one call into the engine", (
     ["draft/generate", "cron"],
     ["publish/execute", "event"],
     ["publish/verify", "event"],
+    ["publish/retry", "cron"],
     ["weekly/refresh", "cron"],
     ["lead/nurture", "cron"],
     ["account/maintenance", "cron"],
@@ -230,6 +232,30 @@ describe("publish/execute and publish/verify", () => {
       afterHours: PUBLISH_VERIFY_DELAY_H,
     });
     expect(PUBLISH_VERIFY_DELAY_H).toBe(24);
+  });
+
+  it("publish/retry is an hourly tick that re-enters through the same seam an approval does", async () => {
+    // The whole of §9's retry, and the reason it is a tick: a re-sent
+    // `publish/execute` event is deduped by `(draftId, destinationId)`
+    // rather than delayed, so the retry had nowhere to come from.
+    const job = await definition("publish/retry");
+    expect(job.trigger).toEqual({ kind: "cron", cron: "0 * * * *" });
+    // Idempotency is the row, not the payload: a tick carries no data.
+    expect(job.idempotencyKey).toEqual([]);
+    const outcome = await job.run({ data: {}, now: MONDAY_0600_UTC });
+    expect(calls).toEqual([
+      { fn: "duePublishRetries", arg: MONDAY_0600_UTC },
+      { fn: "publishApproved", arg: { draftId: "d1", destinationId: "dest-1" } },
+    ]);
+    expect(outcome).toEqual({ outcome: "ran", subjectId: null });
+  });
+
+  it("an hour with no retry due is a recorded skip, never a run", async () => {
+    results.set("duePublishRetries", []);
+    const job = await definition("publish/retry");
+    const outcome = await job.run({ data: {}, now: MONDAY_0600_UTC });
+    expect(outcome).toEqual({ outcome: "skipped", subjectId: null, reason: "not-due" });
+    expect(calls.some((c) => c.fn === "publishApproved")).toBe(false);
   });
 
   it("publish/verify calls verifyLive once, keyed by the publication", async () => {
@@ -401,7 +427,9 @@ describe("nothing fakes work — an unbuilt engine fails loudly", () => {
   // (BP-014's site list, `tests/publish/daily/sites.test.ts`) and
   // `publish/execute` (BP-015's approve-and-deliver edge,
   // `tests/publish/attempt/deliver.test.ts`), both also walked end to end
-  // by `tests/journeys/05-daily-loop.test.ts`.
+  // by `tests/journeys/05-daily-loop.test.ts`. Issue #200 moved a third,
+  // `publish/retry` (§9's retry sweep,
+  // `tests/publish/attempt/due.test.ts`).
   const UNBUILT_JOB_IDS = JOB_IDS.filter(
     (id) =>
       id !== "account/maintenance" &&
@@ -409,7 +437,8 @@ describe("nothing fakes work — an unbuilt engine fails loudly", () => {
       id !== "publish/verify" &&
       id !== "lead/nurture" &&
       id !== "draft/generate" &&
-      id !== "publish/execute"
+      id !== "publish/execute" &&
+      id !== "publish/retry"
   );
 
   it.each(UNBUILT_JOB_IDS)("%s throws EngineNotBuilt against the real seam", async (id) => {
@@ -423,6 +452,7 @@ describe("nothing fakes work — an unbuilt engine fails loudly", () => {
       "scan/run": { scanId: "s", domain: "example.com", tier: "free" },
       "publish/execute": { draftId: "d", destinationId: "dest" },
       "publish/verify": { publicationId: "p" },
+      "publish/retry": {},
       "lead/nurture": {},
       "draft/generate": {},
       "weekly/refresh": {},

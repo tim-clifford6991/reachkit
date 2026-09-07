@@ -59,10 +59,13 @@ beforeEach(() => {
   sendReminder.mockResolvedValue({ sent: true, index: 0 });
 });
 
-describe("§11 — the registry stays closed at seven; setup adds no eighth job", () => {
-  it("the seven ids are unchanged", () => {
+describe("§11 — the registry stays closed; setup adds no job of its own", () => {
+  it("the ids are unchanged by anything in this file", () => {
+    // Eight since issue #200 added §9's retry sweep. The number is what
+    // makes an id arriving by accident fail here; what this suite is about
+    // is that *setup* adds none.
     expect(jobs.map((j) => j.id)).toEqual([...JOB_IDS]);
-    expect(JOB_IDS).toHaveLength(7);
+    expect(JOB_IDS).toHaveLength(8);
   });
 });
 
