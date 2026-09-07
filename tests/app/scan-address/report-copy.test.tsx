@@ -59,6 +59,15 @@ const SCREEN_KEYS: readonly CopyKey[] = [
   "ai-answers.question.not-you",
   "ai-answers.question.no-answer",
   "ai-answers.question.provenance",
+  // §6.2's three answer columns (issue #157). Four headers and the two
+  // cell states the columns add to the ones the questions list already
+  // names.
+  "ai-answers.engine.column.question",
+  "ai-answers.engine.ai-overview",
+  "ai-answers.engine.ai-mode",
+  "ai-answers.engine.chatgpt",
+  "ai-answers.engine.cell.cited",
+  "ai-answers.engine.not-measured",
   "ai-answers.absent",
   // 2b · Google presence
   "presence.title",
