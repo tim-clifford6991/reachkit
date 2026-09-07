@@ -28,3 +28,23 @@ body {
   background: var(--bg);
   color: var(--ink);
 }
+
+/* The hairline, named (issue #243).
+ *
+ * `design/tokens.md` §2b (frozen under `archive/sdlc-factory-2026-09-04/`),
+ * verbatim: "`--border-hair` `1px` — Every rule, card edge, cell border and
+ * input outline. **Named, not changed** — the value was already spent about
+ * twenty times as a bare `1px`, the last raw value in the stylesheet."
+ *
+ * Here rather than in `src/ui/theme.css` for the reason
+ * `src/ui/layout/layout.css` gives for its three: that file's `:root` is
+ * `BUILD.md` §2.1's block verbatim and `tests/ui/tokens.test.ts` refuses any
+ * token §2.1 does not state. It belongs beside this entry because this is
+ * the file that makes §2.2's component set real, and the width is what
+ * `tailwind.config.ts` hands daisyUI as `--border` — the one slot its
+ * components draw every edge from. `--line` is the colour of the same edge
+ * and stays in §2.1.
+ */
+:root {
+  --border-hair: 1px;
+}
