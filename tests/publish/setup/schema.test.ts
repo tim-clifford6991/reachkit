@@ -20,7 +20,7 @@ const DB_HOST = "127.0.0.1";
 const DB_PORT = "5432";
 const DB_USER = "reachkit";
 const DB_PASSWORD = "reachkit";
-const DB_NAME = "reachkit_scratch";
+const DB_NAME = process.env.REACHKIT_DB_NAME ?? "reachkit_scratch";
 const MIGRATIONS = path.resolve(import.meta.dirname, "../../../supabase/migrations");
 const APPLIED = ["00000000000001_baseline.sql", "20260906130000_sites_setup.sql"];
 

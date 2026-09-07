@@ -29,7 +29,7 @@ const DB_HOST = "127.0.0.1";
 const DB_PORT = "5432";
 const DB_USER = "reachkit";
 const DB_PASSWORD = "reachkit";
-const DB_NAME = "reachkit_scratch";
+const DB_NAME = process.env.REACHKIT_DB_NAME ?? "reachkit_scratch";
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
 const MIGRATION_NAME = "20260906120000_scans_weekly.sql";
 const MIGRATIONS = path.join(REPO_ROOT, "supabase/migrations");
@@ -224,7 +224,7 @@ describe("the file is named for the topic that owns it", () => {
 // `tests/db/rls.test.ts` documents: `tests/setup.ts` refuses the real
 // globals process-wide, `db()`/`dbAdmin()` take no `fetch` hook, and the
 // regex is what keeps this from becoming a general network allowance.
-const SUPABASE_URL = "http://127.0.0.1:3001";
+const SUPABASE_URL = process.env.SUPABASE_URL ?? "http://127.0.0.1:3001";
 const JWT_SECRET = "reachkit-scratch-jwt-secret-at-least-32-chars-long";
 
 function base64url(input: Buffer): string {
