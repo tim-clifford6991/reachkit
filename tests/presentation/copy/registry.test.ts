@@ -748,10 +748,22 @@ describe("owner-owed and empty agree both ways", () => {
     // name, so the empty value's throw would take the whole screen down
     // instead. 150 owner-owed and 168 ruled unchanged, 177 + 4 = 181
     // awaiting copy, 495 + 4 = 499 total.
-    expect(OWNER_OWED.length).toBe(150);
+    //
+    // 2026-09-07, issue #181 (§12's Monday digest) adds **six**, all
+    // **empty** and owner-owed on the mail arm of the 2026-09-05 ruling:
+    // the names of the six sections `mail.week_partly_measured`
+    // interpolates. That line could say a week was measured with sections
+    // it did not reach and never say which — `MeasurementState.partial`
+    // takes copy keys and no key existed for any of the six parts
+    // `unmeasuredPartsOf` reports, which is the half of REQ-064 c4 that
+    // carries the information. Six keys and not one with the part
+    // interpolated: they name six different measurements, and a name is
+    // not a value. 150 + 6 = 156 owner-owed and empty, 181 awaiting copy
+    // and 168 ruled unchanged, 499 + 6 = 505 total.
+    expect(OWNER_OWED.length).toBe(156);
     expect(AWAITING_COPY.length).toBe(181);
     expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(168);
-    expect(Object.keys(COPY).length).toBe(499);
+    expect(Object.keys(COPY).length).toBe(505);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.
