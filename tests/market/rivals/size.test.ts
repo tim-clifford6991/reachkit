@@ -5,11 +5,12 @@
 // vendor seam and every date is injected, so nothing here reads a clock or
 // a network.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { CACHE_WINDOWS_D, PRICE_BOOK } from "../../../src/lib/config/constants.ts";
+import { CACHE_WINDOWS_D, PRICE_BOOK, RIVAL_SIZE_BANDS } from "../../../src/lib/config/constants.ts";
 import type { CostContext } from "../../../src/lib/costs/index.ts";
 import type { Measured } from "../../../src/lib/measure/measured.ts";
-import type { RankedRow } from "../../../src/lib/vendors/dataforseo/types.ts";
+import type { RankedResult } from "../../../src/lib/vendors/dataforseo/types.ts";
 import { bandRivalSize } from "../../../src/lib/market/rivals/band.ts";
+import { swapOffer } from "../../../src/lib/market/rivals/offer.ts";
 import { codeOf, importsOf } from "./source.ts";
 
 const { rankedMock } = vi.hoisted(() => ({ rankedMock: vi.fn() }));
@@ -29,18 +30,26 @@ beforeEach(async () => {
   ({ sizeRivals, dueForResizing } = await import("../../../src/lib/market/rivals/size.ts"));
 });
 
-/** `n` ranked rows, which is what a rival's count is read from. */
-function rows(n: number): Measured<RankedRow[]> {
-  const value = Array.from({ length: n }, (_, i) => ({
-    keyword: `k${i}`,
-    position: 1,
-    searchVolume: 10,
-    url: "https://rival.com/",
-  }));
+/** One `ranked_keywords` answer: `n` rows, and the vendor's own total.
+ *
+ *  `total` defaults to `null` — the vendor reported none — which is the
+ *  case that falls back to the row count, so every assertion written
+ *  before #117 still says what it said. A case about the total passes one.
+ */
+function rows(n: number, total: number | null = null): Measured<RankedResult> {
+  const value: RankedResult = {
+    rows: Array.from({ length: n }, (_, i) => ({
+      keyword: `k${i}`,
+      position: 1,
+      searchVolume: 10,
+      url: "https://rival.com/",
+    })),
+    total,
+  };
   return n === 0 ? { kind: "zero", value, at: AT } : { kind: "measured", value, at: AT };
 }
 
-function failed(): Measured<RankedRow[]> {
+function failed(): Measured<RankedResult> {
   return { kind: "unmeasured", reason: "undeterminable", at: AT };
 }
 
@@ -285,3 +294,92 @@ describe("cold start — a customer who ranks for nothing still sizes every riva
 function index0(length: number): number {
   return length * 3;
 }
+
+// ── issue #117: the count is the vendor's total, so `far` is reachable ─────
+//
+// Before this, a rival's count was the number of rows the call returned and
+// was therefore capped at `PRICE_BOOK.RANKED_RIVAL_ROWS` (100). `far` needs
+// a count above `max(RIVAL_SIZE_BANDS.middleFloor, middleMultiple × C)` —
+// 500 at the floor — so no live rival could ever be banded `far` and
+// `swapOffer` could never fire in production. These are the assertions that
+// fail if `rankedCount` goes back to reading `rows.length`.
+describe("REQ-096 c2 · BUILD §7 — a rival's size is the vendor's own total, not the page of rows bought", () => {
+  it("size/count-is-the-total — the rows bought do not bound the count", async () => {
+    rankedMock.mockResolvedValueOnce(rows(PRICE_BOOK.RANKED_RIVAL_ROWS, 4231));
+    const out = await sizeRivals(fakeCostContext(), { rivals: ["big.com"], ownRanked: 40, at: AT });
+
+    const entry = (out.kind === "unmeasured" ? [] : out.value)[0] as Extract<RivalSize, { state: "sized" }>;
+    expect(entry.rankedCount).toBe(4231);
+    // The ceiling this issue is about: the count is not the rows, and it is
+    // far above the most rows this product ever buys for a rival.
+    expect(entry.rankedCount).toBeGreaterThan(PRICE_BOOK.RANKED_RIVAL_ROWS);
+  });
+
+  it("size/far-is-reachable — a rival above the middle bar bands `far` and the swap offer fires", async () => {
+    rankedMock.mockResolvedValueOnce(rows(PRICE_BOOK.RANKED_RIVAL_ROWS, 4231));
+    const out = await sizeRivals(fakeCostContext(), { rivals: ["big.com"], ownRanked: 40, at: AT });
+
+    const entry = (out.kind === "unmeasured" ? [] : out.value)[0] as Extract<RivalSize, { state: "sized" }>;
+    expect(entry.band).toBe("far");
+    expect(swapOffer(entry)).toEqual({
+      offered: true,
+      rival: "big.com",
+      destination: "settings.competitors",
+    });
+  });
+
+  it("size/far-was-unreachable-from-rows — the same rival read as rows is not `far`", async () => {
+    // The defect, stated as a test: at the row ceiling the count can never
+    // pass the middle floor, so the band this rival deserves is out of
+    // reach and the offer never fires.
+    expect(PRICE_BOOK.RANKED_RIVAL_ROWS).toBeLessThan(RIVAL_SIZE_BANDS.middleFloor);
+    const asRows = bandRivalSize({ rivalRanked: PRICE_BOOK.RANKED_RIVAL_ROWS, ownRanked: 40 });
+    expect(asRows).not.toBe("far");
+    expect(swapOffer({ domain: "big.com", state: "sized", rankedCount: 100, band: asRows, at: AT, current: true })).toEqual({
+      offered: false,
+    });
+  });
+
+  it("size/no-total-bands-nearer — the error direction is fewer opportunities, never more", async () => {
+    // A vendor answer with no `total_count`: the count falls back to the
+    // rows, which understates a large rival and bands it nearer. Fewer
+    // `far` rivals and fewer swap offers — never a swap offered against a
+    // rival we cannot show is out of reach.
+    rankedMock.mockResolvedValueOnce(rows(PRICE_BOOK.RANKED_RIVAL_ROWS));
+    const out = await sizeRivals(fakeCostContext(), { rivals: ["big.com"], ownRanked: 40, at: AT });
+
+    const entry = (out.kind === "unmeasured" ? [] : out.value)[0] as Extract<RivalSize, { state: "sized" }>;
+    expect(entry.rankedCount).toBe(PRICE_BOOK.RANKED_RIVAL_ROWS);
+    expect(entry.band).not.toBe("far");
+    expect(swapOffer(entry).offered).toBe(false);
+  });
+
+  it("size/total-of-zero-is-a-count — a domain that ranks for nothing is measured, not unknown", async () => {
+    rankedMock.mockResolvedValueOnce(rows(0, 0));
+    const out = await sizeRivals(fakeCostContext(), { rivals: ["nothing.com"], ownRanked: 40, at: AT });
+
+    const entry = (out.kind === "unmeasured" ? [] : out.value)[0] as Extract<RivalSize, { state: "sized" }>;
+    expect(entry.state).toBe("sized");
+    expect(entry.rankedCount).toBe(0);
+    expect(entry.band).toBe("near");
+  });
+
+  it("size/no-extra-rows-bought — the total costs nothing: one call, at the pinned row count", async () => {
+    rankedMock.mockResolvedValueOnce(rows(PRICE_BOOK.RANKED_RIVAL_ROWS, 4231));
+    await sizeRivals(fakeCostContext(), { rivals: ["big.com"], ownRanked: 40, at: AT });
+
+    expect(rankedMock).toHaveBeenCalledTimes(1);
+    expect(rankedMock.mock.calls[0]?.[1]).toEqual({
+      domain: "big.com",
+      rows: PRICE_BOOK.RANKED_RIVAL_ROWS,
+    });
+  });
+
+  it("size/band-still-re-derives-from-the-stored-counts — now over the total", async () => {
+    rankedMock.mockResolvedValueOnce(rows(PRICE_BOOK.RANKED_RIVAL_ROWS, 4231));
+    const out = await sizeRivals(fakeCostContext(), { rivals: ["big.com"], ownRanked: 40, at: AT });
+
+    const entry = (out.kind === "unmeasured" ? [] : out.value)[0] as Extract<RivalSize, { state: "sized" }>;
+    expect(entry.band).toBe(bandRivalSize({ rivalRanked: entry.rankedCount, ownRanked: 40 }));
+  });
+});

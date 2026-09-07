@@ -24,15 +24,14 @@
 // here reads the customer's own presence to decide whether a rival is
 // worth measuring.
 //
-// **Known bound on `rankedCount`, stated rather than hidden.** The vendor
-// client returns rows, not a total, so a rival's count is the number of
-// rows the call returned and is therefore capped at
-// `PRICE_BOOK.RANKED_RIVAL_ROWS`. Under that cap the `far` band — which
-// needs a count above `max(500, 5×C)` — cannot be reached from live data,
-// and `swapOffer` therefore never fires in production yet. The fix is one
-// field on the vendor client's ranked call (DataForSEO reports a total
-// beside its items) and it is shared with the Overview "how far ahead"
-// ratio, so it is not taken here — it is issue #117.
+// **`rankedCount` is the vendor's own total, not the rows bought** (#117).
+// The call still buys `PRICE_BOOK.RANKED_RIVAL_ROWS` rows and costs what
+// it always did; `total_count` rides back beside them. That is what makes
+// the `far` band — a rival above `max(500, 5×C)` — reachable at all, and
+// with it `swapOffer`. Where the vendor reports no total the count falls
+// back to the rows, which understates a large rival and therefore bands it
+// nearer: fewer `far` rivals, fewer swap offers, never more. The error
+// direction is the one §7 asks for.
 //
 // No sentence is written here. `RivalSize`'s arms are states; the words
 // each state picks are the copy registry's and the surface's.
@@ -58,8 +57,10 @@ export type RivalSize =
   | {
       domain: string;
       state: "sized";
-      /** Searches this rival appears in, as measured. See the header's
-       *  note on the row-count ceiling. */
+      /** Searches this rival appears in: the vendor's own total, or — where
+       *  it reported none — the rows this call bought, which understates
+       *  and so bands nearer (#117). A plain number either way: the
+       *  stored blob's shape is unchanged, so no report version moves. */
       rankedCount: number;
       /** Derived from `rankedCount` and the customer's own count, never
        *  stored independently of them: re-deriving from the two counts
@@ -148,7 +149,9 @@ export async function sizeRivals(
       continue;
     }
 
-    const rankedCount = rows.value.length;
+    // The vendor's total where there is one; the rows otherwise. Never
+    // both, and never a count assembled from the two.
+    const rankedCount = rows.value.total ?? rows.value.rows.length;
     const band = bandRivalSize({ rivalRanked: rankedCount, ownRanked: a.ownRanked });
     entries.push({ domain, state: "sized", rankedCount, band, at: a.at, current: true });
     logSizing({
