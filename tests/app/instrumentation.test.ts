@@ -75,6 +75,7 @@ describe("the assertion runs once at boot, on the Node.js runtime", () => {
     await expect(register()).resolves.toBeUndefined();
     expect(logged.map((line) => JSON.parse(line))).toEqual([
       { event: "boot_invariants", check: "access-gate", outcome: "checked" },
+      { event: "boot_invariants", check: "stamp-place", outcome: "checked" },
       { event: "boot_invariants", check: "checkout", outcome: "checked" },
     ]);
     expect(errored).toEqual([]);
@@ -131,9 +132,11 @@ describe("a vendor that could not be read is not a mismatch, and does not take t
     expect(errored.map((line) => JSON.parse(line))).toEqual([
       { event: "boot_invariants", check: "checkout", outcome: "unchecked", reason: "Error" },
     ]);
-    // The gate is local and was established before the vendor was asked.
+    // The gate and the place port are local and were established before
+    // the vendor was asked.
     expect(logged.map((line) => JSON.parse(line))).toEqual([
       { event: "boot_invariants", check: "access-gate", outcome: "checked" },
+      { event: "boot_invariants", check: "stamp-place", outcome: "checked" },
     ]);
   });
 
