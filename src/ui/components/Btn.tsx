@@ -66,10 +66,20 @@ import type React from "react";
  *  accent as an **edge**, never a fill — a second filled accent button is
  *  precisely what the rule forbids, and the ink and border are the same
  *  `--accent` the primary fills with, so no new value is spent. `ok`/`bad`
- *  stay out for `ActionPanel`'s reason: a button is not a state. */
+ *  stay out for `ActionPanel`'s reason: a button is not a state.
+ *
+ *  `pressed` rides on the same arm and for the same reason (issue #288): a
+ *  **selected** state is the outline rank on the accent tint, and only that
+ *  rank. `/setup` spent the solid accent for it — six filled buttons on one
+ *  screen, and §2.5 rules the accent is not a state colour — so a caller
+ *  that asks for a pressed primary should not compile either.
+ *
+ *  A tone and a pressed state are readable together: `tone` colours the
+ *  edge and the ink, `pressed` adds the tint behind them, and neither is
+ *  the fill the solid rank owns. */
 export type BtnRank =
-  | { variant?: "primary" | "ghost" | "tertiary" | "on-accent"; tone?: undefined }
-  | { variant: "secondary"; tone?: "warn" | "accent" };
+  | { variant?: "primary" | "ghost" | "tertiary" | "on-accent"; tone?: undefined; pressed?: undefined }
+  | { variant: "secondary"; tone?: "warn" | "accent"; pressed?: boolean };
 
 export type BtnProps = BtnRank & {
   /** Required — BP-018 decision 2. No fallback string exists. */
@@ -114,6 +124,14 @@ export function Btn(p: BtnProps): React.JSX.Element {
       // what `theme-slots.test.ts` sweeps for, and this is not a daisyUI
       // modifier.
       data-tone={p.tone}
+      // `aria-pressed` is the *whole* selected state — the stylesheet keys
+      // its tint off this attribute, so a chip that looks chosen is chosen
+      // in the accessibility tree by construction and the two cannot
+      // diverge (issue #288). Absent, not `false`, where a button is not a
+      // toggle: `aria-pressed="false"` on an ordinary button tells a screen
+      // reader it is an unpressed toggle, which is a claim about a control
+      // that has no state.
+      aria-pressed={p.pressed === undefined ? undefined : p.pressed}
       disabled={p.disabled === true || p.inFlight === true}
       aria-busy={p.inFlight === true ? "true" : undefined}
       onClick={p.onClick}

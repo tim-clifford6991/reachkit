@@ -425,16 +425,19 @@ const SOLID_PRIMARY = ".btn-primary";
  *  issue that settles it. Fail-closed: the test below also asserts every
  *  entry is still over the limit, so a route that gets fixed fails here as a
  *  stale exemption rather than sitting on the list forever. */
-const MORE_THAN_ONE_PRIMARY: Readonly<Record<string, string>> = Object.freeze({
-  "/setup": [
-    "`/setup` spends the solid accent as a *selected* state: every chosen",
-    "rival chip is a filled `Btn` and the submit is one too, so a founder",
-    "with five rivals sees six. That is a different question from this",
-    "one — what a selected chip should look like under the idiom is a",
-    "design decision the owner has not been asked, and #271 is the draft",
-    "view. Opened as issue #288 rather than fixed here.",
-  ].join(" "),
-});
+/** The account screens that draw more than one today, each with the reason
+ *  and the issue that settles it. Fail-closed: the test below also asserts
+ *  every entry is still over the limit, so a route that gets fixed fails
+ *  here as a stale exemption rather than sitting on the list forever.
+ *
+ *  **Empty since issue #288.** It held `/setup`, which spent the solid
+ *  accent as a *selected* state across four groups — the chosen rivals, the
+ *  suggested rivals, the publishing mode and the destination — so a founder
+ *  with five rivals met six solid primaries and could not tell which one
+ *  submitted the form. Selected is the outline rank on the accent tint now,
+ *  and the one solid on that screen is the submit. A future entry is added
+ *  the same way and lives under the same rule. */
+const MORE_THAN_ONE_PRIMARY: Readonly<Record<string, string>> = Object.freeze({});
 
 /** The public screens that draw more than one today — **none**, since issue
  *  #291 settled the report's two. Kept rather than deleted: it is the pair
