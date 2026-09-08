@@ -350,7 +350,10 @@ describe("REQ-091/092 — cold start: a domain that ranks for nothing still read
     // The customer's row is not a rival row and never goes away — "you
     // were named in none of them" is the card's answer, and a drawing with
     // no rows at all would be that answer withheld.
-    const matrix = html.slice(html.indexOf("<svg"), html.indexOf("</svg>"));
+    // `role="img"` is `ChartFrame`'s own and only a registered chart
+    // carries it; a card head's decorative glyph is an `<svg>` too.
+    const start = html.indexOf('role="img"');
+    const matrix = html.slice(start, html.indexOf("</svg>", start));
     // The count is on the row, not in a sentence beside it (#352).
     expect(matrix).toContain("0/9");
     expect(matrix).toContain("example.com");

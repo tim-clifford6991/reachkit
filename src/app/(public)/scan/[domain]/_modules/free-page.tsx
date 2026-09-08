@@ -26,6 +26,7 @@
 // the set's `.card-accent` — the one card the screen is built around,
 // ringed rather than filled.
 import type React from "react";
+import { FileText } from "lucide-react";
 import { Badge, Btn, Card, Input } from "@/ui/components";
 import { CardHead } from "@/ui/idiom";
 import { copy } from "@/lib/presentation/copy";
@@ -68,6 +69,8 @@ export function FreePageCard(p: { section: FreePageSection }): React.JSX.Element
       accent
       title={
         <CardHead
+          // `cardHead('file', 'Your first page', …)` — the set's own glyph.
+          icon={<FileText size={15} strokeWidth={1.8} aria-hidden />}
           eyebrow={copy("free-page.title")}
           pill={<Badge tone="accent">{copy("free-page.badge")}</Badge>}
         />
@@ -113,8 +116,10 @@ export function FreePageCard(p: { section: FreePageSection }): React.JSX.Element
       </div>
       {/* "That's page 1 of N we found for you." — the total the card
           carries, in its own sentence rather than as a bare figure. */}
+      {/* A mono phrase: a sentence with a count inside it, which wraps at
+          its spaces like any other line. */}
       <p className="t-explain opacity-60">
-        <Num>{copy("free-page.of", { total: String(section.totalPages) })}</Num>
+        <Num phrase>{copy("free-page.of", { total: String(section.totalPages) })}</Num>
       </p>
     </Card>
   );

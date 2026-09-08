@@ -26,6 +26,17 @@ export function Badge(p: {
   tone: Tone;
   /** Required — a tone alone may never carry meaning. */
   children: React.ReactNode;
+  /** Optional, added by issue #352 (rule 1.1: internal, additive,
+   *  backward-compatible — every existing caller keeps omitting it and
+   *  renders exactly as before). daisyUI's badge is one line at a fixed
+   *  height, which is right for a word and wrong for the approved set's
+   *  **source chip** — "names a source and date" — whose line is longer
+   *  than a half-width card at the compact band. A chip that cannot wrap
+   *  is a chip whose text is cut off, which is check 3's own finding; a
+   *  chip that wraps says the same thing on two lines. */
+  wrap?: boolean;
 }): React.JSX.Element {
-  return <span className={`badge ${TONE_CLASS[p.tone]}`}>{p.children}</span>;
+  const classes = ["badge", TONE_CLASS[p.tone]];
+  if (p.wrap === true) classes.push("h-auto", "whitespace-normal", "py-1", "text-left");
+  return <span className={classes.join(" ")}>{p.children}</span>;
 }

@@ -33,10 +33,22 @@ export interface PresenceBar {
   readonly value: number;
 }
 
-const WIDTH = 320;
-/** The axis, and the right edge of the name gutter. */
-const AXIS_X = 86;
-const NAME_X = 82;
+/** The narrowest the name gutter is ever drawn, and the gap between it and
+ *  the axis. A row's name is a **domain**, and §2.3 sets a domain in the
+ *  mono face precisely so it is never shortened — so where the names need
+ *  more than the floor, the box grows and the plot keeps its own width
+ *  (issue #352; the same construction `AiDotMatrixChart` uses). Text
+ *  anchored at the end of too small a gutter is drawn to the left of the
+ *  viewBox, which the layout sweep's containment check reports. */
+const NAME_X_MIN = 82;
+/** A cushion on top of the measured advance. At the compact band the
+ *  whole drawing is scaled to about 0.7, and a glyph rounded up at that
+ *  size put a 23-character domain one pixel outside the viewBox with three
+ *  units of estimate still spare (issue #352). Three units is under two
+ *  pixels of plot at every band and is the difference between a value
+ *  inside its box and a sweep finding. */
+const NAME_CUSHION = 3;
+const NAME_GAP = 4;
 const TOP = 10;
 const ROW_PITCH = 24;
 const BAR_HEIGHT = 10;
@@ -49,6 +61,11 @@ const ZERO_STUB = 2.5;
 /** The ring around the customer's empty row, and the track's own radius. */
 const RING_WIDTH = 1.5;
 const BAR_RADIUS = 2;
+/** Between the end of the track and the written value, and between the
+ *  written value and the edge of the box: a label flush with the viewBox
+ *  is a label the browser reports as outside it. */
+const VALUE_GAP = 4;
+const EDGE_INSET = 2;
 
 function barWidth(value: number, max: number): number {
   if (value <= 0 || max <= 0) return ZERO_STUB;
@@ -61,6 +78,12 @@ function barWidth(value: number, max: number): number {
  *  position. */
 function ratio(value: number, measured: number): string {
   return `${value}/${measured}`;
+}
+
+/** The gutter the longest row name needs, never narrower than the floor. */
+function nameGutter(rows: readonly { name: string }[]): number {
+  const longest = rows.reduce((width, row) => Math.max(width, row.name.length), 0);
+  return round(Math.max(NAME_X_MIN, longest * CHART.labelCharAdvance + NAME_CUSHION));
 }
 
 export function PresenceBars(p: {
@@ -78,16 +101,25 @@ export function PresenceBars(p: {
     ...p.rivals.map((bar) => ({ bar, kind: "rival" as const })),
     { bar: p.you, kind: "you" as const },
   ];
-  const box: Box = { width: WIDTH, height: TOP + rows.length * ROW_PITCH + 4 };
+  const nameX = nameGutter(rows.map((row) => row.bar));
+  const axisX = round(nameX + NAME_GAP);
+  const valueX = round(axisX + BAR_MAX + VALUE_GAP);
+  // The widest reading, so the box holds the longest label it will draw.
+  const valueWidth = rows.reduce(
+    (widest, row) => Math.max(widest, ratio(row.bar.value, p.measured).length),
+    0
+  );
+  const width = round(valueX + valueWidth * CHART.labelCharAdvance + EDGE_INSET);
+  const box: Box = { width, height: TOP + rows.length * ROW_PITCH + 4 };
 
   return (
     <ChartFrame box={box} label={p.label}>
       {/* The one axis: the baseline every bar starts from. */}
       <line
         className="rk-axis"
-        x1={AXIS_X}
+        x1={axisX}
         y1={6}
-        x2={AXIS_X}
+        x2={axisX}
         y2={box.height - 6}
         stroke={CHART_INK.axis}
         strokeWidth={CHART.axisWidth}
@@ -104,7 +136,7 @@ export function PresenceBars(p: {
           <g key={`${row.kind}-${row.bar.name}`}>
             <text
               className="num"
-              x={NAME_X}
+              x={nameX}
               y={y + 8}
               textAnchor={SVG.anchorEnd}
               fontSize={CHART.labelSize}
@@ -113,7 +145,7 @@ export function PresenceBars(p: {
               {row.bar.name}
             </text>
             <rect
-              x={AXIS_X}
+              x={axisX}
               y={y}
               width={BAR_MAX}
               height={BAR_HEIGHT}
@@ -123,11 +155,11 @@ export function PresenceBars(p: {
               strokeWidth={ringed ? RING_WIDTH : 0}
             />
             {ringed ? null : (
-              <rect x={AXIS_X} y={y} width={w} height={BAR_HEIGHT} rx={BAR_RADIUS} fill={colour} />
+              <rect x={axisX} y={y} width={w} height={BAR_HEIGHT} rx={BAR_RADIUS} fill={colour} />
             )}
             <text
               className="num"
-              x={round(AXIS_X + BAR_MAX + 4)}
+              x={valueX}
               y={y + 8}
               fontSize={CHART.labelSize}
               fill={row.kind === "you" ? colour : CHART_INK.label}
@@ -144,9 +176,9 @@ export function PresenceBars(p: {
             key={`mark-${row.kind}-${row.bar.name}`}
             box={box}
             tip={`${row.bar.name} · ${ratio(row.bar.value, p.measured)}`}
-            x={AXIS_X}
+            x={axisX}
             y={TOP + i * ROW_PITCH - 3}
-            width={WIDTH - AXIS_X}
+            width={round(width - axisX)}
             height={BAR_HEIGHT + 6}
           />
         ))}

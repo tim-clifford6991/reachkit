@@ -73,6 +73,11 @@ function FixBody(p: { card: ProblemCard }): React.JSX.Element | null {
     case "paste":
       return (
         <div className="flex flex-col gap-2">
+          {/* REQ-009 c2's lines, verbatim and on their own lines. `.num`
+              is `white-space: nowrap` since #297 and beat every utility
+              written here, so the robots block was drawn as one long
+              scrolled line; `pre .num` in `src/ui/type.css` is the rule
+              that gives a code block its own lines back (issue #352). */}
           <pre className="bg-base-200 border-base-300 overflow-x-auto rounded border p-3 text-xs">
             <code className="num">{fix.lines.join("\n")}</code>
           </pre>

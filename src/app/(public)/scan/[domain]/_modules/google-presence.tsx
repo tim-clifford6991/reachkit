@@ -32,6 +32,7 @@
 // A zero is a measurement: the chart draws it as a hairline stub with the
 // `0` written beside it, never as an absent row (§6.6).
 import type React from "react";
+import { Search } from "lucide-react";
 import { Badge, Card, Divider, Table } from "@/ui/components";
 import { PresenceBars } from "@/ui/charts";
 import { CardHead } from "@/ui/idiom";
@@ -47,8 +48,14 @@ export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.E
       state="default"
       title={
         <CardHead
+          // `cardHead('search', 'Google search', …)` — the set's own glyph.
+          icon={<Search size={15} strokeWidth={1.8} aria-hidden />}
           eyebrow={copy("presence.title")}
-          pill={<Badge tone="neutral">{copy("presence.source")}</Badge>}
+          pill={
+            <Badge tone="neutral" wrap>
+              {copy("presence.source")}
+            </Badge>
+          }
         />
       }
     >
@@ -86,8 +93,9 @@ export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.E
       <Divider />
 
       {/* The eyebrow rung, not `--h3`: a label for a list inside a card
-          is not a second card head (§2.3). */}
-      <h3 className="eyebrow">{copy("presence.absent-from.title")}</h3>
+          is not a second card head (§2.3), and not a heading element —
+          every rendered heading owes its own step of the ruled scale. */}
+      <p className="eyebrow opacity-60">{copy("presence.absent-from.title")}</p>
       {/* The three columns, sized rather than left to chance (issue #307).
           The card is half the report's width at 1024 and 1280, and three
           mono columns that could none of them fold added up to more than

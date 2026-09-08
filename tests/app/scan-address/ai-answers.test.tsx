@@ -69,6 +69,17 @@ function answeredCount(cells: readonly AnswerCell[]): number {
   return cells.filter((c) => c.kind === "answered").length;
 }
 
+/** The card's own drawing, as markup. `role="img"` is `ChartFrame`'s and
+ *  only a registered chart carries it — the card head's decorative chip is
+ *  an `<svg>` too (issue #352's lucide glyph) and is not a chart. */
+const CHART_ROOT = 'role="img"';
+
+function chart(html: string): string {
+  const start = html.indexOf(CHART_ROOT);
+  expect(start, "the card drew no chart").toBeGreaterThan(-1);
+  return html.slice(start, html.indexOf("</svg>", start));
+}
+
 /** Counts non-overlapping occurrences — every needle here is a distinct key. */
 function count(haystack: string, needle: string): number {
   return haystack.split(needle).length - 1;
@@ -126,9 +137,9 @@ describe("§6.2 — the paid battery is drawn as three answer columns", () => {
     // The card draws exactly one chart — §4.1's own dot matrix, which is
     // one of the five (issue #352) — and the answer columns are not a
     // sixth: every engine state below is a cell of a `<table>`.
-    expect(count(html, "<svg")).toBe(1);
+    expect(count(html, CHART_ROOT)).toBe(1);
     expect(html).toContain("<table");
-    expect(html.indexOf("<table")).toBeGreaterThan(html.indexOf("</svg>"));
+    expect(html.indexOf("<table")).toBeGreaterThan(html.indexOf(CHART_ROOT));
   });
 });
 
@@ -169,8 +180,8 @@ describe("§6.2 — the free report has no second reading to draw, and never ask
     // The AI-Overview reading has not gone anywhere — it is the chart, the
     // three counts and the questions list. What went is a table that said
     // it a fourth time.
-    expect(count(html, "<svg")).toBe(1);
-    expect(html).toContain(FREE_SECTION.ownDomain);
+    expect(count(html, CHART_ROOT)).toBe(1);
+    expect(chart(html)).toContain(FREE_SECTION.ownDomain);
   });
 });
 
@@ -207,8 +218,7 @@ describe("what the columns deliberately do not move", () => {
     expect(html).toContain(
       `ai-answers.denominator(${FREE_SECTION.answeredSearches}|${FREE_SECTION.measuredSearches})`
     );
-    const matrix = html.slice(html.indexOf("<svg"), html.indexOf("</svg>"));
-    expect(matrix).toContain(
+    expect(chart(html)).toContain(
       `${FREE_SECTION.customerCitations}/${FREE_SECTION.answeredSearches}`
     );
   });
@@ -218,7 +228,7 @@ describe("what the columns deliberately do not move", () => {
     // ratios (issue #352), and they are still that reading: one row per
     // rival, direct-labelled with its own name and its own count, drawn
     // from `section.rivals` — which the battery never touches.
-    const matrix = html.slice(html.indexOf("<svg"), html.indexOf("</svg>"));
+    const matrix = chart(html);
     for (const rival of FREE_SECTION.rivals) {
       expect(matrix).toContain(rival.domain);
       expect(matrix).toContain(`${citedCount(rival.cells)}/${answeredCount(rival.cells)}`);

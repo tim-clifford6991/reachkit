@@ -57,9 +57,20 @@ const WIDTH = 300;
  *  (issue #352). */
 const NAME_X_MIN = 66;
 /** Between the longest name and the first cell. */
+/** A cushion on top of the measured advance. At the compact band the
+ *  whole drawing is scaled to about 0.7, and a glyph rounded up at that
+ *  size put a 23-character domain one pixel outside the viewBox with three
+ *  units of estimate still spare (issue #352). Three units is under two
+ *  pixels of plot at every band and is the difference between a value
+ *  inside its box and a sweep finding. */
+const NAME_CUSHION = 3;
 const NAME_GAP = 6;
 /** Between the last cell and the row's written count. */
 const COUNT_GAP = 46;
+/** Between the written count and the edge of the box. A label anchored
+ *  flush with the viewBox is drawn *on* the edge, which the layout sweep's
+ *  containment check reads — correctly — as a mark outside its own box. */
+const EDGE_INSET = 2;
 const CELL_GAP = 2;
 const TOP = 6;
 const ROW_GAP = 7;
@@ -104,7 +115,7 @@ function cellPaint(
  *  this one, so a chart whose names fit the floor is unmoved. */
 function nameGutter(rows: readonly AiDotMatrixRow[]): number {
   const longest = rows.reduce((width, row) => Math.max(width, row.name.length), 0);
-  return round(Math.max(NAME_X_MIN, longest * CHART.labelCharAdvance));
+  return round(Math.max(NAME_X_MIN, longest * CHART.labelCharAdvance + NAME_CUSHION));
 }
 
 export function AiDotMatrixChart(p: {
@@ -175,7 +186,7 @@ export function AiDotMatrixChart(p: {
             })}
             <text
               className="num"
-              x={width}
+              x={round(width - EDGE_INSET)}
               y={round(y + cell * 0.75)}
               textAnchor={SVG.anchorEnd}
               fontSize={CHART.labelSize}
@@ -215,7 +226,7 @@ export function AiDotMatrixChart(p: {
       {p.goal === undefined ? null : (
         <text
           className="num"
-          x={width}
+          x={round(width - EDGE_INSET)}
           y={round(axisY + 9)}
           textAnchor={SVG.anchorEnd}
           fontSize={CHART.nameSize}

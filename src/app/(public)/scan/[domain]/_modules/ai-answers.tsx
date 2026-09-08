@@ -53,6 +53,7 @@
 // `renderQuestion`, which will not yield the wording without the search it
 // came from (REQ-093 c3).
 import type React from "react";
+import { Bot } from "lucide-react";
 import { Badge, Card, Collapse, Divider, Table } from "@/ui/components";
 import { AiDotMatrixChart, type AiDotMatrixCellState, type AiDotMatrixRow } from "@/ui/charts";
 import { CardHead } from "@/ui/idiom";
@@ -293,8 +294,12 @@ function QuestionRow(p: { row: { question: StoredQuestion; cell: AnswerCell } })
           <Badge tone="bad">{copy("ai-answers.question.not-you")}</Badge>
         )}
       </div>
+      {/* A mono **phrase**, not a single value: it is a line of language
+          with a search inside it, and `.num`'s "never break a value" rule
+          would otherwise hold the whole line on one unbreakable run
+          (§2.3, issue #307's own `phrase` arm). */}
       <p className="t-explain opacity-60">
-        <Num>{provenance.text}</Num>
+        <Num phrase>{provenance.text}</Num>
       </p>
     </li>
   );
@@ -315,8 +320,16 @@ export function AiAnswersCard(p: {
       state="default"
       title={
         <CardHead
+          // The set's own glyph for this card (UI-SPEC §2's chip row, and
+          // the icon its `cardHead('bot', 'AI answers', …)` names). It is
+          // decorative — the eyebrow beside it is the label.
+          icon={<Bot size={15} strokeWidth={1.8} aria-hidden />}
           eyebrow={copy("ai-answers.title")}
-          pill={<Badge tone="neutral">{copy("ai-answers.source", { date: p.measuredOn })}</Badge>}
+          pill={
+            <Badge tone="neutral" wrap>
+              {copy("ai-answers.source", { date: p.measuredOn })}
+            </Badge>
+          }
         />
       }
     >
@@ -363,9 +376,12 @@ export function AiAnswersCard(p: {
       {/* A section label inside a card is the eyebrow rung (§2.3's
           "uppercase 10.5–11px eyebrows for section labels"), not a second
           card head: `--h3` here put the list's label at the same weight
-          as the card's own verdict. It stays a heading, so the card keeps
-          its outline for a reader who navigates by one. */}
-      <h3 className="eyebrow">{copy("ai-answers.questions.title")}</h3>
+          as the card's own verdict.
+          **And not a heading element either**: `heading-scale.test.ts`
+          holds every rendered heading to its own step of the ruled scale,
+          which an 11px `h3` is not — a label is a label, and the landing's
+          own section labels are `p.eyebrow` for the same reason. */}
+      <p className="eyebrow opacity-60">{copy("ai-answers.questions.title")}</p>
       <ul className="list-none p-0">
         {shown.map((row) => (
           <QuestionRow key={row.question.n} row={row} />

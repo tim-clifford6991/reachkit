@@ -20,6 +20,21 @@
 // rule that cannot be an attribute — `:hover` — ships as a `<style>`
 // element inside each `<svg>`.
 
+/** One mono character's advance, as a share of the font size. There is no
+ *  text metrics API in an SVG the server renders, so every width a chart
+ *  reserves for its own text is this ratio × the size × the character
+ *  count.
+ *
+ *  **Measured, and rounded up.** JetBrains Mono's own advance is 0.6em and
+ *  the browser draws these labels at about 0.627em — the face that
+ *  actually renders is whatever the stack resolves to, and a fallback is
+ *  wider. 0.65 is above every value measured on this box (issue #352: a
+ *  23-character rival domain was drawn four pixels past a gutter reserved
+ *  at 0.6125). Over-reserving costs a hair of plot; under-reserving puts a
+ *  value outside the viewBox, which the layout sweep reports — correctly —
+ *  as a mark escaping its own box. */
+const MONO_ADVANCE_RATIO = 0.65;
+
 /** §2.4's stated bounds, as the geometry five charts draw with. */
 export const CHART = {
   /** "thin 2–2.5px lines" — the line charts. */
@@ -48,17 +63,13 @@ export const CHART = {
   tipHeight: 13,
   tipPadX: 4,
   /** One mono character's advance at `tipTextSize`, for sizing the chip
-   *  around its own text — there is no text metrics API in an SVG the
-   *  server renders. */
-  tipCharAdvance: 4.9,
+   *  around its own text. */
+  tipCharAdvance: 8 * MONO_ADVANCE_RATIO,
   /** The same advance at `labelSize`, for reserving a gutter wide enough
-   *  for the longest direct label a chart is given — the matrix's row
-   *  names are domains, and a domain is a value that is never shortened
-   *  to fit (§2.3). The ratio is `tipCharAdvance / tipTextSize`: one mono
-   *  face, one advance. It rounds **up**, because a gutter a hair too wide
-   *  costs a hair of plot and a gutter a hair too narrow puts a value
-   *  outside the viewBox. */
-  labelCharAdvance: 5.25,
+   *  for the longest direct label a chart is given — a matrix row's name
+   *  and a bar's name are **domains**, and a domain is a value that is
+   *  never shortened to fit (§2.3). */
+  labelCharAdvance: 8.5 * MONO_ADVANCE_RATIO,
 } as const;
 
 /** The non-series paint. Ink, line and surface only: no `--ok` and no

@@ -51,6 +51,12 @@ import { VerdictStrip } from "./verdict";
 // rather than from a second member the blob used to carry.
 import { categoryOf } from "@/lib/scan/sections";
 
+/** The offer's own measure: `--w-read`, centred, as the approved set
+ *  draws it on both surfaces that carry the card. A single reading column
+ *  (design tokens §2b) — an offer stretched across a 1216px report reads
+ *  as a banner rather than as a decision. */
+const OFFER_MEASURE: React.CSSProperties = { maxWidth: "var(--w-read)" };
+
 /** BUILD §6.3a / DECISIONS 2026-08-28: MVP is US-English only, one
  *  location constant, so the date a report was measured is formatted once,
  *  here, in that one locale. */
@@ -238,12 +244,21 @@ export function ReportView(p: {
           <MethodSections for={PROBLEM_ORDER} />
         </div>
 
-        {report.freePage === null ? (
-          <FreePageAbsent />
-        ) : (
-          <FreePageCard section={report.freePage} />
-        )}
-        <PricingCard />
+        {/* Modules 5 and 6 are full-width rows, not two cards side by
+            side: UI-SPEC S2 draws the giveaway across the report and the
+            offer centred under it at the reading measure. They are the
+            screen's two trades, and a trade beside a trade reads as a
+            choice between them. */}
+        <div className="col-span-full">
+          {report.freePage === null ? (
+            <FreePageAbsent />
+          ) : (
+            <FreePageCard section={report.freePage} />
+          )}
+        </div>
+        <div className="col-span-full mx-auto w-full" style={OFFER_MEASURE}>
+          <PricingCard />
+        </div>
 
         <div className="col-span-full">
           <RemovalAddressLine />

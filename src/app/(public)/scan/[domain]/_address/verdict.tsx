@@ -135,7 +135,9 @@ export function VerdictStrip(p: {
               <Num>{verdict.domain}</Num>
             </h3>
             <div className="flex flex-wrap items-baseline gap-2 text-xs font-normal opacity-60">
-              <Num>
+              {/* A mono phrase — a date and a category with a separator
+                  between them — and not one unbreakable value. */}
+              <Num phrase>
                 {p.category === null
                   ? copy("report.measured-at.no-category", { date: p.measuredOn })
                   : copy("report.measured-at", { date: p.measuredOn, category: p.category })}

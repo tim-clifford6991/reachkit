@@ -59,9 +59,21 @@ export function Table(p: {
                 first two attempts at this fix were invisible.
 
                 A value in a cell still never folds — that rule is
-                `.num`'s, and nothing here reaches it. */}
+                `.num`'s, and nothing here reaches it.
+
+                **`break-words`, not `wrap-anywhere` (issue #352).** The
+                stronger property also lets a header break *inside* a word
+                where the column is narrower than it, and the approved copy
+                landing on the report's own table showed what that reads
+                like: `Volume` drawn as `Volum` / `e` above a column of
+                four-digit counts. `break-word` keeps the fold — a header
+                still wraps at its spaces and still sets its column's
+                minimum from its longest *word* rather than its longest
+                line — and refuses the break that rewrites the word. The
+                two are the same wherever a header holds no word longer
+                than its column, which is every table in the product. */}
             {p.columns.map((col) => (
-              <th key={col.key} className="whitespace-normal wrap-anywhere">
+              <th key={col.key} className="whitespace-normal break-words">
                 {col.header}
               </th>
             ))}
