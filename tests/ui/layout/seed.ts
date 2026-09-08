@@ -51,6 +51,14 @@ import type { AppAccount } from "@/app/(account)/app/_session/account";
 import {
   psql,
 } from "../../db/substrate";
+import {
+  acceptanceFor,
+  LIVE_DRAFTS,
+  scheduledFor,
+  seededVolume,
+  writeEvidence,
+} from "./seed-rows";
+
 
 const ROOT = path.resolve(__dirname, "../../..");
 const MIGRATIONS_DIR = path.join(ROOT, "supabase/migrations");
@@ -125,53 +133,6 @@ const SEEDED_EMAIL = EMAIL_OF[RESERVED_ACCOUNT.userId] as string;
  *  the seeded site is a whole site — an account with a scan, an
  *  opportunity and a page — rather than a shell with a session on it. */
 const SEEDED_DRAFT_ID = "00000000-0000-0000-0000-0000000000d1";
-
-/**
- * The live account's drafts, one per state the `/app` screens draw
- * differently (#206).
- *
- * Three states because that is what the shell, the overview and the
- * calendar each read for: a page in review is what the draft address
- * renders and what the veto window counts, a published one is what the
- * overview's "live" reads, and a planned one is what the calendar draws on
- * a future date. One state would leave two of the three live reads
- * rendering an empty arm, which is not the layout this sweep is here to
- * measure.
- */
-const LIVE_DRAFTS: readonly {
-  id: string;
-  state: string;
-  title: string;
-  /** Days from today, in the site's own zone, that this page sits on
-   *  (issue #269).
-   *
-   *  **Without one the calendar has nothing to draw.** `scheduledPagesFor`
-   *  selects `drafts` on `scheduled_for` between the month's ends, so a
-   *  draft with a null date lands on no cell: every day was an empty-day
-   *  account, every stage filter read `0` — correctly, since the counts are
-   *  derived from the very cells the grid renders — and the calendar's
-   *  *populated* arm had never been rendered by any sweep. Three dates in
-   *  the current month, so the grid carries a page in three different
-   *  stages and the filters have something to count. */
-  scheduledIn: number;
-}[] = Object.freeze([
-  { id: "00000000-0000-0000-0000-0000000000e1", state: "in_review", title: "How teams pick an onboarding tool", scheduledIn: 1 },
-  { id: "00000000-0000-0000-0000-0000000000e2", state: "published", title: "Onboarding checklists that survive week one", scheduledIn: -2 },
-  { id: "00000000-0000-0000-0000-0000000000e3", state: "planned", title: "What to measure after a rollout", scheduledIn: 3 },
-]);
-
-/** A `scheduled_for` date, `days` from today, as the column stores it.
- *  Computed at midday UTC so a zone either side of it cannot land the date
- *  on the day before or after. */
-function scheduledFor(days: number): string {
-  const midday = Date.UTC(
-    new Date().getUTCFullYear(),
-    new Date().getUTCMonth(),
-    new Date().getUTCDate(),
-    12
-  );
-  return new Date(midday + days * 86_400_000).toISOString().slice(0, 10);
-}
 
 /**
  * The publishing settings the live account has actually chosen (#228).
@@ -575,12 +536,18 @@ function seedSite(
 
   for (const [index, draft] of opts.drafts.entries()) {
     const [opportunityId] = rows(
-      `insert into opportunities (site_id, scan_id, type, family, target_query, target_ref, proposed_slug, title, fit_band, effort, evidence, acceptance) values ` +
+      `insert into opportunities (site_id, scan_id, type, family, target_query, target_ref, proposed_slug, title, volume, fit_band, effort, evidence, acceptance) values ` +
         // A Write row carries a search and a band; only a Fix row has neither
         // (`opportunities_fit_band_iff_not_fix`). One opportunity per draft,
         // because `opportunities_open_target_uniq` refuses a second open row
         // on the same target.
-        `('${siteId}', '${scanId}', 'answer_page', 'write', 'onboarding tools ${index}', 'target-${index}', 'slug-${index}', 'Onboarding tools ${index}', 'winnable', 0.50, '{"family":"write"}'::jsonb, '{"check":"the page answers the question"}'::jsonb) returning id;`
+        //
+        // `volume` the column and `volume` inside `evidence` are the same
+        // number here, as §10 and `readOpportunity` between them require:
+        // the column is what the sorts read, the measurement inside the
+        // evidence is what a surface renders, and a seed that wrote one
+        // without the other would be a row no scan could have produced.
+        `('${siteId}', '${scanId}', 'answer_page', 'write', 'onboarding tools ${index}', 'target-${index}', 'slug-${index}', 'Onboarding tools ${index}', ${seededVolume(index)}, 'winnable', 0.50, '${writeEvidence(index)}'::jsonb, '${acceptanceFor(index)}'::jsonb) returning id;`
     );
     // **No `meta`, and that is the arm** (issue #268). Generation writes
     // the grounded fact into `meta`; a draft seeded without one records no

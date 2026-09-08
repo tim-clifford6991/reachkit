@@ -138,22 +138,52 @@ describe(`live-branch sweep — ${routes.length} route(s) × 5 widths`, () => {
   }
 
   it(
-    "each address answers itself, within the bound — the live read is exercised, not redirected past",
+    "each address answers itself with its own screen — not a redirect, and not an error page",
     async () => {
       // Four screens, four live reads, once each under a browser. An
       // address that redirected would land on `/signin` or `/setup` and
       // this fails naming it; an address whose read hung would fail on the
       // navigation bound instead of quietly measuring a spinner.
+      //
+      // **And the screen is the app's, not Next's** (issue #295). A page
+      // component that throws is answered by Next's own error document,
+      // which keeps the address it was asked for — so the path alone said
+      // nothing, and `/app/calendar` was that error page on every live
+      // request for the whole life of this suite without one assertion here
+      // noticing. Two things distinguish the two documents and both are
+      // read below: the app's screen root, which every `(account)` layout
+      // writes, and the app's stylesheet, which the error document carries
+      // none of. Checks 1-4 above are what *caught* it, and only by
+      // accident and only sometimes: check 4 reads `--t-floor` and fails
+      // where it is undeclared, but only when the throw beat the streamed
+      // shell out of the door. That is why a deterministic break arrived as
+      // a flake, and why the plain statement of it belongs here.
       for (const route of routes) {
-        const landed = await withPage(
+        const answer = await withPage(
           widths()[0],
           async (page) => {
             await page.goto(urlFor(route), { timeout: LIVE_NAVIGATION_MS });
-            return new URL(page.url()).pathname;
+            return {
+              landed: new URL(page.url()).pathname,
+              screenRoots: await page.evaluate(
+                () => document.querySelectorAll("[data-surface]").length
+              ),
+              typeFloor: await page.evaluate(() =>
+                getComputedStyle(document.documentElement).getPropertyValue("--t-floor").trim()
+              ),
+            };
           },
           headersFor(route)
         );
-        expect(landed, `${route.path} did not answer itself`).toBe(route.path);
+        expect(answer.landed, `${route.path} did not answer itself`).toBe(route.path);
+        expect(
+          answer.screenRoots,
+          `${route.path} answered with no screen root — Next's error page, not this app's`
+        ).toBe(1);
+        expect(
+          answer.typeFloor,
+          `${route.path} answered a document with no app stylesheet on it`
+        ).not.toBe("");
       }
     },
     PER_ROUTE_BROWSER_MS * 4
