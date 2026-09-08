@@ -436,20 +436,13 @@ const MORE_THAN_ONE_PRIMARY: Readonly<Record<string, string>> = Object.freeze({
   ].join(" "),
 });
 
-/** The public screens that draw more than one today. Same shape and same
- *  fail-closed rule as the account list above — an entry that gets fixed
- *  fails as a stale exemption rather than sitting here. */
-const MORE_THAN_ONE_PRIMARY_PUBLIC: Readonly<Record<string, string>> = Object.freeze({
-  "/scan/[domain]": [
-    "the report draws two solid primaries of its own, before the header is",
-    "counted: the free-page card's submit and the pricing card's Start.",
-    "They are calls to action for different things, and which of the two is",
-    "the screen's one primary is a design decision the owner has not been",
-    "asked — the same shape as #288's chips. #290's scope is the header's",
-    "rank and the on-accent contrast. Opened as issue #291 rather than",
-    "decided here.",
-  ].join(" "),
-});
+/** The public screens that draw more than one today — **none**, since issue
+ *  #291 settled the report's two. Kept rather than deleted: it is the pair
+ *  of the account list above, and an empty list is the honest statement that
+ *  no public screen is exempt, which is a different fact from the rule not
+ *  being asked on this half of the tree. Same fail-closed rule — an entry
+ *  that gets fixed fails as a stale exemption rather than sitting here. */
+const MORE_THAN_ONE_PRIMARY_PUBLIC: Readonly<Record<string, string>> = Object.freeze({});
 
 function primariesPerScreen(rendered: RenderedRoute[], group: string): Map<string, number> {
   const out = new Map<string, number>();
