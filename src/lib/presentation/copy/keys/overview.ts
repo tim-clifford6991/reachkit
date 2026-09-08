@@ -66,13 +66,18 @@ export const OVERVIEW_COPY = Object.freeze({
   // badge §4.5 puts beside it. Four lines, not one: §4.5's "The gap is
   // closing." is a claim about the chart directly under it, and a screen
   // that states it over a widening gap has said something untrue.
-  "overview.head.rising": ["TODO(copy)", { slots: {}, fixedBy: "BUILD §4.5" }],
+  "overview.head.rising": ["The gap is closing.", { slots: {}, fixedBy: "BUILD §4.5" }],
   "overview.head.flat": ["TODO(copy)", { slots: {}, fixedBy: "BUILD §4.5" }],
   "overview.head.falling": ["TODO(copy)", { slots: {}, fixedBy: "BUILD §4.5" }],
-  "overview.head.badge": ["TODO(copy)", { slots: { weeks: "text" }, fixedBy: "BUILD §4.5" }],
+  // Approved as written (ruling 11a): the set's badge claims every week
+  // and names no number, so the `weeks` slot goes with the wording rather
+  // than staying declared and unfilled — a slot the value never spends is
+  // a promise the registry cannot keep (`registry.test.ts` substitutes
+  // every declared slot and asserts it lands).
+  "overview.head.badge": ["▲ every week since you started", { slots: {}, fixedBy: "UI-SPEC S12" }],
 
   // ── The growth module.
-  "overview.growth.footnote.start": ["TODO(copy)", { slots: { value: "text" }, fixedBy: "BUILD §4.5" }],
+  "overview.growth.footnote.start": ["started at {value}", { slots: { value: "text" }, fixedBy: "BUILD §4.5" }],
   "overview.growth.footnote.goal": [
     "At {goal} the big category terms unlock.",
     { slots: { goal: "text" }, fixedBy: "BUILD §4.5" },

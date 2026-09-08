@@ -96,7 +96,6 @@ export function GrowthModule(p: {
       <div style={CHART_PLATE}>
         <GrowthLine
           weeks={[first, ...rest]}
-          goal={{ value: goal.value, name: goalText }}
           label={copy("overview.tile.searches.label")}
         />
       </div>
