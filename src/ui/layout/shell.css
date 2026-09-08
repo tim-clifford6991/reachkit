@@ -211,6 +211,37 @@
     margin-top: auto;
   }
 
+  /* UI-SPEC S12's autopilot card (issue #353): the mode's word and the
+   * switch share the top line, the state sentence sits under them, and the
+   * next-publish line is the provenance idiom below that. A row rather
+   * than a stack, because the switch is the control *for* the word beside
+   * it — a switch on its own line reads as a control for the whole card. */
+  .rk-publishing-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-2);
+    /* The registered `Card` wraps its title in `.card-title`, which daisyUI
+     * makes a flex row of its own — so this row has to take that row whole
+     * or `space-between` has no width to push the switch across, and the
+     * switch overflows the shrink-to-fit span (the layout sweep's
+     * containment check, which is how this was caught). The same fix
+     * `idiom.css` makes for `.card-title > .rk-head` (#297), for the same
+     * reason. */
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  /* The state sentence. `--t-sm` and 600 are the set's own weight for it:
+   * heavier than the provenance line under it, lighter than an h4, because
+   * it is the card's answer and not the screen's. */
+  .rk-publishing-state {
+    margin: 0;
+    font-size: var(--t-sm);
+    font-weight: 600;
+    color: var(--ink);
+  }
+
   /* Its own gutter is `surface.css`'s from #241 (see the rule above); what
    * stays here is the column's share of the frame — and, since #267, the
    * one edge `surface.css` cannot reach.

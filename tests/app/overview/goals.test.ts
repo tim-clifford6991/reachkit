@@ -37,14 +37,24 @@ describe("the three goals, and their values", () => {
   });
 });
 
-describe("DECISIONS 2026-09-03 — the composite score has no tile on Overview", () => {
-  it("there is no score goal key", () => {
-    expect(GOAL_KEYS).not.toContain("score");
-    expect(Object.keys(GOALS)).not.toContain("score");
+describe("UI-SPEC ruling 6a — the score's tile came back to Overview", () => {
+  // DECISIONS 2026-09-03 read "The composite score has no tile on
+  // Overview", and this block asserted exactly that. The owner's approved
+  // screen set (2026-09-08) reverses it: ruling 6a names "Overview tile"
+  // among the surfaces that label the Discoverability Score, and S12 draws
+  // it first of the three. The DECISIONS row recording the supersession is
+  // the owner's to write; the set is the newer artifact and #353 follows
+  // it.
+  it("there is a score goal key, and it is the pin the free report already used", () => {
+    expect(GOAL_KEYS).toContain("score");
+    expect(Object.keys(GOALS)).toContain("score");
+    expect(GOALS.score.value).toBe(GOAL_VALUES.score);
   });
 
-  it("the pin still exists — it is the free report's, not this screen's", () => {
-    expect(GOAL_VALUES.score).toBeTypeOf("number");
+  it("the first half of the 2026-09-03 ruling stands — the AI tile still shows one reading", () => {
+    // No second AI-answers goal, and no per-question key: the amendment
+    // that survived is the one about movement, not the one about the tile.
+    expect(GOAL_KEYS.filter((key) => key.startsWith("ai"))).toEqual(["ai_answers"]);
   });
 });
 

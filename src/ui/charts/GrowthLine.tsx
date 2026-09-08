@@ -66,14 +66,24 @@ function isMeasured(w: GrowthWeek): w is GrowthMeasuredWeek {
 
 export function GrowthLine(p: {
   weeks: readonly [GrowthWeek, ...GrowthWeek[]];
-  /** §4.5's goal footnote as a marker on the plot. Not a series: it marks
-   *  a distance, and no measurement is ever painted with it. */
-  goal?: { readonly value: number; readonly name: string };
   label: string;
 }): React.JSX.Element {
+  // **No goal marker on the plot** (issue #353). It was a dashed rule
+  // across the chart with the goal named at its right end, and the
+  // approved set draws no such line: UI-SPEC §2's contract for this chart
+  // is "area fill under an accent line, endpoint dot with surface ring,
+  // footnote pair start · goal", and S12 states the goal as the right-hand
+  // footnote under the card instead. A rule the customer's line sits far
+  // below reads as a ceiling on the drawing; the same fact in a written
+  // line reads as the distance it is.
+  //
+  // It also took the y-scale with it. The ceiling was the larger of the
+  // goal and the highest week, so a 400 goal against a 41 measurement
+  // squashed every real value into the bottom tenth of the plot — the set
+  // draws the measured line filling the card, which is the scale below.
   const xAt = spreadAt(p.weeks.length, FIRST_X, LAST_X);
   const measured = p.weeks.filter(isMeasured);
-  const ceiling = Math.max(...measured.map((w) => w.value), p.goal?.value ?? 0, 1);
+  const ceiling = Math.max(...measured.map((w) => w.value), 1);
   const y = (v: number): number => plot(v, ceiling, PLOT_TOP, PLOT_BOTTOM);
 
   // One unbroken run per span of measured weeks. A run of a single week
@@ -101,7 +111,6 @@ export function GrowthLine(p: {
     return first && end ? [{ points: r, first, end }] : [];
   });
   const last = drawn.at(-1)?.end;
-  const goalY = p.goal ? y(p.goal.value) : null;
 
   return (
     <ChartFrame box={BOX} label={p.label}>
@@ -121,23 +130,6 @@ export function GrowthLine(p: {
 
       {/* The one axis. */}
       <line className="rk-axis" x1={14} y1={AXIS_Y} x2={292} y2={AXIS_Y} stroke={CHART_INK.axis} strokeWidth={CHART.axisWidth} />
-
-      {goalY === null || p.goal === undefined ? null : (
-        <>
-          <line
-            x1={14}
-            y1={goalY}
-            x2={292}
-            y2={goalY}
-            stroke={CHART_INK.goal}
-            strokeWidth={CHART.gridlineWidth}
-            strokeDasharray={SVG.dashGoal}
-          />
-          <text className="num" x={292} y={goalY - 3} textAnchor={SVG.anchorEnd} fontSize={CHART.nameSize} fill={CHART_INK.goal}>
-            {p.goal.name}
-          </text>
-        </>
-      )}
 
       {drawn.map((r) => (
         <g key={`run-${r.first.x}`}>

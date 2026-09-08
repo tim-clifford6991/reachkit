@@ -20,7 +20,7 @@
 // per-test timeout so a slow read fails as a slow read.
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { getBaseURL, getLiveAccountCookie, withPage } from "./browser";
+import { getBaseURL, getLiveAccountCookie, getWeekZeroAccountCookie, withPage } from "./browser";
 import {
   checkContainment,
   checkNoClippingOrTruncation,
@@ -31,7 +31,14 @@ import {
   TRUNCATION_ALLOWLIST,
 } from "./checks";
 import { enumerateRoutes, headersFor, SEGMENT_FIXTURES, urlFor as routeUrl } from "./routes";
-import { LIVE_ACCOUNT, LIVE_DRAFT_ID, LIVE_PUBLISHING } from "./seed";
+import {
+  LIVE_ACCOUNT,
+  LIVE_DRAFT_ID,
+  LIVE_PUBLISHING,
+  RESERVED_ACCOUNT,
+  SETUP_ACCOUNT,
+  WEEK_ZERO_ACCOUNT,
+} from "./seed";
 import { FIXTURE_SETTINGS_FACTS } from "@/app/(account)/app/settings/fixture";
 import { widths } from "./widths";
 
@@ -53,6 +60,15 @@ const routes = enumerateRoutes(APP_ROOT, {
   segmentFixtures: LIVE_SEGMENTS,
   accountCookie: getLiveAccountCookie(),
 }).filter((route) => route.path === "/app" || route.path.startsWith("/app/"));
+
+/** UI-SPEC S13's `/app` (issue #353) — the same live branch, read for a
+ *  customer whose deep pass has run and whose first weekly pass has not.
+ *  Overview alone: every other address this account can reach is the screen
+ *  the live routes above already sweep. */
+const weekZeroRoutes = enumerateRoutes(APP_ROOT, {
+  segmentFixtures: LIVE_SEGMENTS,
+  accountCookie: getWeekZeroAccountCookie(),
+}).filter((route) => route.path === "/app");
 
 console.log(
   `tests/ui/layout/live-account.test.ts: ${routes.length} live-branch route(s) × 5 widths`
@@ -223,4 +239,63 @@ describe(`live-branch sweep — ${routes.length} route(s) × 5 widths`, () => {
     },
     PER_ROUTE_BROWSER_MS
   );
+});
+
+describe(`week-0 sweep — UI-SPEC S13, ${weekZeroRoutes.length} route(s) × 5 widths`, () => {
+  it("Overview is what is swept, and it is enumerated not listed", () => {
+    expect(weekZeroRoutes.map((route) => route.path)).toEqual(["/app"]);
+  });
+
+  it("this account is not the reserved one either — the arm is drawn from its own rows", () => {
+    expect(WEEK_ZERO_ACCOUNT.domain).not.toBe("example.com");
+  });
+
+  it("the four seeded accounts are four distinct users, sites and domains", () => {
+    // Not pedantry: this account first shipped carrying `SETUP_ACCOUNT`'s
+    // own user id, site id *and* domain, and the way that surfaced was a
+    // duplicate-key error from inside `seedSite` at global setup — a
+    // failure that names Postgres rather than the mistake. Three sets of
+    // four say which field collided, before any suite runs.
+    const accounts = [RESERVED_ACCOUNT, LIVE_ACCOUNT, SETUP_ACCOUNT, WEEK_ZERO_ACCOUNT];
+    expect(new Set(accounts.map((a) => a.userId)).size).toBe(accounts.length);
+    expect(new Set(accounts.map((a) => a.siteId)).size).toBe(accounts.length);
+    expect(new Set(accounts.map((a) => a.domain)).size).toBe(accounts.length);
+  });
+
+  for (const route of weekZeroRoutes) {
+    for (const width of widths()) {
+      it(
+        `${route.path} @ ${width}px reports no offender on checks 1-4, in week 0`,
+        async () => {
+          // The arm this exercises is the one nothing else can: a chart of
+          // a single point, three tiles carrying a dash and a sentence
+          // instead of a number, and a rivals card with one line and no
+          // rows. Each is a different shape in the same box, and ADR-093's
+          // law is that the content fits the box or the box changes.
+          const offenders = await withPage(
+            width,
+            async (page) => {
+              await page.goto(urlFor(route), { timeout: LIVE_NAVIGATION_MS });
+              const results = [
+                await page.evaluate(checkNoHorizontalScroll),
+                await page.evaluate(checkContainment, {
+                  scrollContainerAllowlist: SCROLL_CONTAINER_ALLOWLIST,
+                }),
+                await page.evaluate(checkNoClippingOrTruncation, {
+                  scrollContainerAllowlist: SCROLL_CONTAINER_ALLOWLIST,
+                  truncationAllowlist: TRUNCATION_ALLOWLIST,
+                  monoFontFamily: MONO_FONT_FAMILY,
+                }),
+                await page.evaluate(checkTypeFloor),
+              ];
+              return results.flat();
+            },
+            headersFor(route)
+          );
+          expect(offenders).toEqual([]);
+        },
+        PER_ROUTE_BROWSER_MS
+      );
+    }
+  }
 });

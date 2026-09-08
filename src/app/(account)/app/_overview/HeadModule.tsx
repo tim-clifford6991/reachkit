@@ -22,7 +22,6 @@ import type React from "react";
 import { Badge } from "@/ui/components";
 import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../_shell/written";
-import { formatCount } from "./present";
 import type { Tone } from "@/ui/types";
 import type { OverviewModel } from "./model";
 import { HEAD } from "./style";
@@ -35,10 +34,11 @@ const BADGE_TONE: Tone = "ok";
 
 export function HeadModule(p: { head: OverviewModel["head"] }): React.JSX.Element {
   const line = writtenLine(p.head.key);
-  const badge =
-    p.head.badgeKey === undefined
-      ? null
-      : writtenLine(p.head.badgeKey, { weeks: formatCount(p.head.weeksMeasured) });
+  // No `{weeks}` argument: the approved badge claims every week and names
+  // no number (UI-SPEC S12, ruling 11a), so the key carries no slot. The
+  // model keeps `weeksMeasured` — it is the fact the claim rests on, and
+  // `head.ts` still emits the badge only where every measured week rose.
+  const badge = p.head.badgeKey === undefined ? null : writtenLine(p.head.badgeKey);
 
   return (
     <div style={HEAD} data-testid="overview-head">

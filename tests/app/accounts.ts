@@ -1,6 +1,6 @@
 // tests/app/accounts.ts — issue #169
 //
-// The two accounts every `(account)` suite signs in as, as plain data.
+// The accounts every `(account)` suite signs in as, as plain data.
 //
 // **Deliberately separate from `account-door.ts`, which imports the seam
 // itself.** A `vi.mock` factory for `_session/account` that reached for the
@@ -31,6 +31,23 @@ export const LIVE_ACCOUNT: AppAccount = Object.freeze({
   siteId: "00000000-0000-0000-0000-0000000000b2",
   domain: "acme.test",
   createdAt: new Date("2026-08-24T06:00:00.000Z"),
+  timeZone: "America/New_York",
+  mode: "autopilot",
+});
+
+/** UI-SPEC S13's customer (issue #353): the deep pass has read their market
+ *  once and no weekly pass has run, so `/app` answers with the week-0 arm.
+ *  A live domain, like `LIVE_ACCOUNT`'s — the arm is a property of what has
+ *  been measured, not of which branch answers, and a fixture account could
+ *  only ever show one of the two states. */
+export const WEEK_ZERO_ACCOUNT: AppAccount = Object.freeze({
+  // `a3`/`b3` and `newco.test` are the setup founder's (`SETUP_ACCOUNT` in
+  // `tests/ui/layout/seed.ts`); this is the fourth account, not a second
+  // name for the third.
+  userId: "00000000-0000-0000-0000-0000000000a4",
+  siteId: "00000000-0000-0000-0000-0000000000b4",
+  domain: "firstweek.test",
+  createdAt: new Date("2026-08-31T06:00:00.000Z"),
   timeZone: "America/New_York",
   mode: "autopilot",
 });

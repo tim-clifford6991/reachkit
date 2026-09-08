@@ -38,6 +38,7 @@ import { HeadModule } from "@/app/(account)/app/_overview/HeadModule";
 import { GrowthModule } from "@/app/(account)/app/_overview/GrowthModule";
 import { TileRow } from "@/app/(account)/app/_overview/TileRow";
 import { RivalModule } from "@/app/(account)/app/_overview/RivalModule";
+import { NeedsYouModule } from "@/app/(account)/app/_overview/NeedsYouModule";
 import { WeekModule } from "@/app/(account)/app/_overview/WeekModule";
 import type { WeeklyPoint } from "@/app/(account)/app/_overview/growth";
 
@@ -63,6 +64,10 @@ const facts = (over: Partial<OverviewFacts> = {}): OverviewFacts => ({
   // No answer has changed: the ordinary frame (issue #213).
   changes: [],
   pagesPublished: measured(11, AT(31)),
+  // UI-SPEC S12's score tile: 62 in "Hard to find", eight points up.
+  score: measured({ score: 62, band: "hard-to-find" as const }, AT(31)),
+  scorePrevious: measured({ score: 54, band: "hard-to-find" as const }, AT(31)),
+  pagesRanking: measured(6, AT(31)),
   rivals: {
     own: measured(81, AT(31)),
     previousOwn: measured(36, AT(17)),
@@ -155,7 +160,15 @@ describe("the growth chart", () => {
   it("with nothing measured it renders no chart and one line with the first-due date", () => {
     const model = assembleOverview(facts({ points: [], aiPresence: [] }));
     const markup = html(<GrowthModule growth={model.growth} timeZone={ZONE} />);
-    expect(markup).not.toContain("<svg");
+    // The card head's chip carries a glyph since #353, and a glyph is an
+    // `<svg>`. What this asserts is the absence of the *chart*, which the
+    // inventory's charts all label as an image role — not the absence of
+    // every vector on the card.
+    expect(markup).not.toContain('role="img"');
+    expect(markup).not.toContain("<polyline");
+    // …and no source chip either: nothing was measured, so there is no date
+    // a reading came from to name.
+    expect(markup).not.toContain("rk-srcchip");
     expect(markup).toContain("place.overview.weekly-presence.chart");
     expect(markup).toContain("Sep 7, 2026");
   });
@@ -165,7 +178,7 @@ describe("three tiles, and no fourth", () => {
   const model = assembleOverview(facts());
   const markup = html(
     <TileRow
-      searches={model.searches}
+      score={model.score}
       aiAnswers={model.aiAnswers}
       pagesPublished={model.pagesPublished}
       timeZone={ZONE}
@@ -176,13 +189,25 @@ describe("three tiles, and no fourth", () => {
     expect(count(markup, 'class="stats"')).toBe(3);
   });
 
-  it("renders no score tile — the composite score has none on Overview", () => {
-    expect(markup).not.toContain("score");
+  it("leads with the Discoverability Score, its delta and its band (UI-SPEC 6a)", () => {
+    // The set's `62 ▲ 8` beside the band word. Between DECISIONS
+    // 2026-09-03 and the owner's 2026-09-08 screen set this tile did not
+    // exist; ruling 6a names "Overview tile" and brought it back.
+    expect(markup).toContain('data-testid="overview-tile-score"');
+    expect(markup).toContain("overview.tile.score.label");
+    expect(markup).toContain(">62<");
+    expect(markup).toContain("overview.delta.up");
+    expect(markup).toContain(">8<");
+    expect(markup).toContain("band.score.hard-to-find");
   });
 
-  it("the searches headline carries its delta, in the delta glyph from the registry", () => {
-    expect(markup).toContain("overview.delta.up");
-    expect(markup).toContain(">45<");
+  it("the searches reading has no tile — the growth card is its home now", () => {
+    expect(markup).not.toContain("overview.tile.searches.label");
+  });
+
+  it("names the pages already ranking and what the rest are waiting on", () => {
+    expect(markup).toContain("overview.tile.pages.ranking(6)");
+    expect(markup).toContain("overview.tile.pages.too-early(3)");
   });
 
   it("the pages headline has no delta, so it carries its goal of 30", () => {
@@ -283,15 +308,7 @@ describe("how far ahead each rival is", () => {
 
 describe("this week", () => {
   const model = assembleOverview(facts());
-  const markup = html(
-    <WeekModule
-      week={model.week}
-      timeZone={ZONE}
-      alerts={model.alerts}
-      overflow={model.overflow}
-      supply={model.supply}
-    />
-  );
+  const markup = html(<WeekModule week={model.week} timeZone={ZONE} supply={model.supply} />);
 
   it("renders seven days, each with its own date", () => {
     // Monday 31 Aug through Sunday 6 Sep, in the site's zone. The label is
@@ -309,15 +326,13 @@ describe("this week", () => {
     expect(markup).toContain("overview.week.day.to-come");
   });
 
-  it("renders the calendar control", () => {
+  it("carries the card head, and the calendar control inside it as the quiet rank", () => {
+    // UI-SPEC S12: the control sits in the head, right-aligned, and it is
+    // the tertiary — the screen's one solid fill is the veto panel's.
+    expect(markup).toContain("overview.week.title");
     expect(markup).toContain('href="/app/calendar"');
     expect(markup).toContain("overview.week.calendar-link");
-  });
-
-  it("renders at most two alerts, each with one control, and the remainder as a count", () => {
-    expect(count(markup, 'role="alert"')).toBe(2);
-    expect(count(markup, 'class="btn btn-sm"')).toBe(2);
-    expect(markup).toContain("overview.alert.overflow(1)");
+    expect(markup).toContain("rk-btn-tertiary");
   });
 
   it("renders exactly one supply statement", () => {
@@ -326,12 +341,115 @@ describe("this week", () => {
     expect(markup).not.toContain("overview.supply.first-arrival");
   });
 
+  it("no longer carries the alerts — they are the Needs-you card since #353", () => {
+    expect(markup).not.toContain("overview.alert.");
+    expect(markup).not.toContain("overview.alerts.empty");
+  });
+});
+
+describe("needs you (UI-SPEC S12)", () => {
+  const model = assembleOverview(facts());
+  const markup = html(<NeedsYouModule alerts={model.alerts} overflow={model.overflow} />);
+
+  it("is its own card, headed as the set heads it", () => {
+    expect(markup).toContain("overview.needs-you.title");
+    expect(markup).toContain('data-testid="overview-needs-you"');
+  });
+
+  it("renders at most two panels, each with one control, and the remainder as a count", () => {
+    expect(count(markup, "rk-panel-title")).toBe(2);
+    expect(count(markup, "rk-panel-cta")).toBe(2);
+    expect(markup).toContain("overview.alert.overflow(1)");
+  });
+
+  it("gives the veto panel the warn ground and the solid pill, the reconnect panel the accent ground and the outline", () => {
+    // Two calls to act on one screen, and §9.1 gives the screen one solid
+    // fill: the page that publishes anyway takes it.
+    expect(markup).toContain('data-tone="warn"');
+    expect(markup).toContain("btn btn-sm btn-primary rk-pill");
+    expect(markup).toContain("rk-btn-outline");
+  });
+
+  it("each panel's control navigates to that item's own address", () => {
+    expect(markup).toContain('href="/app/draft/1"');
+    expect(markup).toContain('href="/app/settings"');
+  });
+
+  it("the veto panel states how much of the window is left", () => {
+    expect(markup).toContain("overview.alert.pending-veto.due");
+  });
+
   it("with nothing waiting it states the success line rather than leaving a blank", () => {
     const empty = assembleOverview(facts({ waiting: [] }));
-    const emptyMarkup = html(
-      <WeekModule week={empty.week} timeZone={ZONE} alerts={empty.alerts} supply={empty.supply} />
-    );
+    const emptyMarkup = html(<NeedsYouModule alerts={empty.alerts} />);
     expect(emptyMarkup).toContain("overview.alerts.empty");
     expect(count(emptyMarkup, 'role="alert"')).toBe(1);
+    expect(count(emptyMarkup, "rk-panel-title")).toBe(0);
+  });
+});
+
+describe("UI-SPEC S13 — the week-0 arm, drawn", () => {
+  const weekZero = { firstDueOn: new Date(Date.UTC(2026, 8, 7)) };
+  const model = assembleOverview(
+    facts({
+      points: [],
+      aiPresence: [],
+      score: unmeasured<{ score: number; band: "hard-to-find" }>("not_attempted", TODAY),
+      pagesPublished: measuredZero(0, TODAY),
+      pagesRanking: unmeasured<number>("not_attempted", TODAY),
+      deepPass: { value: measured(12, AT(31)), on: AT(31) },
+      firstDueOn: weekZero.firstDueOn,
+    })
+  );
+
+  it("the chart card names the pass its one reading came from", () => {
+    const markup = html(<GrowthModule growth={model.growth} timeZone={ZONE} />);
+    expect(markup).toContain("rk-srcchip");
+    expect(markup).toContain("overview.growth.source.deep-pass");
+    // One point, drawn — and no run *between* two of them: the polyline
+    // carries a single coordinate pair, which is what renders the lone
+    // reading (a zero-length subpath under a round linecap is a dot), and
+    // the area fill `GrowthLine` guards on two points is absent.
+    expect(markup).toContain('role="img"');
+    expect(count(markup, "<polyline")).toBe(1);
+    expect(markup).toMatch(/points="[\d.]+,[\d.]+"/);
+    expect(markup).not.toContain('opacity="0.1"');
+  });
+
+  it("its footnotes are S13's pair, and the goal sentence is not among them", () => {
+    const markup = html(<GrowthModule growth={model.growth} timeZone={ZONE} />);
+    expect(markup).toContain("overview.growth.footnote.starting(12)");
+    expect(markup).toContain("overview.growth.footnote.first-monday");
+    expect(markup).not.toContain("overview.growth.footnote.goal");
+    expect(markup).not.toContain("overview.growth.footnote.start(");
+  });
+
+  it("each tile states when its own reading arrives, in place of a number", () => {
+    const markup = html(
+      <TileRow
+        score={model.score}
+        aiAnswers={model.aiAnswers}
+        pagesPublished={model.pagesPublished}
+        timeZone={ZONE}
+        weekZero={model.weekZero}
+      />
+    );
+    expect(markup).toContain("overview.tile.score.first-due");
+    expect(markup).toContain("overview.tile.ai-answers.first-pass");
+    expect(markup).toContain("overview.tile.pages.first-review");
+    // No band beside a dash: a band is a reading of a score.
+    expect(markup).not.toContain("band.score.");
+    // …and no ranking badge, because no count was taken.
+    expect(markup).not.toContain("overview.tile.pages.ranking");
+  });
+
+  it("the rivals card states when sizing arrives rather than drawing empty rows", () => {
+    const markup = html(
+      <RivalModule rivals={model.rivals} timeZone={ZONE} weekZero={model.weekZero} />
+    );
+    expect(markup).toContain("overview.rivals.title");
+    expect(markup).toContain("overview.rivals.line.week-zero");
+    expect(markup).not.toContain("<svg class=\"rk-spark\"");
+    expect(markup).not.toContain("overview.rivals.line.shrinking");
   });
 });

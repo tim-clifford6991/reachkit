@@ -21,7 +21,7 @@
 // A caller's array order is never trusted: two customers with the same
 // waiting items must see the same two alerts.
 import type { CopyKey } from "@/lib/presentation/copy";
-import { OVERVIEW_ALERT_CAP } from "@/lib/config/constants";
+import { OVERVIEW_ALERT_CAP, VETO } from "@/lib/config/constants";
 
 /** The two kinds §4.5 names, in the order they outrank each other. */
 export const ALERT_KINDS = ["needs_you", "pending_veto"] as const;
@@ -43,7 +43,15 @@ export interface Alert {
   kind: AlertKind;
   key: CopyKey;
   actionKey: CopyKey;
+  /** The dim line under the title (UI-SPEC S12's panel). Its own key, and
+   *  for the veto arm the window it is about — see `timeLeft` below. */
+  lineKey: CopyKey;
   vars: Record<string, string>;
+  /** How much of the veto window is left, where the alert is about one.
+   *  Numbers, not a written string: the model states the measurement and
+   *  the module writes it, so no unit is composed here. Absent on the
+   *  `needs_you` arm, which is not on a clock. */
+  timeLeft?: { hours: number; minutes: number };
   href: string;
 }
 
@@ -52,11 +60,18 @@ export interface Overflow {
   whereKey: CopyKey;
 }
 
-const ALERT_COPY: Readonly<Record<AlertKind, { key: CopyKey; actionKey: CopyKey }>> = Object.freeze({
-  needs_you: { key: "overview.alert.needs-you", actionKey: "overview.alert.needs-you.action" },
+const ALERT_COPY: Readonly<
+  Record<AlertKind, { key: CopyKey; actionKey: CopyKey; lineKey: CopyKey }>
+> = Object.freeze({
+  needs_you: {
+    key: "overview.alert.needs-you",
+    actionKey: "overview.alert.needs-you.action",
+    lineKey: "overview.alert.needs-you.cause",
+  },
   pending_veto: {
     key: "overview.alert.pending-veto",
     actionKey: "overview.alert.pending-veto.action",
+    lineKey: "overview.alert.pending-veto.due",
   },
 });
 
@@ -64,7 +79,13 @@ const ALERT_COPY: Readonly<Record<AlertKind, { key: CopyKey; actionKey: CopyKey 
 export const ALERTS_EMPTY_KEY = "overview.alerts.empty" satisfies CopyKey;
 export const OVERFLOW_WHERE_KEY = "overview.alert.overflow" satisfies CopyKey;
 
-export function readAlerts(waiting: readonly WaitingItem[]): {
+export function readAlerts(
+  waiting: readonly WaitingItem[],
+  /** The instant the window is measured against — the screen's own `today`,
+   *  which on the layout sweep is the pinned clock. Passed in rather than
+   *  read here, so this stays pure and a test can state the hour. */
+  at: Date
+): {
   alerts: readonly Alert[];
   overflow?: Overflow;
 } {
@@ -74,11 +95,14 @@ export function readAlerts(waiting: readonly WaitingItem[]): {
 
   const alerts = shown.map((item): Alert => {
     const copyKeys = ALERT_COPY[item.kind];
+    const left = item.kind === "pending_veto" ? timeLeft(item.since, at) : undefined;
     return {
       kind: item.kind,
       key: copyKeys.key,
       actionKey: copyKeys.actionKey,
+      lineKey: copyKeys.lineKey,
       vars: { title: item.title },
+      ...(left === undefined ? {} : { timeLeft: left }),
       href: item.href,
     };
   });
@@ -91,4 +115,20 @@ export function readAlerts(waiting: readonly WaitingItem[]): {
 function byRankThenAge(a: WaitingItem, b: WaitingItem): number {
   const rank = ALERT_KINDS.indexOf(a.kind) - ALERT_KINDS.indexOf(b.kind);
   return rank !== 0 ? rank : a.since.getTime() - b.since.getTime();
+}
+
+/**
+ * What is left of a veto window, as whole hours and whole minutes.
+ *
+ * The window's length is `VETO.defaultHours` — the pin, never a literal
+ * here — measured from the moment the page started waiting. A window that
+ * has already run out is `0 h 0 m` rather than a negative duration: the
+ * page publishes at the boundary, and a countdown that went below zero
+ * would state a time that has not arrived as one that has passed.
+ */
+function timeLeft(since: Date, at: Date): { hours: number; minutes: number } {
+  const closes = since.getTime() + VETO.defaultHours * 3_600_000;
+  const ms = Math.max(0, closes - at.getTime());
+  const minutes = Math.floor(ms / 60_000);
+  return { hours: Math.floor(minutes / 60), minutes: minutes % 60 };
 }

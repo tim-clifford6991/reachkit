@@ -66,13 +66,55 @@ export const OVERVIEW_COPY = Object.freeze({
   // badge §4.5 puts beside it. Four lines, not one: §4.5's "The gap is
   // closing." is a claim about the chart directly under it, and a screen
   // that states it over a widening gap has said something untrue.
-  "overview.head.rising": ["TODO(copy)", { slots: {}, fixedBy: "BUILD §4.5" }],
+  "overview.head.rising": ["The gap is closing.", { slots: {}, fixedBy: "BUILD §4.5" }],
   "overview.head.flat": ["TODO(copy)", { slots: {}, fixedBy: "BUILD §4.5" }],
   "overview.head.falling": ["TODO(copy)", { slots: {}, fixedBy: "BUILD §4.5" }],
-  "overview.head.badge": ["TODO(copy)", { slots: { weeks: "text" }, fixedBy: "BUILD §4.5" }],
+  // Approved as written (ruling 11a): the set's badge claims every week
+  // and names no number, so the `weeks` slot goes with the wording rather
+  // than staying declared and unfilled — a slot the value never spends is
+  // a promise the registry cannot keep (`registry.test.ts` substitutes
+  // every declared slot and asserts it lands).
+  // ── UI-SPEC S13, the week-0 arm (REQ-040 c7).
+  //
+  // The deep pass has measured once and the first weekly pass is still
+  // due. Every string below is unbracketed in the set and so approved
+  // (11a). What the arm may not do is speak in the ordinary arm's words:
+  // "The gap is closing." over a single reading would be a direction
+  // nothing was compared to establish, which is the whole reason
+  // `headDirection` answers `no_data` under two points.
+  "overview.head.week-zero": [
+    "Your first page is ready to read.",
+    { slots: {}, fixedBy: "UI-SPEC S13" },
+  ],
+  "overview.head.badge.week-zero": ["week 0", { slots: {}, fixedBy: "UI-SPEC S13" }],
+  "overview.head.badge": ["▲ every week since you started", { slots: {}, fixedBy: "UI-SPEC S12" }],
 
   // ── The growth module.
-  "overview.growth.footnote.start": ["TODO(copy)", { slots: { value: "text" }, fixedBy: "BUILD §4.5" }],
+  // The card head's right-hand chip (UI-SPEC S12: "re-measured Mon 1 Sep").
+  // The date is a slot — it is the measurement's own, read from the series,
+  // and the sidebar states the same one from the same `firstDueOn`/week.
+  "overview.growth.source.remeasured": [
+    "re-measured {on}",
+    { slots: { on: "date" }, fixedBy: "UI-SPEC S12" },
+  ],
+  // The week-0 chart's own chip and footnote pair. The chip names the pass
+  // the single reading came from — the set is explicit that it is the deep
+  // pass and not a weekly measurement — and the right footnote says the
+  // weekly line has not begun, in place of the goal sentence the ordinary
+  // arm carries.
+  "overview.growth.source.deep-pass": [
+    "from the deep pass · {on}",
+    { slots: { on: "date" }, fixedBy: "UI-SPEC S13" },
+  ],
+  "overview.growth.footnote.starting": [
+    "starting at {value}",
+    { slots: { value: "text" }, fixedBy: "UI-SPEC S13" },
+  ],
+  "overview.growth.footnote.first-monday": [
+    "the line begins with the first Monday",
+    { slots: {}, fixedBy: "UI-SPEC S13" },
+  ],
+  "overview.growth.footnote.start": ["started at {value}", { slots: { value: "text" }, fixedBy: "BUILD §4.5" }],
   "overview.growth.footnote.goal": [
     "At {goal} the big category terms unlock.",
     { slots: { goal: "text" }, fixedBy: "BUILD §4.5" },
@@ -80,6 +122,35 @@ export const OVERVIEW_COPY = Object.freeze({
 
   // ── The three tiles (DECISIONS 2026-09-03: no composite score tile).
   // Each name is §4.5's own; each meaning line is the owner's.
+  // ── The three tiles' week-0 lines (UI-SPEC S13). Each names when its
+  // own reading arrives, in place of a number nobody has measured — never
+  // a zero, which REQ-004 forbids as a reading that was not taken.
+  "overview.tile.score.first-due": [
+    "first measurement due {due}",
+    { slots: { due: "date" }, fixedBy: "UI-SPEC S13 · REQ-040 c7" },
+  ],
+  "overview.tile.ai-answers.first-pass": [
+    "measured with the first weekly pass",
+    { slots: {}, fixedBy: "UI-SPEC S13" },
+  ],
+  "overview.tile.pages.first-review": [
+    "first page in review today",
+    { slots: {}, fixedBy: "UI-SPEC S13" },
+  ],
+
+  // ── The score tile (UI-SPEC S12, ruling 6a).
+  //
+  // Ruling 6a fixes the name on every surface that labels the number:
+  // "Discoverability Score" — the report head's eyebrow, this tile, the
+  // landing component tile and the two mails. Transcribed, not chosen.
+  "overview.tile.score.label": ["Discoverability Score", { slots: {}, fixedBy: "UI-SPEC 6a" }],
+  // What reaching `GOAL_VALUES.score` means, in the product's own words.
+  // The set prints no such line beside the score — it prints the band —
+  // so this stays owed, and the tile carries the goal's number without it.
+  "overview.tile.score.means": ["TODO(copy)", { slots: { goal: "text" }, fixedBy: "BUILD §4.5" }],
+  // The card head of the growth chart still names the searches reading:
+  // the set moved that number off the tiles and onto its own card, and
+  // this key is the card's eyebrow now rather than a tile label.
   "overview.tile.searches.label": ["Searches you appear in", { slots: {}, fixedBy: "BUILD §4.5" }],
   "overview.tile.ai-answers.label": ["AI answers", { slots: {}, fixedBy: "BUILD §4.5" }],
   "overview.tile.ai-answers.window": [
@@ -88,6 +159,18 @@ export const OVERVIEW_COPY = Object.freeze({
   ],
   "overview.tile.ai-answers.means": ["TODO(copy)", { slots: {}, fixedBy: "REQ-041 c4" }],
   "overview.tile.pages.label": ["Pages published", { slots: {}, fixedBy: "BUILD §4.5" }],
+  // The set's own two lines on the pages tile, both unbracketed and so
+  // approved (11a): the badge beside the count, and the dim line under it.
+  // Both numbers are slots — the ranking count is measured and the three
+  // weeks are `TOO_EARLY_WEEKS`, which is a pin and is never re-written.
+  "overview.tile.pages.ranking": [
+    "{count} already ranking",
+    { slots: { count: "text" }, fixedBy: "UI-SPEC S12" },
+  ],
+  "overview.tile.pages.too-early": [
+    "rest under {weeks} weeks — too early to judge",
+    { slots: { weeks: "text" }, fixedBy: "UI-SPEC S12 · REQ-063 c2" },
+  ],
   "overview.tile.pages.means": ["TODO(copy)", { slots: {}, fixedBy: "REQ-041 c4" }],
 
   // §4.5's "goal: 6", with the number left to `GOAL_VALUES`.
@@ -114,6 +197,13 @@ export const OVERVIEW_COPY = Object.freeze({
   // constrained by what it must **not** say: nothing is shrinking yet, so it
   // can never be `overview.rivals.line.shrinking` (REQ-041 c9).
   "overview.rivals.line.absolute": ["TODO(copy)", { slots: {}, fixedBy: "REQ-041 c9" }],
+  // The week-0 arm's one line, in place of the rows: nothing has been
+  // sized yet, and the card says when it will be rather than drawing three
+  // empty plots.
+  "overview.rivals.line.week-zero": [
+    "Sized with the first weekly measurement, {due}.",
+    { slots: { due: "date" }, fixedBy: "UI-SPEC S13" },
+  ],
 
   // ── REQ-096 c6: a rival banded `far`, and the two sentences it needs.
   //
@@ -150,10 +240,36 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.week.day.to-come": ["next", { slots: {}, fixedBy: "REQ-041 c6" }],
 
   // ── The alerts, and the one remainder line.
+  //
+  // Since #353 they are their own card, headed as the set heads it — §4.5
+  // put them under "This week", and the approved set draws two cards.
+  "overview.needs-you.title": ["Needs you", { slots: {}, fixedBy: "UI-SPEC S12" }],
   "overview.alert.pending-veto": ["TODO(copy)", { slots: { title: "text" }, fixedBy: "REQ-041 c5" }],
   "overview.alert.pending-veto.action": ["Read it", { slots: {}, fixedBy: "BUILD §4.5" }],
   "overview.alert.needs-you": ["TODO(copy)", { slots: { title: "text" }, fixedBy: "REQ-041 c5" }],
-  "overview.alert.needs-you.action": ["TODO(copy)", { slots: {}, fixedBy: "REQ-041 c5" }],
+  // "Reconnect" is unbracketed in the approved set (ruling 11a) — the word
+  // on the accent panel's outline pill. The alert's own title and the line
+  // saying what broke are bracketed there, and stay owed below.
+  "overview.alert.needs-you.action": ["Reconnect", { slots: {}, fixedBy: "UI-SPEC S12" }],
+  // The cause: "[cause line — owner's]" in the set, so owed. One short line
+  // under the title, never a paragraph (§2.5's dim line).
+  "overview.alert.needs-you.cause": ["TODO(copy)", { slots: {}, fixedBy: "REQ-041 c5" }],
+  // The veto panel's own line, unbracketed in the set and therefore
+  // approved. `left` is how long the window has to run, written by
+  // `formatHoursLeft` from the item's own `since` and `VETO.defaultHours` —
+  // never a number typed here.
+  // The duration that fills `left` above. Its own key, because the two
+  // numerals are slots and the units are the set's own characters — the
+  // same composition `overview.rivals.was` makes over
+  // `overview.rivals.ratio`, so no unit is written at a call site.
+  "overview.alert.pending-veto.left": [
+    "{hours} h {minutes} m",
+    { slots: { hours: "text", minutes: "text" }, fixedBy: "UI-SPEC S12" },
+  ],
+  "overview.alert.pending-veto.due": [
+    "publishes in {left} unless you say otherwise",
+    { slots: { left: "text" }, fixedBy: "UI-SPEC S12" },
+  ],
   "overview.alert.overflow": ["TODO(copy)", { slots: { remaining: "text" }, fixedBy: "REQ-041 c5" }],
   "overview.alerts.empty": ["TODO(copy)", { slots: {}, fixedBy: "REQ-041 c5" }],
 

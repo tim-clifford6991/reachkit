@@ -25,6 +25,7 @@
 // same date the shell's domain block states, because both read the one
 // `firstDueOn` they were handed.
 import type React from "react";
+import { TrendingUp } from "lucide-react";
 import { GrowthLine, type GrowthWeek } from "@/ui/charts";
 import { copy } from "@/lib/presentation/copy";
 import { CHANGE_ACCOUNT_KEY } from "./changes";
@@ -33,6 +34,7 @@ import { writtenLine } from "../_shell/written";
 import { GOALS } from "./goals";
 import { formatCount, formatMonthDay } from "./present";
 import type { GrowthModule as GrowthModuleModel } from "./growth";
+import { CardHead } from "@/ui/idiom";
 import { CHART_PLATE, STACK } from "./style";
 
 export function GrowthModule(p: {
@@ -43,11 +45,44 @@ export function GrowthModule(p: {
     const line = writtenLine("place.overview.weekly-presence.chart");
     return (
       <section className="rk-idiom-card" data-testid="overview-growth">
+        <Head />
         <div style={STACK}>
           {line === null ? null : <p>{line}</p>}
           <p className="rk-prov" data-testid="overview-growth-first-due">
             {formatDate(p.growth.firstDueOn, p.timeZone)}
           </p>
+        </div>
+      </section>
+    );
+  }
+
+  // UI-SPEC S13: one point, from the deep pass, labelled as such. The
+  // chart is the same `GrowthLine` — a second chart for one point would be
+  // a sixth entry in §2.4's closed inventory — and what changes is what the
+  // card says around it: the chip names the pass the reading came from, and
+  // the right footnote says the weekly line has not begun, in place of the
+  // goal sentence a series carries.
+  if (p.growth.kind === "week-zero") {
+    const point: GrowthWeek = {
+      name: formatMonthDay(p.growth.on, p.timeZone),
+      value: p.growth.value,
+    };
+    const starting = writtenLine("overview.growth.footnote.starting", {
+      value: formatCount(p.growth.value),
+    });
+    const firstMonday = writtenLine("overview.growth.footnote.first-monday");
+    const chip = writtenLine("overview.growth.source.deep-pass", {
+      on: formatDate(p.growth.on, p.timeZone),
+    });
+    return (
+      <section className="rk-idiom-card" data-testid="overview-growth">
+        <Head source={chip} />
+        <div style={CHART_PLATE}>
+          <GrowthLine weeks={[point]} label={copy("overview.tile.searches.label")} />
+        </div>
+        <div style={STACK}>
+          {starting === null ? null : <p className="rk-prov">{starting}</p>}
+          {firstMonday === null ? null : <p className="rk-prov">{firstMonday}</p>}
         </div>
       </section>
     );
@@ -81,7 +116,9 @@ export function GrowthModule(p: {
   if (first === undefined) return <section className="rk-idiom-card" data-testid="overview-growth" />;
 
   const goal = GOALS.searches_appeared_in;
-  const goalText = copy("overview.goal", { value: formatCount(goal.value) });
+  // No `overview.goal` chip here since #353: the goal was named twice on
+  // this card — once on the plot's dashed rule and once in the right-hand
+  // footnote — and the set keeps the footnote. One fact, one place.
   const startPoint = p.growth.points.find((point) => point.value.kind !== "unmeasured");
   const startLine =
     startPoint === undefined || startPoint.value.kind === "unmeasured"
@@ -90,13 +127,29 @@ export function GrowthModule(p: {
           value: formatCount(startPoint.value.value),
         });
   const goalLine = writtenLine(goal.meansKey, { goal: formatCount(goal.value) });
+  // The newest week that was actually measured — never the window's last
+  // entry, which may be a break or a week that did not run. A chip naming
+  // a date nothing was measured on would be provenance for a reading the
+  // product does not have.
+  const measured = p.growth.points.filter((point) => point.value.kind !== "unmeasured");
+  const newest = measured.at(-1);
+  const sourceChip =
+    newest === undefined
+      ? null
+      : writtenLine("overview.growth.source.remeasured", {
+          on: formatDate(newest.weekStart, p.timeZone),
+        });
 
   return (
     <section className="rk-idiom-card" data-testid="overview-growth">
+      {/* The head, and on the right the chip naming when the series was
+          last measured (UI-SPEC S12: "re-measured Mon 1 Sep"). The date is
+          the newest measured week's own — the same reading the sidebar's
+          domain block states, from the same series. */}
+      <Head source={sourceChip} />
       <div style={CHART_PLATE}>
         <GrowthLine
           weeks={[first, ...rest]}
-          goal={{ value: goal.value, name: goalText }}
           label={copy("overview.tile.searches.label")}
         />
       </div>
@@ -107,3 +160,23 @@ export function GrowthModule(p: {
     </section>
   );
 }
+
+/** The card's head. One definition for both arms — the chart arm and the
+ *  nothing-measured-yet arm are the same card with different bodies, and a
+ *  head written twice is a head that comes to differ. */
+function Head(p: { source?: string | null }): React.JSX.Element {
+  return (
+    <CardHead
+      icon={<TrendingUp aria-hidden size={ICON} />}
+      eyebrow={copy("overview.tile.searches.label")}
+      pill={
+        p.source === null || p.source === undefined ? null : (
+          <span className="rk-srcchip">{p.source}</span>
+        )
+      }
+    />
+  );
+}
+
+/** The chip's glyph size — 14px inside `.rk-head-chip`'s 32px square. */
+const ICON = 14;

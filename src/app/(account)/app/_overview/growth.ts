@@ -49,6 +49,18 @@ export type GrowthModule =
        *  the weeks alone, so anything counting weeks counts weeks. */
       entries: readonly SeriesEntry<WeeklyPoint>[];
     }
+  /** UI-SPEC S13: the deep pass has taken one reading and the weekly series
+   *  has not begun. One point, drawn and labelled as the deep pass's — the
+   *  card's chip says so — and the right-hand footnote says the line starts
+   *  with the first Monday rather than naming the goal.
+   *
+   *  **Deliberately not a `series` of one.** A deep reading is not a
+   *  measured week (`store.ts`: "a free or deep scan is not a measured
+   *  week"), and folding it into `points` would put it in the week count,
+   *  in the deltas and in the AI window, which are all readings of weekly
+   *  passes. It is its own arm so that it reaches the chart and nothing
+   *  else. */
+  | { kind: "week-zero"; value: number; on: Date; firstDueOn: Date }
   | { kind: "none"; firstDueOn: Date };
 
 /**
@@ -62,6 +74,9 @@ export type GrowthModule =
 export function readGrowth(input: {
   points: readonly WeeklyPoint[];
   firstDueOn: Date;
+  /** The deep pass's own reading, where one was taken and no weekly week
+   *  has been. UI-SPEC S13's single point. */
+  deepPass?: { value: Measured<number>; on: Date };
   /** The dates the site's answers changed (REQ-071 c12). Absent is the
    *  ordinary case and means the same as empty: most sites never change
    *  one. */
@@ -69,7 +84,20 @@ export function readGrowth(input: {
 }): GrowthModule {
   const window = input.points.slice(-OVERVIEW_TRAILING_WEEKS);
   const anyMeasured = window.some((p) => p.value.kind !== "unmeasured");
-  if (!anyMeasured) return { kind: "none", firstDueOn: input.firstDueOn };
+  if (!anyMeasured) {
+    // No weekly week measured. Where the deep pass took a reading, that
+    // one point is the chart (S13); where it did not, there is no chart.
+    const deep = input.deepPass;
+    if (deep !== undefined && deep.value.kind !== "unmeasured") {
+      return {
+        kind: "week-zero",
+        value: deep.value.value,
+        on: deep.on,
+        firstDueOn: input.firstDueOn,
+      };
+    }
+    return { kind: "none", firstDueOn: input.firstDueOn };
+  }
   return {
     kind: "series",
     points: window,

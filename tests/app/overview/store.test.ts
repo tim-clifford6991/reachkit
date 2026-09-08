@@ -33,7 +33,15 @@ const db: FakeDb = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 
 const supplyDepth = vi.fn(async () => ({ unused: 9, total: 12 }));
-vi.mock("@/lib/opportunities", () => ({ supplyDepth: (...a: unknown[]) => supplyDepth(...(a as [])) }));
+/** REQ-063's stored standings, as the pages tile's "already ranking" badge
+ *  counts them (issue #353). Empty by default: most cases here are about
+ *  the weekly series, and a site with no judged pages is the ordinary
+ *  frame — the badge simply does not render. */
+const readWeek = vi.fn(async (): Promise<readonly { standing: { kind: string } }[]> => []);
+vi.mock("@/lib/opportunities", () => ({
+  supplyDepth: (...a: unknown[]) => supplyDepth(...(a as [])),
+  readWeek: (...a: unknown[]) => readWeek(...(a as [])),
+}));
 
 const { readOverviewFacts } = await import("@/app/(account)/app/_overview/store");
 

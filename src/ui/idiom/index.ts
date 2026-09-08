@@ -14,6 +14,11 @@
 // prop on the registered component itself (`onAccent`) rather than a second
 // component here — it needed no new markup, only a second ground. Putting them
 // here keeps §2.2's list closed and still gives them one home.
-export { ActionPanel, type ActionPanelProps, type ActionPanelTone } from "./ActionPanel";
+export {
+  ActionPanel,
+  type ActionPanelProps,
+  type ActionPanelRank,
+  type ActionPanelTone,
+} from "./ActionPanel";
 export { CardHead } from "./CardHead";
 export { IdiomCard } from "./IdiomCard";
