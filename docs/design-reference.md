@@ -20,26 +20,62 @@ the states, and the rulings' consequences.
 | whether a value has a name yet | `docs/design/approved/literals.md` |
 | provenance, and what was changed to land any of it | `docs/design/approved/README.md` |
 
-## Every route, and the screen that specifies it
+## The index — every route, its screen, and what holds it
 
-| route | S-id | key |
+One row per surface the product serves. **A UI issue names the `S<id>` from
+this table**, reads that section of `UI-SPEC.md` first, and cites the REQ
+criteria in the column beside it; the archive's `requirements/REQ-*.md` is
+where those criteria are written out.
+
+The table is not maintained by hand alone. `tests/ui/layout/reference.test.ts`
+walks the route tree, reads the `REFERENCE: S<id>` line each route carries in
+`tests/ui/layout/routes.ts`, and fails if a route is missing from this table,
+carries a different S-id here than there, or names a section `UI-SPEC.md` does
+not have (issue #358).
+
+### Screens — the sixteen routes the layout suite renders
+
+| route | S-id | UI-SPEC | REQ criteria | tests that cover it |
+|---|---|---|---|---|
+| `/` | S1 | §S1 | REQ-099, REQ-001 | `tests/app/scan-address/landing.test.tsx` · `tests/app/chrome/header.test.tsx` |
+| `/scan/{domain}` | S2 · states S3 | §S2, §S3 | REQ-004…010, 013, 090, 094 · states REQ-003, REQ-004 c3/c6/c9, REQ-015, REQ-002 | `tests/app/scan-address/report-view.test.tsx` · `report-copy.test.tsx` · `report-tables.test.ts` · `problems.test.ts` · `ai-answers.test.tsx` · `removal.test.tsx` · `tests/ui/layout/report-values.test.ts` |
+| `/pricing` | S4 | §S4 | REQ-021 c4, REQ-022 | `tests/app/pricing/pricing.test.tsx` |
+| `/privacy` · `/terms` · `/imprint` | S5 | §S5 | *(new in the set)* | `tests/app/middleware.test.ts` (public, no session) · the copy sweeps · the layout sweep |
+| `/veto/{token}` | S6 | §S6 | REQ-057, REQ-075 | `tests/app/veto/page.test.tsx` |
+| `/opt-out/{token}` | S7 | §S7 | REQ-010 c11 | `tests/app/opt-out/page.test.tsx` |
+| `/signin` | S9 | §S9 | REQ-098 | `tests/app/signin/signin.test.tsx` |
+| `/setup` | S10 | §S10 | REQ-025…028, REQ-021 c7 | `tests/app/setup/screen.test.tsx` · `page.test.tsx` · `submit.test.ts` · `gate.test.ts` |
+| `/setup/waiting` | S11 | §S11 | REQ-029 | `tests/app/setup/waiting.test.tsx` |
+| `/app` | S12 · week 0 S13 | §S12, §S13 | REQ-040, 041, 042, 092 · week 0 REQ-040 c7, REQ-021 c11 | `tests/app/overview/*` (13 files) · `tests/ui/layout/values.test.ts` |
+| `/app/calendar` | S14 · panel states S15 | §S14, §S15 | REQ-043 · panel REQ-043 c8–c12, REQ-044 | `tests/app/calendar/*` (16 files) · `tests/ui/calendar-css.test.ts` |
+| `/app/draft/{draftId}` | S16 · edit S17 | §S16, §S17 | REQ-045, REQ-093 · edit REQ-045 c5–c11 | `tests/app/draft/*` · `tests/ui/draft-columns.test.ts` |
+| `/app/settings` | S18 | §S18 | REQ-070…079 | `tests/app/settings/*` · `tests/ui/settings-columns.test.ts` · `tests/ui/layout/settings-field.test.ts` |
+| `/hosted-page/{...slug}` | S19 | §S19 | REQ-059 | `tests/hosted/container/*` · `tests/hosted/indexing/*` · `tests/hosted/serving/*` |
+
+Two of the twenty screens are not rows above, because neither is a route of
+its own:
+
+| screen | S-id | UI-SPEC | REQ criteria | tests that cover it |
+|---|---|---|---|---|
+| Not found / error — any unmatched address, and `(hosted)/not-found.tsx` | S8 | §S8 | *(new in the set)* | `tests/hosted/container/not-found.test.tsx` · `tests/app/route-groups.test.ts` |
+| The mails — one shell, ten kinds (BUILD §12) | S20 | §S20 | BUILD §12, REQ-064, REQ-075 | `tests/mail/shell/*` · `tests/mail/templates/*` (10 kinds) |
+
+### Surfaces with no screen
+
+They answer a request and render nothing a person reads, so `UI-SPEC.md`
+describes none of them. They are listed so the table can be checked against
+the route tree without an unexplained gap.
+
+| surface | what it is | tests |
 |---|---|---|
-| `/` | S1 | `landing` |
-| `/scan/{domain}` | S2 (states S3) | `report` · `rstates` |
-| `/pricing` | S4 | `pricing` |
-| `/privacy` · `/terms` · `/imprint` | S5 | `legal` |
-| `/veto/{token}` | S6 | `veto` |
-| `/opt-out/{token}` | S7 | `optout` |
-| *any unmatched route* | S8 | `notfound` |
-| `/signin` | S9 | `auth` |
-| `/setup` | S10 | `setup` |
-| `/setup/waiting` | S11 | `waiting` |
-| `/app` | S12 (week 0: S13) | `overview` · `overview0` |
-| `/app/calendar` | S14 (states S15) | `calendar` · `cstates` |
-| `/app/draft/{id}` | S16 (edit: S17) | `draft` · `draftedit` |
-| `/app/settings` | S18 | `settings` |
-| `blog.{domain}/{slug}` | S19 | `hosted` |
-| *the mails (§12, not a route)* | S20 | `mail` |
+| `/signin/{token}` | the magic link's redeem-and-redirect | `tests/app/signin/redeem-route.test.ts` |
+| `/robots.txt` · `/sitemap.xml` (hosted) | the indexing policy the hosted edge serves | `tests/hosted/indexing/robots.test.ts` · `sitemap.test.ts` |
+| `/hosted-gone` | the 410 an unpublished page answers | `tests/hosted/container/edge.test.ts` |
+| `/api/**` (15 routes, BUILD §3) | thin HTTP adapters over the engine | `tests/app/api-adapter.test.ts` and each route's own suite |
+
+Every screen row's baseline images are
+`tests/ui/layout/__screenshots__/<route>-<width>-<theme>.png`, three bands ×
+two themes, and they are what a PR that moves a pixel regenerates.
 
 ## What the archive is, and is not
 
@@ -55,8 +91,9 @@ journeys and the work-orders are the detail behind `BUILD.md`, which is why
 every UI issue cites its REQ criteria. The archive stays read-only either
 way.
 
-> This file was seeded by #364 and given its route map by #367.
-> **Issue #358 owns it** and will expand it into the full reference index —
-> the build brief's own pointer, the per-screen citations, and the rule that
-> a UI PR names the screen it was built against. What is here is the map and
-> the pointers; the index #358 describes is still #358's to write.
+> Seeded by #364, given its route map by #367, and expanded into the index
+> above by #358 — the per-screen citations, the tests that hold each screen,
+> and the check that keeps the table and the route tree in step.
+> A route added later adds three things in the same PR: its `page.tsx`, its
+> `REFERENCE: S<id>` row in `tests/ui/layout/routes.ts`, and its row here.
+> `tests/ui/layout/reference.test.ts` fails until all three exist.

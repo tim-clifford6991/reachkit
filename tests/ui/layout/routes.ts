@@ -75,6 +75,68 @@ export const SEGMENT_FIXTURES: Readonly<Record<string, string>> = {
 };
 
 /**
+ * The approved screen every route is built against (issue #358).
+ *
+ * One row per enumerated route, keyed by the URL the enumerator produces —
+ * dynamic segments already filled from `SEGMENT_FIXTURES`, so a row here is
+ * the same string the sweep navigates to and the same string that names the
+ * route's baseline images.
+ *
+ * **This is the layout suite's half of `docs/design-reference.md`.** That
+ * file is the index a person reads: route → screen → UI-SPEC section → REQ
+ * criteria → tests. This map is what a machine can check it against, and
+ * `reference.test.ts` holds the two equal — a route with no row here, a row
+ * for a route the tree no longer serves, or an S-id that disagrees with the
+ * index fails there. The point is not the string: it is that a screen
+ * cannot be rebuilt against nothing, and that "which screen is this?" has
+ * one answer rather than one per reader.
+ *
+ * The `REFERENCE:` line beside each row is written out so the answer is
+ * legible in a diff, in the same words a UI issue and a PR body use.
+ */
+export const ROUTE_REFERENCE: Readonly<Record<string, `S${number}`>> = {
+  /** REFERENCE: S1 — Landing (UI-SPEC §S1; REQ-099, REQ-001) */
+  "/": "S1",
+  /** REFERENCE: S2 — Free report, states S3 (§S2, §S3; REQ-004…010) */
+  "/scan/example.com": "S2",
+  /** REFERENCE: S4 — Pricing (§S4; REQ-021 c4, REQ-022) */
+  "/pricing": "S4",
+  /** REFERENCE: S5 — Legal, one renderer for the three routes (§S5) */
+  "/privacy": "S5",
+  /** REFERENCE: S5 — Legal (§S5) */
+  "/terms": "S5",
+  /** REFERENCE: S5 — Legal (§S5) */
+  "/imprint": "S5",
+  /** REFERENCE: S6 — Veto page (§S6; REQ-057, REQ-075) */
+  "/veto/layout-sweep-fixture": "S6",
+  /** REFERENCE: S7 — Opt-out (§S7; REQ-010 c11) */
+  "/opt-out/layout-sweep-fixture": "S7",
+  /** REFERENCE: S9 — Sign in (§S9; REQ-098) */
+  "/signin": "S9",
+  /** REFERENCE: S10 — Setup (§S10; REQ-025…028, REQ-021 c7) */
+  "/setup": "S10",
+  /** REFERENCE: S11 — Waiting (§S11; REQ-029) */
+  "/setup/waiting": "S11",
+  /** REFERENCE: S12 — Overview, week 0 is S13 (§S12, §S13; REQ-040…042, 092) */
+  "/app": "S12",
+  /** REFERENCE: S14 — Calendar, panel states S15 (§S14, §S15; REQ-043, REQ-044) */
+  "/app/calendar": "S14",
+  /** REFERENCE: S16 — Draft, edit is S17 (§S16, §S17; REQ-045, REQ-093) */
+  "/app/draft/draft-2026-09-15": "S16",
+  /** REFERENCE: S18 — Settings (§S18; REQ-070…079) */
+  "/app/settings": "S18",
+  /**
+   * REFERENCE: S19 — Hosted page (§S19; REQ-059).
+   *
+   * The sweep renders this route's 404 arm, which is S8's screen — see the
+   * `HOST_FIXTURES` note below. The reference is still S19, because the
+   * reference names what the route *is for*, not which arm a fixture
+   * environment happens to reach.
+   */
+  "/hosted-page/best-onboarding-tools": "S19",
+};
+
+/**
  * One row per `(hosted)` page, keyed by the file's own path relative to the
  * repo root (POSIX separators), naming the `Host` header the suite sends
  * when rendering it. Empty today for the same reason as `SEGMENT_FIXTURES`.
