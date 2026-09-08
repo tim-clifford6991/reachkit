@@ -150,12 +150,13 @@ export async function beginEmailChange(
       : { ok: false, reason: "unavailable", lineKey: "settings.account.email-change-unavailable" };
   }
 
-  const mail = buildMagicLink({ href: issued.url });
+  const mail = buildMagicLink({ href: issued.url, address: candidate });
   const sent = await sendEmail({
     kind: "magic-link",
     to: candidate,
     subject: mail.subject,
     blocks: mail.blocks,
+    reason: mail.reason,
   });
   if (!sent.sent) {
     // The deliverability attempt failed. Take the pending change back out

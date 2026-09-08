@@ -70,8 +70,16 @@ describe("the touch is composed through the real shell and handed to the send se
     });
     // The body carries the domain in its slot — composed by
     // `buildNurture`, not by this function.
+    // Issue #376: S20 closes this mail with one solid button, and it is
+    // the offer — the one sentence on this kind the set writes, since every
+    // other string it draws here is bracketed and stays the owner's.
     expect(sendCalls[0]?.blocks).toEqual([
       { block: "paragraph", text: "mail.nurture.body.1", vars: { domain: "acme.com" } },
+      {
+        block: "action",
+        label: "mail.nurture.action",
+        href: "https://reachkit.example/pricing",
+      },
     ]);
   });
 

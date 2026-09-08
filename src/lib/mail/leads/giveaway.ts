@@ -205,7 +205,9 @@ export async function deliverFirstPage(leadId: string, now = new Date()): Promis
     kind: "first-page",
     to: lead.email,
     subject: mail.subject,
+    subjectVars: mail.subjectVars,
     blocks: mail.blocks,
+    reason: mail.reason,
     optOut: mail.optOut,
   });
 

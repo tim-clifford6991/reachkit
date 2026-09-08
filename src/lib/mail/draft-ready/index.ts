@@ -178,7 +178,9 @@ export async function sendDraftReadyMail(a: {
     to: account.email,
     userId: account.userId,
     subject: mail.subject,
+    subjectVars: mail.subjectVars,
     blocks: mail.blocks,
+    reason: mail.reason,
     // §4.7's switch is asked for every other draft-ready mail. The one
     // occasion it is not is autopilot at a veto window of zero, where this
     // mail is the whole of the telling and no interval to stop the page

@@ -34,6 +34,11 @@ interface SendCommon {
   subject: CopyKey;
   subjectVars?: CopyVars;
   blocks: readonly MailBlock[];
+  /** UI-SPEC S20's footer line: why this mail arrived. The template that
+   *  knows the occasion names it; the seam only carries it through. */
+  reason?: CopyKey;
+  /** The reason line's own slots, where its sentence takes one. */
+  reasonVars?: CopyVars;
   optOut?: OptOutControl;
   /** The one occasion a togglable mail is sent anyway: a page going live
    *  under autopilot at a veto window of zero, where the mail is the whole
@@ -190,6 +195,8 @@ function compose(m: SendInput): ReturnType<typeof composeMail> {
         subject: m.subject,
         subjectVars: m.subjectVars,
         blocks: m.blocks,
+        reason: m.reason,
+        reasonVars: m.reasonVars,
         optOut: m.optOut,
         measurement: m.measurement,
       })
@@ -198,6 +205,8 @@ function compose(m: SendInput): ReturnType<typeof composeMail> {
         subject: m.subject,
         subjectVars: m.subjectVars,
         blocks: m.blocks,
+        reason: m.reason,
+        reasonVars: m.reasonVars,
         optOut: m.optOut,
       });
 }

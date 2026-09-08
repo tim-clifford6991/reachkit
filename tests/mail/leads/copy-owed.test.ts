@@ -49,10 +49,27 @@ const KEYS_INTRODUCED = [
   "optout.unavailable",
 ] as const satisfies readonly CopyKey[];
 
-/** The nineteen of them a mail carries — every key above but the screen's. */
+/**
+ * The three the approved set writes (issue #376).
+ *
+ * Ruling 11a, 2026-09-08: "the artifact's unbracketed strings are approved
+ * copy as written", and UI-SPEC S20 draws this mail with its subject, its
+ * one line and its target-search row unbracketed. They are filled from the
+ * set, byte for byte, and are no longer owner-owed. Everything else this
+ * feature introduced still is — S20 brackets every nurture string, and the
+ * unavailable arms it does not draw at all.
+ */
+const WRITTEN_BY_THE_SET = [
+  "mail.firstPage.subject",
+  "mail.firstPage.target_search",
+  "mail.firstPage.first_of_n",
+] as const satisfies readonly CopyKey[];
+
+/** The mail keys still owned by the owner — every key above but the
+ *  screen's, and but the three the set wrote. */
 const MAIL_KEYS = KEYS_INTRODUCED.filter(
   (k): k is Exclude<(typeof KEYS_INTRODUCED)[number], "optout.unavailable"> =>
-    k !== "optout.unavailable",
+    k !== "optout.unavailable" && !(WRITTEN_BY_THE_SET as readonly string[]).includes(k),
 );
 
 describe("every new sentence is a registry key, and none of them was written here", () => {
@@ -62,11 +79,23 @@ describe("every new sentence is a registry key, and none of them was written her
     }
   });
 
-  it("the nineteen a mail speaks are owner-owed and empty — no copy was invented", () => {
+  it("the sixteen still the owner's are owner-owed and empty — no copy was invented", () => {
     for (const key of MAIL_KEYS) {
       expect(COPY[key], key).toBe("");
       expect(OWNER_OWED, key).toContain(key);
     }
+    expect(MAIL_KEYS).toHaveLength(16);
+  });
+
+  it("the three the approved set wrote are filled, and are the set's own words", () => {
+    // 11a is what makes this legal: an unbracketed string in the artifact
+    // is approved copy, so filling it here is transcription and not
+    // invention. Each is asserted by its own words rather than by "not
+    // empty", so a later edit that reworded one would fail here.
+    expect(COPY["mail.firstPage.subject"]).toBe("Your first page: {title}");
+    expect(COPY["mail.firstPage.target_search"]).toBe("target search");
+    expect(COPY["mail.firstPage.first_of_n"]).toContain("That’s page 1 of {pagesFound}");
+    for (const key of WRITTEN_BY_THE_SET) expect(OWNER_OWED, key).not.toContain(key);
   });
 
   it("the twentieth is the screen's, and carries the marker instead of the empty value", () => {
@@ -78,13 +107,23 @@ describe("every new sentence is a registry key, and none of them was written her
   });
 
   it("each carries the criterion that fixes what it must say", () => {
+    // The three the set wrote carry their REQ criterion *and* the ruling
+    // that filled them, so a reader can see both what the line must say and
+    // who wrote it.
     for (const key of KEYS_INTRODUCED) {
-      expect(COPY_META[key].fixedBy, key).toMatch(/^REQ-0(03|10) c\d+$/);
+      expect(COPY_META[key].fixedBy, key).toMatch(/^REQ-0(03|10) c\d+( · UI-SPEC S20 \(11a\))?$/);
+    }
+    for (const key of WRITTEN_BY_THE_SET) {
+      expect(COPY_META[key].fixedBy, key).toContain("UI-SPEC S20 (11a)");
     }
   });
 
   it("the slots each line takes are declared, so a half-substituted sentence cannot reach a founder", () => {
-    expect(COPY_META["mail.firstPage.target_search"].slots).toEqual({ query: "text" });
+    // `target_search` lost its slot with #376: the set draws it as a fact
+    // row's *label* — "target search" — with the search itself in the
+    // row's value, where a datum belongs.
+    expect(COPY_META["mail.firstPage.target_search"].slots).toEqual({});
+    expect(COPY_META["mail.firstPage.subject"].slots).toEqual({ title: "text" });
     expect(COPY_META["mail.firstPage.first_of_n"].slots).toEqual({ pagesFound: "text" });
     for (const touch of [1, 2, 3] as const) {
       expect(COPY_META[`mail.nurture.body.${touch}` as CopyKey].slots).toEqual({ domain: "text" });

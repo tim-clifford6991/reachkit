@@ -22,6 +22,20 @@ export interface FrameParts {
    *  nothing — or when the week behind it could not be measured. `null`
    *  on a mail that has something to say. */
   wholeMailLine: string | null;
+  /**
+   * UI-SPEC S20's footer, in the order the set draws it: the reason this
+   * mail was sent, the way to stop it where it can be stopped, then the
+   * imprint band — wordmark · imprint · the note that a plain-text twin
+   * travels with it.
+   *
+   * `reason` is `null` only on the three kinds the approved set does not
+   * draw, whose line the owner has not written
+   * (`tests/mail/shell/footer.test.ts` names them); `imprint` is `null`
+   * until the owner writes the imprint itself, which the set brackets.
+   */
+  reason: string | null;
+  imprint: string | null;
+  plainTextNote: string;
   /** Rendered when the caller supplies a stop control. Its label is
    *  chosen by the mechanism, in `compose.ts`, never by a template. */
   optOut: { href: string; label: string } | null;
@@ -30,6 +44,24 @@ export interface FrameParts {
 function optOutHtml(optOut: FrameParts["optOut"]): string {
   if (optOut === null) return "";
   return `<p style="margin:0;padding-top:8px"><a href="${escapeHtml(optOut.href)}" style="color:${token("--ink-3")};text-decoration:underline">${escapeHtml(optOut.label)}</a></p>`;
+}
+
+/** The middle dot the imprint band's parts are set between. Layout, not
+ *  voice — the set draws the three as one line, and a joiner is a
+ *  separator rather than a sentence this file authored. */
+const BAND_SEPARATOR = " · ";
+
+function footerHtml(parts: FrameParts): string {
+  const reason =
+    parts.reason === null ? "" : `<p style="margin:0">${escapeHtml(parts.reason)}</p>`;
+  const band = [parts.wordmark, parts.imprint, parts.plainTextNote]
+    .filter((piece): piece is string => piece !== null && piece !== "")
+    .join(BAND_SEPARATOR);
+  return [
+    reason,
+    optOutHtml(parts.optOut),
+    `<p style="margin:0;padding-top:8px;font-family:${token("--font-mono")}">${escapeHtml(band)}</p>`,
+  ].join("");
 }
 
 function wholeMailLineHtml(line: string | null): string {
@@ -47,15 +79,15 @@ export function frameHtml(parts: FrameParts): string {
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${token("--bg")};padding:24px 12px">`,
     `<tr><td align="center">`,
     `<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:100%">`,
-    `<tr><td style="padding:0 0 14px 0;font-family:${token("--font-ui")};font-size:15px;font-weight:800;letter-spacing:-0.02em;color:${token("--ink")}">${escapeHtml(parts.wordmark)}</td></tr>`,
+    `<tr><td style="padding:0 0 14px 0;font-family:${token("--font-ui")};font-size:${token("--t-body")};font-weight:800;letter-spacing:-0.02em;color:${token("--ink")}">${escapeHtml(parts.wordmark)}</td></tr>`,
     `<tr><td style="background:${token("--surface")};border:1px solid ${token("--line")};border-radius:${token("--r-box")};padding:22px">`,
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">`,
     parts.rows,
     wholeMailLineHtml(parts.wholeMailLine),
     `</table>`,
     `</td></tr>`,
-    `<tr><td style="padding:14px 0 0 0;font-family:${token("--font-ui")};font-size:12px;line-height:1.5;color:${token("--ink-3")}">`,
-    optOutHtml(parts.optOut),
+    `<tr><td style="padding:14px 0 0 0;font-family:${token("--font-ui")};font-size:${token("--t-xs")};line-height:1.5;color:${token("--ink-3")}">`,
+    footerHtml(parts),
     `</td></tr>`,
     `</table></td></tr></table></body></html>`,
   ].join("");

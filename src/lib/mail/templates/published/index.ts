@@ -28,6 +28,9 @@ import type { MailBlock, VerdictRow } from "../../blocks/types";
 
 const SUBJECT = "mail.published.subject" satisfies CopyKey;
 const ADDRESS = "mail.published.address_label" satisfies CopyKey;
+const ACTION = "mail.published.action" satisfies CopyKey;
+const VERIFIED = "mail.published.verified" satisfies CopyKey;
+const REASON = "mail.reason.published" satisfies CopyKey;
 const CHECKS_LABEL = "mail.published.checks_label" satisfies CopyKey;
 const CHECKS_EMPTY = "mail.published.checks_empty" satisfies CopyKey;
 
@@ -90,6 +93,8 @@ function verdictRows(checks: VerifyChecks): VerdictRow[] {
 }
 
 export interface PublishedMail {
+  /** UI-SPEC S20's footer line: why this mail arrived. */
+  readonly reason?: CopyKey;
   readonly subject: CopyKey;
   readonly blocks: readonly MailBlock[];
 }
@@ -110,8 +115,25 @@ export function buildPublished(a: {
   const checkedAt = formatCheckedAt(telling.result.checkedAt, a.timeZone);
 
   const blocks: MailBlock[] = [
+    // S20's shape: one line, the fact rows, one solid button. The address
+    // moves from the button's label into a fact row — the set puts the
+    // address where it can be read and the button where it can be pressed.
+    //
+    // **No heading, and that is a gap, not a choice.** S20 heads this mail
+    // on the page's own title ("[page title 4] is live") and
+    // `PublishedTelling` carries no title: it is read from the
+    // `publications` row, which has the live URL and not the page. Giving
+    // it one is a query change with a schema test behind it, so it is
+    // issue #388's rather than smuggled into a mail PR.
     { block: "paragraph", text: telling.copy, vars: { checkedAt } },
-    { block: "action", label: ADDRESS, href: telling.liveUrl },
+    {
+      block: "facts",
+      items: [
+        { label: ADDRESS, value: telling.liveUrl },
+        { label: VERIFIED, value: checkedAt },
+      ],
+    },
+    { block: "action", label: ACTION, href: telling.liveUrl },
   ];
 
   if (telling.result.outcome === "found") {
@@ -134,5 +156,5 @@ export function buildPublished(a: {
     });
   }
 
-  return { subject: SUBJECT, blocks };
+  return { subject: SUBJECT, reason: REASON, blocks };
 }

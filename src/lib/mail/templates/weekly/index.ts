@@ -26,6 +26,7 @@
 // page's title and an opportunity's are model-written, and REQ-093 does
 // not admit model text into a mail as ReachKit's own statement about the
 // reader's market (§8, ADR-012).
+import { env } from "@/lib/config/env";
 import type { Measured } from "@/lib/measure/measured";
 import type { WeekStanding } from "@/lib/opportunities";
 import { PAGE_VERDICTS } from "@/lib/presentation/bands";
@@ -34,6 +35,17 @@ import { formatStat } from "../../blocks/format";
 import type { CopyVars, ListRow, MailBlock, VerdictRow } from "../../blocks/types";
 
 const SUBJECT = "mail.weekly.subject" satisfies CopyKey;
+const HEADING = "mail.weekly.heading" satisfies CopyKey;
+const BODY = "mail.weekly.body" satisfies CopyKey;
+const ACTION = "mail.weekly.action" satisfies CopyKey;
+const REASON = "mail.reason.weekly" satisfies CopyKey;
+
+/** The Overview's address (§4.5), absolute — the construction
+ *  `draft-ready` uses for its veto link, off the one binding `env.ts`
+ *  validates at boot. */
+function overviewHref(): string {
+  return new URL("/app", env.NEXT_PUBLIC_APP_URL).toString();
+}
 const SCORE = "mail.weekly.score" satisfies CopyKey;
 const AI_ANSWERS = "mail.weekly.aiAnswers" satisfies CopyKey;
 const VERDICTS = "mail.weekly.verdicts" satisfies CopyKey;
@@ -53,6 +65,8 @@ export interface WeeklyPage {
 }
 
 export interface WeeklyMail {
+  /** UI-SPEC S20's footer line: why this mail arrived. */
+  readonly reason?: CopyKey;
   readonly subject: CopyKey;
   readonly blocks: readonly MailBlock[];
 }
@@ -80,7 +94,14 @@ export function buildWeekly(a: {
 }): WeeklyMail {
   return {
     subject: SUBJECT,
+    reason: REASON,
     blocks: [
+      // S20's shape: the heading and the one line that says what this mail
+      // is and is not — "Only what was measured. A number that was not
+      // measured is not here." — then the measured sections, which §12's
+      // omission rule drops one at a time.
+      { block: "heading", text: HEADING },
+      { block: "paragraph", text: BODY },
       { block: "stat", label: SCORE, value: a.scoreDelta, format: "delta" },
       { block: "stat", label: AI_ANSWERS, value: a.aiAnswersDelta, format: "delta" },
       {
@@ -95,6 +116,9 @@ export function buildWeekly(a: {
         items: mapMeasuredRows(a.next, nextRows),
         emptyLine: NEXT_NONE,
       },
+      // S20's one solid button. Absolute, because a mail client resolves
+      // no relative path.
+      { block: "action", label: ACTION, href: overviewHref() },
     ],
   };
 }

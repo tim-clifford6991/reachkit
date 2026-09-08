@@ -36,6 +36,17 @@ export const MAIL_TOKENS = Object.freeze({
   "--accent-line": "#ddd8fa",
   "--r-box": "14px",
   "--r-field": "9px",
+  "--r-pill": "999px",
+  // Ruling 10a's ladder (UI-SPEC §1, issue #376). A mail spent these as
+  // bare pixel counts until the approved set fixed the rungs; naming them
+  // here is what lets `frame.ts` and `blocks/html.ts` spend a size the way
+  // they already spend a colour, and what makes a drifted rung fail below.
+  "--h2": "25px",
+  "--h3": "20px",
+  "--t-body": "15px",
+  "--t-sm": "13px",
+  "--t-xs": "12px",
+  "--t-eyebrow": "11px",
   "--font-ui": '"Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif',
   "--font-mono": '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace',
 } as const);

@@ -352,7 +352,11 @@ describe('"Email me the full page" → lead → first page → a follow-up that 
     expect(mail.html).toContain("The finished page, written for amplitude alternative.");
     expect(mail.html).toContain("mail.firstPage.target_search");
     expect(mail.html).toContain(THE_PAGE.targetQuery);
-    expect(mail.html).toContain("mail.firstPage.volume_label");
+    // Since issue #376 the volume rides in the target-search fact row, as
+    // UI-SPEC S20 draws it — `target search · [search] · 2,900/mo` — so
+    // there is no separate volume label to find. The number is still here,
+    // and still formatted by `formatStat`.
+    expect(mail.html).toContain("/mo");
     expect(mail.html).toContain(String(THE_PAGE.volume));
     expect(mail.html).toContain(`mail.firstPage.first_of_n(${THE_PAGE.pagesFound})`);
     // Both bodies, one request.

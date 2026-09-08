@@ -15,8 +15,13 @@ const ROOT = path.resolve(__dirname, "../../..");
 const MAIL_DIR = path.join(ROOT, "src/lib/mail");
 const TOKENS_FILE = path.join(MAIL_DIR, "shell/tokens.ts");
 
-/** The `:root` block of `theme.css` plus the `.rk-fonts` block of
- *  `type.css` — the two places BP-018 binds the names this seam uses. */
+/** Every bare `:root` block of `theme.css`, plus the `.rk-fonts` block of
+ *  `type.css` — the places the design system binds the names this seam
+ *  uses. **Every** `:root`, not the first: since #349 `theme.css` carries
+ *  the approved token file exactly, and that file declares ruling 10a's six
+ *  additions in a second block. A reader that stopped at the first `}` saw
+ *  `--t-eyebrow` and not `--t-body`, which is how half a ladder reaches a
+ *  mail unchecked. */
 function declaredTokens(): Record<string, string> {
   const out: Record<string, string> = {};
   for (const [file, selector] of [
@@ -24,13 +29,17 @@ function declaredTokens(): Record<string, string> {
     ["src/ui/type.css", ".rk-fonts {"],
   ] as const) {
     const source = readFileSync(path.join(ROOT, file), "utf8");
-    const start = source.indexOf(selector);
-    expect(start, `${file} has no ${selector} block`).toBeGreaterThan(-1);
-    const end = source.indexOf("\n}", start);
-    const block = source.slice(start, end);
-    for (const match of block.matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/g)) {
-      const [, name, value] = match;
-      if (name !== undefined && value !== undefined && !(name in out)) out[name] = value.trim();
+    expect(source.indexOf(selector), `${file} has no ${selector} block`).toBeGreaterThan(-1);
+    let from = 0;
+    for (;;) {
+      const start = source.indexOf(selector, from);
+      if (start === -1) break;
+      const end = source.indexOf("\n}", start);
+      for (const match of source.slice(start, end).matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/g)) {
+        const [, name, value] = match;
+        if (name !== undefined && value !== undefined && !(name in out)) out[name] = value.trim();
+      }
+      from = end === -1 ? source.length : end + 2;
     }
   }
   return out;

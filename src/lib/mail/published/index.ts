@@ -101,6 +101,7 @@ export async function sendPublishedMail(publicationId: string): Promise<Publishe
     userId: site.user_id,
     subject: mail.subject,
     blocks: mail.blocks,
+    reason: mail.reason,
   });
 
   return result.sent ? { sent: true, id: result.id } : { sent: false, reason: "mail" };

@@ -236,7 +236,6 @@ describe("REQ-093 c5 — the registry renders with every model unavailable", () 
     // fills, which this branch rebased onto: 267 ruled, 256 awaiting,
     // 650 total, and owner-owed untouched at 127 — this issue promoted no
     // key to a throw and demoted none.
-    expect(ruled.length).toBe(267);
     //
     // 2026-09-08, issue #351 — **the owner's approved screen set (11a)**.
     // "The artifact's unbracketed strings are approved copy as written",
@@ -249,6 +248,12 @@ describe("REQ-093 c5 — the registry renders with every model unavailable", () 
     // 195 ruled; 296 + 7 − 11 = 292 awaiting; 598 + 20 = 618 total. Owner-
     // owed (the empty value) is untouched at 131: this issue promoted no
     // key to a throw and demoted none.
+    //
+    // 2026-09-08, issue #376 — **S20, the mail shell** (11a again, on the
+    // one screen that is not a screen). Twenty-one of the mail seam's lines
+    // stop being owed and twenty of its thirty-one new keys arrive written:
+    // 267 + 41 = 308.
+    expect(ruled.length).toBe(308);
 
     // Only the ruled sentences carry their slots' `{name}` placeholders —
     // a `TODO(copy)` marker is one literal with no placeholder in it, so
@@ -1117,10 +1122,6 @@ describe("owner-owed and empty agree both ways", () => {
     // fills, which this branch rebased onto: 267 ruled, 256 awaiting,
     // 650 total, and owner-owed untouched at 127 — this issue promoted no
     // key to a throw and demoted none.
-    expect(OWNER_OWED.length).toBe(127);
-    expect(AWAITING_COPY.length).toBe(256);
-    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(267);
-    expect(Object.keys(COPY).length).toBe(650);
     // 2026-09-08, issue #351 — **the owner's approved screen set (11a)**.
     // "The artifact's unbracketed strings are approved copy as written",
     // so S1's own sentences are now values rather than markers. Eleven
@@ -1132,6 +1133,25 @@ describe("owner-owed and empty agree both ways", () => {
     // 195 ruled; 296 + 7 − 11 = 292 awaiting; 598 + 20 = 618 total. Owner-
     // owed (the empty value) is untouched at 131: this issue promoted no
     // key to a throw and demoted none.
+    // And UI-SPEC S20's mail shell, issue #376 — the first change to move
+    // this table in both directions at once. Thirty-one keys are added: the
+    // shell's imprint (owed) and plain-text note, the seven `reason` lines
+    // the footer carries, the `report` kind's seven — it had none, being a
+    // row in `MAIL_KINDS` with no template — and the headings, fact labels
+    // and buttons S20 draws on the other six.
+    //
+    // Twenty-one lines stop being owed, every one a string the artifact
+    // writes unbracketed and 11a therefore approves as written: magic-
+    // link's four, first-page's three, draft-ready's telling line and its
+    // stop button, weekly's five, published's button and the seven
+    // reasons. Ten of the twenty-one were already keys and leave
+    // OWNER_OWED; the other eleven are new and arrive written.
+    // 127 − 10 = 117 owner-owed, 256 awaiting copy, 267 + 41 = 308 ruled,
+    // 650 + 31 = 681 total.
+    expect(OWNER_OWED.length).toBe(117);
+    expect(AWAITING_COPY.length).toBe(256);
+    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(308);
+    expect(Object.keys(COPY).length).toBe(681);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.

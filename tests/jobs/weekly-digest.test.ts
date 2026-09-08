@@ -114,7 +114,15 @@ describe("the Monday digest goes out for a week that was measured", () => {
     expect(sent[0]!.kind).toBe("weekly");
     expect(sent[0]!.to).toBe("founder@example.com");
     expect(sent[0]!.subject).toBe("mail.weekly.subject");
-    expect(sent[0]!.blocks.map((b) => b.block)).toEqual(["stat", "stat", "verdicts", "list"]);
+    expect(sent[0]!.blocks.map((b) => b.block)).toEqual([
+      "heading",
+      "paragraph",
+      "stat",
+      "stat",
+      "verdicts",
+      "list",
+      "action",
+    ]);
   });
 
   it("a complete week says so, and carries no missed-section line", async () => {

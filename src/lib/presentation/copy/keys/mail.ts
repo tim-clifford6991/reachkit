@@ -79,11 +79,17 @@ export const MAIL_COPY = Object.freeze({
   // REQ-010 criterion 7's "and why" enforceable rather than aspirational.
 
   // The page itself (REQ-010 c4).
-  "mail.firstPage.subject": ["", { slots: {}, fixedBy: "REQ-010 c4" }],
-  "mail.firstPage.target_search": ["", { slots: { query: "text" }, fixedBy: "REQ-010 c4" }],
+  "mail.firstPage.subject": [
+    "Your first page: {title}",
+    { slots: { title: "text" }, fixedBy: "REQ-010 c4 · UI-SPEC S20 (11a)" },
+  ],
+  "mail.firstPage.target_search": ["target search", { slots: {}, fixedBy: "REQ-010 c4 · UI-SPEC S20 (11a)" }],
   "mail.firstPage.volume_label": ["", { slots: {}, fixedBy: "REQ-010 c4" }],
   "mail.firstPage.volume_note": ["", { slots: {}, fixedBy: "REQ-010 c4" }],
-  "mail.firstPage.first_of_n": ["", { slots: { pagesFound: "text" }, fixedBy: "REQ-010 c4" }],
+  "mail.firstPage.first_of_n": [
+    "The complete page, copy-ready, in Markdown and HTML. That’s page 1 of {pagesFound} we found for you.",
+    { slots: { pagesFound: "text" }, fixedBy: "REQ-010 c4 · UI-SPEC S20 (11a)" },
+  ],
 
   // The message that closes the request when no page is coming (c7), one
   // line per cause.
@@ -151,9 +157,12 @@ export const MAIL_COPY = Object.freeze({
   // missing one fails to compose rather than shipping without it.
 
   // The sign-in link a completed payment sends (§13, REQ-024 c1).
-  "mail.magicLink.subject": ["", { slots: {}, fixedBy: "REQ-024 c1" }],
-  "mail.magicLink.body": ["", { slots: {}, fixedBy: "REQ-024 c1" }],
-  "mail.magicLink.action": ["", { slots: {}, fixedBy: "REQ-024 c1" }],
+  "mail.magicLink.subject": ["Your sign-in link", { slots: {}, fixedBy: "REQ-024 c1 · UI-SPEC S20 (11a)" }],
+  "mail.magicLink.body": [
+    "One click signs you in on this device. The link works once and expires in 15 minutes.",
+    { slots: {}, fixedBy: "REQ-024 c1 · UI-SPEC S20 (11a)" },
+  ],
+  "mail.magicLink.action": ["Sign in", { slots: {}, fixedBy: "REQ-024 c1 · UI-SPEC S20 (11a)" }],
 
   // The 15-minute chase (REQ-024 c5): the payment succeeded, and either a
   // working link or a written statement that the account is not open yet.
@@ -202,9 +211,14 @@ export const MAIL_COPY = Object.freeze({
   // search it targets**: both are measured fact. Neither is named by its
   // title, which is model-written text a mail may not speak in ReachKit's
   // own voice (§8, REQ-093) — so no slot below takes one.
+  // S20's subject is "Monday: Discoverability Score 62 (▲ 8)" — a number
+  // and its delta, both of which §12 lets be unmeasured. A subject has no
+  // omission arm: a mail whose subject could not be composed does not go
+  // out at all. Left owner-owed until the owner writes the line that holds
+  // when the week produced no number (issue #388).
   "mail.weekly.subject": ["", { slots: {}, fixedBy: "§12" }],
-  "mail.weekly.score": ["", { slots: {}, fixedBy: "§12" }],
-  "mail.weekly.aiAnswers": ["", { slots: {}, fixedBy: "§12" }],
+  "mail.weekly.score": ["Discoverability Score", { slots: {}, fixedBy: "UI-SPEC 6a" }],
+  "mail.weekly.aiAnswers": ["AI answers", { slots: {}, fixedBy: "§12 · UI-SPEC S20 (11a)" }],
   "mail.weekly.verdicts": ["", { slots: {}, fixedBy: "REQ-063 c4" }],
   "mail.weekly.verdicts.none": ["", { slots: {}, fixedBy: "REQ-064 c3" }],
   "mail.weekly.next": ["", { slots: {}, fixedBy: "§12" }],
@@ -267,9 +281,14 @@ export const MAIL_COPY = Object.freeze({
   //
   // `{publishesAt}` is a date slot: the exact moment the page publishes,
   // stated in the customer's own zone (REQ-073 c3).
+  // S20's one line on this mail, and the arm it draws: a page with a
+  // window in which to stop it. "Publishes tomorrow at 07:00 unless you
+  // say no." — the moment is the slot this key already declared, which is
+  // what renders as "tomorrow at 07:00". The other two arms are not drawn
+  // by the set and stay the owner's.
   "mail.draftReady.autopilotWindow": [
-    "",
-    { slots: { publishesAt: "date" }, fixedBy: "REQ-057 c1" },
+    "Publishes {publishesAt} unless you say no.",
+    { slots: { publishesAt: "date" }, fixedBy: "REQ-057 c1 · UI-SPEC S20 (11a)" },
   ],
   "mail.draftReady.autopilotZero": [
     "",
@@ -337,8 +356,17 @@ export const MAIL_COPY = Object.freeze({
   // with ADR-012's label stripped off.
   "mail.draftReady.why.search": ["", { slots: { query: "text" }, fixedBy: "BUILD §12 · §7" }],
   "mail.draftReady.why.volume": ["", { slots: {}, fixedBy: "BUILD §12 · §7" }],
-  "mail.draftReady.subject": ["", { slots: {}, fixedBy: "BUILD §12" }],
-  "mail.draftReady.stopAction": ["", { slots: {}, fixedBy: "REQ-057 c1" }],
+  // S20's subject, "Tomorrow 07:00: [page title 15]". Both halves are
+  // data: the moment is the account's own publish time, written by
+  // `writePublishesAt` — which is what renders as "Tomorrow 07:00" — and
+  // the title is the page's. Filling 07:00 as a literal would bake one
+  // customer's setting into every subject, so it takes the slot the rest
+  // of this kind's lines already take.
+  "mail.draftReady.subject": [
+    "{publishesAt}: {title}",
+    { slots: { publishesAt: "text", title: "text" }, fixedBy: "BUILD §12 · UI-SPEC S20 (11a)" },
+  ],
+  "mail.draftReady.stopAction": ["Stop this page", { slots: {}, fixedBy: "REQ-057 c1 · UI-SPEC S20 (11a)" }],
 
   // 2026-09-06, issue #50 (REQ-062 c5, BUILD §12's `published` mail).
   // Sixteen keys, every one owner-owed and empty — each is a sentence
@@ -360,6 +388,11 @@ export const MAIL_COPY = Object.freeze({
   // requires the outcome to carry when ReachKit looked, and criterion 7
   // forbids any surface stating anything about the page beyond what that
   // one check recorded on that date.
+  // S20's subject is "Live: [page title]". The title is not here yet:
+  // `PublishedTelling` reads the `publications` row, which carries the live
+  // URL and no page title, and giving it one is a query change with a
+  // schema test behind it (issue #388). Left owner-owed rather than filled
+  // with half the sentence.
   "mail.published.subject": ["", { slots: {}, fixedBy: "REQ-062 c5" }],
   "mail.published.verified": ["", { slots: { checkedAt: "date" }, fixedBy: "REQ-062 c5" }],
   "mail.published.not_found": ["", { slots: { checkedAt: "date" }, fixedBy: "REQ-062 c4" }],
@@ -472,4 +505,104 @@ export const MAIL_COPY = Object.freeze({
   "mail.account.destinationBroken.body": ["", { slots: {}, fixedBy: "BUILD §9 · REQ-074 c6" }],
   "mail.account.destinationBroken.held": ["", { slots: {}, fixedBy: "BUILD §9 · REQ-074 c6" }],
   "mail.account.destinationBroken.action": ["", { slots: {}, fixedBy: "BUILD §9 · REQ-074 c6" }],
+
+  // ── 2026-09-08, issue #376: UI-SPEC S20, the approved mail shell ──────
+  //
+  // The owner approved the full screen set on 2026-09-08, and ruling 11a
+  // makes its unbracketed strings approved copy as written. S20 is the one
+  // mail shell and seven of the ten kinds; every string below is
+  // transcribed from that screen, byte for byte, and is **not** owner-owed
+  // any more. Its bracketed strings are — `mail.shell.imprint` is the one
+  // this partition gains, and it stays empty.
+  //
+  // The three kinds the set does not draw — `first-page-unavailable`,
+  // `setup-reminder`, `account` — gain nothing here. They keep the empty
+  // values they had, and `tests/mail/shell/footer.test.ts` names them as
+  // the three mails that carry no reason line yet.
+
+  // The shell's own two. The wordmark is above; these are the rest of the
+  // footer band the set draws: `ReachKit · [imprint line] · plain-text
+  // version attached`.
+  "mail.shell.imprint": ["", { slots: {}, fixedBy: "UI-SPEC S20" }],
+  "mail.shell.plaintext_note": ["plain-text version attached", { slots: {}, fixedBy: "UI-SPEC S20 (11a)" }],
+
+  // S20's footer line — why this mail arrived — one per kind the set
+  // draws. `mail.reason.report` takes the removal address as a slot rather
+  // than writing it: `removal.address` is its one home in the product
+  // (REQ-002 c1), and a second copy here is exactly what that rule is for.
+  "mail.reason.magicLink": [
+    "You asked for this link at reachkit.app/signin. If you didn’t, ignore this mail.",
+    { slots: {}, fixedBy: "UI-SPEC S20 (11a)" },
+  ],
+  "mail.reason.report": [
+    "Own this site and want the report taken down? Write to {address}.",
+    { slots: { address: "text" }, fixedBy: "UI-SPEC S20 (11a)" },
+  ],
+  "mail.reason.firstPage": [
+    "Sent once, because you asked for it on the report. Follow-up mail has an opt-out link.",
+    { slots: {}, fixedBy: "UI-SPEC S20 (11a)" },
+  ],
+  "mail.reason.draftReady": [
+    "Daily draft-ready mail · switch off in Settings › Notifications.",
+    { slots: {}, fixedBy: "UI-SPEC S20 (11a)" },
+  ],
+  "mail.reason.published": [
+    "Published-page mail · switch off in Settings › Notifications.",
+    { slots: {}, fixedBy: "UI-SPEC S20 (11a)" },
+  ],
+  "mail.reason.weekly": [
+    "Monday movement mail · switch off in Settings › Notifications.",
+    { slots: {}, fixedBy: "UI-SPEC S20 (11a)" },
+  ],
+  "mail.reason.nurture": [
+    "Opt out of all follow-up: one link, every domain, for good.",
+    { slots: {}, fixedBy: "UI-SPEC S20 (11a)" },
+  ],
+
+  // The `report` kind — registered in `MAIL_KINDS` since the seam was
+  // built and drawn for the first time by the approved set, so this is
+  // where its sentences arrive. The subject carries the score and its band
+  // word because the set puts them there: a reader decides whether to open
+  // it on the number, not on the domain alone (6a names the number).
+  "mail.report.subject": [
+    "{domain} — Discoverability Score {score}, {band}",
+    { slots: { domain: "text", score: "text", band: "text" }, fixedBy: "UI-SPEC S20 (11a)" },
+  ],
+  "mail.report.heading": ["Your report is ready", { slots: {}, fixedBy: "UI-SPEC S20 (11a)" }],
+  "mail.report.body": [
+    "The whole verdict is on the report, free and permanent.",
+    { slots: {}, fixedBy: "UI-SPEC S20 (11a)" },
+  ],
+  "mail.report.action": ["Open the report", { slots: {}, fixedBy: "UI-SPEC S20 (11a)" }],
+  "mail.report.fact.score": ["Discoverability Score", { slots: {}, fixedBy: "UI-SPEC 6a" }],
+  "mail.report.fact.aiAnswers": ["AI answers", { slots: {}, fixedBy: "UI-SPEC S20 (11a)" }],
+  "mail.report.fact.googleSearch": ["Google search", { slots: {}, fixedBy: "UI-SPEC S20 (11a)" }],
+
+  // The headings S20 gives the kinds whose heading is a sentence rather
+  // than a page title. `first-page`, `draft-ready` and `published` head on
+  // the page's own title, which is data and arrives through a slot.
+  "mail.magicLink.heading": ["Sign in to ReachKit", { slots: {}, fixedBy: "UI-SPEC S20 (11a)" }],
+  "mail.magicLink.fact.for": ["for", { slots: {}, fixedBy: "UI-SPEC S20 (11a)" }],
+  "mail.firstPage.heading": ["{title}", { slots: { title: "text" }, fixedBy: "UI-SPEC S20 (11a)" }],
+  "mail.firstPage.fact.format": ["format", { slots: {}, fixedBy: "UI-SPEC S20 (11a)" }],
+  "mail.draftReady.heading": ["{title}", { slots: { title: "text" }, fixedBy: "UI-SPEC S20 (11a)" }],
+  "mail.draftReady.body": [
+    "Publishes tomorrow at 07:00 unless you say no.",
+    { slots: {}, fixedBy: "UI-SPEC S20 (11a)" },
+  ],
+  "mail.draftReady.fact.search": ["search", { slots: {}, fixedBy: "UI-SPEC S20 (11a)" }],
+  "mail.draftReady.fact.answeredBy": ["answered today by", { slots: {}, fixedBy: "UI-SPEC S20 (11a)" }],
+  "mail.draftReady.fact.you": ["you", { slots: {}, fixedBy: "UI-SPEC S20 (11a)" }],
+  "mail.published.body": [
+    "Verified at its address after 24 hours.",
+    { slots: {}, fixedBy: "UI-SPEC S20 (11a)" },
+  ],
+  "mail.published.action": ["View the page", { slots: {}, fixedBy: "UI-SPEC S20 (11a)" }],
+  "mail.weekly.heading": ["What moved this week", { slots: {}, fixedBy: "UI-SPEC S20 (11a)" }],
+  "mail.weekly.body": [
+    "Only what was measured. A number that was not measured is not here.",
+    { slots: {}, fixedBy: "UI-SPEC S20 (11a)" },
+  ],
+  "mail.weekly.action": ["Open the overview", { slots: {}, fixedBy: "UI-SPEC S20 (11a)" }],
+  "mail.nurture.action": ["Start ReachKit €49", { slots: {}, fixedBy: "UI-SPEC S20 (11a)" }],
 }) satisfies CopyPartition;

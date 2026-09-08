@@ -238,7 +238,9 @@ describe("BP-029 NFR budget — one generateDraft() call per lead, ever", () => 
 
     await expect(deliverFirstPage("lead-1", NOW)).resolves.toEqual({ delivered: "page" });
     expect(draftCalls).toBe(0);
-    expect(sendCalls[0]?.blocks[0]).toMatchObject({
+    // Index 2 since issue #376: S20 heads the mail on the page's title and
+    // puts the first-of-N line under it, so the page itself is third.
+    expect(sendCalls[0]?.blocks[2]).toMatchObject({
       block: "pageBody",
       pageTitle: "Already written",
       written: true,

@@ -329,6 +329,7 @@ async function advanceLead(
     to: lead.email,
     subject: mail.subject,
     blocks: mail.blocks,
+    reason: mail.reason,
     optOut: mail.optOut,
   });
 
