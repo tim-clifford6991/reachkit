@@ -157,6 +157,11 @@ const HAND_WRITTEN: ReadonlyArray<{
     classes: ["btn", "btn-sm", "btn-ghost"],
     why: "REQ-096 c6's one control (#223), and the same case as the row above: it navigates to the competitors card, so it is an `<a>` rather than `Btn`'s `<button>`. `btn-ghost` is the third class and it is the point of the row — §2.5 keeps rival strength neutral, so the control beside a far rival must not read as a call to action, and the ruling on #177 fixed plain ghost for exactly this kind of quiet control.",
   },
+  {
+    file: "src/app/(account)/app/calendar/page.tsx",
+    classes: ["join", "join-item", "btn", "btn-sm", "btn-active"],
+    why: "§4.6's month switcher (#269). `join` and `join-item` are two of §2.2's fifteen and the barrel has no component for them — a `Join` that took children would be a component whose whole body is a class name. The three items are two `<a>` and one `<span>`, not `Btn`'s `<button>`: the month lives in the address, so the neighbours navigate with no client runtime and the current month is not a control at all. `btn-active` is the mark on that current month, beside `aria-current` — a mark that is tone alone would be the one §2.5 forbids.",
+  },
 ];
 
 /** Every daisyUI component class written outside `src/ui/components/**`
