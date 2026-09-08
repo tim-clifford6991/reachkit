@@ -1,0 +1,64 @@
+/* The approved token set — ReachKit Screen System, owner-approved 2026-09-08.
+ *
+ * **This file is the source of truth for `src/ui/theme.css`.** It is the
+ * artifact's own three token blocks, verbatim, lifted from
+ * `reachkit-screen-system.html` beside it: the light `:root`, the
+ * media-guarded dark state, and the explicit dark toggle. Nothing is
+ * reformatted, renamed or reordered — a value here is what the owner
+ * approved, and a difference between this file and `theme.css` is a defect
+ * in `theme.css`.
+ *
+ * The five `--pg-*` tokens the artifact declares are **not** here: they
+ * skin the preview page's own chrome — the screen nav and the ground the
+ * frames sit on — and are no part of the product's set.
+ *
+ * Do not edit by hand. It is re-lifted from the artifact when the owner
+ * approves a new one. `archive/…/design/tokens.md` is superseded and is no
+ * longer the reference (issue #364).
+ */
+
+:root{
+  --bg:#f6f6f9; --surface:#ffffff; --sunk:#efeff4; --line:#eaeaf1;
+  --ink:#191925; --ink-2:#5e5e73; --ink-3:#9695a8;
+  --accent:#5b4be0; --on-accent:#ffffff; --accent-bg:#eeecfd; --accent-line:#ddd8fa;
+  --ok:#1f8a6b; --ok-bg:#e7f6f0; --ok-line:#d2ede3;
+  --warn:#b8722a; --warn-bg:#fff3e6; --warn-line:#fbe1c6;
+  --bad:#c0432b; --bad-bg:#fdece8; --bad-line:#f8d5cd;
+  --chart-you:#5b4be0; --chart-rival:#787790; --chart-goal:#b8722a;
+  --r-box:14px; --r-card:18px; --r-field:9px; --r-pill:999px;
+  --shadow-card:0 1px 3px rgb(24 24 48/.045);
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-5:24px; --s-6:32px; --s-7:48px;
+  --font-ui:"Plus Jakarta Sans",ui-sans-serif,system-ui,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --font-num:var(--font-mono);         /* flipped by the numeral toggle */
+  --num-weight:600;
+  --t-eyebrow:11px; --t-explain:11.5px; --t-num-big:44px;
+  --h1:31px; --h2:25px; --h3:20px; --h4:16px;
+  --w-wide:1216px; --w-read:704px;
+}
+
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1116; --surface:#161a21; --sunk:#11151b; --line:#242a34;
+    --ink:#dde3eb; --ink-2:#8e99aa; --ink-3:#69738a;
+    --accent:#9bb4ff; --on-accent:#0e1116;
+    --accent-bg:rgb(155 180 255/.12); --accent-line:rgb(155 180 255/.28);
+    --ok:#7bd8b0; --ok-bg:rgb(123 216 176/.12); --ok-line:rgb(123 216 176/.28);
+    --warn:#e6b45a; --warn-bg:rgb(230 180 90/.12); --warn-line:rgb(230 180 90/.28);
+    --bad:#f0907a; --bad-bg:rgb(240 144 122/.12); --bad-line:rgb(240 144 122/.28);
+    --chart-you:#5f7ff2; --chart-rival:#5c6579; --chart-goal:#e6b45a;
+    --shadow-card:0 1px 3px rgb(0 0 0/.45);
+  }
+}
+
+:root[data-theme="dark"]{
+  --bg:#0e1116; --surface:#161a21; --sunk:#11151b; --line:#242a34;
+  --ink:#dde3eb; --ink-2:#8e99aa; --ink-3:#69738a;
+  --accent:#9bb4ff; --on-accent:#0e1116;
+  --accent-bg:rgb(155 180 255/.12); --accent-line:rgb(155 180 255/.28);
+  --ok:#7bd8b0; --ok-bg:rgb(123 216 176/.12); --ok-line:rgb(123 216 176/.28);
+  --warn:#e6b45a; --warn-bg:rgb(230 180 90/.12); --warn-line:rgb(230 180 90/.28);
+  --bad:#f0907a; --bad-bg:rgb(240 144 122/.12); --bad-line:rgb(240 144 122/.28);
+  --chart-you:#5f7ff2; --chart-rival:#5c6579; --chart-goal:#e6b45a;
+  --shadow-card:0 1px 3px rgb(0 0 0/.45);
+}
