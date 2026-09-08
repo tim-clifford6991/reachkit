@@ -19,6 +19,7 @@
 // from a measurement that did not happen.
 import type React from "react";
 import { Badge, Btn, Card } from "@/ui/components";
+import { CardHead } from "@/ui/idiom";
 import type { Tone } from "@/ui/types";
 import { copy } from "@/lib/presentation/copy";
 import { SEVERITY } from "@/lib/presentation/bands";
@@ -102,12 +103,7 @@ function ProblemCardView(p: { card: ProblemCard }): React.JSX.Element {
     <div className={`rounded-box overflow-hidden border-l-4 [&>*]:h-full ${edge}`}>
       <Card
         state="default"
-        title={
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <span>{copy(p.card.title)}</span>
-            <SeverityBadge card={p.card} />
-          </div>
-        }
+        title={<CardHead eyebrow={copy(p.card.title)} pill={<SeverityBadge card={p.card} />} />}
       >
         <div className="flex flex-wrap items-baseline gap-3">
           <div className="text-3xl font-bold">

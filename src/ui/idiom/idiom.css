@@ -136,6 +136,15 @@
  * The chip is `--s-6` square: the ruled ladder is closed and 32 is the rung
  * the idiom's drawn 30 lands on — a 30px token would be a value between two
  * rungs, which the ladder's own rule refuses. */
+/* The head as a card's title slot (issue #297). The registered `Card` wraps
+ * its title in `.card-title`, which daisyUI makes a flex row of its own; a
+ * head inside it has to take that row whole, or `space-between` has no
+ * width to push the pill across and the pill sits against the eyebrow. */
+.card-title > .rk-head {
+  flex: 1 1 100%;
+  min-width: 0;
+}
+
 .rk-head {
   display: flex;
   align-items: center;
@@ -434,6 +443,26 @@
   display: flex;
   flex-direction: column;
   min-height: 100svh;
+}
+
+/* Inside a surface that declares its own layout, the split's height is the
+ * surface's — which the shell has already made "the viewport less the
+ * chrome" (issue #297). `100svh` would be the viewport *plus* the header
+ * and push the page into a scroll it has no content for. */
+[data-surface][data-arm-compact^="declared:"] .rk-split {
+  /* The surface is a flex column and gives its child the height (see
+   * `surface.css`), so the split needs no measure of its own here — and
+   * `100svh` would be the viewport *plus* the chrome above it. */
+  min-height: 0;
+}
+
+/* The two panels divide what the split has, rather than each taking only
+ * its own content and leaving the tail on the ground. At the narrow band
+ * that tail was a band of `--bg` below the accent panel; the panels are
+ * what the screen is made of, so they are what fills it. */
+.rk-split > .rk-split-form,
+.rk-split > .rk-split-panel {
+  flex: 1 1 auto;
 }
 
 .rk-split > * {

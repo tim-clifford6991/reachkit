@@ -151,7 +151,47 @@
 /* `declared` is the arm for a band whose behaviour is written down rather
  * than drawn (`Arm`'s third kind, `src/ui/layout/bands.ts`): it gets the
  * container and nothing else, so a band below it cannot leave a grid in
- * force that the note never claimed. */
+ * force that the note never claimed.
+ *
+ * **And nothing else means the edges too** (issue #297). A screen that
+ * declares its own layout declares where it meets the viewport: the
+ * sign-in split is two full-height panels that run to the edges, and a
+ * gutter around them draws a frame the design never had. So a surface
+ * whose compact arm is `declared` takes no measure, no inline gutter and
+ * no block gutter — the screen inside it is responsible for its own air,
+ * which is what declaring it means. The arm is keyed at `compact` because
+ * that is the band every screen has; a screen that declares its narrowest
+ * layout has declared the whole of it.
+ *
+ * No screen used `declared` before this one, so nothing else changes. */
+[data-surface][data-arm-compact^="declared:"] {
+  max-width: none;
+  padding-inline: 0;
+  padding-block: 0;
+}
+
+/* And it fills what the shell leaves it, so a screen that asks for the
+ * viewport gets exactly the viewport less the chrome above it —
+ * `.rk-public-shell` is already `min-height: 100svh` and a flex column, so
+ * this is that arithmetic done by the layout rather than by a number
+ * nobody can keep true at two header heights. */
+.rk-public-shell > [data-surface][data-arm-compact^="declared:"] {
+  flex: 1 1 auto;
+  min-height: 0;
+  /* A flex column, so the screen inside it can take the height by growing
+   * rather than by a percentage of a parent whose own height is only
+   * definite once it has been flexed. `min-height: 100%` read auto here
+   * and the sign-in panel stopped at its content, leaving a band of ground
+   * between it and the footer. */
+  display: flex;
+  flex-direction: column;
+}
+
+.rk-public-shell > [data-surface][data-arm-compact^="declared:"] > * {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 @media (min-width: 1024px) {
   [data-surface][data-arm-medium^="declared:"] {
     display: block;

@@ -21,6 +21,7 @@
 // rather than a ground.
 import type React from "react";
 import { Badge, Btn, Card } from "@/ui/components";
+import { CardHead } from "@/ui/idiom";
 import { copy } from "@/lib/presentation/copy";
 import { renderGenerated } from "@/lib/presentation/generated";
 import type { FreePageSection } from "@/lib/scan/report";
@@ -59,10 +60,10 @@ export function FreePageCard(p: { section: FreePageSection }): React.JSX.Element
     <Card
       state="default"
       title={
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <span>{copy("free-page.title")}</span>
-          <Badge tone="accent">{copy("free-page.of", { total: String(section.totalPages) })}</Badge>
-        </div>
+        <CardHead
+          eyebrow={copy("free-page.title")}
+          pill={<Badge tone="accent">{copy("free-page.of", { total: String(section.totalPages) })}</Badge>}
+        />
       }
     >
       <p className="text-xs opacity-60">{title.label}</p>
@@ -95,5 +96,5 @@ export function FreePageCard(p: { section: FreePageSection }): React.JSX.Element
 /** REQ-004 c10/c11: a scan that found no opportunity says so in one
  *  written line rather than showing an empty card. */
 export function FreePageAbsent(): React.JSX.Element {
-  return <Card state="degraded" title={copy("free-page.title")} degradedLine={copy("free-page.absent")} />;
+  return <Card state="degraded" title={<CardHead eyebrow={copy("free-page.title")} />} degradedLine={copy("free-page.absent")} />;
 }

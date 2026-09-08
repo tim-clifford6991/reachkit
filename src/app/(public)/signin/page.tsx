@@ -155,8 +155,14 @@ export default function SignInPage(props: {
     // the fold on a phone.
     <Surface
       arms={{
-        compact: { kind: "columns", count: 1 },
-        medium: { kind: "columns", count: 2 },
+        // The split declares its own layout at every band (issue #297), so
+        // the surface gives it the container and nothing else — no measure
+        // and no gutter. The idiom draws this screen as two full-height
+        // panels meeting the viewport's edges; a gutter frames them, and a
+        // two-column *grid* is not what divides them either: the split is a
+        // flex row of its own below `--breakpoint-lg`, one column above it.
+        compact: { kind: "declared", note: "the split is one column, panel after form" },
+        medium: { kind: "declared", note: "the split is two full-height panels, edge to edge" },
         wide: { kind: "same-as-below" },
       }}
     >

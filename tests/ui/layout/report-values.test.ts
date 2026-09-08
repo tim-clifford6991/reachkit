@@ -103,11 +103,12 @@ async function wrappedValues(width: number): Promise<Wrapped[]> {
           if (own.length === 0) continue;
           const style = getComputedStyle(el);
           if (!(style.fontFamily || "").toLowerCase().includes(mono.toLowerCase())) continue;
-          // One value, or a line that holds several words. Only the first
-          // can be broken wrongly: a break inside a run with no space in
-          // it is always a break inside a value.
+          // Every `.num` now, not only the single-token ones. `.num` is
+          // `white-space: nowrap` since #297 — a value has no boundaries,
+          // hyphens included — so *any* mono run on two line boxes is a
+          // value that got rewritten, whether it holds spaces or not.
           const text = own.map((n) => n.textContent ?? "").join("").trim();
-          if (text === "" || /\s/.test(text)) continue;
+          if (text === "") continue;
           const range = document.createRange();
           range.selectNodeContents(el);
           const rects = range.getClientRects();
@@ -130,6 +131,31 @@ async function wrappedValues(width: number): Promise<Wrapped[]> {
 }
 
 describe(`§2.3 — no value on the presence card is broken across lines`, () => {
+  it(
+    "no value anywhere on the report has a break opportunity at all",
+    async () => {
+      // The rule as a property of the class rather than of one card
+      // (issue #297): `.num` is `nowrap`, so no value on the screen can
+      // fold — not at a space and not at a hyphen. Read off the computed
+      // style so it holds for every `.num` the route renders, including
+      // the ones inside the registered `Table`'s scroll wrap.
+      const wrapping = await withPage(
+        widths()[0] ?? 320,
+        async (page) => {
+          await page.goto(url());
+          return page.evaluate(() =>
+            Array.from(document.querySelectorAll(".num"))
+              .filter((el) => getComputedStyle(el).whiteSpace !== "nowrap")
+              .map((el) => `${el.className} "${(el.textContent ?? "").trim().slice(0, 30)}"`)
+          );
+        },
+        headersFor(REPORT)
+      );
+      expect(wrapping).toEqual([]);
+    },
+    BROWSER_MS
+  );
+
   for (const width of widths()) {
     it(
       `${REPORT.path} @ ${width}px wraps no domain mid-word`,

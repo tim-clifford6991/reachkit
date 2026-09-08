@@ -95,14 +95,27 @@ describe("REQ-043 c8 — the panel says why this page exists", () => {
     }
   });
 
-  it("every one of those values is mono — §2.3 covers a search query and a numeral alike", () => {
+  it("every value is mono, and the one criterion is not a value (§2.3; #297)", () => {
     const why = root.querySelector('[data-testid="why-this-page"]');
     const rows = why?.querySelectorAll("p") ?? [];
-    // The block title is the first <p>; the five rows follow, each with a
-    // `.num` value span.
+    // The block title is the first <p>; five rows follow. **Four** carry a
+    // `.num` value span — the search query, the question as asked, the
+    // engines that answered, and where the customer stands. The fifth,
+    // "done when", is a sentence: §2.3's mono list is numerals, dates,
+    // URLs, search queries and code-like strings, and a success criterion
+    // is none of them.
+    //
+    // It carried `.num` until #297 made `.num` `nowrap`, and that is how
+    // the misuse became visible rather than merely wrong: an unfoldable
+    // sentence pushed the day panel sideways at 320 and 1280 and the
+    // layout sweep reported the document scrolling. The row that changed
+    // is the row that never held a value.
     const monoValues = why?.querySelectorAll("span.num") ?? [];
-    expect(monoValues.length).toBe(5);
+    expect(monoValues.length).toBe(4);
     expect(rows.length).toBeGreaterThanOrEqual(6);
+    // And the criterion is still stated — as prose, in its own row.
+    const texts = [...rows].map((r) => r.textContent ?? "");
+    expect(texts.some((t) => t.includes("calendar.why.done-when"))).toBe(true);
   });
 
   it("renders the winnability band through BAND_LABELS, never as a word of its own", () => {

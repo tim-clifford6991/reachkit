@@ -34,6 +34,7 @@
 // screen passes nothing and is unchanged.
 import type React from "react";
 import { Btn, Card } from "@/ui/components";
+import { CardHead } from "@/ui/idiom";
 import { VETO } from "@/lib/config/constants";
 import { copy } from "@/lib/presentation/copy";
 import { Num } from "../_address/measured";
@@ -49,7 +50,7 @@ export function PricingCard(p: { startAction?: () => Promise<void> } = {}): Reac
   ];
 
   return (
-    <Card state="default" title={<span>{copy("offer.start")}</span>}>
+    <Card state="default" title={<CardHead eyebrow={copy("offer.start")} />}>
       <div className="flex flex-wrap items-baseline gap-2">
         <div className="text-4xl font-bold">
           <Num>{copy("price.amount")}</Num>
