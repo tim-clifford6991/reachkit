@@ -21,7 +21,7 @@
 // `src/ui/theme.css`" and "applies BP-018's font CSS variables (WO-030)".
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import postcss, { type Root, type Rule } from "postcss";
+import postcss, { type Declaration, type Root, type Rule } from "postcss";
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
@@ -34,17 +34,6 @@ function layoutSource(): string {
 
 function typeCssSource(): string {
   return readFileSync(TYPE_CSS, "utf8");
-}
-
-/** Every custom property a postcss rule declares, keyed without the leading `--`. */
-function declsOf(rule: Rule): Map<string, string> {
-  const out = new Map<string, string>();
-  for (const node of rule.nodes) {
-    if (node.type === "decl" && node.prop.startsWith("--")) {
-      out.set(node.prop.slice(2), node.value.trim());
-    }
-  }
-  return out;
 }
 
 /** Strips every tag from a static-markup string, leaving only the text nodes. */
@@ -94,14 +83,26 @@ describe(
       expect(classAttr).toBe(fontVariables);
     });
 
-    it("type.css binds --font-ui and --font-mono inside the exact class fontVariables names", async () => {
+    it("theme.css declares both families, and type.css spends them in the class fontVariables names", async () => {
+      // Both are approved tokens, so since issue #349 they are declared in
+      // `theme.css` with the rest of the set rather than bound in this
+      // class. What has to hold is unchanged: the class the layout puts on
+      // `<html>` exists, and it is where the UI face is applied.
       const { fontVariables } = await import("../../src/ui/fonts.ts");
+      const theme = readFileSync(
+        path.resolve(import.meta.dirname, "../../src/ui/theme.css"),
+        "utf8"
+      );
+      expect(theme).toMatch(/^\s*--font-ui:\s*"Plus Jakarta Sans"/m);
+      expect(theme).toMatch(/^\s*--font-mono:\s*"JetBrains Mono"/m);
+
       const root: Root = postcss.parse(typeCssSource());
       const rule = root.nodes.find((n): n is Rule => n.type === "rule" && n.selector === `.${fontVariables}`);
       expect(rule, `missing ".${fontVariables}" rule in type.css`).toBeDefined();
-      const decls = declsOf(rule!);
-      expect(decls.get("font-ui")).toBeTruthy();
-      expect(decls.get("font-mono")).toBeTruthy();
+      const family = rule!.nodes.find(
+        (n): n is Declaration => n.type === "decl" && n.prop === "font-family"
+      );
+      expect(family?.value).toBe("var(--font-ui)");
     });
   }
 );

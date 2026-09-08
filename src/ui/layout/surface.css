@@ -27,39 +27,11 @@
  * order (issue #12) gives the whole scale one.
  */
 
-:root {
-  /* design/tokens.md §2 spacing scale (owner ruling, 2026-09-02) — the
-   * three steps this sheet spends, transcribed, not chosen. */
-  --s-4: 16px;
-  --s-5: 24px;
-  --s-6: 32px;
-  /* The ladder's last rung — "between screen sections" — declared here with
-   * its neighbours when the card idiom first spent it (issue #266). */
-  --s-7: 48px;
-
-  /* design/tokens.md §2b, "Two content measures": "One construction, so a
-   * third does not get minted: the breakpoint above the content, less
-   * 2 × `--s-6` of air."
-   *   --w-read  704px = --breakpoint-md 768  − 2 × --s-6 — "a single
-   *                     reading column … any one-column form"
-   *   --w-wide 1216px = --breakpoint-xl 1280 − 2 × --s-6 — "a multi-column
-   *                     content column — the public report's six modules"
-   * Both are **content** measures: the air sits outside them, which is why
-   * the cap below adds the band's gutter back on either side. */
-  --w-read: 704px;
-  --w-wide: 1216px;
-
-  /* The page ground, on the canvas rather than on the content box. Issue
-   * #241, the visual audit's own finding: daisyUI's theme paints the root
-   * with `base-100` — which `tailwind.config.ts` maps onto `--surface`, the
-   * white a card is drawn on — so the `--bg` ground `src/ui/tailwind.css`
-   * paints on `body` stopped where the content stopped and every route was
-   * white below the fold. One declaration, on the root, both themes: `--bg`
-   * is `src/ui/theme.css`'s token and changes with the theme, so nothing is
-   * stated twice. This sheet is unlayered and daisyUI's base sits inside
-   * `@layer base`, which is what makes one line enough. */
-  background: var(--bg);
-}
+/* The spacing steps and the two measures this sheet declared moved to
+ * `src/ui/theme.css` (issue #349). The band's gutter and the measure are
+ * still chosen here — that is this sheet's own law — but the values they
+ * choose between are the document's, declared once.
+ */
 
 /* ── The container ────────────────────────────────────────────────────── */
 

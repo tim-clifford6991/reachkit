@@ -40,7 +40,8 @@ const PLOT_RIGHT = 126;
 const PLOT_TOP = 10;
 const PLOT_BOTTOM = 34;
 const AXIS_Y = 38;
-/** `--w-spark-min`: below this the endpoint dot scales under 3.5px. */
+/** The sparkline's own width floor: below it the endpoint dot scales
+ *  under 3.5px. Not a token — the approved set names no such measure. */
 const PLOT_MIN_PX = 128;
 const BREAK_WIDTH = 1;
 /** Half a mark's hit area. The band is clamped to the viewBox below: a hit
@@ -94,7 +95,7 @@ export function RivalSparkline(p: RivalSparklineProps): React.JSX.Element {
   const last = drawn.at(-1)?.end;
 
   return (
-    <div style={{ display: "grid", gap: "0.75rem" }}>
+    <div style={{ display: "grid", gap: "var(--s-3)" }}>
       <div
         style={{
           display: "grid",
@@ -109,7 +110,7 @@ export function RivalSparkline(p: RivalSparklineProps): React.JSX.Element {
             rival name overflows its own column at the compact band
             (ADR-093 decision 3: content fits its box or the box changes;
             text is never shrunk to fit). */}
-        <span style={{ fontSize: "13px", fontWeight: 600, minWidth: 0, overflowWrap: "anywhere" }}>
+        <span style={{ fontSize: "var(--t-sm)", fontWeight: 600, minWidth: 0, overflowWrap: "anywhere" }}>
           {p.name}
         </span>
         <ChartFrame box={BOX} label={p.label} minWidth={PLOT_MIN_PX}>
@@ -170,12 +171,12 @@ export function RivalSparkline(p: RivalSparklineProps): React.JSX.Element {
             ))}
           </g>
         </ChartFrame>
-        <span className="num" style={{ fontSize: "20px", fontWeight: 700 }}>
+        <span className="num" style={{ fontSize: "var(--h3)", fontWeight: 700 }}>
           {p.value}
         </span>
       </div>
       {p.account === undefined ? null : (
-        <p style={{ margin: 0, fontSize: "11px", color: CHART_INK.quiet }}>{p.account}</p>
+        <p style={{ margin: 0, fontSize: "var(--t-eyebrow)", color: CHART_INK.quiet }}>{p.account}</p>
       )}
     </div>
   );

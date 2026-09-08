@@ -71,7 +71,7 @@ export function CalendarGrid(p: {
 }): React.JSX.Element {
   return (
     <div className="rk-cal">
-      {/* Below --breakpoint-md the grid is seven rows, and a one-column
+      {/* Below 768px the grid is seven rows, and a one-column
           list has no columns to head — the head is hidden there, in CSS,
           rather than by a second markup path. */}
       <div className="rk-cal-head" aria-hidden="true">

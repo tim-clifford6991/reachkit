@@ -45,11 +45,22 @@ function mediaRules(): AtRule[] {
 }
 
 describe('BUILD §4.4 — "Left sidebar (222px, sticky)"', () => {
-  it("--w-sidebar is 222px, declared once, scoped to the shell rather than :root", () => {
-    expect(declsOf(".rk-shell").get("--w-sidebar")).toBe(`${SIDEBAR_WIDTH_PX}px`);
-    // Not a global token: `src/ui/theme.css`'s `:root` is §2.1 verbatim and
-    // `tests/ui/tokens.test.ts` refuses anything §2.1 does not state.
+  it("--w-sidebar is 222px, declared once, and this sheet declares no token of its own", () => {
+    // Until issue #349 the token was scoped to `.rk-shell`, because §2.1's
+    // `:root` refused anything it did not state. `design/tokens.md` §2b
+    // names `--w-sidebar`, so it now lives in `src/ui/theme.css` with the
+    // rest of the approved set and this sheet reads it. What the assertion
+    // still holds is the property that mattered: **one** declaration, and
+    // not a second home here.
+    const theme = readFileSync(
+      path.resolve(import.meta.dirname, "../../src/ui/theme.css"),
+      "utf8"
+    );
+    expect(theme).toMatch(new RegExp(`--w-sidebar:\\s*${SIDEBAR_WIDTH_PX}px;`));
     expect(SHELL_CSS).not.toMatch(/^\s*:root\s*\{/m);
+    expect(SHELL_CSS, "the shell declares no token of its own").not.toMatch(
+      /^\s*--[a-z0-9-]+\s*:/m
+    );
   });
 
   it("the sidebar's width and flex basis both come from the token, never a second 222", () => {
@@ -58,15 +69,16 @@ describe('BUILD §4.4 — "Left sidebar (222px, sticky)"', () => {
     const sidebar = declsOf(".rk-sidebar", media);
     expect(sidebar.get("width")).toBe("var(--w-sidebar)");
     expect(sidebar.get("flex")).toBe("0 0 var(--w-sidebar)");
-    // One literal 222 among every declaration in the sheet: the token's own.
+    // **No** literal 222 among the declarations now (issue #349): the one
+    // that was here was the token's own, and the token moved to
+    // `theme.css`. The assertion is the same property one step stronger —
+    // this sheet spends the width only by name.
     // (Comments are excluded — they quote §4.4's sentence, which contains it.)
     const values: string[] = [];
     root.walkDecls((decl) => {
       values.push(decl.value);
     });
-    expect(values.filter((v) => v.includes(String(SIDEBAR_WIDTH_PX)))).toEqual([
-      `${SIDEBAR_WIDTH_PX}px`,
-    ]);
+    expect(values.filter((v) => v.includes(String(SIDEBAR_WIDTH_PX)))).toEqual([]);
   });
 
   it("the column stretches and its contents stick — never the other way round", () => {
@@ -151,9 +163,9 @@ describe("the sheet reaches every app route, and no other", () => {
   });
 
   it("no text is styled below the type floor (ADR-093 decision 3)", () => {
-    // The one font-size in the sheet is `--t-floor` itself; a literal px
+    // The one font-size in the sheet is `--t-eyebrow` itself; a literal px
     // font-size here would be a step below the floor waiting to happen.
-    expect(SHELL_CSS).toMatch(/font-size:\s*var\(--t-floor\)/);
+    expect(SHELL_CSS).toMatch(/font-size:\s*var\(--t-eyebrow\)/);
     expect(SHELL_CSS).not.toMatch(/font-size:\s*\d/);
   });
 });

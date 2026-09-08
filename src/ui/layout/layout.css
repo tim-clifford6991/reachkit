@@ -1,46 +1,27 @@
 /* src/ui/layout/layout.css — BUILD §2.3, ADR-093 (DECISIONS 2026-09-02)
  *
- * The layout module's three `:root` tokens, declared once here and pinned
- * back against `src/ui/layout/bands.ts` by `tests/ui/layout-tokens.test.ts`
- * (the `tests/pins.test.ts` shape) and, on every rendered route, by
- * `tests/ui/layout/layout.test.ts`. They live beside `Surface` and
- * `BAND_MIN` rather than in `src/ui/theme.css` because that file's `:root`
- * is `BUILD.md` §2.1's colour block verbatim and `tests/ui/tokens.test.ts`
- * refuses any token §2.1 does not state.
+ * **This sheet declares nothing, on purpose.**
  *
- * Values transcribe `design/tokens.md` §2b (frozen under
- * `archive/sdlc-factory-2026-09-04/corpus/docs/design/tokens.md`):
- *   --breakpoint-sm  640px — "Two-up becomes possible": 2 × --w-day-panel
- *                             290 + --s-5 + 2 × --s-4 = 636, rounded up to
- *                             Tailwind's own step. It is **not** a band
- *                             boundary — `BAND_MIN` has three bands and
- *                             this is not one of them — and no layout rule
- *                             reads it. It is here because §2b's four
- *                             breakpoints have one home and a second copy
- *                             of 640 elsewhere is rule 2.4's second copy
- *                             arriving by a side door. Its one consumer
- *                             today is `src/ui/type.css`'s narrow-viewport
- *                             heading step (§4's third absolute, issue
- *                             #258).
- *   --breakpoint-lg 1024px — "The sidebar returns"; `BAND_MIN.medium`.
- *   --breakpoint-xl 1280px — "The day panel sits beside the grid";
- *                             `BAND_MIN.wide`.
- *   --t-floor       11px   — "The smallest text in the product, at any
- *                             viewport": the bottom of `BUILD.md` §2.3's
- *                             10.5–11px eyebrow range, and the value
- *                             `src/ui/type.css`'s `.eyebrow` already draws.
- *                             ADR-093 decision 3: no type step below it is
- *                             minted, now or later.
+ * It used to be the one home of four tokens — `--breakpoint-sm`,
+ * `--breakpoint-lg`, `--breakpoint-xl` and `--t-floor` — because
+ * `src/ui/theme.css` was `BUILD.md` §2.1's colour block verbatim and a test
+ * refused anything §2.1 did not state. The owner approved a token file on
+ * 2026-09-08 and ruled it the source of truth for `theme.css`, so that
+ * exception has nowhere left to stand: every token the product spends is in
+ * `theme.css`, and `tests/ui/design/token-set.test.ts` holds it equal to
+ * `docs/design/approved/tokens.css` in both directions (issue #349).
  *
- * A media query cannot read a `var()`, so nothing here is consumed by an
- * `@media` prelude yet; `tests/ui/layout/widths.ts` probes the two
- * boundaries from `BAND_MIN`, and the sweep asserts these declarations
- * equal it.
+ * Three of the four are gone rather than moved. A media query cannot resolve
+ * a `var()`, so the breakpoints were three declarations no rule ever read;
+ * what replaced them is ruling 10a's own sentence — "breakpoints 640 / 768 /
+ * 1024 / 1280" — swept over every stylesheet by
+ * `tests/ui/layout-tokens.test.ts`, which is a stronger guarantee than a
+ * declaration nothing consumed. The fourth, the type floor, is
+ * `--t-eyebrow` in the approved set: the same 11px rung under its approved
+ * name, and what conformance check 4 reads off every route.
+ *
+ * The file itself stays because `src/app/layout.tsx` imports it and the
+ * layout module is entitled to a stylesheet — the next rule that belongs to
+ * the module rather than to a screen goes here, and a test asserts this
+ * sheet starts no second token home.
  */
-
-:root {
-  --breakpoint-sm: 640px;
-  --breakpoint-lg: 1024px;
-  --breakpoint-xl: 1280px;
-  --t-floor: 11px;
-}

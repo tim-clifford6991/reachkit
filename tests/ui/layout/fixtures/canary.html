@@ -5,7 +5,7 @@
   BP-018 `## NFR budget`: "It ships one fixture route that overflows on
   purpose and must fail … A green run in which the canary also passes is a
   failed run." Navigated by `file://` (WO-269 `## Parameters chosen`), so it
-  declares `--t-floor` on its own `:root` rather than depending on
+  declares `--t-eyebrow` on its own `:root` rather than depending on
   `src/ui/theme.css` (WO-029's file, not this order's).
 
   Six deliberate defects, one per check plus one that must fail check 3
@@ -16,7 +16,7 @@
     3. `.clipped-name`— a clipped text-bearing box (a *name*, not a value).
     4. `.clipped-value` — a clipped value in `--font-mono`: must fail even
        allow-listed (ADR-093 decision 6 point 3).
-    5. `.below-floor` — text rendered under `--t-floor`.
+    5. `.below-floor` — text rendered under `--t-eyebrow`.
     6. `#svg-escapee` — a chart label drawn outside its own viewBox. Check 3
        exempts everything inside an `<svg>` (ADR-093 decision 3), so this is
        the case that proves the guarantee did not go with it: a clipped
@@ -28,7 +28,7 @@
     <title>WO-269 canary — overflows on purpose</title>
     <style>
       :root {
-        --t-floor: 11px;
+        --t-eyebrow: 11px;
       }
       html,
       body {
@@ -72,7 +72,7 @@
         font-size: 14px;
       }
       .below-floor {
-        font-size: 8px; /* below the 11px --t-floor — check 4 */
+        font-size: 8px; /* below the 11px --t-eyebrow — check 4 */
       }
       .chart {
         width: 100px;

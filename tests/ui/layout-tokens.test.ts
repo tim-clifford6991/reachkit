@@ -20,14 +20,17 @@ import { describe, expect, it } from "vitest";
 import { BAND_MIN } from "@/ui/layout/bands";
 import { CONTENT_MEASURE_PX, SURFACE_GUTTER_PX } from "./layout/checks";
 
-const LAYOUT_CSS = path.resolve(
-  import.meta.dirname,
-  "../../src/ui/layout/layout.css",
-);
-const TYPE_CSS = path.resolve(
-  import.meta.dirname,
-  "../../src/ui/type.css",
-);
+// Issue #349: ADR-093's three tokens are gone. `--t-floor` was the older
+// document's name for the 11px bottom of the ladder and is now `--t-eyebrow`,
+// the approved set's own name for it; the four `--breakpoint-*` tokens are
+// not in the approved set at all, and nothing ever read them — a media query
+// cannot read a `var()`. What replaced them is the rule ruling 10a states:
+// "breakpoints 640 / 768 / 1024 / 1280", swept below over every stylesheet
+// in the product rather than pinned on four declarations nothing consumed.
+const THEME_CSS = path.resolve(import.meta.dirname, "../../src/ui/theme.css");
+const TYPE_CSS = path.resolve(import.meta.dirname, "../../src/ui/type.css");
+const THEME_CSS_PATH = THEME_CSS;
+const UI_DIR = path.resolve(import.meta.dirname, "../../src/ui");
 const SURFACE_CSS = path.resolve(
   import.meta.dirname,
   "../../src/ui/layout/surface.css",
@@ -38,76 +41,111 @@ const ROOT_LAYOUT_TSX = path.resolve(
   "../../src/app/layout.tsx",
 );
 
-/** `design/tokens.md` §2b (frozen in the archived corpus): "`--t-floor`
- *  `11px` — the smallest text in the product, at any viewport." The bottom
- *  of `BUILD.md` §2.3's 10.5–11px eyebrow range; `src/ui/type.css`'s
- *  `.eyebrow` draws the same 11px. */
+/** Ruling 10a (UI-SPEC §1): "type 15 / 13 / 12 / 11.5 / 11 … nothing under
+ *  11px". `--t-eyebrow` is the 11, and it is the floor ADR-093 decision 3
+ *  named `--t-floor` before the owner approved a set with its own name for
+ *  the same rung. */
 const T_FLOOR_PX = 11;
 
-/** `design/tokens.md` §2b's first breakpoint: "`--breakpoint-sm` `640px` —
- *  Two-up becomes possible. 2 × `--w-day-panel` (290) + `--s-5` +
- *  2 × `--s-4` of page padding = **636**", rounded up to Tailwind's own
- *  step. Not a band boundary — `BAND_MIN` names three bands and this is not
- *  one of them — so it has no twin in `bands.ts` to be pinned against, and
- *  the quotation is the pin (`tests/pins.test.ts`'s convention for a frozen
- *  source). Its one consumer is the narrow-viewport heading step below. */
+/** Ruling 10a's four, and the only four: "breakpoints 640 / 768 / 1024 /
+ *  1280". 1024 and 1280 are also `BAND_MIN.medium` and `BAND_MIN.wide`,
+ *  asserted below so the ladder and the layout law cannot drift apart. */
+const BREAKPOINTS = [640, 768, 1024, 1280] as const;
 const BREAKPOINT_SM_PX = 640;
 
-function rootDecls(source: string): Map<string, string> {
-  const root: Root = postcss.parse(source);
-  const rule = root.nodes.find(
-    (n): n is Rule => n.type === "rule" && n.selector === ":root",
-  );
-  if (!rule)
-    throw new Error('src/ui/layout/layout.css: missing bare ":root" rule');
-  const out = new Map<string, string>();
-  for (const node of rule.nodes) {
-    if (node.type === "decl" && node.prop.startsWith("--"))
-      out.set(node.prop, node.value.trim());
+/** Every `.css` file under a directory. */
+function cssFiles(dir: string, out: string[] = []): string[] {
+  for (const entry of readdirSync(dir)) {
+    const full = path.join(dir, entry);
+    if (statSync(full).isDirectory()) cssFiles(full, out);
+    else if (entry.endsWith(".css")) out.push(full);
   }
   return out;
 }
 
-describe("ADR-093 — src/ui/layout/layout.css declares the three layout tokens on :root", () => {
-  const decls = rootDecls(readFileSync(LAYOUT_CSS, "utf8"));
+function rootDecls(source: string): Map<string, string> {
+  const root: Root = postcss.parse(source);
+  const out = new Map<string, string>();
+  for (const node of root.nodes) {
+    if (node.type !== "rule" || (node as Rule).selector !== ":root") continue;
+    for (const decl of (node as Rule).nodes) {
+      if (decl.type === "decl" && decl.prop.startsWith("--"))
+        out.set(decl.prop, decl.value.trim());
+    }
+  }
+  if (out.size === 0) throw new Error('src/ui/theme.css: missing bare ":root" rule');
+  return out;
+}
 
-  it("--breakpoint-lg equals BAND_MIN.medium, in px", () => {
-    expect(decls.get("--breakpoint-lg")).toBe(`${BAND_MIN.medium}px`);
+describe("ruling 10a — every media query in the product is one of the four ruled breakpoints", () => {
+  const decls = rootDecls(readFileSync(THEME_CSS, "utf8"));
+
+  it("the four are 640 / 768 / 1024 / 1280, and two of them are BAND_MIN", () => {
+    expect([...BREAKPOINTS]).toEqual([640, 768, 1024, 1280]);
+    expect(BAND_MIN.medium).toBe(1024);
+    expect(BAND_MIN.wide).toBe(1280);
   });
 
-  it("--breakpoint-xl equals BAND_MIN.wide, in px", () => {
-    expect(decls.get("--breakpoint-xl")).toBe(`${BAND_MIN.wide}px`);
+  it("no stylesheet names a fifth", () => {
+    // The sweep is the enumerator, so a sheet added later is in scope by
+    // construction — the failure names the file and the value, because the
+    // fix is always one of the four, never a new one.
+    const offenders: string[] = [];
+    for (const file of cssFiles(UI_DIR)) {
+      postcss.parse(readFileSync(file, "utf8")).walkAtRules("media", (at: AtRule) => {
+        for (const m of at.params.matchAll(/(\d+(?:\.\d+)?)px/g)) {
+          const px = Number(m[1]);
+          if (!(BREAKPOINTS as readonly number[]).includes(px)) {
+            offenders.push(
+              `${path.relative(path.resolve(UI_DIR, "../.."), file)}: @media ${at.params}`
+            );
+          }
+        }
+      });
+    }
+    expect(offenders, `media queries outside the ruled four:\n${offenders.join("\n")}`).toEqual([]);
   });
 
-  it("--t-floor is 11px — the bottom of BUILD.md §2.3's eyebrow range, never lower", () => {
-    expect(decls.get("--t-floor")).toBe(`${T_FLOOR_PX}px`);
+  it("every media query is written narrow-first, as a min-width", () => {
+    // A `max-width` prelude is the same breakpoint minus a pixel, which is
+    // how a fifth value gets in: 1023px is not 1024. Narrow-first keeps the
+    // four literal.
+    const offenders: string[] = [];
+    for (const file of cssFiles(UI_DIR)) {
+      postcss.parse(readFileSync(file, "utf8")).walkAtRules("media", (at: AtRule) => {
+        if (/\d+px/.test(at.params) && !/min-width/.test(at.params)) {
+          offenders.push(`${path.basename(file)}: @media ${at.params}`);
+        }
+      });
+    }
+    expect(offenders, offenders.join("\n")).toEqual([]);
   });
 
-  it("--breakpoint-sm is 640px — §2b's own value (issue #258)", () => {
-    expect(decls.get("--breakpoint-sm")).toBe(`${BREAKPOINT_SM_PX}px`);
+  it("--t-eyebrow is 11px — the floor of ruling 10a's ladder, never lower", () => {
+    expect(decls.get("--t-eyebrow")).toBe(`${T_FLOOR_PX}px`);
   });
 
-  it("declares exactly those four and nothing else — a fifth token is a decision, not a line", () => {
-    // Four since #258, and the fourth *was* a decision: §4's narrow-viewport
-    // heading step needs 640 somewhere, and §2b's four breakpoints have one
-    // home — a second copy beside the rule that reads it is rule 2.4's
-    // second copy arriving by a side door.
-    expect([...decls.keys()].sort()).toEqual([
-      "--breakpoint-lg",
-      "--breakpoint-sm",
-      "--breakpoint-xl",
-      "--t-floor",
-    ]);
-  });
-
-  it("mutation: a drifted breakpoint is caught", () => {
-    const mutated = readFileSync(LAYOUT_CSS, "utf8").replace(
-      "--breakpoint-lg: 1024px;",
-      "--breakpoint-lg: 1000px;",
+  it("layout.css declares no token of its own — theme.css is the one home", () => {
+    // Until issue #349 this asserted that `layout.css` declared exactly its
+    // four and no fifth. Every approved token lives in `src/ui/theme.css`
+    // now, and `tests/ui/design/token-set.test.ts` holds that file equal to
+    // the approved file in both directions — the same guarantee over the
+    // whole set rather than over four of it. What is left to say here is
+    // that this sheet does not start a second home.
+    const layout = readFileSync(
+      path.resolve(import.meta.dirname, "../../src/ui/layout/layout.css"),
+      "utf8"
     );
-    expect(rootDecls(mutated).get("--breakpoint-lg")).not.toBe(
-      `${BAND_MIN.medium}px`,
-    );
+    expect(layout).not.toMatch(/^\s*--[a-z0-9-]+\s*:/m);
+  });
+
+  it("mutation: a fifth breakpoint is caught", () => {
+    const mutated = "@media (min-width: 900px) { .x { color: red; } }";
+    const found: number[] = [];
+    postcss.parse(mutated).walkAtRules("media", (at: AtRule) => {
+      for (const m of at.params.matchAll(/(\d+)px/g)) found.push(Number(m[1]));
+    });
+    expect(found.some((px) => !(BREAKPOINTS as readonly number[]).includes(px))).toBe(true);
   });
 });
 
@@ -171,7 +209,7 @@ function gutterSteps(source: string): {
 const SURFACE_SOURCE = readFileSync(SURFACE_CSS, "utf8");
 
 describe("issue #241 — surface.css declares the ruled spacing steps and measures on :root", () => {
-  const tokens = rootTokens(SURFACE_SOURCE);
+  const tokens = rootTokens(readFileSync(THEME_CSS_PATH, "utf8"));
 
   it("the three spacing steps are design/tokens.md §2's, and are the gutters check 5 asserts", () => {
     expect(tokens.get("--s-4")).toBe(`${SURFACE_GUTTER_PX.compact}px`);
@@ -266,14 +304,14 @@ describe("src/app/layout.tsx imports src/ui/layout/surface.css, so every route r
 
 /* ── src/ui/type.css — §4's narrow-viewport heading step (issue #258) ──── */
 
-describe("issue #258 — the h1 step below --breakpoint-sm is written narrow-first", () => {
+describe("issue #258 — the h1 step below 640px is written narrow-first", () => {
   const TYPE_SOURCE = readFileSync(TYPE_CSS, "utf8");
 
-  it("the only media literal in type.css is --breakpoint-sm, as a min-width", () => {
-    // §2b: "A media query cannot read a `var()`. The literal inside an
-    // `@media` prelude is therefore the one raw value the stylesheet still
-    // admits, and it must equal a token named above." Narrow-first, so it
-    // is never a breakpoint minus one pixel.
+  it("the only media literal in type.css is 640px, as a min-width", () => {
+    // A media query cannot read a `var()`, so the literal inside an
+    // `@media` prelude is the one raw value a stylesheet still admits, and
+    // it must be one of ruling 10a's four. Narrow-first, so it is never a
+    // breakpoint minus one pixel.
     const preludes: string[] = [];
     postcss.parse(TYPE_SOURCE).walkAtRules("media", (at: AtRule) => {
       preludes.push(at.params.trim());
@@ -281,32 +319,25 @@ describe("issue #258 — the h1 step below --breakpoint-sm is written narrow-fir
     expect(preludes).toEqual([`(min-width: ${BREAKPOINT_SM_PX}px)`]);
   });
 
-  it("that literal equals the --breakpoint-sm layout.css declares — one home, two readers", () => {
-    expect(decls640()).toBe(`${BREAKPOINT_SM_PX}px`);
+  it("that literal is one of the ruled four — one ladder, one set of steps", () => {
+    expect((BREAKPOINTS as readonly number[]).includes(BREAKPOINT_SM_PX)).toBe(true);
   });
 
-  it("below it h1 takes --t-h2, above it --t-h1 — §4's own words, no new size", () => {
-    // "`--t-h1` takes `--t-h2`'s size ... below `--breakpoint-sm`. No new
-    // size is minted" — so the narrow rule reads the h2 token by name and
-    // mints nothing.
-    const narrow = /^h1 \{ font-size: var\(--t-h2\); \}$/m;
-    expect(TYPE_SOURCE, "the default h1 rule must read --t-h2").toMatch(narrow);
+  it("below it h1 takes --h2, above it --h1 — BUILD §2.3's own words, no new size", () => {
+    // §2.3, as amended 2026-09-08: "Below 640 px the h1 takes the h2 size."
+    // So the narrow rule reads the h2 token by name and mints nothing.
+    const narrow = /^h1 \{ font-size: var\(--h2\); \}$/m;
+    expect(TYPE_SOURCE, "the default h1 rule must read --h2").toMatch(narrow);
     expect(
       TYPE_SOURCE.slice(TYPE_SOURCE.indexOf("@media (min-width: 640px)")),
-      "the min-width rule must restore --t-h1",
-    ).toMatch(/h1 \{\s*font-size: var\(--t-h1\);\s*\}/);
+      "the min-width rule must restore --h1",
+    ).toMatch(/h1 \{\s*font-size: var\(--h1\);\s*\}/);
   });
 
-  it("no size below the floor is minted on the way (ADR-093 decision 3)", () => {
+  it("no size below the floor is minted on the way (ADR-093 d3, ruling 10a)", () => {
     const minted = [...TYPE_SOURCE.matchAll(/font-size:\s*(\d+(?:\.\d+)?)px/g)].map((m) =>
       Number(m[1]),
     );
     for (const px of minted) expect(px, `${px}px is under the floor`).toBeGreaterThanOrEqual(T_FLOOR_PX);
   });
 });
-
-/** `--breakpoint-sm` as `layout.css` declares it — read through the same
- *  parser the block above uses, so the two readers cannot drift. */
-function decls640(): string | undefined {
-  return rootDecls(readFileSync(LAYOUT_CSS, "utf8")).get("--breakpoint-sm");
-}

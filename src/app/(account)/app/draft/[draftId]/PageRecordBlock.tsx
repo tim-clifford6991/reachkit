@@ -75,7 +75,7 @@ function Row(p: {
 }): React.JSX.Element {
   return (
     <div className="grid grid-cols-[minmax(0,7rem)_minmax(0,1fr)] items-baseline gap-3">
-      <span className="text-[length:var(--t-floor)] font-bold uppercase tracking-[0.1em] opacity-60">
+      <span className="text-[length:var(--t-eyebrow)] font-bold uppercase tracking-[0.1em] opacity-60">
         {p.label}
       </span>
       <span className="flex min-w-0 flex-col gap-1">{p.children}</span>
@@ -125,7 +125,7 @@ export function PageRecordBlock(p: {
         <span className="flex flex-wrap items-baseline gap-2">
           <Badge tone={VERIFICATION_TONE[verification.kind]}>{writtenLine(verification.copy)}</Badge>
           {verification.at === null ? null : (
-            <span className="num text-[length:var(--t-floor)] opacity-60">
+            <span className="num text-[length:var(--t-eyebrow)] opacity-60">
               {formatDateTime(verification.at, p.timeZone)}
             </span>
           )}

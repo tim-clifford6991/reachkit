@@ -154,7 +154,7 @@ describe(`live-branch sweep — ${routes.length} route(s) × 5 widths`, () => {
       // read below: the app's screen root, which every `(account)` layout
       // writes, and the app's stylesheet, which the error document carries
       // none of. Checks 1-4 above are what *caught* it, and only by
-      // accident and only sometimes: check 4 reads `--t-floor` and fails
+      // accident and only sometimes: check 4 reads `--t-eyebrow` and fails
       // where it is undeclared, but only when the throw beat the streamed
       // shell out of the door. That is why a deterministic break arrived as
       // a flake, and why the plain statement of it belongs here.
@@ -169,7 +169,7 @@ describe(`live-branch sweep — ${routes.length} route(s) × 5 widths`, () => {
                 () => document.querySelectorAll("[data-surface]").length
               ),
               typeFloor: await page.evaluate(() =>
-                getComputedStyle(document.documentElement).getPropertyValue("--t-floor").trim()
+                getComputedStyle(document.documentElement).getPropertyValue("--t-eyebrow").trim()
               ),
             };
           },

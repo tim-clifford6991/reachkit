@@ -10,7 +10,8 @@
 //
 // Everything here is layout: `display`, `gap`, `grid-template-columns`,
 // `min-width`. No colour is named that is not a §2.1 token, no type size is
-// set below `--t-floor`, and no rule here paints a registered component —
+// set below `--t-eyebrow`, the ladder's floor, and no rule here paints a
+// registered component —
 // the daisyUI classes those carry are untouched.
 //
 // `minWidth: 0` appears on every grid child on purpose: a grid item's

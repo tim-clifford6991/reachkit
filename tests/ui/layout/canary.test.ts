@@ -175,7 +175,7 @@ describe("ADR-093 decision 6 point 5 — the canary overflows on purpose and mus
     );
   });
 
-  it("check 4 (the type floor) fails on text rendered under --t-floor", async () => {
+  it("check 4 (the type floor) fails on text rendered under --t-eyebrow", async () => {
     const offenders = await withPage(FLOOR_WIDTH, async (page) => {
       await page.goto(FIXTURE_URL);
       return page.evaluate(checkTypeFloor);
@@ -183,18 +183,18 @@ describe("ADR-093 decision 6 point 5 — the canary overflows on purpose and mus
     expect(offenders.some((o) => o.element.includes("below-floor"))).toBe(true);
   });
 
-  it("check 4 fails, never defaults, when --t-floor is undeclared", async () => {
+  it("check 4 fails, never defaults, when --t-eyebrow is undeclared", async () => {
     const offenders = await withPage(FLOOR_WIDTH, async (page) => {
       await page.goto(FIXTURE_URL);
       await page.evaluate(() => {
-        document.documentElement.style.setProperty("--t-floor", "");
+        document.documentElement.style.setProperty("--t-eyebrow", "");
         // jsdom-and-browser-agnostic removal: also strip the <style> rule so
         // the cascade cannot resupply the value from the stylesheet.
         for (const sheet of Array.from(document.styleSheets)) {
           for (let i = sheet.cssRules.length - 1; i >= 0; i--) {
             const rule = sheet.cssRules[i] as CSSStyleRule;
-            if (rule.style && rule.style.getPropertyValue("--t-floor")) {
-              rule.style.removeProperty("--t-floor");
+            if (rule.style && rule.style.getPropertyValue("--t-eyebrow")) {
+              rule.style.removeProperty("--t-eyebrow");
             }
           }
         }
@@ -215,7 +215,7 @@ describe("ADR-093 decision 6 point 5 — the canary overflows on purpose and mus
  *  reports it. A run in which check 5 passes here is a failed run, for the
  *  same reason ADR-093 decision 6 point 5 gives for the fixture above. */
 const UNSTYLED_SURFACE = `<!doctype html><html><head><style>
-  :root { --t-floor: 11px; }
+  :root { --t-eyebrow: 11px; }
   * { box-sizing: border-box; }
   body { margin: 0; font-size: 15px; }
 </style></head><body>

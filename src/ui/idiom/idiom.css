@@ -17,87 +17,43 @@
  * the accent ground and the glass card. `tests/ui/design/component-
  * registry.test.ts` carries its row and this reason.
  *
- * THE TWO VALUES THE OWNER DID NOT RULE ARE NOT TAKEN (tokens.md §9.2,
- * whose own point this is):
- *   · the card radius stays `--r-box` 14px. The idiom proposed `--r-card`
- *     18px as a *second* variable precisely so a ruled value would not be
- *     re-drawn; porting the 18 would be the ruling arriving by being drawn.
- *   · numerals stay JetBrains Mono. `BUILD.md` §2.3 states it flatly and
- *     `--t-num-headline-face` defaults to the mono face, which is the arm
- *     that conforms. One declaration flips it the day the owner rules.
+ * THE TWO VALUES THE OWNER LEFT OPEN ARE NOW RULED (2026-09-08, UI-SPEC §1):
+ *   · the card radius is `--r-box` 14px, and 8a strikes `--r-card`
+ *     altogether — "Card radius is `--r-box: 14px` everywhere". This sheet
+ *     already drew the 14; what changed is that the 18 no longer exists.
+ *   · numerals stay JetBrains Mono. The approved set declares `--font-num`
+ *     pointed at `--font-mono`, which is what this sheet reads; the
+ *     artifact's own numeral toggle is the thing that flips it, and the
+ *     product ships it un-flipped (§2.3).
  */
 
+/* The two compositions this sheet owns.
+ *
+ * Neither is a token the owner approved, and neither is a value: each is a
+ * *construction over* approved tokens, which is why it is declared here,
+ * beside the rule that spends it, rather than in `src/ui/theme.css` — that
+ * file carries `docs/design/approved/tokens.css` and nothing else
+ * (issue #349, `tests/ui/design/token-set.test.ts`).
+ *
+ * `--on-accent-quiet`'s 85% is measured, not chosen: at the shipped 28% the
+ * quiet ink on the accent ground read 1.82:1 light and 1.89:1 dark, and 85%
+ * is the lowest step clearing AA 4.5:1 in both (4.79 / 7.48) —
+ * `tests/ui/design/on-accent-contrast.test.ts` recomputes it from this
+ * declaration rather than trusting the number (issue #290).
+ *
+ * `--glass-fill`/`--glass-line` stay spent inline in `.rk-glass` below: they
+ * are the 12%/28% alphas §2.1 states, applied to `--on-accent`, and the
+ * idiom's own note says in as many words that they are not tokens.
+ */
 :root {
-  /* design/tokens.md §9.3, all four transcribed with their derivations.
-   *
-   * --shadow-lift — the idiom's first rule is that cards are separated by
-   * shadow and never by a border, and `--shadow-card` is a 1px hairline
-   * that cannot carry an edge alone. The dark construction is §2.1's own
-   * pattern for the -bg/-line pairs: the same geometry re-inked at a
-   * second alpha. */
-  --shadow-lift: 0 1px 2px rgb(24 24 48 / 0.04), 0 6px 16px rgb(24 24 48 / 0.07);
-
-  /* --on-accent-quiet — the quiet ink on an accent ground. `--ink-3` is the
-   * quiet ink on `--bg` and the set had no on-accent equivalent, so the
-   * sign-in panel's mono domain line had nothing to take. Mixed *toward the
-   * ground*, not toward transparency, because that is the relationship
-   * `--ink-3` has to `--ink`; a low alpha to transparent puts running text
-   * under any contrast floor.
-   *
-   * **85%, and the number is measured** (issue #290). The idiom's own
-   * drawing mixes 28%, and the master's screenshots of dev after #285
-   * showed why that cannot ship: at 28% the domain, the `/100` and the line
-   * under the bar are **1.82:1** in light and **1.89:1** in dark against
-   * the ground — under every threshold there is, and the archive drew it on
-   * a preview nobody measured.
-   *
-   * The ratios, computed against the *darkest* point of `--grad-accent` —
-   * which is flat `--accent`, where the radial highlight has fallen off —
-   * with WCAG 2.1 relative luminance, and the mix computed in oklab exactly
-   * as `color-mix` does it:
-   *
-   *     mix    light (#ffffff on #5b4be0)   dark (#0e1116 on #9bb4ff)
-   *      28%   1.82:1  ✗                    1.89:1  ✗
-   *      80%   4.46:1  ✗                    6.80:1  ✓
-   *      85%   4.79:1  ✓                    7.48:1  ✓
-   *     100%   5.95:1                       9.34:1
-   *
-   * 85 is the lowest step on the ladder that clears **AA 4.5:1 in both
-   * themes**, which is the binding threshold here: the smallest text this
-   * ink carries is the mono domain line, well under the 18px that would let
-   * 3:1 serve. It is still quieter than `--on-accent` itself — that is the
-   * token's whole job — and light is the tighter of the two, so a change to
-   * either accent must be re-measured against the light column. */
   --on-accent-quiet: color-mix(in oklab, var(--on-accent) 85%, var(--accent));
-
-  /* --grad-accent — derived, not minted. `design/` has no gradient and the
-   * set has no second accent stop, so both stops are tokens that already
-   * exist: the ground is `--accent` and the highlight is `--on-accent` at
-   * 28%, which is §2.1's own stated alpha ("+ matching -bg/-line at
-   * 12%/28% alpha"). The three position proportions are geometry inside the
-   * element's own box — the same class of value as an SVG coordinate. */
   --grad-accent: radial-gradient(
     circle at 78% 22%,
     color-mix(in oklab, var(--on-accent) 28%, transparent) 0%,
     transparent 62%
   );
-
-  /* --w-form — a third content measure, 420px. Neither existing one fits a
-   * single form column: at the 15px body `--w-read` 704 runs to about 94
-   * characters, outside the 45–75 measure, and 420 runs to about 56, inside
-   * it. It is also the column the page the owner endorsed draws. */
-  --w-form: 420px;
 }
 
-:root:not([data-theme="light"]) {
-  @media (prefers-color-scheme: dark) {
-    --shadow-lift: 0 1px 2px rgb(0 0 0 / 0.3), 0 6px 16px rgb(0 0 0 / 0.45);
-  }
-}
-
-:root[data-theme="dark"] {
-  --shadow-lift: 0 1px 2px rgb(0 0 0 / 0.3), 0 6px 16px rgb(0 0 0 / 0.45);
-}
 
 /* ── 1 · The card: shadow, never a border ─────────────────────────────── */
 
@@ -106,7 +62,7 @@
 .rk-idiom-card {
   border: 0;
   border-radius: var(--r-box);
-  box-shadow: var(--shadow-lift);
+  box-shadow: var(--shadow-card);
   background: var(--surface);
   display: flex;
   flex-direction: column;
@@ -309,7 +265,7 @@
 }
 
 .rk-panel-title {
-  font-size: var(--t-h4);
+  font-size: var(--h4);
   font-weight: 700;
   letter-spacing: -0.02em;
   margin: 0;
@@ -393,7 +349,7 @@
   color: var(--surface);
   border-radius: var(--r-pill);
   padding: var(--s-1) var(--s-2);
-  font-size: var(--t-xs, 12px);
+  font-size: var(--t-xs);
   white-space: normal;
   max-width: 100%;
 }
@@ -427,12 +383,12 @@
 /* ── 6 · The sign-in split ────────────────────────────────────────────── */
 
 /* Two panels, roughly 50/50, full viewport height at and above
- * `--breakpoint-lg`. The width is derived rather than picked: two form
+ * 1024px. The width is derived rather than picked: two form
  * columns (2 × --w-form = 840) plus a generous inset either side
  * (2 × (--s-7 + --s-6) = 160) is 1000, and 1024 is the smallest named step
  * that clears it.
  *
- * THE NARROW ARM IS DECIDED, NOT DEFERRED. Below `--breakpoint-lg` the
+ * THE NARROW ARM IS DECIDED, NOT DEFERRED. Below 1024px the
  * panel is not beside the form, not above it, and not dropped: it follows
  * the form in flow, full width, on the same ground. The screen has exactly
  * one primary action and it must be the first thing on the screen at every
@@ -595,7 +551,7 @@
   background: var(--surface);
   color: var(--ink);
   border-radius: var(--r-box);
-  box-shadow: var(--shadow-lift);
+  box-shadow: var(--shadow-card);
   padding: var(--s-4);
   display: flex;
   flex-direction: column;
@@ -621,7 +577,7 @@
 /* The heading on an accent ground. **It sets no size**, and that is the
  * port's one deliberate departure from the archive's `.ci-on-accent-h1`.
  *
- * That class pinned `--t-h2` below `--breakpoint-sm` and `--t-h1` above —
+ * That class pinned `--h2` below 640px and `--h1` above —
  * which is exactly what `src/ui/type.css`'s own `h1` rule already does
  * since issue #258, so on the landing's `h1` it was the same rule written
  * twice (rule 2.4). On the sign-in panel the archive puts the same class on
@@ -697,12 +653,12 @@
  * overview, not the chrome around them. The mockup linked on #266 carries
  * the label *proposed — not in the approved idiom*, and these rules are
  * that mockup. They spend the idiom's own vocabulary and mint nothing: the
- * pill ranks, the `--s-6` square chip, `--shadow-lift` separation, and the
+ * pill ranks, the `--s-6` square chip, `--shadow-card` separation, and the
  * eyebrow already declared above. */
 
 .rk-chrome-head {
   background: var(--surface);
-  box-shadow: var(--shadow-lift);
+  box-shadow: var(--shadow-card);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -743,7 +699,7 @@
   flex: 0 0 auto;
 }
 
-/* The links sit in the bar at and above --breakpoint-lg; below it the
+/* The links sit in the bar at and above 1024px; below it the
  * collapse under the bar carries them. Exactly one of the two is displayed
  * at any width, so no link is ever in the document twice over. */
 .rk-chrome-nav {
@@ -785,7 +741,7 @@
 
 .rk-chrome-foot {
   background: var(--surface);
-  box-shadow: var(--shadow-lift);
+  box-shadow: var(--shadow-card);
   margin-top: auto;
 }
 
@@ -814,12 +770,17 @@
 .rk-chrome-foot-in nav a {
   color: var(--ink-2);
   text-decoration: none;
-  padding-block: 3px;
+  /* `--s-1`, not the 3px this carried (issue #349). Three is not a rung of
+   * the ruled ladder, and §2's own rule is that a layout wanting a value
+   * the ladder does not name raises the gap rather than inventing one — so
+   * it takes the rung. The footer's links grow one pixel top and bottom;
+   * that is the one deliberate pixel change in this PR. */
+  padding-block: var(--s-1);
 }
 
 .rk-chrome-fine {
   color: var(--ink-3);
-  font-size: var(--t-xs, 12px);
+  font-size: var(--t-xs);
   margin: var(--s-2) 0 0;
 }
 
@@ -833,7 +794,7 @@
 
 /* ── 9 · The figure on an accent ground ───────────────────────────────── */
 
-/* The sign-in panel's score. `--t-num-big` at and above `--breakpoint-sm`,
+/* The sign-in panel's score. `--t-num-big` at and above 640px,
  * the h1 rung below it — and in the **mono** face, because BUILD §2.3 states
  * it flatly and the owner has not ruled otherwise (tokens.md §9.2). */
 .rk-figure {
@@ -845,7 +806,7 @@
 }
 
 .rk-figure-big {
-  font-size: var(--t-h1);
+  font-size: var(--h1);
   font-weight: 700;
   letter-spacing: -0.02em;
   /* No tightened leading. The archive draws this at 1.05, and a mono
@@ -859,12 +820,12 @@
 
 @media (min-width: 640px) {
   .rk-figure-big {
-    font-size: var(--t-num-big, 44px);
+    font-size: var(--t-num-big);
   }
 }
 
 .rk-figure-of {
-  font-size: var(--t-h3);
+  font-size: var(--h3);
   color: var(--on-accent-quiet);
 }
 

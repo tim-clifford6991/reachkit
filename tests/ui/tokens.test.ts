@@ -13,6 +13,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import postcss, { type Root, type Rule, type AtRule } from "postcss";
 import { describe, expect, it } from "vitest";
+import { approvedTokens } from "./design/tokens-doc";
 
 const THEME_CSS_PATH = path.resolve(__dirname, "../../src/ui/theme.css");
 const TAILWIND_CONFIG_PATH = path.resolve(__dirname, "../../tailwind.config.ts");
@@ -197,13 +198,44 @@ describe(
 
     it("every light token in theme.css:root matches BUILD.md §2.1's stated value", () => {
       for (const [name, value] of BUILD_LIGHT) {
+        if (name === "ring-accent") continue;
         expect(light.get(name), `--${name} in :root`).toBe(value);
       }
     });
 
-    it("theme.css:root carries no light token BUILD.md §2.1 does not state", () => {
-      const extra = [...light.keys()].filter((name) => !BUILD_LIGHT.has(name));
-      expect(extra).toEqual([]);
+    it("§2.1's `--ring-accent` is the one token the approved set does not carry", () => {
+      // Owner ruling 2026-09-08 makes `docs/design/approved/tokens.css` the
+      // token file of record, and it declares no ring: the set draws focus
+      // as `0 0 0 3px var(--accent-bg)`, which `calendar-grid.css` now
+      // writes where it is spent (issue #349). §2.1's fence still carries
+      // the line — an amendment the owner owes, named in the PR — so it is
+      // skipped above by name rather than by a widened rule, and the two
+      // halves of the claim are asserted here so neither can rot quietly.
+      expect(BUILD_LIGHT.has("ring-accent")).toBe(true);
+      expect(approvedTokens().has("--ring-accent")).toBe(false);
+      expect(light.has("ring-accent")).toBe(false);
+    });
+
+    it("theme.css:root carries no light token BUILD.md §2.1 or tokens.md names", () => {
+      // Until issue #349 this read "no token §2.1 does not state", and that
+      // is what kept the spacing ladder, the type rungs, the measures and
+      // the breakpoints out of this file — scattered across four other
+      // stylesheets and spent as bare literals instead, where nothing could
+      // compare them against the document.
+      //
+      // §2.1's colour block is still held verbatim by the assertions above
+      // and below; what this one now says is the honest rule: a token in
+      // this file is either one §2.1 states or one `design/tokens.md`
+      // approves, and anything else is a value nobody named.
+      // `tests/ui/design/token-set.test.ts` holds the second half exactly,
+      // in both directions — this is the guard against a *third* source.
+      const approved = approvedTokens();
+      const extra = [...light.keys()].filter(
+        // `extractCustomProps` keys without the leading `--`; the document
+        // reader keys with it.
+        (name) => !BUILD_LIGHT.has(name) && !approved.has(`--${name}`)
+      );
+      expect(extra, `named by neither BUILD.md §2.1 nor tokens.md: ${extra.join(" ")}`).toEqual([]);
     });
 
     it("every BUILD.md-stated dark token matches in both the media block and the explicit toggle", () => {
@@ -226,18 +258,24 @@ describe(
       expect(mutatedLight.get("accent")).not.toBe(BUILD_LIGHT.get("accent"));
     });
 
-    it("every derived dark -bg/-line value carries a comment quoting BUILD.md §2.1's derivation clause", () => {
-      const CLAUSE = "+ matching -bg/-line at 12%/28% alpha";
-      for (const name of Object.keys(DERIVED_DARK_BG_LINE)) {
-        // The declaration for --<name> must be preceded, within a short
-        // window, by a comment containing the verbatim clause.
-        const declRe = new RegExp(`--${name}:\\s*rgb\\([^;]+\\);`, "g");
-        const matches = [...THEME_CSS.matchAll(declRe)];
-        expect(matches.length, `--${name} declared`).toBeGreaterThan(0);
-        for (const match of matches) {
-          const start = match.index ?? 0;
-          const preceding = THEME_CSS.slice(Math.max(0, start - 400), start);
-          expect(preceding, `comment preceding --${name}`).toContain(CLAUSE);
+    it("each derived dark -bg/-line is the stated hue's own channels at .12/.28", () => {
+      // Until issue #349 this asserted that a *comment* beside each of the
+      // six quoted §2.1's derivation clause. `theme.css` is now a
+      // transcription of the approved token file, which carries no such
+      // comments — so the derivation is computed here instead, which is
+      // what the comment was standing in for and cannot go stale.
+      for (const hue of ["ok", "warn", "bad"] as const) {
+        const hex = darkMedia.get(hue);
+        expect(hex, `--${hue} in the dark media block`).toMatch(/^#[0-9a-f]{6}$/i);
+        const channels = [1, 3, 5].map((i) => Number.parseInt(hex!.slice(i, i + 2), 16));
+        const rgb = channels.join(" ");
+        for (const [suffix, alpha] of [
+          ["bg", ".12"],
+          ["line", ".28"],
+        ] as const) {
+          const expected = `rgb(${rgb}/${alpha})`;
+          expect(darkMedia.get(`${hue}-${suffix}`), `--${hue}-${suffix} (media)`).toBe(expected);
+          expect(darkExplicit.get(`${hue}-${suffix}`), `--${hue}-${suffix} (toggle)`).toBe(expected);
         }
       }
     });

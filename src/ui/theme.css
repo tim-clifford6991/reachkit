@@ -1,19 +1,32 @@
-/* src/ui/theme.css
+/* src/ui/theme.css — the approved token set, and nothing else.
  *
- * BP-018 `## Module / boundary`: "src/ui/theme.css (the three-state
- * theming)". Every value below is transcribed from `BUILD.md` §2.1,
- * verbatim: "daisyUI 5 theme, expressed as CSS variables. These exact
- * values — they are lifted from timclifford.dev so the products share a
- * visual family." Nothing here is derived or rounded except the six
- * dark `-bg`/`-line` pairs, each marked where it is defined below.
+ * **This file carries `docs/design/approved/tokens.css` exactly**: the same
+ * names at the same values, in the same three blocks, plus the six additions
+ * ruling 10a made on top of the artifact. `tests/ui/design/token-set.test.ts`
+ * diffs the two files by name and value in both directions, so a token added
+ * here that the owner did not approve fails, and an approved token dropped
+ * here fails (issue #349).
  *
- * Three-state theming, `BUILD.md` §2.1 verbatim: "Three-state theming:
- * bare `:root` = light; `@media (prefers-color-scheme: dark)` guarded
- * with `:root:not([data-theme="light"])`; `:root[data-theme="dark"]`
- * for the explicit toggle. Never define a color only inside a dark
- * block." Every token below therefore exists in the bare `:root`
- * block; the two dark blocks only override tokens `:root` already
- * declares (tests/ui/tokens.test.ts's mutation check).
+ * That is the whole rule, and it is why this file no longer explains each
+ * value: the explanation belongs in `docs/design/approved/tokens.css` and in
+ * `docs/design/approved/full-set/UI-SPEC.md` §1, which is where a reader
+ * should be sent. What lives here is the transcription.
+ *
+ * Three-state theming, `BUILD.md` §2.1 verbatim: "bare `:root` = light;
+ * `@media (prefers-color-scheme: dark)` guarded with
+ * `:root:not([data-theme="light"])`; `:root[data-theme="dark"]` for the
+ * explicit toggle. Never define a color only inside a dark block." Every
+ * token the dark blocks override is declared in the bare `:root` above them
+ * (`tests/ui/tokens.test.ts`'s mutation check).
+ *
+ * Two tokens the product used to declare are **resolved**, not moved
+ * (ruling 8a, and the focus state the approved set draws):
+ *   · `--r-card` 18px — struck. Every card is `--r-box` 14.
+ *   · `--ring-accent` — struck. Focus is `0 0 0 3px var(--accent-bg)`,
+ *     written where it is spent.
+ * Values the approved set does not name — the hairline, the calendar's cell
+ * floor, the idiom's derived gradient and quiet ink — are declared in the
+ * sheet that spends them, so this file stays the approved set alone.
  */
 
 :root {
@@ -48,18 +61,47 @@
   --chart-rival: #787790;
   --chart-goal: #b8722a;
 
-  /* Radius, shadow, ring — `BUILD.md` §2.1 states these once, in
-   * `:root`, and repeats none of them in the dark block. */
+  /* Radius and shadow */
   --r-box: 14px;
   --r-field: 9px;
   --r-pill: 999px;
   --shadow-card: 0 1px 3px rgb(24 24 48/.045);
-  --ring-accent: 0 0 0 3px rgb(91 75 224/.18);
+
+  /* The spacing ladder — 4px base, seven steps, nothing between them */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+
+  /* The two families, self-hosted (`src/ui/fonts.ts`). `--font-num` is the
+   * face every numeral takes; the artifact flips it with its numeral
+   * toggle, and the product ships it pointed at the mono face (§2.3). */
+  --font-ui: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-num: var(--font-mono);
+  --num-weight: 600;
+
+  /* Type — the two rungs below body the artifact declares itself, and the
+   * big figure. The rest of the ladder is in the 10a block at the foot. */
+  --t-eyebrow: 11px;
+  --t-explain: 11.5px;
+  --t-num-big: 44px;
+
+  /* Headings */
+  --h1: 31px;
+  --h2: 25px;
+  --h3: 20px;
+  --h4: 16px;
+
+  /* Measures */
+  --w-wide: 1216px;
+  --w-read: 704px;
 }
 
-/* Automatic dark — guarded so the explicit light toggle below always wins.
- * `BUILD.md` §2.1 verbatim: "`@media (prefers-color-scheme: dark)` guarded
- * with `:root:not([data-theme="light"])`." */
+/* Automatic dark — guarded so the explicit light toggle always wins. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #0e1116;
@@ -76,33 +118,24 @@
     --accent-line: rgb(155 180 255/.28);
 
     --ok: #7bd8b0;
-    --warn: #e6b45a;
-    --bad: #f0907a;
-    /* `BUILD.md` §2.1, verbatim: "+ matching -bg/-line at 12%/28% alpha".
-     * DERIVED (rule 1.1) from --ok #7bd8b0 at 12%/28% alpha — not carried
-     * over from light and not invented. */
     --ok-bg: rgb(123 216 176/.12);
     --ok-line: rgb(123 216 176/.28);
-    /* `BUILD.md` §2.1, verbatim: "+ matching -bg/-line at 12%/28% alpha".
-     * DERIVED (rule 1.1) from --warn #e6b45a at 12%/28% alpha — not
-     * carried over from light and not invented. */
+    --warn: #e6b45a;
     --warn-bg: rgb(230 180 90/.12);
     --warn-line: rgb(230 180 90/.28);
-    /* `BUILD.md` §2.1, verbatim: "+ matching -bg/-line at 12%/28% alpha".
-     * DERIVED (rule 1.1) from --bad #f0907a at 12%/28% alpha — not
-     * carried over from light and not invented. */
+    --bad: #f0907a;
     --bad-bg: rgb(240 144 122/.12);
     --bad-line: rgb(240 144 122/.28);
 
     --chart-you: #5f7ff2;
     --chart-rival: #5c6579;
     --chart-goal: #e6b45a;
+
+    --shadow-card: 0 1px 3px rgb(0 0 0/.45);
   }
 }
 
-/* Explicit dark toggle. `BUILD.md` §2.1 verbatim: "`:root[data-theme="dark"]`
- * for the explicit toggle." Same values as the guarded media query above —
- * one dark palette, reached two ways. */
+/* Explicit dark toggle — the same palette, reached the other way. */
 :root[data-theme="dark"] {
   --bg: #0e1116;
   --surface: #161a21;
@@ -118,25 +151,31 @@
   --accent-line: rgb(155 180 255/.28);
 
   --ok: #7bd8b0;
-  --warn: #e6b45a;
-  --bad: #f0907a;
-  /* `BUILD.md` §2.1, verbatim: "+ matching -bg/-line at 12%/28% alpha".
-   * DERIVED (rule 1.1) from --ok #7bd8b0 at 12%/28% alpha — not carried
-   * over from light and not invented. */
   --ok-bg: rgb(123 216 176/.12);
   --ok-line: rgb(123 216 176/.28);
-  /* `BUILD.md` §2.1, verbatim: "+ matching -bg/-line at 12%/28% alpha".
-   * DERIVED (rule 1.1) from --warn #e6b45a at 12%/28% alpha — not carried
-   * over from light and not invented. */
+  --warn: #e6b45a;
   --warn-bg: rgb(230 180 90/.12);
   --warn-line: rgb(230 180 90/.28);
-  /* `BUILD.md` §2.1, verbatim: "+ matching -bg/-line at 12%/28% alpha".
-   * DERIVED (rule 1.1) from --bad #f0907a at 12%/28% alpha — not carried
-   * over from light and not invented. */
+  --bad: #f0907a;
   --bad-bg: rgb(240 144 122/.12);
   --bad-line: rgb(240 144 122/.28);
 
   --chart-you: #5f7ff2;
   --chart-rival: #5c6579;
   --chart-goal: #e6b45a;
+
+  --shadow-card: 0 1px 3px rgb(0 0 0/.45);
+}
+
+/* Ruling 10a (owner, 2026-09-08 · UI-SPEC.md §1) — the six the artifact
+ * spends without naming: the top three rungs of the type ladder, and the
+ * three measures. Theme-invariant, all six, exactly as the source file
+ * declares them in its own second block. */
+:root {
+  --t-body: 15px;
+  --t-sm: 13px;
+  --t-xs: 12px;
+  --w-form: 420px;
+  --w-sidebar: 222px;
+  --w-day-panel: 290px;
 }
