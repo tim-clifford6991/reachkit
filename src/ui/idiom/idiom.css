@@ -198,6 +198,17 @@
   color: var(--warn);
 }
 
+/* The accent as an edge (issue #291). A screen with two calls to action for
+ * different things — the report's free page and its subscription — gives the
+ * solid fill to one of them; the other keeps the accent in its border and
+ * ink so it still reads as a call to action rather than an aside. No new
+ * value: it is the same `--accent` the primary fills with, and a fill here
+ * would be the second solid button §9.1 forbids. */
+.btn.rk-btn-outline[data-tone="accent"] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .btn.rk-btn-tertiary {
   background: transparent;
   border: 0;
