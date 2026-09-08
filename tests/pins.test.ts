@@ -51,7 +51,7 @@ const B = {
   suggestions: "| `SUGGESTIONS_COST` | 1.8¢ / call @ 50 rows |",
   serpPrices: "| `SERP_LIVE / SERP_STD` | 0.2¢ · 0.06¢ |",
   chatgpt: "| `CHATGPT_SCRAPE_STD` | 0.12¢ (paid battery only — never on the free path) |",
-  aiMode: "| `AI_MODE_LIVE / STD` | 0.2¢ · 0.06¢ |",
+  aiMode: "| `AI_MODE_LIVE / STD` | 0.4¢ · 0.12¢ (DATA-COSTS 2026-09-03 re-check) |",
   questions: "| `QUESTIONS` | 12 |",
   targetSerps: "| `TARGET_SERPS_MAX` | 13 |",
   measuredPages: "| `MEASURED_PAGES_MAX` | 25 |",
@@ -74,7 +74,7 @@ const B = {
   directAnswers:
     "`directAnswers` = question headings whose first block is 40–320 visible chars ÷ all headings × 100",
   cacheWindows:
-    "Cache windows: own domain 7d · rivals 30d · SERPs 30d (except the weekly target re-check) · suggestions 30d.",
+    "Cache windows: own domain 7d · rivals 30d · SERPs 30d (except the weekly target re-check, `serpWeeklyRecheck = 7`) · suggestions 30d.",
   rescan: "**A free re-scan of the same domain within 7 days serves the stored report** — no new spend.",
   cooldown: "(Failure cooldown stays 24h as specced.)",
   fetcher:
@@ -92,7 +92,7 @@ const B = {
   regenerate: "**Do-not-claim list**: hard output filter (string/semantic match), failure = regenerate, twice = needs-attention.",
   noPromptTricks: "no prompt-shaped tricks, no hidden instructions, in any generated page",
   veto: "Autopilot = auto-approve when the veto window (default 24h, settable 0–7d) expires without a veto.",
-  vetoStepper: "veto window stepper 0–7d default 24h",
+  vetoStepper: "veto window stepper 0–7 days, default 1 day",
   rateLimits: "Autopilot hard limits regardless of settings: ≤1 publish/day, ≤8/week",
   retryThree: "failed → retry ×3 → needs_attention",
   verify24h: "**Verification:** publish +24h → fetch the live URL, confirm reachable/indexable/ in-sitemap/AI-readable (chips in the day panel).",
@@ -100,7 +100,7 @@ const B = {
     "a robots.txt **we serve** that allows GPTBot, ClaudeBot, OAI-SearchBot, Claude-SearchBot, PerplexityBot, Google-Extended.",
   nurture: "Nurture: max 3 mails (24h/72h/168h), stops on conversion.",
   goal400: 'footnote pair: start value · "At 400 the big category terms unlock."',
-  goal6: 'AI answers `n/12` (dot row incl. dashed goal dots + "goal: 6")',
+  goal6: 'AI answers `n/12` (dot row incl. goal dots + "goal: 6")',
   ratioUnlock:
     'The ratio module unlocks at ranked ≥ 10 with copy "now comparable".',
   twoAlerts:
@@ -200,19 +200,27 @@ describe("BUILD §6.1 price book — the vendor unit prices, quoted row by row",
     expect(pins.PRICE_BOOK.CHATGPT_SCRAPE_STD_C).toBe(0.12);
   });
 
-  // The archived BP-005 `## Public interface` carries a 2026-09-03 addendum
-  // raising these two to 0.4 / 0.12 by reading the LLM-Scraper row of
-  // `DATA-COSTS.md` §1. BUILD.md rules (CLAUDE.md: "The spec is BUILD.md"),
-  // and BUILD.md states 0.2 / 0.06 twice — the §6.1 row and the §6.2 tier
-  // table — consistent with AI Mode being a SERP endpoint priced at the SERP
-  // row. constants.ts follows BUILD.md and so does this assertion; the
-  // divergence is reported to the owner, never silently resolved here.
-  it(`${B.aiMode} — PRICE_BOOK.AI_MODE_LIVE_C / AI_MODE_STD_C`, () => {
+  // This pair is the one place BUILD.md now disagrees with itself. Until
+  // 2026-09-08 both §6.1 and §6.2 said 0.2 / 0.06, consistent with AI Mode
+  // being a SERP endpoint priced at the SERP row, and constants.ts followed.
+  // #378 applied #2's queue, and DECISIONS 2026-09-05 (#87) rules that §6.1
+  // takes DATA-COSTS §1's LLM-Scraper row instead — 0.4 / 0.12 — so §6.1 was
+  // amended and §6.2's tier table, which the amendment did not name, was not.
+  // Doubling a live price moves real spend and the cap headroom sized against
+  // it, so the pins are #381's to change, not a docs PR's. Both rows are
+  // quoted here: the code is asserted as it is, and the disagreement is named
+  // rather than resolved by whichever assertion was written last.
+  it(`${B.aiMode} — PRICE_BOOK.AI_MODE_LIVE_C / AI_MODE_STD_C still hold §6.2's pair, pending #381`, () => {
     expect(pins.PRICE_BOOK.AI_MODE_LIVE_C).toBe(0.2);
     expect(pins.PRICE_BOOK.AI_MODE_STD_C).toBe(0.06);
+    // The integrity block at the foot holds both quotations in their
+    // documents; these two lines hold them against each other, so closing
+    // #381 by editing one row without the other fails here.
+    expect(B.aiMode).toContain("0.4¢ · 0.12¢");
+    expect(B.aiModeRow).toContain("0.06¢ std / 0.2¢ live");
   });
 
-  it(`${B.aiModeRow} — the same pair, stated the other way round in §6.2`, () => {
+  it(`${B.aiModeRow} — §6.2's tier table, the row the pins still match`, () => {
     expect(pins.PRICE_BOOK.AI_MODE_STD_C).toBe(0.06);
     expect(pins.PRICE_BOOK.AI_MODE_LIVE_C).toBe(0.2);
   });
@@ -434,10 +442,11 @@ describe("BUILD §6.4 — cache windows, the free path's own bounds, and the DNS
   });
 
   // BUILD §6.4's parenthetical exception — "(except the weekly target
-  // re-check)" — is a clause with a home since #75. The 7 is not this
+  // re-check)" — is a clause with a home since #75. The 7 was never this
   // file's invention: the frozen corpus ruled it (BP-005 decision 3
-  // addendum, BP-008 decision 4), and a frozen document cannot drift, so
-  // it is pinned by quotation like every other archived value here.
+  // addendum, BP-008 decision 4), and since #378 the parenthetical names
+  // `serpWeeklyRecheck = 7` itself, so the number is quoted from the spec
+  // that rules it rather than from an archive that cannot drift.
   it(`${B.cacheWindows}'s stated exception — CACHE_WINDOWS_D.serpWeeklyRecheck, the window the weekly target re-check passes instead of serp`, () => {
     expect(B.cacheWindows).toContain("except the weekly target re-check");
     expect(pins.CACHE_WINDOWS_D.serpWeeklyRecheck).toBe(7);

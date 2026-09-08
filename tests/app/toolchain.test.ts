@@ -48,20 +48,16 @@ describe('BUILD.md §1 — "Repo shape: standard Next.js."', () => {
   });
 
   it("no top-level directory outside structure.md rule 7's set is present", () => {
-    // ARCHITECTURE.md rule 7: the committed top-level set is fixed at `src/`,
-    // `supabase/`, `tests/`, `public/`, `scripts/`, `archive/` (the frozen
-    // sdlc-factory corpus, 2026-09-04), `.github/` and `.claude/`. Tooling/VCS
+    // ARCHITECTURE.md rule 7: the committed top-level set is closed at
+    // `src/`, `supabase/`, `tests/`, `public/`, `scripts/`, `docs/`,
+    // `archive/` (the frozen sdlc-factory corpus, 2026-09-04), `.github/`
+    // and `.claude/`. Tooling/VCS
     // directories that are never committed (node_modules, .next, coverage,
     // .git) are excluded here the same way .gitignore excludes them.
     //
-    // `docs/` is the ninth, added by issue #364 to hold the owner's approved
-    // design — the ReachKit Screen System artifact, its token blocks, its
-    // renders and the literals inventory. The issue names those paths
-    // exactly, so the directory is the owner's decision and not this PR's;
-    // what this PR cannot do is make it in `ARCHITECTURE.md`, which is an
-    // owner file. **Rule 7 needs the amendment**, and until it lands this
-    // line is a transcription running ahead of its source — named in the PR
-    // body under "Owner owes" rather than left to be discovered.
+    // `docs/` is the ninth, and rule 7 names it: the documentation corpus —
+    // the authority map, the process and deployment notes, and the approved
+    // design under `design/approved/**` (issues #364, #367, #378).
     const allowed = new Set([
       "src",
       "supabase",

@@ -30,7 +30,11 @@ veto window. Every Monday we re-measure and show what moved.
    first mocked as a Claude artifact (self-contained HTML on the §2 design
    system), approved by Tim, then implemented to match. The approved prototype
    artifact is the visual source of truth for every screen in §4; do not
-   re-design what it already settles.
+   re-design what it already settles. The approved prototype is
+   `docs/design/approved/full-set/` (UI-SPEC.md, its written form, wins over §4
+   where they differ); its parent is the owner's artifact
+   `docs/design/approved/reachkit-screen-system.html`. The corpus map is
+   `docs/README.md`.
 2. **Simplicity is the product.** A person with zero SEO knowledge must
    understand every screen at first glance. If a module needs explaining, it is
    wrong. Meaning over data: every number on screen answers a question the
@@ -109,6 +113,13 @@ toggle. Never define a color only inside a dark block.
   --chart-you:#5f7ff2; --chart-rival:#5c6579; --chart-goal:#e6b45a;
 ```
 
+`--r-card` does not exist; every card is `--r-box` 14 (ruling 8a). The token
+file of record is `docs/design/approved/tokens.css`; `src/ui/theme.css` carries
+exactly it (test). Type ladder below h4: 15 · 13 · 12 · 11.5 · 11 (`--t-body
+--t-sm --t-xs --t-explain --t-eyebrow`); nothing renders under 11 px (ADR-093,
+ruling 10a). Measures: `--w-read 704 --w-wide 1216 --w-form 420 --w-sidebar 222
+--w-day-panel 290`. Breakpoints 640 · 768 · 1024 · 1280.
+
 Map these onto daisyUI's theme slots (`base-100`←surface, `base-200`←sunk,
 `base-300`←line, `base-content`←ink, `primary`←accent, `success/warning/error`←
 ok/warn/bad) in the Tailwind config so stock daisyUI classes just work.
@@ -139,6 +150,7 @@ Rules (already validated with a CVD checker — keep these exact pairs):
 - One axis per chart, thin 2–2.5px lines, 3.5–5px endpoint dots with a surface-colored ring, faint gridlines at 2–3 values, hover tooltip on every mark (fixed-position, ink-on-bg, mono).
 - Inline SVG, hand-sized viewBoxes — no chart library.
 - The chart inventory is closed: growth line (Overview), presence bars (report), AI dot-matrix (report + Overview), rival-gap sparklines (Overview), 7-day week strip (Overview). A new chart form is a design-artifact approval first.
+- Headline numerals are JetBrains Mono like every numeral (ruling 7a). Below 640 px the h1 takes the h2 size.
 
 ### 2.5 The meaning rules
 
@@ -146,6 +158,7 @@ Rules (already validated with a CVD checker — keep these exact pairs):
 - Provenance is always visible but always quiet: `measured 28 Aug`, `from: appcues alternative · 1,900/mo` — mono, dim, small.
 - Empty/degraded states are designed, never blank: a measurement that failed says so in one written sentence; an empty queue is a success state ("Nothing worth publishing today").
 - Red appears only for *the customer's problem being shown to them* (blocked, absent, 0/12). Rival strength is neutral gray, never red — rivals are context, not alarms.
+- The number is called **Discoverability Score** wherever it carries a label (ruling 6a).
 
 ---
 
@@ -155,8 +168,7 @@ Follows the shipped reachkit.app journey — public scan URL, pay-before-account
 magic link — with the publishing product on the paid side.
 
 ```
-/                     Landing: one field, one button. "See what AI tells buyers
-                      about your market — and write your way in."
+/                     Landing (§4.0, S1)
    ↓ scan
 /scan/{domain}        FREE REPORT (public, permanent, shareable; §4.1)
                       · arriving on a shared link starts a scan client-side on
@@ -172,34 +184,33 @@ Stripe Checkout       No account, no form before payment
                       Monday: full re-measure, movement email
 ```
 
-Existing-route compatibility: keep `/scan/{domain}` as the public report path and
-the report → checkout → magic-link → setup order exactly as the current app has
-it. What changes behind those URLs is the content, per §4.
+`/` Landing — hero with the tagline *"See what AI tells buyers about your market — and write your way in."*, a subline, one field and one solid CTA, beside the product component (the Overview's own cards in a browser frame, on example figures — ruling 5c); then the demo-video block (a frame with a play control and one written line until the asset exists — 4c); then three numbered sections: why-care (with the live AI-answers matrix card), what-it-does (with the This-week card), how-to-start (three Step cards, closing CTA, "Cancel in one click."). Every further CTA focuses the one field (REQ-099 c3).
+
+**Public chrome (ruling 3a).** Header = brand · Sign in (quiet) · one solid CTA (on `/scan/{domain}` the right slot is *Copy link*). Footer on every public page = brand · rights line · removal address · Product (Pricing · Sign in) · Legal (Privacy · Terms · Imprint). Two solid primaries are allowed where the approved set draws them (2b). Public routes: `/` · `/scan/{domain}` · `/pricing` · `/signin` · `/signin/{token}` · `/privacy` · `/terms` · `/imprint` · `/veto/{token}` · `/opt-out/{token}` · `/robots.txt` · `/sitemap.xml` · the 404 and error pages. API routes: `/api/scan` · `/api/scan/{scanId}/progress` · `/api/report/{domain}/correct` · `/api/lead` · `/api/setup` · `/api/setup/domain` · `/api/setup/progress` · `/api/stripe/webhook` · `/api/jobs/{...slug}` · `/api/drafts/{id}/approve` · `/api/drafts/{id}/skip` · `/api/drafts/{id}/veto` · `/api/report/{domain}/removed` · `/api/export` · `/api/danger/{action}`. Account routes: `/setup` · `/setup/waiting` · `/app` · `/app/calendar` · `/app/draft/{draftId}` · `/app/settings`. Hosted: `/hosted-page/{...slug}` · `/hosted-gone`.
+
+The `/scan/{domain}` path and the report → checkout → magic-link → setup order are kept from v2.
 
 ---
 
 ## 4. Screens
 
-The approved prototype artifact renders all of these — match it. Per screen:
-purpose, modules in order, and states.
+The approved screen set is `docs/design/approved/full-set/` (UI-SPEC.md is its written form; S-ids below refer to it). Match it. Where this section and UI-SPEC.md differ, UI-SPEC.md wins. Per screen: purpose, modules in order, and states.
 
 ### 4.1 Free report `/scan/{domain}` — public
 
 Purpose: a stranger sees, in under a minute, that AI recommends rivals and not
 them — and leaves with a finished page. Order:
 
-1. **Header strip** (card): domain · date · category · score (big mono, band badge) · three driver mini-bars · Copy link.
+1. **Header strip** (card, S2): domain · date · category · *Not your market?* · eyebrow **Discoverability Score** · score (big mono) · band word badge · one written line naming the driver holding the score down · three driver mini-bars with `n/10` values (ruling 1b; REQ-004 c2 amended) · *Copy link* in the header bar.
 2. **Two equal cards, side by side** — never stacked in importance:
    - **AI answers** (source chip: *Google AI answers · {date}*): denominator line ("AI answers appear on {m} of your 12 biggest searches"), dot matrix over those m (rivals' cited rows filled gray, customer's row empty red-ringed, `n/{m}` per row; a no-AI-answer question = muted cell) · divider · **"The 12 questions"** list — each row: `n · "question"` + `not you` badge + provenance line `from: {search} · {vol}/mo · named: {brands}`. First 4 shown, "Show all 12". Method stated as one chip: *"= your market's 12 biggest searches, asked as a buyer asks AI."*
    - **Google search** (source chip: *your market's 12 biggest searches*): occupancy bars — top-10 appearances /12 per rival (gray) and the customer (accent), direct-labelled · divider · "5 biggest searches you're absent from" table (search · /mo · holds #1) · footnote from F4: "Your market's search set totals {N}/mo — you currently appear in {n}." Rivals on this card come from §6.6's derivation, never from `competitors_domain`.
-3. **Three problem cards** (grid): *AI readers blocked* (`badge-success` "Free fix · 10 min", the robots lines verbatim in a code block) · *Missing pages* (`badge-primary` "ReachKit writes", counts only) · *Unquotable pages* ("ReachKit rewrites", counts only). Left border color = severity.
+3. **Three problem cards** (grid): each carries its count, a severity word from the closed set (Critical · Worth fixing · Nothing to fix) **and** the who-does-it badge (*Free fix · 10 min* with the robots lines verbatim in a code block · *ReachKit writes* · *ReachKit rewrites*). Left border colour = severity, never the only carrier (ruling 9a; REQ-009 c1/c5/c8).
 4. **DIY collapses** (3): the complete method, free. Instructional text is allowed here.
-5. **Free page card** (accent border): title of page 1 of N, target/beats/format rows, **"Email me the full page"**.
+5. **Free page card** (accent ring): title of page 1 of N · target/beats/format rows · email input + solid **Email me the full page** · "That's page 1 of N we found for you." (2b: solid, beside the pricing card's solid Start).
 6. **Pricing card**: €49/mo + four spec rows (1/day · weekly · weekly · 24h veto) + Start button + "Cancel in one click."
 
-States: scanning (progress steps, no bare spinner) · degraded (missing driver →
-section absent + one written line, score `null` renders as "—") · cooldown for a
-domain that failed <24h ago (honest message + retry button, no auto-restart).
+States: scanning (named stages with elapsed times, no spinner) · degraded (score "—", no band, one line per REQ-004 c3/c6/c9; the unmeasured card says so and offers *Retry this part*) · cooldown (one line, *Try again*, no auto-restart) · malformed (field kept, one line beside it) · removed (one line, *Scan another site*). S3.
 
 ### 4.2 The giveaway email
 
@@ -208,6 +219,8 @@ after** the email is submitted (~7¢ spent on identified leads only). Email
 contains the page in a copy-ready block (Markdown + HTML buttons), the target
 search + volume, and one line: "That's page 1 of {N} we found for you." Nurture:
 max 3 mails (24h/72h/168h), stops on conversion.
+
+The report ends with the removal line (§14) and the public footer.
 
 ### 4.3 Setup `/setup` — post-payment, once
 
@@ -222,18 +235,27 @@ While the deep pass runs: progress screen; on completion straight to the app wit
 the first draft already in the calendar. A degraded pass still releases setup
 (zero proposals is legal, never faked).
 
+The footer control reads **"Start — first page in ~3 minutes."** (C1: the body of
+#2 dropped the duration per REQ-025 c1; the approved set S10 states it. The
+approved string stands — ruling 11a, owner approval 2026-09-08 — and REQ-025 c1
+is amended to allow a stated estimate. Owner may strike.)
+
+Arms: from a report (domain confirmed, category tag) · without a report (site
+address asked first, nothing pre-filled — REQ-021 c7) · degraded (no suggested
+rivals, add field). Below the submit: "You can reach Settings, cancel or export
+at any time — finishing setup is not required for that." Then `/setup/waiting`
+(S11): named stages with elapsed times; a degraded pass still releases into the
+app (REQ-029).
+
 ### 4.4 App shell
 
-Left sidebar (222px, sticky): domain block (accent dot, domain, `Week n ·
-re-measured Mon`) · nav **Overview / Calendar / Settings** (Calendar shows item
-count) · footer autopilot card (state + next publish time + toggle). Mobile:
-sidebar hidden, top tabs. No other navigation.
+Left sidebar (`--w-sidebar` 222, sticky): brand · domain block (accent dot, domain, `Week n · re-measured Mon`; before the first measurement `not measured yet · first due Mon {date}` — REQ-040 c7) · **Workspace**: Overview · Calendar (waiting count) · Settings · footer autopilot card (switch · state line · next publish). Routes `/app` · `/app/calendar` · `/app/settings` · `/app/draft/{id}`. Below 1024 the sidebar becomes a top band. No other navigation.
 
 ### 4.5 Overview (default view)
 
-1. Head: "The gap is closing." + `▲ every week since you started` badge — the four words are backed by the chart directly under them.
+1. Head: "The gap is closing." + `▲ every week since you started`; week 0 (S13): "Your first page is ready to read." + `week 0`.
 2. **Growth chart**: searches-you-appear-in, weekly points, area+line in `--chart-you`, endpoint labelled, footnote pair: start value · "At 400 the big category terms unlock." Hover tooltips.
-3. **Three stat tiles**: Score (mono + ▲delta + band badge) · AI answers `n/12` (dot row incl. dashed goal dots + "goal: 6") · Pages published (n + "m already ranking" + "rest under 3 weeks — too early to judge").
+3. **Three stat tiles**: **Discoverability Score** (mono + ▲delta + band word) · AI answers `n/12` (dot row incl. goal dots + "goal: 6") · Pages published (n + "m already ranking" + "rest under 3 weeks — too early to judge"); before the first measurement the tiles read "—" with their one line.
 4. **How far ahead each rival is**: per rival — name · falling sparkline (gray, accent endpoint) · `78×` big mono · `was 276×` success badge. One dim line: "Every line pointing down is the gap shrinking."
 5. **This week**: 7-day strip (done/today/next) + "Open calendar →" + up to two alerts (today's page pending veto → "Read it"; a needs-you item → action button).
 
@@ -245,23 +267,16 @@ its goal, never bare.
 - Head: "One page a day. Every day." + month switcher.
 - **Stage filter cards** (All/Live/Your review/Scheduled/Planned/Needs you) with counts; clicking filters the grid.
 - **Grid**: Mon–Sun columns (`repeat(7,minmax(0,1fr))` — the minmax is load-bearing), one event per day, every day filled while supply lasts, weekends included. Stage = chip color. Today ringed accent.
-- **Day panel** (290px, sticky, beside the grid — not a drawer): **today selected on open**. Contents: stage badge + date · title · status rows · "Why this page" (search / asked / answered-today-by / you / done-when — all mono values) · stage-appropriate actions (review → *Read the full page* + Move/Veto; live → *View live page*; needs-you → *Reconnect*; planned → Move/Skip) · one dim provenance line.
+- **Day panel** (`--w-day-panel` 290, sticky, beside the grid — not a drawer): **today selected on open**. Stage-appropriate actions (S15): review → solid *Read the full page* + Move · Veto; live → *View live page* + verified line; planned → Move · Skip; needs you → one cause + solid *Reconnect*; empty → the date's one account, no action.
 - "Read the full page" opens the **draft view** (full page render, grounded-fact highlight with its source line, claim-check badge, Approve/Edit/Veto, and the "what happens if you do nothing" info box). Back link returns to the calendar.
-- **Edit = Markdown textarea with a live preview pane** (owner ruling, 28 Aug) — two columns on desktop, tabbed on mobile, autosaved, no rich-text editor. An edited draft keeps its grounding highlight if the fact survives the edit and drops the claim-check badge until the check re-runs (one nano call) on save.
+- **Edit = Markdown textarea with a live preview pane** (owner ruling, 28 Aug) — two columns on desktop, tabbed on mobile, autosaved, no rich-text editor. An edited draft keeps its grounding highlight if the fact survives the edit and drops the claim-check badge until the check re-runs (one nano call) on save. Edit (S17) = Markdown textarea + live preview, two columns ≥1024 and tabbed below, autosaved (saving… / saved {time} / could-not-save line — nothing unsaved publishes); the claim check re-runs on save. Every draft offers Markdown and HTML copy-out (REQ-045 c12). The Decide panel carries Approve (solid) · Edit · Veto (warn outline) · *If you do nothing* · Checks.
 - Footnote: planned pages are written the evening before from Monday's measurements. **Supply rule:** when opportunities run out, future days are empty and the empty state says so — the calendar is never padded.
 
 ### 4.7 Settings
 
-Two-column cards. Left: **Your market** (chip + Edit + "changing this rebuilds
-the search set and the 12 questions next Monday") · **Competitors** (chips ×5,
-add/remove) · **Publishing** (mode toggle, veto window stepper 0–7d default 24h,
-publish time, destinations list with health + Reconnect; footnote: *"Fix-type
-tasks are never automated, whatever the mode."*) · **Notifications** (3 toggles).
-Right: **Billing** (plan, next invoice, card, invoices link, Update card / Cancel
-plan + "cancelling keeps everything running until {date}") · **Account** (name,
-email, magic-link note, change email, sign out) · **Your content** (pages count,
-Export everything — always available) · **Danger zone** (unpublish all, delete
-account; "pages are exported to you first, never silently destroyed").
+Two-column cards (S18). Left: **Your site & market** (domain + Change · category + Edit · rebuild line) · **Competitors** (5 removable tags) · **Publishing** (Autopilot/Copilot pair + one line on what the pair does · veto window stepper 0–7 days, default 1 day · publish time · time zone · publishing on/off · destinations with health + Reconnect · "Fix-type tasks are never automated, whatever the mode.") · **How your pages sound** (voice field · *Never claim* list + add) · **Notifications** (Daily draft-ready mail · Published-page mail · Monday movement mail). Right: **Billing** · **Account** · **Your content** · **Danger zone** as before.
+
+C2 — the #2 body (2026-09-06, #34) drops "next invoice" and "card" per REQ-097; the approved set (S18) shows plan · price · active · next invoice date and amount · card •••• 4242 · Update card / Invoices / Cancel plan, and REQ-076 c1 requires exactly those values. Resolution: the approved set stands; REQ-097 is read as "ReachKit edits no billing value and sends no billing mail — it displays Stripe's values read-only". Owner may strike.
 
 Settings holds the three product answers plus account admin, and **nothing that
 tunes the engine** — caps, cadences, question counts, model choices are code
@@ -309,7 +324,7 @@ deterministic.
 | `SUGGESTIONS_COST` | 1.8¢ / call @ 50 rows |
 | `SERP_LIVE / SERP_STD` | 0.2¢ · 0.06¢ |
 | `CHATGPT_SCRAPE_STD` | 0.12¢ (paid battery only — never on the free path) |
-| `AI_MODE_LIVE / STD` | 0.2¢ · 0.06¢ |
+| `AI_MODE_LIVE / STD` | 0.4¢ · 0.12¢ (DATA-COSTS 2026-09-03 re-check) |
 | `QUESTIONS` | 12 |
 | `TARGET_SERPS_MAX` | 13 |
 | `MEASURED_PAGES_MAX` | 25 |
@@ -375,7 +390,7 @@ the designed v1.1 upgrade and changes no other part of the pipeline.
 ### 6.4 Redundancy rules — the never-pull list
 
 - Nothing is fetched that no rendered surface reads (a dataset ships only with its screen).
-- Cache windows: own domain 7d · rivals 30d · SERPs 30d (except the weekly target re-check) · suggestions 30d. Cache is keyed source+key+policy-version; an empty payload is always a miss; **no negative cache**.
+- Cache windows: own domain 7d · rivals 30d · SERPs 30d (except the weekly target re-check, `serpWeeklyRecheck = 7`) · suggestions 30d. Cache is keyed source+key+policy-version; an empty payload is always a miss; **no negative cache**.
 - Never: SERP depth >10 · search operators (`site:` = 5×) · clickstream flags · `load_async_ai_overview` · Labs historical endpoints · per-rival `ranked_keywords` on the free path · a 4th engine · per-draft re-probing · AI Keyword Data (v1.1 candidate only).
 - Live mode only where a human is waiting (free scan, onboarding pass). Everything scheduled = standard queue.
 - **A free re-scan of the same domain within 7 days serves the stored report** — no new spend. The report shows its measurement date; a "Re-scan" affordance appears only after the window. (Failure cooldown stays 24h as specced.)
@@ -605,7 +620,11 @@ surface that reads it, specified first.
 | `publish/execute` | on approve/expiry | State machine → destination |
 | `publish/verify` | +24h | Liveness checks |
 | `weekly/refresh` | Mon 06:00 UTC | Weekly scan per active site → re-derive → verdicts → movement email |
-| `lead/nurture` | event + delays | Draft email, then ≤3 touches, stops on convert |
+| `lead/nurture` | hourly cron | advanceSequences(now) over next_touch_at |
+| `publish/retry` | hourly cron | inside the kill-switch scope, claims failed pages whose retry is due |
+
+Jobs run on Inngest; the app registers at `/api/jobs/[[...slug]]` with
+`INNGEST_SIGNING_KEY` / `INNGEST_EVENT_KEY` (§15).
 
 Bounds: 5 free scans/IP/h · 1 in-flight/IP · 200 free scans/day · kill switch env
 var stops scan+generate+publish · scan limiter fails open, lead capture fails
@@ -618,6 +637,13 @@ closed.
 no*, one veto link) · `published` (live URL + 24h checks) · `weekly` (score
 delta, AI answers delta, pages verdicts, next 3 — all values conditional: a
 missing number omits its section, never prints 0).
+
+One shell (S20): brand · one heading · one short line · mono fact rows · one
+solid button · footer naming why it was sent and how to stop it (toggle or
+opt-out), the imprint line, plain-text twin. Kinds: magic-link · report ·
+first-page · first-page-unavailable · nurture (≤3, stops on subscribe) ·
+draft-ready · published · weekly · setup-reminder · account. The report and
+weekly mails name the **Discoverability Score**.
 
 ## 13. Payments
 
@@ -648,10 +674,14 @@ hidden instructions, in any generated page).
 
 ## 15. Env
 
-`DATABASE_URL SUPABASE_URL SUPABASE_ANON_KEY SUPABASE_SERVICE_ROLE
-STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET STRIPE_PRICE_ID RESEND_API_KEY
-DATAFORSEO_LOGIN DATAFORSEO_PASSWORD ANTHROPIC_API_KEY NANO_API_KEY
-IP_HASH_SALT KILL_SWITCH OWNER_EMAILS NEXT_PUBLIC_APP_URL`
+`SUPABASE_URL SUPABASE_ANON_KEY SUPABASE_SERVICE_ROLE_KEY STRIPE_SECRET_KEY
+STRIPE_WEBHOOK_SECRET STRIPE_PRICE_ID RESEND_API_KEY MAIL_FROM DATAFORSEO_LOGIN
+DATAFORSEO_PASSWORD ANTHROPIC_API_KEY NANO_API_KEY (optional, defaults to
+ANTHROPIC_API_KEY) INNGEST_SIGNING_KEY INNGEST_EVENT_KEY IP_HASH_SALT
+KILL_SWITCH OWNER_EMAILS HOSTED_EDGE_CNAME_TARGET NEXT_PUBLIC_APP_URL`;
+`DATABASE_URL` is required only by migration tooling. Where each lives, and
+which are owner-pasted, is `docs/DEPLOYMENT.md`. `RK_FIXED_NOW` is a test
+fixture and is never set in a deployment.
 
 ## 16. Build order
 
@@ -675,6 +705,12 @@ starts.**
 **Sellable at the end of M4** (free funnel complete) **and chargeable at M7**
 (paid loop minus publishing = review + copy). Ship the beta there if draft
 quality needs proving before M8–M10.
+
+Beyond M10 the work is tracked as GitHub milestones: M11 live verification +
+environments (each §16 check that needs a real vendor or database), M12 go-live
+readiness (SEO, error pages, accessibility, spend guards, observability,
+security, performance, runbook, cutover), M13 copy (owner), M14 UI fidelity to
+the approved set (one issue per screen).
 
 ## 17. Non-goals — do not build
 
