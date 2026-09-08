@@ -45,7 +45,15 @@ function OccupancyRow(p: {
     // `1fr` track refuses to narrow below its content, so one long domain
     // pushes the whole document sideways at the compact band instead of
     // wrapping inside its own column.
-    <div className="grid grid-cols-[minmax(3rem,8rem)_minmax(0,1fr)_auto] items-center gap-3">
+    // At and above `--breakpoint-lg` the domain track is `max-content`:
+    // the card has the room there, and a capped track was clipping
+    // `rival-one.examp…` inside its own scroll wrap at 1024 and 1280
+    // (issue #307). Below it the cap and the wrap stay — that band has
+    // genuinely less width than the three columns need, and scrolling is
+    // the honest answer rather than a track that squeezes the bar to a
+    // sliver. The bar keeps a floor either way, because a bar whose whole
+    // job is a length cannot be allowed to collapse.
+    <div className="grid grid-cols-[minmax(3rem,8rem)_minmax(0,1fr)_auto] items-center gap-3 lg:grid-cols-[max-content_minmax(4rem,1fr)_auto]">
       {/* The domain's track is capped at 8rem so one long name cannot push
           the row's bar and ratio off the card — and a domain is a value, so
           it is never broken mid-word to fit (`.num` in `src/ui/type.css`,
@@ -129,6 +137,34 @@ export function GooglePresenceCard(p: {
       <Divider />
 
       <h3>{copy("presence.absent-from.title")}</h3>
+      {/* The three columns, sized rather than left to chance (issue #307).
+          The card is half the report's width at 1024 and 1280, and three
+          mono columns that could none of them fold added up to more than
+          it had: the wrap scrolled and the rival column was clipped
+          mid-domain (`rival-one.example.n…`).
+
+          The volume is a count and the holder is a domain — both single
+          values, and both end up exactly as wide as they need, because a
+          value never folds and the auto table algorithm therefore cannot
+          make them narrower. The search is the one column that is
+          language: §2.3 puts a query in the mono face, and a query is
+          several words, so it folds at its spaces (`Num`'s `phrase`) and
+          takes whatever is left.
+
+          **Pinning the two value columns to `max-content` is what broke
+          it**, and the first attempt here did exactly that: a pinned
+          column takes its *header's* width too, so the volume column —
+          whose numbers are 32px wide — was held at 119px by an unwritten
+          `TODO(copy)` header, and the table came to 455px in a 430px card
+          at 1024. Unpinned, with a header that may fold and a query that
+          may fold, the same three columns settle at 380px. The layout
+          algorithm was already able to do this; what it needed was to be
+          allowed to.
+
+          At the compact band the sum still exceeds the card, and the
+          registered `Table`'s own `overflow-x-auto` carries it — which is
+          the right answer there and the reason this needed no media
+          query. */}
       <Table
         zebra
         columns={[
@@ -137,7 +173,7 @@ export function GooglePresenceCard(p: {
           { key: "holder", header: copy("presence.absent-from.column.holder") },
         ]}
         rows={section.absentFrom.map((row) => ({
-          search: <Num>{row.keyword}</Num>,
+          search: <Num phrase>{row.keyword}</Num>,
           volume: <Num>{row.volume}</Num>,
           holder: row.topHolder === null ? <span>{copy("place.report.first-page.rival")}</span> : <Num>{row.topHolder}</Num>,
         }))}

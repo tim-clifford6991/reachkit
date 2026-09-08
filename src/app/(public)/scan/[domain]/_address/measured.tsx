@@ -49,6 +49,12 @@ export function Num(p: {
    *  fail an honest admission. It is a structural marker read by tests,
    *  never by a person. */
   unmeasured?: boolean;
+  /** A mono **phrase** rather than a single value (issue #307): several
+   *  words that may fold at their spaces, as a search query does. The
+   *  face is unchanged — §2.3 puts a search query in the mono face — and
+   *  no word inside it is ever broken. Opted in, never inferred: whether
+   *  a string is one value or a line of language is the caller's call. */
+  phrase?: boolean;
 }): React.JSX.Element {
   // ADR-093: content fits its box or the box changes, and text is never
   // shrunk to fit. **The box changes; the value does not** (issue #256).
@@ -74,7 +80,7 @@ export function Num(p: {
   // that reason.
   return (
     <span
-      className="num min-w-0"
+      className={p.phrase === true ? "num num-phrase min-w-0" : "num min-w-0"}
       data-unmeasured={p.unmeasured === true ? "" : undefined}
     >
       {p.children}

@@ -64,9 +64,14 @@ function count(haystack: string, needle: string): number {
 }
 
 /** The `<th>` texts of the first table on the card, which is the engine
- *  table: the rival table follows it. */
+ *  table: the rival table follows it.
+ *
+ *  The tag may carry attributes — the registered `Table` gives its headers
+ *  `whitespace-normal wrap-anywhere` since #307, so that a label can fold
+ *  and stop setting its column's minimum width — so the pattern reads the
+ *  text and not the markup around it. */
 function headers(html: string): string[] {
-  return [...html.matchAll(/<th>([^<]*)<\/th>/g)].map((m) => m[1] ?? "");
+  return [...html.matchAll(/<th[^>]*>([^<]*)<\/th>/g)].map((m) => m[1] ?? "");
 }
 
 describe("§6.2 — the paid battery is drawn as three answer columns", () => {
