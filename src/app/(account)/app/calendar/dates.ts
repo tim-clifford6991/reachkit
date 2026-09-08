@@ -125,6 +125,25 @@ export function monthLabel(month: MonthKey): string {
   }).format(utcOf(`${month}-01`));
 }
 
+/** A neighbouring month's label in the switcher — its name, without the
+ *  year (issue #269).
+ *
+ *  `monthLabel` above is the month a control *names as itself* and carries
+ *  the year with it; three of those do not fit 320 on one line, which is
+ *  what wrapped the switcher onto a second row. The year belongs to the
+ *  month you are looking at, and repeating it on both neighbours states it
+ *  three times to say one thing.
+ *
+ *  Its own function rather than an option on `monthLabel`: that one has
+ *  other callers, and a formatter whose output depends on a flag is a
+ *  second thing to get wrong at each of them. */
+export function monthNameOnly(month: MonthKey): string {
+  return new Intl.DateTimeFormat(SHELL_LOCALE, {
+    timeZone: "UTC",
+    month: "short",
+  }).format(utcOf(`${month}-01`));
+}
+
 /** The date the day panel heads with. */
 export function fullDate(day: DayKey): string {
   return new Intl.DateTimeFormat(SHELL_LOCALE, {

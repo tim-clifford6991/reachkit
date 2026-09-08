@@ -138,11 +138,40 @@ const SEEDED_DRAFT_ID = "00000000-0000-0000-0000-0000000000d1";
  * rendering an empty arm, which is not the layout this sweep is here to
  * measure.
  */
-const LIVE_DRAFTS: readonly { id: string; state: string; title: string }[] = Object.freeze([
-  { id: "00000000-0000-0000-0000-0000000000e1", state: "in_review", title: "How teams pick an onboarding tool" },
-  { id: "00000000-0000-0000-0000-0000000000e2", state: "published", title: "Onboarding checklists that survive week one" },
-  { id: "00000000-0000-0000-0000-0000000000e3", state: "planned", title: "What to measure after a rollout" },
+const LIVE_DRAFTS: readonly {
+  id: string;
+  state: string;
+  title: string;
+  /** Days from today, in the site's own zone, that this page sits on
+   *  (issue #269).
+   *
+   *  **Without one the calendar has nothing to draw.** `scheduledPagesFor`
+   *  selects `drafts` on `scheduled_for` between the month's ends, so a
+   *  draft with a null date lands on no cell: every day was an empty-day
+   *  account, every stage filter read `0` — correctly, since the counts are
+   *  derived from the very cells the grid renders — and the calendar's
+   *  *populated* arm had never been rendered by any sweep. Three dates in
+   *  the current month, so the grid carries a page in three different
+   *  stages and the filters have something to count. */
+  scheduledIn: number;
+}[] = Object.freeze([
+  { id: "00000000-0000-0000-0000-0000000000e1", state: "in_review", title: "How teams pick an onboarding tool", scheduledIn: 1 },
+  { id: "00000000-0000-0000-0000-0000000000e2", state: "published", title: "Onboarding checklists that survive week one", scheduledIn: -2 },
+  { id: "00000000-0000-0000-0000-0000000000e3", state: "planned", title: "What to measure after a rollout", scheduledIn: 3 },
 ]);
+
+/** A `scheduled_for` date, `days` from today, as the column stores it.
+ *  Computed at midday UTC so a zone either side of it cannot land the date
+ *  on the day before or after. */
+function scheduledFor(days: number): string {
+  const midday = Date.UTC(
+    new Date().getUTCFullYear(),
+    new Date().getUTCMonth(),
+    new Date().getUTCDate(),
+    12
+  );
+  return new Date(midday + days * 86_400_000).toISOString().slice(0, 10);
+}
 
 /**
  * The publishing settings the live account has actually chosen (#228).
@@ -495,7 +524,10 @@ function seedMeasuredWeeks(account: AppAccount): void {
 function seedSite(
   account: AppAccount,
   opts: {
-    drafts: readonly { id: string; state: string; title: string }[];
+    /** `scheduledIn` is optional: the reserved account's single draft sits
+     *  on no date (its screens are drawn from fixtures), and the live
+     *  account's three carry one so the calendar has pages to draw. */
+    drafts: readonly { id: string; state: string; title: string; scheduledIn?: number }[];
     publish?: boolean;
     rivals?: readonly { domain: string; weekly: readonly number[] }[];
     publishing?: typeof LIVE_PUBLISHING;
@@ -565,9 +597,10 @@ function seedSite(
     // opportunity, and `tests/publish/record/record.test.ts` holds it
     // against the database double instead.
     sql(
-      `insert into drafts (id, opportunity_id, site_id, state, title, body_md) values ` +
+      `insert into drafts (id, opportunity_id, site_id, state, title, body_md, scheduled_for) values ` +
         `('${draft.id}', '${opportunityId}', '${siteId}', '${draft.state}', '${draft.title}', ` +
-        `'A paragraph of body copy, so the draft view renders a page rather than an empty one.');`
+        `'A paragraph of body copy, so the draft view renders a page rather than an empty one', ` +
+        `${draft.scheduledIn === undefined ? "null" : `'${scheduledFor(draft.scheduledIn)}'`});`
     );
   }
 
