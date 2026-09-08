@@ -35,6 +35,7 @@ import { BAND_TONE } from "@/ui/bands";
 import { SCORE_BANDS } from "@/lib/presentation/bands";
 import { TOO_EARLY_WEEKS } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
+import { formatDate } from "../_shell/format";
 import { writtenLine } from "../_shell/written";
 import { GOALS } from "./goals";
 import { carriedBy, formatCount, formatDayOfMonth, renderValue, type Carried } from "./present";
@@ -152,9 +153,13 @@ const PAGES_TEST_ID = "overview-tile-pages";
  *  Where the score is unmeasured there is no band: a band is a reading of a
  *  score, and naming one beside a dash would be a verdict on a measurement
  *  the product does not have (S13's arm). */
-function ScoreTile(p: { score: ScoreModule }): React.JSX.Element {
+function ScoreTile(p: { score: ScoreModule; firstDue: string | null }): React.JSX.Element {
   const label = copy(SCORE_LABEL);
   const value = renderValue(p.score.headline.value, SCORE_LABEL);
+  // S13: the dash carries the date its first reading is due, which is the
+  // date the shell's domain block states from the same `firstDueOn`.
+  const firstDue =
+    p.firstDue === null ? null : writtenLine("overview.tile.score.first-due", { due: p.firstDue });
 
   return (
     <IdiomCard head={<CardHead eyebrow={label} />} testId={SCORE_TEST_ID}>
@@ -175,6 +180,7 @@ function ScoreTile(p: { score: ScoreModule }): React.JSX.Element {
             <Badge tone={BAND_TONE[p.score.band]}>{copy(SCORE_BANDS[p.score.band])}</Badge>
           </span>
         )}
+        {firstDue === null ? null : <p className="rk-quiet">{firstDue}</p>}
       </div>
     </IdiomCard>
   );
@@ -182,6 +188,10 @@ function ScoreTile(p: { score: ScoreModule }): React.JSX.Element {
 
 export function TileRow(p: {
   score: ScoreModule;
+  /** UI-SPEC S13's arm. Present only before the first weekly pass has run;
+   *  each tile then states when its own reading arrives, in place of a
+   *  number nobody has measured. */
+  weekZero?: { firstDueOn: Date } | null;
   aiAnswers: Module<number> & { window: AiPresenceWindow };
   pagesPublished: Module<number>;
   timeZone: string;
@@ -222,15 +232,24 @@ export function TileRow(p: {
       ? null
       : writtenLine("overview.tile.pages.too-early", { weeks: formatCount(TOO_EARLY_WEEKS) });
 
+  // S13's three lines. All three or none: they are one arm of the screen,
+  // and a tile that states its first-reading date beside two tiles that do
+  // not would read as that tile alone being unmeasured.
+  const weekZero = p.weekZero ?? null;
+  const firstDue = weekZero === null ? null : formatDate(weekZero.firstDueOn, p.timeZone);
+  const firstPass = weekZero === null ? null : writtenLine("overview.tile.ai-answers.first-pass");
+  const firstReview = weekZero === null ? null : writtenLine("overview.tile.pages.first-review");
+
   return (
     <div style={TILES} data-testid="overview-tiles">
-      <ScoreTile score={p.score} />
+      <ScoreTile score={p.score} firstDue={firstDue} />
       <Tile
         module={p.aiAnswers}
         labelKey={AI_LABEL}
         testId={AI_TEST_ID}
         outOf={p.aiAnswers.window.of}
       >
+        {firstPass === null ? null : <p className="rk-quiet">{firstPass}</p>}
         {windowLine === null ? null : <p className="rk-prov">{windowLine}</p>}
         <div style={CHART_BOX}>
           <AiDotMatrixChart
@@ -251,6 +270,7 @@ export function TileRow(p: {
           </span>
         )}
         {tooEarly === null ? null : <p className="rk-quiet">{tooEarly}</p>}
+        {firstReview === null ? null : <p className="rk-quiet">{firstReview}</p>}
       </Tile>
     </div>
   );

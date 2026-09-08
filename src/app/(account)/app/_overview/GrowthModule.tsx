@@ -56,6 +56,38 @@ export function GrowthModule(p: {
     );
   }
 
+  // UI-SPEC S13: one point, from the deep pass, labelled as such. The
+  // chart is the same `GrowthLine` — a second chart for one point would be
+  // a sixth entry in §2.4's closed inventory — and what changes is what the
+  // card says around it: the chip names the pass the reading came from, and
+  // the right footnote says the weekly line has not begun, in place of the
+  // goal sentence a series carries.
+  if (p.growth.kind === "week-zero") {
+    const point: GrowthWeek = {
+      name: formatMonthDay(p.growth.on, p.timeZone),
+      value: p.growth.value,
+    };
+    const starting = writtenLine("overview.growth.footnote.starting", {
+      value: formatCount(p.growth.value),
+    });
+    const firstMonday = writtenLine("overview.growth.footnote.first-monday");
+    const chip = writtenLine("overview.growth.source.deep-pass", {
+      on: formatDate(p.growth.on, p.timeZone),
+    });
+    return (
+      <section className="rk-idiom-card" data-testid="overview-growth">
+        <Head source={chip} />
+        <div style={CHART_PLATE}>
+          <GrowthLine weeks={[point]} label={copy("overview.tile.searches.label")} />
+        </div>
+        <div style={STACK}>
+          {starting === null ? null : <p className="rk-prov">{starting}</p>}
+          {firstMonday === null ? null : <p className="rk-prov">{firstMonday}</p>}
+        </div>
+      </section>
+    );
+  }
+
   const unmeasuredAccount = writtenLine("place.overview.weekly-presence.week");
   const weeks = p.growth.entries.map((entry): GrowthWeek => {
     if (entry.kind === "break") {

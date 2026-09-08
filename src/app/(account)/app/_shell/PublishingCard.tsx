@@ -102,7 +102,15 @@ export function PublishingCard(p: { shell: ShellModel }): React.JSX.Element {
   // copilot arm is owed, and an unwritten sentence renders as nothing — the
   // shell's own `writtenLine` rule — leaving the mode's word and its next
   // line, which is what the card said before the sentence existed.
-  const state = writtenLine(STATE_COPY_KEY[publishing.mode]);
+  // Before the first weekly pass the mode is waiting on the deep pass, and
+  // that is what the card states (UI-SPEC S13). The arm is the shell's own
+  // `WeekCount` — the same fact the domain block reads — so the two lines
+  // in this column can never disagree about whether a week has been
+  // measured.
+  const state =
+    p.shell.weeks.kind === "counted"
+      ? writtenLine(STATE_COPY_KEY[publishing.mode])
+      : writtenLine("shell.publishing.state.week-zero");
 
   return (
     <div className="rk-publishing" data-testid="shell-publishing">

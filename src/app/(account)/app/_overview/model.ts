@@ -106,6 +106,11 @@ export interface OverviewModel {
   pagesPublished: Module<number>;
   rivals: RivalGapModule;
   week: WeekModule;
+  /** UI-SPEC S13's arm (REQ-040 c7): the deep pass has measured and the
+   *  first weekly pass is still due. `null` on every ordinary read. The
+   *  date it carries is the one the shell's domain block states, from the
+   *  same `firstDueOn`, so the two cannot disagree. */
+  weekZero: { firstDueOn: Date } | null;
   /** REQ-095's one statement, never two. Absent where the product has
    *  nothing to say about supply. */
   supply?: SupplyStatement;
@@ -126,6 +131,10 @@ export interface OverviewFacts {
   /** REQ-065's own clock (#41): when the first weekly measurement is due.
    *  Read, never computed here — the shell states the same date. */
   firstDueOn: Date;
+  /** The deep pass's own reading of searches-appeared-in, where one was
+   *  taken. Never a weekly point: it reaches the chart's week-0 arm and
+   *  nothing that counts weeks, takes a delta, or reads the AI window. */
+  deepPass?: { value: Measured<number>; on: Date };
   /** Weeks in which the customer was named in at least one tracked
    *  question's AI answer, oldest first; `null` where the week was not
    *  measured. */
@@ -162,8 +171,13 @@ export function assembleOverview(facts: OverviewFacts): OverviewModel {
     points: facts.points,
     firstDueOn: facts.firstDueOn,
     changes: facts.changes,
+    ...(facts.deepPass === undefined ? {} : { deepPass: facts.deepPass }),
   });
-  const direction = headDirection(facts.points);
+  // The week-0 arm is the growth module's own answer, not a second test of
+  // the same facts: `readGrowth` already decides whether any weekly week
+  // was measured, and this reads that decision back. One place decides it.
+  const weekZero = growth.kind === "week-zero" ? { firstDueOn: growth.firstDueOn } : null;
+  const direction: HeadDirection = weekZero === null ? headDirection(facts.points) : "week_zero";
   const measuredPoints = facts.points.filter((p) => p.value.kind !== "unmeasured");
   const latest = measuredPoints.at(-1);
   const previous = measuredPoints.at(-2);
@@ -181,8 +195,13 @@ export function assembleOverview(facts: OverviewFacts): OverviewModel {
       direction,
       // §4.5's badge is a claim about every week since the customer
       // started, so it is emitted on `rising` and nowhere else, and only
-      // over the weeks actually measured (BP-038 decision 4).
+      // over the weeks actually measured (BP-038 decision 4). The week-0
+      // badge is not that claim — it names the week, and S13 draws it
+      // neutral for exactly that reason.
       ...(direction === "rising" ? { badgeKey: "overview.head.badge" satisfies CopyKey } : {}),
+      ...(direction === "week_zero"
+        ? { badgeKey: "overview.head.badge.week-zero" satisfies CopyKey }
+        : {}),
       weeksMeasured: weeksSinceChange(measuredPoints, facts.changes),
     },
     growth,
@@ -224,6 +243,7 @@ export function assembleOverview(facts: OverviewFacts): OverviewModel {
       context: [{ value: facts.pagesRanking, label: "overview.tile.pages.ranking" }],
     },
     rivals: resolveRivals(facts.rivals, facts.changes),
+    weekZero,
     week: readWeek({ today: facts.today, timeZone: facts.timeZone }),
     ...(supply ? { supply } : {}),
     alerts,

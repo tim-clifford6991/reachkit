@@ -212,10 +212,11 @@ describe("REQ-093 c5 — the registry renders with every model unavailable", () 
     //
     // 2026-09-06, separately: issue #17 (the draft view, BUILD §4.6) adds
     // eight §4.6/§9 transcriptions. 160 + 8 = 168 ruled.
-    // 171 + 7 = 178, then + 5 = 183, + 3 = 186, + 1 = 187 (issue #353: the
-    // approved set's seven filled keys, then S12's cards, its three tiles,
-    // and the sidebar's autopilot state; see the counts row below).
-    expect(ruled.length).toBe(187);
+    // 171 + 7 = 178, then + 5 = 183, + 3 = 186, + 1 = 187, + 10 = 197
+    // (issue #353: the approved set's seven filled keys, then S12's cards,
+    // its three tiles, the sidebar's autopilot state, and S13's whole
+    // week-0 arm; see the counts row below).
+    expect(ruled.length).toBe(197);
 
     // Only the ruled sentences carry their slots' `{name}` placeholders —
     // a `TODO(copy)` marker is one literal with no placeholder in it, so
@@ -316,7 +317,7 @@ describe("owner-owed and empty agree both ways", () => {
     expect(new Set(emptyKeys)).toEqual(new Set(OWNER_OWED));
   });
 
-  it("counts: 129 owner-owed, 294 awaiting copy, 187 ruled, 610 total (rule 5.5 — the index states its own coverage)", () => {
+  it("counts: 129 owner-owed, 294 awaiting copy, 197 ruled, 620 total (rule 5.5 — the index states its own coverage)", () => {
     // WO-070 added report.ts's eight landing keys (headline, field label,
     // submit label, five DomainProblem lines), all owner-owed: 30 + 8 = 38.
     // 2026-09-03: the owner ruled on three of them (headline, field label,
@@ -1024,10 +1025,21 @@ describe("owner-owed and empty agree both ways", () => {
     //   new, owed       `shell.publishing.state.copilot`    the set draws no copilot sidebar
     //
     // 129 owner-owed, 294 awaiting copy, 187 ruled, 610 total.
+    //
+    // Last in the same issue, UI-SPEC S13's week-0 arm — ten keys, every
+    // one unbracketed in the set and so approved (11a), and every one a
+    // sentence the ordinary arm may not speak: the head and its neutral
+    // badge, the deep-pass chip and the chart's two footnotes, one line per
+    // tile saying when that reading arrives, the rivals card's one line,
+    // and the sidebar's state before the first weekly pass.
+    //
+    // Nothing is owed by the arm: `AWAITING_COPY` and `OWNER_OWED` both
+    // stand. 129 owner-owed, 294 awaiting copy, 187 + 10 = 197 ruled,
+    // 610 + 10 = 620 total.
     expect(OWNER_OWED.length).toBe(129);
     expect(AWAITING_COPY.length).toBe(294);
-    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(187);
-    expect(Object.keys(COPY).length).toBe(610);
+    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(197);
+    expect(Object.keys(COPY).length).toBe(620);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.

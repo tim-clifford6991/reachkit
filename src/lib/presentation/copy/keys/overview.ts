@@ -74,6 +74,19 @@ export const OVERVIEW_COPY = Object.freeze({
   // than staying declared and unfilled — a slot the value never spends is
   // a promise the registry cannot keep (`registry.test.ts` substitutes
   // every declared slot and asserts it lands).
+  // ── UI-SPEC S13, the week-0 arm (REQ-040 c7).
+  //
+  // The deep pass has measured once and the first weekly pass is still
+  // due. Every string below is unbracketed in the set and so approved
+  // (11a). What the arm may not do is speak in the ordinary arm's words:
+  // "The gap is closing." over a single reading would be a direction
+  // nothing was compared to establish, which is the whole reason
+  // `headDirection` answers `no_data` under two points.
+  "overview.head.week-zero": [
+    "Your first page is ready to read.",
+    { slots: {}, fixedBy: "UI-SPEC S13" },
+  ],
+  "overview.head.badge.week-zero": ["week 0", { slots: {}, fixedBy: "UI-SPEC S13" }],
   "overview.head.badge": ["▲ every week since you started", { slots: {}, fixedBy: "UI-SPEC S12" }],
 
   // ── The growth module.
@@ -84,6 +97,23 @@ export const OVERVIEW_COPY = Object.freeze({
     "re-measured {on}",
     { slots: { on: "date" }, fixedBy: "UI-SPEC S12" },
   ],
+  // The week-0 chart's own chip and footnote pair. The chip names the pass
+  // the single reading came from — the set is explicit that it is the deep
+  // pass and not a weekly measurement — and the right footnote says the
+  // weekly line has not begun, in place of the goal sentence the ordinary
+  // arm carries.
+  "overview.growth.source.deep-pass": [
+    "from the deep pass · {on}",
+    { slots: { on: "date" }, fixedBy: "UI-SPEC S13" },
+  ],
+  "overview.growth.footnote.starting": [
+    "starting at {value}",
+    { slots: { value: "text" }, fixedBy: "UI-SPEC S13" },
+  ],
+  "overview.growth.footnote.first-monday": [
+    "the line begins with the first Monday",
+    { slots: {}, fixedBy: "UI-SPEC S13" },
+  ],
   "overview.growth.footnote.start": ["started at {value}", { slots: { value: "text" }, fixedBy: "BUILD §4.5" }],
   "overview.growth.footnote.goal": [
     "At {goal} the big category terms unlock.",
@@ -92,6 +122,22 @@ export const OVERVIEW_COPY = Object.freeze({
 
   // ── The three tiles (DECISIONS 2026-09-03: no composite score tile).
   // Each name is §4.5's own; each meaning line is the owner's.
+  // ── The three tiles' week-0 lines (UI-SPEC S13). Each names when its
+  // own reading arrives, in place of a number nobody has measured — never
+  // a zero, which REQ-004 forbids as a reading that was not taken.
+  "overview.tile.score.first-due": [
+    "first measurement due {due}",
+    { slots: { due: "date" }, fixedBy: "UI-SPEC S13 · REQ-040 c7" },
+  ],
+  "overview.tile.ai-answers.first-pass": [
+    "measured with the first weekly pass",
+    { slots: {}, fixedBy: "UI-SPEC S13" },
+  ],
+  "overview.tile.pages.first-review": [
+    "first page in review today",
+    { slots: {}, fixedBy: "UI-SPEC S13" },
+  ],
+
   // ── The score tile (UI-SPEC S12, ruling 6a).
   //
   // Ruling 6a fixes the name on every surface that labels the number:
@@ -151,6 +197,13 @@ export const OVERVIEW_COPY = Object.freeze({
   // constrained by what it must **not** say: nothing is shrinking yet, so it
   // can never be `overview.rivals.line.shrinking` (REQ-041 c9).
   "overview.rivals.line.absolute": ["TODO(copy)", { slots: {}, fixedBy: "REQ-041 c9" }],
+  // The week-0 arm's one line, in place of the rows: nothing has been
+  // sized yet, and the card says when it will be rather than drawing three
+  // empty plots.
+  "overview.rivals.line.week-zero": [
+    "Sized with the first weekly measurement, {due}.",
+    { slots: { due: "date" }, fixedBy: "UI-SPEC S13" },
+  ],
 
   // ── REQ-096 c6: a rival banded `far`, and the two sentences it needs.
   //

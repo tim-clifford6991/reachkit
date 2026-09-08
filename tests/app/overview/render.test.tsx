@@ -387,3 +387,69 @@ describe("needs you (UI-SPEC S12)", () => {
     expect(count(emptyMarkup, "rk-panel-title")).toBe(0);
   });
 });
+
+describe("UI-SPEC S13 — the week-0 arm, drawn", () => {
+  const weekZero = { firstDueOn: new Date(Date.UTC(2026, 8, 7)) };
+  const model = assembleOverview(
+    facts({
+      points: [],
+      aiPresence: [],
+      score: unmeasured<{ score: number; band: "hard-to-find" }>("not_attempted", TODAY),
+      pagesPublished: measuredZero(0, TODAY),
+      pagesRanking: unmeasured<number>("not_attempted", TODAY),
+      deepPass: { value: measured(12, AT(31)), on: AT(31) },
+      firstDueOn: weekZero.firstDueOn,
+    })
+  );
+
+  it("the chart card names the pass its one reading came from", () => {
+    const markup = html(<GrowthModule growth={model.growth} timeZone={ZONE} />);
+    expect(markup).toContain("rk-srcchip");
+    expect(markup).toContain("overview.growth.source.deep-pass");
+    // One point, drawn — and no run *between* two of them: the polyline
+    // carries a single coordinate pair, which is what renders the lone
+    // reading (a zero-length subpath under a round linecap is a dot), and
+    // the area fill `GrowthLine` guards on two points is absent.
+    expect(markup).toContain('role="img"');
+    expect(count(markup, "<polyline")).toBe(1);
+    expect(markup).toMatch(/points="[\d.]+,[\d.]+"/);
+    expect(markup).not.toContain('opacity="0.1"');
+  });
+
+  it("its footnotes are S13's pair, and the goal sentence is not among them", () => {
+    const markup = html(<GrowthModule growth={model.growth} timeZone={ZONE} />);
+    expect(markup).toContain("overview.growth.footnote.starting(12)");
+    expect(markup).toContain("overview.growth.footnote.first-monday");
+    expect(markup).not.toContain("overview.growth.footnote.goal");
+    expect(markup).not.toContain("overview.growth.footnote.start(");
+  });
+
+  it("each tile states when its own reading arrives, in place of a number", () => {
+    const markup = html(
+      <TileRow
+        score={model.score}
+        aiAnswers={model.aiAnswers}
+        pagesPublished={model.pagesPublished}
+        timeZone={ZONE}
+        weekZero={model.weekZero}
+      />
+    );
+    expect(markup).toContain("overview.tile.score.first-due");
+    expect(markup).toContain("overview.tile.ai-answers.first-pass");
+    expect(markup).toContain("overview.tile.pages.first-review");
+    // No band beside a dash: a band is a reading of a score.
+    expect(markup).not.toContain("band.score.");
+    // …and no ranking badge, because no count was taken.
+    expect(markup).not.toContain("overview.tile.pages.ranking");
+  });
+
+  it("the rivals card states when sizing arrives rather than drawing empty rows", () => {
+    const markup = html(
+      <RivalModule rivals={model.rivals} timeZone={ZONE} weekZero={model.weekZero} />
+    );
+    expect(markup).toContain("overview.rivals.title");
+    expect(markup).toContain("overview.rivals.line.week-zero");
+    expect(markup).not.toContain("<svg class=\"rk-spark\"");
+    expect(markup).not.toContain("overview.rivals.line.shrinking");
+  });
+});

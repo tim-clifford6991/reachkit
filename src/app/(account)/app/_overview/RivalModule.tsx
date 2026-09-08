@@ -142,7 +142,24 @@ export function RivalModule(p: {
   /** The site's own stated zone — the one every date on this screen is
    *  written in (REQ-073 c1). */
   timeZone: string;
+  /** UI-SPEC S13's arm. Before the first weekly pass nothing has been
+   *  sized, and the card says when it will be rather than drawing rows
+   *  with no plots in them. */
+  weekZero?: { firstDueOn: Date } | null;
 }): React.JSX.Element {
+  const weekZero = p.weekZero ?? null;
+  if (weekZero !== null) {
+    const line = writtenLine("overview.rivals.line.week-zero", {
+      due: formatDate(weekZero.firstDueOn, p.timeZone),
+    });
+    return (
+      <section className="rk-idiom-card" data-testid="overview-rivals">
+        <CardHead icon={<Users aria-hidden size={ICON} />} eyebrow={copy("overview.rivals.title")} />
+        {line === null ? null : <p className="rk-quiet">{line}</p>}
+      </section>
+    );
+  }
+
   const line = writtenLine(p.rivals.lineKey);
   const windowLine = comparisonWindow(p.rivals, p.timeZone);
   const title = copy("overview.rivals.title");

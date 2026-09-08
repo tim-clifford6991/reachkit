@@ -343,6 +343,32 @@ describe("REQ-040 c7 — a never-measured domain states no number", () => {
       "example.com"
     );
   });
+
+  it("the autopilot card states what the mode is doing before the first pass (UI-SPEC S13)", () => {
+    // "First page after the deep pass" — the set's own sentence, in place
+    // of the mode's ordinary state. The arm is the same `WeekCount` the
+    // domain block above reads, so the two lines in this column cannot
+    // disagree about whether a week has been measured.
+    const root = render(<PublishingCard shell={unmeasured} />);
+    expect(root.querySelector("[data-testid='shell-publishing-state']")?.textContent).toBe(
+      "shell.publishing.state.week-zero"
+    );
+  });
+
+  it("and once a week is counted it states the mode's own state instead", () => {
+    const root = render(<PublishingCard shell={SCHEDULED} />);
+    expect(root.querySelector("[data-testid='shell-publishing-state']")?.textContent).toBe(
+      "shell.publishing.state.autopilot"
+    );
+  });
+
+  it("no calendar count, because nothing is planned yet (REQ-040 c2)", () => {
+    // Not a week-0 branch in the nav: c2's rule is that zero renders no
+    // count at all, and before the first pass nothing is waiting. The set
+    // draws the same sidebar for the same reason.
+    const root = render(<SidebarNav waiting={0} />);
+    expect(root.querySelectorAll("[data-testid='shell-calendar-count']")).toHaveLength(0);
+  });
 });
 
 // ── the frame itself ────────────────────────────────────────────────────

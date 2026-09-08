@@ -47,8 +47,9 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
         aiAnswers={overview.aiAnswers}
         pagesPublished={overview.pagesPublished}
         timeZone={shell.timeZone}
+        weekZero={overview.weekZero}
       />
-      <RivalModule rivals={overview.rivals} timeZone={shell.timeZone} />
+      <RivalModule rivals={overview.rivals} timeZone={shell.timeZone} weekZero={overview.weekZero} />
       <WeekModule week={overview.week} timeZone={shell.timeZone} supply={overview.supply} />
       <NeedsYouModule alerts={overview.alerts} overflow={overview.overflow} />
     </div>

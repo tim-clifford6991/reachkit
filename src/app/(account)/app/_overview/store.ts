@@ -79,7 +79,7 @@ import type { BandHandle } from "@/lib/measure/bands";
 import { unmeasured, measured, type Measured } from "@/lib/measure/measured";
 import type { RivalSize } from "@/lib/market/rivals/rival-size";
 import { trackedRivals } from "@/lib/market/rivals/tracked";
-import type { StoredReport } from "@/lib/scan/report";
+import { readStoredReport, type StoredReport } from "@/lib/scan/report";
 import {
   nextDueOn,
   previousWeekStart,
@@ -109,6 +109,7 @@ interface MinimalQuery<T> extends PromiseLike<MinimalResult<T>> {
   is(column: string, value: null): MinimalQuery<T>;
   not(column: string, operator: string, value: unknown): MinimalQuery<T>;
   order(column: string, opts: { ascending: boolean }): MinimalQuery<T>;
+  limit(count: number): MinimalQuery<T>;
 }
 
 interface MinimalClient {
@@ -136,6 +137,37 @@ async function pagesPublished(siteId: string, at: Date): Promise<Measured<number
     return unmeasured<number>("undeterminable", at);
   }
   return measured(data.length, at);
+}
+
+/**
+ * The deep pass's own reading of searches-appeared-in — UI-SPEC S13's
+ * single point.
+ *
+ * Read from the site's `deep` scan, which `readWeekScans` deliberately does
+ * not return: that query is `tier = 'weekly'`, because a deep scan is not a
+ * measured week and must not enter the week count, the deltas or the AI
+ * window. This is the one place the deep reading is read, and it reaches
+ * exactly one thing — the chart's week-0 arm, where the card's own chip
+ * says which pass it came from.
+ *
+ * The newest deep scan, not the first: a customer whose market was
+ * re-measured by a second deep pass is shown the reading that stands.
+ */
+async function deepPassReading(
+  siteId: string
+): Promise<{ value: Measured<number>; on: Date } | undefined> {
+  const { data, error } = await client()
+    .from<{ id: string; report: unknown; created_at: string }>("scans")
+    .select("id, report, created_at")
+    .eq("site_id", siteId)
+    .eq("tier", "deep")
+    .not("report", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(1);
+  const row = data?.[0];
+  if (error !== null || row === undefined || row.report === null) return undefined;
+  const report = readStoredReport(row.report);
+  return { value: report.ownRanked, on: new Date(row.created_at) };
 }
 
 /**
@@ -436,7 +468,7 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
   const now = clock();
   const { supplyDepth } = await import("@/lib/opportunities");
 
-  const [firstDueOn, published, depth, waiting, series, ranking] = await Promise.all([
+  const [firstDueOn, published, depth, waiting, series, ranking, deepPass] = await Promise.all([
     nextDueOn({ siteId: site.siteId, now }),
     pagesPublished(site.siteId, now),
     supplyDepth(site.siteId),
@@ -446,6 +478,7 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
     // same Monday `windowWeeks` ends on, so the badge counts the week the
     // rest of the screen is about.
     pagesRanking(site.siteId, weekStartFor({ at: now, zone: site.timeZone }), now),
+    deepPassReading(site.siteId),
   ]);
 
   return {
@@ -455,6 +488,7 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
     // from `firstDueOn`, which is a real date.
     points: series.points,
     firstDueOn,
+    ...(deepPass === undefined ? {} : { deepPass }),
     aiPresence: series.aiPresence,
     changes: series.changes,
     pagesPublished: published,

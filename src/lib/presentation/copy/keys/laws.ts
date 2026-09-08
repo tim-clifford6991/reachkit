@@ -135,6 +135,16 @@ export const LAWS_COPY = Object.freeze({
   // the card states the mode word alone until it is written.
   "shell.publishing.state.autopilot": ["Publishing daily", { slots: {}, fixedBy: "UI-SPEC S12" }],
   "shell.publishing.state.copilot": ["TODO(copy)", { slots: {}, fixedBy: "REQ-040 c3" }],
+  // UI-SPEC S13: before the first weekly pass, what the mode is doing is
+  // waiting on the deep pass. The *next* line beside it is still
+  // `nextPublishStatement`'s — the set draws "deep pass running" there,
+  // which would be a fifth `next-publish.*` cause, and REQ-040 c4's union
+  // is closed ("This module adds none"). So this key is the state sentence
+  // only, and the owner decides whether c4 gains a cause.
+  "shell.publishing.state.week-zero": [
+    "First page after the deep pass",
+    { slots: {}, fixedBy: "UI-SPEC S13" },
+  ],
   // Both approved as written by the screen set (ruling 11a): S12's domain
   // block reads "Week 6 · re-measured Mon 1 Sep" and S13's — the week the
   // first Monday has not come — reads "not measured yet · first due Mon 8
