@@ -13,9 +13,14 @@
  * puts both classes on <html>.
  */
 
+/* `.rk-fonts` is the class `fonts.ts` exports as `fontVariables` and the
+ * root layout puts on `<html>`; it is where the two files meet. The two
+ * families it bound moved to `theme.css`'s `:root` (issue #349), so the
+ * class no longer declares them — it is `fonts.ts`'s side-effect imports
+ * that load the faces, and `:root` that names them. The class stays,
+ * because the layout puts it on the element and `fonts.ts` exports it. */
 .rk-fonts {
-  --font-ui: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-ui);
 }
 
 /* The heading scale — ruled, not transcribed (issue #110).
@@ -51,26 +56,13 @@
  * rendered at the 15px body size since. The four rules below are what
  * preflight took away, stated deliberately this time.
  */
-:root {
-  --t-h1: 31px;
-  --t-h2: 25px;
-  --t-h3: 20px;
-  --t-h4: 16px;
-
-  /* `design/tokens.md` §4's two further ruled steps, declared here when the
-   * card idiom first spent them (issue #266). The type layer is their home
-   * for the same reason the four above are here.
-   *
-   *   --t-num-big  44px  §2.5's "big mono number": the score, a rival
-   *                      distance. Ruled with the heading scale on
-   *                      2026-09-02 ("Heading size scale — ratio 1.25 …
-   *                      `--t-num-big` 44px").
-   *   --t-xs       12px  §4's "Below body" table: "Badges, chips, dense
-   *                      metadata beside a value." Above `--t-floor` 11px,
-   *                      which is a bound and not a role. */
-  --t-num-big: 44px;
-  --t-xs: 12px;
-}
+/* The heading scale and the two "below body" steps this block declared
+ * moved to `src/ui/theme.css` with the rest of the approved set (issue
+ * #349). The header above records why they were here — §2.1's `:root`
+ * refused any token it did not state — and that refusal is now "any token
+ * neither §2.1 nor `design/tokens.md` names", so the ladder has one home.
+ * The rules below read it; nothing about what they draw changes.
+ */
 
 /* Heading weight is a single value within BUILD.md's stated 700-800 range
  * (an internal parameter, rule 1.1 — reversal cost: one line, no h1..h6

@@ -13,6 +13,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import postcss, { type Root, type Rule, type AtRule } from "postcss";
 import { describe, expect, it } from "vitest";
+import { approvedTokens } from "./design/tokens-doc";
 
 const THEME_CSS_PATH = path.resolve(__dirname, "../../src/ui/theme.css");
 const TAILWIND_CONFIG_PATH = path.resolve(__dirname, "../../tailwind.config.ts");
@@ -201,9 +202,26 @@ describe(
       }
     });
 
-    it("theme.css:root carries no light token BUILD.md §2.1 does not state", () => {
-      const extra = [...light.keys()].filter((name) => !BUILD_LIGHT.has(name));
-      expect(extra).toEqual([]);
+    it("theme.css:root carries no light token BUILD.md §2.1 or tokens.md names", () => {
+      // Until issue #349 this read "no token §2.1 does not state", and that
+      // is what kept the spacing ladder, the type rungs, the measures and
+      // the breakpoints out of this file — scattered across four other
+      // stylesheets and spent as bare literals instead, where nothing could
+      // compare them against the document.
+      //
+      // §2.1's colour block is still held verbatim by the assertions above
+      // and below; what this one now says is the honest rule: a token in
+      // this file is either one §2.1 states or one `design/tokens.md`
+      // approves, and anything else is a value nobody named.
+      // `tests/ui/design/token-set.test.ts` holds the second half exactly,
+      // in both directions — this is the guard against a *third* source.
+      const approved = approvedTokens();
+      const extra = [...light.keys()].filter(
+        // `extractCustomProps` keys without the leading `--`; the document
+        // reader keys with it.
+        (name) => !BUILD_LIGHT.has(name) && !approved.has(`--${name}`)
+      );
+      expect(extra, `named by neither BUILD.md §2.1 nor tokens.md: ${extra.join(" ")}`).toEqual([]);
     });
 
     it("every BUILD.md-stated dark token matches in both the media block and the explicit toggle", () => {

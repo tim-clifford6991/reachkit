@@ -94,7 +94,7 @@ export function RivalSparkline(p: RivalSparklineProps): React.JSX.Element {
   const last = drawn.at(-1)?.end;
 
   return (
-    <div style={{ display: "grid", gap: "0.75rem" }}>
+    <div style={{ display: "grid", gap: "var(--s-3)" }}>
       <div
         style={{
           display: "grid",
@@ -109,7 +109,7 @@ export function RivalSparkline(p: RivalSparklineProps): React.JSX.Element {
             rival name overflows its own column at the compact band
             (ADR-093 decision 3: content fits its box or the box changes;
             text is never shrunk to fit). */}
-        <span style={{ fontSize: "13px", fontWeight: 600, minWidth: 0, overflowWrap: "anywhere" }}>
+        <span style={{ fontSize: "var(--t-sm)", fontWeight: 600, minWidth: 0, overflowWrap: "anywhere" }}>
           {p.name}
         </span>
         <ChartFrame box={BOX} label={p.label} minWidth={PLOT_MIN_PX}>
@@ -170,12 +170,12 @@ export function RivalSparkline(p: RivalSparklineProps): React.JSX.Element {
             ))}
           </g>
         </ChartFrame>
-        <span className="num" style={{ fontSize: "20px", fontWeight: 700 }}>
+        <span className="num" style={{ fontSize: "var(--t-h3)", fontWeight: 700 }}>
           {p.value}
         </span>
       </div>
       {p.account === undefined ? null : (
-        <p style={{ margin: 0, fontSize: "11px", color: CHART_INK.quiet }}>{p.account}</p>
+        <p style={{ margin: 0, fontSize: "var(--t-floor)", color: CHART_INK.quiet }}>{p.account}</p>
       )}
     </div>
   );

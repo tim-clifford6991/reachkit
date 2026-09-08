@@ -38,9 +38,11 @@
  * equal it.
  */
 
-:root {
-  --breakpoint-sm: 640px;
-  --breakpoint-lg: 1024px;
-  --breakpoint-xl: 1280px;
-  --t-floor: 11px;
-}
+/* The four tokens this file declared — `--breakpoint-sm`, `--breakpoint-lg`,
+ * `--breakpoint-xl` and `--t-floor` — moved to `src/ui/theme.css` with the
+ * rest of the approved set (issue #349), so the document and the code have
+ * one set to compare. Nothing else about ADR-093 changes: the conformance
+ * suite still reads them off every route's `:root`, and
+ * `tests/ui/layout-tokens.test.ts` still pins the two media literals back
+ * against `BAND_MIN`.
+ */

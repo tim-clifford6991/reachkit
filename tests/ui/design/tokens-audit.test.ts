@@ -268,7 +268,13 @@ describe("§2.1 — a colour-valued declaration names a §2.1 token and nothing 
     // Rule 5.5, and the reason `IDIOM_ROOT` is a written list: the set is
     // closed until someone opens it. Each must actually be declared where
     // it says it is, so the allowance cannot outlive the declaration.
-    const root = declarationsOf(read("src/ui/idiom/idiom.css"));
+    //
+    // Since issue #349 that home is `src/ui/theme.css`, not `idiom.css`:
+    // every approved token has one declaration and the document is compared
+    // against that one file. The allowance is unchanged — these three are
+    // still the only colour-valued names outside §2.1 that a declaration
+    // may reference — only where they are declared has moved.
+    const root = declarationsOf(read("src/ui/theme.css"));
     const declared = new Set(root.filter((d) => d.prop.startsWith("--")).map((d) => d.prop));
     for (const token of IDIOM_ROOT) {
       expect(declared, `${token} is allowed but not declared`).toContain(token);

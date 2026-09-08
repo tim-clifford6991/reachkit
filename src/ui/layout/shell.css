@@ -29,15 +29,13 @@
  */
 
 .rk-shell {
-  /* `BUILD.md` §4.4, verbatim: "Left sidebar (222px, sticky)". */
-  --w-sidebar: 222px;
-
-  /* design/tokens.md §1, owner ruling 2026-09-02 — transcribed, not chosen. */
-  --s-1: 4px;
-  --s-2: 8px;
-  --s-3: 12px;
-  --s-4: 16px;
-  --s-5: 24px;
+  /* `--w-sidebar` and the spacing steps this block declared moved to
+   * `src/ui/theme.css` (issue #349). They were scoped here because §2.1's
+   * `:root` refused any token it did not state — that refusal is now "any
+   * token neither §2.1 nor `design/tokens.md` names", so the ladder has one
+   * home and this sheet reads it. The header's SPACING note above records
+   * why they were ever here; this is the "proper home" it anticipated.
+   */
 
   background: var(--bg);
   /* The ink token, stated on the shell's own root. `src/ui/theme.css` maps

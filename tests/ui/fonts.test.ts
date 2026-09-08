@@ -69,6 +69,22 @@ function parseCss(css: string): CSSRuleList {
   return rules;
 }
 
+/** The bare `:root` block of `src/ui/theme.css`, where every approved token
+ *  lives since issue #349. Read here rather than restated, so a drift fails
+ *  in both this file and `tests/ui/design/token-set.test.ts`. */
+function themeRootTokens(): Map<string, string> {
+  const source = readFileSync(
+    path.resolve(import.meta.dirname, "../../src/ui/theme.css"),
+    "utf8"
+  );
+  const root = source.slice(source.indexOf(":root {"), source.indexOf("\n}\n"));
+  const out = new Map<string, string>();
+  for (const [, name, value] of root.matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/g)) {
+    out.set(name!, value!.trim());
+  }
+  return out;
+}
+
 describe("BUILD.md §1 / BP-018 NFR — self-hosted, no third-party font request", () => {
   it("fonts.ts imports both families from @fontsource, not a hosted CDN", () => {
     const specifiers = fontImportSpecifiers(fontsSource());
@@ -206,19 +222,23 @@ describe("BUILD.md §2.3 — the type scale, asserted against the clause", () =>
     // a fifth and sixth nobody ruled — stated, so it reads as a decision.
     expect(sizeOf("h5, h6")).toBe("inherit");
 
-    const root = rules.find((r) => r.selectorText === ":root");
-    expect(root, "type.css declares no :root block for the heading scale").toBeTruthy();
-    expect(root!.style.getPropertyValue("--t-h1")).toBe("31px");
-    expect(root!.style.getPropertyValue("--t-h2")).toBe("25px");
-    expect(root!.style.getPropertyValue("--t-h3")).toBe("20px");
-    expect(root!.style.getPropertyValue("--t-h4")).toBe("16px");
+    // The four values moved to `src/ui/theme.css` (issue #349), which is
+    // where every approved token now lives and where
+    // `tests/ui/design/token-set.test.ts` holds them equal to the
+    // document. What this file still owns is the half it was written for:
+    // that each heading *rule* names its own step. The values are read from
+    // their new home so this assertion still fails if one drifts.
+    const themeRoot = themeRootTokens();
+    expect(themeRoot.get("--t-h1")).toBe("31px");
+    expect(themeRoot.get("--t-h2")).toBe("25px");
+    expect(themeRoot.get("--t-h3")).toBe("20px");
+    expect(themeRoot.get("--t-h4")).toBe("16px");
   });
 
   it("every heading step is above the 15px body — a head never steps under it", () => {
-    const rules = Array.from(parseCss(typeCssSource())) as CSSStyleRule[];
-    const root = rules.find((r) => r.selectorText === ":root")!;
+    const themeRoot = themeRootTokens();
     for (const token of ["--t-h1", "--t-h2", "--t-h3", "--t-h4"]) {
-      const px = Number.parseFloat(root.style.getPropertyValue(token));
+      const px = Number.parseFloat(themeRoot.get(token) ?? "");
       expect(px, `${token} must be above the 15px body`).toBeGreaterThan(15);
     }
   });

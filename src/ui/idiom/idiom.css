@@ -27,77 +27,15 @@
  *     that conforms. One declaration flips it the day the owner rules.
  */
 
-:root {
-  /* design/tokens.md §9.3, all four transcribed with their derivations.
-   *
-   * --shadow-lift — the idiom's first rule is that cards are separated by
-   * shadow and never by a border, and `--shadow-card` is a 1px hairline
-   * that cannot carry an edge alone. The dark construction is §2.1's own
-   * pattern for the -bg/-line pairs: the same geometry re-inked at a
-   * second alpha. */
-  --shadow-lift: 0 1px 2px rgb(24 24 48 / 0.04), 0 6px 16px rgb(24 24 48 / 0.07);
+/* The three tokens this sheet used to declare — `--shadow-lift`,
+ * `--on-accent-quiet` and `--grad-accent` — moved to `src/ui/theme.css`
+ * with the rest of the approved set (issue #349). Their derivations, and
+ * the measured 85% contrast mix, travelled with them; this sheet reads
+ * them. `--glass-fill`/`--glass-line` stay spent inline in `.rk-glass`
+ * below, because `design/tokens.md` §9.3 says in as many words that they
+ * are not tokens.
+ */
 
-  /* --on-accent-quiet — the quiet ink on an accent ground. `--ink-3` is the
-   * quiet ink on `--bg` and the set had no on-accent equivalent, so the
-   * sign-in panel's mono domain line had nothing to take. Mixed *toward the
-   * ground*, not toward transparency, because that is the relationship
-   * `--ink-3` has to `--ink`; a low alpha to transparent puts running text
-   * under any contrast floor.
-   *
-   * **85%, and the number is measured** (issue #290). The idiom's own
-   * drawing mixes 28%, and the master's screenshots of dev after #285
-   * showed why that cannot ship: at 28% the domain, the `/100` and the line
-   * under the bar are **1.82:1** in light and **1.89:1** in dark against
-   * the ground — under every threshold there is, and the archive drew it on
-   * a preview nobody measured.
-   *
-   * The ratios, computed against the *darkest* point of `--grad-accent` —
-   * which is flat `--accent`, where the radial highlight has fallen off —
-   * with WCAG 2.1 relative luminance, and the mix computed in oklab exactly
-   * as `color-mix` does it:
-   *
-   *     mix    light (#ffffff on #5b4be0)   dark (#0e1116 on #9bb4ff)
-   *      28%   1.82:1  ✗                    1.89:1  ✗
-   *      80%   4.46:1  ✗                    6.80:1  ✓
-   *      85%   4.79:1  ✓                    7.48:1  ✓
-   *     100%   5.95:1                       9.34:1
-   *
-   * 85 is the lowest step on the ladder that clears **AA 4.5:1 in both
-   * themes**, which is the binding threshold here: the smallest text this
-   * ink carries is the mono domain line, well under the 18px that would let
-   * 3:1 serve. It is still quieter than `--on-accent` itself — that is the
-   * token's whole job — and light is the tighter of the two, so a change to
-   * either accent must be re-measured against the light column. */
-  --on-accent-quiet: color-mix(in oklab, var(--on-accent) 85%, var(--accent));
-
-  /* --grad-accent — derived, not minted. `design/` has no gradient and the
-   * set has no second accent stop, so both stops are tokens that already
-   * exist: the ground is `--accent` and the highlight is `--on-accent` at
-   * 28%, which is §2.1's own stated alpha ("+ matching -bg/-line at
-   * 12%/28% alpha"). The three position proportions are geometry inside the
-   * element's own box — the same class of value as an SVG coordinate. */
-  --grad-accent: radial-gradient(
-    circle at 78% 22%,
-    color-mix(in oklab, var(--on-accent) 28%, transparent) 0%,
-    transparent 62%
-  );
-
-  /* --w-form — a third content measure, 420px. Neither existing one fits a
-   * single form column: at the 15px body `--w-read` 704 runs to about 94
-   * characters, outside the 45–75 measure, and 420 runs to about 56, inside
-   * it. It is also the column the page the owner endorsed draws. */
-  --w-form: 420px;
-}
-
-:root:not([data-theme="light"]) {
-  @media (prefers-color-scheme: dark) {
-    --shadow-lift: 0 1px 2px rgb(0 0 0 / 0.3), 0 6px 16px rgb(0 0 0 / 0.45);
-  }
-}
-
-:root[data-theme="dark"] {
-  --shadow-lift: 0 1px 2px rgb(0 0 0 / 0.3), 0 6px 16px rgb(0 0 0 / 0.45);
-}
 
 /* ── 1 · The card: shadow, never a border ─────────────────────────────── */
 
@@ -393,7 +331,7 @@
   color: var(--surface);
   border-radius: var(--r-pill);
   padding: var(--s-1) var(--s-2);
-  font-size: var(--t-xs, 12px);
+  font-size: var(--t-xs);
   white-space: normal;
   max-width: 100%;
 }
@@ -814,12 +752,17 @@
 .rk-chrome-foot-in nav a {
   color: var(--ink-2);
   text-decoration: none;
-  padding-block: 3px;
+  /* `--s-1`, not the 3px this carried (issue #349). Three is not a rung of
+   * the ruled ladder, and §2's own rule is that a layout wanting a value
+   * the ladder does not name raises the gap rather than inventing one — so
+   * it takes the rung. The footer's links grow one pixel top and bottom;
+   * that is the one deliberate pixel change in this PR. */
+  padding-block: var(--s-1);
 }
 
 .rk-chrome-fine {
   color: var(--ink-3);
-  font-size: var(--t-xs, 12px);
+  font-size: var(--t-xs);
   margin: var(--s-2) 0 0;
 }
 
@@ -859,7 +802,7 @@
 
 @media (min-width: 640px) {
   .rk-figure-big {
-    font-size: var(--t-num-big, 44px);
+    font-size: var(--t-num-big);
   }
 }
 

@@ -20,14 +20,17 @@ import { describe, expect, it } from "vitest";
 import { BAND_MIN } from "@/ui/layout/bands";
 import { CONTENT_MEASURE_PX, SURFACE_GUTTER_PX } from "./layout/checks";
 
-const LAYOUT_CSS = path.resolve(
-  import.meta.dirname,
-  "../../src/ui/layout/layout.css",
-);
+// Issue #349: ADR-093's three tokens moved to `src/ui/theme.css` with the
+// rest of the approved set, so the document and the code have one set to
+// compare. What this file pins is unchanged — the declared values against
+// `BAND_MIN`, and the media literals in the sheets that cannot read a
+// `var()`.
+const LAYOUT_CSS = path.resolve(import.meta.dirname, "../../src/ui/theme.css");
 const TYPE_CSS = path.resolve(
   import.meta.dirname,
   "../../src/ui/type.css",
 );
+const THEME_CSS_PATH = path.resolve(import.meta.dirname, "../../src/ui/theme.css");
 const SURFACE_CSS = path.resolve(
   import.meta.dirname,
   "../../src/ui/layout/surface.css",
@@ -59,7 +62,7 @@ function rootDecls(source: string): Map<string, string> {
     (n): n is Rule => n.type === "rule" && n.selector === ":root",
   );
   if (!rule)
-    throw new Error('src/ui/layout/layout.css: missing bare ":root" rule');
+    throw new Error('src/ui/theme.css: missing bare ":root" rule');
   const out = new Map<string, string>();
   for (const node of rule.nodes) {
     if (node.type === "decl" && node.prop.startsWith("--"))
@@ -87,18 +90,20 @@ describe("ADR-093 — src/ui/layout/layout.css declares the three layout tokens 
     expect(decls.get("--breakpoint-sm")).toBe(`${BREAKPOINT_SM_PX}px`);
   });
 
-  it("declares exactly those four and nothing else — a fifth token is a decision, not a line", () => {
-    // Four since #258, and the fourth *was* a decision: §4's narrow-viewport
-    // heading step needs 640 somewhere, and §2b's four breakpoints have one
-    // home — a second copy beside the rule that reads it is rule 2.4's
-    // second copy arriving by a side door.
-    expect([...decls.keys()].sort()).toEqual([
-      "--breakpoint-lg",
-      "--breakpoint-sm",
-      "--breakpoint-xl",
-      "--t-floor",
-    ]);
+  it("layout.css declares no token of its own — theme.css is the one home", () => {
+    // Until issue #349 this asserted that `layout.css` declared exactly its
+    // four and no fifth. Every approved token lives in `src/ui/theme.css`
+    // now, and `tests/ui/design/token-set.test.ts` holds that file equal to
+    // the document in both directions — which is the same guarantee over
+    // the whole set rather than over four of it. What is left to say here
+    // is that this sheet does not start a second home.
+    const layout = readFileSync(
+      path.resolve(import.meta.dirname, "../../src/ui/layout/layout.css"),
+      "utf8"
+    );
+    expect(layout).not.toMatch(/^\s*--[a-z0-9-]+\s*:/m);
   });
+
 
   it("mutation: a drifted breakpoint is caught", () => {
     const mutated = readFileSync(LAYOUT_CSS, "utf8").replace(
@@ -171,7 +176,7 @@ function gutterSteps(source: string): {
 const SURFACE_SOURCE = readFileSync(SURFACE_CSS, "utf8");
 
 describe("issue #241 — surface.css declares the ruled spacing steps and measures on :root", () => {
-  const tokens = rootTokens(SURFACE_SOURCE);
+  const tokens = rootTokens(readFileSync(THEME_CSS_PATH, "utf8"));
 
   it("the three spacing steps are design/tokens.md §2's, and are the gutters check 5 asserts", () => {
     expect(tokens.get("--s-4")).toBe(`${SURFACE_GUTTER_PX.compact}px`);
