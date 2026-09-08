@@ -69,6 +69,10 @@ const facts = (over: Partial<OverviewFacts> = {}): OverviewFacts => ({
   aiPresence: [false, true, true, true],
   changes: [],
   pagesPublished: measured(11, AT(31)),
+  // UI-SPEC S12's score tile: 62 in "Hard to find", eight points up.
+  score: measured({ score: 62, band: "hard-to-find" as const }, AT(31)),
+  scorePrevious: measured({ score: 54, band: "hard-to-find" as const }, AT(31)),
+  pagesRanking: measured(6, AT(31)),
   rivals: {
     own: measured(81, AT(31)),
     previousOwn: measured(36, AT(17)),

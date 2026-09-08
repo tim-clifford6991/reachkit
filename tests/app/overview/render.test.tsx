@@ -64,6 +64,10 @@ const facts = (over: Partial<OverviewFacts> = {}): OverviewFacts => ({
   // No answer has changed: the ordinary frame (issue #213).
   changes: [],
   pagesPublished: measured(11, AT(31)),
+  // UI-SPEC S12's score tile: 62 in "Hard to find", eight points up.
+  score: measured({ score: 62, band: "hard-to-find" as const }, AT(31)),
+  scorePrevious: measured({ score: 54, band: "hard-to-find" as const }, AT(31)),
+  pagesRanking: measured(6, AT(31)),
   rivals: {
     own: measured(81, AT(31)),
     previousOwn: measured(36, AT(17)),
@@ -174,7 +178,7 @@ describe("three tiles, and no fourth", () => {
   const model = assembleOverview(facts());
   const markup = html(
     <TileRow
-      searches={model.searches}
+      score={model.score}
       aiAnswers={model.aiAnswers}
       pagesPublished={model.pagesPublished}
       timeZone={ZONE}
@@ -185,13 +189,25 @@ describe("three tiles, and no fourth", () => {
     expect(count(markup, 'class="stats"')).toBe(3);
   });
 
-  it("renders no score tile — the composite score has none on Overview", () => {
-    expect(markup).not.toContain("score");
+  it("leads with the Discoverability Score, its delta and its band (UI-SPEC 6a)", () => {
+    // The set's `62 ▲ 8` beside the band word. Between DECISIONS
+    // 2026-09-03 and the owner's 2026-09-08 screen set this tile did not
+    // exist; ruling 6a names "Overview tile" and brought it back.
+    expect(markup).toContain('data-testid="overview-tile-score"');
+    expect(markup).toContain("overview.tile.score.label");
+    expect(markup).toContain(">62<");
+    expect(markup).toContain("overview.delta.up");
+    expect(markup).toContain(">8<");
+    expect(markup).toContain("band.score.hard-to-find");
   });
 
-  it("the searches headline carries its delta, in the delta glyph from the registry", () => {
-    expect(markup).toContain("overview.delta.up");
-    expect(markup).toContain(">45<");
+  it("the searches reading has no tile — the growth card is its home now", () => {
+    expect(markup).not.toContain("overview.tile.searches.label");
+  });
+
+  it("names the pages already ranking and what the rest are waiting on", () => {
+    expect(markup).toContain("overview.tile.pages.ranking(6)");
+    expect(markup).toContain("overview.tile.pages.too-early(3)");
   });
 
   it("the pages headline has no delta, so it carries its goal of 30", () => {

@@ -72,7 +72,13 @@ export const FIXTURE_OVERVIEW_FACTS: OverviewFacts = Object.freeze({
   changes: Object.freeze([]),
 
   // No previous measurement, so this headline carries its goal of 30.
-  pagesPublished: measured(11, MONDAY(31)),
+  // UI-SPEC S12's own tiles. The score is 62 in the band "Hard to find",
+  // eight points up on the week before — the set's `62 ▲ 8` — and the
+  // pages count carries the six of its seventeen that are already ranking.
+  score: measured({ score: 62, band: "hard-to-find" as const }, MONDAY(31)),
+  scorePrevious: measured({ score: 54, band: "hard-to-find" as const }, MONDAY(17)),
+  pagesPublished: measured(17, MONDAY(31)),
+  pagesRanking: measured(6, MONDAY(31)),
 
   rivals: Object.freeze({
     own: measured(81, MONDAY(31)),

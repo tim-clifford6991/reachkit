@@ -43,7 +43,7 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
       <HeadModule head={overview.head} />
       <GrowthModule growth={overview.growth} timeZone={shell.timeZone} />
       <TileRow
-        searches={overview.searches}
+        score={overview.score}
         aiAnswers={overview.aiAnswers}
         pagesPublished={overview.pagesPublished}
         timeZone={shell.timeZone}

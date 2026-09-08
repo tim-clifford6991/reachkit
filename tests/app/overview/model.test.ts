@@ -27,6 +27,10 @@ const facts = (over: Partial<OverviewFacts> = {}): OverviewFacts => ({
   // No answer has changed: the ordinary frame (issue #213).
   changes: [],
   pagesPublished: measured(11, AT(17)),
+  // UI-SPEC S12's score tile: 62 in "Hard to find", eight points up.
+  score: measured({ score: 62, band: "hard-to-find" as const }, AT(17)),
+  scorePrevious: measured({ score: 54, band: "hard-to-find" as const }, AT(17)),
+  pagesRanking: measured(6, AT(17)),
   rivals: { own: measuredZero(0, AT(17)), rivals: [] },
   supply: { exhausted: false, short: false, firstArrivalShortfall: false },
   waiting: [],

@@ -19,6 +19,7 @@
 // §11's weekly measurement (#41), §9's publishing (#45) and the rival sizing
 // (#27)). Keeping the assembly pure is what lets every rule above be decided
 // by a test with no database and no browser at all.
+import type { BandHandle } from "@/lib/measure/bands";
 import type { ChangeMarker } from "@/lib/market/changes/markers";
 import { weekOf, withBreaks, type SeriesEntry } from "./changes";
 import type { Measured } from "@/lib/measure/measured";
@@ -81,9 +82,25 @@ export interface AiPresenceWindow {
   readonly of: number;
 }
 
+/** The Discoverability Score, as the set's first tile states it: the
+ *  number, the change since the previous week, and the band word it stands
+ *  in. `band` is `null` wherever the score is unmeasured — a band is a
+ *  reading of a score, so a screen with no score has no band to name, and
+ *  the tile shows the dash with its own line instead (S13). */
+export type ScoreModule = Module<number> & { band: BandHandle | null };
+
 export interface OverviewModel {
   head: { key: CopyKey; direction: HeadDirection; badgeKey?: CopyKey; weeksMeasured: number };
   growth: GrowthModule;
+  /** UI-SPEC S12's first tile (ruling 6a). Not on this screen between
+   *  DECISIONS 2026-09-03 and the owner's 2026-09-08 screen set; see
+   *  `goals.ts` for the supersession. */
+  score: ScoreModule;
+  /** The searches-you-appear-in reading. No tile of its own since #353 —
+   *  the approved set gives this number the growth card, which draws the
+   *  whole series rather than one headline — and it is still assembled,
+   *  still carries its delta, and is still what `headDirection` and the
+   *  chart's own footnotes are read from. */
   searches: Module<number>;
   aiAnswers: Module<number> & { window: AiPresenceWindow };
   pagesPublished: Module<number>;
@@ -119,8 +136,20 @@ export interface OverviewFacts {
    *  break in the drawn series, which `./changes.ts` places. Empty for a
    *  site whose answers have not changed, which is most of them. */
   changes: readonly ChangeMarker[];
+  /** REQ-040's weekly score and the band it falls in — the same reading
+   *  the report's verdict head states (`report.verdict.scoreAndBand`), so
+   *  the two surfaces can never disagree about the number or the word. */
+  score: Measured<{ score: number; band: BandHandle }>;
+  /** The previous week's, where one was taken. The tile's `▲ 8` is the
+   *  difference of the two; with no previous reading there is no delta and
+   *  the tile carries its goal instead. */
+  scorePrevious?: Measured<{ score: number; band: BandHandle }>;
   pagesPublished: Measured<number>;
   pagesPublishedPrevious?: Measured<number>;
+  /** How many published pages are already ranking — the set's "6 already
+   *  ranking" badge. A `ContextValue`, so §4.5's never-bare rule does not
+   *  bind it: it is shown alongside the headline for comparison. */
+  pagesRanking: Measured<number>;
   rivals: RivalFacts;
   /** Today, in the site's zone, and the seven days of its week. */
   today: Date;
@@ -141,6 +170,10 @@ export function assembleOverview(facts: OverviewFacts): OverviewModel {
   const { alerts, overflow } = readAlerts(facts.waiting, facts.today);
   const supply = readSupplyStatement(facts.supply);
   const window = aiWindow(facts.points, facts.aiPresence, facts.changes);
+  const scoreDelta =
+    facts.scorePrevious === undefined
+      ? undefined
+      : deltaOf(scoreValue(facts.score), scoreValue(facts.scorePrevious));
 
   return {
     head: {
@@ -153,6 +186,14 @@ export function assembleOverview(facts: OverviewFacts): OverviewModel {
       weeksMeasured: weeksSinceChange(measuredPoints, facts.changes),
     },
     growth,
+    score: {
+      headline: {
+        value: scoreValue(facts.score),
+        goal: "score",
+        ...(scoreDelta === undefined ? {} : { delta: scoreDelta }),
+      },
+      band: facts.score.kind === "unmeasured" ? null : facts.score.value.band,
+    },
     searches: {
       headline: {
         value: latest?.value ?? { kind: "unmeasured", reason: "not_attempted", at: facts.today },
@@ -177,6 +218,10 @@ export function assembleOverview(facts: OverviewFacts): OverviewModel {
           ? { delta: deltaOf(facts.pagesPublished, facts.pagesPublishedPrevious) }
           : {}),
       },
+      // The set's "6 already ranking". A context value and not a second
+      // headline: §4.5's own last clause — "a value shown alongside for
+      // comparison is not a headline" — is exactly this number's standing.
+      context: [{ value: facts.pagesRanking, label: "overview.tile.pages.ranking" }],
     },
     rivals: resolveRivals(facts.rivals, facts.changes),
     week: readWeek({ today: facts.today, timeZone: facts.timeZone }),
@@ -278,4 +323,12 @@ function presenceCount(window: AiPresenceWindow, at: Date): Measured<number> {
   if (measured.length === 0) return { kind: "unmeasured", reason: "not_attempted", at };
   const present = measured.filter((w) => w.present === true).length;
   return present === 0 ? { kind: "zero", value: 0, at } : { kind: "measured", value: present, at };
+}
+
+/** The score alone, out of the reading that carries its band. The band
+ *  travels on the module rather than in the number, because the tile shows
+ *  them in two places — the value and the badge beside it — and a delta is
+ *  a difference of scores, never of bands. */
+function scoreValue(m: Measured<{ score: number; band: BandHandle }>): Measured<number> {
+  return m.kind === "unmeasured" ? m : { ...m, value: m.value.score };
 }

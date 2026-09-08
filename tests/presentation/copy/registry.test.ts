@@ -212,9 +212,10 @@ describe("REQ-093 c5 — the registry renders with every model unavailable", () 
     //
     // 2026-09-06, separately: issue #17 (the draft view, BUILD §4.6) adds
     // eight §4.6/§9 transcriptions. 160 + 8 = 168 ruled.
-    // 171 + 7 = 178, then + 5 = 183 (issue #353: the approved set's seven
-    // filled keys, then S12's own five; see the counts row below).
-    expect(ruled.length).toBe(183);
+    // 171 + 7 = 178, then + 5 = 183, then + 3 = 186 (issue #353: the
+    // approved set's seven filled keys, then S12's cards, then its three
+    // tiles; see the counts row below).
+    expect(ruled.length).toBe(186);
 
     // Only the ruled sentences carry their slots' `{name}` placeholders —
     // a `TODO(copy)` marker is one literal with no placeholder in it, so
@@ -315,7 +316,7 @@ describe("owner-owed and empty agree both ways", () => {
     expect(new Set(emptyKeys)).toEqual(new Set(OWNER_OWED));
   });
 
-  it("counts: 129 owner-owed, 292 awaiting copy, 183 ruled, 604 total (rule 5.5 — the index states its own coverage)", () => {
+  it("counts: 129 owner-owed, 293 awaiting copy, 186 ruled, 608 total (rule 5.5 — the index states its own coverage)", () => {
     // WO-070 added report.ts's eight landing keys (headline, field label,
     // submit label, five DomainProblem lines), all owner-owed: 30 + 8 = 38.
     // 2026-09-03: the owner ruled on three of them (headline, field label,
@@ -1004,10 +1005,22 @@ describe("owner-owed and empty agree both ways", () => {
     // not move at all — nothing here uses the empty representation.
     // 129 owner-owed, 292 − 1 + 1 = 292 awaiting copy, 178 + 5 = 183 ruled,
     // 599 + 5 = 604 total.
+    //
+    // Then S12's three tiles, in the same issue. Ruling 6a brought the
+    // Discoverability Score's tile back to this screen (DECISIONS
+    // 2026-09-03 had removed it), and the set prints two lines on the
+    // pages tile:
+    //   new, written    `overview.tile.score.label`        ruling 6a's name
+    //                   `overview.tile.pages.ranking`      "6 already ranking"
+    //                   `overview.tile.pages.too-early`    the remainder's line
+    //   new, owed       `overview.tile.score.means`        the set prints no such line
+    //
+    // 129 owner-owed, 292 + 1 = 293 awaiting copy, 183 + 3 = 186 ruled,
+    // 604 + 4 = 608 total.
     expect(OWNER_OWED.length).toBe(129);
-    expect(AWAITING_COPY.length).toBe(292);
-    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(183);
-    expect(Object.keys(COPY).length).toBe(604);
+    expect(AWAITING_COPY.length).toBe(293);
+    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(186);
+    expect(Object.keys(COPY).length).toBe(608);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.

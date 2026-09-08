@@ -92,6 +92,19 @@ export const OVERVIEW_COPY = Object.freeze({
 
   // ── The three tiles (DECISIONS 2026-09-03: no composite score tile).
   // Each name is §4.5's own; each meaning line is the owner's.
+  // ── The score tile (UI-SPEC S12, ruling 6a).
+  //
+  // Ruling 6a fixes the name on every surface that labels the number:
+  // "Discoverability Score" — the report head's eyebrow, this tile, the
+  // landing component tile and the two mails. Transcribed, not chosen.
+  "overview.tile.score.label": ["Discoverability Score", { slots: {}, fixedBy: "UI-SPEC 6a" }],
+  // What reaching `GOAL_VALUES.score` means, in the product's own words.
+  // The set prints no such line beside the score — it prints the band —
+  // so this stays owed, and the tile carries the goal's number without it.
+  "overview.tile.score.means": ["TODO(copy)", { slots: { goal: "text" }, fixedBy: "BUILD §4.5" }],
+  // The card head of the growth chart still names the searches reading:
+  // the set moved that number off the tiles and onto its own card, and
+  // this key is the card's eyebrow now rather than a tile label.
   "overview.tile.searches.label": ["Searches you appear in", { slots: {}, fixedBy: "BUILD §4.5" }],
   "overview.tile.ai-answers.label": ["AI answers", { slots: {}, fixedBy: "BUILD §4.5" }],
   "overview.tile.ai-answers.window": [
@@ -100,6 +113,18 @@ export const OVERVIEW_COPY = Object.freeze({
   ],
   "overview.tile.ai-answers.means": ["TODO(copy)", { slots: {}, fixedBy: "REQ-041 c4" }],
   "overview.tile.pages.label": ["Pages published", { slots: {}, fixedBy: "BUILD §4.5" }],
+  // The set's own two lines on the pages tile, both unbracketed and so
+  // approved (11a): the badge beside the count, and the dim line under it.
+  // Both numbers are slots — the ranking count is measured and the three
+  // weeks are `TOO_EARLY_WEEKS`, which is a pin and is never re-written.
+  "overview.tile.pages.ranking": [
+    "{count} already ranking",
+    { slots: { count: "text" }, fixedBy: "UI-SPEC S12" },
+  ],
+  "overview.tile.pages.too-early": [
+    "rest under {weeks} weeks — too early to judge",
+    { slots: { weeks: "text" }, fixedBy: "UI-SPEC S12 · REQ-063 c2" },
+  ],
   "overview.tile.pages.means": ["TODO(copy)", { slots: {}, fixedBy: "REQ-041 c4" }],
 
   // §4.5's "goal: 6", with the number left to `GOAL_VALUES`.

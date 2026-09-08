@@ -75,6 +75,7 @@ import { dbAdmin } from "@/lib/db";
 // and this screen needs the markers alone. The same reason
 // `access-gate.ts` reaches its seam by file (ADR-050).
 import { changeMarkers, type ChangeMarker } from "@/lib/market/changes/markers";
+import type { BandHandle } from "@/lib/measure/bands";
 import { unmeasured, measured, type Measured } from "@/lib/measure/measured";
 import type { RivalSize } from "@/lib/market/rivals/rival-size";
 import { trackedRivals } from "@/lib/market/rivals/tracked";
@@ -135,6 +136,32 @@ async function pagesPublished(siteId: string, at: Date): Promise<Measured<number
     return unmeasured<number>("undeterminable", at);
   }
   return measured(data.length, at);
+}
+
+/**
+ * How many published pages are already ranking — the set's "6 already
+ * ranking" badge.
+ *
+ * REQ-063's own stored standing, never a second judgement: a page is
+ * ranking where its verdict for the week is `working`, which is the word
+ * the calendar and the Monday mail speak it as. The rest of the count is
+ * what the tile's dim line is about — `too_early` is REQ-063 c2's
+ * `TOO_EARLY_WEEKS`, the very three weeks the set prints.
+ *
+ * A week nobody judged is not a week with nothing ranking: with no
+ * standings at all the reading is `unmeasured`, and the badge does not
+ * render.
+ */
+async function pagesRanking(siteId: string, week: string, at: Date): Promise<Measured<number>> {
+  // Lazily, the way this file already reaches `supplyDepth`: a static
+  // import of a `@/lib/db`-reaching module from here hangs the job tests.
+  const { readWeek } = await import("@/lib/opportunities");
+  const standings = await readWeek({ siteId, week });
+  if (standings.length === 0) return unmeasured<number>("not_attempted", at);
+  const working = standings.filter(
+    (page) => page.standing.kind === "verdict" && page.standing.verdict === "working"
+  ).length;
+  return working === 0 ? { kind: "zero", value: 0, at } : measured(working, at);
 }
 
 /** §9's two states that wait on the customer. `needs_you` outranks
@@ -208,6 +235,11 @@ interface WeeklyFacts {
   aiPresence: (boolean | null)[];
   changes: readonly ChangeMarker[];
   rivals: RivalFacts;
+  /** UI-SPEC S12's first tile, read from the same two reports every other
+   *  current figure on this screen comes from — so the tile, the chart and
+   *  the report screen cannot disagree about the week they mean. */
+  score: Measured<{ score: number; band: BandHandle }>;
+  scorePrevious?: Measured<{ score: number; band: BandHandle }>;
 }
 
 async function weeklySeries(site: OverviewSite, now: Date): Promise<WeeklyFacts> {
@@ -233,8 +265,13 @@ async function weeklySeries(site: OverviewSite, now: Date): Promise<WeeklyFacts>
     now,
   });
 
+  const score = scoreOf(latest, now);
+  const scorePrevious = previousWeek === null ? undefined : scoreOf(previousWeek, now);
+
   const first = weeks.findIndex((week) => scans.has(week));
-  if (first === -1) return { points: [], aiPresence: [], changes: [], rivals };
+  if (first === -1) {
+    return { points: [], aiPresence: [], changes: [], rivals, score, ...(scorePrevious === undefined ? {} : { scorePrevious }) };
+  }
 
   const measuredWeeks = weeks.slice(first);
   const points = measuredWeeks.map((week): WeeklyPoint => {
@@ -253,7 +290,26 @@ async function weeklySeries(site: OverviewSite, now: Date): Promise<WeeklyFacts>
     to: now,
   });
 
-  return { points, aiPresence, changes, rivals };
+  return {
+    points,
+    aiPresence,
+    changes,
+    rivals,
+    score,
+    ...(scorePrevious === undefined ? {} : { scorePrevious }),
+  };
+}
+
+/** One week's score and the band it falls in, straight off the stored
+ *  report's own verdict. Nothing is recomputed here: `scoreAndBand` is the
+ *  reading the pass took, and a screen that re-derived a band from a score
+ *  would be a second opinion on a measurement (ADR-010). */
+function scoreOf(
+  report: StoredReport | null,
+  at: Date
+): Measured<{ score: number; band: BandHandle }> {
+  if (report === null) return unmeasured<{ score: number; band: BandHandle }>("not_attempted", at);
+  return report.verdict.scoreAndBand;
 }
 
 /** §6.6's sizing for one rival in one week, or nothing. The entries are
@@ -380,12 +436,16 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
   const now = clock();
   const { supplyDepth } = await import("@/lib/opportunities");
 
-  const [firstDueOn, published, depth, waiting, series] = await Promise.all([
+  const [firstDueOn, published, depth, waiting, series, ranking] = await Promise.all([
     nextDueOn({ siteId: site.siteId, now }),
     pagesPublished(site.siteId, now),
     supplyDepth(site.siteId),
     waitingItems(site.siteId),
     weeklySeries(site, now),
+    // The week the standings are read for is the site's current one — the
+    // same Monday `windowWeeks` ends on, so the badge counts the week the
+    // rest of the screen is about.
+    pagesRanking(site.siteId, weekStartFor({ at: now, zone: site.timeZone }), now),
   ]);
 
   return {
@@ -398,6 +458,9 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
     aiPresence: series.aiPresence,
     changes: series.changes,
     pagesPublished: published,
+    pagesRanking: ranking,
+    score: series.score,
+    ...(series.scorePrevious === undefined ? {} : { scorePrevious: series.scorePrevious }),
     rivals: series.rivals,
     today: now,
     supply: {
