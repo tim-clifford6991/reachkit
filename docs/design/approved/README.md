@@ -63,6 +63,69 @@ artifact as saved.
 The screenshots in `screens/` are the owner's own renders, copied
 unmodified.
 
+## The full set (approved 2026-09-08)
+
+`full-set/` is the **complete** screen set — twenty screens with their
+states — and it is the UI specification of record. Where the owner's
+artifact above drew eight screens, this covers every essential surface of
+the product, and `full-set/UI-SPEC.md` is its written form: the twelve
+rulings of 2026-09-08, the design system, and a section per screen with the
+REQ criteria it satisfies.
+
+**How it relates to the artifact above.** The artifact is its parent: the
+set is derived from the artifact's own code, with the twelve rulings applied
+on top. So the idiom, the palette and the type ladder are the artifact's;
+what the set adds is the twelve screens the artifact did not draw, the
+states, and the rulings' consequences — the removal of `--r-card` (8a), the
+six tokens added under 10a, and the approval of the set's own unbracketed
+strings as copy (11a).
+
+**Reading order for a UI issue:** `UI-SPEC.md` §1 (the twelve rulings), then
+the screen's own section, then the REQ criteria it cites. The archive's
+requirements and decisions are still the detail behind all of it; only the
+archive's drawings are superseded.
+
+### Opening a screen
+
+Open `full-set/reachkit-full-screen-set.html` — no server, no build. The nav
+across the top carries every screen; or, in the console:
+
+```js
+current = "report"; render()
+```
+
+| S-id | key | screen | route |
+|---|---|---|---|
+| S1 | `landing` | Landing | `/` |
+| S2 | `report` | Free report | `/scan/{domain}` |
+| S3 | `rstates` | Report states | *(states of S2)* |
+| S4 | `pricing` | Pricing | `/pricing` |
+| S5 | `legal` | Legal | `/privacy` · `/terms` · `/imprint` |
+| S6 | `veto` | Veto page | `/veto/{token}` |
+| S7 | `optout` | Opt-out | `/opt-out/{token}` |
+| S8 | `notfound` | Not found / error | *(any unmatched route)* |
+| S9 | `auth` | Sign in | `/signin` |
+| S10 | `setup` | Setup | `/setup` |
+| S11 | `waiting` | Waiting | `/setup/waiting` |
+| S12 | `overview` | Overview | `/app` |
+| S13 | `overview0` | Overview, week 0 | *(first-week state of S12)* |
+| S14 | `calendar` | Calendar | `/app/calendar` |
+| S15 | `cstates` | Day panel states | *(states of S14)* |
+| S16 | `draft` | Draft | `/app/draft/{id}` |
+| S17 | `draftedit` | Draft edit | *(edit state of S16)* |
+| S18 | `settings` | Settings | `/app/settings` |
+| S19 | `hosted` | Hosted page | `blog.{domain}/{slug}` |
+| S20 | `mail` | Mails | *(§12 — not a route)* |
+
+`screens/` holds the renders: twenty light and four dark, at 1280.
+
+> **One thing the page says that its own contents do not.** The intro
+> paragraph reads "Twenty-two screens … approve per screen by its id
+> (`S1…S22`)". There is no S21 or S22 — the page carries S1 to S20, and
+> `UI-SPEC.md` documents exactly those twenty. The file is landed verbatim,
+> so the line stands as the owner approved it; the count to trust is the one
+> in the table above. Worth correcting in the next artifact.
+
 ## Using it
 
 - A screen's layout, spacing, ranks and states come from here, not from

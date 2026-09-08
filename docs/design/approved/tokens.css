@@ -25,7 +25,7 @@
   --warn:#b8722a; --warn-bg:#fff3e6; --warn-line:#fbe1c6;
   --bad:#c0432b; --bad-bg:#fdece8; --bad-line:#f8d5cd;
   --chart-you:#5b4be0; --chart-rival:#787790; --chart-goal:#b8722a;
-  --r-box:14px; --r-card:18px; --r-field:9px; --r-pill:999px;
+  --r-box:14px; --r-field:9px; --r-pill:999px;
   --shadow-card:0 1px 3px rgb(24 24 48/.045);
   --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-5:24px; --s-6:32px; --s-7:48px;
   --font-ui:"Plus Jakarta Sans",ui-sans-serif,system-ui,sans-serif;
@@ -61,4 +61,38 @@
   --bad:#f0907a; --bad-bg:rgb(240 144 122/.12); --bad-line:rgb(240 144 122/.28);
   --chart-you:#5f7ff2; --chart-rival:#5c6579; --chart-goal:#e6b45a;
   --shadow-card:0 1px 3px rgb(0 0 0/.45);
+}
+
+/* ── Additions under ruling 10a (owner, 2026-09-08 · UI-SPEC.md §1) ─────
+ *
+ * The rulings that came with the approved full screen set changed this file
+ * in two ways, and both are recorded here rather than folded silently into
+ * the blocks above.
+ *
+ * **8a — `--r-card` is removed.** "Card radius is `--r-box: 14px`
+ * everywhere; `--r-card` is removed." The parent artifact declared an 18px
+ * card radius beside the ruled 14; the ruling settles the question that had
+ * been open since the idiom was drawn, in favour of `--r-box`. It is struck
+ * from the light block above, not overridden here, because a token the
+ * owner removed should not still be declared.
+ *
+ * **10a — six tokens the set spends by name.** "Every literal in the
+ * artifact resolves to the token ladder: type 15 / 13 / 12 / 11.5 / 11
+ * (`--t-body --t-sm --t-xs --t-explain --t-eyebrow`), nothing under 11px;
+ * sidebar `--w-sidebar: 222px`; day panel `--w-day-panel: 290px`;
+ * breakpoints 640 / 768 / 1024 / 1280; chip `--s-6` square with
+ * `--r-field`." UI-SPEC.md §2 names the six this file was missing.
+ *
+ * They are a second block rather than edits to the first for one reason: the
+ * blocks above are the owner's artifact **verbatim**, and staying able to
+ * say that is worth more than tidiness. A reader can see exactly which
+ * values came from the artifact and which came from a ruling on top of it.
+ *
+ * Theme-invariant, all six — a measure and a type size do not change with
+ * the ground, so there is no dark counterpart.
+ */
+
+:root{
+  --t-body:15px; --t-sm:13px; --t-xs:12px;
+  --w-form:420px; --w-sidebar:222px; --w-day-panel:290px;
 }
