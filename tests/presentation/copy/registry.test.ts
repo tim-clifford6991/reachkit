@@ -212,10 +212,10 @@ describe("REQ-093 c5 — the registry renders with every model unavailable", () 
     //
     // 2026-09-06, separately: issue #17 (the draft view, BUILD §4.6) adds
     // eight §4.6/§9 transcriptions. 160 + 8 = 168 ruled.
-    // 171 + 7 = 178, then + 5 = 183, then + 3 = 186 (issue #353: the
-    // approved set's seven filled keys, then S12's cards, then its three
-    // tiles; see the counts row below).
-    expect(ruled.length).toBe(186);
+    // 171 + 7 = 178, then + 5 = 183, + 3 = 186, + 1 = 187 (issue #353: the
+    // approved set's seven filled keys, then S12's cards, its three tiles,
+    // and the sidebar's autopilot state; see the counts row below).
+    expect(ruled.length).toBe(187);
 
     // Only the ruled sentences carry their slots' `{name}` placeholders —
     // a `TODO(copy)` marker is one literal with no placeholder in it, so
@@ -316,7 +316,7 @@ describe("owner-owed and empty agree both ways", () => {
     expect(new Set(emptyKeys)).toEqual(new Set(OWNER_OWED));
   });
 
-  it("counts: 129 owner-owed, 293 awaiting copy, 186 ruled, 608 total (rule 5.5 — the index states its own coverage)", () => {
+  it("counts: 129 owner-owed, 294 awaiting copy, 187 ruled, 610 total (rule 5.5 — the index states its own coverage)", () => {
     // WO-070 added report.ts's eight landing keys (headline, field label,
     // submit label, five DomainProblem lines), all owner-owed: 30 + 8 = 38.
     // 2026-09-03: the owner ruled on three of them (headline, field label,
@@ -1017,10 +1017,17 @@ describe("owner-owed and empty agree both ways", () => {
     //
     // 129 owner-owed, 292 + 1 = 293 awaiting copy, 183 + 3 = 186 ruled,
     // 604 + 4 = 608 total.
+    //
+    // And the sidebar's autopilot card, last in the same issue: the set
+    // states what the mode is *doing* under the mode's own word.
+    //   new, written    `shell.publishing.state.autopilot`  "Publishing daily"
+    //   new, owed       `shell.publishing.state.copilot`    the set draws no copilot sidebar
+    //
+    // 129 owner-owed, 294 awaiting copy, 187 ruled, 610 total.
     expect(OWNER_OWED.length).toBe(129);
-    expect(AWAITING_COPY.length).toBe(293);
-    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(186);
-    expect(Object.keys(COPY).length).toBe(608);
+    expect(AWAITING_COPY.length).toBe(294);
+    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(187);
+    expect(Object.keys(COPY).length).toBe(610);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.

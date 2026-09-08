@@ -5,9 +5,15 @@
 // line naming which of the four causes it is — resolved by
 // `NO_PUBLISH_PRECEDENCE`, never by this renderer.
 //
-// The card leads with the answer (§2.5): its title is the mode as a verdict
-// badge, not the label "Mode". `Card` requires a `title` node and either
-// `children` or a `degradedLine`, and has no fallback string of its own.
+// The card leads with the answer (§2.5). Since #353 it leads with it in the
+// shape UI-SPEC S12 draws: the mode's own word as the card's eyebrow with
+// the switch on the same line, the state sentence under them, and the
+// next-publish line quiet below that. The mode was a verdict badge before;
+// an eyebrow beside its control is what the set draws, and a badge in a
+// 222px column beside a switch wraps.
+//
+// `Card` requires a `title` node and either `children` or a `degradedLine`,
+// and has no fallback string of its own.
 //
 // **The toggle is stateful in the customer's account, and nothing here
 // writes it.** §4.7 gives the publishing mode its writer (issue #18, and the
@@ -23,24 +29,41 @@
 // there is no owner-owed string standing between the customer and the
 // control.
 //
+// **The next line keeps the law's wording, not the set's.** The set draws
+// it as `next · Tue 2 Sep 07:00`; `next-publish.scheduled` reads "Next page
+// goes live {at}" and is one of the two keys `laws.ts` records as filled
+// "verbatim, byte for byte" from REQ-040 c4. Ruling 11a makes the set's
+// unbracketed strings approved copy, which puts the two in conflict — a
+// law transcription against a drawing — and that is the owner's to settle,
+// not this file's. So the shape is the set's and the sentence is the law's,
+// and the PR says so.
+//
 // The time renders inside `.rk-prov`, which §2.5 already fixes as mono, dim
 // and small ("Provenance is always visible but always quiet: `measured 28
 // Aug` … mono, dim, small") — so §2.3's numeral rule is satisfied for the
 // date without marking half a sentence and not the other half, which is the
 // best a registry that hands back a flat string can do.
 import type React from "react";
-import { Badge } from "@/ui/components/Badge";
 import { Toggle } from "@/ui/components/Toggle";
 import { Card } from "@/ui/components/Card";
 import { copy } from "@/lib/presentation/copy";
 import { nextPublishStatement } from "@/lib/presentation/stopped";
 import { NEXT_PUBLISH_OTHERWISE } from "./nopublish";
 import { formatDateTime } from "./format";
+import { writtenLine } from "./written";
 import type { ShellModel } from "./model";
 
 const MODE_COPY_KEY = {
   autopilot: "shell.publishing.mode.autopilot",
   copilot: "shell.publishing.mode.copilot",
+} as const;
+
+/** What the mode is doing, in the set's own words. A `Record` over the same
+ *  two modes, so a mode with no sentence is a compile error rather than a
+ *  card that states only its own name. */
+const STATE_COPY_KEY = {
+  autopilot: "shell.publishing.state.autopilot",
+  copilot: "shell.publishing.state.copilot",
 } as const;
 
 export function PublishingCard(p: { shell: ShellModel }): React.JSX.Element {
@@ -75,13 +98,31 @@ export function PublishingCard(p: { shell: ShellModel }): React.JSX.Element {
   // marker, because REQ-091 c2 forbids a blank standing where a written
   // line belongs. The guard stays in `DomainBlock`, whose two keys are
   // still empty and owner-owed.
+  // The state sentence, where the owner has written one for this mode. The
+  // copilot arm is owed, and an unwritten sentence renders as nothing — the
+  // shell's own `writtenLine` rule — leaving the mode's word and its next
+  // line, which is what the card said before the sentence existed.
+  const state = writtenLine(STATE_COPY_KEY[publishing.mode]);
+
   return (
     <div className="rk-publishing" data-testid="shell-publishing">
-      <Card state="default" title={<Badge tone={autopilot ? "accent" : "neutral"}>{modeWord}</Badge>}>
+      <Card
+        state="default"
+        title={
+          <span className="rk-publishing-row">
+            <span className="eyebrow">{modeWord}</span>
+            <Toggle label={modeWord} checked={autopilot} />
+          </span>
+        }
+      >
+        {state === null ? null : (
+          <p className="rk-publishing-state" data-testid="shell-publishing-state">
+            {state}
+          </p>
+        )}
         <p className="rk-prov" data-testid="shell-publishing-line">
           {statement.line}
         </p>
-        <Toggle label={modeWord} checked={autopilot} />
       </Card>
     </div>
   );

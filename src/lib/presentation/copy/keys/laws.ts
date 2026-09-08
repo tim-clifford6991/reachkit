@@ -128,6 +128,13 @@ export const LAWS_COPY = Object.freeze({
   "shell.nav.settings": ["Settings", { slots: {}, fixedBy: "REQ-040 c1" }],
   "shell.publishing.mode.autopilot": ["Autopilot", { slots: {}, fixedBy: "REQ-040 c3" }],
   "shell.publishing.mode.copilot": ["Copilot", { slots: {}, fixedBy: "REQ-040 c3" }],
+  // What the mode is doing, under the mode's own word (UI-SPEC S12's
+  // autopilot card: the eyebrow, then "Publishing daily", then the next
+  // line). The autopilot arm is unbracketed in the set and so approved
+  // (11a); the set draws no copilot sidebar, so its sentence is owed and
+  // the card states the mode word alone until it is written.
+  "shell.publishing.state.autopilot": ["Publishing daily", { slots: {}, fixedBy: "UI-SPEC S12" }],
+  "shell.publishing.state.copilot": ["TODO(copy)", { slots: {}, fixedBy: "REQ-040 c3" }],
   // Both approved as written by the screen set (ruling 11a): S12's domain
   // block reads "Week 6 · re-measured Mon 1 Sep" and S13's — the week the
   // first Monday has not come — reads "not measured yet · first due Mon 8

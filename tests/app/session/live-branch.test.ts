@@ -64,6 +64,10 @@ beforeEach(() => {
     // measured for it to break anyway (issue #213).
     changes: [],
     pagesPublished: unmeasured<number>("not_attempted", new Date()),
+    // Nothing measured yet: no score, no band, no ranking count. The tiles
+    // show the dash and their own lines (UI-SPEC S13's arm).
+    score: unmeasured<{ score: number; band: "hard-to-find" }>("not_attempted", new Date()),
+    pagesRanking: unmeasured<number>("not_attempted", new Date()),
     rivals: { own: unmeasured<number>("not_attempted", new Date()), rivals: [] },
     today: new Date("2026-09-08T12:00:00.000Z"),
     supply: { exhausted: true, short: false, firstArrivalShortfall: false },
