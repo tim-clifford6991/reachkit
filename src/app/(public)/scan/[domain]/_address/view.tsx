@@ -10,7 +10,7 @@
 // landing page's own five `landing.problem.*` lines rather than minting
 // five more: same union, same wording obligation, one home per claim.
 import type React from "react";
-import { Alert, Btn } from "@/ui/components";
+import { Alert, Btn, Card } from "@/ui/components";
 import { Surface } from "@/ui/layout";
 import { copy } from "@/lib/presentation/copy";
 import LandingPage from "@/app/(public)/page";
@@ -19,6 +19,7 @@ import { RemovedView } from "./removal";
 import { ScanProgress } from "./progress";
 import type { AddressState } from "./state";
 import { refusalLine } from "./refusal";
+import { Num } from "./measured";
 
 /** The frame every short arm renders inside, and its screen root
  *  (ADR-093 decision 6: every screen root is a `Surface`, and its three
@@ -27,6 +28,31 @@ import { refusalLine } from "./refusal";
  *  column at any width. The `report` arm is the long screen and declares
  *  its own arms; the `removed` arm brings its own `Surface` from
  *  `_address/removal.tsx`. */
+/** The card every short arm renders inside (UI-SPEC S3): the domain as a
+ *  mono heading, then what happened to it. One card, one written line, at
+ *  most one control — the same shape whichever arm it is, so a visitor
+ *  reading two of them in a row is reading one screen twice and not two
+ *  screens.
+ *
+ *  The domain is a value: mono, and never rewritten to fit. */
+function StateCard(p: {
+  domain: string;
+  children: React.ReactNode;
+}): React.JSX.Element {
+  return (
+    <Card
+      state="default"
+      title={
+        <h3 className="min-w-0 overflow-x-auto">
+          <Num>{p.domain}</Num>
+        </h3>
+      }
+    >
+      {p.children}
+    </Card>
+  );
+}
+
 function Pane(p: { children: React.ReactNode }): React.JSX.Element {
   return (
     <Surface
@@ -87,13 +113,22 @@ export function AddressView(p: {
     case "starting":
       return (
         <Pane>
-          <ScanProgress domain={state.domain} />
+          <StateCard domain={state.domain}>
+            <ScanProgress domain={state.domain} />
+            <p className="t-explain opacity-60">{copy("scan.waiting.line")}</p>
+          </StateCard>
         </Pane>
       );
     case "scanning":
       return (
         <Pane>
-          <ScanProgress domain={state.domain} scanId={state.scanId} />
+          <StateCard domain={state.domain}>
+            <ScanProgress domain={state.domain} scanId={state.scanId} />
+            {/* REQ-003 c1's own frame, and the set's line: what the wait is
+                worth, and that the address survives it. No countdown — the
+                stages carry the only figures on this screen. */}
+            <p className="t-explain opacity-60">{copy("scan.waiting.line")}</p>
+          </StateCard>
         </Pane>
       );
 
@@ -111,8 +146,17 @@ export function AddressView(p: {
     case "cooldown":
       return (
         <Pane>
-          <Alert tone="warn" message={copy("notice.measurement-failed")} />
-          <Btn label={copy("control.retry")} />
+          {/* One line, one manual retry, and nothing that restarts by
+              itself (REQ-001 c16). The set draws it as the state card with
+              its line in the body rather than as a warn-toned alert: the
+              whole screen *is* the notice here, and a tinted box inside a
+              card of the same shape says it twice. */}
+          <StateCard domain={state.domain}>
+            <p>{copy("notice.measurement-failed")}</p>
+            <div className="flex">
+              <Btn label={copy("control.retry")} variant="primary" pill />
+            </div>
+          </StateCard>
         </Pane>
       );
 

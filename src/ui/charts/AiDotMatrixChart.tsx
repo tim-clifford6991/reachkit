@@ -49,10 +49,28 @@ export interface AiDotMatrixRow {
   readonly count: string;
 }
 
+/** The drawing's own width, before the name gutter is measured. */
 const WIDTH = 300;
-const NAME_X = 66;
-const CELLS_X = 72;
-const CELLS_RIGHT = 254;
+/** The narrowest the name gutter is ever drawn: the width Overview's tile
+ *  row and the landing specimen were laid out at, so a chart whose names
+ *  fit inside it is drawn exactly as it was before this floor had a name
+ *  (issue #352). */
+const NAME_X_MIN = 66;
+/** Between the longest name and the first cell. */
+/** A cushion on top of the measured advance. At the compact band the
+ *  whole drawing is scaled to about 0.7, and a glyph rounded up at that
+ *  size put a 23-character domain one pixel outside the viewBox with three
+ *  units of estimate still spare (issue #352). Three units is under two
+ *  pixels of plot at every band and is the difference between a value
+ *  inside its box and a sweep finding. */
+const NAME_CUSHION = 3;
+const NAME_GAP = 6;
+/** Between the last cell and the row's written count. */
+const COUNT_GAP = 46;
+/** Between the written count and the edge of the box. A label anchored
+ *  flush with the viewBox is drawn *on* the edge, which the layout sweep's
+ *  containment check reads — correctly — as a mark outside its own box. */
+const EDGE_INSET = 2;
 const CELL_GAP = 2;
 const TOP = 6;
 const ROW_GAP = 7;
@@ -85,6 +103,21 @@ function cellPaint(
     : { fill: CHART_INK.surface, stroke: CHART_INK.line, strokeWidth: EDGE_WIDTH };
 }
 
+/** The gutter the longest row name needs, never narrower than the floor.
+ *
+ *  A row name is a **domain** on the report's own module, and §2.3 sets a
+ *  domain in the mono face precisely so that it is never shortened: a
+ *  23-character rival needs about 121 units where the floor reserves 66,
+ *  and text anchored at the end of too small a gutter is drawn to the left
+ *  of the viewBox — three `<g>` groups outside their own `<svg>`, which is
+ *  what the layout sweep's containment check reports. So the box widens by
+ *  what the names need instead. Every other coordinate is measured from
+ *  this one, so a chart whose names fit the floor is unmoved. */
+function nameGutter(rows: readonly AiDotMatrixRow[]): number {
+  const longest = rows.reduce((width, row) => Math.max(width, row.name.length), 0);
+  return round(Math.max(NAME_X_MIN, longest * CHART.labelCharAdvance + NAME_CUSHION));
+}
+
 export function AiDotMatrixChart(p: {
   rows: readonly AiDotMatrixRow[];
   /** The column labels — one per question, in the order the rows'
@@ -98,11 +131,17 @@ export function AiDotMatrixChart(p: {
   label: string;
 }): React.JSX.Element {
   const columns = Math.max(p.questions.length, 1);
-  const cell = round((CELLS_RIGHT - CELLS_X - (columns - 1) * CELL_GAP) / columns);
+  const nameX = nameGutter(p.rows);
+  const cellsX = round(nameX + NAME_GAP);
+  // The plot keeps its own width whatever the names take, so the cells are
+  // the size they were drawn at and only the box around them grows.
+  const cellsRight = round(cellsX + (WIDTH - NAME_X_MIN - NAME_GAP - COUNT_GAP));
+  const width = round(cellsRight + COUNT_GAP);
+  const cell = round((cellsRight - cellsX - (columns - 1) * CELL_GAP) / columns);
   const pitch = round(cell + ROW_GAP);
-  const colX = (i: number): number => round(CELLS_X + i * (cell + CELL_GAP));
+  const colX = (i: number): number => round(cellsX + i * (cell + CELL_GAP));
   const axisY = round(TOP + p.rows.length * pitch);
-  const box: Box = { width: WIDTH, height: round(axisY + 16) };
+  const box: Box = { width, height: round(axisY + 16) };
 
   return (
     <ChartFrame box={box} label={p.label}>
@@ -116,7 +155,7 @@ export function AiDotMatrixChart(p: {
           <g key={`row-${row.name}`}>
             <text
               className="num"
-              x={NAME_X}
+              x={nameX}
               y={round(y + cell * 0.75)}
               textAnchor={SVG.anchorEnd}
               fontSize={CHART.labelSize}
@@ -147,7 +186,7 @@ export function AiDotMatrixChart(p: {
             })}
             <text
               className="num"
-              x={WIDTH}
+              x={round(width - EDGE_INSET)}
               y={round(y + cell * 0.75)}
               textAnchor={SVG.anchorEnd}
               fontSize={CHART.labelSize}
@@ -162,9 +201,9 @@ export function AiDotMatrixChart(p: {
       {/* The one axis: the rule the question labels hang under. */}
       <line
         className="rk-axis"
-        x1={CELLS_X}
+        x1={cellsX}
         y1={axisY}
-        x2={CELLS_RIGHT}
+        x2={cellsRight}
         y2={axisY}
         stroke={CHART_INK.axis}
         strokeWidth={CHART.axisWidth}
@@ -187,7 +226,7 @@ export function AiDotMatrixChart(p: {
       {p.goal === undefined ? null : (
         <text
           className="num"
-          x={WIDTH}
+          x={round(width - EDGE_INSET)}
           y={round(axisY + 9)}
           textAnchor={SVG.anchorEnd}
           fontSize={CHART.nameSize}

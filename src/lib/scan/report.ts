@@ -177,7 +177,7 @@ export type StoppedReason = "complete" | "time_ceiling" | "spend_ceiling" | "fai
  *  it does not know throws rather than returning a partially-populated
  *  value: `null` would be indistinguishable from "no report" at every call
  *  site. */
-export const REPORT_VERSION = 5;
+export const REPORT_VERSION = 6;
 
 /** One cell of the AI-answers matrix — one question, one measured SERP.
  *  BP-025 `## Public interface` (issue #26's `matrix.ts` owns it). An
@@ -406,7 +406,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /** The version this build's own migration knows how to lift, and the only
  *  one: a report written before issue #128 bought the paid battery. */
-const MIGRATABLE_VERSIONS: readonly number[] = [3, 4];
+const MIGRATABLE_VERSIONS: readonly number[] = [3, 4, 5];
 
 /** The two battery columns of a report written before anything bought
  *  them. `not_attempted` and not `no_answer`: nobody asked these engines,
@@ -469,13 +469,53 @@ function upgradeFromVersion4(blob: Record<string, unknown>): Record<string, unkn
   const rest = without(blob, "category");
   const answers = rest.aiAnswers;
   if (!isRecord(answers) || !Array.isArray(answers.rows)) {
-    return { ...rest, version: REPORT_VERSION };
+    return { ...rest, version: 5 };
   }
   const rows = answers.rows.map((row) => {
     if (!isRecord(row) || !isRecord(row.question)) return row;
     return { ...row, question: without(row.question, "namedBrands") };
   });
-  return { ...rest, version: REPORT_VERSION, aiAnswers: { ...answers, rows } };
+  return { ...rest, version: 5, aiAnswers: { ...answers, rows } };
+}
+
+/**
+ * Version 5 → 6 (#352): the verdict carries the three score factors.
+ *
+ * The owner's ruling 1b of 2026-09-08 keeps the report header's three
+ * driver mini-bars **with their values**, amending REQ-004 c2 and BUILD
+ * §4.1 for that one strip. `verdictOf` always computed the factors — the
+ * score is `∛(f₁ × f₂ × f₃)` — and threw them away, so from this version
+ * the verdict stores what it already knew.
+ *
+ * **A report written before this version does not carry them, and none is
+ * invented here.** The three arrive `unmeasured/undeterminable`, which is
+ * the honest reading of a value that cannot be determined *from this
+ * report*: the scan did reach them (its score proves it), and the blob did
+ * not keep them, so no figure can be recovered and no figure is guessed.
+ * The header draws a dash in place of such a bar; every other line of an
+ * old report renders exactly as it did, the score and the band included.
+ *
+ * Total: a blob with no `verdict` object, or one whose `verdict` is not a
+ * record, needs only its version moved — `readStoredReport` casts, and a
+ * blob that shape was already unreadable for other reasons.
+ */
+function upgradeFromVersion5(blob: Record<string, unknown>): Record<string, unknown> {
+  const verdict = blob.verdict;
+  if (!isRecord(verdict)) return { ...blob, version: REPORT_VERSION };
+  const at = verdict.measuredAt;
+  const unmeasured = { kind: "unmeasured", reason: "undeterminable", at };
+  return {
+    ...blob,
+    version: REPORT_VERSION,
+    verdict: {
+      ...verdict,
+      factors: {
+        foundations: unmeasured,
+        answerability: unmeasured,
+        presence: unmeasured,
+      },
+    },
+  };
 }
 
 /** Every upgrade this build can apply, oldest first, each lifting a blob
@@ -485,6 +525,7 @@ function upgradeFromVersion4(blob: Record<string, unknown>): Record<string, unkn
 const UPGRADES: readonly ((blob: Record<string, unknown>) => Record<string, unknown>)[] = [
   upgradeFromVersion3,
   upgradeFromVersion4,
+  upgradeFromVersion5,
 ];
 
 /** The version guard, and the one upgrade beside it. Throws — loudly — on

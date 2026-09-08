@@ -19,7 +19,6 @@
 // from a measurement that did not happen.
 import type React from "react";
 import { Badge, Btn, Card } from "@/ui/components";
-import { CardHead } from "@/ui/idiom";
 import type { Tone } from "@/ui/types";
 import { copy } from "@/lib/presentation/copy";
 import { SEVERITY } from "@/lib/presentation/bands";
@@ -74,6 +73,11 @@ function FixBody(p: { card: ProblemCard }): React.JSX.Element | null {
     case "paste":
       return (
         <div className="flex flex-col gap-2">
+          {/* REQ-009 c2's lines, verbatim and on their own lines. `.num`
+              is `white-space: nowrap` since #297 and beat every utility
+              written here, so the robots block was drawn as one long
+              scrolled line; `pre .num` in `src/ui/type.css` is the rule
+              that gives a code block its own lines back (issue #352). */}
           <pre className="bg-base-200 border-base-300 overflow-x-auto rounded border p-3 text-xs">
             <code className="num">{fix.lines.join("\n")}</code>
           </pre>
@@ -90,6 +94,10 @@ function FixBody(p: { card: ProblemCard }): React.JSX.Element | null {
   }
 }
 
+/** The count, at the ladder's `--h1` — the one headline number of this
+ *  module, which is the size the approved set draws it at. */
+const COUNT_SIZE: React.CSSProperties = { fontSize: "var(--h1)", lineHeight: 1.1 };
+
 function ProblemCardView(p: { card: ProblemCard }): React.JSX.Element {
   const edge =
     p.card.severity.kind === "unmeasured"
@@ -103,13 +111,25 @@ function ProblemCardView(p: { card: ProblemCard }): React.JSX.Element {
     <div className={`rounded-box overflow-hidden border-l-4 [&>*]:h-full ${edge}`}>
       <Card
         state="default"
-        title={<CardHead eyebrow={copy(p.card.title)} pill={<SeverityBadge card={p.card} />} />}
-      >
-        <div className="flex flex-wrap items-baseline gap-3">
-          <div className="text-3xl font-bold">
-            <MeasuredNum value={p.card.count} what={copy(p.card.title)} />
+        // UI-SPEC §2's own row for this component: "title · severity badge
+        // · who-does-it badge · count · optional code block". The title is
+        // the ladder's `--h4` sub-head and not an eyebrow with a chip:
+        // the problem card is its own component in the approved set, drawn
+        // beside `Card` rather than as one of its heads, and the two
+        // badges are the head's right-hand slot — ruling 9a, which asks
+        // for the severity word **and** the who-does-it badge together.
+        title={
+          <div className="flex w-full flex-wrap items-start justify-between gap-2">
+            <h4>{copy(p.card.title)}</h4>
+            <div className="flex flex-wrap items-center gap-2">
+              <SeverityBadge card={p.card} />
+              <Badge tone="accent">{copy(p.card.doer)}</Badge>
+            </div>
           </div>
-          <Badge tone="accent">{copy(p.card.doer)}</Badge>
+        }
+      >
+        <div className="font-semibold" style={COUNT_SIZE}>
+          <MeasuredNum value={p.card.count} what={copy(p.card.title)} />
         </div>
         <FixBody card={p.card} />
       </Card>

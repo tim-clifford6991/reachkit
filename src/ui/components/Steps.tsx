@@ -16,6 +16,15 @@ export interface StepItem {
   /** Required — an unlabelled stage cannot render (REQ-003 c1). */
   label: string;
   state: "pending" | "active" | "done";
+  /** Optional, added by issue #352 (constitution rule 1.1: internal,
+   *  additive, backward-compatible — every existing caller keeps omitting
+   *  it and renders exactly as before). The approved set's S3 draws each
+   *  finished stage with the time it took beside its name; REQ-003 c1 asks
+   *  for "named stages that advance as work completes" and forbids only an
+   *  unlabelled spinner or a bare indeterminate bar, so a measured elapsed
+   *  time beside a named stage is inside it. A written string, never a
+   *  number this component formats. */
+  note?: string;
 }
 
 export function Steps(p: {
@@ -39,6 +48,7 @@ export function Steps(p: {
           data-state={step.state}
         >
           {step.label}
+          {step.note === undefined ? null : <span className="t-explain opacity-60">{step.note}</span>}
         </li>
       ))}
     </ul>

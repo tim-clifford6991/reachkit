@@ -7,8 +7,10 @@
 //
 // §4.1's own order, with the two 2026-09-03 amendments folded in:
 //   1. verdict strip — score, band, one written line. No driver bars.
-//   2. two equal cards, side by side — AI answers · Google search.
-//      No per-question volume, no market-total footnote.
+//   2. two equal cards, side by side — AI answers · Google search. Each
+//      one leads with its verdict and draws its own figure: §2.4's AI
+//      dot matrix on the left, its presence bars on the right (issue
+//      #352). No per-question volume, no market-total footnote.
 //   3. three problem cards.
 //   4. three DIY collapses.
 //   5. free page card.
@@ -39,6 +41,7 @@ import { ProblemCards } from "../_problems/cards";
 import { MethodSections } from "../_problems/method";
 import { cardsOf, PROBLEM_ORDER } from "../_problems/model";
 import { unblockLines } from "../_problems/unblock";
+import { CopyLink } from "./copy-link";
 import { RemovalAddressLine } from "./removal";
 import type { AddressControl, AddressNotice } from "./state";
 import { refusalLine } from "./refusal";
@@ -47,6 +50,12 @@ import { VerdictStrip } from "./verdict";
 // `categoryOf` is the one derivation of it, and the screen reads it here
 // rather than from a second member the blob used to carry.
 import { categoryOf } from "@/lib/scan/sections";
+
+/** The offer's own measure: `--w-read`, centred, as the approved set
+ *  draws it on both surfaces that carry the card. A single reading column
+ *  (design tokens §2b) — an offer stretched across a 1216px report reads
+ *  as a banner rather than as a decision. */
+const OFFER_MEASURE: React.CSSProperties = { maxWidth: "var(--w-read)" };
 
 /** BUILD §6.3a / DECISIONS 2026-08-28: MVP is US-English only, one
  *  location constant, so the date a report was measured is formatted once,
@@ -141,13 +150,6 @@ export function ReportView(p: {
   };
   /** The canonical address this report lives at — REQ-001 c7's value. */
   canonicalUrl: string;
-  /** Sibling nodes' modules, absent-safe. `BUILD.md` §2.4's chart
-   *  inventory is closed and issue #11 owns it; an absent slot is an
-   *  absence, not a loading state and not an empty state. */
-  charts?: {
-    aiMatrix?: React.ReactNode;
-    presenceBars?: React.ReactNode;
-  };
 }): React.JSX.Element {
   const { report, notice, control } = p.state;
   const measuredOn = formatMeasuredOn(report.verdict.measuredAt);
@@ -205,31 +207,34 @@ export function ReportView(p: {
           <ControlButton control={control} />
         </div>
 
+        {/* The copy-link control, at the top of the screen that owns the
+            address (REQ-001 c7). UI-SPEC S2 draws it in the public
+            header's bar; the header is shared chrome with no per-route
+            slot, and the canonical address is built in exactly one place
+            (`page.tsx`), so it is rendered here by the screen that has
+            it rather than composed a second time in the layout. Named in
+            the PR as the one place this screen departs from the set. */}
+        <div className="col-span-full flex justify-end">
+          <CopyLink canonicalUrl={p.canonicalUrl} />
+        </div>
+
         <div className="col-span-full">
           <VerdictStrip
             verdict={report.verdict}
             category={categoryOf(report.market)}
             measuredOn={measuredOn}
-            canonicalUrl={p.canonicalUrl}
           />
         </div>
 
         {report.aiAnswers === null ? (
           <AiAnswersAbsent />
         ) : (
-          <AiAnswersCard
-            section={report.aiAnswers}
-            measuredOn={measuredOn}
-            matrix={p.charts?.aiMatrix}
-          />
+          <AiAnswersCard section={report.aiAnswers} measuredOn={measuredOn} />
         )}
         {report.presence === null ? (
           <GooglePresenceAbsent />
         ) : (
-          <GooglePresenceCard
-            section={report.presence}
-            bars={p.charts?.presenceBars}
-          />
+          <GooglePresenceCard section={report.presence} />
         )}
 
         <div className="col-span-full">
@@ -239,12 +244,21 @@ export function ReportView(p: {
           <MethodSections for={PROBLEM_ORDER} />
         </div>
 
-        {report.freePage === null ? (
-          <FreePageAbsent />
-        ) : (
-          <FreePageCard section={report.freePage} />
-        )}
-        <PricingCard />
+        {/* Modules 5 and 6 are full-width rows, not two cards side by
+            side: UI-SPEC S2 draws the giveaway across the report and the
+            offer centred under it at the reading measure. They are the
+            screen's two trades, and a trade beside a trade reads as a
+            choice between them. */}
+        <div className="col-span-full">
+          {report.freePage === null ? (
+            <FreePageAbsent />
+          ) : (
+            <FreePageCard section={report.freePage} />
+          )}
+        </div>
+        <div className="col-span-full mx-auto w-full" style={OFFER_MEASURE}>
+          <PricingCard />
+        </div>
 
         <div className="col-span-full">
           <RemovalAddressLine />

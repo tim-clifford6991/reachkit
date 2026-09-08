@@ -26,12 +26,21 @@ export interface Verdict {
   domain: CanonicalDomain;
   measuredAt: Date; // one date; every figure under it is this scan's
   scoreAndBand: Measured<{ score: number; band: BandHandle }>;
-  /** No `factors` field. The three factor **values** reach no surface
-   *  (BP-024 decision 6): what the report says about the composition is
-   *  this handle and the one written line BP-019 renders from it.
-   *  `factorsOf` is still computed inside `verdictOf` — the score is made
-   *  of it — and is still stored under `scans.drivers`, which is not a
-   *  surface. */
+  /** The three factors the score is composed of.
+   *
+   *  **They reach exactly one surface, and the owner named it**: ruling 1b
+   *  of 2026-09-08 (`docs/design/approved/full-set/UI-SPEC.md` §1) keeps
+   *  the report header's three driver mini-bars with their `n/10` values,
+   *  and amends REQ-004 c2 and BUILD §4.1 to allow the values "on the
+   *  header strip only". That reverses BP-024 decision 6 and the
+   *  2026-09-03 ruling that removed the bars, and it reverses nothing
+   *  else: no other card, mail or tile may render a factor value, and
+   *  `limiting` is still how the *composition* is spoken about — one
+   *  written line, never a second arithmetic.
+   *
+   *  `factorsOf` computed this already; what changed is that the verdict
+   *  now carries it rather than dropping it on the floor. */
+  factors: ScoreFactors;
   limiting: LimitingFactor;
   /** REQ-004 criterion 3: name every factor with no value and, for each,
    *  which of the two reasons applies. Empty when the score could be
@@ -110,6 +119,7 @@ export function verdictOf(a: {
     domain: a.domain,
     measuredAt: a.measuredAt,
     scoreAndBand,
+    factors,
     limiting,
     missing,
     unmeasuredElsewhere,

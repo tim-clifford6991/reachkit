@@ -153,22 +153,21 @@ describe("§2.2 — a table on the report is the registered component, or is wra
     expect(card).toMatch(/card-body[^"]*\[&>p\]:grow-0/);
   });
 
-  it("the presence card's domain cell is a declared scroll container", () => {
-    // Item 2 was fixed on main while this branch was open, and kept: the
-    // label track stays capped, and the cell that holds the domain is a
-    // scroll container of its own, so the value scrolls those eight pixels
-    // instead of breaking. That is ADR-093's "content fits its box **or
-    // the box changes**" applied to one cell, and it is tighter than
-    // sizing the whole track from the measure — the bar keeps its width at
-    // every viewport. This row holds the mechanism rather than my earlier
-    // version of it.
+  it("the presence card's occupancy is the registered drawing, inside a declared scroll container", () => {
+    // The hand-built occupancy row is gone (issue #352): the domains, the
+    // bars and the counts are `PresenceBars`, §2.4's own drawing of this
+    // card's figure, and the wrap this row used to check on one domain
+    // cell is now around the chart — a drawing fills the box it is given,
+    // and a box that cannot shrink below its content never scrolls. What
+    // the cell wrap protected holds by construction now: a `<text>` in a
+    // viewBox has no line box to be broken across.
     const source = read("google-presence.tsx");
     expect(WRAP.test(source)).toBe(true);
-    // The wrap is around the value, not around the whole list: the row
-    // grid is still the row's, so the bar and the ratio are unaffected.
+    expect(source).toContain("<PresenceBars");
     const wrapIndex = source.search(WRAP);
-    const numIndex = source.indexOf("<Num>{p.domain}</Num>");
     expect(wrapIndex).toBeGreaterThan(-1);
-    expect(numIndex).toBeGreaterThan(wrapIndex);
+    expect(source.indexOf("<PresenceBars")).toBeGreaterThan(wrapIndex);
+    // And no hand-built row grid came back with it.
+    expect(trackLists(source).filter((tracks) => tracks.length > 1)).toEqual([]);
   });
 });

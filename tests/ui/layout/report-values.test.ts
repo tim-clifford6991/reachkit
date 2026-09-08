@@ -81,13 +81,17 @@ async function wrappedValues(width: number): Promise<Wrapped[]> {
           }`;
         }
         const offenders: { element: string; boxWidth: number; textWidth: number }[] = [];
-        // The presence card, found by the one thing only it draws — the
-        // registered `Progress` bars of the occupancy list. Not a testid:
-        // the fix that landed on main wraps the domain cell rather than the
-        // list, so there is no wrapper of this file's own to mark, and a
-        // testid added only for a test is a testid the screen does not need.
+        // The presence card, found by the two things only it draws
+        // together: §2.4's own occupancy drawing and the one table BUILD
+        // §4.1 puts on this screen. It used to be found by the registered
+        // `Progress`, which is now the header strip's three driver bars
+        // (ruling 1b) and no longer this card's — the occupancy is the
+        // registered chart since #352. Not a testid: a testid added only
+        // for a test is a testid the screen does not need.
         const bodies = [...document.querySelectorAll(".card-body")];
-        const card = bodies.find((el) => el.querySelectorAll(".progress").length > 0);
+        const card = bodies.find(
+          (el) => el.querySelector("svg") !== null && el.querySelector("table") !== null
+        );
         if (card === undefined) throw new Error("the presence card is not on this page");
         for (const el of Array.from(card.querySelectorAll("*"))) {
           if (el.closest("svg")) continue;
@@ -107,6 +111,13 @@ async function wrappedValues(width: number): Promise<Wrapped[]> {
           // `white-space: nowrap` since #297 — a value has no boundaries,
           // hyphens included — so *any* mono run on two line boxes is a
           // value that got rewritten, whether it holds spaces or not.
+          //
+          // `.num-phrase` is the exception, and it is opted into: a mono
+          // *line of language* — a search, a provenance line, a sentence
+          // with a count in it — which §2.3 sets in the mono face and
+          // which wraps at its spaces like any other text (#307). It never
+          // breaks inside a word, which is what this rule is about.
+          if (el.classList.contains("num-phrase")) continue;
           const text = own.map((n) => n.textContent ?? "").join("").trim();
           if (text === "") continue;
           const range = document.createRange();
@@ -199,6 +210,12 @@ describe(`§2.3 — no value on the presence card is broken across lines`, () =>
               // inside a word — that is `overflow-wrap`/`word-break`, not
               // `white-space` — so the rule this row guards is intact.
               .filter((el) => !el.classList.contains("num-phrase"))
+              // A code block is not a value either: REQ-009 c2's robots
+              // lines are required *verbatim*, and lines joined into one
+              // are not verbatim — so `pre .num` is `white-space: pre`
+              // (issue #352). It is the opposite of a value being
+              // rewritten: it is the author's own line breaks kept.
+              .filter((el) => el.closest("pre") === null)
               .filter((el) => getComputedStyle(el).whiteSpace !== "nowrap")
               .map((el) => `${el.className} "${(el.textContent ?? "").trim().slice(0, 30)}"`)
           );

@@ -219,7 +219,12 @@ describe("REQ-093 c5 — the registry renders with every model unavailable", () 
     //
     // 2026-09-08, issue #354: the calendar's S14 and S15, under the same
     // ruling — three keys move in and two arrive written. 197 + 5 = 202.
-    expect(ruled.length).toBe(202);
+    //
+    // 2026-09-08, issue #352: the report screen's S2 and S3, under the same
+    // ruling — thirty-five of its keys stop waiting and nine the set draws
+    // arrive already written, S3's elapsed time and its waiting line among
+    // them, and the offer's own cancel line. 202 + 45 = 247.
+    expect(ruled.length).toBe(247);
 
     // Only the ruled sentences carry their slots' `{name}` placeholders —
     // a `TODO(copy)` marker is one literal with no placeholder in it, so
@@ -1060,10 +1065,26 @@ describe("owner-owed and empty agree both ways", () => {
     //
     // 129 − 2 = 127 owner-owed, 294 − 1 = 293 awaiting copy,
     // 197 + 3 + 2 = 202 ruled, 620 + 2 = 622 total.
+    // And the report screen, issue #352, under the same ruling: thirty-five
+    // of its keys stop waiting on the owner — the two cards' heads and
+    // source chips, the denominator and provenance lines, the questions'
+    // own words, the three problem titles and their doer badges, the
+    // absent-from table's headers, the giveaway's rows and control, and
+    // five of the six scanning stages — and nine the set draws had no key
+    // at all and arrive written: the score's name (ruling 6a), the
+    // correction control, the no-category arm of the measured line, the
+    // method eyebrow, the giveaway's badge and its field's two words, and
+    // S3's elapsed time and waiting line.
+    //
+    // Owner-owed does not move — every bracketed string in the set is still
+    // the owner's, and the thirty-sixth key it fills is the offer's cancel
+    // line, which the set draws under Start on both surfaces that carry the
+    // card. 127 owner-owed, 293 − 36 = 257 awaiting copy,
+    // 202 + 45 = 247 ruled, 622 + 9 = 631 total.
     expect(OWNER_OWED.length).toBe(127);
-    expect(AWAITING_COPY.length).toBe(293);
-    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(202);
-    expect(Object.keys(COPY).length).toBe(622);
+    expect(AWAITING_COPY.length).toBe(257);
+    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(247);
+    expect(Object.keys(COPY).length).toBe(631);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.
@@ -1150,19 +1171,22 @@ describe("the thirteen keys the owner ruled 2026-09-04 (WO-041 `## Log`, this da
     );
   });
 
-  it("the two keys this ruling did not cover still carry no owner sentence", () => {
+  it("the one key this ruling did not cover still carries no owner sentence", () => {
     // `price.vat_included` is unchanged: no surface renders it, so the
     // empty-value throw still guards it.
     expect(COPY["price.vat_included"]).toBe("");
     expect(() => copy("price.vat_included")).toThrow(/owner-owed/);
 
-    // `offer.cancel_self_service` moved to the `TODO(copy)` marker on
-    // 2026-09-05 (issue #13): `BUILD.md` §4.1 module 6 requires the
-    // pricing card to carry it, and an empty value would throw the whole
-    // report screen away rather than show the owner an unwritten line. It
-    // is still unwritten, and this asserts exactly that — the marker, not
-    // a sentence somebody supplied on the owner's behalf.
-    expect(COPY["offer.cancel_self_service"]).toBe(TODO_COPY_MARKER);
-    expect(AWAITING_COPY).toContain("offer.cancel_self_service");
+    // `offer.cancel_self_service` was the other one. It moved to the
+    // `TODO(copy)` marker on 2026-09-05 (issue #13) — §4.1 module 6
+    // requires the pricing card to carry it, and an empty value would have
+    // thrown the whole report screen away — and it is **written now**: the
+    // owner's approved screen set draws it under the Start control on both
+    // surfaces that carry the offer, unbracketed, which ruling 11a of
+    // 2026-09-08 makes approved copy as written (issue #352). Not a
+    // sentence supplied on the owner's behalf: their own.
+    expect(COPY["offer.cancel_self_service"]).toBe("Cancel in one click.");
+    expect(AWAITING_COPY).not.toContain("offer.cancel_self_service");
+    expect(OWNER_OWED).not.toContain("offer.cancel_self_service");
   });
 });

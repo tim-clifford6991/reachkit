@@ -11,16 +11,23 @@
 // the card cannot show the title and drop the "proposed" label
 // (REQ-093 c2).
 //
-// **The control is the outline secondary in accent, not the solid primary**
-// (owner's ruling on issue #291). The report offers two things to do — take
-// the free page, and start the subscription — and tokens.md §9.1 gives a
-// screen one solid accent fill. The subscription is the one that keeps it
-// (`pricing.tsx`), because it is what the screen is for; this card's control
-// keeps the accent in its edge and ink, so it still reads as a call to
-// action and not as an aside. It is the same `--accent`, spent as a border
-// rather than a ground.
+// **The control is solid, and so is the pricing card's** — ruling 2b of
+// 2026-09-08 (`docs/design/approved/full-set/UI-SPEC.md` §1): "two solid
+// primaries per screen are allowed where the artifact draws them (…
+// report: Email me + Start)", which supersedes the master's rulings #290
+// and #291. The report is the one screen with two trades on it — the page
+// it gives away and the subscription — and the owner's own drawing puts a
+// filled control on each. Every *other* rank rule stands: the outline
+// secondary is still what a call to action that is not one of these two
+// takes, and no third solid appears on this screen.
+//
+// **The field beside it asks for an address and nothing else** (REQ-010
+// c1): no account, no password, no payment, no second field. The card is
+// the set's `.card-accent` — the one card the screen is built around,
+// ringed rather than filled.
 import type React from "react";
-import { Badge, Btn, Card } from "@/ui/components";
+import { FileText } from "lucide-react";
+import { Badge, Btn, Card, Input } from "@/ui/components";
 import { CardHead } from "@/ui/idiom";
 import { copy } from "@/lib/presentation/copy";
 import { renderGenerated } from "@/lib/presentation/generated";
@@ -59,15 +66,20 @@ export function FreePageCard(p: { section: FreePageSection }): React.JSX.Element
   return (
     <Card
       state="default"
+      accent
       title={
         <CardHead
+          // `cardHead('file', 'Your first page', …)` — the set's own glyph.
+          icon={<FileText size={15} strokeWidth={1.8} aria-hidden />}
           eyebrow={copy("free-page.title")}
-          pill={<Badge tone="accent">{copy("free-page.of", { total: String(section.totalPages) })}</Badge>}
+          pill={<Badge tone="accent">{copy("free-page.badge")}</Badge>}
         />
       }
     >
-      <p className="text-xs opacity-60">{title.label}</p>
-      <p className="font-bold">{title.text}</p>
+      <p className="t-explain opacity-60">{title.label}</p>
+      {/* The page's own title, at the card-head rung of the ladder — the
+          one headline this module carries (UI-SPEC S2). */}
+      <h3>{title.text}</h3>
       <dl className="flex flex-col">
         <Row label={copy("free-page.row.target")}>
           <Num>
@@ -88,7 +100,27 @@ export function FreePageCard(p: { section: FreePageSection }): React.JSX.Element
           <Num>{section.format}</Num>
         </Row>
       </dl>
-      <Btn label={copy("free-page.submit")} variant="secondary" tone="accent" block />
+      {/* REQ-010 c1's one control, and the field it needs. They sit on one
+          row from `--breakpoint-sm` up and stack below it, which is the
+          set's own `.field` — a wrapping flex row, not a grid. */}
+      <div className="flex flex-wrap items-end gap-2">
+        <div className="min-w-0 flex-1">
+          <Input
+            label={copy("free-page.email.label")}
+            placeholder={copy("free-page.email.placeholder")}
+            name="email"
+            type="text"
+          />
+        </div>
+        <Btn label={copy("free-page.submit")} variant="primary" pill />
+      </div>
+      {/* "That's page 1 of N we found for you." — the total the card
+          carries, in its own sentence rather than as a bare figure. */}
+      {/* A mono phrase: a sentence with a count inside it, which wraps at
+          its spaces like any other line. */}
+      <p className="t-explain opacity-60">
+        <Num phrase>{copy("free-page.of", { total: String(section.totalPages) })}</Num>
+      </p>
     </Card>
   );
 }

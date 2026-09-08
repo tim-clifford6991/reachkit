@@ -27,9 +27,32 @@ import { FIXTURE_DEGRADED_REPORT, FIXTURE_REPORT } from "@/app/(public)/scan/[do
 /** Every key this screen's own modules name. Transcribed here rather than
  *  read out of the source, so a key silently dropped from a module fails
  *  this list rather than shrinking it. */
+/**
+ *  **Nine keys came off this list in #352**, deliberately, and the list is
+ *  shorter rather than the modules being wrong.
+ *
+ *  Five went when the two cards' rows became §2.4's own drawings rather
+ *  than hand-built listings: `ai-answers.matrix.column.domain` / `.cited`
+ *  / `.empty` and `presence.occupancy.column.domain` / `.count`.
+ *
+ *  Four more went with the approved screen set (S2). `presence.occupancy`
+ *  and `ai-answers.customer-citations` each restated a count the drawing
+ *  already labels on the row it belongs to — REQ-008 c3 asks for the
+ *  customer's presence "exactly once … with no restatement of that count
+ *  anywhere else on the card" — and `presence.legend` /
+ *  `ai-answers.legend` are legends for drawings that have none, because
+ *  §2.4 direct-labels every mark instead.
+ *
+ *  All nine stay declared in the registry: the owner may still write them
+ *  for a listing elsewhere, and deleting a key moves `registry.test.ts`'s
+ *  pinned totals. They are named in the PR.
+ */
 const SCREEN_KEYS: readonly CopyKey[] = [
-  // 1 · verdict strip
+  // 1 · the header card
   "report.measured-at",
+  "report.measured-at.no-category",
+  "verdict.score.label",
+  "verdict.not-your-market",
   "verdict.limiting.foundations",
   "verdict.limiting.answerability",
   "verdict.limiting.presence",
@@ -48,12 +71,7 @@ const SCREEN_KEYS: readonly CopyKey[] = [
   "ai-answers.title",
   "ai-answers.source",
   "ai-answers.denominator",
-  "ai-answers.customer-citations",
-  "ai-answers.legend",
   "ai-answers.method",
-  "ai-answers.matrix.column.domain",
-  "ai-answers.matrix.column.cited",
-  "ai-answers.matrix.empty",
   "ai-answers.questions.title",
   "ai-answers.questions.show-all",
   "ai-answers.question.not-you",
@@ -72,11 +90,7 @@ const SCREEN_KEYS: readonly CopyKey[] = [
   // 2b · Google presence
   "presence.title",
   "presence.source",
-  "presence.occupancy",
-  "presence.legend",
   "presence.no-rivals",
-  "presence.occupancy.column.domain",
-  "presence.occupancy.column.count",
   "presence.absent-from.title",
   "presence.absent-from.column.search",
   "presence.absent-from.column.volume",
@@ -99,6 +113,7 @@ const SCREEN_KEYS: readonly CopyKey[] = [
   "severity.mid",
   "severity.high",
   // 4 · DIY collapses
+  "method.title",
   "method.blocked-readers.title",
   "method.blocked-readers.body",
   "method.missing-pages.title",
@@ -107,7 +122,10 @@ const SCREEN_KEYS: readonly CopyKey[] = [
   "method.unquotable-pages.body",
   // 5 · free page
   "free-page.title",
+  "free-page.badge",
   "free-page.of",
+  "free-page.email.label",
+  "free-page.email.placeholder",
   "free-page.row.target",
   "free-page.target.value",
   "free-page.row.beats",
@@ -148,6 +166,8 @@ const SCREEN_KEYS: readonly CopyKey[] = [
   "stage.checking_your_presence",
   "stage.asking_the_twelve",
   "stage.scoring",
+  "stage.elapsed",
+  "scan.waiting.line",
 ];
 
 describe("every sentence this screen speaks is a key in the registry", () => {

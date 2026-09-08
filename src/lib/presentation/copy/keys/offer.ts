@@ -38,7 +38,10 @@ export const OFFER_COPY = Object.freeze({
   // an unwritten line. Still the owner's sentence. `price.vat_included`
   // is untouched: no module renders it — `price.interval`'s own ruled
   // string already says "per month, VAT included".
-  "offer.cancel_self_service": ["TODO(copy)", { slots: {}, fixedBy: "REQ-021 c2" }],
+  // The approved screen set draws this line under the Start control on
+  // both surfaces that carry the offer, unbracketed — approved copy as
+  // written (ruling 11a, 2026-09-08; issue #352).
+  "offer.cancel_self_service": ["Cancel in one click.", { slots: {}, fixedBy: "REQ-021 c2" }],
   "offer.start": ["Start ReachKit", { slots: {}, fixedBy: "REQ-021 c4" }],
 
   // 2026-09-06, issue #34: the plan's own name, which §4.7's Billing card
