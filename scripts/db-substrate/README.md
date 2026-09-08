@@ -79,8 +79,17 @@ prove is this run's.
 `--run` names the run after the current directory — on this layout, the
 worktree — so each implementer gets **one** database and reuses it rather
 than accumulating one per invocation. `--run <id>` names it explicitly.
-The database is `reachkit_scratch_<id>` and the three service ports are
-derived from the same id, so two worktrees never share a port or a row.
+The database is `reachkit_scratch_<id>` and the run's **four** service ports
+are derived from the same id, so two worktrees never share a port or a row.
+
+Four, not three (issue #296): the stack binds one port for PostgREST, one for
+the proxy and **two** for postgres-meta — its server on `PG_META_PORT` and an
+admin app on `PG_META_PORT + 1`, which the package hard-codes and no setting
+can move. Reserving three put that fourth port on the *next* offset's
+PostgREST, so every pair of adjacent offsets collided by construction: run
+`issue-291` bound 3554 and run `issue-244` reserved it. A run's block is now
+`3200 + offset × 4` through `+ 3`, offsets 0-199, so the whole scheme lives in
+3200-3999.
 **No lock is needed for the database.** The interim `flock /tmp/layout.lock`
 rule this replaced is no longer necessary *for isolation* — though on a box
 running several implementers it is still worth holding for **memory**, since
@@ -93,8 +102,8 @@ bindings and fall back to the shared substrate's values when there are
 none, so a run with no `--run` behaves exactly as it did before.
 
 Without `--run` it uses the shared `reachkit_scratch` on `:3001`/`:3002`/
-`:8090`. **That is what CI does** — one job, one runner, one database — and
-CI passes no flag.
+`:8090` (postgres-meta's admin app takes `:8091` with it). **That is what CI
+does** — one job, one runner, one database — and CI passes no flag.
 
 ### What `up.sh` starts
 
@@ -112,8 +121,19 @@ the `supabase/postgres-meta:v0.99.0` image, same version number, emits
 `Json` where the package emits `NonNullable<Json>` for a not-null `jsonb`
 column, and the staleness check diffs those bytes.
 
-A service whose port already answers is left alone, so re-running `up.sh`
-for the same id finds its own services and returns their bindings.
+### Reuse is by recorded pid, never by liveness
+
+Re-running `up.sh` for the same run finds its own services through the state
+file — a pid it recorded, checked against `/proc/<pid>/cmdline` — and returns
+their bindings. A port answered by anything **else** stops the script, naming
+the port, the pid holding it and the run whose state file claims it. It never
+adopts: "something answers :3002, so it must be mine" is what pointed one
+run's reads at another run's database, and #296 removed the last three places
+this file still asked that question. The shared stack (no `--run`) is recorded
+and reused the same way, and `down.sh --run shared` stops it.
+
+A start that fails part-way stops what it had already started, so a partial
+stack is never left for `reap.sh` to find later.
 
 ## Keys
 
