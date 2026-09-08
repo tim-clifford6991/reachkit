@@ -567,22 +567,23 @@
   min-width: 0;
 }
 
-/* The display headline. It is the one size on this page above `--t-h1`,
- * and it steps down to the h1 rung at the compact band — the same rule
- * `type.css` applies to every h1 since #258. */
+/* The hero's headline. **It sets no size**, and that is ruling 10a applied
+ * rather than ignored: the approved set writes this line at a bare 46px,
+ * the ruled ladder's top rung is `--t-h1` 31px (25px below
+ * `--breakpoint-sm`, #258), and 10a says "every literal in the artifact
+ * resolves to the token ladder". So the element keeps its own step — which
+ * `src/ui/type.css` already gives every `h1` — and this class carries what
+ * the drawing adds and the ladder does not fix: the display weight, the
+ * tighter tracking, the balance, and no margin.
+ *
+ * `tests/ui/layout/heading-scale.test.ts` measures every rendered heading
+ * against its own step, and it is the check that would catch a 46 here. */
 .rk-hero-h {
-  font-size: var(--t-h1);
   font-weight: 800;
   letter-spacing: -0.03em;
-  line-height: 1.1;
+  line-height: 1.25;
   margin: 0;
   text-wrap: balance;
-}
-
-@media (min-width: 640px) {
-  .rk-hero-h {
-    font-size: var(--t-hero);
-  }
 }
 
 .rk-hero-s {
@@ -677,10 +678,20 @@
   margin: 0;
 }
 
+/* Three across, and one column below `--breakpoint-sm`: a third of a
+ * 320px frame is 85px, and "Discoverability Score" does not fit it — the
+ * label would be clipped, which is what ADR-093's check 3 refuses. The set
+ * draws the frame at one width; this is that drawing given a narrow arm. */
 .rk-shot-tiles {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--s-3);
+}
+
+@media (min-width: 640px) {
+  .rk-shot-tiles {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .rk-shot-tile {
@@ -831,8 +842,12 @@
   }
 }
 
+/* The Step card's title. **It sets no size**, for `.rk-hero-h`'s reason:
+ * the set draws it as an `<h3>` at the h4 rung, and in this product the
+ * ruled scale is bound to the element (#258) and measured by
+ * `tests/ui/layout/heading-scale.test.ts`. The element keeps its own step;
+ * what this carries is the weight and the margin. */
 .rk-step-h {
-  font-size: var(--t-h4);
   font-weight: 700;
   color: var(--ink);
   margin: 0;

@@ -58,7 +58,24 @@ export function Mark(p: {
       <rect x={p.x} y={p.y} width={p.width} height={p.height} fill={SVG.hitArea} />
       <g className="rk-tip">
         <rect x={chip.x} y={chip.y} width={chip.width} height={chip.height} rx={3} fill={CHART_INK.tipFill} />
-        <text className="num" x={chip.textX} y={chip.textY} fontSize={CHART.tipTextSize} fill={CHART_INK.tipText}>
+        {/* `textLength` is the fit, not the estimate: the chip is sized
+            from `CHART.tipCharAdvance` and the text is then drawn to
+            exactly the width that leaves, so a face wider than the estimate
+            cannot push a tooltip past the edge of its own viewBox (issue
+            #351 — that is a `<g>` escaping its `<svg>`, which the layout
+            sweep's check 2 reports). `spacingAndGlyphs` rather than the
+            default `spacing`: at a tenth of a unit per character, squeezing
+            the glyphs with the gaps is what keeps a mono chip looking
+            mono. */}
+        <text
+          className="num"
+          x={chip.textX}
+          y={chip.textY}
+          fontSize={CHART.tipTextSize}
+          fill={CHART_INK.tipText}
+          textLength={chip.width - CHART.tipPadX * 2}
+          lengthAdjust={SVG.fitGlyphs}
+        >
           {p.tip}
         </text>
       </g>
