@@ -133,7 +133,16 @@ describe("design/tokens.md §2b — the two breakpoints, pinned against BAND_MIN
   });
 
   it("the panel is 290px — §4.6's own number — and neither grows nor shrinks", () => {
-    expect(declared(PANEL_CSS, "--w-day-panel")).toBe("290px");
+    // The 290 is `--w-day-panel`, one of ruling 10a's six additions, so
+    // since issue #349 it is declared once in `theme.css` and this sheet
+    // reads it. The value is asserted there; what is asserted here is that
+    // the panel spends it as a fixed basis.
+    const theme = readFileSync(
+      path.resolve(import.meta.dirname, "../../src/ui/theme.css"),
+      "utf8"
+    );
+    expect(theme).toMatch(/--w-day-panel:\s*290px;/);
+    expect(declared(PANEL_CSS, "--w-day-panel")).toBeUndefined();
     expect(PANEL_CSS).toContain("flex: 0 0 var(--w-day-panel)");
   });
 

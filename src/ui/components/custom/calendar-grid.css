@@ -15,14 +15,14 @@
  * ADR-093 decision 6's sweep. `minmax(0, 1fr)` removes that floor, and the
  * cell's own `overflow-wrap` is then what keeps the text inside it.
  *
- * SPACING AND TYPE STEPS. `design/tokens.md` §1's spacing scale and §2b's
- * `--w-cell-min` were ruled by the owner on 2026-09-02 but have no home in
- * this repository yet: `src/ui/theme.css` is `BUILD.md` §2.1 verbatim and
- * `tests/ui/tokens.test.ts` refuses any token §2.1 does not state. They are
- * therefore transcribed here, scoped to `.rk-cal` rather than `:root`, in
- * exactly the shape `src/ui/layout/shell.css` already uses for the same
- * reason. Their proper home is the design system's own order (issue #12);
- * moving them there costs this block.
+ * SPACING AND THE CELL FLOOR. The spacing steps used to be transcribed here,
+ * scoped to `.rk-cal`, because `src/ui/theme.css` was `BUILD.md` §2.1
+ * verbatim and a test refused any token §2.1 did not state. Issue #349
+ * removed that exception — the approved set is the whole ladder and
+ * `theme.css` carries it — so the second copies are gone. `--w-cell-min`
+ * stays, because the approved set names no such measure: it is this
+ * component's own floor, composed from the ladder (`--s-6` × 3) rather than
+ * written as a bare 96.
  *
  * A media query prelude cannot read a `var()`, so ruling 10a's 768px
  * is written literally below and pinned back against `design/tokens.md`
@@ -30,11 +30,6 @@
  */
 
 .rk-cal {
-  /* design/tokens.md §1, owner ruling 2026-09-02 — transcribed, not chosen. */
-  --s-1: 4px;
-  --s-2: 8px;
-  --s-3: 12px;
-
   /* design/tokens.md §2b: "`--w-cell-min` `96px` — one cell of a
    * seven-across grid. It must hold a two-digit mono date …, the widest
    * registered stage chip ("Your review"), and one line of page label …

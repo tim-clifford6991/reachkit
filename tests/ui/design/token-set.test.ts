@@ -14,8 +14,22 @@
 // because all three failures are real: a token here and not there is a value
 // nobody approved, a token there and not here is a rule nothing enforces,
 // and a name that matches at a different value is the drift that looks green.
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { APPROVED_TOKENS_CSS, type Block, THEME_CSS, tokenSet } from "./tokens-doc";
+import { approvedTokens, APPROVED_TOKENS_CSS, type Block, THEME_CSS, tokenSet } from "./tokens-doc";
+
+const SRC = path.resolve(import.meta.dirname, "../../../src");
+
+/** Every `.css` file under `src/`. */
+function cssFiles(dir: string = SRC, out: string[] = []): string[] {
+  for (const entry of readdirSync(dir)) {
+    const full = path.join(dir, entry);
+    if (statSync(full).isDirectory()) cssFiles(full, out);
+    else if (entry.endsWith(".css")) out.push(full);
+  }
+  return out;
+}
 
 const BLOCKS: readonly Block[] = ["light", "dark-media", "dark-toggle"];
 
@@ -63,6 +77,33 @@ describe("issue #349 — theme.css is the approved token file", () => {
     expect(approved.light.size).toBe(53);
     expect(declared.light.size).toBe(53);
     expect([...declared["dark-media"]].sort()).toEqual([...declared["dark-toggle"]].sort());
+  });
+
+  it("no other stylesheet declares an approved token — one name, one home", () => {
+    // The diff above is only worth its green run if `theme.css` is the only
+    // declaration. Until this issue three sheets carried scoped copies of
+    // the spacing ladder and the day-panel width, each with the same note:
+    // `theme.css` was §2.1 verbatim and refused a token §2.1 did not state,
+    // so a component that needed a step declared its own. That exception is
+    // gone with the rule that created it, and a second copy of an approved
+    // value is exactly the drift this file exists to catch.
+    //
+    // A sheet may still declare a name the approved set does **not** carry —
+    // `--grid-week`, `--w-cell-min`, `--border-hair`, the idiom's two
+    // compositions — because those are its own, and the set never named
+    // them. What it may not do is redeclare one the owner approved.
+    const approved = approvedTokens();
+    const offenders: string[] = [];
+    for (const file of cssFiles()) {
+      if (path.resolve(file) === path.resolve(THEME_CSS)) continue;
+      const source = readFileSync(file, "utf8");
+      for (const [, token] of source.matchAll(/^\s*(--[a-z0-9-]+)\s*:/gm)) {
+        if (approved.has(token!)) {
+          offenders.push(`${path.relative(path.resolve(SRC, ".."), file)}: ${token}`);
+        }
+      }
+    }
+    expect(offenders, `a second home for an approved token:\n${offenders.join("\n")}`).toEqual([]);
   });
 
   it("no token is defined only in a dark block", () => {
