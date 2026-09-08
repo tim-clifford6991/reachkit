@@ -81,7 +81,15 @@ for (const [id, files] of [...srcMarkers, ...testMarkers]) {
 const routeFiles = walk("src/app", (f) => /\/(page|route)\.tsx?$/.test(f));
 for (const f of routeFiles) {
   let r = f.replace(/^src\/app/, "").replace(/\/(page|route)\.tsx?$/, "") || "/";
-  r = r.replace(/\/\([^)]+\)/g, "").replace(/\[([^\]]+)\]/g, "{$1}") || "/";
+  // A catch-all segment is `[[...slug]]` on disk. The single-bracket rewrite
+  // below turns that into `{[...slug}]` — a string no document can contain, so
+  // the route could never be found however BUILD.md spelled it (issue #378).
+  // Optional catch-alls collapse first, then catch-alls, then plain segments.
+  r = r
+    .replace(/\/\([^)]+\)/g, "")
+    .replace(/\[\[\.\.\.([^\]]+)\]\]/g, "{...$1}")
+    .replace(/\[\.\.\.([^\]]+)\]/g, "{...$1}")
+    .replace(/\[([^\]]+)\]/g, "{$1}") || "/";
   const specced = build.includes("`" + r + "`") || build.includes(r + " ") || build.includes(r + "\n") || build.includes(r + "`");
   add("routes", specced ? "OK" : "UNSPECCED", r, specced ? f : `${f} — route not named anywhere in BUILD.md`);
 }
@@ -127,7 +135,24 @@ const pins = existsSync(path.join(ROOT, "tests/pins.test.ts"));
 add("pins", pins ? "OK" : "MISSING", "tests/pins.test.ts", pins ? "present" : "BUILD §1 and vitest.config.ts name it; it does not exist");
 const priceBook = [...build.matchAll(/^\| `([A-Z_ \/]+)` \| ([^|]+) \|$/gm)].map((m) => m[1].split("/").map((s) => s.trim()));
 for (const names of priceBook) {
-  const found = names.some((nm) => new RegExp(`\\b${nm.replace(/_/g, "_")}\\b`).test(constantsSrc));
+  // The book names a value; `constants.ts` names the *identifier that holds*
+  // it, and its convention adds a unit suffix — `_C` for cents — which is
+  // information the book's name does not carry. `SERP_LIVE` is pinned as
+  // `SERP_LIVE_C`, and the caps live in a `CAPS` object as `FREE_C` rather
+  // than `CAP_FREE`. A `\b` match sees neither, so every price row read as
+  // UNPINNED while all five were in fact pinned (issue #378).
+  //
+  // Renaming the constants to the book's spelling would delete the unit from
+  // the identifier, so the audit learns the convention instead: a book name
+  // matches itself, itself plus a unit suffix, or — for a `CAP_X` row — the
+  // `X` the `CAPS` object holds.
+  const aliases = (nm) => {
+    const bare = nm.replace(/^CAP_/, "");
+    return [nm, `${nm}_C`, bare, `${bare}_C`];
+  };
+  const found = names.some((nm) =>
+    aliases(nm).some((alias) => new RegExp(`\\b${alias}\\b`).test(constantsSrc))
+  );
   if (!found) add("pins", "UNPINNED", names.join(" / "), "named in BUILD §6.1 price book, no identifier of that name in constants.ts (may be pinned under another name — say which, or rename)");
 }
 
