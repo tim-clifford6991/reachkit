@@ -75,6 +75,18 @@ const SPECIMEN_SCORE = 62;
 /** REQ-004's own denominator — the score is out of one hundred. */
 const SPECIMEN_MAX = 100;
 
+/** The glass card's inverse pill: the specimen's measured change since its
+ *  last measurement, or `null` where there is none.
+ *
+ *  `null` today, and stated rather than left out: `FIXTURE_REPORT`'s verdict
+ *  carries `scoreAndBand` and no previous score, so nothing has measured a
+ *  delta for this domain. The pill is omitted rather than filled — a
+ *  "+6 pts est." shown to a stranger who has not signed in would be a number
+ *  the product invented, which is the very thing `design/tokens.md` §9.4
+ *  raises about this panel. The day a measured delta exists, this constant
+ *  reads it and the pill appears with no other change. */
+const SPECIMEN_DELTA: string | null = null;
+
 type SignInSearchParams = Partial<Record<typeof LINK_QUERY_KEY, string>>;
 
 /** The one written line each answer reaches for (REQ-098 criteria 3 and 6;
@@ -207,7 +219,22 @@ export default function SignInPage(props: {
             <h2 className="rk-on-accent-h1">{copy("signin.panel.heading")}</h2>
             <div className="rk-glass">
               <p className="rk-prov num">{SPECIMEN_DOMAIN}</p>
-              <p>{copy("signin.panel.score-label")}</p>
+              {/* The idiom's glass card puts an inverse pill — `--ink` on
+                  `--surface` — at the right of this row, drawn as "+6 pts
+                  est." (issue #298). **It is omitted here, and that is the
+                  ruling followed rather than a gap**: the pill shows the
+                  specimen's measured delta where one exists, and the
+                  reserved fixture's verdict carries a score and no previous
+                  score, so there is no delta to show. A number in that pill
+                  would be one the product invented and showed to a stranger,
+                  which is what §9.4's whole question is about. The row keeps
+                  its label alone until a measured delta exists. */}
+              <div className="rk-between">
+                <p>{copy("signin.panel.score-label")}</p>
+                {SPECIMEN_DELTA === null ? null : (
+                  <span className="rk-pill-inverse num">{SPECIMEN_DELTA}</span>
+                )}
+              </div>
               <p className="rk-figure">
                 <span className="rk-figure-big num">{SPECIMEN_SCORE}</span>
                 <span className="rk-figure-of num">{`/${SPECIMEN_MAX}`}</span>

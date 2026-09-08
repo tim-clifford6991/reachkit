@@ -34,6 +34,8 @@
 import type React from "react";
 import { AiDotMatrixChart, type AiDotMatrixCellState, type AiDotMatrixRow } from "@/ui/charts";
 import type { AnswerCell } from "@/lib/market/questions/matrix";
+import { Search } from "lucide-react";
+import { Badge } from "@/ui/components/Badge";
 import { CardHead } from "@/ui/idiom";
 import { copy } from "@/lib/presentation/copy";
 import { FIXTURE_REPORT } from "../scan/[domain]/_fixture/states";
@@ -80,21 +82,42 @@ function specimenRows(): readonly AiDotMatrixRow[] {
   return [you];
 }
 
+/** The `bad`-toned head pill: how many of the measured searches this domain
+ *  is absent from, as `n/of`, in the mono numeral face. `null` where the
+ *  presence module measured nothing — the pill is then omitted rather than
+ *  drawn empty or filled with a number nobody measured. */
+function absentFromCount(): React.ReactNode | null {
+  const presence = FIXTURE_REPORT.presence;
+  if (presence === null) return null;
+  return (
+    <span className="num">{`${presence.absentFrom.length}/${presence.measuredSearches}`}</span>
+  );
+}
+
 export function HeroSpecimen(): React.JSX.Element {
   const answers = FIXTURE_REPORT.aiAnswers;
   const rows = specimenRows();
+  const absentFrom = absentFromCount();
   if (answers === null || rows.length === 0) return <></>;
 
   return (
     // An island of `--surface` inside the accent ground — the component in
     // its own theme, exactly as a customer meets it after paying.
     <div className="rk-hero-specimen" data-testid="landing-specimen">
-      {/* No pill. The idiom's head shows one here, reading the report's own
-          "not you" badge out of the corpus mock — v3 has no such key, and
-          minting one would be a twenty-sixth owed string this issue's list
-          does not have. The head's `pill` slot is optional and stays empty
-          until the owner writes that line. */}
-      <CardHead eyebrow={copy("landing.hero.specimen.label")} />
+      {/* The idiom draws `Search` here, and a `bad`-toned pill beside it
+          (issue #298). The pill is the fixture's **absent-from count** —
+          the searches where rivals rank and this domain does not — rendered
+          from the specimen's own data rather than from a literal: the
+          archive's pill reads a bracketed owed string, and minting one
+          would be a sentence nobody wrote. A count is not a sentence.
+          It is not the matrix's own row count restated either: that is
+          citations in AI answers, this is absence from search results, and
+          they are two facts. */}
+      <CardHead
+        icon={<Search size={16} strokeWidth={2} aria-hidden />}
+        eyebrow={copy("landing.hero.specimen.label")}
+        pill={absentFrom === null ? undefined : <Badge tone="bad">{absentFrom}</Badge>}
+      />
       <AiDotMatrixChart
         rows={rows}
         // Every cell is identified by its column and its row, never by

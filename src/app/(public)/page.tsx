@@ -31,6 +31,7 @@
 // interactive part, the field and its control, is `ScanForm` (a client
 // component, extracted here unchanged).
 import type React from "react";
+import { ArrowRight } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { CardHead, IdiomCard } from "@/ui/idiom";
 import { copy } from "@/lib/presentation/copy";
@@ -90,9 +91,13 @@ export default function LandingPage(props: {
         {/* ══ 2 · WHAT IT DOES FOR THEM ════════════════════════════════
             Three cards, each leading with its own line — §2.5's "every card
             leads with the answer", where the answer here is the sentence.
-            The chip glyph is the same on all three on purpose: three
-            different icons would assign meaning to three cards whose copy is
-            not written yet, and an icon that means something is a claim. */}
+            The chip glyph is the same on all three on purpose, and it is
+            the archive's own choice (issue #298): "the icon is the SAME on
+            all three on purpose — three different icons would assign
+            meaning to three cards whose copy is not written yet, and an
+            icon that means something is a claim. The three icons are owed
+            alongside L16–L21." So `ArrowRight` stands on all three until
+            the owner writes those cards and names their icons. */}
         <section className="col-span-full rk-section">
           <div className="rk-section-in">
             <div className="rk-section-read">
@@ -100,13 +105,34 @@ export default function LandingPage(props: {
               <h2>{copy("landing.does.heading")}</h2>
             </div>
             <div className="rk-three">
-              <IdiomCard head={<CardHead eyebrow={copy("landing.does.item-1.title")} />}>
+              <IdiomCard
+                head={
+                  <CardHead
+                    icon={<ArrowRight size={16} strokeWidth={2} aria-hidden />}
+                    eyebrow={copy("landing.does.item-1.title")}
+                  />
+                }
+              >
                 <p className="rk-quiet">{copy("landing.does.item-1.line")}</p>
               </IdiomCard>
-              <IdiomCard head={<CardHead eyebrow={copy("landing.does.item-2.title")} />}>
+              <IdiomCard
+                head={
+                  <CardHead
+                    icon={<ArrowRight size={16} strokeWidth={2} aria-hidden />}
+                    eyebrow={copy("landing.does.item-2.title")}
+                  />
+                }
+              >
                 <p className="rk-quiet">{copy("landing.does.item-2.line")}</p>
               </IdiomCard>
-              <IdiomCard head={<CardHead eyebrow={copy("landing.does.item-3.title")} />}>
+              <IdiomCard
+                head={
+                  <CardHead
+                    icon={<ArrowRight size={16} strokeWidth={2} aria-hidden />}
+                    eyebrow={copy("landing.does.item-3.title")}
+                  />
+                }
+              >
                 <p className="rk-quiet">{copy("landing.does.item-3.line")}</p>
               </IdiomCard>
             </div>
