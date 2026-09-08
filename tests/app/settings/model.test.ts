@@ -36,6 +36,26 @@ function readableFacts(): Extract<SettingsFacts["billing"], { readable: true }> 
   return billing;
 }
 
+describe("the model is pure — the same facts give the same screen (issue #304)", () => {
+  it("takes the moment it is read at from its facts, never from the clock", () => {
+    // `assembleSettings` used to compute `wouldTakeEffectOn` from a
+    // `new Date()` of its own, which made the function's own header — "pure:
+    // facts in, model out" — untrue, and made the settings screen render a
+    // different date on a different week with nothing changed.
+    //
+    // Two moments a fortnight apart, one fact different: a model that reads
+    // the clock returns the same date for both and fails here.
+    const early = assembleSettings({ ...FACTS, now: new Date("2026-09-15T14:00:00.000Z") });
+    const later = assembleSettings({ ...FACTS, now: new Date("2026-09-29T14:00:00.000Z") });
+    expect(early.market.wouldTakeEffectOn).not.toBe(later.market.wouldTakeEffectOn);
+  });
+
+  it("gives the same answer twice for one moment", () => {
+    const facts = { ...FACTS, now: new Date("2026-09-15T14:00:00.000Z") };
+    expect(assembleSettings(facts)).toEqual(assembleSettings(facts));
+  });
+});
+
 describe("REQ-070 c1 — the model carries a value for each settable key and nothing else a control could bind to", () => {
   const model = assembleSettings(FACTS);
 
