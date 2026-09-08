@@ -57,14 +57,6 @@ export const CHART = {
   gridlineCount: 2,
   /** Direct labels: name and value, in the mono utility. */
   labelSize: 8.5,
-  /** One mono character's advance at `labelSize`, for sizing the gutter a
-   *  direct label is written in — the same missing-text-metrics problem
-   *  `tipCharAdvance` states, one rung up. **Stated wide on purpose**: the
-   *  gutter may be broader than the name it holds and nothing is wrong,
-   *  and it may not be narrower — a label that overruns its gutter is
-   *  drawn outside the viewBox, which is check 2's `<g>` escaping its
-   *  `<svg>`. JetBrains Mono advances 0.6em; this is 0.635em. */
-  labelCharAdvance: 5.4,
   nameSize: 7.5,
   /** The tooltip: mono, ink-on-bg. */
   tipTextSize: 8,
