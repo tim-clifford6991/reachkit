@@ -2,10 +2,14 @@
 
 This directory is **the** design reference for every screen in the product.
 It is the Claude artifact *ReachKit Screen System*, approved by the owner on
-**2026-09-08** and supplied as the final design; it supersedes the archived
-idiom routes and sheets under
-`archive/sdlc-factory-2026-09-04/corpus/docs/design/`, which are no longer a
-reference for anything (issue #364).
+**2026-09-08** and supplied as the final design. It supersedes the archive's
+**design drawings** — the idiom routes, the walk routes, the WO sheets and
+`tokens.md`'s values under
+`archive/sdlc-factory-2026-09-04/corpus/docs/design/` — and nothing else:
+the archive's `requirements/REQ-*.md`, `decisions/ADR-*.md`, journeys and
+work-orders remain the authoritative detail behind `BUILD.md` and are still
+read first for specifics, which is why every UI issue cites its REQ criteria
+(issue #364).
 
 | file | what it is |
 |---|---|

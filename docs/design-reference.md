@@ -14,14 +14,18 @@ product is built against it.
 The eight screens are `landing`, `report`, `auth`, `setup`, `overview`,
 `calendar`, `draft`, `settings`.
 
-## What is no longer a reference
+## What the archive is, and is not
 
-`archive/sdlc-factory-2026-09-04/corpus/docs/design/` — the idiom routes,
-the preview sheets and `tokens.md`. The owner approved the ReachKit Screen
-System artifact on 2026-09-08 as the final design, and it supersedes all of
-it (issue #364). The archive stays where it is, read-only, as the record of
-how the product got here; it is not what a screen is built from, and
-`tokens.md` is **not** the approved token set.
+The artifact supersedes the archive's **design drawings** and nothing else:
+`archive/sdlc-factory-2026-09-04/corpus/docs/design/`'s idiom routes, walk
+routes, WO sheets and `tokens.md` values are no longer what a screen is
+built from, and `tokens.md` is **not** the approved token set (issue #364).
+
+Everything else in the archive is still authoritative and is still read
+first for specifics — `requirements/REQ-*.md`, `decisions/ADR-*.md`, the
+journeys and the work-orders are the detail behind `BUILD.md`, which is why
+every UI issue cites its REQ criteria. The archive stays read-only either
+way.
 
 > This file was seeded by #364 so that the approved artifact has something
 > pointing at it the day it lands. **Issue #358 owns it** and will expand it
