@@ -1,0 +1,899 @@
+<title>ReachKit Full Screen Set</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+/* ═══════════════════════════════════════════════════════════════════════
+   ReachKit — the complete screen set for approval, 2026-09-08.
+   Built from the owner's approved artifact "ReachKit Screen System"
+   (docs/design/approved/) with the twelve rulings of #357 applied:
+   1b driver bars · 2b two solids · 3a footer · 4c video frame · 5c figures as
+   drawn · 6a "Discoverability Score" · 7a mono numerals · 8a radius 14 ·
+   9a severity + who-does-it · 10a literals snapped to the ladder · 11a
+   artifact strings approved · 12a REQ-mandated controls added.
+   Tokens: docs/design/approved/tokens.css, verbatim. Every size below h4
+   is one of --t-body 15 · --t-sm 13 · --t-xs 12 · --t-explain 11.5 ·
+   --t-eyebrow 11 (10a). Sidebar --w-sidebar 222, panel --w-day-panel 290.
+   ═══════════════════════════════════════════════════════════════════════ */
+:root{
+  --bg:#f6f6f9; --surface:#ffffff; --sunk:#efeff4; --line:#eaeaf1;
+  --ink:#191925; --ink-2:#5e5e73; --ink-3:#9695a8;
+  --accent:#5b4be0; --on-accent:#ffffff; --accent-bg:#eeecfd; --accent-line:#ddd8fa;
+  --ok:#1f8a6b; --ok-bg:#e7f6f0; --ok-line:#d2ede3;
+  --warn:#b8722a; --warn-bg:#fff3e6; --warn-line:#fbe1c6;
+  --bad:#c0432b; --bad-bg:#fdece8; --bad-line:#f8d5cd;
+  --chart-you:#5b4be0; --chart-rival:#787790; --chart-goal:#b8722a;
+  --r-box:14px; --r-field:9px; --r-pill:999px;
+  --shadow-card:0 1px 3px rgb(24 24 48/.045);
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-5:24px; --s-6:32px; --s-7:48px;
+  --font-ui:"Plus Jakarta Sans",ui-sans-serif,system-ui,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --font-num:var(--font-mono); --num-weight:600;
+  --t-body:15px; --t-sm:13px; --t-xs:12px; --t-eyebrow:11px; --t-explain:11.5px; --t-num-big:44px;
+  --h1:31px; --h2:25px; --h3:20px; --h4:16px;
+  --w-wide:1216px; --w-read:704px; --w-form:420px; --w-sidebar:222px; --w-day-panel:290px;
+  --pg-ground:#eceaf2; --pg-ink:#191925; --pg-ink-2:#63627a; --pg-line:#dcd9e6; --pg-panel:#ffffff;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1116; --surface:#161a21; --sunk:#11151b; --line:#242a34;
+    --ink:#dde3eb; --ink-2:#8e99aa; --ink-3:#69738a;
+    --accent:#9bb4ff; --on-accent:#0e1116; --accent-bg:rgb(155 180 255/.12); --accent-line:rgb(155 180 255/.28);
+    --ok:#7bd8b0; --ok-bg:rgb(123 216 176/.12); --ok-line:rgb(123 216 176/.28);
+    --warn:#e6b45a; --warn-bg:rgb(230 180 90/.12); --warn-line:rgb(230 180 90/.28);
+    --bad:#f0907a; --bad-bg:rgb(240 144 122/.12); --bad-line:rgb(240 144 122/.28);
+    --chart-you:#5f7ff2; --chart-rival:#5c6579; --chart-goal:#e6b45a;
+    --shadow-card:0 1px 3px rgb(0 0 0/.45);
+    --pg-ground:#080a0d; --pg-ink:#dde3eb; --pg-ink-2:#8e99aa; --pg-line:#1e232c; --pg-panel:#11151b;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1116; --surface:#161a21; --sunk:#11151b; --line:#242a34;
+  --ink:#dde3eb; --ink-2:#8e99aa; --ink-3:#69738a;
+  --accent:#9bb4ff; --on-accent:#0e1116; --accent-bg:rgb(155 180 255/.12); --accent-line:rgb(155 180 255/.28);
+  --ok:#7bd8b0; --ok-bg:rgb(123 216 176/.12); --ok-line:rgb(123 216 176/.28);
+  --warn:#e6b45a; --warn-bg:rgb(230 180 90/.12); --warn-line:rgb(230 180 90/.28);
+  --bad:#f0907a; --bad-bg:rgb(240 144 122/.12); --bad-line:rgb(240 144 122/.28);
+  --chart-you:#5f7ff2; --chart-rival:#5c6579; --chart-goal:#e6b45a;
+  --shadow-card:0 1px 3px rgb(0 0 0/.45);
+  --pg-ground:#080a0d; --pg-ink:#dde3eb; --pg-ink-2:#8e99aa; --pg-line:#1e232c; --pg-panel:#11151b;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--pg-ground);color:var(--pg-ink);font-family:var(--font-ui);font-size:var(--t-body);line-height:1.55;-webkit-font-smoothing:antialiased}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ── page chrome (preview furniture, --pg-*) ─────────────────────────── */
+.pg{max-width:1400px;margin:0 auto;padding:var(--s-6) var(--s-5) var(--s-7)}
+.pg-title{font-size:var(--h2);font-weight:800;letter-spacing:-.02em;margin:0;text-wrap:balance}
+.pg-sub{margin:var(--s-2) 0 0;color:var(--pg-ink-2);font-size:var(--t-sm);max-width:76ch}
+.pg-sub code,.note code{font-family:var(--font-mono);font-size:var(--t-xs);background:var(--pg-panel);border:1px solid var(--pg-line);border-radius:5px;padding:1px 5px}
+.bar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--pg-ground) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--pg-line);margin-bottom:var(--s-5)}
+.bar-in{max-width:1400px;margin:0 auto;padding:var(--s-3) var(--s-5);display:flex;flex-wrap:wrap;gap:var(--s-4);align-items:center;justify-content:space-between}
+.navwrap{display:flex;gap:var(--s-4);align-items:center;overflow-x:auto;padding-bottom:2px;min-width:0}
+.navgrp{display:flex;align-items:center;gap:var(--s-2);flex:none}
+.navgrp-l{font-size:var(--t-eyebrow);font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--pg-ink-2);opacity:.7;margin-right:2px}
+.navbtn{font:inherit;font-size:var(--t-sm);font-weight:600;color:var(--pg-ink-2);background:var(--pg-panel);border:1px solid var(--pg-line);padding:6px var(--s-3);border-radius:var(--r-pill);cursor:pointer;white-space:nowrap}
+.navbtn:hover{color:var(--pg-ink)}
+.navbtn[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.tog{font:inherit;font-size:var(--t-sm);font-weight:600;color:var(--pg-ink-2);cursor:pointer;background:var(--pg-panel);border:1px solid var(--pg-line);border-radius:var(--r-pill);padding:7px var(--s-4);white-space:nowrap;flex:none}
+.states{display:flex;gap:var(--s-2);justify-content:center;flex-wrap:wrap;margin-bottom:var(--s-3)}
+.states .navbtn{font-family:var(--font-mono);font-weight:500}
+.sid{font-family:var(--font-mono);font-size:var(--t-xs);color:var(--pg-ink-2);text-align:center;margin:0 0 var(--s-3)}
+
+/* ── frame ───────────────────────────────────────────────────────────── */
+.frame{background:var(--bg);border:1px solid var(--pg-line);border-radius:var(--r-box);overflow:hidden;box-shadow:0 24px 60px -28px rgb(24 24 48/.28);min-height:720px;display:flex;flex-direction:column}
+.frame.app{display:grid;grid-template-columns:var(--w-sidebar) 1fr}
+@media (max-width:1024px){.frame.app{grid-template-columns:1fr}}
+
+/* sidebar */
+.side{background:var(--surface);border-right:1px solid var(--line);padding:var(--s-5) var(--s-3);display:flex;flex-direction:column;gap:var(--s-5)}
+@media (max-width:1024px){.side{border-right:0;border-bottom:1px solid var(--line);flex-direction:row;flex-wrap:wrap;align-items:center;gap:var(--s-3)}.side .side-foot{margin-top:0}.side .side-group{display:none}}
+.brand{display:flex;align-items:center;gap:10px;padding:0 var(--s-2)}
+.brand-mark{width:26px;height:26px;border-radius:var(--r-field);background:var(--accent);color:var(--on-accent);display:grid;place-items:center;flex:none}
+.brand-mark svg{width:15px;height:15px}
+.brand-name{font-weight:800;font-size:var(--t-body);letter-spacing:-.02em;color:var(--ink)}
+.acct{background:var(--sunk);border-radius:var(--r-field);padding:10px var(--s-3);display:flex;align-items:center;gap:10px}
+.acct-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none}
+.acct-txt{min-width:0}
+.acct-1{font-family:var(--font-mono);font-size:var(--t-sm);font-weight:600;color:var(--ink);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acct-2{font-family:var(--font-mono);font-size:var(--t-eyebrow);color:var(--ink-3);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.side-group{display:flex;flex-direction:column;gap:2px}
+.side-label{font-size:var(--t-eyebrow);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);padding:0 var(--s-3);margin-bottom:var(--s-2)}
+.nav{display:flex;align-items:center;gap:10px;padding:8px var(--s-3);border-radius:var(--r-field);color:var(--ink-2);font-size:var(--t-sm);font-weight:600;cursor:pointer;border:0;background:none;font-family:inherit;width:100%;text-align:left}
+.nav:hover{background:var(--sunk);color:var(--ink)}
+.nav[aria-current="page"]{background:var(--accent-bg);color:var(--accent)}
+.nav svg{width:15px;height:15px;flex:none}
+.nav .count{margin-left:auto;font-family:var(--font-mono);font-size:var(--t-eyebrow);font-weight:500;color:var(--ink-3)}
+.nav[aria-current="page"] .count{color:var(--accent)}
+.side-foot{margin-top:auto}
+.pub{background:var(--sunk);border-radius:var(--r-field);padding:var(--s-3)}
+.pub-row{display:flex;align-items:center;justify-content:space-between;gap:var(--s-2)}
+.pub-l{font-size:var(--t-eyebrow);font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.switch{width:30px;height:17px;border-radius:var(--r-pill);background:var(--accent);position:relative;flex:none;border:0;cursor:pointer}
+.switch::after{content:"";position:absolute;top:2px;right:2px;width:13px;height:13px;border-radius:50%;background:var(--on-accent)}
+.switch.off{background:var(--line)}
+.switch.off::after{right:auto;left:2px}
+.pub-v{font-size:var(--t-sm);font-weight:600;color:var(--ink);margin-top:6px}
+.pub-n{font-family:var(--font-mono);font-size:var(--t-explain);color:var(--ink-3);margin-top:2px}
+
+/* public chrome */
+.pubbar{background:var(--surface);border-bottom:1px solid var(--line);padding:var(--s-4) var(--s-5);display:flex;align-items:center;justify-content:space-between;gap:var(--s-4);flex-wrap:wrap}
+.main{padding:var(--s-6);display:flex;flex-direction:column;gap:var(--s-5);min-width:0;flex:1}
+.main.pubmain{max-width:var(--w-wide);margin:0 auto;width:100%}
+@media (max-width:640px){.main{padding:var(--s-4)}}
+.foot{background:var(--surface);border-top:1px solid var(--line);padding:var(--s-6) var(--s-5)}
+.foot-in{max-width:var(--w-wide);margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr;gap:var(--s-6)}
+@media (max-width:768px){.foot-in{grid-template-columns:1fr}}
+.foot nav{display:grid;gap:var(--s-2);align-content:start;font-size:var(--t-sm);color:var(--ink-2)}
+.foot nav .eyebrow{margin-bottom:var(--s-1)}
+.fine{font-size:var(--t-xs);color:var(--ink-3);margin:var(--s-2) 0 0;max-width:var(--w-form)}
+
+/* ── the idiom ───────────────────────────────────────────────────────── */
+.card{background:var(--surface);border-radius:var(--r-box);box-shadow:var(--shadow-card);padding:var(--s-5);min-width:0}
+.card-lg{padding:var(--s-6)}
+@media (max-width:640px){.card,.card-lg{padding:var(--s-4)}}
+.card-accent{box-shadow:var(--shadow-card),0 0 0 1.5px var(--accent-line)}
+.card-head{display:flex;align-items:center;gap:10px;margin-bottom:var(--s-5)}
+.chip{width:var(--s-6);height:var(--s-6);border-radius:var(--r-field);background:var(--accent-bg);color:var(--accent);display:grid;place-items:center;flex:none}
+.chip svg{width:15px;height:15px}
+.eyebrow{font-size:var(--t-eyebrow);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.spacer{margin-left:auto}
+.h1{font-size:var(--h1);font-weight:800;letter-spacing:-.02em;color:var(--ink);margin:0;line-height:1.15;text-wrap:balance}
+.h2{font-size:var(--h2);font-weight:800;letter-spacing:-.02em;color:var(--ink);margin:0;line-height:1.2;text-wrap:balance}
+.h3{font-size:var(--h3);font-weight:700;letter-spacing:-.015em;color:var(--ink);margin:0;text-wrap:balance}
+.h4{font-size:var(--h4);font-weight:700;color:var(--ink);margin:0}
+@media (max-width:640px){.h1{font-size:var(--h2)}}
+.body{font-size:var(--t-body);color:var(--ink-2);margin:0}
+.small{font-size:var(--t-sm);color:var(--ink-2);margin:0}
+.explain{font-size:var(--t-explain);color:var(--ink-3);margin:var(--s-2) 0 0}
+.prov{font-family:var(--font-mono);font-size:var(--t-explain);color:var(--ink-3);margin:0}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.num{font-family:var(--font-num);font-variant-numeric:tabular-nums;font-weight:var(--num-weight)}
+
+.pill{font:inherit;font-size:var(--t-sm);font-weight:700;border-radius:var(--r-pill);padding:7px var(--s-4);cursor:pointer;white-space:nowrap;border:1px solid var(--accent-line);background:var(--surface);color:var(--accent);display:inline-flex;align-items:center;gap:6px;justify-content:center}
+.pill:hover{background:var(--accent-bg)}
+.pill-solid{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.pill-solid:hover{filter:brightness(1.08)}
+.pill-quiet{border-color:var(--line);color:var(--ink-2)}
+.pill-quiet:hover{background:var(--sunk);color:var(--ink)}
+.pill-warn{border-color:var(--warn-line);color:var(--warn)}
+.pill-lg{font-size:var(--t-body);padding:11px var(--s-5)}
+.pill-block{width:100%;display:flex}
+.pill svg{width:14px;height:14px}
+
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:var(--t-eyebrow);font-weight:700;border-radius:var(--r-pill);padding:3px 9px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.b-ok{background:var(--ok-bg);color:var(--ok)}
+.b-warn{background:var(--warn-bg);color:var(--warn)}
+.b-bad{background:var(--bad-bg);color:var(--bad)}
+.b-neutral{background:var(--sunk);color:var(--ink-2)}
+.b-accent{background:var(--accent-bg);color:var(--accent)}
+.srcchip{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:var(--t-explain);color:var(--ink-3);background:var(--sunk);border-radius:var(--r-pill);padding:4px 10px}
+
+.rule{height:1px;background:var(--line);margin:var(--s-5) 0}
+.rule-sm{height:1px;background:var(--line);margin:var(--s-4) 0}
+.stack{display:flex;flex-direction:column;gap:var(--s-5)}
+.stack-sm{display:flex;flex-direction:column;gap:var(--s-3)}
+.row{display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s-4)}
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s-4)}
+@media (max-width:1024px){.g2,.g3{grid-template-columns:1fr}}
+.acts{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:var(--s-3)}
+.act{background:var(--accent-bg);border-radius:var(--r-box);padding:var(--s-4);display:flex;gap:var(--s-3);align-items:flex-start}
+.act-warn{background:var(--warn-bg)}
+.act-ico{width:28px;height:28px;border-radius:var(--r-field);background:var(--surface);display:grid;place-items:center;flex:none;color:var(--accent)}
+.act-warn .act-ico{color:var(--warn)}
+.act-ico svg{width:14px;height:14px}
+.act-body{min-width:0;flex:1}
+.act-t{font-size:var(--t-sm);font-weight:700;color:var(--ink);line-height:1.35;display:block}
+.act-d{font-size:var(--t-explain);color:var(--ink-2);margin-top:3px;display:block}
+.act .pill{margin-top:var(--s-3)}
+
+.stat-l{font-size:var(--t-sm);font-weight:600;color:var(--ink-2)}
+.stat-v{font-family:var(--font-num);font-weight:var(--num-weight);font-size:var(--t-num-big);letter-spacing:-.03em;color:var(--ink);line-height:1.05;margin-top:var(--s-2);font-variant-numeric:tabular-nums}
+.stat-row{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.dots{display:flex;gap:5px;margin-top:var(--s-3)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--line)}
+.dot.on{background:var(--accent)}
+.dot.goal{background:none;box-shadow:inset 0 0 0 1.5px var(--chart-goal)}
+
+.field{display:flex;gap:var(--s-2);flex-wrap:wrap}
+.input{flex:1;min-width:200px;font:inherit;font-family:var(--font-mono);font-size:var(--t-sm);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:var(--r-field);padding:12px var(--s-4)}
+.input::placeholder{color:var(--ink-3)}
+.input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+textarea.input{min-height:120px;resize:vertical;font-size:var(--t-sm);line-height:1.6}
+.invalid{font-size:var(--t-sm);color:var(--bad);margin:var(--s-2) 0 0}
+
+/* charts */
+.chart{width:100%;height:150px;display:block;margin-top:var(--s-4)}
+.chart-ax{display:flex;justify-content:space-between;gap:var(--s-3);font-family:var(--font-mono);font-size:var(--t-explain);color:var(--ink-3);margin-top:var(--s-2)}
+.spark{width:100%;min-width:110px;height:34px;display:block}
+.rival{display:grid;grid-template-columns:minmax(64px,1fr) minmax(110px,2.2fr) auto;gap:var(--s-4);align-items:center;padding:var(--s-3) 0;border-top:1px solid var(--line)}
+.rival:first-of-type{border-top:0;padding-top:0}
+@media (max-width:640px){.rival{grid-template-columns:1fr auto;row-gap:var(--s-2)}.rival .spark{grid-column:1/-1;order:3}}
+.rival-n{font-family:var(--font-mono);font-size:var(--t-sm);font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rival-e{display:flex;align-items:center;gap:var(--s-2);justify-content:flex-end}
+.rival-v{font-family:var(--font-num);font-weight:var(--num-weight);font-size:var(--h4);color:var(--ink);font-variant-numeric:tabular-nums}
+.week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:var(--s-2)}
+.day{background:var(--sunk);border-radius:var(--r-field);padding:10px 6px;text-align:center;min-width:0}
+.day-n{font-family:var(--font-mono);font-size:var(--t-sm);font-weight:600;color:var(--ink-2)}
+.day-b{width:100%;height:3px;border-radius:2px;background:var(--line);margin-top:7px}
+.day.done .day-b{background:var(--ok)}
+.day.today{background:var(--accent-bg)}
+.day.today .day-n{color:var(--accent)}
+.day.today .day-b{background:var(--accent)}
+.day.unmeasured .day-b{background:var(--warn)}
+.day.to-come{opacity:.55}
+
+/* occupancy bars */
+.occ{display:flex;flex-direction:column;gap:var(--s-3)}
+.occ-r{display:grid;grid-template-columns:minmax(64px,88px) 1fr auto;gap:var(--s-3);align-items:center}
+.occ-n{font-family:var(--font-mono);font-size:var(--t-sm);color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.occ-t{height:10px;border-radius:var(--r-pill);background:var(--sunk);overflow:hidden}
+.occ-f{height:100%;border-radius:var(--r-pill);background:var(--chart-rival);display:block}
+.occ-r.you .occ-f{background:var(--chart-you)}
+.occ-r.you .occ-n{color:var(--ink);font-weight:600}
+.occ-v{font-family:var(--font-num);font-weight:var(--num-weight);font-size:var(--t-sm);color:var(--ink-2);font-variant-numeric:tabular-nums}
+.occ-r.you .occ-v{color:var(--accent)}
+.occ-r.zero .occ-t{box-shadow:inset 0 0 0 1.5px var(--bad-line)}
+.occ-r.zero .occ-v{color:var(--bad)}
+
+/* dot matrix */
+.mx{display:flex;flex-direction:column;gap:6px;overflow-x:auto}
+.mx-r{display:grid;grid-template-columns:minmax(64px,84px) 1fr auto;gap:var(--s-3);align-items:center;min-width:320px}
+.mx-c{display:flex;gap:5px}
+.cell{width:100%;min-width:14px;height:18px;border-radius:var(--s-1);background:var(--sunk);flex:1}
+.cell.cited{background:var(--chart-rival)}
+.cell.muted{background:var(--sunk);opacity:.5}
+.mx-r.you .cell{background:none;box-shadow:inset 0 0 0 1.5px var(--bad-line)}
+.mx-r.you .mx-n{color:var(--ink);font-weight:700}
+.mx-n{font-family:var(--font-mono);font-size:var(--t-sm);color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mx-v{font-family:var(--font-num);font-weight:var(--num-weight);font-size:var(--t-sm);color:var(--ink-2);font-variant-numeric:tabular-nums}
+.mx-r.you .mx-v{color:var(--bad)}
+
+/* questions */
+.q{padding:var(--s-3) 0;border-top:1px solid var(--line)}
+.q:first-of-type{border-top:0;padding-top:0}
+.q-h{display:flex;gap:var(--s-3);align-items:flex-start}
+.q-n{font-family:var(--font-mono);font-size:var(--t-sm);color:var(--ink-3);flex:none;padding-top:2px}
+.q-t{font-size:var(--t-sm);font-weight:600;color:var(--ink);flex:1;min-width:0}
+.q-p{font-family:var(--font-mono);font-size:var(--t-explain);color:var(--ink-3);margin:5px 0 0 26px}
+
+/* tables */
+.wrapx{overflow-x:auto}
+table.t{border-collapse:collapse;width:100%;font-size:var(--t-sm);min-width:360px}
+table.t th,table.t td{text-align:left;padding:8px var(--s-3);border-bottom:1px solid var(--line)}
+table.t th{font-size:var(--t-eyebrow);text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);font-weight:700}
+table.t td{color:var(--ink-2)}
+table.t td:first-child{font-family:var(--font-mono);color:var(--ink)}
+table.t td.n{font-family:var(--font-num);font-weight:var(--num-weight);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+table.t tr:last-child td{border-bottom:0}
+
+/* problem cards */
+.prob{background:var(--surface);border-radius:var(--r-box);box-shadow:var(--shadow-card);padding:var(--s-5);border-left:4px solid var(--ink-3);min-width:0}
+.prob.sev-ok{border-left-color:var(--ok)}
+.prob.sev-accent{border-left-color:var(--accent)}
+.prob.sev-warn{border-left-color:var(--warn)}
+.prob.sev-bad{border-left-color:var(--bad)}
+pre.code{font-family:var(--font-mono);font-size:var(--t-explain);line-height:1.7;background:var(--sunk);border-radius:var(--r-field);padding:var(--s-3);overflow-x:auto;margin:var(--s-3) 0 0;color:var(--ink-2)}
+
+/* collapses */
+.col{background:var(--surface);border-radius:var(--r-box);box-shadow:var(--shadow-card);overflow:hidden}
+.col+.col{margin-top:var(--s-2)}
+.col summary{padding:var(--s-4) var(--s-5);font-size:var(--t-sm);font-weight:700;color:var(--ink);cursor:pointer;list-style:none;display:flex;align-items:center;gap:var(--s-3)}
+.col summary::-webkit-details-marker{display:none}
+.col summary::after{content:"";margin-left:auto;width:7px;height:7px;border-right:2px solid var(--ink-3);border-bottom:2px solid var(--ink-3);transform:rotate(45deg);transition:transform .18s}
+.col[open] summary::after{transform:rotate(-135deg)}
+.col-b{padding:0 var(--s-5) var(--s-5);font-size:var(--t-sm);color:var(--ink-2)}
+
+/* pricing */
+.spec{display:flex;align-items:center;gap:var(--s-3);padding:9px 0;border-top:1px solid var(--line);font-size:var(--t-sm);color:var(--ink-2)}
+.spec:first-of-type{border-top:0}
+.spec svg{width:15px;height:15px;color:var(--ok);flex:none}
+
+/* setup */
+.pick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s-3)}
+@media (max-width:640px){.pick{grid-template-columns:1fr}}
+.opt{background:var(--surface);border:1.5px solid var(--line);border-radius:var(--r-box);padding:var(--s-4);cursor:pointer;text-align:left;font:inherit;min-width:0}
+.opt:hover{border-color:var(--accent-line)}
+.opt[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-bg)}
+.opt-t{font-size:var(--t-sm);font-weight:700;color:var(--ink);display:flex;align-items:center;gap:var(--s-2)}
+.opt-d{font-size:var(--t-explain);color:var(--ink-2);margin-top:5px;display:block}
+.tag{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:var(--t-sm);background:var(--sunk);color:var(--ink-2);border-radius:var(--r-pill);padding:5px var(--s-3);border:0;cursor:pointer}
+.tag.on{background:var(--accent-bg);color:var(--accent)}
+.tag .x{opacity:.6}
+.steps{display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap}
+.step{display:flex;align-items:center;gap:7px;font-size:var(--t-sm);font-weight:600;color:var(--ink-3)}
+.step .b{width:16px;height:16px;border-radius:50%;background:var(--line);display:grid;place-items:center;color:var(--surface)}
+.step .b svg{width:9px;height:9px}
+.step.done{color:var(--ok)}.step.done .b{background:var(--ok)}
+.step.now{color:var(--accent)}.step.now .b{background:var(--accent)}
+.step-x{width:14px;height:1px;background:var(--line)}
+.stage-list{display:grid;gap:var(--s-3)}
+.stage{display:flex;align-items:center;gap:var(--s-3);font-size:var(--t-sm);color:var(--ink-2)}
+.stage .b{width:18px;height:18px;border-radius:50%;background:var(--line);display:grid;place-items:center;color:var(--surface);flex:none}
+.stage .b svg{width:10px;height:10px}
+.stage.done{color:var(--ink)}.stage.done .b{background:var(--ok)}
+.stage.now{color:var(--accent);font-weight:600}.stage.now .b{background:var(--accent)}
+.stage .t{margin-left:auto;font-family:var(--font-mono);font-size:var(--t-explain);color:var(--ink-3)}
+
+/* calendar */
+.calwrap{display:grid;grid-template-columns:1fr var(--w-day-panel);gap:var(--s-4);align-items:start}
+@media (max-width:1279px){.calwrap{grid-template-columns:1fr}}
+.calgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:var(--s-2)}
+@media (max-width:768px){.calgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.caldow{display:none}}
+.caldow{font-size:var(--t-eyebrow);font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);text-align:center;padding-bottom:var(--s-1)}
+.cd{background:var(--surface);border-radius:var(--r-box);box-shadow:var(--shadow-card);padding:10px;min-height:104px;display:flex;flex-direction:column;gap:6px;cursor:pointer;min-width:0}
+.cd:hover{box-shadow:var(--shadow-card),0 0 0 1.5px var(--accent-line)}
+.cd.today{box-shadow:var(--shadow-card),0 0 0 2px var(--accent)}
+.cd-d{font-family:var(--font-mono);font-size:var(--t-eyebrow);color:var(--ink-3)}
+.cd-t{font-size:var(--t-xs);font-weight:600;color:var(--ink);line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
+.cd.empty{background:none;box-shadow:inset 0 0 0 1px var(--line);cursor:default}
+.cd.empty .cd-d{opacity:.55}
+.cd .badge{font-size:var(--t-eyebrow);padding:2px 6px}
+.panel{background:var(--surface);border-radius:var(--r-box);box-shadow:var(--shadow-card);padding:var(--s-5);position:sticky;top:var(--s-4);min-width:0}
+.why{display:grid;grid-template-columns:auto 1fr;gap:6px var(--s-3);font-family:var(--font-mono);font-size:var(--t-xs);margin:0}
+.why dt{color:var(--ink-3);white-space:nowrap}
+.why dd{margin:0;color:var(--ink);overflow-wrap:anywhere}
+.filters{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:var(--s-3)}
+@media (max-width:1024px){.filters{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* draft */
+.doc{font-size:var(--t-body);line-height:1.7;color:var(--ink-2)}
+.doc h2{font-size:var(--h3);font-weight:700;color:var(--ink);margin:var(--s-5) 0 var(--s-3);letter-spacing:-.015em}
+.doc p{margin:0 0 var(--s-3)}
+.mark{background:var(--ok-bg);box-shadow:0 0 0 1px var(--ok-line);border-radius:var(--s-1);padding:1px 3px;color:var(--ink)}
+.info{background:var(--accent-bg);border-radius:var(--r-box);padding:var(--s-4);font-size:var(--t-sm);color:var(--ink-2)}
+.info b{color:var(--ink)}
+.editor{display:grid;grid-template-columns:1fr 1fr;gap:var(--s-4)}
+@media (max-width:1024px){.editor{grid-template-columns:1fr}}
+.editor textarea{min-height:360px;font-family:var(--font-mono);font-size:var(--t-sm)}
+.gen{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:var(--t-eyebrow);color:var(--ink-3);background:var(--sunk);border-radius:var(--r-pill);padding:2px 8px}
+
+/* login split */
+.split{display:grid;grid-template-columns:1fr 1fr;min-height:720px;flex:1}
+@media (max-width:1024px){.split{grid-template-columns:1fr}.split .rightp{display:none}}
+.leftp{background:var(--surface);display:flex;align-items:center;padding:var(--s-7) var(--s-6)}
+.leftp-in{width:100%;max-width:var(--w-form);margin-left:auto;margin-right:auto}
+@media (min-width:1024px){.leftp-in{margin-right:var(--s-7)}}
+.rightp{position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:center;padding:var(--s-7) var(--s-6);
+  background:radial-gradient(120% 90% at 78% 12%, color-mix(in srgb,var(--accent) 62%, white) 0%, transparent 58%),linear-gradient(155deg, var(--accent) 0%, color-mix(in srgb,var(--accent) 78%, black) 100%)}
+.rightp-h{font-size:var(--h1);font-weight:700;letter-spacing:-.02em;line-height:1.22;color:#fff;margin:0 0 var(--s-6);max-width:15ch;text-wrap:balance}
+.glass{background:rgb(255 255 255/.14);border:1px solid rgb(255 255 255/.22);border-radius:var(--r-box);padding:var(--s-5);max-width:360px;backdrop-filter:blur(8px);box-shadow:0 18px 40px -20px rgb(0 0 0/.35)}
+.glass-d{font-family:var(--font-mono);font-size:var(--t-explain);color:rgb(255 255 255/.6);margin:0 0 var(--s-4)}
+.glass-l{font-size:var(--t-sm);font-weight:600;color:#fff}
+.glass-p{font-family:var(--font-mono);font-size:var(--t-eyebrow);font-weight:500;background:rgb(0 0 0/.28);color:#fff;border-radius:var(--r-pill);padding:3px 8px;white-space:nowrap}
+.glass-n{font-family:var(--font-num);font-weight:var(--num-weight);font-size:46px;letter-spacing:-.03em;color:#fff;line-height:1.05;font-variant-numeric:tabular-nums}
+.glass-o{font-family:var(--font-mono);font-size:var(--h3);color:rgb(255 255 255/.6)}
+.glass-t{height:7px;border-radius:var(--r-pill);background:rgb(255 255 255/.22);margin:var(--s-4) 0 var(--s-3);overflow:hidden}
+.glass-f{height:100%;border-radius:var(--r-pill);background:#fff}
+.glass-x{font-size:var(--t-explain);color:rgb(255 255 255/.78);margin:0;line-height:1.5}
+.linkish{color:var(--accent);font-weight:700;text-decoration:none}
+.linkish:hover{text-decoration:underline}
+
+/* landing */
+.hero{display:grid;grid-template-columns:1fr 1fr;gap:var(--s-7);align-items:center;padding:var(--s-7) 0}
+@media (max-width:1024px){.hero{grid-template-columns:1fr;gap:var(--s-6);padding-top:var(--s-6)}}
+.hero-h{font-size:46px;font-weight:800;letter-spacing:-.03em;line-height:1.1;margin:0;color:var(--ink);text-wrap:balance}
+@media (max-width:640px){.hero-h{font-size:var(--h1)}}
+.hero-s{font-size:var(--h4);font-weight:400;color:var(--ink-2);margin:var(--s-4) 0 0;max-width:46ch}
+.shot{background:var(--surface);border-radius:var(--r-box);box-shadow:0 30px 60px -26px rgb(24 24 48/.32),0 0 0 1px var(--line);overflow:hidden}
+.shot-bar{display:flex;align-items:center;gap:6px;padding:10px var(--s-4);border-bottom:1px solid var(--line);background:var(--sunk)}
+.shot-dot{width:8px;height:8px;border-radius:50%;background:var(--line)}
+.shot-u{font-family:var(--font-mono);font-size:var(--t-eyebrow);color:var(--ink-3);margin-left:var(--s-3)}
+.shot-b{padding:var(--s-4);display:flex;flex-direction:column;gap:var(--s-3)}
+.video{aspect-ratio:16/9;border-radius:var(--r-box);background:var(--sunk);box-shadow:inset 0 0 0 1px var(--line);display:grid;place-items:center;position:relative;overflow:hidden}
+.play{width:66px;height:66px;border-radius:50%;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;box-shadow:0 12px 28px -10px var(--accent)}
+.play svg{width:24px;height:24px;margin-left:3px}
+.sec{padding:var(--s-7) 0;border-top:1px solid var(--line)}
+.sec-n{font-family:var(--font-mono);font-size:var(--t-xs);color:var(--accent);font-weight:500}
+.sec-h{font-size:var(--h2);font-weight:800;letter-spacing:-.025em;margin:var(--s-2) 0 var(--s-3);color:var(--ink);text-wrap:balance}
+.sec-s{font-size:var(--t-body);color:var(--ink-2);margin:0;max-width:56ch}
+
+/* hosted page */
+.hosted{max-width:var(--w-read);margin:0 auto;width:100%;padding:var(--s-7) var(--s-5)}
+.hosted-h{font-size:var(--h1);font-weight:800;letter-spacing:-.02em;line-height:1.15;margin:var(--s-3) 0;color:var(--ink);text-wrap:balance}
+.hosted .doc{font-size:var(--h4);line-height:1.75}
+
+/* mail */
+.mailwrap{max-width:560px;margin:0 auto;width:100%;padding:var(--s-6) var(--s-4)}
+.mail{background:var(--surface);border-radius:var(--r-box);box-shadow:var(--shadow-card);overflow:hidden}
+.mail-h{padding:var(--s-5);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+.mail-b{padding:var(--s-5);display:grid;gap:var(--s-4)}
+.mail-f{padding:var(--s-4) var(--s-5);border-top:1px solid var(--line);font-size:var(--t-explain);color:var(--ink-3);font-family:var(--font-mono);line-height:1.6}
+.mrow{display:grid;grid-template-columns:auto 1fr;gap:6px var(--s-3);font-family:var(--font-mono);font-size:var(--t-sm)}
+.mrow dt{color:var(--ink-3)}.mrow dd{margin:0;color:var(--ink)}
+.subj{font-family:var(--font-mono);font-size:var(--t-xs);color:var(--ink-3);text-align:center;margin:0 0 var(--s-3)}
+
+/* ledger */
+.notes{margin-top:var(--s-6);display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:var(--s-4)}
+.note{background:var(--pg-panel);border:1px solid var(--pg-line);border-radius:var(--r-box);padding:var(--s-5)}
+.note h3{margin:0 0 var(--s-3);font-size:var(--h4);font-weight:700;letter-spacing:-.01em}
+.note p,.note li{margin:0 0 var(--s-3);font-size:var(--t-sm);color:var(--pg-ink-2)}
+.note ul{margin:0;padding-left:18px}
+.note li{margin-bottom:var(--s-2)}
+.note strong{color:var(--pg-ink);font-weight:700}
+.note pre{font-family:var(--font-mono);font-size:var(--t-sm);background:var(--pg-ground);border-radius:var(--r-field);padding:var(--s-3);white-space:pre-wrap;color:var(--pg-ink);margin:0}
+.flag{display:inline-block;font-size:var(--t-eyebrow);font-weight:800;letter-spacing:.06em;text-transform:uppercase;border-radius:var(--s-1);padding:2px 6px;margin-right:6px}
+.f-spec{background:var(--ok-bg);color:var(--ok)}
+.f-new{background:var(--accent-bg);color:var(--accent)}
+.f-owed{background:var(--warn-bg);color:var(--warn)}
+</style>
+
+<div class="bar"><div class="bar-in">
+  <div class="navwrap" id="nav"></div>
+  <button type="button" class="tog" id="theme">Dark</button>
+</div></div>
+
+<div class="pg">
+  <h1 class="pg-title">ReachKit — the complete screen set</h1>
+  <p class="pg-sub">Every essential surface of the product, drawn from your approved <em>ReachKit Screen System</em> with the twelve rulings of 2026-09-08 applied. Twenty-two screens with their states, one idiom. <span class="flag f-spec">spec</span> strings are BUILD/REQ verbatim or approved under 11a; <span class="flag f-new">new</span> marks a surface your artifact did not draw (built in its idiom under 12a); <span class="flag f-owed">owed</span> strings are bracketed and yours. Approve per screen by its id (<code>S1…S22</code>) — see the sign-off block below the frame.</p>
+  <p class="sid" id="sid"></p>
+  <div id="statebar"></div>
+  <div id="stage"></div>
+
+  <div class="notes">
+    <div class="note"><h3>What changed against your artifact</h3><ul>
+      <li><strong>Rulings applied:</strong> 1b driver bars kept · 2b two solids · 3a footer added to every public page · 4c video frame kept · 5c figures as drawn · 6a the number is called “Discoverability Score” on the report head, the Overview tile and in mail · 7a numerals mono (the toggle is gone) · 8a radius 14 everywhere · 9a problem cards carry a severity word and the who-does-it badge · 10a every size sits on the ladder 15/13/12/11.5/11, sidebar 222, panel 290 · 11a your unbracketed strings kept as approved copy.</li>
+      <li><strong>New under 12a</strong> (required by REQ, not in your artifact): Pricing page (REQ-021 c4) · Legal pages · Veto page (REQ-057) · Opt-out page (REQ-010 c11) · Not found · Setup without a report (REQ-021 c7) · Waiting (REQ-029) · Overview first week (REQ-040 c7) · Calendar panel states + empty day (REQ-043/044) · Draft edit + copy-out (REQ-045) · Settings: publish time, time zone, on/off, voice, do-not-claim, domain (REQ-070/073) · Hosted page (REQ-059) · the seven mails (§12, REQ-064).</li>
+      <li><strong>Thesis check:</strong> one headline number per module; every value carries its delta or its goal; charts before tables (the report’s one table is BUILD §4.1’s, kept); no generated prose anywhere except the page ReachKit writes, and it is labelled where it appears; every empty state is one written line, never a spinner.</li>
+    </ul></div>
+    <div class="note"><h3>Open — yours</h3><ul>
+      <li><span class="flag f-owed">owed</span> Every bracketed string, listed per screen in the sign-off.</li>
+      <li>The demo video asset and its caption (4c keeps the frame).</li>
+      <li>The report’s “5 biggest searches you’re absent from” is a table by BUILD §4.1. If “charts instead of tables” should reach it too, say <code>S2 table→bars</code> and it becomes five labelled bars.</li>
+      <li>Setup asks for the site address first only when bought without a report (S9b); with a report it confirms the domain (S9a).</li>
+    </ul></div>
+    <div class="note"><h3>Sign off</h3><p>Approve everything: <code>approve all</code>. Or per screen, e.g. <code>S1 ok · S4 change: drop the FAQ · S13 ok</code>. Screens not named are treated as approved once you say “approve rest”.</p>
+<pre>S1 landing · S2 report · S3 report states · S4 pricing · S5 legal · S6 veto · S7 opt-out · S8 not found
+S9 sign in · S10 setup · S11 waiting
+S12 overview · S13 overview first week · S14 calendar · S15 calendar panel states · S16 draft · S17 draft edit · S18 settings · S19 hosted page
+S20 mails</pre>
+      <p>After your go: the set is landed beside your artifact in <code>docs/design/approved/</code>, the design reference and BUILD §4 are updated to it, and M14 restarts screen by screen against it.</p></div>
+  </div>
+</div>
+
+<script>
+/* ── data: IANA-reserved names; shaped, labelled example values ──────── */
+var DOMAIN="example.com", RIVALS4=["example.org","example.net","example.edu","example.co"];
+var GROWTH=[12,31,44,61,96,128];
+var GAPS=[{n:"example.org",s:[276,240,190,150,110,78],e:"78×",d:"was 276×"},{n:"example.net",s:[180,165,140,120,96,61],e:"61×",d:"was 180×"},{n:"example.edu",s:[90,84,70,61,50,44],e:"44×",d:"was 90×"}];
+var WEEK=[{d:"26",s:"done"},{d:"27",s:"done"},{d:"28",s:"unmeasured"},{d:"29",s:"done"},{d:"30",s:"done"},{d:"01",s:"today"},{d:"02",s:"to-come"}];
+var MATRIX=[{n:"example.org",you:false,c:[1,1,0,1,1,2,1,0,1],v:"6/9"},{n:"example.net",you:false,c:[1,0,1,1,0,2,1,1,0],v:"5/9"},{n:"example.edu",you:false,c:[0,1,1,0,1,2,0,1,1],v:"5/9"},{n:DOMAIN,you:true,c:[0,0,0,0,0,2,0,0,0],v:"0/9"}];
+var OCC=[{n:"example.org",v:9},{n:"example.net",v:7},{n:"example.edu",v:5},{n:"example.co",v:3},{n:DOMAIN,v:0,you:true}];
+var QS=[{n:1,vol:"1,900/mo"},{n:2,vol:"1,300/mo"},{n:3,vol:"880/mo"},{n:4,vol:"720/mo"}];
+var ABSENT=[["2,400/mo","example.org"],["1,600/mo","example.net"],["1,300/mo","example.org"],["890/mo","example.edu"],["540/mo","example.net"]];
+
+var I={
+  trend:'<path d="M3 17 9 11l4 4 8-8"/><path d="M14 7h7v7"/>',
+  spark:'<path d="M12 3v4M12 17v4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M3 12h4M17 12h4M5.6 18.4l2.8-2.8M15.6 8.4l2.8-2.8"/>',
+  users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9"/>',
+  cal:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 11h18"/>',
+  file:'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/><path d="M14 3v5h5"/>',
+  bell:'<path d="M18 9a6 6 0 1 0-12 0c0 6-2 7-2 7h16s-2-1-2-7"/><path d="M10.3 20a2 2 0 0 0 3.4 0"/>',
+  plug:'<path d="M9 2v6M15 2v6M6 8h12v3a6 6 0 0 1-12 0Z"/><path d="M12 17v5"/>',
+  check:'<path d="M4 12.5 9.5 18 20 6"/>',
+  mail:'<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6L22 7"/>',
+  search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  bot:'<rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 14h.01M15 14h.01"/>',
+  lock:'<rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3"/>',
+  card:'<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/>',
+  globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/>',
+  shield:'<path d="M12 3 5 6v5c0 5 3 8 7 10 4-2 7-5 7-10V6Z"/>',
+  pen:'<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+  ban:'<circle cx="12" cy="12" r="9"/><path d="m5.5 5.5 13 13"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  play:'<path d="M7 4.5v15l13-7.5Z" fill="currentColor" stroke="none"/>',
+  copy:'<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>',
+  ext:'<path d="M14 4h6v6M20 4l-9 9"/><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/>'
+};
+function ico(k,w){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="'+(w||1.8)+'" stroke-linecap="round" stroke-linejoin="round">'+I[k]+'</svg>';}
+
+/* ── charts ─────────────────────────────────────────────────────────── */
+function areaChart(vals,label){
+  var W=600,H=150,PL=2,PR=2,PT=10,PB=8,max=Math.max.apply(null,vals)||1;
+  var x=function(i){return vals.length>1?PL+(i*(W-PL-PR))/(vals.length-1):W/2;},y=function(v){return H-PB-(v/max)*(H-PT-PB);};
+  var line='M'+vals.map(function(v,i){return x(i)+' '+y(v);}).join(' L');
+  var area=line+' L'+x(vals.length-1)+' '+(H-PB)+' L'+x(0)+' '+(H-PB)+' Z';
+  return '<svg class="chart" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" role="img" aria-label="'+(label||'Searches you appear in, by week')+'">'
+   +'<defs><linearGradient id="gf" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--chart-you)" stop-opacity=".22"/><stop offset="100%" stop-color="var(--chart-you)" stop-opacity="0"/></linearGradient></defs>'
+   +(vals.length>1?'<path d="'+area+'" fill="url(#gf)"/><path d="'+line+'" fill="none" stroke="var(--chart-you)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>':'')
+   +'<circle cx="'+x(vals.length-1)+'" cy="'+y(vals[vals.length-1])+'" r="4" fill="var(--chart-you)" stroke="var(--surface)" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>';
+}
+function spark(vals){
+  var W=240,H=34,P=5,max=Math.max.apply(null,vals),min=Math.min.apply(null,vals),sp=(max-min)||1;
+  var x=function(i){return P+(i*(W-2*P))/(vals.length-1);},y=function(v){return H-P-((v-min)/sp)*(H-2*P);};
+  var line='M'+vals.map(function(v,i){return x(i)+' '+y(v);}).join(' L');
+  return '<svg class="spark" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" aria-hidden="true"><path d="'+line+'" fill="none" stroke="var(--chart-rival)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/><circle cx="'+x(vals.length-1)+'" cy="'+y(vals[vals.length-1])+'" r="3.5" fill="var(--chart-you)" stroke="var(--surface)" stroke-width="1.5" vector-effect="non-scaling-stroke"/></svg>';
+}
+
+/* ── shared pieces ─────────────────────────────────────────────────── */
+function cardHead(icon,label,right){return '<div class="card-head"><span class="chip">'+ico(icon)+'</span><span class="eyebrow">'+label+'</span>'+(right?'<span class="spacer"></span>'+right:'')+'</div>';}
+function brand(){return '<div class="brand"><span class="brand-mark">'+ico('trend',2)+'</span><span class="brand-name">ReachKit</span></div>';}
+function sideNav(cur,firstWeek){
+  function n(k,label,icon,count){return '<button type="button" class="nav"'+(cur===k?' aria-current="page"':'')+' data-screen="'+k+'">'+ico(icon)+' '+label+(count?'<span class="count">'+count+'</span>':'')+'</button>';}
+  return '<aside class="side">'+brand()
+   +'<div class="acct"><span class="acct-dot"></span><span class="acct-txt"><span class="acct-1">'+DOMAIN+'</span>'
+   +'<span class="acct-2">'+(firstWeek?'not measured yet · first due Mon 8 Sep':'Week 6 · re-measured Mon')+'</span></span></div>'
+   +'<div class="side-group"><div class="side-label">Workspace</div>'+n('overview','Overview','trend')+n('calendar','Calendar','cal',firstWeek?'':'28')+n('settings','Settings','gear')+'</div>'
+   +'<div class="side-foot"><div class="pub"><div class="pub-row"><span class="pub-l">Autopilot</span><button type="button" class="switch" aria-label="Publishing on"></button></div>'
+   +'<div class="pub-v">'+(firstWeek?'First page after the deep pass':'Publishing daily')+'</div><div class="pub-n">'+(firstWeek?'deep pass running':'next · Tue 2 Sep 07:00')+'</div></div></div></aside>';
+}
+function pubBar(right){return '<div class="pubbar">'+brand()+(right||'')+'</div>';}
+function pubFoot(){
+  return '<footer class="foot"><div class="foot-in"><div>'+brand()
+   +'<p class="fine">[rights line &mdash; owner&rsquo;s]</p><p class="fine">Own this site and want its report taken down? Write to remove@reachkit.app.</p></div>'
+   +'<nav><span class="eyebrow">Product</span><a href="#" data-screen="pricing">Pricing</a><a href="#" data-screen="auth">Sign in</a></nav>'
+   +'<nav><span class="eyebrow">Legal</span><a href="#" data-screen="legal">Privacy</a><a href="#" data-screen="legal">Terms</a><a href="#" data-screen="legal">Imprint</a></nav></div></footer>';
+}
+function headerCta(){return '<div class="row" style="gap:var(--s-2)"><button type="button" class="pill pill-quiet" data-screen="auth">Sign in</button><button type="button" class="pill pill-solid" data-screen="landing">[nav CTA &mdash; owner&rsquo;s]</button></div>';}
+function matrix(){return MATRIX.map(function(r){return '<div class="mx-r'+(r.you?' you':'')+'"><span class="mx-n">'+r.n+'</span><span class="mx-c">'+r.c.map(function(c){return '<span class="cell'+(c===1?' cited':c===2?' muted':'')+'"></span>';}).join('')+'</span><span class="mx-v">'+r.v+'</span></div>';}).join('');}
+function weekStrip(){return '<div class="week">'+WEEK.map(function(d){return '<div class="day '+d.s+'"><div class="day-n">'+d.d+'</div><div class="day-b"></div></div>';}).join('')+'</div>';}
+function pricingCard(){
+  return '<section class="card card-lg" style="max-width:var(--w-read);margin:0 auto;width:100%;text-align:center">'
+   +'<div class="row" style="justify-content:center;align-items:baseline;gap:var(--s-2)"><span class="stat-v" style="margin:0">&euro;49</span><span class="stat-l">/month, VAT included</span></div>'
+   +'<div style="margin-top:var(--s-5);text-align:left">'+['1 page a day, written and published for you','Weekly re-measure of your whole market','Weekly movement email','24-hour veto window on every page'].map(function(s){return '<div class="spec">'+ico('check',2.4)+'<span>'+s+'</span></div>';}).join('')+'</div>'
+   +'<button type="button" class="pill pill-solid pill-lg pill-block" style="margin-top:var(--s-5)">Start ReachKit &euro;49</button><p class="explain">Cancel in one click.</p></section>';
+}
+
+/* ═══ S1 · landing ═══════════════════════════════════════════════════ */
+function sLanding(){
+  var shot='<div class="shot"><div class="shot-bar"><span class="shot-dot"></span><span class="shot-dot"></span><span class="shot-dot"></span><span class="shot-u">reachkit.app/app</span></div><div class="shot-b">'
+   +'<div class="row" style="justify-content:space-between"><span style="font-size:var(--h3);font-weight:800;letter-spacing:-.02em;color:var(--ink)">The gap is closing.</span><span class="badge b-ok">&#9650; every week</span></div>'
+   +'<section class="card" style="padding:var(--s-4)">'+cardHead('trend','Searches you appear in')+areaChart(GROWTH)+'</section>'
+   +'<div class="g3" style="gap:var(--s-3);grid-template-columns:repeat(3,minmax(0,1fr))">'
+   +'<section class="card" style="padding:var(--s-4)"><div class="stat-l" style="font-size:var(--t-xs)">Discoverability Score</div><div class="stat-row"><div class="stat-v" style="font-size:28px">62</div><span class="badge b-ok">&#9650; 8</span></div></section>'
+   +'<section class="card" style="padding:var(--s-4)"><div class="stat-l" style="font-size:var(--t-xs)">AI answers</div><div class="stat-row"><div class="stat-v" style="font-size:28px">2<span style="font-size:var(--t-body);color:var(--ink-3)">/12</span></div></div></section>'
+   +'<section class="card" style="padding:var(--s-4)"><div class="stat-l" style="font-size:var(--t-xs)">Published</div><div class="stat-row"><div class="stat-v" style="font-size:28px">17</div></div></section></div></div></div>';
+  var steps=[['Scan your domain','[step 1 body &mdash; owner&rsquo;s]','search'],['Pick your market and rivals','[step 2 body &mdash; owner&rsquo;s]','users'],['One page goes live every day','[step 3 body &mdash; owner&rsquo;s]','cal']].map(function(s,i){
+    return '<section class="card"><div class="card-head"><span class="chip">'+ico(s[2])+'</span><span class="eyebrow">Step '+(i+1)+'</span></div><h3 class="h4">'+s[0]+'</h3><p class="explain" style="font-size:var(--t-sm)">'+s[1]+'</p></section>';}).join('');
+  return '<div class="frame">'+pubBar(headerCta())+'<div class="main pubmain" style="gap:0">'
+   +'<div class="hero"><div><h1 class="hero-h">See what AI tells buyers about your market &mdash; and write your way in.</h1><p class="hero-s">[subline &mdash; owner&rsquo;s]</p>'
+   +'<div class="field" style="margin-top:var(--s-5);flex-wrap:nowrap;max-width:460px"><input class="input" placeholder="yourdomain.com" aria-label="Your website"><button type="button" class="pill pill-solid pill-lg" data-screen="report">[CTA &mdash; owner&rsquo;s]</button></div>'
+   +'<p class="prov" style="margin-top:var(--s-3)">free &middot; no account &middot; permanent link</p></div>'+shot+'</div>'
+   +'<div class="sec"><div class="video"><span class="play">'+ico('play',0)+'</span><span class="prov" style="position:absolute;bottom:var(--s-4)">[demo video &mdash; asset not yet produced]</span></div><p class="explain" style="text-align:center;margin-top:var(--s-3)">[video caption &mdash; owner&rsquo;s]</p></div>'
+   +'<div class="sec"><div class="hero" style="padding:0"><div><span class="sec-n">01</span><h2 class="sec-h">[why-care heading &mdash; owner&rsquo;s]</h2><p class="sec-s">[why-care body &mdash; owner&rsquo;s]</p></div>'
+   +'<section class="card">'+cardHead('bot','AI answers','<span class="srcchip">28 Aug</span>')+'<div class="mx">'+matrix()+'</div><p class="explain">Every filled row is a rival being recommended. The empty one is you.</p></section></div></div>'
+   +'<div class="sec"><div class="hero" style="padding:0"><section class="card" style="order:-1">'+cardHead('cal','This week','<span class="badge b-ok">on schedule</span>')+weekStrip()
+   +'<div class="rule-sm"></div><div class="act"><span class="act-ico">'+ico('file')+'</span><span class="act-body"><span class="act-t">[page title]</span><span class="act-d">publishes in 6 h 12 m unless you say otherwise</span></span></div></section>'
+   +'<div><span class="sec-n">02</span><h2 class="sec-h">[what-it-does heading &mdash; owner&rsquo;s]</h2><p class="sec-s">[what-it-does body &mdash; owner&rsquo;s]</p></div></div></div>'
+   +'<div class="sec"><div style="text-align:center;max-width:var(--w-read);margin:0 auto"><span class="sec-n">03</span><h2 class="sec-h">[how-to-start heading &mdash; owner&rsquo;s]</h2><p class="sec-s" style="margin:0 auto">[how-to-start body &mdash; owner&rsquo;s]</p></div>'
+   +'<div class="g3" style="margin-top:var(--s-6)">'+steps+'</div><div style="text-align:center;margin-top:var(--s-6)"><button type="button" class="pill pill-solid pill-lg" data-screen="landing">[closing CTA &mdash; owner&rsquo;s]</button><p class="explain">Cancel in one click.</p></div></div>'
+   +'</div>'+pubFoot()+'</div>';
+}
+
+/* ═══ S2 · free report ═══════════════════════════════════════════════ */
+function reportHead(){
+  var drivers=[7,4,9].map(function(v,i){return '<div style="flex:1;min-width:52px"><div class="occ-t" style="height:6px"><span class="occ-f" style="width:'+(v*10)+'%;background:var(--chart-you)"></span></div><div class="prov" style="margin-top:5px">[driver '+(i+1)+'] <span class="num">'+v+'</span>/10</div></div>';}).join('');
+  return '<section class="card"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><div class="mono" style="font-size:var(--h3);font-weight:600;color:var(--ink)">'+DOMAIN+'</div><p class="prov" style="margin-top:5px">measured 28 Aug &middot; [category] &middot; <a href="#" class="linkish" style="font-weight:500">Not your market?</a></p></div>'
+   +'<div style="text-align:right"><div class="eyebrow">Discoverability Score</div><div class="stat-v" style="margin:0">62</div><span class="badge b-warn" style="margin-top:6px">Hard to find</span></div></div>'
+   +'<p class="small" style="margin-top:var(--s-3)">What holds your score down most: presence &mdash; how often you appear where buyers look, in Google and in AI answers.</p>'
+   +'<div class="rule-sm"></div><div class="row" style="gap:var(--s-4);flex-wrap:nowrap;overflow-x:auto">'+drivers+'</div></section>';
+}
+function sReport(){
+  var questions=QS.map(function(q){return '<div class="q"><div class="q-h"><span class="q-n">'+q.n+'</span><span class="q-t">&ldquo;[question '+q.n+']&rdquo;</span><span class="badge b-bad">not you</span></div><p class="q-p">from: [search] &middot; '+q.vol+' &middot; named: [brands]</p></div>';}).join('');
+  var occ=OCC.map(function(o){return '<div class="occ-r'+(o.you?' you':'')+(o.v===0?' zero':'')+'"><span class="occ-n">'+o.n+'</span><span class="occ-t"><span class="occ-f" style="width:'+(o.v/12*100)+'%"></span></span><span class="occ-v">'+o.v+'/12</span></div>';}).join('');
+  var absent=ABSENT.map(function(a){return '<tr><td>[search]</td><td class="n">'+a[0]+'</td><td>'+a[1]+'</td></tr>';}).join('');
+  return '<div class="frame">'+pubBar('<button type="button" class="pill pill-quiet">'+ico('copy')+'Copy link</button>')+'<div class="main pubmain">'+reportHead()
+   +'<div class="g2"><section class="card">'+cardHead('bot','AI answers','<span class="srcchip">Google AI answers &middot; 28 Aug</span>')
+   +'<p class="small" style="font-weight:600;margin-bottom:var(--s-4)">AI answers appear on <span class="num" style="color:var(--ink)">9</span> of your 12 biggest searches</p><div class="mx">'+matrix()+'</div>'
+   +'<div class="rule"></div><div class="row" style="justify-content:space-between;margin-bottom:var(--s-3)"><span class="eyebrow">The 12 questions</span></div>'+questions
+   +'<div class="row" style="margin-top:var(--s-4)"><button type="button" class="pill pill-quiet">Show all 12</button></div><p class="explain" style="margin-top:var(--s-4)"><span class="srcchip">= your market&rsquo;s 12 biggest searches, asked as a buyer asks AI.</span></p></section>'
+   +'<section class="card">'+cardHead('search','Google search','<span class="srcchip">your market&rsquo;s 12 biggest searches</span>')+'<div class="occ">'+occ+'</div><div class="rule"></div>'
+   +'<div class="eyebrow" style="margin-bottom:var(--s-3)">5 biggest searches you&rsquo;re absent from</div><div class="wrapx"><table class="t"><thead><tr><th>Search</th><th style="text-align:right">Volume</th><th>Holds #1</th></tr></thead><tbody>'+absent+'</tbody></table></div>'
+   +'<p class="explain" style="margin-top:var(--s-4)">Your market&rsquo;s search set totals <span class="num">12,400</span>/mo &mdash; you currently appear in <span class="num">0</span>.</p></section></div>'
+   +'<div class="g3">'
+   +'<div class="prob sev-bad"><div class="row" style="justify-content:space-between;align-items:flex-start"><span class="h4">AI readers blocked</span><span class="row" style="gap:6px"><span class="badge b-bad">Critical</span><span class="badge b-ok">Free fix &middot; 10 min</span></span></div><div class="stat-v" style="font-size:var(--h1);margin-top:var(--s-3)">4</div><pre class="code"># [robots lines &mdash; verbatim, REQ-009 c2]\nUser-agent: GPTBot\nAllow: /</pre></div>'
+   +'<div class="prob sev-warn"><div class="row" style="justify-content:space-between;align-items:flex-start"><span class="h4">Missing pages</span><span class="row" style="gap:6px"><span class="badge b-warn">Worth fixing</span><span class="badge b-accent">ReachKit writes</span></span></div><div class="stat-v" style="font-size:var(--h1);margin-top:var(--s-4)">14</div></div>'
+   +'<div class="prob sev-bad"><div class="row" style="justify-content:space-between;align-items:flex-start"><span class="h4">Unquotable pages</span><span class="row" style="gap:6px"><span class="badge b-bad">Critical</span><span class="badge b-accent">ReachKit rewrites</span></span></div><div class="stat-v" style="font-size:var(--h1);margin-top:var(--s-4)">6</div></div></div>'
+   +'<div><div class="eyebrow" style="margin-bottom:var(--s-3)">The complete method, free</div>'+[1,2,3].map(function(i){return '<details class="col"'+(i===1?' open':'')+'><summary>[DIY collapse '+i+' summary &mdash; owner&rsquo;s]</summary><div class="col-b">[DIY instructional body &mdash; owner&rsquo;s]</div></details>';}).join('')+'</div>'
+   +'<section class="card card-accent">'+cardHead('file','Your first page','<span class="badge b-accent">free</span>')+'<h3 class="h3">[page 1 title]</h3>'
+   +'<dl class="why" style="margin-top:var(--s-4)"><dt>target</dt><dd>[search] &middot; 2,400/mo</dd><dt>beats</dt><dd>example.org</dd><dt>format</dt><dd>[format]</dd></dl>'
+   +'<div class="field" style="margin-top:var(--s-5)"><input class="input" placeholder="you@company.com" aria-label="Your email"><button type="button" class="pill pill-solid">Email me the full page</button></div><p class="explain">That&rsquo;s page 1 of <span class="num">14</span> we found for you.</p></section>'
+   +pricingCard()+'<p class="prov" style="text-align:center">Own this site and want this report taken down? Write to remove@reachkit.app.</p>'
+   +'</div>'+pubFoot()+'</div>';
+}
+
+/* ═══ S3 · report states ═══════════════════════════════════════════════ */
+var reportState="scanning";
+function sReportStates(){
+  var body;
+  if(reportState==="scanning"){
+    body='<section class="card" style="max-width:var(--w-read);margin:0 auto;width:100%"><div class="mono" style="font-size:var(--h3);font-weight:600;color:var(--ink)">'+DOMAIN+'</div><p class="prov" style="margin-top:5px">scanning &middot; started 12 s ago</p><div class="rule"></div>'
+     +'<div class="stage-list">'+[['Reading your site','done','3 s'],['Finding your market and rivals','done','6 s'],['Checking the 12 biggest searches','now','&hellip;'],['Asking AI the 12 questions','',''],['Scoring','','']].map(function(s){return '<div class="stage '+s[1]+'"><span class="b">'+(s[1]==='done'?ico('check',3):'')+'</span>'+s[0]+'<span class="t">'+s[2]+'</span></div>';}).join('')+'</div>'
+     +'<p class="explain" style="margin-top:var(--s-4)">Under a minute. This address is permanent &mdash; you can come back to it.</p></section>';
+  } else if(reportState==="degraded"){
+    body=reportHead().replace('<div class="stat-v" style="margin:0">62</div><span class="badge b-warn" style="margin-top:6px">Hard to find</span>','<div class="stat-v" style="margin:0">&mdash;</div>')
+      .replace('What holds your score down most: presence &mdash; how often you appear where buyers look, in Google and in AI answers.','The verdict could not be reached: AI answers were not measured &mdash; the scan stopped before reaching them. Google presence and foundations were measured.')
+      +'<div class="g2"><section class="card">'+cardHead('bot','AI answers')+'<p class="small">Not measured &mdash; the scan stopped before reaching AI answers.</p><button type="button" class="pill pill-quiet" style="margin-top:var(--s-4)">Retry this part</button></section>'
+      +'<section class="card">'+cardHead('search','Google search','<span class="srcchip">your market&rsquo;s 12 biggest searches</span>')+'<div class="occ">'+OCC.map(function(o){return '<div class="occ-r'+(o.you?' you':'')+(o.v===0?' zero':'')+'"><span class="occ-n">'+o.n+'</span><span class="occ-t"><span class="occ-f" style="width:'+(o.v/12*100)+'%"></span></span><span class="occ-v">'+o.v+'/12</span></div>';}).join('')+'</div></section></div>';
+  } else if(reportState==="cooldown"){
+    body='<section class="card" style="max-width:var(--w-read);margin:0 auto;width:100%"><div class="mono" style="font-size:var(--h3);font-weight:600;color:var(--ink)">'+DOMAIN+'</div><p class="prov" style="margin-top:5px">last attempt 3 h ago &middot; did not finish</p><div class="rule"></div>'
+     +'<p class="body">The last scan of this domain did not finish. Nothing restarts on its own &mdash; you can try again now.</p><button type="button" class="pill pill-solid" style="margin-top:var(--s-5)">Try again</button></section>';
+  } else if(reportState==="malformed"){
+    body='<section class="card" style="max-width:var(--w-read);margin:0 auto;width:100%"><div class="eyebrow">Your website</div><div class="field" style="margin-top:var(--s-3)"><input class="input" value="265.0.113.5" aria-label="Your website"><button type="button" class="pill pill-solid">[CTA &mdash; owner&rsquo;s]</button></div>'
+     +'<p class="invalid">That&rsquo;s a numeric address, not a website name. Type the name people visit, like example.com.</p></section>';
+  } else {
+    body='<section class="card" style="max-width:var(--w-read);margin:0 auto;width:100%"><div class="mono" style="font-size:var(--h3);font-weight:600;color:var(--ink)">'+DOMAIN+'</div><div class="rule"></div><p class="body">The report for this domain was removed at its owner&rsquo;s request. Nothing about it is shown here.</p><button type="button" class="pill pill-quiet" style="margin-top:var(--s-5)" data-screen="landing">Scan another site</button></section>';
+  }
+  var seg=['scanning','degraded','cooldown','malformed','removed'].map(function(s){return '<button type="button" class="navbtn" data-rs="'+s+'" aria-pressed="'+(reportState===s)+'">'+s+'</button>';}).join('');
+  return '<div class="states">'+seg+'</div><div class="frame">'+pubBar('<button type="button" class="pill pill-quiet">'+ico('copy')+'Copy link</button>')+'<div class="main pubmain">'+body+'</div>'+pubFoot()+'</div>';
+}
+
+/* ═══ S4 · pricing ═══════════════════════════════════════════════════ */
+function sPricing(){
+  return '<div class="frame">'+pubBar(headerCta())+'<div class="main pubmain"><div style="text-align:center;max-width:var(--w-read);margin:0 auto"><span class="eyebrow">Start ReachKit</span><h1 class="h1" style="margin-top:var(--s-2)">[pricing heading &mdash; owner&rsquo;s]</h1><p class="body" style="margin-top:var(--s-3)">[pricing subline &mdash; owner&rsquo;s]</p></div>'
+   +pricingCard()+'<p class="explain" style="text-align:center">No account before payment. Your site is asked for after &mdash; or confirmed, if you came from a report.</p></div>'+pubFoot()+'</div>';
+}
+
+/* ═══ S5 · legal ═════════════════════════════════════════════════════ */
+function sLegal(){
+  return '<div class="frame">'+pubBar(headerCta())+'<div class="main pubmain" style="max-width:var(--w-read)"><span class="eyebrow">Legal</span><h1 class="h1" style="margin-top:var(--s-2)">[Privacy &mdash; owner&rsquo;s title]</h1><p class="prov">updated [date]</p>'
+   +'<section class="card"><div class="doc"><p>[legal body &mdash; owner&rsquo;s, Markdown. One renderer for Privacy, Terms and Imprint; processors named: Supabase, Vercel, Stripe, Resend, DataForSEO, Anthropic.]</p><h2>[section]</h2><p>[body]</p></div></section></div>'+pubFoot()+'</div>';
+}
+
+/* ═══ S6 · veto page (from the draft-ready mail) ═════════════════════ */
+var vetoState="ask";
+function sVeto(){
+  var card=vetoState==="ask"
+   ? '<section class="card" style="max-width:var(--w-form);margin:0 auto;width:100%">'+cardHead('clock','Publishes Tue 2 Sep 07:00')+'<h1 class="h3">[page title 15]</h1><dl class="why" style="margin-top:var(--s-4)"><dt>search</dt><dd>[search] &middot; 2,400/mo</dd><dt>site</dt><dd>'+DOMAIN+'</dd></dl>'
+     +'<div class="rule"></div><button type="button" class="pill pill-solid pill-lg pill-block" data-veto="done">Stop this page</button><p class="explain" style="text-align:center">Or do nothing and it publishes as planned. You can read and edit it in the app.</p></section>'
+   : '<section class="card" style="max-width:var(--w-form);margin:0 auto;width:100%">'+cardHead('ban','Stopped')+'<h1 class="h3">[page title 15]</h1><p class="small" style="margin-top:var(--s-3)">This page will not publish. Tomorrow&rsquo;s page is unaffected.</p><button type="button" class="pill pill-quiet" style="margin-top:var(--s-5)" data-screen="calendar">Open the calendar</button></section>';
+  var seg=['ask','done'].map(function(s){return '<button type="button" class="navbtn" data-veto="'+s+'" aria-pressed="'+(vetoState===s)+'">'+s+'</button>';}).join('');
+  return '<div class="states">'+seg+'</div><div class="frame">'+pubBar('<span class="prov">/veto/{token}</span>')+'<div class="main pubmain" style="justify-content:center">'+card+'</div>'+pubFoot()+'</div>';
+}
+
+/* ═══ S7 · opt-out ═══════════════════════════════════════════════════ */
+function sOptout(){
+  return '<div class="frame">'+pubBar('<span class="prov">/opt-out/{token}</span>')+'<div class="main pubmain" style="justify-content:center"><section class="card" style="max-width:var(--w-form);margin:0 auto;width:100%">'+cardHead('mail','Opted out')
+   +'<p class="body">No more follow-up mail will reach <span class="mono">you@company.com</span> &mdash; for this domain or any other. The page you asked for stays yours.</p><button type="button" class="pill pill-quiet" style="margin-top:var(--s-5)" data-screen="landing">Back to ReachKit</button></section></div>'+pubFoot()+'</div>';
+}
+
+/* ═══ S8 · not found / error ═════════════════════════════════════════ */
+function sNotFound(){
+  return '<div class="frame">'+pubBar(headerCta())+'<div class="main pubmain" style="justify-content:center;text-align:center"><span class="eyebrow">404</span><h1 class="h1" style="margin-top:var(--s-2)">There is no page at this address.</h1><p class="body" style="margin-top:var(--s-3)">Reports live at <span class="mono">reachkit.app/scan/yourdomain.com</span>.</p><div class="field" style="justify-content:center;margin-top:var(--s-5);max-width:460px;margin-left:auto;margin-right:auto"><input class="input" placeholder="yourdomain.com" aria-label="Your website"><button type="button" class="pill pill-solid">Scan it</button></div></div>'+pubFoot()+'</div>';
+}
+
+/* ═══ S9 · sign in ═══════════════════════════════════════════════════ */
+var authState="request";
+function sAuth(){
+  var left;
+  if(authState==="request"){
+    left='<h1 class="h2">Welcome back</h1><p class="body" style="margin-top:var(--s-3)">Enter the email you paid with and we&rsquo;ll send you a sign-in link. No password &mdash; accounts are created by payment, never by a signup form.</p>'
+     +'<div class="stack-sm" style="margin-top:var(--s-5)"><input class="input" placeholder="you@company.com" aria-label="Your email"><button type="button" class="pill pill-solid pill-lg pill-block" data-auth="sent">Send my link</button></div>'
+     +'<p class="small" style="margin-top:var(--s-5)">New to ReachKit? <a href="#" class="linkish" data-screen="landing">Start a free scan &rarr;</a></p>';
+  } else if(authState==="sent"){
+    left='<div class="chip" style="width:44px;height:44px;margin-bottom:var(--s-4)">'+ico('mail')+'</div><h1 class="h2">[link-sent head &mdash; owner&rsquo;s]</h1><p class="body" style="margin-top:var(--s-3)">[link-sent body &mdash; owner&rsquo;s]</p><p class="prov" style="margin-top:var(--s-4)">sent to you@company.com</p><button type="button" class="pill pill-quiet" style="margin-top:var(--s-5)" data-auth="request">[resend &mdash; owner&rsquo;s]</button>';
+  } else {
+    left='<div class="act-ico" style="width:44px;height:44px;background:var(--warn-bg);color:var(--warn);margin-bottom:var(--s-4)">'+ico('lock')+'</div><h1 class="h2">[link-expired head &mdash; owner&rsquo;s]</h1><p class="body" style="margin-top:var(--s-3)">[link-expired body &mdash; owner&rsquo;s]</p><button type="button" class="pill pill-solid pill-lg pill-block" style="margin-top:var(--s-5)" data-auth="request">[send a new link &mdash; owner&rsquo;s]</button>';
+  }
+  var seg=['request','sent','expired'].map(function(s){return '<button type="button" class="navbtn" data-auth="'+s+'" aria-pressed="'+(authState===s)+'">'+s+'</button>';}).join('');
+  return '<div class="states">'+seg+'</div><div class="frame"><div class="split"><div class="leftp"><div class="leftp-in"><div style="margin-bottom:var(--s-6)">'+brand()+'</div>'+left+'</div></div>'
+   +'<div class="rightp"><h2 class="rightp-h">One number tells you how findable you are.</h2><div class="glass"><p class="glass-d">'+DOMAIN+'</p><div class="row" style="justify-content:space-between;gap:var(--s-3)"><span class="glass-l">Discoverability Score</span><span class="glass-p">+6 pts est.</span></div>'
+   +'<div class="row" style="align-items:baseline;gap:2px;margin-top:var(--s-2)"><span class="glass-n">47</span><span class="glass-o">/100</span></div><div class="glass-t"><div class="glass-f" style="width:47%"></div></div><p class="glass-x">Hard to find &mdash; and we&rsquo;ll show you the fixes that move it.</p></div></div></div></div>';
+}
+
+/* ═══ S10 · setup ════════════════════════════════════════════════════ */
+var setupState="report";
+function sSetup(){
+  var comps=RIVALS4.concat(["example.info"]).map(function(c,i){return '<button type="button" class="tag'+(i<3?' on':'')+'">'+c+(i<3?' <span class="x">&times;</span>':'')+'</button>';}).join('');
+  var market=setupState==="noreport"
+   ? '<section class="card">'+cardHead('globe','Your site')+'<div class="field"><input class="input" placeholder="yourdomain.com" aria-label="Your website"></div><p class="explain">The site we measure and publish for. Nothing is taken from the address you paid with.</p></section>'
+     +'<section class="card" style="opacity:.6">'+cardHead('globe','Your market')+'<p class="small">Suggested once your site is given.</p></section>'
+   : '<section class="card">'+cardHead('globe','Your site &amp; market')+'<div class="row" style="justify-content:space-between"><span class="mono" style="color:var(--ink);font-weight:600">'+DOMAIN+'</span><button type="button" class="pill pill-quiet">Change</button></div><div class="rule-sm"></div><div class="row"><span class="tag on">[category]</span><button type="button" class="pill pill-quiet">Change</button></div></section>';
+  var compsCard=setupState==="degraded"
+   ? '<section class="card">'+cardHead('users','Competitors','<span class="badge b-neutral">0 of 5</span>')+'<p class="small">No rivals could be suggested for this market yet. Add up to five, or continue without &mdash; ReachKit finds them as it measures.</p><div class="field" style="margin-top:var(--s-3)"><input class="input" placeholder="rival.com" aria-label="Add a competitor"><button type="button" class="pill pill-quiet">Add</button></div></section>'
+   : '<section class="card">'+cardHead('users','Competitors','<span class="badge b-neutral">3 of 5</span>')+'<div class="row">'+comps+'</div><div class="field" style="margin-top:var(--s-3)"><input class="input" placeholder="add another" aria-label="Add a competitor"><button type="button" class="pill pill-quiet">Add</button></div><p class="explain">[competitor-picker line &mdash; owner&rsquo;s]</p></section>';
+  var seg=['report','noreport','degraded'].map(function(s){return '<button type="button" class="navbtn" data-setup="'+s+'" aria-pressed="'+(setupState===s)+'">'+s+'</button>';}).join('');
+  return '<div class="states">'+seg+'</div><div class="frame">'+pubBar('<span class="prov">'+(setupState==="noreport"?'':DOMAIN)+'</span>')+'<div class="main pubmain" style="max-width:760px">'
+   +'<div class="steps" style="margin-bottom:var(--s-2)"><span class="step done"><span class="b">'+ico('check',3)+'</span>Paid</span><span class="step-x"></span><span class="step now"><span class="b"></span>Setup</span><span class="step-x"></span><span class="step"><span class="b"></span>First page</span></div>'
+   +'<h1 class="h1">[setup head &mdash; owner&rsquo;s]</h1>'+market+compsCard
+   +'<section class="card">'+cardHead('spark','Mode + destination')+'<div class="pick"><button type="button" class="opt" aria-pressed="true"><span class="opt-t">Autopilot <span class="badge b-accent">default</span></span><span class="opt-d">[autopilot description &mdash; owner&rsquo;s]</span></button><button type="button" class="opt" aria-pressed="false"><span class="opt-t">Copilot</span><span class="opt-d">[copilot description &mdash; owner&rsquo;s]</span></button></div>'
+   +'<div class="rule"></div><div class="pick"><button type="button" class="opt" aria-pressed="true"><span class="opt-t">Hosted blog</span><span class="opt-d">[hosted-blog description &mdash; owner&rsquo;s]</span><pre class="code" style="margin-top:var(--s-3)">CNAME  blog  &rarr;  cname.reachkit.app</pre></button><button type="button" class="opt" aria-pressed="false"><span class="opt-t">WordPress</span><span class="opt-d">connect later, ask me after the first page</span></button></div></section>'
+   +'<button type="button" class="pill pill-solid pill-lg pill-block" data-screen="waiting">Start &mdash; first page in ~3 minutes.</button>'
+   +'<p class="explain" style="text-align:center">You can reach Settings, cancel or export at any time &mdash; finishing setup is not required for that.</p></div></div>';
+}
+
+/* ═══ S11 · waiting (deep pass) ══════════════════════════════════════ */
+function sWaiting(){
+  return '<div class="frame">'+pubBar('<span class="prov">'+DOMAIN+'</span>')+'<div class="main pubmain" style="max-width:760px">'
+   +'<div class="steps" style="margin-bottom:var(--s-2)"><span class="step done"><span class="b">'+ico('check',3)+'</span>Paid</span><span class="step-x"></span><span class="step done"><span class="b">'+ico('check',3)+'</span>Setup</span><span class="step-x"></span><span class="step now"><span class="b"></span>First page</span></div>'
+   +'<h1 class="h1">[waiting head &mdash; owner&rsquo;s]</h1>'
+   +'<section class="card"><div class="stage-list">'+[['Measuring your market','done','41 s'],['Sizing your rivals','done','18 s'],['Finding pages worth writing','now','&hellip;'],['Writing your first page','',''],['Checking it','','']].map(function(s){return '<div class="stage '+s[1]+'"><span class="b">'+(s[1]==='done'?ico('check',3):'')+'</span>'+s[0]+'<span class="t">'+s[2]+'</span></div>';}).join('')+'</div>'
+   +'<p class="explain" style="margin-top:var(--s-4)">About three minutes. When it finishes you land in the app with the first page already on the calendar. If it finds nothing worth writing, it says so &mdash; it never invents a page.</p></section>'
+   +'<p class="explain" style="text-align:center">You can close this tab; the sign-in link in your mail brings you back.</p></div></div>';
+}
+
+/* ═══ S12 · overview ═════════════════════════════════════════════════ */
+function sOverview(){
+  var tiles='<section class="card"><div class="stat-l">Discoverability Score</div><div class="stat-row"><div class="stat-v">62</div><span class="badge b-ok">&#9650; 8</span><span class="badge b-warn">Hard to find</span></div></section>'
+   +'<section class="card"><div class="stat-l">AI answers</div><div class="stat-row"><div class="stat-v">2<span style="font-size:var(--h3);color:var(--ink-3)">/12</span></div><span class="badge b-neutral">goal: 6</span></div><div class="dots">'+[1,1,0,0,3,3].map(function(o){return '<span class="dot'+(o===1?' on':o===3?' goal':'')+'"></span>';}).join('')+'</div></section>'
+   +'<section class="card"><div class="stat-l">Pages published</div><div class="stat-row"><div class="stat-v">17</div><span class="badge b-neutral"><span class="num">6</span> already ranking</span></div><p class="explain">rest under 3 weeks &mdash; too early to judge</p></section>';
+  var gaps=GAPS.map(function(r){return '<div class="rival"><span class="rival-n">'+r.n+'</span>'+spark(r.s)+'<span class="rival-e"><span class="rival-v">'+r.e+'</span><span class="badge b-ok">'+r.d+'</span></span></div>';}).join('');
+  return '<div class="frame app">'+sideNav('overview')+'<main class="main"><div class="row" style="justify-content:space-between"><h1 class="h1">The gap is closing.</h1><span class="badge b-ok">&#9650; every week since you started</span></div>'
+   +'<section class="card">'+cardHead('trend','Searches you appear in','<span class="srcchip">re-measured Mon 1 Sep</span>')+areaChart(GROWTH)+'<div class="chart-ax"><span>started at <span class="num">12</span></span><span>At 400 the big category terms unlock.</span></div></section>'
+   +'<div class="g3">'+tiles+'</div>'
+   +'<section class="card">'+cardHead('users','How far ahead each rival is')+gaps+'<p class="explain">Every line pointing down is the gap shrinking.</p></section>'
+   +'<section class="card">'+cardHead('cal','This week','<button type="button" class="pill pill-quiet" data-screen="calendar">Open calendar &rarr;</button>')+weekStrip()+'</section>'
+   +'<section class="card">'+cardHead('bell','Needs you')+'<div class="acts"><div class="act act-warn"><span class="act-ico">'+ico('file')+'</span><span class="act-body"><span class="act-t">[veto-pending alert &mdash; owner&rsquo;s]</span><span class="act-d">publishes in 6 h 12 m unless you say otherwise</span><button type="button" class="pill pill-solid" data-screen="draft">Read it</button></span></div>'
+   +'<div class="act"><span class="act-ico">'+ico('plug')+'</span><span class="act-body"><span class="act-t">[needs-you alert &mdash; owner&rsquo;s]</span><span class="act-d">[cause line &mdash; owner&rsquo;s]</span><button type="button" class="pill" data-screen="settings">Reconnect</button></span></div></div></section></main></div>';
+}
+
+/* ═══ S13 · overview, first week ═════════════════════════════════════ */
+function sOverviewFirst(){
+  var tiles='<section class="card"><div class="stat-l">Discoverability Score</div><div class="stat-row"><div class="stat-v">&mdash;</div></div><p class="explain">first measurement due Mon 8 Sep</p></section>'
+   +'<section class="card"><div class="stat-l">AI answers</div><div class="stat-row"><div class="stat-v">&mdash;</div><span class="badge b-neutral">goal: 6</span></div><p class="explain">measured with the first weekly pass</p></section>'
+   +'<section class="card"><div class="stat-l">Pages published</div><div class="stat-row"><div class="stat-v">0</div></div><p class="explain">first page in review today</p></section>';
+  return '<div class="frame app">'+sideNav('overview',true)+'<main class="main"><div class="row" style="justify-content:space-between"><h1 class="h1">Your first page is ready to read.</h1><span class="badge b-neutral">week 0</span></div>'
+   +'<section class="card">'+cardHead('trend','Searches you appear in','<span class="srcchip">from the deep pass &middot; 1 Sep</span>')+areaChart([12],'Searches you appear in, one point so far')+'<div class="chart-ax"><span>starting at <span class="num">12</span></span><span>the line begins with the first Monday</span></div></section>'
+   +'<div class="g3">'+tiles+'</div>'
+   +'<section class="card">'+cardHead('users','How far ahead each rival is')+'<p class="small">Sized with the first weekly measurement, Mon 8 Sep.</p></section>'
+   +'<section class="card">'+cardHead('bell','Needs you')+'<div class="acts"><div class="act act-warn"><span class="act-ico">'+ico('file')+'</span><span class="act-body"><span class="act-t">[page title 1]</span><span class="act-d">publishes Tue 2 Sep 07:00 unless you say otherwise</span><button type="button" class="pill pill-solid" data-screen="draft">Read it</button></span></div></div></section></main></div>';
+}
+
+/* ═══ S14 · calendar ═════════════════════════════════════════════════ */
+var panelState="review";
+function panelFor(state){
+  var head=function(badge,cls,date){return '<div class="row" style="justify-content:space-between"><span class="badge '+cls+'">'+badge+'</span><span class="prov">'+date+'</span></div>';};
+  if(state==="review") return head('Your review','b-warn','Mon 15 Sep')+'<h3 class="h4" style="margin-top:var(--s-3)">[page title 15]</h3><div class="rule-sm"></div><div class="eyebrow" style="margin-bottom:var(--s-3)">Why this page</div>'
+    +'<dl class="why"><dt>search</dt><dd>[search]</dd><dt>asked</dt><dd>2,400/mo</dd><dt>answered today by</dt><dd>example.org</dd><dt>you</dt><dd>0/12</dd><dt>done when</dt><dd>[done-when]</dd></dl><div class="rule-sm"></div>'
+    +'<button type="button" class="pill pill-solid pill-block" data-screen="draft">Read the full page</button><div class="row" style="margin-top:var(--s-2);gap:var(--s-2)"><button type="button" class="pill pill-quiet" style="flex:1">Move</button><button type="button" class="pill pill-warn" style="flex:1">Veto</button></div><p class="prov" style="margin-top:var(--s-3)">written 14 Sep 19:04 &middot; measured Mon 8 Sep</p>';
+  if(state==="live") return head('Live','b-ok','Thu 4 Sep')+'<h3 class="h4" style="margin-top:var(--s-3)">[page title 4]</h3><div class="rule-sm"></div><div class="eyebrow" style="margin-bottom:var(--s-3)">Why this page</div>'
+    +'<dl class="why"><dt>search</dt><dd>[search]</dd><dt>asked</dt><dd>1,600/mo</dd><dt>you</dt><dd>1/12 &#9650;</dd><dt>done when</dt><dd>[done-when]</dd></dl><div class="rule-sm"></div>'
+    +'<button type="button" class="pill pill-block" data-screen="hosted">'+ico('ext')+'View live page</button><p class="prov" style="margin-top:var(--s-3)">verified live 5 Sep 07:10 &middot; measured Mon 8 Sep</p>';
+  if(state==="planned") return head('Planned','b-neutral','Fri 19 Sep')+'<h3 class="h4" style="margin-top:var(--s-3)">[page title 19]</h3><div class="rule-sm"></div><div class="eyebrow" style="margin-bottom:var(--s-3)">Why this page</div>'
+    +'<dl class="why"><dt>search</dt><dd>[search]</dd><dt>asked</dt><dd>890/mo</dd><dt>answered today by</dt><dd>example.edu</dd><dt>you</dt><dd>0/12</dd></dl><div class="rule-sm"></div>'
+    +'<div class="row" style="gap:var(--s-2)"><button type="button" class="pill pill-quiet" style="flex:1">Move</button><button type="button" class="pill pill-quiet" style="flex:1">Skip</button></div><p class="prov" style="margin-top:var(--s-3)">written the evening before &middot; measured Mon 8 Sep</p>';
+  if(state==="needs") return head('Needs you','b-warn','Sat 6 Sep')+'<h3 class="h4" style="margin-top:var(--s-3)">[page title 6]</h3><div class="rule-sm"></div><p class="small">WordPress refused the connection &mdash; the application password no longer works. The page waits; nothing is lost.</p><div class="rule-sm"></div>'
+    +'<button type="button" class="pill pill-solid pill-block" data-screen="settings">Reconnect WordPress</button><p class="prov" style="margin-top:var(--s-3)">last good delivery 3 Sep</p>';
+  return head('Empty day','b-neutral','Wed 24 Sep')+'<div class="rule-sm"></div><p class="small">Nothing worth publishing on this date &mdash; the supply of opportunities in your market is used up until Monday&rsquo;s re-measure finds more.</p><p class="prov" style="margin-top:var(--s-3)">measured Mon 8 Sep</p>';
+}
+function calendarFrame(panel){
+  var filters=[["All",28,"b-accent"],["Live",11,"b-ok"],["Your review",1,"b-warn"],["Scheduled",6,"b-neutral"],["Planned",9,"b-neutral"],["Needs you",1,"b-warn"]];
+  var chips=filters.map(function(f,i){return '<button type="button" class="opt" style="padding:var(--s-3) var(--s-4)" aria-pressed="'+(i===0)+'"><span class="stat-l" style="font-size:var(--t-xs)">'+f[0]+'</span><div class="num" style="font-size:var(--h3);color:var(--ink);margin-top:2px">'+f[1]+'</div></button>';}).join('');
+  var dow=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(function(d){return '<div class="caldow">'+d+'</div>';}).join('');
+  var stages=[["Live","b-ok"],["Live","b-ok"],["Your review","b-warn"],["Scheduled","b-neutral"],["Scheduled","b-neutral"],["Planned","b-neutral"],["Needs you","b-warn"]];
+  var cells="";
+  for(var d=1;d<=28;d++){
+    if(d>21){cells+='<div class="cd empty"><div class="cd-d">'+d+'</div>'+(d===24?'<span class="prov" style="font-size:var(--t-eyebrow)">nothing worth publishing</span>':'')+'</div>';continue;}
+    var st=stages[d%stages.length];
+    cells+='<div class="cd'+(d===15?' today':'')+'"><div class="row" style="justify-content:space-between;gap:6px"><span class="cd-d">'+d+'</span><span class="badge '+st[1]+'">'+st[0]+'</span></div><span class="cd-t">[page title '+d+']</span></div>';
+  }
+  return '<div class="frame app">'+sideNav('calendar')+'<main class="main"><div class="row" style="justify-content:space-between"><h1 class="h1">One page a day. Every day.</h1><div class="row" style="gap:var(--s-2)"><button type="button" class="pill pill-quiet">&larr;</button><span class="mono" style="font-weight:600">Sep 2026</span><button type="button" class="pill pill-quiet">&rarr;</button></div></div>'
+   +'<div class="filters">'+chips+'</div><div class="calwrap"><div><div class="calgrid" style="margin-bottom:var(--s-2)">'+dow+'</div><div class="calgrid">'+cells+'</div>'
+   +'<p class="explain">Planned pages are written the evening before, from Monday&rsquo;s measurements. When opportunities run out, future days are empty &mdash; the calendar is never padded.</p></div><aside class="panel">'+panel+'</aside></div></main></div>';
+}
+function sCalendar(){return calendarFrame(panelFor("review"));}
+function sCalendarStates(){
+  var seg=['review','live','planned','needs','empty'].map(function(s){return '<button type="button" class="navbtn" data-panel="'+s+'" aria-pressed="'+(panelState===s)+'">'+s+'</button>';}).join('');
+  return '<div class="states">'+seg+'</div>'+calendarFrame(panelFor(panelState));
+}
+
+/* ═══ S16 · draft (read) ═════════════════════════════════════════════ */
+function draftDoc(){
+  return '<div class="doc"><p>[opening paragraph &mdash; generated, labelled below]</p><h2>[section heading]</h2><p>[body paragraph] <span class="mark">[grounded fact]</span> [body continues].</p><p class="prov" style="margin:calc(var(--s-2)*-1) 0 var(--s-4) 0">source: [source title] &middot; retrieved 14 Sep</p><h2>[section heading]</h2><p>[body paragraph]</p></div>';
+}
+function sDraft(){
+  return '<div class="frame app">'+sideNav('calendar')+'<main class="main"><button type="button" class="pill pill-quiet" style="align-self:flex-start" data-screen="calendar">&larr; Back to calendar</button><div class="calwrap">'
+   +'<div class="stack"><section class="card card-lg"><div class="row" style="justify-content:space-between"><span class="row" style="gap:var(--s-2)"><span class="badge b-warn">Your review</span><span class="badge b-ok">claim-checked</span></span><span class="gen">generated by ReachKit &middot; labelled</span></div>'
+   +'<h1 class="h1" style="margin-top:var(--s-3)">[page title 15]</h1><p class="prov" style="margin-top:var(--s-2)">draft written 14 Sep 19:04 &middot; ~1,240 words</p><div class="rule"></div>'+draftDoc()+'</section>'
+   +'<section class="card">'+cardHead('copy','Copy it out','<span class="srcchip">yours, for any destination</span>')+'<div class="row" style="gap:var(--s-2)"><button type="button" class="pill pill-quiet">'+ico('copy')+'Markdown</button><button type="button" class="pill pill-quiet">'+ico('copy')+'HTML</button></div></section></div>'
+   +'<aside class="panel"><div class="eyebrow" style="margin-bottom:var(--s-3)">Decide</div><button type="button" class="pill pill-solid pill-block">Approve</button><div class="row" style="margin-top:var(--s-2);gap:var(--s-2)"><button type="button" class="pill pill-quiet" style="flex:1" data-screen="draftedit">Edit</button><button type="button" class="pill pill-warn" style="flex:1">Veto</button></div>'
+   +'<div class="rule-sm"></div><div class="info"><b>If you do nothing</b><br>[do-nothing explanation &mdash; owner&rsquo;s]<div class="prov" style="margin-top:var(--s-2);color:var(--ink-2)">publishes 15 Sep 07:00</div></div><div class="rule-sm"></div>'
+   +'<div class="eyebrow" style="margin-bottom:var(--s-3)">Checks</div><div class="stack-sm" style="gap:var(--s-2)">'+['grounded &mdash; 1 fact, 1 source','no claim from your do-not-claim list','near-duplicate gate passed','no invented author'].map(function(c){return '<div class="row" style="gap:var(--s-2);font-size:var(--t-sm);color:var(--ink-2)"><span style="color:var(--ok);display:flex">'+ico('check',2.4)+'</span>'+c+'</div>';}).join('')+'</div></aside></div></main></div>';
+}
+
+/* ═══ S17 · draft edit ═══════════════════════════════════════════════ */
+var editState="editing";
+function sDraftEdit(){
+  var badge=editState==="editing"?'<span class="badge b-neutral">edited &middot; re-check on save</span>':editState==="saved"?'<span class="badge b-neutral">claim check running</span>':'<span class="badge b-bad">unsaved</span>';
+  var save=editState==="editing"?'saving&hellip;':editState==="saved"?'saved 19:06':'could not save &mdash; your text is kept here; nothing unsaved publishes';
+  var seg=['editing','saved','unsaved'].map(function(s){return '<button type="button" class="navbtn" data-edit="'+s+'" aria-pressed="'+(editState===s)+'">'+s+'</button>';}).join('');
+  return '<div class="states">'+seg+'</div><div class="frame app">'+sideNav('calendar')+'<main class="main"><div class="row" style="justify-content:space-between"><button type="button" class="pill pill-quiet" data-screen="draft">&larr; Back to the draft</button><span class="row" style="gap:var(--s-2)"><span class="badge b-warn">Your review</span>'+badge+'</span></div>'
+   +'<section class="card card-lg"><div class="row" style="justify-content:space-between"><h1 class="h3">[page title 15]</h1><span class="prov'+(editState==="unsaved"?' " style="color:var(--bad)"':'"')+'>'+save+'</span></div><div class="rule-sm"></div>'
+   +'<div class="editor"><div><div class="eyebrow" style="margin-bottom:var(--s-2)">Markdown</div><textarea class="input" aria-label="Draft Markdown">## [section heading]\n\n[body paragraph] [grounded fact] [body continues].\n\n## [section heading]\n\n[body paragraph]</textarea></div>'
+   +'<div><div class="eyebrow" style="margin-bottom:var(--s-2)">Preview</div><div class="card" style="box-shadow:none;background:var(--sunk)">'+draftDoc()+'</div></div></div>'
+   +'<p class="explain">Saves itself as you type. The grounded fact stays marked while it survives your edit; the claim check re-runs on every save and the page cannot publish until it passes.</p></section>'
+   +'<div class="row" style="gap:var(--s-2)"><button type="button" class="pill pill-solid" data-screen="draft">Done editing</button><button type="button" class="pill pill-quiet">Discard changes</button></div></main></div>';
+}
+
+/* ═══ S18 · settings ═════════════════════════════════════════════════ */
+function sSettings(){
+  var comps=RIVALS4.concat(["example.info"]).map(function(c){return '<button type="button" class="tag on">'+c+' <span class="x">&times;</span></button>';}).join('');
+  var sw=function(on){return '<button type="button" class="switch'+(on?'':' off')+'" aria-pressed="'+on+'"></button>';};
+  var rowT=function(label,on){return '<div class="row" style="justify-content:space-between;padding:9px 0;border-top:1px solid var(--line)"><span class="small">'+label+'</span>'+sw(on)+'</div>';};
+  var kv=function(k,v,ctl){return '<div class="row" style="justify-content:space-between;padding:9px 0;border-top:1px solid var(--line)"><span class="small">'+k+'</span><span class="row" style="gap:var(--s-2)">'+(v?'<span class="mono" style="color:var(--ink)">'+v+'</span>':'')+(ctl||'')+'</span></div>';};
+  return '<div class="frame app">'+sideNav('settings')+'<main class="main"><h1 class="h1">Settings</h1><div class="g2" style="align-items:start"><div class="stack">'
+   +'<section class="card">'+cardHead('globe','Your site &amp; market')+kv('domain',DOMAIN,'<button type="button" class="pill pill-quiet">Change</button>').replace('border-top:1px solid var(--line)','')+kv('market','[category]','<button type="button" class="pill pill-quiet">Edit</button>')+'<p class="explain">changing this rebuilds the search set and the 12 questions next Monday</p></section>'
+   +'<section class="card">'+cardHead('users','Competitors','<span class="badge b-neutral">5 of 5</span>')+'<div class="row">'+comps+'</div></section>'
+   +'<section class="card">'+cardHead('spark','Publishing')+'<div class="pick"><button type="button" class="opt" aria-pressed="true"><span class="opt-t">Autopilot</span></button><button type="button" class="opt" aria-pressed="false"><span class="opt-t">Copilot</span></button></div><p class="explain">Autopilot: a page publishes when its veto window ends unless you stop it. Copilot: nothing publishes without your approval.</p><div class="rule-sm"></div>'
+   +kv('Veto window','','<div class="row" style="gap:var(--s-2)"><button type="button" class="pill pill-quiet">&minus;</button><span class="num" style="min-width:56px;text-align:center">1 day</span><button type="button" class="pill pill-quiet">+</button></div>').replace('border-top:1px solid var(--line)','')
+   +kv('Publish time','07:00','<button type="button" class="pill pill-quiet">Change</button>')+kv('Time zone','Europe/Berlin','<button type="button" class="pill pill-quiet">Change</button>')+kv('Publishing','on',sw(true))
+   +'<div class="rule-sm"></div><div class="row" style="justify-content:space-between"><div><div class="small" style="font-weight:600;color:var(--ink)">Hosted blog</div><div class="prov">blog.'+DOMAIN+'</div></div><span class="badge b-ok">healthy</span></div>'
+   +'<div class="row" style="justify-content:space-between;margin-top:var(--s-3)"><div><div class="small" style="font-weight:600;color:var(--ink)">WordPress</div><div class="prov">'+DOMAIN+'</div></div><div class="row" style="gap:var(--s-2)"><span class="badge b-warn">needs you</span><button type="button" class="pill">Reconnect</button></div></div><p class="explain">Fix-type tasks are never automated, whatever the mode.</p></section>'
+   +'<section class="card">'+cardHead('pen','How your pages sound')+'<textarea class="input" aria-label="Brand voice" placeholder="[voice description &mdash; the customer writes this; one field, nothing is learned about them]"></textarea>'
+   +'<div class="rule-sm"></div><div class="eyebrow" style="margin-bottom:var(--s-3)">Never claim</div><div class="row"><button type="button" class="tag on">[claim 1] <span class="x">&times;</span></button><button type="button" class="tag on">[claim 2] <span class="x">&times;</span></button></div><div class="field" style="margin-top:var(--s-3)"><input class="input" placeholder="add a claim your pages must never make" aria-label="Add a do-not-claim entry"><button type="button" class="pill pill-quiet">Add</button></div><p class="explain">A hard filter on every page. A draft that matches an entry is held and returned to you naming it.</p></section>'
+   +'<section class="card">'+cardHead('bell','Notifications')+rowT('Daily draft-ready mail',true).replace('border-top:1px solid var(--line)','')+rowT('Published-page mail',true)+rowT('Monday movement mail',false)+'<p class="explain">Sign-in and account mail cannot be switched off.</p></section></div>'
+   +'<div class="stack"><section class="card">'+cardHead('card','Billing')+'<div class="row" style="justify-content:space-between;align-items:baseline"><span class="num" style="font-size:var(--h2)">&euro;49</span><span class="badge b-ok">active</span></div><div class="rule-sm"></div><dl class="why"><dt>next invoice</dt><dd>1 Oct 2026 &middot; &euro;49</dd><dt>card</dt><dd>&bull;&bull;&bull;&bull; 4242</dd></dl>'
+   +'<div class="row" style="margin-top:var(--s-4);gap:var(--s-2)"><button type="button" class="pill pill-quiet">Update card</button><button type="button" class="pill pill-quiet">Invoices</button><button type="button" class="pill pill-quiet">Cancel plan</button></div><p class="explain">cancelling keeps everything running until 1 Oct 2026</p></section>'
+   +'<section class="card">'+cardHead('lock','Account')+'<dl class="why"><dt>name</dt><dd>[name]</dd><dt>email</dt><dd>you@company.com</dd></dl><p class="explain">[magic-link note &mdash; owner&rsquo;s]</p><div class="row" style="margin-top:var(--s-4);gap:var(--s-2)"><button type="button" class="pill pill-quiet">Change email</button><button type="button" class="pill pill-quiet">Sign out</button></div></section>'
+   +'<section class="card">'+cardHead('file','Your content')+'<div class="row" style="justify-content:space-between;align-items:baseline"><span class="stat-l">Pages</span><span class="num" style="font-size:var(--h2)">17</span></div><button type="button" class="pill pill-block" style="margin-top:var(--s-4)">Export everything</button></section>'
+   +'<section class="card" style="box-shadow:var(--shadow-card),0 0 0 1.5px var(--bad-line)"><div class="card-head"><span class="chip" style="background:var(--bad-bg);color:var(--bad)">'+ico('shield')+'</span><span class="eyebrow" style="color:var(--bad)">Danger zone</span></div><div class="row" style="gap:var(--s-2)"><button type="button" class="pill pill-quiet">Unpublish all</button><button type="button" class="pill pill-quiet">Delete account</button></div><p class="explain">pages are exported to you first, never silently destroyed</p></section></div></div></main></div>';
+}
+
+/* ═══ S19 · hosted page (the customer's blog) ════════════════════════ */
+function sHosted(){
+  return '<div class="frame"><div class="pubbar"><div class="brand"><span class="brand-mark" style="background:var(--ink)">'+ico('globe',2)+'</span><span class="brand-name">[customer brand]</span></div><span class="prov">blog.'+DOMAIN+'</span></div>'
+   +'<article class="hosted"><span class="eyebrow">[category]</span><h1 class="hosted-h">[page title 4]</h1><p class="prov">published 4 Sep 2026 &middot; by [customer brand]</p><div class="rule"></div>'+draftDoc().replace('generated, labelled below','')+'<div class="rule"></div><p class="prov">Written for '+DOMAIN+'. Canonical: blog.'+DOMAIN+'/[slug] &middot; noindex on *.reachkit.app</p></article>'
+   +'<footer class="foot"><div class="foot-in" style="grid-template-columns:1fr"><span class="prov">&copy; [customer brand] &middot; [imprint line]</span></div></footer></div>';
+}
+
+/* ═══ S20 · mails ════════════════════════════════════════════════════ */
+var mailKind="draft-ready";
+var MAILS={
+ "magic-link":{s:"Your sign-in link",h:"Sign in to ReachKit",b:'<p class="body">One click signs you in on this device. The link works once and expires in 15 minutes.</p>',cta:"Sign in",rows:[["for","you@company.com"]],foot:"You asked for this link at reachkit.app/signin. If you didn’t, ignore this mail."},
+ "report":{s:"example.com — Discoverability Score 62, Hard to find",h:"Your report is ready",b:'<p class="body">The whole verdict is on the report, free and permanent.</p>',cta:"Open the report",rows:[["Discoverability Score","62 · Hard to find"],["AI answers","0 of 9"],["Google search","0 of 12"]],foot:"Own this site and want the report taken down? Write to remove@reachkit.app."},
+ "first-page":{s:"Your first page: [page 1 title]",h:"[page 1 title]",b:'<p class="body">The complete page, copy-ready, in Markdown and HTML. That’s page 1 of <span class="num">14</span> we found for you.</p><pre class="code" style="margin-top:0">[page body — generated, labelled]</pre>',cta:"Copy as Markdown",rows:[["target search","[search] · 2,400/mo"],["format","[format]"]],foot:"Sent once, because you asked for it on the report. Follow-up mail has an opt-out link."},
+ "draft-ready":{s:"Tomorrow 07:00: [page title 15]",h:"[page title 15]",b:'<p class="body">Publishes tomorrow at 07:00 unless you say no.</p>',cta:"Stop this page",rows:[["search","[search] · 2,400/mo"],["answered today by","example.org"],["you","0/12"]],foot:"Daily draft-ready mail · switch off in Settings › Notifications."},
+ "published":{s:"Live: [page title 4]",h:"[page title 4] is live",b:'<p class="body">Verified at its address after 24 hours.</p>',cta:"View the page",rows:[["address","blog.example.com/[slug]"],["verified","5 Sep 07:10"]],foot:"Published-page mail · switch off in Settings › Notifications."},
+ "weekly":{s:"Monday: Discoverability Score 62 (▲ 8)",h:"What moved this week",b:'<p class="body">Only what was measured. A number that was not measured is not here.</p>',cta:"Open the overview",rows:[["Discoverability Score","62 · ▲ 8"],["AI answers","2/12 · ▲ 1"],["pages judged","4 working · 2 too early"],["next three","[title] · [title] · [title]"]],foot:"Monday movement mail · switch off in Settings › Notifications."},
+ "nurture":{s:"[nurture subject 1 — owner’s]",h:"[nurture heading — owner’s]",b:'<p class="body">[nurture body — owner’s. Three at most: 24 h, 72 h, 168 h. Stops when you subscribe.]</p>',cta:"Start ReachKit €49",rows:[["your page","[page 1 title]"],["pages found","14"]],foot:"Opt out of all follow-up: one link, every domain, for good."}
+};
+function sMail(){
+  var m=MAILS[mailKind];
+  var seg=Object.keys(MAILS).map(function(k){return '<button type="button" class="navbtn" data-mail="'+k+'" aria-pressed="'+(mailKind===k)+'">'+k+'</button>';}).join('');
+  return '<div class="states">'+seg+'</div><div class="frame" style="min-height:0"><div class="mailwrap"><p class="subj">subject: '+m.s+'</p><div class="mail"><div class="mail-h">'+brand()+'</div><div class="mail-b"><h1 class="h3">'+m.h+'</h1>'+m.b
+   +'<dl class="mrow">'+m.rows.map(function(r){return '<dt>'+r[0]+'</dt><dd>'+r[1]+'</dd>';}).join('')+'</dl><button type="button" class="pill pill-solid pill-lg" style="justify-self:start">'+m.cta+'</button></div><div class="mail-f">'+m.foot+'<br>ReachKit · [imprint line] · plain-text version attached</div></div>'
+   +'<p class="explain" style="text-align:center">One shell, one heading, mono facts, one button. No generated prose anywhere in mail (§12).</p></div></div>';
+}
+
+/* ═══ wiring ═════════════════════════════════════════════════════════ */
+var SCREENS={
+  landing:{id:"S1",label:"Landing",group:"Public",fn:sLanding},
+  report:{id:"S2",label:"Free report",group:"Public",fn:sReport},
+  rstates:{id:"S3",label:"Report states",group:"Public",fn:sReportStates},
+  pricing:{id:"S4",label:"Pricing",group:"Public",fn:sPricing},
+  legal:{id:"S5",label:"Legal",group:"Public",fn:sLegal},
+  veto:{id:"S6",label:"Veto page",group:"Public",fn:sVeto},
+  optout:{id:"S7",label:"Opt-out",group:"Public",fn:sOptout},
+  notfound:{id:"S8",label:"Not found",group:"Public",fn:sNotFound},
+  auth:{id:"S9",label:"Sign in",group:"Join",fn:sAuth},
+  setup:{id:"S10",label:"Setup",group:"Join",fn:sSetup},
+  waiting:{id:"S11",label:"Waiting",group:"Join",fn:sWaiting},
+  overview:{id:"S12",label:"Overview",group:"App",fn:sOverview},
+  overview0:{id:"S13",label:"Overview · week 0",group:"App",fn:sOverviewFirst},
+  calendar:{id:"S14",label:"Calendar",group:"App",fn:sCalendar},
+  cstates:{id:"S15",label:"Day panel states",group:"App",fn:sCalendarStates},
+  draft:{id:"S16",label:"Draft",group:"App",fn:sDraft},
+  draftedit:{id:"S17",label:"Draft · edit",group:"App",fn:sDraftEdit},
+  settings:{id:"S18",label:"Settings",group:"App",fn:sSettings},
+  hosted:{id:"S19",label:"Hosted page",group:"App",fn:sHosted},
+  mail:{id:"S20",label:"Mails",group:"Mail",fn:sMail}
+};
+var order=Object.keys(SCREENS), current="landing";
+function buildNav(){
+  var html="",last=null;
+  order.forEach(function(k){var s=SCREENS[k];if(s.group!==last){if(last!==null)html+='</div>';html+='<div class="navgrp"><span class="navgrp-l">'+s.group+'</span>';last=s.group;}
+    html+='<button type="button" class="navbtn" data-screen="'+k+'" aria-pressed="'+(k===current)+'">'+s.label+'</button>';});
+  return html+'</div>';
+}
+var stage=document.getElementById('stage'),nav=document.getElementById('nav'),sid=document.getElementById('sid');
+function render(){nav.innerHTML=buildNav();var s=SCREENS[current];sid.textContent=s.id+' · '+s.label;stage.innerHTML=s.fn();window.scrollTo({top:0,behavior:'auto'});}
+render();
+document.addEventListener('click',function(e){
+  var t=e.target.closest('[data-screen],[data-auth],[data-rs],[data-veto],[data-setup],[data-panel],[data-edit],[data-mail]');
+  if(!t)return; e.preventDefault();
+  if(t.dataset.screen){current=t.dataset.screen;}
+  else if(t.dataset.auth){authState=t.dataset.auth;}
+  else if(t.dataset.rs){reportState=t.dataset.rs;}
+  else if(t.dataset.veto){vetoState=t.dataset.veto;}
+  else if(t.dataset.setup){setupState=t.dataset.setup;}
+  else if(t.dataset.panel){panelState=t.dataset.panel;}
+  else if(t.dataset.edit){editState=t.dataset.edit;}
+  else if(t.dataset.mail){mailKind=t.dataset.mail;}
+  render();
+});
+var root=document.documentElement,dark=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches,tb=document.getElementById('theme');
+function paintTheme(){root.setAttribute('data-theme',dark?'dark':'light');tb.textContent=dark?'Light':'Dark';}
+paintTheme();tb.addEventListener('click',function(){dark=!dark;paintTheme();});
+</script>
