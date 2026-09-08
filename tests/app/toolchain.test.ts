@@ -53,7 +53,26 @@ describe('BUILD.md §1 — "Repo shape: standard Next.js."', () => {
     // sdlc-factory corpus, 2026-09-04), `.github/` and `.claude/`. Tooling/VCS
     // directories that are never committed (node_modules, .next, coverage,
     // .git) are excluded here the same way .gitignore excludes them.
-    const allowed = new Set(["src", "supabase", "tests", "public", "scripts", "archive", ".github", ".claude"]);
+    //
+    // `docs/` is the ninth, added by issue #364 to hold the owner's approved
+    // design — the ReachKit Screen System artifact, its token blocks, its
+    // renders and the literals inventory. The issue names those paths
+    // exactly, so the directory is the owner's decision and not this PR's;
+    // what this PR cannot do is make it in `ARCHITECTURE.md`, which is an
+    // owner file. **Rule 7 needs the amendment**, and until it lands this
+    // line is a transcription running ahead of its source — named in the PR
+    // body under "Owner owes" rather than left to be discovered.
+    const allowed = new Set([
+      "src",
+      "supabase",
+      "tests",
+      "public",
+      "scripts",
+      "archive",
+      "docs",
+      ".github",
+      ".claude",
+    ]);
     const toolingOnly = new Set(["node_modules", ".next", "coverage", ".git"]);
     const entries = readdirSync(ROOT, { withFileTypes: true }).filter((e) => e.isDirectory());
     const unexpected = entries

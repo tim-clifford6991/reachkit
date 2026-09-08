@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<!-- saved from url=(0133)https://44d30091-719b-4d43-9014-10eb1203a8d4.frame.claudeusercontent.com/_f/1788360834-7262/?__frame_v=manifest.44244f2523adb29d.json -->
+<html data-theme="dark" data-num="mono"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><!-- the artifact viewer's frame shell was removed here (issue #364): it
+     posts to a parent window and imports /_runtime/*, neither of which
+     exists when this file is opened on its own. Nothing below it changed. --><meta name="viewport" content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found]){display:none!important}</style></head><body>
+<title>ReachKit Screen System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com/">
+<link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+
+<style>
+/* ═══════════════════════════════════════════════════════════════════════
+   Every colour, radius, shadow and spacing step is transcribed from
+   sdlc-factory/docs/design/previews/app/src/app/globals.css, which itself
+   transcribes BUILD.md §2.1. Nothing is invented. Page furniture is --pg-*.
+   Card radius 18px and the sans-numeral option are the two open rulings —
+   both are called out in the ledger under the frame.
+   ═══════════════════════════════════════════════════════════════════════ */
+:root{
+  --bg:#f6f6f9; --surface:#ffffff; --sunk:#efeff4; --line:#eaeaf1;
+  --ink:#191925; --ink-2:#5e5e73; --ink-3:#9695a8;
+  --accent:#5b4be0; --on-accent:#ffffff; --accent-bg:#eeecfd; --accent-line:#ddd8fa;
+  --ok:#1f8a6b; --ok-bg:#e7f6f0; --ok-line:#d2ede3;
+  --warn:#b8722a; --warn-bg:#fff3e6; --warn-line:#fbe1c6;
+  --bad:#c0432b; --bad-bg:#fdece8; --bad-line:#f8d5cd;
+  --chart-you:#5b4be0; --chart-rival:#787790; --chart-goal:#b8722a;
+  --r-box:14px; --r-card:18px; --r-field:9px; --r-pill:999px;
+  --shadow-card:0 1px 3px rgb(24 24 48/.045);
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-5:24px; --s-6:32px; --s-7:48px;
+  --font-ui:"Plus Jakarta Sans",ui-sans-serif,system-ui,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --font-num:var(--font-mono);         /* flipped by the numeral toggle */
+  --num-weight:600;
+  --t-eyebrow:11px; --t-explain:11.5px; --t-num-big:44px;
+  --h1:31px; --h2:25px; --h3:20px; --h4:16px;
+  --w-wide:1216px; --w-read:704px;
+  --pg-ground:#eceaf2; --pg-ink:#191925; --pg-ink-2:#63627a;
+  --pg-line:#dcd9e6; --pg-panel:#ffffff;
+}
+[data-num="sans"]{ --font-num:var(--font-ui); --num-weight:700; }
+
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1116; --surface:#161a21; --sunk:#11151b; --line:#242a34;
+    --ink:#dde3eb; --ink-2:#8e99aa; --ink-3:#69738a;
+    --accent:#9bb4ff; --on-accent:#0e1116;
+    --accent-bg:rgb(155 180 255/.12); --accent-line:rgb(155 180 255/.28);
+    --ok:#7bd8b0; --ok-bg:rgb(123 216 176/.12); --ok-line:rgb(123 216 176/.28);
+    --warn:#e6b45a; --warn-bg:rgb(230 180 90/.12); --warn-line:rgb(230 180 90/.28);
+    --bad:#f0907a; --bad-bg:rgb(240 144 122/.12); --bad-line:rgb(240 144 122/.28);
+    --chart-you:#5f7ff2; --chart-rival:#5c6579; --chart-goal:#e6b45a;
+    --shadow-card:0 1px 3px rgb(0 0 0/.45);
+    --pg-ground:#080a0d; --pg-ink:#dde3eb; --pg-ink-2:#8e99aa;
+    --pg-line:#1e232c; --pg-panel:#11151b;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1116; --surface:#161a21; --sunk:#11151b; --line:#242a34;
+  --ink:#dde3eb; --ink-2:#8e99aa; --ink-3:#69738a;
+  --accent:#9bb4ff; --on-accent:#0e1116;
+  --accent-bg:rgb(155 180 255/.12); --accent-line:rgb(155 180 255/.28);
+  --ok:#7bd8b0; --ok-bg:rgb(123 216 176/.12); --ok-line:rgb(123 216 176/.28);
+  --warn:#e6b45a; --warn-bg:rgb(230 180 90/.12); --warn-line:rgb(230 180 90/.28);
+  --bad:#f0907a; --bad-bg:rgb(240 144 122/.12); --bad-line:rgb(240 144 122/.28);
+  --chart-you:#5f7ff2; --chart-rival:#5c6579; --chart-goal:#e6b45a;
+  --shadow-card:0 1px 3px rgb(0 0 0/.45);
+  --pg-ground:#080a0d; --pg-ink:#dde3eb; --pg-ink-2:#8e99aa;
+  --pg-line:#1e232c; --pg-panel:#11151b;
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--pg-ground);color:var(--pg-ink);font-family:var(--font-ui);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ── page chrome ─────────────────────────────────────────────────────── */
+.pg{max-width:1400px;margin:0 auto;padding:var(--s-6) var(--s-5) var(--s-7)}
+.pg-title{font-size:var(--h2);font-weight:800;letter-spacing:-.02em;margin:0;text-wrap:balance}
+.pg-sub{margin:var(--s-2) 0 0;color:var(--pg-ink-2);font-size:13.5px;max-width:70ch}
+.pg-sub code{font-family:var(--font-mono);font-size:12px;background:var(--pg-panel);border:1px solid var(--pg-line);border-radius:5px;padding:1px 5px}
+.bar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--pg-ground) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--pg-line);margin-bottom:var(--s-5)}
+.bar-in{max-width:1400px;margin:0 auto;padding:var(--s-3) var(--s-5);display:flex;flex-wrap:wrap;gap:var(--s-4);align-items:center;justify-content:space-between}
+.navwrap{display:flex;gap:var(--s-4);align-items:center;overflow-x:auto;padding-bottom:2px;min-width:0}
+.navgrp{display:flex;align-items:center;gap:var(--s-2);flex:none}
+.navgrp-l{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--pg-ink-2);opacity:.7;margin-right:2px}
+.navbtn{font:inherit;font-size:12.5px;font-weight:600;color:var(--pg-ink-2);background:var(--pg-panel);border:1px solid var(--pg-line);padding:6px 13px;border-radius:var(--r-pill);cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
+.navbtn:hover{color:var(--pg-ink)}
+.navbtn[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.tog{font:inherit;font-size:12.5px;font-weight:600;color:var(--pg-ink-2);cursor:pointer;background:var(--pg-panel);border:1px solid var(--pg-line);border-radius:var(--r-pill);padding:7px 14px;white-space:nowrap;flex:none}
+.tog:hover{color:var(--pg-ink)}
+.togs{display:flex;gap:var(--s-2);flex:none}
+
+/* ── frame ───────────────────────────────────────────────────────────── */
+.frame{background:var(--bg);border:1px solid var(--pg-line);border-radius:20px;overflow:hidden;box-shadow:0 24px 60px -28px rgb(24 24 48/.28);min-height:720px}
+.frame.app{display:grid;grid-template-columns:232px 1fr}
+@media (max-width:900px){.frame.app{grid-template-columns:1fr}}
+
+/* sidebar */
+.side{background:var(--surface);border-right:1px solid var(--line);padding:var(--s-5) var(--s-3);display:flex;flex-direction:column;gap:var(--s-5)}
+@media (max-width:900px){.side{border-right:0;border-bottom:1px solid var(--line);flex-direction:row;flex-wrap:wrap;align-items:center;gap:var(--s-3)}.side .side-foot{margin-top:0}.side .side-group{display:none}}
+.brand{display:flex;align-items:center;gap:10px;padding:0 var(--s-2)}
+.brand-mark{width:26px;height:26px;border-radius:8px;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;flex:none}
+.brand-mark svg{width:15px;height:15px}
+.brand-name{font-weight:800;font-size:15px;letter-spacing:-.02em;color:var(--ink)}
+.acct{background:var(--sunk);border-radius:var(--r-field);padding:10px var(--s-3);display:flex;align-items:center;gap:10px}
+.acct-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none}
+.acct-txt{min-width:0}
+.acct-1{font-family:var(--font-mono);font-size:12.5px;font-weight:600;color:var(--ink);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acct-2{font-family:var(--font-mono);font-size:var(--t-eyebrow);color:var(--ink-3);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.side-group{display:flex;flex-direction:column;gap:2px}
+.side-label{font-size:var(--t-eyebrow);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);padding:0 var(--s-3);margin-bottom:var(--s-2)}
+.nav{display:flex;align-items:center;gap:10px;padding:8px var(--s-3);border-radius:var(--r-field);color:var(--ink-2);font-size:13.5px;font-weight:600;cursor:pointer;border:0;background:none;font-family:inherit;width:100%;text-align:left}
+.nav:hover{background:var(--sunk);color:var(--ink)}
+.nav[aria-current="page"]{background:var(--accent-bg);color:var(--accent)}
+.nav svg{width:15px;height:15px;flex:none}
+.nav .count{margin-left:auto;font-family:var(--font-mono);font-size:var(--t-eyebrow);font-weight:500;color:var(--ink-3)}
+.nav[aria-current="page"] .count{color:var(--accent)}
+.side-foot{margin-top:auto}
+.pub{background:var(--sunk);border-radius:var(--r-field);padding:var(--s-3)}
+.pub-row{display:flex;align-items:center;justify-content:space-between;gap:var(--s-2)}
+.pub-l{font-size:var(--t-eyebrow);font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.switch{width:30px;height:17px;border-radius:var(--r-pill);background:var(--accent);position:relative;flex:none}
+.switch::after{content:"";position:absolute;top:2px;right:2px;width:13px;height:13px;border-radius:50%;background:var(--on-accent)}
+.pub-v{font-size:12.5px;font-weight:600;color:var(--ink);margin-top:6px}
+.pub-n{font-family:var(--font-mono);font-size:var(--t-explain);color:var(--ink-3);margin-top:2px}
+
+/* public top bar */
+.pubbar{background:var(--surface);border-bottom:1px solid var(--line);padding:var(--s-4) var(--s-5);display:flex;align-items:center;justify-content:space-between;gap:var(--s-4)}
+.main{padding:var(--s-6);display:flex;flex-direction:column;gap:var(--s-5);min-width:0}
+.main.pubmain{max-width:var(--w-wide);margin:0 auto;width:100%}
+@media (max-width:640px){.main{padding:var(--s-4)}}
+
+/* ── the idiom ───────────────────────────────────────────────────────── */
+.card{background:var(--surface);border-radius:var(--r-card);box-shadow:var(--shadow-card);padding:var(--s-5);min-width:0}
+.card-lg{padding:var(--s-6)}
+@media (max-width:640px){.card,.card-lg{padding:var(--s-4)}}
+.card-accent{box-shadow:var(--shadow-card),0 0 0 1.5px var(--accent-line)}
+.card-head{display:flex;align-items:center;gap:10px;margin-bottom:var(--s-5)}
+.chip{width:30px;height:30px;border-radius:10px;background:var(--accent-bg);color:var(--accent);display:grid;place-items:center;flex:none}
+.chip svg{width:15px;height:15px}
+.eyebrow{font-size:var(--t-eyebrow);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.spacer{margin-left:auto}
+.h1{font-size:var(--h1);font-weight:800;letter-spacing:-.02em;color:var(--ink);margin:0;line-height:1.15;text-wrap:balance}
+.h3{font-size:var(--h3);font-weight:700;letter-spacing:-.015em;color:var(--ink);margin:0;text-wrap:balance}
+.h4{font-size:var(--h4);font-weight:700;color:var(--ink);margin:0}
+@media (max-width:640px){.h1{font-size:var(--h2)}}
+.explain{font-size:var(--t-explain);color:var(--ink-3);margin:var(--s-2) 0 0}
+.prov{font-family:var(--font-mono);font-size:var(--t-explain);color:var(--ink-3);margin:0}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.num{font-family:var(--font-num);font-variant-numeric:tabular-nums;font-weight:var(--num-weight)}
+
+.pill{font:inherit;font-size:12.5px;font-weight:700;border-radius:var(--r-pill);padding:7px 15px;cursor:pointer;white-space:nowrap;border:1px solid var(--accent-line);background:var(--surface);color:var(--accent)}
+.pill:hover{background:var(--accent-bg)}
+.pill-solid{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.pill-solid:hover{filter:brightness(1.08)}
+.pill-quiet{border-color:var(--line);color:var(--ink-2)}
+.pill-quiet:hover{background:var(--sunk);color:var(--ink)}
+.pill-lg{font-size:14.5px;padding:11px 22px}
+.pill-block{width:100%;text-align:center;display:block}
+
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:var(--t-eyebrow);font-weight:700;border-radius:var(--r-pill);padding:3px 9px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.b-ok{background:var(--ok-bg);color:var(--ok)}
+.b-warn{background:var(--warn-bg);color:var(--warn)}
+.b-bad{background:var(--bad-bg);color:var(--bad)}
+.b-neutral{background:var(--sunk);color:var(--ink-2)}
+.b-accent{background:var(--accent-bg);color:var(--accent)}
+.srcchip{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:var(--t-explain);color:var(--ink-3);background:var(--sunk);border-radius:var(--r-pill);padding:4px 10px}
+
+.rule{height:1px;background:var(--line);margin:var(--s-5) 0}
+.rule-sm{height:1px;background:var(--line);margin:var(--s-4) 0}
+.stack{display:flex;flex-direction:column;gap:var(--s-5)}
+.stack-sm{display:flex;flex-direction:column;gap:var(--s-3)}
+.row{display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s-4)}
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s-4)}
+@media (max-width:900px){.g2,.g3{grid-template-columns:1fr}}
+.acts{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:var(--s-3)}
+.act{background:var(--accent-bg);border-radius:var(--r-box);padding:var(--s-4);display:flex;gap:var(--s-3);align-items:flex-start}
+.act-warn{background:var(--warn-bg)}
+.act-ico{width:28px;height:28px;border-radius:9px;background:var(--surface);display:grid;place-items:center;flex:none;color:var(--accent)}
+.act-warn .act-ico{color:var(--warn)}
+.act-ico svg{width:14px;height:14px}
+.act-body{min-width:0;flex:1}
+.act-t{font-size:14px;font-weight:700;color:var(--ink);line-height:1.35;display:block}
+.act-d{font-size:var(--t-explain);color:var(--ink-2);margin-top:3px;display:block}
+.act .pill{margin-top:var(--s-3)}
+
+.stat-l{font-size:13.5px;font-weight:600;color:var(--ink-2)}
+.stat-v{font-family:var(--font-num);font-weight:var(--num-weight);font-size:var(--t-num-big);letter-spacing:-.03em;color:var(--ink);line-height:1.05;margin-top:var(--s-2);font-variant-numeric:tabular-nums}
+.stat-row{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.dots{display:flex;gap:5px;margin-top:var(--s-3)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--line)}
+.dot.on{background:var(--accent)}
+.dot.goal{background:none;box-shadow:inset 0 0 0 1.5px var(--chart-goal)}
+
+.field{display:flex;gap:var(--s-2);flex-wrap:wrap}
+.input{flex:1;min-width:220px;font:inherit;font-family:var(--font-mono);font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:var(--r-field);padding:12px var(--s-4)}
+.input::placeholder{color:var(--ink-3)}
+.input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+
+/* charts */
+.chart{width:100%;height:150px;display:block;margin-top:var(--s-4)}
+.chart-ax{display:flex;justify-content:space-between;gap:var(--s-3);font-family:var(--font-mono);font-size:var(--t-explain);color:var(--ink-3);margin-top:var(--s-2)}
+.spark{width:100%;min-width:110px;height:34px;display:block}
+.rival{display:grid;grid-template-columns:minmax(64px,1fr) minmax(110px,2.2fr) auto;gap:var(--s-4);align-items:center;padding:var(--s-3) 0;border-top:1px solid var(--line)}
+.rival:first-of-type{border-top:0;padding-top:0}
+@media (max-width:560px){.rival{grid-template-columns:1fr auto;row-gap:var(--s-2)}.rival .spark{grid-column:1/-1;order:3}}
+.rival-n{font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rival-e{display:flex;align-items:center;gap:var(--s-2);justify-content:flex-end}
+.rival-v{font-family:var(--font-num);font-weight:var(--num-weight);font-size:16px;color:var(--ink);font-variant-numeric:tabular-nums}
+.week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:var(--s-2)}
+.day{background:var(--sunk);border-radius:var(--r-field);padding:10px 6px;text-align:center;min-width:0}
+.day-n{font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--ink-2)}
+.day-b{width:100%;height:3px;border-radius:2px;background:var(--line);margin-top:7px}
+.day.done .day-b{background:var(--ok)}
+.day.today{background:var(--accent-bg)}
+.day.today .day-n{color:var(--accent)}
+.day.today .day-b{background:var(--accent)}
+.day.unmeasured .day-b{background:var(--warn)}
+.day.to-come{opacity:.55}
+
+/* occupancy bars */
+.occ{display:flex;flex-direction:column;gap:var(--s-3)}
+.occ-r{display:grid;grid-template-columns:minmax(64px,88px) 1fr auto;gap:var(--s-3);align-items:center}
+.occ-n{font-family:var(--font-mono);font-size:12.5px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.occ-t{height:10px;border-radius:var(--r-pill);background:var(--sunk);overflow:hidden}
+.occ-f{height:100%;border-radius:var(--r-pill);background:var(--chart-rival)}
+.occ-r.you .occ-f{background:var(--chart-you)}
+.occ-r.you .occ-n{color:var(--ink);font-weight:600}
+.occ-v{font-family:var(--font-num);font-weight:var(--num-weight);font-size:12.5px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.occ-r.you .occ-v{color:var(--accent)}
+.occ-r.zero .occ-t{box-shadow:inset 0 0 0 1.5px var(--bad-line)}
+.occ-r.zero .occ-v{color:var(--bad)}
+
+/* dot matrix */
+.mx{display:flex;flex-direction:column;gap:6px;overflow-x:auto}
+.mx-r{display:grid;grid-template-columns:minmax(64px,84px) 1fr auto;gap:var(--s-3);align-items:center;min-width:320px}
+.mx-c{display:flex;gap:5px}
+.cell{width:100%;min-width:14px;height:18px;border-radius:4px;background:var(--sunk);flex:1}
+.cell.cited{background:var(--chart-rival)}
+.cell.muted{background:var(--sunk);opacity:.5}
+.mx-r.you .cell{background:none;box-shadow:inset 0 0 0 1.5px var(--bad-line)}
+.mx-r.you .mx-n{color:var(--ink);font-weight:700}
+.mx-n{font-family:var(--font-mono);font-size:12.5px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mx-v{font-family:var(--font-num);font-weight:var(--num-weight);font-size:12.5px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.mx-r.you .mx-v{color:var(--bad)}
+
+/* questions */
+.q{padding:var(--s-3) 0;border-top:1px solid var(--line)}
+.q:first-of-type{border-top:0;padding-top:0}
+.q-h{display:flex;gap:var(--s-3);align-items:flex-start}
+.q-n{font-family:var(--font-mono);font-size:12.5px;color:var(--ink-3);flex:none;padding-top:2px}
+.q-t{font-size:13.5px;font-weight:600;color:var(--ink);flex:1;min-width:0}
+.q-p{font-family:var(--font-mono);font-size:var(--t-explain);color:var(--ink-3);margin:5px 0 0 26px}
+
+/* tables */
+.wrapx{overflow-x:auto}
+table.t{border-collapse:collapse;width:100%;font-size:13px;min-width:360px}
+table.t th,table.t td{text-align:left;padding:8px var(--s-3);border-bottom:1px solid var(--line)}
+table.t th{font-size:var(--t-eyebrow);text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);font-weight:700}
+table.t td{color:var(--ink-2)}
+table.t td:first-child{font-family:var(--font-mono);color:var(--ink)}
+table.t td.n{font-family:var(--font-num);font-weight:var(--num-weight);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+table.t tr:last-child td{border-bottom:0}
+
+/* problem cards */
+.prob{background:var(--surface);border-radius:var(--r-card);box-shadow:var(--shadow-card);padding:var(--s-5);border-left:4px solid var(--ink-3);min-width:0}
+.prob.sev-ok{border-left-color:var(--ok)}
+.prob.sev-accent{border-left-color:var(--accent)}
+.prob.sev-bad{border-left-color:var(--bad)}
+pre.code{font-family:var(--font-mono);font-size:11.5px;line-height:1.7;background:var(--sunk);border-radius:var(--r-field);padding:var(--s-3);overflow-x:auto;margin:var(--s-3) 0 0;color:var(--ink-2)}
+
+/* collapses */
+.col{background:var(--surface);border-radius:var(--r-box);box-shadow:var(--shadow-card);overflow:hidden}
+.col+.col{margin-top:var(--s-2)}
+.col summary{padding:var(--s-4) var(--s-5);font-size:14px;font-weight:700;color:var(--ink);cursor:pointer;list-style:none;display:flex;align-items:center;gap:var(--s-3)}
+.col summary::-webkit-details-marker{display:none}
+.col summary::after{content:"";margin-left:auto;width:7px;height:7px;border-right:2px solid var(--ink-3);border-bottom:2px solid var(--ink-3);transform:rotate(45deg);transition:transform .18s}
+.col[open] summary::after{transform:rotate(-135deg)}
+.col-b{padding:0 var(--s-5) var(--s-5);font-size:13.5px;color:var(--ink-2)}
+
+/* pricing */
+.spec{display:flex;align-items:center;gap:var(--s-3);padding:9px 0;border-top:1px solid var(--line);font-size:13.5px;color:var(--ink-2)}
+.spec:first-of-type{border-top:0}
+.spec svg{width:15px;height:15px;color:var(--ok);flex:none}
+
+/* setup */
+.pick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s-3)}
+@media (max-width:640px){.pick{grid-template-columns:1fr}}
+.opt{background:var(--surface);border:1.5px solid var(--line);border-radius:var(--r-box);padding:var(--s-4);cursor:pointer;text-align:left;font:inherit;min-width:0}
+.opt:hover{border-color:var(--accent-line)}
+.opt[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-bg)}
+.opt-t{font-size:14px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:var(--s-2)}
+.opt-d{font-size:var(--t-explain);color:var(--ink-2);margin-top:5px;display:block}
+.tag{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:12.5px;background:var(--sunk);color:var(--ink-2);border-radius:var(--r-pill);padding:5px 12px}
+.tag.on{background:var(--accent-bg);color:var(--accent)}
+.steps{display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap}
+.step{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--ink-3)}
+.step .b{width:16px;height:16px;border-radius:50%;background:var(--line);display:grid;place-items:center;color:var(--surface)}
+.step .b svg{width:9px;height:9px}
+.step.done{color:var(--ok)}.step.done .b{background:var(--ok)}
+.step.now{color:var(--accent)}.step.now .b{background:var(--accent)}
+.step-x{width:14px;height:1px;background:var(--line)}
+
+/* calendar */
+.calwrap{display:grid;grid-template-columns:1fr 290px;gap:var(--s-4);align-items:start}
+@media (max-width:1180px){.calwrap{grid-template-columns:1fr}}
+.calgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:var(--s-2)}
+@media (max-width:760px){.calgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.caldow{display:none}}
+.caldow{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);text-align:center;padding-bottom:var(--s-1)}
+.cd{background:var(--surface);border-radius:var(--r-box);box-shadow:var(--shadow-card);padding:10px;min-height:104px;display:flex;flex-direction:column;gap:6px;cursor:pointer;min-width:0}
+.cd:hover{box-shadow:var(--shadow-card),0 0 0 1.5px var(--accent-line)}
+.cd.today{box-shadow:var(--shadow-card),0 0 0 2px var(--accent)}
+.cd-d{font-family:var(--font-mono);font-size:11px;color:var(--ink-3)}
+.cd-t{font-size:12px;font-weight:600;color:var(--ink);line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
+.cd.empty{background:none;box-shadow:inset 0 0 0 1px var(--line);cursor:default}
+.cd.empty .cd-d{opacity:.55}
+.panel{background:var(--surface);border-radius:var(--r-card);box-shadow:var(--shadow-card);padding:var(--s-5);position:sticky;top:var(--s-4);min-width:0}
+.why{display:grid;grid-template-columns:auto 1fr;gap:6px var(--s-3);font-family:var(--font-mono);font-size:12px}
+.why dt{color:var(--ink-3);white-space:nowrap}
+.why dd{margin:0;color:var(--ink);overflow-wrap:anywhere}
+
+/* draft */
+.doc{font-size:15px;line-height:1.7;color:var(--ink-2)}
+.doc h2{font-size:var(--h3);font-weight:700;color:var(--ink);margin:var(--s-5) 0 var(--s-3);letter-spacing:-.015em}
+.doc p{margin:0 0 var(--s-3)}
+.mark{background:var(--ok-bg);box-shadow:0 0 0 1px var(--ok-line);border-radius:4px;padding:1px 3px;color:var(--ink)}
+.info{background:var(--accent-bg);border-radius:var(--r-box);padding:var(--s-4);font-size:13px;color:var(--ink-2)}
+.info b{color:var(--ink)}
+
+/* ── login: two panels ───────────────────────────────────────────────── */
+.split{display:grid;grid-template-columns:1fr 1fr;min-height:720px}
+@media (max-width:980px){.split{grid-template-columns:1fr}.split .rightp{display:none}}
+.leftp{background:var(--surface);display:flex;align-items:center;padding:var(--s-7) var(--s-6)}
+.leftp-in{width:100%;max-width:420px;margin-left:auto;margin-right:auto}
+@media (min-width:980px){.leftp-in{margin-right:var(--s-7)}}
+.rightp{
+  position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:center;
+  padding:var(--s-7) var(--s-6);
+  background:
+    radial-gradient(120% 90% at 78% 12%, color-mix(in srgb,var(--accent) 62%, white) 0%, transparent 58%),
+    linear-gradient(155deg, var(--accent) 0%, color-mix(in srgb,var(--accent) 78%, black) 100%);
+}
+.rightp-h{font-size:34px;font-weight:700;letter-spacing:-.02em;line-height:1.22;color:#fff;margin:0 0 var(--s-6);max-width:15ch;text-wrap:balance}
+.glass{
+  background:rgb(255 255 255/.14);border:1px solid rgb(255 255 255/.22);
+  border-radius:var(--r-card);padding:var(--s-5);max-width:360px;
+  backdrop-filter:blur(8px);box-shadow:0 18px 40px -20px rgb(0 0 0/.35);
+}
+.glass-d{font-family:var(--font-mono);font-size:11.5px;color:rgb(255 255 255/.6);margin:0 0 var(--s-4)}
+.glass-l{font-size:14px;font-weight:600;color:#fff}
+.glass-p{font-family:var(--font-mono);font-size:10.5px;font-weight:500;background:rgb(0 0 0/.28);color:#fff;border-radius:var(--r-pill);padding:3px 8px;white-space:nowrap}
+.glass-n{font-family:var(--font-num);font-weight:var(--num-weight);font-size:46px;letter-spacing:-.03em;color:#fff;line-height:1.05;font-variant-numeric:tabular-nums}
+.glass-o{font-family:var(--font-mono);font-size:19px;color:rgb(255 255 255/.6)}
+.glass-t{height:7px;border-radius:var(--r-pill);background:rgb(255 255 255/.22);margin:var(--s-4) 0 var(--s-3);overflow:hidden}
+.glass-f{height:100%;border-radius:var(--r-pill);background:#fff}
+.glass-x{font-size:11.5px;color:rgb(255 255 255/.78);margin:0;line-height:1.5}
+.linkish{color:var(--accent);font-weight:700;text-decoration:none}
+.linkish:hover{text-decoration:underline}
+
+/* ── landing ─────────────────────────────────────────────────────────── */
+.hero{display:grid;grid-template-columns:1fr 1fr;gap:var(--s-7);align-items:center;padding:var(--s-7) 0}
+@media (max-width:980px){.hero{grid-template-columns:1fr;gap:var(--s-6);padding-top:var(--s-6)}}
+.hero-h{font-size:46px;font-weight:800;letter-spacing:-.03em;line-height:1.1;margin:0;color:var(--ink);text-wrap:balance}
+@media (max-width:640px){.hero-h{font-size:32px}}
+.hero-s{font-size:16.5px;color:var(--ink-2);margin:var(--s-4) 0 0;max-width:46ch}
+.shot{
+  background:var(--surface);border-radius:var(--r-card);box-shadow:0 30px 60px -26px rgb(24 24 48/.32),0 0 0 1px var(--line);
+  overflow:hidden;
+}
+.shot-bar{display:flex;align-items:center;gap:6px;padding:10px var(--s-4);border-bottom:1px solid var(--line);background:var(--sunk)}
+.shot-dot{width:8px;height:8px;border-radius:50%;background:var(--line)}
+.shot-u{font-family:var(--font-mono);font-size:10.5px;color:var(--ink-3);margin-left:var(--s-3)}
+.shot-b{padding:var(--s-4);display:flex;flex-direction:column;gap:var(--s-3)}
+.video{
+  aspect-ratio:16/9;border-radius:var(--r-card);background:var(--sunk);
+  box-shadow:inset 0 0 0 1px var(--line);display:grid;place-items:center;position:relative;overflow:hidden;
+}
+.play{width:66px;height:66px;border-radius:50%;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;box-shadow:0 12px 28px -10px var(--accent)}
+.play svg{width:24px;height:24px;margin-left:3px}
+.sec{padding:var(--s-7) 0;border-top:1px solid var(--line)}
+.sec-n{font-family:var(--font-mono);font-size:12px;color:var(--accent);font-weight:500}
+.sec-h{font-size:var(--h2);font-weight:800;letter-spacing:-.025em;margin:var(--s-2) 0 var(--s-3);color:var(--ink);text-wrap:balance}
+.sec-s{font-size:15px;color:var(--ink-2);margin:0;max-width:56ch}
+
+/* ledger */
+.notes{margin-top:var(--s-6);display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:var(--s-4)}
+.note{background:var(--pg-panel);border:1px solid var(--pg-line);border-radius:var(--r-box);padding:var(--s-5)}
+.note h3{margin:0 0 var(--s-3);font-size:var(--h4);font-weight:700;letter-spacing:-.01em}
+.note p,.note li{margin:0 0 var(--s-3);font-size:13.5px;color:var(--pg-ink-2)}
+.note ul{margin:0;padding-left:18px}
+.note li{margin-bottom:var(--s-2)}
+.note strong{color:var(--pg-ink);font-weight:700}
+.note code{font-family:var(--font-mono);font-size:12px;background:var(--pg-ground);border-radius:4px;padding:1px 5px}
+.flag{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;border-radius:4px;padding:2px 6px;margin-right:6px}
+.f-spec{background:var(--ok-bg);color:var(--ok)}
+.f-prop{background:var(--warn-bg);color:var(--warn)}
+</style>
+
+<div class="bar">
+  <div class="bar-in">
+    <div class="navwrap" id="nav"><div class="navgrp"><span class="navgrp-l">Public</span><button type="button" class="navbtn" data-screen="landing" aria-pressed="true">Landing</button><button type="button" class="navbtn" data-screen="report" aria-pressed="false">Free report</button></div><div class="navgrp"><span class="navgrp-l">Join</span><button type="button" class="navbtn" data-screen="auth" aria-pressed="false">Sign in</button><button type="button" class="navbtn" data-screen="setup" aria-pressed="false">Setup</button></div><div class="navgrp"><span class="navgrp-l">App</span><button type="button" class="navbtn" data-screen="overview" aria-pressed="false">Overview</button><button type="button" class="navbtn" data-screen="calendar" aria-pressed="false">Calendar</button><button type="button" class="navbtn" data-screen="draft" aria-pressed="false">Draft</button><button type="button" class="navbtn" data-screen="settings" aria-pressed="false">Settings</button></div></div>
+    <div class="togs">
+      <button type="button" class="tog" id="num">Numerals: mono</button>
+      <button type="button" class="tog" id="theme">Light</button>
+    </div>
+  </div>
+</div>
+
+<div class="pg">
+  <div style="margin-bottom:var(--s-5)">
+    <h1 class="pg-title">ReachKit screen system</h1>
+    <p class="pg-sub">
+      Eight screens, one idiom — <strong>Take A</strong>, six boxes, applied end to end. Every colour, radius
+      and spacing step comes from <code>globals.css</code>. Copy marked
+      <span class="flag f-spec">spec</span> is transcribed verbatim from <code>BUILD.md §3–§4</code>;
+      <span class="flag f-prop">proposed</span> marks a surface the spec does not describe.
+      Bracketed strings stay unwritten — they are yours.
+    </p>
+  </div>
+
+  <div id="stage"><div class="frame"><div class="pubbar"><div class="brand"><span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17 9 11l4 4 8-8"></path><path d="M14 7h7v7"></path></svg></span><span class="brand-name">ReachKit</span></div><div class="row" style="gap:var(--s-2)"><button type="button" class="pill pill-quiet" data-screen="auth">Sign in</button><button type="button" class="pill pill-solid">[nav CTA — owner’s]</button></div></div><div class="main pubmain" style="gap:0"><div class="hero"><div><h1 class="hero-h">See what AI tells buyers about your market — and write your way in.</h1><p class="hero-s">[subline — owner’s]</p><div class="field" style="margin-top:var(--s-5);flex-wrap:nowrap;max-width:460px"><input class="input" placeholder="yourdomain.com" aria-label="Your domain"><button type="button" class="pill pill-solid pill-lg" data-screen="report">[CTA — owner’s]</button></div><p class="prov" style="margin-top:var(--s-3)">free · no account · permanent link</p></div><div class="shot"><div class="shot-bar"><span class="shot-dot"></span><span class="shot-dot"></span><span class="shot-dot"></span><span class="shot-u">reachkit.app/app</span></div><div class="shot-b"><div class="row" style="justify-content:space-between"><span style="font-size:19px;font-weight:800;letter-spacing:-.02em;color:var(--ink)">The gap is closing.</span><span class="badge b-ok">▲ every week</span></div><section class="card" style="padding:var(--s-4)"><div class="card-head"><span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17 9 11l4 4 8-8"></path><path d="M14 7h7v7"></path></svg></span><span class="eyebrow">Searches you appear in</span></div><svg class="chart" viewBox="0 0 600 150" preserveAspectRatio="none" role="img" aria-label="Searches you appear in, by week"><defs><lineargradient id="gf" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--chart-you)" stop-opacity=".22"></stop><stop offset="100%" stop-color="var(--chart-you)" stop-opacity="0"></stop></lineargradient></defs><path d="M2 129.625 L121.2 110.03125 L240.4 96.625 L359.6 79.09375 L478.8 43 L598 10 L598 142 L2 142 Z" fill="url(#gf)"></path><path d="M2 129.625 L121.2 110.03125 L240.4 96.625 L359.6 79.09375 L478.8 43 L598 10" fill="none" stroke="var(--chart-you)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"></path><circle cx="598" cy="10" r="4" fill="var(--chart-you)" stroke="var(--surface)" stroke-width="2" vector-effect="non-scaling-stroke"></circle></svg></section><div class="g3" style="gap:var(--s-3)"><section class="card" style="padding:var(--s-4)"><div class="stat-l" style="font-size:12px">Score</div><div class="stat-row"><div class="stat-v" style="font-size:28px">62</div><span class="badge b-ok">▲ 8</span></div></section><section class="card" style="padding:var(--s-4)"><div class="stat-l" style="font-size:12px">AI answers</div><div class="stat-row"><div class="stat-v" style="font-size:28px">2<span style="font-size:15px;color:var(--ink-3)">/12</span></div></div></section><section class="card" style="padding:var(--s-4)"><div class="stat-l" style="font-size:12px">Published</div><div class="stat-row"><div class="stat-v" style="font-size:28px">17</div></div></section></div></div></div></div><div class="sec"><div class="video"><span class="play"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4.5v15l13-7.5Z" fill="currentColor" stroke="none"></path></svg></span><span class="prov" style="position:absolute;bottom:var(--s-4)">[demo video — asset not yet produced]</span></div><p class="explain" style="text-align:center;margin-top:var(--s-3)">[video caption — owner’s]</p></div><div class="sec"><div class="hero" style="padding:0"><div><span class="sec-n">01</span><h2 class="sec-h">[why-care heading — owner’s]</h2><p class="sec-s">[why-care body — owner’s]</p></div><section class="card"><div class="card-head"><span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="3"></rect><path d="M12 4v4M9 14h.01M15 14h.01"></path></svg></span><span class="eyebrow">AI answers</span><span class="spacer"></span><span class="srcchip">28 Aug</span></div><div class="mx"><div class="mx-r"><span class="mx-n">example.org</span><span class="mx-c"><span class="cell cited"></span><span class="cell cited"></span><span class="cell"></span><span class="cell cited"></span><span class="cell cited"></span><span class="cell muted"></span><span class="cell cited"></span><span class="cell"></span><span class="cell cited"></span></span><span class="mx-v">6/9</span></div><div class="mx-r"><span class="mx-n">example.net</span><span class="mx-c"><span class="cell cited"></span><span class="cell"></span><span class="cell cited"></span><span class="cell cited"></span><span class="cell"></span><span class="cell muted"></span><span class="cell cited"></span><span class="cell cited"></span><span class="cell"></span></span><span class="mx-v">5/9</span></div><div class="mx-r"><span class="mx-n">example.edu</span><span class="mx-c"><span class="cell"></span><span class="cell cited"></span><span class="cell cited"></span><span class="cell"></span><span class="cell cited"></span><span class="cell muted"></span><span class="cell"></span><span class="cell cited"></span><span class="cell cited"></span></span><span class="mx-v">5/9</span></div><div class="mx-r you"><span class="mx-n">example.com</span><span class="mx-c"><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell muted"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span></span><span class="mx-v">0/9</span></div></div><p class="explain">Every filled row is a rival being recommended. The empty one is you.</p></section></div></div><div class="sec"><div class="hero" style="padding:0"><section class="card" style="order:-1"><div class="card-head"><span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M8 3v4M16 3v4M3 11h18"></path></svg></span><span class="eyebrow">This week</span><span class="spacer"></span><span class="badge b-ok">on schedule</span></div><div class="week"><div class="day done"><div class="day-n">26</div><div class="day-b"></div></div><div class="day done"><div class="day-n">27</div><div class="day-b"></div></div><div class="day unmeasured"><div class="day-n">28</div><div class="day-b"></div></div><div class="day done"><div class="day-n">29</div><div class="day-b"></div></div><div class="day done"><div class="day-n">30</div><div class="day-b"></div></div><div class="day today"><div class="day-n">01</div><div class="day-b"></div></div><div class="day to-come"><div class="day-n">02</div><div class="day-b"></div></div></div><div class="rule-sm"></div><div class="act"><span class="act-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"></path><path d="M14 3v5h5"></path></svg></span><span class="act-body"><span class="act-t">[page title]</span><span class="act-d">publishes in 6 h 12 m unless you say otherwise</span></span></div></section><div><span class="sec-n">02</span><h2 class="sec-h">[what-it-does heading — owner’s]</h2><p class="sec-s">[what-it-does body — owner’s]</p></div></div></div><div class="sec"><div style="text-align:center;max-width:var(--w-read);margin:0 auto"><span class="sec-n">03</span><h2 class="sec-h">[how-to-start heading — owner’s]</h2><p class="sec-s" style="margin:0 auto">[how-to-start body — owner’s]</p></div><div class="g3" style="margin-top:var(--s-6)"><section class="card"><div class="card-head"><span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg></span><span class="eyebrow">Step 1</span></div><h3 class="h4">Scan your domain</h3><p class="explain" style="font-size:13px">[step 1 body — owner’s]</p></section><section class="card"><div class="card-head"><span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.9"></path></svg></span><span class="eyebrow">Step 2</span></div><h3 class="h4">Pick your market and rivals</h3><p class="explain" style="font-size:13px">[step 2 body — owner’s]</p></section><section class="card"><div class="card-head"><span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M8 3v4M16 3v4M3 11h18"></path></svg></span><span class="eyebrow">Step 3</span></div><h3 class="h4">One page goes live every day</h3><p class="explain" style="font-size:13px">[step 3 body — owner’s]</p></section></div><div style="text-align:center;margin-top:var(--s-6)"><button type="button" class="pill pill-solid pill-lg" data-screen="report">[closing CTA — owner’s]</button><p class="explain">Cancel in one click.</p></div></div></div></div></div>
+
+  <div class="notes">
+    <div class="note">
+      <h3>What changed on this pass</h3>
+      <ul>
+        <li><strong>Checkout is gone.</strong> Not redrawn, not stubbed — removed, because it is Stripe's entirely. Its knock-on is bigger than the screen: §4.7's Billing card and §12's mail set both assume we render billing surfaces and send billing mail.</li>
+        <li><strong>Sign in</strong> is now the two-panel layout from the live page, with your copy transcribed. Its <code>sent</code> and <code>expired</code> states are still bracketed — the live page shows only the first.</li>
+        <li><strong>Landing</strong> is rebuilt: hero with tagline, subline, CTA and a product component; a video block; then three numbered sections. The old "one field, one button" is gone.</li>
+      </ul>
+    </div>
+    <div class="note">
+      <h3>The hero component is live product</h3>
+      <p>The thing beside the tagline is <strong>not a screenshot</strong> — it is the overview's own cards, from the same fixture and the same tokens. It themes with the page, it responds, and it cannot go stale when the product moves. Flip to dark and watch it follow.</p>
+      <p>Same argument in sections 01 and 02: the dot matrix and the week strip are the real components, not pictures of them. <strong>A marketing page built from product code cannot misrepresent the product.</strong></p>
+    </div>
+    <div class="note">
+      <h3>Still open</h3>
+      <p><strong>Numerals</strong> — §2.3 says <em>"Every numeral … is JetBrains Mono"</em>; both your references use a heavy sans. Toggle it above; it changes every headline number and nothing else.</p>
+      <p><strong>Card radius 18px</strong> against the ruled <code>--r-box: 14px</code>, kept as a separate <code>--r-card</code> until you rule.</p>
+      <p><strong>The score on the sign-in panel.</strong> It shows <code>47/100</code> for a named domain. Where does that number come from — a real scan, a fixed specimen, or a placeholder? A page that shows a stranger an invented measurement is the exact failure the anti-fabrication rule exists for.</p>
+      <p><strong>"Discoverability Score" / "/100"</strong> is the live page's name for the number. The corpus calls it something else and renders it bare with a band badge. One of the two names is wrong.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── data ─────────────────────────────────────────────────────────────
+   Domains are IANA-reserved example names, so no row can be read as a
+   claim about a real company. Volumes are shaped, not measured — the
+   same convention src/mock/data.ts uses, inside a labelled preview.
+   ─────────────────────────────────────────────────────────────────── */
+var DOMAIN = "example.com";
+var RIVALS4 = ["example.org", "example.net", "example.edu", "example.co"];
+var GROWTH = [12, 31, 44, 61, 96, 128];
+var GAPS = [
+  { n: "example.org", s: [276, 240, 190, 150, 110, 78], e: "78×", d: "was 276×" },
+  { n: "example.net", s: [180, 165, 140, 120,  96, 61], e: "61×", d: "was 180×" },
+  { n: "example.edu", s: [ 90,  84,  70,  61,  50, 44], e: "44×", d: "was 90×"  }
+];
+var WEEK = [
+  { d: "26", s: "done" }, { d: "27", s: "done" }, { d: "28", s: "unmeasured" },
+  { d: "29", s: "done" }, { d: "30", s: "done" }, { d: "01", s: "today" }, { d: "02", s: "to-come" }
+];
+var MATRIX = [
+  { n: "example.org", you: false, c: [1,1,0,1,1,2,1,0,1], v: "6/9" },
+  { n: "example.net", you: false, c: [1,0,1,1,0,2,1,1,0], v: "5/9" },
+  { n: "example.edu", you: false, c: [0,1,1,0,1,2,0,1,1], v: "5/9" },
+  { n: DOMAIN,        you: true,  c: [0,0,0,0,0,2,0,0,0], v: "0/9" }
+];
+var OCC = [
+  { n: "example.org", v: 9, you: false },
+  { n: "example.net", v: 7, you: false },
+  { n: "example.edu", v: 5, you: false },
+  { n: "example.co",  v: 3, you: false },
+  { n: DOMAIN,        v: 0, you: true  }
+];
+var QS = [
+  { n: 1, vol: "1,900/mo" }, { n: 2, vol: "1,300/mo" },
+  { n: 3, vol: "880/mo"   }, { n: 4, vol: "720/mo"   }
+];
+var ABSENT = [
+  ["2,400/mo", "example.org"], ["1,600/mo", "example.net"], ["1,300/mo", "example.org"],
+  ["890/mo",   "example.edu"], ["540/mo",   "example.net"]
+];
+
+/* ── icons ─────────────────────────────────────────────────────────── */
+var I = {
+  trend:'<path d="M3 17 9 11l4 4 8-8"/><path d="M14 7h7v7"/>',
+  spark:'<path d="M12 3v4M12 17v4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M3 12h4M17 12h4M5.6 18.4l2.8-2.8M15.6 8.4l2.8-2.8"/>',
+  users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9"/>',
+  cal:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 11h18"/>',
+  file:'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/><path d="M14 3v5h5"/>',
+  bell:'<path d="M18 9a6 6 0 1 0-12 0c0 6-2 7-2 7h16s-2-1-2-7"/><path d="M10.3 20a2 2 0 0 0 3.4 0"/>',
+  plug:'<path d="M9 2v6M15 2v6M6 8h12v3a6 6 0 0 1-12 0Z"/><path d="M12 17v5"/>',
+  check:'<path d="M4 12.5 9.5 18 20 6"/>',
+  mail:'<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6L22 7"/>',
+  search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  bot:'<rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 14h.01M15 14h.01"/>',
+  lock:'<rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3"/>',
+  card:'<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/>',
+  globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/>',
+  euro:'<path d="M17 5a7 7 0 1 0 0 14"/><path d="M4 10h9M4 14h9"/>',
+  shield:'<path d="M12 3 5 6v5c0 5 3 8 7 10 4-2 7-5 7-10V6Z"/>',
+  back:'<path d="M19 12H6M12 6l-6 6 6 6"/>',
+  play:'<path d="M7 4.5v15l13-7.5Z" fill="currentColor" stroke="none"/>'
+};
+function ico(k, w){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="'+(w||1.8)+'" stroke-linecap="round" stroke-linejoin="round">'+I[k]+'</svg>'; }
+
+/* ── charts ────────────────────────────────────────────────────────── */
+function areaChart(vals){
+  var W=600,H=150,PL=2,PR=2,PT=10,PB=8;
+  var max=Math.max.apply(null,vals);
+  var x=function(i){return PL+(i*(W-PL-PR))/(vals.length-1);};
+  var y=function(v){return H-PB-(v/max)*(H-PT-PB);};
+  var line='M'+vals.map(function(v,i){return x(i)+' '+y(v);}).join(' L');
+  var area=line+' L'+x(vals.length-1)+' '+(H-PB)+' L'+x(0)+' '+(H-PB)+' Z';
+  return '<svg class="chart" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" role="img" aria-label="Searches you appear in, by week">'
+    +'<defs><linearGradient id="gf" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--chart-you)" stop-opacity=".22"/><stop offset="100%" stop-color="var(--chart-you)" stop-opacity="0"/></linearGradient></defs>'
+    +'<path d="'+area+'" fill="url(#gf)"/>'
+    +'<path d="'+line+'" fill="none" stroke="var(--chart-you)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>'
+    +'<circle cx="'+x(vals.length-1)+'" cy="'+y(vals[vals.length-1])+'" r="4" fill="var(--chart-you)" stroke="var(--surface)" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>';
+}
+function spark(vals){
+  var W=240,H=34,P=5;
+  var max=Math.max.apply(null,vals),min=Math.min.apply(null,vals),sp=(max-min)||1;
+  var x=function(i){return P+(i*(W-2*P))/(vals.length-1);};
+  var y=function(v){return H-P-((v-min)/sp)*(H-2*P);};
+  var line='M'+vals.map(function(v,i){return x(i)+' '+y(v);}).join(' L');
+  return '<svg class="spark" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" aria-hidden="true">'
+    +'<path d="'+line+'" fill="none" stroke="var(--chart-rival)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>'
+    +'<circle cx="'+x(vals.length-1)+'" cy="'+y(vals[vals.length-1])+'" r="3.5" fill="var(--chart-you)" stroke="var(--surface)" stroke-width="1.5" vector-effect="non-scaling-stroke"/></svg>';
+}
+
+/* ── shared pieces ─────────────────────────────────────────────────── */
+function cardHead(icon,label,right){
+  return '<div class="card-head"><span class="chip">'+ico(icon)+'</span><span class="eyebrow">'+label+'</span>'
+    +(right?'<span class="spacer"></span>'+right:'')+'</div>';
+}
+function sideNav(cur){
+  function n(k,label,icon,count){
+    return '<button type="button" class="nav"'+(cur===k?' aria-current="page"':'')+'>'+ico(icon)+' '+label
+      +(count?'<span class="count">'+count+'</span>':'')+'</button>';
+  }
+  return '<aside class="side">'
+    +'<div class="brand"><span class="brand-mark">'+ico('trend',2)+'</span><span class="brand-name">ReachKit</span></div>'
+    +'<div class="acct"><span class="acct-dot"></span><span class="acct-txt">'
+    +'<span class="acct-1">'+DOMAIN+'</span><span class="acct-2">Week 6 · re-measured Mon</span></span></div>'
+    +'<div class="side-group"><div class="side-label">Workspace</div>'
+    + n('overview','Overview','trend') + n('calendar','Calendar','cal','28') + n('settings','Settings','gear')
+    +'</div>'
+    +'<div class="side-foot"><div class="pub">'
+    +'<div class="pub-row"><span class="pub-l">Autopilot</span><span class="switch"></span></div>'
+    +'<div class="pub-v">[publishing state]</div><div class="pub-n">next · 07:00</div></div></div></aside>';
+}
+function pubBar(right){
+  return '<div class="pubbar"><div class="brand"><span class="brand-mark">'+ico('trend',2)+'</span>'
+    +'<span class="brand-name">ReachKit</span></div>'+(right||'')+'</div>';
+}
+
+/* ── 1 · landing ───────────────────────────────────────────────────── */
+function sLanding(){
+  /* the "enticing component": live product, not a screenshot — same code,
+     same tokens, themed with the page, cannot go stale. */
+  var shot =
+     '<div class="shot"><div class="shot-bar">'
+    +'<span class="shot-dot"></span><span class="shot-dot"></span><span class="shot-dot"></span>'
+    +'<span class="shot-u">reachkit.app/app</span></div>'
+    +'<div class="shot-b">'
+    +'<div class="row" style="justify-content:space-between">'
+    +'<span style="font-size:19px;font-weight:800;letter-spacing:-.02em;color:var(--ink)">The gap is closing.</span>'
+    +'<span class="badge b-ok">&#9650; every week</span></div>'
+    +'<section class="card" style="padding:var(--s-4)">'
+    + cardHead('trend','Searches you appear in') + areaChart(GROWTH) +'</section>'
+    +'<div class="g3" style="gap:var(--s-3)">'
+    +'<section class="card" style="padding:var(--s-4)"><div class="stat-l" style="font-size:12px">Score</div>'
+    +'<div class="stat-row"><div class="stat-v" style="font-size:28px">62</div>'
+    +'<span class="badge b-ok">&#9650; 8</span></div></section>'
+    +'<section class="card" style="padding:var(--s-4)"><div class="stat-l" style="font-size:12px">AI answers</div>'
+    +'<div class="stat-row"><div class="stat-v" style="font-size:28px">2<span style="font-size:15px;color:var(--ink-3)">/12</span></div></div></section>'
+    +'<section class="card" style="padding:var(--s-4)"><div class="stat-l" style="font-size:12px">Published</div>'
+    +'<div class="stat-row"><div class="stat-v" style="font-size:28px">17</div></div></section>'
+    +'</div></div></div>';
+
+  var matrixMini = MATRIX.map(function(r){
+    return '<div class="mx-r'+(r.you?' you':'')+'"><span class="mx-n">'+r.n+'</span>'
+      +'<span class="mx-c">'+r.c.map(function(c){
+          return '<span class="cell'+(c===1?' cited':c===2?' muted':'')+'"></span>';}).join('')+'</span>'
+      +'<span class="mx-v">'+r.v+'</span></div>';
+  }).join('');
+
+  var steps = [
+    ['Scan your domain','[step 1 body &mdash; owner&rsquo;s]','search'],
+    ['Pick your market and rivals','[step 2 body &mdash; owner&rsquo;s]','users'],
+    ['One page goes live every day','[step 3 body &mdash; owner&rsquo;s]','cal']
+  ].map(function(s,i){
+    return '<section class="card">'
+      +'<div class="card-head"><span class="chip">'+ico(s[2])+'</span>'
+      +'<span class="eyebrow">Step '+(i+1)+'</span></div>'
+      +'<h3 class="h4">'+s[0]+'</h3><p class="explain" style="font-size:13px">'+s[1]+'</p></section>';
+  }).join('');
+
+  return '<div class="frame">'
+    + pubBar('<div class="row" style="gap:var(--s-2)">'
+        +'<button type="button" class="pill pill-quiet" data-screen="auth">Sign in</button>'
+        +'<button type="button" class="pill pill-solid">[nav CTA &mdash; owner&rsquo;s]</button></div>')
+    +'<div class="main pubmain" style="gap:0">'
+
+    /* ── above the fold: tagline · subline · CTA · product component ── */
+    +'<div class="hero">'
+    +'<div>'
+    +'<h1 class="hero-h">See what AI tells buyers about your market &mdash; and write your way in.</h1>'
+    +'<p class="hero-s">[subline &mdash; owner&rsquo;s]</p>'
+    +'<div class="field" style="margin-top:var(--s-5);flex-wrap:nowrap;max-width:460px">'
+    +'<input class="input" placeholder="yourdomain.com" aria-label="Your domain">'
+    +'<button type="button" class="pill pill-solid pill-lg" data-screen="report">[CTA &mdash; owner&rsquo;s]</button></div>'
+    +'<p class="prov" style="margin-top:var(--s-3)">free &middot; no account &middot; permanent link</p>'
+    +'</div>'
+    + shot
+    +'</div>'
+
+    /* ── the demo video ── */
+    +'<div class="sec">'
+    +'<div class="video"><span class="play">'+ico('play',0)+'</span>'
+    +'<span class="prov" style="position:absolute;bottom:var(--s-4)">[demo video &mdash; asset not yet produced]</span></div>'
+    +'<p class="explain" style="text-align:center;margin-top:var(--s-3)">[video caption &mdash; owner&rsquo;s]</p></div>'
+
+    /* ── 1 · why should they care ── */
+    +'<div class="sec">'
+    +'<div class="hero" style="padding:0">'
+    +'<div><span class="sec-n">01</span><h2 class="sec-h">[why-care heading &mdash; owner&rsquo;s]</h2>'
+    +'<p class="sec-s">[why-care body &mdash; owner&rsquo;s]</p></div>'
+    +'<section class="card">'+ cardHead('bot','AI answers','<span class="srcchip">28 Aug</span>')
+    +'<div class="mx">'+matrixMini+'</div>'
+    +'<p class="explain">Every filled row is a rival being recommended. The empty one is you.</p></section>'
+    +'</div></div>'
+
+    /* ── 2 · what it does for them ── */
+    +'<div class="sec">'
+    +'<div class="hero" style="padding:0">'
+    +'<section class="card" style="order:-1">'
+    + cardHead('cal','This week','<span class="badge b-ok">on schedule</span>')
+    +'<div class="week">'+WEEK.map(function(d){
+        return '<div class="day '+d.s+'"><div class="day-n">'+d.d+'</div><div class="day-b"></div></div>';
+      }).join('')+'</div>'
+    +'<div class="rule-sm"></div>'
+    +'<div class="act"><span class="act-ico">'+ico('file')+'</span><span class="act-body">'
+    +'<span class="act-t">[page title]</span>'
+    +'<span class="act-d">publishes in 6 h 12 m unless you say otherwise</span></span></div></section>'
+    +'<div><span class="sec-n">02</span><h2 class="sec-h">[what-it-does heading &mdash; owner&rsquo;s]</h2>'
+    +'<p class="sec-s">[what-it-does body &mdash; owner&rsquo;s]</p></div>'
+    +'</div></div>'
+
+    /* ── 3 · what they need to do to start today ── */
+    +'<div class="sec">'
+    +'<div style="text-align:center;max-width:var(--w-read);margin:0 auto">'
+    +'<span class="sec-n">03</span><h2 class="sec-h">[how-to-start heading &mdash; owner&rsquo;s]</h2>'
+    +'<p class="sec-s" style="margin:0 auto">[how-to-start body &mdash; owner&rsquo;s]</p></div>'
+    +'<div class="g3" style="margin-top:var(--s-6)">'+steps+'</div>'
+    +'<div style="text-align:center;margin-top:var(--s-6)">'
+    +'<button type="button" class="pill pill-solid pill-lg" data-screen="report">[closing CTA &mdash; owner&rsquo;s]</button>'
+    +'<p class="explain">Cancel in one click.</p></div>'
+    +'</div>'
+
+    +'</div></div>';
+}
+
+/* ── 2 · free report ───────────────────────────────────────────────── */
+function sReport(){
+  var drivers = [7,4,9].map(function(v,i){
+    return '<div style="flex:1;min-width:52px"><div class="occ-t" style="height:6px"><div class="occ-f" style="width:'+(v*10)+'%;background:var(--chart-you)"></div></div>'
+      +'<div class="prov" style="margin-top:5px">[driver '+(i+1)+'] <span class="num">'+v+'</span>/10</div></div>';
+  }).join('');
+
+  var matrix = MATRIX.map(function(r){
+    return '<div class="mx-r'+(r.you?' you':'')+'"><span class="mx-n">'+r.n+'</span>'
+      +'<span class="mx-c">'+r.c.map(function(c){
+          return '<span class="cell'+(c===1?' cited':c===2?' muted':'')+'"></span>';
+        }).join('')+'</span>'
+      +'<span class="mx-v">'+r.v+'</span></div>';
+  }).join('');
+
+  var questions = QS.map(function(q){
+    return '<div class="q"><div class="q-h"><span class="q-n">'+q.n+'</span>'
+      +'<span class="q-t">&ldquo;[question '+q.n+']&rdquo;</span>'
+      +'<span class="badge b-bad">not you</span></div>'
+      +'<p class="q-p">from: [search] &middot; '+q.vol+' &middot; named: [brands]</p></div>';
+  }).join('');
+
+  var occ = OCC.map(function(o){
+    return '<div class="occ-r'+(o.you?' you':'')+(o.v===0?' zero':'')+'">'
+      +'<span class="occ-n">'+o.n+'</span>'
+      +'<span class="occ-t"><span class="occ-f" style="width:'+(o.v/12*100)+'%"></span></span>'
+      +'<span class="occ-v">'+o.v+'/12</span></div>';
+  }).join('');
+
+  var absent = ABSENT.map(function(a){
+    return '<tr><td>[search]</td><td class="n">'+a[0]+'</td><td>'+a[1]+'</td></tr>';
+  }).join('');
+
+  return '<div class="frame">'+pubBar('<button type="button" class="pill pill-quiet">Copy link</button>')
+    +'<div class="main pubmain">'
+
+    /* 1 · header strip */
+    +'<section class="card">'
+    +'<div class="row" style="justify-content:space-between;align-items:flex-start">'
+    +'<div><div class="mono" style="font-size:var(--h3);font-weight:600;color:var(--ink)">'+DOMAIN+'</div>'
+    +'<p class="prov" style="margin-top:5px">measured 28 Aug &middot; [category]</p></div>'
+    +'<div style="text-align:right"><div class="stat-v" style="margin:0">62</div>'
+    +'<span class="badge b-warn" style="margin-top:6px">[band]</span></div></div>'
+    +'<div class="rule-sm"></div><div class="row" style="gap:var(--s-4);flex-wrap:nowrap;overflow-x:auto">'+drivers+'</div>'
+    +'</section>'
+
+    /* 2 · two equal cards */
+    +'<div class="g2">'
+    +'<section class="card">'
+    + cardHead('bot','AI answers','<span class="srcchip">Google AI answers &middot; 28 Aug</span>')
+    +'<p class="h4" style="font-size:15px;font-weight:600;color:var(--ink-2);margin-bottom:var(--s-4)">'
+    +'AI answers appear on <span class="num" style="color:var(--ink)">9</span> of your 12 biggest searches</p>'
+    +'<div class="mx">'+matrix+'</div>'
+    +'<div class="rule"></div>'
+    +'<div class="row" style="justify-content:space-between;margin-bottom:var(--s-3)">'
+    +'<span class="eyebrow">The 12 questions</span></div>'
+    + questions
+    +'<div class="row" style="margin-top:var(--s-4);justify-content:space-between">'
+    +'<button type="button" class="pill pill-quiet">Show all 12</button></div>'
+    +'<p class="explain" style="margin-top:var(--s-4)">'
+    +'<span class="srcchip">= your market&rsquo;s 12 biggest searches, asked as a buyer asks AI.</span></p>'
+    +'</section>'
+
+    +'<section class="card">'
+    + cardHead('search','Google search','<span class="srcchip">your market&rsquo;s 12 biggest searches</span>')
+    +'<div class="occ">'+occ+'</div>'
+    +'<div class="rule"></div>'
+    +'<div class="eyebrow" style="margin-bottom:var(--s-3)">5 biggest searches you&rsquo;re absent from</div>'
+    +'<div class="wrapx"><table class="t"><thead><tr><th>Search</th><th style="text-align:right">Volume</th><th>Holds #1</th></tr></thead>'
+    +'<tbody>'+absent+'</tbody></table></div>'
+    +'<p class="explain" style="margin-top:var(--s-4)">Your market&rsquo;s search set totals '
+    +'<span class="num">12,400</span>/mo &mdash; you currently appear in <span class="num">0</span>.</p>'
+    +'</section></div>'
+
+    /* 3 · three problem cards */
+    +'<div class="g3">'
+    +'<div class="prob sev-bad"><div class="row" style="justify-content:space-between;align-items:flex-start">'
+    +'<span class="h4">AI readers blocked</span><span class="badge b-ok">Free fix &middot; 10 min</span></div>'
+    +'<pre class="code"># [robots lines &mdash; verbatim, from REQ-009 c2]\n# not drafted in a preview; the approved requirement holds them</pre></div>'
+    +'<div class="prob sev-accent"><div class="row" style="justify-content:space-between;align-items:flex-start">'
+    +'<span class="h4">Missing pages</span><span class="badge b-accent">ReachKit writes</span></div>'
+    +'<div class="stat-v" style="font-size:var(--h1);margin-top:var(--s-4)">14</div></div>'
+    +'<div class="prob sev-accent"><div class="row" style="justify-content:space-between;align-items:flex-start">'
+    +'<span class="h4">Unquotable pages</span><span class="badge b-accent">ReachKit rewrites</span></div>'
+    +'<div class="stat-v" style="font-size:var(--h1);margin-top:var(--s-4)">6</div></div></div>'
+
+    /* 4 · DIY collapses */
+    +'<div>'
+    +'<div class="eyebrow" style="margin-bottom:var(--s-3)">The complete method, free</div>'
+    +[1,2,3].map(function(i){
+      return '<details class="col"'+(i===1?' open':'')+'><summary>[DIY collapse '+i+' summary &mdash; owner&rsquo;s]</summary>'
+        +'<div class="col-b">[DIY instructional body &mdash; owner&rsquo;s. §4.4 allows instructional text here; a preview still does not write it]</div></details>';
+    }).join('')+'</div>'
+
+    /* 5 · free page card */
+    +'<section class="card card-accent">'
+    + cardHead('file','Your first page','<span class="badge b-accent">free</span>')
+    +'<h3 class="h3">[page 1 title]</h3>'
+    +'<dl class="why" style="margin-top:var(--s-4);font-size:12.5px">'
+    +'<dt>target</dt><dd>[search] &middot; 2,400/mo</dd>'
+    +'<dt>beats</dt><dd>example.org</dd>'
+    +'<dt>format</dt><dd>[format]</dd></dl>'
+    +'<div class="field" style="margin-top:var(--s-5)">'
+    +'<input class="input" placeholder="you@company.com" aria-label="Your email">'
+    +'<button type="button" class="pill pill-solid">Email me the full page</button></div>'
+    +'<p class="explain">That&rsquo;s page 1 of <span class="num">14</span> we found for you.</p>'
+    +'</section>'
+
+    /* 6 · pricing */
+    +'<section class="card card-lg" style="max-width:var(--w-read);margin:0 auto;width:100%;text-align:center">'
+    +'<div class="row" style="justify-content:center;align-items:baseline;gap:var(--s-2)">'
+    +'<span class="stat-v" style="margin:0">&euro;49</span><span class="stat-l">/month</span></div>'
+    +'<div style="margin-top:var(--s-5);text-align:left">'
+    +[['1 page a day, written and published for you'],['Weekly re-measure of your whole market'],
+      ['Weekly movement email'],['24-hour veto window on every page']].map(function(s){
+      return '<div class="spec">'+ico('check',2.4)+'<span>'+s[0]+'</span></div>';
+    }).join('')+'</div>'
+    +'<button type="button" class="pill pill-solid pill-lg pill-block" style="margin-top:var(--s-5)">Start ReachKit &euro;49</button>'
+    +'<p class="explain">Cancel in one click.</p>'
+    +'</section>'
+    +'</div></div>';
+}
+
+/* ── 3 · sign in ───────────────────────────────────────────────────────
+   Two panels, after reachkit.app/login. Every string on this screen is
+   owner-supplied — live product copy the owner endorsed on 2026-09-02.
+   ─────────────────────────────────────────────────────────────────── */
+var authState = "request";
+function sAuth(){
+  var left;
+  if (authState === "request") {
+    left = '<h1 style="font-size:var(--h2);font-weight:800;letter-spacing:-.025em;margin:0;color:var(--ink)">Welcome back</h1>'
+      +'<p style="font-size:15px;color:var(--ink-2);margin:var(--s-3) 0 0">Enter the email you paid with and we&rsquo;ll send you a '
+      +'sign-in link. No password &mdash; accounts are created by payment, never by a signup form.</p>'
+      +'<div class="stack-sm" style="margin-top:var(--s-5)">'
+      +'<input class="input" placeholder="you@company.com" aria-label="Your email">'
+      +'<button type="button" class="pill pill-solid pill-lg pill-block" data-auth="sent">Send my link</button></div>'
+      +'<p style="font-size:14px;color:var(--ink-2);margin:var(--s-5) 0 0">New to ReachKit? '
+      +'<a href="#" class="linkish" data-screen="landing">Start a free scan &rarr;</a></p>';
+  } else if (authState === "sent") {
+    left = '<div class="chip" style="width:44px;height:44px;border-radius:14px;margin-bottom:var(--s-4)">'+ico('mail')+'</div>'
+      +'<h1 style="font-size:var(--h2);font-weight:800;letter-spacing:-.025em;margin:0;color:var(--ink)">[link-sent head &mdash; owner&rsquo;s]</h1>'
+      +'<p style="font-size:15px;color:var(--ink-2);margin:var(--s-3) 0 0">[link-sent body &mdash; owner&rsquo;s]</p>'
+      +'<p class="prov" style="margin-top:var(--s-4)">sent to you@company.com</p>'
+      +'<button type="button" class="pill pill-quiet" style="margin-top:var(--s-5)" data-auth="request">[resend &mdash; owner&rsquo;s]</button>';
+  } else {
+    left = '<div class="act-ico" style="width:44px;height:44px;border-radius:14px;background:var(--warn-bg);color:var(--warn);margin-bottom:var(--s-4)">'
+      + ico('lock')+'</div>'
+      +'<h1 style="font-size:var(--h2);font-weight:800;letter-spacing:-.025em;margin:0;color:var(--ink)">[link-expired head &mdash; owner&rsquo;s]</h1>'
+      +'<p style="font-size:15px;color:var(--ink-2);margin:var(--s-3) 0 0">[link-expired body &mdash; owner&rsquo;s]</p>'
+      +'<button type="button" class="pill pill-solid pill-lg pill-block" style="margin-top:var(--s-5)" data-auth="request">'
+      +'[send a new link &mdash; owner&rsquo;s]</button>';
+  }
+
+  var seg = ['request','sent','expired'].map(function(s){
+    return '<button type="button" class="navbtn" data-auth="'+s+'" aria-pressed="'+(authState===s)+'">'+s+'</button>';
+  }).join('');
+
+  return '<div class="row" style="justify-content:center;margin-bottom:var(--s-3)">'+seg+'</div>'
+    +'<div class="frame"><div class="split">'
+    +'<div class="leftp"><div class="leftp-in">'
+    +'<div class="brand" style="padding:0;margin-bottom:var(--s-6)">'
+    +'<span class="brand-mark">'+ico('trend',2)+'</span><span class="brand-name">ReachKit</span></div>'
+    + left +'</div></div>'
+    +'<div class="rightp">'
+    +'<h2 class="rightp-h">One number tells you how findable you are.</h2>'
+    +'<div class="glass">'
+    +'<p class="glass-d">'+DOMAIN+'</p>'
+    +'<div class="row" style="justify-content:space-between;gap:var(--s-3)">'
+    +'<span class="glass-l">Discoverability Score</span><span class="glass-p">+6 pts est.</span></div>'
+    +'<div class="row" style="align-items:baseline;gap:2px;margin-top:var(--s-2)">'
+    +'<span class="glass-n">47</span><span class="glass-o">/100</span></div>'
+    +'<div class="glass-t"><div class="glass-f" style="width:40%"></div></div>'
+    +'<p class="glass-x">Hard to find &mdash; and we&rsquo;ll show you the fixes that move it.</p>'
+    +'</div></div></div></div>';
+}
+
+/* ── 5 · setup ─────────────────────────────────────────────────────── */
+function sSetup(){
+  var comps = RIVALS4.concat(["example.info"]).map(function(c,i){
+    return '<span class="tag'+(i<3?' on':'')+'">'+c+'</span>';
+  }).join('');
+
+  return '<div class="frame">'+pubBar('<span class="prov">'+DOMAIN+'</span>')
+    +'<div class="main pubmain" style="max-width:760px">'
+    +'<div class="steps" style="margin-bottom:var(--s-2)">'
+    +'<span class="step done"><span class="b">'+ico('check',3)+'</span>Paid</span><span class="step-x"></span>'
+    +'<span class="step now"><span class="b"></span>Setup</span><span class="step-x"></span>'
+    +'<span class="step"><span class="b"></span>First page</span></div>'
+    +'<h1 class="h1">[setup head &mdash; owner&rsquo;s]</h1>'
+
+    +'<section class="card">'+ cardHead('globe','Your market')
+    +'<div class="row"><span class="tag on">[category]</span>'
+    +'<button type="button" class="pill pill-quiet">Change</button></div></section>'
+
+    +'<section class="card">'+ cardHead('users','Competitors','<span class="badge b-neutral">3 of 5</span>')
+    +'<div class="row">'+comps+'</div>'
+    +'<p class="explain">[competitor-picker line &mdash; owner&rsquo;s]</p></section>'
+
+    +'<section class="card">'+ cardHead('spark','Mode + destination')
+    +'<div class="pick">'
+    +'<button type="button" class="opt" aria-pressed="true"><span class="opt-t">Autopilot '
+    +'<span class="badge b-accent">default</span></span><span class="opt-d">[autopilot description &mdash; owner&rsquo;s]</span></button>'
+    +'<button type="button" class="opt" aria-pressed="false"><span class="opt-t">Copilot</span>'
+    +'<span class="opt-d">[copilot description &mdash; owner&rsquo;s]</span></button></div>'
+    +'<div class="rule"></div>'
+    +'<div class="pick">'
+    +'<button type="button" class="opt" aria-pressed="true"><span class="opt-t">Hosted blog</span>'
+    +'<span class="opt-d">[hosted-blog description &mdash; owner&rsquo;s]</span>'
+    +'<pre class="code" style="margin-top:var(--s-3)">CNAME  blog  →  cname.reachkit.app</pre></button>'
+    +'<button type="button" class="opt" aria-pressed="false"><span class="opt-t">WordPress</span>'
+    +'<span class="opt-d">connect later, ask me after the first page</span></button></div></section>'
+
+    +'<button type="button" class="pill pill-solid pill-lg pill-block">Start &mdash; first page in ~3 minutes.</button>'
+    +'</div></div>';
+}
+
+/* ── 6 · overview (Take A) ─────────────────────────────────────────── */
+function sOverview(){
+  var tiles =
+     '<section class="card"><div class="stat-l">Score</div>'
+    +'<div class="stat-row"><div class="stat-v">62</div><span class="badge b-ok">&#9650; 8</span>'
+    +'<span class="badge b-warn">[band]</span></div></section>'
+    +'<section class="card"><div class="stat-l">AI answers</div>'
+    +'<div class="stat-row"><div class="stat-v">2<span style="font-size:var(--h3);color:var(--ink-3)">/12</span></div>'
+    +'<span class="badge b-neutral">goal: 6</span></div>'
+    +'<div class="dots">'+[1,1,0,0,3,3].map(function(o){
+        return '<span class="dot'+(o===1?' on':o===3?' goal':'')+'"></span>';}).join('')+'</div></section>'
+    +'<section class="card"><div class="stat-l">Pages published</div>'
+    +'<div class="stat-row"><div class="stat-v">17</div>'
+    +'<span class="badge b-neutral"><span class="num">6</span> already ranking</span></div>'
+    +'<p class="explain">rest under 3 weeks &mdash; too early to judge</p></section>';
+
+  var gaps = GAPS.map(function(r){
+    return '<div class="rival"><span class="rival-n">'+r.n+'</span>'+spark(r.s)
+      +'<span class="rival-e"><span class="rival-v">'+r.e+'</span>'
+      +'<span class="badge b-ok">'+r.d+'</span></span></div>';
+  }).join('');
+
+  return '<div class="frame app">'+sideNav('overview')
+    +'<main class="main">'
+    +'<div class="row" style="justify-content:space-between">'
+    +'<h1 class="h1">The gap is closing.</h1>'
+    +'<span class="badge b-ok">&#9650; every week since you started</span></div>'
+
+    +'<section class="card">'+ cardHead('trend','Searches you appear in')
+    + areaChart(GROWTH)
+    +'<div class="chart-ax"><span>started at <span class="num">12</span></span>'
+    +'<span>At 400 the big category terms unlock.</span></div></section>'
+
+    +'<div class="g3">'+tiles+'</div>'
+
+    +'<section class="card">'+ cardHead('users','How far ahead each rival is')
+    + gaps
+    +'<p class="explain">Every line pointing down is the gap shrinking.</p></section>'
+
+    +'<section class="card">'+ cardHead('cal','This week',
+        '<button type="button" class="pill pill-quiet">Open calendar &rarr;</button>')
+    +'<div class="week">'+WEEK.map(function(d){
+        return '<div class="day '+d.s+'"><div class="day-n">'+d.d+'</div><div class="day-b"></div></div>';
+      }).join('')+'</div></section>'
+
+    +'<section class="card">'+ cardHead('bell','Needs you')
+    +'<div class="acts">'
+    +'<div class="act act-warn"><span class="act-ico">'+ico('file')+'</span><span class="act-body">'
+    +'<span class="act-t">[veto-pending alert &mdash; owner&rsquo;s]</span>'
+    +'<span class="act-d">publishes in 6 h 12 m unless you say otherwise</span>'
+    +'<button type="button" class="pill pill-solid">Read it</button></span></div>'
+    +'<div class="act"><span class="act-ico">'+ico('plug')+'</span><span class="act-body">'
+    +'<span class="act-t">[needs-you alert &mdash; owner&rsquo;s]</span>'
+    +'<span class="act-d">[cause line &mdash; owner&rsquo;s]</span>'
+    +'<button type="button" class="pill">Reconnect</button></span></div></div></section>'
+    +'</main></div>';
+}
+
+/* ── 7 · calendar ──────────────────────────────────────────────────── */
+function sCalendar(){
+  var filters = [["All",28,"b-accent"],["Live",11,"b-ok"],["Your review",1,"b-warn"],
+                 ["Scheduled",6,"b-neutral"],["Planned",9,"b-neutral"],["Needs you",1,"b-warn"]];
+  var chips = filters.map(function(f,i){
+    return '<button type="button" class="opt" style="padding:var(--s-3) var(--s-4)" aria-pressed="'+(i===0)+'">'
+      +'<span class="stat-l" style="font-size:12px">'+f[0]+'</span>'
+      +'<div class="num" style="font-size:var(--h3);color:var(--ink);margin-top:2px">'+f[1]+'</div></button>';
+  }).join('');
+
+  var dow = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]
+    .map(function(d){ return '<div class="caldow">'+d+'</div>'; }).join('');
+
+  var stages = [["Live","b-ok"],["Live","b-ok"],["Your review","b-warn"],["Scheduled","b-neutral"],
+                ["Scheduled","b-neutral"],["Planned","b-neutral"],["Needs you","b-warn"]];
+  var cells = "";
+  for (var d = 1; d <= 28; d++) {
+    if (d > 21) { cells += '<div class="cd empty"><div class="cd-d">'+d+'</div></div>'; continue; }
+    var st = stages[d % stages.length];
+    cells += '<div class="cd'+(d===15?' today':'')+'">'
+      +'<div class="row" style="justify-content:space-between;gap:6px"><span class="cd-d">'+d+'</span>'
+      +'<span class="badge '+st[1]+'" style="font-size:9.5px;padding:2px 6px">'+st[0]+'</span></div>'
+      +'<span class="cd-t">[page title '+d+']</span></div>';
+  }
+
+  return '<div class="frame app">'+sideNav('calendar')
+    +'<main class="main">'
+    +'<div class="row" style="justify-content:space-between">'
+    +'<h1 class="h1">One page a day. Every day.</h1>'
+    +'<div class="row" style="gap:var(--s-2)"><button type="button" class="pill pill-quiet">&larr;</button>'
+    +'<span class="mono" style="font-weight:600">Sep 2026</span>'
+    +'<button type="button" class="pill pill-quiet">&rarr;</button></div></div>'
+
+    +'<div class="g3" style="grid-template-columns:repeat(6,minmax(0,1fr))">'+chips+'</div>'
+
+    +'<div class="calwrap">'
+    +'<div><div class="calgrid" style="margin-bottom:var(--s-2)">'+dow+'</div>'
+    +'<div class="calgrid">'+cells+'</div>'
+    +'<p class="explain">Planned pages are written the evening before, from Monday&rsquo;s measurements. '
+    +'When opportunities run out, future days are empty &mdash; the calendar is never padded.</p></div>'
+
+    +'<aside class="panel">'
+    +'<div class="row" style="justify-content:space-between"><span class="badge b-warn">Your review</span>'
+    +'<span class="prov">Mon 15 Sep</span></div>'
+    +'<h3 class="h3" style="margin-top:var(--s-3);font-size:var(--h4)">[page title 15]</h3>'
+    +'<div class="rule-sm"></div>'
+    +'<div class="eyebrow" style="margin-bottom:var(--s-3)">Why this page</div>'
+    +'<dl class="why">'
+    +'<dt>search</dt><dd>[search]</dd>'
+    +'<dt>asked</dt><dd>2,400/mo</dd>'
+    +'<dt>answered today by</dt><dd>example.org</dd>'
+    +'<dt>you</dt><dd>0/12</dd>'
+    +'<dt>done when</dt><dd>[done-when]</dd></dl>'
+    +'<div class="rule-sm"></div>'
+    +'<button type="button" class="pill pill-solid pill-block" data-go="draft">Read the full page</button>'
+    +'<div class="row" style="margin-top:var(--s-2);gap:var(--s-2)">'
+    +'<button type="button" class="pill pill-quiet" style="flex:1">Move</button>'
+    +'<button type="button" class="pill pill-quiet" style="flex:1">Veto</button></div>'
+    +'<p class="prov" style="margin-top:var(--s-3)">written 14 Sep 19:04</p>'
+    +'</aside></div></main></div>';
+}
+
+/* ── 8 · draft view ────────────────────────────────────────────────── */
+function sDraft(){
+  return '<div class="frame app">'+sideNav('calendar')
+    +'<main class="main">'
+    +'<button type="button" class="pill pill-quiet" style="align-self:flex-start" data-go="calendar">'
+    +'&larr; Back to calendar</button>'
+
+    +'<div class="calwrap">'
+    +'<section class="card card-lg">'
+    +'<div class="row" style="justify-content:space-between">'
+    +'<span class="badge b-warn">Your review</span>'
+    +'<span class="badge b-ok">'+'claim-checked'+'</span></div>'
+    +'<h1 class="h1" style="margin-top:var(--s-3)">[page title 15]</h1>'
+    +'<p class="prov" style="margin-top:var(--s-2)">draft written 14 Sep 19:04 &middot; ~1,240 words</p>'
+    +'<div class="rule"></div>'
+    +'<div class="doc">'
+    +'<p>[opening paragraph &mdash; owner&rsquo;s. The generated page body is not drafted in a preview.]</p>'
+    +'<h2>[section heading]</h2>'
+    +'<p>[body paragraph] <span class="mark">[grounded fact]</span> [body continues].</p>'
+    +'<p class="prov" style="margin:calc(var(--s-2)*-1) 0 var(--s-4) 0">'
+    +'source: [source title] &middot; retrieved 14 Sep</p>'
+    +'<h2>[section heading]</h2>'
+    +'<p>[body paragraph]</p></div>'
+    +'</section>'
+
+    +'<aside class="panel">'
+    +'<div class="eyebrow" style="margin-bottom:var(--s-3)">Decide</div>'
+    +'<button type="button" class="pill pill-solid pill-block">Approve</button>'
+    +'<div class="row" style="margin-top:var(--s-2);gap:var(--s-2)">'
+    +'<button type="button" class="pill pill-quiet" style="flex:1">Edit</button>'
+    +'<button type="button" class="pill pill-quiet" style="flex:1">Veto</button></div>'
+    +'<div class="rule-sm"></div>'
+    +'<div class="info"><b>If you do nothing</b><br>[do-nothing explanation &mdash; owner&rsquo;s]'
+    +'<div class="prov" style="margin-top:var(--s-2);color:var(--ink-2)">publishes 15 Sep 07:00</div></div>'
+    +'<div class="rule-sm"></div>'
+    +'<div class="eyebrow" style="margin-bottom:var(--s-3)">Checks</div>'
+    +'<div class="stack-sm" style="gap:var(--s-2)">'
+    +'<div class="row" style="gap:var(--s-2);font-size:12.5px;color:var(--ink-2)">'
+    +'<span style="color:var(--ok);display:flex">'+ico('check',2.4)+'</span>grounded &mdash; 1 fact, 1 source</div>'
+    +'<div class="row" style="gap:var(--s-2);font-size:12.5px;color:var(--ink-2)">'
+    +'<span style="color:var(--ok);display:flex">'+ico('check',2.4)+'</span>near-duplicate gate passed</div>'
+    +'<div class="row" style="gap:var(--s-2);font-size:12.5px;color:var(--ink-2)">'
+    +'<span style="color:var(--ok);display:flex">'+ico('check',2.4)+'</span>no invented author</div>'
+    +'</div></aside></div></main></div>';
+}
+
+/* ── 9 · settings ──────────────────────────────────────────────────── */
+function sSettings(){
+  var comps = RIVALS4.concat(["example.info"]).map(function(c){
+    return '<span class="tag on">'+c+'</span>';
+  }).join('');
+  var toggle = function(on){
+    return '<span class="switch" style="'+(on?'':'background:var(--line)')+'"></span>';
+  };
+  var rowT = function(label,on){
+    return '<div class="row" style="justify-content:space-between;padding:9px 0;border-top:1px solid var(--line)">'
+      +'<span style="font-size:13.5px;color:var(--ink-2)">'+label+'</span>'+toggle(on)+'</div>';
+  };
+
+  return '<div class="frame app">'+sideNav('settings')
+    +'<main class="main">'
+    +'<h1 class="h1">Settings</h1>'
+    +'<div class="g2" style="align-items:start">'
+
+    +'<div class="stack">'
+    +'<section class="card">'+ cardHead('globe','Your market',
+        '<button type="button" class="pill pill-quiet">Edit</button>')
+    +'<span class="tag on">[category]</span>'
+    +'<p class="explain">changing this rebuilds the search set and the 12 questions next Monday</p></section>'
+
+    +'<section class="card">'+ cardHead('users','Competitors','<span class="badge b-neutral">5 of 5</span>')
+    +'<div class="row">'+comps+'</div></section>'
+
+    +'<section class="card">'+ cardHead('spark','Publishing')
+    +'<div class="pick"><button type="button" class="opt" aria-pressed="true"><span class="opt-t">Autopilot</span></button>'
+    +'<button type="button" class="opt" aria-pressed="false"><span class="opt-t">Copilot</span></button></div>'
+    +'<div class="rule-sm"></div>'
+    +'<div class="row" style="justify-content:space-between">'
+    +'<span style="font-size:13.5px;color:var(--ink-2)">Veto window</span>'
+    +'<div class="row" style="gap:var(--s-2)"><button type="button" class="pill pill-quiet">&minus;</button>'
+    +'<span class="num" style="min-width:56px;text-align:center">24 h</span>'
+    +'<button type="button" class="pill pill-quiet">+</button></div></div>'
+    +'<div class="rule-sm"></div>'
+    +'<div class="row" style="justify-content:space-between">'
+    +'<div><div style="font-size:13.5px;font-weight:600;color:var(--ink)">Hosted blog</div>'
+    +'<div class="prov">blog.'+DOMAIN+'</div></div><span class="badge b-ok">healthy</span></div>'
+    +'<div class="row" style="justify-content:space-between;margin-top:var(--s-3)">'
+    +'<div><div style="font-size:13.5px;font-weight:600;color:var(--ink)">WordPress</div>'
+    +'<div class="prov">'+DOMAIN+'</div></div>'
+    +'<div class="row" style="gap:var(--s-2)"><span class="badge b-warn">needs you</span>'
+    +'<button type="button" class="pill">Reconnect</button></div></div>'
+    +'<p class="explain">Fix-type tasks are never automated, whatever the mode.</p></section>'
+
+    +'<section class="card">'+ cardHead('bell','Notifications')
+    + rowT('[notification 1 &mdash; owner&rsquo;s]',true)
+    + rowT('[notification 2 &mdash; owner&rsquo;s]',true)
+    + rowT('[notification 3 &mdash; owner&rsquo;s]',false)
+    +'</section></div>'
+
+    +'<div class="stack">'
+    +'<section class="card">'+ cardHead('card','Billing')
+    +'<div class="row" style="justify-content:space-between;align-items:baseline">'
+    +'<span class="num" style="font-size:var(--h2)">&euro;49</span>'
+    +'<span class="badge b-ok">active</span></div>'
+    +'<div class="rule-sm"></div>'
+    +'<dl class="why"><dt>next invoice</dt><dd>1 Oct 2026</dd>'
+    +'<dt>card</dt><dd>•••• 4242</dd></dl>'
+    +'<div class="row" style="margin-top:var(--s-4);gap:var(--s-2)">'
+    +'<button type="button" class="pill pill-quiet">Update card</button>'
+    +'<button type="button" class="pill pill-quiet">Invoices</button>'
+    +'<button type="button" class="pill pill-quiet">Cancel plan</button></div>'
+    +'<p class="explain">cancelling keeps everything running until 1 Oct 2026</p></section>'
+
+    +'<section class="card">'+ cardHead('lock','Account')
+    +'<dl class="why"><dt>name</dt><dd>[name]</dd><dt>email</dt><dd>you@company.com</dd></dl>'
+    +'<p class="explain">[magic-link note &mdash; owner&rsquo;s]</p>'
+    +'<div class="row" style="margin-top:var(--s-4);gap:var(--s-2)">'
+    +'<button type="button" class="pill pill-quiet">Change email</button>'
+    +'<button type="button" class="pill pill-quiet">Sign out</button></div></section>'
+
+    +'<section class="card">'+ cardHead('file','Your content')
+    +'<div class="row" style="justify-content:space-between;align-items:baseline">'
+    +'<span class="stat-l">Pages</span><span class="num" style="font-size:var(--h2)">17</span></div>'
+    +'<button type="button" class="pill pill-block" style="margin-top:var(--s-4)">Export everything</button></section>'
+
+    +'<section class="card" style="box-shadow:var(--shadow-card),0 0 0 1.5px var(--bad-line)">'
+    +'<div class="card-head"><span class="chip" style="background:var(--bad-bg);color:var(--bad)">'
+    + ico('shield')+'</span><span class="eyebrow" style="color:var(--bad)">Danger zone</span></div>'
+    +'<div class="row" style="gap:var(--s-2)">'
+    +'<button type="button" class="pill pill-quiet">Unpublish all</button>'
+    +'<button type="button" class="pill pill-quiet">Delete account</button></div>'
+    +'<p class="explain">pages are exported to you first, never silently destroyed</p></section>'
+    +'</div></div></main></div>';
+}
+
+/* ── wiring ────────────────────────────────────────────────────────── */
+var SCREENS = {
+  landing:  { label:"Landing",     group:"Public", fn:sLanding  },
+  report:   { label:"Free report", group:"Public", fn:sReport   },
+  auth:     { label:"Sign in",     group:"Join",   fn:sAuth     },
+  setup:    { label:"Setup",       group:"Join",   fn:sSetup    },
+  overview: { label:"Overview",    group:"App",    fn:sOverview },
+  calendar: { label:"Calendar",    group:"App",    fn:sCalendar },
+  draft:    { label:"Draft",       group:"App",    fn:sDraft    },
+  settings: { label:"Settings",    group:"App",    fn:sSettings }
+};
+var order = ["landing","report","auth","setup","overview","calendar","draft","settings"];
+var current = "landing";
+
+function buildNav(){
+  var html = "", lastGroup = null;
+  order.forEach(function(k){
+    var s = SCREENS[k];
+    if (s.group !== lastGroup) {
+      if (lastGroup !== null) html += '</div>';
+      html += '<div class="navgrp"><span class="navgrp-l">'+s.group+'</span>';
+      lastGroup = s.group;
+    }
+    html += '<button type="button" class="navbtn" data-screen="'+k+'" aria-pressed="'+(k===current)+'">'+s.label+'</button>';
+  });
+  return html + '</div>';
+}
+
+var stage = document.getElementById('stage'), nav = document.getElementById('nav');
+function render(){
+  nav.innerHTML = buildNav();
+  stage.innerHTML = SCREENS[current].fn();
+  window.scrollTo({ top: 0, behavior: 'auto' });
+}
+render();
+
+document.addEventListener('click', function(e){
+  var b = e.target.closest('[data-screen]');
+  if (b) { e.preventDefault(); current = b.dataset.screen; render(); return; }
+  var g = e.target.closest('[data-go]');
+  if (g) { current = g.dataset.go; render(); return; }
+  var a = e.target.closest('[data-auth]');
+  if (a) { authState = a.dataset.auth; render(); }
+});
+
+var root = document.documentElement;
+var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+var tb = document.getElementById('theme');
+function paintTheme(){ root.setAttribute('data-theme', dark ? 'dark' : 'light'); tb.textContent = dark ? 'Light' : 'Dark'; }
+paintTheme();
+tb.addEventListener('click', function(){ dark = !dark; paintTheme(); });
+
+var sans = false, nb = document.getElementById('num');
+nb.addEventListener('click', function(){
+  sans = !sans;
+  root.setAttribute('data-num', sans ? 'sans' : 'mono');
+  nb.textContent = 'Numerals: ' + (sans ? 'sans' : 'mono');
+});
+root.setAttribute('data-num','mono');
+</script>
+
+</body></html>
