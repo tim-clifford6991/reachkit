@@ -1,8 +1,14 @@
 // BUILD §4.1 — the scanning arm's named stages
 //
 // REQ-003 c1: named stages that advance as work completes — never an
-// unlabelled spinner, never an indeterminate bar alone, and no elapsed
-// time, percentage or countdown, because `Steps` carries none.
+// unlabelled spinner and never an indeterminate bar alone.
+//
+// **Each finished stage carries the time it took** (UI-SPEC S3, issue
+// #352). It is measured in the browser, from the frame this component
+// mounted on to the event that finished the stage, so it is an elapsed
+// time and never a countdown, a percentage or an estimate: nothing here
+// predicts when the scan ends, and the running stage carries no figure at
+// all — a number beside it would be a promise the scan has not made.
 //
 // REQ-001 c9: arriving on a shared link starts a scan with no further
 // action from the visitor. The post happens **on first frame, in the
@@ -65,6 +71,10 @@ export function ScanProgress(p: {
   const [scanId, setScanId] = useState<string | undefined>(p.scanId);
   const [done, setDone] = useState<ReadonlySet<StageName>>(new Set());
   const [active, setActive] = useState<StageName | undefined>(undefined);
+  /** Whole seconds from this component's first frame to each stage's own
+   *  ending event. `useState`'s initialiser runs once, in the browser. */
+  const [startedAt] = useState<number>(() => Date.now());
+  const [elapsed, setElapsed] = useState<Readonly<Record<string, number>>>({});
 
   // First frame, browser only: claim a scan if the address did not hand
   // one over. `location` is the canonical address and is ignored here —
@@ -108,6 +118,11 @@ export function ScanProgress(p: {
         const event = parsed;
         if (event.done) {
           setDone((previous) => new Set(previous).add(event.stage));
+          setElapsed((previous) =>
+            event.stage in previous
+              ? previous
+              : { ...previous, [event.stage]: Math.max(0, Math.round((Date.now() - startedAt) / 1000)) }
+          );
           setActive((current) => (current === event.stage ? undefined : current));
         } else {
           setActive(event.stage);
@@ -117,15 +132,22 @@ export function ScanProgress(p: {
     return () => {
       source.close();
     };
-  }, [router, scanId]);
+  }, [router, scanId, startedAt]);
 
   return (
     <Steps
-      steps={STAGES.map((stage) => ({
-        id: stage,
-        label: copy(STAGE_KEY[stage]),
-        state: done.has(stage) ? "done" : stage === active ? "active" : "pending",
-      }))}
+      direction="vertical"
+      steps={STAGES.map((stage) => {
+        const seconds = elapsed[stage];
+        return {
+          id: stage,
+          label: copy(STAGE_KEY[stage]),
+          state: done.has(stage) ? "done" : stage === active ? "active" : "pending",
+          // Only a stage that finished has a time; the one running and the
+          // ones ahead of it carry none.
+          note: seconds === undefined ? undefined : copy("stage.elapsed", { seconds: String(seconds) }),
+        };
+      })}
     />
   );
 }

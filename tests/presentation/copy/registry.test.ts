@@ -221,8 +221,10 @@ describe("REQ-093 c5 — the registry renders with every model unavailable", () 
     // ruling — three keys move in and two arrive written. 197 + 5 = 202.
     //
     // 2026-09-08, issue #352: the report screen's S2 and S3, under the same
-    // ruling — thirty-five of its keys stop waiting and seven the set draws arrive already written. 202 + 42 = 244.
-    expect(ruled.length).toBe(244);
+    // ruling — thirty-five of its keys stop waiting and nine the set draws
+    // arrive already written, S3's elapsed time and its waiting line among
+    // them. 202 + 44 = 246.
+    expect(ruled.length).toBe(246);
 
     // Only the ruled sentences carry their slots' `{name}` placeholders —
     // a `TODO(copy)` marker is one literal with no placeholder in it, so
@@ -1063,14 +1065,24 @@ describe("owner-owed and empty agree both ways", () => {
     //
     // 129 − 2 = 127 owner-owed, 294 − 1 = 293 awaiting copy,
     // 197 + 3 + 2 = 202 ruled, 620 + 2 = 622 total.
-    // And the report screen, issue #352, under the same ruling: thirty-five of its keys stop waiting and seven the set draws arrive already written.
+    // And the report screen, issue #352, under the same ruling: thirty-five
+    // of its keys stop waiting on the owner — the two cards' heads and
+    // source chips, the denominator and provenance lines, the questions'
+    // own words, the three problem titles and their doer badges, the
+    // absent-from table's headers, the giveaway's rows and control, and
+    // five of the six scanning stages — and nine the set draws had no key
+    // at all and arrive written: the score's name (ruling 6a), the
+    // correction control, the no-category arm of the measured line, the
+    // method eyebrow, the giveaway's badge and its field's two words, and
+    // S3's elapsed time and waiting line.
+    //
     // Owner-owed does not move — every bracketed string in the set is still
     // the owner's. 127 owner-owed, 293 − 35 = 258 awaiting copy,
-    // 202 + 42 = 244 ruled, 622 + 7 = 629 total.
+    // 202 + 44 = 246 ruled, 622 + 9 = 631 total.
     expect(OWNER_OWED.length).toBe(127);
     expect(AWAITING_COPY.length).toBe(258);
-    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(244);
-    expect(Object.keys(COPY).length).toBe(629);
+    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(246);
+    expect(Object.keys(COPY).length).toBe(631);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.

@@ -142,6 +142,13 @@ export const REPORT_COPY = Object.freeze({
   "stage.checking_your_presence": ["Checking the 12 biggest searches", { slots: {}, fixedBy: "REQ-003 c1" }],
   "stage.asking_the_twelve": ["Asking AI the 12 questions", { slots: {}, fixedBy: "REQ-003 c1" }],
   "stage.scoring": ["Scoring", { slots: {}, fixedBy: "REQ-003 c1" }],
+  // The elapsed time the approved set draws beside a finished stage, and
+  // the one line the scanning screen ends on (S3, approved under 11a).
+  "stage.elapsed": ["{seconds} s", { slots: { seconds: "text" }, fixedBy: "REQ-003 c1" }],
+  "scan.waiting.line": [
+    "Under a minute. This address is permanent — you can come back to it.",
+    { slots: {}, fixedBy: "REQ-003 c1" },
+  ],
 
   // ── Module 2, left card — AI answers (REQ-006) ────────────────────────
   "ai-answers.title": ["AI answers", { slots: {}, fixedBy: "REQ-006 c1" }],
