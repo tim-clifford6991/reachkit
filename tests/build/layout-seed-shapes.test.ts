@@ -19,11 +19,15 @@
 // is that missing check.
 import { describe, expect, it } from "vitest";
 import type { Acceptance, Evidence } from "@/lib/opportunities";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import {
   acceptanceFor,
+  ACCESS_ENDS_ON,
   LIVE_DRAFTS,
   scheduledFor,
   seededVolume,
+  SETUP_COMPLETED_ON,
   writeEvidence,
 } from "../ui/layout/seed-rows";
 
@@ -97,5 +101,43 @@ describe("the layout seed's opportunity rows", () => {
         new Date(midday + offset * 86_400_000).toISOString().slice(0, 10)
       );
     }
+  });
+});
+
+describe("the layout seed's clock reads", () => {
+  const SEED = readFileSync(
+    path.join(import.meta.dirname, "../ui/layout/seed.ts"),
+    "utf8"
+  );
+
+  it("dates every account's access on a fixed day, not on the day the seed ran", () => {
+    // Issue #304. `paid_through` was `now() + interval '365 days'`, and
+    // `/app/settings` states that day in words — "cancelling keeps
+    // everything running until Sep 8, 2027" — inside the captured viewport.
+    // A seed that read the clock therefore made the picture a different one
+    // every day: two baselines taken a day apart differed by 60-odd pixels
+    // where the day and the year are written, and the shift the narrower
+    // glyph put on everything after them.
+    expect(Number.isNaN(Date.parse(ACCESS_ENDS_ON))).toBe(false);
+    expect(Number.isNaN(Date.parse(SETUP_COMPLETED_ON))).toBe(false);
+    expect(SEED).toContain("'${ACCESS_ENDS_ON}'");
+    expect(SEED).toContain("'${SETUP_COMPLETED_ON}'");
+    expect(SEED).not.toContain("interval '365 days'");
+  });
+
+  it("keeps a year of headroom on that day, so it is moved on purpose", () => {
+    // `hasActiveAccess()` is `paid_through > now()` and nothing else
+    // (ADR-050), so the day this date passes every seeded account loses
+    // access and every `/app` address in the sweep redirects. This fails a
+    // year before that, while the fix is a one-line edit rather than a
+    // morning spent reading redirects.
+    const yearAhead = new Date();
+    yearAhead.setUTCFullYear(yearAhead.getUTCFullYear() + 1);
+    expect(
+      Date.parse(ACCESS_ENDS_ON),
+      `tests/ui/layout/seed-rows.ts: ACCESS_ENDS_ON (${ACCESS_ENDS_ON}) is less than a year away. ` +
+        "Move it further out — when it passes, hasActiveAccess() is false for every seeded " +
+        "account and every /app address in the sweep answers with the sign-in prompt."
+    ).toBeGreaterThan(yearAhead.getTime());
   });
 });
