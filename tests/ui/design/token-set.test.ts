@@ -1,73 +1,76 @@
-// `src/ui/theme.css` carries exactly `design/tokens.md`'s set (issue #349).
-// tests/ui/design/token-set.test.ts
+// `src/ui/theme.css` carries exactly `docs/design/approved/tokens.css`.
+// tests/ui/design/token-set.test.ts  ·  issue #349
 //
-// The owner's goal is token fidelity, and until this test there was nothing
-// comparing the two: the document named sixty-six tokens for the product,
-// `theme.css` declared twenty-eight, and the other thirty-eight were either
-// declared in four other stylesheets or spent as bare literals. A value with
-// two homes drifts; a value with no name cannot be checked at all.
+// The owner approved a token file and ruled it the source of truth for
+// `theme.css` (2026-09-08; BUILD §2.1 as amended by #378). Until this test
+// nothing compared the two, and they had drifted in both directions: the
+// product declared sixty-four tokens under an older document's names —
+// `--t-h1` for `--h1`, `--t-floor` for `--t-eyebrow`, a `--r-card` the owner
+// had struck — while five names the approved file carries, `--font-num`,
+// `--num-weight`, `--t-body`, `--t-explain` and `--t-eyebrow`, existed
+// nowhere.
 //
-// The comparison runs in both directions and names what is missing on each
-// side, because either direction is a real defect: a token in the file and
-// not the document is a value nobody approved, and a token in the document
-// and not the file is a rule nothing enforces.
-import { readFileSync } from "node:fs";
-import path from "node:path";
+// The comparison runs in both directions and on values, not just names,
+// because all three failures are real: a token here and not there is a value
+// nobody approved, a token there and not here is a rule nothing enforces,
+// and a name that matches at a different value is the drift that looks green.
 import { describe, expect, it } from "vitest";
-import { allDocumentTokens, approvedTokens, NAMED_BUT_NOT_APPROVED } from "./tokens-doc";
+import { APPROVED_TOKENS_CSS, type Block, THEME_CSS, tokenSet } from "./tokens-doc";
 
-const THEME_CSS = path.resolve(import.meta.dirname, "../../../src/ui/theme.css");
+const BLOCKS: readonly Block[] = ["light", "dark-media", "dark-toggle"];
 
-/** Every custom property `theme.css` declares, in any of its three blocks.
- *  A token declared only in a dark block is still declared. */
-function declaredTokens(): ReadonlySet<string> {
-  const source = readFileSync(THEME_CSS, "utf8");
-  return new Set([...source.matchAll(/^\s*(--[a-z0-9-]+)\s*:/gm)].map((m) => m[1]!));
-}
+describe("issue #349 — theme.css is the approved token file", () => {
+  const approved = tokenSet(APPROVED_TOKENS_CSS);
+  const declared = tokenSet(THEME_CSS);
 
-describe("issue #349 — theme.css and tokens.md name the same set", () => {
-  const declared = declaredTokens();
-  const approved = approvedTokens();
+  for (const block of BLOCKS) {
+    it(`${block}: every approved token is declared, at the approved value`, () => {
+      const wrong = [...approved[block]]
+        .filter(([token, value]) => declared[block].get(token) !== value)
+        .map(
+          ([token, value]) =>
+            `${token}: approved ${value}, theme.css ${declared[block].get(token) ?? "—"}`
+        );
+      expect(wrong, `theme.css differs from the approved set:\n${wrong.join("\n")}`).toEqual([]);
+    });
 
-  it("every token the document approves is declared", () => {
-    const missing = [...approved].filter((token) => !declared.has(token)).sort();
-    expect(missing, `named in tokens.md and declared nowhere: ${missing.join(" ")}`).toEqual([]);
+    it(`${block}: every declared token is one the owner approved`, () => {
+      const extra = [...declared[block].keys()]
+        .filter((token) => !approved[block].has(token))
+        .sort();
+      expect(extra, `declared in theme.css and approved nowhere: ${extra.join(" ")}`).toEqual([]);
+    });
+  }
+
+  it("the two struck tokens are gone", () => {
+    // Ruling 8a strikes `--r-card`: "Card radius is `--r-box: 14px`
+    // everywhere". `--ring-accent` is not in the approved file either — the
+    // set draws focus as `0 0 0 3px var(--accent-bg)`, written where it is
+    // spent rather than carried as a token nobody approved. Named here
+    // because both were in `theme.css` before this issue, so the check is
+    // against a real previous state rather than a hypothetical one.
+    for (const struck of ["--r-card", "--ring-accent"]) {
+      expect(approved.light.has(struck), `${struck} in the approved file`).toBe(false);
+      expect(declared.light.has(struck), `${struck} still in theme.css`).toBe(false);
+    }
   });
 
-  it("every token declared is one the document approves", () => {
-    const extra = [...declared].filter((token) => !approved.has(token)).sort();
-    expect(extra, `declared in theme.css and named nowhere in tokens.md: ${extra.join(" ")}`).toEqual(
-      []
-    );
+  it("the set is the size the approved file carries, and the dark blocks agree", () => {
+    // Rule 5.5: the number is stated rather than read off a green run. 53 =
+    // the artifact's 47 plus 10a's six. The two dark blocks are one palette
+    // reached two ways (§2.1), so they must be identical — an override in
+    // one and not the other is how the toggle and the OS setting come apart.
+    expect(approved.light.size).toBe(53);
+    expect(declared.light.size).toBe(53);
+    expect([...declared["dark-media"]].sort()).toEqual([...declared["dark-toggle"]].sort());
   });
 
-  it("the set is the size the audit measured, and the difference is stated", () => {
-    // Rule 5.5: the number is reported rather than left to be read off a
-    // green run. The master's audit counted the whole document; this set is
-    // the issue's own scope — §1, §2, §2b, §3, §4 and §9 — and the two
-    // excluded names below are the difference, each with the document's
-    // reason.
-    expect(approved.size).toBe(64);
-    expect(Object.keys(NAMED_BUT_NOT_APPROVED).sort()).toEqual(["--glass-fill", "--glass-line"]);
-  });
-
-  it("the sections outside that scope name tokens the product must not declare", () => {
-    // §5's `--grid-week`, §7's `--r-edge` and §8's three `--v-*` are named
-    // in the document and are **not** approved values: a chart constraint,
-    // a fourth radius `BUILD.md` §2.1's "these exact values" does not
-    // admit, and three positions in the variant layer the owner rejected.
-    // Asserted so that widening the scope later is a decision rather than
-    // an accident.
-    const outside = [...allDocumentTokens()].filter((token) => !approvedTokens().has(token));
-    expect(outside.sort()).toEqual([
-      "--glass-fill",
-      "--glass-line",
-      "--grid-week",
-      "--r-edge",
-      "--v-card-pad",
-      "--v-eyebrow-track",
-      "--v-r-card",
-    ]);
-    for (const token of outside) expect(declaredTokens().has(token)).toBe(false);
+  it("no token is defined only in a dark block", () => {
+    // `BUILD.md` §2.1: "Never define a color only inside a dark block." A
+    // token the light block never declares renders as nothing in light.
+    const orphans = [...declared["dark-media"].keys(), ...declared["dark-toggle"].keys()]
+      .filter((token) => !declared.light.has(token))
+      .sort();
+    expect(orphans, `declared only in a dark block: ${orphans.join(" ")}`).toEqual([]);
   });
 });

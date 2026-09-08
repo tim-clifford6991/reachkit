@@ -91,7 +91,7 @@
   margin: 0;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: var(--t-floor);
+  font-size: var(--t-eyebrow);
   color: var(--ink-3);
   /* No `overflow-wrap: anywhere` (issue #256). A provenance line is set in
    * the mono face because it carries values — an address, a date — and a

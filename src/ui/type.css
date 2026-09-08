@@ -100,15 +100,15 @@ h1, h2, h3, h4, h5, h6 {
  * takes `--t-h1`'s size below the same breakpoint, and form-control text
  * runs the other way — and neither token exists in this repository yet;
  * they are their own work, not this line's. */
-h1 { font-size: var(--t-h2); }
+h1 { font-size: var(--h2); }
 
 @media (min-width: 640px) {
-  h1 { font-size: var(--t-h1); }
+  h1 { font-size: var(--h1); }
 }
 
-h2 { font-size: var(--t-h2); }
-h3 { font-size: var(--t-h3); }
-h4 { font-size: var(--t-h4); }
+h2 { font-size: var(--h2); }
+h3 { font-size: var(--h3); }
+h4 { font-size: var(--h4); }
 
 /* The scale names four heading roles and the product uses four: no `h5` or
  * `h6` appears anywhere under `src/app/**`. Rather than mint a fifth and a
@@ -123,18 +123,18 @@ h5, h6 { font-size: inherit; }
 
 body {
   font-family: var(--font-ui);
-  font-size: 15px;
+  font-size: var(--t-body);
   line-height: 1.55;
 }
 
-/* Uppercase 10.5-11px eyebrows for section labels. 11px is a value inside
- * BUILD.md's stated range (an internal parameter, rule 1.1 — reversal
- * cost: one line); it is also the value tokens.md's own card-idiom
- * instance draws. */
+/* Uppercase eyebrows for section labels. The 11 is no longer a rule 1.1
+ * parameter inside §2.3's 10.5–11px range: ruling 10a fixes the ladder at
+ * 15 / 13 / 12 / 11.5 / 11 with "nothing under 11px", and `--t-eyebrow` is
+ * that bottom rung (issue #349). */
 .eyebrow {
   font-family: var(--font-ui);
   text-transform: uppercase;
-  font-size: 11px;
+  font-size: var(--t-eyebrow);
 }
 
 /* BP-018 error behaviour: "Every numeral, date, URL, search query and

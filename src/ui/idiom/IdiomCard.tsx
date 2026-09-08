@@ -2,16 +2,18 @@
 // src/ui/idiom/IdiomCard.tsx
 //
 // The registered `Card` with the idiom's own skin: no border, separated by
-// `--shadow-lift`, and the head slot above the body. design/tokens.md §9.1's
-// first rule — "soft grey `--bg` ground, white `--surface` cards separated
-// by shadow, never a border" — is the whole reason `--shadow-lift` exists,
-// because `--shadow-card` is a 1px hairline that cannot carry an edge once
-// the border is gone.
+// `--shadow-card`, and the head slot above the body. The idiom's first rule
+// — "soft grey `--bg` ground, white `--surface` cards separated by shadow,
+// never a border" — is why a card has a shadow at all. It drew that
+// separation with a heavier `--shadow-lift` of its own until issue #349:
+// the approved set (`docs/design/approved/tokens.css`) names one card
+// shadow, so the lift is resolved to it rather than kept as a value nobody
+// approved.
 //
-// The radius is the **ruled** `--r-box` 14px. The idiom proposed
-// `--r-card` 18px as a second variable rather than an edit of the first,
-// precisely so that a ruled value would not be re-drawn; taking the 18 here
-// would be the unruled value arriving by being drawn (tokens.md §9.2).
+// The radius is `--r-box` 14px, and ruling 8a (2026-09-08) struck the
+// `--r-card` 18px the idiom had proposed beside it — "Card radius is
+// `--r-box: 14px` everywhere". This component always drew the 14; what
+// changed is that the alternative no longer exists.
 //
 // `head` is required. `pad="lg"` is the "--s-6 for a larger card" arm and is
 // the caller's opt-in — a card never infers its own padding from how wide

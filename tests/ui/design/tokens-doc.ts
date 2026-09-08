@@ -1,78 +1,97 @@
-// The approved token set, read from `design/tokens.md` (issue #349).
+// The approved token set, read from `docs/design/approved/tokens.css`.
 // tests/ui/design/tokens-doc.ts
 //
-// One reader, two tests: `token-set.test.ts` holds `src/ui/theme.css` equal
-// to this set, and `tests/ui/tokens.test.ts` uses it to say which tokens
-// beyond `BUILD.md` §2.1's colour block are allowed to exist. A second copy
-// of "what the document names" is exactly the drift this issue is about.
+// One reader, three tests: `token-set.test.ts` holds `src/ui/theme.css`
+// equal to this file by name *and* value, `tests/ui/tokens.test.ts` uses the
+// names to say which tokens may exist at all, and `no-bare-literals.test.ts`
+// uses the values to prove a converted literal kept the value it had.
+// A second copy of "what the owner approved" is exactly the drift issue #349
+// is about.
 //
-// **Section-scoped, and the scope is the issue's own** — §1, §2, §2b, §3
-// and §4, plus §9. That is not the whole document, and the difference
-// matters: §5 through §8 name tokens that are *proposals or rejections*,
-// and declaring one would put a value in the product the owner never
-// approved. The five are listed in `NAMED_BUT_NOT_APPROVED` below with the
-// section and the reason, so the exclusion is reviewable rather than a
-// silent shortfall against a whole-document count.
+// The source is the token file of record (owner ruling 2026-09-08; UI-SPEC
+// §1, rulings 8a and 10a): the artifact's own three blocks, verbatim, plus
+// the six additions 10a made on top of them. `archive/…/design/tokens.md` is
+// superseded and is not read here — reading it is what the paused first pass
+// of this issue did, and the owner ruled that file is not the approved set.
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import postcss, { type Declaration, type Rule } from "postcss";
 
-const TOKENS_MD = path.resolve(
-  import.meta.dirname,
-  "../../../archive/sdlc-factory-2026-09-04/corpus/docs/design/tokens.md"
-);
+const REPO = path.resolve(import.meta.dirname, "../../..");
 
-/** The sections whose tokens the product declares. Matched on the heading
- *  line so a renumbered document fails loudly rather than silently
- *  narrowing the set. */
-const APPROVED_SECTIONS: readonly string[] = [
-  "## 1. Colour",
-  "## 2. Radius, shadow, ring, spacing",
-  "## 2b. Derived under rule 1.1 — the edge-and-size contract",
-  "## 3. daisyUI 5 slot mapping",
-  "## 4. Type and numerals",
-  "## 9. The approved card idiom — 2026-09-02",
-];
+export const APPROVED_TOKENS_CSS = path.join(REPO, "docs/design/approved/tokens.css");
+export const THEME_CSS = path.join(REPO, "src/ui/theme.css");
+
+/** The three states a token can be declared in. Two files carry the same
+ *  set only if all three blocks agree. */
+export type Block = "light" | "dark-media" | "dark-toggle";
+
+export type TokenSet = Readonly<Record<Block, ReadonlyMap<string, string>>>;
 
 /**
- * Tokens the document names inside those sections that `theme.css` still
- * must not declare, each with the document's own reason. Any other name in
- * an approved section is expected in the file.
+ * Which of the three blocks a rule belongs to.
+ *
+ * `BUILD.md` §2.1 fixes the three selectors, so they are matched rather than
+ * guessed: a bare `:root`, the media-guarded `:root:not([data-theme=
+ * "light"])`, and the explicit `:root[data-theme="dark"]`. A rule that is
+ * none of them is a mistake in whichever file carries it, and `tokenSet`
+ * throws rather than skipping it — a token declared somewhere unexpected is
+ * the one case where silence would let the two files differ unnoticed.
  */
-export const NAMED_BUT_NOT_APPROVED: Readonly<Record<string, string>> = Object.freeze({
-  "--glass-fill": [
-    "§9.3 states plainly that this is **not a token**: 'no token is added:",
-    "the two are named `--glass-fill` and `--glass-line` inside the idiom's",
-    "own scope, where the names are the system's and the values are",
-    "BUILD.md's'. They are the 12%/28% alphas §2.1 states, applied to",
-    "`--on-accent`, and `src/ui/idiom/idiom.css` spends them inline in the",
-    "one rule that needs them.",
-  ].join(" "),
-  "--glass-line": "§9.3, with `--glass-fill` — see that entry.",
-});
-
-/** Every `--name` the document backticks inside a section. */
-function tokensInSection(source: string, heading: string): Set<string> {
-  const start = source.indexOf(heading);
-  if (start === -1) throw new Error(`tokens.md: no section "${heading}" — has it been renumbered?`);
-  const after = source.indexOf("\n## ", start + heading.length);
-  const body = source.slice(start, after === -1 ? undefined : after);
-  return new Set([...body.matchAll(/`(--[a-z0-9-]+)`/g)].map((m) => m[1]!));
+function blockOf(rule: Rule): Block | null {
+  const selector = rule.selector.replace(/\s+/g, "");
+  if (selector === ":root") return rule.parent?.type === "atrule" ? null : "light";
+  if (selector === ':root:not([data-theme="light"])') return "dark-media";
+  if (selector === ':root[data-theme="dark"]') return "dark-toggle";
+  return null;
 }
 
-/** The set `src/ui/theme.css` is expected to declare, exactly. */
-export function approvedTokens(): ReadonlySet<string> {
-  const source = readFileSync(TOKENS_MD, "utf8");
-  const out = new Set<string>();
-  for (const heading of APPROVED_SECTIONS) {
-    for (const token of tokensInSection(source, heading)) out.add(token);
+/**
+ * A value, normalised for comparison: case-folded and stripped of the
+ * whitespace two files may spell differently — `0 1px 3px rgb(24 24 48/.045)`
+ * against `0 1px 3px rgb(24 24 48/.045)`, `"JetBrains Mono",ui-monospace`
+ * against `"JetBrains Mono", ui-monospace`. Nothing else is touched: a
+ * different number, hex or fallback face is a difference and must fail.
+ */
+export function normalise(value: string): string {
+  return value.replace(/\s+/g, "").toLowerCase();
+}
+
+/** Every custom property a token file declares, by block, normalised. */
+export function tokenSet(file: string): TokenSet {
+  const out: Record<Block, Map<string, string>> = {
+    light: new Map(),
+    "dark-media": new Map(),
+    "dark-toggle": new Map(),
+  };
+  const unplaced: string[] = [];
+  postcss.parse(readFileSync(file, "utf8")).walkRules((rule: Rule) => {
+    const block = blockOf(rule);
+    rule.walkDecls((decl: Declaration) => {
+      if (!decl.prop.startsWith("--")) return;
+      if (block === null) {
+        unplaced.push(`${rule.selector} { ${decl.prop} }`);
+        return;
+      }
+      out[block].set(decl.prop, normalise(decl.value));
+    });
+  });
+  if (unplaced.length > 0) {
+    throw new Error(
+      `${path.basename(file)} declares a token outside the three ruled blocks: ${unplaced.join(", ")}`
+    );
   }
-  for (const excluded of Object.keys(NAMED_BUT_NOT_APPROVED)) out.delete(excluded);
   return out;
 }
 
-/** Every `--name` the document backticks anywhere — the whole-document
- *  count the master's audit reported. Used only to state the difference. */
-export function allDocumentTokens(): ReadonlySet<string> {
-  const source = readFileSync(TOKENS_MD, "utf8");
-  return new Set([...source.matchAll(/`(--[a-z0-9-]+)`/g)].map((m) => m[1]!));
+/** The approved set — every token name the owner approved, in any block. */
+export function approvedTokens(): ReadonlySet<string> {
+  const set = tokenSet(APPROVED_TOKENS_CSS);
+  return new Set([...set.light.keys(), ...set["dark-media"].keys(), ...set["dark-toggle"].keys()]);
+}
+
+/** An approved light value, for a test that has to prove a converted
+ *  literal kept the value it had. */
+export function approvedLightValue(token: string): string | undefined {
+  return tokenSet(APPROVED_TOKENS_CSS).light.get(token);
 }

@@ -1,19 +1,32 @@
-/* src/ui/theme.css
+/* src/ui/theme.css — the approved token set, and nothing else.
  *
- * BP-018 `## Module / boundary`: "src/ui/theme.css (the three-state
- * theming)". Every value below is transcribed from `BUILD.md` §2.1,
- * verbatim: "daisyUI 5 theme, expressed as CSS variables. These exact
- * values — they are lifted from timclifford.dev so the products share a
- * visual family." Nothing here is derived or rounded except the six
- * dark `-bg`/`-line` pairs, each marked where it is defined below.
+ * **This file carries `docs/design/approved/tokens.css` exactly**: the same
+ * names at the same values, in the same three blocks, plus the six additions
+ * ruling 10a made on top of the artifact. `tests/ui/design/token-set.test.ts`
+ * diffs the two files by name and value in both directions, so a token added
+ * here that the owner did not approve fails, and an approved token dropped
+ * here fails (issue #349).
  *
- * Three-state theming, `BUILD.md` §2.1 verbatim: "Three-state theming:
- * bare `:root` = light; `@media (prefers-color-scheme: dark)` guarded
- * with `:root:not([data-theme="light"])`; `:root[data-theme="dark"]`
- * for the explicit toggle. Never define a color only inside a dark
- * block." Every token below therefore exists in the bare `:root`
- * block; the two dark blocks only override tokens `:root` already
- * declares (tests/ui/tokens.test.ts's mutation check).
+ * That is the whole rule, and it is why this file no longer explains each
+ * value: the explanation belongs in `docs/design/approved/tokens.css` and in
+ * `docs/design/approved/full-set/UI-SPEC.md` §1, which is where a reader
+ * should be sent. What lives here is the transcription.
+ *
+ * Three-state theming, `BUILD.md` §2.1 verbatim: "bare `:root` = light;
+ * `@media (prefers-color-scheme: dark)` guarded with
+ * `:root:not([data-theme="light"])`; `:root[data-theme="dark"]` for the
+ * explicit toggle. Never define a color only inside a dark block." Every
+ * token the dark blocks override is declared in the bare `:root` above them
+ * (`tests/ui/tokens.test.ts`'s mutation check).
+ *
+ * Two tokens the product used to declare are **resolved**, not moved
+ * (ruling 8a, and the focus state the approved set draws):
+ *   · `--r-card` 18px — struck. Every card is `--r-box` 14.
+ *   · `--ring-accent` — struck. Focus is `0 0 0 3px var(--accent-bg)`,
+ *     written where it is spent.
+ * Values the approved set does not name — the hairline, the calendar's cell
+ * floor, the idiom's derived gradient and quiet ink — are declared in the
+ * sheet that spends them, so this file stays the approved set alone.
  */
 
 :root {
@@ -48,66 +61,13 @@
   --chart-rival: #787790;
   --chart-goal: #b8722a;
 
-  /* Radius, shadow, ring — `BUILD.md` §2.1 states these once, in
-   * `:root`, and repeats none of them in the dark block. */
+  /* Radius and shadow */
   --r-box: 14px;
   --r-field: 9px;
   --r-pill: 999px;
   --shadow-card: 0 1px 3px rgb(24 24 48/.045);
-  --ring-accent: 0 0 0 3px rgb(91 75 224/.18);
 
-  /* ── The rest of the approved set (issue #349) ──────────────────────
-   *
-   * `design/tokens.md` names sixty-four tokens for this file and
-   * §2.1's colour block above is twenty-eight of them. The other
-   * thirty-six were declared in four other stylesheets or spent as bare
-   * literals, so nothing could compare code against the document. They
-   * are consolidated here, under the document's own names and at the
-   * document's own values, and the four sheets read them.
-   *
-   * `tests/ui/design/token-set.test.ts` holds the two sets equal in both
-   * directions; `tests/ui/tokens.test.ts` still holds §2.1's colour block
-   * verbatim, which is what that file was always for.
-   *
-   * Everything below is theme-invariant except `--shadow-lift`, which
-   * takes a dark construction in both dark blocks exactly as
-   * `--shadow-card` does. */
-
-  /* §4 — the two families. `BUILD.md` §1 fixes them; both are
-   * self-hosted (`src/ui/fonts.ts`), no third-party request. */
-  --font-ui: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
-
-  /* §4's heading scale — ruled by the owner 2026-09-02, ratio 1.25 from
-   * the 15px body. `BUILD.md` §2.3 states none of these sizes. */
-  --t-h1: 31px;
-  --t-h2: 25px;
-  --t-h3: 20px;
-  --t-h4: 16px;
-  --t-num-big: 44px;
-
-  /* §4 "Below body" — derived under rule 1.1, 2026-09-02. `--t-floor` is
-   * **not a role but a bound**: no text renders below it at any viewport. */
-  --t-sm: 13px;
-  --t-xs: 12px;
-  --t-floor: 11px;
-
-  /* §2.3's uppercase section label. The size is named only in §2b's
-   * `--t-floor` row — "10.5 belongs to `--t-eyebrow-size` alone, an
-   * uppercase, letter-spaced, two-word label" — and the tracking is
-   * §2b's own row at the value the approved card idiom draws. */
-  --t-eyebrow-size: 10.5px;
-  --t-eyebrow-track: 0.1em;
-
-  /* §9.2, and **not ruled**: the owner has not said whether a headline
-   * numeral is mono or a heavy sans. It defaults to the mono face, which
-   * is what `BUILD.md` §2.3 states and therefore what conforms; one
-   * declaration flips it the day the owner rules. */
-  --t-num-headline-face: var(--font-mono);
-
-  /* §2's spacing ladder — ruled 2026-09-02, 4px base, seven steps.
-   * Nothing between them exists: a layout wanting a value this ladder
-   * does not name raises the gap rather than inventing one. */
+  /* The spacing ladder — 4px base, seven steps, nothing between them */
   --s-1: 4px;
   --s-2: 8px;
   --s-3: 12px;
@@ -116,54 +76,32 @@
   --s-6: 32px;
   --s-7: 48px;
 
-  /* §2b's four breakpoints — each the smallest Tailwind step that clears
-   * one named obligation. A media query cannot read a `var()`, so the
-   * literals in the sheets are pinned back against these by
-   * `tests/ui/layout-tokens.test.ts`. */
-  --breakpoint-sm: 640px;
-  --breakpoint-md: 768px;
-  --breakpoint-lg: 1024px;
-  --breakpoint-xl: 1280px;
+  /* The two families, self-hosted (`src/ui/fonts.ts`). `--font-num` is the
+   * face every numeral takes; the artifact flips it with its numeral
+   * toggle, and the product ships it pointed at the mono face (§2.3). */
+  --font-ui: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-num: var(--font-mono);
+  --num-weight: 600;
 
-  /* §2b's measures and floors. The two content measures share one
-   * construction — "the breakpoint above the content, less 2 × --s-6". */
-  --w-read: 704px;
+  /* Type — the two rungs below body the artifact declares itself, and the
+   * big figure. The rest of the ladder is in the 10a block at the foot. */
+  --t-eyebrow: 11px;
+  --t-explain: 11.5px;
+  --t-num-big: 44px;
+
+  /* Headings */
+  --h1: 31px;
+  --h2: 25px;
+  --h3: 20px;
+  --h4: 16px;
+
+  /* Measures */
   --w-wide: 1216px;
-  --w-form: 420px;
-  --w-sidebar: 222px;
-  --w-day-panel: 290px;
-  --w-cell-min: 96px;
-  --w-spark-min: 120px;
-
-  /* §2b — "named, not changed": every rule, card edge, cell border and
-   * input outline, and the last raw value in the stylesheet when it was
-   * named. */
-  --border-hair: 1px;
-
-  /* §9.2, and **not ruled**: the idiom drew an 18px card radius against
-   * the ruled `--r-box` 14px, and kept it as a *second* variable so a
-   * ruled value would not be re-drawn. Declared here because the document
-   * names it, and **spent nowhere** — every card takes `--r-box` until
-   * the owner rules otherwise (DECISIONS 2026-09-08, #285). */
-  --r-card: 18px;
-
-  /* §9.3 — the idiom's own three, derived and not minted. `--grad-accent`
-   * and `--on-accent-quiet` are computed from tokens above, so they need
-   * no dark counterpart; `--shadow-lift` does, below. The 85% mix is
-   * measured, not chosen — see `src/ui/idiom/idiom.css` and
-   * `tests/ui/design/on-accent-contrast.test.ts` (issue #290). */
-  --shadow-lift: 0 1px 2px rgb(24 24 48 / 0.04), 0 6px 16px rgb(24 24 48 / 0.07);
-  --on-accent-quiet: color-mix(in oklab, var(--on-accent) 85%, var(--accent));
-  --grad-accent: radial-gradient(
-    circle at 78% 22%,
-    color-mix(in oklab, var(--on-accent) 28%, transparent) 0%,
-    transparent 62%
-  );
+  --w-read: 704px;
 }
 
-/* Automatic dark — guarded so the explicit light toggle below always wins.
- * `BUILD.md` §2.1 verbatim: "`@media (prefers-color-scheme: dark)` guarded
- * with `:root:not([data-theme="light"])`." */
+/* Automatic dark — guarded so the explicit light toggle always wins. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #0e1116;
@@ -180,21 +118,12 @@
     --accent-line: rgb(155 180 255/.28);
 
     --ok: #7bd8b0;
-    --warn: #e6b45a;
-    --bad: #f0907a;
-    /* `BUILD.md` §2.1, verbatim: "+ matching -bg/-line at 12%/28% alpha".
-     * DERIVED (rule 1.1) from --ok #7bd8b0 at 12%/28% alpha — not carried
-     * over from light and not invented. */
     --ok-bg: rgb(123 216 176/.12);
     --ok-line: rgb(123 216 176/.28);
-    /* `BUILD.md` §2.1, verbatim: "+ matching -bg/-line at 12%/28% alpha".
-     * DERIVED (rule 1.1) from --warn #e6b45a at 12%/28% alpha — not
-     * carried over from light and not invented. */
+    --warn: #e6b45a;
     --warn-bg: rgb(230 180 90/.12);
     --warn-line: rgb(230 180 90/.28);
-    /* `BUILD.md` §2.1, verbatim: "+ matching -bg/-line at 12%/28% alpha".
-     * DERIVED (rule 1.1) from --bad #f0907a at 12%/28% alpha — not
-     * carried over from light and not invented. */
+    --bad: #f0907a;
     --bad-bg: rgb(240 144 122/.12);
     --bad-line: rgb(240 144 122/.28);
 
@@ -202,19 +131,11 @@
     --chart-rival: #5c6579;
     --chart-goal: #e6b45a;
 
-    /* §9.3's dark construction: the same geometry re-inked at a second
-     * alpha, which is §2.1's own pattern for the six dark -bg/-line pairs
-     * and the one the owner's dark `--shadow-card` ruling took. Declared
-     * in both dark blocks because a shadow cannot be derived from a token
-     * the way the gradient and the quiet ink are (issue #349). */
-    --shadow-lift: 0 1px 2px rgb(0 0 0 / 0.3), 0 6px 16px rgb(0 0 0 / 0.45);
-
+    --shadow-card: 0 1px 3px rgb(0 0 0/.45);
   }
 }
 
-/* Explicit dark toggle. `BUILD.md` §2.1 verbatim: "`:root[data-theme="dark"]`
- * for the explicit toggle." Same values as the guarded media query above —
- * one dark palette, reached two ways. */
+/* Explicit dark toggle — the same palette, reached the other way. */
 :root[data-theme="dark"] {
   --bg: #0e1116;
   --surface: #161a21;
@@ -230,21 +151,12 @@
   --accent-line: rgb(155 180 255/.28);
 
   --ok: #7bd8b0;
-  --warn: #e6b45a;
-  --bad: #f0907a;
-  /* `BUILD.md` §2.1, verbatim: "+ matching -bg/-line at 12%/28% alpha".
-   * DERIVED (rule 1.1) from --ok #7bd8b0 at 12%/28% alpha — not carried
-   * over from light and not invented. */
   --ok-bg: rgb(123 216 176/.12);
   --ok-line: rgb(123 216 176/.28);
-  /* `BUILD.md` §2.1, verbatim: "+ matching -bg/-line at 12%/28% alpha".
-   * DERIVED (rule 1.1) from --warn #e6b45a at 12%/28% alpha — not carried
-   * over from light and not invented. */
+  --warn: #e6b45a;
   --warn-bg: rgb(230 180 90/.12);
   --warn-line: rgb(230 180 90/.28);
-  /* `BUILD.md` §2.1, verbatim: "+ matching -bg/-line at 12%/28% alpha".
-   * DERIVED (rule 1.1) from --bad #f0907a at 12%/28% alpha — not carried
-   * over from light and not invented. */
+  --bad: #f0907a;
   --bad-bg: rgb(240 144 122/.12);
   --bad-line: rgb(240 144 122/.28);
 
@@ -252,10 +164,18 @@
   --chart-rival: #5c6579;
   --chart-goal: #e6b45a;
 
-  /* §9.3's dark construction: the same geometry re-inked at a second
-   * alpha, which is §2.1's own pattern for the six dark -bg/-line pairs
-   * and the one the owner's dark `--shadow-card` ruling took. Declared
-   * in both dark blocks because a shadow cannot be derived from a token
-   * the way the gradient and the quiet ink are (issue #349). */
-  --shadow-lift: 0 1px 2px rgb(0 0 0 / 0.3), 0 6px 16px rgb(0 0 0 / 0.45);
+  --shadow-card: 0 1px 3px rgb(0 0 0/.45);
+}
+
+/* Ruling 10a (owner, 2026-09-08 · UI-SPEC.md §1) — the six the artifact
+ * spends without naming: the top three rungs of the type ladder, and the
+ * three measures. Theme-invariant, all six, exactly as the source file
+ * declares them in its own second block. */
+:root {
+  --t-body: 15px;
+  --t-sm: 13px;
+  --t-xs: 12px;
+  --w-form: 420px;
+  --w-sidebar: 222px;
+  --w-day-panel: 290px;
 }

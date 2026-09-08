@@ -5,14 +5,14 @@
  *
  * §4.6, verbatim: "**Day panel** (290px, sticky, beside the grid — not a
  * drawer)". `design/tokens.md` §2b derives the width at which that is
- * possible: "`--breakpoint-xl` `1280px` — the day panel sits **beside** the
+ * possible: 1280px — ruling 10a's widest breakpoint, where the day panel sits **beside** the
  * grid, which is §4.6's own word. 222 + 48 + 696 + `--s-4` + `--w-day-panel`
  * 290 = **1272**", rounded up to the named 1280 step, which is also
  * `BAND_MIN.wide`. A media query prelude cannot read a `var()`, so 1280 is
  * written literally below and pinned back against `BAND_MIN` by
  * `tests/ui/calendar-css.test.ts`.
  *
- * **Not a drawer, at any width.** Below `--breakpoint-xl` the panel is a
+ * **Not a drawer, at any width.** Below 1280px the panel is a
  * full-width block following the grid, in flow and not sticky. Nothing
  * slides over anything, nothing is dismissed, and there is no second markup
  * path — the arms below are two declarations over one tree.
@@ -94,7 +94,7 @@
    * the date is a value. `flex-wrap` is what makes the two fit at 290px. */
 }
 
-/* --breakpoint-xl (1280px) = BAND_MIN.wide. "The day panel sits beside the
+/* 1280px = BAND_MIN.wide. "The day panel sits beside the
  * grid." Pinned by tests/ui/calendar-css.test.ts. */
 @media (min-width: 1280px) {
   .rk-day-layout {

@@ -237,11 +237,7 @@ describe('§2.1 — every colour in src/** resolves to a token, "these exact val
  *  rule below is for. Each is derived from a token §2.1 already states —
  *  `design/tokens.md` §9.3 carries the derivations, and `idiom.css`'s own
  *  `:root` block repeats them where the values are. */
-const IDIOM_ROOT: ReadonlySet<string> = new Set([
-  "--shadow-lift",
-  "--grad-accent",
-  "--on-accent-quiet",
-]);
+const IDIOM_ROOT: ReadonlySet<string> = new Set(["--grad-accent", "--on-accent-quiet"]);
 
 function nonThemeColourTokens(files: readonly string[]): string[] {
   const out: string[] = [];
@@ -264,22 +260,24 @@ describe("§2.1 — a colour-valued declaration names a §2.1 token and nothing 
     expect(nonThemeColourTokens(CSS_FILES)).toEqual([]);
   });
 
-  it("the idiom's three colour tokens are declared on :root, and are only three", () => {
+  it("the idiom's two compositions are declared on :root, and are only two", () => {
     // Rule 5.5, and the reason `IDIOM_ROOT` is a written list: the set is
     // closed until someone opens it. Each must actually be declared where
     // it says it is, so the allowance cannot outlive the declaration.
     //
-    // Since issue #349 that home is `src/ui/theme.css`, not `idiom.css`:
-    // every approved token has one declaration and the document is compared
-    // against that one file. The allowance is unchanged — these three are
-    // still the only colour-valued names outside §2.1 that a declaration
-    // may reference — only where they are declared has moved.
-    const root = declarationsOf(read("src/ui/theme.css"));
+    // They are declared in `idiom.css` and not `theme.css`, because since
+    // issue #349 that file carries `docs/design/approved/tokens.css` and
+    // nothing else. Neither is a value: each is a construction over approved
+    // tokens, which is what makes it declarable outside the approved set.
+    // `--shadow-lift` was the third until #349 — the approved set draws
+    // every card on `--shadow-card`, so it is resolved, not relocated.
+    const root = declarationsOf(read("src/ui/idiom/idiom.css"));
     const declared = new Set(root.filter((d) => d.prop.startsWith("--")).map((d) => d.prop));
     for (const token of IDIOM_ROOT) {
       expect(declared, `${token} is allowed but not declared`).toContain(token);
     }
-    expect([...IDIOM_ROOT].sort()).toEqual(["--grad-accent", "--on-accent-quiet", "--shadow-lift"]);
+    expect([...IDIOM_ROOT].sort()).toEqual(["--grad-accent", "--on-accent-quiet"]);
+    expect(read("src/ui/theme.css")).not.toContain("--shadow-lift");
   });
 
   it("theme.css's :root is the authority, and holds §2.1's colour tokens", () => {

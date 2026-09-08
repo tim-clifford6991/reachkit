@@ -22,6 +22,12 @@ import { describe, expect, it } from "vitest";
 
 const THEME_CSS = path.resolve(import.meta.dirname, "../../../src/ui/theme.css");
 
+/** The mix is declared where it is spent (issue #349): `theme.css` carries
+ *  `docs/design/approved/tokens.css` and nothing else, and this ink is a
+ *  construction over two of its tokens rather than a token of its own. The
+ *  measurement and the reasoning below are unchanged. */
+const IDIOM_CSS = path.resolve(import.meta.dirname, "../../../src/ui/idiom/idiom.css");
+
 /** WCAG 2.1's floor for text under 18px, which is the smallest this ink
  *  carries — the sign-in panel's mono domain line. */
 const AA_NORMAL = 4.5;
@@ -94,13 +100,11 @@ function contrast(fg: Rgb, bg: Rgb): number {
   return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
 }
 
-/** The percentage the stylesheet actually declares — read, never restated.
- *  In `theme.css` since issue #349, with every other approved token; the
- *  measurement and the reasoning are unchanged. */
+/** The percentage the stylesheet actually declares — read, never restated. */
 function declaredMixPercent(): number {
-  const source = readFileSync(THEME_CSS, "utf8");
+  const source = readFileSync(IDIOM_CSS, "utf8");
   const found = /--on-accent-quiet:\s*color-mix\(in oklab, var\(--on-accent\) (\d+)%/.exec(source);
-  if (found === null) throw new Error("theme.css: no --on-accent-quiet color-mix() to read");
+  if (found === null) throw new Error("idiom.css: no --on-accent-quiet color-mix() to read");
   return Number(found[1]);
 }
 

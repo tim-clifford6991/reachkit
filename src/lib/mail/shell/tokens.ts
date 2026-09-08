@@ -37,7 +37,7 @@ export const MAIL_TOKENS = Object.freeze({
   "--r-box": "14px",
   "--r-field": "9px",
   "--font-ui": '"Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif',
-  "--font-mono": '"JetBrains Mono", ui-monospace, SFMono-Regular, monospace',
+  "--font-mono": '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace',
 } as const);
 
 export type MailToken = keyof typeof MAIL_TOKENS;

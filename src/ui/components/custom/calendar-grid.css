@@ -24,7 +24,7 @@
  * reason. Their proper home is the design system's own order (issue #12);
  * moving them there costs this block.
  *
- * A media query prelude cannot read a `var()`, so `--breakpoint-md`'s 768px
+ * A media query prelude cannot read a `var()`, so ruling 10a's 768px
  * is written literally below and pinned back against `design/tokens.md`
  * §2b by `tests/ui/calendar-css.test.ts`.
  */
@@ -40,7 +40,7 @@
    * registered stage chip ("Your review"), and one line of page label …
    * This is the token that decides where a seven-column grid becomes a
    * seven-row list." */
-  --w-cell-min: 96px;
+  --w-cell-min: calc(var(--s-6) * 3);
 
   /* §4.6, verbatim. Declared as a token so the grid and its head cannot
    * disagree about how many columns there are. */
@@ -52,18 +52,26 @@
   min-width: 0;
 }
 
-.rk-cal-head,
+/* Narrow-first (issue #349). Ruling 10a fixes the breakpoints at 640 / 768 /
+ * 1024 / 1280, and a `max-width` prelude is always one of them minus a pixel
+ * — 767 is not 768 — so the seven-row arm is the default and the grid is
+ * what the query restores. The two arms are unchanged; which one is written
+ * as the exception is what moved. */
+.rk-cal-head {
+  display: none;
+}
+
 .rk-cal-grid {
   display: grid;
-  grid-template-columns: var(--grid-week);
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--s-1);
   min-width: 0;
 }
 
 .rk-cal-weekday {
   /* §2.3's eyebrow role: "Uppercase 10.5–11px eyebrows for section
-   * labels." `--t-floor` is the bound (ADR-093 decision 3), so 11px. */
-  font-size: var(--t-floor);
+   * labels." `--t-eyebrow` is the bottom rung and the bound (10a, ADR-093 d3). */
+  font-size: var(--t-eyebrow);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--ink-3);
@@ -159,13 +167,13 @@
 }
 
 .rk-cal-date {
-  font-size: var(--t-floor);
+  font-size: var(--t-eyebrow);
   color: var(--ink-2);
 }
 
 .rk-cal-label,
 .rk-cal-empty {
-  font-size: var(--t-floor);
+  font-size: var(--t-eyebrow);
   line-height: 1.35;
 }
 
@@ -176,7 +184,7 @@
 /* §4.6: "Today ringed accent." A ring, not a border — a border would move
  * the cell's own box and shift the grid by a pixel on whichever day it is. */
 .rk-cal-cell.rk-cal-today {
-  box-shadow: var(--ring-accent);
+  box-shadow: 0 0 0 3px var(--accent-bg);
   border-color: var(--accent-line);
 }
 
@@ -189,27 +197,27 @@
  * calendar has anything to say about, and it is emphatically not padding
  * (§4.6: "the calendar is never padded") — it renders no content at all. */
 .rk-cal-out {
-  border: 1px solid transparent;
-  min-height: var(--s-3);
+  display: none;
 }
 
-/* Below --breakpoint-md (768px, design/tokens.md §2b: "A seven-across grid
- * reaches `--w-cell-min` … Below this the calendar and the week strip are
- * not grids") the month is seven **rows** in date order: the same entries,
- * the weekday head suppressed because a one-column list has no columns to
- * head, and an out-of-month cell not drawn because it exists to hold a
- * column position and there are none. A CSS rule over an unchanged
- * contract — no second markup path, no `narrow` prop, and no cell invented. */
-@media (max-width: 767px) {
-  .rk-cal-head {
-    display: none;
-  }
-
+/* At and above 768px — ruling 10a's second breakpoint, and where a
+ * seven-across grid first reaches `--w-cell-min` — the month is a grid.
+ * Below it the month is seven **rows** in date order (the default above):
+ * the same entries, the weekday head suppressed because a one-column list
+ * has no columns to head, and an out-of-month cell not drawn because it
+ * exists to hold a column position and there are none. A CSS rule over an
+ * unchanged contract — no second markup path, no `narrow` prop, and no cell
+ * invented. */
+@media (min-width: 768px) {
+  .rk-cal-head,
   .rk-cal-grid {
-    grid-template-columns: minmax(0, 1fr);
+    display: grid;
+    grid-template-columns: var(--grid-week);
   }
 
   .rk-cal-out {
-    display: none;
+    display: block;
+    border: 1px solid transparent;
+    min-height: var(--s-3);
   }
 }

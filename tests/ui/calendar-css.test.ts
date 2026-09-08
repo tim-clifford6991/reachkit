@@ -45,11 +45,13 @@ describe('BUILD §4.6 — "repeat(7,minmax(0,1fr)) — the minmax is load-bearin
   });
 
   it("the head and the grid both take their columns from that one token", () => {
+    // Since issue #349 the sheet is narrow-first, so the one-column arm is
+    // the default and `var(--grid-week)` is what the 768px query restores —
+    // still in a single rule naming both selectors, which is the point: the
+    // seven column heads and the seven columns cannot disagree about how
+    // many there are.
     const templates = declarations(GRID_CSS).filter((d) => d.prop === "grid-template-columns");
-    expect(templates.length).toBeGreaterThanOrEqual(1);
-    expect(templates[0]?.value).toBe("var(--grid-week)");
-    // One rule sets it for both, so the seven column heads and the seven
-    // columns cannot disagree about how many there are.
+    expect(templates.map((d) => d.value)).toContain("var(--grid-week)");
     const rules: string[] = [];
     postcss.parse(GRID_CSS).walkRules((r: Rule) => {
       if (r.toString().includes("var(--grid-week)")) rules.push(r.selector);
@@ -112,15 +114,18 @@ describe('BUILD §4.6 — "repeat(7,minmax(0,1fr)) — the minmax is load-bearin
 });
 
 describe("design/tokens.md §2b — the two breakpoints, pinned against BAND_MIN", () => {
-  it("the grid becomes seven rows below --breakpoint-md (768px)", () => {
-    // 768 is design/tokens.md §2b's own derivation — 7 × --w-cell-min +
-    // 6 × --s-1 + 2 × --s-4 = 728, rounded up to the named step. It is not
-    // a band boundary, so `BAND_MIN` has nothing to pin it to; what is
-    // pinned is that the query is `max-width: 767px` — the boundary minus
-    // one pixel, which is where the off-by-one lives.
-    expect(mediaPreludes(GRID_CSS)).toEqual(["(max-width: 767px)"]);
-    expect(declared(GRID_CSS, "--w-cell-min")).toBe("96px");
-    expect(7 * 96 + 6 * 4 + 2 * 16).toBeLessThanOrEqual(768);
+  it("the grid is seven rows until 768px, ruling 10a's second breakpoint", () => {
+    // 768 is where a seven-across grid first reaches the cell floor —
+    // 7 × 96 + 6 × --s-1 + 2 × --s-4 = 728, rounded up to the named step. It
+    // is not a band boundary, so `BAND_MIN` has nothing to pin it to; what
+    // is pinned is that the query is the breakpoint itself and not the
+    // breakpoint minus one pixel, which is where the off-by-one lived until
+    // issue #349 inverted the sheet to narrow-first.
+    expect(mediaPreludes(GRID_CSS)).toEqual(["(min-width: 768px)"]);
+    // The floor is composed from the spacing ladder rather than written as
+    // a bare 96: `--s-6` × 3 is exactly it (no-bare-literals.test.ts).
+    expect(declared(GRID_CSS, "--w-cell-min")).toBe("calc(var(--s-6) * 3)");
+    expect(7 * (32 * 3) + 6 * 4 + 2 * 16).toBeLessThanOrEqual(768);
   });
 
   it("the day panel sits beside the grid at --breakpoint-xl, which is BAND_MIN.wide", () => {
@@ -174,7 +179,7 @@ describe("ADR-093 decision 3 — nothing in either sheet is written below the ty
       for (const decl of sizes) {
         const px = /^(\d+(?:\.\d+)?)px$/.exec(decl.value);
         if (px) expect(Number(px[1]), `${name}: ${decl.value}`).toBeGreaterThanOrEqual(11);
-        else expect(decl.value, name).toBe("var(--t-floor)");
+        else expect(decl.value, name).toBe("var(--t-eyebrow)");
       }
     }
   });

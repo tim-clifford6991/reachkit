@@ -31,6 +31,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { THEME_CSS, tokenSet } from "./design/tokens-doc";
 
 const FONTS_TS = path.resolve(import.meta.dirname, "../../src/ui/fonts.ts");
 const TYPE_CSS = path.resolve(import.meta.dirname, "../../src/ui/type.css");
@@ -72,17 +73,12 @@ function parseCss(css: string): CSSRuleList {
 /** The bare `:root` block of `src/ui/theme.css`, where every approved token
  *  lives since issue #349. Read here rather than restated, so a drift fails
  *  in both this file and `tests/ui/design/token-set.test.ts`. */
-function themeRootTokens(): Map<string, string> {
-  const source = readFileSync(
-    path.resolve(import.meta.dirname, "../../src/ui/theme.css"),
-    "utf8"
-  );
-  const root = source.slice(source.indexOf(":root {"), source.indexOf("\n}\n"));
-  const out = new Map<string, string>();
-  for (const [, name, value] of root.matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/g)) {
-    out.set(name!, value!.trim());
-  }
-  return out;
+function themeRootTokens(): ReadonlyMap<string, string> {
+  // Every bare `:root` in the file, not the first one: the approved token
+  // file declares the 10a additions in a second block and `theme.css`
+  // carries it exactly, so a reader that stops at the first `}` misses six
+  // tokens (issue #349).
+  return tokenSet(THEME_CSS).light;
 }
 
 describe("BUILD.md §1 / BP-018 NFR — self-hosted, no third-party font request", () => {
@@ -170,12 +166,17 @@ describe("BUILD.md §2.3 — the type scale, asserted against the clause", () =>
     expect(style.getPropertyValue("text-wrap")).toBe("balance");
   });
 
-  it("body: 15px / 1.55", () => {
+  it("body: --t-body, which is §2.3's 15px, / 1.55", () => {
+    // Since issue #349 the sheet names the rung instead of writing the
+    // number: ruling 10a's ladder is 15 / 13 / 12 / 11.5 / 11 and `--t-body`
+    // is its top. The 15 is still asserted — off `theme.css`, where it is
+    // now declared once — so nothing about §2.3's clause is given up.
     const rules = Array.from(parseCss(typeCssSource())) as CSSStyleRule[];
     const body = rules.find((r) => r.selectorText === "body");
     expect(body).toBeTruthy();
     expect(body!.style.getPropertyValue("font-family")).toBe("var(--font-ui)");
-    expect(body!.style.getPropertyValue("font-size")).toBe("15px");
+    expect(body!.style.getPropertyValue("font-size")).toBe("var(--t-body)");
+    expect(themeRootTokens().get("--t-body")).toBe("15px");
     expect(body!.style.getPropertyValue("line-height")).toBe("1.55");
   });
 
@@ -195,12 +196,12 @@ describe("BUILD.md §2.3 — the type scale, asserted against the clause", () =>
     };
 
     // `h1` is the one step that is conditional (issue #258). Written
-    // narrow-first, so the *declared* default is `--t-h2`'s size —
-    // `design/tokens.md` §4's third absolute, "`--t-h1` takes `--t-h2`'s
+    // narrow-first, so the *declared* default is `--h2`'s size —
+    // `design/tokens.md` §4's third absolute, "`--h1` takes `--h2`'s
     // size ... below `--breakpoint-sm`" — and the `min-width` block below
     // restores the full step. No new size is minted either way, which is
     // what this pin is for: both rules name a token from the same four.
-    expect(sizeOf("h1")).toBe("var(--t-h2)");
+    expect(sizeOf("h1")).toBe("var(--h2)");
     // `rules` is read as `CSSStyleRule[]` above, which every rule in this
     // file was until #258 added the one media block; widened here rather
     // than re-parsing the source a second time.
@@ -213,11 +214,11 @@ describe("BUILD.md §2.3 — the type scale, asserted against the clause", () =>
       (r): r is CSSStyleRule => (r as CSSStyleRule).selectorText === "h1"
     );
     expect(wideH1, "the --breakpoint-sm block declares no h1 rule").toBeTruthy();
-    expect(wideH1!.style.getPropertyValue("font-size")).toBe("var(--t-h1)");
+    expect(wideH1!.style.getPropertyValue("font-size")).toBe("var(--h1)");
 
-    expect(sizeOf("h2")).toBe("var(--t-h2)");
-    expect(sizeOf("h3")).toBe("var(--t-h3)");
-    expect(sizeOf("h4")).toBe("var(--t-h4)");
+    expect(sizeOf("h2")).toBe("var(--h2)");
+    expect(sizeOf("h3")).toBe("var(--h3)");
+    expect(sizeOf("h4")).toBe("var(--h4)");
     // Four roles, four steps. `h5`/`h6` take the body size rather than mint
     // a fifth and sixth nobody ruled — stated, so it reads as a decision.
     expect(sizeOf("h5, h6")).toBe("inherit");
@@ -229,26 +230,31 @@ describe("BUILD.md §2.3 — the type scale, asserted against the clause", () =>
     // that each heading *rule* names its own step. The values are read from
     // their new home so this assertion still fails if one drifts.
     const themeRoot = themeRootTokens();
-    expect(themeRoot.get("--t-h1")).toBe("31px");
-    expect(themeRoot.get("--t-h2")).toBe("25px");
-    expect(themeRoot.get("--t-h3")).toBe("20px");
-    expect(themeRoot.get("--t-h4")).toBe("16px");
+    expect(themeRoot.get("--h1")).toBe("31px");
+    expect(themeRoot.get("--h2")).toBe("25px");
+    expect(themeRoot.get("--h3")).toBe("20px");
+    expect(themeRoot.get("--h4")).toBe("16px");
   });
 
   it("every heading step is above the 15px body — a head never steps under it", () => {
     const themeRoot = themeRootTokens();
-    for (const token of ["--t-h1", "--t-h2", "--t-h3", "--t-h4"]) {
+    for (const token of ["--h1", "--h2", "--h3", "--h4"]) {
       const px = Number.parseFloat(themeRoot.get(token) ?? "");
       expect(px, `${token} must be above the 15px body`).toBeGreaterThan(15);
     }
   });
 
-  it("eyebrow: uppercase, 10.5-11px", () => {
+  it("eyebrow: uppercase, --t-eyebrow — the 11 at the bottom of 10a's ladder", () => {
+    // §2.3 states the eyebrow as a range, 10.5–11px. A range is the one
+    // thing a token cannot express, and ruling 10a closed it: "nothing under
+    // 11px". The rule reads the rung; the value is asserted off `theme.css`,
+    // and it is the top of §2.3's range, so the clause still holds.
     const rules = Array.from(parseCss(typeCssSource())) as CSSStyleRule[];
     const eyebrow = rules.find((r) => r.selectorText === ".eyebrow");
     expect(eyebrow).toBeTruthy();
     expect(eyebrow!.style.getPropertyValue("text-transform")).toBe("uppercase");
-    const size = Number.parseFloat(eyebrow!.style.getPropertyValue("font-size"));
+    expect(eyebrow!.style.getPropertyValue("font-size")).toBe("var(--t-eyebrow)");
+    const size = Number.parseFloat(themeRootTokens().get("--t-eyebrow") ?? "");
     expect(size).toBeGreaterThanOrEqual(10.5);
     expect(size).toBeLessThanOrEqual(11);
   });

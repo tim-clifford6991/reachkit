@@ -163,9 +163,9 @@ describe("the sheet reaches every app route, and no other", () => {
   });
 
   it("no text is styled below the type floor (ADR-093 decision 3)", () => {
-    // The one font-size in the sheet is `--t-floor` itself; a literal px
+    // The one font-size in the sheet is `--t-eyebrow` itself; a literal px
     // font-size here would be a step below the floor waiting to happen.
-    expect(SHELL_CSS).toMatch(/font-size:\s*var\(--t-floor\)/);
+    expect(SHELL_CSS).toMatch(/font-size:\s*var\(--t-eyebrow\)/);
     expect(SHELL_CSS).not.toMatch(/font-size:\s*\d/);
   });
 });

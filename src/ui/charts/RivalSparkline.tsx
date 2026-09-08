@@ -40,7 +40,8 @@ const PLOT_RIGHT = 126;
 const PLOT_TOP = 10;
 const PLOT_BOTTOM = 34;
 const AXIS_Y = 38;
-/** `--w-spark-min`: below this the endpoint dot scales under 3.5px. */
+/** The sparkline's own width floor: below it the endpoint dot scales
+ *  under 3.5px. Not a token — the approved set names no such measure. */
 const PLOT_MIN_PX = 128;
 const BREAK_WIDTH = 1;
 /** Half a mark's hit area. The band is clamped to the viewBox below: a hit
@@ -170,12 +171,12 @@ export function RivalSparkline(p: RivalSparklineProps): React.JSX.Element {
             ))}
           </g>
         </ChartFrame>
-        <span className="num" style={{ fontSize: "var(--t-h3)", fontWeight: 700 }}>
+        <span className="num" style={{ fontSize: "var(--h3)", fontWeight: 700 }}>
           {p.value}
         </span>
       </div>
       {p.account === undefined ? null : (
-        <p style={{ margin: 0, fontSize: "var(--t-floor)", color: CHART_INK.quiet }}>{p.account}</p>
+        <p style={{ margin: 0, fontSize: "var(--t-eyebrow)", color: CHART_INK.quiet }}>{p.account}</p>
       )}
     </div>
   );
