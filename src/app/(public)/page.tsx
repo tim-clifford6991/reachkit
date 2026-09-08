@@ -33,6 +33,7 @@
 import type React from "react";
 import { ArrowRight } from "lucide-react";
 import { Surface } from "@/ui/layout";
+import { Btn } from "@/ui/components/Btn";
 import { CardHead, IdiomCard } from "@/ui/idiom";
 import { copy } from "@/lib/presentation/copy";
 import { ScanForm } from "./_landing/ScanForm";
@@ -152,15 +153,34 @@ export default function LandingPage(props: {
               <h2>{copy("landing.start.heading")}</h2>
               <p className="rk-quiet">{copy("landing.start.body")}</p>
               <div>
-                {/* A link, not a button — the master's ruling is one solid
-                    primary per screen and the hero's control is it, so this
-                    repeats that same action rather than adding a second.
-                    Styled by the idiom's own rule and not by a daisyUI
-                    class: those are written inside `src/ui/components/**`
-                    and nowhere else. */}
-                <a href="#landing-field" className="rk-cta-link">
-                  {copy("landing.start.cta")}
-                </a>
+                {/* **The solid accent pill, and the one on this page**
+                    (issue #351). The archive draws it as
+                    `IdiomBtn variant="primary"` and states the reason on
+                    the section itself: "The CTA here is THE SAME ACTION as
+                    the hero's, repeated at the bottom of the walk. That is
+                    one primary action stated twice, not two primary
+                    actions: a second, DIFFERENT solid button is what the
+                    one-primary-action rule refuses."
+
+                    So the rank is not spent twice either. The hero's
+                    control is the `on-accent` inversion — `--on-accent`
+                    fill, `--accent` label — because its ground is already
+                    the accent; the solid accent fill appears exactly once
+                    on the landing, here, on a `--surface` ground where it
+                    has an edge to stand on. This was a bordered text link
+                    until now, which read as the outline secondary rank and
+                    made the bottom of the walk quieter than the middle of
+                    it.
+
+                    It is a **link** and not a second button, and that is
+                    REQ-001 c1 rather than taste: this page presents
+                    "exactly one text input and one submit control", and the
+                    submit control is the hero's. The action lives in that
+                    field, so the anchor is what this is — `Btn`'s link arm
+                    (issue #351), which renders the same rank as an `<a>`
+                    and keeps the daisyUI markup inside
+                    `src/ui/components/**` where it belongs. */}
+                <Btn href="#landing-field" label={copy("landing.start.cta")} variant="primary" pill />
               </div>
             </div>
           </div>

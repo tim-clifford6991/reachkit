@@ -17,6 +17,7 @@
 "use client";
 
 import { use, useState, type FormEvent } from "react";
+import { Search } from "lucide-react";
 import { Input } from "@/ui/components/Input";
 import { Btn } from "@/ui/components/Btn";
 import { copy } from "@/lib/presentation/copy";
@@ -127,11 +128,18 @@ export function ScanForm(props: {
           onChange={setValue}
         />
       )}
+      {/* The `Search` glyph is the idiom's own: `/idiom/landing` draws this
+          control as `IdiomBtn … icon={<Search size={16} strokeWidth={2} />}`
+          and the same glyph heads the specimen card beside it. It is
+          `aria-hidden` because the label already names the action — the
+          icon repeats it in a second medium, and a repeated name read
+          twice is the same claim twice (rule 2.4). */}
       <Btn
         type="submit"
         label={copy("landing.submit.label")}
         variant="on-accent"
         pill
+        icon={<Search size={16} strokeWidth={2} aria-hidden />}
         inFlight={submitting}
       />
     </form>

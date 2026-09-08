@@ -39,47 +39,86 @@ import { Badge } from "@/ui/components/Badge";
 import { CardHead } from "@/ui/idiom";
 import { copy } from "@/lib/presentation/copy";
 import { FIXTURE_REPORT } from "../scan/[domain]/_fixture/states";
+import { ratio } from "../scan/[domain]/_address/measured";
 
 /** One measured answer, as the matrix draws it. §2.4's own rule, and the
  *  chart's: a question nobody was asked is a **muted** cell and never a
  *  miss, because merging the two would count a silence as a loss. An
- *  answered question names the domain or it does not — that is the cited /
- *  not-cited pair, and there is no third reading of it. */
-function cellState(cell: AnswerCell, domain: string): AiDotMatrixCellState {
+ *  answered question names the row's own domain or it does not — that is
+ *  the cited / not-cited pair, and there is no third reading of it.
+ *
+ *  `namesCustomer` is read on the customer's row alone, and that is not a
+ *  detail: it is the answer's record of whether it named *the customer*,
+ *  so on a rival's row it would count someone else's citation as that
+ *  rival's. A rival is cited when the answer cites the rival's own
+ *  domain, and by nothing else. */
+function cellState(cell: AnswerCell, domain: string, own: boolean): AiDotMatrixCellState {
   if (cell.kind !== "answered") return "muted";
-  return cell.citedDomains.some((cited) => cited === domain) || cell.namesCustomer ? "cited" : "not-cited";
+  const named = cell.citedDomains.some((cited) => cited === domain) || (own && cell.namesCustomer);
+  return named ? "cited" : "not-cited";
 }
 
-/** The reserved fixture's AI-answers module, as the matrix draws it.
+/** How many of the answers named this row's domain — the `n` of the row's
+ *  own `n/m`, counted the same way the cells are painted, so the count and
+ *  the drawing cannot disagree. */
+function citedCount(cells: readonly AnswerCell[], domain: string, own: boolean): number {
+  return cells.filter((cell) => cellState(cell, domain, own) === "cited").length;
+}
+
+/** The two rival rows the archive's hero draws. Not a pin any other module
+ *  reads and not a cap on the report: it is this specimen's own layout
+ *  parameter, the way the report card's "first 4 shown" is its own, and it
+ *  is the count `/idiom/landing` draws — two rivals filled against the
+ *  customer's empty row, which is the whole argument in one picture. */
+const SPECIMEN_RIVALS = 2;
+
+/** The reserved fixture's AI-answers module, as the matrix draws it: the
+ *  two rivals' rows filled, and the customer's own row empty and
+ *  red-ringed beneath them.
  *
- *  **One row — the customer's own — and not the rivals'.** The idiom's hero
- *  draws four rows, the customer's empty and ringed against two filled
- *  rivals', and that is the better argument. It does not fit the component
- *  v3 actually has: `AiDotMatrixChart` reserves 66px for a row's name
- *  (`NAME_X`), which is what Overview's single tile row needs, and a rival
- *  domain like `rival-three.example.org` draws past the viewBox — three
- *  `<g>` groups escaping their `<svg>`, which the layout suite's check 2
- *  reported on the first run and the canary pins as a real defect.
+ *  **This is the argument the hero is for** — the archive's own note on
+ *  `/idiom/landing`: the specimen "makes the product's whole argument
+ *  without a sentence, and on a page where every sentence is still owed
+ *  that is not a nice property, it is the only thing that renders at all".
+ *  One row cannot make it: a row of empty cells with nothing beside it
+ *  says the measurement found nothing, not that two rivals are cited where
+ *  the customer is not.
  *
- *  The two ways to make four rows fit are both refused: shortening a domain
- *  truncates a **value**, which §2.3 forbids and check 3 catches whether or
- *  not it is allow-listed; and widening the name gutter is a change to a
- *  registered chart's contract, which is not this issue's to make. The
- *  multi-row matrix is the report's own module (issue #11) and is not built
- *  in v3 yet — when it is, this specimen gets the rivals with it.
+ *  It was one row until now for a reason that has been fixed rather than
+ *  worked around (issue #351): `AiDotMatrixChart` reserved a fixed 66-unit
+ *  name gutter, and `rival-two.example.net` drew left of the viewBox —
+ *  a `<g>` escaping its `<svg>`, which the layout suite's check 2 reports.
+ *  The chart now derives that gutter from the widest name it is given, so
+ *  a domain is neither truncated (§2.3 does not truncate a value) nor
+ *  drawn outside the box. The rows are the fixture's own measured cells;
+ *  nothing here is invented and nothing is a placeholder.
  *
- *  What renders is still a real measured module on real data: the fixture
- *  account's own row, its empty cells ringed, and its count beside them. */
+ *  The rivals come first and the customer's row last, which is the
+ *  archive's order and is the reading order of the claim: *they* are
+ *  cited, *you* are not. */
 function specimenRows(): readonly AiDotMatrixRow[] {
   const answers = FIXTURE_REPORT.aiAnswers;
   if (answers === null) return [];
+  const rivals = answers.rivals.slice(0, SPECIMEN_RIVALS).map(
+    (rival): AiDotMatrixRow => ({
+      name: rival.domain,
+      identity: "rival",
+      cells: rival.cells.map((cell) => cellState(cell, rival.domain, false)),
+      count: ratio(citedCount(rival.cells, rival.domain, false), answers.answeredSearches),
+    })
+  );
   const you: AiDotMatrixRow = {
     name: answers.ownDomain,
     identity: "you",
-    cells: answers.rows.map((row) => cellState(row.cell, answers.ownDomain)),
-    count: `${answers.customerCitations}/${answers.measuredSearches}`,
+    cells: answers.rows.map((row) => cellState(row.cell, answers.ownDomain, true)),
+    // `customerCitations` is "counted over m, never over n"
+    // (`AiAnswersSection`), and the report's own table renders exactly this
+    // ratio. The specimen is the same module over the same data, so it
+    // renders the same figure — a row reading `0/12` beside a card that
+    // says `0/9` would be two answers to one question.
+    count: ratio(answers.customerCitations, answers.answeredSearches),
   };
-  return [you];
+  return [...rivals, you];
 }
 
 /** The `bad`-toned head pill: how many of the measured searches this domain
@@ -131,6 +170,19 @@ export function HeroSpecimen(): React.JSX.Element {
         questions={answers.rows.map((row) => String(row.question.n))}
         label={copy("landing.hero.specimen.label")}
       />
+      {/* The denominator line, under the drawing — the archive's own
+          `countLine`, and in v3 it is the report card's own sentence over
+          the same two figures rather than a second key saying the same
+          thing on a second screen. It is what makes the matrix readable
+          without the card around it: how many of the twelve searches an AI
+          answered at all, which is the `m` every row's `n/m` is counted
+          over. */}
+      <p className="rk-quiet">
+        {copy("ai-answers.denominator", {
+          answered: String(answers.answeredSearches),
+          measured: String(answers.measuredSearches),
+        })}
+      </p>
       <p className="rk-quiet">{copy("landing.hero.specimen.caption")}</p>
     </div>
   );
