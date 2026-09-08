@@ -63,7 +63,7 @@ import pixelmatch from "pixelmatch";
 import { PNG } from "pngjs";
 import type { Page } from "playwright";
 import { BAND_MIN } from "@/ui/layout/bands";
-import { getAccountCookie, getBaseURL, getLiveAccountCookie, getSetupAccountCookie, withPage } from "./browser";
+import { getAccountCookie, getBaseURL, getLiveAccountCookie, getSetupAccountCookie, getWeekZeroAccountCookie, withPage } from "./browser";
 import {
   enumerateRoutes,
   headersFor,
@@ -204,6 +204,21 @@ const LIVE_ROUTES = enumerateRoutes(APP_ROOT, {
   accountCookie: getLiveAccountCookie(),
 }).filter((route) => route.path === "/app" || route.path.startsWith("/app/"));
 
+/**
+ * UI-SPEC S13, photographed (issue #353): the customer in their first week.
+ *
+ * `/app` only. The week-0 arm is a property of Overview — one point on the
+ * chart from the deep pass, three tiles with no readings yet, the rivals
+ * card stating when sizing arrives — and the calendar, settings and draft
+ * screens are the same screens the live account already photographs. A
+ * second picture of an identical page is a baseline that can only ever go
+ * red for someone else's reason.
+ */
+const WEEK_ZERO_ROUTES = enumerateRoutes(APP_ROOT, {
+  segmentFixtures: SEGMENT_FIXTURES,
+  accountCookie: getWeekZeroAccountCookie(),
+}).filter((route) => route.path === "/app");
+
 interface Shot {
   readonly route: EnumeratedRoute;
   /** What the baseline file is named after — the route's own path, plus
@@ -219,6 +234,7 @@ const SHOTS: readonly Shot[] = [
   ...RESERVED_ROUTES.map((route) => ({ route, name: `reserved${slug(route.path)}` })),
   ...SETUP_ROUTES.map((route) => ({ route, name: `unfinished${slug(route.path)}` })),
   ...LIVE_ROUTES.map((route) => ({ route, name: `live${slug(route.path)}` })),
+  ...WEEK_ZERO_ROUTES.map((route) => ({ route, name: `week0${slug(route.path)}` })),
 ];
 
 console.log(
@@ -342,12 +358,31 @@ describe(`visual baselines — ${SHOTS.length} surface(s) × ${BANDS.length} ban
   it("both setup screens are photographed signed in, as the founder who is still in setup", () => {
     expect(SETUP_ROUTES.map((route) => route.path).sort()).toEqual(["/setup", "/setup/waiting"]);
     expect(SETUP_ROUTES.every((route) => route.cookie === getSetupAccountCookie())).toBe(true);
-    // The three signed-in sets are three different accounts, which is the
-    // only reason there are three: a picture signed in as an account that is
+    // The four signed-in sets are four different accounts, which is the
+    // only reason there are four: a picture signed in as an account that is
     // redirected off the address is a picture of somewhere else.
-    expect(new Set([getAccountCookie(), getLiveAccountCookie(), getSetupAccountCookie()]).size).toBe(
-      3
+    expect(
+      new Set([
+        getAccountCookie(),
+        getLiveAccountCookie(),
+        getSetupAccountCookie(),
+        getWeekZeroAccountCookie(),
+      ]).size
+    ).toBe(4);
+  });
+
+  it("UI-SPEC S13 is photographed as its own account, at /app and nowhere else", () => {
+    // The week-0 arm is Overview's. Every other address this account can
+    // reach is the screen the live account already photographs, and a
+    // second picture of an identical page is a baseline that can only go
+    // red for somebody else's reason.
+    expect(WEEK_ZERO_ROUTES.map((route) => route.path)).toEqual(["/app"]);
+    expect(WEEK_ZERO_ROUTES.every((route) => route.cookie === getWeekZeroAccountCookie())).toBe(
+      true
     );
+    expect(SHOTS.filter((shot) => shot.name.startsWith("week0")).map((shot) => shot.name)).toEqual([
+      "week0-app",
+    ]);
   });
 
   it("the live account's addresses are photographed as well as the fixture ones — all of them", () => {

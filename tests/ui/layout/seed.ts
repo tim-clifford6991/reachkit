@@ -40,7 +40,7 @@
 // one job, one runner, one `postgres:18` service container.
 import { readdirSync } from "node:fs";
 import path from "node:path";
-import { LIVE_ACCOUNT, RESERVED_ACCOUNT } from "../../app/accounts";
+import { LIVE_ACCOUNT, RESERVED_ACCOUNT, WEEK_ZERO_ACCOUNT } from "../../app/accounts";
 import { VERDICT, fullSections } from "../../scan/report/fixtures";
 import { bandRivalSize } from "@/lib/market/rivals/band";
 import { measured } from "@/lib/measure/measured";
@@ -124,6 +124,7 @@ const EMAIL_OF: Readonly<Record<string, string>> = {
   [RESERVED_ACCOUNT.userId]: "layout-sweep@example.com",
   [LIVE_ACCOUNT.userId]: "layout-sweep-live@example.com",
   [SETUP_ACCOUNT.userId]: "layout-sweep-setup@example.com",
+  [WEEK_ZERO_ACCOUNT.userId]: "layout-sweep-week0@example.com",
 };
 
 /** Kept for the callers that named it before there were two accounts. */
@@ -165,6 +166,14 @@ const LIVE_PUBLISHING = Object.freeze({
 
 /** The live account's draft address — the one the live sweep renders. */
 export const LIVE_DRAFT_ID = LIVE_DRAFTS[0]?.id as string;
+
+/** UI-SPEC S13's one draft, the first page waiting on its customer. */
+export const WEEK_ZERO_DRAFT_ID = "00000000-0000-0000-0000-0000000000d3";
+/** The set's own first point: the deep pass read twelve searches. */
+export const WEEK_ZERO_OWN_RANKED = 12;
+/** The day the deep pass ran, as the card's chip states it. Fixed, so the
+ *  baseline is a picture of one date and not of the day it was taken. */
+const DEEP_PASS_ON = "2026-08-31";
 
 /**
  * How many weekly measurements the live account carries (issue #213).
@@ -321,6 +330,64 @@ export function seedLiveAccount(): void {
     publishing: LIVE_PUBLISHING,
   });
   seedMeasuredWeeks(LIVE_ACCOUNT);
+}
+
+/**
+ * The customer in their first week (issue #353) — UI-SPEC S13.
+ *
+ * The deep pass has read their market once and no weekly pass has run, so
+ * `/app` answers with the week-0 arm: the head's own line, the deep pass's
+ * single point on the chart, three tiles stating when their readings
+ * arrive, the rivals card stating when sizing arrives, and the sidebar's
+ * "First page after the deep pass".
+ *
+ * **`seedMeasuredWeeks` is deliberately not called.** That function writes
+ * `tier = 'weekly'` scans, which is exactly what this account must not
+ * have — one weekly week and the screen is the ordinary arm.
+ *
+ * What it does need is a report on the **deep** scan `seedSite` already
+ * writes: that row goes in report-less, and `deepPassReading` reads only a
+ * deep scan that carries one. The reading is `ownRanked` 12, which is the
+ * set's own first point.
+ *
+ * One draft in review, so "Needs you" has the first page in it — the set
+ * draws exactly that, and it is the same panel S12 uses, so no second code
+ * path is being pictured.
+ */
+export function seedWeekZeroAccount(): void {
+  const { siteId, domain } = WEEK_ZERO_ACCOUNT;
+  seedSite(WEEK_ZERO_ACCOUNT, {
+    drafts: [{ id: WEEK_ZERO_DRAFT_ID, state: "in_review", title: "How teams pick an onboarding tool" }],
+    publishing: LIVE_PUBLISHING,
+  });
+
+  // The deep pass's own reading, on the deep scan `seedSite` wrote. Its
+  // `scoreAndBand` is unmeasured: a deep pass reads the market, and the
+  // weekly score is the weekly pass's — which is the whole reason S13's
+  // score tile shows a dash with its first-due date under it. The
+  // `scans_verdict_score_consistency` constraint is satisfied by leaving
+  // the `score` column null beside it.
+  const measuredAt = new Date(`${DEEP_PASS_ON}T09:00:00.000Z`);
+  const base = fullSections();
+  const report = assembleReport({
+    ...base,
+    domain: domain as CanonicalDomain,
+    tier: "deep",
+    verdict: {
+      ...VERDICT,
+      domain: domain as CanonicalDomain,
+      measuredAt,
+      scoreAndBand: { kind: "unmeasured", reason: "not_attempted", at: measuredAt },
+    },
+    ownRanked: measured(WEEK_ZERO_OWN_RANKED, measuredAt),
+    rivalSizes: { kind: "unmeasured", reason: "not_attempted", at: measuredAt },
+    aiAnswers: null,
+  });
+  sql(
+    `update scans set report = '${JSON.stringify(report).replaceAll("'", "''")}'::jsonb, ` +
+      `created_at = '${measuredAt.toISOString()}' ` +
+      `where site_id = '${siteId}' and tier = 'deep';`
+  );
 }
 
 /**
@@ -644,4 +711,12 @@ export async function seededSessionCookie(
   return `${SESSION_COOKIE_NAME}=${cookie.value}`;
 }
 
-export { LIVE_ACCOUNT, LIVE_DRAFTS, LIVE_PUBLISHING, RESERVED_ACCOUNT, SEEDED_DRAFT_ID, SEEDED_EMAIL };
+export {
+  LIVE_ACCOUNT,
+  LIVE_DRAFTS,
+  LIVE_PUBLISHING,
+  RESERVED_ACCOUNT,
+  SEEDED_DRAFT_ID,
+  SEEDED_EMAIL,
+  WEEK_ZERO_ACCOUNT,
+};
