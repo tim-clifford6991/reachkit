@@ -219,7 +219,10 @@ describe("REQ-093 c5 — the registry renders with every model unavailable", () 
     //
     // 2026-09-08, issue #354: the calendar's S14 and S15, under the same
     // ruling — three keys move in and two arrive written. 197 + 5 = 202.
-    expect(ruled.length).toBe(202);
+    //
+    // 2026-09-08, issue #352: the report screen's S2 and S3, under the same
+    // ruling — thirty-five of its keys stop waiting and seven the set draws arrive already written. 202 + 42 = 244.
+    expect(ruled.length).toBe(244);
 
     // Only the ruled sentences carry their slots' `{name}` placeholders —
     // a `TODO(copy)` marker is one literal with no placeholder in it, so
@@ -1060,10 +1063,14 @@ describe("owner-owed and empty agree both ways", () => {
     //
     // 129 − 2 = 127 owner-owed, 294 − 1 = 293 awaiting copy,
     // 197 + 3 + 2 = 202 ruled, 620 + 2 = 622 total.
+    // And the report screen, issue #352, under the same ruling: thirty-five of its keys stop waiting and seven the set draws arrive already written.
+    // Owner-owed does not move — every bracketed string in the set is still
+    // the owner's. 127 owner-owed, 293 − 35 = 258 awaiting copy,
+    // 202 + 42 = 244 ruled, 622 + 7 = 629 total.
     expect(OWNER_OWED.length).toBe(127);
-    expect(AWAITING_COPY.length).toBe(293);
-    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(202);
-    expect(Object.keys(COPY).length).toBe(622);
+    expect(AWAITING_COPY.length).toBe(258);
+    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(244);
+    expect(Object.keys(COPY).length).toBe(629);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.

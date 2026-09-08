@@ -113,7 +113,22 @@ export const REPORT_COPY = Object.freeze({
   // own `retryAfterSeconds` in whole minutes, the unit word is the
   // owner's, so no duration is composed in a component.
   "report.wait.minutes": ["TODO(copy)", { slots: { minutes: "text" }, fixedBy: "REQ-003 c6" }],
-  "report.measured-at": ["TODO(copy)", { slots: { domain: "text", date: "text" }, fixedBy: "REQ-004 c1" }],
+  // S2's provenance line under the domain: "measured 28 Aug · [category] ·
+  // Not your market?" — approved as written (11a), less the two parts that
+  // are not this key's: the category is a measured value and the
+  // correction is a control. Two arms, because a scan that never
+  // determined a category names none and guesses none (REQ-094 c1).
+  "report.measured-at": ["measured {date} · {category}", { slots: { date: "text", category: "text" }, fixedBy: "REQ-004 c1" }],
+  "report.measured-at.no-category": ["measured {date}", { slots: { date: "text" }, fixedBy: "REQ-094 c1" }],
+  // 6a: "Discoverability Score" is the number's name on every surface that
+  // labels it — this eyebrow, the Overview tile, and the two mails.
+  "verdict.score.label": ["Discoverability Score", { slots: {}, fixedBy: "ruling 6a" }],
+  // REQ-094 c1's correction control, as S2 draws it. The correction flow
+  // itself (the form, the 7-day window, the re-measure) is REQ-094's own
+  // work and not this screen's: the control is offered with no destination
+  // rather than an invented one, exactly as the pricing card's Start was
+  // until checkout landed.
+  "verdict.not-your-market": ["Not your market?", { slots: {}, fixedBy: "REQ-094 c1" }],
 
   // ── The scanning arm's six named stages (REQ-003 c1) ──────────────────
   // One key per `StageName` (`src/lib/scan/stages.ts`) — a stage with no
@@ -121,28 +136,36 @@ export const REPORT_COPY = Object.freeze({
   // unlabelled spinner" structural. WO-282 left these to BP-023's own
   // file plan; nothing created them, and the scanning arm cannot render
   // without them, so they are minted here with the rest of this surface.
-  "stage.reading_your_site": ["TODO(copy)", { slots: {}, fixedBy: "REQ-003 c1" }],
+  "stage.reading_your_site": ["Reading your site", { slots: {}, fixedBy: "REQ-003 c1" }],
   "stage.reading_access_rules": ["TODO(copy)", { slots: {}, fixedBy: "REQ-003 c1" }],
-  "stage.reading_your_market": ["TODO(copy)", { slots: {}, fixedBy: "REQ-003 c1" }],
-  "stage.checking_your_presence": ["TODO(copy)", { slots: {}, fixedBy: "REQ-003 c1" }],
-  "stage.asking_the_twelve": ["TODO(copy)", { slots: {}, fixedBy: "REQ-003 c1" }],
-  "stage.scoring": ["TODO(copy)", { slots: {}, fixedBy: "REQ-003 c1" }],
+  "stage.reading_your_market": ["Finding your market and rivals", { slots: {}, fixedBy: "REQ-003 c1" }],
+  "stage.checking_your_presence": ["Checking the 12 biggest searches", { slots: {}, fixedBy: "REQ-003 c1" }],
+  "stage.asking_the_twelve": ["Asking AI the 12 questions", { slots: {}, fixedBy: "REQ-003 c1" }],
+  "stage.scoring": ["Scoring", { slots: {}, fixedBy: "REQ-003 c1" }],
 
   // ── Module 2, left card — AI answers (REQ-006) ────────────────────────
-  "ai-answers.title": ["TODO(copy)", { slots: {}, fixedBy: "REQ-006 c1" }],
-  "ai-answers.source": ["TODO(copy)", { slots: { date: "text" }, fixedBy: "REQ-006 c9" }],
-  "ai-answers.denominator": ["TODO(copy)", { slots: { answered: "text", measured: "text" }, fixedBy: "REQ-006 c1" }],
+  "ai-answers.title": ["AI answers", { slots: {}, fixedBy: "REQ-006 c1" }],
+  "ai-answers.source": ["Google AI answers · {date}", { slots: { date: "text" }, fixedBy: "REQ-006 c9" }],
+  "ai-answers.denominator": ["AI answers appear on {answered} of your {measured} biggest searches", { slots: { answered: "text", measured: "text" }, fixedBy: "REQ-006 c1" }],
   "ai-answers.customer-citations": ["TODO(copy)", { slots: { cited: "text", answered: "text" }, fixedBy: "REQ-006 c1" }],
   "ai-answers.legend": ["TODO(copy)", { slots: {}, fixedBy: "REQ-006 c1" }],
-  "ai-answers.method": ["TODO(copy)", { slots: {}, fixedBy: "REQ-006 c9" }],
-  "ai-answers.questions.title": ["TODO(copy)", { slots: {}, fixedBy: "REQ-006 c9" }],
-  "ai-answers.questions.show-all": ["TODO(copy)", { slots: { total: "text" }, fixedBy: "REQ-006 c9" }],
-  "ai-answers.question.not-you": ["TODO(copy)", { slots: {}, fixedBy: "REQ-006 c1" }],
+  // REQ-006 c6's one written line: what was measured, and no second
+  // engine named anywhere on the card. S2 draws it as the source chip at
+  // the foot of the card.
+  "ai-answers.method": ["= your market’s 12 biggest searches, asked as a buyer asks AI.", { slots: {}, fixedBy: "REQ-006 c9" }],
+  "ai-answers.questions.title": ["The 12 questions", { slots: {}, fixedBy: "REQ-006 c9" }],
+  "ai-answers.questions.show-all": ["Show all {total}", { slots: { total: "text" }, fixedBy: "REQ-006 c9" }],
+  "ai-answers.question.not-you": ["not you", { slots: {}, fixedBy: "REQ-006 c1" }],
   "ai-answers.question.no-answer": ["TODO(copy)", { slots: {}, fixedBy: "REQ-006 c1" }],
   // REQ-006 c9's provenance pair: the search a question was derived from
   // and the brands the answer named. No `{vol}/mo` slot — the owner
   // removed per-question volume on 2026-09-03.
-  "ai-answers.question.provenance": ["TODO(copy)", { slots: { search: "text", brands: "text" }, fixedBy: "REQ-006 c9" }],
+  // S2 draws "from: [search] · 1,900/mo · named: [brands]". The volume is
+  // **not** rendered: REQ-006 c9 forbids a monthly volume "beside it or
+  // anywhere else on the questions module", the owner removed it on
+  // 2026-09-03, and `StoredQuestion` has no member to render it from. The
+  // scaffolding either side of it is the set's, as written.
+  "ai-answers.question.provenance": ["from: {search} · named: {brands}", { slots: { search: "text", brands: "text" }, fixedBy: "REQ-006 c9" }],
   // §6.2's three answer columns (issue #128). The data is measured and
   // stored; the *visual* — three columns on an approved card — is the
   // design gate #128 names and lands in its follow-up, so these four are
@@ -174,37 +197,40 @@ export const REPORT_COPY = Object.freeze({
   "ai-answers.absent": ["TODO(copy)", { slots: {}, fixedBy: "REQ-004 c10" }],
 
   // ── Module 2, right card — Google presence (REQ-008) ──────────────────
-  "presence.title": ["TODO(copy)", { slots: {}, fixedBy: "REQ-008 c1" }],
-  "presence.source": ["TODO(copy)", { slots: {}, fixedBy: "REQ-008 c1" }],
+  "presence.title": ["Google search", { slots: {}, fixedBy: "REQ-008 c1" }],
+  "presence.source": ["your market’s 12 biggest searches", { slots: {}, fixedBy: "REQ-008 c1" }],
   "presence.occupancy": ["TODO(copy)", { slots: { you: "text", measured: "text" }, fixedBy: "REQ-008 c1" }],
   "presence.legend": ["TODO(copy)", { slots: {}, fixedBy: "REQ-008 c2" }],
   "presence.no-rivals": ["TODO(copy)", { slots: {}, fixedBy: "REQ-008 c6" }],
   "presence.occupancy.column.domain": ["TODO(copy)", { slots: {}, fixedBy: "REQ-008 c1" }],
   "presence.occupancy.column.count": ["TODO(copy)", { slots: {}, fixedBy: "REQ-008 c1" }],
-  "presence.absent-from.title": ["TODO(copy)", { slots: {}, fixedBy: "REQ-008 c4" }],
-  "presence.absent-from.column.search": ["TODO(copy)", { slots: {}, fixedBy: "REQ-008 c4" }],
-  "presence.absent-from.column.volume": ["TODO(copy)", { slots: {}, fixedBy: "REQ-008 c4" }],
-  "presence.absent-from.column.holder": ["TODO(copy)", { slots: {}, fixedBy: "REQ-008 c4" }],
+  "presence.absent-from.title": ["5 biggest searches you’re absent from", { slots: {}, fixedBy: "REQ-008 c4" }],
+  "presence.absent-from.column.search": ["Search", { slots: {}, fixedBy: "REQ-008 c4" }],
+  "presence.absent-from.column.volume": ["Volume", { slots: {}, fixedBy: "REQ-008 c4" }],
+  "presence.absent-from.column.holder": ["Holds #1", { slots: {}, fixedBy: "REQ-008 c4" }],
   "presence.absent-from.empty": ["TODO(copy)", { slots: {}, fixedBy: "REQ-008 c4" }],
   "presence.absent": ["TODO(copy)", { slots: {}, fixedBy: "REQ-004 c10" }],
 
   // ── Module 3, the three problem cards (REQ-009) ───────────────────────
   // One title, one doer and one measured-zero line per problem; the three
   // severity words are BANDS_COPY's `severity.*` and are not restated.
-  "problem.blocked-readers.title": ["TODO(copy)", { slots: {}, fixedBy: "REQ-009 c1" }],
-  "problem.blocked-readers.doer": ["TODO(copy)", { slots: {}, fixedBy: "REQ-009 c2" }],
-  "problem.blocked-readers.none-needed": ["TODO(copy)", { slots: {}, fixedBy: "REQ-009 c3" }],
-  "problem.missing-pages.title": ["TODO(copy)", { slots: {}, fixedBy: "REQ-009 c1" }],
-  "problem.missing-pages.doer": ["TODO(copy)", { slots: {}, fixedBy: "REQ-009 c5" }],
-  "problem.missing-pages.none-needed": ["TODO(copy)", { slots: {}, fixedBy: "REQ-009 c3" }],
-  "problem.unquotable-pages.title": ["TODO(copy)", { slots: {}, fixedBy: "REQ-009 c1" }],
-  "problem.unquotable-pages.doer": ["TODO(copy)", { slots: {}, fixedBy: "REQ-009 c5" }],
-  "problem.unquotable-pages.none-needed": ["TODO(copy)", { slots: {}, fixedBy: "REQ-009 c3" }],
+  "problem.blocked-readers.title": ["AI readers blocked", { slots: {}, fixedBy: "REQ-009 c1" }],
+  "problem.blocked-readers.doer": ["Free fix · 10 min", { slots: {}, fixedBy: "REQ-009 c2" }],
+  "problem.blocked-readers.none-needed": ["Nothing to fix", { slots: {}, fixedBy: "REQ-009 c3" }],
+  "problem.missing-pages.title": ["Missing pages", { slots: {}, fixedBy: "REQ-009 c1" }],
+  "problem.missing-pages.doer": ["ReachKit writes", { slots: {}, fixedBy: "REQ-009 c5" }],
+  "problem.missing-pages.none-needed": ["Nothing to fix", { slots: {}, fixedBy: "REQ-009 c3" }],
+  "problem.unquotable-pages.title": ["Unquotable pages", { slots: {}, fixedBy: "REQ-009 c1" }],
+  "problem.unquotable-pages.doer": ["ReachKit rewrites", { slots: {}, fixedBy: "REQ-009 c5" }],
+  "problem.unquotable-pages.none-needed": ["Nothing to fix", { slots: {}, fixedBy: "REQ-009 c3" }],
   // The one control any fix carries (REQ-009 c2), on the paste arm only.
   "problem.paste.label": ["TODO(copy)", { slots: {}, fixedBy: "REQ-009 c2" }],
 
   // ── Module 4, the DIY sections (REQ-009 c6) ───────────────────────────
   // Instructional text is allowed here and nowhere else on this screen.
+  // S2's eyebrow over the three collapses. The collapses themselves stay
+  // owner-owed: instructional prose is the owner's to write.
+  "method.title": ["The complete method, free", { slots: {}, fixedBy: "REQ-009 c6" }],
   "method.blocked-readers.title": ["TODO(copy)", { slots: {}, fixedBy: "REQ-009 c6" }],
   "method.blocked-readers.body": ["TODO(copy)", { slots: {}, fixedBy: "REQ-009 c6" }],
   "method.missing-pages.title": ["TODO(copy)", { slots: {}, fixedBy: "REQ-009 c6" }],
@@ -213,17 +239,21 @@ export const REPORT_COPY = Object.freeze({
   "method.unquotable-pages.body": ["TODO(copy)", { slots: {}, fixedBy: "REQ-009 c6" }],
 
   // ── Module 5, the free page card (REQ-010, BUILD §4.2's trade) ────────
-  "free-page.title": ["TODO(copy)", { slots: {}, fixedBy: "REQ-010 c1" }],
-  "free-page.of": ["TODO(copy)", { slots: { total: "text" }, fixedBy: "REQ-010 c1" }],
-  "free-page.row.target": ["TODO(copy)", { slots: {}, fixedBy: "REQ-010 c1" }],
+  "free-page.title": ["Your first page", { slots: {}, fixedBy: "REQ-010 c1" }],
+  "free-page.badge": ["free", { slots: {}, fixedBy: "REQ-010 c1" }],
+  "free-page.of": ["That’s page 1 of {total} we found for you.", { slots: { total: "text" }, fixedBy: "REQ-010 c1" }],
+  "free-page.row.target": ["target", { slots: {}, fixedBy: "REQ-010 c1" }],
   // The target row's own value: the search and its monthly volume, the
   // pair §4.2 says the giveaway email carries. Not the per-question
   // volume the owner removed on 2026-09-03 — that was the 12-questions
   // list, which carries no volume at all.
   "free-page.target.value": ["TODO(copy)", { slots: { keyword: "text", volume: "text" }, fixedBy: "REQ-010 c1" }],
-  "free-page.row.beats": ["TODO(copy)", { slots: {}, fixedBy: "REQ-010 c1" }],
-  "free-page.row.format": ["TODO(copy)", { slots: {}, fixedBy: "REQ-010 c1" }],
-  "free-page.submit": ["TODO(copy)", { slots: {}, fixedBy: "REQ-010 c2" }],
+  "free-page.row.beats": ["beats", { slots: {}, fixedBy: "REQ-010 c1" }],
+  "free-page.row.format": ["format", { slots: {}, fixedBy: "REQ-010 c1" }],
+  // REQ-010 c2's trade: the address field and the one control beside it.
+  "free-page.email.label": ["Your email", { slots: {}, fixedBy: "REQ-010 c2" }],
+  "free-page.email.placeholder": ["you@company.com", { slots: {}, fixedBy: "REQ-010 c2" }],
+  "free-page.submit": ["Email me the full page", { slots: {}, fixedBy: "REQ-010 c2" }],
   "free-page.absent": ["TODO(copy)", { slots: {}, fixedBy: "REQ-004 c10" }],
 
   "place.report.first-page.rival": [
