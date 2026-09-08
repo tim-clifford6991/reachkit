@@ -178,6 +178,18 @@
 .rk-public-shell > [data-surface][data-arm-compact^="declared:"] {
   flex: 1 1 auto;
   min-height: 0;
+  /* A flex column, so the screen inside it can take the height by growing
+   * rather than by a percentage of a parent whose own height is only
+   * definite once it has been flexed. `min-height: 100%` read auto here
+   * and the sign-in panel stopped at its content, leaving a band of ground
+   * between it and the footer. */
+  display: flex;
+  flex-direction: column;
+}
+
+.rk-public-shell > [data-surface][data-arm-compact^="declared:"] > * {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 @media (min-width: 1024px) {

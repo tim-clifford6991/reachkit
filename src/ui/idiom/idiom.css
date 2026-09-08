@@ -425,7 +425,10 @@
  * chrome" (issue #297). `100svh` would be the viewport *plus* the header
  * and push the page into a scroll it has no content for. */
 [data-surface][data-arm-compact^="declared:"] .rk-split {
-  min-height: 100%;
+  /* The surface is a flex column and gives its child the height (see
+   * `surface.css`), so the split needs no measure of its own here — and
+   * `100svh` would be the viewport *plus* the chrome above it. */
+  min-height: 0;
 }
 
 /* The two panels divide what the split has, rather than each taking only
